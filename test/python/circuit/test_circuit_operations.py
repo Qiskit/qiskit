@@ -1194,7 +1194,7 @@ class TestCircuitOperations(QiskitTestCase):
         qc = QuantumCircuit(2, name="my_qc")
         qc.cry(0.2, 0, 1)
 
-        c_qc = qc.control()
+        c_qc = qc.control(annotated=False)
         with self.subTest("return type is circuit"):
             self.assertIsInstance(c_qc, QuantumCircuit)
 
@@ -1202,19 +1202,19 @@ class TestCircuitOperations(QiskitTestCase):
             self.assertEqual(c_qc.name, "c_my_qc")
 
         with self.subTest("repeated control"):
-            cc_qc = c_qc.control()
+            cc_qc = c_qc.control(annotated=False)
             self.assertEqual(cc_qc.num_qubits, c_qc.num_qubits + 1)
 
         with self.subTest("controlled circuit has same parameter"):
             param = Parameter("p")
             qc.rx(param, 0)
-            c_qc = qc.control()
+            c_qc = qc.control(annotated=False)
             self.assertEqual(qc.parameters, c_qc.parameters)
 
         with self.subTest("non-unitary operation raises"):
             qc.reset(0)
             with self.assertRaises(CircuitError):
-                _ = qc.control()
+                _ = qc.control(annotated=False)
 
     def test_control_implementation(self):
         """Run a test case for controlling the circuit, which should use ``Gate.control``."""
@@ -1222,12 +1222,12 @@ class TestCircuitOperations(QiskitTestCase):
         qc.cx(0, 1)
         qc.cry(0.2, 0, 1)
         qc.t(0)
-        qc.append(SGate().control(2), [0, 1, 2])
+        qc.append(SGate().control(2, annotated=False), [0, 1, 2])
         qc.iswap(2, 0)
 
-        c_qc = qc.control(2, ctrl_state="10")
+        c_qc = qc.control(2, ctrl_state="10", annotated=False)
 
-        cgate = qc.to_gate().control(2, ctrl_state="10")
+        cgate = qc.to_gate().control(2, ctrl_state="10", annotated=False)
         ref = QuantumCircuit(*c_qc.qregs)
         ref.append(cgate, ref.qubits)
 
@@ -1604,7 +1604,7 @@ class TestCircuitOperations(QiskitTestCase):
         control_flow_ops = [
             IfElseOp((circ.clbits[1], 1), circuit_1, circuit_2),
             WhileLoopOp((circ.clbits[1], 1), circuit_1),
-            ForLoopOp((circ.clbits[1], 1), None, body=circuit_1),
+            ForLoopOp((0, 1), None, body=circuit_1),
             SwitchCaseOp(circ.clbits[1], [(0, circuit_1), (1, circuit_2)]),
             BoxOp(circuit_1),
         ]
