@@ -18,6 +18,7 @@ import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.utils.deprecation import deprecate_arg
 from .annotated_operation import AnnotatedOperation, ControlModifier, PowerModifier
 from .instruction import Instruction
 
@@ -101,6 +102,21 @@ class Gate(Instruction):
         gate.params = self.params
         return gate
 
+    @deprecate_arg(
+        name="annotated",
+        since="2.3",
+        additional_msg=(
+            "The method Gate.control() no longer accepts `annotated=None`. The new default is "
+            "`annotated=True`, which represents the controlled gate as an `AnnotatedOperation` "
+            "(unless a dedicated controlled-gate class already exists). You can explicitly set "
+            "`annotated=False` to preserve the previous behavior. However, using `annotated=True` "
+            "is recommended, as it defers construction of the controlled circuit to transpiler, "
+            "and furthermore enables additional controlled-gate optimizations (typically leading "
+            "to higher-quality circuits)."
+        ),
+        predicate=lambda my_arg: my_arg is None,
+        removal_timeline="in Qiskit 3.0",
+    )
     def control(
         self,
         num_ctrl_qubits: int = 1,

@@ -1895,11 +1895,11 @@ impl CircuitData {
             ControlFlow::BreakLoop => ControlFlowView::BreakLoop,
             ControlFlow::ContinueLoop => ControlFlowView::ContinueLoop,
             ControlFlow::ForLoop {
-                indexset,
+                collection,
                 loop_param,
                 ..
             } => ControlFlowView::ForLoop {
-                indexset: indexset.as_slice(),
+                collection,
                 loop_param: loop_param.as_ref(),
                 body: self.blocks.get(instr.blocks_view()[0]).unwrap().object(),
             },

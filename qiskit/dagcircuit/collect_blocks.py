@@ -27,7 +27,7 @@ from .exceptions import DAGCircuitError
 
 
 class BlockCollector:
-    """This class implements various strategies of dividing a DAG (direct acyclic graph)
+    """This class implements various strategies of dividing a DAG (directed acyclic graph)
     into blocks of nodes that satisfy certain criteria. It works both with the
     :class:`~qiskit.dagcircuit.DAGCircuit` and
     :class:`~qiskit.dagcircuit.DAGDependency` representations of a DAG, where
@@ -207,7 +207,7 @@ class BlockCollector:
         qubit subsets. The option ``split_layers`` allows to split collected blocks
         into layers of non-overlapping instructions. The option ``min_block_size``
         specifies the minimum number of gates in the block for the block to be collected.
-        The option ``max_block_width`` specificies the maximum number of qubits over
+        The option ``max_block_width`` specifies the maximum number of qubits over
         which a block can be defined.
 
         By default, blocks are collected in the direction from the inputs towards the outputs
