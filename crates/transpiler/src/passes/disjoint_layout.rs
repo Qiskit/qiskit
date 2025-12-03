@@ -17,12 +17,8 @@ use hashbrown::{HashMap, HashSet};
 use pyo3::create_exception;
 use pyo3::intern;
 use pyo3::prelude::*;
-<<<<<<< HEAD
 use pyo3::types::{PyList, PyTuple};
 use rayon::prelude::*;
-=======
-use pyo3::types::PyList;
->>>>>>> cae0817b7 (Stop using a parallel sort in disjoint utils (#15410))
 use rustworkx_core::connectivity::connected_components;
 use rustworkx_core::petgraph::prelude::*;
 use rustworkx_core::petgraph::visit::{IntoEdgeReferences, IntoNodeReferences, NodeFiltered};
