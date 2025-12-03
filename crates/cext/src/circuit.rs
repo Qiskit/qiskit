@@ -29,7 +29,7 @@ use qiskit_circuit::operations::{
     ArrayType, DelayUnit, Operation, Param, StandardGate, StandardInstruction, UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
-use qiskit_circuit::{Clbit, Qubit};
+use qiskit_circuit::{BlocksMode, Clbit, Qubit, VarsMode};
 
 #[cfg(feature = "python_binding")]
 use pyo3::ffi::PyObject;
@@ -1210,4 +1210,104 @@ pub unsafe extern "C" fn qk_circuit_to_dag(circuit: *const CircuitData) -> *mut 
         .expect("Error occurred while converting CircuitData to DAGCircuit");
 
     Box::into_raw(Box::new(dag))
+}
+
+/// @ingroup QkCircuit
+///
+/// The mode to copy the classical variables, for operations that create a new
+/// circuit based on an existing one.
+#[repr(u8)]
+pub enum CVarsMode {
+    /// Each variable has the same type it had in the input.
+    Alike = 0,
+    /// Each variable becomes a "capture".
+    Captures = 1,
+    /// Do not copy the variable data.
+    Drop = 2,
+}
+
+impl From<CVarsMode> for VarsMode {
+    fn from(value: CVarsMode) -> Self {
+        match value {
+            CVarsMode::Alike => VarsMode::Alike,
+            CVarsMode::Captures => VarsMode::Captures,
+            CVarsMode::Drop => VarsMode::Drop,
+        }
+    }
+}
+
+/// @ingroup QkCircuit
+///
+/// The mode to use to copy blocks in control-flow instructions, for operations that
+/// create a new circuit based on an existing one.
+#[repr(u8)]
+pub enum CBlocksMode {
+    /// Drop the blocks.
+    Drop = 0,
+    /// Keep the blocks.
+    Keep = 1,
+}
+
+impl From<CBlocksMode> for BlocksMode {
+    fn from(value: CBlocksMode) -> Self {
+        match value {
+            CBlocksMode::Drop => BlocksMode::Drop,
+            CBlocksMode::Keep => BlocksMode::Keep,
+        }
+    }
+}
+
+/// @ingroup QkCircuit
+/// Return a copy of self with the same structure but empty.
+///
+/// That structure includes:
+/// * global phase
+/// * all the qubits and clbits, including the registers.
+///
+/// @param circuit A pointer to the circuit to copy.
+/// @param vars_mode The mode for handling classical variables.
+/// @param blocks_mode The mode for handling blocks.
+///
+/// @return The pointer to the copied circuit.
+///
+/// # Example
+/// ```c
+/// QkCircuit *qc = qk_circuit_new(10, 10);
+/// for (int i = 0; i < 10; i++) {
+///     qk_circuit_measure(qc, i, i);
+///     uint32_t qubits[1] = {i};
+///     qk_circuit_gate(qc, QkGate_H, qubits, NULL);
+/// }
+///
+/// // As the circuit does not contain any control-flow instructions,
+/// // vars_mode and blocks_mode do not have any effect.
+/// QkCircuit *copy = qk_circuit_copy_empty_like(qc, QkVarsMode_Alike, QkBlocksMode_Drop);
+///
+/// size_t num_copy_instructions = qk_circuit_num_instructions(copy); // 0
+///
+/// // do something with the copy
+///
+/// qk_circuit_free(qc);
+/// qk_circuit_free(copy);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_circuit_copy_empty_like(
+    circuit: *const CircuitData,
+    vars_mode: CVarsMode,
+    blocks_mode: CBlocksMode,
+) -> *mut CircuitData {
+    // SAFETY: Per documentation, the pointer is to valid data.
+    let circuit = unsafe { const_ptr_as_ref(circuit) };
+    let vars_mode = vars_mode.into();
+    let blocks_mode = blocks_mode.into();
+
+    let copied_circuit = circuit
+        .copy_empty_like(vars_mode, blocks_mode)
+        .expect("Failed to copy the circuit.");
+    Box::into_raw(Box::new(copied_circuit))
 }

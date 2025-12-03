@@ -23,7 +23,7 @@ use qiskit_circuit::operations::{
 };
 use qiskit_circuit::{Clbit, Qubit};
 
-use crate::circuit::CInstruction;
+use crate::circuit::{CBlocksMode, CInstruction, CVarsMode};
 
 use crate::circuit::unitary_from_pointer;
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
@@ -1368,4 +1368,61 @@ pub unsafe extern "C" fn qk_dag_topological_op_nodes(dag: *const DAGCircuit, out
         // writes of `u32`s.
         unsafe { out_order.add(i).write(node.index() as u32) }
     }
+}
+
+/// @ingroup QkDag
+/// Return a copy of self with the same structure but empty.
+///
+/// That structure includes:
+/// * name and other metadata
+/// * global phase
+/// * duration
+/// * all the qubits and clbits, including the registers.
+///
+/// @param dag A pointer to the DAG to copy.
+/// @param vars_mode The mode for handling classical variables.
+/// @param blocks_mode The mode for handling blocks.
+///
+/// @return The pointer to the copied DAG circuit.
+///
+/// # Example
+/// ```c
+/// QkDag *dag = qk_dag_new();
+/// QkQuantumRegister *qr = qk_quantum_register_new(1, "my_register");
+/// qk_dag_add_quantum_register(dag, qr);
+///
+/// uint32_t qubit[1] = {0};
+/// qk_dag_apply_gate(dag, QkGate_H, qubit, NULL, false);
+///
+/// // As the DAG does not contain any control-flow instructions,
+/// // vars_mode and blocks_mode do not have any effect.
+/// QkDag *copied_dag = qk_dag_copy_empty_like(dag, QkVarsMode_Alike, QkBlocksMode_Drop);
+/// uint32_t num_ops_in_copied_dag = qk_dag_num_op_nodes(copied_dag); // 0
+///
+/// // do something with copied_dag
+///
+/// qk_quantum_register_free(qr);
+/// qk_dag_free(dag);
+/// qk_dag_free(copied_dag);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``dag`` is not a valid pointer to a ``QkDag``.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_dag_copy_empty_like(
+    dag: *const DAGCircuit,
+    vars_mode: CVarsMode,
+    blocks_mode: CBlocksMode,
+) -> *mut DAGCircuit {
+    // SAFETY: Per documentation, the pointer is to valid data.
+    let dag = unsafe { const_ptr_as_ref(dag) };
+    let vars_mode = vars_mode.into();
+    let blocks_mode = blocks_mode.into();
+
+    let copied_dag = dag
+        .copy_empty_like_with_capacity(0, 0, vars_mode, blocks_mode)
+        .expect("Failed to copy the DAG.");
+    Box::into_raw(Box::new(copied_dag))
 }
