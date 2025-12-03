@@ -1895,11 +1895,11 @@ impl CircuitData {
             ControlFlow::BreakLoop => ControlFlowView::BreakLoop,
             ControlFlow::ContinueLoop => ControlFlowView::ContinueLoop,
             ControlFlow::ForLoop {
-                indexset,
+                collection,
                 loop_param,
                 ..
             } => ControlFlowView::ForLoop {
-                indexset,
+                collection,
                 loop_param: loop_param.as_ref(),
                 body: self.blocks.get(instr.blocks_view()[0]).unwrap().object(),
             },
@@ -2389,7 +2389,7 @@ impl CircuitData {
                             // argument position 1.
                             if let Some(loop_param) = loop_param {
                                 self.param_table.track(
-                                    &loop_param.bind(py).extract()?,
+                                    loop_param,
                                     Some(ParameterUse::Index {
                                         instruction: instruction_index,
                                         parameter: 1,
@@ -2484,7 +2484,7 @@ impl CircuitData {
                             // argument position 1.
                             if let Some(loop_param) = loop_param {
                                 self.param_table.untrack(
-                                    &loop_param.bind(py).extract()?,
+                                    loop_param,
                                     ParameterUse::Index {
                                         instruction: instruction_index,
                                         parameter: 1,
@@ -2617,6 +2617,11 @@ impl CircuitData {
     /// Get the sorted symbols in this circuit.
     pub fn parameters(&self) -> &[Symbol] {
         self.param_table.symbols()
+    }
+
+    /// Does the circuit use this `Symbol` as a parameter?
+    pub fn uses_parameter(&self, sym: &Symbol) -> bool {
+        self.param_table.contains(sym)
     }
 
     /// Get the unsorted symbols in this circuit.

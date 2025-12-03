@@ -32,6 +32,11 @@ pub struct Range {
     pub constant: bool,
 }
 
+// Manual Eq implementation since Expr only implements PartialEq, not Eq.
+// This is safe because Eq is just a marker trait indicating that PartialEq
+// is an equivalence relation (reflexive, symmetric, transitive).
+impl Eq for Range {}
+
 impl<'py> IntoPyObject<'py> for Range {
     type Target = PyAny;
     type Output = Bound<'py, PyAny>;
@@ -42,12 +47,39 @@ impl<'py> IntoPyObject<'py> for Range {
     }
 }
 
+impl<'py> IntoPyObject<'py> for &'_ Range {
+    type Target = <Range as IntoPyObject<'py>>::Target;
+    type Output = <Range as IntoPyObject<'py>>::Output;
+    type Error = <Range as IntoPyObject<'py>>::Error;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        self.clone().into_pyobject(py)
+    }
+}
+
 impl<'a, 'py> FromPyObject<'a, 'py> for Range {
     type Error = <PyRangeExpr as FromPyObject<'a, 'py>>::Error;
 
     fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         let PyRangeExpr(r) = ob.extract()?;
         Ok(r)
+    }
+}
+
+impl Range {
+    /// Returns the length of the range.
+    ///
+    /// Note: Returns 1 as the length is generally undefined for dynamic ranges.
+    pub fn len(&self) -> usize {
+        1
+    }
+
+    /// Returns whether the range is empty.
+    ///
+    /// Note: Returns false if the object exists, as the emptiness cannot be
+    /// determined statically for dynamic ranges.
+    pub fn is_empty(&self) -> bool {
+        false
     }
 }
 
@@ -112,7 +144,7 @@ fn determine_common_max_type(types: &[Type]) -> Type {
     name = "Range",
     module = "qiskit._accelerate.circuit.classical.expr"
 )]
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Eq, Clone, Debug)]
 pub struct PyRangeExpr(pub Range);
 
 #[pymethods]
@@ -269,7 +301,15 @@ impl PyRangeExpr {
     }
 
     fn __len__(&self) -> usize {
-        1
+        self.0.len()
+    }
+
+    fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    fn is_empty(&self) -> bool {
+        self.0.is_empty()
     }
 
     fn accept<'py>(
@@ -309,7 +349,7 @@ impl PyRangeExpr {
             Err(_) => format!(", step={}", step.str()?),
         };
 
-        Ok(format!("R({}, {}{})", start_str, stop_str, step_str))
+        Ok(format!("Range({}, {}{})", start_str, stop_str, step_str))
     }
 
     fn __copy__(slf: PyRef<Self>) -> PyRef<Self> {
