@@ -470,3 +470,61 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_vf2_layout_exact(
         .map(|result| Box::into_raw(Box::new(VF2LayoutResult(result))))
         .unwrap()
 }
+
+/// @ingroup QkTranspilerPasses
+/// Deprecated version of `qk_transpiler_pass_standalone_vf2_layout_average`.
+///
+/// This legacy interface does not use `QkVf2LayoutConfiguration`, and has a name that is not clear
+/// about how it handles the error heuristic (it averages over all gates in the `QkTarget` for a
+/// given qubit or link).
+///
+/// @param circuit As in `qk_transpiler_pass_standalone_vf2_layout_average`.
+/// @param target As in `qk_transpiler_pass_standalone_vf2_layout_average`.
+/// @param strict_direction As in `qk_transpiler_pass_standalone_vf2_layout_average`.
+/// @param call_limit As in `qk_vf2_layout_configuration_set_call_limit`, but the same value is used
+///     for both `before` and `after`.
+/// @param time_limit As in `qk_vf2_layout_configuration_set_time_limit`.
+/// @param max_trials As in `qk_vf2_layout_configuration_set_max_trials`.
+///
+/// @return As in `qk_transpiler_pass_standalone_vf2_layout_average`.
+///
+/// \qk_deprecated{2.3.0|Replaced by :c:func:`qk_transpiler_pass_standalone_vf2_layout_average`.}
+///
+/// # Safety
+///
+/// The safety requirements of `qk_transpiler_pass_standalone_vf2_layout_average` must be respected
+/// for `circuit` and `target`.
+#[deprecated(
+    since = "2.3.0",
+    note = "use `qk_transpiler_pass_standalone_vf2_layout_average` instead"
+)]
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_transpiler_pass_standalone_vf2_layout(
+    circuit: *const CircuitData,
+    target: *const Target,
+    strict_direction: bool,
+    call_limit: i64,
+    time_limit: f64,
+    max_trials: i64,
+) -> *mut VF2LayoutResult {
+    let call_limit: Option<usize> = call_limit.try_into().ok();
+    let max_trials = if max_trials == 0 {
+        None
+    } else {
+        max_trials.try_into().ok().or(Some(0))
+    };
+    let config = VF2LayoutConfiguration(Vf2PassConfiguration {
+        call_limit: (call_limit, call_limit),
+        time_limit: (time_limit > 0.0).then_some(time_limit),
+        max_trials,
+        shuffle_seed: None,
+        score_initial_layout: false,
+    });
+    // SAFETY: this function is a deprecated thin wrapper around `_average`, and per documentation
+    // the caller has upheld the requirements of that function.  `config` is safe to point to as it
+    // is constructed in safe code and lasts for the duration of this function.
+    unsafe {
+        qk_transpiler_pass_standalone_vf2_layout_average(circuit, target, &config, strict_direction)
+    }
+}
