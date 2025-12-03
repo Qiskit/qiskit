@@ -65,6 +65,7 @@ pub struct Block(u32);
 
 pub use nlayout::PhysicalQubit;
 pub use nlayout::VirtualQubit;
+pub use packed_instruction::BlockMapper;
 
 macro_rules! impl_circuit_identifier {
     ($type:ident) => {

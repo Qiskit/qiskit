@@ -18,7 +18,7 @@ use qiskit_transpiler::commutation_checker::get_standard_commutation_checker;
 use qiskit_transpiler::target::Target;
 use qiskit_transpiler::transpile;
 use qiskit_transpiler::transpile_layout::TranspileLayout;
-use qiskit_transpiler::transpiler::init_stage;
+use qiskit_transpiler::transpiler::{get_sabre_heuristic, init_stage, layout_stage};
 
 use crate::exit_codes::ExitCode;
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
@@ -121,7 +121,7 @@ pub extern "C" fn qk_transpiler_default_options() -> TranspileOptions {
 /// pointers to a ``QkDag``, ``QkTarget``, or a ``QkTranspileLayout`` pointer
 /// respectively. ``options`` must be a valid pointer a to a ``QkTranspileOptions`` or ``NULL``.
 /// ``error`` must be a valid pointer to a ``char`` pointer or ``NULL``. The value of the inner
-/// pointer for ``layout`` will be overwritten by this function. If the value pointed too needs to
+/// pointer for ``layout`` will be overwritten by this function. If the value pointed to needs to
 /// be freed this must be done outside of this function as it will not be freed by this function.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
@@ -194,6 +194,179 @@ pub unsafe extern "C" fn qk_transpile_stage_init(
                 }
             }
             ExitCode::TranspilerError
+        }
+    }
+}
+
+/// @ingroup QkTranspiler
+/// Run the preset layout stage of the transpiler on a circuit
+///
+/// The Qiskit transpiler is a quantum circuit compiler that rewrites a given
+/// input circuit to match the constraints of a QPU and optimizes the circuit
+/// for execution. This function runs the second stage of the preset pass manager
+/// **layout**, which chooses the initial mapping of virtual qubits to
+/// physical qubits, including expansion of the circuit to contain explicit
+/// ancillas. You can refer to
+/// @verbatim embed:rst:inline :ref:`transpiler-preset-stage-layout` @endverbatim for more details.
+///
+/// This function should only be used with circuits constructed
+/// using Qiskit's C API. It makes assumptions on the circuit only using features exposed via C,
+/// if you are in a mixed Python and C environment it is typically better to invoke the transpiler
+/// via Python.
+///
+/// This function is multithreaded internally and will launch a thread pool
+/// with threads equal to the number of CPUs reported by the operating system by default.
+/// This will include logical cores on CPUs with simultaneous multithreading. You can tune the
+/// number of threads with the ``RAYON_NUM_THREADS`` environment variable. For example, setting
+/// ``RAYON_NUM_THREADS=4`` would limit the thread pool to 4 threads.
+///
+/// @param dag A pointer to the circuit to run the transpiler on.
+/// @param target A pointer to the target to compile the circuit for.
+/// @param options A pointer to an options object that defines user options. If this is a null
+///   pointer the default values will be used. See ``qk_transpile_default_options``
+///   for more details on the default values.
+/// @param layout A pointer to a pointer to a ``QkTranspileLayout`` object. On a successful
+///   execution (return code 0) a pointer to the layout object created transpiler will be written
+///   to this pointer. The inner pointer for this can be null if there is no existing layout
+///   object. Typically if you run `qk_transpile_stage_init` you would take the output layout from
+///   that function and use this as the input for this. But if you don't have a layout the inner
+///   pointer can be null and a new `QkTranspileLayout` will be allocated and that pointer will be
+///   set for the inner value of the layout here.
+/// @param error A pointer to a pointer with an nul terminated string with an error description.
+///   If the transpiler fails a pointer to the string with the error description will be written
+///   to this pointer. That pointer needs to be freed with ``qk_str_free``. This can be a null
+///   pointer in which case the error will not be written out.
+///
+/// @returns The return code for the transpiler, ``QkExitCode_Success`` means success and all
+///   other values indicate an error.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``dag`` or ``target``, are not valid, non-null
+/// pointers to a ``QkDag``, or a ``QkTarget`` respectively. Behavior is also undefined if ``layout``
+/// is not a valid, aligned, pointer to a pointer to a ``QkTranspileLayout`` or a pointer to a
+/// ``NULL`` pointer. ``options`` must be a valid pointer a to a ``QkTranspileOptions`` or ``NULL``.
+/// ``error`` must be a valid pointer to a ``char`` pointer or ``NULL``.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_transpile_stage_layout(
+    dag: *mut DAGCircuit,
+    target: *const Target,
+    options: *const TranspileOptions,
+    layout: *mut *mut TranspileLayout,
+    error: *mut *mut c_char,
+) -> ExitCode {
+    // SAFETY: Per documentation, the pointers are non-null and aligned.
+    let dag = unsafe { mut_ptr_as_ref(dag) };
+    let target = unsafe { const_ptr_as_ref(target) };
+
+    let options = if options.is_null() {
+        &TranspileOptions::default()
+    } else {
+        // SAFETY: We checked the pointer is not null, then, per documentation, it is a valid
+        // and aligned pointer.
+        unsafe { const_ptr_as_ref(options) }
+    };
+
+    let seed = if options.seed < 0 {
+        None
+    } else {
+        Some(options.seed as u64)
+    };
+    let sabre_heuristic = match get_sabre_heuristic(target) {
+        Ok(val) => val,
+        Err(e) => {
+            if !error.is_null() {
+                unsafe {
+                    // Right now we return a backtrace of the error. This at least gives a hint as to
+                    // which pass failed when we have rust errors normalized we can actually have error
+                    // messages which are user facing. But most likely this will be a PyErr and panic
+                    // when trying to extract the string.
+                    *error = CString::new(format!(
+                        "Transpilation failed with this backtrace: {}",
+                        e.backtrace()
+                    ))
+                    .unwrap()
+                    .into_raw();
+                }
+            }
+            return ExitCode::TranspilerError;
+        }
+    };
+
+    let layout_inner = unsafe { *layout };
+    if !layout_inner.is_null() {
+        let out_layout = unsafe { mut_ptr_as_ref(layout_inner) };
+        match layout_stage(
+            dag,
+            target,
+            options.optimization_level.into(),
+            seed,
+            &sabre_heuristic,
+            out_layout,
+        ) {
+            Err(e) => {
+                if !error.is_null() {
+                    // Right now we return a backtrace of the error. This at least gives a hint as to
+                    // which pass failed when we have rust errors normalized we can actually have error
+                    // messages which are user facing. But most likely this will be a PyErr and panic
+                    // when trying to extract the string.
+                    let out_string = CString::new(format!(
+                        "Transpilation failed with this backtrace: {}",
+                        e.backtrace()
+                    ))
+                    .unwrap()
+                    .into_raw();
+                    unsafe {
+                        *error = out_string;
+                    }
+                }
+                ExitCode::TranspilerError
+            }
+            Ok(_) => ExitCode::Success,
+        }
+    } else {
+        let mut out_layout = TranspileLayout::new(
+            None,
+            None,
+            dag.qubits().objects().to_owned(),
+            dag.num_qubits() as u32,
+            dag.qregs().to_vec(),
+        );
+        match layout_stage(
+            dag,
+            target,
+            options.optimization_level.into(),
+            seed,
+            &sabre_heuristic,
+            &mut out_layout,
+        ) {
+            Ok(_) => {
+                // SAFETY: Per the documentation result is a non-null aligned pointer to a pointer to
+                // a QKTranspileLayout
+                unsafe {
+                    *layout = Box::into_raw(Box::new(out_layout));
+                }
+                ExitCode::Success
+            }
+            Err(e) => {
+                if !error.is_null() {
+                    // Right now we return a backtrace of the error. This at least gives a hint as to
+                    // which pass failed when we have rust errors normalized we can actually have error
+                    // messages which are user facing. But most likely this will be a PyErr and panic
+                    // when trying to extract the string.
+                    let out_string = CString::new(format!(
+                        "Transpilation failed with this backtrace: {}",
+                        e.backtrace()
+                    ))
+                    .unwrap()
+                    .into_raw();
+                    unsafe {
+                        *error = out_string;
+                    }
+                }
+                ExitCode::TranspilerError
+            }
         }
     }
 }

@@ -91,7 +91,7 @@ def multiplier_qft_r17(
                 # note: if we can synthesize the QFT without swaps, we can implement this circuit
                 # more efficiently and just apply phase gate on qr_out[(k - 1)] instead
                 circuit.append(
-                    PhaseGate(lam).control(2),
+                    PhaseGate(lam).control(2, annotated=False),
                     [qr_a[num_state_qubits - j], qr_b[num_state_qubits - i], qr_out[~(k - 1)]],
                 )
 

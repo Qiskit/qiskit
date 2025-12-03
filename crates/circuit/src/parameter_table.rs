@@ -114,6 +114,12 @@ impl ParameterTable {
         self.by_uuid.len()
     }
 
+    /// Does this table track the given parameter?
+    pub fn contains(&self, symbol: &Symbol) -> bool {
+        self.by_uuid
+            .contains_key(&ParameterUuid::from_symbol(symbol))
+    }
+
     /// Add a new usage of a parameter coming in, optionally adding a first usage to it.
     ///
     /// The no-use form is useful when doing parameter assignments from Rust space, where the
