@@ -27,11 +27,11 @@ use std::ptr;
 
 /// Internal helper to extract real part of a complex number,
 /// panicking if imaginary part is non-zero.
-fn approx_real(z: &Complex64) -> f64 {
+fn approx_real(z: &Complex64) -> Result<f64, ExitCode> {
     if z.im.abs() > 1e-12 {
-        panic!("Complex coefficient with imaginary part encountered in QDRIFT.")
+        return Err(ExitCode::CInputError);
     }
-    z.re
+    Ok(z.re)
 }
 
 /// This is an internal helper function to build the QDrift circuit.
@@ -67,6 +67,10 @@ fn qdrift_build_circuit(
         let is_identity = start == end;
 
         let r = approx_real(&c);
+        let r = match r {
+            Err(e) => return Err(e),
+            Ok(r) => r,
+        };
 
         if is_identity {
             kappa += r;
@@ -103,7 +107,11 @@ fn qdrift_build_circuit(
 
     let probs: Vec<f64> = mags.iter().map(|m| m / lambda).collect();
 
-    let dist = WeightedIndex::new(&probs).unwrap();
+    let dist = WeightedIndex::new(&probs);
+    let dist = match dist {
+        Err(_) => return Err(ExitCode::CInputError),
+        Ok(dist) => dist,
+    };
     // let mut rng = StdRng::seed_from_u64(seed as u64);
     let mut rng = rand::rng();
 
