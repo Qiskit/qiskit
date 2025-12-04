@@ -222,7 +222,7 @@ pub unsafe extern "C" fn qk_transpile_stage_init(
 /// number of threads with the ``RAYON_NUM_THREADS`` environment variable. For example, setting
 /// ``RAYON_NUM_THREADS=4`` would limit the thread pool to 4 threads.
 ///
-/// @param circuit A pointer to the circuit to run the transpiler on.
+/// @param dag A pointer to the circuit to run the transpiler on.
 /// @param target A pointer to the target to compile the circuit for.
 /// @param options A pointer to an options object that defines user options. If this is a null
 ///   pointer the default values will be used. See ``qk_transpile_default_options``
