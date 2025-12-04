@@ -846,7 +846,7 @@ class QuantumCircuit:
     .. automethod:: has_control_flow_op
 
 
-    Converting circuits to single objects
+    Converting circuits to other objects
     -------------------------------------
 
     As discussed in :ref:`circuit-append-compose`, you can convert a circuit to either an
@@ -854,6 +854,10 @@ class QuantumCircuit:
 
     .. automethod:: to_instruction
     .. automethod:: to_gate
+
+    In addition, you can convert the entire circuit into the :class:`.DAGCircuit` representation:
+
+    .. automethod:: to_dag
 
 
     Helper mutation methods
@@ -3840,6 +3844,24 @@ class QuantumCircuit:
 
         # do not copy operations, this is done in the conversion with circuit_to_dag
         return dag_to_circuit(dag, copy_operations=False)
+
+    def to_dag(self, *, copy_operations: bool = True) -> qiskit.dagcircuit.DAGCircuit:
+        """Convert this circuit to a :class:`.DAGCircuit`.
+
+        This is a simple wrapper around :func:`.circuit_to_dag`.
+
+        Args:
+            copy_operations: whether to deep copy the individual instructions.  If set to ``False``,
+                the operation is cheaper but mutations to the instructions in the DAG will affect
+                the original circuit.
+
+        Returns:
+            a DAG representing this same circuit.
+        """
+        # pylint: disable=cyclic-import
+        from qiskit.converters import circuit_to_dag
+
+        return circuit_to_dag(self, copy_operations=copy_operations)
 
     def draw(
         self,
