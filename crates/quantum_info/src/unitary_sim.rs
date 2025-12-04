@@ -63,8 +63,7 @@ pub fn sim_unitary_circuit(circuit: &CircuitData) -> Result<Array2<Complex64>, S
         let qubits = circuit.get_qargs(inst.qubits);
 
         let mat = inst
-            .op
-            .matrix(inst.params_view())
+            .try_matrix()
             .ok_or_else(|| format!("Cannot extract matrix for operation {:?}.", inst.op.name()))?;
 
         product_mat = unitary_compose::compose(&product_mat.view(), &mat.view(), qubits, false)?;
@@ -90,7 +89,7 @@ pub fn unitary_sim(m: &Bound<PyModule>) -> PyResult<()> {
 mod test {
     use super::sim_unitary_circuit;
     use approx::abs_diff_eq;
-    use qiskit_circuit::operations::{Operation, StandardGate};
+    use qiskit_circuit::operations::StandardGate;
 
     #[test]
     fn test_sim_ecr_definition() {

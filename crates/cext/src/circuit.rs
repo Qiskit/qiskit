@@ -22,11 +22,14 @@ use num_complex::{Complex64, ComplexFloat};
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
 use qiskit_circuit::bit::{ShareableClbit, ShareableQubit};
 use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::instruction::Parameters;
+use qiskit_circuit::interner::Interner;
 use qiskit_circuit::operations::{
     ArrayType, DelayUnit, Operation, Param, StandardGate, StandardInstruction, UnitaryGate,
 };
-use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::{Clbit, Qubit};
+use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
+use qiskit_circuit::{BlocksMode, Clbit, Qubit, VarsMode};
 
 #[cfg(feature = "python_binding")]
 use pyo3::ffi::PyObject;
@@ -36,6 +39,7 @@ use pyo3::types::PyAnyMethods;
 use pyo3::{Python, intern};
 #[cfg(feature = "python_binding")]
 use qiskit_circuit::imports::QUANTUM_CIRCUIT;
+use smallvec::smallvec;
 
 /// @ingroup QkCircuit
 /// Construct a new circuit with the given number of qubits and clbits.
@@ -537,7 +541,7 @@ pub unsafe extern "C" fn qk_circuit_measure(
     circuit
         .push_packed_operation(
             PackedOperation::from_standard_instruction(StandardInstruction::Measure),
-            &[],
+            None,
             &[Qubit(qubit)],
             &[Clbit(clbit)],
         )
@@ -570,7 +574,7 @@ pub unsafe extern "C" fn qk_circuit_reset(circuit: *mut CircuitData, qubit: u32)
     circuit
         .push_packed_operation(
             PackedOperation::from_standard_instruction(StandardInstruction::Reset),
-            &[],
+            None,
             &[Qubit(qubit)],
             &[],
         )
@@ -618,7 +622,7 @@ pub unsafe extern "C" fn qk_circuit_barrier(
     circuit
         .push_packed_operation(
             PackedOperation::from_standard_instruction(StandardInstruction::Barrier(num_qubits)),
-            &[],
+            None,
             &qubits,
             &[],
         )
@@ -777,7 +781,9 @@ pub unsafe extern "C" fn qk_circuit_unitary(
     // Create PackedOperation -> push to circuit_data
     let u_gate = Box::new(UnitaryGate { array: mat });
     let op = PackedOperation::from_unitary(u_gate);
-    circuit.push_packed_operation(op, &[], qubits, &[]).unwrap();
+    circuit
+        .push_packed_operation(op, None, qubits, &[])
+        .unwrap();
     // Return success
     ExitCode::Success
 }
@@ -875,6 +881,44 @@ pub struct CInstruction {
     /// The number of parameters for this instruction.
     num_params: u32,
 }
+impl CInstruction {
+    /// Create a `CInstruction` that owns pointers to copies of the information in the given
+    /// `PackedInstruction`.
+    ///
+    /// This must be cleared by a call to `qk_circuit_instruction_clear` to avoid leaking its
+    /// allocations.
+    ///
+    /// Panics if the operation name contains a nul, or if the instruction has non-float parameters.
+    pub(crate) fn from_packed_instruction_with_floats(
+        packed: &PackedInstruction,
+        qargs_interner: &Interner<[Qubit]>,
+        cargs_interner: &Interner<[Clbit]>,
+    ) -> Self {
+        let name = CString::new(packed.op.name())
+            .expect("names do not contain nul")
+            .into_raw();
+        let qargs = qargs_interner.get(packed.qubits);
+        let cargs = cargs_interner.get(packed.clbits);
+        let params = packed
+            .params_view()
+            .iter()
+            .map(|p| match p {
+                Param::Float(p) => Some(*p),
+                _ => None,
+            })
+            .collect::<Option<Box<[f64]>>>()
+            .expect("caller is responsible for ensuring all parameters are floats");
+        Self {
+            name,
+            num_qubits: qargs.len() as u32,
+            qubits: Box::leak(qargs.iter().map(|q| q.0).collect::<Box<[u32]>>()).as_mut_ptr(),
+            num_clbits: cargs.len() as u32,
+            clbits: Box::leak(cargs.iter().map(|c| c.0).collect::<Box<[u32]>>()).as_mut_ptr(),
+            num_params: params.len() as u32,
+            params: Box::leak(params).as_mut_ptr(),
+        }
+    }
+}
 
 /// @ingroup QkCircuit
 /// Return the instruction details for an instruction in the circuit.
@@ -914,63 +958,15 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
     index: usize,
     instruction: *mut CInstruction,
 ) {
-    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    // SAFETY: Per documentation, `circuit` is a pointer to valid data.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
-    if index >= circuit.__len__() {
-        panic!("Invalid index")
-    }
-    let packed_inst = &circuit.data()[index];
-    let mut qargs = {
-        let qargs = circuit.get_qargs(packed_inst.qubits);
-        let qargs_vec: Vec<u32> = qargs.iter().map(|x| x.0).collect();
-        qargs_vec.into_boxed_slice()
-    };
-    let mut cargs = {
-        let cargs = circuit.get_cargs(packed_inst.clbits);
-        let cargs_vec: Vec<u32> = cargs.iter().map(|x| x.0).collect();
-        cargs_vec.into_boxed_slice()
-    };
-    let mut params = {
-        let params = packed_inst.params_view();
-        let params_vec: Vec<f64> = params
-            .iter()
-            .map(|x| match x {
-                Param::Float(val) => *val,
-                _ => panic!("Invalid parameter on instruction"),
-            })
-            .collect();
-        params_vec.into_boxed_slice()
-    };
-    // These lists (e.g. 'qargs') are Box<[T]>, so we use .as_mut_ptr()
-    // to get a mutable pointer to the underlying slice/array on
-    // the heap and Box::into_raw() to consume the Box without freeing
-    // it (so the underlying array doesn't get freed when we return)
-    let out_qargs = qargs.as_mut_ptr();
-    let out_qargs_len = qargs.len() as u32;
-    let _ = Box::into_raw(qargs);
-    let out_cargs = cargs.as_mut_ptr();
-    let out_cargs_len = cargs.len() as u32;
-    let _ = Box::into_raw(cargs);
-    let out_params = params.as_mut_ptr();
-    let out_params_len = params.len() as u32;
-    let _ = Box::into_raw(params);
-
-    // SAFETY: The pointer must point to a CInstruction size allocation
-    // per the docstring.
-    unsafe {
-        std::ptr::write(
-            instruction,
-            CInstruction {
-                name: CString::new(packed_inst.op.name()).unwrap().into_raw(),
-                num_qubits: out_qargs_len,
-                qubits: out_qargs,
-                num_clbits: out_cargs_len,
-                clbits: out_cargs,
-                num_params: out_params_len,
-                params: out_params,
-            },
-        );
-    }
+    let inst = CInstruction::from_packed_instruction_with_floats(
+        &circuit.data()[index],
+        circuit.qargs_interner(),
+        circuit.cargs_interner(),
+    );
+    // SAFETY: per documentation, `instruction` is a pointer to a sufficient allocation.
+    unsafe { instruction.write(inst) };
 }
 
 /// @ingroup QkCircuit
@@ -1164,14 +1160,154 @@ pub unsafe extern "C" fn qk_circuit_delay(
     let duration_param: Param = duration.into();
     let delay_instruction = StandardInstruction::Delay(delay_unit_variant);
 
+    let params = Parameters::Params(smallvec![duration_param]);
     circuit
         .push_packed_operation(
             PackedOperation::from_standard_instruction(delay_instruction),
-            &[duration_param],
+            Some(params),
             &[Qubit(qubit)],
             &[],
         )
         .unwrap();
 
     ExitCode::Success
+}
+
+/// @ingroup QkCircuit
+/// Convert a given circuit to a DAG.
+///
+/// The new DAG is copied from the circuit; the original ``circuit`` reference is still owned by the
+/// caller and still required to be freed with `qk_circuit_free`.  You must free the returned DAG
+/// with ``qk_dag_free`` when done with it.
+///
+/// @param circuit A pointer to the circuit from which to create the DAG.
+///
+/// @return A pointer to the new DAG.
+///
+/// # Example
+/// ```c
+///     QkCircuit *qc = qk_circuit_new(0, 0);
+///     QkQuantumRegister *qr = qk_quantum_register_new(3, "qr");
+///     qk_circuit_add_quantum_register(qc, qr);
+///     qk_quantum_register_free(qr);
+///     
+///     QkDag *dag = qk_circuit_to_dag(qc);
+///     
+///     qk_dag_free(dag);
+///     qk_circuit_free(qc);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.  
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_circuit_to_dag(circuit: *const CircuitData) -> *mut DAGCircuit {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let circuit = unsafe { const_ptr_as_ref(circuit) };
+
+    let dag = DAGCircuit::from_circuit_data(circuit, true, None, None, None, None)
+        .expect("Error occurred while converting CircuitData to DAGCircuit");
+
+    Box::into_raw(Box::new(dag))
+}
+
+/// @ingroup QkCircuit
+///
+/// The mode to copy the classical variables, for operations that create a new
+/// circuit based on an existing one.
+#[repr(u8)]
+pub enum CVarsMode {
+    /// Each variable has the same type it had in the input.
+    Alike = 0,
+    /// Each variable becomes a "capture".
+    Captures = 1,
+    /// Do not copy the variable data.
+    Drop = 2,
+}
+
+impl From<CVarsMode> for VarsMode {
+    fn from(value: CVarsMode) -> Self {
+        match value {
+            CVarsMode::Alike => VarsMode::Alike,
+            CVarsMode::Captures => VarsMode::Captures,
+            CVarsMode::Drop => VarsMode::Drop,
+        }
+    }
+}
+
+/// @ingroup QkCircuit
+///
+/// The mode to use to copy blocks in control-flow instructions, for operations that
+/// create a new circuit based on an existing one.
+#[repr(u8)]
+pub enum CBlocksMode {
+    /// Drop the blocks.
+    Drop = 0,
+    /// Keep the blocks.
+    Keep = 1,
+}
+
+impl From<CBlocksMode> for BlocksMode {
+    fn from(value: CBlocksMode) -> Self {
+        match value {
+            CBlocksMode::Drop => BlocksMode::Drop,
+            CBlocksMode::Keep => BlocksMode::Keep,
+        }
+    }
+}
+
+/// @ingroup QkCircuit
+/// Return a copy of self with the same structure but empty.
+///
+/// That structure includes:
+/// * global phase
+/// * all the qubits and clbits, including the registers.
+///
+/// @param circuit A pointer to the circuit to copy.
+/// @param vars_mode The mode for handling classical variables.
+/// @param blocks_mode The mode for handling blocks.
+///
+/// @return The pointer to the copied circuit.
+///
+/// # Example
+/// ```c
+/// QkCircuit *qc = qk_circuit_new(10, 10);
+/// for (int i = 0; i < 10; i++) {
+///     qk_circuit_measure(qc, i, i);
+///     uint32_t qubits[1] = {i};
+///     qk_circuit_gate(qc, QkGate_H, qubits, NULL);
+/// }
+///
+/// // As the circuit does not contain any control-flow instructions,
+/// // vars_mode and blocks_mode do not have any effect.
+/// QkCircuit *copy = qk_circuit_copy_empty_like(qc, QkVarsMode_Alike, QkBlocksMode_Drop);
+///
+/// size_t num_copy_instructions = qk_circuit_num_instructions(copy); // 0
+///
+/// // do something with the copy
+///
+/// qk_circuit_free(qc);
+/// qk_circuit_free(copy);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_circuit_copy_empty_like(
+    circuit: *const CircuitData,
+    vars_mode: CVarsMode,
+    blocks_mode: CBlocksMode,
+) -> *mut CircuitData {
+    // SAFETY: Per documentation, the pointer is to valid data.
+    let circuit = unsafe { const_ptr_as_ref(circuit) };
+    let vars_mode = vars_mode.into();
+    let blocks_mode = blocks_mode.into();
+
+    let copied_circuit = circuit
+        .copy_empty_like(vars_mode, blocks_mode)
+        .expect("Failed to copy the circuit.");
+    Box::into_raw(Box::new(copied_circuit))
 }
