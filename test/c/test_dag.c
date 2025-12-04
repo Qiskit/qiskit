@@ -643,13 +643,7 @@ static int test_substitute_node_with_dag(void) {
     qk_dag_apply_gate(replacement, QkGate_RZ, qubit, pi_param, false);
     qk_dag_apply_gate(replacement, QkGate_SX, qubit, NULL, false);
     qk_dag_apply_gate(replacement, QkGate_RZ, qubit, pi_param, false);
-    char *error = NULL;
-    int ret_code = qk_dag_substitute_node_with_dag(dag, node_to_replace, replacement, &error);
-    if (ret_code != QkExitCode_Success) {
-        res = EqualityError;
-        printf("Substitute call failed: %s\n", error);
-        goto cleanup;
-    }
+    qk_dag_substitute_node_with_dag(dag, node_to_replace, replacement);
 
     if (qk_dag_num_op_nodes(dag) != 4) {
         res = EqualityError;

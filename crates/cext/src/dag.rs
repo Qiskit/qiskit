@@ -13,7 +13,6 @@
 use anyhow::Error;
 use num_complex::Complex64;
 use smallvec::smallvec;
-use std::ffi::{CString, c_char};
 
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
 use qiskit_circuit::circuit_data::CircuitData;
@@ -28,7 +27,6 @@ use qiskit_circuit::{Clbit, Qubit};
 use crate::circuit::{CBlocksMode, CInstruction, CVarsMode};
 
 use crate::circuit::unitary_from_pointer;
-use crate::exit_codes::ExitCode;
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 
 /// @ingroup QkDag
@@ -1391,9 +1389,6 @@ pub unsafe extern "C" fn qk_dag_topological_op_nodes(dag: *const DAGCircuit, out
 ///     needs to be freed with `qk_str_free`. This can be a null pointer in
 ///     which case the error will not be written out.
 ///
-/// @returns The return code for the operation, ``QkExitCode_Success`` means success and all
-///   other values indicate an error.
-///
 /// # Example
 ///
 /// ```c
@@ -1426,20 +1421,20 @@ pub unsafe extern "C" fn qk_dag_topological_op_nodes(dag: *const DAGCircuit, out
 /// # Safety
 ///
 /// Behavior is undefined if ``dag`` and ``replacement`` are not a valid, non-null pointer to a
-/// ``QkDag``. ``error`` must be a valid pointer to a ``char`` pointer or ``NULL``.
+/// ``QkDag``.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_dag_substitute_node_with_dag(
     dag: *mut DAGCircuit,
     node: u32,
     replacement: *const DAGCircuit,
-    error: *mut *mut c_char,
-) -> ExitCode {
+) {
     // SAFETY: Per documentation, ``dag`` is non-null and valid.
     let dag = unsafe { mut_ptr_as_ref(dag) };
+    // SAFETY: Per documentation, ``replacement`` is non-null and valid.
     let replacement = unsafe { const_ptr_as_ref(replacement) };
 
-    match dag.substitute_node_with_dag(
+    if let Err(e) = dag.substitute_node_with_dag(
         NodeIndex::new(node as usize),
         replacement,
         None,
@@ -1447,28 +1442,8 @@ pub unsafe extern "C" fn qk_dag_substitute_node_with_dag(
         None,
         None,
     ) {
-        Ok(_) => ExitCode::Success,
-        Err(e) => {
-            if !error.is_null() {
-                let err: Error = e.into();
-                // SAFETY: Per the documentation error is either null or a valid and aligned
-                // pointer to a pointer of a C string which is safe to write a pointer to the
-                // Rust heap into.
-                unsafe {
-                    // Right now we return a backtrace of the error. This at least gives a hint as to
-                    // which pass failed when we have rust errors normalized we can actually have error
-                    // messages which are user facing. But most likely this will be a PyErr and panic
-                    // when trying to extract the string.
-                    *error = CString::new(format!(
-                        "Transpilation failed with this backtrace: {}",
-                        err.backtrace()
-                    ))
-                    .unwrap()
-                    .into_raw();
-                }
-            }
-            ExitCode::DagError
-        }
+        let err: Error = e.into();
+        panic!("Node substitution failed with: {}", err.backtrace());
     }
 }
 
