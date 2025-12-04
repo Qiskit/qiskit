@@ -6881,7 +6881,7 @@ class QuantumCircuit:
         registers: Iterable[Register] = (),
         allow_jumps: bool = True,
         forbidden_message: Optional[str] = None,
-    ):
+    ) -> int:
         """Add a scope for collecting instructions into this circuit.
 
         This should only be done by the control-flow context managers, which will handle cleaning up
@@ -6893,6 +6893,9 @@ class QuantumCircuit:
             allow_jumps: Whether this scope allows jumps to be used within it.
             forbidden_message: If given, all attempts to add instructions to this scope will raise a
                 :exc:`.CircuitError` with this message.
+
+        Returns:
+            the depth of control-flow scopes (after the push)
         """
         self._control_flow_scopes.append(
             ControlFlowBuilderBlock(
@@ -6904,6 +6907,7 @@ class QuantumCircuit:
                 forbidden_message=forbidden_message,
             )
         )
+        return len(self._control_flow_scopes)
 
     def _pop_scope(self) -> ControlFlowBuilderBlock:
         """Finish a scope used in the control-flow builder interface, and return it to the caller.
