@@ -1134,13 +1134,9 @@ def _write_pauli_evolution_gate(file_obj, evolution_gate, version):
         inds = op.indices
         numq = op.num_qubits
 
-        coeff_real = []
-        coeff_imag = []
-        for coeff in coeffs:
-            coeff_real.append(coeff.real)
-            coeff_imag.append(coeff.imag)
+        # pack elements as [c1.real, c1.imag, c2.real, c2.imag, ...]
         coeff_data = struct.pack(
-            f"{len(coeffs)*2}d", *(val for pair in zip(coeff_real, coeff_imag) for val in pair)
+            f"{len(coeffs)*2}d", *(val for coeff in coeffs for val in (coeff.real, coeff.imag))
         )
         bitterm_data = struct.pack(f"{len(bitterms)}i", *bitterms)
         inds_data = struct.pack(f"{len(inds)}i", *inds)
