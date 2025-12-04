@@ -151,7 +151,7 @@ class TestStatevector(QiskitTestCase):
         qc.x(0)
         qc.h(1)
         gate = qc.to_gate()
-        gate_ctrl = gate.control()
+        gate_ctrl = gate.control(annotated=False)
 
         circuit = QuantumCircuit(3)
         circuit.x(0)

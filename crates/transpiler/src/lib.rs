@@ -20,7 +20,7 @@ pub mod standard_gates_commutations;
 pub mod target;
 pub mod transpile_layout;
 
-mod transpiler;
+pub mod transpiler;
 
 pub use transpiler::transpile;
 
