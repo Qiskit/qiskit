@@ -12,27 +12,28 @@
 
 use approx::relative_eq;
 use std::f64::consts::PI;
+use std::fmt::Debug;
+use std::num::NonZero;
 use std::sync::Arc;
 use std::{fmt, vec};
 
 use crate::circuit_data::CircuitData;
-use crate::imports::{BARRIER, DELAY, MEASURE, RESET, get_std_gate_class};
-use crate::imports::{DEEPCOPY, QUANTUM_CIRCUIT, UNITARY_GATE};
 use crate::parameter::parameter_expression::{
     ParameterExpression, PyParameter, PyParameterExpression,
 };
 use crate::parameter::symbol_expr::{Symbol, Value};
-use crate::{Qubit, gate_matrix, impl_intopyobject_for_copy_pyclass};
+use crate::{Qubit, gate_matrix, impl_intopyobject_for_copy_pyclass, imports};
 
 use nalgebra::{Matrix2, Matrix4};
 use ndarray::{Array2, ArrayView2, Dim, ShapeBuilder, array, aview2};
+use num_bigint::BigUint;
 use num_complex::Complex64;
 use smallvec::{SmallVec, smallvec};
 
-use numpy::IntoPyArray;
-use numpy::PyArray2;
-use numpy::PyReadonlyArray2;
-use numpy::ToPyArray;
+use crate::bit::{ClassicalRegister, ShareableClbit};
+use crate::classical::expr;
+use crate::duration::Duration;
+use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2, ToPyArray};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyFloat, PyList, PyTuple};
@@ -123,26 +124,29 @@ impl Param {
         match self {
             Param::Float(_) => Ok(Box::new(::std::iter::empty())),
             Param::ParameterExpression(expr) => Ok(Box::new(expr.iter_symbols().cloned())),
-            Param::Obj(obj) => Python::attach(|py| -> PyResult<Box<dyn Iterator<Item = Symbol>>> {
-                let parameters_attr = intern!(py, "parameters");
-                let obj = obj.bind(py);
-                if obj.is_instance(QUANTUM_CIRCUIT.get_bound(py))? {
-                    let collected: Vec<Symbol> = obj
-                        .getattr(parameters_attr)?
-                        .try_iter()?
-                        .map(|elem| {
-                            let elem = elem?;
-                            let py_param_bound = elem.cast::<PyParameter>()?;
-                            let py_param = py_param_bound.borrow();
-                            let symbol = py_param.symbol();
-                            Ok(symbol.clone())
-                        })
-                        .collect::<PyResult<_>>()?;
-                    Ok(Box::new(collected.into_iter()))
-                } else {
-                    Ok(Box::new(::std::iter::empty()))
-                }
-            }),
+            Param::Obj(obj) => {
+                Python::attach(|py| -> PyResult<Box<dyn Iterator<Item = Symbol>>> {
+                    let parameters_attr = intern!(py, "parameters");
+                    let obj = obj.bind(py);
+                    if obj.is_instance(imports::QUANTUM_CIRCUIT.get_bound(py))? {
+                        // Note: this code-path is only potentially used by custom user operations
+                        let collected: Vec<Symbol> = obj
+                            .getattr(parameters_attr)?
+                            .try_iter()?
+                            .map(|elem| {
+                                let elem = elem?;
+                                let py_param_bound = elem.cast::<PyParameter>()?;
+                                let py_param = py_param_bound.borrow();
+                                let symbol = py_param.symbol();
+                                Ok(symbol.clone())
+                            })
+                            .collect::<PyResult<_>>()?;
+                        Ok(Box::new(collected.into_iter()))
+                    } else {
+                        Ok(Box::new(::std::iter::empty()))
+                    }
+                })
+            }
         }
     }
 
@@ -221,7 +225,7 @@ impl Param {
     ) -> PyResult<Self> {
         match self {
             Param::Float(f) => Ok(Param::Float(*f)),
-            _ => DEEPCOPY
+            _ => imports::DEEPCOPY
                 .get_bound(py)
                 .call1((self.clone(), memo))?
                 .extract()
@@ -254,17 +258,7 @@ pub trait Operation {
     fn num_qubits(&self) -> u32;
     fn num_clbits(&self) -> u32;
     fn num_params(&self) -> u32;
-    fn control_flow(&self) -> bool;
-    fn blocks(&self) -> Vec<CircuitData>;
-    fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>>;
-    fn definition(&self, params: &[Param]) -> Option<CircuitData>;
     fn directive(&self) -> bool;
-    fn matrix_as_static_1q(&self, params: &[Param]) -> Option<[[Complex64; 2]; 2]>;
-    fn matrix_as_nalgebra_1q(&self, params: &[Param]) -> Option<Matrix2<Complex64>> {
-        // default implementation
-        self.matrix_as_static_1q(params)
-            .map(|arr| Matrix2::new(arr[0][0], arr[0][1], arr[1][0], arr[1][1]))
-    }
 }
 
 /// Unpacked view object onto a `PackedOperation`.  This is the return value of
@@ -273,125 +267,549 @@ pub trait Operation {
 /// This is the main way that we interact immutably with general circuit operations from Rust space.
 #[derive(Debug)]
 pub enum OperationRef<'a> {
+    ControlFlow(&'a ControlFlowInstruction),
     StandardGate(StandardGate),
     StandardInstruction(StandardInstruction),
     Gate(&'a PyGate),
     Instruction(&'a PyInstruction),
     Operation(&'a PyOperation),
     Unitary(&'a UnitaryGate),
+    PauliProductMeasurement(&'a PauliProductMeasurement),
 }
 
 impl Operation for OperationRef<'_> {
     #[inline]
     fn name(&self) -> &str {
         match self {
+            Self::ControlFlow(op) => op.name(),
             Self::StandardGate(standard) => standard.name(),
             Self::StandardInstruction(instruction) => instruction.name(),
             Self::Gate(gate) => gate.name(),
             Self::Instruction(instruction) => instruction.name(),
             Self::Operation(operation) => operation.name(),
             Self::Unitary(unitary) => unitary.name(),
+            Self::PauliProductMeasurement(ppm) => ppm.name(),
         }
     }
     #[inline]
     fn num_qubits(&self) -> u32 {
         match self {
+            Self::ControlFlow(op) => op.num_qubits(),
             Self::StandardGate(standard) => standard.num_qubits(),
             Self::StandardInstruction(instruction) => instruction.num_qubits(),
             Self::Gate(gate) => gate.num_qubits(),
             Self::Instruction(instruction) => instruction.num_qubits(),
             Self::Operation(operation) => operation.num_qubits(),
             Self::Unitary(unitary) => unitary.num_qubits(),
+            Self::PauliProductMeasurement(ppm) => ppm.num_qubits(),
         }
     }
     #[inline]
     fn num_clbits(&self) -> u32 {
         match self {
+            Self::ControlFlow(op) => op.num_clbits(),
             Self::StandardGate(standard) => standard.num_clbits(),
             Self::StandardInstruction(instruction) => instruction.num_clbits(),
             Self::Gate(gate) => gate.num_clbits(),
             Self::Instruction(instruction) => instruction.num_clbits(),
             Self::Operation(operation) => operation.num_clbits(),
             Self::Unitary(unitary) => unitary.num_clbits(),
+            Self::PauliProductMeasurement(ppm) => ppm.num_clbits(),
         }
     }
     #[inline]
     fn num_params(&self) -> u32 {
         match self {
+            Self::ControlFlow(op) => op.num_params(),
             Self::StandardGate(standard) => standard.num_params(),
             Self::StandardInstruction(instruction) => instruction.num_params(),
             Self::Gate(gate) => gate.num_params(),
             Self::Instruction(instruction) => instruction.num_params(),
             Self::Operation(operation) => operation.num_params(),
             Self::Unitary(unitary) => unitary.num_params(),
-        }
-    }
-    #[inline]
-    fn control_flow(&self) -> bool {
-        match self {
-            Self::StandardGate(standard) => standard.control_flow(),
-            Self::StandardInstruction(instruction) => instruction.control_flow(),
-            Self::Gate(gate) => gate.control_flow(),
-            Self::Instruction(instruction) => instruction.control_flow(),
-            Self::Operation(operation) => operation.control_flow(),
-            Self::Unitary(unitary) => unitary.control_flow(),
-        }
-    }
-    #[inline]
-    fn blocks(&self) -> Vec<CircuitData> {
-        match self {
-            OperationRef::StandardGate(standard) => standard.blocks(),
-            OperationRef::StandardInstruction(instruction) => instruction.blocks(),
-            OperationRef::Gate(gate) => gate.blocks(),
-            OperationRef::Instruction(instruction) => instruction.blocks(),
-            OperationRef::Operation(operation) => operation.blocks(),
-            Self::Unitary(unitary) => unitary.blocks(),
-        }
-    }
-    #[inline]
-    fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>> {
-        match self {
-            Self::StandardGate(standard) => standard.matrix(params),
-            Self::StandardInstruction(instruction) => instruction.matrix(params),
-            Self::Gate(gate) => gate.matrix(params),
-            Self::Instruction(instruction) => instruction.matrix(params),
-            Self::Operation(operation) => operation.matrix(params),
-            Self::Unitary(unitary) => unitary.matrix(params),
-        }
-    }
-    #[inline]
-    fn definition(&self, params: &[Param]) -> Option<CircuitData> {
-        match self {
-            Self::StandardGate(standard) => standard.definition(params),
-            Self::StandardInstruction(instruction) => instruction.definition(params),
-            Self::Gate(gate) => gate.definition(params),
-            Self::Instruction(instruction) => instruction.definition(params),
-            Self::Operation(operation) => operation.definition(params),
-            Self::Unitary(unitary) => unitary.definition(params),
+            Self::PauliProductMeasurement(ppm) => ppm.num_params(),
         }
     }
     #[inline]
     fn directive(&self) -> bool {
         match self {
+            Self::ControlFlow(op) => op.directive(),
             Self::StandardGate(standard) => standard.directive(),
             Self::StandardInstruction(instruction) => instruction.directive(),
             Self::Gate(gate) => gate.directive(),
             Self::Instruction(instruction) => instruction.directive(),
             Self::Operation(operation) => operation.directive(),
             Self::Unitary(unitary) => unitary.directive(),
+            Self::PauliProductMeasurement(ppm) => ppm.directive(),
+        }
+    }
+}
+
+/// Used to tag control flow instructions via the `_control_flow_type` class
+/// attribute in the corresponding Python class.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int)]
+#[repr(u8)]
+pub(crate) enum ControlFlowType {
+    Box = 0,
+    BreakLoop = 1,
+    ContinueLoop = 2,
+    ForLoop = 3,
+    IfElse = 4,
+    SwitchCase = 5,
+    WhileLoop = 6,
+}
+
+#[derive(Clone, Debug, IntoPyObject, PartialEq)]
+pub enum BoxDuration {
+    Duration(Duration),
+    Expr(expr::Expr),
+}
+
+/// A literal Python range extracted to a Rust object.
+///
+/// This is separate to `PyO3`'s `PyRange` type, since that keeps everything internally safe for
+/// subclassing and modification the Python heap.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct PyRange {
+    pub start: isize,
+    pub stop: isize,
+    pub step: NonZero<isize>,
+}
+impl PyRange {
+    pub fn is_empty(&self) -> bool {
+        let step = self.step.unsigned_abs().get();
+        let diff = self.start.abs_diff(self.stop);
+        (self.step.get() > 0 && self.start < self.stop
+            || (self.step.get() < 0 && self.start > self.stop))
+            && diff >= step
+    }
+    pub fn len(&self) -> usize {
+        let step = self.step.unsigned_abs().get();
+        let diff = self.start.abs_diff(self.stop);
+        if (self.step.get() > 0 && self.start < self.stop)
+            || (self.step.get() < 0 && self.start > self.stop)
+        {
+            // The `diff-1` is guaranteed safe because the `start < stop` or `start > stop`
+            // conditions guarantee that `diff` is at least 1.
+            1 + (diff - 1) / step
+        } else {
+            0
+        }
+    }
+}
+impl<'py> IntoPyObject<'py> for PyRange {
+    type Target = ::pyo3::types::PyRange;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        ::pyo3::types::PyRange::new_with_step(py, self.start, self.stop, self.step.get())
+    }
+}
+impl<'py> IntoPyObject<'py> for &'_ PyRange {
+    type Target = <PyRange as IntoPyObject<'py>>::Target;
+    type Output = <PyRange as IntoPyObject<'py>>::Output;
+    type Error = <PyRange as IntoPyObject<'py>>::Error;
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        (*self).into_pyobject(py)
+    }
+}
+impl<'a, 'py> FromPyObject<'a, 'py> for PyRange {
+    type Error = PyErr;
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
+        use pyo3::types::PyRangeMethods;
+
+        let ob = ob.cast::<pyo3::types::PyRange>()?;
+        Ok(Self {
+            start: ob.start()?,
+            stop: ob.stop()?,
+            step: NonZero::new(ob.step()?).expect("Python does not allow zero steps"),
+        })
+    }
+}
+
+/// Possible specifications of the "collection" that a for loop iterates over.
+#[derive(Clone, Debug, IntoPyObject, IntoPyObjectRef, FromPyObject, PartialEq, Eq)]
+pub enum ForCollection {
+    /// A literal Python `range` object extracted to Rust.
+    PyRange(PyRange),
+    /// Some ordered collection of integers.
+    List(Vec<usize>),
+}
+impl ForCollection {
+    pub fn is_empty(&self) -> bool {
+        match self {
+            Self::PyRange(xs) => xs.is_empty(),
+            Self::List(xs) => xs.is_empty(),
+        }
+    }
+    pub fn len(&self) -> usize {
+        match self {
+            Self::PyRange(xs) => xs.len(),
+            Self::List(xs) => xs.len(),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ControlFlowInstruction {
+    pub control_flow: ControlFlow,
+    pub num_qubits: u32,
+    pub num_clbits: u32,
+}
+
+#[derive(Clone, Debug)]
+#[repr(align(8))]
+pub enum ControlFlow {
+    Box {
+        duration: Option<BoxDuration>,
+        annotations: Vec<Py<PyAny>>,
+    },
+    BreakLoop,
+    ContinueLoop,
+    ForLoop {
+        collection: ForCollection,
+        loop_param: Option<Symbol>,
+    },
+    IfElse {
+        condition: Condition,
+    },
+    Switch {
+        target: SwitchTarget,
+        label_spec: Vec<Vec<CaseSpecifier>>,
+        cases: u32,
+    },
+    While {
+        condition: Condition,
+    },
+}
+
+impl ControlFlowInstruction {
+    /// Check if another control flow operations is equivalent to this one.
+    ///
+    /// This can be removed and [ControlFlowInstruction] can be made to implement [PartialEq]
+    /// instead once `annotations` gets moved to the instruction.
+    pub fn py_eq(&self, py: Python, other: &ControlFlowInstruction) -> PyResult<bool> {
+        if self.num_qubits != other.num_qubits || self.num_clbits != other.num_clbits {
+            return Ok(false);
+        }
+        match &self.control_flow {
+            ControlFlow::Box {
+                duration: self_duration,
+                annotations: self_annotations,
+            } => match &other.control_flow {
+                ControlFlow::Box {
+                    duration: other_duration,
+                    annotations: other_annotations,
+                } => {
+                    if self_duration != other_duration
+                        || self_annotations.len() != other_annotations.len()
+                    {
+                        return Ok(false);
+                    }
+                    for (a, b) in self_annotations.iter().zip(other_annotations) {
+                        if !a.bind(py).eq(b)? {
+                            return Ok(false);
+                        }
+                    }
+                    Ok(true)
+                }
+                _ => Ok(false),
+            },
+            ControlFlow::BreakLoop => match &other.control_flow {
+                ControlFlow::BreakLoop => Ok(true),
+                _ => Ok(false),
+            },
+            ControlFlow::ContinueLoop => match &other.control_flow {
+                ControlFlow::ContinueLoop => Ok(true),
+                _ => Ok(false),
+            },
+            ControlFlow::ForLoop {
+                collection: self_collection,
+                loop_param: self_loop_param,
+            } => match &other.control_flow {
+                ControlFlow::ForLoop {
+                    collection: other_collection,
+                    loop_param: other_loop_param,
+                } => Ok(self_collection == other_collection && self_loop_param == other_loop_param),
+                _ => Ok(false),
+            },
+            ControlFlow::IfElse {
+                condition: self_condition,
+            } => match &other.control_flow {
+                ControlFlow::IfElse {
+                    condition: other_condition,
+                } => Ok(self_condition == other_condition),
+                _ => Ok(false),
+            },
+            ControlFlow::Switch {
+                target: self_target,
+                label_spec: self_label_spec,
+                cases: self_cases,
+            } => match &other.control_flow {
+                ControlFlow::Switch {
+                    target: other_target,
+                    label_spec: other_label_spec,
+                    cases: other_cases,
+                } => Ok(self_cases == other_cases
+                    && self_target == other_target
+                    && self_label_spec == other_label_spec),
+                _ => Ok(false),
+            },
+            ControlFlow::While {
+                condition: self_condition,
+            } => match &other.control_flow {
+                ControlFlow::While {
+                    condition: other_condition,
+                } => Ok(self_condition == other_condition),
+                _ => Ok(false),
+            },
         }
     }
 
-    /// Returns a static matrix for 1-qubit gates. Will return `None` when the gate is not 1-qubit.ß
-    #[inline]
-    fn matrix_as_static_1q(&self, params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
+    pub fn create_py_op(
+        &self,
+        py: Python,
+        blocks: Option<Vec<Py<PyAny>>>,
+        label: Option<&str>,
+    ) -> PyResult<Py<PyAny>> {
+        let mut blocks = blocks.into_iter().flatten();
+        let kwargs = label
+            .map(|label| [("label", label.into_py_any(py)?)].into_py_dict(py))
+            .transpose()?;
+        match &self.control_flow {
+            ControlFlow::Box {
+                duration,
+                annotations,
+            } => {
+                let (duration, unit) = match duration {
+                    Some(duration) => match duration {
+                        BoxDuration::Duration(duration) => {
+                            (Some(duration.py_value(py)?), Some(duration.unit()))
+                        }
+                        BoxDuration::Expr(expr) => {
+                            (Some(expr.clone().into_py_any(py)?), Some("expr"))
+                        }
+                    },
+                    None => (None, None),
+                };
+                imports::BOX_OP.get(py).call1(
+                    py,
+                    (
+                        blocks.next().unwrap(),
+                        duration,
+                        unit,
+                        label,
+                        PyTuple::new(py, annotations)?,
+                    ),
+                )
+            }
+            ControlFlow::BreakLoop => imports::BREAK_LOOP_OP.get(py).call(
+                py,
+                (self.num_qubits, self.num_clbits),
+                kwargs.as_ref(),
+            ),
+            ControlFlow::ContinueLoop => imports::CONTINUE_LOOP_OP.get(py).call(
+                py,
+                (self.num_qubits, self.num_clbits),
+                kwargs.as_ref(),
+            ),
+            ControlFlow::ForLoop {
+                collection,
+                loop_param,
+            } => imports::FOR_LOOP_OP.get(py).call(
+                py,
+                (collection, loop_param.clone(), blocks.next()),
+                kwargs.as_ref(),
+            ),
+            ControlFlow::IfElse { condition } => imports::IF_ELSE_OP.get(py).call(
+                py,
+                (condition.clone(), blocks.next().unwrap(), blocks.next()),
+                kwargs.as_ref(),
+            ),
+            ControlFlow::Switch {
+                target, label_spec, ..
+            } => {
+                let cases_specifier: Vec<(Vec<CaseSpecifier>, Py<PyAny>)> =
+                    label_spec.iter().cloned().zip(blocks).collect();
+                imports::SWITCH_CASE_OP.get(py).call(
+                    py,
+                    (target.clone(), cases_specifier),
+                    kwargs.as_ref(),
+                )
+            }
+            ControlFlow::While { condition, .. } => imports::WHILE_LOOP_OP.get(py).call(
+                py,
+                (condition.clone(), blocks.next()),
+                kwargs.as_ref(),
+            ),
+        }
+    }
+}
+
+impl Operation for ControlFlowInstruction {
+    fn name(&self) -> &str {
+        match &self.control_flow {
+            ControlFlow::Box { .. } => "box",
+            ControlFlow::BreakLoop => "break_loop",
+            ControlFlow::ContinueLoop => "continue_loop",
+            ControlFlow::ForLoop { .. } => "for_loop",
+            ControlFlow::IfElse { .. } => "if_else",
+            ControlFlow::Switch { .. } => "switch_case",
+            ControlFlow::While { .. } => "while_loop",
+        }
+    }
+
+    fn num_qubits(&self) -> u32 {
+        self.num_qubits
+    }
+
+    fn num_clbits(&self) -> u32 {
+        self.num_clbits
+    }
+
+    fn num_params(&self) -> u32 {
+        match &self.control_flow {
+            ControlFlow::Box { .. } => 1,
+            ControlFlow::BreakLoop => 0,
+            ControlFlow::ContinueLoop => 0,
+            ControlFlow::ForLoop { .. } => 3,
+            ControlFlow::IfElse { .. } => 2,
+            ControlFlow::Switch { cases, .. } => *cases,
+            ControlFlow::While { .. } => 1,
+        }
+    }
+
+    fn directive(&self) -> bool {
+        false
+    }
+}
+
+/// An ergonomic view of a control flow operation and its blocks.
+#[derive(Clone, Debug)]
+pub enum ControlFlowView<'a, T> {
+    Box(Option<&'a BoxDuration>, &'a T),
+    BreakLoop,
+    ContinueLoop,
+    ForLoop {
+        collection: &'a ForCollection,
+        loop_param: Option<&'a Symbol>,
+        body: &'a T,
+    },
+    IfElse {
+        condition: &'a Condition,
+        true_body: &'a T,
+        false_body: Option<&'a T>,
+    },
+    Switch {
+        target: &'a SwitchTarget,
+        cases_specifier: Vec<(&'a Vec<CaseSpecifier>, &'a T)>,
+    },
+    While {
+        condition: &'a Condition,
+        body: &'a T,
+    },
+}
+
+impl<'a, T> ControlFlowView<'a, T> {
+    pub fn blocks(&self) -> Vec<&'a T> {
         match self {
-            Self::StandardGate(standard) => standard.matrix_as_static_1q(params),
-            Self::StandardInstruction(instruction) => instruction.matrix_as_static_1q(params),
-            Self::Gate(gate) => gate.matrix_as_static_1q(params),
-            Self::Instruction(instruction) => instruction.matrix_as_static_1q(params),
-            Self::Operation(operation) => operation.matrix_as_static_1q(params),
-            Self::Unitary(unitary) => unitary.matrix_as_static_1q(params),
+            ControlFlowView::Box(_, body) => vec![*body],
+            ControlFlowView::BreakLoop => vec![],
+            ControlFlowView::ContinueLoop => vec![],
+            ControlFlowView::ForLoop { body, .. } => vec![*body],
+            ControlFlowView::IfElse {
+                true_body,
+                false_body,
+                ..
+            } => {
+                if let Some(false_body) = false_body {
+                    vec![*true_body, *false_body]
+                } else {
+                    vec![*true_body]
+                }
+            }
+            ControlFlowView::Switch {
+                cases_specifier, ..
+            } => cases_specifier.iter().map(|(_, block)| *block).collect(),
+            ControlFlowView::While { body, .. } => vec![*body],
+        }
+    }
+}
+
+/// A control flow operation's condition.
+#[derive(Clone, Debug, PartialEq, IntoPyObject)]
+pub enum Condition {
+    Bit(ShareableClbit, bool),
+    Register(ClassicalRegister, BigUint),
+    Expr(expr::Expr),
+}
+
+impl<'a, 'py> FromPyObject<'a, 'py> for Condition {
+    type Error = <expr::Expr as FromPyObject<'a, 'py>>::Error;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
+        if let Ok((bit, value)) = ob.extract::<(ShareableClbit, Bound<PyAny>)>() {
+            Ok(Condition::Bit(bit, value.is_truthy()?))
+        } else if let Ok((register, value)) = ob.extract::<(ClassicalRegister, BigUint)>() {
+            Ok(Condition::Register(register, value))
+        } else {
+            Ok(Condition::Expr(ob.extract()?))
+        }
+    }
+}
+
+/// A control flow operation's target.
+#[derive(Clone, Debug, PartialEq, IntoPyObject)]
+pub enum SwitchTarget {
+    Bit(ShareableClbit),
+    Register(ClassicalRegister),
+    Expr(expr::Expr),
+}
+
+impl<'a, 'py> FromPyObject<'a, 'py> for SwitchTarget {
+    type Error = <expr::Expr as FromPyObject<'a, 'py>>::Error;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
+        if let Ok(bit) = ob.extract::<ShareableClbit>() {
+            Ok(SwitchTarget::Bit(bit))
+        } else if let Ok(register) = ob.extract::<ClassicalRegister>() {
+            Ok(SwitchTarget::Register(register))
+        } else {
+            Ok(SwitchTarget::Expr(ob.extract()?))
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum CaseSpecifier {
+    Uint(BigUint),
+    Default,
+}
+
+impl<'a, 'py> FromPyObject<'a, 'py> for CaseSpecifier {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
+        if let Ok(i) = ob.extract::<BigUint>() {
+            Ok(CaseSpecifier::Uint(i))
+        } else if ob.is(imports::SWITCH_CASE_DEFAULT.get_bound(ob.py())) {
+            Ok(CaseSpecifier::Default)
+        } else {
+            Err(PyValueError::new_err("invalid case specifier"))
+        }
+    }
+}
+
+impl<'py> IntoPyObject<'py> for CaseSpecifier {
+    type Target = PyAny;
+    type Output = Bound<'py, PyAny>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        match self {
+            CaseSpecifier::Uint(u) => u.into_bound_py_any(py),
+            CaseSpecifier::Default => Ok(imports::SWITCH_CASE_DEFAULT.get_bound(py).clone()),
         }
     }
 }
@@ -528,22 +946,6 @@ impl Operation for StandardInstruction {
         0
     }
 
-    fn control_flow(&self) -> bool {
-        false
-    }
-
-    fn blocks(&self) -> Vec<CircuitData> {
-        vec![]
-    }
-
-    fn matrix(&self, _params: &[Param]) -> Option<Array2<Complex64>> {
-        None
-    }
-
-    fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
-        None
-    }
-
     fn directive(&self) -> bool {
         match self {
             StandardInstruction::Barrier(_) => true,
@@ -552,34 +954,33 @@ impl Operation for StandardInstruction {
             StandardInstruction::Reset => false,
         }
     }
-
-    fn matrix_as_static_1q(&self, _params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
-        None
-    }
 }
 
 impl StandardInstruction {
     pub fn create_py_op(
         &self,
         py: Python,
-        params: Option<&[Param]>,
+        params: Option<SmallVec<[Param; 3]>>,
         label: Option<&str>,
     ) -> PyResult<Py<PyAny>> {
+        let mut params = params.into_iter().flatten();
         let kwargs = label
             .map(|label| [("label", label.into_py_any(py)?)].into_py_dict(py))
             .transpose()?;
         let out = match self {
-            StandardInstruction::Barrier(num_qubits) => {
-                BARRIER.get_bound(py).call((num_qubits,), kwargs.as_ref())?
-            }
+            StandardInstruction::Barrier(num_qubits) => imports::BARRIER
+                .get_bound(py)
+                .call((num_qubits,), kwargs.as_ref())?,
             StandardInstruction::Delay(unit) => {
-                let duration = &params.unwrap()[0];
-                DELAY
+                let duration = params.next().unwrap();
+                imports::DELAY
                     .get_bound(py)
                     .call1((duration.into_py_any(py)?, unit.to_string()))?
             }
-            StandardInstruction::Measure => MEASURE.get_bound(py).call((), kwargs.as_ref())?,
-            StandardInstruction::Reset => RESET.get_bound(py).call((), kwargs.as_ref())?,
+            StandardInstruction::Measure => {
+                imports::MEASURE.get_bound(py).call((), kwargs.as_ref())?
+            }
+            StandardInstruction::Reset => imports::RESET.get_bound(py).call((), kwargs.as_ref())?,
         };
 
         Ok(out.unbind())
@@ -747,13 +1148,15 @@ impl StandardGate {
     pub fn create_py_op(
         &self,
         py: Python,
-        params: Option<&[Param]>,
+        params: Option<SmallVec<[Param; 3]>>,
         label: Option<&str>,
     ) -> PyResult<Py<PyAny>> {
-        let gate_class = get_std_gate_class(py, *self)?;
-        let args = match params.unwrap_or(&[]) {
-            &[] => PyTuple::empty(py),
-            params => PyTuple::new(py, params.iter().map(|x| x.into_pyobject(py).unwrap()))?,
+        let gate_class = imports::get_std_gate_class(py, *self)?;
+        let args = match params {
+            None => PyTuple::empty(py),
+            Some(params) => {
+                PyTuple::new(py, params.into_iter().map(|x| x.into_pyobject(py).unwrap()))?
+            }
         };
         if let Some(label) = label {
             let kwargs = [("label", label.into_pyobject(py)?)].into_py_dict(py)?;
@@ -870,116 +1273,8 @@ impl StandardGate {
             Self::RC3X => None, // the inverse in not a StandardGate
         }
     }
-}
 
-#[pymethods]
-impl StandardGate {
-    pub fn copy(&self) -> Self {
-        *self
-    }
-
-    // These pymethods are for testing:
-    pub fn _to_matrix<'py>(
-        &self,
-        py: Python<'py>,
-        params: Vec<Param>,
-    ) -> Option<Bound<'py, PyArray2<Complex64>>> {
-        self.matrix(&params).map(|x| x.into_pyarray(py))
-    }
-
-    pub fn _num_params(&self) -> u32 {
-        self.num_params()
-    }
-
-    pub fn _get_definition(&self, params: Vec<Param>) -> Option<CircuitData> {
-        self.definition(&params)
-    }
-
-    pub fn _inverse(&self, params: Vec<Param>) -> Option<(StandardGate, SmallVec<[Param; 3]>)> {
-        self.inverse(&params)
-    }
-
-    #[getter]
-    pub fn get_num_qubits(&self) -> u32 {
-        self.num_qubits()
-    }
-
-    #[getter]
-    pub fn get_num_ctrl_qubits(&self) -> u32 {
-        self.num_ctrl_qubits()
-    }
-
-    #[getter]
-    pub fn get_num_clbits(&self) -> u32 {
-        self.num_clbits()
-    }
-
-    #[getter]
-    pub fn get_num_params(&self) -> u32 {
-        self.num_params()
-    }
-
-    #[getter]
-    pub fn get_name(&self) -> &str {
-        self.name()
-    }
-
-    #[getter]
-    pub fn is_controlled_gate(&self) -> bool {
-        self.num_ctrl_qubits() > 0
-    }
-
-    #[getter]
-    pub fn get_gate_class(&self, py: Python) -> PyResult<&'static Py<PyAny>> {
-        get_std_gate_class(py, *self)
-    }
-
-    #[staticmethod]
-    pub fn all_gates(py: Python) -> PyResult<Bound<PyList>> {
-        PyList::new(
-            py,
-            (0..STANDARD_GATE_SIZE as u8).map(::bytemuck::checked::cast::<_, Self>),
-        )
-    }
-
-    pub fn __hash__(&self) -> isize {
-        *self as isize
-    }
-}
-
-// This must be kept up-to-date with `StandardGate` when adding or removing
-// gates from the enum
-//
-// Remove this when std::mem::variant_count() is stabilized (see
-// https://github.com/rust-lang/rust/issues/73662 )
-pub const STANDARD_GATE_SIZE: usize = 52;
-
-impl Operation for StandardGate {
-    fn name(&self) -> &str {
-        STANDARD_GATE_NAME[*self as usize]
-    }
-
-    fn num_qubits(&self) -> u32 {
-        STANDARD_GATE_NUM_QUBITS[*self as usize]
-    }
-
-    fn num_clbits(&self) -> u32 {
-        0
-    }
-
-    fn num_params(&self) -> u32 {
-        STANDARD_GATE_NUM_PARAMS[*self as usize]
-    }
-
-    fn control_flow(&self) -> bool {
-        false
-    }
-
-    fn blocks(&self) -> Vec<CircuitData> {
-        vec![]
-    }
-
-    fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>> {
+    pub fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>> {
         match self {
             Self::GlobalPhase => match params {
                 [Param::Float(theta)] => {
@@ -1213,7 +1508,7 @@ impl Operation for StandardGate {
         }
     }
 
-    fn definition(&self, params: &[Param]) -> Option<CircuitData> {
+    pub fn definition(&self, params: &[Param]) -> Option<CircuitData> {
         match self {
             Self::GlobalPhase => Some(
                 CircuitData::from_standard_gates(0, [], params[0].clone())
@@ -2250,11 +2545,7 @@ impl Operation for StandardGate {
         }
     }
 
-    fn directive(&self) -> bool {
-        false
-    }
-
-    fn matrix_as_static_1q(&self, params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
+    pub fn matrix_as_static_1q(&self, params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
         match self {
             Self::GlobalPhase => None,
             Self::H => match params {
@@ -2376,6 +2667,106 @@ impl Operation for StandardGate {
     }
 }
 
+#[pymethods]
+impl StandardGate {
+    pub fn copy(&self) -> Self {
+        *self
+    }
+
+    // These pymethods are for testing:
+    pub fn _to_matrix<'py>(
+        &self,
+        py: Python<'py>,
+        params: Vec<Param>,
+    ) -> Option<Bound<'py, PyArray2<Complex64>>> {
+        self.matrix(&params).map(|x| x.into_pyarray(py))
+    }
+
+    pub fn _num_params(&self) -> u32 {
+        self.num_params()
+    }
+
+    pub fn _get_definition(&self, params: Vec<Param>) -> Option<CircuitData> {
+        self.definition(&params)
+    }
+
+    pub fn _inverse(&self, params: Vec<Param>) -> Option<(StandardGate, SmallVec<[Param; 3]>)> {
+        self.inverse(&params)
+    }
+
+    #[getter]
+    pub fn get_num_qubits(&self) -> u32 {
+        self.num_qubits()
+    }
+
+    #[getter]
+    pub fn get_num_ctrl_qubits(&self) -> u32 {
+        self.num_ctrl_qubits()
+    }
+
+    #[getter]
+    pub fn get_num_clbits(&self) -> u32 {
+        self.num_clbits()
+    }
+
+    #[getter]
+    pub fn get_num_params(&self) -> u32 {
+        self.num_params()
+    }
+
+    #[getter]
+    pub fn get_name(&self) -> &str {
+        self.name()
+    }
+
+    #[getter]
+    pub fn is_controlled_gate(&self) -> bool {
+        self.num_ctrl_qubits() > 0
+    }
+
+    #[getter]
+    pub fn get_gate_class(&self, py: Python) -> PyResult<&'static Py<PyAny>> {
+        imports::get_std_gate_class(py, *self)
+    }
+
+    #[staticmethod]
+    pub fn all_gates(py: Python) -> PyResult<Bound<PyList>> {
+        PyList::new(
+            py,
+            (0..STANDARD_GATE_SIZE as u8).map(::bytemuck::checked::cast::<_, Self>),
+        )
+    }
+
+    pub fn __hash__(&self) -> isize {
+        *self as isize
+    }
+}
+
+// This must be kept up-to-date with `StandardGate` when adding or removing
+// gates from the enum
+//
+// Remove this when std::mem::variant_count() is stabilized (see
+// https://github.com/rust-lang/rust/issues/73662 )
+pub const STANDARD_GATE_SIZE: usize = 52;
+
+impl Operation for StandardGate {
+    fn name(&self) -> &str {
+        STANDARD_GATE_NAME[*self as usize]
+    }
+    fn num_qubits(&self) -> u32 {
+        STANDARD_GATE_NUM_QUBITS[*self as usize]
+    }
+    fn num_clbits(&self) -> u32 {
+        0
+    }
+    fn num_params(&self) -> u32 {
+        STANDARD_GATE_NUM_PARAMS[*self as usize]
+    }
+    fn directive(&self) -> bool {
+        false
+    }
+}
+
 const FLOAT_ZERO: Param = Param::Float(0.0);
 
 // Return explicitly requested copy of `param`, handling
@@ -2464,19 +2855,17 @@ pub struct PyInstruction {
     pub clbits: u32,
     pub params: u32,
     pub op_name: String,
-    pub control_flow: bool,
     pub instruction: Py<PyAny>,
 }
 
 impl PythonOperation for PyInstruction {
     fn py_deepcopy(&self, py: Python, memo: Option<&Bound<'_, PyDict>>) -> PyResult<Self> {
-        let deepcopy = DEEPCOPY.get_bound(py);
+        let deepcopy = imports::DEEPCOPY.get_bound(py);
         Ok(PyInstruction {
             instruction: deepcopy.call1((&self.instruction, memo))?.unbind(),
             qubits: self.qubits,
             clbits: self.clbits,
             params: self.params,
-            control_flow: self.control_flow,
             op_name: self.op_name.clone(),
         })
     }
@@ -2488,7 +2877,6 @@ impl PythonOperation for PyInstruction {
             qubits: self.qubits,
             clbits: self.clbits,
             params: self.params,
-            control_flow: self.control_flow,
             op_name: self.op_name.clone(),
         })
     }
@@ -2507,44 +2895,6 @@ impl Operation for PyInstruction {
     fn num_params(&self) -> u32 {
         self.params
     }
-    fn control_flow(&self) -> bool {
-        self.control_flow
-    }
-    fn blocks(&self) -> Vec<CircuitData> {
-        if !self.control_flow {
-            return vec![];
-        }
-        Python::attach(|py| -> Vec<CircuitData> {
-            // We expect that if PyInstruction::control_flow is true then the operation WILL
-            // have a 'blocks' attribute which is a tuple of the Python QuantumCircuit.
-            let raw_blocks = self.instruction.getattr(py, "blocks").unwrap();
-            let blocks: &Bound<PyTuple> = raw_blocks.cast_bound::<PyTuple>(py).unwrap();
-            blocks
-                .iter()
-                .map(|b| {
-                    b.getattr(intern!(py, "_data"))
-                        .unwrap()
-                        .extract::<CircuitData>()
-                        .unwrap()
-                })
-                .collect()
-        })
-    }
-    fn matrix(&self, _params: &[Param]) -> Option<Array2<Complex64>> {
-        None
-    }
-    fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
-        Python::attach(|py| -> Option<CircuitData> {
-            match self.instruction.getattr(py, intern!(py, "definition")) {
-                Ok(definition) => definition
-                    .getattr(py, intern!(py, "_data"))
-                    .ok()?
-                    .extract::<CircuitData>(py)
-                    .ok(),
-                Err(_) => None,
-            }
-        })
-    }
 
     fn directive(&self) -> bool {
         Python::attach(|py| -> bool {
@@ -2557,8 +2907,20 @@ impl Operation for PyInstruction {
             }
         })
     }
-    fn matrix_as_static_1q(&self, _params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
-        None
+}
+
+impl PyInstruction {
+    pub fn definition(&self) -> Option<CircuitData> {
+        Python::attach(|py| -> Option<CircuitData> {
+            match self.instruction.getattr(py, intern!(py, "definition")) {
+                Ok(definition) => definition
+                    .getattr(py, intern!(py, "_data"))
+                    .ok()?
+                    .extract::<CircuitData>(py)
+                    .ok(),
+                Err(_) => None,
+            }
+        })
     }
 }
 
@@ -2576,7 +2938,7 @@ pub struct PyGate {
 
 impl PythonOperation for PyGate {
     fn py_deepcopy(&self, py: Python, memo: Option<&Bound<'_, PyDict>>) -> PyResult<Self> {
-        let deepcopy = DEEPCOPY.get_bound(py);
+        let deepcopy = imports::DEEPCOPY.get_bound(py);
         Ok(PyGate {
             gate: deepcopy.call1((&self.gate, memo))?.unbind(),
             qubits: self.qubits,
@@ -2611,13 +2973,13 @@ impl Operation for PyGate {
     fn num_params(&self) -> u32 {
         self.params
     }
-    fn control_flow(&self) -> bool {
+    fn directive(&self) -> bool {
         false
     }
-    fn blocks(&self) -> Vec<CircuitData> {
-        vec![]
-    }
-    fn matrix(&self, _params: &[Param]) -> Option<Array2<Complex64>> {
+}
+
+impl PyGate {
+    pub fn matrix(&self) -> Option<Array2<Complex64>> {
         Python::attach(|py| -> Option<Array2<Complex64>> {
             match self.gate.getattr(py, intern!(py, "to_matrix")) {
                 Ok(to_matrix) => {
@@ -2634,7 +2996,8 @@ impl Operation for PyGate {
             }
         })
     }
-    fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
+
+    pub fn definition(&self) -> Option<CircuitData> {
         Python::attach(|py| -> Option<CircuitData> {
             match self.gate.getattr(py, intern!(py, "definition")) {
                 Ok(definition) => definition
@@ -2647,11 +3010,7 @@ impl Operation for PyGate {
         })
     }
 
-    fn directive(&self) -> bool {
-        false
-    }
-
-    fn matrix_as_static_1q(&self, _params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
+    pub fn matrix_as_static_1q(&self) -> Option<[[Complex64; 2]; 2]> {
         if self.num_qubits() != 1 {
             return None;
         }
@@ -2682,7 +3041,7 @@ pub struct PyOperation {
 
 impl PythonOperation for PyOperation {
     fn py_deepcopy(&self, py: Python, memo: Option<&Bound<'_, PyDict>>) -> PyResult<Self> {
-        let deepcopy = DEEPCOPY.get_bound(py);
+        let deepcopy = imports::DEEPCOPY.get_bound(py);
         Ok(PyOperation {
             operation: deepcopy.call1((&self.operation, memo))?.unbind(),
             qubits: self.qubits,
@@ -2717,18 +3076,6 @@ impl Operation for PyOperation {
     fn num_params(&self) -> u32 {
         self.params
     }
-    fn control_flow(&self) -> bool {
-        false
-    }
-    fn blocks(&self) -> Vec<CircuitData> {
-        vec![]
-    }
-    fn matrix(&self, _params: &[Param]) -> Option<Array2<Complex64>> {
-        None
-    }
-    fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
-        None
-    }
     fn directive(&self) -> bool {
         Python::attach(|py| -> bool {
             match self.operation.getattr(py, intern!(py, "_directive")) {
@@ -2739,10 +3086,6 @@ impl Operation for PyOperation {
                 Err(_) => false,
             }
         })
-    }
-
-    fn matrix_as_static_1q(&self, _params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
-        None
     }
 }
 
@@ -2768,7 +3111,7 @@ impl PartialEq for UnitaryGate {
             (ArrayType::TwoQ(mat1), ArrayType::TwoQ(mat2)) => mat1 == mat2,
             // we could also slightly optimize comparisons between NDArray and OneQ/TwoQ if
             // this becomes performance critical
-            _ => self.matrix(&[]) == other.matrix(&[]),
+            _ => self.matrix() == other.matrix(),
         }
     }
 }
@@ -2790,13 +3133,13 @@ impl Operation for UnitaryGate {
     fn num_params(&self) -> u32 {
         0
     }
-    fn control_flow(&self) -> bool {
+    fn directive(&self) -> bool {
         false
     }
-    fn blocks(&self) -> Vec<CircuitData> {
-        vec![]
-    }
-    fn matrix(&self, _params: &[Param]) -> Option<Array2<Complex64>> {
+}
+
+impl UnitaryGate {
+    pub fn matrix(&self) -> Option<Array2<Complex64>> {
         match &self.array {
             ArrayType::NDArray(arr) => Some(arr.clone()),
             ArrayType::OneQ(mat) => Some(array!(
@@ -2811,14 +3154,8 @@ impl Operation for UnitaryGate {
             )),
         }
     }
-    fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
-        None
-    }
 
-    fn directive(&self) -> bool {
-        false
-    }
-    fn matrix_as_static_1q(&self, _params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
+    pub fn matrix_as_static_1q(&self) -> Option<[[Complex64; 2]; 2]> {
         match &self.array {
             ArrayType::OneQ(mat) => Some([[mat[(0, 0)], mat[(0, 1)]], [mat[(1, 0)], mat[(1, 1)]]]),
             ArrayType::NDArray(arr) => {
@@ -2832,7 +3169,7 @@ impl Operation for UnitaryGate {
         }
     }
 
-    fn matrix_as_nalgebra_1q(&self, _params: &[Param]) -> Option<Matrix2<Complex64>> {
+    pub fn matrix_as_nalgebra_1q(&self) -> Option<Matrix2<Complex64>> {
         match &self.array {
             ArrayType::OneQ(mat) => Some(*mat),
             ArrayType::NDArray(arr) => {
@@ -2865,7 +3202,7 @@ impl UnitaryGate {
         };
         kwargs.set_item(intern!(py, "check_input"), false)?;
         kwargs.set_item(intern!(py, "num_qubits"), self.num_qubits())?;
-        let gate = UNITARY_GATE
+        let gate = imports::UNITARY_GATE
             .get_bound(py)
             .call((out_array,), Some(&kwargs))?;
         Ok(gate.unbind())
@@ -2896,3 +3233,62 @@ impl UnitaryGate {
         }
     }
 }
+
+/// This class represents a PauliProductMeasurement instruction.
+#[derive(Clone, Debug)]
+#[repr(align(8))]
+pub struct PauliProductMeasurement {
+    /// The z-component of the pauli.
+    pub z: Vec<bool>,
+    /// The x-component of the pauli.
+    pub x: Vec<bool>,
+    /// For a PauliProductMeasurement instruction, the phase of the Pauli can be either 0 or 2,
+    /// where the value of 2 corresponds to a sign of `-1`.
+    pub neg: bool,
+}
+
+impl Operation for PauliProductMeasurement {
+    fn name(&self) -> &str {
+        "pauli_product_measurement"
+    }
+    fn num_qubits(&self) -> u32 {
+        self.z.len() as u32
+    }
+    fn num_clbits(&self) -> u32 {
+        1
+    }
+    fn num_params(&self) -> u32 {
+        0
+    }
+    fn directive(&self) -> bool {
+        false
+    }
+}
+
+impl PauliProductMeasurement {
+    pub fn create_py_op(&self, py: Python, label: Option<&str>) -> PyResult<Py<PyAny>> {
+        let z = self.z.to_pyarray(py);
+        let x = self.x.to_pyarray(py);
+
+        let phase = if self.neg { 2 } else { 0 };
+
+        let py_label = if let Some(label) = label {
+            label.into_py_any(py)?
+        } else {
+            py.None()
+        };
+
+        let gate = imports::PAULI_PRODUCT_MEASUREMENT
+            .get_bound(py)
+            .call_method1(intern!(py, "_from_pauli_data"), (z, x, phase, py_label))?;
+        Ok(gate.unbind())
+    }
+}
+
+impl PartialEq for PauliProductMeasurement {
+    fn eq(&self, other: &Self) -> bool {
+        self.x == other.x && self.z == other.z && self.neg == other.neg
+    }
+}
+
+impl Eq for PauliProductMeasurement {}

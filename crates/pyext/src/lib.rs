@@ -40,6 +40,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_transpiler::passes::commutation_analysis_mod, "commutation_analysis")?;
     add_submodule(m, ::qiskit_transpiler::passes::commutation_cancellation_mod, "commutation_cancellation")?;
     add_submodule(m, ::qiskit_transpiler::commutation_checker::commutation_checker, "commutation_checker")?;
+    add_submodule(m, ::qiskit_transpiler::passes::commutative_optimization_mod, "commutative_optimization")?;
     add_submodule(m, ::qiskit_transpiler::passes::consolidate_blocks_mod, "consolidate_blocks")?;
     add_submodule(m, ::qiskit_synthesis::linalg::cos_sin_decomp::cos_sin_decomp, "cos_sin_decomp")?;
     add_submodule(m, ::qiskit_transpiler::passes::dense_layout_mod, "dense_layout")?;
@@ -74,6 +75,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_transpiler::target::target, "target")?;
     add_submodule(m, ::qiskit_accelerate::twirling::twirling, "twirling")?;
     add_submodule(m, ::qiskit_synthesis::two_qubit_decompose::two_qubit_decompose, "two_qubit_decompose")?;
+    add_submodule(m, ::qiskit_synthesis::pauli_product_measurement::pauli_product_measurement_mod, "pauli_product_measurement")?;
     add_submodule(m, ::qiskit_transpiler::passes::unitary_synthesis_mod, "unitary_synthesis")?;
     add_submodule(m, ::qiskit_accelerate::uc_gate::uc_gate, "uc_gate")?;
     add_submodule(m, ::qiskit_transpiler::passes::unroll_3q_or_more_mod, "unroll_3q_or_more")?;
@@ -86,5 +88,6 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_transpiler::angle_bound_registry::angle_bound_mod, "angle_bound_registry")?;
     add_submodule(m, ::qiskit_transpiler::passes::wrap_angles_mod, "wrap_angles")?;
     add_submodule(m, ::qiskit_transpiler::passes::optimize_clifford_t_mod, "optimize_clifford_t")?;
+    add_submodule(m, ::qiskit_transpiler::passes::substitute_pi4_rotations_mod, "substitute_pi4_rotations")?;
     Ok(())
 }

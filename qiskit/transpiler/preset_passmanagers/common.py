@@ -529,7 +529,7 @@ def generate_translation_passmanager(
             # in basis_gates. The BasisTranslator will do the conversion if possible (and provide
             # a helpful error message otherwise).
             BasisTranslator(sel, extended_basis_gates, None),
-            # The next step is to resynthesize blocks of consecutive 1q-gates into ["h", "t", "tdg"].
+            # The next step is to resynthesize blocks of consecutive 1q-gates into Clifford+T.
             # Use Collect1qRuns and ConsolidateBlocks passes to replace such blocks by 1q "unitary"
             # gates.
             Collect1qRuns(),
@@ -542,18 +542,20 @@ def generate_translation_passmanager(
             # We use the "clifford" unitary synthesis plugin to replace single-qubit
             # unitary gates that can be represented as Cliffords by Clifford gates.
             UnitarySynthesis(method="clifford", plugin_config={"max_qubits": 1}),
-            # We use the Solovay-Kitaev decomposition via the plugin mechanism for "sk"
-            # UnitarySynthesisPlugin.
+            # We use the "default" unitary synthesis algorithm for the original Clifford+T
+            # basis set. Currently this run the Solovay-Kitaev synthesis. The value
+            # of "default" is hard-coded till we provide a robust mechanism to handle
+            # user-specified synthesis plugins and fallback on the default plugin.
             UnitarySynthesis(
-                basis_gates=["h", "t", "tdg"],
+                basis_gates=basis_gates,
                 approximation_degree=approximation_degree,
                 coupling_map=coupling_map,
                 plugin_config=unitary_synthesis_plugin_config,
-                method="sk",
+                method="default",
                 min_qubits=1,
                 target=None,
             ),
-            # Finally, we use BasisTranslator to translate ["h", "t", "tdg"] to the actually
+            # Finally, we use BasisTranslator to translate Clifford+T to the actually
             # specified set of basis gates.
             BasisTranslator(sel, basis_gates, target),
         ]
