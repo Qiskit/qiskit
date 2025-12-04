@@ -24,6 +24,7 @@ use crate::operations::{
     UnitaryGate,
 };
 use crate::{Block, Clbit, Qubit};
+use hashbrown::HashMap;
 use nalgebra::Matrix2;
 use ndarray::Array2;
 use num_complex::Complex64;
@@ -771,6 +772,28 @@ impl PackedInstruction {
             .unwrap_or_default()
     }
 
+    /// Get a clone of this instruction with the blocks (if any) remapped to new indices.
+    ///
+    /// You probably don't want to use this directly; use `BlockMapper::map_instruction` instead,
+    /// which remembers the blocks it's already encountered.
+    pub fn map_blocks(&self, mut map: impl FnMut(Block) -> Block) -> Self {
+        let params = match self.params.as_deref() {
+            Some(Parameters::Params(_)) | None => self.params.clone(),
+            Some(Parameters::Blocks(blocks)) => Some(Box::new(Parameters::Blocks(
+                blocks.iter().map(|b| map(*b)).collect(),
+            ))),
+        };
+        Self {
+            op: self.op.clone(),
+            qubits: self.qubits,
+            clbits: self.clbits,
+            params,
+            label: self.label.clone(),
+            #[cfg(feature = "cache_pygates")]
+            py_op: self.py_op.clone(),
+        }
+    }
+
     /// Does this instruction contain any compile-time symbolic `ParameterExpression`s?
     pub fn is_parameterized(&self) -> bool {
         self.params.as_deref().is_some_and(|p| match p {
@@ -839,6 +862,51 @@ impl PackedInstruction {
             OperationRef::Gate(g) => g.definition(),
             OperationRef::Instruction(i) => i.definition(),
             _ => None,
+        }
+    }
+}
+
+/// Helper "memory" struct for mapping `PackedInstruction`s to have different blocks in another
+/// circuit.
+///
+/// Typically you construct this, then repeatedly call `map_instruction`.
+#[derive(Clone, Debug, Default)]
+pub struct BlockMapper(HashMap<Block, Block>);
+impl BlockMapper {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Get a clone of a `PackedInstruction`, remapping the blocks inside to new values.
+    ///
+    /// This remembers any `Block`s previously seen by this struct, and only calls `add_block` the
+    /// first time each block is encountered.
+    pub fn map_instruction(
+        &mut self,
+        inst: &PackedInstruction,
+        mut add_block: impl FnMut(Block) -> Block,
+    ) -> PackedInstruction {
+        inst.map_blocks(|b| *self.0.entry(b).or_insert_with(|| add_block(b)))
+    }
+
+    /// Get a clone of a `Parameters<Block>`, remapping the blocks inside to new values.
+    ///
+    /// This remembers any `Block`s previously seen by this struct, and only calls `add_block` the
+    /// first time each block is encountered.
+    pub fn map_params(
+        &mut self,
+        params: &Parameters<Block>,
+        mut add_block: impl FnMut(Block) -> Block,
+    ) -> Parameters<Block> {
+        match params {
+            Parameters::Params(_) => params.clone(),
+            Parameters::Blocks(blocks) => Parameters::Blocks(
+                blocks
+                    .iter()
+                    .cloned()
+                    .map(|b| *self.0.entry(b).or_insert_with(|| add_block(b)))
+                    .collect(),
+            ),
         }
     }
 }

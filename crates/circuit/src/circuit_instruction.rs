@@ -32,7 +32,6 @@ use crate::operations::{
 };
 use crate::packed_instruction::PackedOperation;
 use crate::parameter::parameter_expression::ParameterExpression;
-use crate::parameter::symbol_expr::Symbol;
 use nalgebra::{Dyn, MatrixView2, MatrixView4};
 use num_complex::Complex64;
 use smallvec::SmallVec;
@@ -208,11 +207,11 @@ impl CircuitInstruction {
         match self.operation.view() {
             OperationRef::ControlFlow(cf) => match &cf.control_flow {
                 ControlFlow::ForLoop {
-                    indexset,
+                    collection,
                     loop_param,
                     ..
                 } => [
-                    indexset.into_py_any(py)?,
+                    collection.into_py_any(py)?,
                     loop_param.clone().into_py_any(py)?,
                     self.blocks_view()[0].clone_ref(py),
                 ]
@@ -690,21 +689,26 @@ impl<'a, 'py> FromPyObject<'a, 'py> for OperationFromPython {
                     ControlFlowType::BreakLoop => ControlFlow::BreakLoop,
                     ControlFlowType::ContinueLoop => ControlFlow::ContinueLoop,
                     ControlFlowType::ForLoop => {
-                        // We lift for-loop's indexset and loop parameter from `params` to the
+                        // We lift for-loop's collection and loop parameter from `params` to the
                         // operation itself for Rust since it's nicer to work with.
                         let mut params = params.try_iter()?;
-                        let indexset = {
-                            // The indexset is an iterable of ints, so we extract each
-                            // and store them all in a Vec.
-                            let indexset = params.next().unwrap()?.try_iter()?;
-                            indexset
-                                .map(|index| index?.extract())
-                                .collect::<PyResult<_>>()?
-                        };
-                        let loop_param = params.next().unwrap()?.extract::<Option<Symbol>>()?;
                         ControlFlow::ForLoop {
-                            indexset,
-                            loop_param,
+                            collection: params
+                                .next()
+                                .ok_or_else(|| {
+                                    PyValueError::new_err(
+                                        "not enough values to unpack (expected 3, got 0)",
+                                    )
+                                })??
+                                .extract()?,
+                            loop_param: params
+                                .next()
+                                .ok_or_else(|| {
+                                    PyValueError::new_err(
+                                        "not enough values to unpack (expected 3, got 1)",
+                                    )
+                                })??
+                                .extract()?,
                         }
                     }
                     ControlFlowType::IfElse => ControlFlow::IfElse {
@@ -863,7 +867,7 @@ pub fn extract_params(
             ControlFlow::BreakLoop => None,
             ControlFlow::ContinueLoop => None,
             ControlFlow::ForLoop { .. } => {
-                // We skip the first two parameters (indexset and loop_param) since we
+                // We skip the first two parameters (collection and loop_param) since we
                 // store those directly on the operation in Rust.
                 let mut params = params.try_iter()?.skip(2);
                 Some(Parameters::Blocks(vec![params.next().unwrap()?.unbind()]))
