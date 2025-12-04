@@ -1203,7 +1203,7 @@ pub unsafe extern "C" fn qk_target_op_qargs_index(
 /// @param qargs_out A pointer to an array with enough capacity to write out the ``qargs``.
 /// @param qargs_len A pointer to a ``uint32_t`` to write the length of the qargs.
 ///
-/// @return An exit code.
+/// Panics if any of the indices are out of range.
 ///
 /// # Example
 /// ```c
@@ -1232,7 +1232,7 @@ pub unsafe extern "C" fn qk_target_op_get_qargs(
     qarg_idx: usize,
     qargs_out: *mut *mut u32,
     qargs_len: *mut u32,
-) -> ExitCode {
+) {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target_borrowed = unsafe { const_ptr_as_ref(target) };
     if let Some((_, props_map)) = target_borrowed.get_by_index(op_idx) {
@@ -1246,12 +1246,11 @@ pub unsafe extern "C" fn qk_target_op_get_qargs(
             // SAFETY: Per documentation, the pointer goes to an address
             // expecting a uint32_t.
             unsafe { qargs_len.write(qargs_length) };
-            ExitCode::Success
         } else {
-            ExitCode::IndexError
+            panic!("Invalid index for qargs.")
         }
     } else {
-        ExitCode::IndexError
+        panic!("Invalid index for gate.")
     }
 }
 
@@ -1263,7 +1262,7 @@ pub unsafe extern "C" fn qk_target_op_get_qargs(
 /// @param qarg_idx The index in which the qargs are stored.
 /// @param inst_props A pointer to write out the ``QkInstructionProperties`` instance.
 ///
-/// @return An exit code.
+/// Panics if any of the indices are out of range.
 ///
 /// # Example
 /// ```c
@@ -1290,7 +1289,7 @@ pub unsafe extern "C" fn qk_target_op_get_props(
     op_idx: usize,
     qarg_idx: usize,
     inst_props: *mut CInstructionProperties,
-) -> ExitCode {
+) {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target_borrowed = unsafe { const_ptr_as_ref(target) };
     if let Some((_, props_map)) = target_borrowed.get_by_index(op_idx) {
@@ -1311,12 +1310,11 @@ pub unsafe extern "C" fn qk_target_op_get_props(
                     });
                 }
             }
-            ExitCode::Success
         } else {
-            ExitCode::IndexError
+            panic!("Invalid index for qargs.")
         }
     } else {
-        ExitCode::IndexError
+        panic!("Invalid index for gate.")
     }
 }
 
