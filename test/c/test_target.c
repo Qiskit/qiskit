@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <string.h>
 
+QkTarget *create_sample_target(bool std_inst);
 /**
  * Test empty constructor for Target
  */
@@ -304,6 +305,14 @@ static int test_target_entry_construction(void) {
         printf("The operation did not fail as expected for invalid qargs.");
     }
 
+    // Set name for the entry
+    QkExitCode set_name_error = qk_target_entry_set_name(property_map, "cx_gate");
+    if (set_name_error != QkExitCode_Success) {
+        printf("Unexpected error occurred when setting the name of the entry.\n");
+        result = EqualityError;
+        goto cleanup;
+    }
+
 cleanup:
     qk_target_entry_free(property_map);
     return result;
@@ -392,7 +401,7 @@ static int test_target_add_instruction(void) {
     // Create prop_map for the instruction
     // Add property for (0, 1)
     double crx_params[1] = {3.14};
-    QkTargetEntry *crx_entry = qk_target_entry_new_fixed(QkGate_CRX, crx_params);
+    QkTargetEntry *crx_entry = qk_target_entry_new_fixed(QkGate_CRX, crx_params, "crx_fixed");
     uint32_t crx_qargs[2] = {1, 2};
     double crx_inst_error = 0.0129023;
     double crx_inst_duration = 0.92939;
@@ -544,6 +553,89 @@ cleanup:
     return result;
 }
 
+/**
+ * Test if our target is compatible with certain instructions.
+ */
+int test_target_instruction_supported(void) {
+    QkTarget *sample_target = create_sample_target(true);
+    int result = Ok;
+
+    char *gate_names[7] = {"x", "y", "id", "rz", "sx", "reset"};
+    QkParam *rz_params[1] = {
+        qk_param_from_double(3.14),
+    };
+    for (uint32_t qubit = 0; qubit < 5; qubit++) {
+        uint32_t qargs[1] = {qubit};
+        bool should_be_true = qubit < 4;
+
+        for (int gate = 0; gate < 6; gate++) {
+            // If i == 4 condition should be false unless we try with the y gate
+            // since y is added as a global gate.
+            if (qk_target_instruction_supported(sample_target, gate_names[gate], qargs,
+                                                gate != 3 ? NULL : rz_params) !=
+                (should_be_true || gate == 1)) {
+                printf("This target did not correctly demonstrate compatibility with %s and qargs "
+                       "[%d]",
+                       gate_names[gate], qubit);
+                result = EqualityError;
+                goto cleanup;
+            }
+        }
+
+        // Try checking with the wrong fixed parameter for RZ
+        QkParam *param = qk_param_from_double(1.57);
+        if (qk_target_instruction_supported(sample_target, "rz", qargs,
+                                            (QkParam *[]){
+                                                param,
+                                            })) {
+            printf("This target did not correctly demonstrate compatibility with 'rz' and qargs "
+                   "[%d]",
+                   qubit);
+            result = EqualityError;
+            qk_param_free(param);
+            goto cleanup;
+        }
+
+        // Test standard instructions reset and measure
+        if (!(qk_target_instruction_supported(sample_target, "measure", qargs, NULL) ==
+              (qubit < 2))) {
+            printf(
+                "This target did not correctly demonstrate compatibility with 'measure' and qargs "
+                "[%d]",
+                qubit);
+            result = EqualityError;
+            goto cleanup;
+        }
+    }
+
+    // Qarg samples for CX
+    uint32_t qarg_samples[8][2] = {
+        {3, 4}, {4, 3}, {3, 1}, {1, 3}, {1, 2}, {2, 1}, {0, 1}, {1, 0},
+    };
+    for (int i = 0; i < 8; i++) {
+        if (!qk_target_instruction_supported(sample_target, "cx", qarg_samples[i], NULL)) {
+            printf("This target did incorrectly demonstrate compatibility with 'cx' and qargs [%d, "
+                   "%d]",
+                   qarg_samples[i][0], qarg_samples[i][1]);
+            result = EqualityError;
+            goto cleanup;
+        }
+    }
+
+    uint32_t cx_qargs[2] = {3, 2};
+    // Instruction should not show compatibility with (3, 2)
+    if (qk_target_instruction_supported(sample_target, "cx", cx_qargs, NULL)) {
+        printf("This target did incorrectly demonstrate compatibility with 'cx' and qargs [3, 2]");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+cleanup:
+    qk_param_free(rz_params[0]);
+    qk_target_free(sample_target);
+    return result;
+}
+
 int test_target(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_empty_target);
@@ -552,9 +644,77 @@ int test_target(void) {
     num_failed += RUN_TEST(test_target_add_instruction);
     num_failed += RUN_TEST(test_target_update_instruction);
     num_failed += RUN_TEST(test_target_construction_ibm_like_target);
+    num_failed += RUN_TEST(test_target_instruction_supported);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
 
     return num_failed;
+}
+
+QkTarget *create_sample_target(bool std_inst) {
+    // Build sample target
+    QkTarget *target = qk_target_new(0);
+    QkTargetEntry *i_entry = qk_target_entry_new(QkGate_I);
+    for (int i = 0; i < 4; i++) {
+        uint32_t qargs[1] = {i};
+        qk_target_entry_add_property(i_entry, qargs, 1, 35.5e-9, 0.);
+    }
+    qk_target_add_instruction(target, i_entry);
+
+    double rz_params[1] = {3.14};
+    QkTargetEntry *rz_entry = qk_target_entry_new_fixed(QkGate_RZ, rz_params, NULL);
+    for (int i = 0; i < 4; i++) {
+        uint32_t qargs[1] = {i};
+        qk_target_entry_add_property(rz_entry, qargs, 1, 0., 0.);
+    }
+    qk_target_add_instruction(target, rz_entry);
+
+    QkTargetEntry *sx_entry = qk_target_entry_new(QkGate_SX);
+    for (int i = 0; i < 4; i++) {
+        uint32_t qargs[1] = {i};
+        qk_target_entry_add_property(sx_entry, qargs, 1, 35.5e-9, 0.);
+    }
+    qk_target_add_instruction(target, sx_entry);
+
+    QkTargetEntry *x_entry = qk_target_entry_new(QkGate_X);
+    for (int i = 0; i < 4; i++) {
+        uint32_t qargs[1] = {i};
+        qk_target_entry_add_property(x_entry, qargs, 1, 35.5e-9, 0.0005);
+    }
+    qk_target_add_instruction(target, x_entry);
+
+    QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
+    uint32_t qarg_samples[8][2] = {
+        {3, 4}, {4, 3}, {3, 1}, {1, 3}, {1, 2}, {2, 1}, {0, 1}, {1, 0},
+    };
+    double props[8][2] = {
+        {2.7022e-11, 0.00713}, {3.0577e-11, 0.00713}, {4.6222e-11, 0.00929}, {4.9777e-11, 0.00929},
+        {2.2755e-11, 0.00659}, {2.6311e-11, 0.00659}, {5.1911e-11, 0.01201}, {5.1911e-11, 0.01201},
+    };
+    for (int i = 0; i < 8; i++) {
+        qk_target_entry_add_property(cx_entry, qarg_samples[i], 2, props[i][0], props[i][1]);
+    }
+    qk_target_add_instruction(target, cx_entry);
+
+    // Add global Y Gate
+    qk_target_add_instruction(target, qk_target_entry_new(QkGate_Y));
+
+    if (std_inst) {
+        QkTargetEntry *meas = qk_target_entry_new_measure();
+        for (uint32_t i = 0; i < 2; i++) {
+            uint32_t q[1] = {i};
+            qk_target_entry_add_property(meas, q, 1, 1e-6, 1e-4);
+        }
+        qk_target_add_instruction(target, meas);
+
+        QkTargetEntry *reset = qk_target_entry_new_reset();
+        for (uint32_t i = 0; i < 4; i++) {
+            uint32_t q[1] = {i};
+            qk_target_entry_add_property(reset, q, 1, 1e-6, 1e-4);
+        }
+        qk_target_add_instruction(target, reset);
+    }
+
+    return target;
 }

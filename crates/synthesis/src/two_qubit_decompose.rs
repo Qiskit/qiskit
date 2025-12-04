@@ -57,6 +57,7 @@ use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::{CX_GATE, H_GATE, ONE_QUBIT_IDENTITY, S_GATE, SDG_GATE};
+use qiskit_circuit::instruction::{Instruction, Parameters};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::util::{C_M_ONE, C_ONE, C_ZERO, GateArray1Q, GateArray2Q, IM, M_IM, c64};
@@ -391,6 +392,8 @@ fn compute_unitary(sequence: &TwoQubitSequenceVec, global_phase: f64) -> Array2<
             // by something else and is invalid.
             let gate_matrix = inst
                 .0
+                .try_standard_gate()
+                .expect("should be sx, x, rz, or cx")
                 .matrix(&inst.1.iter().map(|x| Param::Float(*x)).collect::<Vec<_>>())
                 .unwrap();
             (gate_matrix, &inst.2)
@@ -2048,11 +2051,12 @@ type PickleNewArgs<'a> = (Py<PyAny>, Py<PyAny>, f64, &'a str, Option<bool>);
 #[pymethods]
 impl TwoQubitBasisDecomposer {
     fn __getnewargs__(&self, py: Python) -> PyResult<PickleNewArgs<'_>> {
-        let params: Vec<Param> = self.gate_params.iter().map(|x| Param::Float(*x)).collect();
+        let params: SmallVec<[Param; 3]> =
+            self.gate_params.iter().map(|x| Param::Float(*x)).collect();
         Ok((
             match self.gate.view() {
                 OperationRef::StandardGate(standard) => {
-                    standard.create_py_op(py, Some(&params), None)?.into_any()
+                    standard.create_py_op(py, Some(params), None)?.into_any()
                 }
                 OperationRef::Gate(gate) => gate.gate.clone_ref(py),
                 OperationRef::Unitary(unitary) => unitary.create_py_op(py, None)?.into_any(),
@@ -2078,8 +2082,13 @@ impl TwoQubitBasisDecomposer {
         euler_basis: &str,
         pulse_optimize: Option<bool>,
     ) -> PyResult<Self> {
+        if gate.operation.try_control_flow().is_some() {
+            return Err(PyValueError::new_err(
+                "Only gates are supported by two qubit decomposer",
+            ));
+        }
         let gate_params: PyResult<SmallVec<[f64; 3]>> = gate
-            .params
+            .params_view()
             .iter()
             .map(|x| match x {
                 Param::Float(val) => Ok(*val),
@@ -2220,7 +2229,7 @@ impl TwoQubitBasisDecomposer {
         let mut builder = dag.into_builder();
         for (gate, params, qubits) in sequence.gates {
             let qubits: Vec<Qubit> = qubits.iter().map(|x| Qubit(*x as u32)).collect();
-            let params = params.iter().map(|x| Param::Float(*x)).collect();
+            let params = Parameters::Params(params.iter().map(|x| Param::Float(*x)).collect());
             builder.apply_operation_back(
                 gate,
                 &qubits,
@@ -2546,8 +2555,9 @@ impl TwoQubitControlledUDecomposer {
             OperationRef::Gate(gate) => {
                 Python::attach(|py: Python| -> PyResult<(PackedOperation, SmallVec<_>)> {
                     let raw_inverse = gate.gate.call_method0(py, intern!(py, "inverse"))?;
-                    let inverse: OperationFromPython = raw_inverse.extract(py)?;
-                    Ok((inverse.operation, inverse.params))
+                    let mut inverse: OperationFromPython = raw_inverse.extract(py)?;
+                    let params = inverse.take_params().unwrap_or_default();
+                    Ok((inverse.operation, params))
                 })?
             }
             // UnitaryGate isn't applicable here as the 2q gate here is the parameterized

@@ -309,6 +309,40 @@ will return a list of all the installed Clifford synthesis plugins.
 Available Plugins
 =================
 
+Below are the synthesis plugin classes available in Qiskit. These classes should not be
+used directly, but instead should be used through the plugin interface documented
+above. The classes are listed here to ease finding the documentation for each of the
+included plugins and to ease the comparison between different synthesis methods for
+a given object.
+
+
+Unitary Synthesis Plugins
+-------------------------
+
+.. automodule:: qiskit.transpiler.passes.synthesis.aqc_plugin
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
+
+.. automodule:: qiskit.transpiler.passes.synthesis.solovay_kitaev_synthesis
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
+
+.. automodule:: qiskit.transpiler.passes.synthesis.clifford_unitary_synth_plugin
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
+
+.. automodule:: qiskit.transpiler.passes.synthesis.default_unitary_synth_plugin
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
+
+
+High Level Synthesis
+--------------------
+
 High-level synthesis plugins that are directly available in Qiskit include plugins
 for synthesizing :class:`.Clifford` objects, :class:`.LinearFunction` objects, and
 :class:`.PermutationGate` objects.
@@ -335,35 +369,6 @@ the topology of the device. A good example of this is the permutation synthesis 
 ``TokenSwapperSynthesisPermutation`` which is able to synthesize arbitrary permutations
 with respect to arbitrary coupling maps.
 For more detail, please refer to description of each individual plugin.
-
-Below are the synthesis plugin classes available in Qiskit. These classes should not be
-used directly, but instead should be used through the plugin interface documented
-above. The classes are listed here to ease finding the documentation for each of the
-included plugins and to ease the comparison between different synthesis methods for
-a given object.
-
-
-Unitary Synthesis Plugins
--------------------------
-
-.. automodule:: qiskit.transpiler.passes.synthesis.aqc_plugin
-   :no-members:
-   :no-inherited-members:
-   :no-special-members:
-
-.. automodule:: qiskit.transpiler.passes.synthesis.unitary_synthesis
-   :no-members:
-   :no-inherited-members:
-   :no-special-members:
-
-.. automodule:: qiskit.transpiler.passes.synthesis.solovay_kitaev_synthesis
-   :no-members:
-   :no-inherited-members:
-   :no-special-members:
-
-
-High Level Synthesis
---------------------
 
 For each high-level object we give a table that lists all of its plugins available
 directly in Qiskit. We include the name of the plugin, the class of the plugin,

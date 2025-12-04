@@ -102,7 +102,8 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_remove_identity_equivalen
         Some(approximation_degree)
     };
 
-    run_remove_identity_equiv(&mut dag, approximation_degree, Some(target));
+    run_remove_identity_equiv(&mut dag, approximation_degree, Some(target))
+        .unwrap_or_else(|_| panic!("Remove identity equiv failed."));
     let out_circuit = match dag_to_circuit(&dag, false) {
         Ok(qc) => qc,
         Err(e) => panic!("{}", e),
