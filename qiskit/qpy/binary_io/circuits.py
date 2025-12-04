@@ -707,21 +707,21 @@ def _read_pauli_evolution_gate(file_obj, version, vectors):
         if version >= 17:
             sparse_operator = struct.unpack("?", file_obj.read(1))[0]
             if sparse_operator:
-                op_elem = formats.SPARSE_OBSERVABLE_OP_LIST_ELEM._make(
+                op_elem = formats.SPARSE_OBSERVABLE._make(
                     struct.unpack(
-                        formats.SPARSE_OBSERVABLE_OP_LIST_ELEM_PACK,
-                        file_obj.read(formats.SPARSE_OBSERVABLE_OP_LIST_ELEM_SIZE),
+                        formats.SPARSE_OBSERVABLE_PACK,
+                        file_obj.read(formats.SPARSE_OBSERVABLE_SIZE),
                     )
                 )
                 # setting data lengths
-                num_paulis = int(op_elem.coeff_data_len / (2 * struct.calcsize("d")))
-                num_bitterms = int(op_elem.bitterm_data_len / struct.calcsize("i"))
-                num_inds = int(op_elem.inds_data_len / struct.calcsize("i"))
-                num_bounds = int(op_elem.bounds_data_len / struct.calcsize("i"))
+                num_paulis = int(op_elem.coeff_data_len / (2 * struct.calcsize("!d")))
+                num_bitterms = int(op_elem.bitterm_data_len / struct.calcsize("!H"))
+                num_inds = int(op_elem.inds_data_len / struct.calcsize("!I"))
+                num_bounds = int(op_elem.bounds_data_len / struct.calcsize("!Q"))
 
                 # reading coeffs
                 coeff_data = struct.unpack(
-                    f"{2*num_paulis}d", file_obj.read(op_elem.coeff_data_len)
+                    f"!{2*num_paulis}d", file_obj.read(op_elem.coeff_data_len)
                 )
                 coeff_read = np.empty(num_paulis, dtype=np.complex128)
                 for ii in range(num_paulis):
@@ -729,22 +729,22 @@ def _read_pauli_evolution_gate(file_obj, version, vectors):
 
                 # reading bit_terms
                 bitterms_read = list(
-                    struct.unpack(f"{num_bitterms}i", file_obj.read(op_elem.bitterm_data_len))
+                    struct.unpack(f"!{num_bitterms}H", file_obj.read(op_elem.bitterm_data_len))
                 )
 
                 # reading indices
                 inds_read = list(
-                    struct.unpack(f"{num_inds}i", file_obj.read(op_elem.inds_data_len))
+                    struct.unpack(f"!{num_inds}I", file_obj.read(op_elem.inds_data_len))
                 )
 
                 # reading boundaries
                 bounds_read = list(
-                    struct.unpack(f"{num_bounds}i", file_obj.read(op_elem.bounds_data_len))
+                    struct.unpack(f"!{num_bounds}Q", file_obj.read(op_elem.bounds_data_len))
                 )
 
                 operator_list.append(
                     SparseObservable.from_raw_parts(
-                        op_elem.numq, coeff_read, bitterms_read, inds_read, bounds_read
+                        op_elem.num_qubits, coeff_read, bitterms_read, inds_read, bounds_read
                     )
                 )
 
@@ -1132,19 +1132,19 @@ def _write_pauli_evolution_gate(file_obj, evolution_gate, version):
         coeffs = op.coeffs
         bounds = op.boundaries
         inds = op.indices
-        numq = op.num_qubits
+        num_qubits = op.num_qubits
 
         # pack elements as [c1.real, c1.imag, c2.real, c2.imag, ...]
         coeff_data = struct.pack(
-            f"{len(coeffs)*2}d", *(val for coeff in coeffs for val in (coeff.real, coeff.imag))
+            f"!{len(coeffs)*2}d", *(val for coeff in coeffs for val in (coeff.real, coeff.imag))
         )
-        bitterm_data = struct.pack(f"{len(bitterms)}i", *bitterms)
-        inds_data = struct.pack(f"{len(inds)}i", *inds)
-        bounds_data = struct.pack(f"{len(bounds)}i", *bounds)
+        bitterm_data = struct.pack(f"!{len(bitterms)}H", *bitterms)
+        inds_data = struct.pack(f"!{len(inds)}I", *inds)
+        bounds_data = struct.pack(f"!{len(bounds)}Q", *bounds)
 
         sparse_observable_data_length = struct.pack(
-            formats.SPARSE_OBSERVABLE_OP_LIST_ELEM_PACK,
-            numq,
+            formats.SPARSE_OBSERVABLE_PACK,
+            num_qubits,
             len(coeff_data),
             len(bitterm_data),
             len(inds_data),
