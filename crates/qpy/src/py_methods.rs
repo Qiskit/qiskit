@@ -248,6 +248,7 @@ pub fn py_pack_pauli_evolution_gate(
 
 pub fn gate_class_name(op: &PackedOperation) -> PyResult<String> {
     Python::attach(|py| {
+        println!("op.view(): {:?}", op.view());
         let name = match op.view() {
             // getting __name__ for standard gates and instructions should
             // eventually be replaced with a Rust-side mapping
@@ -294,6 +295,7 @@ pub fn gate_class_name(op: &PackedOperation) -> PyResult<String> {
                 .get_bound(py)
                 .getattr(intern!(py, "__name__"))?
                 .extract::<String>(),
+            OperationRef::ControlFlow(inst) => Ok(inst.name().to_string()),
         }?;
         Ok(name)
     })

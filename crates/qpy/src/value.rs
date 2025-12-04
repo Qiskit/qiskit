@@ -540,6 +540,7 @@ pub fn get_circuit_type_key(op: &PackedOperation) -> PyResult<CircuitInstruction
         OperationRef::StandardGate(_) => Ok(CircuitInstructionType::Gate),
         OperationRef::StandardInstruction(_)
         | OperationRef::Instruction(_)
+        | OperationRef::ControlFlow(_)
         | OperationRef::PauliProductMeasurement(_) => Ok(CircuitInstructionType::Instruction),
         OperationRef::Unitary(_) => Ok(CircuitInstructionType::Gate),
         OperationRef::Gate(pygate) => Python::attach(|py| {

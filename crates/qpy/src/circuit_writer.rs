@@ -26,13 +26,13 @@ use numpy::ToPyArray;
 
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::types::{PyAny, PyDict};
+use pyo3::types::{PyAny, PyDict, PyTuple};
 
 use qiskit_circuit::bit::{
     ClassicalRegister, PyClbit, PyQubit, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
 use qiskit_circuit::circuit_data::{CircuitData, CircuitStretchType, CircuitVarType};
-use qiskit_circuit::circuit_instruction::OperationFromPython;
+use qiskit_circuit::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::imports;
 use qiskit_circuit::operations::{ArrayType, Operation, OperationRef};
@@ -128,13 +128,18 @@ fn pack_instruction(
     new_custom_operations: &mut Vec<String>,
     qpy_data: &mut QPYWriteData,
 ) -> PyResult<formats::CircuitInstructionV2Pack> {
+    println!("packing instruction {:?}", instruction);
     let mut gate_class_name = gate_class_name(&instruction.op)?;
+    println!("gate class name: {:?}", gate_class_name);
     if let Some(new_name) = recognize_custom_operation(&instruction.op, &gate_class_name)? {
         gate_class_name = new_name;
         new_custom_operations.push(gate_class_name.clone());
         custom_operations.insert(gate_class_name.clone(), instruction.op.clone());
     }
-    let label = instruction.label().unwrap_or("").to_string();
+    let label = match instruction.label.as_deref() {
+        None => Default::default(),
+        Some(label) => label.clone()
+    };
     let num_ctrl_qubits = match &instruction.op.view() {
         OperationRef::StandardGate(gate) => gate.num_ctrl_qubits(),
         OperationRef::Gate(py_gate) => py_gate.num_ctrl_qubits(),
@@ -737,17 +742,18 @@ fn pack_custom_instruction(
         let num_clbits = operation.num_clbits();
         if !base_gate.is_none() {
             let op_parts = base_gate.extract::<OperationFromPython>()?;
-            let instruction = PackedInstruction {
-                op: op_parts.operation,
-                qubits: Default::default(),
-                clbits: Default::default(),
-                params: Some(Box::new(op_parts.params)),
+            let instruction = CircuitInstruction {
+                operation: op_parts.operation,
+                qubits: PyTuple::empty(py).into(),
+                clbits: PyTuple::empty(py).into(),
+                params: op_parts.params,
                 label: op_parts.label,
                 #[cfg(feature = "cache_pygates")]
                 py_op: std::sync::OnceLock::new(),
             };
+            let packed_instruction = qpy_data.circuit_data.pack(py, &instruction)?;
             base_gate_raw = serialize(&pack_instruction(
-                &instruction,
+                &packed_instruction,
                 custom_instructions_hash,
                 new_instructions_list,
                 qpy_data,
@@ -851,6 +857,7 @@ pub fn pack_circuit(
     version: u32,
     annotation_factories: &Bound<PyDict>,
 ) -> PyResult<formats::QPYFormatV15> {
+    println!("Hello world from pack_circuit");
     let annotation_handler = AnnotationHandler::new(annotation_factories);
     let clbits = circuit.data.clbits().clone();
     let mut qpy_data = QPYWriteData {
@@ -868,6 +875,7 @@ pub fn pack_circuit(
         metadata_serializer,
         &qpy_data,
     )?;
+    println!("Got here 1");
     // Pulse has been removed in Qiskit 2.0. As long as we keep QPY at version 13,
     // we need to write an empty calibrations header since read_circuit expects it
     let calibrations = formats::CalibrationsPack { num_cals: 0 };
@@ -881,8 +889,9 @@ pub fn pack_circuit(
         .into_iter()
         .map(|(namespace, state)| formats::AnnotationStateHeaderPack { namespace, state })
         .collect();
-
+    println!("Got here 2");
     let annotation_headers = formats::AnnotationHeaderStaticPack { state_headers };
+    println!("Got here 3");
     Ok(formats::QPYFormatV15 {
         header,
         standalone_vars,
@@ -913,10 +922,13 @@ pub fn py_write_circuit(
         version,
         annotation_factories,
     )?;
+    println!("To serialize");
     let serialized_circuit = serialize(&packed_circuit);
+    println!("Serialized");
     file_obj.call_method1(
         "write",
         (pyo3::types::PyBytes::new(py, &serialized_circuit),),
     )?;
+    println!("written");
     Ok(serialized_circuit.len())
 }

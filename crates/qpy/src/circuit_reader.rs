@@ -39,6 +39,7 @@ use qiskit_circuit::operations::PauliProductMeasurement;
 use qiskit_circuit::operations::{Param, StandardInstruction};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::{Clbit, Qubit};
+use qiskit_circuit::instruction::Parameters;
 
 use smallvec::SmallVec;
 
@@ -183,7 +184,7 @@ fn unpack_custom_instruction(
             let kwargs = PyDict::new(py);
             kwargs.set_item(intern!(py, "num_ctrl_qubits"), instruction.num_ctrl_qubits)?;
             kwargs.set_item(intern!(py, "ctrl_state"), instruction.ctrl_state)?;
-            kwargs.set_item(intern!(py, "base_gate"), base_gate.unpack_py_op(py)?)?;
+            kwargs.set_item(intern!(py, "base_gate"), qpy_data.circuit_data.unpack_py_op(py, &base_gate)?)?;
 
             let controlled_gate_object = imports::CONTROLLED_GATE.get_bound(py).call(
                 (&gate_class_name, custom_instruction.num_qubits, py_params),
@@ -203,7 +204,7 @@ fn unpack_custom_instruction(
             let base_gate =
                 unpack_instruction(py, &packed_base_gate, custom_instructions_map, qpy_data)?;
             let kwargs = PyDict::new(py);
-            kwargs.set_item(intern!(py, "base_op"), base_gate.unpack_py_op(py)?)?;
+            kwargs.set_item(intern!(py, "base_op"), qpy_data.circuit_data.unpack_py_op(py, &base_gate)?)?;
             kwargs.set_item(intern!(py, "modifiers"), py_params)?;
             imports::ANNOTATED_OPERATION
                 .get_bound(py)
@@ -318,6 +319,8 @@ fn unpack_instruction(
         PackedOperation::from_standard_instruction(std_instruction)
     } else {
         let gate_class = get_python_gate_class(py, &instruction.gate_class_name)?;
+        println!("Instruction: {:?}", instruction);
+        println!("matching name {:?}",name.as_str());
         let mut gate_object = match name.as_str() {
             "IfElseOp" | "WhileLoopOp" => {
                 let py_condition = match condition {
@@ -414,6 +417,7 @@ fn unpack_instruction(
                 gate_class.call1(args)?
             }
         };
+        println!("matching name DONE");
         if let Some(label_text) = &label {
             if !gate_object.hasattr("label")? || gate_object.getattr("label")?.is_none() {
                 gate_object.setattr("label", label_text.as_str())?;
@@ -435,7 +439,8 @@ fn unpack_instruction(
         op_parts.operation
     };
     let params =
-        (!inst_params.is_empty()).then(|| Box::new(SmallVec::<[Param; 3]>::from_vec(inst_params)));
+        (!inst_params.is_empty()).then(|| Box::new(Parameters::Params(SmallVec::<[Param; 3]>::from_vec(inst_params))));
+
     Ok(PackedInstruction {
         op,
         qubits,
@@ -857,11 +862,12 @@ pub fn unpack_circuit(
     use_symengine: bool,
     annotation_factories: &Bound<PyDict>,
 ) -> PyResult<Py<PyAny>> {
+    println!("Hello world from circuit reader");
     let instruction_capacity = packed_circuit.instructions.len();
     // create an empty circuit; we'll fill data as we go along
     let mut circuit_data =
         CircuitData::with_capacity(0, 0, instruction_capacity, Param::Float(0.0))?;
-
+    println!("got here 1");
     let mut qpy_data = QPYReadData {
         circuit_data: &mut circuit_data,
         version,
@@ -871,13 +877,14 @@ pub fn unpack_circuit(
         vectors: HashMap::new(),
         annotation_handler: AnnotationHandler::new(annotation_factories),
     };
-
+    println!("got here 2");
     let annotation_deserializers_data: Vec<(String, Bytes)> = packed_circuit
         .annotation_headers
         .state_headers
         .iter()
         .map(|data| (data.namespace.clone(), data.state.clone()))
         .collect();
+    println!("got here 3");
     qpy_data
         .annotation_handler
         .load_deserializers(annotation_deserializers_data)?;
@@ -887,17 +894,18 @@ pub fn unpack_circuit(
         &mut qpy_data,
         binrw::Endian::Big,
     )?;
+    println!("got here 4");
     qpy_data.circuit_data.set_global_phase(global_phase)?;
 
     add_standalone_vars(packed_circuit, &mut qpy_data)?;
     add_registers_and_bits(packed_circuit, &mut qpy_data)?;
-
+    println!("got here 5");
     let custom_instructions = read_custom_instructions(py, packed_circuit, &mut qpy_data)?;
     for instruction in &packed_circuit.instructions {
         let inst = unpack_instruction(py, instruction, &custom_instructions, &mut qpy_data)?;
         qpy_data.circuit_data.push(inst)?;
     }
-
+    println!("got here 6");
     for (vector, initialized_params) in qpy_data.vectors.values() {
         let vector_length = vector
             .bind(py)
@@ -927,12 +935,13 @@ pub fn unpack_circuit(
             ))?;
         }
     }
-
+    println!("got here 7");
     // since we don't have a rust QuantumCircuit, and the metadata and custom layouts are also in python
     // this pythonic part is unavoidable
     let unpacked_layout = unpack_layout(py, &packed_circuit.layout, &circuit_data)?;
     let metadata =
         deserialize_metadata(py, &packed_circuit.header.metadata, metadata_deserializer)?;
+    println!("got here 8");
     let circuit = imports::QUANTUM_CIRCUIT
         .get_bound(py)
         .call_method1(intern!(py, "_from_circuit_data"), (circuit_data,))?;
@@ -943,6 +952,7 @@ pub fn unpack_circuit(
     if let Some(layout) = unpacked_layout {
         circuit.setattr("_layout", layout)?;
     }
+    println!("got here 9");
     Ok(circuit.unbind().as_any().clone())
 }
 

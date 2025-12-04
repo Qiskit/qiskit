@@ -58,8 +58,10 @@ impl<'a> AnnotationHandler<'a> {
         let annotation_namespace: String = annotation.getattr("namespace")?.extract()?;
         let annotation_module = py.import("qiskit.circuit.annotation")?;
         let namespace_iter_func = annotation_module.getattr("iter_namespaces")?;
+        println!("namespace_iter thingy start");
         let namespace_iter =
             PyIterator::from_object(&namespace_iter_func.call1((&annotation_namespace,))?)?;
+        println!("namespace_iter thingy end");
         for namespace_res in namespace_iter {
             let namespace = namespace_res?;
             let namespace_string: String = namespace.clone().extract()?;
@@ -90,7 +92,9 @@ impl<'a> AnnotationHandler<'a> {
             }
             // no serializer, let's try to create one from the corresponding factory
             else if let Some(factory) = self.factories.get(&namespace_string) {
+                println!("about to call factory {:?}", factory);
                 let serializer = factory.call0(py)?;
+                println!("called factory {:?}", factory);
                 let result = serializer.call_method1(
                     py,
                     "dump_annotation",
@@ -142,7 +146,9 @@ impl<'a> AnnotationHandler<'a> {
         Python::attach(|py| -> PyResult<()> {
             for (namespace, state) in data {
                 if let Some(factory) = self.factories.get(&namespace) {
+                    println!("about to call factory {:?}", factory);
                     let serializer = factory.call0(py)?;
+                    println!("called factory {:?}", factory);
                     serializer.call_method1(
                         py,
                         "load_state",
