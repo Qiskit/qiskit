@@ -19,6 +19,8 @@ from qiskit._accelerate.converters import dag_to_circuit as dag_to_circuit_rs
 def dag_to_circuit(dag, copy_operations=True):
     """Build a ``QuantumCircuit`` object from a ``DAGCircuit``.
 
+    This is also accessible as :meth:`.DAGCircuit.to_circuit`.
+
     Args:
         dag (DAGCircuit): the input dag.
         copy_operations (bool): Deep copy the operation objects

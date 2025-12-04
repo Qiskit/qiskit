@@ -16,11 +16,12 @@ use qiskit_circuit::VirtualQubit;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_transpiler::passes::vf2::{
-    Vf2PassConfiguration, Vf2PassReturn, vf2_layout_pass_average,
+    Vf2PassConfiguration, Vf2PassReturn, vf2_layout_pass_average, vf2_layout_pass_exact,
 };
 use qiskit_transpiler::target::Target;
 
-/// The result from ``qk_transpiler_pass_standalone_vf2_layout()``.
+/// The result from ``qk_transpiler_pass_standalone_vf2_layout_average()`` and
+/// ``qk_transpile_pass_standalone_vf2_layout_exact()``.
 pub struct VF2LayoutResult(Vf2PassReturn);
 
 /// @ingroup QkVF2LayoutResult
@@ -299,6 +300,10 @@ pub unsafe extern "C" fn qk_vf2_layout_configuration_set_score_initial(
 /// This function corresponds to the Python-space ``VF2Layout`` pass.
 ///
 /// This function is suitable for use on circuits that have not yet been fully lowered to hardware.
+/// If your circuit has already been completely lowered to hardware and you are looking to _improve_
+/// the layout for an exact interaction graph, use ``qk_transpile_pass_standalone_vf2_layout_exact``
+/// instead.
+///
 /// If this pass finds a solution that means there is a "perfect layout" and that no
 /// further swap mapping or routing is needed. However, there is not always a possible
 /// solution, or a solution might exist but it is not found within the limits specified
@@ -314,45 +319,44 @@ pub unsafe extern "C" fn qk_vf2_layout_configuration_set_score_initial(
 ///     almost invariably be synthesised to "flip" direction using only local one-qubit gates and
 ///     the native-direction two-qubit gate.
 ///
-/// @return QkVF2LayoutResult A pointer to a result object that contains the
-/// results of the pass. This object is heap allocated and will need to be freed with the
-/// ``qk_vf2_layout_result_free()`` function.
+/// @return A pointer to a result object that contains the results of the pass. This object is heap
+///     allocated and will need to be freed with the `qk_vf2_layout_result_free` function.
 ///
 /// # Example
 ///
 /// ```c
-///     QkTarget *target = qk_target_new(5);
-///     uint32_t current_num_qubits = qk_target_num_qubits(target);
-///     QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
-///     for (uint32_t i = 0; i < current_num_qubits - 1; i++) {
-///         uint32_t qargs[2] = {i, i + 1};
-///         double inst_error = 0.0090393 * (current_num_qubits - i);
-///         double inst_duration = 0.020039;
-///         qk_target_entry_add_property(cx_entry, qargs, 2, inst_duration, inst_error);
+/// QkTarget *target = qk_target_new(5);
+/// uint32_t current_num_qubits = qk_target_num_qubits(target);
+/// QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
+/// for (uint32_t i = 0; i < current_num_qubits - 1; i++) {
+///     uint32_t qargs[2] = {i, i + 1};
+///     double inst_error = 0.0090393 * (current_num_qubits - i);
+///     double inst_duration = 0.020039;
+///     qk_target_entry_add_property(cx_entry, qargs, 2, inst_duration, inst_error);
+/// }
+/// QkExitCode result_cx = qk_target_add_instruction(target, cx_entry);
+/// QkCircuit *qc = qk_circuit_new(4, 0);
+/// for (uint32_t i = 0; i < qk_circuit_num_qubits(qc) - 1; i++) {
+///     uint32_t qargs[2] = {i, i + 1};
+///     for (uint32_t j = 0; j<i+1; j++) {
+///         qk_circuit_gate(qc, QkGate_CX, qargs, NULL);
 ///     }
-///     QkExitCode result_cx = qk_target_add_instruction(target, cx_entry);
-///     QkCircuit *qc = qk_circuit_new(4, 0);
-///     for (uint32_t i = 0; i < qk_circuit_num_qubits(qc) - 1; i++) {
-///         uint32_t qargs[2] = {i, i + 1};
-///         for (uint32_t j = 0; j<i+1; j++) {
-///             qk_circuit_gate(qc, QkGate_CX, qargs, NULL);
-///         }
-///     }
-///     QkVF2LayoutConfiguration *config = qk_vf2_layout_configuration_new();
-///     qk_vf2_layout_configuration_set_call_limit(config, 10000, 10000);
-///     QkVF2LayoutResult *layout_result = qk_transpiler_pass_standalone_vf2_layout(qc, target, config, false);
-///     qk_vf2_layout_result_free(layout_result);
-///     qk_vf2_layout_configuration_free(config);
+/// }
+/// QkVF2LayoutConfiguration *config = qk_vf2_layout_configuration_new();
+/// qk_vf2_layout_configuration_set_call_limit(config, 10000, 10000);
+/// QkVF2LayoutResult *layout_result = qk_transpiler_pass_standalone_vf2_layout_average(qc, target, config, false);
+/// qk_vf2_layout_result_free(layout_result);
+/// qk_vf2_layout_configuration_free(config);
 /// ```
 ///
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` or ``target`` is not a valid, non-null pointer to a
-/// ``QkCircuit`` and ``QkTarget``.  Behavior is undefined if ``config`` is a non-null pointer that
-/// does not point to a valid ``QkVF2LayoutConfiguration`` object (but a null pointer is fine).
+/// `QkCircuit` and `QkTarget`.  Behavior is undefined if ``config`` is a non-null pointer that
+/// does not point to a valid `QkVF2LayoutConfiguration` object (but a null pointer is fine).
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_transpiler_pass_standalone_vf2_layout(
+pub unsafe extern "C" fn qk_transpiler_pass_standalone_vf2_layout_average(
     circuit: *const CircuitData,
     target: *const Target,
     config: *const VF2LayoutConfiguration,
@@ -373,6 +377,96 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_vf2_layout(
         unsafe { &const_ptr_as_ref(config).0 }
     };
     vf2_layout_pass_average(&dag, target, config, strict_direction, None)
+        .map(|result| Box::into_raw(Box::new(VF2LayoutResult(result))))
+        .unwrap()
+}
+
+/// @ingroup QkTranspilerPasses
+/// Use the VF2 algorithm to choose a layout (if possible) for the input circuit, using a
+/// noise-aware scoring heuristic that requires the result is already fully compatible with
+/// the hardware.
+///
+/// This function corresponds to the Python-space ``VF2PostLayout`` pass with
+/// ``strict_direction=True``.
+///
+/// This function is suitable for use on circuits that have already been fully lowered to hardware,
+/// and you are now looking to see if a qubit permutation can lead to better estimated error rates.
+/// If your circuit is still in terms of non-hardware-supported operations, use
+/// `qk_transpile_pass_standalone_vf2_layout_average` instead.
+///
+/// Typically, you call this pass after layout, routing, translation to a native basis set and
+/// optimization, such that the input circuit is already executable on hardware with the qubit
+/// indices referring to physical qubits.  The pass will return a result indicating one of:
+///
+/// * there is a better choice of initial virtual-to-physical qubit mapping than what the circuit is
+///   currently using.
+/// * the current choice of physical qubits is the best the pass found within its call limit.
+/// * there is no valid choice of virtual-to-physical mapping that results in an executable circuit
+///   (or at least, the pass failed to find one within its specified limits).
+///
+/// In both of the first two cases, `qk_vf2_layout_has_match` will return ``true``.  In only the
+/// first case, `qk_vf2_layout_has_improvement` will return ``true``.
+///
+/// @param circuit A pointer to the circuit to run the layout search on.
+/// @param target A pointer to the target representing the QPU.
+/// @param config A pointer to the `QkVF2LayoutConfiguration` configuration structure.  If this
+///     pointer is null, the pass defaults are used.
+///
+/// @return A pointer to a result object that contains the results of the pass. This object is heap
+///     allocated and will need to be freed with the `qk_vf2_layout_result_free` function.
+///
+/// # Example
+///
+/// ```c
+/// QkTarget *target = qk_target_new(5)
+/// QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
+/// for (uint32_t i = 0; i < current_num_qubits - 1; i++) {
+///     uint32_t qargs[2] = {i, i + 1};
+///     double inst_error = 0.0090393 * (current_num_qubits - i);
+///     double inst_duration = 0.020039;
+///     qk_target_entry_add_property(cx_entry, qargs, 2, inst_duration, inst_error);
+/// }
+/// QkExitCode result_cx = qk_target_add_instruction(target, cx_entry);
+/// QkCircuit *qc = qk_circuit_new(4, 0);
+/// for (uint32_t i = 0; i < qk_circuit_num_qubits(qc) - 1; i++) {
+///     uint32_t qargs[2] = {i, i + 1};
+///     for (uint32_t j = 0; j<i+1; j++) {
+///         qk_circuit_gate(qc, QkGate_CX, qargs, NULL);
+///     }
+/// }
+/// QkVF2LayoutConfiguration *config = qk_vf2_layout_configuration_new();
+/// qk_vf2_layout_configuration_call_limit(config, 10000, 10000);
+/// QkVF2LayoutResult *layout_result = qk_transpiler_pass_standalone_vf2_layout_exact(qc, target, config);
+/// qk_vf2_layout_result_free(layout_result);
+/// qk_vf2_layout_configuration_free(config);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` or ``target`` is not a valid, non-null pointer to a
+/// `QkCircuit` and `QkTarget`.  Behavior is undefined if ``config`` is a non-null pointer that
+/// does not point to a valid `QkVF2LayoutConfiguration` object (but a null pointer is fine).
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_transpiler_pass_standalone_vf2_layout_exact(
+    circuit: *const CircuitData,
+    target: *const Target,
+    config: *const VF2LayoutConfiguration,
+) -> *mut VF2LayoutResult {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let circuit = unsafe { const_ptr_as_ref(circuit) };
+    let target = unsafe { const_ptr_as_ref(target) };
+    let dag = match DAGCircuit::from_circuit_data(circuit, false, None, None, None, None) {
+        Ok(dag) => dag,
+        Err(e) => panic!("{}", e),
+    };
+    let config_default = Vf2PassConfiguration::default_concrete();
+    let config = if config.is_null() {
+        &config_default
+    } else {
+        unsafe { &const_ptr_as_ref(config).0 }
+    };
+    vf2_layout_pass_exact(&dag, target, config)
         .map(|result| Box::into_raw(Box::new(VF2LayoutResult(result))))
         .unwrap()
 }

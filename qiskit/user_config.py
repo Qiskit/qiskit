@@ -190,11 +190,18 @@ class UserConfig:
                 self.settings["sabre_all_threads"] = sabre_all_threads
 
             # Parse min_qpy_version
-            min_qpy_version = self.config_parser.getint("default", "min_qpy_version", fallback=None)
+            try:
+                min_qpy_version = self.config_parser.getint(
+                    "default", "min_qpy_version", fallback=None
+                )
+            except ValueError as ve:
+                raise exceptions.QiskitUserConfigError(
+                    "min_qpy_version is not a valid QPY version."
+                ) from ve
             if min_qpy_version:
                 if min_qpy_version < 0:
                     raise exceptions.QiskitUserConfigError(
-                        f"{min_qpy_version} is not a valid QPY version."
+                        f"min_qpy_version {min_qpy_version} is not a valid QPY version."
                     )
                 self.settings["min_qpy_version"] = min_qpy_version
 

@@ -11,9 +11,9 @@
 # that they have been altered from the originals.
 
 """
-=======================================================================================================
-Solovay-Kitaev Synthesis Plugin (in :mod:`qiskit.transpiler.passes.synthesis.solovay_kitaev_synthesis`)
-=======================================================================================================
+===============================
+Solovay-Kitaev Synthesis Plugin
+===============================
 
 .. autosummary::
    :toctree: ../stubs/
