@@ -762,3 +762,9 @@ Duration())
         right,
         type,
     )
+
+def negation(operand: typing.Any, /) -> Expr:
+    operand = lift(operand)
+    if operand.type.kind not in (types.Uint, types.Float, types.Duration):
+        raise TypeError(f"cannot apply '{Unary.Op.NEGATION}' to type '{operand.type}'")
+    return Unary(Unary.Op.NEGATION, operand, operand.type)

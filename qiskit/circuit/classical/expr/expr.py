@@ -57,6 +57,8 @@ class _UnaryOp(enum.Enum):
     """Bitwise negation. ``~operand``."""
     LOGIC_NOT = 2
     """Logical negation. ``!operand``."""
+    NEGATION = 3
+    """Arithmetic negation. ``-operand``."""
 
     def __str__(self):
         return f"Unary.{super().__str__()}"

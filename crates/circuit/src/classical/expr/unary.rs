@@ -40,13 +40,14 @@ pub struct Unary {
 pub enum UnaryOp {
     BitNot = 1,
     LogicNot = 2,
+    Negation = 3,
 }
 
 unsafe impl ::bytemuck::CheckedBitPattern for UnaryOp {
     type Bits = u8;
 
     fn is_valid_bit_pattern(bits: &Self::Bits) -> bool {
-        *bits > 0 && *bits < 3
+        *bits > 0 && *bits < 4
     }
 }
 
