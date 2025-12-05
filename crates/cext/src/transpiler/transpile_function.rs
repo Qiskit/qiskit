@@ -230,7 +230,7 @@ pub unsafe extern "C" fn qk_transpile_stage_init(
 ///   for more details on the default values.
 /// @param error A pointer to a pointer with an nul terminated string with an error description.
 ///   If the transpiler fails a pointer to the string with the error description will be written
-///   to this pointer. That pointer needs to be freed with ``qk_str_free```. This can be a null
+///   to this pointer. That pointer needs to be freed with ``qk_str_free``. This can be a null
 ///   pointer in which case the error will not be written out.
 ///
 /// @returns The return code for the transpiler, ``QkExitCode_Success`` means success and all
