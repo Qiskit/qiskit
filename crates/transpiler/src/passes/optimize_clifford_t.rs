@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use hashbrown::HashSet;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 use std::f64::consts::PI;
@@ -17,8 +18,6 @@ use std::f64::consts::PI;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::operations::{OperationRef, Param, StandardGate};
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
-
-use crate::TranspilerError;
 
 // The Clifford+T optimization pass only applies to circuits with Clifford+T/Tdg gates.
 // We return a transpiler error when the circuit contains gates outide of the following
@@ -313,25 +312,12 @@ fn optimize_clifford_t_1q(
 #[pyfunction]
 #[pyo3(name = "optimize_clifford_t")]
 pub fn run_optimize_clifford_t(dag: &mut DAGCircuit) -> PyResult<()> {
-    let op_counts = dag.get_op_counts();
+    let namelist: HashSet<String> = CLIFFORD_T_GATE_NAMES
+        .iter()
+        .map(|s| s.to_string())
+        .collect();
 
-    // Stop the pass if there are unsupported gates.
-    if !op_counts
-        .keys()
-        .all(|k| CLIFFORD_T_GATE_NAMES.contains(&k.as_str()))
-    {
-        let unsupported: Vec<_> = op_counts
-            .keys()
-            .filter(|k| !CLIFFORD_T_GATE_NAMES.contains(&k.as_str()))
-            .collect();
-
-        return Err(TranspilerError::new_err(format!(
-            "Unable to run Clifford+T optimization as the circuit contains gates not supported by the pass: {:?}",
-            unsupported
-        )));
-    }
-
-    let runs: Vec<Vec<NodeIndex>> = dag.collect_1q_runs().unwrap().collect();
+    let runs: Vec<Vec<NodeIndex>> = dag.collect_runs(namelist).collect();
 
     for raw_run in runs {
         let optimized_sequence = optimize_clifford_t_1q(dag, &raw_run);
