@@ -40,7 +40,6 @@ class TestOptimizeCliffordT(QiskitTestCase):
 
         # Run Clifford+T optimization pass on the transpiled circuit
         optimized = OptimizeCliffordT()(transpiled)
-
         self.assertTrue(Operator(transpiled), Operator(optimized))
 
     def test_removes_t_tdg_gates(self):
@@ -120,3 +119,57 @@ class TestOptimizeCliffordT(QiskitTestCase):
         optimized = OptimizeCliffordT()(qc)
 
         self.assertEqual(optimized, qc)
+
+    def test_non_clifford_t_gates(self):
+        """A simple test that the pass optimizes T-gates when there are
+        also non-{Clifford,T}-gates in the circuit.
+        """
+        qc = QuantumCircuit(2, 1)
+        qc.t(0)
+        qc.s(0)
+        qc.t(0)
+        qc.rx(0.5, 1)
+        qc.t(1)
+        qc.z(1)
+        qc.tdg(1)
+        qc.measure(0, 0)
+
+        # The pass should perform some optimizations, even when
+        # the circuit also contains non-{Clifford,T}-gates.
+        optimized = OptimizeCliffordT()(qc)
+
+        expected = QuantumCircuit(2, 1)
+        expected.z(0)
+        expected.rx(0.5, 1)
+        expected.z(1)
+        expected.measure(0, 0)
+
+        self.assertEqual(optimized, expected)
+
+    def test_non_clifford_t_gate_in_the_middle(self):
+        """A simple test that the pass does not optimize
+        across non-{Clifford, T}-gates.
+        """
+        qc = QuantumCircuit(1)
+        qc.t(0)
+        qc.rx(0.5, 0)
+        qc.t(0)
+        qc.t(0)
+        qc.t(0)
+        qc.ry(0.5, 0)
+        qc.tdg(0)
+
+        # The pass should perform some optimizations, but not
+        # across non-{Clifford,T}-gates.
+        optimized = OptimizeCliffordT()(qc)
+
+        expected = QuantumCircuit(1)
+        expected.t(0)
+        expected.rx(0.5, 0)
+        expected.t(0)
+        expected.s(0)
+        expected.ry(0.5, 0)
+        expected.tdg(0)
+
+        self.assertEqual(optimized, expected)
+        self.assertEqual(Operator(qc), Operator(expected))
