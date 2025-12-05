@@ -412,7 +412,7 @@ pub fn run_commutative_optimization(
     // this does not happen right now).
     let mut new_dag = dag.copy_empty_like_with_same_capacity(VarsMode::Alike, BlocksMode::Keep)?;
 
-    let node_indices = dag.topological_op_nodes()?.collect::<Vec<_>>();
+    let node_indices = dag.topological_op_nodes(false)?.collect::<Vec<_>>();
     let num_nodes = node_indices.len();
 
     let mut node_actions: Vec<NodeAction> = vec![NodeAction::Keep; num_nodes];
