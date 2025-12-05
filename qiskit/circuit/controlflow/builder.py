@@ -54,7 +54,7 @@ class CircuitScopeInterface(abc.ABC):
     @property
     @abc.abstractmethod
     def instructions(self) -> Sequence[CircuitInstruction]:
-        """Indexable view onto the :class:`.CircuitInstruction`s backing this scope."""
+        """Indexable view onto the :class:`.CircuitInstruction` objects backing this scope."""
 
     @abc.abstractmethod
     def append(

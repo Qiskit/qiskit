@@ -399,7 +399,7 @@ impl From<DecomposeError> for PyErr {
 /// overwriting anything we need again.  We ignore all factors of 1/2 until the very last step, and
 /// apply them all at once.  This minimises the number of floating-point operations we have to do.
 ///
-/// We store the iteration order as a stack of `PauliLocation`s, whose own docstring explains how it
+/// We store the iteration order as a stack of `PauliLocation` objects, whose own docstring explains how it
 /// tracks the top-left corner and the size of the submatrix it represents.
 #[pyfunction]
 pub fn decompose_dense(
