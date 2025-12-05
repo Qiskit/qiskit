@@ -10,13 +10,13 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use hashbrown::HashSet;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 use std::f64::consts::PI;
 
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::operations::{OperationRef, Param, StandardGate};
+use qiskit_circuit::packed_instruction::PackedInstruction;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 // The Clifford+T optimization pass only applies to circuits with Clifford+T/Tdg gates.
@@ -99,7 +99,7 @@ impl Clifford1q {
                 self.append_clifford_gate(StandardGate::Z);
                 self.w = (self.w + 6) % 8;
             }
-            _ => unreachable!("should not be here"),
+            _ => unreachable!("should not be here, gate = {:?}", gate),
         }
     }
 
@@ -146,7 +146,7 @@ impl Clifford1q {
                 self.prepend_clifford_gate(StandardGate::X);
                 self.w = (self.w + 6) % 8;
             }
-            _ => unreachable!("should not be here"),
+            _ => unreachable!("should not be here, gate = {:?}", gate),
         }
     }
 
@@ -312,12 +312,26 @@ fn optimize_clifford_t_1q(
 #[pyfunction]
 #[pyo3(name = "optimize_clifford_t")]
 pub fn run_optimize_clifford_t(dag: &mut DAGCircuit) -> PyResult<()> {
-    let namelist: HashSet<String> = CLIFFORD_T_GATE_NAMES
-        .iter()
-        .map(|s| s.to_string())
-        .collect();
+    let filter = |inst: &PackedInstruction| -> bool {
+        matches!(
+            inst.op.view(),
+            OperationRef::StandardGate(
+                StandardGate::I
+                    | StandardGate::X
+                    | StandardGate::Y
+                    | StandardGate::Z
+                    | StandardGate::H
+                    | StandardGate::S
+                    | StandardGate::Sdg
+                    | StandardGate::SX
+                    | StandardGate::SXdg
+                    | StandardGate::T
+                    | StandardGate::Tdg
+            )
+        )
+    };
 
-    let runs: Vec<Vec<NodeIndex>> = dag.collect_runs(namelist).collect();
+    let runs: Vec<Vec<NodeIndex>> = dag.collect_runs_by(filter).collect();
 
     for raw_run in runs {
         let optimized_sequence = optimize_clifford_t_1q(dag, &raw_run);
