@@ -2688,6 +2688,7 @@ class TestDagSubstituteNode(QiskitTestCase):
         dag.add_creg(cr1)
         dag.add_creg(cr2)
         node = dag.apply_operation_back(IfElseOp(expr.logic_not(cr1), body.copy(), None), qr, [])
+        self.assertEqual(dag.num_blocks(), 1)  # Sanity check.
         dag.substitute_node(node, IfElseOp(expr.equal(cr1, 0), body.copy(), None), inplace=inplace)
 
         expected = DAGCircuit()
@@ -2697,6 +2698,9 @@ class TestDagSubstituteNode(QiskitTestCase):
         expected.apply_operation_back(IfElseOp(expr.equal(cr1, 0), body.copy(), None), qr, [])
 
         self.assertEqual(dag, expected)
+        # If the below assertion fails, `substitute_node` most likely failed to track the refcounts
+        # correctly / failed to free a block after the substitution.
+        self.assertEqual(dag.num_blocks(), 1)
 
     @data(True, False)
     def test_reject_replace_if_else_op_with_other_resources(self, inplace):
