@@ -532,7 +532,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "aa4d037166f25435671ecc6054ae76b964f17da513353f1617690470680efdf0"
 dependencies = [
  "faer",
- "ndarray",
+ "ndarray 0.16.1",
  "num-complex",
 ]
 
@@ -594,6 +594,12 @@ name = "foldhash"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d9c4f5dac5e15c24eb999c26181a6ca40b39fe946cbe4c263c7209467bc83af2"
+
+[[package]]
+name = "foldhash"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77ce24cb58228fbb8aa041425bb1050850ac19177686ea6e0f41a70416f56fdb"
 
 [[package]]
 name = "gemm"
@@ -811,7 +817,7 @@ checksum = "9229cfe53dfd69f0609a49f65461bd93001ea1ef889cd5529dd176593f5338a1"
 dependencies = [
  "allocator-api2",
  "equivalent",
- "foldhash",
+ "foldhash 0.1.5",
  "rayon",
  "serde",
 ]
@@ -821,6 +827,11 @@ name = "hashbrown"
 version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "841d1cc9bed7f9236f321df977030373f4a4163ae1a7dbfe1a51a2c1a51d9100"
+dependencies = [
+ "allocator-api2",
+ "equivalent",
+ "foldhash 0.2.0",
+]
 
 [[package]]
 name = "heapless"
@@ -1105,14 +1116,30 @@ dependencies = [
 ]
 
 [[package]]
-name = "ndarray-einsum"
-version = "0.8.0"
+name = "ndarray"
+version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f4b2d52dfff9b24d072b6080eab1587cbd54ae24da7b8370072c3a84db221e05"
+checksum = "0c7c9125e8f6f10c9da3aad044cc918cf8784fa34de857b1aa68038eb05a50a9"
 dependencies = [
- "hashbrown 0.15.5",
+ "approx",
+ "matrixmultiply",
+ "num-complex",
+ "num-integer",
+ "num-traits",
+ "portable-atomic",
+ "portable-atomic-util",
+ "rawpointer",
+]
+
+[[package]]
+name = "ndarray-einsum"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7df4ff5c1e55d1a9dcb3fd1cb6506dd2bec71cfbb9d0deb4858693350f30ef28"
+dependencies = [
+ "hashbrown 0.16.1",
  "lazy_static",
- "ndarray",
+ "ndarray 0.17.1",
  "num-traits",
  "regex",
 ]
@@ -1233,7 +1260,7 @@ checksum = "7aac2e6a6e4468ffa092ad43c39b81c79196c2bb773b8db4085f695efe3bba17"
 dependencies = [
  "libc",
  "nalgebra",
- "ndarray",
+ "ndarray 0.16.1",
  "num-complex",
  "num-integer",
  "num-traits",
@@ -1549,7 +1576,7 @@ version = "0.27.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ab53c047fcd1a1d2a8820fe84f05d6be69e9526be40cb03b73f86b6b03e6d87d"
 dependencies = [
- "hashbrown 0.15.5",
+ "hashbrown 0.16.1",
  "indexmap",
  "indoc",
  "libc",
@@ -1630,7 +1657,7 @@ dependencies = [
  "hashbrown 0.15.5",
  "itertools 0.14.0",
  "nalgebra",
- "ndarray",
+ "ndarray 0.16.1",
  "num-bigint",
  "num-complex",
  "numpy",
@@ -1656,7 +1683,7 @@ dependencies = [
  "hashbrown 0.15.5",
  "indexmap",
  "nalgebra",
- "ndarray",
+ "ndarray 0.16.1",
  "num-complex",
  "pyo3",
  "qiskit-circuit",
@@ -1681,7 +1708,7 @@ dependencies = [
  "indexmap",
  "itertools 0.14.0",
  "nalgebra",
- "ndarray",
+ "ndarray 0.16.1",
  "nom",
  "nom-language",
  "nom-unicode",
@@ -1704,7 +1731,7 @@ dependencies = [
  "hashbrown 0.15.5",
  "itertools 0.14.0",
  "nalgebra",
- "ndarray",
+ "ndarray 0.16.1",
  "num-complex",
  "numpy",
  "pyo3",
@@ -1770,7 +1797,7 @@ dependencies = [
  "indexmap",
  "itertools 0.14.0",
  "nalgebra",
- "ndarray",
+ "ndarray 0.16.1",
  "ndarray-einsum",
  "num-complex",
  "num-traits",
@@ -1799,7 +1826,7 @@ dependencies = [
  "indexmap",
  "itertools 0.14.0",
  "nalgebra",
- "ndarray",
+ "ndarray 0.16.1",
  "num-complex",
  "num-traits",
  "numpy",
@@ -1831,7 +1858,7 @@ dependencies = [
  "indexmap",
  "itertools 0.14.0",
  "nalgebra",
- "ndarray",
+ "ndarray 0.16.1",
  "num-complex",
  "numpy",
  "pyo3",
@@ -2101,10 +2128,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "aaeee6f84153fd6f62507fc22bfe9499c8485075b44186dcbb918166ef75116f"
 dependencies = [
  "fixedbitset 0.5.7",
- "foldhash",
+ "foldhash 0.1.5",
  "hashbrown 0.15.5",
  "indexmap",
- "ndarray",
+ "ndarray 0.16.1",
  "num-traits",
  "petgraph 0.8.3",
  "priority-queue",
