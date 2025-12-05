@@ -256,9 +256,10 @@ fn generate_twirled_circuit(
                         optimizer_target,
                     )?;
                     Ok(out_circ.add_block(
-                        &QUANTUM_CIRCUIT
+                        QUANTUM_CIRCUIT
                             .get_bound(py)
-                            .call_method1(intern!(py, "_from_circuit_data"), (new_block,))?,
+                            .call_method1(intern!(py, "_from_circuit_data"), (new_block,))?
+                            .unbind(),
                     ))
                 })
                 .collect::<PyResult<_>>()?;
