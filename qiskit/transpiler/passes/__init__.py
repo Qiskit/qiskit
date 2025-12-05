@@ -77,6 +77,7 @@ Optimizations
    CommutativeInverseCancellation
    ConsolidateBlocks
    ContractIdleWiresInControlFlow
+   ControlPatternSimplification
    ElidePermutations
    HoareOptimizer
    InverseCancellation
@@ -233,6 +234,7 @@ from .optimization import CommutativeOptimization
 from .optimization import CommutativeInverseCancellation
 from .optimization import ConsolidateBlocks
 from .optimization import ContractIdleWiresInControlFlow
+from .optimization import ControlPatternSimplification
 from .optimization import ElidePermutations
 from .optimization import HoareOptimizer
 from .optimization import InverseCancellation
