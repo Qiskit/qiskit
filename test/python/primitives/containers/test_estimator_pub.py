@@ -119,6 +119,21 @@ class EstimatorPubTestCase(QiskitTestCase):
         with self.assertRaisesRegex(ValueError, "does not match"):
             EstimatorPub(circuit, obs, parameter_values=parameter_values)
 
+    def test_single_parameter_trailing_axis(self):
+        """Test that a trailing singleton axis is preserved for broadcasting."""
+
+        param = Parameter("phi")
+        circuit = QuantumCircuit(2)
+        circuit.rx(param, 1)
+
+        observables = ObservablesArray([[{"ZZ": 1}, {"XX": 1}]])
+        parameter_values = BindingsArray({(param,): np.array([[0.0], [0.5], [1.0]])})
+
+        pub = EstimatorPub(circuit, observables, parameter_values)
+
+        self.assertEqual(parameter_values.shape, (3, 1))
+        self.assertEqual(pub.shape, (3, 2))
+
     @ddt.data((), (3,), (2, 3))
     def test_shaped_zero_parameter_values(self, shape):
         """Test Passing in a shaped array with no parameters works"""

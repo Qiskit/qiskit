@@ -97,7 +97,11 @@ class BindingsArray(ShapedMixin):
         be inferred from the provided arrays. Ambiguity arises whenever the key of an entry of
         ``data`` contains only one parameter and the corresponding array's shape ends in a one.
         In this case, it can't be decided whether that one is an index over parameters, or whether
-        it should be incorporated in :attr:`~shape`.
+        it should be incorporated in :attr:`~shape`. When such arrays do not conflict with
+        higher-dimensional data, :class:`~.BindingsArray` preserves the trailing singleton axis so
+        downstream code can rely on NumPy broadcasting. For example, a sweep shaped ``(N, 1)`` will
+        combine with an observable array shaped ``(1, M)`` to produce broadcast results of shape
+        ``(N, M)``.
 
         Since :class:`~.Parameter` objects are only allowed to represent float values, this
         class casts all given values to float. If an incompatible dtype is given, such as complex
@@ -110,9 +114,8 @@ class BindingsArray(ShapedMixin):
 
         Raises:
             ValueError: If all inputs are ``None``.
-            ValueError: If the shape cannot be automatically inferred from the arrays, or if there
-                is some inconsistency in the shape of the given arrays.
-            TypeError: If some of the vaules can't be cast to a float type.
+            ValueError: If there is some inconsistency in the shape of the given arrays.
+            TypeError: If some of the values can't be cast to a float type.
         """
         super().__init__()
 
@@ -350,9 +353,9 @@ def _infer_shape(data: dict[tuple[Parameter, ...], np.ndarray]) -> tuple[int, ..
     Raises:
         ValueError: If this cannot be done unambiguously.
     """
-    only_possible_shapes = None
+    only_possible_shapes: set[tuple[int, ...]] | None = None
 
-    def examine_array(*possible_shapes):
+    def examine_array(*possible_shapes: tuple[int, ...]):
         nonlocal only_possible_shapes
         if only_possible_shapes is None:
             only_possible_shapes = set(possible_shapes)
@@ -361,26 +364,37 @@ def _infer_shape(data: dict[tuple[Parameter, ...], np.ndarray]) -> tuple[int, ..
 
     for parameters, val in data.items():
         if len(parameters) != 1:
-            # the last dimension _has_ to be over parameters
+            # Arrays bound to multiple parameters cannot hide their parameter axis.  For example,
+            # values with shape ``(5, 7, 3)`` and parameters ``(a, b, c)`` force the sweep shape to
+            # be ``(5, 7)``.
             examine_array(val.shape[:-1])
         elif val.shape and val.shape[-1] == 1:
-            # this case is a convention, and separated from the previous case for clarity:
-            # if the last axis is 1-d, make an assumption that it is for our 1 parameter
-            examine_array(val.shape[:-1])
+            if val.ndim == 1:
+                # ``(1,)`` indicates a scalar binding for the single parameter, so only the empty
+                # sweep shape is viable.
+                examine_array(())
+            else:
+                # Column-vector style data (for example ``(N, 1)``) frequently represents a sweep of
+                # ``N`` parameter assignments.  Keep both interpretations so we can drop the axis
+                # when required by other arrays yet still broadcast with observables such as
+                # ``(1, M)``.
+                examine_array(val.shape[:-1], val.shape)
         else:
-            # otherwise, the user has left off the last axis and we'll be nice to them
+            # In this convention the parameter axis has been dropped entirely, so the leading sweep
+            # shape is whatever remains.  For example, bindings shaped ``(5, 7)`` for a single
+            # parameter indicate a 5x7 grid of values.
             examine_array(val.shape)
 
     if only_possible_shapes is None:
         return ()
+    if len(only_possible_shapes) == 0:
+        raise ValueError("Could not find any consistent shape.")
     if len(only_possible_shapes) == 1:
         return next(iter(only_possible_shapes))
-    elif len(only_possible_shapes) == 0:
-        raise ValueError("Could not find any consistent shape.")
-    raise ValueError(
-        "Could not unambiguously determine the intended shape, all shapes in "
-        f"{only_possible_shapes} are consistent with the input; specify shape manually."
-    )
+
+    # Prefer keeping harmless singleton dimensions so column-vector sweeps (``(N, 1)``) can
+    # participate in broadcasting with observable arrays such as ``(1, M)``.
+    return max(only_possible_shapes, key=lambda shape: (len(shape), shape))
 
 
 def _format_key(key: tuple[Parameter | str, ...]):
