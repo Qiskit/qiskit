@@ -41,3 +41,8 @@ from .collect_and_collapse import CollectAndCollapse
 from .contract_idle_wires_in_control_flow import ContractIdleWiresInControlFlow
 from .optimize_clifford_t import OptimizeCliffordT
 from .litinski_transformation import LitinskiTransformation
+<<<<<<< HEAD
+=======
+from .light_cone import LightCone
+from .substitute_pi4_rotations import SubstitutePi4Rotations
+>>>>>>> 1f4811b17 (bringing back `qiskit.transpiler.passes.LightCone` (#15219))
