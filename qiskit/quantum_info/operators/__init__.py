@@ -27,3 +27,4 @@ from .symplectic import (
     get_clifford_gate_names,
 )
 from .utils import anti_commutator, commutator, double_commutator
+from .operator_schmidt_decomposition import operator_schmidt_decomposition
