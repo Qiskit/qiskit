@@ -51,6 +51,7 @@ from qiskit.circuit.library import (
     XXMinusYYGate,
     XXPlusYYGate,
 )
+import qiskit.quantum_info as qi
 from qiskit.quantum_info.operators import (
     Clifford,
     Operator,
@@ -2219,6 +2220,33 @@ class TestPauliListMethods(QiskitTestCase):
                     for group1_pauli, group2_pauli in itertools.product(group1, group2)
                 )
             )
+
+    def test_evolve_sparseobservable_pauli_list_clifford(self):
+        """PauliList.evolve with SparseObservable that is a Clifford (X).
+        Conjugation by X maps:
+        I -> I
+        X -> X
+        Y -> -Y
+        Z -> -Z
+        So the expected PauliList after evolving by 'X' is: [I, X, -Y, -Z].
+        """
+
+        obs = qi.SparseObservable.from_label("X")  # 1-qubit X operator
+        pl = PauliList(pauli_group_labels(1, False))
+
+        evolved_ops = [Operator(p) for p in pl.evolve(obs)]
+
+        I = np.array([[1.0, 0.0], [0.0, 1.0]], dtype=complex)
+        X = np.array([[0.0, 1.0], [1.0, 0.0]], dtype=complex)
+        Y = np.array([[0.0, -1.0j], [1.0j, 0.0]], dtype=complex)
+        Z = np.array([[1.0, 0.0], [0.0, -1.0]], dtype=complex)
+
+        expected_ops = [Operator(I), Operator(X), Operator(-Y), Operator(-Z)]
+
+        self.assertListEqual(
+            evolved_ops,
+            expected_ops,
+        )
 
 
 if __name__ == "__main__":
