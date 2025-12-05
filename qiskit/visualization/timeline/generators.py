@@ -106,7 +106,6 @@ import warnings
 from typing import List, Union, Dict, Any, Optional
 
 from qiskit.circuit import Qubit, QuantumCircuit
-from qiskit.circuit.exceptions import CircuitError
 from qiskit.visualization.timeline import types, drawings
 
 
@@ -132,11 +131,6 @@ def gen_sched_gate(
         List of `TextData` or `BoxData` drawings.
     """
     try:
-        unitary = str(gate.operand.to_matrix())
-    except (AttributeError, CircuitError):
-        unitary = "n/a"
-
-    try:
         label = gate.operand.label or "n/a"
     except AttributeError:
         label = "n/a"
@@ -147,7 +141,6 @@ def gen_sched_gate(
         "bits": gate.bits,
         "t0": gate.t0,
         "duration": gate.duration,
-        "unitary": unitary,
         "parameters": ", ".join(map(str, gate.operand.params)),
     }
 
