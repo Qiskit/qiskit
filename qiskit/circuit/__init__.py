@@ -273,11 +273,11 @@ circuit.  The top-level ones are:
 * :class:`ControlFlowOp`, which has specific subclasses:
     * :class:`BreakLoopOp`, to break out of the nearest containing loop
     * :class:`ContinueLoopOp`, to move immediately to the next iteration of the containing loop
+    * :class:`BoxOp`, a simple grouping of instructions
     * :class:`ForLoopOp`, to loop over a fixed range of values
     * :class:`IfElseOp`, to conditionally enter one of two subcircuits
     * :class:`SwitchCaseOp`, to conditionally enter one of many subcircuits
-    * :class:`WhileLoopOp`, to repeat a subcircuit until a condition is falsified
-    * :class:`BoxOp`, to group a series of instructions for later processing
+    * :class:`WhileLoopOp`, to repeat a subcircuit until a condition is falsified.
 
 Certain instructions can be "annotated" with metadata, which is typically intended to be consumed by
 a compiler pass either locally, or in later backend processing.  Currently this is limited to
