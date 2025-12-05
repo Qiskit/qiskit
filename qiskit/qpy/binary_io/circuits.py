@@ -705,7 +705,7 @@ def _read_pauli_evolution_gate(file_obj, version, vectors):
     for _ in range(pauli_evolution_def.operator_size):
         sparse_operator = False
         if version >= 17:
-            sparse_operator = struct.unpack("?", file_obj.read(1))[0]
+            sparse_operator = struct.unpack("!?", file_obj.read(1))[0]
             if sparse_operator:
                 op_elem = formats.SPARSE_OBSERVABLE._make(
                     struct.unpack(
@@ -1122,7 +1122,7 @@ def _write_pauli_evolution_gate(file_obj, evolution_gate, version):
         elem_data = common.data_to_binary(op.to_list(array=True), np.save)
         elem_metadata = struct.pack(formats.SPARSE_PAULI_OP_LIST_ELEM_PACK, len(elem_data))
         if version >= 17:
-            elem_sparse_operator = struct.pack("?", False)
+            elem_sparse_operator = struct.pack("!?", False)
             buffer.write(elem_sparse_operator)
         buffer.write(elem_metadata)
         buffer.write(elem_data)
@@ -1151,7 +1151,7 @@ def _write_pauli_evolution_gate(file_obj, evolution_gate, version):
             len(bounds_data),
         )
 
-        elem_sparse_operator = struct.pack("?", True)
+        elem_sparse_operator = struct.pack("!?", True)
         buffer.write(elem_sparse_operator)
         buffer.write(sparse_observable_data_length)
         buffer.write(coeff_data)

@@ -461,26 +461,27 @@ Changes to Write Circuit
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 A new boolean variable `sparse_operator` has been added in :func:`_write_pauli_evolution_gate`
-to qualify sparse operators. When serializing a `PauliEvolutionGate`, if `sparse_operator` is
-found `True`, the operator is serialized as a `SparseObservable`.
+in :mod:`qiskit.qpy.binary_io.circuits` to qualify sparse operators. When serializing a
+`PauliEvolutionGate`, if `sparse_operator` is found `True`, the operator is serialized as a
+`SparseObservable`.
 
 Changes to Read Circuit
 ~~~~~~~~~~~~~~~~~~~~~~~
-When deserializing a `PauliEvolutionGate`, if `sparse_operator` is True, the operator is
-deserialized as a `SparseObservable`.
+When deserializing a `PauliEvolutionGate` in :func:`_read_pauli_evolution_gate`, if
+`sparse_operator` is True, the operator is deserialized as a `SparseObservable`.
 
 Changes to FORMATS
 ~~~~~~~~~~~~~~~~~~~
-A new namedtuple `SPARSE_OBSERVABLE_OP_LIST_ELEM` has been added.
+A new namedtuple `SPARSE_OBSERVABLE` has been added.
 
 .. code-block:: python
 
-    SPARSE_OBSERVABLE_OP_LIST_ELEM = namedtuple(
-    "SPARSE_OBSERVABLE_OP_LIST_ELEM",
-    ["numq", "coeff_data_len", "bitterm_data_len", "inds_data_len", "bounds_data_len"],
+    SPARSE_OBSERVABLE = namedtuple(
+    "SPARSE_OBSERVABLE",
+    ["num_qubits", "coeff_data_len", "bitterm_data_len", "inds_data_len", "bounds_data_len"],
     )
-    SPARSE_OBSERVABLE_OP_LIST_ELEM_PACK = "!QQQQQ"
-    SPARSE_OBSERVABLE_OP_LIST_ELEM_SIZE = struct.calcsize(SPARSE_OBSERVABLE_OP_LIST_ELEM_PACK)
+    SPARSE_OBSERVABLE_PACK = "!IQQQQ"
+    SPARSE_OBSERVABLE_SIZE = struct.calcsize(SPARSE_OBSERVABLE_PACK)
 
 .. _qpy_version_16:
 

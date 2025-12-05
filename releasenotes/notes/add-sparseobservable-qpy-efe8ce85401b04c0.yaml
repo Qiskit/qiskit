@@ -1,6 +1,12 @@
 ---
-features_qpy:
+fixes:
   - |
+    Fixes `#15070 <https://github.com/Qiskit/qiskit/issues/15070>`__.
     Added features for serializing and deserializing :class:`~qiskit.quantum_info.SparseObservable`
     in QPY format. This preserves the sparse format.
-    Fixed `#15070 <https://github.com/Qiskit/qiskit/issues/15070>`__.
+upgrade:
+  - |
+    The QPY format version has been upgraded to 17 to accommodate this change. This required changes in
+    :func:`_write_pauli_evolution_gate` and :func:`_read_pauli_evolution_gate` functions in
+    :mod:`qiskit.qpy.binary_io.circuits` and addition of new format definitions in
+    :mod:`qiskit.qpy.formats`.
