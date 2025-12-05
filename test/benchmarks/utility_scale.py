@@ -49,7 +49,6 @@ class UtilityScaleBenchmarks:
         self.qaoa_qc = QuantumCircuit.from_qasm_file(self.qaoa_qasm)
         self.qv_qc = build_qv_model_circuit(50, 50, SEED)
         self.circSU2 = efficient_su2(100, reps=3, entanglement="circular")
-        self.circSU2_89 = efficient_su2(89, reps=3, entanglement="circular")
         self.bv_100 = bv_all_ones(100)
         self.bv_like_100 = trivial_bvlike_circuit(100)
 
@@ -113,13 +112,6 @@ class UtilityScaleBenchmarks:
 
     def track_circSU2_depth(self, basis_gate):
         res = self.pm.run(self.circSU2)
-        return res.depth(filter_function=lambda x: x.operation.name == basis_gate)
-
-    def time_circSU2_89(self, _):
-        self.pm.run(self.circSU2_89)
-
-    def track_circSU2_89_depth(self, basis_gate):
-        res = self.pm.run(self.circSU2_89)
         return res.depth(filter_function=lambda x: x.operation.name == basis_gate)
 
     def time_bv_100(self, _):
