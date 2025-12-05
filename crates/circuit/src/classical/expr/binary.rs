@@ -66,6 +66,12 @@ unsafe impl ::bytemuck::CheckedBitPattern for BinaryOp {
     }
 }
 
+impl BinaryOp {
+    pub fn from_u8(value: u8) -> PyResult<BinaryOp> {
+        Ok(bytemuck::checked::cast::<u8, BinaryOp>(value))
+    }
+}
+
 impl<'py> IntoPyObject<'py> for Binary {
     type Target = PyAny;
     type Output = Bound<'py, PyAny>;
