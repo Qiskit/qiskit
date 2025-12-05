@@ -1,0 +1,6 @@
+---
+features_circuits:
+  - |
+    Added two new methods, :meth:`.QuantumCircuit.active_qubits` and
+    :meth:`.QuantumCircuit.active_clbits`, to return a list of qubit and clbit
+    indices respectively that contain any operations in the circuit.
