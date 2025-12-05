@@ -568,15 +568,8 @@ static int test_target_iteration(void) {
         printf("Op name: '%s'\nProps:\n", name);
         size_t num_props = qk_target_op_num_properties(target, op_idx);
         for (size_t props_idx = 0; props_idx < num_props; props_idx++) {
-            if (qk_target_op_get_qargs(target, op_idx, props_idx, &qargs, &qargs_len) !=
-                QkExitCode_Success) {
-                result = RuntimeError;
-                goto break_loop;
-            };
-            if (qk_target_op_get_props(target, op_idx, props_idx, &props) != QkExitCode_Success) {
-                result = RuntimeError;
-                goto break_loop;
-            }
+            qk_target_op_get_qargs(target, op_idx, props_idx, &qargs, &qargs_len);
+            qk_target_op_get_props(target, op_idx, props_idx, &props);
             printf("\tQargs: ");
             if (qargs == NULL) {
                 printf("Global\n");
@@ -594,11 +587,7 @@ static int test_target_iteration(void) {
             printf("\tDuration: %lf\n", props.duration);
             printf("\tError: %lf\n\n", props.error);
         }
-    break_loop:
         qk_str_free(name);
-        if (result != Ok) {
-            break;
-        }
     }
     qk_target_free(target);
     return result;
@@ -661,12 +650,7 @@ static int test_target_indexing(void) {
     uint32_t *cx_qargs;
     uint32_t cx_qargs_len;
 
-    if (qk_target_op_get_qargs(target, cx_idx, 1, &cx_qargs, &cx_qargs_len) != QkExitCode_Success) {
-        printf("Unable to retreive qargs [4,3] at index 1 for 'cx'.");
-        result = EqualityError;
-        goto cleanup;
-    }
-
+    qk_target_op_get_qargs(target, cx_idx, 1, &cx_qargs, &cx_qargs_len);
     if (!compare_qargs(cx_qargs, (uint32_t[2]){4, 3}, cx_qargs_len)) {
         printf("Retrieved incorrect qargs, expected [4, 3], got [%u, %u]", cx_qargs[0],
                cx_qargs[1]);
@@ -674,11 +658,7 @@ static int test_target_indexing(void) {
         goto cleanup;
     }
 
-    if (qk_target_op_get_props(target, cx_idx, 1, &cx_props) != QkExitCode_Success) {
-        printf("Unable to retreive properties for qargs [4,3] at index 1 for 'cx'.");
-        result = EqualityError;
-        goto cleanup;
-    }
+    qk_target_op_get_props(target, cx_idx, 1, &cx_props);
 
     if (cx_props.duration != 3.0577e-11) {
         printf("Retrieved incorrect duration property, expected 3.0577e-11, got %lf",
@@ -702,11 +682,7 @@ static int test_target_indexing(void) {
 
     uint32_t *y_qargs;
     uint32_t y_qargs_len;
-    if (qk_target_op_get_qargs(target, y_idx, 0, &y_qargs, &y_qargs_len) != QkExitCode_Success) {
-        printf("Unable to retreive global qargs at index 0 for 'y'.");
-        result = EqualityError;
-        goto cleanup;
-    }
+    qk_target_op_get_qargs(target, y_idx, 0, &y_qargs, &y_qargs_len);
 
     if (y_qargs != NULL) {
         printf("Obtained non-null global qargs at index 0 for 'y'.");
@@ -724,11 +700,7 @@ static int test_target_indexing(void) {
 
     uint32_t *gp_qargs;
     uint32_t gp_qargs_len;
-    if (qk_target_op_get_qargs(target, gp_idx, 0, &gp_qargs, &gp_qargs_len) != QkExitCode_Success) {
-        printf("Unable to retreive qargs [] at index 0 for 'global_phase'.");
-        result = EqualityError;
-        goto cleanup;
-    }
+    qk_target_op_get_qargs(target, gp_idx, 0, &gp_qargs, &gp_qargs_len);
 
     if (gp_qargs == NULL || gp_qargs_len != 0) {
         printf("Obtained null or invalid qargs at index 0 for 'global_phase'.");
@@ -737,6 +709,89 @@ static int test_target_indexing(void) {
     }
 cleanup:
     qk_target_free(target);
+    return result;
+}
+
+/**
+ * Test if our target is compatible with certain instructions.
+ */
+int test_target_instruction_supported(void) {
+    QkTarget *sample_target = create_sample_target(true);
+    int result = Ok;
+
+    char *gate_names[7] = {"x", "y", "id", "rz_pi", "sx", "reset"};
+    QkParam *rz_params[1] = {
+        qk_param_from_double(3.14),
+    };
+    for (uint32_t qubit = 0; qubit < 5; qubit++) {
+        uint32_t qargs[1] = {qubit};
+        bool should_be_true = qubit < 4;
+
+        for (int gate = 0; gate < 6; gate++) {
+            // If i == 4 condition should be false unless we try with the y gate
+            // since y is added as a global gate.
+            if (qk_target_instruction_supported(sample_target, gate_names[gate], qargs,
+                                                gate != 3 ? NULL : rz_params) !=
+                (should_be_true || gate == 1)) {
+                printf("This target did not correctly demonstrate compatibility with %s and qargs "
+                       "[%d]",
+                       gate_names[gate], qubit);
+                result = EqualityError;
+                goto cleanup;
+            }
+        }
+
+        // Try checking with the wrong fixed parameter for RZ
+        QkParam *param = qk_param_from_double(1.57);
+        if (qk_target_instruction_supported(sample_target, "rz_pi", qargs,
+                                            (QkParam *[]){
+                                                param,
+                                            })) {
+            printf("This target did not correctly demonstrate compatibility with 'rz' and qargs "
+                   "[%d]",
+                   qubit);
+            result = EqualityError;
+            qk_param_free(param);
+            goto cleanup;
+        }
+
+        // Test standard instructions reset and measure
+        if (!(qk_target_instruction_supported(sample_target, "measure", qargs, NULL) ==
+              (qubit < 2))) {
+            printf(
+                "This target did not correctly demonstrate compatibility with 'measure' and qargs "
+                "[%d]",
+                qubit);
+            result = EqualityError;
+            goto cleanup;
+        }
+    }
+
+    // Qarg samples for CX
+    uint32_t qarg_samples[8][2] = {
+        {3, 4}, {4, 3}, {3, 1}, {1, 3}, {1, 2}, {2, 1}, {0, 1}, {1, 0},
+    };
+    for (int i = 0; i < 8; i++) {
+        if (!qk_target_instruction_supported(sample_target, "cx", qarg_samples[i], NULL)) {
+            printf("This target did incorrectly demonstrate compatibility with 'cx' and qargs [%d, "
+                   "%d]",
+                   qarg_samples[i][0], qarg_samples[i][1]);
+            result = EqualityError;
+            goto cleanup;
+        }
+    }
+
+    uint32_t cx_qargs[2] = {3, 2};
+    // Instruction should not show compatibility with (3, 2)
+    if (qk_target_instruction_supported(sample_target, "cx", cx_qargs, NULL)) {
+        printf("This target did incorrectly demonstrate compatibility with 'cx' and qargs [3, 2]");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+cleanup:
+    qk_param_free(rz_params[0]);
+    qk_target_free(sample_target);
     return result;
 }
 
@@ -831,6 +886,7 @@ int test_target(void) {
     num_failed += RUN_TEST(test_target_construction_ibm_like_target);
     num_failed += RUN_TEST(test_target_iteration);
     num_failed += RUN_TEST(test_target_indexing);
+    num_failed += RUN_TEST(test_target_instruction_supported);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);

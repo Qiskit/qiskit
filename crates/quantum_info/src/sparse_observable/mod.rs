@@ -1057,6 +1057,22 @@ impl SparseObservable {
             Ok(())
         }
     }
+
+    /// Check whether the observable commutes with another one.
+    ///
+    /// # Arguments
+    ///
+    /// * `tol` - If coefficients in the product of `self` and `other` are below the tolerance
+    ///   (in magnitude), the terms are ignored.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the observables commute, `false` otherwise.
+    pub fn commutes(&self, other: &SparseObservable, tol: f64) -> bool {
+        let ab = self.compose(other).canonicalize(tol);
+        let ba = other.compose(self).canonicalize(tol);
+        ab == ba
+    }
 }
 
 impl ::std::ops::Add<&SparseObservable> for SparseObservable {
@@ -3591,6 +3607,31 @@ impl PySparseObservable {
                 PyArray2::from_owned_array(py, z),
                 PyArray2::from_owned_array(py, x),
             ))
+    }
+
+    /// Check whether the observable commutes with another one.
+    ///
+    /// Args:
+    ///     other (SparseObservable): The other observable to check commutation with.
+    ///     tol (float): If coefficients in the product of `self` and `other` are below the
+    ///         tolerance (in magnitude), the terms are ignored.
+    ///
+    /// Returns:
+    ///     ``True`` if the terms commute, up to tolerance, ``False`` otherwise.
+    ///
+    /// Raises:
+    ///     TypeError: If ``other`` could not be coerced to ``SparseObservable``.
+    #[pyo3(signature = (other, tol=1e-12))]
+    pub fn commutes(&self, other: &Bound<PyAny>, tol: f64) -> PyResult<bool> {
+        let Some(other) = coerce_to_observable(other)? else {
+            return Err(PyTypeError::new_err("Invalid type of other."));
+        };
+
+        let self_inner = self.inner.read().map_err(|_| InnerReadError)?;
+        let other = other.borrow();
+        let other_inner = other.inner.read().map_err(|_| InnerReadError)?;
+
+        Ok(self_inner.commutes(&other_inner, tol))
     }
 
     fn __len__(&self) -> PyResult<usize> {
