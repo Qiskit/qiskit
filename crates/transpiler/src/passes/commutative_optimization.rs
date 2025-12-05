@@ -228,7 +228,7 @@ fn commute(
         inst2.params.as_deref(),
         qargs2,
         cargs2,
-        u32::MAX,
+        None,
         matrix_max_num_qubits,
         approximation_degree,
     )?)
