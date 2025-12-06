@@ -28,6 +28,7 @@ uuid.workspace = true
 nom.workspace = true
 nom-unicode.workspace = true
 nom-language.workspace = true
+crossterm = "0.29.0"
 
 [dependencies.pyo3]
 workspace = true
