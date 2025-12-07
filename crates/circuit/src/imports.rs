@@ -371,6 +371,11 @@ static STDGATE_PYTHON_GATES: [PyOnceLock<Py<PyAny>>; STANDARD_GATE_SIZE] = [
 ];
 
 #[inline]
+pub fn get_std_gate_class_name(rs_gate: &StandardGate) -> String {
+    STDGATE_IMPORT_PATHS[*rs_gate as usize][1].to_string()
+}
+
+#[inline]
 pub fn get_std_gate_class(py: Python, rs_gate: StandardGate) -> PyResult<&'static Py<PyAny>> {
     STDGATE_PYTHON_GATES[rs_gate as usize].get_or_try_init(py, || {
         let [py_mod, py_class] = STDGATE_IMPORT_PATHS[rs_gate as usize];

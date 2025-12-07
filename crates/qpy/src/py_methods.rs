@@ -24,7 +24,7 @@ use qiskit_circuit::classical::expr::Expr;
 use std::io::Cursor;
 
 use qiskit_circuit::Clbit;
-use qiskit_circuit::bit::{PyClassicalRegister, PyClbit, ShareableClbit};
+use qiskit_circuit::bit::{ClassicalRegister, PyClassicalRegister, PyClbit, ShareableClbit};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::classical;
 use qiskit_circuit::imports;
@@ -39,12 +39,12 @@ use uuid::Uuid;
 use crate::bytes::Bytes;
 use crate::formats;
 use crate::value::{
-    GenericValue, ModifierType, QPYWriteData, ValueType, deserialize, pack_generic_value,
-    serialize_generic_value,
+    GenericValue, ModifierType, ParamRegisterValue, QPYWriteData, ValueType, deserialize, pack_generic_value, serialize_generic_value
 };
 use binrw::BinWrite;
 
-const UNITARY_GATE_CLASS_NAME: &str = "UnitaryGate";
+pub const UNITARY_GATE_CLASS_NAME: &str = "UnitaryGate";
+pub const PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME: &str = "PauliProductMeasurement";
 
 fn is_python_gate(py: Python, op: &PackedOperation, python_gate: &Bound<PyAny>) -> PyResult<bool> {
     match op.view() {
@@ -389,7 +389,19 @@ pub fn py_convert_to_generic_value(py_object: &Bound<PyAny>) -> PyResult<Generic
         ValueType::Range => Ok(GenericValue::Range(py_object.clone().unbind())),
         ValueType::NumpyObject => Ok(GenericValue::NumpyObject(py_object.clone().unbind())),
         ValueType::Modifier => Ok(GenericValue::Modifier(py_object.clone().unbind())),
-        ValueType::Register => Ok(GenericValue::Register(py_object.clone().unbind())),
+        ValueType::Register => {
+            if let Ok(clbit) = py_object.extract::<ShareableClbit>() {
+                Ok(GenericValue::Register(ParamRegisterValue::ShareableClbit(clbit)))
+            }
+            else  if let Ok(reg) = py_object.extract::<ClassicalRegister>() {
+                Ok(GenericValue::Register(ParamRegisterValue::Register(reg)))
+            }
+            else {
+                Err(PyValueError::new_err("Could not read python register"))
+            }
+        }
+        
+        // Ok(GenericValue::Register(py_object.clone().unbind())),
     }
 }
 
@@ -407,7 +419,6 @@ pub fn py_convert_from_generic_value(value: &GenericValue) -> PyResult<Py<PyAny>
         GenericValue::ParameterExpressionVectorSymbol(symbol) => symbol.clone().into_py_any(py),
         GenericValue::ParameterExpression(exp) => exp.clone().into_py_any(py),
         GenericValue::Circuit(py_object) => Ok(py_object.clone()),
-        GenericValue::Register(py_object) => Ok(py_object.clone()),
         GenericValue::Modifier(py_object) => Ok(py_object.clone()),
         GenericValue::Range(py_object) => Ok(py_object.clone()),
         GenericValue::NumpyObject(py_object) => Ok(py_object.clone()),
@@ -418,6 +429,14 @@ pub fn py_convert_from_generic_value(value: &GenericValue) -> PyResult<Py<PyAny>
                 .collect::<PyResult<_>>()?;
             PyTuple::new(py, &elements)?.into_py_any(py)
         }
+        GenericValue::Register(reg_value) => {
+            match reg_value {
+                ParamRegisterValue::Register(reg) => reg.clone().into_py_any(py),
+                ParamRegisterValue::ShareableClbit(clbit) => clbit.clone().into_py_any(py),
+            }
+        }
+        GenericValue::BigInt(bigint) => bigint.clone().into_py_any(py),
+        GenericValue::Duration(duration) => duration.clone().into_py_any(py),
     })
 }
 

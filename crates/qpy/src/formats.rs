@@ -18,7 +18,6 @@ use crate::value::{
     QPYReadData, QPYWriteData, ValueType,
 };
 use binrw::{BinRead, BinResult, BinWrite, Endian, binread, binrw, binwrite};
-use num_bigint::BigUint;
 use qiskit_circuit::classical::expr::Expr;
 use std::io::{Read, Seek, Write};
 use std::marker::PhantomData;
@@ -213,6 +212,17 @@ pub struct ConditionPack {
     pub data: ConditionData,
 }
 
+impl Default for ConditionPack {
+    fn default() -> Self {
+        ConditionPack {
+            key: condition_types::NONE,
+            register_size: 0u16,
+            value: 0i64,
+            data: ConditionData::None,
+        }
+    }
+}
+
 impl ConditionPack {
     pub fn write<W: Write + Seek>(
         value: &ConditionPack,
@@ -314,16 +324,6 @@ pub struct GenericDataSequencePack {
 // Parameters to circuit instructions are stored in GenericDataPack
 // Since parameters can be arbitrary pieces of data they are stored as already-serialized bytes
 // although in the future we might be able to explicitly handle most common cases
-// #[binrw]
-// #[derive(Debug)]
-// #[brw(big)]
-// pub struct GenericDataPack {
-//     pub type_key: u8,
-//     #[bw(calc = data.len() as u64)]
-//     pub data_len: u64,
-//     #[br(count = data_len)]
-//     pub data: Bytes,
-// }
 
 #[binrw]
 #[brw(big)]
@@ -612,12 +612,12 @@ pub enum ExpressionValueElementPack {
     #[brw(magic = b'f')]
     Float(f64),
     #[brw(magic = b't')]
-    Duration(ExpressionDurationPack),
+    Duration(DurationPack),
 }
 
 #[derive(BinWrite, BinRead, Debug)]
 #[brw(big)]
-pub enum ExpressionDurationPack {
+pub enum DurationPack {
     #[brw(magic = b't')] // DT
     DT(u64),
     #[brw(magic = b'p')] // PS
@@ -638,18 +638,9 @@ pub enum ExpressionDurationPack {
 #[derive(Debug)]
 pub struct BigIntPack {
     #[bw(calc = bytes.len() as u8)]
-    num_bytes: u8,
+    pub num_bytes: u8,
     #[br(count = num_bytes as usize)]
-    bytes: Bytes,
-}
-
-pub fn pack_biguint(bigint: BigUint) -> BigIntPack {
-    let bytes = Bytes(bigint.to_bytes_be());
-    BigIntPack { bytes }
-}
-
-pub fn unpack_biguint(big_int_pack: BigIntPack) -> BigUint {
-    BigUint::from_bytes_be(&big_int_pack.bytes)
+    pub bytes: Bytes,
 }
 
 // general data types

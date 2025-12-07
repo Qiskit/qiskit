@@ -12,10 +12,10 @@
 
 // methods for serialization/deserialization of Expression
 use crate::formats::{
-    ExpressionDurationPack, ExpressionElementPack, ExpressionTypePack, ExpressionValueElementPack,
-    ExpressionVarElementPack, ExpressionVarRegisterPack, pack_biguint, unpack_biguint,
+    ExpressionElementPack, ExpressionTypePack, ExpressionValueElementPack,
+    ExpressionVarElementPack, ExpressionVarRegisterPack
 };
-use crate::value::{QPYReadData, QPYWriteData};
+use crate::value::{QPYReadData, QPYWriteData, pack_duration, unpack_duration, pack_biguint, unpack_biguint};
 use binrw::{BinRead, BinResult, BinWrite, Endian, Error};
 use num_bigint::BigUint;
 use qiskit_circuit::Clbit;
@@ -23,30 +23,7 @@ use qiskit_circuit::classical::expr::{
     Binary, BinaryOp, Cast, Expr, Index, Unary, UnaryOp, Value, Var,
 };
 use qiskit_circuit::classical::types::Type;
-use qiskit_circuit::duration::Duration;
 use std::io::{Read, Seek, Write};
-
-pub fn pack_expression_duration(duration: &Duration) -> ExpressionDurationPack {
-    match duration {
-        Duration::dt(dt) => ExpressionDurationPack::DT(*dt as u64),
-        Duration::ps(ps) => ExpressionDurationPack::PS(*ps),
-        Duration::ns(ns) => ExpressionDurationPack::NS(*ns),
-        Duration::us(us) => ExpressionDurationPack::US(*us),
-        Duration::ms(ms) => ExpressionDurationPack::MS(*ms),
-        Duration::s(s) => ExpressionDurationPack::S(*s),
-    }
-}
-
-pub fn unpack_expression_duration(duration_pack: ExpressionDurationPack) -> Duration {
-    match duration_pack {
-        ExpressionDurationPack::DT(dt) => Duration::dt(dt as i64),
-        ExpressionDurationPack::PS(ps) => Duration::ps(ps),
-        ExpressionDurationPack::NS(ns) => Duration::ns(ns),
-        ExpressionDurationPack::US(us) => Duration::us(us),
-        ExpressionDurationPack::MS(ms) => Duration::ms(ms),
-        ExpressionDurationPack::S(s) => Duration::s(s),
-    }
-}
 
 // packed expression types implicitly contain the magic number identifying them in the qpy file
 pub fn pack_expression_type(ty: &Type) -> ExpressionTypePack {
@@ -74,7 +51,7 @@ pub fn pack_expression_value(value: &Value) -> ExpressionElementPack {
                 Type::Bool => (ty, ExpressionValueElementPack::Bool(raw.to_bytes_le()[0])), // effectively truncating modulo 256
                 Type::Uint(_) => (
                     ty,
-                    ExpressionValueElementPack::Int(pack_biguint(raw.clone())),
+                    ExpressionValueElementPack::Int(pack_biguint(raw)),
                 ),
                 _ => (ty, ExpressionValueElementPack::Bool(raw.to_bytes_le()[0])), // TODO: should this be different?
             }
@@ -82,7 +59,7 @@ pub fn pack_expression_value(value: &Value) -> ExpressionElementPack {
         Value::Float { raw, ty } => (ty, ExpressionValueElementPack::Float(*raw)),
         Value::Duration(duration) => (
             &Type::Duration,
-            ExpressionValueElementPack::Duration(pack_expression_duration(duration)),
+            ExpressionValueElementPack::Duration(pack_duration(duration)),
         ),
     };
     ExpressionElementPack::Value(pack_expression_type(ty), value_pack)
@@ -103,7 +80,7 @@ pub fn unpack_expression_value(
             ty,
         },
         ExpressionValueElementPack::Duration(duration) => {
-            Value::Duration(unpack_expression_duration(duration))
+            Value::Duration(unpack_duration(duration))
         }
         ExpressionValueElementPack::Float(val) => Value::Float { raw: val, ty },
     }

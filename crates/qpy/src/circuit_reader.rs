@@ -247,6 +247,7 @@ fn unpack_instruction(
     let name = instruction.gate_class_name.clone();
     let label = (!instruction.label.is_empty()).then(|| Box::new(instruction.label.clone()));
     let condition = unpack_condition(py, &instruction.condition, qpy_data)?;
+    // TODO: if a condition is present but the instruction is not control flow, wrap it with IfElseOp
     let mut qubit_indices = Vec::new();
     let mut clbit_indices = Vec::new();
     for arg in &instruction.bit_data {
@@ -319,8 +320,6 @@ fn unpack_instruction(
         PackedOperation::from_standard_instruction(std_instruction)
     } else {
         let gate_class = get_python_gate_class(py, &instruction.gate_class_name)?;
-        println!("Instruction: {:?}", instruction);
-        println!("matching name {:?}",name.as_str());
         let mut gate_object = match name.as_str() {
             "IfElseOp" | "WhileLoopOp" => {
                 let py_condition = match condition {

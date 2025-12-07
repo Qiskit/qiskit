@@ -2823,6 +2823,19 @@ impl Operation for PyInstruction {
     }
 }
 
+impl PyOperation {
+    /// returns the class name of the python gate
+    pub fn class_name(&self) -> PyResult<String> {
+        Python::attach(|py| -> PyResult<String> {
+            self
+            .operation
+            .getattr(py, intern!(py, "__class__"))?
+            .getattr(py, intern!(py, "__name__"))?
+            .extract::<String>(py)
+        })
+    }
+}
+
 impl PyInstruction {
     pub fn definition(&self) -> Option<CircuitData> {
         Python::attach(|py| -> Option<CircuitData> {
@@ -2858,6 +2871,16 @@ impl PyInstruction {
                 .getattr(py, "ctrl_state")
                 .and_then(|py_ctrl_state| py_ctrl_state.extract::<u32>(py))
                 .unwrap_or((1 << self.num_ctrl_qubits()) - 1)
+        })
+    }
+    /// returns the class name of the python gate
+    pub fn class_name(&self) -> PyResult<String> {
+        Python::attach(|py| -> PyResult<String> {
+            self
+            .instruction
+            .getattr(py, intern!(py, "__class__"))?
+            .getattr(py, intern!(py, "__name__"))?
+            .extract::<String>(py)
         })
     }
 }
@@ -2984,6 +3007,17 @@ impl PyGate {
                 .getattr(py, "ctrl_state")
                 .and_then(|py_ctrl_state| py_ctrl_state.extract::<u32>(py))
                 .unwrap_or((1 << self.num_ctrl_qubits()) - 1)
+        })
+    }
+
+    /// returns the class name of the python gate
+    pub fn class_name(&self) -> PyResult<String> {
+        Python::attach(|py| -> PyResult<String> {
+            self
+            .gate
+            .getattr(py, intern!(py, "__class__"))?
+            .getattr(py, intern!(py, "__name__"))?
+            .extract::<String>(py)
         })
     }
 }
