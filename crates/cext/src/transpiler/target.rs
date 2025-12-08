@@ -1282,8 +1282,8 @@ pub unsafe extern "C" fn qk_target_op_qargs_get_index(
 /// @param qarg_idx The index at which the qargs are stored.  
 /// @param qargs_out A pointer to an array of ``uint32_t``. If ``op_idx`` refers to a
 /// a global operation, a null pointer will be returned.
-/// @param qargs_len A pointer to a ``size_t`` to write the length of the qargs. If the
-/// operation is global, the function will write -1.
+/// @param qargs_len A pointer to a ``int32_t`` to write the length of the qargs. If the
+/// operation is global, the function will write ``-1``.
 ///
 /// Panics if any of the indices are out of range.
 ///
@@ -1330,7 +1330,7 @@ pub unsafe extern "C" fn qk_target_op_qargs_get(
     unsafe { qargs_out.write(qargs_ptr.cast()) };
 
     // SAFETY: Per documentation, the pointer goes to an address
-    // expecting a `size_t`.
+    // expecting a `int32_t`.
     unsafe { qargs_len.write(qargs_length) };
 }
 

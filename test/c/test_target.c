@@ -93,6 +93,13 @@ QkTarget *create_sample_target(bool std_inst) {
 }
 
 bool compare_qargs(uint32_t *lhs, uint32_t *rhs, size_t length) {
+    if (lhs == NULL && rhs != NULL) {
+        return false;
+    }
+    if (rhs == NULL && lhs != NULL) {
+        return false;
+    }
+    
     return !memcmp(lhs, rhs, length * sizeof(*lhs));
 }
 
@@ -108,6 +115,7 @@ void print_qargs(uint32_t *qargs, size_t length) {
                 printf("%u", qargs[q_idx]);
             }
         }
+        printf("]");
     }
 }
 
@@ -693,7 +701,7 @@ static int test_target_iteration(void) {
                         "Unexpected qargs found for operation %s at qarg index: %zu. Expected: '",
                         name, props_idx);
                     print_qargs(cx_qargs[(int)props_idx], qargs_len);
-                    printf(", found '");
+                    printf("', found '");
                     print_qargs(qargs, qargs_len);
                     printf("'\n");
                     result = EqualityError;
@@ -702,7 +710,7 @@ static int test_target_iteration(void) {
 
                 if (props.duration != cx_props[(int)props_idx][0]) {
                     printf("Unexpected duration value found for operation %s at qarg index: %zu. "
-                           "Expected: %f, got: %f",
+                           "Expected: %f, got: %f.\n",
                            name, props_idx, props.duration, cx_props[(int)props_idx][0]);
                     result = EqualityError;
                     goto cleanup;
@@ -710,7 +718,7 @@ static int test_target_iteration(void) {
 
                 if (props.error != cx_props[(int)props_idx][1]) {
                     printf("Unexpected error value found for operation %s at qarg index: %zu. "
-                           "Expected: %f, got: %f",
+                           "Expected: %f, got: %f.\n",
                            name, props_idx, props.error, cx_props[(int)props_idx][1]);
                     result = EqualityError;
                     goto cleanup;
@@ -723,7 +731,7 @@ static int test_target_iteration(void) {
                         "Unexpected qargs found for operation %s at qarg index: %zu. Expected: '",
                         name, props_idx);
                     print_qargs(NULL, 0);
-                    printf(", found '");
+                    printf("', found '");
                     print_qargs(qargs, qargs_len);
                     printf("'\n");
                     result = EqualityError;
@@ -737,7 +745,7 @@ static int test_target_iteration(void) {
                         "Unexpected qargs found for operation %s at qarg index: %zu. Expected: '",
                         name, props_idx);
                     print_qargs((uint32_t[]){}, 0);
-                    printf(", found '");
+                    printf("', found '");
                     print_qargs(qargs, qargs_len);
                     printf("'\n");
                     result = EqualityError;
@@ -751,7 +759,7 @@ static int test_target_iteration(void) {
                         "Unexpected qargs found for operation %s at qarg index: %zu. Expected: '",
                         name, props_idx);
                     print_qargs(single_qarg[(int)props_idx], qargs_len);
-                    printf(", found '");
+                    printf("', found '");
                     print_qargs(qargs, qargs_len);
                     printf("'\n");
                     result = EqualityError;
@@ -761,7 +769,7 @@ static int test_target_iteration(void) {
                 if (op_idx > 6) {
                     if (props.duration != 1e-6) {
                         printf("Unexpected duration value found for operation %s at qarg index: "
-                               "%zu. Expected: %f, got: %f",
+                               "%zu. Expected: %f, got: %f.\n",
                                name, props_idx, props.duration, 1e-6);
                         result = EqualityError;
                         goto cleanup;
@@ -769,7 +777,7 @@ static int test_target_iteration(void) {
 
                     if (props.error != 1e-4) {
                         printf("Unexpected error value found for operation %s at qarg index: %zu. "
-                               "Expected: %f, got: %f",
+                               "Expected: %f, got: %f.\n",
                                name, props_idx, props.error, 1e-4);
                         result = EqualityError;
                         goto cleanup;
@@ -794,7 +802,7 @@ static int test_target_indexing(void) {
     // Retrieve the index for CX
     size_t cx_idx = qk_target_op_get_index(target, "cx");
     if (cx_idx != 4) {
-        printf("Invalid index for cx entry: expected %d, got %zu.", 4, cx_idx);
+        printf("Invalid index for cx entry: expected %d, got %zu.\n", 4, cx_idx);
         result = EqualityError;
         goto cleanup;
     }
@@ -802,7 +810,7 @@ static int test_target_indexing(void) {
     // Retrieve the index for cz (should fail).
     size_t cz_idx = qk_target_op_get_index(target, "cz");
     if (cz_idx != (size_t)-1) {
-        printf("Found index for non-existing cz entry: got %zu.", cz_idx);
+        printf("Found index for non-existing cz entry: got %zu.\n", cz_idx);
         result = EqualityError;
         goto cleanup;
     }
@@ -810,7 +818,7 @@ static int test_target_indexing(void) {
     // Check if qargs [0,1] exist in cx
     uint32_t cx_qargs_query[2] = {0, 1};
     if (!qk_target_op_qargs_contains(target, cx_idx, cx_qargs_query)) {
-        printf("Couldn't find valid qarg entry [0, 1] for cx.");
+        printf("Couldn't find valid qarg entry [0, 1] for cx.\n");
         result = EqualityError;
         goto cleanup;
     }
@@ -818,7 +826,7 @@ static int test_target_indexing(void) {
     // Check if qargs [2,3] exist in cx (should fail)
     uint32_t cx_qargs_bad_query[2] = {2, 3};
     if (qk_target_op_qargs_contains(target, cx_idx, cx_qargs_bad_query)) {
-        printf("Found valid qarg entry non-existing qargs [2, 3] for cx.");
+        printf("Found valid qarg entry non-existing qargs [2, 3] for cx.\n");
         result = EqualityError;
         goto cleanup;
     }
@@ -826,7 +834,7 @@ static int test_target_indexing(void) {
     // Since index exists, this should return properly
     size_t cx_qargs_idx = qk_target_op_qargs_get_index(target, cx_idx, cx_qargs_query);
     if (cx_qargs_idx != 6) {
-        printf("Invalid index for cx qargs [0,1]: expected %d, got %zu.", 6, cx_idx);
+        printf("Invalid index for cx qargs [0,1]: expected %d, got %zu.\n", 6, cx_idx);
         result = EqualityError;
         goto cleanup;
     }
@@ -834,7 +842,7 @@ static int test_target_indexing(void) {
     // Same test on the invalid query
     size_t cx_qargs_bad_idx = qk_target_op_qargs_get_index(target, cx_idx, cx_qargs_bad_query);
     if (cx_qargs_bad_idx != (size_t)-1) {
-        printf("Found index for non-existing qargs [2,3].");
+        printf("Found index for non-existing qargs [2,3].\n");
         result = EqualityError;
         goto cleanup;
     }
@@ -846,7 +854,7 @@ static int test_target_indexing(void) {
 
     qk_target_op_qargs_get(target, cx_idx, 1, &cx_qargs, &cx_qargs_len);
     if (!compare_qargs(cx_qargs, (uint32_t[2]){4, 3}, cx_qargs_len)) {
-        printf("Retrieved incorrect qargs, expected [4, 3], got [%u, %u]", cx_qargs[0],
+        printf("Retrieved incorrect qargs, expected [4, 3], got [%u, %u]\n", cx_qargs[0],
                cx_qargs[1]);
         result = EqualityError;
         goto cleanup;
@@ -855,13 +863,13 @@ static int test_target_indexing(void) {
     qk_target_op_props_get(target, cx_idx, 1, &cx_props);
 
     if (cx_props.duration != 3.0577e-11) {
-        printf("Retrieved incorrect duration property, expected 3.0577e-11, got %lf",
+        printf("Retrieved incorrect duration property, expected 3.0577e-11, got %lf.\n",
                cx_props.duration);
         result = EqualityError;
         goto cleanup;
     }
     if (cx_props.error != 0.00713) {
-        printf("Retrieved incorrect error property, expected 0.00713, got %lf", cx_props.error);
+        printf("Retrieved incorrect error property, expected 0.00713, got %lf.\n", cx_props.error);
         result = EqualityError;
         goto cleanup;
     }
@@ -869,7 +877,7 @@ static int test_target_indexing(void) {
     // Try retrieving global index for y gate
     size_t y_idx = qk_target_op_get_index(target, "y");
     if (y_idx != 5) {
-        printf("Invalid index for y entry: expected %d, got %zu.", 5, y_idx);
+        printf("Invalid index for y entry: expected %d, got %zu.\n", 5, y_idx);
         result = EqualityError;
         goto cleanup;
     }
@@ -879,7 +887,7 @@ static int test_target_indexing(void) {
     qk_target_op_qargs_get(target, y_idx, 0, &y_qargs, &y_qargs_len);
 
     if (y_qargs != NULL) {
-        printf("Obtained non-null global qargs at index 0 for 'y'.");
+        printf("Obtained non-null global qargs at index 0 for 'y'.\n");
         result = EqualityError;
         goto cleanup;
     }
@@ -887,7 +895,7 @@ static int test_target_indexing(void) {
     // Try retrieving [] index for global_phase gate
     size_t gp_idx = qk_target_op_get_index(target, "global_phase");
     if (gp_idx != 6) {
-        printf("Invalid index for y entry: expected %d, got %zu.", 6, gp_idx);
+        printf("Invalid index for y entry: expected %d, got %zu.\n", 6, gp_idx);
         result = EqualityError;
         goto cleanup;
     }
@@ -897,7 +905,7 @@ static int test_target_indexing(void) {
     qk_target_op_qargs_get(target, gp_idx, 0, &gp_qargs, &gp_qargs_len);
 
     if (gp_qargs == NULL || gp_qargs_len != 0) {
-        printf("Obtained null or invalid qargs at index 0 for 'global_phase'.");
+        printf("Obtained null or invalid qargs at index 0 for 'global_phase'.\n");
         result = EqualityError;
         goto cleanup;
     }
