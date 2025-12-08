@@ -27,7 +27,6 @@ use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::ONE_QUBIT_IDENTITY;
-use qiskit_circuit::imports::QUANTUM_CIRCUIT;
 use qiskit_circuit::instruction::Instruction;
 use qiskit_circuit::operations::StandardGate::{I, X, Y, Z};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
@@ -255,11 +254,7 @@ fn generate_twirled_circuit(
                         custom_gate_map,
                         optimizer_target,
                     )?;
-                    Ok(out_circ.add_block(
-                        &QUANTUM_CIRCUIT
-                            .get_bound(py)
-                            .call_method1(intern!(py, "_from_circuit_data"), (new_block,))?,
-                    ))
+                    Ok(out_circ.add_block(&new_block.into_py_quantum_circuit(py)?))
                 })
                 .collect::<PyResult<_>>()?;
             out_circ.push(PackedInstruction::from_control_flow(
