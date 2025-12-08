@@ -1,3 +1,16 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2017, 2025.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+
 """
 UnrollBoxes transpiler pass.
 """
@@ -15,19 +28,19 @@ class UnrollBoxes(TransformationPass):
 
     def __init__(
         self,
-        recursive: bool = True,
         known_annotations: Optional[Callable[[dict], bool]] = None,
-        max_depth: Optional[int] = None,
     ) -> None:
+        """Create a new UnrollBoxes pass.
+
+        Args:
+            known_annotations: Predicate returning True for annotations that
+                are safe to ignore when deciding whether to unroll a BoxOp.
+        """
+
         super().__init__()
-        self.recursive = recursive
         self.known_annotations = known_annotations or (lambda ann: True)
-        self.max_depth = max_depth
 
-    def _validate_annotations(self, box_op: BoxOp, depth: int = 0) -> bool:
-        if self.max_depth is not None and depth >= self.max_depth:
-            return False
-
+    def _validate_annotations(self, box_op: BoxOp) -> bool:
         for ann_dict in getattr(box_op, "annotations", []):
             if not self.known_annotations(ann_dict):
                 return False

@@ -1,3 +1,16 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2017, 2025.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+
 """
 Tests for UnrollBoxes transpiler pass.
 """
@@ -67,3 +80,20 @@ def test_empty_annotations():
     pm = PassManager([pass_])
     result = pm.run(qc)
     assert any(op.name == "h" for op in result.data)
+
+
+def test_unknown_annotation_keeps_box():
+    qc = QuantumCircuit(1)
+    box = QuantumCircuit(1)
+    box.h(0)
+    box.annotations = [{"unknown": True}]
+    qc.append(BoxOp(box), [0])
+
+    def safe_only(ann):
+        return "safe" in ann
+
+    pass_ = UnrollBoxes(known_annotations=safe_only)
+    pm = PassManager([pass_])
+    result = pm.run(qc)
+
+    assert any(isinstance(op.operation, BoxOp) for op in result.data)
