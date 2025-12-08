@@ -275,10 +275,10 @@ C API functions should be marked deprecated in two separate places:
 2. as a Rust attribute `#[deprecated]` on the function itself.
 
 The `\qk_deprecated` command is defined in the Doxygen configuration file (`docs/Doxyfile`) as an
-alias.  The `reason` field is expanded inside a "verbatim rST" block, so should use rST directly
-(unlike other parts of the C API documentation).  The `reason` field should be a single line of
+alias.  The `<reason>` field is expanded inside a "verbatim rST" block, so should use rST directly
+(unlike other parts of the C API documentation).  The `<reason>` field should be a single line of
 text, and cannot contain the `|` separator.  The `<version>` field should be the version of Qiskit
-that the deprecated started in (e.g. `2.3.0`).  We don't use Doxygen's built-in `\deprecated`
+that the deprecation started in (e.g. `2.3.0`).  We don't use Doxygen's built-in `\deprecated`
 command because that is free-form and doesn't retain the version in a structured location.
 
 We have `cbindgen` configured to interpret `#[deprecated]` directives on C API functions.  The
