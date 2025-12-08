@@ -31,14 +31,6 @@ use qiskit_circuit::operations::{
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::{BlocksMode, Clbit, Qubit, VarsMode};
 
-#[cfg(feature = "python_binding")]
-use pyo3::ffi::PyObject;
-#[cfg(feature = "python_binding")]
-use pyo3::types::PyAnyMethods;
-#[cfg(feature = "python_binding")]
-use pyo3::{Python, intern};
-#[cfg(feature = "python_binding")]
-use qiskit_circuit::imports::QUANTUM_CIRCUIT;
 use smallvec::smallvec;
 
 /// @ingroup QkCircuit
@@ -1084,16 +1076,17 @@ pub unsafe extern "C" fn qk_opcounts_clear(op_counts: *mut OpCounts) {
 #[unsafe(no_mangle)]
 #[cfg(feature = "python_binding")]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_circuit_to_python(circuit: *mut CircuitData) -> *mut PyObject {
-    unsafe {
-        let circuit = Box::from_raw(mut_ptr_as_ref(circuit));
-        let py = Python::assume_attached();
-        QUANTUM_CIRCUIT
-            .get_bound(py)
-            .call_method1(intern!(py, "_from_circuit_data"), (*circuit,))
-            .expect("Unable to create a Python circuit")
-            .into_ptr()
-    }
+pub unsafe extern "C" fn qk_circuit_to_python(
+    circuit: *mut CircuitData,
+) -> *mut ::pyo3::ffi::PyObject {
+    // SAFETY: per documentation, `circuit` is a valid and owned `CircuitData`.
+    let circuit = unsafe { Box::from_raw(mut_ptr_as_ref(circuit)) };
+    // SAFETY: per documentation, we are attached to an interpreter.
+    let py = unsafe { ::pyo3::Python::assume_attached() };
+    circuit
+        .into_py_quantum_circuit(py)
+        .expect("Unable to create a Python circuit")
+        .into_ptr()
 }
 
 /// @ingroup QkCircuit

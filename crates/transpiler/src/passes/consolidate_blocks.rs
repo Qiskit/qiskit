@@ -27,7 +27,7 @@ use qiskit_circuit::gate_matrix::{
     CH_GATE, CX_GATE, CY_GATE, CZ_GATE, DCX_GATE, ECR_GATE, ISWAP_GATE, ONE_QUBIT_IDENTITY,
     TWO_QUBIT_IDENTITY,
 };
-use qiskit_circuit::imports::{QI_OPERATOR, QUANTUM_CIRCUIT};
+use qiskit_circuit::imports::QI_OPERATOR;
 use qiskit_circuit::interner::Interned;
 use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::operations::{ArrayType, Operation, Param, UnitaryGate};
@@ -311,9 +311,7 @@ fn py_run_consolidate_blocks(
                 Param::Float(0.),
             )?;
             let matrix = Python::attach(|py| -> PyResult<_> {
-                let circuit = QUANTUM_CIRCUIT
-                    .get_bound(py)
-                    .call_method1(intern!(py, "_from_circuit_data"), (circuit_data,))?;
+                let circuit = circuit_data.into_py_quantum_circuit(py)?;
                 let matrix = QI_OPERATOR
                     .get_bound(py)
                     .call1((circuit,))?
