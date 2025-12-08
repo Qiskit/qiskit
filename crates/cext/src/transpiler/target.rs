@@ -1035,7 +1035,7 @@ pub unsafe extern "C" fn qk_target_instruction_supported(
 /// Return the index at which an operation is located based on its name.
 ///
 /// @param target A pointer to the ``QkTarget``.
-/// @param name A pointer to the name to get the index of.
+/// @param name The name to get the index of.
 ///
 /// @return the index in which the operation is located or an invalid index
 ///     in the case it is not in the Target.
@@ -1060,20 +1060,15 @@ pub unsafe extern "C" fn qk_target_op_get_index(
     name: *const c_char,
 ) -> usize {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
+
     let target_borrowed = unsafe { const_ptr_as_ref(target) };
     // SAFETY: Per documentation, this should point to a valid, null-terminated
     // string.
-    let name = unsafe {
-        CStr::from_ptr(name)
-            .to_str()
-            .expect("Error extracting gate name.")
-    };
+    let name = unsafe { CStr::from_ptr(name) }
+        .to_str()
+        .expect("Users must only pass valid UTF-8 strings");
 
-    if let Some(index) = target_borrowed.get_gate_index(name) {
-        index
-    } else {
-        usize::MAX
-    }
+    target_borrowed.get_gate_index(name).unwrap_or(usize::MAX)
 }
 
 /// @ingroup QkTarget
@@ -1104,20 +1099,19 @@ pub unsafe extern "C" fn qk_target_op_get_index(
 pub unsafe extern "C" fn qk_target_op_name(target: *const Target, index: usize) -> *mut c_char {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target_borrowed = unsafe { const_ptr_as_ref(target) };
-    if let Some((retrieved, _)) = target_borrowed.get_by_index(index) {
-        CString::new(retrieved.clone())
-            .expect("Error allocating space for string")
-            .into_raw()
-    } else {
-        panic!("Index does not map to any operation in the Target.")
-    }
+    let (name, _) = target_borrowed
+        .get_by_index(index)
+        .expect("Operation index should exist in the Target");
+    CString::new(name)
+        .expect("A valid rust string should not have any trailing 0 byte.")
+        .into_raw()
 }
 
 /// @ingroup QkTarget
 /// Checks whether an operation is present in the ``QkTarget`` instance by name.
 ///
 /// @param target A pointer to the ``QkTarget``.
-/// @param name A pointer to the name string which we will look up.
+/// @param name The string which we will look up.
 ///
 /// @return Whether the instruction is in the Target or not.
 ///
@@ -1146,7 +1140,7 @@ pub unsafe extern "C" fn qk_target_contains(target: *const Target, name: *const 
     let name = unsafe {
         CStr::from_ptr(name)
             .to_str()
-            .expect("Error extracting gate name.")
+            .expect("Users must only pass valid UTF-8 strings")
     };
 
     target_borrowed.contains_key(name)
@@ -1154,8 +1148,8 @@ pub unsafe extern "C" fn qk_target_contains(target: *const Target, name: *const 
 
 /// @ingroup QkTarget
 /// Return the number of properties defined for the specified operation in
-/// the ``QkTarget`` instance, a.k.a. the length of the property map. Returns
-/// an invalid number when not found.
+/// the ``QkTarget`` instance, a.k.a. the length of the property map. Panics
+/// if the operation index is not present.
 ///
 /// @param target A pointer to the ``QkTarget``.
 /// @param index The index in which the gate is stored.
@@ -1183,32 +1177,32 @@ pub unsafe extern "C" fn qk_target_op_num_properties(target: *const Target, inde
     target_borrowed
         .get_by_index(index)
         .map(|(_, v)| v.len())
-        .unwrap_or(usize::MAX)
+        .expect("Operation indices must be present in the Target")
 }
 
 /// @ingroup QkTarget
-/// Checks if the instruction provided contains properties for the specified qargs.
+/// Checks if the provided qargs have been specified for the instruction referred to.
 ///
 /// @param target A pointer to the ``QkTarget``.
 /// @param index The index in which the gate is stored.
-/// @param qargs A pointer to the array of ``uint32_t`` qubit indices to add the
-///     check for, can be a null pointer to check for global properties.
+/// @param qargs A pointer to the array of ``uint32_t`` qubit indices to check for.
+///     Can be a null pointer to check for global properties.
 ///
 /// @return Whether the operation is compatible with the specified qargs or not.
 ///
 /// # Example
 /// ```c
-///     QkTarget *target = qk_target_new(5);
+/// QkTarget *target = qk_target_new(5);
 ///
-///     QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
-///     uint32_t qargs[2] = {0, 1};
-///     qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
+/// QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
+/// uint32_t qargs[2] = {0, 1};
+/// qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
 ///
-///     qk_target_add_instruction(target, entry);
+/// qk_target_add_instruction(target, entry);
 ///
-///     bool has_0_1 = qk_target_op_has_qargs(target, 0, qargs, 2); // will be true
-///     bool has_0_2 = qk_target_op_has_qargs(target, 0, (uint32_t *){0, 2}, 2); // will be false
-///     bool has_global = qk_target_op_has_qargs(target, 0, NULL, 0); // will be false
+/// bool has_0_1 = qk_target_op_qargs_contains(target, 0, qargs); // will be true
+/// bool has_0_2 = qk_target_op_qargs_contains(target, 0, (uint32_t *){0, 2}); // will be false
+/// bool has_global = qk_target_op_qargs_contains(target, 0, NULL); // will be false
 /// ```
 ///
 /// # Safety
@@ -1216,23 +1210,22 @@ pub unsafe extern "C" fn qk_target_op_num_properties(target: *const Target, inde
 /// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_op_has_qargs(
+pub unsafe extern "C" fn qk_target_op_qargs_contains(
     target: *const Target,
     index: usize,
     qargs: *const u32,
 ) -> bool {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target_borrowed = unsafe { const_ptr_as_ref(target) };
-    if let Some((_, inst_map)) = target_borrowed.get_by_index(index) {
-        let op = target_borrowed.get_op_by_index(index).unwrap();
+    let (_, inst_map) = target_borrowed
+        .get_by_index(index)
+        .expect("Operation indices must be present in the Target");
+    let op = target_borrowed.get_op_by_index(index).unwrap();
 
-        // SAFETY: Per the documentation the qubits pointer is an array of the size
-        // associated with the operation or a NULL pointer.
-        let parsed = unsafe { parse_qargs(qargs, op.num_qubits()) };
-        inst_map.contains_key(&parsed)
-    } else {
-        panic!("Index '{}' not present in the Target.", index)
-    }
+    // SAFETY: Per the documentation the qubits pointer is an array of the size
+    // associated with the operation or a NULL pointer.
+    let parsed = unsafe { parse_qargs(qargs, op.num_qubits()) };
+    inst_map.contains_key(&parsed)
 }
 
 /// @ingroup QkTarget
@@ -1249,14 +1242,14 @@ pub unsafe extern "C" fn qk_target_op_has_qargs(
 ///
 /// # Example
 /// ```c
-///     QkTarget *target = qk_target_new(5);
+/// QkTarget *target = qk_target_new(5);
 ///
-///     QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
-///     uint32_t qargs[2] = {0, 1};
-///     qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
-///     qk_target_add_instruction(target, entry);
+/// QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
+/// uint32_t qargs[2] = {0, 1};
+/// qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
+/// qk_target_add_instruction(target, entry);
 ///
-///     size_t idx_0_1 = qk_target_op_qargs_index(target, 0, qargs);
+/// size_t idx_0_1 = qk_target_op_qargs_get_index(target, 0, qargs);
 /// ```
 ///
 /// # Safety
@@ -1264,22 +1257,21 @@ pub unsafe extern "C" fn qk_target_op_has_qargs(
 /// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_op_qargs_index(
+pub unsafe extern "C" fn qk_target_op_qargs_get_index(
     target: *const Target,
     op_idx: usize,
     qargs: *const u32,
 ) -> usize {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target_borrowed = unsafe { const_ptr_as_ref(target) };
-    if let Some((_, inst_map)) = target_borrowed.get_by_index(op_idx) {
-        let op = target_borrowed.get_op_by_index(op_idx).unwrap();
-        // SAFETY: Per the documentation the qubits pointer is an array of the size
-        // associated with the operation or a NULL pointer.
-        let parsed = unsafe { parse_qargs(qargs, op.num_qubits()) };
-        inst_map.get_index_of(&parsed).unwrap_or(usize::MAX)
-    } else {
-        panic!("Index '{}' not present in the Target.", op_idx)
-    }
+    let (_, inst_map) = target_borrowed
+        .get_by_index(op_idx)
+        .expect("Operation indices must be present in the Target");
+    let op = target_borrowed.get_op_by_index(op_idx).unwrap();
+    // SAFETY: Per the documentation the qubits pointer is an array of the size
+    // associated with the operation or a NULL pointer.
+    let parsed = unsafe { parse_qargs(qargs, op.num_qubits()) };
+    inst_map.get_index_of(&parsed).unwrap_or(usize::MAX)
 }
 
 /// @ingroup QkTarget
@@ -1288,8 +1280,10 @@ pub unsafe extern "C" fn qk_target_op_qargs_index(
 /// @param target A pointer to the ``QkTarget``.
 /// @param op_idx The index at which the gate is stored.  
 /// @param qarg_idx The index at which the qargs are stored.  
-/// @param qargs_out A pointer to an array with enough capacity to write out the ``qargs``.
-/// @param qargs_len A pointer to a ``uint32_t`` to write the length of the qargs.
+/// @param qargs_out A pointer to an array of ``uint32_t``. If ``op_idx`` refers to a
+/// a global operation, a null pointer will be returned.
+/// @param qargs_len A pointer to a ``size_t`` to write the length of the qargs. If the
+/// operation is global, the function will write -1.
 ///
 /// Panics if any of the indices are out of range.
 ///
@@ -1304,7 +1298,7 @@ pub unsafe extern "C" fn qk_target_op_qargs_index(
 ///
 ///     uint32_t *qargs_retrieved;
 ///     uint32_t qargs_length;
-///     qk_target_op_get_qargs(target, 0, 0, &qargs_retrieved, &qargs_length);
+///     qk_target_op_qargs_get(target, 0, 0, &qargs_retrieved, &qargs_length);
 /// ```
 ///
 /// # Safety
@@ -1314,32 +1308,30 @@ pub unsafe extern "C" fn qk_target_op_qargs_index(
 /// store the indices in.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_op_get_qargs(
+pub unsafe extern "C" fn qk_target_op_qargs_get(
     target: *const Target,
     op_idx: usize,
     qarg_idx: usize,
     qargs_out: *mut *mut u32,
-    qargs_len: *mut u32,
+    qargs_len: *mut i32,
 ) {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target_borrowed = unsafe { const_ptr_as_ref(target) };
-    if let Some((_, props_map)) = target_borrowed.get_by_index(op_idx) {
-        if let Some((retrieved_qargs, _)) = props_map.get_index(qarg_idx) {
-            let (qargs_ptr, qargs_length) = qargs_to_ptr(retrieved_qargs);
+    let (_, props_map) = target_borrowed
+        .get_by_index(op_idx)
+        .expect("Operation indices must be present in the Target.");
+    let (retrieved_qargs, _) = props_map
+        .get_index(qarg_idx)
+        .expect("Qarg indices must be present in the operation's property map");
+    let (qargs_ptr, qargs_length) = qargs_to_ptr(retrieved_qargs);
 
-            // SAFETY: Per documentation, the pointer is not-null goes to an address
-            // with enough capacity for this array.
-            unsafe { qargs_out.write(qargs_ptr.cast()) };
+    // SAFETY: Per documentation, the pointer is not-null goes to an address
+    // with enough capacity for this array.
+    unsafe { qargs_out.write(qargs_ptr.cast()) };
 
-            // SAFETY: Per documentation, the pointer goes to an address
-            // expecting a uint32_t.
-            unsafe { qargs_len.write(qargs_length) };
-        } else {
-            panic!("Invalid index for qargs.")
-        }
-    } else {
-        panic!("Invalid index for gate.")
-    }
+    // SAFETY: Per documentation, the pointer goes to an address
+    // expecting a `size_t`.
+    unsafe { qargs_len.write(qargs_length) };
 }
 
 /// @ingroup QkTarget
@@ -1362,7 +1354,7 @@ pub unsafe extern "C" fn qk_target_op_get_qargs(
 ///     qk_target_add_instruction(target, entry);
 ///
 ///     QkInstructionProperties inst_props;
-///     qk_target_op_get_props(target, 0, 0, &inst_props);
+///     qk_target_op_props_get(target, 0, 0, &inst_props);
 /// ```
 ///
 /// # Safety
@@ -1372,7 +1364,7 @@ pub unsafe extern "C" fn qk_target_op_get_qargs(
 /// store ``QkInstructionProperties`` in.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_op_get_props(
+pub unsafe extern "C" fn qk_target_op_props_get(
     target: *const Target,
     op_idx: usize,
     qarg_idx: usize,
@@ -1380,38 +1372,40 @@ pub unsafe extern "C" fn qk_target_op_get_props(
 ) {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target_borrowed = unsafe { const_ptr_as_ref(target) };
-    if let Some((_, props_map)) = target_borrowed.get_by_index(op_idx) {
-        if let Some((_, retrieved_props)) = props_map.get_index(qarg_idx) {
-            // SAFETY: Per documentation, the pointer goes to an address
-            // pre-allocated for a ``CInstructionProperties`` object.
-            unsafe {
-                if let Some(props) = retrieved_props {
-                    inst_props.write(CInstructionProperties {
-                        duration: props.duration.unwrap_or(f64::NAN),
-                        error: props.error.unwrap_or(f64::NAN),
-                    });
-                } else {
-                    // If no property is found but there are qargs, return a null instance.
-                    inst_props.write(CInstructionProperties {
-                        duration: f64::NAN,
-                        error: f64::NAN,
-                    });
-                }
-            }
-        } else {
-            panic!("Invalid index for qargs.")
+    let (_, props_map) = target_borrowed
+        .get_by_index(op_idx)
+        .expect("Operation indices must be present in the Target");
+    let (_, retrieved_props) = props_map
+        .get_index(qarg_idx)
+        .expect("Qarg indices must be present in the operation's property map");
+    // SAFETY: Per documentation, the pointer goes to an address
+    // pre-allocated for a ``CInstructionProperties`` object.
+    if let Some(props) = retrieved_props {
+        unsafe {
+            inst_props.write(CInstructionProperties {
+                duration: props.duration.unwrap_or(f64::NAN),
+                error: props.error.unwrap_or(f64::NAN),
+            });
         }
     } else {
-        panic!("Invalid index for gate.")
+        // If no property is found but there are qargs, return a null instance.
+        unsafe {
+            inst_props.write(CInstructionProperties {
+                duration: f64::NAN,
+                error: f64::NAN,
+            });
+        }
     }
 }
 
 /// A representation of a Target operation's instruction properties.
 #[repr(C)]
 pub struct CInstructionProperties {
-    /// The duration, in seconds, of the instruction on the specified set of qubits
+    /// The duration, in seconds, of the instruction on the specified set of qubits.
+    /// Will be set to ``NaN`` if the property is not defined.
     pub duration: f64,
     /// The average error rate for the instruction on the specified set of qubits.
+    /// Will be set to ``NaN`` if the property is not defined.
     pub error: f64,
 }
 
@@ -1498,10 +1492,10 @@ unsafe fn parse_params(gate: StandardGate, params: *mut f64) -> SmallVec<[Param;
 /// # Returns
 ///
 /// A tuple with a mutable pointer to an array of `u32` members and the length
-/// as a `u32`.
-fn qargs_to_ptr(qargs: &Qargs) -> (*mut PhysicalQubit, u32) {
+/// as a `i32`.
+fn qargs_to_ptr(qargs: &Qargs) -> (*mut PhysicalQubit, i32) {
     match qargs {
-        Qargs::Global => (null_mut(), 0),
+        Qargs::Global => (null_mut(), -1),
         Qargs::Concrete(small_vec) => (
             small_vec.as_ptr().cast_mut(),
             small_vec.len().try_into().unwrap_or_else(|_| {

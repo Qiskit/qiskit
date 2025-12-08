@@ -20,8 +20,96 @@
 #include <stdio.h>
 #include <string.h>
 
-QkTarget *create_sample_target(bool std_inst);
-bool compare_qargs(uint32_t *lhs, uint32_t *rhs, size_t length);
+QkTarget *create_sample_target(bool std_inst) {
+    // Build sample target
+    QkTarget *target = qk_target_new(0);
+    QkTargetEntry *i_entry = qk_target_entry_new(QkGate_I);
+    for (int i = 0; i < 4; i++) {
+        uint32_t qargs[1] = {i};
+        qk_target_entry_add_property(i_entry, qargs, 1, 35.5e-9, 0.);
+    }
+    qk_target_add_instruction(target, i_entry);
+
+    double rz_params[1] = {3.14};
+    QkTargetEntry *rz_entry = qk_target_entry_new_fixed(QkGate_RZ, rz_params, "rz_pi");
+    for (int i = 0; i < 4; i++) {
+        uint32_t qargs[1] = {i};
+        qk_target_entry_add_property(rz_entry, qargs, 1, 0., 0.);
+    }
+    qk_target_add_instruction(target, rz_entry);
+
+    QkTargetEntry *sx_entry = qk_target_entry_new(QkGate_SX);
+    for (int i = 0; i < 4; i++) {
+        uint32_t qargs[1] = {i};
+        qk_target_entry_add_property(sx_entry, qargs, 1, 35.5e-9, 0.);
+    }
+    qk_target_add_instruction(target, sx_entry);
+
+    QkTargetEntry *x_entry = qk_target_entry_new(QkGate_X);
+    for (int i = 0; i < 4; i++) {
+        uint32_t qargs[1] = {i};
+        qk_target_entry_add_property(x_entry, qargs, 1, 35.5e-9, 0.0005);
+    }
+    qk_target_add_instruction(target, x_entry);
+
+    QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
+    uint32_t qarg_samples[8][2] = {
+        {3, 4}, {4, 3}, {3, 1}, {1, 3}, {1, 2}, {2, 1}, {0, 1}, {1, 0},
+    };
+    double props[8][2] = {
+        {2.7022e-11, 0.00713}, {3.0577e-11, 0.00713}, {4.6222e-11, 0.00929}, {4.9777e-11, 0.00929},
+        {2.2755e-11, 0.00659}, {2.6311e-11, 0.00659}, {5.1911e-11, 0.01201}, {5.1911e-11, 0.01201},
+    };
+    for (int i = 0; i < 8; i++) {
+        qk_target_entry_add_property(cx_entry, qarg_samples[i], 2, props[i][0], props[i][1]);
+    }
+    qk_target_add_instruction(target, cx_entry);
+
+    // Add global Y Gate
+    qk_target_add_instruction(target, qk_target_entry_new(QkGate_Y));
+
+    // Add glbal phase gate
+    QkTargetEntry *gp_entry = qk_target_entry_new(QkGate_GlobalPhase);
+    qk_target_entry_add_property(gp_entry, (uint32_t *)4, 0, NAN, NAN);
+    qk_target_add_instruction(target, gp_entry);
+
+    if (std_inst) {
+        QkTargetEntry *meas = qk_target_entry_new_measure();
+        for (uint32_t i = 0; i < 2; i++) {
+            uint32_t q[1] = {i};
+            qk_target_entry_add_property(meas, q, 1, 1e-6, 1e-4);
+        }
+        qk_target_add_instruction(target, meas);
+
+        QkTargetEntry *reset = qk_target_entry_new_reset();
+        for (uint32_t i = 0; i < 4; i++) {
+            uint32_t q[1] = {i};
+            qk_target_entry_add_property(reset, q, 1, 1e-6, 1e-4);
+        }
+        qk_target_add_instruction(target, reset);
+    }
+
+    return target;
+}
+
+bool compare_qargs(uint32_t *lhs, uint32_t *rhs, size_t length) {
+    return !memcmp(lhs, rhs, length * sizeof(*lhs));
+}
+
+void print_qargs(uint32_t *qargs, size_t length) {
+    if (qargs == NULL) {
+        printf("Global");
+    } else {
+        printf("[");
+        for (uint32_t q_idx = 0; q_idx < length; q_idx++) {
+            if (q_idx < length - 1) {
+                printf("%u, ", qargs[q_idx]);
+            } else {
+                printf("%u", qargs[q_idx]);
+            }
+        }
+    }
+}
 
 /**
  * Test empty constructor for Target
@@ -558,36 +646,143 @@ cleanup:
 static int test_target_iteration(void) {
     QkTarget *target = create_sample_target(true);
     int result = Ok;
+    char *names[9] = {"id", "rz_pi", "sx", "x", "cx", "y", "global_phase", "measure", "reset"};
+    uint32_t single_qarg[4][1] = {{
+                                      0,
+                                  },
+                                  {
+                                      1,
+                                  },
+                                  {
+                                      2,
+                                  },
+                                  {
+                                      3,
+                                  }};
+    uint32_t cx_qargs[8][2] = {
+        {3, 4}, {4, 3}, {3, 1}, {1, 3}, {1, 2}, {2, 1}, {0, 1}, {1, 0},
+    };
+    double cx_props[8][2] = {
+        {2.7022e-11, 0.00713}, {3.0577e-11, 0.00713}, {4.6222e-11, 0.00929}, {4.9777e-11, 0.00929},
+        {2.2755e-11, 0.00659}, {2.6311e-11, 0.00659}, {5.1911e-11, 0.01201}, {5.1911e-11, 0.01201},
+    };
+
     size_t target_length = qk_target_num_instructions(target);
     for (size_t op_idx = 0; op_idx < target_length; op_idx++) {
         // Use default size of 2 for qargs, as rarely do we have qargs bigger than 2
         uint32_t *qargs;
-        uint32_t qargs_len;
+        int32_t qargs_len;
         QkInstructionProperties props;
+
         char *name = qk_target_op_name(target, op_idx);
-        printf("Op name: '%s'\nProps:\n", name);
+        if (strcmp(name, names[(int)op_idx]) != 0) {
+            printf("Unexpected operation name at index %zu, expected: %s, got %s.\n", op_idx,
+                   names[(int)op_idx], name);
+            result = EqualityError;
+            goto cleanup;
+        }
+
         size_t num_props = qk_target_op_num_properties(target, op_idx);
         for (size_t props_idx = 0; props_idx < num_props; props_idx++) {
-            qk_target_op_get_qargs(target, op_idx, props_idx, &qargs, &qargs_len);
-            qk_target_op_get_props(target, op_idx, props_idx, &props);
-            printf("\tQargs: ");
-            if (qargs == NULL) {
-                printf("Global\n");
-            } else {
-                printf("[");
-                for (uint32_t q_idx = 0; q_idx < qargs_len; q_idx++) {
-                    if (q_idx < qargs_len - 1) {
-                        printf("%u, ", qargs[q_idx]);
-                    } else {
-                        printf("%u", qargs[q_idx]);
+            qk_target_op_qargs_get(target, op_idx, props_idx, &qargs, &qargs_len);
+            qk_target_op_props_get(target, op_idx, props_idx, &props);
+
+            // cx
+            if (op_idx == 4) {
+                if (!compare_qargs(qargs, cx_qargs[(int)props_idx], qargs_len)) {
+                    printf(
+                        "Unexpected qargs found for operation %s at qarg index: %zu. Expected: '",
+                        name, props_idx);
+                    print_qargs(cx_qargs[(int)props_idx], qargs_len);
+                    printf(", found '");
+                    print_qargs(qargs, qargs_len);
+                    printf("'\n");
+                    result = EqualityError;
+                    goto cleanup;
+                }
+
+                if (props.duration != cx_props[(int)props_idx][0]) {
+                    printf("Unexpected duration value found for operation %s at qarg index: %zu. "
+                           "Expected: %f, got: %f",
+                           name, props_idx, props.duration, cx_props[(int)props_idx][0]);
+                    result = EqualityError;
+                    goto cleanup;
+                }
+
+                if (props.error != cx_props[(int)props_idx][1]) {
+                    printf("Unexpected error value found for operation %s at qarg index: %zu. "
+                           "Expected: %f, got: %f",
+                           name, props_idx, props.error, cx_props[(int)props_idx][1]);
+                    result = EqualityError;
+                    goto cleanup;
+                }
+            }
+            // Global y
+            else if (op_idx == 5) {
+                if (!compare_qargs(qargs, NULL, 0)) {
+                    printf(
+                        "Unexpected qargs found for operation %s at qarg index: %zu. Expected: '",
+                        name, props_idx);
+                    print_qargs(NULL, 0);
+                    printf(", found '");
+                    print_qargs(qargs, qargs_len);
+                    printf("'\n");
+                    result = EqualityError;
+                    goto cleanup;
+                }
+            }
+            // Global phase
+            else if (op_idx == 6) {
+                if (!compare_qargs(qargs, (uint32_t[]){}, 0)) {
+                    printf(
+                        "Unexpected qargs found for operation %s at qarg index: %zu. Expected: '",
+                        name, props_idx);
+                    print_qargs((uint32_t[]){}, 0);
+                    printf(", found '");
+                    print_qargs(qargs, qargs_len);
+                    printf("'\n");
+                    result = EqualityError;
+                    goto cleanup;
+                }
+            }
+            // id, rz, sx, x, measure, reset
+            else {
+                if (!compare_qargs(qargs, single_qarg[(int)props_idx], qargs_len)) {
+                    printf(
+                        "Unexpected qargs found for operation %s at qarg index: %zu. Expected: '",
+                        name, props_idx);
+                    print_qargs(single_qarg[(int)props_idx], qargs_len);
+                    printf(", found '");
+                    print_qargs(qargs, qargs_len);
+                    printf("'\n");
+                    result = EqualityError;
+                    goto cleanup;
+                }
+
+                if (op_idx > 6) {
+                    if (props.duration != 1e-6) {
+                        printf("Unexpected duration value found for operation %s at qarg index: "
+                               "%zu. Expected: %f, got: %f",
+                               name, props_idx, props.duration, 1e-6);
+                        result = EqualityError;
+                        goto cleanup;
+                    }
+
+                    if (props.error != 1e-4) {
+                        printf("Unexpected error value found for operation %s at qarg index: %zu. "
+                               "Expected: %f, got: %f",
+                               name, props_idx, props.error, 1e-4);
+                        result = EqualityError;
+                        goto cleanup;
                     }
                 }
-                printf("]\n");
             }
-            printf("\tDuration: %lf\n", props.duration);
-            printf("\tError: %lf\n\n", props.error);
         }
+    cleanup:
         qk_str_free(name);
+        if (result != Ok) {
+            break;
+        }
     }
     qk_target_free(target);
     return result;
@@ -615,7 +810,7 @@ static int test_target_indexing(void) {
 
     // Check if qargs [0,1] exist in cx
     uint32_t cx_qargs_query[2] = {0, 1};
-    if (!qk_target_op_has_qargs(target, cx_idx, cx_qargs_query)) {
+    if (!qk_target_op_qargs_contains(target, cx_idx, cx_qargs_query)) {
         printf("Couldn't find valid qarg entry [0, 1] for cx.");
         result = EqualityError;
         goto cleanup;
@@ -623,14 +818,14 @@ static int test_target_indexing(void) {
 
     // Check if qargs [2,3] exist in cx (should fail)
     uint32_t cx_qargs_bad_query[2] = {2, 3};
-    if (qk_target_op_has_qargs(target, cx_idx, cx_qargs_bad_query)) {
+    if (qk_target_op_qargs_contains(target, cx_idx, cx_qargs_bad_query)) {
         printf("Found valid qarg entry non-existing qargs [2, 3] for cx.");
         result = EqualityError;
         goto cleanup;
     }
 
     // Since index exists, this should return properly
-    size_t cx_qargs_idx = qk_target_op_qargs_index(target, cx_idx, cx_qargs_query);
+    size_t cx_qargs_idx = qk_target_op_qargs_get_index(target, cx_idx, cx_qargs_query);
     if (cx_qargs_idx != 6) {
         printf("Invalid index for cx qargs [0,1]: expected %d, got %zu.", 6, cx_idx);
         result = EqualityError;
@@ -638,7 +833,7 @@ static int test_target_indexing(void) {
     }
 
     // Same test on the invalid query
-    size_t cx_qargs_bad_idx = qk_target_op_qargs_index(target, cx_idx, cx_qargs_bad_query);
+    size_t cx_qargs_bad_idx = qk_target_op_qargs_get_index(target, cx_idx, cx_qargs_bad_query);
     if (cx_qargs_bad_idx != (size_t)-1) {
         printf("Found index for non-existing qargs [2,3].");
         result = EqualityError;
@@ -648,9 +843,9 @@ static int test_target_indexing(void) {
     // Retrieving qargs [4,3] at index 1, with properties d=3.0577e-11, e=0.00713
     QkInstructionProperties cx_props;
     uint32_t *cx_qargs;
-    uint32_t cx_qargs_len;
+    int32_t cx_qargs_len;
 
-    qk_target_op_get_qargs(target, cx_idx, 1, &cx_qargs, &cx_qargs_len);
+    qk_target_op_qargs_get(target, cx_idx, 1, &cx_qargs, &cx_qargs_len);
     if (!compare_qargs(cx_qargs, (uint32_t[2]){4, 3}, cx_qargs_len)) {
         printf("Retrieved incorrect qargs, expected [4, 3], got [%u, %u]", cx_qargs[0],
                cx_qargs[1]);
@@ -658,7 +853,7 @@ static int test_target_indexing(void) {
         goto cleanup;
     }
 
-    qk_target_op_get_props(target, cx_idx, 1, &cx_props);
+    qk_target_op_props_get(target, cx_idx, 1, &cx_props);
 
     if (cx_props.duration != 3.0577e-11) {
         printf("Retrieved incorrect duration property, expected 3.0577e-11, got %lf",
@@ -681,8 +876,8 @@ static int test_target_indexing(void) {
     }
 
     uint32_t *y_qargs;
-    uint32_t y_qargs_len;
-    qk_target_op_get_qargs(target, y_idx, 0, &y_qargs, &y_qargs_len);
+    int32_t y_qargs_len;
+    qk_target_op_qargs_get(target, y_idx, 0, &y_qargs, &y_qargs_len);
 
     if (y_qargs != NULL) {
         printf("Obtained non-null global qargs at index 0 for 'y'.");
@@ -699,8 +894,8 @@ static int test_target_indexing(void) {
     }
 
     uint32_t *gp_qargs;
-    uint32_t gp_qargs_len;
-    qk_target_op_get_qargs(target, gp_idx, 0, &gp_qargs, &gp_qargs_len);
+    int32_t gp_qargs_len;
+    qk_target_op_qargs_get(target, gp_idx, 0, &gp_qargs, &gp_qargs_len);
 
     if (gp_qargs == NULL || gp_qargs_len != 0) {
         printf("Obtained null or invalid qargs at index 0 for 'global_phase'.");
@@ -793,87 +988,6 @@ cleanup:
     qk_param_free(rz_params[0]);
     qk_target_free(sample_target);
     return result;
-}
-
-QkTarget *create_sample_target(bool std_inst) {
-    // Build sample target
-    QkTarget *target = qk_target_new(0);
-    QkTargetEntry *i_entry = qk_target_entry_new(QkGate_I);
-    for (int i = 0; i < 4; i++) {
-        uint32_t qargs[1] = {i};
-        qk_target_entry_add_property(i_entry, qargs, 1, 35.5e-9, 0.);
-    }
-    qk_target_add_instruction(target, i_entry);
-
-    double rz_params[1] = {3.14};
-    QkTargetEntry *rz_entry = qk_target_entry_new_fixed(QkGate_RZ, rz_params, "rz_pi");
-    for (int i = 0; i < 4; i++) {
-        uint32_t qargs[1] = {i};
-        qk_target_entry_add_property(rz_entry, qargs, 1, 0., 0.);
-    }
-    qk_target_add_instruction(target, rz_entry);
-
-    QkTargetEntry *sx_entry = qk_target_entry_new(QkGate_SX);
-    for (int i = 0; i < 4; i++) {
-        uint32_t qargs[1] = {i};
-        qk_target_entry_add_property(sx_entry, qargs, 1, 35.5e-9, 0.);
-    }
-    qk_target_add_instruction(target, sx_entry);
-
-    QkTargetEntry *x_entry = qk_target_entry_new(QkGate_X);
-    for (int i = 0; i < 4; i++) {
-        uint32_t qargs[1] = {i};
-        qk_target_entry_add_property(x_entry, qargs, 1, 35.5e-9, 0.0005);
-    }
-    qk_target_add_instruction(target, x_entry);
-
-    QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
-    uint32_t qarg_samples[8][2] = {
-        {3, 4}, {4, 3}, {3, 1}, {1, 3}, {1, 2}, {2, 1}, {0, 1}, {1, 0},
-    };
-    double props[8][2] = {
-        {2.7022e-11, 0.00713}, {3.0577e-11, 0.00713}, {4.6222e-11, 0.00929}, {4.9777e-11, 0.00929},
-        {2.2755e-11, 0.00659}, {2.6311e-11, 0.00659}, {5.1911e-11, 0.01201}, {5.1911e-11, 0.01201},
-    };
-    for (int i = 0; i < 8; i++) {
-        qk_target_entry_add_property(cx_entry, qarg_samples[i], 2, props[i][0], props[i][1]);
-    }
-    qk_target_add_instruction(target, cx_entry);
-
-    // Add global Y Gate
-    qk_target_add_instruction(target, qk_target_entry_new(QkGate_Y));
-
-    // Add glbal phase gate
-    QkTargetEntry *gp_entry = qk_target_entry_new(QkGate_GlobalPhase);
-    qk_target_entry_add_property(gp_entry, (uint32_t *)4, 0, NAN, NAN);
-    qk_target_add_instruction(target, gp_entry);
-
-    if (std_inst) {
-        QkTargetEntry *meas = qk_target_entry_new_measure();
-        for (uint32_t i = 0; i < 2; i++) {
-            uint32_t q[1] = {i};
-            qk_target_entry_add_property(meas, q, 1, 1e-6, 1e-4);
-        }
-        qk_target_add_instruction(target, meas);
-
-        QkTargetEntry *reset = qk_target_entry_new_reset();
-        for (uint32_t i = 0; i < 4; i++) {
-            uint32_t q[1] = {i};
-            qk_target_entry_add_property(reset, q, 1, 1e-6, 1e-4);
-        }
-        qk_target_add_instruction(target, reset);
-    }
-
-    return target;
-}
-
-bool compare_qargs(uint32_t *lhs, uint32_t *rhs, size_t length) {
-    for (size_t idx = 0; idx < length; idx++) {
-        if (lhs[idx] != rhs[idx]) {
-            return false;
-        }
-    }
-    return true;
 }
 
 int test_target(void) {
