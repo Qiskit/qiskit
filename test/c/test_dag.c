@@ -659,9 +659,7 @@ cleanup:
     qk_dag_free(dag);
 
     return res;
-
 }
-
 
 /*
  * Test qk_dag_successors and qk_dag_predecessors
