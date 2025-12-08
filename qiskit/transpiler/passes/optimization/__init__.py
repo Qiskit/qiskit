@@ -43,4 +43,5 @@ from .contract_idle_wires_in_control_flow import ContractIdleWiresInControlFlow
 from .optimize_clifford_t import OptimizeCliffordT
 from .litinski_transformation import LitinskiTransformation
 from .control_pattern_simplification import ControlPatternSimplification
+from .light_cone import LightCone
 from .substitute_pi4_rotations import SubstitutePi4Rotations
