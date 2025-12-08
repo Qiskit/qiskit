@@ -478,6 +478,8 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_vf2_layout_exact(
 /// about how it handles the error heuristic (it averages over all gates in the `QkTarget` for a
 /// given qubit or link).
 ///
+/// \qk_deprecated{2.3.0|Replaced by :c:func:`qk_transpiler_pass_standalone_vf2_layout_average`.}
+///
 /// @param circuit As in `qk_transpiler_pass_standalone_vf2_layout_average`.
 /// @param target As in `qk_transpiler_pass_standalone_vf2_layout_average`.
 /// @param strict_direction As in `qk_transpiler_pass_standalone_vf2_layout_average`.
@@ -487,8 +489,6 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_vf2_layout_exact(
 /// @param max_trials As in `qk_vf2_layout_configuration_set_max_trials`.
 ///
 /// @return As in `qk_transpiler_pass_standalone_vf2_layout_average`.
-///
-/// \qk_deprecated{2.3.0|Replaced by :c:func:`qk_transpiler_pass_standalone_vf2_layout_average`.}
 ///
 /// # Safety
 ///

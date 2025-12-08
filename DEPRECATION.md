@@ -281,6 +281,9 @@ text, and cannot contain the `|` separator.  The `<version>` field should be the
 that the deprecation started in (e.g. `2.3.0`).  We don't use Doxygen's built-in `\deprecated`
 command because that is free-form and doesn't retain the version in a structured location.
 
+For functions, put the `\qk_deprecated` command immediate before the `@param`/`@returns` list, if present,
+or immediately after the main body of descriptive text (before the "Examples" or "Safety" sections).
+
 We have `cbindgen` configured to interpret `#[deprecated]` directives on C API functions.  The
 macros that emit the deprecations are in the `qiskit/attributes.h` header file.  You can use the
 basic `#[deprecated]`, the `#[deprecated = <reason>]` or the `#[deprecated(note = <reason>)]` forms.
