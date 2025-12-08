@@ -669,7 +669,6 @@ static int test_target_iteration(void) {
 
     size_t target_length = qk_target_num_instructions(target);
     for (size_t op_idx = 0; op_idx < target_length; op_idx++) {
-        // Use default size of 2 for qargs, as rarely do we have qargs bigger than 2
         uint32_t *qargs;
         int32_t qargs_len;
         QkInstructionProperties props;

@@ -1037,7 +1037,7 @@ pub unsafe extern "C" fn qk_target_instruction_supported(
 /// @param target A pointer to the ``QkTarget``.
 /// @param name The name to get the index of.
 ///
-/// @return the index in which the operation is located or an invalid index
+/// @return the index in which the operation is the maximum value of ``size_t``
 ///     in the case it is not in the Target.
 ///
 /// # Example
