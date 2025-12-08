@@ -623,6 +623,44 @@ cleanup:
     return res;
 }
 
+static int test_substitute_node_with_dag(void) {
+    int res = Ok;
+    QkDag *dag = qk_dag_new();
+    QkQuantumRegister *qr = qk_quantum_register_new(1, "my_register");
+    qk_dag_add_quantum_register(dag, qr);
+
+    uint32_t qubit[1] = {0};
+    uint32_t node_to_replace = qk_dag_apply_gate(dag, QkGate_H, qubit, NULL, false);
+    qk_dag_apply_gate(dag, QkGate_S, qubit, NULL, false);
+
+    // Build replacement dag for H
+    QkDag *replacement = qk_dag_new();
+    QkQuantumRegister *replacement_qr = qk_quantum_register_new(1, "other");
+    qk_dag_add_quantum_register(replacement, replacement_qr);
+    double pi_param[1] = {
+        3.14159,
+    };
+    qk_dag_apply_gate(replacement, QkGate_RZ, qubit, pi_param, false);
+    qk_dag_apply_gate(replacement, QkGate_SX, qubit, NULL, false);
+    qk_dag_apply_gate(replacement, QkGate_RZ, qubit, pi_param, false);
+    qk_dag_substitute_node_with_dag(dag, node_to_replace, replacement);
+
+    if (qk_dag_num_op_nodes(dag) != 4) {
+        res = EqualityError;
+        printf("Number of instructions is %zd but expected 4\n", qk_dag_num_op_nodes(dag));
+        goto cleanup;
+    }
+
+cleanup:
+    // Free the replacement dag, register, dag, and register
+    qk_quantum_register_free(replacement_qr);
+    qk_dag_free(replacement);
+    qk_quantum_register_free(qr);
+    qk_dag_free(dag);
+
+    return res;
+}
+
 /*
  * Test qk_dag_successors and qk_dag_predecessors
  */
@@ -740,6 +778,7 @@ int test_dag(void) {
     num_failed += RUN_TEST(test_dag_get_instruction);
     num_failed += RUN_TEST(test_dag_topological_op_nodes);
     num_failed += RUN_TEST(test_unitary_gates);
+    num_failed += RUN_TEST(test_substitute_node_with_dag);
     num_failed += RUN_TEST(test_dag_node_neighbors);
     num_failed += RUN_TEST(test_dag_copy_empty_like);
 

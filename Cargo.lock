@@ -1227,9 +1227,9 @@ dependencies = [
 
 [[package]]
 name = "numpy"
-version = "0.27.0"
+version = "0.27.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0fa24ffc88cf9d43f7269d6b6a0d0a00010924a8cc90604a21ef9c433b66998d"
+checksum = "7aac2e6a6e4468ffa092ad43c39b81c79196c2bb773b8db4085f695efe3bba17"
 dependencies = [
  "libc",
  "nalgebra",
@@ -1652,6 +1652,7 @@ name = "qiskit-cext"
 version = "2.3.0-dev"
 dependencies = [
  "ahash 0.8.12",
+ "anyhow",
  "cbindgen",
  "hashbrown 0.15.5",
  "indexmap",
