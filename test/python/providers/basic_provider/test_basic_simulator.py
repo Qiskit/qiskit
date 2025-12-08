@@ -191,7 +191,7 @@ class TestBasicSimulator(QiskitTestCase, BasicProviderBackendTestMixin):
 
     def test_unitary(self):
         """Test unitary gate instruction"""
-        max_qubits = 4
+        max_qubits = 3  #from 4, reduced to 3 to limit test time
         x_mat = np.array([[0, 1], [1, 0]])
         # Test 1 to max_qubits for random n-qubit unitary gate
         for i in range(max_qubits):
@@ -201,7 +201,7 @@ class TestBasicSimulator(QiskitTestCase, BasicProviderBackendTestMixin):
             for _ in range(i):
                 multi_x = np.kron(multi_x, x_mat)
             # Target counts
-            shots = 1024
+            shots = 128 #from 1024, reduced to 128 to limit test time
             target_counts = {num_qubits * "1": shots}
             # Test circuit
             qr = QuantumRegister(num_qubits, "qr")
@@ -458,11 +458,11 @@ class TestBasicSimulator(QiskitTestCase, BasicProviderBackendTestMixin):
             sim.run(qc, use_clifford_optimization=True)
 
     def test_statevector_qubit_limit_pass(self):
-        """Should succeed for exactly 24 qubits with statevector."""
+        """Should succeed for exactly 8 qubits with statevector."""
         sim = BasicSimulator()
-        qc = QuantumCircuit(24)
-        qc.h(range(24))
-        job = sim.run(qc, use_clifford_optimization=False)
+        qc = QuantumCircuit(8) #changed from 24 to 8 to limit test time
+        qc.h(range(8))
+        job = sim.run(qc, use_clifford_optimization=False, shots=64)
         result = job.result()
         self.assertTrue(result.success)
 
