@@ -416,13 +416,22 @@ struct Local2x2 {
     out1: &'static [LocalEntry], // transitions when input bit = 1
 }
 
+// canonical primitives
+static OUT_0_TO_0: [LocalEntry; 1] = [LocalEntry(0, Complex64::new(1.0, 0.0))];
+
+static OUT_1_TO_1: [LocalEntry; 1] = [LocalEntry(1, Complex64::new(1.0, 0.0))];
+
+static OUT_1_TO_NEG1: [LocalEntry; 1] = [LocalEntry(1, Complex64::new(-1.0, 0.0))];
+
+static EMPTY: [LocalEntry; 0] = [];
+
 // Pauli X
-static L_X_OUT0: [LocalEntry; 1] = [LocalEntry(1, Complex64::new(1.0, 0.0))];
-static L_X_OUT1: [LocalEntry; 1] = [LocalEntry(0, Complex64::new(1.0, 0.0))];
+static L_X_OUT0: &[LocalEntry] = &OUT_1_TO_1;
+static L_X_OUT1: &[LocalEntry] = &OUT_0_TO_0;
 
 // Pauli Z
-static L_Z_OUT0: [LocalEntry; 1] = [LocalEntry(0, Complex64::new(1.0, 0.0))];
-static L_Z_OUT1: [LocalEntry; 1] = [LocalEntry(1, Complex64::new(-1.0, 0.0))];
+static L_Z_OUT0: &[LocalEntry] = &OUT_0_TO_0;
+static L_Z_OUT1: &[LocalEntry] = &OUT_1_TO_NEG1;
 
 // Pauli Y
 static L_Y_OUT0: [LocalEntry; 1] = [LocalEntry(1, Complex64::new(0.0, -1.0))]; // -i
@@ -449,12 +458,12 @@ static L_MINUS_OUT1: [LocalEntry; 2] = [
 ];
 
 // |0><0|
-static L_ZERO_OUT0: [LocalEntry; 1] = [LocalEntry(0, Complex64::new(1.0, 0.0))];
-static L_ZERO_OUT1: [LocalEntry; 0] = [];
+static L_ZERO_OUT0: &[LocalEntry] = &OUT_0_TO_0;
+static L_ZERO_OUT1: &[LocalEntry] = &EMPTY;
 
 // |1><1|
-static L_ONE_OUT0: [LocalEntry; 0] = [];
-static L_ONE_OUT1: [LocalEntry; 1] = [LocalEntry(1, Complex64::new(1.0, 0.0))];
+static L_ONE_OUT0: &[LocalEntry] = &EMPTY;
+static L_ONE_OUT1: &[LocalEntry] = &OUT_1_TO_1;
 
 // |r><r|
 // right eigenstate of Y = +i
@@ -479,16 +488,16 @@ static L_LEFT_OUT1: [LocalEntry; 2] = [
 ];
 
 static L2X: Local2x2 = Local2x2 {
-    out0: &L_X_OUT0,
-    out1: &L_X_OUT1,
+    out0: L_X_OUT0,
+    out1: L_X_OUT1,
 };
 static L2Y: Local2x2 = Local2x2 {
     out0: &L_Y_OUT0,
     out1: &L_Y_OUT1,
 };
 static L2Z: Local2x2 = Local2x2 {
-    out0: &L_Z_OUT0,
-    out1: &L_Z_OUT1,
+    out0: L_Z_OUT0,
+    out1: L_Z_OUT1,
 };
 
 static L2PLUS: Local2x2 = Local2x2 {
@@ -501,12 +510,12 @@ static L2MINUS: Local2x2 = Local2x2 {
 };
 
 static L2ZERO: Local2x2 = Local2x2 {
-    out0: &L_ZERO_OUT0,
-    out1: &L_ZERO_OUT1,
+    out0: L_ZERO_OUT0,
+    out1: L_ZERO_OUT1,
 };
 static L2ONE: Local2x2 = Local2x2 {
-    out0: &L_ONE_OUT0,
-    out1: &L_ONE_OUT1,
+    out0: L_ONE_OUT0,
+    out1: L_ONE_OUT1,
 };
 
 static L2RIGHT: Local2x2 = Local2x2 {
@@ -5344,5 +5353,40 @@ mod test {
         let err = TermDecomp::from_term_bits(bit_terms, indices, coeff).unwrap_err();
 
         assert!(matches!(err, MatrixComputationError::InconsistentTerm));
+    }
+    #[test]
+    fn test_plus_tensor_matrix_without_pauli_expansion() {
+        let obs = SparseObservable {
+            num_qubits: 3,
+            coeffs: vec![Complex64::new(1.0, 0.0)],
+            bit_terms: vec![BitTerm::Plus, BitTerm::Plus, BitTerm::Plus],
+            indices: vec![2, 1, 0],
+            boundaries: vec![0, 3],
+        };
+
+        let data = MatrixComputationData::from_sparse_observable(&obs).unwrap();
+
+        let mat = SparseObservable::to_matrix_dense_inner(&data, false);
+
+        // Expected matrix = |+++><+++|
+        let dim = 1usize << 3;
+        let expected_val = 1.0 / 8.0;
+        let expected = vec![Complex64::new(expected_val, 0.0); dim * dim];
+
+        let tol = 1e-12;
+        for (a, b) in mat.iter().zip(expected.iter()) {
+            assert!((a.re - b.re).abs() < tol && (a.im - b.im).abs() < tol);
+        }
+
+        // Checking if we directly used L2PLUS for each qubit
+        let ops = data.ops.as_ref().unwrap();
+        assert_eq!(ops.len(), 1);
+        let td = &ops[0];
+
+        assert_eq!(td.locals.len(), 3);
+
+        for local in &td.locals {
+            assert!(std::ptr::eq(*local, &L2PLUS));
+        }
     }
 }
