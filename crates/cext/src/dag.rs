@@ -1383,11 +1383,6 @@ pub unsafe extern "C" fn qk_dag_topological_op_nodes(dag: *const DAGCircuit, out
 ///     bit ordering will be ordering will be handled in order, so `qargs[0]` for
 ///     `node` will be mapped to `qubits[0]` in `replacement`, `qargs[1]` to
 ///     `qubits[0]`, etc. The same pattern applies to classical bits too.
-/// @param error A pointer to a pointer with an nul terminated string with an
-///     error description. If the function fails a pointer to the string with
-///     the error description will be written to this pointer. That pointer
-///     needs to be freed with `qk_str_free`. This can be a null pointer in
-///     which case the error will not be written out.
 ///
 /// # Example
 ///
@@ -1404,12 +1399,12 @@ pub unsafe extern "C" fn qk_dag_topological_op_nodes(dag: *const DAGCircuit, out
 /// QkDag *replacement = qk_dag_new();
 /// QkQuantumRegister *replacement_qr = qk_quantum_register_new(1, "other");
 /// qk_dag_add_quantum_register(replacement, replacement_qr);
-/// double pi_param [1] = {3.14159,};
+/// double pi_param[1] = {3.14159};
 /// qk_dag_apply_gate(replacement, QkGate_RZ, qubit, pi_param, false);
 /// qk_dag_apply_gate(replacement, QkGate_SX, qubit, NULL, false);
 /// qk_dag_apply_gate(replacement, QkGate_RZ, qubit, pi_param, false);
 ///
-/// qk_dag_substitute_node_with_dag(dag, node_to_replace, replacement, NULL);
+/// qk_dag_substitute_node_with_dag(dag, node_to_replace, replacement);
 ///
 /// // Free the replacement dag, register, dag, and register
 /// qk_quantum_register_free(replacement_qr);
