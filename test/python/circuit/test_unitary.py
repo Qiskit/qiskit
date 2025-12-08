@@ -265,6 +265,6 @@ class TestUnitaryCircuit(QiskitTestCase):
     def test_unitary_control(self):
         """Test parameters of controlled - unitary."""
         mat = numpy.array([[0, 1], [1, 0]])
-        gate = UnitaryGate(mat).control()
+        gate = UnitaryGate(mat).control(annotated=False)
         self.assertTrue(numpy.allclose(gate.params, mat))
         self.assertTrue(numpy.allclose(gate.base_gate.params, mat))

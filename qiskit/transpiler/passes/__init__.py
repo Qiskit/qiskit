@@ -80,6 +80,7 @@ Optimizations
    ElidePermutations
    HoareOptimizer
    InverseCancellation
+   LightCone
    LitinskiTransformation
    Optimize1qGates
    Optimize1qGatesDecomposition
@@ -94,6 +95,7 @@ Optimizations
    RemoveResetInZeroState
    ResetAfterMeasureSimplification
    Split2QUnitaries
+   SubstitutePi4Rotations
    TemplateOptimization
 
 Scheduling
@@ -174,6 +176,20 @@ Additional Passes
    RemoveFinalMeasurements
    UnrollForLoops
    WrapAngles
+
+
+Additional data
+===============
+
+.. py:data:: qiskit.transpiler.passes.utils.wrap_angles.WRAP_ANGLE_REGISTRY
+
+    A global instance of :class:`.WrapAngleRegistry` that is used by default by
+    :class:`.WrapAngles` when no explicit registry is specified.  See the documentation of
+    :class:`.WrapAngles` for how to add entries to a registry.
+
+    .. note::
+        Due to an oversight in Qiskit 2.2, this import path is the only valid way to access the
+        object in that version, despite traversing two non-public internal modules.
 """
 
 # layout selection (placement)
@@ -214,12 +230,14 @@ from .optimization import CollectLinearFunctions
 from .optimization import CollectMultiQBlocks
 from .optimization import CommutationAnalysis
 from .optimization import CommutativeCancellation
+from .optimization import CommutativeOptimization
 from .optimization import CommutativeInverseCancellation
 from .optimization import ConsolidateBlocks
 from .optimization import ContractIdleWiresInControlFlow
 from .optimization import ElidePermutations
 from .optimization import HoareOptimizer
 from .optimization import InverseCancellation
+from .optimization import LightCone
 from .optimization import LitinskiTransformation
 from .optimization import Optimize1qGates
 from .optimization import Optimize1qGatesDecomposition
@@ -234,6 +252,7 @@ from .optimization import RemoveIdentityEquivalent
 from .optimization import RemoveResetInZeroState
 from .optimization import ResetAfterMeasureSimplification
 from .optimization import Split2QUnitaries
+from .optimization import SubstitutePi4Rotations
 from .optimization import TemplateOptimization
 
 # circuit analysis

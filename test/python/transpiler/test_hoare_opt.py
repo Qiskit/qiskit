@@ -511,7 +511,7 @@ c[0] = measure q[2];
         circuit.ccx(6, 3, 2)
         circuit.ccx(2, 3, 5)
         circuit.ccx(6, 5, 4)
-        circuit.append(XGate().control(3), [4, 5, 6, 7], [])
+        circuit.append(XGate().control(3, annotated=False), [4, 5, 6, 7], [])
         for i in range(1, -1, -1):
             circuit.ccx(i * 2, i * 2 + 1, i * 2 + 3)
         circuit.cx(3, 5)
@@ -680,12 +680,12 @@ c[0] = measure q[2];
         """The is_identity function determines whether a pair of gates
         forms the identity, when ignoring control qubits.
         """
-        seq = [DAGOpNode(op=XGate().control()), DAGOpNode(op=XGate().control(2))]
+        seq = [DAGOpNode(op=XGate().control()), DAGOpNode(op=XGate().control(2, annotated=False))]
         self.assertTrue(HoareOptimizer()._is_identity(seq))
 
         seq = [
-            DAGOpNode(op=RZGate(-pi / 2).control()),
-            DAGOpNode(op=RZGate(pi / 2).control(2)),
+            DAGOpNode(op=RZGate(-pi / 2).control(annotated=False)),
+            DAGOpNode(op=RZGate(pi / 2).control(2, annotated=False)),
         ]
         self.assertTrue(HoareOptimizer()._is_identity(seq))
 

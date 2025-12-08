@@ -26,7 +26,7 @@ use qiskit_transpiler::transpile_layout::TranspileLayout;
 /// The options for running ``qk_transpiler_pass_standalone_sabre_layout``. This struct is used
 /// as an input to control the behavior of the layout and routing algorithms.
 #[repr(C)]
-pub struct QkSabreLayoutOptions {
+pub struct SabreLayoutOptions {
     /// The number of forward-backward iterations in the sabre routing algorithm
     max_iterations: usize,
     /// The number of trials to run of the sabre routing algorithm for each iteration. When > 1 the
@@ -45,9 +45,11 @@ pub struct QkSabreLayoutOptions {
 /// Build a default sabre layout options object. This builds a sabre layout with ``max_iterations``
 /// set to 4, both ``num_swap_trials`` and ``num_random_trials`` set to 20, and the seed selected
 /// by a RNG seeded from system entropy.
+///
+/// @return A ``QkSabreLayoutOptions`` object with default settings.
 #[unsafe(no_mangle)]
-pub extern "C" fn qk_sabre_layout_options_default() -> QkSabreLayoutOptions {
-    QkSabreLayoutOptions {
+pub extern "C" fn qk_sabre_layout_options_default() -> SabreLayoutOptions {
+    SabreLayoutOptions {
         max_iterations: 4,
         num_swap_trials: 20,
         num_random_trials: 20,
@@ -89,7 +91,7 @@ pub extern "C" fn qk_sabre_layout_options_default() -> QkSabreLayoutOptions {
 ///
 /// [2] Li, Gushu, Yufei Ding, and Yuan Xie. "Tackling the qubit mapping problem
 /// for NISQ-era quantum devices." ASPLOS 2019.
-/// [`arXiv:1809.02573](https://arxiv.org/pdf/1809.02573.pdf)
+/// [arXiv:1809.02573](https://arxiv.org/pdf/1809.02573.pdf)
 ///
 /// @param circuit A pointer to the circuit to run SabreLayout on. The circuit
 ///     is modified in place and the original circuit's allocations are freed by this function.
@@ -107,7 +109,7 @@ pub extern "C" fn qk_sabre_layout_options_default() -> QkSabreLayoutOptions {
 pub unsafe extern "C" fn qk_transpiler_pass_standalone_sabre_layout(
     circuit: *mut CircuitData,
     target: *const Target,
-    options: *const QkSabreLayoutOptions,
+    options: *const SabreLayoutOptions,
 ) -> *mut TranspileLayout {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
