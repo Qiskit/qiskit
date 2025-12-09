@@ -545,7 +545,7 @@ def generate_translation_passmanager(
             # We decompose single-qubit unitary gates using the UnitarySynthesisPlugin interface.
             # By default it's the "default" method (which currently calls the Solovay-Kitaev
             # decomposition). If a custom ``unitary_synthesis_method`` method is specified, it should
-            # either return the synthesized circuit in the Clifford+T basis set, or `None`
+            # either return the synthesized circuit in the Clifford+T basis set, or ``None``
             # in which case the default method would be called as fallback.
             UnitarySynthesis(
                 basis_gates=basis_gates,
@@ -557,7 +557,7 @@ def generate_translation_passmanager(
                 target=None,
                 fallback_on_default=True,
             ),
-            # Finally, we use BasisTranslator to translate Clifford+T/Tdg to the actually
+            # Finally, we use BasisTranslator to translate Clifford+T circuit to the actually
             # specified set of basis gates.
             BasisTranslator(sel, basis_gates, target),
         ]
