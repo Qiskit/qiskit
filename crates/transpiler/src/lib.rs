@@ -13,19 +13,20 @@
 pub mod angle_bound_registry;
 pub mod commutation_checker;
 pub mod equivalence;
+pub mod neighbors;
 pub mod passes;
 pub mod standard_equivalence_library;
 pub mod standard_gates_commutations;
 pub mod target;
 pub mod transpile_layout;
 
-mod transpiler;
+pub mod transpiler;
 
 pub use transpiler::transpile;
 
 mod gate_metrics;
 
-use pyo3::import_exception_bound;
+use pyo3::import_exception;
 
-import_exception_bound! {qiskit.exceptions, QiskitError}
-import_exception_bound! {qiskit.transpiler.exceptions, TranspilerError}
+import_exception! {qiskit.exceptions, QiskitError}
+import_exception! {qiskit.transpiler.exceptions, TranspilerError}

@@ -158,7 +158,7 @@ class MSGate(Gate):
     def _define(self):
         thetas = self.params[0]
         q = QuantumRegister(self.num_qubits, name="q")
-        qc = QuantumCircuit(q, name=self.name)
+        qc = QuantumCircuit(q)
         for i in range(self.num_qubits):
             for j in range(i + 1, self.num_qubits):
                 # if theta is just a single angle, use that, otherwise use the correct index

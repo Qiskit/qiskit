@@ -314,9 +314,9 @@ pub fn pauli_network_synthesis_inner(
     // go over the input pauli network and extract a list of pauli rotations and
     // the corresponding rotation angles
     for item in pauli_network {
-        let tuple = item.downcast::<PyTuple>()?;
+        let tuple = item.cast::<PyTuple>()?;
 
-        let sparse_pauli: String = tuple.get_item(0)?.downcast::<PyString>()?.extract()?;
+        let sparse_pauli: String = tuple.get_item(0)?.cast::<PyString>()?.extract()?;
         let qubits: Vec<u32> = tuple.get_item(1)?.extract()?;
         let angle: Param = tuple.get_item(2)?.extract()?;
 

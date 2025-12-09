@@ -20,12 +20,13 @@ from typing import Literal, TYPE_CHECKING
 
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit, Gate
 from qiskit.circuit.barrier import Barrier
 from qiskit.circuit.delay import Delay
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.mixins import AdjointMixin, MultiplyMixin
+from qiskit.quantum_info.operators.symplectic.clifford_circuits import _n_half_pis
 
 if TYPE_CHECKING:
     from qiskit.quantum_info.operators.symplectic.clifford import Clifford
@@ -554,6 +555,31 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
                     raise QiskitError("Invalid qubits for 2-qubit gate.")
                 return _basis_2q[name](self, qargs[0], qargs[1])
 
+            # If u gate, check if it is a Clifford, and if so, apply it
+            if isinstance(gate, Gate) and name == "u" and len(qargs) == 1:
+                try:
+                    theta, phi, lam = tuple(_n_half_pis(par) for par in gate.params)
+                    base_pauli = self
+                except ValueError as err:
+                    raise QiskitError(
+                        "U gate angles must be multiples of pi/2 to be a Clifford"
+                    ) from err
+                if theta == 0:
+                    base_pauli = _evolve_rz(base_pauli, qargs[0], lam + phi)
+                elif theta == 1:
+                    base_pauli = _evolve_rz(base_pauli, qargs[0], lam - 2)
+                    base_pauli = _evolve_h(base_pauli, qargs[0])
+                    base_pauli = _evolve_rz(base_pauli, qargs[0], phi)
+                elif theta == 2:
+                    base_pauli = _evolve_rz(base_pauli, qargs[0], lam - 1)
+                    base_pauli = _evolve_x(base_pauli, qargs[0])
+                    base_pauli = _evolve_rz(base_pauli, qargs[0], phi + 1)
+                elif theta == 3:
+                    base_pauli = _evolve_rz(base_pauli, qargs[0], lam)
+                    base_pauli = _evolve_h(base_pauli, qargs[0])
+                    base_pauli = _evolve_rz(base_pauli, qargs[0], phi + 2)
+                return base_pauli
+
             # If not a Clifford basis gate we try to unroll the gate and
             # raise an exception if unrolling reaches a non-Clifford gate.
             if gate.definition is None:
@@ -686,6 +712,17 @@ def _evolve_ecr(base_pauli, q1, q2):
     base_pauli = _evolve_h(base_pauli, q2)
     base_pauli = _evolve_cx(base_pauli, q1, q2)
     base_pauli = _evolve_x(base_pauli, q1)
+    return base_pauli
+
+
+def _evolve_rz(base_pauli, qubit, multiple):
+    """Update P -> RZ.P.RZ, with an angle equals to a multiple of pi/2"""
+    if multiple % 4 == 1:
+        return _evolve_s(base_pauli, qubit)
+    if multiple % 4 == 2:
+        return _evolve_z(base_pauli, qubit)
+    if multiple % 4 == 3:
+        return _evolve_sdg(base_pauli, qubit)
     return base_pauli
 
 
