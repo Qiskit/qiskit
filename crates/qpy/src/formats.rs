@@ -15,7 +15,7 @@ use crate::expr::{read_expression, write_expression};
 use crate::params::ParameterType;
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionType, ExpressionVarDeclaration, ModifierType,
-    QPYReadData, QPYWriteData, ValueType,
+    QPYReadData, QPYWriteData, ValueType
 };
 use binrw::{BinRead, BinResult, BinWrite, Endian, binread, binrw, binwrite};
 use qiskit_circuit::classical::expr::Expr;
@@ -183,6 +183,14 @@ pub struct RegisterV4Pack {
 }
 
 // Conditions
+// There are three types of conidtions which are all bundled in the same pack:
+// 1) None.
+// 2) Two-tuple: a tuple of the form (register, target) where the register value should be compared with the target.
+// In this case the target is a python int, represented in rust as BigUInt, but in python qpy it was saved using i64 so we keep it for now.
+// Note that we also use (clbit, bool_target) as two tuple, where the clbit is encoded using the "\x00" hack that can be seen in ParamRegisterValue
+// 3) Expresssion
+// In the two-tuple representation, the target value is stored in the `value` field and the number of bytes in the serialized registered are stored in the 
+// `register_size` fields. Both are unused in the other cases, making the packing and decoding of this struct rather non-uniform.
 
 // The most natural thing is to encode conditions as enum with magic numbers differentiating between different kinds
 // however, since in QPY the condition data is not stored consecutively, it's going to be a mass to implement, so we do something else

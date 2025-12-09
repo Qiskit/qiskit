@@ -726,7 +726,7 @@ pub enum ParamRegisterValue {
     ShareableClbit(ShareableClbit),
 }
 
-fn serialize_param_register_value(value: &ParamRegisterValue, qpy_data: &QPYWriteData) -> PyResult<Bytes> {
+pub fn serialize_param_register_value(value: &ParamRegisterValue, qpy_data: &QPYWriteData) -> PyResult<Bytes> {
     match value {
         ParamRegisterValue::Register(register) => Ok(register.name().into()),
         ParamRegisterValue::ShareableClbit(clbit) => {

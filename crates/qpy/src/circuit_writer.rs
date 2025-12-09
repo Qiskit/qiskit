@@ -35,13 +35,13 @@ use qiskit_circuit::circuit_data::{CircuitData, CircuitStretchType, CircuitVarTy
 use qiskit_circuit::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::imports;
-use qiskit_circuit::operations::{ArrayType, BoxDuration, CaseSpecifier, ControlFlow, ControlFlowInstruction, Operation, OperationRef, PauliProductMeasurement, PyInstruction, PyOperation, StandardGate, StandardInstruction, SwitchTarget, UnitaryGate};
+use qiskit_circuit::operations::{ArrayType, BoxDuration, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction, Operation, OperationRef, PauliProductMeasurement, PyInstruction, PyOperation, StandardGate, StandardInstruction, SwitchTarget, UnitaryGate};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::operations::PyGate;
 
 use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
-use crate::formats::{self, InitialLayoutItemV2Pack};
+use crate::formats::{self, ConditionPack};
 use crate::params::pack_param_obj;
 use crate::py_methods::{
     gate_class_name, getattr_or_none, py_get_condition_data_from_inst,
@@ -49,7 +49,7 @@ use crate::py_methods::{
     recognize_custom_operation, serialize_metadata, UNITARY_GATE_CLASS_NAME, PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME
 };
 use crate::value::{
-    BitType, CircuitInstructionType, ExpressionVarDeclaration, GenericValue, QPYWriteData, RegisterType, get_circuit_type_key, pack_duration, pack_generic_value, pack_standalone_var, pack_stretch, serialize, ParamRegisterValue
+    BitType, CircuitInstructionType, ExpressionVarDeclaration, GenericValue, QPYWriteData, RegisterType, get_circuit_type_key, pack_duration, pack_generic_value, pack_standalone_var, pack_stretch, serialize, ParamRegisterValue, serialize_param_register_value
 };
 
 use crate::UnsupportedFeatureForVersion;
@@ -118,6 +118,64 @@ fn pack_instructions(
             .collect::<PyResult<_>>()?,
         custom_operations,
     ))
+}
+
+pub fn pack_annotations(
+    annotations: &Vec<Py<PyAny>>,
+    qpy_data: &mut QPYWriteData,
+) -> PyResult<Option<formats::InstructionsAnnotationPack>> {
+    let annotations_pack: Vec<formats::InstructionAnnotationPack> = annotations.iter().map(|annotation| {
+        let (namespace_index, payload) =
+            qpy_data.annotation_handler.serialize(annotation)?;
+        Ok(formats::InstructionAnnotationPack {
+            namespace_index,
+            payload,
+        })
+    })
+    .collect::<PyResult<_>>()?;
+    if !annotations_pack.is_empty() {
+         Ok(Some(formats::InstructionsAnnotationPack { annotations: annotations_pack }))
+    } else {
+        Ok(None)
+    }
+}
+
+fn pack_condition(condition: Condition, qpy_data: &QPYWriteData) -> PyResult<formats::ConditionPack> {
+    match condition {
+        Condition::Expr(exp) => {
+            let expression_pack = pack_generic_value(&GenericValue::Expression(exp), qpy_data)?;
+            Ok(formats::ConditionPack {
+                key: formats::condition_types::EXPRESSION,
+                register_size: 0u16,
+                value: 0i64,
+                data: formats::ConditionData::Expression(expression_pack),
+            })
+        }
+        Condition::Bit(clbit, target_bool_value) => {
+            let bytes = serialize_param_register_value(&ParamRegisterValue::ShareableClbit(clbit), qpy_data)?;
+            let register_size = bytes.len() as u16;
+            let data = formats::ConditionData::Register(bytes);
+            Ok(formats::ConditionPack {
+                key: formats::condition_types::TWO_TUPLE,
+                register_size,
+                value: target_bool_value as i64,
+                data,
+            })
+        }
+        Condition::Register(reg, target_value) => {
+            let bytes = serialize_param_register_value(&ParamRegisterValue::Register(reg), qpy_data)?;
+            let register_size = bytes.len() as u16;
+            let data = formats::ConditionData::Register(bytes);
+            // TODO: this may cause loss of data, but we are constrained by the current qpy format
+            let low_digits = target_value.iter_u64_digits().next().unwrap() as i64;
+            Ok(formats::ConditionPack {
+                key: formats::condition_types::TWO_TUPLE,
+                register_size,
+                value: low_digits,
+                data,
+            })
+        }
+    }
 }
 
 // straightforward packing of the instruction parameters for the general cases
@@ -197,11 +255,11 @@ fn pack_standard_instruction(inst: &StandardInstruction, instruction: &PackedIns
 
 fn standard_instruction_class_name(inst: &StandardInstruction) -> &str {
     match inst {
-            StandardInstruction::Barrier(_) => "Barrier",
-            StandardInstruction::Delay(_) => "Delay",
-            StandardInstruction::Measure => "Measure",
-            StandardInstruction::Reset => "Reset",
-        }
+        StandardInstruction::Barrier(_) => "Barrier",
+        StandardInstruction::Delay(_) => "Delay",
+        StandardInstruction::Measure => "Measure",
+        StandardInstruction::Reset => "Reset",
+    }
 }
 
 fn pack_pauli_product_measurement(ppm: &PauliProductMeasurement, instruction: &PackedInstruction, qpy_data: &QPYWriteData) -> PyResult<formats::CircuitInstructionV2Pack> {
@@ -245,10 +303,12 @@ fn pack_pauli_product_measurement(ppm: &PauliProductMeasurement, instruction: &P
     })
 }
 
-fn pack_control_flow_inst(control_flow_inst: &ControlFlowInstruction, qpy_data: &QPYWriteData) -> PyResult<formats::CircuitInstructionV2Pack> {
+fn pack_control_flow_inst(control_flow_inst: &ControlFlowInstruction, qpy_data: &mut QPYWriteData) -> PyResult<formats::CircuitInstructionV2Pack> {
+    let mut packed_annotations = None;
+    let mut packed_condition: ConditionPack = Default::default();
     let params = match control_flow_inst.control_flow.clone() {
         ControlFlow::Box { duration, annotations } => {
-            // TODO: first handle annotations
+            packed_annotations = pack_annotations(&annotations, qpy_data)?;
             let duration_param = match duration {
                 None => GenericValue::Null,
                 Some(box_duration) => {
@@ -271,11 +331,11 @@ fn pack_control_flow_inst(control_flow_inst: &ControlFlowInstruction, qpy_data: 
             vec![pack_generic_value(&indexset_value, qpy_data)?, pack_generic_value(&loop_param_value, qpy_data)?]
         }
         ControlFlow::IfElse { condition } => {
-            // TODO: first handle condition
+            packed_condition = pack_condition(condition, qpy_data)?;
             Vec::new()
         }
         ControlFlow::While { condition } => {
-            // TODO: first handle condition
+            packed_condition = pack_condition(condition, qpy_data)?;
             Vec::new()
         }
         ControlFlow::Switch { target, label_spec, cases } => {
@@ -306,10 +366,10 @@ fn pack_control_flow_inst(control_flow_inst: &ControlFlowInstruction, qpy_data: 
         ctrl_state: 0,
         gate_class_name: control_flow_inst.name().to_string(), // this name is NOT a proper python class name, but we don't instantiate from the python class anymore
         label: Default::default(),
-        condition: Default::default(),
+        condition: packed_condition,
         bit_data: Default::default(),
         params,
-        annotations: None,
+        annotations: packed_annotations,
     })
 }
 fn pack_unitary_gate(unitary_gate: &UnitaryGate, qpy_data: &QPYWriteData) -> PyResult<formats::CircuitInstructionV2Pack> {
@@ -848,7 +908,7 @@ fn pack_custom_layout(
     let extra_registers =
         pack_extra_registers(&extra_registers, &extra_registers_qubits, qpy_data)?;
 
-    let initial_layout_items: Vec<InitialLayoutItemV2Pack> = initial_layout_array
+    let initial_layout_items: Vec<formats::InitialLayoutItemV2Pack> = initial_layout_array
         .iter()
         .map(|(index, qreg)| {
             let index_value = match index {

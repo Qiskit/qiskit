@@ -15,6 +15,7 @@ use std::f64::consts::PI;
 use std::fmt::Debug;
 use std::sync::Arc;
 use std::{fmt, vec};
+use std::str::FromStr;
 
 use crate::circuit_data::CircuitData;
 use crate::parameter::parameter_expression::{
@@ -561,16 +562,58 @@ impl ControlFlowInstruction {
     }
 }
 
+pub enum ControlFlowName {
+    Box,
+    BreakLoop,
+    ContinueLoop,
+    ForLoop,
+    IfElse,
+    Switch,
+    While
+}
+
+impl ControlFlowName {
+    pub fn as_str(&self) -> &'static str{
+        match self {
+            ControlFlowName::Box => "box",
+            ControlFlowName::BreakLoop => "break_loop",
+            ControlFlowName::ContinueLoop => "continue_loop",
+            ControlFlowName::ForLoop => "for_loop",
+            ControlFlowName::IfElse => "if_else",
+            ControlFlowName::Switch => "switch_case",
+            ControlFlowName::While => "while_loop",
+        }
+    }
+}
+
+impl FromStr for ControlFlowName {
+    type Err = PyErr;
+
+    fn from_str(name: &str) -> Result<Self, Self::Err> {
+        match name {
+            "box" => Ok(ControlFlowName::Box),
+            "break_loop" => Ok(ControlFlowName::BreakLoop),
+            "continue_loop" => Ok(ControlFlowName::ContinueLoop),
+            "for_loop" => Ok(ControlFlowName::ForLoop),
+            "if_else" => Ok(ControlFlowName::IfElse),
+            "switch_case" => Ok(ControlFlowName::Switch),
+            "while_loop" => Ok(ControlFlowName::While),
+            _ => Err(PyValueError::new_err(format!("The string {name} does not correspond to acontrol flow structure"))),
+        }
+    }
+}
+
+
 impl Operation for ControlFlowInstruction {
     fn name(&self) -> &str {
         match &self.control_flow {
-            ControlFlow::Box { .. } => "box",
-            ControlFlow::BreakLoop => "break_loop",
-            ControlFlow::ContinueLoop => "continue_loop",
-            ControlFlow::ForLoop { .. } => "for_loop",
-            ControlFlow::IfElse { .. } => "if_else",
-            ControlFlow::Switch { .. } => "switch_case",
-            ControlFlow::While { .. } => "while_loop",
+            ControlFlow::Box { .. } =>  ControlFlowName::Box.as_str(),
+            ControlFlow::BreakLoop =>  ControlFlowName::BreakLoop.as_str(),
+            ControlFlow::ContinueLoop => ControlFlowName::ContinueLoop.as_str(),
+            ControlFlow::ForLoop { .. } => ControlFlowName::ForLoop.as_str(),
+            ControlFlow::IfElse { .. } => ControlFlowName::IfElse.as_str(),
+            ControlFlow::Switch { .. } => ControlFlowName::Switch.as_str(),
+            ControlFlow::While { .. } => ControlFlowName::While.as_str(),
         }
     }
 

@@ -71,7 +71,7 @@ pub fn recognize_custom_operation(op: &PackedOperation, name: &String) -> PyResu
         if (!library.hasattr(name)?
             && !circuit_mod.hasattr(name)?
             && !controlflow.hasattr(name)?
-            && (name != "Clifford" && name != "PauliProductMeasurement"))
+            && (name != "Clifford" && name != PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME))
             || name == "Gate"
             || name == "Instruction"
             || is_python_gate(py, op, imports::BLUEPRINT_CIRCUIT.get_bound(py))?
