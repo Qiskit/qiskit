@@ -15,7 +15,7 @@ use pyo3::prelude::*;
 
 mod blocks;
 mod entanglement;
-mod iqp;
+pub mod iqp;
 mod multi_local;
 mod parameter_ledger;
 mod pauli_evolution;
