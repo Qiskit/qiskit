@@ -320,16 +320,8 @@ class UnitarySynthesis(TransformationPass):
 
                 # In the case that a non-default method was used and the option fallback_on_default
                 # is set, check whether the unitary was successfull synthesized: the returned
-                # circuit is not ``None`` and conforms to the target. If not, we fall back on
-                # running the default plugin.
-                if (
-                    (not use_default_method)
-                    and self._fallback_on_default
-                    and (
-                        (synth_dag is None)
-                        or not set(synth_dag.count_ops().keys()).issubset(self._basis_gates)
-                    )
-                ):
+                # circuit is not ``None``. If not, we fall back on running the default plugin.
+                if (not use_default_method) and self._fallback_on_default and (synth_dag is None):
                     synth_dag = self._run_plugin_synthesis(
                         default_method, default_kwargs, unitary, qubit_indices, node.qargs
                     )

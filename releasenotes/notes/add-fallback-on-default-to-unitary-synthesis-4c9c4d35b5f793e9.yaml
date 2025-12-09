@@ -5,17 +5,15 @@ features_transpiler:
     transpiler pass. This option applies when the pass is called with a
     non-default synthesis plugin, specified via the argument ``method``.
 
-    By default, the result of synthesizing a unitary matrix in the circuit
-    is obtained by running the plugin on the unitary (provided the plugin
-    applies; for instance, the plugin is not run if it does not support the
-    number of qubits over which the unitary is defined). However, when 
-    ``fallback_on_default`` is set to ``True``, the pass checks whether the
-    plugin successfully and correctly synthesized the unitary - that is, the
-    returned circuit is not ``None`` and conforms to the target. If not,
-    the unitary is synthesized using the :class:`~.DefaultUnitarySynthesis`
-    plugin.
+    By default, the specified plugin is used to synthesize every unitary
+    in the circuit (provided the plugin applies; for instance, it will not
+    run if it does not support the number of qubits over which the unitary
+    is defined). If the plugin cannot synthesize the unitary and returns
+    ``None``, the original unitary is left unchanged in the circuit.
+    When ``fallback_on_default`` is set to ``True``, the pass will instead
+    invoke :class:`~.DefaultUnitarySynthesis` plugin when the specified
+    method fails.
     
-    This is useful, for instance, in the Clifford+T transpilation pipeline, where
-    users may want to write custom synthesis plugins but still fall back on
-    predefined synthesis methods when the circuit produced by a custom plugin
-    does not conform to the Clifford+T basis set.
+    This feature is particularly useful when custom plugins are intended to
+    handle only a subset of all unitaries: users can rely on their custom
+    logic when it applies and use the default synthesis where it does not.
