@@ -454,34 +454,50 @@ circuits in the data.
 Version 17
 ----------
 
-Version 17 adds support for serializing and deserializing PauliEvolutionGate based on
-:class:`~qiskit.quantum_info.SparseObservable`.
+Version 17 adds support for serializing and deserializing :class:`.PauliEvolutionGate` containing
+:class:`.SparseObservable` as operator(s).
 
-Changes to Write Circuit
-~~~~~~~~~~~~~~~~~~~~~~~~
+Changes to PAULI_EVOLUTION
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A new boolean variable `sparse_operator` has been added in :func:`_write_pauli_evolution_gate`
-in :mod:`qiskit.qpy.binary_io.circuits` to qualify sparse operators. When serializing a
-`PauliEvolutionGate`, if `sparse_operator` is found `True`, the operator is serialized as a
-`SparseObservable`.
+The format of `PAULI_EVOLUTION` itself remains unchanged, but the format of the operators
+that immediately follow the packed evolution gate is updated. Instead of `operator_count`
+elements defined by `SPARSE_PAULI_OP_LIST_ELEM` format, the payload now specifies the type of
+each operator to account for either operators of type :class:`.SparsePauliOp` or of
+:class:`.SparseObservable`.
 
-Changes to Read Circuit
-~~~~~~~~~~~~~~~~~~~~~~~
-When deserializing a `PauliEvolutionGate` in :func:`_read_pauli_evolution_gate`, if
-`sparse_operator` is True, the operator is deserialized as a `SparseObservable`.
+The new payload following `PAULI_EVOLUTION` now contains exactly `operator_count` sequences of
+a bool (``"!?"``) followed by the operator. If the bool is ``True``, the operator is a
+:class:`.SparseObservable` and interpreted with the new `SPARSE_OBSERVABLE` format (see below).
+If it is ``False``, the operator is a :class:`.SparsePauliOp` and interpreted according to the
+existing `SPARSE_PAULI_OP_LIST_ELEM` format.
 
-Changes to FORMATS
-~~~~~~~~~~~~~~~~~~~
-A new namedtuple `SPARSE_OBSERVABLE` has been added.
+New SPARSE_OBSERVABLE
+~~~~~~~~~~~~~~~~~~~~~
 
-.. code-block:: python
+The `SPARSE_OBSERVABLE` format represents an instance of a :class:`.SparseObservable`, given by
 
-    SPARSE_OBSERVABLE = namedtuple(
-    "SPARSE_OBSERVABLE",
-    ["num_qubits", "coeff_data_len", "bitterm_data_len", "inds_data_len", "bounds_data_len"],
-    )
-    SPARSE_OBSERVABLE_PACK = "!IQQQQ"
-    SPARSE_OBSERVABLE_SIZE = struct.calcsize(SPARSE_OBSERVABLE_PACK)
+.. code-block:: c
+
+  struct {
+    uint32_t num_qubits;
+    uint64_t coeff_data_len;
+    uint64_t bitterm_data_len;
+    uint64_t inds_data_len;
+    uint64_t bounds_data_len;
+  }
+
+which is immediately followed by the number of qubits and then the data arrays of the
+coefficients, bit terms, indices, and boundaries of the observable. The format specifies the
+number of bytes each array occupies. The number of elements can be calculated by dividing
+the number of bytes by the size of each element.
+
+ * Each coefficient is stored as two consecutive `"!d"` elements, first the real and then
+   the imaginary part.
+ * The bit term elements are of type `"!H"` and represents the `u8` value of the
+   :class:`.SparseObservable.BitTerm`
+ * The indices elements are of type `"!I"`.
+ * The boundaries elements are of type `"!Q"`.
 
 .. _qpy_version_16:
 
