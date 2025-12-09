@@ -89,6 +89,7 @@ sys.modules["qiskit._accelerate.results"] = _accelerate.results
 sys.modules["qiskit._accelerate.sabre"] = _accelerate.sabre
 sys.modules["qiskit._accelerate.sampled_exp_val"] = _accelerate.sampled_exp_val
 sys.modules["qiskit._accelerate.sparse_observable"] = _accelerate.sparse_observable
+sys.modules["qiskit._accelerate.scheduling"] = _accelerate.scheduling
 sys.modules["qiskit._accelerate.sparse_pauli_op"] = _accelerate.sparse_pauli_op
 sys.modules["qiskit._accelerate.elide_permutations"] = _accelerate.elide_permutations
 sys.modules["qiskit._accelerate.target"] = _accelerate.target
