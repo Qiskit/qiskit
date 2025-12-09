@@ -27,8 +27,7 @@ use crate::imports::{ANNOTATED_OPERATION, DEEPCOPY, QUANTUM_CIRCUIT};
 use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::ObjectRegistry;
 use crate::operations::{
-    ControlFlow, ControlFlowInstruction, ControlFlowView, Operation, OperationRef, Param,
-    PythonOperation, StandardGate,
+    ControlFlow, ControlFlowView, Operation, OperationRef, Param, PythonOperation, StandardGate,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::ParameterExpression;
@@ -2335,75 +2334,13 @@ impl CircuitData {
                     }
                 }
             }
-            Parameters::Blocks(_) => {
-                let blocks: Vec<_> = self
-                    .try_view_control_flow(instr)
-                    .unwrap()
-                    .blocks()
-                    .into_iter()
-                    .cloned()
-                    .collect();
-                match instr.op.view() {
-                    OperationRef::ControlFlow(ControlFlowInstruction {
-                        control_flow: ControlFlow::ForLoop { loop_param, .. },
-                        ..
-                    }) => {
-                        Python::attach(|py| -> PyResult<_> {
-                            // The loop param is technically a parameter in Python land, stored at
-                            // argument position 1.
-                            if let Some(loop_param) = loop_param {
-                                self.param_table.track(
-                                    loop_param,
-                                    Some(ParameterUse::Index {
-                                        instruction: instruction_index,
-                                        parameter: 1,
-                                    }),
-                                )?;
-                            }
-                            let usage = ParameterUse::Index {
-                                instruction: instruction_index,
-                                parameter: 2,
-                            };
-                            for param_ob in &blocks[0]
-                                .bind(py)
-                                .getattr(intern!(py, "parameters"))?
-                                .try_iter()?
-                            {
-                                self.param_table.track(&param_ob?.extract()?, Some(usage))?;
-                            }
-                            Ok(())
-                        })?;
-                    }
-                    OperationRef::ControlFlow(_) => {
-                        // All the other control flow operations are simple, and their "blocks"
-                        // are exactly their parameters, in the right order.
-                        let blocks: Vec<_> = self
-                            .try_view_control_flow(instr)
-                            .unwrap()
-                            .blocks()
-                            .into_iter()
-                            .cloned()
-                            .collect();
-                        Python::attach(|py| -> PyResult<_> {
-                            for (idx, case) in blocks.iter().enumerate() {
-                                let usage = ParameterUse::Index {
-                                    instruction: instruction_index,
-                                    parameter: idx as u32,
-                                };
-                                for param_ob in case
-                                    .bind(py)
-                                    .getattr(intern!(py, "parameters"))?
-                                    .try_iter()?
-                                {
-                                    self.param_table.track(&param_ob?.extract()?, Some(usage))?;
-                                }
-                            }
-                            Ok(())
-                        })?;
-                    }
-                    _ => panic!("instruction has blocks but is not control flow"),
-                }
-            }
+            Parameters::Blocks(_) => Python::attach(|py| {
+                let view = ControlFlowView::try_from_instruction(instr, &self.blocks)
+                    .expect("all instructions with blocks should be control flow");
+                for_each_symbol_use_in_control_flow(py, instruction_index, view, |symbol, usage| {
+                    self.param_table.track(symbol, Some(usage)).map(|_| ())
+                })
+            })?,
         }
         Ok(())
     }
@@ -2430,75 +2367,13 @@ impl CircuitData {
                     }
                 }
             }
-            Parameters::Blocks(_) => {
-                let blocks: Vec<_> = self
-                    .try_view_control_flow(instr)
-                    .unwrap()
-                    .blocks()
-                    .into_iter()
-                    .cloned()
-                    .collect();
-                match instr.op.view() {
-                    OperationRef::ControlFlow(ControlFlowInstruction {
-                        control_flow: ControlFlow::ForLoop { loop_param, .. },
-                        ..
-                    }) => {
-                        Python::attach(|py| -> PyResult<_> {
-                            // The loop param is technically a parameter in Python land, stored at
-                            // argument position 1.
-                            if let Some(loop_param) = loop_param {
-                                self.param_table.untrack(
-                                    loop_param,
-                                    ParameterUse::Index {
-                                        instruction: instruction_index,
-                                        parameter: 1,
-                                    },
-                                )?;
-                            }
-                            let usage = ParameterUse::Index {
-                                instruction: instruction_index,
-                                parameter: 2,
-                            };
-                            for param_ob in &blocks[0]
-                                .bind(py)
-                                .getattr(intern!(py, "parameters"))?
-                                .try_iter()?
-                            {
-                                self.param_table.untrack(&param_ob?.extract()?, usage)?;
-                            }
-                            Ok(())
-                        })?;
-                    }
-                    OperationRef::ControlFlow(_) => {
-                        // All the other control flow operations are simple, and their "blocks"
-                        // are exactly their parameters, in the right order.
-                        let blocks: Vec<_> = self
-                            .try_view_control_flow(instr)
-                            .unwrap()
-                            .blocks()
-                            .into_iter()
-                            .cloned()
-                            .collect();
-                        Python::attach(|py| -> PyResult<_> {
-                            for (idx, case) in blocks.iter().enumerate() {
-                                let usage = ParameterUse::Index {
-                                    instruction: instruction_index,
-                                    parameter: idx as u32,
-                                };
-                                for param_ob in case
-                                    .bind(py)
-                                    .getattr(intern!(py, "parameters"))?
-                                    .try_iter()?
-                                {
-                                    self.param_table.untrack(&param_ob?.extract()?, usage)?;
-                                }
-                            }
-                            Ok(())
-                        })?;
-                    }
-                    _ => panic!("instruction has blocks but is not control flow"),
-                }
-            }
+            Parameters::Blocks(_) => Python::attach(|py| {
+                let view = ControlFlowView::try_from_instruction(instr, &self.blocks)
+                    .expect("all instructions with blocks should be control flow");
+                for_each_symbol_use_in_control_flow(py, instruction_index, view, |symbol, usage| {
+                    self.param_table.untrack(symbol, usage)
+                })
+            })?,
         }
         Ok(())
     }
@@ -3537,4 +3412,70 @@ where
         };
         Err(CircuitError::new_err(err_message))
     }
+}
+
+/// Perform an action for each `ParameterUse` of a `Symbol` within a control-flow view object.
+///
+/// This encapsulates the logic of both [CircuitData::track_parameters] and
+/// [CircuitData::untrack_parameters].
+fn for_each_symbol_use_in_control_flow<F, E>(
+    py: Python,
+    index: usize,
+    cf: ControlFlowView<Py<PyAny>>,
+    mut action: F,
+) -> PyResult<()>
+where
+    F: FnMut(&Symbol, ParameterUse) -> Result<(), E>,
+    PyErr: From<E>,
+{
+    let downcast = |ob: &Py<PyAny>| -> PyResult<Bound<CircuitData>> {
+        Ok(ob
+            .bind(py)
+            .getattr(intern!(py, "_data"))?
+            .cast_into::<CircuitData>()?)
+    };
+    match cf {
+        ControlFlowView::ForLoop {
+            loop_param,
+            body,
+            collection: _,
+        } => {
+            // The loop param is technically a parameter in Python land at `params[1]`.
+            if let Some(symbol) = loop_param {
+                action(
+                    symbol,
+                    ParameterUse::Index {
+                        instruction: index,
+                        parameter: 1,
+                    },
+                )?;
+            }
+            // The body is at `params[2]`.
+            let usage = ParameterUse::Index {
+                instruction: index,
+                parameter: 2,
+            };
+            for symbol in downcast(body)?.borrow().parameters() {
+                action(symbol, usage)?;
+            }
+        }
+        // For all these guys, the `params` field is the same as the `blocks` list.
+        ControlFlowView::Box { .. }
+        | ControlFlowView::BreakLoop
+        | ControlFlowView::ContinueLoop
+        | ControlFlowView::IfElse { .. }
+        | ControlFlowView::Switch { .. }
+        | ControlFlowView::While { .. } => {
+            for (idx, body) in cf.blocks().iter().enumerate() {
+                let usage = ParameterUse::Index {
+                    instruction: index,
+                    parameter: idx as u32,
+                };
+                for symbol in downcast(body)?.borrow().parameters() {
+                    action(symbol, usage)?;
+                }
+            }
+        }
+    }
+    Ok(())
 }
