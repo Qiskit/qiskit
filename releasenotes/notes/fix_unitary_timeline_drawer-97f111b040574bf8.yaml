@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :func:`.timeline_drawer` visualization function
+    where it would error when visualizing a scheduled circuit from a target
+    that had parameterized gates in the target with a duration set.

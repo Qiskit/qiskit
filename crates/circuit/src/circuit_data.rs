@@ -1866,6 +1866,13 @@ impl CircuitData {
         Ok(out)
     }
 
+    /// Move this [CircuitData] into a complete Python `QuantumCircuit` object.
+    pub fn into_py_quantum_circuit(self, py: Python) -> PyResult<Bound<PyAny>> {
+        QUANTUM_CIRCUIT
+            .get_bound(py)
+            .call_method1(intern!(py, "_from_circuit_data"), (self,))
+    }
+
     /// Gives the circuit ownership of the provided basic block and returns a
     /// unique identifier that can be used to retrieve a reference to it
     /// later.
@@ -1895,11 +1902,11 @@ impl CircuitData {
             ControlFlow::BreakLoop => ControlFlowView::BreakLoop,
             ControlFlow::ContinueLoop => ControlFlowView::ContinueLoop,
             ControlFlow::ForLoop {
-                indexset,
+                collection,
                 loop_param,
                 ..
             } => ControlFlowView::ForLoop {
-                indexset: indexset.as_slice(),
+                collection,
                 loop_param: loop_param.as_ref(),
                 body: self.blocks.get(instr.blocks_view()[0]).unwrap().object(),
             },

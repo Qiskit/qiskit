@@ -11,7 +11,9 @@
 // that they have been altered from the originals.
 use std::fmt;
 
+use crate::sparse_observable::BitTerm;
 use ndarray::{Array2, azip, s};
+use qiskit_circuit::Qubit;
 
 /// Symplectic matrix.
 pub struct SymplecticMatrix {
@@ -225,22 +227,65 @@ impl Clifford {
     }
 
     /// Evolving the single-qubit Pauli-Z with Z on qubit qbit.
-    /// Returns the evolved Pauli in the sparse format: (sign, pauli_z, pauli_x, indices).
-    pub fn get_inverse_z(&self, qbit: usize) -> (bool, Vec<bool>, Vec<bool>, Vec<u32>) {
-        let mut z = Vec::<bool>::new();
-        let mut x = Vec::<bool>::new();
-        let mut indices = Vec::<u32>::new();
+    /// Returns the evolved Pauli in the sparse format: (bool, bit_terms, indices)
+    /// This is typically used for constructing a [`SparseObservable`] from the return.
+    pub fn get_inverse_z(&self, qbit: usize) -> (bool, Vec<BitTerm>, Vec<Qubit>) {
+        let mut bit_terms = Vec::with_capacity(self.num_qubits);
         let mut pauli_indices = Vec::<usize>::with_capacity(2 * self.num_qubits);
         // Compute the y-count to avoid recomputing it later
         let mut pauli_y_count: u32 = 0;
 
+        let indices = (0..self.num_qubits)
+            .filter_map(|i| {
+                let z_bit = self.tableau[[i, qbit]];
+                let x_bit = self.tableau[[i + self.num_qubits, qbit]];
+                match [z_bit, x_bit] {
+                    [true, true] => {
+                        pauli_y_count += 1;
+                        bit_terms.push(BitTerm::Y);
+                        pauli_indices.push(i);
+                        pauli_indices.push(i + self.num_qubits);
+                        Some(Qubit::new(i))
+                    }
+                    [false, true] => {
+                        bit_terms.push(BitTerm::X);
+                        pauli_indices.push(i);
+                        Some(Qubit::new(i))
+                    }
+                    [true, false] => {
+                        bit_terms.push(BitTerm::Z);
+                        pauli_indices.push(i + self.num_qubits);
+                        Some(Qubit::new(i))
+                    }
+                    [false, false] => None,
+                }
+            })
+            .collect();
+        let phase = compute_phase_product_pauli(self, &pauli_indices, pauli_y_count);
+
+        (phase, bit_terms, indices)
+    }
+
+    /// Evolving the single-qubit Pauli-Z with Z on qubit qbit.
+    /// Returns the evolved Pauli in the sparse format: (bool, pauli_z, pauli_x, indices)
+    /// This is typically used for constructing a [`PauliProductMeasurement`] from the return
+    pub fn get_inverse_z_for_measurement(
+        &self,
+        qbit: usize,
+    ) -> (bool, Vec<bool>, Vec<bool>, Vec<Qubit>) {
+        let mut z = Vec::with_capacity(self.num_qubits);
+        let mut x = Vec::with_capacity(self.num_qubits);
+        let mut indices = Vec::with_capacity(self.num_qubits);
+        let mut pauli_indices = Vec::<usize>::with_capacity(2 * self.num_qubits);
+        // Compute the y-count to avoid recomputing it later
+        let mut pauli_y_count: u32 = 0;
         for i in 0..self.num_qubits {
             let z_bit = self.tableau[[i, qbit]];
             let x_bit = self.tableau[[i + self.num_qubits, qbit]];
             if z_bit || x_bit {
                 z.push(z_bit);
                 x.push(x_bit);
-                indices.push(i as u32);
+                indices.push(Qubit::new(i));
                 if x_bit {
                     pauli_indices.push(i);
                 }
