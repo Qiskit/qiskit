@@ -20,7 +20,7 @@ use qiskit_transpiler::target::Target;
 use qiskit_transpiler::transpile;
 use qiskit_transpiler::transpile_layout::TranspileLayout;
 use qiskit_transpiler::transpiler::{
-    get_sabre_heuristic, init_stage, layout_stage, optimization_stage, routing_stage,
+    LayoutSource, get_sabre_heuristic, init_stage, layout_stage, optimization_stage, routing_stage,
     translation_stage,
 };
 
@@ -306,6 +306,7 @@ pub unsafe extern "C" fn qk_transpile_stage_routing(
         seed,
         &sabre_heuristic,
         out_layout,
+        LayoutSource::Trivial,
     ) {
         Err(e) => {
             if !error.is_null() {
@@ -388,6 +389,14 @@ pub unsafe extern "C" fn qk_transpile_stage_optimization(
         // and aligned pointer.
         unsafe { const_ptr_as_ref(options) }
     };
+    // TODO: Remove this.
+    let mut layout = TranspileLayout::new(
+        None,
+        None,
+        dag.qubits().objects().to_owned(),
+        dag.num_qubits() as u32,
+        dag.qregs().to_vec(),
+    );
 
     let approximation_degree = if options.approximation_degree.is_nan() {
         None
@@ -409,6 +418,7 @@ pub unsafe extern "C" fn qk_transpile_stage_optimization(
         approximation_degree,
         &mut commutation_checker,
         &mut equiv_lib,
+        &mut layout,
     ) {
         Ok(_) => ExitCode::Success,
         Err(e) => {
