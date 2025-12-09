@@ -25,7 +25,7 @@ use crate::bit_locator::BitLocator;
 use crate::circuit_data::{CircuitData, CircuitIdentifierInfo, CircuitStretchType, CircuitVarType};
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use crate::classical::expr;
-use crate::converters::{QuantumCircuitData, circuit_to_dag};
+use crate::converters::QuantumCircuitData;
 use crate::dag_node::{DAGInNode, DAGNode, DAGOpNode, DAGOutNode};
 use crate::dot_utils::build_dot;
 use crate::error::DAGCircuitError;
@@ -5003,8 +5003,9 @@ impl DAGCircuit {
 
     /// Add a new block to this circuit, extracting it from the equivalent typed block from a
     /// `CircuitData`.
-    pub fn add_block_from_circuit(&mut self, block: &Bound<PyAny>) -> PyResult<Block> {
-        circuit_to_dag(block.extract()?, false, None, None).map(|dag| self.add_block(dag))
+    pub fn add_block_from_circuit(&mut self, block: &CircuitData) -> PyResult<Block> {
+        DAGCircuit::from_circuit_data(block, false, None, None, None, None)
+            .map(|dag| self.add_block(dag))
     }
 
     /// Given a `params` object in terms of owned Python-space circuit objects (such as from an
@@ -5014,14 +5015,10 @@ impl DAGCircuit {
     /// The inverse of this method is [unpack_blocks_to_circuit_parameters].
     fn extract_blocks_from_circuit_parameters(
         &mut self,
-        params: Option<&Parameters<Py<PyAny>>>,
+        params: Option<&Parameters<CircuitData>>,
     ) -> PyResult<Option<Box<Parameters<Block>>>> {
         Ok(params
-            .map(|params| {
-                params.try_map_blocks(|block| {
-                    Python::attach(|py| self.add_block_from_circuit(block.bind(py)))
-                })
-            })
+            .map(|params| params.try_map_blocks(|block| self.add_block_from_circuit(block)))
             .transpose()?
             .map(Box::new))
     }
@@ -5034,16 +5031,11 @@ impl DAGCircuit {
     fn unpack_blocks_to_circuit_parameters(
         &self,
         params: Option<&Parameters<Block>>,
-    ) -> PyResult<Option<Parameters<Py<PyAny>>>> {
+    ) -> PyResult<Option<Parameters<CircuitData>>> {
         params
             .map(|params| {
-                params.try_map_blocks(|block| {
-                    Python::attach(|py| {
-                        converters::dag_to_circuit(&self.blocks[*block], false)
-                            .and_then(|circuit| circuit.into_py_quantum_circuit(py))
-                            .map(|ob| ob.unbind())
-                    })
-                })
+                params
+                    .try_map_blocks(|block| converters::dag_to_circuit(&self.blocks[*block], false))
             })
             .transpose()
     }
@@ -7825,11 +7817,7 @@ impl DAGCircuit {
         new_dag.qubit_locations = qc_data.qubit_indices().clone();
         new_dag.clbit_locations = qc_data.clbit_indices().clone();
         new_dag.blocks = qc_data.blocks().try_map_without_references(|block| {
-            Python::attach(|py| {
-                block
-                    .extract(py)
-                    .and_then(|block| circuit_to_dag(block, copy_op, None, None))
-            })
+            DAGCircuit::from_circuit_data(block, copy_op, None, None, None, None)
         })?;
         new_dag.try_extend(qc_data.iter().map(|instr| -> PyResult<PackedInstruction> {
             Ok(PackedInstruction {
