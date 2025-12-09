@@ -230,15 +230,15 @@ pub unsafe extern "C" fn qk_obs_free(obs: *mut SparseObservable) {
 ///
 /// # Example
 /// ```c
-///     uint32_t num_qubits = 100;
-///     QkObs *obs = qk_obs_zero(num_qubits);
+/// uint32_t num_qubits = 100;
+/// QkObs *obs = qk_obs_zero(num_qubits);
 ///
-///     QkComplex64 coeff = {1, 0};
-///     QkBitTerm bit_terms[3] = {QkBitTerm_X, QkBitTerm_Y, QkBitTerm_Z};
-///     uint32_t indices[3] = {0, 1, 2};
-///     QkObsTerm term = {coeff, 3, bit_terms, indices, num_qubits};
+/// QkComplex64 coeff = {1, 0};
+/// QkBitTerm bit_terms[3] = {QkBitTerm_X, QkBitTerm_Y, QkBitTerm_Z};
+/// uint32_t indices[3] = {0, 1, 2};
+/// QkObsTerm term = {coeff, 3, bit_terms, indices, num_qubits};
 ///
-///     int exit_code = qk_obs_add_term(obs, &term);
+/// QkExitCode exit_code = qk_obs_add_term(obs, &term);
 /// ```
 ///
 /// # Safety
@@ -286,9 +286,9 @@ pub unsafe extern "C" fn qk_obs_add_term(
 /// ```c
 ///     QkObs *obs = qk_obs_identity(100);
 ///     QkObsTerm term;
-///     int exit_code = qk_obs_term(obs, 0, &term);
+///     QkExitCode exit_code = qk_obs_term(obs, 0, &term);
 ///     // out-of-bounds indices return an error code
-///     // int error = qk_obs_term(obs, 12, &term);
+///     // QkExitCode error = qk_obs_term(obs, 12, &term);
 /// ```
 ///
 /// # Safety
@@ -444,24 +444,24 @@ pub unsafe extern "C" fn qk_obs_coeffs(obs: *mut SparseObservable) -> *mut Compl
 ///
 /// # Example
 /// ```c
-///     uint32_t num_qubits = 100;
-///     QkObs *obs = qk_obs_zero(num_qubits);
+/// uint32_t num_qubits = 100;
+/// QkObs *obs = qk_obs_zero(num_qubits);
 ///
-///     QkComplex64 coeff = {1, 0};
-///     QkBitTerm bit_terms[3] = {QkBitTerm_X, QkBitTerm_Y, QkBitTerm_Z};
-///     uint32_t term_indices[3] = {0, 1, 2};
-///     QkObsTerm term = {coeff, 3, bit_terms, term_indices, num_qubits};
-///     qk_obs_add_term(obs, &term);
+/// QkComplex64 coeff = {1, 0};
+/// QkBitTerm bit_terms[3] = {QkBitTerm_X, QkBitTerm_Y, QkBitTerm_Z};
+/// uint32_t term_indices[3] = {0, 1, 2};
+/// QkObsTerm term = {coeff, 3, bit_terms, term_indices, num_qubits};
+/// qk_obs_add_term(obs, &term);
 ///
-///     size_t len = qk_obs_len(obs);
-///     uint32_t *indices = qk_obs_indices(obs);
+/// size_t len = qk_obs_len(obs);
+/// uint32_t *indices = qk_obs_indices(obs);
 ///
-///     for (size_t i = 0; i < len; i++) {
-///         printf("index %i: %i\n", i, indices[i]);
-///     }
+/// for (size_t i = 0; i < len; i++) {
+///     printf("index %i: %i\n", i, indices[i]);
+/// }
+///
+/// qk_obs_free(obs);
 /// ```
-///
-///     qk_obs_free(obs);
 ///
 /// # Safety
 ///
@@ -757,7 +757,7 @@ pub unsafe extern "C" fn qk_obs_compose_map(
 ///
 /// uint32_t layout[3] = {0, 10, 9};  // qubit mapping is: 0->0, 1->10, 2->9
 /// uint32_t num_output_qubits = 11;
-/// int exit = qk_obs_apply_layout(obs, layout, num_output_qubits);
+/// QkExitCode exit = qk_obs_apply_layout(obs, layout, num_output_qubits);
 /// ```
 ///
 /// In a compiler workflow, this function can conveniently be used to apply a
@@ -773,7 +773,7 @@ pub unsafe extern "C" fn qk_obs_compose_map(
 /// qk_transpile_layout_final_layout(transpile_layout, false, layout);
 ///
 /// // apply the layout
-/// int exit = qk_obs_apply_layout(obs, layout, num_output_qubits);
+/// QkExitCode exit = qk_obs_apply_layout(obs, layout, num_output_qubits);
 ///
 /// // free the layout array
 /// free(layout);
