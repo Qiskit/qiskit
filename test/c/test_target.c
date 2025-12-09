@@ -99,7 +99,7 @@ bool compare_qargs(uint32_t *lhs, uint32_t *rhs, size_t length) {
     if (rhs == NULL && lhs != NULL) {
         return false;
     }
-    
+
     return !memcmp(lhs, rhs, length * sizeof(*lhs));
 }
 
