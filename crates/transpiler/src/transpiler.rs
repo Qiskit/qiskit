@@ -427,6 +427,8 @@ pub fn optimization_stage(
             continue_loop = min_state.update_with(dag);
         }
         *dag = min_state.best_dag;
+    }
+    if optimization_level != OptimizationLevel::Level0 {
         let vf2_config = match optimization_level {
             OptimizationLevel::Level0 => vf2::Vf2PassConfiguration::default_concrete(), // Not used.
             OptimizationLevel::Level1 | OptimizationLevel::Level2 => vf2::Vf2PassConfiguration {
