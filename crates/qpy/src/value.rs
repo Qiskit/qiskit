@@ -371,9 +371,13 @@ pub fn load_value(
             let value: bool = bytes.try_into()?;
             Ok(GenericValue::Bool(value))
         }
-        ValueType::Integer => {
-            let value: i64 = bytes.try_into()?;
-            Ok(GenericValue::Int64(value))
+        ValueType::Integer => { // a little tricky since this can be either i64 or biguint
+            let result = bytes.try_into();
+            if let Ok(value) = result {
+                Ok(GenericValue::Int64(value))
+            } else {
+                load_biguint_value(bytes)
+            }
         }
         ValueType::Float => {
             let value: f64 = bytes.try_into()?;
@@ -740,7 +744,7 @@ pub fn serialize_param_register_value(value: &ParamRegisterValue, qpy_data: &QPY
     }
 }
 
-fn load_param_register_value(bytes: &Bytes,
+pub fn load_param_register_value(bytes: &Bytes,
     qpy_data: &mut QPYReadData,
 ) -> PyResult<ParamRegisterValue> {
     // If register name prefixed with null character it's a clbit index for single bit condition.

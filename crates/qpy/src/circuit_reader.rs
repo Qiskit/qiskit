@@ -20,6 +20,7 @@
 // `write` method into a `Cursor` buffer, but there might be exceptions.
 
 use hashbrown::HashMap;
+use num_bigint::BigUint;
 use numpy::IntoPyArray;
 use pyo3::IntoPyObjectExt;
 use pyo3::exceptions::PyValueError;
@@ -27,7 +28,7 @@ use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::IntoPyDict;
 use pyo3::types::{PyAny, PyBytes, PyDict, PyList, PyString, PyTuple, PyType};
-use qiskit_circuit::operations::BoxDuration;
+use qiskit_circuit::operations::{BoxDuration, CaseSpecifier, Condition, SwitchTarget};
 use std::str::FromStr;
 use std::sync::Arc;
 use qiskit_circuit::bit::{
@@ -37,7 +38,7 @@ use qiskit_circuit::circuit_data::{CircuitData, CircuitStretchType, CircuitVarTy
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::interner::Interned;
 use qiskit_circuit::{classical, imports, Block};
-use qiskit_circuit::operations::{Param, StandardInstruction, PauliProductMeasurement, ControlFlowName, ControlFlow, ControlFlowInstruction};
+use qiskit_circuit::operations::{Param, StandardInstruction, PauliProductMeasurement, ControlFlowType, ControlFlow, ControlFlowInstruction};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::{Clbit, Qubit};
 use qiskit_circuit::instruction::Parameters;
@@ -51,16 +52,16 @@ use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
 use crate::consts::standard_gate_from_gate_class_name;
 use crate::formats;
+use crate::formats::ConditionData;
 use crate::formats::QPYFormatV15;
+use crate::formats::condition_types;
 use crate::params::{unpack_param, unpack_param_from_data};
 use crate::py_methods::py_convert_from_generic_value;
 use crate::py_methods::{get_python_gate_class, py_deserialize_register_param, PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME, UNITARY_GATE_CLASS_NAME};
-use crate::value::GenericValue;
-use crate::value::QPYWriteData;
-use crate::value::load_value;
+use crate::value::ParamRegisterValue;
 use crate::value::{
-    BitType, CircuitInstructionType, ExpressionType, ExpressionVarDeclaration, QPYReadData,
-    RegisterType, ValueType, deserialize, deserialize_with_args, unpack_generic_value,
+    GenericValue, load_value, BitType, CircuitInstructionType, ExpressionType, ExpressionVarDeclaration, QPYReadData,
+    RegisterType, ValueType, deserialize, deserialize_with_args, unpack_generic_value, load_param_register_value
 };
 
 // This is a helper struct, designed to pass data within methods
@@ -233,23 +234,45 @@ fn unpack_custom_instruction(
 }
 
 fn unpack_condition(
-    py: Python,
-    condition: &formats::ConditionPack,
+    condition_pack: &formats::ConditionPack,
     qpy_data: &mut QPYReadData,
-) -> PyResult<Option<Py<PyAny>>> {
-    match &condition.data {
-        formats::ConditionData::Expression(exp_data_pack) => Ok(Some(
-            py_convert_from_generic_value(&unpack_generic_value(exp_data_pack, qpy_data)?)?,
-        )),
-        formats::ConditionData::Register(register_data) => {
-            let register = py_deserialize_register_param(register_data, qpy_data.circuit_data)?;
-            let condition_value = condition.value.into_py_any(py)?;
-            let tuple = PyTuple::new(py, &[register, condition_value])?;
-            Ok(Some(tuple.into_any().unbind()))
+) -> PyResult<Option<Condition>> {
+    match &condition_pack.data {
+        ConditionData::None => Ok(None),
+        ConditionData::Expression(exp_pack) => {
+            let exp_value = unpack_generic_value(exp_pack, qpy_data)?;
+            match exp_value {
+                GenericValue::Expression(exp) => Ok(Some(Condition::Expr(exp.clone()))),
+                _ => Err(PyValueError::new_err("could not determine expression in conditional")),
+            }
         }
-        formats::ConditionData::None => Ok(None),
+        ConditionData::Register(bytes) => {
+            match load_param_register_value(bytes, qpy_data)? {
+                ParamRegisterValue::ShareableClbit(clbit) => Ok(Some(Condition::Bit(clbit, condition_pack.value != 0))),
+                ParamRegisterValue::Register(reg) => Ok(Some(Condition::Register(reg, BigUint::from(condition_pack.value as u64))))
+            }
+        }
     }
 }
+
+// fn unpack_condition(
+//     py: Python,
+//     condition: &formats::ConditionPack,
+//     qpy_data: &mut QPYReadData,
+// ) -> PyResult<Option<Py<PyAny>>> {
+//     match &condition.data {
+//         formats::ConditionData::Expression(exp_data_pack) => Ok(Some(
+//             py_convert_from_generic_value(&unpack_generic_value(exp_data_pack, qpy_data)?)?,
+//         )),
+//         formats::ConditionData::Register(register_data) => {
+//             let register = py_deserialize_register_param(register_data, qpy_data.circuit_data)?;
+//             let condition_value = condition.value.into_py_any(py)?;
+//             let tuple = PyTuple::new(py, &[register, condition_value])?;
+//             Ok(Some(tuple.into_any().unbind()))
+//         }
+//         formats::ConditionData::None => Ok(None),
+//     }
+// }
 
 fn recognize_instruction_type(instruction: &formats::CircuitInstructionV2Pack) -> InstructionType {
     let name = instruction.gate_class_name.as_str();
@@ -259,7 +282,7 @@ fn recognize_instruction_type(instruction: &formats::CircuitInstructionV2Pack) -
     else if name == UNITARY_GATE_CLASS_NAME {
         InstructionType::Unitary
     } 
-    else if ControlFlowName::from_str(name).is_ok() {
+    else if ControlFlowType::from_str(name).is_ok() {
         InstructionType::ControlFlow
     }
     // else if name in ["Barrier","Delay","Measure","Reset"] {
@@ -414,9 +437,9 @@ fn unpack_unitary(instruction: &formats::CircuitInstructionV2Pack, qpy_data: &mu
 fn unpack_control_flow(instruction: &formats::CircuitInstructionV2Pack, qpy_data: &mut QPYReadData,)  -> PyResult<(PackedOperation, Vec<GenericValue>)> {
     // the instruction values contain the data needed to reconstruct the control flow
     let instruction_values = get_instruction_values(instruction, qpy_data)?;
-    let control_flow_name = ControlFlowName::from_str(instruction.gate_class_name.as_str())?;
+    let control_flow_name = ControlFlowType::from_str(instruction.gate_class_name.as_str())?;
     let control_flow = match control_flow_name {
-        ControlFlowName::Box => {
+        ControlFlowType::Box => {
             let annotations = unpack_annotations(instruction.annotations, qpy_data)?;            
             let duration = if let Some(duration_value) = instruction_values.first() {
                 match duration_value {
@@ -429,9 +452,9 @@ fn unpack_control_flow(instruction: &formats::CircuitInstructionV2Pack, qpy_data
             };
             ControlFlow::Box { duration, annotations}
         }
-        ControlFlowName::BreakLoop => ControlFlow::BreakLoop,
-        ControlFlowName::ContinueLoop => ControlFlow::ContinueLoop,
-        ControlFlowName::ForLoop => {
+        ControlFlowType::BreakLoop => ControlFlow::BreakLoop,
+        ControlFlowType::ContinueLoop => ControlFlow::ContinueLoop,
+        ControlFlowType::ForLoop => {
             let mut iter = instruction_values.into_iter();
             let (indexset_value, loop_param_value) = iter.next().zip(iter.next()).ok_or(PyValueError::new_err("For loop instruction missing some of its parameters"))?;
             let indexset: Vec<usize> = if let GenericValue::Tuple(indexset_values) = indexset_value {
@@ -451,7 +474,42 @@ fn unpack_control_flow(instruction: &formats::CircuitInstructionV2Pack, qpy_data
             };
             ControlFlow::ForLoop { indexset, loop_param }
         }
-        // ControlFlowName::IfElse
+        ControlFlowType::IfElse => {
+            let condition = unpack_condition(&instruction.condition, qpy_data)?.ok_or(PyValueError::new_err("if else condition is missing"))?;
+            ControlFlow::IfElse { condition }
+        }
+        ControlFlowType::WhileLoop => {
+            let condition = unpack_condition(&instruction.condition, qpy_data)?.ok_or(PyValueError::new_err("if else condition is missing"))?;
+            ControlFlow::While { condition }
+        }
+        ControlFlowType::SwitchCase => {
+            let mut iter = instruction_values.into_iter();
+            let ((target_value, label_spec_value), cases_value) = iter.next().zip(iter.next()).zip(iter.next()).ok_or(PyValueError::new_err("For loop instruction missing some of its parameters"))?;
+            let target = match target_value {
+                GenericValue::Expression(exp) => Ok(SwitchTarget::Expr(exp)),
+                GenericValue::Register(ParamRegisterValue::Register(reg)) => Ok(SwitchTarget::Register(reg)),
+                GenericValue::Register(ParamRegisterValue::ShareableClbit(clbit)) => Ok(SwitchTarget::Bit(clbit)),
+                _ => Err(PyValueError::new_err("could not identify switch case target"))
+            }?;
+
+            let GenericValue::Tuple(label_spec_tuple_tuple) = label_spec_value else {return Err(PyValueError::new_err("could not identify switch case label spec"));};
+            let label_spec = label_spec_tuple_tuple.iter().map(|label_spec_tuple_tuple_element| -> PyResult<_>{
+                let GenericValue::Tuple(label_spec_tuple) = label_spec_tuple_tuple_element else {return Err(PyValueError::new_err("could not identify switch case label spec"));};
+                label_spec_tuple.iter().map(|label_spec_element|{
+                    match label_spec_element {
+                        GenericValue::CaseDefault => Ok(CaseSpecifier::Default),
+                        GenericValue::BigInt(value) => Ok(CaseSpecifier::Uint(value.clone())),
+                        GenericValue::Int64(value) => Ok(CaseSpecifier::Uint(BigUint::from(*value as u64))),
+                        _ => Err(PyValueError::new_err("could not identify switch case label spec"))
+                    }
+                }).collect::<PyResult<_>>()
+            }).collect::<PyResult<_>>()?;
+            let cases = match cases_value {
+                GenericValue::Int64(value) => Ok(value as u32),
+                _ => Err(PyValueError::new_err("could not identify switch cases"))
+            }?;
+            ControlFlow::Switch { target, label_spec, cases }
+        }
     };
     let num_qubits = instruction.num_qargs;
     let num_clbits = instruction.num_cargs;

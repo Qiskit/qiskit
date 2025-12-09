@@ -350,7 +350,7 @@ impl Operation for OperationRef<'_> {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int)]
 #[repr(u8)]
-pub(crate) enum ControlFlowType {
+pub enum ControlFlowType {
     Box = 0,
     BreakLoop = 1,
     ContinueLoop = 2,
@@ -358,6 +358,37 @@ pub(crate) enum ControlFlowType {
     IfElse = 4,
     SwitchCase = 5,
     WhileLoop = 6,
+}
+
+impl ControlFlowType {
+    pub fn as_str(&self) -> &'static str{
+        match self {
+            ControlFlowType::Box => "box",
+            ControlFlowType::BreakLoop => "break_loop",
+            ControlFlowType::ContinueLoop => "continue_loop",
+            ControlFlowType::ForLoop => "for_loop",
+            ControlFlowType::IfElse => "if_else",
+            ControlFlowType::SwitchCase => "switch_case",
+            ControlFlowType::WhileLoop => "while_loop",
+        }
+    }
+}
+
+impl FromStr for ControlFlowType {
+    type Err = ();
+
+    fn from_str(name: &str) -> Result<Self, Self::Err> {
+        match name {
+            "box" => Ok(ControlFlowType::Box),
+            "break_loop" => Ok(ControlFlowType::BreakLoop),
+            "continue_loop" => Ok(ControlFlowType::ContinueLoop),
+            "for_loop" => Ok(ControlFlowType::ForLoop),
+            "if_else" => Ok(ControlFlowType::IfElse),
+            "switch_case" => Ok(ControlFlowType::SwitchCase),
+            "while_loop" => Ok(ControlFlowType::WhileLoop),
+            _ => Err(()),
+        }
+    }
 }
 
 #[derive(Clone, Debug, IntoPyObject, PartialEq)]
@@ -562,58 +593,16 @@ impl ControlFlowInstruction {
     }
 }
 
-pub enum ControlFlowName {
-    Box,
-    BreakLoop,
-    ContinueLoop,
-    ForLoop,
-    IfElse,
-    Switch,
-    While
-}
-
-impl ControlFlowName {
-    pub fn as_str(&self) -> &'static str{
-        match self {
-            ControlFlowName::Box => "box",
-            ControlFlowName::BreakLoop => "break_loop",
-            ControlFlowName::ContinueLoop => "continue_loop",
-            ControlFlowName::ForLoop => "for_loop",
-            ControlFlowName::IfElse => "if_else",
-            ControlFlowName::Switch => "switch_case",
-            ControlFlowName::While => "while_loop",
-        }
-    }
-}
-
-impl FromStr for ControlFlowName {
-    type Err = PyErr;
-
-    fn from_str(name: &str) -> Result<Self, Self::Err> {
-        match name {
-            "box" => Ok(ControlFlowName::Box),
-            "break_loop" => Ok(ControlFlowName::BreakLoop),
-            "continue_loop" => Ok(ControlFlowName::ContinueLoop),
-            "for_loop" => Ok(ControlFlowName::ForLoop),
-            "if_else" => Ok(ControlFlowName::IfElse),
-            "switch_case" => Ok(ControlFlowName::Switch),
-            "while_loop" => Ok(ControlFlowName::While),
-            _ => Err(PyValueError::new_err(format!("The string {name} does not correspond to acontrol flow structure"))),
-        }
-    }
-}
-
-
 impl Operation for ControlFlowInstruction {
     fn name(&self) -> &str {
         match &self.control_flow {
-            ControlFlow::Box { .. } =>  ControlFlowName::Box.as_str(),
-            ControlFlow::BreakLoop =>  ControlFlowName::BreakLoop.as_str(),
-            ControlFlow::ContinueLoop => ControlFlowName::ContinueLoop.as_str(),
-            ControlFlow::ForLoop { .. } => ControlFlowName::ForLoop.as_str(),
-            ControlFlow::IfElse { .. } => ControlFlowName::IfElse.as_str(),
-            ControlFlow::Switch { .. } => ControlFlowName::Switch.as_str(),
-            ControlFlow::While { .. } => ControlFlowName::While.as_str(),
+            ControlFlow::Box { .. } =>  ControlFlowType::Box.as_str(),
+            ControlFlow::BreakLoop =>  ControlFlowType::BreakLoop.as_str(),
+            ControlFlow::ContinueLoop => ControlFlowType::ContinueLoop.as_str(),
+            ControlFlow::ForLoop { .. } => ControlFlowType::ForLoop.as_str(),
+            ControlFlow::IfElse { .. } => ControlFlowType::IfElse.as_str(),
+            ControlFlow::Switch { .. } => ControlFlowType::SwitchCase.as_str(),
+            ControlFlow::While { .. } => ControlFlowType::WhileLoop.as_str(),
         }
     }
 
