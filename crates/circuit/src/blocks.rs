@@ -13,16 +13,24 @@
 use crate::Block;
 
 /// Internal entry in the block list.
+///
+/// Each slot in the block list is either an actual block (with tracking of the number of references
+/// to it), or an empty slot.  We leave empty slots in place to keep the indices of placed blocks
+/// stable under deletion.  We re-use the empty slots to store a linked-list "free list", where each
+/// vacant slot contains the index (if any) of a slot that became vacant before this one.  When we
+/// add more blocks to the tracker, we fill up the vacant slots again (starting from the most
+/// recently vacated slot), to avoid unnecessarily extending the vector.
 #[derive(Clone, Debug)]
 pub enum Entry<T> {
-    Occupied {
-        block: T,
-        refcount: u32,
-    },
+    /// A filled slot, which has an actual block in it and a count of its references.  The refcount
+    /// _can_ be zero; it's permissible to deliberately store blocks temporarily, such as after a
+    /// `copy_empty_like` operation that intends to push the instructions back again.
+    Occupied { block: T, refcount: u32 },
     /// The index of the next free entry in the stack, if any.
     Vacant(Option<Block>),
 }
 impl<T> Entry<T> {
+    /// Retrieve the block, if this entry is occupied.
     #[inline]
     pub fn block(&self) -> Option<&T> {
         match self {
@@ -30,6 +38,7 @@ impl<T> Entry<T> {
             Self::Vacant(_) => None,
         }
     }
+    /// Retrieve a mutable reference to the block, if this entry is occupied.
     #[inline]
     pub fn block_mut(&mut self) -> Option<&mut T> {
         match self {
@@ -37,6 +46,7 @@ impl<T> Entry<T> {
             Self::Vacant(_) => None,
         }
     }
+    /// Get the refcount of this block, if this entry is occupied.
     #[inline]
     pub fn refcount(&self) -> Option<u32> {
         match self {
@@ -44,7 +54,7 @@ impl<T> Entry<T> {
             Self::Vacant(_) => None,
         }
     }
-
+    /// Get a modifiable refcount of this block, if this entry is occupied.
     #[inline]
     pub fn refcount_mut(&mut self) -> Option<&mut u32> {
         match self {
@@ -52,6 +62,10 @@ impl<T> Entry<T> {
             Self::Vacant(_) => None,
         }
     }
+    /// Clone this entry.
+    ///
+    /// If the entry is occupied, the resulting entry will not have any registered references (if
+    /// you want to maintain references, just use `Clone`).
     #[inline]
     pub fn clone_without_references(&self) -> Self
     where
@@ -65,6 +79,10 @@ impl<T> Entry<T> {
             Self::Vacant(next) => Self::Vacant(*next),
         }
     }
+    /// Produce a new entry by calling the `map_fn`, if the entry is occupied.
+    ///
+    /// If the entry is not occupied, a vacant entry with the same free-list tracking information is
+    /// returned.
     pub fn try_map_without_reference<B, E>(
         &self,
         map_fn: impl FnOnce(&T) -> Result<B, E>,
@@ -97,10 +115,12 @@ pub struct ControlFlowBlocks<T> {
 }
 
 impl<T> ControlFlowBlocks<T> {
+    /// Create a new tracking structure with no allocated capacity.
     #[inline]
     pub fn new() -> Self {
         Self::with_capacity(0)
     }
+    /// Create a new tracking structure with capacity pre-allocated for the given number of blocks.
     #[inline]
     pub fn with_capacity(cap: usize) -> Self {
         Self {
@@ -109,6 +129,7 @@ impl<T> ControlFlowBlocks<T> {
             num_free: 0,
         }
     }
+    /// Clear all tracked blocks, without affecting the capacity of the underlying allocations.
     pub fn clear(&mut self) {
         self.entries.clear();
         self.free = None;
@@ -171,6 +192,8 @@ impl<T> ControlFlowBlocks<T> {
     /// How many blocks are present (whether or not they have references).
     #[inline]
     pub fn len(&self) -> usize {
+        // The length of `self.entries` also contains `Vacant` slots, so we have to subtract the
+        // length of the free list to get the actual number of blocks.
         self.entries.len() - self.num_free
     }
     #[inline]
@@ -216,14 +239,26 @@ impl<T> ControlFlowBlocks<T> {
     }
     /// Add a new block with a reference already set.  Returns the new id.
     ///
-    /// Use [push] if you want to push a block to the system without adding a reference to it.
+    /// Use [push] if you want to push a block to the system without adding a reference to it.  This
+    /// function is logically equivalent to
+    /// ```
+    /// let new_id = blocks.push(block);
+    /// blocks.increment(new_id);
+    /// ```
+    ///
+    /// Neither this function, nor [push], attempt to de-deduplicate blocks with any sort of
+    /// hashing/lookup.
     #[inline]
     pub fn push_with_reference(&mut self, block: T) -> Block {
         self.push_with_refcount(block, 1)
     }
     /// Add a new block, but leave its refcount at 0.  Returns the new id.
     ///
-    /// Use [push_with_reference] if your intention is to immediately reference the block.
+    /// You can use [push_with_reference] if your intention is to immediately reference the block,
+    /// as a shorthand.
+    ///
+    /// Neither this function, nor [push_with_reference], attempt to de-deduplicate blocks with any
+    /// sort of hashing/lookup.
     #[inline]
     pub fn push(&mut self, block: T) -> Block {
         self.push_with_refcount(block, 0)
@@ -292,6 +327,7 @@ impl<T> ControlFlowBlocks<T> {
             .filter_map(|(idx, entry)| entry.block_mut().map(|block| (Block::new(idx), block)))
     }
 
+    /// Iterator over the raw entries of the tracker, including information about the free list.
     pub fn iter_raw(&self) -> impl ExactSizeIterator<Item = (Block, &Entry<T>)> {
         self.entries
             .iter()

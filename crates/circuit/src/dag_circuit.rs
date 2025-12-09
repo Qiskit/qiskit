@@ -6072,13 +6072,9 @@ impl DAGCircuit {
 
     /// Apply a [PackedInstruction] to the back of the circuit.
     ///
-    /// The provided `instr` MUST be valid for this DAG, e.g. its
-    /// bits, registers, vars, and interner IDs must be valid in
-    /// this DAG.
-    ///
-    /// This is mostly used to apply operations from one DAG to
-    /// another that was created from the first via
-    /// [DAGCircuit::copy_empty_like].
+    /// The caller must already have arranged for any interned tracking fields (such as `qubits`,
+    /// `clbits` and any `Block`s) to have been added to the DAG.  The function may panic, or other
+    /// produce an invalid data structure if not.
     #[inline]
     pub fn push_back(&mut self, instr: PackedInstruction) -> PyResult<NodeIndex> {
         self.push_external(instr, Direction::Outgoing)
@@ -6086,13 +6082,9 @@ impl DAGCircuit {
 
     /// Apply a [PackedInstruction] to the front of the circuit.
     ///
-    /// The provided `instr` MUST be valid for this DAG, e.g. its
-    /// bits, registers, vars, and interner IDs must be valid in
-    /// this DAG.
-    ///
-    /// This is mostly used to apply operations from one DAG to
-    /// another that was created from the first via
-    /// [DAGCircuit::copy_empty_like].
+    /// The caller must already have arranged for any interned tracking fields (such as `qubits`,
+    /// `clbits` and any `Block`s) to have been added to the DAG.  The function may panic, or other
+    /// produce an invalid data structure if not.
     #[inline]
     pub fn push_front(&mut self, instr: PackedInstruction) -> PyResult<NodeIndex> {
         self.push_external(instr, Direction::Incoming)
