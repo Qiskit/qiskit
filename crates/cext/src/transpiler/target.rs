@@ -1046,7 +1046,7 @@ pub unsafe extern "C" fn qk_target_instruction_supported(
 ///     QkTargetEntry *target_entry = qk_target_entry_new(QkGate_H);
 ///     qk_target_add_instruction(target, target_entry);
 ///
-///     size_t op_idx = qk_target_op_get_index(target, "h");
+///     size_t op_idx = qk_target_op_index(target, "h");
 /// ```
 ///
 /// # Safety
@@ -1055,10 +1055,7 @@ pub unsafe extern "C" fn qk_target_instruction_supported(
 /// Behavior is undefined if ``name`` is not a pointer to a valid null-terminated string.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_op_get_index(
-    target: *const Target,
-    name: *const c_char,
-) -> usize {
+pub unsafe extern "C" fn qk_target_op_index(target: *const Target, name: *const c_char) -> usize {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
 
     let target_borrowed = unsafe { const_ptr_as_ref(target) };
@@ -1108,45 +1105,6 @@ pub unsafe extern "C" fn qk_target_op_name(target: *const Target, index: usize) 
 }
 
 /// @ingroup QkTarget
-/// Checks whether an operation is present in the ``QkTarget`` instance by name.
-///
-/// @param target A pointer to the ``QkTarget``.
-/// @param name The string which we will look up.
-///
-/// @return Whether the instruction is in the Target or not.
-///
-/// # Example
-/// ```c
-///     QkTarget *target = qk_target_new(5);
-///     QkTargetEntry *target_entry = qk_target_entry_new(QkGate_H);
-///     qk_target_add_instruction(target, target_entry);
-///
-///     if (qk_target_contains(target, "h")) {
-///         printf("'h' has been added to the Target.");
-///     };
-/// ```
-///
-/// # Safety
-///
-/// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
-/// Behavior is undefined if ``name`` is not a pointer to a valid null-terminated string.
-#[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_contains(target: *const Target, name: *const c_char) -> bool {
-    // SAFETY: Per documentation, the pointer is non-null and aligned.
-    let target_borrowed = unsafe { const_ptr_as_ref(target) };
-    // SAFETY: Per documentation, this should point to a valid, null-terminated
-    // string.
-    let name = unsafe {
-        CStr::from_ptr(name)
-            .to_str()
-            .expect("Users must only pass valid UTF-8 strings")
-    };
-
-    target_borrowed.contains_key(name)
-}
-
-/// @ingroup QkTarget
 /// Return the number of properties defined for the specified operation in
 /// the ``QkTarget`` instance, a.k.a. the length of the property map. Panics
 /// if the operation index is not present.
@@ -1181,54 +1139,6 @@ pub unsafe extern "C" fn qk_target_op_num_properties(target: *const Target, inde
 }
 
 /// @ingroup QkTarget
-/// Checks if the provided qargs have been specified for the instruction referred to.
-///
-/// @param target A pointer to the ``QkTarget``.
-/// @param index The index in which the gate is stored.
-/// @param qargs A pointer to the array of ``uint32_t`` qubit indices to check for.
-///     Can be a null pointer to check for global properties.
-///
-/// @return Whether the operation is compatible with the specified qargs or not.
-///
-/// # Example
-/// ```c
-/// QkTarget *target = qk_target_new(5);
-///
-/// QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
-/// uint32_t qargs[2] = {0, 1};
-/// qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
-///
-/// qk_target_add_instruction(target, entry);
-///
-/// bool has_0_1 = qk_target_op_qargs_contains(target, 0, qargs); // will be true
-/// bool has_0_2 = qk_target_op_qargs_contains(target, 0, (uint32_t *){0, 2}); // will be false
-/// bool has_global = qk_target_op_qargs_contains(target, 0, NULL); // will be false
-/// ```
-///
-/// # Safety
-///
-/// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
-#[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_op_qargs_contains(
-    target: *const Target,
-    index: usize,
-    qargs: *const u32,
-) -> bool {
-    // SAFETY: Per documentation, the pointer is non-null and aligned.
-    let target_borrowed = unsafe { const_ptr_as_ref(target) };
-    let (_, inst_map) = target_borrowed
-        .get_by_index(index)
-        .expect("Operation indices must be present in the Target");
-    let op = target_borrowed.get_op_by_index(index).unwrap();
-
-    // SAFETY: Per the documentation the qubits pointer is an array of the size
-    // associated with the operation or a NULL pointer.
-    let parsed = unsafe { parse_qargs(qargs, op.num_qubits()) };
-    inst_map.contains_key(&parsed)
-}
-
-/// @ingroup QkTarget
 /// Retrieve the index at which some qargs are stored. Returns ``SIZE_MAX``
 /// if not found.
 ///
@@ -1249,7 +1159,7 @@ pub unsafe extern "C" fn qk_target_op_qargs_contains(
 /// qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
 /// qk_target_add_instruction(target, entry);
 ///
-/// size_t idx_0_1 = qk_target_op_qargs_get_index(target, 0, qargs);
+/// size_t idx_0_1 = qk_target_op_qargs_index(target, 0, qargs);
 /// ```
 ///
 /// # Safety
@@ -1257,7 +1167,7 @@ pub unsafe extern "C" fn qk_target_op_qargs_contains(
 /// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_op_qargs_get_index(
+pub unsafe extern "C" fn qk_target_op_qargs_index(
     target: *const Target,
     op_idx: usize,
     qargs: *const u32,
@@ -1298,7 +1208,7 @@ pub unsafe extern "C" fn qk_target_op_qargs_get_index(
 ///
 ///     uint32_t *qargs_retrieved;
 ///     uint32_t qargs_length;
-///     qk_target_op_qargs_get(target, 0, 0, &qargs_retrieved, &qargs_length);
+///     qk_target_op_qargs(target, 0, 0, &qargs_retrieved, &qargs_length);
 /// ```
 ///
 /// # Safety
@@ -1308,7 +1218,7 @@ pub unsafe extern "C" fn qk_target_op_qargs_get_index(
 /// store the indices in.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_op_qargs_get(
+pub unsafe extern "C" fn qk_target_op_qargs(
     target: *const Target,
     op_idx: usize,
     qarg_idx: usize,
@@ -1354,7 +1264,7 @@ pub unsafe extern "C" fn qk_target_op_qargs_get(
 ///     qk_target_add_instruction(target, entry);
 ///
 ///     QkInstructionProperties inst_props;
-///     qk_target_op_props_get(target, 0, 0, &inst_props);
+///     qk_target_op_props(target, 0, 0, &inst_props);
 /// ```
 ///
 /// # Safety
@@ -1364,7 +1274,7 @@ pub unsafe extern "C" fn qk_target_op_qargs_get(
 /// store ``QkInstructionProperties`` in.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_op_props_get(
+pub unsafe extern "C" fn qk_target_op_props(
     target: *const Target,
     op_idx: usize,
     qarg_idx: usize,

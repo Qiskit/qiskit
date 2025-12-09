@@ -5,13 +5,11 @@ features_c:
     been added to the C API. The following methods were added:
       
       * :c:func:`qk_target_op_num_properties`.
-      * :c:func:`qk_target_op_get_index`.
+      * :c:func:`qk_target_op_index`.
       * :c:func:`qk_target_op_name`.
-      * :c:func:`qk_target_contains`.
-      * :c:func:`qk_target_op_qargs_contains`.
-      * :c:func:`qk_target_op_qargs_get_index`.
-      * :c:func:`qk_target_op_qargs_get`.
-      * :c:func:`qk_target_op_props_get`.
+      * :c:func:`qk_target_op_qargs_index`.
+      * :c:func:`qk_target_op_qargs`.
+      * :c:func:`qk_target_op_props`.
 
     And the following representation was added:
       
@@ -64,9 +62,9 @@ features_c:
         size_t num_props = qk_target_op_num_properties(target, op_idx);
         for (size_t props_idx = 0; props_idx < num_props; props_idx++) {
           // Populate qargs
-          qk_target_op_qargs_get(target, op_idx, props_idx, &qargs, &qargs_len);
+          qk_target_op_qargs(target, op_idx, props_idx, &qargs, &qargs_len);
           // Populate properties
-          qk_target_op_props_get(target, op_idx, props_idx, &props);
+          qk_target_op_props(target, op_idx, props_idx, &props);
         }
         // Free the name string
         qk_str_free(name);

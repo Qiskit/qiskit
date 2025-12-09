@@ -691,8 +691,8 @@ static int test_target_iteration(void) {
 
         size_t num_props = qk_target_op_num_properties(target, op_idx);
         for (size_t props_idx = 0; props_idx < num_props; props_idx++) {
-            qk_target_op_qargs_get(target, op_idx, props_idx, &qargs, &qargs_len);
-            qk_target_op_props_get(target, op_idx, props_idx, &props);
+            qk_target_op_qargs(target, op_idx, props_idx, &qargs, &qargs_len);
+            qk_target_op_props(target, op_idx, props_idx, &props);
 
             // cx
             if (op_idx == 4) {
@@ -800,7 +800,7 @@ static int test_target_indexing(void) {
     int result = Ok;
 
     // Retrieve the index for CX
-    size_t cx_idx = qk_target_op_get_index(target, "cx");
+    size_t cx_idx = qk_target_op_index(target, "cx");
     if (cx_idx != 4) {
         printf("Invalid index for cx entry: expected %d, got %zu.\n", 4, cx_idx);
         result = EqualityError;
@@ -808,7 +808,7 @@ static int test_target_indexing(void) {
     }
 
     // Retrieve the index for cz (should fail).
-    size_t cz_idx = qk_target_op_get_index(target, "cz");
+    size_t cz_idx = qk_target_op_index(target, "cz");
     if (cz_idx != (size_t)-1) {
         printf("Found index for non-existing cz entry: got %zu.\n", cz_idx);
         result = EqualityError;
@@ -817,7 +817,7 @@ static int test_target_indexing(void) {
 
     // Check if qargs [0,1] exist in cx
     uint32_t cx_qargs_query[2] = {0, 1};
-    if (!qk_target_op_qargs_contains(target, cx_idx, cx_qargs_query)) {
+    if (qk_target_op_qargs_index(target, cx_idx, cx_qargs_query) != 6) {
         printf("Couldn't find valid qarg entry [0, 1] for cx.\n");
         result = EqualityError;
         goto cleanup;
@@ -825,14 +825,14 @@ static int test_target_indexing(void) {
 
     // Check if qargs [2,3] exist in cx (should fail)
     uint32_t cx_qargs_bad_query[2] = {2, 3};
-    if (qk_target_op_qargs_contains(target, cx_idx, cx_qargs_bad_query)) {
+    if (qk_target_op_qargs_index(target, cx_idx, cx_qargs_bad_query) != (size_t)-1) {
         printf("Found valid qarg entry non-existing qargs [2, 3] for cx.\n");
         result = EqualityError;
         goto cleanup;
     }
 
     // Since index exists, this should return properly
-    size_t cx_qargs_idx = qk_target_op_qargs_get_index(target, cx_idx, cx_qargs_query);
+    size_t cx_qargs_idx = qk_target_op_qargs_index(target, cx_idx, cx_qargs_query);
     if (cx_qargs_idx != 6) {
         printf("Invalid index for cx qargs [0,1]: expected %d, got %zu.\n", 6, cx_idx);
         result = EqualityError;
@@ -840,7 +840,7 @@ static int test_target_indexing(void) {
     }
 
     // Same test on the invalid query
-    size_t cx_qargs_bad_idx = qk_target_op_qargs_get_index(target, cx_idx, cx_qargs_bad_query);
+    size_t cx_qargs_bad_idx = qk_target_op_qargs_index(target, cx_idx, cx_qargs_bad_query);
     if (cx_qargs_bad_idx != (size_t)-1) {
         printf("Found index for non-existing qargs [2,3].\n");
         result = EqualityError;
@@ -852,7 +852,7 @@ static int test_target_indexing(void) {
     uint32_t *cx_qargs;
     int32_t cx_qargs_len;
 
-    qk_target_op_qargs_get(target, cx_idx, 1, &cx_qargs, &cx_qargs_len);
+    qk_target_op_qargs(target, cx_idx, 1, &cx_qargs, &cx_qargs_len);
     if (!compare_qargs(cx_qargs, (uint32_t[2]){4, 3}, cx_qargs_len)) {
         printf("Retrieved incorrect qargs, expected [4, 3], got [%u, %u]\n", cx_qargs[0],
                cx_qargs[1]);
@@ -860,7 +860,7 @@ static int test_target_indexing(void) {
         goto cleanup;
     }
 
-    qk_target_op_props_get(target, cx_idx, 1, &cx_props);
+    qk_target_op_props(target, cx_idx, 1, &cx_props);
 
     if (cx_props.duration != 3.0577e-11) {
         printf("Retrieved incorrect duration property, expected 3.0577e-11, got %lf.\n",
@@ -875,7 +875,7 @@ static int test_target_indexing(void) {
     }
 
     // Try retrieving global index for y gate
-    size_t y_idx = qk_target_op_get_index(target, "y");
+    size_t y_idx = qk_target_op_index(target, "y");
     if (y_idx != 5) {
         printf("Invalid index for y entry: expected %d, got %zu.\n", 5, y_idx);
         result = EqualityError;
@@ -884,7 +884,7 @@ static int test_target_indexing(void) {
 
     uint32_t *y_qargs;
     int32_t y_qargs_len;
-    qk_target_op_qargs_get(target, y_idx, 0, &y_qargs, &y_qargs_len);
+    qk_target_op_qargs(target, y_idx, 0, &y_qargs, &y_qargs_len);
 
     if (y_qargs != NULL) {
         printf("Obtained non-null global qargs at index 0 for 'y'.\n");
@@ -893,7 +893,7 @@ static int test_target_indexing(void) {
     }
 
     // Try retrieving [] index for global_phase gate
-    size_t gp_idx = qk_target_op_get_index(target, "global_phase");
+    size_t gp_idx = qk_target_op_index(target, "global_phase");
     if (gp_idx != 6) {
         printf("Invalid index for y entry: expected %d, got %zu.\n", 6, gp_idx);
         result = EqualityError;
@@ -902,7 +902,7 @@ static int test_target_indexing(void) {
 
     uint32_t *gp_qargs;
     int32_t gp_qargs_len;
-    qk_target_op_qargs_get(target, gp_idx, 0, &gp_qargs, &gp_qargs_len);
+    qk_target_op_qargs(target, gp_idx, 0, &gp_qargs, &gp_qargs_len);
 
     if (gp_qargs == NULL || gp_qargs_len != 0) {
         printf("Obtained null or invalid qargs at index 0 for 'global_phase'.\n");
