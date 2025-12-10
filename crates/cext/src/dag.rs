@@ -1321,7 +1321,6 @@ pub unsafe extern "C" fn qk_dag_compose(
     clbits: *const u32,
 ) -> ExitCode {
     // SAFETY: Per documentation, the pointer is to valid data.
-
     let dag = unsafe { mut_ptr_as_ref(dag) };
     // SAFETY: Per documentation, the pointer is to valid data.
     let other_dag = unsafe { const_ptr_as_ref(other) };
