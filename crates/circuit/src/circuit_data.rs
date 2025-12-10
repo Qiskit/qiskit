@@ -1881,51 +1881,13 @@ impl CircuitData {
 
     /// Gets an immutable view of a control flow operation.
     ///
-    /// The provided `instr` MUST belong to this circuit.
+    /// Panics or produces incorrect results if `instr` is not from this circuit (or compatible with
+    /// it, e.g. from a mapped [ControlFlowBlocks]).
     pub fn try_view_control_flow<'a>(
         &'a self,
         instr: &'a PackedInstruction,
     ) -> Option<ControlFlowView<'a, Py<PyAny>>> {
-        let OperationRef::ControlFlow(control) = instr.op.view() else {
-            return None;
-        };
-        Some(match &control.control_flow {
-            ControlFlow::Box { duration, .. } => {
-                ControlFlowView::Box(duration.as_ref(), &self.blocks[instr.blocks_view()[0]])
-            }
-            ControlFlow::BreakLoop => ControlFlowView::BreakLoop,
-            ControlFlow::ContinueLoop => ControlFlowView::ContinueLoop,
-            ControlFlow::ForLoop {
-                collection,
-                loop_param,
-                ..
-            } => ControlFlowView::ForLoop {
-                collection,
-                loop_param: loop_param.as_ref(),
-                body: &self.blocks[instr.blocks_view()[0]],
-            },
-            ControlFlow::IfElse { condition, .. } => ControlFlowView::IfElse {
-                condition,
-                true_body: &self.blocks[instr.blocks_view()[0]],
-                false_body: instr.blocks_view().get(1).map(|b| &self.blocks[*b]),
-            },
-            ControlFlow::Switch {
-                target, label_spec, ..
-            } => {
-                let cases_specifier = label_spec
-                    .iter()
-                    .zip(instr.blocks_view().iter().map(|case| &self.blocks[*case]))
-                    .collect();
-                ControlFlowView::Switch {
-                    target,
-                    cases_specifier,
-                }
-            }
-            ControlFlow::While { condition, .. } => ControlFlowView::While {
-                condition,
-                body: &self.blocks[instr.blocks_view()[0]],
-            },
-        })
+        ControlFlowView::try_from_instruction(instr, &self.blocks)
     }
 
     pub fn copy_empty_like(&self, vars_mode: VarsMode, blocks_mode: BlocksMode) -> PyResult<Self> {

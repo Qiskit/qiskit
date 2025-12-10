@@ -2294,8 +2294,14 @@ impl DAGCircuit {
 
                             match (cf1, cf2) {
                                 (
-                                    ControlFlowView::Box(duration_a, body_a),
-                                    ControlFlowView::Box(duration_b, body_b),
+                                    ControlFlowView::Box {
+                                        duration: duration_a,
+                                        body: body_a,
+                                    },
+                                    ControlFlowView::Box {
+                                        duration: duration_b,
+                                        body: body_b,
+                                    },
                                 ) => {
                                     let duration_eq = match duration_a {
                                         Some(BoxDuration::Expr(duration_a)) => match duration_b {
@@ -5054,50 +5060,14 @@ impl DAGCircuit {
     }
 
     /// Gets an immutable view of a control flow operation.
+    ///
+    /// Panics or produces incorrect results if `instr` is not from this DAG (or compatible with it,
+    /// e.g. from a mapped [ControlFlowBlocks]).
     pub fn try_view_control_flow<'a>(
         &'a self,
         instr: &'a PackedInstruction,
     ) -> Option<ControlFlowView<'a, DAGCircuit>> {
-        let OperationRef::ControlFlow(control) = instr.op.view() else {
-            return None;
-        };
-        Some(match &control.control_flow {
-            ControlFlow::Box { duration, .. } => {
-                ControlFlowView::Box(duration.as_ref(), &self.blocks[instr.blocks_view()[0]])
-            }
-            ControlFlow::BreakLoop => ControlFlowView::BreakLoop,
-            ControlFlow::ContinueLoop => ControlFlowView::ContinueLoop,
-            ControlFlow::ForLoop {
-                collection,
-                loop_param,
-                ..
-            } => ControlFlowView::ForLoop {
-                collection,
-                loop_param: loop_param.as_ref(),
-                body: &self.blocks[instr.blocks_view()[0]],
-            },
-            ControlFlow::IfElse { condition, .. } => ControlFlowView::IfElse {
-                condition,
-                true_body: &self.blocks[instr.blocks_view()[0]],
-                false_body: instr.blocks_view().get(1).map(|b| &self.blocks[*b]),
-            },
-            ControlFlow::Switch {
-                target, label_spec, ..
-            } => {
-                let cases_specifier = label_spec
-                    .iter()
-                    .zip(instr.blocks_view().iter().map(|case| &self.blocks[*case]))
-                    .collect();
-                ControlFlowView::Switch {
-                    target,
-                    cases_specifier,
-                }
-            }
-            ControlFlow::While { condition, .. } => ControlFlowView::While {
-                condition,
-                body: &self.blocks[instr.blocks_view()[0]],
-            },
-        })
+        ControlFlowView::try_from_instruction(instr, &self.blocks)
     }
 
     /// Build a reference to the Python-space operation object (the `Gate`, etc) packed into an
@@ -6447,7 +6417,7 @@ impl DAGCircuit {
                 },
 
                 // These don't have any classical wires
-                ControlFlowView::Box(_, _)
+                ControlFlowView::Box { .. }
                 | ControlFlowView::BreakLoop
                 | ControlFlowView::ContinueLoop
                 | ControlFlowView::ForLoop { .. } => {}
