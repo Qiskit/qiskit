@@ -1151,6 +1151,7 @@ cleanup:
     qk_quantum_register_free(lqr);
     qk_classical_register_free(lcr);
     qk_quantum_register_free(rqr);
+    qk_classical_register_free(rcr);
     return result;
 }
 
