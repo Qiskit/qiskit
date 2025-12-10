@@ -24,7 +24,7 @@ Ross-Selinger Synthesis Plugin (in :mod:`qiskit.transpiler.passes.synthesis.ross
 from __future__ import annotations
 
 from qiskit.converters import circuit_to_dag
-from qiskit.synthesis import approximate_1q_unitary
+from qiskit.synthesis import gridsynth_unitary
 
 from .plugin import UnitarySynthesisPlugin
 
@@ -107,5 +107,5 @@ class RossSelingerSynthesis(UnitarySynthesisPlugin):
         # and compute epsilon based on that.
         epsilon = options.get("epsilon", 1e-10)
 
-        approximate_circuit = approximate_1q_unitary(unitary, epsilon)
+        approximate_circuit = gridsynth_unitary(unitary, epsilon)
         return circuit_to_dag(approximate_circuit)

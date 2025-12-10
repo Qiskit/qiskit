@@ -33,7 +33,7 @@ from qiskit.circuit.library import (
 from qiskit.quantum_info import Operator
 from qiskit.quantum_info import get_clifford_gate_names
 from qiskit.quantum_info.random import random_unitary
-from qiskit.synthesis import approximate_rz_rotation, approximate_1q_unitary
+from qiskit.synthesis import gridsynth_rz, gridsynth_unitary
 from qiskit.converters import dag_to_circuit
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import UnitarySynthesis, Collect1qRuns, ConsolidateBlocks
@@ -53,52 +53,50 @@ CLIFFORD_T_GATES_SET = set(get_clifford_gate_names() + ["t", "tdg"])
 class TestRossSelingerSynthesis(QiskitTestCase):
     """Test Ross-Selinger synthesis methods."""
 
-    def test_approximate_rz_rotation_correct(self):
-        """Test that approximate_rz_rotation works correctly."""
+    def test_gridsynth_rz_correct(self):
+        """Test that gridsynth_rz works correctly."""
         num_trials = 40
         for angle in np.linspace(-2 * np.pi, 2 * np.pi, num_trials):
             with self.subTest(angle=angle):
                 # Approximate RZ-rotation
-                approximate_circuit = approximate_rz_rotation(angle, 1e-10)
+                approximate_circuit = gridsynth_rz(angle, 1e-10)
                 # Check the operators are (almost) equal
                 self.assertEqual(Operator(approximate_circuit), Operator(RZGate(angle)))
 
     @data(10, -10)
-    def test_approximate_rz_rotation_with_nonstandard_angles(self, angle):
-        """Test that approximate_rz_rotation works correctly."""
+    def test_gridsynth_rz_with_nonstandard_angles(self, angle):
+        """Test that gridsynth_rz works correctly."""
         # Approximate RZ-rotation
-        approximate_circuit = approximate_rz_rotation(angle, 1e-10)
+        approximate_circuit = gridsynth_rz(angle, 1e-10)
         # Check the operators are (almost) equal
         self.assertEqual(Operator(approximate_circuit), Operator(RZGate(angle)))
 
-    def test_approximate_1q_unitary_correct(self):
-        """Test that approximate_1q_unitary works correctly."""
+    def test_gridsynth_unitary_correct(self):
+        """Test that gridsynth_unitary works correctly."""
         num_trials = 50
         for seed in range(num_trials):
             with self.subTest(seed=seed):
                 # Create a random 1q unitary.
                 unitary = random_unitary(2, seed=seed)
                 # Approximate unitary
-                approximate_circuit = approximate_1q_unitary(unitary.data, 1e-10)
+                approximate_circuit = gridsynth_unitary(unitary.data, 1e-10)
                 # Check the operators are (almost) equal
                 self.assertEqual(Operator(approximate_circuit), Operator(unitary))
 
-    def test_approximate_rz_rotation_deterministic(self):
-        """Test that calling approximate_rz_rotation multiple times produces the same circuit."""
+    def test_gridsynth_rz_deterministic(self):
+        """Test that calling gridsynth_rz multiple times produces the same circuit."""
         angle = 1.2345
         num_trials = 10
-        approximate_circuits = [approximate_rz_rotation(angle, 1e-10) for _ in range(num_trials)]
+        approximate_circuits = [gridsynth_rz(angle, 1e-10) for _ in range(num_trials)]
 
         for idx in range(1, len(approximate_circuits)):
             self.assertEqual(approximate_circuits[idx], approximate_circuits[0])
 
-    def test_approximate_1q_unitary_deterministic(self):
-        """Test that calling approximate_1q_unitary multiple times produces the same circuit."""
+    def test_gridsynth_unitary_deterministic(self):
+        """Test that calling gridsynth_unitary multiple times produces the same circuit."""
         unitary = random_unitary(2, seed=12345)
         num_trials = 10
-        approximate_circuits = [
-            approximate_1q_unitary(unitary.data, 1e-10) for _ in range(num_trials)
-        ]
+        approximate_circuits = [gridsynth_unitary(unitary.data, 1e-10) for _ in range(num_trials)]
 
         for idx in range(1, len(approximate_circuits)):
             self.assertEqual(approximate_circuits[idx], approximate_circuits[0])
@@ -111,7 +109,7 @@ class TestRossSelingerSynthesis(QiskitTestCase):
         circuit = QuantumCircuit(1)
         circuit.append(clifford_gate, [0])
         matrix = Operator(circuit).data
-        approximate_circuit = approximate_1q_unitary(matrix)
+        approximate_circuit = gridsynth_unitary(matrix)
         self.assertLessEqual(set(approximate_circuit.count_ops()), CLIFFORD_GATES_1Q_SET)
 
     def test_t_matrix(self):
@@ -120,7 +118,7 @@ class TestRossSelingerSynthesis(QiskitTestCase):
         circuit = QuantumCircuit(1)
         circuit.t(0)
         matrix = Operator(circuit).data
-        approximate_circuit = approximate_1q_unitary(matrix)
+        approximate_circuit = gridsynth_unitary(matrix)
         self.assertEqual(approximate_circuit.count_ops().get("t", 0), 1)
         self.assertEqual(approximate_circuit.count_ops().get("tdg", 0), 0)
 
@@ -130,7 +128,7 @@ class TestRossSelingerSynthesis(QiskitTestCase):
         circuit = QuantumCircuit(1)
         circuit.tdg(0)
         matrix = Operator(circuit).data
-        approximate_circuit = approximate_1q_unitary(matrix)
+        approximate_circuit = gridsynth_unitary(matrix)
         self.assertEqual(approximate_circuit.count_ops().get("t", 0), 1)
         self.assertEqual(approximate_circuit.count_ops().get("tdg", 0), 0)
 

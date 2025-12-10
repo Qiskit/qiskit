@@ -19,11 +19,11 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 
-from qiskit._accelerate.ross_selinger import approximate_rz_rotation as approximate_rz_rotation_rs
-from qiskit._accelerate.ross_selinger import approximate_1q_unitary as approximate_1q_unitary_rs
+from qiskit._accelerate.ross_selinger import gridsynth_rz as gridsynth_rz_rs
+from qiskit._accelerate.ross_selinger import gridsynth_unitary as gridsynth_unitary_rs
 
 
-def approximate_rz_rotation(angle: float, epsilon: float = 1e-10) -> QuantumCircuit:
+def gridsynth_rz(angle: float, epsilon: float = 1e-10) -> QuantumCircuit:
     """
     Approximate RZ-rotation using the Ross-Selinger algorithm.
 
@@ -44,14 +44,14 @@ def approximate_rz_rotation(angle: float, epsilon: float = 1e-10) -> QuantumCirc
 
     """
 
-    approximate_circuit_data = approximate_rz_rotation_rs(angle, epsilon)
+    approximate_circuit_data = gridsynth_rz_rs(angle, epsilon)
     approximate_circuit = QuantumCircuit._from_circuit_data(
         approximate_circuit_data, legacy_qubits=True
     )
     return approximate_circuit
 
 
-def approximate_1q_unitary(matrix: np.ndarray, epsilon: float = 1e-10) -> QuantumCircuit:
+def gridsynth_unitary(matrix: np.ndarray, epsilon: float = 1e-10) -> QuantumCircuit:
     """
     Approximate a 1-qubit unitary matrix using the Ross-Selinger algorithm.
 
@@ -72,7 +72,7 @@ def approximate_1q_unitary(matrix: np.ndarray, epsilon: float = 1e-10) -> Quantu
 
     """
 
-    approximate_circuit_data = approximate_1q_unitary_rs(matrix, epsilon)
+    approximate_circuit_data = gridsynth_unitary_rs(matrix, epsilon)
     approximate_circuit = QuantumCircuit._from_circuit_data(
         approximate_circuit_data, legacy_qubits=True
     )
