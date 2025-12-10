@@ -11,9 +11,9 @@
 # that they have been altered from the originals.
 
 """
-==================================================================================================
-Ross-Selinger Synthesis Plugin (in :mod:`qiskit.transpiler.passes.synthesis.ross_selinger_plugin`)
-==================================================================================================
+==============================
+Ross-Selinger Synthesis Plugin
+==============================
 
 .. autosummary::
    :toctree: ../stubs/
