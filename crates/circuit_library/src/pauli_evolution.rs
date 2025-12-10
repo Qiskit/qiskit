@@ -17,7 +17,7 @@ use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::operations;
 use qiskit_circuit::operations::{Param, StandardGate, multiply_param, radd_param};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::{Clbit, Qubit};
+use qiskit_circuit::{Clbit, NoBlocks, Qubit};
 use smallvec::{SmallVec, smallvec};
 
 // custom type for a more readable code
@@ -493,7 +493,7 @@ fn add_control(gate: StandardGate, params: &[Param], control_state: &[bool]) -> 
                 (num_controls, label, py_control_state, false),
             )
             .expect("Failed to call .control()")
-            .extract::<OperationFromPython>(py)
+            .extract::<OperationFromPython<NoBlocks>>(py)
             .expect("The control state should be valid and match the number of controls.");
 
         controlled_gate.operation

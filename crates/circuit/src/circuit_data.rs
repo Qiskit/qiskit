@@ -897,8 +897,8 @@ impl CircuitData {
                 continue;
             }
             let py_op = func.call1((self.unpack_py_op(py, instr)?,))?;
-            let result = py_op.extract::<OperationFromPython>()?;
-            let params = self.extract_blocks_from_circuit_parameters(result.params.as_ref());
+            let result = py_op.extract::<OperationFromPython<CircuitData>>()?;
+            let params = self.take_parameter_blocks(result.params);
             let inst = &mut self.data[index];
             inst.op = result.operation;
             inst.params = params;
@@ -1205,7 +1205,7 @@ impl CircuitData {
                 let qubits_id = self.qargs_interner.insert_owned(qubits);
                 let clbits_id = self.cargs_interner.insert_owned(clbits);
                 let params = inst.params.as_ref().map(|params| {
-                    Box::new(params.map_blocks(|b| self.blocks.push(other.blocks[*b].clone())))
+                    Box::new(params.map_blocks_ref(|b| self.blocks.push(other.blocks[*b].clone())))
                 });
                 self.push(PackedInstruction {
                     op: inst.op.clone(),
@@ -1847,18 +1847,26 @@ impl CircuitData {
         self.blocks.push(block)
     }
 
-    /// Given a `params` object in terms of owned Python-space circuit objects (such as from an
-    /// `OperationFromPython` extraction), add all the blocks to the circuit and return the `params`
-    /// field suitable for inclusion in a `PackedInstruction`.
+    /// Take the blocks from an extraction from an `OperationFromPython<CircuitData>` and add them
+    /// to this circuit.
     ///
-    /// The inverse of this method is [unpack_blocks_to_circuit_parameters].
+    /// Returns the parameters in terms of block references.
+    fn take_parameter_blocks(
+        &mut self,
+        params: Option<Parameters<CircuitData>>,
+    ) -> Option<Box<Parameters<Block>>> {
+        params.map(|params| Box::new(params.map_blocks(|block| self.add_block(block))))
+    }
+
+    /// Extract the blocks from a Python-space `CircuitInstruction` and add them to this DAG.
+    ///
+    /// The inverse of this is [unpack_blocks_to_circuit_parameters].  The version for when you can
+    /// take the blocks directly is [take_parameter_blocks].
     fn extract_blocks_from_circuit_parameters(
         &mut self,
         params: Option<&Parameters<CircuitData>>,
     ) -> Option<Box<Parameters<Block>>> {
-        params
-            .map(|params| params.map_blocks(|block| self.add_block(block.clone())))
-            .map(Box::new)
+        params.map(|params| Box::new(params.map_blocks_ref(|block| self.add_block(block.clone()))))
     }
 
     /// Given a `params` object from an instruction packed into this circuit, extract any relevant
@@ -1870,7 +1878,7 @@ impl CircuitData {
         &self,
         params: Option<&Parameters<Block>>,
     ) -> Option<Parameters<CircuitData>> {
-        params.map(|params| params.map_blocks(|block| self.blocks[*block].clone()))
+        params.map(|params| params.map_blocks_ref(|block| self.blocks[*block].clone()))
     }
 
     /// Gets an immutable view of a control flow operation.
@@ -2836,17 +2844,13 @@ impl CircuitData {
                                 };
                                 op.getattr(intern!(py, "params"))?
                                     .set_item(parameter, new_param)?;
-                                let new_op = op.extract::<OperationFromPython>()?;
+                                let new_op = op.extract::<OperationFromPython<CircuitData>>()?;
                                 previous.op = new_op.operation;
-                                previous.params = match new_op.params {
-                                    Some(Parameters::Params(params)) => {
-                                        Some(Box::new(Parameters::Params(params)))
-                                    }
-                                    Some(Parameters::Blocks(_)) => {
-                                        unreachable!("unexpected control flow")
-                                    }
-                                    None => None,
-                                };
+                                previous.params = new_op.params.map(|params| {
+                                    Box::new(
+                                        params.map_blocks(|_| panic!("unexpected control flow")),
+                                    )
+                                });
                                 previous.label = new_op.label;
                                 #[cfg(feature = "cache_pygates")]
                                 {

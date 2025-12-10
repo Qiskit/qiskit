@@ -16,7 +16,7 @@ use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::operations::{Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::{Clbit, Qubit};
+use qiskit_circuit::{Clbit, NoBlocks, Qubit};
 use smallvec::{SmallVec, smallvec};
 
 type CCXChainItem = PyResult<(
@@ -92,7 +92,7 @@ fn ccx_chain<'a>(
 #[pyfunction]
 #[pyo3(signature = (controlled_gate, num_ctrl_qubits, num_target_qubits, control_state=None))]
 pub fn mcmt_v_chain(
-    mut controlled_gate: OperationFromPython,
+    mut controlled_gate: OperationFromPython<NoBlocks>,
     num_ctrl_qubits: usize,
     num_target_qubits: usize,
     control_state: Option<usize>,
