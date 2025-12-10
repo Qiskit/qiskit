@@ -10,9 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-#[cfg(feature = "cache_pygates")]
-use std::sync::OnceLock;
-
 use pyo3::intern;
 use pyo3::prelude::*;
 
@@ -20,8 +17,8 @@ use crate::bit::{ShareableClbit, ShareableQubit};
 use crate::circuit_data::{CircuitData, CircuitVar};
 use crate::dag_circuit::DAGIdentifierInfo;
 use crate::dag_circuit::{DAGCircuit, NodeType};
+use crate::imports;
 use crate::operations::{OperationRef, PythonOperation};
-use crate::packed_instruction::PackedInstruction;
 
 /// An extractable representation of a QuantumCircuit reserved only for
 /// conversion purposes.
@@ -59,9 +56,18 @@ pub fn circuit_to_dag(
 
 #[pyfunction(signature = (dag, copy_operations = true))]
 pub fn dag_to_circuit(dag: &DAGCircuit, copy_operations: bool) -> PyResult<CircuitData> {
+    let blocks = dag.blocks().try_map_without_references(|block| {
+        Python::attach(|py| {
+            imports::DAG_TO_CIRCUIT
+                .get_bound(py)
+                .call1((block.clone(),))
+                .map(|ob| ob.unbind())
+        })
+    })?;
     CircuitData::from_packed_instructions(
         dag.qubits().clone(),
         dag.clbits().clone(),
+        blocks,
         dag.qargs_interner().clone(),
         dag.cargs_interner().clone(),
         dag.qregs_data().clone(),
@@ -76,6 +82,7 @@ pub fn dag_to_circuit(dag: &DAGCircuit, copy_operations: bool) -> PyResult<Circu
             };
             if copy_operations {
                 let op = match instr.op.view() {
+                    OperationRef::ControlFlow(cf) => cf.clone().into(),
                     OperationRef::Gate(gate) => {
                         Python::attach(|py| gate.py_deepcopy(py, None))?.into()
                     }
@@ -90,15 +97,9 @@ pub fn dag_to_circuit(dag: &DAGCircuit, copy_operations: bool) -> PyResult<Circu
                     OperationRef::Unitary(unitary) => unitary.clone().into(),
                     OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
                 };
-                Ok(PackedInstruction {
-                    op,
-                    qubits: instr.qubits,
-                    clbits: instr.clbits,
-                    params: Some(Box::new(instr.params_view().iter().cloned().collect())),
-                    label: instr.label.clone(),
-                    #[cfg(feature = "cache_pygates")]
-                    py_op: OnceLock::new(),
-                })
+                let mut instr = instr.clone();
+                instr.op = op;
+                Ok(instr)
             } else {
                 Ok(instr.clone())
             }

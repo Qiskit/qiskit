@@ -60,12 +60,12 @@ pub enum ExitCode {
     TargetInvalidInstKey = 304,
     /// Transpilation failed
     TranspilerError = 400,
-    /// DAG related error,
-    DAGError = 500,
+    /// QkDag operation error
+    DagError = 500,
     /// The DAGs have mismatching qubit/clbit amounts during compose.
-    DAGComposeMismatch = 501,
+    DagComposeMismatch = 501,
     /// One or more bit indices were not found during compose.
-    DAGComposeMissingBit = 502,
+    DagComposeMissingBit = 502,
 }
 
 impl From<ArithmeticError> for ExitCode {
