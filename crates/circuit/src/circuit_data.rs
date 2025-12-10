@@ -899,16 +899,7 @@ impl CircuitData {
             }
             let py_op = func.call1((self.unpack_py_op(py, instr)?,))?;
             let result = py_op.extract::<OperationFromPython>()?;
-            let params = match result.params {
-                Some(Parameters::Blocks(circuits)) => Some(Box::new(Parameters::Blocks(
-                    circuits
-                        .into_iter()
-                        .map(|circuit| self.blocks.push(circuit))
-                        .collect(),
-                ))),
-                Some(Parameters::Params(params)) => Some(Box::new(Parameters::Params(params))),
-                None => None,
-            };
+            let params = self.extract_blocks_from_circuit_parameters(result.params.as_ref());
             let inst = &mut self.data[index];
             inst.op = result.operation;
             inst.params = params;
@@ -1043,16 +1034,7 @@ impl CircuitData {
             let inst = &self.data[index];
             let qubits = self.qargs_interner.get(inst.qubits);
             let clbits = self.cargs_interner.get(inst.clbits);
-            let params = match inst.params.as_deref() {
-                Some(Parameters::Blocks(blocks)) => Some(Parameters::Blocks(
-                    blocks
-                        .iter()
-                        .map(|block| self.blocks[*block].clone_ref(py))
-                        .collect(),
-                )),
-                Some(Parameters::Params(params)) => Some(Parameters::Params(params.clone())),
-                None => None,
-            };
+            let params = self.unpack_blocks_to_circuit_parameters(inst.params.as_deref());
             CircuitInstruction {
                 operation: inst.op.clone(),
                 qubits: PyTuple::new(py, self.qubits.map_indices(qubits))
@@ -1224,15 +1206,11 @@ impl CircuitData {
                     .collect::<PyResult<Vec<Clbit>>>()?;
                 let qubits_id = self.qargs_interner.insert_owned(qubits);
                 let clbits_id = self.cargs_interner.insert_owned(clbits);
-                let params = match inst.params.as_deref() {
-                    Some(Parameters::Blocks(blocks)) => Some(Box::new(Parameters::Blocks(
-                        blocks
-                            .iter()
-                            .map(|b| self.blocks.push(other.blocks[*b].clone_ref(py)))
-                            .collect(),
-                    ))),
-                    _ => inst.params.clone(),
-                };
+                let params = inst.params.as_ref().map(|params| {
+                    Box::new(
+                        params.map_blocks(|b| self.blocks.push(other.blocks[*b].clone_ref(py))),
+                    )
+                });
                 self.push(PackedInstruction {
                     op: inst.op.clone(),
                     qubits: qubits_id,
@@ -1837,16 +1815,7 @@ impl CircuitData {
                 return Ok(ob.clone_ref(py));
             }
         }
-        let params = match instr.params.as_deref() {
-            Some(Parameters::Blocks(blocks)) => Some(Parameters::Blocks(
-                blocks
-                    .iter()
-                    .map(|b| self.blocks[*b].clone_ref(py))
-                    .collect(),
-            )),
-            Some(Parameters::Params(params)) => Some(Parameters::Params(params.clone())),
-            None => None,
-        };
+        let params = self.unpack_blocks_to_circuit_parameters(instr.params.as_deref());
         let out = instruction::create_py_op(
             py,
             instr.op.view(),
@@ -1877,6 +1846,36 @@ impl CircuitData {
     /// within the circuit.
     pub fn add_block(&mut self, block: Py<PyAny>) -> Block {
         self.blocks.push(block)
+    }
+
+    /// Given a `params` object in terms of owned Python-space circuit objects (such as from an
+    /// `OperationFromPython` extraction), add all the blocks to the circuit and return the `params`
+    /// field suitable for inclusion in a `PackedInstruction`.
+    ///
+    /// The inverse of this method is [unpack_blocks_to_circuit_parameters].
+    fn extract_blocks_from_circuit_parameters(
+        &mut self,
+        params: Option<&Parameters<Py<PyAny>>>,
+    ) -> Option<Box<Parameters<Block>>> {
+        params
+            .map(|params| {
+                params.map_blocks(|block| Python::attach(|py| self.add_block(block.clone_ref(py))))
+            })
+            .map(Box::new)
+    }
+
+    /// Given a `params` object from an instruction packed into this circuit, extract any relevant
+    /// blocks into the owned-object `CircuitData` block type, suitable for passing back to Python
+    /// space.
+    ///
+    /// The inverse of this method is [extract_blocks_from_circuit_parameters].
+    fn unpack_blocks_to_circuit_parameters(
+        &self,
+        params: Option<&Parameters<Block>>,
+    ) -> Option<Parameters<Py<PyAny>>> {
+        params.map(|params| {
+            params.map_blocks(|block| Python::attach(|py| self.blocks[*block].clone_ref(py)))
+        })
     }
 
     /// Gets an immutable view of a control flow operation.
@@ -2549,16 +2548,7 @@ impl CircuitData {
                 .map_objects(inst.clbits.extract::<Vec<ShareableClbit>>(py)?.into_iter())?
                 .collect(),
         );
-        let params = match &inst.params {
-            Some(Parameters::Blocks(circuits)) => Some(Box::new(Parameters::Blocks(
-                circuits
-                    .iter()
-                    .map(|circuit| self.blocks.push(circuit.clone_ref(py)))
-                    .collect(),
-            ))),
-            Some(Parameters::Params(params)) => Some(Box::new(Parameters::Params(params.clone()))),
-            None => None,
-        };
+        let params = self.extract_blocks_from_circuit_parameters(inst.params.as_ref());
         Ok(PackedInstruction {
             op: inst.operation.clone(),
             qubits,
