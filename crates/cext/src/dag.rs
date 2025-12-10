@@ -13,7 +13,6 @@
 use anyhow::Error;
 use num_complex::Complex64;
 use smallvec::smallvec;
-use std::ptr::slice_from_raw_parts;
 
 use crate::exit_codes::ExitCode;
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister, ShareableClbit, ShareableQubit};
@@ -1309,12 +1308,11 @@ pub unsafe extern "C" fn qk_dag_compose(
     };
 
     let clbits: Option<Vec<ShareableClbit>> = if check_ptr(clbits).is_ok() {
-        let clbits: Box<[u32]> =
-            unsafe { Box::from_raw(slice_from_raw_parts(clbits, num_clbits as usize).cast_mut()) };
+        let clbits = unsafe { std::slice::from_raw_parts(clbits, num_clbits as usize) };
         let new_clbits: Result<Vec<ShareableClbit>, ExitCode> = clbits
-            .into_iter()
+            .iter()
             .map(|bit| -> Result<ShareableClbit, ExitCode> {
-                let Some(clbit) = dag.clbits().get(Clbit(bit)) else {
+                let Some(clbit) = dag.clbits().get(Clbit(*bit)) else {
                     return Err(ExitCode::DagComposeMissingBit);
                 };
                 Ok(clbit.clone())
