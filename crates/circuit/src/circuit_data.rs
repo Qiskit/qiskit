@@ -3414,13 +3414,14 @@ where
     }
 }
 
-/// Perform an action for each `ParameterUse` of a `Symbol` within a control-flow view object.
+/// Perform an action for each `ParameterUse` of a `Symbol` within a control-flow view object from
+/// the given circuit index.
 ///
 /// This encapsulates the logic of both [CircuitData::track_parameters] and
 /// [CircuitData::untrack_parameters].
 fn for_each_symbol_use_in_control_flow<F, E>(
     py: Python,
-    index: usize,
+    instruction_index: usize,
     cf: ControlFlowView<Py<PyAny>>,
     mut action: F,
 ) -> PyResult<()>
@@ -3445,14 +3446,14 @@ where
                 action(
                     symbol,
                     ParameterUse::Index {
-                        instruction: index,
+                        instruction: instruction_index,
                         parameter: 1,
                     },
                 )?;
             }
             // The body is at `params[2]`.
             let usage = ParameterUse::Index {
-                instruction: index,
+                instruction: instruction_index,
                 parameter: 2,
             };
             for symbol in downcast(body)?.borrow().parameters() {
@@ -3468,7 +3469,7 @@ where
         | ControlFlowView::While { .. } => {
             for (idx, body) in cf.blocks().iter().enumerate() {
                 let usage = ParameterUse::Index {
-                    instruction: index,
+                    instruction: instruction_index,
                     parameter: idx as u32,
                 };
                 for symbol in downcast(body)?.borrow().parameters() {
