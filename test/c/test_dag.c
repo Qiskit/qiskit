@@ -806,6 +806,7 @@ static int test_dag_compose(void) {
     QkQuantumRegister *lqr = qk_quantum_register_new(5, "lqr");
     QkClassicalRegister *lcr = qk_classical_register_new(2, "lcr");
     qk_dag_add_quantum_register(dag_left, lqr);
+    qk_dag_add_classical_register(dag_left, lcr);
     qk_dag_apply_gate(dag_left, QkGate_CX, (uint32_t[]){3, 4}, NULL, false);
     qk_dag_apply_gate(dag_left, QkGate_X, (uint32_t[]){1}, NULL, false);
     qk_dag_apply_gate(dag_left, QkGate_H, (uint32_t[]){0}, NULL, false);
@@ -847,6 +848,270 @@ static int test_dag_compose(void) {
                "operations, got %zu",
                left_op_nodes + right_op_nodes, new_op_nodes);
     }
+
+    // Create a comparison dag
+    QkDag *dag_expected = qk_dag_new();
+    qk_dag_add_quantum_register(dag_expected, lqr);
+    qk_dag_add_classical_register(dag_expected, lcr);
+    qk_dag_apply_gate(dag_expected, QkGate_CX, (uint32_t[]){3, 4}, NULL, false);
+    qk_dag_apply_gate(dag_expected, QkGate_X, (uint32_t[]){1}, NULL, false);
+    qk_dag_apply_gate(dag_expected, QkGate_H, (uint32_t[]){0}, NULL, false);
+    qk_dag_apply_gate(dag_expected, QkGate_Phase, (uint32_t[]){2}, (double[]){0.1}, false);
+    qk_dag_apply_gate(dag_expected, QkGate_CX, (uint32_t[]){0, 3}, NULL, false);
+    qk_dag_apply_gate(dag_expected, QkGate_X, (uint32_t[]){1}, NULL, false);
+    qk_dag_apply_gate(dag_expected, QkGate_Y, (uint32_t[]){2}, NULL, false);
+    qk_dag_apply_gate(dag_expected, QkGate_Z, (uint32_t[]){4}, NULL, false);
+    size_t expected_op_nodes = qk_dag_num_op_nodes(dag_left);
+
+    if (new_op_nodes != expected_op_nodes) {
+        result = EqualityError;
+        printf("The operations did not get composed onto the left dag correctly. Expected %zu "
+               "operations, got %zu",
+               left_op_nodes + right_op_nodes, new_op_nodes);
+        goto cleanup;
+    }
+
+    uint32_t res_op_nodes[9];
+    uint32_t exp_op_nodes[9];
+
+    qk_dag_topological_op_nodes(dag_left, res_op_nodes);
+    qk_dag_topological_op_nodes(dag_expected, exp_op_nodes);
+
+    // Both operations should have the same amount of nodes at this point
+    for (int node_idx = 0; node_idx < (int)new_op_nodes; node_idx++) {
+        double exp_param[1];
+        double left_param[1];
+        uint16_t node_idx_exp = exp_op_nodes[node_idx];
+        uint16_t node_idx_left = res_op_nodes[node_idx];
+        size_t exp_num_param = qk_dag_op_node_num_params(dag_expected, node_idx_exp);
+        size_t left_num_param = qk_dag_op_node_num_params(dag_left, node_idx_left);
+        QkGate exp_gate = qk_dag_op_node_gate_op(dag_expected, node_idx_exp, exp_param);
+        QkGate left_gate = qk_dag_op_node_gate_op(dag_left, node_idx_left, left_param);
+
+        // Check gate instances
+        if (exp_gate != left_gate) {
+            result = EqualityError;
+            printf("Incorrect operation found, expected %d, got %d", exp_gate, left_gate);
+            goto inner_cleanup;
+        }
+
+        if (exp_num_param != left_num_param) {
+            result = EqualityError;
+            printf("Correct operation with mismatched number of parameters, expected %zu, got %zu",
+                   exp_num_param, left_num_param);
+            goto inner_cleanup;
+        }
+
+        for (int param_idx = 0; param_idx < (int)left_num_param; param_idx++) {
+            if (exp_param[param_idx] != left_param[param_idx]) {
+                result = EqualityError;
+                printf("Correct operation with mismatched parameter, expected %f, got %f",
+                       exp_param[param_idx], left_param[param_idx]);
+                goto inner_cleanup;
+            }
+        }
+
+        size_t exp_num_qubits = qk_dag_op_node_num_qubits(dag_expected, node_idx_exp);
+        size_t left_num_qubits = qk_dag_op_node_num_qubits(dag_left, node_idx_left);
+        if (exp_num_qubits != left_num_qubits) {
+            result = EqualityError;
+            printf("Correct operation with mismatched number of qubits, expected %zu, got %zu",
+                   exp_num_qubits, left_num_qubits);
+            goto inner_cleanup;
+        }
+
+        const uint32_t *expected_qubits = qk_dag_op_node_qubits(dag_expected, node_idx_exp);
+        const uint32_t *left_qubits = qk_dag_op_node_qubits(dag_left, node_idx_left);
+        if (memcmp(expected_qubits, left_qubits, exp_num_qubits * sizeof(expected_qubits))) {
+            result = EqualityError;
+            printf("Correct operation with mismatched qubits");
+            goto inner_cleanup;
+        }
+
+    inner_cleanup:
+        if (result != Ok) {
+            break;
+        }
+    }
+    qk_dag_free(dag_expected);
+cleanup:
+    qk_dag_free(dag_left);
+    qk_dag_free(dag_right);
+    qk_quantum_register_free(lqr);
+    qk_classical_register_free(lcr);
+    qk_quantum_register_free(rqr);
+    return result;
+}
+
+static int test_dag_compose_permuted(void) {
+    int result = Ok;
+    // Build a dag of the following structure
+    //
+    //  rqr_0: |0>──■───────
+    //              │  ┌───┐
+    //  rqr_1: |0>──┼──┤ X ├
+    //              │  ├───┤
+    //  rqr_2: |0>──┼──┤ Y ├
+    //            ┌─┴─┐└───┘
+    //  rqr_3: |0>┤ X ├─────
+    //            └───┘┌───┐
+    //  rqr_4: |0>─────┤ Z ├
+    //                 └───┘
+    QkDag *dag_right = qk_dag_new();
+    QkQuantumRegister *rqr = qk_quantum_register_new(5, "rqr");
+    qk_dag_add_quantum_register(dag_right, rqr);
+    qk_dag_apply_gate(dag_right, QkGate_CX, (uint32_t[]){0, 3}, NULL, false);
+    qk_dag_apply_gate(dag_right, QkGate_X, (uint32_t[]){1}, NULL, false);
+    qk_dag_apply_gate(dag_right, QkGate_Y, (uint32_t[]){2}, NULL, false);
+    qk_dag_apply_gate(dag_right, QkGate_Z, (uint32_t[]){4}, NULL, false);
+
+    // Build a second dag to compose on
+    //             ┌───┐
+    // lqr_0: |0>──┤ H ├───
+    //             ├───┤
+    // lqr_1: |0>──┤ X ├───
+    //           ┌─┴───┴──┐
+    // lqr_2: |0>┤ P(0.1) ├
+    //           └────────┘
+    // lqr_3: |0>────■─────
+    //             ┌─┴─┐
+    // lqr_4: |0>──┤ X ├───
+    //             └───┘
+    // lcr_0: 0 ═══════════
+    //
+    // lcr_1: 0 ═══════════
+    QkDag *dag_left = qk_dag_new();
+    QkQuantumRegister *lqr = qk_quantum_register_new(5, "lqr");
+    QkClassicalRegister *lcr = qk_classical_register_new(2, "lcr");
+    qk_dag_add_quantum_register(dag_left, lqr);
+    qk_dag_apply_gate(dag_left, QkGate_CX, (uint32_t[]){3, 4}, NULL, false);
+    qk_dag_apply_gate(dag_left, QkGate_X, (uint32_t[]){1}, NULL, false);
+    qk_dag_apply_gate(dag_left, QkGate_H, (uint32_t[]){0}, NULL, false);
+    qk_dag_apply_gate(dag_left, QkGate_Phase, (uint32_t[]){2}, (double[]){0.1}, false);
+    size_t left_op_nodes = qk_dag_num_op_nodes(dag_left);
+
+    // Call compose
+
+    // With resulting circuit
+    //             ┌───┐   ┌───┐
+    // lqr_0: |0>──┤ H ├───┤ Z ├
+    //             ├───┤   ├───┤
+    // lqr_1: |0>──┤ X ├───┤ X ├
+    //           ┌─┴───┴──┐├───┤
+    // lqr_2: |0>┤ P(0.1) ├┤ Y ├
+    //           └────────┘└───┘
+    // lqr_3: |0>────■───────■──
+    //             ┌─┴─┐   ┌─┴─┐
+    // lqr_4: |0>──┤ X ├───┤ X ├
+    //             └───┘   └───┘
+    // lcr_0: ══════════════════
+    //
+    // lcr_1: ══════════════════
+    uint32_t qubits[5] = {3, 1, 2, 4, 0};
+    QkExitCode res = qk_dag_compose(dag_left, dag_right, qubits, 5, NULL, 0);
+    if (res != QkExitCode_Success) {
+        result = EqualityError;
+        printf("Error during compose, the dags did not match in number of qubits");
+        goto cleanup;
+    }
+
+    // We need to wait until we get ``qk_dag_topological_op_nodes`` to check the specific
+    // operations. For now, let's compare the number of `op_nodes` as a reference.
+    size_t new_op_nodes = qk_dag_num_op_nodes(dag_left);
+    size_t right_op_nodes = qk_dag_num_op_nodes(dag_right);
+
+    if (left_op_nodes + right_op_nodes != new_op_nodes) {
+        result = EqualityError;
+        printf("The operations did not get composed onto the left dag correctly. Expected %zu "
+               "operations, got %zu",
+               left_op_nodes + right_op_nodes, new_op_nodes);
+    }
+
+    // Create a comparison dag
+    QkDag *dag_expected = qk_dag_new();
+    qk_dag_add_quantum_register(dag_expected, lqr);
+    qk_dag_add_classical_register(dag_expected, lcr);
+    qk_dag_apply_gate(dag_expected, QkGate_CX, (uint32_t[]){3, 4}, NULL, false);
+    qk_dag_apply_gate(dag_expected, QkGate_X, (uint32_t[]){1}, NULL, false);
+    qk_dag_apply_gate(dag_expected, QkGate_H, (uint32_t[]){0}, NULL, false);
+    qk_dag_apply_gate(dag_expected, QkGate_Phase, (uint32_t[]){2}, (double[]){0.1}, false);
+    qk_dag_apply_gate(dag_expected, QkGate_CX, (uint32_t[]){3, 4}, NULL, false);
+    qk_dag_apply_gate(dag_expected, QkGate_X, (uint32_t[]){1}, NULL, false);
+    qk_dag_apply_gate(dag_expected, QkGate_Y, (uint32_t[]){2}, NULL, false);
+    qk_dag_apply_gate(dag_expected, QkGate_Z, (uint32_t[]){0}, NULL, false);
+    size_t expected_op_nodes = qk_dag_num_op_nodes(dag_left);
+
+    if (new_op_nodes != expected_op_nodes) {
+        result = EqualityError;
+        printf("The operations did not get composed onto the left dag correctly. Expected %zu "
+               "operations, got %zu",
+               left_op_nodes + right_op_nodes, new_op_nodes);
+        goto cleanup;
+    }
+
+    uint32_t res_op_nodes[9];
+    uint32_t exp_op_nodes[9];
+
+    qk_dag_topological_op_nodes(dag_left, res_op_nodes);
+    qk_dag_topological_op_nodes(dag_expected, exp_op_nodes);
+
+    // Both operations should have the same amount of nodes at this point
+    for (int node_idx = 0; node_idx < (int)new_op_nodes; node_idx++) {
+        double exp_param[1];
+        double left_param[1];
+        uint16_t node_idx_exp = exp_op_nodes[node_idx];
+        uint16_t node_idx_left = res_op_nodes[node_idx];
+        size_t exp_num_param = qk_dag_op_node_num_params(dag_expected, node_idx_exp);
+        size_t left_num_param = qk_dag_op_node_num_params(dag_left, node_idx_left);
+        QkGate exp_gate = qk_dag_op_node_gate_op(dag_expected, node_idx_exp, exp_param);
+        QkGate left_gate = qk_dag_op_node_gate_op(dag_left, node_idx_left, left_param);
+
+        // Check gate instances
+        if (exp_gate != left_gate) {
+            result = EqualityError;
+            printf("Incorrect operation found, expected %d, got %d", exp_gate, left_gate);
+            goto inner_cleanup;
+        }
+
+        if (exp_num_param != left_num_param) {
+            result = EqualityError;
+            printf("Correct operation with mismatched number of parameters, expected %zu, got %zu",
+                   exp_num_param, left_num_param);
+            goto inner_cleanup;
+        }
+
+        for (int param_idx = 0; param_idx < (int)left_num_param; param_idx++) {
+            if (exp_param[param_idx] != left_param[param_idx]) {
+                result = EqualityError;
+                printf("Correct operation with mismatched parameter, expected %f, got %f",
+                       exp_param[param_idx], left_param[param_idx]);
+                goto inner_cleanup;
+            }
+        }
+
+        size_t exp_num_qubits = qk_dag_op_node_num_qubits(dag_expected, node_idx_exp);
+        size_t left_num_qubits = qk_dag_op_node_num_qubits(dag_left, node_idx_left);
+        if (exp_num_qubits != left_num_qubits) {
+            result = EqualityError;
+            printf("Correct operation with mismatched number of qubits, expected %zu, got %zu",
+                   exp_num_qubits, left_num_qubits);
+            goto inner_cleanup;
+        }
+
+        const uint32_t *expected_qubits = qk_dag_op_node_qubits(dag_expected, node_idx_exp);
+        const uint32_t *left_qubits = qk_dag_op_node_qubits(dag_left, node_idx_left);
+        if (memcmp(expected_qubits, left_qubits, exp_num_qubits * sizeof(expected_qubits))) {
+            result = EqualityError;
+            printf("Correct operation with mismatched qubits");
+            goto inner_cleanup;
+        }
+
+    inner_cleanup:
+        if (result != Ok) {
+            break;
+        }
+    }
+    qk_dag_free(dag_expected);
 cleanup:
     qk_dag_free(dag_left);
     qk_dag_free(dag_right);
@@ -873,6 +1138,7 @@ int test_dag(void) {
     num_failed += RUN_TEST(test_dag_node_neighbors);
     num_failed += RUN_TEST(test_dag_copy_empty_like);
     num_failed += RUN_TEST(test_dag_compose);
+    num_failed += RUN_TEST(test_dag_compose_permuted);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
