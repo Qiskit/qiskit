@@ -94,7 +94,7 @@ class RossSelingerSynthesis(UnitarySynthesisPlugin):
     def supports_basis_gates(self):
         """The plugin does not support basis gates. By default it synthesis to the
         ``["h", "t", "tdg"]`` gate basis."""
-        return True
+        return False
 
     @property
     def supports_coupling_map(self):

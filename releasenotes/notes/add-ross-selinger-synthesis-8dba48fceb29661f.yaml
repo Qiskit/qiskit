@@ -1,13 +1,13 @@
 ---
 features_synthesis:
   - |
-    Added :func:`approximate_rz_rotation` that contructs a 1-qubit quantum
+    Added :func:`.approximate_rz_rotation` that contructs a 1-qubit quantum
     circuit approximating a RZ-rotation with a specified angle. The algorithm
     is described in the paper "Optimal ancilla-free Clifford+T approximation
     of z-rotations" by Neil J. Ross, Peter Selinger and is implemented 
     in https://github.com/qiskit-community/rsgridsynth.
 
-    Added :func:`approximate_1q_unitary` that construct a 1-qubit quantum
+    Added :func:`.approximate_1q_unitary` that construct a 1-qubit quantum
     circuit approximating a given 1-qubit unitary matrix. The algorithm works
     by decomposing the unitary matrix into RZ-rotation, RX-rotation, and another
     RZ-rotation, and applying the Ross-Selinger algorithm to each of the

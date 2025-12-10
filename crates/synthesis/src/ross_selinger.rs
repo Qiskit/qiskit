@@ -81,7 +81,7 @@ pub fn py_approximate_rz_rotation(theta: f64, epsilon: f64) -> PyResult<CircuitD
 /// Approximates 1q unitary matrix using Ross-Selinger algorithm
 /// as implemented in https://github.com/qiskit-community/rsgridsynth.
 pub fn approximate_1q_unitary(mat: ArrayView2<Complex64>, epsilon: f64) -> PyResult<CircuitData> {
-    // Run ZXZ decomposiition
+    // Run ZXZ decomposition
     let [theta, phi, lambda, euler_phase] = params_zxz_inner(mat);
 
     // Approximate each of the RZ, RX, RZ rotations using rsgridsynth and join the results.
