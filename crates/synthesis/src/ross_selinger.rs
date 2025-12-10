@@ -67,7 +67,8 @@ where
 }
 
 #[pyfunction]
-pub fn approximate_rz_rotation(theta: f64, epsilon: f64) -> PyResult<CircuitData> {
+#[pyo3(name = "approximate_rz_rotation")]
+pub fn py_approximate_rz_rotation(theta: f64, epsilon: f64) -> PyResult<CircuitData> {
     let res = gridsynth_gates(&mut config_from_theta_epsilon(
         theta, epsilon, 0u64, false, true,
     ));
@@ -79,10 +80,7 @@ pub fn approximate_rz_rotation(theta: f64, epsilon: f64) -> PyResult<CircuitData
 
 /// Approximates 1q unitary matrix using Ross-Selinger algorithm
 /// as implemented in https://github.com/qiskit-community/rsgridsynth.
-pub fn approximate_1q_unitary_inner(
-    mat: ArrayView2<Complex64>,
-    epsilon: f64,
-) -> PyResult<CircuitData> {
+pub fn approximate_1q_unitary(mat: ArrayView2<Complex64>, epsilon: f64) -> PyResult<CircuitData> {
     // Run ZXZ decomposiition
     let [theta, phi, lambda, euler_phase] = params_zxz_inner(mat);
 
@@ -118,15 +116,16 @@ pub fn approximate_1q_unitary_inner(
 /// Approximates 1q unitary matrix using Ross-Selinger algorithm
 /// as implemented in https://github.com/qiskit-community/rsgridsynth.
 #[pyfunction]
-pub fn approximate_1q_unitary(
+#[pyo3(name = "approximate_1q_unitary")]
+pub fn py_approximate_1q_unitary(
     unitary: PyReadonlyArray2<Complex64>,
     epsilon: f64,
 ) -> PyResult<CircuitData> {
-    approximate_1q_unitary_inner(unitary.as_array(), epsilon)
+    approximate_1q_unitary(unitary.as_array(), epsilon)
 }
 
 pub fn ross_selinger_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(approximate_rz_rotation, m)?)?;
-    m.add_function(wrap_pyfunction!(approximate_1q_unitary, m)?)?;
+    m.add_function(wrap_pyfunction!(py_approximate_rz_rotation, m)?)?;
+    m.add_function(wrap_pyfunction!(py_approximate_1q_unitary, m)?)?;
     Ok(())
 }
