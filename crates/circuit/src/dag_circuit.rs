@@ -5002,7 +5002,7 @@ impl DAGCircuit {
     }
 
     /// Given a `params` object in terms of owned Python-space circuit objects (such as from an
-    /// `OperationFromPython` extraction), add all the blocks to the circuit and return the `params`
+    /// `OperationFromPython` extraction), add all the blocks to the DAG and return the `params`
     /// field suitable for inclusion in a `PackedInstruction`.
     ///
     /// The inverse of this method is [unpack_blocks_to_circuit_parameters].
