@@ -69,10 +69,13 @@ where
 
 #[pyfunction]
 pub fn approximate_rz_rotation(theta: f64, epsilon: f64) -> PyResult<CircuitData> {
-    let gates = gridsynth_gates(&mut config_from_theta_epsilon(theta, epsilon, 0u64, false));
-    let gates_iter = gates.chars();
-    let instruction_capacity = gates.len();
-    circuit_from_string(gates_iter, 0., instruction_capacity)
+    let res = gridsynth_gates(&mut config_from_theta_epsilon(
+        theta, epsilon, 0u64, false, true,
+    ));
+    let gates_iter = res.gates.chars();
+    let phase = (res.global_phase as u64) as f64 * PI4;
+    let instruction_capacity = res.gates.len();
+    circuit_from_string(gates_iter, phase, instruction_capacity)
 }
 
 /// Approximates 1q unitary matrix using Ross-Selinger algorithm
@@ -82,20 +85,34 @@ pub fn approximate_1q_unitary_inner(
     epsilon: f64,
 ) -> PyResult<CircuitData> {
     // Run ZXZ decomposiition
-    let [theta, phi, lambda, phase] = params_zxz_inner(mat);
+    let [theta, phi, lambda, euler_phase] = params_zxz_inner(mat);
 
     // Approximate each of the RZ, RX, RZ rotations using rsgridsynth and join the results.
-    let gates_theta = gridsynth_gates(&mut config_from_theta_epsilon(theta, epsilon, 0u64, false));
-    let gates_phi = gridsynth_gates(&mut config_from_theta_epsilon(phi, epsilon, 0u64, false));
-    let gates_lambda =
-        gridsynth_gates(&mut config_from_theta_epsilon(lambda, epsilon, 0u64, false));
-    let instruction_capacity = gates_theta.len() + gates_phi.len() + gates_lambda.len() + 2;
-    let gates_iter = gates_lambda
+    let res_gates_theta = gridsynth_gates(&mut config_from_theta_epsilon(
+        theta, epsilon, 0u64, false, true,
+    ));
+    let res_gates_phi = gridsynth_gates(&mut config_from_theta_epsilon(
+        phi, epsilon, 0u64, false, true,
+    ));
+    let res_gates_lambda = gridsynth_gates(&mut config_from_theta_epsilon(
+        lambda, epsilon, 0u64, false, true,
+    ));
+    let instruction_capacity =
+        res_gates_theta.gates.len() + res_gates_phi.gates.len() + res_gates_lambda.gates.len() + 2;
+    let gates_iter = res_gates_lambda
+        .gates
         .chars()
         .chain(std::iter::once('H'))
-        .chain(gates_theta.chars())
+        .chain(res_gates_theta.gates.chars())
         .chain(std::iter::once('H'))
-        .chain(gates_phi.chars());
+        .chain(res_gates_phi.gates.chars());
+
+    let phase = euler_phase
+        + (res_gates_theta.global_phase as u64
+            + res_gates_phi.global_phase as u64
+            + res_gates_lambda.global_phase as u64) as f64
+            * PI4;
+
     circuit_from_string(gates_iter, phase, instruction_capacity)
 }
 
