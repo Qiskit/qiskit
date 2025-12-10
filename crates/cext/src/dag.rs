@@ -1261,6 +1261,54 @@ pub unsafe extern "C" fn qk_dag_get_instruction(
 ///
 /// @return an exit code.
 ///
+/// # Example
+///
+/// ```c
+/// // Build the following dag
+/// // rqr_0: ──■───────
+/// //          │  ┌───┐
+/// // rqr_1: ──┼──┤ Y ├
+/// //        ┌─┴─┐└───┘
+/// // rqr_2: ┤ X ├─────
+/// //        └───┘     
+/// QkDag *dag_right = qk_dag_new();
+/// QkQuantumRegister *rqr = qk_quantum_register_new(3, "rqr");
+/// qk_dag_add_quantum_register(dag_right, rqr);
+/// qk_dag_add_classical_register(dag_right, rcr);
+/// qk_dag_apply_gate(dag_right, QkGate_CX, (uint32_t[]){0, 2}, NULL, false);
+/// qk_dag_apply_gate(dag_right, QkGate_Y, (uint32_t[]){1}, NULL, false);
+///
+/// // Build the following dag
+/// //          ┌───┐   
+/// // lqr_0: ──┤ H ├───
+/// //        ┌─┴───┴──┐
+/// // lqr_1: ┤ P(0.1) ├
+/// //        └────────┘
+/// QkDag *dag_left = qk_dag_new();
+/// QkQuantumRegister *lqr = qk_quantum_register_new(2, "lqr");
+/// qk_dag_add_quantum_register(dag_left, lqr);
+/// qk_dag_add_classical_register(dag_left, lcr);
+/// qk_dag_apply_gate(dag_left, QkGate_H, (uint32_t[]){0}, NULL, false);
+/// qk_dag_apply_gate(dag_left, QkGate_Phase, (uint32_t[]){1}, (double[]){0.1}, false);
+///
+/// // Compose left circuit onto right circuit
+/// // Should result in circuit
+/// //             ┌───┐          
+/// // rqr_0: ──■──┤ H ├──────────
+/// //          │  ├───┤┌────────┐
+/// // rqr_1: ──┼──┤ Y ├┤ P(0.1) ├
+/// //        ┌─┴─┐└───┘└────────┘
+/// // rqr_2: ┤ X ├───────────────
+/// //        └───┘               
+/// qk_dag_compose(dag_right, dag_left, NULL, 0, NULL, 0)
+///
+/// // Clean up after you're done
+/// qk_dag_free(dag_left);
+/// qk_dag_free(dag_right);
+/// qk_quantum_register_free(lqr);
+/// qk_quantum_register_free(rqr);
+/// ```
+///
 /// # Safety
 ///
 /// Behavior is undefined if ``dag`` or ``other`` are not valid, non-null pointers to a ``QkDag``.
