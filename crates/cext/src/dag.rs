@@ -1254,10 +1254,8 @@ pub unsafe extern "C" fn qk_dag_get_instruction(
 /// @param other A pointer to the DAG to compose with ``dag``.
 /// @param qubits A list of indices representing the qubit wires to compose
 ///     onto.
-/// @param num_qubits The number of qubits in ``qubits``.
 /// @param clbits A list of indices representing the clbit wires to compose
 ///     onto.
-/// @param num_clbits The number of qubits in ``clbits``.
 ///
 /// @return an exit code.
 ///
@@ -1300,7 +1298,7 @@ pub unsafe extern "C" fn qk_dag_get_instruction(
 /// //        ┌─┴─┐└───┘└────────┘
 /// // rqr_2: ┤ X ├───────────────
 /// //        └───┘               
-/// qk_dag_compose(dag_right, dag_left, NULL, 0, NULL, 0);
+/// qk_dag_compose(dag_right, dag_left, NULL, NULL);
 ///
 /// // Clean up after you're done
 /// qk_dag_free(dag_left);
@@ -1320,9 +1318,7 @@ pub unsafe extern "C" fn qk_dag_compose(
     dag: *mut DAGCircuit,
     other: *const DAGCircuit,
     qubits: *const u32,
-    num_qubits: u32,
     clbits: *const u32,
-    num_clbits: u32,
 ) -> ExitCode {
     // SAFETY: Per documentation, the pointer is to valid data.
 
@@ -1337,7 +1333,7 @@ pub unsafe extern "C" fn qk_dag_compose(
     }
 
     let qubits: Option<Vec<ShareableQubit>> = if check_ptr(qubits).is_ok() {
-        let qubits = unsafe { std::slice::from_raw_parts(qubits, num_qubits as usize) };
+        let qubits = unsafe { std::slice::from_raw_parts(qubits, other_dag.num_qubits()) };
         let new_qubits: Result<Vec<ShareableQubit>, ExitCode> = qubits
             .iter()
             .map(|bit| -> Result<ShareableQubit, ExitCode> {
@@ -1356,7 +1352,7 @@ pub unsafe extern "C" fn qk_dag_compose(
     };
 
     let clbits: Option<Vec<ShareableClbit>> = if check_ptr(clbits).is_ok() {
-        let clbits = unsafe { std::slice::from_raw_parts(clbits, num_clbits as usize) };
+        let clbits = unsafe { std::slice::from_raw_parts(clbits, other_dag.num_clbits()) };
         let new_clbits: Result<Vec<ShareableClbit>, ExitCode> = clbits
             .iter()
             .map(|bit| -> Result<ShareableClbit, ExitCode> {

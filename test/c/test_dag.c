@@ -825,10 +825,11 @@ static int test_dag_compose(void) {
     // lcr_0: 0 ═══════════════════════
     //
     // lcr_1: 0 ═══════════════════════
-    QkExitCode res = qk_dag_compose(dag_left, dag_right, NULL, 0, NULL, 0);
+    QkExitCode res = qk_dag_compose(dag_left, dag_right, NULL, NULL);
     if (res != QkExitCode_Success) {
         result = EqualityError;
-        printf("Error during compose, the dags did not match in number of qubits.\n");
+        printf("Error during compose. The composible dag possibly exceeded the allowed number of "
+               "qubits.\n");
         goto cleanup;
     }
 
@@ -1005,11 +1006,12 @@ static int test_dag_compose_permuted(void) {
     // lcr: 2/════════════════╩═
     //                        1
     uint32_t qubits[5] = {3, 1, 2, 4, 0};
-    uint32_t clbits[5] = {1, 0};
-    QkExitCode res = qk_dag_compose(dag_left, dag_right, qubits, 5, clbits, 2);
+    uint32_t clbits[2] = {1, 0};
+    QkExitCode res = qk_dag_compose(dag_left, dag_right, qubits, clbits);
     if (res != QkExitCode_Success) {
         result = EqualityError;
-        printf("Error during compose, the dags did not match in number of qubits.\n");
+        printf("Error during compose. The composible dag possibly exceeded the allowed number of "
+               "qubits..\n");
         goto cleanup;
     }
 
