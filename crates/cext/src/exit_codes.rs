@@ -62,7 +62,7 @@ pub enum ExitCode {
     TranspilerError = 400,
     /// DAG related error,
     DAGError = 500,
-    /// The DAGs have mismatching qubit amounts during compose.
+    /// The DAGs have mismatching qubit/clbit amounts during compose.
     DAGComposeMismatch = 501,
     /// One or more bit indices were not found during compose.
     DAGComposeMissingBit = 502,

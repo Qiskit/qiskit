@@ -709,8 +709,8 @@ pub unsafe extern "C" fn qk_dag_op_node_kind(dag: *const DAGCircuit, node: u32) 
 }
 
 /// @ingroup QkDag
-/// Compose the ``other`` circuit onto the ``dag`` instance with the option of a subset of
-/// of input wires of ``other`` being mapped onto a subset of output wires of this circuit.
+/// Compose the ``other`` DAG onto the ``dag`` instance with the option of a subset
+/// of input wires of ``other`` being mapped onto a subset of output wires of ``dag``.
 ///
 /// ``other`` may include a smaller or equal number of wires for each type.
 ///
@@ -736,9 +736,9 @@ pub unsafe extern "C" fn qk_dag_compose(
     dag: *mut DAGCircuit,
     other: *const DAGCircuit,
     qubits: *const u32,
-    num_qubits: usize,
+    num_qubits: u32,
     clbits: *const u32,
-    num_clbits: usize,
+    num_clbits: u32,
 ) -> ExitCode {
     // SAFETY: Per documentation, the pointer is to valid data.
 
@@ -753,15 +753,11 @@ pub unsafe extern "C" fn qk_dag_compose(
     }
 
     let qubits: Option<Vec<ShareableQubit>> = if check_ptr(qubits).is_ok() {
-        let qubits: Box<[u32]> =
-            unsafe { Box::from_raw(slice_from_raw_parts(qubits, num_qubits).cast_mut()) };
+        let qubits = unsafe { std::slice::from_raw_parts(qubits, num_qubits as usize) };
         let new_qubits: Result<Vec<ShareableQubit>, ExitCode> = qubits
-            .into_iter()
+            .iter()
             .map(|bit| -> Result<ShareableQubit, ExitCode> {
-                let Some(qubit) = dag.qubits().get(Qubit(bit)) else {
-                    return Err(ExitCode::DAGComposeMissingBit);
-                };
-                Ok(qubit.clone())
+                dag.qubits().get(Qubit(*bit)).cloned().ok_or(ExitCode::DAGComposeMissingBit)
             })
             .collect();
         match new_qubits {
@@ -792,7 +788,7 @@ pub unsafe extern "C" fn qk_dag_compose(
         None
     };
 
-    // Since we don't yet supposed vars in C, we can skip the include_captures check.
+    // Since we don't yet support vars in C, we can skip the inline_captures check.
     dag.compose(other_dag, qubits.as_deref(), clbits.as_deref(), false)
         .expect("Error during circuit composition.");
     ExitCode::Success

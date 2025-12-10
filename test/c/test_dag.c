@@ -320,7 +320,7 @@ static int test_dag_compose(void) {
     //              │  ┌───┐
     //  rqr_1: |0>──┼──┤ X ├
     //              │  ├───┤
-    //  rqr_2: |0>──┼──┤ Y ├  =
+    //  rqr_2: |0>──┼──┤ Y ├
     //            ┌─┴─┐└───┘
     //  rqr_3: |0>┤ X ├─────
     //            └───┘┌───┐
@@ -378,7 +378,7 @@ static int test_dag_compose(void) {
     // lcr_1: 0 ═══════════════════════
     QkExitCode res = qk_dag_compose(dag_left, dag_right, NULL, 0, NULL, 0);
     if (res != QkExitCode_Success) {
-        result = RuntimeError;
+        result = EqualityError;
         printf("Error during compose, the dags did not match in number of qubits");
         goto cleanup;
     }
@@ -390,7 +390,7 @@ static int test_dag_compose(void) {
 
     if (left_op_nodes + right_op_nodes != new_op_nodes) {
         result = EqualityError;
-        printf("The operations did not get composed onto the left dag correcly. Expected %zu "
+        printf("The operations did not get composed onto the left dag correctly. Expected %zu "
                "operations, got %zu",
                left_op_nodes + right_op_nodes, new_op_nodes);
     }
