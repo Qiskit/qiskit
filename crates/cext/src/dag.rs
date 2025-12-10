@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use anyhow::Error;
 use num_complex::Complex64;
 use smallvec::smallvec;
 
@@ -1371,6 +1372,77 @@ pub unsafe extern "C" fn qk_dag_topological_op_nodes(dag: *const DAGCircuit, out
 }
 
 /// @ingroup QkDag
+/// Replace a node in a `QkDag` with a subcircuit specfied by another `QkDag`
+///
+/// @param dag A pointer to the DAG.
+/// @param node The node index of the operation to replace with the other `QkDag`. This
+///     must be the node index for an operation node in ``dag`` and the qargs and cargs
+///     count must match the number of qubits and clbits in `replacement`.
+/// @param replacement The other `QkDag` to replace `node` with. This dag must have
+///     the same number of qubits as the operation for ``node``. The node
+///     bit ordering will be ordering will be handled in order, so `qargs[0]` for
+///     `node` will be mapped to `qubits[0]` in `replacement`, `qargs[1]` to
+///     `qubits[0]`, etc. The same pattern applies to classical bits too.
+///
+/// # Example
+///
+/// ```c
+/// QkDag *dag = qk_dag_new();
+/// QkQuantumRegister *qr = qk_quantum_register_new(1, "my_register");
+/// qk_dag_add_quantum_register(dag, qr);
+///
+/// uint32_t qubit[1] = {0};
+/// uint32_t node_to_replace = qk_dag_apply_gate(dag, QkGate_H, qubit, NULL, false);
+/// qk_dag_apply_gate(dag, QkGate_S, qubit, NULL, false);
+///
+/// // Build replacement dag for H
+/// QkDag *replacement = qk_dag_new();
+/// QkQuantumRegister *replacement_qr = qk_quantum_register_new(1, "other");
+/// qk_dag_add_quantum_register(replacement, replacement_qr);
+/// double pi_param[1] = {3.14159};
+/// qk_dag_apply_gate(replacement, QkGate_RZ, qubit, pi_param, false);
+/// qk_dag_apply_gate(replacement, QkGate_SX, qubit, NULL, false);
+/// qk_dag_apply_gate(replacement, QkGate_RZ, qubit, pi_param, false);
+///
+/// qk_dag_substitute_node_with_dag(dag, node_to_replace, replacement);
+///
+/// // Free the replacement dag, register, dag, and register
+/// qk_quantum_register_free(replacement_qr);
+/// qk_dag_free(replacement);
+/// qk_quantum_register_free(qr);
+/// qk_dag_free(dag);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``dag`` and ``replacement`` are not a valid, non-null pointer to a
+/// ``QkDag``.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_dag_substitute_node_with_dag(
+    dag: *mut DAGCircuit,
+    node: u32,
+    replacement: *const DAGCircuit,
+) {
+    // SAFETY: Per documentation, ``dag`` is non-null and valid.
+    let dag = unsafe { mut_ptr_as_ref(dag) };
+    // SAFETY: Per documentation, ``replacement`` is non-null and valid.
+    let replacement = unsafe { const_ptr_as_ref(replacement) };
+
+    if let Err(e) = dag.substitute_node_with_dag(
+        NodeIndex::new(node as usize),
+        replacement,
+        None,
+        None,
+        None,
+        None,
+    ) {
+        let err: Error = e.into();
+        panic!("Node substitution failed with: {}", err.backtrace());
+    }
+}
+
+/// @ingroup QkDag
 /// Return a copy of self with the same structure but empty.
 ///
 /// That structure includes:
@@ -1386,6 +1458,7 @@ pub unsafe extern "C" fn qk_dag_topological_op_nodes(dag: *const DAGCircuit, out
 /// @return The pointer to the copied DAG circuit.
 ///
 /// # Example
+///
 /// ```c
 /// QkDag *dag = qk_dag_new();
 /// QkQuantumRegister *qr = qk_quantum_register_new(1, "my_register");
@@ -1405,7 +1478,6 @@ pub unsafe extern "C" fn qk_dag_topological_op_nodes(dag: *const DAGCircuit, out
 /// qk_dag_free(dag);
 /// qk_dag_free(copied_dag);
 /// ```
-///
 /// # Safety
 ///
 /// Behavior is undefined if ``dag`` is not a valid pointer to a ``QkDag``.

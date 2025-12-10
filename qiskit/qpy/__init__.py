@@ -199,6 +199,21 @@ of QPY in qiskit-terra 0.18.0.
    * - Qiskit (qiskit-terra for < 1.0.0) version
      - :func:`.dump` format(s) output versions
      - :func:`.load` maximum supported version (older format versions can always be read)
+   * - 2.3.0
+     - 13, 14, 15, 16, 17
+     - 17
+   * - 2.2.2
+     - 13, 14, 15, 16
+     - 16
+   * - 2.2.1
+     - 13, 14, 15, 16
+     - 16
+   * - 2.2.0
+     - 13, 14, 15, 16
+     - 16
+   * - 2.1.2
+     - 13, 14, 15, 16
+     - 16
    * - 2.1.1
      - 13, 14, 15, 16
      - 16
@@ -433,6 +448,56 @@ Each individual circuit is composed of the following parts in order from top to 
 There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
+
+.. _qpy_version_17:
+
+Version 17
+----------
+
+Version 17 adds support for serializing and deserializing :class:`.PauliEvolutionGate` containing
+:class:`.SparseObservable` as operator(s).
+
+Changes to PAULI_EVOLUTION
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The format of `PAULI_EVOLUTION` itself remains unchanged, but the format of the operators
+that immediately follow the packed evolution gate is updated. Instead of `operator_count`
+elements defined by `SPARSE_PAULI_OP_LIST_ELEM` format, the payload now specifies the type of
+each operator to account for either operators of type :class:`.SparsePauliOp` or of
+:class:`.SparseObservable`.
+
+The new payload following `PAULI_EVOLUTION` now contains exactly `operator_count` sequences of
+a bool (``"!?"``) followed by the operator. If the bool is ``True``, the operator is a
+:class:`.SparseObservable` and interpreted with the new `SPARSE_OBSERVABLE` format (see below).
+If it is ``False``, the operator is a :class:`.SparsePauliOp` and interpreted according to the
+existing `SPARSE_PAULI_OP_LIST_ELEM` format.
+
+New SPARSE_OBSERVABLE
+~~~~~~~~~~~~~~~~~~~~~
+
+The `SPARSE_OBSERVABLE` format represents an instance of a :class:`.SparseObservable`, given by
+
+.. code-block:: c
+
+  struct {
+    uint32_t num_qubits;
+    uint64_t coeff_data_len;
+    uint64_t bitterm_data_len;
+    uint64_t inds_data_len;
+    uint64_t bounds_data_len;
+  }
+
+which is immediately followed by the number of qubits and then the data arrays of the
+coefficients, bit terms, indices, and boundaries of the observable. The format specifies the
+number of bytes each array occupies. The number of elements can be calculated by dividing
+the number of bytes by the size of each element.
+
+ * Each coefficient is stored as two consecutive `"!d"` elements, first the real and then
+   the imaginary part.
+ * The bit term elements are of type `"!H"` and represents the `u8` value of the
+   :class:`.SparseObservable.BitTerm`
+ * The indices elements are of type `"!I"`.
+ * The boundaries elements are of type `"!Q"`.
 
 .. _qpy_version_16:
 

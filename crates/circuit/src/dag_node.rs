@@ -16,7 +16,6 @@ use std::sync::OnceLock;
 
 use crate::TupleLikeArg;
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython, extract_params};
-use crate::imports::QUANTUM_CIRCUIT;
 use crate::operations::{Operation, OperationRef, Param, PythonOperation};
 
 use ahash::AHasher;
@@ -434,11 +433,7 @@ impl DAGOpNode {
             _ => None,
         };
         definition
-            .map(|data| {
-                QUANTUM_CIRCUIT
-                    .get_bound(py)
-                    .call_method1(intern!(py, "_from_circuit_data"), (data,))
-            })
+            .map(|data| data.into_py_quantum_circuit(py))
             .transpose()
     }
 

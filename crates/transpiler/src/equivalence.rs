@@ -328,10 +328,7 @@ impl<'py> IntoPyObject<'py> for CircuitFromPython {
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        Ok(QUANTUM_CIRCUIT
-            .get_bound(py)
-            .call_method1("_from_circuit_data", (self.0,))?
-            .clone())
+        self.0.into_py_quantum_circuit(py)
     }
 }
 
