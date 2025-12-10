@@ -2271,14 +2271,18 @@ class TestTranspile(QiskitTestCase):
             num_qubits=5,
             basis_gates=["id", "sx", "x", "cx", "rz"],
             coupling_map=coupling_map,
-            seed=0,
+            seed=123,
         )
         qubits = 3
         qc = QuantumCircuit(qubits)
         for i in range(5):
             qc.cx(i % qubits, int(i + qubits / 2) % qubits)
 
-        # transpile with no gate errors
+        # The point of this test is to test that error rates are still checked when there's a custom
+        # `dt` set.  For that test to work, we need to check that compiling explicitly without
+        # errors produces a different layout to transpiling with them, so we can then later check
+        # that the "custom dt" transpile matches the "with errors" case.
+
         tqc_no_error = transpile(qc, coupling_map=coupling_map, seed_transpiler=4242)
         # transpile with gate errors
         tqc_no_dt = transpile(qc, backend=backend, seed_transpiler=4242)
@@ -2332,6 +2336,55 @@ class TestTranspile(QiskitTestCase):
             isa_circs.append(pm.run(circ))
         for i in range(10):
             self.assertEqual(isa_circs[0], isa_circs[i])
+
+    @data(0, 1, 2, 3)
+    def test_reuse_on_differing_circuits(self, optimization_level):
+        """Test that re-using the same `PassManager` instance on two different circuits is the same
+        as using new instances of the `PassManager`."""
+
+        def make_pm():
+            num_qubits = 12
+            target = Target()
+            target.add_instruction(
+                SXGate(),
+                {(i,): InstructionProperties(error=1e-5 * (i + 1)) for i in range(num_qubits)},
+            )
+            target.add_instruction(
+                RZGate(Parameter("a")), {(i,): InstructionProperties() for i in range(num_qubits)}
+            )
+            target.add_instruction(
+                Measure(),
+                {
+                    (i,): InstructionProperties(error=1e-3 * (num_qubits - i))
+                    for i in range(num_qubits)
+                },
+            )
+            target.add_instruction(
+                CZGate(),
+                {
+                    pair: InstructionProperties(error=1e-3 * sum(pair))
+                    for pair in CouplingMap.from_line(num_qubits)
+                },
+            )
+            return generate_preset_pass_manager(
+                optimization_level=optimization_level, target=target, seed_transpiler=2025_10_27
+            )
+
+        def ghz(num_qubits):
+            qc = QuantumCircuit(num_qubits, num_qubits)
+            qc.h(0)
+            for i in range(1, num_qubits):
+                qc.cx(0, i)
+            qc.measure(qc.qubits, qc.clbits)
+            return qc
+
+        circuits = [ghz(5), ghz(8), ghz(10)]
+        shared_pm = make_pm()
+        shared_circuits = [shared_pm.run(circuit) for circuit in circuits]
+        own_circuits = [make_pm().run(circuit) for circuit in circuits]
+        self.assertEqual(shared_circuits, own_circuits)
+        together_circuits = make_pm().run(circuits)
+        self.assertEqual(together_circuits, own_circuits)
 
 
 @ddt
@@ -2714,18 +2767,24 @@ class TestPostTranspileIntegration(QiskitTestCase):
 
         vf2_post_layout_called = False
 
-        def callback(**kwargs):
+        def callback(pass_, property_set, **_):
             nonlocal vf2_post_layout_called
-            if isinstance(kwargs["pass_"], VF2PostLayout):
+            if isinstance(pass_, VF2PostLayout):
                 vf2_post_layout_called = True
-                self.assertIsNotNone(kwargs["property_set"]["post_layout"])
+                # If this error indicates "no better solution found", the pass probably still
+                # completely successfully, but it's not longer testing what this test is actually
+                # trying to make assertions about; we need VF2PostLayout to _update_ the layout.
+                self.assertIsNotNone(
+                    property_set["post_layout"],
+                    f"Stop reason: {property_set['VF2PostLayout_stop_reason']}",
+                )
 
         coupling_map = [[0, 1], [1, 0], [1, 2], [1, 3], [2, 1], [3, 1], [3, 4], [4, 3]]
         backend = GenericBackendV2(
             num_qubits=5,
             basis_gates=["id", "sx", "x", "cx", "rz"],
             coupling_map=coupling_map,
-            seed=0,
+            seed=2025_08_08,
         )
         qubits = 3
         qc = QuantumCircuit(qubits)
@@ -2734,7 +2793,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
 
         tqc = transpile(qc, backend=backend, seed_transpiler=4242, callback=callback)
         self.assertTrue(vf2_post_layout_called)
-        self.assertEqual([2, 1, 0], _get_index_layout(tqc, qubits))
+        self.assertEqual([1, 3, 4], _get_index_layout(tqc, qubits))
 
     @data("sabre", "lookahead", "basic")
     def test_final_layout_combined_correctly(self, routing):
