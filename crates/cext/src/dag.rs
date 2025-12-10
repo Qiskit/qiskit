@@ -1250,7 +1250,7 @@ pub unsafe extern "C" fn qk_dag_get_instruction(
 ///
 /// ``other`` may include a smaller or equal number of wires for each type.
 ///
-/// @param dag A pointer to be composed on.
+/// @param dag A pointer to the DAG to be composed on.
 /// @param other A pointer to the DAG to compose with ``dag``.
 /// @param qubits A list of indices representing the qubit wires to compose
 ///     onto.
@@ -1300,7 +1300,7 @@ pub unsafe extern "C" fn qk_dag_get_instruction(
 /// //        ┌─┴─┐└───┘└────────┘
 /// // rqr_2: ┤ X ├───────────────
 /// //        └───┘               
-/// qk_dag_compose(dag_right, dag_left, NULL, 0, NULL, 0)
+/// qk_dag_compose(dag_right, dag_left, NULL, 0, NULL, 0);
 ///
 /// // Clean up after you're done
 /// qk_dag_free(dag_left);
