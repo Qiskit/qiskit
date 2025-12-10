@@ -119,9 +119,26 @@ class SolovayKitaev(TransformationPass):
 
             skd = SolovayKitaev(recursion_degree=2, basis_gates=basis)
 
-        To generate and store basic approximations in between runs, see
-        :class:`.SolovayKitaevDecomposition` and in particular the
-        :meth:`~.SolovayKitaevDecomposition.save_basic_approximations` method.
+        To generate and store basic approximations in between different instances, the
+        :class:`.SolovayKitaevDecomposition` and its
+        :meth:`~.SolovayKitaevDecomposition.save_basic_approximations` method can be used.
+
+        .. code-block:: python
+
+            from qiskit.transpiler.passes import SolovayKitaev
+            from qiskit.synthesis import SolovayKitaevDecomposition
+
+            # generate basic approximations
+            basis = ["s", "sdg", "t", "tdg", "z", "h"]
+            decomp = SolovayKitaevDecomposition(basis_gates=basis, depth=5)
+
+            # store them in a local file
+            fname = "sk_approx.bin"
+            decomp.save_basic_approximations(fname)
+
+            # load them for running Solovay-Kitaev
+            skd = SolovayKitaev(recursion_degree=2, basic_approximations=fname)
+
 
     References:
 
