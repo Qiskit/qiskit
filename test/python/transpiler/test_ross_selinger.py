@@ -18,7 +18,18 @@ import numpy as np
 from ddt import ddt, data
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.library import RZGate
+from qiskit.circuit.library import (
+    RZGate,
+    IGate,
+    XGate,
+    YGate,
+    ZGate,
+    HGate,
+    SGate,
+    SdgGate,
+    SXGate,
+    SXdgGate,
+)
 from qiskit.quantum_info import Operator
 from qiskit.quantum_info import get_clifford_gate_names
 from qiskit.quantum_info.random import random_unitary
@@ -92,22 +103,36 @@ class TestRossSelingerSynthesis(QiskitTestCase):
         for idx in range(1, len(approximate_circuits)):
             self.assertEqual(approximate_circuits[idx], approximate_circuits[0])
 
-    def test_identity_matrix(self):
+    @data(IGate(), XGate(), YGate(), ZGate(), HGate(), SGate(), SdgGate(), SXGate(), SXdgGate())
+    def test_clifford_matrix(self, clifford_gate):
         """Test that the Ross-Selinger algorithm does not return T-gates when approximating
-        the identity matrix.
+        Clifford-gate matrices.
         """
-        # Note that the algorithm may produce CLifford gates.
         circuit = QuantumCircuit(1)
+        circuit.append(clifford_gate, [0])
         matrix = Operator(circuit).data
         approximate_circuit = approximate_1q_unitary(matrix)
         self.assertLessEqual(set(approximate_circuit.count_ops()), CLIFFORD_GATES_1Q_SET)
 
-    # ToDo: finish this test when rsgridsynth is able to hangle T-gate.
-    # def test_t_matrix(self):
-    #     """Test what happens on a circuit with a single T-gate"""
-    #     ...
+    def test_t_matrix(self):
+        """Test that Ross-Selinger algorithm returns a single T-gate for the T-gate matrix."""
+        # note that this requires up-to-phase support
+        circuit = QuantumCircuit(1)
+        circuit.t(0)
+        matrix = Operator(circuit).data
+        approximate_circuit = approximate_1q_unitary(matrix)
+        self.assertEqual(approximate_circuit.count_ops().get("t", 0), 1)
+        self.assertEqual(approximate_circuit.count_ops().get("tdg", 0), 0)
 
-    # ToDo: add more transpile-level tests when Ross-Selinger is included in the default plugin.
+    def test_tdg_matrix(self):
+        """Test that Ross-Selinger algorithm returns a single T-gate for the T-gate matrix."""
+        # note that this requires up-to-phase support
+        circuit = QuantumCircuit(1)
+        circuit.tdg(0)
+        matrix = Operator(circuit).data
+        approximate_circuit = approximate_1q_unitary(matrix)
+        self.assertEqual(approximate_circuit.count_ops().get("t", 0), 1)
+        self.assertEqual(approximate_circuit.count_ops().get("tdg", 0), 0)
 
 
 @ddt
