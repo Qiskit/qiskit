@@ -25,7 +25,7 @@ use crate::classical::expr;
 use crate::dag_circuit::{DAGStretchType, DAGVarType, add_global_phase};
 use crate::imports::{ANNOTATED_OPERATION, DEEPCOPY, QUANTUM_CIRCUIT};
 use crate::interner::{Interned, InternedMap, Interner};
-use crate::object_registry::{ObjectRegistry, PyObjectAsKey};
+use crate::object_registry::ObjectRegistry;
 use crate::operations::{
     ControlFlow, ControlFlowInstruction, ControlFlowView, Operation, OperationRef, Param,
     PythonOperation, StandardGate,
@@ -36,7 +36,9 @@ use crate::parameter::symbol_expr::{Symbol, Value};
 use crate::parameter_table::{ParameterTable, ParameterTableError, ParameterUse, ParameterUuid};
 use crate::register_data::RegisterData;
 use crate::slice::{PySequenceIndex, SequenceIndex};
-use crate::{Block, BlocksMode, Clbit, Qubit, Stretch, Var, VarsMode, instruction};
+use crate::{
+    Block, BlocksMode, Clbit, ControlFlowBlocks, Qubit, Stretch, Var, VarsMode, instruction,
+};
 
 use num_complex::Complex64;
 use numpy::PyReadonlyArray1;
@@ -130,7 +132,7 @@ pub struct CircuitData {
     /// Clbits registered in the circuit.
     clbits: ObjectRegistry<Clbit, ShareableClbit>,
     /// Basic blocks registered in the circuit.
-    blocks: ObjectRegistry<Block, PyObjectAsKey>,
+    blocks: ControlFlowBlocks<Py<PyAny>>,
     /// QuantumRegisters stored in the circuit
     qregs: RegisterData<QuantumRegister>,
     /// ClassicalRegisters stored in the circuit
@@ -316,7 +318,7 @@ impl CircuitData {
             cargs_interner: Interner::new(),
             qubits: qubits_registry,
             clbits: clbits_registry,
-            blocks: ObjectRegistry::new(),
+            blocks: ControlFlowBlocks::new(),
             param_table: ParameterTable::new(),
             global_phase: Param::Float(0.),
             qregs: RegisterData::new(),
@@ -898,16 +900,12 @@ impl CircuitData {
             let py_op = func.call1((self.unpack_py_op(py, instr)?,))?;
             let result = py_op.extract::<OperationFromPython>()?;
             let params = match result.params {
-                Some(Parameters::Blocks(circuits)) => {
-                    let mut blocks = Vec::with_capacity(circuits.len());
-                    for circuit in circuits {
-                        blocks.push(
-                            self.blocks
-                                .add(PyObjectAsKey::new(circuit.bind(py)), false)?,
-                        );
-                    }
-                    Some(Box::new(Parameters::Blocks(blocks)))
-                }
+                Some(Parameters::Blocks(circuits)) => Some(Box::new(Parameters::Blocks(
+                    circuits
+                        .into_iter()
+                        .map(|circuit| self.blocks.push(circuit))
+                        .collect(),
+                ))),
                 Some(Parameters::Params(params)) => Some(Box::new(Parameters::Params(params))),
                 None => None,
             };
@@ -1046,14 +1044,12 @@ impl CircuitData {
             let qubits = self.qargs_interner.get(inst.qubits);
             let clbits = self.cargs_interner.get(inst.clbits);
             let params = match inst.params.as_deref() {
-                Some(Parameters::Blocks(blocks)) => {
-                    let mut circuits = Vec::with_capacity(blocks.len());
-                    for block in blocks {
-                        let block = &self.blocks.get(*block).unwrap();
-                        circuits.push(block.object().clone());
-                    }
-                    Some(Parameters::Blocks(circuits))
-                }
+                Some(Parameters::Blocks(blocks)) => Some(Parameters::Blocks(
+                    blocks
+                        .iter()
+                        .map(|block| self.blocks[*block].clone_ref(py))
+                        .collect(),
+                )),
                 Some(Parameters::Params(params)) => Some(Parameters::Params(params.clone())),
                 None => None,
             };
@@ -1087,7 +1083,9 @@ impl CircuitData {
         fn set_single(slf: &mut CircuitData, index: usize, value: &Bound<PyAny>) -> PyResult<()> {
             let py = value.py();
             slf.untrack_instruction_parameters(index)?;
+            slf.untrack_instruction_blocks(index);
             slf.data[index] = slf.pack(py, &value.cast::<CircuitInstruction>()?.borrow())?;
+            slf.track_instruction_blocks(index);
             slf.track_instruction_parameters(index)?;
             Ok(())
         }
@@ -1153,6 +1151,7 @@ impl CircuitData {
         let py = value.py();
         let packed = self.pack(py, &value)?;
         self.data.insert(index, packed);
+        self.track_instruction_blocks(index);
         if index == self.data.len() - 1 {
             self.track_instruction_parameters(index)?;
         } else {
@@ -1172,11 +1171,8 @@ impl CircuitData {
 
     /// Primary entry point for appending an instruction from Python space.
     pub fn append(&mut self, value: &Bound<CircuitInstruction>) -> PyResult<()> {
-        let py = value.py();
-        let new_index = self.data.len();
-        let packed = self.pack(py, &value.borrow())?;
-        self.data.push(packed);
-        self.track_instruction_parameters(new_index)
+        let packed = self.pack(value.py(), &value.borrow())?;
+        self.push(packed)
     }
 
     /// Backup entry point for appending an instruction from Python space, in the unusual case that
@@ -1208,6 +1204,7 @@ impl CircuitData {
     }
 
     pub fn extend(&mut self, itr: &Bound<PyAny>) -> PyResult<()> {
+        let py = itr.py();
         if let Ok(other) = itr.cast::<CircuitData>() {
             let other = other.borrow();
             // Fast path to avoid unnecessary construction of CircuitInstruction instances.
@@ -1225,21 +1222,18 @@ impl CircuitData {
                     .iter()
                     .map(|b| Ok(self.clbits.find(other.clbits.get(*b).unwrap()).unwrap()))
                     .collect::<PyResult<Vec<Clbit>>>()?;
-                let new_index = self.data.len();
                 let qubits_id = self.qargs_interner.insert_owned(qubits);
                 let clbits_id = self.cargs_interner.insert_owned(clbits);
                 let params = match inst.params.as_deref() {
-                    Some(Parameters::Blocks(blocks)) => {
-                        let circuits = blocks.iter().map(|b| other.blocks.get(*b).unwrap());
-                        let mut blocks = Vec::with_capacity(blocks.len());
-                        for other_block in circuits {
-                            blocks.push(self.blocks.add(other_block.clone(), false)?);
-                        }
-                        Some(Box::new(Parameters::Blocks(blocks)))
-                    }
+                    Some(Parameters::Blocks(blocks)) => Some(Box::new(Parameters::Blocks(
+                        blocks
+                            .iter()
+                            .map(|b| self.blocks.push(other.blocks[*b].clone_ref(py)))
+                            .collect(),
+                    ))),
                     _ => inst.params.clone(),
                 };
-                self.data.push(PackedInstruction {
+                self.push(PackedInstruction {
                     op: inst.op.clone(),
                     qubits: qubits_id,
                     clbits: clbits_id,
@@ -1247,8 +1241,7 @@ impl CircuitData {
                     label: inst.label.clone(),
                     #[cfg(feature = "cache_pygates")]
                     py_op: inst.py_op.clone(),
-                });
-                self.track_instruction_parameters(new_index)?;
+                })?;
             }
             return Ok(());
         }
@@ -1455,6 +1448,9 @@ impl CircuitData {
         if let Some(locations) = self.clbit_indices.cached_raw() {
             visit.call(locations)?;
         }
+        for block in self.blocks.blocks() {
+            visit.call(block)?;
+        }
         Ok(())
     }
 
@@ -1467,6 +1463,7 @@ impl CircuitData {
         self.cregs.dispose();
         self.clbit_indices.dispose();
         self.qubit_indices.dispose();
+        self.blocks.clear();
         self.param_table.clear();
     }
 
@@ -1815,9 +1812,9 @@ impl CircuitData {
 }
 
 impl CircuitData {
-    /// Iterate over the blocks registered to the DAG.
-    pub fn iter_blocks(&self) -> impl ExactSizeIterator<Item = &Py<PyAny>> {
-        self.blocks.objects().iter().map(|b| b.object())
+    #[inline]
+    pub fn blocks(&self) -> &ControlFlowBlocks<Py<PyAny>> {
+        &self.blocks
     }
 
     /// Build a reference to the Python-space operation object (the `Gate`, etc) packed into an
@@ -1841,14 +1838,12 @@ impl CircuitData {
             }
         }
         let params = match instr.params.as_deref() {
-            Some(Parameters::Blocks(blocks)) => {
-                let mut circuits = Vec::new();
-                for block in blocks {
-                    let circuit = self.blocks.get(*block).unwrap().object().clone_ref(py);
-                    circuits.push(circuit);
-                }
-                Some(Parameters::Blocks(circuits))
-            }
+            Some(Parameters::Blocks(blocks)) => Some(Parameters::Blocks(
+                blocks
+                    .iter()
+                    .map(|b| self.blocks[*b].clone_ref(py))
+                    .collect(),
+            )),
             Some(Parameters::Params(params)) => Some(Parameters::Params(params.clone())),
             None => None,
         };
@@ -1880,8 +1875,8 @@ impl CircuitData {
     /// No attempt is made to deduplicate the given block.
     /// No validation is performed to ensure that the given block is valid
     /// within the circuit.
-    pub fn add_block(&mut self, block: &Bound<PyAny>) -> Block {
-        self.blocks.add(PyObjectAsKey::new(block), false).unwrap()
+    pub fn add_block(&mut self, block: Py<PyAny>) -> Block {
+        self.blocks.push(block)
     }
 
     /// Gets an immutable view of a control flow operation.
@@ -1895,10 +1890,9 @@ impl CircuitData {
             return None;
         };
         Some(match &control.control_flow {
-            ControlFlow::Box { duration, .. } => ControlFlowView::Box(
-                duration.as_ref(),
-                self.blocks.get(instr.blocks_view()[0]).unwrap().object(),
-            ),
+            ControlFlow::Box { duration, .. } => {
+                ControlFlowView::Box(duration.as_ref(), &self.blocks[instr.blocks_view()[0]])
+            }
             ControlFlow::BreakLoop => ControlFlowView::BreakLoop,
             ControlFlow::ContinueLoop => ControlFlowView::ContinueLoop,
             ControlFlow::ForLoop {
@@ -1908,27 +1902,19 @@ impl CircuitData {
             } => ControlFlowView::ForLoop {
                 collection,
                 loop_param: loop_param.as_ref(),
-                body: self.blocks.get(instr.blocks_view()[0]).unwrap().object(),
+                body: &self.blocks[instr.blocks_view()[0]],
             },
             ControlFlow::IfElse { condition, .. } => ControlFlowView::IfElse {
                 condition,
-                true_body: self.blocks.get(instr.blocks_view()[0]).unwrap().object(),
-                false_body: instr
-                    .blocks_view()
-                    .get(1)
-                    .map(|b| self.blocks.get(*b).unwrap().object()),
+                true_body: &self.blocks[instr.blocks_view()[0]],
+                false_body: instr.blocks_view().get(1).map(|b| &self.blocks[*b]),
             },
             ControlFlow::Switch {
                 target, label_spec, ..
             } => {
                 let cases_specifier = label_spec
                     .iter()
-                    .zip(
-                        instr
-                            .blocks_view()
-                            .iter()
-                            .map(|case| self.blocks.get(*case).unwrap().object()),
-                    )
+                    .zip(instr.blocks_view().iter().map(|case| &self.blocks[*case]))
                     .collect();
                 ControlFlowView::Switch {
                     target,
@@ -1937,7 +1923,7 @@ impl CircuitData {
             }
             ControlFlow::While { condition, .. } => ControlFlowView::While {
                 condition,
-                body: self.blocks.get(instr.blocks_view()[0]).unwrap().object(),
+                body: &self.blocks[instr.blocks_view()[0]],
             },
         })
     }
@@ -1959,12 +1945,9 @@ impl CircuitData {
                 // We deepcopy the blocks because QuantumCircuit.copy
                 // promises a deepcopy of all instruction params.
                 let deepcopy = DEEPCOPY.get_bound(py);
-                for block in self.blocks.objects() {
-                    res.blocks.add(
-                        PyObjectAsKey::new(&deepcopy.call1((&block.object(),))?),
-                        true,
-                    )?;
-                }
+                res.blocks = self.blocks.try_map_without_references(|block| {
+                    deepcopy.call1((block,)).map(|ob| ob.unbind())
+                })?;
                 Ok(())
             })?;
         }
@@ -2070,7 +2053,7 @@ impl CircuitData {
             let qubits = res.qargs_interner.insert_owned(qargs);
             let clbits = res.cargs_interner.insert_owned(cargs);
             let params = (!params.is_empty()).then(|| Box::new(Parameters::Params(params)));
-            res.data.push(PackedInstruction {
+            res.push(PackedInstruction {
                 op: operation,
                 qubits,
                 clbits,
@@ -2078,8 +2061,7 @@ impl CircuitData {
                 label: None,
                 #[cfg(feature = "cache_pygates")]
                 py_op: OnceLock::new(),
-            });
-            res.track_instruction_parameters(res.data.len() - 1)?;
+            })?;
         }
         Ok(res)
     }
@@ -2123,7 +2105,7 @@ impl CircuitData {
     pub fn from_packed_instructions<I>(
         qubits: ObjectRegistry<Qubit, ShareableQubit>,
         clbits: ObjectRegistry<Clbit, ShareableClbit>,
-        blocks: ObjectRegistry<Block, PyObjectAsKey>,
+        blocks: ControlFlowBlocks<Py<PyAny>>,
         qargs_interner: Interner<[Qubit]>,
         cargs_interner: Interner<[Clbit]>,
         qregs: RegisterData<QuantumRegister>,
@@ -2169,8 +2151,7 @@ impl CircuitData {
         res.set_global_phase(global_phase)?;
 
         for inst in instruction_iter {
-            res.data.push(inst?);
-            res.track_instruction_parameters(res.data.len() - 1)?;
+            res.push(inst?)?;
         }
 
         // Add variables and stretches in order
@@ -2220,10 +2201,9 @@ impl CircuitData {
         for (operation, params, qargs) in instruction_iter {
             let qubits = res.qargs_interner.insert(&qargs);
             let params = (!params.is_empty()).then(|| Box::new(params));
-            res.data.push(PackedInstruction::from_standard_gate(
+            res.push(PackedInstruction::from_standard_gate(
                 operation, params, qubits,
-            ));
-            res.track_instruction_parameters(res.data.len() - 1)?;
+            ))?;
         }
         Ok(res)
     }
@@ -2241,7 +2221,7 @@ impl CircuitData {
             cargs_interner: Interner::new(),
             qubits: ObjectRegistry::with_capacity(num_qubits as usize),
             clbits: ObjectRegistry::with_capacity(num_clbits as usize),
-            blocks: ObjectRegistry::new(),
+            blocks: ControlFlowBlocks::new(),
             param_table: ParameterTable::new(),
             global_phase: Param::Float(0.0),
             qregs: RegisterData::new(),
@@ -2354,6 +2334,21 @@ impl CircuitData {
             #[cfg(feature = "cache_pygates")]
             py_op: OnceLock::new(),
         })
+    }
+
+    #[inline]
+    fn track_instruction_blocks(&mut self, index: usize) {
+        self.data[index]
+            .blocks_view()
+            .iter()
+            .for_each(|block| self.blocks.increment(*block))
+    }
+    #[inline]
+    fn untrack_instruction_blocks(&mut self, index: usize) {
+        self.data[index]
+            .blocks_view()
+            .iter()
+            .for_each(|block| _ = self.blocks.decrement(*block))
     }
 
     /// Add the entries from the `PackedInstruction` at the given index to the internal parameter
@@ -2572,6 +2567,7 @@ impl CircuitData {
     fn delitem(&mut self, indices: SequenceIndex) -> PyResult<()> {
         // We need to delete in reverse order so we don't invalidate higher indices with a deletion.
         for index in indices.descending() {
+            self.untrack_instruction_blocks(index);
             self.data.remove(index);
         }
         if !indices.is_empty() {
@@ -2592,16 +2588,12 @@ impl CircuitData {
                 .collect(),
         );
         let params = match &inst.params {
-            Some(Parameters::Blocks(circuits)) => {
-                let mut blocks = Vec::with_capacity(circuits.len());
-                for circuit in circuits {
-                    blocks.push(
-                        self.blocks
-                            .add(PyObjectAsKey::new(circuit.bind(py)), false)?,
-                    );
-                }
-                Some(Box::new(Parameters::Blocks(blocks)))
-            }
+            Some(Parameters::Blocks(circuits)) => Some(Box::new(Parameters::Blocks(
+                circuits
+                    .iter()
+                    .map(|circuit| self.blocks.push(circuit.clone_ref(py)))
+                    .collect(),
+            ))),
             Some(Parameters::Params(params)) => Some(Box::new(Parameters::Params(params.clone()))),
             None => None,
         };
@@ -2933,13 +2925,8 @@ impl CircuitData {
                                     }
                                 }?;
                                 if !seen_blocks.contains(&block_to_edit) {
-                                    let mapped_block = map_block(
-                                        self.blocks.get(block_to_edit).unwrap().object(),
-                                    )?;
-                                    self.blocks.replace(
-                                        block_to_edit,
-                                        PyObjectAsKey::new(mapped_block.bind(py)),
-                                    )?;
+                                    let mapped_block = map_block(&self.blocks[block_to_edit])?;
+                                    self.blocks[block_to_edit] = mapped_block;
                                     seen_blocks.insert(block_to_edit);
                                 }
                                 Ok(())
@@ -3250,6 +3237,7 @@ impl CircuitData {
     pub fn push(&mut self, packed: PackedInstruction) -> PyResult<()> {
         let new_index = self.data.len();
         self.data.push(packed);
+        self.track_instruction_blocks(new_index);
         self.track_instruction_parameters(new_index)
     }
 

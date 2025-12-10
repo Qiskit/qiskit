@@ -254,7 +254,7 @@ fn generate_twirled_circuit(
                         custom_gate_map,
                         optimizer_target,
                     )?;
-                    Ok(out_circ.add_block(&new_block.into_py_quantum_circuit(py)?))
+                    Ok(out_circ.add_block(new_block.into_py_quantum_circuit(py)?.unbind()))
                 })
                 .collect::<PyResult<_>>()?;
             out_circ.push(PackedInstruction::from_control_flow(
