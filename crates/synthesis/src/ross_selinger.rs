@@ -26,8 +26,7 @@ use qiskit_circuit::Qubit;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{Param, StandardGate};
 
-use std::f64::consts::PI;
-const PI4: f64 = PI / 4.0;
+use std::f64::consts::{FRAC_PI_4, FRAC_PI_8};
 
 /// Creates a circuit from the (iterator over) gate names that are returned by rsgridsynth.
 fn circuit_from_string<S>(s: S, phase: f64, instruction_capacity: usize) -> PyResult<CircuitData>
@@ -55,7 +54,7 @@ where
             'W' => {
                 // Note that W in gridsynth represents the global phase update by pi/4,
                 // and not the Clifford W-gate used in Qiskit.
-                circuit.add_global_phase(&Param::Float(PI4))?;
+                circuit.add_global_phase(&Param::Float(FRAC_PI_4))?;
             }
             _ => {
                 return Err(QiskitError::new_err(format!(
@@ -73,7 +72,7 @@ pub fn approximate_rz_rotation(theta: f64, epsilon: f64) -> PyResult<CircuitData
         theta, epsilon, 0u64, false, true,
     ));
     let gates_iter = res.gates.chars();
-    let phase = (res.global_phase as u64) as f64 * PI4;
+    let phase = (res.global_phase as u64) as f64 * FRAC_PI_8;
     let instruction_capacity = res.gates.len();
     circuit_from_string(gates_iter, phase, instruction_capacity)
 }
@@ -111,7 +110,7 @@ pub fn approximate_1q_unitary_inner(
         + (res_gates_theta.global_phase as u64
             + res_gates_phi.global_phase as u64
             + res_gates_lambda.global_phase as u64) as f64
-            * PI4;
+            * FRAC_PI_8;
 
     circuit_from_string(gates_iter, phase, instruction_capacity)
 }
