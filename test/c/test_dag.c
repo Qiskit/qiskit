@@ -891,8 +891,9 @@ static int test_dag_compose(void) {
 
         if (exp_num_param != left_num_param) {
             result = EqualityError;
-            printf("Correct operation with mismatched number of parameters, expected %zu, got %zu.\n",
-                   exp_num_param, left_num_param);
+            printf(
+                "Correct operation with mismatched number of parameters, expected %zu, got %zu.\n",
+                exp_num_param, left_num_param);
             goto inner_cleanup;
         }
 
@@ -1082,9 +1083,9 @@ static int test_dag_compose_permuted(void) {
 
             if (exp_num_param != left_num_param) {
                 result = EqualityError;
-                printf(
-                    "Correct operation with mismatched number of parameters, expected %zu, got %zu.\n",
-                    exp_num_param, left_num_param);
+                printf("Correct operation with mismatched number of parameters, expected %zu, got "
+                       "%zu.\n",
+                       exp_num_param, left_num_param);
                 goto inner_cleanup;
             }
 
