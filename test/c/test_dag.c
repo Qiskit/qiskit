@@ -799,14 +799,9 @@ static int test_dag_compose(void) {
     //             ┌─┴─┐
     // lqr_4: |0>──┤ X ├───
     //             └───┘
-    // lcr_0: 0 ═══════════
-    //
-    // lcr_1: 0 ═══════════
     QkDag *dag_left = qk_dag_new();
     QkQuantumRegister *lqr = qk_quantum_register_new(5, "lqr");
-    QkClassicalRegister *lcr = qk_classical_register_new(2, "lcr");
     qk_dag_add_quantum_register(dag_left, lqr);
-    qk_dag_add_classical_register(dag_left, lcr);
     qk_dag_apply_gate(dag_left, QkGate_CX, (uint32_t[]){3, 4}, NULL, false);
     qk_dag_apply_gate(dag_left, QkGate_X, (uint32_t[]){1}, NULL, false);
     qk_dag_apply_gate(dag_left, QkGate_H, (uint32_t[]){0}, NULL, false);
@@ -833,7 +828,7 @@ static int test_dag_compose(void) {
     QkExitCode res = qk_dag_compose(dag_left, dag_right, NULL, 0, NULL, 0);
     if (res != QkExitCode_Success) {
         result = EqualityError;
-        printf("Error during compose, the dags did not match in number of qubits");
+        printf("Error during compose, the dags did not match in number of qubits.\n");
         goto cleanup;
     }
 
@@ -845,14 +840,13 @@ static int test_dag_compose(void) {
     if (left_op_nodes + right_op_nodes != new_op_nodes) {
         result = EqualityError;
         printf("The operations did not get composed onto the left dag correctly. Expected %zu "
-               "operations, got %zu",
+               "operations, got %zu.\n",
                left_op_nodes + right_op_nodes, new_op_nodes);
     }
 
     // Create a comparison dag
     QkDag *dag_expected = qk_dag_new();
     qk_dag_add_quantum_register(dag_expected, lqr);
-    qk_dag_add_classical_register(dag_expected, lcr);
     qk_dag_apply_gate(dag_expected, QkGate_CX, (uint32_t[]){3, 4}, NULL, false);
     qk_dag_apply_gate(dag_expected, QkGate_X, (uint32_t[]){1}, NULL, false);
     qk_dag_apply_gate(dag_expected, QkGate_H, (uint32_t[]){0}, NULL, false);
@@ -866,7 +860,7 @@ static int test_dag_compose(void) {
     if (new_op_nodes != expected_op_nodes) {
         result = EqualityError;
         printf("The operations did not get composed onto the left dag correctly. Expected %zu "
-               "operations, got %zu",
+               "operations, got %zu.\n",
                left_op_nodes + right_op_nodes, new_op_nodes);
         goto cleanup;
     }
@@ -891,13 +885,13 @@ static int test_dag_compose(void) {
         // Check gate instances
         if (exp_gate != left_gate) {
             result = EqualityError;
-            printf("Incorrect operation found, expected %d, got %d", exp_gate, left_gate);
+            printf("Incorrect operation found, expected %d, got %d.\n", exp_gate, left_gate);
             goto inner_cleanup;
         }
 
         if (exp_num_param != left_num_param) {
             result = EqualityError;
-            printf("Correct operation with mismatched number of parameters, expected %zu, got %zu",
+            printf("Correct operation with mismatched number of parameters, expected %zu, got %zu.\n",
                    exp_num_param, left_num_param);
             goto inner_cleanup;
         }
@@ -905,7 +899,7 @@ static int test_dag_compose(void) {
         for (int param_idx = 0; param_idx < (int)left_num_param; param_idx++) {
             if (exp_param[param_idx] != left_param[param_idx]) {
                 result = EqualityError;
-                printf("Correct operation with mismatched parameter, expected %f, got %f",
+                printf("Correct operation with mismatched parameter, expected %f, got %f.\n",
                        exp_param[param_idx], left_param[param_idx]);
                 goto inner_cleanup;
             }
@@ -915,16 +909,16 @@ static int test_dag_compose(void) {
         size_t left_num_qubits = qk_dag_op_node_num_qubits(dag_left, node_idx_left);
         if (exp_num_qubits != left_num_qubits) {
             result = EqualityError;
-            printf("Correct operation with mismatched number of qubits, expected %zu, got %zu",
+            printf("Correct operation with mismatched number of qubits, expected %zu, got %zu.\n",
                    exp_num_qubits, left_num_qubits);
             goto inner_cleanup;
         }
 
         const uint32_t *expected_qubits = qk_dag_op_node_qubits(dag_expected, node_idx_exp);
         const uint32_t *left_qubits = qk_dag_op_node_qubits(dag_left, node_idx_left);
-        if (memcmp(expected_qubits, left_qubits, exp_num_qubits * sizeof(expected_qubits))) {
+        if (memcmp(expected_qubits, left_qubits, exp_num_qubits * sizeof(*expected_qubits))) {
             result = EqualityError;
-            printf("Correct operation with mismatched qubits");
+            printf("Correct operation with mismatched qubits\n");
             goto inner_cleanup;
         }
 
@@ -938,7 +932,6 @@ cleanup:
     qk_dag_free(dag_left);
     qk_dag_free(dag_right);
     qk_quantum_register_free(lqr);
-    qk_classical_register_free(lcr);
     qk_quantum_register_free(rqr);
     return result;
 }
@@ -1015,7 +1008,7 @@ static int test_dag_compose_permuted(void) {
     QkExitCode res = qk_dag_compose(dag_left, dag_right, qubits, 5, clbits, 2);
     if (res != QkExitCode_Success) {
         result = EqualityError;
-        printf("Error during compose, the dags did not match in number of qubits");
+        printf("Error during compose, the dags did not match in number of qubits.\n");
         goto cleanup;
     }
 
@@ -1027,7 +1020,7 @@ static int test_dag_compose_permuted(void) {
     if (left_op_nodes + right_op_nodes != new_op_nodes) {
         result = EqualityError;
         printf("The operations did not get composed onto the left dag correctly. Expected %zu "
-               "operations, got %zu",
+               "operations, got %zu.\n",
                left_op_nodes + right_op_nodes, new_op_nodes);
     }
 
@@ -1049,7 +1042,7 @@ static int test_dag_compose_permuted(void) {
     if (new_op_nodes != expected_op_nodes) {
         result = EqualityError;
         printf("The operations did not get composed onto the left dag correctly. Expected %zu "
-               "operations, got %zu",
+               "operations, got %zu.\n",
                left_op_nodes + right_op_nodes, new_op_nodes);
         goto cleanup;
     }
@@ -1069,7 +1062,7 @@ static int test_dag_compose_permuted(void) {
 
         if (exp_kind != exp_left) {
             result = EqualityError;
-            printf("Incorrect operation type found. Expected: %d got %d", exp_kind, exp_left);
+            printf("Incorrect operation type found. Expected: %d got %d.\n", exp_kind, exp_left);
             goto inner_cleanup;
         }
         if (exp_kind == QkOperationKind_Gate) {
@@ -1083,14 +1076,14 @@ static int test_dag_compose_permuted(void) {
             // Check gate instances
             if (exp_gate != left_gate) {
                 result = EqualityError;
-                printf("Incorrect operation found, expected %d, got %d", exp_gate, left_gate);
+                printf("Incorrect operation found, expected %d, got %d.\n", exp_gate, left_gate);
                 goto inner_cleanup;
             }
 
             if (exp_num_param != left_num_param) {
                 result = EqualityError;
                 printf(
-                    "Correct operation with mismatched number of parameters, expected %zu, got %zu",
+                    "Correct operation with mismatched number of parameters, expected %zu, got %zu.\n",
                     exp_num_param, left_num_param);
                 goto inner_cleanup;
             }
@@ -1098,7 +1091,7 @@ static int test_dag_compose_permuted(void) {
             for (int param_idx = 0; param_idx < (int)left_num_param; param_idx++) {
                 if (exp_param[param_idx] != left_param[param_idx]) {
                     result = EqualityError;
-                    printf("Correct operation with mismatched parameter, expected %f, got %f",
+                    printf("Correct operation with mismatched parameter, expected %f, got %f.\n",
                            exp_param[param_idx], left_param[param_idx]);
                     goto inner_cleanup;
                 }
@@ -1109,16 +1102,16 @@ static int test_dag_compose_permuted(void) {
         size_t left_num_qubits = qk_dag_op_node_num_qubits(dag_left, node_idx_left);
         if (exp_num_qubits != left_num_qubits) {
             result = EqualityError;
-            printf("Correct operation with mismatched number of qubits, expected %zu, got %zu",
+            printf("Correct operation with mismatched number of qubits, expected %zu, got %zu.\n",
                    exp_num_qubits, left_num_qubits);
             goto inner_cleanup;
         }
 
         const uint32_t *expected_qubits = qk_dag_op_node_qubits(dag_expected, node_idx_exp);
         const uint32_t *left_qubits = qk_dag_op_node_qubits(dag_left, node_idx_left);
-        if (memcmp(expected_qubits, left_qubits, exp_num_qubits * sizeof(expected_qubits))) {
+        if (memcmp(expected_qubits, left_qubits, exp_num_qubits * sizeof(*expected_qubits))) {
             result = EqualityError;
-            printf("Correct operation with mismatched qubits");
+            printf("Correct operation with mismatched qubits.\n");
             goto inner_cleanup;
         }
 
@@ -1126,16 +1119,16 @@ static int test_dag_compose_permuted(void) {
         size_t left_num_clbits = qk_dag_op_node_num_clbits(dag_left, node_idx_left);
         if (exp_num_clbits != left_num_clbits) {
             result = EqualityError;
-            printf("Correct operation with mismatched number of clbits, expected %zu, got %zu",
+            printf("Correct operation with mismatched number of clbits, expected %zu, got %zu.\n",
                    exp_num_clbits, left_num_clbits);
             goto inner_cleanup;
         }
 
         const uint32_t *expected_clbits = qk_dag_op_node_clbits(dag_expected, node_idx_exp);
         const uint32_t *left_clbits = qk_dag_op_node_clbits(dag_left, node_idx_left);
-        if (memcmp(expected_clbits, left_clbits, exp_num_clbits * sizeof(expected_clbits))) {
+        if (memcmp(expected_clbits, left_clbits, exp_num_clbits * sizeof(*expected_clbits))) {
             result = EqualityError;
-            printf("Correct operation with mismatched clbits");
+            printf("Correct operation with mismatched clbits.\n");
             goto inner_cleanup;
         }
 
