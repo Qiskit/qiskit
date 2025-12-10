@@ -28,7 +28,7 @@ use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::ObjectRegistry;
 use crate::operations::{
     ControlFlow, ControlFlowInstruction, ControlFlowView, Operation, OperationRef, Param,
-    PythonOperation, StandardGate,
+    PythonOperation, StandardGate, StandardInstruction,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::ParameterExpression;
@@ -50,7 +50,7 @@ use pyo3::{PyTraverseError, PyVisit, import_exception, intern};
 
 use crate::instruction::Parameters;
 use hashbrown::{HashMap, HashSet};
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use smallvec::SmallVec;
 
 import_exception!(qiskit.circuit.exceptions, CircuitError);
@@ -849,6 +849,59 @@ impl CircuitData {
         }
 
         Ok((qubits, clbits).into_pyobject(py)?.unbind())
+    }
+
+    /// Return a list of active qubit indices in the circuit
+    ///
+    /// Args:
+    ///
+    ///     filter_inactive_operations: If True (the default) directives (such as :class:`.Barrier`) and
+    ///         :class:`.Delay` operations in the circuit will not be considered active operations
+    ///         and not considered when determining active qubits.
+    ///
+    /// Returns:
+    ///     list[int]: The list of qubit indices in the circuit that have operations. The list
+    ///     order is deterministic and determined by the instruction order in the circuit.
+    pub fn active_qubits<'py>(
+        &self,
+        py: Python<'py>,
+        filter_inactive_operations: bool,
+    ) -> PyResult<Bound<'py, PyList>> {
+        let qubits_iter = self.data.iter();
+        let qubits: IndexSet<Qubit, ahash::RandomState> = if filter_inactive_operations {
+            qubits_iter
+                .filter(|x| {
+                    !x.op.directive()
+                        && !matches!(
+                            x.op.view(),
+                            OperationRef::StandardInstruction(StandardInstruction::Delay(_))
+                        )
+                })
+                .flat_map(|inst| self.qargs_interner.get(inst.qubits))
+                .copied()
+                .collect()
+        } else {
+            qubits_iter
+                .flat_map(|inst| self.qargs_interner.get(inst.qubits))
+                .copied()
+                .collect()
+        };
+        PyList::new(py, qubits.into_iter().map(|x| x.0))
+    }
+
+    /// Return a list of active clbit indices in the circuit
+    ///
+    /// Returns:
+    ///     list[int]: The list of clbit indices in the circuit that have operations. The list
+    ///     order is deterministic and determined by the instruction order in the circuit.
+    pub fn active_clbits<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyList>> {
+        let clbits: IndexSet<Clbit, ahash::RandomState> = self
+            .data
+            .iter()
+            .flat_map(|inst| self.cargs_interner.get(inst.clbits))
+            .copied()
+            .collect();
+        PyList::new(py, clbits.into_iter().map(|x| x.0))
     }
 
     /// Invokes callable ``func`` with each instruction's operation.

@@ -4204,6 +4204,31 @@ class QuantumCircuit:
         """
         return self._data.num_clbits
 
+    def active_qubits(self, filter_inactive_operations: bool = True) -> list[int]:
+        """Return a list of active qubit indices in the circuit
+
+        Args:
+            filter_inactive_operations: If True (the default) directives (such as :class:`.Barrier`) and
+                :class:`.Delay` operations in the circuit will not be considered when determining active
+                qubits.
+
+        Returns:
+            The list of qubit indices in the circuit that have any operations.
+            The list order is deterministic and determined by the instruction
+            order in the circuit.
+        """
+        return self._data.active_qubits(filter_inactive_operations)
+
+    def active_clbits(self) -> list[int]:
+        """Return a list of active clbit indices in the circuit
+
+        Returns:
+            The list of clbit indices in the circuit that have any operations.
+            The list order is deterministic and determined by the instruction
+            order in the circuit.
+        """
+        return self._data.active_clbits()
+
     # The stringified return type is because OrderedDict can't be subscripted before Python 3.9, and
     # typing.OrderedDict wasn't added until 3.7.2.  It can be turned into a proper type once 3.6
     # support is dropped.
@@ -4570,15 +4595,11 @@ class QuantumCircuit:
         Returns:
             QuantumCircuit: Returns circuit with measurements when ``inplace = False``.
         """
-        # pylint: disable=cyclic-import
-        from qiskit.converters.circuit_to_dag import circuit_to_dag
-
         if inplace:
             circ = self
         else:
             circ = self.copy()
-        dag = circuit_to_dag(circ)
-        qubits_to_measure = [qubit for qubit in circ.qubits if qubit not in dag.idle_wires()]
+        qubits_to_measure = self.active_qubits()
         new_creg = circ._create_creg(len(qubits_to_measure), "meas")
         circ.add_register(new_creg)
         circ.barrier()
