@@ -108,7 +108,7 @@ class WrapAngles(TransformationPass):
         return dag
 
 
-# This path is the only valid way to access this global object in Qiskit 2.2, and is documented and
+# TODO This path is the only valid way to access this global object in Qiskit 2.2, and is documented and
 # preserved by the deprecation policy of that version.  The preferred way to access the object is as
-# `WrapAngles.DEFAULT_REGISTRY`.
+# `WrapAngles.DEFAULT_REGISTRY` and we should deprecate the old access path for Qiskit 2.4.
 WRAP_ANGLE_REGISTRY = WrapAngles.DEFAULT_REGISTRY
