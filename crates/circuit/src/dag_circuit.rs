@@ -1458,7 +1458,7 @@ impl DAGCircuit {
         cargs: Option<TupleLikeArg>,
         check: bool,
     ) -> PyResult<Py<PyAny>> {
-        let py_op = op.extract::<OperationFromPython>()?;
+        let py_op = op.extract::<OperationFromPython<DAGCircuit>>()?;
         let qargs = qargs
             .map(|q| q.value.extract::<Vec<ShareableQubit>>())
             .transpose()?;
@@ -1476,12 +1476,11 @@ impl DAGCircuit {
                     .map_objects(cargs.into_iter().flatten())?
                     .collect(),
             );
-            let params = self.extract_blocks_from_circuit_parameters(py_op.params.as_ref())?;
             let instr = PackedInstruction {
                 op: py_op.operation,
                 qubits: qubits_id,
                 clbits: clbits_id,
-                params,
+                params: self.take_parameter_blocks(py_op.params),
                 label: py_op.label,
                 #[cfg(feature = "cache_pygates")]
                 py_op: op.unbind().into(),
@@ -1521,7 +1520,7 @@ impl DAGCircuit {
         cargs: Option<TupleLikeArg>,
         check: bool,
     ) -> PyResult<Py<PyAny>> {
-        let py_op = op.extract::<OperationFromPython>()?;
+        let py_op = op.extract::<OperationFromPython<DAGCircuit>>()?;
         let qargs = qargs
             .map(|q| q.value.extract::<Vec<ShareableQubit>>())
             .transpose()?;
@@ -1539,12 +1538,11 @@ impl DAGCircuit {
                     .map_objects(cargs.into_iter().flatten())?
                     .collect(),
             );
-            let params = self.extract_blocks_from_circuit_parameters(py_op.params.as_ref())?;
             let instr = PackedInstruction {
                 op: py_op.operation,
                 qubits: qubits_id,
                 clbits: clbits_id,
-                params,
+                params: self.take_parameter_blocks(py_op.params),
                 label: py_op.label,
                 #[cfg(feature = "cache_pygates")]
                 py_op: op.unbind().into(),
@@ -3013,8 +3011,8 @@ impl DAGCircuit {
         }
 
         let block_ids: Vec<_> = node_block.iter().map(|n| n.node.unwrap()).collect();
-        let py_op = op.extract::<OperationFromPython>()?;
-        let params = self.extract_blocks_from_circuit_parameters(py_op.params.as_ref())?;
+        let py_op = op.extract::<OperationFromPython<DAGCircuit>>()?;
+        let params = self.take_parameter_blocks(py_op.params);
         let new_node = self.replace_block(
             &block_ids,
             py_op.operation,
@@ -3347,21 +3345,13 @@ impl DAGCircuit {
         let node_index = node.as_ref().node.unwrap();
         self.substitute_node_with_py_op(node_index, op)?;
         if inplace {
-            let PackedInstruction {
-                params,
-                label,
-                #[cfg(feature = "cache_pygates")]
-                py_op,
-                ..
-            } = self.dag[node_index].unwrap_operation().clone();
-            let temp: OperationFromPython = op.extract()?;
+            let temp = op.extract::<OperationFromPython<CircuitData>>()?;
             node.instruction.operation = temp.operation;
-            node.instruction.params =
-                self.unpack_blocks_to_circuit_parameters(params.as_deref())?;
-            node.instruction.label = label;
+            node.instruction.params = temp.params;
+            node.instruction.label = temp.label;
             #[cfg(feature = "cache_pygates")]
             {
-                node.instruction.py_op = py_op;
+                node.instruction.py_op = OnceLock::from(op.clone().unbind());
             }
             node.into_py_any(py)
         } else {
@@ -5005,41 +4995,50 @@ impl DAGCircuit {
         self.blocks.push(block)
     }
 
-    /// Add a new block to this circuit, extracting it from the equivalent typed block from a
-    /// `CircuitData`.
-    pub fn add_block_from_circuit(&mut self, block: &CircuitData) -> PyResult<Block> {
-        DAGCircuit::from_circuit_data(block, false, None, None, None, None)
-            .map(|dag| self.add_block(dag))
+    /// Take the blocks from an extraction from an `OperationFromPython<DAGCircuit>` and add them to
+    /// this DAG.
+    ///
+    /// Returns the parameters in terms of block references.
+    pub fn take_parameter_blocks(
+        &mut self,
+        params: Option<Parameters<DAGCircuit>>,
+    ) -> Option<Box<Parameters<Block>>> {
+        params.map(|params| Box::new(params.map_blocks(|block| self.add_block(block))))
     }
 
-    /// Given a `params` object in terms of owned Python-space circuit objects (such as from an
-    /// `OperationFromPython` extraction), add all the blocks to the DAG and return the `params`
-    /// field suitable for inclusion in a `PackedInstruction`.
+    /// Extract the blocks from a Python-space `CircuitInstruction` and add them to this DAG.
     ///
-    /// The inverse of this method is [unpack_blocks_to_circuit_parameters].
+    /// The inverse of this is [unpack_blocks_to_circuit_parameters].
     fn extract_blocks_from_circuit_parameters(
         &mut self,
         params: Option<&Parameters<CircuitData>>,
     ) -> PyResult<Option<Box<Parameters<Block>>>> {
-        Ok(params
-            .map(|params| params.try_map_blocks(|block| self.add_block_from_circuit(block)))
-            .transpose()?
-            .map(Box::new))
+        params
+            .map(|params| {
+                params
+                    .try_map_blocks_ref(|block| {
+                        DAGCircuit::from_circuit_data(block, false, None, None, None, None)
+                            .map(|dag| self.add_block(dag))
+                    })
+                    .map(Box::new)
+            })
+            .transpose()
     }
 
     /// Given a `params` object from an instruction packed into this DAG, extract any relevant
     /// blocks into the owned-object `CircuitData` block type, suitable for passing back to Python
     /// space.
     ///
-    /// The inverse of this method is [extract_blocks_from_circuit_parameters].
+    /// The inverse of this is [extract_blocks_from_circuit_parameters].
     fn unpack_blocks_to_circuit_parameters(
         &self,
         params: Option<&Parameters<Block>>,
     ) -> PyResult<Option<Parameters<CircuitData>>> {
         params
             .map(|params| {
-                params
-                    .try_map_blocks(|block| converters::dag_to_circuit(&self.blocks[*block], false))
+                params.try_map_blocks_ref(|block| {
+                    converters::dag_to_circuit(&self.blocks[*block], false)
+                })
             })
             .transpose()
     }
@@ -7105,7 +7104,7 @@ impl DAGCircuit {
                 new_inst.params = new_inst
                     .params
                     .as_ref()
-                    .map(|params| Box::new(params.map_blocks(|b| block_map[b])));
+                    .map(|params| Box::new(params.map_blocks_ref(|b| block_map[b])));
                 self.track_instruction(new_inst);
             }
             let new_index = self.dag.add_node(new_node);
@@ -8212,7 +8211,7 @@ impl DAGCircuit {
                             params: inst
                                 .params
                                 .as_ref()
-                                .map(|params| Box::new(params.map_blocks(|b| block_map[b]))),
+                                .map(|params| Box::new(params.map_blocks_ref(|b| block_map[b]))),
                             label: inst.label.clone(),
                             #[cfg(feature = "cache_pygates")]
                             py_op: OnceLock::new(),
@@ -8288,8 +8287,8 @@ impl DAGCircuit {
         op: &Bound<PyAny>,
     ) -> PyResult<()> {
         // Extract information from new op
-        let new_op = op.extract::<OperationFromPython>()?;
-        let params = self.extract_blocks_from_circuit_parameters(new_op.params.as_ref())?;
+        let new_op = op.extract::<OperationFromPython<DAGCircuit>>()?;
+        let params = self.take_parameter_blocks(new_op.params);
         // Extract information from node that is going to be replaced
         let old_packed = self.dag[node_index].unwrap_operation();
         let current_wires: HashSet<Wire> =
@@ -8320,8 +8319,6 @@ impl DAGCircuit {
         }
         let label = new_op.label.clone();
 
-        #[cfg(feature = "cache_pygates")]
-        let py_op_cache = Some(op.clone().unbind());
         let new_instr = PackedInstruction {
             op: new_op.operation,
             qubits: old_packed.qubits,
@@ -8329,7 +8326,7 @@ impl DAGCircuit {
             params,
             label,
             #[cfg(feature = "cache_pygates")]
-            py_op: py_op_cache.map(OnceLock::from).unwrap_or_default(),
+            py_op: OnceLock::from(op.clone().unbind()),
         };
 
         let (additional_clbits, additional_vars) =
