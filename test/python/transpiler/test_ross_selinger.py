@@ -146,7 +146,7 @@ class TestRossSelingerPlugin(QiskitTestCase):
 
         _1q = Collect1qRuns()
         _cons = ConsolidateBlocks()
-        _synth = UnitarySynthesis(["h", "t", "tdg"], method="rs")
+        _synth = UnitarySynthesis(["h", "t", "tdg"], method="gridsynth")
         passes = PassManager([_1q, _cons, _synth])
         compiled = passes.run(circuit)
 

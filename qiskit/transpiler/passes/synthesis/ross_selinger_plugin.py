@@ -36,7 +36,7 @@ class RossSelingerSynthesis(UnitarySynthesisPlugin):
     https://github.com/qiskit-community/rsgridsynth.
 
     This plugin is invoked by :func:`~.compiler.transpile` when the ``unitary_synthesis_method``
-    parameter is set to ``"rs"``.
+    parameter is set to ``"gridsynth"``.
 
     This plugin supports customization and additional parameters can be passed to the plugin
     by passing a dictionary as the ``unitary_synthesis_plugin_config`` parameter of
