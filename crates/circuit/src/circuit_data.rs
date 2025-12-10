@@ -1824,9 +1824,16 @@ impl CircuitData {
 
     /// Move this [CircuitData] into a complete Python `QuantumCircuit` object.
     pub fn into_py_quantum_circuit(self, py: Python) -> PyResult<Bound<PyAny>> {
-        QUANTUM_CIRCUIT
-            .get_bound(py)
-            .call_method1(intern!(py, "_from_circuit_data"), (self,))
+        // TODO: setting the name to a fixed value is a gross hack for Qiskit 2.3 to prevent
+        // QuantumCircuit's awkward "unique name" logic from coming in to play, which would cause
+        // problems with reproducibility in QPY streams when gate-caching is turned off.
+        let kwargs = PyDict::new(py);
+        kwargs.set_item(intern!(py, "name"), "unnamed")?;
+        QUANTUM_CIRCUIT.get_bound(py).call_method(
+            intern!(py, "_from_circuit_data"),
+            (self,),
+            Some(&kwargs),
+        )
     }
 
     /// Gives the circuit ownership of the provided basic block and returns a
