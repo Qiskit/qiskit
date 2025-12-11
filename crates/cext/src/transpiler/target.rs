@@ -1348,7 +1348,8 @@ pub struct CTargetOp {
 }
 
 /// @ingroup QkTarget
-/// Retrieves information about an operation in the Target.
+/// Retrieves information about an operation in the Target via index.
+/// If the index is not present, this function will panic.
 ///
 /// @param target A pointer to the ``QkTarget``.
 /// @param index The index in which the gate is stored.
