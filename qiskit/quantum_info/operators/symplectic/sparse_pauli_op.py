@@ -863,7 +863,6 @@ class SparsePauliOp(LinearOp):
         obj: Iterable[tuple[str, list[int], complex]],
         num_qubits: int,
         do_checks: bool = True,
-        #dtype: type = complex,
         dtype: type | None = None,
     ) -> SparsePauliOp:
         """Construct from a list of local Pauli strings and coefficients.
@@ -896,7 +895,9 @@ class SparsePauliOp(LinearOp):
             num_qubits (int): The number of qubits of the operator.
             do_checks (bool): The flag of checking if the input indices are not duplicated
             (Default: True).
-            dtype (type): The dtype of coeffs (Default: complex).
+            dtype (type | None): Data type for the coefficients. If None, the dtype is automatically 
+            inferred. Default is None.
+
 
         Returns:
             SparsePauliOp: The SparsePauliOp representation of the Pauli terms.
@@ -913,8 +914,7 @@ class SparsePauliOp(LinearOp):
             size = len(obj)
 
         if dtype is None:
-            coeffs_list = [coeff for (_, _, coeff) in obj]
-            if any(isinstance(coeff, ParameterExpression) for coeff in coeffs_list):
+            if any(isinstance(coeff, ParameterExpression) for (_, _, coeff) in obj):
                 dtype = object
             else:
                 dtype = complex
