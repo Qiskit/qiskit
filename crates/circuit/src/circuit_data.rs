@@ -2489,7 +2489,7 @@ impl CircuitData {
     ///
     /// This is not generally efficient, and mostly just a convenience for the recursive case of
     /// control flow.
-    pub fn assign_single_parameter(&mut self, symbol: Symbol, value: &Param) -> PyResult<()> {
+    fn assign_single_parameter(&mut self, symbol: Symbol, value: &Param) -> PyResult<()> {
         let Ok(uses) = self.param_table.pop(ParameterUuid::from_symbol(&symbol)) else {
             return Ok(());
         };
