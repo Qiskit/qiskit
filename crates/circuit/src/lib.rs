@@ -15,6 +15,7 @@ use std::env;
 pub mod annotation;
 pub mod bit;
 pub mod bit_locator;
+mod blocks;
 pub mod circuit_data;
 pub mod circuit_instruction;
 pub mod classical;
@@ -26,6 +27,7 @@ pub mod duration;
 pub mod error;
 pub mod gate_matrix;
 pub mod imports;
+pub mod instruction;
 pub mod interner;
 pub mod nlayout;
 pub mod object_registry;
@@ -59,8 +61,13 @@ pub struct Var(u32);
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, PartialOrd)]
 pub struct Stretch(u32);
 
+#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
+pub struct Block(u32);
+
+pub use blocks::ControlFlowBlocks;
 pub use nlayout::PhysicalQubit;
 pub use nlayout::VirtualQubit;
+pub use packed_instruction::BlockMapper;
 
 macro_rules! impl_circuit_identifier {
     ($type:ident) => {
@@ -105,6 +112,7 @@ impl_circuit_identifier!(Qubit);
 impl_circuit_identifier!(Clbit);
 impl_circuit_identifier!(Var);
 impl_circuit_identifier!(Stretch);
+impl_circuit_identifier!(Block);
 
 pub struct TupleLikeArg<'py> {
     value: Bound<'py, PyTuple>,
@@ -189,6 +197,14 @@ impl<'a, 'py> FromPyObject<'a, 'py> for VarsMode {
     }
 }
 
+/// The mode to use when handling blocks for operations that create a new [dag_circuit::DAGCircuit]
+/// or [circuit_data::CircuitData] based on an existing one.
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum BlocksMode {
+    Drop,
+    Keep,
+}
+
 #[inline]
 pub fn getenv_use_multiple_threads() -> bool {
     let parallel_context = env::var("QISKIT_IN_PARALLEL")
@@ -249,6 +265,7 @@ pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<dag_node::DAGOutNode>()?;
     m.add_class::<dag_node::DAGOpNode>()?;
     m.add_class::<dag_circuit::PyBitLocations>()?;
+    m.add_class::<operations::ControlFlowType>()?;
     m.add_class::<operations::StandardGate>()?;
     m.add_class::<operations::StandardInstructionType>()?;
     m.add_class::<parameter::parameter_expression::PyParameterExpression>()?;

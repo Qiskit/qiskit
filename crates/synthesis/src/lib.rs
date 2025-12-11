@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 pub mod clifford;
-mod discrete_basis;
+pub mod discrete_basis;
 pub mod euler_one_qubit_decomposer;
 mod evolution;
 pub mod linalg;
@@ -22,6 +22,7 @@ pub mod pauli_product_measurement;
 mod permutation;
 mod qft;
 pub mod qsd;
+pub mod ross_selinger;
 pub mod two_qubit_decompose;
 
 use pyo3::import_exception;

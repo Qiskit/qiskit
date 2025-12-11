@@ -22,6 +22,7 @@ from typing import Union, Iterable, Any, Tuple, Optional, List, Literal, TYPE_CH
 from qiskit.circuit import ClassicalRegister, Clbit  # pylint: disable=cyclic-import
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.exceptions import CircuitError
+from qiskit._accelerate.circuit import ControlFlowType
 
 from .builder import InstructionPlaceholder, InstructionResources, ControlFlowBuilderBlock
 from .control_flow import ControlFlowOp
@@ -52,6 +53,8 @@ class SwitchCaseOp(ControlFlowOp):
     ``target`` against an ordered list of ``values``.  The special value :data:`.CASE_DEFAULT` can
     be used to represent a default condition.
     """
+
+    _control_flow_type = ControlFlowType.SwitchCase
 
     def __init__(
         self,

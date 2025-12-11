@@ -15,7 +15,14 @@
 import unittest
 
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit, Clbit, SwitchCaseOp
+from qiskit.circuit import (
+    QuantumRegister,
+    ClassicalRegister,
+    QuantumCircuit,
+    Clbit,
+    SwitchCaseOp,
+    Qubit,
+)
 from qiskit.circuit.library import HGate, Measure
 from qiskit.circuit.classical import expr, types
 from qiskit.converters import dag_to_circuit, circuit_to_dag
@@ -40,16 +47,6 @@ class TestCircuitToDag(QiskitTestCase):
         dag = circuit_to_dag(circuit_in)
         circuit_out = dag_to_circuit(dag)
         self.assertEqual(circuit_out, circuit_in)
-
-    def test_high_degree_determinism(self):
-        """Test that the converter is deterministic in edge order for high-degree nodes."""
-        qr = QuantumRegister(100, "q")
-        cr = ClassicalRegister(100, "c")
-        qc = QuantumCircuit(qr, cr)
-        # This is particularly testing the determinism for "extra" bits that don't appear in the
-        # cargs (aren't used in the circuit body).
-        qc.if_test(expr.equal(cr, 0), QuantumCircuit(qr), qr, [])
-        self.assertTrue(circuit_to_dag(qc).structurally_equal(circuit_to_dag(qc)))
 
     def test_wires_from_expr_nodes_condition(self):
         """Test that the classical wires implied by an `Expr` node in a control-flow op's
@@ -133,6 +130,38 @@ class TestCircuitToDag(QiskitTestCase):
         blocks = roundtrip.data[-1].operation.blocks
         self.assertEqual(set(blocks[0].iter_captured_vars()), {c, d})
         self.assertEqual(set(blocks[1].iter_captured_vars()), {a})
+
+    def test_circuit_method(self):
+        """Test that the circuit method can be used as a wrapper."""
+        qregs = [QuantumRegister(3, "q1"), QuantumRegister(2, "q2")]
+        cregs = [ClassicalRegister(3, "c1"), ClassicalRegister(2, "c2")]
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+        qc = QuantumCircuit(
+            *qregs,
+            [Qubit(), Clbit()],
+            *cregs,
+            name="test circuit",
+            metadata={"hello": "world"},
+            global_phase=2.0,
+            inputs=[a],
+            declarations={b: expr.lift(True)},
+        )
+        qc.add_stretch("c")
+        dag = qc.to_dag()
+        self.assertEqual(dag.name, qc.name)
+        self.assertEqual(dag.metadata, qc.metadata)
+        self.assertEqual(dag.global_phase, qc.global_phase)
+        self.assertEqual(dag.qregs, {qreg.name: qreg for qreg in qc.qregs})
+        self.assertEqual(dag.cregs, {creg.name: creg for creg in qc.cregs})
+        self.assertEqual(dag.qubits, qc.qubits)
+        self.assertEqual(dag.clbits, qc.clbits)
+        self.assertEqual(list(dag.iter_input_vars()), list(qc.iter_input_vars()))
+        self.assertEqual(list(dag.iter_declared_vars()), list(qc.iter_declared_vars()))
+        self.assertEqual(list(dag.iter_declared_stretches()), list(qc.iter_declared_stretches()))
+
+        # ... and test the roundtrip back.
+        self.assertEqual(dag.to_circuit(), qc)
 
     def test_wire_order(self):
         """Test that the `qubit_order` and `clbit_order` parameters are respected."""

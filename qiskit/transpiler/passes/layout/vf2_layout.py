@@ -18,8 +18,12 @@ from enum import Enum
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.passes.layout import vf2_utils
-from qiskit._accelerate.vf2_layout import vf2_layout_pass, MultiQEncountered, VF2PassConfiguration
+from qiskit.transpiler.target import Target
+from qiskit._accelerate.vf2_layout import (
+    vf2_layout_pass_average,
+    MultiQEncountered,
+    VF2PassConfiguration,
+)
 
 
 class VF2LayoutStopReason(Enum):
@@ -130,12 +134,12 @@ class VF2Layout(AnalysisPass):
             target, coupling_map = self.target, self.target.build_coupling_map()
         elif self.target is None:
             coupling_map = self.coupling_map
-            target = vf2_utils.build_dummy_target(coupling_map)
+            target = _build_dummy_target(coupling_map)
         else:
             # We have both, but may need to override the target if it has no connectivity.
             coupling_map = self.target.build_coupling_map()
             if coupling_map is None:
-                target = vf2_utils.build_dummy_target(self.coupling_map)
+                target = _build_dummy_target(self.coupling_map)
                 coupling_map = self.coupling_map
             else:
                 target = self.target
@@ -145,9 +149,10 @@ class VF2Layout(AnalysisPass):
             time_limit=self.time_limit,
             max_trials=self.max_trials,
             shuffle_seed=self.seed,
+            score_initial_layout=False,
         )
         try:
-            output = vf2_layout_pass(
+            output = vf2_layout_pass_average(
                 dag,
                 target,
                 strict_direction=self.strict_direction,
@@ -166,3 +171,12 @@ class VF2Layout(AnalysisPass):
         for reg in dag.qregs.values():
             layout.add_register(reg)
         self.property_set["layout"] = layout
+
+
+def _build_dummy_target(coupling_map) -> Target:
+    """Build a dummy target with no error rates that represents the coupling in ``coupling_map``."""
+    # The choice of basis gates is completely arbitrary, and we have no source of error rates.
+    # We just want _something_ to represent the coupling constraints.
+    return Target.from_configuration(
+        basis_gates=["u", "cx"], num_qubits=coupling_map.size(), coupling_map=coupling_map
+    )
