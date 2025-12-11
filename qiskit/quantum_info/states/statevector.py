@@ -129,7 +129,9 @@ class Statevector(QuantumState, TolerancesMixin):
         Example:
             Create a statevector from a transpiled circuit:
 
-            .. code-block:: python
+            .. plot::
+               :include-source:
+               :nofigs:
 
                 from qiskit import QuantumCircuit, transpile
                 from qiskit.quantum_info import Statevector
