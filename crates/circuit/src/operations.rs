@@ -13,8 +13,8 @@
 use approx::relative_eq;
 use std::f64::consts::PI;
 use std::fmt::Debug;
-use std::str::FromStr;
 use std::num::NonZero;
+use std::str::FromStr;
 use std::sync::Arc;
 use std::{fmt, vec};
 

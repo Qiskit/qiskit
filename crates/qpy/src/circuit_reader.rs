@@ -554,7 +554,7 @@ fn unpack_control_flow(
             let (indexset_value, loop_param_value) = iter.next().zip(iter.next()).ok_or(
                 PyValueError::new_err("For loop instruction missing some of its parameters"),
             )?;
-            let indexset: Vec<usize> = if let GenericValue::Tuple(indexset_values) = indexset_value
+            let _indexset: Vec<usize> = if let GenericValue::Tuple(indexset_values) = indexset_value
             {
                 indexset_values
                     .iter()
@@ -571,14 +571,17 @@ fn unpack_control_flow(
             } else {
                 return Err(PyValueError::new_err("For loop missing index set values"));
             };
-            let loop_param = match loop_param_value {
+            let _loop_param = match loop_param_value {
                 GenericValue::ParameterExpressionSymbol(symbol) => Some(symbol),
                 _ => None,
             };
-            ControlFlow::ForLoop {
-                indexset,
-                loop_param,
-            }
+            panic!(
+                "ControlFlow handling is not implemented yet, until the Rust ControlFlow code stabilizes"
+            );
+            // ControlFlow::ForLoop {
+            //     indexset,
+            //     loop_param,
+            // }
         }
         ControlFlowType::IfElse => {
             let condition = unpack_condition(&instruction.condition, qpy_data)?

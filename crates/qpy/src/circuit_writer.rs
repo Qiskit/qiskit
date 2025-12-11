@@ -329,23 +329,23 @@ fn pack_control_flow_inst(
             vec![pack_generic_value(&duration_param, qpy_data)?]
         }
         ControlFlow::BreakLoop | ControlFlow::ContinueLoop => Vec::new(),
-        ControlFlow::ForLoop {
-            indexset,
-            loop_param,
-        } => {
-            let indexset_values = indexset
-                .iter()
-                .map(|val| GenericValue::Int64(*val as i64))
-                .collect();
-            let indexset_value = GenericValue::Tuple(indexset_values);
-            let loop_param_value = match loop_param {
-                None => GenericValue::Null,
-                Some(symbol) => GenericValue::ParameterExpressionSymbol(symbol),
-            };
-            vec![
-                pack_generic_value(&indexset_value, qpy_data)?,
-                pack_generic_value(&loop_param_value, qpy_data)?,
-            ]
+        ControlFlow::ForLoop { .. } => {
+            panic!(
+                "ControlFlow handling is not implemented yet, until the Rust ControlFlow code stabilizes"
+            );
+            // let indexset_values = indexset
+            //     .iter()
+            //     .map(|val| GenericValue::Int64(*val as i64))
+            //     .collect();
+            // let indexset_value = GenericValue::Tuple(indexset_values);
+            // let loop_param_value = match loop_param {
+            //     None => GenericValue::Null,
+            //     Some(symbol) => GenericValue::ParameterExpressionSymbol(symbol),
+            // };
+            // vec![
+            //     pack_generic_value(&indexset_value, qpy_data)?,
+            //     pack_generic_value(&loop_param_value, qpy_data)?,
+            // ]
         }
         ControlFlow::IfElse { condition } => {
             packed_condition = pack_condition(condition, qpy_data)?;
