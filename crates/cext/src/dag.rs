@@ -1002,7 +1002,9 @@ pub enum COperationKind {
     Unitary = 5,
     PauliProductMeasurement = 6,
     ControlFlow = 7,
-    PythonOp = 8,
+    /// This variant is used as an opaque type for operations not yet
+    /// implemented in the native data model.
+    Unknown = 8,
 }
 
 /// @ingroup QkDag
@@ -1042,7 +1044,7 @@ pub unsafe extern "C" fn qk_dag_op_node_kind(dag: *const DAGCircuit, node: u32) 
         OperationRef::PauliProductMeasurement(_) => COperationKind::PauliProductMeasurement,
         OperationRef::ControlFlow(_) => COperationKind::ControlFlow,
         OperationRef::Gate(_) | OperationRef::Instruction(_) | OperationRef::Operation(_) => {
-            COperationKind::PythonOp
+            COperationKind::Unknown
         }
     }
 }

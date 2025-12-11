@@ -1460,7 +1460,7 @@ pub unsafe extern "C" fn qk_target_op_get(
             // SAFETY: As per documentation, `out_op` is a pointer to a sufficient allocation.
             unsafe {
                 out_op.write(CTargetOp {
-                    op_type: COperationKind::PythonOp,
+                    op_type: COperationKind::Unknown,
                     name,
                     num_qubits: u32::MAX,
                     params: null_mut(),
