@@ -172,7 +172,9 @@ def dumps(circuit: QuantumCircuit, /) -> str:
         if instruction.is_control_flow():
             operation = instruction.operation
             if operation.name != "if_else":
-                raise QASM2ExportError("OpenQASM 2 does not support control-flow constructs")
+                raise QASM2ExportError(
+                    "OpenQASM 2 does not support control-flow constructs outside if_else"
+                )
             if isinstance(operation.condition, expr.Expr) or isinstance(
                 operation.condition[0], Clbit
             ):
