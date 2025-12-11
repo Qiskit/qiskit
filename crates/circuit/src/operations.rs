@@ -34,7 +34,7 @@ use num_bigint::BigUint;
 use num_complex::Complex64;
 use smallvec::{SmallVec, smallvec};
 
-use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2, ToPyArray};
+use numpy::{IntoPyArray, PyArray2, PyReadonlyArray1, PyReadonlyArray2, ToPyArray};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyFloat, PyList, PyTuple};
@@ -80,6 +80,8 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Param {
     fn extract(b: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         Ok(if let Ok(py_expr) = b.extract::<PyParameterExpression>() {
             Param::ParameterExpression(Arc::new(py_expr.inner))
+        } else if b.extract::<PyReadonlyArray1<i32>>().is_ok() {
+            Param::Obj(b.to_owned().unbind())
         } else if let Ok(val) = b.extract::<f64>() {
             Param::Float(val)
         } else {
