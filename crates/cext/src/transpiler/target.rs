@@ -1328,8 +1328,13 @@ pub struct CInstructionProperties {
 }
 
 /// Representation of an operation identified within the Target.
+///
+/// This struct is created natively by the underlying `Target` API
+/// and users should not write to it directly nor try to free its
+/// attributes manually as it would lead to undefined behavior. To
+/// free this struct, users should call ``qk_target_op_clear`` instead.
 #[repr(C)]
-pub struct CTargetOperation {
+pub struct CTargetOp {
     /// The identifier for the current operation.
     pub op_type: COperationKind,
     /// The name of the operation.
@@ -1347,10 +1352,8 @@ pub struct CTargetOperation {
 ///
 /// @param target A pointer to the ``QkTarget``.
 /// @param index The index in which the gate is stored.
-/// @param op_kind A pointer to the space where the ``QkTargetOperation``
+/// @param op_kind A pointer to the space where the ``QkTargetOp``
 ///     will be stored.
-///
-/// @return An exit code.
 ///
 /// # Example
 /// ```c
@@ -1361,7 +1364,7 @@ pub struct CTargetOperation {
 ///     qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
 ///     qk_target_add_instruction(target, entry);
 ///
-///     QkTargetOperation op;
+///     QkTargetOp op;
 ///     qk_target_op_get(target, 0, &op);
 ///     
 ///     // Clean up after you're done
@@ -1378,75 +1381,73 @@ pub struct CTargetOperation {
 pub unsafe extern "C" fn qk_target_op_get(
     target: *const Target,
     index: usize,
-    op_kind: *mut CTargetOperation,
-) -> ExitCode {
+    op_kind: *mut CTargetOp,
+) {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target_borrowed = unsafe { const_ptr_as_ref(target) };
 
-    if let Some(operation) = target_borrowed.get_op_by_index(index) {
-        let TargetOperation::Normal(operation) = operation else {
-            panic!(
-                "Unsupported operation type found: {}",
-                stringify!(normal_operation.view())
-            );
-        };
-        let kind = match operation.operation.view() {
-            qiskit_circuit::operations::OperationRef::StandardGate(_) => COperationKind::Gate,
-            qiskit_circuit::operations::OperationRef::StandardInstruction(standard_instruction) => {
-                match standard_instruction {
-                    StandardInstruction::Barrier(_) => COperationKind::Barrier,
-                    StandardInstruction::Delay(_) => COperationKind::Delay,
-                    StandardInstruction::Measure => COperationKind::Measure,
-                    StandardInstruction::Reset => COperationKind::Reset,
-                }
+    let operation = target_borrowed
+        .get_op_by_index(index)
+        .expect("Operation index should be present in the Target.");
+    let TargetOperation::Normal(operation) = operation else {
+        panic!(
+            "Unsupported operation type found: {}",
+            stringify!(normal_operation.view())
+        );
+    };
+    let kind = match operation.operation.view() {
+        qiskit_circuit::operations::OperationRef::StandardGate(_) => COperationKind::Gate,
+        qiskit_circuit::operations::OperationRef::StandardInstruction(standard_instruction) => {
+            match standard_instruction {
+                StandardInstruction::Barrier(_) => COperationKind::Barrier,
+                StandardInstruction::Delay(_) => COperationKind::Delay,
+                StandardInstruction::Measure => COperationKind::Measure,
+                StandardInstruction::Reset => COperationKind::Reset,
             }
-            qiskit_circuit::operations::OperationRef::Unitary(_) => COperationKind::Unitary,
-            _ => panic!(
-                "Unsupported operation type found: {}",
-                stringify!(normal_operation.view())
-            ),
-        };
-        let name = CString::new(
-            target_borrowed
-                .get_by_index(index)
-                .expect("An operation name should already exist.")
-                .0,
-        )
-        .expect("The string should be UTF-8 encoded.")
-        .into_raw();
-        let params: Vec<f64> = operation
-            .params_view()
-            .iter()
-            .filter_map(|param| match param {
-                Param::Float(number) => Some(*number),
-                _ => None,
-            })
-            .collect();
-        let num_params = params
-            .len()
-            .try_into()
-            .expect("The number of parameters shouldn't exceed the alotted amount");
-        let mut params_boxed = params.into_boxed_slice();
-        unsafe {
-            op_kind.write(CTargetOperation {
-                op_type: kind,
-                name,
-                num_qubits: operation.operation.num_qubits(),
-                params: params_boxed.as_mut_ptr(),
-                num_params,
-            })
-        };
-        let _ = Box::into_raw(params_boxed);
-        ExitCode::Success
-    } else {
-        ExitCode::IndexError
-    }
+        }
+        qiskit_circuit::operations::OperationRef::Unitary(_) => COperationKind::Unitary,
+        _ => panic!(
+            "Unsupported operation type found: {}",
+            stringify!(normal_operation.view())
+        ),
+    };
+    let name = CString::new(
+        target_borrowed
+            .get_by_index(index)
+            .expect("An operation name should already exist.")
+            .0,
+    )
+    .expect("The string should be UTF-8 encoded.")
+    .into_raw();
+    let params: Vec<f64> = operation
+        .params_view()
+        .iter()
+        .filter_map(|param| match param {
+            Param::Float(number) => Some(*number),
+            _ => None,
+        })
+        .collect();
+    let num_params = params
+        .len()
+        .try_into()
+        .expect("The number of parameters shouldn't exceed the alotted amount");
+    let mut params_boxed = params.into_boxed_slice();
+    unsafe {
+        op_kind.write(CTargetOp {
+            op_type: kind,
+            name,
+            num_qubits: operation.operation.num_qubits(),
+            params: params_boxed.as_mut_ptr(),
+            num_params,
+        })
+    };
+    let _ = Box::into_raw(params_boxed);
 }
 
 /// @ingroup QkTarget
 /// Tries to retrieve a ``QkGate`` based on the operation stored in an index.
 /// The user is responsible for checking whether this operation is a gate in the ``QkTarget``
-/// via using ``qk_target_op_get``. If not, the function will panic.
+/// via using ``qk_target_op_get``. If not, this function will panic.
 ///
 /// @param target A pointer to the Target instance.
 /// @param index The index at which the operation is located.
@@ -1462,12 +1463,12 @@ pub unsafe extern "C" fn qk_target_op_get(
 ///     qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
 ///     qk_target_add_instruction(target, entry);
 ///
-///     QkTargetOperation op;
+///     QkTargetOp op;
 ///     qk_target_op_get(target, 0, &op);
 ///     
 ///     // Check if the operation is a gate;
 ///     if (op.op_type == QkOperationKind_Gate) {
-///         QkGate gate = qk_target_op_try_gate(target, 0);
+///         QkGate gate = qk_target_op_gate(target, 0);
 ///         // Do something
 ///     }
 ///
@@ -1480,10 +1481,7 @@ pub unsafe extern "C" fn qk_target_op_get(
 /// Behavior is undefined if the ``target`` pointer is null or not aligned.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_op_try_gate(
-    target: *const Target,
-    index: usize,
-) -> StandardGate {
+pub unsafe extern "C" fn qk_target_op_gate(target: *const Target, index: usize) -> StandardGate {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target_borrowed = unsafe { const_ptr_as_ref(target) };
 
@@ -1500,21 +1498,21 @@ pub unsafe extern "C" fn qk_target_op_try_gate(
 }
 
 /// @ingroup QkTarget
-/// Clears the ``QkTargetOperation`` object.
+/// Clears the ``QkTargetOp`` object.
 ///
-/// @param op The pointer to a ``QkTargetOperation`` object.
+/// @param op The pointer to a ``QkTargetOp`` object.
 ///
 /// # Safety
 ///
 /// The behavior will be undefined if the pointer is null or not-aligned.
-/// The data belonging to a ``QkTargetOperation`` originates in Rust and
+/// The data belonging to a ``QkTargetOp`` originates in Rust and
 /// can only be freed using this function.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_target_op_clear(op: *mut CTargetOperation) {
+pub unsafe extern "C" fn qk_target_op_clear(op: *mut CTargetOp) {
     // We need to consume both the name and the parameters
 
-    // SAFETY: As per documentation, data from pointers contained in CTargetOperation
+    // SAFETY: As per documentation, data from pointers contained in CTargetOp
     // originates from rust code and are constructed internally with vecs and CStrings.
     unsafe {
         let op_borrowed = mut_ptr_as_ref(op);

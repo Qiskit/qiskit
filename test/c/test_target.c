@@ -991,20 +991,14 @@ static int test_target_operation(void) {
     int result = Ok;
 
     size_t target_length = qk_target_num_instructions(target);
-    char *names[9] = {"id", "rz", "sx", "x", "cx", "y", "global_phase", "measure", "reset"};
+    char *names[9] = {"id", "rz_pi", "sx", "x", "cx", "y", "global_phase", "measure", "reset"};
     QkGate std_gates[7] = {QkGate_I,  QkGate_RZ, QkGate_SX,         QkGate_X,
                            QkGate_CX, QkGate_Y,  QkGate_GlobalPhase};
     // Allocate for the Target operation
-    QkTargetOperation op;
+    QkTargetOp op;
     for (size_t inst_idx = 0; inst_idx < target_length; inst_idx++) {
-
-        if (qk_target_op_get(target, inst_idx, &op) != QkExitCode_Success) {
-            printf("The number of operations in the target is inconsistent among methods: Target "
-                   "size = %zu, current index: %zu",
-                   target_length, inst_idx);
-            result = RuntimeError;
-            goto cleanup;
-        }
+        // This method panics if the index is not valid.
+        qk_target_op_get(target, inst_idx, &op);
 
         if (strcmp(op.name, names[inst_idx]) != 0) {
             printf("The operation names did not match. Expected %s, got %s", names[inst_idx],
@@ -1021,7 +1015,7 @@ static int test_target_operation(void) {
                 result = EqualityError;
                 goto cleanup;
             }
-            QkGate gate = qk_target_op_try_gate(target, inst_idx);
+            QkGate gate = qk_target_op_gate(target, inst_idx);
             if (gate != std_gates[inst_idx]) {
                 printf("The gate type did not match. Expected %i, got %i", std_gates[inst_idx],
                        gate);
