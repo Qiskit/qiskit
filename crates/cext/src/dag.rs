@@ -1454,7 +1454,7 @@ pub unsafe extern "C" fn qk_dag_free(dag: *mut DAGCircuit) {
 pub unsafe extern "C" fn qk_dag_to_circuit(dag: *const DAGCircuit) -> *mut CircuitData {
     // SAFETY: Per documentation, the pointer is to valid data.
     let dag = unsafe { const_ptr_as_ref(dag) };
-    let circuit = dag_to_circuit(dag, true)
+    let circuit = dag_to_circuit(dag, false)
         .expect("Error occurred while converting DAGCircuit to CircuitData");
 
     Box::into_raw(Box::new(circuit))

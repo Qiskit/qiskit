@@ -67,7 +67,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_consolidate_blocks(
     )
     .expect("Error running the consolidate blocks pass.");
 
-    let result_circuit = dag_to_circuit(&circ_as_dag, true)
+    let result_circuit = dag_to_circuit(&circ_as_dag, false)
         .expect("Error while converting from DAGCircuit to CircuitData.");
     *circuit = result_circuit;
 }
