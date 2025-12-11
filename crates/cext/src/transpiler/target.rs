@@ -1341,7 +1341,9 @@ pub struct CTargetOp {
     pub name: *mut c_char,
     /// The number of qubits this operation supports.
     pub num_qubits: u32,
-    /// The parameters tied to this operation if fixed, as a `double`.
+    /// The parameters tied to this operation if fixed, as an array
+    /// of `double`. If the operation doesn't posess any fixed parameters
+    /// this attribute will be a ``NULL`` pointer.
     pub params: *mut f64,
     /// The number of parameters supported by this operation.
     pub num_params: u32,
@@ -1420,29 +1422,31 @@ pub unsafe extern "C" fn qk_target_op_get(
     )
     .expect("The string should be UTF-8 encoded.")
     .into_raw();
-    let params: Vec<f64> = operation
-        .params_view()
-        .iter()
-        .filter_map(|param| match param {
-            Param::Float(number) => Some(*number),
-            _ => None,
-        })
-        .collect();
-    let num_params = params
-        .len()
-        .try_into()
-        .expect("The number of parameters shouldn't exceed the alotted amount");
-    let mut params_boxed = params.into_boxed_slice();
+    let num_params = operation.operation.num_params();
+    let mut params: Option<Box<[f64]>> = (num_params > 0).then_some(
+        operation
+            .params_view()
+            .iter()
+            .filter_map(|param| match param {
+                Param::Float(number) => Some(*number),
+                _ => None,
+            })
+            .collect(),
+    );
     unsafe {
         op_kind.write(CTargetOp {
             op_type: kind,
             name,
             num_qubits: operation.operation.num_qubits(),
-            params: params_boxed.as_mut_ptr(),
+            params: if let Some(params) = params.as_mut() {
+                params.as_mut_ptr()
+            } else {
+                null_mut()
+            },
             num_params,
         })
     };
-    let _ = Box::into_raw(params_boxed);
+    let _ = params.map(Box::into_raw);
 }
 
 /// @ingroup QkTarget
