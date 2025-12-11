@@ -1339,13 +1339,15 @@ pub struct CTargetOp {
     pub op_type: COperationKind,
     /// The name of the operation.
     pub name: *mut c_char,
-    /// The number of qubits this operation supports.
+    /// The number of qubits this operation supports. Will default to
+    /// `(uint32_t)-1` in the case of a variadic.
     pub num_qubits: u32,
     /// The parameters tied to this operation if fixed, as an array
     /// of `double`. If the operation doesn't posess any fixed parameters
-    /// this attribute will be a ``NULL`` pointer.
+    /// or is variadic, this attribute will be a ``NULL`` pointer.
     pub params: *mut f64,
-    /// The number of parameters supported by this operation.
+    /// The number of parameters supported by this operation. Will default to
+    /// `(uint32_t)-1` in the case of a variadic.
     pub num_params: u32,
 }
 
@@ -1355,7 +1357,7 @@ pub struct CTargetOp {
 ///
 /// @param target A pointer to the ``QkTarget``.
 /// @param index The index in which the gate is stored.
-/// @param op_kind A pointer to the space where the ``QkTargetOp``
+/// @param out_op A pointer to the space where the ``QkTargetOp``
 ///     will be stored.
 ///
 /// # Example
@@ -1377,14 +1379,14 @@ pub struct CTargetOp {
 /// # Safety
 ///
 /// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
-/// Behavior is undefined if ``inst_props`` does not point to an address of the correct size to
-/// store ``QkInstructionProperties`` in.
+/// Behavior is undefined if ``out_op`` does not point to an address of the correct size to
+/// store ``QkTargetOp`` in.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_op_get(
     target: *const Target,
     index: usize,
-    op_kind: *mut CTargetOp,
+    out_op: *mut CTargetOp,
 ) {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target_borrowed = unsafe { const_ptr_as_ref(target) };
@@ -1392,61 +1394,80 @@ pub unsafe extern "C" fn qk_target_op_get(
     let operation = target_borrowed
         .get_op_by_index(index)
         .expect("Operation index should be present in the Target.");
-    let TargetOperation::Normal(operation) = operation else {
-        panic!(
-            "Unsupported operation type found: {}",
-            stringify!(normal_operation.view())
-        );
-    };
-    let kind = match operation.operation.view() {
-        qiskit_circuit::operations::OperationRef::StandardGate(_) => COperationKind::Gate,
-        qiskit_circuit::operations::OperationRef::StandardInstruction(standard_instruction) => {
-            match standard_instruction {
-                StandardInstruction::Barrier(_) => COperationKind::Barrier,
-                StandardInstruction::Delay(_) => COperationKind::Delay,
-                StandardInstruction::Measure => COperationKind::Measure,
-                StandardInstruction::Reset => COperationKind::Reset,
-            }
+    match operation {
+        TargetOperation::Normal(operation) => {
+            let kind = match operation.operation.view() {
+                qiskit_circuit::operations::OperationRef::StandardGate(_) => COperationKind::Gate,
+                qiskit_circuit::operations::OperationRef::StandardInstruction(
+                    standard_instruction,
+                ) => match standard_instruction {
+                    StandardInstruction::Barrier(_) => COperationKind::Barrier,
+                    StandardInstruction::Delay(_) => COperationKind::Delay,
+                    StandardInstruction::Measure => COperationKind::Measure,
+                    StandardInstruction::Reset => COperationKind::Reset,
+                },
+                qiskit_circuit::operations::OperationRef::Unitary(_) => COperationKind::Unitary,
+                _ => panic!(
+                    "Unsupported operation type found: {}",
+                    stringify!(normal_operation.view())
+                ),
+            };
+            let name = CString::new(
+                target_borrowed
+                    .get_by_index(index)
+                    .expect("An operation name should already exist.")
+                    .0,
+            )
+            .expect("The string should be UTF-8 encoded.")
+            .into_raw();
+            let num_params = operation.operation.num_params();
+            let mut params: Option<Box<[f64]>> = (num_params > 0).then_some(
+                operation
+                    .params_view()
+                    .iter()
+                    .filter_map(|param| match param {
+                        Param::Float(number) => Some(*number),
+                        _ => None,
+                    })
+                    .collect(),
+            );
+            // Safety: As per documentation, `out_op` is a pointer to a sufficient allocation.
+            unsafe {
+                out_op.write(CTargetOp {
+                    op_type: kind,
+                    name,
+                    num_qubits: operation.operation.num_qubits(),
+                    params: if let Some(params) = params.as_mut() {
+                        params.as_mut_ptr()
+                    } else {
+                        null_mut()
+                    },
+                    num_params,
+                })
+            };
+            let _ = params.map(Box::into_raw);
         }
-        qiskit_circuit::operations::OperationRef::Unitary(_) => COperationKind::Unitary,
-        _ => panic!(
-            "Unsupported operation type found: {}",
-            stringify!(normal_operation.view())
-        ),
+        TargetOperation::Variadic(_) => {
+            let name = CString::new(
+                target_borrowed
+                    .get_by_index(index)
+                    .expect("An operation name should already exist.")
+                    .0,
+            )
+            .expect("Names should be ")
+            .into_raw();
+            // Safety: As per documentation, `out_op` is a pointer to a sufficient allocation.
+            unsafe {
+                out_op.write(CTargetOp {
+                    op_type: COperationKind::PythonOp,
+                    name,
+                    num_qubits: u32::MAX,
+                    params: null_mut(),
+                    num_params: u32::MAX,
+                })
+            };
+        }
     };
-    let name = CString::new(
-        target_borrowed
-            .get_by_index(index)
-            .expect("An operation name should already exist.")
-            .0,
-    )
-    .expect("The string should be UTF-8 encoded.")
-    .into_raw();
-    let num_params = operation.operation.num_params();
-    let mut params: Option<Box<[f64]>> = (num_params > 0).then_some(
-        operation
-            .params_view()
-            .iter()
-            .filter_map(|param| match param {
-                Param::Float(number) => Some(*number),
-                _ => None,
-            })
-            .collect(),
-    );
-    unsafe {
-        op_kind.write(CTargetOp {
-            op_type: kind,
-            name,
-            num_qubits: operation.operation.num_qubits(),
-            params: if let Some(params) = params.as_mut() {
-                params.as_mut_ptr()
-            } else {
-                null_mut()
-            },
-            num_params,
-        })
-    };
-    let _ = params.map(Box::into_raw);
 }
 
 /// @ingroup QkTarget
