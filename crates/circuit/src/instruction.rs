@@ -60,6 +60,32 @@ impl<T> Parameters<T> {
             Parameters::Blocks(blocks) => blocks,
         }
     }
+
+    /// Get a cloned version of these parameters, using a fallible mapping function to map any
+    /// contained blocks into a new type.
+    pub fn try_map_blocks<S, E>(
+        &self,
+        block_map_fn: impl FnMut(&T) -> Result<S, E>,
+    ) -> Result<Parameters<S>, E> {
+        match self {
+            Self::Params(params) => Ok(Parameters::Params(params.clone())),
+            Self::Blocks(blocks) => blocks
+                .iter()
+                .map(block_map_fn)
+                .collect::<Result<_, _>>()
+                .map(Parameters::Blocks),
+        }
+    }
+
+    /// Get a cloned version of these parameters, using an infallible mapping function to map any
+    /// contained blocks into a new type.
+    #[inline]
+    pub fn map_blocks<S>(&self, mut block_map_fn: impl FnMut(&T) -> S) -> Parameters<S> {
+        let Ok(out) = self.try_map_blocks(|block| -> Result<S, ::std::convert::Infallible> {
+            Ok(block_map_fn(block))
+        });
+        out
+    }
 }
 
 /// Represents an instruction that is directly convertible to our Python API

@@ -17,8 +17,6 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit._accelerate import wrap_angles
 from qiskit._accelerate.angle_bound_registry import WrapAngleRegistry
 
-WRAP_ANGLE_REGISTRY = WrapAngleRegistry()
-
 
 class WrapAngles(TransformationPass):
     """Wrap angles outside the bound specified in the target.
@@ -70,21 +68,47 @@ class WrapAngles(TransformationPass):
         target (Target): The :class:`.Target` representing the target QPU.
         registry (WrapAngleRegistry): The registry of wrapping functions used
             by the pass to wrap the angles of a gate. If not specified the
-            global :data:`.WRAP_ANGLE_REGISTRY` object will be used.
+            global :attr:`DEFAULT_REGISTRY` object will be used.
 
             Unless you are planning to run this pass standalone or are building a
             custom :class:`~.transpiler.PassManager` including this pass you will want
-            to rely on :data:`.WRAP_ANGLE_REGISTRY`.
+            to rely on :attr:`DEFAULT_REGISTRY`.
+    """
+
+    DEFAULT_REGISTRY = WrapAngleRegistry()
+    """
+    A global instance of :class:`.WrapAngleRegistry` that is used by default by this pass when no
+    explicit registry is specified.
+
+    .. note::
+        This is also publicly accessible at the location
+        ``qiskit.transpiler.passes.utils.wrap_angles.WRAP_ANGLE_REGISTRY`` due to an oversight in
+        Qiskit 2.2 (in which the extended path is the only valid location).  It is strongly
+        encouraged to access this object via :class:`.WrapAngles`, however, if you
+        do not need to support Qiskit 2.2.
+
+    .. note::
+        Attempts to write an entirely new registry object to the
+        ``qiskit.transpiler.passes.utils.wrap_angles`` path will not be reflected in the defaults in
+        Qiskit 2.3 onwards.  While we do not recommend attempting to overwrite the object
+        completely, should you need to do this and to support Qiskit 2.2 onwards, you should write
+        references to the same object to both:
+
+        * :attr:`.WrapAngles.DEFAULT_REGISTRY`
+        * ``qiskit.transpiler.passes.utils.wrap_angles.WRAP_ANGLE_REGISTRY``
     """
 
     def __init__(self, target, registry=None):
         super().__init__()
         self.target = target
-        if registry:
-            self.registry = registry
-        else:
-            self.registry = WRAP_ANGLE_REGISTRY
+        self.registry = self.DEFAULT_REGISTRY if registry is None else registry
 
     def run(self, dag):
         wrap_angles.wrap_angles(dag, self.target, self.registry)
         return dag
+
+
+# TODO This path is the only valid way to access this global object in Qiskit 2.2, and is documented and
+# preserved by the deprecation policy of that version.  The preferred way to access the object is as
+# `WrapAngles.DEFAULT_REGISTRY` and we should deprecate the old access path for Qiskit 2.4.
+WRAP_ANGLE_REGISTRY = WrapAngles.DEFAULT_REGISTRY

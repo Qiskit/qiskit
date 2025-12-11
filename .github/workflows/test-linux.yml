@@ -23,6 +23,12 @@ on:
           Decides whether we perform rust tests
         type: boolean
         default: false
+      qiskit-pycache:
+        description: >
+          Whether to include the Python operation cache fields in the Rust
+          structures when building Qiskit.
+        type: boolean
+        default: true
 
 jobs:
   unit-tests:
@@ -54,6 +60,9 @@ jobs:
           set -e
           python -m pip install --upgrade pip setuptools wheel
           python -m venv test-job
+      - name: Set gate-caching settings for build
+        if: ${{ !inputs.qiskit-pycache }}
+        run: 'echo "QISKIT_NO_CACHE_GATES=1" >> $GITHUB_ENV'
       - name: Install Qiskit from sdist
         if: ${{ inputs.install-from-sdist }}
         run: |

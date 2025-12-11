@@ -18,7 +18,6 @@ use pyo3::create_exception;
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::PyList;
-use rayon::prelude::*;
 use rustworkx_core::connectivity::connected_components;
 use rustworkx_core::petgraph::EdgeType;
 use rustworkx_core::petgraph::prelude::*;
@@ -33,7 +32,7 @@ use qiskit_circuit::imports::ImportOnceCell;
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardInstruction};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{
-    Block, BlockMapper, BlocksMode, Clbit, PhysicalQubit, Qubit, VarsMode, VirtualQubit,
+    BlockMapper, BlocksMode, Clbit, PhysicalQubit, Qubit, VarsMode, VirtualQubit,
 };
 
 create_exception!(qiskit, MultiQEncountered, pyo3::exceptions::PyException);
@@ -213,9 +212,9 @@ pub fn distribute_components(dag: &mut DAGCircuit, target: &Target) -> PyResult<
                     out_dag.add_creg(creg.clone())?;
                 }
                 let block_map = dag
-                    .iter_blocks()
-                    .enumerate()
-                    .map(|(index, block)| (Block::new(index), out_dag.add_block(block.clone())))
+                    .blocks()
+                    .items()
+                    .map(|(index, block)| (index, out_dag.add_block(block.clone())))
                     .collect();
                 out_dag.compose(
                     dag,
@@ -273,10 +272,10 @@ fn map_components(
         .enumerate()
         .map(|(idx, dag)| (idx, dag.num_qubits()))
         .collect();
-    dag_qubits.par_sort_unstable_by_key(|x| x.1);
+    dag_qubits.sort_unstable_by_key(|x| x.1);
     dag_qubits.reverse();
     let mut cmap_indices = (0..cmap_components.len()).collect::<Vec<_>>();
-    cmap_indices.par_sort_unstable_by_key(|x| free_qubits[*x]);
+    cmap_indices.sort_unstable_by_key(|x| free_qubits[*x]);
     cmap_indices.reverse();
     for (dag_index, dag_num_qubits) in dag_qubits {
         let mut found = false;
@@ -462,7 +461,7 @@ fn separate_dag(dag: &mut DAGCircuit) -> PyResult<Vec<DAGCircuit>> {
                     let mapped_clbits: Vec<Clbit> =
                         new_dag.cargs_interner().get(node.clbits).to_vec();
                     let mapped_params = node.params.as_deref().map(|p| {
-                        block_map.map_params(p, |b| new_dag.add_block(dag.view_block(b).clone()))
+                        block_map.map_params(p, |b| new_dag.add_block(dag.blocks()[b].clone()))
                     });
                     new_dag.apply_operation_back(
                         node.op.clone(),

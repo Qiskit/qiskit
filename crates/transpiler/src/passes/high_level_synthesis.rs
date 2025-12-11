@@ -578,7 +578,7 @@ fn run_on_circuitdata(
                 let blocks: Vec<_> = Python::attach(|py| {
                     cf.blocks()
                         .into_iter()
-                        .map(|b| output_circuit.add_block(b.bind(py)))
+                        .map(|b| output_circuit.add_block(b.clone_ref(py)))
                         .collect()
                 });
                 output_circuit.push(PackedInstruction {
@@ -641,7 +641,7 @@ fn run_on_circuitdata(
 
             let blocks = new_blocks_py
                 .into_iter()
-                .map(|b| output_circuit.add_block(&b))
+                .map(|b| output_circuit.add_block(b.unbind()))
                 .collect();
             let packed_instruction = PackedInstruction::from_control_flow(
                 inst.op.control_flow().clone(),
