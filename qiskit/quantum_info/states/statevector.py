@@ -114,7 +114,7 @@ class Statevector(QuantumState, TolerancesMixin):
         super().__init__(op_shape=OpShape.auto(shape=shape, dims_l=dims, num_qubits_r=0))
 
     @classmethod
-    def from_circuit(cls, circuit, ignore_set_layout=False):
+    def from_circuit(cls, circuit: QuantumCircuit, ignore_set_layout: bool = False) -> Statevector:
         """Create a Statevector from a quantum circuit.
 
         Args:
