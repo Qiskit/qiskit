@@ -130,6 +130,7 @@ sys.modules["qiskit._accelerate.remove_identity_equiv"] = _accelerate.remove_ide
 sys.modules["qiskit._accelerate.circuit_duration"] = _accelerate.circuit_duration
 sys.modules["qiskit._accelerate.cos_sin_decomp"] = _accelerate.cos_sin_decomp
 sys.modules["qiskit._accelerate.qsd"] = _accelerate.qsd
+sys.modules["qiskit._accelerate.ross_selinger"] = _accelerate.ross_selinger
 sys.modules["qiskit._accelerate.wrap_angles"] = _accelerate.wrap_angles
 sys.modules["qiskit._accelerate.angle_bound_registry"] = _accelerate.angle_bound_registry
 sys.modules["qiskit._accelerate.litinski_transformation"] = _accelerate.litinski_transformation
