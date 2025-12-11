@@ -563,7 +563,7 @@ pub fn py_get_instruction_annotations(
                 let annotations: Vec<formats::InstructionAnnotationPack> = annotations_iter
                     .map(|annotation| {
                         let (namespace_index, payload) =
-                            qpy_data.annotation_handler.serialize(&annotation?)?;
+                            qpy_data.annotation_handler.serialize(&annotation?.unbind())?;
                         Ok(formats::InstructionAnnotationPack {
                             namespace_index,
                             payload,

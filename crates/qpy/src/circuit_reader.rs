@@ -21,16 +21,14 @@
 
 use hashbrown::HashMap;
 use num_bigint::BigUint;
-use numpy::IntoPyArray;
 use pyo3::IntoPyObjectExt;
 use pyo3::exceptions::PyValueError;
 use pyo3::intern;
 use pyo3::prelude::*;
-use pyo3::types::IntoPyDict;
 use pyo3::types::{PyAny, PyBytes, PyDict, PyList, PyString, PyTuple, PyType};
 use qiskit_circuit::operations::ArrayType;
 use qiskit_circuit::operations::UnitaryGate;
-use qiskit_circuit::operations::{BoxDuration, CaseSpecifier, Condition, SwitchTarget};
+use qiskit_circuit::operations::{BoxDuration, CaseSpecifier, Condition, SwitchTarget, StandardInstructionType};
 use std::str::FromStr;
 use std::sync::Arc;
 use numpy::PyReadonlyArray2;
@@ -79,6 +77,7 @@ struct CustomCircuitInstructionData {
 }
 
 // This is a helper enum to make the code clearer by splitting instruction reading into cases
+#[derive(Debug)]
 enum InstructionType {
     // these instruction types are rust-native
     StandardGate,
@@ -289,9 +288,10 @@ fn recognize_instruction_type(instruction: &formats::CircuitInstructionV2Pack, c
     else if ControlFlowType::from_str(name).is_ok() {
         InstructionType::ControlFlow
     }
-    // else if name in ["Barrier","Delay","Measure","Reset"] {
-    //     InstructionType::StandardInstruction
-    // }
+    // StandardInstructionType names are lowercase, actual class names are capitalized
+    else if StandardInstructionType::from_str(name).is_ok() || vec!["Barrier", "Delay", "Measure", "Reset"].contains(&name) {
+        InstructionType::StandardInstruction
+    }
     else if !custom_instructions.get(name).is_none() {
         InstructionType::Custom
     }
@@ -301,7 +301,7 @@ fn recognize_instruction_type(instruction: &formats::CircuitInstructionV2Pack, c
         let has_nonstandard_control = instruction.num_ctrl_qubits > 0
         && (instruction.ctrl_state != (1 << instruction.num_ctrl_qubits) - 1);
         let standard_gate_name = !standard_gate_from_gate_class_name(instruction.gate_class_name.as_str()).is_none();
-        if  has_nonstandard_control && standard_gate_name {
+        if !has_nonstandard_control && standard_gate_name {
             InstructionType::StandardGate
         }
         else {
@@ -353,7 +353,7 @@ fn instruction_values_to_params(values: Vec<GenericValue>) -> PyResult<Option<Bo
     Ok((!inst_params.is_empty()).then(|| Box::new(Parameters::Params(SmallVec::<[Param; 3]>::from_vec(inst_params)))))
 }
 
-fn unpack_annotations(packed_annotations: Option<formats::InstructionsAnnotationPack>, qpy_data: &mut QPYReadData) -> PyResult<Vec<Py<PyAny>>> {
+fn unpack_annotations(packed_annotations: &Option<formats::InstructionsAnnotationPack>, qpy_data: &mut QPYReadData) -> PyResult<Vec<Py<PyAny>>> {
     if let Some(annotations_vec) = packed_annotations {
         annotations_vec
         .annotations
@@ -380,6 +380,8 @@ fn unpack_instruction(
     qpy_data: &mut QPYReadData,
 ) -> PyResult<PackedInstruction> {
     let label = (!instruction.label.is_empty()).then(|| Box::new(instruction.label.clone()));
+    println!("unpack instruction {:?}", instruction);
+    println!("Type: {:?}", recognize_instruction_type(instruction, custom_instructions));
     let (op, parameter_values) = match recognize_instruction_type(instruction, custom_instructions) {
         InstructionType::StandardGate => unpack_standard_gate(instruction, qpy_data)?,
         InstructionType::StandardInstruction => unpack_standard_instruction(instruction, qpy_data)?,
@@ -460,10 +462,10 @@ fn unpack_unitary(instruction: &formats::CircuitInstructionV2Pack, qpy_data: &mu
 fn unpack_control_flow(instruction: &formats::CircuitInstructionV2Pack, qpy_data: &mut QPYReadData,)  -> PyResult<(PackedOperation, Vec<GenericValue>)> {
     // the instruction values contain the data needed to reconstruct the control flow
     let instruction_values = get_instruction_values(instruction, qpy_data)?;
-    let control_flow_name = ControlFlowType::from_str(instruction.gate_class_name.as_str())?;
+    let control_flow_name = ControlFlowType::from_str(instruction.gate_class_name.as_str()).map_err(|_| PyValueError::new_err("Unable to find control flow"))?;
     let control_flow = match control_flow_name {
         ControlFlowType::Box => {
-            let annotations = unpack_annotations(instruction.annotations, qpy_data)?;            
+            let annotations = unpack_annotations(&instruction.annotations, qpy_data)?;            
             let duration = if let Some(duration_value) = instruction_values.first() {
                 match duration_value {
                     GenericValue::Duration(duration) => Some(BoxDuration::Duration(duration.clone())),
@@ -548,6 +550,8 @@ fn unpack_py_instruction(
     label: Option<&String>,
     qpy_data: &mut QPYReadData,
 ) -> PyResult<(PackedOperation, Vec<GenericValue>)> {
+    println!("Unpacking py instruction:");
+    println!("{:?}", instruction);
     let name = instruction.gate_class_name.clone();
     let instruction_values = get_instruction_values(instruction, qpy_data)?;
     Python::attach(|py| -> PyResult<(PackedOperation, Vec<GenericValue>)> {
@@ -555,6 +559,8 @@ fn unpack_py_instruction(
             generic_value_to_param(value, binrw::Endian::Little)?.into_pyobject(py)
         }).collect::<PyResult<_>>()?;
         let gate_class = get_python_gate_class(py, &instruction.gate_class_name)?;
+        println!("gate_class: {}", gate_class);
+        println!("name: {}", name);
         // some gates need special treatment for their parameters prior to python-space initialization
         let mut gate_object = match name.as_str() {
             "Initialize" | "StatePreparation" => {
@@ -597,14 +603,18 @@ fn unpack_py_instruction(
                 gate_class.call1(PyTuple::new(py, args)?)?
             }
             _ => {
+                println!("Calling gate class with args");
+                println!("Instruction values {:?}", instruction_values);
                 let args = PyTuple::new(py, &py_params)?;
                 gate_class.call1(args)?
             }
         };
-        if let Some(label_text) = &label {
+        if let Some(label_text) = label {
+            println!("Setting label on gate object {}", gate_object);
             if !gate_object.hasattr("label")? || gate_object.getattr("label")?.is_none() {
                 gate_object.setattr("label", label_text.as_str())?;
             }
+            println!("Setting label done");
         }
         if gate_class
             .cast_into::<PyType>()?
@@ -613,6 +623,7 @@ fn unpack_py_instruction(
                 != instruction.num_ctrl_qubits
                 || gate_object.getattr("ctrl_state")?.extract::<u32>()? != instruction.ctrl_state)
         {
+            println!("Trying to unpack controlled gate");
             gate_object = gate_object.call_method0("to_mutable")?;
             gate_object.setattr("num_ctrl_qubits", instruction.num_ctrl_qubits)?;
             gate_object.setattr("ctrl_state", instruction.ctrl_state)?;
@@ -1380,7 +1391,7 @@ pub fn unpack_circuit(
     qpy_data
         .annotation_handler
         .load_deserializers(annotation_deserializers_data)?;
-    let global_phase = generic_value_to_param(load_value(packed_circuit.header.global_phase_type, 
+    let global_phase = generic_value_to_param(&load_value(packed_circuit.header.global_phase_type, 
         &packed_circuit.header.global_phase_data,
     &mut qpy_data)?, binrw::Endian::Big)?;  
     qpy_data.circuit_data.set_global_phase(global_phase)?;
@@ -1391,7 +1402,6 @@ pub fn unpack_circuit(
         let inst = unpack_instruction(instruction, &custom_instructions, &mut qpy_data)?;
         qpy_data.circuit_data.push(inst)?;
     }
-    println!("got here 6");
     for (vector, initialized_params) in qpy_data.vectors.values() {
         let vector_length = vector
             .bind(py)
@@ -1421,13 +1431,11 @@ pub fn unpack_circuit(
             ))?;
         }
     }
-    println!("got here 7");
     // since we don't have a rust QuantumCircuit, and the metadata and custom layouts are also in python
     // this pythonic part is unavoidable
     let unpacked_layout = unpack_layout(py, &packed_circuit.layout, &circuit_data)?;
     let metadata =
         deserialize_metadata(py, &packed_circuit.header.metadata, metadata_deserializer)?;
-    println!("got here 8");
     let circuit = imports::QUANTUM_CIRCUIT
         .get_bound(py)
         .call_method1(intern!(py, "_from_circuit_data"), (circuit_data,))?;
@@ -1438,7 +1446,6 @@ pub fn unpack_circuit(
     if let Some(layout) = unpacked_layout {
         circuit.setattr("_layout", layout)?;
     }
-    println!("got here 9");
     Ok(circuit.unbind().as_any().clone())
 }
 

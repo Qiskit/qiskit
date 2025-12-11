@@ -829,7 +829,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for DelayUnit {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int)]
 #[repr(u8)]
-pub(crate) enum StandardInstructionType {
+pub enum StandardInstructionType {
     Barrier = 0,
     Delay = 1,
     Measure = 2,
@@ -844,6 +844,31 @@ unsafe impl ::bytemuck::CheckedBitPattern for StandardInstructionType {
     }
 }
 unsafe impl ::bytemuck::NoUninit for StandardInstructionType {}
+
+impl StandardInstructionType {
+    pub fn as_str(&self) -> &'static str{
+        match self {
+            StandardInstructionType::Barrier => "barrier",
+            StandardInstructionType::Delay => "delay",
+            StandardInstructionType::Measure => "measure",
+            StandardInstructionType::Reset => "reset",
+        }
+    }
+}
+
+impl FromStr for StandardInstructionType {
+    type Err = ();
+
+    fn from_str(name: &str) -> Result<Self, Self::Err> {
+        match name {
+            "barrier" => Ok(StandardInstructionType::Barrier),
+            "delay" => Ok(StandardInstructionType::Delay),
+            "measure" => Ok(StandardInstructionType::Measure),
+            "reset" => Ok(StandardInstructionType::Reset),
+            _ => Err(()),
+        }
+    }
+}
 
 #[derive(Clone, Debug, Copy, Eq, PartialEq, Hash)]
 pub enum StandardInstruction {
@@ -863,10 +888,10 @@ pub const STANDARD_INSTRUCTION_SIZE: usize = 4;
 impl Operation for StandardInstruction {
     fn name(&self) -> &str {
         match self {
-            StandardInstruction::Barrier(_) => "barrier",
-            StandardInstruction::Delay(_) => "delay",
-            StandardInstruction::Measure => "measure",
-            StandardInstruction::Reset => "reset",
+            StandardInstruction::Barrier(_) => StandardInstructionType::Barrier.as_str(),
+            StandardInstruction::Delay(_) => StandardInstructionType::Delay.as_str(),
+            StandardInstruction::Measure => StandardInstructionType::Measure.as_str(),
+            StandardInstruction::Reset => StandardInstructionType::Reset.as_str(),
         }
     }
 

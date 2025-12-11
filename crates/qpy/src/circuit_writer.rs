@@ -179,12 +179,13 @@ fn pack_condition(condition: Condition, qpy_data: &QPYWriteData) -> PyResult<for
 }
 
 // straightforward packing of the instruction parameters for the general cases
-// where no addiotional handling is required
+// where no additional handling is required
 fn pack_instruction_params(
     inst: &PackedInstruction,
     qpy_data: &mut QPYWriteData,
 
 ) -> PyResult<Vec<formats::GenericDataPack>> {
+    println!("packing params: {:?}", inst.params_view());
     inst
     .params_view()
     .iter()
@@ -198,6 +199,9 @@ fn pack_instruction(
     new_custom_operations: &mut Vec<String>,
     qpy_data: &mut QPYWriteData,
 ) -> PyResult<formats::CircuitInstructionV2Pack> {
+    println!("Hello world from pack instruction");
+    println!("name: {:?}", instruction.op.name());
+    println!("params: {:?}", instruction.params_view());
     let mut instruction_pack = match instruction.op.view() {
         OperationRef::StandardGate(gate) => pack_standard_gate(&gate, instruction, qpy_data)?,
         OperationRef::StandardInstruction(inst) => pack_standard_instruction(&inst, instruction, qpy_data)?,
@@ -206,7 +210,7 @@ fn pack_instruction(
         OperationRef::Gate(py_gate) => pack_py_gate(py_gate, instruction, qpy_data)?,
         OperationRef::Instruction(py_inst) => pack_py_instruction(py_inst, instruction, qpy_data)?,
         OperationRef::Operation(py_op) => pack_py_operation(py_op, instruction, qpy_data)?,
-        OperationRef::ControlFlow(control_flow_inst) => pack_control_flow_inst(control_flow_inst, qpy_data)?,
+        OperationRef::ControlFlow(control_flow_inst) => pack_control_flow_inst(control_flow_inst, instruction, qpy_data)?,
     };
 
     // common data extraction for all instruction types
@@ -215,7 +219,13 @@ fn pack_instruction(
     }
     instruction_pack.bit_data = get_packed_bit_list(instruction, qpy_data.circuit_data);
     instruction_pack.annotations = py_get_instruction_annotations(instruction, qpy_data)?;
-
+    if let Some(new_name) = recognize_custom_operation(&instruction.op, &gate_class_name(&instruction.op)?)? {
+        instruction_pack.gate_class_name = new_name.clone();
+        new_custom_operations.push(new_name.clone());
+        custom_operations.insert(new_name.clone(), instruction.op.clone());
+    };
+    println!("Packing instruction {:?}", instruction);
+    println!("got pack: {:?}", instruction_pack);
     Ok(instruction_pack)
 }
 
@@ -303,7 +313,7 @@ fn pack_pauli_product_measurement(ppm: &PauliProductMeasurement, instruction: &P
     })
 }
 
-fn pack_control_flow_inst(control_flow_inst: &ControlFlowInstruction, qpy_data: &mut QPYWriteData) -> PyResult<formats::CircuitInstructionV2Pack> {
+fn pack_control_flow_inst(control_flow_inst: &ControlFlowInstruction, instruction: &PackedInstruction, qpy_data: &mut QPYWriteData) -> PyResult<formats::CircuitInstructionV2Pack> {
     let mut packed_annotations = None;
     let mut packed_condition: ConditionPack = Default::default();
     let params = match control_flow_inst.control_flow.clone() {
@@ -332,11 +342,11 @@ fn pack_control_flow_inst(control_flow_inst: &ControlFlowInstruction, qpy_data: 
         }
         ControlFlow::IfElse { condition } => {
             packed_condition = pack_condition(condition, qpy_data)?;
-            Vec::new()
+            pack_instruction_params(instruction, qpy_data)?
         }
         ControlFlow::While { condition } => {
             packed_condition = pack_condition(condition, qpy_data)?;
-            Vec::new()
+            pack_instruction_params(instruction, qpy_data)?
         }
         ControlFlow::Switch { target, label_spec, cases } => {
             let target_value = match target {
@@ -476,9 +486,7 @@ fn old_pack_instruction(
     new_custom_operations: &mut Vec<String>,
     qpy_data: &mut QPYWriteData,
 ) -> PyResult<formats::CircuitInstructionV2Pack> {
-    println!("packing instruction {:?}", instruction);
     let mut gate_class_name = gate_class_name(&instruction.op)?;
-    println!("gate class name: {:?}", gate_class_name);
     if let Some(new_name) = recognize_custom_operation(&instruction.op, &gate_class_name)? {
         gate_class_name = new_name;
         new_custom_operations.push(gate_class_name.clone());
@@ -1205,7 +1213,6 @@ pub fn pack_circuit(
     version: u32,
     annotation_factories: &Bound<PyDict>,
 ) -> PyResult<formats::QPYFormatV15> {
-    println!("Hello world from pack_circuit");
     let annotation_handler = AnnotationHandler::new(annotation_factories);
     let clbits = circuit.data.clbits().clone();
     let mut qpy_data = QPYWriteData {
@@ -1222,7 +1229,6 @@ pub fn pack_circuit(
         metadata_serializer,
         &qpy_data,
     )?;
-    println!("Got here 1");
     // Pulse has been removed in Qiskit 2.0. As long as we keep QPY at version 13,
     // we need to write an empty calibrations header since read_circuit expects it
     let calibrations = formats::CalibrationsPack { num_cals: 0 };
@@ -1236,9 +1242,7 @@ pub fn pack_circuit(
         .into_iter()
         .map(|(namespace, state)| formats::AnnotationStateHeaderPack { namespace, state })
         .collect();
-    println!("Got here 2");
     let annotation_headers = formats::AnnotationHeaderStaticPack { state_headers };
-    println!("Got here 3");
     Ok(formats::QPYFormatV15 {
         header,
         standalone_vars,
@@ -1269,13 +1273,11 @@ pub fn py_write_circuit(
         version,
         annotation_factories,
     )?;
-    println!("To serialize");
+    println!("\nPacked circuit: {:?}", packed_circuit);
     let serialized_circuit = serialize(&packed_circuit);
-    println!("Serialized");
     file_obj.call_method1(
         "write",
         (pyo3::types::PyBytes::new(py, &serialized_circuit),),
     )?;
-    println!("written");
     Ok(serialized_circuit.len())
 }
