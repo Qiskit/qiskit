@@ -377,6 +377,8 @@ def _apply_a2(circ):
     """
     from qiskit.quantum_info import Operator
     from qiskit.circuit.library.generalized_gates.unitary import UnitaryGate
+
+    # pylint: disable=cyclic-import
     from qiskit.transpiler.passes.synthesis import HighLevelSynthesis
 
     decomposer = two_qubit_decompose_up_to_diagonal

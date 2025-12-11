@@ -450,7 +450,7 @@ fn separate_dag(dag: &mut DAGCircuit) -> PyResult<Vec<DAGCircuit>> {
             new_dag.set_global_phase(Param::Float(0.))?;
             let old_qubits = dag.qubits();
             let mut block_map = BlockMapper::new();
-            for index in dag.topological_op_nodes()? {
+            for index in dag.topological_op_nodes(false)? {
                 let node = dag[index].unwrap_operation();
                 let qargs: HashSet<Qubit> = dag.get_qargs(node.qubits).iter().copied().collect();
                 if dag_qubits.is_superset(&qargs) {
