@@ -396,31 +396,28 @@ impl PauliLindbladMap {
             Some(seed) => Pcg64Mcg::seed_from_u64(seed),
             None => Pcg64Mcg::from_os_rng(),
         };
-
-        let (probabilities, non_negative_rates) = match (scale, &local_scale) {
-            (None, None) => (self.probabilities.clone(), self.non_negative_rates.clone()),
-            _ => {
-                let mut modified_rates = self.rates.clone();
-
-                modified_rates = match scale {
-                    None => modified_rates,
-                    Some(scale) => modified_rates.iter().map(|r| r * scale).collect(),
-                };
-
-                modified_rates = match local_scale {
-                    None => modified_rates,
-                    Some(local_scale) => modified_rates
-                        .iter()
-                        .zip(local_scale.clone())
-                        .map(|(r, s)| r * s)
-                        .collect(),
-                };
-
-                let (_, _probabilities, _non_negative_rates) =
-                    derived_values_from_rates(&modified_rates);
-
-                (_probabilities, _non_negative_rates)
-            }
+        let modified_probabilities;
+        let modified_non_negative_rates;
+        let (probabilities, non_negative_rates) = if local_scale.is_some() || scale.is_some() {
+            let global = scale.unwrap_or(1.);
+            let locals = local_scale.as_ref();
+            let rates = self
+                .rates
+                .iter()
+                .enumerate()
+                .map(|(i, rate)| *rate * locals.map(|locals| locals[i]).unwrap_or(1.) * global)
+                .collect::<Vec<_>>();
+            (_, modified_probabilities, modified_non_negative_rates) =
+                derived_values_from_rates(&rates);
+            (
+                modified_probabilities.as_slice(),
+                modified_non_negative_rates.as_slice(),
+            )
+        } else {
+            (
+                self.probabilities.as_slice(),
+                self.non_negative_rates.as_slice(),
+            )
         };
         let mut random_signs = Vec::with_capacity(num_samples as usize);
         let mut random_paulis = QubitSparsePauliList::empty(self.num_qubits());
