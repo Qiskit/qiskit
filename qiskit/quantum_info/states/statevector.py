@@ -123,7 +123,8 @@ class Statevector(QuantumState, TolerancesMixin):
                 has a layout set, it will be ignored. Defaults to ``False``.
 
         Returns:
-            Statevector: The statevector representing the circuit evolution
+            The statevector obtained by applying the circuit on the all-zero
+            input state.
 
         Example:
             Create a statevector from a transpiled circuit:
