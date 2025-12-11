@@ -322,10 +322,10 @@ impl CommutationChecker {
     #[allow(clippy::too_many_arguments)]
     fn py_commute(
         &mut self,
-        op1: OperationFromPython,
+        op1: OperationFromPython<Py<PyAny>>,
         qargs1: &Bound<'_, PyTuple>,
         cargs1: &Bound<'_, PyTuple>,
-        op2: OperationFromPython,
+        op2: OperationFromPython<Py<PyAny>>,
         qargs2: &Bound<'_, PyTuple>,
         cargs2: &Bound<'_, PyTuple>,
         max_num_qubits: Option<u32>,

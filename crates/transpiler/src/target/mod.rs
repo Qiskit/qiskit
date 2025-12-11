@@ -42,6 +42,7 @@ use smallvec::SmallVec;
 use thiserror::Error;
 
 use qiskit_circuit::PhysicalQubit;
+use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::instruction::{Instruction, Parameters, create_py_op};
 use qiskit_circuit::operations::{Operation, OperationRef, Param};
@@ -76,7 +77,7 @@ impl TargetOperation {
     /// Creates a [TargetOperation] from an instance of [PackedOperation]
     pub fn from_packed_operation(
         operation: PackedOperation,
-        params: Option<Parameters<Py<PyAny>>>,
+        params: Option<Parameters<CircuitData>>,
     ) -> Self {
         NormalOperation::from_packed_operation(operation, params).into()
     }
@@ -93,7 +94,7 @@ impl From<NormalOperation> for TargetOperation {
 #[derive(Debug)]
 pub struct NormalOperation {
     pub operation: PackedOperation,
-    pub params: Option<Parameters<Py<PyAny>>>,
+    pub params: Option<Parameters<CircuitData>>,
     op_object: OnceLock<PyResult<Py<PyAny>>>,
 }
 
@@ -101,7 +102,7 @@ impl NormalOperation {
     /// Creates a of [TargetOperation] from an instance of [PackedOperation]
     pub fn from_packed_operation(
         operation: PackedOperation,
-        params: Option<Parameters<Py<PyAny>>>,
+        params: Option<Parameters<CircuitData>>,
     ) -> Self {
         Self {
             operation,
@@ -112,11 +113,13 @@ impl NormalOperation {
 }
 
 impl Instruction for NormalOperation {
+    type Block = CircuitData;
+
     fn op(&self) -> OperationRef<'_> {
         self.operation.view()
     }
 
-    fn parameters(&self) -> Option<&Parameters<Py<PyAny>>> {
+    fn parameters(&self) -> Option<&Parameters<CircuitData>> {
         self.params.as_ref()
     }
 
@@ -155,10 +158,10 @@ impl<'a, 'py> IntoPyObject<'py> for &'a NormalOperation {
 }
 
 impl<'a, 'py> FromPyObject<'a, 'py> for NormalOperation {
-    type Error = <OperationFromPython as FromPyObject<'a, 'py>>::Error;
+    type Error = <OperationFromPython<CircuitData> as FromPyObject<'a, 'py>>::Error;
 
     fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
-        let operation: OperationFromPython = ob.extract()?;
+        let operation: OperationFromPython<CircuitData> = ob.extract()?;
         Ok(Self {
             operation: operation.operation,
             params: operation.params,
@@ -946,7 +949,7 @@ impl Target {
     pub fn add_instruction(
         &mut self,
         operation: PackedOperation,
-        params: Option<Parameters<Py<PyAny>>>,
+        params: Option<Parameters<CircuitData>>,
         name: Option<&str>,
         props_map: Option<PropsMap>,
     ) -> Result<(), TargetError> {

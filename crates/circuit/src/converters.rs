@@ -17,7 +17,6 @@ use crate::bit::{ShareableClbit, ShareableQubit};
 use crate::circuit_data::{CircuitData, CircuitVar};
 use crate::dag_circuit::DAGIdentifierInfo;
 use crate::dag_circuit::{DAGCircuit, NodeType};
-use crate::imports;
 use crate::operations::{OperationRef, PythonOperation};
 
 /// An extractable representation of a QuantumCircuit reserved only for
@@ -56,14 +55,9 @@ pub fn circuit_to_dag(
 
 #[pyfunction(signature = (dag, copy_operations = true))]
 pub fn dag_to_circuit(dag: &DAGCircuit, copy_operations: bool) -> PyResult<CircuitData> {
-    let blocks = dag.blocks().try_map_without_references(|block| {
-        Python::attach(|py| {
-            imports::DAG_TO_CIRCUIT
-                .get_bound(py)
-                .call1((block.clone(),))
-                .map(|ob| ob.unbind())
-        })
-    })?;
+    let blocks = dag
+        .blocks()
+        .try_map_without_references(|block| dag_to_circuit(block, copy_operations))?;
     CircuitData::from_packed_instructions(
         dag.qubits().clone(),
         dag.clbits().clone(),

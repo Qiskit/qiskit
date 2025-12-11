@@ -537,7 +537,6 @@ mod tests {
     use super::*;
     use crate::target::InstructionProperties;
     use crate::target::Target;
-    use pyo3::prelude::*;
     use qiskit_circuit::circuit_data::CircuitData;
     use qiskit_circuit::instruction::Parameters;
     use qiskit_circuit::operations::{Operation, Param, StandardGate, StandardInstruction};
@@ -549,7 +548,7 @@ mod tests {
 
     fn build_universal_star_target() -> Target {
         let mut target = Target::default();
-        let u_params: Option<Parameters<Py<PyAny>>> = Some(Parameters::Params(smallvec![
+        let u_params = Some(Parameters::Params(smallvec![
             Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
                 "a", None, None,
             )))),
