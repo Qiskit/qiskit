@@ -65,6 +65,7 @@ pub static INSTRUCTION: ImportOnceCell =
 pub static GATE: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.gate", "Gate");
 pub static CONTROL_FLOW_OP: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.controlflow", "ControlFlowOp");
+pub static PARAMETER: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.parameter", "Parameter");
 pub static PARAMETER_EXPRESSION: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.parameterexpression", "ParameterExpression");
 pub static PARAMETER_VECTOR: ImportOnceCell =
@@ -80,8 +81,14 @@ pub static VARIABLE_MAPPER: ImportOnceCell =
 pub static IF_ELSE_OP: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "IfElseOp");
 pub static FOR_LOOP_OP: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "ForLoopOp");
 pub static SWITCH_CASE_OP: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "SwitchCaseOp");
+pub static SWITCH_CASE_DEFAULT: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit", "CASE_DEFAULT");
 pub static WHILE_LOOP_OP: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "WhileLoopOp");
+pub static BREAK_LOOP_OP: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "BreakLoopOp");
+pub static CONTINUE_LOOP_OP: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit", "ContinueLoopOp");
 pub static STORE_OP: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "Store");
+pub static BOX_OP: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "BoxOp");
 pub static DAG_NODE: ImportOnceCell = ImportOnceCell::new("qiskit.dagcircuit", "DAGNode");
 pub static CONTROLLED_GATE: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit", "ControlledGate");
@@ -94,16 +101,6 @@ pub static CIRCUIT_TO_DAG: ImportOnceCell =
     ImportOnceCell::new("qiskit.converters", "circuit_to_dag");
 pub static DAG_TO_CIRCUIT: ImportOnceCell =
     ImportOnceCell::new("qiskit.converters", "dag_to_circuit");
-pub static LEGACY_CONDITION_CHECK: ImportOnceCell =
-    ImportOnceCell::new("qiskit.dagcircuit.dagnode", "_legacy_condition_eq");
-pub static CONDITION_OP_CHECK: ImportOnceCell =
-    ImportOnceCell::new("qiskit.dagcircuit.dagnode", "_condition_op_eq");
-pub static SWITCH_CASE_OP_CHECK: ImportOnceCell =
-    ImportOnceCell::new("qiskit.dagcircuit.dagnode", "_switch_case_eq");
-pub static FOR_LOOP_OP_CHECK: ImportOnceCell =
-    ImportOnceCell::new("qiskit.dagcircuit.dagnode", "_for_loop_eq");
-pub static BOX_OP_CHECK: ImportOnceCell =
-    ImportOnceCell::new("qiskit.dagcircuit.dagnode", "_box_eq");
 pub static UUID: ImportOnceCell = ImportOnceCell::new("uuid", "UUID");
 pub static BARRIER: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "Barrier");
 pub static DELAY: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "Delay");
@@ -117,12 +114,23 @@ pub static UNITARY_GATE: ImportOnceCell = ImportOnceCell::new(
     "qiskit.circuit.library.generalized_gates.unitary",
     "UnitaryGate",
 );
+pub static PAULI_PRODUCT_MEASUREMENT: ImportOnceCell = ImportOnceCell::new(
+    "qiskit.circuit.library.pauli_product_measurement",
+    "PauliProductMeasurement",
+);
 pub static MCPHASE_GATE: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.library", "MCPhaseGate");
+pub static PAULI_GATE: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.library", "PauliGate");
 pub static PAULI_EVOLUTION_GATE: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.library", "PauliEvolutionGate");
-pub static QS_DECOMPOSITION: ImportOnceCell =
-    ImportOnceCell::new("qiskit.synthesis.unitary.qsd", "qs_decomposition");
+pub static PAULI_ROTATION_TRACE_AND_DIM: ImportOnceCell = ImportOnceCell::new(
+    "qiskit.circuit.library.pauli_evolution",
+    "_pauli_rotation_trace_and_dim",
+);
+pub static MERGE_TWO_PAULI_EVOLUTIONS: ImportOnceCell = ImportOnceCell::new(
+    "qiskit.circuit.library.pauli_evolution",
+    "_merge_two_pauli_evolutions",
+);
 pub static XX_DECOMPOSER: ImportOnceCell =
     ImportOnceCell::new("qiskit.synthesis.two_qubit.xx_decompose", "XXDecomposer");
 pub static XX_EMBODIMENTS: ImportOnceCell =

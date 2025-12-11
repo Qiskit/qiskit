@@ -268,7 +268,7 @@ def multi_control_circuit(num_qubits):
     qc = QuantumCircuit(num_qubits)
     qc.compose(gate, range(gate.num_qubits), inplace=True)
     for _ in range(num_qubits - 1):
-        gate = gate.control()
+        gate = gate.control(annotated=False)
         qc.compose(gate, range(gate.num_qubits), inplace=True)
     return qc
 

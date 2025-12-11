@@ -61,7 +61,6 @@ class TestGates(QiskitTestCase):
             "bits": [self.qubit],
             "t0": 100,
             "duration": 20,
-            "unitary": str(self.u3.operand.to_matrix()),
             "parameters": "0, 0, 0",
         }
         self.assertDictEqual(ref_meta, drawing_obj.meta)

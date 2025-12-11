@@ -62,6 +62,25 @@ class BitArray(ShapedMixin):
     This object contains a single, contiguous block of data that represents an array of bitstrings.
     The last axis is over packed bits, the second last axis is over shots, and the preceding axes
     correspond to the shape of the pub that was executed to sample these bits.
+
+    You typically get this object back as one part of a :class:`.DataBin` accessed through
+    a single :class:`.PubResult.data`.  Users do not typically create this class themselves, however
+    if you have bitstring-like data in an alternate form that you would like to convert to a
+    :class:`BitArray`, you can use one of :meth:`from_bool_array`, :meth:`from_counts` or
+    :meth:`from_samples`.
+
+    You can "unpack" the bitstrings into expanded array of :class:`bool` by using the
+    :meth:`to_bool_array` method.
+
+    This class supports the bitwise ``&`` (and), ``|`` (or), ``^`` (xor) and ``~`` (not) operators,
+    where the binary operators act on two :class:`BitArray` instances.
+
+    The class also supports the "indexing" syntax ``bit_array[indices]``.  These ``indices`` select
+    a single entry, or multi-dimensional slice of entries, from the same shape as the corresponding
+    pub.  The allowed indices match :class:`numpy.ndarray`: you can use single integers, slices
+    (``a:b``) or Numpy arrays for each dimension, and use a tuple of items to slice multiple
+    dimensions at once. The indexing syntax cannot be used to slice along the "shots" or "bits"
+    axes; for these, use :meth:`slice_shots` and :meth:`slice_bits`, respectively.
     """
 
     def __init__(self, array: NDArray[np.uint8], num_bits: int):
