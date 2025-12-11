@@ -1190,10 +1190,12 @@ pub unsafe extern "C" fn qk_target_op_qargs_index(
 /// @param target A pointer to the ``QkTarget``.
 /// @param op_idx The index at which the gate is stored.  
 /// @param qarg_idx The index at which the qargs are stored.  
-/// @param qargs_out A pointer to an array of ``uint32_t``. If ``op_idx`` refers to a
-/// a global operation, a null pointer will be returned.
-/// @param qargs_len A pointer to a ``int32_t`` to write the length of the qargs. If the
-/// operation is global, the function will write ``-1``.
+/// @param qargs_out An out pointer to an array qubits. If ``op_idx`` refers to a a global
+///     operation, a null pointer will be written.  The written pointer is borrowed from the
+///     target and must not be freed.  A zero-qargs instruction will write out a non-null pointer,
+///     though one that is invalid for reads.
+/// @param qargs_len An out pointer to the length of the qargs in `qargs_out`. If the index is
+///     global, the written length is not defined.
 ///
 /// Panics if any of the indices are out of range.
 ///
@@ -1209,13 +1211,19 @@ pub unsafe extern "C" fn qk_target_op_qargs_index(
 ///     uint32_t *qargs_retrieved;
 ///     uint32_t qargs_length;
 ///     qk_target_op_qargs(target, 0, 0, &qargs_retrieved, &qargs_length);
+///     if (qargs_retrieved) {
+///         // We should enter this branch.
+///         printf("Number of qargs: %lu\n", qargs_length);
+///     } else {
+///         printf("Qargs are global\n");
+///     }
 /// ```
 ///
 /// # Safety
 ///
 /// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
-/// Behavior is undefined if ``qargs`` does not point to an address of the correct size to
-/// store the indices in.
+/// Behavior is undefined if each `qargs_out` or `qargs_len` are not aligned and writeable for a
+/// single value of the correct type.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_op_qargs(
@@ -1223,7 +1231,7 @@ pub unsafe extern "C" fn qk_target_op_qargs(
     op_idx: usize,
     qarg_idx: usize,
     qargs_out: *mut *mut u32,
-    qargs_len: *mut i32,
+    qargs_len: *mut u32,
 ) {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target_borrowed = unsafe { const_ptr_as_ref(target) };
@@ -1239,8 +1247,7 @@ pub unsafe extern "C" fn qk_target_op_qargs(
     // with enough capacity for this array.
     unsafe { qargs_out.write(qargs_ptr.cast()) };
 
-    // SAFETY: Per documentation, the pointer goes to an address
-    // expecting a `int32_t`.
+    // SAFETY: Per documentation, the pointer goes to an aligned writable uint.
     unsafe { qargs_len.write(qargs_length) };
 }
 
@@ -1403,9 +1410,9 @@ unsafe fn parse_params(gate: StandardGate, params: *mut f64) -> SmallVec<[Param;
 ///
 /// A tuple with a mutable pointer to an array of `u32` members and the length
 /// as a `i32`.
-fn qargs_to_ptr(qargs: &Qargs) -> (*mut PhysicalQubit, i32) {
+fn qargs_to_ptr(qargs: &Qargs) -> (*mut PhysicalQubit, u32) {
     match qargs {
-        Qargs::Global => (null_mut(), -1),
+        Qargs::Global => (null_mut(), u32::MAX),
         Qargs::Concrete(small_vec) => (
             small_vec.as_ptr().cast_mut(),
             small_vec.len().try_into().unwrap_or_else(|_| {

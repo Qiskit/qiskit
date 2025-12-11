@@ -655,18 +655,7 @@ static int test_target_iteration(void) {
     QkTarget *target = create_sample_target(true);
     int result = Ok;
     char *names[9] = {"id", "rz_pi", "sx", "x", "cx", "y", "global_phase", "measure", "reset"};
-    uint32_t single_qarg[4][1] = {{
-                                      0,
-                                  },
-                                  {
-                                      1,
-                                  },
-                                  {
-                                      2,
-                                  },
-                                  {
-                                      3,
-                                  }};
+    uint32_t single_qarg[4] = {0, 1, 2, 3};
     uint32_t cx_qargs[8][2] = {
         {3, 4}, {4, 3}, {3, 1}, {1, 3}, {1, 2}, {2, 1}, {0, 1}, {1, 0},
     };
@@ -678,7 +667,7 @@ static int test_target_iteration(void) {
     size_t target_length = qk_target_num_instructions(target);
     for (size_t op_idx = 0; op_idx < target_length; op_idx++) {
         uint32_t *qargs;
-        int32_t qargs_len;
+        uint32_t qargs_len;
         QkInstructionProperties props;
 
         char *name = qk_target_op_name(target, op_idx);
@@ -696,11 +685,11 @@ static int test_target_iteration(void) {
 
             // cx
             if (op_idx == 4) {
-                if (!compare_qargs(qargs, cx_qargs[(int)props_idx], qargs_len)) {
+                if (!compare_qargs(qargs, cx_qargs[props_idx], qargs_len)) {
                     printf(
                         "Unexpected qargs found for operation %s at qarg index: %zu. Expected: '",
                         name, props_idx);
-                    print_qargs(cx_qargs[(int)props_idx], qargs_len);
+                    print_qargs(cx_qargs[props_idx], qargs_len);
                     printf("', found '");
                     print_qargs(qargs, qargs_len);
                     printf("'\n");
@@ -708,18 +697,18 @@ static int test_target_iteration(void) {
                     goto cleanup;
                 }
 
-                if (props.duration != cx_props[(int)props_idx][0]) {
+                if (props.duration != cx_props[props_idx][0]) {
                     printf("Unexpected duration value found for operation %s at qarg index: %zu. "
                            "Expected: %f, got: %f.\n",
-                           name, props_idx, props.duration, cx_props[(int)props_idx][0]);
+                           name, props_idx, props.duration, cx_props[props_idx][0]);
                     result = EqualityError;
                     goto cleanup;
                 }
 
-                if (props.error != cx_props[(int)props_idx][1]) {
+                if (props.error != cx_props[props_idx][1]) {
                     printf("Unexpected error value found for operation %s at qarg index: %zu. "
                            "Expected: %f, got: %f.\n",
-                           name, props_idx, props.error, cx_props[(int)props_idx][1]);
+                           name, props_idx, props.error, cx_props[props_idx][1]);
                     result = EqualityError;
                     goto cleanup;
                 }
@@ -754,11 +743,11 @@ static int test_target_iteration(void) {
             }
             // id, rz, sx, x, measure, reset
             else {
-                if (!compare_qargs(qargs, single_qarg[(int)props_idx], qargs_len)) {
+                if (!compare_qargs(qargs, &single_qarg[props_idx], qargs_len)) {
                     printf(
                         "Unexpected qargs found for operation %s at qarg index: %zu. Expected: '",
                         name, props_idx);
-                    print_qargs(single_qarg[(int)props_idx], qargs_len);
+                    print_qargs(&single_qarg[props_idx], qargs_len);
                     printf("', found '");
                     print_qargs(qargs, qargs_len);
                     printf("'\n");
@@ -850,7 +839,7 @@ static int test_target_indexing(void) {
     // Retrieving qargs [4,3] at index 1, with properties d=3.0577e-11, e=0.00713
     QkInstructionProperties cx_props;
     uint32_t *cx_qargs;
-    int32_t cx_qargs_len;
+    uint32_t cx_qargs_len;
 
     qk_target_op_qargs(target, cx_idx, 1, &cx_qargs, &cx_qargs_len);
     if (!compare_qargs(cx_qargs, (uint32_t[2]){4, 3}, cx_qargs_len)) {
@@ -883,7 +872,7 @@ static int test_target_indexing(void) {
     }
 
     uint32_t *y_qargs;
-    int32_t y_qargs_len;
+    uint32_t y_qargs_len;
     qk_target_op_qargs(target, y_idx, 0, &y_qargs, &y_qargs_len);
 
     if (y_qargs != NULL) {
@@ -901,7 +890,7 @@ static int test_target_indexing(void) {
     }
 
     uint32_t *gp_qargs;
-    int32_t gp_qargs_len;
+    uint32_t gp_qargs_len;
     qk_target_op_qargs(target, gp_idx, 0, &gp_qargs, &gp_qargs_len);
 
     if (gp_qargs == NULL || gp_qargs_len != 0) {
