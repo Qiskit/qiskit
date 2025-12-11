@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed the QuantumCircuit.id method to allow the passing of a custom label.
+    In addition the TextDrawing has been update to take into account potential custom
+    labels for gates with "special labels": namely "I", "√X" and "√Xdg".
