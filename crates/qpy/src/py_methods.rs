@@ -23,9 +23,7 @@ use pyo3::types::{
 use qiskit_circuit::classical::expr::Expr;
 use std::io::Cursor;
 
-use qiskit_circuit::Clbit;
-use qiskit_circuit::bit::{ClassicalRegister, PyClassicalRegister, PyClbit, ShareableClbit};
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::bit::{ClassicalRegister, ShareableClbit};
 use qiskit_circuit::classical;
 use qiskit_circuit::imports;
 use qiskit_circuit::operations::{Operation, OperationRef, StandardInstruction};
@@ -39,7 +37,8 @@ use uuid::Uuid;
 use crate::bytes::Bytes;
 use crate::formats;
 use crate::value::{
-    GenericValue, ModifierType, ParamRegisterValue, QPYWriteData, ValueType, deserialize, pack_generic_value, serialize_generic_value
+    GenericValue, ModifierType, ParamRegisterValue, QPYWriteData, ValueType, deserialize,
+    serialize_generic_value,
 };
 use binrw::BinWrite;
 
@@ -248,7 +247,6 @@ pub fn py_pack_pauli_evolution_gate(
 
 pub fn gate_class_name(op: &PackedOperation) -> PyResult<String> {
     Python::attach(|py| {
-        println!("op.view(): {:?}", op.view());
         let name = match op.view() {
             // getting __name__ for standard gates and instructions should
             // eventually be replaced with a Rust-side mapping
@@ -391,17 +389,15 @@ pub fn py_convert_to_generic_value(py_object: &Bound<PyAny>) -> PyResult<Generic
         ValueType::Modifier => Ok(GenericValue::Modifier(py_object.clone().unbind())),
         ValueType::Register => {
             if let Ok(clbit) = py_object.extract::<ShareableClbit>() {
-                Ok(GenericValue::Register(ParamRegisterValue::ShareableClbit(clbit)))
-            }
-            else  if let Ok(reg) = py_object.extract::<ClassicalRegister>() {
+                Ok(GenericValue::Register(ParamRegisterValue::ShareableClbit(
+                    clbit,
+                )))
+            } else if let Ok(reg) = py_object.extract::<ClassicalRegister>() {
                 Ok(GenericValue::Register(ParamRegisterValue::Register(reg)))
-            }
-            else {
+            } else {
                 Err(PyValueError::new_err("Could not read python register"))
             }
-        }
-        
-        // Ok(GenericValue::Register(py_object.clone().unbind())),
+        } // Ok(GenericValue::Register(py_object.clone().unbind())),
     }
 }
 
@@ -429,14 +425,12 @@ pub fn py_convert_from_generic_value(value: &GenericValue) -> PyResult<Py<PyAny>
                 .collect::<PyResult<_>>()?;
             PyTuple::new(py, &elements)?.into_py_any(py)
         }
-        GenericValue::Register(reg_value) => {
-            match reg_value {
-                ParamRegisterValue::Register(reg) => reg.clone().into_py_any(py),
-                ParamRegisterValue::ShareableClbit(clbit) => clbit.clone().into_py_any(py),
-            }
-        }
+        GenericValue::Register(reg_value) => match reg_value {
+            ParamRegisterValue::Register(reg) => reg.clone().into_py_any(py),
+            ParamRegisterValue::ShareableClbit(clbit) => clbit.clone().into_py_any(py),
+        },
         GenericValue::BigInt(bigint) => bigint.clone().into_py_any(py),
-        GenericValue::Duration(duration) => duration.clone().into_py_any(py),
+        GenericValue::Duration(duration) => (*duration).into_py_any(py),
     })
 }
 
@@ -478,79 +472,6 @@ pub fn py_pack_param(
     Ok(formats::GenericDataPack { type_key, data })
 }
 
-// When a register is stored as an instruction param, it is serialized compactly
-// For a classical register its name is saved as a string; for a clbit
-// its index in the full clbit list is converted into a string, with 0x00 appended at the start
-// to differentiate from the register case
-pub fn py_serialize_register_param(
-    register: &Py<PyAny>,
-    qpy_data: &QPYWriteData,
-) -> PyResult<Bytes> {
-    Python::attach(|py| {
-        let register = register.bind(py);
-        if register.is_instance_of::<PyClassicalRegister>() {
-            Ok(register.getattr("name")?.extract::<String>()?.into())
-        } else if register.is_instance_of::<PyClbit>() {
-            let key = &register.extract::<ShareableClbit>()?;
-            let name = qpy_data
-                .circuit_data
-                .get_clbit_indices(py)
-                .bind(py)
-                .get_item(key)?
-                .ok_or(PyErr::new::<PyValueError, _>("Clbit not found"))?
-                .getattr("index")?
-                .str()?;
-            let mut bytes: Bytes = Bytes(Vec::with_capacity(name.len()? + 1));
-            bytes.push(0u8);
-            bytes.extend_from_slice(name.extract::<String>()?.as_bytes());
-            Ok(bytes)
-        } else {
-            Ok(Bytes::new())
-        }
-    })
-}
-
-pub fn py_deserialize_register_param(
-    data_bytes: &Bytes,
-    circuit_data: &CircuitData,
-) -> PyResult<Py<PyAny>> {
-    Python::attach(|py| {
-        // If register name prefixed with null character it's a clbit index for single bit condition.
-        if data_bytes.is_empty() {
-            return Err(PyValueError::new_err(
-                "Failed to load register - name missing",
-            ));
-        }
-        if data_bytes[0] == 0u8 {
-            let index = Clbit(std::str::from_utf8(&data_bytes[1..])?.parse()?);
-            match circuit_data.clbits().get(index) {
-                Some(shareable_clbit) => {
-                    Ok(shareable_clbit.into_pyobject(py)?.as_any().clone().unbind())
-                }
-                None => Err(PyValueError::new_err(format!(
-                    "Could not find clbit {:?}",
-                    index
-                ))),
-            }
-        } else {
-            let name = std::str::from_utf8(data_bytes)?;
-            let mut register = None;
-            for creg in circuit_data.cregs() {
-                if creg.name() == name {
-                    register = Some(creg);
-                }
-            }
-            match register {
-                Some(register) => Ok(register.into_py_any(py)?),
-                None => Err(PyValueError::new_err(format!(
-                    "Could not find classical register {:?}",
-                    name
-                ))),
-            }
-        }
-    })
-}
-
 pub fn py_get_instruction_annotations(
     instruction: &PackedInstruction,
     qpy_data: &mut QPYWriteData,
@@ -562,8 +483,9 @@ pub fn py_get_instruction_annotations(
                 let annotations_iter = PyIterator::from_object(&op.getattr("annotations")?)?;
                 let annotations: Vec<formats::InstructionAnnotationPack> = annotations_iter
                     .map(|annotation| {
-                        let (namespace_index, payload) =
-                            qpy_data.annotation_handler.serialize(&annotation?.unbind())?;
+                        let (namespace_index, payload) = qpy_data
+                            .annotation_handler
+                            .serialize(&annotation?.unbind())?;
                         Ok(formats::InstructionAnnotationPack {
                             namespace_index,
                             payload,
@@ -632,50 +554,6 @@ pub fn py_unpack_modifier(packed_modifier: &formats::ModifierPack) -> PyResult<P
                 .get_bound(py)
                 .call((), Some(&kwargs))?
                 .unbind())
-        }
-    })
-}
-
-// condition is stored in an ad-hoc manner in the instruction's "_condition" field, and we need python to access it
-pub fn py_get_condition_data_from_inst(
-    inst: &Py<PyAny>,
-    qpy_data: &QPYWriteData,
-) -> PyResult<formats::ConditionPack> {
-    Python::attach(|py| match getattr_or_none(inst.bind(py), "_condition") {
-        None => Ok(formats::ConditionPack {
-            key: formats::condition_types::NONE,
-            register_size: 0u16,
-            value: 0i64,
-            data: formats::ConditionData::None,
-        }),
-        Some(condition) => {
-            if condition.extract::<classical::expr::Expr>().is_ok() {
-                let value = GenericValue::Expression(condition.extract::<classical::expr::Expr>()?);
-                let expression_pack = pack_generic_value(&value, qpy_data)?;
-                Ok(formats::ConditionPack {
-                    key: formats::condition_types::EXPRESSION,
-                    register_size: 0u16,
-                    value: 0i64,
-                    data: formats::ConditionData::Expression(expression_pack),
-                })
-            } else if condition.is_instance_of::<PyTuple>() {
-                let key = formats::condition_types::TWO_TUPLE;
-                let value = condition.cast::<PyTuple>()?.get_item(1)?.extract::<i64>()?;
-                let register = py_serialize_register_param(
-                    &condition.cast::<PyTuple>()?.get_item(0)?.unbind(),
-                    qpy_data,
-                )?;
-                Ok(formats::ConditionPack {
-                    key,
-                    register_size: register.len() as u16,
-                    value,
-                    data: formats::ConditionData::Register(register),
-                })
-            } else {
-                Err(PyValueError::new_err(
-                    "Expression handling not implemented for get_condition_data_from_inst",
-                ))
-            }
         }
     })
 }

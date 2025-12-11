@@ -387,7 +387,10 @@ class TestAnnotations(QpyCircuitTestCase):
     # pylint: disable=missing-class-docstring,missing-function-docstring,redefined-outer-name
 
     def test_wrapping_openqasm3(self):
-        self.skipTest("Temporarily skipping control flow tests until the rust control flow code stabilizes")
+        self.skipTest(
+            "Temporarily skipping control flow tests until the rust control flow code stabilizes"
+        )
+
         class My(annotation.Annotation):
             def __init__(self, namespace, value):
                 self.namespace = namespace
@@ -414,7 +417,9 @@ class TestAnnotations(QpyCircuitTestCase):
         self.assert_roundtrip_equal(qc, annotation_factories={"my": Serializer().as_qpy()})
 
     def test_simple_serializer(self):
-        self.skipTest("Temporarily skipping control flow tests until the rust control flow code stabilizes")
+        self.skipTest(
+            "Temporarily skipping control flow tests until the rust control flow code stabilizes"
+        )
         outer_self = self
 
         class Dummy(annotation.Annotation):
@@ -438,7 +443,9 @@ class TestAnnotations(QpyCircuitTestCase):
         self.assert_roundtrip_equal(qc, annotation_factories={"dummy": Serializer})
 
     def test_stateful_serializer(self):
-        self.skipTest("Temporarily skipping control flow tests until the rust control flow code stabilizes")
+        self.skipTest(
+            "Temporarily skipping control flow tests until the rust control flow code stabilizes"
+        )
         outer_self = self
 
         class My(annotation.Annotation):
@@ -490,7 +497,9 @@ class TestAnnotations(QpyCircuitTestCase):
         self.assert_roundtrip_equal(qc, annotation_factories={"my": Serializer})
 
     def test_multiple_serializers(self):
-        self.skipTest("Temporarily skipping control flow tests until the rust control flow code stabilizes")
+        self.skipTest(
+            "Temporarily skipping control flow tests until the rust control flow code stabilizes"
+        )
         outer_self = self
 
         class TypeA(annotation.Annotation):
@@ -549,7 +558,9 @@ class TestAnnotations(QpyCircuitTestCase):
         self.assert_roundtrip_equal(qc, annotation_factories={"a": SerializerA, "b": SerializerB})
 
     def test_parent_namespacing(self):
-        self.skipTest("Temporarily skipping control flow tests until the rust control flow code stabilizes")
+        self.skipTest(
+            "Temporarily skipping control flow tests until the rust control flow code stabilizes"
+        )
         outer_self = self
 
         class My(annotation.Annotation):
@@ -651,7 +662,9 @@ class TestOutputStreamProperties(QpyCircuitTestCase):
     @idata(range(QPY_COMPATIBILITY_VERSION, QPY_VERSION + 1))
     def test_unseekable_equality(self, version):
         """Test QPY output is equal for seekable and unseekable streams."""
-        self.skipTest("Temporarily skipping control flow tests until the rust control flow code stabilizes")
+        self.skipTest(
+            "Temporarily skipping control flow tests until the rust control flow code stabilizes"
+        )
         circuits = []
         for i in range(10):
             circuits.append(

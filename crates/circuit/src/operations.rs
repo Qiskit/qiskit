@@ -13,9 +13,9 @@
 use approx::relative_eq;
 use std::f64::consts::PI;
 use std::fmt::Debug;
+use std::str::FromStr;
 use std::sync::Arc;
 use std::{fmt, vec};
-use std::str::FromStr;
 
 use crate::circuit_data::CircuitData;
 use crate::parameter::parameter_expression::{
@@ -361,7 +361,7 @@ pub enum ControlFlowType {
 }
 
 impl ControlFlowType {
-    pub fn as_str(&self) -> &'static str{
+    pub fn as_str(&self) -> &'static str {
         match self {
             ControlFlowType::Box => "box",
             ControlFlowType::BreakLoop => "break_loop",
@@ -596,8 +596,8 @@ impl ControlFlowInstruction {
 impl Operation for ControlFlowInstruction {
     fn name(&self) -> &str {
         match &self.control_flow {
-            ControlFlow::Box { .. } =>  ControlFlowType::Box.as_str(),
-            ControlFlow::BreakLoop =>  ControlFlowType::BreakLoop.as_str(),
+            ControlFlow::Box { .. } => ControlFlowType::Box.as_str(),
+            ControlFlow::BreakLoop => ControlFlowType::BreakLoop.as_str(),
             ControlFlow::ContinueLoop => ControlFlowType::ContinueLoop.as_str(),
             ControlFlow::ForLoop { .. } => ControlFlowType::ForLoop.as_str(),
             ControlFlow::IfElse { .. } => ControlFlowType::IfElse.as_str(),
@@ -846,7 +846,7 @@ unsafe impl ::bytemuck::CheckedBitPattern for StandardInstructionType {
 unsafe impl ::bytemuck::NoUninit for StandardInstructionType {}
 
 impl StandardInstructionType {
-    pub fn as_str(&self) -> &'static str{
+    pub fn as_str(&self) -> &'static str {
         match self {
             StandardInstructionType::Barrier => "barrier",
             StandardInstructionType::Delay => "delay",
@@ -2884,11 +2884,10 @@ impl PyOperation {
     /// returns the class name of the python gate
     pub fn class_name(&self) -> PyResult<String> {
         Python::attach(|py| -> PyResult<String> {
-            self
-            .operation
-            .getattr(py, intern!(py, "__class__"))?
-            .getattr(py, intern!(py, "__name__"))?
-            .extract::<String>(py)
+            self.operation
+                .getattr(py, intern!(py, "__class__"))?
+                .getattr(py, intern!(py, "__name__"))?
+                .extract::<String>(py)
         })
     }
 }
@@ -2933,11 +2932,10 @@ impl PyInstruction {
     /// returns the class name of the python gate
     pub fn class_name(&self) -> PyResult<String> {
         Python::attach(|py| -> PyResult<String> {
-            self
-            .instruction
-            .getattr(py, intern!(py, "__class__"))?
-            .getattr(py, intern!(py, "__name__"))?
-            .extract::<String>(py)
+            self.instruction
+                .getattr(py, intern!(py, "__class__"))?
+                .getattr(py, intern!(py, "__name__"))?
+                .extract::<String>(py)
         })
     }
 }
@@ -3070,11 +3068,10 @@ impl PyGate {
     /// returns the class name of the python gate
     pub fn class_name(&self) -> PyResult<String> {
         Python::attach(|py| -> PyResult<String> {
-            self
-            .gate
-            .getattr(py, intern!(py, "__class__"))?
-            .getattr(py, intern!(py, "__name__"))?
-            .extract::<String>(py)
+            self.gate
+                .getattr(py, intern!(py, "__class__"))?
+                .getattr(py, intern!(py, "__name__"))?
+                .extract::<String>(py)
         })
     }
 }

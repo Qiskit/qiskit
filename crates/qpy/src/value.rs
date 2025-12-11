@@ -20,27 +20,26 @@ use qiskit_circuit::bit::{ClassicalRegister, ShareableClbit};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::classical::expr::{Expr, Stretch, Var};
 use qiskit_circuit::classical::types::Type;
+use qiskit_circuit::duration::Duration;
 use qiskit_circuit::object_registry::ObjectRegistry;
 use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::parameter::symbol_expr::Symbol;
 use qiskit_circuit::{Clbit, imports};
-use qiskit_circuit::duration::Duration;
 
 use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
 use crate::circuit_reader::unpack_circuit;
 use crate::circuit_writer::pack_circuit;
-use crate::formats::{self, GenericDataPack, GenericDataSequencePack, DurationPack, BigIntPack};
+use crate::formats::{self, BigIntPack, DurationPack, GenericDataPack, GenericDataSequencePack};
 use crate::params::{
     pack_parameter_expression, pack_parameter_vector, pack_symbol, unpack_parameter_expression,
     unpack_parameter_vector, unpack_symbol,
 };
 use crate::py_methods::{
-    py_deserialize_numpy_object, py_deserialize_range,
-    py_pack_modifier, py_serialize_numpy_object, py_serialize_range,
-    py_unpack_modifier,
+    py_deserialize_numpy_object, py_deserialize_range, py_pack_modifier, py_serialize_numpy_object,
+    py_serialize_range, py_unpack_modifier,
 };
 use crate::{QpyError, UnsupportedFeatureForVersion};
 
@@ -126,7 +125,7 @@ pub struct QPYReadData<'a> {
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum ValueType {
     Bool = b'b',
-    Integer = b'i',  // this is also used by "BigInt" which may arise in more specialized contexts
+    Integer = b'i', // this is also used by "BigInt" which may arise in more specialized contexts
     Float = b'f',
     Complex = b'c',
     CaseDefault = b'd',
@@ -371,7 +370,8 @@ pub fn load_value(
             let value: bool = bytes.try_into()?;
             Ok(GenericValue::Bool(value))
         }
-        ValueType::Integer => { // a little tricky since this can be either i64 or biguint
+        ValueType::Integer => {
+            // a little tricky since this can be either i64 or biguint
             let result = bytes.try_into();
             if let Ok(value) = result {
                 Ok(GenericValue::Int64(value))
@@ -453,21 +453,9 @@ pub fn load_value(
     }
 }
 
-// a specialized method used for durations (marked by 't' like tuple)
-// since the general load method will attempt to load a tuple instead
-pub fn load_duration_value(
-    bytes: &Bytes,
-) -> PyResult<GenericValue> {
-    let (duration_pack, _) = deserialize::<DurationPack>(bytes)?;
-    let duration = unpack_duration(duration_pack);
-    Ok(GenericValue::Duration(duration))
-}
-
 // a specialized method used for biguints (marked by 'i' like Int64)
 // since the general load method will attempt to load a Int64 instead
-pub fn load_biguint_value(
-    bytes: &Bytes,
-) -> PyResult<GenericValue> {
+pub fn load_biguint_value(bytes: &Bytes) -> PyResult<GenericValue> {
     let (bigint_pack, _) = deserialize::<BigIntPack>(bytes)?;
     let bigint = unpack_biguint(bigint_pack);
     Ok(GenericValue::BigInt(bigint))
@@ -530,7 +518,7 @@ pub fn serialize_generic_value(
         ),
         GenericValue::Register(param_register_value) => (
             ValueType::Register,
-            serialize_param_register_value(param_register_value, qpy_data)?
+            serialize_param_register_value(param_register_value, qpy_data)?,
         ),
     })
 }
@@ -730,11 +718,19 @@ pub enum ParamRegisterValue {
     ShareableClbit(ShareableClbit),
 }
 
-pub fn serialize_param_register_value(value: &ParamRegisterValue, qpy_data: &QPYWriteData) -> PyResult<Bytes> {
+pub fn serialize_param_register_value(
+    value: &ParamRegisterValue,
+    qpy_data: &QPYWriteData,
+) -> PyResult<Bytes> {
     match value {
         ParamRegisterValue::Register(register) => Ok(register.name().into()),
         ParamRegisterValue::ShareableClbit(clbit) => {
-            let name = qpy_data.clbits.find(&clbit).ok_or(PyValueError::new_err("clbit not found"))?.0.to_string();
+            let name = qpy_data
+                .clbits
+                .find(clbit)
+                .ok_or(PyValueError::new_err("clbit not found"))?
+                .0
+                .to_string();
             // this is the part where we get hack-y
             let mut bytes: Bytes = Bytes(Vec::with_capacity(name.len() + 1));
             bytes.push(0u8);
@@ -744,7 +740,8 @@ pub fn serialize_param_register_value(value: &ParamRegisterValue, qpy_data: &QPY
     }
 }
 
-pub fn load_param_register_value(bytes: &Bytes,
+pub fn load_param_register_value(
+    bytes: &Bytes,
     qpy_data: &mut QPYReadData,
 ) -> PyResult<ParamRegisterValue> {
     // If register name prefixed with null character it's a clbit index for single bit condition.
@@ -757,21 +754,24 @@ pub fn load_param_register_value(bytes: &Bytes,
         let index = Clbit(std::str::from_utf8(&bytes[1..])?.parse()?);
         match qpy_data.circuit_data.clbits().get(index) {
             Some(shareable_clbit) => {
-                return Ok(ParamRegisterValue::ShareableClbit(shareable_clbit.clone()))
+                Ok(ParamRegisterValue::ShareableClbit(shareable_clbit.clone()))
             }
             None => Err(PyValueError::new_err(format!(
                 "Could not find clbit {:?}",
                 index
             ))),
         }
-    } else { // `bytes` has the register name
+    } else {
+        // `bytes` has the register name
         let name = std::str::from_utf8(bytes)?;
         for creg in qpy_data.circuit_data.cregs() {
             if creg.name() == name {
-                return Ok(ParamRegisterValue::Register(creg.clone()))
+                return Ok(ParamRegisterValue::Register(creg.clone()));
             }
         }
-        return Err(PyValueError::new_err(format!("Could not find classical register {:?}",name)));
+        Err(PyValueError::new_err(format!(
+            "Could not find classical register {:?}",
+            name
+        )))
     }
 }
-

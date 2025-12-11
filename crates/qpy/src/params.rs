@@ -22,13 +22,13 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::bytes::Bytes;
-use crate::formats::{self, GenericDataPack, ParameterVectorPack};
+use crate::formats;
 use crate::py_methods::{
     py_convert_from_generic_value, py_convert_to_generic_value, py_pack_param,
 };
 use crate::value::{
     GenericValue, QPYReadData, QPYWriteData, ValueType, deserialize, deserialize_vec, load_value,
-    serialize, serialize_generic_value, pack_generic_value
+    serialize, serialize_generic_value,
 };
 use binrw::binrw;
 use hashbrown::HashMap;
@@ -450,7 +450,7 @@ pub fn pack_parameter_vector(symbol: &Symbol) -> PyResult<formats::ParameterVect
         }
         Some(index_value) => index_value as u64,
     };
-    Ok(ParameterVectorPack {
+    Ok(formats::ParameterVectorPack {
         vector_size,
         uuid: *symbol.uuid.as_bytes(),
         index,
@@ -579,13 +579,10 @@ pub fn pack_param_obj(
     })
 }
 
-pub fn generic_value_to_param(
-    value: &GenericValue,
-    endian: Endian,
-) -> PyResult<Param> {
+pub fn generic_value_to_param(value: &GenericValue, endian: Endian) -> PyResult<Param> {
     let value = match endian {
         Endian::Big => value,
-        Endian::Little => &value.as_le()
+        Endian::Little => &value.as_le(),
     };
     match value {
         GenericValue::Float64(float_val) => Ok(Param::Float(*float_val)),
@@ -597,62 +594,9 @@ pub fn generic_value_to_param(
             let parameter_expression = ParameterExpression::from_symbol(symbol.clone());
             Ok(Param::ParameterExpression(Arc::new(parameter_expression)))
         }
-        GenericValue::ParameterExpression(exp) => Ok(Param::ParameterExpression(Arc::new(exp.clone()))),
-        _ =>  Ok(Param::Obj(py_convert_from_generic_value(&value)?))
+        GenericValue::ParameterExpression(exp) => {
+            Ok(Param::ParameterExpression(Arc::new(exp.clone())))
+        }
+        _ => Ok(Param::Obj(py_convert_from_generic_value(value)?)),
     }
 }
-
-// pub fn unpack_param(
-//     packed_param: &formats::GenericDataPack,
-//     qpy_data: &mut QPYReadData,
-//     endian: Endian,
-// ) -> PyResult<Param> {
-//     match packed_param.type_key {
-//         ValueType::Float => Ok(Param::Float(packed_param.data.try_to_f64(endian)?)),
-//         ValueType::Parameter => {
-//             let (packed_symbol, _) = deserialize::<formats::ParameterPack>(&packed_param.data)?;
-//             let parameter_expression =
-//                 ParameterExpression::from_symbol(unpack_symbol(&packed_symbol));
-//             Ok(Param::ParameterExpression(Arc::new(parameter_expression)))
-//         }
-//         ValueType::ParameterVector => {
-//             let (packed_symbol, _) =
-//                 deserialize::<formats::ParameterVectorPack>(&packed_param.data)?;
-//             let parameter_expression = ParameterExpression::from_symbol(unpack_parameter_vector(
-//                 &packed_symbol,
-//                 qpy_data,
-//             )?);
-//             Ok(Param::ParameterExpression(Arc::new(parameter_expression)))
-//         }
-//         ValueType::ParameterExpression => {
-//             if let GenericValue::ParameterExpression(parameter_expression) =
-//                 load_value(packed_param.type_key, &packed_param.data, qpy_data)?
-//             {
-//                 Ok(Param::ParameterExpression(Arc::new(parameter_expression)))
-//             } else {
-//                 Err(PyValueError::new_err(
-//                     "error trying to deserialize parameter expression",
-//                 ))
-//             }
-//         }
-//         _ => {
-//             let param_value = load_value(packed_param.type_key, &packed_param.data, qpy_data)?;
-//             let param_value = if endian == Endian::Little {
-//                 param_value.as_le()
-//             } else {
-//                 param_value
-//             };
-//             Ok(Param::Obj(py_convert_from_generic_value(&param_value)?))
-//         }
-//     }
-// }
-
-// pub fn unpack_param_from_data(
-//     data: Bytes,
-//     type_key: ValueType,
-//     qpy_data: &mut QPYReadData,
-//     endian: Endian,
-// ) -> PyResult<Param> {
-//     let packed_param = GenericDataPack { data, type_key };
-//     unpack_param(&packed_param, qpy_data, endian)
-// }

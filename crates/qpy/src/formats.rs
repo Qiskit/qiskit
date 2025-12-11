@@ -15,7 +15,7 @@ use crate::expr::{read_expression, write_expression};
 use crate::params::ParameterType;
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionType, ExpressionVarDeclaration, ModifierType,
-    QPYReadData, QPYWriteData, ValueType
+    QPYReadData, QPYWriteData, ValueType,
 };
 use binrw::{BinRead, BinResult, BinWrite, Endian, binread, binrw, binwrite};
 use qiskit_circuit::classical::expr::Expr;
@@ -189,13 +189,12 @@ pub struct RegisterV4Pack {
 // In this case the target is a python int, represented in rust as BigUInt, but in python qpy it was saved using i64 so we keep it for now.
 // Note that we also use (clbit, bool_target) as two tuple, where the clbit is encoded using the "\x00" hack that can be seen in ParamRegisterValue
 // 3) Expresssion
-// In the two-tuple representation, the target value is stored in the `value` field and the number of bytes in the serialized registered are stored in the 
+// In the two-tuple representation, the target value is stored in the `value` field and the number of bytes in the serialized registered are stored in the
 // `register_size` fields. Both are unused in the other cases, making the packing and decoding of this struct rather non-uniform.
 
 // The most natural thing is to encode conditions as enum with magic numbers differentiating between different kinds
 // however, since in QPY the condition data is not stored consecutively, it's going to be a mass to implement, so we do something else
 pub mod condition_types {
-    pub const NONE: u8 = 0;
     pub const TWO_TUPLE: u8 = 1;
     pub const EXPRESSION: u8 = 2;
 }
@@ -214,7 +213,6 @@ pub enum ConditionData {
 // in newer versions of qpy it may be better to store all the data consecutively
 #[derive(Debug)]
 pub struct ConditionPack {
-    pub key: u8,
     pub register_size: u16,
     pub value: i64,
     pub data: ConditionData,
@@ -223,7 +221,6 @@ pub struct ConditionPack {
 impl Default for ConditionPack {
     fn default() -> Self {
         ConditionPack {
-            key: condition_types::NONE,
             register_size: 0u16,
             value: 0i64,
             data: ConditionData::None,
@@ -267,7 +264,6 @@ impl ConditionPack {
             _ => ConditionData::None,
         };
         Ok(ConditionPack {
-            key,
             register_size,
             value,
             data,

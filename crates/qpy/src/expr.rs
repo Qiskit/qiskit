@@ -13,9 +13,11 @@
 // methods for serialization/deserialization of Expression
 use crate::formats::{
     ExpressionElementPack, ExpressionTypePack, ExpressionValueElementPack,
-    ExpressionVarElementPack, ExpressionVarRegisterPack
+    ExpressionVarElementPack, ExpressionVarRegisterPack,
 };
-use crate::value::{QPYReadData, QPYWriteData, pack_duration, unpack_duration, pack_biguint, unpack_biguint};
+use crate::value::{
+    QPYReadData, QPYWriteData, pack_biguint, pack_duration, unpack_biguint, unpack_duration,
+};
 use binrw::{BinRead, BinResult, BinWrite, Endian, Error};
 use num_bigint::BigUint;
 use qiskit_circuit::Clbit;
@@ -49,10 +51,7 @@ pub fn pack_expression_value(value: &Value) -> ExpressionElementPack {
         Value::Uint { raw, ty } => {
             match ty {
                 Type::Bool => (ty, ExpressionValueElementPack::Bool(raw.to_bytes_le()[0])), // effectively truncating modulo 256
-                Type::Uint(_) => (
-                    ty,
-                    ExpressionValueElementPack::Int(pack_biguint(raw)),
-                ),
+                Type::Uint(_) => (ty, ExpressionValueElementPack::Int(pack_biguint(raw))),
                 _ => (ty, ExpressionValueElementPack::Bool(raw.to_bytes_le()[0])), // TODO: should this be different?
             }
         }
