@@ -54,7 +54,8 @@ class TestStatevector(QiskitTestCase):
         self.assertTrue(sv.equiv(expected))
 
     def test_from_circuit_transpilation_consistency(self):
-        """Test transpilation consistency - the main GitHub issue."""
+        """Statevector.from_circuit gives consistent results under transpilation."""
+
         qc = QuantumCircuit(3)
         qc.h(0)
         qc.cx(0, 1)
@@ -69,7 +70,7 @@ class TestStatevector(QiskitTestCase):
         sv2 = Statevector.from_circuit(transpiled_opt2)
 
         self.assertTrue(sv1.equiv(sv2))
-        
+
         sv2_nolayout = Statevector.from_circuit(transpiled_opt2, ignore_set_layout=True)
         self.assertFalse(sv1.equiv(sv2_nolayout))
 
