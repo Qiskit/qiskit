@@ -73,7 +73,7 @@ pub fn py_gridsynth_rz(theta: f64, epsilon: f64) -> PyResult<CircuitData> {
         theta, epsilon, 0u64, false, true,
     ));
     let gates_iter = res.gates.chars();
-    let phase = (res.global_phase as u64) as f64 * FRAC_PI_8;
+    let phase = if res.global_phase { FRAC_PI_8 } else { 0. };
     let instruction_capacity = res.gates.len();
     circuit_from_string(gates_iter, phase, instruction_capacity)
 }
@@ -105,11 +105,21 @@ pub fn gridsynth_unitary(mat: ArrayView2<Complex64>, epsilon: f64) -> PyResult<C
         .chain(res_gates_phi.gates.chars());
 
     let phase = euler_phase
-        + (res_gates_theta.global_phase as u64
-            + res_gates_phi.global_phase as u64
-            + res_gates_lambda.global_phase as u64) as f64
-            * FRAC_PI_8;
-
+        + if res_gates_theta.global_phase {
+            FRAC_PI_8
+        } else {
+            0.
+        }
+        + if res_gates_phi.global_phase {
+            FRAC_PI_8
+        } else {
+            0.
+        }
+        + if res_gates_lambda.global_phase {
+            FRAC_PI_8
+        } else {
+            0.
+        };
     circuit_from_string(gates_iter, phase, instruction_capacity)
 }
 

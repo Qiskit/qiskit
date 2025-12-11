@@ -101,16 +101,17 @@ class TestRossSelingerSynthesis(QiskitTestCase):
         for idx in range(1, len(approximate_circuits)):
             self.assertEqual(approximate_circuits[idx], approximate_circuits[0])
 
-    @data(IGate(), XGate(), YGate(), ZGate(), HGate(), SGate(), SdgGate(), SXGate(), SXdgGate())
-    def test_clifford_matrix(self, clifford_gate):
+    @data(IGate, XGate, YGate, ZGate, HGate, SGate, SdgGate, SXGate, SXdgGate)
+    def test_clifford_matrix(self, clifford_cls):
         """Test that the Ross-Selinger algorithm does not return T-gates when approximating
         Clifford-gate matrices.
         """
         circuit = QuantumCircuit(1)
-        circuit.append(clifford_gate, [0])
+        circuit.append(clifford_cls(), [0])
         matrix = Operator(circuit).data
         approximate_circuit = gridsynth_unitary(matrix)
         self.assertLessEqual(set(approximate_circuit.count_ops()), CLIFFORD_GATES_1Q_SET)
+        self.assertEqual(Operator(circuit), Operator(approximate_circuit))
 
     def test_t_matrix(self):
         """Test that Ross-Selinger algorithm returns a single T-gate for the T-gate matrix."""
@@ -121,6 +122,7 @@ class TestRossSelingerSynthesis(QiskitTestCase):
         approximate_circuit = gridsynth_unitary(matrix)
         self.assertEqual(approximate_circuit.count_ops().get("t", 0), 1)
         self.assertEqual(approximate_circuit.count_ops().get("tdg", 0), 0)
+        self.assertEqual(Operator(circuit), Operator(approximate_circuit))
 
     def test_tdg_matrix(self):
         """Test that Ross-Selinger algorithm returns a single T-gate for the T-gate matrix."""
@@ -131,6 +133,15 @@ class TestRossSelingerSynthesis(QiskitTestCase):
         approximate_circuit = gridsynth_unitary(matrix)
         self.assertEqual(approximate_circuit.count_ops().get("t", 0), 1)
         self.assertEqual(approximate_circuit.count_ops().get("tdg", 0), 0)
+        self.assertEqual(Operator(circuit), Operator(approximate_circuit))
+
+    @data(1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9, 1e-10, 1e-11, 1e-12)
+    def test_approximation_error(self, epsilon):
+        """Test that the argument ``epsilon`` works correctly,"""
+        approximate_circuit = gridsynth_rz(0.8, epsilon)
+        error_matrix = Operator(RZGate(0.8)).data - Operator(approximate_circuit).data
+        spectral_norm = np.linalg.norm(error_matrix, 2)
+        self.assertLessEqual(spectral_norm, epsilon)
 
 
 @ddt
