@@ -108,7 +108,7 @@ fn pack_instructions(
     ))
 }
 
-pub fn pack_annotations(
+pub(crate) fn pack_annotations(
     annotations: &[Py<PyAny>],
     qpy_data: &mut QPYWriteData,
 ) -> PyResult<Option<formats::InstructionsAnnotationPack>> {
@@ -570,7 +570,7 @@ fn pack_quantum_register(
         })
         .collect();
     formats::RegisterV4Pack {
-        register_type: RegisterType::Qreg as u8,
+        register_type: RegisterType::Qreg,
         standalone: qreg.is_owning() as u8,
         in_circuit: in_circuit as u8,
         name: qreg.name().to_string(),
@@ -616,7 +616,7 @@ fn pack_classical_registers(circuit_data: &CircuitData) -> Vec<formats::Register
                 })
                 .collect();
             formats::RegisterV4Pack {
-                register_type: RegisterType::Creg as u8,
+                register_type: RegisterType::Creg,
                 standalone: creg.is_owning() as u8,
                 in_circuit: in_circ_lookup.contains(creg) as u8,
                 name: creg.name().to_string(),
@@ -1068,13 +1068,13 @@ fn pack_standalone_vars(
     Ok(result)
 }
 
-pub fn pack_circuit(
+pub(crate) fn pack_circuit(
     circuit: &mut QuantumCircuitData,
     metadata_serializer: Option<&Bound<PyAny>>,
     _use_symengine: bool,
     version: u32,
     annotation_factories: &Bound<PyDict>,
-) -> PyResult<formats::QPYFormatV15> {
+) -> PyResult<formats::QPYCircuitV15> {
     let annotation_handler = AnnotationHandler::new(annotation_factories);
     let clbits = circuit.data.clbits().clone();
     let mut qpy_data = QPYWriteData {
@@ -1105,7 +1105,7 @@ pub fn pack_circuit(
         .map(|(namespace, state)| formats::AnnotationStateHeaderPack { namespace, state })
         .collect();
     let annotation_headers = formats::AnnotationHeaderStaticPack { state_headers };
-    Ok(formats::QPYFormatV15 {
+    Ok(formats::QPYCircuitV15 {
         header,
         standalone_vars,
         annotation_headers,
@@ -1119,7 +1119,7 @@ pub fn pack_circuit(
 #[pyfunction]
 #[pyo3(name = "write_circuit")]
 #[pyo3(signature = (file_obj, circuit, metadata_serializer, use_symengine, version, annotation_factories))]
-pub fn py_write_circuit(
+pub(crate) fn py_write_circuit(
     py: Python,
     file_obj: &Bound<PyAny>,
     circuit: &Bound<PyAny>,

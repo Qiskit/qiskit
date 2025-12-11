@@ -61,7 +61,10 @@ fn is_python_gate(py: Python, op: &PackedOperation, python_gate: &Bound<PyAny>) 
 /// custom gates have unique UUID attached to their name
 /// this method recognizes whether we have such a gate and returns a unique name for it
 /// since custom gates are implemented in python, this is a heavy python-space function
-pub fn recognize_custom_operation(op: &PackedOperation, name: &String) -> PyResult<Option<String>> {
+pub(crate) fn recognize_custom_operation(
+    op: &PackedOperation,
+    name: &String,
+) -> PyResult<Option<String>> {
     Python::attach(|py| {
         let library = py.import("qiskit.circuit.library")?;
         let circuit_mod = py.import("qiskit.circuit")?;
@@ -105,7 +108,7 @@ pub fn recognize_custom_operation(op: &PackedOperation, name: &String) -> PyResu
 
 /// when trying to instantiate nonstandard gates, we turn to the relevant python clas
 /// this function obtains the class based on the gate class name
-pub fn get_python_gate_class<'a>(
+pub(crate) fn get_python_gate_class<'a>(
     py: Python<'a>,
     gate_class_name: &String,
 ) -> PyResult<Bound<'a, PyAny>> {
@@ -131,7 +134,7 @@ pub fn get_python_gate_class<'a>(
 }
 
 // serializes python metadata to JSON using a python JSON serializer
-pub fn serialize_metadata(
+pub(crate) fn serialize_metadata(
     metadata_opt: &Option<Bound<PyAny>>,
     metadata_serializer: Option<&Bound<PyAny>>,
 ) -> PyResult<Bytes> {
@@ -154,7 +157,7 @@ pub fn serialize_metadata(
 }
 
 // helper method to extract attribute from a py_object
-pub fn getattr_or_none<'py>(
+pub(crate) fn getattr_or_none<'py>(
     py_object: &'py Bound<'py, PyAny>,
     name: &str,
 ) -> Option<Bound<'py, PyAny>> {
@@ -170,7 +173,7 @@ pub fn getattr_or_none<'py>(
     }
 }
 
-pub fn py_serialize_numpy_object(py_object: &Py<PyAny>) -> PyResult<Bytes> {
+pub(crate) fn py_serialize_numpy_object(py_object: &Py<PyAny>) -> PyResult<Bytes> {
     Python::attach(|py| {
         let np = py.import("numpy")?;
         let io = py.import("io")?;
@@ -180,7 +183,7 @@ pub fn py_serialize_numpy_object(py_object: &Py<PyAny>) -> PyResult<Bytes> {
     })
 }
 
-pub fn py_deserialize_numpy_object(data: &Bytes) -> PyResult<Py<PyAny>> {
+pub(crate) fn py_deserialize_numpy_object(data: &Bytes) -> PyResult<Py<PyAny>> {
     Python::attach(|py| {
         let np = py.import("numpy")?;
         let io = py.import("io")?;
@@ -201,7 +204,7 @@ fn pack_sparse_pauli_op(
     Ok(formats::SparsePauliOpListElemPack { data })
 }
 
-pub fn py_pack_pauli_evolution_gate(
+pub(crate) fn py_pack_pauli_evolution_gate(
     evolution_gate: &Bound<PyAny>,
     qpy_data: &QPYWriteData,
 ) -> PyResult<formats::PauliEvolutionDefPack> {
@@ -245,7 +248,7 @@ pub fn py_pack_pauli_evolution_gate(
     })
 }
 
-pub fn gate_class_name(op: &PackedOperation) -> PyResult<String> {
+pub(crate) fn gate_class_name(op: &PackedOperation) -> PyResult<String> {
     Python::attach(|py| {
         let name = match op.view() {
             // getting __name__ for standard gates and instructions should
@@ -299,7 +302,7 @@ pub fn gate_class_name(op: &PackedOperation) -> PyResult<String> {
     })
 }
 
-pub fn py_get_type_key(py_object: &Bound<PyAny>) -> PyResult<ValueType> {
+pub(crate) fn py_get_type_key(py_object: &Bound<PyAny>) -> PyResult<ValueType> {
     let py: Python<'_> = py_object.py();
     if py_object
         .is_instance(imports::PARAMETER_VECTOR_ELEMENT.get_bound(py))
@@ -349,7 +352,7 @@ pub fn py_get_type_key(py_object: &Bound<PyAny>) -> PyResult<ValueType> {
     )))
 }
 
-pub fn py_convert_to_generic_value(py_object: &Bound<PyAny>) -> PyResult<GenericValue> {
+pub(crate) fn py_convert_to_generic_value(py_object: &Bound<PyAny>) -> PyResult<GenericValue> {
     let type_key = py_get_type_key(py_object)?;
     match type_key {
         ValueType::Bool => Ok(GenericValue::Bool(py_object.extract::<bool>()?)),
@@ -401,7 +404,7 @@ pub fn py_convert_to_generic_value(py_object: &Bound<PyAny>) -> PyResult<Generic
     }
 }
 
-pub fn py_convert_from_generic_value(value: &GenericValue) -> PyResult<Py<PyAny>> {
+pub(crate) fn py_convert_from_generic_value(value: &GenericValue) -> PyResult<Py<PyAny>> {
     Python::attach(|py| match value {
         GenericValue::Bool(value) => value.into_py_any(py),
         GenericValue::Int64(value) => value.into_py_any(py),
@@ -434,7 +437,7 @@ pub fn py_convert_from_generic_value(value: &GenericValue) -> PyResult<Py<PyAny>
     })
 }
 
-pub fn py_serialize_range(py_object: &Py<PyAny>) -> PyResult<Bytes> {
+pub(crate) fn py_serialize_range(py_object: &Py<PyAny>) -> PyResult<Bytes> {
     Python::attach(|py| {
         let py_object = py_object.bind(py);
         let start = py_object.getattr("start")?.extract::<i64>()?;
@@ -447,7 +450,7 @@ pub fn py_serialize_range(py_object: &Py<PyAny>) -> PyResult<Bytes> {
     })
 }
 
-pub fn py_deserialize_range(raw_range: &Bytes) -> PyResult<Py<PyAny>> {
+pub(crate) fn py_deserialize_range(raw_range: &Bytes) -> PyResult<Py<PyAny>> {
     Python::attach(|py| {
         let range_pack = deserialize::<formats::RangePack>(raw_range)?.0;
         Ok(imports::BUILTIN_RANGE
@@ -459,7 +462,7 @@ pub fn py_deserialize_range(raw_range: &Bytes) -> PyResult<Py<PyAny>> {
 
 // This functions packs an instruction parameter, which can be an arbitrary piece of data
 // Not to be confused with Parameter, which is an atom of ParameterExpression
-pub fn py_pack_param(
+pub(crate) fn py_pack_param(
     py_object: &Bound<PyAny>,
     qpy_data: &QPYWriteData,
     endian: Endian,
@@ -472,7 +475,7 @@ pub fn py_pack_param(
     Ok(formats::GenericDataPack { type_key, data })
 }
 
-pub fn py_get_instruction_annotations(
+pub(crate) fn py_get_instruction_annotations(
     instruction: &PackedInstruction,
     qpy_data: &mut QPYWriteData,
 ) -> PyResult<Option<formats::InstructionsAnnotationPack>> {
@@ -501,7 +504,7 @@ pub fn py_get_instruction_annotations(
     })
 }
 
-pub fn py_pack_modifier(modifier: &Py<PyAny>) -> PyResult<formats::ModifierPack> {
+pub(crate) fn py_pack_modifier(modifier: &Py<PyAny>) -> PyResult<formats::ModifierPack> {
     Python::attach(|py| {
         let modifier = modifier.bind(py);
         let module = py.import("qiskit.circuit.annotated_operation")?;
@@ -532,7 +535,7 @@ pub fn py_pack_modifier(modifier: &Py<PyAny>) -> PyResult<formats::ModifierPack>
     })
 }
 
-pub fn py_unpack_modifier(packed_modifier: &formats::ModifierPack) -> PyResult<Py<PyAny>> {
+pub(crate) fn py_unpack_modifier(packed_modifier: &formats::ModifierPack) -> PyResult<Py<PyAny>> {
     Python::attach(|py| match packed_modifier.modifier_type {
         ModifierType::Inverse => Ok(imports::INVERSE_MODIFIER.get_bound(py).call0()?.unbind()),
         ModifierType::Control => {

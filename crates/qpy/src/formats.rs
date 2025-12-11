@@ -15,7 +15,7 @@ use crate::expr::{read_expression, write_expression};
 use crate::params::ParameterType;
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionType, ExpressionVarDeclaration, ModifierType,
-    QPYReadData, QPYWriteData, ValueType,
+    QPYReadData, QPYWriteData, RegisterType, ValueType,
 };
 use binrw::{BinRead, BinResult, BinWrite, Endian, binread, binrw, binwrite};
 use qiskit_circuit::classical::expr::Expr;
@@ -27,7 +27,7 @@ use std::marker::PhantomData;
 // TODO: Still need to split by versioning and have a struct for the whole file, not a single circuit
 #[derive(BinWrite, Debug)]
 #[brw(big)]
-pub struct QPYFormatV15 {
+pub struct QPYCircuitV15 {
     pub header: CircuitHeaderV12Pack,
     pub standalone_vars: Vec<ExpressionVarDeclarationPack>,
     pub annotation_headers: AnnotationHeaderStaticPack,
@@ -54,8 +54,8 @@ pub struct CircuitHeaderV12Pack {
     pub num_registers: u32,
     pub num_instructions: u64,
     pub num_vars: u32,
-    #[br(parse_with = read_string, args(name_size as usize))]
-    #[bw(write_with = write_string)]
+    #[br(count = name_size as usize, try_map = String::from_utf8)]
+    #[bw(map = |s| s.as_bytes())]
     pub circuit_name: String,
     #[br(count = global_phase_size as usize)]
     pub global_phase_data: Bytes,
@@ -86,11 +86,11 @@ pub struct CircuitInstructionV2Pack {
     pub condition_value: i64,
     pub num_ctrl_qubits: u32,
     pub ctrl_state: u32,
-    #[br(parse_with = read_string, args(name_size as usize))]
-    #[bw(write_with = write_string)]
+    #[br(count = name_size as usize, try_map = String::from_utf8)]
+    #[bw(map = |s| s.as_bytes())]
     pub gate_class_name: String,
-    #[br(parse_with = read_string, args(label_size as usize))]
-    #[bw(write_with = write_string)]
+    #[br(count = label_size as usize, try_map = String::from_utf8)]
+    #[bw(map = |s| s.as_bytes())]
     pub label: String,
     #[br(parse_with = ConditionPack::read, args(condition_register_size, extract_conditional_key(extras_key), condition_value))]
     #[bw(write_with = ConditionPack::write)]
@@ -137,7 +137,7 @@ pub struct CustomCircuitInstructionsPack {
 }
 
 // This struct seems more suitable as enum with binrw magic numbers
-// unfortunetly, since the gate_type field is second, binrw magic won't work here
+// unfortunately, since the gate_type field is second, binrw magic won't work here
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
@@ -154,8 +154,8 @@ pub struct CustomCircuitInstructionDefPack {
     pub ctrl_state: u32,
     #[bw(calc = base_gate_raw.len() as u64)]
     pub base_gate_size: u64,
-    #[br(parse_with = read_string, args(gate_name_size as usize))]
-    #[bw(write_with = write_string)]
+    #[br(count = gate_name_size as usize, try_map = String::from_utf8)]
+    #[bw(map = |s| s.as_bytes())]
     pub name: String,
     #[br(count = size)]
     pub data: Bytes,
@@ -168,15 +168,15 @@ pub struct CustomCircuitInstructionDefPack {
 #[brw(big)]
 #[derive(Debug)]
 pub struct RegisterV4Pack {
-    pub register_type: u8,
+    pub register_type: RegisterType,
     pub standalone: u8,
     #[bw(calc = bit_indices.len() as u32)]
     pub size: u32,
     #[bw(calc = name.len() as u16)]
     pub name_size: u16,
     pub in_circuit: u8,
-    #[br(parse_with = read_string, args(name_size as usize))]
-    #[bw(write_with = write_string)]
+    #[br(count = name_size as usize, try_map = String::from_utf8)]
+    #[bw(map = |s| s.as_bytes())]
     pub name: String,
     #[br(count = size)]
     pub bit_indices: Vec<i64>,
@@ -194,9 +194,23 @@ pub struct RegisterV4Pack {
 
 // The most natural thing is to encode conditions as enum with magic numbers differentiating between different kinds
 // however, since in QPY the condition data is not stored consecutively, it's going to be a mass to implement, so we do something else
-pub mod condition_types {
-    pub const TWO_TUPLE: u8 = 1;
-    pub const EXPRESSION: u8 = 2;
+#[binrw]
+#[brw(repr = u8)]
+#[repr(u8)]
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum ConditionType {
+    TwoTuple = 1,
+    Expression = 2,
+}
+
+impl From<u8> for ConditionType {
+    fn from(value: u8) -> Self {
+        match value {
+            1 => Self::TwoTuple,
+            2 => Self::Expression,
+            _ => panic!("Invalid condition type specified {value}"),
+        }
+    }
 }
 
 // register SHOULD be a string, but since we encode some registers starting with "\x00" they are rendered illegal
@@ -229,7 +243,7 @@ impl Default for ConditionPack {
 }
 
 impl ConditionPack {
-    pub fn write<W: Write + Seek>(
+    pub(crate) fn write<W: Write + Seek>(
         value: &ConditionPack,
         writer: &mut W,
         endian: Endian,
@@ -247,21 +261,20 @@ impl ConditionPack {
         Ok(())
     }
 
-    pub fn read<R: Read + Seek>(
+    pub(crate) fn read<R: Read + Seek>(
         reader: &mut R,
         endian: Endian,
         (register_size, key, value): (u16, u8, i64),
     ) -> BinResult<ConditionPack> {
-        let data = match key {
-            condition_types::TWO_TUPLE => {
+        let data = match ConditionType::from(key) {
+            ConditionType::TwoTuple => {
                 let mut buf = vec![0u8; register_size as usize];
                 reader.read_exact(&mut buf)?;
                 ConditionData::Register(buf.into())
             }
-            condition_types::EXPRESSION => {
+            ConditionType::Expression => {
                 ConditionData::Expression(GenericDataPack::read_options(reader, endian, ())?)
             }
-            _ => ConditionData::None,
         };
         Ok(ConditionPack {
             register_size,
@@ -298,8 +311,8 @@ pub struct LayoutV2Pack {
 pub struct InitialLayoutItemV2Pack {
     pub index_value: i32,
     pub register_name_length: i32, // in this special case, reg_name_length can be -1 indicating "no name"
-    #[br(parse_with = read_string, args(register_name_length.max(0) as usize))]
-    #[bw(write_with = write_string)]
+    #[br(count = register_name_length.max(0) as usize, try_map = String::from_utf8)]
+    #[bw(map = |s| s.as_bytes())]
     pub register_name: String,
 }
 
@@ -336,8 +349,8 @@ pub struct ParameterPack {
     #[bw(calc = name.len() as u16)]
     pub name_length: u16,
     pub uuid: [u8; 16],
-    #[br(parse_with = read_string, args(name_length as usize))]
-    #[bw(write_with = write_string)]
+    #[br(count = name_length as usize, try_map = String::from_utf8)]
+    #[bw(map = |s| s.as_bytes())]
     pub name: String,
 }
 
@@ -350,8 +363,8 @@ pub struct ParameterVectorPack {
     pub vector_size: u64,
     pub uuid: [u8; 16],
     pub index: u64,
-    #[br(parse_with = read_string, args(name_size as usize))]
-    #[bw(write_with = write_string)]
+    #[br(count = name_size as usize, try_map = String::from_utf8)]
+    #[bw(map = |s| s.as_bytes())]
     pub name: String,
 }
 
@@ -601,8 +614,8 @@ pub enum ExpressionVarElementPack {
 pub struct ExpressionVarRegisterPack {
     #[bw(calc = name.len() as u16)]
     pub name_size: u16,
-    #[br(parse_with = read_string, args(name_size as usize))]
-    #[bw(write_with = write_string)]
+    #[br(count = name_size as usize, try_map = String::from_utf8)]
+    #[bw(map = |s| s.as_bytes())]
     pub name: String,
 }
 
@@ -702,8 +715,8 @@ pub struct ExpressionVarDeclarationPack {
     #[bw(calc = name.len() as u16)]
     pub name_size: u16,
     pub exp_type: ExpressionType,
-    #[br(parse_with = read_string, args(name_size as usize))]
-    #[bw(write_with = write_string)]
+    #[br(count = name_size as usize, try_map = String::from_utf8)]
+    #[bw(map = |s| s.as_bytes())]
     pub name: String,
 }
 
@@ -746,8 +759,8 @@ pub struct AnnotationStateHeaderPack {
     pub namespace_size: u32,
     #[bw(calc = state.len() as u64)]
     pub state_size: u64,
-    #[br(parse_with = read_string, args(namespace_size as usize))]
-    #[bw(write_with = write_string)]
+    #[br(count = namespace_size, try_map = String::from_utf8)]
+    #[bw(map = |s| s.as_bytes())]
     pub namespace: String,
     #[br(count = state_size)]
     pub state: Bytes,
@@ -765,7 +778,7 @@ pub struct AnnotationHeaderStaticPack {
 
 // implementations of custom read/write for the more complex data types
 
-impl BinRead for QPYFormatV15 {
+impl BinRead for QPYCircuitV15 {
     type Args<'a> = ();
 
     fn read_options<R: Read + Seek>(
@@ -805,23 +818,4 @@ impl BinRead for QPYFormatV15 {
             layout,
         })
     }
-}
-
-fn write_string<W: Write>(
-    value: &String,
-    writer: &mut W,
-    _endian: Endian,
-    _args: (),
-) -> binrw::BinResult<()> {
-    Ok(writer.write_all(value.as_bytes())?)
-}
-
-fn read_string<R: Read + Seek>(
-    reader: &mut R,
-    _endian: Endian,
-    (len,): (usize,),
-) -> BinResult<String> {
-    let mut buf = vec![0u8; len];
-    reader.read_exact(&mut buf)?;
-    Ok(String::from_utf8(buf).unwrap())
 }

@@ -81,7 +81,7 @@ impl From<ParameterType> for ValueType {
     }
 }
 
-pub fn pack_parameter_expression_by_op(
+pub(crate) fn pack_parameter_expression_by_op(
     opcode: u8,
     data: formats::ParameterExpressionStandardOpPack,
 ) -> PyResult<formats::ParameterExpressionElementPack> {
@@ -111,7 +111,7 @@ pub fn pack_parameter_expression_by_op(
     }
 }
 
-pub fn unpack_parameter_expression_standard_op(
+pub(crate) fn unpack_parameter_expression_standard_op(
     packed_parameter: formats::ParameterExpressionElementPack,
 ) -> PyResult<(u8, formats::ParameterExpressionStandardOpPack)> {
     match packed_parameter {
@@ -168,7 +168,7 @@ fn parameter_value_type_from_generic_value(value: &GenericValue) -> PyResult<Par
 // in older QPY versions, parameter expressions could have substitute commands, which made packing more complex
 // this is no longer used in the rust-based paramter expressions, so we do not fully utilize the formats
 
-pub fn pack_parameter_expression(
+pub(crate) fn pack_parameter_expression(
     exp: &ParameterExpression,
 ) -> PyResult<formats::ParameterExpressionPack> {
     let packed_expression_data = pack_parameter_expression_elements(exp)?;
@@ -183,7 +183,7 @@ pub fn pack_parameter_expression(
     })
 }
 
-pub fn pack_symbol_table_element(
+pub(crate) fn pack_symbol_table_element(
     symbol: &Symbol,
 ) -> PyResult<formats::ParameterExpressionSymbolPack> {
     let value_data = Bytes::new(); // this was used only when packing symbol tables related to substitution commands and no longer relevant
@@ -278,7 +278,7 @@ fn pack_parameter_replay_entry(
     })
 }
 
-pub fn unpack_parameter_expression(
+pub(crate) fn unpack_parameter_expression(
     parameter_expression_pack: &formats::ParameterExpressionPack,
     qpy_data: &mut QPYReadData,
 ) -> PyResult<ParameterExpression> {
@@ -414,13 +414,13 @@ pub fn unpack_parameter_expression(
         .map_err(|_| PyValueError::new_err("Failure while loading parameter expression"))
 }
 
-pub fn pack_symbol(symbol: &Symbol) -> formats::ParameterPack {
+pub(crate) fn pack_symbol(symbol: &Symbol) -> formats::ParameterPack {
     let uuid = *symbol.uuid.as_bytes();
     let name = symbol.name.clone();
     formats::ParameterPack { uuid, name }
 }
 
-pub fn unpack_symbol(parameter_pack: &formats::ParameterPack) -> Symbol {
+pub(crate) fn unpack_symbol(parameter_pack: &formats::ParameterPack) -> Symbol {
     let name = parameter_pack.name.clone();
     let uuid = Uuid::from_bytes(parameter_pack.uuid);
     Symbol {
@@ -433,7 +433,7 @@ pub fn unpack_symbol(parameter_pack: &formats::ParameterPack) -> Symbol {
 
 // currently, the only way to extract the length of the vector the symbol belongs to
 // is via python space since the vector is stored as a python reference in the symbol
-pub fn pack_parameter_vector(symbol: &Symbol) -> PyResult<formats::ParameterVectorPack> {
+pub(crate) fn pack_parameter_vector(symbol: &Symbol) -> PyResult<formats::ParameterVectorPack> {
     let vector_size = Python::attach(|py| -> PyResult<_> {
         match &symbol.vector {
             None => Err(PyValueError::new_err(
@@ -464,7 +464,7 @@ pub fn pack_parameter_vector(symbol: &Symbol) -> PyResult<formats::ParameterVect
 // so we need to create it in an ad-hoc fashion as we encounter its elements during the parsing of the
 // qpy file. In particular we need to keep our qpy_data nearby so we can update the vector list as needed
 // and we must use python calls to create and modify the python-space ParameterVector
-pub fn unpack_parameter_vector(
+pub(crate) fn unpack_parameter_vector(
     parameter_vector_pack: &formats::ParameterVectorPack,
     qpy_data: &mut QPYReadData,
 ) -> PyResult<Symbol> {
@@ -520,7 +520,7 @@ pub fn unpack_parameter_vector(
     })
 }
 
-pub fn serialize_param_expression(
+pub(crate) fn serialize_param_expression(
     exp: &ParameterExpression,
     qpy_data: &QPYWriteData,
 ) -> PyResult<(ValueType, Bytes)> {
@@ -548,7 +548,7 @@ pub fn serialize_param_expression(
     Ok(result)
 }
 
-pub fn pack_param_expression(
+pub(crate) fn pack_param_expression(
     exp: &ParameterExpression,
     qpy_data: &QPYWriteData,
 ) -> PyResult<formats::GenericDataPack> {
@@ -556,7 +556,7 @@ pub fn pack_param_expression(
     Ok(formats::GenericDataPack { type_key, data })
 }
 
-pub fn pack_param_obj(
+pub(crate) fn pack_param_obj(
     param: &Param,
     qpy_data: &QPYWriteData,
     endian: Endian,
@@ -579,7 +579,7 @@ pub fn pack_param_obj(
     })
 }
 
-pub fn generic_value_to_param(value: &GenericValue, endian: Endian) -> PyResult<Param> {
+pub(crate) fn generic_value_to_param(value: &GenericValue, endian: Endian) -> PyResult<Param> {
     let value = match endian {
         Endian::Big => value,
         Endian::Little => &value.as_le(),

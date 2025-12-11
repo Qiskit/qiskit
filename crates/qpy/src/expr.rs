@@ -28,7 +28,7 @@ use qiskit_circuit::classical::types::Type;
 use std::io::{Read, Seek, Write};
 
 // packed expression types implicitly contain the magic number identifying them in the qpy file
-pub fn pack_expression_type(ty: &Type) -> ExpressionTypePack {
+pub(crate) fn pack_expression_type(ty: &Type) -> ExpressionTypePack {
     match ty {
         Type::Bool => ExpressionTypePack::Bool,
         Type::Uint(width) => ExpressionTypePack::Int(*width as u32),
@@ -37,7 +37,7 @@ pub fn pack_expression_type(ty: &Type) -> ExpressionTypePack {
     }
 }
 
-pub fn unpack_expression_type(type_pack: ExpressionTypePack) -> Type {
+pub(crate) fn unpack_expression_type(type_pack: ExpressionTypePack) -> Type {
     match type_pack {
         ExpressionTypePack::Bool => Type::Bool,
         ExpressionTypePack::Duration => Type::Duration,
@@ -46,7 +46,7 @@ pub fn unpack_expression_type(type_pack: ExpressionTypePack) -> Type {
     }
 }
 
-pub fn pack_expression_value(value: &Value) -> ExpressionElementPack {
+pub(crate) fn pack_expression_value(value: &Value) -> ExpressionElementPack {
     let (ty, value_pack) = match value {
         Value::Uint { raw, ty } => {
             match ty {
@@ -64,7 +64,7 @@ pub fn pack_expression_value(value: &Value) -> ExpressionElementPack {
     ExpressionElementPack::Value(pack_expression_type(ty), value_pack)
 }
 
-pub fn unpack_expression_value(
+pub(crate) fn unpack_expression_value(
     value_type_pack: ExpressionTypePack,
     value_element_pack: ExpressionValueElementPack,
 ) -> Value {
@@ -85,7 +85,7 @@ pub fn unpack_expression_value(
     }
 }
 
-pub fn pack_expression_var(var: &Var, qpy_data: &QPYWriteData) -> ExpressionElementPack {
+pub(crate) fn pack_expression_var(var: &Var, qpy_data: &QPYWriteData) -> ExpressionElementPack {
     let (ty, value_pack) = match var {
         Var::Bit { bit } => (
             &Type::Bool,
@@ -105,7 +105,7 @@ pub fn pack_expression_var(var: &Var, qpy_data: &QPYWriteData) -> ExpressionElem
     ExpressionElementPack::Var(pack_expression_type(ty), value_pack)
 }
 
-pub fn unpack_expression_var(
+pub(crate) fn unpack_expression_var(
     var_type_pack: ExpressionTypePack,
     var_element_pack: ExpressionVarElementPack,
     qpy_data: &QPYReadData,
@@ -136,7 +136,7 @@ pub fn unpack_expression_var(
     }
 }
 
-pub fn write_expression<W: Write + Seek>(
+pub(crate) fn write_expression<W: Write + Seek>(
     exp: &Expr,
     writer: &mut W,
     endian: Endian,
@@ -191,7 +191,7 @@ pub fn write_expression<W: Write + Seek>(
     Ok(())
 }
 
-pub fn read_expression<R: Read + Seek>(
+pub(crate) fn read_expression<R: Read + Seek>(
     reader: &mut R,
     endian: Endian,
     (qpy_data,): (&QPYReadData,),

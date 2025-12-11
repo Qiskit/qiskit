@@ -58,7 +58,7 @@ use crate::bytes::Bytes;
 use crate::consts::standard_gate_from_gate_class_name;
 use crate::formats;
 use crate::formats::ConditionData;
-use crate::formats::QPYFormatV15;
+use crate::formats::QPYCircuitV15;
 use crate::params::generic_value_to_param;
 use crate::py_methods::py_convert_from_generic_value;
 use crate::py_methods::{
@@ -136,112 +136,6 @@ fn deserialize_standard_instruction(
     }
 }
 
-// fn old_unpack_custom_instruction(
-//     py: Python,
-//     instruction: &formats::CircuitInstructionV2Pack,
-//     py_params: &Vec<Bound<PyAny>>,
-//     label: Option<&String>,
-//     custom_instruction: &CustomCircuitInstructionData,
-//     qpy_data: &mut QPYReadData,
-//     custom_instructions_map: &HashMap<String, CustomCircuitInstructionData>,
-// ) -> PyResult<PackedOperation> {
-//     // TODO: should have "if version >= 11" check here once we introduce versioning to rust
-//     let mut gate_class_name = match instruction.gate_class_name.rfind('_') {
-//         Some(pos) => &instruction.gate_class_name[..pos],
-//         None => &instruction.gate_class_name,
-//     };
-//     let inst_obj = match custom_instruction.gate_type {
-//         CircuitInstructionType::Gate => {
-//             let gate_object = imports::GATE.get_bound(py).call1((
-//                 &gate_class_name,
-//                 custom_instruction.num_qubits,
-//                 py_params,
-//             ))?;
-//             if let Some(definition) = &custom_instruction.definition_circuit {
-//                 gate_object.setattr("definition", definition)?;
-//             }
-//             if let Some(label_string) = label {
-//                 gate_object.setattr("label", label_string.as_str())?;
-//             }
-//             gate_object.unbind()
-//         }
-//         CircuitInstructionType::Instruction => {
-//             let instruction_object = imports::INSTRUCTION.get_bound(py).call1((
-//                 &gate_class_name,
-//                 custom_instruction.num_qubits,
-//                 custom_instruction.num_clbits,
-//                 py_params,
-//             ))?;
-//             if let Some(definition) = &custom_instruction.definition_circuit {
-//                 instruction_object.setattr("definition", definition)?;
-//             }
-//             if let Some(label_string) = label {
-//                 instruction_object.setattr("label", label_string.as_str())?;
-//             }
-//             instruction_object.unbind()
-//         }
-//         CircuitInstructionType::PauliEvolutionGate => {
-//             if let Some(definition) = &custom_instruction.definition_circuit {
-//                 let inst = definition.clone();
-//                 if let Some(label_string) = label {
-//                     inst.setattr(py, "label", label_string.as_str())?;
-//                 }
-//                 inst
-//             } else {
-//                 return Err(PyValueError::new_err(
-//                     "Pauli Evolution Gate missing definition",
-//                 ));
-//             }
-//         }
-//         CircuitInstructionType::ControlledGate => {
-//             let packed_base_gate = deserialize_with_args::<
-//                 formats::CircuitInstructionV2Pack,
-//                 (bool,),
-//             >(&custom_instruction.base_gate_raw, (false,))?
-//             .0;
-//             let base_gate =
-//                 unpack_instruction(py, &packed_base_gate, custom_instructions_map, qpy_data)?;
-//             // If open controls, we need to discard the control suffix when setting the name.
-//             if instruction.ctrl_state < (1u32 << instruction.num_ctrl_qubits) - 1 {
-//                 gate_class_name = match gate_class_name.rfind('_') {
-//                     Some(pos) => &gate_class_name[..pos],
-//                     None => gate_class_name,
-//                 };
-//             }
-//             let kwargs = PyDict::new(py);
-//             kwargs.set_item(intern!(py, "num_ctrl_qubits"), instruction.num_ctrl_qubits)?;
-//             kwargs.set_item(intern!(py, "ctrl_state"), instruction.ctrl_state)?;
-//             kwargs.set_item(intern!(py, "base_gate"), qpy_data.circuit_data.unpack_py_op(py, &base_gate)?)?;
-
-//             let controlled_gate_object = imports::CONTROLLED_GATE.get_bound(py).call(
-//                 (&gate_class_name, custom_instruction.num_qubits, py_params),
-//                 Some(&kwargs),
-//             )?;
-//             if let Some(definition) = &custom_instruction.definition_circuit {
-//                 controlled_gate_object.setattr("definition", definition)?;
-//             }
-//             controlled_gate_object.unbind()
-//         }
-//         CircuitInstructionType::AnnotatedOperation => {
-//             let packed_base_gate = deserialize_with_args::<
-//                 formats::CircuitInstructionV2Pack,
-//                 (bool,),
-//             >(&custom_instruction.base_gate_raw, (false,))?
-//             .0;
-//             let base_gate =
-//                 unpack_instruction(py, &packed_base_gate, custom_instructions_map, qpy_data)?;
-//             let kwargs = PyDict::new(py);
-//             kwargs.set_item(intern!(py, "base_op"), qpy_data.circuit_data.unpack_py_op(py, &base_gate)?)?;
-//             kwargs.set_item(intern!(py, "modifiers"), py_params)?;
-//             imports::ANNOTATED_OPERATION
-//                 .get_bound(py)
-//                 .call((), Some(&kwargs))?
-//                 .unbind()
-//         }
-//     };
-//     Ok(inst_obj.extract::<OperationFromPython>(py)?.operation)
-// }
-
 fn unpack_condition(
     condition_pack: &formats::ConditionPack,
     qpy_data: &mut QPYReadData,
@@ -268,25 +162,6 @@ fn unpack_condition(
         },
     }
 }
-
-// fn unpack_condition(
-//     py: Python,
-//     condition: &formats::ConditionPack,
-//     qpy_data: &mut QPYReadData,
-// ) -> PyResult<Option<Py<PyAny>>> {
-//     match &condition.data {
-//         formats::ConditionData::Expression(exp_data_pack) => Ok(Some(
-//             py_convert_from_generic_value(&unpack_generic_value(exp_data_pack, qpy_data)?)?,
-//         )),
-//         formats::ConditionData::Register(register_data) => {
-//             let register = py_deserialize_register_param(register_data, qpy_data.circuit_data)?;
-//             let condition_value = condition.value.into_py_any(py)?;
-//             let tuple = PyTuple::new(py, &[register, condition_value])?;
-//             Ok(Some(tuple.into_any().unbind()))
-//         }
-//         formats::ConditionData::None => Ok(None),
-//     }
-// }
 
 fn recognize_instruction_type(
     instruction: &formats::CircuitInstructionV2Pack,
@@ -911,7 +786,7 @@ fn unpack_custom_layout<'py>(
     let mut extra_register_map = HashMap::new();
     let mut existing_register_map = HashMap::new();
     for packed_register in &layout.extra_registers {
-        if packed_register.register_type == BitType::Qubit as u8 {
+        if packed_register.register_type == RegisterType::Qreg {
             let register = QuantumRegister::new_owning(
                 packed_register.name.clone(),
                 packed_register.bit_indices.len() as u32,
@@ -1058,7 +933,7 @@ fn deserialize_pauli_evolution_gate(
 
 fn read_custom_instructions(
     py: Python,
-    packed_circuit: &formats::QPYFormatV15,
+    packed_circuit: &formats::QPYCircuitV15,
     qpy_data: &mut QPYReadData,
 ) -> PyResult<HashMap<String, CustomCircuitInstructionData>> {
     let mut result = HashMap::new();
@@ -1073,7 +948,7 @@ fn read_custom_instructions(
             } else {
                 Some(unpack_circuit(
                     py,
-                    &deserialize::<QPYFormatV15>(&operation.data)?.0,
+                    &deserialize::<QPYCircuitV15>(&operation.data)?.0,
                     qpy_data.version,
                     None,
                     qpy_data.use_symengine,
@@ -1095,7 +970,7 @@ fn read_custom_instructions(
     Ok(result)
 }
 fn add_standalone_vars(
-    packed_circuit: &formats::QPYFormatV15,
+    packed_circuit: &formats::QPYCircuitV15,
     qpy_data: &mut QPYReadData,
 ) -> PyResult<()> {
     let mut index: u16 = 0;
@@ -1155,7 +1030,7 @@ fn add_standalone_vars(
 }
 
 fn add_registers_and_bits(
-    packed_circuit: &formats::QPYFormatV15,
+    packed_circuit: &formats::QPYCircuitV15,
     qpy_data: &mut QPYReadData,
 ) -> PyResult<()> {
     let num_qubits = packed_circuit.header.num_qubits as usize;
@@ -1171,7 +1046,7 @@ fn add_registers_and_bits(
         if packed_register.standalone == 0 {
             non_standalone_registers.push(packed_register);
         } else {
-            match RegisterType::from(packed_register.register_type) {
+            match packed_register.register_type {
                 RegisterType::Qreg => {
                     let qreg = QuantumRegister::new_owning(
                         &packed_register.name,
@@ -1223,7 +1098,7 @@ fn add_registers_and_bits(
 
     // We collected owning registers to qregs, cregs and added all remaining bits and can now deal with the non-standalone registers
     for packed_register in non_standalone_registers {
-        match RegisterType::from(packed_register.register_type) {
+        match packed_register.register_type {
             RegisterType::Qreg => {
                 let bits: Vec<ShareableQubit> = packed_register
                     .bit_indices
@@ -1276,9 +1151,9 @@ fn add_registers_and_bits(
     Ok(())
 }
 
-pub fn unpack_circuit(
+pub(crate) fn unpack_circuit(
     py: Python,
-    packed_circuit: &QPYFormatV15,
+    packed_circuit: &QPYCircuitV15,
     version: u32,
     metadata_deserializer: Option<&Bound<PyAny>>,
     use_symengine: bool,
@@ -1372,7 +1247,7 @@ pub fn unpack_circuit(
 #[pyfunction]
 #[pyo3(name = "read_circuit")]
 #[pyo3(signature = (file_obj, version, metadata_deserializer, use_symengine, annotation_factories))]
-pub fn py_read_circuit(
+pub(crate) fn py_read_circuit(
     py: Python,
     file_obj: &Bound<PyAny>,
     version: u32,
@@ -1383,7 +1258,7 @@ pub fn py_read_circuit(
     let pos = file_obj.call_method0("tell")?.extract::<usize>()?;
     let bytes = file_obj.call_method0("read")?;
     let serialized_circuit: &[u8] = bytes.cast::<PyBytes>()?.as_bytes();
-    let (packed_circuit, bytes_read) = deserialize::<formats::QPYFormatV15>(serialized_circuit)?;
+    let (packed_circuit, bytes_read) = deserialize::<formats::QPYCircuitV15>(serialized_circuit)?;
     let unpacked_circuit = unpack_circuit(
         py,
         &packed_circuit,

@@ -55,7 +55,7 @@ pub const QPY_VERSION: u32 = 15;
 #[binrw]
 #[brw(repr = u8)]
 #[repr(u8)]
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum RegisterType {
     Qreg = b'q',
     Creg = b'c',
@@ -90,12 +90,12 @@ impl From<u8> for BitType {
     }
 }
 
-pub fn pack_biguint(bigint: &BigUint) -> BigIntPack {
+pub(crate) fn pack_biguint(bigint: &BigUint) -> BigIntPack {
     let bytes = Bytes(bigint.to_bytes_be());
     BigIntPack { bytes }
 }
 
-pub fn unpack_biguint(big_int_pack: BigIntPack) -> BigUint {
+pub(crate) fn unpack_biguint(big_int_pack: BigIntPack) -> BigUint {
     BigUint::from_bytes_be(&big_int_pack.bytes)
 }
 
@@ -143,7 +143,7 @@ pub enum ValueType {
     Circuit = b'q',
 }
 
-pub fn type_name(type_key: &ValueType) -> String {
+pub(crate) fn type_name(type_key: &ValueType) -> String {
     String::from(match type_key {
         ValueType::Bool => "boolean",
         ValueType::Integer => "integer",
@@ -218,7 +218,7 @@ pub enum CircuitInstructionType {
     AnnotatedOperation = b'a',
 }
 
-pub fn serialize<T>(value: &T) -> Bytes
+pub(crate) fn serialize<T>(value: &T) -> Bytes
 where
     T: BinWrite + WriteEndian + Debug,
     for<'a> <T as BinWrite>::Args<'a>: Default,
@@ -227,7 +227,7 @@ where
     value.write(&mut buffer).unwrap();
     buffer.into()
 }
-pub fn serialize_with_args<T, A>(value: &T, args: A) -> Bytes
+pub(crate) fn serialize_with_args<T, A>(value: &T, args: A) -> Bytes
 where
     T: BinWrite<Args<'static> = A> + WriteEndian + Debug,
     A: Clone + Debug,
@@ -237,7 +237,7 @@ where
     buffer.into()
 }
 
-pub fn deserialize<T>(bytes: &[u8]) -> PyResult<(T, usize)>
+pub(crate) fn deserialize<T>(bytes: &[u8]) -> PyResult<(T, usize)>
 where
     T: BinRead<Args<'static> = ()> + Debug,
 {
@@ -247,7 +247,7 @@ where
     Ok((value, bytes_read))
 }
 
-pub fn deserialize_with_args<'a, T, A>(bytes: &[u8], args: A) -> PyResult<(T, usize)>
+pub(crate) fn deserialize_with_args<'a, T, A>(bytes: &[u8], args: A) -> PyResult<(T, usize)>
 where
     T: BinRead<Args<'a> = A> + ReadEndian + Debug,
 {
@@ -257,7 +257,7 @@ where
     Ok((value, bytes_read))
 }
 
-pub fn deserialize_vec<T>(mut bytes: &[u8]) -> PyResult<Vec<T>>
+pub(crate) fn deserialize_vec<T>(mut bytes: &[u8]) -> PyResult<Vec<T>>
 where
     T: BinRead<Args<'static> = ()> + Debug,
 {
@@ -305,11 +305,11 @@ pub trait FromGenericValue: Sized {
 }
 
 impl GenericValue {
-    pub fn as_typed<T: FromGenericValue>(&self) -> Option<T> {
+    pub(crate) fn as_typed<T: FromGenericValue>(&self) -> Option<T> {
         T::from_generic(self)
     }
     // reintreprets int64 and float64 as if they were given in little endian, since this is needed when encoding instruction parameters
-    pub fn as_le(&self) -> Self {
+    pub(crate) fn as_le(&self) -> Self {
         match self {
             GenericValue::Int64(value) => {
                 GenericValue::Int64(i64::from_le_bytes(value.to_be_bytes()))
@@ -360,7 +360,7 @@ impl<T: FromGenericValue> FromGenericValue for Vec<T> {
     }
 }
 
-pub fn load_value(
+pub(crate) fn load_value(
     type_key: ValueType,
     bytes: &Bytes,
     qpy_data: &mut QPYReadData,
@@ -437,7 +437,7 @@ pub fn load_value(
             Ok(GenericValue::Register(register_value))
         }
         ValueType::Circuit => {
-            let (packed_circuit, _) = deserialize::<formats::QPYFormatV15>(bytes)?;
+            let (packed_circuit, _) = deserialize::<formats::QPYCircuitV15>(bytes)?;
             Python::attach(|py| {
                 let circuit = unpack_circuit(
                     py,
@@ -455,14 +455,14 @@ pub fn load_value(
 
 // a specialized method used for biguints (marked by 'i' like Int64)
 // since the general load method will attempt to load a Int64 instead
-pub fn load_biguint_value(bytes: &Bytes) -> PyResult<GenericValue> {
+pub(crate) fn load_biguint_value(bytes: &Bytes) -> PyResult<GenericValue> {
     let (bigint_pack, _) = deserialize::<BigIntPack>(bytes)?;
     let bigint = unpack_biguint(bigint_pack);
     Ok(GenericValue::BigInt(bigint))
 }
 
 /// serializes the generic value into bytes and also returns the identifying tag
-pub fn serialize_generic_value(
+pub(crate) fn serialize_generic_value(
     value: &GenericValue,
     qpy_data: &QPYWriteData,
 ) -> PyResult<(ValueType, Bytes)> {
@@ -526,7 +526,7 @@ pub fn serialize_generic_value(
 // packing to GenericDataPack is somewhat wasteful in many cases, since given the type_key
 // we usually know the byte length of the data and don't need to store it directly,
 // but since that's the format currently in place in QPY we don't try to optimize
-pub fn pack_generic_value(
+pub(crate) fn pack_generic_value(
     value: &GenericValue,
     qpy_data: &QPYWriteData,
 ) -> PyResult<GenericDataPack> {
@@ -534,14 +534,14 @@ pub fn pack_generic_value(
     Ok(GenericDataPack { type_key, data })
 }
 
-pub fn unpack_generic_value(
+pub(crate) fn unpack_generic_value(
     value_pack: &GenericDataPack,
     qpy_data: &mut QPYReadData,
 ) -> PyResult<GenericValue> {
     load_value(value_pack.type_key, &value_pack.data, qpy_data)
 }
 
-pub fn pack_generic_value_sequence(
+pub(crate) fn pack_generic_value_sequence(
     values: &[GenericValue],
     qpy_data: &QPYWriteData,
 ) -> PyResult<GenericDataSequencePack> {
@@ -552,7 +552,7 @@ pub fn pack_generic_value_sequence(
     Ok(GenericDataSequencePack { elements })
 }
 
-pub fn unpack_generic_value_sequence(
+pub(crate) fn unpack_generic_value_sequence(
     value_seqeunce_pack: GenericDataSequencePack,
     qpy_data: &mut QPYReadData,
 ) -> PyResult<Vec<GenericValue>> {
@@ -564,7 +564,7 @@ pub fn unpack_generic_value_sequence(
 }
 
 /// Each instruction type has a char representation in qpy
-pub fn get_circuit_type_key(op: &PackedOperation) -> PyResult<CircuitInstructionType> {
+pub(crate) fn get_circuit_type_key(op: &PackedOperation) -> PyResult<CircuitInstructionType> {
     match op.view() {
         OperationRef::StandardGate(_) => Ok(CircuitInstructionType::Gate),
         OperationRef::StandardInstruction(_)
@@ -599,7 +599,7 @@ pub fn get_circuit_type_key(op: &PackedOperation) -> PyResult<CircuitInstruction
     }
 }
 
-pub fn serialize_expression(exp: &Expr, qpy_data: &QPYWriteData) -> PyResult<Bytes> {
+pub(crate) fn serialize_expression(exp: &Expr, qpy_data: &QPYWriteData) -> PyResult<Bytes> {
     let packed_expression = formats::ExpressionPack {
         expression: exp.clone(),
         _phantom: Default::default(),
@@ -608,7 +608,10 @@ pub fn serialize_expression(exp: &Expr, qpy_data: &QPYWriteData) -> PyResult<Byt
     Ok(serialized_expression)
 }
 
-pub fn deserialize_expression(raw_expression: &Bytes, qpy_data: &QPYReadData) -> PyResult<Expr> {
+pub(crate) fn deserialize_expression(
+    raw_expression: &Bytes,
+    qpy_data: &QPYReadData,
+) -> PyResult<Expr> {
     let (exp_pack, _) = deserialize_with_args::<formats::ExpressionPack, (&QPYReadData,)>(
         raw_expression,
         (qpy_data,),
@@ -616,7 +619,7 @@ pub fn deserialize_expression(raw_expression: &Bytes, qpy_data: &QPYReadData) ->
     Ok(exp_pack.expression)
 }
 
-pub fn pack_standalone_var(
+pub(crate) fn pack_standalone_var(
     var: &Var,
     usage: ExpressionVarDeclaration,
     version: u32,
@@ -641,7 +644,7 @@ pub fn pack_standalone_var(
     }
 }
 
-pub fn pack_stretch(
+pub(crate) fn pack_stretch(
     stretch: &Stretch,
     usage: ExpressionVarDeclaration,
 ) -> formats::ExpressionVarDeclarationPack {
@@ -684,7 +687,7 @@ fn pack_expression_type(exp_type: &Type, version: u32) -> PyResult<ExpressionTyp
     }
 }
 
-pub fn pack_duration(duration: &Duration) -> DurationPack {
+pub(crate) fn pack_duration(duration: &Duration) -> DurationPack {
     match duration {
         Duration::dt(dt) => DurationPack::DT(*dt as u64),
         Duration::ps(ps) => DurationPack::PS(*ps),
@@ -695,7 +698,7 @@ pub fn pack_duration(duration: &Duration) -> DurationPack {
     }
 }
 
-pub fn unpack_duration(duration_pack: DurationPack) -> Duration {
+pub(crate) fn unpack_duration(duration_pack: DurationPack) -> Duration {
     match duration_pack {
         DurationPack::DT(dt) => Duration::dt(dt as i64),
         DurationPack::PS(ps) => Duration::ps(ps),
@@ -718,7 +721,7 @@ pub enum ParamRegisterValue {
     ShareableClbit(ShareableClbit),
 }
 
-pub fn serialize_param_register_value(
+pub(crate) fn serialize_param_register_value(
     value: &ParamRegisterValue,
     qpy_data: &QPYWriteData,
 ) -> PyResult<Bytes> {
@@ -740,7 +743,7 @@ pub fn serialize_param_register_value(
     }
 }
 
-pub fn load_param_register_value(
+pub(crate) fn load_param_register_value(
     bytes: &Bytes,
     qpy_data: &mut QPYReadData,
 ) -> PyResult<ParamRegisterValue> {
