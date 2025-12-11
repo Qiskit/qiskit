@@ -863,7 +863,7 @@ static int test_dag_compose(void) {
         printf("The operations did not get composed onto the left dag correctly. Expected %zu "
                "operations, got %zu.\n",
                left_op_nodes + right_op_nodes, new_op_nodes);
-        goto cleanup;
+        goto expect_cleanup;
     }
 
     uint32_t res_op_nodes[9];
@@ -887,7 +887,7 @@ static int test_dag_compose(void) {
         if (exp_gate != left_gate) {
             result = EqualityError;
             printf("Incorrect operation found, expected %d, got %d.\n", exp_gate, left_gate);
-            goto inner_cleanup;
+            goto loop_cleanup;
         }
 
         if (exp_num_param != left_num_param) {
@@ -895,7 +895,7 @@ static int test_dag_compose(void) {
             printf(
                 "Correct operation with mismatched number of parameters, expected %zu, got %zu.\n",
                 exp_num_param, left_num_param);
-            goto inner_cleanup;
+            goto loop_cleanup;
         }
 
         for (int param_idx = 0; param_idx < (int)left_num_param; param_idx++) {
@@ -903,7 +903,7 @@ static int test_dag_compose(void) {
                 result = EqualityError;
                 printf("Correct operation with mismatched parameter, expected %f, got %f.\n",
                        exp_param[param_idx], left_param[param_idx]);
-                goto inner_cleanup;
+                goto loop_cleanup;
             }
         }
 
@@ -913,7 +913,7 @@ static int test_dag_compose(void) {
             result = EqualityError;
             printf("Correct operation with mismatched number of qubits, expected %zu, got %zu.\n",
                    exp_num_qubits, left_num_qubits);
-            goto inner_cleanup;
+            goto loop_cleanup;
         }
 
         const uint32_t *expected_qubits = qk_dag_op_node_qubits(dag_expected, node_idx_exp);
@@ -921,14 +921,15 @@ static int test_dag_compose(void) {
         if (memcmp(expected_qubits, left_qubits, exp_num_qubits * sizeof(*expected_qubits))) {
             result = EqualityError;
             printf("Correct operation with mismatched qubits\n");
-            goto inner_cleanup;
+            goto loop_cleanup;
         }
 
-    inner_cleanup:
+    loop_cleanup:
         if (result != Ok) {
             break;
         }
     }
+expect_cleanup:
     qk_dag_free(dag_expected);
 cleanup:
     qk_dag_free(dag_left);
@@ -1047,7 +1048,7 @@ static int test_dag_compose_permuted(void) {
         printf("The operations did not get composed onto the left dag correctly. Expected %zu "
                "operations, got %zu.\n",
                left_op_nodes + right_op_nodes, new_op_nodes);
-        goto cleanup;
+        goto expect_cleanup;
     }
 
     uint32_t res_op_nodes[9];
@@ -1066,7 +1067,7 @@ static int test_dag_compose_permuted(void) {
         if (exp_kind != exp_left) {
             result = EqualityError;
             printf("Incorrect operation type found. Expected: %d got %d.\n", exp_kind, exp_left);
-            goto inner_cleanup;
+            goto loop_cleanup;
         }
         if (exp_kind == QkOperationKind_Gate) {
             double exp_param[1];
@@ -1080,7 +1081,7 @@ static int test_dag_compose_permuted(void) {
             if (exp_gate != left_gate) {
                 result = EqualityError;
                 printf("Incorrect operation found, expected %d, got %d.\n", exp_gate, left_gate);
-                goto inner_cleanup;
+                goto loop_cleanup;
             }
 
             if (exp_num_param != left_num_param) {
@@ -1088,7 +1089,7 @@ static int test_dag_compose_permuted(void) {
                 printf("Correct operation with mismatched number of parameters, expected %zu, got "
                        "%zu.\n",
                        exp_num_param, left_num_param);
-                goto inner_cleanup;
+                goto loop_cleanup;
             }
 
             for (int param_idx = 0; param_idx < (int)left_num_param; param_idx++) {
@@ -1096,7 +1097,7 @@ static int test_dag_compose_permuted(void) {
                     result = EqualityError;
                     printf("Correct operation with mismatched parameter, expected %f, got %f.\n",
                            exp_param[param_idx], left_param[param_idx]);
-                    goto inner_cleanup;
+                    goto loop_cleanup;
                 }
             }
         }
@@ -1107,7 +1108,7 @@ static int test_dag_compose_permuted(void) {
             result = EqualityError;
             printf("Correct operation with mismatched number of qubits, expected %zu, got %zu.\n",
                    exp_num_qubits, left_num_qubits);
-            goto inner_cleanup;
+            goto loop_cleanup;
         }
 
         const uint32_t *expected_qubits = qk_dag_op_node_qubits(dag_expected, node_idx_exp);
@@ -1115,7 +1116,7 @@ static int test_dag_compose_permuted(void) {
         if (memcmp(expected_qubits, left_qubits, exp_num_qubits * sizeof(*expected_qubits))) {
             result = EqualityError;
             printf("Correct operation with mismatched qubits.\n");
-            goto inner_cleanup;
+            goto loop_cleanup;
         }
 
         size_t exp_num_clbits = qk_dag_op_node_num_clbits(dag_expected, node_idx_exp);
@@ -1124,7 +1125,7 @@ static int test_dag_compose_permuted(void) {
             result = EqualityError;
             printf("Correct operation with mismatched number of clbits, expected %zu, got %zu.\n",
                    exp_num_clbits, left_num_clbits);
-            goto inner_cleanup;
+            goto loop_cleanup;
         }
 
         const uint32_t *expected_clbits = qk_dag_op_node_clbits(dag_expected, node_idx_exp);
@@ -1132,14 +1133,15 @@ static int test_dag_compose_permuted(void) {
         if (memcmp(expected_clbits, left_clbits, exp_num_clbits * sizeof(*expected_clbits))) {
             result = EqualityError;
             printf("Correct operation with mismatched clbits.\n");
-            goto inner_cleanup;
+            goto loop_cleanup;
         }
 
-    inner_cleanup:
+    loop_cleanup:
         if (result != Ok) {
             break;
         }
     }
+expect_cleanup:
     qk_dag_free(dag_expected);
 cleanup:
     qk_dag_free(dag_left);

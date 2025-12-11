@@ -1257,7 +1257,8 @@ pub unsafe extern "C" fn qk_dag_get_instruction(
 /// @param clbits A list of indices representing the clbit wires to compose
 ///     onto.
 ///
-/// @return an exit code.
+/// @return ``QkExitCode_Success`` upon successful decomposition, otherwise a DAG-specific
+///     error code indicating the cause of the failure.
 ///
 /// # Example
 ///
@@ -1336,10 +1337,10 @@ pub unsafe extern "C" fn qk_dag_compose(
         let new_qubits: Result<Vec<ShareableQubit>, ExitCode> = qubits
             .iter()
             .map(|bit| -> Result<ShareableQubit, ExitCode> {
-                dag.qubits()
-                    .get(Qubit(*bit))
-                    .cloned()
-                    .ok_or(ExitCode::DagComposeMissingBit)
+                let Some(qubit) = dag.qubits().get(Qubit(*bit)) else {
+                    return Err(ExitCode::DagComposeMissingBit);
+                };
+                Ok(qubit.clone())
             })
             .collect();
         match new_qubits {
