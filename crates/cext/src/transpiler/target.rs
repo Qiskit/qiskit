@@ -1353,7 +1353,8 @@ pub struct CTargetOp {
 
 /// @ingroup QkTarget
 /// Retrieves information about an operation in the Target via index.
-/// If the index is not present, this function will panic.
+/// If the index is not present, this function will panic. You can check
+/// the ``QkTarget`` total number of instructions using ``qk_target_num_instructions``.
 ///
 /// @param target A pointer to the ``QkTarget``.
 /// @param index The index in which the gate is stored.
@@ -1362,18 +1363,18 @@ pub struct CTargetOp {
 ///
 /// # Example
 /// ```c
-///     QkTarget *target = qk_target_new(5);
+/// QkTarget *target = qk_target_new(5);
 ///
-///     QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
-///     uint32_t qargs[2] = {0, 1};
-///     qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
-///     qk_target_add_instruction(target, entry);
+/// QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
+/// uint32_t qargs[2] = {0, 1};
+/// qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
+/// qk_target_add_instruction(target, entry);
 ///
-///     QkTargetOp op;
-///     qk_target_op_get(target, 0, &op);
-///     
-///     // Clean up after you're done
-///     qk_target_op_clear(&op);
+/// QkTargetOp op;
+/// qk_target_op_get(target, 0, &op);
+///
+/// // Clean up after you're done
+/// qk_target_op_clear(&op);
 /// ```
 ///
 /// # Safety
@@ -1431,7 +1432,7 @@ pub unsafe extern "C" fn qk_target_op_get(
                     })
                     .collect(),
             );
-            // Safety: As per documentation, `out_op` is a pointer to a sufficient allocation.
+            // SAFETY: As per documentation, `out_op` is a pointer to a sufficient allocation.
             unsafe {
                 out_op.write(CTargetOp {
                     op_type: kind,
@@ -1456,7 +1457,7 @@ pub unsafe extern "C" fn qk_target_op_get(
             )
             .expect("Names should be ")
             .into_raw();
-            // Safety: As per documentation, `out_op` is a pointer to a sufficient allocation.
+            // SAFETY: As per documentation, `out_op` is a pointer to a sufficient allocation.
             unsafe {
                 out_op.write(CTargetOp {
                     op_type: COperationKind::PythonOp,
@@ -1475,10 +1476,10 @@ pub unsafe extern "C" fn qk_target_op_get(
 /// The user is responsible for checking whether this operation is a gate in the ``QkTarget``
 /// via using ``qk_target_op_get``. If not, this function will panic.
 ///
-/// @param target A pointer to the Target instance.
+/// @param target A pointer to the ``Target`` instance.
 /// @param index The index at which the operation is located.
 ///
-/// @return the QkGate instance in said index.
+/// @return The ``QkGate`` enum in said index.
 ///
 /// # Example
 /// ```c
@@ -1499,7 +1500,7 @@ pub unsafe extern "C" fn qk_target_op_get(
 ///     }
 ///
 ///     // Clean up after you're done.
-///     qk_target_op_clear(op);
+///     qk_target_op_clear(&op);
 /// ```
 ///
 /// # Safety
