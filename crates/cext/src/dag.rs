@@ -1508,7 +1508,7 @@ pub unsafe extern "C" fn qk_dag_topological_op_nodes(dag: *const DAGCircuit, out
     // SAFETY: Per documentation, ``dag`` is non-null and valid.
     let dag = unsafe { const_ptr_as_ref(dag) };
 
-    let out_topological_op_nodes = dag.topological_op_nodes(false).unwrap();
+    let out_topological_op_nodes = dag.topological_op_nodes(false);
 
     for (i, node) in out_topological_op_nodes.enumerate() {
         // SAFETY: per documentation, `out_order` is aligned and points to a valid

@@ -154,10 +154,7 @@ impl SabreDAG {
                 single.map_or(Predecessors::AllUnmapped, Predecessors::Single)
             };
 
-        for dag_node in dag
-            .topological_op_nodes(false)
-            .expect("infallible if DAG is in a valid state")
-        {
+        for dag_node in dag.topological_op_nodes(false) {
             let NodeType::Operation(inst) = &dag[dag_node] else {
                 panic!("op nodes should always be of type `Operation`");
             };

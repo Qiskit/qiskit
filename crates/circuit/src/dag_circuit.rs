@@ -2889,7 +2889,8 @@ impl DAGCircuit {
                 .collect()
         } else {
             // Good path, using interner IDs.
-            self.topological_nodes(reverse)?
+            self.topological_nodes(reverse)
+                .into_iter()
                 .map(|n| self.get_node(py, n))
                 .collect()
         };
@@ -2929,7 +2930,7 @@ impl DAGCircuit {
                 .collect()
         } else {
             // Good path, using interner IDs.
-            self.topological_op_nodes(reverse)?
+            self.topological_op_nodes(reverse)
                 .map(|n| self.get_node(py, n))
                 .collect()
         };
@@ -4199,7 +4200,7 @@ impl DAGCircuit {
     #[pyo3(signature = (*, vars_mode=VarsMode::Captures))]
     fn serial_layers(&self, py: Python, vars_mode: VarsMode) -> PyResult<Py<PyIterator>> {
         let layer_list = PyList::empty(py);
-        for next_node in self.topological_op_nodes(false)? {
+        for next_node in self.topological_op_nodes(false) {
             let retrieved_node: &PackedInstruction = match self.dag.node_weight(next_node) {
                 Some(NodeType::Operation(node)) => node,
                 _ => unreachable!("A non-operation node was obtained from topological_op_nodes."),
@@ -6243,32 +6244,23 @@ impl DAGCircuit {
         }
     }
 
-    fn topological_nodes(
-        &self,
-        reverse: bool,
-    ) -> PyResult<impl Iterator<Item = NodeIndex> + use<>> {
+    fn topological_nodes(&self, reverse: bool) -> Vec<NodeIndex> {
         let key = |node: NodeIndex| -> Result<SortKeyType, Infallible> { Ok(self.sort_key(node)) };
-        let nodes = rustworkx_core::dag_algo::lexicographical_topological_sort(
+        let Ok(nodes) = rustworkx_core::dag_algo::lexicographical_topological_sort(
             &self.dag, key, reverse, None,
         )
         .map_err(|e| match e {
             rustworkx_core::dag_algo::TopologicalSortError::CycleOrBadInitialState => {
-                PyValueError::new_err(format!("{e}"))
+                panic!("DAG should prevent itself from becoming cyclic");
             }
-            rustworkx_core::dag_algo::TopologicalSortError::KeyError(_) => {
-                unreachable!()
-            }
-        })?;
-        Ok(nodes.into_iter())
+        });
+        nodes
     }
 
-    pub fn topological_op_nodes(
-        &self,
-        reverse: bool,
-    ) -> PyResult<impl Iterator<Item = NodeIndex> + '_> {
-        Ok(self.topological_nodes(reverse)?.filter(|node: &NodeIndex| {
-            matches!(self.dag.node_weight(*node), Some(NodeType::Operation(_)))
-        }))
+    pub fn topological_op_nodes(&self, reverse: bool) -> impl Iterator<Item = NodeIndex> + '_ {
+        self.topological_nodes(reverse)
+            .into_iter()
+            .filter(|node: &NodeIndex| matches!(&self.dag[*node], NodeType::Operation(_)))
     }
 
     fn topological_key_sort(
@@ -8107,7 +8099,7 @@ impl DAGCircuit {
         };
         let mut variable_mapper: Option<VariableMapper> = None;
 
-        for node in other.topological_nodes(false)? {
+        for node in other.topological_nodes(false) {
             match &other.dag[node] {
                 NodeType::QubitIn(q) => {
                     let bit = other.qubits.get(*q).unwrap();
