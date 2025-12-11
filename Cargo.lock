@@ -2225,7 +2225,9 @@ dependencies = [
 
 [[package]]
 name = "rsgridsynth"
-version = "0.1.1"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2d7a6206ba19a3dbe199d9931a8630ce8b0f0c6cc393d81c700b8f2c8bd312fc"
 dependencies = [
  "clap",
  "dashu",
