@@ -69,6 +69,9 @@ class TestStatevector(QiskitTestCase):
         sv2 = Statevector.from_circuit(transpiled_opt2)
 
         self.assertTrue(sv1.equiv(sv2))
+        
+        sv2_nolayout = Statevector.from_circuit(transpiled_opt2, ignore_set_layout=True)
+        self.assertFalse(sv1.equiv(sv2_nolayout))
 
     def test_from_circuit_vs_manual_method(self):
         """Test from_circuit matches manual operator evolution."""
