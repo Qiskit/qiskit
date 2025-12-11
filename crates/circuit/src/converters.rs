@@ -10,9 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-#[cfg(feature = "cache_pygates")]
-use std::sync::OnceLock;
-
 use pyo3::intern;
 use pyo3::prelude::*;
 
@@ -21,7 +18,6 @@ use crate::circuit_data::{CircuitData, CircuitVar};
 use crate::dag_circuit::DAGIdentifierInfo;
 use crate::dag_circuit::{DAGCircuit, NodeType};
 use crate::operations::{OperationRef, PythonOperation};
-use crate::packed_instruction::PackedInstruction;
 
 /// An extractable representation of a QuantumCircuit reserved only for
 /// conversion purposes.
@@ -32,8 +28,10 @@ pub struct QuantumCircuitData<'py> {
     pub metadata: Option<Bound<'py, PyAny>>,
 }
 
-impl<'py> FromPyObject<'py> for QuantumCircuitData<'py> {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for QuantumCircuitData<'py> {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> PyResult<Self> {
         let py = ob.py();
         let circuit_data = ob.getattr("_data")?;
         let data_borrowed = circuit_data.extract::<CircuitData>()?;
@@ -57,16 +55,20 @@ pub fn circuit_to_dag(
 
 #[pyfunction(signature = (dag, copy_operations = true))]
 pub fn dag_to_circuit(dag: &DAGCircuit, copy_operations: bool) -> PyResult<CircuitData> {
+    let blocks = dag
+        .blocks()
+        .try_map_without_references(|block| dag_to_circuit(block, copy_operations))?;
     CircuitData::from_packed_instructions(
         dag.qubits().clone(),
         dag.clbits().clone(),
+        blocks,
         dag.qargs_interner().clone(),
         dag.cargs_interner().clone(),
         dag.qregs_data().clone(),
         dag.cregs_data().clone(),
         dag.qubit_locations().clone(),
         dag.clbit_locations().clone(),
-        dag.topological_op_nodes()?.map(|node_index| {
+        dag.topological_op_nodes(false)?.map(|node_index| {
             let NodeType::Operation(ref instr) = dag[node_index] else {
                 unreachable!(
                     "The received node from topological_op_nodes() is not an Operation node."
@@ -74,6 +76,7 @@ pub fn dag_to_circuit(dag: &DAGCircuit, copy_operations: bool) -> PyResult<Circu
             };
             if copy_operations {
                 let op = match instr.op.view() {
+                    OperationRef::ControlFlow(cf) => cf.clone().into(),
                     OperationRef::Gate(gate) => {
                         Python::attach(|py| gate.py_deepcopy(py, None))?.into()
                     }
@@ -86,16 +89,11 @@ pub fn dag_to_circuit(dag: &DAGCircuit, copy_operations: bool) -> PyResult<Circu
                     OperationRef::StandardGate(gate) => gate.into(),
                     OperationRef::StandardInstruction(instruction) => instruction.into(),
                     OperationRef::Unitary(unitary) => unitary.clone().into(),
+                    OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
                 };
-                Ok(PackedInstruction {
-                    op,
-                    qubits: instr.qubits,
-                    clbits: instr.clbits,
-                    params: Some(Box::new(instr.params_view().iter().cloned().collect())),
-                    label: instr.label.clone(),
-                    #[cfg(feature = "cache_pygates")]
-                    py_op: OnceLock::new(),
-                })
+                let mut instr = instr.clone();
+                instr.op = op;
+                Ok(instr)
             } else {
                 Ok(instr.clone())
             }

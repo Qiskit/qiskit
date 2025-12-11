@@ -14,3 +14,4 @@
 
 from .solovay_kitaev import SolovayKitaevDecomposition
 from .generate_basis_approximations import generate_basic_approximations
+from .ross_selinger import gridsynth_rz, gridsynth_unitary
