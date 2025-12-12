@@ -58,7 +58,7 @@ def multiplier_qft_r17(
         ValueError: If ``num_result_qubits`` is given and not valid, meaning not
             in ``[num_state_qubits, 2 * num_state_qubits]``.
 
-    **References:**
+    References:
 
     [1] Ruiz-Perez et al., Quantum arithmetic with the Quantum Fourier Transform, 2017.
     `arXiv:1411.5949 <https://arxiv.org/pdf/1411.5949.pdf>`_
@@ -91,7 +91,7 @@ def multiplier_qft_r17(
                 # note: if we can synthesize the QFT without swaps, we can implement this circuit
                 # more efficiently and just apply phase gate on qr_out[(k - 1)] instead
                 circuit.append(
-                    PhaseGate(lam).control(2),
+                    PhaseGate(lam).control(2, annotated=False),
                     [qr_a[num_state_qubits - j], qr_b[num_state_qubits - i], qr_out[~(k - 1)]],
                 )
 

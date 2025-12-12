@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 use hashbrown::HashMap;
+use hashbrown::hash_map::OccupiedError;
 use pyo3::exceptions::{PyKeyError, PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::PyList;
@@ -30,7 +31,7 @@ pub struct PyObjectAsKey {
     /// Python's `hash()` of the wrapped instance.
     hash: isize,
     /// The wrapped instance.
-    ob: PyObject,
+    ob: Py<PyAny>,
 }
 
 impl PyObjectAsKey {
@@ -49,6 +50,11 @@ impl PyObjectAsKey {
             hash: self.hash,
             ob: self.ob.clone_ref(py),
         }
+    }
+
+    /// Get a reference to the wrapped Python object.
+    pub fn object(&self) -> &Py<PyAny> {
+        &self.ob
     }
 }
 
@@ -93,7 +99,7 @@ impl<'a, 'py> IntoPyObject<'py> for &'a PyObjectAsKey {
 impl PartialEq for PyObjectAsKey {
     fn eq(&self, other: &Self) -> bool {
         self.ob.is(&other.ob)
-            || Python::with_gil(|py| {
+            || Python::attach(|py| {
                 self.ob
                     .bind(py)
                     .repr()
@@ -134,6 +140,15 @@ where
         Self::new()
     }
 }
+// The stronger `Eq` restriction here on `B` (not `PartialEq`) is because it's necessary for the
+// hashmap to function correctly and consequently to implement `PartialEq`.
+impl<T: PartialEq, B: Eq + Hash> PartialEq for ObjectRegistry<T, B> {
+    fn eq(&self, other: &Self) -> bool {
+        (self.objects == other.objects) && (self.indices == other.indices)
+    }
+}
+impl<T: Eq, B: Eq + Hash> Eq for ObjectRegistry<T, B> {}
+
 impl<T, B> ObjectRegistry<T, B>
 where
     T: From<u32> + Copy,
@@ -175,18 +190,15 @@ where
 
     /// Map the provided objects to their native indices.
     /// An error is returned if any object is not registered.
-    pub fn map_objects(
+    pub fn map_objects<U: IntoIterator<Item = B>>(
         &self,
-        objects: impl IntoIterator<Item = B>,
-    ) -> PyResult<impl Iterator<Item = T>> {
+        objects: U,
+    ) -> PyResult<impl Iterator<Item = T> + use<T, B, U>> {
         let v: Result<Vec<_>, _> = objects
             .into_iter()
             .map(|b| {
                 self.indices.get(&b).copied().ok_or_else(|| {
-                    PyKeyError::new_err(format!(
-                        "Object {:?} has not been added to this circuit.",
-                        b
-                    ))
+                    PyKeyError::new_err(format!("Object {b:?} has not been added to this circuit."))
                 })
             })
             .collect();
@@ -195,7 +207,7 @@ where
 
     /// Map the provided native indices to the corresponding object instances.
     /// Panics if any of the indices are out of range.
-    pub fn map_indices(&self, objects: &[T]) -> impl ExactSizeIterator<Item = &B> {
+    pub fn map_indices(&self, objects: &[T]) -> impl ExactSizeIterator<Item = &B> + use<'_, T, B> {
         let v: Vec<_> = objects.iter().map(|i| self.get(*i).unwrap()).collect();
         v.into_iter()
     }
@@ -216,21 +228,30 @@ where
     pub fn add(&mut self, object: B, strict: bool) -> PyResult<T> {
         let idx: u32 = self.objects.len().try_into().map_err(|_| {
             PyRuntimeError::new_err(format!(
-                "Cannot add object {:?}, which would exceed circuit capacity for its kind.",
-                object,
+                "Cannot add object {object:?}, which would exceed circuit capacity for its kind.",
             ))
         })?;
         // Dump the cache
         self.cached.take();
-        if self.indices.try_insert(object.clone(), idx.into()).is_ok() {
-            self.objects.push(object);
-        } else if strict {
-            return Err(PyValueError::new_err(format!(
-                "Existing object {:?} cannot be re-added in strict mode.",
-                object
-            )));
+        match self.indices.try_insert(object.clone(), idx.into()) {
+            Ok(_) => {
+                self.objects.push(object);
+                Ok(idx.into())
+            }
+            Err(OccupiedError { entry, .. }) if !strict => Ok(*entry.get()),
+            _ => Err(PyValueError::new_err(format!(
+                "Existing object {object:?} cannot be re-added in strict mode."
+            ))),
         }
-        Ok(idx.into())
+    }
+
+    pub fn replace(&mut self, index: T, replacement: B) -> PyResult<()> {
+        self.cached.take();
+        let to_replace = &mut self.objects[<u32 as From<T>>::from(index) as usize];
+        self.indices.remove(to_replace);
+        *to_replace = replacement.clone();
+        self.indices.insert(replacement, index);
+        Ok(())
     }
 
     pub fn remove_indices<I>(&mut self, indices: I) -> PyResult<()>

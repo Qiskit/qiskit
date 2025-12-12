@@ -247,10 +247,7 @@ class BasePassManager(ABC):
             if len(in_programs) == 1 and not is_list:
                 return out[0]
             return out
-
-        del callback
         del kwargs
-
         # Pass manager may contain callable and we need to serialize through dill rather than pickle.
         # See https://github.com/Qiskit/qiskit-terra/pull/3290
         # Note that serialized object is deserialized as a different object.
@@ -260,6 +257,7 @@ class BasePassManager(ABC):
             values=in_programs,
             task_kwargs={
                 "pass_manager_bin": dill.dumps(self),
+                "callback": dill.dumps(callback),
                 "initial_property_set": property_set,
             },
             num_processes=num_processes,
@@ -302,16 +300,19 @@ def _run_workflow(
     flow_controller = pass_manager.to_flow_controller()
     initial_status = WorkflowStatus()
 
+    property_set = (
+        PropertySet() if initial_property_set is None else PropertySet(initial_property_set)
+    )
+    pass_manager.property_set = property_set
     passmanager_ir = pass_manager._passmanager_frontend(
         input_program=program,
         **kwargs,
     )
-    property_set = (
-        PropertySet() if initial_property_set is None else PropertySet(initial_property_set)
-    )
     passmanager_ir, final_state = flow_controller.execute(
         passmanager_ir=passmanager_ir,
-        state=PassManagerState(workflow_status=initial_status, property_set=property_set),
+        state=PassManagerState(
+            workflow_status=initial_status, property_set=pass_manager.property_set
+        ),
         callback=kwargs.get("callback", None),
     )
     # The `property_set` has historically been returned as a mutable attribute on `PassManager`
@@ -336,6 +337,7 @@ def _run_workflow_in_new_process(
     pass_manager_bin: bytes,
     *,
     initial_property_set: dict[str, object] | None,
+    callback: bytes,
 ) -> Any:
     """Run single program optimization in new process.
 
@@ -350,4 +352,5 @@ def _run_workflow_in_new_process(
         program=program,
         pass_manager=dill.loads(pass_manager_bin),
         initial_property_set=initial_property_set,
+        callback=dill.loads(callback),
     )

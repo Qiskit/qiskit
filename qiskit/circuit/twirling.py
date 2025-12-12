@@ -136,10 +136,10 @@ def pauli_twirl_2q_gates(
         out_list = []
         for circ in new_data:
             new_circ = QuantumCircuit._from_circuit_data(circ)
-            _copy_metadata(circuit, new_circ, "alike")
+            _copy_metadata(circuit, new_circ)
             out_list.append(new_circ)
         return out_list
     else:
         out_circ = QuantumCircuit._from_circuit_data(new_data[0])
-        _copy_metadata(circuit, out_circ, "alike")
+        _copy_metadata(circuit, out_circ)
         return out_circ

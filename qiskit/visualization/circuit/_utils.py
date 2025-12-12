@@ -33,7 +33,12 @@ from qiskit.circuit import (
 )
 from qiskit.circuit.annotated_operation import AnnotatedOperation, InverseModifier, PowerModifier
 from qiskit.circuit.controlflow import condition_resources
-from qiskit.circuit.library import PauliEvolutionGate, PhaseOracleGate, BitFlipOracleGate
+from qiskit.circuit.library import (
+    PauliEvolutionGate,
+    PauliProductMeasurement,
+    PhaseOracleGate,
+    BitFlipOracleGate,
+)
 from qiskit.circuit.tools import pi_check
 from qiskit.converters import circuit_to_dag
 from qiskit.utils import optionals as _optionals
@@ -47,6 +52,13 @@ def _is_boolean_expression(gate_text, op):
 
 def get_gate_ctrl_text(op, drawer, style=None):
     """Load the gate_text and ctrl_text strings based on names and labels"""
+
+    # if measure_arrows is False, gate_text will be empty for mpl and M- for text drawer
+    if drawer == "mpl" and isinstance(op, Measure):
+        return "", "", ""
+    elif drawer == "text" and isinstance(op, Measure):
+        return "M-", "", ""
+
     anno_list = []
     anno_text = ""
     if isinstance(op, AnnotatedOperation) and op.modifiers:
@@ -103,7 +115,7 @@ def get_gate_ctrl_text(op, drawer, style=None):
         elif (
             (gate_text == op.name and op_type not in (Gate, Instruction))
             or (gate_text == base_name and base_type not in (Gate, Instruction))
-        ) and (op_type is not PauliEvolutionGate):
+        ) and (op_type not in [PauliEvolutionGate, PauliProductMeasurement]):
             gate_text = f"$\\mathrm{{{gate_text.capitalize()}}}$"
         else:
             gate_text = f"$\\mathrm{{{gate_text}}}$"
@@ -117,7 +129,7 @@ def get_gate_ctrl_text(op, drawer, style=None):
     elif (
         (gate_text == op.name and op_type not in (Gate, Instruction))
         or (gate_text == base_name and base_type not in (Gate, Instruction))
-    ) and (op_type is not PauliEvolutionGate):
+    ) and (op_type not in [PauliEvolutionGate, PauliProductMeasurement]):
         gate_text = gate_text.capitalize()
 
     if anno_text:
@@ -132,6 +144,7 @@ def get_param_str(op, drawer, ndigits=3):
         not hasattr(op, "params")
         or any(isinstance(param, np.ndarray) for param in op.params)
         or any(isinstance(param, QuantumCircuit) for param in op.params)
+        or op.name == "pauli_product_measurement"
     ):
         return ""
 
@@ -399,7 +412,13 @@ def _get_valid_justify_arg(justify):
 
 
 def _get_layered_instructions(
-    circuit, reverse_bits=False, justify=None, idle_wires=True, wire_order=None, wire_map=None
+    circuit,
+    reverse_bits=False,
+    justify=None,
+    idle_wires=True,
+    wire_order=None,
+    wire_map=None,
+    measure_arrows=True,
 ):
     """
     Given a circuit, return a tuple (qubits, clbits, nodes) where
@@ -460,7 +479,7 @@ def _get_layered_instructions(
         for node in dag.topological_op_nodes():
             nodes.append([node])
     else:
-        nodes = _LayerSpooler(dag, qubits, clbits, justify, measure_map)
+        nodes = _LayerSpooler(dag, qubits, clbits, justify, measure_map, measure_arrows)
 
     if not idle_wires:
         # Optionally remove all idle wires and instructions that are on them and
@@ -486,38 +505,41 @@ def _sorted_nodes(dag_layer):
     return nodes
 
 
-def _get_gate_span(qubits, node):
-    """Get the list of qubits drawing this gate would cover
-    qiskit-terra #2802
-    """
-    min_index = len(qubits)
-    max_index = 0
-    for qreg in node.qargs:
-        index = qubits.index(qreg)
-
-        if index < min_index:
-            min_index = index
-        if index > max_index:
-            max_index = index
+def _get_gate_span(qubits, node, measure_arrows):
+    """Return the ordered wires this node would occupy when drawn."""
 
     if isinstance(node.op, ControlFlowOp) and not isinstance(node.op, BoxOp):
         # Because of wrapping boxes for mpl control flow ops, this
         # type of op must be the only op in the layer
         # BoxOps are excepted because they have one block executed unconditionally
-        span = qubits
-    elif node.cargs or getattr(node, "condition", None):
-        span = qubits[min_index : len(qubits)]
-    else:
-        span = qubits[min_index : max_index + 1]
+        return qubits
 
-    return span
+    qubit_index_map = {bit: idx for idx, bit in enumerate(qubits)}
+    qubit_indices = [qubit_index_map[qarg] for qarg in node.qargs]
+
+    if not qubit_indices:
+        # We should not have operations with only classical wires,
+        # and the operations with no qubits shouldn't collide with anything.
+        return []
+
+    min_index = min(qubit_indices)
+    max_index = max(qubit_indices)
+
+    if node.cargs and (
+        (measure_arrows and isinstance(node.op, Measure)) or not isinstance(node.op, Measure)
+    ):
+        return qubits[min_index:]
+
+    return qubits[min_index : max_index + 1]
 
 
-def _any_crossover(qubits, node, nodes):
+def _any_crossover(qubits, node, nodes, measure_arrows):
     """Return True .IFF. 'node' crosses over any 'nodes'."""
     return bool(
-        set(_get_gate_span(qubits, node)).intersection(
-            bit for check_node in nodes for bit in _get_gate_span(qubits, check_node)
+        set(_get_gate_span(qubits, node, measure_arrows)).intersection(
+            bit
+            for check_node in nodes
+            for bit in _get_gate_span(qubits, check_node, measure_arrows)
         )
     )
 
@@ -528,7 +550,7 @@ _GLOBAL_NID = 0
 class _LayerSpooler(list):
     """Manipulate list of layer dicts for _get_layered_instructions."""
 
-    def __init__(self, dag, qubits, clbits, justification, measure_map):
+    def __init__(self, dag, qubits, clbits, justification, measure_map, measure_arrows):
         """Create spool"""
         super().__init__()
         self.dag = dag
@@ -536,6 +558,7 @@ class _LayerSpooler(list):
         self.clbits = clbits
         self.justification = justification
         self.measure_map = measure_map
+        self.measure_arrows = measure_arrows
         self.cregs = [self.dag.cregs[reg] for reg in self.dag.cregs]
 
         if self.justification == "left":
@@ -568,7 +591,7 @@ class _LayerSpooler(list):
 
     def insertable(self, node, nodes):
         """True .IFF. we can add 'node' to layer 'nodes'"""
-        return not _any_crossover(self.qubits, node, nodes)
+        return not _any_crossover(self.qubits, node, nodes, self.measure_arrows)
 
     def slide_from_left(self, node, index):
         """Insert node into first layer where there is no conflict going l > r"""
@@ -583,8 +606,9 @@ class _LayerSpooler(list):
             inserted = False
             curr_index = index
             last_insertable_index = -1
+
             index_stop = -1
-            if (condition := getattr(node, "condition", None)) is not None:
+            if (condition := getattr(node.op, "condition", None)) is not None:
                 index_stop = max(
                     (self.measure_map[bit] for bit in condition_resources(condition).clbits),
                     default=index_stop,

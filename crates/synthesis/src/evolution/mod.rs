@@ -52,7 +52,6 @@ use crate::evolution::pauli_network::pauli_network_synthesis_inner;
 #[pyo3(signature = (num_qubits, pauli_network, optimize_count=true, preserve_order=true, upto_clifford=false, upto_phase=false, resynth_clifford_method=1))]
 #[allow(clippy::too_many_arguments)]
 pub fn pauli_network_synthesis(
-    py: Python,
     num_qubits: usize,
     pauli_network: &Bound<PyList>,
     optimize_count: bool,
@@ -62,7 +61,6 @@ pub fn pauli_network_synthesis(
     resynth_clifford_method: usize,
 ) -> PyResult<CircuitData> {
     pauli_network_synthesis_inner(
-        py,
         num_qubits,
         pauli_network,
         optimize_count,

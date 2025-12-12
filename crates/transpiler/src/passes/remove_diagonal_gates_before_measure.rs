@@ -12,7 +12,6 @@
 
 /// Remove diagonal gates (including diagonal 2Q gates) before a measurement.
 use pyo3::prelude::*;
-
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::operations::StandardGate;
@@ -24,7 +23,7 @@ use qiskit_circuit::operations::StandardGate;
 ///     DAGCircuit: the optimized DAG.
 #[pyfunction]
 #[pyo3(name = "remove_diagonal_gates_before_measure")]
-pub fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) -> PyResult<()> {
+pub fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) {
     static DIAGONAL_1Q_GATES: [StandardGate; 8] = [
         StandardGate::RZ,
         StandardGate::Z,
@@ -54,7 +53,7 @@ pub fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) -> PyResult<()> 
                 .expect("index is an operation node, so it must have a predecessor.");
 
             match &dag[predecessor] {
-                NodeType::Operation(pred_inst) => match pred_inst.standard_gate() {
+                NodeType::Operation(pred_inst) => match pred_inst.op.try_standard_gate() {
                     Some(gate) => {
                         if DIAGONAL_1Q_GATES.contains(&gate) {
                             nodes_to_remove.push(predecessor);
@@ -90,8 +89,6 @@ pub fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) -> PyResult<()> 
             dag.remove_op_node(node_to_remove);
         }
     }
-
-    Ok(())
 }
 
 pub fn remove_diagonal_gates_before_measure_mod(m: &Bound<PyModule>) -> PyResult<()> {

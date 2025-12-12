@@ -424,7 +424,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
         Returns:
             The map of expectation values takes a pair of an index of the bindings array and
             a pauli string as a key and returns the expectation value of the pauli string
-            with the the pub's circuit bound against the parameter value set in the index of
+            with the pub's circuit bound against the parameter value set in the index of
             the bindings array.
         """
         expval_map: dict[tuple[tuple[int, ...], str], tuple[float, float]] = {}

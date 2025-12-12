@@ -41,8 +41,7 @@ class XOR(QuantumCircuit):
         amount: Optional[int] = None,
         seed: Optional[int] = None,
     ) -> None:
-        """Return a circuit implementing bitwise xor.
-
+        """
         Args:
             num_qubits: the width of circuit.
             amount: the xor amount in decimal form.
@@ -52,13 +51,14 @@ class XOR(QuantumCircuit):
             CircuitError: if the xor bitstring exceeds available qubits.
 
         Reference Circuit:
-            .. plot::
-               :alt: Diagram illustrating the previously described circuit.
 
-               from qiskit.circuit.library import XOR
-               from qiskit.visualization.library import _generate_circuit_library_visualization
-               circuit = XOR(5, seed=42)
-               _generate_circuit_library_visualization(circuit)
+        .. plot::
+            :alt: Diagram illustrating the previously described circuit.
+
+            from qiskit.circuit.library import XOR
+            from qiskit.visualization.library import _generate_circuit_library_visualization
+            circuit = XOR(5, seed=42)
+            _generate_circuit_library_visualization(circuit)
         """
         circuit = QuantumCircuit(num_qubits, name="xor")
 

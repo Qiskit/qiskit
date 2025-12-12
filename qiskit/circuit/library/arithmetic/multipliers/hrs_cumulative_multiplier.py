@@ -66,7 +66,7 @@ class HRSCumulativeMultiplier(Multiplier):
         Specific implementations can be set via the :class:`.HLSConfig`, e.g. this circuit
         can be chosen via ``Multiplier=["cumulative_h18"]``.
 
-    **References:**
+    References:
 
     [1] Häner et al., Optimizing Quantum Circuits for Arithmetic, 2018.
     `arXiv:1805.12445 <https://arxiv.org/pdf/1805.12445.pdf>`_
@@ -132,7 +132,7 @@ class HRSCumulativeMultiplier(Multiplier):
             else:
                 num_adder_qubits = num_state_qubits - excess_qubits + 1
                 adder_for_current_step = CDKMRippleCarryAdder(num_adder_qubits, kind="fixed")
-            controlled_adder = adder_for_current_step.to_gate().control(1)
+            controlled_adder = adder_for_current_step.to_gate().control(1, annotated=False)
             qr_list = (
                 [qr_a[i]]
                 + qr_b[:num_adder_qubits]

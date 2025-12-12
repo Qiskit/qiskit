@@ -1324,13 +1324,33 @@ class TestPulseOptimalDecompose(CheckDecompositions):
             if len(node.qargs) > 1:
                 break
             del_list.append(node)
-        for node in reversed(list(dag.topological_op_nodes())):
+        for node in dag.topological_op_nodes(reverse=True):
             if len(node.qargs) > 1:
                 break
             del_list.append(node)
         for node in del_list:
             dag.remove_op_node(node)
         return dag_to_circuit(dag)
+
+    def test_pulse_optimal_zsxx_rz_zero(self):
+        """Test that pulse optimal decomposition returns X instead of sx-rz(0)-sx"""
+        qc = QuantumCircuit(2)
+        qc.rzz(0.1, 0, 1)
+        decomposer = TwoQubitBasisDecomposer(CXGate(), euler_basis="ZSXX", pulse_optimize=True)
+        res = decomposer(Operator(qc))
+        self.assertEqual(Operator(res), Operator(qc))
+        self.assertNotIn("sx", res.count_ops())
+        self.assertIn("x", res.count_ops())
+
+    def test_pulse_optimal_zsx_rz_zero(self):
+        """Test that pulse optimal decomposition returns SX-SX instead of sx-rz(0)-sx"""
+        qc = QuantumCircuit(2)
+        qc.rzz(0.1, 0, 1)
+        decomposer = TwoQubitBasisDecomposer(CXGate(), euler_basis="ZSX", pulse_optimize=True)
+        res = decomposer(Operator(qc))
+        self.assertEqual(Operator(res), Operator(qc))
+        self.assertNotIn("x", res.count_ops())
+        self.assertIn("sx", res.count_ops())
 
 
 @ddt

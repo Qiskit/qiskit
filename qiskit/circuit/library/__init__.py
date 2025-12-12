@@ -770,7 +770,8 @@ Template circuits for :class:`~qiskit.circuit.library.XGate`,
 :class:`~qiskit.circuit.library.CXGate`,
 and :class:`~qiskit.circuit.library.CCXGate` (Toffoli) gates.
 
-**Reference:**
+References:
+
 Maslov, D. and Dueck, G. W. and Miller, D. M.,
 Techniques for the synthesis of reversible Toffoli networks, 2007
 http://dx.doi.org/10.1145/1278349.1278355
@@ -897,6 +898,7 @@ from .generalized_gates import (
     UCRZGate,
 )
 from .pauli_evolution import PauliEvolutionGate
+from .pauli_product_measurement import PauliProductMeasurement
 from .hamiltonian_gate import HamiltonianGate
 from .boolean_logic import (
     AND,

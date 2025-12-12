@@ -14,15 +14,15 @@ use crate::linear::lnn::synth_cnot_lnn_instructions;
 use crate::linear::utils::calc_inverse_matrix_inner;
 
 use hashbrown::HashSet;
-use ndarray::{s, Array2, ArrayView2};
+use ndarray::{Array2, ArrayView2, s};
 use numpy::PyReadonlyArray2;
 use smallvec::smallvec;
 use std::cmp::{max, min};
 
 use pyo3::prelude::*;
+use qiskit_circuit::Qubit;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{Param, StandardGate};
-use qiskit_circuit::Qubit;
 
 enum CircuitInstructions {
     CX(u32, u32),
@@ -247,7 +247,6 @@ fn _apply_phase_to_nw_circuit(
 #[pyfunction]
 #[pyo3(signature = (mat_x, mat_z))]
 pub fn py_synth_cx_cz_depth_line_my(
-    py: Python,
     mat_x: PyReadonlyArray2<bool>,
     mat_z: PyReadonlyArray2<bool>,
 ) -> PyResult<CircuitData> {
@@ -282,5 +281,5 @@ pub fn py_synth_cx_cz_depth_line_my(
         }
         CircuitInstructions::Z(qubit) => (StandardGate::Z, smallvec![], smallvec![Qubit(qubit)]),
     });
-    CircuitData::from_standard_gates(py, n as u32, instructions, Param::Float(0.0))
+    CircuitData::from_standard_gates(n as u32, instructions, Param::Float(0.0))
 }

@@ -100,7 +100,7 @@ class BaseOperator(GroupMixin, ABC):
 
     @property
     def _output_dim(self):
-        """Return the total input dimension."""
+        """Return the total output dimension."""
         return self._op_shape._dim_l
 
     def reshape(

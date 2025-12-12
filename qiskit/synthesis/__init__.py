@@ -85,6 +85,8 @@ Discrete Basis Synthesis
 
    SolovayKitaevDecomposition
 
+.. autofunction:: gridsynth_rz
+.. autofunction:: gridsynth_unitary
 .. autofunction:: generate_basic_approximations
 
 Basis Change Synthesis
@@ -127,6 +129,7 @@ Multi Controlled Synthesis
 ==========================
 
 .. autofunction:: synth_mcmt_vchain
+.. autofunction:: synth_mcmt_xgate
 .. autofunction:: synth_mcx_1_clean_kg24
 .. autofunction:: synth_mcx_1_dirty_kg24
 .. autofunction:: synth_mcx_2_clean_kg24
@@ -135,6 +138,7 @@ Multi Controlled Synthesis
 .. autofunction:: synth_mcx_n_clean_m15
 .. autofunction:: synth_mcx_1_clean_b95
 .. autofunction:: synth_mcx_noaux_v24
+.. autofunction:: synth_mcx_noaux_hp24
 .. autofunction:: synth_mcx_gray_code
 .. autofunction:: synth_c3x
 .. autofunction:: synth_c4x
@@ -149,6 +153,7 @@ Adders
 .. autofunction:: adder_ripple_c04
 .. autofunction:: adder_ripple_v95
 .. autofunction:: adder_ripple_r25
+.. autofunction:: adder_modular_v17
 
 Multipliers
 -----------
@@ -211,7 +216,12 @@ from .stabilizer import (
     synth_stabilizer_depth_lnn,
     synth_circuit_from_stabilizers,
 )
-from .discrete_basis import SolovayKitaevDecomposition, generate_basic_approximations
+from .discrete_basis import (
+    SolovayKitaevDecomposition,
+    generate_basic_approximations,
+    gridsynth_rz,
+    gridsynth_unitary,
+)
 from .qft import synth_qft_line, synth_qft_full
 from .unitary.qsd import qs_decomposition
 from .unitary import aqc
@@ -225,6 +235,7 @@ from .two_qubit.two_qubit_decompose import (
 )
 from .multi_controlled import (
     synth_mcmt_vchain,
+    synth_mcmt_xgate,
     synth_mcx_1_clean_kg24,
     synth_mcx_1_dirty_kg24,
     synth_mcx_2_clean_kg24,
@@ -233,6 +244,7 @@ from .multi_controlled import (
     synth_mcx_n_clean_m15,
     synth_mcx_1_clean_b95,
     synth_mcx_noaux_v24,
+    synth_mcx_noaux_hp24,
     synth_mcx_gray_code,
     synth_c3x,
     synth_c4x,
@@ -242,6 +254,7 @@ from .arithmetic import (
     adder_ripple_c04,
     adder_ripple_v95,
     adder_ripple_r25,
+    adder_modular_v17,
     multiplier_cumulative_h18,
     multiplier_qft_r17,
     synth_integer_comparator_greedy,

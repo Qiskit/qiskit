@@ -46,9 +46,10 @@ class Isometry(Instruction):
     The decomposition is based on [1].
 
     References:
-        1. Iten et al., Quantum circuits for isometries (2016).
-           `Phys. Rev. A 93, 032318
-           <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.93.032318>`__.
+
+    [1] Iten et al., Quantum circuits for isometries (2016).
+    `Phys. Rev. A 93, 032318
+    <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.93.032318>`__.
 
     """
 
@@ -124,7 +125,7 @@ class Isometry(Instruction):
         gate = self.inv_gate()
         gate = gate.inverse()
         q = QuantumRegister(self.num_qubits, "q")
-        iso_circuit = QuantumCircuit(q, name="isometry")
+        iso_circuit = QuantumCircuit(q)
         iso_circuit.append(gate, q[:])
         self.definition = iso_circuit
 

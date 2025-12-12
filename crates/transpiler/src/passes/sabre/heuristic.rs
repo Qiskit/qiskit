@@ -10,18 +10,18 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use pyo3::IntoPyObjectExt;
+use pyo3::Python;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::PyString;
-use pyo3::IntoPyObjectExt;
-use pyo3::Python;
 
 use qiskit_circuit::impl_intopyobject_for_copy_pyclass;
 
 /// Affect the dynamic scaling of the weight of node-set-based heuristics (basic and lookahead).
 #[pyclass]
 #[pyo3(module = "qiskit._accelerate.sabre", frozen, eq)]
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SetScaling {
     /// No dynamic scaling of the weight.
     Constant,
@@ -49,7 +49,7 @@ impl SetScaling {
 /// distances of every gate in the front layer.
 #[pyclass]
 #[pyo3(module = "qiskit._accelerate.sabre", frozen)]
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub struct BasicHeuristic {
     /// The relative weighting of this heuristic to others.  Typically you should just set this to
     /// 1.0 and define everything else in terms of this.
@@ -70,11 +70,7 @@ impl BasicHeuristic {
     }
 
     pub fn __eq__(&self, py: Python, other: Py<PyAny>) -> bool {
-        if let Ok(other) = other.extract::<Self>(py) {
-            self == &other
-        } else {
-            false
-        }
+        other.extract::<Self>(py).is_ok_and(|other| self == &other)
     }
 
     pub fn __repr__(&self, py: Python) -> PyResult<Py<PyAny>> {
@@ -89,7 +85,7 @@ impl BasicHeuristic {
 /// of every gate in the lookahead set, which is gates immediately after the front layer.
 #[pyclass]
 #[pyo3(module = "qiskit._accelerate.sabre", frozen)]
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub struct LookaheadHeuristic {
     /// The relative weight of this heuristic.  Typically this is defined relative to the
     /// :class:`.BasicHeuristic`, which generally has its weight set to 1.0.
@@ -116,11 +112,7 @@ impl LookaheadHeuristic {
     }
 
     pub fn __eq__(&self, py: Python, other: Py<PyAny>) -> bool {
-        if let Ok(other) = other.extract::<Self>(py) {
-            self == &other
-        } else {
-            false
-        }
+        other.extract::<Self>(py).is_ok_and(|other| self == &other)
     }
 
     pub fn __repr__(&self, py: Python) -> PyResult<Py<PyAny>> {
@@ -137,7 +129,7 @@ impl LookaheadHeuristic {
 /// components by the maximum multiplier involved in a given swap.
 #[pyclass]
 #[pyo3(module = "qiskit._accelerate.sabre", frozen)]
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub struct DecayHeuristic {
     /// The amount to add onto the multiplier of a physical qubit when it is used.
     pub increment: f64,
@@ -157,11 +149,7 @@ impl DecayHeuristic {
     }
 
     pub fn __eq__(&self, py: Python, other: Py<PyAny>) -> bool {
-        if let Ok(other) = other.extract::<Self>(py) {
-            self == &other
-        } else {
-            false
-        }
+        other.extract::<Self>(py).is_ok_and(|other| self == &other)
     }
 
     pub fn __repr__(&self, py: Python) -> PyResult<Py<PyAny>> {
@@ -176,7 +164,7 @@ impl DecayHeuristic {
 /// greater description.
 #[pyclass]
 #[pyo3(module = "qiskit._accelerate.sabre", frozen)]
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Heuristic {
     pub basic: Option<BasicHeuristic>,
     pub lookahead: Option<LookaheadHeuristic>,
@@ -266,11 +254,7 @@ impl Heuristic {
     }
 
     pub fn __eq__(&self, py: Python, other: Py<PyAny>) -> bool {
-        if let Ok(other) = other.extract::<Self>(py) {
-            self == &other
-        } else {
-            false
-        }
+        other.extract::<Self>(py).is_ok_and(|other| self == &other)
     }
 
     pub fn __repr__(&self, py: Python) -> PyResult<Py<PyAny>> {

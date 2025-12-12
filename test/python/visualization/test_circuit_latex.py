@@ -266,7 +266,9 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit.x(0)
         circuit.cx(0, 1)
         circuit.ccx(0, 1, 2)
-        circuit.append(XGate().control(3, ctrl_state="010"), [qr[2], qr[3], qr[0], qr[1]])
+        circuit.append(
+            XGate().control(3, ctrl_state="010", annotated=False), [qr[2], qr[3], qr[0], qr[1]]
+        )
         circuit.append(MCXGate(num_ctrl_qubits=3, ctrl_state="101"), [qr[0], qr[1], qr[2], qr[4]])
 
         circuit_drawer(circuit, filename=filename, output="latex_source")
@@ -307,7 +309,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit.append(U2Gate(3 * pi / 2, 2 * pi / 3), [1])
         circuit.append(U3Gate(3 * pi / 2, 4.5, pi / 4), [2])
         circuit.append(CU1Gate(pi / 4), [0, 1])
-        circuit.append(U2Gate(pi / 2, 3 * pi / 2).control(1), [2, 3])
+        circuit.append(U2Gate(pi / 2, 3 * pi / 2).control(1, annotated=False), [2, 3])
         circuit.append(CU3Gate(3 * pi / 2, -3 * pi / 4, -pi / 2), [0, 1])
 
         circuit_drawer(circuit, filename=filename, output="latex_source")
@@ -366,7 +368,9 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit.x(0)
         circuit.x(1)
         circuit.cswap(0, 1, 2)
-        circuit.append(RZZGate(3 * pi / 4).control(3, ctrl_state="010"), [2, 1, 4, 3, 0])
+        circuit.append(
+            RZZGate(3 * pi / 4).control(3, ctrl_state="010", annotated=False), [2, 1, 4, 3, 0]
+        )
 
         circuit_drawer(circuit, filename=filename, output="latex_source")
 
@@ -382,7 +386,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         ghz_circuit.cx(0, 1)
         ghz_circuit.cx(1, 2)
         ghz = ghz_circuit.to_gate()
-        ccghz = ghz.control(2, ctrl_state="10")
+        ccghz = ghz.control(2, ctrl_state="10", annotated=False)
         circuit.append(ccghz, [4, 0, 1, 3, 2])
 
         circuit_drawer(circuit, filename=filename, output="latex_source")
@@ -467,10 +471,10 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit.ccx(0, 1, 2)
         circuit.swap(0, 1)
         circuit.cswap(0, 1, 2)
-        circuit.append(SwapGate().control(2), [0, 1, 2, 3])
+        circuit.append(SwapGate().control(2, annotated=False), [0, 1, 2, 3])
         circuit.dcx(0, 1)
-        circuit.append(DCXGate().control(1), [0, 1, 2])
-        circuit.append(DCXGate().control(2), [0, 1, 2, 3])
+        circuit.append(DCXGate().control(1, annotated=False), [0, 1, 2])
+        circuit.append(DCXGate().control(2, annotated=False), [0, 1, 2, 3])
         circuit.z(4)
         circuit.s(4)
         circuit.sdg(4)
