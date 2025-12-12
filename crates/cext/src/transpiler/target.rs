@@ -15,11 +15,12 @@ use std::ffi::{CStr, CString, c_char};
 use std::ptr::null_mut;
 use std::sync::Arc;
 
+use crate::dag::COperationKind;
 use crate::exit_codes::{CInputError, ExitCode};
 use crate::pointers::{check_ptr, const_ptr_as_ref, mut_ptr_as_ref};
 use indexmap::IndexMap;
 use qiskit_circuit::PhysicalQubit;
-use qiskit_circuit::instruction::Parameters;
+use qiskit_circuit::instruction::{Instruction, Parameters};
 use qiskit_circuit::operations::StandardInstruction;
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
@@ -1324,6 +1325,240 @@ pub struct CInstructionProperties {
     /// The average error rate for the instruction on the specified set of qubits.
     /// Will be set to ``NaN`` if the property is not defined.
     pub error: f64,
+}
+
+/// Representation of an operation identified within the Target.
+///
+/// This struct is created natively by the underlying `Target` API
+/// and users should not write to it directly nor try to free its
+/// attributes manually as it would lead to undefined behavior. To
+/// free this struct, users should call ``qk_target_op_clear`` instead.
+#[repr(C)]
+pub struct CTargetOp {
+    /// The identifier for the current operation.
+    pub op_type: COperationKind,
+    /// The name of the operation.
+    pub name: *mut c_char,
+    /// The number of qubits this operation supports. Will default to
+    /// `(uint32_t)-1` in the case of a variadic.
+    pub num_qubits: u32,
+    /// The parameters tied to this operation if fixed, as an array
+    /// of `double`. If the operation doesn't posess any fixed parameters
+    /// or is variadic, this attribute will be a ``NULL`` pointer.
+    pub params: *mut f64,
+    /// The number of parameters supported by this operation. Will default to
+    /// `(uint32_t)-1` in the case of a variadic.
+    pub num_params: u32,
+}
+
+/// @ingroup QkTarget
+/// Retrieves information about an operation in the Target via index.
+/// If the index is not present, this function will panic. You can check
+/// the ``QkTarget`` total number of instructions using ``qk_target_num_instructions``.
+///
+/// @param target A pointer to the ``QkTarget``.
+/// @param index The index in which the gate is stored.
+/// @param out_op A pointer to the space where the ``QkTargetOp``
+///     will be stored.
+///
+/// # Example
+/// ```c
+/// QkTarget *target = qk_target_new(5);
+///
+/// QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
+/// uint32_t qargs[2] = {0, 1};
+/// qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
+/// qk_target_add_instruction(target, entry);
+///
+/// QkTargetOp op;
+/// qk_target_op_get(target, 0, &op);
+///
+/// // Clean up after you're done
+/// qk_target_op_clear(&op);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``target`` is not a valid, non-null pointer to a ``QkTarget``.
+/// Behavior is undefined if ``out_op`` does not point to an address of the correct size to
+/// store ``QkTargetOp`` in.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_target_op_get(
+    target: *const Target,
+    index: usize,
+    out_op: *mut CTargetOp,
+) {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let target_borrowed = unsafe { const_ptr_as_ref(target) };
+
+    let operation = target_borrowed
+        .get_op_by_index(index)
+        .expect("Operation index should be present in the Target.");
+    match operation {
+        TargetOperation::Normal(operation) => {
+            let kind = match operation.operation.view() {
+                qiskit_circuit::operations::OperationRef::StandardGate(_) => COperationKind::Gate,
+                qiskit_circuit::operations::OperationRef::StandardInstruction(
+                    standard_instruction,
+                ) => match standard_instruction {
+                    StandardInstruction::Barrier(_) => COperationKind::Barrier,
+                    StandardInstruction::Delay(_) => COperationKind::Delay,
+                    StandardInstruction::Measure => COperationKind::Measure,
+                    StandardInstruction::Reset => COperationKind::Reset,
+                },
+                qiskit_circuit::operations::OperationRef::Unitary(_) => COperationKind::Unitary,
+                _ => panic!(
+                    "Unsupported operation type found: {}",
+                    stringify!(normal_operation.view())
+                ),
+            };
+            let name = CString::new(
+                target_borrowed
+                    .get_by_index(index)
+                    .expect("An operation name should already exist.")
+                    .0,
+            )
+            .expect("The string should be UTF-8 encoded.")
+            .into_raw();
+            let num_params = operation.operation.num_params();
+            let mut params: Option<Box<[f64]>> = (num_params > 0).then_some(
+                operation
+                    .params_view()
+                    .iter()
+                    .filter_map(|param| match param {
+                        Param::Float(number) => Some(*number),
+                        _ => None,
+                    })
+                    .collect(),
+            );
+            // SAFETY: As per documentation, `out_op` is a pointer to a sufficient allocation.
+            unsafe {
+                out_op.write(CTargetOp {
+                    op_type: kind,
+                    name,
+                    num_qubits: operation.operation.num_qubits(),
+                    params: if let Some(params) = params.as_mut() {
+                        params.as_mut_ptr()
+                    } else {
+                        null_mut()
+                    },
+                    num_params,
+                })
+            };
+            let _ = params.map(Box::into_raw);
+        }
+        TargetOperation::Variadic(_) => {
+            let name = CString::new(
+                target_borrowed
+                    .get_by_index(index)
+                    .expect("An operation name should already exist.")
+                    .0,
+            )
+            .expect("Names should be ")
+            .into_raw();
+            // SAFETY: As per documentation, `out_op` is a pointer to a sufficient allocation.
+            unsafe {
+                out_op.write(CTargetOp {
+                    op_type: COperationKind::Unknown,
+                    name,
+                    num_qubits: u32::MAX,
+                    params: null_mut(),
+                    num_params: u32::MAX,
+                })
+            };
+        }
+    };
+}
+
+/// @ingroup QkTarget
+/// Tries to retrieve a ``QkGate`` based on the operation stored in an index.
+/// The user is responsible for checking whether this operation is a gate in the ``QkTarget``
+/// via using ``qk_target_op_get``. If not, this function will panic.
+///
+/// @param target A pointer to the ``Target`` instance.
+/// @param index The index at which the operation is located.
+///
+/// @return The ``QkGate`` enum in said index.
+///
+/// # Example
+/// ```c
+///     QkTarget *target = qk_target_new(5);
+///
+///     QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
+///     uint32_t qargs[2] = {0, 1};
+///     qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
+///     qk_target_add_instruction(target, entry);
+///
+///     QkTargetOp op;
+///     qk_target_op_get(target, 0, &op);
+///     
+///     // Check if the operation is a gate;
+///     if (op.op_type == QkOperationKind_Gate) {
+///         QkGate gate = qk_target_op_gate(target, 0);
+///         // Do something
+///     }
+///
+///     // Clean up after you're done.
+///     qk_target_op_clear(&op);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if the ``target`` pointer is null or not aligned.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_target_op_gate(target: *const Target, index: usize) -> StandardGate {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let target_borrowed = unsafe { const_ptr_as_ref(target) };
+
+    match target_borrowed
+        .get_op_by_index(index)
+        .expect("Invalid index")
+    {
+        qiskit_transpiler::target::TargetOperation::Normal(normal_operation) => normal_operation
+            .operation
+            .try_standard_gate()
+            .expect("Not a standard gate."),
+        qiskit_transpiler::target::TargetOperation::Variadic(_) => panic!("Not a standard gate."),
+    }
+}
+
+/// @ingroup QkTarget
+/// Clears the ``QkTargetOp`` object.
+///
+/// @param op The pointer to a ``QkTargetOp`` object.
+///
+/// # Safety
+///
+/// The behavior will be undefined if the pointer is null or not-aligned.
+/// The data belonging to a ``QkTargetOp`` originates in Rust and
+/// can only be freed using this function.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_target_op_clear(op: *mut CTargetOp) {
+    // We need to consume both the name and the parameters
+
+    // SAFETY: As per documentation, data from pointers contained in CTargetOp
+    // originates from rust code and are constructed internally with vecs and CStrings.
+    unsafe {
+        let op_borrowed = mut_ptr_as_ref(op);
+        if !op_borrowed.name.is_null() {
+            let _ = CString::from_raw(op_borrowed.name);
+            op_borrowed.name = std::ptr::null_mut();
+        }
+
+        if op_borrowed.num_params > 0 && !op_borrowed.params.is_null() {
+            let params = std::slice::from_raw_parts_mut(
+                op_borrowed.params,
+                op_borrowed.num_params.try_into().unwrap(),
+            );
+            let _ = Box::from_raw(params as *mut [f64]);
+            op_borrowed.params = std::ptr::null_mut();
+        }
+        op_borrowed.num_params = 0;
+        op_borrowed.num_qubits = 0;
+    }
 }
 
 /// Parses qargs based on a pointer and its size.
