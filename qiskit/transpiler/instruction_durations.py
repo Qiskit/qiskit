@@ -24,8 +24,7 @@ from qiskit.utils.units import apply_prefix
 
 
 class InstructionDurations:
-    """
-    Helper class to provide durations of instructions for scheduling.
+    """Helper class to provide durations of instructions for scheduling.
 
     It stores durations (gate lengths) and dt to be used at the scheduling stage of transpiling.
     It can be constructed from ``backend`` or ``instruction_durations``,
@@ -37,7 +36,9 @@ class InstructionDurations:
 
     Attributes:
         duration_by_name: Dictionary mapping instruction names to (duration, unit) tuples.
+          This contains global operations, meaning with no ``qubits`` set.
         duration_by_name_qubits: Dictionary mapping (name, qubits) to (duration, unit) tuples.
+          This contains operations that have no ``params``.
         duration_by_name_qubits_params: Dictionary mapping (name, qubits, params) to
             (duration, unit) tuples.
         dt: Sampling duration in seconds for unit conversion.
@@ -81,11 +82,9 @@ class InstructionDurations:
     """
 
     def __init__(
-        self, instruction_durations: "InstructionDurationsType" | None = None, dt: float = None
+        self, instruction_durations: InstructionDurationsType | None = None, dt: float | None = None
     ):
         """
-        Initialize an InstructionDurations object.
-
         Args:
             instruction_durations:
                 A list of tuples in one of the following formats:
@@ -93,14 +92,15 @@ class InstructionDurations:
                     - (inst_name, qubits, duration, unit)
                     - (inst_name, qubits, duration, parameters)
                     - (inst_name, qubits, duration, parameters, unit)
-                    - An existing InstructionDurations object.
+                    - An existing ``InstructionDurations`` object.
 
                 Where:
-                    - inst_name (str): Instruction name (e.g., 'x', 'cx', 'measure').
+                    - inst_name (str): Instruction name (e.g., ``"x"``, ``"cx"``, ``"measure"``).
                     - qubits (int | list[int] | None): Target qubits.
                     - duration (float): Duration value.
                     - parameters (list[float] | None): Parameters for parameterized instructions.
-                    - unit (str): Time unit ('dt', 's', 'ms', 'us', 'ns'), defaults to 'dt'.
+                    - unit (str): Time unit as ``"dt"`` (default), ``"s"``, ``"ms"``, ``"us"``, or
+                      ``"ns"``.
 
             dt: Sampling duration in seconds.
         """
@@ -147,20 +147,22 @@ class InstructionDurations:
             return backend.target.durations()
         raise TypeError("Unsupported backend type: {backend}")
 
-    def update(self, inst_durations: InstructionDurationsType | None, dt: float = None):
-        """Update self with inst_durations (inst_durations overwrite self).
+    def update(
+        self, inst_durations: InstructionDurationsType | None, dt: float | None = None
+    ) -> InstructionDurations:
+        """Update ``self`` with ``inst_durations``.
 
         Args:
             inst_durations: Instruction durations to be merged into self (overwriting self).
             dt: Sampling duration in seconds of the target backend.
 
         Returns:
-            InstructionDurations: The updated InstructionDurations.
+            The updated InstructionDurations.
 
         Raises:
             TranspilerError: If the format of instruction_durations is invalid.
         """
-        if dt:
+        if dt is not None:
             self.dt = dt
 
         if inst_durations is None:
