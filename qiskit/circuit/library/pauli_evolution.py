@@ -57,6 +57,15 @@ class PauliEvolutionGate(Gate):
     Note that the order in which the approximation and methods like :meth:`control` and
     :meth:`power` are called matters. Changing the order can lead to different unitaries.
 
+    Commutation checks:
+
+    Qiskit supports efficient commutation checks of :class:`PauliEvolutionGate` instances
+    with other Pauli-based gates, such as :class:`.PauliGate` or :class:`.PauliProductMeasurement`.
+    However, these checks require conversion of the operator into :class:`.SparseObservable` format,
+    hence we strongly suggest to build operators using this operator class if a large number
+    of commutation checks are expected (e.g. if you have a circuit with a large number of
+    sequential :class:`PauliEvolutionGate`\ s).
+
     Examples:
 
     .. plot::
@@ -314,11 +323,23 @@ class PauliEvolutionGate(Gate):
 
         return super().validate_parameter(parameter)
 
+    def _extract_sparse_observable(self) -> SparseObservable:
+        """Return the internal operator as single SparseObservable.
+
+        This will sum all operators if given as list of commuting operators.
+        """
+        if isinstance(self.operator, list):
+            return sum(
+                map(_to_sparse_observable, self.operator[1:]),
+                _to_sparse_observable(self.operator[0]),
+            )
+        return _to_sparse_observable(self.operator)
+
 
 def _to_sparse_op(
     operator: Pauli | SparsePauliOp | SparseObservable,
 ) -> SparsePauliOp | SparseObservable:
-    """Cast the operator to a SparsePauliOp."""
+    """Cast the operator to a sparse format; either SparseObservable or SparsePauliOp."""
 
     if isinstance(operator, Pauli):
         sparse = SparsePauliOp(operator)
@@ -333,6 +354,13 @@ def _to_sparse_op(
         raise ValueError("Operator contains ParameterExpression, which are not supported.")
 
     return sparse
+
+
+def _to_sparse_observable(operator: SparseObservable | SparsePauliOp) -> SparseObservable:
+    """Coerce SparsePauliOp or SparseObservable into a SparseObservable."""
+    if isinstance(operator, SparsePauliOp):
+        return SparseObservable.from_sparse_pauli_op(operator)
+    return operator
 
 
 def _operator_label(operator):

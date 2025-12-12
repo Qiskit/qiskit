@@ -15,6 +15,7 @@ use std::env;
 pub mod annotation;
 pub mod bit;
 pub mod bit_locator;
+mod blocks;
 pub mod circuit_data;
 pub mod circuit_instruction;
 pub mod classical;
@@ -63,6 +64,7 @@ pub struct Stretch(u32);
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 pub struct Block(u32);
 
+pub use blocks::ControlFlowBlocks;
 pub use nlayout::PhysicalQubit;
 pub use nlayout::VirtualQubit;
 pub use packed_instruction::BlockMapper;
