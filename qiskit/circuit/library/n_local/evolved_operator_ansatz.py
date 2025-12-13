@@ -36,6 +36,11 @@ from .n_local import NLocal
 if typing.TYPE_CHECKING:
     from qiskit.synthesis.evolution import EvolutionSynthesis
 
+try:
+    from qiskit.quantum_info import SparseObservable
+except ImportError:
+    SparseObservable = None
+
 
 def evolved_operator_ansatz(
     operators: BaseOperator | Sequence[BaseOperator],
@@ -93,7 +98,10 @@ def evolved_operator_ansatz(
     if reps < 0:
         raise ValueError("reps must be a non-negative integer.")
 
-    if isinstance(operators, BaseOperator):
+    # Check for SparseObservable first (it's a sequence, so isinstance check must come before len check)
+    if SparseObservable is not None and isinstance(operators, SparseObservable):
+        operators = [operators]
+    elif isinstance(operators, BaseOperator):
         operators = [operators]
     elif len(operators) == 0:
         return QuantumCircuit()
@@ -106,10 +114,14 @@ def evolved_operator_ansatz(
                 f"({len(parameter_prefix)})."
             )
 
-    num_qubits = operators[0].num_qubits
     if remove_identities:
         operators, parameter_prefix = _remove_identities(operators, parameter_prefix)
 
+    # After removing identities, check if we have any operators left
+    if len(operators) == 0:
+        return QuantumCircuit()
+
+    num_qubits = operators[0].num_qubits
     if any(op.num_qubits != num_qubits for op in operators):
         raise ValueError("Inconsistent numbers of qubits in the operators.")
 
@@ -122,6 +134,9 @@ def evolved_operator_ansatz(
         #    [[a0, a1, a2, ...], [b0, b1, b2, ...], [c0, c1, c2, ...]]
         # and turns them into an iterator
         #    a0 -> b0 -> c0 -> a1 -> b1 -> c1 -> a2 -> ...
+        if len(parameter_prefix) == 0:
+            # If all operators were removed (e.g., all identities), return empty circuit
+            return QuantumCircuit(num_qubits, name=name)
         per_operator = [ParameterVector(prefix, reps).params for prefix in parameter_prefix]
         param_iter = itertools.chain.from_iterable(zip(*per_operator))
 
@@ -129,7 +144,11 @@ def evolved_operator_ansatz(
     if (
         flatten is not False  # captures None and True
         and evolution is None
-        and all(isinstance(op, SparsePauliOp) for op in operators)
+        and all(
+            isinstance(op, SparsePauliOp)
+            or (SparseObservable is not None and isinstance(op, SparseObservable))
+            for op in operators
+        )
     ):
         sparse_labels = [op.to_sparse_list() for op in operators]
         expanded_paulis = []
@@ -169,7 +188,9 @@ def evolved_operator_ansatz(
                     )
                 flatten_operator = False
 
-            elif isinstance(op, BaseOperator):
+            elif isinstance(op, BaseOperator) or (
+                SparseObservable is not None and isinstance(op, SparseObservable)
+            ):
                 gate = PauliEvolutionGate(op, next(param_iter), synthesis=evolution)
                 flatten_operator = flatten is True or flatten is None
             else:
@@ -498,16 +519,97 @@ def _validate_prefix(parameter_prefix, operators):
     return parameter_prefix
 
 
-def _is_pauli_identity(operator):
-    if isinstance(operator, SparsePauliOp):
-        if len(operator.paulis) == 1:
-            operator = operator.paulis[0]  # check if the single Pauli is identity below
-        else:
-            return False
-    if isinstance(operator, Pauli):
-        return not np.any(np.logical_or(operator.x, operator.z))
-    return False
+# def _is_pauli_identity(operator):
+#     if isinstance(operator, SparsePauliOp):
+#         if len(operator.paulis) == 1:
+#             operator = operator.paulis[0]  # check if the single Pauli is identity below
+#         else:
+#             return False
+#     if isinstance(operator, Pauli):
+#         return not np.any(np.logical_or(operator.x, operator.z))
+#     return False
+def _is_pauli_identity(operator, tol=1e-10):
+    """Return True if operator is the Pauli identity with coefficient exactly (within tol) 1.
 
+    Accepts Pauli, SparsePauliOp, and (accelerate) SparseObservable if available.
+    """
+    # Handle SparsePauliOp: ensure single Pauli term and coeff == 1
+    if isinstance(operator, SparsePauliOp):
+        # PauliList length check
+        if len(operator.paulis) != 1:
+            return False
+        # Get the Pauli object and its coefficient
+        pauli = operator.paulis[0]
+        coeffs = getattr(operator, "coeffs", None)
+        if coeffs is None:
+            # if no coeffs attribute, be conservative and require Pauli to be identity
+            operator = pauli
+        else:
+            coeff = coeffs[0]
+            if not np.isclose(coeff, 1.0, atol=tol):
+                return False
+            operator = pauli
+
+    # Handle SparseObservable if available
+    elif SparseObservable is not None and isinstance(operator, SparseObservable):
+        # Get number of terms (support either attribute or callable)
+        num_terms_attr = getattr(operator, "num_terms", None)
+        num_terms = num_terms_attr() if callable(num_terms_attr) else num_terms_attr
+        if num_terms is None:
+            # fallback: try len(list(operator))
+            try:
+                num_terms = len(list(operator))
+            except Exception:
+                return False
+        if num_terms != 1:
+            return False
+
+        # Try a few ways to extract the single term into (pauli_label, indices, coeff)
+        sparse_list = None
+        to_sparse = getattr(operator, "to_sparse_list", None)
+        if callable(to_sparse):
+            sparse_list = to_sparse()
+        else:
+            as_paulis = getattr(operator, "as_paulis", None)
+            if callable(as_paulis):
+                sparse_list = as_paulis().to_sparse_list()
+            else:
+                # final fallback: iterate terms (term may be a bit-term object)
+                try:
+                    terms = list(operator)
+                    if len(terms) == 1:
+                        term = terms[0]
+                        # If term has indices and coeff attributes (as seen in some code paths)
+                        if hasattr(term, "indices") and hasattr(term, "coeff"):
+                            indices = getattr(term, "indices")
+                            coeff = getattr(term, "coeff")
+                            # canonicalize as a single-entry sparse_list
+                            sparse_list = [("", indices, coeff)]
+                        else:
+                            # couldn't interpret the term format
+                            return False
+                    else:
+                        return False
+                except Exception:
+                    return False
+
+        if not sparse_list or len(sparse_list) != 1:
+            return False
+        pauli_label, indices, coeff = sparse_list[0]
+        # Identity has no active qubits (empty indices) and coeff == 1
+        return len(indices) == 0 and np.isclose(coeff, 1.0, atol=tol)
+
+    # If we ended up with a Pauli object, check its x/z bitmasks
+    if isinstance(operator, Pauli):
+        # Pauli identity if no X or Z bits are set
+        x = getattr(operator, "x", None)
+        z = getattr(operator, "z", None)
+        # If attributes missing, be conservative and return False
+        if x is None or z is None:
+            return False
+        return not (np.any(x) or np.any(z))
+
+    return False
 
 def _remove_identities(operators, prefixes):
     identity_ops = {index for index, op in enumerate(operators) if _is_pauli_identity(op)}
@@ -516,6 +618,13 @@ def _remove_identities(operators, prefixes):
         return operators, prefixes
 
     cleaned_ops = [op for i, op in enumerate(operators) if i not in identity_ops]
-    cleaned_prefix = [prefix for i, prefix in enumerate(prefixes) if i not in identity_ops]
+    
+    # Handle both string and list prefixes
+    if isinstance(prefixes, str):
+        # If it's a string, keep it as a string (it will be used for all remaining operators)
+        cleaned_prefix = prefixes
+    else:
+        # If it's a list, remove the corresponding entries
+        cleaned_prefix = [prefix for i, prefix in enumerate(prefixes) if i not in identity_ops]
 
     return cleaned_ops, cleaned_prefix

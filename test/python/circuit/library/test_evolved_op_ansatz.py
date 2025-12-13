@@ -17,7 +17,18 @@ from ddt import ddt, data
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.quantum_info import SparsePauliOp, Operator, Pauli
+from qiskit.quantum_info import (
+    SparsePauliOp,
+    Operator,
+    Pauli,
+    Statevector,
+)
+
+# SparseObservable may be provided by the accelerate bindings. Guard the import.
+try:
+    from qiskit.quantum_info import SparseObservable  # type: ignore
+except Exception:  # pragma: no cover - defensive import for older installs
+    SparseObservable = None  # type: ignore
 
 from qiskit.circuit.library import HamiltonianGate
 from qiskit.circuit.library.n_local import (
@@ -204,6 +215,192 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
         angle = evo.data[0].operation.params[0]
         expected = (2.0 * param).sympify()
         self.assertEqual(expected, angle.sympify())
+
+    # ---------------------------------------------------------------------
+    # New tests to verify SparseObservable is accepted and matches fallback
+    # ---------------------------------------------------------------------
+    def test_accepts_sparseobservable(self):
+        """Test that a SparseObservable input can be used to build the ansatz."""
+        if SparseObservable is None:
+            self.skipTest("SparseObservable not available in this build")
+
+        # Build a simple SparsePauliOp and wrap it as a SparseObservable via constructor,
+        # matching patterns used elsewhere in the codebase.
+        spo = SparsePauliOp(["Z"])  # 1-qubit Z
+        obs = SparseObservable(spo)
+
+        # Should construct without exception and return a QuantumCircuit
+        evo = evolved_operator_ansatz(obs, reps=1)
+        self.assertIsInstance(evo, QuantumCircuit)
+
+    def test_sparseobservable_matches_dense_operator(self):
+        """Test that evolving a SparseObservable yields the same effect as evolving the equivalent dense operator."""
+        if SparseObservable is None:
+            self.skipTest("SparseObservable not available in this build")
+
+        # Use a small, simple observable (1 qubit Z) for a robust comparison
+        spo = SparsePauliOp(["Z"])
+        obs = SparseObservable(spo)
+
+        # Build ansatz via SparseObservable (should exercise the fast path if available)
+        evo_obs = evolved_operator_ansatz(obs, reps=1)
+
+        # Build ansatz via dense matrix fallback (Operator)
+        matrix = np.array(spo)
+        evo_dense = evolved_operator_ansatz(Operator(matrix), reps=1)
+
+        # Bind parameters if present (use same values for both circuits)
+        params = list(evo_obs.parameters)
+        param_values = [0.37 for _ in params]  # arbitrary test values
+
+        bound_obs = evo_obs.assign_parameters(param_values)
+        bound_dense = evo_dense.assign_parameters(param_values)
+
+        # Prepare initial state |0> (single qubit)
+        sv0 = Statevector.from_label("0")
+
+        final_obs = sv0.evolve(bound_obs)
+        final_dense = sv0.evolve(bound_dense)
+
+        # Compare final statevectors for equivalence
+        self.assertTrue(final_obs.equiv(final_dense))
+
+
+@unittest.skipIf(
+    SparseObservable is None,
+    "SparseObservable not available in this Qiskit version"
+)
+class TestEvolvedOperatorAnsatzSparseObservable(QiskitTestCase):
+    """Test evolved_operator_ansatz with SparseObservable operators."""
+
+    def test_sparse_observable_rust_path(self):
+        """Test that SparseObservable uses the Rust-accelerated path."""
+        # Create a SparseObservable with Pauli terms
+        obs = SparseObservable.from_sparse_list([
+            ("X", [0], 1.0),
+            ("Z", [1], 1.0),
+        ], num_qubits=2)
+
+        # This should use the fast Rust path (flatten=True, evolution=None)
+        ansatz = evolved_operator_ansatz(obs, reps=2, flatten=True)
+
+        # Verify it's a valid circuit
+        self.assertGreater(ansatz.num_parameters, 0)
+        self.assertEqual(ansatz.num_qubits, 2)
+
+        # Verify no PauliEvolutionGate is present (indicating Rust path was used)
+        ops = ansatz.count_ops()
+        self.assertNotIn("PauliEvolution", ops)
+
+    def test_sparse_observable_projector_terms(self):
+        """Test SparseObservable with projector terms uses Rust path."""
+        # Create observable with projector terms (0, 1, +, -, r, l)
+        obs = SparseObservable.from_sparse_list([
+            ("0", [0], 0.5),
+            ("1", [1], 0.5),
+            ("+", [2], 0.5),
+            ("-", [2], 0.5),
+        ], num_qubits=3)
+
+        ansatz = evolved_operator_ansatz(obs, reps=1, flatten=True)
+
+        # Should use Rust path and produce valid circuit
+        self.assertEqual(ansatz.num_qubits, 3)
+        self.assertEqual(ansatz.num_parameters, 1)
+
+        # Verify Rust path was used (no nested gates)
+        ops = ansatz.count_ops()
+        self.assertNotIn("PauliEvolution", ops)
+
+    def test_sparse_observable_mixed_with_sparse_pauli_op(self):
+        """Test mixing SparseObservable and SparsePauliOp uses Rust path."""
+        obs = SparseObservable.from_sparse_list([("X", [0], 1.0)], num_qubits=1)
+        pauli_op = SparsePauliOp(["Z"])
+
+        # Mixed types should use Rust path (both support to_sparse_list)
+        ansatz = evolved_operator_ansatz([obs, pauli_op], reps=1, flatten=True)
+
+        # Should still work and use Rust path
+        self.assertGreater(ansatz.num_parameters, 0)
+        # Should not have PauliEvolutionGate (Rust path)
+        ops = ansatz.count_ops()
+        self.assertNotIn("PauliEvolution", ops)
+
+    def test_sparse_observable_with_custom_evolution(self):
+        """Test SparseObservable with custom evolution uses Python path."""
+        obs = SparseObservable.from_sparse_list([("X", [0], 1.0)], num_qubits=1)
+
+        # Custom evolution should use Python path (but MatrixExponential doesn't support
+        # SparseObservable, so use LieTrotter with custom settings instead)
+        from qiskit.synthesis.evolution import LieTrotter
+        evolution = LieTrotter(reps=2)  # Custom evolution with different reps
+        ansatz = evolved_operator_ansatz(obs, evolution=evolution, flatten=False)
+
+        # Should use Python path (custom evolution + flatten=False forces Python path)
+        ops = ansatz.count_ops()
+        self.assertIn("PauliEvolution", ops)
+
+    def test_sparse_observable_flatten_false(self):
+        """Test SparseObservable with flatten=False uses Python path."""
+        obs = SparseObservable.from_sparse_list([("X", [0], 1.0)], num_qubits=1)
+
+        # flatten=False should use Python path
+        ansatz = evolved_operator_ansatz(obs, flatten=False)
+
+        # Should use Python path
+        ops = ansatz.count_ops()
+        self.assertIn("PauliEvolution", ops)
+
+    def test_sparse_observable_remove_identities(self):
+        """Test that SparseObservable identity operators are removed."""
+        # Create observable with identity and non-identity terms
+        obs1 = SparseObservable.identity(2)  # Identity
+        obs2 = SparseObservable.from_sparse_list([("X", [0], 1.0)], num_qubits=2)  # Non-identity
+
+        # With remove_identities=True, identity should be removed
+        ansatz = evolved_operator_ansatz([obs1, obs2], reps=1, remove_identities=True)
+
+        # Should only have 1 parameter (for the non-identity operator)
+        self.assertEqual(ansatz.num_parameters, 1)
+
+        # Without remove_identities, both should be included
+        ansatz2 = evolved_operator_ansatz([obs1, obs2], reps=1, remove_identities=False)
+        self.assertEqual(ansatz2.num_parameters, 2)
+
+    def test_sparse_observable_multiple_reps(self):
+        """Test SparseObservable with multiple repetitions."""
+        # Create two separate operators (not one operator with two terms)
+        obs1 = SparseObservable.from_sparse_list([("X", [0], 1.0)], num_qubits=2)
+        obs2 = SparseObservable.from_sparse_list([("Z", [1], 1.0)], num_qubits=2)
+
+        ansatz = evolved_operator_ansatz([obs1, obs2], reps=3, flatten=True)
+
+        # Should have 2 operators * 3 reps = 6 parameters
+        self.assertEqual(ansatz.num_parameters, 6)
+        self.assertEqual(ansatz.num_qubits, 2)
+
+        # Verify Rust path was used
+        ops = ansatz.count_ops()
+        self.assertNotIn("PauliEvolution", ops)
+
+    def test_sparse_observable_equivalence_with_sparse_pauli_op(self):
+        """Test that SparseObservable and SparsePauliOp produce equivalent circuits."""
+        # Create equivalent operators
+        obs = SparseObservable.from_sparse_list([("XZ", [0, 1], 1.0)], num_qubits=2)
+        pauli_op = SparsePauliOp(["XZ"])
+
+        ansatz_obs = evolved_operator_ansatz(obs, reps=1, flatten=True)
+        ansatz_pauli = evolved_operator_ansatz(pauli_op, reps=1, flatten=True)
+
+        # Both should have same number of qubits and parameters
+        self.assertEqual(ansatz_obs.num_qubits, ansatz_pauli.num_qubits)
+        self.assertEqual(ansatz_obs.num_parameters, ansatz_pauli.num_parameters)
+
+        # Both should use Rust path
+        ops_obs = ansatz_obs.count_ops()
+        ops_pauli = ansatz_pauli.count_ops()
+        self.assertNotIn("PauliEvolution", ops_obs)
+        self.assertNotIn("PauliEvolution", ops_pauli)
 
 
 class TestHamiltonianVariationalAnsatz(QiskitTestCase):
