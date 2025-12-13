@@ -177,7 +177,8 @@ _RESERVED_KEYWORDS = frozenset(
 # This probably isn't precisely the same as the OQ3 spec, but we'd need an extra dependency to fully
 # handle all Unicode character classes, and this should be close enough for users who aren't
 # actively _trying_ to break us (fingers crossed).
-_VALID_DECLARABLE_IDENTIFIER = re.compile(r"([\w][\w\d]*)", flags=re.U)
+# Identifiers must start with a letter or underscore, not a digit.
+_VALID_DECLARABLE_IDENTIFIER = re.compile(r"([a-zA-Z_][\w]*)", flags=re.U)
 _VALID_HARDWARE_QUBIT = re.compile(r"\$[\d]+", flags=re.U)
 _BAD_IDENTIFIER_CHARACTERS = re.compile(r"[^\w\d]", flags=re.U)
 
