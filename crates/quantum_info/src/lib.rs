@@ -12,6 +12,7 @@
 
 pub mod clifford;
 pub mod convert_2q_block_matrix;
+pub mod evolve;
 pub mod pauli_lindblad_map;
 pub mod sparse_observable;
 pub mod sparse_pauli_op;
