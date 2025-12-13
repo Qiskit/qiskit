@@ -1,4 +1,4 @@
-# This code is part of Qiskit.
+    # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2024.
 #
@@ -220,6 +220,7 @@ class TestSparsePauliOpConversions(QiskitTestCase):
         spp_op = SparsePauliOp.from_sparse_list(zip(paulis, indices, coeffs), num_qubits=3)
         np.testing.assert_array_equal(spp_op.coeffs, coeffs)
         self.assertEqual(spp_op.paulis, PauliList(expected_labels))
+        self.assertEqual(sppop.coeffs.dtype, np.complex128)
 
     def test_from_index_list_parameters(self):
         """Test from_list method specifying the Paulis via indices with parameters."""
@@ -232,6 +233,21 @@ class TestSparsePauliOpConversions(QiskitTestCase):
         )
         np.testing.assert_array_equal(spp_op.coeffs, coeffs)
         self.assertEqual(spp_op.paulis, PauliList(expected_labels))
+        self.assertEqual(sppop.coeffs.dtype, object)
+
+
+    def test_from_sparse_list_dtype_inference(self):
+        """Test from_sparse_list auto-infers dtype correctly."""
+        # infer complex128 dtype.
+        sppop = SparsePauliOp.from_sparse_list(
+            [("X", [0], 1.0), ("Z", [1], 2.0j)], num_qubits=2
+        )
+        self.assertEqual(sppop.coeffs.dtype, np.complex128)
+
+        # infer object dtype due to ParameterExpression.
+        param = Parameter("a")
+        sppop = SparsePauliOp.from_sparse_list([("X", [0], param)], num_qubits=1)
+        self.assertEqual(sppop.coeffs.dtype, object)
 
     def test_from_index_list_endianness(self):
         """Test the construction from index list has the right endianness."""
@@ -276,6 +292,7 @@ class TestSparsePauliOpConversions(QiskitTestCase):
         spp_op = SparsePauliOp.from_sparse_list(iterable, num_qubits)
         self.assertEqual(spp_op.paulis, PauliList("I" * num_qubits))
         np.testing.assert_array_equal(spp_op.coeffs, [0])
+        self.assertEqual(sppop.coeffs.dtype, np.complex128)
 
     def test_to_matrix(self):
         """Test to_matrix method."""
