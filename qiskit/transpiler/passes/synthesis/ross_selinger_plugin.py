@@ -105,7 +105,10 @@ class RossSelingerSynthesis(UnitarySynthesisPlugin):
         """Run the Ross-Selinger synthesis plugin on the given unitary."""
         # ToDo: possibly we should use the approximation_degree instead,
         # and compute epsilon based on that.
-        epsilon = options.get("epsilon", 1e-10)
+        if (config := options.get("config")) is not None:
+            epsilon = config.get("epsilon", 1e-10)
+        else:
+            epsilon = 1e-10
 
         approximate_circuit = gridsynth_unitary(unitary, epsilon)
         return circuit_to_dag(approximate_circuit)
