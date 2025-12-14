@@ -95,7 +95,7 @@ fn generate_random_interactions(num_qubits: u32, seed: Option<u64>) -> Array2<i6
 }
 
 /// Returns true if the input matrix is symmetric, otherwise false.
-fn check_symmetric(matrix: &ArrayView2<i64>) -> bool {
+pub fn check_symmetric(matrix: &ArrayView2<i64>) -> bool {
     let nrows = matrix.nrows();
 
     if matrix.ncols() != nrows {

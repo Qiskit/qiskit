@@ -12,7 +12,7 @@
 
 use ndarray::ArrayView2;
 use qiskit_circuit::{circuit_data::CircuitData, operations::Param};
-use qiskit_circuit_library::iqp::{iqp, py_random_iqp};
+use qiskit_circuit_library::iqp::{check_symmetric, iqp, py_random_iqp};
 
 /// Generate an IQP circuit from an integer interaction matrix.
 ///
@@ -79,19 +79,9 @@ pub unsafe extern "C" fn qk_circuit_library_iqp(
         .expect("qk_circuit_library_iqp: interactions buffer is not an n×n row-major matrix");
 
     // Optional symmetry check on the upper triangle only.
-    if check_input {
-        let mut i = 0;
-        while i < num_qubits {
-            let mut j = i + 1;
-            while j < num_qubits {
-                if view[[i, j]] != view[[j, i]] {
-                    // Non-symmetric: return NULL to signal invalid input.
-                    return std::ptr::null_mut();
-                }
-                j += 1;
-            }
-            i += 1;
-        }
+    if check_input && !check_symmetric(&view) {
+        // Non-symmetric: return NULL to signal invalid input.
+        return std::ptr::null_mut();
     }
 
     // Build CircuitData and return an owning pointer.
