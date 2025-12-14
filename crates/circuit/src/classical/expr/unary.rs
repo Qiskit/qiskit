@@ -40,7 +40,7 @@ pub struct Unary {
 pub enum UnaryOp {
     BitNot = 1,
     LogicNot = 2,
-    Negation = 3,
+    Negate = 3,
 }
 
 unsafe impl ::bytemuck::CheckedBitPattern for UnaryOp {

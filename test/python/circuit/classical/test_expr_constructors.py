@@ -123,10 +123,10 @@ class TestExprConstructors(QiskitTestCase):
         (expr.logic_not, ClassicalRegister(3)),
         (expr.logic_not, False),
         (expr.logic_not, Clbit()),
-        (expr.negation, ClassicalRegister(3)),
-        (expr.negation, 7),
-        (expr.negation, 7.0),
-        (expr.negation, Duration.dt(1000)),
+        (expr.negate, ClassicalRegister(3)),
+        (expr.negate, 7),
+        (expr.negate, 7.0),
+        (expr.negate, Duration.dt(1000)),
     )
     @ddt.unpack
     def test_unary_functions_lift_scalars(self, function, scalar):
@@ -922,47 +922,46 @@ class TestExprConstructors(QiskitTestCase):
         with self.assertRaisesRegex(TypeError, "invalid types"):
             expr.div(255.0, Duration.dt(1000))
 
-    def test_unary_negation_forbidden(self):
+    def test_unary_negate_forbidden(self):
         with self.assertRaisesRegex(TypeError, "cannot apply"):
-            expr.negation(True)
+            expr.negate(True)
         with self.assertRaisesRegex(TypeError, "cannot apply"):
-            expr.negation(Clbit())
+            expr.negate(Clbit())
 
-    def test_unary_negation_explicit(self):
+    def test_unary_negate_explicit(self):
         cr = ClassicalRegister(3)
         self.assertEqual(
-            expr.negation(cr),
+            expr.negate(cr),
             expr.Unary(
-                expr.Unary.Op.NEGATION,
+                expr.Unary.Op.NEGATE,
                 expr.Var(cr, types.Uint(3)),
                 types.Uint(3),
             ),
         )
 
         self.assertEqual(
-            expr.negation(7),
+            expr.negate(7),
             expr.Unary(
-                expr.Unary.Op.NEGATION,
+                expr.Unary.Op.NEGATE,
                 expr.Value(7, types.Uint(4)),
                 types.Uint(4),
             ),
         )
 
         self.assertEqual(
-            expr.negation(7.0),
+            expr.negate(7.0),
             expr.Unary(
-                expr.Unary.Op.NEGATION,
+                expr.Unary.Op.NEGATE,
                 expr.Value(7.0, types.Float()),
                 types.Float(),
             ),
         )
 
         self.assertEqual(
-            expr.negation(Duration.dt(1000)),
+            expr.negate(Duration.dt(1000)),
             expr.Unary(
-                expr.Unary.Op.NEGATION,
+                expr.Unary.Op.NEGATE,
                 expr.Value(Duration.dt(1000), types.Duration()),
                 types.Duration(),
             ),
         )
-        
