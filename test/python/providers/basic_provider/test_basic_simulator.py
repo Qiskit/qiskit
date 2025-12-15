@@ -191,7 +191,7 @@ class TestBasicSimulator(QiskitTestCase, BasicProviderBackendTestMixin):
 
     def test_unitary(self):
         """Test unitary gate instruction"""
-        max_qubits = 3  # from 4, reduced to 3 to limit test time
+        max_qubits = 4  # changed back to 4
         x_mat = np.array([[0, 1], [1, 0]])
         # Test 1 to max_qubits for random n-qubit unitary gate
         for i in range(max_qubits):
@@ -201,7 +201,7 @@ class TestBasicSimulator(QiskitTestCase, BasicProviderBackendTestMixin):
             for _ in range(i):
                 multi_x = np.kron(multi_x, x_mat)
             # Target counts
-            shots = 128  # from 1024, reduced to 128 to limit test time
+            shots = 1024  # changed back to 10124
             target_counts = {num_qubits * "1": shots}
             # Test circuit
             qr = QuantumRegister(num_qubits, "qr")
