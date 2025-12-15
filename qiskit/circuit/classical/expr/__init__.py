@@ -235,6 +235,7 @@ __all__ = [
     "mul",
     "div",
     "lift_legacy_condition",
+    "negate",
 ]
 
 from .expr import Expr, Var, Value, Cast, Unary, Binary, Index, Stretch
@@ -263,4 +264,5 @@ from .constructors import (
     mul,
     div,
     lift_legacy_condition,
+    negate,
 )

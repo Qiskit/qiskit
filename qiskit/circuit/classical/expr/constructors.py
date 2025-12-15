@@ -763,6 +763,7 @@ Duration())
         type,
     )
 
+
 def negate(operand: typing.Any, /) -> Expr:
     """Negate an expression node from the given value, resolving any implicit casts and
     lifting the value into a :class:`Value` node if required.

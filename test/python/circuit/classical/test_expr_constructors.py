@@ -943,8 +943,8 @@ class TestExprConstructors(QiskitTestCase):
             expr.negate(7),
             expr.Unary(
                 expr.Unary.Op.NEGATE,
-                expr.Value(7, types.Uint(4)),
-                types.Uint(4),
+                expr.Value(7, types.Uint(3)),
+                types.Uint(3),
             ),
         )
 
