@@ -281,9 +281,9 @@ class TestStatevector(QiskitTestCase):
     def test_evolve_sparseobservable(self):
         """Test Statevector.evolve with a Clifford SparseObservable"""
         obs = qi.SparseObservable.from_label("XY")
-        H = obs.to_matrix()
+        op = obs.to_matrix()
         vec = self.rand_vec(4)
-        target = Statevector(H @ vec)
+        target = Statevector(op @ vec)
 
         evolved = Statevector(vec).evolve(obs)
 

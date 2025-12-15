@@ -14,12 +14,12 @@
 
 import logging
 import unittest
-import qiskit.quantum_info as qi
 
 import numpy as np
 from ddt import data, ddt
 from numpy.testing import assert_allclose
 
+import qiskit.quantum_info as qi
 from qiskit import QiskitError, QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import QFTGate, HGate
 from qiskit.quantum_info.operators.operator import Operator
@@ -237,10 +237,10 @@ class TestDensityMatrix(QiskitTestCase):
     def test_evolve_sparseobservable(self):
         """Test DensityMatrix.evolve with a SparseObservable."""
         obs = qi.SparseObservable.from_label("XY")
-        H = obs.to_matrix()
+        op = obs.to_matrix()
 
         rho = self.rand_rho(4)
-        target = DensityMatrix(H @ rho @ H.conjugate().transpose())
+        target = DensityMatrix(op @ rho @ op.conjugate().transpose())
 
         evolved = DensityMatrix(rho).evolve(obs)
 

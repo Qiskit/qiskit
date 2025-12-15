@@ -285,7 +285,6 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
 
         # pylint: disable=cyclic-import
         from qiskit.quantum_info.operators.symplectic.clifford import Clifford
-        from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
         from qiskit.quantum_info import SparsePauliOp
 
         # Convert Clifford to quantum circuits
@@ -293,21 +292,18 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             return self._evolve_clifford(other, qargs=qargs, frame=frame)
 
         if other.__class__.__name__ == "SparseObservable":
-            from qiskit.quantum_info import SparsePauliOp
-            
             self_as_spo = SparsePauliOp(self)
             self_as_sparse = type(other)(self_as_spo)
-            
+
             if frame == "s":
                 evolved = other.compose(self_as_sparse).compose(other.adjoint())
             else:
                 evolved = other.adjoint().compose(self_as_sparse).compose(other)
-            
+
             sparse_pauli = SparsePauliOp.from_sparse_observable(evolved).simplify()
 
-            
             # Applying coefficients to Pauli phases
-            phase_map = {1.0+0.0j: 0, 0.0+1.0j: 1, -1.0+0.0j: 2, 0.0-1.0j: 3}
+            phase_map = {1.0 + 0.0j: 0, 0.0 + 1.0j: 1, -1.0 + 0.0j: 2, 0.0 - 1.0j: 3}
             paulis_list = sparse_pauli.paulis
             for i, coeff in enumerate(sparse_pauli.coeffs):
                 coeff_clean = complex(coeff)
@@ -315,14 +311,16 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
                     raise QiskitError(f"Non-Clifford coefficient {coeff_clean} in evolution")
                 # underlying phase arrays are mod 4
                 paulis_list._phase[i] = (paulis_list._phase[i] + phase_map[coeff_clean]) % 4
-            
+
             if sparse_pauli.size == 1:
                 return paulis_list[0]
             else:
-                if hasattr(self, '__len__'):
+                if hasattr(self, "__len__"):
                     return paulis_list
                 else:
-                    raise QiskitError("Evolution produced multiple Pauli terms; expected single term")
+                    raise QiskitError(
+                        "Evolution produced multiple Pauli terms; expected single term"
+                    )
 
         # Otherwise evolve by the inverse circuit to compute C^dg.P.C
         if frame == "s":

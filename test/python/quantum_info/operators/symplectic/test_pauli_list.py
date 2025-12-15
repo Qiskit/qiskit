@@ -2236,12 +2236,17 @@ class TestPauliListMethods(QiskitTestCase):
 
         evolved_ops = [Operator(p) for p in pl.evolve(obs)]
 
-        I = np.array([[1.0, 0.0], [0.0, 1.0]], dtype=complex)
-        X = np.array([[0.0, 1.0], [1.0, 0.0]], dtype=complex)
-        Y = np.array([[0.0, -1.0j], [1.0j, 0.0]], dtype=complex)
-        Z = np.array([[1.0, 0.0], [0.0, -1.0]], dtype=complex)
+        pauli_i = np.array([[1.0, 0.0], [0.0, 1.0]], dtype=complex)
+        pauli_x = np.array([[0.0, 1.0], [1.0, 0.0]], dtype=complex)
+        pauli_y = np.array([[0.0, -1.0j], [1.0j, 0.0]], dtype=complex)
+        pauli_z = np.array([[1.0, 0.0], [0.0, -1.0]], dtype=complex)
 
-        expected_ops = [Operator(I), Operator(X), Operator(-Y), Operator(-Z)]
+        expected_ops = [
+            Operator(pauli_i),
+            Operator(pauli_x),
+            Operator(-pauli_y),
+            Operator(-pauli_z),
+        ]
 
         self.assertListEqual(
             evolved_ops,
