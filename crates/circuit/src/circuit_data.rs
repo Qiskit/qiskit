@@ -473,13 +473,6 @@ impl CircuitData {
         Ok(())
     }
 
-    pub fn qubit_index(&self, qubit: ShareableQubit) -> Option<u32> {
-        self.qubits.find(&qubit).map(|qubit| qubit.0)
-    }
-
-    pub fn clbit_index(&self, clbit: ShareableClbit) -> Option<u32> {
-        self.clbits.find(&clbit).map(|clbit| clbit.0)
-    }
     /// The list of registered :class:`.QuantumRegister` instances.
     ///
     /// .. warning::
@@ -1687,7 +1680,7 @@ impl CircuitData {
         self.vars_declare.len()
     }
 
-    // return the total number of identifiers in the circuit (vars + stretches)
+    /// Return the total number of identifiers in the circuit (vars + stretches)
     pub fn num_identifiers(&self) -> usize {
         self.num_input_vars()
             + self.num_captured_vars()
@@ -2581,6 +2574,16 @@ impl CircuitData {
     /// Returns an immutable view of the [ClassicalRegister] instances in the circuit.
     pub fn cregs(&self) -> &[ClassicalRegister] {
         self.cregs.registers()
+    }
+
+    /// Returns the index of the qubit in the circuit
+    pub fn qubit_index(&self, qubit: &ShareableQubit) -> Option<u32> {
+        self.qubits.find(qubit).map(|qubit| qubit.0)
+    }
+
+    /// Returns the index of the clbit in the circuit
+    pub fn clbit_index(&self, clbit: &ShareableClbit) -> Option<u32> {
+        self.clbits.find(clbit).map(|clbit| clbit.0)
     }
 
     /// Returns an immutable view of the [QuantumRegister] data struct in the circuit.

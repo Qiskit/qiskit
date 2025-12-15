@@ -57,7 +57,6 @@ impl ImportOnceCell {
 }
 
 pub static BUILTIN_LIST: ImportOnceCell = ImportOnceCell::new("builtins", "list");
-pub static BUILTIN_TUPLE: ImportOnceCell = ImportOnceCell::new("builtins", "tuple");
 pub static BUILTIN_SET: ImportOnceCell = ImportOnceCell::new("builtins", "set");
 pub static BUILTIN_RANGE: ImportOnceCell = ImportOnceCell::new("builtins", "range");
 pub static BUILTIN_USER_WARNING: ImportOnceCell = ImportOnceCell::new("builtins", "UserWarning");
@@ -148,8 +147,6 @@ pub static PAULI_EVOLUTION_GATE: ImportOnceCell =
 pub static MCMT_GATE: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.library", "MCMTGate");
 pub static BLUEPRINT_CIRCUIT: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.library", "BlueprintCircuit");
-pub static QS_DECOMPOSITION: ImportOnceCell =
-    ImportOnceCell::new("qiskit.synthesis.unitary.qsd", "qs_decomposition");
 pub static PAULI_ROTATION_TRACE_AND_DIM: ImportOnceCell = ImportOnceCell::new(
     "qiskit.circuit.library.pauli_evolution",
     "_pauli_rotation_trace_and_dim",
@@ -173,8 +170,6 @@ pub static CONTROL_FLOW_CONDITION_RESOURCES: ImportOnceCell =
 pub static CONTROL_FLOW_NODE_RESOURCES: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.controlflow", "node_resources");
 
-pub static CONTROL_FLOW_SWITCH_CASE_OP: ImportOnceCell =
-    ImportOnceCell::new("qiskit.circuit.controlflow", "SwitchCaseOp");
 pub static CONTROL_FLOW_BOX_OP: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.controlflow", "BoxOp");
 pub static TRANSPILER_LAYOUT: ImportOnceCell =

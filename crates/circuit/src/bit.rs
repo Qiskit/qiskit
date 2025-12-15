@@ -374,6 +374,8 @@ macro_rules! create_bit_object {
                     subclass: Default::default(),
                 })
             }
+
+            /// Return the register owning the bit, if it exists
             pub fn owning_register(&self) -> Option<$reg_struct> {
                 match &self.0 {
                     BitInfo::Owned { register, .. } => {
@@ -382,6 +384,8 @@ macro_rules! create_bit_object {
                     BitInfo::Anonymous { .. } => None,
                 }
             }
+
+            /// Return the index of the bit in its owning register, if it exists
             pub fn owning_register_index(&self) -> Option<u32> {
                 match &self.0 {
                     BitInfo::Owned { index, .. } => Some(*index),
@@ -653,7 +657,7 @@ macro_rules! create_bit_object {
                 self.0.get(index)
             }
             fn is_owning(&self) -> bool {
-                match &*self.0 {
+                match self.0.as_ref() {
                     RegisterInfo::Owning(_) => true,
                     RegisterInfo::Alias {..} => false,
                 }

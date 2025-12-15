@@ -564,7 +564,7 @@ fn pack_quantum_register(
         .bits()
         .map(|qubit| {
             circuit_data
-                .qubit_index(qubit)
+                .qubit_index(&qubit)
                 .map(|index| index as i64)
                 .unwrap_or(-1)
         })
@@ -610,7 +610,7 @@ fn pack_classical_registers(circuit_data: &CircuitData) -> Vec<formats::Register
                 .bits()
                 .map(|clbit| {
                     circuit_data
-                        .clbit_index(clbit)
+                        .clbit_index(&clbit)
                         .map(|index| index as i64)
                         .unwrap_or(-1)
                 })
@@ -752,14 +752,14 @@ fn pack_custom_layout(
                 let virtual_clbit = virtual_bit.extract::<ShareableClbit>()?;
                 let index = qpy_data
                     .circuit_data
-                    .clbit_index(virtual_clbit)
+                    .clbit_index(&virtual_clbit)
                     .ok_or_else(|| PyValueError::new_err("Clbit missing an index"))?;
                 final_layout_items.push(index);
             } else if virtual_bit.is_instance_of::<PyQubit>() {
                 let virtual_qubit = virtual_bit.extract::<ShareableQubit>()?;
                 let index = qpy_data
                     .circuit_data
-                    .qubit_index(virtual_qubit)
+                    .qubit_index(&virtual_qubit)
                     .ok_or_else(|| PyValueError::new_err("Clbit missing an index"))?;
                 final_layout_items.push(index);
             }
