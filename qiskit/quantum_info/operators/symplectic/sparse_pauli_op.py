@@ -895,7 +895,7 @@ class SparsePauliOp(LinearOp):
             num_qubits (int): The number of qubits of the operator.
             do_checks (bool): The flag of checking if the input indices are not duplicated
             (Default: True).
-            dtype (type | None): Data type for the coefficients. If None, the dtype is automatically 
+            dtype (type | None): Data type for the coefficients. If None, the dtype is automatically
             inferred. Default is None.
 
 
