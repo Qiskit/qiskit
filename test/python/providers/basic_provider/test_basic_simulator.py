@@ -449,7 +449,7 @@ class TestBasicSimulator(QiskitTestCase, BasicProviderBackendTestMixin):
         """Should error if more than 24 qubits in statevector simulation."""
         sim = BasicSimulator()
         qc = QuantumCircuit(25)
-        with self.assertRaises(BasicProviderError):  # Or BasicProviderError
+        with self.assertRaises(BasicProviderError):
             sim.run(qc, use_clifford_optimization=False)
 
     def test_clifford_qubit_limit_exceeded(self):
@@ -473,7 +473,7 @@ class TestBasicSimulator(QiskitTestCase, BasicProviderBackendTestMixin):
     def test_clifford_qubit_limit_pass(self):
         """Should succeed for a small Clifford circuit when optimization is on."""
         sim = BasicSimulator()
-        n_qubits = 10
+        n_qubits = 32
         qc = QuantumCircuit(n_qubits)
         qc.h(0)
         for i in range(n_qubits - 1):
