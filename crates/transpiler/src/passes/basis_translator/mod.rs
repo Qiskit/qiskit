@@ -344,7 +344,7 @@ fn apply_translation(
             )
         })?;
     let mut out_dag_builder = out_dag.into_builder();
-    for node in dag.topological_op_nodes().map_err(|_| {
+    for node in dag.topological_op_nodes(false).map_err(|_| {
         BasisTranslatorError::BasisDAGCircuitError("Error retrieving Op nodes from DAG".to_string())
     })? {
         let node_obj = dag[node].unwrap_operation();
@@ -505,8 +505,8 @@ fn replace_node(
             target_dag: format!("{:?}", target_dag),
         });
     }
-    if params_view.is_empty() {
-        for inner_index in target_dag.topological_op_nodes().map_err(|_| {
+    if node.params_view().is_empty() {
+        for inner_index in target_dag.topological_op_nodes(false).map_err(|_| {
             BasisTranslatorError::BasisDAGCircuitError(
                 "Error retrieving Op nodes from DAG".to_string(),
             )
@@ -578,7 +578,7 @@ fn replace_node(
                     _ => None,
                 }),
         );
-        for inner_index in target_dag.topological_op_nodes().map_err(|_| {
+        for inner_index in target_dag.topological_op_nodes(false).map_err(|_| {
             BasisTranslatorError::BasisDAGCircuitError(
                 "Error retrieving Op nodes from DAG".to_string(),
             )
