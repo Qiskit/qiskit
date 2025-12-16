@@ -72,7 +72,7 @@ def sampled_expectation_value(dist, oper, variance: bool = False):
                     "Variance calculation only supported for single Pauli string operators."
                 )
             expectation = sampled_expval_sparse_observable(oper, dist)
-            var_stat = 1 - (expectation) ** 2
+            var_stat = (oper.coeffs[0].real) ** 2 - (expectation) ** 2
             return expectation, var_stat
         else:
             return sampled_expval_sparse_observable(oper, dist)
@@ -93,16 +93,12 @@ def sampled_expectation_value(dist, oper, variance: bool = False):
 
     # Dispatch to Rust routines
     if coeffs.dtype == np.dtype(complex).type:
-        if variance:
-            expectation = sampled_expval_complex(oper_strs, coeffs, dist)
-            var_stat = 1 - (expectation) ** 2
-            return expectation, var_stat
-        else:
-            return sampled_expval_complex(oper_strs, coeffs, dist)
+        expectation = sampled_expval_complex(oper_strs, coeffs, dist)
     else:
-        if variance:
-            expectation = sampled_expval_float(oper_strs, coeffs, dist)
-            var_stat = 1 - (expectation) ** 2
-            return expectation, var_stat
-        else:
-            return sampled_expval_float(oper_strs, coeffs, dist)
+        expectation = sampled_expval_float(oper_strs, coeffs, dist)
+
+    if variance:
+        var_stat = (coeffs[0].real) ** 2 - (expectation) ** 2
+        return expectation, var_stat
+
+    return expectation
