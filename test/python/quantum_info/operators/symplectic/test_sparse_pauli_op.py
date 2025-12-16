@@ -246,6 +246,18 @@ class TestSparsePauliOpConversions(QiskitTestCase):
         spp_op = SparsePauliOp.from_sparse_list([("X", [0], param)], num_qubits=1)
         self.assertEqual(spp_op.coeffs.dtype, object)
 
+    def test_from_sparse_list_automatically_determine_coeff_type_regression(self):
+        """Regression test for issue where from_sparse_list failed to infer dtype."""
+        param = Parameter("a")
+
+        op1 = SparsePauliOp.from_sparse_list([("IX", [0, 1], 2), ("ZI", [0, 1], 3)], num_qubits=2)
+        op1 *= param
+
+        op2 = SparsePauliOp.from_sparse_list(op1.to_sparse_list(), num_qubits=2)
+
+        self.assertEqual(op2.paulis, op1.paulis)
+        self.assertEqual(op2.coeffs.dtype, object)
+
     def test_from_index_list_endianness(self):
         """Test the construction from index list has the right endianness."""
         spp_op = SparsePauliOp.from_sparse_list([("ZX", [1, 4], 1)], num_qubits=5)
