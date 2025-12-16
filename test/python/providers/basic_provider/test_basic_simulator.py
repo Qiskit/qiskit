@@ -191,7 +191,7 @@ class TestBasicSimulator(QiskitTestCase, BasicProviderBackendTestMixin):
 
     def test_unitary(self):
         """Test unitary gate instruction"""
-        max_qubits = 4  # changed back to 4
+        max_qubits = 4
         x_mat = np.array([[0, 1], [1, 0]])
         # Test 1 to max_qubits for random n-qubit unitary gate
         for i in range(max_qubits):
