@@ -10,10 +10,12 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use anyhow::Error;
 use num_complex::Complex64;
 use smallvec::smallvec;
 
-use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
+use crate::exit_codes::ExitCode;
+use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister, ShareableClbit, ShareableQubit};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeIndex, NodeType};
@@ -23,10 +25,10 @@ use qiskit_circuit::operations::{
 };
 use qiskit_circuit::{Clbit, Qubit};
 
-use crate::circuit::CInstruction;
+use crate::circuit::{CBlocksMode, CInstruction, CVarsMode};
 
 use crate::circuit::unitary_from_pointer;
-use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
+use crate::pointers::{check_ptr, const_ptr_as_ref, mut_ptr_as_ref};
 
 /// @ingroup QkDag
 /// Construct a new empty DAG.
@@ -1001,6 +1003,9 @@ pub enum COperationKind {
     Unitary = 5,
     PauliProductMeasurement = 6,
     ControlFlow = 7,
+    /// This variant is used as an opaque type for operations not yet
+    /// implemented in the native data model.
+    Unknown = 8,
 }
 
 /// @ingroup QkDag
@@ -1040,7 +1045,7 @@ pub unsafe extern "C" fn qk_dag_op_node_kind(dag: *const DAGCircuit, node: u32) 
         OperationRef::PauliProductMeasurement(_) => COperationKind::PauliProductMeasurement,
         OperationRef::ControlFlow(_) => COperationKind::ControlFlow,
         OperationRef::Gate(_) | OperationRef::Instruction(_) | OperationRef::Operation(_) => {
-            panic!("Python instances are not supported via the C API");
+            COperationKind::Unknown
         }
     }
 }
@@ -1243,6 +1248,149 @@ pub unsafe extern "C" fn qk_dag_get_instruction(
 }
 
 /// @ingroup QkDag
+/// Compose the ``other`` DAG onto the ``dag`` instance with the option of a subset
+/// of input wires of ``other`` being mapped onto a subset of output wires of ``dag``.
+///
+/// ``other`` may include a smaller or equal number of wires for each type.
+///
+/// @param dag A pointer to the DAG to be composed on.
+/// @param other A pointer to the DAG to compose with ``dag``.
+/// @param qubits A list of indices representing the qubit wires to compose
+///     onto.
+/// @param clbits A list of indices representing the clbit wires to compose
+///     onto.
+///
+/// @return ``QkExitCode_Success`` upon successful decomposition, otherwise a DAG-specific
+///     error code indicating the cause of the failure.
+///
+/// # Example
+///
+/// ```c
+/// // Build the following dag
+/// // rqr_0: ──■───────
+/// //          │  ┌───┐
+/// // rqr_1: ──┼──┤ Y ├
+/// //        ┌─┴─┐└───┘
+/// // rqr_2: ┤ X ├─────
+/// //        └───┘     
+/// QkDag *dag_right = qk_dag_new();
+/// QkQuantumRegister *rqr = qk_quantum_register_new(3, "rqr");
+/// qk_dag_add_quantum_register(dag_right, rqr);
+/// qk_dag_add_classical_register(dag_right, rcr);
+/// qk_dag_apply_gate(dag_right, QkGate_CX, (uint32_t[]){0, 2}, NULL, false);
+/// qk_dag_apply_gate(dag_right, QkGate_Y, (uint32_t[]){1}, NULL, false);
+///
+/// // Build the following dag
+/// //          ┌───┐   
+/// // lqr_0: ──┤ H ├───
+/// //        ┌─┴───┴──┐
+/// // lqr_1: ┤ P(0.1) ├
+/// //        └────────┘
+/// QkDag *dag_left = qk_dag_new();
+/// QkQuantumRegister *lqr = qk_quantum_register_new(2, "lqr");
+/// qk_dag_add_quantum_register(dag_left, lqr);
+/// qk_dag_add_classical_register(dag_left, lcr);
+/// qk_dag_apply_gate(dag_left, QkGate_H, (uint32_t[]){0}, NULL, false);
+/// qk_dag_apply_gate(dag_left, QkGate_Phase, (uint32_t[]){1}, (double[]){0.1}, false);
+///
+/// // Compose left circuit onto right circuit
+/// // Should result in circuit
+/// //             ┌───┐          
+/// // rqr_0: ──■──┤ H ├──────────
+/// //          │  ├───┤┌────────┐
+/// // rqr_1: ──┼──┤ Y ├┤ P(0.1) ├
+/// //        ┌─┴─┐└───┘└────────┘
+/// // rqr_2: ┤ X ├───────────────
+/// //        └───┘               
+/// qk_dag_compose(dag_right, dag_left, NULL, NULL);
+///
+/// // Clean up after you're done
+/// qk_dag_free(dag_left);
+/// qk_dag_free(dag_right);
+/// qk_quantum_register_free(lqr);
+/// qk_quantum_register_free(rqr);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``dag`` or ``other`` are not valid, non-null pointers to a ``QkDag``.
+/// If ``qubit`` nor ``clbit`` are NULL, it must contains a less or equal amount
+/// than what the circuit owns.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_dag_compose(
+    dag: *mut DAGCircuit,
+    other: *const DAGCircuit,
+    qubits: *const u32,
+    clbits: *const u32,
+) -> ExitCode {
+    // SAFETY: Per documentation, the pointer is to valid data.
+    let dag = unsafe { mut_ptr_as_ref(dag) };
+    // SAFETY: Per documentation, the pointer is to valid data.
+    let other_dag = unsafe { const_ptr_as_ref(other) };
+
+    if other_dag.qubits().len() > dag.qubits().len()
+        || other_dag.clbits().len() > dag.clbits().len()
+    {
+        return ExitCode::DagComposeMismatch;
+    }
+
+    let qubits: Option<Vec<ShareableQubit>> = if check_ptr(qubits).is_ok() {
+        let qubits = unsafe { std::slice::from_raw_parts(qubits, other_dag.num_qubits()) };
+        let new_qubits: Result<Vec<ShareableQubit>, ExitCode> = qubits
+            .iter()
+            .map(|bit| -> Result<ShareableQubit, ExitCode> {
+                let Some(qubit) = dag.qubits().get(Qubit(*bit)) else {
+                    return Err(ExitCode::DagComposeMissingBit);
+                };
+                Ok(qubit.clone())
+            })
+            .collect();
+        match new_qubits {
+            Ok(qubits) => Some(qubits),
+            Err(err) => return err,
+        }
+    } else {
+        None
+    };
+
+    let clbits: Option<Vec<ShareableClbit>> = if check_ptr(clbits).is_ok() {
+        let clbits = unsafe { std::slice::from_raw_parts(clbits, other_dag.num_clbits()) };
+        let new_clbits: Result<Vec<ShareableClbit>, ExitCode> = clbits
+            .iter()
+            .map(|bit| -> Result<ShareableClbit, ExitCode> {
+                let Some(clbit) = dag.clbits().get(Clbit(*bit)) else {
+                    return Err(ExitCode::DagComposeMissingBit);
+                };
+                Ok(clbit.clone())
+            })
+            .collect();
+        match new_clbits {
+            Ok(clbits) => Some(clbits),
+            Err(err) => return err,
+        }
+    } else {
+        None
+    };
+
+    let block_map = other_dag
+        .blocks()
+        .items()
+        .map(|(index, block)| (index, dag.add_block(block.clone())))
+        .collect();
+    // Since we don't yet support vars in C, we can skip the inline_captures check.
+    dag.compose(
+        other_dag,
+        qubits.as_deref(),
+        clbits.as_deref(),
+        block_map,
+        false,
+    )
+    .expect("Error during circuit composition.");
+    ExitCode::Success
+}
+
+/// @ingroup QkDag
 /// Free the DAG.
 ///
 /// @param dag A pointer to the DAG to free.
@@ -1360,7 +1508,7 @@ pub unsafe extern "C" fn qk_dag_topological_op_nodes(dag: *const DAGCircuit, out
     // SAFETY: Per documentation, ``dag`` is non-null and valid.
     let dag = unsafe { const_ptr_as_ref(dag) };
 
-    let out_topological_op_nodes = dag.topological_op_nodes().unwrap();
+    let out_topological_op_nodes = dag.topological_op_nodes(false).unwrap();
 
     for (i, node) in out_topological_op_nodes.enumerate() {
         // SAFETY: per documentation, `out_order` is aligned and points to a valid
@@ -1368,4 +1516,132 @@ pub unsafe extern "C" fn qk_dag_topological_op_nodes(dag: *const DAGCircuit, out
         // writes of `u32`s.
         unsafe { out_order.add(i).write(node.index() as u32) }
     }
+}
+
+/// @ingroup QkDag
+/// Replace a node in a `QkDag` with a subcircuit specfied by another `QkDag`
+///
+/// @param dag A pointer to the DAG.
+/// @param node The node index of the operation to replace with the other `QkDag`. This
+///     must be the node index for an operation node in ``dag`` and the qargs and cargs
+///     count must match the number of qubits and clbits in `replacement`.
+/// @param replacement The other `QkDag` to replace `node` with. This dag must have
+///     the same number of qubits as the operation for ``node``. The node
+///     bit ordering will be ordering will be handled in order, so `qargs[0]` for
+///     `node` will be mapped to `qubits[0]` in `replacement`, `qargs[1]` to
+///     `qubits[0]`, etc. The same pattern applies to classical bits too.
+///
+/// # Example
+///
+/// ```c
+/// QkDag *dag = qk_dag_new();
+/// QkQuantumRegister *qr = qk_quantum_register_new(1, "my_register");
+/// qk_dag_add_quantum_register(dag, qr);
+///
+/// uint32_t qubit[1] = {0};
+/// uint32_t node_to_replace = qk_dag_apply_gate(dag, QkGate_H, qubit, NULL, false);
+/// qk_dag_apply_gate(dag, QkGate_S, qubit, NULL, false);
+///
+/// // Build replacement dag for H
+/// QkDag *replacement = qk_dag_new();
+/// QkQuantumRegister *replacement_qr = qk_quantum_register_new(1, "other");
+/// qk_dag_add_quantum_register(replacement, replacement_qr);
+/// double pi_param[1] = {3.14159};
+/// qk_dag_apply_gate(replacement, QkGate_RZ, qubit, pi_param, false);
+/// qk_dag_apply_gate(replacement, QkGate_SX, qubit, NULL, false);
+/// qk_dag_apply_gate(replacement, QkGate_RZ, qubit, pi_param, false);
+///
+/// qk_dag_substitute_node_with_dag(dag, node_to_replace, replacement);
+///
+/// // Free the replacement dag, register, dag, and register
+/// qk_quantum_register_free(replacement_qr);
+/// qk_dag_free(replacement);
+/// qk_quantum_register_free(qr);
+/// qk_dag_free(dag);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``dag`` and ``replacement`` are not a valid, non-null pointer to a
+/// ``QkDag``.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_dag_substitute_node_with_dag(
+    dag: *mut DAGCircuit,
+    node: u32,
+    replacement: *const DAGCircuit,
+) {
+    // SAFETY: Per documentation, ``dag`` is non-null and valid.
+    let dag = unsafe { mut_ptr_as_ref(dag) };
+    // SAFETY: Per documentation, ``replacement`` is non-null and valid.
+    let replacement = unsafe { const_ptr_as_ref(replacement) };
+
+    if let Err(e) = dag.substitute_node_with_dag(
+        NodeIndex::new(node as usize),
+        replacement,
+        None,
+        None,
+        None,
+        None,
+    ) {
+        let err: Error = e.into();
+        panic!("Node substitution failed with: {}", err.backtrace());
+    }
+}
+
+/// @ingroup QkDag
+/// Return a copy of self with the same structure but empty.
+///
+/// That structure includes:
+/// * name and other metadata
+/// * global phase
+/// * duration
+/// * all the qubits and clbits, including the registers.
+///
+/// @param dag A pointer to the DAG to copy.
+/// @param vars_mode The mode for handling classical variables.
+/// @param blocks_mode The mode for handling blocks.
+///
+/// @return The pointer to the copied DAG circuit.
+///
+/// # Example
+///
+/// ```c
+/// QkDag *dag = qk_dag_new();
+/// QkQuantumRegister *qr = qk_quantum_register_new(1, "my_register");
+/// qk_dag_add_quantum_register(dag, qr);
+///
+/// uint32_t qubit[1] = {0};
+/// qk_dag_apply_gate(dag, QkGate_H, qubit, NULL, false);
+///
+/// // As the DAG does not contain any control-flow instructions,
+/// // vars_mode and blocks_mode do not have any effect.
+/// QkDag *copied_dag = qk_dag_copy_empty_like(dag, QkVarsMode_Alike, QkBlocksMode_Drop);
+/// uint32_t num_ops_in_copied_dag = qk_dag_num_op_nodes(copied_dag); // 0
+///
+/// // do something with copied_dag
+///
+/// qk_quantum_register_free(qr);
+/// qk_dag_free(dag);
+/// qk_dag_free(copied_dag);
+/// ```
+/// # Safety
+///
+/// Behavior is undefined if ``dag`` is not a valid pointer to a ``QkDag``.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_dag_copy_empty_like(
+    dag: *const DAGCircuit,
+    vars_mode: CVarsMode,
+    blocks_mode: CBlocksMode,
+) -> *mut DAGCircuit {
+    // SAFETY: Per documentation, the pointer is to valid data.
+    let dag = unsafe { const_ptr_as_ref(dag) };
+    let vars_mode = vars_mode.into();
+    let blocks_mode = blocks_mode.into();
+
+    let copied_dag = dag
+        .copy_empty_like_with_capacity(0, 0, vars_mode, blocks_mode)
+        .expect("Failed to copy the DAG.");
+    Box::into_raw(Box::new(copied_dag))
 }

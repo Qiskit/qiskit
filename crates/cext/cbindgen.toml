@@ -11,6 +11,7 @@ after_includes = """
 #endif
 
 #include "qiskit/version.h"
+#include "qiskit/attributes.h"
 #include "qiskit/complex.h"
 
 // Always expose [cfg(feature = "cbinding")] -- workaround for
@@ -32,6 +33,11 @@ include = ["qiskit-quantum-info", "qiskit-circuit", "qiskit-transpiler"]
 [enum]
 prefix_with_name = true
 
+[fn]
+# These are defined in the custom `qiskit/attributes.h` header file.
+deprecated = "Qk_DEPRECATED_FN"
+deprecated_with_note = "Qk_DEPRECATED_FN_NOTE({})"
+
 [export]
 prefix = "Qk"
 
@@ -44,6 +50,10 @@ prefix = "Qk"
 "StandardGate" = "Gate"
 "CInstruction" = "CircuitInstruction"
 "CDelayUnit" = "DelayUnit"
+"CInstructionProperties" = "InstructionProperties"
 "CNeighbors" = "Neighbors"
 "COperationKind" = "OperationKind"
 "CDagNeighbors" = "DagNeighbors"
+"CVarsMode" = "VarsMode"
+"CBlocksMode" = "BlocksMode"
+"CTargetOp" = "TargetOp"

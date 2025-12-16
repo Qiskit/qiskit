@@ -34,7 +34,7 @@ use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::parameter::symbol_expr::Symbol;
 use qiskit_circuit::parameter::symbol_expr::SymbolExpr;
 use qiskit_circuit::parameter::symbol_expr::Value;
-use qiskit_circuit::{Clbit, PhysicalQubit, Qubit, VarsMode};
+use qiskit_circuit::{BlocksMode, Clbit, PhysicalQubit, Qubit, VarsMode};
 use qiskit_circuit::{
     dag_circuit::DAGCircuit,
     operations::{Operation, OperationRef, PythonOperation},
@@ -336,11 +336,15 @@ fn apply_translation(
     qarg_mapping: Option<&HashMap<Qubit, Qubit>>,
 ) -> Result<(DAGCircuit, bool), BasisTranslatorError> {
     let mut is_updated = false;
-    let out_dag = dag.copy_empty_like(VarsMode::Alike).map_err(|_| {
-        BasisTranslatorError::BasisDAGCircuitError("Error copying DAGCircuit instance".to_string())
-    })?;
+    let out_dag = dag
+        .copy_empty_like(VarsMode::Alike, BlocksMode::Keep)
+        .map_err(|_| {
+            BasisTranslatorError::BasisDAGCircuitError(
+                "Error copying DAGCircuit instance".to_string(),
+            )
+        })?;
     let mut out_dag_builder = out_dag.into_builder();
-    for node in dag.topological_op_nodes().map_err(|_| {
+    for node in dag.topological_op_nodes(false).map_err(|_| {
         BasisTranslatorError::BasisDAGCircuitError("Error retrieving Op nodes from DAG".to_string())
     })? {
         let node_obj = dag[node].unwrap_operation();
@@ -501,8 +505,8 @@ fn replace_node(
             target_dag: format!("{:?}", target_dag),
         });
     }
-    if params_view.is_empty() {
-        for inner_index in target_dag.topological_op_nodes().map_err(|_| {
+    if node.params_view().is_empty() {
+        for inner_index in target_dag.topological_op_nodes(false).map_err(|_| {
             BasisTranslatorError::BasisDAGCircuitError(
                 "Error retrieving Op nodes from DAG".to_string(),
             )
@@ -574,7 +578,7 @@ fn replace_node(
                     _ => None,
                 }),
         );
-        for inner_index in target_dag.topological_op_nodes().map_err(|_| {
+        for inner_index in target_dag.topological_op_nodes(false).map_err(|_| {
             BasisTranslatorError::BasisDAGCircuitError(
                 "Error retrieving Op nodes from DAG".to_string(),
             )
