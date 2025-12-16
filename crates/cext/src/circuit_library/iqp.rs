@@ -14,37 +14,35 @@ use ndarray::ArrayView2;
 use qiskit_circuit::{circuit_data::CircuitData, operations::Param};
 use qiskit_circuit_library::iqp::{check_symmetric, iqp, py_random_iqp};
 
-/// Generate an IQP circuit from an integer interaction matrix.
+/// @ingroup QkCircuitLibrary
+/// Generate an Instantaneous Quantum Polynomial (IQP) circuit from an
+/// integer interaction matrix.
 ///
-/// The `interactions` matrix is interpreted as an `n x n` row-major array of
+/// The `interactions` matrix is interpreted as an `n × n` row-major array of
 /// 64-bit integers, where `n = num_qubits`. The diagonal entries set T-like
 /// phase powers, and the upper triangle encodes two-qubit CPhase interactions.
 ///
-/// # Parameters
+/// @param num_qubits  Number of logical qubits (`n`). Must match the dimension
+///                    of the `interactions` matrix.
+/// @param interactions  Pointer to a row-major `n × n` matrix of type
+///                      `int64_t`. May be NULL only if `num_qubits == 0`.
+/// @param check_input  When `true`, this function verifies that the matrix is
+///                     symmetric and returns `NULL` if it is not. When `false`,
+///                     no additional validation is performed.
 ///
-/// - `num_qubits`: Number of logical qubits (`n`). Must match the dimension of
-///   the `interactions` matrix.
-/// - `interactions`: Pointer to a row-major `n x n` matrix of type `int64_t`.
-/// - `check_input`: When `true`, this function verifies that the matrix is
-///   symmetric and returns `NULL` if it is not. When `false`, no additional
-///   validation is performed.
-///
-/// # Returns
-///
-/// - A newly allocated `QkCircuit*` on success (caller must free with
-///   `qk_circuit_free`).
-/// - `NULL` if `num_qubits > 0` and `interactions` is `NULL`, or if
-///   `check_input` is `true` and the matrix is not symmetric.
+/// @return A newly allocated `QkCircuit*` on success (caller must free with
+///         `qk_circuit_free`), or `NULL` if `num_qubits > 0` and
+///         `interactions` is `NULL`, or if `check_input` is `true` and the
+///         matrix is not symmetric.
 ///
 /// # Safety
 ///
-/// - If `num_qubits > 0`, `interactions` **must** be a valid, non-null pointer
-///   to at least `num_qubits * num_qubits` contiguous `i64` values in
-///   row-major order.
-/// - The memory pointed to by `interactions` must be properly aligned, readable
-///   for the duration of this call, and not mutably aliased.
-/// - Passing an invalid pointer or a buffer that is too small results in
-///   undefined behaviour.
+/// If `num_qubits > 0`, `interactions` **must** be a valid, non-null pointer
+/// to at least `num_qubits * num_qubits` contiguous `i64` values in row-major
+/// order. The memory pointed to by `interactions` must be properly aligned,
+/// readable for the duration of this call, and not mutably aliased. Passing an
+/// invalid pointer or a buffer that is too small results in undefined
+/// behaviour.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_library_iqp(
@@ -91,14 +89,19 @@ pub unsafe extern "C" fn qk_circuit_library_iqp(
     Box::into_raw(Box::new(circuit_data))
 }
 
-/// Generate a random IQP circuit.
+/// @ingroup QkCircuitLibrary
+/// Generate a random Instantaneous Quantum Polynomial (IQP) circuit.
 ///
-/// # Parameters
-/// - `num_qubits`: Number of qubits.
-/// - `seed`: RNG seed. If negative, entropy is drawn from the OS.
+/// This constructs a random symmetric integer interaction matrix internally
+/// and uses it to build an IQP circuit, mirroring the Python
+/// `qiskit.circuit.library.IQP` constructor.
 ///
-/// # Returns
-/// - A newly allocated `QkCircuit*` (caller must free with `qk_circuit_free`).
+/// @param num_qubits  Number of qubits.
+/// @param seed        RNG seed. If negative, entropy is drawn from the OS;
+///                    otherwise, the given value is used as a deterministic
+///                    seed.
+///
+/// @return A newly allocated `QkCircuit*` (caller must free with `qk_circuit_free`).
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub extern "C" fn qk_circuit_library_random_iqp(num_qubits: u32, seed: i64) -> *mut CircuitData {
