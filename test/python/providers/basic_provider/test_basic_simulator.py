@@ -401,7 +401,7 @@ class TestBasicSimulator(QiskitTestCase, BasicProviderBackendTestMixin):
     def test_large_clifford_circuit_performance(self):
         """Test that large Clifford circuits can be simulated efficiently."""
         # Create a larger Clifford circuit (would be slow with statevector)
-        num_qubits = 10
+        num_qubits = 32
         qc = QuantumCircuit(num_qubits, num_qubits)
 
         # Build a GHZ-like state (all Clifford gates)
@@ -412,7 +412,9 @@ class TestBasicSimulator(QiskitTestCase, BasicProviderBackendTestMixin):
 
         # Should complete without timeout
         shots = 100
-        result = self.backend.run(qc, shots=shots, seed_simulator=self.seed).result()
+        result = self.backend.run(
+            qc, shots=shots, seed_simulator=self.seed, use_clifford_optimization=True
+        ).result()
         counts = result.get_counts()
 
         self.assertEqual(sum(counts.values()), shots)
