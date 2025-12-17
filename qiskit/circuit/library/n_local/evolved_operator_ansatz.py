@@ -25,7 +25,7 @@ from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parametervector import ParameterVector
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.quantum_info import Operator, Pauli, SparsePauliOp
+from qiskit.quantum_info import Operator, Pauli, SparsePauliOp, SparseObservable
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.synthesis.evolution.product_formula import real_or_fail
 
@@ -36,10 +36,6 @@ from .n_local import NLocal
 if typing.TYPE_CHECKING:
     from qiskit.synthesis.evolution import EvolutionSynthesis
 
-try:
-    from qiskit.quantum_info import SparseObservable
-except ImportError:
-    SparseObservable = None
 
 
 def evolved_operator_ansatz(
