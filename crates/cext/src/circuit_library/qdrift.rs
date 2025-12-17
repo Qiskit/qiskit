@@ -46,9 +46,11 @@ fn qdrift_build_circuit(
         return Err(ExitCode::CInputError);
     }
 
-    // If the observable contains projectors, convert to Paulis
-    let pauli_obs = obs.as_paulis();
-    let obs = &pauli_obs;
+    // If the observable contains projectors, return an error. 
+    // User should explicitly opt in to Pauli decomposition.
+    if obs.bit_terms().iter().any(|b| b.is_projector()) {
+        return Err(ExitCode::CInputError);
+    }
 
     let bit_terms = obs.bit_terms();
     let boundaries = obs.boundaries();
