@@ -962,6 +962,35 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
 }
 
 /// @ingroup QkCircuit
+/// Get the global phase of the circuit.
+///
+/// @param circuit A pointer to the circuit.
+///
+/// @return The global phase of the circuit as a float.
+///
+/// # Example
+/// ```c
+///  QkCircuit *qc = qk_circuit_new(1, 0);
+///  double phase = qk_circuit_get_global_phase(qc);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_circuit_get_global_phase(circuit: *const CircuitData) -> f64 {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let circuit = unsafe { const_ptr_as_ref(circuit) };
+
+    match circuit.global_phase() {
+        Param::Float(v) => *v,
+        // Should never be possible
+        _ => panic!("Global phase is not a float"),
+    }
+}
+
+/// @ingroup QkCircuit
 /// Clear the data in circuit instruction object.
 ///
 /// This function doesn't free the allocation for the provided ``QkCircuitInstruction`` pointer, it

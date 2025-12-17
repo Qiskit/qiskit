@@ -1,0 +1,17 @@
+---
+features_c:
+  - |
+    Introduced a new feature in the C API circuit library to synthesize QDRIFT
+    circuits. The function `qk_circuit_library_qdrift` allows users to create
+    quantum circuits that approximate the time evolution under a given sparse
+    observable using the QDRIFT algorithm. For example.. code-block:: c
+
+        #include <qiskit.h>
+        // Create a sparse observable representing the Hamiltonian
+        QkObs *obs = qk_obs_zero(2); // 2-qubit observable
+        // Add terms to the observable (e.g., Pauli strings with coefficients)
+        QkBitTerm bit_term[2] = {QkBitTerm_Z, QkBitTerm_Z};
+        QkComplex64 coeff = {1, 0};
+        uint32_t indices[2] = {0, 1};
+        QkObsTerm term_2 = {coeff, 2, bit_term, indices, 2};
+        code = qk_obs_add_term(obs, &term_2);
