@@ -119,55 +119,40 @@ fn qdrift_build_circuit(
 
     let rescaled_time = 2.0 * lambda / num_gates as f64 * time;
 
-    // sample term indices (0..n_terms)
-    let sampled_indices: Vec<usize> = (0..num_gates).map(|_| dist.sample(&mut rng)).collect();
-    let mut pauli_strings: Vec<String> = Vec::with_capacity(num_gates);
-    let mut pauli_indices: Vec<Vec<u32>> = Vec::with_capacity(num_gates);
-    let mut pauli_thetas: Vec<Param> = Vec::with_capacity(num_gates);
-    for i in sampled_indices {
-        let start = boundaries[i];
-        let end = boundaries[i + 1];
+    let evos = (0..num_gates)
+        .map(|_| dist.sample(&mut rng))
+        .filter_map(|i| {
+            let start = boundaries[i];
+            let end = boundaries[i + 1];
+            if start == end {
+                return None; // identity term: skip
+            }
 
-        if start == end {
-            // identity term, skip
-            continue;
-        }
+            let term_bits = &bit_terms[start..end];
+            let term_indices = &indices[start..end];
+            debug_assert_eq!(term_bits.len(), term_indices.len());
 
-        let term_bits = &bit_terms[start..end];
-        let term_indices = &indices[start..end];
-        debug_assert_eq!(term_bits.len(), term_indices.len());
+            let theta = signs[i] * rescaled_time;
 
-        let theta = signs[i] * rescaled_time;
+            // length of pauli string is number of terms
+            let mut pauli_string = String::with_capacity(term_bits.len());
+            for bit in term_bits.iter() {
+                pauli_string.push_str(bit.py_label());
+            }
 
-        let mut pauli_chars = vec!["I"; num_qubits as usize];
-        for (bit, &idx) in term_bits.iter().zip(term_indices.iter()) {
-            pauli_chars[idx as usize] = bit.py_label();
-        }
-        let pauli_string: String = pauli_chars.join("");
-        let dense_indices: Vec<u32> = (0..num_qubits).collect();
-
-        pauli_strings.push(pauli_string);
-        pauli_indices.push(dense_indices);
-        pauli_thetas.push(Param::Float(theta));
-    }
-
-    // Construct the evolutions
-    let evos = pauli_strings
-        .iter()
-        .zip(pauli_indices)
-        .zip(pauli_thetas)
-        .flat_map(move |((pauli_str, idxs), time_param)| {
-            let inner = sparse_term_evolution(
-                pauli_str.as_str(),
+            Some((pauli_string, theta, term_indices.to_vec()))
+        })
+        .flat_map(move |(pauli_string, theta, idxs)| {
+            let insts: Vec<Instruction> = sparse_term_evolution(
+                pauli_string.as_str(),
                 idxs,
-                time_param,
-                false, // no phase gate for Paulis
-                false, // use chain CX structure
-            );
-            // This will never return a PyErr, so we can safely infer the error type
-            // Infallible will not work directly since CircuitData::from_packed_operations expects
-            // the items in the iterator to be PyResult<_>
-            inner.map(|inst: Instruction| Ok::<Instruction, _>(inst))
+                Param::Float(theta),
+                false,
+                false,
+            )
+            .collect();
+
+            insts.into_iter().map(Ok::<Instruction, _>)
         });
 
     CircuitData::from_packed_operations(num_qubits, 0, evos, global_phase)
