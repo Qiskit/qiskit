@@ -1498,8 +1498,8 @@ pub unsafe extern "C" fn qk_circuit_inst_pauli_product_measurement(
 ///
 /// # Example
 /// ```c
-///    QkCircuit *qc = qk_circuit_new(1, 0);
-///   double phase = qk_circuit_get_global_phase(qc);
+///  QkCircuit *qc = qk_circuit_new(1, 0);
+///  double phase = qk_circuit_get_global_phase(qc);
 /// ```
 ///
 /// # Safety
