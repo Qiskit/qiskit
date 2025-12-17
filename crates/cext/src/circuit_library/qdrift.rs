@@ -26,7 +26,7 @@ use rand::distr::{Distribution, weighted::WeightedIndex};
 use std::ptr;
 
 /// Internal helper to extract real part of a complex number,
-/// panicking if imaginary part is non-zero.
+/// returning an error if imaginary part is non-zero.
 fn approx_real(z: &Complex64) -> Result<f64, ExitCode> {
     if z.im.abs() > 1e-12 {
         return Err(ExitCode::CInputError);
