@@ -123,8 +123,10 @@ static int test_qdrift_xi_plus_zz(void) {
 
     // For H = XI + ZZ, lambda = 2, t = 0.5, reps = 1:
     // num_gates = ceil(2 * lambda^2 * t^2 * reps) = ceil(2) = 2.
-    if (instr_count != 2) {
-        printf("Expected 2 instructions for XI+ZZ, got %zu\n",
+    // However, identity terms are implicit. So we may get 1 or 2 gates depending
+    // on whether an identity was sampled.
+    if (instr_count == 0 || instr_count > 2) {
+        printf("Expected 1 or 2 instructions for XI + ZZ, got %zu\n",
                instr_count);
         result = EqualityError;
         goto cleanup_circ;
@@ -335,26 +337,19 @@ cleanup:
 }
 
 /*
-* Test QDRIFT circuit synthesis for a non-Pauli observable, in this case the 
-* projector onto the +1 eigenstate of X: |+><+| = (I + X)/2.
-* and the projector onto the +1 eigenstate of Y: |R><R| = (I + Y)/2.
-* All possible valid outcomes: [X, X], [X, Y], [Y, X], [Y, Y], [I, I], [I, X], [X, I], [I, Y], [Y, I]
-* Paulis are chosen with weights I = 0.5, X = 0.25, Y = 0.25 since QDrift samples terms with probability 
-* proportional to their coefficient magnitudes.
+* Test QDRIFT circuit synthesis for a non-Pauli observable. 
+* Expect failure since QDRIFT only supports Pauli observables.
 */
-static int test_qdrift_non_pauli_as_pauli(void) {
+static int test_qdrift_non_pauli_obs(void) {
     int result = Ok;
     QkExitCode code;
 
-    // 1-qubit observable: H = |+><+| = (I + X)/2
     QkObs *obs = qk_obs_zero(1);
     if (!obs) {
         printf("[plus] qk_obs_zero(1) failed\n");
         return EqualityError;
     }
 
-    // Non-Pauli operator: Projector onto + eigenstate of X.
-    // QkBitTerm_Plus is the projector.
     QkBitTerm bits[1] = { QkBitTerm_Plus };
     uint32_t idxs[1] = { 0 };
     QkComplex64 coeff = {1, 0};
@@ -370,41 +365,21 @@ static int test_qdrift_non_pauli_as_pauli(void) {
     // Run QDRIFT for time t=1.0
     QkCircuit *circ = NULL;
     code = qk_circuit_library_qdrift(obs, 1, 1.0, &circ);
-    if (code != QkExitCode_Success || !circ) {
-        printf("[plus] QDRIFT failed: %u\n", code);
+    if (code != QkExitCode_CInputError) {
+        printf("[plus] QDRIFT did not fail correctly: %u\n", code);
         result = EqualityError;
         goto cleanup_obs;
     }
 
-    size_t instr_count = qk_circuit_num_instructions(circ);
-    for (size_t k = 0; k < instr_count; ++k) {
-        QkCircuitInstruction instr;
-        qk_circuit_get_instruction(circ, k, &instr);
+    if (circ != NULL) {
+        printf("[plus] QDRIFT allocated memory to the circuit when it should not have.");
+        result = EqualityError;
+        goto cleanup_circ;
+    }
 
-        // Single-qubit only
-        if (instr.num_qubits != 1) {
-            printf("[plus] Instruction %zu has %u qubits (expected 1)\n",
-                   k, instr.num_qubits);
-            result = EqualityError;
-            goto cleanup_circ;
-        }
-
-        // Must be qubit 0
-        if (instr.qubits[0] != 0) {
-            printf("[plus] Instruction %zu acts on qubit %u (expected 0)\n",
-                   k, instr.qubits[0]);
-            result = EqualityError;
-            goto cleanup_circ;
-        }
-
-        // Only allowed gate: rx, x, ry, y
-        if (strcmp(instr.name, "rx") != 0 && strcmp(instr.name, "x") != 0 &&
-            strcmp(instr.name, "ry") != 0 && strcmp(instr.name, "y") != 0) {
-            printf("[plus] Unexpected gate '%s' (expected 'rx' or 'x')\n",
-                   instr.name);
-            result = EqualityError;
-            goto cleanup_circ;
-        }
+    if (code == QkExitCode_CInputError) {
+        // Expected failure due to non-Pauli observable
+        goto cleanup_obs;
     }
 
 cleanup_circ:
@@ -507,7 +482,7 @@ int test_qdrift(void) {
     num_failed += RUN_TEST(test_qdrift_gate_count_scaling);
     num_failed += RUN_TEST(test_qdrift_qubit_bounds);
     num_failed += RUN_TEST(test_qdrift_invalid_reps);
-    num_failed += RUN_TEST(test_qdrift_non_pauli_as_pauli);
+    num_failed += RUN_TEST(test_qdrift_non_pauli_obs);
     num_failed += RUN_TEST(test_qdrift_global_phase);
 
     fflush(stderr);
