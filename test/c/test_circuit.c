@@ -170,6 +170,34 @@ static int test_circuit_copy_with_instructions(void) {
     return Ok;
 }
 
+static int test_circuit_copy_empty_like(void) {
+    QkCircuit *qc = qk_circuit_new(10, 10);
+    for (int i = 0; i < 10; i++) {
+        qk_circuit_measure(qc, i, i);
+        uint32_t qubits[1] = {i};
+        qk_circuit_gate(qc, QkGate_H, qubits, NULL);
+    }
+    QkCircuit *copy = qk_circuit_copy_empty_like(qc, QkVarsMode_Alike, QkBlocksMode_Drop);
+
+    size_t num_instructions = qk_circuit_num_instructions(qc);        // not 0
+    size_t num_copy_instructions = qk_circuit_num_instructions(copy); // 0
+
+    qk_circuit_free(qc);
+    qk_circuit_free(copy);
+
+    if (num_instructions == 0) {
+        printf("Expected the original circuit to remain unchanged, but it is now empty\n");
+        return EqualityError;
+    }
+
+    if (num_copy_instructions != 0) {
+        printf("Expected no operations in the copied-empty-like circuit, but got %zu\n",
+               num_copy_instructions);
+        return EqualityError;
+    }
+    return Ok;
+}
+
 static int test_no_gate_1000_bits(void) {
     QkCircuit *qc = qk_circuit_new(1000, 1000);
     uint32_t num_qubits = qk_circuit_num_qubits(qc);
@@ -964,6 +992,7 @@ int test_circuit(void) {
     num_failed += RUN_TEST(test_circuit_with_classical_reg);
     num_failed += RUN_TEST(test_circuit_copy);
     num_failed += RUN_TEST(test_circuit_copy_with_instructions);
+    num_failed += RUN_TEST(test_circuit_copy_empty_like);
     num_failed += RUN_TEST(test_no_gate_1000_bits);
     num_failed += RUN_TEST(test_get_gate_counts);
     num_failed += RUN_TEST(test_get_gate_counts_bv_no_measure);

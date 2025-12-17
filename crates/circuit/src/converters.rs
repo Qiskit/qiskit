@@ -17,9 +17,7 @@ use crate::bit::{ShareableClbit, ShareableQubit};
 use crate::circuit_data::{CircuitData, CircuitVar};
 use crate::dag_circuit::DAGIdentifierInfo;
 use crate::dag_circuit::{DAGCircuit, NodeType};
-use crate::object_registry::{ObjectRegistry, PyObjectAsKey};
 use crate::operations::{OperationRef, PythonOperation};
-use crate::{Block, imports};
 
 /// An extractable representation of a QuantumCircuit reserved only for
 /// conversion purposes.
@@ -57,22 +55,9 @@ pub fn circuit_to_dag(
 
 #[pyfunction(signature = (dag, copy_operations = true))]
 pub fn dag_to_circuit(dag: &DAGCircuit, copy_operations: bool) -> PyResult<CircuitData> {
-    let blocks = {
-        let dag_blocks = dag.iter_blocks();
-        let mut registry: ObjectRegistry<Block, PyObjectAsKey> =
-            ObjectRegistry::with_capacity(dag_blocks.len());
-        if dag_blocks.len() > 0 {
-            Python::attach(|py| -> PyResult<()> {
-                let dag_to_circuit = imports::DAG_TO_CIRCUIT.get_bound(py);
-                for dag_block in dag_blocks {
-                    let block = dag_to_circuit.call1((dag_block.clone(),))?;
-                    registry.add(PyObjectAsKey::new(&block), false)?;
-                }
-                Ok(())
-            })?
-        }
-        registry
-    };
+    let blocks = dag
+        .blocks()
+        .try_map_without_references(|block| dag_to_circuit(block, copy_operations))?;
     CircuitData::from_packed_instructions(
         dag.qubits().clone(),
         dag.clbits().clone(),
@@ -83,7 +68,7 @@ pub fn dag_to_circuit(dag: &DAGCircuit, copy_operations: bool) -> PyResult<Circu
         dag.cregs_data().clone(),
         dag.qubit_locations().clone(),
         dag.clbit_locations().clone(),
-        dag.topological_op_nodes()?.map(|node_index| {
+        dag.topological_op_nodes(false)?.map(|node_index| {
             let NodeType::Operation(ref instr) = dag[node_index] else {
                 unreachable!(
                     "The received node from topological_op_nodes() is not an Operation node."

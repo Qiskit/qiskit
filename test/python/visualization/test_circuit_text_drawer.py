@@ -1594,7 +1594,7 @@ class TestTextDrawerLabels(QiskitTestCase):
             ]
         )
         circuit = QuantumCircuit(2)
-        circuit.append(HGate(label="an H gate").control(1), [0, 1])
+        circuit.append(HGate(label="an H gate").control(1, annotated=False), [0, 1])
 
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
@@ -1611,7 +1611,7 @@ class TestTextDrawerLabels(QiskitTestCase):
         )
 
         circuit = QuantumCircuit(2)
-        circuit.append(HGate().control(1, label="a controlled H gate"), [0, 1])
+        circuit.append(HGate().control(1, annotated=False, label="a controlled H gate"), [0, 1])
 
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
@@ -1895,7 +1895,7 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
         qr = QuantumRegister(2, "q")
         circ = QuantumCircuit(qr)
         hgate = HGate(label="my h")
-        controlh = hgate.control(label="my ch")
+        controlh = hgate.control(annotated=False, label="my ch")
         circ.append(hgate, [0])
         circ.append(controlh, [0, 1])
         circ.append(controlh, [1, 0])
@@ -2645,7 +2645,7 @@ class TestTextControlledGate(QiskitTestCase):
         )
         qr = QuantumRegister(3, "q")
         circuit = QuantumCircuit(qr)
-        circuit.append(HGate().control(2), [qr[0], qr[1], qr[2]])
+        circuit.append(HGate().control(2, annotated=False), [qr[0], qr[1], qr[2]])
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
     def test_cch_mid(self):
@@ -2663,7 +2663,7 @@ class TestTextControlledGate(QiskitTestCase):
         )
         qr = QuantumRegister(3, "q")
         circuit = QuantumCircuit(qr)
-        circuit.append(HGate().control(2), [qr[0], qr[2], qr[1]])
+        circuit.append(HGate().control(2, annotated=False), [qr[0], qr[2], qr[1]])
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
     def test_cch_top(self):
@@ -2681,7 +2681,7 @@ class TestTextControlledGate(QiskitTestCase):
         )
         qr = QuantumRegister(3, "q")
         circuit = QuantumCircuit(qr)
-        circuit.append(HGate().control(2), [qr[2], qr[1], qr[0]])
+        circuit.append(HGate().control(2, annotated=False), [qr[2], qr[1], qr[0]])
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
     def test_c3h(self):
@@ -2701,7 +2701,7 @@ class TestTextControlledGate(QiskitTestCase):
         )
         qr = QuantumRegister(4, "q")
         circuit = QuantumCircuit(qr)
-        circuit.append(HGate().control(3), [qr[0], qr[1], qr[2], qr[3]])
+        circuit.append(HGate().control(3, annotated=False), [qr[0], qr[1], qr[2], qr[3]])
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
     def test_c3h_middle(self):
@@ -2721,7 +2721,7 @@ class TestTextControlledGate(QiskitTestCase):
         )
         qr = QuantumRegister(4, "q")
         circuit = QuantumCircuit(qr)
-        circuit.append(HGate().control(3), [qr[0], qr[3], qr[2], qr[1]])
+        circuit.append(HGate().control(3, annotated=False), [qr[0], qr[3], qr[2], qr[1]])
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
     def test_c3u2(self):
@@ -2741,7 +2741,9 @@ class TestTextControlledGate(QiskitTestCase):
         )
         qr = QuantumRegister(4, "q")
         circuit = QuantumCircuit(qr)
-        circuit.append(U2Gate(pi, -5 * pi / 8).control(3), [qr[0], qr[3], qr[2], qr[1]])
+        circuit.append(
+            U2Gate(pi, -5 * pi / 8).control(3, annotated=False), [qr[0], qr[3], qr[2], qr[1]]
+        )
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
     def test_controlled_composite_gate_edge(self):
@@ -2765,7 +2767,7 @@ class TestTextControlledGate(QiskitTestCase):
         ghz_circuit.cx(0, 1)
         ghz_circuit.cx(1, 2)
         ghz = ghz_circuit.to_gate()
-        cghz = ghz.control(1)
+        cghz = ghz.control(1, annotated=False)
         circuit = QuantumCircuit(4)
         circuit.append(cghz, [1, 0, 2, 3])
 
@@ -2791,7 +2793,7 @@ class TestTextControlledGate(QiskitTestCase):
         ghz_circuit.cx(0, 1)
         ghz_circuit.cx(1, 2)
         ghz = ghz_circuit.to_gate()
-        cghz = ghz.control(1)
+        cghz = ghz.control(1, annotated=False)
         circuit = QuantumCircuit(4)
         circuit.append(cghz, [0, 1, 3, 2])
 
@@ -2817,7 +2819,7 @@ class TestTextControlledGate(QiskitTestCase):
         ghz_circuit.cx(0, 1)
         ghz_circuit.cx(1, 2)
         ghz = ghz_circuit.to_gate()
-        cghz = ghz.control(1)
+        cghz = ghz.control(1, annotated=False)
         circuit = QuantumCircuit(4)
         circuit.append(cghz, [3, 1, 0, 2])
 
@@ -2845,7 +2847,7 @@ class TestTextControlledGate(QiskitTestCase):
         ghz_circuit.cx(0, 1)
         ghz_circuit.cx(1, 2)
         ghz = ghz_circuit.to_gate()
-        ccghz = ghz.control(2)
+        ccghz = ghz.control(2, annotated=False)
         circuit = QuantumCircuit(5)
         circuit.append(ccghz, [4, 0, 1, 2, 3])
 
@@ -2875,7 +2877,7 @@ class TestTextControlledGate(QiskitTestCase):
         ghz_circuit.cx(0, 1)
         ghz_circuit.cx(1, 2)
         ghz = ghz_circuit.to_gate()
-        ccghz = ghz.control(3)
+        ccghz = ghz.control(3, annotated=False)
         circuit = QuantumCircuit(6)
         circuit.append(ccghz, [0, 2, 5, 1, 3, 4])
 
@@ -2903,7 +2905,7 @@ class TestTextControlledGate(QiskitTestCase):
         ghz_circuit.cx(0, 1)
         ghz_circuit.cx(1, 2)
         ghz = ghz_circuit.to_gate()
-        ccghz = ghz.control(2)
+        ccghz = ghz.control(2, annotated=False)
         circuit = QuantumCircuit(5)
         circuit.append(ccghz, [4, 0, 1, 2, 3])
 
@@ -2926,7 +2928,7 @@ class TestTextOpenControlledGate(QiskitTestCase):
         # fmt: on
         qr = QuantumRegister(2, "q")
         circuit = QuantumCircuit(qr)
-        circuit.append(HGate().control(1, ctrl_state=0), [qr[0], qr[1]])
+        circuit.append(HGate().control(1, ctrl_state=0, annotated=False), [qr[0], qr[1]])
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
     def test_cz_bot(self):
@@ -2940,7 +2942,7 @@ class TestTextOpenControlledGate(QiskitTestCase):
         # fmt: on
         qr = QuantumRegister(2, "q")
         circuit = QuantumCircuit(qr)
-        circuit.append(ZGate().control(1, ctrl_state=0), [qr[0], qr[1]])
+        circuit.append(ZGate().control(1, ctrl_state=0, annotated=False), [qr[0], qr[1]])
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
     def test_ccz_bot(self):
@@ -2958,7 +2960,7 @@ class TestTextOpenControlledGate(QiskitTestCase):
         )
         qr = QuantumRegister(3, "q")
         circuit = QuantumCircuit(qr)
-        circuit.append(ZGate().control(2, ctrl_state="01"), [qr[0], qr[1], qr[2]])
+        circuit.append(ZGate().control(2, ctrl_state="01", annotated=False), [qr[0], qr[1], qr[2]])
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
     def test_cch_bot(self):
@@ -2976,7 +2978,7 @@ class TestTextOpenControlledGate(QiskitTestCase):
         )
         qr = QuantumRegister(3, "q")
         circuit = QuantumCircuit(qr)
-        circuit.append(HGate().control(2, ctrl_state="10"), [qr[0], qr[1], qr[2]])
+        circuit.append(HGate().control(2, ctrl_state="10", annotated=False), [qr[0], qr[1], qr[2]])
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
     def test_cch_mid(self):
@@ -2994,7 +2996,7 @@ class TestTextOpenControlledGate(QiskitTestCase):
         )
         qr = QuantumRegister(3, "q")
         circuit = QuantumCircuit(qr)
-        circuit.append(HGate().control(2, ctrl_state="10"), [qr[0], qr[2], qr[1]])
+        circuit.append(HGate().control(2, ctrl_state="10", annotated=False), [qr[0], qr[2], qr[1]])
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
     def test_cch_top(self):
@@ -3012,7 +3014,7 @@ class TestTextOpenControlledGate(QiskitTestCase):
         )
         qr = QuantumRegister(3, "q")
         circuit = QuantumCircuit(qr)
-        circuit.append(HGate().control(2, ctrl_state="10"), [qr[1], qr[2], qr[0]])
+        circuit.append(HGate().control(2, ctrl_state="10", annotated=False), [qr[1], qr[2], qr[0]])
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
     def test_c3h(self):
@@ -3032,7 +3034,9 @@ class TestTextOpenControlledGate(QiskitTestCase):
         )
         qr = QuantumRegister(4, "q")
         circuit = QuantumCircuit(qr)
-        circuit.append(HGate().control(3, ctrl_state="100"), [qr[0], qr[1], qr[2], qr[3]])
+        circuit.append(
+            HGate().control(3, ctrl_state="100", annotated=False), [qr[0], qr[1], qr[2], qr[3]]
+        )
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
     def test_c3h_middle(self):
@@ -3052,7 +3056,9 @@ class TestTextOpenControlledGate(QiskitTestCase):
         )
         qr = QuantumRegister(4, "q")
         circuit = QuantumCircuit(qr)
-        circuit.append(HGate().control(3, ctrl_state="010"), [qr[0], qr[3], qr[2], qr[1]])
+        circuit.append(
+            HGate().control(3, ctrl_state="010", annotated=False), [qr[0], qr[3], qr[2], qr[1]]
+        )
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
     def test_c3u2(self):
@@ -3073,7 +3079,8 @@ class TestTextOpenControlledGate(QiskitTestCase):
         qr = QuantumRegister(4, "q")
         circuit = QuantumCircuit(qr)
         circuit.append(
-            U2Gate(pi, -5 * pi / 8).control(3, ctrl_state="100"), [qr[0], qr[3], qr[2], qr[1]]
+            U2Gate(pi, -5 * pi / 8).control(3, ctrl_state="100", annotated=False),
+            [qr[0], qr[3], qr[2], qr[1]],
         )
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
@@ -3098,7 +3105,7 @@ class TestTextOpenControlledGate(QiskitTestCase):
         ghz_circuit.cx(0, 1)
         ghz_circuit.cx(1, 2)
         ghz = ghz_circuit.to_gate()
-        cghz = ghz.control(1, ctrl_state="0")
+        cghz = ghz.control(1, ctrl_state="0", annotated=False)
         circuit = QuantumCircuit(4)
         circuit.append(cghz, [1, 0, 2, 3])
 
@@ -3124,7 +3131,7 @@ class TestTextOpenControlledGate(QiskitTestCase):
         ghz_circuit.cx(0, 1)
         ghz_circuit.cx(1, 2)
         ghz = ghz_circuit.to_gate()
-        cghz = ghz.control(1, ctrl_state="0")
+        cghz = ghz.control(1, ctrl_state="0", annotated=False)
         circuit = QuantumCircuit(4)
         circuit.append(cghz, [0, 1, 3, 2])
 
@@ -3150,7 +3157,7 @@ class TestTextOpenControlledGate(QiskitTestCase):
         ghz_circuit.cx(0, 1)
         ghz_circuit.cx(1, 2)
         ghz = ghz_circuit.to_gate()
-        cghz = ghz.control(1, ctrl_state="0")
+        cghz = ghz.control(1, ctrl_state="0", annotated=False)
         circuit = QuantumCircuit(4)
         circuit.append(cghz, [3, 1, 0, 2])
 
@@ -3178,7 +3185,7 @@ class TestTextOpenControlledGate(QiskitTestCase):
         ghz_circuit.cx(0, 1)
         ghz_circuit.cx(1, 2)
         ghz = ghz_circuit.to_gate()
-        ccghz = ghz.control(2, ctrl_state="01")
+        ccghz = ghz.control(2, ctrl_state="01", annotated=False)
         circuit = QuantumCircuit(5)
         circuit.append(ccghz, [4, 0, 1, 2, 3])
 
@@ -3208,7 +3215,7 @@ class TestTextOpenControlledGate(QiskitTestCase):
         ghz_circuit.cx(0, 1)
         ghz_circuit.cx(1, 2)
         ghz = ghz_circuit.to_gate()
-        ccghz = ghz.control(3, ctrl_state="000")
+        ccghz = ghz.control(3, ctrl_state="000", annotated=False)
         circuit = QuantumCircuit(6)
         circuit.append(ccghz, [0, 2, 5, 1, 3, 4])
 
@@ -3234,15 +3241,15 @@ class TestTextOpenControlledGate(QiskitTestCase):
         )
         qreg = QuantumRegister(5, "qr")
         circuit = QuantumCircuit(qreg)
-        control1 = XGate().control(1, ctrl_state="0")
+        control1 = XGate().control(1, ctrl_state="0", annotated=False)
         circuit.append(control1, [0, 1])
-        control2 = XGate().control(2, ctrl_state="00")
+        control2 = XGate().control(2, ctrl_state="00", annotated=False)
         circuit.append(control2, [0, 1, 2])
-        control2_2 = XGate().control(2, ctrl_state="10")
+        control2_2 = XGate().control(2, ctrl_state="10", annotated=False)
         circuit.append(control2_2, [0, 1, 2])
-        control3 = XGate().control(3, ctrl_state="010")
+        control3 = XGate().control(3, ctrl_state="010", annotated=False)
         circuit.append(control3, [0, 1, 2, 3])
-        control3 = XGate().control(4, ctrl_state="0101")
+        control3 = XGate().control(4, ctrl_state="0101", annotated=False)
         circuit.append(control3, [0, 1, 4, 2, 3])
 
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
@@ -3267,15 +3274,15 @@ class TestTextOpenControlledGate(QiskitTestCase):
         )
         qreg = QuantumRegister(5, "qr")
         circuit = QuantumCircuit(qreg)
-        control1 = YGate().control(1, ctrl_state="0")
+        control1 = YGate().control(1, ctrl_state="0", annotated=False)
         circuit.append(control1, [0, 1])
-        control2 = YGate().control(2, ctrl_state="00")
+        control2 = YGate().control(2, ctrl_state="00", annotated=False)
         circuit.append(control2, [0, 1, 2])
-        control2_2 = YGate().control(2, ctrl_state="10")
+        control2_2 = YGate().control(2, ctrl_state="10", annotated=False)
         circuit.append(control2_2, [0, 1, 2])
-        control3 = YGate().control(3, ctrl_state="010")
+        control3 = YGate().control(3, ctrl_state="010", annotated=False)
         circuit.append(control3, [0, 1, 2, 3])
-        control3 = YGate().control(4, ctrl_state="0101")
+        control3 = YGate().control(4, ctrl_state="0101", annotated=False)
         circuit.append(control3, [0, 1, 4, 2, 3])
 
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
@@ -3299,15 +3306,15 @@ class TestTextOpenControlledGate(QiskitTestCase):
         )
         qreg = QuantumRegister(5, "qr")
         circuit = QuantumCircuit(qreg)
-        control1 = ZGate().control(1, ctrl_state="0")
+        control1 = ZGate().control(1, ctrl_state="0", annotated=False)
         circuit.append(control1, [0, 1])
-        control2 = ZGate().control(2, ctrl_state="00")
+        control2 = ZGate().control(2, ctrl_state="00", annotated=False)
         circuit.append(control2, [0, 1, 2])
-        control2_2 = ZGate().control(2, ctrl_state="10")
+        control2_2 = ZGate().control(2, ctrl_state="10", annotated=False)
         circuit.append(control2_2, [0, 1, 2])
-        control3 = ZGate().control(3, ctrl_state="010")
+        control3 = ZGate().control(3, ctrl_state="010", annotated=False)
         circuit.append(control3, [0, 1, 2, 3])
-        control3 = ZGate().control(4, ctrl_state="0101")
+        control3 = ZGate().control(4, ctrl_state="0101", annotated=False)
         circuit.append(control3, [0, 1, 4, 2, 3])
 
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
@@ -3331,15 +3338,15 @@ class TestTextOpenControlledGate(QiskitTestCase):
         )
         qreg = QuantumRegister(5, "qr")
         circuit = QuantumCircuit(qreg)
-        control1 = U1Gate(0.1).control(1, ctrl_state="0")
+        control1 = U1Gate(0.1).control(1, ctrl_state="0", annotated=False)
         circuit.append(control1, [0, 1])
-        control2 = U1Gate(0.2).control(2, ctrl_state="00")
+        control2 = U1Gate(0.2).control(2, ctrl_state="00", annotated=False)
         circuit.append(control2, [0, 1, 2])
-        control2_2 = U1Gate(0.3).control(2, ctrl_state="10")
+        control2_2 = U1Gate(0.3).control(2, ctrl_state="10", annotated=False)
         circuit.append(control2_2, [0, 1, 2])
-        control3 = U1Gate(0.4).control(3, ctrl_state="010")
+        control3 = U1Gate(0.4).control(3, ctrl_state="010", annotated=False)
         circuit.append(control3, [0, 1, 2, 3])
-        control3 = U1Gate(0.5).control(4, ctrl_state="0101")
+        control3 = U1Gate(0.5).control(4, ctrl_state="0101", annotated=False)
         circuit.append(control3, [0, 1, 4, 2, 3])
 
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
@@ -3363,13 +3370,13 @@ class TestTextOpenControlledGate(QiskitTestCase):
         )
         qreg = QuantumRegister(5, "qr")
         circuit = QuantumCircuit(qreg)
-        control1 = SwapGate().control(1, ctrl_state="0")
+        control1 = SwapGate().control(1, ctrl_state="0", annotated=False)
         circuit.append(control1, [0, 1, 2])
-        control2 = SwapGate().control(2, ctrl_state="00")
+        control2 = SwapGate().control(2, ctrl_state="00", annotated=False)
         circuit.append(control2, [0, 1, 2, 3])
-        control2_2 = SwapGate().control(2, ctrl_state="10")
+        control2_2 = SwapGate().control(2, ctrl_state="10", annotated=False)
         circuit.append(control2_2, [0, 1, 2, 3])
-        control3 = SwapGate().control(3, ctrl_state="010")
+        control3 = SwapGate().control(3, ctrl_state="010", annotated=False)
         circuit.append(control3, [0, 1, 2, 3, 4])
 
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
@@ -3393,13 +3400,13 @@ class TestTextOpenControlledGate(QiskitTestCase):
         )
         qreg = QuantumRegister(5, "qr")
         circuit = QuantumCircuit(qreg)
-        control1 = RZZGate(1).control(1, ctrl_state="0")
+        control1 = RZZGate(1).control(1, ctrl_state="0", annotated=False)
         circuit.append(control1, [0, 1, 2])
-        control2 = RZZGate(1).control(2, ctrl_state="00")
+        control2 = RZZGate(1).control(2, ctrl_state="00", annotated=False)
         circuit.append(control2, [0, 1, 2, 3])
-        control2_2 = RZZGate(1).control(2, ctrl_state="10")
+        control2_2 = RZZGate(1).control(2, ctrl_state="10", annotated=False)
         circuit.append(control2_2, [0, 1, 2, 3])
-        control3 = RZZGate(1).control(3, ctrl_state="010")
+        control3 = RZZGate(1).control(3, ctrl_state="010", annotated=False)
         circuit.append(control3, [0, 1, 2, 3, 4])
 
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
@@ -3424,7 +3431,9 @@ class TestTextOpenControlledGate(QiskitTestCase):
         )
         qr = QuantumRegister(5, "q")
         circuit = QuantumCircuit(qr)
-        circuit.append(XGate().control(3, ctrl_state="101"), [qr[0], qr[3], qr[1], qr[2]])
+        circuit.append(
+            XGate().control(3, ctrl_state="101", annotated=False), [qr[0], qr[3], qr[1], qr[2]]
+        )
 
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
@@ -4676,7 +4685,7 @@ class TestCircuitAnnotatedOperations(QiskitVisualizationTestCase):
         circuit.append(cliff, [0, 1])
         circuit.x(0)
         circuit.h(1)
-        circuit.append(SGate().control(2, ctrl_state=1), [0, 2, 1])
+        circuit.append(SGate().control(2, ctrl_state=1, annotated=False), [0, 2, 1])
         circuit.ccx(0, 1, 2)
         op1 = AnnotatedOperation(
             SGate(), [InverseModifier(), ControlModifier(2, 1), PowerModifier(3.29)]

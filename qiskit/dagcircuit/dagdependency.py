@@ -596,13 +596,13 @@ class DAGDependency:
 
 
 def merge_no_duplicates(*iterables):
-    """Merge K list without duplicate using python heapq ordered merging
+    """Merge K lists without duplicates using Python heapq ordered merging.
 
     Args:
-        *iterables: A list of k sorted lists
+        *iterables: A list of K sorted lists.
 
     Yields:
-        Iterator: List from the merging of the k ones (without duplicates
+        Iterator: List from the merging of the K lists (without duplicates).
     """
     last = object()
     for val in heapq.merge(*iterables):

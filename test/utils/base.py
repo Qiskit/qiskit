@@ -154,12 +154,6 @@ class QiskitTestCase(BaseTestCase):
             )
         self.__teardown_called = True
 
-        # Reset the default providers, as in practice they acts as a singleton
-        # due to importing the instances from the top-level qiskit namespace.
-        from qiskit.providers.basic_provider import BasicProvider
-
-        BasicProvider()._backends = BasicProvider()._verify_backends()
-
     def assertQuantumCircuitEqual(self, qc1, qc2, msg=None):
         """Extra assertion method to give a better error message when two circuits are unequal."""
         if qc1 == qc2:

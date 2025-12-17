@@ -1587,7 +1587,9 @@ class MCMTSynthesisNoAux(HighLevelSynthesisPlugin):
             # no broadcasting needed (makes for better circuit diagrams)
             circuit = QuantumCircuit(high_level_object.num_qubits)
             circuit.append(
-                base_gate.control(high_level_object.num_ctrl_qubits, ctrl_state=ctrl_state),
+                base_gate.control(
+                    high_level_object.num_ctrl_qubits, ctrl_state=ctrl_state, annotated=False
+                ),
                 circuit.qubits,
             )
 
@@ -1596,7 +1598,9 @@ class MCMTSynthesisNoAux(HighLevelSynthesisPlugin):
             for i in range(high_level_object.num_target_qubits):
                 base.append(base_gate, [i], [])
 
-            circuit = base.control(high_level_object.num_ctrl_qubits, ctrl_state=ctrl_state)
+            circuit = base.control(
+                high_level_object.num_ctrl_qubits, ctrl_state=ctrl_state, annotated=False
+            )
 
         return circuit.decompose()
 
