@@ -38,7 +38,7 @@ use qiskit_circuit_library::iqp::{check_symmetric, iqp, py_random_iqp};
 /// # Safety
 ///
 /// If `num_qubits > 0`, `interactions` **must** be a valid, non-null pointer
-/// to at least `num_qubits * num_qubits` contiguous `i64` values in row-major
+/// to at least `num_qubits * num_qubits` contiguous `int64_t` values in row-major
 /// order. The memory pointed to by `interactions` must be properly aligned,
 /// readable for the duration of this call, and not mutably aliased. Passing an
 /// invalid pointer or a buffer that is too small results in undefined
