@@ -17,6 +17,7 @@ use std::sync::Arc;
 
 use crate::dag::COperationKind;
 use crate::exit_codes::{CInputError, ExitCode};
+use crate::param::qk_param_free;
 use crate::pointers::{check_ptr, const_ptr_as_ref, mut_ptr_as_ref};
 use indexmap::IndexMap;
 use qiskit_circuit::PhysicalQubit;
@@ -1342,11 +1343,10 @@ pub struct CTargetOp {
     /// The number of qubits this operation supports. Will default to
     /// `(uint32_t)-1` in the case of a variadic.
     pub num_qubits: u32,
-    /// The parameters tied to this operation if fixed, as an array
-    /// of `double`. If any of the parameters represented are not fixed angles
-    /// it will be represented as with the `NaN` value. If there are no parameters
-    /// then this value will be represented with a `NULL` pointer.
-    pub params: *mut f64,
+    /// The parameters tied to this operation if fixed, as `QkParam`.
+    /// If there are no parameters then this value will be represented
+    /// with a `NULL` pointer.
+    pub params: *mut *mut Param,
     /// The number of parameters supported by this operation. Will default to
     /// `(uint32_t)-1` in the case of a variadic.
     pub num_params: u32,
@@ -1423,14 +1423,11 @@ pub unsafe extern "C" fn qk_target_op_get(
             .expect("The string should be UTF-8 encoded.")
             .into_raw();
             let num_params = operation.operation.num_params();
-            let mut params: Option<Box<[f64]>> = (num_params > 0).then_some(
+            let mut params: Option<Box<[*mut Param]>> = (num_params > 0).then_some(
                 operation
                     .params_view()
                     .iter()
-                    .map(|param| match param {
-                        Param::Float(number) => *number,
-                        _ => f64::NAN,
-                    })
+                    .map(|param| Box::into_raw(Box::new(param.clone())))
                     .collect(),
             );
             // SAFETY: As per documentation, `out_op` is a pointer to a sufficient allocation.
@@ -1554,7 +1551,11 @@ pub unsafe extern "C" fn qk_target_op_clear(op: *mut CTargetOp) {
                 op_borrowed.params,
                 op_borrowed.num_params.try_into().unwrap(),
             );
-            let _ = Box::from_raw(params as *mut [f64]);
+            let boxed_params = Box::from_raw(params as *mut [*mut Param]);
+            for param in boxed_params {
+                // Free each parameter pointer.
+                qk_param_free(param);
+            }
             op_borrowed.params = std::ptr::null_mut();
         }
         op_borrowed.num_params = 0;
