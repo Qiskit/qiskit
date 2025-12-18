@@ -154,8 +154,9 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                 ]
             )
 
-            # For continuous basis sets, we now CommutativeOptimization instead of CommutativeCancellation.
-            # For Clifford+T transpilation, we still use CommutativeCancellation and disable consolidating
+            # For continuous basis sets, we now CommutativeOptimization instead of
+            # CommutativeCancellation. For Clifford+T transpilation, we still use
+            # CommutativeCancellation and disable consolidating
             # blocks as this involves resynthesizing 2-qubit unitaries.
             if pass_manager_config._is_clifford_t:
                 init.append(CommutativeCancellation())
