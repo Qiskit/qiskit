@@ -2890,7 +2890,7 @@ pub fn multiply_param(param: &Param, mult: f64) -> Param {
     }
 }
 
-/// Multiply two ``Param`` objects.
+/// Multiply two ``Param``s.
 pub fn multiply_params(param1: Param, param2: Param) -> Param {
     match (&param1, &param2) {
         (Param::Float(theta), Param::Float(lambda)) => Param::Float(theta * lambda),

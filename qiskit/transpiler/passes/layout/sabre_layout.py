@@ -51,7 +51,7 @@ class SabreLayout(TransformationPass):
     circuit so that the layout is applied to the input dag (meaning that the output
     circuit will have ancilla qubits allocated for unused qubits on the coupling map
     and the qubits will be reordered to match the mapped physical qubits) and then
-    routing will be applied (inserting :class:`~.SwapGate` objects to account for limited
+    routing will be applied (inserting :class:`~.SwapGate`\ s to account for limited
     connectivity). This is unlike most other layout passes which are :class:`~.AnalysisPass`
     objects and just find an initial layout and set that on the property set. This is
     done because by default the pass will run parallel seed trials with different random
