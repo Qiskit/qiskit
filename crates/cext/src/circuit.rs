@@ -438,7 +438,7 @@ pub unsafe extern "C" fn qk_circuit_gate(
                 Qubit(*qubits.wrapping_add(2)),
                 Qubit(*qubits.wrapping_add(3)),
             ],
-            // There are no ``QkGate`` objects > 4 qubits
+            // There are no ``QkGate``s > 4 qubits
             _ => unreachable!(),
         };
         let params: &[Param] = match gate.num_params() {
