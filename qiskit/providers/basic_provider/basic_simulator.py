@@ -28,9 +28,6 @@ Where the input is a :class:`.QuantumCircuit` object and the output is a
 which can later be queried for the Result object. The result will contain a 'memory' data
 field, which is a result of measurements for each shot.
 
-# The simulator supports up to 24 qubits for statevector simulation and up to
-# 2048 qubits for Clifford/Stabilizer simulation.
-
 """
 
 from __future__ import annotations
@@ -71,7 +68,10 @@ logger = logging.getLogger(__name__)
 
 
 class BasicSimulator(BackendV2):
-    """Python implementation of a basic (non-efficient) quantum simulator."""
+    """Python implementation of a basic (non-efficient) quantum simulator.
+
+    The simulator supports up to 24 qubits for statevector simulation and up to
+    2048 qubits for Clifford/Stabilizer simulation."""
 
     # Formerly calculated as `int(log2(local_hardware_info()["memory"]*(1024**3)/16))`.
     # After the removal of `local_hardware_info()`, Statevector simulation is limited to 24 qubits.
