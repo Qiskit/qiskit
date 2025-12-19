@@ -1,0 +1,6 @@
+---
+upgrade_c:
+  - |
+    :c:struct:`QkTargetOp` has been upgraded to include ``QkParam`` instances
+    to represent parameters, whereas before we would only include parameters that
+    were fixed or had a real value attached to them.
