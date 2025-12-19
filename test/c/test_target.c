@@ -1025,14 +1025,17 @@ static int test_target_operation(void) {
             if (inst_idx == 1) {
                 double param_val = qk_param_as_real(op.params[0]);
                 if (param_val != 3.14) {
-                    printf("The param value for instruction '%s' did not match. Expected %f, got %f\n", op.name, param_val,
-                           3.14);
+                    printf(
+                        "The param value for instruction '%s' did not match. Expected %f, got %f\n",
+                        op.name, param_val, 3.14);
                     result = EqualityError;
                     goto cleanup;
                 }
             } else {
                 if (op.params == NULL && op.num_params != 0) {
-                    printf("The param values for instruction '%s' did not match. Got length %u for NULL params.\n", op.name, op.num_params);
+                    printf("The param values for instruction '%s' did not match. Got length %u for "
+                           "NULL params.\n",
+                           op.name, op.num_params);
                     result = EqualityError;
                     goto cleanup;
                 }
