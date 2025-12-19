@@ -28,7 +28,7 @@ OPERS = {"Z", "I", "0", "1"}
 
 
 # pylint: disable=missing-param-doc,missing-type-doc
-def sampled_expectation_value(dist, oper):
+def sampled_expectation_value(dist, oper, variance: bool = False):
     """Computes expectation value from a sampled distribution
 
     Note that passing a raw dict requires bit-string keys.
@@ -37,11 +37,15 @@ def sampled_expectation_value(dist, oper):
         dist (Counts or QuasiDistribution or ProbDistribution or dict): Input sampled distribution
         oper (str or :class:`~.quantum_info.Pauli` or SparsePauliOp): The operator for the
             observable
+        variance (bool): If True, return the variance. Works only for single Pauli string operators.
 
     Returns:
-        float: The expectation value
+        Tuple[float, float]: The expectation value and the variance (if requested) else returns,
+            float: the expectation value if variance is False.
+
     Raises:
         QiskitError: if the input distribution or operator is an invalid type
+        ValueError: if variance is True and multiple operators are provided
     """
     from .counts import Counts
     from qiskit.quantum_info import Pauli, SparsePauliOp, SparseObservable
@@ -62,7 +66,16 @@ def sampled_expectation_value(dist, oper):
         oper_strs = oper.paulis.to_labels()
         coeffs = np.asarray(oper.coeffs)
     elif isinstance(oper, SparseObservable):
-        return sampled_expval_sparse_observable(oper, dist)
+        if variance:
+            if len(oper) != 1:
+                raise ValueError(
+                    "Variance calculation only supported for single Pauli string operators."
+                )
+            expectation = sampled_expval_sparse_observable(oper, dist)
+            var_stat = (oper.coeffs[0].real) ** 2 - (expectation) ** 2
+            return expectation, var_stat
+        else:
+            return sampled_expval_sparse_observable(oper, dist)
     else:
         raise QiskitError("Invalid operator type")
 
@@ -75,8 +88,17 @@ def sampled_expectation_value(dist, oper):
     for op in oper_strs:
         if set(op).difference(OPERS):
             raise QiskitError(f"Input operator {op} is not diagonal")
+    if variance and len(oper_strs) != 1:
+        raise ValueError("Variance calculation only supported for single Pauli string operators.")
+
     # Dispatch to Rust routines
     if coeffs.dtype == np.dtype(complex).type:
-        return sampled_expval_complex(oper_strs, coeffs, dist)
+        expectation = sampled_expval_complex(oper_strs, coeffs, dist)
     else:
-        return sampled_expval_float(oper_strs, coeffs, dist)
+        expectation = sampled_expval_float(oper_strs, coeffs, dist)
+
+    if variance:
+        var_stat = (coeffs[0].real) ** 2 - (expectation) ** 2
+        return expectation, var_stat
+
+    return expectation
