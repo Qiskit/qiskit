@@ -28,11 +28,8 @@ Where the input is a :class:`.QuantumCircuit` object and the output is a
 which can later be queried for the Result object. The result will contain a 'memory' data
 field, which is a result of measurements for each shot.
 
-
-# The simulator supports:
-# - Up to 24 qubits for statevector simulation (memory scales exponentially)
-# - Up to 2048 qubits for Clifford/Stabilizer simulation (memory scales quadratically)
-
+# The simulator supports up to 24 qubits for statevector simulation and up to
+# 2048 qubits for Clifford/Stabilizer simulation.
 
 """
 
@@ -124,9 +121,7 @@ class BasicSimulator(BackendV2):
         self._memory = self.options.get("memory")
         self._initial_statevector = self.options.get("initial_statevector")
         self._seed_simulator = self.options.get("seed_simulator")
-        self._use_clifford_optimization = self.options.get(
-            "use_clifford_optimization"
-        )  # ADDED FOR CLIFFORD
+        self._use_clifford_optimization = self.options.get("use_clifford_optimization")
 
     @property
     def max_circuits(self) -> None:
@@ -231,7 +226,7 @@ class BasicSimulator(BackendV2):
             memory=True,
             initial_statevector=None,
             seed_simulator=None,
-            use_clifford_optimization=False,  # ADDED FOR CLIFFORD
+            use_clifford_optimization=False,
         )
 
     def _add_unitary(self, gate: np.ndarray, qubits: list[int]) -> None:
@@ -380,9 +375,7 @@ class BasicSimulator(BackendV2):
         self._memory = self.options.get("memory")
         self._initial_statevector = self.options.get("initial_statevector")
         self._seed_simulator = self.options.get("seed_simulator")
-        self._use_clifford_optimization = self.options.get(
-            "use_clifford_optimization"
-        )  # ADDED FOR CLIFFORD
+        self._use_clifford_optimization = self.options.get("use_clifford_optimization")
         # Apply custom run options
         if run_options.get("initial_statevector", None) is not None:
             self._initial_statevector = np.array(run_options["initial_statevector"], dtype=complex)
@@ -403,9 +396,7 @@ class BasicSimulator(BackendV2):
             self._memory = run_options["memory"]
 
         if "use_clifford_optimization" in run_options:
-            self._use_clifford_optimization = run_options[
-                "use_clifford_optimization"
-            ]  # ADDED FOR CLIFFORD
+            self._use_clifford_optimization = run_options["use_clifford_optimization"]
         # Set seed for local random number gen.
         self._local_rng = np.random.default_rng(seed=self._seed_simulator)
 
