@@ -1342,10 +1342,10 @@ pub struct CTargetOp {
     /// The number of qubits this operation supports. Will default to
     /// `(uint32_t)-1` in the case of a variadic.
     pub num_qubits: u32,
-    /// The parameters tied to this operation if fixed, as an array
-    /// of `double`. If the operation doesn't posess any fixed parameters
-    /// or is variadic, this attribute will be a ``NULL`` pointer.
-    pub params: *mut f64,
+    /// The parameters tied to this operation if fixed, as `QkParam`.
+    /// If there are no parameters then this value will be represented
+    /// with a `NULL` pointer.
+    pub params: *mut *const Param,
     /// The number of parameters supported by this operation. Will default to
     /// `(uint32_t)-1` in the case of a variadic.
     pub num_params: u32,
@@ -1422,13 +1422,13 @@ pub unsafe extern "C" fn qk_target_op_get(
             .expect("The string should be UTF-8 encoded.")
             .into_raw();
             let num_params = operation.operation.num_params();
-            let mut params: Option<Box<[f64]>> = (num_params > 0).then_some(
+            let mut params: Option<Box<[*const Param]>> = (num_params > 0).then_some(
                 operation
                     .params_view()
                     .iter()
-                    .filter_map(|param| match param {
-                        Param::Float(number) => Some(*number),
-                        _ => None,
+                    .map(|param| match param {
+                        Param::Obj(_) => panic!("Objects are not supported in the C API."),
+                        _ => std::ptr::from_ref(param),
                     })
                     .collect(),
             );
@@ -1553,7 +1553,9 @@ pub unsafe extern "C" fn qk_target_op_clear(op: *mut CTargetOp) {
                 op_borrowed.params,
                 op_borrowed.num_params.try_into().unwrap(),
             );
-            let _ = Box::from_raw(params as *mut [f64]);
+            // Parameters don't need to be freed as they're owned by the
+            // Target.
+            let _ = Box::from_raw(params as *mut [*const Param]);
             op_borrowed.params = std::ptr::null_mut();
         }
         op_borrowed.num_params = 0;
