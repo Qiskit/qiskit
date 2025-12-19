@@ -17,7 +17,6 @@ use std::sync::Arc;
 
 use crate::dag::COperationKind;
 use crate::exit_codes::{CInputError, ExitCode};
-use crate::param::qk_param_free;
 use crate::pointers::{check_ptr, const_ptr_as_ref, mut_ptr_as_ref};
 use indexmap::IndexMap;
 use qiskit_circuit::PhysicalQubit;
@@ -1346,7 +1345,7 @@ pub struct CTargetOp {
     /// The parameters tied to this operation if fixed, as `QkParam`.
     /// If there are no parameters then this value will be represented
     /// with a `NULL` pointer.
-    pub params: *mut *mut Param,
+    pub params: *mut *const Param,
     /// The number of parameters supported by this operation. Will default to
     /// `(uint32_t)-1` in the case of a variadic.
     pub num_params: u32,
@@ -1423,11 +1422,14 @@ pub unsafe extern "C" fn qk_target_op_get(
             .expect("The string should be UTF-8 encoded.")
             .into_raw();
             let num_params = operation.operation.num_params();
-            let mut params: Option<Box<[*mut Param]>> = (num_params > 0).then_some(
+            let mut params: Option<Box<[*const Param]>> = (num_params > 0).then_some(
                 operation
                     .params_view()
                     .iter()
-                    .map(|param| Box::into_raw(Box::new(param.clone())))
+                    .map(|param| match param {
+                        Param::Obj(_) => panic!("Objects are not supported in the C API."),
+                        _ => std::ptr::from_ref(param),
+                    })
                     .collect(),
             );
             // SAFETY: As per documentation, `out_op` is a pointer to a sufficient allocation.
@@ -1551,11 +1553,9 @@ pub unsafe extern "C" fn qk_target_op_clear(op: *mut CTargetOp) {
                 op_borrowed.params,
                 op_borrowed.num_params.try_into().unwrap(),
             );
-            let boxed_params = Box::from_raw(params as *mut [*mut Param]);
-            for param in boxed_params {
-                // Free each parameter pointer.
-                qk_param_free(param);
-            }
+            // Parameters don't need to be freed as they're owned by the
+            // Target.
+            let _ = Box::from_raw(params as *mut [*const Param]);
             op_borrowed.params = std::ptr::null_mut();
         }
         op_borrowed.num_params = 0;
