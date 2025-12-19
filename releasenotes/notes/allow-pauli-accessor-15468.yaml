@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Added a public accessor ``pauli()`` to
+    :class:`qiskit.circuit.library.PauliProductMeasurement` to return the
+    underlying :class:`qiskit.quantum_info.Pauli` measured by the instruction,
+    including its global phase of ``+1`` or ``-1``.
+    (See `#15468 <https://github.com/Qiskit/qiskit/issues/15468>`__.)

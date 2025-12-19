@@ -136,6 +136,19 @@ class PauliProductMeasurement(Instruction):
         """
         return [self._pauli_z, self._pauli_x, self._pauli_phase]
 
+    def pauli(self) -> Pauli:
+        """Return the Pauli product implemented by this measurement.
+
+        This is a public accessor that reconstructs and returns the
+        :class:`~qiskit.quantum_info.Pauli` corresponding to this
+        instruction's underlying tensor product of Pauli operators,
+        including its global phase of ``+1`` or ``-1``.
+
+        Returns:
+            Pauli: The Pauli product measured by this instruction.
+        """
+        return Pauli((self._pauli_z, self._pauli_x, self._pauli_phase))
+
 
 def _get_default_label(pauli: Pauli):
     """Creates the default label for PauliProductMeasurement instruction,
