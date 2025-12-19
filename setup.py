@@ -26,9 +26,9 @@ from setuptools_rust import Binding, RustExtension
 # unergonomic to do otherwise.
 
 
-# If RUST_DEBUG is set, force compiling in debug mode. Else, use the default behavior of whether
-# it's an editable installation.
-rust_debug = True if os.getenv("RUST_DEBUG") == "1" else None
+# If RUST_DEBUG is set to a known value, forcibly enable debug or release mode.  Otherwise use the
+# default inference (debug for editable installs, release otherwise).
+rust_debug = {"0": False, "1": True}.get(os.getenv("RUST_DEBUG"), None)
 
 # If QISKIT_NO_CACHE_GATES is set then don't enable any features while building
 #
