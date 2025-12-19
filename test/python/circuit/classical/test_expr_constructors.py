@@ -123,6 +123,10 @@ class TestExprConstructors(QiskitTestCase):
         (expr.logic_not, ClassicalRegister(3)),
         (expr.logic_not, False),
         (expr.logic_not, Clbit()),
+        (expr.negate, ClassicalRegister(3)),
+        (expr.negate, 7),
+        (expr.negate, 7.0),
+        (expr.negate, Duration.dt(1000)),
     )
     @ddt.unpack
     def test_unary_functions_lift_scalars(self, function, scalar):
@@ -917,3 +921,47 @@ class TestExprConstructors(QiskitTestCase):
             expr.div(255.0, 1)
         with self.assertRaisesRegex(TypeError, "invalid types"):
             expr.div(255.0, Duration.dt(1000))
+
+    def test_unary_negate_forbidden(self):
+        with self.assertRaisesRegex(TypeError, "cannot apply"):
+            expr.negate(True)
+        with self.assertRaisesRegex(TypeError, "cannot apply"):
+            expr.negate(Clbit())
+
+    def test_unary_negate_explicit(self):
+        cr = ClassicalRegister(3)
+        self.assertEqual(
+            expr.negate(cr),
+            expr.Unary(
+                expr.Unary.Op.NEGATE,
+                expr.Var(cr, types.Uint(3)),
+                types.Uint(3),
+            ),
+        )
+
+        self.assertEqual(
+            expr.negate(7),
+            expr.Unary(
+                expr.Unary.Op.NEGATE,
+                expr.Value(7, types.Uint(3)),
+                types.Uint(3),
+            ),
+        )
+
+        self.assertEqual(
+            expr.negate(7.0),
+            expr.Unary(
+                expr.Unary.Op.NEGATE,
+                expr.Value(7.0, types.Float()),
+                types.Float(),
+            ),
+        )
+
+        self.assertEqual(
+            expr.negate(Duration.dt(1000)),
+            expr.Unary(
+                expr.Unary.Op.NEGATE,
+                expr.Value(Duration.dt(1000), types.Duration()),
+                types.Duration(),
+            ),
+        )
