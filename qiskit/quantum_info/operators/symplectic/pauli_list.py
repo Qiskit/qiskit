@@ -953,8 +953,9 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             qargs = getattr(other, "qargs", None)
 
         if not isinstance(other, (BasePauli, Instruction, QuantumCircuit, Clifford)):
-            # Convert to a PauliList
-            other = PauliList(other)
+            if other.__class__.__name__ != "SparseObservable":
+                # Convert to a PauliList
+                other = PauliList(other)
 
         return PauliList(super().evolve(other, qargs=qargs, frame=frame))
 

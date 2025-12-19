@@ -22,6 +22,7 @@ import numpy as np
 
 from qiskit import QuantumCircuit
 
+import qiskit.quantum_info as qi
 from qiskit.quantum_info.random import random_clifford, random_pauli
 from qiskit.quantum_info.states import StabilizerState, Statevector
 from qiskit.circuit.library import IGate, XGate, HGate
@@ -206,6 +207,19 @@ class TestStabilizerState(QiskitTestCase):
             target = StabilizerState(cliff1.compose(cliff2, qargs))
             state = stab1.evolve(stab2, qargs)
             self.assertEqual(state, target)
+
+    def test_evolve_sparseobservable_stabilizer_clifford(self):
+        """Test stabilizer state evolve method."""
+        obs = qi.SparseObservable.from_label("X")
+        cliff = random_clifford(1, seed=self.rng)
+        stab = StabilizerState(cliff)
+
+        c = Clifford(obs.to_matrix())
+        target = StabilizerState(cliff.compose(c))
+
+        evolved = stab.evolve(obs)
+
+        self.assertEqual(evolved, target)
 
     def test_measure_single_qubit(self):
         """Test a measurement of a single qubit"""
