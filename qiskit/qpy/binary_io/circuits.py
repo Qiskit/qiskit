@@ -27,6 +27,7 @@ import warnings
 
 import numpy as np
 
+
 from qiskit import circuit as circuit_mod
 from qiskit.circuit import library, controlflow, CircuitInstruction, ControlFlowOp, IfElseOp
 from qiskit.circuit.annotation import iter_namespaces
@@ -49,6 +50,8 @@ from qiskit.qpy import common, formats, type_keys
 from qiskit.qpy.exceptions import QpyError, UnsupportedFeatureForVersion
 from qiskit.qpy.binary_io import value, schedules
 from qiskit.quantum_info.operators import SparsePauliOp, Clifford
+from qiskit.quantum_info import SparseObservable
+from qiskit.circuit.library import PauliProductMeasurement
 from qiskit.synthesis import evolution as evo_synth
 from qiskit.transpiler.layout import Layout, TranspileLayout
 
@@ -502,6 +505,8 @@ def _read_instruction(
         gate_class = getattr(controlflow, gate_name)
     elif gate_name == "Clifford":
         gate_class = Clifford
+    elif gate_name == "pauli_product_measurement":
+        gate_class = PauliProductMeasurement
     else:
         raise AttributeError(f"Invalid instruction type: {gate_name}")
 
@@ -555,6 +560,8 @@ def _read_instruction(
             "DiagonalGate",
         }:
             gate = gate_class(params)
+        elif gate_name == "PauliProductMeasurement":
+            gate = gate_class._from_pauli_data(*params, label)
         elif gate_name == "QFTGate":
             gate = gate_class(len(qargs), *params)
         else:
@@ -688,6 +695,7 @@ def _read_pauli_evolution_gate(file_obj, version, vectors):
             formats.PAULI_EVOLUTION_DEF_PACK, file_obj.read(formats.PAULI_EVOLUTION_DEF_SIZE)
         )
     )
+
     if pauli_evolution_def.operator_size != 1 and pauli_evolution_def.standalone_op:
         raise ValueError(
             "Can't have a standalone operator with {pauli_evolution_raw[0]} operators in the payload"
@@ -695,14 +703,61 @@ def _read_pauli_evolution_gate(file_obj, version, vectors):
 
     operator_list = []
     for _ in range(pauli_evolution_def.operator_size):
-        op_elem = formats.SPARSE_PAULI_OP_LIST_ELEM._make(
-            struct.unpack(
-                formats.SPARSE_PAULI_OP_LIST_ELEM_PACK,
-                file_obj.read(formats.SPARSE_PAULI_OP_LIST_ELEM_SIZE),
+        sparse_operator = False
+        if version >= 17:
+            sparse_operator = struct.unpack("!?", file_obj.read(1))[0]
+            if sparse_operator:
+                op_elem = formats.SPARSE_OBSERVABLE._make(
+                    struct.unpack(
+                        formats.SPARSE_OBSERVABLE_PACK,
+                        file_obj.read(formats.SPARSE_OBSERVABLE_SIZE),
+                    )
+                )
+                # setting data lengths
+                num_paulis = int(op_elem.coeff_data_len / (2 * struct.calcsize("!d")))
+                num_bitterms = int(op_elem.bitterm_data_len / struct.calcsize("!H"))
+                num_inds = int(op_elem.inds_data_len / struct.calcsize("!I"))
+                num_bounds = int(op_elem.bounds_data_len / struct.calcsize("!Q"))
+
+                # reading coeffs
+                coeff_data = struct.unpack(
+                    f"!{2*num_paulis}d", file_obj.read(op_elem.coeff_data_len)
+                )
+                coeff_read = np.empty(num_paulis, dtype=np.complex128)
+                for ii in range(num_paulis):
+                    coeff_read[ii] = complex(coeff_data[2 * ii], coeff_data[2 * ii + 1])
+
+                # reading bit_terms
+                bitterms_read = list(
+                    struct.unpack(f"!{num_bitterms}H", file_obj.read(op_elem.bitterm_data_len))
+                )
+
+                # reading indices
+                inds_read = list(
+                    struct.unpack(f"!{num_inds}I", file_obj.read(op_elem.inds_data_len))
+                )
+
+                # reading boundaries
+                bounds_read = list(
+                    struct.unpack(f"!{num_bounds}Q", file_obj.read(op_elem.bounds_data_len))
+                )
+
+                operator_list.append(
+                    SparseObservable.from_raw_parts(
+                        op_elem.num_qubits, coeff_read, bitterms_read, inds_read, bounds_read
+                    )
+                )
+
+        if version < 17 or not sparse_operator:
+            # Read SparsePauliOp type operator
+            op_elem = formats.SPARSE_PAULI_OP_LIST_ELEM._make(
+                struct.unpack(
+                    formats.SPARSE_PAULI_OP_LIST_ELEM_PACK,
+                    file_obj.read(formats.SPARSE_PAULI_OP_LIST_ELEM_SIZE),
+                )
             )
-        )
-        op_raw_data = common.data_from_binary(file_obj.read(op_elem.size), np.load)
-        operator_list.append(SparsePauliOp.from_list(op_raw_data))
+            op_raw_data = common.data_from_binary(file_obj.read(op_elem.size), np.load)
+            operator_list.append(SparsePauliOp.from_list(op_raw_data))
 
     if pauli_evolution_def.standalone_op:
         pauli_op = operator_list[0]
@@ -901,7 +956,7 @@ def _write_instruction(
             not hasattr(library, gate_class_name)
             and not hasattr(circuit_mod, gate_class_name)
             and not hasattr(controlflow, gate_class_name)
-            and gate_class_name != "Clifford"
+            and gate_class_name not in ["Clifford", "PauliProductMeasurement"]
         )
         or gate_class_name == "Gate"
         or gate_class_name == "Instruction"
@@ -980,6 +1035,8 @@ def _write_instruction(
         instruction_params = [instruction.operation.tableau]
     elif isinstance(instruction.operation, AnnotatedOperation):
         instruction_params = instruction.operation.modifiers
+    elif isinstance(instruction.operation, PauliProductMeasurement):
+        instruction_params = instruction.operation._to_pauli_data()
     else:
         instruction_params = getattr(instruction.operation, "params", [])
 
@@ -1055,6 +1112,7 @@ def _write_instruction(
 def _write_pauli_evolution_gate(file_obj, evolution_gate, version):
     operator_list = evolution_gate.operator
     standalone = False
+
     if not isinstance(operator_list, list):
         operator_list = [operator_list]
         standalone = True
@@ -1063,12 +1121,51 @@ def _write_pauli_evolution_gate(file_obj, evolution_gate, version):
     def _write_elem(buffer, op):
         elem_data = common.data_to_binary(op.to_list(array=True), np.save)
         elem_metadata = struct.pack(formats.SPARSE_PAULI_OP_LIST_ELEM_PACK, len(elem_data))
+        if version >= 17:
+            elem_sparse_operator = struct.pack("!?", False)
+            buffer.write(elem_sparse_operator)
         buffer.write(elem_metadata)
         buffer.write(elem_data)
 
+    def _write_elem_sparse(buffer, op):
+        bitterms = op.bit_terms
+        coeffs = op.coeffs
+        bounds = op.boundaries
+        inds = op.indices
+        num_qubits = op.num_qubits
+
+        # pack elements as [c1.real, c1.imag, c2.real, c2.imag, ...]
+        coeff_data = struct.pack(
+            f"!{len(coeffs)*2}d", *(val for coeff in coeffs for val in (coeff.real, coeff.imag))
+        )
+        bitterm_data = struct.pack(f"!{len(bitterms)}H", *bitterms)
+        inds_data = struct.pack(f"!{len(inds)}I", *inds)
+        bounds_data = struct.pack(f"!{len(bounds)}Q", *bounds)
+
+        sparse_observable_data_length = struct.pack(
+            formats.SPARSE_OBSERVABLE_PACK,
+            num_qubits,
+            len(coeff_data),
+            len(bitterm_data),
+            len(inds_data),
+            len(bounds_data),
+        )
+
+        elem_sparse_operator = struct.pack("!?", True)
+        buffer.write(elem_sparse_operator)
+        buffer.write(sparse_observable_data_length)
+        buffer.write(coeff_data)
+        buffer.write(bitterm_data)
+        buffer.write(inds_data)
+        buffer.write(bounds_data)
+
     pauli_data_buf = io.BytesIO()
+
     for operator in operator_list:
-        data = common.data_to_binary(operator, _write_elem)
+        if isinstance(operator, SparseObservable):
+            data = common.data_to_binary(operator, _write_elem_sparse)
+        else:
+            data = common.data_to_binary(operator, _write_elem)
         pauli_data_buf.write(data)
 
     time_type, time_data = value.dumps_value(evolution_gate.time, version=version)

@@ -18,6 +18,7 @@ use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
+use qiskit_circuit::instruction::Instruction;
 use qiskit_circuit::operations::{Operation, OperationRef, StandardGate};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 
@@ -26,11 +27,12 @@ fn gate_eq(gate_a: &PackedInstruction, gate_b: &OperationFromPython) -> PyResult
         return Ok(false);
     }
     let a_params = gate_a.params_view();
-    if a_params.len() != gate_b.params.len() {
+    let b_params = gate_b.params_view();
+    if a_params.len() != b_params.len() {
         return Ok(false);
     }
     let mut param_eq = true;
-    for (a, b) in a_params.iter().zip(&gate_b.params) {
+    for (a, b) in a_params.iter().zip(b_params) {
         if !a.is_close(b, 1e-10)? {
             param_eq = false;
             break;
@@ -287,7 +289,6 @@ pub fn run_inverse_cancellation_standard_gates(dag: &mut DAGCircuit) {
 #[pyfunction]
 #[pyo3(name = "inverse_cancellation")]
 pub fn py_run_inverse_cancellation(
-    py: Python,
     dag: &mut DAGCircuit,
     inverse_gates: Vec<[OperationFromPython; 2]>,
     self_inverse_gates: Vec<OperationFromPython>,
@@ -298,7 +299,7 @@ pub fn py_run_inverse_cancellation(
     if self_inverse_gate_names.is_empty() && inverse_gate_names.is_empty() {
         return Ok(());
     }
-    let op_counts = dag.count_ops(py, true)?;
+    let op_counts = dag.count_ops(true)?;
     if !self_inverse_gate_names.is_empty() {
         run_on_self_inverse(dag, &op_counts, self_inverse_gate_names, self_inverse_gates)?;
     }
