@@ -13,6 +13,7 @@
 """Tests for Estimator."""
 
 import unittest
+from math import pi
 from test import QiskitTestCase
 
 import numpy as np
@@ -137,6 +138,28 @@ class TestStatevectorEstimator(QiskitTestCase):
                 result = est.run([(qc, op, val)]).result()
                 np.testing.assert_allclose(result[0].data.evs, target)
                 self.assertEqual(result[0].metadata["target_precision"], 0)
+
+        with self.subTest("Column vector bindings broadcast with observables"):
+            param = Parameter("phi")
+            qc = QuantumCircuit(2)
+            qc.rx(param, 1)
+            qc.cx(0, 1)
+            qc.h(1)
+
+            observables = [
+                [
+                    SparsePauliOp(["XX", "YY"], [1.0, 0.3]),
+                    SparsePauliOp(["ZZ", "IX"], [2.0, 3.0]),
+                ]
+            ]
+            angles = np.array([[pi], [pi / 2], [pi / 3]])
+            precision = 0.01
+
+            result = est.run([(qc, observables, angles, precision)]).result()
+
+            self.assertEqual(result[0].data.evs.shape, (3, 2))
+            self.assertEqual(result[0].data.stds.shape, (3, 2))
+            self.assertEqual(result[0].metadata["target_precision"], precision)
 
         with self.subTest("One parameter"):
             param = Parameter("x")
