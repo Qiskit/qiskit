@@ -318,6 +318,18 @@ class TestElidePermutations(QiskitTestCase):
         res = self.swap_pass(qc)
         self.assertEqual(res, expected)
 
+    def test_single_qubit_permutation(self):
+        """Test permutation defined over a single qubit."""
+        qc = QuantumCircuit(3)
+        qc.append(PermutationGate([0]), [1])
+        qc.h(1)
+
+        expected = QuantumCircuit(3)
+        expected.h(1)
+
+        res = self.swap_pass(qc)
+        self.assertEqual(res, expected)
+
 
 class TestElidePermutationsInTranspileFlow(QiskitTestCase):
     """
