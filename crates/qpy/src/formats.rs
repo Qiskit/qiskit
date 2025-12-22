@@ -199,6 +199,7 @@ pub struct RegisterV4Pack {
 #[repr(u8)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum ConditionType {
+    None = 0,
     TwoTuple = 1,
     Expression = 2,
 }
@@ -206,6 +207,7 @@ pub enum ConditionType {
 impl From<u8> for ConditionType {
     fn from(value: u8) -> Self {
         match value {
+            0 => Self::None,
             1 => Self::TwoTuple,
             2 => Self::Expression,
             _ => panic!("Invalid condition type specified {value}"),
@@ -275,6 +277,7 @@ impl ConditionPack {
             ConditionType::Expression => {
                 ConditionData::Expression(GenericDataPack::read_options(reader, endian, ())?)
             }
+            ConditionType::None => ConditionData::None,
         };
         Ok(ConditionPack {
             register_size,
