@@ -66,7 +66,7 @@ class BasicSimulatorRandomCliffordBenchmark:
     def setup(self, n_qubits):
         """Setup random Clifford circuit for given n_qubits."""
 
-        cliff = random_clifford(n_qubits)
+        cliff = random_clifford(n_qubits, seed=0)
         qc = cliff.to_circuit()
         qc.measure_all()
         self.clifford_circuit = qc
