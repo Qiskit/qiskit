@@ -526,8 +526,8 @@ class OptimizationPassManager(PassManagerStagePlugin):
 
             # Basic steps for optimization level 2:
             # 1. RemoveIdentityEquivalent
-            # 2. Optimize1qGatesDecomposition
-            # 3. CommutativeOptimization
+            # 2. CommutativeOptimization
+            # 3. Optimize1qGatesDecomposition
             elif optimization_level == 2:
                 _opt = [
                     RemoveIdentityEquivalent(
@@ -545,8 +545,8 @@ class OptimizationPassManager(PassManagerStagePlugin):
             # 1. ConsolidateBlocks
             # 2. UnitarySynthesis
             # 3. RemoveIdentityEquivalent
-            # 4. Optimize1qGatesDecomposition
-            # 5. CommutativeOptimization
+            # 4. CommutativeOptimization
+            # 5. Optimize1qGatesDecomposition
             elif optimization_level == 3:
                 _opt = [
                     ConsolidateBlocks(
