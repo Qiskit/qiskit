@@ -161,8 +161,8 @@ class DefaultInitPassManager(PassManagerStagePlugin):
             if pass_manager_config._is_clifford_t:
                 init.append(CommutativeCancellation())
             else:
-                init.append(ConsolidateBlocks())
                 init.append(CommutativeOptimization())
+                init.append(ConsolidateBlocks())
 
             # If approximation degree is None that indicates a request to approximate up to the
             # error rates in the target. However, in the init stage we don't yet know the target
