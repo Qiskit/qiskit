@@ -47,7 +47,6 @@ from qiskit.transpiler.passes.optimization import (
     InverseCancellation,
     RemoveIdentityEquivalent,
     ContractIdleWiresInControlFlow,
-    SubstitutePi4Rotations,
 )
 from qiskit.transpiler.optimization_metric import OptimizationMetric
 from qiskit.transpiler.passes import Depth, Size, FixedPoint, MinimumPoint
@@ -164,7 +163,6 @@ class DefaultInitPassManager(PassManagerStagePlugin):
             else:
                 init.append(ConsolidateBlocks())
                 init.append(CommutativeOptimization())
-                init.append(SubstitutePi4Rotations())
 
             # If approximation degree is None that indicates a request to approximate up to the
             # error rates in the target. However, in the init stage we don't yet know the target
@@ -530,18 +528,16 @@ class OptimizationPassManager(PassManagerStagePlugin):
             # 1. RemoveIdentityEquivalent
             # 2. Optimize1qGatesDecomposition
             # 3. CommutativeOptimization
-            # 4. SubstitutePi4Rotations
             elif optimization_level == 2:
                 _opt = [
                     RemoveIdentityEquivalent(
                         approximation_degree=pass_manager_config.approximation_degree,
                         target=pass_manager_config.target,
                     ),
+                    CommutativeOptimization(),
                     Optimize1qGatesDecomposition(
                         basis=pass_manager_config.basis_gates, target=pass_manager_config.target
                     ),
-                    CommutativeOptimization(),
-                    SubstitutePi4Rotations(),
                     ContractIdleWiresInControlFlow(),
                 ]
 
@@ -551,7 +547,6 @@ class OptimizationPassManager(PassManagerStagePlugin):
             # 3. RemoveIdentityEquivalent
             # 4. Optimize1qGatesDecomposition
             # 5. CommutativeOptimization
-            # 6. SubstitutePi4Rotations
             elif optimization_level == 3:
                 _opt = [
                     ConsolidateBlocks(
@@ -571,11 +566,10 @@ class OptimizationPassManager(PassManagerStagePlugin):
                         approximation_degree=pass_manager_config.approximation_degree,
                         target=pass_manager_config.target,
                     ),
+                    CommutativeOptimization(),
                     Optimize1qGatesDecomposition(
                         basis=pass_manager_config.basis_gates, target=pass_manager_config.target
                     ),
-                    CommutativeOptimization(),
-                    SubstitutePi4Rotations(),
                     ContractIdleWiresInControlFlow(),
                 ]
 
