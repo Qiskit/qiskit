@@ -111,7 +111,6 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_unitary_synthesis(
 #[cfg(all(test, not(miri)))]
 mod tests {
     use super::*;
-    use pyo3::prelude::*;
 
     use qiskit_circuit::Qubit;
     use qiskit_circuit::bit::ShareableQubit;
@@ -182,7 +181,7 @@ mod tests {
             None,    // concurrent_measurements
         )
         .unwrap();
-        let params: Option<Parameters<Py<PyAny>>> = Some(Parameters::Params(smallvec![
+        let params = Some(Parameters::Params(smallvec![
             Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
                 "ϴ", None, None,
             )))),

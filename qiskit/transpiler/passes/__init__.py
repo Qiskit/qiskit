@@ -80,6 +80,7 @@ Optimizations
    ElidePermutations
    HoareOptimizer
    InverseCancellation
+   LightCone
    LitinskiTransformation
    Optimize1qGates
    Optimize1qGatesDecomposition
@@ -176,19 +177,13 @@ Additional Passes
    UnrollForLoops
    WrapAngles
 
-
 Additional data
 ===============
 
 .. py:data:: qiskit.transpiler.passes.utils.wrap_angles.WRAP_ANGLE_REGISTRY
 
-    A global instance of :class:`.WrapAngleRegistry` that is used by default by
-    :class:`.WrapAngles` when no explicit registry is specified.  See the documentation of
-    :class:`.WrapAngles` for how to add entries to a registry.
-
-    .. note::
-        Due to an oversight in Qiskit 2.2, this import path is the only valid way to access the
-        object in that version, despite traversing two non-public internal modules.
+    A legacy location for :attr:`.WrapAngles.DEFAULT_REGISTRY`.  This path should only be used when
+    full compatibility with Qiskit 2.2 is required.
 """
 
 # layout selection (placement)
@@ -229,12 +224,14 @@ from .optimization import CollectLinearFunctions
 from .optimization import CollectMultiQBlocks
 from .optimization import CommutationAnalysis
 from .optimization import CommutativeCancellation
+from .optimization import CommutativeOptimization
 from .optimization import CommutativeInverseCancellation
 from .optimization import ConsolidateBlocks
 from .optimization import ContractIdleWiresInControlFlow
 from .optimization import ElidePermutations
 from .optimization import HoareOptimizer
 from .optimization import InverseCancellation
+from .optimization import LightCone
 from .optimization import LitinskiTransformation
 from .optimization import Optimize1qGates
 from .optimization import Optimize1qGatesDecomposition
@@ -270,6 +267,7 @@ from .synthesis import HighLevelSynthesis
 from .synthesis import LinearFunctionsToPermutations
 from .synthesis import SolovayKitaev
 from .synthesis import SolovayKitaevSynthesis
+from .synthesis import RossSelingerSynthesis
 from .synthesis import UnitarySynthesis
 from .synthesis import unitary_synthesis_plugin_names
 

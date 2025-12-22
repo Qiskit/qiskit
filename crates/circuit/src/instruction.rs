@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use crate::circuit_data::CircuitData;
 use crate::operations::{OperationRef, Param};
 use ndarray::Array2;
 use num_complex::Complex64;
@@ -60,6 +61,32 @@ impl<T> Parameters<T> {
             Parameters::Blocks(blocks) => blocks,
         }
     }
+
+    /// Get a cloned version of these parameters, using a fallible mapping function to map any
+    /// contained blocks into a new type.
+    pub fn try_map_blocks<S, E>(
+        &self,
+        block_map_fn: impl FnMut(&T) -> Result<S, E>,
+    ) -> Result<Parameters<S>, E> {
+        match self {
+            Self::Params(params) => Ok(Parameters::Params(params.clone())),
+            Self::Blocks(blocks) => blocks
+                .iter()
+                .map(block_map_fn)
+                .collect::<Result<_, _>>()
+                .map(Parameters::Blocks),
+        }
+    }
+
+    /// Get a cloned version of these parameters, using an infallible mapping function to map any
+    /// contained blocks into a new type.
+    #[inline]
+    pub fn map_blocks<S>(&self, mut block_map_fn: impl FnMut(&T) -> S) -> Parameters<S> {
+        let Ok(out) = self.try_map_blocks(|block| -> Result<S, ::std::convert::Infallible> {
+            Ok(block_map_fn(block))
+        });
+        out
+    }
 }
 
 /// Represents an instruction that is directly convertible to our Python API
@@ -76,7 +103,7 @@ pub trait Instruction {
     ///
     /// For standard gates without parameters this may be [None] or a
     /// `Some(Parameters::Param(smallvec![]))`.
-    fn parameters(&self) -> Option<&Parameters<Py<PyAny>>>;
+    fn parameters(&self) -> Option<&Parameters<CircuitData>>;
 
     /// Get the label for this instruction.
     fn label(&self) -> Option<&str>;
@@ -94,7 +121,7 @@ pub trait Instruction {
 
     /// Get a slice view onto the contained blocks.
     #[inline]
-    fn blocks_view(&self) -> &[Py<PyAny>] {
+    fn blocks_view(&self) -> &[CircuitData] {
         self.parameters()
             .and_then(|p| match p {
                 Parameters::Blocks(b) => Some(b.as_slice()),
@@ -117,7 +144,7 @@ pub trait Instruction {
 pub fn create_py_op(
     py: Python,
     op: OperationRef,
-    params: Option<Parameters<Py<PyAny>>>,
+    params: Option<Parameters<CircuitData>>,
     label: Option<&str>,
 ) -> PyResult<Py<PyAny>> {
     match op {

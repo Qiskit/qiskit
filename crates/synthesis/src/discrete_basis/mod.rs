@@ -12,7 +12,7 @@
 
 mod basic_approximations;
 mod math;
-mod solovay_kitaev;
+pub mod solovay_kitaev;
 
 use pyo3::prelude::*;
 

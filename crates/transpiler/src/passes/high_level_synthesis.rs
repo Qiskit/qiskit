@@ -12,12 +12,10 @@
 
 use hashbrown::HashMap;
 use hashbrown::HashSet;
+use nalgebra::DMatrix;
 use ndarray::prelude::*;
-use num_complex::Complex;
-use numpy::IntoPyArray;
 use pyo3::Bound;
 use pyo3::IntoPyObjectExt;
-use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
 use qiskit_circuit::bit::ShareableQubit;
@@ -27,7 +25,7 @@ use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::CX_GATE;
-use qiskit_circuit::imports::{HLS_SYNTHESIZE_OP_USING_PLUGINS, QS_DECOMPOSITION, QUANTUM_CIRCUIT};
+use qiskit_circuit::imports::HLS_SYNTHESIZE_OP_USING_PLUGINS;
 use qiskit_circuit::operations::{
     Operation, OperationRef, Param, StandardGate, StandardInstruction, radd_param,
 };
@@ -44,6 +42,7 @@ use crate::target::Target;
 use qiskit_circuit::PhysicalQubit;
 use qiskit_synthesis::euler_one_qubit_decomposer::EulerBasis;
 use qiskit_synthesis::euler_one_qubit_decomposer::angles_from_unitary;
+use qiskit_synthesis::qsd::quantum_shannon_decomposition;
 use qiskit_synthesis::two_qubit_decompose::TwoQubitBasisDecomposer;
 
 use qiskit_circuit::instruction::{Instruction, Parameters};
@@ -575,12 +574,11 @@ fn run_on_circuitdata(
         // Check if synthesis for this operation can be skipped
         if definitely_skip_op(py, data, &inst.op, &op_qubits) {
             if let Some(cf) = input_circuit.try_view_control_flow(inst) {
-                let blocks: Vec<_> = Python::attach(|py| {
-                    cf.blocks()
-                        .into_iter()
-                        .map(|b| output_circuit.add_block(b.bind(py)))
-                        .collect()
-                });
+                let blocks: Vec<_> = cf
+                    .blocks()
+                    .into_iter()
+                    .map(|b| output_circuit.add_block(b.clone()))
+                    .collect();
                 output_circuit.push(PackedInstruction {
                     params: (!blocks.is_empty()).then(|| Box::new(Parameters::Blocks(blocks))),
                     ..inst.clone()
@@ -599,17 +597,6 @@ fn run_on_circuitdata(
         // avoid complications related to tracking qubit status for while- loops.
         // In the future, this handling can potentially be improved.
         if let Some(control_flow) = input_circuit.try_view_control_flow(inst) {
-            let quantum_circuit_cls = QUANTUM_CIRCUIT.get_bound(py);
-
-            // old_blocks_py keeps the original QuantumCircuit's appearing within control-flow ops
-            // new_blocks_py keeps the recursively synthesized circuits
-            let old_blocks_py: Vec<Bound<PyAny>> = control_flow
-                .blocks()
-                .into_iter()
-                .map(|b| b.bind(py).clone())
-                .collect();
-            let mut new_blocks_py: Vec<Bound<PyAny>> = Vec::with_capacity(old_blocks_py.len());
-
             // We do not allow using any additional qubits outside of the block.
             let mut block_tracker = tracker.clone();
             let to_disable = (0..tracker.num_qubits())
@@ -618,31 +605,15 @@ fn run_on_circuitdata(
             block_tracker.disable(to_disable);
             block_tracker.set_dirty(&op_qubits);
 
-            for block_py in old_blocks_py {
-                let old_block_py: QuantumCircuitData = block_py.extract()?;
-                let (new_block, _) = run_on_circuitdata(
-                    py,
-                    &old_block_py.data,
-                    &op_qubits,
-                    data,
-                    &mut block_tracker,
-                )?;
-                let new_block = new_block.into_bound_py_any(py)?;
-
-                // We create the new quantum circuit by calling copy_empty_like on the old quantum circuit
-                // and manually set the circuit data to the (recursively synthesized) data.
-                // This makes sure that all the python-space information (qregs, cregs, input variables)
-                // get copied correctly.
-                let new_block_py: Bound<'_, PyAny> = quantum_circuit_cls
-                    .call_method1(intern!(py, "copy_empty_like"), (block_py,))?;
-                new_block_py.setattr(intern!(py, "_data"), &new_block)?;
-                new_blocks_py.push(new_block_py);
-            }
-
-            let blocks = new_blocks_py
+            let blocks = control_flow
+                .blocks()
                 .into_iter()
-                .map(|b| output_circuit.add_block(&b))
-                .collect();
+                .map(|block| -> PyResult<_> {
+                    let (new_block, _) =
+                        run_on_circuitdata(py, block, &op_qubits, data, &mut block_tracker)?;
+                    Ok(output_circuit.add_block(new_block))
+                })
+                .collect::<PyResult<_>>()?;
             let packed_instruction = PackedInstruction::from_control_flow(
                 inst.op.control_flow().clone(),
                 blocks,
@@ -759,18 +730,12 @@ fn run_on_circuitdata(
 /// Essentially this function constructs a default definition for a unitary gate, in which case
 /// ``op.definition`` purposefully returns ``None``.
 /// For all other operation types, it simply calls ``op.definition``.
-fn extract_definition(
-    py: Python,
-    op: &PackedOperation,
-    params: &[Param],
-) -> PyResult<Option<CircuitData>> {
+fn extract_definition(op: &PackedOperation, params: &[Param]) -> PyResult<Option<CircuitData>> {
     match op.view() {
         OperationRef::Unitary(unitary) => {
-            let unitary: Array<Complex<f64>, Dim<[usize; 2]>> = match unitary.matrix() {
-                Some(unitary) => unitary,
-                None => return Err(TranspilerError::new_err("Unitary not found")),
-            };
-            match unitary.shape() {
+            let unitary = unitary.matrix_view();
+            let shape = unitary.shape();
+            match shape {
                 // Run 1q synthesis
                 [2, 2] => {
                     let [theta, phi, lam, phase] =
@@ -814,11 +779,10 @@ fn extract_definition(
                 }
                 // Run 3q+ synthesis
                 _ => {
-                    let qs_decomposition: &Bound<'_, PyAny> = QS_DECOMPOSITION.get_bound(py);
-                    let synthesized_circuit_py =
-                        qs_decomposition.call1((unitary.into_pyarray(py),))?;
-                    let circuit_data: QuantumCircuitData = synthesized_circuit_py.extract()?;
-                    Ok(Some(circuit_data.data))
+                    let matrix = DMatrix::from_fn(shape[0], shape[1], |i, j| unitary[[i, j]]);
+                    let synth_circ =
+                        quantum_shannon_decomposition(&matrix, None, None, None, None)?;
+                    Ok(Some(synth_circ))
                 }
             }
         }
@@ -905,7 +869,7 @@ fn synthesize_operation(
 
     // Extract definition.
     if output_circuit_and_qubits.is_none() && borrowed_data.unroll_definitions {
-        let definition_circuit = extract_definition(py, op, params)?;
+        let definition_circuit = extract_definition(op, params)?;
         match definition_circuit {
             Some(definition_circuit) => {
                 output_circuit_and_qubits = Some((definition_circuit, input_qubits.to_vec()));

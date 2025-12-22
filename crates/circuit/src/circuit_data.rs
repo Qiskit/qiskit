@@ -23,12 +23,11 @@ use crate::bit_locator::BitLocator;
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use crate::classical::expr;
 use crate::dag_circuit::{DAGStretchType, DAGVarType, add_global_phase};
-use crate::imports::{ANNOTATED_OPERATION, DEEPCOPY, QUANTUM_CIRCUIT};
+use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
 use crate::interner::{Interned, InternedMap, Interner};
-use crate::object_registry::{ObjectRegistry, PyObjectAsKey};
+use crate::object_registry::ObjectRegistry;
 use crate::operations::{
-    ControlFlow, ControlFlowInstruction, ControlFlowView, Operation, OperationRef, Param,
-    PythonOperation, StandardGate,
+    ControlFlow, ControlFlowView, Operation, OperationRef, Param, PythonOperation, StandardGate,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::ParameterExpression;
@@ -36,7 +35,9 @@ use crate::parameter::symbol_expr::{Symbol, Value};
 use crate::parameter_table::{ParameterTable, ParameterTableError, ParameterUse, ParameterUuid};
 use crate::register_data::RegisterData;
 use crate::slice::{PySequenceIndex, SequenceIndex};
-use crate::{Block, BlocksMode, Clbit, Qubit, Stretch, Var, VarsMode, instruction};
+use crate::{
+    Block, BlocksMode, Clbit, ControlFlowBlocks, Qubit, Stretch, Var, VarsMode, instruction,
+};
 
 use num_complex::Complex64;
 use numpy::PyReadonlyArray1;
@@ -130,7 +131,7 @@ pub struct CircuitData {
     /// Clbits registered in the circuit.
     clbits: ObjectRegistry<Clbit, ShareableClbit>,
     /// Basic blocks registered in the circuit.
-    blocks: ObjectRegistry<Block, PyObjectAsKey>,
+    blocks: ControlFlowBlocks<CircuitData>,
     /// QuantumRegisters stored in the circuit
     qregs: RegisterData<QuantumRegister>,
     /// ClassicalRegisters stored in the circuit
@@ -316,7 +317,7 @@ impl CircuitData {
             cargs_interner: Interner::new(),
             qubits: qubits_registry,
             clbits: clbits_registry,
-            blocks: ObjectRegistry::new(),
+            blocks: ControlFlowBlocks::new(),
             param_table: ParameterTable::new(),
             global_phase: Param::Float(0.),
             qregs: RegisterData::new(),
@@ -897,20 +898,7 @@ impl CircuitData {
             }
             let py_op = func.call1((self.unpack_py_op(py, instr)?,))?;
             let result = py_op.extract::<OperationFromPython>()?;
-            let params = match result.params {
-                Some(Parameters::Blocks(circuits)) => {
-                    let mut blocks = Vec::with_capacity(circuits.len());
-                    for circuit in circuits {
-                        blocks.push(
-                            self.blocks
-                                .add(PyObjectAsKey::new(circuit.bind(py)), false)?,
-                        );
-                    }
-                    Some(Box::new(Parameters::Blocks(blocks)))
-                }
-                Some(Parameters::Params(params)) => Some(Box::new(Parameters::Params(params))),
-                None => None,
-            };
+            let params = self.extract_blocks_from_circuit_parameters(result.params.as_ref());
             let inst = &mut self.data[index];
             inst.op = result.operation;
             inst.params = params;
@@ -1045,18 +1033,7 @@ impl CircuitData {
             let inst = &self.data[index];
             let qubits = self.qargs_interner.get(inst.qubits);
             let clbits = self.cargs_interner.get(inst.clbits);
-            let params = match inst.params.as_deref() {
-                Some(Parameters::Blocks(blocks)) => {
-                    let mut circuits = Vec::with_capacity(blocks.len());
-                    for block in blocks {
-                        let block = &self.blocks.get(*block).unwrap();
-                        circuits.push(block.object().clone());
-                    }
-                    Some(Parameters::Blocks(circuits))
-                }
-                Some(Parameters::Params(params)) => Some(Parameters::Params(params.clone())),
-                None => None,
-            };
+            let params = self.unpack_blocks_to_circuit_parameters(inst.params.as_deref());
             CircuitInstruction {
                 operation: inst.op.clone(),
                 qubits: PyTuple::new(py, self.qubits.map_indices(qubits))
@@ -1087,7 +1064,9 @@ impl CircuitData {
         fn set_single(slf: &mut CircuitData, index: usize, value: &Bound<PyAny>) -> PyResult<()> {
             let py = value.py();
             slf.untrack_instruction_parameters(index)?;
+            slf.untrack_instruction_blocks(index);
             slf.data[index] = slf.pack(py, &value.cast::<CircuitInstruction>()?.borrow())?;
+            slf.track_instruction_blocks(index);
             slf.track_instruction_parameters(index)?;
             Ok(())
         }
@@ -1153,6 +1132,7 @@ impl CircuitData {
         let py = value.py();
         let packed = self.pack(py, &value)?;
         self.data.insert(index, packed);
+        self.track_instruction_blocks(index);
         if index == self.data.len() - 1 {
             self.track_instruction_parameters(index)?;
         } else {
@@ -1172,11 +1152,8 @@ impl CircuitData {
 
     /// Primary entry point for appending an instruction from Python space.
     pub fn append(&mut self, value: &Bound<CircuitInstruction>) -> PyResult<()> {
-        let py = value.py();
-        let new_index = self.data.len();
-        let packed = self.pack(py, &value.borrow())?;
-        self.data.push(packed);
-        self.track_instruction_parameters(new_index)
+        let packed = self.pack(value.py(), &value.borrow())?;
+        self.push(packed)
     }
 
     /// Backup entry point for appending an instruction from Python space, in the unusual case that
@@ -1225,21 +1202,12 @@ impl CircuitData {
                     .iter()
                     .map(|b| Ok(self.clbits.find(other.clbits.get(*b).unwrap()).unwrap()))
                     .collect::<PyResult<Vec<Clbit>>>()?;
-                let new_index = self.data.len();
                 let qubits_id = self.qargs_interner.insert_owned(qubits);
                 let clbits_id = self.cargs_interner.insert_owned(clbits);
-                let params = match inst.params.as_deref() {
-                    Some(Parameters::Blocks(blocks)) => {
-                        let circuits = blocks.iter().map(|b| other.blocks.get(*b).unwrap());
-                        let mut blocks = Vec::with_capacity(blocks.len());
-                        for other_block in circuits {
-                            blocks.push(self.blocks.add(other_block.clone(), false)?);
-                        }
-                        Some(Box::new(Parameters::Blocks(blocks)))
-                    }
-                    _ => inst.params.clone(),
-                };
-                self.data.push(PackedInstruction {
+                let params = inst.params.as_ref().map(|params| {
+                    Box::new(params.map_blocks(|b| self.blocks.push(other.blocks[*b].clone())))
+                });
+                self.push(PackedInstruction {
                     op: inst.op.clone(),
                     qubits: qubits_id,
                     clbits: clbits_id,
@@ -1247,8 +1215,7 @@ impl CircuitData {
                     label: inst.label.clone(),
                     #[cfg(feature = "cache_pygates")]
                     py_op: inst.py_op.clone(),
-                });
-                self.track_instruction_parameters(new_index)?;
+                })?;
             }
             return Ok(());
         }
@@ -1815,9 +1782,9 @@ impl CircuitData {
 }
 
 impl CircuitData {
-    /// Iterate over the blocks registered to the DAG.
-    pub fn iter_blocks(&self) -> impl ExactSizeIterator<Item = &Py<PyAny>> {
-        self.blocks.objects().iter().map(|b| b.object())
+    #[inline]
+    pub fn blocks(&self) -> &ControlFlowBlocks<CircuitData> {
+        &self.blocks
     }
 
     /// Build a reference to the Python-space operation object (the `Gate`, etc) packed into an
@@ -1840,18 +1807,7 @@ impl CircuitData {
                 return Ok(ob.clone_ref(py));
             }
         }
-        let params = match instr.params.as_deref() {
-            Some(Parameters::Blocks(blocks)) => {
-                let mut circuits = Vec::new();
-                for block in blocks {
-                    let circuit = self.blocks.get(*block).unwrap().object().clone_ref(py);
-                    circuits.push(circuit);
-                }
-                Some(Parameters::Blocks(circuits))
-            }
-            Some(Parameters::Params(params)) => Some(Parameters::Params(params.clone())),
-            None => None,
-        };
+        let params = self.unpack_blocks_to_circuit_parameters(instr.params.as_deref());
         let out = instruction::create_py_op(
             py,
             instr.op.view(),
@@ -1866,6 +1822,20 @@ impl CircuitData {
         Ok(out)
     }
 
+    /// Move this [CircuitData] into a complete Python `QuantumCircuit` object.
+    pub fn into_py_quantum_circuit(self, py: Python) -> PyResult<Bound<PyAny>> {
+        // TODO: setting the name to a fixed value is a gross hack for Qiskit 2.3 to prevent
+        // QuantumCircuit's awkward "unique name" logic from coming in to play, which would cause
+        // problems with reproducibility in QPY streams when gate-caching is turned off.
+        let kwargs = PyDict::new(py);
+        kwargs.set_item(intern!(py, "name"), "unnamed")?;
+        QUANTUM_CIRCUIT.get_bound(py).call_method(
+            intern!(py, "_from_circuit_data"),
+            (self,),
+            Some(&kwargs),
+        )
+    }
+
     /// Gives the circuit ownership of the provided basic block and returns a
     /// unique identifier that can be used to retrieve a reference to it
     /// later.
@@ -1873,66 +1843,45 @@ impl CircuitData {
     /// No attempt is made to deduplicate the given block.
     /// No validation is performed to ensure that the given block is valid
     /// within the circuit.
-    pub fn add_block(&mut self, block: &Bound<PyAny>) -> Block {
-        self.blocks.add(PyObjectAsKey::new(block), false).unwrap()
+    pub fn add_block(&mut self, block: CircuitData) -> Block {
+        self.blocks.push(block)
+    }
+
+    /// Given a `params` object in terms of owned Python-space circuit objects (such as from an
+    /// `OperationFromPython` extraction), add all the blocks to the circuit and return the `params`
+    /// field suitable for inclusion in a `PackedInstruction`.
+    ///
+    /// The inverse of this method is [unpack_blocks_to_circuit_parameters].
+    fn extract_blocks_from_circuit_parameters(
+        &mut self,
+        params: Option<&Parameters<CircuitData>>,
+    ) -> Option<Box<Parameters<Block>>> {
+        params
+            .map(|params| params.map_blocks(|block| self.add_block(block.clone())))
+            .map(Box::new)
+    }
+
+    /// Given a `params` object from an instruction packed into this circuit, extract any relevant
+    /// blocks into the owned-object `CircuitData` block type, suitable for passing back to Python
+    /// space.
+    ///
+    /// The inverse of this method is [extract_blocks_from_circuit_parameters].
+    fn unpack_blocks_to_circuit_parameters(
+        &self,
+        params: Option<&Parameters<Block>>,
+    ) -> Option<Parameters<CircuitData>> {
+        params.map(|params| params.map_blocks(|block| self.blocks[*block].clone()))
     }
 
     /// Gets an immutable view of a control flow operation.
     ///
-    /// The provided `instr` MUST belong to this circuit.
+    /// Panics or produces incorrect results if `instr` is not from this circuit (or compatible with
+    /// it, e.g. from a mapped [ControlFlowBlocks]).
     pub fn try_view_control_flow<'a>(
         &'a self,
         instr: &'a PackedInstruction,
-    ) -> Option<ControlFlowView<'a, Py<PyAny>>> {
-        let OperationRef::ControlFlow(control) = instr.op.view() else {
-            return None;
-        };
-        Some(match &control.control_flow {
-            ControlFlow::Box { duration, .. } => ControlFlowView::Box(
-                duration.as_ref(),
-                self.blocks.get(instr.blocks_view()[0]).unwrap().object(),
-            ),
-            ControlFlow::BreakLoop => ControlFlowView::BreakLoop,
-            ControlFlow::ContinueLoop => ControlFlowView::ContinueLoop,
-            ControlFlow::ForLoop {
-                indexset,
-                loop_param,
-                ..
-            } => ControlFlowView::ForLoop {
-                indexset: indexset.as_slice(),
-                loop_param: loop_param.as_ref(),
-                body: self.blocks.get(instr.blocks_view()[0]).unwrap().object(),
-            },
-            ControlFlow::IfElse { condition, .. } => ControlFlowView::IfElse {
-                condition,
-                true_body: self.blocks.get(instr.blocks_view()[0]).unwrap().object(),
-                false_body: instr
-                    .blocks_view()
-                    .get(1)
-                    .map(|b| self.blocks.get(*b).unwrap().object()),
-            },
-            ControlFlow::Switch {
-                target, label_spec, ..
-            } => {
-                let cases_specifier = label_spec
-                    .iter()
-                    .zip(
-                        instr
-                            .blocks_view()
-                            .iter()
-                            .map(|case| self.blocks.get(*case).unwrap().object()),
-                    )
-                    .collect();
-                ControlFlowView::Switch {
-                    target,
-                    cases_specifier,
-                }
-            }
-            ControlFlow::While { condition, .. } => ControlFlowView::While {
-                condition,
-                body: self.blocks.get(instr.blocks_view()[0]).unwrap().object(),
-            },
-        })
+    ) -> Option<ControlFlowView<'a, CircuitData>> {
+        ControlFlowView::try_from_instruction(instr, &self.blocks)
     }
 
     pub fn copy_empty_like(&self, vars_mode: VarsMode, blocks_mode: BlocksMode) -> PyResult<Self> {
@@ -1948,18 +1897,7 @@ impl CircuitData {
         res.cargs_interner = self.cargs_interner.clone();
 
         if blocks_mode == BlocksMode::Keep && !self.blocks.is_empty() {
-            Python::attach(|py| -> PyResult<()> {
-                // We deepcopy the blocks because QuantumCircuit.copy
-                // promises a deepcopy of all instruction params.
-                let deepcopy = DEEPCOPY.get_bound(py);
-                for block in self.blocks.objects() {
-                    res.blocks.add(
-                        PyObjectAsKey::new(&deepcopy.call1((&block.object(),))?),
-                        true,
-                    )?;
-                }
-                Ok(())
-            })?;
+            res.blocks = self.blocks.map_without_references(|block| block.clone());
         }
 
         // After initialization, copy register info.
@@ -2063,7 +2001,7 @@ impl CircuitData {
             let qubits = res.qargs_interner.insert_owned(qargs);
             let clbits = res.cargs_interner.insert_owned(cargs);
             let params = (!params.is_empty()).then(|| Box::new(Parameters::Params(params)));
-            res.data.push(PackedInstruction {
+            res.push(PackedInstruction {
                 op: operation,
                 qubits,
                 clbits,
@@ -2071,8 +2009,7 @@ impl CircuitData {
                 label: None,
                 #[cfg(feature = "cache_pygates")]
                 py_op: OnceLock::new(),
-            });
-            res.track_instruction_parameters(res.data.len() - 1)?;
+            })?;
         }
         Ok(res)
     }
@@ -2116,7 +2053,7 @@ impl CircuitData {
     pub fn from_packed_instructions<I>(
         qubits: ObjectRegistry<Qubit, ShareableQubit>,
         clbits: ObjectRegistry<Clbit, ShareableClbit>,
-        blocks: ObjectRegistry<Block, PyObjectAsKey>,
+        blocks: ControlFlowBlocks<CircuitData>,
         qargs_interner: Interner<[Qubit]>,
         cargs_interner: Interner<[Clbit]>,
         qregs: RegisterData<QuantumRegister>,
@@ -2162,8 +2099,7 @@ impl CircuitData {
         res.set_global_phase(global_phase)?;
 
         for inst in instruction_iter {
-            res.data.push(inst?);
-            res.track_instruction_parameters(res.data.len() - 1)?;
+            res.push(inst?)?;
         }
 
         // Add variables and stretches in order
@@ -2213,10 +2149,9 @@ impl CircuitData {
         for (operation, params, qargs) in instruction_iter {
             let qubits = res.qargs_interner.insert(&qargs);
             let params = (!params.is_empty()).then(|| Box::new(params));
-            res.data.push(PackedInstruction::from_standard_gate(
+            res.push(PackedInstruction::from_standard_gate(
                 operation, params, qubits,
-            ));
-            res.track_instruction_parameters(res.data.len() - 1)?;
+            ))?;
         }
         Ok(res)
     }
@@ -2234,7 +2169,7 @@ impl CircuitData {
             cargs_interner: Interner::new(),
             qubits: ObjectRegistry::with_capacity(num_qubits as usize),
             clbits: ObjectRegistry::with_capacity(num_clbits as usize),
-            blocks: ObjectRegistry::new(),
+            blocks: ControlFlowBlocks::new(),
             param_table: ParameterTable::new(),
             global_phase: Param::Float(0.0),
             qregs: RegisterData::new(),
@@ -2349,6 +2284,21 @@ impl CircuitData {
         })
     }
 
+    #[inline]
+    fn track_instruction_blocks(&mut self, index: usize) {
+        self.data[index]
+            .blocks_view()
+            .iter()
+            .for_each(|block| self.blocks.increment(*block))
+    }
+    #[inline]
+    fn untrack_instruction_blocks(&mut self, index: usize) {
+        self.data[index]
+            .blocks_view()
+            .iter()
+            .for_each(|block| _ = self.blocks.decrement(*block))
+    }
+
     /// Add the entries from the `PackedInstruction` at the given index to the internal parameter
     /// table.
     fn track_instruction_parameters(&mut self, instruction_index: usize) -> PyResult<()> {
@@ -2372,73 +2322,11 @@ impl CircuitData {
                 }
             }
             Parameters::Blocks(_) => {
-                let blocks: Vec<_> = self
-                    .try_view_control_flow(instr)
-                    .unwrap()
-                    .blocks()
-                    .into_iter()
-                    .cloned()
-                    .collect();
-                match instr.op.view() {
-                    OperationRef::ControlFlow(ControlFlowInstruction {
-                        control_flow: ControlFlow::ForLoop { loop_param, .. },
-                        ..
-                    }) => {
-                        Python::attach(|py| -> PyResult<_> {
-                            // The loop param is technically a parameter in Python land, stored at
-                            // argument position 1.
-                            if let Some(loop_param) = loop_param {
-                                self.param_table.track(
-                                    &loop_param.bind(py).extract()?,
-                                    Some(ParameterUse::Index {
-                                        instruction: instruction_index,
-                                        parameter: 1,
-                                    }),
-                                )?;
-                            }
-                            let usage = ParameterUse::Index {
-                                instruction: instruction_index,
-                                parameter: 2,
-                            };
-                            for param_ob in &blocks[0]
-                                .bind(py)
-                                .getattr(intern!(py, "parameters"))?
-                                .try_iter()?
-                            {
-                                self.param_table.track(&param_ob?.extract()?, Some(usage))?;
-                            }
-                            Ok(())
-                        })?;
-                    }
-                    OperationRef::ControlFlow(_) => {
-                        // All the other control flow operations are simple, and their "blocks"
-                        // are exactly their parameters, in the right order.
-                        let blocks: Vec<_> = self
-                            .try_view_control_flow(instr)
-                            .unwrap()
-                            .blocks()
-                            .into_iter()
-                            .cloned()
-                            .collect();
-                        Python::attach(|py| -> PyResult<_> {
-                            for (idx, case) in blocks.iter().enumerate() {
-                                let usage = ParameterUse::Index {
-                                    instruction: instruction_index,
-                                    parameter: idx as u32,
-                                };
-                                for param_ob in case
-                                    .bind(py)
-                                    .getattr(intern!(py, "parameters"))?
-                                    .try_iter()?
-                                {
-                                    self.param_table.track(&param_ob?.extract()?, Some(usage))?;
-                                }
-                            }
-                            Ok(())
-                        })?;
-                    }
-                    _ => panic!("instruction has blocks but is not control flow"),
-                }
+                let view = ControlFlowView::try_from_instruction(instr, &self.blocks)
+                    .expect("all instructions with blocks should be control flow");
+                for_each_symbol_use_in_control_flow(instruction_index, view, |symbol, usage| {
+                    self.param_table.track(symbol, Some(usage)).map(|_| ())
+                })?
             }
         }
         Ok(())
@@ -2467,73 +2355,11 @@ impl CircuitData {
                 }
             }
             Parameters::Blocks(_) => {
-                let blocks: Vec<_> = self
-                    .try_view_control_flow(instr)
-                    .unwrap()
-                    .blocks()
-                    .into_iter()
-                    .cloned()
-                    .collect();
-                match instr.op.view() {
-                    OperationRef::ControlFlow(ControlFlowInstruction {
-                        control_flow: ControlFlow::ForLoop { loop_param, .. },
-                        ..
-                    }) => {
-                        Python::attach(|py| -> PyResult<_> {
-                            // The loop param is technically a parameter in Python land, stored at
-                            // argument position 1.
-                            if let Some(loop_param) = loop_param {
-                                self.param_table.untrack(
-                                    &loop_param.bind(py).extract()?,
-                                    ParameterUse::Index {
-                                        instruction: instruction_index,
-                                        parameter: 1,
-                                    },
-                                )?;
-                            }
-                            let usage = ParameterUse::Index {
-                                instruction: instruction_index,
-                                parameter: 2,
-                            };
-                            for param_ob in &blocks[0]
-                                .bind(py)
-                                .getattr(intern!(py, "parameters"))?
-                                .try_iter()?
-                            {
-                                self.param_table.untrack(&param_ob?.extract()?, usage)?;
-                            }
-                            Ok(())
-                        })?;
-                    }
-                    OperationRef::ControlFlow(_) => {
-                        // All the other control flow operations are simple, and their "blocks"
-                        // are exactly their parameters, in the right order.
-                        let blocks: Vec<_> = self
-                            .try_view_control_flow(instr)
-                            .unwrap()
-                            .blocks()
-                            .into_iter()
-                            .cloned()
-                            .collect();
-                        Python::attach(|py| -> PyResult<_> {
-                            for (idx, case) in blocks.iter().enumerate() {
-                                let usage = ParameterUse::Index {
-                                    instruction: instruction_index,
-                                    parameter: idx as u32,
-                                };
-                                for param_ob in case
-                                    .bind(py)
-                                    .getattr(intern!(py, "parameters"))?
-                                    .try_iter()?
-                                {
-                                    self.param_table.untrack(&param_ob?.extract()?, usage)?;
-                                }
-                            }
-                            Ok(())
-                        })?;
-                    }
-                    _ => panic!("instruction has blocks but is not control flow"),
-                }
+                let view = ControlFlowView::try_from_instruction(instr, &self.blocks)
+                    .expect("all instructions with blocks should be control flow");
+                for_each_symbol_use_in_control_flow(instruction_index, view, |symbol, usage| {
+                    self.param_table.untrack(symbol, usage)
+                })?
             }
         }
         Ok(())
@@ -2565,6 +2391,7 @@ impl CircuitData {
     fn delitem(&mut self, indices: SequenceIndex) -> PyResult<()> {
         // We need to delete in reverse order so we don't invalidate higher indices with a deletion.
         for index in indices.descending() {
+            self.untrack_instruction_blocks(index);
             self.data.remove(index);
         }
         if !indices.is_empty() {
@@ -2584,20 +2411,7 @@ impl CircuitData {
                 .map_objects(inst.clbits.extract::<Vec<ShareableClbit>>(py)?.into_iter())?
                 .collect(),
         );
-        let params = match &inst.params {
-            Some(Parameters::Blocks(circuits)) => {
-                let mut blocks = Vec::with_capacity(circuits.len());
-                for circuit in circuits {
-                    blocks.push(
-                        self.blocks
-                            .add(PyObjectAsKey::new(circuit.bind(py)), false)?,
-                    );
-                }
-                Some(Box::new(Parameters::Blocks(blocks)))
-            }
-            Some(Parameters::Params(params)) => Some(Box::new(Parameters::Params(params.clone()))),
-            None => None,
-        };
+        let params = self.extract_blocks_from_circuit_parameters(inst.params.as_ref());
         Ok(PackedInstruction {
             op: inst.operation.clone(),
             qubits,
@@ -2617,6 +2431,11 @@ impl CircuitData {
     /// Get the sorted symbols in this circuit.
     pub fn parameters(&self) -> &[Symbol] {
         self.param_table.symbols()
+    }
+
+    /// Does the circuit use this `Symbol` as a parameter?
+    pub fn uses_parameter(&self, sym: &Symbol) -> bool {
+        self.param_table.contains(sym)
     }
 
     /// Get the unsorted symbols in this circuit.
@@ -2664,6 +2483,17 @@ impl CircuitData {
             }
         }
         self.assign_parameters_inner(items)
+    }
+
+    /// Assign a single parameter to a value.
+    ///
+    /// This is not generally efficient, and mostly just a convenience for the recursive case of
+    /// control flow.
+    fn assign_single_parameter(&mut self, symbol: Symbol, value: &Param) -> PyResult<()> {
+        let Ok(uses) = self.param_table.pop(ParameterUuid::from_symbol(&symbol)) else {
+            return Ok(());
+        };
+        self.assign_parameters_inner(Some((symbol, value, uses)))
     }
 
     /// Returns an immutable view of the Interner used for Qargs
@@ -2837,6 +2667,7 @@ impl CircuitData {
         let mut seen_blocks = HashSet::new();
         for (symbol, value, uses) in iter {
             debug_assert!(!uses.is_empty());
+            seen_blocks.clear();
             uuids.clear();
             for inner_symbol in value.as_ref().iter_parameters()? {
                 uuids.push(self.param_table.track(&inner_symbol, None)?)
@@ -2886,52 +2717,27 @@ impl CircuitData {
                                 previous.py_op.take();
                             }
                         } else if let OperationRef::ControlFlow(op) = previous_op.view() {
-                            Python::attach(|py| -> PyResult<()> {
-                                let assign_parameters_attr = intern!(py, "assign_parameters");
-                                let map_block = |obj: &Py<PyAny>| -> PyResult<Py<PyAny>> {
-                                    obj.call_method(
-                                        py,
-                                        assign_parameters_attr,
-                                        ([(symbol.clone(), value.as_ref().clone_ref(py))]
-                                            .into_py_dict(py)?,),
-                                        Some(
-                                            &[("inplace", false), ("flat_input", true)]
-                                                .into_py_dict(py)?,
-                                        ),
-                                    )
-                                };
-                                let blocks = self.data[instruction].blocks_view();
-                                let block_to_edit = match &op.control_flow {
-                                    ControlFlow::BreakLoop => Err(inconsistent()),
-                                    ControlFlow::ContinueLoop => Err(inconsistent()),
-                                    ControlFlow::ForLoop { .. } => {
-                                        match parameter {
-                                            2 => {
-                                                // In Python land, the loop body exists at parameter
-                                                // position 2.
-                                                Ok(blocks[0])
-                                            }
-                                            _ => Err(inconsistent()),
-                                        }
+                            let blocks = self.data[instruction].blocks_view();
+                            let block_to_edit = match &op.control_flow {
+                                ControlFlow::BreakLoop => Err(inconsistent()),
+                                ControlFlow::ContinueLoop => Err(inconsistent()),
+                                ControlFlow::ForLoop { .. } => {
+                                    match parameter {
+                                        // In Python land, the loop body exists at parameter
+                                        // position 2.
+                                        2 => Ok(blocks[0]),
+                                        _ => Err(inconsistent()),
                                     }
-                                    _ => {
-                                        // Most control flow instructions use the parameters for
-                                        // *just* their blocks.
-                                        Ok(blocks[parameter])
-                                    }
-                                }?;
-                                if !seen_blocks.contains(&block_to_edit) {
-                                    let mapped_block = map_block(
-                                        self.blocks.get(block_to_edit).unwrap().object(),
-                                    )?;
-                                    self.blocks.replace(
-                                        block_to_edit,
-                                        PyObjectAsKey::new(mapped_block.bind(py)),
-                                    )?;
-                                    seen_blocks.insert(block_to_edit);
                                 }
-                                Ok(())
-                            })?;
+                                // Most control flow instructions use the parameters for
+                                // *just* their blocks.
+                                _ => Ok(blocks[parameter]),
+                            }?;
+                            if !seen_blocks.contains(&block_to_edit) {
+                                self.blocks[block_to_edit]
+                                    .assign_single_parameter(symbol.clone(), value.as_ref())?;
+                                seen_blocks.insert(block_to_edit);
+                            }
                             for uuid in uuids.iter() {
                                 self.param_table.add_use(*uuid, usage)?
                             }
@@ -3238,6 +3044,7 @@ impl CircuitData {
     pub fn push(&mut self, packed: PackedInstruction) -> PyResult<()> {
         let new_index = self.data.len();
         self.data.push(packed);
+        self.track_instruction_blocks(new_index);
         self.track_instruction_parameters(new_index)
     }
 
@@ -3575,4 +3382,63 @@ where
         };
         Err(CircuitError::new_err(err_message))
     }
+}
+
+/// Perform an action for each `ParameterUse` of a `Symbol` within a control-flow view object from
+/// the given circuit index.
+///
+/// This encapsulates the logic of both [CircuitData::track_parameters] and
+/// [CircuitData::untrack_parameters].
+fn for_each_symbol_use_in_control_flow<F, E>(
+    instruction_index: usize,
+    cf: ControlFlowView<CircuitData>,
+    mut action: F,
+) -> Result<(), E>
+where
+    F: FnMut(&Symbol, ParameterUse) -> Result<(), E>,
+{
+    match cf {
+        ControlFlowView::ForLoop {
+            loop_param,
+            body,
+            collection: _,
+        } => {
+            // The loop param is technically a parameter in Python land at `params[1]`.
+            if let Some(symbol) = loop_param {
+                action(
+                    symbol,
+                    ParameterUse::Index {
+                        instruction: instruction_index,
+                        parameter: 1,
+                    },
+                )?;
+            }
+            // The body is at `params[2]`.
+            let usage = ParameterUse::Index {
+                instruction: instruction_index,
+                parameter: 2,
+            };
+            for symbol in body.parameters() {
+                action(symbol, usage)?;
+            }
+        }
+        // For all these guys, the `params` field is the same as the `blocks` list.
+        ControlFlowView::Box { .. }
+        | ControlFlowView::BreakLoop
+        | ControlFlowView::ContinueLoop
+        | ControlFlowView::IfElse { .. }
+        | ControlFlowView::Switch { .. }
+        | ControlFlowView::While { .. } => {
+            for (idx, body) in cf.blocks().iter().enumerate() {
+                let usage = ParameterUse::Index {
+                    instruction: instruction_index,
+                    parameter: idx as u32,
+                };
+                for symbol in body.parameters() {
+                    action(symbol, usage)?;
+                }
+            }
+        }
+    }
+    Ok(())
 }

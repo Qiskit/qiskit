@@ -362,8 +362,13 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.x(0)
         circuit.cx(0, 1)
         circuit.ccx(0, 1, 2)
-        circuit.append(XGate().control(3, ctrl_state="010"), [qr[2], qr[3], qr[0], qr[1]])
-        circuit.append(MCXGate(num_ctrl_qubits=3, ctrl_state="101"), [qr[0], qr[1], qr[2], qr[4]])
+        circuit.append(
+            XGate().control(3, ctrl_state="010", annotated=False), [qr[2], qr[3], qr[0], qr[1]]
+        )
+        circuit.append(
+            MCXGate(num_ctrl_qubits=3, ctrl_state="101"),
+            [qr[0], qr[1], qr[2], qr[4]],
+        )
         with self.assertWarns(DeprecationWarning):
             circuit.append(MCXVChain(3, dirty_ancillas=True), [qr[0], qr[1], qr[2], qr[3], qr[5]])
 
@@ -385,9 +390,9 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.z(0)
         circuit.cz(0, 1)
-        circuit.append(ZGate().control(3, ctrl_state="101"), [0, 1, 2, 3])
-        circuit.append(ZGate().control(2), [1, 2, 3])
-        circuit.append(ZGate().control(1, ctrl_state="0", label="CZ Gate"), [2, 3])
+        circuit.append(ZGate().control(3, ctrl_state="101", annotated=False), [0, 1, 2, 3])
+        circuit.append(ZGate().control(2, annotated=False), [1, 2, 3])
+        circuit.append(ZGate().control(1, ctrl_state="0", annotated=False, label="CZ Gate"), [2, 3])
 
         fname = "cz.png"
         self.circuit_drawer(circuit, output="mpl", filename=fname)
@@ -501,7 +506,9 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.cu(pi / 2, pi / 2, pi / 2, 0, 2, 3, label="Top U label")
         circuit.ch(0, 1, label="Top H label")
         circuit.append(
-            HGate(label="H gate label").control(3, label="H control label", ctrl_state="010"),
+            HGate(label="H gate label").control(
+                3, label="H control label", ctrl_state="010", annotated=False
+            ),
             [qr[1], qr[2], qr[3], qr[0]],
         )
 
@@ -522,7 +529,9 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         qr = QuantumRegister(5, "q")
         circuit = QuantumCircuit(qr)
         circuit.cswap(0, 1, 2)
-        circuit.append(RZZGate(3 * pi / 4).control(3, ctrl_state="010"), [2, 1, 4, 3, 0])
+        circuit.append(
+            RZZGate(3 * pi / 4).control(3, ctrl_state="010", annotated=False), [2, 1, 4, 3, 0]
+        )
 
         fname = "cswap_rzz.png"
         self.circuit_drawer(circuit, output="mpl", filename=fname)
@@ -545,7 +554,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         ghz_circuit.cx(0, 1)
         ghz_circuit.cx(1, 2)
         ghz = ghz_circuit.to_gate()
-        ccghz = ghz.control(2, ctrl_state="10")
+        ccghz = ghz.control(2, ctrl_state="10", annotated=False)
         circuit.append(ccghz, [4, 0, 1, 3, 2])
 
         fname = "ghz_to_gate.png"
@@ -694,10 +703,10 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
                 circuit.swap(0, 1)
                 circuit.iswap(2, 3)
                 circuit.cswap(0, 1, 2)
-                circuit.append(SwapGate().control(2), [0, 1, 2, 3])
+                circuit.append(SwapGate().control(2, annotated=False), [0, 1, 2, 3])
                 circuit.dcx(0, 1)
-                circuit.append(DCXGate().control(1), [0, 1, 2])
-                circuit.append(DCXGate().control(2), [0, 1, 2, 3])
+                circuit.append(DCXGate().control(1, annotated=False), [0, 1, 2])
+                circuit.append(DCXGate().control(2, annotated=False), [0, 1, 2, 3])
                 circuit.z(4)
                 circuit.s(4)
                 circuit.sdg(4)
@@ -780,10 +789,10 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.ccx(0, 1, 2)
         circuit.swap(0, 1)
         circuit.cswap(0, 1, 2)
-        circuit.append(SwapGate().control(2), [0, 1, 2, 3])
+        circuit.append(SwapGate().control(2, annotated=False), [0, 1, 2, 3])
         circuit.dcx(0, 1)
-        circuit.append(DCXGate().control(1), [0, 1, 2])
-        circuit.append(DCXGate().control(2), [0, 1, 2, 3])
+        circuit.append(DCXGate().control(1, annotated=False), [0, 1, 2])
+        circuit.append(DCXGate().control(2, annotated=False), [0, 1, 2, 3])
         circuit.z(4)
         circuit.append(SGate(label="S1"), [4])
         circuit.sdg(4)
@@ -1868,7 +1877,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.append(cliff, [0, 1])
         circuit.x(0)
         circuit.h(1)
-        circuit.append(SGate().control(2, ctrl_state=1), [0, 2, 1])
+        circuit.append(SGate().control(2, ctrl_state=1, annotated=False), [0, 2, 1])
         circuit.ccx(0, 1, 2)
         op1 = AnnotatedOperation(
             SGate(), [InverseModifier(), ControlModifier(2, 1), PowerModifier(3.29)]
