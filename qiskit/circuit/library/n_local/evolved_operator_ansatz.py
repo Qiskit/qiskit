@@ -93,10 +93,7 @@ def evolved_operator_ansatz(
     if reps < 0:
         raise ValueError("reps must be a non-negative integer.")
 
-    # Check for SparseObservable first (it's iterable, so isinstance check must come before len check)
-    if isinstance(operators, SparseObservable):
-        operators = [operators]
-    elif isinstance(operators, BaseOperator):
+    if isinstance(operators, (BaseOperator, SparseObservable)):
         operators = [operators]
     elif len(operators) == 0:
         return QuantumCircuit()
