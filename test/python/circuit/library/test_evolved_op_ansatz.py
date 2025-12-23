@@ -241,10 +241,6 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
         param_names = [str(p) for p in ansatz.parameters]
         self.assertTrue(all("theta" in name for name in param_names))
 
-
-class TestEvolvedOperatorAnsatzSparseObservable(QiskitTestCase):
-    """Test evolved_operator_ansatz with SparseObservable operators."""
-
     def test_sparse_observable_basic(self):
         """Test that SparseObservable can be used with evolved_operator_ansatz."""
         obs = SparseObservable.from_sparse_list([("X", [0], 1.0)], num_qubits=1)
