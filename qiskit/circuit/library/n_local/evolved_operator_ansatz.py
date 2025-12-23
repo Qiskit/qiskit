@@ -176,7 +176,7 @@ def evolved_operator_ansatz(
                     )
                 flatten_operator = False
 
-            elif isinstance(op, BaseOperator) or isinstance(op, SparseObservable):
+            elif isinstance(op, (BaseOperator, SparseObservable)):
                 gate = PauliEvolutionGate(op, next(param_iter), synthesis=evolution)
                 flatten_operator = flatten is True or flatten is None
             else:
