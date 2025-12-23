@@ -305,8 +305,26 @@ def make_output(graph, raw, filename):
         # pylint says this isn't a method - it is
         graph.write_png(tmppath)
 
-        image = Image.open(tmppath)
-        os.remove(tmppath)
+        # [Current Code - Causes WinError 32]
+        # image = Image.open(tmppath)
+        # os.remove(tmppath) 
+
+        # [Proposed Fix - Safe for all OSs]
+        # Open the image using a context manager to ensure the file handle is closed
+        with Image.open(tmppath) as tmp_image:
+        # Create a copy in memory so we can close the file handle immediately
+            image = tmp_image.copy()
+
+        # Now that the file is definitely closed, we can safely delete it
+        try:
+            os.remove(tmppath)
+        except OSError:
+        # If deletion fails for any reason, do not crash the visualization
+            pass 
+
+        # ... existing code continues ...
         if filename:
-            image.save(filename, "PNG")
+            image.save(filename)
         return image
+
+ 
