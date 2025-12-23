@@ -19,7 +19,7 @@ use crate::gate_metrics::rotation_trace_and_dim;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::operations::{OperationRef, Param, StandardGate};
 
-static ROTATION_GATE_NAMES: [&str; 3] = ["rx", "ry", "rz"];
+static ROTATION_GATE_NAMES: [&str; 5] = ["rx", "ry", "rz", "p", "u1"];
 
 const MINIMUM_TOL: f64 = 1e-12;
 
@@ -171,6 +171,26 @@ static RY_SUBSTITUTIONS: [(&[StandardGate], f64); 16] = [
     ),
 ];
 
+/// Table for P(k * pi / 4) substitutions, with 0 <= k < 15
+static P_SUBSTITUTIONS: [(&[StandardGate], f64); 16] = [
+    (&[], 0.0),
+    (&[StandardGate::T], 0.0),
+    (&[StandardGate::S], 0.0),
+    (&[StandardGate::S, StandardGate::T], 0.0),
+    (&[StandardGate::Z], 0.0),
+    (&[StandardGate::Z, StandardGate::T], 0.0),
+    (&[StandardGate::Sdg], 0.0),
+    (&[StandardGate::Tdg], 0.0),
+    (&[], 0.0),
+    (&[StandardGate::T], 0.0),
+    (&[StandardGate::S], 0.0),
+    (&[StandardGate::S, StandardGate::T], 0.0),
+    (&[StandardGate::Z], 0.0),
+    (&[StandardGate::Z, StandardGate::T], 0.0),
+    (&[StandardGate::Sdg], 0.0),
+    (&[StandardGate::Tdg], 0.0),
+];
+
 /// For a given angle, if it is a multiple of PI/4, calculate the multiple mod 16,
 /// Otherwise, return `None`.
 fn is_angle_close_to_multiple_of_pi_4(gate: StandardGate, angle: f64, tol: f64) -> Option<usize> {
@@ -209,7 +229,9 @@ fn replace_rotation_by_discrete(
         StandardGate::RX => RX_SUBSTITUTIONS[multiple],
         StandardGate::RY => RY_SUBSTITUTIONS[multiple],
         StandardGate::RZ => RZ_SUBSTITUTIONS[multiple],
-        _ => unreachable!("This is only called for RX/RY/RZ gates."),
+        StandardGate::Phase => P_SUBSTITUTIONS[multiple],
+        StandardGate::U1 => P_SUBSTITUTIONS[multiple],
+        _ => unreachable!("This is only called for rotation gates."),
     }
 }
 
@@ -219,7 +241,7 @@ pub fn py_run_substitute_pi4_rotations(
     dag: &mut DAGCircuit,
     approximation_degree: f64,
 ) -> PyResult<()> {
-    // Skip the pass if there are no RX/RY/RZ rotation gates.
+    // Skip the pass if there are no rotation gates.
     if dag
         .get_op_counts()
         .keys()
@@ -236,7 +258,14 @@ pub fn py_run_substitute_pi4_rotations(
         .op_nodes(false)
         .filter_map(|(node_index, inst)| {
             if let OperationRef::StandardGate(gate) = inst.op.view() {
-                if matches!(gate, StandardGate::RX | StandardGate::RY | StandardGate::RZ) {
+                if matches!(
+                    gate,
+                    StandardGate::RX
+                        | StandardGate::RY
+                        | StandardGate::RZ
+                        | StandardGate::Phase
+                        | StandardGate::U1
+                ) {
                     if let Param::Float(angle) = inst.params_view()[0] {
                         is_angle_close_to_multiple_of_pi_4(gate, angle, tol)
                             .map(|multiple| (node_index, gate, multiple))
