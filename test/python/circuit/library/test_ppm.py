@@ -183,6 +183,12 @@ class TestPauliProductMeasurement(QiskitTestCase):
 
         self.assertEqual(ppm_from_circuit.label, custom_label)
 
+    def test_pauli_accessor(self):
+        """Check that ``pauli()`` returns the original Pauli."""
+        original = Pauli("-XZ")
+        ppm = PauliProductMeasurement(original)
+        self.assertEqual(ppm.pauli(), original)
+
     @data(0, 1, 2, 3)
     def test_transpile(self, optimization_level):
         """Check that transpiling circuits with PauliProductMeasurement instructions
