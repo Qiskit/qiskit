@@ -10,10 +10,12 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use num_complex::ComplexFloat;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, FRAC_PI_8, PI};
 
+use crate::gate_metrics::rotation_trace_and_dim;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::operations::{OperationRef, Param, StandardGate};
 
@@ -171,15 +173,15 @@ static RY_SUBSTITUTIONS: [(&[StandardGate], f64); 16] = [
 
 /// For a given angle, if it is a multiple of PI/4, calculate the multiple mod 16,
 /// Otherwise, return `None`.
-fn is_angle_close_to_multiple_of_pi_4(angle: f64, tol: f64) -> Option<usize> {
+fn is_angle_close_to_multiple_of_pi_4(gate: StandardGate, angle: f64, tol: f64) -> Option<usize> {
     let closest_ratio = angle * 4.0 / PI;
     let closest_integer = closest_ratio.round();
     let closest_angle = closest_integer * PI / 4.0;
     let theta = angle - closest_angle;
 
     // Explicit trace calculation of RX/RY/RZ matrices
-    let tr_over_dim = (theta / 2.).cos();
-    let dim = 2.;
+    let (tr_over_dim, dim) = rotation_trace_and_dim(gate, theta)
+        .expect("Since only supported rotation gates are given, the result is not None");
 
     // fidelity-based tolerance
     let f_pro = tr_over_dim.abs().powi(2);
@@ -236,7 +238,7 @@ pub fn py_run_substitute_pi4_rotations(
             if let OperationRef::StandardGate(gate) = inst.op.view() {
                 if matches!(gate, StandardGate::RX | StandardGate::RY | StandardGate::RZ) {
                     if let Param::Float(angle) = inst.params_view()[0] {
-                        is_angle_close_to_multiple_of_pi_4(angle, tol)
+                        is_angle_close_to_multiple_of_pi_4(gate, angle, tol)
                             .map(|multiple| (node_index, gate, multiple))
                     } else {
                         None
