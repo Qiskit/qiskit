@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed an issue where :func:`~qiskit.circuit.library.evolved_operator_ansatz` did not
+    support :class:`~qiskit.quantum_info.SparseObservable` operators. The function now
+    correctly accepts ``SparseObservable`` instances and uses the fast Rust path when
+    ``flatten=True`` and no custom evolution is specified, matching the behavior for
+    :class:`~qiskit.quantum_info.SparsePauliOp`.
+
