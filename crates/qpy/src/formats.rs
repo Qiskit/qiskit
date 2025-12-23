@@ -245,6 +245,14 @@ impl Default for ConditionPack {
 }
 
 impl ConditionPack {
+    pub(crate) fn key(&self) -> ConditionType {
+        match self.data {
+            ConditionData::Expression(_) => ConditionType::Expression,
+            ConditionData::Register(_) => ConditionType::TwoTuple,
+            ConditionData::None => ConditionType::None,
+        }
+    }
+
     pub(crate) fn write<W: Write + Seek>(
         value: &ConditionPack,
         writer: &mut W,

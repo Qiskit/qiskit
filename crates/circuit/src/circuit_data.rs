@@ -1861,7 +1861,7 @@ impl CircuitData {
     /// field suitable for inclusion in a `PackedInstruction`.
     ///
     /// The inverse of this method is [unpack_blocks_to_circuit_parameters].
-    fn extract_blocks_from_circuit_parameters(
+    pub fn extract_blocks_from_circuit_parameters(
         &mut self,
         params: Option<&Parameters<Py<PyAny>>>,
     ) -> Option<Box<Parameters<Block>>> {
@@ -1877,7 +1877,7 @@ impl CircuitData {
     /// space.
     ///
     /// The inverse of this method is [extract_blocks_from_circuit_parameters].
-    fn unpack_blocks_to_circuit_parameters(
+    pub fn unpack_blocks_to_circuit_parameters(
         &self,
         params: Option<&Parameters<Block>>,
     ) -> Option<Parameters<Py<PyAny>>> {

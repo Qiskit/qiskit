@@ -18,7 +18,6 @@
 // 3. "Write": To write to a file obj the serialization of the original data
 // Ideally, serialization is done by packing in a binrw-enhanced struct and using the
 // `write` method into a `Cursor` buffer, but there might be exceptions.
-
 use binrw::Endian;
 use hashbrown::{HashMap, HashSet};
 use indexmap::IndexSet;
@@ -27,7 +26,6 @@ use numpy::ToPyArray;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyDict, PyTuple};
-
 use qiskit_circuit::bit::{
     ClassicalRegister, PyClbit, PyQubit, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
@@ -35,6 +33,7 @@ use qiskit_circuit::circuit_data::{CircuitData, CircuitStretchType, CircuitVarTy
 use qiskit_circuit::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::imports;
+use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::PyGate;
 use qiskit_circuit::operations::{
     ArrayType, BoxDuration, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction,
@@ -184,6 +183,30 @@ fn pack_instruction_params(
         .map(|x| pack_param_obj(x, qpy_data, Endian::Little))
         .collect::<PyResult<_>>()
 }
+
+/// for control flow instructions we need to get blocks instead of params
+fn pack_instruction_blocks(
+    inst: &PackedInstruction,
+    qpy_data: &mut QPYWriteData,
+) -> PyResult<Vec<formats::GenericDataPack>> {
+    let blocks = qpy_data
+        .circuit_data
+        .unpack_blocks_to_circuit_parameters(inst.params.as_deref())
+        .ok_or_else(|| PyValueError::new_err("Could not extract blocks from instruction"))?;
+    match blocks {
+        Parameters::Params(_) => Err(PyValueError::new_err(
+            "Could not extract blocks from instruction",
+        )),
+        Parameters::Blocks(blocks) => blocks
+            .iter()
+            .map(|block| {
+                Python::attach(|py| -> PyResult<_> {
+                    py_pack_param(block.bind(py), qpy_data, Endian::Little)
+                })
+            })
+            .collect::<PyResult<_>>(),
+    }
+}
 /// packs one specific instruction into CircuitInstructionV2Pack, creating a new custom operation if needed
 fn pack_instruction(
     instruction: &PackedInstruction,
@@ -221,6 +244,15 @@ fn pack_instruction(
         new_custom_operations.push(new_name.clone());
         custom_operations.insert(new_name.clone(), instruction.op.clone());
     };
+    // println!("got instruction pack: {:?}", instruction_pack);
+    // let bytes = serialize::<formats::CircuitInstructionV2Pack>(&instruction_pack);
+    // println!("serialized to {:?}", bytes);
+    // let new_pack = deserialize_with_args::<formats::CircuitInstructionV2Pack, (bool,)>(
+    //                     &bytes,
+    //                     (true,),
+    //                 )?
+    //                 .0;
+    // println!("New pack: {:?}", new_pack);
     Ok(instruction_pack)
 }
 
@@ -313,6 +345,8 @@ fn pack_control_flow_inst(
 ) -> PyResult<formats::CircuitInstructionV2Pack> {
     let mut packed_annotations = None;
     let mut packed_condition: ConditionPack = Default::default();
+    let mut extras_key = 0; // should contain a combination of condition key and annotations key, if present
+
     let params = match control_flow_inst.control_flow.clone() {
         ControlFlow::Box {
             duration,
@@ -349,11 +383,13 @@ fn pack_control_flow_inst(
         }
         ControlFlow::IfElse { condition } => {
             packed_condition = pack_condition(condition, qpy_data)?;
-            pack_instruction_params(instruction, qpy_data)?
+            extras_key = packed_condition.key() as u8;
+            pack_instruction_blocks(instruction, qpy_data)?
         }
         ControlFlow::While { condition } => {
             packed_condition = pack_condition(condition, qpy_data)?;
-            pack_instruction_params(instruction, qpy_data)?
+            extras_key = packed_condition.key() as u8;
+            pack_instruction_blocks(instruction, qpy_data)?
         }
         ControlFlow::Switch {
             target,
@@ -396,7 +432,7 @@ fn pack_control_flow_inst(
     Ok(formats::CircuitInstructionV2Pack {
         num_qargs: control_flow_inst.num_qubits,
         num_cargs: control_flow_inst.num_clbits,
-        extras_key: 0,
+        extras_key,
         num_ctrl_qubits: 0, // standard instructions have no control qubits
         ctrl_state: 0,
         gate_class_name: control_flow_inst.name().to_string(), // this name is NOT a proper python class name, but we don't instantiate from the python class anymore

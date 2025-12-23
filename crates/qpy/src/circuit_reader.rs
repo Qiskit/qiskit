@@ -235,31 +235,61 @@ fn get_instruction_values(
 // converts a list of generic values to the params format expected for a PackedInstruction params
 fn instruction_values_to_params(
     values: Vec<GenericValue>,
+    qpy_data: &mut QPYReadData,
 ) -> PyResult<Option<Box<Parameters<Block>>>> {
-    let inst_params: Vec<Param> = values
-        .iter()
-        .map(|value| -> PyResult<_> {
-            match value.as_le() {
-                // TODO: is the "as_le" here enough to solve the "params are little endian" problem?
-                GenericValue::Float64(float) => Ok(Param::Float(float)),
-                GenericValue::ParameterExpression(exp) => {
-                    Ok(Param::ParameterExpression(Arc::new(exp)))
+    // currently QPY has no dedicated representation for blocks, only for py circuit objects
+    // so we use the following heuristic: if all the elements of `values` are circuits
+    // treat `values` as a vector of blocks
+    if !values.is_empty()
+        && values
+            .iter()
+            .all(|val| matches!(val, GenericValue::Circuit(_)))
+    {
+        // blocks
+        let inst_blocks: Vec<Py<PyAny>> = values
+            .iter()
+            .filter_map(|value| {
+                match value {
+                    GenericValue::Circuit(circuit) => Some(circuit.clone()),
+                    _ => None, // this should never happen, given the previous check
                 }
-                GenericValue::ParameterExpressionSymbol(symbol) => Ok(Param::ParameterExpression(
-                    Arc::new(ParameterExpression::from_symbol(symbol)),
-                )),
-                GenericValue::ParameterExpressionVectorSymbol(symbol) => Ok(
-                    Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(symbol))),
-                ),
-                _ => Ok(Param::Obj(py_convert_from_generic_value(value)?)),
-            }
-        })
-        .collect::<PyResult<_>>()?;
-    Ok((!inst_params.is_empty()).then(|| {
-        Box::new(Parameters::Params(SmallVec::<[Param; 3]>::from_vec(
-            inst_params,
-        )))
-    }))
+            })
+            .collect();
+        let params = Parameters::Blocks(inst_blocks);
+        Ok(qpy_data
+            .circuit_data
+            .extract_blocks_from_circuit_parameters(Some(&params)))
+    } else {
+        // params
+        let inst_params: Vec<Param> = values
+            .iter()
+            .map(|value| -> PyResult<_> {
+                match value.as_le() {
+                    // TODO: is the "as_le" here enough to solve the "params are little endian" problem?
+                    GenericValue::Float64(float) => Ok(Param::Float(float)),
+                    GenericValue::ParameterExpression(exp) => {
+                        Ok(Param::ParameterExpression(Arc::new(exp)))
+                    }
+                    GenericValue::ParameterExpressionSymbol(symbol) => {
+                        Ok(Param::ParameterExpression(Arc::new(
+                            ParameterExpression::from_symbol(symbol),
+                        )))
+                    }
+                    GenericValue::ParameterExpressionVectorSymbol(symbol) => {
+                        Ok(Param::ParameterExpression(Arc::new(
+                            ParameterExpression::from_symbol(symbol),
+                        )))
+                    }
+                    _ => Ok(Param::Obj(py_convert_from_generic_value(value)?)),
+                }
+            })
+            .collect::<PyResult<_>>()?;
+        Ok((!inst_params.is_empty()).then(|| {
+            Box::new(Parameters::Params(SmallVec::<[Param; 3]>::from_vec(
+                inst_params,
+            )))
+        }))
+    }
 }
 
 fn unpack_annotations(
@@ -306,7 +336,7 @@ fn unpack_instruction(
         InstructionType::Python => unpack_py_instruction(instruction, label.as_deref(), qpy_data)?,
     };
     let (qubits, clbits) = get_instruction_bits(instruction, qpy_data);
-    let params = instruction_values_to_params(parameter_values)?;
+    let params = instruction_values_to_params(parameter_values, qpy_data)?;
     Ok(PackedInstruction {
         op,
         qubits,
@@ -401,6 +431,7 @@ fn unpack_control_flow(
     instruction: &formats::CircuitInstructionV2Pack,
     qpy_data: &mut QPYReadData,
 ) -> PyResult<(PackedOperation, Vec<GenericValue>)> {
+    let mut param_values = Vec::new(); // none of the control flow instructions actually use params in this sense
     // the instruction values contain the data needed to reconstruct the control flow
     let instruction_values = get_instruction_values(instruction, qpy_data)?;
     let control_flow_name = ControlFlowType::from_str(instruction.gate_class_name.as_str())
@@ -461,11 +492,13 @@ fn unpack_control_flow(
         ControlFlowType::IfElse => {
             let condition = unpack_condition(&instruction.condition, qpy_data)?
                 .ok_or(PyValueError::new_err("if else condition is missing"))?;
+            param_values = instruction_values;
             ControlFlow::IfElse { condition }
         }
         ControlFlowType::WhileLoop => {
             let condition = unpack_condition(&instruction.condition, qpy_data)?
                 .ok_or(PyValueError::new_err("if else condition is missing"))?;
+            param_values = instruction_values;
             ControlFlow::While { condition }
         }
         ControlFlowType::SwitchCase => {
@@ -537,7 +570,6 @@ fn unpack_control_flow(
         num_qubits,
         num_clbits,
     };
-    let param_values = Vec::new(); // none of the control flow instructions actually use params in this sense
     let op = PackedOperation::from_control_flow(Box::new(control_flow_instruction));
     Ok((op, param_values))
 }

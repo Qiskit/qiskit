@@ -538,7 +538,8 @@ pub(crate) fn unpack_generic_value(
     value_pack: &GenericDataPack,
     qpy_data: &mut QPYReadData,
 ) -> PyResult<GenericValue> {
-    load_value(value_pack.type_key, &value_pack.data, qpy_data)
+    let result = load_value(value_pack.type_key, &value_pack.data, qpy_data)?;
+    Ok(result)
 }
 
 pub(crate) fn pack_generic_value_sequence(
