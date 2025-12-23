@@ -145,7 +145,7 @@ class PauliProductMeasurement(Instruction):
         including its global phase of ``+1`` or ``-1``.
 
         Returns:
-            Pauli: The Pauli product measured by this instruction.
+            The Pauli product measured by this instruction.
         """
         return Pauli((self._pauli_z, self._pauli_x, self._pauli_phase))
 
