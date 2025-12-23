@@ -112,11 +112,12 @@ def evolved_operator_ansatz(
     num_qubits = operators[0].num_qubits
     if remove_identities:
         operators, parameter_prefix = _remove_identities(operators, parameter_prefix)
+        # After removing identities, update num_operators to reflect the actual count
+        num_operators = len(operators)
+        if num_operators == 0:
+            return QuantumCircuit(num_qubits, name=name)
 
-    # After removing identities, update num_operators to reflect the actual count
-    num_operators = len(operators)
-
-    if num_operators > 0 and any(op.num_qubits != num_qubits for op in operators):
+    if any(op.num_qubits != num_qubits for op in operators):
         raise ValueError("Inconsistent numbers of qubits in the operators.")
 
     # get the total number of parameters
@@ -133,11 +134,10 @@ def evolved_operator_ansatz(
 
     # fast, Rust-path
     if (
-        num_operators > 0
-        and flatten is not False  # captures None and True
+        flatten is not False  # captures None and True
         and evolution is None
         and all(
-            isinstance(op, SparsePauliOp) or isinstance(op, SparseObservable)
+            isinstance(op, (SparsePauliOp, SparseObservable))
             for op in operators
         )
     ):
@@ -537,3 +537,4 @@ def _remove_identities(operators, prefixes):
         cleaned_prefix = [prefix for i, prefix in enumerate(prefixes) if i not in identity_ops]
 
     return cleaned_ops, cleaned_prefix
+    

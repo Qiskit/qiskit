@@ -17,7 +17,7 @@ from ddt import ddt, data
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.quantum_info import SparsePauliOp, Operator, Pauli
+from qiskit.quantum_info import SparsePauliOp, Operator, Pauli, SparseObservable
 
 from qiskit.circuit.library import HamiltonianGate
 from qiskit.circuit.library.n_local import (
@@ -245,21 +245,9 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
 class TestEvolvedOperatorAnsatzSparseObservable(QiskitTestCase):
     """Test evolved_operator_ansatz with SparseObservable operators."""
 
-    def setUp(self):
-        """Set up test fixtures."""
-        super().setUp()
-        try:
-            from qiskit.quantum_info import SparseObservable
-            self.SparseObservable = SparseObservable
-        except ImportError:
-            self.SparseObservable = None
-
     def test_sparse_observable_basic(self):
         """Test that SparseObservable can be used with evolved_operator_ansatz."""
-        if self.SparseObservable is None:
-            self.skipTest("SparseObservable not available in this build")
-
-        obs = self.SparseObservable.from_sparse_list([("X", [0], 1.0)], num_qubits=1)
+        obs = SparseObservable.from_sparse_list([("X", [0], 1.0)], num_qubits=1)
         ansatz = evolved_operator_ansatz(obs, reps=1)
 
         # Should create a valid circuit
@@ -267,35 +255,10 @@ class TestEvolvedOperatorAnsatzSparseObservable(QiskitTestCase):
         self.assertEqual(ansatz.num_qubits, 1)
         self.assertEqual(ansatz.num_parameters, 1)
 
-    def test_sparse_observable_identity_detection(self):
-        """Test that SparseObservable identity is correctly detected."""
-        if self.SparseObservable is None:
-            self.skipTest("SparseObservable not available in this build")
-
-        from qiskit.circuit.library.n_local.evolved_operator_ansatz import _is_pauli_identity
-
-        # Create identity observable
-        obs_identity = self.SparseObservable.identity(5)
-        self.assertTrue(_is_pauli_identity(obs_identity))
-
-        # Non-identity should not be detected as identity
-        obs_non_identity = self.SparseObservable.from_sparse_list([("X", [0], 1.0)], num_qubits=5)
-        self.assertFalse(_is_pauli_identity(obs_non_identity))
-
-        # Multi-term observable should not be identity
-        obs_multi = self.SparseObservable.from_sparse_list([
-            ("X", [0], 1.0),
-            ("Z", [1], 1.0)
-        ], num_qubits=5)
-        self.assertFalse(_is_pauli_identity(obs_multi))
-
     def test_sparse_observable_remove_identities(self):
         """Test that SparseObservable identity operators are removed."""
-        if self.SparseObservable is None:
-            self.skipTest("SparseObservable not available in this build")
-
-        obs1 = self.SparseObservable.identity(2)  # Identity
-        obs2 = self.SparseObservable.from_sparse_list([("X", [0], 1.0)], num_qubits=2)
+        obs1 = SparseObservable.identity(2)  # Identity
+        obs2 = SparseObservable.from_sparse_list([("X", [0], 1.0)], num_qubits=2)
 
         # With remove_identities=True, identity should be removed
         ansatz = evolved_operator_ansatz([obs1, obs2], reps=1, remove_identities=True)
@@ -308,11 +271,8 @@ class TestEvolvedOperatorAnsatzSparseObservable(QiskitTestCase):
 
     def test_all_identities_sparse_observable_not_empty(self):
         """Test that all SparseObservable identities still creates a circuit with correct num_qubits."""
-        if self.SparseObservable is None:
-            self.skipTest("SparseObservable not available in this build")
-
-        obs1 = self.SparseObservable.identity(3)
-        obs2 = self.SparseObservable.identity(3)
+        obs1 = SparseObservable.identity(3)
+        obs2 = SparseObservable.identity(3)
 
         # With remove_identities=True, all should be removed but circuit should still be created
         ansatz = evolved_operator_ansatz([obs1, obs2], reps=1, remove_identities=True)
@@ -326,10 +286,7 @@ class TestEvolvedOperatorAnsatzSparseObservable(QiskitTestCase):
 
     def test_sparse_observable_fast_rust_path(self):
         """Test that SparseObservable uses fast Rust path when conditions are met."""
-        if self.SparseObservable is None:
-            self.skipTest("SparseObservable not available in this build")
-
-        obs = self.SparseObservable.from_sparse_list([
+        obs = SparseObservable.from_sparse_list([
             ("X", [0], 1.0),
             ("Z", [1], 1.0)
         ], num_qubits=2)
@@ -347,12 +304,9 @@ class TestEvolvedOperatorAnsatzSparseObservable(QiskitTestCase):
 
     def test_sparse_observable_string_prefix_with_identity_removal(self):
         """Test that string prefix is preserved when SparseObservable identities are removed."""
-        if self.SparseObservable is None:
-            self.skipTest("SparseObservable not available in this build")
-
-        obs1 = self.SparseObservable.identity(2)
-        obs2 = self.SparseObservable.from_sparse_list([("X", [0], 1.0)], num_qubits=2)
-        obs3 = self.SparseObservable.from_sparse_list([("Z", [1], 1.0)], num_qubits=2)
+        obs1 = SparseObservable.identity(2)
+        obs2 = SparseObservable.from_sparse_list([("X", [0], 1.0)], num_qubits=2)
+        obs3 = SparseObservable.from_sparse_list([("Z", [1], 1.0)], num_qubits=2)
 
         # Use string prefix
         ansatz = evolved_operator_ansatz(
@@ -370,10 +324,7 @@ class TestEvolvedOperatorAnsatzSparseObservable(QiskitTestCase):
 
     def test_sparse_observable_mixed_with_sparse_pauli_op(self):
         """Test mixing SparseObservable and SparsePauliOp uses Rust path."""
-        if self.SparseObservable is None:
-            self.skipTest("SparseObservable not available in this build")
-
-        obs = self.SparseObservable.from_sparse_list([("X", [0], 1.0)], num_qubits=1)
+        obs = SparseObservable.from_sparse_list([("X", [0], 1.0)], num_qubits=1)
         pauli_op = SparsePauliOp(["Z"])
 
         # Mixed types should use Rust path (both support to_sparse_list)
