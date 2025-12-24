@@ -53,8 +53,8 @@ use crate::py_methods::{
 };
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionVarDeclaration, GenericValue, ParamRegisterValue,
-    QPYWriteData, RegisterType, get_circuit_type_key, pack_generic_value, pack_standalone_var,
-    pack_stretch, serialize, serialize_param_register_value,
+    QPYWriteData, RegisterType, get_circuit_type_key, pack_for_collection, pack_generic_value,
+    pack_standalone_var, pack_stretch, serialize, serialize_param_register_value,
 };
 
 use crate::UnsupportedFeatureForVersion;
@@ -360,26 +360,26 @@ fn pack_control_flow_inst(
                     BoxDuration::Expr(exp) => GenericValue::Expression(exp),
                 },
             };
-            vec![pack_generic_value(&duration_param, qpy_data)?]
+            let mut params = Vec::new();
+            params.push(pack_generic_value(&duration_param, qpy_data)?);
+            params.extend(pack_instruction_blocks(instruction, qpy_data)?);
+            params
         }
         ControlFlow::BreakLoop | ControlFlow::ContinueLoop => Vec::new(),
-        ControlFlow::ForLoop { .. } => {
-            panic!(
-                "ControlFlow handling is not implemented yet, until the Rust ControlFlow code stabilizes"
-            );
-            // let indexset_values = indexset
-            //     .iter()
-            //     .map(|val| GenericValue::Int64(*val as i64))
-            //     .collect();
-            // let indexset_value = GenericValue::Tuple(indexset_values);
-            // let loop_param_value = match loop_param {
-            //     None => GenericValue::Null,
-            //     Some(symbol) => GenericValue::ParameterExpressionSymbol(symbol),
-            // };
-            // vec![
-            //     pack_generic_value(&indexset_value, qpy_data)?,
-            //     pack_generic_value(&loop_param_value, qpy_data)?,
-            // ]
+        ControlFlow::ForLoop {
+            collection,
+            loop_param,
+        } => {
+            let collection_value = pack_for_collection(&collection);
+            let loop_param_value = match loop_param {
+                None => GenericValue::Null,
+                Some(symbol) => GenericValue::ParameterExpressionSymbol(symbol),
+            };
+            let mut params = Vec::new();
+            params.push(pack_generic_value(&collection_value, qpy_data)?);
+            params.push(pack_generic_value(&loop_param_value, qpy_data)?);
+            params.extend(pack_instruction_blocks(instruction, qpy_data)?);
+            params
         }
         ControlFlow::IfElse { condition } => {
             packed_condition = pack_condition(condition, qpy_data)?;
@@ -422,11 +422,12 @@ fn pack_control_flow_inst(
                     .collect::<Vec<_>>(),
             );
             let cases_value = GenericValue::Int64(cases as i64);
-            vec![
-                pack_generic_value(&target_value, qpy_data)?,
-                pack_generic_value(&label_spec_value, qpy_data)?,
-                pack_generic_value(&cases_value, qpy_data)?,
-            ]
+            let mut params = Vec::new();
+            params.push(pack_generic_value(&target_value, qpy_data)?);
+            params.push(pack_generic_value(&label_spec_value, qpy_data)?);
+            params.push(pack_generic_value(&cases_value, qpy_data)?);
+            params.extend(pack_instruction_blocks(instruction, qpy_data)?);
+            params
         }
     };
     Ok(formats::CircuitInstructionV2Pack {

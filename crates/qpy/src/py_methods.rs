@@ -21,12 +21,12 @@ use pyo3::types::{
     PyAny, PyComplex, PyDict, PyFloat, PyInt, PyIterator, PyList, PyString, PyTuple,
 };
 use qiskit_circuit::classical::expr::Expr;
-use std::io::Cursor;
+use std::num::NonZero;
 
 use qiskit_circuit::bit::{ClassicalRegister, ShareableClbit};
 use qiskit_circuit::classical;
 use qiskit_circuit::imports;
-use qiskit_circuit::operations::{Operation, OperationRef, StandardInstruction};
+use qiskit_circuit::operations::{Operation, OperationRef, PyRange, StandardInstruction};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::parameter::parameter_expression::{
     PyParameter, PyParameterExpression, PyParameterVectorElement,
@@ -37,10 +37,8 @@ use uuid::Uuid;
 use crate::bytes::Bytes;
 use crate::formats;
 use crate::value::{
-    GenericValue, ModifierType, ParamRegisterValue, QPYWriteData, ValueType, deserialize,
-    serialize_generic_value,
+    GenericValue, ModifierType, ParamRegisterValue, QPYWriteData, ValueType, serialize_generic_value,
 };
-use binrw::BinWrite;
 
 pub const UNITARY_GATE_CLASS_NAME: &str = "UnitaryGate";
 pub const PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME: &str = "PauliProductMeasurement";
@@ -386,8 +384,15 @@ pub(crate) fn py_convert_to_generic_value(py_object: &Bound<PyAny>) -> PyResult<
                 .collect::<PyResult<_>>()?;
             Ok(GenericValue::Tuple(elements))
         }
+        ValueType::Range => {
+            let start = py_object.getattr("start")?.extract::<isize>()?;
+            let stop = py_object.getattr("stop")?.extract::<isize>()?;
+            let step = py_object.getattr("step")?.extract::<isize>()?;
+            let step = NonZero::new(step).expect("Python does not allow zero steps");
+            let range = PyRange { start, stop, step };
+            Ok(GenericValue::Range(range))
+        }
         // the python-managed data types
-        ValueType::Range => Ok(GenericValue::Range(py_object.clone().unbind())),
         ValueType::NumpyObject => Ok(GenericValue::NumpyObject(py_object.clone().unbind())),
         ValueType::Modifier => Ok(GenericValue::Modifier(py_object.clone().unbind())),
         ValueType::Register => {
@@ -419,7 +424,7 @@ pub(crate) fn py_convert_from_generic_value(value: &GenericValue) -> PyResult<Py
         GenericValue::ParameterExpression(exp) => exp.clone().into_py_any(py),
         GenericValue::Circuit(py_object) => Ok(py_object.clone()),
         GenericValue::Modifier(py_object) => Ok(py_object.clone()),
-        GenericValue::Range(py_object) => Ok(py_object.clone()),
+        GenericValue::Range(py_range) => py_range.into_py_any(py),
         GenericValue::NumpyObject(py_object) => Ok(py_object.clone()),
         GenericValue::Tuple(values) => {
             let elements: Vec<Py<PyAny>> = values
@@ -434,29 +439,6 @@ pub(crate) fn py_convert_from_generic_value(value: &GenericValue) -> PyResult<Py
         },
         GenericValue::BigInt(bigint) => bigint.clone().into_py_any(py),
         GenericValue::Duration(duration) => (*duration).into_py_any(py),
-    })
-}
-
-pub(crate) fn py_serialize_range(py_object: &Py<PyAny>) -> PyResult<Bytes> {
-    Python::attach(|py| {
-        let py_object = py_object.bind(py);
-        let start = py_object.getattr("start")?.extract::<i64>()?;
-        let stop = py_object.getattr("stop")?.extract::<i64>()?;
-        let step = py_object.getattr("step")?.extract::<i64>()?;
-        let range_pack = formats::RangePack { start, stop, step };
-        let mut buffer = Cursor::new(Vec::new());
-        range_pack.write(&mut buffer).unwrap();
-        Ok(buffer.into())
-    })
-}
-
-pub(crate) fn py_deserialize_range(raw_range: &Bytes) -> PyResult<Py<PyAny>> {
-    Python::attach(|py| {
-        let range_pack = deserialize::<formats::RangePack>(raw_range)?.0;
-        Ok(imports::BUILTIN_RANGE
-            .get_bound(py)
-            .call1((range_pack.start, range_pack.stop, range_pack.step))?
-            .unbind())
     })
 }
 

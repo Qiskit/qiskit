@@ -9,6 +9,9 @@
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
+
+use std::num::NonZero;
+
 use binrw::meta::{ReadEndian, WriteEndian};
 use binrw::{BinRead, BinWrite, Endian, binrw};
 use hashbrown::HashMap;
@@ -22,7 +25,7 @@ use qiskit_circuit::classical::expr::{Expr, Stretch, Var};
 use qiskit_circuit::classical::types::Type;
 use qiskit_circuit::duration::Duration;
 use qiskit_circuit::object_registry::ObjectRegistry;
-use qiskit_circuit::operations::OperationRef;
+use qiskit_circuit::operations::{ForCollection, OperationRef, PyRange};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::parameter::symbol_expr::Symbol;
@@ -38,8 +41,7 @@ use crate::params::{
     unpack_parameter_vector, unpack_symbol,
 };
 use crate::py_methods::{
-    py_deserialize_numpy_object, py_deserialize_range, py_pack_modifier, py_serialize_numpy_object,
-    py_serialize_range, py_unpack_modifier,
+    py_deserialize_numpy_object, py_pack_modifier, py_serialize_numpy_object, py_unpack_modifier,
 };
 use crate::{QpyError, UnsupportedFeatureForVersion};
 
@@ -227,14 +229,16 @@ where
     value.write(&mut buffer).unwrap();
     buffer.into()
 }
-pub(crate) fn serialize_with_args<T, A>(value: &T, args: A) -> Bytes
+pub(crate) fn serialize_with_args<T, A>(value: &T, args: A) -> PyResult<Bytes>
 where
     T: BinWrite<Args<'static> = A> + WriteEndian + Debug,
     A: Clone + Debug,
 {
     let mut buffer = Cursor::new(Vec::new());
-    value.write_args(&mut buffer, args).unwrap();
-    buffer.into()
+    value
+        .write_args(&mut buffer, args)
+        .map_err(formats::from_binrw_error)?;
+    Ok(buffer.into())
 }
 
 pub(crate) fn deserialize<T>(bytes: &[u8]) -> PyResult<(T, usize)>
@@ -284,7 +288,7 @@ pub enum GenericValue {
     Complex64(Complex64),
     CaseDefault,
     Register(ParamRegisterValue), // This is not the full register data; rather, it's the name stored inside instructions, or a clbit address
-    Range(Py<PyAny>),
+    Range(PyRange),
     Tuple(Vec<GenericValue>),
     NumpyObject(Py<PyAny>), // currently we store the python object without converting it to rust space
     ParameterExpressionSymbol(Symbol),
@@ -392,7 +396,12 @@ pub(crate) fn load_value(
             Ok(GenericValue::String(value))
         }
         ValueType::Range => {
-            let py_range = py_deserialize_range(bytes)?;
+            let range_pack = deserialize::<formats::RangePack>(bytes)?.0;
+            let start = range_pack.start as isize;
+            let stop = range_pack.stop as isize;
+            let step =
+                NonZero::new(range_pack.step as isize).expect("Python does not allow zero steps");
+            let py_range = PyRange { start, stop, step };
             Ok(GenericValue::Range(py_range))
         }
         ValueType::Parameter => {
@@ -489,10 +498,19 @@ pub(crate) fn serialize_generic_value(
             ValueType::Tuple,
             serialize(&pack_generic_value_sequence(values, qpy_data)?),
         ),
-        GenericValue::Duration(duration) => (
-            ValueType::Tuple, // due to historical reasons, 't' is shared between these data types
-            serialize(&pack_duration(duration)),
-        ),
+        GenericValue::Duration(duration) => {
+            if qpy_data.version < 16 && matches!(duration, Duration::ps(_)) {
+                return Err(UnsupportedFeatureForVersion::new_err((
+                    "Duration variant 'Duration.ps'",
+                    16,
+                    qpy_data.version,
+                )));
+            }
+            (
+                ValueType::Tuple, // due to historical reasons, 't' is shared between these data types
+                serialize(&pack_duration(duration)),
+            )
+        }
         GenericValue::Expression(exp) => {
             (ValueType::Expression, serialize_expression(exp, qpy_data)?)
         }
@@ -511,7 +529,13 @@ pub(crate) fn serialize_generic_value(
         GenericValue::NumpyObject(py_obj) => {
             (ValueType::NumpyObject, py_serialize_numpy_object(py_obj)?)
         }
-        GenericValue::Range(py_obj) => (ValueType::Range, py_serialize_range(py_obj)?),
+        GenericValue::Range(py_range) => {
+            let start = py_range.start as i64;
+            let stop = py_range.stop as i64;
+            let step = py_range.step.get() as i64;
+            let range_pack = formats::RangePack { start, stop, step };
+            (ValueType::Range, serialize(&range_pack))
+        }
         GenericValue::Modifier(py_object) => (
             ValueType::Modifier,
             serialize(&py_pack_modifier(py_object)?),
@@ -540,6 +564,53 @@ pub(crate) fn unpack_generic_value(
 ) -> PyResult<GenericValue> {
     let result = load_value(value_pack.type_key, &value_pack.data, qpy_data)?;
     Ok(result)
+}
+
+/// dedicated method for handling the special case where the data pack encodes a `Duration` value
+/// this cannot be determined automatically since in the current QPY format, both duration and tuple
+/// share the 't' key.
+pub(crate) fn unpack_duration_value(
+    value_pack: &GenericDataPack,
+    qpy_data: &mut QPYReadData,
+) -> PyResult<GenericValue> {
+    match value_pack.type_key {
+        ValueType::Tuple => {
+            let duration = unpack_duration(deserialize::<DurationPack>(&value_pack.data)?.0);
+            Ok(GenericValue::Duration(duration))
+        }
+        _ => unpack_generic_value(value_pack, qpy_data), // fallback (duration can also be expression)
+    }
+}
+
+pub(crate) fn pack_for_collection(value: &ForCollection) -> GenericValue {
+    match value {
+        ForCollection::List(vec) => GenericValue::Tuple(
+            vec.iter()
+                .map(|&val| GenericValue::Int64(val as i64))
+                .collect(),
+        ),
+        ForCollection::PyRange(py_range) => GenericValue::Range(*py_range),
+    }
+}
+
+pub(crate) fn unpack_for_collection(value: &GenericValue) -> PyResult<ForCollection> {
+    match value {
+        GenericValue::Range(py_range) => Ok(ForCollection::PyRange(*py_range)),
+        GenericValue::Tuple(vec) => {
+            let value_list = vec
+                .iter()
+                .map(|val| -> PyResult<_> {
+                    if let GenericValue::Int64(int_val) = val {
+                        Ok(*int_val as usize)
+                    } else {
+                        Err(PyValueError::new_err("Could not unpack ForCollection"))
+                    }
+                })
+                .collect::<PyResult<_>>()?;
+            Ok(ForCollection::List(value_list))
+        }
+        _ => Err(PyValueError::new_err("Could not unpack ForCollection")),
+    }
 }
 
 pub(crate) fn pack_generic_value_sequence(
@@ -605,8 +676,7 @@ pub(crate) fn serialize_expression(exp: &Expr, qpy_data: &QPYWriteData) -> PyRes
         expression: exp.clone(),
         _phantom: Default::default(),
     };
-    let serialized_expression = serialize_with_args(&packed_expression, (qpy_data,));
-    Ok(serialized_expression)
+    serialize_with_args(&packed_expression, (qpy_data,))
 }
 
 pub(crate) fn deserialize_expression(

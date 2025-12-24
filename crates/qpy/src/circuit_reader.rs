@@ -65,10 +65,11 @@ use crate::py_methods::{
     PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME, UNITARY_GATE_CLASS_NAME, get_python_gate_class,
 };
 use crate::value::ParamRegisterValue;
+use crate::value::unpack_for_collection;
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionType, ExpressionVarDeclaration, GenericValue,
     QPYReadData, RegisterType, ValueType, deserialize, deserialize_with_args,
-    load_param_register_value, load_value, unpack_generic_value,
+    load_param_register_value, load_value, unpack_duration_value, unpack_generic_value,
 };
 
 // This is a helper struct, designed to pass data within methods
@@ -431,23 +432,33 @@ fn unpack_control_flow(
     instruction: &formats::CircuitInstructionV2Pack,
     qpy_data: &mut QPYReadData,
 ) -> PyResult<(PackedOperation, Vec<GenericValue>)> {
-    let mut param_values = Vec::new(); // none of the control flow instructions actually use params in this sense
+    let mut param_values: Vec<GenericValue> = Vec::new(); // Params for control structures hold the control flow blocks
     // the instruction values contain the data needed to reconstruct the control flow
-    let instruction_values = get_instruction_values(instruction, qpy_data)?;
     let control_flow_name = ControlFlowType::from_str(instruction.gate_class_name.as_str())
         .map_err(|_| PyValueError::new_err("Unable to find control flow"))?;
     let control_flow = match control_flow_name {
         ControlFlowType::Box => {
-            let annotations = unpack_annotations(&instruction.annotations, qpy_data)?;
-            let duration = if let Some(duration_value) = instruction_values.first() {
-                match duration_value {
-                    GenericValue::Duration(duration) => Some(BoxDuration::Duration(*duration)),
-                    GenericValue::Expression(exp) => Some(BoxDuration::Expr(exp.clone())),
-                    _ => None,
-                }
+            // we need specialized handling for the params here, since the first param is duration
+            // which sadly shares the 't' key with tuple, so we can't deserialize using the general `unpack_generic_value`
+            param_values = instruction
+                .params
+                .iter()
+                .skip(1)
+                .map(|param| unpack_generic_value(param, qpy_data))
+                .collect::<PyResult<_>>()?;
+            let duration_value = if let Some(duration_pack) = instruction.params.first() {
+                unpack_duration_value(duration_pack, qpy_data)?
             } else {
-                None
+                return Err(PyValueError::new_err(
+                    "Box control flow instruction missing parameters",
+                ));
             };
+            let duration = match duration_value {
+                GenericValue::Duration(duration) => Some(BoxDuration::Duration(duration)),
+                GenericValue::Expression(exp) => Some(BoxDuration::Expr(exp.clone())),
+                _ => None,
+            };
+            let annotations = unpack_annotations(&instruction.annotations, qpy_data)?;
             ControlFlow::Box {
                 duration,
                 annotations,
@@ -456,52 +467,38 @@ fn unpack_control_flow(
         ControlFlowType::BreakLoop => ControlFlow::BreakLoop,
         ControlFlowType::ContinueLoop => ControlFlow::ContinueLoop,
         ControlFlowType::ForLoop => {
+            let mut instruction_values = get_instruction_values(instruction, qpy_data)?;
+            param_values = instruction_values.split_off(2);
             let mut iter = instruction_values.into_iter();
-            let (indexset_value, loop_param_value) = iter.next().zip(iter.next()).ok_or(
-                PyValueError::new_err("For loop instruction missing some of its parameters"),
-            )?;
-            let _indexset: Vec<usize> = if let GenericValue::Tuple(indexset_values) = indexset_value
-            {
-                indexset_values
-                    .iter()
-                    .map(|value| -> PyResult<usize> {
-                        if let GenericValue::Int64(int_value) = value {
-                            Ok(*int_value as usize)
-                        } else {
-                            Err(PyValueError::new_err(
-                                "For loop index set contains non-integer values",
-                            ))
-                        }
-                    })
-                    .collect::<PyResult<_>>()?
-            } else {
-                return Err(PyValueError::new_err("For loop missing index set values"));
-            };
-            let _loop_param = match loop_param_value {
+            let (collection_value_pack, loop_param_value_pack) =
+                iter.next().zip(iter.next()).ok_or(PyValueError::new_err(
+                    "For loop instruction missing some of its parameters",
+                ))?;
+            let collection = unpack_for_collection(&collection_value_pack)?;
+            let loop_param = match loop_param_value_pack {
                 GenericValue::ParameterExpressionSymbol(symbol) => Some(symbol),
                 _ => None,
             };
-            panic!(
-                "ControlFlow handling is not implemented yet, until the Rust ControlFlow code stabilizes"
-            );
-            // ControlFlow::ForLoop {
-            //     indexset,
-            //     loop_param,
-            // }
+            ControlFlow::ForLoop {
+                collection,
+                loop_param,
+            }
         }
         ControlFlowType::IfElse => {
             let condition = unpack_condition(&instruction.condition, qpy_data)?
                 .ok_or(PyValueError::new_err("if else condition is missing"))?;
-            param_values = instruction_values;
+            param_values = get_instruction_values(instruction, qpy_data)?;
             ControlFlow::IfElse { condition }
         }
         ControlFlowType::WhileLoop => {
             let condition = unpack_condition(&instruction.condition, qpy_data)?
                 .ok_or(PyValueError::new_err("if else condition is missing"))?;
-            param_values = instruction_values;
+            param_values = get_instruction_values(instruction, qpy_data)?;
             ControlFlow::While { condition }
         }
         ControlFlowType::SwitchCase => {
+            let mut instruction_values = get_instruction_values(instruction, qpy_data)?;
+            param_values = instruction_values.split_off(3);
             let mut iter = instruction_values.into_iter();
             let ((target_value, label_spec_value), cases_value) = iter
                 .next()

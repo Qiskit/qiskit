@@ -18,6 +18,8 @@ use crate::value::{
     QPYReadData, QPYWriteData, RegisterType, ValueType,
 };
 use binrw::{BinRead, BinResult, BinWrite, Endian, binread, binrw, binwrite};
+use pyo3::PyErr;
+use pyo3::exceptions::PyRuntimeError;
 use qiskit_circuit::classical::expr::Expr;
 use std::io::{Read, Seek, Write};
 use std::marker::PhantomData;
@@ -828,5 +830,30 @@ impl BinRead for QPYCircuitV15 {
             calibrations,
             layout,
         })
+    }
+}
+
+/// helper for passing PyResult errors that arise during binrw parsing
+pub fn to_binrw_error<W: Seek, E: std::error::Error + Send + Sync + 'static>(
+    writer: &mut W,
+    err: E,
+) -> binrw::Error {
+    binrw::Error::Custom {
+        pos: writer.stream_position().unwrap_or(0),
+        err: Box::new(err),
+    }
+}
+
+/// helper for converting custom binrw errors back to PyResult
+pub fn from_binrw_error(err: binrw::Error) -> PyErr {
+    match err {
+        binrw::Error::Custom { err, .. } => {
+            if let Ok(qpy_err) = err.downcast::<PyErr>() {
+                *qpy_err
+            } else {
+                PyRuntimeError::new_err("unknown error")
+            }
+        }
+        _ => PyRuntimeError::new_err("unknown error"),
     }
 }

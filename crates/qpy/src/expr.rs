@@ -11,20 +11,23 @@
 // that they have been altered from the originals.
 
 // methods for serialization/deserialization of Expression
+use crate::UnsupportedFeatureForVersion;
 use crate::formats::{
     ExpressionElementPack, ExpressionTypePack, ExpressionValueElementPack,
-    ExpressionVarElementPack, ExpressionVarRegisterPack,
+    ExpressionVarElementPack, ExpressionVarRegisterPack, to_binrw_error,
 };
 use crate::value::{
     QPYReadData, QPYWriteData, pack_biguint, pack_duration, unpack_biguint, unpack_duration,
 };
 use binrw::{BinRead, BinResult, BinWrite, Endian, Error};
 use num_bigint::BigUint;
+use pyo3::prelude::*;
 use qiskit_circuit::Clbit;
 use qiskit_circuit::classical::expr::{
     Binary, BinaryOp, Cast, Expr, Index, Unary, UnaryOp, Value, Var,
 };
 use qiskit_circuit::classical::types::Type;
+use qiskit_circuit::duration::Duration;
 use std::io::{Read, Seek, Write};
 
 // packed expression types implicitly contain the magic number identifying them in the qpy file
@@ -46,7 +49,10 @@ pub(crate) fn unpack_expression_type(type_pack: ExpressionTypePack) -> Type {
     }
 }
 
-pub(crate) fn pack_expression_value(value: &Value) -> ExpressionElementPack {
+pub(crate) fn pack_expression_value(
+    value: &Value,
+    qpy_data: &QPYWriteData,
+) -> PyResult<ExpressionElementPack> {
     let (ty, value_pack) = match value {
         Value::Uint { raw, ty } => {
             match ty {
@@ -56,12 +62,24 @@ pub(crate) fn pack_expression_value(value: &Value) -> ExpressionElementPack {
             }
         }
         Value::Float { raw, ty } => (ty, ExpressionValueElementPack::Float(*raw)),
-        Value::Duration(duration) => (
-            &Type::Duration,
-            ExpressionValueElementPack::Duration(pack_duration(duration)),
-        ),
+        Value::Duration(duration) => {
+            if qpy_data.version < 16 && matches!(duration, Duration::ps(_)) {
+                return Err(UnsupportedFeatureForVersion::new_err((
+                    "Duration variant 'Duration.ps'",
+                    16,
+                    qpy_data.version,
+                )));
+            }
+            (
+                &Type::Duration,
+                ExpressionValueElementPack::Duration(pack_duration(duration)),
+            )
+        }
     };
-    ExpressionElementPack::Value(pack_expression_type(ty), value_pack)
+    Ok(ExpressionElementPack::Value(
+        pack_expression_type(ty),
+        value_pack,
+    ))
 }
 
 pub(crate) fn unpack_expression_value(
@@ -144,7 +162,9 @@ pub(crate) fn write_expression<W: Write + Seek>(
 ) -> binrw::BinResult<()> {
     match exp {
         Expr::Value(val) => {
-            pack_expression_value(val).write_options(writer, endian, ())?;
+            pack_expression_value(val, qpy_data)
+                .map_err(|e| to_binrw_error(writer, e))?
+                .write_options(writer, endian, ())?;
         }
         Expr::Var(var) => {
             pack_expression_var(var, qpy_data).write_options(writer, endian, ())?;
