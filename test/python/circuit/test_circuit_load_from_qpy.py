@@ -1715,6 +1715,7 @@ class TestLoadFromQPY(QiskitTestCase):
         """Test that `IfElseOp` and `WhileLoopOp` can have an `Expr` node as their `condition`, and
         that this round-trips through QPY."""
         inner = QuantumCircuit(1)
+        inner.x(0)
         outer = QuantumCircuit(1, 1)
         control_flow(outer, expr.lift(outer.clbits[0]), inner.copy(), [0], [])
 
@@ -1726,6 +1727,7 @@ class TestLoadFromQPY(QiskitTestCase):
             dump(qc, fptr)
             fptr.seek(0)
             new_circuit = load(fptr)[0]
+        # print(new_circuit)
         self.assertEqual(qc, new_circuit)
         self.assertEqual(qc.qregs, new_circuit.qregs)
         self.assertEqual(qc.cregs, new_circuit.cregs)
