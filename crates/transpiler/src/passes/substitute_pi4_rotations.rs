@@ -13,11 +13,14 @@
 use num_complex::ComplexFloat;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
+use qiskit_circuit::BlocksMode;
+use qiskit_circuit::VarsMode;
 use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, FRAC_PI_8, PI};
 
 use crate::gate_metrics::rotation_trace_and_dim;
-use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::operations::{OperationRef, Param, StandardGate};
+use qiskit_circuit::packed_instruction::PackedInstruction;
 
 static ROTATION_GATE_NAMES: [&str; 5] = ["rx", "ry", "rz", "p", "u1"];
 
@@ -238,25 +241,27 @@ fn replace_rotation_by_discrete(
 #[pyfunction]
 #[pyo3(name = "substitute_pi4_rotations")]
 pub fn py_run_substitute_pi4_rotations(
-    dag: &mut DAGCircuit,
+    dag: &DAGCircuit,
     approximation_degree: f64,
-) -> PyResult<()> {
+) -> PyResult<Option<DAGCircuit>> {
     // Skip the pass if there are no rotation gates.
     if dag
         .get_op_counts()
         .keys()
         .all(|k| !ROTATION_GATE_NAMES.contains(&k.as_str()))
     {
-        return Ok(());
+        return Ok(None);
     }
+
+    let mut new_dag = dag.copy_empty_like_with_capacity(0, 0, VarsMode::Alike, BlocksMode::Keep)?;
 
     // Iterate over nodes in the DAG and collect nodes that are of the form
     // RX/RY/RZ with an angle that is sufficiently close to a multiple of pi/4
     let tol = MINIMUM_TOL.max(1.0 - approximation_degree);
+    let mut global_phase_update: f64 = 0.;
 
-    let candidates: Vec<_> = dag
-        .op_nodes(false)
-        .filter_map(|(node_index, inst)| {
+    for node_index in dag.topological_op_nodes(false)? {
+        if let NodeType::Operation(inst) = &dag[node_index] {
             if let OperationRef::StandardGate(gate) = inst.op.view() {
                 if matches!(
                     gate,
@@ -267,35 +272,38 @@ pub fn py_run_substitute_pi4_rotations(
                         | StandardGate::U1
                 ) {
                     if let Param::Float(angle) = inst.params_view()[0] {
-                        is_angle_close_to_multiple_of_pi_4(gate, angle, tol)
-                            .map(|multiple| (node_index, gate, multiple))
+                        if let Some(multiple) = is_angle_close_to_multiple_of_pi_4(gate, angle, tol)
+                        {
+                            let (sequence, phase_update) =
+                                replace_rotation_by_discrete(gate, multiple);
+                            for new_gate in sequence {
+                                new_dag.push_back(PackedInstruction::from_standard_gate(
+                                    *new_gate,
+                                    None,
+                                    inst.qubits,
+                                ))?;
+                            }
+                            global_phase_update += phase_update;
+                        } else {
+                            new_dag.push_back(inst.clone())?;
+                        }
                     } else {
-                        None
+                        new_dag.push_back(inst.clone())?;
                     }
                 } else {
-                    None
+                    new_dag.push_back(inst.clone())?;
                 }
             } else {
-                None
+                new_dag.push_back(inst.clone())?;
             }
-        })
-        .collect();
-
-    let mut global_phase_update: f64 = 0.;
-
-    for (node_index, gate, multiple) in candidates {
-        let (sequence, phase_update) = replace_rotation_by_discrete(gate, multiple);
-        // we should remove the original gate, and instead add the sequence of gates
-        for new_gate in sequence {
-            dag.insert_1q_on_incoming_qubit((*new_gate, &[]), node_index);
+        } else {
+            unreachable!();
         }
-        dag.remove_1q_sequence(&[node_index]);
-        global_phase_update += phase_update;
     }
 
-    dag.add_global_phase(&Param::Float(global_phase_update))?;
+    new_dag.add_global_phase(&Param::Float(global_phase_update))?;
 
-    Ok(())
+    Ok(Some(new_dag))
 }
 
 pub fn substitute_pi4_rotations_mod(m: &Bound<PyModule>) -> PyResult<()> {
