@@ -15,10 +15,8 @@ use qiskit_circuit::Qubit;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{Param, StandardInstruction, multiply_param, radd_param};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_quantum_info::sparse_observable::SparseObservable;
-use qiskit_synthesis::evolution::suzuki_trotter::{
-    StrSparseTerm, bit_term_as_char, evolution, reorder_terms,
-};
+use qiskit_quantum_info::sparse_observable::{SparseObservable, SparseTermView};
+use qiskit_synthesis::evolution::suzuki_trotter::{evolution, reorder_terms};
 use smallvec::smallvec;
 
 pub fn suzuki_trotter_evolution(
@@ -37,35 +35,17 @@ pub fn suzuki_trotter_evolution(
         ));
     }
 
-    let parsed_observable: Vec<StrSparseTerm> = observable
-        .coeffs()
-        .iter()
-        .enumerate()
-        .map(|(i, coeff)| {
-            let start = observable.boundaries()[i];
-            let end = observable.boundaries()[i + 1];
-            let mut coeff = *coeff;
-            coeff.re = coeff.re * time * 2.0 / (reps as f64);
-            StrSparseTerm {
-                terms: observable.bit_terms()[start..end]
-                    .iter()
-                    .map(bit_term_as_char)
-                    .collect(),
-                coeff: coeff,
-                indices: &observable.indices()[start..end],
-            }
-        })
-        .collect();
-
+    let mut parsed_observable: Vec<SparseTermView> = observable.iter().collect();
+    parsed_observable.iter_mut().for_each(|view| {
+        view.coeff.re = view.coeff.re * time * 2.0 / (reps as f64);
+    });
+    let parsed_observable = if preserve_order || !preserve_order && parsed_observable.len() <= 1 {
+        parsed_observable
+    } else {
+        reorder_terms(&parsed_observable)
+    };
     // execute evolution
-    let evo: Vec<StrSparseTerm> = evolution(
-        order,
-        if preserve_order || !preserve_order && parsed_observable.len() <= 1 {
-            parsed_observable
-        } else {
-            reorder_terms(&parsed_observable)
-        },
-    );
+    let evo: Vec<SparseTermView> = evolution(order, &parsed_observable);
 
     let mut global_phase = Param::Float(0.0);
     let mut modified_phase = false;
@@ -75,7 +55,7 @@ pub fn suzuki_trotter_evolution(
     let iter_repeated = evo.iter().cycle().take(repetitions as usize);
 
     for view in iter_repeated.clone() {
-        if view.terms.chars().all(|p| p == 'i') {
+        if view.bit_terms.len() == 0 {
             global_phase = radd_param(global_phase, view.coeff.re.into());
             modified_phase = true;
         }
@@ -85,7 +65,11 @@ pub fn suzuki_trotter_evolution(
         .enumerate()
         .map(|(i, view)| {
             let instructions = sparse_term_evolution(
-                &view.terms,
+                view.bit_terms
+                    .iter()
+                    .map(|bit| bit.py_label())
+                    .collect::<String>()
+                    .leak(),
                 view.indices.into(),
                 view.coeff.re.into(),
                 false,
