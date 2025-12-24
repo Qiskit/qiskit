@@ -35,15 +35,18 @@ pub fn suzuki_trotter_evolution(
         ));
     }
 
-    let mut parsed_observable: Vec<SparseTermView> = observable.iter().collect();
+    let terms: Vec<SparseTermView> = observable.iter().collect();
+    let mut parsed_observable =
+        if preserve_order || !preserve_order && observable.bit_terms().len() <= 1 {
+            terms
+        } else {
+            reorder_terms(&terms)?
+        };
+
     parsed_observable.iter_mut().for_each(|view| {
         view.coeff.re = view.coeff.re * time * 2.0 / (reps as f64);
     });
-    let parsed_observable = if preserve_order || !preserve_order && parsed_observable.len() <= 1 {
-        parsed_observable
-    } else {
-        reorder_terms(&parsed_observable)
-    };
+
     // execute evolution
     let evo: Vec<SparseTermView> = evolution(order, &parsed_observable);
 
