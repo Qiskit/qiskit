@@ -201,7 +201,10 @@ fn pack_instruction_blocks(
             .iter()
             .map(|block| {
                 Python::attach(|py| -> PyResult<_> {
-                    py_pack_param(block.bind(py), qpy_data, Endian::Little)
+                    let circuit = imports::QUANTUM_CIRCUIT
+                        .get_bound(py)
+                        .call_method1("_from_circuit_data", (block.clone(),))?;
+                    py_pack_param(&circuit, qpy_data, Endian::Little)
                 })
             })
             .collect::<PyResult<_>>(),

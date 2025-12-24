@@ -247,14 +247,9 @@ fn instruction_values_to_params(
             .all(|val| matches!(val, GenericValue::Circuit(_)))
     {
         // blocks
-        let inst_blocks: Vec<Py<PyAny>> = values
+        let inst_blocks: Vec<CircuitData> = values
             .iter()
-            .filter_map(|value| {
-                match value {
-                    GenericValue::Circuit(circuit) => Some(circuit.clone()),
-                    _ => None, // this should never happen, given the previous check
-                }
-            })
+            .filter_map(|value| value.as_circuit_data())
             .collect();
         let params = Parameters::Blocks(inst_blocks);
         Ok(qpy_data
@@ -1263,8 +1258,6 @@ pub(crate) fn unpack_circuit(
     let circuit = imports::QUANTUM_CIRCUIT
         .get_bound(py)
         .call_method1(intern!(py, "_from_circuit_data"), (circuit_data,))?;
-    // add registers
-
     circuit.setattr("metadata", metadata)?;
     circuit.setattr("name", &packed_circuit.header.circuit_name)?;
     if let Some(layout) = unpacked_layout {

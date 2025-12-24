@@ -37,7 +37,8 @@ use uuid::Uuid;
 use crate::bytes::Bytes;
 use crate::formats;
 use crate::value::{
-    GenericValue, ModifierType, ParamRegisterValue, QPYWriteData, ValueType, serialize_generic_value,
+    GenericValue, ModifierType, ParamRegisterValue, QPYWriteData, ValueType,
+    serialize_generic_value,
 };
 
 pub const UNITARY_GATE_CLASS_NAME: &str = "UnitaryGate";

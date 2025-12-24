@@ -23,6 +23,7 @@ use qiskit_circuit::bit::{ClassicalRegister, ShareableClbit};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::classical::expr::{Expr, Stretch, Var};
 use qiskit_circuit::classical::types::Type;
+use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::duration::Duration;
 use qiskit_circuit::object_registry::ObjectRegistry;
 use qiskit_circuit::operations::{ForCollection, OperationRef, PyRange};
@@ -325,6 +326,15 @@ impl GenericValue {
                 GenericValue::Tuple(elements.iter().map(GenericValue::as_le).collect())
             }
             _ => self.clone(),
+        }
+    }
+    pub(crate) fn as_circuit_data(&self) -> Option<CircuitData> {
+        match self {
+            GenericValue::Circuit(py_circuit) => Python::attach(|py| -> PyResult<CircuitData> {
+                Ok(py_circuit.extract::<QuantumCircuitData>(py)?.data)
+            })
+            .ok(),
+            _ => None,
         }
     }
 }

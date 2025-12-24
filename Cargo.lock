@@ -1995,7 +1995,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-qpy"
-version = "2.3.0-dev"
+version = "2.4.0-dev"
 dependencies = [
  "ahash 0.8.12",
  "binrw",
