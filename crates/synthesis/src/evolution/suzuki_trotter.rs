@@ -73,59 +73,53 @@ pub fn evolution<'a, 'b>(order: u32, paulis: &'b [SparseTermView<'a>]) -> Vec<Sp
     };
 }
 
-pub fn reorder_terms<'a>(terms: &'a Vec<SparseTermView<'a>>) -> Vec<SparseTermView<'a>> {
-    let sorted: Vec<&SparseTermView> = terms
+pub fn reorder_terms<'a>(terms: &'a [SparseTermView<'a>]) -> Result<Vec<SparseTermView<'a>>, &'a str> {
+    let sorted: Vec<&SparseTermView<'a>> = terms
         .iter()
         .sorted_by_key(|view| (view.indices, view.bit_terms))
         .collect();
+    let edges: Vec<(usize, usize)> = (0..terms.len())
+        .combinations(2 as usize)
+        .map(|combination| (combination[0], combination[1]))
+        .filter(|(index1, index2)| {
+            let (indices1, indices2) = (
+                HashSet::from_iter(sorted[*index1].indices),
+                HashSet::from_iter(sorted[*index2].indices),
+            );
+            indices1.intersection(&indices2).count() > 0
+        })
+        .collect();
 
-    let mut graph: Graph<&SparseTermView, Option<u8>, Undirected> = Graph::new_undirected();
+    let mut graph: Graph<usize, Option<u8>, Undirected> =
+        Graph::with_capacity(sorted.len(), edges.len());
 
-    for term in sorted {
-        graph.add_node(term);
-    }
-
-    for combination in (0..graph.node_count()).combinations(2 as usize) {
-        let (indices1, indices2) = combination
-            .iter()
-            .map(|i| {
-                let index = *i as u32;
-                (
-                    index,
-                    graph
-                        .node_weight(index.into())
-                        .unwrap()
-                        .indices
-                        .iter()
-                        .collect::<HashSet<&u32>>(),
-                )
-            })
-            .collect_tuple()
-            .expect("Expected a combination of two values");
-
-        if indices1.1.intersection(&indices2.1).count() > 0 {
-            graph.add_edge(indices1.0.into(), indices2.0.into(), None);
-        }
-    }
+    sorted.iter().enumerate().for_each(|(i, _)| {
+        graph.add_node(i);
+    });
+    edges.iter().for_each(|(index1, index2)| {
+        graph.add_edge((*index1 as u32).into(), (*index2 as u32).into(), None);
+    });
 
     let callback = |_: NodeIndex| -> Result<Option<usize>, Infallible> { Ok(None) };
-    let colors =
-        greedy_node_color_with_coloring_strategy(&graph, callback, ColoringStrategy::Saturation)
-            .expect("An error ocurred while coloring Pauli sparse terms");
-    let mut colors_map: IndexMap<usize, Vec<&NodeIndex>> = IndexMap::new();
+    match greedy_node_color_with_coloring_strategy(&graph, callback, ColoringStrategy::Saturation) {
+        Ok(colors) => {
+            let mut colors_map: IndexMap<usize, Vec<&NodeIndex>> = IndexMap::new();
 
-    for (node_index, color) in colors.iter().sorted() {
-        if !colors_map.contains_key(color) {
-            colors_map.insert(*color, Vec::new());
+            for (node_index, color) in colors.iter().sorted() {
+                if !colors_map.contains_key(color) {
+                    colors_map.insert(*color, Vec::new());
+                }
+                colors_map.get_mut(color).unwrap().push(node_index);
+            }
+
+            Ok(colors_map
+                .iter()
+                .map(|(_, node_index)| node_index)
+                .flatten()
+                .map(|index| *sorted[graph[**index]])
+                .collect())
         }
-        colors_map.get_mut(color).unwrap().push(node_index);
-    }
 
-    colors_map
-        .iter()
-        .map(|(_, node_index)| node_index)
-        .flatten()
-        .map(|index| *graph.node_weight(**index).unwrap())
-        .map(|term| term.clone())
-        .collect()
+        Err(_) => Err("An error ocurred while coloring Pauli sparse terms"),
+    }
 }
