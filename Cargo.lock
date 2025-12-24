@@ -1856,7 +1856,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-accelerate"
-version = "2.3.0-dev"
+version = "2.4.0-dev"
 dependencies = [
  "approx",
  "hashbrown 0.15.5",
@@ -1881,7 +1881,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-cext"
-version = "2.3.0-dev"
+version = "2.4.0-dev"
 dependencies = [
  "ahash 0.8.12",
  "anyhow",
@@ -1904,7 +1904,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-circuit"
-version = "2.3.0-dev"
+version = "2.4.0-dev"
 dependencies = [
  "ahash 0.8.12",
  "approx",
@@ -1932,7 +1932,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-circuit-library"
-version = "2.3.0-dev"
+version = "2.4.0-dev"
 dependencies = [
  "hashbrown 0.15.5",
  "itertools 0.14.0",
@@ -1952,7 +1952,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-pyext"
-version = "2.3.0-dev"
+version = "2.4.0-dev"
 dependencies = [
  "pyo3",
  "qiskit-accelerate",
@@ -1969,7 +1969,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-qasm2"
-version = "2.3.0-dev"
+version = "2.4.0-dev"
 dependencies = [
  "hashbrown 0.15.5",
  "num-bigint",
@@ -1979,7 +1979,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-qasm3"
-version = "2.3.0-dev"
+version = "2.4.0-dev"
 dependencies = [
  "ahash 0.8.12",
  "hashbrown 0.15.5",
@@ -2013,7 +2013,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-quantum-info"
-version = "2.3.0-dev"
+version = "2.4.0-dev"
 dependencies = [
  "ahash 0.8.12",
  "approx",
@@ -2039,7 +2039,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-synthesis"
-version = "2.3.0-dev"
+version = "2.4.0-dev"
 dependencies = [
  "ahash 0.8.12",
  "approx",
@@ -2073,7 +2073,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-transpiler"
-version = "2.3.0-dev"
+version = "2.4.0-dev"
 dependencies = [
  "ahash 0.8.12",
  "anyhow",
