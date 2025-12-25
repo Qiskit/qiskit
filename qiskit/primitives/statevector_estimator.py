@@ -147,9 +147,21 @@ class StatevectorEstimator(BaseEstimatorV2):
     def _run(self, pubs: list[EstimatorPub]) -> PrimitiveResult[PubResult]:
         return PrimitiveResult([self._run_pub(pub) for pub in pubs], metadata={"version": 2})
 
+    def _contains_pauli_evolution_gate(self, circuit):
+        """Check if the circuit contains a PauliEvolutionGate."""
+        from qiskit.circuit.library import PauliEvolutionGate
+        return any(isinstance(inst.operation, PauliEvolutionGate) for inst in circuit.data)
+
+    def _decompose_if_pauli_evolution(self, circuit):
+        """Decompose the circuit if it contains PauliEvolutionGate."""
+        if self._contains_pauli_evolution_gate(circuit):
+            return circuit.decompose()
+        return circuit
+
     def _run_pub(self, pub: EstimatorPub) -> PubResult:
         rng = np.random.default_rng(self._seed)
         circuit = pub.circuit
+        circuit = self._decompose_if_pauli_evolution(circuit)
         observables = pub.observables
         parameter_values = pub.parameter_values
         precision = pub.precision
