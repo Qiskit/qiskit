@@ -14,14 +14,10 @@
 # pylint: disable=attribute-defined-outside-init,unsubscriptable-object
 # pylint: disable=unused-wildcard-import,wildcard-import,undefined-variable
 
-import os
-
-from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as SEL
 from qiskit.transpiler.passes import *
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import CXGate
-from qiskit.synthesis import synth_qft_full
 from qiskit.transpiler import Target
 from qiskit.compiler import transpile
 from qiskit.quantum_info import get_clifford_gate_names
@@ -208,8 +204,9 @@ class MultiQBlockPassBenchmarks:
 class LitinskiTransformationPassBenchmarks:
     circuit_names = ["qft", "trotter", "qaoa", "grover", "mcx", "multiplier", "modular_adder"]
     num_qubits = [8, 16, 32, 64, 128, 256, 512, 1024, 2048]
-    params = (circuit_names, num_qubits)
-    param_names = ["circuit_name", "n_qubits"]
+    fix_clifford = [False, True]
+    params = (circuit_names, num_qubits, fix_clifford)
+    param_names = ["circuit_name", "n_qubits", "fix_clifford"]
     slow_tests = {
         ("qft", 2048),
         ("qaoa", 1024),
@@ -220,7 +217,7 @@ class LitinskiTransformationPassBenchmarks:
     }
     timeout = 300
 
-    def setup(self, circuit_name, n_qubits):
+    def setup(self, circuit_name, n_qubits, _):
         if (circuit_name, n_qubits) in self.slow_tests:
             raise NotImplementedError
 
@@ -239,7 +236,7 @@ class LitinskiTransformationPassBenchmarks:
         elif circuit_name == "modular_adder":
             circuit = modular_adder_circuit(n_qubits)
         else:
-            raise "Error: unknown circuit."
+            raise ValueError("Error: unknown circuit")
 
         target = Target.from_configuration(["rz", "measure"] + get_clifford_gate_names(), n_qubits)
 
@@ -255,10 +252,6 @@ class LitinskiTransformationPassBenchmarks:
         # Convert to DAGCircuit
         self.dag = circuit_to_dag(transpiled)
 
-    def time_litinski_transformation_fix_clifford(self, _, __):
-        _pass = LitinskiTransformation(fix_clifford=True)
-        _pass.run(self.dag)
-
-    def time_litinski_transformation_no_fix_clifford(self, _, __):
-        _pass = LitinskiTransformation(fix_clifford=False)
+    def time_litinski_transformation(self, _, __, fix_clifford):
+        _pass = LitinskiTransformation(fix_clifford=fix_clifford)
         _pass.run(self.dag)
