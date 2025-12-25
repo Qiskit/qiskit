@@ -25,7 +25,16 @@ from qiskit.synthesis import synth_qft_full
 from qiskit.transpiler import Target
 from qiskit.compiler import transpile
 from qiskit.quantum_info import get_clifford_gate_names
-from .utils import random_circuit
+from .utils import (
+    grover_circuit,
+    mcx_circuit,
+    modular_adder_circuit,
+    multiplier_circuit,
+    qaoa_circuit,
+    qft_circuit,
+    random_circuit,
+    trotter_circuit,
+)
 
 
 class Collect2QPassBenchmarks:
@@ -196,59 +205,60 @@ class MultiQBlockPassBenchmarks:
         CollectMultiQBlocks(max_block_size).run(self.dag)
 
 
-class LitinskiTransformationPassQFTBenchmarks:
-    params = [5, 10, 100, 1000]
-
-    param_names = ["n_qubits"]
+class LitinskiTransformationPassBenchmarks:
+    circuit_names = ["qft", "trotter", "qaoa", "grover", "mcx", "multiplier", "modular_adder"]
+    num_qubits = [8, 16, 32, 64, 128, 256, 512, 1024, 2048]
+    params = (circuit_names, num_qubits)
+    param_names = ["circuit_name", "n_qubits"]
+    slow_tests = {
+        ("qft", 2048),
+        ("qaoa", 1024),
+        ("qaoa", 2048),
+        ("grover", 2048),
+        ("multiplier", 1024),
+        ("multiplier", 2048),
+    }
     timeout = 300
 
-    def setup(self, n_qubits):
-        target = Target.from_configuration(["rz"] + get_clifford_gate_names(), n_qubits)
-        qft = synth_qft_full(n_qubits, do_swaps=False)
-        tqft = transpile(qft, target=target, seed_transpiler=0)
-        self.dag = circuit_to_dag(tqft)
+    def setup(self, circuit_name, n_qubits):
+        if (circuit_name, n_qubits) in self.slow_tests:
+            raise NotImplementedError
 
-    def time_litinski_transformation_fix_clifford(self, _):
+        if circuit_name == "qft":
+            circuit = qft_circuit(n_qubits)
+        elif circuit_name == "trotter":
+            circuit = trotter_circuit(n_qubits)
+        elif circuit_name == "qaoa":
+            circuit = qaoa_circuit(n_qubits)
+        elif circuit_name == "grover":
+            circuit = grover_circuit(n_qubits)
+        elif circuit_name == "mcx":
+            circuit = mcx_circuit(n_qubits)
+        elif circuit_name == "multiplier":
+            circuit = multiplier_circuit(n_qubits)
+        elif circuit_name == "modular_adder":
+            circuit = modular_adder_circuit(n_qubits)
+        else:
+            raise "Error: unknown circuit."
+
+        target = Target.from_configuration(["rz", "measure"] + get_clifford_gate_names(), n_qubits)
+
+        # Transpile the circuit with optimization_level=0.
+        transpiled = transpile(circuit, target=target, seed_transpiler=0, optimization_level=0)
+
+        # Add measurements
+        transpiled.measure_all()
+
+        # Remove barrier introduced by measure_all
+        transpiled = RemoveBarriers()(transpiled)
+
+        # Convert to DAGCircuit
+        self.dag = circuit_to_dag(transpiled)
+
+    def time_litinski_transformation_fix_clifford(self, _, __):
         _pass = LitinskiTransformation(fix_clifford=True)
         _pass.run(self.dag)
 
-    def time_litinski_transformation_no_fix_clifford(self, _):
+    def time_litinski_transformation_no_fix_clifford(self, _, __):
         _pass = LitinskiTransformation(fix_clifford=False)
         _pass.run(self.dag)
-
-
-class LitinskiTransformationPassQasmBenchmarks:
-
-    def build_from_qasm(self, benchmark_name):
-        full_name = os.path.join(self.qasm_dir, benchmark_name)
-        qc = QuantumCircuit.from_qasm_file(full_name)
-        transpiled_qc = transpile(qc, basis_gates=self.basis_gates, seed_transpiler=0)
-        transpiled_dag = circuit_to_dag(transpiled_qc)
-        return transpiled_dag
-
-    def setup(self):
-        self.qasm_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "qasm")
-        self.basis_gates = ["rz"] + get_clifford_gate_names()
-
-        self.qft = self.build_from_qasm("qft_N100.qasm")
-        self.square_heisenberg = self.build_from_qasm("square_heisenberg_N100.qasm")
-        self.qaoa = self.build_from_qasm("qaoa_barabasi_albert_N100_3reps.qasm")
-        self.dtc = self.build_from_qasm("dtc_100_cx_12345.qasm")
-        self.eoh = self.build_from_qasm("test_eoh_qasm.qasm")
-
-        self.pass_ = LitinskiTransformation(fix_clifford=False)
-
-    def time_qft(self):
-        self.pass_.run(self.qft)
-
-    def time_square_heisenberg(self):
-        self.pass_.run(self.square_heisenberg)
-
-    def time_qaoa(self):
-        self.pass_.run(self.qaoa)
-
-    def time_dtc(self):
-        self.pass_.run(self.dtc)
-
-    def time_eoh(self):
-        self.pass_.run(self.eoh)
