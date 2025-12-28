@@ -19,7 +19,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.random import random_clifford_circuit
 from qiskit.transpiler.passes import SubstitutePi4Rotations
 from qiskit.quantum_info import Operator, get_clifford_gate_names
-from qiskit.circuit.library import RXGate, RYGate, RZGate, PhaseGate, U1Gate
+from qiskit.circuit.library import RXGate, RYGate, RZGate, PhaseGate, U1Gate, RZZGate
 from test import combine, QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -29,7 +29,7 @@ class TestSubstitutePi4Rotations(QiskitTestCase):
 
     @combine(
         multiple=[*range(0, 16), 23, 42, -5, -8, -17, -22, -35],
-        gate=[RXGate, RYGate, RZGate, PhaseGate, U1Gate],
+        gate=[RXGate, RYGate, RZGate, PhaseGate, U1Gate, RZZGate],
         global_phase=[0, 1.0, -2.0],
         approximation_degree=[1, 0.99999],
         eps=[0, 1e-10],
@@ -38,10 +38,11 @@ class TestSubstitutePi4Rotations(QiskitTestCase):
         self, multiple, gate, global_phase, approximation_degree, eps
     ):
         """Test that rotations gates are translated into Clifford+T+Tdg correctly."""
-        qc = QuantumCircuit(1)
-        qc.global_phase = global_phase
         angle = np.pi / 4 * multiple + eps
-        qc.append(gate(angle), [0])
+        num_qubits = gate(angle).num_qubits
+        qc = QuantumCircuit(num_qubits)
+        qc.global_phase = global_phase
+        qc.append(gate(angle), range(num_qubits))
         qct = SubstitutePi4Rotations(approximation_degree)(qc)
         ops = qct.count_ops()
         clifford_t_names = get_clifford_gate_names() + ["t"] + ["tdg"]
@@ -58,15 +59,16 @@ class TestSubstitutePi4Rotations(QiskitTestCase):
     @combine(
         multiple=[*range(0, 16)],
         eps=[0.001, -0.001],
-        gate=[RXGate, RYGate, RZGate, PhaseGate, U1Gate],
+        gate=[RXGate, RYGate, RZGate, PhaseGate, U1Gate, RZZGate],
         approximation_degree=[1, 0.9999999],
     )
     def test_rotation_gates_do_not_change(self, multiple, eps, gate, approximation_degree):
         """Test that the transpiler pass does not change the gates for angles that are
         not pi/4 rotations."""
-        qc = QuantumCircuit(1)
         angle = np.pi / 4 * multiple + eps
-        qc.append(gate(angle), [0])
+        num_qubits = gate(angle).num_qubits
+        qc = QuantumCircuit(num_qubits)
+        qc.append(gate(angle), range(num_qubits))
         qct = SubstitutePi4Rotations(approximation_degree)(qc)
         self.assertEqual(qc, qct)
 
@@ -85,6 +87,7 @@ class TestSubstitutePi4Rotations(QiskitTestCase):
             qc.ry(np.pi / 4 * (idx + num_qubits + 3), (idx + 3) % num_qubits)
             qc.rz(np.pi / 4 * (idx + num_qubits + 4), (idx + 4) % num_qubits)
             qc.p(np.pi / 4 * (idx + num_qubits + 2), (idx + 4) % num_qubits)
+            qc.rzz(np.pi / 4 * idx, idx, (idx + 3) % num_qubits)
 
         qct = SubstitutePi4Rotations()(qc)
         clifford_t_names = get_clifford_gate_names() + ["t"] + ["tdg"]
