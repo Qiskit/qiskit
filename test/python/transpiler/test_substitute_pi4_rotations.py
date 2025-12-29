@@ -19,7 +19,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.random import random_clifford_circuit
 from qiskit.transpiler.passes import SubstitutePi4Rotations
 from qiskit.quantum_info import Operator, get_clifford_gate_names
-from qiskit.circuit.library import RXGate, RYGate, RZGate, PhaseGate, U1Gate, RZZGate
+from qiskit.circuit.library import RXGate, RYGate, RZGate, PhaseGate, U1Gate, RZZGate, RXXGate
 from test import combine, QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -29,7 +29,7 @@ class TestSubstitutePi4Rotations(QiskitTestCase):
 
     @combine(
         multiple=[*range(0, 16), 23, 42, -5, -8, -17, -22, -35],
-        gate=[RXGate, RYGate, RZGate, PhaseGate, U1Gate, RZZGate],
+        gate=[RXGate, RYGate, RZGate, PhaseGate, U1Gate, RZZGate, RXXGate],
         global_phase=[0, 1.0, -2.0],
         approximation_degree=[1, 0.99999],
         eps=[0, 1e-10],
@@ -47,19 +47,21 @@ class TestSubstitutePi4Rotations(QiskitTestCase):
         ops = qct.count_ops()
         clifford_t_names = get_clifford_gate_names() + ["t"] + ["tdg"]
         self.assertEqual(Operator(qct), Operator(qc))
-        self.assertLessEqual(qct.size(), 4)
         self.assertLessEqual(set(ops.keys()), set(clifford_t_names))
         if multiple % 2 == 0:  # only clifford gates
-            self.assertLessEqual(qct.size(), 3)
             self.assertLessEqual(set(ops.keys()), set(get_clifford_gate_names()))
-            self.assertEqual(ops.get("t", 0) + ops.get("tdg", 0), 0)
-        else:  # at most one t/tdg gate
-            self.assertEqual(ops.get("t", 0) + ops.get("tdg", 0), 1)
+        if num_qubits == 1 or gate(angle).name == "rzz":
+            self.assertLessEqual(qct.size(), 4)
+            if multiple % 2 == 0:  # only clifford gates
+                self.assertLessEqual(qct.size(), 3)
+                self.assertEqual(ops.get("t", 0) + ops.get("tdg", 0), 0)
+            else:  # at most one t/tdg gate
+                self.assertEqual(ops.get("t", 0) + ops.get("tdg", 0), 1)
 
     @combine(
         multiple=[*range(0, 16)],
         eps=[0.001, -0.001],
-        gate=[RXGate, RYGate, RZGate, PhaseGate, U1Gate, RZZGate],
+        gate=[RXGate, RYGate, RZGate, PhaseGate, U1Gate, RZZGate, RXXGate],
         approximation_degree=[1, 0.9999999],
     )
     def test_rotation_gates_do_not_change(self, multiple, eps, gate, approximation_degree):
@@ -88,6 +90,9 @@ class TestSubstitutePi4Rotations(QiskitTestCase):
             qc.rz(np.pi / 4 * (idx + num_qubits + 4), (idx + 4) % num_qubits)
             qc.p(np.pi / 4 * (idx + num_qubits + 2), (idx + 4) % num_qubits)
             qc.rzz(np.pi / 4 * idx, idx, (idx + 3) % num_qubits)
+            qc.rxx(
+                np.pi / 4 * (idx + num_qubits + 1), (idx + 1) % num_qubits, (idx - 1) % num_qubits
+            )
 
         qct = SubstitutePi4Rotations()(qc)
         clifford_t_names = get_clifford_gate_names() + ["t"] + ["tdg"]
@@ -104,11 +109,12 @@ class TestSubstitutePi4Rotations(QiskitTestCase):
         qc.cx(0, 1)
         qc.ry(np.pi / 2, 1)
         qc.rz(0.1, 0)
+        qc.rzz(np.pi / 4, 0, 1)
 
         qct = SubstitutePi4Rotations()(qc)
 
         expected = QuantumCircuit(3)
-        expected.global_phase = -2.0 - np.pi / 8
+        expected.global_phase = -2.0 - 2 * np.pi / 8
         expected.t(0)
         expected.h(2)
         expected.t(2)
@@ -118,6 +124,9 @@ class TestSubstitutePi4Rotations(QiskitTestCase):
         expected.z(1)
         expected.h(1)
         expected.rz(0.1, 0)
+        expected.cx(0, 1)
+        expected.t(1)
+        expected.cx(0, 1)
 
         self.assertEqual(qct, expected)
         self.assertEqual(Operator(qct), Operator(qc))
