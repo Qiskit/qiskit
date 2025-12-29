@@ -29,25 +29,13 @@ from .utils import (
 
 class TranspilerCliffordRZBenchmarks:
     circuit_names = ["qft", "trotter", "qaoa", "grover", "mcx", "multiplier", "modular_adder"]
-    # num_qubits = [8, 16, 32, 64, 128, 256, 512, 1024, 2048]
     num_qubits = [8, 16, 32, 64, 128]
     optimization_level = [0, 1, 2, 3]
     params = (circuit_names, num_qubits, optimization_level)
     param_names = ["circuit_name", "n_qubits", "optimization_level"]
-    slow_tests = {
-        ("qft", 2048),
-        ("qaoa", 1024),
-        ("qaoa", 2048),
-        ("grover", 2048),
-        ("multiplier", 1024),
-        ("multiplier", 2048),
-    }
     timeout = 300
 
     def setup(self, circuit_name, n_qubits, optimization_level):
-        if (circuit_name, n_qubits) in self.slow_tests:
-            raise NotImplementedError
-
         if circuit_name == "qft":
             circuit = qft_circuit(n_qubits)
         elif circuit_name == "trotter":
@@ -77,3 +65,47 @@ class TranspilerCliffordRZBenchmarks:
     def track_rz_count(self, _, __, ___):
         res = self.pm.run(self.circuit)
         return res.count_ops().get("rz", 0)
+
+
+class TranspilerCliffordTBenchmarks:
+    # note: QAOA circuit is not included as it's parametric
+    circuit_names = ["qft", "trotter", "grover", "mcx", "multiplier", "modular_adder"]
+    num_qubits = [8, 16, 32]
+    optimization_level = [0, 1, 2, 3]
+    params = (circuit_names, num_qubits, optimization_level)
+    param_names = ["circuit_name", "n_qubits", "optimization_level"]
+    timeout = 300
+
+    def setup(self, circuit_name, n_qubits, optimization_level):
+        if circuit_name == "qft":
+            circuit = qft_circuit(n_qubits)
+        elif circuit_name == "trotter":
+            circuit = trotter_circuit(n_qubits)
+        elif circuit_name == "qaoa":
+            circuit = qaoa_circuit(n_qubits)
+        elif circuit_name == "grover":
+            circuit = grover_circuit(n_qubits)
+        elif circuit_name == "mcx":
+            circuit = mcx_circuit(n_qubits)
+        elif circuit_name == "multiplier":
+            circuit = multiplier_circuit(n_qubits)
+        elif circuit_name == "modular_adder":
+            circuit = modular_adder_circuit(n_qubits)
+        else:
+            raise ValueError("Error: unknown circuit")
+
+        self.circuit = circuit
+        target = Target.from_configuration(
+            ["t", "tdg", "measure"] + get_clifford_gate_names(), n_qubits
+        )
+        self.pm = generate_preset_pass_manager(
+            optimization_level=optimization_level, target=target, seed_transpiler=0
+        )
+
+    def time_transpile(self, _, __, ___):
+        self.pm.run(self.circuit)
+
+    def track_t_count(self, _, __, ___):
+        res = self.pm.run(self.circuit)
+        ops = res.count_ops()
+        return ops.get("t", 0) + ops.get("tdg", 0)
