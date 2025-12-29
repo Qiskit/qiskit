@@ -28,6 +28,7 @@ from qiskit.circuit.library import (
     RZZGate,
     RXXGate,
     RZXGate,
+    RYYGate,
 )
 from test import combine, QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -38,7 +39,7 @@ class TestSubstitutePi4Rotations(QiskitTestCase):
 
     @combine(
         multiple=[*range(0, 16), 23, 42, -5, -8, -17, -22, -35],
-        gate=[RXGate, RYGate, RZGate, PhaseGate, U1Gate, RZZGate, RXXGate, RZXGate],
+        gate=[RXGate, RYGate, RZGate, PhaseGate, U1Gate, RZZGate, RXXGate, RZXGate, RYYGate],
         global_phase=[0, 1.0, -2.0],
         approximation_degree=[1, 0.99999],
         eps=[0, 1e-10],
@@ -70,7 +71,7 @@ class TestSubstitutePi4Rotations(QiskitTestCase):
     @combine(
         multiple=[*range(0, 16)],
         eps=[0.001, -0.001],
-        gate=[RXGate, RYGate, RZGate, PhaseGate, U1Gate, RZZGate, RXXGate, RZXGate],
+        gate=[RXGate, RYGate, RZGate, PhaseGate, U1Gate, RZZGate, RXXGate, RZXGate, RYYGate],
         approximation_degree=[1, 0.9999999],
     )
     def test_rotation_gates_do_not_change(self, multiple, eps, gate, approximation_degree):
@@ -104,6 +105,9 @@ class TestSubstitutePi4Rotations(QiskitTestCase):
             )
             qc.rzx(
                 np.pi / 4 * (idx + num_qubits + 2), (idx + 2) % num_qubits, (idx - 2) % num_qubits
+            )
+            qc.ryy(
+                np.pi / 4 * (idx + num_qubits + 3), (idx + 3) % num_qubits, (idx - 3) % num_qubits
             )
 
         qct = SubstitutePi4Rotations()(qc)

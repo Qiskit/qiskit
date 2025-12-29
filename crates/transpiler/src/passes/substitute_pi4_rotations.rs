@@ -23,7 +23,7 @@ use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::operations::{OperationRef, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 
-static ROTATION_GATE_NAMES: [&str; 8] = ["rx", "ry", "rz", "p", "u1", "rzz", "rxx", "rzx"];
+static ROTATION_GATE_NAMES: [&str; 9] = ["rx", "ry", "rz", "p", "u1", "rzz", "rxx", "rzx", "ryy"];
 
 type SubstituteSequence<'a> = [(&'a [(StandardGate, &'a [u32])], f64); 16];
 
@@ -691,6 +691,184 @@ static RZX_SUBSTITUTIONS: SubstituteSequence = [
     ),
 ];
 
+/// Table for RYY(k * pi / 4) substitutions, with 0 <= k < 15
+static RYY_SUBSTITUTIONS: SubstituteSequence = [
+    (&[], 0.0),
+    (
+        &[
+            (StandardGate::SXdg, &[0]),
+            (StandardGate::SXdg, &[1]),
+            (StandardGate::CX, &[0, 1]),
+            (StandardGate::T, &[1]),
+            (StandardGate::CX, &[0, 1]),
+            (StandardGate::SX, &[0]),
+            (StandardGate::SX, &[1]),
+        ],
+        -FRAC_PI_8,
+    ),
+    (
+        &[
+            (StandardGate::SXdg, &[0]),
+            (StandardGate::SXdg, &[1]),
+            (StandardGate::CX, &[0, 1]),
+            (StandardGate::S, &[1]),
+            (StandardGate::CX, &[0, 1]),
+            (StandardGate::SX, &[0]),
+            (StandardGate::SX, &[1]),
+        ],
+        -FRAC_PI_4,
+    ),
+    (
+        &[
+            (StandardGate::SXdg, &[0]),
+            (StandardGate::SXdg, &[1]),
+            (StandardGate::CX, &[0, 1]),
+            (StandardGate::S, &[1]),
+            (StandardGate::T, &[1]),
+            (StandardGate::CX, &[0, 1]),
+            (StandardGate::SX, &[0]),
+            (StandardGate::SX, &[1]),
+        ],
+        -3.0 * FRAC_PI_8,
+    ),
+    (
+        &[
+            (StandardGate::SXdg, &[0]),
+            (StandardGate::SXdg, &[1]),
+            (StandardGate::CX, &[0, 1]),
+            (StandardGate::Z, &[1]),
+            (StandardGate::CX, &[0, 1]),
+            (StandardGate::SX, &[0]),
+            (StandardGate::SX, &[1]),
+        ],
+        -FRAC_PI_2,
+    ),
+    (
+        &[
+            (StandardGate::SXdg, &[0]),
+            (StandardGate::SXdg, &[1]),
+            (StandardGate::CX, &[0, 1]),
+            (StandardGate::Z, &[1]),
+            (StandardGate::T, &[1]),
+            (StandardGate::CX, &[0, 1]),
+            (StandardGate::SX, &[0]),
+            (StandardGate::SX, &[1]),
+        ],
+        -5.0 * FRAC_PI_8,
+    ),
+    (
+        &[
+            (StandardGate::SXdg, &[0]),
+            (StandardGate::SXdg, &[1]),
+            (StandardGate::CX, &[0, 1]),
+            (StandardGate::Sdg, &[1]),
+            (StandardGate::CX, &[0, 1]),
+            (StandardGate::SX, &[0]),
+            (StandardGate::SX, &[1]),
+        ],
+        -3.0 * FRAC_PI_4,
+    ),
+    (
+        &[
+            (StandardGate::SXdg, &[0]),
+            (StandardGate::SXdg, &[1]),
+            (StandardGate::CX, &[0, 1]),
+            (StandardGate::Tdg, &[1]),
+            (StandardGate::CX, &[0, 1]),
+            (StandardGate::SX, &[0]),
+            (StandardGate::SX, &[1]),
+        ],
+        -7.0 * FRAC_PI_8,
+    ),
+    (&[], -PI),
+    (
+        &[
+            (StandardGate::SXdg, &[0]),
+            (StandardGate::SXdg, &[1]),
+            (StandardGate::CX, &[0, 1]),
+            (StandardGate::T, &[1]),
+            (StandardGate::CX, &[0, 1]),
+            (StandardGate::SX, &[0]),
+            (StandardGate::SX, &[1]),
+        ],
+        7.0 * FRAC_PI_8,
+    ),
+    (
+        &[
+            (StandardGate::SXdg, &[0]),
+            (StandardGate::SXdg, &[1]),
+            (StandardGate::CX, &[0, 1]),
+            (StandardGate::S, &[1]),
+            (StandardGate::CX, &[0, 1]),
+            (StandardGate::SX, &[0]),
+            (StandardGate::SX, &[1]),
+        ],
+        3.0 * FRAC_PI_4,
+    ),
+    (
+        &[
+            (StandardGate::SXdg, &[0]),
+            (StandardGate::SXdg, &[1]),
+            (StandardGate::CX, &[0, 1]),
+            (StandardGate::S, &[1]),
+            (StandardGate::T, &[1]),
+            (StandardGate::CX, &[0, 1]),
+            (StandardGate::SX, &[0]),
+            (StandardGate::SX, &[1]),
+        ],
+        5.0 * FRAC_PI_8,
+    ),
+    (
+        &[
+            (StandardGate::SXdg, &[0]),
+            (StandardGate::SXdg, &[1]),
+            (StandardGate::CX, &[0, 1]),
+            (StandardGate::Z, &[1]),
+            (StandardGate::CX, &[0, 1]),
+            (StandardGate::SX, &[0]),
+            (StandardGate::SX, &[1]),
+        ],
+        FRAC_PI_2,
+    ),
+    (
+        &[
+            (StandardGate::SXdg, &[0]),
+            (StandardGate::SXdg, &[1]),
+            (StandardGate::CX, &[0, 1]),
+            (StandardGate::Z, &[1]),
+            (StandardGate::T, &[1]),
+            (StandardGate::CX, &[0, 1]),
+            (StandardGate::SX, &[0]),
+            (StandardGate::SX, &[1]),
+        ],
+        3.0 * FRAC_PI_8,
+    ),
+    (
+        &[
+            (StandardGate::SXdg, &[0]),
+            (StandardGate::SXdg, &[1]),
+            (StandardGate::CX, &[0, 1]),
+            (StandardGate::Sdg, &[1]),
+            (StandardGate::CX, &[0, 1]),
+            (StandardGate::SX, &[0]),
+            (StandardGate::SX, &[1]),
+        ],
+        FRAC_PI_4,
+    ),
+    (
+        &[
+            (StandardGate::SXdg, &[0]),
+            (StandardGate::SXdg, &[1]),
+            (StandardGate::CX, &[0, 1]),
+            (StandardGate::Tdg, &[1]),
+            (StandardGate::CX, &[0, 1]),
+            (StandardGate::SX, &[0]),
+            (StandardGate::SX, &[1]),
+        ],
+        FRAC_PI_8,
+    ),
+];
+
 /// For a given angle, if it is a multiple of PI/4, calculate the multiple mod 16,
 /// Otherwise, return `None`.
 fn is_angle_close_to_multiple_of_pi_4(gate: StandardGate, angle: f64, tol: f64) -> Option<usize> {
@@ -734,6 +912,7 @@ fn replace_rotation_by_discrete(
         StandardGate::RZZ => RZZ_SUBSTITUTIONS[multiple],
         StandardGate::RXX => RXX_SUBSTITUTIONS[multiple],
         StandardGate::RZX => RZX_SUBSTITUTIONS[multiple],
+        StandardGate::RYY => RYY_SUBSTITUTIONS[multiple],
         _ => unreachable!("This is only called for rotation gates."),
     }
 }
@@ -773,6 +952,7 @@ pub fn py_run_substitute_pi4_rotations(
                         | StandardGate::RZZ
                         | StandardGate::RXX
                         | StandardGate::RZX
+                        | StandardGate::RYY
                 ) {
                     if let Param::Float(angle) = inst.params_view()[0] {
                         if let Some(multiple) = is_angle_close_to_multiple_of_pi_4(gate, angle, tol)
