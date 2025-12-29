@@ -19,7 +19,16 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.random import random_clifford_circuit
 from qiskit.transpiler.passes import SubstitutePi4Rotations
 from qiskit.quantum_info import Operator, get_clifford_gate_names
-from qiskit.circuit.library import RXGate, RYGate, RZGate, PhaseGate, U1Gate, RZZGate, RXXGate
+from qiskit.circuit.library import (
+    RXGate,
+    RYGate,
+    RZGate,
+    PhaseGate,
+    U1Gate,
+    RZZGate,
+    RXXGate,
+    RZXGate,
+)
 from test import combine, QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -29,7 +38,7 @@ class TestSubstitutePi4Rotations(QiskitTestCase):
 
     @combine(
         multiple=[*range(0, 16), 23, 42, -5, -8, -17, -22, -35],
-        gate=[RXGate, RYGate, RZGate, PhaseGate, U1Gate, RZZGate, RXXGate],
+        gate=[RXGate, RYGate, RZGate, PhaseGate, U1Gate, RZZGate, RXXGate, RZXGate],
         global_phase=[0, 1.0, -2.0],
         approximation_degree=[1, 0.99999],
         eps=[0, 1e-10],
@@ -61,7 +70,7 @@ class TestSubstitutePi4Rotations(QiskitTestCase):
     @combine(
         multiple=[*range(0, 16)],
         eps=[0.001, -0.001],
-        gate=[RXGate, RYGate, RZGate, PhaseGate, U1Gate, RZZGate, RXXGate],
+        gate=[RXGate, RYGate, RZGate, PhaseGate, U1Gate, RZZGate, RXXGate, RZXGate],
         approximation_degree=[1, 0.9999999],
     )
     def test_rotation_gates_do_not_change(self, multiple, eps, gate, approximation_degree):
@@ -92,6 +101,9 @@ class TestSubstitutePi4Rotations(QiskitTestCase):
             qc.rzz(np.pi / 4 * idx, idx, (idx + 3) % num_qubits)
             qc.rxx(
                 np.pi / 4 * (idx + num_qubits + 1), (idx + 1) % num_qubits, (idx - 1) % num_qubits
+            )
+            qc.rzx(
+                np.pi / 4 * (idx + num_qubits + 2), (idx + 2) % num_qubits, (idx - 2) % num_qubits
             )
 
         qct = SubstitutePi4Rotations()(qc)
