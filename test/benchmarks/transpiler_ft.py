@@ -29,7 +29,8 @@ from .utils import (
 
 class TranspilerCliffordRZBenchmarks:
     circuit_names = ["qft", "trotter", "qaoa", "grover", "mcx", "multiplier", "modular_adder"]
-    num_qubits = [8, 16, 32, 64, 128, 256, 512, 1024, 2048]
+    # num_qubits = [8, 16, 32, 64, 128, 256, 512, 1024, 2048]
+    num_qubits = [8, 16, 32, 64, 128]
     optimization_level = [0, 1, 2, 3]
     params = (circuit_names, num_qubits, optimization_level)
     param_names = ["circuit_name", "n_qubits", "optimization_level"]
