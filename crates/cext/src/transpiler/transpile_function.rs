@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 use std::ffi::CString;
 use std::ffi::c_char;
+use std::ptr::null_mut;
 
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::dag_circuit::DAGCircuit;
@@ -25,7 +26,7 @@ use qiskit_transpiler::transpiler::{
 };
 
 use crate::exit_codes::ExitCode;
-use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
+use crate::pointers::{check_ptr, const_ptr_as_ref, mut_ptr_as_ref};
 
 /// The container result object from ``qk_transpile``
 ///
@@ -42,6 +43,64 @@ pub struct TranspileResult {
     circuit: *mut CircuitData,
     /// Metadata about the initial and final virtual-to-physical layouts.
     layout: *mut TranspileLayout,
+}
+
+/// A container collecting individual attributes shared by the transpiler stages.
+///
+/// When transpiling correctly, each individual stage writes specific attributes
+/// to this container that will be needed by other stages in sequence. If the container
+/// is not initialized, each stage will initialize a new object when necessary.
+pub struct TranspileState {
+    /// Metadata about the initial and final virtual-to-physical layouts.
+    layout: Option<TranspileLayout>,
+}
+
+/// @ingroup QkTranspileState
+/// Free a ``QkTranspileState`` object
+///
+/// @param state a pointer to the state to free
+///
+/// # Safety
+///
+/// Behavior is undefined if ``state`` is not a valid, non-null pointer to a ``QkTranspileState``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_transpile_state_free(state: *mut TranspileState) {
+    if !state.is_null() {
+        if !state.is_aligned() {
+            panic!("Attempted to free a non-aligned pointer.")
+        }
+        // SAFETY: We have verified the pointer is non-null and aligned, so
+        // it should be readable by Box.
+        unsafe {
+            let _ = Box::from_raw(state);
+        }
+    }
+}
+
+/// @ingroup QkTranspileState
+/// Obtains a ``QkTranspileLayout`` object from a ``QkTranspileState`` object.
+///
+/// This pointer is owned by the ``state`` object and should not be freed using
+/// ``qk_transpile_layout_free``. Instead, free the original ``state`` object using
+/// ``qk_transpile_state_free``.
+///
+/// @param state a pointer to the state to retrieve the layout from.
+///
+/// @return a pointer to a ``QkTranspileLayout`` object owned by the state.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``state`` is not a valid, non-null pointer to a ``QkTranspileState``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_transpile_state_layout(
+    state: *mut TranspileState,
+) -> *mut TranspileLayout {
+    let borrowed_state = unsafe { mut_ptr_as_ref(state) };
+
+    match borrowed_state.layout.as_mut() {
+        Some(layout) => layout,
+        None => null_mut(),
+    }
 }
 
 /// The options for running the transpiler
@@ -133,7 +192,7 @@ pub unsafe extern "C" fn qk_transpile_stage_init(
     dag: *mut DAGCircuit,
     target: *const Target,
     options: *const TranspileOptions,
-    layout: *mut *mut TranspileLayout,
+    state: *mut TranspileState,
     error: *mut *mut c_char,
 ) -> ExitCode {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
@@ -177,8 +236,15 @@ pub unsafe extern "C" fn qk_transpile_stage_init(
         Ok(_) => {
             // SAFETY: Per the documentation result is a non-null aligned pointer to a pointer to
             // a QKTranspileLayout
-            unsafe {
-                layout.write(Box::into_raw(Box::new(out_layout)));
+            if check_ptr(state).is_ok() {
+                let borrowed = unsafe { mut_ptr_as_ref(state) };
+                borrowed.layout.replace(out_layout);
+            } else {
+                unsafe {
+                    state.write(TranspileState {
+                        layout: Some(out_layout),
+                    })
+                }
             }
             ExitCode::Success
         }
@@ -259,7 +325,7 @@ pub unsafe extern "C" fn qk_transpile_stage_routing(
     dag: *mut DAGCircuit,
     target: *const Target,
     options: *const TranspileOptions,
-    layout: *mut TranspileLayout,
+    state: *mut TranspileState,
     error: *mut *mut c_char,
 ) -> ExitCode {
     // SAFETY: Per documentation, the pointers is non-null and aligned.
@@ -298,7 +364,11 @@ pub unsafe extern "C" fn qk_transpile_stage_routing(
         }
     };
     // SAFETY: Per the documentation this is a valid pointer to a transpile layout
-    let out_layout = unsafe { mut_ptr_as_ref(layout) };
+    let borrowed_state = unsafe { mut_ptr_as_ref(state) };
+    let out_layout = borrowed_state
+        .layout
+        .as_mut()
+        .expect("A layout should have been set by now.");
     match routing_stage(
         dag,
         target,
@@ -579,7 +649,7 @@ pub unsafe extern "C" fn qk_transpile_stage_layout(
     dag: *mut DAGCircuit,
     target: *const Target,
     options: *const TranspileOptions,
-    layout: *mut *mut TranspileLayout,
+    state: *mut TranspileState,
     error: *mut *mut c_char,
 ) -> ExitCode {
     // SAFETY: Per documentation, the pointers are non-null and aligned.
@@ -620,16 +690,15 @@ pub unsafe extern "C" fn qk_transpile_stage_layout(
         }
     };
 
-    let layout_inner = unsafe { *layout };
-    if !layout_inner.is_null() {
-        let out_layout = unsafe { mut_ptr_as_ref(layout_inner) };
+    let layout_inner = unsafe { mut_ptr_as_ref(state) };
+    if let Some(layout) = layout_inner.layout.as_mut() {
         match layout_stage(
             dag,
             target,
             options.optimization_level.into(),
             seed,
             &sabre_heuristic,
-            out_layout,
+            layout,
         ) {
             Err(e) => {
                 if !error.is_null() {
@@ -668,10 +737,17 @@ pub unsafe extern "C" fn qk_transpile_stage_layout(
             &mut out_layout,
         ) {
             Ok(_) => {
-                // SAFETY: Per the documentation result is a non-null aligned pointer to a pointer to
+                // SAFETY: Per the documentation layout is a non-null aligned pointer to a pointer to
                 // a QKTranspileLayout
-                unsafe {
-                    *layout = Box::into_raw(Box::new(out_layout));
+                if check_ptr(state).is_ok() {
+                    let borrowed = unsafe { mut_ptr_as_ref(state) };
+                    borrowed.layout.replace(out_layout);
+                } else {
+                    unsafe {
+                        state.write(TranspileState {
+                            layout: Some(out_layout),
+                        })
+                    }
                 }
                 ExitCode::Success
             }
