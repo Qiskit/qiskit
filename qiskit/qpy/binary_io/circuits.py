@@ -29,6 +29,7 @@ import numpy as np
 
 
 from qiskit import circuit as circuit_mod
+from qiskit import circuit
 from qiskit.circuit import library, controlflow, CircuitInstruction, ControlFlowOp, IfElseOp
 from qiskit.circuit.annotation import iter_namespaces
 from qiskit.circuit.classical import expr
@@ -469,7 +470,7 @@ def _read_instruction(
                 stacklevel=3,
             )
 
-            body = QuantumCircuit(qargs, cargs)
+            body = QuantumCircuit( circuit.qubits, circuit.clbits, *circuit.qregs, *circuit.cregs,)
             body.append(inst_obj, qargs, cargs)
             inst_obj = IfElseOp(condition, body)
         if instruction.label_size > 0:
@@ -513,7 +514,27 @@ def _read_instruction(
     if instruction.label_size <= 0:
         label = None
     if gate_name in ("IfElseOp", "WhileLoopOp"):
-        gate = gate_class(condition, *params, label=label)
+        rebound_blocks = []
+
+        for body in params:
+            rebound_body = QuantumCircuit(
+                circuit.qubits,
+                circuit.clbits,
+                *circuit.qregs,
+                *circuit.cregs,
+            )
+            for instr in body.data:
+                mapped_qargs = [
+                    circuit.qubits[body.find_bit(q).index] for q in instr.qubits
+                ]
+                mapped_cargs = [
+                    circuit.clbits[body.find_bit(c).index] for c in instr.clbits
+                ]
+                rebound_body.append(instr.operation, mapped_qargs, mapped_cargs)
+            rebound_blocks.append(rebound_body)
+
+        gate = gate_class(condition, *rebound_blocks, label=label)
+
     elif gate_name == "BoxOp":
         *params, duration, unit = params
         gate = gate_class(
@@ -539,7 +560,7 @@ def _read_instruction(
                 gate.num_ctrl_qubits = instruction.num_ctrl_qubits
                 gate.ctrl_state = instruction.ctrl_state
         if condition:
-            body = QuantumCircuit(qargs, cargs)
+            body = QuantumCircuit( circuit.qubits, circuit.clbits, *circuit.qregs, *circuit.cregs,)
             body.append(gate, qargs, cargs)
             gate = IfElseOp(condition, body)
     else:
@@ -586,7 +607,7 @@ def _read_instruction(
                     UserWarning,
                     stacklevel=3,
                 )
-                body = QuantumCircuit(qargs, cargs)
+                body = QuantumCircuit( circuit.qubits, circuit.clbits, *circuit.qregs, *circuit.cregs,)
                 body.append(gate, qargs, cargs)
                 gate = IfElseOp(condition, body)
             else:
