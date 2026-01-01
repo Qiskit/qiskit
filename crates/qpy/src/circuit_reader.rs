@@ -46,8 +46,11 @@ use qiskit_circuit::operations::{
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
+use qiskit_circuit::parameter::symbol_expr;
 use qiskit_circuit::{Block, classical, imports};
 use qiskit_circuit::{Clbit, Qubit};
+use qiskit_quantum_info::sparse_observable::BitTerm;
+use qiskit_quantum_info::sparse_observable::SparseObservable;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -263,6 +266,13 @@ fn instruction_values_to_params(
                 match value.as_le() {
                     // TODO: is the "as_le" here enough to solve the "params are little endian" problem?
                     GenericValue::Float64(float) => Ok(Param::Float(float)),
+                    GenericValue::Int64(int) => {
+                        let value_expression =
+                            symbol_expr::SymbolExpr::Value(symbol_expr::Value::Int(int));
+                        Ok(Param::ParameterExpression(Arc::new(
+                            ParameterExpression::from_symbol_expr(value_expression),
+                        )))
+                    }
                     GenericValue::ParameterExpression(exp) => {
                         Ok(Param::ParameterExpression(Arc::new(exp)))
                     }
@@ -903,26 +913,57 @@ fn deserialize_pauli_evolution_gate(
     let evo_synth_library = py.import("qiskit.synthesis.evolution")?;
     let (packed_data, _) = deserialize::<formats::PauliEvolutionDefPack>(data)?;
     // operators as stored as a numpy dump that can be loaded into Python's SparsePauliOp.from_list
-    let operators: Vec<Bound<PyAny>> = packed_data
+    let operators: Vec<Py<PyAny>> = packed_data
         .pauli_data
         .iter()
-        .map(|elem| {
-            let data = load_value(ValueType::NumpyObject, &elem.data, qpy_data)?;
-            if let GenericValue::NumpyObject(op_raw_data) = data {
-                imports::SPARSE_PAULI_OP
-                    .get_bound(py)
-                    .call_method1("from_list", (op_raw_data,))
-            } else {
-                Err(PyValueError::new_err(
-                    "Pauli Evolution Gate needs data list stored as numpy object",
-                ))
+        .map(|elem| match elem {
+            formats::PauliData::SparseObservable(sparse_observable_pack) => {
+                let num_qubits = sparse_observable_pack.num_qubits;
+                let coeffs = sparse_observable_pack
+                    .coeff_data
+                    .chunks_exact(2)
+                    .map(|c| Complex64::new(c[0], c[1]))
+                    .collect();
+                let bit_terms = sparse_observable_pack
+                    .bitterm_data
+                    .iter()
+                    .map(|&bitterm| -> PyResult<_> {
+                        let reduced_bitterm = u8::try_from(bitterm)?;
+                        BitTerm::try_from(reduced_bitterm).map_err(|_| {
+                            PyValueError::new_err("Could not read sparse observable data")
+                        })
+                    })
+                    .collect::<PyResult<_>>()?;
+                let indices = sparse_observable_pack.inds_data.clone();
+                let boundaries = sparse_observable_pack
+                    .bounds_data
+                    .iter()
+                    .map(|&bounds_value| bounds_value as usize)
+                    .collect();
+                let sparse_observable =
+                    SparseObservable::new(num_qubits, coeffs, bit_terms, indices, boundaries)?;
+                Ok(sparse_observable.into_py_any(py)?)
+            }
+            formats::PauliData::SparsePauliOp(sparse_pauli_op_pack) => {
+                let data =
+                    load_value(ValueType::NumpyObject, &sparse_pauli_op_pack.data, qpy_data)?;
+                if let GenericValue::NumpyObject(op_raw_data) = data {
+                    Ok(imports::SPARSE_PAULI_OP
+                        .get_bound(py)
+                        .call_method1("from_list", (op_raw_data,))?
+                        .unbind())
+                } else {
+                    Err(PyValueError::new_err(
+                        "Pauli Evolution Gate needs data list stored as numpy object",
+                    ))
+                }
             }
         })
         .collect::<PyResult<_>>()?;
     let py_operators = if packed_data.standalone_op != 0 {
         operators[0].clone()
     } else {
-        PyList::new(py, operators)?.into_any()
+        PyList::new(py, operators)?.into_py_any(py)?
     };
     // time is of type ParameterValueType = Union[ParameterExpression, float]
     // we don't have a rust PauliEvolutionGate so we'll convert the time to python
@@ -1155,7 +1196,6 @@ fn add_registers_and_bits(
             }
         }
     }
-
     // now add the bits to the ciruit, and then add the registers
     for qubit in final_qubit_list {
         qpy_data.circuit_data.add_qubit(qubit, true)?;
@@ -1171,7 +1211,6 @@ fn add_registers_and_bits(
     for creg in cregs {
         qpy_data.circuit_data.add_creg(creg, true)?;
     }
-
     Ok(())
 }
 

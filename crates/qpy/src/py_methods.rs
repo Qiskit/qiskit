@@ -31,7 +31,7 @@ use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::parameter::parameter_expression::{
     PyParameter, PyParameterExpression, PyParameterVectorElement,
 };
-
+use qiskit_quantum_info::sparse_observable::PySparseObservable;
 use uuid::Uuid;
 
 use crate::bytes::Bytes;
@@ -196,11 +196,45 @@ pub(crate) fn py_deserialize_numpy_object(data: &Bytes) -> PyResult<Py<PyAny>> {
 fn pack_sparse_pauli_op(
     operator: &Bound<PyAny>,
     qpy_data: &QPYWriteData,
-) -> PyResult<formats::SparsePauliOpListElemPack> {
-    let op_as_np_list = operator.call_method1("to_list", (true,))?;
-    let value = py_convert_to_generic_value(&op_as_np_list)?;
-    let (_, data) = serialize_generic_value(&value, qpy_data)?;
-    Ok(formats::SparsePauliOpListElemPack { data })
+) -> PyResult<formats::PauliData> {
+    if operator.is_instance_of::<PySparseObservable>() {
+        let py_sparse_observable: PyRef<PySparseObservable> = operator.extract()?;
+        let sparse_observable = py_sparse_observable
+            .inner
+            .read()
+            .map_err(|_| PyValueError::new_err("Can't extract sparse observable data"))?;
+        let num_qubits = sparse_observable.num_qubits();
+        let coeff_data = sparse_observable
+            .coeffs()
+            .iter()
+            .flat_map(|coeff| [coeff.re, coeff.im])
+            .collect();
+        let bitterm_data = sparse_observable
+            .bit_terms()
+            .iter()
+            .map(|&bitterm| bitterm as u16)
+            .collect();
+        let inds_data = sparse_observable.indices().to_vec();
+        let bounds_data = sparse_observable
+            .boundaries()
+            .iter()
+            .map(|&boundary| boundary as u64)
+            .collect();
+        let sparse_observable_pack = formats::SparsePauiObservableElemPack {
+            num_qubits,
+            coeff_data,
+            bitterm_data,
+            inds_data,
+            bounds_data,
+        };
+        Ok(formats::PauliData::SparseObservable(sparse_observable_pack))
+    } else {
+        let op_as_np_list = operator.call_method1("to_list", (true,))?;
+        let value = py_convert_to_generic_value(&op_as_np_list)?;
+        let (_, data) = serialize_generic_value(&value, qpy_data)?;
+        let pack = formats::SparsePauliOpListElemPack { data };
+        Ok(formats::PauliData::SparsePauliOp(pack))
+    }
 }
 
 pub(crate) fn py_pack_pauli_evolution_gate(
@@ -337,7 +371,7 @@ pub(crate) fn py_get_type_key(py_object: &Bound<PyAny>) -> PyResult<ValueType> {
         return Ok(ValueType::Complex);
     } else if py_object.is_instance_of::<PyString>() {
         return Ok(ValueType::String);
-    } else if py_object.is_instance_of::<PyTuple>() {
+    } else if py_object.is_instance_of::<PyTuple>() || py_object.is_instance_of::<PyList>() {
         return Ok(ValueType::Tuple);
     } else if py_object.is(imports::CASE_DEFAULT.get_bound(py)) {
         return Ok(ValueType::CaseDefault);

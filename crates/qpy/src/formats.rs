@@ -540,11 +540,21 @@ pub struct PauliEvolutionDefPack {
     #[bw(calc = synth_data.len() as u64)]
     pub synth_method_size: u64,
     #[br(count = operator_size)]
-    pub pauli_data: Vec<SparsePauliOpListElemPack>,
+    pub pauli_data: Vec<PauliData>,
     #[br(count = time_size)]
     pub time_data: Bytes,
     #[br(count = synth_method_size)]
     pub synth_data: Bytes,
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub enum PauliData {
+    #[brw(magic = 0u8)] // old style: sparse pauli op list
+    SparsePauliOp(SparsePauliOpListElemPack),
+    #[brw(magic = 1u8)] // new style added in v17: sparse observable
+    SparseObservable(SparsePauiObservableElemPack),
 }
 
 #[binrw]
@@ -555,6 +565,29 @@ pub struct SparsePauliOpListElemPack {
     pub size: u64,
     #[br(count = size)]
     pub data: Bytes,
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct SparsePauiObservableElemPack {
+    pub num_qubits: u32,
+    #[bw(calc = coeff_data.len() as u64)]
+    pub coeff_data_size: u64,
+    #[bw(calc = bitterm_data.len() as u64)]
+    pub bitterm_data_size: u64,
+    #[bw(calc = inds_data.len() as u64)]
+    pub inds_data_size: u64,
+    #[bw(calc = bounds_data.len() as u64)]
+    pub bounds_data_size: u64,
+    #[br(count = coeff_data_size)]
+    pub coeff_data: Vec<f64>, // complex numbers stored in format [re1, im1, re2, im2,...]
+    #[br(count = bitterm_data_size)]
+    pub bitterm_data: Vec<u16>,
+    #[br(count = inds_data_size)]
+    pub inds_data: Vec<u32>,
+    #[br(count = bounds_data_size)]
+    pub bounds_data: Vec<u64>,
 }
 
 // Expression handling

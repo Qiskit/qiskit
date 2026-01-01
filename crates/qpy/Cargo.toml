@@ -18,6 +18,7 @@ hashbrown.workspace = true
 oq3_semantics = "0.7.0"
 ahash.workspace = true
 qiskit-circuit.workspace = true
+qiskit-quantum-info.workspace = true
 num-bigint.workspace = true
 num-complex.workspace = true
 binrw = "0.13"

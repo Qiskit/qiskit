@@ -2007,6 +2007,7 @@ dependencies = [
  "oq3_semantics",
  "pyo3",
  "qiskit-circuit",
+ "qiskit-quantum-info",
  "smallvec",
  "uuid",
 ]
