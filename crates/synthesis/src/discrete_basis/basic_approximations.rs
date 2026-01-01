@@ -355,7 +355,7 @@ impl Point for BasicPoint {
 ///
 /// This struct allows to construct a tree of basic approximations and to query the closest
 /// sequence given an target sequence (or SO(3) matrix).
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct BasicApproximations {
     /// All points as flattened SO(3) matrix stored in a R* tree. This does not include the
     /// sequence of gates, see ``approximations``.

@@ -92,7 +92,9 @@ pub use remove_diagonal_gates_before_measure::{
 pub use remove_identity_equiv::{remove_identity_equiv_mod, run_remove_identity_equiv};
 pub use split_2q_unitaries::{run_split_2q_unitaries, split_2q_unitaries_mod};
 pub use substitute_pi4_rotations::{py_run_substitute_pi4_rotations, substitute_pi4_rotations_mod};
-pub use unitary_synthesis::{run_unitary_synthesis, unitary_synthesis_mod};
+pub use unitary_synthesis::{
+    SynthesisConfig, SynthesisState, run_unitary_synthesis, unitary_synthesis_mod,
+};
 pub use unroll_3q_or_more::{run_unroll_3q_or_more, unroll_3q_or_more_mod};
 pub use vf2::{error_map_mod, vf2_layout_mod, vf2_layout_pass_average, vf2_layout_pass_exact};
 pub use wrap_angles::{run_wrap_angles, wrap_angles_mod};
