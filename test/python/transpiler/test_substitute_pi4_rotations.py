@@ -68,6 +68,8 @@ class TestSubstitutePi4Rotations(QiskitTestCase):
                 self.assertLessEqual(qct.size(), 3)
         else:
             self.assertLessEqual(qct.size(), 8)
+            if multiple % 2 == 0:  # only clifford gates
+                self.assertLessEqual(qct.size(), 7)
 
     @combine(
         multiple=[*range(0, 16)],
