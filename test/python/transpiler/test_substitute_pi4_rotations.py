@@ -58,15 +58,16 @@ class TestSubstitutePi4Rotations(QiskitTestCase):
         clifford_t_names = get_clifford_gate_names() + ["t"] + ["tdg"]
         self.assertEqual(Operator(qct), Operator(qc))
         self.assertLessEqual(set(ops.keys()), set(clifford_t_names))
+        self.assertLessEqual(ops.get("t", 0) + ops.get("tdg", 0), 1)  # at most one t/tdg gate
         if multiple % 2 == 0:  # only clifford gates
             self.assertLessEqual(set(ops.keys()), set(get_clifford_gate_names()))
+            self.assertEqual(ops.get("t", 0) + ops.get("tdg", 0), 0)
         if num_qubits == 1 or gate(angle).name == "rzz":
             self.assertLessEqual(qct.size(), 4)
             if multiple % 2 == 0:  # only clifford gates
                 self.assertLessEqual(qct.size(), 3)
-                self.assertEqual(ops.get("t", 0) + ops.get("tdg", 0), 0)
-            else:  # at most one t/tdg gate
-                self.assertEqual(ops.get("t", 0) + ops.get("tdg", 0), 1)
+        else:
+            self.assertLessEqual(qct.size(), 8)
 
     @combine(
         multiple=[*range(0, 16)],
