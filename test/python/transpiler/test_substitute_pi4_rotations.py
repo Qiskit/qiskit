@@ -77,7 +77,7 @@ class TestSubstitutePi4Rotations(QiskitTestCase):
 
     @combine(
         multiple=[*range(0, 8), 23, 42, -5, -8, -17, -22, -35],
-        gate=[CPhaseGate, CRZGate],
+        gate=[CPhaseGate, CRZGate, CRXGate],
         global_phase=[0, 1.0, -2.0],
         approximation_degree=[1, 0.99999],
         eps=[0, 1e-10],
@@ -102,7 +102,7 @@ class TestSubstitutePi4Rotations(QiskitTestCase):
         if multiple % 2 == 0:  # only clifford gates
             self.assertLessEqual(set(ops.keys()), set(get_clifford_gate_names()))
             self.assertEqual(ops.get("t", 0) + ops.get("tdg", 0), 0)
-        self.assertLessEqual(qct.size(), 6)
+        self.assertLessEqual(qct.size(), 8)
         if multiple % 2 == 0:  # only clifford gates
             self.assertLessEqual(qct.size(), 3)
 
