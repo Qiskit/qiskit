@@ -18,9 +18,8 @@ from qiskit._accelerate.substitute_pi4_rotations import substitute_pi4_rotations
 
 
 class SubstitutePi4Rotations(TransformationPass):
-    r"""Convert single-qubit rotation gates :class:`.RZGate`, :class:`.RXGate` and :class:`.RYGate`,
-    whose angles are integer multiples of :math:`\pi/4` into discrete sets of
-    Clifford, :class:`.TGate` and :class:`.TdgGate` gates.
+    r"""Convert rotation gates whose angles are integer multiples of :math:`\pi/4` into discrete
+    sets of Clifford, :class:`.TGate` and :class:`.TdgGate` gates.
 
     Note that odd multiples of :math:`\pi/4` require a single :class:`.TGate` or :class:`.TdgGate`,
     as well as some Clifford gates,
@@ -36,7 +35,7 @@ class SubstitutePi4Rotations(TransformationPass):
       from qiskit.quantum_info import Operator
 
       # The following quantum circuit consists of 5 Clifford gates
-      # and three single-qubit rotation gates whose angles are integer multiples of pi/4.
+      # and four rotation gates whose angles are integer multiples of pi/4.
 
       qc = QuantumCircuit(3)
       qc.cx(0, 1)
@@ -47,6 +46,7 @@ class SubstitutePi4Rotations(TransformationPass):
       qc.s(2)
       qc.ry(2*pi/4, 2)
       qc.cz(2, 0)
+      qc.rzz(pi/4, 0, 2)
 
       # The transformed circuit consists of Clifford, T and Tdg gates
       qct = SubstitutePi4Rotations()(qc)
