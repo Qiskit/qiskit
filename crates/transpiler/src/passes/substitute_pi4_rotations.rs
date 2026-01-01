@@ -254,9 +254,9 @@ static RZZ_SUBSTITUTIONS: SubstituteSequence = [
     ),
     (
         &[
-            (StandardGate::CX, &[0, 1]),
+            (StandardGate::CZ, &[0, 1]),
+            (StandardGate::S, &[0]),
             (StandardGate::S, &[1]),
-            (StandardGate::CX, &[0, 1]),
         ],
         -FRAC_PI_4,
     ),
@@ -270,11 +270,7 @@ static RZZ_SUBSTITUTIONS: SubstituteSequence = [
         -3.0 * FRAC_PI_8,
     ),
     (
-        &[
-            (StandardGate::CX, &[0, 1]),
-            (StandardGate::Z, &[1]),
-            (StandardGate::CX, &[0, 1]),
-        ],
+        &[(StandardGate::Z, &[0]), (StandardGate::Z, &[1])],
         -FRAC_PI_2,
     ),
     (
@@ -288,9 +284,9 @@ static RZZ_SUBSTITUTIONS: SubstituteSequence = [
     ),
     (
         &[
-            (StandardGate::CX, &[0, 1]),
+            (StandardGate::CZ, &[0, 1]),
+            (StandardGate::Sdg, &[0]),
             (StandardGate::Sdg, &[1]),
-            (StandardGate::CX, &[0, 1]),
         ],
         -3.0 * FRAC_PI_4,
     ),
@@ -313,9 +309,9 @@ static RZZ_SUBSTITUTIONS: SubstituteSequence = [
     ),
     (
         &[
-            (StandardGate::CX, &[0, 1]),
+            (StandardGate::CZ, &[0, 1]),
+            (StandardGate::S, &[0]),
             (StandardGate::S, &[1]),
-            (StandardGate::CX, &[0, 1]),
         ],
         3.0 * FRAC_PI_4,
     ),
@@ -329,11 +325,7 @@ static RZZ_SUBSTITUTIONS: SubstituteSequence = [
         5.0 * FRAC_PI_8,
     ),
     (
-        &[
-            (StandardGate::CX, &[0, 1]),
-            (StandardGate::Z, &[1]),
-            (StandardGate::CX, &[0, 1]),
-        ],
+        &[(StandardGate::Z, &[0]), (StandardGate::Z, &[1])],
         FRAC_PI_2,
     ),
     (
@@ -347,9 +339,9 @@ static RZZ_SUBSTITUTIONS: SubstituteSequence = [
     ),
     (
         &[
-            (StandardGate::CX, &[0, 1]),
+            (StandardGate::CZ, &[0, 1]),
+            (StandardGate::Sdg, &[0]),
             (StandardGate::Sdg, &[1]),
-            (StandardGate::CX, &[0, 1]),
         ],
         FRAC_PI_4,
     ),
@@ -382,9 +374,9 @@ static RXX_SUBSTITUTIONS: SubstituteSequence = [
         &[
             (StandardGate::H, &[0]),
             (StandardGate::H, &[1]),
-            (StandardGate::CX, &[0, 1]),
+            (StandardGate::CZ, &[0, 1]),
+            (StandardGate::S, &[0]),
             (StandardGate::S, &[1]),
-            (StandardGate::CX, &[0, 1]),
             (StandardGate::H, &[0]),
             (StandardGate::H, &[1]),
         ],
@@ -404,15 +396,7 @@ static RXX_SUBSTITUTIONS: SubstituteSequence = [
         -3.0 * FRAC_PI_8,
     ),
     (
-        &[
-            (StandardGate::H, &[0]),
-            (StandardGate::H, &[1]),
-            (StandardGate::CX, &[0, 1]),
-            (StandardGate::Z, &[1]),
-            (StandardGate::CX, &[0, 1]),
-            (StandardGate::H, &[0]),
-            (StandardGate::H, &[1]),
-        ],
+        &[(StandardGate::X, &[0]), (StandardGate::X, &[1])],
         -FRAC_PI_2,
     ),
     (
@@ -432,9 +416,9 @@ static RXX_SUBSTITUTIONS: SubstituteSequence = [
         &[
             (StandardGate::H, &[0]),
             (StandardGate::H, &[1]),
-            (StandardGate::CX, &[0, 1]),
+            (StandardGate::CZ, &[0, 1]),
+            (StandardGate::Sdg, &[0]),
             (StandardGate::Sdg, &[1]),
-            (StandardGate::CX, &[0, 1]),
             (StandardGate::H, &[0]),
             (StandardGate::H, &[1]),
         ],
@@ -469,9 +453,9 @@ static RXX_SUBSTITUTIONS: SubstituteSequence = [
         &[
             (StandardGate::H, &[0]),
             (StandardGate::H, &[1]),
-            (StandardGate::CX, &[0, 1]),
+            (StandardGate::CZ, &[0, 1]),
+            (StandardGate::S, &[0]),
             (StandardGate::S, &[1]),
-            (StandardGate::CX, &[0, 1]),
             (StandardGate::H, &[0]),
             (StandardGate::H, &[1]),
         ],
@@ -491,15 +475,7 @@ static RXX_SUBSTITUTIONS: SubstituteSequence = [
         5.0 * FRAC_PI_8,
     ),
     (
-        &[
-            (StandardGate::H, &[0]),
-            (StandardGate::H, &[1]),
-            (StandardGate::CX, &[0, 1]),
-            (StandardGate::Z, &[1]),
-            (StandardGate::CX, &[0, 1]),
-            (StandardGate::H, &[0]),
-            (StandardGate::H, &[1]),
-        ],
+        &[(StandardGate::X, &[0]), (StandardGate::X, &[1])],
         FRAC_PI_2,
     ),
     (
@@ -519,9 +495,9 @@ static RXX_SUBSTITUTIONS: SubstituteSequence = [
         &[
             (StandardGate::H, &[0]),
             (StandardGate::H, &[1]),
-            (StandardGate::CX, &[0, 1]),
+            (StandardGate::CZ, &[0, 1]),
+            (StandardGate::Sdg, &[0]),
             (StandardGate::Sdg, &[1]),
-            (StandardGate::CX, &[0, 1]),
             (StandardGate::H, &[0]),
             (StandardGate::H, &[1]),
         ],
@@ -557,9 +533,9 @@ static RZX_SUBSTITUTIONS: SubstituteSequence = [
     (
         &[
             (StandardGate::H, &[1]),
-            (StandardGate::CX, &[0, 1]),
+            (StandardGate::CZ, &[0, 1]),
+            (StandardGate::S, &[0]),
             (StandardGate::S, &[1]),
-            (StandardGate::CX, &[0, 1]),
             (StandardGate::H, &[1]),
         ],
         -FRAC_PI_4,
@@ -576,13 +552,7 @@ static RZX_SUBSTITUTIONS: SubstituteSequence = [
         -3.0 * FRAC_PI_8,
     ),
     (
-        &[
-            (StandardGate::H, &[1]),
-            (StandardGate::CX, &[0, 1]),
-            (StandardGate::Z, &[1]),
-            (StandardGate::CX, &[0, 1]),
-            (StandardGate::H, &[1]),
-        ],
+        &[(StandardGate::Z, &[0]), (StandardGate::X, &[1])],
         -FRAC_PI_2,
     ),
     (
@@ -599,9 +569,9 @@ static RZX_SUBSTITUTIONS: SubstituteSequence = [
     (
         &[
             (StandardGate::H, &[1]),
-            (StandardGate::CX, &[0, 1]),
+            (StandardGate::CZ, &[0, 1]),
+            (StandardGate::Sdg, &[0]),
             (StandardGate::Sdg, &[1]),
-            (StandardGate::CX, &[0, 1]),
             (StandardGate::H, &[1]),
         ],
         -3.0 * FRAC_PI_4,
@@ -630,9 +600,9 @@ static RZX_SUBSTITUTIONS: SubstituteSequence = [
     (
         &[
             (StandardGate::H, &[1]),
-            (StandardGate::CX, &[0, 1]),
+            (StandardGate::CZ, &[0, 1]),
+            (StandardGate::S, &[0]),
             (StandardGate::S, &[1]),
-            (StandardGate::CX, &[0, 1]),
             (StandardGate::H, &[1]),
         ],
         3.0 * FRAC_PI_4,
@@ -649,13 +619,7 @@ static RZX_SUBSTITUTIONS: SubstituteSequence = [
         5.0 * FRAC_PI_8,
     ),
     (
-        &[
-            (StandardGate::H, &[1]),
-            (StandardGate::CX, &[0, 1]),
-            (StandardGate::Z, &[1]),
-            (StandardGate::CX, &[0, 1]),
-            (StandardGate::H, &[1]),
-        ],
+        &[(StandardGate::Z, &[0]), (StandardGate::X, &[1])],
         FRAC_PI_2,
     ),
     (
@@ -672,9 +636,9 @@ static RZX_SUBSTITUTIONS: SubstituteSequence = [
     (
         &[
             (StandardGate::H, &[1]),
-            (StandardGate::CX, &[0, 1]),
+            (StandardGate::CZ, &[0, 1]),
+            (StandardGate::Sdg, &[0]),
             (StandardGate::Sdg, &[1]),
-            (StandardGate::CX, &[0, 1]),
             (StandardGate::H, &[1]),
         ],
         FRAC_PI_4,
@@ -710,9 +674,9 @@ static RYY_SUBSTITUTIONS: SubstituteSequence = [
         &[
             (StandardGate::SXdg, &[0]),
             (StandardGate::SXdg, &[1]),
-            (StandardGate::CX, &[0, 1]),
+            (StandardGate::CZ, &[0, 1]),
+            (StandardGate::S, &[0]),
             (StandardGate::S, &[1]),
-            (StandardGate::CX, &[0, 1]),
             (StandardGate::SX, &[0]),
             (StandardGate::SX, &[1]),
         ],
@@ -733,13 +697,12 @@ static RYY_SUBSTITUTIONS: SubstituteSequence = [
     ),
     (
         &[
-            (StandardGate::SXdg, &[0]),
-            (StandardGate::SXdg, &[1]),
-            (StandardGate::CX, &[0, 1]),
-            (StandardGate::Z, &[1]),
-            (StandardGate::CX, &[0, 1]),
-            (StandardGate::SX, &[0]),
-            (StandardGate::SX, &[1]),
+            (StandardGate::Sdg, &[0]),
+            (StandardGate::Sdg, &[1]),
+            (StandardGate::X, &[0]),
+            (StandardGate::X, &[1]),
+            (StandardGate::S, &[0]),
+            (StandardGate::S, &[1]),
         ],
         -FRAC_PI_2,
     ),
@@ -760,9 +723,9 @@ static RYY_SUBSTITUTIONS: SubstituteSequence = [
         &[
             (StandardGate::SXdg, &[0]),
             (StandardGate::SXdg, &[1]),
-            (StandardGate::CX, &[0, 1]),
+            (StandardGate::CZ, &[0, 1]),
+            (StandardGate::Sdg, &[0]),
             (StandardGate::Sdg, &[1]),
-            (StandardGate::CX, &[0, 1]),
             (StandardGate::SX, &[0]),
             (StandardGate::SX, &[1]),
         ],
@@ -797,9 +760,9 @@ static RYY_SUBSTITUTIONS: SubstituteSequence = [
         &[
             (StandardGate::SXdg, &[0]),
             (StandardGate::SXdg, &[1]),
-            (StandardGate::CX, &[0, 1]),
+            (StandardGate::CZ, &[0, 1]),
+            (StandardGate::S, &[0]),
             (StandardGate::S, &[1]),
-            (StandardGate::CX, &[0, 1]),
             (StandardGate::SX, &[0]),
             (StandardGate::SX, &[1]),
         ],
@@ -820,13 +783,12 @@ static RYY_SUBSTITUTIONS: SubstituteSequence = [
     ),
     (
         &[
-            (StandardGate::SXdg, &[0]),
-            (StandardGate::SXdg, &[1]),
-            (StandardGate::CX, &[0, 1]),
-            (StandardGate::Z, &[1]),
-            (StandardGate::CX, &[0, 1]),
-            (StandardGate::SX, &[0]),
-            (StandardGate::SX, &[1]),
+            (StandardGate::Sdg, &[0]),
+            (StandardGate::Sdg, &[1]),
+            (StandardGate::X, &[0]),
+            (StandardGate::X, &[1]),
+            (StandardGate::S, &[0]),
+            (StandardGate::S, &[1]),
         ],
         FRAC_PI_2,
     ),
@@ -847,9 +809,9 @@ static RYY_SUBSTITUTIONS: SubstituteSequence = [
         &[
             (StandardGate::SXdg, &[0]),
             (StandardGate::SXdg, &[1]),
-            (StandardGate::CX, &[0, 1]),
+            (StandardGate::CZ, &[0, 1]),
+            (StandardGate::Sdg, &[0]),
             (StandardGate::Sdg, &[1]),
-            (StandardGate::CX, &[0, 1]),
             (StandardGate::SX, &[0]),
             (StandardGate::SX, &[1]),
         ],
