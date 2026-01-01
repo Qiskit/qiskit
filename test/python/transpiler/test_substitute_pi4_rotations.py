@@ -77,7 +77,7 @@ class TestSubstitutePi4Rotations(QiskitTestCase):
 
     @combine(
         multiple=[*range(0, 8), 23, 42, -5, -8, -17, -22, -35],
-        gate=[CPhaseGate, CRZGate, CRXGate],
+        gate=[CPhaseGate, CRZGate, CRXGate, CRYGate],
         global_phase=[0, 1.0, -2.0],
         approximation_degree=[1, 0.99999],
         eps=[0, 1e-10],
@@ -104,7 +104,7 @@ class TestSubstitutePi4Rotations(QiskitTestCase):
             self.assertEqual(ops.get("t", 0) + ops.get("tdg", 0), 0)
         self.assertLessEqual(qct.size(), 8)
         if multiple % 2 == 0:  # only clifford gates
-            self.assertLessEqual(qct.size(), 3)
+            self.assertLessEqual(qct.size(), 4)
 
     @combine(
         multiple=[*range(0, 16)],
@@ -120,6 +120,9 @@ class TestSubstitutePi4Rotations(QiskitTestCase):
             RZXGate,
             RYYGate,
             CPhaseGate,
+            CRZGate,
+            CRXGate,
+            CRYGate,
         ],
         approximation_degree=[1, 0.9999999],
     )
@@ -127,8 +130,8 @@ class TestSubstitutePi4Rotations(QiskitTestCase):
         """Test that the transpiler pass does not change the gates for angles that are
         not pi/4 rotations."""
         angle = np.pi / 4 * multiple + eps
-        if gate(angle).name == "cp":
-            angle = np.pi / 2 * multiple + eps
+        if gate(angle).name in {"cp", "crx", "cry", "crz"}:
+            angle = np.pi / 2 * multiple + 2 * eps
         num_qubits = gate(angle).num_qubits
         qc = QuantumCircuit(num_qubits)
         qc.append(gate(angle), range(num_qubits))
@@ -161,6 +164,9 @@ class TestSubstitutePi4Rotations(QiskitTestCase):
                 np.pi / 4 * (idx + num_qubits + 3), (idx + 3) % num_qubits, (idx - 3) % num_qubits
             )
             qc.cp(np.pi / 2 * (idx + 1), (idx + 2) % num_qubits, (idx + 3) % num_qubits)
+            qc.crz(np.pi / 2 * (idx + 2), (idx + 1) % num_qubits, (idx + 4) % num_qubits)
+            qc.crx(np.pi / 2 * (idx + 3), (idx + 2) % num_qubits, (idx + 1) % num_qubits)
+            qc.cry(np.pi / 2 * (idx + 4), (idx + 1) % num_qubits, (idx + 2) % num_qubits)
 
         qct = SubstitutePi4Rotations()(qc)
         clifford_t_names = get_clifford_gate_names() + ["t"] + ["tdg"]
