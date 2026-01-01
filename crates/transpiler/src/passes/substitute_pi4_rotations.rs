@@ -23,8 +23,8 @@ use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::operations::{OperationRef, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 
-static ROTATION_GATE_NAMES: [&str; 10] = [
-    "rx", "ry", "rz", "p", "u1", "rzz", "rxx", "rzx", "ryy", "cp",
+static ROTATION_GATE_NAMES: [&str; 13] = [
+    "rx", "ry", "rz", "p", "u1", "rzz", "rxx", "rzx", "ryy", "cp", "crx", "cry", "crz",
 ];
 
 type SubstituteSequencePi4<'a> = [(&'a [(StandardGate, &'a [u32])], f64); 16];
@@ -882,6 +882,57 @@ static CP_SUBSTITUTIONS: SubstituteSequencePi2 = [
     ),
 ];
 
+/// Table for CRZ(k * pi / 2) substitutions, with 0 <= k < 7
+static CRZ_SUBSTITUTIONS: SubstituteSequencePi2 = [
+    (&[], 0.0),
+    (
+        &[
+            (StandardGate::T, &[1]),
+            (StandardGate::CX, &[0, 1]),
+            (StandardGate::Tdg, &[1]),
+            (StandardGate::CX, &[0, 1]),
+        ],
+        0.0,
+    ),
+    (
+        &[(StandardGate::CZ, &[0, 1]), (StandardGate::Sdg, &[0])],
+        0.0,
+    ),
+    (
+        &[
+            (StandardGate::T, &[1]),
+            (StandardGate::S, &[1]),
+            (StandardGate::CX, &[0, 1]),
+            (StandardGate::Tdg, &[1]),
+            (StandardGate::Sdg, &[1]),
+            (StandardGate::CX, &[0, 1]),
+        ],
+        0.0,
+    ),
+    (&[(StandardGate::Z, &[0])], 0.0),
+    (
+        &[
+            (StandardGate::Tdg, &[1]),
+            (StandardGate::Sdg, &[1]),
+            (StandardGate::CX, &[0, 1]),
+            (StandardGate::T, &[1]),
+            (StandardGate::S, &[1]),
+            (StandardGate::CX, &[0, 1]),
+        ],
+        0.0,
+    ),
+    (&[(StandardGate::CZ, &[0, 1]), (StandardGate::S, &[0])], 0.0),
+    (
+        &[
+            (StandardGate::Tdg, &[1]),
+            (StandardGate::CX, &[0, 1]),
+            (StandardGate::T, &[1]),
+            (StandardGate::CX, &[0, 1]),
+        ],
+        0.0,
+    ),
+];
+
 /// For a given angle, if it is a multiple of PI/k, calculate the multiple mod (4*k),
 /// Otherwise, return `None`.
 fn is_angle_close_to_multiple_of_pi_k(
@@ -933,6 +984,7 @@ fn replace_rotation_by_discrete(
         StandardGate::RZX => RZX_SUBSTITUTIONS[multiple],
         StandardGate::RYY => RYY_SUBSTITUTIONS[multiple],
         StandardGate::CPhase => CP_SUBSTITUTIONS[multiple],
+        StandardGate::CRZ => CRZ_SUBSTITUTIONS[multiple],
         _ => unreachable!("This is only called for rotation gates."),
     }
 }
@@ -950,6 +1002,9 @@ fn rotation_to_pi_div(gate: StandardGate) -> usize {
         StandardGate::RZX => 4,
         StandardGate::RYY => 4,
         StandardGate::CPhase => 2,
+        StandardGate::CRZ => 2,
+        StandardGate::CRX => 2,
+        StandardGate::CRY => 2,
         _ => unreachable!("This is only called for rotation gates."),
     }
 }
@@ -991,6 +1046,7 @@ pub fn py_run_substitute_pi4_rotations(
                         | StandardGate::RZX
                         | StandardGate::RYY
                         | StandardGate::CPhase
+                        | StandardGate::CRZ
                 ) {
                     let k = rotation_to_pi_div(gate);
                     if let Param::Float(angle) = inst.params_view()[0] {
