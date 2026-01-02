@@ -117,7 +117,7 @@ fix_cformat:
 # The library file is managed by a different build tool - pretend it's always dirty.
 .PHONY: $(C_LIB_CARGO_PATH)
 $(C_LIB_CARGO_PATH):
-	cargo rustc --release --crate-type cdylib -p qiskit-cext
+	cargo rustc --release --crate-type cdylib -p qiskit-cext --features "$(QISKIT_RS_ADDITIONAL_FEATURES)"
 
 $(C_DIR_LIB):
 	mkdir -p $(C_DIR_LIB)
