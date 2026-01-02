@@ -75,7 +75,7 @@ we will follow this procedure:
   warnings are issued.  For example, if we want to replace the function `foo()`
   with `bar()`, we must make at least one minor release with both functions before
   issuing any warnings within `foo()`.  You may issue
-  `PendingDeprecationWarning`s from the old paths immediately, but this is not
+  a `PendingDeprecationWarning` from the old paths immediately, but this is not
   necessary and does not affect any timelines for removal.
 
   *Reason*: we need to give people time to swap over without breaking their
