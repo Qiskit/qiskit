@@ -357,12 +357,12 @@ class TestUnitarySynthesisBasisGates(QiskitTestCase):
 
         qv64_1 = pm1.run(qv64.decompose())
         qv64_2 = pm2.run(qv64.decompose())
-        edges = [list(edge) for edge in coupling_map.get_edges()]
-        self.assertTrue(
-            all(
-                [qv64_1.qubits.index(qubit) for qubit in instr.qubits] in edges
+        self.assertLessEqual(
+            {
+                tuple(qv64_1.qubits.index(qubit) for qubit in instr.qubits)
                 for instr in qv64_1.get_instructions("cx")
-            )
+            },
+            {tuple(edge) for edge in coupling_map.get_edges()},
         )
         self.assertEqual(Operator(qv64_1), Operator(qv64_2))
 
@@ -1039,13 +1039,11 @@ class TestUnitarySynthesisTarget(QiskitTestCase):
     def test_two_qubit_natural_direction_true_duration_fallback_target(self):
         """Verify fallback path when pulse_optimize==True."""
         basis_gates = ["id", "rz", "sx", "x", "cx", "reset"]
-        qr = QuantumRegister(2)
+        qr = QuantumRegister(5)
         coupling_map = CouplingMap([[0, 1], [1, 0], [1, 2], [1, 3], [3, 4]])
         backend = GenericBackendV2(
             num_qubits=5, basis_gates=basis_gates, coupling_map=coupling_map, seed=1
         )
-
-        triv_layout_pass = TrivialLayout(coupling_map)
         qc = QuantumCircuit(qr)
         qc.unitary(random_unitary(4, seed=12), [0, 1])
         unisynth_pass = UnitarySynthesis(
@@ -1053,10 +1051,13 @@ class TestUnitarySynthesisTarget(QiskitTestCase):
             pulse_optimize=True,
             natural_direction=True,
         )
-        pm = PassManager([triv_layout_pass, unisynth_pass])
-        qc_out = pm.run(qc)
-        self.assertTrue(
-            all(((qr[0], qr[1]) == instr.qubits for instr in qc_out.get_instructions("cx")))
+        qc_out = unisynth_pass(qc)
+        self.assertEqual(
+            {
+                tuple(qc_out.find_bit(q).index for q in instr.qubits)
+                for instr in qc_out.get_instructions("cx")
+            },
+            {(0, 1)},
         )
 
 
