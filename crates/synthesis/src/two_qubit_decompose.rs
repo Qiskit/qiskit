@@ -1279,6 +1279,13 @@ impl TwoQubitGateSequence {
             global_phase: 0.,
         }
     }
+    /// Create this sequence from the consituent parts.
+    pub fn from_sequence(gates: TwoQubitSequenceVec, global_phase: f64) -> Self {
+        Self {
+            gates,
+            global_phase,
+        }
+    }
 }
 
 impl Default for TwoQubitGateSequence {
