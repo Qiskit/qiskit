@@ -211,6 +211,23 @@ pub fn distribute_components(dag: &mut DAGCircuit, target: &Target) -> PyResult<
                 for creg in dag.cregs() {
                     out_dag.add_creg(creg.clone())?;
                 }
+
+                let qubits_indices: Vec<Qubit> = dag
+                    .qubits()
+                    .objects()
+                    .iter()
+                    .enumerate()
+                    .map(|(index, _)| Qubit::new(index))
+                    .collect();
+
+                let clbits_indices: Vec<Clbit> = dag
+                    .clbits()
+                    .objects()
+                    .iter()
+                    .enumerate()
+                    .map(|(index, _)| Clbit::new(index))
+                    .collect();
+
                 let block_map = dag
                     .blocks()
                     .items()
@@ -218,8 +235,8 @@ pub fn distribute_components(dag: &mut DAGCircuit, target: &Target) -> PyResult<
                     .collect();
                 out_dag.compose(
                     dag,
-                    Some(dag.qubits().objects()),
-                    Some(dag.clbits().objects()),
+                    Some(&qubits_indices),
+                    Some(&clbits_indices),
                     block_map,
                     false,
                 )?;
