@@ -175,7 +175,7 @@ class Target(BaseTarget):
     inclusively as well. A bound can also be specified with ``None`` instead
     of a 2-tuple which indicates that parameter has no constraints. For example::
 
-        [(0.0, 3.14, None, None)]
+        [(0.0, 3.14), None, None]
 
     indicates an angle bound for a 3 parameter gate where only the first
     parameter is restricted to angles between 0.0 and 3.14 and the other
