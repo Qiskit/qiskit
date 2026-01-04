@@ -131,6 +131,7 @@ class TestSubstitutePi4Rotations(QiskitTestCase):
         not pi/4 rotations."""
         angle = np.pi / 4 * multiple + eps
         if gate(angle).name in {"cp", "crx", "cry", "crz"}:
+            # controlled-rotations: the angle is a multiple of pi/2
             angle = np.pi / 2 * multiple + 2 * eps
         num_qubits = gate(angle).num_qubits
         qc = QuantumCircuit(num_qubits)

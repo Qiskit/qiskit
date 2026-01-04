@@ -32,7 +32,7 @@ type SubstituteSequencePi2<'a> = [(&'a [(StandardGate, &'a [u32])], f64); 8];
 
 const MINIMUM_TOL: f64 = 1e-12;
 
-/// Table for RZ(k * pi / 4) substitutions, with 0 <= k < 15
+/// Table for RZ(k * pi / 4) substitutions, with 0 <= k < 16
 static RZ_SUBSTITUTIONS: SubstituteSequencePi4 = [
     (&[], 0.0),
     (&[(StandardGate::T, &[0])], -FRAC_PI_8),
@@ -64,7 +64,7 @@ static RZ_SUBSTITUTIONS: SubstituteSequencePi4 = [
     (&[(StandardGate::Tdg, &[0])], FRAC_PI_8),
 ];
 
-/// Table for RX(k * pi / 4) substitutions, with 0 <= k < 15
+/// Table for RX(k * pi / 4) substitutions, with 0 <= k < 16
 static RX_SUBSTITUTIONS: SubstituteSequencePi4 = [
     (&[], 0.0),
     (
@@ -144,7 +144,7 @@ static RX_SUBSTITUTIONS: SubstituteSequencePi4 = [
     ),
 ];
 
-/// Table for RY(k * pi / 4) substitutions, with 0 <= k < 15
+/// Table for RY(k * pi / 4) substitutions, with 0 <= k < 16
 static RY_SUBSTITUTIONS: SubstituteSequencePi4 = [
     (&[], 0.0),
     (
@@ -224,7 +224,7 @@ static RY_SUBSTITUTIONS: SubstituteSequencePi4 = [
     ),
 ];
 
-/// Table for P(k * pi / 4) substitutions, with 0 <= k < 15
+/// Table for P(k * pi / 4) substitutions, with 0 <= k < 16
 static P_SUBSTITUTIONS: SubstituteSequencePi4 = [
     (&[], 0.0),
     (&[(StandardGate::T, &[0])], 0.0),
@@ -244,7 +244,7 @@ static P_SUBSTITUTIONS: SubstituteSequencePi4 = [
     (&[(StandardGate::Tdg, &[0])], 0.0),
 ];
 
-/// Table for RZZ(k * pi / 4) substitutions, with 0 <= k < 15
+/// Table for RZZ(k * pi / 4) substitutions, with 0 <= k < 16
 static RZZ_SUBSTITUTIONS: SubstituteSequencePi4 = [
     (&[], 0.0),
     (
@@ -358,7 +358,7 @@ static RZZ_SUBSTITUTIONS: SubstituteSequencePi4 = [
     ),
 ];
 
-/// Table for RXX(k * pi / 4) substitutions, with 0 <= k < 15
+/// Table for RXX(k * pi / 4) substitutions, with 0 <= k < 16
 static RXX_SUBSTITUTIONS: SubstituteSequencePi4 = [
     (&[], 0.0),
     (
@@ -520,7 +520,7 @@ static RXX_SUBSTITUTIONS: SubstituteSequencePi4 = [
     ),
 ];
 
-/// Table for RZX(k * pi / 4) substitutions, with 0 <= k < 15
+/// Table for RZX(k * pi / 4) substitutions, with 0 <= k < 16
 static RZX_SUBSTITUTIONS: SubstituteSequencePi4 = [
     (&[], 0.0),
     (
@@ -658,7 +658,7 @@ static RZX_SUBSTITUTIONS: SubstituteSequencePi4 = [
     ),
 ];
 
-/// Table for RYY(k * pi / 4) substitutions, with 0 <= k < 15
+/// Table for RYY(k * pi / 4) substitutions, with 0 <= k < 16
 static RYY_SUBSTITUTIONS: SubstituteSequencePi4 = [
     (&[], 0.0),
     (
@@ -834,7 +834,7 @@ static RYY_SUBSTITUTIONS: SubstituteSequencePi4 = [
     ),
 ];
 
-/// Table for CPhase(k * pi / 2) substitutions, with 0 <= k < 7
+/// Table for CPhase(k * pi / 2) substitutions, with 0 <= k < 8
 static CP_SUBSTITUTIONS: SubstituteSequencePi2 = [
     (&[], 0.0),
     (
@@ -882,7 +882,7 @@ static CP_SUBSTITUTIONS: SubstituteSequencePi2 = [
     ),
 ];
 
-/// Table for CRZ(k * pi / 2) substitutions, with 0 <= k < 7
+/// Table for CRZ(k * pi / 2) substitutions, with 0 <= k < 8
 static CRZ_SUBSTITUTIONS: SubstituteSequencePi2 = [
     (&[], 0.0),
     (
@@ -933,7 +933,7 @@ static CRZ_SUBSTITUTIONS: SubstituteSequencePi2 = [
     ),
 ];
 
-/// Table for CRX(k * pi / 2) substitutions, with 0 <= k < 7
+/// Table for CRX(k * pi / 2) substitutions, with 0 <= k < 8
 static CRX_SUBSTITUTIONS: SubstituteSequencePi2 = [
     (&[], 0.0),
     (
@@ -992,7 +992,7 @@ static CRX_SUBSTITUTIONS: SubstituteSequencePi2 = [
     ),
 ];
 
-/// Table for CRY(k * pi / 2) substitutions, with 0 <= k < 7
+/// Table for CRY(k * pi / 2) substitutions, with 0 <= k < 8
 static CRY_SUBSTITUTIONS: SubstituteSequencePi2 = [
     (&[], 0.0),
     (
@@ -1093,13 +1093,16 @@ fn is_angle_close_to_multiple_of_pi_k(
 }
 
 /// Gets a rotation gate and outputs an equivalent vector of standard gates
-/// in {Clifford, T, Tdg} and a global phase, when the angle is a multiple of pi/4.
-/// Note that odd multiples of pi/4 require a single T or Tdg gate
-/// as well as some Clifford gates,
-/// while even multiples of pi/4, or equivalently, integer multiples of pi/2,
+/// in {Clifford, T, Tdg} and a global phase.
+/// For single-qubit rotation gates (RX, RY, RZ, Phase) and two-qubit rotation gates
+/// (RXX, RYY, RZZ, RZX), when the angle is a multiple of pi/4, the decomposition requires
+/// a single T or Tdg gate as well as some Clifford gates.
+/// For two-qubit controlled rotation gates (CPhase, CRX, CRY, CRZ), when the angle
+/// is a multiple of pi/2, the decomposition requires three T or Tdg gates for CPhase and
+/// two otherwise, as well as some Clifford gates.
+/// Note that even multiples of pi/4 (resectively pi/2 for controlled rotations),
+/// or equivalently, integer multiples of pi/2 (respectively pi for controlled rotations),
 /// can be written using only Clifford gates.
-/// The output contains at most one T or Tdg gate, and an optimal number of
-/// Clifford gates.
 fn replace_rotation_by_discrete(
     gate: StandardGate,
     multiple: usize,
@@ -1161,6 +1164,7 @@ pub fn py_run_substitute_pi4_rotations(
 
     // Iterate over nodes in the DAG and collect nodes that are rotation gates
     // with an angle that is sufficiently close to a multiple of pi/4
+    // (respectively pi/2 for controlled rotations)
     let tol = MINIMUM_TOL.max(1.0 - approximation_degree);
     let mut global_phase_update: f64 = 0.;
 
