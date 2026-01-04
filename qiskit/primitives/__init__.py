@@ -442,7 +442,11 @@ Estimator V2
    :header-rows: 0
 
    * - :py:obj:`EstimatorPubLike`
-     - alias of :py:obj:`EstimatorPub | Tuple[QuantumCircuit, ObservablesArrayLike] | Tuple[QuantumCircuit, ObservablesArrayLike, BindingsArrayLike] | Tuple[QuantumCircuit, ObservablesArrayLike, BindingsArrayLike, Real]`
+     - alias of :py:obj:`EstimatorPub` \|
+       :py:obj:`Tuple[QuantumCircuit, ObservablesArrayLike]` \|
+       :py:obj:`Tuple[QuantumCircuit, ObservablesArrayLike, BindingsArrayLike]` \|
+       :py:obj:`Tuple[QuantumCircuit, ObservablesArrayLike, BindingsArrayLike, Real]`
+
    * - :py:obj:`ObservablesArrayLike`
      - alias of :py:obj:`ObservableLike | ArrayLike`
 
@@ -462,7 +466,12 @@ Sampler V2
    :header-rows: 0
 
    * - :py:obj:`SamplerPubLike`
-     - alias of :py:obj:`SamplerPub | QuantumCircuit | Tuple[QuantumCircuit] | Tuple[QuantumCircuit, BindingsArrayLike] | Tuple[QuantumCircuit, BindingsArrayLike, Union[Integral, None]]`
+     - alias of :py:obj:`SamplerPub` \|
+       :py:obj:`QuantumCircuit` \|
+       :py:obj:`Tuple[QuantumCircuit]` \|
+       :py:obj:`Tuple[QuantumCircuit, BindingsArrayLike]` \|
+       :py:obj:`Tuple[QuantumCircuit, BindingsArrayLike, Integral | None]`
+
 
 Results V2
 ----------
