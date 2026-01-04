@@ -1378,15 +1378,38 @@ pub unsafe extern "C" fn qk_dag_compose(
         .items()
         .map(|(index, block)| (index, dag.add_block(block.clone())))
         .collect();
+
+    let local_qubits = qubits.as_ref().map(|qubits_vec| {
+        qubits_vec
+            .iter()
+            .map(|shareable_qubit| {
+                dag.qubits()
+                    .find(shareable_qubit)
+                    .expect("Qubit not found in dag")
+            })
+            .collect::<Vec<_>>()
+    });
+
+    let local_clbits = clbits.as_ref().map(|clbits_vec| {
+        clbits_vec
+            .iter()
+            .map(|shareable_clbit| {
+                dag.clbits()
+                    .find(shareable_clbit)
+                    .expect("Clbit not found in dag")
+            })
+            .collect::<Vec<_>>()
+    });
+
     // Since we don't yet support vars in C, we can skip the inline_captures check.
     dag.compose(
         other_dag,
-        qubits.as_deref(),
-        clbits.as_deref(),
+        local_qubits.as_deref(),
+        local_clbits.as_deref(),
         block_map,
         false,
     )
-    .expect("Error during circuit composition.");
+        .expect("Error during circuit composition.");
     ExitCode::Success
 }
 
