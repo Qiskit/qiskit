@@ -201,9 +201,11 @@ fn pack_instruction_blocks(
             .iter()
             .map(|block| {
                 Python::attach(|py| -> PyResult<_> {
+                    // we explicitly name the block "unnamed" because otherwise it will be assigned a serial number name (e.g. "circuit-45")
+                    // which would result in inconsistant results, e.g. when packing the same circuit twice on the same run
                     let circuit = imports::QUANTUM_CIRCUIT
                         .get_bound(py)
-                        .call_method1("_from_circuit_data", (block.clone(),))?;
+                        .call_method1("_from_circuit_data", (block.clone(), false, "unnamed"))?;
                     py_pack_param(&circuit, qpy_data, Endian::Little)
                 })
             })
@@ -247,15 +249,6 @@ fn pack_instruction(
         new_custom_operations.push(new_name.clone());
         custom_operations.insert(new_name.clone(), instruction.op.clone());
     };
-    // println!("got instruction pack: {:?}", instruction_pack);
-    // let bytes = serialize::<formats::CircuitInstructionV2Pack>(&instruction_pack);
-    // println!("serialized to {:?}", bytes);
-    // let new_pack = deserialize_with_args::<formats::CircuitInstructionV2Pack, (bool,)>(
-    //                     &bytes,
-    //                     (true,),
-    //                 )?
-    //                 .0;
-    // println!("New pack: {:?}", new_pack);
     Ok(instruction_pack)
 }
 

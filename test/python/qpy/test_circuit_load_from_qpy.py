@@ -348,11 +348,11 @@ class TestUseSymengineFlag(QpyCircuitTestCase):
         # `use_symengine` is near-completely ignored with QPY versions 13+; it doesn't actually
         # matter if we _have_ symengine installed or not, because those QPYs don't ever use it
         # (except for setting a single byte in the header, which is promptly ignored).
-        self.assert_roundtrip_equal(qc, use_symengine=Booly(use_symengine), version=13)
+        self.assert_roundtrip_equal(qc, use_symengine=use_symengine, version=13)
         # Also check the qpy symbolic expression encoding is correct in the
         # payload
         with io.BytesIO() as file_obj:
-            dump(qc, file_obj, use_symengine=Booly(use_symengine))
+            dump(qc, file_obj, use_symengine=use_symengine)
             file_obj.seek(0)
             header_data = FILE_HEADER_V10._make(
                 struct.unpack(
