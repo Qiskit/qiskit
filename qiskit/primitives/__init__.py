@@ -50,7 +50,7 @@ define a computation unit of work for the estimator to complete:
 * a single :class:`~qiskit.circuit.QuantumCircuit`, possibly parametrized, whose final state we
   define as :math:`\psi(\theta)`,
 
-* one or more observables (specified as any :class:`~.ObservablesArrayLike`, including
+* one or more observables (specified as any ``ObservablesArrayLike``, including
   :class:`~.quantum_info.Pauli`, :class:`~.SparsePauliOp`, ``str``) that specify which expectation
   values to estimate, denoted :math:`H_j`, and
 
@@ -416,7 +416,13 @@ Parameters V2
 
    ParameterLike
    BindingsArray
-   BindingsArrayLike
+
+.. list-table::
+   :widths: auto
+   :header-rows: 0
+
+   * - :py:obj:`BindingsArrayLike`
+     - alias of :py:obj:`Mapping[ParameterLike | Tuple[ParameterLike, ...], ArrayLike]`   
 
 Estimator V2
 ------------
@@ -428,10 +434,17 @@ Estimator V2
    StatevectorEstimator
    BackendEstimatorV2
    EstimatorPub
-   EstimatorPubLike
    ObservablesArray
-   ObservablesArrayLike
    ObservableLike
+
+.. list-table::
+   :widths: auto
+   :header-rows: 0
+
+   * - :py:obj:`EstimatorPubLike`
+     - alias of :py:obj:`EstimatorPub | Tuple[QuantumCircuit, ObservablesArrayLike] | Tuple[QuantumCircuit, ObservablesArrayLike, BindingsArrayLike] | Tuple[QuantumCircuit, ObservablesArrayLike, BindingsArrayLike, Real]`
+   * - :py:obj:`ObservablesArrayLike`
+     - alias of :py:obj:`ObservableLike | ArrayLike`
 
 Sampler V2
 ----------
