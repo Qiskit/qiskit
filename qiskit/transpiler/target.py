@@ -165,7 +165,7 @@ class Target(BaseTarget):
     you call :meth:`.add_instruction` the bounds are applied for all qargs that it
     is defined on. The bounds are specified of a list of 2-tuples of floats where
     the first float is the lower bound and the second float is the upper bound. For example,
-    if you specfied an angle bound::
+    if you specified an angle bound::
 
         [(0.0, 3.14), (-3.14, 3.14), (0.0, 1.0)]
 
