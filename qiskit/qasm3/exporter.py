@@ -21,6 +21,7 @@ import itertools
 import math
 import numbers
 import re
+import unicodedata
 from typing import Iterable, List, Sequence, Union
 
 from qiskit._accelerate.circuit import StandardGate
@@ -174,12 +175,58 @@ _RESERVED_KEYWORDS = frozenset(
     }
 )
 
-# This probably isn't precisely the same as the OQ3 spec, but we'd need an extra dependency to fully
-# handle all Unicode character classes, and this should be close enough for users who aren't
-# actively _trying_ to break us (fingers crossed).
-_VALID_DECLARABLE_IDENTIFIER = re.compile(r"([\w][\w\d]*)", flags=re.U)
 _VALID_HARDWARE_QUBIT = re.compile(r"\$[\d]+", flags=re.U)
-_BAD_IDENTIFIER_CHARACTERS = re.compile(r"[^\w\d]", flags=re.U)
+
+
+def _is_valid_identifier(name: str) -> bool:
+    """Check if a name is a valid OpenQASM 3 identifier.
+
+    Per the OpenQASM 3 spec, identifiers must:
+    - Start with a Unicode letter (category L*) or underscore
+    - Contain only Unicode letters, underscores, or ASCII digits (0-9)
+
+    This excludes Unicode digit/number characters (categories Nd, Nl, No) from
+    the first position, and excludes non-ASCII digit characters (Nl, No) from
+    all positions.
+    """
+    if not name:
+        return False
+    first = name[0]
+    # First char must be letter (L*) or underscore, not any kind of number
+    first_cat = unicodedata.category(first)
+    if not (first_cat.startswith("L") or first == "_"):
+        return False
+    # Rest can be letters, underscore, or ASCII digits 0-9
+    for char in name[1:]:
+        if char in "0123456789" or char == "_":
+            continue
+        cat = unicodedata.category(char)
+        if not cat.startswith("L"):
+            return False
+    return True
+
+
+def _escape_invalid_identifier(name: str) -> str:
+    """Escape invalid characters in a name to make it a valid identifier."""
+    if not name:
+        return "_"
+    chars = []
+    first = name[0]
+    first_cat = unicodedata.category(first)
+    # First char must be letter or underscore
+    if first_cat.startswith("L") or first == "_":
+        chars.append(first)
+    else:
+        chars.append("_")
+    # Rest can be letters, underscore, or ASCII digits
+    for char in name[1:]:
+        if char in "0123456789" or char == "_":
+            chars.append(char)
+        elif unicodedata.category(char).startswith("L"):
+            chars.append(char)
+        else:
+            chars.append("_")
+    return "".join(chars)
 
 
 class Exporter:
@@ -434,15 +481,14 @@ class SymbolTable:
         name_allowed = (
             (lambda name: not self.symbol_defined(name)) if unique else self.can_shadow_symbol
         )
-        valid_identifier = _VALID_DECLARABLE_IDENTIFIER
         if allow_rename:
-            if not valid_identifier.fullmatch(name):
-                name = "_" + _BAD_IDENTIFIER_CHARACTERS.sub("_", name)
+            if not _is_valid_identifier(name):
+                name = _escape_invalid_identifier(name)
             base = name
             while not name_allowed(name):
                 name = f"{base}_{next(self._counter)}"
             return name
-        if not valid_identifier.fullmatch(name):
+        if not _is_valid_identifier(name):
             raise QASM3ExporterError(f"cannot use '{name}' as a name; it is not a valid identifier")
         if name in _RESERVED_KEYWORDS:
             raise QASM3ExporterError(f"cannot use the keyword '{name}' as a variable name")
