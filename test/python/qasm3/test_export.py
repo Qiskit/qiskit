@@ -452,9 +452,9 @@ class TestCircuitQASM3(QiskitTestCase):
         expected = """\
 OPENQASM 3.0;
 include "stdgates.inc";
-input float[64] _t_0_;
-input float[64] _t_1_;
-input float[64] _t_2_;
+input float[64] t_0_;
+input float[64] t_1_;
+input float[64] t_2_;
 gate rxx(p0) _gate_q_0, _gate_q_1 {
   h _gate_q_0;
   h _gate_q_1;
@@ -464,8 +464,8 @@ gate rxx(p0) _gate_q_0, _gate_q_1 {
   h _gate_q_1;
   h _gate_q_0;
 }
-gate PauliEvolution(_t_0_) _gate_q_0, _gate_q_1 {
-  rxx(2*_t_0_) _gate_q_0, _gate_q_1;
+gate PauliEvolution(t_0_) _gate_q_0, _gate_q_1 {
+  rxx(2*t_0_) _gate_q_0, _gate_q_1;
 }
 gate sxdg _gate_q_0 {
   s _gate_q_0;
@@ -481,21 +481,21 @@ gate ryy(p0) _gate_q_0, _gate_q_1 {
   sx _gate_q_0;
   sx _gate_q_1;
 }
-gate PauliEvolution_0(_t_1_) _gate_q_0, _gate_q_1 {
-  ryy(2*_t_1_) _gate_q_0, _gate_q_1;
+gate PauliEvolution_0(t_1_) _gate_q_0, _gate_q_1 {
+  ryy(2*t_1_) _gate_q_0, _gate_q_1;
 }
 gate rzz(p0) _gate_q_0, _gate_q_1 {
   cx _gate_q_0, _gate_q_1;
   rz(p0) _gate_q_1;
   cx _gate_q_0, _gate_q_1;
 }
-gate PauliEvolution_1(_t_2_) _gate_q_0, _gate_q_1 {
-  rzz(2*_t_2_) _gate_q_0, _gate_q_1;
+gate PauliEvolution_1(t_2_) _gate_q_0, _gate_q_1 {
+  rzz(2*t_2_) _gate_q_0, _gate_q_1;
 }
 qubit[2] q;
-PauliEvolution(_t_0_) q[0], q[1];
-PauliEvolution_0(_t_1_) q[0], q[1];
-PauliEvolution_1(_t_2_) q[0], q[1];
+PauliEvolution(t_0_) q[0], q[1];
+PauliEvolution_0(t_1_) q[0], q[1];
+PauliEvolution_1(t_2_) q[0], q[1];
 """
         self.assertEqual(dumps(qc), expected)
 
@@ -510,8 +510,8 @@ PauliEvolution_1(_t_2_) q[0], q[1];
         circuit.append(custom.assign_parameters({parameter_a: 0.5}).to_gate(), [0])
         circuit.append(custom.assign_parameters({parameter_a: 1}).to_gate(), [0])
 
-        circuit_name_0 = "_" + circuit.data[0].operation.definition.name.replace("-", "_")
-        circuit_name_1 = "_" + circuit.data[1].operation.definition.name.replace("-", "_")
+        circuit_name_0 = circuit.data[0].operation.definition.name.replace("-", "_")
+        circuit_name_1 = circuit.data[1].operation.definition.name.replace("-", "_")
 
         expected_qasm = "\n".join(
             [
@@ -1463,11 +1463,11 @@ box[a] {
             [
                 "OPENQASM 3.0;",
                 'include "stdgates.inc";',
-                "gate __1 _gate_q_0 {",
+                "gate _1 _gate_q_0 {",
                 "  x _gate_q_0;",
                 "}",
                 "qubit[1] q;",
-                "__1 q[0];",
+                "_1 q[0];",
                 "",
             ]
         )
@@ -3481,3 +3481,50 @@ box {
         )
         self.assertEqual(prog.strip(), expected.strip())
         self.assertTrue(skip_triggered)
+
+
+class TestIdentifierEscaping(QiskitTestCase):
+    """Tests for identifier escaping in QASM3 export."""
+
+    def test_identifier_starting_with_digit_is_escaped(self):
+        """Test that identifiers starting with ASCII digits are escaped.
+
+        Regression test for https://github.com/Qiskit/qiskit/issues/15304
+        """
+        qc = QuantumCircuit(QuantumRegister(3, name="3qr"), ClassicalRegister(2, name="2cr"))
+        qasm = dumps(qc)
+        # Should not contain the invalid identifiers
+        self.assertNotIn("3qr", qasm)
+        self.assertNotIn("2cr", qasm)
+        # Should contain escaped versions (leading underscore)
+        self.assertIn("_qr", qasm)
+        self.assertIn("_cr", qasm)
+
+    def test_identifier_with_unicode_number_is_escaped(self):
+        """Test that identifiers with Unicode number characters are escaped.
+
+        Regression test for https://github.com/Qiskit/qiskit/issues/15303
+        """
+        qc = QuantumCircuit(QuantumRegister(3, name="jdksa²"), ClassicalRegister(2, name="j²"))
+        qasm = dumps(qc)
+        # Should not contain the invalid identifiers with superscript numbers
+        self.assertNotIn("²", qasm)
+        # Should contain escaped versions
+        self.assertIn("jdksa_", qasm)
+        self.assertIn("j_", qasm)
+
+    def test_valid_identifiers_unchanged(self):
+        """Test that valid identifiers are not modified."""
+        qc = QuantumCircuit(
+            QuantumRegister(2, name="valid_name"),
+            ClassicalRegister(2, name="_also_valid123"),
+        )
+        qasm = dumps(qc)
+        self.assertIn("valid_name", qasm)
+        self.assertIn("_also_valid123", qasm)
+
+    def test_unicode_letter_identifiers_allowed(self):
+        """Test that Unicode letters are allowed in identifiers."""
+        qc = QuantumCircuit(QuantumRegister(2, name="αβγ"))
+        qasm = dumps(qc)
+        self.assertIn("αβγ", qasm)
