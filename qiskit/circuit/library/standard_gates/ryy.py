@@ -18,7 +18,7 @@ import math
 from typing import Optional
 import numpy as np
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.parameterexpression import ParameterValueType, ParameterExpression
+from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit._accelerate.circuit import StandardGate
 
 
@@ -30,7 +30,7 @@ class RYYGate(Gate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.ryy` method.
 
-    **Circuit Symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -40,7 +40,7 @@ class RYYGate(Gate):
         q_1: ┤0        ├
              └─────────┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -54,31 +54,35 @@ class RYYGate(Gate):
                 i\sin\left(\rotationangle\right) & 0 & 0 & \cos\left(\rotationangle\right)
             \end{pmatrix}
 
-    **Examples:**
+    Examples:
 
-        .. math::
+    .. math::
 
-            R_{YY}(\theta = 0) = I
+        R_{YY}(\theta = 0) = I 
 
-        .. math::
+    .. math::
 
-            R_{YY}(\theta = \pi) = -i Y \otimes Y
+        R_{YY}(\theta = \pi) = -i Y \otimes Y
 
-        .. math::
+    .. math::
 
-            R_{YY}\left(\theta = \frac{\pi}{2}\right) = \frac{1}{\sqrt{2}}
-                                    \begin{pmatrix}
-                                        1 & 0 & 0 & i \\
-                                        0 & 1 & -i & 0 \\
-                                        0 & -i & 1 & 0 \\
-                                        i & 0 & 0 & 1
-                                    \end{pmatrix}
+        R_{YY}\left(\theta = \frac{\pi}{2}\right) = \frac{1}{\sqrt{2}}
+                                \begin{pmatrix}
+                                    1 & 0 & 0 & i \\
+                                    0 & 1 & -i & 0 \\
+                                    0 & -i & 1 & 0 \\
+                                    i & 0 & 0 & 1
+                                \end{pmatrix}
     """
 
     _standard_gate = StandardGate.RYY
 
     def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
-        """Create new RYY gate."""
+        """
+        Args:
+            theta: The rotation angle.
+            label: An optional label for the gate.
+        """
         super().__init__("ryy", 2, [theta], label=label)
 
     def _define(self):
@@ -93,41 +97,8 @@ class RYYGate(Gate):
         #      └──────┘└───┘└───────┘└───┘└────┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.RYY._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.RYY._get_definition(self.params), legacy_qubits=True
         )
-
-    def control(
-        self,
-        num_ctrl_qubits: int = 1,
-        label: str | None = None,
-        ctrl_state: str | int | None = None,
-        annotated: bool | None = None,
-    ):
-        """Return a (multi-)controlled-YY gate.
-
-        Args:
-            num_ctrl_qubits: number of control qubits.
-            label: An optional label for the gate [Default: ``None``]
-            ctrl_state: control state expressed as integer,
-                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate should be implemented
-                as an annotated gate. If ``None``, this is set to ``True`` if
-                the gate contains free parameters, in which case it cannot
-                yet be synthesized.
-
-        Returns:
-            ControlledGate: controlled version of this gate.
-        """
-        if annotated is None:
-            annotated = any(isinstance(p, ParameterExpression) for p in self.params)
-
-        gate = super().control(
-            num_ctrl_qubits=num_ctrl_qubits,
-            label=label,
-            ctrl_state=ctrl_state,
-            annotated=annotated,
-        )
-        return gate
 
     def inverse(self, annotated: bool = False):
         """Return inverse RYY gate (i.e. with the negative rotation angle).

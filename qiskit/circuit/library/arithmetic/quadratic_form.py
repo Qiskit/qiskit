@@ -60,8 +60,9 @@ class QuadraticForm(QuantumCircuit):
     The implementation of this circuit is discussed in [1], Fig. 6.
 
     References:
-        [1]: Gilliam et al., Grover Adaptive Search for Constrained Polynomial Binary Optimization.
-             `arXiv:1912.04088 <https://arxiv.org/pdf/1912.04088.pdf>`_
+
+    [1] Gilliam et al., Grover Adaptive Search for Constrained Polynomial Binary Optimization.
+    `arXiv:1912.04088 <https://arxiv.org/pdf/1912.04088.pdf>`_
 
     """
 
@@ -227,8 +228,9 @@ class QuadraticFormGate(Gate):
     The implementation of this circuit is discussed in [1], Fig. 6.
 
     References:
-        [1]: Gilliam et al., Grover Adaptive Search for Constrained Polynomial Binary Optimization.
-             `arXiv:1912.04088 <https://arxiv.org/pdf/1912.04088.pdf>`_
+
+    [1] Gilliam et al., Grover Adaptive Search for Constrained Polynomial Binary Optimization.
+    `arXiv:1912.04088 <https://arxiv.org/pdf/1912.04088.pdf>`_
 
     """
 

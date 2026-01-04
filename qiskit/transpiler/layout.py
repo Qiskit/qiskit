@@ -18,13 +18,18 @@ Virtual (qu)bits are tuples, e.g. `(QuantumRegister(3, 'qr'), 2)` or simply `qr[
 Physical (qu)bits are integers.
 """
 from __future__ import annotations
-from typing import List
+
+from typing import List, TYPE_CHECKING
 from dataclasses import dataclass
 
 from qiskit import circuit
 from qiskit.circuit import Qubit, QuantumRegister
 from qiskit.transpiler.exceptions import LayoutError
 from qiskit.converters import isinstanceint
+
+if TYPE_CHECKING:
+    from qiskit.dagcircuit import DAGCircuit
+    from qiskit.transpiler import PropertySet
 
 
 class Layout:
@@ -598,10 +603,10 @@ class TranspileLayout:
             output = [None] * self._input_qubit_count
         else:
             output = [None] * len(virtual_map)
-        for index, (virt, phys) in enumerate(virtual_map.items()):
-            if filter_ancillas and index >= self._input_qubit_count:
-                break
+        for virt, phys in virtual_map.items():
             pos = self.input_qubit_mapping[virt]
+            if filter_ancillas and pos >= self._input_qubit_count:
+                continue
             output[pos] = phys
         return output
 
@@ -738,3 +743,233 @@ class TranspileLayout:
         res = self.final_index_layout(filter_ancillas=filter_ancillas)
         pos_to_virt = {v: k for k, v in self.input_qubit_mapping.items()}
         return Layout({pos_to_virt[index]: phys for index, phys in enumerate(res)})
+
+    @classmethod
+    def from_property_set(
+        cls, dag: DAGCircuit, property_set: PropertySet
+    ) -> TranspileLayout | None:
+        """Construct the :class:`TranspileLayout` by reading out the fields from the given
+        :class:`.PropertySet`.  Returns ``None`` if there are no layout-setting keys present.
+
+        This includes combining the different keys of the property set into the full set of initial
+        and final layouts, including virtual permutations.
+
+        This does not invalidate or in any way mutate the given property set.  In order to
+        "canonicalize" the property set afterwards, call :meth:`write_into_property_set`.
+
+        This reads the following property-set keys:
+
+        ``layout``
+            **Required**. The :class:`.Layout` object mapping virtual qubits (potentially expanded
+            with ancillas) to physical-qubit indices.  This corresponds directly to
+            :attr:`initial_layout`.
+
+            .. note::
+                In all standard use, this is a required field.  However, if
+                ``virtual_permutation_layout`` is set, then a "trivial" layout will be inferred,
+                even if the circuit is not actually laid out to hardware.  This is an unfortunate
+                limitation of this class's data model, where it is not possible to specify a final
+                permutation without also having an initial layout. This deficiency will be corrected
+                in Qiskit 3.0.
+
+        ``original_qubit_indices``
+            **Required** (but automatically set by the :class:`.PassManager`).  The mapping
+            ``{virtual: index}`` that indicates which relative index each incoming virtual qubit
+            was, in the input circuit.  This can be expanded with ancillas too (in which case the
+            ancilla indices don't mean much, since they weren't in the incoming circuit).
+
+        ``num_input_qubits``
+            **Required** (but automatically set by the :class:`.PassManager`).  The number of
+            explicit virtual qubits in the input circuit (i.e. not including implicit ancillas).
+
+        ``final_layout``
+            **Optional**.  The effective final permutation, in terms of the current qubits of the
+            :class:`.DAGCircuit`.  This corresponds directly to :attr:`final_layout`.
+
+        ``virtual_permutation_layout``
+            **Optional**.  This is set by certain optimization passes that run before layout
+            selection, such as :class:`.ElidePermutations`.  It is similar in spirit to
+            ``final_layout``, but typically only applies to the input virtual qubits.
+
+            .. warning::
+                This object uses the opposite permutation convention to ``final_layout`` due to an
+                oversight in Qiskit during its introduction.  In other words,
+                ``virtual_permutation_layout`` maps a :class:`.Qubit` instance at the end of the
+                circuit to its integer index at the start of the circuit.
+
+        Args:
+            dag: the current state of the :class:`.DAGCircuit`.
+            property_set: the current transpiler's property set.  This must at least have the
+                ``layout`` key set.
+        """
+        initial_layout = property_set["layout"]
+        final_layout = property_set["final_layout"]
+        input_qubit_indices = property_set["original_qubit_indices"]
+        virtual_permutation_layout = property_set["virtual_permutation_layout"]
+        num_input_qubits = property_set["num_input_qubits"]
+
+        output_qubits = list(dag.qubits)
+
+        if initial_layout is None and virtual_permutation_layout is None and final_layout is None:
+            # Nothing that truly sets a Python-space `TranspileLayout` is set.
+            return None
+        if initial_layout is not None and virtual_permutation_layout is None:
+            # This is the "happy" path where everything is already (in theory) normalised to the
+            # original state of how the transpiler handled these properties.
+            return cls(
+                initial_layout, input_qubit_indices, final_layout, num_input_qubits, output_qubits
+            )
+
+        # Due to current (at least as of Qiskit 2.x) limitations of `TranspileLayout`, the only
+        # way to return a routing permutation if `virtual_permutation_layout` is set is to force
+        # an initial layout, even if there isn't actually any laying out to hardware.
+        if initial_layout is None:
+            initial_layout = Layout(dict(enumerate(dag.qubits)))
+        if virtual_permutation_layout is None:
+            virtual_permutation_layout = Layout(input_qubit_indices)
+        if final_layout is None:
+            final_layout = Layout(dict(enumerate(dag.qubits)))
+        input_qubits = sorted(input_qubit_indices, key=input_qubit_indices.get)
+
+        num_qubits = len(dag.qubits)
+
+        # Throughout the rest of this, we will speak about index permutations as lists that mean:
+        #
+        #    qubit `permutation[i]` goes to new index `i`
+        #
+        # or in alternative langauge,
+        #
+        #   after the permutation, qubit `i` contains qubit `permutation[i]`.
+        #
+        # This is to match the convention that `PermutationGate` uses, but beware: it might not be
+        # the way you think about permutations (it's not my preferred convention---Jake).
+        #
+        # Now, we'll step through the transpilation process.  At each point, we'll relate the
+        # objects we have back to a 3-tuple of abstract objects, which are applied in order:
+        #
+        #   (relabelling, explicit instructions, implicit instructions)
+        #
+        # The "explicit instructions" are always just the DAG itself.  The "relabelling" is
+        # generally associated with the "initial layout" and the metadata linking the original
+        # virtual qubit objects and their indices.  The "implicit instructions" is where all the
+        # interesting stuff happens; at the moment, in Qiskit, we only track an implicit final
+        # permutation, though you could imagine a world where we allow a lot more things to be
+        # tracked, such as necessary classical post-processing steps.
+        #
+        # We will attempt to always have in hand the permutation that needs to be appended to the
+        # current explicit circuit to "undo" all the elided/added permutations.  For example, we
+        # want the permutation that adds back in what `ElidePermutations` might have removed, or
+        # "undoes" the swaps that routing added.  Explicitly, we want to have a ``permutation`` such
+        # that this sequence of operations brings us back to the same semantics as the original
+        # virtual circuit:
+        #
+        #   current = <current explicit circuit/DAG>
+        #   # Make the permutation explicit; the permutation is defined on the current qubit labels.
+        #   current.append(PermutationGate(permutation), current.qubits)
+        #   # Now revert the `initial_layout` relabelling.
+        #   relabel_qubits_from_physical_to_virtual(qc, initial_layout)
+        #
+        # where "semantics" would mean exact unitary equivalence for a unitary input, and something
+        # a bit hand-wavier once measurements are involved.
+
+        # First, virtual permutation modifications happen.  For example, `ElidePermutations` or
+        # `StarPreRouting`.  Note that `virtual_permutation_layout` uses an opposite convention to
+        # `final_layout` for defining the permutation.
+        undo_elided_on_virtuals = [
+            virtual_permutation_layout[virtual_bit]
+            for virtual_bit in input_qubits[:num_input_qubits]
+        ]
+        # `virtual_permutation_layout` is defined without ancillas.  If they got added later, extend
+        # the virtual permutation with the implicit identity on the other components.
+        if num_qubits > len(undo_elided_on_virtuals):
+            undo_elided_on_virtuals.extend(range(len(undo_elided_on_virtuals), num_qubits))
+
+        def relabel_virtual_to_physical(virtual_index: int):
+            return initial_layout[input_qubits[virtual_index]]
+
+        def relabel_physical_to_virtual(physical_index: int):
+            return input_qubit_indices[initial_layout[physical_index]]
+
+        # Next, a layout pass runs, and maps the virtual qubits to physical qubits.  We want to
+        # update our permutation so that it can be applied to the _physical_ circuit instead.  This
+        # means relabelling both references to circuit indices: the actual values in the list, but
+        # also the indices in the list that they're located at.
+        undo_elided_on_physicals = [
+            relabel_virtual_to_physical(
+                undo_elided_on_virtuals[relabel_physical_to_virtual(physical_index)]
+            )
+            for physical_index in range(num_qubits)
+        ]
+
+        # Next, routing runs.  This adds in an extra permutation, which comes between "the circuit"
+        # and the "undoing permutation" we just calculated.  Routing returns the total
+        # permutation that it has applied, so if we send the "index before routing" to "index after
+        # routing", our permutation will then properly undo everything.  Note that `final_layout`
+        # uses the opposite permutation convention to `virtual_permutation_layout`.
+        undo_routing_on_physicals = [
+            dag.find_bit(final_layout[physical_index]).index for physical_index in range(num_qubits)
+        ]
+        undo_total_on_physicals = [
+            undo_elided_on_physicals[undo_routing_on_physicals[physical_index]]
+            for physical_index in range(num_qubits)
+        ]
+
+        # Finally, turn what we have into the same convention that `final_layout` uses.
+        final_layout = Layout(
+            {
+                qubit_index: dag.qubits[is_set_to]
+                for qubit_index, is_set_to in enumerate(undo_total_on_physicals)
+            }
+        )
+
+        return cls(
+            initial_layout, input_qubit_indices, final_layout, num_input_qubits, list(dag.qubits)
+        )
+
+    def write_into_property_set(self, property_set: dict[str, object]):
+        """'Unpack' this layout into the loose-constraints form of the ``property_set``.
+
+        This is the inverse method of :meth:`from_property_set`.
+
+        This always writes the follow property-set keys, overwriting them if they were already set:
+
+        ``layout``
+            Directly corresponds to :attr:`initial_layout`.
+
+        ``original_qubit_indices``
+            Directly corresponds to :attr:`input_qubit_mapping`.
+
+        ``final_layout``
+            Directly corresponds to :attr:`final_layout`.  Note that this might not be identical to
+            the ``final_layout`` from before a call to :meth:`from_property_set`, because the
+            effects of ``virtual_permutation_layout`` will have been combined into it.
+
+        ``virtual_permutation_layout``
+            Deleted from the property set; :class:`TranspileLayout` "finalizes" the multiple
+            separate permutations into one single permutation, to retain the canonical form.
+
+        In addition, the following keys are updated, if this :class:`TranspileLayout` has a known
+        value for them.  They are left as-is if not, to handle cases where this class was manually
+        constructed without setting certain optional fields.
+
+        ``num_input_qubits``
+            The number of non-ancilla virtual qubits in the input circuit.
+
+        Args:
+            property_set: the :class:`.PropertySet` (or general :class:`dict`) that the output
+                should be written into.  This mutates the input in place.
+        """
+        for always_overwrite in (
+            "layout",
+            "final_layout",
+            "original_qubit_indices",
+            "virtual_permutation_layout",
+        ):
+            property_set.pop(always_overwrite, None)
+
+        property_set["layout"] = self.initial_layout.copy()
+        property_set["original_qubit_indices"] = self.input_qubit_mapping.copy()
+        if self.final_layout is not None:
+            property_set["final_layout"] = self.final_layout.copy()
+        if self._input_qubit_count is not None:
+            property_set["num_input_qubits"] = self._input_qubit_count

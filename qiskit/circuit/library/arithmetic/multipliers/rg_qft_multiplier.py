@@ -55,7 +55,7 @@ class RGQFTMultiplier(Multiplier):
         Specific implementations can be set via the :class:`.HLSConfig`, e.g. this circuit
         can be chosen via ``Multiplier=["qft_r17"]``.
 
-    **References:**
+    References:
 
     [1] Ruiz-Perez et al., Quantum arithmetic with the Quantum Fourier Transform, 2017.
     `arXiv:1411.5949 <https://arxiv.org/pdf/1411.5949.pdf>`_
@@ -99,7 +99,7 @@ class RGQFTMultiplier(Multiplier):
                 for k in range(1, self.num_result_qubits + 1):
                     lam = (2 * np.pi) / (2 ** (i + j + k - 2 * num_state_qubits))
                     circuit.append(
-                        PhaseGate(lam).control(2),
+                        PhaseGate(lam).control(2, annotated=False),
                         [qr_a[num_state_qubits - j], qr_b[num_state_qubits - i], qr_out[k - 1]],
                     )
 

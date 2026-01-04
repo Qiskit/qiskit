@@ -18,11 +18,9 @@ generally means users cannot write code that will work with two subsequent
 versions of Qiskit, which is not acceptable.
 
 Beware that users will often be using functions, classes and methods that we,
-the Qiskit developers, may consider internal or not widely used.  Do not make
+the Qiskit developers, may consider unused.  Do not make
 assumptions that "this is buried, so nobody will be using it"; if it is public,
-it is subject to the policy.  The only exceptions here are functions and modules
-that are explicitly internal, *i.e.* those whose names begin with a leading
-underscore (`_`).
+it is subject to the policy.
 
 The guiding principles are:
 
@@ -255,3 +253,53 @@ https://github.com/Qiskit/documentation/tree/main/docs/api/migration-guides. Onc
 the migration guide is written and published, deprecation
 messages and documentation should link to it (use the `additional_msg` argument for
 `@deprecate_arg` and `@deprecate_func`).
+
+
+## Deprecations in the C API
+
+Prior to Qiskit 3.0, the C API is explicitly unstable.  Despite this, we will still attempt to issue
+suitable deprecations before removing functions, but this is on a best-effort basis only.  Functions
+may still change signatures without warning between versions.  We will still attempt to minimize the
+disruption from deprecations in the C API, but we do not commit to warning ahead of every change nor
+following the timescales of deprecations in the Python API.
+
+As of Qiskit 2.3, we do not have testing scaffolding that is capable of testing that deprecations
+are being emitted during a compilation.
+
+### Issuing a C-API deprecation
+
+C API functions should be marked deprecated in two separate places:
+
+1. in the function documentation, using the `\qk_deprecated{<version>|<reason>}` custom Doxygen
+   command.
+2. as a Rust attribute `#[deprecated]` on the function itself.
+
+The `\qk_deprecated` command is defined in the Doxygen configuration file (`docs/Doxyfile`) as an
+alias.  The `<reason>` field is expanded inside a "verbatim rST" block, so should use rST directly
+(unlike other parts of the C API documentation).  The `<reason>` field should be a single line of
+text, and cannot contain the `|` separator.  The `<version>` field should be the version of Qiskit
+that the deprecation started in (e.g. `2.3.0`).  We don't use Doxygen's built-in `\deprecated`
+command because that is free-form and doesn't retain the version in a structured location.
+
+For functions, put the `\qk_deprecated` command immediate before the `@param`/`@returns` list, if present,
+or immediately after the main body of descriptive text (before the "Examples" or "Safety" sections).
+
+We have `cbindgen` configured to interpret `#[deprecated]` directives on C API functions.  The
+macros that emit the deprecations are in the `qiskit/attributes.h` header file.  You can use the
+basic `#[deprecated]`, the `#[deprecated = <reason>]` or the `#[deprecated(note = <reason>)]` forms.
+You *cannot* use `#[deprecated(since = <version>)]`; `cbindgen` does not support this, and if you
+forget to include a `note`, it will silently drop the deprecated attribute, so C users will not see
+it.
+
+As an example:
+
+```rust
+/// @ingroup QkTy
+/// Do the old thing.
+///
+/// \qk_deprecated{2.3.0|use :c:func:`qk_ty_new_function` instead.}
+#[deprecated = "use `qk_ty_new_function` instead"]
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub extern "C" fn qk_ty_old_function() {}
+```

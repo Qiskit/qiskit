@@ -16,8 +16,10 @@ use std::convert::Infallible;
 use std::num::NonZero;
 
 use numpy::{PyArray2, ToPyArray};
-use pyo3::prelude::*;
 use pyo3::Python;
+use pyo3::exceptions::PyValueError;
+use pyo3::prelude::*;
+use pyo3::types::PyDict;
 
 use hashbrown::HashSet;
 use indexmap::IndexMap;
@@ -28,25 +30,21 @@ use rayon_cond::CondIterator;
 use rustworkx_core::dictmap::*;
 use rustworkx_core::petgraph::prelude::*;
 use rustworkx_core::petgraph::visit::{EdgeCount, EdgeRef};
-use rustworkx_core::shortest_path::dijkstra;
+use rustworkx_core::shortest_path::{dijkstra, distance_matrix};
 use rustworkx_core::token_swapper::token_swapper;
-use smallvec::{smallvec, SmallVec};
-
-use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::dag_circuit::{DAGCircuit, DAGCircuitBuilder, NodeType, Wire};
-use qiskit_circuit::nlayout::NLayout;
-use qiskit_circuit::operations::{OperationRef, StandardGate};
-use qiskit_circuit::packed_instruction::PackedInstruction;
-use qiskit_circuit::{getenv_use_multiple_threads, imports, PhysicalQubit, Qubit, VirtualQubit};
-
-use crate::target::{Target, TargetCouplingError};
-use crate::TranspilerError;
+use smallvec::{SmallVec, smallvec};
 
 use super::dag::{InteractionKind, SabreDAG};
-use super::distance::distance_matrix;
 use super::heuristic::{BasicHeuristic, DecayHeuristic, Heuristic, LookaheadHeuristic, SetScaling};
 use super::layer::{ExtendedSet, FrontLayer};
-use super::neighbors::Neighbors;
+use crate::TranspilerError;
+use crate::neighbors::Neighbors;
+use crate::target::{Target, TargetCouplingError};
+use qiskit_circuit::dag_circuit::{DAGCircuit, DAGCircuitBuilder, NodeType, Wire};
+use qiskit_circuit::nlayout::NLayout;
+use qiskit_circuit::operations::{ControlFlow, StandardGate};
+use qiskit_circuit::packed_instruction::PackedInstruction;
+use qiskit_circuit::{BlocksMode, PhysicalQubit, Qubit, VirtualQubit, getenv_use_multiple_threads};
 
 /// Number of trials for control flow block swap epilogues.
 const SWAP_EPILOGUE_TRIALS: usize = 4;
@@ -130,6 +128,7 @@ impl RoutingResult<'_> {
             self.num_qubits(),
             self.dag.num_ops() + num_swaps,
             self.dag.dag().edge_count() + 2 * num_swaps,
+            BlocksMode::Drop,
         )?;
         self.rebuild_onto(dag, |q| q)
     }
@@ -190,14 +189,23 @@ impl RoutingResult<'_> {
             for swap in item.initial_swaps() {
                 apply_swap(swap, &mut layout, &mut dag)?;
             }
-            let index = self.sabre.dag[item.node].index;
-            let NodeType::Operation(inst) = &self.dag[index] else {
+            // In theory, `indices` will always have at least one entry if you're rebuilding the
+            // DAG from a Sabre result, because there wouldn't be a Sabre node without at least one
+            // DAG node backing it.  That said, we _do_ allow construction of Sabre graphs that have
+            // thrown away this information ([SabreDAG::only_interactions]), and there's still a
+            // well-defined behaviour to take.
+            let split = self.sabre.dag[item.node].indices.split_first();
+            let Some((head, rest)) = split else {
+                continue;
+            };
+            let NodeType::Operation(inst) = &self.dag[*head] else {
                 panic!("Sabre DAG should only contain op nodes");
             };
+
             match item.kind {
                 RoutedItemKind::Simple => apply_op(inst, &layout, &mut dag)?,
                 RoutedItemKind::ControlFlow(num_blocks) => {
-                    let blocks = blocks
+                    let mut blocks = blocks
                         .by_ref()
                         .take(num_blocks.get() as usize)
                         .map(|block| block.rebuild())
@@ -230,39 +238,33 @@ impl RoutingResult<'_> {
                             idle.push(qubit);
                         }
                     }
-                    let new_inst = Python::with_gil(|py| -> PyResult<_> {
-                        // TODO: have to use Python-space `dag_to_circuit` because the Rust-space is
-                        // only half the conversion (since it doesn't handle vars or stretches).
-                        let dag_to_circuit = imports::DAG_TO_CIRCUIT.get_bound(py);
-                        let blocks = blocks
-                            .into_iter()
-                            .map(|mut dag| {
-                                dag.remove_qubits(idle.iter().copied())?;
-                                dag_to_circuit.call1((dag, false))
-                            })
-                            .collect::<Result<Vec<_>, _>>()?;
-
-                        let OperationRef::Instruction(py_inst) = inst.op.view() else {
-                            panic!("control-flow nodes must be PyInstruction");
-                        };
-                        let new_node = py_inst
-                            .instruction
-                            .bind(py)
-                            .call_method1("replace_blocks", (blocks,))?;
-                        let op: OperationFromPython = new_node.extract()?;
-                        Ok(PackedInstruction {
-                            op: op.operation,
-                            qubits: dag.insert_qargs(&qargs),
-                            clbits: inst.clbits,
-                            params: (!op.params.is_empty()).then(|| Box::new(op.params)),
-                            label: op.label,
-                            #[cfg(feature = "cache_pygates")]
-                            py_op: new_node.unbind().into(),
-                        })
-                    })?;
+                    for dag in &mut blocks {
+                        dag.remove_qubits(idle.iter().copied())?;
+                    }
+                    let mut new_op = inst.op.control_flow().clone();
+                    if !matches!(
+                        &new_op.control_flow,
+                        ControlFlow::BreakLoop | ControlFlow::ContinueLoop
+                    ) {
+                        new_op.num_qubits = blocks[0].num_qubits() as u32;
+                    }
+                    let blocks = blocks.into_iter().map(|b| dag.add_block(b)).collect();
+                    let new_inst = PackedInstruction::from_control_flow(
+                        new_op,
+                        blocks,
+                        dag.insert_qargs(&qargs),
+                        inst.clbits,
+                        inst.label.as_deref().cloned(),
+                    );
                     dag.push_back(new_inst)?
                 }
             };
+            for node in rest {
+                let NodeType::Operation(inst) = &self.dag[*node] else {
+                    panic!("sabre DAG should only contain op nodes");
+                };
+                apply_op(inst, &layout, &mut dag)?;
+            }
         }
         for swap in &self.final_swaps {
             apply_swap(swap, &mut layout, &mut dag)?;
@@ -280,7 +282,7 @@ pub struct RoutingTarget {
 impl RoutingTarget {
     pub fn from_neighbors(neighbors: Neighbors) -> Self {
         Self {
-            distance: distance_matrix(&neighbors, usize::MAX, f64::NAN),
+            distance: distance_matrix(&neighbors, usize::MAX, false, f64::NAN),
             neighbors,
         }
     }
@@ -300,13 +302,48 @@ impl RoutingTarget {
 pub struct PyRoutingTarget(pub Option<RoutingTarget>);
 #[pymethods]
 impl PyRoutingTarget {
+    #[new]
+    fn py_new() -> Self {
+        PyRoutingTarget(None)
+    }
+
+    fn __getstate__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
+        let (neighbors, partition) = self
+            .0
+            .as_ref()
+            .map(|tg| tg.neighbors.clone().take())
+            .unzip();
+        let out_dict = PyDict::new(py);
+        out_dict.set_item("neighbors", neighbors)?;
+        out_dict.set_item("partition", partition)?;
+        Ok(out_dict)
+    }
+
+    fn __setstate__(&mut self, value: Bound<PyDict>) -> PyResult<()> {
+        let neighbors = value
+            .get_item("neighbors")?
+            .map(|x| x.extract())
+            .transpose()?;
+        let partition = value
+            .get_item("partition")?
+            .map(|x| x.extract())
+            .transpose()?;
+        let (Some(neighbors), Some(partition)) = (neighbors, partition) else {
+            return Ok(());
+        };
+        let neighbors = Neighbors::from_parts(neighbors, partition)
+            .map_err(|e| PyValueError::new_err(e.to_string()))?;
+        self.0 = Some(RoutingTarget::from_neighbors(neighbors));
+        Ok(())
+    }
+
     #[staticmethod]
-    fn from_target(target: &Target) -> PyResult<Self> {
+    pub(crate) fn from_target(target: &Target) -> PyResult<Self> {
         let coupling = match target.coupling_graph() {
             Ok(coupling) => coupling,
             Err(TargetCouplingError::AllToAll) => return Ok(Self(None)),
-            Err(e @ TargetCouplingError::MultiQ) => {
-                return Err(TranspilerError::new_err(e.to_string()))
+            Err(e @ TargetCouplingError::MultiQ(_)) => {
+                return Err(TranspilerError::new_err(e.to_string()));
             }
         };
         Ok(Self(Some(RoutingTarget::from_neighbors(
@@ -439,7 +476,10 @@ impl<'a> RoutingState<'a> {
                     }
                 }
                 InteractionKind::ControlFlow(blocks) => {
-                    let NodeType::Operation(inst) = &self.dag[node.index] else {
+                    let dag_node_id = *node.indices.first().expect(
+                        "if control-flow interactions are included, so are original DAG indices",
+                    );
+                    let NodeType::Operation(inst) = &self.dag[dag_node_id] else {
                         panic!("Sabre DAG should only contain op nodes");
                     };
                     // The control-flow blocks aren't full width, so their "virtual" qubits aren't
@@ -545,35 +585,24 @@ impl<'a> RoutingState<'a> {
         let mut decremented: IndexMap<usize, u32, ahash::RandomState> =
             IndexMap::with_hasher(ahash::RandomState::default());
         let mut i = 0;
-        let mut visit_now: Vec<NodeIndex> = Vec::new();
-        let dag = self.sabre;
         while i < to_visit.len() && self.extended_set.len() < extended_set_size {
-            // Visit runs of non-2Q gates fully before moving on to children of 2Q gates. This way,
-            // traversal order is a BFS of 2Q gates rather than of all gates.
-            visit_now.push(to_visit[i]);
-            let mut j = 0;
-            while let Some(node) = visit_now.get(j) {
-                for edge in dag.dag.edges_directed(*node, Direction::Outgoing) {
-                    let successor_node = edge.target();
-                    let successor_index = successor_node.index();
-                    *decremented.entry(successor_index).or_insert(0) += 1;
-                    self.required_predecessors[successor_index] -= 1;
-                    if self.required_predecessors[successor_index] == 0 {
-                        // TODO: this looks "through" control-flow ops without seeing them, but we
-                        // actually eagerly route control-flow blocks as soon as they're eligible, so
-                        // they should be reflected in the extended set.
-                        if let InteractionKind::TwoQ([a, b]) = &dag.dag[successor_node].kind {
-                            self.extended_set
-                                .push([a.to_phys(&self.layout), b.to_phys(&self.layout)]);
-                            to_visit.push(successor_node);
-                            continue;
-                        }
-                        visit_now.push(successor_node);
+            let node = to_visit[i];
+            for edge in self.sabre.dag.edges_directed(node, Direction::Outgoing) {
+                let successor_node = edge.target();
+                let successor_index = successor_node.index();
+                *decremented.entry(successor_index).or_insert(0) += 1;
+                self.required_predecessors[successor_index] -= 1;
+                if self.required_predecessors[successor_index] == 0 {
+                    // TODO: this looks "through" control-flow ops without seeing them, but we
+                    // actually eagerly route control-flow blocks as soon as they're eligible, so
+                    // they should be reflected in the extended set.
+                    if let InteractionKind::TwoQ([a, b]) = &self.sabre.dag[successor_node].kind {
+                        self.extended_set
+                            .push([a.to_phys(&self.layout), b.to_phys(&self.layout)]);
                     }
+                    to_visit.push(successor_node);
                 }
-                j += 1;
             }
-            visit_now.clear();
             i += 1;
         }
         for (node, amount) in decremented.iter() {

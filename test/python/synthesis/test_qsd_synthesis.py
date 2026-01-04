@@ -22,8 +22,9 @@ from qiskit import transpile
 from qiskit.circuit import QuantumCircuit
 from qiskit.quantum_info.operators import Operator
 from qiskit.synthesis.unitary import qsd
-from qiskit.circuit.library import XGate, PhaseGate, UGate, UCGate, UnitaryGate
+from qiskit.circuit.library import XGate, ZGate, PhaseGate, UGate, UCGate, UnitaryGate
 from qiskit.quantum_info import random_unitary
+from qiskit.quantum_info.operators.predicates import matrix_equal
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -248,7 +249,7 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         qc = QuantumCircuit(3)
         qc.append(gate, range(3))
         try:
-            qc.to_gate().control(1)
+            qc.to_gate().control(1, annotated=False)
         except UnboundLocalError as uerr:
             self.fail(str(uerr))
 
@@ -338,15 +339,18 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
             2 * self._qsd_l2_cx_count(num_qubits - 1) + self._qsd_ucrz(num_qubits),
         )
 
-    @combine(num_qubits=[3, 4, 5], base_gate=[XGate(), PhaseGate(0.321), UGate(0.21, 0.43, 0.65)])
+    @combine(
+        num_qubits=[3, 4, 5],
+        base_gate=[XGate(), ZGate(), PhaseGate(0.321), UGate(0.21, 0.43, 0.65)],
+    )
     def test_mc_1qubit_opt(self, num_qubits, base_gate):
-        """Create a multi-controlled X, P or U gate on num_qubits.
+        """Create a multi-controlled Z, P or U gate on num_qubits.
         This is less efficient than synthesizing MCX directly."""
 
         layout = tuple(np.random.permutation(range(num_qubits)))
         # create gate with "control" on different qubits
         qc = QuantumCircuit(num_qubits)
-        gate = base_gate.control(num_qubits - 1)
+        gate = base_gate.control(num_qubits - 1, annotated=False)
         qc.append(gate, layout)
 
         hidden_op = Operator(qc)
@@ -355,7 +359,7 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         qc2 = qsd.qs_decomposition(hidden_mat)
         cqc2 = transpile(qc2, basis_gates=["u", "cx"], optimization_level=0)
         op2 = Operator(qc2)
-        self.assertEqual(hidden_op, op2)
+        self.assertTrue(matrix_equal(hidden_op.to_matrix(), op2.to_matrix(), atol=1e-8))
         self.assertLessEqual(
             cqc2.count_ops().get("cx", 0),
             2 * self._qsd_l2_cx_count(num_qubits - 1) + self._qsd_ucrz(num_qubits),
@@ -369,7 +373,7 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         # create gate with "control" on different qubits
         base_gate = UnitaryGate(random_unitary(4, seed=1234))
         qc = QuantumCircuit(num_qubits)
-        gate = base_gate.control(num_qubits - 2)
+        gate = base_gate.control(num_qubits - 2, annotated=False)
         qc.append(gate, layout)
 
         hidden_op = Operator(qc)
@@ -378,7 +382,7 @@ class TestQuantumShannonDecomposer(QiskitTestCase):
         qc2 = qsd.qs_decomposition(hidden_mat)
         cqc2 = transpile(qc2, basis_gates=["u", "cx"], optimization_level=0)
         op2 = Operator(qc2)
-        self.assertEqual(hidden_op, op2)
+        self.assertTrue(matrix_equal(hidden_op.to_matrix(), op2.to_matrix(), atol=1e-8))
         self.assertLessEqual(
             cqc2.count_ops().get("cx", 0),
             2 * self._qsd_l2_cx_count(num_qubits - 1) + self._qsd_ucrz(num_qubits),

@@ -10,7 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use hashbrown::{HashMap, HashSet};
+use hashbrown::HashMap;
+use pyo3::IntoPyObjectExt;
 use pyo3::exceptions::PyValueError;
 use std::cmp::Ordering;
 use std::cmp::PartialOrd;
@@ -24,21 +25,24 @@ use uuid::Uuid;
 use num_complex::Complex64;
 use pyo3::prelude::*;
 
+use crate::parameter::parameter_expression::PyParameter;
+use crate::parameter::parameter_expression::PyParameterVectorElement;
+
 // epsilon for SymbolExpr is heuristically defined
 pub const SYMEXPR_EPSILON: f64 = f64::EPSILON * 8.0;
 
 #[derive(Debug, Clone)]
 pub struct Symbol {
-    name: String,                 // the name of the symbol
-    pub uuid: Uuid,               // the unique identifier
-    pub index: Option<u32>,       // an optional index, if part of a vector
-    pub vector: Option<PyObject>, // Python only: a reference to the vector, if it is an element
+    name: String,                  // the name of the symbol
+    pub uuid: Uuid,                // the unique identifier
+    pub index: Option<u32>,        // an optional index, if part of a vector
+    pub vector: Option<Py<PyAny>>, // Python only: a reference to the vector, if it is an element
 }
 
 /// Custom implementations of Eq, PartialEq, PartialOrd and Hash to ignore the ``vector`` field
 impl PartialEq for Symbol {
     fn eq(&self, other: &Self) -> bool {
-        self.name() == other.name() && self.uuid == other.uuid && self.index == other.index
+        self.name == other.name && self.uuid == other.uuid && self.index == other.index
     }
 }
 
@@ -53,6 +57,34 @@ impl PartialOrd for Symbol {
 impl Hash for Symbol {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         (&self.name, self.uuid, self.index).hash(state);
+    }
+}
+
+impl<'a, 'py> FromPyObject<'a, 'py> for Symbol {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
+        if let Ok(py_vector_element) = ob.extract::<PyParameterVectorElement>() {
+            Ok(py_vector_element.symbol().clone())
+        } else {
+            ob.extract::<PyParameter>()
+                .map(|ob| ob.symbol().clone())
+                .map_err(PyErr::from)
+        }
+    }
+}
+
+impl<'py> IntoPyObject<'py> for Symbol {
+    type Target = PyAny; // to cover PyParameter and PyParameterVectorElement
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        match (&self.index, &self.vector) {
+            (Some(_), Some(_)) => Py::new(py, PyParameterVectorElement::from_symbol(self.clone()))?
+                .into_bound_py_any(py),
+            _ => Py::new(py, PyParameter::from_symbol(self.clone()))?.into_bound_py_any(py),
+        }
     }
 }
 
@@ -71,7 +103,7 @@ impl Symbol {
         name: &str,
         uuid: Option<u128>,
         index: Option<u32>,
-        vector: Option<PyObject>,
+        vector: Option<Py<PyAny>>,
     ) -> PyResult<Self> {
         if index.is_some() != vector.is_some() {
             return Err(PyValueError::new_err(
@@ -87,11 +119,16 @@ impl Symbol {
         })
     }
 
-    pub fn name(&self) -> String {
-        let base_name = &self.name;
-        match self.index {
-            Some(i) => format!("{base_name}[{i}]"),
-            None => base_name.clone(),
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn repr(&self, with_uuid: bool) -> String {
+        match (self.index, with_uuid) {
+            (Some(i), true) => format!("{}[{}]_{}", self.name, i, self.uuid.as_u128()),
+            (Some(i), false) => format!("{}[{}]", self.name, i),
+            (None, true) => format!("{}_{}", self.name, self.uuid.as_u128()),
+            (None, false) => self.name.clone(),
         }
     }
 }
@@ -99,7 +136,7 @@ impl Symbol {
 /// node types of expression tree
 #[derive(Debug, Clone)]
 pub enum SymbolExpr {
-    Symbol(Symbol),
+    Symbol(Arc<Symbol>),
     Value(Value),
     Unary {
         op: UnaryOp,
@@ -113,25 +150,23 @@ pub enum SymbolExpr {
 }
 
 /// Value type, can be integer, real or complex number
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, IntoPyObject, IntoPyObjectRef)]
 pub enum Value {
     Real(f64),
     Int(i64),
     Complex(Complex64),
 }
 
-impl<'py> FromPyObject<'py> for Value {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for Value {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         if let Ok(i) = ob.extract::<i64>() {
             Ok(Value::Int(i))
         } else if let Ok(r) = ob.extract::<f64>() {
             Ok(Value::Real(r))
-        } else if let Ok(c) = ob.extract::<Complex64>() {
-            Ok(Value::Complex(c))
         } else {
-            Err(PyValueError::new_err(
-                "Could not cast Bound<PyAny> to Value.",
-            ))
+            ob.extract::<Complex64>().map(Value::Complex)
         }
     }
 }
@@ -263,9 +298,9 @@ impl fmt::Display for SymbolExpr {
 
 impl SymbolExpr {
     /// bind value to symbol node
-    pub fn bind(&self, maps: &HashMap<Symbol, Value>) -> SymbolExpr {
+    pub fn bind(&self, maps: &HashMap<&Symbol, Value>) -> SymbolExpr {
         match self {
-            SymbolExpr::Symbol(e) => match maps.get(e) {
+            SymbolExpr::Symbol(e) => match maps.get(e.as_ref()) {
                 Some(v) => SymbolExpr::Value(*v),
                 None => self.clone(),
             },
@@ -293,7 +328,7 @@ impl SymbolExpr {
     /// does not allow duplicate names with different UUID
     pub fn subs(&self, maps: &HashMap<Symbol, SymbolExpr>) -> SymbolExpr {
         match self {
-            SymbolExpr::Symbol(e) => match maps.get(e) {
+            SymbolExpr::Symbol(e) => match maps.get(e.as_ref()) {
                 Some(v) => v.clone(),
                 None => self.clone(),
             },
@@ -409,7 +444,7 @@ impl SymbolExpr {
     /// calculate derivative of the equantion for a symbol passed by param
     pub fn derivative(&self, param: &Symbol) -> Result<SymbolExpr, String> {
         if let SymbolExpr::Symbol(s) = self {
-            if s == param {
+            if s.as_ref() == param {
                 return Ok(SymbolExpr::Value(Value::Real(1.0)));
             }
         }
@@ -621,27 +656,23 @@ impl SymbolExpr {
         }
     }
 
-    /// Return hashset of all parameters this equation contains.
-    pub fn parameters(&self) -> HashSet<Symbol> {
+    /// Iterate over all symbols this equation contains.
+    pub fn iter_symbols(&self) -> Box<dyn Iterator<Item = &Symbol> + '_> {
+        // This could maybe be more elegantly resolved with a SymbolIter type>
         match self {
-            SymbolExpr::Symbol(e) => HashSet::from_iter([e.clone()]),
-            SymbolExpr::Value(_) => HashSet::<Symbol>::new(),
-            SymbolExpr::Unary { op: _, expr } => expr.parameters(),
+            SymbolExpr::Symbol(e) => Box::new(::std::iter::once(e.as_ref())),
+            SymbolExpr::Value(_) => Box::new(::std::iter::empty()),
+            SymbolExpr::Unary { op: _, expr } => expr.iter_symbols(),
             SymbolExpr::Binary { op: _, lhs, rhs } => {
-                let mut parameters = HashSet::<Symbol>::new();
-                for s in lhs.parameters().union(&rhs.parameters()) {
-                    parameters.insert(s.clone());
-                }
-                parameters
+                Box::new(lhs.iter_symbols().chain(rhs.iter_symbols()))
             }
         }
     }
 
     /// Map of parameter name to the parameter.
     pub fn name_map(&self) -> HashMap<String, Symbol> {
-        self.parameters()
-            .iter()
-            .map(|param| (param.name(), param.clone()))
+        self.iter_symbols()
+            .map(|param| (param.repr(false), param.clone()))
             .collect()
     }
 
@@ -663,7 +694,7 @@ impl SymbolExpr {
     /// check if a symbol is in this equation
     pub fn has_symbol(&self, param: &Symbol) -> bool {
         match self {
-            SymbolExpr::Symbol(e) => e.eq(param),
+            SymbolExpr::Symbol(e) => e.as_ref().eq(param),
             SymbolExpr::Value(_) => false,
             SymbolExpr::Unary { op: _, expr } => expr.has_symbol(param),
             SymbolExpr::Binary { op: _, lhs, rhs } => lhs.has_symbol(param) | rhs.has_symbol(param),
@@ -733,13 +764,7 @@ impl SymbolExpr {
 
     /// check if real number or not
     pub fn is_real(&self) -> Option<bool> {
-        match self.eval(true) {
-            Some(v) => match v {
-                Value::Real(_) | Value::Int(_) => Some(true),
-                Value::Complex(c) => Some((-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.im)),
-            },
-            None => None,
-        }
+        self.eval(true).map(|value| value.is_real())
     }
 
     /// check if integer or not
@@ -1101,19 +1126,19 @@ impl SymbolExpr {
                                             return match t.mul_opt(l_rhs, recursive) {
                                                 Some(e) => Some(e),
                                                 None => Some(_mul(t, l_rhs.as_ref().clone())),
-                                            }
+                                            };
                                         }
                                         (BinaryOp::Div, BinaryOp::Div) => {
                                             return match t.div_opt(l_rhs, recursive) {
                                                 Some(e) => Some(e),
                                                 None => Some(_div(t, l_rhs.as_ref().clone())),
-                                            }
+                                            };
                                         }
                                         (BinaryOp::Pow, BinaryOp::Pow) => {
                                             return match t.pow_opt(l_rhs) {
                                                 Some(e) => Some(e),
                                                 None => Some(_pow(t, l_rhs.as_ref().clone())),
-                                            }
+                                            };
                                         }
                                         (_, _) => (),
                                     }
@@ -1466,19 +1491,19 @@ impl SymbolExpr {
                                             return match t.mul_opt(l_rhs, recursive) {
                                                 Some(e) => Some(e),
                                                 None => Some(_mul(t, l_rhs.as_ref().clone())),
-                                            }
+                                            };
                                         }
                                         (BinaryOp::Div, BinaryOp::Div) => {
                                             return match t.div_opt(l_rhs, recursive) {
                                                 Some(e) => Some(e),
                                                 None => Some(_div(t, l_rhs.as_ref().clone())),
-                                            }
+                                            };
                                         }
                                         (BinaryOp::Pow, BinaryOp::Pow) => {
                                             return match t.pow_opt(l_rhs) {
                                                 Some(e) => Some(e),
                                                 None => Some(_pow(t, l_rhs.as_ref().clone())),
-                                            }
+                                            };
                                         }
                                         (_, _) => (),
                                     }
@@ -2471,10 +2496,7 @@ impl SymbolExpr {
 
     fn repr(&self, with_uuid: bool) -> String {
         match self {
-            SymbolExpr::Symbol(e) => match with_uuid {
-                true => format!("{}_{}", e.name(), e.uuid.as_u128()),
-                false => e.name(),
-            },
+            SymbolExpr::Symbol(e) => e.repr(with_uuid),
             SymbolExpr::Value(e) => e.to_string(),
             SymbolExpr::Unary { op, expr } => {
                 let s = expr.repr(with_uuid);
@@ -2867,7 +2889,7 @@ impl PartialOrd for SymbolExpr {
 
 impl From<&str> for SymbolExpr {
     fn from(v: &str) -> Self {
-        SymbolExpr::Symbol(Symbol::new(v, None, None))
+        SymbolExpr::Symbol(Arc::new(Symbol::new(v, None, None)))
     }
 }
 
@@ -2906,6 +2928,13 @@ impl Value {
             Value::Real(e) => *e,
             Value::Int(e) => *e as f64,
             Value::Complex(e) => e.re,
+        }
+    }
+
+    pub fn is_real(&self) -> bool {
+        match self {
+            Value::Real(_) | Value::Int(_) => true,
+            Value::Complex(c) => (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.im),
         }
     }
 
@@ -3308,7 +3337,7 @@ impl Value {
                 SymbolExpr::Value(Value::Real(c.re)),
                 _mul(
                     SymbolExpr::Value(Value::Real(c.im)),
-                    SymbolExpr::Symbol(Symbol::new("I", None, None)),
+                    SymbolExpr::Symbol(Arc::new(Symbol::new("I", None, None))),
                 ),
             ),
             _ => SymbolExpr::Value(*self),
@@ -3606,9 +3635,9 @@ impl PartialOrd for Value {
 pub fn replace_symbol(symbol_expr: &SymbolExpr, name_map: &HashMap<String, Symbol>) -> SymbolExpr {
     match symbol_expr {
         SymbolExpr::Symbol(existing_symbol) => {
-            let name = existing_symbol.name();
+            let name = existing_symbol.repr(false);
             if let Some(new_symbol) = name_map.get(&name) {
-                SymbolExpr::Symbol(new_symbol.clone())
+                SymbolExpr::Symbol(Arc::new(new_symbol.clone()))
             } else {
                 symbol_expr.clone()
             }

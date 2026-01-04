@@ -16,13 +16,13 @@ use std::sync::Arc;
 use nom::branch::{alt, permutation};
 use nom::bytes::complete::tag;
 use nom::character::complete::{char, digit1, multispace0};
-use nom::combinator::{all_consuming, map_res, opt, recognize};
-use nom::error::{convert_error, VerboseError};
+use nom::combinator::{all_consuming, opt, recognize};
 use nom::multi::{many0, many0_count};
 use nom::number::complete::double;
-use nom::sequence::{delimited, pair, tuple};
-use nom::IResult;
-use nom::Parser;
+use nom::sequence::{delimited, pair};
+use nom::{IResult, Parser};
+use nom_language::error::{VerboseError, convert_error};
+use nom_unicode::complete::{alpha1, alphanumeric1};
 
 use num_complex::c64;
 
@@ -32,25 +32,14 @@ use super::symbol_expr::Symbol;
 
 // parsing value as real
 fn parse_value(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
-    map_res(double, |v| -> Result<SymbolExpr, &str> {
-        Ok(SymbolExpr::Value(Value::Real(v)))
-    })(s)
+    double.map(|v| SymbolExpr::Value(Value::Real(v))).parse(s)
 }
 
 // parsing imaginary part of complex number as real
 fn parse_imaginary_value(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
-    map_res(
-        tuple((double, char('i'))),
-        |(v, _)| -> Result<SymbolExpr, &str> { Ok(SymbolExpr::Value(Value::Complex(c64(0.0, v)))) },
-    )(s)
-}
-
-fn alpha1(i: &str) -> IResult<&str, &str, VerboseError<&str>> {
-    nom_unicode::complete::alpha1(i)
-}
-
-fn alphanumeric1(i: &str) -> IResult<&str, &str, VerboseError<&str>> {
-    nom_unicode::complete::alphanumeric1(i)
+    (double, char('i'))
+        .map(|(v, _)| SymbolExpr::Value(Value::Complex(c64(0.0, v))))
+        .parse(s)
 }
 
 fn parse_symbol_string(s: &str) -> IResult<&str, &str, VerboseError<&str>> {
@@ -64,38 +53,31 @@ fn parse_symbol_string(s: &str) -> IResult<&str, &str, VerboseError<&str>> {
 // parse string as symbol
 // symbol starting with alphabet and can contain numbers and '_', '\', '$', '[', ']'
 fn parse_symbol(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
-    map_res(
-        tuple((
-            parse_symbol_string,
-            opt(delimited(char('['), digit1, char(']'))),
-        )),
-        |(v, array_idx)| -> Result<SymbolExpr, &str> {
-            match array_idx {
-                Some(i) => {
-                    // currently array index is stored as string
-                    // if array indexing is required in the future
-                    // add indexing in Symbol struct
-                    let i_u32 = i.parse::<u32>().map_err(|_| "Failed to parse index.")?;
-                    Ok(SymbolExpr::Symbol(Symbol::new(v, None, Some(i_u32))))
-                }
-                None => Ok(SymbolExpr::Symbol(Symbol::new(v, None, None))),
-            }
-        },
-    )(s)
+    (
+        parse_symbol_string,
+        opt(delimited(char('['), digit1, char(']'))),
+    )
+        .map_res(|(v, array_idx)| -> Result<_, &str> {
+            let index = array_idx
+                .map(|i| i.parse::<u32>())
+                .transpose()
+                .map_err(|_| "index out of bounds")?;
+            Ok(SymbolExpr::Symbol(Arc::new(Symbol::new(v, None, index))))
+        })
+        .parse(s)
 }
 
 // parse unary operations
 fn parse_unary(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
-    map_res(
-        tuple((
-            delimited(multispace0, alphanumeric1, multispace0),
-            delimited(
-                char('('),
-                delimited(multispace0, parse_addsub, multispace0),
-                char(')'),
-            ),
-        )),
-        |(v, expr)| -> Result<SymbolExpr, &str> {
+    (
+        delimited(multispace0, alphanumeric1, multispace0),
+        delimited(
+            char('('),
+            delimited(multispace0, parse_addsub, multispace0),
+            char(')'),
+        ),
+    )
+        .map_res(|(v, expr)| {
             let op = match v {
                 "sin" => UnaryOp::Sin,
                 "asin" => UnaryOp::Asin,
@@ -114,38 +96,37 @@ fn parse_unary(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
                 op,
                 expr: Arc::new(expr),
             })
-        },
-    )(s)
+        })
+        .parse(s)
 }
 
 // sign is separetely parsed in this function
 fn parse_sign(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
-    map_res(
-        tuple((
-            delimited(multispace0, alt((char('-'), char('+'))), multispace0),
-            alt((
-                parse_imaginary_value,
-                parse_value,
-                parse_unary,
-                parse_symbol,
-                delimited(
-                    char('('),
-                    delimited(multispace0, parse_addsub, multispace0),
-                    char(')'),
-                ),
-            )),
+    (
+        delimited(multispace0, alt((char('-'), char('+'))), multispace0),
+        alt((
+            parse_imaginary_value,
+            parse_value,
+            parse_unary,
+            parse_symbol,
+            delimited(
+                char('('),
+                delimited(multispace0, parse_addsub, multispace0),
+                char(')'),
+            ),
         )),
-        |(s, expr)| -> Result<SymbolExpr, &str> {
-            if s == '+' {
-                Ok(expr)
+    )
+        .map(|(op, expr)| {
+            if op == '+' {
+                expr
             } else {
-                Ok(SymbolExpr::Unary {
+                SymbolExpr::Unary {
                     op: UnaryOp::Neg,
                     expr: Arc::new(expr),
-                })
+                }
             }
-        },
-    )(s)
+        })
+        .parse(s)
 }
 
 fn parse_expr(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
@@ -160,97 +141,86 @@ fn parse_expr(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
             delimited(multispace0, parse_addsub, multispace0),
             char(')'),
         ),
-    ))(s)
+    ))
+    .parse(s)
 }
 
 // parse pow
 fn parse_pow(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
-    map_res(
-        permutation((
-            parse_expr,
-            many0(map_res(
-                tuple((multispace0, tag("**"), multispace0, parse_expr)),
-                |(_, _, _, rhs)| -> Result<SymbolExpr, &str> { Ok(rhs) },
-            )),
-        )),
-        |(lhs, rvec)| -> Result<SymbolExpr, &str> {
-            let accum = rvec.iter().fold(lhs, |acc, x| acc.pow(x));
-            Ok(accum)
-        },
-    )(s)
+    permutation((
+        parse_expr,
+        many0((multispace0, tag("**"), multispace0, parse_expr).map(|(_, _, _, rhs)| rhs)),
+    ))
+    .map(|(lhs, rvec)| rvec.iter().fold(lhs, |acc, x| acc.pow(x)))
+    .parse(s)
 }
 
 // parse mul and div
 fn parse_muldiv(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
-    map_res(
-        permutation((
-            parse_pow,
-            many0(map_res(
-                tuple((
-                    multispace0,
-                    alt((tag("*"), tag("/"))),
-                    multispace0,
-                    parse_pow,
-                )),
-                |(_, opr, _, rhs)| -> Result<(BinaryOp, SymbolExpr), &str> {
+    permutation((
+        parse_pow,
+        many0(
+            (
+                multispace0,
+                alt((tag("*"), tag("/"))),
+                multispace0,
+                parse_pow,
+            )
+                .map(|(_, opr, _, rhs)| {
                     if opr == "*" {
-                        Ok((BinaryOp::Mul, rhs))
+                        (BinaryOp::Mul, rhs)
                     } else {
-                        Ok((BinaryOp::Div, rhs))
+                        (BinaryOp::Div, rhs)
                     }
-                },
-            )),
-        )),
-        |(lhs, rvec)| -> Result<SymbolExpr, &str> {
-            let accum = rvec.iter().fold(lhs, |acc, x| match x.0 {
-                BinaryOp::Mul => &acc * &x.1,
-                BinaryOp::Div => &acc / &x.1,
-                _ => acc,
-            });
-            Ok(accum)
-        },
-    )(s)
+                }),
+        ),
+    ))
+    .map(|(lhs, rvec)| {
+        rvec.iter().fold(lhs, |acc, x| match x.0 {
+            BinaryOp::Mul => &acc * &x.1,
+            BinaryOp::Div => &acc / &x.1,
+            _ => acc,
+        })
+    })
+    .parse(s)
 }
 
 // parse add and sub
 fn parse_addsub(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
-    map_res(
-        permutation((
-            parse_muldiv,
-            many0(map_res(
-                tuple((
-                    multispace0,
-                    alt((char('+'), char('-'))),
-                    multispace0,
-                    parse_muldiv,
-                )),
-                |(_, opr, _, rhs)| -> Result<(BinaryOp, SymbolExpr), &str> {
+    permutation((
+        parse_muldiv,
+        many0(
+            (
+                multispace0,
+                alt((char('+'), char('-'))),
+                multispace0,
+                parse_muldiv,
+            )
+                .map(|(_, opr, _, rhs)| {
                     if opr == '+' {
-                        Ok((BinaryOp::Add, rhs))
+                        (BinaryOp::Add, rhs)
                     } else {
-                        Ok((BinaryOp::Sub, rhs))
+                        (BinaryOp::Sub, rhs)
                     }
-                },
-            )),
-        )),
-        |(lhs, rvec)| -> Result<SymbolExpr, &str> {
-            let accum = rvec.iter().fold(lhs, |acc, x| match x.0 {
-                BinaryOp::Add => &acc + &x.1,
-                BinaryOp::Sub => &acc - &x.1,
-                _ => acc,
-            });
-            Ok(accum)
-        },
-    )(s)
+                }),
+        ),
+    ))
+    .map(|(lhs, rvec)| {
+        rvec.iter().fold(lhs, |acc, x| match x.0 {
+            BinaryOp::Add => &acc + &x.1,
+            BinaryOp::Sub => &acc - &x.1,
+            _ => acc,
+        })
+    })
+    .parse(s)
 }
 
 pub fn parse_expression(s: &str) -> Result<SymbolExpr, String> {
-    let mut parser = all_consuming(parse_addsub);
-    match parser(s) {
+    match all_consuming(parse_addsub).parse(s) {
         Ok(o) => Ok(o.1),
         Err(e) => match e {
             nom::Err::Error(e) => Err(convert_error(s, e)),
-            _ => Err(format!(" Error occurs while parsing expression {s}.")),
+            _ => Err(format!("Error while parsing '{s}': {e}")),
         },
     }
 }

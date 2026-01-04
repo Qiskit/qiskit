@@ -13,9 +13,11 @@
 
 """Test cases for qpy serialization."""
 
+import gzip
 import io
 import json
 import random
+import tempfile
 import unittest
 import warnings
 import re
@@ -209,7 +211,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qc = QuantumCircuit(2)
         unitary = np.array([[0, 1], [1, 0]])
         gate = UnitaryGate(unitary)
-        qc.append(gate.control(1), [0, 1])
+        qc.append(gate.control(1, annotated=False), [0, 1])
 
         with io.BytesIO() as qpy_file:
             dump(qc, qpy_file)
@@ -1439,7 +1441,7 @@ class TestLoadFromQPY(QiskitTestCase):
     def test_controlled_gate(self):
         """Test a custom controlled gate."""
         qc = QuantumCircuit(3)
-        controlled_gate = DCXGate().control(1)
+        controlled_gate = DCXGate().control(1, annotated=False)
         qc.append(controlled_gate, [0, 1, 2])
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
@@ -1451,7 +1453,7 @@ class TestLoadFromQPY(QiskitTestCase):
     def test_controlled_gate_open_controls(self):
         """Test a controlled gate with open controls round-trips exactly."""
         qc = QuantumCircuit(3)
-        controlled_gate = DCXGate().control(1, ctrl_state=0)
+        controlled_gate = DCXGate().control(1, ctrl_state=0, annotated=False)
         qc.append(controlled_gate, [0, 1, 2])
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
@@ -1471,7 +1473,7 @@ class TestLoadFromQPY(QiskitTestCase):
 
         qc = QuantumCircuit(3)
         qc.append(custom_gate, [0])
-        controlled_gate = custom_gate.control(2)
+        controlled_gate = custom_gate.control(2, annotated=False)
         qc.append(controlled_gate, [0, 1, 2])
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
@@ -1560,7 +1562,7 @@ class TestLoadFromQPY(QiskitTestCase):
 
         qc = QuantumCircuit(3)
         for i in range(3):
-            c2ry = RYGate(i + 1).control(2)
+            c2ry = RYGate(i + 1).control(2, annotated=False)
             qc.append(c2ry, [i % 3, (i + 1) % 3, (i + 2) % 3])
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
@@ -1940,8 +1942,8 @@ class TestLoadFromQPY(QiskitTestCase):
         outer_2.append(inner_2.to_gate(), [0], [])
 
         qc = QuantumCircuit(2)
-        qc.append(outer_1.to_gate().control(1), [0, 1], [])
-        qc.append(outer_2.to_gate().control(1), [0, 1], [])
+        qc.append(outer_1.to_gate().control(1, annotated=False), [0, 1], [])
+        qc.append(outer_2.to_gate().control(1, annotated=False), [0, 1], [])
 
         with io.BytesIO() as fptr:
             dump(qc, fptr)
@@ -2249,6 +2251,40 @@ class TestLoadFromQPY(QiskitTestCase):
             self.assertRaisesRegex(UnsupportedFeatureForVersion, "version 14 is required.*stretch"),
         ):
             dump(qc, fptr, version=version)
+
+    @ddt.idata(range(max(QPY_COMPATIBILITY_VERSION, 14), 16))
+    def test_pre_v16_rejects_ps_duration(self, version):
+        """Test that dumping to older QPY versions rejects Duration.ps."""
+        from qiskit.circuit import Duration
+
+        qc = QuantumCircuit()
+        with qc.if_test(expr.less(Duration.ns(1000), Duration.ps(1))):
+            pass
+        with (
+            io.BytesIO() as fptr,
+            self.assertRaisesRegex(
+                UnsupportedFeatureForVersion, "version 16 is required.*Duration.ps"
+            ),
+        ):
+            dump(qc, fptr, version=version)
+
+    def test_roundtrip_from_gzip(self):
+        """Test that we can write out and read from a stdlib gzip file.
+
+        Regression test of https://github.com/Qiskit/qiskit/issues/15157."""
+        qc = QuantumCircuit(2, 2, name="first")
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure(qc.qubits, qc.clbits)
+        circuits = [qc, qc.copy(name="second")]
+        with tempfile.TemporaryFile() as base_fptr:
+            with gzip.open(base_fptr, mode="w+b") as fptr:
+                dump(circuits, fptr)
+            base_fptr.seek(0)
+            with gzip.open(base_fptr, mode="r+b") as fptr:
+                out_circuits = load(fptr)
+        self.assertEqual(circuits, out_circuits)
+        self.assertEqual([qc.name for qc in circuits], [qc.name for qc in out_circuits])
 
 
 class TestSymengineLoadFromQPY(QiskitTestCase):

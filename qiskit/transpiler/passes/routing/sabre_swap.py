@@ -245,6 +245,10 @@ class SabreSwap(TransformationPass):
         self.property_set["final_layout"] = (
             layout
             if (prev := self.property_set["final_layout"]) is None
-            else layout.compose(prev, dag.qubits)
+            # The "final layout" can be thought of as a "comes from" permutation that you apply at
+            # the end of the circuit to invert the routing.  So if there's an existing one, what we
+            # apply at the end of the circuit needs to set the circuit qubits so they "come from"
+            # the previous one, then those "come from" the one we've just added.
+            else prev.compose(layout, dag.qubits)
         )
         return dag

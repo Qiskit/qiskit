@@ -13,7 +13,7 @@
 use nalgebra::{Matrix2, Matrix3, Matrix3x1};
 use ndarray::ArrayView2;
 use num_complex::{Complex64, ComplexFloat};
-use qiskit_circuit::operations::{Operation, Param, StandardGate};
+use qiskit_circuit::operations::{Param, StandardGate};
 use std::{
     f64::consts::{FRAC_1_SQRT_2, FRAC_PI_2, FRAC_PI_4, FRAC_PI_8},
     ops::Div,
@@ -94,7 +94,7 @@ fn rotation_axis_from_so3(matrix: &Matrix3<f64>, do_checks: bool) -> Matrix3x1<f
     let index = axis
         .iter()
         .enumerate()
-        .find(|(_, &el)| el.abs() > eps)
+        .find(|&(_, &el)| el.abs() > eps)
         .expect("At least one element must be nonzero.")
         .0;
     match index {

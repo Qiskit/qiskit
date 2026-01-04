@@ -12,54 +12,13 @@
 
 use crate::bit::{ClassicalRegister, Register, ShareableClbit};
 use crate::classical::expr;
+use crate::operations::{Condition, SwitchTarget};
 use hashbrown::{HashMap, HashSet};
+use num_bigint::BigUint;
+use num_traits::Num;
+use pyo3::PyResult;
 use pyo3::prelude::*;
-use pyo3::{Bound, FromPyObject, PyAny, PyResult};
 use std::cell::RefCell;
-
-/// A control flow operation's condition.
-///
-/// TODO: move this to control flow mod once that's in Rust.
-#[derive(IntoPyObject)]
-pub(crate) enum Condition {
-    Bit(ShareableClbit, usize),
-    Register(ClassicalRegister, usize),
-    Expr(expr::Expr),
-}
-
-impl<'py> FromPyObject<'py> for Condition {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        if let Ok((bit, value)) = ob.extract::<(ShareableClbit, usize)>() {
-            Ok(Condition::Bit(bit, value))
-        } else if let Ok((register, value)) = ob.extract::<(ClassicalRegister, usize)>() {
-            Ok(Condition::Register(register, value))
-        } else {
-            Ok(Condition::Expr(ob.extract()?))
-        }
-    }
-}
-
-/// A control flow operation's target.
-///
-/// TODO: move this to control flow mod once that's in Rust.
-#[derive(IntoPyObject)]
-pub(crate) enum Target {
-    Bit(ShareableClbit),
-    Register(ClassicalRegister),
-    Expr(expr::Expr),
-}
-
-impl<'py> FromPyObject<'py> for Target {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        if let Ok(bit) = ob.extract::<ShareableClbit>() {
-            Ok(Target::Bit(bit))
-        } else if let Ok(register) = ob.extract::<ClassicalRegister>() {
-            Ok(Target::Register(register))
-        } else {
-            Ok(Target::Expr(ob.extract()?))
-        }
-    }
-}
 
 pub(crate) struct VariableMapper {
     target_cregs: Vec<ClassicalRegister>,
@@ -118,7 +77,7 @@ impl VariableMapper {
                 if !allow_reorder {
                     return Ok(Condition::Register(
                         self.map_register(target, &mut add_register)?,
-                        *value,
+                        value.clone(),
                     ));
                 }
                 // This is maintaining the legacy behavior of `DAGCircuit.compose`.  We don't
@@ -171,7 +130,7 @@ impl VariableMapper {
 
                 Condition::Register(
                     mapped_theirs,
-                    usize::from_str_radix(&mapped_str, 2).unwrap(),
+                    BigUint::from_str_radix(&mapped_str, 2).unwrap(),
                 )
             }
         })
@@ -179,16 +138,20 @@ impl VariableMapper {
 
     /// Map the real-time variables in a `target` of a `SwitchCaseOp` to the new
     /// circuit.
-    pub fn map_target<F>(&self, target: &Target, mut add_register: F) -> PyResult<Target>
+    pub fn map_target<F>(
+        &self,
+        target: &SwitchTarget,
+        mut add_register: F,
+    ) -> PyResult<SwitchTarget>
     where
         F: FnMut(&ClassicalRegister) -> PyResult<()>,
     {
         Ok(match target {
-            Target::Bit(bit) => Target::Bit(self.bit_map.get(bit).cloned().unwrap()),
-            Target::Register(register) => {
-                Target::Register(self.map_register(register, &mut add_register)?)
+            SwitchTarget::Bit(bit) => SwitchTarget::Bit(self.bit_map.get(bit).cloned().unwrap()),
+            SwitchTarget::Register(register) => {
+                SwitchTarget::Register(self.map_register(register, &mut add_register)?)
             }
-            Target::Expr(expr) => Target::Expr(self.map_expr(expr, &mut add_register)?),
+            SwitchTarget::Expr(expr) => SwitchTarget::Expr(self.map_expr(expr, &mut add_register)?),
         })
     }
 

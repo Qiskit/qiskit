@@ -71,6 +71,11 @@ real_values = [0.41, 0.9, -0.83, math.pi, -math.pi / 124, -42.42]
 class TestParameterExpression(QiskitTestCase):
     """Test parameter expression."""
 
+    @ddt.data(param_x, param_x + param_y, (param_x + 1.0).bind({param_x: 1.0}))
+    def test_num_parameters(self, expr):
+        """Do the two ways of getting the number of unbound parameters agree?"""
+        self.assertEqual(len(expr.parameters), expr.num_parameters)
+
     @combine(
         left=operands,
         right=operands,
@@ -466,6 +471,27 @@ class TestParameterExpression(QiskitTestCase):
 
         with self.assertRaises(RuntimeError):
             _ = expr.gradient(x)
+
+    def test_gradient_constant_derivatives(self):
+        """Test gradient method returns numeric values for constant derivatives."""
+        x = Parameter("x")
+        y = Parameter("y")
+
+        test_cases = [
+            (x, x, 1.0),
+            (x + 0, x, 1.0),
+            (0 * x, x, 0.0),
+            (x / 2, x, 0.5),
+            (x - x, x, 0.0),
+            (5 + x - x, x, 0.0),
+            (2 * x + y - x, x, 1.0),
+        ]
+
+        for expr, param, expected in test_cases:
+            with self.subTest(expr=str(expr), param=str(param)):
+                result = expr.gradient(param)
+                self.assertIsInstance(result, (int, float, complex))
+                self.assertEqual(result, expected)
 
     @unittest.skipUnless(HAS_SYMPY, "Sympy is required for this test")
     def test_sympify_all_ops(self):

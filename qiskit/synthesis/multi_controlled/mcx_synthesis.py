@@ -28,6 +28,7 @@ from qiskit._accelerate.synthesis.multi_controlled import (
     c4x as c4x_rs,
     synth_mcx_n_dirty_i15 as synth_mcx_n_dirty_i15_rs,
     synth_mcx_noaux_v24 as synth_mcx_noaux_v24_rs,
+    synth_mcx_noaux_hp24 as synth_mcx_noaux_hp24_rs,
 )
 
 
@@ -84,7 +85,7 @@ def synth_mcx_n_clean_m15(num_ctrl_qubits: int) -> QuantumCircuit:
 
     num_qubits = 2 * num_ctrl_qubits - 1
     q = QuantumRegister(num_qubits, name="q")
-    qc = QuantumCircuit(q, name="mcx_vchain")
+    qc = QuantumCircuit(q)
     q_controls = q[:num_ctrl_qubits]
     q_target = q[num_ctrl_qubits]
     q_ancillas = q[num_ctrl_qubits + 1 :]
@@ -135,7 +136,7 @@ def synth_mcx_1_clean_b95(num_ctrl_qubits: int) -> QuantumCircuit:
 
     num_qubits = num_ctrl_qubits + 2
     q = QuantumRegister(num_qubits, name="q")
-    qc = QuantumCircuit(q, name="mcx_recursive")
+    qc = QuantumCircuit(q)
 
     num_ctrl_qubits = len(q) - 1
     q_ancilla = q[-1]
@@ -184,7 +185,7 @@ def synth_mcx_gray_code(num_ctrl_qubits: int) -> QuantumCircuit:
 
     num_qubits = num_ctrl_qubits + 1
     q = QuantumRegister(num_qubits, name="q")
-    qc = QuantumCircuit(q, name="mcx_gray")
+    qc = QuantumCircuit(q)
     qc._append(HGate(), [q[-1]], [])
     scaled_lam = np.pi / (2 ** (num_ctrl_qubits - 1))
     bottom_gate = CU1Gate(scaled_lam)
@@ -218,6 +219,29 @@ def synth_mcx_noaux_v24(num_ctrl_qubits: int) -> QuantumCircuit:
            `arXiv:2302.06377 <https://arxiv.org/abs/2302.06377>`_
     """
     circ = QuantumCircuit._from_circuit_data(synth_mcx_noaux_v24_rs(num_ctrl_qubits))
+    return circ
+
+
+def synth_mcx_noaux_hp24(num_ctrl_qubits: int) -> QuantumCircuit:
+    r"""
+    Synthesize a multi-controlled X gate with :math:`k` controls based on
+    the work by Huang and Palsberg.
+
+    Produces a quantum circuit with :math:`k + 1` qubits. The number of CX-gates
+    is linear in :math:`k`.
+
+    Args:
+        num_ctrl_qubits: The number of control qubits.
+
+    Returns:
+        The synthesized quantum circuit.
+
+    References:
+        1. Huang and Palsberg, *Compiling Conditional Quantum Gates without Using
+           Helper Qubits*, PLDI (2024),
+           <https://dl.acm.org/doi/10.1145/3656436>`_
+    """
+    circ = QuantumCircuit._from_circuit_data(synth_mcx_noaux_hp24_rs(num_ctrl_qubits))
     return circ
 
 

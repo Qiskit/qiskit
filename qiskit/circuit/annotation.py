@@ -97,7 +97,7 @@ on circuits in an instruction-local manner, either by the user on entry to the c
 compiler pass to store information for later consumption.
 
 For example, we can write a simple transpiler pass that collects runs of single-qubit operations,
-and puts each run into a :class:`.BoxOp`, the calculates the total unitary action and attaches it as
+and puts each run into a :class:`.BoxOp`, then calculates the total unitary action and attaches it as
 a custom annotation, so the same analysis does not need to be repeated later, even if the internals
 of each block are optimized.
 

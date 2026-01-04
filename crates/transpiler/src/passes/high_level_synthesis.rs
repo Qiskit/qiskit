@@ -12,40 +12,40 @@
 
 use hashbrown::HashMap;
 use hashbrown::HashSet;
+use nalgebra::DMatrix;
 use ndarray::prelude::*;
-use num_complex::Complex;
-use numpy::IntoPyArray;
-use pyo3::intern;
-use pyo3::prelude::*;
-use pyo3::types::PyAny;
-use pyo3::types::PyTuple;
 use pyo3::Bound;
 use pyo3::IntoPyObjectExt;
+use pyo3::prelude::*;
+use pyo3::types::PyAny;
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::converters::QuantumCircuitData;
+use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::CX_GATE;
-use qiskit_circuit::imports::{HLS_SYNTHESIZE_OP_USING_PLUGINS, QS_DECOMPOSITION, QUANTUM_CIRCUIT};
-use qiskit_circuit::operations::Operation;
-use qiskit_circuit::operations::OperationRef;
-use qiskit_circuit::operations::StandardGate;
-use qiskit_circuit::operations::{radd_param, Param};
+use qiskit_circuit::imports::HLS_SYNTHESIZE_OP_USING_PLUGINS;
+use qiskit_circuit::operations::{
+    Operation, OperationRef, Param, StandardGate, StandardInstruction, radd_param,
+};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::{Clbit, Qubit, VarsMode};
+use qiskit_circuit::{BlocksMode, Clbit, Qubit, VarsMode};
+use qiskit_synthesis::pauli_product_measurement::synthesize_ppm;
 use smallvec::SmallVec;
 
+use crate::TranspilerError;
 use crate::equivalence::EquivalenceLibrary;
 use crate::target::Qargs;
 use crate::target::Target;
-use crate::TranspilerError;
 use qiskit_circuit::PhysicalQubit;
-use qiskit_synthesis::euler_one_qubit_decomposer::angles_from_unitary;
 use qiskit_synthesis::euler_one_qubit_decomposer::EulerBasis;
+use qiskit_synthesis::euler_one_qubit_decomposer::angles_from_unitary;
+use qiskit_synthesis::qsd::quantum_shannon_decomposition;
 use qiskit_synthesis::two_qubit_decompose::TwoQubitBasisDecomposer;
+
+use qiskit_circuit::instruction::{Instruction, Parameters};
 
 /// Track global qubits by their state.
 /// The global qubits are numbered by consecutive integers starting at `0`,
@@ -64,6 +64,104 @@ struct QubitTracker {
     ignored: Vec<bool>,
 }
 
+impl QubitTracker {
+    /// Sets state of the given qubits to dirty
+    fn set_dirty(&mut self, qubits: &[Qubit]) {
+        for q in qubits {
+            self.state[q.index()] = false;
+        }
+    }
+
+    /// Sets state of the given qubits to clean
+    fn set_clean(&mut self, qubits: &[Qubit]) {
+        for q in qubits {
+            self.state[q.index()] = true;
+        }
+    }
+
+    /// Disables using the given qubits
+    fn disable<T: Iterator<Item = Qubit>>(&mut self, qubits: T) {
+        for q in qubits {
+            self.enabled[q.index()] = false;
+        }
+    }
+
+    /// Enable using the given qubits
+    fn enable(&mut self, qubits: &[Qubit]) {
+        for q in qubits {
+            self.enabled[q.index()] = true;
+        }
+    }
+
+    /// Returns the number of enabled clean qubits, ignoring the given qubits
+    fn num_clean(&mut self, ignored_qubits: &[Qubit]) -> usize {
+        // TODO: check if it's faster to avoid using ignored
+        for q in ignored_qubits {
+            self.ignored[q.index()] = true;
+        }
+
+        let count = (0..self.num_qubits)
+            .filter(|q| !self.ignored[*q] && self.enabled[*q] && self.state[*q])
+            .count();
+
+        for q in ignored_qubits {
+            self.ignored[q.index()] = false;
+        }
+
+        count
+    }
+
+    /// Returns the number of enabled dirty qubits, ignoring the given qubits
+    fn num_dirty(&mut self, ignored_qubits: &[Qubit]) -> usize {
+        // TODO: check if it's faster to avoid using ignored
+        for q in ignored_qubits {
+            self.ignored[q.index()] = true;
+        }
+
+        let count = (0..self.num_qubits)
+            .filter(|q| !self.ignored[*q] && self.enabled[*q] && !self.state[*q])
+            .count();
+
+        for q in ignored_qubits {
+            self.ignored[q.index()] = false;
+        }
+
+        count
+    }
+
+    /// Get `num_qubits` enabled qubits, excluding `ignored_qubits`, and returning the
+    /// clean qubits first.
+    fn borrow(&mut self, num_qubits: usize, ignored_qubits: &[Qubit]) -> Vec<Qubit> {
+        // TODO: check if it's faster to avoid using ignored
+        for q in ignored_qubits {
+            self.ignored[q.index()] = true;
+        }
+
+        let clean_ancillas = (0..self.num_qubits)
+            .filter(|q| !self.ignored[*q] && self.enabled[*q] && self.state[*q])
+            .map(Qubit::new);
+        let dirty_ancillas = (0..self.num_qubits)
+            .filter(|q| !self.ignored[*q] && self.enabled[*q] && !self.state[*q])
+            .map(Qubit::new);
+        let out: Vec<Qubit> = clean_ancillas
+            .chain(dirty_ancillas)
+            .take(num_qubits)
+            .collect();
+
+        for q in ignored_qubits {
+            self.ignored[q.index()] = false;
+        }
+        out
+    }
+
+    /// Replaces the state of the given qubits by their state in the `other` tracker
+    fn replace_state<T: Iterator<Item = Qubit>>(&mut self, other: &QubitTracker, qubits: T) {
+        for q in qubits {
+            self.state[q.index()] = other.state[q.index()]
+        }
+    }
+}
+
 #[pymethods]
 impl QubitTracker {
     #[new]
@@ -76,95 +174,60 @@ impl QubitTracker {
         }
     }
 
-    fn num_qubits(&self) -> usize {
-        self.num_qubits
-    }
-
-    /// Sets state of the given qubits to dirty
-    fn set_dirty(&mut self, qubits: Vec<usize>) {
-        for q in qubits {
-            self.state[q] = false;
-        }
-    }
-
-    /// Sets state of the given qubits to clean
-    fn set_clean(&mut self, qubits: Vec<usize>) {
-        for q in qubits {
-            self.state[q] = true;
-        }
-    }
-
-    /// Disables using the given qubits
-    fn disable(&mut self, qubits: Vec<usize>) {
-        for q in qubits {
-            self.enabled[q] = false;
-        }
-    }
-
-    /// Enable using the given qubits
-    fn enable(&mut self, qubits: Vec<usize>) {
-        for q in qubits {
-            self.enabled[q] = true;
-        }
+    /// Returns the number of enabled dirty qubits, ignoring the given qubits
+    #[pyo3(name = "num_dirty")]
+    fn py_num_dirty(&mut self, ignored_qubits: Vec<Qubit>) -> usize {
+        self.num_dirty(&ignored_qubits)
     }
 
     /// Returns the number of enabled clean qubits, ignoring the given qubits
-    /// ToDo: check if it's faster to avoid using ignored
-    fn num_clean(&mut self, ignored_qubits: Vec<usize>) -> usize {
-        for q in &ignored_qubits {
-            self.ignored[*q] = true;
-        }
-
-        let count = (0..self.num_qubits)
-            .filter(|q| !self.ignored[*q] && self.enabled[*q] && self.state[*q])
-            .count();
-
-        for q in &ignored_qubits {
-            self.ignored[*q] = false;
-        }
-
-        count
+    #[pyo3(name = "num_clean")]
+    fn py_num_clean(&mut self, ignored_qubits: Vec<Qubit>) -> usize {
+        self.num_clean(&ignored_qubits)
     }
 
-    /// Returns the number of enabled dirty qubits, ignoring the given qubits
-    /// ToDo: check if it's faster to avoid using ignored
-    fn num_dirty(&mut self, ignored_qubits: Vec<usize>) -> usize {
-        for q in &ignored_qubits {
-            self.ignored[*q] = true;
-        }
+    /// enable using the given qubits
+    #[pyo3(name = "enable")]
+    fn py_enable(&mut self, qubits: Vec<Qubit>) {
+        self.enable(&qubits)
+    }
 
-        let count = (0..self.num_qubits)
-            .filter(|q| !self.ignored[*q] && self.enabled[*q] && !self.state[*q])
-            .count();
+    /// Disables using the given qubits
+    #[pyo3(name = "disable")]
+    fn py_disable(&mut self, qubits: Vec<Qubit>) {
+        self.disable(qubits.into_iter())
+    }
 
-        for q in &ignored_qubits {
-            self.ignored[*q] = false;
-        }
+    /// Sets state of the given qubits to dirty
+    #[pyo3(name = "set_dirty")]
+    fn py_set_dirty(&mut self, qubits: Vec<Qubit>) {
+        self.set_dirty(&qubits)
+    }
 
-        count
+    /// Sets state of the given qubits to clean
+    #[pyo3(name = "set_clean")]
+    fn py_set_clean(&mut self, qubits: Vec<Qubit>) {
+        self.set_clean(&qubits)
     }
 
     /// Get `num_qubits` enabled qubits, excluding `ignored_qubits`, and returning the
     /// clean qubits first.
-    /// ToDo: check if it's faster to avoid using ignored
-    fn borrow(&mut self, num_qubits: usize, ignored_qubits: Vec<usize>) -> Vec<usize> {
-        for q in &ignored_qubits {
-            self.ignored[*q] = true;
-        }
+    #[pyo3(name = "borrow")]
+    fn py_borrow(&mut self, num_qubits: usize, ignored_qubits: Vec<Qubit>) -> Vec<usize> {
+        self.borrow(num_qubits, &ignored_qubits)
+            .into_iter()
+            .map(|q| q.index())
+            .collect()
+    }
 
-        let clean_ancillas = (0..self.num_qubits)
-            .filter(|q| !self.ignored[*q] && self.enabled[*q] && self.state[*q]);
-        let dirty_ancillas = (0..self.num_qubits)
-            .filter(|q| !self.ignored[*q] && self.enabled[*q] && !self.state[*q]);
-        let out: Vec<usize> = clean_ancillas
-            .chain(dirty_ancillas)
-            .take(num_qubits)
-            .collect();
+    /// Replaces the state of the given qubits by their state in the `other` tracker
+    #[pyo3(name = "replace_state")]
+    fn py_replace_state(&mut self, other: &QubitTracker, qubits: Vec<Qubit>) {
+        self.replace_state(other, qubits.into_iter())
+    }
 
-        for q in &ignored_qubits {
-            self.ignored[*q] = false;
-        }
-        out
+    fn num_qubits(&self) -> usize {
+        self.num_qubits
     }
 
     /// Copies the contents
@@ -174,13 +237,6 @@ impl QubitTracker {
             state: self.state.clone(),
             enabled: self.enabled.clone(),
             ignored: self.ignored.clone(),
-        }
-    }
-
-    /// Replaces the state of the given qubits by their state in the `other` tracker
-    fn replace_state(&mut self, other: &QubitTracker, qubits: Vec<usize>) {
-        for q in qubits {
-            self.state[q] = other.state[q]
         }
     }
 
@@ -265,12 +321,16 @@ pub struct HighLevelSynthesisData {
     // Indicates whether to use custom definitions.
     #[pyo3(get)]
     unroll_definitions: bool,
+
+    // Indicates whether default synthesis methods for high-level-objects should
+    // prioritize methods for Clifford+T basis set.
+    #[pyo3(get)]
+    optimize_clifford_t: bool,
 }
 
 #[pymethods]
 impl HighLevelSynthesisData {
     #[new]
-    #[pyo3(signature=(/, hls_config, hls_plugin_manager, hls_op_names, coupling_map, target, equivalence_library, device_insts, use_physical_indices, min_qubits, unroll_definitions))]
     #[allow(clippy::too_many_arguments)]
     fn __new__(
         hls_config: Py<PyAny>,
@@ -283,6 +343,7 @@ impl HighLevelSynthesisData {
         use_physical_indices: bool,
         min_qubits: usize,
         unroll_definitions: bool,
+        optimize_clifford_t: bool,
     ) -> Self {
         Self {
             hls_config,
@@ -295,6 +356,7 @@ impl HighLevelSynthesisData {
             use_physical_indices,
             min_qubits,
             unroll_definitions,
+            optimize_clifford_t,
         }
     }
 
@@ -310,14 +372,25 @@ impl HighLevelSynthesisData {
             self.use_physical_indices,
             self.min_qubits,
             self.unroll_definitions,
+            self.optimize_clifford_t,
         )
             .into_py_any(py)
     }
 
     fn __str__(&self) -> String {
         format!(
-            "HighLevelSynthesisData(hls_config: {:?}, hls_plugin_manager: {:?}, hls_op_names: {:?}, coupling_map: {:?}, target: {:?},  equivalence_library: {:?}, device_insts: {:?}, use_physical_indices: {:?}, min_qubits: {:?}, unroll_definitions: {:?})",
-            self.hls_config, self.hls_plugin_manager, self.hls_op_names, self.coupling_map, self.target, self.equivalence_library, self.device_insts,  self.use_physical_indices, self.min_qubits, self.unroll_definitions
+            "HighLevelSynthesisData(hls_config: {:?}, hls_plugin_manager: {:?}, hls_op_names: {:?}, coupling_map: {:?}, target: {:?},  equivalence_library: {:?}, device_insts: {:?}, use_physical_indices: {:?}, min_qubits: {:?}, unroll_definitions: {:?}, optimize_clifford_t: {:?})",
+            self.hls_config,
+            self.hls_plugin_manager,
+            self.hls_op_names,
+            self.coupling_map,
+            self.target,
+            self.equivalence_library,
+            self.device_insts,
+            self.use_physical_indices,
+            self.min_qubits,
+            self.unroll_definitions,
+            self.optimize_clifford_t,
         )
     }
 }
@@ -329,7 +402,7 @@ fn all_instructions_supported(
     data: &Bound<HighLevelSynthesisData>,
     dag: &DAGCircuit,
 ) -> PyResult<bool> {
-    let ops = dag.count_ops(py, true)?;
+    let ops = dag.count_ops(true)?;
     let mut op_keys = ops.keys();
 
     let borrowed_data = data.borrow();
@@ -344,7 +417,8 @@ fn all_instructions_supported(
                 if borrowed_data.use_physical_indices {
                     return Ok(false);
                 }
-                Ok(op_keys.all(|name| target.instruction_supported(name, &Qargs::Global)))
+                Ok(op_keys
+                    .all(|name| target.instruction_supported(name, &Qargs::Global, &[], false)))
             } else {
                 // If we do not have the target, we check whether every operation
                 // in op_names is inside the basis gates.
@@ -370,9 +444,9 @@ fn instruction_supported(
                 if borrowed_data.use_physical_indices {
                     let physical_qubits: Qargs =
                         qubits.iter().map(|q| PhysicalQubit(q.0)).collect();
-                    target.instruction_supported(name, &physical_qubits)
+                    target.instruction_supported(name, &physical_qubits, &[], false)
                 } else {
-                    target.instruction_supported(name, &Qargs::Global)
+                    target.instruction_supported(name, &Qargs::Global, &[], false)
                 }
             } else {
                 borrowed_data.device_insts.contains(name)
@@ -399,7 +473,7 @@ fn definitely_skip_op(
         return true;
     }
 
-    if op.control_flow() {
+    if op.try_control_flow().is_some() {
         return false;
     }
 
@@ -438,10 +512,10 @@ fn definitely_skip_op(
 fn run_on_circuitdata(
     py: Python,
     input_circuit: &CircuitData,
-    input_qubits: &[usize],
+    input_qubits: &[Qubit],
     data: &Bound<HighLevelSynthesisData>,
     tracker: &mut QubitTracker,
-) -> PyResult<(CircuitData, Vec<usize>)> {
+) -> PyResult<(CircuitData, Vec<Qubit>)> {
     if input_circuit.num_qubits() != input_qubits.len() {
         return Err(TranspilerError::new_err(format!(
             "HighLevelSynthesis: number of input qubits ({}) does not match the circuit size ({})",
@@ -461,13 +535,16 @@ fn run_on_circuitdata(
     // It does not distribute ancilla qubits between different operations present in the circuit.
 
     let mut output_circuit: CircuitData =
-        CircuitData::copy_empty_like(input_circuit, VarsMode::Alike)?;
+        CircuitData::copy_empty_like(input_circuit, VarsMode::Alike, BlocksMode::Drop)?;
     let mut output_qubits = input_qubits.to_vec();
 
     // The "inverse" map from the global qubits to the output circuit's qubits.
     // This map may be extended if additional auxiliary qubits get used.
-    let mut global_to_local: HashMap<usize, usize> =
-        HashMap::from_iter(output_qubits.iter().enumerate().map(|(i, j)| (*j, i)));
+    let mut global_to_local: HashMap<Qubit, Qubit> = output_qubits
+        .iter()
+        .enumerate()
+        .map(|(i, j)| (*j, Qubit::new(i)))
+        .collect();
 
     for inst in input_circuit.iter() {
         // op's qubits as viewed globally
@@ -475,7 +552,7 @@ fn run_on_circuitdata(
             .get_qargs(inst.qubits)
             .iter()
             .map(|q| input_qubits[q.index()])
-            .collect::<Vec<usize>>();
+            .collect::<Vec<_>>();
         let op_clbits = input_circuit.get_cargs(inst.clbits);
 
         // Start by handling special operations.
@@ -490,15 +567,26 @@ fn run_on_circuitdata(
 
         if inst.op.name() == "reset" {
             output_circuit.push(inst.clone())?;
-            tracker.set_clean(op_qubits);
+            tracker.set_clean(&op_qubits);
             continue;
         }
 
         // Check if synthesis for this operation can be skipped
-        let op_qargs: Vec<Qubit> = op_qubits.iter().map(|q| Qubit::new(*q)).collect();
-        if definitely_skip_op(py, data, &inst.op, &op_qargs) {
-            output_circuit.push(inst.clone())?;
-            tracker.set_dirty(op_qubits);
+        if definitely_skip_op(py, data, &inst.op, &op_qubits) {
+            if let Some(cf) = input_circuit.try_view_control_flow(inst) {
+                let blocks: Vec<_> = cf
+                    .blocks()
+                    .into_iter()
+                    .map(|b| output_circuit.add_block(b.clone()))
+                    .collect();
+                output_circuit.push(PackedInstruction {
+                    params: (!blocks.is_empty()).then(|| Box::new(Parameters::Blocks(blocks))),
+                    ..inst.clone()
+                })?;
+            } else {
+                output_circuit.push(inst.clone())?;
+            }
+            tracker.set_dirty(&op_qubits);
             continue;
         }
 
@@ -508,63 +596,34 @@ fn run_on_circuitdata(
         // that different subcircuits may choose to use different auxiliary global qubits, and to
         // avoid complications related to tracking qubit status for while- loops.
         // In the future, this handling can potentially be improved.
-        if inst.op.control_flow() {
-            let quantum_circuit_cls = QUANTUM_CIRCUIT.get_bound(py);
-            if let OperationRef::Instruction(py_inst) = inst.op.view() {
-                let old_blocks_as_bound_obj = py_inst.instruction.bind(py);
+        if let Some(control_flow) = input_circuit.try_view_control_flow(inst) {
+            // We do not allow using any additional qubits outside of the block.
+            let mut block_tracker = tracker.clone();
+            let to_disable = (0..tracker.num_qubits())
+                .map(Qubit::new)
+                .filter(|q| !op_qubits.contains(q));
+            block_tracker.disable(to_disable);
+            block_tracker.set_dirty(&op_qubits);
 
-                // old_blocks_py keeps the original QuantumCircuit's appearing within control-flow ops
-                // new_blocks_py keeps the recursively synthesized circuits
-                let old_blocks_py = old_blocks_as_bound_obj.getattr(intern!(py, "blocks"))?;
-                let old_blocks_py = old_blocks_py.downcast::<PyTuple>()?;
-                let mut new_blocks_py: Vec<Bound<PyAny>> = Vec::with_capacity(old_blocks_py.len());
-
-                // We do not allow using any additional qubits outside of the block.
-                let mut block_tracker = tracker.clone();
-                let to_disable: Vec<usize> = (0..tracker.num_qubits())
-                    .filter(|q| !op_qubits.contains(q))
-                    .collect();
-                block_tracker.disable(to_disable);
-                block_tracker.set_dirty(op_qubits.clone());
-
-                for block_py in old_blocks_py {
-                    let old_block_py: QuantumCircuitData = block_py.extract()?;
-                    let (new_block, _) = run_on_circuitdata(
-                        py,
-                        &old_block_py.data,
-                        &op_qubits,
-                        data,
-                        &mut block_tracker,
-                    )?;
-                    let new_block = new_block.into_bound_py_any(py)?;
-
-                    // We create the new quantum circuit by calling copy_empty_like on the old quantum circuit
-                    // and manually set the circuit data to the (recursively synthesized) data.
-                    // This makes sure that all the python-space information (qregs, cregs, input variables)
-                    // get copied correctly.
-                    let new_block_py: Bound<'_, PyAny> = quantum_circuit_cls
-                        .call_method1(intern!(py, "copy_empty_like"), (block_py,))?;
-                    new_block_py.setattr(intern!(py, "_data"), &new_block)?;
-                    new_blocks_py.push(new_block_py);
-                }
-
-                let replaced_blocks = old_blocks_as_bound_obj
-                    .call_method1(intern!(py, "replace_blocks"), (new_blocks_py,))?;
-
-                let synthesized_op: OperationFromPython = replaced_blocks.extract()?;
-                let packed_instruction = PackedInstruction {
-                    op: synthesized_op.operation,
-                    qubits: inst.qubits,
-                    clbits: inst.clbits,
-                    params: inst.params.clone(),
-                    label: inst.label.clone(),
-                    #[cfg(feature = "cache_pygates")]
-                    py_op: std::sync::OnceLock::new(),
-                };
-                output_circuit.push(packed_instruction)?;
-                tracker.set_dirty(op_qubits);
-                continue;
-            }
+            let blocks = control_flow
+                .blocks()
+                .into_iter()
+                .map(|block| -> PyResult<_> {
+                    let (new_block, _) =
+                        run_on_circuitdata(py, block, &op_qubits, data, &mut block_tracker)?;
+                    Ok(output_circuit.add_block(new_block))
+                })
+                .collect::<PyResult<_>>()?;
+            let packed_instruction = PackedInstruction::from_control_flow(
+                inst.op.control_flow().clone(),
+                blocks,
+                inst.qubits,
+                inst.clbits,
+                inst.label.as_deref().cloned(),
+            );
+            output_circuit.push(packed_instruction)?;
+            tracker.set_dirty(&op_qubits);
+            continue;
         }
 
         // Now we synthesize the operation.
@@ -578,8 +637,14 @@ fn run_on_circuitdata(
             tracker,
             &op_qubits,
             &inst.op,
-            inst.params_view(),
-            inst.label.as_ref().map(|x| x.as_str()),
+            inst.params
+                .as_deref()
+                .map(|p| match p {
+                    Parameters::Params(params) => params.as_slice(),
+                    Parameters::Blocks(_) => panic!("control flow should not be present"),
+                })
+                .unwrap_or_default(),
+            inst.label.as_deref().map(|l| l.as_str()),
         )?;
 
         match synthesize_operation_result {
@@ -587,7 +652,7 @@ fn run_on_circuitdata(
                 // If the synthesis did not change anything, we add the operation to the output circuit
                 // and update the qubit tracker.
                 output_circuit.push(inst.clone())?;
-                tracker.set_dirty(op_qubits);
+                tracker.set_dirty(&op_qubits);
             }
             Some((synthesized_circuit, synthesized_circuit_qubits)) => {
                 // This pedantic check can possibly be removed.
@@ -604,7 +669,7 @@ fn run_on_circuitdata(
                 if synthesized_circuit_qubits.len() > op_qubits.len() {
                     for q in &synthesized_circuit_qubits {
                         if !global_to_local.contains_key(q) {
-                            global_to_local.insert(*q, output_qubits.len());
+                            global_to_local.insert(*q, Qubit::new(output_qubits.len()));
                             output_qubits.push(*q);
                             output_circuit.add_qubit(ShareableQubit::new_anonymous(), false)?;
                         }
@@ -614,38 +679,34 @@ fn run_on_circuitdata(
                 // Add the operations from the circuit synthesized for the current operation to the output circuit.
                 // The correspondence between qubits is:
                 // qubit index in the synthesized circuit -> corresponding global qubit -> corresponding qubit in the output circuit
-                let qubit_map: HashMap<usize, usize> = HashMap::from_iter(
-                    synthesized_circuit_qubits
-                        .iter()
-                        .enumerate()
-                        .map(|(i, q)| (i, global_to_local[q])),
-                );
+                let qubit_map: HashMap<Qubit, Qubit> = synthesized_circuit_qubits
+                    .iter()
+                    .enumerate()
+                    .map(|(i, q)| (Qubit::new(i), global_to_local[q]))
+                    .collect();
 
                 for inst_inner in synthesized_circuit.iter() {
                     let inst_inner_qubits = synthesized_circuit.get_qargs(inst_inner.qubits);
                     let inst_inner_clbits = synthesized_circuit.get_cargs(inst_inner.clbits);
 
-                    let inst_outer_qubits: Vec<Qubit> = inst_inner_qubits
-                        .iter()
-                        .map(|q| Qubit::new(qubit_map[&q.index()]))
-                        .collect();
+                    let inst_outer_qubits: Vec<Qubit> =
+                        inst_inner_qubits.iter().map(|q| qubit_map[q]).collect();
                     let inst_outer_clbits: Vec<Clbit> = inst_inner_clbits
                         .iter()
-                        .map(|c| op_clbits[c.0 as usize])
+                        .map(|c| op_clbits[c.index()])
                         .collect();
 
                     output_circuit.push_packed_operation(
                         inst_inner.op.clone(),
-                        inst_inner.params_view(),
+                        inst_inner.params.as_deref().cloned(),
                         &inst_outer_qubits,
                         &inst_outer_clbits,
-                    );
+                    )?;
                 }
 
                 let updated_global_phase = radd_param(
                     output_circuit.global_phase().clone(),
                     synthesized_circuit.global_phase().clone(),
-                    py,
                 );
                 output_circuit.set_global_phase(updated_global_phase)?;
             }
@@ -669,18 +730,12 @@ fn run_on_circuitdata(
 /// Essentially this function constructs a default definition for a unitary gate, in which case
 /// ``op.definition`` purposefully returns ``None``.
 /// For all other operation types, it simply calls ``op.definition``.
-fn extract_definition(
-    py: Python,
-    op: &PackedOperation,
-    params: &[Param],
-) -> PyResult<Option<CircuitData>> {
+fn extract_definition(op: &PackedOperation, params: &[Param]) -> PyResult<Option<CircuitData>> {
     match op.view() {
         OperationRef::Unitary(unitary) => {
-            let unitary: Array<Complex<f64>, Dim<[usize; 2]>> = match unitary.matrix(&[]) {
-                Some(unitary) => unitary,
-                None => return Err(TranspilerError::new_err("Unitary not found")),
-            };
-            match unitary.shape() {
+            let unitary = unitary.matrix_view();
+            let shape = unitary.shape();
+            match shape {
                 // Run 1q synthesis
                 [2, 2] => {
                     let [theta, phi, lam, phase] =
@@ -691,7 +746,7 @@ fn extract_definition(
                         StandardGate::U,
                         &[Param::Float(theta), Param::Float(phi), Param::Float(lam)],
                         &[Qubit(0)],
-                    );
+                    )?;
                     Ok(Some(circuit_data))
                 }
                 // Run 2q synthesis
@@ -724,15 +779,24 @@ fn extract_definition(
                 }
                 // Run 3q+ synthesis
                 _ => {
-                    let qs_decomposition: &Bound<'_, PyAny> = QS_DECOMPOSITION.get_bound(py);
-                    let synthesized_circuit_py =
-                        qs_decomposition.call1((unitary.into_pyarray(py),))?;
-                    let circuit_data: QuantumCircuitData = synthesized_circuit_py.extract()?;
-                    Ok(Some(circuit_data.data))
+                    let matrix = DMatrix::from_fn(shape[0], shape[1], |i, j| unitary[[i, j]]);
+                    let synth_circ =
+                        quantum_shannon_decomposition(&matrix, None, None, None, None)?;
+                    Ok(Some(synth_circ))
                 }
             }
         }
-        _ => Ok(op.definition(params)),
+        OperationRef::StandardGate(g) => Ok(g.definition(params)),
+        OperationRef::Gate(g) => Ok(g.definition()),
+        OperationRef::Instruction(i) => Ok(i.definition()),
+        OperationRef::PauliProductMeasurement(ppm) => Ok(Some(synthesize_ppm(ppm)?)),
+        OperationRef::StandardInstruction(i) => match i {
+            StandardInstruction::Measure
+            | StandardInstruction::Reset
+            | StandardInstruction::Barrier(_)
+            | StandardInstruction::Delay(_) => Ok(None),
+        },
+        OperationRef::ControlFlow(_) | OperationRef::Operation(_) => Ok(None),
     }
 }
 
@@ -753,11 +817,11 @@ fn synthesize_operation(
     py: Python,
     data: &Bound<HighLevelSynthesisData>,
     tracker: &mut QubitTracker,
-    input_qubits: &[usize],
+    input_qubits: &[Qubit],
     op: &PackedOperation,
     params: &[Param],
     label: Option<&str>,
-) -> PyResult<Option<(CircuitData, Vec<usize>)>> {
+) -> PyResult<Option<(CircuitData, Vec<Qubit>)>> {
     if op.num_qubits() != input_qubits.len() as u32 {
         return Err(TranspilerError::new_err(format!(
             "HighLevelSynthesis: number of operation's qubits ({}) does not match the circuit size ({})",
@@ -768,7 +832,7 @@ fn synthesize_operation(
 
     let borrowed_data: PyRef<'_, HighLevelSynthesisData> = data.borrow();
 
-    let mut output_circuit_and_qubits: Option<(CircuitData, Vec<usize>)> = None;
+    let mut output_circuit_and_qubits: Option<(CircuitData, Vec<Qubit>)> = None;
 
     // If this function is called, the operation is not supported by the target, however may have
     // high-level synthesis plugins, and/or be in the equivalence library, and/or have a definition
@@ -805,7 +869,7 @@ fn synthesize_operation(
 
     // Extract definition.
     if output_circuit_and_qubits.is_none() && borrowed_data.unroll_definitions {
-        let definition_circuit = extract_definition(py, op, params)?;
+        let definition_circuit = extract_definition(op, params)?;
         match definition_circuit {
             Some(definition_circuit) => {
                 output_circuit_and_qubits = Some((definition_circuit, input_qubits.to_vec()));
@@ -832,9 +896,10 @@ fn synthesize_operation(
             run_on_circuitdata(py, &current_circuit, &current_qubits, data, tracker)?;
 
         if synthesized_qubits.len() > input_qubits.len() {
-            let qubits_to_replace: Vec<usize> =
-                (input_qubits.len()..synthesized_qubits.len()).collect();
-            tracker.replace_state(&saved_tracker, qubits_to_replace);
+            tracker.replace_state(
+                &saved_tracker,
+                (input_qubits.len()..synthesized_qubits.len()).map(Qubit::new),
+            );
         }
 
         output_circuit_and_qubits = Some((synthesized_circuit, synthesized_qubits));
@@ -859,30 +924,37 @@ fn synthesize_op_using_plugins(
     py: Python,
     data: &Bound<HighLevelSynthesisData>,
     tracker: &mut QubitTracker,
-    input_qubits: &[usize],
+    input_qubits: &[Qubit],
     op: &OperationRef,
     params: &[Param],
     label: Option<&str>,
-) -> PyResult<Option<(CircuitData, Vec<usize>)>> {
-    let mut output_circuit_and_qubits: Option<(CircuitData, Vec<usize>)> = None;
+) -> PyResult<Option<(CircuitData, Vec<Qubit>)>> {
+    let mut output_circuit_and_qubits: Option<(CircuitData, Vec<Qubit>)> = None;
 
     let op_py = match op {
-        OperationRef::StandardGate(standard) => {
-            standard.create_py_op(py, Some(params), label)?.into_any()
-        }
+        OperationRef::ControlFlow(_) => panic!("control flow should not be present"),
+        OperationRef::StandardGate(standard) => standard
+            .create_py_op(py, Some(params.iter().cloned().collect()), label)?
+            .into_any(),
         OperationRef::StandardInstruction(instruction) => instruction
-            .create_py_op(py, Some(params), label)?
+            .create_py_op(py, Some(params.iter().cloned().collect()), label)?
             .into_any(),
         OperationRef::Gate(gate) => gate.gate.clone_ref(py),
         OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
         OperationRef::Operation(operation) => operation.operation.clone_ref(py),
         OperationRef::Unitary(unitary) => unitary.create_py_op(py, label)?.into_any(),
+        OperationRef::PauliProductMeasurement(ppm) => ppm.create_py_op(py, label)?.into_any(),
     };
 
     let res = HLS_SYNTHESIZE_OP_USING_PLUGINS
         .get_bound(py)
-        .call1((op_py, input_qubits, data, tracker.clone()))?
-        .extract::<Option<(QuantumCircuitData, Vec<usize>)>>()?;
+        .call1((
+            op_py,
+            input_qubits.iter().map(|x| x.0).collect::<Vec<_>>(),
+            data,
+            tracker.clone(),
+        ))?
+        .extract::<Option<(QuantumCircuitData, Vec<Qubit>)>>()?;
 
     if let Some((quantum_circuit_data, qubits)) = res {
         output_circuit_and_qubits = Some((quantum_circuit_data.data, qubits));
@@ -901,34 +973,28 @@ fn synthesize_op_using_plugins(
 fn py_synthesize_operation(
     py: Python,
     py_op: Bound<PyAny>,
-    input_qubits: Vec<usize>,
+    input_qubits: Vec<Qubit>,
     data: &Bound<HighLevelSynthesisData>,
     tracker: &mut QubitTracker,
 ) -> PyResult<Option<(CircuitData, Vec<usize>)>> {
     let op: OperationFromPython = py_op.extract()?;
 
     // Check if the operation can be skipped.
-    if definitely_skip_op(
-        py,
-        data,
-        &op.operation,
-        &input_qubits
-            .iter()
-            .map(|q| Qubit::new(*q))
-            .collect::<Vec<Qubit>>(),
-    ) {
+    if definitely_skip_op(py, data, &op.operation, &input_qubits) {
         return Ok(None);
     }
 
-    synthesize_operation(
+    let result = synthesize_operation(
         py,
         data,
         tracker,
         &input_qubits,
         &op.operation,
-        &op.params,
-        op.label.as_ref().map(|x| x.as_str()),
-    )
+        op.params_view(),
+        op.label.as_deref().map(|l| l.as_str()),
+    )?;
+
+    Ok(result.map(|res| (res.0, res.1.iter().map(|x| x.index()).collect())))
 }
 
 /// Runs HighLevelSynthesis transpiler pass.
@@ -974,7 +1040,7 @@ pub fn run_high_level_synthesis(
         let circuit = dag_to_circuit(dag, false)?;
 
         let num_qubits = circuit.num_qubits();
-        let input_qubits: Vec<usize> = (0..num_qubits).collect();
+        let input_qubits: Vec<Qubit> = (0..num_qubits).map(Qubit::new).collect();
         let mut tracker = QubitTracker::new(num_qubits, qubits_initially_zero);
 
         let (output_circuit, _) =

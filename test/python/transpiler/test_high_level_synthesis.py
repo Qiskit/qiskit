@@ -63,7 +63,8 @@ from qiskit.quantum_info import (
     SparsePauliOp,
     SparseObservable,
 )
-from qiskit.synthesis.evolution import synth_pauli_network_rustiq
+from qiskit.quantum_info.random import random_unitary
+from qiskit.synthesis.evolution import synth_pauli_network_rustiq, LieTrotter
 from qiskit.synthesis.linear import random_invertible_binary_matrix
 from qiskit.synthesis.arithmetic import adder_qft_d00
 from qiskit.compiler import transpile
@@ -88,6 +89,7 @@ from qiskit.transpiler.passes.synthesis.hls_plugins import (
     MCXSynthesisGrayCode,
     MCXSynthesisDefault,
     MCXSynthesisNoAuxV24,
+    MCXSynthesisNoAuxHP24,
 )
 from qiskit.circuit.annotated_operation import (
     AnnotatedOperation,
@@ -765,6 +767,16 @@ class TestHighLevelSynthesisInterface(QiskitTestCase):
         transpiled_block = transpiled[0].operation.blocks[0]
         self.assertNotIn("clifford", transpiled_block.count_ops())
 
+    @data(1, 2, 3, 4)
+    def test_unitary(self, num_qubits):
+        """Test that the pass handles unitary gates."""
+        unitary = random_unitary(2**num_qubits, seed=42)
+        qc = QuantumCircuit(num_qubits)
+        qc.unitary(unitary, qc.qubits)
+        target = Target.from_configuration(num_qubits=5, basis_gates=["cx", "u"])
+        transpiled = HighLevelSynthesis(target=target)(qc)
+        self.assertLessEqual(set(transpiled.count_ops()), {"cx", "u"})
+
 
 class TestHighLevelSynthesisQuality(QiskitTestCase):
     """Test the "quality" of circuits produced by HighLevelSynthesis."""
@@ -772,14 +784,14 @@ class TestHighLevelSynthesisQuality(QiskitTestCase):
     def test_controlled_x(self):
         """Test default synthesis of controlled-X gate."""
         qc = QuantumCircuit(15)
-        qc.append(XGate().control(6), [0, 1, 2, 3, 4, 5, 6])
+        qc.append(XGate().control(6, annotated=False), [0, 1, 2, 3, 4, 5, 6])
         qct = HighLevelSynthesis(basis_gates=["cx", "u"])(qc)
         self.assertLessEqual(qct.count_ops()["cx"], 30)
 
     def test_controlled_cx(self):
         """Test default synthesis of controlled-CX gate."""
         qc = QuantumCircuit(15)
-        qc.append(CXGate().control(5), [0, 1, 2, 3, 4, 5, 6])
+        qc.append(CXGate().control(5, annotated=False), [0, 1, 2, 3, 4, 5, 6])
         qct = HighLevelSynthesis(basis_gates=["cx", "u"])(qc)
         self.assertLessEqual(qct.count_ops()["cx"], 30)
 
@@ -796,14 +808,14 @@ class TestHighLevelSynthesisQuality(QiskitTestCase):
     def test_controlled_z(self):
         """Test default synthesis of controlled-X gate."""
         qc = QuantumCircuit(15)
-        qc.append(ZGate().control(6), [0, 1, 2, 3, 4, 5, 6])
+        qc.append(ZGate().control(6, annotated=False), [0, 1, 2, 3, 4, 5, 6])
         qct = HighLevelSynthesis(basis_gates=["cx", "u"])(qc)
         self.assertLessEqual(qct.count_ops()["cx"], 30)
 
     def test_controlled_cz(self):
         """Test default synthesis of controlled-CZ gate."""
         qc = QuantumCircuit(15)
-        qc.append(CZGate().control(5), [0, 1, 2, 3, 4, 5, 6])
+        qc.append(CZGate().control(5, annotated=False), [0, 1, 2, 3, 4, 5, 6])
         qct = HighLevelSynthesis(basis_gates=["cx", "u"])(qc)
         self.assertLessEqual(qct.count_ops()["cx"], 30)
 
@@ -1084,18 +1096,7 @@ class TestTokenSwapperPermutationPlugin(QiskitTestCase):
         synthesis_config = HLSConfig(permutation=[("token_swapper", {"trials": 10, "seed": 1})])
         qc_transpiled = PassManager(HighLevelSynthesis(synthesis_config)).run(qc)
 
-        # Construct the expected quantum circuit
-        # From the description below we can see that
-        #   0->6, 1->4, 2->5, 3->2, 4->0, 5->2->3->7, 6->0->4->1, 7->3
-        qc_expected = QuantumCircuit(8)
-        qc_expected.swap(2, 5)
-        qc_expected.swap(0, 6)
-        qc_expected.swap(2, 3)
-        qc_expected.swap(0, 4)
-        qc_expected.swap(1, 4)
-        qc_expected.swap(3, 7)
-
-        self.assertEqual(qc_transpiled, qc_expected)
+        self.assertEqual(Operator(qc_transpiled), Operator(qc))
 
     def test_concrete_synthesis(self):
         """Test concrete synthesis of a permutation gate (we have both the coupling map and the
@@ -1264,9 +1265,9 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         circuit.append(lazy_gate2, [0, 1, 2])
         circuit.append(lazy_gate3, [2, 3])
         transpiled_circuit = HighLevelSynthesis()(circuit)
-        controlled_gate1 = SwapGate().control(2)
-        controlled_gate2 = CXGate().control(1)
-        controlled_gate3 = RZGate(np.pi / 4).control(1)
+        controlled_gate1 = SwapGate().control(2, annotated=False)
+        controlled_gate2 = CXGate().control(1, annotated=False)
+        controlled_gate3 = RZGate(np.pi / 4).control(1, annotated=False)
         expected_circuit = QuantumCircuit(4)
         expected_circuit.append(controlled_gate1, [0, 1, 2, 3])
         expected_circuit.append(controlled_gate2, [0, 1, 2])
@@ -1286,7 +1287,7 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         circuit.append(AnnotatedOperation(gate, ControlModifier(2)), [0, 1, 2, 3])
         transpiled_circuit = HighLevelSynthesis()(circuit)
         expected_circuit = QuantumCircuit(4)
-        expected_circuit.append(gate.control(2), [0, 1, 2, 3])
+        expected_circuit.append(gate.control(2, annotated=False), [0, 1, 2, 3])
         self.assertEqual(transpiled_circuit, expected_circuit)
 
     def test_control_clifford(self):
@@ -1307,7 +1308,7 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         circuit.append(lazy_gate1, [0, 1, 2, 3, 4])
         transpiled_circuit = HighLevelSynthesis()(circuit)
         expected_circuit = QuantumCircuit(5)
-        expected_circuit.append(SwapGate().control(3), [0, 1, 2, 3, 4])
+        expected_circuit.append(SwapGate().control(3, annotated=False), [0, 1, 2, 3, 4])
         self.assertEqual(transpiled_circuit, expected_circuit)
 
     def test_nested_controls(self):
@@ -1318,7 +1319,7 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         circuit.append(lazy_gate2, [0, 1, 2, 3, 4])
         transpiled_circuit = HighLevelSynthesis()(circuit)
         expected_circuit = QuantumCircuit(5)
-        expected_circuit.append(SwapGate().control(3), [0, 1, 2, 3, 4])
+        expected_circuit.append(SwapGate().control(3, annotated=False), [0, 1, 2, 3, 4])
         self.assertEqual(transpiled_circuit, expected_circuit)
 
     def test_nested_controls_permutation(self):
@@ -1606,7 +1607,7 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         circuit.append(gate, [0, 1, 2, 3])
         transpiled_circuit = HighLevelSynthesis()(circuit)
         expected_circuit = QuantumCircuit(6)
-        expected_circuit.append(SwapGate().control(2), [0, 1, 2, 3])
+        expected_circuit.append(SwapGate().control(2, annotated=False), [0, 1, 2, 3])
         self.assertEqual(circuit, transpiled_circuit)
 
     def test_control_high_level_object(self):
@@ -2843,9 +2844,23 @@ class TestMCXSynthesisPlugins(QiskitTestCase):
             )
             self.assertIsNotNone(decomposition)
 
+        with self.subTest(method="noaux_hp24", num_clean_ancillas=1, num_dirty_ancillas=1):
+            # should have a decomposition
+            decomposition = MCXSynthesisNoAuxHP24().run(
+                gate, num_clean_ancillas=1, num_dirty_ancillas=1
+            )
+            self.assertIsNotNone(decomposition)
+
         with self.subTest(method="noaux_v24", num_clean_ancillas=0, num_dirty_ancillas=0):
             # should have a decomposition
             decomposition = MCXSynthesisNoAuxV24().run(
+                gate, num_clean_ancillas=0, num_dirty_ancillas=0
+            )
+            self.assertIsNotNone(decomposition)
+
+        with self.subTest(method="noaux_hp24", num_clean_ancillas=0, num_dirty_ancillas=0):
+            # should have a decomposition
+            decomposition = MCXSynthesisNoAuxHP24().run(
                 gate, num_clean_ancillas=0, num_dirty_ancillas=0
             )
             self.assertIsNotNone(decomposition)
@@ -2953,13 +2968,21 @@ class TestPauliEvolutionSynthesisPlugins(QiskitTestCase):
     def test_correctness(self, plugin_name):
         """Test that plugins return the correct Operator."""
         op = SparsePauliOp(["XXX", "YYY", "IZZ", "XZY"], [1, 2, 3, 4])
+        evo = PauliEvolutionGate(op, synthesis=LieTrotter())
+
+        # compile via HLS
         qc = QuantumCircuit(6)
-        qc.append(PauliEvolutionGate(op), [1, 2, 4])
+        qc.append(evo, [1, 2, 4])
         hls_config = HLSConfig(PauliEvolution=[plugin_name])
         hls_pass = HighLevelSynthesis(hls_config=hls_config)
         qct = hls_pass(qc)
+
+        # compute reference
+        ref = QuantumCircuit(6)
+        ref.compose(evo.definition, [1, 2, 4], inplace=True)
+
         self.assertEqual(count_rotation_gates(qct), 4)
-        self.assertEqual(Operator(qc), Operator(qct))
+        self.assertEqual(Operator(ref), Operator(qct))
 
     @data("default", "rustiq")
     def test_trivial_rotations(self, plugin_name):
@@ -3117,7 +3140,7 @@ class TestPauliEvolutionSynthesisPlugins(QiskitTestCase):
         qc.append(evo, [0, 1, 2, 3])
         default_config = HLSConfig(PauliEvolution=["default"])
         qct_default = HighLevelSynthesis(hls_config=default_config)(qc)
-        rustiq_config = HLSConfig(PauliEvolution=[("rustiq")])
+        rustiq_config = HLSConfig(PauliEvolution=["rustiq"])
         qct_rustiq = HighLevelSynthesis(hls_config=rustiq_config)(qc)
         self.assertEqual(Operator(qct_default), Operator(qc))
         self.assertEqual(Operator(qct_rustiq), Operator(qc))
@@ -3132,7 +3155,7 @@ class TestPauliEvolutionSynthesisPlugins(QiskitTestCase):
         qc.append(evo, [0, 1, 2, 3])
         default_config = HLSConfig(PauliEvolution=["default"])
         qct_default = HighLevelSynthesis(hls_config=default_config)(qc)
-        rustiq_config = HLSConfig(PauliEvolution=[("rustiq")])
+        rustiq_config = HLSConfig(PauliEvolution=["rustiq"])
         qct_rustiq = HighLevelSynthesis(hls_config=rustiq_config)(qc)
         self.assertEqual(Operator(qct_default), Operator(qc))
         self.assertEqual(Operator(qct_rustiq), Operator(qc))
@@ -3159,7 +3182,7 @@ class TestAnnotatedSynthesisPlugins(QiskitTestCase):
         # Optimized circuit with non-controlled phase gates
         qc_expected = QuantumCircuit(5)
         qc_expected.append(PhaseGate(1), [4])
-        qc_expected.append(HGate().control(4), [0, 1, 2, 3, 4])
+        qc_expected.append(HGate().control(4, annotated=False), [0, 1, 2, 3, 4])
         qc_expected.append(PhaseGate(-1), [4])
 
         qc_main_tranpiled = self._pass(qc_main)
@@ -3181,9 +3204,9 @@ class TestAnnotatedSynthesisPlugins(QiskitTestCase):
 
         # Non-optimized circuit with controlled phase gates
         qc_expected = QuantumCircuit(5)
-        qc_expected.append(PhaseGate(1).control(4), [0, 1, 2, 3, 4])
-        qc_expected.append(HGate().control(4), [0, 1, 2, 3, 4])
-        qc_expected.append(PhaseGate(-2).control(4), [0, 1, 2, 3, 4])
+        qc_expected.append(PhaseGate(1).control(4, annotated=False), [0, 1, 2, 3, 4])
+        qc_expected.append(HGate().control(4, annotated=False), [0, 1, 2, 3, 4])
+        qc_expected.append(PhaseGate(-2).control(4, annotated=False), [0, 1, 2, 3, 4])
 
         qc_main_tranpiled = self._pass(qc_main)
         qc_expected_transpiled = self._pass(qc_expected)
@@ -3206,7 +3229,7 @@ class TestAnnotatedSynthesisPlugins(QiskitTestCase):
         # Optimized circuit with non-controlled phase gates
         qc_expected = QuantumCircuit(5)
         qc_expected.append(PhaseGate(1), [4])
-        qc_expected.append(HGate().control(4), [0, 1, 2, 3, 4])
+        qc_expected.append(HGate().control(4, annotated=False), [0, 1, 2, 3, 4])
         qc_expected.append(PhaseGate(-1), [4])
 
         qc_main_tranpiled = self._pass(qc_main)
@@ -3228,9 +3251,9 @@ class TestAnnotatedSynthesisPlugins(QiskitTestCase):
 
         # Non-optimized circuit with controlled phase gates
         qc_expected = QuantumCircuit(5)
-        qc_expected.append(PhaseGate(1).control(4), [0, 1, 2, 3, 4])
-        qc_expected.append(HGate().control(4), [0, 1, 2, 3, 4])
-        qc_expected.append(PhaseGate(-2).control(4), [0, 1, 2, 3, 4])
+        qc_expected.append(PhaseGate(1).control(4, annotated=False), [0, 1, 2, 3, 4])
+        qc_expected.append(HGate().control(4, annotated=False), [0, 1, 2, 3, 4])
+        qc_expected.append(PhaseGate(-2).control(4, annotated=False), [0, 1, 2, 3, 4])
 
         qc_main_tranpiled = self._pass(qc_main)
         qc_expected_transpiled = self._pass(qc_expected)
