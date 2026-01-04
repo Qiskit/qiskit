@@ -422,7 +422,7 @@ Parameters V2
    :header-rows: 0
 
    * - :py:obj:`BindingsArrayLike`
-     - alias of :py:obj:`Mapping[ParameterLike | Tuple[ParameterLike, ...], ArrayLike]`   
+     - alias of :py:obj:`Mapping[ParameterLike | Tuple[ParameterLike, ...], ArrayLike]`
 
 Estimator V2
 ------------
