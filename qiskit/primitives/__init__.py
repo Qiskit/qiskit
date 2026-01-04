@@ -449,17 +449,7 @@ Sampler V2
    :header-rows: 0
 
    * - :py:obj:`SamplerPubLike`
-     - Alias of
-
-       .. code-block:: python
-
-           Union[
-               SamplerPub,
-               QuantumCircuit,
-               Tuple[QuantumCircuit],
-               Tuple[QuantumCircuit, BindingsArrayLike],
-               Tuple[QuantumCircuit, BindingsArrayLike,Union[Integral, None]]
-           ]
+     - alias of :py:obj:`SamplerPub | QuantumCircuit | Tuple[QuantumCircuit] | Tuple[QuantumCircuit, BindingsArrayLike] | Tuple[QuantumCircuit, BindingsArrayLike, Union[Integral, None]]`
 
 Results V2
 ----------
