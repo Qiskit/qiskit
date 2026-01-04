@@ -1,0 +1,13 @@
+features_circuits:
+  - |
+    Introduced a new negation unary operation for class :class:`expr.Expr` allowing users to negate
+    float, unsigned int and duration expressions. Incase a non-expression is passed, it is automatically
+    lifted to the correct type.
+
+    Examlpe usage::
+
+      from qiskit.circuit import ClassicalRegister
+      from qiskit.circuit.classical import expr, types
+
+      cr = ClassicalRegister(3)
+      negated_expr = expr.negate(cr)
