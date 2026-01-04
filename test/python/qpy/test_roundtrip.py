@@ -13,19 +13,8 @@
 """Tests for python write/rust read flow and vice versa"""
 
 import io
-import struct
-
-from ddt import ddt, data, idata
-
-from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit, Parameter, Gate, annotation
-from qiskit.circuit.random import random_circuit
-from qiskit.providers.fake_provider import GenericBackendV2
-from qiskit.exceptions import QiskitError
-from qiskit.qpy import dump, load, formats, get_qpy_version, QPY_COMPATIBILITY_VERSION
-from qiskit.qpy.common import QPY_VERSION
-from qiskit.transpiler import TranspileLayout, CouplingMap
-from qiskit.compiler import transpile
-from qiskit.qpy.formats import FILE_HEADER_V10_PACK, FILE_HEADER_V10, FILE_HEADER_V10_SIZE
+from qiskit.circuit import QuantumCircuit
+from qiskit.qpy import dump, load
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -44,9 +33,6 @@ class TestQPYRoundtrip(QiskitTestCase):
         qpy_file = io.BytesIO()
         use_rust_for_write = write_with == "Rust"
         use_rust_for_read = read_with == "Rust"
-        print(use_rust_for_write)
-        print(use_rust_for_read)
-
         dump(
             circuit,
             qpy_file,
@@ -63,9 +49,10 @@ class TestQPYRoundtrip(QiskitTestCase):
         self.assertEqual(circuit.layout, new_circuit.layout)
 
     def test_simple(self):
+        """Basic roundtrip test"""
         qc = QuantumCircuit(3)
         qc.h(0)
         qc.cx(0, 1)
         qc.cx(1, 2)
         qc.measure_all()
-        self.assert_roundtrip_equal(qc, version=16)
+        self.assert_roundtrip_equal(qc, version=17)

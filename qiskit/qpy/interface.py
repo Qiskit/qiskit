@@ -222,7 +222,7 @@ def dump(
             out_stream,
             circuit,
             metadata_serializer=metadata_serializer,
-            use_symengine=use_symengine,
+            use_symengine=bool(use_symengine),
             version=version,
             annotation_factories=annotation_factories,
             use_rust=use_rust,
@@ -442,7 +442,7 @@ def load(
                 file_obj,
                 data.qpy_version,
                 metadata_deserializer=metadata_deserializer,
-                use_symengine=use_symengine,
+                use_symengine=bool(use_symengine),
                 annotation_factories=annotation_factories,
                 use_rust=use_rust,
             )
