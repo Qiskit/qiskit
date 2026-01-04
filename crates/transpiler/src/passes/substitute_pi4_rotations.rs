@@ -23,8 +23,8 @@ use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::operations::{OperationRef, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 
-static ROTATION_GATE_NAMES: [&str; 13] = [
-    "rx", "ry", "rz", "p", "u1", "rzz", "rxx", "rzx", "ryy", "cp", "crx", "cry", "crz",
+static ROTATION_GATE_NAMES: [&str; 14] = [
+    "rx", "ry", "rz", "p", "cu1", "u1", "rzz", "rxx", "rzx", "ryy", "cp", "crx", "cry", "crz",
 ];
 
 type SubstituteSequencePi4<'a> = [(&'a [(StandardGate, &'a [u32])], f64); 16];
@@ -1118,6 +1118,7 @@ fn replace_rotation_by_discrete(
         StandardGate::RZX => RZX_SUBSTITUTIONS[multiple],
         StandardGate::RYY => RYY_SUBSTITUTIONS[multiple],
         StandardGate::CPhase => CP_SUBSTITUTIONS[multiple],
+        StandardGate::CU1 => CP_SUBSTITUTIONS[multiple],
         StandardGate::CRZ => CRZ_SUBSTITUTIONS[multiple],
         StandardGate::CRX => CRX_SUBSTITUTIONS[multiple],
         StandardGate::CRY => CRY_SUBSTITUTIONS[multiple],
@@ -1138,6 +1139,7 @@ fn rotation_to_pi_div(gate: StandardGate) -> usize {
         StandardGate::RZX => 4,
         StandardGate::RYY => 4,
         StandardGate::CPhase => 2,
+        StandardGate::CU1 => 2,
         StandardGate::CRZ => 2,
         StandardGate::CRX => 2,
         StandardGate::CRY => 2,
@@ -1183,6 +1185,7 @@ pub fn py_run_substitute_pi4_rotations(
                         | StandardGate::RZX
                         | StandardGate::RYY
                         | StandardGate::CPhase
+                        | StandardGate::CU1
                         | StandardGate::CRZ
                         | StandardGate::CRX
                         | StandardGate::CRY

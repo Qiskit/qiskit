@@ -30,6 +30,7 @@ from qiskit.circuit.library import (
     RZXGate,
     RYYGate,
     CPhaseGate,
+    CU1Gate,
     CRZGate,
     CRXGate,
     CRYGate,
@@ -77,7 +78,7 @@ class TestSubstitutePi4Rotations(QiskitTestCase):
 
     @combine(
         multiple=[*range(0, 8), 23, 42, -5, -8, -17, -22, -35],
-        gate=[CPhaseGate, CRZGate, CRXGate, CRYGate],
+        gate=[CPhaseGate, CU1Gate, CRZGate, CRXGate, CRYGate],
         global_phase=[0, 1.0, -2.0],
         approximation_degree=[1, 0.99999],
         eps=[0, 1e-10],
@@ -97,7 +98,7 @@ class TestSubstitutePi4Rotations(QiskitTestCase):
         self.assertEqual(Operator(qct), Operator(qc))
         self.assertLessEqual(set(ops.keys()), set(clifford_t_names))
         self.assertLessEqual(ops.get("t", 0) + ops.get("tdg", 0), 3)  # at most 3 t/tdg gates
-        if gate(angle).name != "cp":
+        if gate(angle).name not in {"cp", "cu1"}:
             self.assertLessEqual(ops.get("t", 0) + ops.get("tdg", 0), 2)  # at most 2 t/tdg gates
         if multiple % 2 == 0:  # only clifford gates
             self.assertLessEqual(set(ops.keys()), set(get_clifford_gate_names()))
@@ -120,6 +121,7 @@ class TestSubstitutePi4Rotations(QiskitTestCase):
             RZXGate,
             RYYGate,
             CPhaseGate,
+            CU1Gate,
             CRZGate,
             CRXGate,
             CRYGate,
