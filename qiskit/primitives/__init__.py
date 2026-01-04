@@ -444,7 +444,7 @@ Sampler V2
    BackendSamplerV2
    SamplerPub
 
-.. list-table:: bla
+.. list-table::
    :widths: auto
    :header-rows: 0
 
