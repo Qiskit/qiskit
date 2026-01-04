@@ -448,7 +448,7 @@ Sampler V2
    :widths: auto
    :header-rows: 0
 
-   * - SamplerPubLike
+   * - :py:obj:`SamplerPubLike`
      - Alias of
 
        .. code-block:: python
