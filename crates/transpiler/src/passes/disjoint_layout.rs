@@ -216,16 +216,23 @@ pub fn distribute_components(dag: &mut DAGCircuit, target: &Target) -> PyResult<
                     .qubits()
                     .objects()
                     .iter()
-                    .enumerate()
-                    .map(|(index, _)| Qubit::new(index))
+                    .map(|qubit| {
+                        out_dag
+                            .qubits()
+                            .find(qubit)
+                            .expect("Qubit from dag not found in out_dag")
+                    })
                     .collect();
-
                 let clbits_indices: Vec<Clbit> = dag
                     .clbits()
                     .objects()
                     .iter()
-                    .enumerate()
-                    .map(|(index, _)| Clbit::new(index))
+                    .map(|clbit| {
+                        out_dag
+                            .clbits()
+                            .find(clbit)
+                            .expect("Clbit from dag not found in out_dag")
+                    })
                     .collect();
 
                 let block_map = dag

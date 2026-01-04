@@ -1382,16 +1382,22 @@ pub unsafe extern "C" fn qk_dag_compose(
     let local_qubits = qubits.as_ref().map(|qubits_vec| {
         qubits_vec
             .iter()
-            .enumerate()
-            .map(|(index, _)| Qubit::new(index))
+            .map(|shareable_qubit| {
+                dag.qubits()
+                    .find(shareable_qubit)
+                    .expect("Qubit not found in dag")
+            })
             .collect::<Vec<_>>()
     });
 
     let local_clbits = clbits.as_ref().map(|clbits_vec| {
         clbits_vec
             .iter()
-            .enumerate()
-            .map(|(index, _)| Clbit::new(index))
+            .map(|shareable_clbit| {
+                dag.clbits()
+                    .find(shareable_clbit)
+                    .expect("Clbit not found in dag")
+            })
             .collect::<Vec<_>>()
     });
 
