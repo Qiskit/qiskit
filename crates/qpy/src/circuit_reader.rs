@@ -22,12 +22,12 @@
 use hashbrown::HashMap;
 use num_bigint::BigUint;
 use num_complex::Complex64;
-use numpy::PyReadonlyArray2;
+use numpy::{IntoPyArray, PyReadonlyArray2};
 use pyo3::IntoPyObjectExt;
 use pyo3::exceptions::PyValueError;
 use pyo3::intern;
 use pyo3::prelude::*;
-use pyo3::types::{PyAny, PyBytes, PyDict, PyList, PyString, PyTuple, PyType};
+use pyo3::types::{IntoPyDict, PyAny, PyBytes, PyDict, PyList, PyString, PyTuple, PyType};
 use qiskit_circuit::bit::{
     ClassicalRegister, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
@@ -511,7 +511,7 @@ fn unpack_control_flow(
                 .zip(iter.next())
                 .zip(iter.next())
                 .ok_or(PyValueError::new_err(
-                    "For loop instruction missing some of its parameters",
+                    "Switch case instruction missing some of its parameters",
                 ))?;
             let target = match target_value {
                 GenericValue::Expression(exp) => Ok(SwitchTarget::Expr(exp)),
@@ -586,7 +586,7 @@ fn unpack_py_instruction(
     let name = instruction.gate_class_name.clone();
     let mut instruction_values = get_instruction_values(instruction, qpy_data)?;
     Python::attach(|py| -> PyResult<(PackedOperation, Vec<GenericValue>)> {
-        let py_params: Vec<Bound<PyAny>> = instruction_values
+        let mut py_params: Vec<Bound<PyAny>> = instruction_values
             .iter()
             .map(|value| -> PyResult<_> {
                 generic_value_to_param(value, binrw::Endian::Little)?.into_pyobject(py)
@@ -647,8 +647,74 @@ fn unpack_py_instruction(
                 instruction_values.retain(|value| !matches!(value, GenericValue::Null));
                 gate_class.call1(PyTuple::new(py, args)?)?
             }
+            "BoxOp" => {
+                if py_params.len() < 2 {
+                    return Err(PyValueError::new_err(format!(
+                        "BoxOp instruction has only {:?} params; should have at least 2",
+                        py_params.len()
+                    )));
+                }
+                let unit = py_params.pop().unwrap();
+                let duration = py_params.pop().unwrap();
+                let annotations = match &instruction.annotations {
+                    Some(annotation_pack) => annotation_pack
+                        .annotations
+                        .iter()
+                        .map(|annotation| {
+                            qpy_data
+                                .annotation_handler
+                                .load(annotation.namespace_index, annotation.payload.clone())
+                        })
+                        .collect::<PyResult<_>>()?,
+                    None => Vec::new(),
+                }
+                .into_pyarray(py)
+                .into_any();
+                let kwargs = [
+                    ("unit", unit),
+                    ("duration", duration),
+                    ("annotations", annotations),
+                ]
+                .into_py_dict(py)?;
+                let args = PyTuple::new(py, &py_params)?;
+                // we used the params to construct the box; they should not be retained as params except the subcircuit
+                instruction_values.retain(|value| matches!(value, GenericValue::Circuit(_)));
+                gate_class.call(args, Some(&kwargs))?
+            }
+            "BreakLoopOp" | "ContinueLoopOp" => {
+                let mut qubit_count = 0;
+                let mut clbit_count = 0;
+                for arg in &instruction.bit_data {
+                    match arg.bit_type {
+                        BitType::Qubit => qubit_count += 1,
+                        BitType::Clbit => clbit_count += 1,
+                    };
+                }
+                let args = (qubit_count, clbit_count);
+                gate_class.call1(args)?
+            }
             _ => {
                 let args = PyTuple::new(py, &py_params)?;
+                if name.as_str() == "ForLoopOp" {
+                    // we used the params to construct the loop; they should not be retained as params except the subcircuit
+                    instruction_values.retain(|value| matches!(value, GenericValue::Circuit(_)));
+                }
+                if name.as_str() == "SwitchCaseOp" {
+                    // switch cases are as the second component of the second parameter
+                    // we keep only the circuits and remove everything else from the params
+                    if let GenericValue::Tuple(cases) = &instruction_values[1] {
+                        instruction_values = cases
+                            .iter()
+                            .map(|case| -> PyResult<_> {
+                                if let GenericValue::Tuple(case_elements) = case {
+                                    Ok(case_elements[1].clone())
+                                } else {
+                                    Err(PyValueError::new_err("Unable to read switch case op"))
+                                }
+                            })
+                            .collect::<PyResult<_>>()?;
+                    }
+                }
                 gate_class.call1(args)?
             }
         };

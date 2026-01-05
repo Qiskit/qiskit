@@ -13,7 +13,9 @@
 """Tests for python write/rust read flow and vice versa"""
 
 import io
-from qiskit.circuit import QuantumCircuit
+import numpy as np
+from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit.circuit.classical import expr
 from qiskit.qpy import dump, load
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -64,4 +66,29 @@ class TestQPYRoundtrip(QiskitTestCase):
         body = QuantumCircuit([qc.qubits[0]])
         body.x(0)
         qc.if_else(condition, body, None, [qc.qubits[0]], [])
+        self.assert_roundtrip_equal(qc, version=17)
+
+    def test_box(self):
+        qc = QuantumCircuit(2)
+        with qc.box(duration=13):
+            qc.cx(0, 1)
+        self.assert_roundtrip_equal(qc, version=17)
+
+    def test_forloop(self):
+        qc = QuantumCircuit(2, 1)
+        with qc.for_loop(range(5)):
+            qc.h(0)
+            qc.cx(0, 1)
+            qc.measure(0, 0)
+            with qc.if_test((0, True)):
+                qc.break_loop()
+        self.assert_roundtrip_equal(qc, version=17)
+
+    def test_switch(self):
+        body = QuantumCircuit(1)
+        qr = QuantumRegister(2, "q1")
+        cr = ClassicalRegister(2, "c1")
+        qc = QuantumCircuit(qr, cr)
+        qc.switch(expr.bit_and(cr, 3), [(1, body.copy())], [0], [])
+        qc.switch(expr.logic_not(qc.clbits[0]), [(False, body.copy())], [0], [])
         self.assert_roundtrip_equal(qc, version=17)
