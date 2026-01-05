@@ -229,10 +229,7 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
 
         # Use string prefix
         ansatz = evolved_operator_ansatz(
-            [op1, op2, op3],
-            reps=2,
-            remove_identities=True,
-            parameter_prefix="theta"
+            [op1, op2, op3], reps=2, remove_identities=True, parameter_prefix="theta"
         )
 
         # Should have 2 operators * 2 reps = 4 parameters
@@ -282,10 +279,7 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
 
     def test_sparse_observable_fast_rust_path(self):
         """Test that SparseObservable uses fast Rust path when conditions are met."""
-        obs = SparseObservable.from_sparse_list([
-            ("X", [0], 1.0),
-            ("Z", [1], 1.0)
-        ], num_qubits=2)
+        obs = SparseObservable.from_sparse_list([("X", [0], 1.0), ("Z", [1], 1.0)], num_qubits=2)
 
         # Should use fast path (flatten=True, evolution=None, SparseObservable)
         ansatz = evolved_operator_ansatz(obs, reps=2, flatten=True)
@@ -306,10 +300,7 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
 
         # Use string prefix
         ansatz = evolved_operator_ansatz(
-            [obs1, obs2, obs3],
-            reps=2,
-            remove_identities=True,
-            parameter_prefix="theta"
+            [obs1, obs2, obs3], reps=2, remove_identities=True, parameter_prefix="theta"
         )
 
         # Should have 2 operators * 2 reps = 4 parameters

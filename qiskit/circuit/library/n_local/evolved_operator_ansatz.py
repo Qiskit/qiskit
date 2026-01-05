@@ -133,10 +133,7 @@ def evolved_operator_ansatz(
     if (
         flatten is not False  # captures None and True
         and evolution is None
-        and all(
-            isinstance(op, (SparsePauliOp, SparseObservable))
-            for op in operators
-        )
+        and all(isinstance(op, (SparsePauliOp, SparseObservable)) for op in operators)
     ):
         sparse_labels = [op.to_sparse_list() for op in operators]
         expanded_paulis = []
@@ -534,4 +531,3 @@ def _remove_identities(operators, prefixes):
         cleaned_prefix = [prefix for i, prefix in enumerate(prefixes) if i not in identity_ops]
 
     return cleaned_ops, cleaned_prefix
-    
