@@ -56,3 +56,12 @@ class TestQPYRoundtrip(QiskitTestCase):
         qc.cx(1, 2)
         qc.measure_all()
         self.assert_roundtrip_equal(qc, version=17)
+
+    def test_ifelse(self):
+        """Check the IfElse conditional gate passes roundtrip"""
+        qc = QuantumCircuit(1,1)
+        condition = (qc.cregs[0], 0)
+        body = QuantumCircuit([qc.qubits[0]])
+        body.x(0)
+        qc.if_else(condition, body, None, [qc.qubits[0]], [])
+        self.assert_roundtrip_equal(qc, version=17)

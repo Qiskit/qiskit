@@ -244,6 +244,7 @@ fn instruction_values_to_params(
     // currently QPY has no dedicated representation for blocks, only for py circuit objects
     // so we use the following heuristic: if all the elements of `values` are circuits
     // treat `values` as a vector of blocks
+    // we assume that if-else with a None else block will be handled in a way that the None is not present here
     if !values.is_empty()
         && values
             .iter()
@@ -583,7 +584,7 @@ fn unpack_py_instruction(
     qpy_data: &mut QPYReadData,
 ) -> PyResult<(PackedOperation, Vec<GenericValue>)> {
     let name = instruction.gate_class_name.clone();
-    let instruction_values = get_instruction_values(instruction, qpy_data)?;
+    let mut instruction_values = get_instruction_values(instruction, qpy_data)?;
     Python::attach(|py| -> PyResult<(PackedOperation, Vec<GenericValue>)> {
         let py_params: Vec<Bound<PyAny>> = instruction_values
             .iter()
@@ -631,6 +632,19 @@ fn unpack_py_instruction(
                     args.push(param.unbind());
                 }
                 args.push(instruction.num_ctrl_qubits.into_py_any(py)?);
+                gate_class.call1(PyTuple::new(py, args)?)?
+            }
+            "IfElseOp" | "WhileLoopOp" => {
+                let condition = unpack_condition(&instruction.condition, qpy_data)?
+                    .expect("This control flow gate requires a condition parameter");
+                let py_condition = condition.into_py_any(py)?;
+                let mut args = vec![py_condition];
+                for param in py_params {
+                    args.push(param.unbind());
+                }
+                // in the case if IfElseOp with Null else body, retaining it would confuse the heuristic detemining
+                // whether parameter are blocks or true params; we can simply dump it.
+                instruction_values.retain(|value| !matches!(value, GenericValue::Null));
                 gate_class.call1(PyTuple::new(py, args)?)?
             }
             _ => {
