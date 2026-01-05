@@ -114,8 +114,6 @@ pub unsafe extern "C" fn qk_transpile_state_layout(
 /// @param state a pointer to the state to set the layout for.
 /// @param layout a pointer to the layout to use. May be ``NULL`` to unset the layout.
 ///
-/// @return an exit code explaining.
-///
 /// # Safety
 ///
 /// Behavior is undefined if ``state`` is not a valid, non-null pointer to a ``QkTranspileState``.
