@@ -13,7 +13,6 @@
 """Tests for python write/rust read flow and vice versa"""
 
 import io
-import numpy as np
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit.classical import expr
 from qiskit.qpy import dump, load
@@ -60,7 +59,7 @@ class TestQPYRoundtrip(QiskitTestCase):
         self.assert_roundtrip_equal(qc, version=17)
 
     def test_ifelse(self):
-        """Check the IfElse conditional gate passes roundtrip"""
+        """Check the IfElse control flow gate passes roundtrip"""
         qc = QuantumCircuit(1, 1)
         condition = (qc.cregs[0], 0)
         body = QuantumCircuit([qc.qubits[0]])
@@ -69,12 +68,14 @@ class TestQPYRoundtrip(QiskitTestCase):
         self.assert_roundtrip_equal(qc, version=17)
 
     def test_box(self):
+        """Check the BoxOp control flow gate passes roundtrip"""
         qc = QuantumCircuit(2)
         with qc.box(duration=13):
             qc.cx(0, 1)
         self.assert_roundtrip_equal(qc, version=17)
 
     def test_forloop(self):
+        """Check the ForLoop control flow gate passes roundtrip"""
         qc = QuantumCircuit(2, 1)
         with qc.for_loop(range(5)):
             qc.h(0)
@@ -85,6 +86,7 @@ class TestQPYRoundtrip(QiskitTestCase):
         self.assert_roundtrip_equal(qc, version=17)
 
     def test_switch(self):
+        """Check the SwitchOp control flow gate passes roundtrip"""
         body = QuantumCircuit(1)
         qr = QuantumRegister(2, "q1")
         cr = ClassicalRegister(2, "c1")
