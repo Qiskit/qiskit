@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2025.
+# (C) Copyright IBM 2026.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -23,7 +23,7 @@ from qiskit.quantum_info import random_clifford
 class BasicSimulatorGHZBenchmark:
     """Benchmark BasicSimulator on GHZ Clifford circuits."""
 
-    params = ([4, 8, 12, 16],)
+    params = ([4, 8, 12, 16, 20, 24, 32],)
     param_names = ("n_qubits",)
 
     def setup(self, n_qubits):
@@ -36,21 +36,19 @@ class BasicSimulatorGHZBenchmark:
         qc.measure(range(n_qubits), range(n_qubits))
         self.ghz_circuit = qc
 
-    def time_statevector(self, n_qubits):
+    def time_statevector(self, _n_qubits):
         """Time statevector simulation of GHZ circuit."""
-        _ = n_qubits  # ASV parameter
         backend = BasicSimulator()
-        backend.run(
+        _ = backend.run(
             self.ghz_circuit,
             shots=1024,
             use_clifford_optimization=False,
         ).result()
 
-    def time_clifford(self, n_qubits):
+    def time_clifford(self, _n_qubits):
         """Time Clifford-optimized simulation of GHZ circuit."""
-        _ = n_qubits  # ASV parameter
         backend = BasicSimulator()
-        backend.run(
+        _ = backend.run(
             self.ghz_circuit,
             shots=1024,
             use_clifford_optimization=True,
@@ -60,32 +58,31 @@ class BasicSimulatorGHZBenchmark:
 class BasicSimulatorRandomCliffordBenchmark:
     """Benchmark BasicSimulator on random Clifford circuits."""
 
-    params = ([4, 8, 12, 16],)
+    params = ([4, 8, 12, 16, 20, 24, 32, 64, 128, 256, 512, 1000],)
+
     param_names = ("n_qubits",)
 
     def setup(self, n_qubits):
         """Setup random Clifford circuit for given n_qubits."""
 
-        cliff = random_clifford(n_qubits)
+        cliff = random_clifford(n_qubits, seed=0)
         qc = cliff.to_circuit()
         qc.measure_all()
         self.clifford_circuit = qc
 
-    def time_statevector(self, n_qubits):
+    def time_statevector(self, _n_qubits):
         """Time statevector simulation of random Clifford circuit."""
-        _ = n_qubits  # ASV parameter
         backend = BasicSimulator()
-        backend.run(
+        _ = backend.run(
             self.clifford_circuit,
             shots=1024,
             use_clifford_optimization=False,
         ).result()
 
-    def time_clifford(self, n_qubits):
+    def time_clifford(self, _n_qubits):
         """Time Clifford-optimized simulation of random Clifford circuit."""
-        _ = n_qubits  # ASV parameter
         backend = BasicSimulator()
-        backend.run(
+        _ = backend.run(
             self.clifford_circuit,
             shots=1024,
             use_clifford_optimization=True,
