@@ -11,14 +11,13 @@
 # that they have been altered from the originals.
 #
 
+# pylint: disable=attribute-defined-outside-init
+
 """BasicSimulator Clifford benchmarks."""
 
 from qiskit import QuantumCircuit
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.quantum_info import random_clifford
-
-# pylint: disable=attribute-defined-outside-init
-
 
 class BasicSimulatorGHZBenchmark:
     """Benchmark BasicSimulator on GHZ Clifford circuits."""
