@@ -154,5 +154,7 @@ template: |
   deprecations_misc:
     - New deprecations that don't fit into another category.
 
+  # Build release notes are for things like Rust-version updates, Python-packaging updates, etc.
+  # These generally shouldn't concern users, just people building from source.
   build:
     - Changes to the build system that packagers might need to be aware of.
