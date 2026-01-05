@@ -59,7 +59,7 @@ class TestQPYRoundtrip(QiskitTestCase):
 
     def test_ifelse(self):
         """Check the IfElse conditional gate passes roundtrip"""
-        qc = QuantumCircuit(1,1)
+        qc = QuantumCircuit(1, 1)
         condition = (qc.cregs[0], 0)
         body = QuantumCircuit([qc.qubits[0]])
         body.x(0)
