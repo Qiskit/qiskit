@@ -96,7 +96,7 @@ template: |
     - New features in :mod:`qiskit.synthesis`.
   features_transpiler:
     - New features in :mod:`qiskit.transpiler`, including all transpiler passes and also the
-      :class:`.DAGCircuit` IR.
+      :class:`.DAGCircuit` intermediate representation (IR).
   features_visualization:
     - New features in :mod:`qiskit.visualization`.
   features_misc:
