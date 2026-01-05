@@ -17,12 +17,16 @@ use std::num::NonZero;
 use std::sync::Arc;
 use std::{fmt, vec};
 
+use crate::bit::{ClassicalRegister, ShareableClbit};
 use crate::circuit_data::CircuitData;
+use crate::classical::expr;
+use crate::duration::Duration;
+use crate::packed_instruction::PackedInstruction;
 use crate::parameter::parameter_expression::{
     ParameterExpression, PyParameter, PyParameterExpression,
 };
 use crate::parameter::symbol_expr::{Symbol, Value};
-use crate::{Qubit, gate_matrix, impl_intopyobject_for_copy_pyclass, imports};
+use crate::{ControlFlowBlocks, Qubit, gate_matrix, impl_intopyobject_for_copy_pyclass, imports};
 
 use nalgebra::{Matrix2, Matrix4};
 use ndarray::{Array2, ArrayView2, Dim, ShapeBuilder, array, aview2};
@@ -30,9 +34,6 @@ use num_bigint::BigUint;
 use num_complex::Complex64;
 use smallvec::{SmallVec, smallvec};
 
-use crate::bit::{ClassicalRegister, ShareableClbit};
-use crate::classical::expr;
-use crate::duration::Duration;
 use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2, ToPyArray};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
@@ -570,7 +571,7 @@ impl ControlFlowInstruction {
     pub fn create_py_op(
         &self,
         py: Python,
-        blocks: Option<Vec<Py<PyAny>>>,
+        blocks: Option<Vec<CircuitData>>,
         label: Option<&str>,
     ) -> PyResult<Py<PyAny>> {
         let mut blocks = blocks.into_iter().flatten();
@@ -596,7 +597,10 @@ impl ControlFlowInstruction {
                 imports::BOX_OP.get(py).call1(
                     py,
                     (
-                        blocks.next().unwrap(),
+                        blocks
+                            .next()
+                            .expect("box should have a body")
+                            .into_py_quantum_circuit(py)?,
                         duration,
                         unit,
                         label,
@@ -619,19 +623,43 @@ impl ControlFlowInstruction {
                 loop_param,
             } => imports::FOR_LOOP_OP.get(py).call(
                 py,
-                (collection, loop_param.clone(), blocks.next()),
+                (
+                    collection,
+                    loop_param.clone(),
+                    blocks
+                        .next()
+                        .expect("for loop should have a body")
+                        .into_py_quantum_circuit(py)?,
+                ),
                 kwargs.as_ref(),
             ),
             ControlFlow::IfElse { condition } => imports::IF_ELSE_OP.get(py).call(
                 py,
-                (condition.clone(), blocks.next().unwrap(), blocks.next()),
+                (
+                    condition.clone(),
+                    blocks
+                        .next()
+                        .expect("if should have a true body")
+                        .into_py_quantum_circuit(py)?,
+                    blocks
+                        .next()
+                        .map(|circuit| circuit.into_py_quantum_circuit(py))
+                        .transpose()?,
+                ),
                 kwargs.as_ref(),
             ),
             ControlFlow::Switch {
                 target, label_spec, ..
             } => {
-                let cases_specifier: Vec<(Vec<CaseSpecifier>, Py<PyAny>)> =
-                    label_spec.iter().cloned().zip(blocks).collect();
+                let cases_specifier: Vec<(Vec<CaseSpecifier>, Py<PyAny>)> = label_spec
+                    .iter()
+                    .cloned()
+                    .zip(blocks)
+                    .map(|(cases, body)| {
+                        body.into_py_quantum_circuit(py)
+                            .map(|ob| (cases, ob.unbind()))
+                    })
+                    .collect::<PyResult<_>>()?;
                 imports::SWITCH_CASE_OP.get(py).call(
                     py,
                     (target.clone(), cases_specifier),
@@ -640,7 +668,13 @@ impl ControlFlowInstruction {
             }
             ControlFlow::While { condition, .. } => imports::WHILE_LOOP_OP.get(py).call(
                 py,
-                (condition.clone(), blocks.next()),
+                (
+                    condition.clone(),
+                    blocks
+                        .next()
+                        .expect("while should have a body")
+                        .into_py_quantum_circuit(py)?,
+                ),
                 kwargs.as_ref(),
             ),
         }
@@ -688,7 +722,10 @@ impl Operation for ControlFlowInstruction {
 /// An ergonomic view of a control flow operation and its blocks.
 #[derive(Clone, Debug)]
 pub enum ControlFlowView<'a, T> {
-    Box(Option<&'a BoxDuration>, &'a T),
+    Box {
+        duration: Option<&'a BoxDuration>,
+        body: &'a T,
+    },
     BreakLoop,
     ContinueLoop,
     ForLoop {
@@ -703,7 +740,7 @@ pub enum ControlFlowView<'a, T> {
     },
     Switch {
         target: &'a SwitchTarget,
-        cases_specifier: Vec<(&'a Vec<CaseSpecifier>, &'a T)>,
+        cases_specifier: Vec<(&'a [CaseSpecifier], &'a T)>,
     },
     While {
         condition: &'a Condition,
@@ -712,9 +749,69 @@ pub enum ControlFlowView<'a, T> {
 }
 
 impl<'a, T> ControlFlowView<'a, T> {
+    /// Produce a complete control-flow view object from the given instruction.
+    ///
+    /// While [CircuitData] and [DAGCircuit] both provide `try_view_control_flow` methods which just
+    /// delegate to this internally, this function is useful for a) code de-duplication and b)
+    /// finer-grained borrow-check control from within the `impl` blocks of [CircuitData] and
+    /// [DAGCircuit].
+    ///
+    /// Panics or produces invalid results if `inst` and `blocks` aren't from compatible sources
+    /// (e.g. the same [CircuitData]).
+    pub fn try_from_instruction(
+        inst: &'a PackedInstruction,
+        blocks: &'a ControlFlowBlocks<T>,
+    ) -> Option<Self> {
+        let OperationRef::ControlFlow(cf) = inst.op.view() else {
+            return None;
+        };
+        let block_ids = inst.blocks_view();
+        let view = match &cf.control_flow {
+            ControlFlow::Box {
+                duration,
+                annotations: _,
+            } => Self::Box {
+                duration: duration.as_ref(),
+                body: &blocks[block_ids[0]],
+            },
+            ControlFlow::BreakLoop => Self::BreakLoop,
+            ControlFlow::ContinueLoop => Self::ContinueLoop,
+            ControlFlow::ForLoop {
+                collection,
+                loop_param,
+            } => Self::ForLoop {
+                collection,
+                loop_param: loop_param.as_ref(),
+                body: &blocks[block_ids[0]],
+            },
+            ControlFlow::IfElse { condition } => Self::IfElse {
+                condition,
+                true_body: &blocks[block_ids[0]],
+                false_body: block_ids.get(1).map(|bid| &blocks[*bid]),
+            },
+            ControlFlow::Switch {
+                target,
+                label_spec,
+                cases: _,
+            } => Self::Switch {
+                target,
+                cases_specifier: label_spec
+                    .iter()
+                    .zip(block_ids)
+                    .map(|(cases, bid)| (cases.as_slice(), &blocks[*bid]))
+                    .collect(),
+            },
+            ControlFlow::While { condition } => Self::While {
+                condition,
+                body: &blocks[block_ids[0]],
+            },
+        };
+        Some(view)
+    }
+
     pub fn blocks(&self) -> Vec<&'a T> {
         match self {
-            ControlFlowView::Box(_, body) => vec![*body],
+            ControlFlowView::Box { body, .. } => vec![*body],
             ControlFlowView::BreakLoop => vec![],
             ControlFlowView::ContinueLoop => vec![],
             ControlFlowView::ForLoop { body, .. } => vec![*body],

@@ -209,8 +209,14 @@ impl DAGOpNode {
                 let slf_blocks = slf.instruction.blocks_view();
                 let other_blocks = borrowed_other.instruction.blocks_view();
                 let mut params_eq = true;
+                // TODO: we should be able to do the semantic-equality comparison from Rust
+                // space in the future, without going via Python.  See gh-15267.
                 for (a, b) in slf_blocks.iter().zip(other_blocks) {
-                    if !a.bind(py).eq(b)? {
+                    if !a
+                        .clone()
+                        .into_py_quantum_circuit(py)?
+                        .eq(b.clone().into_py_quantum_circuit(py)?)?
+                    {
                         params_eq = false;
                         break;
                     }

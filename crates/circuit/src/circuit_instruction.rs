@@ -22,6 +22,7 @@ use pyo3::IntoPyObjectExt;
 use pyo3::types::{PyBool, PyList, PyTuple, PyType};
 use pyo3::{PyResult, intern};
 
+use crate::circuit_data::CircuitData;
 use crate::duration::Duration;
 use crate::imports::{CONTROLLED_GATE, GATE, INSTRUCTION, OPERATION, WARNINGS_WARN};
 use crate::instruction::{Instruction, Parameters, create_py_op};
@@ -78,7 +79,7 @@ pub struct CircuitInstruction {
     /// A sequence of the classical bits that this operation reads from or writes to.
     #[pyo3(get)]
     pub clbits: Py<PyTuple>,
-    pub params: Option<Parameters<Py<PyAny>>>,
+    pub params: Option<Parameters<CircuitData>>,
     pub label: Option<Box<String>>,
     #[cfg(feature = "cache_pygates")]
     pub py_op: OnceLock<Py<PyAny>>,
@@ -108,7 +109,7 @@ impl Instruction for CircuitInstruction {
         self.operation.view()
     }
 
-    fn parameters(&self) -> Option<&Parameters<Py<PyAny>>> {
+    fn parameters(&self) -> Option<&Parameters<CircuitData>> {
         self.params.as_ref()
     }
 
@@ -213,10 +214,18 @@ impl CircuitInstruction {
                 } => [
                     collection.into_py_any(py)?,
                     loop_param.clone().into_py_any(py)?,
-                    self.blocks_view()[0].clone_ref(py),
+                    self.blocks_view()[0]
+                        .clone()
+                        .into_py_quantum_circuit(py)?
+                        .unbind(),
                 ]
                 .into_py_any(py),
-                _ => self.blocks_view().into_py_any(py),
+                _ => self
+                    .blocks_view()
+                    .iter()
+                    .map(|block| block.clone().into_py_quantum_circuit(py))
+                    .collect::<PyResult<Vec<_>>>()?
+                    .into_py_any(py),
             },
             _ => self.params_view().into_py_any(py),
         }
@@ -397,8 +406,8 @@ impl CircuitInstruction {
     ) -> PyResult<Py<PyAny>> {
         fn params_eq(
             py: Python,
-            left: Option<&Parameters<Py<PyAny>>>,
-            right: Option<&Parameters<Py<PyAny>>>,
+            left: Option<&Parameters<CircuitData>>,
+            right: Option<&Parameters<CircuitData>>,
         ) -> PyResult<bool> {
             if left.is_none() && right.is_none() {
                 return Ok(true);
@@ -440,8 +449,14 @@ impl CircuitInstruction {
                     if blocks_a.len() != blocks_b.len() {
                         return Ok(false);
                     }
+                    // TODO: we should be able to do the semantic-equality comparison from Rust
+                    // space in the future, without going via Python.  See gh-15267.
                     for (a, b) in blocks_a.iter().zip(blocks_b) {
-                        if !a.bind(py).eq(b)? {
+                        if !a
+                            .clone()
+                            .into_py_quantum_circuit(py)?
+                            .eq(b.clone().into_py_quantum_circuit(py)?)?
+                        {
                             return Ok(false);
                         }
                     }
@@ -513,7 +528,7 @@ impl CircuitInstruction {
 #[derive(Debug)]
 pub struct OperationFromPython {
     pub operation: PackedOperation,
-    pub params: Option<Parameters<Py<PyAny>>>,
+    pub params: Option<Parameters<CircuitData>>,
     pub label: Option<Box<String>>,
 }
 
@@ -528,7 +543,7 @@ impl OperationFromPython {
     /// Takes the blocks out of [OperationFromPython::params].
     ///
     /// Panics if params is not a block list.
-    pub fn take_blocks(&mut self) -> Option<Vec<Py<PyAny>>> {
+    pub fn take_blocks(&mut self) -> Option<Vec<CircuitData>> {
         self.params.take().map(|p| p.unwrap_blocks())
     }
 }
@@ -538,7 +553,7 @@ impl Instruction for OperationFromPython {
         self.operation.view()
     }
 
-    fn parameters(&self) -> Option<&Parameters<Py<PyAny>>> {
+    fn parameters(&self) -> Option<&Parameters<CircuitData>> {
         self.params.as_ref()
     }
 
@@ -861,7 +876,8 @@ impl<'a, 'py> FromPyObject<'a, 'py> for OperationFromPython {
 pub fn extract_params(
     op: OperationRef,
     params: &Bound<PyAny>,
-) -> PyResult<Option<Parameters<Py<PyAny>>>> {
+) -> PyResult<Option<Parameters<CircuitData>>> {
+    let data_attr = intern!(params.py(), "_data");
     Ok(match op {
         OperationRef::ControlFlow(cf) => match &cf.control_flow {
             ControlFlow::BreakLoop => None,
@@ -870,19 +886,31 @@ pub fn extract_params(
                 // We skip the first two parameters (collection and loop_param) since we
                 // store those directly on the operation in Rust.
                 let mut params = params.try_iter()?.skip(2);
-                Some(Parameters::Blocks(vec![params.next().unwrap()?.unbind()]))
+                Some(Parameters::Blocks(vec![
+                    params
+                        .next()
+                        .ok_or_else(|| {
+                            PyValueError::new_err("not enough values to unpack (expected 3)")
+                        })??
+                        .getattr(data_attr)?
+                        .extract()?,
+                ]))
             }
             _ => {
                 // For all other control flow operations with blocks, the 'params' in Python land
                 // are exactly the blocks.
-                let blocks: Vec<Py<PyAny>> = params
+                let blocks = params
                     .try_iter()?
                     .take_while(|p| match p {
                         // In the case of IfElse, the "false" body might be None.
                         Ok(block) if !block.is_none() => true,
                         _ => false,
                     })
-                    .map(|p| p.map(|p| p.unbind()))
+                    .map(|p| -> PyResult<_> {
+                        p?.getattr(data_attr)?
+                            .extract::<CircuitData>()
+                            .map_err(PyErr::from)
+                    })
                     .collect::<PyResult<_>>()?;
                 Some(Parameters::Blocks(blocks))
             }

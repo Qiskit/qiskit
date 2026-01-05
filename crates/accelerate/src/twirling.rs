@@ -18,8 +18,6 @@ use ndarray::ArrayView2;
 use ndarray::linalg::kron;
 use ndarray::prelude::*;
 use num_complex::Complex64;
-use pyo3::Python;
-use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 use qiskit_circuit::circuit_data::CircuitData;
@@ -220,7 +218,6 @@ fn twirl_gate(
 type CustomGateTwirlingMap = HashMap<String, Vec<([StandardGate; 4], f64)>>;
 
 fn generate_twirled_circuit(
-    py: Python,
     circ: &CircuitData,
     rng: &mut Pcg64Mcg,
     twirling_mask: u8,
@@ -241,20 +238,14 @@ fn generate_twirled_circuit(
                 .blocks()
                 .into_iter()
                 .map(|block| {
-                    // TODO: remove this once PackedInstruction's block type is CircuitData.
-                    let block = block
-                        .bind(py)
-                        .getattr(intern!(py, "_data"))?
-                        .extract::<CircuitData>()?;
                     let new_block = generate_twirled_circuit(
-                        py,
-                        &block,
+                        block,
                         rng,
                         twirling_mask,
                         custom_gate_map,
                         optimizer_target,
                     )?;
-                    Ok(out_circ.add_block(&new_block.into_py_quantum_circuit(py)?))
+                    Ok(out_circ.add_block(new_block))
                 })
                 .collect::<PyResult<_>>()?;
             out_circ.push(PackedInstruction::from_control_flow(
@@ -315,7 +306,6 @@ fn generate_twirled_circuit(
 #[pyfunction]
 #[pyo3(signature=(circ, twirled_gate=None, custom_twirled_gates=None, seed=None, num_twirls=1, optimizer_target=None))]
 pub(crate) fn twirl_circuit(
-    py: Python,
     circ: &CircuitData,
     twirled_gate: Option<Vec<StandardGate>>,
     custom_twirled_gates: Option<Vec<OperationFromPython>>,
@@ -396,7 +386,6 @@ pub(crate) fn twirl_circuit(
     (0..num_twirls)
         .map(|_| {
             generate_twirled_circuit(
-                py,
                 circ,
                 &mut rng,
                 twirling_mask,
