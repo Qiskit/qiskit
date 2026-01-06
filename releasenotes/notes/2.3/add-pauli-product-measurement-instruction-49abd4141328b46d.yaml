@@ -8,13 +8,13 @@ features_circuits:
     indicating the eigenstate of the Pauli product.
 
     For additional background, see
-    "A Game of Surface Codes: Large-Scale Quantum Computing with Lattice Surgery" by
-    Daniel Litinski (https://arxiv.org/abs/1808.02892).
+    `A Game of Surface Codes: Large-Scale Quantum Computing with Lattice Surgery
+    <https://arxiv.org/abs/1808.02892>`__ by Daniel Litinski.
 
     A :class:`.PauliProductMeasurement` can be instantiated from a 
     :class:`~.quantum_info.Pauli`, where the Pauli may include a phase of :math:`-1`,
     but not of :math:`i` or :math:`-i`. The instruction has the same number of qubits as
-    the Pauli, and exactly :math:`1` classical bit.
+    the Pauli, and a single classical bit.
 
     As an example::
 

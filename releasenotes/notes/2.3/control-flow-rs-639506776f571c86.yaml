@@ -2,11 +2,12 @@
 upgrade_circuits:
   - |
     The internal representation of :class:`.ControlFlowOp`\ s has changed when
-    they're added to a :class:`.QuantumCircuit`. The object stored in the circuit 
-    and returned on future access will not necessarily be the same instance added
-    to the circuit. This was never guaranteed to be the case and mutating control
-    flow operation objects directly or by reference was unsound and always
-    likely to corrupt the circuit.
+    they are added to a :class:`.QuantumCircuit` or :class:`.DAGCircuit`. The
+    object stored in the circuit and returned on future access will not
+    necessarily be the same instance added to the circuit. This was never
+    guaranteed to be the case and mutating control flow operation objects
+    directly or by reference was unsound and always likely to corrupt the
+    circuit.
 
     As with all in-place mutations to Python objects stored within a :class:`.QuantumCircuit` or
     :class:`.DAGCircuit`, you must re-assign the instruction to the circuit in order for Rust space
@@ -34,8 +35,8 @@ upgrade_circuits:
   - |
     Transpiler performance in the presence of :class:`.ControlFlowOp` instructions, including
     :class:`.BoxOp`, is expected to be temporarily worse in Qiskit 2.3, as we transition the internal
-    representation of control flow from its previously Python-centred version to a Rust-native one.
-    We expect the performance to improve again in Qiskit 2.4, and to enable us to resolve
+    representation of control flow from its previously Python-centric version to a Rust-native one.
+    We expect the performance to improve again in a later version of Qiskit, and to enable us to resolve
     long-standing API deficiencies in transpiler passes acting on control-flow operations.
   - |
     The blocks of :class:`.ControlFlowOp` instances will no longer track :attr:`~.QuantumCircuit.name`

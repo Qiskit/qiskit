@@ -1,6 +1,7 @@
 ---
 fixes:
   - |
-    Fixed a bug when transpiling into a Clifford+T basis, where a Clifford+T basis
-    was not interpreted as such, leading to significantly more T-gates in the
-    transpiled circuit.
+    Instructions with specialized Clifford+T syntheses will now be correctly recognized
+    at higher transpilation optimization levels.  Previously, the synthesis would first
+    be done in a continuous basis and then translated to Clifford+T, resulting in worse
+    than expected T counts.

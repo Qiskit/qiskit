@@ -3,4 +3,5 @@ features_c:
   - |
     A new struct, :c:struct:`QkNeighbors`, is added, which is a representation of two-qubit coupling
     graph implied by a :class:`.Target`.  It is initialized by the new function
-    :c:func:`qk_neighbors_from_target`.
+    :c:func:`qk_neighbors_from_target`, cleared with :c:func:`qk_neighbors_clear`, and has a helper
+    function :c:func:`qk_neighbors_is_all_to_all`.

@@ -1,5 +1,5 @@
 ---
-other:
+build:
   - |
     When building or packaging Qiskit from source, the version of `setuptools` required is now at
     least version 77.0 (released in March 2025).  This is to support the new license-metadata

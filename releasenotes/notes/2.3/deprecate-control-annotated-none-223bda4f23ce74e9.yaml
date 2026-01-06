@@ -14,7 +14,7 @@ deprecations_circuits:
     set the default to ``annotated=True``. This is recommended, as it defers the
     construction of the controlled circuit from the circuit construction to the transpiler,
     and enables additional controlled-gate optimizations, typically leading to higher-quality
-    circuits (especially for hierarhical circuits).
+    circuits (especially for hierarchical circuits).
 
     However, you will still be able to explicitly set ``annotated=False`` to preserve the
     previous behavior.

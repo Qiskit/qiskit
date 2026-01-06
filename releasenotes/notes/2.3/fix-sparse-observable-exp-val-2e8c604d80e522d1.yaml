@@ -1,5 +1,5 @@
 ---
-features:
+features_misc:
   - |
     Added ability to compute the expectation value of a :class:`.SparseObservable`
     from sampled bitstrings in the Z-basis by using the 

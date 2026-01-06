@@ -1,8 +1,8 @@
 ---
 features_transpiler:
   - |
-    Added a new transpiler pass :class:`.CommutativeOptimization`, that
-    performs gate cancellation and merging exploiting commutativity relations.
+    Added a new transpiler pass, :class:`.CommutativeOptimization`, which
+    performs gate cancellation and merging, exploiting commutativity relations.
     The pass unifies and extends the functionality of
     both :class:`.CommutativeCancellation` and
     :class:`.CommutativeInverseCancellation`.
