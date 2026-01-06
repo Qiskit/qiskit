@@ -16,7 +16,7 @@ prelude: |
   to a Pauli-based computation basis using the existing :class:`.LitinskiTransformation` pass.
   The new :class:`.RossSelingerSynthesis`, which can be set in the transpiler using 
   ``unitary_synthesis_method="gridsynth"``, enables using the asymptotically optimal Ross-Selinger 
-  algorithm for single-qubit Clifford+T synthesis. Other improvements include, e.g. a better
+  algorithm for single-qubit Clifford+T synthesis. Other improvements include, for example, a better
   :class:`.OptimizeCliffordT` pass or the :class:`.CommutativeOptimization` pass, which takes 
   into account commutative optimizations of Pauli-based circuits.
 
