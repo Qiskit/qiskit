@@ -1,0 +1,26 @@
+---
+prelude: |
+  Qiskit 2.3.0 is a new feature release of the Qiskit SDK.
+
+  This new version significantly expands the C API for transpilation, making more of the
+  :class:`.Target` (:c:struct:`QkTarget`) available for inspection from C, and allowing the
+  :class:`.DAGCircuit` (:c:struct:`QkDag`) to be created and manipulated.  This makes it possible
+  to write custom transpiler passes when compiling against the stand-alone ``libqiskit`` object.
+  There are individual transpilation-stage functions in the C API (e.g.
+  :c:func:`qk_transpile_stage_layout`), to make it easier to insert custom logic into
+  transpilation without having to recreate the entire pipeline manually.
+
+  The performance and feature set of transpilation to early fault-tolerant targets has also been
+  improved.  A new :class:`.PauliProductMeasurement` instruction provides the joint Pauli measurement
+  that forms the basis of Pauli-based computation.  New synthesis methods are available, such as
+  such as :class:`.RossSelingerSynthesis` and :class:`.SubstitutePi4Rotations`, which the existing
+  :class:`.LitinksiTransformation` and :class:`.OptimizeCliffordT` passes have seen performance improvements.
+
+  Note that from this release onwards, Python 3.9 is no longer supported due to having passed its
+  end of life in October 2025, and macOS on Intel processors has been downgraded to tier 2 platform
+  support due to Apple beginning to sunset the platform.
+
+  There will be further feature releases of Qiskit in the 2.x series; we do not expect to release
+  Qiskit 3.0 until much later in 2026 as there is currently no need for breaking changes.  We expect
+  Qiskit 3.0 to stabilize the C API and handle any breaking changes needed for future fault-tolerant
+  platform work, when it arrives.
