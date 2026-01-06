@@ -208,19 +208,6 @@ class TestStabilizerState(QiskitTestCase):
             state = stab1.evolve(stab2, qargs)
             self.assertEqual(state, target)
 
-    def test_evolve_sparseobservable_stabilizer_clifford(self):
-        """Test stabilizer state evolve method."""
-        obs = qi.SparseObservable.from_label("X")
-        cliff = random_clifford(1, seed=self.rng)
-        stab = StabilizerState(cliff)
-
-        c = Clifford(obs.to_matrix())
-        target = StabilizerState(cliff.compose(c))
-
-        evolved = stab.evolve(obs)
-
-        self.assertEqual(evolved, target)
-
     def test_measure_single_qubit(self):
         """Test a measurement of a single qubit"""
         for _ in range(self.samples):

@@ -186,17 +186,6 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
             num_qubits = data.num_qubits
             self.tableau = Clifford.from_circuit(data).tableau
 
-        # Initialize StabilizerTable directly from the data
-        elif hasattr(data, "to_matrix"):
-            mat = data.to_matrix()
-            try:
-                # Attempt to construct a Clifford from the matrix
-                self.tableau = Clifford.from_matrix(mat).tableau
-                num_qubits = int(math.log2(mat.shape[0]))
-            except QiskitError as exc:
-                raise QiskitError(
-                    "Matrix corresponds to a non-Clifford unitary; cannot create Clifford."
-                ) from exc
         else:
             if (
                 isinstance(data, (list, np.ndarray))
