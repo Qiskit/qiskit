@@ -11,10 +11,14 @@ prelude: |
   transpilation without having to recreate the entire pipeline manually.
 
   The performance and feature set of transpilation to early fault-tolerant targets has also been
-  improved.  A new :class:`.PauliProductMeasurement` instruction provides the joint Pauli measurement
-  that forms the basis of Pauli-based computation.  New synthesis methods are available, such as
-  such as :class:`.RossSelingerSynthesis` and :class:`.SubstitutePi4Rotations`, which the existing
-  :class:`.LitinksiTransformation` and :class:`.OptimizeCliffordT` passes have seen performance improvements.
+  improved.  With the new :class:`.PauliProductMeasurement` instruction, which represents a
+  projective measurement into a Pauli product basis, Qiskit now fully supports transpiling circuits 
+  to a Pauli-based computation basis using the existing :class:`.LitinskiTransformation` pass.
+  The new :class:`.RossSelingerSynthesis`, which can be set in the transpiler using 
+  ``unitary_synthesis_method="gridsynth"``, enables using the asymptotically optimal Ross-Selinger 
+  algorithm for single-qubit Clifford+T synthesis. Other improvements include, e.g. a better
+  :class:`.OptimizeCliffordT` pass or the :class:`.CommutativeOptimization` pass, which takes 
+  into account commutative optimizations of Pauli-based circuits.
 
   Note that from this release onwards, Python 3.9 is no longer supported due to having passed its
   end of life in October 2025, and macOS on Intel processors has been downgraded to tier 2 platform
