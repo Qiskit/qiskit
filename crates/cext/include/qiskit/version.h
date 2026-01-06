@@ -21,11 +21,11 @@
 #define QISKIT_VERSION_MAJOR 2
 #define QISKIT_VERSION_MINOR 3
 #define QISKIT_VERSION_PATCH 0
-#define QISKIT_RELEASE_LEVEL QISKIT_RELEASE_LEVEL_RC
+#define QISKIT_RELEASE_LEVEL QISKIT_RELEASE_LEVEL_FINAL
 // For the final release, set the below to 0.
-#define QISKIT_RELEASE_SERIAL 1
+#define QISKIT_RELEASE_SERIAL 0
 
-#define QISKIT_VERSION "2.3.0-rc1"
+#define QISKIT_VERSION "2.3.0"
 
 #define QISKIT_GET_VERSION_HEX(major, minor, patch, level, serial)                                 \
     (((major) & 0xff) << 24 | ((minor) & 0xff) << 16 | ((patch) & 0xff) << 8 |                     \
