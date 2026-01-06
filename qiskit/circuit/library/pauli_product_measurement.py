@@ -14,13 +14,16 @@
 
 from __future__ import annotations
 
+import typing
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, CircuitError
-from qiskit.circuit.instruction import Instruction
-from qiskit.quantum_info.operators.symplectic.pauli import Pauli
+from qiskit.circuit import QuantumCircuit, CircuitError, Instruction
+from qiskit.quantum_info import Pauli
 
 from qiskit._accelerate.synthesis.pauli_product_measurement import synth_pauli_product_measurement
+
+if typing.TYPE_CHECKING:
+    import qiskit
 
 
 class PauliProductMeasurement(Instruction):
@@ -41,7 +44,7 @@ class PauliProductMeasurement(Instruction):
 
     def __init__(
         self,
-        pauli: Pauli,
+        pauli: qiskit.quantum_info.Pauli,
         label: str | None = None,
     ):
         """
