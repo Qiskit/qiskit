@@ -51,7 +51,7 @@ template: |
   ---
   # Delete all sections that you do not need.  You can have more than one section in a file, and
   # more than one bullet point per section.  This is a regular YAML file, and all text should use
-  # Sphinx's flavour of rST (restructured text).  Each bullet point is a seperate "release note".
+  # Sphinx's flavor of rST (restructured text).  Each bullet point is a separate "release note".
   #
   # Each public bug fix, feature, deprecation, and behavior change needs a release note.
   # Documentation- or internal-only changes do not need release notes.
