@@ -100,7 +100,7 @@ template: |
   features_visualization:
     - New features in :mod:`qiskit.visualization`.
   features_misc:
-    - New features that don't fit into another category.
+    - New features that don't fit into any other category.
 
   # Release notes for changes that might require users to modify their code.  These should not be
   # common, because breaking user code is against the deprecation policy.
@@ -126,7 +126,7 @@ template: |
   upgrade_visualization:
     - Changes needing user action in :mod:`qiskit.visualization`.
   upgrade_misc:
-    - Changes needing user action that don't fit into another category.
+    - Changes needing user action that don't fit into any other category.
 
   # New deprecations in this release.  Each deprecation should explain why the deprecation is
   # necessary, and what users should do instead.  Include examples.
@@ -152,7 +152,7 @@ template: |
   deprecations_visualization:
     - New deprecations in :mod:`qiskit.visualization`.
   deprecations_misc:
-    - New deprecations that don't fit into another category.
+    - New deprecations that don't fit into any other category.
 
   # Build release notes are for things like Rust-version updates, Python-packaging updates, etc.
   # These generally shouldn't concern users, just people building from source.
