@@ -948,7 +948,7 @@ def plot_state_qsphere(
         if eigvals[idx] > 0.001:
             # get the max eigenvalue
             state = eigvecs[:, idx]
-            # Rounding to 13 decimals ignores machine epsilon noise (~1e-16) 
+            # Rounding to 13 decimals ignores machine epsilon noise (~1e-16)
             # from the solver, ensuring 'argmax' finds the true analytical winner.
             loc = np.round(np.absolute(state), decimals=13).argmax()
             # remove the global phase from max element
