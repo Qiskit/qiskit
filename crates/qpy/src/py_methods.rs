@@ -22,6 +22,7 @@ use pyo3::types::{
 };
 use qiskit_circuit::classical::expr::Expr;
 use std::num::NonZero;
+use std::sync::Arc;
 
 use qiskit_circuit::bit::{ClassicalRegister, ShareableClbit};
 use qiskit_circuit::classical;
@@ -391,9 +392,9 @@ pub(crate) fn py_convert_to_generic_value(py_object: &Bound<PyAny>) -> PyResult<
                 .symbol()
                 .clone(),
         )),
-        ValueType::ParameterExpression => Ok(GenericValue::ParameterExpression(
+        ValueType::ParameterExpression => Ok(GenericValue::ParameterExpression(Arc::new(
             py_object.extract::<PyParameterExpression>()?.inner,
-        )),
+        ))),
         ValueType::Circuit => Ok(GenericValue::Circuit(py_object.clone().unbind())),
         ValueType::Tuple => {
             let elements: Vec<GenericValue> = py_object
@@ -426,7 +427,7 @@ pub(crate) fn py_convert_to_generic_value(py_object: &Bound<PyAny>) -> PyResult<
             } else {
                 Err(PyValueError::new_err("Could not read python register"))
             }
-        } // Ok(GenericValue::Register(py_object.clone().unbind())),
+        }
     }
 }
 
@@ -442,7 +443,7 @@ pub(crate) fn py_convert_from_generic_value(value: &GenericValue) -> PyResult<Py
         GenericValue::Null => Ok(py.None()),
         GenericValue::ParameterExpressionSymbol(symbol) => symbol.clone().into_py_any(py),
         GenericValue::ParameterExpressionVectorSymbol(symbol) => symbol.clone().into_py_any(py),
-        GenericValue::ParameterExpression(exp) => exp.clone().into_py_any(py),
+        GenericValue::ParameterExpression(exp) => exp.as_ref().clone().into_py_any(py),
         GenericValue::Circuit(py_object) => Ok(py_object.clone()),
         GenericValue::Modifier(py_object) => Ok(py_object.clone()),
         GenericValue::Range(py_range) => py_range.into_py_any(py),

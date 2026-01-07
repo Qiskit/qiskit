@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 use std::num::NonZero;
+use std::sync::Arc;
 
 use binrw::meta::{ReadEndian, WriteEndian};
 use binrw::{BinRead, BinWrite, Endian, binrw};
@@ -292,7 +293,7 @@ pub enum GenericValue {
     NumpyObject(Py<PyAny>), // currently we store the python object without converting it to rust space
     ParameterExpressionSymbol(Symbol),
     ParameterExpressionVectorSymbol(Symbol),
-    ParameterExpression(ParameterExpression),
+    ParameterExpression(Arc<ParameterExpression>),
     String(String),
     Duration(Duration),
     Null,
@@ -427,7 +428,7 @@ pub(crate) fn load_value(
             let (parameter_expression_pack, _) =
                 deserialize::<formats::ParameterExpressionPack>(bytes)?;
             let exp = unpack_parameter_expression(&parameter_expression_pack, qpy_data)?;
-            Ok(GenericValue::ParameterExpression(exp))
+            Ok(GenericValue::ParameterExpression(Arc::new(exp)))
         }
         ValueType::Tuple => {
             let (elements_pack, _) = deserialize::<GenericDataSequencePack>(bytes)?;

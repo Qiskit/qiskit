@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 use binrw::Endian;
 use pyo3::exceptions::{PyTypeError, PyValueError};
-use pyo3::{IntoPyObjectExt, prelude::*};
+use pyo3::prelude::*;
 use qiskit_circuit::imports;
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::parameter::parameter_expression::{
@@ -23,12 +23,10 @@ use uuid::Uuid;
 
 use crate::bytes::Bytes;
 use crate::formats;
-use crate::py_methods::{
-    py_convert_from_generic_value, py_convert_to_generic_value, py_pack_param,
-};
+use crate::py_methods::{py_convert_from_generic_value, py_pack_param};
 use crate::value::{
     GenericValue, QPYReadData, QPYWriteData, ValueType, deserialize, deserialize_vec, load_value,
-    serialize, serialize_generic_value,
+    pack_generic_value, serialize,
 };
 use binrw::binrw;
 use hashbrown::HashMap;
@@ -353,7 +351,7 @@ pub(crate) fn unpack_parameter_expression(
                     GenericValue::ParameterExpressionVectorSymbol(symbol) => {
                         ParameterExpression::from_symbol(symbol)
                     }
-                    GenericValue::ParameterExpression(exp) => exp,
+                    GenericValue::ParameterExpression(exp) => exp.as_ref().clone(),
                     _ => {
                         return Err(PyValueError::new_err(format!(
                             "Substitution command used right operand {:?} which is not a parameter expression",
@@ -520,40 +518,26 @@ pub(crate) fn unpack_parameter_vector(
     })
 }
 
-pub(crate) fn serialize_param_expression(
-    exp: &ParameterExpression,
-    qpy_data: &QPYWriteData,
-) -> PyResult<(ValueType, Bytes)> {
-    // if the parameter expression is a single symbol, we should treat it like a parameter
-    // or a parameter vector, depending on whether the `vector` field exists
-    let result = if let Ok(symbol) = exp.try_to_symbol() {
-        match symbol.vector {
-            None => {
-                let packed_symbol = pack_symbol(&symbol);
-                (ValueType::Parameter, serialize(&packed_symbol))
-            }
-            Some(_) => {
-                let packed_symbol = pack_parameter_vector(&symbol)?;
-                (ValueType::ParameterVector, serialize(&packed_symbol))
-            }
-        }
-    } else {
-        // for now, we use our old python based serialization code
-        Python::attach(|py| -> PyResult<_> {
-            let py_exp = exp.clone().into_py_any(py)?;
-            let value = py_convert_to_generic_value(py_exp.bind(py))?;
-            serialize_generic_value(&value, qpy_data)
-        })?
-    };
-    Ok(result)
-}
-
 pub(crate) fn pack_param_expression(
     exp: &ParameterExpression,
     qpy_data: &QPYWriteData,
 ) -> PyResult<formats::GenericDataPack> {
-    let (type_key, data) = serialize_param_expression(exp, qpy_data)?;
-    Ok(formats::GenericDataPack { type_key, data })
+    // if the parameter expression is a single symbol, we should treat it like a parameter
+    // or a parameter vector, depending on whether the `vector` field exists
+    if let Ok(symbol) = exp.try_to_symbol() {
+        match symbol.vector {
+            None => pack_generic_value(&GenericValue::ParameterExpressionSymbol(symbol), qpy_data),
+            Some(_) => pack_generic_value(
+                &GenericValue::ParameterExpressionVectorSymbol(symbol),
+                qpy_data,
+            ),
+        }
+    } else {
+        pack_generic_value(
+            &GenericValue::ParameterExpression(Arc::new(exp.clone())),
+            qpy_data,
+        )
+    }
 }
 
 pub(crate) fn pack_param_obj(
@@ -573,6 +557,9 @@ pub(crate) fn pack_param_obj(
             },
         },
         Param::ParameterExpression(exp) => pack_param_expression(exp, qpy_data)?,
+        // Param::ParameterExpression(exp) => {
+        //     pack_generic_value(&GenericValue::ParameterExpression(exp.clone()), qpy_data)?
+        // }
         Param::Obj(py_object) => {
             Python::attach(|py| py_pack_param(py_object.bind(py), qpy_data, endian))?
         }
@@ -594,9 +581,7 @@ pub(crate) fn generic_value_to_param(value: &GenericValue, endian: Endian) -> Py
             let parameter_expression = ParameterExpression::from_symbol(symbol.clone());
             Ok(Param::ParameterExpression(Arc::new(parameter_expression)))
         }
-        GenericValue::ParameterExpression(exp) => {
-            Ok(Param::ParameterExpression(Arc::new(exp.clone())))
-        }
+        GenericValue::ParameterExpression(exp) => Ok(Param::ParameterExpression(exp.clone())),
         _ => Ok(Param::Obj(py_convert_from_generic_value(value)?)),
     }
 }

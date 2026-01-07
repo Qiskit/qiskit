@@ -274,9 +274,7 @@ fn instruction_values_to_params(
                             ParameterExpression::from_symbol_expr(value_expression),
                         )))
                     }
-                    GenericValue::ParameterExpression(exp) => {
-                        Ok(Param::ParameterExpression(Arc::new(exp)))
-                    }
+                    GenericValue::ParameterExpression(exp) => Ok(Param::ParameterExpression(exp)),
                     GenericValue::ParameterExpressionSymbol(symbol) => {
                         Ok(Param::ParameterExpression(Arc::new(
                             ParameterExpression::from_symbol(symbol),
@@ -1050,7 +1048,7 @@ fn deserialize_pauli_evolution_gate(
     let time = load_value(packed_data.time_type, &packed_data.time_data, qpy_data)?;
     let py_time: Py<PyAny> = match time {
         GenericValue::Float64(value) => value.into_py_any(py),
-        GenericValue::ParameterExpression(exp) => exp.into_py_any(py),
+        GenericValue::ParameterExpression(exp) => exp.as_ref().clone().into_py_any(py),
         GenericValue::ParameterExpressionVectorSymbol(symbol) => symbol.into_py_any(py),
         GenericValue::ParameterExpressionSymbol(symbol) => symbol.into_py_any(py),
         _ => Err(PyValueError::new_err(
