@@ -1,7 +1,8 @@
 ---
 fixes:
   - |
-    Instructions with specialized Clifford+T syntheses will now be correctly recognized
-    at higher transpilation optimization levels.  Previously, the synthesis would first
-    be done in a continuous basis and then translated to Clifford+T, resulting in worse
-    than expected T counts.
+    The :class:`.HighLevelSynthesis` pass will now correctly select
+    the optimization metric according to the basis set: two-qubit gate
+    count for continuous bases and T count for Clifford+T bases.
+    Previously, this information was not correctly propagated, resulting
+    in worse than expected T counts.
