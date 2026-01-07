@@ -203,21 +203,15 @@ class MultiQBlockPassBenchmarks:
 
 class LitinskiTransformationPassBenchmarks:
     circuit_names = ["qft", "trotter", "qaoa", "grover", "mcx", "multiplier", "modular_adder"]
-    num_qubits = [8, 16, 32, 64, 128, 256, 512, 1024, 2048]
-    fix_clifford = [False, True]
-    params = (circuit_names, num_qubits, fix_clifford)
-    param_names = ["circuit_name", "n_qubits", "fix_clifford"]
+    num_qubits = [8, 16, 32, 64, 128, 256, 512]
+    params = (circuit_names, num_qubits)
+    param_names = ["circuit_name", "n_qubits"]
     slow_tests = {
-        ("qft", 2048),
-        ("qaoa", 1024),
-        ("qaoa", 2048),
-        ("grover", 2048),
-        ("multiplier", 1024),
-        ("multiplier", 2048),
+        ("qaoa", 512),
     }
     timeout = 300
 
-    def setup(self, circuit_name, n_qubits, _):
+    def setup(self, circuit_name, n_qubits):
         if (circuit_name, n_qubits) in self.slow_tests:
             raise NotImplementedError
 
@@ -252,6 +246,6 @@ class LitinskiTransformationPassBenchmarks:
         # Convert to DAGCircuit
         self.dag = circuit_to_dag(transpiled)
 
-    def time_litinski_transformation(self, _, __, fix_clifford):
-        _pass = LitinskiTransformation(fix_clifford=fix_clifford)
+    def time_litinski_transformation(self, _, __):
+        _pass = LitinskiTransformation()
         _pass.run(self.dag)
