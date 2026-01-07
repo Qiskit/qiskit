@@ -25,7 +25,6 @@ use qiskit_circuit::classical::expr::{Expr, Stretch, Var};
 use qiskit_circuit::classical::types::Type;
 use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::duration::Duration;
-use qiskit_circuit::object_registry::ObjectRegistry;
 use qiskit_circuit::operations::{ForCollection, OperationRef, PyRange};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
@@ -106,7 +105,6 @@ pub(crate) fn unpack_biguint(big_int_pack: BigIntPack) -> BigUint {
 pub struct QPYWriteData<'a> {
     pub circuit_data: &'a mut CircuitData,
     pub version: u32,
-    pub clbits: &'a ObjectRegistry<Clbit, ShareableClbit>,
     pub standalone_var_indices: HashMap<u128, u16>, // mapping from the variable's UUID to its index in the standalone variables list
     pub annotation_handler: AnnotationHandler<'a>,
 }
@@ -810,7 +808,8 @@ pub(crate) fn serialize_param_register_value(
         ParamRegisterValue::Register(register) => Ok(register.name().into()),
         ParamRegisterValue::ShareableClbit(clbit) => {
             let name = qpy_data
-                .clbits
+                .circuit_data
+                .clbits()
                 .find(clbit)
                 .ok_or(PyValueError::new_err("clbit not found"))?
                 .0

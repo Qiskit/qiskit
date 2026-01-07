@@ -1727,7 +1727,6 @@ class TestLoadFromQPY(QiskitTestCase):
             dump(qc, fptr)
             fptr.seek(0)
             new_circuit = load(fptr)[0]
-        # print(new_circuit)
         self.assertEqual(qc, new_circuit)
         self.assertEqual(qc.qregs, new_circuit.qregs)
         self.assertEqual(qc.cregs, new_circuit.cregs)

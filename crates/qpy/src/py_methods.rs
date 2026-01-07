@@ -26,7 +26,7 @@ use std::num::NonZero;
 use qiskit_circuit::bit::{ClassicalRegister, ShareableClbit};
 use qiskit_circuit::classical;
 use qiskit_circuit::imports;
-use qiskit_circuit::operations::{Operation, OperationRef, PyRange, StandardInstruction};
+use qiskit_circuit::operations::{Operation, OperationRef, PyRange};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::parameter::parameter_expression::{
     PyParameter, PyParameterExpression, PyParameterVectorElement,
@@ -35,6 +35,7 @@ use qiskit_quantum_info::sparse_observable::PySparseObservable;
 use uuid::Uuid;
 
 use crate::bytes::Bytes;
+use crate::circuit_writer::standard_instruction_class_name;
 use crate::formats;
 use crate::value::{
     GenericValue, ModifierType, ParamRegisterValue, QPYWriteData, ValueType,
@@ -229,6 +230,7 @@ fn pack_sparse_pauli_op(
         };
         Ok(formats::PauliData::SparseObservable(sparse_observable_pack))
     } else {
+        // this is the case of SparsePauliOp, which we convert to a numpy list
         let op_as_np_list = operator.call_method1("to_list", (true,))?;
         let value = py_convert_to_generic_value(&op_as_np_list)?;
         let (_, data) = serialize_generic_value(&value, qpy_data)?;
@@ -286,26 +288,10 @@ pub(crate) fn gate_class_name(op: &PackedOperation) -> PyResult<String> {
         let name = match op.view() {
             // getting __name__ for standard gates and instructions should
             // eventually be replaced with a Rust-side mapping
-            OperationRef::StandardGate(gate) => gate
-                .get_gate_class(py)?
-                .bind(py)
-                .getattr(intern!(py, "__name__"))?
-                .extract::<String>(),
-            OperationRef::StandardInstruction(inst) => match inst {
-                StandardInstruction::Measure => imports::MEASURE
-                    .get_bound(py)
-                    .getattr(intern!(py, "__name__"))?,
-                StandardInstruction::Delay(_) => imports::DELAY
-                    .get_bound(py)
-                    .getattr(intern!(py, "__name__"))?,
-                StandardInstruction::Barrier(_) => imports::BARRIER
-                    .get_bound(py)
-                    .getattr(intern!(py, "__name__"))?,
-                StandardInstruction::Reset => imports::RESET
-                    .get_bound(py)
-                    .getattr(intern!(py, "__name__"))?,
+            OperationRef::StandardGate(gate) => Ok(imports::get_std_gate_class_name(&gate)),
+            OperationRef::StandardInstruction(inst) => {
+                Ok(standard_instruction_class_name(&inst).to_string())
             }
-            .extract::<String>(),
             OperationRef::Gate(pygate) => pygate
                 .gate
                 .bind(py)

@@ -1052,7 +1052,7 @@ pub fn run_high_level_synthesis(
                 data: output_circuit,
                 name: dag.get_name().cloned(),
                 metadata: dag.get_metadata().map(|m| m.bind(py)).cloned(),
-                custom_layout: None,
+                transpile_layout: None,
             },
             false,
             None,

@@ -294,7 +294,7 @@ fn pack_standard_instruction(
     })
 }
 
-fn standard_instruction_class_name(inst: &StandardInstruction) -> &str {
+pub fn standard_instruction_class_name(inst: &StandardInstruction) -> &str {
     match inst {
         StandardInstruction::Barrier(_) => "Barrier",
         StandardInstruction::Delay(_) => "Delay",
@@ -691,7 +691,7 @@ fn pack_circuit_header(
 }
 
 fn pack_layout(
-    custom_layout: Option<Bound<PyAny>>,
+    transpile_layout: Option<Bound<PyAny>>,
     qpy_data: &QPYWriteData,
 ) -> PyResult<formats::LayoutV2Pack> {
     let default_layout = formats::LayoutV2Pack {
@@ -705,19 +705,19 @@ fn pack_layout(
         input_mapping_items: Vec::new(),
         final_layout_items: Vec::new(),
     };
-    match custom_layout {
+    match transpile_layout {
         None => Ok(default_layout),
-        Some(custom_layout) => {
-            if custom_layout.is_none() {
+        Some(transpile_layout) => {
+            if transpile_layout.is_none() {
                 Ok(default_layout)
             } else {
-                pack_custom_layout(&custom_layout, qpy_data)
+                pack_transpile_layout(&transpile_layout, qpy_data)
             }
         }
     }
 }
 
-fn pack_custom_layout(
+fn pack_transpile_layout(
     layout: &Bound<PyAny>,
     qpy_data: &QPYWriteData,
 ) -> PyResult<formats::LayoutV2Pack> {
@@ -1109,11 +1109,9 @@ pub(crate) fn pack_circuit(
     annotation_factories: &Bound<PyDict>,
 ) -> PyResult<formats::QPYCircuitV15> {
     let annotation_handler = AnnotationHandler::new(annotation_factories);
-    let clbits = circuit.data.clbits().clone();
     let mut qpy_data = QPYWriteData {
         circuit_data: &mut circuit.data,
         version,
-        clbits: &clbits, // we need to clone since circuit_data might change when serializing custom instructions, explicitly creating the inner instructions
         standalone_var_indices: HashMap::new(),
         annotation_handler,
     };
@@ -1130,7 +1128,7 @@ pub(crate) fn pack_circuit(
     let (instructions, mut custom_instructions_hash) = pack_instructions(&mut qpy_data)?;
     let custom_instructions =
         pack_custom_instructions(&mut custom_instructions_hash, &mut qpy_data)?;
-    let layout = pack_layout(circuit.custom_layout.clone(), &qpy_data)?;
+    let layout = pack_layout(circuit.transpile_layout.clone(), &qpy_data)?;
     let state_headers: Vec<formats::AnnotationStateHeaderPack> = qpy_data
         .annotation_handler
         .dump_serializers()?

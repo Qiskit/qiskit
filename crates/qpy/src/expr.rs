@@ -107,7 +107,7 @@ pub(crate) fn pack_expression_var(var: &Var, qpy_data: &QPYWriteData) -> Express
     let (ty, value_pack) = match var {
         Var::Bit { bit } => (
             &Type::Bool,
-            ExpressionVarElementPack::Clbit(qpy_data.clbits.find(bit).unwrap().0),
+            ExpressionVarElementPack::Clbit(qpy_data.circuit_data.clbits().find(bit).unwrap().0),
         ),
         Var::Register { register, ty } => (
             ty,

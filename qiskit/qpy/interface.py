@@ -152,7 +152,7 @@ def dump(
             to generate an older QPY format version.  You can access the current QPY version and
             minimum compatible version with :attr:`.qpy.QPY_VERSION` and
             :attr:`.qpy.QPY_COMPATIBILITY_VERSION` respectively.
-        use_rust: whether to use the rust based serialization engine. Off by default.
+        use_rust: whether to use the rust based serialization engine. On by default.
 
             .. note::
 
@@ -322,7 +322,7 @@ def load(
         annotation_factories: Mapping of namespaces to functions that create new instances of
             :class:`.annotation.QPUSerializer`, for handling the loading of custom
             :class:`.Annotation` objects.
-        use_rust: whether to use the rust based deserialization engine. Off by default.
+        use_rust: whether to use the rust based deserialization engine. On by default.
 
     Returns:
         The list of Qiskit programs contained in the QPY data.

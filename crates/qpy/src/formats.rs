@@ -14,8 +14,8 @@ use crate::bytes::Bytes;
 use crate::expr::{read_expression, write_expression};
 use crate::params::ParameterType;
 use crate::value::{
-    BitType, CircuitInstructionType, ExpressionType, ExpressionVarDeclaration, ModifierType,
-    QPYReadData, QPYWriteData, RegisterType, ValueType,
+    BitType, CircuitInstructionType, ExpressionType, ExpressionVarDeclaration,
+    ModifierType, QPYReadData, QPYWriteData, RegisterType, ValueType
 };
 use binrw::{BinRead, BinResult, BinWrite, Endian, binread, binrw, binwrite};
 use pyo3::PyErr;

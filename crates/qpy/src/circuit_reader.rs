@@ -884,11 +884,11 @@ fn unpack_layout<'py>(
 ) -> PyResult<Option<Bound<'py, PyAny>>> {
     match layout.exists {
         0 => Ok(None),
-        _ => Ok(Some(unpack_custom_layout(py, layout, circuit_data)?)),
+        _ => Ok(Some(unpack_transpile_layout(py, layout, circuit_data)?)),
     }
 }
 
-fn unpack_custom_layout<'py>(
+fn unpack_transpile_layout<'py>(
     py: Python<'py>,
     layout: &formats::LayoutV2Pack,
     circuit_data: &CircuitData,

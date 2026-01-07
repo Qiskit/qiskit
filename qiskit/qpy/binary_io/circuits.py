@@ -1502,7 +1502,7 @@ def write_circuit(
     use_symengine=False,
     version=common.QPY_VERSION,
     annotation_factories=None,
-    use_rust=False,
+    use_rust=True,
 ):
     """Write a single QuantumCircuit object in the file like object.
 
@@ -1520,7 +1520,7 @@ def write_circuit(
         version (int): The QPY format version to use for serializing this circuit
         annotation_factories (dict): a mapping of namespaces to zero-argument factory functions that
             produce instances of :class:`.annotation.QPYSerializer`.
-        use_rust (bool): whether to use the rust based serialization engine. Off by default.
+        use_rust (bool): whether to use the rust based serialization engine. On by default.
     """
     if use_rust:
         if annotation_factories is None:
@@ -1647,7 +1647,7 @@ def read_circuit(
     metadata_deserializer=None,
     use_symengine=False,
     annotation_factories=None,
-    use_rust=False,
+    use_rust=True,
 ):
     """Read a single QuantumCircuit object from the file like object.
 
@@ -1668,7 +1668,7 @@ def read_circuit(
             deserialize the payload.
         annotation_factories (dict): mapping of namespaces to factory functions for custom
             annotation deserializer objects.
-        use_rust (bool): whether to use the rust based deserialization engine. Off by default.
+        use_rust (bool): whether to use the rust based deserialization engine. On by default.
     Returns:
         QuantumCircuit: The circuit object from the file.
 
