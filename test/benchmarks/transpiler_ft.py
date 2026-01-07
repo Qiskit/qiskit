@@ -38,9 +38,12 @@ class TranspilerCliffordRZBenchmarks:
     def setup(self, circuit_name, n_qubits, optimization_level):
         # List of slow tests that we want to exclude for now
         slow_tests = {
+            ("qaoa", 64, 3),
             ("qaoa", 128, 2),
-            ("qaoa", 128, 2),
+            ("qaoa", 128, 3),
             ("grover", 512),
+            ("multiplier", 64, 2),
+            ("multiplier", 64, 3),
             ("multiplier", 128, 2),
             ("multiplier", 128, 3),
         }
