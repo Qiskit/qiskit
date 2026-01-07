@@ -73,12 +73,13 @@ pub fn evolution<'a, 'b>(order: u32, paulis: &'b [SparseTermView<'a>]) -> Vec<Sp
     };
 }
 
-pub fn reorder_terms<'a>(terms: &'a [SparseTermView<'a>]) -> Result<Vec<SparseTermView<'a>>, &'a str> {
-    let sorted: Vec<&SparseTermView<'a>> = terms
-        .iter()
+pub fn reorder_terms<'a>(
+    terms: impl Iterator<Item = SparseTermView<'a>>,
+) -> Result<Vec<SparseTermView<'a>>, &'a str> {
+    let sorted: Vec<SparseTermView<'a>> = terms
         .sorted_by_key(|view| (view.indices, view.bit_terms))
         .collect();
-    let edges: Vec<(usize, usize)> = (0..terms.len())
+    let edges: Vec<(usize, usize)> = (0..sorted.len())
         .combinations(2 as usize)
         .map(|combination| (combination[0], combination[1]))
         .filter(|(index1, index2)| {
@@ -116,7 +117,7 @@ pub fn reorder_terms<'a>(terms: &'a [SparseTermView<'a>]) -> Result<Vec<SparseTe
                 .iter()
                 .map(|(_, node_index)| node_index)
                 .flatten()
-                .map(|index| *sorted[graph[**index]])
+                .map(|index| sorted[graph[**index]])
                 .collect())
         }
 
