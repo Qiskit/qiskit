@@ -42,11 +42,11 @@ use crate::passes::optimize_clifford_t::CLIFFORD_T_GATE_NAMES;
 use crate::target::{NormalOperation, Target, TargetOperation};
 use crate::target::{Qargs, QargsRef};
 use qiskit_circuit::PhysicalQubit;
-use qiskit_synthesis::ross_selinger::gridsynth_unitary;
 use qiskit_synthesis::euler_one_qubit_decomposer::{
     EULER_BASES, EULER_BASIS_NAMES, EulerBasis, EulerBasisSet, unitary_to_gate_sequence_inner,
 };
 use qiskit_synthesis::qsd::quantum_shannon_decomposition;
+use qiskit_synthesis::ross_selinger::gridsynth_unitary;
 use qiskit_synthesis::two_qubit_decompose::{
     RXXEquivalent, TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer, TwoQubitGateSequence,
     TwoQubitWeylDecomposition,
