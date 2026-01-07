@@ -43,6 +43,16 @@ jobs:
       install-optionals: true
       runner: ${{ matrix.runner }}
       qiskit-pycache: false
+  main-tests-ubuntu-3-10-symengine:
+    name: Python Unit Tests (symengine)
+    uses: ./.github/workflows/test-linux.yml
+    if: github.repository_owner == 'Qiskit'
+    with:
+      python-version: "3.10"
+      install-optionals: true
+      install-symengine: true
+      runner: ubuntu-latest
+      qiskit-pycache: false
   main-tests-ubuntu-3-13:
     if: github.repository_owner == 'Qiskit'
     name: Python Unit Tests

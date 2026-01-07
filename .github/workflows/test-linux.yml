@@ -29,6 +29,12 @@ on:
           structures when building Qiskit.
         type: boolean
         default: true
+      install-symengine:
+        description: >
+          If true, install the optional symengine package to explicitly test
+          the symengine-backed symbolic paths.
+        type: boolean
+        default: false
 
 jobs:
   unit-tests:
@@ -92,6 +98,15 @@ jobs:
           python -m pip install -r requirements-optional.txt -c constraints.txt
           python -m pip check
         if: ${{ inputs.install-optionals }}
+      - name: Install symengine
+        run: |
+          set -e
+          source test-job/bin/activate
+          python -m pip install -c constraints.txt symengine
+          python - <<'PY'
+          import symengine as se; print('symengine version:', se.__version__)
+          PY
+        if: ${{ inputs.install-symengine }}
       - name: Install optional non-Python dependencies
         run: |
           set -e
