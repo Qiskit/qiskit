@@ -36,6 +36,18 @@ class TranspilerCliffordRZBenchmarks:
     timeout = 300
 
     def setup(self, circuit_name, n_qubits, optimization_level):
+        # List of slow tests that we want to exclude for now
+        slow_tests = {
+            ("qaoa", 128, 2),
+            ("qaoa", 128, 2),
+            ("grover", 512),
+            ("multiplier", 128, 2),
+            ("multiplier", 128, 3),
+        }
+
+        if (circuit_name, n_qubits, optimization_level) in slow_tests:
+            raise NotImplementedError
+
         if circuit_name == "qft":
             circuit = qft_circuit(n_qubits)
         elif circuit_name == "trotter":
