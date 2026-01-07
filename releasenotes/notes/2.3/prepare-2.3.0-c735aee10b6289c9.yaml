@@ -25,6 +25,4 @@ prelude: |
   support due to Apple beginning to sunset the platform.
 
   There will be further feature releases of Qiskit in the 2.x series; we do not expect to release
-  Qiskit 3.0 until much later in 2026 as there is currently no need for breaking changes.  We expect
-  Qiskit 3.0 to stabilize the C API and handle any breaking changes needed for future fault-tolerant
-  platform work, when it arrives.
+  Qiskit 3.0 until much later in 2026, as there is currently no need for breaking changes.
