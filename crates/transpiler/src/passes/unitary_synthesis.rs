@@ -17,7 +17,7 @@ use approx::relative_eq;
 use hashbrown::{HashMap, HashSet};
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
-use nalgebra::{DMatrix, Matrix2};
+use nalgebra::DMatrix;
 use ndarray::prelude::*;
 use num_complex::Complex64;
 use numpy::PyReadonlyArray2;
@@ -42,7 +42,7 @@ use crate::passes::optimize_clifford_t::CLIFFORD_T_GATE_NAMES;
 use crate::target::{NormalOperation, Target, TargetOperation};
 use crate::target::{Qargs, QargsRef};
 use qiskit_circuit::PhysicalQubit;
-use qiskit_synthesis::discrete_basis::solovay_kitaev::SolovayKitaevSynthesis;
+use qiskit_synthesis::ross_selinger::gridsynth_unitary;
 use qiskit_synthesis::euler_one_qubit_decomposer::{
     EULER_BASES, EULER_BASIS_NAMES, EulerBasis, EulerBasisSet, unitary_to_gate_sequence_inner,
 };
@@ -54,6 +54,7 @@ use qiskit_synthesis::two_qubit_decompose::{
 
 const PI2: f64 = PI / 2.;
 const PI4: f64 = PI / 4.;
+const GRIDSYNTH_EPSILON: f64 = 1e-10;
 
 /// The matcher for the set of standard gates that the TwoQubitControlledUDecomposer
 /// supports
@@ -130,32 +131,12 @@ struct TwoQubitUnitarySequence {
 }
 
 /// Stores unitary synthesis cache, to avoid recomputing the same information for
-/// every synthesized gate. (In particular, we want to compute the basic approximations
-/// used in the Solovay-Kitaev algorithm at most once).
-struct UnitarySynthesisCache {
-    solovay_kitaev: Option<SolovayKitaevSynthesis>,
-}
+/// every synthesized gate.
+struct UnitarySynthesisCache;
 
 impl UnitarySynthesisCache {
     fn new() -> Self {
-        UnitarySynthesisCache {
-            solovay_kitaev: None,
-        }
-    }
-
-    fn get_solovay_kitaev(&mut self) -> &SolovayKitaevSynthesis {
-        if self.solovay_kitaev.is_none() {
-            self.solovay_kitaev = Some(
-                SolovayKitaevSynthesis::new(
-                    &[StandardGate::T, StandardGate::Tdg, StandardGate::H],
-                    12,
-                    None,
-                    false,
-                )
-                .unwrap(),
-            )
-        }
-        self.solovay_kitaev.as_ref().unwrap()
+        UnitarySynthesisCache
     }
 }
 
@@ -312,7 +293,7 @@ fn apply_synth_sequence(
 /// Iterate over `DAGCircuit` to perform unitary synthesis.
 /// For each eligible gate: find decomposers, select the synthesis
 /// method with the highest fidelity score and apply decompositions. The available methods are:
-///     * 1q synthesis: OneQubitEulerDecomposer, SolovayKitaevSynthesis
+///     * 1q synthesis: OneQubitEulerDecomposer, Ross-Selinger gridsynth
 ///     * 2q synthesis: TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer, XXDecomposer (Python, only if target is provided)
 ///     * 3q+ synthesis: QuantumShannonDecomposer
 /// This function is currently used in the Python `UnitarySynthesis`` transpiler pass as a replacement for the `_run_main_loop` method.
@@ -361,7 +342,7 @@ fn synthesize_unitary_matrix(
     out_qargs: &[Qubit],
     run_python_decomposers: bool,
     mut apply_original_op: impl FnMut(&mut DAGCircuitBuilder) -> PyResult<()>,
-    unitary_synthesis_cache: &mut UnitarySynthesisCache,
+    _unitary_synthesis_cache: &mut UnitarySynthesisCache,
 ) -> PyResult<()> {
     match num_qubits {
         // Run 1q synthesis
@@ -370,11 +351,7 @@ fn synthesize_unitary_matrix(
 
             // Special case when the basis set is of the form Clifford+T.
             if is_clifford_t_basis_set(target, basis_gates, PhysicalQubit::new(qubit.0)) {
-                let solovay_kitaev = unitary_synthesis_cache.get_solovay_kitaev();
-                let matrix_nalgebra = Matrix2::from_fn(|i, j| matrix[[i, j]]);
-                let circuit = solovay_kitaev.synthesize_matrix(&matrix_nalgebra, 5);
-
-                match circuit {
+                match gridsynth_unitary(matrix.view(), GRIDSYNTH_EPSILON) {
                     Ok(circuit) => {
                         for inst in circuit.data() {
                             let new_params: SmallVec<[Param; 3]> =
@@ -392,9 +369,7 @@ fn synthesize_unitary_matrix(
                         }
                         out_dag.add_global_phase(circuit.global_phase())?;
                     }
-                    Err(_) => {
-                        apply_original_op(out_dag)?;
-                    }
+                    Err(_) => apply_original_op(out_dag)?,
                 }
             } else {
                 let target_basis_set = match target {
