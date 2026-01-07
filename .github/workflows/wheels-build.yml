@@ -85,7 +85,7 @@ jobs:
           - windows-latest
           - ubuntu-24.04-arm
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ inputs.python-version }}
@@ -117,7 +117,7 @@ jobs:
           PGO_WORK_DIR: ${{ github.workspace }}/pgo-data
           PGO_OUT_PATH: ${{ github.workspace }}/merged.profdata
       - uses: pypa/cibuildwheel@v3.0.1
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with:
           path: ./wheelhouse/*.whl
           name: ${{ inputs.artifact-prefix }}wheels-tier-1-${{ matrix.os }}
@@ -126,14 +126,14 @@ jobs:
     if: (inputs.wheels-macos-intel == 'default' && inputs.default-action || inputs.wheels-macos-intel) == 'build'
     runs-on: macos-15-intel
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         name: Install Python
         with:
           python-version: ${{ inputs.python-version }}
       - uses: dtolnay/rust-toolchain@stable
       - uses: pypa/cibuildwheel@v3.0.1
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with:
           path: ./wheelhouse/*.whl
           name: ${{ inputs.artifact-prefix }}wheels-macos-intel
@@ -144,7 +144,7 @@ jobs:
     if: (inputs.wheels-linux-s390x == 'default' && inputs.default-action || inputs.wheels-linux-s390x) == 'build'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         name: Install Python
         with:
@@ -157,7 +157,7 @@ jobs:
         env:
           CIBW_ARCHS_LINUX: s390x
           CIBW_TEST_SKIP: "cp*"
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with:
           path: ./wheelhouse/*.whl
           name: ${{ inputs.artifact-prefix }}wheels-linux-s390x
@@ -167,7 +167,7 @@ jobs:
     if: (inputs.wheels-linux-ppc64le == 'default' && inputs.default-action || inputs.wheels-linux-ppc64le) == 'build'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         name: Install Python
         with:
@@ -180,7 +180,7 @@ jobs:
         env:
           CIBW_ARCHS_LINUX: ppc64le
           CIBW_TEST_SKIP: "cp*"
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with:
           path: ./wheelhouse/*.whl
           name: ${{ inputs.artifact-prefix }}wheels-linux-ppc64le
@@ -190,7 +190,7 @@ jobs:
     if: (inputs.sdist == 'default' && inputs.default-action || inputs.sdist) == 'build'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ inputs.python-version }}
@@ -199,7 +199,7 @@ jobs:
           set -e
           python -m pip install -U build
           python -m build --sdist .
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with:
           path: ./dist/*.tar.gz
           name: ${{ inputs.artifact-prefix }}sdist

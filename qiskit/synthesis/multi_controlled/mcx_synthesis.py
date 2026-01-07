@@ -85,7 +85,7 @@ def synth_mcx_n_clean_m15(num_ctrl_qubits: int) -> QuantumCircuit:
 
     num_qubits = 2 * num_ctrl_qubits - 1
     q = QuantumRegister(num_qubits, name="q")
-    qc = QuantumCircuit(q, name="mcx_vchain")
+    qc = QuantumCircuit(q)
     q_controls = q[:num_ctrl_qubits]
     q_target = q[num_ctrl_qubits]
     q_ancillas = q[num_ctrl_qubits + 1 :]
@@ -136,7 +136,7 @@ def synth_mcx_1_clean_b95(num_ctrl_qubits: int) -> QuantumCircuit:
 
     num_qubits = num_ctrl_qubits + 2
     q = QuantumRegister(num_qubits, name="q")
-    qc = QuantumCircuit(q, name="mcx_recursive")
+    qc = QuantumCircuit(q)
 
     num_ctrl_qubits = len(q) - 1
     q_ancilla = q[-1]
@@ -185,7 +185,7 @@ def synth_mcx_gray_code(num_ctrl_qubits: int) -> QuantumCircuit:
 
     num_qubits = num_ctrl_qubits + 1
     q = QuantumRegister(num_qubits, name="q")
-    qc = QuantumCircuit(q, name="mcx_gray")
+    qc = QuantumCircuit(q)
     qc._append(HGate(), [q[-1]], [])
     scaled_lam = np.pi / (2 ** (num_ctrl_qubits - 1))
     bottom_gate = CU1Gate(scaled_lam)

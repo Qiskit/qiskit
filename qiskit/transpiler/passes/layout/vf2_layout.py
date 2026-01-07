@@ -18,8 +18,12 @@ from enum import Enum
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.passes.layout import vf2_utils
-from qiskit._accelerate.vf2_layout import vf2_layout_pass, MultiQEncountered, VF2PassConfiguration
+from qiskit.transpiler.target import Target
+from qiskit._accelerate.vf2_layout import (
+    vf2_layout_pass_average,
+    MultiQEncountered,
+    VF2PassConfiguration,
+)
 
 
 class VF2LayoutStopReason(Enum):
@@ -83,15 +87,25 @@ class VF2Layout(AnalysisPass):
             coupling_map (CouplingMap): Directed graph representing a coupling map.
             strict_direction (bool): If True, considers the direction of the coupling map.
                                      Default is False.
-            seed (int): Sets the seed of the PRNG. -1 Means no node shuffling.
-            call_limit (int): The number of state visits to attempt in each execution of
-                VF2.
-            time_limit (float): The total time limit in seconds to run ``VF2Layout``
-            max_trials (int): The maximum number of trials to run VF2 to find
-                a layout. If this is not specified the number of trials will be limited
-                based on the number of edges in the interaction graph or the coupling graph
-                (whichever is larger) if no other limits are set. If set to a value <= 0 no
-                limit on the number of trials will be set.
+            seed (int | None): shuffle the labelling of physical qubits to node indices in the
+                coupling graph, using a given pRNG seed.  ``None`` seeds using OS entropy (and so is
+                non-deterministic).  Using ``-1`` disables the shuffling.
+            call_limit (None | int | tuple[int | None, int | None]): The maximum number of times
+                that the inner VF2 isomorphism search will attempt to extend the mapping. If
+                ``None``, then no limit.  If a 2-tuple, then the limit starts as the first item, and
+                swaps to the second after the first match is found, without resetting the number of
+                steps taken.  This can be used to allow a long search for any mapping, but still
+                terminate quickly with a small extension budget if one is found.
+            time_limit (float): The total time limit in seconds to run ``VF2Layout``.  This is not
+                completely strict; execution will finish on the first isomorphism found (if any)
+                _after_ the time limit has been exceeded.  Setting this option breaks determinism of
+                the pass.
+            max_trials (int): If set, the algorithm terminates after this many _complete_ layouts
+                have been seen.  Since the scoring is done on-the-fly, the vast majority of
+                candidate layouts are pruned out of the search before ever becoming complete, so
+                this option has little meaning.  To set a low limit on the amount of time spent
+                improving an initial limit, set a low value for the second item in the
+                ``call_limit`` 2-tuple form.
             target (Target): A target representing the backend device to run ``VF2Layout`` on.
                 If specified it will supersede a set value for
                 ``coupling_map`` if the :class:`.Target` contains connectivity constraints. If the value
@@ -120,12 +134,12 @@ class VF2Layout(AnalysisPass):
             target, coupling_map = self.target, self.target.build_coupling_map()
         elif self.target is None:
             coupling_map = self.coupling_map
-            target = vf2_utils.build_dummy_target(coupling_map)
+            target = _build_dummy_target(coupling_map)
         else:
             # We have both, but may need to override the target if it has no connectivity.
             coupling_map = self.target.build_coupling_map()
             if coupling_map is None:
-                target = vf2_utils.build_dummy_target(self.coupling_map)
+                target = _build_dummy_target(self.coupling_map)
                 coupling_map = self.coupling_map
             else:
                 target = self.target
@@ -135,14 +149,15 @@ class VF2Layout(AnalysisPass):
             time_limit=self.time_limit,
             max_trials=self.max_trials,
             shuffle_seed=self.seed,
+            score_initial_layout=False,
         )
         try:
-            output = vf2_layout_pass(
+            output = vf2_layout_pass_average(
                 dag,
                 target,
-                config=config,
                 strict_direction=self.strict_direction,
                 avg_error_map=self.avg_error_map,
+                config=config,
             )
         except MultiQEncountered:
             self.property_set["VF2Layout_stop_reason"] = VF2LayoutStopReason.MORE_THAN_2Q
@@ -156,3 +171,12 @@ class VF2Layout(AnalysisPass):
         for reg in dag.qregs.values():
             layout.add_register(reg)
         self.property_set["layout"] = layout
+
+
+def _build_dummy_target(coupling_map) -> Target:
+    """Build a dummy target with no error rates that represents the coupling in ``coupling_map``."""
+    # The choice of basis gates is completely arbitrary, and we have no source of error rates.
+    # We just want _something_ to represent the coupling constraints.
+    return Target.from_configuration(
+        basis_gates=["u", "cx"], num_qubits=coupling_map.size(), coupling_map=coupling_map
+    )

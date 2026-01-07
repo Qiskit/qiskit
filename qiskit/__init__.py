@@ -44,15 +44,6 @@ else:
             " See https://qisk.it/packaging-1-0 for more detail."
         )
 
-if sys.version_info < (3, 10):
-    warnings.warn(
-        "Using Qiskit with Python 3.9 is deprecated as of the 2.1.0 release. "
-        "Support for running Qiskit with Python 3.9 will be removed in the "
-        "2.3.0 release, which coincides with when Python 3.9 goes end of life.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-
 from . import _accelerate
 import qiskit._numpy_compat
 
@@ -113,6 +104,7 @@ sys.modules["qiskit._accelerate.barrier_before_final_measurement"] = (
 sys.modules["qiskit._accelerate.commutation_checker"] = _accelerate.commutation_checker
 sys.modules["qiskit._accelerate.commutation_analysis"] = _accelerate.commutation_analysis
 sys.modules["qiskit._accelerate.commutation_cancellation"] = _accelerate.commutation_cancellation
+sys.modules["qiskit._accelerate.commutative_optimization"] = _accelerate.commutative_optimization
 sys.modules["qiskit._accelerate.consolidate_blocks"] = _accelerate.consolidate_blocks
 sys.modules["qiskit._accelerate.synthesis.linear_phase"] = _accelerate.synthesis.linear_phase
 sys.modules["qiskit._accelerate.synthesis.evolution"] = _accelerate.synthesis.evolution
@@ -138,10 +130,12 @@ sys.modules["qiskit._accelerate.remove_identity_equiv"] = _accelerate.remove_ide
 sys.modules["qiskit._accelerate.circuit_duration"] = _accelerate.circuit_duration
 sys.modules["qiskit._accelerate.cos_sin_decomp"] = _accelerate.cos_sin_decomp
 sys.modules["qiskit._accelerate.qsd"] = _accelerate.qsd
+sys.modules["qiskit._accelerate.ross_selinger"] = _accelerate.ross_selinger
 sys.modules["qiskit._accelerate.wrap_angles"] = _accelerate.wrap_angles
 sys.modules["qiskit._accelerate.angle_bound_registry"] = _accelerate.angle_bound_registry
 sys.modules["qiskit._accelerate.litinski_transformation"] = _accelerate.litinski_transformation
 sys.modules["qiskit._accelerate.unroll_3q_or_more"] = _accelerate.unroll_3q_or_more
+sys.modules["qiskit._accelerate.substitute_pi4_rotations"] = _accelerate.substitute_pi4_rotations
 
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 
