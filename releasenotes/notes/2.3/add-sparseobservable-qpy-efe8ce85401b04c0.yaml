@@ -9,3 +9,6 @@ features_qpy:
     objects when used as parameters of objects.  In particular, this allows to
     serialize :class:`.PauliEvolutionGate` objects that internally use this
     operator and the payload of the evolution gate is updated.
+upgrade_qpy:
+  - |
+    The default QPY version (:data:`.QPY_VERSION`) used in :func:`.qpy.dump` is now 17.
