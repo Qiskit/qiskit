@@ -97,7 +97,14 @@ class TestSolovayKitaev(QiskitTestCase):
 
         diff = _trace_distance(circuit, compiled)
         self.assertLess(diff, 1e-4)
-        self.assertEqual(set(compiled.count_ops().keys()), {"h", "t", "tdg", "cx"})
+        ops = set(compiled.count_ops().keys())
+        if method == "sk":
+            self.assertEqual(ops, {"h", "t", "tdg", "cx"})
+        else:
+            # Default synthesis now routes Clifford+T through Ross-Selinger gridsynth,
+            # which can emit other Clifford generators such as S, Sdg and X.
+            self.assertTrue(ops.issubset({"h", "t", "tdg", "s", "sdg", "x", "cx"}))
+            self.assertIn("cx", ops)
 
     def test_plugin(self):
         """Test calling the plugin directly."""
