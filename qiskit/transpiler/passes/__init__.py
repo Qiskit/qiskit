@@ -75,6 +75,7 @@ Optimizations
    CommutationAnalysis
    CommutativeCancellation
    CommutativeInverseCancellation
+   CommutativeOptimization
    ConsolidateBlocks
    ContractIdleWiresInControlFlow
    ElidePermutations
