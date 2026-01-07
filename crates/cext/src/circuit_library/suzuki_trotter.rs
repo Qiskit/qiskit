@@ -13,6 +13,7 @@
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit_library::suzuki_trotter::suzuki_trotter_evolution;
 use qiskit_quantum_info::sparse_observable::SparseObservable;
+use crate::pointers::const_ptr_as_ref;
 
 /// @ingroup QkCircuitLibrary
 /// Generate a circuit using the higher order Suzuki-Trotter product formula from an observable.
@@ -22,7 +23,7 @@ use qiskit_quantum_info::sparse_observable::SparseObservable;
 /// Higher order decompositions are based on recursions, see Ref. [1] for more details.
 /// 
 ///
-/// @param observable  The Sparse Obserable containing the sum of the Pauli terms.
+/// @param operator  The ``QkObs``  containing the sum of the Pauli terms.
 /// @param order  The order of the product formula.
 /// @param reps  The number of time steps.
 /// @param time  The evolution time.
@@ -32,16 +33,6 @@ use qiskit_quantum_info::sparse_observable::SparseObservable;
 /// @param insert_barriers  Whether to insert barriers between the terms evolutions.
 /// 
 /// @return A pointer to the generated circuit.
-/// 
-/// References:
-/// 
-/// [1]: D. Berry, G. Ahokas, R. Cleve and B. Sanders,
-/// "Efficient quantum algorithms for simulating sparse Hamiltonians" (2006).
-/// [arXiv:quant-ph/0508139](https://arxiv.org/abs/quant-ph/0508139)
-/// 
-/// [2]: N. Hatano and M. Suzuki,
-/// "Finding Exponential Product Formulas of Higher Orders" (2005).
-/// [arXiv:math-ph/0506007](https://arxiv.org/pdf/math-ph/0506007.pdf)
 /// 
 /// # Example
 /// ```c
@@ -60,19 +51,35 @@ use qiskit_quantum_info::sparse_observable::SparseObservable;
 /// qk_obs_free(obs);
 /// qk_circuit_free(qc);
 /// ```
+/// 
+/// # Safety
+/// 
+/// Behavior is undefined ``operator`` is not a valid, non-null pointer to a ``QkObs``.
+/// 
+/// # References
+/// 
+/// [1]: D. Berry, G. Ahokas, R. Cleve and B. Sanders,
+/// "Efficient quantum algorithms for simulating sparse Hamiltonians" (2006).
+/// [arXiv:quant-ph/0508139](https://arxiv.org/abs/quant-ph/0508139)
+/// 
+/// [2]: N. Hatano and M. Suzuki,
+/// "Finding Exponential Product Formulas of Higher Orders" (2005).
+/// [arXiv:math-ph/0506007](https://arxiv.org/pdf/math-ph/0506007.pdf)
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub extern "C" fn qk_circuit_library_suzuki_trotter(
-    observable: &SparseObservable,
+    operator: *const SparseObservable,
     order: u32,
     reps: u32,
     time: f64,
     preserve_order: bool,
     insert_barriers: bool,
 ) -> *mut CircuitData {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let operator = unsafe { const_ptr_as_ref(operator) };
     Box::into_raw(Box::new(
         suzuki_trotter_evolution(
-            observable,
+            operator,
             order,
             reps,
             time,
