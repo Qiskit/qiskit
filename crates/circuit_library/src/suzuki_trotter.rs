@@ -27,7 +27,7 @@ pub fn suzuki_trotter_evolution(
     preserve_order: bool,
     insert_barriers: bool,
 ) -> Result<CircuitData, String> {
-    if order > 1 && order % 2 == 1 {
+    if order > 1 && order % 2 == 1 || order == 0 {
         return Err(format!(
             "Suzuki product formulae are symmetric and therefore only defined \
             for when the order is 1 or even, not {}.",
@@ -35,17 +35,15 @@ pub fn suzuki_trotter_evolution(
         ));
     }
 
-    let terms: Vec<SparseTermView> = observable.iter().collect();
-    let mut parsed_observable =
-        if preserve_order || !preserve_order && observable.bit_terms().len() <= 1 {
-            terms
-        } else {
-            reorder_terms(&terms)?
-        };
-
-    parsed_observable.iter_mut().for_each(|view| {
+    let terms_iter = observable.iter().map(|mut view| {
         view.coeff.re = view.coeff.re * time * 2.0 / (reps as f64);
+        view
     });
+    let parsed_observable = if preserve_order || !preserve_order && observable.bit_terms().len() <= 1 {
+            terms_iter.collect()
+        } else {
+            reorder_terms(terms_iter)?
+        };
 
     // execute evolution
     let evo: Vec<SparseTermView> = evolution(order, &parsed_observable);
