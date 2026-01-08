@@ -31,6 +31,12 @@ use crate::value::{
 use binrw::binrw;
 use hashbrown::HashMap;
 
+// The various values of values that can exist in a parameter expression node
+// This data is stored inside the parent of the node, not in the node itself
+// So it has two "dummy" values, LhsExpression and RhsExpression indicating that
+// The node has a non-leaf child that the expression reconstruction algorithm should recurse into
+// In addition null represents a missing child.
+// The nodes can have concrete integer/float/complex values, or be symbols (standalone/part of vector)
 #[binrw]
 #[brw(repr = u8)]
 #[repr(u8)]
@@ -165,7 +171,6 @@ fn parameter_value_type_from_generic_value(value: &GenericValue) -> PyResult<Par
 // are referred to in the expression data
 // in older QPY versions, parameter expressions could have substitute commands, which made packing more complex
 // this is no longer used in the rust-based paramter expressions, so we do not fully utilize the formats
-
 pub(crate) fn pack_parameter_expression(
     exp: &ParameterExpression,
 ) -> PyResult<formats::ParameterExpressionPack> {
@@ -181,9 +186,7 @@ pub(crate) fn pack_parameter_expression(
     })
 }
 
-pub(crate) fn pack_symbol_table_element(
-    symbol: &Symbol,
-) -> PyResult<formats::ParameterExpressionSymbolPack> {
+fn pack_symbol_table_element(symbol: &Symbol) -> PyResult<formats::ParameterExpressionSymbolPack> {
     let value_data = Bytes::new(); // this was used only when packing symbol tables related to substitution commands and no longer relevant
     if symbol.is_vector_element() {
         let value_key = ValueType::ParameterVector;
@@ -412,13 +415,13 @@ pub(crate) fn unpack_parameter_expression(
         .map_err(|_| PyValueError::new_err("Failure while loading parameter expression"))
 }
 
-pub(crate) fn pack_symbol(symbol: &Symbol) -> formats::ParameterPack {
+pub(crate) fn pack_symbol(symbol: &Symbol) -> formats::ParameterSymbolPack {
     let uuid = *symbol.uuid.as_bytes();
     let name = symbol.name.clone();
-    formats::ParameterPack { uuid, name }
+    formats::ParameterSymbolPack { uuid, name }
 }
 
-pub(crate) fn unpack_symbol(parameter_pack: &formats::ParameterPack) -> Symbol {
+pub(crate) fn unpack_symbol(parameter_pack: &formats::ParameterSymbolPack) -> Symbol {
     let name = parameter_pack.name.clone();
     let uuid = Uuid::from_bytes(parameter_pack.uuid);
     Symbol {

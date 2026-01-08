@@ -480,7 +480,7 @@ pub struct SparsePauliObservableElemPack {
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
-pub struct ParameterPack {
+pub struct ParameterSymbolPack {
     #[bw(calc = name.len() as u16)]
     pub name_length: u16,
     pub uuid: [u8; 16],
@@ -636,7 +636,7 @@ pub struct ParameterExpressionParameterSymbolPack {
     pub value_key: ValueType,
     #[bw(calc = value_data.len() as u64)]
     pub value_data_len: u64,
-    pub symbol_data: ParameterPack,
+    pub symbol_data: ParameterSymbolPack,
     #[br(count = value_data_len)]
     pub value_data: Bytes,
 }

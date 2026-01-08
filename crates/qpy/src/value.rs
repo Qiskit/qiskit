@@ -74,6 +74,7 @@ impl From<u8> for RegisterType {
     }
 }
 
+// Representation for qubit/clbit
 #[binrw]
 #[brw(repr = u8)]
 #[repr(u8)]
@@ -102,6 +103,7 @@ pub(crate) fn unpack_biguint(big_int_pack: BigIntPack) -> BigUint {
     BigUint::from_bytes_be(&big_int_pack.bytes)
 }
 
+// Data that is needed globally while writing the circuit
 #[derive(Debug)]
 pub struct QPYWriteData<'a> {
     pub circuit_data: &'a mut CircuitData,
@@ -109,6 +111,8 @@ pub struct QPYWriteData<'a> {
     pub standalone_var_indices: HashMap<u128, u16>, // mapping from the variable's UUID to its index in the standalone variables list
     pub annotation_handler: AnnotationHandler<'a>,
 }
+
+// Data that is needed globally while reading the circuit
 #[derive(Debug)]
 pub struct QPYReadData<'a> {
     pub circuit_data: &'a mut CircuitData,
@@ -116,7 +120,7 @@ pub struct QPYReadData<'a> {
     pub use_symengine: bool,
     pub standalone_vars: HashMap<u16, qiskit_circuit::Var>,
     pub standalone_stretches: HashMap<u16, qiskit_circuit::Stretch>,
-    pub vectors: HashMap<Uuid, (Py<PyAny>, Vec<u32>)>,
+    pub vectors: HashMap<Uuid, (Py<PyAny>, Vec<u32>)>, // Parameter expression vectors, which are a python-only elements for now
     pub annotation_handler: AnnotationHandler<'a>,
 }
 
@@ -183,6 +187,7 @@ pub enum ModifierType {
     Power = b'p',
 }
 
+// The types of nodes inside Expressions (not to be confused with ParameterExpressions)
 #[binrw]
 #[derive(Debug)]
 pub enum ExpressionType {
@@ -196,6 +201,7 @@ pub enum ExpressionType {
     Duration,
 }
 
+// The scope of nodes inside Expressions (not to be confused with ParameterExpressions)
 #[binrw]
 #[brw(repr = u8)]
 #[repr(u8)]
@@ -208,6 +214,9 @@ pub enum ExpressionVarDeclaration {
     StretchLocal = b'O',
 }
 
+// The various types of circuit instructions
+// This is used to differentiate special cases that need separate handling
+// Like pauli evolution and controlled gates, from the standard cases ("instruction/gate")
 #[binrw]
 #[brw(repr = u8)]
 #[repr(u8)]
@@ -414,7 +423,7 @@ pub(crate) fn load_value(
             Ok(GenericValue::Range(py_range))
         }
         ValueType::Parameter => {
-            let (parameter_pack, _) = deserialize::<formats::ParameterPack>(bytes)?;
+            let (parameter_pack, _) = deserialize::<formats::ParameterSymbolPack>(bytes)?;
             let symbol = unpack_symbol(&parameter_pack);
             Ok(GenericValue::ParameterExpressionSymbol(symbol))
         }
