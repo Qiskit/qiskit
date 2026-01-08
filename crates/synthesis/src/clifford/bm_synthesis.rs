@@ -349,10 +349,7 @@ pub fn synth_clifford_bm_inner(
         tableau[0].set(1, clifford.tableau[qubit][qubit + num_qubits]);
         tableau[1].set(1, clifford.tableau[qubit + num_qubits][qubit + num_qubits]);
         tableau[2].set(1, clifford.tableau[2 * num_qubits][qubit + num_qubits]);
-        let clifford1q = Clifford {
-            num_qubits: 1,
-            tableau,
-        };
+        let clifford1q = Clifford::new(1, tableau);
 
         decompose_clifford_1q(&clifford1q, &mut all_gates, qubit);
     }

@@ -34,9 +34,21 @@ pub struct Clifford {
     pub num_qubits: usize,
     /// Matrix with dimensions (2 * num_qubits) x (2 * num_qubits + 1).
     pub tableau: Vec<FixedBitSet>,
+    scratch: FixedBitSet,
 }
 
 impl Clifford {
+    /// Create a new clifford from a tableau. The size of the tableau must match the number of
+    /// qubits provided otherwise an invalid Clifford object will be created.
+    pub fn new(num_qubits: usize, tableau: Vec<FixedBitSet>) -> Self {
+        Clifford {
+            // W: in this type
+            num_qubits,
+            tableau,
+            scratch: FixedBitSet::with_capacity(2 * num_qubits),
+        }
+    }
+
     /// Creates the identity Clifford on num_qubits
     pub fn identity(num_qubits: usize) -> Self {
         Self {
@@ -52,11 +64,8 @@ impl Clifford {
                     row
                 })
                 .collect(),
+            scratch: FixedBitSet::with_capacity(2 * num_qubits),
         }
-    }
-
-    fn get_phase_mut(&mut self) -> &mut FixedBitSet {
-        self.tableau.get_mut(2 * self.num_qubits).unwrap()
     }
 
     pub fn get_phase(&self) -> &FixedBitSet {
@@ -73,58 +82,71 @@ impl Clifford {
 
     /// Modifies the tableau in-place by appending S-gate
     pub fn append_s(&mut self, qubit: usize) {
-        let x_and_z = &self.tableau[qubit] & self.get_z(qubit);
-        *self.get_phase_mut() ^= x_and_z;
-        let xor = self.get_z(qubit) ^ &self.tableau[qubit];
-        *self.get_z_mut(qubit) = xor;
+        self.scratch.clear();
+        self.scratch |= &self.tableau[qubit];
+        self.scratch &= &self.tableau[qubit + self.num_qubits];
+        self.tableau[2 * self.num_qubits] ^= &self.scratch;
+        self.scratch.clear();
+        self.scratch |= &self.tableau[qubit + self.num_qubits];
+        self.scratch ^= &self.tableau[qubit];
+        std::mem::swap(
+            &mut self.tableau[self.num_qubits + qubit],
+            &mut self.scratch,
+        );
     }
 
     /// Modifies the tableau in-place by appending Sdg-gate
     pub fn append_sdg(&mut self, qubit: usize) {
-        let x_and_not_z = if let Some(x) = self.tableau.get(qubit) {
-            let mut not_z = self.get_z(qubit).clone();
-            not_z.toggle_range(..);
-            x & &not_z
-        } else {
-            unreachable!();
-        };
-        *self.get_phase_mut() ^= x_and_not_z;
-        let xor = &self.tableau[qubit] ^ self.get_z(qubit);
-        *self.get_z_mut(qubit) = xor;
+        let x = &self.tableau[qubit];
+        self.scratch.clear();
+        self.scratch |= &self.tableau[qubit + self.num_qubits];
+        self.scratch.toggle_range(..);
+        self.scratch &= x;
+        self.tableau[2 * self.num_qubits] ^= &self.scratch;
+        self.scratch.clear();
+        self.scratch |= &self.tableau[qubit];
+        self.scratch ^= &self.tableau[qubit + self.num_qubits];
+        std::mem::swap(
+            &mut self.tableau[qubit + self.num_qubits],
+            &mut self.scratch,
+        );
     }
 
     /// Modifies the tableau in-place by appending SX-gate
     pub fn append_sx(&mut self, qubit: usize) {
-        let not_x_and_z = if let Some(x) = self.tableau.get(qubit) {
-            let z = self.get_z(qubit);
-            let mut not_x = x.clone();
-            not_x.toggle_range(..);
-            &not_x & z
-        } else {
-            unreachable!();
-        };
-        *self.get_phase_mut() ^= not_x_and_z;
-        let xor = &self.tableau[qubit] ^ self.get_z(qubit);
-        self.tableau[qubit] = xor;
+        let x = &self.tableau[qubit];
+        let z = &self.tableau[qubit + self.num_qubits];
+        self.scratch.clear();
+        self.scratch |= x;
+        self.scratch.toggle_range(..);
+        self.scratch &= z;
+        self.tableau[2 * self.num_qubits] ^= &self.scratch;
+        self.scratch.clear();
+        self.scratch |= &self.tableau[qubit];
+        self.scratch ^= &self.tableau[qubit + self.num_qubits];
+        std::mem::swap(&mut self.tableau[qubit], &mut self.scratch);
     }
 
     /// Modifies the tableau in-place by appending SXDG-gate
     pub fn append_sxdg(&mut self, qubit: usize) {
-        let x_and_z = &self.tableau[qubit] & self.get_z(qubit);
-        *self.get_phase_mut() ^= x_and_z;
-        let xor = &self.tableau[qubit] ^ self.get_z(qubit);
-        self.tableau[qubit] = xor;
+        self.scratch.clear();
+        self.scratch |= &self.tableau[qubit];
+        self.scratch &= &self.tableau[qubit + self.num_qubits];
+        self.tableau[2 * self.num_qubits] ^= &self.scratch;
+        self.scratch.clear();
+        self.scratch |= &self.tableau[qubit];
+        self.scratch ^= &self.tableau[qubit + self.num_qubits];
+        std::mem::swap(&mut self.tableau[qubit], &mut self.scratch);
     }
 
     /// Modifies the tableau in-place by appending H-gate
     pub fn append_h(&mut self, qubit: usize) {
-        let x_and_z = if let Some(x) = self.tableau.get(qubit) {
-            let z = self.get_z(qubit);
-            x & z
-        } else {
-            unreachable!();
-        };
-        *self.get_phase_mut() ^= x_and_z;
+        let x = &self.tableau[qubit];
+        let z = &self.tableau[qubit + self.num_qubits];
+        self.scratch.clear();
+        self.scratch |= x;
+        self.scratch &= z;
+        self.tableau[2 * self.num_qubits] ^= &self.scratch;
         self.tableau.swap(qubit, self.num_qubits + qubit);
     }
 
@@ -137,41 +159,56 @@ impl Clifford {
 
     /// Modifies the tableau in-place by appending CX-gate
     pub fn append_cx(&mut self, qubit0: usize, qubit1: usize) {
-        let val = if let Some(x0) = self.tableau.get(qubit0) {
-            let z0 = self.get_z(qubit0);
-            let x1 = &self.tableau[qubit1];
-            let z1 = self.get_z(qubit1);
+        let x0 = &self.tableau[qubit0];
+        let z0 = &self.tableau[qubit0 + self.num_qubits];
+        let x1 = &self.tableau[qubit1];
+        let z1 = &self.tableau[qubit1 + self.num_qubits];
 
-            let mut x1_xor_z0 = x1 ^ z0;
-            x1_xor_z0.toggle_range(..);
-            let tmp = &x1_xor_z0 & z1;
-            &tmp & x0
-        } else {
-            unreachable!();
-        };
-        *self.get_phase_mut() ^= val;
-        let xor_x = &self.tableau[qubit1] ^ &self.tableau[qubit0];
-        let xor_z = self.get_z(qubit0) ^ self.get_z(qubit1);
-        self.tableau[qubit1] = xor_x;
-        *self.get_z_mut(qubit0) = xor_z;
+        self.scratch.clear();
+        self.scratch |= x1;
+        self.scratch ^= z0;
+        self.scratch.toggle_range(..);
+        self.scratch &= z1;
+        self.scratch &= x0;
+        self.tableau[2 * self.num_qubits] ^= &self.scratch;
+        self.scratch.clear();
+        self.scratch |= &self.tableau[qubit1];
+        self.scratch ^= &self.tableau[qubit0];
+        std::mem::swap(&mut self.tableau[qubit1], &mut self.scratch);
+        self.scratch.clear();
+        self.scratch |= &self.tableau[qubit0 + self.num_qubits];
+        self.scratch ^= &self.tableau[qubit1 + self.num_qubits];
+        std::mem::swap(
+            &mut self.tableau[qubit0 + self.num_qubits],
+            &mut self.scratch,
+        );
     }
 
     /// Modifies the tableau in-place by appending CZ-gate
     pub fn append_cz(&mut self, qubit0: usize, qubit1: usize) {
-        let val = if let Some(x0) = self.tableau.get(qubit0) {
-            let z0 = self.get_z(qubit0);
-            let x1 = &self.tableau[qubit1];
-            let z1 = self.get_z(qubit1);
-            let z0_xor_z1 = z0 ^ z1;
-            &(x0 & x1) & &z0_xor_z1
-        } else {
-            unreachable!();
-        };
-        *self.get_phase_mut() ^= val;
-        let xor_z1_x0 = self.get_z(qubit1) ^ &self.tableau[qubit0];
-        let xor_z0_x1 = self.get_z(qubit0) ^ &self.tableau[qubit1];
-        *self.get_z_mut(qubit1) = xor_z1_x0;
-        *self.get_z_mut(qubit0) = xor_z0_x1;
+        let x0 = &self.tableau[qubit0];
+        let z0 = &self.tableau[qubit0 + self.num_qubits];
+        let x1 = &self.tableau[qubit1];
+        let z1 = &self.tableau[qubit1 + self.num_qubits];
+        self.scratch.clear();
+        self.scratch |= z0;
+        self.scratch ^= z1;
+        self.scratch &= &(x0 & x1);
+        self.tableau[2 * self.num_qubits] ^= &self.scratch;
+        self.scratch.clear();
+        self.scratch |= &self.tableau[qubit1 + self.num_qubits];
+        self.scratch ^= &self.tableau[qubit0];
+        std::mem::swap(
+            &mut self.tableau[qubit1 + self.num_qubits],
+            &mut self.scratch,
+        );
+        self.scratch.clear();
+        self.scratch |= &self.tableau[qubit0 + self.num_qubits];
+        self.scratch ^= &self.tableau[qubit1];
+        std::mem::swap(
+            &mut self.tableau[qubit0 + self.num_qubits],
+            &mut self.scratch,
+        );
     }
 
     /// Modifies the tableau in-place by appending CY-gate
@@ -184,20 +221,26 @@ impl Clifford {
 
     /// Modifies the tableau in-place by appending X-gate
     pub fn append_x(&mut self, qubit: usize) {
-        let xor = self.get_phase() ^ self.get_z(qubit);
-        *self.get_phase_mut() = xor;
+        self.scratch.clear();
+        self.scratch |= &self.tableau[2 * self.num_qubits];
+        self.scratch ^= &self.tableau[qubit + self.num_qubits];
+        std::mem::swap(&mut self.tableau[2 * self.num_qubits], &mut self.scratch);
     }
 
     /// Modifies the tableau in-place by appending Z-gate
     pub fn append_z(&mut self, qubit: usize) {
-        let xor = self.get_phase() ^ &self.tableau[qubit];
-        *self.get_phase_mut() = xor;
+        self.scratch.clear();
+        self.scratch |= &self.tableau[2 * self.num_qubits];
+        self.scratch ^= &self.tableau[qubit];
+        std::mem::swap(&mut self.tableau[2 * self.num_qubits], &mut self.scratch);
     }
 
     /// Modifies the tableau in-place by appending Y-gate
     pub fn append_y(&mut self, qubit: usize) {
-        let xor = &self.tableau[qubit] ^ self.get_z(qubit);
-        *self.get_phase_mut() ^= xor;
+        self.scratch.clear();
+        self.scratch |= &self.tableau[qubit];
+        self.scratch ^= &self.tableau[qubit + self.num_qubits];
+        self.tableau[2 * self.num_qubits] ^= &self.scratch;
     }
 
     /// Modifies the tableau in-place by appending iSWAP-gate
@@ -230,17 +273,24 @@ impl Clifford {
     /// Modifies the tableau in-place by appending V-gate.
     /// This is equivalent to an Sdg gate followed by an H gate.
     pub fn append_v(&mut self, qubit: usize) {
-        let xor = &self.tableau[qubit] ^ self.get_z(qubit);
+        self.scratch.clear();
+        self.scratch |= &self.tableau[qubit];
+        self.scratch ^= &self.tableau[qubit + self.num_qubits];
         self.tableau.swap(qubit, self.num_qubits + qubit);
-        self.tableau[qubit] = xor;
+        std::mem::swap(&mut self.tableau[qubit], &mut self.scratch);
     }
 
     /// Modifies the tableau in-place by appending W-gate.
     /// This is equivalent to two V gates.
     pub fn append_w(&mut self, qubit: usize) {
-        let xor = &self.tableau[qubit] ^ self.get_z(qubit);
+        self.scratch.clear();
+        self.scratch |= &self.tableau[qubit];
+        self.scratch ^= &self.tableau[qubit + self.num_qubits];
         self.tableau.swap(qubit, self.num_qubits + qubit);
-        *self.get_z_mut(qubit) = xor;
+        std::mem::swap(
+            &mut self.tableau[qubit + self.num_qubits],
+            &mut self.scratch,
+        );
     }
 
     /// Evolving the single-qubit Pauli-Z with Z on qubit qbit.
