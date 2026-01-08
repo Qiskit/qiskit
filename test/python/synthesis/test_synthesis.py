@@ -136,23 +136,10 @@ class CheckDecompositions(QiskitTestCase):
             np.abs(maxdist) < tolerance, f"Operator {operator}: Worst distance {maxdist}"
         )
 
-    @contextlib.contextmanager
-    def assertDebugOnly(self):  # FIXME: when at python 3.10+ replace with assertNoLogs
-        """Context manager, asserts log is emitted at level DEBUG but no higher"""
-        with self.assertLogs("qiskit.synthesis", "DEBUG") as ctx:
-            yield
-        for i, record in enumerate(ctx.records):
-            self.assertLessEqual(
-                record.levelno,
-                logging.DEBUG,
-                msg=f"Unexpected logging entry: {ctx.output[i]}",
-            )
-            self.assertIn("Requested fidelity:", record.getMessage())
-
     def assertRoundTrip(self, weyl1: TwoQubitWeylDecomposition):
         """Fail if eval(repr(weyl1)) not equal to weyl1"""
         repr1 = repr(weyl1)
-        with self.assertDebugOnly():
+        with self.assertNoLogs("qiskit.synthesis"):
             weyl2: TwoQubitWeylDecomposition = eval(repr1)  # pylint: disable=eval-used
         msg_base = f"weyl1:\n{repr1}\nweyl2:\n{repr(weyl2)}"
         self.assertEqual(type(weyl1), type(weyl2), msg_base)
@@ -196,7 +183,7 @@ class CheckDecompositions(QiskitTestCase):
     def check_two_qubit_weyl_decomposition(self, target_unitary, tolerance=1.0e-12):
         """Check TwoQubitWeylDecomposition() works for a given operator"""
         # pylint: disable=invalid-name
-        with self.assertDebugOnly():
+        with self.assertNoLogs("qiskit.synthesis"):
             decomp = TwoQubitWeylDecomposition(target_unitary, fidelity=None)
         # self.assertRoundTrip(decomp)  # Too slow
         op = np.exp(1j * decomp.global_phase) * Operator(np.eye(4))
@@ -225,11 +212,11 @@ class CheckDecompositions(QiskitTestCase):
         # Loop to check both for implicit and explicitly specialization
         for decomposer in (TwoQubitWeylDecomposition, expected_specialization):
             if isinstance(decomposer, TwoQubitWeylDecomposition):
-                with self.assertDebugOnly():
+                with self.assertNoLogs("qiskit.synthesis"):
                     decomp = decomposer(target_unitary, fidelity=fidelity)
                 decomp_name = decomp.specialization
             else:
-                with self.assertDebugOnly():
+                with self.assertNoLogs("qiskit.synthesis"):
                     decomp = TwoQubitWeylDecomposition(
                         target_unitary, fidelity=None, _specialization=expected_specialization
                     )
@@ -256,7 +243,7 @@ class CheckDecompositions(QiskitTestCase):
             actual_unitary = Operator(circ).data
             trace = np.trace(actual_unitary.T.conj() @ target_unitary)
             self.assertAlmostEqual(trace.imag, 0, places=13, msg=f"Real trace for {decomp_name}")
-        with self.assertDebugOnly():
+        with self.assertNoLogs("qiskit.synthesis"):
             decomp2 = TwoQubitWeylDecomposition(
                 target_unitary, fidelity=None, _specialization=expected_specialization
             )  # Shouldn't raise
@@ -1090,7 +1077,7 @@ class TestTwoQubitDecompose(CheckDecompositions):
         tgt = random_unitary(4, seed=state).data
         tgt *= np.exp(1j * tgt_phase)
 
-        with self.assertDebugOnly():
+        with self.assertNoLogs("qiskit.synthesis"):
             traces_pred = decomposer.traces(TwoQubitWeylDecomposition(tgt))
 
         for i in range(4):

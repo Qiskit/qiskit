@@ -82,6 +82,7 @@ from .store import Store
 
 
 if typing.TYPE_CHECKING:  # pylint: disable=cyclic-import
+    import types
     import qiskit
     from qiskit.circuit import Annotation
     from qiskit.transpiler.layout import TranspileLayout
@@ -3012,10 +3013,8 @@ class QuantumCircuit:
 
     @typing.overload
     def get_parameter(self, name: str, default: T) -> Union[Parameter, T]: ...
-
-    # The builtin `types` module has `EllipsisType`, but only from 3.10+!
     @typing.overload
-    def get_parameter(self, name: str, default: type(...) = ...) -> Parameter: ...
+    def get_parameter(self, name: str, default: types.EllipsisType = ...) -> Parameter: ...
 
     # We use a _literal_ `Ellipsis` as the marker value to leave `None` available as a default.
     def get_parameter(self, name: str, default: typing.Any = ...) -> Parameter:
@@ -3092,10 +3091,8 @@ class QuantumCircuit:
 
     @typing.overload
     def get_var(self, name: str, default: T) -> Union[expr.Var, T]: ...
-
-    # The builtin `types` module has `EllipsisType`, but only from 3.10+!
     @typing.overload
-    def get_var(self, name: str, default: type(...) = ...) -> expr.Var: ...
+    def get_var(self, name: str, default: types.EllipsisType = ...) -> expr.Var: ...
 
     # We use a _literal_ `Ellipsis` as the marker value to leave `None` available as a default.
     def get_var(self, name: str, default: typing.Any = ...):
@@ -3167,10 +3164,8 @@ class QuantumCircuit:
 
     @typing.overload
     def get_stretch(self, name: str, default: T) -> Union[expr.Stretch, T]: ...
-
-    # The builtin `types` module has `EllipsisType`, but only from 3.10+!
     @typing.overload
-    def get_stretch(self, name: str, default: type(...) = ...) -> expr.Stretch: ...
+    def get_stretch(self, name: str, default: types.EllipsisType = ...) -> expr.Stretch: ...
 
     def get_stretch(self, name: str, default: typing.Any = ...):
         """Retrieve a stretch that is accessible in this circuit scope by name.
@@ -3233,11 +3228,9 @@ class QuantumCircuit:
 
     @typing.overload
     def get_identifier(self, name: str, default: T) -> Union[expr.Var | expr.Stretch, T]: ...
-
-    # The builtin `types` module has `EllipsisType`, but only from 3.10+!
     @typing.overload
     def get_identifier(
-        self, name: str, default: type(...) = ...
+        self, name: str, default: types.EllipsisType = ...
     ) -> Union[expr.Var, expr.Stretch]: ...
 
     # We use a _literal_ `Ellipsis` as the marker value to leave `None` available as a default.
@@ -4204,10 +4197,7 @@ class QuantumCircuit:
         """
         return self._data.num_clbits
 
-    # The stringified return type is because OrderedDict can't be subscripted before Python 3.9, and
-    # typing.OrderedDict wasn't added until 3.7.2.  It can be turned into a proper type once 3.6
-    # support is dropped.
-    def count_ops(self) -> "OrderedDict[Instruction, int]":
+    def count_ops(self) -> OrderedDict[Instruction, int]:
         """Count each operation kind in the circuit.
 
         Returns:
