@@ -56,10 +56,12 @@ impl Clifford {
             tableau: (0..2 * num_qubits + 1)
                 .map(|i| {
                     let mut row = FixedBitSet::with_capacity(2 * num_qubits);
-                    // SAFETY: We know row is large enough since it's larger than the range
-                    // i is from
-                    unsafe {
-                        row.insert_unchecked(i);
+                    if i < 2 * num_qubits {
+                        // SAFETY: We know row is large enough since it's larger than the range
+                        // i is from
+                        unsafe {
+                            row.insert_unchecked(i);
+                        }
                     }
                     row
                 })
