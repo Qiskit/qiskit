@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed a mismatch in :c:struct:`QkTargetOp` in which the length of the array
+    stored in :c:member:`QkTargetOp.params` did not match the number exposed by
+    :c:member:`QkTargetOp.num_params`. The following PR fixes it by exposing any
+    placeholder parameters as ``NAN`` so the length of the array always matches
+    that of :c:member:`QkTargetOp.num_params`.
