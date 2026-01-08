@@ -81,9 +81,9 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Param {
         Ok(if let Ok(py_expr) = b.extract::<PyParameterExpression>() {
             Param::ParameterExpression(Arc::new(py_expr.inner))
         } else if b.is_instance_of::<PyArray1<i32>>() {
+            // TODO: remove this branch when we raise the NumPy version to 2.4.
             Param::Obj(b.to_owned().unbind())
         } else if let Ok(val) = b.extract::<f64>() {
-            // TODO: remove this branch when we raise the NumPy version to 2.4.
             Param::Float(val)
         } else {
             Param::Obj(b.to_owned().unbind())
