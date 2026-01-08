@@ -123,6 +123,7 @@ There are helper constructor functions for each of the unary operations.
 
 .. autofunction:: bit_not
 .. autofunction:: logic_not
+.. autofunction:: negate
 
 Similarly, the binary operations and relations have helper functions defined.
 
