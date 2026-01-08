@@ -294,7 +294,11 @@ def _loads_instruction_parameter(
 ):
     if type_key == type_keys.Program.CIRCUIT:
         param = common.data_from_binary(
-            data_bytes, read_circuit, version=version, annotation_factories=annotation_factories
+            data_bytes,
+            read_circuit,
+            version=version,
+            annotation_factories=annotation_factories,
+            use_rust=False,
         )
     elif type_key == type_keys.Value.MODIFIER:
         param = common.data_from_binary(data_bytes, _read_modifier)
@@ -832,6 +836,7 @@ def _read_custom_operations(file_obj, version, vectors, annotation_state):
                         read_circuit,
                         version=version,
                         annotation_factories=annotation_state.factories,
+                        use_rust=False,
                     )
                 elif name.startswith(r"###PauliEvolutionGate_"):
                     definition_circuit = common.data_from_binary(
@@ -893,7 +898,11 @@ def _dumps_instruction_parameter(
     if isinstance(param, QuantumCircuit):
         type_key = type_keys.Program.CIRCUIT
         data_bytes = common.data_to_binary(
-            param, write_circuit, version=version, annotation_factories=annotation_factories
+            param,
+            write_circuit,
+            version=version,
+            annotation_factories=annotation_factories,
+            use_rust=False,
         )
     elif isinstance(param, Modifier):
         type_key = type_keys.Value.MODIFIER
@@ -1257,6 +1266,7 @@ def _write_custom_operation(
             write_circuit,
             version=version,
             annotation_factories=annotation_state.factories,
+            use_rust=False,
         )
         size = len(data)
         num_ctrl_qubits = operation.num_ctrl_qubits
@@ -1272,6 +1282,7 @@ def _write_custom_operation(
             write_circuit,
             version=version,
             annotation_factories=annotation_state.factories,
+            use_rust=False,
         )
         size = len(data)
     if base_gate is None:
