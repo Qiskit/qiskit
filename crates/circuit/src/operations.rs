@@ -573,7 +573,7 @@ impl ControlFlowInstruction {
     pub fn create_py_op(
         &self,
         py: Python,
-        blocks: Option<Vec<Py<PyAny>>>,
+        blocks: Option<Vec<CircuitData>>,
         label: Option<&str>,
     ) -> PyResult<Py<PyAny>> {
         let mut blocks = blocks.into_iter().flatten();
@@ -599,7 +599,10 @@ impl ControlFlowInstruction {
                 imports::BOX_OP.get(py).call1(
                     py,
                     (
-                        blocks.next().unwrap(),
+                        blocks
+                            .next()
+                            .expect("box should have a body")
+                            .into_py_quantum_circuit(py)?,
                         duration,
                         unit,
                         label,
@@ -622,19 +625,43 @@ impl ControlFlowInstruction {
                 loop_param,
             } => imports::FOR_LOOP_OP.get(py).call(
                 py,
-                (collection, loop_param.clone(), blocks.next()),
+                (
+                    collection,
+                    loop_param.clone(),
+                    blocks
+                        .next()
+                        .expect("for loop should have a body")
+                        .into_py_quantum_circuit(py)?,
+                ),
                 kwargs.as_ref(),
             ),
             ControlFlow::IfElse { condition } => imports::IF_ELSE_OP.get(py).call(
                 py,
-                (condition.clone(), blocks.next().unwrap(), blocks.next()),
+                (
+                    condition.clone(),
+                    blocks
+                        .next()
+                        .expect("if should have a true body")
+                        .into_py_quantum_circuit(py)?,
+                    blocks
+                        .next()
+                        .map(|circuit| circuit.into_py_quantum_circuit(py))
+                        .transpose()?,
+                ),
                 kwargs.as_ref(),
             ),
             ControlFlow::Switch {
                 target, label_spec, ..
             } => {
-                let cases_specifier: Vec<(Vec<CaseSpecifier>, Py<PyAny>)> =
-                    label_spec.iter().cloned().zip(blocks).collect();
+                let cases_specifier: Vec<(Vec<CaseSpecifier>, Py<PyAny>)> = label_spec
+                    .iter()
+                    .cloned()
+                    .zip(blocks)
+                    .map(|(cases, body)| {
+                        body.into_py_quantum_circuit(py)
+                            .map(|ob| (cases, ob.unbind()))
+                    })
+                    .collect::<PyResult<_>>()?;
                 imports::SWITCH_CASE_OP.get(py).call(
                     py,
                     (target.clone(), cases_specifier),
@@ -643,7 +670,13 @@ impl ControlFlowInstruction {
             }
             ControlFlow::While { condition, .. } => imports::WHILE_LOOP_OP.get(py).call(
                 py,
-                (condition.clone(), blocks.next()),
+                (
+                    condition.clone(),
+                    blocks
+                        .next()
+                        .expect("while should have a body")
+                        .into_py_quantum_circuit(py)?,
+                ),
                 kwargs.as_ref(),
             ),
         }
