@@ -34,6 +34,7 @@ rsgridsynth =  "0.2.0"
 rstar = "0.12.2"
 serde = { version = "1.0", features = ["derive"] }
 thiserror.workspace = true
+fixedbitset.workspace = true
 
 [dependencies.faer-ext]
 version = "0.7.1"
