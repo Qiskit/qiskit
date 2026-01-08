@@ -42,7 +42,6 @@ impl Clifford {
     /// qubits provided otherwise an invalid Clifford object will be created.
     pub fn new(num_qubits: usize, tableau: Vec<FixedBitSet>) -> Self {
         Clifford {
-            // W: in this type
             num_qubits,
             tableau,
             scratch: FixedBitSet::with_capacity(2 * num_qubits),
