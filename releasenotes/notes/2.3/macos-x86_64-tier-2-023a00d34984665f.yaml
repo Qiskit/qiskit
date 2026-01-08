@@ -1,16 +1,12 @@
 ---
-upgrade:
+upgrade_misc:
   - |
-    Support for macOS x86_64 has been downgraded from tier 1 to tier 2. This means that
-    tests are no longer run on the platform for every proposed change to Qiskit and that
-    the platform is only tested when building the wheels for publishing at release time.
-    This change was due to Apple marking the platform support as deprecated and will no
-    longer continue supporting the CPU architecture on their platform. Subsequently
-    Github decreasing their support for using the platform in Github actions which Qiskit
-    relies on for CI resources to run tests.
+    Support for macOS x86-64 (Intel) has been downgraded from tier 1 to tier 2.  Qiskit will
+    still provide tested and pre-compiled wheels for this platform, but tests are only
+    performed at the time of release, rather than at every change.  This might cause delays
+    in releasing the wheels for this platform.
 
-    While platform support hasn't been removed yet it is worth pointing out that this
-    will likely happen in the lead up to Fall 2027 when Github has documented that they
-    will retire the only images with support for running on x86_64 macOS. [#]_
-
-    .. [#] https://github.blog/changelog/2025-09-19-github-actions-macos-13-runner-image-is-closing-down/
+    This change was made because Apple has begun to sunset the platform, and the Qiskit team does not have
+    the developer or CI resources left to continue tier 1 support.  We can only support macOS x86-64
+    while GitHub continues to provide runners for it, and we expect `this support to be removed in the
+    second half of 2027 <https://github.blog/changelog/2025-09-19-github-actions-macos-13-runner-image-is-closing-down/>`__.

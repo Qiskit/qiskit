@@ -3,8 +3,8 @@ features_transpiler:
   - |
     The transpiler pass :class:`.LitinskiTransformation` has been extended to handle
     measurements. Thus, the transform now applies to a circuit containing Clifford,
-    single-qubit RZ-rotation gates (including T and Tdg), and standard Z-measurements,
-    and moves Clifford gates to the end of the circuit. In the process, it changes
-    RZ-rotations to product pauli rotations (implemented as :class:`.PauliEvolutionGate`
-    gates), and changes Z-measurements to product pauli measurements (implemented using
+    single-qubit RZ-rotation gates (including :math:`T` and :math:`T^\dagger`), and standard 
+    Z-measurements, and moves Clifford gates to the end of the circuit. In the process, it changes
+    RZ-rotations to product Pauli rotations (implemented as :class:`.PauliEvolutionGate`
+    gates), and changes Z-measurements to product Pauli measurements (implemented using
     :class:`.PauliProductMeasurement` instructions).

@@ -1,12 +1,8 @@
 ---
 features_quantum_info:
   - |
-    Improve the performance of :meth:`.Clifford.dot` and of :meth:`.Clifford.compose`
-    when called with `front=True`, in the case that the Clifford is composed with a
-    :class:`.QuantumCircuit` consisting of Clifford operations (for instance, of standard
-    Clifford gates). The new method consists of iteratively updating the Clifford by
-    prepending it with Clifford operations, similarly to the current behavior of
-    :meth:`.Clifford.compose` when called with `front=False`. When the number of
-    operations in the circuit is small, this method is significantly more efficient than
-    the old method consisting of converting the circuit into a Clifford and composing
-    the two Cliffords.
+    Improved the performance of :meth:`.Clifford.dot` and of :meth:`.Clifford.compose`
+    when called with ``front=True`` and a :class:`.QuantumCircuit` containing only Clifford gates.
+    Previously, the circuit was completely consumed into a :class:`.Clifford` object first, and
+    then the two objects were combined. Now, the base :class:`.Clifford` is updated iteratively,
+    which is significantly faster for small circuits.

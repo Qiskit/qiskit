@@ -1,26 +1,24 @@
 ---
 features_c:
   - |
-    Ways of iterating and checking the ``QkTarget``'s gate map have
-    been added to the C API. The following methods were added:
+    Added ways of iterating and checking the gate map of a ``QkTarget``.  The
+    following methods were added:
       
-      * :c:func:`qk_target_op_num_properties`.
-      * :c:func:`qk_target_op_index`.
-      * :c:func:`qk_target_op_name`.
-      * :c:func:`qk_target_op_qargs_index`.
-      * :c:func:`qk_target_op_qargs`.
-      * :c:func:`qk_target_op_props`.
+    * :c:func:`qk_target_op_num_properties`
+    * :c:func:`qk_target_op_index`
+    * :c:func:`qk_target_op_name`
+    * :c:func:`qk_target_op_qargs_index`
+    * :c:func:`qk_target_op_qargs`
+    * :c:func:`qk_target_op_props`
 
     And the following representation was added:
       
-      * :c:struct:`QkInstructionProperties`: to represent the :class:`.InstructionProperties`.
+    * :c:struct:`QkInstructionProperties`: to represent the :class:`.InstructionProperties`.
 
     Example:
 
-    .. code-block:: C
+    .. code-block:: c
       
-      #include <qiskit.h>
-
       // Create Target with a mix of global and non-global gates.
       QkTarget *target = qk_target_new(2);
       
@@ -69,9 +67,3 @@ features_c:
         // Free the name string
         qk_str_free(name);
       }
-    
-
-
-
-
-

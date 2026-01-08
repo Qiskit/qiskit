@@ -1,8 +1,8 @@
 ---
 upgrade_circuits:
   - |
-    The method ``gate.control`` no longer returns an :class:`.AnnotatedOperation` when
-    the argument ``annotated`` is set to ``True`` when a native controlled-gate class
+    The method :meth:`.Gate.control` no longer returns an :class:`.AnnotatedOperation` when
+    the argument ``annotated`` is set to ``True`` and a native controlled-gate class
     is available. This change is consistent with how the argument ``annotated``
     is used across the standard circuit library, and enables more efficient decompositions
     of control-annotated gates. The affected gates are:
@@ -16,6 +16,6 @@ upgrade_circuits:
       and ``MCMT`` gates.
 
   - |
-    The default value of the argument ``annotated`` in :meth:`QuantumCircuit.control` is now
+    The default value of the argument ``annotated`` in :meth:`.QuantumCircuit.control` is now
     ``None`` instead of ``False``. This does not affect the actual circuits, but is consistent
     with the default value of ``annotated`` used across the circuit library.

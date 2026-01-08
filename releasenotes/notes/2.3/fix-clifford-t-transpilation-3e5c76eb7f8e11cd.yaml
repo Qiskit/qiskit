@@ -1,6 +1,8 @@
 ---
 fixes:
   - |
-    Fixed a bug when transpiling into a Clifford+T basis, where a Clifford+T basis
-    was not interpreted as such, leading to significantly more T-gates in the
-    transpiled circuit.
+    The :class:`.HighLevelSynthesis` pass will now correctly select
+    the optimization metric according to the basis set: two-qubit gate
+    count for continuous bases and T count for Clifford+T bases.
+    Previously, this information was not correctly propagated, resulting
+    in worse than expected T counts.
