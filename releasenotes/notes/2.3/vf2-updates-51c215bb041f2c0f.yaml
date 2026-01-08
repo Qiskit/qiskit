@@ -12,7 +12,7 @@ features_c:
     transpiler passes will decompose gates into the supported set of a given qubit or link.
 
     These functions use an encapsulated version of the VF2 configuration
-    (:c:struct:`QkVF2LayoutConfiguration`) which has setter methods for each of the options.  This includes
+    (:c:struct:`QkVF2LayoutConfiguration`), which has setter methods for each of the options.  This includes
     allowing access to the new two-limit form of the ``call_limit`` argument.
 features_transpiler:
   - |

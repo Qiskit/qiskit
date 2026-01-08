@@ -6,7 +6,7 @@ upgrade_misc:
     performed at the time of release, rather than at every change.  This might cause delays
     in releasing the wheels for this platform.
 
-    This change was made because Apple have begun to sunset the platform, and the Qiskit team do not have
+    This change was made because Apple has begun to sunset the platform, and the Qiskit team does not have
     the developer or CI resources left to continue tier 1 support.  We can only support macOS x86-64
     while GitHub continues to provide runners for it, and we expect `this support to be removed in the
     second half of 2027 <https://github.blog/changelog/2025-09-19-github-actions-macos-13-runner-image-is-closing-down/>`__.

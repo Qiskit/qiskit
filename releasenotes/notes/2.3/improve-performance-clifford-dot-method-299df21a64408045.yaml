@@ -3,6 +3,6 @@ features_quantum_info:
   - |
     Improved the performance of :meth:`.Clifford.dot` and of :meth:`.Clifford.compose`
     when called with ``front=True`` and a :class:`.QuantumCircuit` containing only Clifford gates.
-    Previously, the circuit was completely consumed into a :class:`.Clifford` objects first, and
+    Previously, the circuit was completely consumed into a :class:`.Clifford` object first, and
     then the two objects were combined. Now, the base :class:`.Clifford` is updated iteratively,
     which is significantly faster for small circuits.

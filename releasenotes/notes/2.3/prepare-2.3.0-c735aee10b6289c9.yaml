@@ -1,12 +1,12 @@
 ---
 prelude: |
-  Qiskit 2.3.0 is a new feature release of the Qiskit SDK.
+  Qiskit v2.3.0 is a new feature release of the Qiskit SDK.
 
   This new version significantly expands the C API for transpilation, making more of the
   :class:`.Target` (:c:struct:`QkTarget`) available for inspection from C, and allowing the
   :class:`.DAGCircuit` (:c:struct:`QkDag`) to be created and manipulated.  This makes it possible
   to write custom transpiler passes when compiling against the stand-alone ``libqiskit`` object.
-  There are individual transpilation-stage functions in the C API (e.g.
+  There are individual transpilation-stage functions in the C API (for example,
   :c:func:`qk_transpile_stage_layout`), to make it easier to insert custom logic into
   transpilation without having to recreate the entire pipeline manually.
 
