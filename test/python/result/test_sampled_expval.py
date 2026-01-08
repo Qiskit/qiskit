@@ -110,6 +110,38 @@ class TestSampledExpval(QiskitTestCase):
         result2 = sampled_expectation_value(dist, "00ZI")
         self.assertAlmostEqual(result2, 0.4376)
 
+    def test_variance(self):
+        """Test that variance calculation works"""
+        dist = Counts(
+            {
+                "00": 450,
+                "11": 550,
+            }
+        )
+        op = "IZ"
+        expval, var = sampled_expectation_value(dist, op, variance=True)
+        self.assertAlmostEqual(expval, -0.1)
+        self.assertAlmostEqual(var, 0.99)
+
+        dist2 = Counts(
+            {
+                "00": 250,
+                "01": 250,
+                "10": 250,
+                "11": 250,
+            }
+        )
+        so = SparseObservable.from_label(op)
+        expval2, var2 = sampled_expectation_value(dist2, so, variance=True)
+        self.assertAlmostEqual(expval2, 0.0)
+        self.assertAlmostEqual(var2, 1.0)
+
+        spo = SparsePauliOp(["ZZ", "IZ"], coeffs=[0.5, 0.5])
+        with self.assertRaisesRegex(
+            ValueError, "Variance calculation only supported for single Pauli string operators."
+        ):
+            _ = sampled_expectation_value(dist2, spo, variance=True)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
