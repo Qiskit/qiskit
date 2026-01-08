@@ -1343,8 +1343,9 @@ pub struct CTargetOp {
     /// `(uint32_t)-1` in the case of a variadic.
     pub num_qubits: u32,
     /// The parameters tied to this operation if fixed, as an array
-    /// of `double`. If the operation doesn't posess any fixed parameters
-    /// or is variadic, this attribute will be a ``NULL`` pointer.
+    /// of `double`. If any of the parameters represented are not fixed angles
+    /// it will be represented as with the `NaN` value. If there are no parameters
+    /// then this value will be represented with a `NULL` pointer.
     pub params: *mut f64,
     /// The number of parameters supported by this operation. Will default to
     /// `(uint32_t)-1` in the case of a variadic.
@@ -1426,9 +1427,9 @@ pub unsafe extern "C" fn qk_target_op_get(
                 operation
                     .params_view()
                     .iter()
-                    .filter_map(|param| match param {
-                        Param::Float(number) => Some(*number),
-                        _ => None,
+                    .map(|param| match param {
+                        Param::Float(number) => *number,
+                        _ => f64::NAN,
                     })
                     .collect(),
             );
