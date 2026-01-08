@@ -1,6 +1,6 @@
 // This code is part of Qiskit.
 //
-// (C) Copyright IBM 2025
+// (C) Copyright IBM 2025-2026
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -24,12 +24,22 @@ use qiskit_circuit::classical::expr::Expr;
 use std::io::{Read, Seek, Write};
 use std::marker::PhantomData;
 
-/// The overall structure of the QPY file
+/// The overall structure of the QPY data
 
-// TODO: Still need to split by versioning and have a struct for the whole file, not a single circuit
+// For now, the top-level is one circuit, and python handles the complete QPY file
+// Only QPY version 17 is currently supported
+
+// the main file structure:
+// 1) Header: Contains the global data such as name, number of qubits etc.
+// 2) Standalone vars: Contains the qiskit_circuit::Var elements used in expressions
+// 3) Annotation Headers: The annotation-related global data.
+// 4) Custom instructions: List of custom gates used in the circuits, e.g. gate with nonstandard control
+// 5) Instruction: The sequential list of gates in the circuit.
+// 6) Calibrations: Obsolete; this was pulse-related data. Here for backwards compatability.
+// 7) Layout: The transpilation layout, if one exists (otherwise a dummy is used).
 #[derive(BinWrite, Debug)]
 #[brw(big)]
-pub struct QPYCircuitV15 {
+pub struct QPYCircuitV17 {
     pub header: CircuitHeaderV12Pack,
     pub standalone_vars: Vec<ExpressionVarDeclarationPack>,
     pub annotation_headers: AnnotationHeaderStaticPack,
@@ -39,6 +49,9 @@ pub struct QPYCircuitV15 {
     pub layout: LayoutV2Pack,
 }
 
+// The header contains the global data of the circuit: name, global phase;
+// number of qubits, clbits, instructions and vars;
+// register data, metadata (as serialized bytes)
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
@@ -67,7 +80,17 @@ pub struct CircuitHeaderV12Pack {
     pub registers: Vec<RegisterV4Pack>,
 }
 
-// circuit instructions related
+// The data for a specific instruction in the circuit
+// Each instruction has a name, an optional label,
+// number of qubits ("qargs") and clbits ("cargs")
+// and a "gate_class_name" used to identify the instruction (for Python-based gates, this will be the
+// actual python class name, but for gates with native rust implementation this needs not be the case)
+// many gates have parameters, stored as a vector of generic data since they take on various forms
+// some gates are *controlled* (meaning they are applied only if the control qubits have a specific value)
+// num_ctrl_qubits stores the number of qubits used in the control, and ctrl_state stores their expected value
+// some gates have a **condition** (e.g. if-else instructions)
+// some gates have **annotations** (e.g. box instruction)
+// the "extras_key" is used to denote whether conditions and annotations are present
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
@@ -106,10 +129,13 @@ pub struct CircuitInstructionV2Pack {
     pub annotations: Option<InstructionsAnnotationPack>,
 }
 
+// To save space, the extras key encoded data about the existance of annotations
+// in its msb, and about the type of condition (Two-tuple, Expression or None) in the two lsbs.
 pub mod extras_key_parts {
     pub const ANNOTATIONS: u8 = 0b1000_0000;
     pub const CONDITIONAL: u8 = 0b0000_0011;
 }
+
 // TODO: It may be possible to create two virtual fields, annotations_key and conditional_key
 // such that they are set by the code and have binrw generate extras_key from them
 fn has_annotations(extras_key: u8) -> bool {
@@ -120,6 +146,8 @@ fn extract_conditional_key(extras_key: u8) -> u8 {
     extras_key & extras_key_parts::CONDITIONAL
 }
 
+// This struct is used in the mapping of a qubit/clbit appearing in an instruction to that qubit/clbit in the circuit
+// each bit is identified by its type (Qubit or Clbit) and has its index in the circuit's qubit/clbit list
 #[derive(BinWrite, BinRead)]
 #[brw(big)]
 #[derive(Debug)]
@@ -128,6 +156,7 @@ pub struct CircuitInstructionArgPack {
     pub index: u32,
 }
 
+// a simple wrapper struct around the list of custom instructions, storing its length
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
@@ -138,8 +167,15 @@ pub struct CustomCircuitInstructionsPack {
     pub custom_instructions: Vec<CustomCircuitInstructionDefPack>,
 }
 
+// A custom instruction definition. This is not a specific instantiation of the instruction
+// But rather its global definition, used by the instructions in `CircuitInstructionV2Pack`
+// so data fields like `bit_data` are not present. However, most of the usual "global" data is present.
+// In addition, the `data` field are used to store serialized data relevant to the gate
+// (e.g. python circuits or pauli evolution gate data) and the `base_gate` field is used
+// to store the serialization of the instructions `base_gate`, if it exists.
+
 // This struct seems more suitable as enum with binrw magic numbers
-// unfortunately, since the gate_type field is second, binrw magic won't work here
+// unfortunately, since the gate_type field is second, binrw magic won't work here (TODO: fix in QPY18?)
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
@@ -165,6 +201,10 @@ pub struct CustomCircuitInstructionDefPack {
     pub base_gate_raw: Bytes,
 }
 
+// Register data. Containing its type (qubits/clbits), its size, name,
+// whether it's a standalone register or aliasing register,
+// whether it's part of the circuit or not
+// and for each bit present in the register, its index in the circuit
 #[binread]
 #[binwrite]
 #[brw(big)]
@@ -196,6 +236,7 @@ pub struct RegisterV4Pack {
 
 // The most natural thing is to encode conditions as enum with magic numbers differentiating between different kinds
 // however, since in QPY the condition data is not stored consecutively, it's going to be a mass to implement, so we do something else
+// TODO: fix in QPY18?
 #[binrw]
 #[brw(repr = u8)]
 #[repr(u8)]
@@ -218,7 +259,7 @@ impl From<u8> for ConditionType {
 }
 
 // register SHOULD be a string, but since we encode some registers starting with "\x00" they are rendered illegal
-// we should probably change this in future versions to support magic numbers
+// we should probably change this in future versions to support magic numbers (TODO: change in QPY18?)
 #[derive(Debug)]
 pub enum ConditionData {
     None,
@@ -297,6 +338,7 @@ impl ConditionPack {
     }
 }
 
+// Transpilation layout data, based on the Python version of TranspileLayout (now converted to Rust)
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
@@ -318,6 +360,8 @@ pub struct LayoutV2Pack {
     pub final_layout_items: Vec<u32>,
 }
 
+// Data for initial layout item: it's index and it's register name, stored in a rather ad-hoc manner
+// TODO: Improve in QPY18?
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
@@ -329,6 +373,14 @@ pub struct InitialLayoutItemV2Pack {
     pub register_name: String,
 }
 
+// A serialized "generic data".
+// This can be a wide variety of values, mostly used in instruction parameters.
+// Some (not all) examples:
+// integers (e.g. for switch statements and loops),
+// floats, compelx numbers (e.g. for rx gates),
+// Parameters (and parameter expressions and vectors) (e.g. for rx gates),
+// Expressions (e.g. for complex conditions in control flow statements),
+// Circuits (e.g. for control flow statements having a body)
 #[binread]
 #[binwrite]
 #[brw(big)]
@@ -341,6 +393,7 @@ pub struct GenericDataPack {
     pub data: Bytes,
 }
 
+// A simple contained for a sequence of generic data items, containing its length.
 #[binrw]
 #[derive(Debug)]
 #[brw(big)]
@@ -351,10 +404,79 @@ pub struct GenericDataSequencePack {
     pub elements: Vec<GenericDataPack>,
 }
 
-// Parameters to circuit instructions are stored in GenericDataPack
-// Since parameters can be arbitrary pieces of data they are stored as already-serialized bytes
-// although in the future we might be able to explicitly handle most common cases
+// the specific data required for a pauli evolution gate
+//
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct PauliEvolutionDefPack {
+    #[bw(calc = pauli_data.len() as u64)]
+    pub operator_size: u64,
+    pub standalone_op: u8,
+    pub time_type: ValueType,
+    #[bw(calc = time_data.len() as u64)]
+    pub time_size: u64,
+    #[bw(calc = synth_data.len() as u64)]
+    pub synth_method_size: u64,
+    #[br(count = operator_size)]
+    pub pauli_data: Vec<PauliDataPack>,
+    #[br(count = time_size)]
+    pub time_data: Bytes,
+    #[br(count = synth_method_size)]
+    pub synth_data: Bytes,
+}
 
+// A pauli operator data for pauli evolution gates
+// The operator is given either as a SparesePauliOp list or as a SparasePauliObservable
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub enum PauliDataPack {
+    #[brw(magic = 0u8)] // old style: sparse pauli op list
+    SparsePauliOp(SparsePauliOpListElemPack),
+    #[brw(magic = 1u8)] // new style added in v17: sparse observable
+    SparseObservable(SparsePauliObservableElemPack),
+}
+
+// SparsePauliOpList is a serialized python numpy array
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct SparsePauliOpListElemPack {
+    #[bw(calc = data.len() as u64)]
+    pub size: u64,
+    #[br(count = size)]
+    pub data: Bytes,
+}
+
+// SparsePauiObservable has explicit data that can be used to reconstruct
+// a rust SparseObservable struct
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct SparsePauliObservableElemPack {
+    pub num_qubits: u32,
+    #[bw(calc = coeff_data.len() as u64)]
+    pub coeff_data_size: u64,
+    #[bw(calc = bitterm_data.len() as u64)]
+    pub bitterm_data_size: u64,
+    #[bw(calc = inds_data.len() as u64)]
+    pub inds_data_size: u64,
+    #[bw(calc = bounds_data.len() as u64)]
+    pub bounds_data_size: u64,
+    #[br(count = coeff_data_size)]
+    pub coeff_data: Vec<f64>, // complex numbers stored in format [re1, im1, re2, im2,...]
+    #[br(count = bitterm_data_size)]
+    pub bitterm_data: Vec<u16>,
+    #[br(count = inds_data_size)]
+    pub inds_data: Vec<u32>,
+    #[br(count = bounds_data_size)]
+    pub bounds_data: Vec<u64>,
+}
+
+// *****Parameter Expression handling (used in params.rs)*****
+
+// A single parameter symbol, consisting of a name and uuid
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
@@ -367,10 +489,13 @@ pub struct ParameterPack {
     pub name: String,
 }
 
+// A single parameter vector element. Since vectors has no standalone representation in QPY
+// the vector data (name and size) are stored along with the element-specific data (uuid and index in the vector)
+// This is obviously not optimal compared to storing a list of vector and keeping a pointer in each element so TODO: improve in QPY18?
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
-pub struct ParameterVectorPack {
+pub struct ParameterVectorElementPack {
     #[bw(calc = name.len() as u16)]
     pub name_size: u16,
     pub vector_size: u64,
@@ -381,6 +506,7 @@ pub struct ParameterVectorPack {
     pub name: String,
 }
 
+// The various types of components available in a parameter expression
 #[derive(BinWrite, BinRead, Debug)]
 #[brw(big)]
 pub enum ParameterExpressionElementPack {
@@ -430,6 +556,9 @@ pub enum ParameterExpressionElementPack {
     Expression(ParameterExpressionStandardOpPack),
 }
 
+// A compact representation the operand data in a parameter expression node
+// For each operand, stores its type (which can be null) and the uuid of the
+// operand node (saving space and allowing for reuse of identical operands)
 #[derive(BinWrite, BinRead, Debug)]
 #[brw(big)]
 pub struct ParameterExpressionStandardOpPack {
@@ -438,6 +567,11 @@ pub struct ParameterExpressionStandardOpPack {
     pub rhs_type: ParameterType,
     pub rhs: [u8; 16],
 }
+
+// The data for a parameter expression substitution operand
+// Which is somewhat different than the rest, since it contains a serialized
+// mapping of symbols to parameter expressions. This is obsolete in qiskit 2.3
+// and so might be removed in the future versions of QPY (TODO: fix it QPY18?)
 #[binrw]
 #[derive(Debug)]
 #[brw(big)]
@@ -463,6 +597,7 @@ pub struct ParameterExpressionSubsOpPack {
 /// A Parameter Expression is stored in two chunks (along with length data)
 /// 1) The parameter expression data itself, already serialized
 /// 2) The symbol table for the parameter expression (to save space when using the same symbol more than once in the expression)
+/// It's not completely clear to me why the symbol table was originally structrued as it was, since not all the data is used
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
@@ -479,6 +614,8 @@ pub struct ParameterExpressionPack {
 
 // This is the data type for the dictionary-like symbol table, storing both the parameter expression symbol
 // (serving as key) and its corresponding value (given as a generic serialized value)
+// It's not clear to me whether this can be optimised (TODO: check for QPY18) or if all the data here is required
+// e.g. whether we can avoid storing the symbols and only use their uuid
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
@@ -491,6 +628,7 @@ pub enum ParameterExpressionSymbolPack {
     ParameterExpression(ParameterExpressionParameterExpressionSymbolPack),
 }
 
+// symbol->value mapping for parameter expressions
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
@@ -503,6 +641,7 @@ pub struct ParameterExpressionParameterSymbolPack {
     pub value_data: Bytes,
 }
 
+// vector symbol->value mapping for parameter expressions
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
@@ -510,11 +649,12 @@ pub struct ParameterExpressionParameterVectorSymbolPack {
     pub value_key: ValueType,
     #[bw(calc = value_data.len() as u64)]
     pub value_data_len: u64,
-    pub symbol_data: ParameterVectorPack,
+    pub symbol_data: ParameterVectorElementPack,
     #[br(count = value_data_len)]
     pub value_data: Bytes,
 }
 
+// parameter expression->value mapping for parameter expressions
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
@@ -527,81 +667,45 @@ pub struct ParameterExpressionParameterExpressionSymbolPack {
     pub value_data: Bytes,
 }
 
+// Mappings are general dict-like mappings from serialized bytes to serialized bytes
+// However, they are only used in Parameter Expression handling and we might be able to remove them completely
+// Since we want to avoid storing serialized bytes in structs. So TODO: fix in QPY18?
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
-pub struct PauliEvolutionDefPack {
-    #[bw(calc = pauli_data.len() as u64)]
-    pub operator_size: u64,
-    pub standalone_op: u8,
-    pub time_type: ValueType,
-    #[bw(calc = time_data.len() as u64)]
-    pub time_size: u64,
-    #[bw(calc = synth_data.len() as u64)]
-    pub synth_method_size: u64,
-    #[br(count = operator_size)]
-    pub pauli_data: Vec<PauliData>,
-    #[br(count = time_size)]
-    pub time_data: Bytes,
-    #[br(count = synth_method_size)]
-    pub synth_data: Bytes,
+pub struct MappingPack {
+    #[bw(calc = items.len() as u64)]
+    pub num_elements: u64,
+    #[br(count = num_elements)]
+    pub items: Vec<MappingItem>,
 }
 
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
-pub enum PauliData {
-    #[brw(magic = 0u8)] // old style: sparse pauli op list
-    SparsePauliOp(SparsePauliOpListElemPack),
-    #[brw(magic = 1u8)] // new style added in v17: sparse observable
-    SparseObservable(SparsePauiObservableElemPack),
+pub struct MappingItem {
+    #[bw(calc = key_bytes.len() as u16)]
+    pub key_size: u16,
+    pub item_type: ValueType,
+    #[bw(calc = item_bytes.len() as u16)]
+    pub size: u16,
+    #[br(count = usize::from(key_size))]
+    pub key_bytes: Bytes,
+    #[br(count = usize::from(size))]
+    pub item_bytes: Bytes,
 }
 
-#[binrw]
-#[brw(big)]
-#[derive(Debug)]
-pub struct SparsePauliOpListElemPack {
-    #[bw(calc = data.len() as u64)]
-    pub size: u64,
-    #[br(count = size)]
-    pub data: Bytes,
-}
-
-#[binrw]
-#[brw(big)]
-#[derive(Debug)]
-pub struct SparsePauiObservableElemPack {
-    pub num_qubits: u32,
-    #[bw(calc = coeff_data.len() as u64)]
-    pub coeff_data_size: u64,
-    #[bw(calc = bitterm_data.len() as u64)]
-    pub bitterm_data_size: u64,
-    #[bw(calc = inds_data.len() as u64)]
-    pub inds_data_size: u64,
-    #[bw(calc = bounds_data.len() as u64)]
-    pub bounds_data_size: u64,
-    #[br(count = coeff_data_size)]
-    pub coeff_data: Vec<f64>, // complex numbers stored in format [re1, im1, re2, im2,...]
-    #[br(count = bitterm_data_size)]
-    pub bitterm_data: Vec<u16>,
-    #[br(count = inds_data_size)]
-    pub inds_data: Vec<u32>,
-    #[br(count = bounds_data_size)]
-    pub bounds_data: Vec<u64>,
-}
-
-// Expression handling
-
+// *****Expression handling (used in expr.rs)*****
+// expressions are stored as a consecutive list of expression elements
+// that encode a tree structure in inorder traversal
+// since QPY doesn't explicitly store the number of elements in the expression
+// we need to manually handle byte-level reading along with parsing the expression
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
 #[br(import(qpy_read_data: &'a QPYReadData<'a>))]
 #[bw(import(qpy_write_data: &'a QPYWriteData<'a>))]
 pub struct ExpressionPack<'a> {
-    // expressions are stored as a consecutive list of expression elements
-    // that encode a tree structure in inorder traversal
-    // since QPY doesn't explicitly store the number of elements in the expression
-    // we need to manually handle byte-level reading along with parsing the expression
     #[br(parse_with = read_expression, args(qpy_read_data))]
     #[bw(write_with = write_expression, args(qpy_write_data))]
     pub expression: Expr,
@@ -611,6 +715,8 @@ pub struct ExpressionPack<'a> {
     pub _phantom: PhantomData<&'a Option<Expr>>,
 }
 
+// The types of values for elements of the expression - boolean and specific-width ints
+// That can correspond to the values of specific clbits, floats and durations
 #[derive(BinWrite, BinRead, Debug)]
 #[brw(big)]
 pub enum ExpressionTypePack {
@@ -624,6 +730,10 @@ pub enum ExpressionTypePack {
     Duration,
 }
 
+// The various node types in an expression:
+// Either a variable, a stretch, a concrete value, a cast,
+// a unary op, a binary op or an index.
+// These correspond to qiskit_circuit::classical::expr::expr
 #[derive(BinWrite, BinRead, Debug)]
 #[brw(big)]
 pub enum ExpressionElementPack {
@@ -643,6 +753,7 @@ pub enum ExpressionElementPack {
     Index(ExpressionTypePack),
 }
 
+// An expression's var data - either a clbit, a registe, or given by a uuid (for a standalone var)
 #[derive(BinWrite, BinRead, Debug)]
 #[brw(big)]
 pub enum ExpressionVarElementPack {
@@ -651,9 +762,10 @@ pub enum ExpressionVarElementPack {
     #[brw(magic = b'R')]
     Register(ExpressionVarRegisterPack),
     #[brw(magic = b'U')]
-    Uuid(u16),
+    Uuid(u16), // the uuid in the standalone vars list
 }
 
+// An expression register data, specifically it's name
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
@@ -665,6 +777,9 @@ pub struct ExpressionVarRegisterPack {
     pub name: String,
 }
 
+// The storage for a value of an expression value
+// Note that integers are arbitrary large
+// TODO: this may be consolidated with GenericValue in QPY18?
 #[derive(BinWrite, BinRead, Debug)]
 #[brw(big)]
 pub enum ExpressionValueElementPack {
@@ -678,6 +793,7 @@ pub enum ExpressionValueElementPack {
     Duration(DurationPack),
 }
 
+// An enum for the various duration types and their values
 #[derive(BinWrite, BinRead, Debug)]
 #[brw(big)]
 pub enum DurationPack {
@@ -706,33 +822,7 @@ pub struct BigIntPack {
     pub bytes: Bytes,
 }
 
-// general data types
-
-#[binrw]
-#[brw(big)]
-#[derive(Debug)]
-pub struct MappingPack {
-    #[bw(calc = items.len() as u64)]
-    pub num_elements: u64,
-    #[br(count = num_elements)]
-    pub items: Vec<MappingItem>,
-}
-
-#[binrw]
-#[brw(big)]
-#[derive(Debug)]
-pub struct MappingItem {
-    #[bw(calc = key_bytes.len() as u16)]
-    pub key_size: u16,
-    pub item_type: ValueType,
-    #[bw(calc = item_bytes.len() as u16)]
-    pub size: u16,
-    #[br(count = usize::from(key_size))]
-    pub key_bytes: Bytes,
-    #[br(count = usize::from(size))]
-    pub item_bytes: Bytes,
-}
-
+// A struct for storing ranges
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
@@ -742,16 +832,22 @@ pub struct RangePack {
     pub step: i64,
 }
 
+// A struct for storing modifiers
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
 pub struct ModifierPack {
-    pub modifier_type: ModifierType,
+    pub modifier_type: ModifierType, // this is a u8
     pub num_ctrl_qubits: u32,
     pub ctrl_state: u32,
     pub power: f64,
 }
 
+// This is a declaration of a variable that may appear iniside various
+// Expressions in the circuit. It contains its uuid, name,
+// usage type (input/capture/local/etc) and type (bool, int, float etc.)
+// This data is not used directly in any expression; rather, its written to the "standalone vars"
+// part of the qpy file and used when reconstructing expressions that use them (given by their uuid)
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
@@ -766,7 +862,7 @@ pub struct ExpressionVarDeclarationPack {
     pub name: String,
 }
 
-// calibrations are obsolete and won't be used in Qiskit 2.0 and beyond, but we still need to consume that part of the qpy file
+// Calibrations are obsolete and won't be used in Qiskit 2.0 and beyond, but we still need to consume that part of the qpy file
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
@@ -775,7 +871,9 @@ pub struct CalibrationsPack {
     // TODO: incomplete; will be needed for previous versions support
 }
 
-// annotation-related data types
+// *****Annotation-related data types*****
+
+// The index of the annotation's namespace, and its serialized payload
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
@@ -787,6 +885,7 @@ pub struct InstructionAnnotationPack {
     pub payload: Bytes,
 }
 
+// A list of annotations
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
@@ -797,6 +896,7 @@ pub struct InstructionsAnnotationPack {
     pub annotations: Vec<InstructionAnnotationPack>,
 }
 
+// A seriqlized annotation state, along with its namespace
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
@@ -812,6 +912,7 @@ pub struct AnnotationStateHeaderPack {
     pub state: Bytes,
 }
 
+// A list of annotation state headers
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
@@ -823,8 +924,7 @@ pub struct AnnotationHeaderStaticPack {
 }
 
 // implementations of custom read/write for the more complex data types
-
-impl BinRead for QPYCircuitV15 {
+impl BinRead for QPYCircuitV17 {
     type Args<'a> = ();
 
     fn read_options<R: Read + Seek>(

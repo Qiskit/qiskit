@@ -198,7 +198,7 @@ pub(crate) fn py_deserialize_numpy_object(data: &Bytes) -> PyResult<Py<PyAny>> {
 fn pack_sparse_pauli_op(
     operator: &Bound<PyAny>,
     qpy_data: &QPYWriteData,
-) -> PyResult<formats::PauliData> {
+) -> PyResult<formats::PauliDataPack> {
     if operator.is_instance_of::<PySparseObservable>() {
         let py_sparse_observable: PyRef<PySparseObservable> = operator.extract()?;
         let sparse_observable = py_sparse_observable
@@ -222,21 +222,23 @@ fn pack_sparse_pauli_op(
             .iter()
             .map(|&boundary| boundary as u64)
             .collect();
-        let sparse_observable_pack = formats::SparsePauiObservableElemPack {
+        let sparse_observable_pack = formats::SparsePauliObservableElemPack {
             num_qubits,
             coeff_data,
             bitterm_data,
             inds_data,
             bounds_data,
         };
-        Ok(formats::PauliData::SparseObservable(sparse_observable_pack))
+        Ok(formats::PauliDataPack::SparseObservable(
+            sparse_observable_pack,
+        ))
     } else {
         // this is the case of SparsePauliOp, which we convert to a numpy list
         let op_as_np_list = operator.call_method1("to_list", (true,))?;
         let value = py_convert_to_generic_value(&op_as_np_list)?;
         let (_, data) = serialize_generic_value(&value, qpy_data)?;
         let pack = formats::SparsePauliOpListElemPack { data };
-        Ok(formats::PauliData::SparsePauliOp(pack))
+        Ok(formats::PauliDataPack::SparsePauliOp(pack))
     }
 }
 

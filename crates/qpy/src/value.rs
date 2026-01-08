@@ -420,7 +420,7 @@ pub(crate) fn load_value(
         }
         ValueType::ParameterVector => {
             let (parameter_vector_element_pack, _) =
-                deserialize::<formats::ParameterVectorPack>(bytes)?;
+                deserialize::<formats::ParameterVectorElementPack>(bytes)?;
             let symbol = unpack_parameter_vector(&parameter_vector_element_pack, qpy_data)?;
             Ok(GenericValue::ParameterExpressionVectorSymbol(symbol))
         }
@@ -455,7 +455,7 @@ pub(crate) fn load_value(
             Ok(GenericValue::Register(register_value))
         }
         ValueType::Circuit => {
-            let (packed_circuit, _) = deserialize::<formats::QPYCircuitV15>(bytes)?;
+            let (packed_circuit, _) = deserialize::<formats::QPYCircuitV17>(bytes)?;
             Python::attach(|py| {
                 let circuit = unpack_circuit(
                     py,

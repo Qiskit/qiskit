@@ -150,7 +150,7 @@ fn parameter_value_type_from_generic_value(value: &GenericValue) -> PyResult<Par
             Ok(ParameterValueType::Parameter(PyParameter {
                 symbol: symbol.clone(),
             }))
-        } // TODO: need to treat parameter vector differentely
+        }
         _ => Err(PyValueError::new_err(
             "Data value that cannot be stored as a parameter value",
         )),
@@ -431,7 +431,9 @@ pub(crate) fn unpack_symbol(parameter_pack: &formats::ParameterPack) -> Symbol {
 
 // currently, the only way to extract the length of the vector the symbol belongs to
 // is via python space since the vector is stored as a python reference in the symbol
-pub(crate) fn pack_parameter_vector(symbol: &Symbol) -> PyResult<formats::ParameterVectorPack> {
+pub(crate) fn pack_parameter_vector(
+    symbol: &Symbol,
+) -> PyResult<formats::ParameterVectorElementPack> {
     let vector_size = Python::attach(|py| -> PyResult<_> {
         match &symbol.vector {
             None => Err(PyValueError::new_err(
@@ -448,7 +450,7 @@ pub(crate) fn pack_parameter_vector(symbol: &Symbol) -> PyResult<formats::Parame
         }
         Some(index_value) => index_value as u64,
     };
-    Ok(formats::ParameterVectorPack {
+    Ok(formats::ParameterVectorElementPack {
         vector_size,
         uuid: *symbol.uuid.as_bytes(),
         index,
@@ -463,7 +465,7 @@ pub(crate) fn pack_parameter_vector(symbol: &Symbol) -> PyResult<formats::Parame
 // qpy file. In particular we need to keep our qpy_data nearby so we can update the vector list as needed
 // and we must use python calls to create and modify the python-space ParameterVector
 pub(crate) fn unpack_parameter_vector(
-    parameter_vector_pack: &formats::ParameterVectorPack,
+    parameter_vector_pack: &formats::ParameterVectorElementPack,
     qpy_data: &mut QPYReadData,
 ) -> PyResult<Symbol> {
     let name = parameter_vector_pack.name.clone();
@@ -557,9 +559,6 @@ pub(crate) fn pack_param_obj(
             },
         },
         Param::ParameterExpression(exp) => pack_param_expression(exp, qpy_data)?,
-        // Param::ParameterExpression(exp) => {
-        //     pack_generic_value(&GenericValue::ParameterExpression(exp.clone()), qpy_data)?
-        // }
         Param::Obj(py_object) => {
             Python::attach(|py| py_pack_param(py_object.bind(py), qpy_data, endian))?
         }
