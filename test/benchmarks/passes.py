@@ -14,12 +14,23 @@
 # pylint: disable=attribute-defined-outside-init,unsubscriptable-object
 # pylint: disable=unused-wildcard-import,wildcard-import,undefined-variable
 
-
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as SEL
 from qiskit.transpiler.passes import *
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import CXGate
-from .utils import random_circuit
+from qiskit.transpiler import Target
+from qiskit.compiler import transpile
+from qiskit.quantum_info import get_clifford_gate_names
+from .utils import (
+    grover_circuit,
+    mcx_circuit,
+    modular_adder_circuit,
+    multiplier_circuit,
+    qaoa_circuit,
+    qft_circuit,
+    random_circuit,
+    trotter_circuit,
+)
 
 
 class Collect2QPassBenchmarks:
@@ -188,3 +199,58 @@ class MultiQBlockPassBenchmarks:
 
     def time_collect_multiq_block(self, _, __, max_block_size):
         CollectMultiQBlocks(max_block_size).run(self.dag)
+
+
+class LitinskiTransformationPassBenchmarks:
+    circuit_names = ["qft", "trotter", "qaoa", "grover", "mcx", "multiplier", "modular_adder"]
+    num_qubits = [8, 16, 32, 64, 128, 256, 512]
+    params = (circuit_names, num_qubits)
+    param_names = ["circuit_name", "n_qubits"]
+    slow_tests = {
+        ("qft", 512),
+        ("qaoa", 256),
+        ("qaoa", 512),
+        ("grover", 512),
+        ("multiplier", 256),
+        ("multiplier", 512),
+    }
+    timeout = 300
+
+    def setup(self, circuit_name, n_qubits):
+        if (circuit_name, n_qubits) in self.slow_tests:
+            raise NotImplementedError
+
+        if circuit_name == "qft":
+            circuit = qft_circuit(n_qubits)
+        elif circuit_name == "trotter":
+            circuit = trotter_circuit(n_qubits)
+        elif circuit_name == "qaoa":
+            circuit = qaoa_circuit(n_qubits)
+        elif circuit_name == "grover":
+            circuit = grover_circuit(n_qubits)
+        elif circuit_name == "mcx":
+            circuit = mcx_circuit(n_qubits)
+        elif circuit_name == "multiplier":
+            circuit = multiplier_circuit(n_qubits)
+        elif circuit_name == "modular_adder":
+            circuit = modular_adder_circuit(n_qubits)
+        else:
+            raise ValueError("Error: unknown circuit")
+
+        target = Target.from_configuration(["rz", "measure"] + get_clifford_gate_names(), n_qubits)
+
+        # Transpile the circuit with optimization_level=0.
+        transpiled = transpile(circuit, target=target, seed_transpiler=0, optimization_level=0)
+
+        # Add measurements
+        transpiled.measure_all()
+
+        # Remove barrier introduced by measure_all
+        transpiled = RemoveBarriers()(transpiled)
+
+        # Convert to DAGCircuit
+        self.dag = circuit_to_dag(transpiled)
+
+    def time_litinski_transformation(self, _, __):
+        _pass = LitinskiTransformation()
+        _pass.run(self.dag)
