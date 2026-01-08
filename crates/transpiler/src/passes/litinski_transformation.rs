@@ -73,15 +73,9 @@ pub fn run_litinski_transformation(
             unsupported
         )));
     }
-    let non_clifford_handled_count: usize = op_counts
+    let non_clifford_handled_count: usize = HANDLED_INSTRUCTION_NAMES
         .iter()
-        .filter_map(|(k, v)| {
-            if HANDLED_INSTRUCTION_NAMES.contains(&k.as_str()) {
-                Some(v)
-            } else {
-                None
-            }
-        })
+        .filter_map(|name| op_counts.get(*name))
         .sum();
     let clifford_count = dag.size(false)? - non_clifford_handled_count;
 
