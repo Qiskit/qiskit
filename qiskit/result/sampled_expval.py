@@ -34,7 +34,6 @@ if typing.TYPE_CHECKING:
 OPERS = {"Z", "I", "0", "1"}
 
 
-# pylint: disable=missing-param-doc,missing-type-doc
 def sampled_expectation_value(
     dist: dict | result.Counts | QuasiDistribution | ProbDistribution,
     oper: str | quantum_info.Pauli | quantum_info.SparsePauliOp | quantum_info.SparseObservable,
