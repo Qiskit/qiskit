@@ -22,11 +22,11 @@ use qiskit_circuit::operations::{
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::{BlocksMode, VarsMode};
 
+use crate::TranspilerError;
+use num_complex::Complex64;
 use qiskit_quantum_info::clifford::Clifford;
 use qiskit_quantum_info::sparse_observable::SparseObservable;
 
-use crate::TranspilerError;
-use num_complex::Complex64;
 use smallvec::smallvec;
 use std::f64::consts::PI;
 
