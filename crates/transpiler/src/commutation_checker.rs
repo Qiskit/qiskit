@@ -36,6 +36,7 @@ use qiskit_circuit::object_registry::ObjectRegistry;
 use qiskit_circuit::operations::{
     Operation, OperationRef, Param, STANDARD_GATE_SIZE, StandardGate,
 };
+
 use qiskit_circuit::{Clbit, Qubit};
 use qiskit_quantum_info::unitary_compose;
 use thiserror::Error;
