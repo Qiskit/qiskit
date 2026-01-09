@@ -28,7 +28,7 @@ prelude: |
   Note that from this release onwards, Python 3.9 is no longer supported due to having passed its
   end of life in October 2025, and macOS on Intel processors has been downgraded to tier 2 platform
   support due to Apple beginning to sunset the platform.  All versions of CPython from 3.10 onwards
-  are supported.  See `Operating system support <https://quantum.cloud.ibm.com/docs/en/guides/install-qiskit#operating-system-support>`__
+  are supported.  See `Operating system support <https://quantum.cloud.ibm.com/docs/guides/install-qiskit#operating-system-support>`__
   for the current support tiers of different platforms.
 
   There will be further feature releases of Qiskit in the 2.x series; we do not expect to release
