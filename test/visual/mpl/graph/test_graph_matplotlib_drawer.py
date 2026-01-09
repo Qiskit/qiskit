@@ -157,8 +157,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
 
     def test_plot_entangled_state_qsphere(self):
         """test for plot_state_qsphere"""
-        circuit = QuantumCircuit(1)
-        circuit = QuantumCircuit(12)
+        circuit = QuantumCircuit(2)
         circuit.x(0)
         circuit.z(0)
         circuit.h(0)
