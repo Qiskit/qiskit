@@ -6896,22 +6896,38 @@ impl DAGCircuit {
         };
 
         // Transfer DAG-level variable declarations from the replacement DAG.
-        // This is similar to how compose() handles variables.
+        // This is similar to how compose() handles variables, but only transfer variables
+        // that are not already present in the target DAG.
         for var in &other.vars_input {
-            self.add_input_var(other.vars.get(*var).unwrap().clone())?;
+            let var_obj = other.vars.get(*var).unwrap();
+            if self.vars.find(var_obj).is_none() {
+                self.add_input_var(var_obj.clone())?;
+            }
         }
         for var in &other.vars_capture {
-            self.add_captured_var(other.vars.get(*var).unwrap().clone())?;
+            let var_obj = other.vars.get(*var).unwrap();
+            if self.vars.find(var_obj).is_none() {
+                self.add_captured_var(var_obj.clone())?;
+            }
         }
         for var in &other.vars_declare {
-            self.add_declared_var(other.vars.get(*var).unwrap().clone())?;
+            let var_obj = other.vars.get(*var).unwrap();
+            if self.vars.find(var_obj).is_none() {
+                self.add_declared_var(var_obj.clone())?;
+            }
         }
-        // Also transfer stretches (captured/declared)
+        // Also transfer stretches (captured/declared), but only if not already present
         for stretch in &other.stretches_capture {
-            self.add_captured_stretch(other.stretches.get(*stretch).unwrap().clone())?;
+            let stretch_obj = other.stretches.get(*stretch).unwrap();
+            if self.stretches.find(stretch_obj).is_none() {
+                self.add_captured_stretch(stretch_obj.clone())?;
+            }
         }
         for stretch in &other.stretches_declare {
-            self.add_declared_stretch(other.stretches.get(*stretch).unwrap().clone())?;
+            let stretch_obj = other.stretches.get(*stretch).unwrap();
+            if self.stretches.find(stretch_obj).is_none() {
+                self.add_declared_stretch(stretch_obj.clone())?;
+            }
         }
 
         let out_map = self.substitute_node_with_graph(
