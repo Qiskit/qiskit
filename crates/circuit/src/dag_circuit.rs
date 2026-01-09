@@ -6895,6 +6895,25 @@ impl DAGCircuit {
             }
         };
 
+        // Transfer DAG-level variable declarations from the replacement DAG.
+        // This is similar to how compose() handles variables.
+        for var in &other.vars_input {
+            self.add_input_var(other.vars.get(*var).unwrap().clone())?;
+        }
+        for var in &other.vars_capture {
+            self.add_captured_var(other.vars.get(*var).unwrap().clone())?;
+        }
+        for var in &other.vars_declare {
+            self.add_declared_var(other.vars.get(*var).unwrap().clone())?;
+        }
+        // Also transfer stretches (captured/declared)
+        for stretch in &other.stretches_capture {
+            self.add_captured_stretch(other.stretches.get(*stretch).unwrap().clone())?;
+        }
+        for stretch in &other.stretches_declare {
+            self.add_declared_stretch(other.stretches.get(*stretch).unwrap().clone())?;
+        }
+
         let out_map = self.substitute_node_with_graph(
             node_index, other, qubit_map, clbit_map, var_map, block_map,
         )?;
