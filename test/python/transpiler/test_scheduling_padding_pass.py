@@ -142,6 +142,7 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         pass_ = schedule_pass(target=target)
         pass_(qc, property_set=property_set)
         self.assertEqual(property_set["node_start_time"], {})
+        self.assertEqual(pass_.durations.__dict__["duration_by_name"], {})
 
     @data(ALAPScheduleAnalysis, ASAPScheduleAnalysis)
     def test_shorter_measure_after_measure(self, schedule_pass):

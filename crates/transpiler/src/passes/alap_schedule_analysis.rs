@@ -179,7 +179,7 @@ pub fn run_alap_schedule_analysis<T: TimeOps>(
 /// Returns:
 ///     PyDict: A dictionary mapping each DAGOpNode to its scheduled start time.
 ///
-#[pyo3(name = "alap_schedule_analysis", signature= (dag, clbit_write_latency, node_durations))]
+#[pyo3(name = "alap_schedule_analysis", signature = (dag, clbit_write_latency, node_durations))]
 pub fn py_run_alap_schedule_analysis(
     py: Python,
     dag: &DAGCircuit,
@@ -188,6 +188,10 @@ pub fn py_run_alap_schedule_analysis(
 ) -> PyResult<Py<PyDict>> {
     // Extract indices and durations from PyDict
     // Get the first duration type
+    // If node_durations is empty, return empty dictionary
+    if node_durations.is_empty() {
+        return Ok(PyDict::new(py).unbind());
+    }
     let mut iter = node_durations.iter();
     let py_dict = PyDict::new(py);
     let Some((_, first_duration)) = iter.next() else {
