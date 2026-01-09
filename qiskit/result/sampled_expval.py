@@ -12,6 +12,10 @@
 # pylint: disable=cyclic-import
 
 """Routines for computing expectation values from sampled distributions"""
+
+from __future__ import annotations
+
+import typing
 import numpy as np
 
 from qiskit._accelerate.sampled_exp_val import (
@@ -22,24 +26,28 @@ from qiskit._accelerate.sampled_exp_val import (
 from qiskit.exceptions import QiskitError
 from .distributions import QuasiDistribution, ProbDistribution
 
+if typing.TYPE_CHECKING:
+    from qiskit import quantum_info, result
+
 
 # A list of valid diagonal operators
 OPERS = {"Z", "I", "0", "1"}
 
 
-# pylint: disable=missing-param-doc,missing-type-doc
-def sampled_expectation_value(dist, oper):
+def sampled_expectation_value(
+    dist: dict | result.Counts | QuasiDistribution | ProbDistribution,
+    oper: str | quantum_info.Pauli | quantum_info.SparsePauliOp | quantum_info.SparseObservable,
+) -> float:
     """Computes expectation value from a sampled distribution
 
     Note that passing a raw dict requires bit-string keys.
 
     Parameters:
-        dist (Counts or QuasiDistribution or ProbDistribution or dict): Input sampled distribution
-        oper (str or :class:`~.quantum_info.Pauli` or SparsePauliOp): The operator for the
-            observable
+        dist: Input sampled distribution.
+        oper: The operator for the observable.
 
     Returns:
-        float: The expectation value
+        The expectation value.
     Raises:
         QiskitError: if the input distribution or operator is an invalid type
     """
