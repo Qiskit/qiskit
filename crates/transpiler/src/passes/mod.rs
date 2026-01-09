@@ -43,6 +43,7 @@ mod inverse_cancellation;
 mod litinski_transformation;
 mod optimize_1q_gates_decomposition;
 mod optimize_clifford_t;
+mod pbc_transformation;
 mod remove_diagonal_gates_before_measure;
 mod remove_identity_equiv;
 pub mod sabre;
