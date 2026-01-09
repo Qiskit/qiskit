@@ -82,7 +82,7 @@ from .store import Store
 
 
 if typing.TYPE_CHECKING:  # pylint: disable=cyclic-import
-    import types
+    import types as builtin_types
     import qiskit
     from qiskit.circuit import Annotation
     from qiskit.transpiler.layout import TranspileLayout
@@ -3014,7 +3014,7 @@ class QuantumCircuit:
     @typing.overload
     def get_parameter(self, name: str, default: T) -> Union[Parameter, T]: ...
     @typing.overload
-    def get_parameter(self, name: str, default: types.EllipsisType = ...) -> Parameter: ...
+    def get_parameter(self, name: str, default: builtin_types.EllipsisType = ...) -> Parameter: ...
 
     # We use a _literal_ `Ellipsis` as the marker value to leave `None` available as a default.
     def get_parameter(self, name: str, default: typing.Any = ...) -> Parameter:
@@ -3092,7 +3092,7 @@ class QuantumCircuit:
     @typing.overload
     def get_var(self, name: str, default: T) -> Union[expr.Var, T]: ...
     @typing.overload
-    def get_var(self, name: str, default: types.EllipsisType = ...) -> expr.Var: ...
+    def get_var(self, name: str, default: builtin_types.EllipsisType = ...) -> expr.Var: ...
 
     # We use a _literal_ `Ellipsis` as the marker value to leave `None` available as a default.
     def get_var(self, name: str, default: typing.Any = ...):
@@ -3165,7 +3165,7 @@ class QuantumCircuit:
     @typing.overload
     def get_stretch(self, name: str, default: T) -> Union[expr.Stretch, T]: ...
     @typing.overload
-    def get_stretch(self, name: str, default: types.EllipsisType = ...) -> expr.Stretch: ...
+    def get_stretch(self, name: str, default: builtin_types.EllipsisType = ...) -> expr.Stretch: ...
 
     def get_stretch(self, name: str, default: typing.Any = ...):
         """Retrieve a stretch that is accessible in this circuit scope by name.
@@ -3230,7 +3230,7 @@ class QuantumCircuit:
     def get_identifier(self, name: str, default: T) -> Union[expr.Var | expr.Stretch, T]: ...
     @typing.overload
     def get_identifier(
-        self, name: str, default: types.EllipsisType = ...
+        self, name: str, default: builtin_types.EllipsisType = ...
     ) -> Union[expr.Var, expr.Stretch]: ...
 
     # We use a _literal_ `Ellipsis` as the marker value to leave `None` available as a default.
