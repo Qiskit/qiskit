@@ -8705,7 +8705,7 @@ fn untrack_instruction(
 
 type SortKeyType<'a> = (&'a [Qubit], &'a [Clbit]);
 
-#[cfg(all(test, not(miri)))]
+#[cfg(test)]
 mod test {
     use crate::bit::{ClassicalRegister, QuantumRegister};
     use crate::dag_circuit::{BlocksMode, DAGCircuit, Wire};
