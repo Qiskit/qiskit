@@ -28,6 +28,7 @@ use qiskit_circuit::{Clbit, Qubit};
 use crate::circuit::{CBlocksMode, CInstruction, CVarsMode};
 
 use crate::circuit::unitary_from_pointer;
+use crate::dag::CDagNodeType::ClbitIn;
 use crate::pointers::{check_ptr, const_ptr_as_ref, mut_ptr_as_ref};
 
 /// @ingroup QkDag
@@ -1335,58 +1336,35 @@ pub unsafe extern "C" fn qk_dag_compose(
         return ExitCode::DagComposeMismatch;
     }
 
-    let qubits: Option<Vec<ShareableQubit>> = if check_ptr(qubits).is_ok() {
-        let qubits = unsafe { std::slice::from_raw_parts(qubits, other_dag.num_qubits()) };
-        let new_qubits: Result<Vec<ShareableQubit>, ExitCode> = qubits
-            .iter()
-            .map(|bit| -> Result<ShareableQubit, ExitCode> {
-                let Some(qubit) = dag.qubits().get(Qubit(*bit)) else {
-                    return Err(ExitCode::DagComposeMissingBit);
-                };
-                Ok(qubit.clone())
-            })
-            .collect();
-        match new_qubits {
-            Ok(qubits) => Some(qubits),
-            Err(err) => return err,
-        }
-    } else {
-        None
-    };
-
-    let clbits: Option<Vec<ShareableClbit>> = if check_ptr(clbits).is_ok() {
-        let clbits = unsafe { std::slice::from_raw_parts(clbits, other_dag.num_clbits()) };
-        let new_clbits: Result<Vec<ShareableClbit>, ExitCode> = clbits
-            .iter()
-            .map(|bit| -> Result<ShareableClbit, ExitCode> {
-                let Some(clbit) = dag.clbits().get(Clbit(*bit)) else {
-                    return Err(ExitCode::DagComposeMissingBit);
-                };
-                Ok(clbit.clone())
-            })
-            .collect();
-        match new_clbits {
-            Ok(clbits) => Some(clbits),
-            Err(err) => return err,
-        }
-    } else {
-        None
-    };
-
     let block_map = other_dag
         .blocks()
         .items()
         .map(|(index, block)| (index, dag.add_block(block.clone())))
         .collect();
+
+    let local_qubits: Option<Vec<Qubit>> = if check_ptr(qubits).is_ok() {
+        let qubit_slice = unsafe { std::slice::from_raw_parts(qubits, other_dag.num_qubits()) };
+        Some(qubit_slice.iter().map(|&bit| Qubit(bit)).collect())
+    }  else {
+        None
+    };
+
+    let local_clbits: Option<Vec<Clbit>> = if check_ptr(clbits).is_ok() {
+        let clbit_slice = unsafe { std::slice::from_raw_parts(clbits, other_dag.num_clbits()) };
+        Some(clbit_slice.iter().map(|&bit| Clbit(bit)).collect())
+    }  else {
+        None
+    };
+
     // Since we don't yet support vars in C, we can skip the inline_captures check.
     dag.compose(
         other_dag,
-        qubits.as_deref(),
-        clbits.as_deref(),
+        local_qubits.as_deref(),
+        local_clbits.as_deref(),
         block_map,
         false,
     )
-    .expect("Error during circuit composition.");
+        .expect("Error during circuit composition.");
     ExitCode::Success
 }
 
