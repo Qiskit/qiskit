@@ -2683,8 +2683,6 @@ class TestDagSubstitute(QiskitTestCase):
         with self.assertRaisesRegex(DAGCircuitError, "Cannot replace a node with a DAG with more"):
             src.substitute_node_with_dag(node, replace, wires={})
 
-    # (Removed duplicate test block; see consolidated test below.)
-
     def test_substitute_node_with_dag_transfers_captured_and_declared_vars(self):
         """Test that substitute_node_with_dag transfers captured and declared variables.
         Regression test for gh-15509."""
