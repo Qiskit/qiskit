@@ -459,6 +459,14 @@ class TestPauliLindbladMap(QiskitTestCase):
         with self.assertRaisesRegex(ValueError, "assignment destination is read-only"):
             pauli_lindblad_map.rates[0] = 1.0
 
+    def test_generators(self):
+        """Test that generators() method returns the same result as get_qubit_sparse_pauli_list_copy()."""
+        pauli_lindblad_map = PauliLindbladMap.from_list([("IIXIZ", 2), ("IIZIX", 3)])
+        generators = pauli_lindblad_map.generators()
+        expected = pauli_lindblad_map.get_qubit_sparse_pauli_list_copy()
+        self.assertEqual(generators, expected)
+        self.assertIsInstance(generators, QubitSparsePauliList)
+
     @ddt.idata(single_cases())
     def test_clear(self, pauli_lindblad_map):
         num_qubits = pauli_lindblad_map.num_qubits
