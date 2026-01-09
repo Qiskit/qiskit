@@ -383,6 +383,36 @@ fn try_merge(
     Ok((false, None, 0.))
 }
 
+/// Computes a `u64` mask for a given node's qubits and clbits.
+///
+/// If the circuit has both qubits and clbits, the mask has
+/// 32 low bits for qubits and 32 high bits for clbits.
+/// When the circuit has no clbits, all of the 64 bits are used
+/// for qubits.
+#[inline]
+fn compute_mask(qargs: &[Qubit], cargs: &[Clbit], have_clbits: bool) -> u64 {
+    let mut r = 0u64;
+    if have_clbits {
+        for q in qargs {
+            r |= 1u64 << (q.index() & 31);
+        }
+        for c in cargs {
+            r |= 1u64 << (32 + (c.index() & 31));
+        }
+    } else {
+        for q in qargs {
+            r |= 1u64 << (q.index() & 63);
+        }
+    }
+    r
+}
+
+/// Computes whether two `u64` masks are disjoint.
+#[inline]
+fn disjoint_masks(mask1: u64, mask2: u64) -> bool {
+    (mask1 & mask2) == 0
+}
+
 /// Returns whether qubits/clbits for one instruction are fully disjoint from qubit/clbits of
 /// another instruction.
 #[inline]
@@ -411,9 +441,21 @@ pub fn run_commutative_optimization(
     // (In theory, we could also change qubits when merging instructions, however
     // this does not happen right now).
     let mut new_dag = dag.copy_empty_like_with_same_capacity(VarsMode::Alike, BlocksMode::Keep)?;
+    let have_clbits = new_dag.num_blocks() > 0;
 
     let node_indices = dag.topological_op_nodes(false)?.collect::<Vec<_>>();
     let num_nodes = node_indices.len();
+
+    // To speedup checking whether a pair of nodes is defined on pairwise disjoint sets of qubits and clbits,
+    // we compute a `u64` mask for the node's qubits and clbits when the node is considered for the
+    // first time. This computation satisfies that when two masks are disjoint (that is, the bit-and
+    // of the two masks is 0), then the sets of qubits and clbits of the two nodes are defined on pairwise
+    // disjoint sets of qubits and clbits and hence necessarily commute.
+    // When this is successful, this avoids the more expensive `disjoint_instructions` check, and
+    // furthermore even avoids extracting the instruction for the idx2-node.
+    // Note that for now we interprete control-flow operations as not commuting with anything, hence we
+    // set their masks to all-1s.
+    let mut node_masks: Vec<u64> = Vec::with_capacity(num_nodes);
 
     let mut node_actions: Vec<NodeAction> = vec![NodeAction::Keep; num_nodes];
     let mut new_global_phase = dag.global_phase().clone();
@@ -426,6 +468,7 @@ pub fn run_commutative_optimization(
 
         // For now, assume that control-flow operations do not commute with anything.
         if instr1.op.try_control_flow().is_some() {
+            node_masks.push(u64::MAX);
             continue;
         }
 
@@ -445,7 +488,13 @@ pub fn run_commutative_optimization(
         let qargs1: &[Qubit] = new_dag.get_qargs(instr1.qubits);
         let cargs1: &[Clbit] = new_dag.get_cargs(instr1.clbits);
 
+        node_masks.push(compute_mask(qargs1, cargs1, have_clbits));
+        let mask_1 = node_masks[idx1];
+
         for idx2 in (0..idx1).rev() {
+            if disjoint_masks(mask_1, node_masks[idx2]) {
+                continue;
+            }
             let node_index2 = node_indices[idx2];
 
             let (instr2, extraphase2) = match &node_actions[idx2] {
