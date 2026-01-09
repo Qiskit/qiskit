@@ -14,6 +14,7 @@
 import dataclasses
 import math
 from typing import Iterable, Callable
+from typing_extensions import Unpack
 
 import numpy as np
 
@@ -122,9 +123,7 @@ class CustomInstruction:
     name: str
     num_params: int
     num_qubits: int
-    # This should be `(float*) -> Instruction`, but the older version of Sphinx we're constrained to
-    # use in the Python 3.9 docs build chokes on it, so relax the hint.
-    constructor: Callable[..., Instruction]
+    constructor: Callable[[Unpack[tuple[float, ...]]], Instruction]
     builtin: bool = False
 
 
