@@ -71,7 +71,7 @@ static int test_version_macros(void) {
     }
     if (QISKIT_GET_VERSION_HEX(QISKIT_VERSION_MAJOR, QISKIT_VERSION_MINOR, QISKIT_VERSION_PATCH,
                                QISKIT_RELEASE_LEVEL, QISKIT_RELEASE_SERIAL) != QISKIT_VERSION_HEX) {
-        fprintf(stderr, "QISKIT_VERSION_NUMERIC does not match QISKIT_VERSION\n");
+        fprintf(stderr, "QISKIT_VERSION_HEX does not match QISKIT_GET_VERSION_HEX\n");
         return EqualityError;
     }
     return Ok;
