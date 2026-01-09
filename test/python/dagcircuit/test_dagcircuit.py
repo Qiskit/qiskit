@@ -2743,7 +2743,9 @@ class TestDagSubstitute(QiskitTestCase):
         )
 
         # Perform substitution and verify input vars transferred
-        base_dag.substitute_node_with_dag(x_node, replacement_dag, wires=x_node.qargs + x_node.cargs)
+        base_dag.substitute_node_with_dag(
+            x_node, replacement_dag, wires=x_node.qargs + x_node.cargs
+        )
 
         self.assertEqual(base_dag.num_input_vars, 1)
         self.assertTrue(any(var.name == "condition" for var in base_dag.iter_input_vars()))
