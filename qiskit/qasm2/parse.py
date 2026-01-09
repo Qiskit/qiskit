@@ -14,6 +14,7 @@
 import dataclasses
 import math
 from typing import Iterable, Callable
+from typing_extensions import Unpack
 
 import numpy as np
 
@@ -122,7 +123,7 @@ class CustomInstruction:
     name: str
     num_params: int
     num_qubits: int
-    constructor: Callable[[*tuple[float, ...]], Instruction]
+    constructor: Callable[[Unpack[tuple[float, ...]]], Instruction]
     builtin: bool = False
 
 
