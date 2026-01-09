@@ -543,9 +543,9 @@ def generate_translation_passmanager(
             # unitary gates that can be represented as Cliffords by Clifford gates.
             UnitarySynthesis(method="clifford", plugin_config={"max_qubits": 1}),
             # We decompose single-qubit unitary gates using the UnitarySynthesisPlugin interface.
-            # By default it's the "default" method (which currently calls the Solovay-Kitaev
-            # decomposition). If a custom ``unitary_synthesis_method`` method is specified, it should
-            # either return the synthesized circuit in the Clifford+T basis set, or ``None``
+            # By default it's the "default" method (which currently uses the Ross-Selinger
+            # ``gridsynth`` decomposition). If a custom ``unitary_synthesis_method`` method is specified,
+            # it should either return the synthesized circuit in the Clifford+T basis set, or ``None``
             # in which case the default method would be called as fallback.
             UnitarySynthesis(
                 basis_gates=basis_gates,
