@@ -728,8 +728,11 @@ static int test_obsterm_id(void) {
     // Initialize observable and add a term
     uint32_t num_qubits = 100;
     QkObs *obs = qk_obs_identity(num_qubits);
-    QkBitTerm bit_terms[0] = {};
-    uint32_t qubits[0] = {};
+    // NOTE: we allocate larger arrays than needed to avoid error C2466 which
+    // disallows the allocation of an array of constant size 0.
+    // https://learn.microsoft.com/en-us/cpp/error-messages/compiler-errors-1/compiler-error-c2466
+    QkBitTerm bit_terms[1];
+    uint32_t qubits[1];
     QkComplex64 coeff = {1.0, 1.0};
     QkObsTerm term = {coeff, 0, bit_terms, qubits, num_qubits};
     int err = qk_obs_add_term(obs, &term);
