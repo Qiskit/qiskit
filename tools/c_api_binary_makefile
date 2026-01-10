@@ -1,0 +1,31 @@
+# 1. Validate installation process:
+#
+# $ make
+#
+# 2. Install qiskit-c-api:
+#
+# $ sudo make install
+
+OS = $(shell uname -s)
+ifeq($(OS), Linux)
+	INCLUDE_DIR = /usr/include
+	LIB_DIR = /usr/lib
+else($(OS), Darwin)
+	INCLUDE_DIR = /usr/local/include
+	LIB_DIR = /usr/local/lib
+endif
+
+check:
+	if [ ! -d "$(INCLUDE_DIR)" ]; then \
+			echo "$(INCLUDE_DIR) does not exist, cancelling..."; \
+			exit 1; \
+	fi
+	if [ ! -d "$(LIB_DIR)" ]; then \
+			echo "$(LIB_DIR) does not exist, cancelling..."; \
+			exit 1; \
+	fi
+
+install:
+	cp dist/c/include/qiskit.h $(INCLUDE_DIR)
+	cp -r dist/c/include/qiskit/ $(INCLUDE_DIR)
+	cp dist/c/lib/libqiskit.so $(LIB_DIR)

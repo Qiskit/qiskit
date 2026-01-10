@@ -48,6 +48,9 @@ jobs:
           make c \
             C_DIR_OUT="${{ env.C_DIR_OUT }}" \
             PROFILE_USE="merged.profdata"
+
+          # Move C API Binary Installation Makefile into binary
+          cp tools/c_api_binary_makefile "${{ env.QISKIT_CEXT_DIR }}"
       - name: Validate Binaries
         run: |
           make ctest \
@@ -117,6 +120,9 @@ jobs:
           make c \
             C_DIR_OUT="${{ env.C_DIR_OUT }}" \
             PROFILE_USE="merged.profdata"
+
+          # Move C API Binary Installation Makefile into binary
+          cp tools/c_api_binary_makefile "${{ env.QISKIT_CEXT_DIR }}"
       - name: Validate Binaries
         run: |
           make ctest \
