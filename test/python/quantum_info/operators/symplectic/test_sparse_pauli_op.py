@@ -202,6 +202,7 @@ class TestSparsePauliOpConversions(QiskitTestCase):
         spp_op = SparsePauliOp.from_list(zip(labels, coeffs))
         np.testing.assert_array_equal(spp_op.coeffs, coeffs)
         self.assertEqual(spp_op.paulis, PauliList(labels))
+        self.assertEqual(spp_op.coeffs.dtype, np.complex128)
 
     def test_from_list_parameters(self):
         """Test from_list method with parameters."""
@@ -210,9 +211,10 @@ class TestSparsePauliOpConversions(QiskitTestCase):
         spp_op = SparsePauliOp.from_list(zip(labels, coeffs), dtype=object)
         np.testing.assert_array_equal(spp_op.coeffs, coeffs)
         self.assertEqual(spp_op.paulis, PauliList(labels))
+        self.assertEqual(spp_op.coeffs.dtype, object)
 
     def test_from_index_list(self):
-        """Test from_list method specifying the Paulis via indices."""
+        """Test from_sparse_list method specifying the Paulis via indices."""
         expected_labels = ["XXZ", "IXI", "YIZ", "III"]
         paulis = ["XXZ", "X", "YZ", ""]
         indices = [[2, 1, 0], [1], [2, 0], []]
@@ -220,9 +222,10 @@ class TestSparsePauliOpConversions(QiskitTestCase):
         spp_op = SparsePauliOp.from_sparse_list(zip(paulis, indices, coeffs), num_qubits=3)
         np.testing.assert_array_equal(spp_op.coeffs, coeffs)
         self.assertEqual(spp_op.paulis, PauliList(expected_labels))
+        self.assertEqual(spp_op.coeffs.dtype, np.complex128)
 
     def test_from_index_list_parameters(self):
-        """Test from_list method specifying the Paulis via indices with parameters."""
+        """Test from_sparse_list method specifying the Paulis via indices with parameters."""
         expected_labels = ["XXZ", "IXI", "YIZ", "III"]
         paulis = ["XXZ", "X", "YZ", ""]
         indices = [[2, 1, 0], [1], [2, 0], []]
@@ -232,6 +235,53 @@ class TestSparsePauliOpConversions(QiskitTestCase):
         )
         np.testing.assert_array_equal(spp_op.coeffs, coeffs)
         self.assertEqual(spp_op.paulis, PauliList(expected_labels))
+        self.assertEqual(spp_op.coeffs.dtype, object)
+
+    def test_from_sparse_list_dtype_inference(self):
+        """Test from_sparse_list auto-infers dtype correctly."""
+        # infer complex128 dtype.
+        spp_op = SparsePauliOp.from_sparse_list([("X", [0], 1.0), ("Z", [1], 2.0j)], num_qubits=2)
+        self.assertEqual(spp_op.coeffs.dtype, np.complex128)
+
+        # infer object dtype due to ParameterExpression.
+        param = Parameter("a")
+        spp_op = SparsePauliOp.from_sparse_list([("X", [0], param)], num_qubits=1)
+        self.assertEqual(spp_op.coeffs.dtype, object)
+
+    def test_from_list_dtype_inference(self):
+        """Test from_list auto-infers dtype correctly."""
+        # infer complex128 dtype.
+        spp_op = SparsePauliOp.from_list([("XI", 1.0), ("IZ", 2.0j)])
+        self.assertEqual(spp_op.coeffs.dtype, np.complex128)
+
+        # infer object dtype due to ParameterExpression.
+        param = Parameter("a")
+        spp_op = SparsePauliOp.from_list([("X", param)])
+        self.assertEqual(spp_op.coeffs.dtype, object)
+
+    def test_from_sparse_list_automatically_determine_coeff_type_regression(self):
+        """Regression test for issue where from_sparse_list failed to infer dtype."""
+        param = Parameter("a")
+
+        op1 = SparsePauliOp.from_sparse_list([("IX", [0, 1], 2), ("ZI", [0, 1], 3)], num_qubits=2)
+        op1 *= param
+
+        op2 = SparsePauliOp.from_sparse_list(op1.to_sparse_list(), num_qubits=2)
+
+        self.assertEqual(op2.paulis, op1.paulis)
+        self.assertEqual(op2.coeffs.dtype, object)
+
+    def test_from_list_automatically_determine_coeff_type_regression(self):
+        """Regression test for issue where from_list failed to infer dtype."""
+        param = Parameter("a")
+
+        op1 = SparsePauliOp.from_list([("IX", 2), ("ZI", 3)])
+        op1 *= param
+
+        op2 = SparsePauliOp.from_list(op1.to_list())
+
+        self.assertEqual(op2.paulis, op1.paulis)
+        self.assertEqual(op2.coeffs.dtype, object)
 
     def test_from_index_list_endianness(self):
         """Test the construction from index list has the right endianness."""
@@ -240,12 +290,12 @@ class TestSparsePauliOpConversions(QiskitTestCase):
         self.assertEqual(spp_op.paulis[0], expected)
 
     def test_from_index_list_raises(self):
-        """Test from_list via Pauli + indices raises correctly, if number of qubits invalid."""
+        """Test from_sparse_list via Pauli + indices raises correctly, if number of qubits invalid."""
         with self.assertRaises(QiskitError):
             _ = SparsePauliOp.from_sparse_list([("Z", [2], 1)], 1)
 
     def test_from_index_list_same_index(self):
-        """Test from_list via Pauli + number of qubits raises correctly, if indices duplicate."""
+        """Test from_sparse_list via Pauli + number of qubits raises correctly, if indices duplicate."""
         with self.assertRaises(QiskitError):
             _ = SparsePauliOp.from_sparse_list([("ZZ", [0, 0], 1)], 2)
         with self.assertRaises(QiskitError):
@@ -260,6 +310,7 @@ class TestSparsePauliOpConversions(QiskitTestCase):
         spp_op = SparsePauliOp.from_list(zip(labels, coeffs))
         np.testing.assert_array_equal(spp_op.coeffs, coeffs)
         self.assertEqual(spp_op.paulis, PauliList(labels))
+        self.assertEqual(spp_op.coeffs.dtype, np.complex128)
 
     @combine(iterable=[[], (), zip()], num_qubits=[1, 2, 3])
     def test_from_empty_iterable(self, iterable, num_qubits):
@@ -269,6 +320,7 @@ class TestSparsePauliOpConversions(QiskitTestCase):
         spp_op = SparsePauliOp.from_list(iterable, num_qubits=num_qubits)
         self.assertEqual(spp_op.paulis, PauliList("I" * num_qubits))
         np.testing.assert_array_equal(spp_op.coeffs, [0])
+        self.assertEqual(spp_op.coeffs.dtype, np.complex128)
 
     @combine(iterable=[[], (), zip()], num_qubits=[1, 2, 3])
     def test_from_sparse_empty_iterable(self, iterable, num_qubits):
@@ -276,6 +328,7 @@ class TestSparsePauliOpConversions(QiskitTestCase):
         spp_op = SparsePauliOp.from_sparse_list(iterable, num_qubits)
         self.assertEqual(spp_op.paulis, PauliList("I" * num_qubits))
         np.testing.assert_array_equal(spp_op.coeffs, [0])
+        self.assertEqual(spp_op.coeffs.dtype, np.complex128)
 
     def test_to_matrix(self):
         """Test to_matrix method."""
@@ -792,6 +845,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         target_op = SparsePauliOp.from_list(zip(target_labels, target_coeffs))
         self.assertEqual(simplified_op, target_op)
         np.testing.assert_array_equal(simplified_op.paulis.phase, np.zeros(simplified_op.size))
+        self.assertEqual(spp_op.coeffs.dtype, np.complex128)
 
     @combine(num_qubits=[1, 2, 3, 4], num_adds=[0, 1, 2, 3])
     def test_simplify2(self, num_qubits, num_adds):
@@ -1070,6 +1124,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         op2 = op1 + 1e-7 * SparsePauliOp.from_list([("I", 1)])
         self.assertFalse(op1.equiv(op2))
         self.assertTrue(op1.equiv(op2, atol=1e-7))
+        self.assertEqual(op1.coeffs.dtype, np.complex128)
 
     def test_eq_equiv(self):
         """Test __eq__ and equiv methods with some specific cases."""
