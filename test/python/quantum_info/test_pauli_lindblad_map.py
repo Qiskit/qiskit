@@ -460,7 +460,8 @@ class TestPauliLindbladMap(QiskitTestCase):
             pauli_lindblad_map.rates[0] = 1.0
 
     def test_generators(self):
-        """Test that generators() method returns the same result as get_qubit_sparse_pauli_list_copy()."""
+        """Test that generators() method returns the same result as
+        get_qubit_sparse_pauli_list_copy()."""
         pauli_lindblad_map = PauliLindbladMap.from_list([("IIXIZ", 2), ("IIZIX", 3)])
         generators = pauli_lindblad_map.generators()
         expected = pauli_lindblad_map.get_qubit_sparse_pauli_list_copy()
