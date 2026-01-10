@@ -1,0 +1,7 @@
+---
+features_transpiler:
+  - |
+    The default compilation pipeline for continuous basis sets now uses
+    :class:`.CommutativeOptimization` instead of :class:`.CommutativeCancellation`,
+    which is relevant for optimization levels 2 and 3. This change should
+    yield higher-quality circuits at similar runtimes.
