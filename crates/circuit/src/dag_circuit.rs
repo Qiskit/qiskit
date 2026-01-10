@@ -12,6 +12,7 @@
 
 use std::cmp::Ordering;
 use std::hash::Hash;
+use std::iter::zip;
 use std::sync::Arc;
 
 use ahash::RandomState;
@@ -2273,10 +2274,12 @@ impl DAGCircuit {
                                 (
                                     ControlFlowView::Box {
                                         duration: duration_a,
+                                        annotations: annotations_a,
                                         body: body_a,
                                     },
                                     ControlFlowView::Box {
                                         duration: duration_b,
+                                        annotations: annotations_b,
                                         body: body_b,
                                     },
                                 ) => {
@@ -2299,7 +2302,13 @@ impl DAGCircuit {
                                         },
                                         None => duration_b.is_none(),
                                     };
-                                    Ok(duration_eq && block_eq(body_a, body_b)?)
+                                    Ok(duration_eq
+                                        && annotations_a.len() == annotations_b.len()
+                                        && zip(annotations_a, annotations_b)
+                                            .try_fold(true, |tot, (a, b)| {
+                                                a.bind(py).eq(b).map(|res| res && tot)
+                                            })?
+                                        && block_eq(body_a, body_b)?)
                                 }
                                 (ControlFlowView::BreakLoop, ControlFlowView::BreakLoop) => {
                                     Ok(true)
