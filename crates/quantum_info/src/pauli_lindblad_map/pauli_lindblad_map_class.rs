@@ -1230,6 +1230,18 @@ impl PyPauliLindbladMap {
         inner.qubit_sparse_pauli_list.clone().into()
     }
 
+    /// Get the generators of the map.
+    ///
+    /// This is an alias for :meth:`get_qubit_sparse_pauli_list_copy`, providing a more
+    /// convenient name that aligns with the naming conventions used in Aer and Runtime
+    /// for similar classes.
+    ///
+    /// Returns:
+    ///     QubitSparsePauliList: A copy of the map's generator terms.
+    fn generators(&self) -> PyQubitSparsePauliList {
+        self.get_qubit_sparse_pauli_list_copy()
+    }
+
     /// Express the map in terms of a sparse list format.
     ///
     /// This can be seen as counter-operation of :meth:`.PauliLindbladMap.from_sparse_list`, however
