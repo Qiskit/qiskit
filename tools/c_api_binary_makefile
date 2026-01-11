@@ -7,10 +7,11 @@
 # $ sudo make install
 
 OS = $(shell uname -s)
-ifeq($(OS), Linux)
+ifeq ($(OS), Linux)
 	INCLUDE_DIR = /usr/include
 	LIB_DIR = /usr/lib
-else($(OS), Darwin)
+endif
+ifeq ($(OS), Darwin)
 	INCLUDE_DIR = /usr/local/include
 	LIB_DIR = /usr/local/lib
 endif
