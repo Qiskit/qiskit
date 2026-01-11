@@ -36,7 +36,4 @@
     QISKIT_GET_VERSION_HEX(QISKIT_VERSION_MAJOR, QISKIT_VERSION_MINOR, QISKIT_VERSION_PATCH,       \
                            QISKIT_RELEASE_LEVEL, QISKIT_RELEASE_SERIAL)
 
-// DEPRECATED, to be removed in Qiskit v2.3.
-#define QISKIT_VERSION_NUMERIC(M, m, p) ((M) << 16 | (m) << 8 | (p))
-
 #endif // QISKIT_VERSION_H
