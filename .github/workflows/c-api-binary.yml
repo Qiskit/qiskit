@@ -2,7 +2,7 @@ name: Upload C API Binaries
 on:
   push:
     tags:
-      - '*'
+      - "*"
 jobs:
   c-api-binary-linux:
     runs-on: ubuntu-22.04
@@ -50,7 +50,7 @@ jobs:
             PROFILE_USE="merged.profdata"
 
           # Move C API Binary Installation Makefile into binary
-          cp tools/c_api_binary_makefile "${{ env.QISKIT_CEXT_DIR }}"
+          mv tools/c_api_binary_makefile "${{ env.QISKIT_CEXT_DIR }}/Makefile"
       - name: Validate Binaries
         run: |
           make ctest \
@@ -122,7 +122,7 @@ jobs:
             PROFILE_USE="merged.profdata"
 
           # Move C API Binary Installation Makefile into binary
-          cp tools/c_api_binary_makefile "${{ env.QISKIT_CEXT_DIR }}"
+          mv tools/c_api_binary_makefile "${{ env.QISKIT_CEXT_DIR }}/Makefile"
       - name: Validate Binaries
         run: |
           make ctest \
