@@ -35,7 +35,7 @@ use num_bigint::BigUint;
 use num_complex::Complex64;
 use smallvec::{SmallVec, smallvec};
 
-use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2, ToPyArray};
+use numpy::{IntoPyArray, PyArray1, PyArray2, PyReadonlyArray2, ToPyArray};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyFloat, PyList, PyTuple};
@@ -81,7 +81,10 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Param {
     fn extract(b: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         Ok(if let Ok(py_expr) = b.extract::<PyParameterExpression>() {
             Param::ParameterExpression(Arc::new(py_expr.inner))
+        } else if b.is_instance_of::<PyArray1<i32>>() {
+            Param::Obj(b.to_owned().unbind())
         } else if let Ok(val) = b.extract::<f64>() {
+            // TODO: remove this branch when we raise the NumPy version to 2.4.
             Param::Float(val)
         } else {
             Param::Obj(b.to_owned().unbind())

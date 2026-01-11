@@ -317,9 +317,9 @@ pub unsafe extern "C" fn qk_obs_term(
     out.num_qubits = obs.num_qubits();
 
     let start = obs.boundaries()[index];
-    out.bit_terms = &mut obs.bit_terms_mut()[start];
+    out.bit_terms = obs.bit_terms_mut().as_mut_ptr().wrapping_add(start);
     // SAFETY: mutating the indices can leave the observable in an incoherent state.
-    out.indices = &mut unsafe { obs.indices_mut() }[start];
+    out.indices = unsafe { obs.indices_mut().as_mut_ptr().wrapping_add(start) };
 
     ExitCode::Success
 }
