@@ -123,8 +123,6 @@ class TestExprConstructors(QiskitTestCase):
         (expr.logic_not, ClassicalRegister(3)),
         (expr.logic_not, False),
         (expr.logic_not, Clbit()),
-        (expr.negate, ClassicalRegister(3)),
-        (expr.negate, 7),
         (expr.negate, 7.0),
         (expr.negate, Duration.dt(1000)),
     )
@@ -927,26 +925,13 @@ class TestExprConstructors(QiskitTestCase):
             expr.negate(True)
         with self.assertRaisesRegex(TypeError, "cannot apply"):
             expr.negate(Clbit())
+        with self.assertRaisesRegex(TypeError, "cannot apply"):
+            cr = ClassicalRegister(3)
+            expr.negate(cr)
+        with self.assertRaisesRegex(TypeError, "cannot apply"):
+            expr.negate(expr.Value(5, types.Uint(3)))
 
     def test_unary_negate_explicit(self):
-        cr = ClassicalRegister(3)
-        self.assertEqual(
-            expr.negate(cr),
-            expr.Unary(
-                expr.Unary.Op.NEGATE,
-                expr.Var(cr, types.Uint(3)),
-                types.Uint(3),
-            ),
-        )
-
-        self.assertEqual(
-            expr.negate(7),
-            expr.Unary(
-                expr.Unary.Op.NEGATE,
-                expr.Value(7, types.Uint(3)),
-                types.Uint(3),
-            ),
-        )
 
         self.assertEqual(
             expr.negate(7.0),

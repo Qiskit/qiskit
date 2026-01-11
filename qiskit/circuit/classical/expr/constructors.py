@@ -778,15 +778,6 @@ Unary.Op.NEGATE, \
 Value(5.0, Float()), \
 Float())
 
-        Negation of an unsigned integer::
-
-            >>> from qiskit.circuit.classical import expr
-            >>> expr.negate(10)
-            Unary(\
-Unary.Op.NEGATE, \
-Value(10, Uint(4)), \
-Uint(4))
-
         Negation of a duration::
 
             >>> from qiskit.circuit import Duration
@@ -798,6 +789,6 @@ Value(Duration.dt(1000), Duration()), \
 Duration())
     """
     operand = lift(operand)
-    if operand.type.kind not in (types.Uint, types.Float, types.Duration):
+    if operand.type.kind not in (types.Float, types.Duration):
         raise TypeError(f"cannot apply '{Unary.Op.NEGATE}' to type '{operand.type}'")
     return Unary(Unary.Op.NEGATE, operand, operand.type)
