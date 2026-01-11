@@ -1746,28 +1746,34 @@ class TestLoadFromQPY(QiskitTestCase):
         loose = Clbit()
         qc = QuantumCircuit([Qubit(), Qubit(), loose], cr1, cr2)
         qc.rz(1.0, 0)
+        float_var = expr.Value(7.0, types.Float())
         qc.if_test(
             expr.logic_and(
                 expr.logic_and(
-                    expr.logic_or(
-                        expr.cast(
-                            expr.less(expr.bit_and(cr1, 0x0F), expr.bit_not(cr1)),
-                            types.Bool(),
-                        ),
-                        expr.cast(
-                            expr.less_equal(expr.bit_or(cr2, 7), expr.bit_xor(cr2, 7)),
-                            types.Bool(),
-                        ),
-                    ),
                     expr.logic_and(
-                        expr.logic_or(expr.equal(cr2, 2), expr.logic_not(expr.not_equal(cr2, 3))),
                         expr.logic_or(
-                            expr.greater(cr2, 3),
-                            expr.greater_equal(cr2, 3),
+                            expr.cast(
+                                expr.less(expr.bit_and(cr1, 0x0F), expr.bit_not(cr1)),
+                                types.Bool(),
+                            ),
+                            expr.cast(
+                                expr.less_equal(expr.bit_or(cr2, 7), expr.bit_xor(cr2, 7)),
+                                types.Bool(),
+                            ),
+                        ),
+                        expr.logic_and(
+                            expr.logic_or(
+                                expr.equal(cr2, 2), expr.logic_not(expr.not_equal(cr2, 3))
+                            ),
+                            expr.logic_or(
+                                expr.greater(cr2, 3),
+                                expr.greater_equal(cr2, 3),
+                            ),
                         ),
                     ),
+                    expr.logic_not(loose),
                 ),
-                expr.logic_not(loose),
+                expr.less(expr.negate(float_var), float_var),
             ),
             outer.copy(),
             [1],
@@ -1836,28 +1842,34 @@ class TestLoadFromQPY(QiskitTestCase):
         loose = Clbit()
         qc = QuantumCircuit([Qubit(), Qubit(), loose], cr1, cr2)
         qc.rz(1.0, 0)
+        float_var = expr.Value(7.0, types.Float())
         qc.switch(
             expr.logic_and(
                 expr.logic_and(
-                    expr.logic_or(
-                        expr.cast(
-                            expr.less(expr.bit_and(cr1, 0x0F), expr.bit_not(cr1)),
-                            types.Bool(),
-                        ),
-                        expr.cast(
-                            expr.less_equal(expr.bit_or(cr2, 7), expr.bit_xor(cr2, 7)),
-                            types.Bool(),
-                        ),
-                    ),
                     expr.logic_and(
-                        expr.logic_or(expr.equal(cr2, 2), expr.logic_not(expr.not_equal(cr2, 3))),
                         expr.logic_or(
-                            expr.greater(cr2, 3),
-                            expr.greater_equal(cr2, 3),
+                            expr.cast(
+                                expr.less(expr.bit_and(cr1, 0x0F), expr.bit_not(cr1)),
+                                types.Bool(),
+                            ),
+                            expr.cast(
+                                expr.less_equal(expr.bit_or(cr2, 7), expr.bit_xor(cr2, 7)),
+                                types.Bool(),
+                            ),
+                        ),
+                        expr.logic_and(
+                            expr.logic_or(
+                                expr.equal(cr2, 2), expr.logic_not(expr.not_equal(cr2, 3))
+                            ),
+                            expr.logic_or(
+                                expr.greater(cr2, 3),
+                                expr.greater_equal(cr2, 3),
+                            ),
                         ),
                     ),
+                    expr.logic_not(loose),
                 ),
-                expr.logic_not(loose),
+                expr.less(expr.negate(float_var), float_var),
             ),
             [(False, outer.copy())],
             [1],
