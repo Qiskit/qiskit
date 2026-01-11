@@ -1715,6 +1715,7 @@ class TestLoadFromQPY(QiskitTestCase):
         """Test that `IfElseOp` and `WhileLoopOp` can have an `Expr` node as their `condition`, and
         that this round-trips through QPY."""
         inner = QuantumCircuit(1)
+        inner.x(0)
         outer = QuantumCircuit(1, 1)
         control_flow(outer, expr.lift(outer.clbits[0]), inner.copy(), [0], [])
 
