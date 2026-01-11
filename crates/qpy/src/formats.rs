@@ -360,7 +360,7 @@ pub struct LayoutV2Pack {
     pub final_layout_items: Vec<u32>,
 }
 
-// Data for initial layout item: it's index and it's register name, stored in a rather ad-hoc manner
+// Data for initial layout item: its index and its register name, stored in a rather ad-hoc manner
 // TODO: Improve in QPY18?
 #[binrw]
 #[brw(big)]
@@ -490,7 +490,7 @@ pub struct ParameterSymbolPack {
 }
 
 // A single parameter vector element. Since vectors has no standalone representation in QPY
-// the vector data (name and size) are stored along with the element-specific data (uuid and index in the vector)
+// the vector data (name and size) is stored along with the element-specific data (uuid and index in the vector)
 // This is obviously not optimal compared to storing a list of vector and keeping a pointer in each element so TODO: improve in QPY18?
 #[binrw]
 #[brw(big)]

@@ -71,16 +71,19 @@ impl std::fmt::Display for ParameterType {
     }
 }
 
-impl From<ParameterType> for ValueType {
-    fn from(value: ParameterType) -> Self {
+impl TryFrom<ParameterType> for ValueType {
+    type Error = PyErr;
+    fn try_from(value: ParameterType) -> Result<Self, Self::Error> {
         match value {
-            ParameterType::Complex => ValueType::Complex,
-            ParameterType::Float => ValueType::Float,
-            ParameterType::Integer => ValueType::Integer,
-            ParameterType::Null => ValueType::Null,
-            ParameterType::ParameterVector => ValueType::ParameterVector,
-            ParameterType::Parameter => ValueType::Parameter,
-            _ => panic!("Cannot convert to value type {value}"),
+            ParameterType::Complex => Ok(ValueType::Complex),
+            ParameterType::Float => Ok(ValueType::Float),
+            ParameterType::Integer => Ok(ValueType::Integer),
+            ParameterType::Null => Ok(ValueType::Null),
+            ParameterType::ParameterVector => Ok(ValueType::ParameterVector),
+            ParameterType::Parameter => Ok(ValueType::Parameter),
+            _ => Err(PyValueError::new_err(
+                "Cannot convert to value type {value}",
+            )),
         }
     }
 }
@@ -382,7 +385,8 @@ pub(crate) fn unpack_parameter_expression(
                     }
                 }
                 ParameterType::Float | ParameterType::Integer | ParameterType::Complex => {
-                    let value = load_value(ValueType::from(op.lhs_type), &op.lhs.into(), qpy_data)?;
+                    let value =
+                        load_value(ValueType::try_from(op.lhs_type)?, &op.lhs.into(), qpy_data)?;
                     Some(parameter_value_type_from_generic_value(&value)?)
                 }
                 ParameterType::Null => None, // pass
@@ -401,7 +405,8 @@ pub(crate) fn unpack_parameter_expression(
                     }
                 }
                 ParameterType::Float | ParameterType::Integer | ParameterType::Complex => {
-                    let value = load_value(ValueType::from(op.rhs_type), &op.rhs.into(), qpy_data)?;
+                    let value =
+                        load_value(ValueType::try_from(op.rhs_type)?, &op.rhs.into(), qpy_data)?;
                     Some(parameter_value_type_from_generic_value(&value)?)
                 }
                 ParameterType::Null => None, // pass
