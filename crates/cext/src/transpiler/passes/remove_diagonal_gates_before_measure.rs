@@ -12,7 +12,6 @@
 
 use crate::pointers::mut_ptr_as_ref;
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_transpiler::passes::run_remove_diagonal_before_measure;
 
@@ -48,6 +47,5 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_remove_diagonal_gates_bef
     let mut dag = DAGCircuit::from_circuit_data(circuit, false, None, None, None, None)
         .expect("Circuit to DAG conversion failed");
     run_remove_diagonal_before_measure(&mut dag);
-    let result = dag_to_circuit(&dag, false).expect("DAG to Circuit conversion failed");
-    *circuit = result;
+    *circuit = CircuitData::from_dag_ref(&dag).expect("DAG to Circuit conversion failed");
 }

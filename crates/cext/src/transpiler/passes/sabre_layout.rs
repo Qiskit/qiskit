@@ -15,7 +15,6 @@ use rand::{Rng, SeedableRng};
 use rand_pcg::Pcg64Mcg;
 
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::{PhysicalQubit, Qubit};
 use qiskit_transpiler::passes::sabre::heuristic;
@@ -143,8 +142,8 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_sabre_layout(
         false,
     )
     .unwrap_or_else(|_| panic!("Sabre layout failed."));
-    let out_circuit = dag_to_circuit(&result, false)
-        .unwrap_or_else(|_| panic!("Internal DAG to circuit conversion failed"));
+    let out_circuit =
+        CircuitData::from_dag_ref(&result).expect("Internal DAG to circuit conversion failed");
     let num_input_qubits = circuit.num_qubits() as u32;
     *circuit = out_circuit;
     let out_permutation = (0..result.num_qubits() as u32)

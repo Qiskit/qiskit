@@ -11,9 +11,7 @@
 // that they have been altered from the originals.
 
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
-use qiskit_circuit::{
-    circuit_data::CircuitData, converters::dag_to_circuit, dag_circuit::DAGCircuit,
-};
+use qiskit_circuit::{circuit_data::CircuitData, dag_circuit::DAGCircuit};
 use qiskit_transpiler::{passes::run_optimize_1q_gates_decomposition, target::Target};
 
 /// @ingroup QkTranspilerPasses
@@ -93,9 +91,6 @@ pub unsafe extern "C" fn qk_transpiler_standalone_optimize_1q_sequences(
         .expect("Error while running the pass.");
 
     // Convert the DAGCircuit back to an instance of CircuitData
-    let dag_to_circuit = dag_to_circuit(&circuit_as_dag, false)
+    *circuit = CircuitData::from_dag_ref(&circuit_as_dag)
         .expect("Error while converting the dag to a circuit.");
-
-    // Convert to pointer.
-    *circuit = dag_to_circuit;
 }
