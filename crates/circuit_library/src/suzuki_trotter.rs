@@ -35,6 +35,10 @@ pub fn suzuki_trotter_evolution(
         ));
     }
 
+    // TODO:
+    // At this point, terms shouldn't be passed to the reorder method, that method should return
+    // just indices, the indices then be collected in a vec of usize
+    // and consequently, use the vec<usize> for obtaining the term
     let terms_iter = observable.iter().map(|mut view| {
         view.coeff.re = view.coeff.re * time * 2.0 / (reps as f64);
         view
@@ -46,7 +50,11 @@ pub fn suzuki_trotter_evolution(
         };
 
     // execute evolution
-    let evo: Vec<SparseTermView> = evolution(order, &parsed_observable);
+    let evo: Vec<SparseTermView> = evolution(order, parsed_observable.len()).map(|(index, coeff)| {
+        let mut term = parsed_observable[index].clone();
+        term.coeff.re = term.coeff.re * coeff; // TODO: after refactor add -> * (time * 2.0 / (reps as f64))
+        term
+    }).collect();
 
     let mut global_phase = Param::Float(0.0);
     let mut modified_phase = false;
