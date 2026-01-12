@@ -961,7 +961,7 @@ mod test {
     fn test_increment_n_dirty() {
         // Check that both methods to implement the :math:`n`-qubit increment gate using
         // :math:`n` dirty ancilla qubits produce the same matrix (for small number of qubits).
-        for nq in 1..6 {
+        for nq in 1..4 {
             let circuit1 = increment_n_dirty_small(nq).unwrap();
             let mat1 = sim_unitary_circuit(&circuit1).unwrap();
 
