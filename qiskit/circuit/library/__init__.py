@@ -273,6 +273,14 @@ Operations are non-reversible changes in the quantum state of the circuit.
 * :class:`~qiskit.circuit.Measure`
 * :class:`~qiskit.circuit.Reset`
 
+In addition to :class:`.Measure`, there is a generalized joint-Pauli measurement available, used as
+a basic operation in Pauli-based computation.
+
+.. autosummary::
+    :toctree: ../stubs
+
+    PauliProductMeasurement
+
 
 .. _generalized-gates:
 
