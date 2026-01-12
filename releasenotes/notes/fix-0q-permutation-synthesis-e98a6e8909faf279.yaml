@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    The builtin permutation synthesis plugins in :mod:`qiskit.synthesis` will now
+    correctly handle zero-length permutations.
