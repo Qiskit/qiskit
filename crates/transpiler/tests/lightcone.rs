@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use pyo3::Python;
-    use qiskit_transpiler::commutation_checker::CommutationChecker;
+// Unused imports removed
 
     #[test]
     fn smoke_test() {

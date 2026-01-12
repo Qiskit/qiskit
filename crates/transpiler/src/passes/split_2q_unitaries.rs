@@ -175,7 +175,7 @@ pub fn run_split_2q_unitaries(
             inst.params.as_deref().cloned(),
             inst.label.as_ref().map(|x| x.to_string()),
             #[cfg(feature = "cache_pygates")]
-            inst.py_op.get().map(|x| x.clone()),
+            inst.py_op.get().cloned(),
         )?;
     }
     Ok(Some((new_dag.build(), mapping)))

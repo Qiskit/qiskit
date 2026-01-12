@@ -571,6 +571,25 @@ class TestCommutationChecker(QiskitTestCase):
         with self.subTest(left=z, right=x):
             self.assertFalse(scc.commute(z, qargs, [], x, qargs, []))
 
+    def test_pauli_evolution_standard_gates(self):
+        """Test PauliEvolutionGate commutations with standard gates (rotations)."""
+        # H and H should commute
+        self.assertTrue(scc.commute(HGate(), [0], [], HGate(), [0], []))
+        # H and Z should NOT commute
+        self.assertFalse(scc.commute(HGate(), [0], [], ZGate(), [0], []))
+
+        # RX(0.5) and PauliEvo(X) should commute
+        evo_x = PauliEvolutionGate(SparsePauliOp("X"), time=1.0)
+        self.assertTrue(scc.commute(RXGate(0.5), [0], [], evo_x, [0], []))
+
+        # RX(0.5) and PauliEvo(Z) should NOT commute
+        evo_z = PauliEvolutionGate(SparsePauliOp("Z"), time=1.0)
+        self.assertFalse(scc.commute(RXGate(0.5), [0], [], evo_z, [0], []))
+
+        # HGate (generator X+Z) and PauliEvolutionGate(X+Z) should commute
+        evo_xz = PauliEvolutionGate(SparsePauliOp(["X", "Z"], [1.0, 1.0]), time=1.0)
+        self.assertTrue(scc.commute(HGate(), [0], [], evo_xz, [0], []))
+
 
 def build_pauli_gate(pauli_string: str, gate_type: str) -> Gate:
     """Build a Pauli-based gate off a Pauli string.

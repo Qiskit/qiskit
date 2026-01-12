@@ -18,6 +18,7 @@ use num_complex::ComplexFloat;
 use qiskit_circuit::object_registry::PyObjectAsKey;
 use qiskit_quantum_info::sparse_observable::PySparseObservable;
 use qiskit_quantum_info::sparse_observable::SparseObservable;
+use qiskit_quantum_info::sparse_observable::generator_observable;
 use smallvec::SmallVec;
 use std::fmt::Debug;
 
@@ -224,11 +225,18 @@ fn try_pauli_generator(
     qubits: &[Qubit],
     num_qubits: u32,
 ) -> Option<SparseObservable> {
-    match operation.name() {
-        "pauli" => try_extract_op_from_pauli_gate(operation, qubits, num_qubits),
-        "PauliEvolution" => try_extract_op_from_pauli_evo(operation, qubits, num_qubits),
-        "pauli_product_measurement" => try_extract_op_from_ppm(operation, qubits, num_qubits),
-        _ => None,
+    match operation {
+        OperationRef::StandardGate(gate) => {
+            let local = generator_observable(*gate)?;
+            let out = SparseObservable::identity(num_qubits);
+            Some(out.compose_map(&local, |i| qubits[i as usize].0))
+        }
+        _ => match operation.name() {
+            "pauli" => try_extract_op_from_pauli_gate(operation, qubits, num_qubits),
+            "PauliEvolution" => try_extract_op_from_pauli_evo(operation, qubits, num_qubits),
+            "pauli_product_measurement" => try_extract_op_from_ppm(operation, qubits, num_qubits),
+            _ => None,
+        },
     }
 }
 
