@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-// Unused imports removed
+    // Unused imports removed
 
     #[test]
     fn smoke_test() {
