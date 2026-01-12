@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Added an implementation of the QPY module written in Rust.
+    The Python interface remains the same, with Rust being used automatically
+    for QPY version 17 and Python still used for version < 17.

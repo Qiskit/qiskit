@@ -15,7 +15,7 @@
 import io
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit.classical import expr
-from qiskit.qpy import dump, load
+from qiskit.qpy.binary_io import write_circuit, read_circuit
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -34,18 +34,20 @@ class TestQPYRoundtrip(QiskitTestCase):
         qpy_file = io.BytesIO()
         use_rust_for_write = write_with == "Rust"
         use_rust_for_read = read_with == "Rust"
-        dump(
-            circuit,
+        write_circuit(
             qpy_file,
+            circuit,
             version=version,
             annotation_factories=annotation_factories,
             use_rust=use_rust_for_write,
         )
         qpy_file.seek(0)
-        new_circuit = load(
-            qpy_file, annotation_factories=annotation_factories, use_rust=use_rust_for_read
-        )[0]
-
+        new_circuit = read_circuit(
+            qpy_file,
+            version=version,
+            annotation_factories=annotation_factories,
+            use_rust=use_rust_for_read,
+        )
         self.assertEqual(circuit, new_circuit)
         self.assertEqual(circuit.layout, new_circuit.layout)
 
