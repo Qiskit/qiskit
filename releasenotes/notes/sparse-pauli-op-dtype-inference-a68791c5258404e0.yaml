@@ -1,5 +1,5 @@
 ---
-features_quantum_info:
+fixes:
   - |
     The methods :meth:`.SparsePauliOp.from_list` and 
     :meth:`.SparsePauliOp.from_sparse_list` now automatically 
