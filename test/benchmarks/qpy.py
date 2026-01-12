@@ -47,7 +47,7 @@ class RandomBenchmarks:
         qpy_file = io.BytesIO()
         qpy.dump(self.circuit, qpy_file)
         qpy_file.seek(0)
-        qpy.load(qpy_file)[0]
+        qpy.load(qpy_file)
 
 
 class CustomGateBenchmarks:
@@ -76,7 +76,7 @@ class CustomGateBenchmarks:
         qpy_file = io.BytesIO()
         qpy.dump(self.circuit, qpy_file)
         qpy_file.seek(0)
-        qpy.load(qpy_file)[0]
+        qpy.load(qpy_file)
 
 
 class ParameterizedBenchmarks:
@@ -102,4 +102,4 @@ class ParameterizedBenchmarks:
         qpy_file = io.BytesIO()
         qpy.dump(self.circuit, qpy_file)
         qpy_file.seek(0)
-        qpy.load(qpy_file)[0]
+        qpy.load(qpy_file)

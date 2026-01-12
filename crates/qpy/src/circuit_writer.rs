@@ -197,10 +197,10 @@ fn pack_instruction_blocks(
         Parameters::Params(_) => Err(PyValueError::new_err(
             "Could not extract blocks from instruction",
         )),
-        Parameters::Blocks(blocks) => blocks
-            .iter()
-            .map(|block| {
-                Python::attach(|py| -> PyResult<_> {
+        Parameters::Blocks(blocks) => Python::attach(|py| -> PyResult<_> {
+            blocks
+                .iter()
+                .map(|block| -> PyResult<_> {
                     // we explicitly name the block "unnamed" because otherwise it will be assigned a serial number name (e.g. "circuit-45")
                     // which would result in inconsistant results, e.g. when packing the same circuit twice on the same run
                     let circuit = imports::QUANTUM_CIRCUIT
@@ -208,8 +208,8 @@ fn pack_instruction_blocks(
                         .call_method1("_from_circuit_data", (block.clone(), false, "unnamed"))?;
                     py_pack_param(&circuit, qpy_data, Endian::Little)
                 })
-            })
-            .collect::<PyResult<_>>(),
+                .collect::<PyResult<_>>()
+        }),
     }
 }
 /// packs one specific instruction into CircuitInstructionV2Pack, creating a new custom operation if needed
@@ -230,7 +230,9 @@ fn pack_instruction(
         OperationRef::Unitary(unitary_gate) => pack_unitary_gate(unitary_gate, qpy_data)?,
         OperationRef::Gate(py_gate) => pack_py_gate(py_gate, instruction, qpy_data)?,
         OperationRef::Instruction(py_inst) => pack_py_instruction(py_inst, instruction, qpy_data)?,
-        OperationRef::Operation(py_op) => pack_py_operation(py_op, instruction, qpy_data)?,
+        OperationRef::Operation(py_op) => Python::attach(|py| -> PyResult<_> {
+            pack_py_operation(py, py_op, instruction, qpy_data)
+        })?,
         OperationRef::ControlFlow(control_flow_inst) => {
             pack_control_flow_inst(control_flow_inst, instruction, qpy_data)?
         }
@@ -518,25 +520,24 @@ fn pack_py_instruction(
 }
 
 fn pack_py_operation(
+    py: Python,
     py_op: &PyOperation,
     instruction: &PackedInstruction,
     qpy_data: &mut QPYWriteData,
 ) -> PyResult<formats::CircuitInstructionV2Pack> {
-    let params = Python::attach(|py| -> PyResult<_> {
-        let py_op_object = py_op.operation.bind(py);
-        if py_op_object.is_instance(imports::CLIFFORD.get_bound(py))? {
-            let tableau = py_op_object.getattr("tableau")?;
-            Ok(vec![py_pack_param(&tableau, qpy_data, Endian::Little)?])
-        } else if py_op_object.is_instance(imports::ANNOTATED_OPERATION.get_bound(py))? {
-            let modifiers = py_op_object.getattr("modifiers")?;
-            modifiers
-                .try_iter()?
-                .map(|modifier| py_pack_param(&modifier?, qpy_data, Endian::Little))
-                .collect::<PyResult<_>>()
-        } else {
-            pack_instruction_params(instruction, qpy_data)
-        }
-    })?;
+    let py_op_object = py_op.operation.bind(py);
+    let params = if py_op_object.is_instance(imports::CLIFFORD.get_bound(py))? {
+        let tableau = py_op_object.getattr("tableau")?;
+        Ok(vec![py_pack_param(&tableau, qpy_data, Endian::Little)?])
+    } else if py_op_object.is_instance(imports::ANNOTATED_OPERATION.get_bound(py))? {
+        let modifiers = py_op_object.getattr("modifiers")?;
+        modifiers
+            .try_iter()?
+            .map(|modifier| py_pack_param(&modifier?, qpy_data, Endian::Little))
+            .collect::<PyResult<_>>()
+    } else {
+        pack_instruction_params(instruction, qpy_data)
+    }?;
     Ok(formats::CircuitInstructionV2Pack {
         num_qargs: py_op.num_qubits(),
         num_cargs: py_op.num_clbits(),
@@ -556,9 +557,15 @@ fn pack_py_operation(
 // 1) registers appearing explicitly in the circuit register list (identified using in_circ_lookup)
 // 2) registers appearing implicitly for bits (in python: as their "_register" data field)
 fn pack_quantum_registers(circuit_data: &CircuitData) -> Vec<formats::RegisterV4Pack> {
-    let in_circ_lookup: HashSet<QuantumRegister> = circuit_data.qregs().iter().cloned().collect();
-    let mut registers_to_pack: IndexSet<QuantumRegister> =
-        circuit_data.qregs().iter().cloned().collect();
+    // let in_circ_lookup: HashSet<QuantumRegister> = circuit_data.qregs().iter().cloned().collect();
+    // let mut registers_to_pack: IndexSet<QuantumRegister> =
+    //     circuit_data.qregs().iter().cloned().collect();
+    let mut in_circ_lookup: HashSet<QuantumRegister> = HashSet::new();
+    let mut registers_to_pack: IndexSet<QuantumRegister> = IndexSet::new();
+    circuit_data.qregs().iter().for_each(|qreg| {
+        in_circ_lookup.insert(qreg.clone());
+        registers_to_pack.insert(qreg.clone());
+    });
 
     // add all owning registers for qubits in the circuits (even registers not included in the circuit itself)
     registers_to_pack.extend(
@@ -849,14 +856,18 @@ fn pack_custom_instructions(
 ) -> PyResult<formats::CustomCircuitInstructionsPack> {
     let mut custom_instructions: Vec<formats::CustomCircuitInstructionDefPack> = Vec::new();
     let mut instructions_to_pack: Vec<String> = custom_instructions_hash.keys().cloned().collect();
-    while let Some(name) = instructions_to_pack.pop() {
-        custom_instructions.push(pack_custom_instruction(
-            &name,
-            custom_instructions_hash,
-            &mut instructions_to_pack,
-            qpy_data,
-        )?);
-    }
+    Python::attach(|py| -> PyResult<_> {
+        while let Some(name) = instructions_to_pack.pop() {
+            custom_instructions.push(pack_custom_instruction(
+                py,
+                &name,
+                custom_instructions_hash,
+                &mut instructions_to_pack,
+                qpy_data,
+            )?);
+        }
+        Ok(())
+    })?;
     Ok(formats::CustomCircuitInstructionsPack {
         custom_instructions,
     })
@@ -886,141 +897,140 @@ fn pack_extra_registers(
 }
 
 fn pack_custom_instruction(
+    py: Python,
     name: &String,
     custom_instructions_hash: &mut HashMap<String, PackedOperation>,
     new_instructions_list: &mut Vec<String>,
     qpy_data: &mut QPYWriteData,
 ) -> PyResult<formats::CustomCircuitInstructionDefPack> {
-    Python::attach(|py| {
-        let operation = custom_instructions_hash.get(name).ok_or_else(|| {
-            PyValueError::new_err(format!("Could not find operation data for {}", name))
-        })?;
-        let gate_type = get_circuit_type_key(operation)?;
-        let mut has_definition = false;
-        let mut data: Bytes = Bytes::new();
-        let mut num_ctrl_qubits = 0;
-        let mut ctrl_state = 0;
-        let mut base_gate: Bound<PyAny> = py.None().bind(py).clone();
-        let mut base_gate_raw: Bytes = Bytes::new();
+    let operation = custom_instructions_hash.get(name).ok_or_else(|| {
+        PyValueError::new_err(format!("Could not find operation data for {}", name))
+    })?;
+    let gate_type = get_circuit_type_key(operation)?;
+    let mut has_definition = false;
+    let mut data: Bytes = Bytes::new();
+    let mut num_ctrl_qubits = 0;
+    let mut ctrl_state = 0;
+    let mut base_gate: Bound<PyAny> = py.None().bind(py).clone();
+    let mut base_gate_raw: Bytes = Bytes::new();
 
-        if gate_type == CircuitInstructionType::PauliEvolutionGate {
-            if let OperationRef::Gate(gate) = operation.view() {
-                has_definition = true;
-                data = serialize(&py_pack_pauli_evolution_gate(gate.gate.bind(py), qpy_data)?);
-            }
-        } else if gate_type == CircuitInstructionType::ControlledGate {
-            // For ControlledGate, we have to access and store the private `_definition` rather than the
-            // public one, because the public one is mutated to include additional logic if the control
-            // state is open, and the definition setter (during a subsequent read) uses the "fully
-            // excited" control definition only.
-            if let OperationRef::Gate(pygate) = operation.view() {
-                has_definition = true;
-                // Build internal definition to support overloaded subclasses by
-                // calling definition getter on object
-                let gate = pygate.gate.bind(py);
-                gate.getattr("definition")?; // this creates the _definition field
-                data = serialize(&pack_circuit(
-                    &mut gate.getattr("_definition")?.extract()?,
-                    Some(py.None().bind(py)),
-                    false,
-                    qpy_data.version,
-                    qpy_data.annotation_handler.annotation_factories,
-                )?);
-                num_ctrl_qubits = gate.getattr("num_ctrl_qubits")?.extract::<u32>()?;
-                ctrl_state = gate.getattr("ctrl_state")?.extract::<u32>()?;
-                base_gate = gate.getattr("base_gate")?.clone();
-            }
-        } else if gate_type == CircuitInstructionType::AnnotatedOperation {
-            if let OperationRef::Operation(operation) = operation.view() {
-                has_definition = false; // just making sure
-                base_gate = operation.operation.bind(py).getattr("base_op")?.clone();
-            }
-        } else {
-            match operation.view() {
-                // all-around catch for "operation" field; should be easier once we switch from python to rust
-                OperationRef::Gate(pygate) => {
-                    let gate = pygate.gate.bind(py);
-                    match getattr_or_none(gate, "definition") {
-                        None => (),
-                        Some(definition) => {
-                            has_definition = true;
-                            data = serialize(&pack_circuit(
-                                &mut definition.extract()?,
-                                Some(py.None().bind(py)),
-                                false,
-                                qpy_data.version,
-                                qpy_data.annotation_handler.annotation_factories,
-                            )?);
-                        }
-                    }
-                }
-                OperationRef::Instruction(pyinst) => {
-                    let inst = pyinst.instruction.bind(py);
-                    match getattr_or_none(inst, "definition") {
-                        None => (),
-                        Some(definition) => {
-                            has_definition = true;
-                            data = serialize(&pack_circuit(
-                                &mut definition.extract()?,
-                                Some(py.None().bind(py)),
-                                false,
-                                qpy_data.version,
-                                qpy_data.annotation_handler.annotation_factories,
-                            )?);
-                        }
-                    }
-                }
-                OperationRef::Operation(pyoperation) => {
-                    let operation = pyoperation.operation.bind(py);
-                    match getattr_or_none(operation, "definition") {
-                        None => (),
-                        Some(definition) => {
-                            has_definition = true;
-                            data = serialize(&pack_circuit(
-                                &mut definition.extract()?,
-                                Some(py.None().bind(py)),
-                                false,
-                                qpy_data.version,
-                                qpy_data.annotation_handler.annotation_factories,
-                            )?);
-                        }
-                    }
-                }
-                _ => (),
-            }
+    if gate_type == CircuitInstructionType::PauliEvolutionGate {
+        if let OperationRef::Gate(gate) = operation.view() {
+            has_definition = true;
+            data = serialize(&py_pack_pauli_evolution_gate(gate.gate.bind(py), qpy_data)?);
         }
-        let num_qubits = operation.num_qubits();
-        let num_clbits = operation.num_clbits();
-        if !base_gate.is_none() {
-            let op_parts = base_gate.extract::<OperationFromPython>()?;
-            let instruction = CircuitInstruction {
-                operation: op_parts.operation,
-                qubits: PyTuple::empty(py).into(),
-                clbits: PyTuple::empty(py).into(),
-                params: op_parts.params,
-                label: op_parts.label,
-                #[cfg(feature = "cache_pygates")]
-                py_op: std::sync::OnceLock::new(),
-            };
-            let packed_instruction = qpy_data.circuit_data.pack(py, &instruction)?;
-            base_gate_raw = serialize(&pack_instruction(
-                &packed_instruction,
-                custom_instructions_hash,
-                new_instructions_list,
-                qpy_data,
+    } else if gate_type == CircuitInstructionType::ControlledGate {
+        // For ControlledGate, we have to access and store the private `_definition` rather than the
+        // public one, because the public one is mutated to include additional logic if the control
+        // state is open, and the definition setter (during a subsequent read) uses the "fully
+        // excited" control definition only.
+        if let OperationRef::Gate(pygate) = operation.view() {
+            has_definition = true;
+            // Build internal definition to support overloaded subclasses by
+            // calling definition getter on object
+            let gate = pygate.gate.bind(py);
+            gate.getattr("definition")?; // this creates the _definition field
+            data = serialize(&pack_circuit(
+                &mut gate.getattr("_definition")?.extract()?,
+                Some(py.None().bind(py)),
+                false,
+                qpy_data.version,
+                qpy_data.annotation_handler.annotation_factories,
             )?);
+            num_ctrl_qubits = gate.getattr("num_ctrl_qubits")?.extract::<u32>()?;
+            ctrl_state = gate.getattr("ctrl_state")?.extract::<u32>()?;
+            base_gate = gate.getattr("base_gate")?.clone();
         }
-        Ok(formats::CustomCircuitInstructionDefPack {
-            gate_type,
-            num_qubits,
-            num_clbits,
-            custom_definition: has_definition as u8,
-            num_ctrl_qubits,
-            ctrl_state,
-            name: name.to_string(),
-            data,
-            base_gate_raw,
-        })
+    } else if gate_type == CircuitInstructionType::AnnotatedOperation {
+        if let OperationRef::Operation(operation) = operation.view() {
+            has_definition = false; // just making sure
+            base_gate = operation.operation.bind(py).getattr("base_op")?.clone();
+        }
+    } else {
+        match operation.view() {
+            // all-around catch for "operation" field; should be easier once we switch from python to rust
+            OperationRef::Gate(pygate) => {
+                let gate = pygate.gate.bind(py);
+                match getattr_or_none(gate, "definition") {
+                    None => (),
+                    Some(definition) => {
+                        has_definition = true;
+                        data = serialize(&pack_circuit(
+                            &mut definition.extract()?,
+                            Some(py.None().bind(py)),
+                            false,
+                            qpy_data.version,
+                            qpy_data.annotation_handler.annotation_factories,
+                        )?);
+                    }
+                }
+            }
+            OperationRef::Instruction(pyinst) => {
+                let inst = pyinst.instruction.bind(py);
+                match getattr_or_none(inst, "definition") {
+                    None => (),
+                    Some(definition) => {
+                        has_definition = true;
+                        data = serialize(&pack_circuit(
+                            &mut definition.extract()?,
+                            Some(py.None().bind(py)),
+                            false,
+                            qpy_data.version,
+                            qpy_data.annotation_handler.annotation_factories,
+                        )?);
+                    }
+                }
+            }
+            OperationRef::Operation(pyoperation) => {
+                let operation = pyoperation.operation.bind(py);
+                match getattr_or_none(operation, "definition") {
+                    None => (),
+                    Some(definition) => {
+                        has_definition = true;
+                        data = serialize(&pack_circuit(
+                            &mut definition.extract()?,
+                            Some(py.None().bind(py)),
+                            false,
+                            qpy_data.version,
+                            qpy_data.annotation_handler.annotation_factories,
+                        )?);
+                    }
+                }
+            }
+            _ => (),
+        }
+    }
+    let num_qubits = operation.num_qubits();
+    let num_clbits = operation.num_clbits();
+    if !base_gate.is_none() {
+        let op_parts = base_gate.extract::<OperationFromPython>()?;
+        let instruction = CircuitInstruction {
+            operation: op_parts.operation,
+            qubits: PyTuple::empty(py).into(),
+            clbits: PyTuple::empty(py).into(),
+            params: op_parts.params,
+            label: op_parts.label,
+            #[cfg(feature = "cache_pygates")]
+            py_op: std::sync::OnceLock::new(),
+        };
+        let packed_instruction = qpy_data.circuit_data.pack(py, &instruction)?;
+        base_gate_raw = serialize(&pack_instruction(
+            &packed_instruction,
+            custom_instructions_hash,
+            new_instructions_list,
+            qpy_data,
+        )?);
+    }
+    Ok(formats::CustomCircuitInstructionDefPack {
+        gate_type,
+        num_qubits,
+        num_clbits,
+        custom_definition: has_definition as u8,
+        num_ctrl_qubits,
+        ctrl_state,
+        name: name.to_string(),
+        data,
+        base_gate_raw,
     })
 }
 
