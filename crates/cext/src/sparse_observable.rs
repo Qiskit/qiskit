@@ -196,13 +196,13 @@ pub unsafe extern "C" fn qk_obs_new(
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_obs_free(obs: *mut SparseObservable) {
-    if obs.is_null() {
-        return;
-    }
-    assert!(obs.is_aligned());
-    // SAFETY: per documentation, `obs` points to a valid boxed `SparseObservable`.
-    unsafe {
-        let _ = Box::from_raw(obs);
+    if !obs.is_null() {
+        if !obs.is_aligned() {
+            panic!("Attempted to free a non-aligned pointer.");
+        }
+        // SAFETY: per documentation, `obs` points to a valid boxed `SparseObservable`.  Per above
+        // checks, it is aligned and non-null.
+        let _ = unsafe { Box::from_raw(obs) };
     }
 }
 
