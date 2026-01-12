@@ -1,15 +1,11 @@
 ---
 features_quantum_info:
   - |
-    Added the ``dtype`` argument to the :meth:`.SparsePauliOp.from_list` and 
-    :meth:`.SparsePauliOp.from_sparse_list` methods. This allows users to 
-    explicitly specify the data type of the coefficients.
-    
-    Additionally, both methods now automatically infer the coefficient data type 
-    if ``dtype`` is set to ``None``. If :class:`.ParameterExpression` objects are 
-    detected in the input list, the methods will automatically use ``dtype=object``, 
-    removing the need for users to manually specify it in parameterized workflows.
-
+    The methods :meth:`.SparsePauliOp.from_list` and 
+    :meth:`.SparsePauliOp.from_sparse_list` now automatically 
+    infer the coefficient data type, if the ``dtype`` argument is 
+    not specified.
+  
     For example::
 
         from qiskit.quantum_info import SparsePauliOp
@@ -17,8 +13,6 @@ features_quantum_info:
 
         theta = Parameter("theta")
         
-        # Previously raised an error or required dtype=object
+        # Previously required manually setting dtype=object
         op_list = SparsePauliOp.from_list([("X", theta)])
-        
-        # Also works for sparse lists
         op_sparse = SparsePauliOp.from_sparse_list([("X", [0], theta)], num_qubits=1)
