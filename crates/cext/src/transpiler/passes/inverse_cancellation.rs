@@ -13,7 +13,6 @@
 use crate::pointers::mut_ptr_as_ref;
 
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_transpiler::passes::run_inverse_cancellation_standard_gates;
 
@@ -76,9 +75,5 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_inverse_cancellation(
 
     run_inverse_cancellation_standard_gates(&mut dag);
 
-    let out_circuit = match dag_to_circuit(&dag, false) {
-        Ok(qc) => qc,
-        Err(_) => panic!("Internal DAG -> Circuit conversion failed"),
-    };
-    *circuit = out_circuit;
+    *circuit = CircuitData::from_dag_ref(&dag).expect("Internal DAG -> Circuit conversion failed");
 }

@@ -14,7 +14,6 @@ use crate::pointers::mut_ptr_as_ref;
 
 use qiskit_circuit::Qubit;
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_transpiler::passes::run_split_2q_unitaries;
 use qiskit_transpiler::transpile_layout::TranspileLayout;
@@ -64,10 +63,8 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_split_2q_unitaries(
         .unwrap_or_else(|_| panic!("Running the Split2qUnitaries pass failed"));
     match result {
         Some((out_dag, permutation)) => {
-            let out_circuit = match dag_to_circuit(&out_dag, false) {
-                Ok(qc) => qc,
-                Err(_e) => panic!("Internal DAG -> circuit conversion failed."),
-            };
+            let out_circuit = CircuitData::from_dag_ref(&out_dag)
+                .expect("Internal DAG -> circuit conversion failed.");
             let num_input_qubits = circuit.num_qubits() as u32;
             let qubits = out_circuit.qubits().objects().clone();
             let qregs = out_circuit.qregs().to_vec();
@@ -81,11 +78,8 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_split_2q_unitaries(
             )))
         }
         None => {
-            let out_circuit = match dag_to_circuit(&dag, false) {
-                Ok(qc) => qc,
-                Err(_e) => panic!("Internal DAG -> circuit conversion failed."),
-            };
-            *circuit = out_circuit;
+            *circuit = CircuitData::from_dag_ref(&dag)
+                .expect("Internal DAG -> circuit conversion failed.");
             std::ptr::null_mut()
         }
     }
