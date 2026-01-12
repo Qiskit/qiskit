@@ -317,9 +317,6 @@ fn unpack_annotations(
 }
 
 /// create a new instruction from the packed data
-/// this is a relatively messy and python-heavy function
-/// due to the large number of different gates we have to deal with
-/// each gate with its own set of properties and quirks
 fn unpack_instruction(
     instruction: &formats::CircuitInstructionV2Pack,
     custom_instructions: &HashMap<String, CustomCircuitInstructionData>,

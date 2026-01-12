@@ -314,10 +314,9 @@ pub(crate) fn gate_class_name(op: &PackedOperation) -> PyResult<String> {
                 .getattr(intern!(py, "__class__"))?
                 .getattr(intern!(py, "__name__"))?
                 .extract::<String>(),
-            OperationRef::PauliProductMeasurement(_) => imports::PAULI_PRODUCT_MEASUREMENT
-                .get_bound(py)
-                .getattr(intern!(py, "__name__"))?
-                .extract::<String>(),
+            OperationRef::PauliProductMeasurement(_) => {
+                Ok(String::from(PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME))
+            }
             OperationRef::ControlFlow(inst) => Ok(inst.name().to_string()),
         }?;
         Ok(name)
