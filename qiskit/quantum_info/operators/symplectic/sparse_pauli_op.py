@@ -821,8 +821,8 @@ class SparsePauliOp(LinearOp):
 
         Args:
             obj (Iterable[Tuple[str, complex]]): The list of 2-tuples specifying the Pauli terms.
-            dtype (type | None): Data type for the coefficients. If None, the dtype is automatically
-            inferred. Default is None.
+            dtype (type | None): Data type for the coefficients. If ``None`` (default), the dtype is
+                automatically inferred.
             num_qubits (int): The number of qubits of the operator (Default: None).
 
         Returns:
@@ -900,10 +900,9 @@ class SparsePauliOp(LinearOp):
         Args:
             obj (Iterable[tuple[str, list[int], complex]]): The list 3-tuples specifying the Paulis.
             num_qubits (int): The number of qubits of the operator.
-            do_checks (bool): The flag of checking if the input indices are not duplicated
-            (Default: True).
-            dtype (type | None): Data type for the coefficients. If None, the dtype is automatically
-            inferred. Default is None.
+            do_checks (bool): Whether to perform validity checks on the input indices.
+            dtype (type | None): Data type for the coefficients. If ``None`` (default), the dtype is
+                automatically inferred.
 
 
         Returns:
