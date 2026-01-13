@@ -20,6 +20,7 @@ import warnings
 import collections.abc
 import copy as _copy
 
+from enum import Enum
 import itertools
 import multiprocessing
 import typing
@@ -117,6 +118,12 @@ ClbitSpecifier = Union[
 # Generic type which is either :obj:`~Qubit` or :obj:`~Clbit`, used to specify types of functions
 # which operate on either type of bit, but not both at the same time.
 BitType = TypeVar("BitType", Qubit, Clbit)
+
+
+class PauliBasis(Enum):
+    X = "X"
+    Y = "Y"
+    Z = "Z"
 
 
 # NOTE:
@@ -4465,6 +4472,49 @@ class QuantumCircuit:
         )
         rvalue = expr.lift(rvalue, rvalue_type)
         return self.append(Store(lvalue, rvalue), (), (), copy=False)
+
+    def measure_pauli_basis(
+        self, qubit: QubitSpecifier, cbit: ClbitSpecifier, basis: PauliBasis
+    ) -> InstructionSet:
+        r"""Measure a quantum bit (``qubit``) with respect to a chosen Pauli observable
+        (:math:`X`, :math:`Y`, or :math:`Z`) and store the result in a classical bit (``cbit``).
+
+        This method implements measurement of non-Z Pauli observables by applying a
+        basis change rotation prior to a standard computational (Pauli-Z) measurement.
+        Physically, all measurements are performed in the Z basis.
+
+        Specifically:
+        - Pauli-Z measurement is performed directly.
+        - Pauli-X measurement is implemented by applying a Hadamard gate before measurement.
+        - Pauli-Y measurement is implemented by applying an :math:`S^\dagger` gate followed
+        by a Hadamard gate before measurement.
+
+        After measurement, the qubit is projected onto the Z basis and the classical bit ``cbit`` stores the measurement outcome
+
+        Args:
+            qubit: Qubit(s) to measure.
+            cbit: Classical bit(s) to store the measurement result(s).
+            basis: Pauli observable to apply rotations before measuring.
+
+        Returns:
+            qiskit.circuit.InstructionSet: Handle to the added measurement instruction(s).
+
+        Raises:
+            CircuitError: if arguments have bad format.
+        """
+        from .measure import Measure
+
+        if basis is PauliBasis.X:
+            self.h(qubit)
+        elif basis is PauliBasis.Y:
+            self.sdg(qubit)
+            self.h(qubit)
+        elif basis is PauliBasis.Z:
+            pass
+        else:
+            raise CircuitError("The Basis parameter must be a Pauli one(X, Z or Y)")
+
+        return self.append(Measure(), [qubit], [cbit], copy=False)
 
     def measure(self, qubit: QubitSpecifier, cbit: ClbitSpecifier) -> InstructionSet:
         r"""Measure a quantum bit (``qubit``) in the Z basis into a classical bit (``cbit``).
