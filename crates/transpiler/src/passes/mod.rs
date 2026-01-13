@@ -87,6 +87,7 @@ pub use optimize_1q_gates_decomposition::{
     optimize_1q_gates_decomposition_mod, run_optimize_1q_gates_decomposition,
 };
 pub use optimize_clifford_t::{optimize_clifford_t_mod, run_optimize_clifford_t};
+pub use pbc_transformation::{pbc_transformation_mod, py_pbc_transformation};
 pub use remove_diagonal_gates_before_measure::{
     remove_diagonal_gates_before_measure_mod, run_remove_diagonal_before_measure,
 };

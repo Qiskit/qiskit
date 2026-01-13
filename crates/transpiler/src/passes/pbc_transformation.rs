@@ -10,9 +10,17 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use pyo3::prelude::*;
+use pyo3::wrap_pyfunction;
+use smallvec::smallvec;
 use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, FRAC_PI_8, PI};
 
-use qiskit_circuit::operations::StandardGate;
+use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
+use qiskit_circuit::imports::PAULI_EVOLUTION_GATE;
+use qiskit_circuit::instruction::Parameters;
+use qiskit_circuit::operations::{OperationRef, Param, PyGate, StandardGate};
+use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
+use qiskit_quantum_info::sparse_observable::PySparseObservable;
 
 /// Map gates to a list of equivalent Pauli rotations and a global phase.
 /// Each element of the list is of the form ((Pauli string, phase rescale factor, [qubit indices]), global phase).
@@ -21,8 +29,8 @@ use qiskit_circuit::operations::StandardGate;
 /// `original_gate = PauliEvolutionGate(pauli, phase) * e^{i global_phase * phase}`
 
 fn replace_gate_by_pauli_rotation(
-    gate: &StandardGate,
-) -> (&'static [(&str, f64, &'static [u32])], f64) {
+    gate: StandardGate,
+) -> (&'static [(&'static str, f64, &'static [u32])], f64) {
     match gate {
         StandardGate::I => (&[("I", 0.0, &[0])], 0.0),
         StandardGate::X => (&[("X", FRAC_PI_2, &[0])], FRAC_PI_2),
@@ -161,4 +169,90 @@ fn replace_gate_by_pauli_rotation(
             "This is only called for one and two qubit gates with no paramers or with a single parameter."
         ),
     }
+}
+
+#[pyfunction]
+#[pyo3(name = "pbc_transformation")]
+pub fn py_pbc_transformation(py: Python, dag: &mut DAGCircuit) -> PyResult<DAGCircuit> {
+    let mut new_dag = dag.copy_empty_like_with_capacity(0, 0, VarsMode::Alike, BlocksMode::Keep)?;
+
+    // Iterate over nodes in the DAG and collect nodes
+    let mut global_phase: f64 = 0.;
+
+    for node_index in dag.topological_op_nodes(false)? {
+        if let NodeType::Operation(inst) = &dag[node_index] {
+            if let OperationRef::StandardGate(gate) = inst.op.view() {
+                // handling only 1-qubit and 2-qubit gates with a single parameter
+                if matches!(
+                    gate,
+                    StandardGate::RX
+                        | StandardGate::RY
+                        | StandardGate::RZ
+                        | StandardGate::Phase
+                        | StandardGate::U1
+                        | StandardGate::RZZ
+                        | StandardGate::RXX
+                        | StandardGate::RZX
+                        | StandardGate::RYY
+                        | StandardGate::CPhase
+                        | StandardGate::CU1
+                        | StandardGate::CRZ
+                        | StandardGate::CRX
+                        | StandardGate::CRY
+                ) {
+                    if let Param::Float(angle) = inst.params_view()[0] {
+                        let (sequence, global_phase_update) = replace_gate_by_pauli_rotation(gate);
+                        for (paulis, phase_rescale, qubits) in sequence {
+                            let original_qubits = dag.get_qargs(inst.qubits);
+                            let updated_qubits: Vec<Qubit> = qubits
+                                .iter()
+                                .map(|q| original_qubits[*q as usize])
+                                .collect();
+                            let time = phase_rescale * angle;
+                            let py_pauli = PySparseObservable::from_label(
+                                paulis.chars().rev().collect::<String>().as_str(),
+                            )?;
+                            let py_evo_cls = PAULI_EVOLUTION_GATE.get_bound(py);
+                            let py_evo = py_evo_cls.call1((py_pauli, time.clone()))?;
+                            let py_gate = PyGate {
+                                qubits: qubits.len() as u32,
+                                clbits: 0,
+                                params: 1,
+                                op_name: "PauliEvolution".to_string(),
+                                gate: py_evo.into(),
+                            };
+
+                            new_dag.apply_operation_back(
+                                py_gate.into(),
+                                &updated_qubits,
+                                &[],
+                                Some(Parameters::Params(smallvec![Param::Float(time)])),
+                                None,
+                                #[cfg(feature = "cache_pygates")]
+                                None,
+                            )?;
+                        }
+                        global_phase += global_phase_update * angle;
+                    } else {
+                        panic!();
+                    }
+                } else {
+                    panic!();
+                }
+            } else {
+                panic!();
+            }
+        } else {
+            unreachable!();
+        }
+    }
+
+    new_dag.add_global_phase(&Param::Float(global_phase))?;
+
+    Ok(new_dag)
+}
+
+pub fn pbc_transformation_mod(m: &Bound<PyModule>) -> PyResult<()> {
+    m.add_wrapped(wrap_pyfunction!(py_pbc_transformation))?;
+    Ok(())
 }
