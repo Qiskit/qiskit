@@ -3465,3 +3465,69 @@ where
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::converters::dag_to_circuit;
+    use crate::dag_circuit::DAGCircuit;
+    use crate::operations::{ArrayType, PauliProductMeasurement, UnitaryGate};
+    use nalgebra::{Matrix2, Matrix4};
+
+    #[cfg(not(miri))]
+    #[test]
+    fn packed_pointer_types_behave() -> PyResult<()> {
+        // This is largely to exercise the packed-pointer logic under debug builds (since the
+        // Python-space tests run with Rust in relaese mode) and Miri.
+        let mut qc = CircuitData::from_packed_operations(4, 1, [], Param::Float(0.0))?;
+        qc.push_packed_operation(
+            Box::new(PauliProductMeasurement {
+                z: vec![true, true, true],
+                x: vec![false, false, true],
+                neg: false,
+            })
+            .into(),
+            None,
+            &[Qubit(0), Qubit(1), Qubit(2)],
+            &[Clbit(0)],
+        )?;
+        qc.push_packed_operation(
+            Box::new(UnitaryGate {
+                array: ArrayType::OneQ(Matrix2::identity()),
+            })
+            .into(),
+            None,
+            &[Qubit(2)],
+            &[],
+        )?;
+        qc.push_packed_operation(
+            Box::new(UnitaryGate {
+                array: ArrayType::TwoQ(Matrix4::identity()),
+            })
+            .into(),
+            None,
+            &[Qubit(2), Qubit(3)],
+            &[],
+        )?;
+        let check = |left: &CircuitData, right: &CircuitData| {
+            for (a, b) in ::std::iter::zip(left.data(), right.data()) {
+                match (a.op.view(), b.op.view()) {
+                    (OperationRef::Unitary(a), OperationRef::Unitary(b)) => assert_eq!(a, b),
+                    (
+                        OperationRef::PauliProductMeasurement(a),
+                        OperationRef::PauliProductMeasurement(b),
+                    ) => assert_eq!(a, b),
+                    (a, b) => panic!("unexpected types in iterator:\n{a:?}\n{b:?}"),
+                }
+            }
+        };
+        let other = qc.clone();
+        check(&qc, &other);
+        let roundtrip = dag_to_circuit(
+            &DAGCircuit::from_circuit_data(&qc, false, None, None, None, None)?,
+            false,
+        )?;
+        check(&qc, &roundtrip);
+        Ok(())
+    }
+}
