@@ -29,7 +29,7 @@ use qiskit_circuit::instruction::Instruction;
 use qiskit_circuit::operations::StandardGate::{I, X, Y, Z};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedInstruction;
-use qiskit_circuit::{BlocksMode, VarsMode};
+use qiskit_circuit::{BlocksMode, NoBlocks, VarsMode};
 use qiskit_transpiler::passes::run_optimize_1q_gates_decomposition;
 use qiskit_transpiler::target::Target;
 use rand::prelude::*;
@@ -308,7 +308,7 @@ fn generate_twirled_circuit(
 pub(crate) fn twirl_circuit(
     circ: &CircuitData,
     twirled_gate: Option<Vec<StandardGate>>,
-    custom_twirled_gates: Option<Vec<OperationFromPython>>,
+    custom_twirled_gates: Option<Vec<OperationFromPython<NoBlocks>>>,
     seed: Option<u64>,
     num_twirls: usize,
     optimizer_target: Option<&Target>,
