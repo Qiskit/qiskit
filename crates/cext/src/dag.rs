@@ -1345,14 +1345,14 @@ pub unsafe extern "C" fn qk_dag_compose(
     let local_qubits: Option<Vec<Qubit>> = if check_ptr(qubits).is_ok() {
         let qubit_slice = unsafe { std::slice::from_raw_parts(qubits, other_dag.num_qubits()) };
         Some(qubit_slice.iter().map(|&bit| Qubit(bit)).collect())
-    }  else {
+    } else {
         None
     };
 
     let local_clbits: Option<Vec<Clbit>> = if check_ptr(clbits).is_ok() {
         let clbit_slice = unsafe { std::slice::from_raw_parts(clbits, other_dag.num_clbits()) };
         Some(clbit_slice.iter().map(|&bit| Clbit(bit)).collect())
-    }  else {
+    } else {
         None
     };
 
@@ -1364,7 +1364,7 @@ pub unsafe extern "C" fn qk_dag_compose(
         block_map,
         false,
     )
-        .expect("Error during circuit composition.");
+    .expect("Error during circuit composition.");
     ExitCode::Success
 }
 
