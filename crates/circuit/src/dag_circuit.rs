@@ -1076,12 +1076,10 @@ impl DAGCircuit {
     ///
     /// Args:
     ///     angle (float, :class:`.ParameterExpression`): The phase angle.
-    #[setter]
-    pub fn set_global_phase(&mut self, angle: Param) -> PyResult<()> {
+    #[setter(global_phase)]
+    pub fn set_global_phase_param(&mut self, angle: Param) -> PyResult<()> {
         match angle {
-            Param::Float(angle) => {
-                self.global_phase = Param::Float(angle.rem_euclid(2. * PI));
-            }
+            Param::Float(angle) => self.set_global_phase_f64(angle),
             Param::ParameterExpression(angle) => {
                 self.global_phase = Param::ParameterExpression(angle);
             }
@@ -6478,6 +6476,14 @@ impl DAGCircuit {
         Ok((in_node, out_node))
     }
 
+    /// Set the global phase to a float value.
+    ///
+    /// Unlike the general [set_global_phase_param], this is infallible.
+    #[inline]
+    pub fn set_global_phase_f64(&mut self, angle: f64) {
+        self.global_phase = Param::Float(angle.rem_euclid(::std::f64::consts::TAU));
+    }
+
     /// Get the nodes on the given wire.
     ///
     /// Note: result is empty if the wire is not in the DAG.
@@ -7584,7 +7590,7 @@ impl DAGCircuit {
                     "Invalid parameter type, only float and parameter expression are supported",
                 ));
             }
-            _ => self.set_global_phase(add_global_phase(&self.global_phase, value))?,
+            _ => self.set_global_phase_param(add_global_phase(&self.global_phase, value))?,
         }
         Ok(())
     }
