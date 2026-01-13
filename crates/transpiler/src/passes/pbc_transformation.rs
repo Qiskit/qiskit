@@ -22,15 +22,14 @@ use qiskit_circuit::operations::{OperationRef, Param, PyGate, StandardGate};
 use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
 use qiskit_quantum_info::sparse_observable::PySparseObservable;
 
+type GateToPBCType<'a> = (&'static [(&'static str, f64, &'static [u32])], f64);
+
 /// Map gates to a list of equivalent Pauli rotations and a global phase.
 /// Each element of the list is of the form ((Pauli string, phase rescale factor, [qubit indices]), global phase).
 /// For gates that didn't have a phase (e.g. X)
 /// the phase rescale factor is simply the phase of the rotation gate. The convention is
 /// `original_gate = PauliEvolutionGate(pauli, phase) * e^{i global_phase * phase}`
-
-fn replace_gate_by_pauli_rotation(
-    gate: StandardGate,
-) -> (&'static [(&'static str, f64, &'static [u32])], f64) {
+fn replace_gate_by_pauli_rotation(gate: StandardGate) -> GateToPBCType<'static> {
     match gate {
         StandardGate::I => (&[("I", 0.0, &[0])], 0.0),
         StandardGate::X => (&[("X", FRAC_PI_2, &[0])], FRAC_PI_2),
@@ -163,8 +162,8 @@ fn replace_gate_by_pauli_rotation(
             0.25,
         ),
         StandardGate::CRZ => (&[("ZZ", -0.25, &[0, 1]), ("Z", 0.25, &[1])], 0.0),
-        StandardGate::CRX => (&[("XZ", -0.25, &[0, 1]), ("X", 0.25, &[1])], 0.0),
-        StandardGate::CRY => (&[("YZ", -0.25, &[0, 1]), ("Y", 0.25, &[1])], 0.0),
+        StandardGate::CRX => (&[("ZX", -0.25, &[0, 1]), ("X", 0.25, &[1])], 0.0),
+        StandardGate::CRY => (&[("ZY", -0.25, &[0, 1]), ("Y", 0.25, &[1])], 0.0),
         _ => unreachable!(
             "This is only called for one and two qubit gates with no paramers or with a single parameter."
         ),
@@ -213,7 +212,7 @@ pub fn py_pbc_transformation(py: Python, dag: &mut DAGCircuit) -> PyResult<DAGCi
                                 paulis.chars().rev().collect::<String>().as_str(),
                             )?;
                             let py_evo_cls = PAULI_EVOLUTION_GATE.get_bound(py);
-                            let py_evo = py_evo_cls.call1((py_pauli, time.clone()))?;
+                            let py_evo = py_evo_cls.call1((py_pauli, time))?;
                             let py_gate = PyGate {
                                 qubits: qubits.len() as u32,
                                 clbits: 0,
