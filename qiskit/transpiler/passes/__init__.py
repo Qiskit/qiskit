@@ -89,6 +89,7 @@ Optimizations
    OptimizeCliffordT
    OptimizeCliffords
    OptimizeSwapBeforeMeasure
+   PBCTransformation
    RemoveDiagonalGatesBeforeMeasure
    RemoveFinalReset
    RemoveIdentityEquivalent
@@ -240,6 +241,7 @@ from .optimization import OptimizeAnnotated
 from .optimization import OptimizeCliffordT
 from .optimization import OptimizeCliffords
 from .optimization import OptimizeSwapBeforeMeasure
+from .optimization import PBCTransformation
 from .optimization import RemoveDiagonalGatesBeforeMeasure
 from .optimization import RemoveFinalReset
 from .optimization import RemoveIdentityEquivalent
