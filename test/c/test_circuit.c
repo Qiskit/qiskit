@@ -818,6 +818,7 @@ static int test_unitary_gate_1q(void) {
     QkComplex64 c1 = {1.0, 0.0};
     QkComplex64 matrix[4] = {c1, c0,  // this
                              c0, c1}; // is
+    QkComplex64 *out = malloc(sizeof(QkComplex64) * 4);
 
     int ec = qk_circuit_unitary(qc, matrix, qubits, 1, false);
     if (ec != QkExitCode_Success) {
@@ -830,6 +831,22 @@ static int test_unitary_gate_1q(void) {
     size_t num_inst = qk_circuit_num_instructions(qc);
     if (num_inst != 1) {
         result = EqualityError;
+        goto cleanup;
+    }
+
+    // Check the instruction's kind
+    uint32_t index = num_inst - 1;
+    QkOperationKind kind = qk_circuit_instruction_kind(qc, index);
+    if (kind != QkOperationKind_Unitary) {
+        result = EqualityError;
+        printf("Expected instruction kind %d but got %d\n", QkOperationKind_Unitary, kind);
+        goto cleanup;
+    }
+    memset(out, 0, sizeof(QkComplex64) * 4);
+    qk_circuit_inst_unitary(qc, index, out);
+    if (memcmp(out, matrix, sizeof(QkComplex64) * 4) != 0) {
+        result = EqualityError;
+        printf("Unitary matrix does not match expected\n");
         goto cleanup;
     }
 
@@ -852,6 +869,7 @@ static int test_unitary_gate_1q(void) {
 
 cleanup:
     qk_circuit_free(qc);
+    free(out);
     return result;
 }
 
@@ -873,6 +891,8 @@ static int test_unitary_gate_3q(void) {
                               c0, c0, c0, c0, c0, c0, c1, c0,  // look
                               c0, c0, c0, c0, c0, c0, c0, c1}; // like a matrix
 
+    size_t dim = 1LLU << 3;
+    QkComplex64 *out = malloc(sizeof(QkComplex64) * dim * dim);
     int ec = qk_circuit_unitary(qc, matrix, qubits, 3, false);
     if (ec != QkExitCode_Success) {
         qk_circuit_free(qc);
@@ -884,6 +904,23 @@ static int test_unitary_gate_3q(void) {
     size_t num_inst = qk_circuit_num_instructions(qc);
     if (num_inst != 1) {
         result = EqualityError;
+        goto cleanup;
+    }
+
+    // Check the instruction's kind
+    uint32_t index = qk_circuit_num_instructions(qc) - 1;
+    QkOperationKind kind = qk_circuit_instruction_kind(qc, index);
+    if (kind != QkOperationKind_Unitary) {
+        result = EqualityError;
+        printf("Expected instruction kind %d but got %d\n", QkOperationKind_Unitary, kind);
+        goto cleanup;
+    }
+
+    memset(out, 0, sizeof(QkComplex64) * dim * dim);
+    qk_circuit_inst_unitary(qc, num_inst - 1, out);
+    if (memcmp(out, matrix, sizeof(QkComplex64) * dim * dim) != 0) {
+        result = EqualityError;
+        printf("Unitary matrix does not match expected\n");
         goto cleanup;
     }
 
