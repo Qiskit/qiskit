@@ -15,7 +15,7 @@ use qiskit_circuit::Qubit;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{Param, StandardInstruction, multiply_param, radd_param};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_quantum_info::sparse_observable::{SparseObservable, SparseTermView};
+use qiskit_quantum_info::sparse_observable::SparseObservable;
 use qiskit_synthesis::evolution::suzuki_trotter::{evolution, reorder_terms};
 use smallvec::smallvec;
 
@@ -27,7 +27,7 @@ pub fn suzuki_trotter_evolution(
     preserve_order: bool,
     insert_barriers: bool,
 ) -> Result<CircuitData, String> {
-    if order > 1 && order % 2 == 1 || order == 0 {
+    if order > 1 && order % 2 != 0 {
         return Err(format!(
             "Suzuki product formulae are symmetric and therefore only defined \
             for when the order is 1 or even, not {}.",
@@ -35,44 +35,37 @@ pub fn suzuki_trotter_evolution(
         ));
     }
 
-    // TODO:
-    // At this point, terms shouldn't be passed to the reorder method, that method should return
-    // just indices, the indices then be collected in a vec of usize
-    // and consequently, use the vec<usize> for obtaining the term
     let terms_iter = observable.iter().map(|mut view| {
-        view.coeff.re = view.coeff.re * time * 2.0 / (reps as f64);
+        view.coeff.re *= time * 2.0 / (reps as f64);
         view
     });
-    let parsed_observable = if preserve_order || !preserve_order && observable.bit_terms().len() <= 1 {
-            terms_iter.collect()
-        } else {
-            reorder_terms(terms_iter)?
-        };
+    let terms = if preserve_order || !preserve_order && observable.bit_terms().len() <= 1 {
+        terms_iter.collect()
+    } else {
+        reorder_terms(terms_iter)?
+    };
 
     // execute evolution
-    let evo: Vec<SparseTermView> = evolution(order, parsed_observable.len()).map(|(index, coeff)| {
-        let mut term = parsed_observable[index].clone();
-        term.coeff.re = term.coeff.re * coeff; // TODO: after refactor add -> * (time * 2.0 / (reps as f64))
-        term
-    }).collect();
-
-    let mut global_phase = Param::Float(0.0);
-    let mut modified_phase = false;
+    let evo: Vec<(usize, f64)> = evolution(order, terms.len());
 
     // convert terms into instructions for circuit creation
     let repetitions = evo.len() as u32 * reps;
     let iter_repeated = evo.iter().cycle().take(repetitions as usize);
 
-    for view in iter_repeated.clone() {
+    let mut global_phase = Param::Float(0.0);
+    let mut modified_phase = false;
+    for (index, coeff) in iter_repeated.clone() {
+        let view = &terms[*index];
         if view.bit_terms.len() == 0 {
-            global_phase = radd_param(global_phase, view.coeff.re.into());
+            global_phase = radd_param(global_phase, (view.coeff.re * coeff).into());
             modified_phase = true;
         }
     }
 
     let repeated_evo = iter_repeated
         .enumerate()
-        .map(|(i, view)| {
+        .map(|(i, (index, coeff))| {
+            let view = &terms[*index];
             let instructions = sparse_term_evolution(
                 view.bit_terms
                     .iter()
@@ -80,7 +73,7 @@ pub fn suzuki_trotter_evolution(
                     .collect::<String>()
                     .leak(),
                 view.indices.into(),
-                view.coeff.re.into(),
+                (view.coeff.re * coeff).into(),
                 false,
                 false,
             )

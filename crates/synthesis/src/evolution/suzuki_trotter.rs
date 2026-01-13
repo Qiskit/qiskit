@@ -20,36 +20,34 @@ use rustworkx_core::petgraph::{Graph, Undirected};
 use std::convert::Infallible;
 use std::usize;
 
-pub fn evolution(order: u32, num_paulis: usize) -> Box<dyn Iterator<Item = (usize, f64)>> {
+pub fn evolution(order: u32, num_paulis: usize) -> Vec<(usize, f64)> {
     return match order {
-        1 => Box::new((0..num_paulis).map(|i| (i, 1.))),
-        2 => Box::new(
-            (0..num_paulis - 1)
-                .map(|i| (i, 0.5))
-                .chain(::std::iter::once((num_paulis - 1, 1.)))
-                .chain((0..num_paulis - 1).rev().map(|i| (i, 0.5))),
-        ),
+        1 => (0..num_paulis).map(|i| (i, 1.)).collect(),
+        2 => (0..num_paulis - 1)
+            .map(|i| (i, 0.5))
+            .chain(::std::iter::once((num_paulis - 1, 1.)))
+            .chain((0..num_paulis - 1).rev().map(|i| (i, 0.5)))
+            .collect(),
         _ => {
             let reduction = 1.0 / (4.0 - 4_f64.powf(1.0 / (order as f64 - 1.0)));
-            Box::new(
-                evolution(order - 2, num_paulis)
-                    .map(|p| {
-                        let mut outer = p.clone();
-                        outer.1 *= reduction as f64;
-                        let mut inner = p;
-                        inner.1 *= (1.0 - 4.0 * reduction) as f64;
-                        [
-                            (outer, 0),
-                            (outer.clone(), 1),
-                            (inner, 2),
-                            (outer.clone(), 3),
-                            (outer.clone(), 4),
-                        ]
-                    })
-                    .flatten()
-                    .sorted_by_key(|item| item.1)
-                    .map(|item| item.0),
-            )
+            let mut outer = evolution(order - 2, num_paulis);
+            let outer_len = outer.len();
+            outer.iter_mut().for_each(|p| {
+                p.1 *= reduction as f64;
+            });
+            let mut outer: Vec<(usize, f64)> =
+                outer.into_iter().cycle().take(outer_len * 2).collect();
+            let mut outer_r = outer.clone();
+
+            let mut inner = evolution(order - 2, num_paulis);
+            inner.iter_mut().for_each(|p| {
+                p.1 *= (1.0 - 4.0 * reduction) as f64;
+            });
+
+            outer.append(&mut inner);
+            outer.append(&mut outer_r);
+
+            outer
         }
     };
 }
