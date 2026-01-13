@@ -13,12 +13,10 @@
 """Test Substitute Pi/4-Rotations optimization pass"""
 
 from ddt import ddt
-import numpy as np
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.random import random_clifford_circuit
 from qiskit.transpiler.passes import PBCTransformation
-from qiskit.quantum_info import Operator, get_clifford_gate_names
+from qiskit.quantum_info import Operator
 from qiskit.circuit.library import (
     RXGate,
     RYGate,
@@ -63,7 +61,8 @@ class TestPBCTransformation(QiskitTestCase):
         global_phase=[0, 1.0, -3.0],
     )
     def test_rotation_gates_transpiled(self, gate, angle, global_phase):
-        """Test that standard 1-qubit and 2-qubit rotation gates are translated into Pauli product rotatations correctly."""
+        """Test that standard 1-qubit and 2-qubit rotation gates are translated into
+        Pauli product rotatations correctly."""
         num_qubits = gate(angle).num_qubits
         qc = QuantumCircuit(num_qubits)
         qc.global_phase = global_phase
