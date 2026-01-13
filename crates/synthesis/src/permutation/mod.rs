@@ -120,7 +120,7 @@ pub(crate) fn _append_cx_stage1(gates: &mut LnnGatesVec, n: usize) {
         ))
     }
 
-    for i in 0..(n.div_ceil(2) - 1) {
+    for i in 0..(n.div_ceil(2).saturating_sub(1)) {
         gates.push((
             StandardGate::CX,
             smallvec![],
