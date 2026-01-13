@@ -2335,6 +2335,40 @@ class TestSparseObservable(QiskitTestCase):
         with self.assertRaisesRegex(ValueError, "duplicate indices in qargs"):
             SparseObservable.identity(5).compose("XYZX", qargs=[0, 1, 1, 0])
 
+    def test_evolve_simple_pauli_by_identity(self):
+        """Test that evolving by identity preserves the observable."""
+        obs = SparseObservable.from_label("X")
+        ident = SparseObservable.identity(1)
+        result = obs.evolve(ident)
+        self.assertEqual(result, obs)
+
+    def test_evolve_simple_pauli_by_pauli(self):
+        """Test X evolved by X gives X."""
+        obs = SparseObservable.from_label("X")
+        result = obs.evolve(obs)
+        self.assertEqual(result, obs)
+
+    def test_evolve_z_by_x(self):
+        """Test Z evolved by X gives -Z."""
+        z = SparseObservable.from_label("Z")
+        x = SparseObservable.from_label("X")
+        result = z.evolve(x)
+        expected = SparseObservable.from_list([("Z", -1.0)])
+        self.assertEqual(result.simplify(), expected.simplify())
+
+    def test_evolve_projector_by_identity(self):
+        """Test projector evolved by identity is preserved."""
+        obs = SparseObservable.from_label("0")  # Zero projector
+        ident = SparseObservable.identity(1)
+        result = obs.evolve(ident)
+        self.assertEqual(result, obs)
+
+    def test_evolve_multiterm_fails(self):
+        """Test that multi-term evolution raises error."""
+        obs = SparseObservable.from_label("X")
+        multi = SparseObservable.from_list([("X", 1.0), ("Y", 1.0)])
+        with self.assertRaisesRegex(ValueError, "single-term"):
+            obs.evolve(multi)
 
 def canonicalize_term(pauli, indices, coeff):
     # canonicalize a sparse list term by sorting by indices (which is unique as

@@ -12,9 +12,11 @@
 
 mod lookup;
 
+use core::panic;
 use hashbrown::HashSet;
 use indexmap::IndexSet;
 use itertools::Itertools;
+use lookup::conjugate_bitterm;
 use ndarray::Array2;
 use num_complex::Complex64;
 use num_traits::Zero;
@@ -280,6 +282,9 @@ pub enum LabelError {
 pub enum ArithmeticError {
     #[error("mismatched numbers of qubits: {left}, {right}")]
     MismatchedQubits { left: u32, right: u32 },
+
+    #[error("invalid operation: {0}")]
+    InvalidOperation(String),
 }
 
 /// One part of the type of the iteration value from [PairwiseOrdered].
@@ -848,6 +853,109 @@ impl SparseObservable {
             }
         }
         out
+    }
+
+    /// Evolve this [SparseObservable] by another one.
+    ///
+    /// In terms of operator algebra, evolution corresponds to conjugation:
+    /// ``let b = a.evolve(u);`` corresponds to $B = U^\dag A U$.
+    ///
+    /// This implements Heisenberg-picture evolution of the observable.  Unlike a
+    /// literal implementation via two full compositions, this method performs the
+    /// conjugation directly at the single-qubit level using a fixed lookup table
+    /// for ``P^\dag Q P``.  This avoids materialising any intermediate
+    /// [SparseObservable] and computes the evolved observable in a single pass.
+    ///
+    /// Currently, this method supports evolution only by a *single-term* operator,
+    /// where each local factor is a Pauli or projector [BitTerm].  If `u` contains
+    /// more than one term, this function will panic.
+    ///
+    /// # Panics
+    ///
+    /// * If `self` and `u` have different numbers of qubits.
+    /// * If `u` contains more than one term.
+    pub fn evolve(&self, op: &SparseObservable) -> Result<SparseObservable, ArithmeticError> {
+        if self.num_qubits != op.num_qubits {
+            return Err(ArithmeticError::MismatchedQubits {
+                left: self.num_qubits,
+                right: op.num_qubits,
+            });
+        }
+        if op.num_terms() != 1 {
+            return Err(ArithmeticError::InvalidOperation(
+                "evolve only supports single-term operators".to_string(),
+            ));
+        }
+
+        let t = op.iter().next().unwrap();
+
+        let mut layout = vec![None; self.num_qubits as usize];
+        for (q, bt) in t.indices.iter().zip(t.bit_terms.iter()) {
+            layout[*q as usize] = Some(*bt);
+        }
+
+        let mut out = SparseObservable::zero(self.num_qubits);
+
+        for term in self.iter() {
+            let mut frontier = vec![(term.coeff, Vec::<u32>::new(), Vec::<BitTerm>::new())];
+
+            for q in 0..self.num_qubits as usize {
+                let op_bt = layout[q];
+                let term_bt = term
+                    .indices
+                    .iter()
+                    .position(|&i| i as usize == q)
+                    .map(|idx| term.bit_terms[idx]);
+                let mut next_frontier = Vec::new();
+
+                for (coeff, indices, bit_terms) in frontier {
+                    match (op_bt, term_bt) {
+                        (None, None) => {
+                            next_frontier.push((coeff, indices, bit_terms));
+                        }
+                        (None, Some(bt)) => {
+                            let mut indices = indices;
+                            let mut bit_terms = bit_terms;
+                            indices.push(q as u32);
+                            bit_terms.push(bt);
+                            next_frontier.push((coeff, indices, bit_terms));
+                        }
+                        (Some(_), None) => {
+                            next_frontier.push((coeff, indices, bit_terms));
+                        }
+                        (Some(p), Some(qbt)) => {
+                            let outputs = conjugate_bitterm(p, qbt);
+                            if !outputs.is_empty() {
+                                for &(c, new_bt) in outputs {
+                                    let mut new_indices = indices.clone();
+                                    let mut new_bit_terms = bit_terms.clone();
+                                    new_indices.push(q as u32);
+                                    new_bit_terms.push(new_bt);
+                                    next_frontier.push((coeff * c, new_indices, new_bit_terms));
+                                }
+                            }
+                        }
+                    }
+                }
+
+                frontier = next_frontier;
+                if frontier.is_empty() {
+                    break;
+                }
+            }
+
+            for (coeff, indices, bit_terms) in frontier {
+                if coeff == Complex64::new(0.0, 0.0) {
+                    continue;
+                }
+                out.coeffs.push(coeff);
+                out.indices.extend(indices);
+                out.bit_terms.extend(bit_terms);
+                out.boundaries.push(out.indices.len());
+            }
+        }
+
+        Ok(out)
     }
 
     /// Get a view onto a representation of a single sparse term.
@@ -3491,6 +3599,51 @@ impl PySparseObservable {
                 inner.compose(&other_inner).into_pyobject(py)
             }
         }
+    }
+
+    /// Evolve this :class:`SparseObservable` by another one.
+    ///
+    /// In terms of operator algebra, evolution corresponds to conjugation:
+    /// ``b = a.evolve(u)`` corresponds to $B = U^\dag A U$.  This implements
+    /// Heisenberg-picture evolution of the observable.
+    ///
+    /// Unlike a literal implementation via two full compositions, this method
+    /// performs the conjugation directly at the single-qubit level using a fixed
+    /// lookup table for ``P^\dag Q P``.  This avoids materialising any intermediate
+    /// :class:`SparseObservable` and computes the evolved observable in a single
+    /// pass over the terms.
+    ///
+    /// Currently, this method supports evolution only by a *single-term* operator.
+    /// Each local factor of ``u`` must be a Pauli or projector term.  Multi-term
+    /// evolution operators are not supported.
+    ///
+    /// Beware that, even in this restricted form, evolution can change the
+    /// structure of the observable by flipping signs or exchanging projector
+    /// terms.  However, unlike general composition, this operation cannot cause
+    /// combinatorial growth in the number of terms.
+    ///
+    /// Args:
+    ///     u: the observable used to conjugate ``self``.
+    ///
+    /// Raises:
+    ///     ValueError: if ``self`` and ``u`` have different numbers of qubits.
+    ///     ValueError: if ``u`` contains more than one term.
+    #[pyo3(signature = (u, /))]
+    fn evolve<'py>(&self, u: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PySparseObservable>> {
+        let py = u.py();
+        let Some(u) = coerce_to_observable(u)? else {
+            return Err(PyTypeError::new_err("invalid type for evolve"));
+        };
+
+        let base = self.inner.read().map_err(|_| InnerReadError)?;
+        let u_inner = u.borrow();
+        let u_inner = u_inner.inner.read().map_err(|_| InnerReadError)?;
+
+        let out = base
+            .evolve(&u_inner)
+            .map_err(|e| PyValueError::new_err(e.to_string()))?;
+
+        out.into_pyobject(py)
     }
 
     /// Apply a transpiler layout to this :class:`SparseObservable`.
