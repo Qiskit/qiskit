@@ -92,8 +92,12 @@ from qiskit.quantum_info import Operator, random_unitary
 from qiskit.utils import should_run_in_parallel
 from qiskit.transpiler import CouplingMap, Layout, PassManager, passes
 from qiskit.transpiler.exceptions import TranspilerError, CircuitTooWideForTarget
-from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, GateDirection, VF2PostLayout
-from qiskit.transpiler.passes.utils.wrap_angles import WRAP_ANGLE_REGISTRY
+from qiskit.transpiler.passes import (
+    BarrierBeforeFinalMeasurements,
+    GateDirection,
+    VF2PostLayout,
+    WrapAngles,
+)
 
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager, level_0_pass_manager
@@ -2271,14 +2275,18 @@ class TestTranspile(QiskitTestCase):
             num_qubits=5,
             basis_gates=["id", "sx", "x", "cx", "rz"],
             coupling_map=coupling_map,
-            seed=0,
+            seed=123,
         )
         qubits = 3
         qc = QuantumCircuit(qubits)
         for i in range(5):
             qc.cx(i % qubits, int(i + qubits / 2) % qubits)
 
-        # transpile with no gate errors
+        # The point of this test is to test that error rates are still checked when there's a custom
+        # `dt` set.  For that test to work, we need to check that compiling explicitly without
+        # errors produces a different layout to transpiling with them, so we can then later check
+        # that the "custom dt" transpile matches the "with errors" case.
+
         tqc_no_error = transpile(qc, coupling_map=coupling_map, seed_transpiler=4242)
         # transpile with gate errors
         tqc_no_dt = transpile(qc, backend=backend, seed_transpiler=4242)
@@ -2763,18 +2771,24 @@ class TestPostTranspileIntegration(QiskitTestCase):
 
         vf2_post_layout_called = False
 
-        def callback(**kwargs):
+        def callback(pass_, property_set, **_):
             nonlocal vf2_post_layout_called
-            if isinstance(kwargs["pass_"], VF2PostLayout):
+            if isinstance(pass_, VF2PostLayout):
                 vf2_post_layout_called = True
-                self.assertIsNotNone(kwargs["property_set"]["post_layout"])
+                # If this error indicates "no better solution found", the pass probably still
+                # completely successfully, but it's not longer testing what this test is actually
+                # trying to make assertions about; we need VF2PostLayout to _update_ the layout.
+                self.assertIsNotNone(
+                    property_set["post_layout"],
+                    f"Stop reason: {property_set['VF2PostLayout_stop_reason']}",
+                )
 
         coupling_map = [[0, 1], [1, 0], [1, 2], [1, 3], [2, 1], [3, 1], [3, 4], [4, 3]]
         backend = GenericBackendV2(
             num_qubits=5,
             basis_gates=["id", "sx", "x", "cx", "rz"],
             coupling_map=coupling_map,
-            seed=0,
+            seed=2025_08_08,
         )
         qubits = 3
         qc = QuantumCircuit(qubits)
@@ -2783,7 +2797,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
 
         tqc = transpile(qc, backend=backend, seed_transpiler=4242, callback=callback)
         self.assertTrue(vf2_post_layout_called)
-        self.assertEqual([2, 1, 0], _get_index_layout(tqc, qubits))
+        self.assertEqual([1, 3, 4], _get_index_layout(tqc, qubits))
 
     @data("sabre", "lookahead", "basic")
     def test_final_layout_combined_correctly(self, routing):
@@ -3224,18 +3238,12 @@ class TestTranspileParallel(QiskitTestCase):
             CZGate(),
             {(0, 1): InstructionProperties(error=5e-3), (1, 0): InstructionProperties(error=5e-3)},
         )
-        global WRAP_ANGLE_REGISTRY  # pylint: disable=global-statement
-        WRAP_ANGLE_REGISTRY.add_wrapper("rzz", fold_rzz)
-
-        def cleanup_wrap_registry():
-            global WRAP_ANGLE_REGISTRY  # pylint: disable=global-statement
-            WRAP_ANGLE_REGISTRY = WrapAngleRegistry()
-
-        self.addCleanup(cleanup_wrap_registry)
-
-        transpiled = transpile(
-            circs, target=target, optimization_level=opt_level, seed_transpiler=1234567890
-        )
+        registry = WrapAngleRegistry()
+        registry.add_wrapper("rzz", fold_rzz)
+        with patch.object(WrapAngles, "DEFAULT_REGISTRY", registry):
+            transpiled = transpile(
+                circs, target=target, optimization_level=opt_level, seed_transpiler=1234567890
+            )
 
         self.assertTrue(Operator.from_circuit(transpiled[0]).equiv(Operator.from_circuit(circs[0])))
         self.assertTrue(Operator.from_circuit(transpiled[1]).equiv(Operator.from_circuit(circs[1])))

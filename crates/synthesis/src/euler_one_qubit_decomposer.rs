@@ -939,7 +939,7 @@ fn params_zyz_inner(mat: ArrayView2<Complex64>) -> [f64; 4] {
     [theta, phi, lam, phase]
 }
 
-fn params_zxz_inner(mat: ArrayView2<Complex64>) -> [f64; 4] {
+pub fn params_zxz_inner(mat: ArrayView2<Complex64>) -> [f64; 4] {
     let [theta, phi, lam, phase] = params_zyz_inner(mat);
     [theta, phi + PI / 2., lam - PI / 2., phase]
 }

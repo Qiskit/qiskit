@@ -56,7 +56,7 @@ static BIT_TERM_INTO_PY: PyOnceLock<[Option<Py<PyAny>>; 16]> = PyOnceLock::new()
 ///
 /// This is just the Rust-space representation.  We make a separate Python-space `enum.IntEnum` to
 /// represent the same information, since we enforce strongly typed interactions in Rust, including
-/// not allowing the stored values to be outside the valid `BitTerm`s, but doing so in Python would
+/// not allowing the stored values to be outside the valid `BitTerm`\ s, but doing so in Python would
 /// make it very difficult to use the class efficiently with Numpy array views.  We attach this
 /// sister class of `BitTerm` to `SparseObservable` as a scoped class.
 ///
@@ -78,7 +78,7 @@ static BIT_TERM_INTO_PY: PyOnceLock<[Option<Py<PyAny>>; 16]> = PyOnceLock::new()
 /// # Dev notes
 ///
 /// This type is required to be `u8`, but it's a subtype of `u8` because not all `u8` are valid
-/// `BitTerm`s.  For interop with Python space, we accept Numpy arrays of `u8` to represent this,
+/// `BitTerm`\ s.  For interop with Python space, we accept Numpy arrays of `u8` to represent this,
 /// which we transmute into slices of `BitTerm`, after checking that all the values are correct (or
 /// skipping the check if Python space promises that it upheld the checks).
 ///
@@ -1218,6 +1218,22 @@ impl SparseObservable {
         } else {
             Ok(())
         }
+    }
+
+    /// Check whether the observable commutes with another one.
+    ///
+    /// # Arguments
+    ///
+    /// * `tol` - If coefficients in the product of `self` and `other` are below the tolerance
+    ///   (in magnitude), the terms are ignored.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the observables commute, `false` otherwise.
+    pub fn commutes(&self, other: &SparseObservable, tol: f64) -> bool {
+        let ab = self.compose(other).canonicalize(tol);
+        let ba = other.compose(self).canonicalize(tol);
+        ab == ba
     }
 }
 
@@ -3815,6 +3831,31 @@ impl PySparseObservable {
                 PyArray2::from_owned_array(py, z),
                 PyArray2::from_owned_array(py, x),
             ))
+    }
+
+    /// Check whether the observable commutes with another one.
+    ///
+    /// Args:
+    ///     other (SparseObservable): The other observable to check commutation with.
+    ///     tol (float): If coefficients in the product of `self` and `other` are below the
+    ///         tolerance (in magnitude), the terms are ignored.
+    ///
+    /// Returns:
+    ///     ``True`` if the terms commute, up to tolerance, ``False`` otherwise.
+    ///
+    /// Raises:
+    ///     TypeError: If ``other`` could not be coerced to ``SparseObservable``.
+    #[pyo3(signature = (other, tol=1e-12))]
+    pub fn commutes(&self, other: &Bound<PyAny>, tol: f64) -> PyResult<bool> {
+        let Some(other) = coerce_to_observable(other)? else {
+            return Err(PyTypeError::new_err("Invalid type of other."));
+        };
+
+        let self_inner = self.inner.read().map_err(|_| InnerReadError)?;
+        let other = other.borrow();
+        let other_inner = other.inner.read().map_err(|_| InnerReadError)?;
+
+        Ok(self_inner.commutes(&other_inner, tol))
     }
 
     fn __len__(&self) -> PyResult<usize> {

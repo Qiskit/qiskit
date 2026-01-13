@@ -189,7 +189,7 @@ def build_homogenous_target(
             for edge in cmap.get_edges():
                 qubits = into_c_array_ptr(edge, ctypes.c_uint32)
                 if not ideal_gates:
-                    error = rng.uniform(0.0, 1.0)
+                    error = rng.uniform(0.0, 0.1)
                     duration = rng.uniform(0.0, 1.0)
                 else:
                     error = float("nan")
@@ -199,7 +199,7 @@ def build_homogenous_target(
             for qubit in range(cmap.size()):
                 qubits = into_c_array_ptr([qubit], ctypes.c_uint32)
                 if not ideal_gates:
-                    error = rng.uniform(0.0, 1.0)
+                    error = rng.uniform(0.0, 0.01)
                     duration = rng.uniform(0.0, 1.0)
                 else:
                     error = float("nan")
@@ -212,7 +212,7 @@ def build_homogenous_target(
     for qubit in range(cmap.size()):
         qubits = into_c_array_ptr([qubit], ctypes.c_uint32)
         if not ideal_gates:
-            error = rng.uniform(0.0, 1.0)
+            error = rng.uniform(0.0, 0.1)
             duration = rng.uniform(0.0, 1.0)
         else:
             error = float("nan")

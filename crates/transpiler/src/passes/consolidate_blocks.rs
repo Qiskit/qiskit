@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use super::optimize_1q_gates_decomposition::matmul_1q;
 use hashbrown::{HashMap, HashSet};
 use nalgebra::Matrix2;
 use ndarray::ArrayView2;
@@ -26,21 +27,18 @@ use qiskit_circuit::gate_matrix::{
     CH_GATE, CX_GATE, CY_GATE, CZ_GATE, DCX_GATE, ECR_GATE, ISWAP_GATE, ONE_QUBIT_IDENTITY,
     TWO_QUBIT_IDENTITY,
 };
-use qiskit_circuit::imports::{QI_OPERATOR, QUANTUM_CIRCUIT};
+use qiskit_circuit::imports::QI_OPERATOR;
 use qiskit_circuit::interner::Interned;
 use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::operations::{ArrayType, Operation, Param, UnitaryGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_synthesis::two_qubit_decompose::RXXEquivalent;
-use rustworkx_core::petgraph::stable_graph::NodeIndex;
-use smallvec::SmallVec;
-use smallvec::smallvec;
-
-use super::optimize_1q_gates_decomposition::matmul_1q;
 use qiskit_quantum_info::convert_2q_block_matrix::{blocks_to_matrix, get_matrix_from_inst};
+use qiskit_synthesis::two_qubit_decompose::RXXEquivalent;
 use qiskit_synthesis::two_qubit_decompose::{
     TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer,
 };
+use rustworkx_core::petgraph::stable_graph::NodeIndex;
+use smallvec::SmallVec;
 
 use crate::passes::unitary_synthesis::{PARAM_SET, TWO_QUBIT_BASIS_SET};
 use crate::target::{Qargs, Target};
@@ -262,7 +260,7 @@ fn py_run_consolidate_blocks(
                 dag.substitute_op(
                     inst_node,
                     PackedOperation::from_unitary(Box::new(unitary_gate)),
-                    smallvec![],
+                    None,
                     None,
                 )?;
                 continue;
@@ -313,9 +311,7 @@ fn py_run_consolidate_blocks(
                 Param::Float(0.),
             )?;
             let matrix = Python::attach(|py| -> PyResult<_> {
-                let circuit = QUANTUM_CIRCUIT
-                    .get_bound(py)
-                    .call_method1(intern!(py, "_from_circuit_data"), (circuit_data,))?;
+                let circuit = circuit_data.into_py_quantum_circuit(py)?;
                 let matrix = QI_OPERATOR
                     .get_bound(py)
                     .call1((circuit,))?
@@ -338,7 +334,7 @@ fn py_run_consolidate_blocks(
                 dag.replace_block(
                     &block,
                     PackedOperation::from_unitary(Box::new(unitary_gate)),
-                    smallvec![],
+                    None,
                     None,
                     false,
                     &block_index_map,
@@ -386,7 +382,7 @@ fn py_run_consolidate_blocks(
                         dag.replace_block(
                             &block,
                             PackedOperation::from_unitary(Box::new(unitary_gate)),
-                            smallvec![],
+                            None,
                             None,
                             false,
                             &qubit_pos_map,
@@ -424,7 +420,7 @@ fn py_run_consolidate_blocks(
                 dag.substitute_op(
                     first_inst_node,
                     PackedOperation::from_unitary(Box::new(unitary_gate)),
-                    smallvec![],
+                    None,
                     None,
                 )?;
                 continue;
@@ -468,7 +464,7 @@ fn py_run_consolidate_blocks(
                 dag.replace_block(
                     &run,
                     PackedOperation::from_unitary(Box::new(unitary_gate)),
-                    smallvec![],
+                    None,
                     None,
                     false,
                     &block_index_map,
@@ -554,7 +550,7 @@ mod test_consolidate_blocks {
         target
             .add_instruction(
                 StandardGate::H.into(),
-                &[],
+                None,
                 None,
                 Some(IndexMap::from_iter([
                     (
@@ -571,7 +567,7 @@ mod test_consolidate_blocks {
         target
             .add_instruction(
                 StandardGate::CX.into(),
-                &[],
+                None,
                 None,
                 Some(IndexMap::from_iter([
                     (

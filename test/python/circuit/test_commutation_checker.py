@@ -16,7 +16,7 @@ import unittest
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 import numpy as np
-from ddt import idata, ddt
+from ddt import idata, ddt, data, unpack
 
 from qiskit.circuit import (
     AnnotatedOperation,
@@ -59,8 +59,11 @@ from qiskit.circuit.library import (
     HGate,
     UnitaryGate,
     UGate,
+    PauliEvolutionGate,
+    PauliProductMeasurement,
 )
 from qiskit.dagcircuit import DAGOpNode
+from qiskit.quantum_info import SparseObservable, SparsePauliOp, Pauli
 
 ROTATION_GATES = [
     RXGate,
@@ -360,7 +363,7 @@ class TestCommutationChecker(QiskitTestCase):
     def test_c7x_gate(self):
         """Test wide gate works correctly."""
         qargs = [Qubit() for _ in [None] * 8]
-        res = scc.commute(XGate(), qargs[:1], [], XGate().control(7), qargs, [])
+        res = scc.commute(XGate(), qargs[:1], [], XGate().control(7, annotated=False), qargs, [])
         self.assertFalse(res)
 
     def test_wide_gates_over_nondisjoint_qubits(self):
@@ -497,6 +500,102 @@ class TestCommutationChecker(QiskitTestCase):
         self.assertTrue(
             scc.commute(almost_identity, [0], [], other, [0], [], approximation_degree=1 - 1e-4)
         )
+
+    @data("pauli", "evolution", "measure")
+    def test_pauli_based_gates(self, gate_type):
+        """Test Pauli-based gates."""
+        cases = [
+            ("I", [0], "XYZ", list(range(3)), True),
+            ("ZZZZ", list(range(4)), "XXXX", list(range(4)), True),
+            ("ZZIZ", list(range(4)), "XXIX", list(range(4)), False),
+            ("ZZIIIIIIIY", list(range(10)), "YYIIIIIIIY", list(range(10)), True),
+            ("ZZIIIIIIIY", list(range(10)), "YYIIIIIIIZ", list(range(10)), False),
+            ("ZX", [1, 10], "ZIZYIZXXZXZ", list(range(11)), True),
+        ]
+
+        for p1, q1, p2, q2, expected in cases:
+            if p1 == "I" and gate_type == "measure":
+                continue  # PPM doesn't support all-identity gates
+
+            gate1 = build_pauli_gate(p1, gate_type)
+            gate2 = build_pauli_gate(p2, gate_type)
+            self.assertEqual(expected, scc.commute(gate1, q1, [], gate2, q2, []))
+
+    @data(
+        ("pauli", "measure"),
+        ("evolution", "measure"),
+        ("evolution", "pauli"),
+    )
+    @unpack
+    def test_mix_pauli_gates(self, gate_type1, gate_type2):
+        """Test commutation relations across different Pauli-based gates."""
+        cases = [
+            ("ZZIIIIIIIY", list(range(10)), "YYIIIIIIIZ", list(range(10)), False),
+            ("ZX", [1, 10], "ZIZYIZXXZXZ", list(range(11)), True),
+        ]
+
+        for p1, q1, p2, q2, expected in cases:
+            gate1 = build_pauli_gate(p1, gate_type1)
+            gate2 = build_pauli_gate(p2, gate_type2)
+            with self.subTest(p1=p1, p2=p2):
+                self.assertEqual(expected, scc.commute(gate1, q1, [], gate2, q2, []))
+
+    def test_pauli_evolution_sums(self):
+        """Test PauliEvolutionGate commutations for operators that are sums of Paulis."""
+        xxyy = PauliEvolutionGate(SparsePauliOp(["XX", "YY"]))
+        zz = PauliEvolutionGate(SparseObservable("ZZ"))
+        with self.subTest(left=xxyy, right=zz):
+            self.assertTrue(scc.commute(xxyy, [0, 1], [], zz, [0, 1], []))
+
+        swap = PauliEvolutionGate(SparsePauliOp(["II", "XX", "YY", "ZZ"]))
+        with self.subTest(left=swap, right=zz):
+            self.assertTrue(scc.commute(swap, [0, 1], [], zz, [1, 0], []))
+
+        x = PauliEvolutionGate(Pauli("X"))
+        with self.subTest(left=x, right=swap):
+            self.assertFalse(scc.commute(x, [1], [], swap, [1, 0], []))
+
+    def test_pauli_evolution_parameterized(self):
+        """Test PauliEvolutionGate commutations for parameterized times."""
+        z = PauliEvolutionGate(SparsePauliOp([20 * "Z"]), time=Parameter("z"))
+        xy = PauliEvolutionGate(SparsePauliOp([10 * "X" + 10 * "Y"]))
+        qargs = list(range(20))
+        with self.subTest(left=z, right=xy):
+            self.assertTrue(scc.commute(z, qargs, [], xy, qargs, []))
+
+        max_qubits = 3
+        with self.subTest(left=z, right=xy, max_qubits=max_qubits):
+            self.assertFalse(scc.commute(z, qargs, [], xy, qargs, [], max_num_qubits=max_qubits))
+
+        x = PauliEvolutionGate(SparsePauliOp([19 * "X" + "I"]))
+        with self.subTest(left=z, right=x):
+            self.assertFalse(scc.commute(z, qargs, [], x, qargs, []))
+
+
+def build_pauli_gate(pauli_string: str, gate_type: str) -> Gate:
+    """Build a Pauli-based gate off a Pauli string.
+
+    The gate types are
+
+        * ``"pauli"`` for ``PauliGate``
+        * ``"measure"`` for ``PauliProductMeasurement``
+        * ``"evolution"`` for ``PauliEvolutionGate``
+
+    Args:
+        pauli_string: The Pauli string (e.g. "XZII").
+        gate_type: The gate type.
+
+    Returns:
+        The gate.
+    """
+    if gate_type == "pauli":
+        return PauliGate(pauli_string)
+    if gate_type == "measure":
+        return PauliProductMeasurement(Pauli(pauli_string))
+    if gate_type == "evolution":
+        return PauliEvolutionGate(SparseObservable(pauli_string))
+
+    raise ValueError(f"Invalid gate type: {gate_type}")
 
 
 if __name__ == "__main__":

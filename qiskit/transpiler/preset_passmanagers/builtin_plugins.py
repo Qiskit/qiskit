@@ -47,6 +47,7 @@ from qiskit.transpiler.passes.optimization import (
     RemoveIdentityEquivalent,
     ContractIdleWiresInControlFlow,
 )
+from qiskit.transpiler.optimization_metric import OptimizationMetric
 from qiskit.transpiler.passes import Depth, Size, FixedPoint, MinimumPoint
 from qiskit.transpiler.passes.utils.gates_basis import GatesInBasis
 from qiskit.transpiler.passes.synthesis.unitary_synthesis import UnitarySynthesis
@@ -73,7 +74,11 @@ _discrete_skipped_ops = {
 class DefaultInitPassManager(PassManagerStagePlugin):
     """Plugin class for default init stage."""
 
-    def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
+    def pass_manager(self, pass_manager_config, optimization_level=None):
+        if pass_manager_config._is_clifford_t:
+            optimization_metric = OptimizationMetric.COUNT_T
+        else:
+            optimization_metric = OptimizationMetric.COUNT_2Q
 
         if optimization_level == 0:
             init = None
@@ -93,7 +98,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                     pass_manager_config.unitary_synthesis_plugin_config,
                     pass_manager_config.hls_config,
                     pass_manager_config.qubits_initially_zero,
-                    pass_manager_config._is_clifford_t,
+                    optimization_metric,
                 )
         elif optimization_level == 1:
             init = PassManager()
@@ -113,7 +118,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                     pass_manager_config.unitary_synthesis_plugin_config,
                     pass_manager_config.hls_config,
                     pass_manager_config.qubits_initially_zero,
-                    pass_manager_config._is_clifford_t,
+                    optimization_metric,
                 )
             init.append(
                 [
@@ -131,7 +136,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                 pass_manager_config.unitary_synthesis_plugin_config,
                 pass_manager_config.hls_config,
                 pass_manager_config.qubits_initially_zero,
-                pass_manager_config._is_clifford_t,
+                optimization_metric,
             )
             if pass_manager_config.routing_method != "none":
                 init.append(ElidePermutations())
@@ -466,7 +471,7 @@ class NoneRoutingPassManager(PassManagerStagePlugin):
 class OptimizationPassManager(PassManagerStagePlugin):
     """Plugin class for optimization stage"""
 
-    def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
+    def pass_manager(self, pass_manager_config, optimization_level=None):
         """Build pass manager for optimization stage."""
 
         # Use the dedicated plugin for the Clifford+T basis when appropriate.
@@ -994,7 +999,7 @@ def _get_trial_count(default_trials=5):
 class CliffordTOptimizationPassManager(PassManagerStagePlugin):
     """Plugin class for optimization stage"""
 
-    def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
+    def pass_manager(self, pass_manager_config, optimization_level=None):
         """Build pass manager for optimization stage."""
 
         # Obtain the translation method required for this pass to work

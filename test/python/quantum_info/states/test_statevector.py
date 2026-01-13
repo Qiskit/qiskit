@@ -41,6 +41,65 @@ logger = logging.getLogger(__name__)
 class TestStatevector(QiskitTestCase):
     """Tests for Statevector class."""
 
+    def test_from_circuit_bell_state(self):
+        """Test from_circuit creates Bell state correctly."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        sv = Statevector.from_circuit(qc)
+        expected_data = np.array([1 / np.sqrt(2), 0, 0, 1 / np.sqrt(2)])
+        expected = Statevector(expected_data)
+
+        self.assertTrue(sv.equiv(expected))
+
+    def test_from_circuit_transpilation_consistency(self):
+        """Statevector.from_circuit gives consistent results under transpilation."""
+
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.swap(1, 2)
+        qc.z(0)
+
+        backend = BasicSimulator()
+        transpiled_opt0 = transpile(qc, backend, optimization_level=0)
+        transpiled_opt2 = transpile(qc, backend, optimization_level=2)
+
+        sv1 = Statevector.from_circuit(transpiled_opt0)
+        sv2 = Statevector.from_circuit(transpiled_opt2)
+
+        self.assertTrue(sv1.equiv(sv2))
+
+        sv2_nolayout = Statevector.from_circuit(transpiled_opt2, ignore_set_layout=True)
+        self.assertFalse(sv1.equiv(sv2_nolayout))
+
+    def test_from_circuit_vs_manual_method(self):
+        """Test from_circuit matches manual operator evolution."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        sv1 = Statevector.from_circuit(qc)
+
+        initial_state = Statevector.from_label("00")
+        op = Operator.from_circuit(qc)
+        sv2 = initial_state.evolve(op)
+
+        self.assertTrue(sv1.equiv(sv2))
+
+    def test_from_circuit_ignore_layout(self):
+        """Test from_circuit with ignore_set_layout parameter."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        # Without layout, both should give same result
+        sv1 = Statevector.from_circuit(qc, ignore_set_layout=False)
+        sv2 = Statevector.from_circuit(qc, ignore_set_layout=True)
+
+        self.assertTrue(sv1.equiv(sv2))
+
     @classmethod
     def rand_vec(cls, n, normalize=False):
         """Return complex vector or statevector"""
@@ -150,7 +209,7 @@ class TestStatevector(QiskitTestCase):
         qc.x(0)
         qc.h(1)
         gate = qc.to_gate()
-        gate_ctrl = gate.control()
+        gate_ctrl = gate.control(annotated=False)
 
         circuit = QuantumCircuit(3)
         circuit.x(0)
