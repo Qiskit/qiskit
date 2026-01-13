@@ -12,19 +12,22 @@
 
 use crate::QiskitError;
 use pyo3::prelude::*;
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::operations::{Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, NoBlocks, Qubit};
 use smallvec::{SmallVec, smallvec};
 
-type CCXChainItem = PyResult<(
-    PackedOperation,
-    SmallVec<[Param; 3]>,
-    Vec<Qubit>,
-    Vec<Clbit>,
-)>;
+type CCXChainItem = Result<
+    (
+        PackedOperation,
+        SmallVec<[Param; 3]>,
+        Vec<Qubit>,
+        Vec<Clbit>,
+    ),
+    CircuitDataError,
+>;
 
 /// A Toffoli chain, implementing a multi-control condition on all controls using
 /// ``controls.len() - 1`` auxiliary qubits.
@@ -142,7 +145,7 @@ pub fn mcmt_v_chain(
 
     // Finally we add the V-chain (or return in case of 1 control).
     if num_ctrl_qubits == 1 {
-        CircuitData::from_packed_operations(
+        Ok(CircuitData::from_packed_operations(
             num_qubits as u32,
             0,
             flip_control_state
@@ -150,7 +153,7 @@ pub fn mcmt_v_chain(
                 .chain(targets)
                 .chain(flip_control_state),
             Param::Float(0.0),
-        )
+        )?)
     } else {
         // If the number of controls is larger than 1, and we need to apply the V-chain,
         // create it here and sandwich the targets in-between.
@@ -159,7 +162,7 @@ pub fn mcmt_v_chain(
         let down_chain = ccx_chain(&controls, &auxiliaries);
         let up_chain = ccx_chain(&controls, &auxiliaries).rev();
 
-        CircuitData::from_packed_operations(
+        Ok(CircuitData::from_packed_operations(
             num_qubits as u32,
             0,
             flip_control_state
@@ -169,6 +172,6 @@ pub fn mcmt_v_chain(
                 .chain(up_chain)
                 .chain(flip_control_state),
             Param::Float(0.0),
-        )
+        )?)
     }
 }
