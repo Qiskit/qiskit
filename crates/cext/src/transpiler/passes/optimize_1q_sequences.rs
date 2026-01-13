@@ -14,7 +14,10 @@ use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 use qiskit_circuit::{
     circuit_data::CircuitData, converters::dag_to_circuit, dag_circuit::DAGCircuit,
 };
-use qiskit_transpiler::{passes::run_optimize_1q_gates_decomposition, target::Target};
+use qiskit_transpiler::{
+    passes::{Optimize1qGatesDecompositionState, run_optimize_1q_gates_decomposition},
+    target::Target,
+};
 
 /// @ingroup QkTranspilerPasses
 /// Runs the Optimize1qGatesDecomposition pass in standalone mode on a circuit.
@@ -88,8 +91,9 @@ pub unsafe extern "C" fn qk_transpiler_standalone_optimize_1q_sequences(
     let mut circuit_as_dag = DAGCircuit::from_circuit_data(circuit, false, None, None, None, None)
         .expect("Error while converting the circuit to a dag.");
 
+    let state = Optimize1qGatesDecompositionState::new(target, None, None).unwrap();
     // Run the pass
-    run_optimize_1q_gates_decomposition(&mut circuit_as_dag, target, None, None)
+    run_optimize_1q_gates_decomposition(&mut circuit_as_dag, &state, target)
         .expect("Error while running the pass.");
 
     // Convert the DAGCircuit back to an instance of CircuitData
