@@ -60,7 +60,7 @@ class TestPBCTransformation(QiskitTestCase):
             CRYGate,
         ],
         angle=[0.1, -0.2],
-        global_phase=[0],  # , 1.0, -3.0],
+        global_phase=[0, 1.0, -3.0],
     )
     def test_rotation_gates_transpiled(self, gate, angle, global_phase):
         """Test that standard 1-qubit and 2-qubit rotation gates are translated into Pauli product rotatations correctly."""
