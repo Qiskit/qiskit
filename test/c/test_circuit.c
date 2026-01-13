@@ -835,8 +835,7 @@ static int test_unitary_gate_1q(void) {
     }
 
     // Check the instruction's kind
-    uint32_t index = num_inst - 1;
-    QkOperationKind kind = qk_circuit_instruction_kind(qc, index);
+    QkOperationKind kind = qk_circuit_instruction_kind(qc, num_inst - 1);
     if (kind != QkOperationKind_Unitary) {
         result = EqualityError;
         printf("Expected instruction kind %d but got %d\n", QkOperationKind_Unitary, kind);
@@ -908,8 +907,7 @@ static int test_unitary_gate_3q(void) {
     }
 
     // Check the instruction's kind
-    uint32_t index = qk_circuit_num_instructions(qc) - 1;
-    QkOperationKind kind = qk_circuit_instruction_kind(qc, index);
+    QkOperationKind kind = qk_circuit_instruction_kind(qc, num_inst - 1);
     if (kind != QkOperationKind_Unitary) {
         result = EqualityError;
         printf("Expected instruction kind %d but got %d\n", QkOperationKind_Unitary, kind);
@@ -942,6 +940,7 @@ static int test_unitary_gate_3q(void) {
 
 cleanup:
     qk_circuit_free(qc);
+    free(out);
     return result;
 }
 
