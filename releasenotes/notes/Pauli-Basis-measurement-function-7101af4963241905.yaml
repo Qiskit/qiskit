@@ -3,7 +3,7 @@ title: Pauli Basis measurement helper function
 ---
 features_circuits:
   - |
-    Added a new method :meth:`.QuantumCircuit.measure_pauli_basis` to measure a qubit
+    Added a new method :meth: QuantumCircuit.measure_pauli_basis to measure a qubit
     in any Pauli basis (X, Y, or Z).  
 
     - Measurements always occur physically in the Z basis.  
@@ -11,4 +11,4 @@ features_circuits:
     - Y-basis measurement applies S† followed by Hadamard before measurement.  
     - Z-basis measurement is performed directly.  
 
-    Introduced the :class:`.PauliBasis` enum (`X`, `Y`, `Z`) to specify the measurement basis.
+    Introduced the :class: "PauliBasis" enum (X, Y, Z) to specify the measurement basis.
