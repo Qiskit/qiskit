@@ -71,44 +71,36 @@ pub fn dag_to_circuit(
         dag.cregs_data().clone(),
         dag.qubit_locations().clone(),
         dag.clbit_locations().clone(),
-        dag.topological_op_nodes(false)
-            // TODO: Map to a native rust error when dag circuit is updated to not use
-            // PyErr for its rust API anymore.
-            .map_err(CircuitDataError::ErrorFromPython)?
-            .map(|node_index| {
-                let NodeType::Operation(ref instr) = dag[node_index] else {
-                    unreachable!(
-                        "The received node from topological_op_nodes() is not an Operation node."
-                    )
+        dag.topological_op_nodes(false)?.map(|node_index| {
+            let NodeType::Operation(ref instr) = dag[node_index] else {
+                unreachable!(
+                    "The received node from topological_op_nodes() is not an Operation node."
+                )
+            };
+            if copy_operations {
+                let op = match instr.op.view() {
+                    OperationRef::ControlFlow(cf) => cf.clone().into(),
+                    OperationRef::Gate(gate) => {
+                        Python::attach(|py| gate.py_deepcopy(py, None))?.into()
+                    }
+                    OperationRef::Instruction(instruction) => {
+                        Python::attach(|py| instruction.py_deepcopy(py, None))?.into()
+                    }
+                    OperationRef::Operation(operation) => {
+                        Python::attach(|py| operation.py_deepcopy(py, None))?.into()
+                    }
+                    OperationRef::StandardGate(gate) => gate.into(),
+                    OperationRef::StandardInstruction(instruction) => instruction.into(),
+                    OperationRef::Unitary(unitary) => unitary.clone().into(),
+                    OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
                 };
-                if copy_operations {
-                    let op = match instr.op.view() {
-                        OperationRef::ControlFlow(cf) => cf.clone().into(),
-                        OperationRef::Gate(gate) => Python::attach(|py| gate.py_deepcopy(py, None))
-                            .map_err(CircuitDataError::ErrorFromPython)?
-                            .into(),
-                        OperationRef::Instruction(instruction) => {
-                            Python::attach(|py| instruction.py_deepcopy(py, None))
-                                .map_err(CircuitDataError::ErrorFromPython)?
-                                .into()
-                        }
-                        OperationRef::Operation(operation) => {
-                            Python::attach(|py| operation.py_deepcopy(py, None))
-                                .map_err(CircuitDataError::ErrorFromPython)?
-                                .into()
-                        }
-                        OperationRef::StandardGate(gate) => gate.into(),
-                        OperationRef::StandardInstruction(instruction) => instruction.into(),
-                        OperationRef::Unitary(unitary) => unitary.clone().into(),
-                        OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
-                    };
-                    let mut instr = instr.clone();
-                    instr.op = op;
-                    Ok(instr)
-                } else {
-                    Ok(instr.clone())
-                }
-            }),
+                let mut instr = instr.clone();
+                instr.op = op;
+                Ok(instr)
+            } else {
+                Ok(instr.clone())
+            }
+        }),
         dag.get_global_phase(),
         dag.identifiers() // Map and pass DAGCircuit variables and stretches to CircuitData style
             .map(|identifier| match identifier {

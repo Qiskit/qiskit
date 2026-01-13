@@ -689,8 +689,7 @@ fn apply_a2(
                 circ.data().iter(),
                 [Qubit(0), Qubit(1)],
                 circ.qargs_interner(),
-            )
-            .map_err(CircuitDataError::ErrorFromPython)?,
+            )?,
             None => new_matrices[&ind[0]].to_owned(),
         };
         let mat2 = match diagonal_rollover.get(&ind[1]) {
@@ -698,8 +697,7 @@ fn apply_a2(
                 circ.data().iter(),
                 [Qubit(0), Qubit(1)],
                 circ.qargs_interner(),
-            )
-            .map_err(CircuitDataError::ErrorFromPython)?,
+            )?,
             None => new_matrices[&ind[1]].to_owned(),
         };
         let (diagonal_mat, qc2cx) = two_qubit_decompose_up_to_diagonal(mat1.view()).unwrap();

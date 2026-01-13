@@ -42,7 +42,7 @@ use crate::{
 use num_complex::Complex64;
 use numpy::PyReadonlyArray1;
 use pyo3::IntoPyObjectExt;
-use pyo3::exceptions::{PyRuntimeError, PyTypeError, PyValueError};
+use pyo3::exceptions::{PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyList, PySet, PyTuple, PyType};
 use pyo3::{PyTraverseError, PyVisit, import_exception, intern};
@@ -66,17 +66,15 @@ import_exception!(qiskit.circuit.exceptions, CircuitError);
 #[non_exhaustive]
 #[derive(Error, Debug)]
 pub enum CircuitDataError {
-    #[error("name conflict adding parameter '{0}'")]
-    DuplicateParameterName(String),
     #[error("invalid type for global phase")]
     InvalidGlobalPhaseType,
-    #[error("{0}")]
-    ObjectRegistryError(ObjectRegistryError),
+    #[error(transparent)]
+    ObjectRegistryError(#[from] ObjectRegistryError),
     // Explicitly an error returned from calling Python
-    #[error("{0}")]
-    ErrorFromPython(PyErr),
-    #[error("{0}")]
-    ParameterTableError(ParameterTableError),
+    #[error(transparent)]
+    ErrorFromPython(#[from] PyErr),
+    #[error(transparent)]
+    ParameterTableError(#[from] ParameterTableError),
     #[error("already present in the circuit")]
     DuplicateStretch,
     #[error("already present in the circuit")]
@@ -95,10 +93,8 @@ pub enum CircuitDataError {
         "Mismatching number of values and parameters. For partial binding please pass a mapping of parameter to value pairs."
     )]
     ParameterSliceLenMismatch,
-    #[error("internal error: circuit parameter table is inconsistent")]
-    InconsistentParameterTable,
-    #[error("{0}")]
-    ParameterError(ParameterError),
+    #[error(transparent)]
+    ParameterError(#[from] ParameterError),
     #[error("Invalid Parameter")]
     InvalidParameter,
     #[error("bad type after binding for gate '{0}': '{1}'")]
@@ -108,9 +104,6 @@ pub enum CircuitDataError {
 impl From<CircuitDataError> for PyErr {
     fn from(error: CircuitDataError) -> Self {
         match error {
-            CircuitDataError::DuplicateParameterName(param) => {
-                CircuitError::new_err(format!("name conflict adding parameter '{}'", param))
-            }
             CircuitDataError::InvalidGlobalPhaseType => {
                 PyTypeError::new_err("invalid type for global phase")
             }
@@ -141,9 +134,6 @@ impl From<CircuitDataError> for PyErr {
             CircuitDataError::ParameterSliceLenMismatch => PyValueError::new_err(
                 "Mismatching number of values and parameters. For partial binding please pass a mapping of {parameter: value} pairs.",
             ),
-            CircuitDataError::InconsistentParameterTable => {
-                PyRuntimeError::new_err("internal error: circuit parameter table is inconsistent")
-            }
             CircuitDataError::ParameterError(e) => e.into(),
             CircuitDataError::InvalidParameter => {
                 PyValueError::new_err("An invalid parameter was provided.")
@@ -755,7 +745,7 @@ impl CircuitData {
     ///         was provided.
     #[pyo3(name="add_clbit", signature = (bit, *, strict=true))]
     pub fn py_add_clbit(&mut self, bit: ShareableClbit, strict: bool) -> PyResult<()> {
-        self.add_clbit(bit, strict).map_err(|e| e.into())
+        Ok(self.add_clbit(bit, strict)?)
     }
 
     /// Registers a :class:`.QuantumRegister` instance.
@@ -1503,7 +1493,7 @@ impl CircuitData {
     /// by copies or other means, before making the parameter table consistent.
     #[setter(global_phase)]
     pub fn py_set_global_phase(&mut self, angle: Param) -> PyResult<()> {
-        self.set_global_phase(angle).map_err(|x| x.into())
+        Ok(self.set_global_phase(angle)?)
     }
 
     pub fn num_nonlocal_gates(&self) -> usize {
@@ -1862,20 +1852,14 @@ impl CircuitData {
     }
 
     pub fn add_qubit(&mut self, bit: ShareableQubit, strict: bool) -> Result<(), CircuitDataError> {
-        let index = self
-            .qubits
-            .add(bit.clone(), strict)
-            .map_err(CircuitDataError::ObjectRegistryError)?;
+        let index = self.qubits.add(bit.clone(), strict)?;
         self.qubit_indices
             .insert(bit, BitLocations::new(index.0, []));
         Ok(())
     }
 
     pub fn add_clbit(&mut self, bit: ShareableClbit, strict: bool) -> Result<(), CircuitDataError> {
-        let index = self
-            .clbits
-            .add(bit.clone(), strict)
-            .map_err(CircuitDataError::ObjectRegistryError)?;
+        let index = self.clbits.add(bit.clone(), strict)?;
         self.clbit_indices
             .insert(bit, BitLocations::new(index.0, []));
         Ok(())
@@ -1904,10 +1888,7 @@ impl CircuitData {
             Param::ParameterExpression(expr) => {
                 for symbol in expr.iter_symbols() {
                     self.param_table
-                        .track(symbol, Some(ParameterUse::GlobalPhase))
-                        .map_err(|_| {
-                            CircuitDataError::DuplicateParameterName(symbol.name().to_string())
-                        })?;
+                        .track(symbol, Some(ParameterUse::GlobalPhase))?;
                 }
                 self.global_phase = angle;
                 Ok(())
@@ -2458,13 +2439,8 @@ impl CircuitData {
                         instruction: instruction_index,
                         parameter: index as u32,
                     };
-                    for symbol in param
-                        .iter_parameters()
-                        .map_err(CircuitDataError::ErrorFromPython)?
-                    {
-                        self.param_table
-                            .track(&symbol, Some(usage))
-                            .map_err(CircuitDataError::ParameterTableError)?;
+                    for symbol in param.iter_parameters()? {
+                        self.param_table.track(&symbol, Some(usage))?;
                     }
                 }
             }
@@ -2472,10 +2448,8 @@ impl CircuitData {
                 let view = ControlFlowView::try_from_instruction(instr, &self.blocks)
                     .expect("all instructions with blocks should be control flow");
                 for_each_symbol_use_in_control_flow(instruction_index, view, |symbol, usage| {
-                    self.param_table
-                        .track(symbol, Some(usage))
-                        .map(|_| ())
-                        .map_err(CircuitDataError::ParameterTableError)
+                    self.param_table.track(symbol, Some(usage))?;
+                    Ok(())
                 })?
             }
         }
@@ -2502,13 +2476,8 @@ impl CircuitData {
                         instruction: instruction_index,
                         parameter: index as u32,
                     };
-                    for symbol in param
-                        .iter_parameters()
-                        .map_err(CircuitDataError::ErrorFromPython)?
-                    {
-                        self.param_table
-                            .untrack(&symbol, usage)
-                            .map_err(CircuitDataError::ParameterTableError)?;
+                    for symbol in param.iter_parameters()? {
+                        self.param_table.untrack(&symbol, usage)?;
                     }
                 }
             }
@@ -2516,9 +2485,8 @@ impl CircuitData {
                 let view = ControlFlowView::try_from_instruction(instr, &self.blocks)
                     .expect("all instructions with blocks should be control flow");
                 for_each_symbol_use_in_control_flow(instruction_index, view, |symbol, usage| {
-                    self.param_table
-                        .untrack(symbol, usage)
-                        .map_err(CircuitDataError::ParameterTableError)
+                    self.param_table.untrack(symbol, usage)?;
+                    Ok(())
                 })?
             }
         }
@@ -2538,14 +2506,9 @@ impl CircuitData {
         if matches!(self.global_phase, Param::Float(_)) {
             return Ok(());
         }
-        for symbol in self
-            .global_phase
-            .iter_parameters()
-            .map_err(CircuitDataError::ErrorFromPython)?
-        {
+        for symbol in self.global_phase.iter_parameters()? {
             self.param_table
-                .track(&symbol, Some(ParameterUse::GlobalPhase))
-                .map_err(CircuitDataError::ParameterTableError)?;
+                .track(&symbol, Some(ParameterUse::GlobalPhase))?;
         }
         Ok(())
     }
@@ -2636,18 +2599,14 @@ impl CircuitData {
         let mut items = Vec::new();
         for (param_uuid, value) in iter {
             // Assume all the Parameters are already in the circuit
-            let symbol = self.get_parameter_by_uuid(param_uuid);
-            if let Some(symbol) = symbol {
-                items.push((
-                    symbol.clone(),
-                    value.as_ref().clone(),
-                    self.param_table
-                        .pop(param_uuid)
-                        .map_err(CircuitDataError::ParameterTableError)?,
-                ));
-            } else {
-                return Err(CircuitDataError::InvalidParameter);
-            }
+            let symbol = self
+                .get_parameter_by_uuid(param_uuid)
+                .ok_or(ParameterTableError::ParameterNotTracked(param_uuid))?;
+            items.push((
+                symbol.clone(),
+                value.as_ref().clone(),
+                self.param_table.pop(param_uuid)?,
+            ));
         }
         self.assign_parameters_inner(items)
     }
@@ -2789,6 +2748,7 @@ impl CircuitData {
         I: IntoIterator<Item = (Symbol, T, HashSet<ParameterUse>)>,
         T: AsRef<Param> + Clone,
     {
+        let inconsistent = || panic!("internal error: parameter table is in an inconsistent state");
         // Bind a single `Parameter` into a `ParameterExpression`.
         let bind_expr = |expr: &ParameterExpression,
                          symbol: &Symbol,
@@ -2798,40 +2758,37 @@ impl CircuitData {
             let new_expr = match value {
                 Param::Float(f) => {
                     let map: HashMap<&Symbol, Value> = HashMap::from([(symbol, Value::Real(*f))]);
-                    expr.bind(&map, false)
-                        .map_err(CircuitDataError::ParameterError)?
+                    expr.bind(&map, false)?
                 }
                 Param::ParameterExpression(e) => {
                     let map: HashMap<Symbol, ParameterExpression> =
                         HashMap::from([(symbol.clone(), e.as_ref().clone())]);
-                    expr.subs(&map, false)
-                        .map_err(CircuitDataError::ParameterError)?
+                    expr.subs(&map, false)?
                 }
                 Param::Obj(ob) => {
-                    Python::attach(|py| {
+                    Python::attach(|py| -> Result<_, CircuitDataError> {
                         // The integer handling is only needed to support the case where an int is
                         // passed in directly instead of a float. This will be handled when we add
                         // int to the param enum to support dt target.
                         if let Ok(int) = ob.extract::<i64>(py) {
                             let map: HashMap<&Symbol, Value> =
                                 HashMap::from([(symbol, Value::Int(int))]);
-                            expr.bind(&map, false)
-                                .map_err(CircuitDataError::ParameterError)
+                            Ok(expr.bind(&map, false)?)
                         } else if let Ok(c) = ob.extract::<Complex64>(py) {
                             let map: HashMap<&Symbol, Value> =
                                 HashMap::from([(symbol, Value::Complex(c))]);
-                            expr.bind(&map, false)
-                                .map_err(CircuitDataError::ParameterError)
+                            Ok(expr.bind(&map, false)?)
                         } else {
-                            Err(CircuitDataError::ErrorFromPython(PyTypeError::new_err(
-                                format!("Cannot assign object ({ob}) object to parameter."),
-                            )))
+                            Err(PyTypeError::new_err(format!(
+                                "Cannot assign object ({ob}) object to parameter."
+                            ))
+                            .into())
                         }
                     })?
                 }
             };
             // Param::from_expr() only errors in the python path when calling Python
-            Param::from_expr(new_expr, coerce).map_err(CircuitDataError::ErrorFromPython)
+            Ok(Param::from_expr(new_expr, coerce)?)
         };
 
         let mut user_operations = HashMap::new();
@@ -2842,22 +2799,14 @@ impl CircuitData {
             debug_assert!(!uses.is_empty());
             seen_blocks.clear();
             uuids.clear();
-            for inner_symbol in value
-                .as_ref()
-                .iter_parameters()
-                .map_err(CircuitDataError::ErrorFromPython)?
-            {
-                uuids.push(
-                    self.param_table
-                        .track(&inner_symbol, None)
-                        .map_err(CircuitDataError::ParameterTableError)?,
-                )
+            for inner_symbol in value.as_ref().iter_parameters()? {
+                uuids.push(self.param_table.track(&inner_symbol, None)?)
             }
             for usage in uses {
                 match usage {
                     ParameterUse::GlobalPhase => {
                         let Param::ParameterExpression(expr) = &self.global_phase else {
-                            return Err(CircuitDataError::InconsistentParameterTable);
+                            inconsistent()
                         };
                         self.set_global_phase(bind_expr(expr, &symbol, value.as_ref(), true)?)?;
                     }
@@ -2871,7 +2820,7 @@ impl CircuitData {
                             let previous = &mut self.data[instruction];
                             let params = previous.params_mut();
                             let Param::ParameterExpression(expr) = &params[parameter] else {
-                                return Err(CircuitDataError::InconsistentParameterTable);
+                                panic!("internal error: parameter table contains non-parameters");
                             };
                             let new_param = bind_expr(expr, &symbol, value.as_ref(), true)?;
 
@@ -2884,9 +2833,7 @@ impl CircuitData {
                             }
                             params[parameter] = new_param.clone();
                             for uuid in uuids.iter() {
-                                self.param_table
-                                    .add_use(*uuid, usage)
-                                    .map_err(CircuitDataError::ParameterTableError)?;
+                                self.param_table.add_use(*uuid, usage)?;
                             }
                             #[cfg(feature = "cache_pygates")]
                             {
@@ -2901,33 +2848,27 @@ impl CircuitData {
                         } else if let OperationRef::ControlFlow(op) = previous_op.view() {
                             let blocks = self.data[instruction].blocks_view();
                             let block_to_edit = match &op.control_flow {
-                                ControlFlow::BreakLoop => {
-                                    Err(CircuitDataError::InconsistentParameterTable)
-                                }
-                                ControlFlow::ContinueLoop => {
-                                    Err(CircuitDataError::InconsistentParameterTable)
-                                }
+                                ControlFlow::BreakLoop => inconsistent(),
+                                ControlFlow::ContinueLoop => inconsistent(),
                                 ControlFlow::ForLoop { .. } => {
                                     match parameter {
                                         // In Python land, the loop body exists at parameter
                                         // position 2.
-                                        2 => Ok(blocks[0]),
-                                        _ => Err(CircuitDataError::InconsistentParameterTable),
+                                        2 => blocks[0],
+                                        _ => inconsistent(),
                                     }
                                 }
                                 // Most control flow instructions use the parameters for
                                 // *just* their blocks.
-                                _ => Ok(blocks[parameter]),
-                            }?;
+                                _ => blocks[parameter],
+                            };
                             if !seen_blocks.contains(&block_to_edit) {
                                 self.blocks[block_to_edit]
                                     .assign_single_parameter(symbol.clone(), value.as_ref())?;
                                 seen_blocks.insert(block_to_edit);
                             }
                             for uuid in uuids.iter() {
-                                self.param_table
-                                    .add_use(*uuid, usage)
-                                    .map_err(CircuitDataError::ParameterTableError)?
+                                self.param_table.add_use(*uuid, usage)?
                             }
                             #[cfg(feature = "cache_pygates")]
                             {
@@ -2952,21 +2893,18 @@ impl CircuitData {
                             // it in rust without Python that's a mistake and this attach() call
                             // will panic and point out the error of your ways when this comment is
                             // read.
-                            Python::attach(|py| {
+                            Python::attach(|py| -> Result<_, CircuitDataError> {
                                 let validate_parameter_attr = intern!(py, "validate_parameter");
                                 let assign_parameters_attr = intern!(py, "assign_parameters");
 
                                 let op = self
-                                    .unpack_py_op(py, &self.data[instruction])
-                                    .map_err(CircuitDataError::ErrorFromPython)?
+                                    .unpack_py_op(py, &self.data[instruction])?
                                     .into_bound(py);
                                 let previous = &mut self.data[instruction];
                                 // All "user" operations (e.g. PyOperation) use Parameters::Param.
                                 let previous_param = &previous.params_view()[parameter];
                                 let new_param = match previous_param {
-                                    Param::Float(_) => {
-                                        return Err(CircuitDataError::InconsistentParameterTable);
-                                    }
+                                    Param::Float(_) => inconsistent(),
                                     Param::ParameterExpression(expr) => {
                                         let new_param =
                                             bind_expr(expr, &symbol, value.as_ref(), false)?;
@@ -2989,14 +2927,8 @@ impl CircuitData {
                                                             op.call_method1(
                                                                 validate_parameter_attr,
                                                                 (new_param,),
-                                                            )
-                                                            .map_err(
-                                                                CircuitDataError::ErrorFromPython,
                                                             )?
                                                             .as_borrowed(),
-                                                        )
-                                                        .map_err(
-                                                            CircuitDataError::ErrorFromPython,
                                                         )?
                                                     }
                                                     Err(_) => new_param, // not bound yet, cannot validate
@@ -3006,50 +2938,33 @@ impl CircuitData {
                                                 op.call_method1(
                                                     validate_parameter_attr,
                                                     (new_param,),
-                                                )
-                                                .map_err(CircuitDataError::ErrorFromPython)?
+                                                )?
                                                 .as_borrowed(),
-                                            )
-                                            .map_err(CircuitDataError::ErrorFromPython)?,
+                                            )?,
                                         }
                                     }
                                     Param::Obj(obj) => {
                                         let obj = obj.bind_borrowed(py);
-                                        if !obj
-                                            .is_instance(QUANTUM_CIRCUIT.get_bound(py))
-                                            .map_err(CircuitDataError::ErrorFromPython)?
-                                        {
-                                            return Err(
-                                                CircuitDataError::InconsistentParameterTable,
-                                            );
+                                        if !obj.is_instance(QUANTUM_CIRCUIT.get_bound(py))? {
+                                            inconsistent()
                                         }
                                         Param::extract_no_coerce(
                                             obj.call_method(
                                                 assign_parameters_attr,
                                                 ([(symbol.clone(), value.as_ref().clone_ref(py))]
-                                                    .into_py_dict(py)
-                                                    .map_err(CircuitDataError::ErrorFromPython)?,),
+                                                    .into_py_dict(py)?,),
                                                 Some(
                                                     &[("inplace", false), ("flat_input", true)]
-                                                        .into_py_dict(py)
-                                                        .map_err(
-                                                            CircuitDataError::ErrorFromPython,
-                                                        )?,
+                                                        .into_py_dict(py)?,
                                                 ),
-                                            )
-                                            .map_err(CircuitDataError::ErrorFromPython)?
+                                            )?
                                             .as_borrowed(),
-                                        )
-                                        .map_err(CircuitDataError::ErrorFromPython)?
+                                        )?
                                     }
                                 };
-                                op.getattr(intern!(py, "params"))
-                                    .map_err(CircuitDataError::ErrorFromPython)?
-                                    .set_item(parameter, new_param)
-                                    .map_err(CircuitDataError::ErrorFromPython)?;
-                                let new_op = op
-                                    .extract::<OperationFromPython>()
-                                    .map_err(CircuitDataError::ErrorFromPython)?;
+                                op.getattr(intern!(py, "params"))?
+                                    .set_item(parameter, new_param)?;
+                                let new_op = op.extract::<OperationFromPython>()?;
                                 previous.op = new_op.operation;
                                 previous.params = match new_op.params {
                                     Some(Parameters::Params(params)) => {
@@ -3066,9 +2981,7 @@ impl CircuitData {
                                     previous.py_op = op.unbind().into();
                                 }
                                 for uuid in uuids.iter() {
-                                    self.param_table
-                                        .add_use(*uuid, usage)
-                                        .map_err(CircuitDataError::ParameterTableError)?
+                                    self.param_table.add_use(*uuid, usage)?
                                 }
                                 Ok(())
                             })?;
@@ -3119,8 +3032,7 @@ impl CircuitData {
                     }
                 }
                 Ok(())
-            })
-            .map_err(CircuitDataError::ErrorFromPython)?;
+            })?;
         }
         Ok(())
     }
@@ -3316,10 +3228,7 @@ impl CircuitData {
             _ => {}
         }
 
-        let var_idx = self
-            .vars
-            .add(var, true)
-            .map_err(CircuitDataError::ObjectRegistryError)?;
+        let var_idx = self.vars.add(var, true)?;
         match var_type {
             CircuitVarType::Input => &mut self.vars_input,
             CircuitVarType::Capture => &mut self.vars_capture,
@@ -3393,10 +3302,7 @@ impl CircuitData {
             }
         }
 
-        let stretch_idx = self
-            .stretches
-            .add(stretch, true)
-            .map_err(CircuitDataError::ObjectRegistryError)?;
+        let stretch_idx = self.stretches.add(stretch, true)?;
         match stretch_type {
             CircuitStretchType::Capture => &mut self.stretches_capture,
             CircuitStretchType::Declare => &mut self.stretches_declare,
@@ -3601,14 +3507,11 @@ where
 ///
 /// This encapsulates the logic of both [CircuitData::track_parameters] and
 /// [CircuitData::untrack_parameters].
-fn for_each_symbol_use_in_control_flow<F, E>(
+fn for_each_symbol_use_in_control_flow(
     instruction_index: usize,
     cf: ControlFlowView<CircuitData>,
-    mut action: F,
-) -> Result<(), E>
-where
-    F: FnMut(&Symbol, ParameterUse) -> Result<(), E>,
-{
+    mut action: impl FnMut(&Symbol, ParameterUse) -> Result<(), CircuitDataError>,
+) -> Result<(), CircuitDataError> {
     match cf {
         ControlFlowView::ForLoop {
             loop_param,
