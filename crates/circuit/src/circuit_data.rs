@@ -1871,7 +1871,7 @@ impl CircuitData {
     ///
     /// The inverse of this is [unpack_blocks_to_circuit_parameters].  The version for when you can
     /// take the blocks directly is [take_parameter_blocks].
-    fn extract_blocks_from_circuit_parameters(
+    pub fn extract_blocks_from_circuit_parameters(
         &mut self,
         params: Option<&Parameters<CircuitData>>,
     ) -> Option<Box<Parameters<Block>>> {

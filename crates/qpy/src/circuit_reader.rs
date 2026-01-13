@@ -730,7 +730,7 @@ fn unpack_py_instruction(
             gate_object.setattr("ctrl_state", instruction.ctrl_state)?;
         }
 
-        let op_parts = gate_object.extract::<OperationFromPython>()?;
+        let op_parts = gate_object.extract::<OperationFromPython<CircuitData>>()?;
         Ok((op_parts.operation, instruction_values))
     })
 }
@@ -853,7 +853,9 @@ fn unpack_custom_instruction(
                     .unbind()
             }
         };
-        let op = inst_obj.extract::<OperationFromPython>(py)?.operation;
+        let op = inst_obj
+            .extract::<OperationFromPython<CircuitData>>(py)?
+            .operation;
         Ok((op, instruction_values))
     })
 }

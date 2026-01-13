@@ -1002,7 +1002,7 @@ fn pack_custom_instruction(
     let num_qubits = operation.num_qubits();
     let num_clbits = operation.num_clbits();
     if !base_gate.is_none() {
-        let op_parts = base_gate.extract::<OperationFromPython>()?;
+        let op_parts = base_gate.extract::<OperationFromPython<CircuitData>>()?;
         let instruction = CircuitInstruction {
             operation: op_parts.operation,
             qubits: PyTuple::empty(py).into(),

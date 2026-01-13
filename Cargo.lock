@@ -1999,6 +1999,7 @@ version = "2.4.0-dev"
 dependencies = [
  "ahash 0.8.12",
  "binrw",
+ "bytemuck",
  "hashbrown 0.15.5",
  "indexmap",
  "num-bigint",

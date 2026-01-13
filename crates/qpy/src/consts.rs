@@ -60,11 +60,30 @@ pub fn standard_gate_from_gate_class_name(name: &str) -> Option<StandardGate> {
         "XXPlusYYGate" => Some(StandardGate::XXPlusYY),
         "CCXGate" => Some(StandardGate::CCX),
         "CCZGate" => Some(StandardGate::CCZ),
-        "CSwapXGate" => Some(StandardGate::CSwap),
+        "CSwapGate" => Some(StandardGate::CSwap),
         "RCCXGate" => Some(StandardGate::RCCX),
         "C3XGate" => Some(StandardGate::C3X),
         "C3SXGate" => Some(StandardGate::C3SX),
         "RC3XGate" => Some(StandardGate::RC3X),
         _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use qiskit_circuit::imports::get_std_gate_class_name;
+    use qiskit_circuit::operations::STANDARD_GATE_SIZE;
+    #[test]
+    fn test_name_coverage() {
+        for gate in 1..STANDARD_GATE_SIZE as u8 {
+            let gate: StandardGate =
+                ::bytemuck::checked::try_cast::<_, StandardGate>(gate).unwrap();
+            let gate_name = get_std_gate_class_name(&gate).clone();
+            assert!(
+                standard_gate_from_gate_class_name(gate_name.as_str()).is_some(),
+                "For gate name {gate_name} could not get StandardGate {gate:?}"
+            );
+        }
     }
 }

@@ -21,6 +21,7 @@ qiskit-circuit.workspace = true
 qiskit-quantum-info.workspace = true
 num-bigint.workspace = true
 num-complex.workspace = true
+bytemuck.workspace = true
 binrw = "0.13"
 uuid = {version = "1", features = ["v4"]}
 
