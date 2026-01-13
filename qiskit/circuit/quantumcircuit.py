@@ -119,7 +119,7 @@ ClbitSpecifier = Union[
 # which operate on either type of bit, but not both at the same time.
 BitType = TypeVar("BitType", Qubit, Clbit)
 
-
+# Enum types for pauli basis
 class PauliBasis(Enum):
     X = "X"
     Y = "Y"
