@@ -106,7 +106,7 @@ pub(crate) fn unpack_biguint(big_int_pack: BigIntPack) -> BigUint {
 // Data that is needed globally while writing the circuit
 #[derive(Debug)]
 pub struct QPYWriteData<'a> {
-    pub circuit_data: &'a mut CircuitData,
+    pub circuit_data: &'a CircuitData,
     pub version: u32,
     pub standalone_var_indices: HashMap<u128, u16>, // mapping from the variable's UUID to its index in the standalone variables list
     pub annotation_handler: AnnotationHandler<'a>,

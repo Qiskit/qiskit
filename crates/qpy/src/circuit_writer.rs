@@ -34,11 +34,10 @@ use qiskit_circuit::circuit_instruction::{CircuitInstruction, OperationFromPytho
 use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::imports;
 use qiskit_circuit::instruction::Parameters;
-use qiskit_circuit::operations::PyGate;
 use qiskit_circuit::operations::{
     ArrayType, BoxDuration, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction,
-    Operation, OperationRef, PauliProductMeasurement, PyInstruction, PyOperation, StandardGate,
-    StandardInstruction, SwitchTarget, UnitaryGate,
+    Operation, OperationRef, Param, PauliProductMeasurement, PyGate, PyInstruction, PyOperation,
+    StandardGate, StandardInstruction, SwitchTarget, UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 
@@ -1013,7 +1012,12 @@ fn pack_custom_instruction(
             #[cfg(feature = "cache_pygates")]
             py_op: std::sync::OnceLock::new(),
         };
-        let packed_instruction = qpy_data.circuit_data.pack(py, &instruction)?;
+        // The base gate instruction is not present in the circuit itself and we don't use all it's data (e.g. qubits and clbits)
+        // But we still want to serialize it like a regular instruction, so we need to convert it to a PackedInstruction.
+        // To avoid changing the original CircuitData we use a hack where it is packed using a dummy circuit data.
+        // TODO: Hopefully we'll change all this in a future version of QPY.
+        let mut dummy_circuit_data = CircuitData::new(None, None, None, 0, Param::Float(0.0))?;
+        let packed_instruction = dummy_circuit_data.pack(py, &instruction)?;
         base_gate_raw = serialize(&pack_instruction(
             &packed_instruction,
             custom_instructions_hash,
