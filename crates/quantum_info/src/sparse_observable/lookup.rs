@@ -315,8 +315,9 @@ const fn bitterm_index(b: BitTerm) -> usize {
 /// In the output, `None` means that the result was zero.
 /// Beyond that, the output is a tuple of the coefficient and resulting BitTerm.
 ///
-/// These conjugation rules were computed symbolically using Qiskit's SparseObservable
-/// API and verified through automated testing. The factorization is minimal in the
+/// These conjugation rules were computed algorithmically using Qiskit's SparseObservable
+/// API and bruteforce matrix multiplication code, these were then verified for correctness
+///  through automated reverse engineered AI testing code. The factorization is minimal in the
 /// number of terms but otherwise uncurated among equivalent representations.
 ///
 /// Note that P^{\dag} Q P = (P Q^{\dag} P)^{\dag}, so this table could be generated

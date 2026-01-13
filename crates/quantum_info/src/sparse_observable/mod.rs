@@ -874,13 +874,11 @@ impl SparseObservable {
     ///
     /// * If `self` and `u` have different numbers of qubits.
     /// * If `u` contains more than one term.
-    pub fn evolve(&self, op: &SparseObservable) -> Result<SparseObservable, ArithmeticError> {
-        if self.num_qubits != op.num_qubits {
-            return Err(ArithmeticError::MismatchedQubits {
-                left: self.num_qubits,
-                right: op.num_qubits,
-            });
-        }
+    pub fn evolve(
+        &self,
+        op: &SparseObservable,
+        qargs: Option<&[u32]>,
+    ) -> Result<SparseObservable, ArithmeticError> {
         if op.num_terms() != 1 {
             return Err(ArithmeticError::InvalidOperation(
                 "evolve only supports single-term operators".to_string(),
@@ -888,24 +886,82 @@ impl SparseObservable {
         }
 
         let t = op.iter().next().unwrap();
-
         let mut layout = vec![None; self.num_qubits as usize];
-        for (q, bt) in t.indices.iter().zip(t.bit_terms.iter()) {
-            layout[*q as usize] = Some(*bt);
+
+        if let Some(qargs) = qargs {
+            if op.num_qubits > self.num_qubits {
+                return Err(ArithmeticError::InvalidOperation(format!(
+                    "operator has more qubits ({}) than the base ({})",
+                    op.num_qubits, self.num_qubits
+                )));
+            }
+            // Handle the zero-qubit scalar edge case separately (example, and Identity Operator).
+            if op.num_qubits == 0 {
+                let scalar = op.iter().next().unwrap().coeff;
+                return Ok(self * scalar);
+            }
+            if qargs.len() != op.num_qubits as usize {
+                return Err(ArithmeticError::InvalidOperation(format!(
+                    "qargs has length {}, but operator has {} qubit(s)",
+                    qargs.len(),
+                    op.num_qubits
+                )));
+            }
+
+            let mut qargs_sorted = qargs.to_vec();
+            qargs_sorted.sort_unstable();
+
+            for pair in qargs_sorted.windows(2) {
+                if pair[0] == pair[1] {
+                    return Err(ArithmeticError::InvalidOperation(
+                        "duplicate indices in qargs".to_string(),
+                    ));
+                }
+            }
+
+            if let Some(&max_q) = qargs.iter().max() {
+                if max_q >= self.num_qubits {
+                    return Err(ArithmeticError::InvalidOperation(
+                        "qargs contains out-of-range qubits".to_string(),
+                    ));
+                }
+            }
+
+            let mut op_map = vec![None; op.num_qubits as usize];
+            for (i, &q) in t.indices.iter().enumerate() {
+                op_map[q as usize] = Some(t.bit_terms[i]);
+            }
+
+            for (op_qubit_idx, &self_qubit) in qargs.iter().enumerate() {
+                if let Some(bt) = op_map.get(op_qubit_idx).and_then(|&x| x) {
+                    layout[self_qubit as usize] = Some(bt);
+                }
+            }
+        } else {
+            if self.num_qubits != op.num_qubits {
+                return Err(ArithmeticError::MismatchedQubits {
+                    left: self.num_qubits,
+                    right: op.num_qubits,
+                });
+            }
+
+            for (q, bt) in t.indices.iter().zip(t.bit_terms.iter()) {
+                layout[*q as usize] = Some(*bt);
+            }
         }
 
         let mut out = SparseObservable::zero(self.num_qubits);
 
         for term in self.iter() {
             let mut frontier = vec![(term.coeff, Vec::<u32>::new(), Vec::<BitTerm>::new())];
+            let mut term_map = vec![None; self.num_qubits as usize];
+            for (i, &q) in term.indices.iter().enumerate() {
+                term_map[q as usize] = Some(term.bit_terms[i]);
+            }
 
-            for q in 0..self.num_qubits as usize {
-                let op_bt = layout[q];
-                let term_bt = term
-                    .indices
-                    .iter()
-                    .position(|&i| i as usize == q)
-                    .map(|idx| term.bit_terms[idx]);
+            for (q, &op_bt) in layout.iter().enumerate() {
+                let term_bt = term_map[q];
+
                 let mut next_frontier = Vec::new();
 
                 for (coeff, indices, bit_terms) in frontier {
@@ -925,14 +981,12 @@ impl SparseObservable {
                         }
                         (Some(p), Some(qbt)) => {
                             let outputs = conjugate_bitterm(p, qbt);
-                            if !outputs.is_empty() {
-                                for &(c, new_bt) in outputs {
-                                    let mut new_indices = indices.clone();
-                                    let mut new_bit_terms = bit_terms.clone();
-                                    new_indices.push(q as u32);
-                                    new_bit_terms.push(new_bt);
-                                    next_frontier.push((coeff * c, new_indices, new_bit_terms));
-                                }
+                            for &(c, new_bt) in outputs {
+                                let mut new_indices = indices.clone();
+                                let mut new_bit_terms = bit_terms.clone();
+                                new_indices.push(q as u32);
+                                new_bit_terms.push(new_bt);
+                                next_frontier.push((coeff * c, new_indices, new_bit_terms));
                             }
                         }
                     }
@@ -3612,24 +3666,31 @@ impl PySparseObservable {
     /// lookup table for ``P^\dag Q P``.  This avoids materialising any intermediate
     /// :class:`SparseObservable` and computes the evolved observable in a single
     /// pass over the terms.
+    /// ``self`` and ``u`` must have the same number of qubits, unless ``qargs`` is given,
+    /// in which case ``u`` can be smaller than ``self``, provided the number of qubits
+    /// in ``u`` and the length of ``qargs`` match. ``qargs`` specifies which qubits of
+    /// ``self`` are evolved by ``u``.
     ///
     /// Currently, this method supports evolution only by a *single-term* operator.
     /// Each local factor of ``u`` must be a Pauli or projector term.  Multi-term
     /// evolution operators are not supported.
     ///
-    /// Beware that, even in this restricted form, evolution can change the
-    /// structure of the observable by flipping signs or exchanging projector
-    /// terms.  However, unlike general composition, this operation cannot cause
-    /// combinatorial growth in the number of terms.
-    ///
     /// Args:
     ///     u: the observable used to conjugate ``self``.
+    ///     qargs: if given, the qubits in ``self`` to be evolved by ``u``.
+    ///         The length must match the number of qubits in ``u``.
     ///
     /// Raises:
-    ///     ValueError: if ``self`` and ``u`` have different numbers of qubits.
+    ///     ValueError: if ``self`` and ``u`` have different numbers of qubits (when ``qargs`` is not given).
+    ///     ValueError: if ``qargs`` length doesn't match ``u`` number of qubits.
+    ///     ValueError: if ``qargs`` contains duplicates or out-of-range indices.
     ///     ValueError: if ``u`` contains more than one term.
-    #[pyo3(signature = (u, /))]
-    fn evolve<'py>(&self, u: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PySparseObservable>> {
+    #[pyo3(signature = (u, /, qargs=None))]
+    fn evolve<'py>(
+        &self,
+        u: &Bound<'py, PyAny>,
+        qargs: Option<&Bound<'py, PyAny>>,
+    ) -> PyResult<Bound<'py, PySparseObservable>> {
         let py = u.py();
         let Some(u) = coerce_to_observable(u)? else {
             return Err(PyTypeError::new_err("invalid type for evolve"));
@@ -3639,8 +3700,18 @@ impl PySparseObservable {
         let u_inner = u.borrow();
         let u_inner = u_inner.inner.read().map_err(|_| InnerReadError)?;
 
+        let qargs_vec = if let Some(qargs) = qargs {
+            let vec = qargs
+                .try_iter()?
+                .map(|obj| obj.and_then(|obj| obj.extract::<u32>()))
+                .collect::<PyResult<Vec<u32>>>()?;
+            Some(vec)
+        } else {
+            None
+        };
+
         let out = base
-            .evolve(&u_inner)
+            .evolve(&u_inner, qargs_vec.as_deref())
             .map_err(|e| PyValueError::new_err(e.to_string()))?;
 
         out.into_pyobject(py)
