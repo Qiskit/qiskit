@@ -138,31 +138,71 @@ impl Optimize1qGatesDecompositionState {
 }
 
 impl Optimize1qGatesDecompositionState {
-    fn populate_qubit_in_state(
+    fn get_basis_set(
         &self,
         qubit: PhysicalQubit,
         target: Option<&Target>,
         basis_gates: Option<&HashSet<String>>,
+    ) -> Option<HashSet<String>> {
+        if self.global {
+            match target {
+                Some(target) => Some(
+                    target
+                        .operations()
+                        .filter_map(|op| {
+                            if op.operation.num_qubits() == 1 {
+                                Some(op.operation.name().to_string())
+                            } else {
+                                None
+                            }
+                        })
+                        .collect::<HashSet<_>>(),
+                ),
+                None => basis_gates.cloned(),
+            }
+        } else {
+            let Some(target) = target else {
+                unreachable!("Target must be true to be non-global");
+            };
+            Some(
+                target
+                    .operation_names_for_qargs(&[qubit])
+                    .expect("Qubit has operations")
+                    .into_iter()
+                    .map(|x| x.to_string())
+                    .filter(|gate_name| {
+                        let target_op = target.operation_from_name(gate_name).unwrap();
+                        let TargetOperation::Normal(gate) = target_op else {
+                            return false;
+                        };
+                        if let OperationRef::StandardGate(_) = gate.operation.view() {
+                            // For standard gates check that the target entry accepts any
+                            // params and if so then we can use the gate in the pass
+                            // else filter the operation since arbitrary angles are not
+                            // supported
+                            gate.params_view()
+                                .iter()
+                                .all(|x| matches!(x, Param::ParameterExpression(_)))
+                        } else {
+                            // For all other gates pass it through
+                            true
+                        }
+                    })
+                    .collect(),
+            )
+        }
+    }
+
+    fn get_euler_basis_set(
+        &self,
+        qubit: PhysicalQubit,
+        target: Option<&Target>,
         global_decomposers: Option<&Vec<String>>,
-    ) -> PyResult<()> {
+    ) -> EulerBasisSet {
         if self.global {
             let mut target_basis_set = EulerBasisSet::new();
             match target {
-                Some(target) => {
-                    self.basis_gates_per_qubit[0]
-                        .set(Some(
-                            target
-                                .operations()
-                                .filter_map(|op| {
-                                    if op.operation.num_qubits() == 1 {
-                                        Some(op.operation.name().to_string())
-                                    } else {
-                                        None
-                                    }
-                                })
-                                .collect::<HashSet<_>>(),
-                        ))
-                        .expect("Qubit is already populated");
+                Some(_target) => {
                     EULER_BASES
                         .iter()
                         .enumerate()
@@ -191,18 +231,14 @@ impl Optimize1qGatesDecompositionState {
                     {
                         target_basis_set.remove(EulerBasis::ZSX);
                     }
-                    self.target_basis_per_qubit[0]
-                        .set(target_basis_set)
-                        .expect("Qubit is already populated");
                 }
                 None => {
-                    self.basis_gates_per_qubit[0]
-                        .set(basis_gates.cloned())
-                        .expect("Qubit already populated");
                     match &global_decomposers {
                         Some(bases) => {
                             for basis in bases.iter() {
-                                target_basis_set.add_basis(EulerBasis::__new__(basis)?)
+                                target_basis_set.add_basis(
+                                    EulerBasis::__new__(basis).expect("a valid basis string"),
+                                )
                             }
                         }
                         None => match self.basis_gates_per_qubit[0].get().unwrap() {
@@ -233,78 +269,42 @@ impl Optimize1qGatesDecompositionState {
                     {
                         target_basis_set.remove(EulerBasis::ZSX);
                     }
-                    self.target_basis_per_qubit[0]
-                        .set(target_basis_set)
-                        .expect("Qubit is already populated");
                 }
             }
-            return Ok(());
-        }
-        let Some(target) = target else {
-            unreachable!("Target must be true to be non-global");
-        };
-        let basis = Some(
-            target
-                .operation_names_for_qargs(&[qubit])?
-                .into_iter()
-                .map(|x| x.to_string())
-                .filter(|gate_name| {
-                    let target_op = target.operation_from_name(gate_name).unwrap();
-                    let TargetOperation::Normal(gate) = target_op else {
-                        return false;
-                    };
-                    if let OperationRef::StandardGate(_) = gate.operation.view() {
-                        // For standard gates check that the target entry accepts any
-                        // params and if so then we can use the gate in the pass
-                        // else filter the operation since arbitrary angles are not
-                        // supported
-                        gate.params_view()
-                            .iter()
-                            .all(|x| matches!(x, Param::ParameterExpression(_)))
-                    } else {
-                        // For all other gates pass it through
-                        true
+            target_basis_set
+        } else {
+            let mut target_basis_set = EulerBasisSet::new();
+            EULER_BASES
+                .iter()
+                .enumerate()
+                .filter_map(|(idx, gates)| {
+                    if !gates.iter().all(|gate| {
+                        self.basis_gates_per_qubit[qubit.index()]
+                            .get()
+                            .as_ref()
+                            .unwrap()
+                            .as_ref()
+                            .expect("the target path always provides a hash set")
+                            .contains(*gate)
+                    }) {
+                        return None;
                     }
+                    let basis = EULER_BASIS_NAMES[idx];
+                    Some(basis)
                 })
-                .collect(),
-        );
-        self.basis_gates_per_qubit[qubit.index()]
-            .set(basis)
-            .expect("Qubit already populated");
-        let mut target_basis_set = EulerBasisSet::new();
-        EULER_BASES
-            .iter()
-            .enumerate()
-            .filter_map(|(idx, gates)| {
-                if !gates.iter().all(|gate| {
-                    self.basis_gates_per_qubit[qubit.index()]
-                        .get()
-                        .as_ref()
-                        .unwrap()
-                        .as_ref()
-                        .expect("the target path always provides a hash set")
-                        .contains(*gate)
-                }) {
-                    return None;
-                }
-                let basis = EULER_BASIS_NAMES[idx];
-                Some(basis)
-            })
-            .for_each(|basis| target_basis_set.add_basis(basis));
-        if target_basis_set.basis_supported(EulerBasis::U3)
-            && target_basis_set.basis_supported(EulerBasis::U321)
-        {
-            target_basis_set.remove(EulerBasis::U3);
+                .for_each(|basis| target_basis_set.add_basis(basis));
+            if target_basis_set.basis_supported(EulerBasis::U3)
+                && target_basis_set.basis_supported(EulerBasis::U321)
+            {
+                target_basis_set.remove(EulerBasis::U3);
+            }
+            if target_basis_set.basis_supported(EulerBasis::ZSX)
+                && target_basis_set.basis_supported(EulerBasis::ZSXX)
+            {
+                target_basis_set.remove(EulerBasis::ZSX);
+            }
+            target_basis_set
         }
-        if target_basis_set.basis_supported(EulerBasis::ZSX)
-            && target_basis_set.basis_supported(EulerBasis::ZSXX)
-        {
-            target_basis_set.remove(EulerBasis::ZSX);
-        }
-        self.target_basis_per_qubit[qubit.index()]
-            .set(target_basis_set)
-            .expect("Qubit already populated");
-        Ok(())
     }
 }
 
@@ -330,40 +330,25 @@ pub fn run_optimize_1q_gates_decomposition(
                 unreachable!("nodes in runs will always be op nodes")
             };
             let basis_gates = if state.global {
-                match state.basis_gates_per_qubit[0].get() {
-                    Some(basis) => basis,
-                    None => {
-                        state.populate_qubit_in_state(
-                            PhysicalQubit::new(0),
-                            target,
-                            basis_gates.as_ref(),
-                            global_decomposers.as_ref(),
-                        )?;
-                        state.basis_gates_per_qubit[0].get().unwrap()
-                    }
-                }
+                state.basis_gates_per_qubit[0].get_or_init(|| {
+                    state.get_basis_set(PhysicalQubit::new(0), target, basis_gates.as_ref())
+                })
             } else {
-                match state.basis_gates_per_qubit[qubit.index()].get() {
-                    Some(basis) => basis,
-                    None => {
-                        state.populate_qubit_in_state(
-                            qubit,
-                            target,
-                            basis_gates.as_ref(),
-                            global_decomposers.as_ref(),
-                        )?;
-                        state.basis_gates_per_qubit[qubit.index()].get().unwrap()
-                    }
-                }
+                state.basis_gates_per_qubit[qubit.index()]
+                    .get_or_init(|| state.get_basis_set(qubit, target, basis_gates.as_ref()))
             };
             let target_basis_set = if state.global {
-                state.target_basis_per_qubit[0]
-                    .get()
-                    .expect("Euler basis must be populated already")
+                state.target_basis_per_qubit[0].get_or_init(|| {
+                    state.get_euler_basis_set(
+                        PhysicalQubit::new(0),
+                        target,
+                        global_decomposers.as_ref(),
+                    )
+                })
             } else {
-                state.target_basis_per_qubit[qubit.index()]
-                    .get()
-                    .expect("Euler basis must be populated already")
+                state.target_basis_per_qubit[qubit.index()].get_or_init(|| {
+                    state.get_euler_basis_set(qubit, target, global_decomposers.as_ref())
+                })
             };
             let operator = raw_run
                 .iter()
