@@ -424,7 +424,10 @@ pub fn run_optimize_1q_gates_decomposition(
                 Ok(None)
             }
         };
-    if runs.len() > 100_000 && getenv_use_multiple_threads() {
+    // TODO: Add a line like:
+    // if runs.len() > X && getenv_use_multiple_threads() {
+    // where X is a good value for switching between serial and parallel versions
+    if getenv_use_multiple_threads() {
         let sequences = runs
             .par_iter()
             .map(|raw_run| process_run(raw_run, dag))
