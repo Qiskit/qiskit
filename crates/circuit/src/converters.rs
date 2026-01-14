@@ -14,7 +14,7 @@ use pyo3::intern;
 use pyo3::prelude::*;
 
 use crate::bit::{ShareableClbit, ShareableQubit};
-use crate::circuit_data::{CircuitData, CircuitVar};
+use crate::circuit_data::{CircuitData, CircuitDataError, CircuitVar};
 use crate::dag_circuit::DAGIdentifierInfo;
 use crate::dag_circuit::{DAGCircuit, NodeType};
 use crate::operations::{OperationRef, PythonOperation};
@@ -57,7 +57,10 @@ pub fn circuit_to_dag(
 }
 
 #[pyfunction(signature = (dag, copy_operations = true))]
-pub fn dag_to_circuit(dag: &DAGCircuit, copy_operations: bool) -> PyResult<CircuitData> {
+pub fn dag_to_circuit(
+    dag: &DAGCircuit,
+    copy_operations: bool,
+) -> Result<CircuitData, CircuitDataError> {
     let blocks = dag
         .blocks()
         .try_map_without_references(|block| dag_to_circuit(block, copy_operations))?;

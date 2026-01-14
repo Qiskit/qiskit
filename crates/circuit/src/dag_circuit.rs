@@ -5036,13 +5036,13 @@ impl DAGCircuit {
         &self,
         params: Option<&Parameters<Block>>,
     ) -> PyResult<Option<Parameters<CircuitData>>> {
-        params
+        Ok(params
             .map(|params| {
                 params.try_map_blocks_ref(|block| {
                     converters::dag_to_circuit(&self.blocks[*block], false)
                 })
             })
-            .transpose()
+            .transpose()?)
     }
 
     /// Gets a mutable reference to the given basic block.
@@ -5530,7 +5530,7 @@ impl DAGCircuit {
 
         // Remove the qubit indices, which will invalidate our mapping of Qubit to
         // Python bits throughout the entire DAG.
-        self.qubits.remove_indices(qubits.clone())?;
+        self.qubits.remove_indices(qubits.clone());
 
         // Update input/output maps to use new Qubits.
         let io_mapping: HashMap<Qubit, [NodeIndex; 2]> = self
@@ -5658,7 +5658,7 @@ impl DAGCircuit {
 
         // Remove the clbit indices, which will invalidate our mapping of Clbit to
         // Python bits throughout the entire DAG.
-        self.clbits.remove_indices(clbits.clone())?;
+        self.clbits.remove_indices(clbits.clone());
 
         // Update input/output maps to use new Clbits.
         let io_mapping: HashMap<Clbit, [NodeIndex; 2]> = self
@@ -6899,7 +6899,7 @@ impl DAGCircuit {
         let out_map = self.substitute_node_with_graph(
             node_index, other, qubit_map, clbit_map, var_map, block_map,
         )?;
-        self.global_phase = add_global_phase(&self.global_phase, &other.global_phase)?;
+        self.global_phase = add_global_phase(&self.global_phase, &other.global_phase);
 
         let mut wire_map_dict = HashMap::new();
         for (source, target) in clbit_map.iter() {
@@ -7586,7 +7586,7 @@ impl DAGCircuit {
                     "Invalid parameter type, only float and parameter expression are supported",
                 ));
             }
-            _ => self.set_global_phase(add_global_phase(&self.global_phase, value)?)?,
+            _ => self.set_global_phase(add_global_phase(&self.global_phase, value))?,
         }
         Ok(())
     }
@@ -8033,7 +8033,7 @@ impl DAGCircuit {
             }
         };
 
-        self.global_phase = add_global_phase(&self.global_phase, &other.global_phase)?;
+        self.global_phase = add_global_phase(&self.global_phase, &other.global_phase);
 
         // This is all the handling we need for realtime variables, if there's no remapping. They:
         //
@@ -8642,8 +8642,8 @@ impl ::std::ops::Index<NodeIndex> for DAGCircuit {
 /// Add to global phase. Global phase can only be Float or ParameterExpression so this
 /// does not handle the full possibility of parameter values.
 /// TODO replace/merge this with add_param/radd_param
-pub(crate) fn add_global_phase(phase: &Param, other: &Param) -> PyResult<Param> {
-    Ok(match [phase, other] {
+pub(crate) fn add_global_phase(phase: &Param, other: &Param) -> Param {
+    match [phase, other] {
         [Param::Float(a), Param::Float(b)] => Param::Float(a + b),
         [Param::Float(a), Param::ParameterExpression(b)] => {
             Param::ParameterExpression(Arc::new(b.add(&ParameterExpression::from_f64(*a)).unwrap()))
@@ -8655,7 +8655,7 @@ pub(crate) fn add_global_phase(phase: &Param, other: &Param) -> PyResult<Param> 
             Param::ParameterExpression(Arc::new(a.add(b).expect("Name conflict in add.")))
         }
         _ => panic!("Invalid global phase"),
-    })
+    }
 }
 
 /// Update the tracking fields of the [DAGCircuit].
