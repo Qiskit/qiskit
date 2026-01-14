@@ -37,6 +37,7 @@ use rustworkx_core::petgraph::{
     visit::EdgeRef,
 };
 
+use qiskit_circuit::NoBlocks;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::imports::{ImportOnceCell, QUANTUM_CIRCUIT};
@@ -298,7 +299,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for GateOper {
     type Error = PyErr;
 
     fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
-        let op_struct: OperationFromPython = ob.extract()?;
+        let op_struct: OperationFromPython<NoBlocks> = ob.extract()?;
         Ok(Self {
             operation: op_struct.operation,
             params: match op_struct.params {
