@@ -8004,14 +8004,6 @@ impl DAGCircuit {
             ));
         }
 
-        let identity_clbit_map: HashMap<ShareableClbit, ShareableClbit> = other
-            .clbits
-            .objects()
-            .iter()
-            .cloned()
-            .zip(self.clbits.objects().iter().cloned())
-            .collect();
-
         let qubit_map = match qubits {
             None => other
                 .qubits

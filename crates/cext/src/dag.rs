@@ -15,7 +15,7 @@ use num_complex::Complex64;
 use smallvec::smallvec;
 
 use crate::exit_codes::ExitCode;
-use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister, ShareableClbit, ShareableQubit};
+use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeIndex, NodeType};
@@ -28,7 +28,6 @@ use qiskit_circuit::{Clbit, Qubit};
 use crate::circuit::{CBlocksMode, CInstruction, CVarsMode};
 
 use crate::circuit::unitary_from_pointer;
-use crate::dag::CDagNodeType::ClbitIn;
 use crate::pointers::{check_ptr, const_ptr_as_ref, mut_ptr_as_ref};
 
 /// @ingroup QkDag
