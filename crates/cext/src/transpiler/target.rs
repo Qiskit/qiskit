@@ -50,7 +50,7 @@ const _: () = unsafe { expose_by_box!(Target) };
 #[unsafe(no_mangle)]
 pub extern "C" fn qk_target_new(num_qubits: u32) -> *mut Target {
     Target::new()
-        .with_num_qubits(num_qubits)
+        .try_with_num_qubits(num_qubits)
         .unwrap()
         .into_leaked()
 }
