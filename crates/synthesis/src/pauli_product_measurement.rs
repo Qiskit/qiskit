@@ -17,7 +17,6 @@ use qiskit_circuit::circuit_data::CircuitError;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::operations::OperationRef;
-use qiskit_circuit::operations::Param;
 use qiskit_circuit::operations::PauliProductMeasurement;
 use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::operations::StandardInstruction;
@@ -31,7 +30,7 @@ pub fn synthesize_ppm(ppm: &PauliProductMeasurement) -> PyResult<CircuitData> {
     // is tricky.
     let num_qubits = ppm.num_qubits();
 
-    let mut circuit = CircuitData::with_capacity(num_qubits, 1, 0, Param::Float(0.0))?;
+    let mut circuit = CircuitData::with_capacity(num_qubits, 1, 0);
 
     // Filtering 'I's
     let pauli_qubits = ppm

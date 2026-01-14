@@ -219,7 +219,7 @@ fn qsd_inner(
     let numerator = 63 * x * x - 168 * x;
     let gates_bound = numerator.div_ceil(16);
 
-    let mut out = CircuitData::with_capacity(num_qubits as u32, 0, gates_bound, Param::Float(0.))?;
+    let mut out = CircuitData::with_capacity(num_qubits as u32, 0, gates_bound);
     // perform block ZXZ decomposition from [2]
     let (a1, a2, b, c) = block_zxz_decomp(mat);
 

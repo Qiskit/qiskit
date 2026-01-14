@@ -1166,7 +1166,7 @@ impl TwoQubitWeylDecomposition {
         let mut target_1q_basis_list = EulerBasisSet::new();
         target_1q_basis_list.add_basis(euler_basis);
 
-        let mut gate_sequence = CircuitData::with_capacity(2, 0, 21, Param::Float(0.))?;
+        let mut gate_sequence = CircuitData::with_capacity(2, 0, 21);
         let mut global_phase: f64 = self.global_phase;
 
         let c2r = unitary_to_gate_sequence_inner(

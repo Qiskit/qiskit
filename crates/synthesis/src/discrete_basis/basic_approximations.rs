@@ -20,7 +20,7 @@ use qiskit_circuit::{
     NoBlocks, Qubit,
     circuit_data::CircuitData,
     circuit_instruction::OperationFromPython,
-    operations::{Operation, OperationRef, Param, StandardGate},
+    operations::{Operation, OperationRef, StandardGate},
 };
 use rstar::{Point, RTree};
 use serde::{Deserialize, Serialize};
@@ -237,13 +237,12 @@ impl GateSequence {
         target: Option<(&Matrix2<Complex64>, f64)>,
     ) -> Result<CircuitData, DiscreteBasisError> {
         let global_phase = match target {
-            Some((target_u2, target_phase)) => {
-                Param::Float(self.compute_phase(target_u2, target_phase)?)
-            }
-            None => Param::Float(self.phase),
+            Some((target_u2, target_phase)) => self.compute_phase(target_u2, target_phase)?,
+            None => self.phase,
         };
 
-        let mut circuit = CircuitData::with_capacity(1, 0, self.gates.len(), global_phase).unwrap();
+        let mut circuit = CircuitData::with_capacity(1, 0, self.gates.len());
+        circuit.set_global_phase_f64(global_phase);
         for gate in &self.gates {
             circuit.push_standard_gate(*gate, &[], &[Qubit(0)]).unwrap();
         }

@@ -2117,12 +2117,8 @@ impl CircuitData {
         >,
     {
         let instruction_iter = instructions.into_iter();
-        let mut res = Self::with_capacity(
-            num_qubits,
-            num_clbits,
-            instruction_iter.size_hint().0,
-            global_phase,
-        )?;
+        let mut res = Self::with_capacity(num_qubits, num_clbits, instruction_iter.size_hint().0);
+        res.set_global_phase_param(global_phase)?;
 
         for item in instruction_iter {
             let (operation, params, qargs, cargs) = item?;
@@ -2271,8 +2267,8 @@ impl CircuitData {
         I: IntoIterator<Item = (StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>)>,
     {
         let instruction_iter = instructions.into_iter();
-        let mut res =
-            Self::with_capacity(num_qubits, 0, instruction_iter.size_hint().0, global_phase)?;
+        let mut res = Self::with_capacity(num_qubits, 0, instruction_iter.size_hint().0);
+        res.set_global_phase_param(global_phase)?;
 
         for (operation, params, qargs) in instruction_iter {
             let qubits = res.qargs_interner.insert(&qargs);
@@ -2285,12 +2281,7 @@ impl CircuitData {
     }
 
     /// Build an empty CircuitData object with an initially allocated instruction capacity
-    pub fn with_capacity(
-        num_qubits: u32,
-        num_clbits: u32,
-        instruction_capacity: usize,
-        global_phase: Param,
-    ) -> Result<Self, CircuitDataError> {
+    pub fn with_capacity(num_qubits: u32, num_clbits: u32, instruction_capacity: usize) -> Self {
         let mut res = CircuitData {
             data: Vec::with_capacity(instruction_capacity),
             qargs_interner: Interner::new(),
@@ -2313,14 +2304,11 @@ impl CircuitData {
             stretches_capture: Vec::new(),
             stretches_declare: Vec::new(),
         };
-
-        // use the global phase setter to ensure parameters are registered in the parameter table
-        res.set_global_phase_param(global_phase)?;
         res.add_anonymous_qubits(num_qubits)
             .expect("cannot represent a too-large count");
         res.add_anonymous_clbits(num_clbits)
             .expect("cannot represent a too-large count");
-        Ok(res)
+        res
     }
 
     /// Add multiple new anonymous qubits.

@@ -740,8 +740,8 @@ fn extract_definition(op: &PackedOperation, params: &[Param]) -> PyResult<Option
                 [2, 2] => {
                     let [theta, phi, lam, phase] =
                         angles_from_unitary(unitary.view(), EulerBasis::U);
-                    let mut circuit_data: CircuitData =
-                        CircuitData::with_capacity(1, 0, 1, Param::Float(phase))?;
+                    let mut circuit_data = CircuitData::with_capacity(1, 0, 1);
+                    circuit_data.set_global_phase_f64(phase);
                     circuit_data.push_standard_gate(
                         StandardGate::U,
                         &[Param::Float(theta), Param::Float(phi), Param::Float(lam)],

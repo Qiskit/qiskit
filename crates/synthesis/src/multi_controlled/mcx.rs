@@ -254,7 +254,7 @@ impl CircuitDataForSynthesis for CircuitData {
 /// Efficient synthesis for 4-controlled X-gate.
 #[pyfunction]
 pub fn c4x() -> Result<CircuitData, CircuitDataError> {
-    let mut circuit = CircuitData::with_capacity(5, 0, 0, Param::Float(0.0))?;
+    let mut circuit = CircuitData::with_capacity(5, 0, 0);
     circuit.h(4)?;
     circuit.cp(PI2, 3, 4)?;
     circuit.h(4)?;
@@ -323,7 +323,7 @@ pub fn synth_mcx_n_dirty_i15(
     action_only: bool,
 ) -> Result<CircuitData, CircuitDataError> {
     if num_controls == 1 {
-        let mut circuit = CircuitData::with_capacity(2, 0, 1, Param::Float(0.0))?;
+        let mut circuit = CircuitData::with_capacity(2, 0, 1);
         circuit.cx(0, 1)?;
         Ok(circuit)
     } else if num_controls == 2 {
@@ -333,7 +333,7 @@ pub fn synth_mcx_n_dirty_i15(
     } else {
         let num_ancillas = num_controls - 2;
         let num_qubits = num_controls + 1 + num_ancillas;
-        let mut circuit = CircuitData::with_capacity(num_qubits as u32, 0, 0, Param::Float(0.0))?;
+        let mut circuit = CircuitData::with_capacity(num_qubits as u32, 0, 0);
 
         let controls: Vec<u32> = (0..num_controls).map(|q| q as u32).collect();
         let target = num_controls as u32;
@@ -418,7 +418,7 @@ pub fn synth_mcx_noaux_v24(
         let num_qubits = (num_controls + 1) as u32;
         let target = num_controls as u32;
 
-        let mut circuit = CircuitData::with_capacity(num_qubits, 0, 0, Param::Float(0.0))?;
+        let mut circuit = CircuitData::with_capacity(num_qubits, 0, 0);
         circuit.h(target)?;
 
         let mcphase_cls = imports::MCPHASE_GATE.get_bound(py);
@@ -478,7 +478,7 @@ fn increment_n_dirty_large(n: u32) -> PyResult<CircuitData> {
         Ok(())
     }
 
-    let mut circuit = CircuitData::with_capacity(2 * n, 0, 0, Param::Float(0.0))?;
+    let mut circuit = CircuitData::with_capacity(2 * n, 0, 0);
     let qubits: Vec<u32> = (0..n).collect();
     let ancillas: Vec<u32> = (n..2 * n).collect();
 
@@ -550,7 +550,7 @@ fn increment_n_dirty_large(n: u32) -> PyResult<CircuitData> {
 ///
 /// Best suitable for when n is small.
 fn increment_n_dirty_small(n: u32) -> PyResult<CircuitData> {
-    let mut circuit = CircuitData::with_capacity(2 * n, 0, 0, Param::Float(0.0))?;
+    let mut circuit = CircuitData::with_capacity(2 * n, 0, 0);
 
     for k in (1..n).rev() {
         let k_mcx = synth_mcx_n_dirty_i15(k as usize, false, false)?;
@@ -586,7 +586,7 @@ fn increment_n_dirty(n: u32) -> PyResult<CircuitData> {
 fn synth_relative_mcx(num_controls: usize) -> Result<CircuitData, CircuitDataError> {
     let num_qubits = (num_controls + 1) as u32;
     let target = num_controls as u32;
-    let mut circuit = CircuitData::with_capacity(num_qubits, 0, 0, Param::Float(0.0))?;
+    let mut circuit = CircuitData::with_capacity(num_qubits, 0, 0);
 
     match num_controls {
         0 => {
@@ -688,7 +688,7 @@ fn increment_1_dirty(n: u32, flag_add: bool) -> PyResult<CircuitData> {
     // We say that qubits 0..k are "first half" qubits, qubits k+1..n are "second-half" qubits.
     let ancilla = n;
 
-    let mut circuit = CircuitData::with_capacity(n + 1, 0, 0, Param::Float(0.0))?;
+    let mut circuit = CircuitData::with_capacity(n + 1, 0, 0);
 
     if !flag_add {
         for i in 0..n {
@@ -787,7 +787,7 @@ fn increment_2_dirty(n: u32, flag_add: bool) -> PyResult<CircuitData> {
     let ancilla1 = n;
     let ancilla2 = n + 1;
 
-    let mut circuit = CircuitData::with_capacity(n + 2, 0, 0, Param::Float(0.0))?;
+    let mut circuit = CircuitData::with_capacity(n + 2, 0, 0);
 
     if !flag_add {
         for i in 0..n {
@@ -877,7 +877,7 @@ fn increment_2_dirty(n: u32, flag_add: bool) -> PyResult<CircuitData> {
 pub fn synth_mcx_noaux_hp24(num_controls: usize) -> PyResult<CircuitData> {
     let n = num_controls + 1;
 
-    let mut circuit = CircuitData::with_capacity(n as u32, 0, 0, Param::Float(0.0))?;
+    let mut circuit = CircuitData::with_capacity(n as u32, 0, 0);
 
     // Handle small cases explicitly
     if n == 2 {

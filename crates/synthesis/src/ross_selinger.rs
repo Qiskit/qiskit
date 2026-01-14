@@ -34,8 +34,8 @@ where
     S: IntoIterator<Item = char>,
 {
     let qubit = [Qubit(0)];
-    let mut circuit =
-        CircuitData::with_capacity(1u32, 0, instruction_capacity, Param::Float(phase))?;
+    let mut circuit = CircuitData::with_capacity(1u32, 0, instruction_capacity);
+    circuit.set_global_phase_f64(phase);
     for c in s {
         match c {
             'I' => {}
