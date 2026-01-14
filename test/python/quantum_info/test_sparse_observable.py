@@ -2335,63 +2335,26 @@ class TestSparseObservable(QiskitTestCase):
         with self.assertRaisesRegex(ValueError, "duplicate indices in qargs"):
             SparseObservable.identity(5).compose("XYZX", qargs=[0, 1, 1, 0])
 
-    def test_evolve_simple_pauli_by_identity(self):
-        """Test that evolving by identity preserves the observable."""
-        obs = SparseObservable.from_label("X")
-        ident = SparseObservable.identity(1)
-        result = obs.evolve(ident)
-        self.assertEqual(result, obs)
-
-    def test_evolve_simple_pauli_by_pauli(self):
-        """Test X evolved by X gives X."""
-        obs = SparseObservable.from_label("X")
-        result = obs.evolve(obs)
-        self.assertEqual(result, obs)
-
-    def test_evolve_z_by_x(self):
-        """Test Z evolved by X gives -Z."""
-        z = SparseObservable.from_label("Z")
-        x = SparseObservable.from_label("X")
-        result = z.evolve(x)
-        expected = SparseObservable.from_list([("Z", -1.0)])
-        self.assertEqual(result.simplify(), expected.simplify())
-
-    def test_evolve_projector_by_identity(self):
-        """Test projector evolved by identity is preserved."""
-        obs = SparseObservable.from_label("0")  # Zero projector
-        ident = SparseObservable.identity(1)
-        result = obs.evolve(ident)
-        self.assertEqual(result, obs)
-
-    @combine(
-        obs=single_cases(),
-        pauli=[SparseObservable("X"), SparseObservable("Y"), SparseObservable("Z")],
-    )
-    def test_evolve_single_qubit(self, obs, pauli):
+    @ddt.idata(list(SparseObservable.BitTerm))
+    def test_projector_compose_single_qubit(self, term):
         """
-        Test evolve matches PauliOp conjugation
-        for valid single-qubit, single-term observables.
+        Test that double conjugation of Q with P == Q evolved by P for
+        single-qubit projectors P and all Q.
         """
-        # Only valid for 1-qubit, single-term, non-scalar observables
-        if obs.num_qubits != 1:
-            return
-        if obs.num_terms() != 1:
-            return
-        if obs.num_qubits == 0:
-            return
+        p = SparseObservable.from_label(term.label)
 
-        expected = (
-            SparsePauliOp.from_sparse_observable(pauli)
-            .adjoint()
-            .compose(SparsePauliOp.from_sparse_observable(obs))
-            .compose(SparsePauliOp.from_sparse_observable(pauli))
-            .simplify()
-            .sort()
-        )
+        for q_label in ["+", "-", "r", "l", "0", "1", "X", "Y", "Z"]:
+            q = SparseObservable.from_label(q_label)
 
-        result = SparsePauliOp.from_sparse_observable(obs.evolve(pauli)).simplify().sort()
+            result = p.adjoint().compose(q).compose(p).simplify()
+            expected = q.evolve(p).simplify()
 
-        self.assertEqual(result, expected)
+            # These could and should be replaced with :meth:`SparseObservable.matrix`
+            # once relevant PR #15022 is merged.
+            ma = SparsePauliOp.from_sparse_observable(result).to_matrix()
+            mb = SparsePauliOp.from_sparse_observable(expected).to_matrix()
+
+            np.testing.assert_allclose(ma, mb, atol=1e-10, rtol=0)
 
     @ddt.idata(SparseObservable.BitTerm)
     def test_evolve_identity(self, term):
