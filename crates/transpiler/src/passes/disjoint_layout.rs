@@ -211,6 +211,30 @@ pub fn distribute_components(dag: &mut DAGCircuit, target: &Target) -> PyResult<
                 for creg in dag.cregs() {
                     out_dag.add_creg(creg.clone())?;
                 }
+
+                let qubits_indices: Vec<Qubit> = dag
+                    .qubits()
+                    .objects()
+                    .iter()
+                    .map(|qubit| {
+                        out_dag
+                            .qubits()
+                            .find(qubit)
+                            .expect("Qubit from dag not found in out_dag")
+                    })
+                    .collect();
+                let clbits_indices: Vec<Clbit> = dag
+                    .clbits()
+                    .objects()
+                    .iter()
+                    .map(|clbit| {
+                        out_dag
+                            .clbits()
+                            .find(clbit)
+                            .expect("Clbit from dag not found in out_dag")
+                    })
+                    .collect();
+
                 let block_map = dag
                     .blocks()
                     .items()
@@ -218,8 +242,8 @@ pub fn distribute_components(dag: &mut DAGCircuit, target: &Target) -> PyResult<
                     .collect();
                 out_dag.compose(
                     dag,
-                    Some(dag.qubits().objects()),
-                    Some(dag.clbits().objects()),
+                    Some(&qubits_indices),
+                    Some(&clbits_indices),
                     block_map,
                     false,
                 )?;

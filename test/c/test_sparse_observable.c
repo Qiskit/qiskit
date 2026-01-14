@@ -335,6 +335,27 @@ static int test_custom_build(void) {
 }
 
 /**
+ * Test building a custom observable with null pointers.
+ */
+static int test_custom_build_zero(void) {
+    int res = Ok;
+    uint32_t num_qubits = 32;
+    QkObs *obs = qk_obs_new(num_qubits, 0, 0, NULL, NULL, NULL, (size_t[1]){0});
+    if (!obs) {
+        fprintf(stderr, "%s: failed to construct observable\n", __func__);
+        return EqualityError;
+    }
+    uint32_t actual_num_qubits = qk_obs_num_qubits(obs);
+    size_t num_terms = qk_obs_num_terms(obs);
+    if (actual_num_qubits != num_qubits || num_terms != 0) {
+        fprintf(stderr, "%s: returned observable has incorrect properties\n", __func__);
+        res = EqualityError;
+    }
+    qk_obs_free(obs);
+    return res;
+}
+
+/**
  * Test getting the terms in an observable.
  */
 static int test_term(void) {
@@ -728,13 +749,8 @@ static int test_obsterm_id(void) {
     // Initialize observable and add a term
     uint32_t num_qubits = 100;
     QkObs *obs = qk_obs_identity(num_qubits);
-    // NOTE: we allocate larger arrays than needed to avoid error C2466 which
-    // disallows the allocation of an array of constant size 0.
-    // https://learn.microsoft.com/en-us/cpp/error-messages/compiler-errors-1/compiler-error-c2466
-    QkBitTerm bit_terms[1];
-    uint32_t qubits[1];
     QkComplex64 coeff = {1.0, 1.0};
-    QkObsTerm term = {coeff, 0, bit_terms, qubits, num_qubits};
+    QkObsTerm term = {coeff, 0, NULL, NULL, num_qubits};
     int err = qk_obs_add_term(obs, &term);
 
     if (err != 0) {
@@ -861,6 +877,7 @@ int test_sparse_observable(void) {
     num_failed += RUN_TEST(test_num_terms);
     num_failed += RUN_TEST(test_num_qubits);
     num_failed += RUN_TEST(test_custom_build);
+    num_failed += RUN_TEST(test_custom_build_zero);
     num_failed += RUN_TEST(test_term);
     num_failed += RUN_TEST(test_copy_term);
     num_failed += RUN_TEST(test_bitterm_label);

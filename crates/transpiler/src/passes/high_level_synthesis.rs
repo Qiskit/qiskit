@@ -977,7 +977,7 @@ fn py_synthesize_operation(
     data: &Bound<HighLevelSynthesisData>,
     tracker: &mut QubitTracker,
 ) -> PyResult<Option<(CircuitData, Vec<usize>)>> {
-    let op: OperationFromPython = py_op.extract()?;
+    let op: OperationFromPython<Py<PyAny>> = py_op.extract()?;
 
     // Check if the operation can be skipped.
     if definitely_skip_op(py, data, &op.operation, &input_qubits) {
