@@ -13,7 +13,7 @@
 use std::ffi::{CString, c_char};
 
 use crate::exit_codes::{CInputError, ExitCode};
-use crate::pointers::{check_ptr, const_ptr_as_ref, mut_ptr_as_ref};
+use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref, slice_from_ptr, try_slice_from_ptr};
 use num_complex::Complex64;
 
 use qiskit_quantum_info::sparse_observable::{
@@ -44,9 +44,11 @@ pub struct CSparseTerm {
     coeff: Complex64,
     /// Length of the ``bit_terms`` and ``indices`` arrays.
     len: usize,
-    /// A non-null, aligned pointer to ``len`` elements of type ``QkBitTerm``.
+    /// An aligned pointer to ``len`` elements of type ``QkBitTerm``.  This can be ``NULL`` if and
+    /// only if ``len`` is 0.
     bit_terms: *mut BitTerm,
-    /// A non-null, aligned pointer to ``len`` elements of type ``uint32_t``.
+    /// An aligned pointer to ``len`` elements of type ``uint32_t``.  This can be ``NULL`` if and
+    /// only if ``len`` is 0.
     indices: *mut u32,
     /// The number of qubits the observable term is defined on.
     num_qubits: u32,
@@ -56,20 +58,13 @@ impl TryFrom<&CSparseTerm> for SparseTermView<'_> {
     type Error = CInputError;
 
     fn try_from(value: &CSparseTerm) -> Result<Self, Self::Error> {
-        check_ptr(value.bit_terms)?;
-        check_ptr(value.indices)?;
-
-        // SAFETY: At this point we know the pointers are non-null and aligned. We rely on C
-        // that the arrays have the appropriate length, which is documented as requirement in the
-        // CSparseTerm class.
-        let bit_terms = unsafe { ::std::slice::from_raw_parts(value.bit_terms, value.len) };
-        let indices = unsafe { ::std::slice::from_raw_parts(value.indices, value.len) };
-
         Ok(SparseTermView {
             num_qubits: value.num_qubits,
             coeff: value.coeff,
-            bit_terms,
-            indices,
+            // SAFETY: per struct documentation, `bit_terms` is valid for `len` initialized reads.
+            bit_terms: unsafe { try_slice_from_ptr(value.bit_terms, value.len) }?,
+            // SAFETY: per struct documentation, `indices` is valid for `len` initialized reads.
+            indices: unsafe { try_slice_from_ptr(value.indices, value.len) }?,
         })
     }
 }
@@ -114,6 +109,8 @@ pub extern "C" fn qk_obs_identity(num_qubits: u32) -> *mut SparseObservable {
 
 /// @ingroup QkObs
 /// Construct a new observable from raw data.
+///
+/// Any of the pointer arguments may be ``NULL`` if and only if their corresponding length is zero.
 ///
 /// @param num_qubits The number of qubits the observable is defined on.
 /// @param num_terms The number of terms.
@@ -170,24 +167,16 @@ pub unsafe extern "C" fn qk_obs_new(
 ) -> *mut SparseObservable {
     let num_terms = num_terms as usize;
     let num_bits = num_bits as usize;
-
-    check_ptr(coeffs).unwrap();
-    check_ptr(bit_terms).unwrap();
-    check_ptr(indices).unwrap();
-    check_ptr(boundaries).unwrap();
-
-    // SAFETY: At this point we know the pointers are non-null and aligned. We rely on C that
-    // the pointers point to arrays of appropriate length, as specified in the function docs.
-    let coeffs = unsafe { ::std::slice::from_raw_parts(coeffs, num_terms).to_vec() };
-    let bit_terms = unsafe { ::std::slice::from_raw_parts(bit_terms, num_bits).to_vec() };
-    let indices = unsafe { ::std::slice::from_raw_parts(indices, num_bits).to_vec() };
-    let boundaries = unsafe { ::std::slice::from_raw_parts(boundaries, num_terms + 1).to_vec() };
-
-    let result = SparseObservable::new(num_qubits, coeffs, bit_terms, indices, boundaries);
-    match result {
-        Ok(obs) => Box::into_raw(Box::new(obs)),
-        Err(_) => ::std::ptr::null_mut(),
-    }
+    SparseObservable::new(
+        num_qubits,
+        // SAFETY: per documentation, each pointer is valid for the given number of reads.
+        unsafe { slice_from_ptr(coeffs, num_terms) }.to_vec(),
+        unsafe { slice_from_ptr(bit_terms, num_bits) }.to_vec(),
+        unsafe { slice_from_ptr(indices, num_bits) }.to_vec(),
+        unsafe { slice_from_ptr(boundaries, num_terms + 1) }.to_vec(),
+    )
+    .map(|obs| Box::into_raw(Box::new(obs)))
+    .unwrap_or(::std::ptr::null_mut())
 }
 
 /// @ingroup QkObs
@@ -209,14 +198,11 @@ pub unsafe extern "C" fn qk_obs_new(
 pub unsafe extern "C" fn qk_obs_free(obs: *mut SparseObservable) {
     if !obs.is_null() {
         if !obs.is_aligned() {
-            panic!("Attempted to free a non-aligned pointer.")
+            panic!("Attempted to free a non-aligned pointer.");
         }
-
-        // SAFETY: We have verified the pointer is non-null and aligned, so it should be
-        // readable by Box.
-        unsafe {
-            let _ = Box::from_raw(obs);
-        }
+        // SAFETY: per documentation, `obs` points to a valid boxed `SparseObservable`.  Per above
+        // checks, it is aligned and non-null.
+        let _ = unsafe { Box::from_raw(obs) };
     }
 }
 
@@ -702,20 +688,8 @@ pub unsafe extern "C" fn qk_obs_compose_map(
     let first = unsafe { const_ptr_as_ref(first) };
     let second = unsafe { const_ptr_as_ref(second) };
 
-    let qargs = if qargs.is_null() {
-        if second.num_qubits() != 0 {
-            panic!("If qargs is null, then second must have 0 qubits.");
-        }
-        &[]
-    } else {
-        if !qargs.is_aligned() {
-            panic!("qargs pointer is not aligned to u32");
-        }
-        // SAFETY: Per documentation, qargs is safe to read up to ``second.num_qubits()`` elements,
-        // which is the maximal value of ``index`` here.
-        unsafe { ::std::slice::from_raw_parts(qargs, second.num_qubits() as usize) }
-    };
-
+    // SAFETY: per documentation, `qargs` is valid for `second.num_qubits()` reads.
+    let qargs = unsafe { slice_from_ptr(qargs, second.num_qubits() as usize) };
     let qargs_map = |index: u32| qargs[index as usize];
 
     let result = first.compose_map(second, qargs_map);
