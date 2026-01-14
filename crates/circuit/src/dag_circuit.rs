@@ -1458,7 +1458,7 @@ impl DAGCircuit {
         cargs: Option<TupleLikeArg>,
         check: bool,
     ) -> PyResult<Py<PyAny>> {
-        let py_op = op.extract::<OperationFromPython>()?;
+        let py_op = op.extract::<OperationFromPython<DAGCircuit>>()?;
         let qargs = qargs
             .map(|q| q.value.extract::<Vec<ShareableQubit>>())
             .transpose()?;
@@ -1476,12 +1476,11 @@ impl DAGCircuit {
                     .map_objects(cargs.into_iter().flatten())?
                     .collect(),
             );
-            let params = self.extract_blocks_from_circuit_parameters(py_op.params.as_ref())?;
             let instr = PackedInstruction {
                 op: py_op.operation,
                 qubits: qubits_id,
                 clbits: clbits_id,
-                params,
+                params: self.take_parameter_blocks(py_op.params),
                 label: py_op.label,
                 #[cfg(feature = "cache_pygates")]
                 py_op: op.unbind().into(),
@@ -1521,7 +1520,7 @@ impl DAGCircuit {
         cargs: Option<TupleLikeArg>,
         check: bool,
     ) -> PyResult<Py<PyAny>> {
-        let py_op = op.extract::<OperationFromPython>()?;
+        let py_op = op.extract::<OperationFromPython<DAGCircuit>>()?;
         let qargs = qargs
             .map(|q| q.value.extract::<Vec<ShareableQubit>>())
             .transpose()?;
@@ -1539,12 +1538,11 @@ impl DAGCircuit {
                     .map_objects(cargs.into_iter().flatten())?
                     .collect(),
             );
-            let params = self.extract_blocks_from_circuit_parameters(py_op.params.as_ref())?;
             let instr = PackedInstruction {
                 op: py_op.operation,
                 qubits: qubits_id,
                 clbits: clbits_id,
-                params,
+                params: self.take_parameter_blocks(py_op.params),
                 label: py_op.label,
                 #[cfg(feature = "cache_pygates")]
                 py_op: op.unbind().into(),
@@ -3013,8 +3011,8 @@ impl DAGCircuit {
         }
 
         let block_ids: Vec<_> = node_block.iter().map(|n| n.node.unwrap()).collect();
-        let py_op = op.extract::<OperationFromPython>()?;
-        let params = self.extract_blocks_from_circuit_parameters(py_op.params.as_ref())?;
+        let py_op = op.extract::<OperationFromPython<DAGCircuit>>()?;
+        let params = self.take_parameter_blocks(py_op.params);
         let new_node = self.replace_block(
             &block_ids,
             py_op.operation,
@@ -3347,21 +3345,13 @@ impl DAGCircuit {
         let node_index = node.as_ref().node.unwrap();
         self.substitute_node_with_py_op(node_index, op)?;
         if inplace {
-            let PackedInstruction {
-                params,
-                label,
-                #[cfg(feature = "cache_pygates")]
-                py_op,
-                ..
-            } = self.dag[node_index].unwrap_operation().clone();
-            let temp: OperationFromPython = op.extract()?;
+            let temp = op.extract::<OperationFromPython<CircuitData>>()?;
             node.instruction.operation = temp.operation;
-            node.instruction.params =
-                self.unpack_blocks_to_circuit_parameters(params.as_deref())?;
-            node.instruction.label = label;
+            node.instruction.params = temp.params;
+            node.instruction.label = temp.label;
             #[cfg(feature = "cache_pygates")]
             {
-                node.instruction.py_op = py_op;
+                node.instruction.py_op = OnceLock::from(op.clone().unbind());
             }
             node.into_py_any(py)
         } else {
@@ -5005,43 +4995,52 @@ impl DAGCircuit {
         self.blocks.push(block)
     }
 
-    /// Add a new block to this circuit, extracting it from the equivalent typed block from a
-    /// `CircuitData`.
-    pub fn add_block_from_circuit(&mut self, block: &CircuitData) -> PyResult<Block> {
-        DAGCircuit::from_circuit_data(block, false, None, None, None, None)
-            .map(|dag| self.add_block(dag))
+    /// Take the blocks from an extraction from an `OperationFromPython<DAGCircuit>` and add them to
+    /// this DAG.
+    ///
+    /// Returns the parameters in terms of block references.
+    pub fn take_parameter_blocks(
+        &mut self,
+        params: Option<Parameters<DAGCircuit>>,
+    ) -> Option<Box<Parameters<Block>>> {
+        params.map(|params| Box::new(params.map_blocks(|block| self.add_block(block))))
     }
 
-    /// Given a `params` object in terms of owned Python-space circuit objects (such as from an
-    /// `OperationFromPython` extraction), add all the blocks to the DAG and return the `params`
-    /// field suitable for inclusion in a `PackedInstruction`.
+    /// Extract the blocks from a Python-space `CircuitInstruction` and add them to this DAG.
     ///
-    /// The inverse of this method is [unpack_blocks_to_circuit_parameters].
+    /// The inverse of this is [unpack_blocks_to_circuit_parameters].
     fn extract_blocks_from_circuit_parameters(
         &mut self,
         params: Option<&Parameters<CircuitData>>,
     ) -> PyResult<Option<Box<Parameters<Block>>>> {
-        Ok(params
-            .map(|params| params.try_map_blocks(|block| self.add_block_from_circuit(block)))
-            .transpose()?
-            .map(Box::new))
+        params
+            .map(|params| {
+                params
+                    .try_map_blocks_ref(|block| {
+                        DAGCircuit::from_circuit_data(block, false, None, None, None, None)
+                            .map(|dag| self.add_block(dag))
+                    })
+                    .map(Box::new)
+            })
+            .transpose()
     }
 
     /// Given a `params` object from an instruction packed into this DAG, extract any relevant
     /// blocks into the owned-object `CircuitData` block type, suitable for passing back to Python
     /// space.
     ///
-    /// The inverse of this method is [extract_blocks_from_circuit_parameters].
+    /// The inverse of this is [extract_blocks_from_circuit_parameters].
     fn unpack_blocks_to_circuit_parameters(
         &self,
         params: Option<&Parameters<Block>>,
     ) -> PyResult<Option<Parameters<CircuitData>>> {
-        params
+        Ok(params
             .map(|params| {
-                params
-                    .try_map_blocks(|block| converters::dag_to_circuit(&self.blocks[*block], false))
+                params.try_map_blocks_ref(|block| {
+                    converters::dag_to_circuit(&self.blocks[*block], false)
+                })
             })
-            .transpose()
+            .transpose()?)
     }
 
     /// Gets a mutable reference to the given basic block.
@@ -5529,7 +5528,7 @@ impl DAGCircuit {
 
         // Remove the qubit indices, which will invalidate our mapping of Qubit to
         // Python bits throughout the entire DAG.
-        self.qubits.remove_indices(qubits.clone())?;
+        self.qubits.remove_indices(qubits.clone());
 
         // Update input/output maps to use new Qubits.
         let io_mapping: HashMap<Qubit, [NodeIndex; 2]> = self
@@ -5657,7 +5656,7 @@ impl DAGCircuit {
 
         // Remove the clbit indices, which will invalidate our mapping of Clbit to
         // Python bits throughout the entire DAG.
-        self.clbits.remove_indices(clbits.clone())?;
+        self.clbits.remove_indices(clbits.clone());
 
         // Update input/output maps to use new Clbits.
         let io_mapping: HashMap<Clbit, [NodeIndex; 2]> = self
@@ -6898,7 +6897,7 @@ impl DAGCircuit {
         let out_map = self.substitute_node_with_graph(
             node_index, other, qubit_map, clbit_map, var_map, block_map,
         )?;
-        self.global_phase = add_global_phase(&self.global_phase, &other.global_phase)?;
+        self.global_phase = add_global_phase(&self.global_phase, &other.global_phase);
 
         let mut wire_map_dict = HashMap::new();
         for (source, target) in clbit_map.iter() {
@@ -7105,7 +7104,7 @@ impl DAGCircuit {
                 new_inst.params = new_inst
                     .params
                     .as_ref()
-                    .map(|params| Box::new(params.map_blocks(|b| block_map[b])));
+                    .map(|params| Box::new(params.map_blocks_ref(|b| block_map[b])));
                 self.track_instruction(new_inst);
             }
             let new_index = self.dag.add_node(new_node);
@@ -7585,7 +7584,7 @@ impl DAGCircuit {
                     "Invalid parameter type, only float and parameter expression are supported",
                 ));
             }
-            _ => self.set_global_phase(add_global_phase(&self.global_phase, value)?)?,
+            _ => self.set_global_phase(add_global_phase(&self.global_phase, value))?,
         }
         Ok(())
     }
@@ -8032,7 +8031,7 @@ impl DAGCircuit {
             }
         };
 
-        self.global_phase = add_global_phase(&self.global_phase, &other.global_phase)?;
+        self.global_phase = add_global_phase(&self.global_phase, &other.global_phase);
 
         // This is all the handling we need for realtime variables, if there's no remapping. They:
         //
@@ -8212,7 +8211,7 @@ impl DAGCircuit {
                             params: inst
                                 .params
                                 .as_ref()
-                                .map(|params| Box::new(params.map_blocks(|b| block_map[b]))),
+                                .map(|params| Box::new(params.map_blocks_ref(|b| block_map[b]))),
                             label: inst.label.clone(),
                             #[cfg(feature = "cache_pygates")]
                             py_op: OnceLock::new(),
@@ -8288,8 +8287,8 @@ impl DAGCircuit {
         op: &Bound<PyAny>,
     ) -> PyResult<()> {
         // Extract information from new op
-        let new_op = op.extract::<OperationFromPython>()?;
-        let params = self.extract_blocks_from_circuit_parameters(new_op.params.as_ref())?;
+        let new_op = op.extract::<OperationFromPython<DAGCircuit>>()?;
+        let params = self.take_parameter_blocks(new_op.params);
         // Extract information from node that is going to be replaced
         let old_packed = self.dag[node_index].unwrap_operation();
         let current_wires: HashSet<Wire> =
@@ -8320,8 +8319,6 @@ impl DAGCircuit {
         }
         let label = new_op.label.clone();
 
-        #[cfg(feature = "cache_pygates")]
-        let py_op_cache = Some(op.clone().unbind());
         let new_instr = PackedInstruction {
             op: new_op.operation,
             qubits: old_packed.qubits,
@@ -8329,7 +8326,7 @@ impl DAGCircuit {
             params,
             label,
             #[cfg(feature = "cache_pygates")]
-            py_op: py_op_cache.map(OnceLock::from).unwrap_or_default(),
+            py_op: OnceLock::from(op.clone().unbind()),
         };
 
         let (additional_clbits, additional_vars) =
@@ -8643,8 +8640,8 @@ impl ::std::ops::Index<NodeIndex> for DAGCircuit {
 /// Add to global phase. Global phase can only be Float or ParameterExpression so this
 /// does not handle the full possibility of parameter values.
 /// TODO replace/merge this with add_param/radd_param
-pub(crate) fn add_global_phase(phase: &Param, other: &Param) -> PyResult<Param> {
-    Ok(match [phase, other] {
+pub(crate) fn add_global_phase(phase: &Param, other: &Param) -> Param {
+    match [phase, other] {
         [Param::Float(a), Param::Float(b)] => Param::Float(a + b),
         [Param::Float(a), Param::ParameterExpression(b)] => {
             Param::ParameterExpression(Arc::new(b.add(&ParameterExpression::from_f64(*a)).unwrap()))
@@ -8656,7 +8653,7 @@ pub(crate) fn add_global_phase(phase: &Param, other: &Param) -> PyResult<Param> 
             Param::ParameterExpression(Arc::new(a.add(b).expect("Name conflict in add.")))
         }
         _ => panic!("Invalid global phase"),
-    })
+    }
 }
 
 /// Update the tracking fields of the [DAGCircuit].
