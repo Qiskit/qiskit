@@ -37,6 +37,15 @@ pub enum OptimizationLevel {
     Level3 = 3,
 }
 
+/// The source of the initial layout found when running [`layout_stage`].
+/// This is typically used to control whether `VF2PostLayout` is run during
+/// the [`routing_stage`]
+pub enum LayoutSource {
+    Trivial,
+    VF2,
+    Sabre,
+}
+
 impl From<u8> for OptimizationLevel {
     fn from(value: u8) -> Self {
         match value {
@@ -124,7 +133,8 @@ pub fn layout_stage(
     seed: Option<u64>,
     sabre_heuristic: &sabre::Heuristic,
     transpile_layout: &mut TranspileLayout,
-) -> Result<()> {
+) -> Result<LayoutSource> {
+    let mut layout_source = LayoutSource::Sabre;
     let vf2_config = match optimization_level {
         OptimizationLevel::Level0 => vf2::Vf2PassConfiguration::default_abstract(), // Not used.
         OptimizationLevel::Level1 | OptimizationLevel::Level2 => vf2::Vf2PassConfiguration {
@@ -153,12 +163,14 @@ pub fn layout_stage(
         // constraints in the target and returns None if the circuit conforms to the undirected
         // connectivity constraints
         if run_check_map(dag, target).is_none() {
+            layout_source = LayoutSource::Trivial;
             apply_layout(dag, transpile_layout, target.num_qubits.unwrap(), |x| {
                 PhysicalQubit(x.0)
             });
         } else if let vf2::Vf2PassReturn::Solution(layout) =
             vf2_layout_pass_average(dag, target, &vf2_config, false, None)?
         {
+            layout_source = LayoutSource::VF2;
             apply_layout(dag, transpile_layout, target.num_qubits.unwrap(), |x| {
                 layout[&x]
             });
@@ -182,6 +194,7 @@ pub fn layout_stage(
         if let vf2::Vf2PassReturn::Solution(layout) =
             vf2_layout_pass_average(dag, target, &vf2_config, false, None)?
         {
+            layout_source = LayoutSource::VF2;
             apply_layout(dag, transpile_layout, target.num_qubits.unwrap(), |x| {
                 layout[&x]
             });
@@ -204,6 +217,7 @@ pub fn layout_stage(
     } else if let vf2::Vf2PassReturn::Solution(layout) =
         vf2_layout_pass_average(dag, target, &vf2_config, false, None)?
     {
+        layout_source = LayoutSource::VF2;
         apply_layout(dag, transpile_layout, target.num_qubits.unwrap(), |x| {
             layout[&x]
         });
@@ -223,7 +237,7 @@ pub fn layout_stage(
         *transpile_layout =
             layout_from_sabre_result(dag, initial_layout, &final_layout, transpile_layout);
     }
-    Ok(())
+    Ok(layout_source)
 }
 
 #[inline]
@@ -234,6 +248,7 @@ pub fn routing_stage(
     seed: Option<u64>,
     sabre_heuristic: &sabre::Heuristic,
     transpile_layout: &mut TranspileLayout,
+    layout_source: LayoutSource,
 ) -> Result<()> {
     if optimization_level == OptimizationLevel::Level0 {
         let routing_target = PyRoutingTarget::from_target(target)?;
@@ -257,6 +272,32 @@ pub fn routing_stage(
             let routing_permutation =
                 TranspileLayout::permutation_from_layouts(initial_layout, &final_layout);
             transpile_layout.add_permutation_inside(|q| routing_permutation[q.index()]);
+        }
+    } else if !matches!(layout_source, LayoutSource::VF2 | LayoutSource::Trivial) {
+        let vf2_config = match optimization_level {
+            OptimizationLevel::Level0 => vf2::Vf2PassConfiguration::default_abstract(), // Not used.
+            OptimizationLevel::Level1 | OptimizationLevel::Level2 => vf2::Vf2PassConfiguration {
+                call_limit: (Some(5_000_000), Some(10_000)),
+                time_limit: None,
+                max_trials: None,
+                shuffle_seed: None,
+                score_initial_layout: true,
+            },
+            OptimizationLevel::Level3 => vf2::Vf2PassConfiguration {
+                call_limit: (Some(30_000_000), Some(100_000)),
+                time_limit: None,
+                max_trials: None,
+                shuffle_seed: None,
+                score_initial_layout: true,
+            },
+        };
+
+        if let vf2::Vf2PassReturn::Solution(layout) =
+            vf2_layout_pass_average(dag, target, &vf2_config, false, None)?
+        {
+            update_layout(dag, transpile_layout, |x| {
+                Qubit(layout[&VirtualQubit(x.0)].0)
+            });
         }
     }
     Ok(())
@@ -307,6 +348,7 @@ pub fn optimization_stage(
     approximation_degree: Option<f64>,
     commutation_checker: &mut CommutationChecker,
     equivalence_library: &mut EquivalenceLibrary,
+    transpile_layout: &mut TranspileLayout,
 ) -> Result<()> {
     let mut depth: Option<usize> = None;
     let mut size: Option<usize> = None;
@@ -386,6 +428,33 @@ pub fn optimization_stage(
         }
         *dag = min_state.best_dag;
     }
+    if optimization_level != OptimizationLevel::Level0 {
+        let vf2_config = match optimization_level {
+            OptimizationLevel::Level0 => vf2::Vf2PassConfiguration::default_concrete(), // Not used.
+            OptimizationLevel::Level1 | OptimizationLevel::Level2 => vf2::Vf2PassConfiguration {
+                call_limit: (Some(5_000_000), Some(10_000)),
+                time_limit: None,
+                max_trials: None,
+                shuffle_seed: None,
+                score_initial_layout: true,
+            },
+            OptimizationLevel::Level3 => vf2::Vf2PassConfiguration {
+                call_limit: (Some(30_000_000), Some(100_000)),
+                time_limit: None,
+                max_trials: None,
+                shuffle_seed: None,
+                score_initial_layout: true,
+            },
+        };
+
+        if let vf2::Vf2PassReturn::Solution(layout) =
+            vf2_layout_pass_exact(dag, target, &vf2_config)?
+        {
+            update_layout(dag, transpile_layout, |x| {
+                Qubit(layout[&VirtualQubit(x.0)].0)
+            });
+        }
+    }
     Ok(())
 }
 
@@ -437,7 +506,7 @@ pub fn transpile(
         &mut commutation_checker,
     )?;
     // layout stage
-    layout_stage(
+    let layout_source = layout_stage(
         &mut dag,
         target,
         optimization_level,
@@ -453,6 +522,7 @@ pub fn transpile(
         seed,
         &sabre_heuristic,
         &mut transpile_layout,
+        layout_source,
     )?;
     // Translation Stage
     translation_stage(
@@ -469,6 +539,7 @@ pub fn transpile(
         approximation_degree,
         &mut commutation_checker,
         &mut equivalence_library,
+        &mut transpile_layout,
     )?;
     Ok((dag_to_circuit(&dag, false)?, transpile_layout))
 }
@@ -752,7 +823,13 @@ mod tests {
         )
         .unwrap();
         for opt_level in 0..=3 {
-            let result = match transpile(&qc, &target, opt_level.into(), Some(1.0), Some(42)) {
+            let result = match transpile(
+                &qc,
+                &target,
+                opt_level.into(),
+                Some(1.0),
+                Some(2_025_120_142),
+            ) {
                 Ok(res) => res,
                 Err(e) => panic!("Error: {}", e.backtrace()),
             };
