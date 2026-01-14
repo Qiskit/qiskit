@@ -47,18 +47,7 @@ use smallvec::{SmallVec, smallvec};
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub extern "C" fn qk_target_new(num_qubits: u32) -> *mut Target {
-    let target = Target::new(
-        None,
-        Some(num_qubits),
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    )
-    .unwrap();
+    let target = Target::new().with_num_qubits(num_qubits);
     Box::into_raw(Box::new(target))
 }
 
