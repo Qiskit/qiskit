@@ -1140,7 +1140,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
             self.assertNotEqual(spp_op1, spp_op2)
             self.assertTrue(spp_op1.equiv(spp_op2))
 
-   @combine(parameterized=[True, False], qubit_wise=[True, False])
+    @combine(parameterized=[True, False], qubit_wise=[True, False])
     def test_noncommutation_graph(self, parameterized, qubit_wise):
         """Test noncommutation graph."""
 
