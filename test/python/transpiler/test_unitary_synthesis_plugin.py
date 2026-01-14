@@ -22,8 +22,9 @@ import numpy as np
 import stevedore
 
 from qiskit.circuit import QuantumCircuit
+from qiskit.quantum_info import Operator
 from qiskit.converters import circuit_to_dag
-from qiskit.transpiler import PassManager
+from qiskit.transpiler import PassManager, Target, CouplingMap
 from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.transpiler.passes.synthesis.plugin import (
     UnitarySynthesisPlugin,
@@ -174,9 +175,9 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.unitary(np.eye(4, dtype=np.complex128), [0, 1])
         pm = PassManager([UnitarySynthesis(basis_gates=["u", "cx"], method="_controllable")])
-        with self.mock_default_run_method():
-            pm.run(qc)
-            self.DEFAULT_PLUGIN.run.assert_not_called()  # pylint: disable=no-member
+        with self.mock_default_run_method() as mocked:
+            _ = pm.run(qc)
+            mocked.assert_not_called()
         self.MOCK_PLUGINS["_controllable"].run.assert_called()
 
     def test_max_qubits_are_respected(self):
@@ -187,9 +188,9 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.unitary(np.eye(4, dtype=np.complex128), [0, 1])
         pm = PassManager([UnitarySynthesis(basis_gates=["u", "cx"], method="_controllable")])
-        with self.mock_default_run_method():
-            pm.run(qc)
-            self.DEFAULT_PLUGIN.run.assert_called()  # pylint: disable=no-member
+        with self.mock_default_run_method() as mocked:
+            _ = pm.run(qc)
+            mocked.assert_called()
         self.MOCK_PLUGINS["_controllable"].run.assert_not_called()
 
     def test_min_qubits_are_respected(self):
@@ -200,9 +201,9 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.unitary(np.eye(4, dtype=np.complex128), [0, 1])
         pm = PassManager([UnitarySynthesis(basis_gates=["u", "cx"], method="_controllable")])
-        with self.mock_default_run_method():
-            pm.run(qc)
-            self.DEFAULT_PLUGIN.run.assert_called()  # pylint: disable=no-member
+        with self.mock_default_run_method() as mocked:
+            _ = pm.run(qc)
+            mocked.assert_called()
         self.MOCK_PLUGINS["_controllable"].run.assert_not_called()
 
     def test_all_keywords_passed_to_default_on_fallback(self):
@@ -217,12 +218,10 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.unitary(np.eye(4, dtype=np.complex128), [0, 1])
         pm = PassManager([UnitarySynthesis(basis_gates=["u", "cx"], method="_controllable")])
-        with self.mock_default_run_method():
-            pm.run(qc)
-            self.DEFAULT_PLUGIN.run.assert_called()  # pylint: disable=no-member
-            # This access should be `run.call_args.kwargs`, but the namedtuple access wasn't added
-            # until Python 3.8.
-            call_kwargs = self.DEFAULT_PLUGIN.run.call_args[1]  # pylint: disable=no-member
+        with self.mock_default_run_method() as mocked:
+            _ = pm.run(qc)
+            mocked.assert_called()
+            call_kwargs = mocked.call_args.kwargs
         expected_kwargs = [
             "basis_gates",
             "coupling_map",
@@ -254,11 +253,9 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
         with unittest.mock.patch.object(
             ControllableSynthesis, "run", return_value=return_dag
         ) as plugin_mock:
-            pm.run(qc)
+            _ = pm.run(qc)
             plugin_mock.assert_called()
-            # This access should be `run.call_args.kwargs`, but the namedtuple access wasn't added
-            # until Python 3.8.
-            call_kwargs = plugin_mock.call_args[1]
+            call_kwargs = plugin_mock.call_args.kwargs
         expected_kwargs = [
             "config",
         ]
@@ -285,12 +282,10 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
                 )
             ]
         )
-        with self.mock_default_run_method():
-            pm.run(qc)
-            self.DEFAULT_PLUGIN.run.assert_called()  # pylint: disable=no-member
-            # This access should be `run.call_args.kwargs`, but the namedtuple access wasn't added
-            # until Python 3.8.
-            call_kwargs = self.DEFAULT_PLUGIN.run.call_args[1]  # pylint: disable=no-member
+        with self.mock_default_run_method() as mocked:
+            _ = pm.run(qc)
+            mocked.assert_called()
+            call_kwargs = mocked.call_args.kwargs
         expected_kwargs = [
             "basis_gates",
             "coupling_map",
@@ -303,6 +298,141 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
             self.assertIn(kwarg, call_kwargs)
         self.MOCK_PLUGINS["_controllable"].run.assert_not_called()
         self.assertNotIn("config", call_kwargs)
+
+    def test_target_overrides_basis_gates(self):
+        """Test that when both target and basis gates are specified, but the plugin only supports
+        basis gates, the basis gates that it gets come from the target."""
+
+        self.MOCK_PLUGINS["_controllable"].support(["basis_gates"])
+
+        qc = QuantumCircuit(2)
+        qc.unitary(np.eye(4, dtype=np.complex128), [0, 1])
+
+        target_basis_gates = ["rx", "rz"]
+        standalone_basis_gates = ["cx", "u"]
+        target = Target.from_configuration(
+            num_qubits=2, basis_gates=target_basis_gates, coupling_map=CouplingMap.from_line(2)
+        )
+        pm = PassManager(
+            [
+                UnitarySynthesis(
+                    target=target, basis_gates=standalone_basis_gates, method="_controllable"
+                )
+            ]
+        )
+
+        with self.mock_default_run_method() as mocked:
+            _ = pm.run(qc)
+            mocked.assert_not_called()
+            self.MOCK_PLUGINS["_controllable"].run.assert_called()  # pylint: disable=no-member
+            call_kwargs = self.MOCK_PLUGINS["_controllable"].run.call_args.kwargs
+
+        self.assertIn("basis_gates", call_kwargs)
+        self.assertEqual(call_kwargs["basis_gates"], set(target_basis_gates))
+        self.assertNotEqual(call_kwargs["basis_gates"], set(standalone_basis_gates))
+
+    def test_fallback_on_default(self):
+        """Test that ``fallback_on_default`` works as expected."""
+        self.MOCK_PLUGINS["_controllable"].min_qubits = 0
+        self.MOCK_PLUGINS["_controllable"].max_qubits = np.inf
+        self.MOCK_PLUGINS["_controllable"].support([])
+
+        circ = QuantumCircuit(1)
+        circ.h(0)
+
+        qc = QuantumCircuit(1)
+        qc.unitary(Operator(circ).data, [0])
+
+        # The returned circuit consists of a single H-gate.
+        return_dag = circuit_to_dag(circ)
+
+        # Plugin returns a DAG and fallback is disabled:
+        # the default plugin should not be called.
+        with self.subTest("circuit, no fallback"):
+            pm = PassManager(
+                [
+                    UnitarySynthesis(
+                        basis_gates=["t", "tdg", "h"],
+                        method="_controllable",
+                        fallback_on_default=False,
+                    )
+                ]
+            )
+            with (
+                unittest.mock.patch.object(
+                    ControllableSynthesis, "run", return_value=return_dag
+                ) as plugin_mock,
+                self.mock_default_run_method() as run_mock,
+            ):
+                _ = pm.run(qc)
+                plugin_mock.assert_called()
+                run_mock.assert_not_called()
+
+        # Plugin returns None and fallback is disabled:
+        # the default plugin should not be called.
+        with self.subTest("no circuit, no fallback"):
+            pm = PassManager(
+                [
+                    UnitarySynthesis(
+                        basis_gates=["t", "tdg", "h"],
+                        method="_controllable",
+                        fallback_on_default=False,
+                    )
+                ]
+            )
+            with (
+                unittest.mock.patch.object(
+                    ControllableSynthesis, "run", return_value=None
+                ) as plugin_mock,
+                self.mock_default_run_method() as run_mock,
+            ):
+                _ = pm.run(qc)
+                plugin_mock.assert_called()
+                run_mock.assert_not_called()
+
+        # Plugin returns a DAG and fallback is enabled:
+        # the default plugin should not be called.
+        with self.subTest("circuit, fallback"):
+            pm = PassManager(
+                [
+                    UnitarySynthesis(
+                        basis_gates=["t", "tdg", "h"],
+                        method="_controllable",
+                        fallback_on_default=True,
+                    )
+                ]
+            )
+            with (
+                unittest.mock.patch.object(
+                    ControllableSynthesis, "run", return_value=return_dag
+                ) as plugin_mock,
+                self.mock_default_run_method() as run_mock,
+            ):
+                _ = pm.run(qc)
+                plugin_mock.assert_called()
+                run_mock.assert_not_called()
+
+        # Plugin returns None and fallback is enabled:
+        # this time the default plugin should be called.
+        with self.subTest("with fallback, synthesized circuit does not conform"):
+            pm = PassManager(
+                [
+                    UnitarySynthesis(
+                        basis_gates=["t", "tdg", "h"],
+                        method="_controllable",
+                        fallback_on_default=True,
+                    )
+                ]
+            )
+            with (
+                unittest.mock.patch.object(
+                    ControllableSynthesis, "run", return_value=None
+                ) as plugin_mock,
+                self.mock_default_run_method() as run_mock,
+            ):
+                _ = pm.run(qc)
+                plugin_mock.assert_called()
+                run_mock.assert_called()
 
 
 if __name__ == "__main__":

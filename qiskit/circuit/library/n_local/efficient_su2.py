@@ -67,30 +67,30 @@ def efficient_su2(
 
     Examples:
 
-        Per default, the ``"reverse_linear"`` entanglement is used, which, in the case of
-        CX gates, is equivalent to an all-to-all entanglement:
+    Per default, the ``"reverse_linear"`` entanglement is used, which, in the case of
+    CX gates, is equivalent to an all-to-all entanglement:
 
-        .. plot::
-            :alt: Circuit diagram output by the previous code.
-            :include-source:
-            :context:
+    .. plot::
+        :alt: Circuit diagram output by the previous code.
+        :include-source:
+        :context:
 
-            from qiskit.circuit.library import efficient_su2
+        from qiskit.circuit.library import efficient_su2
 
-            circuit = efficient_su2(3, reps=1)
-            circuit.draw("mpl")
+        circuit = efficient_su2(3, reps=1)
+        circuit.draw("mpl")
 
-        To specify which SU(2) gates should be used in the rotation layer, we can set the
-        ``su2_gates`` argument. In addition, we can change the entanglement structure.
-        For example:
+    To specify which SU(2) gates should be used in the rotation layer, we can set the
+    ``su2_gates`` argument. In addition, we can change the entanglement structure.
+    For example:
 
-        .. plot::
-            :alt: Circuit diagram output by the previous code.
-            :include-source:
-            :context: close-figs
+    .. plot::
+        :alt: Circuit diagram output by the previous code.
+        :include-source:
+        :context: close-figs
 
-            circuit = efficient_su2(4, su2_gates=["rx", "y"], entanglement="circular", reps=1)
-            circuit.draw("mpl")
+        circuit = efficient_su2(4, su2_gates=["rx", "y"], entanglement="circular", reps=1)
+        circuit.draw("mpl")
 
     Args:
         num_qubits: The number of qubits.

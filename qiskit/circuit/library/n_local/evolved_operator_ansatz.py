@@ -25,7 +25,7 @@ from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parametervector import ParameterVector
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.quantum_info import Operator, Pauli, SparsePauliOp
+from qiskit.quantum_info import Operator, Pauli, SparsePauliOp, SparseObservable
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.synthesis.evolution.product_formula import real_or_fail
 
@@ -61,16 +61,16 @@ def evolved_operator_ansatz(
 
     Examples:
 
-        .. plot::
-            :alt: Circuit diagram output by the previous code.
-            :include-source:
+    .. plot::
+        :alt: Circuit diagram output by the previous code.
+        :include-source:
 
-            from qiskit.circuit.library import evolved_operator_ansatz
-            from qiskit.quantum_info import Pauli
+        from qiskit.circuit.library import evolved_operator_ansatz
+        from qiskit.quantum_info import Pauli
 
-            ops = [Pauli("ZZI"), Pauli("IZZ"), Pauli("IXI")]
-            ansatz = evolved_operator_ansatz(ops, reps=3, insert_barriers=True)
-            ansatz.draw("mpl")
+        ops = [Pauli("ZZI"), Pauli("IZZ"), Pauli("IXI")]
+        ansatz = evolved_operator_ansatz(ops, reps=3, insert_barriers=True)
+        ansatz.draw("mpl")
 
     Args:
         operators: The operators to evolve. Can be a single operator or a sequence thereof.
@@ -93,7 +93,7 @@ def evolved_operator_ansatz(
     if reps < 0:
         raise ValueError("reps must be a non-negative integer.")
 
-    if isinstance(operators, BaseOperator):
+    if isinstance(operators, (BaseOperator, SparseObservable)):
         operators = [operators]
     elif len(operators) == 0:
         return QuantumCircuit()
@@ -109,6 +109,10 @@ def evolved_operator_ansatz(
     num_qubits = operators[0].num_qubits
     if remove_identities:
         operators, parameter_prefix = _remove_identities(operators, parameter_prefix)
+        # After removing identities, update num_operators to reflect the actual count
+        num_operators = len(operators)
+        if num_operators == 0:
+            return QuantumCircuit(num_qubits, name=name)
 
     if any(op.num_qubits != num_qubits for op in operators):
         raise ValueError("Inconsistent numbers of qubits in the operators.")
@@ -129,7 +133,7 @@ def evolved_operator_ansatz(
     if (
         flatten is not False  # captures None and True
         and evolution is None
-        and all(isinstance(op, SparsePauliOp) for op in operators)
+        and all(isinstance(op, (SparsePauliOp, SparseObservable)) for op in operators)
     ):
         sparse_labels = [op.to_sparse_list() for op in operators]
         expanded_paulis = []
@@ -142,7 +146,7 @@ def evolved_operator_ansatz(
                 ]
 
         data = pauli_evolution(num_qubits, expanded_paulis, insert_barriers, False)
-        circuit = QuantumCircuit._from_circuit_data(data, add_regs=True)
+        circuit = QuantumCircuit._from_circuit_data(data, legacy_qubits=True)
         circuit.name = name
 
         return circuit
@@ -169,7 +173,7 @@ def evolved_operator_ansatz(
                     )
                 flatten_operator = False
 
-            elif isinstance(op, BaseOperator):
+            elif isinstance(op, (BaseOperator, SparseObservable)):
                 gate = PauliEvolutionGate(op, next(param_iter), synthesis=evolution)
                 flatten_operator = flatten is True or flatten is None
             else:
@@ -213,33 +217,33 @@ def hamiltonian_variational_ansatz(
 
     Examples:
 
-        A single operator will be split into commuting terms automatically:
+    A single operator will be split into commuting terms automatically:
 
-        .. plot::
-            :alt: Circuit diagram output by the previous code.
-            :include-source:
+    .. plot::
+        :alt: Circuit diagram output by the previous code.
+        :include-source:
 
-            from qiskit.quantum_info import SparsePauliOp
-            from qiskit.circuit.library import hamiltonian_variational_ansatz
+        from qiskit.quantum_info import SparsePauliOp
+        from qiskit.circuit.library import hamiltonian_variational_ansatz
 
-            # this Hamiltonian will be split into the two terms [ZZI, IZZ] and [IXI]
-            hamiltonian = SparsePauliOp(["ZZI", "IZZ", "IXI"])
-            ansatz = hamiltonian_variational_ansatz(hamiltonian, reps=2)
-            ansatz.draw("mpl")
+        # this Hamiltonian will be split into the two terms [ZZI, IZZ] and [IXI]
+        hamiltonian = SparsePauliOp(["ZZI", "IZZ", "IXI"])
+        ansatz = hamiltonian_variational_ansatz(hamiltonian, reps=2)
+        ansatz.draw("mpl")
 
-        Alternatively, we can directly provide the terms:
+    Alternatively, we can directly provide the terms:
 
-        .. plot::
-            :alt: Circuit diagram output by the previous code.
-            :include-source:
+    .. plot::
+        :alt: Circuit diagram output by the previous code.
+        :include-source:
 
-            from qiskit.quantum_info import SparsePauliOp
-            from qiskit.circuit.library import hamiltonian_variational_ansatz
+        from qiskit.quantum_info import SparsePauliOp
+        from qiskit.circuit.library import hamiltonian_variational_ansatz
 
-            zz = SparsePauliOp(["ZZI", "IZZ"])
-            x = SparsePauliOp(["IXI"])
-            ansatz = hamiltonian_variational_ansatz([zz, x], reps=2)
-            ansatz.draw("mpl")
+        zz = SparsePauliOp(["ZZI", "IZZ"])
+        x = SparsePauliOp(["IXI"])
+        ansatz = hamiltonian_variational_ansatz([zz, x], reps=2)
+        ansatz.draw("mpl")
 
 
     Args:
@@ -256,10 +260,11 @@ def hamiltonian_variational_ansatz(
 
     References:
 
-        [1] D. Wecker et al. Progress towards practical quantum variational algorithms (2015)
-            `Phys Rev A 92, 042303 <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.92.042303>`__
-        [2] R. Wiersema et al. Exploring entanglement and optimization within the Hamiltonian
-            Variational Ansatz (2020) `arXiv:2008.02941 <https://arxiv.org/abs/2008.02941>`__
+    [1] D. Wecker et al. Progress towards practical quantum variational algorithms (2015)
+    `Phys Rev A 92, 042303 <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.92.042303>`__
+
+    [2] R. Wiersema et al. Exploring entanglement and optimization within the Hamiltonian
+    Variational Ansatz (2020) `arXiv:2008.02941 <https://arxiv.org/abs/2008.02941>`__
 
     """
     # If a single operator is given, check if it is a sum of operators (a SparsePauliOp),
@@ -498,6 +503,8 @@ def _validate_prefix(parameter_prefix, operators):
 
 
 def _is_pauli_identity(operator):
+    if isinstance(operator, SparseObservable):
+        return operator.num_terms == 1 and len(operator[0].bit_labels()) == 0
     if isinstance(operator, SparsePauliOp):
         if len(operator.paulis) == 1:
             operator = operator.paulis[0]  # check if the single Pauli is identity below
@@ -515,6 +522,12 @@ def _remove_identities(operators, prefixes):
         return operators, prefixes
 
     cleaned_ops = [op for i, op in enumerate(operators) if i not in identity_ops]
-    cleaned_prefix = [prefix for i, prefix in enumerate(prefixes) if i not in identity_ops]
+    # Handle both string and list prefixes
+    if isinstance(prefixes, str):
+        # If it's a string, keep it as a string (it will be used for all remaining operators)
+        cleaned_prefix = prefixes
+    else:
+        # If it's a list, remove the corresponding entries
+        cleaned_prefix = [prefix for i, prefix in enumerate(prefixes) if i not in identity_ops]
 
     return cleaned_ops, cleaned_prefix

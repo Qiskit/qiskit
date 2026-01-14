@@ -13,7 +13,7 @@
 """X, CX, CCX and multi-controlled X gates."""
 from __future__ import annotations
 import warnings
-from typing import Optional, Union, Type
+from typing import Optional, Type
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
@@ -32,7 +32,7 @@ class XGate(SingletonGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.x` method.
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -41,7 +41,7 @@ class XGate(SingletonGate):
                 1 & 0
             \end{pmatrix}
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -75,7 +75,10 @@ class XGate(SingletonGate):
     _standard_gate = StandardGate.X
 
     def __init__(self, label: Optional[str] = None):
-        """Create new X gate."""
+        """
+        Args:
+            label: An optional label for the gate.
+        """
         super().__init__("x", 1, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
@@ -90,32 +93,32 @@ class XGate(SingletonGate):
         #    └──────────┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.X._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.X._get_definition(self.params), legacy_qubits=True
         )
 
     def control(
         self,
         num_ctrl_qubits: int = 1,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
-        annotated: bool = False,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
+        annotated: bool | None = None,
     ):
-        """Return a (multi-)controlled-X gate.
+        """Return a controlled version of the X gate.
 
-        One control returns a CX gate. Two controls returns a CCX gate.
+        The controlled gate is implemented as :class:`.CXGate` for a single control qubit,
+        as :class:`.CCXGate` for two control qubits, and as :class:`.MCXGate`
+        for three or more control qubits. In each case, the value of ``annotated``
+        is ignored.
 
         Args:
-            num_ctrl_qubits: number of control qubits.
-            label: An optional label for the gate [Default: ``None``]
-            ctrl_state: control state expressed as integer,
-                string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: when set to ``True``, this is typically used to return an
-                :class:`.AnnotatedOperation` with a control modifier set instead of a concrete
-                :class:`.Gate`. However, for this class this argument is ignored as a controlled
-                X gate is a multi-controlled X-gate.
+            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            label: Optional gate label. Defaults to ``None``.
+            ctrl_state: The control state of the gate, specified either as an integer or a bitstring
+                (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``
+            annotated: Ignored.
 
         Returns:
-            ControlledGate: controlled version of this gate.
+            A controlled version of this gate.
         """
         gate = MCXGate(
             num_ctrl_qubits=num_ctrl_qubits,
@@ -151,7 +154,7 @@ class CXGate(SingletonControlledGate):
     with the :meth:`~qiskit.circuit.QuantumCircuit.cx` and
     :meth:`~qiskit.circuit.QuantumCircuit.cnot` methods.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -160,7 +163,7 @@ class CXGate(SingletonControlledGate):
         q_1: ┤ X ├
              └───┘
 
-    **Matrix representation:**
+    Matrix representation:
 
     .. math::
 
@@ -212,8 +215,8 @@ class CXGate(SingletonControlledGate):
 
     def __init__(
         self,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
         *,
         _base_label=None,
     ):
@@ -234,24 +237,25 @@ class CXGate(SingletonControlledGate):
     def control(
         self,
         num_ctrl_qubits: int = 1,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
-        annotated: bool = False,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
+        annotated: bool | None = None,
     ):
-        """Return a controlled-X gate with more control lines.
+        """Return a controlled version of the CX gate.
+
+        The controlled gate is implemented as :class:`.CCXGate` for a single control
+        qubit, and as :class:`.MCXGate` for two or more control qubits.
+        The value of ``annotated`` is ignored.
 
         Args:
-            num_ctrl_qubits: number of control qubits.
-            label: An optional label for the gate [Default: ``None``]
-            ctrl_state: control state expressed as integer,
-                string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: when set to ``True``, this is typically used to return an
-                :class:`.AnnotatedOperation` with a control modifier set instead of a concrete
-                :class:`.Gate`. However, for this class this argument is ignored as a controlled
-                CX gate is a multi-controlled X-gate.
+            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            label: Optional gate label. Defaults to ``None``.
+            ctrl_state: The control state of the gate, specified either as an integer or a bitstring
+                (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``
+            annotated: Ignored.
 
         Returns:
-            ControlledGate: controlled version of this gate.
+            A controlled version of this gate.
         """
         ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
         new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
@@ -288,7 +292,7 @@ class CCXGate(SingletonControlledGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.ccx` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -299,7 +303,7 @@ class CCXGate(SingletonControlledGate):
         q_2: ┤ X ├
              └───┘
 
-    **Matrix representation:**
+    Matrix representation:
 
     .. math::
 
@@ -354,8 +358,8 @@ class CCXGate(SingletonControlledGate):
 
     def __init__(
         self,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
         *,
         _base_label=None,
     ):
@@ -386,30 +390,30 @@ class CCXGate(SingletonControlledGate):
         #      └───┘└───┘└─────┘└───┘└───┘└───┘└─────┘└───┘└───┘ └───┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.CCX._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.CCX._get_definition(self.params), legacy_qubits=True
         )
 
     def control(
         self,
         num_ctrl_qubits: int = 1,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
-        annotated: bool = False,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
+        annotated: bool | None = None,
     ):
-        """Controlled version of this gate.
+        """Return a controlled version of the CCX gate.
+
+        The controlled gate is implemented as :class:`.MCXGate`.
+        The value of `annotated` is ignored.
 
         Args:
-            num_ctrl_qubits: number of control qubits.
-            label: An optional label for the gate [Default: ``None``]
-            ctrl_state: control state expressed as integer,
-                string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: when set to ``True``, this is typically used to return an
-                :class:`.AnnotatedOperation` with a control modifier set instead of a concrete
-                :class:`.Gate`. However, for this class this argument is ignored as a controlled
-                CCX gate is a multi-controlled X-gate.
+            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            label: Optional gate label. Defaults to ``None``.
+            ctrl_state: The control state of the gate, specified either as an integer or a bitstring
+                (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``
+            annotated: Ignored.
 
         Returns:
-            ControlledGate: controlled version of this gate.
+            A controlled version of this gate.
         """
         ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
         new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
@@ -489,7 +493,7 @@ class RCCXGate(SingletonGate):
         #      └───┘└───┘└───┘└─────┘└───┘└───┘└───┘└─────┘└───┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.RCCX._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.RCCX._get_definition(self.params), legacy_qubits=True
         )
 
     def __eq__(self, other):
@@ -510,8 +514,8 @@ class C3SXGate(SingletonControlledGate):
 
     def __init__(
         self,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
         *,
         _base_label=None,
     ):
@@ -542,7 +546,7 @@ class C3SXGate(SingletonControlledGate):
         from qiskit.circuit import QuantumCircuit
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.C3SX._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.C3SX._get_definition(self.params), legacy_qubits=True
         )
 
     def __eq__(self, other):
@@ -560,8 +564,8 @@ class C3XGate(SingletonControlledGate):
 
     def __init__(
         self,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
         *,
         _base_label=None,
     ):
@@ -585,30 +589,30 @@ class C3XGate(SingletonControlledGate):
         from qiskit.circuit import QuantumCircuit
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.C3X._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.C3X._get_definition(self.params), legacy_qubits=True
         )
 
     def control(
         self,
         num_ctrl_qubits: int = 1,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
-        annotated: bool = False,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
+        annotated: bool | None = None,
     ):
-        """Controlled version of this gate.
+        """Return a controlled version of the C3X gate.
+
+        The controlled gate is implemented as :class:`.MCXGate`.
+        The value of ``annotated`` is ignored.
 
         Args:
-            num_ctrl_qubits: number of control qubits.
-            label: An optional label for the gate [Default: ``None``]
-            ctrl_state: control state expressed as integer,
-                string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: when set to ``True``, this is typically used to return an
-                :class:`.AnnotatedOperation` with a control modifier set instead of a concrete
-                :class:`.Gate`. However, for this class this argument is ignored as a controlled
-                C3X gate is a multi-controlled X-gate.
+            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            label: Optional gate label. Defaults to ``None``.
+            ctrl_state: The control state of the gate, specified either as an integer or a bitstring
+                (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``
+            annotated: Ignored.
 
         Returns:
-            ControlledGate: controlled version of this gate.
+            A controlled version of this gate.
         """
         ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
         new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
@@ -686,7 +690,7 @@ class RC3XGate(SingletonGate):
         from qiskit.circuit import QuantumCircuit
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.RC3X._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.RC3X._get_definition(self.params), legacy_qubits=True
         )
 
     def __eq__(self, other):
@@ -707,8 +711,8 @@ class C4XGate(SingletonControlledGate):
 
     def __init__(
         self,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
         *,
         _base_label=None,
     ):
@@ -735,7 +739,7 @@ class C4XGate(SingletonControlledGate):
 
         # This is not a standard gate in Rust
         q = QuantumRegister(5, name="q")
-        qc = QuantumCircuit(q, name=self.name)
+        qc = QuantumCircuit(q)
         rules = [
             (HGate(), [q[4]], []),
             (CPhaseGate(numpy.pi / 2), [q[3], q[4]], []),
@@ -755,24 +759,24 @@ class C4XGate(SingletonControlledGate):
     def control(
         self,
         num_ctrl_qubits: int = 1,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
-        annotated: bool = False,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
+        annotated: bool | None = None,
     ):
-        """Controlled version of this gate.
+        """Return a controlled version of the C4X gate.
+
+        The controlled gate is implemented as :class:`.MCXGate`.
+        The value of ``annotated`` is ignored.
 
         Args:
-            num_ctrl_qubits: number of control qubits.
-            label: An optional label for the gate [Default: ``None``]
-            ctrl_state: control state expressed as integer,
-                string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: when set to ``True``, this is typically used to return an
-                :class:`.AnnotatedOperation` with a control modifier set instead of a concrete
-                :class:`.Gate`. However, for this class this argument is ignored as a controlled
-                C4X gate is a multi-controlled X-gate.
+            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            label: Optional gate label. Defaults to ``None``.
+            ctrl_state: The control state of the gate, specified either as an integer or a bitstring
+                (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``
+            annotated: Ignored.
 
         Returns:
-            ControlledGate: controlled version of this gate.
+            A controlled version of this gate.
         """
         ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
         new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
@@ -811,9 +815,9 @@ class MCXGate(ControlledGate):
 
     def __new__(
         cls,
-        num_ctrl_qubits: Optional[int] = None,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
+        num_ctrl_qubits: int | None = None,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
         *,
         _base_label=None,
     ):
@@ -842,8 +846,8 @@ class MCXGate(ControlledGate):
     def __init__(
         self,
         num_ctrl_qubits: int,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
         *,
         _name="mcx",
         _base_label=None,
@@ -936,24 +940,24 @@ class MCXGate(ControlledGate):
     def control(
         self,
         num_ctrl_qubits: int = 1,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
-        annotated: bool = False,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
+        annotated: bool | None = None,
     ):
-        """Return a multi-controlled-X gate with more control lines.
+        """Return a controlled version of the MCX gate.
+
+        The controlled gate is implemented as :class:`.MCXGate`.
+        The value of ``annotated`` is ignored.
 
         Args:
-            num_ctrl_qubits: number of control qubits.
-            label: An optional label for the gate [Default: ``None``]
-            ctrl_state: control state expressed as integer,
-                string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: when set to ``True``, this is typically used to return an
-                :class:`.AnnotatedOperation` with a control modifier set instead of a concrete
-                :class:`.Gate`. However, for this class this argument is ignored as a controlled
-                multi-controlled X gate is another multi-controlled X-gate.
+            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            label: Optional gate label. Defaults to ``None``.
+            ctrl_state: The control state of the gate, specified either as an integer or a bitstring
+                (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``
+            annotated: Ignored.
 
         Returns:
-            ControlledGate: controlled version of this gate.
+            A controlled version of this gate.
         """
         ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
         new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
@@ -1035,9 +1039,9 @@ class MCXGrayCode(MCXGate):
     )
     def __new__(
         cls,
-        num_ctrl_qubits: Optional[int] = None,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
+        num_ctrl_qubits: int | None = None,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
         *,
         _base_label=None,
     ):
@@ -1063,8 +1067,8 @@ class MCXGrayCode(MCXGate):
     def __init__(
         self,
         num_ctrl_qubits: int,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
     ):
         super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name="mcx_gray")
 
@@ -1120,9 +1124,9 @@ class MCXRecursive(MCXGate):
     )
     def __new__(
         cls,
-        num_ctrl_qubits: Optional[int] = None,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
+        num_ctrl_qubits: int | None = None,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
         *,
         _base_label=None,
     ):
@@ -1131,8 +1135,8 @@ class MCXRecursive(MCXGate):
     def __init__(
         self,
         num_ctrl_qubits: int,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
         *,
         _base_label=None,
     ):
@@ -1193,10 +1197,10 @@ class MCXVChain(MCXGate):
     )
     def __new__(
         cls,
-        num_ctrl_qubits: Optional[int] = None,
+        num_ctrl_qubits: int | None = None,
         dirty_ancillas: bool = False,  # pylint: disable=unused-argument
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
         *,
         _base_label=None,
         relative_phase: bool = False,  # pylint: disable=unused-argument
@@ -1218,8 +1222,8 @@ class MCXVChain(MCXGate):
         self,
         num_ctrl_qubits: int,
         dirty_ancillas: bool = False,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
         *,
         _base_label=None,
         relative_phase: bool = False,

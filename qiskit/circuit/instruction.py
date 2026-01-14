@@ -58,8 +58,7 @@ class Instruction(Operation):
     _standard_gate = None
 
     def __init__(self, name, num_qubits, num_clbits, params, label=None):
-        """Create a new instruction.
-
+        """
         .. deprecated:: 1.3
            The parameters ``duration`` and ``unit`` are deprecated since
            Qiskit 1.3, and they will be removed in 2.0 or later.
@@ -280,7 +279,7 @@ class Instruction(Operation):
                 self._params.append(self.validate_parameter(single_param))
 
     def validate_parameter(self, parameter):
-        """Instruction parameters has no validation or normalization."""
+        """Instruction parameter has no validation or normalization."""
         return parameter
 
     def is_parameterized(self):
@@ -447,7 +446,7 @@ class Instruction(Operation):
 
     def __deepcopy__(self, memo=None):
         cpy = copy.copy(self)
-        cpy._params = copy.copy(self._params)
+        cpy._params = copy.deepcopy(self._params, memo)
         if self._definition:
             cpy._definition = copy.deepcopy(self._definition, memo)
         return cpy

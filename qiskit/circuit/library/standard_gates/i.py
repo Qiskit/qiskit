@@ -22,14 +22,14 @@ from qiskit._accelerate.circuit import StandardGate
 class IGate(SingletonGate):
     r"""Identity gate.
 
-    Identity gate corresponds to a single-qubit gate wait cycle,
-    and should not be optimized or unrolled (it is an opaque gate).
+    This typically represents a single-qubit idle cycle.
+    For device-specific information, refer to the device's :class:`.Target`.
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.i` and
     :meth:`~qiskit.circuit.QuantumCircuit.id` methods.
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -38,7 +38,7 @@ class IGate(SingletonGate):
                 0 & 1
             \end{pmatrix}
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -50,7 +50,10 @@ class IGate(SingletonGate):
     _standard_gate = StandardGate.I
 
     def __init__(self, label: Optional[str] = None):
-        """Create new Identity gate."""
+        """
+        Args:
+            label: An optional label for the gate.
+        """
         super().__init__("id", 1, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()

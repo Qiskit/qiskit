@@ -10,16 +10,16 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use pyo3::prelude::*;
 use pyo3::IntoPyObjectExt;
 use pyo3::PyTypeInfo;
+use pyo3::prelude::*;
 
 /// A length of time used to express circuit timing.
 ///
 /// It defines a group of classes which are all subclasses of itself (functionally, an
 /// enumeration carrying data).
 ///
-/// In Python 3.10+, you can use it in a match statement::
+/// You can use it in a match statement::
 ///
 ///   match duration:
 ///      case Duration.dt(dt):
@@ -29,15 +29,7 @@ use pyo3::PyTypeInfo;
 ///      case _:
 ///          raise ValueError("expected dt or seconds")
 ///
-/// And in Python 3.9, you can use :meth:`Duration.unit` to determine which variant
-/// is populated::
-///
-///   if duration.unit() == "dt":
-///       return duration.value()
-///   elif duration.unit() == "s":
-///       return duration.value() / 5e-7
-///   else:
-///       raise ValueError("expected dt or seconds")
+/// You can also use :meth:`value` and :meth:`unit` to get the information separately.
 #[pyclass(eq, module = "qiskit._accelerate.circuit")]
 #[derive(PartialEq, Clone, Copy, Debug)]
 #[allow(non_camel_case_types)]
@@ -53,7 +45,7 @@ pub enum Duration {
 #[pymethods]
 impl Duration {
     /// The corresponding ``unit`` of the duration.
-    fn unit(&self) -> &'static str {
+    pub fn unit(&self) -> &'static str {
         match self {
             Duration::dt(_) => "dt",
             Duration::ps(_) => "ps",
@@ -69,7 +61,7 @@ impl Duration {
     /// This will be a Python ``int`` if the :meth:`~Duration.unit` is ``"dt"``,
     /// else a ``float``.
     #[pyo3(name = "value")]
-    fn py_value(&self, py: Python) -> PyResult<PyObject> {
+    pub fn py_value(&self, py: Python) -> PyResult<Py<PyAny>> {
         match self {
             Duration::dt(v) => v.into_py_any(py),
             Duration::ps(v)

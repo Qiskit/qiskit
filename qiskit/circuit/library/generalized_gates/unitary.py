@@ -41,25 +41,25 @@ class UnitaryGate(Gate):
 
     Example:
 
-        We can create a unitary gate from a unitary matrix then add it to a
-        quantum circuit. The matrix can also be directly applied to the quantum
-        circuit, see :meth:`.QuantumCircuit.unitary`.
+    We can create a unitary gate from a unitary matrix then add it to a
+    quantum circuit. The matrix can also be directly applied to the quantum
+    circuit, see :meth:`.QuantumCircuit.unitary`.
 
-        .. plot::
-           :include-source:
-           :nofigs:
+    .. plot::
+        :include-source:
+        :nofigs:
 
-            from qiskit import QuantumCircuit
-            from qiskit.circuit.library import UnitaryGate
+        from qiskit import QuantumCircuit
+        from qiskit.circuit.library import UnitaryGate
 
-            matrix = [[0, 0, 0, 1],
-                      [0, 0, 1, 0],
-                      [1, 0, 0, 0],
-                      [0, 1, 0, 0]]
-            gate = UnitaryGate(matrix)
+        matrix = [[0, 0, 0, 1],
+                    [0, 0, 1, 0],
+                    [1, 0, 0, 0],
+                    [0, 1, 0, 0]]
+        gate = UnitaryGate(matrix)
 
-            circuit = QuantumCircuit(2)
-            circuit.append(gate, [0, 1])
+        circuit = QuantumCircuit(2)
+        circuit.append(gate, [0, 1])
     """
 
     def __init__(
@@ -70,8 +70,7 @@ class UnitaryGate(Gate):
         *,
         num_qubits: int | None = None,
     ) -> None:
-        """Create a gate from a numeric unitary matrix.
-
+        """
         Args:
             data: Unitary operator.
             label: Unitary name for backend [Default: ``None``].
@@ -142,7 +141,7 @@ class UnitaryGate(Gate):
             from qiskit.synthesis.one_qubit.one_qubit_decompose import OneQubitEulerDecomposer
 
             q = QuantumRegister(1, "q")
-            qc = QuantumCircuit(q, name=self.name)
+            qc = QuantumCircuit(q)
             theta, phi, lam, global_phase = OneQubitEulerDecomposer("U").angles_and_phase(
                 self.to_matrix()
             )
@@ -178,18 +177,22 @@ class UnitaryGate(Gate):
         ctrl_state: int | str | None = None,
         annotated: bool | None = None,
     ) -> ControlledGate | AnnotatedOperation:
-        """Return controlled version of gate.
+        """Return a controlled version of itself.
+
+        The controlled gate is implemented as :class:`.ControlledGate` when ``annotated``
+        is ``False``, and as :class:`.AnnotatedOperation` when ``annotated`` is ``True``.
 
         Args:
-            num_ctrl_qubits: Number of controls to add to gate (default is 1).
-            label: Optional gate label.
-            ctrl_state: The control state in decimal or as a bit string (e.g. ``"1011"``).
-                If ``None``, use ``2**num_ctrl_qubits - 1``.
-            annotated: indicates whether the controlled gate should be implemented
-                as an annotated gate. If ``None``, this is handled as ``False``.
+            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            label: Optional gate label. Defaults to ``None``. Ignored if the controlled gate
+                is implemented as an annotated operation.
+            ctrl_state: The control state of the gate, specified either as an integer or a bitstring
+                (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``.
+            annotated: Indicates whether the controlled gate should be implemented as a controlled gate
+                or as an annotated operation. If ``None``, treated as ``False``.
 
         Returns:
-            Controlled version of gate.
+            A controlled version of this gate.
         """
         if not annotated:
             mat = self.to_matrix()

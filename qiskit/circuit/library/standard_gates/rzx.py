@@ -17,7 +17,7 @@ from __future__ import annotations
 import math
 from typing import Optional
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.parameterexpression import ParameterValueType, ParameterExpression
+from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit._accelerate.circuit import StandardGate
 
 
@@ -32,7 +32,7 @@ class RZXGate(Gate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.rzx` method.
 
-    **Circuit Symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -42,7 +42,7 @@ class RZXGate(Gate):
         q_1: ┤1        ├
              └─────────┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -95,35 +95,39 @@ class RZXGate(Gate):
                     0 & RX(-\theta)
                 \end{pmatrix}
 
-    **Examples:**
+    Examples:
 
-        .. math::
+    .. math::
 
-            R_{ZX}(\theta = 0)\ q_0, q_1 = I
+        R_{ZX}(\theta = 0)\ q_0, q_1 = I
 
-        .. math::
+    .. math::
 
-            R_{ZX}(\theta = 2\pi)\ q_0, q_1 = -I
+        R_{ZX}(\theta = 2\pi)\ q_0, q_1 = -I
 
-        .. math::
+    .. math::
 
-            R_{ZX}(\theta = \pi)\ q_0, q_1 = -i X \otimes Z
+        R_{ZX}(\theta = \pi)\ q_0, q_1 = -i X \otimes Z
 
-        .. math::
+    .. math::
 
-            R_{ZX}(\theta = \frac{\pi}{2})\ q_0, q_1 = \frac{1}{\sqrt{2}}
-                                    \begin{pmatrix}
-                                        1  & 0 & -i & 0 \\
-                                        0  & 1 & 0  & i \\
-                                        -i & 0 & 1  & 0 \\
-                                        0  & i & 0  & 1
-                                    \end{pmatrix}
+        R_{ZX}(\theta = \frac{\pi}{2})\ q_0, q_1 = \frac{1}{\sqrt{2}}
+                                \begin{pmatrix}
+                                    1  & 0 & -i & 0 \\
+                                    0  & 1 & 0  & i \\
+                                    -i & 0 & 1  & 0 \\
+                                    0  & i & 0  & 1
+                                \end{pmatrix}
     """
 
     _standard_gate = StandardGate.RZX
 
     def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
-        """Create new RZX gate."""
+        """
+        Args:
+            theta: The rotation angle.
+            label: An optional label for the gate.
+        """
         super().__init__("rzx", 2, [theta], label=label)
 
     def _define(self):
@@ -137,41 +141,8 @@ class RZXGate(Gate):
         #      └───┘└───┘└───────┘└───┘└───┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.RZX._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.RZX._get_definition(self.params), legacy_qubits=True
         )
-
-    def control(
-        self,
-        num_ctrl_qubits: int = 1,
-        label: str | None = None,
-        ctrl_state: str | int | None = None,
-        annotated: bool | None = None,
-    ):
-        """Return a (multi-)controlled-RZX gate.
-
-        Args:
-            num_ctrl_qubits: number of control qubits.
-            label: An optional label for the gate [Default: ``None``]
-            ctrl_state: control state expressed as integer,
-                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate should be implemented
-                as an annotated gate. If ``None``, this is set to ``True`` if
-                the gate contains free parameters, in which case it cannot
-                yet be synthesized.
-
-        Returns:
-            ControlledGate: controlled version of this gate.
-        """
-        if annotated is None:
-            annotated = any(isinstance(p, ParameterExpression) for p in self.params)
-
-        gate = super().control(
-            num_ctrl_qubits=num_ctrl_qubits,
-            label=label,
-            ctrl_state=ctrl_state,
-            annotated=annotated,
-        )
-        return gate
 
     def inverse(self, annotated: bool = False):
         """Return inverse RZX gate (i.e. with the negative rotation angle).

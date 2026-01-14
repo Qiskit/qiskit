@@ -1,0 +1,16 @@
+---
+features_visualization:
+  - |
+    A new option, ``measure_arrows``, has been added to the ``mpl`` and ``text`` 
+    backends for the circuit drawer :func:`qiskit.visualization.circuit_drawer` and
+    :meth:`qiskit.circuit.QuantumCircuit.draw`. When this option is set to ``True``,
+    the drawer will draw an arrow from the ``measure`` box to the classical bits
+    below. This was the previous behavior in the drawers. If it is set to ``False``,
+    no arrows will be drawn and instead the classical register and bit being used
+    by the ``measure`` will be indicated inside the ``measure`` box. This allows
+    ``measure`` boxes to be stacked within a vertical layer.
+
+    If no option is set, the default is ``True``. The user can change the default
+    in the user config file, by default in the ``~/.qiskit`` directory, in the
+    file ``settings.conf``. Under the ``[Default]`` heading, a user can enter
+    ``circuit_measure_arrows = False`` to change the default.

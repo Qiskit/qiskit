@@ -18,6 +18,7 @@ from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayout
 from qiskit.transpiler.passes.optimization.split_2q_unitaries import Split2QUnitaries
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import BasicSwap
 from qiskit.transpiler.passes import LookaheadSwap
 from qiskit.transpiler.passes import SabreSwap
@@ -46,6 +47,7 @@ from qiskit.transpiler.passes.optimization import (
     RemoveIdentityEquivalent,
     ContractIdleWiresInControlFlow,
 )
+from qiskit.transpiler.optimization_metric import OptimizationMetric
 from qiskit.transpiler.passes import Depth, Size, FixedPoint, MinimumPoint
 from qiskit.transpiler.passes.utils.gates_basis import GatesInBasis
 from qiskit.transpiler.passes.synthesis.unitary_synthesis import UnitarySynthesis
@@ -72,7 +74,11 @@ _discrete_skipped_ops = {
 class DefaultInitPassManager(PassManagerStagePlugin):
     """Plugin class for default init stage."""
 
-    def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
+    def pass_manager(self, pass_manager_config, optimization_level=None):
+        if pass_manager_config._is_clifford_t:
+            optimization_metric = OptimizationMetric.COUNT_T
+        else:
+            optimization_metric = OptimizationMetric.COUNT_2Q
 
         if optimization_level == 0:
             init = None
@@ -92,6 +98,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                     pass_manager_config.unitary_synthesis_plugin_config,
                     pass_manager_config.hls_config,
                     pass_manager_config.qubits_initially_zero,
+                    optimization_metric,
                 )
         elif optimization_level == 1:
             init = PassManager()
@@ -111,6 +118,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                     pass_manager_config.unitary_synthesis_plugin_config,
                     pass_manager_config.hls_config,
                     pass_manager_config.qubits_initially_zero,
+                    optimization_metric,
                 )
             init.append(
                 [
@@ -128,6 +136,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                 pass_manager_config.unitary_synthesis_plugin_config,
                 pass_manager_config.hls_config,
                 pass_manager_config.qubits_initially_zero,
+                optimization_metric,
             )
             if pass_manager_config.routing_method != "none":
                 init.append(ElidePermutations())
@@ -462,7 +471,7 @@ class NoneRoutingPassManager(PassManagerStagePlugin):
 class OptimizationPassManager(PassManagerStagePlugin):
     """Plugin class for optimization stage"""
 
-    def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
+    def pass_manager(self, pass_manager_config, optimization_level=None):
         """Build pass manager for optimization stage."""
 
         # Use the dedicated plugin for the Clifford+T basis when appropriate.
@@ -612,16 +621,24 @@ class OptimizationPassManager(PassManagerStagePlugin):
                     optimization_level,
                     pass_manager_config.layout_method,
                     pass_manager_config.initial_layout,
+                    exact_match=True,
                 )
-                optimization.append(
-                    VF2PostLayout(
-                        target=pass_manager_config.target,
-                        seed=-1,
-                        call_limit=vf2_call_limit,
-                        max_trials=vf2_max_trials,
-                        strict_direction=True,
+                is_vf2_fully_bounded = vf2_call_limit and vf2_max_trials
+                if pass_manager_config.target is not None and is_vf2_fully_bounded:
+                    optimization.append(
+                        VF2PostLayout(
+                            target=pass_manager_config.target,
+                            seed=-1,
+                            call_limit=vf2_call_limit,
+                            max_trials=vf2_max_trials,
+                            strict_direction=True,
+                        )
                     )
-                )
+                    optimization.append(
+                        ConditionalController(
+                            ApplyLayout(), condition=common._apply_post_layout_condition
+                        )
+                    )
 
             return optimization
         else:
@@ -735,9 +752,8 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
             choose_layout_1 = VF2Layout(
                 coupling_map=pass_manager_config.coupling_map,
                 seed=-1,
-                call_limit=int(5e4),  # Set call limit to ~100ms with rustworkx 0.10.2
+                call_limit=(50_000, 1_000),
                 target=pass_manager_config.target,
-                max_trials=2500,  # Limits layout scoring to < 600ms on ~400 qubit devices
             )
             layout.append(ConditionalController(choose_layout_1, condition=_layout_not_perfect))
 
@@ -766,9 +782,8 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
             choose_layout_0 = VF2Layout(
                 coupling_map=pass_manager_config.coupling_map,
                 seed=-1,
-                call_limit=int(5e6),  # Set call limit to ~10s with rustworkx 0.10.2
+                call_limit=(5_000_000, 10_000),
                 target=pass_manager_config.target,
-                max_trials=2500,  # Limits layout scoring to < 600ms on ~400 qubit devices
             )
             layout.append(
                 ConditionalController(choose_layout_0, condition=_choose_layout_condition)
@@ -799,9 +814,8 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
             choose_layout_0 = VF2Layout(
                 coupling_map=pass_manager_config.coupling_map,
                 seed=-1,
-                call_limit=int(3e7),  # Set call limit to ~60s with rustworkx 0.10.2
+                call_limit=(30_000_000, 100_000),
                 target=pass_manager_config.target,
-                max_trials=250000,  # Limits layout scoring to < 60s on ~400 qubit devices
             )
             layout.append(
                 ConditionalController(choose_layout_0, condition=_choose_layout_condition)
@@ -985,7 +999,7 @@ def _get_trial_count(default_trials=5):
 class CliffordTOptimizationPassManager(PassManagerStagePlugin):
     """Plugin class for optimization stage"""
 
-    def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
+    def pass_manager(self, pass_manager_config, optimization_level=None):
         """Build pass manager for optimization stage."""
 
         # Obtain the translation method required for this pass to work

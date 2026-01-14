@@ -10,16 +10,16 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::clifford::greedy_synthesis::resynthesize_clifford_circuit;
 use crate::QiskitError;
+use crate::clifford::greedy_synthesis::resynthesize_clifford_circuit;
 
 use pyo3::prelude::*;
 use pyo3::types::{PyList, PyString, PyTuple};
-use smallvec::{smallvec, SmallVec};
+use smallvec::{SmallVec, smallvec};
 
-use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::operations::{multiply_param, radd_param, Param, StandardGate};
 use qiskit_circuit::Qubit;
+use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::operations::{Param, StandardGate, multiply_param, radd_param};
 
 use rustiq_core::structures::{
     CliffordCircuit, CliffordGate, IsometryTableau, Metric, PauliLike, PauliSet,
@@ -27,9 +27,9 @@ use rustiq_core::structures::{
 use rustiq_core::synthesis::clifford::isometry::isometry_synthesis;
 use rustiq_core::synthesis::pauli_network::greedy_pauli_network;
 
+use rustworkx_core::petgraph::Incoming;
 use rustworkx_core::petgraph::graph::NodeIndex;
 use rustworkx_core::petgraph::prelude::StableDiGraph;
-use rustworkx_core::petgraph::Incoming;
 
 /// A Qiskit gate. The quantum circuit data returned by the pauli network
 /// synthesis algorithm will consist of clifford and rotation gates.
@@ -314,9 +314,9 @@ pub fn pauli_network_synthesis_inner(
     // go over the input pauli network and extract a list of pauli rotations and
     // the corresponding rotation angles
     for item in pauli_network {
-        let tuple = item.downcast::<PyTuple>()?;
+        let tuple = item.cast::<PyTuple>()?;
 
-        let sparse_pauli: String = tuple.get_item(0)?.downcast::<PyString>()?.extract()?;
+        let sparse_pauli: String = tuple.get_item(0)?.cast::<PyString>()?.extract()?;
         let qubits: Vec<u32> = tuple.get_item(1)?.extract()?;
         let angle: Param = tuple.get_item(2)?.extract()?;
 
@@ -359,5 +359,9 @@ pub fn pauli_network_synthesis_inner(
         }
     }
 
-    CircuitData::from_standard_gates(num_qubits as u32, gates, global_phase)
+    Ok(CircuitData::from_standard_gates(
+        num_qubits as u32,
+        gates,
+        global_phase,
+    )?)
 }

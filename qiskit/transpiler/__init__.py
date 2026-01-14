@@ -748,7 +748,11 @@ given :class:`.EquivalenceLibrary` (typically the :data:`.SessionEquivalenceLibr
 towards the ISA.
 
 For a Clifford+T basis set, the single-qubit rotation gates are approximated using the
-:class:`.SolovayKitaevDecomposition` algorithm.
+:class:`.UnitarySynthesis` pass. By default (when ``unitary_synthesis_method='default'``),
+this invokes the :class:`.SolovayKitaevDecomposition` algorithm. A custom synthesis
+method may be also specified, and it should either return the synthesized circuit
+in the Clifford+T basis set or return ``None`` in which case the default method would be called as
+fallback.
 
 This is the default translation method.
 
@@ -1514,6 +1518,14 @@ Exceptions
 .. autoexception:: CircuitTooWideForTarget
 .. autoexception:: InvalidLayoutError
 
+Optimization metric
+-------------------
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   OptimizationMetric
+
 .. _sabre-original-paper: https://arxiv.org/abs/1809.02573
 .. _sabre-lightsabre-paper: https://arxiv.org/abs/2409.08368
 """
@@ -1545,3 +1557,4 @@ from .preset_passmanagers import generate_preset_pass_manager
 from .target import Target
 from .target import InstructionProperties
 from .target import QubitProperties
+from .optimization_metric import OptimizationMetric

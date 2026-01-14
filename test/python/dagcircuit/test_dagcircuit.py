@@ -644,6 +644,7 @@ class TestDagWireRemoval(QiskitTestCase):
         self.assertEqual(dag, expected)
 
 
+@ddt
 class TestDagApplyOperation(QiskitTestCase):
     """Test adding an op node to a dag."""
 
@@ -697,6 +698,37 @@ class TestDagApplyOperation(QiskitTestCase):
         reset_node = self.dag.op_nodes(op=Reset).pop()
 
         self.assertIn(reset_node, set(self.dag.predecessors(h_node)))
+
+    @data("front", "back")
+    def test_apply_operation_duplicate_wires(self, direction):
+        """The apply-front and apply-back methods should only attempt to add a single edge, even if
+        a classical variable is mentioned more than once."""
+        qc = QuantumCircuit()
+        a = qc.add_input("a", types.Bool())
+
+        dag = circuit_to_dag(qc)
+        op = IfElseOp(expr.logic_and(a, a), QuantumCircuit(), None)
+        if direction == "front":
+            dag.apply_operation_front(op, [], [])
+        else:
+            dag.apply_operation_back(op, [], [])
+        self.assertEqual(len(list(dag.edges())), 2)
+
+    @data("front", "back")
+    def test_apply_operation_determinism(self, direction):
+        """When adding a node with many qubits and clbits, the order of the edge ids should be
+        deterministic."""
+        qc = QuantumCircuit(100)
+        qubits = qc.qubits
+        if direction == "front":
+            apply = DAGCircuit.apply_operation_front
+        else:
+            apply = DAGCircuit.apply_operation_back
+        left = circuit_to_dag(qc)
+        apply(left, Barrier(len(qubits)), qubits, [])
+        right = circuit_to_dag(qc)
+        apply(right, Barrier(len(qubits)), qubits, [])
+        self.assertTrue(left.structurally_equal(right))
 
     def test_apply_operation_expr_condition(self):
         """Test that the operation-applying functions correctly handle wires implied from `Expr`
@@ -1111,6 +1143,67 @@ class TestDagNodeSelection(QiskitTestCase):
             ("h", (self.qubit2,)),
         ]
         self.assertEqual(expected, [(i.op.name, i.qargs) for i in named_nodes])
+
+    def test_topological_nodes_reversals(self):
+        """Test topological_nodes in reverse order following the example pattern."""
+
+        self.dag.apply_operation_back(CXGate(), [self.qubit1, self.qubit2])
+        self.dag.apply_operation_back(XGate(), [self.qubit2])
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1])
+        self.dag.apply_operation_back(HGate(), [self.qubit0])
+
+        nodes_in_reverse = self.dag.topological_nodes(reverse=True)
+
+        qr = self.dag.qregs["qr"]
+        cr = self.dag.cregs["cr"]
+
+        expected = [
+            qr[0],
+            ("h", (self.qubit0,)),
+            qr[1],
+            ("cx", (self.qubit0, self.qubit1)),
+            qr[0],
+            qr[2],
+            ("x", (self.qubit2,)),
+            ("cx", (self.qubit1, self.qubit2)),
+            qr[1],
+            qr[2],
+            cr[0],
+            cr[0],
+            cr[1],
+            cr[1],
+        ]
+
+        self.assertEqual(
+            [
+                ((i.op.name, i.qargs) if isinstance(i, DAGOpNode) else i.wire)
+                for i in nodes_in_reverse
+            ],
+            expected,
+        )
+
+    def test_topological_op_nodes_reversals(self):
+        """Test topological_op_nodes in reverse order following the example pattern."""
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit0], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit2, self.qubit1], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit2], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit2], [])
+
+        op_nodes_in_reverse = list(self.dag.topological_op_nodes(reverse=True))
+
+        expected = [
+            ("h", (self.qubit2,)),
+            ("cx", (self.qubit0, self.qubit2)),
+            ("h", (self.qubit0,)),
+            ("cx", (self.qubit2, self.qubit1)),
+            ("cx", (self.qubit0, self.qubit1)),
+        ]
+
+        self.assertEqual(
+            [(i.op.name, i.qargs) for i in op_nodes_in_reverse],
+            expected,
+        )
 
     def test_dag_nodes_on_wire(self):
         """Test that listing the gates on a qubit/classical bit gets the correct gates"""
@@ -2656,6 +2749,7 @@ class TestDagSubstituteNode(QiskitTestCase):
         dag.add_creg(cr1)
         dag.add_creg(cr2)
         node = dag.apply_operation_back(IfElseOp(expr.logic_not(cr1), body.copy(), None), qr, [])
+        self.assertEqual(dag.num_blocks(), 1)  # Sanity check.
         dag.substitute_node(node, IfElseOp(expr.equal(cr1, 0), body.copy(), None), inplace=inplace)
 
         expected = DAGCircuit()
@@ -2665,6 +2759,9 @@ class TestDagSubstituteNode(QiskitTestCase):
         expected.apply_operation_back(IfElseOp(expr.equal(cr1, 0), body.copy(), None), qr, [])
 
         self.assertEqual(dag, expected)
+        # If the below assertion fails, `substitute_node` most likely failed to track the refcounts
+        # correctly / failed to free a block after the substitution.
+        self.assertEqual(dag.num_blocks(), 1)
 
     @data(True, False)
     def test_reject_replace_if_else_op_with_other_resources(self, inplace):

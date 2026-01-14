@@ -75,11 +75,13 @@ Optimizations
    CommutationAnalysis
    CommutativeCancellation
    CommutativeInverseCancellation
+   CommutativeOptimization
    ConsolidateBlocks
    ContractIdleWiresInControlFlow
    ElidePermutations
    HoareOptimizer
    InverseCancellation
+   LightCone
    LitinskiTransformation
    Optimize1qGates
    Optimize1qGatesDecomposition
@@ -94,6 +96,7 @@ Optimizations
    RemoveResetInZeroState
    ResetAfterMeasureSimplification
    Split2QUnitaries
+   SubstitutePi4Rotations
    TemplateOptimization
 
 Scheduling
@@ -174,6 +177,14 @@ Additional Passes
    RemoveFinalMeasurements
    UnrollForLoops
    WrapAngles
+
+Additional data
+===============
+
+.. py:data:: qiskit.transpiler.passes.utils.wrap_angles.WRAP_ANGLE_REGISTRY
+
+    A legacy location for :attr:`.WrapAngles.DEFAULT_REGISTRY`.  This path should only be used when
+    full compatibility with Qiskit 2.2 is required.
 """
 
 # layout selection (placement)
@@ -214,12 +225,14 @@ from .optimization import CollectLinearFunctions
 from .optimization import CollectMultiQBlocks
 from .optimization import CommutationAnalysis
 from .optimization import CommutativeCancellation
+from .optimization import CommutativeOptimization
 from .optimization import CommutativeInverseCancellation
 from .optimization import ConsolidateBlocks
 from .optimization import ContractIdleWiresInControlFlow
 from .optimization import ElidePermutations
 from .optimization import HoareOptimizer
 from .optimization import InverseCancellation
+from .optimization import LightCone
 from .optimization import LitinskiTransformation
 from .optimization import Optimize1qGates
 from .optimization import Optimize1qGatesDecomposition
@@ -234,6 +247,7 @@ from .optimization import RemoveIdentityEquivalent
 from .optimization import RemoveResetInZeroState
 from .optimization import ResetAfterMeasureSimplification
 from .optimization import Split2QUnitaries
+from .optimization import SubstitutePi4Rotations
 from .optimization import TemplateOptimization
 
 # circuit analysis
@@ -254,6 +268,7 @@ from .synthesis import HighLevelSynthesis
 from .synthesis import LinearFunctionsToPermutations
 from .synthesis import SolovayKitaev
 from .synthesis import SolovayKitaevSynthesis
+from .synthesis import RossSelingerSynthesis
 from .synthesis import UnitarySynthesis
 from .synthesis import unitary_synthesis_plugin_names
 

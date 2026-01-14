@@ -15,16 +15,16 @@
 use std::{
     fmt::Debug,
     hash::Hash,
-    sync::atomic::{AtomicU32, AtomicU64, Ordering},
     sync::Arc,
+    sync::atomic::{AtomicU32, AtomicU64, Ordering},
 };
 
 use hashbrown::HashSet;
 use pyo3::prelude::*;
 use pyo3::{
+    IntoPyObjectExt, PyTypeInfo,
     exceptions::{PyIndexError, PyTypeError, PyValueError},
     types::{PyList, PyType},
-    IntoPyObjectExt, PyTypeInfo,
 };
 
 use crate::circuit_data::CircuitError;
@@ -86,22 +86,28 @@ where
             self.index as usize,
             self.registers
                 .into_pyobject(py)?
-                .downcast_into::<PyList>()?
+                .cast_into::<PyList>()?
                 .unbind(),
         )
         .into_pyobject(py)
     }
 }
 
-impl<'py, R> FromPyObject<'py> for BitLocations<R>
+impl<'a, 'py, R> FromPyObject<'a, 'py> for BitLocations<R>
 where
-    R: Debug + Clone + Register + for<'a> IntoPyObject<'a> + for<'a> FromPyObject<'a>,
+    R: Debug
+        + Clone
+        + Register
+        + IntoPyObject<'py>
+        + for<'b> FromPyObject<'b, 'py, Error: Into<PyErr>>,
 {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let ob_down = ob.downcast::<PyBitLocations>()?.borrow();
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, PyErr> {
+        let ob_down = ob.cast::<PyBitLocations>()?.borrow();
         Ok(Self {
             index: ob_down.index as u32,
-            registers: ob_down.registers.extract(ob.py())?,
+            registers: ob_down.registers.bind(ob.py()).extract()?,
         })
     }
 }
@@ -509,9 +515,11 @@ macro_rules! create_bit_object {
             }
         }
 
-        impl<'py> FromPyObject<'py> for $bit_struct {
-            fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-                Ok(ob.downcast::<$pybit_struct>()?.borrow().0.clone())
+        impl<'a, 'py> FromPyObject<'a, 'py> for $bit_struct {
+            type Error = ::pyo3::CastError<'a, 'py>;
+
+            fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
+                ob.cast::<$pybit_struct>().map(|ob| ob.borrow().0.clone())
             }
         }
         // The owning impl of `IntoPyObject` needs to be done manually, to better handle
@@ -629,9 +637,11 @@ macro_rules! create_bit_object {
             }
         }
 
-        impl<'py> FromPyObject<'py> for $reg_struct {
-            fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-                Ok(ob.downcast::<$pyreg_struct>()?.borrow().0.clone())
+        impl<'a, 'py> FromPyObject<'a, 'py> for $reg_struct {
+            type Error = ::pyo3::CastError<'a, 'py>;
+
+            fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
+                ob.cast::<$pyreg_struct>().map(|ob| ob.borrow().0.clone())
             }
         }
         // The owning impl of `IntoPyObject` needs to be done manually, to better handle
@@ -761,7 +771,7 @@ macro_rules! create_bit_object {
                             Ok(PyList::new(ob.py(), s.into_iter().map(get_inner))?.into_any())
                         }
                     }
-                } else if let Ok(list) = ob.downcast::<PyList>() {
+                } else if let Ok(list) = ob.cast::<PyList>() {
                     let out = PyList::empty(ob.py());
                     for item in list.iter() {
                         out.append(get_inner(PySequenceIndex::convert_idx(

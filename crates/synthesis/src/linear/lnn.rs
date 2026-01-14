@@ -16,9 +16,9 @@ use numpy::PyReadonlyArray2;
 use smallvec::smallvec;
 
 use pyo3::prelude::*;
+use qiskit_circuit::Qubit;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{Param, StandardGate};
-use qiskit_circuit::Qubit;
 
 // Optimize the synthesis of an n-qubit circuit contains only CX gates for
 // linear nearest neighbor (LNN) connectivity.
@@ -320,5 +320,9 @@ pub fn py_synth_cnot_depth_line_kms(mat: PyReadonlyArray2<bool>) -> PyResult<Cir
                 smallvec![Qubit(ctrl as u32), Qubit(target as u32)],
             )
         });
-    CircuitData::from_standard_gates(num_qubits as u32, instructions, Param::Float(0.0))
+    Ok(CircuitData::from_standard_gates(
+        num_qubits as u32,
+        instructions,
+        Param::Float(0.0),
+    )?)
 }

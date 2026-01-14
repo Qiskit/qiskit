@@ -26,12 +26,23 @@ use crate::parameter::symbol_expr::Symbol;
 
 import_exception!(qiskit.circuit, CircuitError);
 
+/// This struct models the error conditions that can be raised from the
+/// rust methods of the [ParameterTable] struct. The goal is to explicitly
+/// enumerate all the error types that are returned by these functions and
+/// make it clear that the return type is part of the interface.
+///
+/// In the the future it is expected this single enum will be replaced by per
+/// method error types to make it even more obvious, but this is a step
+/// towards that as we migrate from Python -> Rust.
+#[non_exhaustive]
 #[derive(Error, Debug)]
 pub enum ParameterTableError {
     #[error("parameter '{0:?}' is not tracked in the table")]
     ParameterNotTracked(ParameterUuid),
     #[error("usage {0:?} is not tracked by the table")]
     UsageNotTracked(ParameterUse),
+    #[error("name conflict adding parameter '{0}'")]
+    NameConflict(String),
 }
 impl From<ParameterTableError> for PyErr {
     fn from(value: ParameterTableError) -> PyErr {
@@ -62,10 +73,10 @@ impl ParameterUuid {
     /// Extract a UUID from a Python-space `Parameter` object. This assumes that the object is known
     /// to be a parameter.
     pub fn from_parameter(ob: &Bound<PyAny>) -> PyResult<Self> {
-        let uuid = if let Ok(param) = ob.downcast::<PyParameter>() {
+        let uuid = if let Ok(param) = ob.cast::<PyParameter>() {
             // this downcast should cover both PyParameterVectorElement and PyParameter
             param.borrow().symbol().uuid.as_u128()
-        } else if let Ok(expr) = ob.downcast::<PyParameterExpression>() {
+        } else if let Ok(expr) = ob.cast::<PyParameterExpression>() {
             let expr_borrowed = expr.borrow();
             // We know the ParameterExpression is in fact representing a single Symbol
             let symbol = &expr_borrowed.inner.try_to_symbol()?;
@@ -114,6 +125,12 @@ impl ParameterTable {
         self.by_uuid.len()
     }
 
+    /// Does this table track the given parameter?
+    pub fn contains(&self, symbol: &Symbol) -> bool {
+        self.by_uuid
+            .contains_key(&ParameterUuid::from_symbol(symbol))
+    }
+
     /// Add a new usage of a parameter coming in, optionally adding a first usage to it.
     ///
     /// The no-use form is useful when doing parameter assignments from Rust space, where the
@@ -123,7 +140,7 @@ impl ParameterTable {
         &mut self,
         symbol: &Symbol,
         usage: Option<ParameterUse>,
-    ) -> PyResult<ParameterUuid> {
+    ) -> Result<ParameterUuid, ParameterTableError> {
         let uuid = ParameterUuid::from_symbol(symbol);
         match self.by_uuid.entry(uuid) {
             Entry::Occupied(mut entry) => {
@@ -134,10 +151,7 @@ impl ParameterTable {
             Entry::Vacant(entry) => {
                 let repr = symbol.repr(false);
                 if self.by_repr.contains_key(&repr) {
-                    return Err(CircuitError::new_err(format!(
-                        "name conflict adding parameter '{}'",
-                        &repr
-                    )));
+                    return Err(ParameterTableError::NameConflict(repr));
                 }
                 self.by_repr.insert(repr.clone(), uuid);
                 let mut uses = HashSet::new();
@@ -158,9 +172,12 @@ impl ParameterTable {
 
     /// Untrack one use of a single [Symbol] object from the table, discarding all
     /// other tracking of that [Symbol] if this was the last usage of it.
-    pub fn untrack(&mut self, symbol: &Symbol, usage: ParameterUse) -> PyResult<()> {
+    pub fn untrack(
+        &mut self,
+        symbol: &Symbol,
+        usage: ParameterUse,
+    ) -> Result<(), ParameterTableError> {
         self.remove_use(ParameterUuid::from_symbol(symbol), usage)
-            .map_err(PyErr::from)
     }
 
     /// Lookup the Python parameter object by name.
@@ -266,7 +283,7 @@ impl ParameterTable {
     /// The clearing effect is eager and not dependent on the iteration.
     pub fn drain_ordered(
         &mut self,
-    ) -> impl ExactSizeIterator<Item = (Symbol, HashSet<ParameterUse>)> {
+    ) -> impl ExactSizeIterator<Item = (Symbol, HashSet<ParameterUse>)> + use<> {
         let order = self
             .order_cache
             .take()

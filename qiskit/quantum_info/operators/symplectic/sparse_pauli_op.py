@@ -433,10 +433,14 @@ class SparsePauliOp(LinearOp):
     def is_unitary(self, atol: float | None = None, rtol: float | None = None) -> bool:
         """Return True if operator is a unitary matrix.
 
+        This method checks whether the operator composed with its adjoint equals
+        the identity, up to the provided tolerance. The tolerance is used when
+        simplifying the composed operator and checking if the result is the identity.
+
         Args:
             atol (float): Optional. Absolute tolerance for checking if
                           coefficients are zero (Default: 1e-8).
-            rtol (float): Optional. relative tolerance for checking if
+            rtol (float): Optional. Relative tolerance for checking if
                           coefficients are zero (Default: 1e-5).
 
         Returns:
@@ -449,7 +453,7 @@ class SparsePauliOp(LinearOp):
             rtol = self.rtol
 
         # Compose with adjoint
-        val = self.compose(self.adjoint()).simplify()
+        val = self.compose(self.adjoint()).simplify(atol=atol, rtol=rtol)
         # See if the result is an identity
         return (
             val.size == 1
@@ -794,7 +798,7 @@ class SparsePauliOp(LinearOp):
 
     @staticmethod
     def from_list(
-        obj: Iterable[tuple[str, complex]], dtype: type = complex, *, num_qubits: int = None
+        obj: Iterable[tuple[str, complex]], dtype: type | None = None, *, num_qubits: int = None
     ) -> SparsePauliOp:
         """Construct from a list of Pauli strings and coefficients.
 
@@ -817,7 +821,8 @@ class SparsePauliOp(LinearOp):
 
         Args:
             obj (Iterable[Tuple[str, complex]]): The list of 2-tuples specifying the Pauli terms.
-            dtype (type): The dtype of coeffs (Default: complex).
+            dtype (type | None): Data type for the coefficients. If ``None`` (default), the dtype is
+                automatically inferred.
             num_qubits (int): The number of qubits of the operator (Default: None).
 
         Returns:
@@ -845,6 +850,12 @@ class SparsePauliOp(LinearOp):
             obj = [("I" * num_qubits, 0)]
             size = len(obj)
 
+        if dtype is None:
+            if any(isinstance(coeff, ParameterExpression) for (_, coeff) in obj):
+                dtype = object
+            else:
+                dtype = complex
+
         coeffs = np.zeros(size, dtype=dtype)
         labels = np.zeros(size, dtype=f"<U{num_qubits}")
         for i, item in enumerate(obj):
@@ -859,7 +870,7 @@ class SparsePauliOp(LinearOp):
         obj: Iterable[tuple[str, list[int], complex]],
         num_qubits: int,
         do_checks: bool = True,
-        dtype: type = complex,
+        dtype: type | None = None,
     ) -> SparsePauliOp:
         """Construct from a list of local Pauli strings and coefficients.
 
@@ -889,9 +900,10 @@ class SparsePauliOp(LinearOp):
         Args:
             obj (Iterable[tuple[str, list[int], complex]]): The list 3-tuples specifying the Paulis.
             num_qubits (int): The number of qubits of the operator.
-            do_checks (bool): The flag of checking if the input indices are not duplicated
-            (Default: True).
-            dtype (type): The dtype of coeffs (Default: complex).
+            do_checks (bool): Whether to perform validity checks on the input indices.
+            dtype (type | None): Data type for the coefficients. If ``None`` (default), the dtype is
+                automatically inferred.
+
 
         Returns:
             SparsePauliOp: The SparsePauliOp representation of the Pauli terms.
@@ -906,6 +918,12 @@ class SparsePauliOp(LinearOp):
         if size == 0:
             obj = [("I" * num_qubits, range(num_qubits), 0)]
             size = len(obj)
+
+        if dtype is None:
+            if any(isinstance(coeff, ParameterExpression) for (_, _, coeff) in obj):
+                dtype = object
+            else:
+                dtype = complex
 
         coeffs = np.zeros(size, dtype=dtype)
         labels = np.zeros(size, dtype=f"<U{num_qubits}")
@@ -1142,6 +1160,10 @@ class SparsePauliOp(LinearOp):
     ) -> SparsePauliOp | None:
         r"""Bind the free ``Parameter``\s in the coefficients to provided values.
 
+        .. note::
+            If all the parameters in the circuit are bound to numeric values, the coefficients array
+            will be returned with a :class:`complex` dtype.
+
         Args:
             parameters: The values to bind the parameters to.
             inplace: If ``False``, a copy of the operator with the bound parameters is returned.
@@ -1174,6 +1196,11 @@ class SparsePauliOp(LinearOp):
                 if len(coeff.parameters) == 0:
                     coeff = complex(coeff)
                 bound.coeffs[i] = coeff
+
+        if bound.coeffs.dtype == object and not any(
+            isinstance(c, ParameterExpression) for c in bound.coeffs
+        ):
+            bound._coeffs = bound.coeffs.astype(complex)
 
         return None if inplace else bound
 

@@ -23,18 +23,18 @@ use numpy::{
     PyReadonlyArray1, PyReadonlyArray2, PyUntypedArrayMethods,
 };
 use pyo3::{
+    IntoPyObjectExt, PyErr,
     exceptions::{PyRuntimeError, PyTypeError, PyValueError, PyZeroDivisionError},
     intern,
     prelude::*,
-    sync::GILOnceCell,
+    sync::PyOnceLock,
     types::{IntoPyDict, PyList, PyString, PyTuple, PyType},
-    IntoPyObjectExt, PyErr,
 };
 use std::{
     cmp::Ordering,
     collections::btree_map,
     ops::{AddAssign, DivAssign, MulAssign, SubAssign},
-    sync::{Arc, RwLock},
+    sync::{Arc, RwLock, RwLockReadGuard},
 };
 use thiserror::Error;
 
@@ -47,14 +47,14 @@ static PAULI_TYPE: ImportOnceCell = ImportOnceCell::new("qiskit.quantum_info", "
 static PAULI_LIST_TYPE: ImportOnceCell = ImportOnceCell::new("qiskit.quantum_info", "PauliList");
 static SPARSE_PAULI_OP_TYPE: ImportOnceCell =
     ImportOnceCell::new("qiskit.quantum_info", "SparsePauliOp");
-static BIT_TERM_PY_ENUM: GILOnceCell<Py<PyType>> = GILOnceCell::new();
-static BIT_TERM_INTO_PY: GILOnceCell<[Option<Py<PyAny>>; 16]> = GILOnceCell::new();
+static BIT_TERM_PY_ENUM: PyOnceLock<Py<PyType>> = PyOnceLock::new();
+static BIT_TERM_INTO_PY: PyOnceLock<[Option<Py<PyAny>>; 16]> = PyOnceLock::new();
 
 /// Named handle to the alphabet of single-qubit terms.
 ///
 /// This is just the Rust-space representation.  We make a separate Python-space `enum.IntEnum` to
 /// represent the same information, since we enforce strongly typed interactions in Rust, including
-/// not allowing the stored values to be outside the valid `BitTerm`s, but doing so in Python would
+/// not allowing the stored values to be outside the valid `BitTerm`\ s, but doing so in Python would
 /// make it very difficult to use the class efficiently with Numpy array views.  We attach this
 /// sister class of `BitTerm` to `SparseObservable` as a scoped class.
 ///
@@ -76,7 +76,7 @@ static BIT_TERM_INTO_PY: GILOnceCell<[Option<Py<PyAny>>; 16]> = GILOnceCell::new
 /// # Dev notes
 ///
 /// This type is required to be `u8`, but it's a subtype of `u8` because not all `u8` are valid
-/// `BitTerm`s.  For interop with Python space, we accept Numpy arrays of `u8` to represent this,
+/// `BitTerm`\ s.  For interop with Python space, we accept Numpy arrays of `u8` to represent this,
 /// which we transmute into slices of `BitTerm`, after checking that all the values are correct (or
 /// skipping the check if Python space promises that it upheld the checks).
 ///
@@ -243,7 +243,9 @@ pub enum CoherenceError {
     MismatchedItemCount { bit_terms: usize, indices: usize },
     #[error("the first item of `boundaries` ({0}) must be 0")]
     BadInitialBoundary(usize),
-    #[error("the last item of `boundaries` ({last}) must match the length of `bit_terms` and `indices` ({items})")]
+    #[error(
+        "the last item of `boundaries` ({last}) must match the length of `bit_terms` and `indices` ({items})"
+    )]
     BadFinalBoundary { last: usize, items: usize },
     #[error("all qubit indices must be less than the number of qubits")]
     BitIndexTooHigh,
@@ -369,7 +371,7 @@ pub struct SparseObservable {
     /// The number of qubits the operator acts on.  This is not inferable from any other shape or
     /// values, since identities are not stored explicitly.
     num_qubits: u32,
-    /// The coefficients of each abstract term in in the sum.  This has as many elements as terms in
+    /// The coefficients of each abstract term in the sum.  This has as many elements as terms in
     /// the sum.
     coeffs: Vec<Complex64>,
     /// A flat list of single-qubit terms.  This is more naturally a list of lists, but is stored
@@ -1003,7 +1005,6 @@ impl SparseObservable {
             None => {
                 let mut out = self.clone();
                 if num_qubits < self.num_qubits {
-                    // return Err(CoherenceError::BitIndexTooHigh);
                     return Err(CoherenceError::NotEnoughQubits {
                         current: self.num_qubits as usize,
                         target: num_qubits as usize,
@@ -1055,6 +1056,22 @@ impl SparseObservable {
         } else {
             Ok(())
         }
+    }
+
+    /// Check whether the observable commutes with another one.
+    ///
+    /// # Arguments
+    ///
+    /// * `tol` - If coefficients in the product of `self` and `other` are below the tolerance
+    ///   (in magnitude), the terms are ignored.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the observables commute, `false` otherwise.
+    pub fn commutes(&self, other: &SparseObservable, tol: f64) -> bool {
+        let ab = self.compose(other).canonicalize(tol);
+        let ba = other.compose(self).canonicalize(tol);
+        ab == ba
     }
 }
 
@@ -1599,7 +1616,7 @@ impl SparseTerm {
 }
 
 #[derive(Error, Debug)]
-struct InnerReadError;
+pub struct InnerReadError;
 
 #[derive(Error, Debug)]
 struct InnerWriteError;
@@ -1714,7 +1731,7 @@ fn make_py_bit_term(py: Python) -> PyResult<Py<PyType>> {
         .getattr("property")?
         .call1((wrap_pyfunction!(bit_term_label, py)?,))?;
     obj.setattr("label", label_property)?;
-    Ok(obj.downcast_into::<PyType>()?.unbind())
+    Ok(obj.cast_into::<PyType>()?.unbind())
 }
 
 // Return the relevant value from the Python-space sister enumeration.  These are Python-space
@@ -1751,8 +1768,10 @@ impl<'py> IntoPyObject<'py> for BitTerm {
     }
 }
 
-impl<'py> FromPyObject<'py> for BitTerm {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for BitTerm {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         let value = ob
             .extract::<isize>()
             .map_err(|_| match ob.get_type().repr() {
@@ -1845,7 +1864,7 @@ impl PySparseTerm {
         if slf.is(&other) {
             return Ok(true);
         }
-        let Ok(other) = other.downcast_into::<Self>() else {
+        let Ok(other) = other.cast_into::<Self>() else {
             return Ok(false);
         };
         let slf = slf.borrow();
@@ -2414,6 +2433,7 @@ pub struct PySparseObservable {
     // This class keeps a pointer to a pure Rust-SparseTerm and serves as interface from Python.
     inner: Arc<RwLock<SparseObservable>>,
 }
+
 #[pymethods]
 impl PySparseObservable {
     #[pyo3(signature = (data, /, num_qubits=None))]
@@ -2452,7 +2472,7 @@ impl PySparseObservable {
             }
             return Self::from_label(&label).map_err(PyErr::from);
         }
-        if let Ok(observable) = data.downcast_exact::<Self>() {
+        if let Ok(observable) = data.cast_exact::<Self>() {
             check_num_qubits(data)?;
             let borrowed = observable.borrow();
             let inner = borrowed.inner.read().map_err(|_| InnerReadError)?;
@@ -2472,7 +2492,7 @@ impl PySparseObservable {
             };
             return Self::from_sparse_list(vec, num_qubits);
         }
-        if let Ok(term) = data.downcast_exact::<PySparseTerm>() {
+        if let Ok(term) = data.cast_exact::<PySparseTerm>() {
             return term.borrow().to_observable();
         };
         if let Ok(observable) = Self::from_terms(data, num_qubits) {
@@ -3059,12 +3079,12 @@ impl PySparseObservable {
                         "cannot construct an observable from an empty list without knowing `num_qubits`",
                     ));
                 };
-                let py_term = first?.downcast::<PySparseTerm>()?.borrow();
+                let py_term = first?.cast::<PySparseTerm>()?.borrow();
                 py_term.inner.to_observable()
             }
         };
         for bound_py_term in iter {
-            let py_term = bound_py_term?.downcast::<PySparseTerm>()?.borrow();
+            let py_term = bound_py_term?.cast::<PySparseTerm>()?.borrow();
             inner.add_term(py_term.inner.view())?;
         }
         Ok(inner.into())
@@ -3589,6 +3609,31 @@ impl PySparseObservable {
             ))
     }
 
+    /// Check whether the observable commutes with another one.
+    ///
+    /// Args:
+    ///     other (SparseObservable): The other observable to check commutation with.
+    ///     tol (float): If coefficients in the product of `self` and `other` are below the
+    ///         tolerance (in magnitude), the terms are ignored.
+    ///
+    /// Returns:
+    ///     ``True`` if the terms commute, up to tolerance, ``False`` otherwise.
+    ///
+    /// Raises:
+    ///     TypeError: If ``other`` could not be coerced to ``SparseObservable``.
+    #[pyo3(signature = (other, tol=1e-12))]
+    pub fn commutes(&self, other: &Bound<PyAny>, tol: f64) -> PyResult<bool> {
+        let Some(other) = coerce_to_observable(other)? else {
+            return Err(PyTypeError::new_err("Invalid type of other."));
+        };
+
+        let self_inner = self.inner.read().map_err(|_| InnerReadError)?;
+        let other = other.borrow();
+        let other_inner = other.inner.read().map_err(|_| InnerReadError)?;
+
+        Ok(self_inner.commutes(&other_inner, tol))
+    }
+
     fn __len__(&self) -> PyResult<usize> {
         self.num_terms()
     }
@@ -3604,7 +3649,7 @@ impl PySparseObservable {
                 return PySparseTerm {
                     inner: inner.term(index).to_term(),
                 }
-                .into_bound_py_any(py)
+                .into_bound_py_any(py);
             }
             indices => indices,
         };
@@ -3620,7 +3665,7 @@ impl PySparseObservable {
         if slf.is(&other) {
             return Ok(true);
         }
-        let Ok(other) = other.downcast_into::<Self>() else {
+        let Ok(other) = other.cast_into::<Self>() else {
             return Ok(false);
         };
         let slf_borrowed = slf.borrow();
@@ -3888,6 +3933,13 @@ impl PySparseObservable {
         py.get_type::<PySparseTerm>()
     }
 }
+impl PySparseObservable {
+    /// This is an immutable reference as opposed to a `copy`.
+    pub fn as_inner(&self) -> Result<RwLockReadGuard<'_, SparseObservable>, InnerReadError> {
+        let data = self.inner.read().map_err(|_| InnerReadError)?;
+        Ok(data)
+    }
+}
 impl From<SparseObservable> for PySparseObservable {
     fn from(val: SparseObservable) -> PySparseObservable {
         PySparseObservable {
@@ -3999,19 +4051,22 @@ impl ArrayView {
         /// This allows broadcasting a single item into many locations in a slice (like Numpy), but
         /// otherwise requires that the index and values are the same length (unlike Python's
         /// `list`) because that would change the length.
-        fn set_in_slice<'py, T, S>(
+        fn set_in_slice<'a, 'py, T, S>(
             slice: &mut [T],
             index: PySequenceIndex<'py>,
-            values: &Bound<'py, PyAny>,
+            values: Borrowed<'a, 'py, PyAny>,
         ) -> PyResult<()>
         where
             T: Copy + TryFrom<S>,
-            S: FromPyObject<'py>,
+            S: for<'b> FromPyObject<'b, 'py, Error: Into<PyErr>>,
             PyErr: From<<T as TryFrom<S>>::Error>,
         {
             match index.with_len(slice.len())? {
                 SequenceIndex::Int(index) => {
-                    slice[index] = values.extract::<S>()?.try_into()?;
+                    slice[index] = values
+                        .extract::<S>()
+                        .map_err(Into::<PyErr>::into)?
+                        .try_into()?;
                     Ok(())
                 }
                 indices => {
@@ -4023,7 +4078,13 @@ impl ArrayView {
                     } else {
                         let values = values
                             .try_iter()?
-                            .map(|value| value?.extract::<S>()?.try_into().map_err(PyErr::from))
+                            .map(|value| {
+                                value?
+                                    .extract::<S>()
+                                    .map_err(Into::<PyErr>::into)?
+                                    .try_into()
+                                    .map_err(PyErr::from)
+                            })
                             .collect::<PyResult<Vec<_>>>()?;
                         if indices.len() != values.len() {
                             return Err(PyValueError::new_err(format!(
@@ -4042,6 +4103,7 @@ impl ArrayView {
         }
 
         let mut obs = self.base.write().map_err(|_| InnerWriteError)?;
+        let values = values.as_borrowed();
         match self.slot {
             ArraySlot::Coeffs => set_in_slice::<_, Complex64>(obs.coeffs_mut(), index, values),
             ArraySlot::BitTerms => set_in_slice::<BitTerm, u8>(obs.bit_terms_mut(), index, values),
@@ -4142,7 +4204,7 @@ fn coerce_to_observable<'py>(
     value: &Bound<'py, PyAny>,
 ) -> PyResult<Option<Bound<'py, PySparseObservable>>> {
     let py = value.py();
-    if let Ok(obs) = value.downcast_exact::<PySparseObservable>() {
+    if let Ok(obs) = value.cast_exact::<PySparseObservable>() {
         return Ok(Some(obs.clone()));
     }
     match PySparseObservable::py_new(value, None) {
