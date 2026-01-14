@@ -330,8 +330,63 @@ def load(
         QpyError: if known but unsupported data type is loaded.
     """
 
+    data = parse_file_header(file_obj=file_obj)
+    
+    if data.qpy_version < 10:
+        use_symengine = False
+    else:
+        use_symengine = data.symbolic_encoding == type_keys.SymExprEncoding.SYMENGINE
+
+    if data.qpy_version >= 16:
+        # Obtain the byte offsets for each program
+        program_offsets = []
+        for _ in range(data.num_programs):
+            program_offsets.append(
+                formats.CIRCUIT_TABLE_ENTRY(
+                    *struct.unpack(
+                        formats.CIRCUIT_TABLE_ENTRY_PACK,
+                        file_obj.read(formats.CIRCUIT_TABLE_ENTRY_SIZE),
+                    )
+                ).offset
+            )
+
+    programs = []
+    for i in range(data.num_programs):
+        if data.qpy_version >= 16:
+            # Deserialize each program using their byte offsets
+            file_obj.seek(program_offsets[i])
+        programs.append(
+            binary_io.read_circuit(
+                file_obj,
+                data.qpy_version,
+                metadata_deserializer=metadata_deserializer,
+                use_symengine=use_symengine,
+                annotation_factories=annotation_factories,
+            )
+        )
+    return programs
+
+
+def parse_file_header(
+    file_obj: BinaryIO,
+) -> formats.FILE_HEADER | formats.FILE_HEADER_V10:
+    """Parses the header from a QPY binary file
+
+    Args:
+        file_obj: A file like object that contains the QPY binary
+            data for a circuit.
+
+    Returns:
+        The header tuple corresponding to the QPY version
+
+    Raises:
+        QiskitError: if ``file_obj`` is not a valid QPY file
+        TypeError: When invalid data type is loaded.
+        QpyError: if known but unsupported data type is loaded.
+    """
+    
     # identify file header version
-    version = struct.unpack("!6sB", file_obj.read(7))[1]
+    version = get_qpy_version(file_obj=file_obj)
     file_obj.seek(0)
 
     if version > common.QPY_VERSION:
@@ -403,39 +458,7 @@ def load(
     if type_key != type_keys.Program.CIRCUIT:
         raise TypeError(f"Invalid payload format data kind '{type_key}'.")
 
-    if data.qpy_version < 10:
-        use_symengine = False
-    else:
-        use_symengine = data.symbolic_encoding == type_keys.SymExprEncoding.SYMENGINE
-
-    if data.qpy_version >= 16:
-        # Obtain the byte offsets for each program
-        program_offsets = []
-        for _ in range(data.num_programs):
-            program_offsets.append(
-                formats.CIRCUIT_TABLE_ENTRY(
-                    *struct.unpack(
-                        formats.CIRCUIT_TABLE_ENTRY_PACK,
-                        file_obj.read(formats.CIRCUIT_TABLE_ENTRY_SIZE),
-                    )
-                ).offset
-            )
-
-    programs = []
-    for i in range(data.num_programs):
-        if data.qpy_version >= 16:
-            # Deserialize each program using their byte offsets
-            file_obj.seek(program_offsets[i])
-        programs.append(
-            binary_io.read_circuit(
-                file_obj,
-                data.qpy_version,
-                metadata_deserializer=metadata_deserializer,
-                use_symengine=use_symengine,
-                annotation_factories=annotation_factories,
-            )
-        )
-    return programs
+    return data
 
 
 def get_qpy_version(
