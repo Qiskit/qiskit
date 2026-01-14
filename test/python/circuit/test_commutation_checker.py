@@ -28,6 +28,8 @@ from qiskit.circuit import (
     Qubit,
     QuantumCircuit,
 )
+from qiskit.transpiler.passmanager import PassManager
+from qiskit.transpiler.passes.optimization.light_cone import LightCone
 from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
 from qiskit.circuit.library import (
     Barrier,
@@ -591,6 +593,26 @@ class TestCommutationChecker(QiskitTestCase):
         self.assertTrue(scc.commute(HGate(), [0], [], evo_xz, [0], []))
 
 
+    def test_light_cone_index_out_of_bounds(self):
+        """Test scanning a circuit with dispersed indices does not panic.
+        See https://github.com/Qiskit/qiskit/issues/15021
+        """
+        qc = QuantumCircuit(18)
+        qc.rx(np.pi / 3, range(0, qc.num_qubits))
+        bit_terms = "ZZZZZZZZZ"
+        indices = [0, 1, 2, 3, 4, 9, 10, 12, 13]
+        pm = PassManager(
+            [
+                LightCone(
+                    bit_terms=bit_terms,
+                    indices=indices,
+                )
+            ]
+        )
+        # This should not raise a PanicException or IndexError
+        reduced_circ = pm.run(qc)
+        self.assertIsInstance(reduced_circ, QuantumCircuit)
+
 def build_pauli_gate(pauli_string: str, gate_type: str) -> Gate:
     """Build a Pauli-based gate off a Pauli string.
 
@@ -619,3 +641,4 @@ def build_pauli_gate(pauli_string: str, gate_type: str) -> Gate:
 
 if __name__ == "__main__":
     unittest.main()
+
