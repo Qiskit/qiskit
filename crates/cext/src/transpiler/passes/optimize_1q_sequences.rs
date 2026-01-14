@@ -91,9 +91,11 @@ pub unsafe extern "C" fn qk_transpiler_standalone_optimize_1q_sequences(
     let mut circuit_as_dag = DAGCircuit::from_circuit_data(circuit, false, None, None, None, None)
         .expect("Error while converting the circuit to a dag.");
 
-    let state = Optimize1qGatesDecompositionState::new(target, None, None).unwrap();
+    let state = Optimize1qGatesDecompositionState::new(
+        target.map(|x| x.num_qubits.unwrap_or(0)).unwrap_or(0) as usize,
+    );
     // Run the pass
-    run_optimize_1q_gates_decomposition(&mut circuit_as_dag, &state, target)
+    run_optimize_1q_gates_decomposition(&mut circuit_as_dag, &state, target, None, None)
         .expect("Error while running the pass.");
 
     // Convert the DAGCircuit back to an instance of CircuitData

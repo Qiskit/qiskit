@@ -315,11 +315,12 @@ pub fn optimization_stage(
     if optimization_level == OptimizationLevel::Level1 {
         new_depth = Some(dag.depth(false)?);
         new_size = Some(dag.size(false)?);
-        let optimize_1q_state = Optimize1qGatesDecompositionState::new(Some(target), None, None)?;
+        let optimize_1q_state =
+            Optimize1qGatesDecompositionState::new(target.num_qubits.unwrap_or(0) as usize);
         while new_depth != depth || new_size != size {
             depth = new_depth;
             size = new_size;
-            run_optimize_1q_gates_decomposition(dag, &optimize_1q_state, Some(target))?;
+            run_optimize_1q_gates_decomposition(dag, &optimize_1q_state, Some(target), None, None)?;
             run_inverse_cancellation_standard_gates(dag);
             if gates_missing_from_target(dag, target)? {
                 translation_stage(dag, target, approximation_degree, equivalence_library)?;
@@ -345,12 +346,13 @@ pub fn optimization_stage(
         )?;
         new_depth = Some(dag.depth(false)?);
         new_size = Some(dag.size(false)?);
-        let optimize_1q_state = Optimize1qGatesDecompositionState::new(Some(target), None, None)?;
+        let optimize_1q_state =
+            Optimize1qGatesDecompositionState::new(target.num_qubits.unwrap_or(0) as usize);
         while new_depth != depth || new_size != size {
             depth = new_depth;
             size = new_size;
             run_remove_identity_equiv(dag, approximation_degree, Some(target))?;
-            run_optimize_1q_gates_decomposition(dag, &optimize_1q_state, Some(target))?;
+            run_optimize_1q_gates_decomposition(dag, &optimize_1q_state, Some(target), None, None)?;
             cancel_commutations(dag, commutation_checker, None, 1.0)?;
             if gates_missing_from_target(dag, target)? {
                 translation_stage(dag, target, approximation_degree, equivalence_library)?;
@@ -361,7 +363,8 @@ pub fn optimization_stage(
     } else if optimization_level == OptimizationLevel::Level3 {
         let mut continue_loop: bool = true;
         let mut min_state = MinPointState::new(dag);
-        let optimize_1q_state = Optimize1qGatesDecompositionState::new(Some(target), None, None)?;
+        let optimize_1q_state =
+            Optimize1qGatesDecompositionState::new(target.num_qubits.unwrap_or(0) as usize);
         while continue_loop {
             run_consolidate_blocks(dag, false, approximation_degree, Some(target))?;
             let num_qubits = dag.num_qubits();
@@ -379,7 +382,7 @@ pub fn optimization_stage(
                 false,
             )?;
             run_remove_identity_equiv(dag, approximation_degree, Some(target))?;
-            run_optimize_1q_gates_decomposition(dag, &optimize_1q_state, Some(target))?;
+            run_optimize_1q_gates_decomposition(dag, &optimize_1q_state, Some(target), None, None)?;
             cancel_commutations(dag, commutation_checker, None, 1.0)?;
             if gates_missing_from_target(dag, target)? {
                 translation_stage(dag, target, approximation_degree, equivalence_library)?;
