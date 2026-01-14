@@ -1016,7 +1016,7 @@ fn pack_custom_instruction(
         // But we still want to serialize it like a regular instruction, so we need to convert it to a PackedInstruction.
         // To avoid changing the original CircuitData we use a hack where it is packed using a dummy circuit data.
         // TODO: Hopefully we'll change all this in a future version of QPY.
-        let mut dummy_circuit_data = CircuitData::new(None, None, None, 0, Param::Float(0.0))?;
+        let mut dummy_circuit_data = CircuitData::new(None, None, Param::Float(0.0))?;
         let packed_instruction = dummy_circuit_data.pack(py, &instruction)?;
         base_gate_raw = serialize(&pack_instruction(
             &packed_instruction,
