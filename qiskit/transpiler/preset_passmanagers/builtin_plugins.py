@@ -969,33 +969,37 @@ class CliffordTOptimizationPassManager(PassManagerStagePlugin):
 
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
         """Build pass manager for optimization stage."""
-        if optimization_level == 0:
-            return None
-        if optimization_level == 1:
-            loop = [
-                InverseCancellation(),
-                ContractIdleWiresInControlFlow(),
-            ]
-            post_loop = []
-        elif optimization_level in (2, 3):
-            # The optimization loop runs OptimizeCliffordT + CommutativeCancellation
-            # until fixpoint.
-            loop = [
-                RemoveIdentityEquivalent(
-                    approximation_degree=pass_manager_config.approximation_degree,
-                    target=pass_manager_config.target,
-                ),
-                OptimizeCliffordT(),
-                CommutativeCancellation(target=pass_manager_config.target),
-                ContractIdleWiresInControlFlow(),
-            ]
-            # We need to run BasisTranslator because OptimizeCliffordT does not consider the basis.
-            post_loop = [
-                BasisTranslator(sel, pass_manager_config.basis_gates, pass_manager_config.target)
-            ]
-        else:
-            raise TranspilerError(f"Invalid optimization_level: {optimization_level}")
-        loop_check, continue_loop = _optimization_check_fixed_point()
+        match optimization_level:
+            case 0:
+                return None
+            case 1:
+                loop = [
+                    InverseCancellation(),
+                    ContractIdleWiresInControlFlow(),
+                ]
+                post_loop = []
+                loop_check, continue_loop = _optimization_check_fixed_point()
+            case 2 | 3:
+                # The optimization loop runs OptimizeCliffordT + CommutativeCancellation
+                # until fixpoint.
+                loop = [
+                    RemoveIdentityEquivalent(
+                        approximation_degree=pass_manager_config.approximation_degree,
+                        target=pass_manager_config.target,
+                    ),
+                    OptimizeCliffordT(),
+                    CommutativeCancellation(target=pass_manager_config.target),
+                    ContractIdleWiresInControlFlow(),
+                ]
+                # We need to run BasisTranslator because OptimizeCliffordT does not consider the basis.
+                post_loop = [
+                    BasisTranslator(
+                        sel, pass_manager_config.basis_gates, pass_manager_config.target
+                    )
+                ]
+                loop_check, continue_loop = _optimization_check_fixed_point()
+            case bad:
+                raise TranspilerError(f"Invalid optimization_level: {bad}")
 
         optimization = PassManager()
         optimization.append(loop_check)
