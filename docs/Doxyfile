@@ -8,7 +8,7 @@ WARNINGS = YES
 WARN_IF_UNDOCUMENTED = YES
 WARN_IF_DOC_ERROR = YES
 WARN_IF_INCOMPLETE_DOC = YES
-WARN_NO_PARAM_DOC = YES
+WARN_NO_PARAMDOC = YES
 WARN_IF_UNDOC_ENUM_VAL = YES
 WARN_AS_ERROR = FAIL_ON_WARNINGS_PRINT
 
@@ -18,3 +18,10 @@ PREDEFINED = QISKIT_C_PYTHON_INTERFACE=1
 
 GENERATE_HTML = NO
 GENERATE_LATEX = NO
+
+# The command `\qk_deprecated{<version>|<note>}` (e.g. \qk_deprecated{2.3.0|Use :c:func:`other_fn` instead})
+# for outputting correct deprecation information across the Breathe bridge to Sphinx.
+#
+# We don't use the built-in `\deprecated` command in Doxygen because that only accepts free-form
+# input, but we want to retain the version information in the structured Sphinx output.
+ALIASES += qk_deprecated{2|}="\verbatim embed:rst^^.. deprecated:: \1^^    \2^^\endverbatim"

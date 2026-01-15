@@ -15,49 +15,33 @@ use std::time::Instant;
 
 use hashbrown::HashMap;
 use indexmap::{IndexMap, IndexSet};
-use numpy::PyReadonlyArray1;
 use rand::prelude::*;
 use rand_pcg::Pcg64Mcg;
 use rayon::prelude::*;
 use rustworkx_core::petgraph::data::Create;
 use rustworkx_core::petgraph::prelude::*;
 
-use pyo3::exceptions::PyTypeError;
 use pyo3::prelude::*;
-use pyo3::types::PyTuple;
 use pyo3::{IntoPyObjectExt, create_exception, wrap_pyfunction};
 
-use qiskit_circuit::converters::circuit_to_dag;
 use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_circuit::nlayout::NLayout;
-use qiskit_circuit::operations::{Operation, OperationRef, Param};
+use qiskit_circuit::interner::{Interned, Interner};
+use qiskit_circuit::operations::{ControlFlowView, Operation};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::{PhysicalQubit, VirtualQubit, vf2};
 
 use super::error_map::ErrorMap;
-use crate::target::{Qargs, QargsRef, Target};
-
-const PARALLEL_THRESHOLD: usize = 50;
-
-#[pyclass]
-pub struct EdgeList {
-    pub edge_list: Vec<([VirtualQubit; 2], i32)>,
-}
-#[pymethods]
-impl EdgeList {
-    #[new]
-    pub fn new(edge_list: Vec<([VirtualQubit; 2], i32)>) -> Self {
-        EdgeList { edge_list }
-    }
-}
+use crate::target::{Qargs, QargsRef, Target, TargetOperation};
 
 create_exception!(qiskit, MultiQEncountered, pyo3::exceptions::PyException);
 
 #[pyclass(name = "VF2PassConfiguration")]
 #[derive(Clone, Debug)]
 pub struct Vf2PassConfiguration {
-    /// Number of times to allow extending the VF2 partial solution.  `None` means "no bound".
-    pub call_limit: Option<usize>,
+    /// The maximum numbers of times VF2 is allowed to extend the mapping (before, after) the first
+    /// match.  In both cases, `None` means "no limit".  Steps taken before the first match is found
+    /// still count against the "after" limit.
+    pub call_limit: (Option<usize>, Option<usize>),
     /// Time in seconds to spend optimizing.  This is not a tight limit; control only returns to the
     /// iterator to check for the time limit when a successful _improved_ match is found.
     pub time_limit: Option<f64>,
@@ -67,15 +51,21 @@ pub struct Vf2PassConfiguration {
     /// If set, shuffle the node indices of the input graphs using a specified random seed.  If
     /// `None`, perform no shuffling.  You probably want this to be `None`.
     pub shuffle_seed: Option<u64>,
+    /// Whether the initial "trivial" layout should be immediately scored, as used as the base.  If
+    /// true, the result will return [Vf2PassReturn::NoImprovement] if the initial layout was the
+    /// best-scoring match.  Scoring the initial layout is useful for seeding the tree-pruner
+    /// component of the search, if the incoming layout is expected to already be valid.
+    pub score_initial_layout: bool,
 }
 impl Vf2PassConfiguration {
     /// A set of defaults that just runs everything completely unbounded.
     pub fn default_unbounded() -> Self {
         Self {
-            call_limit: None,
+            call_limit: (None, None),
             time_limit: None,
             max_trials: Some(0),
             shuffle_seed: None,
+            score_initial_layout: false,
         }
     }
 
@@ -83,12 +73,13 @@ impl Vf2PassConfiguration {
     /// that has not been lowered to hardware instructions.
     pub fn default_abstract() -> Self {
         Self {
-            call_limit: None,
+            call_limit: (None, None),
             time_limit: None,
             // There's no need to attempt to improve the layout, since everything's so approximate
             // anyway.
             max_trials: Some(1),
             shuffle_seed: None,
+            score_initial_layout: false,
         }
     }
 
@@ -96,41 +87,55 @@ impl Vf2PassConfiguration {
     /// and we want to find the _best_ layout.
     pub fn default_concrete() -> Self {
         Self {
-            call_limit: None,
+            call_limit: (None, None),
             time_limit: None,
             // Unbounded trials.
             max_trials: Some(0),
             shuffle_seed: None,
+            score_initial_layout: true,
         }
     }
 }
 #[pymethods]
 impl Vf2PassConfiguration {
     #[new]
-    #[pyo3(signature = (*, call_limit=None, time_limit=None, max_trials=None, shuffle_seed=None))]
+    #[pyo3(signature = (*, call_limit=(None, None), time_limit=None, max_trials=None, shuffle_seed=None, score_initial_layout=false))]
     fn py_new(
-        call_limit: Option<usize>,
+        call_limit: (Option<usize>, Option<usize>),
         time_limit: Option<f64>,
         max_trials: Option<usize>,
         shuffle_seed: Option<u64>,
+        score_initial_layout: bool,
     ) -> Self {
         Self {
             call_limit,
             time_limit,
             max_trials,
             shuffle_seed,
+            score_initial_layout,
         }
     }
 
     /// Construct the VF2 configuration from the legacy interface to the Python passes.
     #[staticmethod]
-    #[pyo3(signature = (*, call_limit=None, time_limit=None, max_trials=None, shuffle_seed=None))]
+    #[pyo3(signature = (*, call_limit=None, time_limit=None, max_trials=None, shuffle_seed=None, score_initial_layout=false))]
     fn from_legacy_api(
-        call_limit: Option<usize>,
+        call_limit: Option<Bound<PyAny>>,
         time_limit: Option<f64>,
         max_trials: Option<isize>,
         shuffle_seed: Option<i64>,
+        score_initial_layout: bool,
     ) -> PyResult<Self> {
+        let call_limit = match call_limit {
+            Some(call_limit) => {
+                if let Ok(call_limit) = call_limit.extract::<usize>() {
+                    (Some(call_limit), Some(call_limit))
+                } else {
+                    call_limit.extract()?
+                }
+            }
+            None => (None, None),
+        };
         // In the leagcy API, negative `max_trials` means unbounded (which we represent as 0) and
         // `None` means "choose some values based on the size of the graph structures".
         let max_trials = max_trials.map(|value| value.try_into().unwrap_or(0));
@@ -152,6 +157,7 @@ impl Vf2PassConfiguration {
             time_limit,
             max_trials,
             shuffle_seed,
+            score_initial_layout,
         })
     }
 }
@@ -344,38 +350,18 @@ impl<T: Default> VirtualInteractions<T> {
     {
         for (_, inst) in dag.op_nodes(false) {
             let qubits = dag.get_qargs(inst.qubits);
-            if inst.op.control_flow() {
-                let can_continue = Python::attach(|py| -> PyResult<bool> {
-                    let OperationRef::Instruction(py_inst) = inst.op.view() else {
-                        unreachable!("control-flow nodes are always PyInstructions");
-                    };
-                    let repeats = if py_inst.name() == "for_loop" {
-                        let Param::Obj(indexset) = &inst.params_view()[0] else {
-                            return Err(PyTypeError::new_err(
-                                "unexpected object as for-loop indexset parameter",
-                            ));
-                        };
-                        repeats * indexset.bind(py).len()?
-                    } else {
-                        repeats
-                    };
-                    let wire_map: Vec<_> = qubits.iter().map(|i| wire_map[i.index()]).collect();
-                    let blocks = py_inst.instruction.bind(py).getattr("blocks")?;
-                    for block in blocks.cast::<PyTuple>()?.iter() {
-                        if !self.add_interactions_from(
-                            &circuit_to_dag(block.extract()?, false, None, None)?,
-                            &wire_map,
-                            repeats,
-                            weighter,
-                        )? {
-                            return Ok(false);
-                        };
-                    }
-                    Ok(true)
-                })?;
-                if !can_continue {
-                    return Ok(false);
+            if let Some(control_flow) = dag.try_view_control_flow(inst) {
+                let repeats = if let ControlFlowView::ForLoop { collection, .. } = control_flow {
+                    repeats * collection.len()
+                } else {
+                    repeats
                 };
+                let wire_map: Vec<_> = qubits.iter().map(|i| wire_map[i.index()]).collect();
+                for block in control_flow.blocks() {
+                    if !self.add_interactions_from(block, &wire_map, repeats, weighter)? {
+                        return Ok(false);
+                    }
+                }
                 continue;
             }
             match qubits {
@@ -431,6 +417,18 @@ impl<T: Default> VirtualInteractions<T> {
             .add_node(self.uncoupled.swap_remove(&q).unwrap_or_default())
     }
 }
+impl<T> VirtualInteractions<T> {
+    /// Move all the uncoupled qubits into the graph.
+    ///
+    /// This is useful for the case that the interaction weights have sufficient semantics that we
+    /// wouldn't be able to reliably match them separately to the rest of the interactions.
+    fn move_all_uncoupled_to_graph(&mut self) {
+        for (qubit, interactions) in self.uncoupled.drain(..) {
+            assert!(self.nodes.insert(qubit));
+            self.graph.add_node(interactions);
+        }
+    }
+}
 
 fn neg_log_fidelity(error: f64) -> f64 {
     if error.is_nan() || error <= 0. {
@@ -470,6 +468,96 @@ fn build_average_coupling_map(target: &Target, errors: &ErrorMap) -> Option<Grap
         );
     }
     Some(cm_graph)
+}
+
+#[allow(clippy::type_complexity)]
+fn build_exact_coupling_map(
+    target: &Target,
+) -> Option<(
+    Graph<HashMap<Interned<str>, f64>, HashMap<Interned<str>, f64>>,
+    Interner<str>,
+)> {
+    let num_qubits = target.num_qubits.unwrap_or_default() as usize;
+    if target.num_qargs() == 0 {
+        return None;
+    }
+    let mut cm_graph: Graph<HashMap<_, _>, HashMap<_, _>> =
+        Graph::with_capacity(num_qubits, target.num_qargs().saturating_sub(num_qubits));
+    let mut interner = Interner::new();
+    for _ in 0..num_qubits {
+        cm_graph.add_node(Default::default());
+    }
+    // If there's _only_ global operations in the target, then either any mapping is valid (with the
+    // same score) or no mapping is valid.  Rather than adding a bunch of extra logic to handle
+    // that, we just give up; it doesn't make much sense to call VF2Layout/VF2PostLayout in those
+    // situations.
+    for qargs in target.qargs()? {
+        let QargsRef::Concrete(qargs) = qargs.as_ref() else {
+            // We'll handle globals afterwards, so we can match the Python-space version's unusual
+            // handling of "global" operations.
+            continue;
+        };
+        let instructions = match qargs {
+            [qubit] => cm_graph
+                .node_weight_mut(NodeIndex::new(qubit.index()))
+                .expect("previous loop added all nodes"),
+            [left, right] => {
+                let (left, right) = (NodeIndex::new(left.index()), NodeIndex::new(right.index()));
+                let edge = cm_graph
+                    .find_edge(left, right)
+                    .unwrap_or_else(|| cm_graph.add_edge(left, right, Default::default()));
+                cm_graph
+                    .edge_weight_mut(edge)
+                    .expect("edge created in previous statement")
+            }
+            _ => continue,
+        };
+        for name in target
+            .operation_names_for_qargs(QargsRef::Concrete(qargs))
+            .expect("these qargs come from `Target::qargs`")
+        {
+            instructions.insert(
+                interner.insert(name),
+                neg_log_fidelity(target.get_error(name, qargs).unwrap_or(0.)),
+            );
+        }
+    }
+    for name in target
+        .operation_names_for_qargs(QargsRef::Global)
+        .into_iter()
+        .flatten()
+    {
+        let TargetOperation::Normal(operation) = target
+            .operation_from_name(name)
+            .expect("name comes from target")
+        else {
+            // A variadic that's valid globally on both 1q and 2q would have the same effect on
+            // the score even if it had an error, regardless of the isomorphism.
+            continue;
+        };
+        // TODO: the `Target` API currently doesn't let us access the error of a global, assuming
+        // that it's ideal.  We treat things the same here for now.
+        let score = neg_log_fidelity(0.0);
+        match operation.operation.num_qubits() {
+            1 => {
+                let key = interner.insert(name);
+                for weight in cm_graph.node_weights_mut() {
+                    weight.insert(key, score);
+                }
+            }
+            2 => {
+                // TODO: the Python-space version of `VF2PostLayout` in strict mode has an unusual
+                // interpretation of "global" 2q operations; it defines the operation on all 2q
+                // links that _also_ have concrete instructions.  For now, we replicate that.
+                let key = interner.insert(name);
+                for weight in cm_graph.edge_weights_mut() {
+                    weight.insert(key, score);
+                }
+            }
+            _ => (),
+        }
+    }
+    Some((cm_graph, interner))
 }
 
 /// If an edge does not have a parallel but reversed counterpart, add one with the same weight.
@@ -569,19 +657,78 @@ where
         trials += 1;
         max_trials == 0 || trials <= max_trials
     };
-    vf2.with_call_limit(config.call_limit)
-        .into_iter()
-        .take_while(|_| can_continue())
-        .last()
-        .map(|v| {
-            let (mapping, _score) = v.expect("error is infallible");
-            mapping
-        })
+    let mut vf2 = vf2.with_call_limit(config.call_limit.0).into_iter();
+    let (mut mapping, _score) = vf2.next()?.expect("error is infallible");
+    if can_continue() {
+        vf2.call_limit = config.call_limit.1;
+        if let Some((new_mapping, _score)) = vf2
+            .take_while(|_| can_continue())
+            .last()
+            .map(|v| v.expect("error is infallible"))
+        {
+            mapping = new_mapping;
+        }
+    }
+    Some(mapping)
+}
+
+/// Produce an initial score for the identity mapping of the interaction graph onto the coupling
+/// graph.
+///
+///
+/// This assumes that the input graphs are not multigraphs; the results will certainly be incorrect
+/// if the virtual-interactions graph is a multigraph.
+fn score_identity_layout<S, T, W>(
+    interactions: &VirtualInteractions<S>,
+    coupling: &Graph<T, T>,
+    scorer: W,
+) -> Option<W::Score>
+where
+    W: vf2::Semantics<S, T, Error = Infallible>,
+{
+    use vf2::Vf2Score;
+
+    // Map from nodes in the interactions graph to the coupling graph.
+    let node_map = |node: NodeIndex| -> NodeIndex {
+        NodeIndex::new(
+            interactions
+                .nodes
+                .get_index(node.index())
+                .expect("all nodes should have an entry")
+                .index(),
+        )
+    };
+    let mut score = W::Score::id();
+    for node in interactions.graph.node_indices() {
+        let needle = interactions.graph.node_weight(node)?;
+        let haystack = coupling.node_weight(node_map(node))?;
+        score = W::Score::combine(
+            &score,
+            &scorer
+                .score(needle, haystack)
+                .expect("error is infallible")?,
+        );
+    }
+    for edge in interactions.graph.edge_references() {
+        let needle = edge.weight();
+        // Making a strong assumption that the virtual interactions are not a multigraph here.
+        let haystack = coupling
+            .edges_connecting(node_map(edge.source()), node_map(edge.target()))
+            .next()?
+            .weight();
+        score = W::Score::combine(
+            &score,
+            &scorer
+                .score(needle, haystack)
+                .expect("error is infallible")?,
+        );
+    }
+    Some(score)
 }
 
 #[pyfunction]
 #[pyo3(signature = (dag, target, config, *, strict_direction=false, avg_error_map=None))]
-pub fn vf2_layout_pass(
+pub fn vf2_layout_pass_average(
     dag: &DAGCircuit,
     target: &Target,
     config: &Vf2PassConfiguration,
@@ -606,6 +753,11 @@ pub fn vf2_layout_pass(
     if !strict_direction {
         loosen_directionality(&mut coupling_graph);
     }
+    let best_score = if config.score_initial_layout {
+        score_identity_layout(&interactions, &coupling_graph, vf2::Scorer(score))
+    } else {
+        None
+    };
     let num_physical_qubits = coupling_graph.node_count();
     let mut coupling_qubits = (0..num_physical_qubits)
         .map(|k| PhysicalQubit::new(k as u32))
@@ -621,10 +773,14 @@ pub fn vf2_layout_pass(
 
     let vf2 = vf2::Vf2::new(&interactions.graph, &coupling_graph, vf2::Problem::Subgraph)
         .with_scoring(score, score)
-        .with_restriction(vf2::Restriction::Decreasing(None))
+        .with_restriction(vf2::Restriction::Decreasing(best_score))
         .with_vf2pp_ordering();
     let Some(mapping) = minimize_vf2(vf2, config) else {
-        return Ok(Vf2PassReturn::NoSolution);
+        if best_score.is_some() {
+            return Ok(Vf2PassReturn::NoImprovement);
+        } else {
+            return Ok(Vf2PassReturn::NoSolution);
+        }
     };
     // Remap node indices back to virtual/physical qubits.
     let mapping = mapping
@@ -637,83 +793,90 @@ pub fn vf2_layout_pass(
     }
 }
 
-/// Score a given circuit with a layout applied
 #[pyfunction]
-#[pyo3(
-    text_signature = "(bit_list, edge_list, error_matrix, layout, strict_direction, run_in_parallel, /)"
-)]
-pub fn score_layout(
-    bit_list: PyReadonlyArray1<i32>,
-    edge_list: &EdgeList,
-    error_map: &ErrorMap,
-    layout: &NLayout,
-    strict_direction: bool,
-    run_in_parallel: bool,
-) -> PyResult<f64> {
-    let bit_counts = bit_list.as_slice()?;
-    let edge_filter_map = |(index_arr, gate_count): &([VirtualQubit; 2], i32)| -> Option<f64> {
-        let mut error = error_map
-            .error_map
-            .get(&[index_arr[0].to_phys(layout), index_arr[1].to_phys(layout)]);
-        if !strict_direction && error.is_none() {
-            error = error_map
-                .error_map
-                .get(&[index_arr[1].to_phys(layout), index_arr[0].to_phys(layout)]);
-        }
-        error.map(|error| {
-            if !error.is_nan() {
-                (1. - error).powi(*gate_count)
-            } else {
-                1.
-            }
-        })
+#[pyo3(signature = (dag, target, config))]
+pub fn vf2_layout_pass_exact(
+    dag: &DAGCircuit,
+    target: &Target,
+    config: &Vf2PassConfiguration,
+) -> PyResult<Vf2PassReturn> {
+    let Some((mut coupling_graph, interner)) = build_exact_coupling_map(target) else {
+        return Ok(Vf2PassReturn::NoSolution);
     };
-    let bit_filter_map = |(v_bit_index, gate_counts): (usize, &i32)| -> Option<f64> {
-        let p_bit = VirtualQubit::new(v_bit_index.try_into().unwrap()).to_phys(layout);
-        let error = error_map.error_map.get(&[p_bit, p_bit]);
+    let add_interaction =
+        |uses: &mut Vec<(Interned<str>, usize)>, inst: &PackedInstruction, repeats: usize| {
+            let Some(key) = interner.try_key(inst.op.name()) else {
+                return false;
+            };
+            if let Some((_, count)) = uses.iter_mut().find(|(name, _)| key == *name) {
+                *count += repeats;
+            } else {
+                uses.push((key, repeats));
+            }
+            true
+        };
+    let Some(mut interactions) = VirtualInteractions::from_dag(dag, add_interaction)? else {
+        return Ok(Vf2PassReturn::NoSolution);
+    };
 
-        error.map(|error| {
-            if !error.is_nan() {
-                (1. - error).powi(*gate_counts)
-            } else {
-                1.
-            }
-        })
+    // The optimisation we have in the "average" case where we assign loose 1q gates after matching
+    // the rest of the graph doesn't hold in the "exact" case, so we have to have VF2 match them all
+    // at once.  For example, consider a heterogeneous target where only one qubit has `rx`
+    // available, but VF2 matches a non-`rx`-using qubit onto that one during the first step,
+    // because it isn't aware there's a necessary `rx` gate in the free list.
+    if interactions.uncoupled.len() > 1 {
+        // ... but if there's too many uncoupled qubits, there's a combinatorial explosion in the
+        // matching time, so we just bail out.  It would be nice to deal with this better.
+        return Ok(Vf2PassReturn::NoSolution);
+    }
+    interactions.move_all_uncoupled_to_graph();
+    let score = |counts: &Vec<(Interned<str>, usize)>,
+                 errs: &HashMap<Interned<str>, f64>|
+     -> Result<Option<f64>, Infallible> {
+        Ok(counts.iter().try_fold(0.0, |tot, (key, count)| {
+            errs.get(key).map(|err| tot + err * *count as f64)
+        }))
     };
-    let mut fidelity: f64 = if edge_list.edge_list.len() < PARALLEL_THRESHOLD || !run_in_parallel {
-        edge_list
-            .edge_list
-            .iter()
-            .filter_map(edge_filter_map)
-            .product()
+    let best_score = if config.score_initial_layout {
+        score_identity_layout(&interactions, &coupling_graph, score)
     } else {
-        edge_list
-            .edge_list
-            .par_iter()
-            .filter_map(edge_filter_map)
-            .product()
+        None
     };
-    fidelity *= if bit_list.len()? < PARALLEL_THRESHOLD || !run_in_parallel {
-        bit_counts
+    let num_physical_qubits = coupling_graph.node_count();
+    let mut coupling_qubits = (0..num_physical_qubits)
+        .map(|k| PhysicalQubit::new(k as u32))
+        .collect::<Vec<_>>();
+    if let Some(seed) = config.shuffle_seed {
+        coupling_qubits.shuffle(&mut Pcg64Mcg::seed_from_u64(seed));
+        let order = coupling_qubits
             .iter()
-            .enumerate()
-            .filter_map(bit_filter_map)
-            .product::<f64>()
-    } else {
-        bit_counts
-            .par_iter()
-            .enumerate()
-            .filter_map(bit_filter_map)
-            .product()
+            .map(|qubit| NodeIndex::new(qubit.index()))
+            .collect::<Vec<_>>();
+        coupling_graph = vf2::reorder_nodes(&coupling_graph, &order);
+    }
+    let vf2 = vf2::Vf2::new(&interactions.graph, &coupling_graph, vf2::Problem::Subgraph)
+        .with_semantics(score, score)
+        .with_restriction(vf2::Restriction::Decreasing(best_score))
+        .with_vf2pp_ordering();
+    let Some(mapping) = minimize_vf2(vf2, config) else {
+        if best_score.is_some() {
+            return Ok(Vf2PassReturn::NoImprovement);
+        } else {
+            return Ok(Vf2PassReturn::NoSolution);
+        }
     };
-    Ok(1. - fidelity)
+    // Remap node indices back to virtual/physical qubits.
+    let mapping = mapping
+        .iter()
+        .map(|(k, v)| (interactions.nodes[k.index()], coupling_qubits[v.index()]))
+        .collect();
+    Ok(Vf2PassReturn::Solution(mapping))
 }
 
 pub fn vf2_layout_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(score_layout))?;
-    m.add_wrapped(wrap_pyfunction!(vf2_layout_pass))?;
+    m.add_wrapped(wrap_pyfunction!(vf2_layout_pass_average))?;
+    m.add_wrapped(wrap_pyfunction!(vf2_layout_pass_exact))?;
     m.add("MultiQEncountered", m.py().get_type::<MultiQEncountered>())?;
-    m.add_class::<EdgeList>()?;
     m.add(
         "VF2PassConfiguration",
         m.py().get_type::<Vf2PassConfiguration>(),

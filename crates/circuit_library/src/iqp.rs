@@ -29,7 +29,7 @@ use crate::CircuitError;
 const PI2: f64 = PI / 2.0;
 const PI4: f64 = PI / 4.0;
 
-fn iqp(
+pub fn iqp(
     interactions: ArrayView2<'_, i64>,
 ) -> impl Iterator<Item = (StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>)> + '_ {
     let num_qubits = interactions.ncols();
@@ -95,7 +95,7 @@ fn generate_random_interactions(num_qubits: u32, seed: Option<u64>) -> Array2<i6
 }
 
 /// Returns true if the input matrix is symmetric, otherwise false.
-fn check_symmetric(matrix: &ArrayView2<i64>) -> bool {
+pub fn check_symmetric(matrix: &ArrayView2<i64>) -> bool {
     let nrows = matrix.nrows();
 
     if matrix.ncols() != nrows {
@@ -144,7 +144,11 @@ pub fn py_iqp(interactions: PyReadonlyArray2<i64>) -> PyResult<CircuitData> {
 
     let num_qubits = view.ncols() as u32;
     let instructions = iqp(view);
-    CircuitData::from_standard_gates(num_qubits, instructions, Param::Float(0.0))
+    Ok(CircuitData::from_standard_gates(
+        num_qubits,
+        instructions,
+        Param::Float(0.0),
+    )?)
 }
 
 /// Generate a random Instantaneous Quantum Polynomial time (IQP) circuit.
@@ -161,5 +165,9 @@ pub fn py_random_iqp(num_qubits: u32, seed: Option<u64>) -> PyResult<CircuitData
     let interactions = generate_random_interactions(num_qubits, seed);
     let view = interactions.view();
     let instructions = iqp(view);
-    CircuitData::from_standard_gates(num_qubits, instructions, Param::Float(0.0))
+    Ok(CircuitData::from_standard_gates(
+        num_qubits,
+        instructions,
+        Param::Float(0.0),
+    )?)
 }

@@ -22,12 +22,11 @@ from .solovay_kitaev import SolovayKitaevDecomposition
 
 
 @deprecate_func(
-    since="2.1",
+    since="2.3",
     additional_msg=(
         "Use the SolovayKitaevDecomposition class directly, to generate, store, and load the "
         "basic approximations."
     ),
-    pending=True,
 )
 def generate_basic_approximations(
     basis_gates: list[str | Gate], depth: int, filename: str | None = None

@@ -405,8 +405,8 @@ class TestOptimizeSwapBeforeMeasure(QiskitTestCase):
         """Test conjugate reduction optimization for control-SWAP."""
 
         # Create a circuit with a control-annotated swap
-        qc = QuantumCircuit(3)
-        qc.append(SwapGate().control(annotated=True), [0, 1, 2])
+        qc = QuantumCircuit(4)
+        qc.append(SwapGate().control(2, annotated=True), [0, 1, 2, 3])
 
         # Run optimization pass
         qc_optimized = OptimizeAnnotated(basis_gates=["cx", "u"])(qc)
@@ -414,7 +414,7 @@ class TestOptimizeSwapBeforeMeasure(QiskitTestCase):
         # Check that the optimization is correct
         self.assertEqual(Operator(qc), Operator(qc_optimized))
 
-        # Swap(0, 1) gets translated to CX(0, 1), CX(1, 0), CX(0, 1).
+        # CSwap(0, 1) gets translated to CCX(0, 1), CCX(1, 0), CCX(0, 1).
         # The first and the last of the CXs should be detected as inverse of each other.
         new_def_ops = dict(qc_optimized[0].operation.definition.count_ops())
         self.assertEqual(new_def_ops, {"annotated": 1, "cx": 2})

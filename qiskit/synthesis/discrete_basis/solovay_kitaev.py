@@ -46,6 +46,13 @@ class SolovayKitaevDecomposition:
         check_input: bool = False,
     ) -> None:
         """
+
+        .. note::
+
+            If ``basic_approximations`` is passed as ``.npy`` file, pickle is used internally
+            to load the data. This is a potential security vulnerability and only trusted files
+            should be loaded.
+
         Args:
             basic_approximations: A specification of the basic SO(3) approximations in terms
                 of discrete gates. At each iteration this algorithm, the remaining error is
@@ -112,6 +119,12 @@ class SolovayKitaevDecomposition:
     def load_basic_approximations(data: list | str | dict) -> list[GateSequence]:
         """Load basic approximations.
 
+        .. note::
+
+            If ``data`` is given as string, this method internally relies on pickle to load
+            the file. This is a potential security vulnerability and only trusted files should be
+            loaded.
+
         Args:
             data: If a string, specifies the path to the file from where to load the data.
                 If a dictionary, directly specifies the decompositions as ``{gates: matrix}``
@@ -136,9 +149,9 @@ class SolovayKitaevDecomposition:
         warnings.warn(
             "It is suggested to pass basic_approximations in the binary format produced "
             "by SolovayKitaevDecomposition.save_basic_approximations, which is more "
-            "performant than other formats. Other formats are pending deprecation "
-            "and will be deprecated in a future release.",
-            category=PendingDeprecationWarning,
+            "performant than other formats. Passing a .npy format is deprecated since Qiskit 2.3 "
+            "and support will be removed no sooner than 3 months after the release date.",
+            category=DeprecationWarning,
         )
 
         # is already a list of GateSequences
@@ -157,7 +170,6 @@ class SolovayKitaevDecomposition:
             else:
                 matrix, global_phase = matrix_and_phase, 0
 
-            # gates = [_1q_gates[element] for element in gatestring.split()]
             gates = normalize_gates(gatestring.split())
             sequence = GateSequence.from_gates_and_matrix(gates, matrix, global_phase)
             sequences.append(sequence)
@@ -246,10 +258,9 @@ class SolovayKitaevDecomposition:
         return circuit
 
     @deprecate_func(
-        since="2.1",
+        since="2.3",
         additional_msg="Use query_basic_approximation instead, which takes a Gate or matrix "
         "as input and returns a QuantumCircuit object.",
-        pending=True,
     )
     def find_basic_approximation(self, sequence: GateSequence) -> GateSequence:
         """Find ``GateSequence`` in ``self._basic_approximations`` that approximates ``sequence``.

@@ -22,7 +22,7 @@ jobs:
     strategy:
       fail-fast: false
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Set up Python ${{ inputs.python-version }}
         uses: actions/setup-python@v6
         with:
@@ -49,7 +49,7 @@ jobs:
           # This variable should become redundant on release of jupyter-core 6.
           JUPYTER_PLATFORM_DIRS: 1
       - name: Store image tests diff
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         if: ${{ failure() }}
         with:
           name: image-test-failure-img-diffs

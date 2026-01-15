@@ -17,7 +17,7 @@ use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::operations;
 use qiskit_circuit::operations::{Param, StandardGate, multiply_param, radd_param};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::{Clbit, Qubit};
+use qiskit_circuit::{Clbit, NoBlocks, Qubit};
 use smallvec::{SmallVec, smallvec};
 
 // custom type for a more readable code
@@ -401,7 +401,12 @@ pub fn py_pauli_evolution(
         global_phase = multiply_param(&global_phase, -0.5);
     }
 
-    CircuitData::from_packed_operations(num_qubits as u32, 0, evos, global_phase)
+    Ok(CircuitData::from_packed_operations(
+        num_qubits as u32,
+        0,
+        evos,
+        global_phase,
+    )?)
 }
 
 /// Build a CX chain over the active qubits. E.g. with q_1 inactive, this would return
@@ -474,7 +479,7 @@ fn add_control(gate: StandardGate, params: &[Param], control_state: &[bool]) -> 
     // We know that all calls here should be valid and unwrap eagerly.
     Python::attach(|py| {
         let pygate = gate
-            .create_py_op(py, Some(params), None)
+            .create_py_op(py, Some(params.iter().cloned().collect()), None)
             .expect("Failed to create Py version of standard gate.");
         let num_controls = control_state.len();
         let py_control_state = PyString::new(
@@ -490,10 +495,10 @@ fn add_control(gate: StandardGate, params: &[Param], control_state: &[bool]) -> 
             .call_method1(
                 py,
                 intern!(py, "control"),
-                (num_controls, label, py_control_state),
+                (num_controls, label, py_control_state, false),
             )
             .expect("Failed to call .control()")
-            .extract::<OperationFromPython>(py)
+            .extract::<OperationFromPython<NoBlocks>>(py)
             .expect("The control state should be valid and match the number of controls.");
 
         controlled_gate.operation

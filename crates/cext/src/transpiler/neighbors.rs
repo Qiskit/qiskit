@@ -161,6 +161,8 @@ pub unsafe extern "C" fn qk_neighbors_from_target(
 /// This should only be called on `QkNeighbors` objects that were initialized by
 /// `qk_neighbors_from_target`.
 ///
+/// @param neighbors A pointer to a ``QkNeighbors`` object.
+///
 /// # Safety
 ///
 /// `neighbors` must point to a valid, initialized `QkNeighbors` object, which must have been
@@ -230,7 +232,7 @@ mod test {
             line.insert(Qargs::from([qubit, qubit + 1].map(PhysicalQubit)), None);
         }
         target
-            .add_instruction(StandardGate::CZ.into(), &[], None, Some(line))
+            .add_instruction(StandardGate::CZ.into(), None, None, Some(line))
             .unwrap();
 
         let mut neighbors = CNeighbors {
@@ -272,7 +274,7 @@ mod test {
         let mut line: IndexMap<_, _, _> = Default::default();
         line.insert(Qargs::Global, None);
         target
-            .add_instruction(StandardGate::CZ.into(), &[], None, Some(line))
+            .add_instruction(StandardGate::CZ.into(), None, None, Some(line))
             .unwrap();
 
         let mut neighbors = CNeighbors {

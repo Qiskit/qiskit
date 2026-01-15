@@ -852,6 +852,15 @@ impl PyParameterExpression {
         py_sympify.call1(py, (self.clone(),))
     }
 
+    /// The number of unbound parameters in the expression.
+    ///
+    /// This is equivalent to ``len(expr.parameters)`` but does not involve the overhead of creating
+    /// a set and counting its length.
+    #[getter]
+    pub fn num_parameters(&self) -> usize {
+        self.inner.num_symbols()
+    }
+
     /// Get the parameters present in the expression.
     ///
     /// .. note::
