@@ -335,6 +335,27 @@ static int test_custom_build(void) {
 }
 
 /**
+ * Test building a custom observable with null pointers.
+ */
+static int test_custom_build_zero(void) {
+    int res = Ok;
+    uint32_t num_qubits = 32;
+    QkObs *obs = qk_obs_new(num_qubits, 0, 0, NULL, NULL, NULL, (size_t[1]){0});
+    if (!obs) {
+        fprintf(stderr, "%s: failed to construct observable\n", __func__);
+        return EqualityError;
+    }
+    uint32_t actual_num_qubits = qk_obs_num_qubits(obs);
+    size_t num_terms = qk_obs_num_terms(obs);
+    if (actual_num_qubits != num_qubits || num_terms != 0) {
+        fprintf(stderr, "%s: returned observable has incorrect properties\n", __func__);
+        res = EqualityError;
+    }
+    qk_obs_free(obs);
+    return res;
+}
+
+/**
  * Test getting the terms in an observable.
  */
 static int test_term(void) {
@@ -722,6 +743,35 @@ static int test_obsterm_str(void) {
 }
 
 /**
+ * Test accessing identity observable term.
+ */
+static int test_obsterm_id(void) {
+    // Initialize observable and add a term
+    uint32_t num_qubits = 100;
+    QkObs *obs = qk_obs_identity(num_qubits);
+    QkComplex64 coeff = {1.0, 1.0};
+    QkObsTerm term = {coeff, 0, NULL, NULL, num_qubits};
+    int err = qk_obs_add_term(obs, &term);
+
+    if (err != 0) {
+        qk_obs_free(obs);
+        return RuntimeError;
+    }
+    // Get string for term:
+    QkObsTerm out_term;
+    qk_obs_term(obs, 1, &out_term);
+
+    char *string = qk_obsterm_str(&out_term);
+    char *expected = "SparseTermView { num_qubits: 100, coeff: Complex { re: 1.0, im: 1.0 }, "
+                     "bit_terms: [], indices: [] }";
+    int result = strcmp(string, expected);
+    qk_str_free(string);
+    qk_obs_free(obs);
+
+    return result;
+}
+
+/**
  * Test applying a layout in a full workflow.
  */
 static int test_apply_layout(void) {
@@ -827,6 +877,7 @@ int test_sparse_observable(void) {
     num_failed += RUN_TEST(test_num_terms);
     num_failed += RUN_TEST(test_num_qubits);
     num_failed += RUN_TEST(test_custom_build);
+    num_failed += RUN_TEST(test_custom_build_zero);
     num_failed += RUN_TEST(test_term);
     num_failed += RUN_TEST(test_copy_term);
     num_failed += RUN_TEST(test_bitterm_label);
@@ -838,6 +889,7 @@ int test_sparse_observable(void) {
     num_failed += RUN_TEST(test_direct_fail);
     num_failed += RUN_TEST(test_obs_str);
     num_failed += RUN_TEST(test_obsterm_str);
+    num_failed += RUN_TEST(test_obsterm_id);
     num_failed += RUN_TEST(test_apply_layout);
     num_failed += RUN_TEST(test_apply_layout_too_small);
     num_failed += RUN_TEST(test_apply_layout_duplicate);
