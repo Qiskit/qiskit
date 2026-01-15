@@ -1,15 +1,20 @@
 features_circuits:
   - |
-    Introduced a new negation unary operation for class :class:`expr.Expr` allowing users to negate
-    float, unsigned int and duration expressions. In-case a scalar is passed, it is automatically
-    lifted to the correct type.
+    Introduced a new negation unary operation :meth:`~.expr.negate` allowing users to negate 
+    float and duration expressions. In-case a scalar is passed, it is automatically lifted to 
+    the correct type.
 
     Examlpe usage::
 
       from qiskit.circuit import ClassicalRegister
       from qiskit.circuit.classical import expr, types
 
-      qc = QuantumCircuit(1)
-      cr = ClassicalRegister(1, "cr")
-      v = qc.add_var("v", expr.sub(expr.cast(cr, types.Float()), 1.5))
-      nv = expr.negate(v)
+      threshold = expr.Value(0.1, types.Float())
+      some_measured_numerical_val = expr.cast(cr, types.Float()) # imagine a meaningful computation based off `cr` here
+      res = qc.add_var("v", some_measured_numerical_val)
+
+      with qc.if_test(expr.greater(res, threshold)) as else_:
+          qc.rz(pi/3, 0)
+      with else_:
+          with qc.if_test(expr.greater(expr.negate(res), threshold)): # say res can be negative
+        qc.rz(-pi/3, 0)
