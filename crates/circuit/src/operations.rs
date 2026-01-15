@@ -2947,6 +2947,7 @@ pub trait PythonOperation: Sized {
 }
 
 #[derive(Clone, Debug)]
+#[repr(align(8))]
 pub enum PyOperationTypes {
     Operation(PyInstruction),
     Instruction(PyInstruction),
