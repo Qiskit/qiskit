@@ -307,24 +307,12 @@ def make_output(graph, raw, filename):
 
         # [Current Code - Causes WinError 32]
         # image = Image.open(tmppath)
-        # os.remove(tmppath) 
+        # os.remove(tmppath)
 
-        # [Proposed Fix - Safe for all OSs]
-        # Open the image using a context manager to ensure the file handle is closed
-        with Image.open(tmppath) as tmp_image:
-        # Create a copy in memory so we can close the file handle immediately
-            image = tmp_image.copy()
-
-        # Now that the file is definitely closed, we can safely delete it
-        try:
-            os.remove(tmppath)
-        except OSError:
-        # If deletion fails for any reason, do not crash the visualization
-            pass 
+        # [Proposed Fix]
+        image = Image.open(tmppath).copy()
 
         # ... existing code continues ...
         if filename:
             image.save(filename)
         return image
-
- 
