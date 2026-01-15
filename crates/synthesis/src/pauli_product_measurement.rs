@@ -22,7 +22,7 @@ use qiskit_circuit::operations::PauliProductMeasurement;
 use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::operations::StandardInstruction;
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::{Clbit, Qubit};
+use qiskit_circuit::{Clbit, NoBlocks, Qubit};
 
 /// Synthesizes a PauliProductMeasurement instruction.
 /// This function is used in HighLevelSynthesis and is exposed to Python's class definition method.
@@ -117,7 +117,7 @@ pub fn synthesize_ppm(ppm: &PauliProductMeasurement) -> PyResult<CircuitData> {
 
 #[pyfunction]
 fn synth_pauli_product_measurement(operation: &Bound<PyAny>) -> PyResult<CircuitData> {
-    let op_from_python = operation.extract::<OperationFromPython>()?;
+    let op_from_python = operation.extract::<OperationFromPython<NoBlocks>>()?;
 
     if let OperationRef::PauliProductMeasurement(ppm) = op_from_python.operation.view() {
         synthesize_ppm(ppm)
