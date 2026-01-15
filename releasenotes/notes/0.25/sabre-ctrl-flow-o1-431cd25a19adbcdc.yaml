@@ -1,0 +1,11 @@
+---
+upgrade:
+  - |
+    The Sabre family of transpiler passes (namely :class:`.SabreLayout`
+    and :class:`.SabreSwap`) are now used by default for all circuits
+    when invoking the transpiler at optimization level 1 (e.g. calling
+    :func:`.transpile` or :func:`.generate_preset_pass_manager` with 
+    keyword argument ``optimization_level=1``). Previously, circuits
+    with control flow operations used :class:`.DenseLayout` and
+    :class:`.StochasticSwap` with this profile.
+    

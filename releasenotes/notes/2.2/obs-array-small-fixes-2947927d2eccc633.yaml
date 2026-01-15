@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed a bug in :meth:`.ObservablesArray.coerce_observable` where an exception that an observable was not Hermitian was over-triggered. 
+    Observables equal to ``zero`` are not allowed and now invoke a graceful failure.

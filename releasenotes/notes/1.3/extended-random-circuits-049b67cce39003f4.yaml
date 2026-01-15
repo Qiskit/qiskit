@@ -1,0 +1,21 @@
+---
+features_circuits:
+  - |
+    The `random_circuit` function from `qiskit.circuit.random.utils` has a new feature where
+    users can specify a distribution `num_operand_distribution` (a dict) that specifies the
+    ratio of 1-qubit, 2-qubit, 3-qubit, and 4-qubit gates in the random circuit. For example,
+    if `num_operand_distribution = {1: 0.25, 2: 0.25, 3: 0.25, 4: 0.25}` is passed to the function
+    then the generated circuit will have approximately 25% of 1-qubit, 2-qubit, 3-qubit, and
+    4-qubit gates (The order in which the dictionary is passed does not matter i.e. you can specify
+    `num_operand_distribution = {3: 0.5, 1: 0.0, 4: 0.3, 2: 0.2}` and the function will still work
+    as expected). Also it should be noted that the if `num_operand_distribution` is not specified
+    then `max_operands` will default to 4 and a random circuit with a random gate distribution will 
+    be generated. If both `num_operand_distribution` and `max_operands` are specified at the same 
+    time then `num_operand_distribution` will be used to generate the random circuit.
+    Example usage::
+
+           from qiskit.circuit.random import random_circuit
+
+           circ = random_circuit(num_qubits=6, depth=5, num_operand_distribution = {1: 0.25, 2: 0.25, 3: 0.25, 4: 0.25})
+           circ.draw(output='mpl')
+

@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    :class:`.SabreLayout` will now correctly propagate a circuit's :attr:`~.DAGCircuit.name` and
+    :attr:`~.DAGCircuit.metadata` fields when performing as a joint layout and routing pass.

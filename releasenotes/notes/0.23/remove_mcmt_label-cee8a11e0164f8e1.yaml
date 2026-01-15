@@ -1,0 +1,4 @@
+---
+upgrade:
+  - |
+    The classes :class:`~.MCMT` and :class:`~.MCMTVChain` deprecated the argument ``label`` in Terra 0.19, and it has now been removed.

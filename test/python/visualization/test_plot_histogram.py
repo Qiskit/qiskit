@@ -16,18 +16,21 @@ import unittest
 from io import BytesIO
 from collections import Counter
 
-import matplotlib as mpl
-from PIL import Image
-
 from qiskit.visualization import plot_histogram
 from qiskit.utils import optionals
 from .visualization import QiskitVisualizationTestCase
 
+if optionals.HAS_MATPLOTLIB:
+    import matplotlib as mpl
+if optionals.HAS_PIL:
+    from PIL import Image
 
+
+@unittest.skipUnless(optionals.HAS_MATPLOTLIB, "matplotlib not available.")
 class TestPlotHistogram(QiskitVisualizationTestCase):
+    # pylint: disable=possibly-used-before-assignment
     """Qiskit plot_histogram tests."""
 
-    @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "matplotlib not available.")
     def test_different_counts_lengths(self):
         """Test plotting two different length dists works"""
         exact_dist = {
@@ -113,21 +116,19 @@ class TestPlotHistogram(QiskitVisualizationTestCase):
         fig = plot_histogram([raw_dist, exact_dist])
         self.assertIsInstance(fig, mpl.figure.Figure)
 
-    @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "matplotlib not available.")
     def test_with_number_to_keep(self):
         """Test plotting using number_to_keep"""
         dist = {"00": 3, "01": 5, "11": 8, "10": 11}
         fig = plot_histogram(dist, number_to_keep=2)
         self.assertIsInstance(fig, mpl.figure.Figure)
 
-    @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "matplotlib not available.")
     def test_with_number_to_keep_multiple_executions(self):
         """Test plotting using number_to_keep with multiple executions"""
         dist = [{"00": 3, "01": 5, "11": 8, "10": 11}, {"00": 3, "01": 7, "10": 11}]
         fig = plot_histogram(dist, number_to_keep=2)
         self.assertIsInstance(fig, mpl.figure.Figure)
 
-    @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "matplotlib not available.")
+    @unittest.skipUnless(optionals.HAS_PIL, "matplotlib not available.")
     def test_with_number_to_keep_multiple_executions_correct_image(self):
         """Test plotting using number_to_keep with multiple executions"""
         data_noisy = {
@@ -213,6 +214,19 @@ class TestPlotHistogram(QiskitVisualizationTestCase):
                 self.assertImagesAreEqual(Image.open(img_buffer_ref), Image.open(img_buffer), 0.2)
         mpl.pyplot.close(figure_ref)
         mpl.pyplot.close(figure_truncated)
+
+    @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "matplotlib not available.")
+    def test_number_of_items_in_legend_with_data_starting_with_zero(self):
+        """Test legend if there's a 0 value at the first item of the dataset"""
+        dist_1 = {"0": 0.369, "1": 0.13975}
+        dist_2 = {"0": 0, "1": 0.48784}
+        legend = ["lengend_1", "lengend_2"]
+        plot = plot_histogram([dist_1, dist_2], legend=legend)
+        self.assertEqual(
+            len(plot._localaxes[0].legend_.texts),
+            2,
+            "Plot should have the same number of legend items as defined",
+        )
 
 
 if __name__ == "__main__":

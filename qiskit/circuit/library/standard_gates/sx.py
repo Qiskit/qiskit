@@ -12,21 +12,26 @@
 
 """Sqrt(X) and C-Sqrt(X) gates."""
 
-from typing import Optional, Union
-import numpy
-from qiskit.qasm import pi
-from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
+from __future__ import annotations
+
+from typing import Optional
+from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
+from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
+from qiskit._accelerate.circuit import StandardGate
 
 
-class SXGate(Gate):
+_SX_ARRAY = [[0.5 + 0.5j, 0.5 - 0.5j], [0.5 - 0.5j, 0.5 + 0.5j]]
+_SXDG_ARRAY = [[0.5 - 0.5j, 0.5 + 0.5j], [0.5 + 0.5j, 0.5 - 0.5j]]
+
+
+@with_gate_array(_SX_ARRAY)
+class SXGate(SingletonGate):
     r"""The single-qubit Sqrt(X) gate (:math:`\sqrt{X}`).
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.sx` method.
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -35,9 +40,9 @@ class SXGate(Gate):
                 1 - i & 1 + i
             \end{pmatrix}
 
-    **Circuit symbol:**
+    Circuit symbol:
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌────┐
         q_0: ┤ √X ├
@@ -54,65 +59,95 @@ class SXGate(Gate):
                         1 & -i \\
                         -i & 1
                       \end{pmatrix}
-                    = e^{-i pi/4} \sqrt{X}
+                    = e^{-i \pi/4} \sqrt{X}
 
     """
 
+    _standard_gate = StandardGate.SX
+
     def __init__(self, label: Optional[str] = None):
-        """Create new SX gate."""
+        """
+        Args:
+            label: An optional label for the gate.
+        """
         super().__init__("sx", 1, [], label=label)
 
+    _singleton_lookup_key = stdlib_singleton_key()
+
     def _define(self):
-        """
-        gate sx a { rz(-pi/2) a; h a; rz(-pi/2); }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .s import SdgGate
-        from .h import HGate
+        from qiskit.circuit import QuantumCircuit
 
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q, name=self.name, global_phase=pi / 4)
-        rules = [(SdgGate(), [q[0]], []), (HGate(), [q[0]], []), (SdgGate(), [q[0]], [])]
-        for operation, qubits, clbits in rules:
-            qc._append(operation, qubits, clbits)
-        self.definition = qc
+        # global phase: π/4
+        #    ┌─────┐┌───┐┌─────┐
+        # q: ┤ Sdg ├┤ H ├┤ Sdg ├
+        #    └─────┘└───┘└─────┘
 
-    def inverse(self):
-        """Return inverse SX gate (i.e. SXdg)."""
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.SX._get_definition(self.params), legacy_qubits=True
+        )
+
+    def inverse(self, annotated: bool = False):
+        """Return inverse SX gate (i.e. SXdg).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.SXdgGate`.
+
+        Returns:
+            SXdgGate: inverse of :class:`.SXGate`.
+        """
         return SXdgGate()
 
     def control(
         self,
         num_ctrl_qubits: int = 1,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
+        label: str | None = None,
+        ctrl_state: str | int | None = None,
+        annotated: bool | None = None,
     ):
-        """Return a (multi-)controlled-SX gate.
+        """Return a controlled version of the SX gate.
 
-        One control returns a CSX gate.
+        For a single control qubit, the controlled gate is implemented as :class:`.CSXGate`,
+        regardless of the value of `annotated`.
+
+        For more than one control qubit,
+        the controlled gate is implemented as :class:`.ControlledGate` when ``annotated``
+        is ``False``, and as :class:`.AnnotatedOperation` when ``annotated`` is ``True``.
+
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            label: Optional gate label. Defaults to ``None``.
+                Ignored if the controlled gate is implemented as an annotated operation.
+            ctrl_state: The control state of the gate, specified either as an integer or a bitstring
+                (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``.
+            annotated: Indicates whether the controlled gate should be implemented as a controlled gate
+                or as an annotated operation. If ``None``, treated as ``False``.
 
         Returns:
-            ControlledGate: controlled version of this gate.
+            A controlled version of this gate.
         """
         if num_ctrl_qubits == 1:
-            gate = CSXGate(label=label, ctrl_state=ctrl_state)
-            gate.base_gate.label = self.label
-            return gate
-        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
+            gate = CSXGate(label=label, ctrl_state=ctrl_state, _base_label=self.label)
+        else:
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
+            )
+        return gate
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the SX gate."""
-        return numpy.array([[1 + 1j, 1 - 1j], [1 - 1j, 1 + 1j]], dtype=dtype) / 2
+    def __eq__(self, other):
+        return isinstance(other, SXGate)
 
 
-class SXdgGate(Gate):
+@with_gate_array(_SXDG_ARRAY)
+class SXdgGate(SingletonGate):
     r"""The inverse single-qubit Sqrt(X) gate.
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
@@ -137,55 +172,66 @@ class SXdgGate(Gate):
                         1 & i \\
                         i & 1
                       \end{pmatrix}
-                    = e^{-i pi/4} \sqrt{X}^{\dagger}
-
+                    = e^{-i \pi/4} \sqrt{X}^{\dagger}
     """
+
+    _standard_gate = StandardGate.SXdg
 
     def __init__(self, label: Optional[str] = None):
         """Create new SXdg gate."""
         super().__init__("sxdg", 1, [], label=label)
 
+    _singleton_lookup_key = stdlib_singleton_key()
+
     def _define(self):
-        """
-        gate sxdg a { rz(pi/2) a; h a; rz(pi/2); }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .s import SGate
-        from .h import HGate
+        from qiskit.circuit import QuantumCircuit
 
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q, name=self.name, global_phase=-pi / 4)
-        rules = [(SGate(), [q[0]], []), (HGate(), [q[0]], []), (SGate(), [q[0]], [])]
-        for operation, qubits, clbits in rules:
-            qc._append(operation, qubits, clbits)
-        self.definition = qc
+        # global phase: 7π/4
+        #    ┌───┐┌───┐┌───┐
+        # q: ┤ S ├┤ H ├┤ S ├
+        #    └───┘└───┘└───┘
 
-    def inverse(self):
-        """Return inverse SXdg gate (i.e. SX)."""
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.SXdg._get_definition(self.params), legacy_qubits=True
+        )
+
+    def inverse(self, annotated: bool = False):
+        """Return inverse SXdg gate (i.e. SX).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.SXGate`.
+
+        Returns:
+            SXGate: inverse of :class:`.SXdgGate`
+        """
         return SXGate()
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the SXdg gate."""
-        return numpy.array([[1 - 1j, 1 + 1j], [1 + 1j, 1 - 1j]], dtype=dtype) / 2
+    def __eq__(self, other):
+        return isinstance(other, SXdgGate)
 
 
-class CSXGate(ControlledGate):
+@with_controlled_gate_array(_SX_ARRAY, num_ctrl_qubits=1)
+class CSXGate(SingletonControlledGate):
     r"""Controlled-√X gate.
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.csx` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ──■──
              ┌─┴──┐
         q_1: ┤ √X ├
              └────┘
 
-    **Matrix representation:**
+    Matrix representation:
 
     .. math::
 
@@ -207,7 +253,8 @@ class CSXGate(ControlledGate):
         which in our case would be `q_1`. Thus a textbook matrix for this
         gate will be:
 
-        .. parsed-literal::
+        .. code-block:: text
+
                  ┌────┐
             q_0: ┤ √X ├
                  └─┬──┘
@@ -225,49 +272,42 @@ class CSXGate(ControlledGate):
                 \end{pmatrix}
 
     """
-    # Define class constants. This saves future allocation time.
-    _matrix1 = numpy.array(
-        [
-            [1, 0, 0, 0],
-            [0, (1 + 1j) / 2, 0, (1 - 1j) / 2],
-            [0, 0, 1, 0],
-            [0, (1 - 1j) / 2, 0, (1 + 1j) / 2],
-        ]
-    )
-    _matrix0 = numpy.array(
-        [
-            [(1 + 1j) / 2, 0, (1 - 1j) / 2, 0],
-            [0, 1, 0, 0],
-            [(1 - 1j) / 2, 0, (1 + 1j) / 2, 0],
-            [0, 0, 0, 1],
-        ]
-    )
 
-    def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
+    _standard_gate = StandardGate.CSX
+
+    def __init__(
+        self,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
+        *,
+        _base_label=None,
+    ):
         """Create new CSX gate."""
         super().__init__(
-            "csx", 2, [], num_ctrl_qubits=1, label=label, ctrl_state=ctrl_state, base_gate=SXGate()
+            "csx",
+            2,
+            [],
+            num_ctrl_qubits=1,
+            label=label,
+            ctrl_state=ctrl_state,
+            base_gate=SXGate(label=_base_label),
         )
 
+    _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=1)
+
     def _define(self):
-        """
-        gate csx a,b { h b; cu1(pi/2) a,b; h b; }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .h import HGate
-        from .u1 import CU1Gate
+        from qiskit.circuit import QuantumCircuit
 
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [(HGate(), [q[1]], []), (CU1Gate(pi / 2), [q[0], q[1]], []), (HGate(), [q[1]], [])]
-        for operation, qubits, clbits in rules:
-            qc._append(operation, qubits, clbits)
-        self.definition = qc
+        # q_0: ───────■───────
+        #      ┌───┐┌─┴─┐┌───┐
+        # q_1: ┤ H ├┤ S ├┤ H ├
+        #      └───┘└───┘└───┘
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the CSX gate."""
-        mat = self._matrix1 if self.ctrl_state else self._matrix0
-        if dtype:
-            return numpy.asarray(mat, dtype=dtype)
-        return mat
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.CSX._get_definition(self.params), legacy_qubits=True
+        )
+
+    def __eq__(self, other):
+        return isinstance(other, CSXGate) and self.ctrl_state == other.ctrl_state

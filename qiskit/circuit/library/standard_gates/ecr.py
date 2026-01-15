@@ -11,36 +11,43 @@
 # that they have been altered from the originals.
 
 """Two-qubit ZX-rotation gate."""
+
+from __future__ import annotations
 from math import sqrt
 import numpy as np
 
-from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
-from .rzx import RZXGate
-from .x import XGate
+from qiskit.circuit._utils import with_gate_array
+from qiskit.circuit.singleton import SingletonGate, stdlib_singleton_key
+from qiskit._accelerate.circuit import StandardGate
 
 
-class ECRGate(Gate):
-    r"""An echoed RZX(pi/2) gate implemented using RZX(pi/4) and RZX(-pi/4).
+@with_gate_array(
+    sqrt(0.5) * np.array([[0, 1, 0, 1.0j], [1, 0, -1.0j, 0], [0, 1.0j, 0, 1], [-1.0j, 0, 1, 0]])
+)
+class ECRGate(SingletonGate):
+    r"""An echoed cross-resonance gate.
 
     This gate is maximally entangling and is equivalent to a CNOT up to
     single-qubit pre-rotations. The echoing procedure mitigates some
     unwanted terms (terms other than ZX) to cancel in an experiment.
+    More specifically, this gate implements :math:`\frac{1}{\sqrt{2}}(IX-XY)`.
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.ecr` method.
 
-    **Circuit Symbol:**
+    Circuit symbol:
 
-    .. parsed-literal::
+    .. code-block:: text
 
-             ┌─────────┐            ┌────────────┐┌────────┐┌─────────────┐
-        q_0: ┤0        ├       q_0: ┤0           ├┤ RX(pi) ├┤0            ├
-             │   ECR   │   =        │  RZX(pi/4) │└────────┘│  RZX(-pi/4) │
-        q_1: ┤1        ├       q_1: ┤1           ├──────────┤1            ├
-             └─────────┘            └────────────┘          └─────────────┘
+                               global phase: 7π/4
+             ┌─────────┐            ┌───┐      ┌───┐
+        q_0: ┤0        ├       q_0: ┤ S ├───■──┤ X ├
+             │   ECR   │   =        ├───┴┐┌─┴─┐└───┘
+        q_1: ┤1        ├       q_1: ┤ √X ├┤ X ├─────
+             └─────────┘            └────┘└───┘
 
-    **Matrix Representation:**
+
+    Matrix representation:
 
     .. math::
 
@@ -60,7 +67,7 @@ class ECRGate(Gate):
         Instead, if we apply it on (q_1, q_0), the matrix will
         be :math:`Z \otimes X`:
 
-        .. parsed-literal::
+        .. code-block:: text
 
                  ┌─────────┐
             q_0: ┤1        ├
@@ -79,36 +86,46 @@ class ECRGate(Gate):
                 \end{pmatrix}
     """
 
-    def __init__(self):
-        """Create new ECR gate."""
-        super().__init__("ecr", 2, [])
+    _standard_gate = StandardGate.ECR
+
+    def __init__(self, label: str | None = None) -> None:
+        """
+        Args:
+            label: An optional label for the gate.
+        """
+        super().__init__("ecr", 2, [], label=label)
+
+    _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
-        """
-        gate ecr a, b { rzx(pi/4) a, b; x a; rzx(-pi/4) a, b;}
-        """
+        """Default definition (in terms of simpler Clifford gates)"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit
 
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (RZXGate(np.pi / 4), [q[0], q[1]], []),
-            (XGate(), [q[0]], []),
-            (RZXGate(-np.pi / 4), [q[0], q[1]], []),
-        ]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        # global phase: 7π/4
+        #      ┌───┐      ┌───┐
+        # q_0: ┤ S ├───■──┤ X ├
+        #      ├───┴┐┌─┴─┐└───┘
+        # q_1: ┤ √X ├┤ X ├─────
+        #      └────┘└───┘
 
-        self.definition = qc
-
-    def to_matrix(self):
-        """Return a numpy.array for the ECR gate."""
-        return (
-            1
-            / sqrt(2)
-            * np.array(
-                [[0, 1, 0, 1.0j], [1, 0, -1.0j, 0], [0, 1.0j, 0, 1], [-1.0j, 0, 1, 0]],
-                dtype=complex,
-            )
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.ECR._get_definition(self.params), legacy_qubits=True
         )
+
+    def inverse(self, annotated: bool = False):
+        """Return inverse ECR gate (itself).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as this gate
+                is self-inverse.
+
+        Returns:
+            ECRGate: inverse gate (self-inverse).
+        """
+        return ECRGate()  # self-inverse
+
+    def __eq__(self, other):
+        return isinstance(other, ECRGate)

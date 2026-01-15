@@ -18,7 +18,7 @@ Visualizations (:mod:`qiskit.visualization`)
 .. currentmodule:: qiskit.visualization
 
 The visualization module contain functions that visualizes measurement outcome counts, quantum
-states, circuits, pulses, devices and more.
+states, circuits, devices and more.
 
 To use visualization functions, you are required to install visualization optionals to your
 development environment:
@@ -46,7 +46,9 @@ individual documentation for exact details.
 
 The following example demonstrates the common usage of these arguments:
 
-.. jupyter-execute::
+.. plot::
+   :alt: Output from the previous code.
+   :include-source:
 
    from qiskit.visualization import plot_histogram
 
@@ -58,7 +60,16 @@ The following example demonstrates the common usage of these arguments:
 
 You can specify ``legend``, ``title``, ``figsize`` and ``color`` by passing to the kwargs.
 
-.. jupyter-execute::
+.. plot::
+   :alt: Output from the previous code.
+   :include-source:
+   :context: reset
+
+   from qiskit.visualization import plot_histogram
+
+   counts1 = {'00': 499, '11': 501}
+   counts2 = {'00': 511, '11': 489}
+   data = [counts1, counts2]
 
    legend = ['First execution', 'Second execution']
    title = 'New histogram'
@@ -77,6 +88,7 @@ You can save the figure to file either by passing the file name to ``filename`` 
    hist = plot_histogram(data)
    hist.savefig('new_hist.png')
 
+
 Counts Visualizations
 =====================
 
@@ -92,7 +104,9 @@ Example Usage
 
 Here is an example of using :func:`plot_histogram` to visualize measurement outcome counts:
 
-.. jupyter-execute::
+.. plot::
+   :alt: Output from the previous code.
+   :include-source:
 
    from qiskit.visualization import plot_histogram
 
@@ -132,7 +146,9 @@ Example Usage
 
 Here is an example of using :func:`plot_state_city` to visualize a quantum state:
 
-.. jupyter-execute::
+.. plot::
+   :alt: Output from the previous code.
+   :include-source:
 
    from qiskit.visualization import plot_state_city
 
@@ -144,10 +160,13 @@ The state can be array-like list of lists, ``numpy.array``, or more commonly
 :class:`~qiskit.quantum_info.Statevector` or :class:`~qiskit.quantum_info.DensityMatrix` objects
 obtained from a :class:`~qiskit.circuit.QuantumCircuit`:
 
-.. jupyter-execute::
+.. plot::
+   :alt: Output from the previous code.
+   :include-source:
 
    from qiskit import QuantumCircuit
-   from qiskit.quantum_info import Statevector, DensityMatrix
+   from qiskit.quantum_info import Statevector
+   from qiskit.visualization import plot_state_city
 
    qc = QuantumCircuit(2)
    qc.h(0)
@@ -157,7 +176,17 @@ obtained from a :class:`~qiskit.circuit.QuantumCircuit`:
    state = Statevector(qc)
    plot_state_city(state)
 
-.. jupyter-execute::
+.. plot::
+   :alt: Output from the previous code.
+   :include-source:
+
+   from qiskit import QuantumCircuit
+   from qiskit.quantum_info import DensityMatrix
+   from qiskit.visualization import plot_state_city
+
+   qc = QuantumCircuit(2)
+   qc.h(0)
+   qc.cx(0,1)
 
    # plot using a DensityMatrix
    state = DensityMatrix(qc)
@@ -183,7 +212,6 @@ Circuit Visualizations
    :toctree: ../stubs/
 
    circuit_drawer
-   ~qiskit.visualization.qcstyle.DefaultStyle
 
 DAG Visualizations
 ==================
@@ -201,17 +229,6 @@ Pass Manager Visualizations
 
    pass_manager_drawer
 
-Pulse Visualizations
-====================
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   ~qiskit.visualization.pulse_v2.draw
-   ~qiskit.visualization.pulse_v2.IQXStandard
-   ~qiskit.visualization.pulse_v2.IQXSimple
-   ~qiskit.visualization.pulse_v2.IQXDebugging
-
 Timeline Visualizations
 =======================
 
@@ -219,7 +236,6 @@ Timeline Visualizations
    :toctree: ../stubs/
 
    timeline_drawer
-   ~qiskit.visualization.timeline.draw
 
 Single Qubit State Transition Visualizations
 ============================================
@@ -240,15 +256,11 @@ Array/Matrix Visualizations
 Exceptions
 ==========
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   VisualizationError
+.. autoexception:: VisualizationError
 """
 
 import os
 import sys
-import warnings
 
 from .array import array_to_latex
 
@@ -267,10 +279,7 @@ from .transition_visualization import visualize_transition
 from .dag_visualization import dag_drawer
 from .gate_map import plot_gate_map, plot_circuit_layout, plot_error_map, plot_coupling_map
 from .pass_manager_visualization import pass_manager_drawer
-
-from .pulse.interpolation import step_wise, linear, cubic_spline
-from .pulse.qcstyle import PulseStyle, SchedStyle
-from .pulse_v2 import draw as pulse_drawer_v2
+from .pass_manager_visualization import staged_pass_manager_drawer
 
 from .timeline import draw as timeline_drawer
 
@@ -279,24 +288,3 @@ from .exceptions import VisualizationError
 # These modules aren't part of the public interface, and were moved in Terra 0.22.  They're
 # re-imported here to allow a backwards compatible path, and should be deprecated in Terra 0.23.
 from .circuit import text, matplotlib, latex
-
-_DEPRECATED_NAMES = {
-    "HAS_MATPLOTLIB",
-    "HAS_PYLATEX",
-    "HAS_PIL",
-    "HAS_PDFTOCAIRO",
-}
-
-
-def __getattr__(name):
-    if name in _DEPRECATED_NAMES:
-        from qiskit.utils import optionals
-
-        warnings.warn(
-            f"Accessing '{name}' from '{__name__}' is deprecated since Qiskit Terra 0.21 "
-            "and will be removed in a future release. Use 'qiskit.utils.optionals' instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return getattr(optionals, name)
-    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")

@@ -1,0 +1,25 @@
+---
+features:
+  - |
+    Added :meth:`.DAGCircuit.quantum_causal_cone` to obtain the causal cone of a qubit
+    in a :class:`~.DAGCircuit`.
+    The following example shows its correct usage::
+
+        from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+        from qiskit.circuit.library import CXGate, CZGate
+        from qiskit.dagcircuit import DAGCircuit
+
+        # Build a DAGCircuit
+        dag = DAGCircuit()
+        qreg = QuantumRegister(5)
+        creg = ClassicalRegister(5)
+        dag.add_qreg(qreg)
+        dag.add_creg(creg)
+        dag.apply_operation_back(CXGate(), qreg[[1, 2]], [])
+        dag.apply_operation_back(CXGate(), qreg[[0, 3]], [])
+        dag.apply_operation_back(CZGate(), qreg[[1, 4]], [])
+        dag.apply_operation_back(CZGate(), qreg[[2, 4]], [])
+        dag.apply_operation_back(CXGate(), qreg[[3, 4]], [])
+
+        # Get the causal cone of qubit at index 0
+        result = dag.quantum_causal_cone(qreg[0])

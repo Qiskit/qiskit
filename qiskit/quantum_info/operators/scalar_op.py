@@ -14,7 +14,8 @@
 ScalarOp class
 """
 
-import copy
+from __future__ import annotations
+import copy as _copy
 from numbers import Number
 import numpy as np
 
@@ -35,7 +36,7 @@ class ScalarOp(LinearOp):
     :meth:`tensor`, :meth:`expand` methods.
     """
 
-    def __init__(self, dims=None, coeff=1):
+    def __init__(self, dims: int | tuple | None = None, coeff: Number = 1):
         """Initialize an operator object.
 
         Args:
@@ -47,14 +48,15 @@ class ScalarOp(LinearOp):
             QiskitError: If the optional coefficient is invalid.
         """
         if not isinstance(coeff, Number):
-            QiskitError(f"coeff {coeff} must be a number.")
+            raise QiskitError(f"coeff {coeff} must be a number.")
         self._coeff = coeff
         super().__init__(input_dims=dims, output_dims=dims)
 
-    def __array__(self, dtype=None):
-        if dtype:
-            return np.asarray(self.to_matrix(), dtype=dtype)
-        return self.to_matrix()
+    def __array__(self, dtype=None, copy=None):
+        if copy is False:
+            raise ValueError("could not produce matrix without calculation")
+        arr = self.to_matrix()
+        return arr if dtype is None else arr.astype(dtype, copy=False)
 
     def __repr__(self):
         return f"ScalarOp({self.input_dims()}, coeff={self.coeff})"
@@ -86,13 +88,13 @@ class ScalarOp(LinearOp):
         iden = np.eye(dim, dtype=complex)
         return self.coeff * iden
 
-    def to_operator(self):
+    def to_operator(self) -> Operator:
         """Convert to an Operator object."""
         return Operator(
             self.to_matrix(), input_dims=self.input_dims(), output_dims=self.output_dims()
         )
 
-    def compose(self, other, qargs=None, front=False):
+    def compose(self, other: ScalarOp, qargs: list | None = None, front: bool = False) -> ScalarOp:
         if qargs is None:
             qargs = getattr(other, "qargs", None)
         if not isinstance(other, BaseOperator):
@@ -103,7 +105,7 @@ class ScalarOp(LinearOp):
         # If other is also an ScalarOp we only need to
         # update the coefficient and dimensions
         if isinstance(other, ScalarOp):
-            ret = copy.copy(self)
+            ret = _copy.copy(self)
             ret._coeff = self.coeff * other.coeff
             ret._op_shape = new_shape
             return ret
@@ -111,7 +113,7 @@ class ScalarOp(LinearOp):
         # If we are composing on the full system we return the
         # other operator with reshaped dimensions
         if qargs is None:
-            ret = copy.copy(other)
+            ret = _copy.copy(other)
             ret._op_shape = new_shape
             # Other operator might not support scalar multiplication
             # so we treat the identity as a special case to avoid a
@@ -129,7 +131,7 @@ class ScalarOp(LinearOp):
         # `to_operator` method).
         return other.__class__(self).compose(other, qargs=qargs, front=front)
 
-    def power(self, n):
+    def power(self, n: float) -> ScalarOp:
         """Return the power of the ScalarOp.
 
         Args:
@@ -142,24 +144,24 @@ class ScalarOp(LinearOp):
         ret._coeff = self.coeff**n
         return ret
 
-    def tensor(self, other):
+    def tensor(self, other: ScalarOp) -> ScalarOp:
         if not isinstance(other, BaseOperator):
             other = Operator(other)
 
         if isinstance(other, ScalarOp):
-            ret = copy.copy(self)
+            ret = _copy.copy(self)
             ret._coeff = self.coeff * other.coeff
             ret._op_shape = self._op_shape.tensor(other._op_shape)
             return ret
 
         return other.expand(self)
 
-    def expand(self, other):
+    def expand(self, other: ScalarOp) -> ScalarOp:
         if not isinstance(other, BaseOperator):
             other = Operator(other)
 
         if isinstance(other, ScalarOp):
-            ret = copy.copy(self)
+            ret = _copy.copy(self)
             ret._coeff = self.coeff * other.coeff
             ret._op_shape = self._op_shape.expand(other._op_shape)
             return ret

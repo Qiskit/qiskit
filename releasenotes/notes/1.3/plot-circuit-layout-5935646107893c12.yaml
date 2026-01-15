@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed a bug in :func:`plot_coupling_map` that caused the edges of the coupling map to be colored incorrectly.
+    See https://github.com/Qiskit/qiskit/pull/12369 for details.

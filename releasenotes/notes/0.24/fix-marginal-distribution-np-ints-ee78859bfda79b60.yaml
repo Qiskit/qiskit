@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :func:`~.marginal_distribution` function where it
+    would incorrectly raise an error when an input counts dictionary was using
+    a numpy integer type instead of the Python int type. The underlying function
+    always would handle the different types correctly, but the input type
+    checking was previously incorrectly raising a ``TypeError`` in this case.

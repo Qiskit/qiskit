@@ -1,0 +1,32 @@
+---
+features:
+  - |
+    Added a new synthesis algorithm :func:`qiskit.synthesis.linear_phase.synth_cx_cz_depth_line_my`
+    of a CX circuit followed by a CZ circuit for linear nearest neighbor (LNN) connectivity in
+    2-qubit depth of at most 5n using CX and phase gates (S, Sdg or Z). The synthesis algorithm is
+    based on the paper of Maslov and Yang (https://arxiv.org/abs/2210.16195).
+    The algorithm accepts a binary invertible matrix ``mat_x`` representing the CX-circuit,
+    a binary symmetric matrix ``mat_z`` representing the CZ-circuit, and returns a quantum circuit
+    with 2-qubit depth of at most 5n computing the composition of the CX and CZ circuits.
+    The following example illustrates the new functionality::
+
+        import numpy as np
+        from qiskit.synthesis.linear_phase import synth_cx_cz_depth_line_my
+        mat_x = np.array([[0, 1], [1, 1]])
+        mat_z = np.array([[0, 1], [1, 0]])
+        qc = synth_cx_cz_depth_line_my(mat_x, mat_z)
+
+    This algorithm is now used by default in the Clifford synthesis algorithm
+    :func:`qiskit.synthesis.clifford.synth_clifford_depth_lnn` that optimizes 2-qubit depth
+    for LNN connectivity, improving the 2-qubit depth from 9n+4 to 7n+2.
+    The clifford synthesis algorithm can be used as follows::
+
+        from qiskit.quantum_info import random_clifford
+        from qiskit.synthesis import synth_clifford_depth_lnn
+
+        cliff = random_clifford(3)
+        qc = synth_clifford_depth_lnn(cliff)
+
+    The above synthesis can be further improved as described in the paper by Maslov and Yang,
+    using local optimization between 2-qubit layers. This improvement is left for follow-up
+    work.

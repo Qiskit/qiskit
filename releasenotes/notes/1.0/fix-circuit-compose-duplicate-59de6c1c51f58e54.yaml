@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    :meth:`.QuantumCircuit.compose` will now correctly raise a :exc:`.CircuitError` when there are
+    duplicates in the ``qubits`` or ``clbits`` arguments.

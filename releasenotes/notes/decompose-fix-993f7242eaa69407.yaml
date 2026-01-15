@@ -1,4 +1,0 @@
----
-fixes:
-  - Fixed a bug in :meth:`.QuantumCircuit.decompose` that caused the
-    `gates_to_decompose` argument to be handled incorrectly.

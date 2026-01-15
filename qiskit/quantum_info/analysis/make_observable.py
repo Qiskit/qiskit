@@ -12,10 +12,12 @@
 
 """Helper functions for building dictionaries from matrices and lists."""
 
+from __future__ import annotations
+import math
 import numpy as np
 
 
-def make_dict_observable(matrix_observable):
+def make_dict_observable(matrix_observable: list | np.ndarray) -> dict:
     """Convert an observable in matrix form to dictionary form.
 
     Takes in a diagonal observable as a matrix and converts it to a dictionary
@@ -32,7 +34,7 @@ def make_dict_observable(matrix_observable):
     dict_observable = {}
     observable = np.array(matrix_observable)
     observable_size = len(observable)
-    observable_bits = int(np.ceil(np.log2(observable_size)))
+    observable_bits = math.ceil(math.log2(observable_size))
     binary_formatter = f"0{observable_bits}b"
     if observable.ndim == 2:
         observable = observable.diagonal()

@@ -12,23 +12,26 @@
 
 """Y and CY gates."""
 
-from typing import Optional, Union
-import numpy
-from qiskit.qasm import pi
+from __future__ import annotations
+
+from typing import Optional
 
 # pylint: disable=cyclic-import
-from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
+from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
+from qiskit._accelerate.circuit import StandardGate
+
+_Y_ARRAY = [[0, -1j], [1j, 0]]
 
 
-class YGate(Gate):
+@with_gate_array(_Y_ARRAY)
+class YGate(SingletonGate):
     r"""The single-qubit Pauli-Y gate (:math:`\sigma_y`).
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.y` method.
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -37,9 +40,9 @@ class YGate(Gate):
                 i & 0
             \end{pmatrix}
 
-    **Circuit symbol:**
+    Circuit symbol:
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌───┐
         q_0: ┤ Y ├
@@ -68,73 +71,104 @@ class YGate(Gate):
         |1\rangle \rightarrow -i|0\rangle
     """
 
+    _standard_gate = StandardGate.Y
+
     def __init__(self, label: Optional[str] = None):
-        """Create new Y gate."""
+        """
+        Args:
+            label: An optional label for the gate.
+        """
         super().__init__("y", 1, [], label=label)
 
+    _singleton_lookup_key = stdlib_singleton_key()
+
     def _define(self):
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .u3 import U3Gate
+        from qiskit.circuit import QuantumCircuit
 
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [(U3Gate(pi, pi / 2, pi / 2), [q[0]], [])]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        #    ┌──────────────┐
+        # q: ┤ U(π,π/2,π/2) ├
+        #    └──────────────┘
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.Y._get_definition(self.params), legacy_qubits=True
+        )
 
     def control(
         self,
         num_ctrl_qubits: int = 1,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
+        annotated: bool | None = None,
     ):
-        """Return a (multi-)controlled-Y gate.
+        """Return a controlled version of the Y gate.
 
-        One control returns a CY gate.
+        For a single control qubit, the controlled gate is implemented as :class:`.CYGate`,
+        regardless of the value of `annotated`.
+
+        For more than one control qubit,
+        the controlled gate is implemented as :class:`.ControlledGate` when ``annotated``
+        is ``False``, and as :class:`.AnnotatedOperation` when ``annotated`` is ``True``.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            label: Optional gate label. Defaults to ``None``.
+                Ignored if the controlled gate is implemented as an annotated operation.
+            ctrl_state: The control state of the gate, specified either as an integer or a bitstring
+                (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``.
+            annotated: Indicates whether the controlled gate should be implemented as a controlled gate
+                or as an annotated operation. If ``None``, treated as ``False``.
 
         Returns:
-            ControlledGate: controlled version of this gate.
+            A controlled version of this gate.
         """
         if num_ctrl_qubits == 1:
-            gate = CYGate(label=label, ctrl_state=ctrl_state)
-            gate.base_gate.label = self.label
-            return gate
-        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
+            gate = CYGate(label=label, ctrl_state=ctrl_state, _base_label=self.label)
+        else:
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
+            )
+        return gate
 
-    def inverse(self):
-        r"""Return inverted Y gate (:math:`Y{\dagger} = Y`)"""
+    def inverse(self, annotated: bool = False):
+        r"""Return inverted Y gate (:math:`Y^{\dagger} = Y`)
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as this gate
+                is self-inverse.
+
+        Returns:
+            YGate: inverse gate (self-inverse).
+        """
         return YGate()  # self-inverse
 
-    def __array__(self, dtype=complex):
-        """Return a numpy.array for the Y gate."""
-        return numpy.array([[0, -1j], [1j, 0]], dtype=dtype)
+    def __eq__(self, other):
+        return isinstance(other, YGate)
 
 
-class CYGate(ControlledGate):
+@with_controlled_gate_array(_Y_ARRAY, num_ctrl_qubits=1)
+class CYGate(SingletonControlledGate):
     r"""Controlled-Y gate.
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.cy` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ──■──
              ┌─┴─┐
         q_1: ┤ Y ├
              └───┘
 
-    **Matrix representation:**
+    Matrix representation:
 
     .. math::
 
@@ -156,7 +190,8 @@ class CYGate(ControlledGate):
         which in our case would be q_1. Thus a textbook matrix for this
         gate will be:
 
-        .. parsed-literal::
+        .. code-block:: text
+
                  ┌───┐
             q_0: ┤ Y ├
                  └─┬─┘
@@ -174,40 +209,56 @@ class CYGate(ControlledGate):
                 \end{pmatrix}
 
     """
-    # Define class constants. This saves future allocation time.
-    _matrix1 = numpy.array([[1, 0, 0, 0], [0, 0, 0, -1j], [0, 0, 1, 0], [0, 1j, 0, 0]])
-    _matrix0 = numpy.array([[0, 0, -1j, 0], [0, 1, 0, 0], [1j, 0, 0, 0], [0, 0, 0, 1]])
 
-    def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
+    _standard_gate = StandardGate.CY
+
+    def __init__(
+        self,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
+        *,
+        _base_label=None,
+    ):
         """Create new CY gate."""
         super().__init__(
-            "cy", 2, [], num_ctrl_qubits=1, label=label, ctrl_state=ctrl_state, base_gate=YGate()
+            "cy",
+            2,
+            [],
+            num_ctrl_qubits=1,
+            label=label,
+            ctrl_state=ctrl_state,
+            base_gate=YGate(label=_base_label),
         )
 
+    _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=1)
+
     def _define(self):
-        """
-        gate cy a,b { sdg b; cx a,b; s b; }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .s import SGate, SdgGate
-        from .x import CXGate
+        from qiskit.circuit import QuantumCircuit
 
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [(SdgGate(), [q[1]], []), (CXGate(), [q[0], q[1]], []), (SGate(), [q[1]], [])]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        # q_0: ─────────■───────
+        #      ┌─────┐┌─┴─┐┌───┐
+        # q_1: ┤ Sdg ├┤ X ├┤ S ├
+        #      └─────┘└───┘└───┘
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.CY._get_definition(self.params), legacy_qubits=True
+        )
 
-    def inverse(self):
-        """Return inverted CY gate (itself)."""
+    def inverse(self, annotated: bool = False):
+        """Return inverted CY gate (itself).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as this gate
+                is self-inverse.
+
+        Returns:
+            CYGate: inverse gate (self-inverse).
+        """
         return CYGate(ctrl_state=self.ctrl_state)  # self-inverse
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the CY gate."""
-        mat = self._matrix1 if self.ctrl_state else self._matrix0
-        if dtype:
-            return numpy.asarray(mat, dtype=dtype)
-        return mat
+    def __eq__(self, other):
+        return isinstance(other, CYGate) and self.ctrl_state == other.ctrl_state

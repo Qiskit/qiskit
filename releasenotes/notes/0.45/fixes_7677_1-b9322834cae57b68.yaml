@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    The pass :class:`.NoiseAdaptiveLayout` now takes :class:`~qiskit.transpiler.CouplingMap`
+    as an optional argument. This is used by the plugin to control on inconsistency between
+    :meth:`~qiskit.providers.BackendV1.configuration` and
+    :meth:`~qiskit.providers.BackendV1.properties`, like in the case of :class:`.FakeMelbourne`.
+    Fixed `#7677 <https://github.com/Qiskit/qiskit-terra/issues/7677>`__.

@@ -14,13 +14,23 @@
 Stabilizer state class.
 """
 
+from __future__ import annotations
+
+from collections.abc import Collection
+from typing import TYPE_CHECKING
+
 import numpy as np
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.op_shape import OpShape
-from qiskit.quantum_info.operators.symplectic import Clifford, Pauli
+from qiskit.quantum_info.operators.operator import Operator
+from qiskit.quantum_info.operators.symplectic import Clifford, Pauli, PauliList, SparsePauliOp
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import _append_x
 from qiskit.quantum_info.states.quantum_state import QuantumState
+from qiskit.circuit import QuantumCircuit, Instruction
+
+if TYPE_CHECKING:
+    from qiskit import circuit
 
 
 class StabilizerState(QuantumState):
@@ -28,7 +38,9 @@ class StabilizerState(QuantumState):
     Stabilizer simulator using the convention from reference [1].
     Based on the internal class :class:`~qiskit.quantum_info.Clifford`.
 
-    .. jupyter-execute::
+    .. plot::
+       :include-source:
+       :nofigs:
 
         from qiskit import QuantumCircuit
         from qiskit.quantum_info import StabilizerState, Pauli
@@ -48,21 +60,41 @@ class StabilizerState(QuantumState):
         # Calculate expectation value of the StabilizerState
         print (stab.expectation_value(Pauli('ZZ')))
 
+    .. code-block:: text
+
+        StabilizerState(StabilizerTable: ['+XX', '+ZZ'])
+        {'00': 0.5, '11': 0.5}
+        1
+
+    Given a list of stabilizers, :meth:`qiskit.quantum_info.StabilizerState.from_stabilizer_list`
+    returns a state stabilized by the list
+
+    .. plot::
+       :include-source:
+       :nofigs:
+
+        from qiskit.quantum_info import StabilizerState
+
+        stabilizer_list = ["ZXX", "-XYX", "+ZYY"]
+        stab = StabilizerState.from_stabilizer_list(stabilizer_list)
+
+
     References:
         1. S. Aaronson, D. Gottesman, *Improved Simulation of Stabilizer Circuits*,
            Phys. Rev. A 70, 052328 (2004).
            `arXiv:quant-ph/0406196 <https://arxiv.org/abs/quant-ph/0406196>`_
     """
 
-    def __init__(self, data, validate=True):
+    def __init__(
+        self,
+        data: StabilizerState | Clifford | Pauli | QuantumCircuit | circuit.instruction.Instruction,
+        validate: bool = True,
+    ):
         """Initialize a StabilizerState object.
 
         Args:
-            data (StabilizerState or Clifford or Pauli or QuantumCircuit or
-                  qiskit.circuit.Instruction):
-                Data from which the stabilizer state can be constructed.
-            validate (boolean): validate that the stabilizer state data is
-                a valid Clifford.
+            data: Data from which the stabilizer state can be constructed.
+            validate: validate that the stabilizer state data is a valid Clifford.
         """
 
         # Initialize from another StabilizerState
@@ -78,11 +110,41 @@ class StabilizerState(QuantumState):
         # Initialize
         super().__init__(op_shape=OpShape.auto(num_qubits_r=self._data.num_qubits, num_qubits_l=0))
 
+    @classmethod
+    def from_stabilizer_list(
+        cls,
+        stabilizers: Collection[str],
+        allow_redundant: bool = False,
+        allow_underconstrained: bool = False,
+    ) -> StabilizerState:
+        """Create a stabilizer state from the collection of stabilizers.
+
+        Args:
+            stabilizers (Collection[str]): list of stabilizer strings
+            allow_redundant (bool): allow redundant stabilizers (i.e., some stabilizers
+                can be products of the others)
+            allow_underconstrained (bool): allow underconstrained set of stabilizers (i.e.,
+                the stabilizers do not specify a unique state)
+
+        Return:
+            StabilizerState: a state stabilized by stabilizers.
+        """
+
+        # pylint: disable=cyclic-import
+        from qiskit.synthesis.stabilizer import synth_circuit_from_stabilizers
+
+        circuit = synth_circuit_from_stabilizers(
+            stabilizers,
+            allow_redundant=allow_redundant,
+            allow_underconstrained=allow_underconstrained,
+        )
+        return cls(circuit)
+
     def __eq__(self, other):
         return (self._data.stab == other._data.stab).all()
 
     def __repr__(self):
-        return f"StabilizerState({self._data.stabilizer})"
+        return f"StabilizerState({self._data.to_labels(mode='S')})"
 
     @property
     def clifford(self):
@@ -99,12 +161,12 @@ class StabilizerState(QuantumState):
     def _multiply(self, other):
         raise NotImplementedError(f"{type(self)} does not support scalar multiplication")
 
-    def trace(self):
+    def trace(self) -> float:
         """Return the trace of the stabilizer state as a density matrix,
         which equals to 1, since it is always a pure state.
 
         Returns:
-            double: the trace (should equal 1).
+            float: the trace (should equal 1).
 
         Raises:
             QiskitError: if input is not a StabilizerState.
@@ -113,12 +175,12 @@ class StabilizerState(QuantumState):
             raise QiskitError("StabilizerState is not a valid quantum state.")
         return 1.0
 
-    def purity(self):
+    def purity(self) -> float:
         """Return the purity of the quantum state,
         which equals to 1, since it is always a pure state.
 
         Returns:
-            double: the purity (should equal 1).
+            float: the purity (should equal 1).
 
         Raises:
             QiskitError: if input is not a StabilizerState.
@@ -127,7 +189,7 @@ class StabilizerState(QuantumState):
             raise QiskitError("StabilizerState is not a valid quantum state.")
         return 1.0
 
-    def to_operator(self):
+    def to_operator(self) -> Operator:
         """Convert state to matrix operator class"""
         return Clifford(self.clifford).to_operator()
 
@@ -137,8 +199,8 @@ class StabilizerState(QuantumState):
         ret._data = ret._data.conjugate()
         return ret
 
-    def tensor(self, other):
-        """Return the tensor product stabilzier state self ⊗ other.
+    def tensor(self, other: StabilizerState) -> StabilizerState:
+        """Return the tensor product stabilizer state self ⊗ other.
 
         Args:
             other (StabilizerState): a stabilizer state object.
@@ -155,8 +217,8 @@ class StabilizerState(QuantumState):
         ret._data = self.clifford.tensor(other.clifford)
         return ret
 
-    def expand(self, other):
-        """Return the tensor product stabilzier state other ⊗ self.
+    def expand(self, other: StabilizerState) -> StabilizerState:
+        """Return the tensor product stabilizer state other ⊗ self.
 
         Args:
             other (StabilizerState): a stabilizer state object.
@@ -173,7 +235,9 @@ class StabilizerState(QuantumState):
         ret._data = self.clifford.expand(other.clifford)
         return ret
 
-    def evolve(self, other, qargs=None):
+    def evolve(
+        self, other: Clifford | QuantumCircuit | Instruction, qargs: list | None = None
+    ) -> StabilizerState:
         """Evolve a stabilizer state by a Clifford operator.
 
         Args:
@@ -195,7 +259,34 @@ class StabilizerState(QuantumState):
         ret._data = self.clifford.compose(other.clifford, qargs=qargs)
         return ret
 
-    def expectation_value(self, oper, qargs=None):
+    def expectation_value(self, oper: Pauli | SparsePauliOp, qargs: None | list = None) -> complex:
+        """Compute the expectation value of a Pauli or SparsePauliOp operator.
+
+        Args:
+            oper: A Pauli or SparsePauliOp operator to evaluate the expectation value.
+            qargs: Subsystems to apply the operator on.
+
+        Returns:
+            The expectation value.
+
+        Raises:
+            QiskitError: if oper is not a Pauli or SparsePauliOp operator.
+        """
+        if isinstance(oper, Pauli):
+            return self._expectation_value_pauli(oper, qargs)
+
+        if isinstance(oper, SparsePauliOp):
+            return sum(
+                coeff * self._expectation_value_pauli(Pauli((z, x)), qargs)
+                for z, x, coeff in zip(oper.paulis.z, oper.paulis.x, oper.coeffs)
+            )
+
+        raise QiskitError(
+            "Operator for expectation value is not a Pauli or SparsePauliOp operator, "
+            f"but {type(oper)}."
+        )
+
+    def _expectation_value_pauli(self, oper: Pauli, qargs: None | list = None) -> complex:
         """Compute the expectation value of a Pauli operator.
 
         Args:
@@ -238,7 +329,7 @@ class StabilizerState(QuantumState):
 
         # Otherwise pauli is (-1)^a prod_j S_j^b_j for Clifford stabilizers
         # If pauli anti-commutes with D_j then b_j = 1.
-        # Multiply pauli by stabilizers with anti-commuting destabilizers
+        # Multiply pauli by stabilizers with anti-commuting destabilisers
         pauli_z = (pauli.z).copy()  # Make a copy of pauli.z
         for p in range(num_qubits):
             # Check if destabilizer anti-commutes
@@ -260,7 +351,48 @@ class StabilizerState(QuantumState):
 
         return pauli_phase
 
-    def probabilities(self, qargs=None, decimals=None):
+    def equiv(self, other: StabilizerState) -> bool:
+        """Return True if the two generating sets generate the same stabilizer group.
+
+        Args:
+            other (StabilizerState): another StabilizerState.
+
+        Returns:
+            bool: True if other has a generating set that generates the same StabilizerState.
+        """
+        if not isinstance(other, StabilizerState):
+            try:
+                other = StabilizerState(other)
+            except QiskitError:
+                return False
+
+        num_qubits = self.num_qubits
+        if other.num_qubits != num_qubits:
+            return False
+
+        pauli_orig = PauliList.from_symplectic(
+            self._data.stab_z, self._data.stab_x, 2 * self._data.stab_phase
+        )
+        pauli_other = PauliList.from_symplectic(
+            other._data.stab_z, other._data.stab_x, 2 * other._data.stab_phase
+        )
+
+        #  Check that each stabilizer from the original set commutes with each stabilizer
+        #  from the other set
+        if not np.all([pauli.commutes(pauli_other) for pauli in pauli_orig]):
+            return False
+
+        # Compute the expected value of each stabilizer from the original set on the stabilizer state
+        # determined by the other set. The two stabilizer states coincide if and only if the
+        # expected value is +1 for each stabilizer
+        for i in range(num_qubits):
+            exp_val = self.expectation_value(pauli_other[i])
+            if exp_val != 1:
+                return False
+
+        return True
+
+    def probabilities(self, qargs: None | list = None, decimals: None | int = None) -> np.ndarray:
         """Return the subsystem measurement probability vector.
 
         Measurement probabilities are with respect to measurement in the
@@ -286,7 +418,45 @@ class StabilizerState(QuantumState):
 
         return probs
 
-    def probabilities_dict(self, qargs=None, decimals=None):
+    def probabilities_dict_from_bitstring(
+        self,
+        outcome_bitstring: str,
+        qargs: None | list = None,
+        decimals: None | int = None,
+    ) -> dict[str, float]:
+        """Return the subsystem measurement probability dictionary utilizing
+        a targeted outcome_bitstring to perform the measurement for. This
+        will calculate a probability for only a single targeted
+        outcome_bitstring value, giving a performance boost over calculating
+        all possible outcomes.
+
+        Measurement probabilities are with respect to measurement in the
+        computation (diagonal) basis.
+
+        This dictionary representation uses a Ket-like notation where the
+        dictionary keys are qudit strings for the subsystem basis vectors.
+        If any subsystem has a dimension greater than 10 comma delimiters are
+        inserted between integers so that subsystems can be distinguished.
+
+        Args:
+            outcome_bitstring (None or str): targeted outcome bitstring
+                to perform a measurement calculation for, this will significantly
+                reduce the number of calculation performed (Default: None)
+            qargs (None or list): subsystems to return probabilities for,
+                    if None return for all subsystems (Default: None).
+            decimals (None or int): the number of decimal places to round
+                    values. If None no rounding is done (Default: None)
+
+        Returns:
+            dict[str, float]: The measurement probabilities in dict (ket) form.
+        """
+        return self._get_probabilities_dict(
+            outcome_bitstring=outcome_bitstring, qargs=qargs, decimals=decimals
+        )
+
+    def probabilities_dict(
+        self, qargs: None | list = None, decimals: None | int = None
+    ) -> dict[str, float]:
         """Return the subsystem measurement probability dictionary.
 
         Measurement probabilities are with respect to measurement in the
@@ -304,26 +474,11 @@ class StabilizerState(QuantumState):
                 values. If None no rounding is done (Default: None).
 
         Returns:
-            dict: The measurement probabilities in dict (ket) form.
+            dict: The measurement probabilities in dict (key) form.
         """
-        if qargs is None:
-            qubits = range(self.clifford.num_qubits)
-        else:
-            qubits = qargs
+        return self._get_probabilities_dict(outcome_bitstring=None, qargs=qargs, decimals=decimals)
 
-        outcome = ["X"] * len(qubits)
-        outcome_prob = 1.0
-        probs = {}  # probabilities dictionary
-
-        self._get_probablities(qubits, outcome, outcome_prob, probs)
-
-        if decimals is not None:
-            for key, value in probs.items():
-                probs[key] = round(value, decimals)
-
-        return probs
-
-    def reset(self, qargs=None):
+    def reset(self, qargs: list | None = None) -> StabilizerState:
         """Reset state or subsystems to the 0-state.
 
         Args:
@@ -360,7 +515,7 @@ class StabilizerState(QuantumState):
 
         return ret
 
-    def measure(self, qargs=None):
+    def measure(self, qargs: list | None = None) -> tuple:
         """Measure subsystems and return outcome and post-measure state.
 
         Note that this function uses the QuantumStates internal random
@@ -390,7 +545,7 @@ class StabilizerState(QuantumState):
 
         return outcome, ret
 
-    def sample_memory(self, shots, qargs=None):
+    def sample_memory(self, shots: int, qargs: None | list = None) -> np.ndarray:
         """Sample a list of qubit measurement outcomes in the computational basis.
 
         Args:
@@ -523,7 +678,7 @@ class StabilizerState(QuantumState):
 
     @staticmethod
     def _rowsum_deterministic(clifford, aux_pauli, row):
-        """Updating an auxilary Pauli aux_pauli in the
+        """Updating an auxiliary Pauli aux_pauli in the
         deterministic rowsum calculation.
         The StabilizerState itself is not updated."""
 
@@ -544,22 +699,48 @@ class StabilizerState(QuantumState):
     # -----------------------------------------------------------------------
     # Helper functions for calculating the probabilities
     # -----------------------------------------------------------------------
-    def _get_probablities(self, qubits, outcome, outcome_prob, probs):
-        """Recursive helper function for calculating the probabilities"""
+    def _get_probabilities(
+        self,
+        qubits: range,
+        outcome: list[str],
+        outcome_prob: float,
+        probs: dict[str, float],
+        outcome_bitstring: str = None,
+    ):
+        """Recursive helper function for calculating the probabilities
 
-        qubit_for_branching = -1
-        ret = self.copy()
+        Args:
+            qubits (range): range of qubits
+            outcome (list[str]): outcome being built
+            outcome_prob (float): probability of the outcome
+            probs (dict[str, float]): holds the outcomes and probability results
+            outcome_bitstring (str): target outcome to measure which reduces measurements, None
+                if not targeting a specific target
+        """
+        qubit_for_branching: int = -1
 
+        ret: StabilizerState = self.copy()
+
+        # Find outcomes for each qubit
         for i in range(len(qubits)):
-            qubit = qubits[len(qubits) - i - 1]
             if outcome[i] == "X":
-                is_deterministic = not any(ret.clifford.stab_x[:, qubit])
-                if is_deterministic:
-                    single_qubit_outcome = ret._measure_and_update(qubit, 0)
-                    if single_qubit_outcome:
-                        outcome[i] = "1"
+                # Retrieve the qubit for the current measurement
+                qubit = qubits[(len(qubits) - i - 1)]
+                # Determine if the probability is deterministic
+                if not any(ret.clifford.stab_x[:, qubit]):
+                    single_qubit_outcome: np.int64 = ret._measure_and_update(qubit, 0)
+                    if outcome_bitstring is None or (
+                        int(outcome_bitstring[i]) == single_qubit_outcome
+                    ):
+                        # No outcome_bitstring target, or using outcome_bitstring target and
+                        # the single_qubit_outcome equals the desired outcome_bitstring target value,
+                        # then use current outcome_prob value
+                        outcome[i] = str(single_qubit_outcome)
                     else:
-                        outcome[i] = "0"
+                        # If the single_qubit_outcome does not equal the outcome_bitsring target
+                        # then we know that the probability will be 0
+                        outcome[i] = str(outcome_bitstring[i])
+                        outcome_prob = 0
                 else:
                     qubit_for_branching = i
 
@@ -568,15 +749,57 @@ class StabilizerState(QuantumState):
             probs[str_outcome] = outcome_prob
             return
 
-        for single_qubit_outcome in range(0, 2):
+        for single_qubit_outcome in (
+            range(0, 2)
+            if (outcome_bitstring is None)
+            else [int(outcome_bitstring[qubit_for_branching])]
+        ):
             new_outcome = outcome.copy()
-            if single_qubit_outcome:
-                new_outcome[qubit_for_branching] = "1"
-            else:
-                new_outcome[qubit_for_branching] = "0"
+            new_outcome[qubit_for_branching] = str(single_qubit_outcome)
 
             stab_cpy = ret.copy()
             stab_cpy._measure_and_update(
-                qubits[len(qubits) - qubit_for_branching - 1], single_qubit_outcome
+                qubits[(len(qubits) - qubit_for_branching - 1)], single_qubit_outcome
             )
-            stab_cpy._get_probablities(qubits, new_outcome, 0.5 * outcome_prob, probs)
+            stab_cpy._get_probabilities(
+                qubits, new_outcome, (0.5 * outcome_prob), probs, outcome_bitstring
+            )
+
+    def _get_probabilities_dict(
+        self,
+        outcome_bitstring: None | str = None,
+        qargs: None | list = None,
+        decimals: None | int = None,
+    ) -> dict[str, float]:
+        """Helper Function for calculating the subsystem measurement probability dictionary.
+        When the targeted outcome_bitstring value is set, then only the single outcome_bitstring
+        probability will be calculated.
+
+        Args:
+            outcome_bitstring (None or str): targeted outcome bitstring
+                to perform a measurement calculation for, this will significantly
+                reduce the number of calculation performed (Default: None)
+            qargs (None or list): subsystems to return probabilities for,
+                if None return for all subsystems (Default: None).
+            decimals (None or int): the number of decimal places to round
+                values. If None no rounding is done (Default: None).
+
+        Returns:
+            dict: The measurement probabilities in dict (key) form.
+        """
+        if qargs is None:
+            qubits = range(self.clifford.num_qubits)
+        else:
+            qubits = qargs
+
+        outcome = ["X"] * len(qubits)
+        outcome_prob = 1.0
+        probs: dict[str, float] = {}  # Probabilities dict to return with the measured values
+
+        self._get_probabilities(qubits, outcome, outcome_prob, probs, outcome_bitstring)
+
+        if decimals is not None:
+            for key, value in probs.items():
+                probs[key] = round(value, decimals)
+
+        return probs

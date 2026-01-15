@@ -1,0 +1,6 @@
+---
+features_synthesis:
+  - |
+    The function :func:`.synth_clifford_greedy` that synthesizes :class:`.Clifford` operators
+    was ported to Rust, leading to a significant increase in performance for all numbers of
+    qubits. For Cliffords over 50 qubits, the speedup is on the order of 1000 times.

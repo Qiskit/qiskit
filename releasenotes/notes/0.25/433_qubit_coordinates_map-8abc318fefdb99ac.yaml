@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Updated :func:`~qiskit.visualization.plot_gate_map`, :func:`~qiskit.visualization.plot_error_map`, and :func:`~qiskit.visualization.plot_circuit_layout` to support 433 qubit heavy-hex coupling maps. This allows coupling map visualizations for IBM's ``ibm_seattle``.

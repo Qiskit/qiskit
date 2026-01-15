@@ -7,7 +7,7 @@ features:
     <https://qiskit.org/documentation/retworkx/stubs/retworkx.vf2_mapping.html>`__
     to find a perfect layout (a layout which would not require additional
     routing) if one exists. The functionality exposed by this new pass is very
-    similar to exisiting :class:`~qiskit.transpiler.passes.CSPLayout` but
+    similar to existing :class:`~qiskit.transpiler.passes.CSPLayout` but
     :class:`~qiskit.transpiler.passes.VF2Layout` is significantly faster.
 
     .. _VF2 algorithm: https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.101.5342&rep=rep1&type=pdf

@@ -13,13 +13,96 @@
 """A generalized QAOA quantum circuit with a support of custom initial states and mixers."""
 
 # pylint: disable=cyclic-import
-from typing import Optional, List, Tuple
+from __future__ import annotations
+
 import numpy as np
 
-from qiskit.circuit.library.evolved_operator_ansatz import EvolvedOperatorAnsatz, _is_pauli_identity
 from qiskit.circuit.parametervector import ParameterVector
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit import QuantumRegister
+from qiskit.quantum_info import SparsePauliOp
+from qiskit.quantum_info.operators.base_operator import BaseOperator
+
+from .evolved_operator_ansatz import (
+    EvolvedOperatorAnsatz,
+    _is_pauli_identity,
+    evolved_operator_ansatz,
+)
+
+
+def qaoa_ansatz(
+    cost_operator: BaseOperator,
+    reps: int = 1,
+    initial_state: QuantumCircuit | None = None,
+    mixer_operator: BaseOperator | None = None,
+    insert_barriers: bool = False,
+    name: str = "QAOA",
+    flatten: bool = True,
+) -> QuantumCircuit:
+    r"""A generalized QAOA quantum circuit with a support of custom initial states and mixers.
+
+    Examples:
+
+    To define the QAOA ansatz we require a cost Hamiltonian, encoding the classical
+    optimization problem:
+
+    .. plot::
+        :alt: Circuit diagram output by the previous code.
+        :include-source:
+
+        from qiskit.quantum_info import SparsePauliOp
+        from qiskit.circuit.library import qaoa_ansatz
+
+        cost_operator = SparsePauliOp(["ZZII", "IIZZ", "ZIIZ"])
+        ansatz = qaoa_ansatz(cost_operator, reps=3, insert_barriers=True)
+        ansatz.draw("mpl")
+
+    Args:
+        cost_operator: The operator representing the cost of the optimization problem, denoted as
+            :math:`U(C, \gamma)` in [1].
+        reps: The integer determining the depth of the circuit, called :math:`p` in [1].
+        initial_state: An optional initial state to use, which defaults to a layer of
+            Hadamard gates preparing the :math:`|+\rangle^{\otimes n}` state.
+            If a custom mixer is chosen, this circuit should be set to prepare its ground state,
+            to appropriately fulfill the annealing conditions.
+        mixer_operator: An optional custom mixer, which defaults to global Pauli-:math:`X`
+            rotations. This is denoted as :math:`U(B, \beta)` in [1]. If this is set,
+            the ``initial_state`` might also require modification.
+        insert_barriers: Whether to insert barriers in-between the cost and mixer operators.
+        name: The name of the circuit.
+        flatten: If ``True``, a flat circuit is returned instead of nesting it inside multiple
+            layers of gate objects. Setting this to ``False`` is significantly less performant,
+            especially for parameter binding, but can be desirable for a cleaner visualization.
+
+    References:
+
+    [1] Farhi et al., A Quantum Approximate Optimization Algorithm.
+    `arXiv:1411.4028 <https://arxiv.org/pdf/1411.4028>`_
+    """
+    num_qubits = cost_operator.num_qubits
+
+    if initial_state is None:
+        initial_state = QuantumCircuit(num_qubits)
+        initial_state.h(range(num_qubits))
+
+    if mixer_operator is None:
+        mixer_operator = SparsePauliOp.from_sparse_list(
+            [("X", [i], 1) for i in range(num_qubits)], num_qubits
+        )
+
+    parameter_prefix = ["γ", "β"]
+
+    return initial_state.compose(
+        evolved_operator_ansatz(
+            [cost_operator, mixer_operator],
+            reps=reps,
+            insert_barriers=insert_barriers,
+            parameter_prefix=parameter_prefix,
+            name=name,
+            flatten=flatten,
+        ),
+        copy=False,
+    )
 
 
 class QAOAAnsatz(EvolvedOperatorAnsatz):
@@ -27,43 +110,51 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
 
     References:
 
-        [1]: Farhi et al., A Quantum Approximate Optimization Algorithm.
-            `arXiv:1411.4028 <https://arxiv.org/pdf/1411.4028>`_
+    [1] Farhi et al., A Quantum Approximate Optimization Algorithm.
+    `arXiv:1411.4028 <https://arxiv.org/pdf/1411.4028>`_
     """
 
     def __init__(
         self,
         cost_operator=None,
         reps: int = 1,
-        initial_state: Optional[QuantumCircuit] = None,
+        initial_state: QuantumCircuit | None = None,
         mixer_operator=None,
         name: str = "QAOA",
+        flatten: bool | None = None,
     ):
         r"""
         Args:
-            cost_operator (OperatorBase, optional): The operator representing the cost of
-                the optimization problem, denoted as :math:`U(C, \gamma)` in the original paper.
-                Must be set either in the constructor or via property setter.
+            cost_operator (BaseOperator or OperatorBase, optional): The operator
+                representing the cost of the optimization problem, denoted as :math:`U(C, \gamma)`
+                in the original paper. Must be set either in the constructor or via property setter.
             reps (int): The integer parameter p, which determines the depth of the circuit,
                 as specified in the original paper, default is 1.
             initial_state (QuantumCircuit, optional): An optional initial state to use.
                 If `None` is passed then a set of Hadamard gates is applied as an initial state
                 to all qubits.
-            mixer_operator (OperatorBase or QuantumCircuit, optional): An optional custom mixer
-                to use instead of the global X-rotations, denoted as :math:`U(B, \beta)`
+            mixer_operator (BaseOperator or OperatorBase or QuantumCircuit, optional): An optional
+                custom mixer to use instead of the global X-rotations, denoted as :math:`U(B, \beta)`
                 in the original paper. Can be an operator or an optionally parameterized quantum
                 circuit.
             name (str): A name of the circuit, default 'qaoa'
+            flatten: Set this to ``True`` to output a flat circuit instead of nesting it inside multiple
+                layers of gate objects. By default currently the contents of
+                the output circuit will be wrapped in nested objects for
+                cleaner visualization. However, if you're using this circuit
+                for anything besides visualization its **strongly** recommended
+                to set this flag to ``True`` to avoid a large performance
+                overhead for parameter binding.
         """
-        super().__init__(reps=reps, name=name)
+        super().__init__(reps=reps, name=name, flatten=flatten)
 
         self._cost_operator = None
         self._reps = reps
-        self._initial_state = initial_state
+        self._initial_state: QuantumCircuit | None = initial_state
         self._mixer = mixer_operator
 
         # set this circuit as a not-built circuit
-        self._bounds = None
+        self._bounds: list[tuple[float | None, float | None]] | None = None
 
         # store cost operator and set the registers if the operator is not None
         self.cost_operator = cost_operator
@@ -86,26 +177,24 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
             valid = False
             if raise_on_failure:
                 raise ValueError(
-                    "The number of qubits of the initial state {} does not match "
-                    "the number of qubits of the cost operator {}".format(
-                        self.initial_state.num_qubits, self.num_qubits
-                    )
+                    f"The number of qubits of the initial state {self.initial_state.num_qubits}"
+                    " does not match "
+                    f"the number of qubits of the cost operator {self.num_qubits}"
                 )
 
         if self.mixer_operator is not None and self.mixer_operator.num_qubits != self.num_qubits:
             valid = False
             if raise_on_failure:
                 raise ValueError(
-                    "The number of qubits of the mixer {} does not match "
-                    "the number of qubits of the cost operator {}".format(
-                        self.mixer_operator.num_qubits, self.num_qubits
-                    )
+                    f"The number of qubits of the mixer {self.mixer_operator.num_qubits}"
+                    f" does not match "
+                    f"the number of qubits of the cost operator {self.num_qubits}"
                 )
 
         return valid
 
     @property
-    def parameter_bounds(self) -> Optional[List[Tuple[Optional[float], Optional[float]]]]:
+    def parameter_bounds(self) -> list[tuple[float | None, float | None]] | None:
         """The parameter bounds for the unbound parameters in the circuit.
 
         Returns:
@@ -123,7 +212,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         # default bounds: None for gamma (cost operator), [0, 2pi] for gamma (mixer operator)
         beta_bounds = (0, 2 * np.pi)
         gamma_bounds = (None, None)
-        bounds = []
+        bounds: list[tuple[float | None, float | None]] = []
 
         if not _is_pauli_identity(self.mixer_operator):
             bounds += self.reps * [beta_bounds]
@@ -134,9 +223,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         return bounds
 
     @parameter_bounds.setter
-    def parameter_bounds(
-        self, bounds: Optional[List[Tuple[Optional[float], Optional[float]]]]
-    ) -> None:
+    def parameter_bounds(self, bounds: list[tuple[float | None, float | None]] | None) -> None:
         """Set the parameter bounds.
 
         Args:
@@ -145,12 +232,12 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         self._bounds = bounds
 
     @property
-    def operators(self):
+    def operators(self) -> list:
         """The operators that are evolved in this circuit.
 
         Returns:
-             List[Union[OperatorBase, QuantumCircuit]]: The operators to be evolved (and circuits)
-                in this ansatz.
+             List[Union[BaseOperator, OperatorBase, QuantumCircuit]]: The operators to be evolved
+                (and circuits) in this ansatz.
         """
         return [self.cost_operator, self.mixer_operator]
 
@@ -159,7 +246,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         """Returns an operator representing the cost of the optimization problem.
 
         Returns:
-            OperatorBase: cost operator.
+            BaseOperator or OperatorBase: cost operator.
         """
         return self._cost_operator
 
@@ -168,7 +255,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         """Sets cost operator.
 
         Args:
-            cost_operator (OperatorBase, optional): cost operator to set.
+            cost_operator (BaseOperator or OperatorBase, optional): cost operator to set.
         """
         self._cost_operator = cost_operator
         self.qregs = [QuantumRegister(self.num_qubits, name="q")]
@@ -186,7 +273,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         self._invalidate()
 
     @property
-    def initial_state(self) -> Optional[QuantumCircuit]:
+    def initial_state(self) -> QuantumCircuit | None:
         """Returns an optional initial state as a circuit"""
         if self._initial_state is not None:
             return self._initial_state
@@ -201,7 +288,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         return None
 
     @initial_state.setter
-    def initial_state(self, initial_state: Optional[QuantumCircuit]) -> None:
+    def initial_state(self, initial_state: QuantumCircuit | None) -> None:
         """Sets initial state."""
         self._initial_state = initial_state
         self._invalidate()
@@ -213,7 +300,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         """Returns an optional mixer operator expressed as an operator or a quantum circuit.
 
         Returns:
-            OperatorBase or QuantumCircuit, optional: mixer operator or circuit.
+            BaseOperator or OperatorBase or QuantumCircuit, optional: mixer operator or circuit.
         """
         if self._mixer is not None:
             return self._mixer
@@ -221,8 +308,6 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         # if no mixer is passed and we know the number of qubits, then initialize it.
         if self.cost_operator is not None:
             # local imports to avoid circular imports
-            from qiskit.opflow import PauliSumOp
-
             num_qubits = self.cost_operator.num_qubits
 
             # Mixer is just a sum of single qubit X's on each qubit. Evolving by this operator
@@ -230,7 +315,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
             mixer_terms = [
                 ("I" * left + "X" + "I" * (num_qubits - left - 1), 1) for left in range(num_qubits)
             ]
-            mixer = PauliSumOp.from_list(mixer_terms)
+            mixer = SparsePauliOp.from_list(mixer_terms)
             return mixer
 
         # otherwise we cannot provide a default
@@ -241,8 +326,8 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         """Sets mixer operator.
 
         Args:
-            mixer_operator (OperatorBase or QuantumCircuit, optional): mixer operator or circuit
-                to set.
+            mixer_operator (BaseOperator or OperatorBase or QuantumCircuit, optional): mixer
+                operator or circuit to set.
         """
         self._mixer = mixer_operator
         self._invalidate()

@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :meth:`.PassManagerConfig.from_backend` constructor
+    when building a :class:`~.PassManagerConfig` object from a :class:`~.BackendV1`
+    instance that didn't have a coupling map attribute defined. Previously, the
+    constructor would incorrectly create a :class:`~.CouplingMap` object with
+    0 qubits instead of using ``None``.
+    Fixed `#10171 <https://github.com/Qiskit/qiskit-terra/issues/10171>`__

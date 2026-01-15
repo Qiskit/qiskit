@@ -26,7 +26,7 @@ class HRSCumulativeMultiplier(Multiplier):
     the default adder is as follows (where ``Adder`` denotes the
     ``CDKMRippleCarryAdder``):
 
-    .. parsed-literal::
+    .. code-block:: text
 
           a_0: ────■─────────────────────────
                    │
@@ -59,7 +59,14 @@ class HRSCumulativeMultiplier(Multiplier):
     a series of shifted additions using one of the input registers while the qubits
     from the other input register act as control qubits for the adders.
 
-    **References:**
+    .. seealso::
+
+        The :class:`.MultiplierGate` objects represents a multiplication, like this circuit class,
+        but allows the compiler to select the optimal decomposition based on the context.
+        Specific implementations can be set via the :class:`.HLSConfig`, e.g. this circuit
+        can be chosen via ``Multiplier=["cumulative_h18"]``.
+
+    References:
 
     [1] Häner et al., Optimizing Quantum Circuits for Arithmetic, 2018.
     `arXiv:1805.12445 <https://arxiv.org/pdf/1805.12445.pdf>`_
@@ -125,7 +132,7 @@ class HRSCumulativeMultiplier(Multiplier):
             else:
                 num_adder_qubits = num_state_qubits - excess_qubits + 1
                 adder_for_current_step = CDKMRippleCarryAdder(num_adder_qubits, kind="fixed")
-            controlled_adder = adder_for_current_step.to_gate().control(1)
+            controlled_adder = adder_for_current_step.to_gate().control(1, annotated=False)
             qr_list = (
                 [qr_a[i]]
                 + qr_b[:num_adder_qubits]

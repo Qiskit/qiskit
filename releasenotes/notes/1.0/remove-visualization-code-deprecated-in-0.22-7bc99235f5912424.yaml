@@ -1,0 +1,10 @@
+upgrade_visualization:
+  - |
+    The deprecated support for passing a :class:`.QuasiDistribution`,
+    :class:`.ProbDistribution`, or a distribution dictionary to the ``data``
+    argument of the :func:`.plot_histogram` visualization has been removed.
+    This functionality was marked as deprecated in the Qiskit 0.39.0 release
+    (2022-10). Instead if you would like to plot a histogram from a
+    :class:`.QuasiDistribution`, :class:`.ProbDistribution`, or a distribution
+    dictionary you should use the :func:`.plot_distribution` function
+    instead.

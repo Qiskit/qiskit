@@ -4,7 +4,7 @@ features:
     Qiskit Terra now has initial support for serializing
     :class:`.QuantumCircuit`\ s to `OpenQASM 3 <https://github.com/Qiskit/openqasm>`__:
 
-    .. jupyter-execute::
+    .. code-block::
 
         from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
         from qiskit import qasm3
@@ -20,7 +20,7 @@ features:
     user-defined instructions (as subroutines), and the new control-flow constructs
     also introduced in this release:
 
-    .. jupyter-execute::
+    .. code-block::
 
         from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
         from qiskit import qasm3

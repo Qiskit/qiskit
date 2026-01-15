@@ -1,0 +1,51 @@
+features:
+  - |
+    Added the :class:`~.PVQD` class to the time evolution framework in :mod:`qiskit.algorithms`.
+    This class implements the projected Variational Quantum Dynamics (p-VQD) algorithm
+    `Barison et al. <https://quantum-journal.org/papers/q-2021-07-28-512/>`_.
+
+    In each timestep this algorithm computes the next state with a Trotter formula and projects it
+    onto a variational form. The projection is determined by maximizing the fidelity of the
+    Trotter-evolved state and the ansatz, using a classical optimization routine.
+
+    .. code-block:: python
+
+        import numpy as np
+
+        from qiskit.algorithms.state_fidelities import ComputeUncompute
+        from qiskit.algorithms.evolvers import EvolutionProblem
+        from qiskit.algorithms.time_evolvers.pvqd import PVQD
+        from qiskit.primitives import Estimator, Sampler
+        from qiskit import BasicAer
+        from qiskit.circuit.library import EfficientSU2
+        from qiskit.quantum_info import Pauli, SparsePauliOp
+        from qiskit.algorithms.optimizers import L_BFGS_B
+
+        sampler = Sampler()
+        fidelity = ComputeUncompute(sampler)
+        estimator = Estimator()
+        hamiltonian = 0.1 * SparsePauliOp([Pauli("ZZ"), Pauli("IX"), Pauli("XI")])
+        observable = Pauli("ZZ")
+        ansatz = EfficientSU2(2, reps=1)
+        initial_parameters = np.zeros(ansatz.num_parameters)
+
+        time = 1
+        optimizer = L_BFGS_B()
+
+        # setup the algorithm
+        pvqd = PVQD(
+            fidelity,
+            ansatz,
+            initial_parameters,
+            estimator,
+            num_timesteps=100,
+            optimizer=optimizer,
+        )
+
+        # specify the evolution problem
+        problem = EvolutionProblem(
+            hamiltonian, time, aux_operators=[hamiltonian, observable]
+        )
+
+        # and evolve!
+        result = pvqd.evolve(problem)

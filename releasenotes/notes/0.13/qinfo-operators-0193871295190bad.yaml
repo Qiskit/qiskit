@@ -11,7 +11,7 @@ features:
     the number of two-qubit gates.
   - |
     Adds :class:`qiskit.quantum_info.SparsePauliOp` operator class. This is an
-    efficient representaiton of an N-qubit matrix that is sparse in the Pauli
+    efficient representation of an N-qubit matrix that is sparse in the Pauli
     basis and uses a :class:`qiskit.quantum_info.PauliTable` and vector of
     complex coefficients for its data structure.
     
@@ -23,7 +23,7 @@ features:
     Numpy arrays or :class:`~qiskit.quantum_info.Operator` objects can be
     converted to a :class:`~qiskit.quantum_info.SparsePauliOp` using the
     `:class:`~qiskit.quantum_info.SparsePauliOp.from_operator` method.
-    :class:`~qiskit.quantum_info.SparsePauliOp` can be convered to a sparse
+    :class:`~qiskit.quantum_info.SparsePauliOp` can be converted to a sparse
     csr_matrix or dense Numpy array using the
     :class:`~qiskit.quantum_info.SparsePauliOp.to_matrix` method, or to an
     :class:`~qiskit.quantum_info.Operator` object using the
@@ -54,7 +54,7 @@ features:
         :meth:`~qiskit.quantum_info.PauliTable.tensor`) between each element
         of  the first table, with each element of the second table.
 
-      * Addition of two tables acts as list concatination of the terms in each
+      * Addition of two tables acts as list concatenation of the terms in each
         table (``+``).
       
       * Pauli tables can be sorted by lexicographic (tensor product) order or
@@ -148,7 +148,7 @@ upgrade:
       n_qubits = 10
       ham = ScalarOp(2 ** n_qubits, coeff=0)
 
-      # Add 2-body nearest neighbour terms
+      # Add 2-body nearest neighbor terms
       for j in range(n_qubits - 1):
           ham = ham + ZZ([j, j+1])
   - |

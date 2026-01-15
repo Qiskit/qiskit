@@ -16,13 +16,12 @@
 import inspect
 
 import numpy as np
-from ddt import ddt, data, unpack
+from ddt import ddt, data, idata, unpack
 
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.quantum_info import Operator
-from qiskit.test import QiskitTestCase
 from qiskit.circuit import ParameterVector, Gate, ControlledGate
-
+from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate
 from qiskit.circuit.library import standard_gates
 from qiskit.circuit.library import (
     HGate,
@@ -55,6 +54,8 @@ from qiskit.circuit.library import (
     CZGate,
     RYYGate,
     PhaseGate,
+    PauliGate,
+    UCPauliRotGate,
     CPhaseGate,
     UGate,
     CUGate,
@@ -63,11 +64,17 @@ from qiskit.circuit.library import (
     CSXGate,
     RVGate,
     XXMinusYYGate,
+    FullAdderGate,
+    HalfAdderGate,
+    ModularAdderGate,
+    LinearFunction,
+    MultiplierGate,
 )
-
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
 )
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
 
 from .gate_utils import _get_free_params
 
@@ -184,6 +191,53 @@ class TestGateDefinitions(QiskitTestCase):
         self.assertTrue(len(decomposed_circuit) > len(circuit))
         self.assertTrue(Operator(circuit).equiv(Operator(decomposed_circuit), atol=1e-7))
 
+    def test_pauligate_repeat(self):
+        """Test `repeat` method for `PauliGate`."""
+        gate = PauliGate("XYZ")
+        operator = Operator(gate)
+        self.assertTrue(np.allclose(Operator(gate.repeat(2)), operator @ operator))
+
+    def test_ucpaulirotgate_repeat(self):
+        """Test `repeat` method for `UCPauliRotGate`."""
+        gate = UCPauliRotGate([0.3, 0.5], "X")
+        operator = Operator(gate)
+        self.assertTrue(np.allclose(Operator(gate.repeat(2)), operator @ operator))
+
+    def test_linear_function_definition(self):
+        """Test LinearFunction gate matrix and definition."""
+        circ = QuantumCircuit(3)
+        circ.append(LinearFunction([[1, 1], [0, 1]]), [0, 2])
+        decomposed_circ = circ.decompose()
+        self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
+
+    def test_full_adder_definition(self):
+        """Test FullAdder gate matrix and definition."""
+        circ = QuantumCircuit(4)
+        circ.append(FullAdderGate(1), [0, 1, 2, 3])
+        decomposed_circ = circ.decompose()
+        self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
+
+    def test_half_adder_definition(self):
+        """Test HalfAdder gate matrix and definition."""
+        circ = QuantumCircuit(3)
+        circ.append(HalfAdderGate(1), [0, 1, 2])
+        decomposed_circ = circ.decompose()
+        self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
+
+    def test_modular_adder_definition(self):
+        """Test ModularAdder gate matrix and definition."""
+        circ = QuantumCircuit(2)
+        circ.append(ModularAdderGate(1), [0, 1])
+        decomposed_circ = circ.decompose()
+        self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
+
+    def test_multiplier_gate_definition(self):
+        """Test Multiplier gate matrix and definition."""
+        circ = QuantumCircuit(4)
+        circ.append(MultiplierGate(1), [0, 1, 2, 3])
+        decomposed_circ = circ.decompose()
+        self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
+
 
 @ddt
 class TestStandardGates(QiskitTestCase):
@@ -206,10 +260,15 @@ class TestStandardGates(QiskitTestCase):
         if class_name in ("MCPhaseGate", "MCU1Gate"):
             param_vector = param_vector[:-1]
             gate = gate_class(*param_vector, num_ctrl_qubits=2)
-        elif class_name in ("MCXGate", "MCXGrayCode", "MCXRecursive", "MCXVChain"):
+        elif class_name == "MCXGate":
             num_ctrl_qubits = 2
             param_vector = param_vector[:-1]
             gate = gate_class(num_ctrl_qubits, *param_vector)
+        elif class_name in ("MCXGrayCode", "MCXRecursive", "MCXVChain"):
+            num_ctrl_qubits = 2
+            param_vector = param_vector[:-1]
+            with self.assertWarns(DeprecationWarning):
+                gate = gate_class(num_ctrl_qubits, *param_vector)
         elif class_name == "MSGate":
             num_qubits = 2
             param_vector = param_vector[:-1]
@@ -237,10 +296,15 @@ class TestStandardGates(QiskitTestCase):
         if class_name in ("MCPhaseGate", "MCU1Gate"):
             float_vector = float_vector[:-1]
             gate = gate_class(*float_vector, num_ctrl_qubits=2)
-        elif class_name in ("MCXGate", "MCXGrayCode", "MCXRecursive", "MCXVChain"):
+        elif class_name == "MCXGate":
             num_ctrl_qubits = 3
             float_vector = float_vector[:-1]
             gate = gate_class(num_ctrl_qubits, *float_vector)
+        elif class_name in ("MCXGrayCode", "MCXRecursive", "MCXVChain"):
+            num_ctrl_qubits = 3
+            float_vector = float_vector[:-1]
+            with self.assertWarns(DeprecationWarning):
+                gate = gate_class(num_ctrl_qubits, *float_vector)
         elif class_name == "PauliGate":
             pauli_string = "IXYZ"
             gate = gate_class(pauli_string)
@@ -256,63 +320,93 @@ class TestStandardGates(QiskitTestCase):
             self.assertTrue(is_identity_matrix(Operator(gate).dot(gate.inverse().definition).data))
 
 
+@ddt
 class TestGateEquivalenceEqual(QiskitTestCase):
     """Test the decomposition of a gate in terms of other gates
     yields the same matrix as the hardcoded matrix definition."""
 
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        class_list = Gate.__subclasses__() + ControlledGate.__subclasses__()
-        exclude = {
-            "ControlledGate",
-            "DiagonalGate",
-            "UCGate",
-            "MCGupDiag",
-            "MCU1Gate",
-            "UnitaryGate",
-            "HamiltonianGate",
-            "MCPhaseGate",
-            "UCPauliRotGate",
-            "SingleQubitUnitary",
-            "MCXGate",
-            "VariadicZeroParamGate",
-            "ClassicalFunction",
-            "ClassicalElement",
-            "StatePreparation",
-            "LinearFunction",
-            "Commuting2qBlock",
-        }
-        cls._gate_classes = []
-        for aclass in class_list:
-            if aclass.__name__ not in exclude:
-                cls._gate_classes.append(aclass)
+    class_list = (
+        SingletonGate.__subclasses__()
+        + SingletonControlledGate.__subclasses__()
+        + Gate.__subclasses__()
+        + ControlledGate.__subclasses__()
+    )
+    exclude = {
+        "ControlledGate",
+        "DiagonalGate",
+        "UCGate",
+        "MCGupDiag",
+        "MCU1Gate",
+        "UnitaryGate",
+        "HamiltonianGate",
+        "MCPhaseGate",
+        "UCPauliRotGate",
+        "SingleQubitUnitary",
+        "MCXGate",
+        "MCMTGate",
+        "VariadicZeroParamGate",
+        "StatePreparation",
+        "UniformSuperpositionGate",
+        "LinearFunction",
+        "PermutationGate",
+        "Commuting2qBlock",
+        "PauliEvolutionGate",
+        "SingletonGate",
+        "SingletonControlledGate",
+        "_U0Gate",
+        "_DefinedGate",
+        "_SingletonGateOverrides",
+        "_SingletonControlledGateOverrides",
+        "QFTGate",
+        "ModularAdderGate",
+        "HalfAdderGate",
+        "FullAdderGate",
+        "MultiplierGate",
+        "GraphStateGate",
+        "AndGate",
+        "OrGate",
+        "BitwiseXorGate",
+        "InnerProductGate",
+        "IntegerComparatorGate",
+        "PolynomialPauliRotationsGate",
+        "PiecewiseLinearPauliRotationsGate",
+        "PiecewisePolynomialPauliRotationsGate",
+        "PiecewiseChebyshevGate",
+        "ExactReciprocalGate",
+        "LinearPauliRotationsGate",
+        "LinearAmplitudeFunctionGate",
+        "WeightedSumGate",
+    }
 
-    def test_equivalence_phase(self):
+    # Amazingly, Python's scoping rules for class bodies means that this is the closest we can get
+    # to a "natural" comprehension or functional iterable definition:
+    #   https://docs.python.org/3/reference/executionmodel.html#resolution-of-names
+    @idata(filter(lambda x, exclude=exclude: x.__name__ not in exclude, class_list))
+    def test_equivalence_phase(self, gate_class):
         """Test that the equivalent circuits from the equivalency_library
         have equal matrix representations"""
-        for gate_class in self._gate_classes:
-            with self.subTest(i=gate_class):
-                n_params = len(_get_free_params(gate_class))
-                params = [0.1 * i for i in range(1, n_params + 1)]
-                if gate_class.__name__ == "RXXGate":
-                    params = [np.pi / 2]
-                if gate_class.__name__ in ["MSGate"]:
-                    params[0] = 2
-                if gate_class.__name__ in ["PauliGate"]:
-                    params = ["IXYZ"]
-                if gate_class.__name__ in ["BooleanExpression"]:
-                    params = ["x | y"]
-                if gate_class.__name__ in ["PauliEvolutionGate", "PauliEvolutionGate"]:
-                    continue
+        n_params = len(_get_free_params(gate_class))
+        params = [0.1 * i for i in range(1, n_params + 1)]
+        if gate_class.__name__ == "RXXGate":
+            params = [np.pi / 2]
+        if gate_class.__name__ in ["MSGate"]:
+            params[0] = 2
+        if gate_class.__name__ in ["PauliGate"]:
+            params = ["IXYZ"]
+        if gate_class.__name__ in ["BooleanExpression", "BitFlipOracleGate", "PhaseOracleGate"]:
+            params = ["x | y"]
 
-                gate = gate_class(*params)
-                equiv_lib_list = std_eqlib.get_entry(gate)
-                for ieq, equivalency in enumerate(equiv_lib_list):
-                    with self.subTest(msg=gate.name + "_" + str(ieq)):
-                        op1 = Operator(gate)
-                        op2 = Operator(equivalency)
-                        self.assertEqual(op1, op2)
+        gate = gate_class(*params)
+        equiv_lib_list = std_eqlib.get_entry(gate)
+        for ieq, equivalency in enumerate(equiv_lib_list):
+            with self.subTest(msg=gate.name + "_" + str(ieq)):
+                op1 = Operator(gate)
+                op2 = Operator(equivalency)
+                msg = (
+                    f"Equivalence entry from '{gate.name}' to:\n"
+                    f"{str(equivalency.draw('text'))}\nfailed"
+                )
+                self.assertEqual(op1, op2, msg)
 
 
 @ddt
@@ -378,8 +472,8 @@ class TestStandardEquivalenceLibrary(QiskitTestCase):
         param_qc = QuantumCircuit(param_gate.num_qubits)
         float_qc = QuantumCircuit(float_gate.num_qubits)
 
-        param_qc.append(param_gate, param_qc.qregs[0])
-        float_qc.append(float_gate, float_qc.qregs[0])
+        param_qc.append(param_gate, param_qc.qubits)
+        float_qc.append(float_gate, float_qc.qubits)
 
         self.assertTrue(any(equiv == param_qc.decompose() for equiv in param_entry))
         self.assertTrue(any(equiv == float_qc.decompose() for equiv in float_entry))

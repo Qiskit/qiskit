@@ -1,0 +1,8 @@
+---
+features_pulse:
+  - |
+    It is now possible to assign parameters to pulse :class:`.Schedule` and :class:`.ScheduleBlock` objects by specifying
+    the parameter name as a string. The parameter name can be used to assign values to all parameters within the
+    `Schedule` or `ScheduleBlock` that have the same name. Moreover, the parameter name of a `ParameterVector`
+    can be used to assign all values of the vector simultaneously (the list of values should therefore match the
+    length of the vector).

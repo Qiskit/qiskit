@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed the :class:`.BackendSampler` and :class:`.BackendExtimator` to run successfully
+    with a custom ``bound_pass_manager``. Previously, the execution for single circuits with
+    a ``bound_pass_manager`` would raise a ``ValueError`` because a list was not returned
+    in one of the steps.

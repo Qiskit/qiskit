@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed an oversight in the :class:`.Commuting2qGateRouter` transpiler pass where the qreg permutations
+    were not added to the pass property set, so they would have to be tracked manually by the user. Now it's 
+    possible to access the permutation through the output circuit's ``layout`` property and plug the pass
+    into any transpilation pipeline without loss of information.

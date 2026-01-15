@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed a bug in the handling of ``default_alignment`` argument of :func:`~qiskit.pulse.build`.
+    Inputs of type :class:`~qiskit.pulse.transforms.AlignmentKind` are now correctly processed as
+    default alignments.

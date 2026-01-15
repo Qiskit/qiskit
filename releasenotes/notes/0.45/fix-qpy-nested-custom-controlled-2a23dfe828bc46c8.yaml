@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed a bug in QPY serialization (:mod:`qiskit.qpy`) where multiple controlled custom gates in
+    a circuit could result in an invalid QPY file that could not be parsed.  Fixed `#9746
+    <https://github.com/Qiskit/qiskit-terra/issues/9746>`__.

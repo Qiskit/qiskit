@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed a bug in the :class:`.RemoveIdentityEquivalent` transpiler pass, where gates close
+    to identity up to a global phase were removed from the circuit,
+    but the global phase of the circuit was not updated. In particular,
+    :class:`.RemoveIdentityEquivalent` now removes non-parameterized :class:`.GlobalPhaseGate`
+    gates.

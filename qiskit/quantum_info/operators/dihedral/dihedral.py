@@ -13,6 +13,7 @@
 """
 CNOTDihedral operator class.
 """
+from __future__ import annotations
 import itertools
 import numpy as np
 
@@ -45,7 +46,9 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
      The phase polynomial is a polynomial of degree at most 3,
      in :math:`N` variables, whose coefficients are in the ring Z_8 with 8 elements.
 
-     .. jupyter-execute::
+     .. plot::
+        :include-source:
+        :nofigs:
 
          from qiskit import QuantumCircuit
          from qiskit.quantum_info import CNOTDihedral
@@ -60,6 +63,14 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
 
          # Print the CNOTDihedral element
          print(elem)
+
+    .. code-block:: text
+
+        phase polynomial =
+        0 + 3*x_0 + 3*x_1 + 2*x_0*x_1
+        affine function =
+         (x_0,x_0 + x_1,x_2 + 1)
+
 
     **Circuit Conversion**
 
@@ -88,11 +99,16 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
             with optimal number of two qubit gates*, `Quantum 4(369), 2020
             <https://quantum-journal.org/papers/q-2020-12-07-369/>`_
          2. Andrew W. Cross, Easwar Magesan, Lev S. Bishop, John A. Smolin and Jay M. Gambetta,
-            *Scalable randomised benchmarking of non-Clifford gates*,
+            *Scalable randomized benchmarking of non-Clifford gates*,
             npj Quantum Inf 2, 16012 (2016).
     """
 
-    def __init__(self, data=None, num_qubits=None, validate=True):
+    def __init__(
+        self,
+        data: CNOTDihedral | QuantumCircuit | Instruction | None = None,
+        num_qubits: int | None = None,
+        validate: bool = True,
+    ):
         """Initialize a CNOTDihedral operator object.
 
         Args:
@@ -311,12 +327,13 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
                with optimal number of two qubit gates*, `Quantum 4(369), 2020
                <https://quantum-journal.org/papers/q-2020-12-07-369/>`_
             2. Andrew W. Cross, Easwar Magesan, Lev S. Bishop, John A. Smolin and Jay M. Gambetta,
-               *Scalable randomised benchmarking of non-Clifford gates*,
+               *Scalable randomized benchmarking of non-Clifford gates*,
                npj Quantum Inf 2, 16012 (2016).
         """
-        from qiskit.quantum_info.synthesis.cnotdihedral_decompose import decompose_cnotdihedral
+        # pylint: disable=cyclic-import
+        from qiskit.synthesis.cnotdihedral import synth_cnotdihedral_full
 
-        return decompose_cnotdihedral(self)
+        return synth_cnotdihedral_full(self)
 
     def to_instruction(self):
         """Return a Gate instruction implementing the CNOTDihedral object."""
@@ -342,20 +359,23 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
         _append_circuit(elem, circuit)
         return elem
 
-    def __array__(self, dtype=None):
-        if dtype:
-            return np.asarray(self.to_matrix(), dtype=dtype)
-        return self.to_matrix()
+    def __array__(self, dtype=None, copy=None):
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
+        arr = self.to_matrix()
+        return arr if dtype is None else arr.astype(dtype, copy=False)
 
     def to_matrix(self):
         """Convert operator to Numpy matrix."""
         return self.to_operator().data
 
-    def to_operator(self):
+    def to_operator(self) -> Operator:
         """Convert to an Operator object."""
         return Operator(self.to_instruction())
 
-    def compose(self, other, qargs=None, front=False):
+    def compose(
+        self, other: CNOTDihedral, qargs: list | None = None, front: bool = False
+    ) -> CNOTDihedral:
         if qargs is not None:
             raise NotImplementedError("compose method does not support qargs.")
         if self.num_qubits != other.num_qubits:
@@ -415,10 +435,10 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
 
         return result
 
-    def tensor(self, other):
+    def tensor(self, other: CNOTDihedral) -> CNOTDihedral:
         return self._tensor(other, reverse=True)
 
-    def expand(self, other):
+    def expand(self, other: CNOTDihedral) -> CNOTDihedral:
         return self._tensor(other, reverse=False)
 
     def adjoint(self):
@@ -434,8 +454,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
             new_qubits = [bit_indices[tup] for tup in instruction.qubits]
             if instruction.operation.name == "p":
                 params = 2 * np.pi - instruction.operation.params[0]
-                instruction.operation.params[0] = params
-                new_circ.append(instruction.operation, new_qubits)
+                new_circ.p(params, new_qubits)
             elif instruction.operation.name == "t":
                 instruction.operation.name = "tdg"
                 new_circ.append(instruction.operation, new_qubits)

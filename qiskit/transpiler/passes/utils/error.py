@@ -27,11 +27,13 @@ class Error(AnalysisPass):
         """Error pass.
 
         Args:
-            msg (str): Error message, if not provided a generic error will be used
+            msg (str | Callable[[PropertySet], str]): Error message, if not provided a generic error
+                will be used.  This can be either a raw string, or a callback function that accepts
+                the current ``property_set`` and returns the desired message.
             action (str): the action to perform. Default: 'raise'. The options are:
-              * 'raise': Raises a `TranspilerError` exception with msg
-              * 'warn': Raises a non-fatal warning with msg
-              * 'log': logs in `logging.getLogger(__name__)`
+              * ``'raise'``: Raises a ``TranspilerError`` exception with msg
+              * ``'warn'``: Raises a non-fatal warning with msg
+              * ``'log'``: logs in ``logging.getLogger(__name__)``
 
         Raises:
             TranspilerError: if action is not valid.
@@ -41,14 +43,20 @@ class Error(AnalysisPass):
         if action in ["raise", "warn", "log"]:
             self.action = action
         else:
-            raise TranspilerError("Unknown action: %s" % action)
+            raise TranspilerError(f"Unknown action: {action}")
 
     def run(self, _):
         """Run the Error pass on `dag`."""
-        msg = self.msg if self.msg else "An error occurred while the passmanager was running."
-        prop_names = [tup[1] for tup in string.Formatter().parse(msg) if tup[1] is not None]
-        properties = {prop_name: self.property_set[prop_name] for prop_name in prop_names}
-        msg = msg.format(**properties)
+        if self.msg is None:
+            msg = "An error occurred while the pass manager was running."
+        elif isinstance(self.msg, str):
+            prop_names = [
+                tup[1] for tup in string.Formatter().parse(self.msg) if tup[1] is not None
+            ]
+            properties = {prop_name: self.property_set[prop_name] for prop_name in prop_names}
+            msg = self.msg.format(**properties)
+        else:
+            msg = self.msg(self.property_set)
 
         if self.action == "raise":
             raise TranspilerError(msg)
@@ -58,4 +66,4 @@ class Error(AnalysisPass):
             logger = logging.getLogger(__name__)
             logger.info(msg)
         else:
-            raise TranspilerError("Unknown action: %s" % self.action)
+            raise TranspilerError(f"Unknown action: {self.action}")

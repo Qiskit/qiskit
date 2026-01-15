@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Circuits containing :class:`.C3SXGate` can now be output and read in again safely from the
+    OpenQASM 2.0 exporter (:meth:`.QuantumCircuit.qasm`) and parser (:meth:`.QuantumCircuit.from_qasm_str`).

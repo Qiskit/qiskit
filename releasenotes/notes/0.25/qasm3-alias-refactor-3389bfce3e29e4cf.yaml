@@ -1,0 +1,15 @@
+---
+features:
+  - |
+    The OpenQASM 3 exporters (:func:`.qasm3.dump`, :func:`~.qasm3.dumps` and :class:`~.qasm3.Exporter`)
+    have a new ``allow_aliasing`` argument, which will eventually replace the ``alias_classical_registers``
+    argument.  This controls whether aliasing is permitted for either classical bits or qubits, rather
+    than the option only being available for classical bits.
+upgrade:
+  - |
+    The OpenQASM 3 exporters (:func:`.qasm3.dump`, :func:`~.qasm3.dumps` and :class:`~.qasm3.Exporter`)
+    will now use fewer "register alias" definitions in its output.  The circuit described will not
+    change, but it will now preferentially export in terms of direct ``bit``, ``qubit`` and
+    ``qubit[n]`` types rather than producing a ``_loose_bits`` register and aliasing more registers
+    off this.  This is done to minimise the number of advanced OpenQASM 3 features in use, and to
+    avoid introducing unnecessary array structure into programmes that do not require it.

@@ -12,37 +12,31 @@
 
 """Routing via SWAP insertion using the SABRE method from Li et al."""
 
+import functools
 import logging
-from copy import copy, deepcopy
+import time
 
-import numpy as np
-import retworkx
-
-from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
-from qiskit.dagcircuit import DAGOpNode
-from qiskit.tools.parallel import CPU_COUNT
+from qiskit.transpiler.target import Target, _FakeTarget
+from qiskit.transpiler.coupling import CouplingMap
+from qiskit.transpiler.passes.layout import disjoint_utils
+from qiskit.utils import default_num_processes
 
-# pylint: disable=import-error
-from qiskit._accelerate.sabre_swap import (
-    build_swap_map,
-    Heuristic,
-    NeighborTable,
-    SabreDAG,
-)
-from qiskit._accelerate.stochastic_swap import NLayout  # pylint: disable=import-error
+from qiskit._accelerate.sabre import sabre_routing, Heuristic, SetScaling, RoutingTarget
+from qiskit._accelerate.nlayout import NLayout
 
-logger = logging.getLogger(__name__)
+LOG = logging.getLogger(__name__)
 
 
 class SabreSwap(TransformationPass):
     r"""Map input circuit onto a backend topology via insertion of SWAPs.
 
     Implementation of the SWAP-based heuristic search from the SABRE qubit
-    mapping paper [1] (Algorithm 1). The heuristic aims to minimize the number
-    of lossy SWAPs inserted and the depth of the circuit.
+    mapping paper [2] (Algorithm 1) with the modifications from the LightSABRE
+    paper [1]. The heuristic aims to minimize the number of lossy SWAPs inserted
+    and the depth of the circuit.
 
     This algorithm starts from an initial layout of virtual qubits onto physical
     qubits, and iterates over the circuit DAG until all gates are exhausted,
@@ -64,12 +58,15 @@ class SabreSwap(TransformationPass):
 
     This transpiler pass adds onto the SABRE algorithm in that it will run
     multiple trials of the algorithm with different seeds. The best output,
-    deteremined by the trial with the least amount of SWAPed inserted, will
+    determined by the trial with the least amount of SWAPed inserted, will
     be selected from the random trials.
 
     **References:**
 
-    [1] Li, Gushu, Yufei Ding, and Yuan Xie. "Tackling the qubit mapping problem
+    [1] Henry Zou and Matthew Treinish and Kevin Hartman and Alexander Ivrii and Jake Lishman.
+    "LightSABRE: A Lightweight and Enhanced SABRE Algorithm"
+    `arXiv:2409.08368 <https://doi.org/10.48550/arXiv.2409.08368>`__
+    [2] Li, Gushu, Yufei Ding, and Yuan Xie. "Tackling the qubit mapping problem
     for NISQ-era quantum devices." ASPLOS 2019.
     `arXiv:1809.02573 <https://arxiv.org/pdf/1809.02573.pdf>`_
     """
@@ -78,7 +75,7 @@ class SabreSwap(TransformationPass):
         r"""SabreSwap initializer.
 
         Args:
-            coupling_map (CouplingMap): CouplingMap of the target backend.
+            coupling_map (Union[CouplingMap, Target]): CouplingMap of the target backend.
             heuristic (str): The type of heuristic to use when deciding best
                 swap strategy ('basic' or 'lookahead' or 'decay').
             seed (int): random seed used to tie-break among candidate swaps.
@@ -137,35 +134,43 @@ class SabreSwap(TransformationPass):
                     + W *\frac{1}{\left|{E}\right|} \sum_{gate \in E} D[\pi(gate.q_1)][\pi(gate.q2)]
                     }
         """
-
         super().__init__()
-
-        # Assume bidirectional couplings, fixing gate direction is easy later.
-        if coupling_map is None or coupling_map.is_symmetric:
-            self.coupling_map = coupling_map
+        self._routing_target = None
+        if isinstance(coupling_map, Target) and not isinstance(coupling_map, _FakeTarget):
+            self.target = coupling_map
+        elif coupling_map is None:
+            # This is an invalid state, but we defer the error to runtime to match historical
+            # behaviour of Qiskit.
+            self.target = None
         else:
-            self.coupling_map = deepcopy(coupling_map)
-            self.coupling_map.make_symmetric()
-        self._neighbor_table = None
-        if coupling_map is not None:
-            self._neighbor_table = NeighborTable(retworkx.adjacency_matrix(self.coupling_map.graph))
+            coupling_map = (
+                coupling_map.build_coupling_map()
+                if isinstance(coupling_map, _FakeTarget)
+                else coupling_map
+            )
+            # A dummy target to represent the same coupling constraints. Basis gates are arbitrary.
+            self.target = Target.from_configuration(
+                basis_gates=["u", "cx"], coupling_map=coupling_map
+            )
 
         self.heuristic = heuristic
-
-        if seed is None:
-            ii32 = np.iinfo(np.int32)
-            self.seed = np.random.default_rng(None).integers(0, ii32.max, dtype=int)
-        else:
-            self.seed = seed
-        if trials is None:
-            self.trials = CPU_COUNT
-        else:
-            self.trials = trials
-
+        self.seed = seed
+        self.trials = default_num_processes() if trials is None else trials
         self.fake_run = fake_run
-        self._qubit_indices = None
-        self._clbit_indices = None
-        self.dist_matrix = None
+
+    @functools.cached_property
+    def dist_matrix(self):  # pylint: disable=missing-function-docstring
+        # This property is not intended to be public API, it just keeps backwards compatibility.
+        return None if self._routing_target is None else self._routing_target.distance_matrix()
+
+    @functools.cached_property
+    def coupling_map(self):  # pylint: disable=missing-function-docstring
+        # This property is not intended to be public API, it just keeps backwards compatibility.
+        return (
+            None
+            if self._routing_target is None
+            else CouplingMap(self._routing_target.coupling_list())
+        )
 
     def run(self, dag):
         """Run the SabreSwap pass on `dag`.
@@ -176,100 +181,74 @@ class SabreSwap(TransformationPass):
             DAGCircuit: A dag mapped to be compatible with the coupling_map.
         Raises:
             TranspilerError: if the coupling map or the layout are not
-            compatible with the DAG
+            compatible with the DAG, or if the coupling_map=None
         """
+        if self.target is None:
+            raise TranspilerError("SabreSwap cannot run with coupling_map=None")
+        if self._routing_target is None:
+            self._routing_target = RoutingTarget.from_target(self.target)
         if len(dag.qregs) != 1 or dag.qregs.get("q", None) is None:
             raise TranspilerError("Sabre swap runs on physical circuits only.")
-
-        if len(dag.qubits) > self.coupling_map.size():
-            raise TranspilerError("More virtual qubits exist than physical.")
-
-        if self.heuristic == "basic":
-            heuristic = Heuristic.Basic
-        elif self.heuristic == "lookahead":
-            heuristic = Heuristic.Lookahead
-        elif self.heuristic == "decay":
-            heuristic = Heuristic.Decay
-        else:
-            raise TranspilerError("Heuristic %s not recognized." % self.heuristic)
-
-        self.dist_matrix = self.coupling_map.distance_matrix
-
-        # Preserve input DAG's name, regs, wire_map, etc. but replace the graph.
-        mapped_dag = None
-        if not self.fake_run:
-            mapped_dag = dag.copy_empty_like()
-
-        canonical_register = dag.qregs["q"]
-        current_layout = Layout.generate_trivial_layout(canonical_register)
-        self._qubit_indices = {bit: idx for idx, bit in enumerate(canonical_register)}
-        self._clbit_indices = {bit: idx for idx, bit in enumerate(dag.clbits)}
-        layout_mapping = {
-            self._qubit_indices[k]: v for k, v in current_layout.get_virtual_bits().items()
-        }
-        layout = NLayout(layout_mapping, len(dag.qubits), self.coupling_map.size())
-        original_layout = layout.copy()
-
-        dag_list = []
-        for node in dag.topological_op_nodes():
-            cargs = {self._clbit_indices[x] for x in node.cargs}
-            if node.op.condition is not None:
-                for clbit in dag._bits_in_condition(node.op.condition):
-                    cargs.add(self._clbit_indices[clbit])
-
-            dag_list.append(
-                (
-                    node._node_id,
-                    [self._qubit_indices[x] for x in node.qargs],
-                    cargs,
-                )
+        num_dag_qubits = len(dag.qubits)
+        num_coupling_qubits = self.target.num_qubits
+        if num_dag_qubits < num_coupling_qubits:
+            raise TranspilerError(
+                f"Fewer qubits in the circuit ({num_dag_qubits}) than the coupling map"
+                f" ({num_coupling_qubits})."
+                " Have you run a layout pass and then expanded your DAG with ancillas?"
+                " See `FullAncillaAllocation`, `EnlargeWithAncilla` and `ApplyLayout`."
             )
-        front_layer = np.asarray([x._node_id for x in dag.front_layer()], dtype=np.uintp)
-        sabre_dag = SabreDAG(len(dag.qubits), len(dag.clbits), dag_list, front_layer)
-        swap_map, gate_order = build_swap_map(
-            len(dag.qubits),
-            sabre_dag,
-            self._neighbor_table,
-            self.dist_matrix,
-            heuristic,
-            self.seed,
-            layout,
-            self.trials,
-        )
+        if num_dag_qubits > num_coupling_qubits:
+            raise TranspilerError(
+                f"More qubits in the circuit ({num_dag_qubits}) than available in the coupling map"
+                f" ({num_coupling_qubits})."
+                " This circuit cannot be routed to this device."
+            )
 
-        layout_mapping = layout.layout_mapping()
-        output_layout = Layout({dag.qubits[k]: v for (k, v) in layout_mapping})
-        self.property_set["final_layout"] = output_layout
-        if not self.fake_run:
-            for node_id in gate_order:
-                node = dag._multi_graph[node_id]
-                self._process_swaps(swap_map, node, mapped_dag, original_layout, canonical_register)
-                self._apply_gate(mapped_dag, node, original_layout, canonical_register)
-            return mapped_dag
+        # In our defaults, the basic heuristic shouldn't scale by size; if it does, it's liable to
+        # get the algorithm stuck.  See https://github.com/Qiskit/qiskit/pull/14458 for more.
+        if isinstance(self.heuristic, Heuristic):
+            heuristic = self.heuristic
+        elif self.heuristic == "basic":
+            heuristic = Heuristic(attempt_limit=10 * num_dag_qubits).with_basic(
+                1.0, SetScaling.Size
+            )
+        elif self.heuristic == "lookahead":
+            heuristic = (
+                Heuristic(attempt_limit=10 * num_dag_qubits)
+                .with_basic(1.0, SetScaling.Constant)
+                .with_lookahead(0.5, 20, SetScaling.Size)
+            )
+        elif self.heuristic == "decay":
+            heuristic = (
+                Heuristic(attempt_limit=10 * num_dag_qubits)
+                .with_basic(1.0, SetScaling.Constant)
+                .with_lookahead(0.5, 20, SetScaling.Size)
+                .with_decay(0.001, 5)
+            )
+        else:
+            raise TranspilerError(f"Heuristic {self.heuristic} not recognized.")
+        disjoint_utils.require_layout_isolated_to_component(dag, self.target)
+
+        initial_layout = NLayout.generate_trivial_layout(num_dag_qubits)
+        sabre_start = time.perf_counter()
+        dag, final_layout = sabre_routing(
+            dag, self._routing_target, heuristic, initial_layout, self.trials, self.seed
+        )
+        sabre_stop = time.perf_counter()
+        LOG.debug("Sabre swap algorithm execution complete in: %s", sabre_stop - sabre_start)
+        permutation = [
+            final_layout.virtual_to_physical(initial_layout.physical_to_virtual(i))
+            for i in range(num_dag_qubits)
+        ]
+        layout = Layout(dict(zip(dag.qubits, permutation)))
+        self.property_set["final_layout"] = (
+            layout
+            if (prev := self.property_set["final_layout"]) is None
+            # The "final layout" can be thought of as a "comes from" permutation that you apply at
+            # the end of the circuit to invert the routing.  So if there's an existing one, what we
+            # apply at the end of the circuit needs to set the circuit qubits so they "come from"
+            # the previous one, then those "come from" the one we've just added.
+            else prev.compose(layout, dag.qubits)
+        )
         return dag
-
-    def _process_swaps(self, swap_map, node, mapped_dag, current_layout, canonical_register):
-        if node._node_id in swap_map:
-            for swap in swap_map[node._node_id]:
-                swap_qargs = [canonical_register[swap[0]], canonical_register[swap[1]]]
-                self._apply_gate(
-                    mapped_dag,
-                    DAGOpNode(op=SwapGate(), qargs=swap_qargs),
-                    current_layout,
-                    canonical_register,
-                )
-                current_layout.swap_logical(*swap)
-
-    def _apply_gate(self, mapped_dag, node, current_layout, canonical_register):
-        new_node = self._transform_gate_for_layout(node, current_layout, canonical_register)
-        if self.fake_run:
-            return new_node
-        return mapped_dag.apply_operation_back(new_node.op, new_node.qargs, new_node.cargs)
-
-    def _transform_gate_for_layout(self, op_node, layout, device_qreg):
-        """Return node implementing a virtual op on given layout."""
-        mapped_op_node = copy(op_node)
-        mapped_op_node.qargs = tuple(
-            device_qreg[layout.logical_to_physical(self._qubit_indices[x])] for x in op_node.qargs
-        )
-        return mapped_op_node

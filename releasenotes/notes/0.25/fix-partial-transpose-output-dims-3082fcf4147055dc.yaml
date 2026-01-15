@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed the dimensions of the output density matrix from :meth:`.DensityMatrix.partial_transpose`
+    so they match the dimensions of the corresponding input density matrix.

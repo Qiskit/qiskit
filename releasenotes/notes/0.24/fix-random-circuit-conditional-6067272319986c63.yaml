@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed a bug in :func:`.random_circuit` with 64 or more qubits and ``conditional=True``, where
+    the resulting circuit could have an incorrectly typed value in its condition, causing a variety
+    of failures during transpilation or other circuit operations.  Fixed `#9649
+    <https://github.com/Qiskit/qiskit-terra/issues/9649>`__.

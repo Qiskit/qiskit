@@ -1,0 +1,4 @@
+---
+upgrade:
+  - |
+    the definition of UnitaryGate for single qubit unitaries is now in terms of UGate instead of the legacy U3Gate class

@@ -1,0 +1,27 @@
+---
+features:
+  - |
+    Added a new algorithm class, :class:`~.AdaptVQE` to :mod:`qiskit.algorithms`
+    This algorithm uses a :class:`qiskit.algorithms.minimum_eigensolvers.VQE`
+    in combination with a pool of operators from which to build out an
+    :class:`qiskit.circuit.library.EvolvedOperatorAnsatz` adaptively.
+    For example:
+
+    .. code-block:: python
+
+      from qiskit.algorithms.minimum_eigensolvers import AdaptVQE, VQE
+      from qiskit.algorithms.optimizers import SLSQP
+      from qiskit.primitives import Estimator
+      from qiskit.circuit.library import EvolvedOperatorAnsatz
+
+      # get your Hamiltonian
+      hamiltonian = ...
+
+      # construct your ansatz
+      ansatz = EvolvedOperatorAnsatz(...)
+
+      vqe = VQE(Estimator(), ansatz, SLSQP())
+
+      adapt_vqe = AdaptVQE(vqe)
+
+      result = adapt_vqe.compute_minimum_eigenvalue(hamiltonian)

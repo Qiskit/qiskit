@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :meth:`.PassManagerConfig.from_backend`
+    constructor method when it was used with a :class:`~.BackendV1` based
+    simulator backend. For some simulator backends which did not populate
+    some optional fields the constructor would error.
+    Fixed `#9265 <https://github.com/Qiskit/qiskit-terra/issues/9265>`__ and
+    `#8546 <https://github.com/Qiskit/qiskit-terra/issues/8546>`__

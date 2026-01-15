@@ -1,0 +1,23 @@
+---
+features:
+  - |
+    The ``figsize`` argument of
+    :obj:`~qiskit.visualization.plot_bloch_multivector` can now be used to
+    set a size for individual Bloch ball sub-plots: if there are ``num``
+    qubits and ``(w, h)`` is passed to ``figsize``, then the overall figure
+    width is set to ``num*w``, while the overall height is set to ``h``.
+  - |
+    A new ``font_size`` keyword argument for
+    :obj:`~qiskit.visualization.plot_bloch_multivector` can be used to
+    control the font size in Bloch ball sub-plots.
+  - |
+    New ``title_font_size`` and ``title_pad`` keyword arguments
+    for :obj:`~qiskit.visualization.plot_bloch_multivector` can be used to
+    control the font size of the overall title and its padding.
+fixes:
+  - |
+    Previous to this release, the ``figsize`` argument of
+    :obj:`~qiskit.visualization.plot_bloch_multivector` was not used by the
+    visualization, making it impossible to change its size (e.g. to shrink
+    it for single-qubit states). This release fixes it by introducing a use
+    for the ``figsize`` argument.

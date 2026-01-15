@@ -11,8 +11,7 @@
 # that they have been altered from the originals.
 # pylint: disable=too-many-return-statements
 
-"""Check if number close to values of PI
-"""
+"""Check if number close to values of PI"""
 
 import numpy as np
 from qiskit.circuit.parameterexpression import ParameterExpression
@@ -25,7 +24,7 @@ RECIP_MESH = N / D / np.pi
 POW_LIST = np.pi ** np.arange(2, 5)
 
 
-def pi_check(inpt, eps=1e-6, output="text", ndigits=5):
+def pi_check(inpt, eps=1e-9, output="text", ndigits=None):
     """Computes if a number is close to an integer
     fraction or multiple of PI and returns the
     corresponding string.
@@ -35,8 +34,10 @@ def pi_check(inpt, eps=1e-6, output="text", ndigits=5):
         eps (float): EPS to check against.
         output (str): Options are 'text' (default),
                       'latex', 'mpl', and 'qasm'.
-        ndigits (int): Number of digits to print
-                       if returning raw inpt.
+        ndigits (int or None): Number of digits to print
+                               if returning raw inpt.
+                               If `None` (default), Python's
+                               default float formatting is used.
 
     Returns:
         str: string representation of output.
@@ -46,27 +47,24 @@ def pi_check(inpt, eps=1e-6, output="text", ndigits=5):
     """
     if isinstance(inpt, ParameterExpression):
         param_str = str(inpt)
-        from sympy import sympify
-
-        expr = sympify(inpt._symbol_expr)
-        syms = expr.atoms()
-        for sym in syms:
-            if not sym.is_number:
-                continue
-            pi = pi_check(abs(float(sym)), eps=eps, output=output, ndigits=ndigits)
+        values = inpt._values()
+        for val in values:
+            pi = pi_check(abs(float(val)), eps=eps, output=output, ndigits=ndigits)
             try:
                 _ = float(pi)
             except (ValueError, TypeError):
-                from sympy import sstr
+                import qiskit._accelerate.circuit
 
-                sym_str = sstr(abs(sym), full_prec=False)
+                # we need to match the precise string representation of the pi-value,
+                # therefore we use _Value instead of just str(abs(val))
+                sym_str = str(qiskit._accelerate.circuit.ParameterExpression._Value(abs(val)))
                 param_str = param_str.replace(sym_str, pi)
         return param_str
     elif isinstance(inpt, str):
         return inpt
 
     def normalize(single_inpt):
-        if abs(single_inpt) < 1e-14:
+        if abs(single_inpt) < eps:
             return "0"
 
         if output == "text":
@@ -101,7 +99,10 @@ def pi_check(inpt, eps=1e-6, output="text", ndigits=5):
             power = np.where(abs(abs(single_inpt) - POW_LIST) < eps)
             if power[0].shape[0]:
                 if output == "qasm":
-                    str_out = "{:.{}g}".format(single_inpt, ndigits)
+                    if ndigits is None:
+                        str_out = str(single_inpt)
+                    else:
+                        str_out = f"{single_inpt:.{ndigits}g}"
                 elif output == "latex":
                     str_out = f"{neg_str}{pi}^{power[0][0] + 2}"
                 elif output == "mpl":
@@ -113,7 +114,10 @@ def pi_check(inpt, eps=1e-6, output="text", ndigits=5):
         # Third is a check for a number larger than MAX_FRAC * pi, not a
         # multiple or power of pi, since no fractions will exceed MAX_FRAC * pi
         if abs(single_inpt) >= (MAX_FRAC * np.pi):
-            str_out = "{:.{}g}".format(single_inpt, ndigits)
+            if ndigits is None:
+                str_out = str(single_inpt)
+            else:
+                str_out = f"{single_inpt:.{ndigits}g}"
             return str_out
 
         # Fourth check is for fractions for 1*pi in the numer and any
@@ -159,9 +163,11 @@ def pi_check(inpt, eps=1e-6, output="text", ndigits=5):
                 str_out = f"{neg_str}{numer}/{denom}{pi}"
             return str_out
 
-        # Nothing found
-        str_out = "{:.{}g}".format(single_inpt, ndigits)
-        return str_out
+        # Nothing found.  The '#' forces a decimal point to be included, which OQ2 needs, but other
+        # formats don't really.
+        if output == "qasm":
+            return f"{single_inpt:#}" if ndigits is None else f"{single_inpt:#.{ndigits}g}"
+        return f"{single_inpt}" if ndigits is None else f"{single_inpt:.{ndigits}g}"
 
     complex_inpt = complex(inpt)
     real, imag = map(normalize, [complex_inpt.real, complex_inpt.imag])

@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Added method on :class:`qiskit.dagcircuit.DAGCircuit` to allow swapping
+    nodes which are partially connected. Partially connected here means that
+    the two nodes share at least one edge/qubit. If the nodes do not share
+    any edges a DAGCircuitError is raised.

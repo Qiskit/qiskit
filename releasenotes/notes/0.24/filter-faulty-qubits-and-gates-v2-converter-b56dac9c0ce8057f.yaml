@@ -1,0 +1,18 @@
+---
+features:
+  - |
+    The :class:`~.BackendV2Converter` class has a new keyword argument,
+    ``filter_faulty``, on its constructor. When this argument is set to ``True``
+    the converter class will filter out any qubits or operations listed
+    as non-operational in the :class:`~.BackendProperties` payload for the
+    input :class:`~.BackendV1`. While not extensively used a
+    :class:`~.BackendProperties` object supports annotating both qubits
+    and gates as being non-operational. Previously, if a backend had set that
+    flag on any qubits or gates the output :class:`BackendV2` instance and
+    its :class:`~.Target` would include all operations whether they were
+    listed as operational or not. By leveraging the new flag you can filter
+    out these non-operational qubits and gates from the :class:`~.Target`.
+    When the flag is set the output backend will still be listed as the full
+    width (e.g. a 24 qubit backend with 4 qubits listed as not operational will
+    still show it has 24 qubits) but the faulty qubits will not have any
+    operations listed as being supported in the :class:`~.Target`.

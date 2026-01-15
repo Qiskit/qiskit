@@ -1,0 +1,15 @@
+---
+features:
+  - |
+    Internal tweaks to the routing algorithm in :class:`.SabreSwap`, used in
+    transpilation of non-dynamic circuits at all non-zero optimization levels,
+    have sped up routing for very large circuits.  As an example, the time to
+    route a depth-5 :class:`.QuantumVolume` circuit for a 1081-qubit heavy-hex
+    coupling map is approximately halved.
+upgrade:
+  - |
+    The result of transpilations for fixed seeds may have changed compared to
+    previous versions of Qiskit Terra.  This is because of internal tweaks to
+    the routing algorithm used by :class:`.SabreSwap` and :class:`.SabreLayout`,
+    which are the default routing and layout passes respectively, to make them
+    significantly faster for large circuits.

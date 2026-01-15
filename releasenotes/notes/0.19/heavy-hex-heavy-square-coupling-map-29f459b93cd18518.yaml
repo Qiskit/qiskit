@@ -10,7 +10,7 @@ features:
 
     For example:
 
-    .. jupyter-execute::
+    .. code-block::
 
       from qiskit.transpiler import CouplingMap
 
@@ -18,7 +18,7 @@ features:
       cmap.draw()
 
 
-    .. jupyter-execute::
+    .. code-block::
 
       from qiskit.transpiler import CouplingMap
 

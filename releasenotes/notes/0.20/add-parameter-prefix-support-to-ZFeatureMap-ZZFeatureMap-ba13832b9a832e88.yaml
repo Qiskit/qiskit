@@ -6,7 +6,7 @@ features:
     argument ``parameter_prefix``. This new argument is used to set the prefix
     of parameters of the data encoding circuit. For example:
 
-    .. jupyter-execute::
+    .. code-block::
 
         from qiskit.circuit.library import ZFeatureMap
 

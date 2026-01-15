@@ -1,0 +1,19 @@
+---
+features:
+  - |
+    The visualizations from the :func:`~.plot_gate_map`,  :func:`~.plot_coupling_map`.
+    :func:`~.plot_error_map`,  and :func:`~.plot_circuit_layout` functions have been significantly
+    improved for rendering layouts of backends with large numbers of qubits. This was accomplished
+    by leveraging `graphviz <https://graphviz.org/>`__ through rustworkx's ``graphviz_draw()`` function
+    to perform a more sophisticated algorithmic graph layout that scales for large numbers of
+    qubits.
+
+upgrade:
+  - |
+    The visualization functions: :func:`~.plot_gate_map`,  :func:`~.plot_coupling_map`.
+    :func:`~.plot_error_map`,  and :func:`~.plot_circuit_layout` now depend on
+    `graphviz <https://graphviz.org/>`__ being installed to function. This change was
+    necessary to enable visualizing backends with larger numbers of qubits. This
+    additional external requirement is in addition to the existing optional dependencies
+    these functions previously required. You find details on how to install
+    graphviz here:  https://graphviz.org/download/

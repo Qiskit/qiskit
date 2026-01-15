@@ -11,69 +11,43 @@
 # that they have been altered from the originals.
 
 """Expand a gate in a circuit using its decomposition rules."""
-import warnings
-from typing import Type, Union, List, Optional
+
+from __future__ import annotations
+
+from collections.abc import Sequence
+from typing import Type
 from fnmatch import fnmatch
 
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.passes.utils import control_flow
+from qiskit.dagcircuit.dagnode import DAGOpNode
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
-from qiskit.circuit.gate import Gate
-from qiskit.utils.deprecation import deprecate_arguments
+from qiskit.circuit.instruction import Instruction
+
+from ..synthesis import HighLevelSynthesis
 
 
 class Decompose(TransformationPass):
     """Expand a gate in a circuit using its decomposition rules."""
 
-    @deprecate_arguments({"gate": "gates_to_decompose"})
     def __init__(
         self,
-        gate: Optional[Type[Gate]] = None,
-        gates_to_decompose: Optional[Union[Type[Gate], List[Type[Gate]], List[str], str]] = None,
+        gates_to_decompose: (
+            str | Type[Instruction] | Sequence[str | Type[Instruction]] | None
+        ) = None,
+        apply_synthesis: bool = False,
     ) -> None:
-        """Decompose initializer.
-
+        """
         Args:
-            gate: DEPRECATED gate to decompose.
             gates_to_decompose: optional subset of gates to be decomposed,
                 identified by gate label, name or type. Defaults to all gates.
+            apply_synthesis: If ``True``, run :class:`.HighLevelSynthesis` to synthesize operations
+                that do not have a definition attached.
         """
         super().__init__()
-
-        if gate is not None:
-            self.gates_to_decompose = gate
-        else:
-            self.gates_to_decompose = gates_to_decompose
-
-    @property
-    def gate(self) -> Gate:
-        """Returns the gate"""
-        warnings.warn(
-            "The gate argument is deprecated as of qiskit-terra 0.19.0, and "
-            "will be removed no earlier than 3 months after that "
-            "release date. You should use the gates_to_decompose argument "
-            "instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.gates_to_decompose
-
-    @gate.setter
-    def gate(self, value):
-        """Sets the gate
-
-        Args:
-            value (Gate): new value for gate
-        """
-        warnings.warn(
-            "The gate argument is deprecated as of qiskit-terra 0.19.0, and "
-            "will be removed no earlier than 3 months after that "
-            "release date. You should use the gates_to_decompose argument "
-            "instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        self.gates_to_decompose = value
+        self.gates_to_decompose = gates_to_decompose
+        self.apply_synthesis = apply_synthesis
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the Decompose pass on `dag`.
@@ -84,13 +58,30 @@ class Decompose(TransformationPass):
         Returns:
             output dag where ``gate`` was expanded.
         """
+        # We might use HLS to synthesize objects that do not have a definition
+        hls = HighLevelSynthesis(qubits_initially_zero=False) if self.apply_synthesis else None
+
         # Walk through the DAG and expand each non-basis node
         for node in dag.op_nodes():
-            if self._should_decompose(node):
-                if getattr(node.op, "definition", None) is None:
-                    continue
-                # TODO: allow choosing among multiple decomposition rules
+            # Check in self.gates_to_decompose if the operation should be decomposed
+            if not self._should_decompose(node):
+                continue
+
+            if node.is_control_flow():
+                decomposition = control_flow.map_blocks(self.run, node.op)
+                dag.substitute_node(node, decomposition, inplace=True)
+
+            elif getattr(node.op, "definition", None) is None:
+                # if we try to synthesize, turn the node into a DAGCircuit and run HLS
+                if self.apply_synthesis:
+                    node_as_dag = _node_to_dag(node)
+                    synthesized = hls.run(node_as_dag)
+                    dag.substitute_node_with_dag(node, synthesized)
+
+                # else: no definition and synthesis not enabled, so we do nothing
+            else:
                 rule = node.op.definition.data
+
                 if (
                     len(rule) == 1
                     and len(node.qargs) == len(rule[0].qubits) == 1  # to preserve gate order
@@ -105,13 +96,10 @@ class Decompose(TransformationPass):
 
         return dag
 
-    def _should_decompose(self, node) -> bool:
-        """Call a decomposition pass on this circuit,
-        to decompose one level (shallow decompose)."""
+    def _should_decompose(self, node: DAGOpNode) -> bool:
+        """Call a decomposition pass on this circuit to decompose one level (shallow decompose)."""
         if self.gates_to_decompose is None:  # check if no gates given
             return True
-
-        has_label = False
 
         if not isinstance(self.gates_to_decompose, list):
             gates = [self.gates_to_decompose]
@@ -121,18 +109,29 @@ class Decompose(TransformationPass):
         strings_list = [s for s in gates if isinstance(s, str)]
         gate_type_list = [g for g in gates if isinstance(g, type)]
 
-        if hasattr(node.op, "label") and node.op.label is not None:
-            has_label = True
-
-        if has_label and (  # check if label or label wildcard is given
-            node.op.label in gates or any(fnmatch(node.op.label, p) for p in strings_list)
+        if (
+            getattr(node.op, "label", None) is not None
+            and node.op.label != ""
+            and (  # check if label or label wildcard is given
+                node.op.label in gates or any(fnmatch(node.op.label, p) for p in strings_list)
+            )
         ):
             return True
-        elif not has_label and (  # check if name or name wildcard is given
-            node.name in gates or any(fnmatch(node.name, p) for p in strings_list)
+        elif node.name in gates or any(  # check if name or name wildcard is given
+            fnmatch(node.name, p) for p in strings_list
         ):
             return True
         elif any(isinstance(node.op, op) for op in gate_type_list):  # check if Gate type given
             return True
         else:
             return False
+
+
+def _node_to_dag(node: DAGOpNode) -> DAGCircuit:
+    # create new dag and apply the operation
+    dag = DAGCircuit()
+    dag.add_qubits(node.qargs)
+    dag.add_clbits(node.cargs)
+    dag.apply_operation_back(node.op, node.qargs, node.cargs)
+
+    return dag

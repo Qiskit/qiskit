@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed the OpenQASM 2 output of :meth:`.QuantumCircuit.qasm` when a custom gate object contained
+    a gate with the same name.  Ideally this shouldn't happen for most gates, but complex algorithmic
+    operations like the :class:`.GroverOperator` class could produce such structures accidentally.
+    See `#10162 <https://github.com/Qiskit/qiskit-terra/issues/10162>`__.

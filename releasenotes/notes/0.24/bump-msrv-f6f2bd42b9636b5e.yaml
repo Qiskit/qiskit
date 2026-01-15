@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    The minimum supported Rust version (MSRV) has been increased from 1.56.1
+    to 1.61.0. If you're are building Qiskit from source you will now need to
+    ensure that you have at least Rust 1.61.0 installed to be able to build
+    Qiskit. This change was made as our upstream dependencies have increased
+    their MSRVs.

@@ -1,6 +1,0 @@
----
-deprecations:
-  - |
-    Module :mod:`qiskit.algorithms.minimum_eigen_solvers` is pending deprecation and
-    will be deprecated in a future version and eventually removed. The module and its function  
-    are superseded by :mod:`qiskit.algorithms.minimum_eigensolvers`

@@ -1,6 +1,0 @@
----
-features:
-  - |
-    Added ``run_options`` arguments in constructor of primitives and ``run_options`` methods to
-    primitives. It is now possible to set default ``run_options`` in addition to passing
-    ``run_options`` at runtime.

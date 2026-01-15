@@ -16,8 +16,8 @@ import unittest
 
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit, Parameter
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.test import QiskitTestCase
 from qiskit.quantum_info import Operator
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestCircuitCompose(QiskitTestCase):
@@ -240,7 +240,7 @@ class TestCircuitCompose(QiskitTestCase):
             larger = QuantumCircuit(4)
             larger.h(range(3))
             larger.append(sub.to_instruction(), [3, 2, 1])
-            larger.append(sub.control(), [0, 1, 2, 3])
+            larger.append(sub.control(annotated=False), [0, 1, 2, 3])
 
             circuit = larger.tensor(larger)
             operator = Operator(larger).tensor(Operator(larger))

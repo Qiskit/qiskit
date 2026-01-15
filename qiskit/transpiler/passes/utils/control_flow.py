@@ -25,7 +25,10 @@ def map_blocks(dag_mapping: Callable[[DAGCircuit], DAGCircuit], op: ControlFlowO
     ones.  Each block will be automatically converted to a :class:`.DAGCircuit` and then returned
     to a :class:`.QuantumCircuit`."""
     return op.replace_blocks(
-        [dag_to_circuit(dag_mapping(circuit_to_dag(block))) for block in op.blocks]
+        [
+            dag_to_circuit(dag_mapping(circuit_to_dag(block)), copy_operations=False)
+            for block in op.blocks
+        ]
     )
 
 
@@ -42,7 +45,7 @@ def trivial_recurse(method):
     use :func:`map_blocks` as::
 
         if isinstance(node.op, ControlFlowOp):
-            node.op = map_blocks(self.run, node.op)
+            dag.substitute_node(node, map_blocks(self.run, node.op))
 
     from with :meth:`.BasePass.run`."""
 
@@ -51,8 +54,8 @@ def trivial_recurse(method):
         def bound_wrapped_method(dag):
             return out(self, dag)
 
-        for node in dag.op_nodes(ControlFlowOp):
-            node.op = map_blocks(bound_wrapped_method, node.op)
+        for node in dag.control_flow_op_nodes():
+            dag.substitute_node(node, map_blocks(bound_wrapped_method, node.op))
         return method(self, dag)
 
     return out

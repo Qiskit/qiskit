@@ -24,7 +24,9 @@ class RemoveBarriers(TransformationPass):
 
     Example:
 
-        .. jupyter-execute::
+        .. plot::
+           :alt: Circuit diagram output by the previous code.
+           :include-source:
 
             from qiskit import QuantumCircuit
             from qiskit.transpiler.passes import RemoveBarriers
@@ -35,7 +37,7 @@ class RemoveBarriers(TransformationPass):
             circuit.h(0)
 
             circuit = RemoveBarriers()(circuit)
-            circuit.draw()
+            circuit.draw('mpl')
 
     """
 

@@ -19,11 +19,14 @@ import os
 import unittest
 from filecmp import cmp as cmpfile
 from shutil import copyfile
-import matplotlib
 
-from qiskit.test import QiskitTestCase
+from qiskit.utils import optionals as _optionals
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
-matplotlib.use("ps")
+if _optionals.HAS_MATPLOTLIB:
+    import matplotlib
+
+    matplotlib.use("ps")
 
 
 def path_to_diagram_reference(filename):
@@ -55,9 +58,11 @@ class QiskitVisualizationTestCase(QiskitTestCase):
         else:
             raise self.failureException("Result and reference do not match.")
 
+    @_optionals.HAS_PIL.require_in_call
     def assertImagesAreEqual(self, current, expected, diff_tolerance=0.001):
         """Checks if both images are similar enough to be considered equal.
         Similarity is controlled by the ```diff_tolerance``` argument."""
+
         from PIL import Image, ImageChops
 
         if isinstance(current, str):

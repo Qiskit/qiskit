@@ -1,0 +1,32 @@
+---
+features:
+  - |
+    Gradient classes rearrange the gradient result according to the order of the input parameters now.
+
+    Example:
+
+    .. code-block:: python
+
+        from qiskit.algorithms.gradients import ParamShiftEstimatorGradient
+        from qiskit.circuit import QuantumCircuit, Parameter
+        from qiskit.primitives import Estimator
+        from qiskit.quantum_info import SparsePauliOp
+
+        # Create a circuit with a parameter
+        p = {i: Parameter(f'p{i}') for i in range(3)}
+        qc = QuantumCircuit(1)
+        qc.rx(p[0], 0)
+        qc.ry(p[1], 0)
+        qc.rz(p[2], 0)
+        op = SparsePauliOp.from_list([("Z", 1)])
+        param_values = [0.1, 0.2, 0.3]
+
+        # Create a gradient object
+        estimator = Estimator()
+        grad = ParamShiftEstimatorGradient(estimator)
+        result = grad.run(qc, op, [param_values]).result()
+        # would produce a gradient of the form [df/dp0, df/dp1, df/dp2]
+        result = grad.run(qc, op, [param_values], parameters=[[p[2], p[0]]]).result()
+        # would produce a gradient of the form [df/dp2, df/dp0]
+
+

@@ -10,11 +10,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Pass for Hoare logic circuit optimization. """
+"""Pass for Hoare logic circuit optimization."""
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit import QuantumRegister, ControlledGate, Gate
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.extensions.unitary import UnitaryGate
+from qiskit.circuit.library import UnitaryGate
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library.standard_gates import CZGate, CU1Gate, MCU1Gate
@@ -28,8 +28,6 @@ class HoareOptimizer(TransformationPass):
     https://arxiv.org/abs/1810.00375
     """
 
-    # pylint: disable=import-error
-
     def __init__(self, size=10):
         """
         Args:
@@ -38,7 +36,7 @@ class HoareOptimizer(TransformationPass):
             MissingOptionalLibraryError: if unable to import z3 solver
         """
         # This module is just a script that adds several post conditions onto existing classes.
-        from . import _gate_extension  # pylint: disable=unused-import
+        from . import _gate_extension
 
         super().__init__()
         self.solver = None
@@ -205,21 +203,25 @@ class HoareOptimizer(TransformationPass):
         """
         import z3
 
-        for node in dag.topological_op_nodes():
+        # Pre-generate all DAG nodes, since we later iterate over them, while
+        # potentially modifying and removing some of them.
+        nodes = list(dag.topological_op_nodes())
+        for node in nodes:
             gate = node.op
-            ctrlqb, ctrlvar, trgtqb, trgtvar = self._seperate_ctrl_trgt(node)
+            _, ctrlvar, trgtqb, trgtvar = self._separate_ctrl_trgt(node)
 
             ctrl_ones = z3.And(*ctrlvar)
 
-            remove_ctrl, new_dag, qb_idx = self._remove_control(gate, ctrlvar, trgtvar)
+            remove_ctrl, new_dag, _ = self._remove_control(gate, ctrlvar, trgtvar)
 
             if remove_ctrl:
-                dag.substitute_node_with_dag(node, new_dag)
-                gate = gate.base_gate
-                node.op = gate
-                node.name = gate.name
-                node.qargs = tuple((ctrlqb + trgtqb)[qi] for qi in qb_idx)
-                _, ctrlvar, trgtqb, trgtvar = self._seperate_ctrl_trgt(node)
+                # We are replacing a node by a new node over a smaller number of qubits.
+                # This can be done using substitute_node_with_dag, which furthermore returns
+                # a mapping from old node ids to new nodes.
+                mapped_nodes = dag.substitute_node_with_dag(node, new_dag)
+                node = next(iter(mapped_nodes.values()))
+                gate = node.op
+                _, ctrlvar, trgtqb, trgtvar = self._separate_ctrl_trgt(node)
 
                 ctrl_ones = z3.And(*ctrlvar)
 
@@ -251,8 +253,8 @@ class HoareOptimizer(TransformationPass):
             append = True
             node1 = self.gatecache[qubit][i]
             node2 = self.gatecache[qubit][i + 1]
-            trgtqb1 = self._seperate_ctrl_trgt(node1)[2]
-            trgtqb2 = self._seperate_ctrl_trgt(node2)[2]
+            trgtqb1 = self._separate_ctrl_trgt(node1)[2]
+            trgtqb2 = self._separate_ctrl_trgt(node2)[2]
             i += 1
 
             if trgtqb1 != trgtqb2:
@@ -293,10 +295,10 @@ class HoareOptimizer(TransformationPass):
 
         if isinstance(gate1, ControlledGate):
             gate1 = gate1.base_gate
-        gate1 = type(gate1)
+        gate1 = gate1.base_class
         if isinstance(gate2, ControlledGate):
             gate2 = gate2.base_gate
-        gate2 = type(gate2)
+        gate2 = gate2.base_class
 
         # equality of gates can be determined via type and parameters, unless
         # the gates have no specific type, in which case definition is used
@@ -321,8 +323,8 @@ class HoareOptimizer(TransformationPass):
         import z3
 
         assert len(sequence) == 2
-        ctrlvar1 = self._seperate_ctrl_trgt(sequence[0])[1]
-        ctrlvar2 = self._seperate_ctrl_trgt(sequence[1])[1]
+        ctrlvar1 = self._separate_ctrl_trgt(sequence[0])[1]
+        ctrlvar2 = self._separate_ctrl_trgt(sequence[1])[1]
 
         self.solver.push()
         self.solver.add(
@@ -371,7 +373,7 @@ class HoareOptimizer(TransformationPass):
         # truncate gatecache for this qubit to after above gate
         self.gatecache[qubit] = self.gatecache[qubit][max_idx + 1 :]
 
-    def _seperate_ctrl_trgt(self, node):
+    def _separate_ctrl_trgt(self, node):
         """Get the target qubits and control qubits if available,
         as well as their respective z3 variables.
         """

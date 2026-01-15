@@ -25,18 +25,13 @@ from typing import Type, Callable
 _MAGIC_STATICMETHODS = {"__new__"}
 _MAGIC_CLASSMETHODS = {"__init_subclass__", "__prepare__"}
 
-# `type` itself has several methods (mostly dunders).  When we are wrapping those names, we need to
-# make sure that we don't interfere with `type.__getattribute__`'s handling that circumvents the
-# normal inheritance rules when appropriate.
-_TYPE_METHODS = set(dir(type))
-
 
 class _lift_to_method:  # pylint: disable=invalid-name
     """A decorator that ensures that an input callable object implements ``__get__``.  It is
     returned unchanged if so, otherwise it is turned into the default implementation for functions,
     which makes them bindable to instances.
 
-    Python-space functions and lambdas already have this behaviour, but builtins like ``print``
+    Python-space functions and lambdas already have this behavior, but builtins like ``print``
     don't; using this class allows us to do::
 
         wrap_method(MyClass, "maybe_mutates_arguments", before=print, after=print)
@@ -54,7 +49,7 @@ class _lift_to_method:  # pylint: disable=invalid-name
 
     def __init__(self, method):
         if method is self:
-            # Prevent double-initialisation if we are passed an instance of this object to lift.
+            # Prevent double-initialization if we are passed an instance of this object to lift.
             return
         self._method = method
 
@@ -123,7 +118,7 @@ class _WrappedMethod:
 
 
 def wrap_method(cls: Type, name: str, *, before: Callable = None, after: Callable = None):
-    """Wrap the functionality the instance- or class method ``cls.name`` with additional behaviour
+    """Wrap the functionality the instance- or class method ``cls.name`` with additional behavior
     ``before`` and ``after``.
 
     This mutates ``cls``, replacing the attribute ``name`` with the new functionality.  This is
@@ -146,16 +141,6 @@ def wrap_method(cls: Type, name: str, *, before: Callable = None, after: Callabl
     # The best time to apply decorators to methods is before they are bound (e.g. by using function
     # decorators during the class definition), but if we're making a class decorator, we can't do
     # that.  We need the actual definition of the method, so we have to dodge the normal output of
-    # `type.__getattribute__`, which evalutes descriptors if it finds them, unless the name we're
-    # looking for is defined on `type` itself.  In that case, we need the attribute getter to
-    # correctly return the underlying object, not the one that `type` defines for its own purposes.
-    attribute_getter = type.__getattribute__ if name in _TYPE_METHODS else object.__getattribute__
-    for cls_ in inspect.getmro(cls):
-        try:
-            method = attribute_getter(cls_, name)
-            break
-        except AttributeError:
-            pass
-    else:
-        raise ValueError(f"Method '{name}' is not defined for class '{cls.__name__}'")
+    # `type.__getattribute__`, which evalutes descriptors if it finds them.
+    method = inspect.getattr_static(cls, name)
     setattr(cls, name, _WrappedMethod(method, before, after))

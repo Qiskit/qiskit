@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed an issue with :class:`~.FullAncillaAllocation` so it can now function with :class:`~.Target` objects that do not have a
+    coupling map (typically because there are no 2 qubit gates in the :class:`~.Target`). In this case :class:`~.FullAncillaAllocation` will add
+    ancilla qubits so that the number of qubits in the :class:`~.DAGCircuit` matches the number
+    :attr:`.Target.num_qubits`.

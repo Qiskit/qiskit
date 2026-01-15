@@ -13,13 +13,17 @@
 """T and Tdg gate."""
 import math
 from typing import Optional
+
 import numpy
-from qiskit.qasm import pi
-from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
+
+from qiskit.circuit.singleton import SingletonGate, stdlib_singleton_key
+from qiskit.circuit.library.standard_gates.p import PhaseGate
+from qiskit.circuit._utils import with_gate_array
+from qiskit._accelerate.circuit import StandardGate
 
 
-class TGate(Gate):
+@with_gate_array([[1, 0], [0, (1 + 1j) / math.sqrt(2)]])
+class TGate(SingletonGate):
     r"""Single qubit T gate (Z**0.25).
 
     It induces a :math:`\pi/4` phase, and is sometimes called the pi/8 gate
@@ -30,7 +34,7 @@ class TGate(Gate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.t` method.
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -39,9 +43,9 @@ class TGate(Gate):
                 0 & e^{i\pi/4}
             \end{pmatrix}
 
-    **Circuit symbol:**
+    Circuit symbol:
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌───┐
         q_0: ┤ T ├
@@ -50,36 +54,53 @@ class TGate(Gate):
     Equivalent to a :math:`\pi/4` radian rotation about the Z axis.
     """
 
+    _standard_gate = StandardGate.T
+
     def __init__(self, label: Optional[str] = None):
-        """Create new T gate."""
+        """
+        Args:
+            label: An optional label for the gate.
+        """
         super().__init__("t", 1, [], label=label)
 
+    _singleton_lookup_key = stdlib_singleton_key()
+
     def _define(self):
-        """
-        gate t a { u1(pi/4) a; }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .u1 import U1Gate
+        from qiskit.circuit import QuantumCircuit
 
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [(U1Gate(pi / 4), [q[0]], [])]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        #    ┌────────┐
+        # q: ┤ P(π/4) ├
+        #    └────────┘
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.T._get_definition(self.params), legacy_qubits=True
+        )
 
-    def inverse(self):
-        """Return inverse T gate (i.e. Tdg)."""
+    def inverse(self, annotated: bool = False):
+        """Return inverse T gate (i.e. Tdg).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.TdgGate`.
+
+        Returns:
+            TdgGate: inverse of :class:`.TGate`
+        """
         return TdgGate()
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the T gate."""
-        return numpy.array([[1, 0], [0, (1 + 1j) / numpy.sqrt(2)]], dtype=dtype)
+    def power(self, exponent: float, annotated: bool = False):
+        return PhaseGate(0.25 * numpy.pi * exponent)
+
+    def __eq__(self, other):
+        return isinstance(other, TGate)
 
 
-class TdgGate(Gate):
+@with_gate_array([[1, 0], [0, (1 - 1j) / math.sqrt(2)]])
+class TdgGate(SingletonGate):
     r"""Single qubit T-adjoint gate (~Z**0.25).
 
     It induces a :math:`-\pi/4` phase.
@@ -89,7 +110,7 @@ class TdgGate(Gate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.tdg` method.
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -98,9 +119,9 @@ class TdgGate(Gate):
                 0 & e^{-i\pi/4}
             \end{pmatrix}
 
-    **Circuit symbol:**
+    Circuit symbol:
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌─────┐
         q_0: ┤ Tdg ├
@@ -109,30 +130,43 @@ class TdgGate(Gate):
     Equivalent to a :math:`-\pi/4` radian rotation about the Z axis.
     """
 
+    _standard_gate = StandardGate.Tdg
+
     def __init__(self, label: Optional[str] = None):
         """Create new Tdg gate."""
         super().__init__("tdg", 1, [], label=label)
 
+    _singleton_lookup_key = stdlib_singleton_key()
+
     def _define(self):
-        """
-        gate tdg a { u1(pi/4) a; }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .u1 import U1Gate
+        from qiskit.circuit import QuantumCircuit
 
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [(U1Gate(-pi / 4), [q[0]], [])]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        #    ┌─────────┐
+        # q: ┤ P(-π/4) ├
+        #    └─────────┘
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.Tdg._get_definition(self.params), legacy_qubits=True
+        )
 
-    def inverse(self):
-        """Return inverse Tdg gate (i.e. T)."""
+    def inverse(self, annotated: bool = False):
+        """Return inverse Tdg gate (i.e. T).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.TGate`.
+
+        Returns:
+            TGate: inverse of :class:`.TdgGate`
+        """
         return TGate()
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the inverse T gate."""
-        return numpy.array([[1, 0], [0, (1 - 1j) / math.sqrt(2)]], dtype=dtype)
+    def power(self, exponent: float, annotated: bool = False):
+        return PhaseGate(-0.25 * numpy.pi * exponent)
+
+    def __eq__(self, other):
+        return isinstance(other, TdgGate)

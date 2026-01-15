@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed a performance bug that :class:`.SamplingVQE` evaluated the energies of eigenstates
+    in a slow way.

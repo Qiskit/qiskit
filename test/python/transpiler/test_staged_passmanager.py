@@ -13,14 +13,18 @@
 # pylint: disable=missing-function-docstring,missing-class-docstring
 
 """Test the staged passmanager logic"""
+
 from unittest.mock import patch
 
 from ddt import data, ddt
 
 from qiskit.transpiler import PassManager, StagedPassManager
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.passes import Optimize1qGates, Unroller, Depth, BasicSwap
-from qiskit.test import QiskitTestCase
+from qiskit.transpiler.passes import Optimize1qGates, Depth, BasicSwap, BasisTranslator
+from qiskit.circuit.library.standard_gates.equivalence_library import (
+    StandardEquivalenceLibrary as std_eqlib,
+)
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt
@@ -32,26 +36,26 @@ class TestStagedPassManager(QiskitTestCase):
         )
         spm = StagedPassManager(
             init=PassManager([Optimize1qGates()]),
-            routing=PassManager([Unroller(["u", "cx"])]),
+            routing=PassManager([BasisTranslator(std_eqlib, ["u", "cx"])]),
             scheduling=PassManager([Depth()]),
         )
         self.assertEqual(
-            [x.__class__.__name__ for passes in spm.passes() for x in passes["passes"]],
-            ["Optimize1qGates", "Unroller", "Depth"],
+            [x.__class__.__name__ for x in spm.to_flow_controller().tasks],
+            ["Optimize1qGates", "BasisTranslator", "Depth"],
         )
 
     def test_inplace_edit(self):
         spm = StagedPassManager(stages=["single_stage"])
         spm.single_stage = PassManager([Optimize1qGates(), Depth()])
         self.assertEqual(
-            [x.__class__.__name__ for passes in spm.passes() for x in passes["passes"]],
+            [x.__class__.__name__ for x in spm.to_flow_controller().tasks],
             ["Optimize1qGates", "Depth"],
         )
-        spm.single_stage.append(Unroller(["u"]))
+        spm.single_stage.append(BasisTranslator(std_eqlib, ["u"]))
         spm.single_stage.append(Depth())
         self.assertEqual(
-            [x.__class__.__name__ for passes in spm.passes() for x in passes["passes"]],
-            ["Optimize1qGates", "Depth", "Unroller", "Depth"],
+            [x.__class__.__name__ for x in spm.to_flow_controller().tasks],
+            ["Optimize1qGates", "Depth", "BasisTranslator", "Depth"],
         )
 
     def test_invalid_stage(self):
@@ -60,8 +64,9 @@ class TestStagedPassManager(QiskitTestCase):
 
     def test_pre_phase_is_valid_stage(self):
         spm = StagedPassManager(stages=["init"], pre_init=PassManager([Depth()]))
+
         self.assertEqual(
-            [x.__class__.__name__ for passes in spm.passes() for x in passes["passes"]],
+            [x.__class__.__name__ for x in spm.to_flow_controller().tasks],
             ["Depth"],
         )
 
@@ -100,23 +105,23 @@ class TestStagedPassManager(QiskitTestCase):
 
     def test_repeated_stages(self):
         stages = ["alpha", "omega", "alpha"]
-        pre_alpha = PassManager(Unroller(["u", "cx"]))
+        pre_alpha = PassManager(BasisTranslator(std_eqlib, ["u", "cx"]))
         alpha = PassManager(Depth())
         post_alpha = PassManager(BasicSwap([[0, 1], [1, 2]]))
         omega = PassManager(Optimize1qGates())
         spm = StagedPassManager(
             stages, pre_alpha=pre_alpha, alpha=alpha, post_alpha=post_alpha, omega=omega
         )
-        passes = [
-            *pre_alpha.passes(),
-            *alpha.passes(),
-            *post_alpha.passes(),
-            *omega.passes(),
-            *pre_alpha.passes(),
-            *alpha.passes(),
-            *post_alpha.passes(),
-        ]
-        self.assertEqual(spm.passes(), passes)
+        passes = (
+            *pre_alpha.to_flow_controller().tasks,
+            *alpha.to_flow_controller().tasks,
+            *post_alpha.to_flow_controller().tasks,
+            *omega.to_flow_controller().tasks,
+            *pre_alpha.to_flow_controller().tasks,
+            *alpha.to_flow_controller().tasks,
+            *post_alpha.to_flow_controller().tasks,
+        )
+        self.assertEqual(spm.to_flow_controller().tasks, passes)
 
     def test_edit_stages(self):
         spm = StagedPassManager()

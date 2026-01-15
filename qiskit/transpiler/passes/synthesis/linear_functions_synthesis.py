@@ -13,30 +13,10 @@
 
 """Synthesize LinearFunctions."""
 
-from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
-from qiskit.circuit.library import Permutation
+from qiskit.circuit.library import PermutationGate
 from qiskit.circuit.exceptions import CircuitError
-
-
-class LinearFunctionsSynthesis(TransformationPass):
-    """Synthesize linear functions. Under the hood, this runs cnot_synth
-    which implements the Patel–Markov–Hayes algorithm."""
-
-    def run(self, dag: DAGCircuit) -> DAGCircuit:
-        """Run the LinearFunctionsSynthesis pass on `dag`.
-        Args:
-            dag: input dag.
-        Returns:
-            Output dag with LinearFunctions synthesized.
-        """
-
-        for node in dag.named_nodes("linear_function"):
-            decomposition = circuit_to_dag(node.op.definition)
-            dag.substitute_node_with_dag(node, decomposition)
-
-        return dag
 
 
 class LinearFunctionsToPermutations(TransformationPass):
@@ -56,6 +36,6 @@ class LinearFunctionsToPermutations(TransformationPass):
             except CircuitError:
                 continue
 
-            permutation = Permutation(len(pattern), pattern)
-            dag.substitute_node(node, permutation.to_instruction())
+            permutation = PermutationGate(pattern)
+            dag.substitute_node(node, permutation)
         return dag

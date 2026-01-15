@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2021.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -11,15 +11,33 @@
 # that they have been altered from the originals.
 
 """Cancel pairs of inverse gates exploiting commutation relations."""
-
+from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
+from qiskit.circuit import CircuitError
 
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode
+from qiskit.quantum_info import Operator
+from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.circuit.commutation_checker import CommutationChecker
 
 
 class CommutativeInverseCancellation(TransformationPass):
     """Cancel pairs of inverse gates exploiting commutation relations."""
+
+    def __init__(self, matrix_based: bool = False, max_qubits: int = 4):
+        """
+        Args:
+            matrix_based: If ``True``, uses matrix representations to check whether two
+                operations are inverse of each other. This makes the checks more powerful,
+                and, in addition, allows canceling pairs of operations that are inverse up to a
+                phase, while updating the global phase of the circuit accordingly.
+                Generally this leads to more reductions at the expense of increased runtime.
+            max_qubits: Limits the number of qubits in matrix-based commutativity and
+                inverse checks.
+        """
+        self._matrix_based = matrix_based
+        self._max_qubits = max_qubits
+        self.comm_checker = scc
+        super().__init__()
 
     def _skip_node(self, node):
         """Returns True if we should skip this node for the analysis."""
@@ -32,12 +50,47 @@ class CommutativeInverseCancellation(TransformationPass):
         # checking can be extended to cover additional cases.
         if getattr(node.op, "_directive", False) or node.name in {"measure", "reset", "delay"}:
             return True
-        if getattr(node.op, "condition", None):
+        if getattr(node, "condition", None):
             return True
-        if node.op.is_parameterized():
+        if node.is_control_flow():
             return True
-        # ToDo: possibly also skip nodes on too many qubits
+        if getattr(node.op, "is_parameterized", None) is not None and node.op.is_parameterized():
+            return True
         return False
+
+    def _get_inverse(self, op):
+        """
+        Returns an inverse of the given op, or ``None`` if the inverse
+        does not exist or is too expensive to compute.
+        """
+        # Some instructions (such as Initialize) cannot be inverted
+        try:
+            inverse = op.inverse()
+        except (CircuitError, AttributeError):
+            inverse = None
+        return inverse
+
+    def _check_equal_upto_phase(self, op1, op2, matrix_based):
+        """
+        Checks whether op1 and op2 are equal up to a phase, that is whether
+        ``op2 = e^{i * d} op1`` for some phase difference ``d``.
+
+        If this is the case, we can replace ``op2 * op1^{-1}`` by ``e^{i * d} I``.
+
+        The output is a tuple representing whether the two ops
+        are equal up to a phase and that phase difference.
+        """
+        phase_difference = 0
+        are_equal = op1 == op2
+        if not are_equal and matrix_based:
+            mat1 = Operator(op1).data
+            mat2 = Operator(op2).data
+            props = {}
+            are_equal = matrix_equal(mat1, mat2, ignore_phase=True, props=props)
+            if are_equal:
+                # mat2 = e^{i * phase_difference} mat1
+                phase_difference = props["phase_difference"]
+        return are_equal, phase_difference
 
     def run(self, dag: DAGCircuit):
         """
@@ -55,11 +108,18 @@ class CommutativeInverseCancellation(TransformationPass):
 
         removed = [False for _ in range(circ_size)]
 
-        cc = CommutationChecker()
+        phase_update = 0
 
         for idx1 in range(0, circ_size):
+            # if the node should be skipped or does not have an inverse, continue
             if self._skip_node(topo_sorted_nodes[idx1]):
                 continue
+            if (op1_inverse := self._get_inverse(topo_sorted_nodes[idx1].op)) is None:
+                continue
+
+            matrix_based = (
+                self._matrix_based and topo_sorted_nodes[idx1].num_qubits <= self._max_qubits
+            )
 
             matched_idx2 = -1
 
@@ -71,18 +131,21 @@ class CommutativeInverseCancellation(TransformationPass):
                     not self._skip_node(topo_sorted_nodes[idx2])
                     and topo_sorted_nodes[idx2].qargs == topo_sorted_nodes[idx1].qargs
                     and topo_sorted_nodes[idx2].cargs == topo_sorted_nodes[idx1].cargs
-                    and topo_sorted_nodes[idx2].op == topo_sorted_nodes[idx1].op.inverse()
                 ):
-                    matched_idx2 = idx2
-                    break
+                    is_inverse, phase = self._check_equal_upto_phase(
+                        op1_inverse,
+                        topo_sorted_nodes[idx2].op,
+                        matrix_based,
+                    )
+                    if is_inverse:
+                        phase_update += phase
+                        matched_idx2 = idx2
+                        break
 
-                if not cc.commute(
-                    topo_sorted_nodes[idx1].op,
-                    topo_sorted_nodes[idx1].qargs,
-                    topo_sorted_nodes[idx1].cargs,
-                    topo_sorted_nodes[idx2].op,
-                    topo_sorted_nodes[idx2].qargs,
-                    topo_sorted_nodes[idx2].cargs,
+                if not self.comm_checker.commute_nodes(
+                    topo_sorted_nodes[idx1],
+                    topo_sorted_nodes[idx2],
+                    max_num_qubits=self._max_qubits,
                 ):
                     break
 
@@ -93,5 +156,8 @@ class CommutativeInverseCancellation(TransformationPass):
         for idx in range(circ_size):
             if removed[idx]:
                 dag.remove_op_node(topo_sorted_nodes[idx])
+
+        if phase_update != 0:
+            dag.global_phase += phase_update
 
         return dag

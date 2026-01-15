@@ -1,0 +1,18 @@
+---
+features:
+  - |
+    Added support for expressing the sign of a :class:`.ParameterExpression`
+    Instead of assigning a concrete value and using :data:`numpy.sign` or other library functions, the user can use the instance of the :class:`.ParameterExpression`
+    class to calculate the sign and can work with the sign before the expression is fully assigned.
+
+    It can be used as follows::
+
+      from qiskit.circuit import Parameter
+
+      b = Parameter("phi")
+      sign_value = b.sign()
+      print("sign of an unassigned Parameter is: ", sign_value)
+      print("Sign of a Parameter assigned to -3 is: ", sign_value.assign(b,-3))
+
+    Refer to `#10360 <https://github.com/Qiskit/qiskit-terra/issues/10360>`__ for more details.
+

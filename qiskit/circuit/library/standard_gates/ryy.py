@@ -11,12 +11,15 @@
 # that they have been altered from the originals.
 
 """Two-qubit YY-rotation gate."""
+
+from __future__ import annotations
+
 import math
 from typing import Optional
 import numpy as np
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit._accelerate.circuit import StandardGate
 
 
 class RYYGate(Gate):
@@ -27,9 +30,9 @@ class RYYGate(Gate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.ryy` method.
 
-    **Circuit Symbol:**
+    Circuit symbol:
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌─────────┐
         q_0: ┤1        ├
@@ -37,81 +40,84 @@ class RYYGate(Gate):
         q_1: ┤0        ├
              └─────────┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
-        \newcommand{\th}{\frac{\theta}{2}}
+        \newcommand{\rotationangle}{\frac{\theta}{2}}
 
-        R_{YY}(\theta) = \exp\left(-i \th Y{\otimes}Y\right) =
+        R_{YY}(\theta) = \exp\left(-i \rotationangle Y{\otimes}Y\right) =
             \begin{pmatrix}
-                \cos\left(\th\right)   & 0           & 0           & i\sin\left(\th\right) \\
-                0           & \cos\left(\th\right)   & -i\sin\left(\th\right) & 0 \\
-                0           & -i\sin\left(\th\right) & \cos\left(\th\right)   & 0 \\
-                i\sin\left(\th\right)  & 0           & 0           & \cos\left(\th\right)
+                \cos\left(\rotationangle\right) & 0 & 0 & i\sin\left(\rotationangle\right) \\
+                0 & \cos\left(\rotationangle\right) & -i\sin\left(\rotationangle\right) & 0 \\
+                0 & -i\sin\left(\rotationangle\right) & \cos\left(\rotationangle\right) & 0 \\
+                i\sin\left(\rotationangle\right) & 0 & 0 & \cos\left(\rotationangle\right)
             \end{pmatrix}
 
-    **Examples:**
+    Examples:
 
-        .. math::
+    .. math::
 
-            R_{YY}(\theta = 0) = I
+        R_{YY}(\theta = 0) = I 
 
-        .. math::
+    .. math::
 
-            R_{YY}(\theta = \pi) = i Y \otimes Y
+        R_{YY}(\theta = \pi) = -i Y \otimes Y
 
-        .. math::
+    .. math::
 
-            R_{YY}\left(\theta = \frac{\pi}{2}\right) = \frac{1}{\sqrt{2}}
-                                    \begin{pmatrix}
-                                        1 & 0 & 0 & i \\
-                                        0 & 1 & -i & 0 \\
-                                        0 & -i & 1 & 0 \\
-                                        i & 0 & 0 & 1
-                                    \end{pmatrix}
+        R_{YY}\left(\theta = \frac{\pi}{2}\right) = \frac{1}{\sqrt{2}}
+                                \begin{pmatrix}
+                                    1 & 0 & 0 & i \\
+                                    0 & 1 & -i & 0 \\
+                                    0 & -i & 1 & 0 \\
+                                    i & 0 & 0 & 1
+                                \end{pmatrix}
     """
 
+    _standard_gate = StandardGate.RYY
+
     def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
-        """Create new RYY gate."""
+        """
+        Args:
+            theta: The rotation angle.
+            label: An optional label for the gate.
+        """
         super().__init__("ryy", 2, [theta], label=label)
 
     def _define(self):
-        """Calculate a subcircuit that implements this unitary."""
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .x import CXGate
-        from .rx import RXGate
-        from .rz import RZGate
+        from qiskit.circuit import QuantumCircuit
 
-        #      ┌─────────┐                   ┌──────────┐
-        # q_0: ┤ Rx(π/2) ├──■─────────────■──┤ Rx(-π/2) ├
-        #      ├─────────┤┌─┴─┐┌───────┐┌─┴─┐├──────────┤
-        # q_1: ┤ Rx(π/2) ├┤ X ├┤ Rz(0) ├┤ X ├┤ Rx(-π/2) ├
-        #      └─────────┘└───┘└───────┘└───┘└──────────┘
-        q = QuantumRegister(2, "q")
-        theta = self.params[0]
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (RXGate(np.pi / 2), [q[0]], []),
-            (RXGate(np.pi / 2), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (RZGate(theta), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (RXGate(-np.pi / 2), [q[0]], []),
-            (RXGate(-np.pi / 2), [q[1]], []),
-        ]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        #      ┌──────┐                   ┌────┐
+        # q_0: ┤ √Xdg ├──■─────────────■──┤ √X ├
+        #      ├──────┤┌─┴─┐┌───────┐┌─┴─┐├────┤
+        # q_1: ┤ √Xdg ├┤ X ├┤ Rz(θ) ├┤ X ├┤ √X ├
+        #      └──────┘└───┘└───────┘└───┘└────┘
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.RYY._get_definition(self.params), legacy_qubits=True
+        )
 
-    def inverse(self):
-        """Return inverse RYY gate (i.e. with the negative rotation angle)."""
+    def inverse(self, annotated: bool = False):
+        """Return inverse RYY gate (i.e. with the negative rotation angle).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.RYYGate` with an inverted parameter value.
+
+        Returns:
+            RYYGate: inverse gate.
+        """
         return RYYGate(-self.params[0])
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the RYY gate."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         theta = float(self.params[0])
         cos = math.cos(theta / 2)
         isin = 1j * math.sin(theta / 2)
@@ -119,3 +125,12 @@ class RYYGate(Gate):
             [[cos, 0, 0, isin], [0, cos, -isin, 0], [0, -isin, cos, 0], [isin, 0, 0, cos]],
             dtype=dtype,
         )
+
+    def power(self, exponent: float, annotated: bool = False):
+        (theta,) = self.params
+        return RYYGate(exponent * theta)
+
+    def __eq__(self, other):
+        if isinstance(other, RYYGate):
+            return self._compare_parameters(other)
+        return False

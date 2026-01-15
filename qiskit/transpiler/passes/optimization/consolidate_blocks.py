@@ -11,17 +11,48 @@
 # that they have been altered from the originals.
 
 """Replace each block of consecutive gates by a single Unitary node."""
+from __future__ import annotations
 
-from qiskit.circuit.classicalregister import ClassicalRegister
-from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.dagcircuit.dagnode import DAGOpNode
-from qiskit.quantum_info import Operator
-from qiskit.quantum_info.synthesis import TwoQubitBasisDecomposer
-from qiskit.extensions import UnitaryGate
-from qiskit.circuit.library.standard_gates import CXGate
+from qiskit.synthesis.two_qubit import TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer
+from qiskit.circuit.library.standard_gates import (
+    CXGate,
+    CZGate,
+    iSwapGate,
+    ECRGate,
+    RXXGate,
+    RYYGate,
+    RZZGate,
+    RZXGate,
+    CRXGate,
+    CRYGate,
+    CRZGate,
+    CPhaseGate,
+)
+
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.transpiler.passes.synthesis import unitary_synthesis
+from qiskit.transpiler.passmanager import PassManager
+from qiskit._accelerate.consolidate_blocks import consolidate_blocks
+
+from .collect_1q_runs import Collect1qRuns
+from .collect_2q_blocks import Collect2qBlocks
+
+KAK_GATE_NAMES = {
+    "cx": CXGate(),
+    "cz": CZGate(),
+    "iswap": iSwapGate(),
+    "ecr": ECRGate(),
+}
+
+KAK_GATE_PARAM_NAMES = {
+    "rxx": RXXGate,
+    "rzz": RZZGate,
+    "ryy": RYYGate,
+    "rzx": RZXGate,
+    "cphase": CPhaseGate,
+    "crx": CRXGate,
+    "cry": CRYGate,
+    "crz": CRZGate,
+}
 
 
 class ConsolidateBlocks(TransformationPass):
@@ -31,34 +62,71 @@ class ConsolidateBlocks(TransformationPass):
     the same qubits into a Unitary node, to be resynthesized later,
     to a potentially more optimal subcircuit.
 
+    This pass reads the :class:`.PropertySet` key ``ConsolidateBlocks_qubit_map`` which it uses to
+    communicate with recursive worker instances of itself for control-flow operations.  The key
+    should never be observable in a user-facing :class:`.PassManager` pipeline (it is only set in
+    internal :class:`.PassManager` instances), but the pass may return incorrect results or error if
+    another pass sets this key.
+
     Notes:
         This pass assumes that the 'blocks_list' property that it reads is
         given such that blocks are in topological order. The blocks are
         collected by a previous pass, such as `Collect2qBlocks`.
     """
 
-    def __init__(self, kak_basis_gate=None, force_consolidate=False, basis_gates=None, target=None):
+    _QUBIT_MAP_KEY = "ConsolidateBlocks_qubit_map"
+
+    def __init__(
+        self,
+        kak_basis_gate=None,
+        force_consolidate=False,
+        basis_gates=None,
+        approximation_degree=1.0,
+        target=None,
+    ):
         """ConsolidateBlocks initializer.
+
+        If ``kak_basis_gate`` is not ``None`` it will be used as the basis gate for KAK decomposition.
+        Otherwise, if ``basis_gates`` is not ``None`` a basis gate will be chosen from this list.
+        Otherwise, the basis gate will be :class:`.CXGate`.
 
         Args:
             kak_basis_gate (Gate): Basis gate for KAK decomposition.
-            force_consolidate (bool): Force block consolidation
+            force_consolidate (bool): Force block consolidation.
             basis_gates (List(str)): Basis gates from which to choose a KAK gate.
-            target (Target): The target object for the compilation target backend
+            approximation_degree (float): a float between :math:`[0.0, 1.0]`. Lower approximates more.
+            target (Target): The target object for the compilation target backend.
         """
         super().__init__()
         self.basis_gates = None
-        self.target = target
+        self.basis_gate_name = None
+        # Bypass target if it doesn't contain any basis gates (i.e. it's a _FakeTarget), as this
+        # not part of the official target model.
+        self.target = target if target is not None and len(target.operation_names) > 0 else None
         if basis_gates is not None:
             self.basis_gates = set(basis_gates)
         self.force_consolidate = force_consolidate
-
         if kak_basis_gate is not None:
             self.decomposer = TwoQubitBasisDecomposer(kak_basis_gate)
+            self.basis_gate_name = kak_basis_gate.name
         elif basis_gates is not None:
-            self.decomposer = unitary_synthesis._basis_gates_to_decomposer_2q(basis_gates)
+            kak_gates = KAK_GATE_NAMES.keys() & (basis_gates or [])
+            kak_param_gates = KAK_GATE_PARAM_NAMES.keys() & (basis_gates or [])
+            if kak_param_gates:
+                self.decomposer = TwoQubitControlledUDecomposer(
+                    KAK_GATE_PARAM_NAMES[list(kak_param_gates)[0]]
+                )
+                self.basis_gate_name = list(kak_param_gates)[0]
+            elif kak_gates:
+                self.decomposer = TwoQubitBasisDecomposer(
+                    KAK_GATE_NAMES[list(kak_gates)[0]], basis_fidelity=approximation_degree or 1.0
+                )
+                self.basis_gate_name = list(kak_gates)[0]
+            else:
+                self.decomposer = None
         else:
             self.decomposer = TwoQubitBasisDecomposer(CXGate())
+            self.basis_gate_name = "cx"
 
     def run(self, dag):
         """Run the ConsolidateBlocks pass on `dag`.
@@ -69,97 +137,54 @@ class ConsolidateBlocks(TransformationPass):
         if self.decomposer is None:
             return dag
 
-        # compute ordered indices for the global circuit wires
-        global_index_map = {wire: idx for idx, wire in enumerate(dag.qubits)}
         blocks = self.property_set["block_list"]
-        basis_gate_name = self.decomposer.gate.name
-        all_block_gates = set()
-        for block in blocks:
-            if len(block) == 1 and self._check_not_in_basis(
-                block[0].name, block[0].qargs, global_index_map
-            ):
-                all_block_gates.add(block[0])
-                dag.substitute_node(block[0], UnitaryGate(block[0].op.to_matrix()))
-            else:
-                basis_count = 0
-                outside_basis = False
-                block_qargs = set()
-                block_cargs = set()
-                for nd in block:
-                    block_qargs |= set(nd.qargs)
-                    if isinstance(nd, DAGOpNode) and getattr(nd.op, "condition", None):
-                        block_cargs |= set(getattr(nd.op, "condition", None)[0])
-                    all_block_gates.add(nd)
-                q = QuantumRegister(len(block_qargs))
-                qc = QuantumCircuit(q)
-                if block_cargs:
-                    c = ClassicalRegister(len(block_cargs))
-                    qc.add_register(c)
-                block_index_map = self._block_qargs_to_indices(block_qargs, global_index_map)
-                for nd in block:
-                    if nd.op.name == basis_gate_name:
-                        basis_count += 1
-                    if self._check_not_in_basis(nd.op.name, nd.qargs, global_index_map):
-                        outside_basis = True
-                    qc.append(nd.op, [q[block_index_map[i]] for i in nd.qargs])
-                unitary = UnitaryGate(Operator(qc))
+        if blocks is not None:
+            blocks = [[node._node_id for node in block] for block in blocks]
+        runs = self.property_set["run_list"]
+        if runs is not None:
+            runs = [[node._node_id for node in run] for run in runs]
 
-                max_2q_depth = 20  # If depth > 20, there will be 1q gates to consolidate.
-                if (  # pylint: disable=too-many-boolean-expressions
-                    self.force_consolidate
-                    or unitary.num_qubits > 2
-                    or self.decomposer.num_basis_gates(unitary) < basis_count
-                    or len(block) > max_2q_depth
-                    or ((self.basis_gates is not None) and outside_basis)
-                    or ((self.target is not None) and outside_basis)
-                ):
-                    dag.replace_block_with_op(block, unitary, block_index_map, cycle_check=False)
-        # If 1q runs are collected before consolidate those too
-        runs = self.property_set["run_list"] or []
-        for run in runs:
-            if any(gate in all_block_gates for gate in run):
-                continue
-            if len(run) == 1 and not self._check_not_in_basis(
-                run[0].name, run[0].qargs, global_index_map
-            ):
-                dag.substitute_node(run[0], UnitaryGate(run[0].op.to_matrix()))
-            else:
-                qubit = run[0].qargs[0]
-                operator = run[0].op.to_matrix()
-                already_in_block = False
-                for gate in run[1:]:
-                    if gate in all_block_gates:
-                        already_in_block = True
-                    operator = gate.op.to_matrix().dot(operator)
-                if already_in_block:
-                    continue
-                unitary = UnitaryGate(operator)
-                dag.replace_block_with_op(run, unitary, {qubit: 0}, cycle_check=False)
+        qubit_map = self.property_set.get(self._QUBIT_MAP_KEY, None)
+        if qubit_map is None:
+            qubit_map = list(range(dag.num_qubits()))
+        consolidate_blocks(
+            dag,
+            self.decomposer._inner_decomposer,
+            self.basis_gate_name,
+            self.force_consolidate,
+            target=self.target,
+            basis_gates=self.basis_gates,
+            blocks=blocks,
+            runs=runs,
+            qubit_map=qubit_map,
+        )
+        dag = self._handle_control_flow_ops(dag, qubit_map)
+
         # Clear collected blocks and runs as they are no longer valid after consolidation
         if "run_list" in self.property_set:
             del self.property_set["run_list"]
         if "block_list" in self.property_set:
             del self.property_set["block_list"]
+
         return dag
 
-    def _check_not_in_basis(self, gate_name, qargs, global_index_map):
-        if self.target is not None:
-            return not self.target.instruction_supported(
-                gate_name, tuple(global_index_map[qubit] for qubit in qargs)
-            )
-        else:
-            return self.basis_gates and gate_name not in self.basis_gates
-
-    def _block_qargs_to_indices(self, block_qargs, global_index_map):
-        """Map each qubit in block_qargs to its wire position among the block's wires.
-        Args:
-            block_qargs (list): list of qubits that a block acts on
-            global_index_map (dict): mapping from each qubit in the
-                circuit to its wire position within that circuit
-        Returns:
-            dict: mapping from qarg to position in block
+    def _handle_control_flow_ops(self, dag, qubit_map):
         """
-        block_indices = [global_index_map[q] for q in block_qargs]
-        ordered_block_indices = {bit: index for index, bit in enumerate(sorted(block_indices))}
-        block_positions = {q: ordered_block_indices[global_index_map[q]] for q in block_qargs}
-        return block_positions
+        This is similar to transpiler/passes/utils/control_flow.py except that the
+        collect blocks is redone for the control flow blocks.
+        """
+
+        pass_manager = PassManager()
+        if "run_list" in self.property_set:
+            pass_manager.append(Collect1qRuns())
+            pass_manager.append(Collect2qBlocks())
+        pass_manager.append(self)
+
+        for node in dag.control_flow_op_nodes():
+            inner_qubit_map = [qubit_map[dag.find_bit(q).index] for q in node.qargs]
+            new_op = node.op.replace_blocks(
+                pass_manager.run(block, property_set={self._QUBIT_MAP_KEY: inner_qubit_map})
+                for block in node.op.blocks
+            )
+            dag.substitute_node(node, new_op)
+        return dag

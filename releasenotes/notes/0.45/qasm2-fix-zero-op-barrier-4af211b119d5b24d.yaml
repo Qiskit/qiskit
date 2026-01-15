@@ -1,0 +1,13 @@
+---
+fixes:
+  - |
+    The OpenQASM 2 parser (:func:`.qasm2.load` and :func:`~.qasm2.loads`) running in ``strict`` mode
+    will now correctly emit an error if a ``barrier`` statement has no arguments.  When running in
+    the (default) more permissive mode, an argument-less ``barrier`` statement will continue to
+    cause a barrier on all qubits currently in scope (the qubits a gate definition affects, or all
+    the qubits defined by a program, if the statement is in a gate body or in the global scope,
+    respectively).
+  - |
+    The OpenQASM 2 exporter (:meth:`.QuantumCircuit.qasm`) will now no longer attempt
+    to output ``barrier`` statements that act on no qubits.  Such a barrier statement has no effect
+    in Qiskit either, but is invalid OpenQASM 2.

@@ -1,0 +1,15 @@
+---
+fixes:
+  - |
+    The internal handling of custom circuit calibrations and :class:`.InstructionDurations`
+    has been offloaded from the :func:`.transpile` function to the individual transpiler passes: 
+    :class:`qiskit.transpiler.passes.scheduling.DynamicalDecoupling`,
+    :class:`qiskit.transpiler.passes.scheduling.padding.DynamicalDecoupling`. Before, 
+    instruction durations from circuit calibrations would not be taken into account unless 
+    they were manually incorporated into `instruction_durations` input argument, but the passes
+    that need it now analyze the circuit and pick the most relevant duration value according 
+    to the following priority order: target > custom input > circuit calibrations.
+
+  - |
+    Fixed a bug in :func:`.transpile` where the ``num_processes`` argument would only be used
+    if ``dt`` or ``instruction_durations`` were provided. 

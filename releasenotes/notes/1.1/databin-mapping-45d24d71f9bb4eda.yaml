@@ -1,0 +1,24 @@
+---
+features_primitives:
+  - |
+    Added mapping-like features to :class:`~.DataBin`, i.e.,
+    ``__getitem__``, ``__contains__``, ``__iter__``,
+    :meth:`~.DataBin.keys`, :meth:`~.DataBin.values`, and
+    :meth:`~.DataBin.items`.
+
+    .. code-block:: python
+    
+      from qiskit import QuantumCircuit
+      from qiskit.primitives import StatevectorSampler
+
+      circuit = QuantumCircuit(1)
+      circuit.h(0)
+      circuit.measure_all()
+
+      sampler = StatevectorSampler()
+      result = sampler.run([circuit]).result()
+      databin = result[0].data
+      for creg, arr in databin.items():
+          print(creg, arr)
+      for creg in databin:
+          print(creg, databin[creg])

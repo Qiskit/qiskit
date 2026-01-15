@@ -14,10 +14,13 @@
 
 import unittest
 from qiskit.transpiler.passes import BasicSwap
-from qiskit.transpiler import CouplingMap
+from qiskit.transpiler.passmanager import PassManager
+from qiskit.transpiler.layout import Layout
+from qiskit.transpiler import CouplingMap, Target
+from qiskit.circuit.library import CXGate
 from qiskit.converters import circuit_to_dag
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestBasicSwap(QiskitTestCase):
@@ -101,6 +104,40 @@ class TestBasicSwap(QiskitTestCase):
         expected.cx(qr[0], qr[2])
 
         pass_ = BasicSwap(coupling)
+        after = pass_.run(dag)
+
+        self.assertEqual(circuit_to_dag(expected), after)
+
+    def test_a_single_swap_with_target(self):
+        """Adding a swap
+        q0:-------
+
+        q1:--(+)--
+              |
+        q2:---.---
+
+        CouplingMap map: [1]--[0]--[2]
+
+        q0:--X---.---
+             |   |
+        q1:--X---|---
+                 |
+        q2:-----(+)--
+
+        """
+        target = Target()
+        target.add_instruction(CXGate(), {(0, 1): None, (0, 2): None})
+
+        qr = QuantumRegister(3, "q")
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[1], qr[2])
+        dag = circuit_to_dag(circuit)
+
+        expected = QuantumCircuit(qr)
+        expected.swap(qr[1], qr[0])
+        expected.cx(qr[0], qr[2])
+
+        pass_ = BasicSwap(target)
         after = pass_.run(dag)
 
         self.assertEqual(circuit_to_dag(expected), after)
@@ -333,6 +370,43 @@ class TestBasicSwap(QiskitTestCase):
         after = pass_.run(dag)
 
         self.assertEqual(circuit_to_dag(expected), after)
+
+    def test_fake_run(self):
+        """A fake run, doesn't change dag
+        q0:--(+)-------.--
+              |        |
+        q1:---|--------|--
+              |
+        q2:---|--------|--
+              |        |
+        q3:---.--[H]--(+)-
+
+        CouplingMap map: [0]--[1]--[2]--[3]
+
+        q0:-------(+)-------.---
+                   |        |
+        q1:-----X--.--[H]--(+)--
+                |
+        q2:--X--X---------------
+             |
+        q3:--X------------------
+
+        """
+        coupling = CouplingMap([[0, 1], [1, 2], [2, 3]])
+
+        qr = QuantumRegister(4, "q")
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[3], qr[0])
+        circuit.h(qr[3])
+        circuit.cx(qr[0], qr[3])
+
+        fake_pm = PassManager([BasicSwap(coupling, fake_run=True)])
+        real_pm = PassManager([BasicSwap(coupling, fake_run=False)])
+
+        self.assertEqual(circuit, fake_pm.run(circuit))
+        self.assertNotEqual(circuit, real_pm.run(circuit))
+        self.assertIsInstance(fake_pm.property_set["final_layout"], Layout)
+        self.assertEqual(fake_pm.property_set["final_layout"], real_pm.property_set["final_layout"])
 
 
 if __name__ == "__main__":

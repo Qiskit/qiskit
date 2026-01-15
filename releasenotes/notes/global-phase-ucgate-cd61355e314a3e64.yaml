@@ -1,4 +1,0 @@
----
-fixes:
-  - |
-    Fixed a global phase bug in :class:`~.UCGate`.

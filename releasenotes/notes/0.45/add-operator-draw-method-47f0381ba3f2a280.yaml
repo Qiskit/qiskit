@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    The :class:`Operator` class now has a :meth:`~.Operator.draw` method allowing it to be displayed as 
+    a text matrix, IPython LaTeX object or LaTeX source. The default draw type still is the ASCII 
+    ``__repr__`` of the operator.
+

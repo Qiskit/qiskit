@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed a bug when constructing :class:`~qiskit.dagcircuit.DAGDependency` from
+    within the :class:`~qiskit.transpiler.passes.TemplateOptimization` transpiler pass,
+    which could lead to incorrect optimizations.

@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Register and parameter names will now be escaped during the OpenQASM 3 export
+    (:func:`.qasm3.dumps`) if they are not already valid identifiers.  Fixed `#9658
+    <https://github.com/Qiskit/qiskit-terra/issues/9658>`__.

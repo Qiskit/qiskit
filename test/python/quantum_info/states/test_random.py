@@ -17,10 +17,10 @@ from test import combine
 from ddt import ddt
 import numpy as np
 
-from qiskit.test import QiskitTestCase
 from qiskit.quantum_info import Statevector, DensityMatrix
 from qiskit.quantum_info.random import random_statevector
 from qiskit.quantum_info.random import random_density_matrix
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt
@@ -41,7 +41,7 @@ class TestRandomStatevector(QiskitTestCase):
         value = random_statevector(dim)
         self.assertIsInstance(value, Statevector)
         self.assertTrue(value.is_valid())
-        self.assertEqual(np.product(value.dims()), dim)
+        self.assertEqual(np.prod(value.dims()), dim)
 
     def test_fixed_seed(self):
         """Test fixing seed fixes output"""
@@ -79,7 +79,7 @@ class TestRandomDensityMatrix(QiskitTestCase):
         value = random_density_matrix(dim, method=method)
         self.assertIsInstance(value, DensityMatrix)
         self.assertTrue(value.is_valid())
-        self.assertEqual(np.product(value.dims()), dim)
+        self.assertEqual(np.prod(value.dims()), dim)
 
     @combine(method=["Hilbert-Schmidt", "Bures"])
     def test_fixed_seed(self, method):

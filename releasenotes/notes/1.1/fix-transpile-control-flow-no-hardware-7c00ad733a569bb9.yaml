@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    The preset pass managers of :func:`.transpile` will no longer fail on circuits
+    with control flow, if no hardware target or basis-gate set is specified.  They
+    will now treat such abstract targets as permitting all control-flow operations.
+    Fixed `#11906 <https://github.com/Qiskit/qiskit/issues/11906>`__.

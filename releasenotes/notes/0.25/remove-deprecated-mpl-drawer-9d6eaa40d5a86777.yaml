@@ -1,0 +1,10 @@
+---
+upgrade:
+  - |
+    In the internal ``qiskit.visualization.circuit.matplotlib.MatplotlibDrawer`` object, the arguments
+    ``layout``, ``global_phase``, ``qregs`` and ``cregs`` have been removed. They were originally
+    deprecated in Qiskit Terra 0.20. These objects are simply inferred from the given ``circuit``
+    now.
+        
+    This is an internal worker class of the visualization routines. It is unlikely you will
+    need to change any of your code.

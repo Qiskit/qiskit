@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,10 +16,12 @@ import unittest
 import numpy as np
 from ddt import ddt, data, unpack
 
-from qiskit.test.base import QiskitTestCase
-from qiskit import BasicAer, execute
+from qiskit import transpile
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import IntegerComparator
+from qiskit.synthesis.arithmetic import synth_integer_comparator_2s, synth_integer_comparator_greedy
+from qiskit.quantum_info import Statevector
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt
@@ -28,13 +30,13 @@ class TestIntegerComparator(QiskitTestCase):
 
     def assertComparisonIsCorrect(self, comp, num_state_qubits, value, geq):
         """Assert that the comparator output is correct."""
-        qc = QuantumCircuit(comp.num_qubits)  # initialize circuit
+        qc = QuantumCircuit(2 * num_state_qubits)  # initialize circuit
         qc.h(list(range(num_state_qubits)))  # set equal superposition state
         qc.append(comp, list(range(comp.num_qubits)))  # add comparator
 
         # run simulation
-        backend = BasicAer.get_backend("statevector_simulator")
-        statevector = execute(qc, backend).result().get_statevector()
+        tqc = transpile(qc)  # trigger the HLS if necessary
+        statevector = Statevector(tqc)
         for i, amplitude in enumerate(statevector):
             prob = np.abs(amplitude) ** 2
             if prob > 1e-6:
@@ -61,23 +63,35 @@ class TestIntegerComparator(QiskitTestCase):
     def test_fixed_value_comparator(self, num_state_qubits, value, geq):
         """Test the fixed value comparator circuit."""
         # build the circuit with the comparator
-        comp = IntegerComparator(num_state_qubits, value, geq=geq)
-        self.assertComparisonIsCorrect(comp, num_state_qubits, value, geq)
+        for constructor, warn in [
+            (IntegerComparator, True),
+            (synth_integer_comparator_2s, False),
+            (synth_integer_comparator_greedy, False),
+        ]:
+            with self.subTest(constructor=constructor):
+                if warn:
+                    with self.assertWarns(DeprecationWarning):
+                        comp = constructor(num_state_qubits, value, geq=geq)
+                else:
+                    comp = constructor(num_state_qubits, value, geq=geq)
+
+                self.assertComparisonIsCorrect(comp, num_state_qubits, value, geq)
 
     def test_mutability(self):
         """Test changing the arguments of the comparator."""
 
-        comp = IntegerComparator()
+        with self.assertWarns(DeprecationWarning):
+            comp = IntegerComparator()
 
         with self.subTest(msg="missing num state qubits and value"):
             with self.assertRaises(AttributeError):
-                print(comp.draw())
+                _ = str(comp.draw())
 
         comp.num_state_qubits = 2
 
         with self.subTest(msg="missing value"):
             with self.assertRaises(AttributeError):
-                print(comp.draw())
+                _ = str(comp.draw())
 
         comp.value = 0
         comp.geq = True

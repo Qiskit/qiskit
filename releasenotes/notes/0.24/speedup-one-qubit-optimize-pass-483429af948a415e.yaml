@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    The runtime performance of the :class:`~.Optimize1qGatesDecomposition`
+    transpiler pass has been significantly improved. This was done by both
+    rewriting all the computation for the pass in Rust and also decreasing
+    the amount of intermediate objects created as part of the pass's
+    execution. This should also correspond to a similar improvement
+    in the runtime performance of :func:`~.transpile` with the
+    ``optimization_level`` keyword argument set to ``1``, ``2``, or ``3``.

@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Added gate reversal directions for the symmetric :class:`~RXXGate`, :class:`~RYYGate`, and :class:`~RZZGate` gates.
+    Definitions are defined by a static method to include the angle of 
+    rotation as a Parameter, and gate reversal is done by simply changing
+    the order of the quantum registers in the DAG.

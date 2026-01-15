@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Introduced a new method, :meth:`~.DAGCircuit.separable_circuits`, which returns a
+    list of :class:`.DAGCircuit` objects, one for each set of connected qubits
+    which have no gates connecting them to another set.
+
+    Each :class:`~.DAGCircuit` instance returned by this method will contain the same
+    number of clbits as ``self``. This method will not return :class:`~.DAGCircuit`
+    instances consisting solely of clbits.

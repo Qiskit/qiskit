@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Construction of a :class:`~.quantum_info.Statevector` from a :class:`.QuantumCircuit` containing
+    zero-qubit operations will no longer raise an error.  These operations impart a global phase on
+    the resulting statevector.

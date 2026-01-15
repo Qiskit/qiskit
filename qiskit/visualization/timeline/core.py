@@ -48,15 +48,17 @@ an iterator of drawings with the unique data key.
 If a plotter provides object handler for plotted shapes, the plotter API can manage
 the lookup table of the handler and the drawings by using this data key.
 """
+from __future__ import annotations
 import warnings
+from collections.abc import Iterator
 from copy import deepcopy
 from functools import partial
-from typing import Tuple, Iterator, Dict
 from enum import Enum
 
 import numpy as np
 
 from qiskit import circuit
+from qiskit.transpiler.target import Target
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.timeline import drawings, types
 from qiskit.visualization.timeline.stylesheet import QiskitTimelineStyle
@@ -73,16 +75,16 @@ class DrawerCanvas:
         self.layout = stylesheet.layout
 
         # drawings
-        self._collections = {}
-        self._output_dataset = {}
+        self._collections: dict[str, drawings.ElementaryData] = {}
+        self._output_dataset: dict[str, drawings.ElementaryData] = {}
 
         # vertical offset of bits
-        self.bits = []
-        self.assigned_coordinates = {}
+        self.bits: list[types.Bits] = []
+        self.assigned_coordinates: dict[types.Bits, float] = {}
 
         # visible controls
-        self.disable_bits = set()
-        self.disable_types = set()
+        self.disable_bits: set[types.Bits] = set()
+        self.disable_types: set[str] = set()
 
         # time
         self._time_range = (0, 0)
@@ -92,7 +94,7 @@ class DrawerCanvas:
         self.vmin = 0
 
     @property
-    def time_range(self) -> Tuple[int, int]:
+    def time_range(self) -> tuple[int, int]:
         """Return current time range to draw.
 
         Calculate net duration and add side margin to edge location.
@@ -108,8 +110,13 @@ class DrawerCanvas:
 
         return new_t0, new_t1
 
+    @time_range.setter
+    def time_range(self, new_range: tuple[int, int]):
+        """Update time range to draw."""
+        self._time_range = new_range
+
     @property
-    def collections(self) -> Iterator[Tuple[str, drawings.ElementaryData]]:
+    def collections(self) -> Iterator[tuple[str, drawings.ElementaryData]]:
         """Return currently active entries from drawing data collection.
 
         The object is returned with unique name as a key of an object handler.
@@ -117,11 +124,6 @@ class DrawerCanvas:
         the value is substituted by current time range preference.
         """
         yield from self._output_dataset.items()
-
-    @time_range.setter
-    def time_range(self, new_range: Tuple[int, int]):
-        """Update time range to draw."""
-        self._time_range = new_range
 
     def add_data(self, data: drawings.ElementaryData):
         """Add drawing to collections.
@@ -137,11 +139,22 @@ class DrawerCanvas:
         self._collections[data.data_key] = data
 
     # pylint: disable=cyclic-import
-    def load_program(self, program: circuit.QuantumCircuit):
+    def load_program(self, program: circuit.QuantumCircuit, target: Target | None = None):
         """Load quantum circuit and create drawing..
+
+        .. deprecated:: 1.3
+           Visualization of unscheduled circuits with the timeline drawer has been
+           deprecated in Qiskit 1.3.
+           This circuit should be transpiled with a scheduler, despite having instructions
+           with explicit durations.
+
+        .. deprecated:: 1.3
+           Targets with duration-less operations are going to error in Qiskit 2.0.
 
         Args:
             program: Scheduled circuit object to draw.
+            target: The target the circuit is scheduled for. This contains backend information
+                including the instruction durations used in scheduling.
 
         Raises:
            VisualizationError: When circuit is not scheduled.
@@ -151,18 +164,22 @@ class DrawerCanvas:
         if getattr(program, "_op_start_times") is None:
             # Run scheduling for backward compatibility
             from qiskit import transpile
-            from qiskit.transpiler import InstructionDurations, TranspilerError
+            from qiskit.transpiler import TranspilerError
 
             warnings.warn(
                 "Visualizing un-scheduled circuit with timeline drawer has been deprecated. "
                 "This circuit should be transpiled with scheduler though it consists of "
                 "instructions with explicit durations.",
                 DeprecationWarning,
+                stacklevel=3,
             )
 
             try:
                 program = transpile(
-                    program, scheduling_method="alap", instruction_durations=InstructionDurations()
+                    program,
+                    scheduling_method="alap",
+                    target=target,
+                    optimization_level=0,
                 )
             except TranspilerError as ex:
                 raise VisualizationError(
@@ -175,45 +192,75 @@ class DrawerCanvas:
             for bit_pos, bit in enumerate(bits):
                 if not isinstance(instruction.operation, not_gate_like):
                     # Generate draw object for gates
+                    if target is not None:
+                        duration = None
+                        op_props = target.get(instruction.operation.name)
+                        if op_props is not None:
+                            inst_props = op_props.get(
+                                tuple(program.find_bit(x).index for x in instruction.qubits)
+                            )
+                            if inst_props is not None:
+                                duration = getattr(inst_props, "duration")
+                                if duration is not None:
+                                    duration = target.seconds_to_dt(duration)
+
+                        if instruction.name == "delay":
+                            duration = instruction.operation.duration
+                        if duration is None:
+                            # Warn here because an incomplete target isn't obvious most of the time
+                            raise VisualizationError(
+                                "Target doesn't contain a duration for "
+                                f"{instruction.operation.name} on {bit_pos}."
+                            )
+                    elif instruction.name == "delay":
+                        duration = instruction.operation.duration
+                    else:
+                        raise VisualizationError(
+                            "Target not specified this is required to provide instruction timing"
+                        )
                     gate_source = types.ScheduledGate(
                         t0=t0,
                         operand=instruction.operation,
-                        duration=instruction.operation.duration,
+                        duration=duration,
                         bits=bits,
                         bit_position=bit_pos,
                     )
                     for gen in self.generator["gates"]:
-                        obj_generator = partial(gen, formatter=self.formatter)
-                        for datum in obj_generator(gate_source):
+                        if getattr(gen, "accepts_program", False):
+                            gen = partial(gen, program=program)
+                        for datum in gen(gate_source, formatter=self.formatter):
                             self.add_data(datum)
                     if len(bits) > 1 and bit_pos == 0:
                         # Generate draw object for gate-gate link
-                        line_pos = t0 + 0.5 * instruction.operation.duration
+                        line_pos = t0 + 0.5 * duration
                         link_source = types.GateLink(
                             t0=line_pos, opname=instruction.operation.name, bits=bits
                         )
                         for gen in self.generator["gate_links"]:
-                            obj_generator = partial(gen, formatter=self.formatter)
-                            for datum in obj_generator(link_source):
+                            if getattr(gen, "accepts_program", False):
+                                gen = partial(gen, program=program)
+                            for datum in gen(link_source, formatter=self.formatter):
                                 self.add_data(datum)
                 if isinstance(instruction.operation, circuit.Barrier):
                     # Generate draw object for barrier
                     barrier_source = types.Barrier(t0=t0, bits=bits, bit_position=bit_pos)
                     for gen in self.generator["barriers"]:
-                        obj_generator = partial(gen, formatter=self.formatter)
-                        for datum in obj_generator(barrier_source):
+                        if getattr(gen, "accepts_program", False):
+                            gen = partial(gen, program=program)
+                        for datum in gen(barrier_source, formatter=self.formatter):
                             self.add_data(datum)
 
         self.bits = list(program.qubits) + list(program.clbits)
         for bit in self.bits:
             for gen in self.generator["bits"]:
                 # Generate draw objects for bit
-                obj_generator = partial(gen, formatter=self.formatter)
-                for datum in obj_generator(bit):
+                if getattr(gen, "accepts_program", False):
+                    gen = partial(gen, program=program)
+                for datum in gen(bit, formatter=self.formatter):
                     self.add_data(datum)
 
         # update time range
-        t_end = max(program.duration, self.formatter["margin.minimum_duration"])
+        t_end = max(program._duration, self.formatter["margin.minimum_duration"])
         self.set_time_range(t_start=0, t_end=t_end)
 
     def set_time_range(self, t_start: int, t_end: int):
@@ -395,8 +442,8 @@ class DrawerCanvas:
             return np.asarray(list(map(substitute, vals)), dtype=float)
 
     def _check_link_overlap(
-        self, links: Dict[str, drawings.GateLinkData]
-    ) -> Dict[str, drawings.GateLinkData]:
+        self, links: dict[str, drawings.GateLinkData]
+    ) -> dict[str, drawings.GateLinkData]:
         """Helper method to check overlap of bit links.
 
         This method dynamically shifts horizontal position of links if they are overlapped.
@@ -409,7 +456,7 @@ class DrawerCanvas:
             return np.array([self.assigned_coordinates.get(bit, np.nan) for bit in link.bits])
 
         # group overlapped links
-        overlapped_group = []
+        overlapped_group: list[list[str]] = []
         data_keys = list(links.keys())
         while len(data_keys) > 0:
             ref_key = data_keys.pop()

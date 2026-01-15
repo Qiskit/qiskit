@@ -1,0 +1,15 @@
+---
+fixes:
+  - |
+    A bug where :func:`.convert_to_target` and :class:`.BackendV2Converter` raised an unexpected
+    error was solved. The bug occurred when the backend to convert included calibrations
+    for a gate that didn't have a definition in the backend properties.
+    Such gate is now broadcast to all qubits as an ideal error-free instruction,
+    even when calibrations for a finite set of qubits are reported.
+upgrade_providers:
+  - |
+    The :class:`.BackendProperties` and :class:`.PulseDefaults` model objects used by the
+    :class:`.FakeOpenPulse2Q`  have been updated to be internally consistent and add missing
+    instructions. If you were relying on the previous model objects as a compilation target you can
+    use the backend with Qiskit 0.46 and export a :class:`.QuantumCircuit` generated with
+    :func:`.transpile` and serialize it using :class:`.qpy.dump` to access it in this release.

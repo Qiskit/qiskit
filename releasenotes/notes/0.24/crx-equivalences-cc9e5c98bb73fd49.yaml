@@ -1,0 +1,18 @@
+---
+features:
+  - |
+    Equivalences between the controlled Pauli rotations and translations to two-Pauli rotations
+    are now available in the equivalence library for Qiskit standard gates. This allows,
+    for example, to translate a :class:`.CRZGate` to a :class:`.RZZGate` plus :class:`.RZGate`
+    or a :class:`.CRYGate` to a single :class:`.RZXGate` plus single qubit gates::
+
+      from qiskit.circuit import QuantumCircuit
+      from qiskit.compiler import transpile
+
+      angle = 0.123
+      circuit = QuantumCircuit(2)
+      circuit.cry(angle, 0, 1)
+
+      basis = ["id", "sx", "x", "rz", "rzx"]
+      transpiled = transpile(circuit, basis_gates=basis)
+      print(transpiled.draw())

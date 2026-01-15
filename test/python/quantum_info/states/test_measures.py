@@ -16,7 +16,6 @@ import unittest
 import numpy as np
 
 from qiskit import QiskitError
-from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.states import DensityMatrix, Statevector
 from qiskit.quantum_info import state_fidelity
 from qiskit.quantum_info import purity
@@ -25,6 +24,8 @@ from qiskit.quantum_info import concurrence
 from qiskit.quantum_info import entanglement_of_formation
 from qiskit.quantum_info import mutual_information
 from qiskit.quantum_info.states import shannon_entropy
+from qiskit.quantum_info import negativity
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestStateMeasures(QiskitTestCase):
@@ -340,6 +341,32 @@ class TestStateMeasures(QiskitTestCase):
             psi = Statevector([alpha, beta, 0, 1j * np.sqrt(1 - alpha**2 - beta**2)])
             rho = DensityMatrix(psi)
             self.assertAlmostEqual(mutual_information(psi), mutual_information(rho))
+
+    def test_negativity_statevector(self):
+        """Test negativity function on statevector inputs"""
+        # Constructing separable quantum statevector
+        state = Statevector([1 / np.sqrt(2), 1 / np.sqrt(2), 0, 0])
+        negv = negativity(state, [0])
+        self.assertAlmostEqual(negv, 0, places=7)
+        # Constructing entangled quantum statevector
+        state = Statevector([0, 1 / np.sqrt(2), -1 / np.sqrt(2), 0])
+        negv = negativity(state, [1])
+        self.assertAlmostEqual(negv, 0.5, places=7)
+
+    def test_negativity_density_matrix(self):
+        """Test negativity function on density matrix inputs"""
+        # Constructing separable quantum state
+        rho = DensityMatrix.from_label("10+")
+        negv = negativity(rho, [0, 1])
+        self.assertAlmostEqual(negv, 0, places=7)
+        negv = negativity(rho, [0, 2])
+        self.assertAlmostEqual(negv, 0, places=7)
+        # Constructing entangled quantum state
+        rho = DensityMatrix([[0, 0, 0, 0], [0, 0.5, -0.5, 0], [0, -0.5, 0.5, 0], [0, 0, 0, 0]])
+        negv = negativity(rho, [0])
+        self.assertAlmostEqual(negv, 0.5, places=7)
+        negv = negativity(rho, [1])
+        self.assertAlmostEqual(negv, 0.5, places=7)
 
 
 if __name__ == "__main__":

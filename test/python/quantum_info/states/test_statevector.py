@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -20,19 +20,19 @@ from ddt import ddt, data
 import numpy as np
 from numpy.testing import assert_allclose
 
-from qiskit.test import QiskitTestCase
 from qiskit import QiskitError
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit import transpile
-from qiskit.circuit.library import HGate, QFT
-from qiskit.providers.basicaer import QasmSimulatorPy
-
+from qiskit.circuit.library import HGate, QFTGate, GlobalPhaseGate
+from qiskit.providers.basic_provider import BasicSimulator
+from qiskit.utils import optionals
 from qiskit.quantum_info.random import random_unitary, random_statevector, random_pauli
 from qiskit.quantum_info.states import Statevector
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.predicates import matrix_equal
-from qiskit.visualization.state_visualization import numbers_to_latex_terms, state_to_latex
+from qiskit.visualization.state_visualization import state_to_latex
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +40,65 @@ logger = logging.getLogger(__name__)
 @ddt
 class TestStatevector(QiskitTestCase):
     """Tests for Statevector class."""
+
+    def test_from_circuit_bell_state(self):
+        """Test from_circuit creates Bell state correctly."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        sv = Statevector.from_circuit(qc)
+        expected_data = np.array([1 / np.sqrt(2), 0, 0, 1 / np.sqrt(2)])
+        expected = Statevector(expected_data)
+
+        self.assertTrue(sv.equiv(expected))
+
+    def test_from_circuit_transpilation_consistency(self):
+        """Statevector.from_circuit gives consistent results under transpilation."""
+
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.swap(1, 2)
+        qc.z(0)
+
+        backend = BasicSimulator()
+        transpiled_opt0 = transpile(qc, backend, optimization_level=0)
+        transpiled_opt2 = transpile(qc, backend, optimization_level=2)
+
+        sv1 = Statevector.from_circuit(transpiled_opt0)
+        sv2 = Statevector.from_circuit(transpiled_opt2)
+
+        self.assertTrue(sv1.equiv(sv2))
+
+        sv2_nolayout = Statevector.from_circuit(transpiled_opt2, ignore_set_layout=True)
+        self.assertFalse(sv1.equiv(sv2_nolayout))
+
+    def test_from_circuit_vs_manual_method(self):
+        """Test from_circuit matches manual operator evolution."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        sv1 = Statevector.from_circuit(qc)
+
+        initial_state = Statevector.from_label("00")
+        op = Operator.from_circuit(qc)
+        sv2 = initial_state.evolve(op)
+
+        self.assertTrue(sv1.equiv(sv2))
+
+    def test_from_circuit_ignore_layout(self):
+        """Test from_circuit with ignore_set_layout parameter."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        # Without layout, both should give same result
+        sv1 = Statevector.from_circuit(qc, ignore_set_layout=False)
+        sv2 = Statevector.from_circuit(qc, ignore_set_layout=True)
+
+        self.assertTrue(sv1.equiv(sv2))
 
     @classmethod
     def rand_vec(cls, n, normalize=False):
@@ -150,7 +209,7 @@ class TestStatevector(QiskitTestCase):
         qc.x(0)
         qc.h(1)
         gate = qc.to_gate()
-        gate_ctrl = gate.control()
+        gate_ctrl = gate.control(annotated=False)
 
         circuit = QuantumCircuit(3)
         circuit.x(0)
@@ -166,11 +225,30 @@ class TestStatevector(QiskitTestCase):
         psi = Statevector.from_instruction(circuit)
         self.assertEqual(psi, target)
 
+        target = Statevector([1, 0, 1, 0]) / np.sqrt(2)
+        circuit = QuantumCircuit(2)
+        circuit.initialize("+", [1])
+        psi = Statevector.from_instruction(circuit)
+        self.assertEqual(psi, target)
+
+        target = Statevector([1, 0, 0, 0])
+        circuit = QuantumCircuit(2)
+        circuit.initialize(0, [0, 1])  # initialize from int
+        psi = Statevector.from_instruction(circuit)
+        self.assertEqual(psi, target)
+
         # Test reset instruction
         target = Statevector([1, 0])
         circuit = QuantumCircuit(1)
         circuit.h(0)
         circuit.reset(0)
+        psi = Statevector.from_instruction(circuit)
+        self.assertEqual(psi, target)
+
+        # Test 0q instruction
+        target = Statevector([1j, 0])
+        circuit = QuantumCircuit(1)
+        circuit.append(GlobalPhaseGate(np.pi / 2), [], [])
         psi = Statevector.from_instruction(circuit)
         self.assertEqual(psi, target)
 
@@ -258,6 +336,16 @@ class TestStatevector(QiskitTestCase):
             evolved = Statevector(vec).evolve(op)
             self.assertEqual(target, evolved)
 
+    def test_evolve_operator_overload_dimensions(self):
+        """Test that the @ operator returns a Statevector of correct dimension, type and value."""
+        op = random_unitary(4)  # 4x4 unitary
+        vec = Statevector(self.rand_vec(4))  # 4-dim state vector
+        result = op @ vec
+        target = op.data @ vec.data
+        self.assertIsInstance(result, Statevector)
+        self.assertEqual(result.data.shape, (4,))
+        self.assertTrue(np.array_equal(result.data, target))
+
     def test_evolve_subsystem(self):
         """Test subsystem _evolve method."""
         # Test evolving single-qubit of 3-qubit system
@@ -309,6 +397,20 @@ class TestStatevector(QiskitTestCase):
             op_full = op0.tensor(op1).tensor(op2)
             target = Statevector(np.dot(op_full.data, vec))
             self.assertEqual(state.evolve(op, qargs=[2, 1, 0]), target)
+
+    def test_evolve_qudit_subsystems(self):
+        """Test nested evolve calls on qudit subsystems."""
+        dims = (3, 4, 5)
+        init = self.rand_vec(np.prod(dims))
+        ops = [random_unitary((dim,)) for dim in dims]
+        state = Statevector(init, dims)
+        for i, op in enumerate(ops):
+            state = state.evolve(op, [i])
+        target_op = np.eye(1)
+        for op in ops:
+            target_op = np.kron(op.data, target_op)
+        target = Statevector(np.dot(target_op, init), dims)
+        self.assertEqual(state, target)
 
     def test_evolve_global_phase(self):
         """Test evolve circuit with global phase."""
@@ -452,6 +554,14 @@ class TestStatevector(QiskitTestCase):
                     key = f"{i},{j}"
                     target[key] = 2 * i + j + 1
             self.assertDictAlmostEqual(target, vec.to_dict())
+
+    def test_to_dict_decimals(self):
+        """Test to_dict method with decimals argument."""
+        decimal = 3
+        sv = np.array([1 / np.sqrt(2), 0, 0, -1 / np.sqrt(2)], dtype=np.complex128)
+        vec_rounded = Statevector(sv).to_dict(decimals=decimal)
+        expected = {"00": 0.707, "11": -0.707}
+        self.assertEqual(vec_rounded, expected)
 
     def test_probabilities_product(self):
         """Test probabilities method for product state"""
@@ -695,6 +805,67 @@ class TestStatevector(QiskitTestCase):
             with self.subTest(msg=f"P({qargs})"):
                 counts = state.sample_counts(shots, qargs=qargs)
                 self.assertDictAlmostEqual(counts, target, threshold)
+
+    def test_probabilities_dict_unequal_dims(self):
+        """Test probabilities_dict for a state with unequal subsystem dimensions."""
+
+        vec = np.zeros(60, dtype=float)
+        vec[15:20] = np.ones(5)
+        vec[40:46] = np.ones(6)
+        state = Statevector(vec / np.sqrt(11.0), dims=[3, 4, 5])
+
+        p = 1.0 / 11.0
+
+        self.assertDictEqual(
+            state.probabilities_dict(),
+            {
+                s: p
+                for s in [
+                    "110",
+                    "111",
+                    "112",
+                    "120",
+                    "121",
+                    "311",
+                    "312",
+                    "320",
+                    "321",
+                    "322",
+                    "330",
+                ]
+            },
+        )
+
+        # differences due to rounding
+        self.assertDictAlmostEqual(
+            state.probabilities_dict(qargs=[0]), {"0": 4 * p, "1": 4 * p, "2": 3 * p}, delta=1e-10
+        )
+
+        self.assertDictAlmostEqual(
+            state.probabilities_dict(qargs=[1]), {"1": 5 * p, "2": 5 * p, "3": p}, delta=1e-10
+        )
+
+        self.assertDictAlmostEqual(
+            state.probabilities_dict(qargs=[2]), {"1": 5 * p, "3": 6 * p}, delta=1e-10
+        )
+
+        self.assertDictAlmostEqual(
+            state.probabilities_dict(qargs=[0, 1]),
+            {"10": p, "11": 2 * p, "12": 2 * p, "20": 2 * p, "21": 2 * p, "22": p, "30": p},
+            delta=1e-10,
+        )
+
+        self.assertDictAlmostEqual(
+            state.probabilities_dict(qargs=[1, 0]),
+            {"01": p, "11": 2 * p, "21": 2 * p, "02": 2 * p, "12": 2 * p, "22": p, "03": p},
+            delta=1e-10,
+        )
+
+        self.assertDictAlmostEqual(
+            state.probabilities_dict(qargs=[0, 2]),
+            {"10": 2 * p, "11": 2 * p, "12": p, "31": 2 * p, "32": 2 * p, "30": 2 * p},
+            delta=1e-10,
+        )
 
     def test_sample_counts_qutrit(self):
         """Test sample_counts method for qutrit state"""
@@ -1058,6 +1229,57 @@ class TestStatevector(QiskitTestCase):
         expval = state.expectation_value(op, qubits)
         self.assertAlmostEqual(expval, target)
 
+    def test_expval_identity(self):
+        """Test whether the calculation for identity operator has been fixed"""
+
+        # 1 qubit case test
+        state_1 = Statevector.from_label("0")
+        state_1_n1 = 2 * state_1  # test the same state with different norms
+        state_1_n2 = (1 + 2j) * state_1
+        identity_op_1 = SparsePauliOp.from_list([("I", 1)])
+        expval_state_1 = state_1.expectation_value(identity_op_1)
+        expval_state_1_n1 = state_1_n1.expectation_value(identity_op_1)
+        expval_state_1_n2 = state_1_n2.expectation_value(identity_op_1)
+        self.assertAlmostEqual(expval_state_1, 1.0 + 0j)
+        self.assertAlmostEqual(expval_state_1_n1, 4 + 0j)
+        self.assertAlmostEqual(expval_state_1_n2, 5 + 0j)
+
+        for prefix, factor in [("", 1), ("-", -1), ("i", 1j), ("-i", -1j)]:
+            pauli_label = f"{prefix}I"
+            identity_pauli_1 = Pauli(pauli_label)
+            with self.subTest(pauli=pauli_label):
+                self.assertAlmostEqual(state_1.expectation_value(identity_pauli_1), factor + 0j)
+                self.assertAlmostEqual(
+                    state_1_n1.expectation_value(identity_pauli_1), factor * 4 + 0j
+                )
+                self.assertAlmostEqual(
+                    state_1_n2.expectation_value(identity_pauli_1), factor * 5 + 0j
+                )
+
+        # Let's try a multi-qubit case
+        n_qubits = 3
+        state_coeff = 3 - 4j
+        op_coeff = 2 - 2j
+        state_test = state_coeff * Statevector.from_label("0" * n_qubits)
+        op_test = SparsePauliOp.from_list([("I" * n_qubits, op_coeff)])
+        expval = state_test.expectation_value(op_test)
+        target = op_coeff * np.abs(state_coeff) ** 2
+        self.assertAlmostEqual(expval, target)
+
+        coeffs = np.array([1 + 2j, -3j, 4])
+        op_multi = SparsePauliOp.from_list([("I" * n_qubits, coeff) for coeff in coeffs])
+        expval_multi = state_test.expectation_value(op_multi)
+        target_multi = np.sum(coeffs) * np.abs(state_coeff) ** 2
+        self.assertAlmostEqual(expval_multi, target_multi)
+
+        for prefix, factor in [("", 1), ("-", -1), ("i", 1j), ("-i", -1j)]:
+            pauli_label = f"{prefix}{'I' * n_qubits}"
+            identity_pauli_n = Pauli(pauli_label)
+            with self.subTest(pauli=pauli_label):
+                expval_pauli = state_test.expectation_value(identity_pauli_n)
+                target_pauli = factor * np.abs(state_coeff) ** 2
+                self.assertAlmostEqual(expval_pauli, target_pauli)
+
     @data(*(qargs for i in range(4) for qargs in permutations(range(4), r=i + 1)))
     def test_probabilities_qargs(self, qargs):
         """Test probabilities method with qargs"""
@@ -1073,7 +1295,7 @@ class TestStatevector(QiskitTestCase):
         probs = state.probabilities(qargs)
 
         # Estimate target probs from simulator measurement
-        sim = QasmSimulatorPy()
+        sim = BasicSimulator()
         shots = 5000
         seed = 100
         circ = transpile(state_circ, sim)
@@ -1099,16 +1321,19 @@ class TestStatevector(QiskitTestCase):
 
     def test_reverse_qargs(self):
         """Test reverse_qargs method"""
-        circ1 = QFT(5)
+        circ1 = QFTGate(5).definition
         circ2 = circ1.reverse_bits()
 
         state1 = Statevector.from_instruction(circ1)
         state2 = Statevector.from_instruction(circ2)
         self.assertEqual(state1.reverse_qargs(), state2)
 
+    @unittest.skipUnless(optionals.HAS_SYMPY, "sympy required")
+    @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "requires matplotlib")
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "requires pylatexenc")
     def test_drawings(self):
         """Test draw method"""
-        qc1 = QFT(5)
+        qc1 = QFTGate(5).definition
         sv = Statevector.from_instruction(qc1)
         with self.subTest(msg="str(statevector)"):
             str(sv)
@@ -1118,6 +1343,7 @@ class TestStatevector(QiskitTestCase):
         with self.subTest(msg=" draw('latex', convention='vector')"):
             sv.draw("latex", convention="vector")
 
+    @unittest.skipUnless(optionals.HAS_SYMPY, "sympy required")
     def test_state_to_latex_for_none(self):
         """
         Test for `\rangleNone` output in latex representation
@@ -1142,6 +1368,7 @@ class TestStatevector(QiskitTestCase):
             "\\frac{\\sqrt{2}}{2} |000\\rangle- \\frac{\\sqrt{2}}{2} |011\\rangle",
         )
 
+    @unittest.skipUnless(optionals.HAS_SYMPY, "sympy required")
     def test_state_to_latex_for_large_statevector(self):
         """Test conversion of large dense state vector"""
         sv = Statevector(np.ones((2**15, 1)))
@@ -1154,6 +1381,7 @@ class TestStatevector(QiskitTestCase):
             " |111111111111101\\rangle+ |111111111111110\\rangle+ |111111111111111\\rangle",
         )
 
+    @unittest.skipUnless(optionals.HAS_SYMPY, "sympy required")
     def test_state_to_latex_with_prefix(self):
         """Test adding prefix to state vector latex output"""
         psi = Statevector(np.array([np.sqrt(1 / 2), 0, 0, np.sqrt(1 / 2)]))
@@ -1163,33 +1391,70 @@ class TestStatevector(QiskitTestCase):
         latex_representation = state_to_latex(psi, prefix=prefix)
         self.assertEqual(latex_representation, latex_expected)
 
+    @unittest.skipUnless(optionals.HAS_SYMPY, "sympy required")
     def test_state_to_latex_for_large_sparse_statevector(self):
         """Test conversion of large sparse state vector"""
         sv = Statevector(np.eye(2**15, 1))
         latex_representation = state_to_latex(sv)
         self.assertEqual(latex_representation, " |000000000000000\\rangle")
 
-    def test_number_to_latex_terms(self):
-        """Test conversions of complex numbers to latex terms"""
+    @unittest.skipUnless(optionals.HAS_SYMPY, "sympy required")
+    def test_state_to_latex_with_max_size_limit(self):
+        """Test limit the maximum number of non-zero terms in the expression"""
+        sv = Statevector(
+            [
+                0.35355339 + 0.0j,
+                0.35355339 + 0.0j,
+                0.35355339 + 0.0j,
+                0.35355339 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 - 0.35355339j,
+                0.0 + 0.35355339j,
+                0.0 + 0.35355339j,
+                0.0 - 0.35355339j,
+            ],
+            dims=(2, 2, 2, 2),
+        )
+        latex_representation = state_to_latex(sv, max_size=5)
+        self.assertEqual(
+            latex_representation,
+            "\\frac{\\sqrt{2}}{4} |0000\\rangle+"
+            "\\frac{\\sqrt{2}}{4} |0001\\rangle + "
+            "\\ldots +"
+            "\\frac{\\sqrt{2} i}{4} |1110\\rangle- "
+            "\\frac{\\sqrt{2} i}{4} |1111\\rangle",
+        )
 
-        cases = [
-            ([1 - 8e-17, 0], ["", None]),
-            ([0, -1], [None, "-"]),
-            ([0, 1], [None, ""]),
-            ([0, 1j], [None, "i"]),
-            ([-1, 1], ["-", "+"]),
-            ([0, 1j], [None, "i"]),
-            ([-1, 1j], ["-", "+i"]),
-            ([1e-16 + 1j], ["i"]),
-            ([-1 + 1e-16 * 1j], ["-"]),
-            ([-1, -1 - 1j], ["-", "+ (-1 - i)"]),
-            ([np.sqrt(2) / 2, np.sqrt(2) / 2], ["\\frac{\\sqrt{2}}{2}", "+\\frac{\\sqrt{2}}{2}"]),
-            ([1 + np.sqrt(2)], ["(1 + \\sqrt{2})"]),
-        ]
-        for numbers, latex_terms in cases:
-            terms = numbers_to_latex_terms(numbers, 15)
-            self.assertListEqual(terms, latex_terms)
+    @unittest.skipUnless(optionals.HAS_SYMPY, "sympy required")
+    def test_state_to_latex_with_decimals_round(self):
+        """Test rounding of decimal places in the expression"""
+        sv = Statevector(
+            [
+                0.35355339 + 0.0j,
+                0.35355339 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 - 0.35355339j,
+                0.0 + 0.35355339j,
+            ],
+            dims=(2, 2, 2),
+        )
+        latex_representation = state_to_latex(sv, decimals=3)
+        self.assertEqual(
+            latex_representation,
+            "0.354 |000\\rangle+0.354 |001\\rangle- 0.354 i |110\\rangle+0.354 i |111\\rangle",
+        )
 
+    @unittest.skipUnless(optionals.HAS_SYMPY, "sympy required")
     def test_statevector_draw_latex_regression(self):
         """Test numerical rounding errors are not printed"""
         sv = Statevector(np.array([1 - 8e-17, 8.32667268e-17j]))
@@ -1219,6 +1484,24 @@ class TestStatevector(QiskitTestCase):
         sv = Statevector(dummy_vector)
         self.assertEqual(len(empty_vector), len(empty_sv))
         self.assertEqual(len(dummy_vector), len(sv))
+
+    def test_clip_probabilities(self):
+        """Test probabilities are clipped to [0, 1]."""
+        sv = Statevector([1.1, 0])
+
+        self.assertEqual(list(sv.probabilities()), [1.0, 0.0])
+        # The "1" key should be zero and therefore omitted.
+        self.assertEqual(sv.probabilities_dict(), {"0": 1.0})
+
+    def test_round_probabilities(self):
+        """Test probabilities are correctly rounded.
+
+        This is good to test to ensure clipping, renormalizing and rounding work together.
+        """
+        p = np.sqrt(1 / 3)
+        sv = Statevector([p, p, p, 0])
+        expected = [0.33, 0.33, 0.33, 0]
+        self.assertEqual(list(sv.probabilities(decimals=2)), expected)
 
 
 if __name__ == "__main__":

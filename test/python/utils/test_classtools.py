@@ -27,7 +27,7 @@ import unittest
 import sys
 
 from qiskit.utils import wrap_method
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def call_first_argument_with(*args, **kwargs):
@@ -529,5 +529,5 @@ class TestWrapMethod(QiskitTestCase):
         class Dummy:
             pass
 
-        with self.assertRaisesRegex(ValueError, "Method 'bad' is not defined for class 'Dummy'"):
+        with self.assertRaisesRegex(AttributeError, "bad"):
             wrap_method(Dummy, "bad", before=lambda self: None)

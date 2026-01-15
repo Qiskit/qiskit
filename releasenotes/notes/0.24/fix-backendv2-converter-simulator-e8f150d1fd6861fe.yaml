@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :class:`~.BackendV2Converter` class when wrapping
+    a :class:`~.BackendV1` based simulator which would error if either
+    the ``online_date`` field in the :class:`~.BackendConfiguration` for the
+    simulator was not present or if the simulator backend supports ideal
+    implementations of gates that involve more than 1 qubit.
+    Fixed `#9562 <https://github.com/Qiskit/qiskit-terra/issues/9562>`__

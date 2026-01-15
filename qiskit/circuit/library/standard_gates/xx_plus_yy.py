@@ -11,13 +11,18 @@
 # that they have been altered from the originals.
 
 """Two-qubit XX+YY gate."""
+
+from __future__ import annotations
+
 import math
 from cmath import exp
 from typing import Optional
-from qiskit.qasm import pi
+
+import numpy
+
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit._accelerate.circuit import StandardGate
 
 
 class XXPlusYYGate(Gate):
@@ -26,29 +31,29 @@ class XXPlusYYGate(Gate):
     A 2-qubit parameterized XX+YY interaction, also known as an XY gate. Its action is to induce
     a coherent rotation by some angle between :math:`|01\rangle` and :math:`|10\rangle`.
 
-    **Circuit Symbol:**
+    Circuit symbol:
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌───────────────┐
         q_0: ┤0              ├
-             │  {XX+YY}(θ,β) │
+             │  (XX+YY)(θ,β) │
         q_1: ┤1              ├
              └───────────────┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
-        \newcommand{\th}{\frac{\theta}{2}}
+        \newcommand{\rotationangle}{\frac{\theta}{2}}
 
         R_{XX+YY}(\theta, \beta)\ q_0, q_1 =
           RZ_0(-\beta) \cdot \exp\left(-i \frac{\theta}{2} \frac{XX+YY}{2}\right) \cdot RZ_0(\beta) =
             \begin{pmatrix}
-                1 & 0                     & 0                    & 0  \\
-                0 & \cos\left(\th\right)             & -i\sin\left(\th\right)e^{-i\beta} & 0  \\
-                0 & -i\sin\left(\th\right)e^{i\beta} & \cos\left(\th\right)            & 0  \\
-                0 & 0                     & 0                    & 1
+                1 & 0 & 0 & 0  \\
+                0 & \cos\left(\rotationangle\right) & -i\sin\left(\rotationangle\right)e^{-i\beta} & 0 \\
+                0 & -i\sin\left(\rotationangle\right)e^{i\beta} & \cos\left(\rotationangle\right) & 0 \\
+                0 & 0 & 0 & 1
             \end{pmatrix}
 
     .. note::
@@ -56,40 +61,43 @@ class XXPlusYYGate(Gate):
         In Qiskit's convention, higher qubit indices are more significant
         (little endian convention). In the above example we apply the gate
         on (q_0, q_1) which results in adding the (optional) phase defined
-        by :math:`beta` on q_0. Instead, if we apply it on (q_1, q_0), the
-        phase is added on q_1. If :math:`beta` is set to its default value
+        by :math:`\beta` on q_0. Instead, if we apply it on (q_1, q_0), the
+        phase is added on q_1. If :math:`\beta` is set to its default value
         of :math:`0`, the gate is equivalent in big and little endian.
 
-        .. parsed-literal::
+        .. code-block:: text
 
                  ┌───────────────┐
             q_0: ┤1              ├
-                 │  {XX+YY}(θ,β) │
+                 │  (XX+YY)(θ,β) │
             q_1: ┤0              ├
                  └───────────────┘
 
-    .. math::
+        .. math::
 
-        \newcommand{\th}{\frac{\theta}{2}}
+            \newcommand{\rotationangle}{\frac{\theta}{2}}
 
-        R_{XX+YY}(\theta, \beta)\ q_0, q_1 =
-          RZ_1(-\beta) \cdot \exp\left(-i \frac{\theta}{2} \frac{XX+YY}{2}\right) \cdot RZ_1(\beta) =
-            \begin{pmatrix}
-                1 & 0                     & 0                    & 0  \\
-                0 & \cos\left(\th\right)             & -i\sin\left(\th\right)e^{i\beta} & 0  \\
-                0 & -i\sin\left(\th\right)e^{-i\beta} & \cos\left(\th\right)            & 0  \\
-                0 & 0                     & 0                    & 1
-            \end{pmatrix}
+            R_{XX+YY}(\theta, \beta)\ q_0, q_1 =
+            RZ_1(-\beta) \cdot \exp\left(-i \frac{\theta}{2} \frac{XX+YY}{2}\right) \cdot RZ_1(\beta) =
+                \begin{pmatrix}
+                    1 & 0 & 0 & 0  \\
+                    0 & \cos\left(\rotationangle\right) &
+                    -i\sin\left(\rotationangle\right)e^{i\beta} & 0 \\
+                    0 & -i\sin\left(\rotationangle\right)e^{-i\beta} &
+                    \cos\left(\rotationangle\right) & 0 \\
+                    0 & 0 & 0 & 1
+                \end{pmatrix}
     """
+
+    _standard_gate = StandardGate.XXPlusYY
 
     def __init__(
         self,
         theta: ParameterValueType,
         beta: ParameterValueType = 0,
-        label: Optional[str] = "{XX+YY}",
+        label: Optional[str] = "(XX+YY)",
     ):
-        """Create new XX+YY gate.
-
+        """
         Args:
             theta: The rotation angle.
             beta: The phase angle.
@@ -98,65 +106,39 @@ class XXPlusYYGate(Gate):
         super().__init__("xx_plus_yy", 2, [theta, beta], label=label)
 
     def _define(self):
-        """
-        gate xx_plus_yy(theta, beta) a, b {
-            rz(beta) b;
-            rz(-pi/2) a;
-            sx a;
-            rz(pi/2) a;
-            s b;
-            cx a, b;
-            ry(theta/2) a;
-            ry(theta/2) b;
-            cx a, b;
-            sdg b;
-            rz(-pi/2) a;
-            sxdg a;
-            rz(pi/2) a;
-            rz(-beta) b;
-        }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .x import CXGate
-        from .s import SGate, SdgGate
-        from .sx import SXGate, SXdgGate
-        from .rz import RZGate
-        from .ry import RYGate
+        from qiskit.circuit import QuantumCircuit
 
-        theta = self.params[0]
-        beta = self.params[1]
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (RZGate(beta), [q[0]], []),
-            (RZGate(-pi / 2), [q[1]], []),
-            (SXGate(), [q[1]], []),
-            (RZGate(pi / 2), [q[1]], []),
-            (SGate(), [q[0]], []),
-            (CXGate(), [q[1], q[0]], []),
-            (RYGate(-theta / 2), [q[1]], []),
-            (RYGate(-theta / 2), [q[0]], []),
-            (CXGate(), [q[1], q[0]], []),
-            (SdgGate(), [q[0]], []),
-            (RZGate(-pi / 2), [q[1]], []),
-            (SXdgGate(), [q[1]], []),
-            (RZGate(pi / 2), [q[1]], []),
-            (RZGate(-beta), [q[0]], []),
-        ]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        #      ┌───────┐┌───┐      ┌───┐┌──────────┐┌───┐┌─────┐┌────────┐
+        # q_0: ┤ Rz(β) ├┤ S ├──────┤ X ├┤ Ry(-θ/2) ├┤ X ├┤ Sdg ├┤ Rz(-β) ├─────
+        #      └┬─────┬┘├───┴┐┌───┐└─┬─┘├──────────┤└─┬─┘├─────┤└┬──────┬┘┌───┐
+        # q_1: ─┤ Sdg ├─┤ √X ├┤ S ├──■──┤ Ry(-θ/2) ├──■──┤ Sdg ├─┤ √Xdg ├─┤ S ├
+        #       └─────┘ └────┘└───┘     └──────────┘     └─────┘ └──────┘ └───┘
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.XXPlusYY._get_definition(self.params), legacy_qubits=True
+        )
 
-    def inverse(self):
-        """Return inverse XX+YY gate (i.e. with the negative rotation angle and same phase angle)."""
+    def inverse(self, annotated: bool = False):
+        """Return inverse XX+YY gate (i.e. with the negative rotation angle and same phase angle).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.XXPlusYYGate` with inverse
+                parameter values.
+
+        Returns:
+            XXPlusYYGate: inverse gate.
+        """
         return XXPlusYYGate(-self.params[0], self.params[1])
 
-    def __array__(self, dtype=complex):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the XX+YY gate."""
-        import numpy
-
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         half_theta = float(self.params[0]) / 2
         beta = float(self.params[1])
         cos = math.cos(half_theta)
@@ -170,3 +152,12 @@ class XXPlusYYGate(Gate):
             ],
             dtype=dtype,
         )
+
+    def power(self, exponent: float, annotated: bool = False):
+        theta, beta = self.params
+        return XXPlusYYGate(exponent * theta, beta)
+
+    def __eq__(self, other):
+        if isinstance(other, XXPlusYYGate):
+            return self._compare_parameters(other)
+        return False

@@ -16,7 +16,7 @@ import unittest
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestAnonymousIds(QiskitTestCase):
@@ -78,22 +78,6 @@ class TestInvalidIds(QiskitTestCase):
         qr = QuantumRegister(size=3)
         cr = ClassicalRegister(size=3)
         self.assertRaises(CircuitError, QuantumCircuit, qr, cr, name=1)
-
-    def test_invalid_type_qr_name(self):
-        """QuantumRegister() with an invalid type name."""
-        self.assertRaises(CircuitError, QuantumRegister, size=3, name=1)
-
-    def test_invalid_type_cr_name(self):
-        """ClassicalRegister() with an invalid type name."""
-        self.assertRaises(CircuitError, ClassicalRegister, size=3, name=1)
-
-    def test_invalid_qasmname_qr(self):
-        """QuantumRegister() with invalid name."""
-        self.assertRaises(CircuitError, QuantumRegister, size=3, name="Qr")
-
-    def test_invalid_qasmname_cr(self):
-        """ClassicalRegister() with invalid name."""
-        self.assertRaises(CircuitError, ClassicalRegister, size=3, name="Cr")
 
 
 if __name__ == "__main__":

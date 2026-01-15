@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed the deprecation warning for Python 3.9 so that it correctly is identified
+    as being caused by user code when importing Qiskit. Previously, it would not
+    be identified as being caused by user code and this meant that Python's default
+    warning filters would not display the warning to the user.

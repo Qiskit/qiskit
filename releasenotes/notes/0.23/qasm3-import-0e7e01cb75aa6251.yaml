@@ -1,0 +1,48 @@
+---
+features:
+  - |
+    Support for importing OpenQASM 3 programs into Qiskit has been added.  This can most easily be
+    accessed using the functions :func:`.qasm3.loads` and :func:`.qasm3.load`, to load a program
+    directly from a string and indirectly from a filename, respectively.  For example, one can now
+    do::
+
+      from qiskit import qasm3
+
+      circuit = qasm3.loads("""
+        OPENQASM 3.0;
+        include "stdgates.inc";
+
+        qubit q;
+        qubit[5] qr;
+        bit c;
+        bit[5] cr;
+
+        h q;
+        c = measure q;
+
+        if (c) {
+          h qr[0];
+          cx qr[0], qr[1];
+          cx qr[0], qr[2];
+          cx qr[0], qr[3];
+          cx qr[0], qr[4];
+        } else {
+          h qr[4];
+          cx qr[4], qr[3];
+          cx qr[4], qr[2];
+          cx qr[4], qr[1];
+          cx qr[4], qr[0];
+        }
+        cr = measure qr;
+      """)
+
+    This will load the program into a :class:`.QuantumCircuit` instance in the variable ``circuit``.
+
+    Not all OpenQASM 3 features are supported at first, because Qiskit does not yet have a way to
+    represent advanced classical data processing.  The capabilities of the importer will increase
+    along with the capabilities of the rest of Qiskit.  The initial feature set of the importer is
+    approximately the same set of features that would be output by the exporter (:func:`.qasm3.dump`
+    and :func:`.qasm3.dumps`).
+    
+    Note that Qiskit's support of OpenQASM 3 is not meant to provide a totally lossless
+    representation of :class:`.QuantumCircuit`\ s.  For that, consider using :mod:`qiskit.qpy`.

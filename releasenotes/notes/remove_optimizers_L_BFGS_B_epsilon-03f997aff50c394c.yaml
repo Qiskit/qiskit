@@ -1,7 +1,0 @@
----
-upgrade:
-  - |
-    Arguments `epsilon` and `factr` of `~qiskit.algorithms.optimizers.L_BFGS_B`
-    and `factr` of `~qiskit.algorithms.optimizers.P_BFGS` have been removed and no longer
-    exist as per the deprecation notice from qiskit-terra
-    0.18.0 (released on Jul 12, 2021).

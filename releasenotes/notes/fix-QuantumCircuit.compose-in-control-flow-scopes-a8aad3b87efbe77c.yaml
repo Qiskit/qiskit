@@ -1,7 +1,0 @@
----
-fixes:
-  - |
-    :meth:`.QuantumCircuit.compose` will now function correctly when used with
-    the ``inplace=True`` argument within control-flow builder contexts.
-    Previously the instructions would be added outside the control-flow scope.
-    Fixed `#8433 <https://github.com/Qiskit/qiskit-terra/issues/8433>`__.

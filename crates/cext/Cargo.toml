@@ -1,0 +1,42 @@
+[package]
+name = "qiskit-cext"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+build = "build.rs"
+
+[lib]
+name = "qiskit_cext"
+doctest = false
+crate-type = ["rlib"]
+
+[lints]
+workspace = true
+
+[dependencies]
+thiserror.workspace = true
+num-complex.workspace = true
+qiskit-quantum-info.workspace = true
+qiskit-circuit.workspace = true
+qiskit-circuit-library.workspace = true
+qiskit-transpiler.workspace = true
+pyo3 = { workspace = true, optional = true }
+indexmap.workspace = true
+ahash.workspace = true
+smallvec.workspace = true
+ndarray.workspace = true
+nalgebra.workspace = true
+hashbrown.workspace = true
+rand.workspace = true
+rand_pcg.workspace = true
+anyhow.workspace = true
+
+[build-dependencies]
+cbindgen = "0.29"
+
+[features]
+default = ["cbinding"]
+python_binding = ["dep:pyo3"]
+cbinding = []
+cache_pygates = ["qiskit-circuit/cache_pygates", "qiskit-transpiler/cache_pygates"]

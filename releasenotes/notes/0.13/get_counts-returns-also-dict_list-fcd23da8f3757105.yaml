@@ -10,7 +10,7 @@ features:
     from multiple circuits in the same histogram. For example it is now
     possible to do something like:
 
-    .. jupyter-execute::
+    .. code-block::
 
         from qiskit import execute
         from qiskit import QuantumCircuit

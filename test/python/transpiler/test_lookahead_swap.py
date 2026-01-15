@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,13 +14,16 @@
 
 import unittest
 from numpy import pi
+
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.passes import LookaheadSwap
-from qiskit.transpiler import CouplingMap
+from qiskit.transpiler import CouplingMap, Target
 from qiskit.converters import circuit_to_dag
+from qiskit.circuit.library import CXGate
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
-from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeMelbourne
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
+from ..legacy_cmaps import MELBOURNE_CMAP
 
 
 class TestLookaheadSwap(QiskitTestCase):
@@ -120,6 +123,35 @@ class TestLookaheadSwap(QiskitTestCase):
         coupling_map = CouplingMap([[0, 1], [1, 2]])
 
         mapped_dag = LookaheadSwap(coupling_map).run(dag_circuit)
+
+        mapped_measure_qargs = {op.qargs[0] for op in mapped_dag.named_nodes("measure")}
+
+        self.assertIn(mapped_measure_qargs, [{qr[0], qr[1]}, {qr[1], qr[2]}])
+
+    def test_lookahead_swap_maps_measurements_with_target(self):
+        """Verify measurement nodes are updated to map correct cregs to re-mapped qregs.
+
+        Create a circuit with measures on q0 and q2, following a swap between q0 and q2.
+        Since that swap is not in the coupling, one of the two will be required to move.
+        Verify that the mapped measure corresponds to one of the two possible layouts following
+        the swap.
+
+        """
+
+        qr = QuantumRegister(3, "q")
+        cr = ClassicalRegister(2)
+        circuit = QuantumCircuit(qr, cr)
+
+        circuit.cx(qr[0], qr[2])
+        circuit.measure(qr[0], cr[0])
+        circuit.measure(qr[2], cr[1])
+
+        dag_circuit = circuit_to_dag(circuit)
+
+        target = Target()
+        target.add_instruction(CXGate(), {(0, 1): None, (1, 2): None})
+
+        mapped_dag = LookaheadSwap(target).run(dag_circuit)
 
         mapped_measure_qargs = {op.qargs[0] for op in mapped_dag.named_nodes("measure")}
 
@@ -234,8 +266,7 @@ class TestLookaheadSwap(QiskitTestCase):
         qc.cx(qr[13], qr[1])
         dag = circuit_to_dag(qc)
 
-        cmap = CouplingMap(FakeMelbourne().configuration().coupling_map)
-
+        cmap = CouplingMap(MELBOURNE_CMAP)
         out = LookaheadSwap(cmap, search_depth=4, search_width=4).run(dag)
 
         self.assertIsInstance(out, DAGCircuit)
@@ -260,7 +291,7 @@ class TestLookaheadSwap(QiskitTestCase):
         qc.cx(qr[0], qr[1])
         dag = circuit_to_dag(qc)
 
-        cmap = CouplingMap(FakeMelbourne().configuration().coupling_map)
+        cmap = CouplingMap(MELBOURNE_CMAP)
 
         out = LookaheadSwap(cmap, search_depth=4, search_width=4).run(dag)
 

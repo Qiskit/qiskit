@@ -13,7 +13,7 @@
 """Module containing basis change passes."""
 
 from .decompose import Decompose
-from .unroller import Unroller
 from .unroll_custom_definitions import UnrollCustomDefinitions
 from .unroll_3q_or_more import Unroll3qOrMore
 from .basis_translator import BasisTranslator
+from .translate_parameterized import TranslateParameterizedGates

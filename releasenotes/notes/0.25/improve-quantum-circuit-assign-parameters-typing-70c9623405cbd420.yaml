@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Improve the type annotations on the
+    :meth:`.QuantumCircuit.assign_parameters`
+    method to reflect the change in return type depending on the ``inplace``
+    argument.

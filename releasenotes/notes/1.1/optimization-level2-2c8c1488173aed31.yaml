@@ -1,0 +1,10 @@
+---
+upgrade_transpiler:
+  - |
+    The preset :class:`.StagedPassManager` returned for optimization level 2 by
+    :func:`.generate_preset_pass_manager` and :func:`.level_2_pass_manager` have
+    been reworked to provide a better balance between runtime and optimization.
+    This means the output circuits will change compared to earlier releases. If
+    you need an exact pass manager from level 2 in earlier releases you can
+    either build it manually or use it from an earlier release and save the
+    circuits with :mod:`~qiskit.qpy` to load with a newer release.

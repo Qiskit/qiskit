@@ -1,0 +1,15 @@
+upgrade:
+  - |
+    The :class:`.QuantumCircuit` :attr:`.QuantumCircuit.metadata` attribute now
+    always returns a dictionary, and can only be set to a dictionary. Previously, 
+    its default value was ``None``, and could be manually set to ``None`` or a 
+    dictionary.
+  - |
+    The default value of ``metadata`` in both :class:`.DAGCircuit` and 
+    :class:`.DAGDependency` has been changed from ``None`` to ``{}`` for compatibility
+    with a similar attribute of :class:`.QuantumCircuit`.
+deprecations:
+  - |
+    Setting the :class:`.QuantumCircuit` :attr:`.QuantumCircuit.metadata` attribute 
+    to ``None`` has been deprecated. Instead, users should set it to an empty 
+    dictionary if they want it to contain no data.

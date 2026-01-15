@@ -1,0 +1,18 @@
+---
+features:
+  - |
+    Added the functions ``add_deprecation_to_docstring()``, ``@deprecate_arg``, and
+    ``@deprecate_func`` to ``qiskit.util.deprecation``.
+
+    ``add_deprecation_to_docstring()`` will rewrite the function's docstring to include a
+    Sphinx ``.. deprecated::`` directive so that the deprecation shows up in docs and with
+    ``help()``. The deprecation decorators from ``qiskit.util.deprecation`` call
+    ``add_deprecation_to_docstring()`` already for you; but you can call it directly if you
+    are using different mechanisms for deprecations.
+
+    ``@deprecate_func`` replaces ``@deprecate_function``. It will auto-generate most of the
+    deprecation message for you.
+
+    ``@deprecate_arg`` replaces ``@deprecate_arguments``. It will generate a more useful message
+    than before. It is also more flexible, like allowing you to set a ``predicate`` so that you
+    only deprecate certain situations, such as using a deprecated value or data type.

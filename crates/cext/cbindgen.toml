@@ -1,0 +1,59 @@
+language = "C"
+include_version = true
+include_guard = "QISKIT_H"
+style = "type"
+cpp_compat = true
+usize_is_size_t = true
+
+after_includes = """
+#ifdef QISKIT_C_PYTHON_INTERFACE
+    #include <Python.h>
+#endif
+
+#include "qiskit/version.h"
+#include "qiskit/attributes.h"
+#include "qiskit/complex.h"
+
+// Always expose [cfg(feature = "cbinding")] -- workaround for
+// https://github.com/mozilla/cbindgen/issues/995
+#define QISKIT_WITH_CBINDINGS
+
+typedef struct QkQuantumRegister QkQuantumRegister;
+typedef struct QkClassicalRegister QkClassicalRegister;
+"""
+
+[defines]
+"feature = cbinding" = "QISKIT_WITH_CBINDINGS"
+"feature = python_binding" = "QISKIT_C_PYTHON_INTERFACE"
+
+[parse]
+parse_deps = true
+include = ["qiskit-quantum-info", "qiskit-circuit", "qiskit-transpiler"]
+
+[enum]
+prefix_with_name = true
+
+[fn]
+# These are defined in the custom `qiskit/attributes.h` header file.
+deprecated = "Qk_DEPRECATED_FN"
+deprecated_with_note = "Qk_DEPRECATED_FN_NOTE({})"
+
+[export]
+prefix = "Qk"
+
+[export.rename]
+"SparseObservable" = "Obs"
+"CSparseTerm" = "ObsTerm"
+"CircuitData" = "Circuit"
+"DAGCircuit" = "Dag"
+"CDagNodeType" = "DagNodeType"
+"StandardGate" = "Gate"
+"CInstruction" = "CircuitInstruction"
+"CDelayUnit" = "DelayUnit"
+"CInstructionProperties" = "InstructionProperties"
+"CNeighbors" = "Neighbors"
+"COperationKind" = "OperationKind"
+"CDagNeighbors" = "DagNeighbors"
+"CVarsMode" = "VarsMode"
+"CBlocksMode" = "BlocksMode"
+"CTargetOp" = "TargetOp"

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,9 +14,9 @@
 
 import itertools
 import unittest
-from test import combine
 
 import numpy as np
+import rustworkx as rx
 from ddt import ddt
 from scipy.sparse import csr_matrix
 
@@ -27,23 +27,39 @@ from qiskit.circuit.library import (
     CZGate,
     HGate,
     IGate,
+    ECRGate,
     SdgGate,
     SGate,
     SwapGate,
+    iSwapGate,
     XGate,
     YGate,
     ZGate,
+    SXGate,
+    SXdgGate,
+    RXGate,
+    RYGate,
+    RZGate,
+    CPhaseGate,
+    CRXGate,
+    CRYGate,
+    CRZGate,
+    RXXGate,
+    RYYGate,
+    RZZGate,
+    RZXGate,
+    XXMinusYYGate,
+    XXPlusYYGate,
 )
 from qiskit.quantum_info.operators import (
     Clifford,
     Operator,
     Pauli,
     PauliList,
-    PauliTable,
-    StabilizerTable,
 )
 from qiskit.quantum_info.random import random_clifford, random_pauli_list
-from qiskit.test import QiskitTestCase
+from test import combine  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 from .test_pauli import pauli_group_labels
 
@@ -198,6 +214,10 @@ class TestPauliListInit(QiskitTestCase):
             np.testing.assert_equal(pauli_list.z, z)
             np.testing.assert_equal(pauli_list.x, x)
 
+        with self.subTest(msg="str init prevent broadcasting"):
+            with self.assertRaises(ValueError):
+                PauliList(["XYZ", "I"])
+
     def test_list_init(self):
         """Test list initialization."""
         with self.subTest(msg="PauliList"):
@@ -211,37 +231,19 @@ class TestPauliListInit(QiskitTestCase):
             value[0] = "-iII"
             self.assertEqual(value, target)
 
-    def test_pauli_table_init(self):
-        """Test table initialization."""
-        with self.subTest(msg="PauliTable"):
-            target = PauliTable.from_labels(["XI", "IX", "IZ"])
-            value = PauliList(target)
-            self.assertEqual(value, target)
-
-        with self.subTest(msg="PauliTable no copy"):
-            target = PauliTable.from_labels(["XI", "IX", "IZ"])
-            value = PauliList(target)
-            value[0] = "II"
-            self.assertEqual(value, target)
-
-    def test_stabilizer_table_init(self):
-        """Test table initialization."""
-        with self.subTest(msg="PauliTable"):
-            target = StabilizerTable.from_labels(["+II", "-XZ"])
-            value = PauliList(target)
-            self.assertEqual(value, target)
-
-        with self.subTest(msg="PauliTable no copy"):
-            target = StabilizerTable.from_labels(["+YY", "-XZ", "XI"])
-            value = PauliList(target)
-            value[0] = "II"
-            self.assertEqual(value, target)
-
     def test_init_from_settings(self):
         """Test initializing from the settings dictionary."""
         pauli_list = PauliList(["IX", "-iYZ", "YY"])
         from_settings = PauliList(**pauli_list.settings)
         self.assertEqual(pauli_list, from_settings)
+
+    def test_from_symplectic_phase_check(self):
+        """Test the from_symplectic method of PauliList for phase dimension check."""
+        z = np.array([[0], [0]])
+        x = np.array([[0], [0]])
+        phase = np.array([[0], [0]])  # 2D phase
+        with self.assertRaisesRegex(ValueError, "phase should be at most 1D but has 2 dimensions."):
+            PauliList.from_symplectic(z, x, phase)
 
 
 @ddt
@@ -1489,6 +1491,10 @@ class TestPauliListMethods(QiskitTestCase):
 
     def test_delete(self):
         """Test delete method."""
+        with self.subTest(msg="no rows"):
+            pauli = PauliList(["XX", "ZZ"])
+            self.assertEqual(pauli.delete([]), pauli)
+
         with self.subTest(msg="single row"):
             for j in range(1, 6):
                 pauli = PauliList([j * "X", j * "Y"])
@@ -1501,6 +1507,10 @@ class TestPauliListMethods(QiskitTestCase):
                 self.assertEqual(pauli.delete([0, 2]), PauliList("-i" + j * "Y"))
                 self.assertEqual(pauli.delete([1, 2]), PauliList(j * "X"))
                 self.assertEqual(pauli.delete([0, 1]), PauliList(j * "Z"))
+
+        with self.subTest(msg="no qubits"):
+            pauli = PauliList(["XX", "ZZ"])
+            self.assertEqual(pauli.delete([], qubit=True), pauli)
 
         with self.subTest(msg="single qubit"):
             pauli = PauliList(["IIX", "iIYI", "ZII"])
@@ -1573,6 +1583,15 @@ class TestPauliListMethods(QiskitTestCase):
                 self.assertEqual(value0, target0)
                 value1 = pauli.insert(1, insert)
                 self.assertEqual(value1, target1)
+
+        # Insert single column to length-1 PauliList:
+        with self.subTest(msg="length-1, single-column, single-val"):
+            pauli = PauliList(["X"])
+            insert = PauliList(["Y"])
+            target0 = PauliList(["YX"])
+            value0 = pauli.insert(1, insert, qubit=True)
+            self.assertEqual(value0, target0)
+            self.assertEqual(value0.phase.shape, (1,))
 
         # Insert single column
         pauli = PauliList(["X", "Y", "Z", "-iI"])
@@ -1981,6 +2000,11 @@ class TestPauliListMethods(QiskitTestCase):
             HGate(),
             SGate(),
             SdgGate(),
+            SXGate(),
+            SXdgGate(),
+            RXGate(theta=np.pi / 2),
+            RYGate(theta=np.pi / 2),
+            RZGate(phi=np.pi / 2),
             Clifford(IGate()),
             Clifford(XGate()),
             Clifford(YGate()),
@@ -2012,10 +2036,23 @@ class TestPauliListMethods(QiskitTestCase):
             CYGate(),
             CZGate(),
             SwapGate(),
+            iSwapGate(),
+            CPhaseGate(theta=np.pi),
+            CRXGate(theta=np.pi),
+            CRYGate(theta=np.pi),
+            CRZGate(theta=np.pi),
+            RXXGate(theta=np.pi / 2),
+            RYYGate(theta=np.pi / 2),
+            RZZGate(theta=np.pi / 2),
+            RZXGate(theta=np.pi / 2),
+            XXMinusYYGate(theta=np.pi),
+            XXPlusYYGate(theta=-np.pi),
+            ECRGate(),
             Clifford(CXGate()),
             Clifford(CYGate()),
             Clifford(CZGate()),
             Clifford(SwapGate()),
+            Clifford(ECRGate()),
         )
     )
     def test_evolve_clifford2(self, gate):
@@ -2033,6 +2070,41 @@ class TestPauliListMethods(QiskitTestCase):
         self.assertListEqual(value, target)
         self.assertListEqual(value, value_h)
         self.assertListEqual(value_inv, value_s)
+
+    def test_phase_dtype_evolve_clifford(self):
+        """Test phase dtype during evolve method for Clifford gates."""
+        gates = (
+            IGate(),
+            XGate(),
+            YGate(),
+            ZGate(),
+            HGate(),
+            SGate(),
+            SdgGate(),
+            CXGate(),
+            CYGate(),
+            CZGate(),
+            SwapGate(),
+            ECRGate(),
+        )
+        dtypes = [
+            int,
+            np.int8,
+            np.uint8,
+            np.int16,
+            np.uint16,
+            np.int32,
+            np.uint32,
+            np.int64,
+            np.uint64,
+        ]
+        for gate, dtype in itertools.product(gates, dtypes):
+            z = np.ones(gate.num_qubits, dtype=bool)
+            x = np.ones(gate.num_qubits, dtype=bool)
+            phase = (np.sum(z & x) % 4).astype(dtype)
+            paulis = Pauli((z, x, phase))
+            evo = paulis.evolve(gate)
+            self.assertEqual(evo.phase.dtype, dtype)
 
     @combine(phase=(True, False))
     def test_evolve_clifford_qargs(self, phase):
@@ -2053,6 +2125,38 @@ class TestPauliListMethods(QiskitTestCase):
         self.assertListEqual(value, value_h)
         self.assertListEqual(value_inv, value_s)
 
+    @combine(qubit_wise=[True, False])
+    def test_noncommutation_graph(self, qubit_wise):
+        """Test noncommutation graph"""
+
+        def commutes(left: Pauli, right: Pauli, qubit_wise: bool) -> bool:
+            if len(left) != len(right):
+                return False
+            if not qubit_wise:
+                return left.commutes(right)
+            else:
+                # qubit-wise commuting check
+                vec_l = left.z + 2 * left.x
+                vec_r = right.z + 2 * right.x
+                qubit_wise_comparison = (vec_l * vec_r) * (vec_l - vec_r)
+                return np.all(qubit_wise_comparison == 0)
+
+        input_labels = ["IY", "ZX", "XZ", "-YI", "YX", "YY", "-iYZ", "ZI", "ZX", "ZY", "iZZ", "II"]
+        np.random.shuffle(input_labels)
+        pauli_list = PauliList(input_labels)
+        graph = pauli_list.noncommutation_graph(qubit_wise=qubit_wise)
+
+        expected = rx.PyGraph()
+        expected.add_nodes_from(range(len(input_labels)))
+        edges = [
+            (ia, ib)
+            for (ia, a), (ib, b) in itertools.combinations(enumerate(input_labels), 2)
+            if not commutes(Pauli(a), Pauli(b), qubit_wise)
+        ]
+        expected.add_edges_from_no_data(edges)
+
+        self.assertTrue(rx.is_isomorphic(graph, expected))
+
     def test_group_qubit_wise_commuting(self):
         """Test grouping qubit-wise commuting operators"""
 
@@ -2064,10 +2168,10 @@ class TestPauliListMethods(QiskitTestCase):
         pauli_list = PauliList(input_labels)
         groups = pauli_list.group_qubit_wise_commuting()
 
-        # checking that every input Pauli in pauli_list is in a group in the ouput
+        # checking that every input Pauli in pauli_list is in a group in the output
         output_labels = [pauli.to_label() for group in groups for pauli in group]
-        #     assert sorted(output_labels) == sorted(input_labels)
         self.assertListEqual(sorted(output_labels), sorted(input_labels))
+
         # Within each group, every operator qubit-wise commutes with every other operator.
         for group in groups:
             self.assertTrue(
@@ -2098,7 +2202,7 @@ class TestPauliListMethods(QiskitTestCase):
         #  if qubit_wise=True, equivalent to test_group_qubit_wise_commuting
         groups = pauli_list.group_commuting(qubit_wise=False)
 
-        # checking that every input Pauli in pauli_list is in a group in the ouput
+        # checking that every input Pauli in pauli_list is in a group in the output
         output_labels = [pauli.to_label() for group in groups for pauli in group]
         self.assertListEqual(sorted(output_labels), sorted(input_labels))
         # Within each group, every operator commutes with every other operator.

@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Improve the decomposition of multi-controlled Pauli-X and Pauli-Y rotations on :math:`n`
+    controls to :math:`16n - 40` CX gates, for :math:`n \geq 4`. This improvement is based
+    on `arXiv:2302.06377 <https://arxiv.org/abs/2302.06377>`__.

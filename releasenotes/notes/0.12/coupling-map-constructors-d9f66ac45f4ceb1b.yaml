@@ -13,7 +13,7 @@ features:
     For example, to use the new constructors to get a coupling map of 5
     qubits connected in a linear chain you can now run:
 
-    .. jupyter-execute::
+    .. code-block::
 
         from qiskit.transpiler import CouplingMap
 

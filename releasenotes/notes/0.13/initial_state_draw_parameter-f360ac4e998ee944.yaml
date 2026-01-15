@@ -8,7 +8,7 @@ upgrade:
     retain the initial state in the output visualization you need to set the
     ``initial_state`` kwarg to ``True``. For example, running:
 
-    .. jupyter-execute::
+    .. code-block::
 
         from qiskit import QuantumCircuit
 
@@ -18,7 +18,7 @@ upgrade:
 
     This no longer includes the initial state. If you'd like to retain it you can run:
 
-    .. jupyter-execute::
+    .. code-block::
 
         from qiskit import QuantumCircuit
 
@@ -35,7 +35,7 @@ features:
     initial state will be included in circuit visualizations for all backends.
     For example:
     
-    .. jupyter-execute::
+    .. code-block::
     
         from qiskit import QuantumCircuit
 

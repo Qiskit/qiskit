@@ -1,0 +1,5 @@
+---
+fixes:
+  - Fix a bug in which running :class:`~.Optimize1qGatesDecomposition`
+    in parallel would raise an error due to OneQubitGateErrorMap
+    not being picklable.

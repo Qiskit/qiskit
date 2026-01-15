@@ -1,0 +1,64 @@
+[package]
+name = "qiskit-circuit"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[lib]
+name = "qiskit_circuit"
+doctest = false
+
+[lints]
+workspace = true
+
+[dependencies]
+rayon.workspace = true
+ahash.workspace = true
+rustworkx-core.workspace = true
+bytemuck.workspace = true
+bitfield-struct.workspace = true
+num-complex.workspace = true
+num-bigint.workspace = true
+num-traits.workspace = true
+thiserror.workspace = true
+itertools.workspace = true
+nalgebra.workspace = true
+uuid.workspace = true
+nom.workspace = true
+nom-unicode.workspace = true
+nom-language.workspace = true
+
+[dependencies.pyo3]
+workspace = true
+features = ["hashbrown", "indexmap", "num-complex", "num-bigint", "smallvec", "py-clone"]
+
+[dependencies.approx]
+workspace = true
+features = ["num-complex"]
+
+[dependencies.ndarray]
+workspace = true
+features = ["rayon", "approx"]
+
+[dependencies.hashbrown]
+workspace = true
+features = ["rayon"]
+
+[dependencies.indexmap]
+workspace = true
+features = ["rayon"]
+
+[dependencies.smallvec]
+workspace = true
+features = ["union", "const_generics"]
+
+[dependencies.numpy]
+workspace = true
+features = ["nalgebra"]
+
+[features]
+cache_pygates = []
+
+[dev-dependencies]
+pyo3 = { workspace = true, features = ["auto-initialize"] }

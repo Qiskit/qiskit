@@ -21,3 +21,7 @@ class QASM3Error(QiskitError):
 
 class QASM3ExporterError(QASM3Error):
     """An error raised during running the OpenQASM 3 exporter."""
+
+
+class QASM3ImporterError(QASM3Error):
+    """An error raised during the OpenQASM 3 importer."""

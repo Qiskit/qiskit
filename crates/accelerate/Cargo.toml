@@ -1,0 +1,58 @@
+[package]
+name = "qiskit-accelerate"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[lib]
+name = "qiskit_accelerate"
+doctest = false
+
+[lints]
+workspace = true
+
+[dependencies]
+rayon.workspace = true
+numpy.workspace = true
+rand.workspace = true
+rand_pcg.workspace = true
+rand_distr.workspace = true
+num-complex.workspace = true
+rustworkx-core.workspace = true
+num-bigint.workspace = true
+itertools.workspace = true
+qiskit-circuit.workspace = true
+qiskit-transpiler.workspace = true
+qiskit-quantum-info.workspace = true
+nalgebra.workspace = true
+
+[dependencies.smallvec]
+workspace = true
+features = ["union"]
+
+[dependencies.pyo3]
+workspace = true
+features = ["hashbrown", "num-complex", "num-bigint", "smallvec"]
+
+[dependencies.ndarray]
+workspace = true
+features = ["rayon", "approx"]
+
+[dependencies.approx]
+workspace = true
+features = ["num-complex"]
+
+[dependencies.hashbrown]
+workspace = true
+features = ["rayon", "serde"]
+
+[dependencies.pulp]
+version = "0.22.2"
+features = ["macro"]
+
+[dev-dependencies]
+pyo3 = { workspace = true, features = ["auto-initialize"] }
+
+[features]
+cache_pygates = ["qiskit-circuit/cache_pygates"]

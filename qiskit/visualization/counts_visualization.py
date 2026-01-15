@@ -16,7 +16,6 @@ Visualization functions for measurement counts.
 
 from collections import OrderedDict
 import functools
-import warnings
 
 import numpy as np
 
@@ -46,9 +45,20 @@ VALID_SORTS = ["asc", "desc", "hamming", "value", "value_desc"]
 DIST_MEAS = {"hamming": hamming_distance}
 
 
+def _is_deprecated_data_format(data) -> bool:
+    if not isinstance(data, list):
+        data = [data]
+    for dat in data:
+        if isinstance(dat, (QuasiDistribution, ProbDistribution)) or isinstance(
+            next(iter(dat.values())), float
+        ):
+            return True
+    return False
+
+
 def plot_histogram(
     data,
-    figsize=(7, 5),
+    figsize=None,
     color=None,
     number_to_keep=None,
     sort="asc",
@@ -63,7 +73,8 @@ def plot_histogram(
 
     Args:
         data (list or dict): This is either a list of dictionaries or a single
-            dict containing the values to represent (ex {'001': 130})
+            dict containing the values to represent (ex ``{'001': 130}``)
+
         figsize (tuple): Figure size in inches.
         color (list or str): String or list of strings for histogram bar colors.
         number_to_keep (int): The number of terms to plot per dataset.  The rest is made into a
@@ -99,7 +110,9 @@ def plot_histogram(
         VisualizationError: Input must be Counts or a dict
 
     Examples:
-        .. jupyter-execute::
+        .. plot::
+           :alt: Output from the previous code.
+           :include-source:
 
             # Plot two counts in the same figure with legends and colors specified.
 
@@ -113,8 +126,6 @@ def plot_histogram(
             plot_histogram([counts1, counts2], legend=legend, color=['crimson','midnightblue'],
                             title="New Histogram")
 
-        .. jupyter-execute::
-
             # You can sort the bitstrings using different methods.
 
             counts = {'001': 596, '011': 211, '010': 50, '000': 117, '101': 33, '111': 8,
@@ -126,9 +137,6 @@ def plot_histogram(
             # Sort by the hamming distance (the number of bit flips to change from
             # one bitstring to the other) from a target string.
             hist2 = plot_histogram(counts, sort='hamming', target_string='001')
-
-            display(hist1, hist2)
-
     """
     if not isinstance(data, list):
         data = [data]
@@ -138,13 +146,6 @@ def plot_histogram(
         if isinstance(dat, (QuasiDistribution, ProbDistribution)) or isinstance(
             next(iter(dat.values())), float
         ):
-            warnings.warn(
-                "Using plot histogram with QuasiDistribution, ProbDistribution, or a "
-                "distribution dictionary will be deprecated in 0.23.0 and subsequently "
-                "removed in a future release. You should use plot_distribution() instead.",
-                PendingDeprecationWarning,
-                stacklevel=2,
-            )
             kind = "distribution"
     return _plotting_core(
         data,
@@ -214,7 +215,9 @@ def plot_distribution(
             match the input data.
 
     Examples:
-        .. jupyter-execute::
+        .. plot::
+           :alt: Output from the previous code.
+           :include-source:
 
             # Plot two counts in the same figure with legends and colors specified.
 
@@ -228,8 +231,6 @@ def plot_distribution(
             plot_distribution([counts1, counts2], legend=legend, color=['crimson','midnightblue'],
                             title="New Distribution")
 
-        .. jupyter-execute::
-
             # You can sort the bitstrings using different methods.
 
             counts = {'001': 596, '011': 211, '010': 50, '000': 117, '101': 33, '111': 8,
@@ -241,8 +242,6 @@ def plot_distribution(
             # Sort by the hamming distance (the number of bit flips to change from
             # one bitstring to the other) from a target string.
             dist2 = plot_distribution(counts, sort='hamming', target_string='001')
-
-            display(dist1, dist2)
 
     """
     return _plotting_core(
@@ -294,13 +293,12 @@ def _plotting_core(
 
     if legend and len(legend) != len(data):
         raise VisualizationError(
-            "Length of legendL (%s) doesn't match "
-            "number of input executions: %s" % (len(legend), len(data))
+            f"Length of legend ({len(legend)}) doesn't match number of input executions ({len(data)})."
         )
 
     # Set bar colors
     if color is None:
-        color = ["#648fff", "#dc267f", "#785ef0", "#ffb000", "#fe6100"]
+        color = plt.rcParams["axes.prop_cycle"].by_key()["color"]
     elif isinstance(color, str):
         color = [color]
 
@@ -309,7 +307,7 @@ def _plotting_core(
     else:
         fig = None
 
-    labels = list(sorted(functools.reduce(lambda x, y: x.union(y.keys()), data, set())))
+    labels = sorted(functools.reduce(lambda x, y: x.union(y.keys()), data, set()))
     if number_to_keep is not None:
         labels.append("rest")
 
@@ -328,7 +326,7 @@ def _plotting_core(
                 for count in counts:
                     prev_count = combined_counts.get(count, 0)
                     combined_counts[count] = max(prev_count, counts[count])
-        labels = list(sorted(combined_counts.keys(), key=lambda key: combined_counts[key]))
+        labels = sorted(combined_counts.keys(), key=lambda key: combined_counts[key])
 
     length = len(data)
     width = 1 / (len(data) + 1)  # the width of the bars
@@ -336,8 +334,8 @@ def _plotting_core(
     labels_dict, all_pvalues, all_inds = _plot_data(data, labels, number_to_keep, kind=kind)
     rects = []
     for item, _ in enumerate(data):
+        label = None
         for idx, val in enumerate(all_pvalues[item]):
-            label = None
             if not idx and legend:
                 label = legend[item]
             if val > 0:
@@ -351,9 +349,10 @@ def _plotting_core(
                         zorder=2,
                     )
                 )
+                label = None
         bar_center = (width / 2) * (length - 1)
         ax.set_xticks(all_inds[item] + bar_center)
-        ax.set_xticklabels(labels_dict.keys(), fontsize=14, rotation=70)
+        ax.set_xticklabels(labels_dict.keys(), rotation=70, ha="right", rotation_mode="anchor")
         # attach some text labels
         if bar_labels:
             for rect in rects:
@@ -394,8 +393,6 @@ def _plotting_core(
         ax.invert_xaxis()
 
     ax.yaxis.set_major_locator(MaxNLocator(5))
-    for tick in ax.yaxis.get_major_ticks():
-        tick.label1.set_fontsize(14)
     plt.grid(which="major", axis="y", zorder=0, linestyle="--")
     if title:
         plt.title(title)
@@ -407,11 +404,14 @@ def _plotting_core(
             ncol=1,
             borderaxespad=0,
             frameon=True,
-            fontsize=12,
         )
     if fig:
         matplotlib_close_if_inline(fig)
     if filename is None:
+        try:
+            fig.tight_layout()
+        except AttributeError:
+            pass
         return fig
     else:
         return fig.savefig(filename)

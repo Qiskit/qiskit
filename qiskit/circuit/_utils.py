@@ -13,7 +13,10 @@
 This module contains utility functions for circuits.
 """
 
+import math
 import numpy
+
+from qiskit import _numpy_compat
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.exceptions import CircuitError
 
@@ -43,7 +46,7 @@ def _compute_control_matrix(base_mat, num_ctrl_qubits, ctrl_state=None):
     Raises:
         QiskitError: unrecognized mode or invalid ctrl_state
     """
-    num_target = int(numpy.log2(base_mat.shape[0]))
+    num_target = int(math.log2(base_mat.shape[0]))
     ctrl_dim = 2**num_ctrl_qubits
     ctrl_grnd = numpy.repeat([[1], [0]], [1, ctrl_dim - 1])
     if ctrl_state is None:
@@ -95,3 +98,70 @@ def _ctrl_state_to_int(ctrl_state, num_ctrl_qubits):
     else:
         raise CircuitError(f"invalid control state specification: {repr(ctrl_state)}")
     return ctrl_state_std
+
+
+def with_gate_array(base_array):
+    """Class decorator that adds an ``__array__`` method to a :class:`.Gate` instance that returns a
+    singleton nonwritable view onto the complex matrix described by ``base_array``."""
+    nonwritable = numpy.array(base_array, dtype=numpy.complex128)
+    nonwritable.setflags(write=False)
+
+    def __array__(_self, dtype=None, copy=_numpy_compat.COPY_ONLY_IF_NEEDED):
+        dtype = nonwritable.dtype if dtype is None else dtype
+        return numpy.array(nonwritable, dtype=dtype, copy=copy)
+
+    def decorator(cls):
+        if hasattr(cls, "__array__"):
+            raise RuntimeError("Refusing to decorate a class that already has '__array__' defined.")
+        cls.__array__ = __array__
+        return cls
+
+    return decorator
+
+
+def with_controlled_gate_array(base_array, num_ctrl_qubits, cached_states=None):
+    """Class decorator that adds an ``__array__`` method to a :class:`.ControlledGate` instance that
+    returns singleton nonwritable views onto a relevant precomputed complex matrix for the given
+    control state.
+
+    If ``cached_states`` is not given, then all possible control states are precomputed.  If it is
+    given, it should be an iterable of integers, and only these control states will be cached."""
+    base = numpy.asarray(base_array, dtype=numpy.complex128)
+
+    def matrix_for_control_state(state):
+        out = numpy.asarray(
+            _compute_control_matrix(base, num_ctrl_qubits, state),
+            dtype=numpy.complex128,
+        )
+        out.setflags(write=False)
+        return out
+
+    if cached_states is None:
+        nonwritables = [matrix_for_control_state(state) for state in range(2**num_ctrl_qubits)]
+
+        def __array__(self, dtype=None, copy=_numpy_compat.COPY_ONLY_IF_NEEDED):
+            arr = nonwritables[self.ctrl_state]
+            dtype = arr.dtype if dtype is None else dtype
+            return numpy.array(arr, dtype=dtype, copy=copy)
+
+    else:
+        nonwritables = {state: matrix_for_control_state(state) for state in cached_states}
+
+        def __array__(self, dtype=None, copy=_numpy_compat.COPY_ONLY_IF_NEEDED):
+            if (arr := nonwritables.get(self.ctrl_state)) is not None:
+                dtype = arr.dtype if dtype is None else dtype
+                return numpy.array(arr, dtype=dtype, copy=copy)
+
+            if copy is False and copy is not _numpy_compat.COPY_ONLY_IF_NEEDED:
+                raise ValueError("could not produce matrix without calculation")
+            return numpy.asarray(
+                _compute_control_matrix(base, num_ctrl_qubits, self.ctrl_state), dtype=dtype
+            )
+
+    def decorator(cls):
+        if hasattr(cls, "__array__"):
+            raise RuntimeError("Refusing to decorate a class that already has '__array__' defined.")
+        cls.__array__ = __array__
+        return cls
+
+    return decorator

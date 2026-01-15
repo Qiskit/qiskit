@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    The magic ``%qiskit_version_table`` from ``qiskit.tools.jupyter`` now includes all
+    imported modules with ``'qiskit`` in their name.
+deprecations:
+  - |
+    The dictionary ``qiskit.__qiskit_version__`` is deprecated, as Qiskit is define with a single package (``qiskit-terra``).
+    In the future, ``qiskit.__version__`` will be the single point to query the Qiskit release, as a standard string.

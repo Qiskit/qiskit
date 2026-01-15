@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    An issue that prevented :func:`~qiskit.transpile` from working when passed
+    a list of :class:`~qiskit.transpiler.CouplingMap` objects was fixed. Note
+    that passing such a list of coupling maps is deprecated and will not be
+    possible starting with Qiskit Terra 0.25. Fixes
+    `#9885 <https://github.com/Qiskit/qiskit-terra/issues/9885>`_.

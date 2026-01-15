@@ -17,19 +17,31 @@
 import unittest
 import logging
 import copy
+
+from test import combine
 import numpy as np
+import ddt
 from numpy.testing import assert_allclose
-import scipy.linalg as la
+import scipy.stats
+import scipy.linalg
 
 from qiskit import QiskitError
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.circuit.library import HGate, CHGate, CXGate, QFT
-from qiskit.test import QiskitTestCase
+from qiskit.circuit import library
+from qiskit.circuit.library import HGate, CHGate, CXGate, QFTGate
+from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.layout import Layout, TranspileLayout
-from qiskit.quantum_info.operators.operator import Operator
+from qiskit.quantum_info.operators import Operator, ScalarOp
 from qiskit.quantum_info.operators.predicates import matrix_equal
+from qiskit.quantum_info.operators.operator_utils import _equal_with_ancillas
 from qiskit.compiler.transpiler import transpile
 from qiskit.circuit import Qubit
+from qiskit.circuit.library import PermutationGate
+from qiskit.utils import optionals
+
+from qiskit._accelerate import unitary_sim
+
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 logger = logging.getLogger(__name__)
 
@@ -91,6 +103,7 @@ class OperatorTestCase(QiskitTestCase):
         return circ
 
 
+@ddt.ddt
 class TestOperator(OperatorTestCase):
     """Tests for Operator linear operator class."""
 
@@ -206,6 +219,12 @@ class TestOperator(OperatorTestCase):
         op = Operator(mat)
         assert_allclose(mat, op.data)
 
+    def test_to_matrix(self):
+        """Test Operator to_matrix method."""
+        mat = self.rand_matrix(2, 2)
+        op = Operator(mat)
+        assert_allclose(mat, op.to_matrix())
+
     def test_dim(self):
         """Test Operator dim property."""
         mat = self.rand_matrix(4, 4)
@@ -277,7 +296,7 @@ class TestOperator(OperatorTestCase):
     def test_is_unitary(self):
         """Test is_unitary method."""
         # X-90 rotation
-        X90 = la.expm(-1j * 0.5 * np.pi * np.array([[0, 1], [1, 0]]) / 2)
+        X90 = scipy.linalg.expm(-1j * 0.5 * np.pi * np.array([[0, 1], [1, 0]]) / 2)
         self.assertTrue(Operator(X90).is_unitary())
         # Non-unitary should return false
         self.assertFalse(Operator([[1, 0], [0, 0]]).is_unitary())
@@ -482,11 +501,75 @@ class TestOperator(OperatorTestCase):
 
     def test_power(self):
         """Test power method."""
-        X90 = la.expm(-1j * 0.5 * np.pi * np.array([[0, 1], [1, 0]]) / 2)
+        X90 = scipy.linalg.expm(-1j * 0.5 * np.pi * np.array([[0, 1], [1, 0]]) / 2)
         op = Operator(X90)
         self.assertEqual(op.power(2), Operator([[0, -1j], [-1j, 0]]))
         self.assertEqual(op.power(4), Operator(-1 * np.eye(2)))
         self.assertEqual(op.power(8), Operator(np.eye(2)))
+
+    def test_floating_point_power(self):
+        """Test handling floating-point powers."""
+        circuit = QuantumCircuit(2)
+        circuit.crz(np.pi, 0, 1)
+        op = Operator(circuit)
+
+        expected_circuit = QuantumCircuit(2)
+        expected_circuit.crz(np.pi / 4, 0, 1)
+        expected_op = Operator(expected_circuit)
+
+        self.assertEqual(op.power(0.25), expected_op)
+
+    def test_power_of_nonunitary(self):
+        """Test power method for a non-unitary matrix."""
+        data = [[1, 1], [0, -1]]
+        powered = Operator(data).power(0.5)
+        expected = Operator([[1.0 + 0.0j, 0.5 - 0.5j], [0.0 + 0.0j, 0.0 + 1.0j]])
+        assert_allclose(powered.data, expected.data)
+
+    @ddt.data(
+        (0.5, False),
+        (1.0 / 3.0, False),
+        (0.25, False),
+        (0.5, True),
+        (1.0 / 3.0, True),
+        (0.25, True),
+    )
+    @ddt.unpack
+    def test_root_stability(self, root, assume_unitary):
+        """Test that the root of operators that have eigenvalues that are -1 up to floating-point
+        imprecision stably choose the positive side of the principal-root branch cut."""
+        rng = np.random.default_rng(2024_10_22)
+
+        eigenvalues = np.array([1.0, -1.0], dtype=complex)
+        # We have the eigenvalues exactly, so this will safely find the principal root.
+        root_eigenvalues = eigenvalues**root
+
+        # Now, we can construct a bunch of Haar-random unitaries with our chosen eigenvalues.  Since
+        # we already know their eigenvalue decompositions exactly (up to floating-point precision in
+        # the matrix multiplications), we can also compute the principal values of the roots of the
+        # complete matrices.
+        bases = scipy.stats.unitary_group.rvs(2, size=16, random_state=rng)
+        matrices = [basis.conj().T @ np.diag(eigenvalues) @ basis for basis in bases]
+        expected = [basis.conj().T @ np.diag(root_eigenvalues) @ basis for basis in bases]
+        self.assertEqual(
+            [Operator(matrix).power(root, assume_unitary=assume_unitary) for matrix in matrices],
+            [Operator(single) for single in expected],
+        )
+
+    @ddt.data(True, False)
+    def test_root_branch_cut(self, assume_unitary):
+        """Test that we can choose where the branch cut appears in the root."""
+        z_op = Operator(library.ZGate())
+        # Depending on the direction we move the branch cut, we should be able to select the root to
+        # be either of the two valid options.
+        self.assertEqual(
+            z_op.power(0.5, branch_cut_rotation=1e-3, assume_unitary=assume_unitary),
+            Operator(library.SGate()),
+        )
+        self.assertEqual(
+            z_op.power(0.5, branch_cut_rotation=-1e-3, assume_unitary=assume_unitary),
+            Operator(library.SdgGate()),
+        )
 
     def test_expand(self):
         """Test expand method."""
@@ -664,12 +747,25 @@ class TestOperator(OperatorTestCase):
 
     def test_reverse_qargs(self):
         """Test reverse_qargs method"""
-        circ1 = QFT(5)
+        circ1 = QFTGate(5).definition
         circ2 = circ1.reverse_bits()
 
         state1 = Operator(circ1)
         state2 = Operator(circ2)
         self.assertEqual(state1.reverse_qargs(), state2)
+
+    @unittest.skipUnless(optionals.HAS_SYMPY, "sympy required")
+    def test_drawings(self):
+        """Test draw method"""
+        qc1 = QFTGate(5).definition
+        op = Operator.from_circuit(qc1)
+        with self.subTest(msg="str(operator)"):
+            str(op)
+        for drawtype in ["repr", "text", "latex_source"]:
+            with self.subTest(msg=f"draw('{drawtype}')"):
+                op.draw(drawtype)
+        with self.subTest(msg=" draw('latex')"):
+            op.draw("latex")
 
     def test_from_circuit_constructor_no_layout(self):
         """Test initialization from a circuit using the from_circuit constructor."""
@@ -700,6 +796,28 @@ class TestOperator(OperatorTestCase):
         target = np.kron(self.UI, np.diag([1, 0])) + np.kron(self.UH, np.diag([0, 1]))
         global_phase_equivalent = matrix_equal(op.data, target, ignore_phase=True)
         self.assertTrue(global_phase_equivalent)
+
+    def test_from_circuit_initial_layout_final_layout(self):
+        """Test initialization from a circuit with a non-trivial initial_layout and final_layout as given
+        by a transpiled circuit."""
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.cx(2, 1)
+        qc.cx(1, 2)
+        qc.cx(1, 0)
+        qc.cx(1, 3)
+        qc.cx(1, 4)
+        qc.h(2)
+
+        qc_transpiled = transpile(
+            qc,
+            coupling_map=CouplingMap.from_line(5),
+            initial_layout=[2, 3, 4, 0, 1],
+            optimization_level=1,
+            seed_transpiler=17,
+        )
+
+        self.assertTrue(Operator.from_circuit(qc_transpiled).equiv(qc))
 
     def test_from_circuit_constructor_reverse_embedded_layout(self):
         """Test initialization from a circuit with an embedded reverse layout."""
@@ -740,6 +858,77 @@ class TestOperator(OperatorTestCase):
         )
         op = Operator.from_circuit(circuit)
         target = np.kron(self.UI, np.diag([1, 0])) + np.kron(self.UH, np.diag([0, 1]))
+        global_phase_equivalent = matrix_equal(op.data, target, ignore_phase=True)
+        self.assertTrue(global_phase_equivalent)
+
+    def test_from_circuit_constructor_reverse_embedded_layout_from_transpile(self):
+        """Test initialization from a circuit with an embedded final layout."""
+        # Test tensor product of 1-qubit gates
+        circuit = QuantumCircuit(3)
+        circuit.h(0)
+        circuit.x(1)
+        circuit.ry(np.pi / 2, 2)
+        output = transpile(circuit, initial_layout=[2, 1, 0])
+        op = Operator.from_circuit(output)
+        y90 = (1 / np.sqrt(2)) * np.array([[1, -1], [1, 1]])
+        target = np.kron(y90, np.kron(self.UX, self.UH))
+        global_phase_equivalent = matrix_equal(op.data, target, ignore_phase=True)
+        self.assertTrue(global_phase_equivalent)
+
+    def test_from_circuit_constructor_reverse_embedded_layout_from_transpile_with_registers(self):
+        """Test initialization from a circuit with an embedded final layout."""
+        # Test tensor product of 1-qubit gates
+        qr = QuantumRegister(3, name="test_reg")
+        circuit = QuantumCircuit(qr)
+        circuit.h(0)
+        circuit.x(1)
+        circuit.ry(np.pi / 2, 2)
+        output = transpile(circuit, initial_layout=[2, 1, 0])
+        op = Operator.from_circuit(output)
+        y90 = (1 / np.sqrt(2)) * np.array([[1, -1], [1, 1]])
+        target = np.kron(y90, np.kron(self.UX, self.UH))
+        global_phase_equivalent = matrix_equal(op.data, target, ignore_phase=True)
+        self.assertTrue(global_phase_equivalent)
+
+    def test_from_circuit_constructor_reverse_embedded_layout_and_final_layout(self):
+        """Test initialization from a circuit with an embedded final layout."""
+        # Test tensor product of 1-qubit gates
+        qr = QuantumRegister(3, name="test_reg")
+        circuit = QuantumCircuit(qr)
+        circuit.h(2)
+        circuit.x(1)
+        circuit.ry(np.pi / 2, 0)
+        circuit._layout = TranspileLayout(
+            Layout({circuit.qubits[2]: 0, circuit.qubits[1]: 1, circuit.qubits[0]: 2}),
+            {qubit: index for index, qubit in enumerate(circuit.qubits)},
+            Layout({circuit.qubits[0]: 2, circuit.qubits[1]: 0, circuit.qubits[2]: 1}),
+        )
+        circuit.swap(0, 1)
+        circuit.swap(1, 2)
+        op = Operator.from_circuit(circuit)
+        y90 = (1 / np.sqrt(2)) * np.array([[1, -1], [1, 1]])
+        target = np.kron(y90, np.kron(self.UX, self.UH))
+        global_phase_equivalent = matrix_equal(op.data, target, ignore_phase=True)
+        self.assertTrue(global_phase_equivalent)
+
+    def test_from_circuit_constructor_reverse_embedded_layout_and_manual_final_layout(self):
+        """Test initialization from a circuit with an embedded final layout."""
+        # Test tensor product of 1-qubit gates
+        qr = QuantumRegister(3, name="test_reg")
+        circuit = QuantumCircuit(qr)
+        circuit.h(2)
+        circuit.x(1)
+        circuit.ry(np.pi / 2, 0)
+        circuit._layout = TranspileLayout(
+            Layout({circuit.qubits[2]: 0, circuit.qubits[1]: 1, circuit.qubits[0]: 2}),
+            {qubit: index for index, qubit in enumerate(circuit.qubits)},
+        )
+        final_layout = Layout({circuit.qubits[0]: 2, circuit.qubits[1]: 0, circuit.qubits[2]: 1})
+        circuit.swap(0, 1)
+        circuit.swap(1, 2)
+        op = Operator.from_circuit(circuit, final_layout=final_layout)
+        y90 = (1 / np.sqrt(2)) * np.array([[1, -1], [1, 1]])
+        target = np.kron(y90, np.kron(self.UX, self.UH))
         global_phase_equivalent = matrix_equal(op.data, target, ignore_phase=True)
         self.assertTrue(global_phase_equivalent)
 
@@ -861,8 +1050,22 @@ class TestOperator(OperatorTestCase):
         circuit.h(0)
         circuit.cx(0, 1)
         layout = Layout()
-        with self.assertRaises(IndexError):
+        with self.assertRaises(KeyError):
             Operator.from_circuit(circuit, layout=layout)
+
+    def test_compose_scalar(self):
+        """Test that composition works with a scalar-valued operator over no qubits."""
+        base = Operator(np.eye(2, dtype=np.complex128))
+        scalar = Operator(np.array([[-1.0 + 0.0j]]))
+        composed = base.compose(scalar, qargs=[])
+        self.assertEqual(composed, Operator(-np.eye(2, dtype=np.complex128)))
+
+    def test_compose_scalar_op(self):
+        """Test that composition works with an explicit scalar operator over no qubits."""
+        base = Operator(np.eye(2, dtype=np.complex128))
+        scalar = ScalarOp(coeff=-1.0 + 0.0j)
+        composed = base.compose(scalar, qargs=[])
+        self.assertEqual(composed, Operator(-np.eye(2, dtype=np.complex128)))
 
     def test_from_circuit_single_flat_default_register_transpiled(self):
         """Test a transpiled circuit with layout set from default register."""
@@ -958,6 +1161,231 @@ class TestOperator(OperatorTestCase):
         tqc = transpile(circuit, initial_layout=init_layout)
         result = Operator.from_circuit(tqc)
         self.assertTrue(Operator(circuit).equiv(result))
+
+    def test_from_circuit_into_larger_map(self):
+        """Test from_circuit method when the number of physical
+        qubits is larger than the number of original virtual qubits."""
+
+        # original circuit on 3 qubits
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+
+        # transpile into 5-qubits
+        tqc = transpile(qc, coupling_map=CouplingMap.from_line(5), initial_layout=[0, 2, 4])
+
+        # qc expanded with ancilla qubits
+        expected = QuantumCircuit(5)
+        expected.h(0)
+        expected.cx(0, 1)
+        expected.cx(1, 2)
+
+        self.assertEqual(Operator.from_circuit(tqc), Operator(expected))
+
+    def test_apply_permutation_back(self):
+        """Test applying permutation to the operator,
+        where the operator is applied first and the permutation second."""
+        op = Operator(self.rand_matrix(64, 64))
+        pattern = [1, 2, 0, 3, 5, 4]
+
+        # Consider several methods of computing this operator and show
+        # they all lead to the same result.
+
+        # Compose the operator with the operator constructed from the
+        # permutation circuit.
+        op2 = op.copy()
+        perm_op = Operator(PermutationGate(pattern))
+        op2 &= perm_op
+
+        # Compose the operator with the operator constructed from the
+        # permutation gate.
+        op3 = op.copy()
+        perm_op = Operator(PermutationGate(pattern))
+        op3 &= perm_op
+
+        # Modify the operator using apply_permutation method.
+        op4 = op.copy()
+        op4 = op4.apply_permutation(pattern, front=False)
+
+        self.assertEqual(op2, op3)
+        self.assertEqual(op2, op4)
+
+    def test_apply_permutation_front(self):
+        """Test applying permutation to the operator,
+        where the permutation is applied first and the operator second"""
+        op = Operator(self.rand_matrix(64, 64))
+        pattern = [1, 2, 0, 3, 5, 4]
+
+        # Consider several methods of computing this operator and show
+        # they all lead to the same result.
+
+        # Compose the operator with the operator constructed from the
+        # permutation circuit.
+        op2 = op.copy()
+        perm_op = Operator(PermutationGate(pattern))
+        op2 = perm_op & op2
+
+        # Compose the operator with the operator constructed from the
+        # permutation gate.
+        op3 = op.copy()
+        perm_op = Operator(PermutationGate(pattern))
+        op3 = perm_op & op3
+
+        # Modify the operator using apply_permutation method.
+        op4 = op.copy()
+        op4 = op4.apply_permutation(pattern, front=True)
+
+        self.assertEqual(op2, op3)
+        self.assertEqual(op2, op4)
+
+    def test_apply_permutation_qudits_back(self):
+        """Test applying permutation to the operator with heterogeneous qudit spaces,
+        where the operator O is applied first and the permutation P second.
+        The matrix of the resulting operator is the product [P][O] and
+        corresponds to suitably permuting the rows of O's matrix.
+        """
+        mat = np.array(range(6 * 6)).reshape((6, 6))
+        op = Operator(mat, input_dims=(2, 3), output_dims=(2, 3))
+        perm = [1, 0]
+        actual = op.apply_permutation(perm, front=False)
+
+        # Rows of mat are ordered to 00, 01, 02, 10, 11, 12;
+        # perm maps these to 00, 10, 20, 01, 11, 21,
+        # while the default ordering is 00, 01, 10, 11, 20, 21.
+        permuted_mat = mat.copy()[[0, 2, 4, 1, 3, 5]]
+        expected = Operator(permuted_mat, input_dims=(2, 3), output_dims=(3, 2))
+        self.assertEqual(actual, expected)
+
+    def test_apply_permutation_qudits_front(self):
+        """Test applying permutation to the operator with heterogeneous qudit spaces,
+        where the permutation P is applied first and the operator O is applied second.
+        The matrix of the resulting operator is the product [O][P] and
+        corresponds to suitably permuting the columns of O's matrix.
+        """
+        mat = np.array(range(6 * 6)).reshape((6, 6))
+        op = Operator(mat, input_dims=(2, 3), output_dims=(2, 3))
+        perm = [1, 0]
+        actual = op.apply_permutation(perm, front=True)
+
+        # Columns of mat are ordered to 00, 01, 02, 10, 11, 12;
+        # perm maps these to 00, 10, 20, 01, 11, 21,
+        # while the default ordering is 00, 01, 10, 11, 20, 21.
+        permuted_mat = mat.copy()[:, [0, 2, 4, 1, 3, 5]]
+        expected = Operator(permuted_mat, input_dims=(3, 2), output_dims=(2, 3))
+        self.assertEqual(actual, expected)
+
+    @combine(
+        dims=((2, 3, 4, 5), (5, 2, 4, 3), (3, 5, 2, 4), (5, 3, 4, 2), (4, 5, 2, 3), (4, 3, 2, 5))
+    )
+    def test_reverse_qargs_as_apply_permutation(self, dims):
+        """Test reversing qargs by pre- and post-composing with reversal
+        permutation.
+        """
+        perm = [3, 2, 1, 0]
+        op = Operator(
+            np.array(range(120 * 120)).reshape((120, 120)), input_dims=dims, output_dims=dims
+        )
+        op2 = op.reverse_qargs()
+        op3 = op.apply_permutation(perm, front=True).apply_permutation(perm, front=False)
+        self.assertEqual(op2, op3)
+
+    def test_apply_permutation_exceptions(self):
+        """Checks that applying permutation raises an error when dimensions do not match."""
+        op = Operator(
+            np.array(range(24 * 30)).reshape((24, 30)), input_dims=(6, 5), output_dims=(2, 3, 4)
+        )
+
+        with self.assertRaises(QiskitError):
+            op.apply_permutation([1, 0], front=False)
+        with self.assertRaises(QiskitError):
+            op.apply_permutation([2, 1, 0], front=True)
+
+    def test_apply_permutation_dimensions(self):
+        """Checks the dimensions of the operator after applying permutation."""
+        op = Operator(
+            np.array(range(24 * 30)).reshape((24, 30)), input_dims=(6, 5), output_dims=(2, 3, 4)
+        )
+        op2 = op.apply_permutation([1, 2, 0], front=False)
+        self.assertEqual(op2.output_dims(), (4, 2, 3))
+
+        op = Operator(
+            np.array(range(24 * 30)).reshape((30, 24)), input_dims=(2, 3, 4), output_dims=(6, 5)
+        )
+        op2 = op.apply_permutation([2, 0, 1], front=True)
+        self.assertEqual(op2.input_dims(), (4, 2, 3))
+
+    def test_equality_with_ancillas(self):
+        """Check correctness of the equal_with_ancillas method."""
+
+        # The two circuits below are equal provided that qubit 1 is initially |0>.
+        qc1 = QuantumCircuit(4)
+        qc1.x(0)
+        qc1.x(2)
+        qc1.cx(1, 0)
+        qc1.cx(1, 2)
+        qc1.cx(1, 3)
+        op1 = Operator(qc1)
+
+        qc2 = QuantumCircuit(4)
+        qc2.x(0)
+        qc2.x(2)
+        op2 = Operator(qc2)
+
+        self.assertNotEqual(op1, op2)
+        self.assertFalse(_equal_with_ancillas(op1, op2, []))
+        self.assertTrue(_equal_with_ancillas(op1, op2, [1]))
+        self.assertFalse(_equal_with_ancillas(op1, op2, [2]))
+        self.assertTrue(_equal_with_ancillas(op1, op2, [2, 1]))
+
+
+class TestUnitarySim(QiskitTestCase):
+    """Test simulation of unitary circuits in Rust."""
+
+    def test_equivalence(self):
+        """Test equivalence of Python and Rust code"""
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.swap(1, 2)
+        qc.s(1)
+        qc.cx(3, 1)
+        qc.rz(0.1, 2)
+        qc.ccx(3, 4, 0)
+        qc.s(4)
+        python_mat = Operator(qc).data
+        rust_mat = unitary_sim.sim_unitary_circuit(qc._data)
+        assert_allclose(python_mat, rust_mat)
+
+    def test_equivalence_with_barriers(self):
+        """Test equivalence of Python and Rust code where the
+        circuit includes barriers"""
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.barrier()
+        qc.cx(0, 1)
+        qc.swap(1, 2)
+        qc.s(1)
+        qc.cx(3, 1)
+        qc.rz(0.1, 2)
+        qc.barrier()
+        qc.ccx(3, 4, 0)
+        qc.s(4)
+        qc.barrier()
+
+        python_mat = Operator(qc).data
+        rust_mat = unitary_sim.sim_unitary_circuit(qc._data)
+        assert_allclose(python_mat, rust_mat)
+
+    def test_raises_on_classical_bits(self):
+        """Test that simulating circuits with classical bits
+        raises an error."""
+        qc = QuantumCircuit(5, 1)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        with self.assertRaises(QiskitError):
+            _ = unitary_sim.sim_unitary_circuit(qc._data)
 
 
 if __name__ == "__main__":

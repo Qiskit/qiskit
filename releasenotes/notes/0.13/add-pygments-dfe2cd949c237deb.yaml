@@ -5,7 +5,7 @@ features:
     :mod:`qiskit.tools.jupyter`. This widget is used for visualizing
     details about circuits built from the circuit library. For example
 
-    .. jupyter-execute::
+    .. code-block::
 
         from qiskit.circuit.library import XOR
         import qiskit.tools.jupyter

@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Clip probabilities in the :meth:`.QuantumState.probabilities` and 
+    :meth:`.QuantumState.probabilities_dict` methods to the interval ``[0, 1]``.
+    This fixes roundoff errors where probabilities could e.g. be larger than 1, leading 
+    to errors in the shot emulation of the :class:`.Sampler`.
+    Fixed `#9761 <https://github.com/Qiskit/qiskit-terra/issues/9761>`__.
