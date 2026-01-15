@@ -1760,9 +1760,7 @@ class TestLoadFromQPY(QiskitTestCase):
                         ),
                     ),
                     expr.logic_and(
-                        expr.logic_or(
-                            expr.equal(cr2, 2), expr.logic_not(expr.not_equal(cr2, 3))
-                        ),
+                        expr.logic_or(expr.equal(cr2, 2), expr.logic_not(expr.not_equal(cr2, 3))),
                         expr.logic_or(
                             expr.greater(cr2, 3),
                             expr.greater_equal(cr2, 3),
@@ -1852,9 +1850,7 @@ class TestLoadFromQPY(QiskitTestCase):
                         ),
                     ),
                     expr.logic_and(
-                        expr.logic_or(
-                            expr.equal(cr2, 2), expr.logic_not(expr.not_equal(cr2, 3))
-                        ),
+                        expr.logic_or(expr.equal(cr2, 2), expr.logic_not(expr.not_equal(cr2, 3))),
                         expr.logic_or(
                             expr.greater(cr2, 3),
                             expr.greater_equal(cr2, 3),
@@ -1862,7 +1858,7 @@ class TestLoadFromQPY(QiskitTestCase):
                     ),
                 ),
                 expr.greater(expr.negate(expr.cast(loose, types.Float())), 1.5),
-            ),     
+            ),
             [(False, outer.copy())],
             [1],
             [0],

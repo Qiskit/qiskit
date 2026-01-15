@@ -47,7 +47,7 @@ class _UnaryOp(enum.Enum):
     The logical negation :data:`LOGIC_NOT` takes an input that is implicitly coerced to a
     Boolean, and returns a Boolean.
 
-    The arithmetic negation :data:`NEGATE` takes an input that is either float or duration and 
+    The arithmetic negation :data:`NEGATE` takes an input that is either float or duration and
     returns a value of the same type.
     """
 
