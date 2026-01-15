@@ -73,7 +73,7 @@ pub fn pauli_feature_map(
     // extract the parameters from the input variable ``parameters``
     let parameter_vector = parameters
         .try_iter()?
-        .map(|el| Param::extract_no_coerce(&el?))
+        .map(|el| Param::extract_no_coerce(el?.as_borrowed()))
         .collect::<PyResult<Vec<Param>>>()?;
 
     // construct a Barrier object Python side to (possibly) add to the circuit
@@ -121,12 +121,12 @@ pub fn pauli_feature_map(
         }
     }
 
-    CircuitData::from_packed_operations(
+    Ok(CircuitData::from_packed_operations(
         feature_dimension,
         0,
         packed_insts.into_iter().map(Ok),
         Param::Float(0.0),
-    )
+    )?)
 }
 
 fn _get_h_layer(feature_dimension: u32) -> impl Iterator<Item = Instruction> {
@@ -230,7 +230,7 @@ fn _get_paulis(
             v.iter() // iterate over the list of Paulis
                 .map(|el| {
                     // Get the string and check whether it fits the feature dimension
-                    let as_string = (*el.downcast::<PyString>()?).to_string();
+                    let as_string = (*el.cast::<PyString>()?).to_string();
                     if as_string.len() > feature_dimension as usize {
                         Err(QiskitError::new_err(format!(
                             "feature_dimension ({feature_dimension}) smaller than the Pauli ({as_string})"

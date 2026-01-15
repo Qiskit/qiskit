@@ -20,9 +20,9 @@
  * this struct to (or from) a compiler-native complex number representation.
  */
 typedef struct {
-    /* The real part. */
+    /** The real part. */
     double re;
-    /* The imaginary part. */
+    /** The imaginary part. */
     double im;
 } QkComplex64;
 

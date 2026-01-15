@@ -444,8 +444,7 @@ environment that tox sets up matches the CI environment more closely and it
 runs the tests in parallel (resulting in much faster execution). To run tests
 on all installed supported python versions and lint/style checks you can simply
 run `tox`. Or if you just want to run the tests once run for a specific python
-version: `tox -epy310` (or replace py310 with the python version you want to use,
-py39 or py311).
+version: `tox -epy313` (or replace py313 with the python version you want to use).
 
 If you just want to run a subset of tests you can pass a selection regex to
 the test runner. For example, if you want to run all tests that have "dag" in
@@ -887,7 +886,7 @@ is a need additional release candidates can be published from `stable/*` and whe
 release is ready a full release will be tagged and published from `stable/*`.
 
 ## Adding deprecation warnings
-The qiskit code is part of Qiskit and, therefore, the [Qiskit Deprecation Policy](./DEPRECATION.md) fully applies here. Additionally, qiskit does not allow `DeprecationWarning`s in its testsuite. If you are deprecating code, you should add a test to use the new/non-deprecated method (most of the time based on the existing test of the deprecated method) and alter the existing test to check that the deprecated method still works as expected, [using `assertWarns`](https://docs.python.org/3/library/unittest.html#unittest.TestCase.assertWarns). The `assertWarns` context will silence the deprecation warning while checking that it raises.
+The Qiskit code is part of Qiskit and, therefore, the [Qiskit Deprecation Policy](./DEPRECATION.md) fully applies here. Additionally, Qiskit's testsuite breaks if a `DeprecationWarning` is emitted. If you are deprecating code, you should add a test to use the new/non-deprecated method (most of the time based on the existing test of the deprecated method) and alter the existing test to check that the deprecated method still works as expected, [using `assertWarns`](https://docs.python.org/3/library/unittest.html#unittest.TestCase.assertWarns). The `assertWarns` context will silence the deprecation warning while checking that it raises.
 
 For example, if `Obj.method1` is being deprecated in favour of `Obj.method2`, the existing test (or tests) for `method1` might look like this:
 

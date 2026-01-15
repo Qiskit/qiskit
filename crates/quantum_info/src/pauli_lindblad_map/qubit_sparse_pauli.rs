@@ -40,7 +40,7 @@ static PAULI_INTO_PY: PyOnceLock<[Option<Py<PyAny>>; 16]> = PyOnceLock::new();
 ///
 /// This is just the Rust-space representation.  We make a separate Python-space `enum.IntEnum` to
 /// represent the same information, since we enforce strongly typed interactions in Rust, including
-/// not allowing the stored values to be outside the valid `Pauli`s, but doing so in Python would
+/// not allowing the stored values to be outside the valid `Pauli`\ s, but doing so in Python would
 /// make it very difficult to use the class efficiently with Numpy array views.  We attach this
 /// sister class of `Pauli` to `QubitSparsePauli` and `QubitSparsePauliList` as a scoped class.
 ///
@@ -59,7 +59,7 @@ static PAULI_INTO_PY: PyOnceLock<[Option<Py<PyAny>>; 16]> = PyOnceLock::new();
 /// # Dev notes
 ///
 /// This type is required to be `u8`, but it's a subtype of `u8` because not all `u8` are valid
-/// `Pauli`s.  For interop with Python space, we accept Numpy arrays of `u8` to represent this,
+/// `Pauli`\ s.  For interop with Python space, we accept Numpy arrays of `u8` to represent this,
 /// which we transmute into slices of `Pauli`, after checking that all the values are correct (or
 /// skipping the check if Python space promises that it upheld the checks).
 ///
@@ -968,7 +968,7 @@ fn make_py_pauli(py: Python) -> PyResult<Py<PyType>> {
         .getattr("property")?
         .call1((wrap_pyfunction!(pauli_label, py)?,))?;
     obj.setattr("label", label_property)?;
-    Ok(obj.downcast_into::<PyType>()?.unbind())
+    Ok(obj.cast_into::<PyType>()?.unbind())
 }
 
 // Return the relevant value from the Python-space sister enumeration.  These are Python-space
@@ -1005,8 +1005,10 @@ impl<'py> IntoPyObject<'py> for Pauli {
     }
 }
 
-impl<'py> FromPyObject<'py> for Pauli {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for Pauli {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         let value = ob
             .extract::<isize>()
             .map_err(|_| match ob.get_type().repr() {
@@ -1470,7 +1472,7 @@ impl PyQubitSparsePauli {
         if slf.is(&other) {
             return Ok(true);
         }
-        let Ok(other) = other.downcast_into::<Self>() else {
+        let Ok(other) = other.cast_into::<Self>() else {
             return Ok(false);
         };
         let slf = slf.borrow();
@@ -1705,7 +1707,7 @@ impl PyQubitSparsePauliList {
             }
             return Self::from_label(&label).map_err(PyErr::from);
         }
-        if let Ok(pauli_list) = data.downcast_exact::<Self>() {
+        if let Ok(pauli_list) = data.cast_exact::<Self>() {
             check_num_qubits(data)?;
             let borrowed = pauli_list.borrow();
             let inner = borrowed.inner.read().map_err(|_| InnerReadError)?;
@@ -1725,7 +1727,7 @@ impl PyQubitSparsePauliList {
             };
             return Self::from_sparse_list(vec, num_qubits);
         }
-        if let Ok(term) = data.downcast_exact::<PyQubitSparsePauli>() {
+        if let Ok(term) = data.cast_exact::<PyQubitSparsePauli>() {
             return term.borrow().to_qubit_sparse_pauli_list();
         };
         if let Ok(pauli_list) = Self::from_qubit_sparse_paulis(data, num_qubits) {
@@ -1958,12 +1960,12 @@ impl PyQubitSparsePauliList {
                         "cannot construct an empty QubitSparsePauliList without knowing `num_qubits`",
                     ));
                 };
-                let py_term = first?.downcast::<PyQubitSparsePauli>()?.borrow();
+                let py_term = first?.cast::<PyQubitSparsePauli>()?.borrow();
                 py_term.inner.to_qubit_sparse_pauli_list()
             }
         };
         for bound_py_term in iter {
-            let py_term = bound_py_term?.downcast::<PyQubitSparsePauli>()?.borrow();
+            let py_term = bound_py_term?.cast::<PyQubitSparsePauli>()?.borrow();
             inner.add_qubit_sparse_pauli(py_term.inner.view())?;
         }
         Ok(inner.into())
@@ -2208,7 +2210,7 @@ impl PyQubitSparsePauliList {
         if slf.is(&other) {
             return Ok(true);
         }
-        let Ok(other) = other.downcast_into::<Self>() else {
+        let Ok(other) = other.cast_into::<Self>() else {
             return Ok(false);
         };
         let slf_borrowed = slf.borrow();
