@@ -534,6 +534,7 @@ class BasicPrinter:
     def _visit_ForLoopStatement(self, node: ast.ForLoopStatement) -> None:
         self._start_line()
         self.stream.write("for ")
+        self.stream.write("int ")
         self.visit(node.parameter)
         self.stream.write(" in ")
         if isinstance(node.indexset, ast.Range):

@@ -958,7 +958,7 @@ c[1] = measure q[1];
                 "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 f"qubit[2] {qr_name};",
-                f"for {parameter.name} in {{0, 3, 4}} {{",
+                f"for int {parameter.name} in {{0, 3, 4}} {{",
                 f"  rx({parameter.name}) {qr_name}[1];",
                 "  break;",
                 "  continue;",
@@ -997,10 +997,10 @@ c[1] = measure q[1];
                 "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 f"qubit[2] {qr_name};",
-                f"for {outer_parameter.name} in [0:3] {{",
+                f"for int {outer_parameter.name} in [0:3] {{",
                 f"  h {qr_name}[0];",
                 f"  rz({outer_parameter.name}) {qr_name}[1];",
-                f"  for {inner_parameter.name} in [1:2:4] {{",
+                f"  for int {inner_parameter.name} in [1:2:4] {{",
                 # Note the reversed bit order.
                 f"    rz({inner_parameter.name}) {qr_name}[1];",
                 f"    rz({outer_parameter.name}) {qr_name}[0];",
@@ -1046,10 +1046,10 @@ c[1] = measure q[1];
                 # This next line will be missing until gh-7280 is fixed.
                 f"input float[64] {regular_parameter.name};",
                 f"qubit[2] {qr_name};",
-                f"for {outer_parameter.name} in [0:3] {{",
+                f"for int {outer_parameter.name} in [0:3] {{",
                 f"  h {qr_name}[0];",
                 f"  h {qr_name}[1];",
-                f"  for {inner_parameter.name} in [1:2:4] {{",
+                f"  for int {inner_parameter.name} in [1:2:4] {{",
                 # Note the reversed bit order.
                 f"    h {qr_name}[1];",
                 f"    rx({regular_parameter.name}) {qr_name}[0];",
@@ -1062,6 +1062,23 @@ c[1] = measure q[1];
             ]
         )
         self.assertEqual(dumps(qc), expected_qasm)
+
+    def test_for_loop_type_annotation(self):
+        """Test that for loop variables include type annotations (gh-12866)."""
+        # This test verifies the fix for GitHub issue #12866 where loop variables
+        # were missing type annotations in OpenQASM 3 output.
+        parameter = Parameter("param")
+        loop_body = QuantumCircuit(2, 2)
+        loop_body.x(0)
+
+        qc = QuantumCircuit(2, 2)
+        qc.for_loop([0, 1], parameter, loop_body, [0, 1], [0, 1])
+
+        output = dumps(qc)
+        # Verify that the loop variable has a type annotation
+        self.assertIn("for int param in", output)
+        # Verify the complete structure
+        self.assertIn("for int param in {0, 1}", output)
 
     def test_for_loop_with_no_parameter(self):
         """Test that a for loop with the parameter set to ``None`` outputs the expected result."""
@@ -1077,7 +1094,7 @@ c[1] = measure q[1];
                 "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 f"qubit[2] {qr_name};",
-                "for _ in {0, 3, 4} {",
+                "for int _ in {0, 3, 4} {",
                 f"  h {qr_name}[1];",
                 "}",
                 "",
@@ -1443,7 +1460,7 @@ box[a] {
                 "  rx(0.5) _gate_q_0;",
                 "}",
                 "qubit[1] q;",
-                "for b in [0:1] {",
+                "for int b in [0:1] {",
                 "  custom q[0];",
                 "}",
                 "",
