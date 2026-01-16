@@ -49,7 +49,7 @@ static QkObs *make_1q_pauli(uint32_t num_qubits, uint32_t q, QkBitTerm bt, QkCom
 }
 
 static QkObs *make_2q_pauli(uint32_t num_qubits, uint32_t q0, QkBitTerm bt0, uint32_t q1,
-                           QkBitTerm bt1, QkComplex64 coeff) {
+                            QkBitTerm bt1, QkComplex64 coeff) {
     QkObs *obs = qk_obs_zero(num_qubits);
     if (obs == NULL) {
         return NULL;
@@ -203,8 +203,7 @@ static int test_qaoa_ansatz_mixer_num_qubits_mismatch_returns_null(void) {
     }
 
     // Mixer: 1 qubit (X0) -> mismatch
-    QkObs *mixer =
-        make_1q_pauli(1, 0, QkBitTerm_X, (QkComplex64){.re = 1.0, .im = 0.0});
+    QkObs *mixer = make_1q_pauli(1, 0, QkBitTerm_X, (QkComplex64){.re = 1.0, .im = 0.0});
     if (mixer == NULL) {
         printf("Failed to build mixer observable\n");
         qk_obs_free(cost);
