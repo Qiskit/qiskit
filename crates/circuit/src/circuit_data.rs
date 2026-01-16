@@ -24,8 +24,9 @@ use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use crate::classical::expr;
 use crate::dag_circuit::{DAGStretchType, DAGVarType, add_global_phase};
 use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
+use crate::instruction::Parameters;
 use crate::interner::{Interned, InternedMap, Interner};
-use crate::object_registry::{ObjectRegistry, ObjectRegistryError};
+use crate::object_registry::{self, ObjectRegistry};
 use crate::operations::{
     ControlFlow, ControlFlowView, Operation, OperationRef, Param, PythonOperation, StandardGate,
 };
@@ -36,7 +37,8 @@ use crate::parameter_table::{ParameterTable, ParameterTableError, ParameterUse, 
 use crate::register_data::RegisterData;
 use crate::slice::{PySequenceIndex, SequenceIndex};
 use crate::{
-    Block, BlocksMode, Clbit, ControlFlowBlocks, Qubit, Stretch, Var, VarsMode, instruction,
+    Block, BlocksMode, CapacityError, Clbit, ControlFlowBlocks, Qubit, Stretch, Var, VarsMode,
+    instruction,
 };
 
 use num_complex::Complex64;
@@ -47,7 +49,6 @@ use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyList, PySet, PyTuple, PyType};
 use pyo3::{PyTraverseError, PyVisit, import_exception, intern};
 
-use crate::instruction::Parameters;
 use hashbrown::{HashMap, HashSet};
 use indexmap::IndexMap;
 use smallvec::SmallVec;
@@ -66,10 +67,14 @@ import_exception!(qiskit.circuit.exceptions, CircuitError);
 #[non_exhaustive]
 #[derive(Error, Debug)]
 pub enum CircuitDataError {
+    #[error(transparent)]
+    Capacity(#[from] CapacityError),
     #[error("invalid type for global phase")]
     InvalidGlobalPhaseType,
     #[error(transparent)]
-    ObjectRegistryError(#[from] ObjectRegistryError),
+    AbsentObject(object_registry::AbsentObject),
+    #[error(transparent)]
+    AddObjectRegistry(object_registry::AddError),
     // Explicitly an error returned from calling Python
     #[error(transparent)]
     ErrorFromPython(#[from] PyErr),
@@ -100,14 +105,26 @@ pub enum CircuitDataError {
     #[error("bad type after binding for gate '{0}': '{1}'")]
     StandardGateParameterIsComplex(String, String),
 }
+impl<T: Debug> From<object_registry::AbsentObject<T>> for CircuitDataError {
+    fn from(val: object_registry::AbsentObject<T>) -> Self {
+        Self::AbsentObject(val.erase_type())
+    }
+}
+impl<T: Debug, B: Debug> From<object_registry::AddError<T, B>> for CircuitDataError {
+    fn from(val: object_registry::AddError<T, B>) -> Self {
+        Self::AddObjectRegistry(val.erase_type())
+    }
+}
 
 impl From<CircuitDataError> for PyErr {
     fn from(error: CircuitDataError) -> Self {
         match error {
+            CircuitDataError::Capacity(c) => c.into(),
             CircuitDataError::InvalidGlobalPhaseType => {
                 PyTypeError::new_err("invalid type for global phase")
             }
-            CircuitDataError::ObjectRegistryError(e) => e.into(),
+            CircuitDataError::AbsentObject(e) => e.into(),
+            CircuitDataError::AddObjectRegistry(e) => e.into(),
             CircuitDataError::ErrorFromPython(e) => e,
             CircuitDataError::ParameterTableError(e) => e.into(),
             CircuitDataError::DuplicateStretch => {
@@ -515,13 +532,13 @@ impl CircuitData {
 
         borrowed_mut.vars = ObjectRegistry::<Var, expr::Var>::with_capacity(state.5.len());
         for var in state.5 {
-            borrowed_mut.vars.add(var, false)?;
+            borrowed_mut.vars.add(var)?;
         }
 
         borrowed_mut.stretches =
             ObjectRegistry::<Stretch, expr::Stretch>::with_capacity(state.6.len());
         for stretch in state.6 {
-            borrowed_mut.stretches.add(stretch, false)?;
+            borrowed_mut.stretches.add(stretch)?;
         }
 
         Ok(())
@@ -694,9 +711,16 @@ impl CircuitData {
     /// Raises:
     ///     ValueError: The specified ``bit`` is already present and flag ``strict``
     ///         was provided.
-    #[pyo3(name="add_qubit", signature = (bit, *, strict=true))]
-    pub fn py_add_qubit(&mut self, bit: ShareableQubit, strict: bool) -> PyResult<()> {
-        Ok(self.add_qubit(bit, strict)?)
+    #[pyo3(signature = (bit, *, strict=true))]
+    pub fn add_qubit(&mut self, bit: ShareableQubit, strict: bool) -> Result<(), CircuitDataError> {
+        let index = if strict {
+            self.qubits.add(bit.clone())?
+        } else {
+            self.qubits.add_allow_existing(bit.clone())?
+        };
+        self.qubit_indices
+            .insert(bit, BitLocations::new(index.0, []));
+        Ok(())
     }
 
     /// Registers a :class:`.QuantumRegister` instance.
@@ -743,9 +767,16 @@ impl CircuitData {
     /// Raises:
     ///     ValueError: The specified ``bit`` is already present and flag ``strict``
     ///         was provided.
-    #[pyo3(name="add_clbit", signature = (bit, *, strict=true))]
-    pub fn py_add_clbit(&mut self, bit: ShareableClbit, strict: bool) -> PyResult<()> {
-        Ok(self.add_clbit(bit, strict)?)
+    #[pyo3(signature = (bit, *, strict=true))]
+    pub fn add_clbit(&mut self, bit: ShareableClbit, strict: bool) -> Result<(), CircuitDataError> {
+        let index = if strict {
+            self.clbits.add(bit.clone())?
+        } else {
+            self.clbits.add_allow_existing(bit.clone())?
+        };
+        self.clbit_indices
+            .insert(bit, BitLocations::new(index.0, []));
+        Ok(())
     }
 
     /// Registers a :class:`.QuantumRegister` instance.
@@ -1851,20 +1882,6 @@ impl CircuitData {
         Ok(self_)
     }
 
-    pub fn add_qubit(&mut self, bit: ShareableQubit, strict: bool) -> Result<(), CircuitDataError> {
-        let index = self.qubits.add(bit.clone(), strict)?;
-        self.qubit_indices
-            .insert(bit, BitLocations::new(index.0, []));
-        Ok(())
-    }
-
-    pub fn add_clbit(&mut self, bit: ShareableClbit, strict: bool) -> Result<(), CircuitDataError> {
-        let index = self.clbits.add(bit.clone(), strict)?;
-        self.clbit_indices
-            .insert(bit, BitLocations::new(index.0, []));
-        Ok(())
-    }
-
     pub fn set_global_phase(&mut self, angle: Param) -> Result<(), CircuitDataError> {
         if let Param::ParameterExpression(expr) = &self.global_phase {
             for symbol in expr.iter_symbols() {
@@ -2317,20 +2334,43 @@ impl CircuitData {
         // use the global phase setter to ensure parameters are registered
         // in the parameter table
         res.set_global_phase(global_phase)?;
-
-        if num_qubits > 0 {
-            for _i in 0..num_qubits {
-                let bit = ShareableQubit::new_anonymous();
-                res.add_qubit(bit, true)?;
-            }
-        }
-        if num_clbits > 0 {
-            for _i in 0..num_clbits {
-                let bit = ShareableClbit::new_anonymous();
-                res.add_clbit(bit, true)?;
-            }
-        }
+        res.add_anonymous_qubits(num_qubits)
+            .expect("cannot represent a too-large count");
+        res.add_anonymous_clbits(num_clbits)
+            .expect("cannot represent a too-large count");
         Ok(res)
+    }
+
+    /// Add multiple new anonymous qubits.
+    ///
+    /// This can only fail due to circuit capacity issues, since new anonymous qubits are guaranteed
+    /// to be unique.
+    pub fn add_anonymous_qubits(&mut self, num: u32) -> Result<(), CapacityError> {
+        if self.qubits.len() > (u32::MAX - num) as usize {
+            return Err(CapacityError);
+        }
+        for bit in ShareableQubit::iter_anonymous(num) {
+            let index = self.qubits.add_unique_within_capacity(bit.clone());
+            self.qubit_indices
+                .insert(bit, BitLocations::new(index.0, []));
+        }
+        Ok(())
+    }
+
+    /// Add multiple new anonymous clbits.
+    ///
+    /// This can only fail due to circuit capacity issues, since new anonymous qubits are guaranteed
+    /// to be unique.
+    pub fn add_anonymous_clbits(&mut self, num: u32) -> Result<(), CapacityError> {
+        if self.clbits.len() > (u32::MAX - num) as usize {
+            return Err(CapacityError);
+        }
+        for bit in ShareableClbit::iter_anonymous(num) {
+            let index = self.clbits.add_unique_within_capacity(bit.clone());
+            self.clbit_indices
+                .insert(bit, BitLocations::new(index.0, []));
+        }
+        Ok(())
     }
 
     /// Modify `self` to mark its qubits as physical.
@@ -2357,9 +2397,7 @@ impl CircuitData {
         let mut registry = ObjectRegistry::with_capacity(num_qubits as usize);
         let mut locator = BitLocator::with_capacity(num_qubits as usize);
         for (index, bit) in register.iter().enumerate() {
-            registry
-                .add(bit.clone(), false)
-                .expect("no duplicates, and in-bounds check already performed");
+            registry.add_unique_within_capacity(bit.clone());
             locator.insert(
                 bit,
                 BitLocations::new(index as u32, [(register.clone(), index)]),
@@ -3232,7 +3270,7 @@ impl CircuitData {
             _ => {}
         }
 
-        let var_idx = self.vars.add(var, true)?;
+        let var_idx = self.vars.add(var)?;
         match var_type {
             CircuitVarType::Input => &mut self.vars_input,
             CircuitVarType::Capture => &mut self.vars_capture,
@@ -3306,7 +3344,7 @@ impl CircuitData {
             }
         }
 
-        let stretch_idx = self.stretches.add(stretch, true)?;
+        let stretch_idx = self.stretches.add(stretch)?;
         match stretch_type {
             CircuitStretchType::Capture => &mut self.stretches_capture,
             CircuitStretchType::Declare => &mut self.stretches_declare,

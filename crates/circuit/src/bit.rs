@@ -366,10 +366,27 @@ macro_rules! create_bit_object {
             }
 
             /// Create a new anonymous bit.
+            #[inline]
             pub fn new_anonymous() -> Self {
                 Self(BitInfo::Anonymous {
                     uid: Self::anonymous_instance_count().fetch_add(1, Ordering::Relaxed),
                     subclass: Default::default(),
+                })
+            }
+
+            /// Create `count` new anonymous bits, returned as an iterator.
+            ///
+            /// This is a bit more efficient than creating the bits individually, since we only have
+            /// to update the underlying atomic instance count once.
+            #[inline]
+            pub fn iter_anonymous(count: u32) -> impl ExactSizeIterator<Item = Self> {
+                let base = Self::anonymous_instance_count()
+                    .fetch_add(count as u64, Ordering::Relaxed);
+                (0..count).map(move |offset| {
+                    Self(BitInfo::Anonymous {
+                        uid: base + offset as u64,
+                        subclass: Default::default(),
+                    })
                 })
             }
         }
