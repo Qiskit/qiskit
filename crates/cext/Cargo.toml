@@ -31,6 +31,8 @@ hashbrown.workspace = true
 rand.workspace = true
 rand_pcg.workspace = true
 anyhow.workspace = true
+getrandom-v2 = { version = "0.2", package = "getrandom" }
+getrandom-v3 = { version = "0.3", package = "getrandom" }
 
 [build-dependencies]
 cbindgen = "0.29"
@@ -40,3 +42,4 @@ default = ["cbinding"]
 python_binding = ["dep:pyo3"]
 cbinding = []
 cache_pygates = ["qiskit-circuit/cache_pygates", "qiskit-transpiler/cache_pygates"]
+wasm_js = ["getrandom-v3/wasm_js", "getrandom-v2/js"]
