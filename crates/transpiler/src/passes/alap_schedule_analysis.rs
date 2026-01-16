@@ -72,12 +72,7 @@ pub fn run_alap_schedule_analysis<T: TimeOps>(
     // and nodes are packed from the very end of the circuit.
     // The physical meaning of t0 and t1 is flipped here.
 
-    for node_index in dag
-        .topological_op_nodes(false)?
-        .collect::<Vec<_>>()
-        .into_iter()
-        .rev()
-    {
+    for node_index in dag.topological_op_nodes(true) {
         let op = dag[node_index].unwrap_operation();
 
         let qargs: Vec<Wire> = dag

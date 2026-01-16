@@ -121,7 +121,7 @@ pub fn dag_to_circuit(
         dag.cregs_data().clone(),
         dag.qubit_locations().clone(),
         dag.clbit_locations().clone(),
-        dag.topological_op_nodes(false)?.map(|node_index| {
+        dag.topological_op_nodes(false).map(|node_index| {
             let NodeType::Operation(ref instr) = dag[node_index] else {
                 unreachable!(
                     "The received node from topological_op_nodes() is not an Operation node."
