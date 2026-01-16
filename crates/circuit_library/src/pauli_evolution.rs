@@ -21,7 +21,7 @@ use qiskit_circuit::{Clbit, NoBlocks, Qubit};
 use smallvec::{SmallVec, smallvec};
 
 // custom type for a more readable code
-type Instruction = (
+pub type Instruction = (
     PackedOperation,
     SmallVec<[Param; 3]>,
     Vec<Qubit>,
