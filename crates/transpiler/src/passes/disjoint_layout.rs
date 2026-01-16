@@ -29,7 +29,7 @@ use crate::target::{Qargs, Target};
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::imports::ImportOnceCell;
-use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardInstruction};
+use qiskit_circuit::operations::{Operation, OperationRef, StandardInstruction};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{
     BlockMapper, BlocksMode, Clbit, PhysicalQubit, Qubit, VarsMode, VirtualQubit,
@@ -471,7 +471,7 @@ fn separate_dag(dag: &mut DAGCircuit) -> PyResult<Vec<DAGCircuit>> {
             let qubits_to_revmove: Vec<Qubit> = qubits.difference(&dag_qubits).copied().collect();
 
             new_dag.remove_qubits(qubits_to_revmove)?;
-            new_dag.set_global_phase(Param::Float(0.))?;
+            new_dag.set_global_phase_f64(0.);
             let old_qubits = dag.qubits();
             let mut block_map = BlockMapper::new();
             for index in dag.topological_op_nodes(false) {

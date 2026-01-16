@@ -1492,8 +1492,23 @@ impl CircuitData {
     /// uncommon for subclasses and other parts of Qiskit to have filled in the global phase field
     /// by copies or other means, before making the parameter table consistent.
     #[setter(global_phase)]
-    pub fn py_set_global_phase(&mut self, angle: Param) -> PyResult<()> {
-        Ok(self.set_global_phase(angle)?)
+    pub fn set_global_phase_param(&mut self, angle: Param) -> Result<(), CircuitDataError> {
+        self.clear_global_phase();
+        match &angle {
+            Param::Float(angle) => {
+                self.set_global_phase_f64(*angle);
+                Ok(())
+            }
+            Param::ParameterExpression(expr) => {
+                for symbol in expr.iter_symbols() {
+                    self.param_table
+                        .track(symbol, Some(ParameterUse::GlobalPhase))?;
+                }
+                self.global_phase = angle;
+                Ok(())
+            }
+            _ => Err(CircuitDataError::InvalidGlobalPhaseType),
+        }
     }
 
     pub fn num_nonlocal_gates(&self) -> usize {
@@ -1837,7 +1852,7 @@ impl CircuitData {
             stretches_capture: Vec::new(),
             stretches_declare: Vec::new(),
         };
-        self_.set_global_phase(global_phase)?;
+        self_.set_global_phase_param(global_phase)?;
         if let Some(qubits) = qubits {
             for bit in qubits.into_iter() {
                 self_.add_qubit(bit, true)?;
@@ -1863,38 +1878,6 @@ impl CircuitData {
         self.clbit_indices
             .insert(bit, BitLocations::new(index.0, []));
         Ok(())
-    }
-
-    pub fn set_global_phase(&mut self, angle: Param) -> Result<(), CircuitDataError> {
-        if let Param::ParameterExpression(expr) = &self.global_phase {
-            for symbol in expr.iter_symbols() {
-                match self.param_table.remove_use(
-                    ParameterUuid::from_symbol(symbol),
-                    ParameterUse::GlobalPhase,
-                ) {
-                    Ok(_)
-                    | Err(ParameterTableError::ParameterNotTracked(_))
-                    | Err(ParameterTableError::UsageNotTracked(_)) => (),
-                    Err(ParameterTableError::NameConflict(_)) => (),
-                    // Any errors added later might want propagating.
-                }
-            }
-        };
-        match &angle {
-            Param::Float(angle) => {
-                self.global_phase = Param::Float(angle.rem_euclid(2. * std::f64::consts::PI));
-                Ok(())
-            }
-            Param::ParameterExpression(expr) => {
-                for symbol in expr.iter_symbols() {
-                    self.param_table
-                        .track(symbol, Some(ParameterUse::GlobalPhase))?;
-                }
-                self.global_phase = angle;
-                Ok(())
-            }
-            Param::Obj(_) => Err(CircuitDataError::InvalidGlobalPhaseType),
-        }
     }
 
     #[inline]
@@ -2224,7 +2207,7 @@ impl CircuitData {
 
         // use the global phase setter to ensure parameters are registered
         // in the parameter table
-        res.set_global_phase(global_phase)?;
+        res.set_global_phase_param(global_phase)?;
 
         for inst in instruction_iter {
             res.push(inst?)?;
@@ -2316,7 +2299,7 @@ impl CircuitData {
 
         // use the global phase setter to ensure parameters are registered
         // in the parameter table
-        res.set_global_phase(global_phase)?;
+        res.set_global_phase_param(global_phase)?;
 
         if num_qubits > 0 {
             for _i in 0..num_qubits {
@@ -2410,6 +2393,31 @@ impl CircuitData {
             #[cfg(feature = "cache_pygates")]
             py_op: OnceLock::new(),
         })
+    }
+
+    pub fn set_global_phase_f64(&mut self, phase: f64) {
+        self.clear_global_phase();
+        self.global_phase = Param::Float(phase.rem_euclid(::std::f64::consts::TAU));
+    }
+
+    /// Reset the global phase of the circuit to zero, updating any parameter tracking.
+    fn clear_global_phase(&mut self) {
+        let old = ::std::mem::replace(&mut self.global_phase, Param::Float(0.0));
+        let Param::ParameterExpression(expr) = old else {
+            return;
+        };
+        for symbol in expr.iter_symbols() {
+            match self.param_table.remove_use(
+                ParameterUuid::from_symbol(symbol),
+                ParameterUse::GlobalPhase,
+            ) {
+                Ok(_)
+                | Err(ParameterTableError::ParameterNotTracked(_))
+                | Err(ParameterTableError::UsageNotTracked(_))
+                | Err(ParameterTableError::NameConflict(_)) => (),
+                // Any errors added later might want propagating.
+            }
+        }
     }
 
     #[inline]
@@ -2816,7 +2824,12 @@ impl CircuitData {
                         let Param::ParameterExpression(expr) = &self.global_phase else {
                             inconsistent()
                         };
-                        self.set_global_phase(bind_expr(expr, &symbol, value.as_ref(), true)?)?;
+                        self.set_global_phase_param(bind_expr(
+                            expr,
+                            &symbol,
+                            value.as_ref(),
+                            true,
+                        )?)?;
                     }
                     ParameterUse::Index {
                         instruction,
@@ -3122,7 +3135,7 @@ impl CircuitData {
             stretches_capture: Vec::new(),
             stretches_declare: Vec::new(),
         };
-        res.set_global_phase(other.global_phase.clone())?;
+        res.set_global_phase_param(other.global_phase.clone())?;
         if let VarsMode::Drop = vars_mode {
             return Ok(res);
         }
@@ -3184,7 +3197,7 @@ impl CircuitData {
     pub fn add_global_phase(&mut self, value: &Param) -> Result<(), CircuitDataError> {
         match value {
             Param::Obj(_) => Err(CircuitDataError::InvalidGlobalPhaseType),
-            _ => self.set_global_phase(add_global_phase(&self.global_phase, value)),
+            _ => self.set_global_phase_param(add_global_phase(&self.global_phase, value)),
         }
     }
 
