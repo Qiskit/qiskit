@@ -3054,7 +3054,7 @@ impl CircuitData {
             Param::Obj(_) => Err(PyTypeError::new_err(
                 "Invalid parameter type, only float and parameter expression are supported",
             )),
-            _ => self.set_global_phase(self.global_phase.add_scalar(value)),
+            _ => self.set_global_phase(self.global_phase.try_add_scalar(value)?),
         }
     }
 

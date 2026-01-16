@@ -6898,7 +6898,7 @@ impl DAGCircuit {
         let out_map = self.substitute_node_with_graph(
             node_index, other, qubit_map, clbit_map, var_map, block_map,
         )?;
-        self.global_phase = self.global_phase.add_scalar(&other.global_phase);
+        self.global_phase = self.global_phase.try_add_scalar(&other.global_phase)?;
 
         let mut wire_map_dict = HashMap::new();
         for (source, target) in clbit_map.iter() {
@@ -7579,15 +7579,7 @@ impl DAGCircuit {
     }
 
     pub fn add_global_phase(&mut self, value: &Param) -> PyResult<()> {
-        match value {
-            Param::Obj(_) => {
-                return Err(PyTypeError::new_err(
-                    "Invalid parameter type, only float and parameter expression are supported",
-                ));
-            }
-            _ => self.set_global_phase(self.global_phase.add_scalar(value))?,
-        }
-        Ok(())
+        self.set_global_phase(self.global_phase.try_add_scalar(value)?)
     }
 
     /// Return the op name counts in the circuit
@@ -8032,7 +8024,7 @@ impl DAGCircuit {
             }
         };
 
-        self.global_phase = self.global_phase.add_scalar(&other.global_phase);
+        self.global_phase = self.global_phase.try_add_scalar(&other.global_phase)?;
 
         // This is all the handling we need for realtime variables, if there's no remapping. They:
         //

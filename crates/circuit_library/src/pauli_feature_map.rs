@@ -196,6 +196,7 @@ fn _default_reduce(parameters: Vec<Param>) -> Param {
         parameters[0].clone()
     } else {
         let acc = parameters.iter().fold(Param::Float(1.0), |acc, param| {
+            // Adding scalars to a Param::ParamterExpression is safe
             acc.mul_scalar(&param.add_f64(-PI))
         });
         if parameters.len() % 2 == 0 {

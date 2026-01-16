@@ -23,7 +23,7 @@ use crate::classical::expr;
 use crate::duration::Duration;
 use crate::packed_instruction::PackedInstruction;
 use crate::parameter::parameter_expression::{
-    ParameterExpression, PyParameter, PyParameterExpression,
+    ParameterError, ParameterExpression, PyParameter, PyParameterExpression,
 };
 use crate::parameter::symbol_expr::{Symbol, Value};
 use crate::{ControlFlowBlocks, Qubit, gate_matrix, impl_intopyobject_for_copy_pyclass, imports};
@@ -33,9 +33,10 @@ use ndarray::{Array2, ArrayView2, Dim, ShapeBuilder, array, aview2};
 use num_bigint::BigUint;
 use num_complex::Complex64;
 use smallvec::{SmallVec, smallvec};
+use thiserror::Error;
 
 use numpy::{IntoPyArray, PyArray1, PyArray2, PyReadonlyArray2, ToPyArray};
-use pyo3::exceptions::PyValueError;
+use pyo3::exceptions::{PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyFloat, PyList, PyTuple};
 use pyo3::{IntoPyObjectExt, Python, intern};
@@ -45,6 +46,29 @@ pub enum Param {
     ParameterExpression(Arc<ParameterExpression>),
     Float(f64),
     Obj(Py<PyAny>),
+}
+
+#[derive(Debug, Error)]
+pub enum ParamError {
+    #[error("Arithmetic operation on Param::Obj are not defined.")]
+    ObjArithmetic,
+    #[error("Internal ParameterExpression error: {0}")]
+    ParameterExpressionError(ParameterError),
+}
+
+impl From<ParameterError> for ParamError {
+    fn from(value: ParameterError) -> Self {
+        ParamError::ParameterExpressionError(value)
+    }
+}
+
+impl From<ParamError> for PyErr {
+    fn from(value: ParamError) -> Self {
+        match value {
+            ParamError::ObjArithmetic => PyTypeError::new_err(value.to_string()),
+            ParamError::ParameterExpressionError(e) => PyValueError::new_err(e.to_string()),
+        }
+    }
 }
 
 impl<'py> IntoPyObject<'py> for &Param {
@@ -117,62 +141,85 @@ impl Param {
     /// Add two scalar-valued [Param]s.
     ///
     /// Scalar-valued includes the variants [Param::Float] and [Param::ParameterExpression].
-    pub fn add_scalar(&self, other: &Param) -> Param {
+    pub fn try_add_scalar(&self, other: &Param) -> Result<Param, ParamError> {
         match (&self, other) {
-            (_, Param::Float(right)) => self.add_f64(*right),
-            (Param::Float(left), _) => other.add_f64(*left), // add is commutative here
+            (_, Param::Float(right)) => self.try_add_f64(*right),
+            (Param::Float(left), _) => other.try_add_f64(*left), // add is commutative here
             (Param::ParameterExpression(left), Param::ParameterExpression(right)) => {
-                // TODO we could properly propagate the error here
-                Param::ParameterExpression(Arc::new(
-                    left.add(right).expect("Name conflict during add."),
-                ))
+                Ok(Param::ParameterExpression(Arc::new(left.add(right)?)))
             }
-            _ => unreachable!("Unsupported addition."),
+            _ => Err(ParamError::ObjArithmetic),
         }
+    }
+
+    /// Add two scalar-valued [Param]s.
+    ///
+    /// Panicking variant of [Self::try_add_scalar].
+    pub fn add_scalar(&self, other: &Param) -> Param {
+        self.try_add_scalar(other).unwrap()
     }
 
     /// Add a [f64] to a [Param].
     ///
     /// This does not support addition to a [Param::Obj] variant.
-    pub fn add_f64(&self, other: f64) -> Param {
+    pub fn try_add_f64(&self, other: f64) -> Result<Param, ParamError> {
         match &self {
-            Param::Float(left) => Param::Float(left + other),
+            Param::Float(left) => Ok(Param::Float(left + other)),
             Param::ParameterExpression(left) => {
                 let right = ParameterExpression::from_f64(other);
-                Param::ParameterExpression(Arc::new(left.add(&right).unwrap()))
+                Ok(Param::ParameterExpression(Arc::new(left.add(&right)?)))
             }
-            _ => unreachable!("Unsupported addition."),
+            _ => Err(ParamError::ObjArithmetic),
         }
+    }
+
+    /// Add a [f64] to a [Param].
+    ///
+    /// Panicking variant of [Self::try_add_f64].
+    pub fn add_f64(&self, other: f64) -> Param {
+        self.try_add_f64(other).unwrap()
     }
 
     /// Multiply two scalar-valued [Param]s.
     ///
     /// Scalar-valued includes the variants [Param::Float] and [Param::ParameterExpression].
-    pub fn mul_scalar(&self, other: &Param) -> Param {
+    pub fn try_mul_scalar(&self, other: &Param) -> Result<Param, ParamError> {
         match (&self, other) {
-            (_, Param::Float(right)) => self.mul_f64(*right),
-            (Param::Float(left), _) => other.mul_f64(*left), // mul is commutative here
+            (_, Param::Float(right)) => self.try_mul_f64(*right),
+            (Param::Float(left), _) => other.try_mul_f64(*left), // mul is commutative here
             (Param::ParameterExpression(left), Param::ParameterExpression(right)) => {
-                Param::ParameterExpression(Arc::new(
-                    left.mul(right).expect("Name conflict during add."),
-                ))
+                Ok(Param::ParameterExpression(Arc::new(left.mul(right)?)))
             }
-            _ => unreachable!("Unsupported multiplication."),
+            _ => Err(ParamError::ObjArithmetic),
         }
+    }
+
+    /// Multiply two scalar-valued [Param]s.
+    ///
+    /// Panicking variant of [Self::try_mul_scalar].
+    pub fn mul_scalar(&self, other: &Param) -> Param {
+        self.try_mul_scalar(other).unwrap()
     }
 
     /// Multiply a [Param] with a [f64].
     ///
     /// This does not support addition to a [Param::Obj] variant.
-    pub fn mul_f64(&self, other: f64) -> Param {
+    pub fn try_mul_f64(&self, other: f64) -> Result<Param, ParamError> {
         match &self {
-            Param::Float(left) => Param::Float(left * other),
+            Param::Float(left) => Ok(Param::Float(left * other)),
             Param::ParameterExpression(left) => {
                 let right = ParameterExpression::from_f64(other);
-                Param::ParameterExpression(Arc::new(left.mul(&right).unwrap()))
+                Ok(Param::ParameterExpression(Arc::new(left.mul(&right)?)))
             }
-            _ => unreachable!("Unsupported multiplication."),
+            _ => Err(ParamError::ObjArithmetic),
         }
+    }
+
+    /// Multiply a [Param] with a [f64].
+    ///
+    /// Panicking variant of [Self::try_mul_f64].
+    pub fn mul_f64(&self, other: f64) -> Param {
+        self.try_mul_f64(other).unwrap()
     }
 
     pub fn is_close(&self, other: &Param, max_relative: f64) -> PyResult<bool> {
@@ -1332,6 +1379,12 @@ impl StandardGate {
     }
 
     pub fn inverse(&self, params: &[Param]) -> Option<(StandardGate, SmallVec<[Param; 3]>)> {
+        // StandardGate params cannot be the Param::Obj variant. We're checking this here to ensure
+        // all arithmetic operations can safely be unwrapped.
+        if params.iter().any(|param| matches!(param, Param::Obj(_))) {
+            panic!("StandardGate param cannot be Param::Obj");
+        }
+
         match self {
             Self::GlobalPhase => Some((Self::GlobalPhase, smallvec![params[0].mul_f64(-1.0)])),
             Self::H => Some((Self::H, smallvec![])),
