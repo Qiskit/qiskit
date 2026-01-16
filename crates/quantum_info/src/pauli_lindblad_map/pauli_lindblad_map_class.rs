@@ -13,11 +13,11 @@
 use hashbrown::HashSet;
 use numpy::{PyArray1, PyArrayMethods, ToPyArray};
 use pyo3::{
+    IntoPyObjectExt, PyErr,
     exceptions::{PyTypeError, PyValueError},
     intern,
     prelude::*,
     types::{PyList, PyString, PyTuple, PyType},
-    IntoPyObjectExt, PyErr,
 };
 use std::{
     collections::btree_map,
@@ -31,9 +31,9 @@ use rand_pcg::Pcg64Mcg;
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 
 use super::qubit_sparse_pauli::{
-    raw_parts_from_sparse_list, ArithmeticError, CoherenceError, InnerReadError, InnerWriteError,
-    LabelError, Pauli, PyQubitSparsePauli, PyQubitSparsePauliList, QubitSparsePauli,
-    QubitSparsePauliList, QubitSparsePauliView,
+    ArithmeticError, CoherenceError, InnerReadError, InnerWriteError, LabelError, Pauli,
+    PyQubitSparsePauli, PyQubitSparsePauliList, QubitSparsePauli, QubitSparsePauliList,
+    QubitSparsePauliView, raw_parts_from_sparse_list,
 };
 
 /// A Pauli Lindblad map that stores its data in a qubit-sparse format. Note that gamma,
@@ -384,24 +384,52 @@ impl PauliLindbladMap {
     }
 
     /// Sample sign and Pauli operator pairs from the map.
-    pub fn sample(&self, num_samples: u64, seed: Option<u64>) -> (Vec<bool>, QubitSparsePauliList) {
+    /// Note that here the "sign" bool is interpreted as the exponent of (-1)^b.
+    pub fn parity_sample(
+        &self,
+        num_samples: u64,
+        seed: Option<u64>,
+        scale: Option<f64>,
+        local_scale: Option<Vec<f64>>,
+    ) -> (Vec<bool>, QubitSparsePauliList) {
         let mut rng = match seed {
             Some(seed) => Pcg64Mcg::seed_from_u64(seed),
             None => Pcg64Mcg::from_os_rng(),
         };
-
+        let modified_probabilities;
+        let modified_non_negative_rates;
+        let (probabilities, non_negative_rates) = if local_scale.is_some() || scale.is_some() {
+            let global = scale.unwrap_or(1.);
+            let locals = local_scale.as_ref();
+            let rates = self
+                .rates
+                .iter()
+                .enumerate()
+                .map(|(i, rate)| *rate * locals.map(|locals| locals[i]).unwrap_or(1.) * global)
+                .collect::<Vec<_>>();
+            (_, modified_probabilities, modified_non_negative_rates) =
+                derived_values_from_rates(&rates);
+            (
+                modified_probabilities.as_slice(),
+                modified_non_negative_rates.as_slice(),
+            )
+        } else {
+            (
+                self.probabilities.as_slice(),
+                self.non_negative_rates.as_slice(),
+            )
+        };
         let mut random_signs = Vec::with_capacity(num_samples as usize);
         let mut random_paulis = QubitSparsePauliList::empty(self.num_qubits());
 
         for _ in 0..num_samples {
-            let mut random_sign = true;
+            let mut random_sign = false;
             let mut random_pauli = QubitSparsePauli::identity(self.num_qubits());
 
-            for ((probability, generator), non_negative_rate) in self
-                .probabilities
+            for ((probability, generator), non_negative_rate) in probabilities
                 .iter()
                 .zip(self.qubit_sparse_pauli_list.iter())
-                .zip(self.non_negative_rates.iter())
+                .zip(non_negative_rates.iter())
             {
                 // Sample true or false with given probability. If false, apply the Pauli
                 if !Bernoulli::new(*probability).unwrap().sample(&mut rng) {
@@ -599,7 +627,7 @@ impl PyGeneratorTerm {
         if slf.is(&other) {
             return Ok(true);
         }
-        let Ok(other) = other.downcast_into::<Self>() else {
+        let Ok(other) = other.cast_into::<Self>() else {
             return Ok(false);
         };
         let slf = slf.borrow();
@@ -776,8 +804,8 @@ impl PyGeneratorTerm {
 /// Internally, :class:`.PauliLindbladMap` stores an array of rates and a
 /// :class:`.QubitSparsePauliList` containing the corresponding sparse Pauli operators.
 /// Additionally, :class:`.PauliLindbladMap` can compute the overall channel :math:`\gamma` in the
-/// :meth:`get_gamma` method, as well as the corresponding probabilities (or quasi-probabilities)
-/// via the :meth:`get_probabilities` method.
+/// :meth:`gamma` method, as well as the corresponding probabilities :math:`p_P`
+/// via the :meth:`probabilities` method.
 ///
 /// Indexing
 /// --------
@@ -884,7 +912,7 @@ impl PyPauliLindbladMap {
                 "explicitly given 'num_qubits' ({num_qubits}) does not match operator ({other_qubits})"
             )))
         };
-        if let Ok(pauli_lindblad_map) = data.downcast_exact::<Self>() {
+        if let Ok(pauli_lindblad_map) = data.cast_exact::<Self>() {
             check_num_qubits(data)?;
             let borrowed = pauli_lindblad_map.borrow();
             let inner = borrowed.inner.read().map_err(|_| InnerReadError)?;
@@ -904,7 +932,7 @@ impl PyPauliLindbladMap {
             };
             return Self::from_sparse_list(vec, num_qubits);
         }
-        if let Ok(term) = data.downcast_exact::<PyGeneratorTerm>() {
+        if let Ok(term) = data.cast_exact::<PyGeneratorTerm>() {
             return term.borrow().to_pauli_lindblad_map();
         };
         if let Ok(pauli_lindblad_map) = Self::from_terms(data, num_qubits) {
@@ -1047,12 +1075,12 @@ impl PyPauliLindbladMap {
                         "cannot construct a PauliLindbladMap from an empty list without knowing `num_qubits`",
                     ));
                 };
-                let py_term = first?.downcast::<PyGeneratorTerm>()?.borrow();
+                let py_term = first?.cast::<PyGeneratorTerm>()?.borrow();
                 py_term.inner.to_pauli_lindblad_map()?
             }
         };
         for bound_py_term in iter {
-            let py_term = bound_py_term?.downcast::<PyGeneratorTerm>()?.borrow();
+            let py_term = bound_py_term?.cast::<PyGeneratorTerm>()?.borrow();
             inner.add_term(py_term.inner.view())?;
         }
         Ok(inner.into())
@@ -1188,7 +1216,9 @@ impl PyPauliLindbladMap {
         out
     }
 
-    /// Calculate the probabilities for the map.
+    /// Calculate the probabilities :math:`p_P` for the map.
+    /// These can be interpreted as the probabilities each generator is not applied,
+    /// and are defined to be independent of the sign of each Lindblad rate.
     fn probabilities<'py>(&self, py: Python<'py>) -> Bound<'py, PyArray1<f64>> {
         let inner = self.inner.read().unwrap();
         inner.probabilities().to_pyarray(py)
@@ -1493,7 +1523,9 @@ impl PyPauliLindbladMap {
             .into())
     }
 
-    /// Sample sign and Pauli operator pairs from the map.
+    /// Sample sign and Pauli operator pairs from the map. Note that the boolean sign convention in
+    /// this method is non-standard. The preferred method for this kind of sampling is
+    /// :meth:`.PauliLindbladMap.parity_sample`, which is also more featureful.
     ///
     /// Each sign is represented by a boolean, with ``True`` representing ``+1``, and ``False``
     /// representing ``-1``.
@@ -1528,7 +1560,60 @@ impl PyPauliLindbladMap {
         seed: Option<u64>,
     ) -> PyResult<Bound<'py, PyTuple>> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        let (signs, paulis) = py.detach(|| inner.sample(num_samples, seed));
+        let (signs, paulis) = py.detach(|| inner.parity_sample(num_samples, seed, None, None));
+
+        let signs = PyArray1::from_vec(py, signs.iter().map(|b| !b).collect());
+        let paulis = paulis.into_pyobject(py).unwrap();
+
+        (signs, paulis).into_pyobject(py)
+    }
+
+    /// Sample sign and Pauli operator pairs from the map.
+    ///
+    /// Each sign is represented by a boolean, with ``True`` representing ``-1``, and ``False``
+    /// representing ``+1``.
+    ///
+    /// Given the quasi-probability representation given in the class-level documentation, each
+    /// sample is drawn via the following process:
+    ///
+    /// * Initialize the sign boolean, and a :class:`~.QubitSparsePauli` instance to the identity
+    ///   operator.
+    ///
+    /// * Iterate through each Pauli in the map. Using the pseudo-probability associated with
+    ///   each operator, randomly choose between applying the operator or not.
+    ///
+    /// * If the operator is applied, update the :class`QubitSparsePauli` by multiplying it with
+    ///   the Pauli. If the rate associated with the Pauli is negative, flip the sign boolean.
+    ///
+    /// The results are returned as a 1d array of booleans, and the corresponding sampled qubit
+    /// sparse Paulis in the form of a :class:`~.QubitSparsePauliList`.
+    ///
+    /// The arguments ``scale`` and ``local_scale`` can be used to change the underlying rates used
+    /// in the sampling process without modifying current instance or requiring creating a new one.
+    /// The ``scale`` argument scales all rates by a fixed float, and ``local_scale`` scales rates
+    /// on a term-by-term basis.
+    ///
+    /// Args:
+    ///     num_samples (int): Number of samples to draw.
+    ///     seed (int): Random seed.
+    ///     scale (float): Scale to apply to all rates.
+    ///     local_scale (list[float]): Local scale to apply on a term-by-term basis.
+    ///
+    /// Returns:
+    ///     signs, qubit_sparse_pauli_list: The boolean array of signs and the list of qubit sparse
+    ///     paulis.
+    #[pyo3(signature = (num_samples, seed=None, scale=None, local_scale=None))]
+    pub fn parity_sample<'py>(
+        &self,
+        py: Python<'py>,
+        num_samples: u64,
+        seed: Option<u64>,
+        scale: Option<f64>,
+        local_scale: Option<Vec<f64>>,
+    ) -> PyResult<Bound<'py, PyTuple>> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        let (signs, paulis) =
+            py.detach(|| inner.parity_sample(num_samples, seed, scale, local_scale));
 
         let signs = PyArray1::from_vec(py, signs);
         let paulis = paulis.into_pyobject(py).unwrap();
@@ -1538,7 +1623,7 @@ impl PyPauliLindbladMap {
 
     /// For :class:`.PauliLindbladMap` instances with purely non-negative rates, sample Pauli
     /// operators from the map. If the map has negative rates, use
-    /// :meth:`.PauliLindbladMap.signed_sample`.
+    /// :meth:`.PauliLindbladMap.parity_sample`.
     ///
     /// Given the quasi-probability representation given in the class-level documentation, each
     /// sample is drawn via the following process:
@@ -1575,12 +1660,12 @@ impl PyPauliLindbladMap {
         for non_negative in inner.non_negative_rates.iter() {
             if !non_negative {
                 return Err(PyValueError::new_err(
-                    "PauliLindbladMap.sample called for a map with negative rates. Use PauliLindbladMap.signed_sample"
+                    "PauliLindbladMap.sample called for a map with negative rates. Use PauliLindbladMap.parity_sample",
                 ));
             }
         }
 
-        let (_, paulis) = py.detach(|| inner.sample(num_samples, seed));
+        let (_, paulis) = py.detach(|| inner.parity_sample(num_samples, seed, None, None));
 
         paulis.into_pyobject(py)
     }
@@ -1710,7 +1795,7 @@ impl PyPauliLindbladMap {
                 return PyGeneratorTerm {
                     inner: inner.term(index).to_term(),
                 }
-                .into_bound_py_any(py)
+                .into_bound_py_any(py);
             }
             indices => indices,
         };
@@ -1726,7 +1811,7 @@ impl PyPauliLindbladMap {
         if slf.is(&other) {
             return Ok(true);
         }
-        let Ok(other) = other.downcast_into::<Self>() else {
+        let Ok(other) = other.cast_into::<Self>() else {
             return Ok(false);
         };
         let slf_borrowed = slf.borrow();
@@ -1808,7 +1893,7 @@ fn coerce_to_map<'py>(
     value: &Bound<'py, PyAny>,
 ) -> PyResult<Option<Bound<'py, PyPauliLindbladMap>>> {
     let py = value.py();
-    if let Ok(obs) = value.downcast_exact::<PyPauliLindbladMap>() {
+    if let Ok(obs) = value.cast_exact::<PyPauliLindbladMap>() {
         return Ok(Some(obs.clone()));
     }
     match PyPauliLindbladMap::py_new(value, None) {

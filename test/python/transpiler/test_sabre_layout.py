@@ -564,7 +564,7 @@ class TestSabrePreLayout(QiskitTestCase):
         layout = pm.property_set["layout"]
         self.assertEqual(
             [layout[q] for q in self.circuit.qubits],
-            [9, 81, 10, 82, 51, 76, 75, 2, 74, 1, 73, 0, 49, 7, 79, 80],
+            [9, 81, 54, 16, 86, 58, 92, 22, 91, 21, 57, 14, 85, 53, 79, 80],
         )
 
     def test_integration_with_pass_manager(self):
@@ -578,7 +578,7 @@ class TestSabrePreLayout(QiskitTestCase):
         qct_initial_layout = qct.layout.initial_layout
         self.assertEqual(
             [qct_initial_layout[q] for q in self.circuit.qubits],
-            [7, 12, 11, 10, 5, 16, 17, 18, 13, 14, 9, 8, 3, 2, 1, 6],
+            [12, 11, 10, 16, 17, 18, 13, 14, 9, 8, 3, 2, 1, 6, 5, 7],
         )
 
 

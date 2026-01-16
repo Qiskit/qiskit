@@ -43,9 +43,9 @@ class ControlModifier(Modifier):
     and has control state ``ctrl_state``."""
 
     num_ctrl_qubits: int = 0
-    ctrl_state: Union[int, str, None] = None
+    ctrl_state: int | str | None = None
 
-    def __init__(self, num_ctrl_qubits: int = 0, ctrl_state: Union[int, str, None] = None):
+    def __init__(self, num_ctrl_qubits: int = 0, ctrl_state: int | str | None = None):
         self.num_ctrl_qubits = num_ctrl_qubits
         self.ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
 
@@ -161,22 +161,22 @@ class AnnotatedOperation(Operation):
         num_ctrl_qubits: int = 1,
         label: str | None = None,
         ctrl_state: int | str | None = None,
-        annotated: bool = True,
+        annotated: bool | None = None,
     ) -> AnnotatedOperation:
-        """
-        Return the controlled version of itself.
+        """Return the controlled version of itself.
 
-        Implemented as an annotated operation, see  :class:`.AnnotatedOperation`.
+        Implemented as :class:`.AnnotatedOperation`, regardless of the value of
+        ``annotated``.
 
         Args:
-            num_ctrl_qubits: number of controls to add to gate (default: ``1``)
-            label: ignored (used for consistency with other control methods)
-            ctrl_state: The control state in decimal or as a bitstring
-                (e.g. ``'111'``). If ``None``, use ``2**num_ctrl_qubits-1``.
-            annotated: ignored (used for consistency with other control methods)
+            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            label: Ignored.
+            ctrl_state: The control state of the gate, specified either as an integer or a bitstring
+                (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``.
+            annotated: Ignored.
 
         Returns:
-            Controlled version of the given operation.
+            A controlled version of the given operation.
         """
         # pylint: disable=unused-argument
         extended_modifiers = self.modifiers.copy()

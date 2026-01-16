@@ -61,7 +61,6 @@ class TestGates(QiskitTestCase):
             "bits": [self.qubit],
             "t0": 100,
             "duration": 20,
-            "unitary": "[[1.+0.j 0.-0.j]\n [0.+0.j 1.+0.j]]",
             "parameters": "0, 0, 0",
         }
         self.assertDictEqual(ref_meta, drawing_obj.meta)

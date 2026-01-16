@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 use hashbrown::HashMap;
+use hashbrown::hash_map::OccupiedError;
 use pyo3::exceptions::{PyKeyError, PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::PyList;
@@ -49,6 +50,11 @@ impl PyObjectAsKey {
             hash: self.hash,
             ob: self.ob.clone_ref(py),
         }
+    }
+
+    /// Get a reference to the wrapped Python object.
+    pub fn object(&self) -> &Py<PyAny> {
+        &self.ob
     }
 }
 
@@ -184,10 +190,10 @@ where
 
     /// Map the provided objects to their native indices.
     /// An error is returned if any object is not registered.
-    pub fn map_objects(
+    pub fn map_objects<U: IntoIterator<Item = B>>(
         &self,
-        objects: impl IntoIterator<Item = B>,
-    ) -> PyResult<impl Iterator<Item = T>> {
+        objects: U,
+    ) -> PyResult<impl Iterator<Item = T> + use<T, B, U>> {
         let v: Result<Vec<_>, _> = objects
             .into_iter()
             .map(|b| {
@@ -201,7 +207,7 @@ where
 
     /// Map the provided native indices to the corresponding object instances.
     /// Panics if any of the indices are out of range.
-    pub fn map_indices(&self, objects: &[T]) -> impl ExactSizeIterator<Item = &B> {
+    pub fn map_indices(&self, objects: &[T]) -> impl ExactSizeIterator<Item = &B> + use<'_, T, B> {
         let v: Vec<_> = objects.iter().map(|i| self.get(*i).unwrap()).collect();
         v.into_iter()
     }
@@ -227,14 +233,25 @@ where
         })?;
         // Dump the cache
         self.cached.take();
-        if self.indices.try_insert(object.clone(), idx.into()).is_ok() {
-            self.objects.push(object);
-        } else if strict {
-            return Err(PyValueError::new_err(format!(
+        match self.indices.try_insert(object.clone(), idx.into()) {
+            Ok(_) => {
+                self.objects.push(object);
+                Ok(idx.into())
+            }
+            Err(OccupiedError { entry, .. }) if !strict => Ok(*entry.get()),
+            _ => Err(PyValueError::new_err(format!(
                 "Existing object {object:?} cannot be re-added in strict mode."
-            )));
+            ))),
         }
-        Ok(idx.into())
+    }
+
+    pub fn replace(&mut self, index: T, replacement: B) -> PyResult<()> {
+        self.cached.take();
+        let to_replace = &mut self.objects[<u32 as From<T>>::from(index) as usize];
+        self.indices.remove(to_replace);
+        *to_replace = replacement.clone();
+        self.indices.insert(replacement, index);
+        Ok(())
     }
 
     pub fn remove_indices<I>(&mut self, indices: I) -> PyResult<()>

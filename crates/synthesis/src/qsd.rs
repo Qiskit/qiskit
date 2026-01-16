@@ -15,7 +15,7 @@ use std::sync::OnceLock;
 
 use approx::abs_diff_eq;
 use hashbrown::HashMap;
-use nalgebra::{stack, DMatrix, DMatrixView, DVector, Matrix4, QR};
+use nalgebra::{DMatrix, DMatrixView, DVector, Matrix4, QR, stack};
 use ndarray::prelude::*;
 use num_complex::Complex64;
 use numpy::PyReadonlyArray2;
@@ -24,18 +24,16 @@ use pyo3::prelude::*;
 use smallvec::smallvec;
 
 use crate::euler_one_qubit_decomposer::{
-    unitary_to_gate_sequence_inner, EulerBasis, EulerBasisSet,
+    EulerBasis, EulerBasisSet, unitary_to_gate_sequence_inner,
 };
 use crate::linalg::{closest_unitary, is_hermitian_matrix, svd_decomposition, verify_unitary};
-use crate::two_qubit_decompose::{two_qubit_decompose_up_to_diagonal, TwoQubitBasisDecomposer};
+use crate::two_qubit_decompose::{TwoQubitBasisDecomposer, two_qubit_decompose_up_to_diagonal};
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::interner::Interned;
-use qiskit_circuit::operations::{
-    ArrayType, Operation, OperationRef, Param, StandardGate, UnitaryGate,
-};
+use qiskit_circuit::operations::{ArrayType, OperationRef, Param, StandardGate, UnitaryGate};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
-use qiskit_circuit::{Qubit, VarsMode};
+use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
 use qiskit_quantum_info::convert_2q_block_matrix::instructions_to_matrix;
 
 const EPS: f64 = 1e-10;
@@ -674,7 +672,7 @@ fn apply_a2(
             let OperationRef::Unitary(unitary) = circ.data()[*idx].op.view() else {
                 unreachable!("diagonal unitary is not a unitary gate");
             };
-            (*idx, unitary.matrix(&[]).unwrap())
+            (*idx, unitary.matrix().unwrap())
         })
         .collect();
     for ind in ind2q.windows(2) {
@@ -732,6 +730,7 @@ fn apply_a2(
                 - ind2q.len(),
         ),
         VarsMode::Alike,
+        BlocksMode::Drop,
     )?;
     for (idx, inst) in circ.data().iter().enumerate() {
         if let Some(new_circ) = diagonal_rollover.get(&idx) {

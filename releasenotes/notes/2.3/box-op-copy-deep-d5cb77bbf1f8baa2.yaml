@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes  the implementation of :meth:`~object.__deepcopy__` in class:`.QuantumCircuit`
+    which did not deep-copy circuit parameters. As a consequence, mutating
+    a :class:`.BoxOp` in a copied circuit no longer affects the original circuit.

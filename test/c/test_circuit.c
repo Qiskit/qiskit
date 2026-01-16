@@ -22,7 +22,7 @@
 /**
  * Test the zero constructor.
  */
-int test_empty(void) {
+static int test_empty(void) {
     QkCircuit *qc = qk_circuit_new(0, 0);
     uint32_t num_qubits = qk_circuit_num_qubits(qc);
     uint32_t num_clbits = qk_circuit_num_clbits(qc);
@@ -53,7 +53,7 @@ int test_empty(void) {
     return Ok;
 }
 
-int test_circuit_with_quantum_reg(void) {
+static int test_circuit_with_quantum_reg(void) {
     QkCircuit *qc = qk_circuit_new(0, 0);
     QkQuantumRegister *qr = qk_quantum_register_new(1024, "my_little_register");
     qk_circuit_add_quantum_register(qc, qr);
@@ -77,7 +77,7 @@ int test_circuit_with_quantum_reg(void) {
     return Ok;
 }
 
-int test_circuit_copy(void) {
+static int test_circuit_copy(void) {
     QkCircuit *qc = qk_circuit_new(10, 10);
     QkCircuit *copy = qk_circuit_copy(qc);
     for (int i = 0; i < 10; i++) {
@@ -101,7 +101,7 @@ int test_circuit_copy(void) {
     return Ok;
 }
 
-int test_circuit_with_classical_reg(void) {
+static int test_circuit_with_classical_reg(void) {
     QkCircuit *qc = qk_circuit_new(0, 0);
     QkClassicalRegister *cr = qk_classical_register_new(2048, "my_less_little_register");
     qk_circuit_add_classical_register(qc, cr);
@@ -125,7 +125,7 @@ int test_circuit_with_classical_reg(void) {
     return Ok;
 }
 
-int test_circuit_copy_with_instructions(void) {
+static int test_circuit_copy_with_instructions(void) {
     QkCircuit *qc = qk_circuit_new(10, 10);
     for (int i = 0; i < 10; i++) {
         qk_circuit_measure(qc, i, i);
@@ -170,7 +170,35 @@ int test_circuit_copy_with_instructions(void) {
     return Ok;
 }
 
-int test_no_gate_1000_bits(void) {
+static int test_circuit_copy_empty_like(void) {
+    QkCircuit *qc = qk_circuit_new(10, 10);
+    for (int i = 0; i < 10; i++) {
+        qk_circuit_measure(qc, i, i);
+        uint32_t qubits[1] = {i};
+        qk_circuit_gate(qc, QkGate_H, qubits, NULL);
+    }
+    QkCircuit *copy = qk_circuit_copy_empty_like(qc, QkVarsMode_Alike, QkBlocksMode_Drop);
+
+    size_t num_instructions = qk_circuit_num_instructions(qc);        // not 0
+    size_t num_copy_instructions = qk_circuit_num_instructions(copy); // 0
+
+    qk_circuit_free(qc);
+    qk_circuit_free(copy);
+
+    if (num_instructions == 0) {
+        printf("Expected the original circuit to remain unchanged, but it is now empty\n");
+        return EqualityError;
+    }
+
+    if (num_copy_instructions != 0) {
+        printf("Expected no operations in the copied-empty-like circuit, but got %zu\n",
+               num_copy_instructions);
+        return EqualityError;
+    }
+    return Ok;
+}
+
+static int test_no_gate_1000_bits(void) {
     QkCircuit *qc = qk_circuit_new(1000, 1000);
     uint32_t num_qubits = qk_circuit_num_qubits(qc);
     uint32_t num_clbits = qk_circuit_num_clbits(qc);
@@ -193,7 +221,7 @@ int test_no_gate_1000_bits(void) {
     return Ok;
 }
 
-int test_gate_num_qubits(void) {
+static int test_gate_num_qubits(void) {
     for (uint8_t i = 0; i < 52; i++) {
         if (i == 0) {
             if (qk_gate_num_qubits(i) != 0) {
@@ -221,7 +249,7 @@ int test_gate_num_qubits(void) {
     return Ok;
 }
 
-bool value_in_array(uint8_t val, uint8_t *arr, size_t n) {
+static bool value_in_array(uint8_t val, uint8_t *arr, size_t n) {
     for (size_t i = 0; i < n; i++) {
         if (arr[i] == val)
             return true;
@@ -229,7 +257,7 @@ bool value_in_array(uint8_t val, uint8_t *arr, size_t n) {
     return false;
 }
 
-int test_gate_num_params(void) {
+static int test_gate_num_params(void) {
 
     uint8_t zero_param_gates[29] = {1,  2,  3,  4,  5,  11, 12, 13, 14, 15, 16, 21, 22, 23, 24,
                                     25, 26, 27, 28, 33, 34, 35, 45, 46, 47, 48, 49, 50, 51};
@@ -266,7 +294,7 @@ int test_gate_num_params(void) {
 /**
  * Test edge cases for getting the op counts.
  */
-int test_get_gate_counts(void) {
+static int test_get_gate_counts(void) {
     QkCircuit *qc = qk_circuit_new(3, 3);
 
     // test empty circuit
@@ -302,7 +330,7 @@ circuit_cleanup:
     return result;
 }
 
-int test_get_gate_counts_bv_no_measure(void) {
+static int test_get_gate_counts_bv_no_measure(void) {
     QkCircuit *qc = qk_circuit_new(1000, 1000);
     double *params = NULL;
     uint32_t i;
@@ -358,7 +386,7 @@ cleanup:
     return result;
 }
 
-int test_get_gate_counts_bv_measures(void) {
+static int test_get_gate_counts_bv_measures(void) {
     QkCircuit *qc = qk_circuit_new(1000, 1000);
     double *params = NULL;
     uint32_t i;
@@ -425,7 +453,7 @@ cleanup:
     return result;
 }
 
-int test_get_gate_counts_bv_barrier_and_measures(void) {
+static int test_get_gate_counts_bv_barrier_and_measures(void) {
     QkCircuit *qc = qk_circuit_new(1000, 1000);
     double *params = NULL;
     uint32_t i;
@@ -506,7 +534,7 @@ cleanup:
     return result;
 }
 
-int test_get_gate_counts_bv_resets_barrier_and_measures(void) {
+static int test_get_gate_counts_bv_resets_barrier_and_measures(void) {
     QkCircuit *qc = qk_circuit_new(1000, 1000);
     double *params = NULL;
     uint32_t q1[1] = {999};
@@ -732,7 +760,7 @@ cleanup:
 /**
  * Test appending a unitary gate.
  */
-int test_unitary_gate(void) {
+static int test_unitary_gate(void) {
     QkCircuit *qc = qk_circuit_new(2, 0);
     uint32_t qubits[2] = {0, 1};
 
@@ -782,7 +810,7 @@ cleanup:
 /**
  * Test appending a unitary gate.
  */
-int test_unitary_gate_1q(void) {
+static int test_unitary_gate_1q(void) {
     QkCircuit *qc = qk_circuit_new(2, 0);
     uint32_t qubits[1] = {0};
 
@@ -830,7 +858,7 @@ cleanup:
 /**
  * Test appending a unitary gate.
  */
-int test_unitary_gate_3q(void) {
+static int test_unitary_gate_3q(void) {
     QkCircuit *qc = qk_circuit_new(3, 0);
     uint32_t qubits[3] = {0, 1, 2};
 
@@ -883,7 +911,7 @@ cleanup:
 /**
  * Test passing a non-unitary gate returns the correct exit code.
  */
-int test_not_unitary_gate(void) {
+static int test_not_unitary_gate(void) {
     QkCircuit *qc = qk_circuit_new(2, 0);
     uint32_t qubits[2] = {0, 1};
 
@@ -915,7 +943,10 @@ cleanup:
     return result;
 }
 
-int test_delay_instruction(void) {
+/**
+ * Test adding delay instruction to a circuit.
+ */
+static int test_delay_instruction(void) {
     QkCircuit *qc = qk_circuit_new(2, 0);
     int result = Ok;
 
@@ -932,6 +963,28 @@ cleanup:
     return result;
 }
 
+/**
+ * Test circuit to dag conversion.
+ */
+static int test_circuit_to_dag(void) {
+    QkCircuit *circuit = qk_circuit_new(2, 1);
+    qk_circuit_gate(circuit, QkGate_H, (uint32_t[]){0}, NULL);
+    qk_circuit_gate(circuit, QkGate_CX, (uint32_t[]){0, 1}, NULL);
+
+    QkDag *dag = qk_circuit_to_dag(circuit);
+    qk_circuit_free(circuit);
+
+    int result = Ok;
+    if (qk_dag_num_qubits(dag) != 2 || qk_dag_num_clbits(dag) != 1 ||
+        qk_dag_num_op_nodes(dag) != 2) {
+        printf("Circuit to DAG conversion encountered an issue\n");
+        result = EqualityError;
+    }
+
+    qk_dag_free(dag);
+    return result;
+}
+
 int test_circuit(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_empty);
@@ -939,6 +992,7 @@ int test_circuit(void) {
     num_failed += RUN_TEST(test_circuit_with_classical_reg);
     num_failed += RUN_TEST(test_circuit_copy);
     num_failed += RUN_TEST(test_circuit_copy_with_instructions);
+    num_failed += RUN_TEST(test_circuit_copy_empty_like);
     num_failed += RUN_TEST(test_no_gate_1000_bits);
     num_failed += RUN_TEST(test_get_gate_counts);
     num_failed += RUN_TEST(test_get_gate_counts_bv_no_measure);
@@ -952,6 +1006,7 @@ int test_circuit(void) {
     num_failed += RUN_TEST(test_not_unitary_gate);
     num_failed += RUN_TEST(test_unitary_gate_1q);
     num_failed += RUN_TEST(test_unitary_gate_3q);
+    num_failed += RUN_TEST(test_circuit_to_dag);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
