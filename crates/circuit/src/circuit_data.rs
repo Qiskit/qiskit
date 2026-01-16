@@ -24,8 +24,9 @@ use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use crate::classical::expr;
 use crate::dag_circuit::{DAGStretchType, DAGVarType, add_global_phase};
 use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
+use crate::instruction::Parameters;
 use crate::interner::{Interned, InternedMap, Interner};
-use crate::object_registry::{ObjectRegistry, ObjectRegistryError};
+use crate::object_registry::{self, ObjectRegistry};
 use crate::operations::{
     ControlFlow, ControlFlowView, Operation, OperationRef, Param, PythonOperation, StandardGate,
 };
@@ -36,7 +37,8 @@ use crate::parameter_table::{ParameterTable, ParameterTableError, ParameterUse, 
 use crate::register_data::RegisterData;
 use crate::slice::{PySequenceIndex, SequenceIndex};
 use crate::{
-    Block, BlocksMode, Clbit, ControlFlowBlocks, Qubit, Stretch, Var, VarsMode, instruction,
+    Block, BlocksMode, CapacityError, Clbit, ControlFlowBlocks, Qubit, Stretch, Var, VarsMode,
+    instruction,
 };
 
 use num_complex::Complex64;
@@ -47,7 +49,6 @@ use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyList, PySet, PyTuple, PyType};
 use pyo3::{PyTraverseError, PyVisit, import_exception, intern};
 
-use crate::instruction::Parameters;
 use hashbrown::{HashMap, HashSet};
 use indexmap::IndexMap;
 use smallvec::SmallVec;
@@ -66,10 +67,14 @@ import_exception!(qiskit.circuit.exceptions, CircuitError);
 #[non_exhaustive]
 #[derive(Error, Debug)]
 pub enum CircuitDataError {
+    #[error(transparent)]
+    Capacity(#[from] CapacityError),
     #[error("invalid type for global phase")]
     InvalidGlobalPhaseType,
     #[error(transparent)]
-    ObjectRegistryError(#[from] ObjectRegistryError),
+    AbsentObject(object_registry::AbsentObject),
+    #[error(transparent)]
+    AddObjectRegistry(object_registry::AddError),
     // Explicitly an error returned from calling Python
     #[error(transparent)]
     ErrorFromPython(#[from] PyErr),
@@ -100,14 +105,26 @@ pub enum CircuitDataError {
     #[error("bad type after binding for gate '{0}': '{1}'")]
     StandardGateParameterIsComplex(String, String),
 }
+impl<T: Debug> From<object_registry::AbsentObject<T>> for CircuitDataError {
+    fn from(val: object_registry::AbsentObject<T>) -> Self {
+        Self::AbsentObject(val.erase_type())
+    }
+}
+impl<T: Debug, B: Debug> From<object_registry::AddError<T, B>> for CircuitDataError {
+    fn from(val: object_registry::AddError<T, B>) -> Self {
+        Self::AddObjectRegistry(val.erase_type())
+    }
+}
 
 impl From<CircuitDataError> for PyErr {
     fn from(error: CircuitDataError) -> Self {
         match error {
+            CircuitDataError::Capacity(c) => c.into(),
             CircuitDataError::InvalidGlobalPhaseType => {
                 PyTypeError::new_err("invalid type for global phase")
             }
-            CircuitDataError::ObjectRegistryError(e) => e.into(),
+            CircuitDataError::AbsentObject(e) => e.into(),
+            CircuitDataError::AddObjectRegistry(e) => e.into(),
             CircuitDataError::ErrorFromPython(e) => e,
             CircuitDataError::ParameterTableError(e) => e.into(),
             CircuitDataError::DuplicateStretch => {
@@ -515,13 +532,13 @@ impl CircuitData {
 
         borrowed_mut.vars = ObjectRegistry::<Var, expr::Var>::with_capacity(state.5.len());
         for var in state.5 {
-            borrowed_mut.vars.add(var, false)?;
+            borrowed_mut.vars.add(var)?;
         }
 
         borrowed_mut.stretches =
             ObjectRegistry::<Stretch, expr::Stretch>::with_capacity(state.6.len());
         for stretch in state.6 {
-            borrowed_mut.stretches.add(stretch, false)?;
+            borrowed_mut.stretches.add(stretch)?;
         }
 
         Ok(())
@@ -694,9 +711,16 @@ impl CircuitData {
     /// Raises:
     ///     ValueError: The specified ``bit`` is already present and flag ``strict``
     ///         was provided.
-    #[pyo3(name="add_qubit", signature = (bit, *, strict=true))]
-    pub fn py_add_qubit(&mut self, bit: ShareableQubit, strict: bool) -> PyResult<()> {
-        Ok(self.add_qubit(bit, strict)?)
+    #[pyo3(signature = (bit, *, strict=true))]
+    pub fn add_qubit(&mut self, bit: ShareableQubit, strict: bool) -> Result<(), CircuitDataError> {
+        let index = if strict {
+            self.qubits.add(bit.clone())?
+        } else {
+            self.qubits.add_allow_existing(bit.clone())?
+        };
+        self.qubit_indices
+            .insert(bit, BitLocations::new(index.0, []));
+        Ok(())
     }
 
     /// Registers a :class:`.QuantumRegister` instance.
@@ -743,9 +767,16 @@ impl CircuitData {
     /// Raises:
     ///     ValueError: The specified ``bit`` is already present and flag ``strict``
     ///         was provided.
-    #[pyo3(name="add_clbit", signature = (bit, *, strict=true))]
-    pub fn py_add_clbit(&mut self, bit: ShareableClbit, strict: bool) -> PyResult<()> {
-        Ok(self.add_clbit(bit, strict)?)
+    #[pyo3(signature = (bit, *, strict=true))]
+    pub fn add_clbit(&mut self, bit: ShareableClbit, strict: bool) -> Result<(), CircuitDataError> {
+        let index = if strict {
+            self.clbits.add(bit.clone())?
+        } else {
+            self.clbits.add_allow_existing(bit.clone())?
+        };
+        self.clbit_indices
+            .insert(bit, BitLocations::new(index.0, []));
+        Ok(())
     }
 
     /// Registers a :class:`.QuantumRegister` instance.
@@ -1492,8 +1523,23 @@ impl CircuitData {
     /// uncommon for subclasses and other parts of Qiskit to have filled in the global phase field
     /// by copies or other means, before making the parameter table consistent.
     #[setter(global_phase)]
-    pub fn py_set_global_phase(&mut self, angle: Param) -> PyResult<()> {
-        Ok(self.set_global_phase(angle)?)
+    pub fn set_global_phase_param(&mut self, angle: Param) -> Result<(), CircuitDataError> {
+        self.clear_global_phase();
+        match &angle {
+            Param::Float(angle) => {
+                self.set_global_phase_f64(*angle);
+                Ok(())
+            }
+            Param::ParameterExpression(expr) => {
+                for symbol in expr.iter_symbols() {
+                    self.param_table
+                        .track(symbol, Some(ParameterUse::GlobalPhase))?;
+                }
+                self.global_phase = angle;
+                Ok(())
+            }
+            _ => Err(CircuitDataError::InvalidGlobalPhaseType),
+        }
     }
 
     pub fn num_nonlocal_gates(&self) -> usize {
@@ -1837,7 +1883,7 @@ impl CircuitData {
             stretches_capture: Vec::new(),
             stretches_declare: Vec::new(),
         };
-        self_.set_global_phase(global_phase)?;
+        self_.set_global_phase_param(global_phase)?;
         if let Some(qubits) = qubits {
             for bit in qubits.into_iter() {
                 self_.add_qubit(bit, true)?;
@@ -1849,52 +1895,6 @@ impl CircuitData {
             }
         }
         Ok(self_)
-    }
-
-    pub fn add_qubit(&mut self, bit: ShareableQubit, strict: bool) -> Result<(), CircuitDataError> {
-        let index = self.qubits.add(bit.clone(), strict)?;
-        self.qubit_indices
-            .insert(bit, BitLocations::new(index.0, []));
-        Ok(())
-    }
-
-    pub fn add_clbit(&mut self, bit: ShareableClbit, strict: bool) -> Result<(), CircuitDataError> {
-        let index = self.clbits.add(bit.clone(), strict)?;
-        self.clbit_indices
-            .insert(bit, BitLocations::new(index.0, []));
-        Ok(())
-    }
-
-    pub fn set_global_phase(&mut self, angle: Param) -> Result<(), CircuitDataError> {
-        if let Param::ParameterExpression(expr) = &self.global_phase {
-            for symbol in expr.iter_symbols() {
-                match self.param_table.remove_use(
-                    ParameterUuid::from_symbol(symbol),
-                    ParameterUse::GlobalPhase,
-                ) {
-                    Ok(_)
-                    | Err(ParameterTableError::ParameterNotTracked(_))
-                    | Err(ParameterTableError::UsageNotTracked(_)) => (),
-                    Err(ParameterTableError::NameConflict(_)) => (),
-                    // Any errors added later might want propagating.
-                }
-            }
-        };
-        match &angle {
-            Param::Float(angle) => {
-                self.global_phase = Param::Float(angle.rem_euclid(2. * std::f64::consts::PI));
-                Ok(())
-            }
-            Param::ParameterExpression(expr) => {
-                for symbol in expr.iter_symbols() {
-                    self.param_table
-                        .track(symbol, Some(ParameterUse::GlobalPhase))?;
-                }
-                self.global_phase = angle;
-                Ok(())
-            }
-            Param::Obj(_) => Err(CircuitDataError::InvalidGlobalPhaseType),
-        }
     }
 
     #[inline]
@@ -2117,12 +2117,8 @@ impl CircuitData {
         >,
     {
         let instruction_iter = instructions.into_iter();
-        let mut res = Self::with_capacity(
-            num_qubits,
-            num_clbits,
-            instruction_iter.size_hint().0,
-            global_phase,
-        )?;
+        let mut res = Self::with_capacity(num_qubits, num_clbits, instruction_iter.size_hint().0);
+        res.set_global_phase_param(global_phase)?;
 
         for item in instruction_iter {
             let (operation, params, qargs, cargs) = item?;
@@ -2224,7 +2220,7 @@ impl CircuitData {
 
         // use the global phase setter to ensure parameters are registered
         // in the parameter table
-        res.set_global_phase(global_phase)?;
+        res.set_global_phase_param(global_phase)?;
 
         for inst in instruction_iter {
             res.push(inst?)?;
@@ -2271,8 +2267,8 @@ impl CircuitData {
         I: IntoIterator<Item = (StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>)>,
     {
         let instruction_iter = instructions.into_iter();
-        let mut res =
-            Self::with_capacity(num_qubits, 0, instruction_iter.size_hint().0, global_phase)?;
+        let mut res = Self::with_capacity(num_qubits, 0, instruction_iter.size_hint().0);
+        res.set_global_phase_param(global_phase)?;
 
         for (operation, params, qargs) in instruction_iter {
             let qubits = res.qargs_interner.insert(&qargs);
@@ -2285,12 +2281,7 @@ impl CircuitData {
     }
 
     /// Build an empty CircuitData object with an initially allocated instruction capacity
-    pub fn with_capacity(
-        num_qubits: u32,
-        num_clbits: u32,
-        instruction_capacity: usize,
-        global_phase: Param,
-    ) -> Result<Self, CircuitDataError> {
+    pub fn with_capacity(num_qubits: u32, num_clbits: u32, instruction_capacity: usize) -> Self {
         let mut res = CircuitData {
             data: Vec::with_capacity(instruction_capacity),
             qargs_interner: Interner::new(),
@@ -2313,24 +2304,43 @@ impl CircuitData {
             stretches_capture: Vec::new(),
             stretches_declare: Vec::new(),
         };
+        res.add_anonymous_qubits(num_qubits)
+            .expect("cannot represent a too-large count");
+        res.add_anonymous_clbits(num_clbits)
+            .expect("cannot represent a too-large count");
+        res
+    }
 
-        // use the global phase setter to ensure parameters are registered
-        // in the parameter table
-        res.set_global_phase(global_phase)?;
+    /// Add multiple new anonymous qubits.
+    ///
+    /// This can only fail due to circuit capacity issues, since new anonymous qubits are guaranteed
+    /// to be unique.
+    pub fn add_anonymous_qubits(&mut self, num: u32) -> Result<(), CapacityError> {
+        if self.qubits.len() > (u32::MAX - num) as usize {
+            return Err(CapacityError);
+        }
+        for bit in ShareableQubit::iter_anonymous(num) {
+            let index = self.qubits.add_unique_within_capacity(bit.clone());
+            self.qubit_indices
+                .insert(bit, BitLocations::new(index.0, []));
+        }
+        Ok(())
+    }
 
-        if num_qubits > 0 {
-            for _i in 0..num_qubits {
-                let bit = ShareableQubit::new_anonymous();
-                res.add_qubit(bit, true)?;
-            }
+    /// Add multiple new anonymous clbits.
+    ///
+    /// This can only fail due to circuit capacity issues, since new anonymous qubits are guaranteed
+    /// to be unique.
+    pub fn add_anonymous_clbits(&mut self, num: u32) -> Result<(), CapacityError> {
+        if self.clbits.len() > (u32::MAX - num) as usize {
+            return Err(CapacityError);
         }
-        if num_clbits > 0 {
-            for _i in 0..num_clbits {
-                let bit = ShareableClbit::new_anonymous();
-                res.add_clbit(bit, true)?;
-            }
+        for bit in ShareableClbit::iter_anonymous(num) {
+            let index = self.clbits.add_unique_within_capacity(bit.clone());
+            self.clbit_indices
+                .insert(bit, BitLocations::new(index.0, []));
         }
-        Ok(res)
+        Ok(())
     }
 
     /// Modify `self` to mark its qubits as physical.
@@ -2357,9 +2367,7 @@ impl CircuitData {
         let mut registry = ObjectRegistry::with_capacity(num_qubits as usize);
         let mut locator = BitLocator::with_capacity(num_qubits as usize);
         for (index, bit) in register.iter().enumerate() {
-            registry
-                .add(bit.clone(), false)
-                .expect("no duplicates, and in-bounds check already performed");
+            registry.add_unique_within_capacity(bit.clone());
             locator.insert(
                 bit,
                 BitLocations::new(index as u32, [(register.clone(), index)]),
@@ -2410,6 +2418,31 @@ impl CircuitData {
             #[cfg(feature = "cache_pygates")]
             py_op: OnceLock::new(),
         })
+    }
+
+    pub fn set_global_phase_f64(&mut self, phase: f64) {
+        self.clear_global_phase();
+        self.global_phase = Param::Float(phase.rem_euclid(::std::f64::consts::TAU));
+    }
+
+    /// Reset the global phase of the circuit to zero, updating any parameter tracking.
+    fn clear_global_phase(&mut self) {
+        let old = ::std::mem::replace(&mut self.global_phase, Param::Float(0.0));
+        let Param::ParameterExpression(expr) = old else {
+            return;
+        };
+        for symbol in expr.iter_symbols() {
+            match self.param_table.remove_use(
+                ParameterUuid::from_symbol(symbol),
+                ParameterUse::GlobalPhase,
+            ) {
+                Ok(_)
+                | Err(ParameterTableError::ParameterNotTracked(_))
+                | Err(ParameterTableError::UsageNotTracked(_))
+                | Err(ParameterTableError::NameConflict(_)) => (),
+                // Any errors added later might want propagating.
+            }
+        }
     }
 
     #[inline]
@@ -2816,7 +2849,12 @@ impl CircuitData {
                         let Param::ParameterExpression(expr) = &self.global_phase else {
                             inconsistent()
                         };
-                        self.set_global_phase(bind_expr(expr, &symbol, value.as_ref(), true)?)?;
+                        self.set_global_phase_param(bind_expr(
+                            expr,
+                            &symbol,
+                            value.as_ref(),
+                            true,
+                        )?)?;
                     }
                     ParameterUse::Index {
                         instruction,
@@ -3122,7 +3160,7 @@ impl CircuitData {
             stretches_capture: Vec::new(),
             stretches_declare: Vec::new(),
         };
-        res.set_global_phase(other.global_phase.clone())?;
+        res.set_global_phase_param(other.global_phase.clone())?;
         if let VarsMode::Drop = vars_mode {
             return Ok(res);
         }
@@ -3184,7 +3222,7 @@ impl CircuitData {
     pub fn add_global_phase(&mut self, value: &Param) -> Result<(), CircuitDataError> {
         match value {
             Param::Obj(_) => Err(CircuitDataError::InvalidGlobalPhaseType),
-            _ => self.set_global_phase(add_global_phase(&self.global_phase, value)),
+            _ => self.set_global_phase_param(add_global_phase(&self.global_phase, value)),
         }
     }
 
@@ -3232,7 +3270,7 @@ impl CircuitData {
             _ => {}
         }
 
-        let var_idx = self.vars.add(var, true)?;
+        let var_idx = self.vars.add(var)?;
         match var_type {
             CircuitVarType::Input => &mut self.vars_input,
             CircuitVarType::Capture => &mut self.vars_capture,
@@ -3306,7 +3344,7 @@ impl CircuitData {
             }
         }
 
-        let stretch_idx = self.stretches.add(stretch, true)?;
+        let stretch_idx = self.stretches.add(stretch)?;
         match stretch_type {
             CircuitStretchType::Capture => &mut self.stretches_capture,
             CircuitStretchType::Declare => &mut self.stretches_declare,

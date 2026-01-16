@@ -708,7 +708,7 @@ fn run_on_circuitdata(
                     output_circuit.global_phase().clone(),
                     synthesized_circuit.global_phase().clone(),
                 );
-                output_circuit.set_global_phase(updated_global_phase)?;
+                output_circuit.set_global_phase_param(updated_global_phase)?;
             }
         }
     }
@@ -740,8 +740,8 @@ fn extract_definition(op: &PackedOperation, params: &[Param]) -> PyResult<Option
                 [2, 2] => {
                     let [theta, phi, lam, phase] =
                         angles_from_unitary(unitary.view(), EulerBasis::U);
-                    let mut circuit_data: CircuitData =
-                        CircuitData::with_capacity(1, 0, 1, Param::Float(phase))?;
+                    let mut circuit_data = CircuitData::with_capacity(1, 0, 1);
+                    circuit_data.set_global_phase_f64(phase);
                     circuit_data.push_standard_gate(
                         StandardGate::U,
                         &[Param::Float(theta), Param::Float(phi), Param::Float(lam)],

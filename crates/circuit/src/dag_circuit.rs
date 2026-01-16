@@ -849,22 +849,22 @@ impl DAGCircuit {
         let binding = dict_state.get_item("qubits")?.unwrap();
         let qubits_raw = binding.extract::<Vec<ShareableQubit>>()?;
         for bit in qubits_raw.into_iter() {
-            self.qubits.add(bit, false)?;
+            self.qubits.add(bit)?;
         }
         let binding = dict_state.get_item("clbits")?.unwrap();
         let clbits_raw = binding.extract::<Vec<ShareableClbit>>()?;
         for bit in clbits_raw.into_iter() {
-            self.clbits.add(bit, false)?;
+            self.clbits.add(bit)?;
         }
         let binding = dict_state.get_item("vars")?.unwrap();
         let vars_raw = binding.cast::<PyList>()?;
         for v in vars_raw.iter() {
-            self.vars.add(v.extract()?, false)?;
+            self.vars.add(v.extract()?)?;
         }
         let binding = dict_state.get_item("stretches")?.unwrap();
         let stretches_raw = binding.cast::<PyList>()?;
         for s in stretches_raw.iter() {
-            self.stretches.add(s.extract()?, false)?;
+            self.stretches.add(s.extract()?)?;
         }
         let binding = dict_state.get_item("qubit_io_map")?.unwrap();
         let qubit_index_map_raw = binding.cast::<PyDict>().unwrap();
@@ -1076,12 +1076,10 @@ impl DAGCircuit {
     ///
     /// Args:
     ///     angle (float, :class:`.ParameterExpression`): The phase angle.
-    #[setter]
-    pub fn set_global_phase(&mut self, angle: Param) -> PyResult<()> {
+    #[setter(global_phase)]
+    pub fn set_global_phase_param(&mut self, angle: Param) -> PyResult<()> {
         match angle {
-            Param::Float(angle) => {
-                self.global_phase = Param::Float(angle.rem_euclid(2. * PI));
-            }
+            Param::Float(angle) => self.set_global_phase_f64(angle),
             Param::ParameterExpression(angle) => {
                 self.global_phase = Param::ParameterExpression(angle);
             }
@@ -5354,9 +5352,7 @@ impl DAGCircuit {
         let mut registry = ObjectRegistry::with_capacity(num_qubits as usize);
         let mut locator = BitLocator::with_capacity(num_qubits as usize);
         for (index, bit) in register.iter().enumerate() {
-            registry
-                .add(bit.clone(), false)
-                .expect("no duplicates, and in-bounds check already performed");
+            registry.add_unique_within_capacity(bit.clone());
             locator.insert(
                 bit,
                 BitLocations::new(index as u32, [(register.clone(), index)]),
@@ -6484,6 +6480,14 @@ impl DAGCircuit {
         Ok((in_node, out_node))
     }
 
+    /// Set the global phase to a float value.
+    ///
+    /// Unlike the general [set_global_phase_param], this is infallible.
+    #[inline]
+    pub fn set_global_phase_f64(&mut self, angle: f64) {
+        self.global_phase = Param::Float(angle.rem_euclid(::std::f64::consts::TAU));
+    }
+
     /// Get the nodes on the given wire.
     ///
     /// Note: result is empty if the wire is not in the DAG.
@@ -6524,7 +6528,7 @@ impl DAGCircuit {
     }
 
     pub fn add_qubit_unchecked(&mut self, bit: ShareableQubit) -> PyResult<Qubit> {
-        let qubit = self.qubits.add(bit.clone(), false)?;
+        let qubit = self.qubits.add_unique_within_capacity(bit.clone());
         self.qubit_locations
             .insert(bit, BitLocations::new((self.qubits.len() - 1) as u32, []));
         self.add_wire(Wire::Qubit(qubit))?;
@@ -6532,7 +6536,7 @@ impl DAGCircuit {
     }
 
     pub fn add_clbit_unchecked(&mut self, bit: ShareableClbit) -> PyResult<Clbit> {
-        let clbit = self.clbits.add(bit.clone(), false)?;
+        let clbit = self.clbits.add_unique_within_capacity(bit.clone());
         self.clbit_locations
             .insert(bit, BitLocations::new((self.clbits.len() - 1) as u32, []));
         self.add_wire(Wire::Clbit(clbit))?;
@@ -7284,7 +7288,7 @@ impl DAGCircuit {
             _ => {}
         }
 
-        let var_idx = self.vars.add(var, true)?;
+        let var_idx = self.vars.add(var)?;
         let (in_index, out_index) = self.add_wire(Wire::Var(var_idx))?;
         match type_ {
             DAGVarType::Input => &mut self.vars_input,
@@ -7330,7 +7334,7 @@ impl DAGCircuit {
             _ => {}
         }
 
-        let stretch_idx = self.stretches.add(stretch, true)?;
+        let stretch_idx = self.stretches.add(stretch)?;
         match type_ {
             DAGStretchType::Capture => {
                 self.stretches_capture.insert(stretch_idx);
@@ -7590,7 +7594,7 @@ impl DAGCircuit {
                     "Invalid parameter type, only float and parameter expression are supported",
                 ));
             }
-            _ => self.set_global_phase(add_global_phase(&self.global_phase, value))?,
+            _ => self.set_global_phase_param(add_global_phase(&self.global_phase, value))?,
         }
         Ok(())
     }

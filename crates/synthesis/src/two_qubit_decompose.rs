@@ -1166,7 +1166,7 @@ impl TwoQubitWeylDecomposition {
         let mut target_1q_basis_list = EulerBasisSet::new();
         target_1q_basis_list.add_basis(euler_basis);
 
-        let mut gate_sequence = CircuitData::with_capacity(2, 0, 21, Param::Float(0.))?;
+        let mut gate_sequence = CircuitData::with_capacity(2, 0, 21);
         let mut global_phase: f64 = self.global_phase;
 
         let c2r = unitary_to_gate_sequence_inner(
@@ -1242,7 +1242,7 @@ impl TwoQubitWeylDecomposition {
                 &[Qubit(1)],
             )?;
         }
-        gate_sequence.set_global_phase(Param::Float(global_phase))?;
+        gate_sequence.set_global_phase_f64(global_phase);
         Ok(gate_sequence)
     }
 }
@@ -2223,7 +2223,7 @@ impl TwoQubitBasisDecomposer {
         let sequence =
             self.generate_sequence(unitary, basis_fidelity, approximate, _num_basis_uses)?;
         let mut dag = DAGCircuit::with_capacity(2, 0, None, Some(sequence.gates.len()), None, None);
-        dag.set_global_phase(Param::Float(sequence.global_phase))?;
+        dag.set_global_phase_f64(sequence.global_phase);
         dag.add_qubit_unchecked(ShareableQubit::new_anonymous())?;
         dag.add_qubit_unchecked(ShareableQubit::new_anonymous())?;
         let mut builder = dag.into_builder();

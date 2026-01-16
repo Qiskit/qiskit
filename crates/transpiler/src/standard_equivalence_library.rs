@@ -44,8 +44,8 @@ fn cnot_rxx_decompose(plus_ry: bool, plus_rxx: bool) -> PyResult<CircuitData> {
         true => 1.0,
         false => -1.0,
     };
-    let mut circuit =
-        CircuitData::with_capacity(2, 0, 5, (-sgn_ry * sgn_rxx * PI / 4.0).into()).unwrap();
+    let mut circuit = CircuitData::with_capacity(2, 0, 5);
+    circuit.set_global_phase_f64(-sgn_ry * sgn_rxx * PI / 4.0);
 
     circuit.push_standard_gate(
         StandardGate::RY,
@@ -85,8 +85,10 @@ fn create_standard_equivalence<P>(
 where
     P: Into<Param>,
 {
-    let mut circuit =
-        CircuitData::with_capacity(0, 0, eq_instructions.len(), eq_global_phase.into()).unwrap();
+    let mut circuit = CircuitData::with_capacity(0, 0, eq_instructions.len());
+    circuit
+        .set_global_phase_param(eq_global_phase.into())
+        .expect("phase should be valid type, and cannot cause name conflict with an empty circuit");
     let qreg = QuantumRegister::new_owning("q", gate.num_qubits());
     circuit.add_qreg(qreg, true).unwrap();
     for (operation, qargs, eq_params) in eq_instructions {
