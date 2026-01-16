@@ -24,6 +24,8 @@ pub fn generator_observable(gate: StandardGate) -> Option<SparseObservable> {
     };
 
     // For now assume a single-qubit generator acting on 1 qubit.
+    // TODO: Once we're satisfied with the pipeline (LightCone pass works for large numbers of qubits
+    // and ASV benchmarks show we are not slower), we should add all other standard gates here.
     let num_qubits = 1;
 
     // One coefficient per term, all +1 for now.
