@@ -274,9 +274,9 @@ pub enum OperationRef<'a> {
     ControlFlow(&'a ControlFlowInstruction),
     StandardGate(StandardGate),
     StandardInstruction(StandardInstruction),
-    Gate(&'a PyGate),
+    Gate(&'a PyInstruction),
     Instruction(&'a PyInstruction),
-    Operation(&'a PyOperation),
+    Operation(&'a PyInstruction),
     Unitary(&'a UnitaryGate),
     PauliProductMeasurement(&'a PauliProductMeasurement),
 }
@@ -2946,6 +2946,14 @@ pub trait PythonOperation: Sized {
     fn py_copy(&self, py: Python) -> PyResult<Self>;
 }
 
+#[derive(Clone, Debug)]
+#[repr(align(8))]
+pub enum PyOperationTypes {
+    Operation(PyInstruction),
+    Instruction(PyInstruction),
+    Gate(PyInstruction),
+}
+
 /// This class is used to wrap a Python side Instruction that is not in the standard library
 #[derive(Clone, Debug)]
 // We bit-pack pointers to this, so having a known alignment even on 32-bit systems is good.
@@ -3010,78 +3018,9 @@ impl Operation for PyInstruction {
 }
 
 impl PyInstruction {
-    pub fn definition(&self) -> Option<CircuitData> {
-        Python::attach(|py| -> Option<CircuitData> {
-            match self.instruction.getattr(py, intern!(py, "definition")) {
-                Ok(definition) => definition
-                    .getattr(py, intern!(py, "_data"))
-                    .ok()?
-                    .extract::<CircuitData>(py)
-                    .ok(),
-                Err(_) => None,
-            }
-        })
-    }
-}
-
-/// This class is used to wrap a Python side Gate that is not in the standard library
-#[derive(Clone, Debug)]
-// We bit-pack pointers to this, so having a known alignment even on 32-bit systems is good.
-#[repr(align(8))]
-pub struct PyGate {
-    pub qubits: u32,
-    pub clbits: u32,
-    pub params: u32,
-    pub op_name: String,
-    pub gate: Py<PyAny>,
-}
-
-impl PythonOperation for PyGate {
-    fn py_deepcopy(&self, py: Python, memo: Option<&Bound<'_, PyDict>>) -> PyResult<Self> {
-        let deepcopy = imports::DEEPCOPY.get_bound(py);
-        Ok(PyGate {
-            gate: deepcopy.call1((&self.gate, memo))?.unbind(),
-            qubits: self.qubits,
-            clbits: self.clbits,
-            params: self.params,
-            op_name: self.op_name.clone(),
-        })
-    }
-
-    fn py_copy(&self, py: Python) -> PyResult<Self> {
-        let copy_attr = intern!(py, "copy");
-        Ok(PyGate {
-            gate: self.gate.call_method0(py, copy_attr)?,
-            qubits: self.qubits,
-            clbits: self.clbits,
-            params: self.params,
-            op_name: self.op_name.clone(),
-        })
-    }
-}
-
-impl Operation for PyGate {
-    fn name(&self) -> &str {
-        self.op_name.as_str()
-    }
-    fn num_qubits(&self) -> u32 {
-        self.qubits
-    }
-    fn num_clbits(&self) -> u32 {
-        self.clbits
-    }
-    fn num_params(&self) -> u32 {
-        self.params
-    }
-    fn directive(&self) -> bool {
-        false
-    }
-}
-
-impl PyGate {
     pub fn matrix(&self) -> Option<Array2<Complex64>> {
         Python::attach(|py| -> Option<Array2<Complex64>> {
-            match self.gate.getattr(py, intern!(py, "to_matrix")) {
+            match self.instruction.getattr(py, intern!(py, "to_matrix")) {
                 Ok(to_matrix) => {
                     let res: Option<Py<PyAny>> = to_matrix.call0(py).ok()?.extract(py).ok();
                     match res {
@@ -3099,7 +3038,7 @@ impl PyGate {
 
     pub fn definition(&self) -> Option<CircuitData> {
         Python::attach(|py| -> Option<CircuitData> {
-            match self.gate.getattr(py, intern!(py, "definition")) {
+            match self.instruction.getattr(py, intern!(py, "definition")) {
                 Ok(definition) => definition
                     .getattr(py, intern!(py, "_data"))
                     .ok()?
@@ -3116,75 +3055,13 @@ impl PyGate {
         }
         Python::attach(|py| -> Option<[[Complex64; 2]; 2]> {
             let array = self
-                .gate
+                .instruction
                 .call_method0(py, intern!(py, "to_matrix"))
                 .ok()?
                 .extract::<PyReadonlyArray2<Complex64>>(py)
                 .ok()?;
             let arr = array.as_array();
             Some([[arr[[0, 0]], arr[[0, 1]]], [arr[[1, 0]], arr[[1, 1]]]])
-        })
-    }
-}
-
-/// This class is used to wrap a Python side Operation that is not in the standard library
-#[derive(Clone, Debug)]
-// We bit-pack pointers to this, so having a known alignment even on 32-bit systems is good.
-#[repr(align(8))]
-pub struct PyOperation {
-    pub qubits: u32,
-    pub clbits: u32,
-    pub params: u32,
-    pub op_name: String,
-    pub operation: Py<PyAny>,
-}
-
-impl PythonOperation for PyOperation {
-    fn py_deepcopy(&self, py: Python, memo: Option<&Bound<'_, PyDict>>) -> PyResult<Self> {
-        let deepcopy = imports::DEEPCOPY.get_bound(py);
-        Ok(PyOperation {
-            operation: deepcopy.call1((&self.operation, memo))?.unbind(),
-            qubits: self.qubits,
-            clbits: self.clbits,
-            params: self.params,
-            op_name: self.op_name.clone(),
-        })
-    }
-
-    fn py_copy(&self, py: Python) -> PyResult<Self> {
-        let copy_attr = intern!(py, "copy");
-        Ok(PyOperation {
-            operation: self.operation.call_method0(py, copy_attr)?,
-            qubits: self.qubits,
-            clbits: self.clbits,
-            params: self.params,
-            op_name: self.op_name.clone(),
-        })
-    }
-}
-
-impl Operation for PyOperation {
-    fn name(&self) -> &str {
-        self.op_name.as_str()
-    }
-    fn num_qubits(&self) -> u32 {
-        self.qubits
-    }
-    fn num_clbits(&self) -> u32 {
-        self.clbits
-    }
-    fn num_params(&self) -> u32 {
-        self.params
-    }
-    fn directive(&self) -> bool {
-        Python::attach(|py| -> bool {
-            match self.operation.getattr(py, intern!(py, "_directive")) {
-                Ok(directive) => {
-                    let res: bool = directive.extract(py).unwrap();
-                    res
-                }
-                Err(_) => false,
-            }
         })
     }
 }

@@ -186,9 +186,9 @@ pub fn create_py_op(
         OperationRef::StandardInstruction(instruction) => {
             instruction.create_py_op(py, params.map(|p| p.unwrap_params()), label)
         }
-        OperationRef::Gate(gate) => Ok(gate.gate.clone_ref(py)),
+        OperationRef::Gate(gate) => Ok(gate.instruction.clone_ref(py)),
         OperationRef::Instruction(instruction) => Ok(instruction.instruction.clone_ref(py)),
-        OperationRef::Operation(operation) => Ok(operation.operation.clone_ref(py)),
+        OperationRef::Operation(operation) => Ok(operation.instruction.clone_ref(py)),
         OperationRef::Unitary(unitary) => unitary.create_py_op(py, label),
     }
 }

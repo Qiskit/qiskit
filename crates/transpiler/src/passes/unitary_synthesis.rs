@@ -33,7 +33,9 @@ use pyo3::wrap_pyfunction;
 use qiskit_circuit::bit::QuantumRegister;
 use qiskit_circuit::dag_circuit::{DAGCircuit, DAGCircuitBuilder, NodeType};
 use qiskit_circuit::instruction::{Instruction, Parameters};
-use qiskit_circuit::operations::{Operation, OperationRef, Param, PythonOperation, StandardGate};
+use qiskit_circuit::operations::{
+    Operation, OperationRef, Param, PyOperationTypes, PythonOperation, StandardGate,
+};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::{BlocksMode, Qubit, VarsMode, imports};
 
@@ -282,8 +284,8 @@ fn apply_synth_sequence(
         let new_op: PackedOperation = match packed_op.view() {
             OperationRef::Gate(gate) => Python::attach(|py| -> PyResult<PackedOperation> {
                 let new_gate = gate.py_copy(py)?;
-                new_gate.gate.setattr(py, "params", params)?;
-                Ok(Box::new(new_gate).into())
+                new_gate.instruction.setattr(py, "params", params)?;
+                Ok(Box::new(PyOperationTypes::Gate(new_gate)).into())
             })?,
             OperationRef::StandardGate(_) => packed_op.clone(),
             _ => {
