@@ -113,6 +113,8 @@ impl NormalOperation {
 }
 
 impl Instruction for NormalOperation {
+    type Block = CircuitData;
+
     fn op(&self) -> OperationRef<'_> {
         self.operation.view()
     }
@@ -156,10 +158,10 @@ impl<'a, 'py> IntoPyObject<'py> for &'a NormalOperation {
 }
 
 impl<'a, 'py> FromPyObject<'a, 'py> for NormalOperation {
-    type Error = <OperationFromPython as FromPyObject<'a, 'py>>::Error;
+    type Error = <OperationFromPython<CircuitData> as FromPyObject<'a, 'py>>::Error;
 
     fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
-        let operation: OperationFromPython = ob.extract()?;
+        let operation: OperationFromPython<CircuitData> = ob.extract()?;
         Ok(Self {
             operation: operation.operation,
             params: operation.params,

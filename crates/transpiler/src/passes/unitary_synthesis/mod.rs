@@ -269,7 +269,7 @@ pub fn run_unitary_synthesis(
     let mut out = dag
         .copy_empty_like(VarsMode::Alike, BlocksMode::Drop)?
         .into_builder();
-    for node in dag.topological_op_nodes(false)? {
+    for node in dag.topological_op_nodes(false) {
         let inst = dag[node].unwrap_operation();
         let Some(cf) = dag.try_view_control_flow(inst) else {
             // Handle regular instructions - this path is where we end up most of the time.

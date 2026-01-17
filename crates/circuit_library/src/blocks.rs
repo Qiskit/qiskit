@@ -15,6 +15,7 @@ use pyo3::{
     types::{PyList, PyTuple},
 };
 use qiskit_circuit::{
+    NoBlocks,
     circuit_instruction::OperationFromPython,
     operations::{Operation, Param, StandardGate},
     packed_instruction::PackedOperation,
@@ -47,7 +48,7 @@ impl BlockOperation {
                 let job = builder.call1(py, (py_params,))?;
                 let result = job.cast_bound::<PyTuple>(py)?;
 
-                let operation: OperationFromPython = result.get_item(0)?.extract()?;
+                let operation: OperationFromPython<NoBlocks> = result.get_item(0)?.extract()?;
                 let bound_params = result
                     .get_item(1)?
                     .try_iter()?

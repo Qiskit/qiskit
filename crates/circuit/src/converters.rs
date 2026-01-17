@@ -10,14 +10,16 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use pyo3::exceptions::PyValueError;
 use pyo3::intern;
 use pyo3::prelude::*;
 
 use crate::bit::{ShareableClbit, ShareableQubit};
-use crate::circuit_data::{CircuitData, CircuitVar};
+use crate::circuit_data::{CircuitData, CircuitDataError, CircuitVar};
 use crate::dag_circuit::DAGIdentifierInfo;
 use crate::dag_circuit::{DAGCircuit, NodeType};
 use crate::operations::{OperationRef, PythonOperation};
+use crate::{Clbit, Qubit};
 
 /// An extractable representation of a QuantumCircuit reserved only for
 /// conversion purposes.
@@ -50,11 +52,62 @@ pub fn circuit_to_dag(
     qubit_order: Option<Vec<ShareableQubit>>,
     clbit_order: Option<Vec<ShareableClbit>>,
 ) -> PyResult<DAGCircuit> {
-    DAGCircuit::from_circuit(quantum_circuit, copy_operations, qubit_order, clbit_order)
+    // Convert ShareableQubit/ShareableClbit to internal indices
+    let qubit_indices = qubit_order
+        .as_ref()
+        .map(|qubits| {
+            qubits
+                .iter()
+                .map(|shareable_qubit| {
+                    quantum_circuit
+                        .data
+                        .qubits()
+                        .find(shareable_qubit)
+                        .ok_or_else(|| {
+                            PyValueError::new_err(format!(
+                                "Qubit {:?} not found in circuit",
+                                shareable_qubit
+                            ))
+                        })
+                })
+                .collect::<PyResult<Vec<Qubit>>>()
+        })
+        .transpose()?;
+
+    let clbit_indices = clbit_order
+        .as_ref()
+        .map(|clbits| {
+            clbits
+                .iter()
+                .map(|shareable_clbit| {
+                    quantum_circuit
+                        .data
+                        .clbits()
+                        .find(shareable_clbit)
+                        .ok_or_else(|| {
+                            PyValueError::new_err(format!(
+                                "Clbit {:?} not found in circuit",
+                                shareable_clbit
+                            ))
+                        })
+                })
+                .collect::<PyResult<Vec<Clbit>>>()
+        })
+        .transpose()?;
+
+    DAGCircuit::from_circuit(
+        quantum_circuit,
+        copy_operations,
+        qubit_indices,
+        clbit_indices,
+    )
 }
 
 #[pyfunction(signature = (dag, copy_operations = true))]
-pub fn dag_to_circuit(dag: &DAGCircuit, copy_operations: bool) -> PyResult<CircuitData> {
+pub fn dag_to_circuit(
+    dag: &DAGCircuit,
+    copy_operations: bool,
+) -> Result<CircuitData, CircuitDataError> {
     let blocks = dag
         .blocks()
         .try_map_without_references(|block| dag_to_circuit(block, copy_operations))?;
@@ -68,7 +121,7 @@ pub fn dag_to_circuit(dag: &DAGCircuit, copy_operations: bool) -> PyResult<Circu
         dag.cregs_data().clone(),
         dag.qubit_locations().clone(),
         dag.clbit_locations().clone(),
-        dag.topological_op_nodes(false)?.map(|node_index| {
+        dag.topological_op_nodes(false).map(|node_index| {
             let NodeType::Operation(ref instr) = dag[node_index] else {
                 unreachable!(
                     "The received node from topological_op_nodes() is not an Operation node."
