@@ -37,18 +37,16 @@ to select the decomposition that maximizes the expected fidelity.
 Clifford+T basis sets
 ---------------------
 
-When the target basis is Clifford+T, the plugin uses the Solovay-Kitaev algorithm (see
-:class:`.SolovayKitaevDecomposition`) to approximate 1-qubit unitaries. The
-settings used to create basic approximations are ``basis_gates=["h", "t", "tdg"]``,
-``depth=12`` and ``recursion_degree=5``, and were chosen empirically to balance
-approximation quality with computational cost. To use Solovay-Kitaev with custom parameters,
-or to avoid recomputing approximations for multiple circuits, you can invoke
-:class:`.SolovayKitaevSynthesis` unitary synthesis plugin instead of this default plugin.
+When the target basis is Clifford+T, the plugin uses the Ross-Selinger
+``gridsynth`` algorithm (see :func:`.gridsynth_unitary`) to approximate 1-qubit
+unitaries with an error tolerance of ``1e-10``. To tune the tolerance or pass
+custom configuration, use the :class:`.RossSelingerSynthesis` unitary synthesis
+plugin (``unitary_synthesis_method="gridsynth"``) instead of this default plugin.
 
 At present, Qiskit does not include algorithms for approximating 2+ qubit unitaries
 directly in the Clifford+T basis set. Therefore, the preset pass manager first decomposes
-such gates into ``["cx", "u"]`` basis, and then applies Solovay-Kitaev to the resulting
-1-qubit unitary gates.
+such gates into ``["cx", "u"]`` basis, and then applies the Ross-Selinger synthesis to the
+resulting 1-qubit unitary gates.
 
 .. autosummary::
    :toctree: ../stubs/

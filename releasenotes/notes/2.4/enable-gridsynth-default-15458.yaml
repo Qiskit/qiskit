@@ -1,0 +1,8 @@
+---
+features_transpiler:
+  - |
+    The built-in ``default`` unitary synthesis plugin now uses the Ross-Selinger
+    ``gridsynth`` algorithm for Clifford+T single-qubit synthesis with a default
+    tolerance of ``1e-10``. This replaces the Solovay-Kitaev routine to improve
+    performance and gate counts. Custom tolerances remain available via
+    ``unitary_synthesis_method="gridsynth"`` and ``unitary_synthesis_plugin_config``.
