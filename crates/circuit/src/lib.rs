@@ -43,7 +43,7 @@ pub mod vf2;
 mod variable_mapper;
 
 use pyo3::PyTypeInfo;
-use pyo3::exceptions::PyValueError;
+use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PySequence, PyString, PyTuple};
 
@@ -204,6 +204,16 @@ impl<'a, 'py> FromPyObject<'a, 'py> for VarsMode {
 pub enum BlocksMode {
     Drop,
     Keep,
+}
+
+/// Simple error type for objects with built-in hard-coded capacity limits.
+#[derive(Clone, Copy, Debug, thiserror::Error)]
+#[error("exceeded allowed runtime capacity")]
+pub struct CapacityError;
+impl From<CapacityError> for PyErr {
+    fn from(val: CapacityError) -> PyErr {
+        PyRuntimeError::new_err(val.to_string())
+    }
 }
 
 #[inline]
