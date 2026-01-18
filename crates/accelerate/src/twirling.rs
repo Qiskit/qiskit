@@ -30,7 +30,9 @@ use qiskit_circuit::operations::StandardGate::{I, X, Y, Z};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::{BlocksMode, NoBlocks, VarsMode};
-use qiskit_transpiler::passes::run_optimize_1q_gates_decomposition;
+use qiskit_transpiler::passes::{
+    Optimize1qGatesDecompositionState, run_optimize_1q_gates_decomposition,
+};
 use qiskit_transpiler::target::Target;
 use rand::prelude::*;
 use rand_pcg::Pcg64Mcg;
@@ -294,9 +296,12 @@ fn generate_twirled_circuit(
             }
         }
     }
-    if optimizer_target.is_some() {
+    if let Some(optimizer_target) = optimizer_target {
         let mut dag = DAGCircuit::from_circuit_data(&out_circ, false, None, None, None, None)?;
-        run_optimize_1q_gates_decomposition(&mut dag, optimizer_target, None, None)?;
+        let state = Optimize1qGatesDecompositionState::new(
+            optimizer_target.num_qubits.unwrap_or(0) as usize,
+        );
+        run_optimize_1q_gates_decomposition(&mut dag, &state, Some(optimizer_target), None, None)?;
         Ok(dag_to_circuit(&dag, false)?)
     } else {
         Ok(out_circ)
