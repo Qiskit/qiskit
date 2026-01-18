@@ -50,6 +50,13 @@ enum PackedOperationType {
     PauliProductMeasurement = 6,
     ControlFlow = 7,
 }
+impl PackedOperationType {
+    /// Get `self` as a mask that can be used as a discriminant for `PackedOperation` pointers.
+    #[inline]
+    fn as_ptr_mask(self) -> usize {
+        (self as u8).into()
+    }
+}
 
 unsafe impl ::bytemuck::CheckedBitPattern for PackedOperationType {
     type Bits = u8;
@@ -59,6 +66,85 @@ unsafe impl ::bytemuck::CheckedBitPattern for PackedOperationType {
     }
 }
 unsafe impl ::bytemuck::NoUninit for PackedOperationType {}
+
+#[cfg(target_pointer_width = "64")]
+mod inner {
+    use std::ptr;
+
+    #[derive(Clone, Copy, Debug)]
+    #[repr(transparent)]
+    pub struct PackedOperationInner(*mut ());
+    impl PackedOperationInner {
+        #[inline]
+        pub fn as_ptr(self) -> *mut () {
+            self.0
+        }
+        #[inline]
+        pub fn as_u64(self) -> u64 {
+            self.0
+                .addr()
+                .try_into()
+                .expect("usize is 64 bits on this platform")
+        }
+        #[inline]
+        pub fn from_ptr(ptr: *mut ()) -> Self {
+            Self(ptr)
+        }
+        #[inline]
+        pub fn from_u64(val: u64) -> Self {
+            Self(ptr::without_provenance_mut(
+                val.try_into().expect("usize is 64 bits"),
+            ))
+        }
+    }
+}
+#[cfg(target_pointer_width = "32")]
+mod inner {
+    use std::ptr;
+
+    #[derive(Debug)]
+    pub struct PackedOperationInner {
+        pad: u32,
+        ptr: *mut (),
+    }
+    impl PackedOperationInner {
+        #[inline]
+        pub fn as_ptr(self) -> *mut () {
+            self.ptr
+        }
+        #[inline]
+        pub fn as_u64(self) -> u64 {
+            (u64::from(self.0) << 32) | u64::try_from(self.ptr).expect("usize is 32 bits")
+        }
+        #[inline]
+        pub fn from_ptr(ptr: *mut ()) -> Self {
+            Self { pad: 0, ptr }
+        }
+        #[inline]
+        pub fn from_u64(val: u64) -> Self {
+            Self {
+                pad: val >> 32,
+                // Rust numeric casting rules guarantee truncation to the least-significant bits.
+                // https://doc.rust-lang.org/reference/expressions/operator-expr.html#r-expr.as.numeric.int-truncation
+                ptr: ptr::without_provenance_mut(val as usize),
+            }
+        }
+    }
+}
+#[cfg(not(any(target_pointer_width = "32", target_pointer_width = "64")))]
+compile_error! { "Qiskit only supports 32- and 64-bit pointer widths." }
+
+use inner::*;
+impl From<u64> for PackedOperationInner {
+    fn from(val: u64) -> Self {
+        Self::from_u64(val)
+    }
+}
+impl From<*mut ()> for PackedOperationInner {
+    fn from(val: *mut ()) -> Self {
+        Self::from_ptr(val)
+    }
+}
 
 /// A bit-packed `OperationType` enumeration.
 ///
@@ -77,14 +163,17 @@ unsafe impl ::bytemuck::NoUninit for PackedOperationType {}
 /// }
 /// ```
 ///
-/// including all ownership semantics, except it bit-packs the enumeration into a `u64`.
+/// including all ownership semantics, except it bit-packs the enumeration into 64 bits.
 ///
-/// The lowest three bits of this `u64` is always the discriminant and identifies which of the
-/// above variants the field contains (and thus the layout required to decode it).
-/// This works even for pointer variants (like `PyGate`) on 64-bit systems, which would normally
-/// span the entire `u64`, since pointers on these systems have a natural alignment of 8 (and thus
-/// their lowest three bits are always 0). This lets us store the discriminant within the address
-/// and mask it out before reinterpreting it as a pointer.
+/// The inner [PackedOperationInner] is guaranteed to be 64 bits, regardless of the pointer width of
+/// the platform, but we implement it with a pointer stored explicitly internally so that we can
+/// verify the provenance of our pointers through Miri.
+///
+/// The least-significant three bits is always the discriminant and identifies which of the above
+/// variants the field contains (and thus the layout required to decode it).  This works even for
+/// pointer variants (like `PyGate`) on 64-bit systems, which are naturally 64 bits themselves,
+/// because we use `#[repr(align(8))]` on everything that can go into a `PackedOperation`, so we
+/// guarantee that the least-significant three bits carry no information (they're always 0).
 ///
 /// The layouts for each variant are described as follows, written out as a 64-bit binary integer.
 /// `x` marks padding bits with undefined values.
@@ -137,7 +226,15 @@ unsafe impl ::bytemuck::NoUninit for PackedOperationType {}
 /// * `PackedOperation` must take care to forward implementations of `Clone` and `Drop` to the
 ///   contained pointer.
 #[derive(Debug)]
-pub struct PackedOperation(u64);
+#[repr(transparent)]
+pub struct PackedOperation(PackedOperationInner);
+
+/// SAFETY: `PackedOperation` behaves like either an in-place `T` or `Box<T>` with respect to
+/// mutability and ownership semantics, and we require that everything that can be packed into a
+/// `PackedOperation` is both Send and Sync (the pointer variants via trait bounds on
+/// `PackablePointer`).
+unsafe impl Send for PackedOperation {}
+unsafe impl Sync for PackedOperation {}
 
 /// A private module to encapsulate the encoding of [StandardGate].
 mod standard_gate {
@@ -165,7 +262,8 @@ mod standard_gate {
                 StandardGateBits::new()
                     .with_discriminant(bytemuck::cast(PackedOperationType::StandardGate))
                     .with_standard_gate(bytemuck::cast(value))
-                    .into_bits(),
+                    .into_bits()
+                    .into(),
             )
         }
     }
@@ -176,7 +274,7 @@ mod standard_gate {
         fn try_from(value: &PackedOperation) -> Result<Self, Self::Error> {
             match value.discriminant() {
                 PackedOperationType::StandardGate => {
-                    let bits = StandardGateBits::from(value.0);
+                    let bits = StandardGateBits::from(value.0.as_u64());
                     Ok(bytemuck::checked::cast(bits.standard_gate()))
                 }
                 _ => Err("not a standard gate!"),
@@ -227,7 +325,8 @@ mod standard_instruction {
                     StandardInstruction::Reset => packed
                         .with_standard_instruction(bytemuck::cast(StandardInstructionType::Reset)),
                 }
-                .into_bits(),
+                .into_bits()
+                .into(),
             )
         }
     }
@@ -238,7 +337,7 @@ mod standard_instruction {
         fn try_from(value: &PackedOperation) -> Result<Self, Self::Error> {
             match value.discriminant() {
                 PackedOperationType::StandardInstruction => {
-                    let bits = StandardInstructionBits::from_bits(value.0);
+                    let bits = StandardInstructionBits::from_bits(value.0.as_u64());
                     let ty: StandardInstructionType =
                         bytemuck::checked::cast(bits.standard_instruction());
                     Ok(match ty {
@@ -267,13 +366,11 @@ mod pointer {
     use crate::packed_instruction::{PackedOperation, PackedOperationType};
     use std::ptr::NonNull;
 
-    const POINTER_MASK: u64 = !PackedOperation::DISCRIMINANT_MASK;
-
     /// Used to associate a supported pointer type (e.g. PyGate) with a [PackedOperationType] and
     /// a drop implementation.
     ///
     /// Note: this is public only within this file for use by [PackedOperation]'s [Drop] impl.
-    pub trait PackablePointer: Sized {
+    pub trait PackablePointer: Sized + Send + Sync {
         const OPERATION_TYPE: PackedOperationType;
 
         /// Drops `op` as this pointer type.
@@ -288,22 +385,25 @@ mod pointer {
             // SAFETY: `PackedOperation` asserts ownership over its contents, and the contained
             // pointer can only be null if we were already dropped.  We set our discriminant to mark
             // ourselves as plain old data immediately just as a defensive measure.
-            let boxed = unsafe { Box::from_raw(pointer.as_ptr()) };
-            op.0 = PackedOperationType::StandardGate as u64;
-            ::std::mem::drop(boxed);
+            _ = unsafe { Box::from_raw(pointer.as_ptr()) };
+
+            // Clear out the last reference to the pointer.
+            op.0 = (PackedOperationType::StandardGate as u64).into();
         }
     }
 
     #[inline]
     fn try_pointer<T: PackablePointer>(value: &PackedOperation) -> Option<NonNull<T>> {
-        if value.discriminant() == T::OPERATION_TYPE {
-            let ptr = (value.0 & POINTER_MASK) as *mut ();
+        (value.discriminant() == T::OPERATION_TYPE).then(|| {
+            let ptr = value
+                .0
+                .as_ptr()
+                .map_addr(|addr| addr & !PackedOperation::DISCRIMINANT_MASK)
+                .cast::<T>();
             // SAFETY: `PackedOperation` can only be constructed from a pointer via `Box`, which
             // is always non-null (except in the case that we're partway through a `Drop`).
-            Some(unsafe { NonNull::new_unchecked(ptr) }.cast::<T>())
-        } else {
-            None
-        }
+            unsafe { NonNull::new_unchecked(ptr) }
+        })
     }
 
     macro_rules! impl_packable_pointer {
@@ -332,11 +432,11 @@ mod pointer {
 
             impl From<Box<$type>> for PackedOperation {
                 fn from(value: Box<$type>) -> Self {
-                    let discriminant = $operation_type as u64;
-                    let ptr = NonNull::from(Box::leak(value)).cast::<()>();
-                    let addr = ptr.as_ptr() as u64;
-                    assert!((addr & PackedOperation::DISCRIMINANT_MASK == 0));
-                    Self(discriminant | addr)
+                    let ptr = Box::into_raw(value).cast::<()>().map_addr(|addr| {
+                        debug_assert_eq!(addr & PackedOperation::DISCRIMINANT_MASK, 0);
+                        addr | $operation_type.as_ptr_mask()
+                    });
+                    Self(ptr.into())
                 }
             }
         };
@@ -354,11 +454,11 @@ mod pointer {
 }
 
 impl PackedOperation {
-    const DISCRIMINANT_MASK: u64 = 0b111;
+    const DISCRIMINANT_MASK: usize = 0b111;
 
     #[inline]
     fn discriminant(&self) -> PackedOperationType {
-        bytemuck::checked::cast((self.0 & Self::DISCRIMINANT_MASK) as u8)
+        bytemuck::checked::cast((self.0.as_ptr().addr() & Self::DISCRIMINANT_MASK) as u8)
     }
 
     /// Get the contained `ControlFlowInstruction`, if any.
