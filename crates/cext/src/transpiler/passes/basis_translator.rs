@@ -12,7 +12,6 @@
 
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_transpiler::passes::run_basis_translator;
 use qiskit_transpiler::standard_equivalence_library::generate_standard_equivalence_library;
@@ -81,6 +80,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_basis_translator(
             Ok(None) => return,
             Err(e) => panic!("{}", e),
         };
-    let result_circ = dag_to_circuit(&result_dag, false).expect("DAG to Circuit conversion failed");
+    let result_circ =
+        CircuitData::from_dag_ref(&result_dag).expect("DAG to Circuit conversion failed");
     *circ_from_ptr = result_circ;
 }
