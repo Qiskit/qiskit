@@ -2361,6 +2361,7 @@ impl DAGCircuit {
                                                         .metadata
                                                         .as_ref()
                                                         .map(|m| m.bind(py).clone()),
+                                                    transpile_layout: None,
                                                 },
                                                 false,
                                                 None,
@@ -2389,6 +2390,7 @@ impl DAGCircuit {
                                                         .metadata
                                                         .as_ref()
                                                         .map(|m| m.bind(py).clone()),
+                                                    transpile_layout: None,
                                                 },
                                                 false,
                                                 None,

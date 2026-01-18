@@ -28,6 +28,7 @@ pub struct QuantumCircuitData<'py> {
     pub data: CircuitData,
     pub name: Option<String>,
     pub metadata: Option<Bound<'py, PyAny>>,
+    pub transpile_layout: Option<Bound<'py, PyAny>>,
 }
 
 impl<'a, 'py> FromPyObject<'a, 'py> for QuantumCircuitData<'py> {
@@ -35,12 +36,14 @@ impl<'a, 'py> FromPyObject<'a, 'py> for QuantumCircuitData<'py> {
 
     fn extract(ob: Borrowed<'a, 'py, PyAny>) -> PyResult<Self> {
         let py = ob.py();
+        ob.getattr("data")?; // in case _data is lazily generated in python
         let circuit_data = ob.getattr("_data")?;
         let data_borrowed = circuit_data.extract::<CircuitData>()?;
         Ok(QuantumCircuitData {
             data: data_borrowed,
             name: ob.getattr(intern!(py, "name"))?.extract()?,
             metadata: ob.getattr(intern!(py, "metadata")).ok(),
+            transpile_layout: ob.getattr(intern!(py, "layout")).ok(),
         })
     }
 }

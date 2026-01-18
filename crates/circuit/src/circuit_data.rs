@@ -1709,6 +1709,15 @@ impl CircuitData {
         self.vars_declare.len()
     }
 
+    /// Return the total number of identifiers in the circuit (vars + stretches)
+    pub fn num_identifiers(&self) -> usize {
+        self.num_input_vars()
+            + self.num_captured_vars()
+            + self.num_declared_vars()
+            + self.num_captured_stretches()
+            + self.num_declared_stretches()
+    }
+
     /// Add a captured stretch to the circuit.
     ///
     /// Args:
@@ -1894,7 +1903,7 @@ impl CircuitData {
     /// and condition will not be propagated back.
     ///
     /// The provided `instr` MUST belong to this circuit.
-    fn unpack_py_op(&self, py: Python, instr: &PackedInstruction) -> PyResult<Py<PyAny>> {
+    pub fn unpack_py_op(&self, py: Python, instr: &PackedInstruction) -> PyResult<Py<PyAny>> {
         // `OnceLock::get_or_init` and the non-stabilised `get_or_try_init`, which would otherwise
         // be nice here are both non-reentrant.  This is a problem if the init yields control to the
         // Python interpreter as this one does, since that can allow CPython to freeze the thread
@@ -1960,7 +1969,7 @@ impl CircuitData {
     ///
     /// The inverse of this is [unpack_blocks_to_circuit_parameters].  The version for when you can
     /// take the blocks directly is [take_parameter_blocks].
-    fn extract_blocks_from_circuit_parameters(
+    pub fn extract_blocks_from_circuit_parameters(
         &mut self,
         params: Option<&Parameters<CircuitData>>,
     ) -> Option<Box<Parameters<Block>>> {
@@ -1972,7 +1981,7 @@ impl CircuitData {
     /// space.
     ///
     /// The inverse of this method is [extract_blocks_from_circuit_parameters].
-    fn unpack_blocks_to_circuit_parameters(
+    pub fn unpack_blocks_to_circuit_parameters(
         &self,
         params: Option<&Parameters<Block>>,
     ) -> Option<Parameters<CircuitData>> {
@@ -2544,7 +2553,7 @@ impl CircuitData {
         Ok(())
     }
 
-    fn pack(&mut self, py: Python, inst: &CircuitInstruction) -> PyResult<PackedInstruction> {
+    pub fn pack(&mut self, py: Python, inst: &CircuitInstruction) -> PyResult<PackedInstruction> {
         let qubits = self.qargs_interner.insert_owned(
             self.qubits
                 .map_objects(inst.qubits.extract::<Vec<ShareableQubit>>(py)?.into_iter())?
@@ -2712,6 +2721,16 @@ impl CircuitData {
         self.cregs.registers()
     }
 
+    /// Returns the index of the qubit in the circuit
+    pub fn qubit_index(&self, qubit: &ShareableQubit) -> Option<u32> {
+        self.qubits.find(qubit).map(|qubit| qubit.0)
+    }
+
+    /// Returns the index of the clbit in the circuit
+    pub fn clbit_index(&self, clbit: &ShareableClbit) -> Option<u32> {
+        self.clbits.find(clbit).map(|clbit| clbit.0)
+    }
+
     /// Returns an immutable view of the [QuantumRegister] data struct in the circuit.
     #[inline(always)]
     pub fn qregs_data(&self) -> &RegisterData<QuantumRegister> {
@@ -2751,6 +2770,10 @@ impl CircuitData {
         self.cargs_interner().get(index)
     }
 
+    /// Insert cargs into the interner and return the interned value
+    pub fn add_cargs(&mut self, clbits: &[Clbit]) -> Interned<[Clbit]> {
+        self.cargs_interner.insert(clbits)
+    }
     /// Internal method for assigning parameters.
     ///
     /// Note that currently if any [ParameterUse] identifies a basic block,
