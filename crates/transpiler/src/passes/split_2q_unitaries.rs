@@ -101,7 +101,7 @@ pub fn run_split_2q_unitaries(
     let mut mapping: Vec<usize> = (0..dag.num_qubits()).collect();
     let new_dag = dag.copy_empty_like(VarsMode::Alike, BlocksMode::Keep)?;
     let mut new_dag = new_dag.into_builder();
-    for node in dag.topological_op_nodes(false)? {
+    for node in dag.topological_op_nodes(false) {
         let NodeType::Operation(inst) = &dag.dag()[node] else {
             unreachable!("Op nodes contain a non-operation");
         };

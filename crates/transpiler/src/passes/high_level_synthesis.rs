@@ -708,7 +708,7 @@ fn run_on_circuitdata(
                     output_circuit.global_phase().clone(),
                     synthesized_circuit.global_phase().clone(),
                 );
-                output_circuit.set_global_phase(updated_global_phase)?;
+                output_circuit.set_global_phase_param(updated_global_phase)?;
             }
         }
     }

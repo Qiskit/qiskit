@@ -344,9 +344,7 @@ fn apply_translation(
             )
         })?;
     let mut out_dag_builder = out_dag.into_builder();
-    for node in dag.topological_op_nodes(false).map_err(|_| {
-        BasisTranslatorError::BasisDAGCircuitError("Error retrieving Op nodes from DAG".to_string())
-    })? {
+    for node in dag.topological_op_nodes(false) {
         let node_obj = dag[node].unwrap_operation();
         let node_qarg = dag.get_qargs(node_obj.qubits);
         let node_carg = dag.get_cargs(node_obj.clbits);
@@ -505,12 +503,8 @@ fn replace_node(
             target_dag: format!("{:?}", target_dag),
         });
     }
-    if node.params_view().is_empty() {
-        for inner_index in target_dag.topological_op_nodes(false).map_err(|_| {
-            BasisTranslatorError::BasisDAGCircuitError(
-                "Error retrieving Op nodes from DAG".to_string(),
-            )
-        })? {
+    if params_view.is_empty() {
+        for inner_index in target_dag.topological_op_nodes(false) {
             let inner_node = &target_dag[inner_index].unwrap_operation();
             let old_qargs = dag.qargs_interner().get(node.qubits);
             let old_cargs = dag.cargs_interner().get(node.clbits);
@@ -578,11 +572,7 @@ fn replace_node(
                     _ => None,
                 }),
         );
-        for inner_index in target_dag.topological_op_nodes(false).map_err(|_| {
-            BasisTranslatorError::BasisDAGCircuitError(
-                "Error retrieving Op nodes from DAG".to_string(),
-            )
-        })? {
+        for inner_index in target_dag.topological_op_nodes(false) {
             let inner_node = &target_dag[inner_index].unwrap_operation();
             let old_qargs = dag.qargs_interner().get(node.qubits);
             let old_cargs = dag.cargs_interner().get(node.clbits);
