@@ -1329,7 +1329,7 @@ pub(crate) fn unpack_circuit(
         )?,
         binrw::Endian::Big,
     )?;
-    qpy_data.circuit_data.set_global_phase(global_phase)?;
+    qpy_data.circuit_data.set_global_phase_param(global_phase)?;
     add_standalone_vars(packed_circuit, &mut qpy_data)?;
     add_registers_and_bits(packed_circuit, &mut qpy_data)?;
     let custom_instructions = read_custom_instructions(py, packed_circuit, &mut qpy_data)?;
