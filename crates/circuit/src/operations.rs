@@ -93,6 +93,13 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Param {
 }
 
 impl Param {
+    /// Get the float value, if one is stored.
+    pub fn try_float(&self) -> Option<f64> {
+        match self {
+            Self::Float(f) => Some(*f),
+            _ => None,
+        }
+    }
     pub fn eq(&self, other: &Param) -> PyResult<bool> {
         match [self, other] {
             [Self::Float(a), Self::Float(b)] => Ok(a == b),
