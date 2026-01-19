@@ -273,7 +273,8 @@ impl CircuitInstruction {
     pub fn is_control_flow(&self) -> bool {
         let control_flow_op = self.operation.try_control_flow();
         if let Some(control_flow) = control_flow_op {
-            !matches!(control_flow.control_flow, ControlFlow::BreakLoop) && !matches!(control_flow.control_flow, ControlFlow::ContinueLoop) 
+            !matches!(control_flow.control_flow, ControlFlow::BreakLoop)
+                && !matches!(control_flow.control_flow, ControlFlow::ContinueLoop)
         } else {
             false
         }
