@@ -3679,7 +3679,7 @@ impl PySparseObservable {
     ///
     /// Unlike a literal implementation via two full compositions, this method
     /// performs the conjugation directly at the single-qubit level using a fixed
-    /// lookup table for ``P^\dag Q P``.  This avoids materialising any intermediate
+    /// lookup table.  This avoids materializing any intermediate
     /// :class:`SparseObservable` and computes the evolved observable in a single
     /// pass over the terms.
     /// ``self`` and ``u`` must have the same number of qubits, unless ``qargs`` is given,
