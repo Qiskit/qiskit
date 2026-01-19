@@ -891,7 +891,7 @@ impl SparseObservable {
                     op.num_qubits, self.num_qubits
                 )));
             }
-            // Handle the zero-qubit scalar edge case separately (example, and Identity Operator).
+            // Handling the zero-qubit scalar edge case (Identity Operator evolution).
             if op.num_qubits == 0 {
                 let scalar = op.iter().next().unwrap().coeff;
                 return Ok(self * scalar);
@@ -923,10 +923,10 @@ impl SparseObservable {
                 }
             }
 
-            // Map operator bit terms to observable qubits via qargs
-            // qargs[i] specifies which observable qubit operator qubit i acts on
-            // Operator qubits are numbered 0 to (num_qubits - 1), where qubit 0 is the
-            // rightmost (least significant) qubit in the string representation
+            // This maps operator bit terms to observable qubits via qargs, considering
+            // qargs[i] specifies which observable qubit (at index i), the next operator qubit
+            // in consideration acts on.  Operator qubits are numbered 0 to (num_qubits - 1),
+            // where qubit 0 is considered, the rightmost (least significant) qubit.
             for (op_qubit, &self_qubit) in qargs.iter().enumerate() {
                 if let Some(bit_term_idx) = t.indices.iter().position(|&q| q as usize == op_qubit) {
                     layout[self_qubit as usize] = Some(t.bit_terms[bit_term_idx]);
@@ -3708,9 +3708,9 @@ impl PySparseObservable {
             )));
         };
 
-        let base = self.inner.read().map_err(|_| InnerReadError)?;
+        let base = self.as_inner()?;
         let u_inner = other.borrow();
-        let u_inner = u_inner.inner.read().map_err(|_| InnerReadError)?;
+        let u_inner = u_inner.as_inner()?;
 
         let qargs_vec = if let Some(qargs) = qargs {
             let vec = qargs
