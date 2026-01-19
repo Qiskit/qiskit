@@ -1,8 +1,20 @@
+// This code is part of Qiskit.
+//
+// (C) Copyright IBM 2025
+//
+// This code is licensed under the Apache License, Version 2.0. You may
+// obtain a copy of this license in the LICENSE.txt file in the root directory
+// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+//
+// Any modifications or derivative works of this code must retain this
+// copyright notice, and modified files need to carry a notice indicating
+// that they have been altered from the originals.
+
 use num_complex::Complex64;
 use qiskit_circuit::operations::{STANDARD_GATE_SIZE, StandardGate};
 
-use super::BitTerm;
-use super::SparseObservable;
+use qiskit_quantum_info::sparse_observable::BitTerm;
+use qiskit_quantum_info::sparse_observable::SparseObservable;
 
 /// Return an observable for the generator of `gate`, if we have one.
 ///

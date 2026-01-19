@@ -18,7 +18,7 @@ use num_complex::ComplexFloat;
 use qiskit_circuit::object_registry::PyObjectAsKey;
 use qiskit_quantum_info::sparse_observable::PySparseObservable;
 use qiskit_quantum_info::sparse_observable::SparseObservable;
-use qiskit_quantum_info::sparse_observable::generator_observable;
+use crate::standard_generators::generator_observable;
 use smallvec::SmallVec;
 use std::fmt::Debug;
 
