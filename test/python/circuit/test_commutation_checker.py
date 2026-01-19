@@ -592,7 +592,6 @@ class TestCommutationChecker(QiskitTestCase):
         evo_xz = PauliEvolutionGate(SparsePauliOp(["X", "Z"], [1.0, 1.0]), time=1.0)
         self.assertTrue(scc.commute(HGate(), [0], [], evo_xz, [0], []))
 
-
     def test_light_cone_index_out_of_bounds(self):
         """Test scanning a circuit with dispersed indices does not panic.
         See https://github.com/Qiskit/qiskit/issues/15021
@@ -601,13 +600,23 @@ class TestCommutationChecker(QiskitTestCase):
         qc.rx(np.pi / 3, range(0, qc.num_qubits))
         bit_terms = "ZZZZZZZZZ"
         indices = [0, 1, 2, 3, 4, 9, 10, 12, 13]
-        lightcone = LightCone(
-            bit_terms=bit_terms,
-            indices=indices,
+        pm = PassManager(
+            [
+                LightCone(
+                    bit_terms=bit_terms,
+                    indices=indices,
+                )
+            ]
         )
         # This should not raise a PanicException or IndexError
-        reduced_circ = lightcone(qc)
-        self.assertIsInstance(reduced_circ, QuantumCircuit)
+        reduced_circ = pm.run(qc)
+
+        expected_qc = QuantumCircuit(18)
+        # RX gates on the measured indices do not commute with Z, so they should remain.
+        # RX gates on other qubits commute with Identity (implied by observable), so they are removed.
+        expected_qc.rx(np.pi / 3, indices)
+
+        self.assertEqual(reduced_circ, expected_qc)
 
 def build_pauli_gate(pauli_string: str, gate_type: str) -> Gate:
     """Build a Pauli-based gate off a Pauli string.
@@ -637,4 +646,3 @@ def build_pauli_gate(pauli_string: str, gate_type: str) -> Gate:
 
 if __name__ == "__main__":
     unittest.main()
-

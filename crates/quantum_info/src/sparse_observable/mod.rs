@@ -11,6 +11,9 @@
 // that they have been altered from the originals.
 
 mod lookup;
+mod standard_generators;
+
+pub use standard_generators::generator_observable;
 
 use hashbrown::HashSet;
 use indexmap::IndexSet;
