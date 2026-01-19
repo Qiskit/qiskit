@@ -1,5 +1,5 @@
 use num_complex::Complex64;
-use qiskit_circuit::operations::{StandardGate, STANDARD_GATE_SIZE};
+use qiskit_circuit::operations::{STANDARD_GATE_SIZE, StandardGate};
 
 use super::BitTerm;
 use super::SparseObservable;
@@ -15,7 +15,7 @@ const TERMS_XZ: &[BitTerm] = &[BitTerm::X, BitTerm::Z];
 
 const fn build_generator_lut() -> [Option<&'static [BitTerm]>; STANDARD_GATE_SIZE] {
     let mut lut = [None; STANDARD_GATE_SIZE];
-    
+
     // X-like
     lut[StandardGate::X as usize] = Some(TERMS_X);
     lut[StandardGate::SX as usize] = Some(TERMS_X);
@@ -38,7 +38,7 @@ const fn build_generator_lut() -> [Option<&'static [BitTerm]>; STANDARD_GATE_SIZ
 
     // H
     lut[StandardGate::H as usize] = Some(TERMS_XZ);
-    
+
     lut
 }
 

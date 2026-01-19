@@ -516,7 +516,9 @@ impl CommutationChecker {
         // Handle commutations in between Pauli-based gates, like PauliGate or PauliEvolutionGate.
         // We only use this path if at least one of the gates is NOT a standard gate.
         // If both are standard gates, we fall through to use the existing matrix/library path.
-        if !matches!(op1, OperationRef::StandardGate(_)) || !matches!(op2, OperationRef::StandardGate(_)) {
+        if !matches!(op1, OperationRef::StandardGate(_))
+            || !matches!(op2, OperationRef::StandardGate(_))
+        {
             let size = qargs1.iter().chain(qargs2.iter()).max().unwrap().0 + 1;
             if let Some(obs1) = try_pauli_generator(op1, qargs1, size) {
                 if let Some(obs2) = try_pauli_generator(op2, qargs2, size) {

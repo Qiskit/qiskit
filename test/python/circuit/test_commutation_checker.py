@@ -618,6 +618,7 @@ class TestCommutationChecker(QiskitTestCase):
 
         self.assertEqual(reduced_circ, expected_qc)
 
+
 def build_pauli_gate(pauli_string: str, gate_type: str) -> Gate:
     """Build a Pauli-based gate off a Pauli string.
 
