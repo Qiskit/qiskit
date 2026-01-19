@@ -2347,7 +2347,7 @@ class TestSparseObservable(QiskitTestCase):
             q = SparseObservable.from_label(q_label)
 
             result = p.adjoint().compose(q).compose(p).simplify()
-            expected = q.evolve(p).simplify()
+            expected = q.evolve(p)
 
             # These could and should be replaced with :meth:`SparseObservable.matrix`
             # once relevant PR #15022 is merged.
