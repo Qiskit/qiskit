@@ -69,7 +69,7 @@ def _contract_control_flow(inst):
     # If a box, we still want the prior side-effect of contracting any internal control-flow
     # operations (optimisations are still valid _within_ a box), but we don't want to contract the
     # box itself.  If there's no idle qubits, we're also done here.
-    if not idle or inst.name in ["box", "break_loop", "continue_loop"]:
+    if not idle or inst.name == "box":
         return inst
 
     def contract(block):

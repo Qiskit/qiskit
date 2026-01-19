@@ -74,7 +74,6 @@ class TestContractIdleWiresInControlFlow(QiskitTestCase):
             expected.noop(2)
             with expected.if_test((0, True)):
                 expected.continue_loop()
-        print(expected)
         self.assertEqual(ContractIdleWiresInControlFlow()(qc), expected)
 
     def test_disparate_if_else_left_alone(self):
