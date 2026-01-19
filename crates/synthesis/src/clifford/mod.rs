@@ -41,7 +41,11 @@ fn synth_clifford_greedy(clifford: PyReadonlyArray2<bool>) -> PyResult<CircuitDa
         GreedyCliffordSynthesis::new(tableau.view()).map_err(QiskitError::new_err)?;
     let (num_qubits, clifford_gates) = greedy_synthesis.run().map_err(QiskitError::new_err)?;
 
-    CircuitData::from_standard_gates(num_qubits as u32, clifford_gates, Param::Float(0.0))
+    Ok(CircuitData::from_standard_gates(
+        num_qubits as u32,
+        clifford_gates,
+        Param::Float(0.0),
+    )?)
 }
 
 /// Generate a random Clifford tableau.
@@ -77,7 +81,11 @@ fn synth_clifford_bm(clifford: PyReadonlyArray2<bool>) -> PyResult<CircuitData> 
     let tableau = clifford.as_array();
     let (num_qubits, clifford_gates) =
         synth_clifford_bm_inner(tableau).map_err(QiskitError::new_err)?;
-    CircuitData::from_standard_gates(num_qubits as u32, clifford_gates, Param::Float(0.0))
+    Ok(CircuitData::from_standard_gates(
+        num_qubits as u32,
+        clifford_gates,
+        Param::Float(0.0),
+    )?)
 }
 
 pub fn clifford(m: &Bound<PyModule>) -> PyResult<()> {

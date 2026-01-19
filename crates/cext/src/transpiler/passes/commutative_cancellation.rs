@@ -109,8 +109,6 @@ mod tests {
         let mut qc = CircuitData::new(
             Some((0..2).map(|_| ShareableQubit::new_anonymous()).collect()),
             None,
-            None,
-            0,
             (0.).into(),
         )
         .unwrap();

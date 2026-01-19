@@ -65,6 +65,7 @@ pub struct Stretch(u32);
 pub struct Block(u32);
 
 pub use blocks::ControlFlowBlocks;
+pub use circuit_instruction::NoBlocks;
 pub use nlayout::PhysicalQubit;
 pub use nlayout::VirtualQubit;
 pub use packed_instruction::BlockMapper;

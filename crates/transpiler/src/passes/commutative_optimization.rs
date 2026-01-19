@@ -25,7 +25,7 @@ use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::operations::{
     Operation, OperationRef, Param, StandardGate, multiply_param, radd_param,
 };
-use qiskit_circuit::{BlocksMode, Clbit, Qubit, imports};
+use qiskit_circuit::{BlocksMode, Clbit, NoBlocks, Qubit, imports};
 
 use qiskit_circuit::VarsMode;
 use qiskit_circuit::packed_instruction::PackedInstruction;
@@ -322,7 +322,7 @@ fn try_merge(
                 if merge_result.is_none() {
                     Ok(None)
                 } else {
-                    let instr: OperationFromPython = merge_result.extract()?;
+                    let instr: OperationFromPython<NoBlocks> = merge_result.extract()?;
                     let merged_param = instr
                         .params
                         .expect("PauliEvolution gate contains a parameter")
@@ -412,7 +412,7 @@ pub fn run_commutative_optimization(
     // this does not happen right now).
     let mut new_dag = dag.copy_empty_like_with_same_capacity(VarsMode::Alike, BlocksMode::Keep)?;
 
-    let node_indices = dag.topological_op_nodes(false)?.collect::<Vec<_>>();
+    let node_indices = dag.topological_op_nodes(false).collect::<Vec<_>>();
     let num_nodes = node_indices.len();
 
     let mut node_actions: Vec<NodeAction> = vec![NodeAction::Keep; num_nodes];
@@ -506,7 +506,7 @@ pub fn run_commutative_optimization(
         return Ok(None);
     }
 
-    new_dag.set_global_phase(new_global_phase)?;
+    new_dag.set_global_phase_param(new_global_phase)?;
 
     for idx in 0..num_nodes {
         match &node_actions[idx] {
