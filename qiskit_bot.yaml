@@ -22,7 +22,6 @@ notifications:
     "visualization":
         - "@enavarro51"
     "^docs/":
-        - "@Eric-Arellano"
         - "@abbycross"
         - "@beckykd"
 always_notify: true

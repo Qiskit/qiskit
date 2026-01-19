@@ -2588,7 +2588,7 @@ impl PySparseTerm {
 #[derive(Debug)]
 pub struct PySparseObservable {
     // This class keeps a pointer to a pure Rust-SparseTerm and serves as interface from Python.
-    inner: Arc<RwLock<SparseObservable>>,
+    pub inner: Arc<RwLock<SparseObservable>>,
 }
 
 #[pymethods]
@@ -3672,7 +3672,7 @@ impl PySparseObservable {
     ///
     /// Unlike a literal implementation via two full compositions, this method
     /// performs the conjugation directly at the single-qubit level using a fixed
-    /// lookup table for ``P^\dag Q P``.  This avoids materialising any intermediate
+    /// lookup table.  This avoids materializing any intermediate
     /// :class:`SparseObservable` and computes the evolved observable in a single
     /// pass over the terms.
     /// ``self`` and ``other`` must have the same number of qubits, unless ``qargs`` is given,
