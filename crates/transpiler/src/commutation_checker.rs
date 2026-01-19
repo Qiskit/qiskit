@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use crate::standard_generators::generator_observable;
 use hashbrown::{HashMap, HashSet};
 use ndarray::Array2;
 use ndarray::linalg::kron;
@@ -18,7 +19,6 @@ use num_complex::ComplexFloat;
 use qiskit_circuit::object_registry::PyObjectAsKey;
 use qiskit_quantum_info::sparse_observable::PySparseObservable;
 use qiskit_quantum_info::sparse_observable::SparseObservable;
-use crate::standard_generators::generator_observable;
 use smallvec::SmallVec;
 use std::fmt::Debug;
 
