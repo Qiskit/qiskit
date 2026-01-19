@@ -101,7 +101,7 @@ pub fn run_litinski_transformation(
     let mut clifford_ops: Vec<&PackedInstruction> = Vec::with_capacity(clifford_count);
     // Apply the Litinski transformation: that is, express a given circuit as a sequence of Pauli
     // product rotations and Pauli product measurements, followed by a final Clifford operator.
-    for node_index in dag.topological_op_nodes(false)? {
+    for node_index in dag.topological_op_nodes(false) {
         // Convert T and Tdg gates to RZ rotations.
         if let NodeType::Operation(inst) = &dag[node_index] {
             let name = inst.op.name();

@@ -219,7 +219,7 @@ impl CircuitDataForSynthesis for CircuitData {
 
         let mut inverse_circuit =
             CircuitData::copy_empty_like(self, VarsMode::Alike, BlocksMode::Keep)?;
-        inverse_circuit.set_global_phase(inverse_global_phase)?;
+        inverse_circuit.set_global_phase_param(inverse_global_phase)?;
 
         let data = self.data();
 
