@@ -858,22 +858,17 @@ impl SparseObservable {
     /// Evolve this [SparseObservable] by another one.
     ///
     /// In terms of operator algebra, evolution corresponds to conjugation:
-    /// ``let b = a.evolve(u);`` corresponds to $B = U^\dag A U$.
+    /// ``let b = a.evolve(op);`` corresponds to $B = U^\dagger A U$.
     ///
     /// This implements Heisenberg-picture evolution of the observable.  Unlike a
     /// literal implementation via two full compositions, this method performs the
     /// conjugation directly at the single-qubit level using a fixed lookup table
-    /// for ``P^\dag Q P``.  This avoids materialising any intermediate
+    /// for $P^\dagger Q P$.  This avoids materialising any intermediate
     /// [SparseObservable] and computes the evolved observable in a single pass.
     ///
     /// Currently, this method supports evolution only by a *single-term* operator,
-    /// where each local factor is a Pauli or projector [BitTerm].  If `u` contains
-    /// more than one term, this function will panic.
-    ///
-    /// # Panics
-    ///
-    /// * If `self` and `u` have different numbers of qubits.
-    /// * If `u` contains more than one term.
+    /// where each local factor is a Pauli or projector [BitTerm]. Currently, if `op` contains
+    /// more than one term, this function will return an Error.
     pub fn evolve(
         &self,
         op: &SparseObservable,
@@ -886,6 +881,7 @@ impl SparseObservable {
         }
 
         let t = op.iter().next().unwrap();
+        let op_coeff = t.coeff;
         let mut layout = vec![None; self.num_qubits as usize];
 
         if let Some(qargs) = qargs {
@@ -927,14 +923,13 @@ impl SparseObservable {
                 }
             }
 
-            let mut op_map = vec![None; op.num_qubits as usize];
-            for (i, &q) in t.indices.iter().enumerate() {
-                op_map[q as usize] = Some(t.bit_terms[i]);
-            }
-
-            for (op_qubit_idx, &self_qubit) in qargs.iter().enumerate() {
-                if let Some(bt) = op_map.get(op_qubit_idx).and_then(|&x| x) {
-                    layout[self_qubit as usize] = Some(bt);
+            // Map operator bit terms to observable qubits via qargs
+            // qargs[i] specifies which observable qubit operator qubit i acts on
+            // Operator qubits are numbered 0 to (num_qubits - 1), where qubit 0 is the
+            // rightmost (least significant) qubit in the string representation
+            for (op_qubit, &self_qubit) in qargs.iter().enumerate() {
+                if let Some(bit_term_idx) = t.indices.iter().position(|&q| q as usize == op_qubit) {
+                    layout[self_qubit as usize] = Some(t.bit_terms[bit_term_idx]);
                 }
             }
         } else {
@@ -1002,7 +997,7 @@ impl SparseObservable {
                 if coeff == Complex64::new(0.0, 0.0) {
                     continue;
                 }
-                out.coeffs.push(coeff);
+                out.coeffs.push(coeff * op_coeff);
                 out.indices.extend(indices);
                 out.bit_terms.extend(bit_terms);
                 out.boundaries.push(out.indices.len());
@@ -3671,10 +3666,8 @@ impl PySparseObservable {
         }
     }
 
-    /// Evolve this :class:`SparseObservable` by another one.
-    ///
     /// In terms of operator algebra, evolution corresponds to conjugation:
-    /// ``b = a.evolve(u)`` corresponds to $B = U^\dag A U$.  This implements
+    /// ``b = a.evolve(u)`` corresponds to :math:`$B = U^\dag A U$`.  This implements
     /// Heisenberg-picture evolution of the observable.
     ///
     /// Unlike a literal implementation via two full compositions, this method
@@ -3682,38 +3675,41 @@ impl PySparseObservable {
     /// lookup table for ``P^\dag Q P``.  This avoids materialising any intermediate
     /// :class:`SparseObservable` and computes the evolved observable in a single
     /// pass over the terms.
-    /// ``self`` and ``u`` must have the same number of qubits, unless ``qargs`` is given,
-    /// in which case ``u`` can be smaller than ``self``, provided the number of qubits
-    /// in ``u`` and the length of ``qargs`` match. ``qargs`` specifies which qubits of
-    /// ``self`` are evolved by ``u``.
+    /// ``self`` and ``other`` must have the same number of qubits, unless ``qargs`` is given,
+    /// in which case ```other``` can be smaller than ``self``, provided the number of qubits
+    /// in ```other``` and the length of ``qargs`` match. ``qargs`` specifies which qubits of
+    /// ``self`` are evolved by ``other``.
     ///
     /// Currently, this method supports evolution only by a *single-term* operator.
-    /// Each local factor of ``u`` must be a Pauli or projector term.  Multi-term
+    /// Each local factor of ``other`` must be a Pauli or projector term.  Multi-term
     /// evolution operators are not supported.
     ///
     /// Args:
-    ///     u: the observable used to conjugate ``self``.
-    ///     qargs: if given, the qubits in ``self`` to be evolved by ``u``.
-    ///         The length must match the number of qubits in ``u``.
+    ///     other: the observable used to conjugate ``self``.
+    ///     qargs: if given, the qubits in ``self`` to be evolved by ``other``.
+    ///         The length must match the number of qubits in ``other``.
     ///
     /// Raises:
-    ///     ValueError: if ``self`` and ``u`` have different numbers of qubits (when ``qargs`` is not given).
-    ///     ValueError: if ``qargs`` length doesn't match ``u`` number of qubits.
+    ///     ValueError: if ``self`` and ``other`` have different numbers of qubits (when ``qargs`` is not given).
+    ///     ValueError: if ``qargs`` length doesn't match ``other`` number of qubits.
     ///     ValueError: if ``qargs`` contains duplicates or out-of-range indices.
-    ///     ValueError: if ``u`` contains more than one term.
-    #[pyo3(signature = (u, /, qargs=None))]
+    ///     ValueError: if ``other`` contains more than one term.
+    #[pyo3(signature = (other, /, qargs=None))]
     fn evolve<'py>(
         &self,
-        u: &Bound<'py, PyAny>,
+        other: &Bound<'py, PyAny>,
         qargs: Option<&Bound<'py, PyAny>>,
     ) -> PyResult<Bound<'py, PySparseObservable>> {
-        let py = u.py();
-        let Some(u) = coerce_to_observable(u)? else {
-            return Err(PyTypeError::new_err("invalid type for evolve"));
+        let py = other.py();
+        let Some(other) = coerce_to_observable(other)? else {
+            return Err(PyTypeError::new_err(format!(
+                "unknown type for evolve: {}",
+                other.get_type().repr()?
+            )));
         };
 
         let base = self.inner.read().map_err(|_| InnerReadError)?;
-        let u_inner = u.borrow();
+        let u_inner = other.borrow();
         let u_inner = u_inner.inner.read().map_err(|_| InnerReadError)?;
 
         let qargs_vec = if let Some(qargs) = qargs {
