@@ -76,7 +76,7 @@ impl ApproximationDegree {
     /// Does this represent approximate synthesis?
     #[inline]
     pub fn is_approximate(&self) -> bool {
-        self.0 != 1.0
+        *self != Self::EXACT
     }
 }
 // `impl Eq` is safe for this float-derived quantity because we only permit the range `[0.0, 1.0]`
