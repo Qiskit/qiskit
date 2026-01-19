@@ -14,12 +14,12 @@
 
 from typing import Optional
 
+from qiskit.circuit.instruction import Instruction
 from qiskit._accelerate.circuit import ControlFlowType
 from .builder import InstructionPlaceholder, InstructionResources
-from .control_flow import ControlFlowOp
 
 
-class ContinueLoopOp(ControlFlowOp):
+class ContinueLoopOp(Instruction):
     """A circuit operation which, when encountered, moves to the next iteration of the nearest
     enclosing loop.  Can only be used inside loops.
     """
