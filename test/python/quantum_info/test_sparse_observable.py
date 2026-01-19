@@ -2336,7 +2336,7 @@ class TestSparseObservable(QiskitTestCase):
             SparseObservable.identity(5).compose("XYZX", qargs=[0, 1, 1, 0])
 
     @ddt.idata(list(SparseObservable.BitTerm))
-    def test_projector_compose_single_qubit(self, term):
+    def test_projector_evolve_single_qubit(self, term):
         """
         Test that double conjugation of Q with P == Q evolved by P for
         single-qubit projectors P and all Q.
@@ -2360,7 +2360,7 @@ class TestSparseObservable(QiskitTestCase):
     def test_evolve_identity(self, term):
         """Test evolution by identity preserves all BitTerms."""
         obs = SparseObservable.from_label(term.label)
-        ident = SparseObservable.identity(1)
+        ident = Pauli("I")
         self.assertEqual(obs.evolve(ident), obs)
 
     # Multi-qubit tests
