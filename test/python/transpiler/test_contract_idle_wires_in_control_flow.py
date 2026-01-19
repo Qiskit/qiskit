@@ -50,7 +50,8 @@ class TestContractIdleWiresInControlFlow(QiskitTestCase):
         expected = QuantumCircuit(3, 1)
         with expected.while_loop((expected.clbits[0], False)):
             expected.cx(0, 1)
-            # currently keep the noop since the optimization currnently marks all qubits in break_loop's containing block as used
+            # keep the noop since the optimization currently
+            # marks all qubits in break_loop's containing block as used
             expected.noop(2)
             with expected.if_test((0, True)):
                 expected.break_loop()
@@ -68,11 +69,12 @@ class TestContractIdleWiresInControlFlow(QiskitTestCase):
         expected = QuantumCircuit(3, 1)
         with expected.while_loop((expected.clbits[0], False)):
             expected.cx(0, 1)
-            # currently keep the noop since the optimization currnently marks all qubits in continue_loop's containing block as used
+            # keep the noop since the optimization currently
+            # marks all qubits in continue_loop's containing block as used
             expected.noop(2)
             with expected.if_test((0, True)):
                 expected.continue_loop()
-
+        print(expected)
         self.assertEqual(ContractIdleWiresInControlFlow()(qc), expected)
 
     def test_disparate_if_else_left_alone(self):

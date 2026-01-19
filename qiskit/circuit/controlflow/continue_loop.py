@@ -35,15 +35,6 @@ class ContinueLoopOp(Instruction):
         """
         super().__init__("continue_loop", num_qubits, num_clbits, [], label=label)
 
-    @property
-    def blocks(self):
-        return ()
-
-    def replace_blocks(self, _):
-        return ContinueLoopOp(
-            num_qubits=self.num_qubits, num_clbits=self.num_clbits, label=self.label
-        )
-
 
 class ContinueLoopPlaceholder(InstructionPlaceholder):
     """A placeholder instruction for use in control-flow context managers, when the number of qubits
