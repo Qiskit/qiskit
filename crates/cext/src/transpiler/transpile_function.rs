@@ -15,7 +15,7 @@ use std::ffi::c_char;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_transpiler::commutation_checker::get_standard_commutation_checker;
-use qiskit_transpiler::passes::{SynthesisConfig, SynthesisState};
+use qiskit_transpiler::passes::{UnitarySynthesisConfig, UnitarySynthesisState};
 use qiskit_transpiler::standard_equivalence_library::generate_standard_equivalence_library;
 use qiskit_transpiler::target::Target;
 use qiskit_transpiler::transpile;
@@ -165,7 +165,7 @@ pub unsafe extern "C" fn qk_transpile_stage_init(
         }
         Some(options.approximation_degree)
     };
-    let mut synthesis_state = SynthesisState::new(SynthesisConfig {
+    let mut synthesis_state = UnitarySynthesisState::new(UnitarySynthesisConfig {
         approximation_degree,
         run_python_decomposers: false,
         ..Default::default()
@@ -406,7 +406,7 @@ pub unsafe extern "C" fn qk_transpile_stage_optimization(
         }
         Some(options.approximation_degree)
     };
-    let mut synthesis_state = SynthesisState::new(SynthesisConfig {
+    let mut synthesis_state = UnitarySynthesisState::new(UnitarySynthesisConfig {
         approximation_degree,
         run_python_decomposers: false,
         ..Default::default()
@@ -513,7 +513,7 @@ pub unsafe extern "C" fn qk_transpile_stage_translation(
         }
         Some(options.approximation_degree)
     };
-    let mut synthesis_state = SynthesisState::new(SynthesisConfig {
+    let mut synthesis_state = UnitarySynthesisState::new(UnitarySynthesisConfig {
         approximation_degree,
         run_python_decomposers: false,
         ..Default::default()

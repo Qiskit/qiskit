@@ -129,10 +129,10 @@ impl DecompositionDirection2q {
 ///
 /// This implements `Default`, which is a convenient constructor.
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct SynthesisConfig {
+pub struct UnitarySynthesisConfig {
     /// Whether to allow approximations (`Some`) or not (`None`).
     ///
-    /// If `Some`, the weight is a multiplicative mulitplier on fidelity, such that `1.0` means "use
+    /// If `Some`, the weight is a multiplicative multiplier on fidelity, such that `1.0` means "use
     /// the gate fidelity exactly" and `0.5` would mean "treat the gate as having half its natural
     /// fidelity", etc.
     pub approximation_degree: Option<f64>,
@@ -141,7 +141,7 @@ pub struct SynthesisConfig {
     /// Whether to allow use of Python-space decomposers.
     pub run_python_decomposers: bool,
 }
-impl Default for SynthesisConfig {
+impl Default for UnitarySynthesisConfig {
     fn default() -> Self {
         Self {
             approximation_degree: None,
@@ -154,12 +154,12 @@ impl Default for SynthesisConfig {
 
 /// State of a unitary synthesis run.
 #[derive(Clone, Debug, Default)]
-pub struct SynthesisState {
-    config: SynthesisConfig,
+pub struct UnitarySynthesisState {
+    config: UnitarySynthesisConfig,
     cache: DecomposerCache,
 }
-impl SynthesisState {
-    pub fn new(config: SynthesisConfig) -> Self {
+impl UnitarySynthesisState {
+    pub fn new(config: UnitarySynthesisConfig) -> Self {
         Self {
             config,
             cache: Default::default(),
@@ -240,14 +240,14 @@ pub fn run_unitary_synthesis(
     synth_gates: &HashSet<String>,
     min_qubits: usize,
     qubit_indices: &[PhysicalQubit],
-    state: &mut SynthesisState,
+    state: &mut UnitarySynthesisState,
     constraint: QpuConstraint,
 ) -> PyResult<DAGCircuit> {
     // This method is the actual distribution logic of unitary synthesis, but there are several
     // paths through it that return `Ok(false)`, meaning "no error and no synthesis needed", so the
     // caller is responsible for propagating the old instruction through to wherever is necessary.
     let synthesize_onto = |out: &mut DAGCircuitBuilder,
-                           state: &mut SynthesisState,
+                           state: &mut UnitarySynthesisState,
                            inst: &PackedInstruction|
      -> PyResult<bool> {
         if !(synth_gates.contains(inst.op.name()) && inst.op.num_qubits() >= min_qubits as u32) {
@@ -317,7 +317,7 @@ fn synthesize_matrix_onto(
     unitary: CowArray<Complex64, Ix2>,
     qubits_phys: &[PhysicalQubit],
     qubits_local: &[Qubit],
-    state: &mut SynthesisState,
+    state: &mut UnitarySynthesisState,
     constraint: QpuConstraint,
 ) -> PyResult<bool> {
     let num_qubits = qubits_local.len();
@@ -363,7 +363,7 @@ fn synthesize_1q_matrix_onto(
     unitary: ArrayView2<Complex64>,
     qubit_phys: PhysicalQubit,
     qubit_virt: Qubit,
-    state: &mut SynthesisState,
+    state: &mut UnitarySynthesisState,
     constraint: QpuConstraint,
 ) -> PyResult<bool> {
     // TODO: we possibly want to invert this logic and do Euler synthesis if possible, and SK only
@@ -426,7 +426,7 @@ fn synthesize_2q_matrix_onto(
     mut unitary: CowArray<Complex64, Ix2>,
     qargs_phys: [PhysicalQubit; 2],
     qargs_virt: [Qubit; 2],
-    state: &mut SynthesisState,
+    state: &mut UnitarySynthesisState,
     constraint: QpuConstraint,
 ) -> PyResult<bool> {
     let decomposer_cache = &mut state.cache;
@@ -597,7 +597,7 @@ pub fn py_unitary_synthesis(
     natural_direction: Option<bool>,
     pulse_optimize: Option<bool>,
 ) -> PyResult<DAGCircuit> {
-    let config = SynthesisConfig {
+    let config = UnitarySynthesisConfig {
         approximation_degree,
         use_pulse_optimizer: UsePulseOptimizer::from_py_pulse_optimize(pulse_optimize),
         decomposition_direction_2q: DecompositionDirection2q::from_py_natural_direction(
@@ -605,7 +605,7 @@ pub fn py_unitary_synthesis(
         ),
         run_python_decomposers: true,
     };
-    let mut state = SynthesisState::new(config);
+    let mut state = UnitarySynthesisState::new(config);
     let mut basis_gates_set: IndexSet<&str, ::ahash::RandomState>;
     let constraint = match target {
         Some(target) => QpuConstraint::Target(target),
@@ -641,7 +641,7 @@ pub fn py_synthesize_unitary_matrix(
     natural_direction: Option<bool>,
     pulse_optimize: Option<bool>,
 ) -> PyResult<DAGCircuit> {
-    let config = SynthesisConfig {
+    let config = UnitarySynthesisConfig {
         approximation_degree,
         use_pulse_optimizer: UsePulseOptimizer::from_py_pulse_optimize(pulse_optimize),
         decomposition_direction_2q: DecompositionDirection2q::from_py_natural_direction(
@@ -649,7 +649,7 @@ pub fn py_synthesize_unitary_matrix(
         ),
         run_python_decomposers: true,
     };
-    let mut state = SynthesisState::new(config);
+    let mut state = UnitarySynthesisState::new(config);
     let mut basis_gates_set: IndexSet<&str, ::ahash::RandomState>;
     let constraint = match target {
         Some(target) => QpuConstraint::Target(target),

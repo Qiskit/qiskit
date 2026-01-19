@@ -16,7 +16,9 @@ use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_transpiler::passes::{SynthesisConfig, SynthesisState, run_unitary_synthesis};
+use qiskit_transpiler::passes::{
+    UnitarySynthesisConfig, UnitarySynthesisState, run_unitary_synthesis,
+};
 use qiskit_transpiler::target::Target;
 
 /// @ingroup QkTranspilerPasses
@@ -86,7 +88,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_unitary_synthesis(
     let physical_qubits = (0..dag.num_qubits() as u32)
         .map(PhysicalQubit::new)
         .collect::<Vec<_>>();
-    let mut synthesis_state = SynthesisState::new(SynthesisConfig {
+    let mut synthesis_state = UnitarySynthesisState::new(UnitarySynthesisConfig {
         approximation_degree,
         run_python_decomposers: false,
         ..Default::default()

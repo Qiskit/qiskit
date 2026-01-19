@@ -35,7 +35,8 @@ use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict};
 
 use super::{
-    DecompositionDirection2q, QpuConstraint, QpuConstraintKind, SynthesisConfig, UsePulseOptimizer,
+    DecompositionDirection2q, QpuConstraint, QpuConstraintKind, UnitarySynthesisConfig,
+    UsePulseOptimizer,
 };
 use crate::QiskitError;
 use crate::passes::optimize_clifford_t::CLIFFORD_T_GATE_NAMES;
@@ -501,7 +502,7 @@ impl DecomposerCache {
     pub fn get_2q(
         &mut self,
         qubits: [PhysicalQubit; 2],
-        config: &SynthesisConfig,
+        config: &UnitarySynthesisConfig,
         constraint: QpuConstraint,
     ) -> PyResult<impl ExactSizeIterator<Item = (&Decomposer2q, FlipDirection)>> {
         // We can't use `Entry::or_insert_with` because our creator function is fallible and we
@@ -540,7 +541,7 @@ fn euler_bases_from_target(target: &Target, qubit: PhysicalQubit) -> EulerBasisS
 fn get_2q_decomposers(
     cache: &mut Decomposer2qCacheInner,
     qubits: [PhysicalQubit; 2],
-    config: &SynthesisConfig,
+    config: &UnitarySynthesisConfig,
     constraint: QpuConstraint,
 ) -> PyResult<Vec<(usize, FlipDirection)>> {
     let choose_flip =
@@ -762,7 +763,7 @@ fn get_xx_decomposers(
     cache: &mut Decomposer2qCacheInner,
     euler_bases: &EulerBasisSet,
     candidates: &[Candidate2q],
-    config: &SynthesisConfig,
+    config: &UnitarySynthesisConfig,
 ) -> PyResult<Vec<(usize, FlipDirection)>> {
     // This just involves collecting all gates that the XXDecomposer can use as an embodiment (i.e.
     // anything locally equivalent to a particular angle of some 2q Pauli rotation) and storing

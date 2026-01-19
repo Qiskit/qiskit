@@ -50,7 +50,7 @@ impl From<u8> for OptimizationLevel {
 fn unroll_3q_or_more(
     dag: &mut DAGCircuit,
     target: &Target,
-    synthesis_state: &mut SynthesisState,
+    synthesis_state: &mut UnitarySynthesisState,
 ) -> Result<()> {
     let physical_qubits = (0..target.num_qubits.unwrap_or(0))
         .map(PhysicalQubit::new)
@@ -73,7 +73,7 @@ pub fn init_stage(
     target: &Target,
     optimization_level: OptimizationLevel,
     approximation_degree: Option<f64>,
-    synthesis_state: &mut SynthesisState,
+    synthesis_state: &mut UnitarySynthesisState,
     transpile_layout: &mut TranspileLayout,
     commutation_checker: &mut CommutationChecker,
 ) -> Result<()> {
@@ -260,7 +260,7 @@ pub fn routing_stage(
 pub fn translation_stage(
     dag: &mut DAGCircuit,
     target: &Target,
-    synthesis_state: &mut SynthesisState,
+    synthesis_state: &mut UnitarySynthesisState,
     equiv_lib: &mut EquivalenceLibrary,
 ) -> Result<()> {
     let physical_qubits = (0..target.num_qubits.unwrap_or(0))
@@ -296,7 +296,7 @@ pub fn optimization_stage(
     target: &Target,
     optimization_level: OptimizationLevel,
     approximation_degree: Option<f64>,
-    synthesis_state: &mut SynthesisState,
+    synthesis_state: &mut UnitarySynthesisState,
     commutation_checker: &mut CommutationChecker,
     equivalence_library: &mut EquivalenceLibrary,
 ) -> Result<()> {
@@ -401,7 +401,7 @@ pub fn transpile(
     let mut commutation_checker = get_standard_commutation_checker();
     let mut equivalence_library = generate_standard_equivalence_library();
     let sabre_heuristic = get_sabre_heuristic(target)?;
-    let mut synthesis_state = SynthesisState::new(SynthesisConfig {
+    let mut synthesis_state = UnitarySynthesisState::new(UnitarySynthesisConfig {
         approximation_degree,
         run_python_decomposers: false,
         ..Default::default()
