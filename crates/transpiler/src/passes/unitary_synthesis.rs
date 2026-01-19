@@ -252,7 +252,7 @@ fn apply_synth_dag(
     out_qargs: &[Qubit],
     synth_dag: &DAGCircuit,
 ) -> PyResult<()> {
-    for out_node in synth_dag.topological_op_nodes(false)? {
+    for out_node in synth_dag.topological_op_nodes(false) {
         let mut out_packed_instr = synth_dag[out_node].unwrap_operation().clone();
         let synth_qargs = synth_dag.get_qargs(out_packed_instr.qubits);
         let mapped_qargs: Vec<Qubit> = synth_qargs
@@ -498,7 +498,7 @@ pub fn run_unitary_synthesis(
     let mut unitary_synthesis_cache = UnitarySynthesisCache::new();
 
     // Iterate over dag nodes and determine unitary synthesis approach
-    for node in dag.topological_op_nodes(false)? {
+    for node in dag.topological_op_nodes(false) {
         let packed_instr = dag[node].unwrap_operation();
         let packed_instr = if let Some(control_flow) = dag.try_view_control_flow(packed_instr) {
             let blocks = control_flow.blocks();
@@ -1191,7 +1191,7 @@ fn synth_su4_xx_decomposer(
         None => Ok(synth_dag),
         Some(preferred_dir) => {
             let mut synth_direction: Option<Vec<u32>> = None;
-            for node in synth_dag.topological_op_nodes(false)? {
+            for node in synth_dag.topological_op_nodes(false) {
                 let inst = &synth_dag[node].unwrap_operation();
                 if inst.op.num_qubits() == 2 {
                     let qargs = synth_dag.get_qargs(inst.qubits);
@@ -1263,7 +1263,7 @@ fn reversed_synth_su4_dag(
     let target_dag = synth_dag.copy_empty_like(VarsMode::Alike, BlocksMode::Keep)?;
     let flip_bits: [Qubit; 2] = [Qubit(1), Qubit(0)];
     let mut target_dag_builder = target_dag.into_builder();
-    for node in synth_dag.topological_op_nodes(false)? {
+    for node in synth_dag.topological_op_nodes(false) {
         let mut inst = synth_dag[node].unwrap_operation().clone();
         let qubits: Vec<Qubit> = synth_dag
             .qargs_interner()
@@ -1491,27 +1491,23 @@ fn run_2q_unitary_synthesis(
                         approximation_degree,
                         decomposer.packed_op.clone(),
                     )?;
-                    let scoring_info = synth_dag
-                        .topological_op_nodes(false)
-                        .expect("Unexpected error in dag.topological_op_nodes()")
-                        .map(|node| {
-                            let NodeType::Operation(inst) = &synth_dag[node] else {
-                                unreachable!("DAG node must be an instruction")
-                            };
-                            let params = inst.params_view();
-                            let inst_qubits = synth_dag
-                                .get_qargs(inst.qubits)
-                                .iter()
-                                .map(|q| ref_qubits[q.0 as usize])
-                                .collect();
-                            (
-                                inst.op.name().to_string(),
-                                (!params.is_empty()).then(|| {
-                                    params.iter().cloned().collect::<SmallVec<[Param; 3]>>()
-                                }),
-                                inst_qubits,
-                            )
-                        });
+                    let scoring_info = synth_dag.topological_op_nodes(false).map(|node| {
+                        let NodeType::Operation(inst) = &synth_dag[node] else {
+                            unreachable!("DAG node must be an instruction")
+                        };
+                        let params = inst.params_view();
+                        let inst_qubits = synth_dag
+                            .get_qargs(inst.qubits)
+                            .iter()
+                            .map(|q| ref_qubits[q.0 as usize])
+                            .collect();
+                        (
+                            inst.op.name().to_string(),
+                            (!params.is_empty())
+                                .then(|| params.iter().cloned().collect::<SmallVec<[Param; 3]>>()),
+                            inst_qubits,
+                        )
+                    });
                     let score = synth_error(scoring_info, target.unwrap());
                     synth_errors_dag.push((synth_dag, score));
                     Ok(())

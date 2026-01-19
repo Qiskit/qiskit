@@ -195,6 +195,8 @@ def dump(
             f"{common.QPY_COMPATIBILITY_VERSION} and {common.QPY_VERSION} for `qpy.dump`."
         )
 
+    use_rust = version >= common.QPY_RUST_MIN_VERSION
+
     version_match = VERSION_PATTERN_REGEX.search(__version__)
     version_parts = [int(x) for x in version_match.group("release").split(".")]
     encoding = type_keys.SymExprEncoding.assign(use_symengine)
@@ -217,9 +219,10 @@ def dump(
             out_stream,
             circuit,
             metadata_serializer=metadata_serializer,
-            use_symengine=use_symengine,
+            use_symengine=bool(use_symengine),
             version=version,
             annotation_factories=annotation_factories,
+            use_rust=use_rust,
         )
 
     if version >= 16:
@@ -355,6 +358,8 @@ def load(
             )
         )
 
+    use_rust = version >= common.QPY_RUST_MIN_VERSION
+
     config = user_config.get_config()
     min_qpy_version = config.get("min_qpy_version")
     if min_qpy_version is not None and data.qpy_version < min_qpy_version:
@@ -431,8 +436,9 @@ def load(
                 file_obj,
                 data.qpy_version,
                 metadata_deserializer=metadata_deserializer,
-                use_symengine=use_symengine,
+                use_symengine=bool(use_symengine),
                 annotation_factories=annotation_factories,
+                use_rust=use_rust,
             )
         )
     return programs
