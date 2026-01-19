@@ -2475,6 +2475,21 @@ class TestSparseObservable(QiskitTestCase):
 
         self.assertEqual(result, expected.simplify())
 
+    def test_evolve_pauli_object_with_qargs(self):
+        """Evolution using a Pauli object with qargs."""
+        obs = SparseObservable("XYZI")
+
+        # Pauli acts on qubits [0, 2]
+        pauli = Pauli("XZ")
+
+        result = obs.evolve(pauli, qargs=[0, 2])
+
+        # Z@0 by I -> I
+        # X@2 by Y -> -Y
+        expected = SparseObservable.from_list([("XYZI", -1.0)])
+
+        self.assertEqual(result, expected)
+
     def test_evolve_qargs_preserves_untouched_qubits(self):
         """Test qubits not in qargs are unchanged."""
         obs = SparseObservable.from_sparse_list(
