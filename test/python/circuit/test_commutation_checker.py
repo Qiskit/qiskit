@@ -601,16 +601,12 @@ class TestCommutationChecker(QiskitTestCase):
         qc.rx(np.pi / 3, range(0, qc.num_qubits))
         bit_terms = "ZZZZZZZZZ"
         indices = [0, 1, 2, 3, 4, 9, 10, 12, 13]
-        pm = PassManager(
-            [
-                LightCone(
-                    bit_terms=bit_terms,
-                    indices=indices,
-                )
-            ]
+        lightcone = LightCone(
+            bit_terms=bit_terms,
+            indices=indices,
         )
         # This should not raise a PanicException or IndexError
-        reduced_circ = pm.run(qc)
+        reduced_circ = lightcone(qc)
         self.assertIsInstance(reduced_circ, QuantumCircuit)
 
 def build_pauli_gate(pauli_string: str, gate_type: str) -> Gate:
