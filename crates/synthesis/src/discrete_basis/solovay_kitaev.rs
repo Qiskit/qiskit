@@ -33,6 +33,7 @@ use super::math::{self, group_commutator_decomposition};
 /// This generates the basic approximation set once as R-tree and re-uses it for
 /// each queried decomposition.
 #[pyclass]
+#[derive(Clone, Debug)]
 pub struct SolovayKitaevSynthesis {
     /// The set of basic approximations.
     basic_approximations: BasicApproximations,
