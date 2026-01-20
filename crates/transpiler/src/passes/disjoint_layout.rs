@@ -29,7 +29,7 @@ use crate::target::{Qargs, Target};
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::imports::ImportOnceCell;
-use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardInstruction};
+use qiskit_circuit::operations::{Operation, OperationRef, StandardInstruction};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{
     BlockMapper, BlocksMode, Clbit, PhysicalQubit, Qubit, VarsMode, VirtualQubit,
@@ -211,6 +211,30 @@ pub fn distribute_components(dag: &mut DAGCircuit, target: &Target) -> PyResult<
                 for creg in dag.cregs() {
                     out_dag.add_creg(creg.clone())?;
                 }
+
+                let qubits_indices: Vec<Qubit> = dag
+                    .qubits()
+                    .objects()
+                    .iter()
+                    .map(|qubit| {
+                        out_dag
+                            .qubits()
+                            .find(qubit)
+                            .expect("Qubit from dag not found in out_dag")
+                    })
+                    .collect();
+                let clbits_indices: Vec<Clbit> = dag
+                    .clbits()
+                    .objects()
+                    .iter()
+                    .map(|clbit| {
+                        out_dag
+                            .clbits()
+                            .find(clbit)
+                            .expect("Clbit from dag not found in out_dag")
+                    })
+                    .collect();
+
                 let block_map = dag
                     .blocks()
                     .items()
@@ -218,8 +242,8 @@ pub fn distribute_components(dag: &mut DAGCircuit, target: &Target) -> PyResult<
                     .collect();
                 out_dag.compose(
                     dag,
-                    Some(dag.qubits().objects()),
-                    Some(dag.clbits().objects()),
+                    Some(&qubits_indices),
+                    Some(&clbits_indices),
                     block_map,
                     false,
                 )?;
@@ -447,10 +471,10 @@ fn separate_dag(dag: &mut DAGCircuit) -> PyResult<Vec<DAGCircuit>> {
             let qubits_to_revmove: Vec<Qubit> = qubits.difference(&dag_qubits).copied().collect();
 
             new_dag.remove_qubits(qubits_to_revmove)?;
-            new_dag.set_global_phase(Param::Float(0.))?;
+            new_dag.set_global_phase_f64(0.);
             let old_qubits = dag.qubits();
             let mut block_map = BlockMapper::new();
-            for index in dag.topological_op_nodes(false)? {
+            for index in dag.topological_op_nodes(false) {
                 let node = dag[index].unwrap_operation();
                 let qargs: HashSet<Qubit> = dag.get_qargs(node.qubits).iter().copied().collect();
                 if dag_qubits.is_superset(&qargs) {
