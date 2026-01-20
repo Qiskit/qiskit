@@ -2335,18 +2335,20 @@ class TestSparseObservable(QiskitTestCase):
         with self.assertRaisesRegex(ValueError, "duplicate indices in qargs"):
             SparseObservable.identity(5).compose("XYZX", qargs=[0, 1, 1, 0])
 
-    @ddt.idata(list(SparseObservable.BitTerm))
-    def test_projector_evolve_single_qubit(self, term):
+    @ddt.data("X", "Y", "Z", "I")
+    def test_pauli_evolve_single_qubit(self, pauli_label):
         """
         Test that double conjugation of Q with P == Q evolved by P for
-        single-qubit projectors P and all Q.
+        single-qubit Pauli operators P and all Q.
         """
-        p = SparseObservable.from_label(term.label)
+        p = Pauli(pauli_label)
 
         for q_label in ["+", "-", "r", "l", "0", "1", "X", "Y", "Z"]:
             q = SparseObservable.from_label(q_label)
 
-            result = p.adjoint().compose(q).compose(p).simplify()
+            # Convert Pauli to SparseObservable for composition
+            p_obs = SparseObservable.from_label(pauli_label)
+            result = p_obs.adjoint().compose(q).compose(p_obs).simplify()
             expected = q.evolve(p)
 
             # These could and should be replaced with :meth:`SparseObservable.matrix`
@@ -2356,27 +2358,29 @@ class TestSparseObservable(QiskitTestCase):
 
             np.testing.assert_allclose(ma, mb, atol=1e-10, rtol=0)
 
-    @ddt.idata(SparseObservable.BitTerm)
-    def test_evolve_identity(self, term):
-        """Test evolution by identity preserves all BitTerms."""
-        obs = SparseObservable.from_label(term.label)
-        ident = Pauli("I")
-        self.assertEqual(obs.evolve(ident), obs)
-
     # Multi-qubit tests
     def test_evolve_multi_qubit_pauli(self):
-        """Test multi-qubit evolution."""
-        obs = SparseObservable("X+Zr01")
-        pauli = SparseObservable("ZXYl01")
-        expected = (
-            SparsePauliOp.from_sparse_observable(pauli)
-            .adjoint()
-            .compose(SparsePauliOp.from_sparse_observable(obs))
-            .compose(SparsePauliOp.from_sparse_observable(pauli))
-            .simplify()
-            .sort()
-        )
-        result = SparsePauliOp.from_sparse_observable(obs.evolve(pauli)).simplify().sort()
+        """Test multi-qubit evolution with mixed observable and all Pauli operators."""
+        obs = SparseObservable.from_list([("XY0I", 1.0), ("Z+rI", 0.5)])
+        pauli = Pauli("IXYZ")
+
+        # Expected result computed manually:
+        # "XY0I" evolved by "IXYZ":
+        #   I (qubit 0) by Z -> I
+        #   0 (qubit 1) by Y -> 1
+        #   Y (qubit 2) by X -> -Y
+        #   X (qubit 3) by I -> X
+        # Result: "XY1" with coeff 1.0
+        #
+        # "Z+rI" evolved by "IXYZ":
+        #   I (qubit 0) by Z -> I
+        #   r (qubit 1) by Y -> r
+        #   + (qubit 2) by X -> +
+        #   Z (qubit 3) by I -> Z
+        # Result: "Z+r" with coeff 0.5
+
+        expected = SparseObservable.from_list([("XY1I", -1.0), ("Z+rI", 0.5)])
+        result = obs.evolve(pauli)
         self.assertEqual(result, expected)
 
     def test_evolve_qargs_subset(self):
@@ -2399,12 +2403,12 @@ class TestSparseObservable(QiskitTestCase):
         expected = SparseObservable.from_sparse_list([("XYZ", (0, 2, 4), 1.0)], num_qubits=5)
         self.assertEqual(result.simplify(), expected.simplify())
 
-    def test_evolve_qargs_scalar_observable(self):
+    def test_evolve_qargs_pauli_with_coeff(self):
         """Test evolution with 0-qubit operator."""
         obs = SparseObservable("XYZ")
-        scalar = 2.0 * SparseObservable.identity(0)
-        result = obs.evolve(scalar, qargs=[])
-        expected = 2.0 * obs
+        scalar = -1j * Pauli("X")
+        result = obs.evolve(scalar, qargs=[1])
+        expected = 1j * obs
         self.assertEqual(result, expected)
 
     # qargs validation tests
@@ -2436,29 +2440,28 @@ class TestSparseObservable(QiskitTestCase):
             obs.evolve(pauli, qargs=[0, 0])
 
     # Error cases
-    def test_evolve_multiterm_fails(self):
-        """Test that multi-term evolution raises error."""
+    def test_evolve_type_error(self):
+        """Test that non-Pauli types raise TypeError."""
         obs = SparseObservable("XYZ")
-        multi = SparsePauliOp.from_list([("X", 1.0), ("Y", 1.0)])
-        with self.assertRaisesRegex(ValueError, "evolve only supports single-term operators"):
-            obs.evolve(multi)
-        # Also with qargs
-        with self.assertRaisesRegex(ValueError, "evolve only supports single-term operators"):
-            obs.evolve(multi, qargs=[0])
+
+        # Test with SparseObservable
+        with self.assertRaisesRegex(TypeError, "evolve only accepts Pauli instances"):
+            obs.evolve(SparseObservable("XYZ"))
+
+        # Test with SparsePauliOp
+        with self.assertRaisesRegex(TypeError, "evolve only accepts Pauli instances"):
+            obs.evolve(SparsePauliOp.from_list([("X", 1.0)]))
+
+        # Test with string
+        with self.assertRaisesRegex(TypeError, "evolve only accepts Pauli instances"):
+            obs.evolve("XYZ")
 
     def test_evolve_qubit_mismatch_no_qargs(self):
         """Test mismatched qubits fails without qargs."""
         obs = SparseObservable.identity(3)
-        pauli = SparseObservable.identity(5)
+        pauli = Pauli("IIIII")
         with self.assertRaisesRegex(ValueError, "mismatched numbers of qubits"):
             obs.evolve(pauli)
-
-    def test_evolve_coercion(self):
-        """Test evolve coerces string labels."""
-        obs = SparseObservable("XYZ")
-        result = obs.evolve("ZXY")
-        expected = obs.evolve(SparseObservable("ZXY"))
-        self.assertEqual(result, expected)
 
     # Complex scenarios
     def test_evolve_qargs_with_sums(self):
@@ -2506,36 +2509,6 @@ class TestSparseObservable(QiskitTestCase):
             [("XYZI", (0, 1, 2, 3), 1.0), ("01rl", (4, 5, 6, 7), 0.5)], num_qubits=8
         )
         self.assertEqual(result, expected)
-
-    def test_evolve_single_sparsepauliop(self):
-        """Evolution using a single-term SparsePauliOp."""
-        obs = SparseObservable("XYZ")
-        op = SparsePauliOp.from_list([("Z", 1.0)])
-
-        result = obs.evolve(op, qargs=[1])
-
-        # Y by Z -> -Y
-        expected = SparseObservable.from_list([("XYZ", -1.0)])
-
-        self.assertEqual(result.simplify(), expected.simplify())
-
-    def test_evolve_sparsepauliop_multiqubit_with_qargs(self):
-        """SparsePauliOp evolution on subset of qubits."""
-        obs = SparseObservable("XYZI")
-
-        op_a = SparsePauliOp.from_list([("YX", 1.0)])
-        op_b = SparsePauliOp.from_list([("ZX", 1.0)])
-        # X@0 by I -> I
-        # Y@2 by Y -> Y
-        result_a = obs.evolve(op_a, qargs=[0, 2])
-        # X@1 by Z -> -Z
-        # Z@3 by X -> -X
-        result_b = obs.evolve(op_b, qargs=[1, 3])
-        expected_a = SparseObservable.from_list([("XYZI", 1.0)])
-        expected_b = SparseObservable.from_list([("XYZI", 1.0)])
-
-        self.assertEqual(result_a, expected_a)
-        self.assertEqual(result_b, expected_b)
 
     @ddt.data(
         ("Y", "Y", True),

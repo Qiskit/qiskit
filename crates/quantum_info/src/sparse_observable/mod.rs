@@ -3685,12 +3685,16 @@ impl PySparseObservable {
     /// evolution operators are not supported.
     ///
     /// Args:
-    ///     other: the observable used to conjugate ``self``.
+    ///     other: the Pauli Operator used to conjugate ``self``.
     ///     qargs: if given, the qubits in ``self`` to be evolved by ``other``.
     ///         The length must match the number of qubits in ``other``.
     ///
+    /// Returns:
+    ///      A new evolved :class:`SparseObservable` with applied conjugations.
+    ///
     /// Raises:
-    ///     ValueError: if ``self`` and ``other`` have different numbers of qubits (when ``qargs`` is not given).
+    ///     TypeError : if ``other `` is not of Type ``Pauli``.
+    ///     ValueError: if ``self`` and ``other`` have different numbers of qubits (and ``qargs`` is not given).
     ///     ValueError: if ``qargs`` length doesn't match ``other`` number of qubits.
     ///     ValueError: if ``qargs`` contains duplicates or out-of-range indices.
     ///     ValueError: if ``other`` contains more than one term.
@@ -3701,16 +3705,17 @@ impl PySparseObservable {
         qargs: Option<&Bound<'py, PyAny>>,
     ) -> PyResult<Bound<'py, PySparseObservable>> {
         let py = other.py();
-        let Some(other) = coerce_to_observable(other)? else {
+
+        if !other.is_instance(PAULI_TYPE.get_bound(py))? {
             return Err(PyTypeError::new_err(format!(
-                "unknown type for evolve: {}",
+                "evolve only accepts Pauli instances, got: {}",
                 other.get_type().repr()?
             )));
-        };
+        }
 
         let base = self.as_inner()?;
-        let u_inner = other.borrow();
-        let u_inner = u_inner.as_inner()?;
+        let u_obs = Self::from_pauli(other)?;
+        let u_inner = u_obs.as_inner()?;
 
         let qargs_vec = if let Some(qargs) = qargs {
             let vec = qargs
