@@ -3667,7 +3667,7 @@ impl PySparseObservable {
     }
 
     /// In terms of operator algebra, evolution corresponds to conjugation:
-    /// ``b = a.evolve(u)`` corresponds to :math:`$B = U^\dag A U$`.  This implements
+    /// ``b = a.evolve(u)`` corresponds to :math:`B = U^\dag A U`.  This implements
     /// Heisenberg-picture evolution of the observable.
     ///
     /// Unlike a literal implementation via two full compositions, this method
