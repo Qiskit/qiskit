@@ -268,7 +268,14 @@ impl CircuitInstruction {
     /// Is the :class:`.Operation` contained in this instruction a control-flow operation (i.e. an
     /// instance of :class:`.ControlFlowOp`)?
     pub fn is_control_flow(&self) -> bool {
-        self.operation.try_control_flow().is_some()
+        self.operation
+            .try_control_flow()
+            .is_some_and(|control_flow| {
+                !matches!(
+                    control_flow.control_flow,
+                    ControlFlow::BreakLoop | ControlFlow::ContinueLoop
+                )
+            })
     }
 
     /// Does this instruction contain any :class:`.ParameterExpression` parameters?
