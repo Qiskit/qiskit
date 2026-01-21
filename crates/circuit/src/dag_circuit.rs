@@ -8669,10 +8669,34 @@ impl DAGCircuitBuilder {
     pub fn insert_qargs(&mut self, qargs: &[Qubit]) -> Interned<[Qubit]> {
         self.dag.qargs_interner.insert(qargs)
     }
+    /// Merge the `qargs` in a different [Interner] into this DAG, remapping the qubits.
+    ///
+    /// This is useful for simplifying the direct mapping of [PackedInstruction]s from one DAG to
+    /// another, like in substitution methods, or rebuilding a new DAG out of a lot of smaller ones.
+    /// See [Interner::merge_map_slice] for more information on the mapping function.
+    pub fn merge_qargs(
+        &mut self,
+        other: &Interner<[Qubit]>,
+        map_fn: impl FnMut(&Qubit) -> Option<Qubit>,
+    ) -> InternedMap<[Qubit]> {
+        self.dag.merge_qargs(other, map_fn)
+    }
 
     /// Packs qargs into the circuit.
     pub fn insert_cargs(&mut self, cargs: &[Clbit]) -> Interned<[Clbit]> {
         self.dag.cargs_interner.insert(cargs)
+    }
+    /// Merge the `cargs` in a different [Interner] into this DAG, remapping the clbits.
+    ///
+    /// This is useful for simplifying the direct mapping of [PackedInstruction]s from one DAG to
+    /// another, like in substitution methods, or rebuilding a new DAG out of a lot of smaller ones.
+    /// See [Interner::merge_map_slice] for more information on the mapping function.
+    pub fn merge_cargs(
+        &mut self,
+        other: &Interner<[Clbit]>,
+        map_fn: impl FnMut(&Clbit) -> Option<Clbit>,
+    ) -> InternedMap<[Clbit]> {
+        self.dag.merge_cargs(other, map_fn)
     }
 
     /// Adds a new value to the global phase of the inner [DAGCircuit].
