@@ -199,7 +199,7 @@ pub fn py_pbc_transformation(py: Python, dag: &mut DAGCircuit) -> PyResult<DAGCi
     // Iterate over nodes in the DAG and collect nodes
     let mut global_phase: f64 = 0.;
 
-    for node_index in dag.topological_op_nodes(false)? {
+    for node_index in dag.topological_op_nodes(false) {
         if let NodeType::Operation(inst) = &dag[node_index] {
             if let OperationRef::StandardGate(gate) = inst.op.view() {
                 // handling only 1-qubit and 2-qubit gates with a single parameter
