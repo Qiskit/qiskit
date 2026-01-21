@@ -113,6 +113,8 @@ impl NormalOperation {
 }
 
 impl Instruction for NormalOperation {
+    type Block = CircuitData;
+
     fn op(&self) -> OperationRef<'_> {
         self.operation.view()
     }
@@ -156,10 +158,10 @@ impl<'a, 'py> IntoPyObject<'py> for &'a NormalOperation {
 }
 
 impl<'a, 'py> FromPyObject<'a, 'py> for NormalOperation {
-    type Error = <OperationFromPython as FromPyObject<'a, 'py>>::Error;
+    type Error = <OperationFromPython<CircuitData> as FromPyObject<'a, 'py>>::Error;
 
     fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
-        let operation: OperationFromPython = ob.extract()?;
+        let operation: OperationFromPython<CircuitData> = ob.extract()?;
         Ok(Self {
             operation: operation.operation,
             params: operation.params,
@@ -1127,30 +1129,41 @@ impl Target {
         })
     }
 
+    /// Get the complete [InstructionProperties] from the [Target] for the given instruction key and
+    /// qargs.
+    pub fn get_instruction_properties<'a, T>(
+        &self,
+        name: &str,
+        qargs: T,
+    ) -> Option<&InstructionProperties>
+    where
+        T: Into<QargsRef<'a>>,
+    {
+        self.gate_map.get(name).and_then(|gate_props| {
+            gate_props
+                .get(&qargs.into())
+                .and_then(|props| props.as_ref())
+        })
+    }
+
     /// Get the error rate of a given instruction in the target
+    #[inline]
     pub fn get_error<'a, T>(&self, name: &str, qargs: T) -> Option<f64>
     where
         T: Into<QargsRef<'a>>,
     {
-        self.gate_map
-            .get(name)
-            .and_then(|gate_props| match gate_props.get(&qargs.into()) {
-                Some(props) => props.as_ref().and_then(|inst_props| inst_props.error),
-                None => None,
-            })
+        self.get_instruction_properties(name, qargs)
+            .and_then(|props| props.error)
     }
 
     /// Get the duration of a given instruction in the target
+    #[inline]
     pub fn get_duration<'a, T>(&self, name: &str, qargs: T) -> Option<f64>
     where
         T: Into<QargsRef<'a>>,
     {
-        self.gate_map
-            .get(name)
-            .and_then(|gate_props| match gate_props.get(&qargs.into()) {
-                Some(props) => props.as_ref().and_then(|inst_props| inst_props.duration),
-                None => None,
-            })
+        self.get_instruction_properties(name, qargs)
+            .and_then(|props| props.duration)
     }
 
     /// Get an iterator over the indices of all physical qubits of the target

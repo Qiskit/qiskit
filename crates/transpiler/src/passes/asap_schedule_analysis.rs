@@ -45,7 +45,7 @@ pub fn run_asap_schedule_analysis<T: TimeOps>(
         idle_after.insert(Wire::Clbit(Clbit::new(index)), zero);
     }
 
-    for node_index in dag.topological_op_nodes(false)? {
+    for node_index in dag.topological_op_nodes(false) {
         let op = dag[node_index].unwrap_operation();
 
         let qargs: Vec<Wire> = dag
