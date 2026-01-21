@@ -52,6 +52,7 @@ from qiskit.circuit.library import (
     iSwapGate,
     DCXGate,
     ECRGate,
+    UGate,
 )
 from test import combine, QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -124,6 +125,22 @@ class TestPBCTransformation(QiskitTestCase):
         qc = QuantumCircuit(num_qubits)
         qc.global_phase = global_phase
         qc.append(gate(), range(num_qubits))
+        qct = PBCTransformation()(qc)
+        ops_names = set(qct.count_ops().keys())
+        self.assertEqual(ops_names, {"PauliEvolution"})
+        self.assertEqual(Operator(qct), Operator(qc))
+
+    @combine(
+        gate=[UGate(0.12, -0.34, 0.56)],
+        global_phase=[0, 1.0, -3.0],
+    )
+    def test_many_param_gates_transpiled(self, gate, global_phase):
+        """Test that standard 1-qubit and 2-qubit gates with several paramteres are translated into
+        Pauli product rotatations correctly."""
+        num_qubits = gate.num_qubits
+        qc = QuantumCircuit(num_qubits)
+        qc.global_phase = global_phase
+        qc.append(gate, range(num_qubits))
         qct = PBCTransformation()(qc)
         ops_names = set(qct.count_ops().keys())
         self.assertEqual(ops_names, {"PauliEvolution"})

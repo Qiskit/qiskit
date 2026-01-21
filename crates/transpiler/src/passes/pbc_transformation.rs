@@ -23,9 +23,10 @@ use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
 use qiskit_quantum_info::sparse_observable::PySparseObservable;
 
 type GateToPBCType<'a> = (&'static [(&'static str, f64, &'static [u32])], f64);
+type GateToPBCVec<'a> = (Vec<(&'static str, f64, &'static [u32])>, f64);
 
 /// Map gates to a list of equivalent Pauli rotations and a global phase.
-/// Each element of the list is of the form ((Pauli string, phase rescale factor, [qubit indices]), global phase).
+/// Each element of the list is of the form ((Pauli string, phase rescale factor, [qubit indices]), global_phase).
 /// For gates that didn't have a phase (e.g. X)
 /// the phase rescale factor is simply the phase of the rotation gate. The convention is
 /// `original_gate = PauliEvolutionGate(pauli, phase) * e^{i global_phase * phase}`
@@ -170,6 +171,26 @@ fn replace_gate_by_pauli_rotation(gate: StandardGate) -> GateToPBCType<'static> 
     }
 }
 
+/// Map gates with more than one paramter to a list of equivalent Pauli rotations and a global phase.
+/// Each element of the list is of the form ((Pauli string, [phases], [qubit indices]), global_phase).
+/// The convention is
+/// `original_gate = PauliEvolutionGate(pauli, phase) * e^{i global_phase}`
+fn replace_gate_by_pauli_vec(gate: StandardGate, angles: &[f64]) -> GateToPBCVec<'static> {
+    match gate {
+        StandardGate::U => (
+            vec![
+                ("Z", angles[2] / 2.0, &[0]),
+                ("Y", angles[0] / 2.0, &[0]),
+                ("Z", angles[1] / 2.0, &[0]),
+            ],
+            (angles[1] + angles[2]) / 2.0,
+        ),
+        _ => unreachable!(
+            "This is only called for one and two qubit gates with no paramers or with a single parameter."
+        ),
+    }
+}
+
 #[pyfunction]
 #[pyo3(name = "pbc_transformation")]
 pub fn py_pbc_transformation(py: Python, dag: &mut DAGCircuit) -> PyResult<DAGCircuit> {
@@ -235,6 +256,52 @@ pub fn py_pbc_transformation(py: Python, dag: &mut DAGCircuit) -> PyResult<DAGCi
                     } else {
                         panic!();
                     }
+                }
+                // handling only 1-qubit and 2-qubit gates with several parameters
+                else if matches!(gate, StandardGate::U) {
+                    let params = inst.params_view();
+                    let angles: Vec<f64> = params
+                        .iter()
+                        .map(|param| {
+                            if let Param::Float(angle) = param {
+                                *angle
+                            } else {
+                                panic!();
+                            }
+                        })
+                        .collect();
+                    let (sequence, global_phase_update) = replace_gate_by_pauli_vec(gate, &angles);
+                    for (paulis, phase_rescale, qubits) in sequence {
+                        let original_qubits = dag.get_qargs(inst.qubits);
+                        let updated_qubits: Vec<Qubit> = qubits
+                            .iter()
+                            .map(|q| original_qubits[*q as usize])
+                            .collect();
+                        let time = phase_rescale;
+                        let py_pauli = PySparseObservable::from_label(
+                            paulis.chars().collect::<String>().as_str(),
+                        )?;
+                        let py_evo_cls = PAULI_EVOLUTION_GATE.get_bound(py);
+                        let py_evo = py_evo_cls.call1((py_pauli, time))?;
+                        let py_gate = PyGate {
+                            qubits: qubits.len() as u32,
+                            clbits: 0,
+                            params: 1,
+                            op_name: "PauliEvolution".to_string(),
+                            gate: py_evo.into(),
+                        };
+
+                        new_dag.apply_operation_back(
+                            py_gate.into(),
+                            &updated_qubits,
+                            &[],
+                            Some(Parameters::Params(smallvec![Param::Float(time)])),
+                            None,
+                            #[cfg(feature = "cache_pygates")]
+                            None,
+                        )?;
+                    }
+                    global_phase += global_phase_update;
                 }
                 // handling only 1-qubit and 2-qubit gates with no parameters
                 else if matches!(
