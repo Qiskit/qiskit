@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test Substitute Pi/4-Rotations optimization pass"""
+"""Test PBCTransformation optimization pass"""
 
 from ddt import ddt
 
