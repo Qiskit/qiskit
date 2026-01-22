@@ -28,12 +28,17 @@ Operators
    Pauli
    Clifford
    ScalarOp
+   SparseObservable
    SparsePauliOp
+   PauliLindbladMap
+   QubitSparsePauli
+   QubitSparsePauliList
+   PhasedQubitSparsePauli
+   PhasedQubitSparsePauliList
    CNOTDihedral
    PauliList
-   PauliTable
-   StabilizerTable
    pauli_basis
+   get_clifford_gate_names
 
 .. _quantum_info_states:
 
@@ -76,6 +81,11 @@ Measures
 Utility Functions
 =================
 
+.. autosummary::
+   :toctree: ../stubs/
+
+   Quaternion
+
 .. autofunction:: partial_trace
 .. autofunction:: schmidt_decomposition
 .. autofunction:: shannon_entropy
@@ -94,9 +104,7 @@ Random
 .. autofunction:: random_clifford
 .. autofunction:: random_quantum_channel
 .. autofunction:: random_cnotdihedral
-.. autofunction:: random_pauli_table
 .. autofunction:: random_pauli_list
-.. autofunction:: random_stabilizer_table
 
 Analysis
 =========
@@ -109,36 +117,32 @@ Analysis
 
    Z2Symmetries
 
-Synthesis
-=========
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   OneQubitEulerDecomposer
-   TwoQubitBasisDecomposer
-   Quaternion
-   XXDecomposer
-
-.. autofunction:: two_qubit_cnot_decompose
-.. autofunction:: decompose_clifford
 """
 
 from __future__ import annotations
+
+from qiskit._accelerate.pauli_lindblad_map import (
+    QubitSparsePauliList,
+    QubitSparsePauli,
+    PhasedQubitSparsePauli,
+    PhasedQubitSparsePauliList,
+    PauliLindbladMap,
+)
+from qiskit._accelerate.sparse_observable import SparseObservable
+
 from .analysis import hellinger_distance, hellinger_fidelity, Z2Symmetries
 from .operators import (
     Clifford,
     Operator,
     Pauli,
     PauliList,
-    PauliTable,
     ScalarOp,
     SparsePauliOp,
-    StabilizerTable,
     anti_commutator,
     commutator,
     double_commutator,
     pauli_basis,
+    get_clifford_gate_names,
 )
 from .operators.channel import PTM, Chi, Choi, Kraus, Stinespring, SuperOp
 from .operators.dihedral import CNOTDihedral
@@ -150,9 +154,7 @@ from .random import (
     random_hermitian,
     random_pauli,
     random_pauli_list,
-    random_pauli_table,
     random_quantum_channel,
-    random_stabilizer_table,
     random_statevector,
     random_unitary,
 )
@@ -171,11 +173,4 @@ from .states import (
     state_fidelity,
     negativity,
 )
-from .synthesis import (
-    OneQubitEulerDecomposer,
-    Quaternion,
-    TwoQubitBasisDecomposer,
-    XXDecomposer,
-    decompose_clifford,
-    two_qubit_cnot_decompose,
-)
+from .quaternion import Quaternion

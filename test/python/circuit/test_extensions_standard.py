@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -15,14 +15,13 @@
 import unittest
 from inspect import signature
 from math import pi
-
 import numpy as np
 from scipy.linalg import expm
 from ddt import data, ddt, unpack
-from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, execute
+
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.test import QiskitTestCase
 from qiskit.circuit import Gate, ControlledGate
 from qiskit.circuit.library import (
     U1Gate,
@@ -37,12 +36,11 @@ from qiskit.circuit.library import (
     YGate,
     GlobalPhaseGate,
 )
-from qiskit import BasicAer
 from qiskit.quantum_info import Pauli
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
-from qiskit.utils.optionals import HAS_TWEEDLEDUM
 from qiskit.quantum_info import Operator
 from qiskit import transpile
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestStandard1Q(QiskitTestCase):
@@ -73,11 +71,6 @@ class TestStandard1Q(QiskitTestCase):
         self.assertRaises(CircuitError, qc.barrier, self.cr)
         self.assertRaises(CircuitError, qc.barrier, (self.qr, "a"))
         self.assertRaises(CircuitError, qc.barrier, 0.0)
-
-    def test_conditional_barrier_invalid(self):
-        qc = self.circuit
-        barrier = qc.barrier(self.qr)
-        self.assertRaises(QiskitError, barrier.c_if, self.cr, 0)
 
     def test_barrier_reg(self):
         self.circuit.barrier(self.qr)
@@ -130,18 +123,6 @@ class TestStandard1Q(QiskitTestCase):
         self.assertRaises(CircuitError, qc.ch, (self.qr, 3), self.qr[0])
         self.assertRaises(CircuitError, qc.ch, self.cr, self.qr)
         self.assertRaises(CircuitError, qc.ch, "a", self.qr[1])
-
-    def test_cif_reg(self):
-        self.circuit.h(self.qr[0]).c_if(self.cr, 7)
-        self.assertEqual(self.circuit[0].operation.name, "h")
-        self.assertEqual(self.circuit[0].qubits, (self.qr[0],))
-        self.assertEqual(self.circuit[0].operation.condition, (self.cr, 7))
-
-    def test_cif_single_bit(self):
-        self.circuit.h(self.qr[0]).c_if(self.cr[0], True)
-        self.assertEqual(self.circuit[0].operation.name, "h")
-        self.assertEqual(self.circuit[0].qubits, (self.qr[0],))
-        self.assertEqual(self.circuit[0].operation.condition, (self.cr[0], True))
 
     def test_crz(self):
         self.circuit.crz(1, self.qr[0], self.qr[1])
@@ -354,31 +335,31 @@ class TestStandard1Q(QiskitTestCase):
         self.assertEqual(instruction_set[1].qubits, (self.qr[1],))
 
     def test_iden(self):
-        self.circuit.i(self.qr[1])
+        self.circuit.id(self.qr[1])
         self.assertEqual(self.circuit[0].operation.name, "id")
         self.assertEqual(self.circuit[0].operation.params, [])
 
     def test_iden_wires(self):
-        self.circuit.i(1)
+        self.circuit.id(1)
         self.assertEqual(self.circuit[0].operation.name, "id")
         self.assertEqual(self.circuit[0].operation.params, [])
 
     def test_iden_invalid(self):
         qc = self.circuit
-        self.assertRaises(CircuitError, qc.i, self.cr[0])
-        self.assertRaises(CircuitError, qc.i, self.cr)
-        self.assertRaises(CircuitError, qc.i, (self.qr, 3))
-        self.assertRaises(CircuitError, qc.i, (self.qr, "a"))
-        self.assertRaises(CircuitError, qc.i, 0.0)
+        self.assertRaises(CircuitError, qc.id, self.cr[0])
+        self.assertRaises(CircuitError, qc.id, self.cr)
+        self.assertRaises(CircuitError, qc.id, (self.qr, 3))
+        self.assertRaises(CircuitError, qc.id, (self.qr, "a"))
+        self.assertRaises(CircuitError, qc.id, 0.0)
 
     def test_iden_reg(self):
-        instruction_set = self.circuit.i(self.qr)
+        instruction_set = self.circuit.id(self.qr)
         self.assertEqual(len(instruction_set), 3)
         self.assertEqual(instruction_set[0].operation.name, "id")
         self.assertEqual(instruction_set[1].qubits, (self.qr[1],))
 
     def test_iden_reg_inv(self):
-        instruction_set = self.circuit.i(self.qr).inverse()
+        instruction_set = self.circuit.id(self.qr).inverse()
         self.assertEqual(len(instruction_set), 3)
         self.assertEqual(instruction_set[0].operation.name, "id")
         self.assertEqual(instruction_set[1].qubits, (self.qr[1],))
@@ -1371,16 +1352,13 @@ class TestStandard3Q(QiskitTestCase):
 class TestStandardMethods(QiskitTestCase):
     """Standard Extension Test."""
 
-    @unittest.skipUnless(HAS_TWEEDLEDUM, "tweedledum required for this test")
     def test_to_matrix(self):
         """test gates implementing to_matrix generate matrix which matches definition."""
         from qiskit.circuit.library.pauli_evolution import PauliEvolutionGate
         from qiskit.circuit.library.generalized_gates.pauli import PauliGate
-        from qiskit.circuit.classicalfunction.boolean_expression import BooleanExpression
 
         params = [0.1 * (i + 1) for i in range(10)]
         gate_class_list = Gate.__subclasses__() + ControlledGate.__subclasses__()
-        simulator = BasicAer.get_backend("unitary_simulator")
         for gate_class in gate_class_list:
             if hasattr(gate_class, "__abstractmethods__"):
                 # gate_class is abstract
@@ -1391,8 +1369,6 @@ class TestStandardMethods(QiskitTestCase):
                 if gate_class == PauliGate:
                     # special case due to PauliGate using string parameters
                     gate = gate_class("IXYZ")
-                elif gate_class == BooleanExpression:
-                    gate = gate_class("x")
                 elif gate_class == PauliEvolutionGate:
                     gate = gate_class(Pauli("XYZ"))
                 else:
@@ -1410,21 +1386,19 @@ class TestStandardMethods(QiskitTestCase):
                 # gate doesn't implement to_matrix method: skip
                 self.log.info('to_matrix method FAILED for "%s" gate', gate.name)
                 continue
-            definition_unitary = execute([circ], simulator).result().get_unitary()
+            definition_unitary = Operator(circ)
 
             with self.subTest(gate_class):
-                # TODO check for exact equality once BasicAer can handle global phase
+                # TODO check for exact equality
                 self.assertTrue(matrix_equal(definition_unitary, gate_matrix, ignore_phase=True))
                 self.assertTrue(is_unitary_matrix(gate_matrix))
 
-    @unittest.skipUnless(HAS_TWEEDLEDUM, "tweedledum required for this test")
     def test_to_matrix_op(self):
         """test gates implementing to_matrix generate matrix which matches
         definition using Operator."""
         from qiskit.circuit.library.generalized_gates.gms import MSGate
         from qiskit.circuit.library.generalized_gates.pauli import PauliGate
         from qiskit.circuit.library.pauli_evolution import PauliEvolutionGate
-        from qiskit.circuit.classicalfunction.boolean_expression import BooleanExpression
 
         params = [0.1 * i for i in range(1, 11)]
         gate_class_list = Gate.__subclasses__() + ControlledGate.__subclasses__()
@@ -1444,8 +1418,6 @@ class TestStandardMethods(QiskitTestCase):
                 if gate_class == PauliGate:
                     # special case due to PauliGate using string parameters
                     gate = gate_class("IXYZ")
-                elif gate_class == BooleanExpression:
-                    gate = gate_class("x")
                 elif gate_class == PauliEvolutionGate:
                     gate = gate_class(Pauli("XYZ"))
                 else:

@@ -98,6 +98,6 @@ def permutation_circuit(swaps: Iterable[list[Swap[_V]]]) -> PermutationCircuit:
     # Apply swaps to the circuit.
     for swap_step in swap_list:
         for swap0, swap1 in swap_step:
-            dag.apply_operation_back(SwapGate(), [inputmap[swap0], inputmap[swap1]])
+            dag.apply_operation_back(SwapGate(), (inputmap[swap0], inputmap[swap1]), check=False)
 
     return PermutationCircuit(dag, inputmap)

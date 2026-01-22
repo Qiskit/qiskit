@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -81,7 +81,7 @@ class FullAncillaAllocation(AnalysisPass):
 
         idle_physical_qubits = [q for q in layout_physical_qubits if q not in physical_bits]
 
-        if self.target:
+        if self.target is not None and self.target.num_qubits is not None:
             idle_physical_qubits = [
                 q for q in range(self.target.num_qubits) if q not in physical_bits
             ]
@@ -92,10 +92,9 @@ class FullAncillaAllocation(AnalysisPass):
 
         if idle_physical_qubits:
             if self.ancilla_name in dag.qregs:
-                save_prefix = QuantumRegister.prefix
-                QuantumRegister.prefix = self.ancilla_name
-                qreg = QuantumRegister(len(idle_physical_qubits))
-                QuantumRegister.prefix = save_prefix
+                qreg = QuantumRegister._new_with_prefix(
+                    len(idle_physical_qubits), self.ancilla_name
+                )
             else:
                 qreg = QuantumRegister(len(idle_physical_qubits), name=self.ancilla_name)
 
@@ -107,7 +106,7 @@ class FullAncillaAllocation(AnalysisPass):
     @staticmethod
     def validate_layout(layout_qubits, dag_qubits):
         """
-        Checks if all the qregs in layout_qregs already exist in dag_qregs. Otherwise, raise.
+        Checks if all the qregs in ``layout_qregs`` already exist in ``dag_qregs``. Otherwise, raise.
         """
         for qreg in layout_qubits:
             if qreg not in dag_qubits:

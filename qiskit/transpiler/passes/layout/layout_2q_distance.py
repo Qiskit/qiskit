@@ -25,7 +25,7 @@ from qiskit.transpiler.target import Target
 class Layout2qDistance(AnalysisPass):
     """Evaluate how good the layout selection was.
 
-    Saves in `property_set['layout_score']` (or the property name in property_name)
+    Saves in ``property_set['layout_score']`` (or the property name in property_name)
     the sum of distances for each circuit CX.
     The lower the number, the better the selection. Therefore, 0 is a perfect layout selection.
     No CX direction is considered.

@@ -15,35 +15,24 @@
 from typing import Optional
 
 from qiskit.circuit.instruction import Instruction
+from qiskit._accelerate.circuit import ControlFlowType
 from .builder import InstructionPlaceholder, InstructionResources
 
 
 class ContinueLoopOp(Instruction):
-    """A circuit operation which, when encountered, moves to the next iteration of
-    the nearest enclosing loop.
-
-    .. note::
-
-        Can be inserted only within the body of a loop op, and must span the full
-        width of that block.
-
-    **Circuit symbol:**
-
-    .. parsed-literal::
-
-             ┌─────────────────┐
-        q_0: ┤0                ├
-             │                 │
-        q_1: ┤1                ├
-             │  continue_loop  │
-        q_2: ┤2                ├
-             │                 │
-        c_0: ╡0                ╞
-             └─────────────────┘
-
+    """A circuit operation which, when encountered, moves to the next iteration of the nearest
+    enclosing loop.  Can only be used inside loops.
     """
 
+    _control_flow_type = ControlFlowType.ContinueLoop
+
     def __init__(self, num_qubits: int, num_clbits: int, label: Optional[str] = None):
+        """
+        Args:
+            num_qubits: the number of qubits this affects.
+            num_clbits: the number of qubits this affects.
+            label: an optional string label for the instruction.
+        """
         super().__init__("continue_loop", num_qubits, num_clbits, [], label=label)
 
 
@@ -62,9 +51,7 @@ class ContinueLoopPlaceholder(InstructionPlaceholder):
 
     def concrete_instruction(self, qubits, clbits):
         return (
-            self._copy_mutable_properties(
-                ContinueLoopOp(len(qubits), len(clbits), label=self.label)
-            ),
+            ContinueLoopOp(len(qubits), len(clbits), label=self.label),
             InstructionResources(qubits=tuple(qubits), clbits=tuple(clbits)),
         )
 

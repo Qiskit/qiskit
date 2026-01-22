@@ -5,7 +5,7 @@ features:
     :class:`.Drag` and :class:`.Constant` have been upgraded to
     instantiate :class:`SymbolicPulse` rather than the subclass itself.
     All parametric pulse objects in pulse programs must be symbolic pulse instances,
-    because subclassing is no longer neccesary. Note that :class:`SymbolicPulse` can
+    because subclassing is no longer necessary. Note that :class:`SymbolicPulse` can
     uniquely identify a particular envelope with the symbolic expression object
     defined in :attr:`SymbolicPulse.envelope`.
 upgrade:
@@ -15,7 +15,7 @@ upgrade:
     these pulse subclasses are no longer instantiated.  They will still work in Terra 0.22,
     but you should begin transitioning immediately.
     Instead of using type information, :attr:`SymbolicPulse.pulse_type` should be used.
-    This is assumed to be a unique string identifer for pulse envelopes,
+    This is assumed to be a unique string identifier for pulse envelopes,
     and we can use string equality to investigate the pulse types. For example,
 
     .. code-block:: python

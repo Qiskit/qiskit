@@ -19,9 +19,8 @@ import ddt
 
 import qiskit.qasm2
 from qiskit.circuit import Gate, library as lib
-from qiskit.test import QiskitTestCase
-
 from test import combine  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 # We need to use this enum a _bunch_ of times, so let's not give it a long name.

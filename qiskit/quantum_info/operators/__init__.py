@@ -22,9 +22,8 @@ from .symplectic import (
     Clifford,
     Pauli,
     PauliList,
-    PauliTable,
     SparsePauliOp,
-    StabilizerTable,
     pauli_basis,
+    get_clifford_gate_names,
 )
 from .utils import anti_commutator, commutator, double_commutator

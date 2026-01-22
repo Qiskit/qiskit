@@ -19,9 +19,9 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 class GR(QuantumCircuit):
     r"""Global R gate.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌──────────┐
         q_0: ┤0         ├
@@ -42,12 +42,13 @@ class GR(QuantumCircuit):
 
         GR(\theta, \phi) = \exp(-i \sum_{i=1}^{n} (\cos(\phi)X_i + \sin(\phi)Y_i) \theta/2)
 
-    **Expanded Circuit:**
+    Expanded Circuit:
 
     .. plot::
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit.library import GR
-       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+       from qiskit.visualization.library import _generate_circuit_library_visualization
        import numpy as np
        circuit = GR(num_qubits=3, theta=np.pi/4, phi=np.pi/2)
        _generate_circuit_library_visualization(circuit)
@@ -55,8 +56,7 @@ class GR(QuantumCircuit):
     """
 
     def __init__(self, num_qubits: int, theta: float, phi: float) -> None:
-        """Create a new Global R (GR) gate.
-
+        """
         Args:
             num_qubits: number of qubits.
             theta: rotation angle about axis determined by phi
@@ -75,7 +75,7 @@ class GRX(GR):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌──────────┐
         q_0: ┤0         ├
@@ -99,9 +99,10 @@ class GRX(GR):
     **Expanded Circuit:**
 
     .. plot::
+       :alt: Diagram illustrating the previously described circuit.
 
         from qiskit.circuit.library import GRX
-        from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+        from qiskit.visualization.library import _generate_circuit_library_visualization
         import numpy as np
         circuit = GRX(num_qubits=3, theta=np.pi/4)
         _generate_circuit_library_visualization(circuit)
@@ -123,7 +124,7 @@ class GRY(GR):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌──────────┐
         q_0: ┤0         ├
@@ -147,9 +148,10 @@ class GRY(GR):
     **Expanded Circuit:**
 
     .. plot::
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit.library import GRY
-       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+       from qiskit.visualization.library import _generate_circuit_library_visualization
        import numpy as np
        circuit = GRY(num_qubits=3, theta=np.pi/4)
        _generate_circuit_library_visualization(circuit)
@@ -171,7 +173,7 @@ class GRZ(QuantumCircuit):
 
     **Circuit symbol:**
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌──────────┐
         q_0: ┤0         ├
@@ -195,9 +197,10 @@ class GRZ(QuantumCircuit):
     **Expanded Circuit:**
 
     .. plot::
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit.library import GRZ
-       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+       from qiskit.visualization.library import _generate_circuit_library_visualization
        import numpy as np
        circuit = GRZ(num_qubits=3, phi=np.pi/2)
        _generate_circuit_library_visualization(circuit)

@@ -1,0 +1,12 @@
+---
+features_transpiler:
+  - |
+    The :class:`.HighLevelSynthesis` transpiler pass now synthesizes
+    objects of type :class:`~.AnnotatedOperation` via the
+    plugin interface.
+upgrade_transpiler:
+  - |
+    In the case that neither a target nor a set of basis gates are specified,
+    the :class:`.HighLevelSynthesis` transpiler pass synthesizes circuits with
+    annotated operations with fewer layers of wrappings than before (this happens,
+    for instance, for the circuit produced by :func:`.multiplier_cumulative_h18`).

@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    :class:`.Parameter` instances used as stand-ins for ``input`` variables in
+    OpenQASM 3 programs will now have their names escaped to avoid collisions
+    with built-in gates during the export to OpenQASM 3.  Previously there
+    could be a naming clash, and the exporter would generate invalid OpenQASM 3.

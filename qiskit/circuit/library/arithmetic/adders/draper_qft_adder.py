@@ -15,7 +15,7 @@
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit import QuantumRegister
 from qiskit.circuit.library.basis_change import QFT
 
 from .adder import Adder
@@ -31,7 +31,7 @@ class DraperQFTAdder(Adder):
     As an example, a non-fixed_point QFT adder circuit that performs addition on two 2-qubit sized
     registers is as follows:
 
-    .. parsed-literal::
+    .. code-block:: text
 
          a_0:   ─────────■──────■────────────────────────■────────────────
                          │      │                        │
@@ -44,7 +44,20 @@ class DraperQFTAdder(Adder):
         cout_0: ┤2     ├────────────────────────■────────■───────┤2      ├
                 └──────┘                                         └───────┘
 
-    **References:**
+    .. seealso::
+
+        The following generic gate objects perform additions, like this circuit class,
+        but allow the compiler to select the optimal decomposition based on the context.
+        Specific implementations can be set via the :class:`.HLSConfig`, e.g. this
+        circuit can be chosen via ``Adder=["qft_d00"]``.
+
+        :class:`.ModularAdderGate`: A generic inplace adder, modulo :math:`2^n`. This
+            is functionally equivalent to ``kind="fixed"``.
+
+        :class:`.AdderGate`: A generic inplace adder. This
+            is functionally equivalent to ``kind="half"``.
+
+    References:
 
     [1] T. G. Draper, Addition on a Quantum Computer, 2000.
     `arXiv:quant-ph/0008033 <https://arxiv.org/pdf/quant-ph/0008033.pdf>`_

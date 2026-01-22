@@ -12,8 +12,32 @@
 
 """With some utils"""
 
+import itertools
 from ddt import data, unpack
-from qiskit.test.utils import generate_cases
+
+from .utils.base import QiskitTestCase
+from .utils.decorators import slow_test
+
+
+class Case(dict):
+    """<no description>"""
+
+
+def generate_cases(docstring, dsc=None, name=None, **kwargs):
+    """Combines kwargs in Cartesian product and creates Case with them"""
+    ret = []
+    keys = kwargs.keys()
+    vals = kwargs.values()
+    for values in itertools.product(*vals):
+        case = Case(zip(keys, values))
+        if docstring is not None:
+            setattr(case, "__doc__", docstring.format(**case))
+        if dsc is not None:
+            setattr(case, "__doc__", dsc.format(**case))
+        if name is not None:
+            setattr(case, "__name__", name.format(**case))
+        ret.append(case)
+    return ret
 
 
 def combine(**kwargs):

@@ -1,0 +1,6 @@
+---
+features_transpiler:
+  - |
+    The :meth:`.synth_cx_cz_depth_line_my` pass was ported into rust, with preliminary
+    benchmarks pointing at a factor of 70x speedup.
+

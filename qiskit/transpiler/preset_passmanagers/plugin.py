@@ -11,6 +11,8 @@
 # that they have been altered from the originals.
 
 """
+.. _transpiler-preset-stage-plugins:
+
 =======================================================================================
 Transpiler Stage Plugin Interface (:mod:`qiskit.transpiler.preset_passmanagers.plugin`)
 =======================================================================================
@@ -35,8 +37,10 @@ see :mod:`qiskit.transpiler.passes.synthesis.plugin`.
 Plugin Stages
 =============
 
-Currently, there are 6 stages in the preset pass managers, all of which actively
-load external plugins via corresponding entry points.
+There are six stages in the preset pass managers, all of which actively
+load external plugins using corresponding entry points.  The following table summarizes
+each stage.  For more details on the description and expectations of each stage, follow the link
+in the stages' names to the full documentation.
 
 .. list-table:: Stages
    :header-rows: 1
@@ -44,49 +48,44 @@ load external plugins via corresponding entry points.
    * - Stage Name
      - Entry Point
      - Reserved Names
-     - Description and expectations
-   * - ``init``
+     - Summary
+
+   * - :ref:`init <transpiler-preset-stage-init>`
      - ``qiskit.transpiler.init``
-     - No reserved names
-     - This stage runs first and is typically used for any initial logical optimization. Because most
-       layout and routing algorithms are only designed to work with 1 and 2 qubit gates, this stage
-       is also used to translate any gates that operate on more than 2 qubits into gates that only
-       operate on 1 or 2 qubits.
-   * - ``layout``
+     - ``default``
+     - High-level, logical optimizations on abstract circuits, and reduction of multi-qubit
+       operations to one- and two-qubit operations.
+
+   * - :ref:`layout <transpiler-preset-stage-layout>`
      - ``qiskit.transpiler.layout``
-     - ``trivial``, ``dense``, ``noise_adaptive``, ``sabre``
-     - The output from this stage is expected to have the ``layout`` property
-       set field set with a :class:`~.Layout` object. Additionally, the circuit is
-       typically expected to be embedded so that it is expanded to include all
-       qubits and the :class:`~.ApplyLayout` pass is expected to be run to apply the
-       layout. The embedding of the :class:`~.Layout` can be generated with
-       :func:`~.generate_embed_passmanager`.
-   * - ``routing``
+     - ``trivial``, ``dense``, ``sabre``, ``default``
+     - Choose an initial mapping of virtual qubits to physical qubits, including expansion of the
+       circuit to include explicit ancillas.  This stage is sometimes combined with ``routing``.
+
+   * - :ref:`routing <transpiler-preset-stage-routing>`
      - ``qiskit.transpiler.routing``
-     - ``basic``, ``stochastic``, ``lookahead``, ``sabre``, ``toqm``
-     - The output from this stage is expected to have the circuit match the
-       connectivity constraints of the target backend. This does not necessarily
-       need to match the directionality of the edges in the target as a later
-       stage typically will adjust directional gates to match that constraint
-       (but there is no penalty for doing that in the ``routing`` stage).
-   * - ``translation``
+     - ``default``, ``basic``, ``stochastic``, ``lookahead``, ``sabre``
+     - Insert gates into the circuit to ensure it matches the connectivity constraints of the
+       :class:`.Target`.  The inserted gates do not need to be in the target ISA yet, so are often
+       just output as ``swap`` instructions.  This stage is sometimes subsumed by ``layout``.
+
+   * - :ref:`translation <transpiler-preset-stage-translation>`
      - ``qiskit.transpiler.translation``
-     - ``translator``, ``synthesis``, ``unroller``
-     - The output of this stage is expected to have every operation be a native
-        instruction on the target backend.
-   * - ``optimization``
+     - ``default``, ``translator``, ``synthesis``
+     - Rewrite all gates outside the target ISA to use only gates within the ISA.
+
+   * - :ref:`optimization <transpiler-preset-stage-optimization>`
      - ``qiskit.transpiler.optimization``
-     - There are no reserved plugin names
-     - This stage is expected to perform optimization and simplification.
-       The constraints from earlier stages still apply to the output of this
-       stage. After the ``optimization`` stage is run we expect the circuit
-       to still be executable on the target.
-   * - ``scheduling``
+     - ``default``
+     - Low-level, physical-circuit-aware optimizations.  Unlike ``init``, the ``optimization`` stage
+       acts at the level of a physical circuit.
+
+   * - :ref:`scheduling <transpiler-preset-stage-scheduling>`
      - ``qiskit.transpiler.scheduling``
-     - ``alap``, ``asap``
-     - This is the last stage run and it is expected to output a scheduled
-       circuit such that all idle periods in the circuit are marked by explicit
-       :class:`~qiskit.circuit.Delay` instructions.
+     - ``alap``, ``asap``, ``default``
+     - Insert :class:`~.circuit.Delay` instructions to make the wall-clock timing of the circuit
+       fully explicit.
+
 
 Writing Plugins
 ===============
@@ -104,53 +103,50 @@ and falls back to using :class:`~.TrivialLayout` if
     from qiskit.transpiler import PassManager
     from qiskit.transpiler.passes import VF2Layout, TrivialLayout
     from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
+    from qiskit.passmanager import ConditionalController
 
 
     def _vf2_match_not_found(property_set):
-        return property_set["layout"] is None or (
-            property_set["VF2Layout_stop_reason"] is not None
-            and property_set["VF2Layout_stop_reason"] is not VF2LayoutStopReason.SOLUTION_FOUND
+        return property_set.get("layout") is None or (
+            property_set.get("VF2Layout_stop_reason") is not None
+            and property_set.get("VF2Layout_stop_reason")
+            is not VF2LayoutStopReason.SOLUTION_FOUND
+        )
 
 
     class VF2LayoutPlugin(PassManagerStagePlugin):
-
         def pass_manager(self, pass_manager_config, optimization_level):
             layout_pm = PassManager(
                 [
                     VF2Layout(
                         coupling_map=pass_manager_config.coupling_map,
-                        properties=pass_manager_config.backend_properties,
-                        max_trials=optimization_level * 10 + 1
-                        target=pass_manager_config.target
-                    )
+                        max_trials=optimization_level * 10 + 1,
+                        target=pass_manager_config.target,
+                    ),
+                    ConditionalController(
+                        TrivialLayout(pass_manager_config.coupling_map),
+                        condition=_vf2_match_not_found,
+                    ),
                 ]
-            )
-            layout_pm.append(
-                TrivialLayout(pass_manager_config.coupling_map),
-                condition=_vf2_match_not_found,
             )
             layout_pm += common.generate_embed_passmanager(pass_manager_config.coupling_map)
             return layout_pm
 
 The second step is to expose the :class:`~.PassManagerStagePlugin`
 subclass as a setuptools entry point in the package metadata. This can be done
-by simply adding an ``entry_points`` entry to the ``setuptools.setup`` call in
-the ``setup.py`` or the plugin package with the necessary entry points under the
-appropriate namespace for the stage your plugin is for. You can see the list
-of stages, entry points, and expectations from the stage in :ref:`stage_table`.
-For example, continuing from the example plugin above::
+an ``entry-points`` table in ``pyproject.toml`` for the plugin package with the necessary entry
+points under the appropriate namespace for the stage your plugin is for. You can see the list of
+stages, entry points, and expectations from the stage in :ref:`stage_table`.  For example,
+continuing from the example plugin above:
 
-    entry_points = {
-        'qiskit.transpiler.layout': [
-            'vf2 = qiskit_plugin_pkg.module.plugin:VF2LayoutPlugin',
-        ]
-    },
+.. code-block:: toml
 
-Note that the entry point ``name = path`` is a single string not a Python
-expression. There isn't a limit to the number of plugins a single package can
-include as long as each plugin has a unique name. So a single package can
-expose multiple plugins if necessary. Refer to :ref:`stage_table` for a list
-of reserved names for each stage.
+    [project.entry-points."qiskit.transpiler.layout"]
+    "vf2" = "qiskit_plugin_pkg.module.plugin:VF2LayoutPlugin"
+
+There isn't a limit to the number of plugins a single package can include as long as each plugin has
+a unique name. So a single package can expose multiple plugins if necessary. Refer to
+:ref:`stage_table` for a list of reserved names for each stage.
 
 Plugin API
 ==========
@@ -188,7 +184,7 @@ class PassManagerStagePlugin(abc.ABC):
     @abc.abstractmethod
     def pass_manager(
         self, pass_manager_config: PassManagerConfig, optimization_level: Optional[int] = None
-    ) -> PassManager:
+    ) -> PassManager | None:
         """This method is designed to return a :class:`~.PassManager` for the stage this implements
 
         Args:
@@ -199,8 +195,12 @@ class PassManagerStagePlugin(abc.ABC):
                 should be used to set values for any tunable parameters to trade off runtime
                 for potential optimization. Valid values should be ``0``, ``1``, ``2``, or ``3``
                 and the higher the number the more optimization is expected.
+
+        Returns:
+            the :class:`.PassManager` to run, or ``None`` if nothing is needed for this
+            configuration (for example, an optimization plugin might return ``None`` at
+            ``optimization_level=0``).
         """
-        pass
 
 
 class PassManagerStagePluginManager:
@@ -233,7 +233,7 @@ class PassManagerStagePluginManager:
         plugin_name: str,
         pm_config: PassManagerConfig,
         optimization_level=None,
-    ) -> PassManager:
+    ) -> PassManager | None:
         """Get a stage"""
         if stage_name == "init":
             return self._build_pm(
@@ -310,7 +310,9 @@ def passmanager_stage_plugins(stage: str) -> Dict[str, PassManagerStagePlugin]:
 
     This function is useful for getting more information about a plugin:
 
-    .. code-block:: python
+    .. plot::
+       :include-source:
+       :nofigs:
 
         from qiskit.transpiler.preset_passmanagers.plugin import passmanager_stage_plugins
         routing_plugins = passmanager_stage_plugins('routing')

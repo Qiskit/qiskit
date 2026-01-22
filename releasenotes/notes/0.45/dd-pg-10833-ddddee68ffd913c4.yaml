@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed a bug in the :class:`.PadDynamicalDecoupling` transpiler pass which
+    would cause the pass to fail if a circuit contained a pulse gate
+    calibration for one of the gates in the decoupling sequence. Fixed `#10833
+    <https://github.com/Qiskit/qiskit/issues/10833>`_.

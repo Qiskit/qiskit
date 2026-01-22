@@ -1,0 +1,11 @@
+---
+other:
+  - |
+    Support for the arm64 macOS platform has been promoted from Tier 3
+    to Tier 1. Previously the platform was at Tier 3 because there was
+    no available CI environment for testing Qiskit on the platform. Now
+    that Github has made an arm64 macOS environment available to open source
+    projects [#]_ we're testing the platform along with the other Tier 1
+    supported platforms.
+
+    .. [#] https://github.blog/changelog/2024-01-30-github-actions-introducing-the-new-m1-macos-runner-available-to-open-source/

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,6 +12,7 @@
 
 """Test the DenseLayout pass"""
 
+import itertools
 import unittest
 
 import numpy as np
@@ -22,9 +23,10 @@ from qiskit.circuit.library import CXGate, UGate, ECRGate, RZGate
 from qiskit.transpiler import CouplingMap, Target, InstructionProperties, TranspilerError
 from qiskit.transpiler.passes import DenseLayout
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeTokyo
 from qiskit.transpiler.passes.layout.dense_layout import _build_error_matrix
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
+from ..legacy_cmaps import TOKYO_CMAP
 
 
 class TestDenseLayout(QiskitTestCase):
@@ -32,7 +34,7 @@ class TestDenseLayout(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.cmap20 = FakeTokyo().configuration().coupling_map
+        self.cmap20 = TOKYO_CMAP
         self.target_19 = Target()
         rng = np.random.default_rng(12345)
         instruction_props = {
@@ -42,6 +44,30 @@ class TestDenseLayout(QiskitTestCase):
             for edge in CouplingMap.from_heavy_hex(3).get_edges()
         }
         self.target_19.add_instruction(CXGate(), instruction_props)
+
+    def test_finds_densest_component(self):
+        """Test that `DenseLayout` finds precisely the densest subcomponent of a coupling graph, not
+        just _any_ connected component."""
+        circuit = QuantumCircuit(5)
+        for a, b in itertools.permutations(circuit.qubits, 2):
+            circuit.cx(a, b)
+
+        # The map is a big long sparse line, except the middle 5 physical qubits are all completely
+        # connected, so `DenseLayout` should always choose those.
+        left_edge_qubits = range(0, 7)
+        middle_qubits = range(7, 12)
+        right_edge_qubits = range(12, 20)
+        cm = CouplingMap(
+            [(q, q + 1) for q in left_edge_qubits]
+            + [(q - 1, q) for q in right_edge_qubits]
+            + list(itertools.permutations(middle_qubits, 2))
+        )
+        cm.make_symmetric()
+        pass_ = DenseLayout(cm)
+        pass_(circuit)
+        layout = pass_.property_set["layout"]
+        used_qubits = {layout[q] for q in circuit.qubits}
+        self.assertEqual(used_qubits, set(middle_qubits))
 
     def test_5q_circuit_20q_coupling(self):
         """Test finds dense 5q corner in 20q coupling map."""
@@ -53,15 +79,14 @@ class TestDenseLayout(QiskitTestCase):
         circuit.cx(qr[0], qr[2])
 
         dag = circuit_to_dag(circuit)
-        pass_ = DenseLayout(CouplingMap(self.cmap20))
+        cm = CouplingMap(self.cmap20)
+        pass_ = DenseLayout(cm)
         pass_.run(dag)
 
         layout = pass_.property_set["layout"]
-        self.assertEqual(layout[qr[0]], 11)
-        self.assertEqual(layout[qr[1]], 10)
-        self.assertEqual(layout[qr[2]], 6)
-        self.assertEqual(layout[qr[3]], 5)
-        self.assertEqual(layout[qr[4]], 0)
+        actual = [layout[q] for q in circuit.qubits]
+        sub_map = cm.reduce(actual, check_if_connected=False)
+        self.assertTrue(sub_map.is_connected(), msg=f"chosen layout is not dense: {actual}")
 
     def test_6q_circuit_20q_coupling(self):
         """Test finds dense 5q corner in 20q coupling map."""
@@ -72,17 +97,14 @@ class TestDenseLayout(QiskitTestCase):
         circuit.cx(qr1[1], qr0[2])
 
         dag = circuit_to_dag(circuit)
-        pass_ = DenseLayout(CouplingMap(self.cmap20))
+        cm = CouplingMap(self.cmap20)
+        pass_ = DenseLayout(cm)
         pass_.run(dag)
 
         layout = pass_.property_set["layout"]
-
-        self.assertEqual(layout[qr0[0]], 11)
-        self.assertEqual(layout[qr0[1]], 10)
-        self.assertEqual(layout[qr0[2]], 6)
-        self.assertEqual(layout[qr1[0]], 5)
-        self.assertEqual(layout[qr1[1]], 1)
-        self.assertEqual(layout[qr1[2]], 0)
+        actual = [layout[q] for q in circuit.qubits]
+        sub_map = cm.reduce(actual, check_if_connected=False)
+        self.assertTrue(sub_map.is_connected(), msg=f"chosen layout is not dense: {actual}")
 
     def test_5q_circuit_19q_target_with_noise(self):
         """Test layout works finds a dense 5q subgraph in a 19q heavy hex target."""
@@ -96,11 +118,9 @@ class TestDenseLayout(QiskitTestCase):
         pass_ = DenseLayout(target=self.target_19)
         pass_.run(dag)
         layout = pass_.property_set["layout"]
-        self.assertEqual(layout[qr[0]], 9)
-        self.assertEqual(layout[qr[1]], 3)
-        self.assertEqual(layout[qr[2]], 11)
-        self.assertEqual(layout[qr[3]], 15)
-        self.assertEqual(layout[qr[4]], 4)
+        actual = [layout[q] for q in circuit.qubits]
+        sub_map = self.target_19.build_coupling_map().reduce(actual, check_if_connected=False)
+        self.assertTrue(sub_map.is_connected(), msg=f"chosen layout is not dense: {actual}")
 
     def test_5q_circuit_19q_target_without_noise(self):
         """Test layout works finds a dense 5q subgraph in a 19q heavy hex target with no noise."""
@@ -117,11 +137,9 @@ class TestDenseLayout(QiskitTestCase):
         pass_ = DenseLayout(target=noiseless_target)
         pass_.run(dag)
         layout = pass_.property_set["layout"]
-        self.assertEqual(layout[qr[0]], 1)
-        self.assertEqual(layout[qr[1]], 13)
-        self.assertEqual(layout[qr[2]], 0)
-        self.assertEqual(layout[qr[3]], 9)
-        self.assertEqual(layout[qr[4]], 3)
+        actual = [layout[q] for q in circuit.qubits]
+        sub_map = noiseless_target.build_coupling_map().reduce(actual, check_if_connected=False)
+        self.assertTrue(sub_map.is_connected(), msg=f"chosen layout is not dense: {actual}")
 
     def test_ideal_target_no_coupling(self):
         """Test pass fails as expected if a target without edge constraints exists."""
@@ -217,14 +235,13 @@ class TestDenseLayout(QiskitTestCase):
         circuit.cx(0, 4)
 
         dag = circuit_to_dag(circuit)
-        pass_ = DenseLayout(CouplingMap(self.cmap20))
+        cm = CouplingMap(self.cmap20)
+        pass_ = DenseLayout(cm)
         pass_.run(dag)
         layout = pass_.property_set["layout"]
-        self.assertEqual(layout[qr[0]], 11)
-        self.assertEqual(layout[qr[1]], 10)
-        self.assertEqual(layout[qr[2]], 6)
-        self.assertEqual(layout[qr[3]], 5)
-        self.assertEqual(layout[qr[4]], 0)
+        actual = [layout[q] for q in circuit.qubits]
+        sub_map = cm.reduce(actual, check_if_connected=False)
+        self.assertTrue(sub_map.is_connected(), msg=f"chosen layout is not dense: {actual}")
 
     def test_loose_bit_circuit(self):
         """Test dense layout works with loose bits outside a register."""
@@ -237,14 +254,13 @@ class TestDenseLayout(QiskitTestCase):
         circuit.cx(3, 0)
         circuit.cx(3, 1)
         dag = circuit_to_dag(circuit)
-        pass_ = DenseLayout(CouplingMap(self.cmap20))
+        cm = CouplingMap(self.cmap20)
+        pass_ = DenseLayout(cm)
         pass_.run(dag)
         layout = pass_.property_set["layout"]
-        self.assertEqual(layout[bits[0]], 11)
-        self.assertEqual(layout[bits[1]], 10)
-        self.assertEqual(layout[bits[2]], 6)
-        self.assertEqual(layout[bits[3]], 5)
-        self.assertEqual(layout[bits[4]], 0)
+        actual = [layout[q] for q in circuit.qubits]
+        sub_map = cm.reduce(actual, check_if_connected=False)
+        self.assertTrue(sub_map.is_connected(), msg=f"chosen layout is not dense: {actual}")
 
 
 if __name__ == "__main__":

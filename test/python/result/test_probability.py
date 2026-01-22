@@ -11,8 +11,9 @@
 # that they have been altered from the originals.
 
 """Test conversion to probability distribution"""
-from qiskit.test import QiskitTestCase
+
 from qiskit.result import ProbDistribution
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestProbDistribution(QiskitTestCase):

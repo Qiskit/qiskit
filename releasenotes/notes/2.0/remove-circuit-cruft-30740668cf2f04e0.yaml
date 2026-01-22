@@ -1,0 +1,13 @@
+---
+upgrade_circuits:
+  - |
+    The :class:`.QuantumCircuit` methods:
+
+    * ``cast``
+    * ``cbit_argument_conversion``
+    * ``cls_instances``
+    * ``cls_prefix``
+    * ``qbit_argument_conversion``
+
+    have been removed, following their deprecation in Qiskit 1.2.  These methods were internal
+    helper functions, and never intended to be public API.  No replacement is provided.

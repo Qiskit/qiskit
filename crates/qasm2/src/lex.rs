@@ -21,16 +21,17 @@
 //! keyword; the spec technically says that any real number is valid, but in reality that leads to
 //! weirdness like `200.0e-2` being a valid version specifier.  We do things with a custom
 //! context-dependent match after seeing an `OPENQASM` token, to avoid clashes with the general
-//! real-number tokenisation.
+//! real-number tokenization.
 
 use hashbrown::HashMap;
+use num_bigint::BigUint;
 use pyo3::prelude::PyResult;
 
 use std::path::Path;
 
-use crate::error::{message_generic, Position, QASM2ParseError};
+use crate::error::{Position, QASM2ParseError, message_generic};
 
-/// Tokenised version information data.  This is more structured than the real number suggested by
+/// Tokenized version information data.  This is more structured than the real number suggested by
 /// the specification.
 #[derive(Clone, Debug)]
 pub struct Version {
@@ -262,9 +263,9 @@ impl Token {
     }
 
     /// If the token is a real number, this method can be called to evaluate its value.  Panics if
-    /// the token is not a real number.
+    /// the token is not a float or an integer.
     pub fn real(&self, context: &TokenContext) -> f64 {
-        if self.ttype != TokenType::Real {
+        if !(self.ttype == TokenType::Real || self.ttype == TokenType::Integer) {
             panic!()
         }
         context.text[self.index].parse().unwrap()
@@ -273,6 +274,15 @@ impl Token {
     /// If the token is an integer (by type, not just by value), this method can be called to
     /// evaluate its value.  Panics if the token is not an integer type.
     pub fn int(&self, context: &TokenContext) -> usize {
+        if self.ttype != TokenType::Integer {
+            panic!()
+        }
+        context.text[self.index].parse().unwrap()
+    }
+
+    /// If the token is an integer (by type, not just by value), this method can be called to
+    /// evaluate its value as a big integer.  Panics if the token is not an integer type.
+    pub fn bigint(&self, context: &TokenContext) -> BigUint {
         if self.ttype != TokenType::Integer {
             panic!()
         }
@@ -327,7 +337,7 @@ pub struct TokenStream {
     /// backing file or other named resource.
     pub filename: std::ffi::OsString,
     strict: bool,
-    source: Box<dyn std::io::BufRead + Send>,
+    source: Box<dyn std::io::BufRead + Send + Sync>,
     line_buffer: Vec<u8>,
     done: bool,
     line: usize,
@@ -342,7 +352,7 @@ impl TokenStream {
     /// Create and initialise a generic [TokenStream], given a source that implements
     /// [std::io::BufRead] and a filename (or resource path) that describes its source.
     fn new(
-        source: Box<dyn std::io::BufRead + Send>,
+        source: Box<dyn std::io::BufRead + Send + Sync>,
         filename: std::ffi::OsString,
         strict: bool,
     ) -> Self {
@@ -353,7 +363,7 @@ impl TokenStream {
             line_buffer: Vec::with_capacity(80),
             done: false,
             // The first line is numbered "1", and the first column is "0".  The counts are
-            // initialised like this so the first call to `next_byte` can easily detect that it
+            // initialized like this so the first call to `next_byte` can easily detect that it
             // needs to extract the next line.
             line: 0,
             col: 0,
@@ -403,7 +413,7 @@ impl TokenStream {
                     self.done = true;
                     Err(QASM2ParseError::new_err(message_generic(
                         Some(&Position::new(&self.filename, self.line, self.col)),
-                        &format!("lexer failed to read stream: {}", err),
+                        &format!("lexer failed to read stream: {err}"),
                     )))
                 }
             }
@@ -423,7 +433,7 @@ impl TokenStream {
                 self.done = true;
                 Err(QASM2ParseError::new_err(message_generic(
                     Some(&Position::new(&self.filename, self.line, self.col)),
-                    &format!("encountered a non-ASCII byte: {:02X?}", b),
+                    &format!("encountered a non-ASCII byte: {b:02X?}"),
                 )))
             }
             b => Ok(Some(b)),
@@ -442,7 +452,7 @@ impl TokenStream {
                 self.done = true;
                 Err(QASM2ParseError::new_err(message_generic(
                     Some(&Position::new(&self.filename, self.line, self.col)),
-                    &format!("encountered a non-ASCII byte: {:02X?}", b),
+                    &format!("encountered a non-ASCII byte: {b:02X?}"),
                 )))
             }
             b => Ok(Some(b)),
@@ -547,7 +557,7 @@ impl TokenStream {
                     )))
                 } else {
                     self.lex_float_exponent(start_col)
-                }
+                };
             }
             _ => (),
         }
@@ -581,8 +591,9 @@ impl TokenStream {
                 b"OPENQASM" => Ok(TokenType::OpenQASM),
                 b"U" | b"CX" => Ok(TokenType::Id),
                 _ => Err(QASM2ParseError::new_err(message_generic(
-                        Some(&Position::new(&self.filename, self.line, start_col)),
-                        "identifiers cannot start with capital letters except for the builtins 'U' and 'CX'"))),
+                    Some(&Position::new(&self.filename, self.line, start_col)),
+                    "identifiers cannot start with capital letters except for the builtins 'U' and 'CX'",
+                ))),
             }
         } else {
             match text {
@@ -616,13 +627,13 @@ impl TokenStream {
                     return Err(QASM2ParseError::new_err(message_generic(
                         Some(&Position::new(&self.filename, self.line, start_col)),
                         "unexpected end-of-file while lexing string literal",
-                    )))
+                    )));
                 }
                 Some(b'\n' | b'\r') => {
                     return Err(QASM2ParseError::new_err(message_generic(
                         Some(&Position::new(&self.filename, self.line, start_col)),
                         "unexpected line break while lexing string literal",
-                    )))
+                    )));
                 }
                 Some(c) if c == terminator => {
                     return Ok(TokenType::Filename);
@@ -665,8 +676,11 @@ impl TokenStream {
             b'}' => TokenType::RBrace,
             b'/' => {
                 if let Some(b'/') = self.peek_byte()? {
-                    self.advance_line()?;
-                    return self.next(context);
+                    return if self.advance_line()? == 0 {
+                        Ok(None)
+                    } else {
+                        self.next(context)
+                    };
                 } else {
                     TokenType::Slash
                 }

@@ -11,18 +11,18 @@
 # that they have been altered from the originals.
 
 """Test the Unroll3qOrMore pass"""
+
 import numpy as np
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Qubit, Clbit
-from qiskit.circuit.library import CCXGate, RCCXGate
+from qiskit.circuit.library import CCXGate, RCCXGate, UnitaryGate
 from qiskit.transpiler.passes import Unroll3qOrMore
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.random import random_unitary
-from qiskit.test import QiskitTestCase
-from qiskit.extensions import UnitaryGate
 from qiskit.transpiler import Target
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestUnroll3qOrMore(QiskitTestCase):
@@ -62,15 +62,16 @@ class TestUnroll3qOrMore(QiskitTestCase):
         qr = QuantumRegister(3, "qr")
         cr = ClassicalRegister(1, "cr")
         circuit = QuantumCircuit(qr, cr)
-        circuit.ccx(qr[0], qr[1], qr[2]).c_if(cr, 0)
+        with circuit.if_test((cr, 0)):
+            circuit.ccx(qr[0], qr[1], qr[2])
         dag = circuit_to_dag(circuit)
         pass_ = Unroll3qOrMore()
         after_dag = pass_.run(dag)
         op_nodes = after_dag.op_nodes()
-        self.assertEqual(len(op_nodes), 15)
-        for node in op_nodes:
-            self.assertIn(node.name, ["h", "t", "tdg", "cx"])
-            self.assertEqual(node.op.condition, (cr, 0))
+        self.assertEqual(len(op_nodes), 1)
+        self.assertEqual(len(op_nodes[0].op.blocks[0].data), 15)
+        for node in op_nodes[0].op.blocks[0].data:
+            self.assertIn(node.name, ["h", "t", "tdg", "cx", "if_else"])
 
     def test_decompose_unitary(self):
         """Test unrolling of unitary gate over 4qubits."""

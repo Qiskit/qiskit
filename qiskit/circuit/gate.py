@@ -18,17 +18,24 @@ import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.utils.deprecation import deprecate_arg
+from .annotated_operation import AnnotatedOperation, ControlModifier, PowerModifier
 from .instruction import Instruction
 
 
 class Gate(Instruction):
     """Unitary gate."""
 
-    def __init__(self, name: str, num_qubits: int, params: list, label: str | None = None) -> None:
-        """Create a new gate.
-
+    def __init__(
+        self,
+        name: str,
+        num_qubits: int,
+        params: list,
+        label: str | None = None,
+    ) -> None:
+        """
         Args:
-            name: The Qobj name of the gate.
+            name: The name of the gate.
             num_qubits: The number of qubits the gate acts on.
             params: A list of parameters.
             label: An optional label for the gate.
@@ -53,70 +60,100 @@ class Gate(Instruction):
             return self.__array__(dtype=complex)
         raise CircuitError(f"to_matrix not defined for this {type(self)}")
 
-    def power(self, exponent: float):
-        """Creates a unitary gate as `gate^exponent`.
+    def power(self, exponent: float, annotated: bool = False):
+        """Raise this gate to the power of ``exponent``.
+
+        Implemented either as a unitary gate (ref. :class:`~.library.UnitaryGate`)
+        or as an annotated operation (ref. :class:`.AnnotatedOperation`). In the case of several standard
+        gates, such as :class:`.RXGate`, when the power of a gate can be expressed in terms of another
+        standard gate that is returned directly.
 
         Args:
-            exponent (float): Gate^exponent
+            exponent (float): the power to raise the gate to
+            annotated (bool): indicates whether the power gate can be implemented
+                as an annotated operation. In the case of several standard
+                gates, such as :class:`.RXGate`, this argument is ignored when
+                the power of a gate can be expressed in terms of another
+                standard gate.
 
         Returns:
-            qiskit.extensions.UnitaryGate: To which `to_matrix` is self.to_matrix^exponent.
+            An operation implementing ``gate^exponent``
 
         Raises:
-            CircuitError: If Gate is not unitary
+            CircuitError: If gate is not unitary
         """
-        from qiskit.quantum_info.operators import Operator  # pylint: disable=cyclic-import
-        from qiskit.extensions.unitary import UnitaryGate  # pylint: disable=cyclic-import
-        from scipy.linalg import schur
+        # pylint: disable=cyclic-import
+        from qiskit.quantum_info.operators import Operator
+        from qiskit.circuit.library.generalized_gates.unitary import UnitaryGate
 
-        # Should be diagonalized because it's a unitary.
-        decomposition, unitary = schur(Operator(self).data, output="complex")
-        # Raise the diagonal entries to the specified power
-        decomposition_power = []
-
-        decomposition_diagonal = decomposition.diagonal()
-        # assert off-diagonal are 0
-        if not np.allclose(np.diag(decomposition_diagonal), decomposition):
-            raise CircuitError("The matrix is not diagonal")
-
-        for element in decomposition_diagonal:
-            decomposition_power.append(pow(element, exponent))
-        # Then reconstruct the resulting gate.
-        unitary_power = unitary @ np.diag(decomposition_power) @ unitary.conj().T
-        return UnitaryGate(unitary_power, label=f"{self.name}^{exponent}")
+        if not annotated:
+            return UnitaryGate(
+                Operator(self).power(exponent, assume_unitary=True), label=f"{self.name}^{exponent}"
+            )
+        else:
+            return AnnotatedOperation(self, PowerModifier(exponent))
 
     def __pow__(self, exponent: float) -> "Gate":
         return self.power(exponent)
 
     def _return_repeat(self, exponent: float) -> "Gate":
-        return Gate(name=f"{self.name}*{exponent}", num_qubits=self.num_qubits, params=self.params)
+        gate = Gate(name=f"{self.name}*{exponent}", num_qubits=self.num_qubits, params=[])
+        gate.validate_parameter = self.validate_parameter
+        gate.params = self.params
+        return gate
 
+    @deprecate_arg(
+        name="annotated",
+        since="2.3",
+        additional_msg=(
+            "The method Gate.control() no longer accepts `annotated=None`. The new default is "
+            "`annotated=True`, which represents the controlled gate as an `AnnotatedOperation` "
+            "(unless a dedicated controlled-gate class already exists). You can explicitly set "
+            "`annotated=False` to preserve the previous behavior. However, using `annotated=True` "
+            "is recommended, as it defers construction of the controlled circuit to transpiler, "
+            "and furthermore enables additional controlled-gate optimizations (typically leading "
+            "to higher-quality circuits)."
+        ),
+        predicate=lambda my_arg: my_arg is None,
+        removal_timeline="in Qiskit 3.0",
+    )
     def control(
         self,
         num_ctrl_qubits: int = 1,
         label: str | None = None,
         ctrl_state: int | str | None = None,
+        annotated: bool | None = None,
     ):
-        """Return controlled version of gate. See :class:`.ControlledGate` for usage.
+        """Return the controlled version of itself.
+
+        The controlled gate is implemented as :class:`.ControlledGate` when ``annotated``
+        is ``False``, and as :class:`.AnnotatedOperation` when ``annotated`` is ``True``.
 
         Args:
-            num_ctrl_qubits: number of controls to add to gate (default=1)
-            label: optional gate label
-            ctrl_state: The control state in decimal or as a bitstring
-                (e.g. '111'). If None, use 2**num_ctrl_qubits-1.
+            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            label: Optional gate label. Defaults to ``None``.
+                Ignored if the controlled gate is implemented as an annotated operation.
+            ctrl_state: The control state of the gate, specified either as an integer or a bitstring
+                (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``.
+            annotated: Indicates whether the controlled gate should be implemented as a controlled gate
+                or as an annotated operation. If ``None``, treated as ``False``.
 
         Returns:
-            qiskit.circuit.ControlledGate: Controlled version of gate. This default algorithm
-            uses num_ctrl_qubits-1 ancillae qubits so returns a gate of size
-            num_qubits + 2*num_ctrl_qubits - 1.
+            A controlled version of this gate.
 
         Raises:
-            QiskitError: unrecognized mode or invalid ctrl_state
+            QiskitError: invalid ``ctrl_state``.
         """
-        # pylint: disable=cyclic-import
-        from .add_control import add_control
+        if not annotated:  # captures both None and False
+            # pylint: disable=cyclic-import
+            from ._add_control import add_control
 
-        return add_control(self, num_ctrl_qubits, label, ctrl_state)
+            return add_control(self, num_ctrl_qubits, label, ctrl_state)
+
+        else:
+            return AnnotatedOperation(
+                self, ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
+            )
 
     @staticmethod
     def _broadcast_single_argument(qarg: list) -> Iterator[tuple[list, list]]:
@@ -157,7 +194,7 @@ class Gate(Instruction):
             for arg in zip(*qargs):
                 yield list(arg), []
         else:
-            raise CircuitError("Not sure how to combine these qubit arguments:\n %s\n" % qargs)
+            raise CircuitError(f"Not sure how to combine these qubit arguments:\n {qargs}\n")
 
     def broadcast_arguments(self, qargs: list, cargs: list) -> Iterable[tuple[list, list]]:
         """Validation and handling of the arguments and its relationship.
@@ -216,7 +253,7 @@ class Gate(Instruction):
         elif len(qargs) >= 3:
             return Gate._broadcast_3_or_more_args(qargs)
         else:
-            raise CircuitError("This gate cannot handle %i arguments" % len(qargs))
+            raise CircuitError(f"This gate cannot handle {len(qargs)} arguments")
 
     def validate_parameter(self, parameter):
         """Gate parameters should be int, float, or ParameterExpression"""

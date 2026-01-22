@@ -14,24 +14,53 @@
 set -e
 set -x
 
-version=$1
-parts=( ${version//./ } )
-if [[ ${parts[1]} -lt 18 ]] ; then
-    exit 0
+function usage {
+    echo "usage: ${BASH_SOURCE[0]} -p /path/to/qiskit/python <package> <version> <python_version>" 1>&2
+    exit 1
+}
+
+python="python"
+while getopts "p:" opt; do 
+    case "$opt" in
+        p)
+            python="$OPTARG"
+            ;;
+        *)
+            usage
+            ;;
+    esac
+done
+shift "$((OPTIND-1))"
+if [[ $# != 3 ]]; then
+    usage
 fi
 
-if [[ ! -d qpy_$version ]] ; then
-    echo "Building venv for qiskit-terra $version"
-    python -m venv $version
-    ./$version/bin/pip install "qiskit-terra==$version"
-    mkdir qpy_$version
-    pushd qpy_$version
-    echo "Generating qpy files with qiskit-terra $version"
-    ../$version/bin/python ../test_qpy.py generate --version=$version
+# `package` is the name of the Python distribution to install (qiskit or qiskit-terra). `version` is
+# the source version: the release with which to generate qpy files with to load with the version
+# under test. 'python_version' is the (compatbile) python version with which to run qiskit within the docker image,
+# in the case where docker is used.
+
+package="$1"
+version="$2"
+python_version="$3"
+
+our_dir="$(realpath -- "$(dirname -- "${BASH_SOURCE[0]}")")"
+cache_dir="$(pwd -P)/qpy_cache/$version"
+venv_dir="$(pwd -P)/venvs/$package-$version"
+
+if [[ ! -d $cache_dir ]] ; then
+    docker build -t $package:$version --build-arg PYTHON_VERSION=$python_version --build-arg PACKAGE_NAME=$package --build-arg PACKAGE_VERSION=$version .
+    mkdir -p "$cache_dir"
+    pushd "$cache_dir"
+    echo "Generating QPY files with $package==$version"
+    # If the generation script fails, we still want to tidy up before exiting.
+    docker run --rm -v "${our_dir}":/work/src -v "$PWD":/work -w /work $package:$version python src/test_qpy.py generate --version="$version" || { docker rmi $package:$version; exit 1; }
+    docker rmi $package:$version
+    docker builder prune -f
 else
     echo "Using cached QPY files for $version"
-    pushd qpy_$version
+    pushd "${cache_dir}"
 fi
-echo "Loading qpy files from $version with dev qiskit-terra"
-../qiskit_venv/bin/python ../test_qpy.py load --version=$version
+echo "Loading qpy files from $version with dev Qiskit"
+"$python" "${our_dir}/test_qpy.py" load --version="$version"
 popd

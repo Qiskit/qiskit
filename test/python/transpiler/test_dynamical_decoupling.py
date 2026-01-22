@@ -15,7 +15,7 @@
 import unittest
 import numpy as np
 from numpy import pi
-from ddt import ddt, data
+from ddt import ddt
 
 from qiskit.circuit import QuantumCircuit, Delay, Measure, Reset, Parameter
 from qiskit.circuit.library import XGate, YGate, RXGate, UGate, CXGate, HGate
@@ -29,9 +29,7 @@ from qiskit.transpiler.passes import (
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.target import Target, InstructionProperties
-from qiskit import pulse
-
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt
@@ -89,7 +87,8 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
                 ("rx", None, 100),
                 ("measure", None, 1000),
                 ("reset", None, 1500),
-            ]
+            ],
+            dt=1e-9,
         )
 
     def test_insert_dd_ghz(self):
@@ -438,7 +437,7 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
 
         midmeas_dd = pm.run(self.midmeas)
 
-        combined_u = UGate(0, -pi / 2, pi / 2)
+        combined_u = UGate(0, 0, 0)
 
         expected = QuantumCircuit(3, 1)
         expected.cx(0, 1)
@@ -453,7 +452,7 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
         expected.cx(1, 2)
         expected.cx(0, 1)
         expected.delay(700, 2)
-        expected.global_phase = pi / 2
+        expected.global_phase = pi
 
         self.assertEqual(midmeas_dd, expected)
         # check the absorption into U was done correctly
@@ -697,31 +696,6 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
         with self.assertRaises(TranspilerError):
             pm.run(self.ghz4)
 
-    @data(0.5, 1.5)
-    def test_dd_with_calibrations_with_parameters(self, param_value):
-        """Check that calibrations in a circuit with parameters work fine."""
-
-        circ = QuantumCircuit(2)
-        circ.x(0)
-        circ.cx(0, 1)
-        circ.rx(param_value, 1)
-
-        rx_duration = int(param_value * 1000)
-
-        with pulse.build() as rx:
-            pulse.play(pulse.Gaussian(rx_duration, 0.1, rx_duration // 4), pulse.DriveChannel(1))
-
-        circ.add_calibration("rx", (1,), rx, params=[param_value])
-
-        durations = InstructionDurations([("x", None, 100), ("cx", None, 300)])
-
-        dd_sequence = [XGate(), XGate()]
-        pm = PassManager(
-            [ALAPScheduleAnalysis(durations), PadDynamicalDecoupling(durations, dd_sequence)]
-        )
-
-        self.assertEqual(pm.run(circ).duration, rx_duration + 100 + 300)
-
     def test_insert_dd_ghz_xy4_with_alignment(self):
         """Test DD with pulse alignment constraints.
 
@@ -882,6 +856,42 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
         expected.x([0])
         expected.delay(200, [0])
         self.assertEqual(expected, scheduled)
+
+    def test_paramaterized_global_phase(self):
+        """Test paramaterized global phase in DD circuit.
+        See:https://github.com/Qiskit/qiskit-terra/issues/10569
+        """
+        dd_sequence = [XGate(), YGate()] * 2
+        qc = QuantumCircuit(1, 1)
+        qc.h(0)
+        qc.delay(1700, 0)
+        qc.y(0)
+        qc.global_phase = Parameter("a")
+        pm = PassManager(
+            [
+                ALAPScheduleAnalysis(self.durations),
+                PadDynamicalDecoupling(self.durations, dd_sequence),
+            ]
+        )
+
+        self.assertEqual(qc.global_phase + np.pi, pm.run(qc).global_phase)
+
+    def test_misalignment_at_boundaries(self):
+        """Test the correct error message is raised for misalignments at In/Out nodes."""
+        # a circuit where the previous node is DAGInNode, and the next DAGOutNode
+        circuit = QuantumCircuit(1)
+        circuit.delay(101)
+
+        dd_sequence = [XGate(), XGate()]
+        pm = PassManager(
+            [
+                ALAPScheduleAnalysis(self.durations),
+                PadDynamicalDecoupling(self.durations, dd_sequence, pulse_alignment=2),
+            ]
+        )
+
+        with self.assertRaises(TranspilerError):
+            _ = pm.run(circuit)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed a bug in QPY serialization (:mod:`qiskit.qpy`) where if a circuit contained
+    multiple instances of parametrized controlled gates of the same class (not custom),
+    the parameter values from the first instance were used to build the gate definitions
+    of subsequent instances. The gates were rendered correctly despite this bug because
+    the correct parameter values were stored, but not used to build the gates. Fixed
+    `#10735 <https://github.com/Qiskit/qiskit-terra/issues/10735>`__.

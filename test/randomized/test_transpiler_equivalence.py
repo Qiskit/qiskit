@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -48,52 +48,27 @@ QISKIT_RANDOMIZED_TEST_ALLOW_BARRIERS
 """
 
 import os
+import warnings
+
+from test.utils.base import dicts_almost_equal
+
 from math import pi
 
 from hypothesis import assume, settings, HealthCheck
 from hypothesis.stateful import multiple, rule, precondition, invariant
 from hypothesis.stateful import Bundle, RuleBasedStateMachine
-
 import hypothesis.strategies as st
 
-from qiskit import transpile, Aer
+from qiskit import transpile, qasm2
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit.circuit import Measure, Reset, Gate, Barrier
-from qiskit.providers.fake_provider import (
-    FakeProvider,
-    FakeOpenPulse2Q,
-    FakeOpenPulse3Q,
-    FakeYorktown,
-    FakeTenerife,
-    FakeOurense,
-    FakeVigo,
-    FakeMelbourne,
-    FakeRueschlikon,
-    FakeTokyo,
-    FakePoughkeepsie,
-    FakeAlmaden,
-    FakeSingapore,
-    FakeJohannesburg,
-    FakeBoeblingen,
-    FakeRochester,
-    FakeBurlington,
-    FakeCambridge,
-    FakeCambridgeAlternativeBasis,
-    FakeEssex,
-    FakeLondon,
-    FakeQasmSimulator,
-    FakeArmonk,
-    FakeRome,
-    FakeSantiago,
-    FakeSydney,
-    FakeToronto,
-    FakeValencia,
-)
-from qiskit.test.base import dicts_almost_equal
-
+from qiskit.circuit import Measure, Reset, Barrier
+from qiskit.providers.fake_provider import GenericBackendV2
 
 # pylint: disable=wildcard-import,unused-wildcard-import
 from qiskit.circuit.library.standard_gates import *
+from ..python.legacy_cmaps import ALMADEN_CMAP, KYOTO_CMAP
+
+from qiskit_aer import AerSimulator  # pylint: disable=wrong-import-order
 
 default_profile = "transpiler_equivalence"
 settings.register_profile(
@@ -144,13 +119,11 @@ layout_methods = _getenv_list("QISKIT_RANDOMIZED_TEST_LAYOUT_METHODS") or [
     None,
     "trivial",
     "dense",
-    "noise_adaptive",
     "sabre",
 ]
 routing_methods = _getenv_list("QISKIT_RANDOMIZED_TEST_ROUTING_METHODS") or [
     None,
     "basic",
-    "stochastic",
     "lookahead",
     "sabre",
 ]
@@ -165,65 +138,14 @@ backend_needs_durations = _strtobool(
 )
 
 
-def _fully_supports_scheduling(backend):
-    """Checks if backend is not in the set of backends known not to have specified gate durations."""
-    return not isinstance(
-        backend,
-        (
-            # no coupling map
-            FakeArmonk,
-            # no measure durations
-            FakeAlmaden,
-            FakeBurlington,
-            FakeCambridge,
-            FakeCambridgeAlternativeBasis,
-            FakeEssex,
-            FakeJohannesburg,
-            FakeLondon,
-            FakeOpenPulse2Q,
-            FakeOpenPulse3Q,
-            FakePoughkeepsie,
-            FakeQasmSimulator,
-            FakeRochester,
-            FakeRueschlikon,
-            FakeSingapore,
-            FakeTenerife,
-            FakeTokyo,
-            # No reset duration
-            FakeAlmaden,
-            FakeArmonk,
-            FakeBoeblingen,
-            FakeBurlington,
-            FakeCambridge,
-            FakeCambridgeAlternativeBasis,
-            FakeEssex,
-            FakeJohannesburg,
-            FakeLondon,
-            FakeMelbourne,
-            FakeOpenPulse2Q,
-            FakeOpenPulse3Q,
-            FakeOurense,
-            FakePoughkeepsie,
-            FakeQasmSimulator,
-            FakeRochester,
-            FakeRome,
-            FakeRueschlikon,
-            FakeSantiago,
-            FakeSingapore,
-            FakeSydney,
-            FakeTenerife,
-            FakeTokyo,
-            FakeToronto,
-            FakeValencia,
-            FakeVigo,
-            FakeYorktown,
-        ),
-    )
+mock_backends = [
+    GenericBackendV2(num_qubits=5, seed=0),
+    GenericBackendV2(num_qubits=5, seed=2),
+    GenericBackendV2(num_qubits=20, coupling_map=ALMADEN_CMAP, seed=5),
+    GenericBackendV2(num_qubits=127, coupling_map=KYOTO_CMAP, seed=42),
+]
 
-
-fake_provider = FakeProvider()
-mock_backends = fake_provider.backends()
-mock_backends_with_scheduling = [b for b in mock_backends if _fully_supports_scheduling(b)]
+mock_backends_with_scheduling = mock_backends
 
 
 @st.composite
@@ -262,8 +184,8 @@ class QCircuitMachine(RuleBasedStateMachine):
     qubits = Bundle("qubits")
     clbits = Bundle("clbits")
 
-    backend = Aer.get_backend("aer_simulator")
-    max_qubits = int(backend.configuration().n_qubits / 2)
+    backend = AerSimulator()
+    max_qubits = int(backend.num_qubits / 2)
 
     # Limit reg generation for more interesting circuits
     max_qregs = 3
@@ -319,66 +241,58 @@ class QCircuitMachine(RuleBasedStateMachine):
         """Append a gate with a variable number of qargs."""
         self.qc.append(gate(len(qargs)), qargs)
 
-    @precondition(lambda self: len(self.qc.data) > 0)
-    @rule(carg=clbits, data=st.data())
-    def add_c_if_last_gate(self, carg, data):
-        """Modify the last gate to be conditional on a classical register."""
-        creg = self.qc.find_bit(carg).registers[0][0]
-        val = data.draw(st.integers(min_value=0, max_value=2 ** len(creg) - 1))
-
-        last_gate = self.qc.data[-1]
-
-        # Conditional instructions are not supported
-        assume(isinstance(last_gate[0], Gate))
-
-        last_gate[0].c_if(creg, val)
-
     # Properties to check
-
     @invariant()
     def qasm(self):
         """After each circuit operation, it should be possible to build QASM."""
-        self.qc.qasm()
+        qasm2.dumps(self.qc)
 
-    @precondition(lambda self: any(isinstance(d[0], Measure) for d in self.qc.data))
+    @precondition(lambda self: any(isinstance(d.operation, Measure) for d in self.qc.data))
     @rule(kwargs=transpiler_conf())
     def equivalent_transpile(self, kwargs):
         """Simulate, transpile and simulate the present circuit. Verify that the
         counts are not significantly different before and after transpilation.
 
         """
-        assume(
-            kwargs["backend"] is None
-            or kwargs["backend"].configuration().n_qubits >= len(self.qc.qubits)
-        )
+        assume(kwargs["backend"] is None or kwargs["backend"].num_qubits >= len(self.qc.qubits))
 
         call = (
             "transpile(qc, "
             + ", ".join(f"{key:s}={value!r}" for key, value in kwargs.items() if value is not None)
             + ")"
         )
-        print(f"Evaluating {call} for:\n{self.qc.qasm()}")
+        print(f"Evaluating {call} for:\n{qasm2.dumps(self.qc)}")  # pylint: disable=bad-builtin
 
         shots = 4096
 
         # Note that there's no transpilation here, which is why the gates are limited to only ones
         # that Aer supports natively.
-        aer_counts = self.backend.run(self.qc, shots=shots).result().get_counts()
+        with warnings.catch_warnings():
+            # Safe to remove once https://github.com/Qiskit/qiskit-aer/pull/2179 is in a release version
+            # of Aer.
+            warnings.filterwarnings(
+                "default",
+                category=DeprecationWarning,
+                module="qiskit_aer",
+                message="Treating CircuitInstruction as an iterable",
+            )
+            aer_counts = self.backend.run(self.qc, shots=shots).result().get_counts()
 
         try:
             xpiled_qc = transpile(self.qc, **kwargs)
         except Exception as e:
-            failed_qasm = f"Exception caught during transpilation of circuit: \n{self.qc.qasm()}"
+            failed_qasm = (
+                f"Exception caught during transpilation of circuit: \n{qasm2.dumps(self.qc)}"
+            )
             raise RuntimeError(failed_qasm) from e
 
         xpiled_aer_counts = self.backend.run(xpiled_qc, shots=shots).result().get_counts()
 
         count_differences = dicts_almost_equal(aer_counts, xpiled_aer_counts, 0.05 * shots)
 
-        assert (
-            count_differences == ""
-        ), "Counts not equivalent: {}\nFailing QASM Input:\n{}\n\nFailing QASM Output:\n{}".format(
-            count_differences, self.qc.qasm(), xpiled_qc.qasm()
+        assert count_differences == "", (
+            f"Counts not equivalent: {count_differences}\nFailing QASM Input:\n"
+            f"{qasm2.dumps(self.qc)}\n\nFailing QASM Output:\n{qasm2.dumps(xpiled_qc)}"
         )
 
 

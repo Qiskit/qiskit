@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2021.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,8 +16,11 @@ from __future__ import annotations
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit, Gate
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.synthesis.linear import check_invertible_binary_matrix
 from qiskit.circuit.library.generalized_gates.permutation import PermutationGate
+from qiskit.utils.deprecation import deprecate_func
+
+# pylint: disable=cyclic-import
+from qiskit.quantum_info import Clifford
 
 
 class LinearFunction(Gate):
@@ -27,15 +30,17 @@ class LinearFunction(Gate):
     as a n x n matrix of 0s and 1s in numpy array format.
 
     A linear function can be synthesized into CX and SWAP gates using the Patel–Markov–Hayes
-    algorithm, as implemented in :func:`~qiskit.transpiler.synthesis.cnot_synth`
+    algorithm, as implemented in :func:`~qiskit.synthesis.synth_cnot_count_full_pmh`
     based on reference [1].
 
     For efficiency, the internal n x n matrix is stored in the format expected
     by cnot_synth, which is the big-endian (and not the little-endian) bit-ordering convention.
 
-    **Example:** the circuit
+    Example:
+     
+    The circuit
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ──■──
              ┌─┴─┐
@@ -54,7 +59,7 @@ class LinearFunction(Gate):
             \end{pmatrix}
 
 
-    **References:**
+    References:
 
     [1] Ketan N. Patel, Igor L. Markov, and John P. Hayes,
     Optimal synthesis of linear reversible circuits,
@@ -62,16 +67,24 @@ class LinearFunction(Gate):
     `Online at umich.edu. <https://web.eecs.umich.edu/~imarkov/pubs/jour/qic08-cnot.pdf>`_
     """
 
-    def __init__(self, linear, validate_input=False):
-        """Create a new linear function.
-
+    def __init__(
+        self,
+        linear: (
+            list[list[bool]]
+            | np.ndarray[bool]
+            | QuantumCircuit
+            | LinearFunction
+            | PermutationGate
+            | Clifford
+        ),
+        validate_input: bool = False,
+    ) -> None:
+        """
         Args:
-            linear (list[list] or ndarray[bool] or QuantumCircuit or LinearFunction
-                or PermutationGate or Clifford): data from which a linear function
-                can be constructed. It can be either a nxn matrix (describing the
-                linear transformation), a permutation (which is a special case of
-                a linear function), another linear function, a clifford (when it
-                corresponds to a linear function), or a quantum circuit composed of
+            linear: data from which a linear function can be constructed. It can be either a
+                nxn matrix (describing the linear transformation), a permutation (which is a
+                special case of a linear function), another linear function, a clifford (when
+                it corresponds to a linear function), or a quantum circuit composed of
                 linear gates (CX and SWAP) and other objects described above, including
                 nested subcircuits.
 
@@ -85,9 +98,6 @@ class LinearFunction(Gate):
                 (for example, a Hadamard gate, or a Clifford that does
                 not correspond to a linear function).
         """
-
-        # pylint: disable=cyclic-import
-        from qiskit.quantum_info import Clifford
 
         original_circuit = None
 
@@ -106,6 +116,8 @@ class LinearFunction(Gate):
 
             # Optionally, check that the matrix is invertible
             if validate_input:
+                from qiskit.synthesis.linear import check_invertible_binary_matrix
+
                 if not check_invertible_binary_matrix(linear):
                     raise CircuitError(
                         "A linear function must be represented by an invertible matrix."
@@ -211,17 +223,22 @@ class LinearFunction(Gate):
 
     def _define(self):
         """Populates self.definition with a decomposition of this gate."""
-        self.definition = self.synthesize()
+        from qiskit.synthesis.linear import synth_cnot_count_full_pmh
 
+        self.definition = synth_cnot_count_full_pmh(self.linear)
+
+    @deprecate_func(
+        since="2.1",
+        additional_msg="Call LinearFunction.definition instead, or compile the circuit.",
+        removal_timeline="in Qiskit 3.0",
+    )
     def synthesize(self):
         """Synthesizes the linear function into a quantum circuit.
 
         Returns:
             QuantumCircuit: A circuit implementing the evolution.
         """
-        from qiskit.synthesis.linear import synth_cnot_count_full_pmh
-
-        return synth_cnot_count_full_pmh(self.linear)
+        return self.definition
 
     @property
     def linear(self):

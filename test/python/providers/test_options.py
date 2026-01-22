@@ -17,8 +17,8 @@ import copy
 import pickle
 
 from qiskit.providers import Options
-from qiskit.qobj.utils import MeasLevel
-from qiskit.test import QiskitTestCase
+from qiskit.result.models import MeasLevel
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestOptions(QiskitTestCase):

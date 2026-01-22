@@ -1,0 +1,10 @@
+---
+upgrade:
+  - |
+    The functions ``sequence`` and  ``schedule`` from the :mod:`.compiler` 
+    module have been removed following their deprecation in Qiskit 1.3.
+    They relied on being able to translate circuits to pulse using backend
+    definitions, a capability that is no longer present. For this reason
+    they have been removed with no proposed alternative.
+    Note that this removals relate to the Pulse package which is 
+    also being removed in Qiskit 2.0.

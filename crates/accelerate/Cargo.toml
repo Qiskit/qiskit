@@ -1,41 +1,58 @@
 [package]
-name = "qiskit_accelerate"
-# The following options can be inherited with (e.g.) `version.workspace = true` once we hit Rust
-# 1.64.  Until then, keep in sync with the root `Cargo.toml`.
-version = "0.45.0"
-edition = "2021"
-rust-version = "1.61"
-license = "Apache-2.0"
+name = "qiskit-accelerate"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
 
 [lib]
 name = "qiskit_accelerate"
-crate-type = ["cdylib"]
+doctest = false
+
+[lints]
+workspace = true
 
 [dependencies]
-rayon = "1.7"
-numpy = "0.19.0"
-rand = "0.8"
-rand_pcg = "0.3"
-rand_distr = "0.4.3"
-ahash = "0.8.3"
-num-complex = "0.4"
-num-bigint = "0.4"
-rustworkx-core = "0.13"
+rayon.workspace = true
+numpy.workspace = true
+rand.workspace = true
+rand_pcg.workspace = true
+rand_distr.workspace = true
+num-complex.workspace = true
+rustworkx-core.workspace = true
+num-bigint.workspace = true
+itertools.workspace = true
+qiskit-circuit.workspace = true
+qiskit-transpiler.workspace = true
+qiskit-quantum-info.workspace = true
+nalgebra.workspace = true
 
-# The base version of PyO3 and setting a minimum feature set (e.g. probably just 'extension-module')
-# can be done in the workspace and inherited once we hit Rust 1.64.
+[dependencies.smallvec]
+workspace = true
+features = ["union"]
+
 [dependencies.pyo3]
-version = "0.19.2"
-features = ["extension-module", "hashbrown", "indexmap", "num-complex", "num-bigint", "abi3-py38"]
+workspace = true
+features = ["hashbrown", "num-complex", "num-bigint", "smallvec"]
 
 [dependencies.ndarray]
-version = "^0.15.6"
-features = ["rayon"]
+workspace = true
+features = ["rayon", "approx"]
+
+[dependencies.approx]
+workspace = true
+features = ["num-complex"]
 
 [dependencies.hashbrown]
-version = "0.12.3"
-features = ["rayon"]
+workspace = true
+features = ["rayon", "serde"]
 
-[dependencies.indexmap]
-version = "1.9"
-features = ["rayon"]
+[dependencies.pulp]
+version = "0.22.2"
+features = ["macro"]
+
+[dev-dependencies]
+pyo3 = { workspace = true, features = ["auto-initialize"] }
+
+[features]
+cache_pygates = ["qiskit-circuit/cache_pygates"]

@@ -14,74 +14,88 @@
 
 import math
 from cmath import exp
-from math import pi
 from typing import Optional
 import numpy
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit._accelerate.circuit import StandardGate
 
 
 class RGate(Gate):
-    r"""Rotation θ around the cos(φ)x + sin(φ)y axis.
+    r"""Rotation :math:`\theta` around the :math:`\cos(\phi)x + \sin(\phi)y` axis.
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.r` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
-    .. parsed-literal::
+    .. code-block:: text
 
-             ┌──────┐
-        q_0: ┤ R(ϴ) ├
-             └──────┘
+               ┌────────┐
+        q_0:   ┤ R(θ,ϕ) ├ 
+               └────────┘
 
-    **Matrix Representation:**
+
+    Matrix representation:
 
     .. math::
 
-        \newcommand{\th}{\frac{\theta}{2}}
+        \newcommand{\rotationangle}{\frac{\theta}{2}}
 
-        R(\theta, \phi) = e^{-i \th \left(\cos{\phi} x + \sin{\phi} y\right)} =
+        R(\theta, \phi) = e^{-i \rotationangle \left(\cos{\phi} x + \sin{\phi} y\right)} =
             \begin{pmatrix}
-                \cos\left(\th\right) & -i e^{-i \phi} \sin\left(\th\right) \\
-                -i e^{i \phi} \sin\left(\th\right) & \cos\left(\th\right)
+                \cos\left(\rotationangle\right) & -i e^{-i \phi} \sin\left(\rotationangle\right) \\
+                -i e^{i \phi} \sin\left(\rotationangle\right) & \cos\left(\rotationangle\right)
             \end{pmatrix}
     """
 
+    _standard_gate = StandardGate.R
+
     def __init__(
-        self, theta: ParameterValueType, phi: ParameterValueType, label: Optional[str] = None
+        self,
+        theta: ParameterValueType,
+        phi: ParameterValueType,
+        label: Optional[str] = None,
     ):
-        """Create new r single-qubit gate."""
+        r"""
+        Args:
+            theta: The rotation angle :math:`\theta`.
+            phi: The angle specifying the rotation axis, given by :math:`\cos(\phi) x + \sin(\phi)y`.
+            label: An optional label for the gate.
+        """
         super().__init__("r", 1, [theta, phi], label=label)
 
     def _define(self):
-        """
-        gate r(θ, φ) a {u3(θ, φ - π/2, -φ + π/2) a;}
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .u3 import U3Gate
+        from qiskit.circuit import QuantumCircuit
 
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        theta = self.params[0]
-        phi = self.params[1]
-        rules = [(U3Gate(theta, phi - pi / 2, -phi + pi / 2), [q[0]], [])]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        #    ┌───────────────────────┐
+        # q: ┤ U(θ,-π/2 + φ,π/2 - φ) ├
+        #    └───────────────────────┘
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.R._get_definition(self.params), legacy_qubits=True
+        )
 
-    def inverse(self):
-        """Invert this gate.
+    def inverse(self, annotated: bool = False):
+        r"""Invert this gate as: :math:`R(θ, φ)^{\dagger} = R(-θ, φ)`
 
-        r(θ, φ)^dagger = r(-θ, φ)
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.RGate` with an inverted parameter value.
+
+        Returns:
+            RGate: inverse gate.
         """
         return RGate(-self.params[0], self.params[1])
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the R gate."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         theta, phi = float(self.params[0]), float(self.params[1])
         cos = math.cos(theta / 2)
         sin = math.sin(theta / 2)
@@ -89,7 +103,11 @@ class RGate(Gate):
         exp_p = exp(1j * phi)
         return numpy.array([[cos, -1j * exp_m * sin], [-1j * exp_p * sin, cos]], dtype=dtype)
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         theta, phi = self.params
         return RGate(exponent * theta, phi)
+
+    def __eq__(self, other):
+        if isinstance(other, RGate):
+            return self._compare_parameters(other)
+        return False

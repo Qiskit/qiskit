@@ -14,13 +14,14 @@
 
 from qiskit.transpiler.passes.basis import UnrollCustomDefinitions
 
-from qiskit.test import QiskitTestCase
 from qiskit.circuit import EquivalenceLibrary, Gate, Qubit, Clbit, Parameter
 from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit.classical import expr, types
 from qiskit.converters import circuit_to_dag
 from qiskit.exceptions import QiskitError
 from qiskit.transpiler import Target
-from qiskit.circuit.library import CXGate, U3Gate
+from qiskit.circuit.library import CXGate, U3Gate, UGate
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestGate(Gate):
@@ -316,4 +317,57 @@ class TestUnrollCustomDefinitions(QiskitTestCase):
         qc.append(QuantumCircuit(2, global_phase=0.5).to_gate(), [0, 1], [])
         pass_ = UnrollCustomDefinitions(EquivalenceLibrary(), ["u"])
         expected = QuantumCircuit(2, global_phase=0.5)
+        self.assertEqual(pass_(qc), expected)
+
+    def test_leave_store_alone(self):
+        """Don't attempt to unroll `Store` instructions."""
+
+        pass_ = UnrollCustomDefinitions(EquivalenceLibrary(), ["u", "cx"])
+
+        bell = QuantumCircuit(2)
+        bell.h(0)
+        bell.cx(0, 1)
+
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+        qc = QuantumCircuit(2, inputs=[a])
+        qc.add_var(b, a)
+        qc.compose(bell, [0, 1], inplace=True)
+        qc.store(b, a)
+
+        expected = qc.copy_empty_like()
+        expected.store(b, a)
+        expected.compose(pass_(bell), [0, 1], inplace=True)
+        expected.store(b, a)
+
+        self.assertEqual(pass_(qc), expected)
+
+    def test_leave_store_alone_with_target(self):
+        """Don't attempt to unroll `Store` instructions with a `Target`."""
+
+        # Note no store.
+        target = Target()
+        target.add_instruction(
+            UGate(Parameter("a"), Parameter("b"), Parameter("c")), {(0,): None, (1,): None}
+        )
+        target.add_instruction(CXGate(), {(0, 1): None, (1, 0): None})
+
+        pass_ = UnrollCustomDefinitions(EquivalenceLibrary(), target=target)
+
+        bell = QuantumCircuit(2)
+        bell.h(0)
+        bell.cx(0, 1)
+
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+        qc = QuantumCircuit(2, inputs=[a])
+        qc.add_var(b, a)
+        qc.compose(bell, [0, 1], inplace=True)
+        qc.store(b, a)
+
+        expected = qc.copy_empty_like()
+        expected.store(b, a)
+        expected.compose(pass_(bell), [0, 1], inplace=True)
+        expected.store(b, a)
+
         self.assertEqual(pass_(qc), expected)

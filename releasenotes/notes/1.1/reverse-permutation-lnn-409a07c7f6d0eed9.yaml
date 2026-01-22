@@ -1,0 +1,8 @@
+---
+features_synthesis:
+  - |
+    Add a new synthesis method :func:`.synth_permutation_reverse_lnn_kms`
+    of reverse permutations for linear nearest-neighbor architectures using
+    Kutin, Moulton, Smithline method.
+    This algorithm synthesizes the reverse permutation on :math:`n` qubits over
+    a linear nearest-neighbor architecture using CX gates with depth :math:`2 * n + 2`.

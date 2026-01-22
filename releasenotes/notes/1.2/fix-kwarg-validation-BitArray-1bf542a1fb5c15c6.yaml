@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    The keyword argument ``order`` of the function :meth:`.BitArray.from_bool_array` should be 'little' or 'big'. Added checks to raise error if an invalid value is entered.

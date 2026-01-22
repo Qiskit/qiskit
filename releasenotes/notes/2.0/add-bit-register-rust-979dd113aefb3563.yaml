@@ -1,0 +1,18 @@
+---
+upgrade_circuits:
+  - |
+    :class:`.Bit` and :class:`.Register` as well as their subclassess are no
+    longer guaranteed to be comparable using ``is`` checks, due to conversions to
+    and from Python which may re-allocate each instance exposed to Python.
+  - |
+    :class:`.Bit` and :class:`.Register` (and their subclasses) can no longer be
+    subclassed.  This was never intended to be supported behavior, and doing so
+    would cause unspecified behavior in Qiskit.  It is no longer possible to do
+    this as an implementation detail of the classes.
+  - |
+    It is no longer possible to create instances of the base :class:`.Bit` and
+    :class:`.Register` classes is no longer possible. Directly instantiating
+    these classes was clearly documented as something that was **not** supported
+    and being able to do it was was just an implementation artifact of how the
+    class heirarchy in previous releases. Starting in this release it is no longer
+    possible to do this.

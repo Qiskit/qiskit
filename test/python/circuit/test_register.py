@@ -16,13 +16,12 @@
 
 from ddt import data, ddt
 
-from qiskit.test import QiskitTestCase
-from qiskit.circuit import bit
+from qiskit.circuit import Qubit, Clbit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import AncillaRegister
 from qiskit.circuit import ClassicalRegister
-
 from qiskit.circuit.exceptions import CircuitError
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt
@@ -31,7 +30,7 @@ class TestRegisterClass(QiskitTestCase):
 
     @data(QuantumRegister, ClassicalRegister, AncillaRegister)
     def test_raise_on_init_with_invalid_size(self, reg_type):
-        with self.assertRaisesRegex(CircuitError, "must be an integer"):
+        with self.assertRaises(TypeError):
             _ = reg_type(1j, "foo")
 
     @data(QuantumRegister, ClassicalRegister, AncillaRegister)
@@ -48,8 +47,8 @@ class TestRegisterClass(QiskitTestCase):
 
     @data(QuantumRegister, ClassicalRegister, AncillaRegister)
     def test_init_raise_if_bits_of_incorrect_type(self, reg_type):
-        bits = [bit.Bit()]
-        with self.assertRaisesRegex(CircuitError, "did not all match register type"):
+        bits = [Qubit(), Clbit()]
+        with self.assertRaises(TypeError):
             _ = reg_type(bits=bits)
 
     @data(QuantumRegister, ClassicalRegister, AncillaRegister)
@@ -120,15 +119,3 @@ class TestRegisterClass(QiskitTestCase):
         bits_difftype = [difftype.bit_type() for _ in range(3)]
         reg_difftype = difftype(name="foo", bits=bits_difftype)
         self.assertNotEqual(reg_difftype, test_reg)
-
-    @data(QuantumRegister, ClassicalRegister, AncillaRegister)
-    def test_register_name_format_deprecation(self, reg_type):
-        """Test that the `Register.name_format` class data can be accessed and triggers its
-        deprecation correctly."""
-        # From instance:
-        reg_inst = reg_type(2)
-        with self.assertWarnsRegex(DeprecationWarning, "Register.name_format is deprecated"):
-            self.assertTrue(reg_inst.name_format.match("name"))
-        # From class:
-        with self.assertWarnsRegex(DeprecationWarning, "Register.name_format is deprecated"):
-            self.assertTrue(reg_type.name_format.match("name"))

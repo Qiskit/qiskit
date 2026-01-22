@@ -17,7 +17,7 @@ features:
 
     This new parser is approximately 10x faster than the existing ones at
     :meth:`.QuantumCircuit.from_qasm_file` and :meth:`.QuantumCircuit.from_qasm_str` for large files,
-    and has less overhead on each call as well.  The new parser is more extensible, customisable and
+    and has less overhead on each call as well.  The new parser is more extensible, customizable and
     generally also more type-safe; it will not attempt to output custom Qiskit objects when the
     definition in the OpenQASM 2 file clashes with the Qiskit object, unlike the current exporter.
     See the :mod:`qiskit.qasm2` module documentation for full details and more examples.

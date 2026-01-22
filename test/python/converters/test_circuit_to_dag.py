@@ -15,11 +15,18 @@
 import unittest
 
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit, Clbit
+from qiskit.circuit import (
+    QuantumRegister,
+    ClassicalRegister,
+    QuantumCircuit,
+    Clbit,
+    SwitchCaseOp,
+    Qubit,
+)
 from qiskit.circuit.library import HGate, Measure
-from qiskit.circuit.classical import expr
+from qiskit.circuit.classical import expr, types
 from qiskit.converters import dag_to_circuit, circuit_to_dag
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestCircuitToDag(QiskitTestCase):
@@ -34,7 +41,6 @@ class TestCircuitToDag(QiskitTestCase):
         circuit_in.h(qr[1])
         circuit_in.measure(qr[0], cr[0])
         circuit_in.measure(qr[1], cr[1])
-        circuit_in.x(qr[0]).c_if(cr, 0x3)
         circuit_in.measure(qr[0], cr[0])
         circuit_in.measure(qr[1], cr[1])
         circuit_in.measure(qr[2], cr[2])
@@ -42,25 +48,12 @@ class TestCircuitToDag(QiskitTestCase):
         circuit_out = dag_to_circuit(dag)
         self.assertEqual(circuit_out, circuit_in)
 
-    def test_calibrations(self):
-        """Test that calibrations are properly copied over."""
-        circuit_in = QuantumCircuit(1)
-        circuit_in.add_calibration("h", [0], None)
-        self.assertEqual(len(circuit_in.calibrations), 1)
-
-        dag = circuit_to_dag(circuit_in)
-        self.assertEqual(len(dag.calibrations), 1)
-
-        circuit_out = dag_to_circuit(dag)
-        self.assertEqual(len(circuit_out.calibrations), 1)
-
     def test_wires_from_expr_nodes_condition(self):
         """Test that the classical wires implied by an `Expr` node in a control-flow op's
         `condition` are correctly transferred."""
         # The control-flow builder interface always includes any classical wires in the blocks of
         # the operation, so we test by using manually constructed blocks that don't do that.  It's
-        # not required by the `QuantumCircuit` model (just like `c_if` instructions don't expand
-        # their `cargs`).
+        # not required by the `QuantumCircuit` model.
         inner = QuantumCircuit(1)
         inner.x(0)
         cr1 = ClassicalRegister(2, "a")
@@ -105,6 +98,70 @@ class TestCircuitToDag(QiskitTestCase):
         roundtripped = dag_to_circuit(dag)
         for original, test in zip(outer, roundtripped):
             self.assertEqual(original.operation.target, test.operation.target)
+
+    def test_runtime_vars_in_roundtrip(self):
+        """`expr.Var` nodes should be fully roundtripped."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+        c = expr.Var.new("c", types.Uint(8))
+        d = expr.Var.new("d", types.Uint(8))
+        qc = QuantumCircuit(inputs=[a, c])
+        qc.add_var(b, False)
+        qc.add_var(d, 255)
+        qc.store(a, expr.logic_or(a, b))
+        with qc.if_test(expr.logic_and(a, expr.equal(c, d))):
+            pass
+        with qc.while_loop(a):
+            qc.store(a, expr.logic_or(a, b))
+        with qc.switch(d) as case:
+            with case(0):
+                qc.store(c, d)
+            with case(case.DEFAULT):
+                qc.store(a, False)
+
+        roundtrip = dag_to_circuit(circuit_to_dag(qc))
+        self.assertEqual(qc, roundtrip)
+
+        self.assertIsInstance(qc.data[-1].operation, SwitchCaseOp)
+        # This is guaranteed to be topologically last, even after the DAG roundtrip.
+        self.assertIsInstance(roundtrip.data[-1].operation, SwitchCaseOp)
+        self.assertEqual(qc.data[-1].operation.blocks, roundtrip.data[-1].operation.blocks)
+
+        blocks = roundtrip.data[-1].operation.blocks
+        self.assertEqual(set(blocks[0].iter_captured_vars()), {c, d})
+        self.assertEqual(set(blocks[1].iter_captured_vars()), {a})
+
+    def test_circuit_method(self):
+        """Test that the circuit method can be used as a wrapper."""
+        qregs = [QuantumRegister(3, "q1"), QuantumRegister(2, "q2")]
+        cregs = [ClassicalRegister(3, "c1"), ClassicalRegister(2, "c2")]
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+        qc = QuantumCircuit(
+            *qregs,
+            [Qubit(), Clbit()],
+            *cregs,
+            name="test circuit",
+            metadata={"hello": "world"},
+            global_phase=2.0,
+            inputs=[a],
+            declarations={b: expr.lift(True)},
+        )
+        qc.add_stretch("c")
+        dag = qc.to_dag()
+        self.assertEqual(dag.name, qc.name)
+        self.assertEqual(dag.metadata, qc.metadata)
+        self.assertEqual(dag.global_phase, qc.global_phase)
+        self.assertEqual(dag.qregs, {qreg.name: qreg for qreg in qc.qregs})
+        self.assertEqual(dag.cregs, {creg.name: creg for creg in qc.cregs})
+        self.assertEqual(dag.qubits, qc.qubits)
+        self.assertEqual(dag.clbits, qc.clbits)
+        self.assertEqual(list(dag.iter_input_vars()), list(qc.iter_input_vars()))
+        self.assertEqual(list(dag.iter_declared_vars()), list(qc.iter_declared_vars()))
+        self.assertEqual(list(dag.iter_declared_stretches()), list(qc.iter_declared_stretches()))
+
+        # ... and test the roundtrip back.
+        self.assertEqual(dag.to_circuit(), qc)
 
     def test_wire_order(self):
         """Test that the `qubit_order` and `clbit_order` parameters are respected."""

@@ -1,0 +1,34 @@
+---
+fixes:
+  - |
+    Fixed an issue in the ``text`` circuit drawer when displaying operations
+    that were not :class:`.circuit.instruction.Instruction` class. These operations
+    would cause the drawer to fail. Examples were :class:`.Clifford` and
+    :class:`.AnnotatedOperation`.
+
+features_visualization:
+  - |
+    The ``text`` and ``mpl`` outputs for the :meth:`.QuantumCircuit.draw` and
+    :func:`.circuit_drawer` circuit drawer functions will now display detailed
+    information for operations of :class:`.AnnotatedOperation`. If the
+    :attr:`.AnnotatedOperation.modifiers` contains a :class:`.ControlModifier`,
+    the operation will be displayed the same way as controlled gates. If
+    the :class:`.InverseModifier` or :class:`.PowerModifier` is used,
+    these will be indicated with the base operation name. For example:
+
+    .. plot::
+       :include-source:
+
+       from qiskit.circuit import (
+           AnnotatedOperation,
+           ControlModifier,
+           PowerModifier,
+           InverseModifier,
+           QuantumCircuit
+       )
+       from qiskit.circuit.library import SGate
+
+       annotated_op = AnnotatedOperation(SGate(), [PowerModifier(3.4), ControlModifier(3), InverseModifier()])
+       qc = QuantumCircuit(4)
+       qc.append(annotated_op, range(4))
+       qc.draw("mpl")

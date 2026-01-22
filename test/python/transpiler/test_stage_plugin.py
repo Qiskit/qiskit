@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,14 +14,12 @@
 Tests for the staged transpiler plugins.
 """
 
-from test import combine
-
 import ddt
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.compiler.transpiler import transpile
-from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager, PassManagerConfig, CouplingMap
+from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.transpiler.preset_passmanagers.builtin_plugins import BasicSwapPassManager
 from qiskit.transpiler.preset_passmanagers.plugin import (
     PassManagerStagePluginManager,
@@ -29,7 +27,9 @@ from qiskit.transpiler.preset_passmanagers.plugin import (
     passmanager_stage_plugins,
 )
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.providers.basicaer import QasmSimulatorPy
+from qiskit.providers.basic_provider import BasicSimulator
+from test import combine  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestStagePassManagerPlugin(QiskitTestCase):
@@ -41,7 +41,6 @@ class TestStagePassManagerPlugin(QiskitTestCase):
         self.assertIn("basic", routing_passes)
         self.assertIn("sabre", routing_passes)
         self.assertIn("lookahead", routing_passes)
-        self.assertIn("stochastic", routing_passes)
         self.assertIsInstance(list_stage_plugins("init"), list)
         self.assertIsInstance(list_stage_plugins("layout"), list)
         self.assertIsInstance(list_stage_plugins("translation"), list)
@@ -86,6 +85,15 @@ class TestStagePassManagerPlugin(QiskitTestCase):
         )
         self.assertIsInstance(pm, PassManager)
 
+    def test_init_invalid_optlevel(self):
+        """Test default init stage with invalid optimization level.
+        See: https://github.com/Qiskit/qiskit/pull/12170"""
+        plugin_manager = PassManagerStagePluginManager()
+        with self.assertRaises(TranspilerError):
+            plugin_manager.get_passmanager_stage(
+                "init", "default", PassManagerConfig(), optimization_level=4
+            )
+
 
 @ddt.ddt
 class TestBuiltinPlugins(QiskitTestCase):
@@ -93,7 +101,7 @@ class TestBuiltinPlugins(QiskitTestCase):
 
     @combine(
         optimization_level=list(range(4)),
-        routing_method=["basic", "lookahead", "sabre", "stochastic"],
+        routing_method=["basic", "lookahead", "sabre"],
     )
     def test_routing_plugins(self, optimization_level, routing_method):
         """Test all routing plugins (excluding error)."""
@@ -110,6 +118,19 @@ class TestBuiltinPlugins(QiskitTestCase):
             optimization_level=optimization_level,
             routing_method=routing_method,
         )
-        backend = QasmSimulatorPy()
+        backend = BasicSimulator()
         counts = backend.run(tqc, shots=1000).result().get_counts()
         self.assertDictAlmostEqual(counts, {"0000": 500, "1111": 500}, delta=100)
+
+    @combine(
+        optimization_level=list(range(4)),
+    )
+    def test_unitary_synthesis_plugins(self, optimization_level):
+        """Test unitary synthesis plugins"""
+        backend = BasicSimulator()
+        with self.assertRaises(TranspilerError):
+            _ = generate_preset_pass_manager(
+                optimization_level=optimization_level,
+                backend=backend,
+                unitary_synthesis_method="not a method",
+            )

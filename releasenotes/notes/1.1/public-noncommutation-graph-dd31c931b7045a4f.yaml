@@ -1,0 +1,9 @@
+---
+features_quantum_info:
+  - |
+    Adds the :meth:`.PauliList.noncommutation_graph` and
+    :meth:`.SparsePauliOp.noncommutation_graph` methods, exposing the
+    construction of non-commutation graphs, recasting the measurement operator
+    grouping problem into a graph coloring problem. This permits users to work
+    with these graphs directly, for example to explore coloring algorithms other
+    than the one used by :meth:`.SparsePauliOp.group_commuting`.

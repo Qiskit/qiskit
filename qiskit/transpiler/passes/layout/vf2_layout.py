@@ -12,21 +12,18 @@
 
 
 """VF2Layout pass to find a layout using subgraph isomorphism"""
-import os
-from enum import Enum
-import itertools
-import logging
-import time
 
-from rustworkx import vf2_mapping
+from enum import Enum
 
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.passes.layout import vf2_utils
-
-
-logger = logging.getLogger(__name__)
+from qiskit.transpiler.target import Target
+from qiskit._accelerate.vf2_layout import (
+    vf2_layout_pass_average,
+    MultiQEncountered,
+    VF2PassConfiguration,
+)
 
 
 class VF2LayoutStopReason(Enum):
@@ -38,7 +35,7 @@ class VF2LayoutStopReason(Enum):
 
 
 class VF2Layout(AnalysisPass):
-    """A pass for choosing a Layout of a circuit onto a Coupling graph, as a
+    """A pass for choosing a Layout of a circuit onto a Coupling graph, as
     a subgraph isomorphism problem, solved by VF2++.
 
     If a solution is found that means there is a "perfect layout" and that no
@@ -53,7 +50,7 @@ class VF2Layout(AnalysisPass):
         * ``"nonexistent solution"``: If no perfect layout was found.
         * ``">2q gates in basis"``: If VF2Layout can't work with basis
 
-    By default this pass will construct a heuristic scoring map based on the
+    By default, this pass will construct a heuristic scoring map based on
     the error rates in the provided ``target`` (or ``properties`` if ``target``
     is not provided). However, analysis passes can be run prior to this pass
     and set ``vf2_avg_error_map`` in the property set with a :class:`~.ErrorMap`
@@ -81,7 +78,6 @@ class VF2Layout(AnalysisPass):
         seed=None,
         call_limit=None,
         time_limit=None,
-        properties=None,
         max_trials=None,
         target=None,
     ):
@@ -91,32 +87,38 @@ class VF2Layout(AnalysisPass):
             coupling_map (CouplingMap): Directed graph representing a coupling map.
             strict_direction (bool): If True, considers the direction of the coupling map.
                                      Default is False.
-            seed (int): Sets the seed of the PRNG. -1 Means no node shuffling.
-            call_limit (int): The number of state visits to attempt in each execution of
-                VF2.
-            time_limit (float): The total time limit in seconds to run ``VF2Layout``
-            properties (BackendProperties): The backend properties for the backend. If
-                :meth:`~qiskit.providers.models.BackendProperties.readout_error` is available
-                it is used to score the layout.
-            max_trials (int): The maximum number of trials to run VF2 to find
-                a layout. If this is not specified the number of trials will be limited
-                based on the number of edges in the interaction graph or the coupling graph
-                (whichever is larger) if no other limits are set. If set to a value <= 0 no
-                limit on the number of trials will be set.
+            seed (int | None): shuffle the labelling of physical qubits to node indices in the
+                coupling graph, using a given pRNG seed.  ``None`` seeds using OS entropy (and so is
+                non-deterministic).  Using ``-1`` disables the shuffling.
+            call_limit (None | int | tuple[int | None, int | None]): The maximum number of times
+                that the inner VF2 isomorphism search will attempt to extend the mapping. If
+                ``None``, then no limit.  If a 2-tuple, then the limit starts as the first item, and
+                swaps to the second after the first match is found, without resetting the number of
+                steps taken.  This can be used to allow a long search for any mapping, but still
+                terminate quickly with a small extension budget if one is found.
+            time_limit (float): The total time limit in seconds to run ``VF2Layout``.  This is not
+                completely strict; execution will finish on the first isomorphism found (if any)
+                _after_ the time limit has been exceeded.  Setting this option breaks determinism of
+                the pass.
+            max_trials (int): If set, the algorithm terminates after this many _complete_ layouts
+                have been seen.  Since the scoring is done on-the-fly, the vast majority of
+                candidate layouts are pruned out of the search before ever becoming complete, so
+                this option has little meaning.  To set a low limit on the amount of time spent
+                improving an initial limit, set a low value for the second item in the
+                ``call_limit`` 2-tuple form.
             target (Target): A target representing the backend device to run ``VF2Layout`` on.
-                If specified it will supersede a set value for ``properties`` and
-                ``coupling_map``.
+                If specified it will supersede a set value for
+                ``coupling_map`` if the :class:`.Target` contains connectivity constraints. If the value
+                of ``target`` models an ideal backend without any constraints then the value of
+                ``coupling_map``
+                will be used.
 
         Raises:
             TypeError: At runtime, if neither ``coupling_map`` or ``target`` are provided.
         """
         super().__init__()
         self.target = target
-        if target is not None:
-            self.coupling_map = self.target.build_coupling_map()
-        else:
-            self.coupling_map = coupling_map
-        self.properties = properties
+        self.coupling_map = coupling_map
         self.strict_direction = strict_direction
         self.seed = seed
         self.call_limit = call_limit
@@ -126,134 +128,55 @@ class VF2Layout(AnalysisPass):
 
     def run(self, dag):
         """run the layout method"""
-        if self.coupling_map is None:
+        if self.target is None and self.coupling_map is None:
             raise TranspilerError("coupling_map or target must be specified.")
+        if self.coupling_map is None:
+            target, coupling_map = self.target, self.target.build_coupling_map()
+        elif self.target is None:
+            coupling_map = self.coupling_map
+            target = _build_dummy_target(coupling_map)
+        else:
+            # We have both, but may need to override the target if it has no connectivity.
+            coupling_map = self.target.build_coupling_map()
+            if coupling_map is None:
+                target = _build_dummy_target(self.coupling_map)
+                coupling_map = self.coupling_map
+            else:
+                target = self.target
         self.avg_error_map = self.property_set["vf2_avg_error_map"]
-        if self.avg_error_map is None:
-            self.avg_error_map = vf2_utils.build_average_error_map(
-                self.target, self.properties, self.coupling_map
+        config = VF2PassConfiguration.from_legacy_api(
+            call_limit=self.call_limit,
+            time_limit=self.time_limit,
+            max_trials=self.max_trials,
+            shuffle_seed=self.seed,
+            score_initial_layout=False,
+        )
+        try:
+            output = vf2_layout_pass_average(
+                dag,
+                target,
+                strict_direction=self.strict_direction,
+                avg_error_map=self.avg_error_map,
+                config=config,
             )
-
-        result = vf2_utils.build_interaction_graph(dag, self.strict_direction)
-        if result is None:
+        except MultiQEncountered:
             self.property_set["VF2Layout_stop_reason"] = VF2LayoutStopReason.MORE_THAN_2Q
             return
-        im_graph, im_graph_node_map, reverse_im_graph_node_map, free_nodes = result
-        cm_graph, cm_nodes = vf2_utils.shuffle_coupling_graph(
-            self.coupling_map, self.seed, self.strict_direction
-        )
-        # Filter qubits without any supported operations. If they don't support any operations
-        # They're not valid for layout selection
-        if self.target is not None:
-            has_operations = set(itertools.chain.from_iterable(self.target.qargs))
-            to_remove = set(range(len(cm_nodes))).difference(has_operations)
-            if to_remove:
-                cm_graph.remove_nodes_from([cm_nodes[i] for i in to_remove])
+        if (layout := output.new_mapping()) is None:
+            self.property_set["VF2Layout_stop_reason"] = VF2LayoutStopReason.NO_SOLUTION_FOUND
+            return
 
-        # To avoid trying to over optimize the result by default limit the number
-        # of trials based on the size of the graphs. For circuits with simple layouts
-        # like an all 1q circuit we don't want to sit forever trying every possible
-        # mapping in the search space if no other limits are set
-        if self.max_trials is None and self.call_limit is None and self.time_limit is None:
-            im_graph_edge_count = len(im_graph.edge_list())
-            cm_graph_edge_count = len(self.coupling_map.graph.edge_list())
-            self.max_trials = max(im_graph_edge_count, cm_graph_edge_count) + 15
+        self.property_set["VF2Layout_stop_reason"] = VF2LayoutStopReason.SOLUTION_FOUND
+        layout = Layout({dag.qubits[virt]: phys for virt, phys in layout.items()})
+        for reg in dag.qregs.values():
+            layout.add_register(reg)
+        self.property_set["layout"] = layout
 
-        logger.debug("Running VF2 to find mappings")
-        mappings = vf2_mapping(
-            cm_graph,
-            im_graph,
-            subgraph=True,
-            id_order=False,
-            induced=False,
-            call_limit=self.call_limit,
-        )
-        chosen_layout = None
-        chosen_layout_score = None
-        start_time = time.time()
-        trials = 0
-        run_in_parallel = (
-            os.getenv("QISKIT_IN_PARALLEL", "FALSE").upper() != "TRUE"
-            or os.getenv("QISKIT_FORCE_THREADS", "FALSE").upper() == "TRUE"
-        )
 
-        def mapping_to_layout(layout_mapping):
-            return Layout({reverse_im_graph_node_map[k]: v for k, v in layout_mapping.items()})
-
-        for mapping in mappings:
-            trials += 1
-            logger.debug("Running trial: %s", trials)
-            stop_reason = VF2LayoutStopReason.SOLUTION_FOUND
-            layout_mapping = {im_i: cm_nodes[cm_i] for cm_i, im_i in mapping.items()}
-
-            # If the graphs have the same number of nodes we don't need to score or do multiple
-            # trials as the score heuristic currently doesn't weigh nodes based on gates on a
-            # qubit so the scores will always all be the same
-            if len(cm_graph) == len(im_graph):
-                chosen_layout = mapping_to_layout(layout_mapping)
-                break
-            # If there is no error map avilable we can just skip the scoring stage as there
-            # is nothing to score with, so any match is the best we can find.
-            if self.avg_error_map is None:
-                chosen_layout = mapping_to_layout(layout_mapping)
-                break
-            layout_score = vf2_utils.score_layout(
-                self.avg_error_map,
-                layout_mapping,
-                im_graph_node_map,
-                reverse_im_graph_node_map,
-                im_graph,
-                self.strict_direction,
-                run_in_parallel,
-            )
-            # If the layout score is 0 we can't do any better and we'll just
-            # waste time finding additional mappings that will at best match
-            # the performance, so exit early in this case
-            if layout_score == 0.0:
-                chosen_layout = mapping_to_layout(layout_mapping)
-                break
-            logger.debug("Trial %s has score %s", trials, layout_score)
-            if chosen_layout is None:
-                chosen_layout = mapping_to_layout(layout_mapping)
-                chosen_layout_score = layout_score
-            elif layout_score < chosen_layout_score:
-                layout = mapping_to_layout(layout_mapping)
-                logger.debug(
-                    "Found layout %s has a lower score (%s) than previous best %s (%s)",
-                    layout,
-                    layout_score,
-                    chosen_layout,
-                    chosen_layout_score,
-                )
-                chosen_layout = layout
-                chosen_layout_score = layout_score
-            if self.max_trials is not None and self.max_trials > 0 and trials >= self.max_trials:
-                logger.debug("Trial %s is >= configured max trials %s", trials, self.max_trials)
-                break
-            elapsed_time = time.time() - start_time
-            if self.time_limit is not None and elapsed_time >= self.time_limit:
-                logger.debug(
-                    "VF2Layout has taken %s which exceeds configured max time: %s",
-                    elapsed_time,
-                    self.time_limit,
-                )
-                break
-        if chosen_layout is None:
-            stop_reason = VF2LayoutStopReason.NO_SOLUTION_FOUND
-        else:
-            chosen_layout = vf2_utils.map_free_qubits(
-                free_nodes,
-                chosen_layout,
-                cm_graph.num_nodes(),
-                reverse_im_graph_node_map,
-                self.avg_error_map,
-            )
-            # No free qubits for free qubit mapping
-            if chosen_layout is None:
-                self.property_set["VF2Layout_stop_reason"] = VF2LayoutStopReason.NO_SOLUTION_FOUND
-                return
-            self.property_set["layout"] = chosen_layout
-            for reg in dag.qregs.values():
-                self.property_set["layout"].add_register(reg)
-
-        self.property_set["VF2Layout_stop_reason"] = stop_reason
+def _build_dummy_target(coupling_map) -> Target:
+    """Build a dummy target with no error rates that represents the coupling in ``coupling_map``."""
+    # The choice of basis gates is completely arbitrary, and we have no source of error rates.
+    # We just want _something_ to represent the coupling constraints.
+    return Target.from_configuration(
+        basis_gates=["u", "cx"], num_qubits=coupling_map.size(), coupling_map=coupling_map
+    )

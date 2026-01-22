@@ -12,46 +12,31 @@
 
 
 """VF2PostLayout pass to find a layout after transpile using subgraph isomorphism"""
-import os
-from enum import Enum
-import logging
-import inspect
-import itertools
-import time
 
-from rustworkx import PyDiGraph, vf2_mapping, PyGraph
+from enum import Enum
 
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.providers.exceptions import BackendPropertyError
-from qiskit.transpiler.passes.layout import vf2_utils
-
-
-logger = logging.getLogger(__name__)
+from qiskit._accelerate.vf2_layout import (
+    vf2_layout_pass_average,
+    vf2_layout_pass_exact,
+    MultiQEncountered,
+    VF2PassConfiguration,
+)
 
 
 class VF2PostLayoutStopReason(Enum):
     """Stop reasons for VF2PostLayout pass."""
 
     SOLUTION_FOUND = "solution found"
+    NO_BETTER_SOLUTION_FOUND = "no better solution found"
     NO_SOLUTION_FOUND = "nonexistent solution"
     MORE_THAN_2Q = ">2q gates in basis"
 
 
-def _target_match(node_a, node_b):
-    # Node A is the set of operations in the target. Node B is the count dict
-    # of oeprations on the node or edge in the circuit.
-    if isinstance(node_a, set):
-        return node_a.issuperset(node_b.keys())
-    # Node A is the count dict of operations on the node or edge in the circuit
-    # Node B is the set of operations in the target on the same qubit(s).
-    else:
-        return set(node_a).issubset(node_b)
-
-
 class VF2PostLayout(AnalysisPass):
-    """A pass for choosing a Layout after transpilation of a circuit onto a
+    """A pass for improving an existing Layout after transpilation of a circuit onto a
     Coupling graph, as a subgraph isomorphism problem, solved by VF2++.
 
     Unlike the :class:`~.VF2Layout` transpiler pass which is designed to find an
@@ -66,19 +51,19 @@ class VF2PostLayout(AnalysisPass):
 
     If a solution is found that means there is a lower error layout available for the
     circuit. If a solution is found the layout will be set in the property set as
-    ``property_set['post_layout']``. However, if no solution is found, no
+    ``property_set['post_layout']``. However, if no solution or no better solution is found, no
     ``property_set['post_layout']`` is set. The stopping reason is
     set in ``property_set['VF2PostLayout_stop_reason']`` in all the cases and will be
     one of the values enumerated in ``VF2PostLayoutStopReason`` which has the
     following values:
 
         * ``"solution found"``: If a solution was found.
+        * ``"no better solution found"``: If the initial layout of the circuit is the best solution.
         * ``"nonexistent solution"``: If no solution was found.
-        * ``">2q gates in basis"``: If VF2PostLayout can't work with basis
+        * ``">2q gates in basis"``: If VF2PostLayout can't work with the basis of the circuit.
 
-    By default this pass will construct a heuristic scoring map based on the
-    the error rates in the provided ``target`` (or ``properties`` if ``target``
-    is not provided). However, analysis passes can be run prior to this pass
+    By default, this pass will construct a heuristic scoring map based on
+    the error rates in the provided ``target``. However, analysis passes can be run prior to this pass
     and set ``vf2_avg_error_map`` in the property set with a :class:`~.ErrorMap`
     instance. If a value is ``NaN`` that is treated as an ideal edge
     For example if an error map is created as::
@@ -101,8 +86,6 @@ class VF2PostLayout(AnalysisPass):
     def __init__(
         self,
         target=None,
-        coupling_map=None,
-        properties=None,
         seed=None,
         call_limit=None,
         time_limit=None,
@@ -113,12 +96,6 @@ class VF2PostLayout(AnalysisPass):
 
         Args:
             target (Target): A target representing the backend device to run ``VF2PostLayout`` on.
-                If specified it will supersede a set value for ``properties`` and
-                ``coupling_map``.
-            coupling_map (CouplingMap): Directed graph representing a coupling map.
-            properties (BackendProperties): The backend properties for the backend. If
-                :meth:`~qiskit.providers.models.BackendProperties.readout_error` is available
-                it is used to score the layout.
             seed (int): Sets the seed of the PRNG. -1 Means no node shuffling.
             call_limit (int): The number of state visits to attempt in each execution of
                 VF2.
@@ -137,12 +114,10 @@ class VF2PostLayout(AnalysisPass):
                 a layout. A value of ``0`` (the default) means 'unlimited'.
 
         Raises:
-            TypeError: At runtime, if neither ``coupling_map`` or ``target`` are provided.
+            TypeError: At runtime, if ``target`` isn't provided.
         """
         super().__init__()
         self.target = target
-        self.coupling_map = coupling_map
-        self.properties = properties
         self.call_limit = call_limit
         self.time_limit = time_limit
         self.max_trials = max_trials
@@ -152,261 +127,42 @@ class VF2PostLayout(AnalysisPass):
 
     def run(self, dag):
         """run the layout method"""
-        if self.target is None and (self.coupling_map is None or self.properties is None):
-            raise TranspilerError(
-                "A target must be specified or a coupling map and properties must be provided"
-            )
-        if not self.strict_direction:
-            self.avg_error_map = self.property_set["vf2_avg_error_map"]
-            if self.avg_error_map is None:
-                self.avg_error_map = vf2_utils.build_average_error_map(
-                    self.target, self.properties, self.coupling_map
-                )
-
-        result = vf2_utils.build_interaction_graph(dag, self.strict_direction)
-        if result is None:
-            self.property_set["VF2PostLayout_stop_reason"] = VF2PostLayoutStopReason.MORE_THAN_2Q
-            return
-        im_graph, im_graph_node_map, reverse_im_graph_node_map, free_nodes = result
-
-        if self.target is not None:
-            # If qargs is None then target is global and ideal so no
-            # scoring is needed
-            if self.target.qargs is None:
-                return
-            if self.strict_direction:
-                cm_graph = PyDiGraph(multigraph=False)
-            else:
-                cm_graph = PyGraph(multigraph=False)
-            # If None is present in qargs there are globally defined ideal operations
-            # we should add these to all entries based on the number of qubits so we
-            # treat that as a valid operation even if there is no scoring for the
-            # strict direction case
-            global_ops = None
-            if None in self.target.qargs:
-                global_ops = {1: [], 2: []}
-                for op in self.target.operation_names_for_qargs(None):
-                    operation = self.target.operation_for_name(op)
-                    # If operation is a class this is a variable width ideal instruction
-                    # so we treat it as available on both 1 and 2 qubits
-                    if inspect.isclass(operation):
-                        global_ops[1].append(op)
-                        global_ops[2].append(op)
-                    else:
-                        num_qubits = operation.num_qubits
-                        if num_qubits in global_ops:
-                            global_ops[num_qubits].append(op)
-            op_names = []
-            for i in range(self.target.num_qubits):
-                try:
-                    entry = set(self.target.operation_names_for_qargs((i,)))
-                except KeyError:
-                    entry = set()
-                if global_ops is not None:
-                    entry.update(global_ops[1])
-                op_names.append(entry)
-            cm_graph.add_nodes_from(op_names)
-            for qargs in self.target.qargs:
-                len_args = len(qargs)
-                # If qargs == 1 we already populated it and if qargs > 2 there are no instructions
-                # using those in the circuit because we'd have already returned by this point
-                if len_args == 2:
-                    ops = set(self.target.operation_names_for_qargs(qargs))
-                    if global_ops is not None:
-                        ops.update(global_ops[2])
-                    cm_graph.add_edge(qargs[0], qargs[1], ops)
-            cm_nodes = list(cm_graph.node_indexes())
-            # Filter qubits without any supported operations. If they
-            # don't support any operations, they're not valid for layout selection.
-            # This is only needed in the undirected case because in strict direction
-            # mode the node matcher will not match since none of the circuit ops
-            # will match the cmap ops.
-            if not self.strict_direction:
-                has_operations = set(itertools.chain.from_iterable(self.target.qargs))
-                to_remove = set(cm_graph.node_indices()).difference(has_operations)
-                if to_remove:
-                    cm_graph.remove_nodes_from(list(to_remove))
-        else:
-            cm_graph, cm_nodes = vf2_utils.shuffle_coupling_graph(
-                self.coupling_map, self.seed, self.strict_direction
-            )
-
-        logger.debug("Running VF2 to find post transpile mappings")
-        if self.target and self.strict_direction:
-            mappings = vf2_mapping(
-                cm_graph,
-                im_graph,
-                node_matcher=_target_match,
-                edge_matcher=_target_match,
-                subgraph=True,
-                id_order=False,
-                induced=False,
-                call_limit=self.call_limit,
-            )
-        else:
-            mappings = vf2_mapping(
-                cm_graph,
-                im_graph,
-                subgraph=True,
-                id_order=False,
-                induced=False,
-                call_limit=self.call_limit,
-            )
-        chosen_layout = None
-        run_in_parallel = (
-            os.getenv("QISKIT_IN_PARALLEL", "FALSE").upper() != "TRUE"
-            or os.getenv("QISKIT_FORCE_THREADS", "FALSE").upper() == "TRUE"
+        if self.target is None:
+            raise TranspilerError("A target must be specified")
+        self.avg_error_map = self.property_set["vf2_avg_error_map"]
+        config = VF2PassConfiguration.from_legacy_api(
+            call_limit=self.call_limit,
+            time_limit=self.time_limit,
+            max_trials=self.max_trials,
+            shuffle_seed=self.seed,
+            score_initial_layout=True,
         )
         try:
             if self.strict_direction:
-                initial_layout = Layout({bit: index for index, bit in enumerate(dag.qubits)})
-                chosen_layout_score = self._score_layout(
-                    initial_layout, im_graph_node_map, reverse_im_graph_node_map, im_graph
-                )
+                output = vf2_layout_pass_exact(dag, self.target, config=config)
             else:
-                initial_layout = {
-                    im_graph_node_map[bit]: index
-                    for index, bit in enumerate(dag.qubits)
-                    if bit in im_graph_node_map
-                }
-                chosen_layout_score = vf2_utils.score_layout(
-                    self.avg_error_map,
-                    initial_layout,
-                    im_graph_node_map,
-                    reverse_im_graph_node_map,
-                    im_graph,
-                    self.strict_direction,
-                    run_in_parallel,
+                output = vf2_layout_pass_average(
+                    dag,
+                    self.target,
+                    strict_direction=False,
+                    avg_error_map=self.avg_error_map,
+                    config=config,
                 )
-        # Circuit not in basis so we have nothing to compare against return here
-        except KeyError:
-            self.property_set[
-                "VF2PostLayout_stop_reason"
-            ] = VF2PostLayoutStopReason.NO_SOLUTION_FOUND
+        except MultiQEncountered:
+            self.property_set["VF2PostLayout_stop_reason"] = VF2PostLayoutStopReason.MORE_THAN_2Q
             return
-
-        logger.debug("Initial layout has score %s", chosen_layout_score)
-
-        start_time = time.time()
-        trials = 0
-        for mapping in mappings:
-            trials += 1
-            logger.debug("Running trial: %s", trials)
-            stop_reason = VF2PostLayoutStopReason.SOLUTION_FOUND
-            layout_mapping = {im_i: cm_nodes[cm_i] for cm_i, im_i in mapping.items()}
-            if self.strict_direction:
-                layout = Layout(
-                    {reverse_im_graph_node_map[k]: v for k, v in layout_mapping.items()}
-                )
-                layout_score = self._score_layout(
-                    layout, im_graph_node_map, reverse_im_graph_node_map, im_graph
-                )
-            else:
-                layout_score = vf2_utils.score_layout(
-                    self.avg_error_map,
-                    layout_mapping,
-                    im_graph_node_map,
-                    reverse_im_graph_node_map,
-                    im_graph,
-                    self.strict_direction,
-                    run_in_parallel,
-                )
-            logger.debug("Trial %s has score %s", trials, layout_score)
-            if layout_score < chosen_layout_score:
-                layout = Layout(
-                    {reverse_im_graph_node_map[k]: v for k, v in layout_mapping.items()}
-                )
-                logger.debug(
-                    "Found layout %s has a lower score (%s) than previous best %s (%s)",
-                    layout,
-                    layout_score,
-                    chosen_layout,
-                    chosen_layout_score,
-                )
-                chosen_layout = layout
-                chosen_layout_score = layout_score
-
-            if self.max_trials and trials >= self.max_trials:
-                logger.debug("Trial %s is >= configured max trials %s", trials, self.max_trials)
-                break
-
-            elapsed_time = time.time() - start_time
-            if self.time_limit is not None and elapsed_time >= self.time_limit:
-                logger.debug(
-                    "VFPostLayout has taken %s which exceeds configured max time: %s",
-                    elapsed_time,
-                    self.time_limit,
-                )
-                break
-        if chosen_layout is None:
-            stop_reason = VF2PostLayoutStopReason.NO_SOLUTION_FOUND
-        else:
-            chosen_layout = vf2_utils.map_free_qubits(
-                free_nodes,
-                chosen_layout,
-                cm_graph.num_nodes(),
-                reverse_im_graph_node_map,
-                self.avg_error_map,
+        if not output.has_solution:
+            self.property_set["VF2PostLayout_stop_reason"] = (
+                VF2PostLayoutStopReason.NO_SOLUTION_FOUND
             )
-            existing_layout = self.property_set["layout"]
-            # If any ancillas in initial layout map them back to the final layout output
-            if existing_layout is not None and len(existing_layout) > len(chosen_layout):
-                virtual_bits = chosen_layout.get_virtual_bits()
-                used_bits = set(virtual_bits.values())
-                num_qubits = len(cm_graph)
-                for bit in dag.qubits:
-                    if len(chosen_layout) == len(existing_layout):
-                        break
-                    if bit not in virtual_bits:
-                        for i in range(num_qubits):
-                            if i not in used_bits:
-                                used_bits.add(i)
-                                chosen_layout.add(bit, i)
-                                break
-            self.property_set["post_layout"] = chosen_layout
-
-        self.property_set["VF2PostLayout_stop_reason"] = stop_reason
-
-    def _score_layout(self, layout, bit_map, reverse_bit_map, im_graph):
-        bits = layout.get_virtual_bits()
-        fidelity = 1
-        if self.target is not None:
-            for bit, node_index in bit_map.items():
-                gate_counts = im_graph[node_index]
-                for gate, count in gate_counts.items():
-                    if self.target[gate] is not None and None not in self.target[gate]:
-                        props = self.target[gate][(bits[bit],)]
-                        if props is not None and props.error is not None:
-                            fidelity *= (1 - props.error) ** count
-
-            for edge in im_graph.edge_index_map().values():
-                qargs = (bits[reverse_bit_map[edge[0]]], bits[reverse_bit_map[edge[1]]])
-                gate_counts = edge[2]
-                for gate, count in gate_counts.items():
-                    if self.target[gate] is not None and None not in self.target[gate]:
-                        props = self.target[gate][qargs]
-                        if props is not None and props.error is not None:
-                            fidelity *= (1 - props.error) ** count
-        else:
-            for bit, node_index in bit_map.items():
-                gate_counts = im_graph[node_index]
-                for gate, count in gate_counts.items():
-                    if gate == "measure":
-                        try:
-                            fidelity *= (1 - self.properties.readout_error(bits[bit])) ** count
-                        except BackendPropertyError:
-                            pass
-                    else:
-                        try:
-                            fidelity *= (1 - self.properties.gate_error(gate, bits[bit])) ** count
-                        except BackendPropertyError:
-                            pass
-            for edge in im_graph.edge_index_map().values():
-                qargs = (bits[reverse_bit_map[edge[0]]], bits[reverse_bit_map[edge[1]]])
-                gate_counts = edge[2]
-                for gate, count in gate_counts.items():
-                    try:
-                        fidelity *= (1 - self.properties.gate_error(gate, qargs)) ** count
-                    except BackendPropertyError:
-                        pass
-        return 1 - fidelity
+            return
+        if dag.is_empty() or (layout := output.new_mapping()) is None:
+            self.property_set["VF2PostLayout_stop_reason"] = (
+                VF2PostLayoutStopReason.NO_BETTER_SOLUTION_FOUND
+            )
+            return
+        self.property_set["VF2PostLayout_stop_reason"] = VF2PostLayoutStopReason.SOLUTION_FOUND
+        layout = Layout({dag.qubits[virt]: phys for virt, phys in layout.items()})
+        for reg in dag.qregs.values():
+            layout.add_register(reg)
+        self.property_set["post_layout"] = layout

@@ -11,12 +11,15 @@
 # that they have been altered from the originals.
 
 """Rotation around the Z axis."""
+
+from __future__ import annotations
+
 from cmath import exp
-from typing import Optional, Union
+from typing import Optional
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit._accelerate.circuit import StandardGate
 
 
 class RZGate(Gate):
@@ -28,22 +31,22 @@ class RZGate(Gate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.rz` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌───────┐
-        q_0: ┤ Rz(λ) ├
+        q_0: ┤ Rz(φ) ├
              └───────┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
-        RZ(\lambda) = \exp\left(-i\frac{\lambda}{2}Z\right) =
+        RZ(\phi) = \exp\left(-i\frac{\phi}{2}Z\right) =
             \begin{pmatrix}
-                e^{-i\frac{\lambda}{2}} & 0 \\
-                0 & e^{i\frac{\lambda}{2}}
+                e^{-i\frac{\phi}{2}} & 0 \\
+                0 & e^{i\frac{\phi}{2}}
             \end{pmatrix}
 
     .. seealso::
@@ -53,74 +56,112 @@ class RZGate(Gate):
 
             .. math::
 
-                U1(\lambda) = e^{i{\lambda}/2}RZ(\lambda)
+                U1(\theta=\phi) = e^{i{\phi}/2}RZ(\phi)
 
         Reference for virtual Z gate implementation:
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
 
+    _standard_gate = StandardGate.RZ
+
     def __init__(self, phi: ParameterValueType, label: Optional[str] = None):
-        """Create new RZ gate."""
+        """
+        Args:
+            theta: The rotation angle.
+            label: An optional label for the gate.
+        """
         super().__init__("rz", 1, [phi], label=label)
 
     def _define(self):
-        """
-        gate rz(phi) a { u1(phi) a; }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .u1 import U1Gate
+        from qiskit.circuit import QuantumCircuit
 
-        q = QuantumRegister(1, "q")
-        theta = self.params[0]
-        qc = QuantumCircuit(q, name=self.name, global_phase=-theta / 2)
-        rules = [(U1Gate(theta), [q[0]], [])]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        # global phase: -0.5*φ
+        #    ┌──────┐
+        # q: ┤ P(φ) ├
+        #    └──────┘
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.RZ._get_definition(self.params), legacy_qubits=True
+        )
 
     def control(
         self,
         num_ctrl_qubits: int = 1,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
+        label: str | None = None,
+        ctrl_state: str | int | None = None,
+        annotated: bool | None = None,
     ):
-        """Return a (multi-)controlled-RZ gate.
+        """Return a controlled version of the RZ gate.
+
+        For a single control qubit, the controlled gate is implemented as :class:`.CRZGate`,
+        regardless of the value of `annotated`.
+
+        For more than one control qubit, the controlled gate is implemented
+        either as :class:`.ControlledGate` when ``annotated`` is ``False``, or
+        as :class:`.AnnotatedOperation` when ``annotated`` is ``True``.
+        When ``annotated`` is ``None``, it is interpreted as ``True`` when the gate has free
+        parameters (in which case the gate cannot be synthesized at the construction time),
+        and as ``False`` otherwise.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            label: Optional gate label. Defaults to ``None``.
+            ctrl_state: The control state of the gate, specified either as an integer or a bitstring
+                (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``
+            annotated: Indicates whether the controlled gate should be implemented as a controlled gate
+                or as an annotated operation.
 
         Returns:
-            ControlledGate: controlled version of this gate.
+            A controlled version of this gate.
         """
         if num_ctrl_qubits == 1:
-            gate = CRZGate(self.params[0], label=label, ctrl_state=ctrl_state)
-            gate.base_gate.label = self.label
-            return gate
-        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
+            gate = CRZGate(
+                self.params[0], label=label, ctrl_state=ctrl_state, _base_label=self.label
+            )
+        else:
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
+            )
+        return gate
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         r"""Return inverted RZ gate
 
         :math:`RZ(\lambda)^{\dagger} = RZ(-\lambda)`
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.RZGate` with an inverted parameter value.
+
+        Returns:
+            RZGate: inverse gate.
         """
         return RZGate(-self.params[0])
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the RZ gate."""
         import numpy as np
 
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         ilam2 = 0.5j * float(self.params[0])
         return np.array([[exp(-ilam2), 0], [0, exp(ilam2)]], dtype=dtype)
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         (theta,) = self.params
         return RZGate(exponent * theta)
+
+    def __eq__(self, other):
+        if isinstance(other, RZGate):
+            return self._compare_parameters(other)
+        return False
 
 
 class CRZGate(ControlledGate):
@@ -132,26 +173,26 @@ class CRZGate(ControlledGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.crz` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ────■────
              ┌───┴───┐
-        q_1: ┤ Rz(λ) ├
+        q_1: ┤ Rz(θ) ├
              └───────┘
 
-    **Matrix representation:**
+    Matrix representation:
 
     .. math::
 
-        CRZ(\lambda)\ q_0, q_1 =
-            I \otimes |0\rangle\langle 0| + RZ(\lambda) \otimes |1\rangle\langle 1| =
+        CRZ(\theta)\ q_0, q_1 =
+            I \otimes |0\rangle\langle 0| + RZ(\phi=\theta) \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
-                0 & e^{-i\frac{\lambda}{2}} & 0 & 0 \\
+                0 & e^{-i\frac{\theta}{2}} & 0 & 0 \\
                 0 & 0 & 1 & 0 \\
-                0 & 0 & 0 & e^{i\frac{\lambda}{2}}
+                0 & 0 & 0 & e^{i\frac{\theta}{2}}
             \end{pmatrix}
 
     .. note::
@@ -162,21 +203,22 @@ class CRZGate(ControlledGate):
         which in our case would be q_1. Thus a textbook matrix for this
         gate will be:
 
-        .. parsed-literal::
+        .. code-block:: text
+
                  ┌───────┐
-            q_0: ┤ Rz(λ) ├
+            q_0: ┤ Rz(θ) ├
                  └───┬───┘
             q_1: ────■────
 
         .. math::
 
-            CRZ(\lambda)\ q_1, q_0 =
-                |0\rangle\langle 0| \otimes I + |1\rangle\langle 1| \otimes RZ(\lambda) =
+            CRZ(\theta)\ q_1, q_0 =
+                |0\rangle\langle 0| \otimes I + |1\rangle\langle 1| \otimes RZ(\theta) =
                 \begin{pmatrix}
                     1 & 0 & 0 & 0 \\
                     0 & 1 & 0 & 0 \\
-                    0 & 0 & e^{-i\frac{\lambda}{2}} & 0 \\
-                    0 & 0 & 0 & e^{i\frac{\lambda}{2}}
+                    0 & 0 & e^{-i\frac{\theta}{2}} & 0 \\
+                    0 & 0 & 0 & e^{i\frac{\theta}{2}}
                 \end{pmatrix}
 
     .. seealso::
@@ -187,11 +229,15 @@ class CRZGate(ControlledGate):
         phase difference.
     """
 
+    _standard_gate = StandardGate.CRZ
+
     def __init__(
         self,
         theta: ParameterValueType,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
+        *,
+        _base_label=None,
     ):
         """Create new CRZ gate."""
         super().__init__(
@@ -201,45 +247,43 @@ class CRZGate(ControlledGate):
             num_ctrl_qubits=1,
             label=label,
             ctrl_state=ctrl_state,
-            base_gate=RZGate(theta),
+            base_gate=RZGate(theta, label=_base_label),
         )
 
     def _define(self):
-        """
-        gate crz(lambda) a,b
-        { rz(lambda/2) b; cx a,b;
-          rz(-lambda/2) b; cx a,b;
-        }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .x import CXGate
+        from qiskit.circuit import QuantumCircuit
 
         # q_0: ─────────────■────────────────■──
         #      ┌─────────┐┌─┴─┐┌──────────┐┌─┴─┐
-        # q_1: ┤ Rz(λ/2) ├┤ X ├┤ Rz(-λ/2) ├┤ X ├
+        # q_1: ┤ Rz(θ/2) ├┤ X ├┤ Rz(-θ/2) ├┤ X ├
         #      └─────────┘└───┘└──────────┘└───┘
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (RZGate(self.params[0] / 2), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (RZGate(-self.params[0] / 2), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-        ]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.CRZ._get_definition(self.params), legacy_qubits=True
+        )
 
-    def inverse(self):
-        """Return inverse CRZ gate (i.e. with the negative rotation angle)."""
+    def inverse(self, annotated: bool = False):
+        """Return inverse CRZ gate (i.e. with the negative rotation angle).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.CRZGate` with an inverted parameter value.
+
+         Returns:
+            CRZGate: inverse gate.
+        """
         return CRZGate(-self.params[0], ctrl_state=self.ctrl_state)
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the CRZ gate."""
         import numpy
 
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         arg = 1j * float(self.params[0]) / 2
         if self.ctrl_state:
             return numpy.array(
@@ -251,3 +295,8 @@ class CRZGate(ControlledGate):
                 [[exp(-arg), 0, 0, 0], [0, 1, 0, 0], [0, 0, exp(arg), 0], [0, 0, 0, 1]],
                 dtype=dtype,
             )
+
+    def __eq__(self, other):
+        if isinstance(other, CRZGate):
+            return self._compare_parameters(other) and self.ctrl_state == other.ctrl_state
+        return False

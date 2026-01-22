@@ -17,9 +17,8 @@ import numpy as np
 from numpy.testing import assert_allclose
 import scipy.linalg as la
 
-from qiskit.quantum_info.synthesis.quaternion import Quaternion
-
-from qiskit.test import QiskitTestCase
+from qiskit.quantum_info.quaternion import Quaternion
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestQuaternions(QiskitTestCase):
@@ -93,12 +92,14 @@ class TestQuaternions(QiskitTestCase):
     def test_mul_by_array(self):
         """Quaternions cannot be multiplied with an array."""
         other_array = np.array([0.1, 0.2, 0.3, 0.4])
-        self.assertRaises(Exception, self.quat_unnormalized.__mul__, other_array)
+        with self.assertRaises(TypeError):
+            _ = self.quat_unnormalized * other_array
 
     def test_mul_by_scalar(self):
         """Quaternions cannot be multiplied with a scalar."""
         other_scalar = 0.123456789
-        self.assertRaises(Exception, self.quat_unnormalized.__mul__, other_scalar)
+        with self.assertRaises(TypeError):
+            _ = self.quat_unnormalized * other_scalar
 
     def test_rotation(self):
         """Multiplication by -1 should give the same rotation."""

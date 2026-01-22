@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    :class:`.ParameterExpression` was updated so that fully bound instances
+    that compare equal to instances of Python's built-in numeric types (like
+    ``float`` and ``int``) also have hash values that match those of the other
+    instances. This change ensures that these types can be used interchangeably
+    as dictionary keys. See `#12488 <https://github.com/Qiskit/qiskit/pull/12488>`__.

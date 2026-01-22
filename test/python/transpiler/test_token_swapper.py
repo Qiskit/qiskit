@@ -30,10 +30,11 @@ import itertools
 
 import rustworkx as rx
 from numpy import random
+
 from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
 from qiskit.transpiler.passes.routing.algorithms import util
 
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestGeneral(QiskitTestCase):
@@ -66,7 +67,7 @@ class TestGeneral(QiskitTestCase):
         self.assertEqual({i: i for i in range(8)}, permutation)
 
     def test_bug1(self) -> None:
-        """Tests for a bug that occured in happy swap chains of length >2."""
+        """Tests for a bug that occurred in happy swap chains of length >2."""
         graph = rx.PyGraph()
         graph.extend_from_edge_list(
             [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4), (3, 6)]

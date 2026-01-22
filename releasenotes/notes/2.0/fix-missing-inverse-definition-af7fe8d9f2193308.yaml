@@ -1,0 +1,6 @@
+fixes:
+  - |
+    Fixed a bug in the basis approximation generation for :class:`.SolovayKitaev`. 
+    Previously, generating discrete basis approximations using 
+    ``generate_basis_approximations`` for a basis containing ``"sx"`` or 
+    ``"sxdg"`` gates would fail. This has now been fixed.

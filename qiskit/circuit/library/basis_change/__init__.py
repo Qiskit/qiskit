@@ -12,4 +12,4 @@
 
 """The basis change circuits."""
 
-from .qft import QFT
+from .qft import QFT, QFTGate

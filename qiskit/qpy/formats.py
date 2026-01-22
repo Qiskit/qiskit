@@ -18,6 +18,22 @@ import struct
 from collections import namedtuple
 
 
+# FILE_HEADER_V10
+FILE_HEADER_V10 = namedtuple(
+    "FILE_HEADER",
+    [
+        "preface",
+        "qpy_version",
+        "major_version",
+        "minor_version",
+        "patch_version",
+        "num_programs",
+        "symbolic_encoding",
+    ],
+)
+FILE_HEADER_V10_PACK = "!6sBBBBQc"
+FILE_HEADER_V10_SIZE = struct.calcsize(FILE_HEADER_V10_PACK)
+
 # FILE_HEADER
 FILE_HEADER = namedtuple(
     "FILE_HEADER",
@@ -25,6 +41,27 @@ FILE_HEADER = namedtuple(
 )
 FILE_HEADER_PACK = "!6sBBBBQ"
 FILE_HEADER_SIZE = struct.calcsize(FILE_HEADER_PACK)
+
+TYPE_KEY = namedtuple("TYPE_KEY", ["key"])
+TYPE_KEY_PACK = "!1c"
+TYPE_KEY_SIZE = struct.calcsize(TYPE_KEY_PACK)
+
+CIRCUIT_HEADER_V12 = namedtuple(
+    "HEADER",
+    [
+        "name_size",
+        "global_phase_type",
+        "global_phase_size",
+        "num_qubits",
+        "num_clbits",
+        "metadata_size",
+        "num_registers",
+        "num_instructions",
+        "num_vars",
+    ],
+)
+CIRCUIT_HEADER_V12_PACK = "!H1cHIIQIQI"
+CIRCUIT_HEADER_V12_SIZE = struct.calcsize(CIRCUIT_HEADER_V12_PACK)
 
 # CIRCUIT_HEADER_V2
 CIRCUIT_HEADER_V2 = namedtuple(
@@ -58,6 +95,11 @@ CIRCUIT_HEADER = namedtuple(
 )
 CIRCUIT_HEADER_PACK = "!HdIIQIQ"
 CIRCUIT_HEADER_SIZE = struct.calcsize(CIRCUIT_HEADER_PACK)
+
+# CIRCUIT_TABLE_ENTRY
+CIRCUIT_TABLE_ENTRY = namedtuple("CIRCUIT_TABLE_ENTRY", ["offset"])
+CIRCUIT_TABLE_ENTRY_PACK = "!Q"
+CIRCUIT_TABLE_ENTRY_SIZE = struct.calcsize(CIRCUIT_TABLE_ENTRY_PACK)
 
 # REGISTER
 REGISTER_V4 = namedtuple("REGISTER", ["type", "standalone", "size", "name_size", "in_circuit"])
@@ -94,7 +136,7 @@ CIRCUIT_INSTRUCTION_V2 = namedtuple(
         "num_parameters",
         "num_qargs",
         "num_cargs",
-        "conditional_key",
+        "extras_key",
         "condition_register_size",
         "condition_value",
         "num_ctrl_qubits",
@@ -110,10 +152,34 @@ CIRCUIT_INSTRUCTION_ARG = namedtuple("CIRCUIT_INSTRUCTION_ARG", ["type", "size"]
 CIRCUIT_INSTRUCTION_ARG_PACK = "!1cI"
 CIRCUIT_INSTRUCTION_ARG_SIZE = struct.calcsize(CIRCUIT_INSTRUCTION_ARG_PACK)
 
+ANNOTATION_HEADER_STATIC = namedtuple("ANNOTATION_HEADER_STATIC", ["num_namespaces"])
+ANNOTATION_HEADER_STATIC_PACK = "!I"
+ANNOTATION_HEADER_STATIC_SIZE = struct.calcsize(ANNOTATION_HEADER_STATIC_PACK)
+
+ANNOTATION_STATE_HEADER = namedtuple("ANNOTATION_STATE_HEADER", ["namespace_size", "state_size"])
+ANNOTATION_STATE_HEADER_PACK = "!IQ"
+ANNOTATION_STATE_HEADER_SIZE = struct.calcsize(ANNOTATION_STATE_HEADER_PACK)
+
+INSTRUCTION_ANNOTATIONS_HEADER = namedtuple("INSTRUCTION_ANNOTATIONS_HEADER", ["num_annotations"])
+INSTRUCTION_ANNOTATIONS_HEADER_PACK = "!I"
+INSTRUCTION_ANNOTATIONS_HEADER_SIZE = struct.calcsize(INSTRUCTION_ANNOTATIONS_HEADER_PACK)
+
+INSTRUCTION_ANNOTATION = namedtuple("INSTRUCTION_ANNOTATION", ["namespace_index", "payload_size"])
+INSTRUCTION_ANNOTATION_PACK = "!IQ"
+INSTRUCTION_ANNOTATION_SIZE = struct.calcsize(INSTRUCTION_ANNOTATION_PACK)
+
 # SparsePauliOp List
 SPARSE_PAULI_OP_LIST_ELEM = namedtuple("SPARSE_PAULI_OP_LIST_ELEMENT", ["size"])
 SPARSE_PAULI_OP_LIST_ELEM_PACK = "!Q"
 SPARSE_PAULI_OP_LIST_ELEM_SIZE = struct.calcsize(SPARSE_PAULI_OP_LIST_ELEM_PACK)
+
+# SparseObservable List - Version 17+
+SPARSE_OBSERVABLE = namedtuple(
+    "SPARSE_OBSERVABLE",
+    ["num_qubits", "coeff_data_len", "bitterm_data_len", "inds_data_len", "bounds_data_len"],
+)
+SPARSE_OBSERVABLE_PACK = "!IQQQQ"
+SPARSE_OBSERVABLE_SIZE = struct.calcsize(SPARSE_OBSERVABLE_PACK)
 
 # Pauli Evolution Gate
 PAULI_EVOLUTION_DEF = namedtuple(
@@ -122,6 +188,11 @@ PAULI_EVOLUTION_DEF = namedtuple(
 )
 PAULI_EVOLUTION_DEF_PACK = "!Q?1cQQ"
 PAULI_EVOLUTION_DEF_SIZE = struct.calcsize(PAULI_EVOLUTION_DEF_PACK)
+
+# Modifier
+MODIFIER_DEF = namedtuple("MODIFIER_DEF", ["type", "num_ctrl_qubits", "ctrl_state", "power"])
+MODIFIER_DEF_PACK = "!1cIId"
+MODIFIER_DEF_SIZE = struct.calcsize(MODIFIER_DEF_PACK)
 
 # CUSTOM_CIRCUIT_DEF_HEADER
 CUSTOM_CIRCUIT_DEF_HEADER = namedtuple("CUSTOM_CIRCUIT_DEF_HEADER", ["size"])
@@ -220,6 +291,13 @@ PARAMETER = namedtuple("PARAMETER", ["name_size", "uuid"])
 PARAMETER_PACK = "!H16s"
 PARAMETER_SIZE = struct.calcsize(PARAMETER_PACK)
 
+# PARAMETEREXPRESSION_ENTRY
+PARAM_EXPR_ELEM_V13 = namedtuple(
+    "PARAM_EXPR_ELEM_V13", ["OP_CODE", "LHS_TYPE", "LHS", "RHS_TYPE", "RHS"]
+)
+PARAM_EXPR_ELEM_V13_PACK = "!Bc16sc16s"
+PARAM_EXPR_ELEM_V13_SIZE = struct.calcsize(PARAM_EXPR_ELEM_V13_PACK)
+
 # COMPLEX
 COMPLEX = namedtuple("COMPLEX", ["real", "imag"])
 COMPLEX_PACK = "!dd"
@@ -262,6 +340,21 @@ MAP_ITEM = namedtuple("MAP_ITEM", ["key_size", "type", "size"])
 MAP_ITEM_PACK = "!H1cH"
 MAP_ITEM_SIZE = struct.calcsize(MAP_ITEM_PACK)
 
+LAYOUT_V2 = namedtuple(
+    "LAYOUT",
+    [
+        "exists",
+        "initial_layout_size",
+        "input_mapping_size",
+        "final_layout_size",
+        "extra_registers",
+        "input_qubit_count",
+    ],
+)
+LAYOUT_V2_PACK = "!?iiiIi"
+LAYOUT_V2_SIZE = struct.calcsize(LAYOUT_V2_PACK)
+
+
 LAYOUT = namedtuple(
     "LAYOUT",
     ["exists", "initial_layout_size", "input_mapping_size", "final_layout_size", "extra_registers"],
@@ -272,6 +365,13 @@ LAYOUT_SIZE = struct.calcsize(LAYOUT_PACK)
 INITIAL_LAYOUT_BIT = namedtuple("INITIAL_LAYOUT_BIT", ["index", "register_size"])
 INITIAL_LAYOUT_BIT_PACK = "!ii"
 INITIAL_LAYOUT_BIT_SIZE = struct.calcsize(INITIAL_LAYOUT_BIT_PACK)
+
+# EXPR_VAR_DECLARATION
+
+EXPR_VAR_DECLARATION = namedtuple("EXPR_VAR_DECLARATION", ["uuid_bytes", "usage", "name_size"])
+EXPR_VAR_DECLARATION_PACK = "!16scH"
+EXPR_VAR_DECLARATION_SIZE = struct.calcsize(EXPR_VAR_DECLARATION_PACK)
+
 
 # EXPRESSION
 
@@ -289,10 +389,22 @@ EXPRESSION_BINARY = namedtuple("EXPRESSION_BINARY", ["opcode"])
 EXPRESSION_BINARY_PACK = "!B"
 EXPRESSION_BINARY_SIZE = struct.calcsize(EXPRESSION_BINARY_PACK)
 
+EXPRESSION_STRETCH = namedtuple("EXPRESSION_STRETCH", ["var_index"])
+EXPRESSION_STRETCH_PACK = "!H"
+EXPRESSION_STRETCH_SIZE = struct.calcsize(EXPRESSION_STRETCH_PACK)
+
 
 # EXPR_TYPE
 
 EXPR_TYPE_DISCRIMINATOR_SIZE = 1
+
+EXPR_TYPE_DURATION = namedtuple("EXPR_TYPE_DURATION", [])
+EXPR_TYPE_DURATION_PACK = "!"
+EXPR_TYPE_DURATION_SIZE = struct.calcsize(EXPR_TYPE_DURATION_PACK)
+
+EXPR_TYPE_FLOAT = namedtuple("EXPR_TYPE_FLOAT", [])
+EXPR_TYPE_FLOAT_PACK = "!"
+EXPR_TYPE_FLOAT_SIZE = struct.calcsize(EXPR_TYPE_FLOAT_PACK)
 
 EXPR_TYPE_BOOL = namedtuple("EXPR_TYPE_BOOL", [])
 EXPR_TYPE_BOOL_PACK = "!"
@@ -315,10 +427,18 @@ EXPR_VAR_REGISTER = namedtuple("EXPR_VAR_REGISTER", ["reg_name_size"])
 EXPR_VAR_REGISTER_PACK = "!H"
 EXPR_VAR_REGISTER_SIZE = struct.calcsize(EXPR_VAR_REGISTER_PACK)
 
+EXPR_VAR_UUID = namedtuple("EXPR_VAR_UUID", ["var_index"])
+EXPR_VAR_UUID_PACK = "!H"
+EXPR_VAR_UUID_SIZE = struct.calcsize(EXPR_VAR_UUID_PACK)
+
 
 # EXPR_VALUE
 
 EXPR_VALUE_DISCRIMINATOR_SIZE = 1
+
+EXPR_VALUE_FLOAT = namedtuple("EXPR_VALUE_FLOAT", ["value"])
+EXPR_VALUE_FLOAT_PACK = "!d"
+EXPR_VALUE_FLOAT_SIZE = struct.calcsize(EXPR_VALUE_FLOAT_PACK)
 
 EXPR_VALUE_BOOL = namedtuple("EXPR_VALUE_BOOL", ["value"])
 EXPR_VALUE_BOOL_PACK = "!?"
@@ -327,3 +447,32 @@ EXPR_VALUE_BOOL_SIZE = struct.calcsize(EXPR_VALUE_BOOL_PACK)
 EXPR_VALUE_INT = namedtuple("EXPR_VALUE_INT", ["num_bytes"])
 EXPR_VALUE_INT_PACK = "!B"
 EXPR_VALUE_INT_SIZE = struct.calcsize(EXPR_VALUE_INT_PACK)
+
+
+# DURATION
+
+DURATION_DISCRIMINATOR_SIZE = 1
+
+DURATION_DT = namedtuple("DURATION_DT", ["value"])
+DURATION_DT_PACK = "!Q"
+DURATION_DT_SIZE = struct.calcsize(DURATION_DT_PACK)
+
+DURATION_PS = namedtuple("DURATION_PS", ["value"])
+DURATION_PS_PACK = "!d"
+DURATION_PS_SIZE = struct.calcsize(DURATION_PS_PACK)
+
+DURATION_NS = namedtuple("DURATION_NS", ["value"])
+DURATION_NS_PACK = "!d"
+DURATION_NS_SIZE = struct.calcsize(DURATION_NS_PACK)
+
+DURATION_US = namedtuple("DURATION_US", ["value"])
+DURATION_US_PACK = "!d"
+DURATION_US_SIZE = struct.calcsize(DURATION_US_PACK)
+
+DURATION_MS = namedtuple("DURATION_MS", ["value"])
+DURATION_MS_PACK = "!d"
+DURATION_MS_SIZE = struct.calcsize(DURATION_MS_PACK)
+
+DURATION_S = namedtuple("DURATION_S", ["value"])
+DURATION_S_PACK = "!d"
+DURATION_S_SIZE = struct.calcsize(DURATION_S_PACK)

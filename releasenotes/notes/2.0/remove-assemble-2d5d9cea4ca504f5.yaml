@@ -1,0 +1,18 @@
+---
+upgrade_misc:
+  - |
+    The ``assemble`` function and related capabilities (contained in the ``assembler`` module)
+    have been removed from the codebase following their deprecation in Qiskit 1.2. 
+    ``assemble`` was used to generate ``Qobj`` in the context of the
+    deprecated  ``BackendV1`` workflow. The conversion is no longer necessary as the
+    transpilation and primitives pipeline handles quantum circuits directly, rendering the 
+    ``Qobj`` obsolete.
+
+    The removal includes the following public API components:
+
+      * ``qiskit.compiler.assemble`` function
+      * ``qiskit.assembler.assemble_circuits`` function
+      * ``qiskit.assembler.assemble_schedules`` function
+      * ``qiskit.assembler.disassemble`` function
+      * ``qiskit.assembler.RunConfig`` class
+      * ``qiskit.circuit.Instruction.assemble`` method

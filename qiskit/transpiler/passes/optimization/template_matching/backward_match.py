@@ -242,7 +242,7 @@ class BackwardMatch:
         Returns:
             bool: True if the same, False otherwise.
         """
-        return node_circuit.op == node_template.op
+        return node_circuit.op.soft_compare(node_template.op)
 
     def _is_same_q_conf(self, node_circuit, node_template, qarg_circuit):
         """
@@ -304,15 +304,15 @@ class BackwardMatch:
         """
         if (
             node_circuit.type == "op"
-            and getattr(node_circuit.op, "condition", None)
+            and getattr(node_circuit.op, "_condition", None)
             and node_template.type == "op"
-            and getattr(node_template.op, "condition", None)
+            and getattr(node_template.op, "_condition", None)
         ):
             if set(carg_circuit) != set(node_template.cindices):
                 return False
             if (
-                getattr(node_circuit.op, "condition", None)[1]
-                != getattr(node_template.op, "condition", None)[1]
+                getattr(node_circuit.op, "_condition", None)[1]
+                != getattr(node_template.op, "_condition", None)[1]
             ):
                 return False
         return True
@@ -622,7 +622,7 @@ class BackwardMatch:
                     )
                     self.matching_list.append_scenario(new_matching_scenario)
 
-                # Third option: if blocking the succesors breaks a match, we consider
+                # Third option: if blocking the successors breaks a match, we consider
                 # also the possibility to block all predecessors (push the gate to the left).
                 if broken_matches and all(global_broken):
 

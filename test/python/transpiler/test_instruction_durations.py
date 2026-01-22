@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -15,15 +15,14 @@
 """Test InstructionDurations class."""
 
 from qiskit.circuit import Delay, Parameter
-from qiskit.providers.fake_provider import FakeParis, FakeTokyo
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
-
-from qiskit.test.base import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestInstructionDurationsClass(QiskitTestCase):
-    """Test Test InstructionDurations class."""
+    """Test InstructionDurations class."""
 
     def test_empty(self):
         durations = InstructionDurations()
@@ -35,22 +34,6 @@ class TestInstructionDurationsClass(QiskitTestCase):
         invalid_dic = [("cx", [0, 1])]  # no duration
         with self.assertRaises(TranspilerError):
             InstructionDurations(invalid_dic)
-
-    def test_from_backend_for_backend_with_dt(self):
-        backend = FakeParis()
-        gate = self._find_gate_with_length(backend)
-        durations = InstructionDurations.from_backend(backend)
-        self.assertGreater(durations.dt, 0)
-        self.assertGreater(durations.get(gate, 0), 0)
-
-    def test_from_backend_for_backend_without_dt(self):
-        backend = FakeTokyo()
-        gate = self._find_gate_with_length(backend)
-        durations = InstructionDurations.from_backend(backend)
-        self.assertIsNone(durations.dt)
-        self.assertGreater(durations.get(gate, 0, "s"), 0)
-        with self.assertRaises(TranspilerError):
-            durations.get(gate, 0)
 
     def test_update_with_parameters(self):
         durations = InstructionDurations(
@@ -88,3 +71,10 @@ class TestInstructionDurationsClass(QiskitTestCase):
         parameterized_delay = Delay(param, "s")
         with self.assertRaises(TranspilerError):
             InstructionDurations().get(parameterized_delay, 0)
+
+    def test_from_backend_with_backendv2(self):
+        """Test if `from_backend()` method allows using BackendV2"""
+        backend = GenericBackendV2(num_qubits=4, seed=42)
+        inst_durations = InstructionDurations.from_backend(backend)
+        self.assertEqual(inst_durations, backend.target.durations())
+        self.assertIsInstance(inst_durations, InstructionDurations)

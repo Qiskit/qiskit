@@ -2,7 +2,7 @@
 fixes:
   - |
     Fixed an issue with the :func:`qiskit.visualization.timeline_drawer`
-    function where classical bits were inproperly handled.
+    function where classical bits were improperly handled.
     Fixed `#5361 <https://github.com/Qiskit/qiskit-terra/issues/5361>`__
   - |
     Fixed an issue in the :func:`qiskit.visualization.circuit_drawer` function

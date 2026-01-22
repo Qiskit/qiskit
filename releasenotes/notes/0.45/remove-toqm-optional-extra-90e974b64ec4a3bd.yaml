@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    The ``toqm`` optional setuptools extra that previously enabled running
+    ``pip install qiskit-terra[topm]`` has been removed as nothing in the
+    Qiskit code base is currently using that package anymore. If you'd like
+    to use the qiskit TOQM transpiler plugin you should install the
+    ``qiskit-toqm`` package directly.

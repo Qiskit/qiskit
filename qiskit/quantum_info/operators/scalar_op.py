@@ -15,7 +15,7 @@ ScalarOp class
 """
 
 from __future__ import annotations
-import copy
+import copy as _copy
 from numbers import Number
 import numpy as np
 
@@ -52,10 +52,11 @@ class ScalarOp(LinearOp):
         self._coeff = coeff
         super().__init__(input_dims=dims, output_dims=dims)
 
-    def __array__(self, dtype=None):
-        if dtype:
-            return np.asarray(self.to_matrix(), dtype=dtype)
-        return self.to_matrix()
+    def __array__(self, dtype=None, copy=None):
+        if copy is False:
+            raise ValueError("could not produce matrix without calculation")
+        arr = self.to_matrix()
+        return arr if dtype is None else arr.astype(dtype, copy=False)
 
     def __repr__(self):
         return f"ScalarOp({self.input_dims()}, coeff={self.coeff})"
@@ -104,7 +105,7 @@ class ScalarOp(LinearOp):
         # If other is also an ScalarOp we only need to
         # update the coefficient and dimensions
         if isinstance(other, ScalarOp):
-            ret = copy.copy(self)
+            ret = _copy.copy(self)
             ret._coeff = self.coeff * other.coeff
             ret._op_shape = new_shape
             return ret
@@ -112,7 +113,7 @@ class ScalarOp(LinearOp):
         # If we are composing on the full system we return the
         # other operator with reshaped dimensions
         if qargs is None:
-            ret = copy.copy(other)
+            ret = _copy.copy(other)
             ret._op_shape = new_shape
             # Other operator might not support scalar multiplication
             # so we treat the identity as a special case to avoid a
@@ -148,7 +149,7 @@ class ScalarOp(LinearOp):
             other = Operator(other)
 
         if isinstance(other, ScalarOp):
-            ret = copy.copy(self)
+            ret = _copy.copy(self)
             ret._coeff = self.coeff * other.coeff
             ret._op_shape = self._op_shape.tensor(other._op_shape)
             return ret
@@ -160,7 +161,7 @@ class ScalarOp(LinearOp):
             other = Operator(other)
 
         if isinstance(other, ScalarOp):
-            ret = copy.copy(self)
+            ret = _copy.copy(self)
             ret._coeff = self.coeff * other.coeff
             ret._op_shape = self._op_shape.expand(other._op_shape)
             return ret

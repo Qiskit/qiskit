@@ -16,10 +16,10 @@ import unittest
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
 from qiskit.transpiler import CouplingMap, Layout, Target
 from qiskit.circuit.library import CXGate
 from qiskit.transpiler.passes import LayoutTransformation
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestLayoutTransformation(QiskitTestCase):
@@ -85,16 +85,13 @@ class TestLayoutTransformation(QiskitTestCase):
 
         self.assertEqual(circuit_to_dag(expected), output_dag)
 
-    @unittest.skip("rustworkx token_swapper produces correct, but sometimes random output")
     def test_full_connected_coupling_map(self):
-        """Test if the permutation {0->3,1->0,2->1,3->2} in a fully connected map."""
-
-        # TODO: Remove skip when https://github.com/Qiskit/rustworkx/pull/897 is
-        # merged and released. Should be rustworkx 0.13.1.
-
+        """Test if the permutation {0->3,1->2,2->1,3->0} is implemented correctly in
+        a fully connected map.
+        """
         v = QuantumRegister(4, "v")  # virtual qubits
         from_layout = Layout({v[0]: 0, v[1]: 1, v[2]: 2, v[3]: 3})
-        to_layout = Layout({v[0]: 3, v[1]: 0, v[2]: 1, v[3]: 2})
+        to_layout = Layout({v[0]: 3, v[1]: 2, v[2]: 1, v[3]: 0})
         ltpass = LayoutTransformation(
             coupling_map=None, from_layout=from_layout, to_layout=to_layout, seed=42
         )
@@ -103,9 +100,8 @@ class TestLayoutTransformation(QiskitTestCase):
         output_dag = ltpass.run(dag)
 
         expected = QuantumCircuit(4)
-        expected.swap(1, 0)
-        expected.swap(2, 1)
-        expected.swap(3, 2)
+        expected.swap(0, 3)
+        expected.swap(1, 2)
 
         self.assertEqual(circuit_to_dag(expected), output_dag)
 

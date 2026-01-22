@@ -13,7 +13,7 @@ upgrade:
     this change.
   - |
     The ``qiskit.execute`` module has been renamed to
-    :mod:`qiskit.execute_function`. This was necessary to avoid a potentical
+    :mod:`qiskit.execute_function`. This was necessary to avoid a potential
     name conflict between the :func:`~qiskit.execute_function.execute` function
     which is re-exported as ``qiskit.execute``. ``qiskit.execute`` the function
     in some situations could conflict with ``qiskit.execute`` the module which
@@ -30,7 +30,7 @@ upgrade:
     been renamed to ``qiskit.compiler.transpiler``,
     ``qiskit.compiler.assembler``, ``qiskit.compiler.scheduler``, and
     ``qiskit.compiler.sequence`` respectively. This was necessary to avoid a
-    potentical name conflict between the modules and the re-exported function
+    potential name conflict between the modules and the re-exported function
     paths :func:`qiskit.compiler.transpile`, :func:`qiskit.compiler.assemble`,
     :func:`qiskit.compiler.schedule`, and :func:`qiskit.compiler.sequence`.
     In some situations this name conflict between the module path and

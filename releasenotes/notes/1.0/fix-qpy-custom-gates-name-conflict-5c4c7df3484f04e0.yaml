@@ -1,0 +1,19 @@
+---
+upgrade_qpy:
+  - |
+    The latest format version of QPY is now :ref:`qpy_version_11` and this
+    is what is emitted by default when running :func:`.qpy.dump`.
+fixes:
+  - |
+    Fixed an issue with the QPY serialization when a :class:`.QuantumCircuit`
+    contained multiple custom instructions instances that have the same
+    :attr:`~.Instruction.name` attribute. In QPY format versions before
+    :ref:`qpy_version_11` the QPY payload did not differentiate between
+    these instances and would only serialize the properties of the first
+    instance in a circuit. This could potentially cause an incorrect
+    deserialization if the other properties of the custom instruction were
+    different but the names were the same. This has been fixed in
+    QPY :ref:`qpy_version_11` so that each instance of a custom instruction
+    is serialized individually and there will no longer be a potential
+    conflict with overlapping names.
+    Fixes `#8941 <https://github.com/Qiskit/qiskit/issues/8941>`__.

@@ -17,52 +17,44 @@ from __future__ import annotations
 __all__ = ("SwitchCaseOp", "CASE_DEFAULT")
 
 import contextlib
-from typing import Union, Iterable, Any, Tuple, Optional, List, Literal
+from typing import Union, Iterable, Any, Tuple, Optional, List, Literal, TYPE_CHECKING
 
-from qiskit.circuit import ClassicalRegister, Clbit, QuantumCircuit
+from qiskit.circuit import ClassicalRegister, Clbit  # pylint: disable=cyclic-import
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.exceptions import CircuitError
+from qiskit._accelerate.circuit import ControlFlowType
 
 from .builder import InstructionPlaceholder, InstructionResources, ControlFlowBuilderBlock
 from .control_flow import ControlFlowOp
 from ._builder_utils import unify_circuit_resources, partition_registers, node_resources
 
+if TYPE_CHECKING:
+    from qiskit.circuit import QuantumCircuit
+
 
 class _DefaultCaseType:
-    """The type of the default-case singleton.  This is used instead of just having
-    ``CASE_DEFAULT = object()`` so we can set the pretty-printing properties, which are class-level
-    only."""
+    # Note: Sphinx uses the docstring of this singleton class object as the documentation of the
+    # `CASE_DEFAULT` object.
+
+    """A special object that represents the "default" case of a switch statement.  If you use this
+    as a case target, it must be the last case, and will match anything that wasn't already matched.
+    When using the builder interface of :meth:`.QuantumCircuit.switch`, this can also be accessed as
+    the ``DEFAULT`` attribute of the bound case-builder object."""
 
     def __repr__(self):
         return "<default case>"
 
 
 CASE_DEFAULT = _DefaultCaseType()
-"""A special object that represents the "default" case of a switch statement.  If you use this
-as a case target, it must be the last case, and will match anything that wasn't already matched.
-When using the builder interface of :meth:`.QuantumCircuit.switch`, this can also be accessed as the
-``DEFAULT`` attribute of the bound case-builder object."""
 
 
 class SwitchCaseOp(ControlFlowOp):
     """A circuit operation that executes one particular circuit block based on matching a given
     ``target`` against an ordered list of ``values``.  The special value :data:`.CASE_DEFAULT` can
     be used to represent a default condition.
-
-    This is the low-level interface for creating a switch-case statement; in general, the circuit
-    method :meth:`.QuantumCircuit.switch` should be used as a context manager to access the
-    builder interface.  At the low level, you must ensure that all the circuit blocks contain equal
-    numbers of qubits and clbits, and that the order the virtual bits of the containing circuit
-    should be bound is the same for all blocks.  This will likely mean that each circuit block is
-    wider than its natural width, as each block must span the union of all the spaces covered by
-    *any* of the blocks.
-
-    Args:
-        target: the runtime value to switch on.
-        cases: an ordered iterable of the corresponding value of the ``target`` and the circuit
-            block that should be executed if this is matched.  There is no fall-through between
-            blocks, and the order matters.
     """
+
+    _control_flow_type = ControlFlowType.SwitchCase
 
     def __init__(
         self,
@@ -71,6 +63,16 @@ class SwitchCaseOp(ControlFlowOp):
         *,
         label: Optional[str] = None,
     ):
+        """
+        Args:
+            target: the real-time value to switch on.
+            cases: an ordered iterable of the corresponding value of the ``target`` and the circuit
+                block that should be executed if this is matched.  There is no fall-through between
+                blocks, and the order matters.
+        """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit import QuantumCircuit
+
         if isinstance(target, expr.Expr):
             if target.type.kind not in (types.Uint, types.Bool):
                 raise CircuitError(
@@ -95,7 +97,7 @@ class SwitchCaseOp(ControlFlowOp):
         it's easier for things like `assign_parameters`, which need to touch each circuit object
         exactly once, to function."""
         self._label_spec: List[Tuple[Union[int, Literal[CASE_DEFAULT]], ...]] = []
-        """List of the normalised jump value specifiers.  This is a list of tuples, where each tuple
+        """List of the normalized jump value specifiers.  This is a list of tuples, where each tuple
         contains the values, and the indexing is the same as the values of `_case_map` and
         `_params`."""
         self._params = []
@@ -183,12 +185,6 @@ class SwitchCaseOp(ControlFlowOp):
             raise CircuitError(f"needed {len(self._case_map)} blocks but received {len(blocks)}")
         return SwitchCaseOp(self.target, zip(self._label_spec, blocks))
 
-    def c_if(self, classical, val):
-        raise NotImplementedError(
-            "SwitchCaseOp cannot be classically controlled through Instruction.c_if. "
-            "Please nest it in an IfElseOp instead."
-        )
-
 
 class SwitchCasePlaceholder(InstructionPlaceholder):
     """A placeholder instruction to use in control-flow context managers, when calculating the
@@ -237,8 +233,8 @@ class SwitchCasePlaceholder(InstructionPlaceholder):
             clbits.update(resources.clbits)
             cregs.update(resources.cregs)
         for _, body in self.__cases:
-            qubits |= body.qubits
-            clbits |= body.clbits
+            qubits |= body.qubits()
+            clbits |= body.clbits()
             body_qregs, body_cregs = partition_registers(body.registers)
             qregs |= body_qregs
             cregs |= body_cregs
@@ -270,7 +266,7 @@ class SwitchCasePlaceholder(InstructionPlaceholder):
         else:
             resources = self.__resources
         return (
-            self._copy_mutable_properties(SwitchCaseOp(self.__target, cases, label=self.label)),
+            SwitchCaseOp(self.__target, cases, label=self.label),
             resources,
         )
 

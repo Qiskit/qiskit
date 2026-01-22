@@ -16,19 +16,16 @@ import unittest
 from test import combine
 import numpy as np
 from ddt import ddt
+
 from qiskit import QuantumCircuit
-
 from qiskit.quantum_info import Clifford
-
 from qiskit.synthesis.linear_phase.cx_cz_depth_lnn import synth_cx_cz_depth_line_my
 from qiskit.synthesis.linear import (
     synth_cnot_depth_line_kms,
     random_invertible_binary_matrix,
 )
-
 from qiskit.synthesis.linear.linear_circuits_utils import check_lnn_connectivity
-
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt
@@ -37,13 +34,14 @@ class TestCXCZSynth(QiskitTestCase):
 
     @combine(num_qubits=[3, 4, 5, 6, 7, 8, 9, 10])
     def test_cx_cz_synth_lnn(self, num_qubits):
-        """Test the CXCZ synthesis code for linear nearest neighbour connectivity."""
+        """Test the CXCZ synthesis code for linear nearest neighbor connectivity."""
         seed = 1234
         rng = np.random.default_rng(seed)
         num_gates = 10
         num_trials = 8
+        seeds = rng.integers(100000, size=num_trials, dtype=np.uint64)
 
-        for _ in range(num_trials):
+        for seed in seeds:
             # Generate a random CZ circuit
             mat_z = np.zeros((num_qubits, num_qubits))
             cir_z = QuantumCircuit(num_qubits)
@@ -58,7 +56,7 @@ class TestCXCZSynth(QiskitTestCase):
                         mat_z[j][i] = (mat_z[j][i] + 1) % 2
 
             # Generate a random CX circuit
-            mat_x = random_invertible_binary_matrix(num_qubits, seed=rng)
+            mat_x = random_invertible_binary_matrix(num_qubits, seed=seed)
             mat_x = np.array(mat_x, dtype=bool)
             cir_x = synth_cnot_depth_line_kms(mat_x)
 

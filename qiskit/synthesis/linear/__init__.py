@@ -18,6 +18,7 @@ from .linear_matrix_utils import (
     random_invertible_binary_matrix,
     calc_inverse_matrix,
     check_invertible_binary_matrix,
+    binary_matmul,
 )
 
 # This is re-import is kept for compatibility with Terra 0.23. Eligible for deprecation in 0.25+.

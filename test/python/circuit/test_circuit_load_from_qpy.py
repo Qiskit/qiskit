@@ -11,25 +11,34 @@
 # that they have been altered from the originals.
 
 
-"""Test cases for the circuit qasm_file and qasm_string method."""
+"""Test cases for qpy serialization."""
 
+import gzip
 import io
 import json
 import random
+import tempfile
+import unittest
+import warnings
+import re
 
 import ddt
 import numpy as np
 
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, pulse
-from qiskit.circuit import CASE_DEFAULT
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit.circuit import CASE_DEFAULT, IfElseOp, WhileLoopOp, SwitchCaseOp
 from qiskit.circuit.classical import expr, types
-from qiskit.circuit.classicalregister import Clbit
-from qiskit.circuit.quantumregister import Qubit
+from qiskit.circuit import Clbit
+from qiskit.circuit import Qubit
 from qiskit.circuit.random import random_circuit
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.library import (
     XGate,
+    ZGate,
+    CXGate,
+    RYGate,
     QFT,
+    QFTGate,
     QAOAAnsatz,
     PauliEvolutionGate,
     DCXGate,
@@ -38,22 +47,41 @@ from qiskit.circuit.library import (
     MCXGrayCode,
     MCXRecursive,
     MCXVChain,
+    MCMTGate,
+    UCRXGate,
+    UCRYGate,
+    UCRZGate,
+    UnitaryGate,
+    DiagonalGate,
+    PauliFeatureMap,
+    ZZFeatureMap,
+    RealAmplitudes,
+    pauli_feature_map,
+    zz_feature_map,
+    qaoa_ansatz,
+    real_amplitudes,
+)
+from qiskit.circuit.annotated_operation import (
+    AnnotatedOperation,
+    InverseModifier,
+    ControlModifier,
+    PowerModifier,
 )
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parametervector import ParameterVector
 from qiskit.synthesis import LieTrotter, SuzukiTrotter
-from qiskit.extensions import UnitaryGate
-from qiskit.test import QiskitTestCase
-from qiskit.qpy import dump, load
-from qiskit.quantum_info import Pauli, SparsePauliOp
+from qiskit.qpy import dump, load, UnsupportedFeatureForVersion, QPY_COMPATIBILITY_VERSION
+from qiskit.quantum_info import Pauli, SparsePauliOp, Clifford
 from qiskit.quantum_info.random import random_unitary
 from qiskit.circuit.controlledgate import ControlledGate
+from qiskit.utils import optionals
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt.ddt
 class TestLoadFromQPY(QiskitTestCase):
-    """Test circuit.from_qasm_* set of methods."""
+    """Test qpy set of methods."""
 
     def assertDeprecatedBitProperties(self, original, roundtripped):
         """Test that deprecated bit attributes are equal if they are set in the original circuit."""
@@ -69,6 +97,26 @@ class TestLoadFromQPY(QiskitTestCase):
         if owned_clbits:
             original_clbits, roundtripped_clbits = zip(*owned_clbits)
             self.assertEqual(original_clbits, roundtripped_clbits)
+
+    def assertMinimalVarEqual(self, left, right):
+        """Replacement for asserting `QuantumCircuit` equality for use in `Var` tests, for use while
+        the `DAGCircuit` does not yet allow full equality checks.  This should be removed and the
+        tests changed to directly call `assertEqual` once possible.
+
+        This filters out instructions that have `QuantumCircuit` parameters in the data comparison
+        (such as control-flow ops), which need to be handled separately."""
+        self.assertEqual(list(left.iter_input_vars()), list(right.iter_input_vars()))
+        self.assertEqual(list(left.iter_declared_vars()), list(right.iter_declared_vars()))
+        self.assertEqual(list(left.iter_captured_vars()), list(right.iter_captured_vars()))
+
+        def filter_ops(data):
+            return [
+                ins
+                for ins in data
+                if not any(isinstance(x, QuantumCircuit) for x in ins.operation.params)
+            ]
+
+        self.assertEqual(filter_ops(left.data), filter_ops(right.data))
 
     def test_qpy_full_path(self):
         """Test full path qpy serialization for basic circuit."""
@@ -100,17 +148,6 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertEqual(q_circuit.metadata, new_circ.metadata)
         self.assertEqual(q_circuit.name, new_circ.name)
         self.assertDeprecatedBitProperties(q_circuit, new_circ)
-
-    def test_circuit_with_conditional(self):
-        """Test that instructions with conditions are correctly serialized."""
-        qc = QuantumCircuit(1, 1)
-        qc.x(0).c_if(qc.cregs[0], 1)
-        qpy_file = io.BytesIO()
-        dump(qc, qpy_file)
-        qpy_file.seek(0)
-        new_circ = load(qpy_file)[0]
-        self.assertEqual(qc, new_circ)
-        self.assertDeprecatedBitProperties(qc, new_circ)
 
     def test_int_parameter(self):
         """Test that integer parameters are correctly serialized."""
@@ -166,6 +203,22 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
+        self.assertDeprecatedBitProperties(qc, new_circ)
+
+    def test_controlled_unitary_gate(self):
+        """Test that numpy array parameters are correctly serialized
+        in controlled unitary gate."""
+        qc = QuantumCircuit(2)
+        unitary = np.array([[0, 1], [1, 0]])
+        gate = UnitaryGate(unitary)
+        qc.append(gate.control(1, annotated=False), [0, 1])
+
+        with io.BytesIO() as qpy_file:
+            dump(qc, qpy_file)
+            qpy_file.seek(0)
+            new_circ = load(qpy_file)[0]
+
+        self.assertEqual(qc.decompose(reps=5), new_circ.decompose(reps=5))
         self.assertDeprecatedBitProperties(qc, new_circ)
 
     def test_opaque_gate(self):
@@ -250,7 +303,9 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
-        self.assertEqual(qc.bind_parameters({theta: 3.14}), new_circ.bind_parameters({theta: 3.14}))
+        self.assertEqual(
+            qc.assign_parameters({theta: 3.14}), new_circ.assign_parameters({theta: 3.14})
+        )
         self.assertDeprecatedBitProperties(qc, new_circ)
 
     def test_bound_parameter(self):
@@ -276,39 +331,6 @@ class TestLoadFromQPY(QiskitTestCase):
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
         self.assertDeprecatedBitProperties(qc, new_circ)
-
-    def test_bound_calibration_parameter(self):
-        """Test a circuit with a bound calibration parameter is correctly serialized.
-
-        In particular, this test ensures that parameters on a circuit
-        instruction are consistent with the circuit's calibrations dictionary
-        after serialization.
-        """
-        amp = Parameter("amp")
-
-        with pulse.builder.build() as sched:
-            pulse.builder.play(pulse.Constant(100, amp), pulse.DriveChannel(0))
-
-        gate = Gate("custom", 1, [amp])
-
-        qc = QuantumCircuit(1)
-        qc.append(gate, (0,))
-        qc.add_calibration(gate, (0,), sched)
-        qc.assign_parameters({amp: 1 / 3}, inplace=True)
-
-        qpy_file = io.BytesIO()
-        dump(qc, qpy_file)
-        qpy_file.seek(0)
-        new_circ = load(qpy_file)[0]
-        self.assertEqual(qc, new_circ)
-        instruction = new_circ.data[0]
-        cal_key = (
-            tuple(new_circ.find_bit(q).index for q in instruction.qubits),
-            tuple(instruction.operation.params),
-        )
-        # Make sure that looking for a calibration based on the instruction's
-        # parameters succeeds
-        self.assertIn(cal_key, new_circ.calibrations[gate.name])
 
     def test_parameter_expression(self):
         """Test a circuit with a parameter expression."""
@@ -606,8 +628,7 @@ class TestLoadFromQPY(QiskitTestCase):
     def test_standard_gate_with_label(self):
         """Test a standard gate with a label."""
         qc = QuantumCircuit(1)
-        gate = XGate()
-        gate.label = "My special X gate"
+        gate = XGate(label="My special X gate")
         qc.append(gate, [0])
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
@@ -619,23 +640,8 @@ class TestLoadFromQPY(QiskitTestCase):
         )
         self.assertDeprecatedBitProperties(qc, new_circ)
 
-    def test_circuit_with_conditional_with_label(self):
-        """Test that instructions with conditions are correctly serialized."""
-        qc = QuantumCircuit(1, 1)
-        gate = XGate(label="My conditional x gate")
-        gate.c_if(qc.cregs[0], 1)
-        qc.append(gate, [0])
-        qpy_file = io.BytesIO()
-        dump(qc, qpy_file)
-        qpy_file.seek(0)
-        new_circ = load(qpy_file)[0]
-        self.assertEqual(qc, new_circ)
-        self.assertEqual(
-            [x.operation.label for x in qc.data], [x.operation.label for x in new_circ.data]
-        )
-        self.assertDeprecatedBitProperties(qc, new_circ)
-
-    def test_initialize_qft(self):
+    @ddt.data(True, False)
+    def test_initialize_qft(self, use_qft_gate):
         """Test that initialize with a complex statevector and qft work."""
         k = 5
         state = (1 / np.sqrt(8)) * np.array(
@@ -654,7 +660,13 @@ class TestLoadFromQPY(QiskitTestCase):
         qubits = 3
         qc = QuantumCircuit(qubits, qubits)
         qc.initialize(state)
-        qc.append(QFT(qubits), range(qubits))
+        if use_qft_gate:
+            qft = QFTGate(qubits)
+        else:
+            with self.assertWarns(DeprecationWarning):
+                qft = QFT(qubits)
+
+        qc.append(qft, range(qubits))
         qc.measure(range(qubits), range(qubits))
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
@@ -666,7 +678,8 @@ class TestLoadFromQPY(QiskitTestCase):
         )
         self.assertDeprecatedBitProperties(qc, new_circ)
 
-    def test_statepreparation(self):
+    @ddt.data(True, False)
+    def test_statepreparation(self, use_qft_gate):
         """Test that state preparation with a complex statevector and qft work."""
         k = 5
         state = (1 / np.sqrt(8)) * np.array(
@@ -685,7 +698,13 @@ class TestLoadFromQPY(QiskitTestCase):
         qubits = 3
         qc = QuantumCircuit(qubits, qubits)
         qc.prepare_state(state)
-        qc.append(QFT(qubits), range(qubits))
+        if use_qft_gate:
+            qft = QFTGate(qubits)
+        else:
+            with self.assertWarns(DeprecationWarning):
+                qft = QFT(qubits)
+
+        qc.append(qft, range(qubits))
         qc.measure(range(qubits), range(qubits))
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
@@ -704,7 +723,8 @@ class TestLoadFromQPY(QiskitTestCase):
         qc = QuantumCircuit(qr, cr, name="Reset Test")
         qc.x(0)
         qc.measure(0, cr[0])
-        qc.x(0).c_if(cr[0], 1)
+        with qc.if_test((cr[0], 1)):
+            qc.x(0)
         qc.measure(0, cr[1])
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
@@ -719,7 +739,8 @@ class TestLoadFromQPY(QiskitTestCase):
     def test_qaoa(self):
         """Test loading a QAOA circuit works."""
         cost_operator = Pauli("ZIIZ")
-        qaoa = QAOAAnsatz(cost_operator, reps=2)
+        with self.assertWarns(DeprecationWarning):
+            qaoa = QAOAAnsatz(cost_operator, reps=2)
 
         qpy_file = io.BytesIO()
         dump(qaoa, qpy_file)
@@ -871,6 +892,180 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertIsInstance(new_evo, PauliEvolutionGate)
         self.assertDeprecatedBitProperties(qc, new_circ)
 
+    def test_pauli_feature_map_legacy(self):
+        """Regression test for
+        https://github.com/Qiskit/qiskit/issues/13720."""
+        # legacy construction
+        with self.assertWarns(DeprecationWarning):
+            qc = PauliFeatureMap(feature_dimension=5, reps=1)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            new_circuit = load(qpy_file)[0]
+            for warning in w:
+                self.assertFalse(
+                    re.search(
+                        r"is not fully identical to its pre-serialization state",
+                        str(warning.message),
+                    )
+                )
+        self.assertEqual(qc, new_circuit)
+
+    def test_pauli_feature_map_new(self):
+        """Regression test for
+        https://github.com/Qiskit/qiskit/issues/13720."""
+        # new construction
+        qc = pauli_feature_map(feature_dimension=5, reps=1)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            new_circuit = load(qpy_file)[0]
+            for warning in w:
+                self.assertFalse(
+                    re.search(
+                        r"is not fully identical to its pre-serialization state",
+                        str(warning.message),
+                    )
+                )
+        self.assertEqual(qc, new_circuit)
+
+    def test_zz_feature_map_legacy(self):
+        """Regression test for
+        https://github.com/Qiskit/qiskit/issues/14088."""
+        # legacy construction
+        with self.assertWarns(DeprecationWarning):
+            qc = ZZFeatureMap(2, reps=1)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            new_circuit = load(qpy_file)[0]
+            for warning in w:
+                self.assertFalse(
+                    re.search(
+                        r"is not fully identical to its pre-serialization state",
+                        str(warning.message),
+                    )
+                )
+        self.assertEqual(qc, new_circuit)
+
+    def test_zz_feature_map_new(self):
+        """Regression test for
+        https://github.com/Qiskit/qiskit/issues/14088."""
+        # new construction
+        qc = zz_feature_map(2, reps=1)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            new_circuit = load(qpy_file)[0]
+            for warning in w:
+                self.assertFalse(
+                    re.search(
+                        r"is not fully identical to its pre-serialization state",
+                        str(warning.message),
+                    )
+                )
+        self.assertEqual(qc, new_circuit)
+
+    def test_real_amplitudes_legacy(self):
+        """Regression test for
+        https://github.com/Qiskit/qiskit/issues/14088."""
+        # legacy construction
+        with self.assertWarns(DeprecationWarning):
+            qc = RealAmplitudes(2, reps=1)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            new_circuit = load(qpy_file)[0]
+            for warning in w:
+                self.assertFalse(
+                    re.search(
+                        r"is not fully identical to its pre-serialization state",
+                        str(warning.message),
+                    )
+                )
+        self.assertEqual(qc, new_circuit)
+
+    def test_real_amplitudes_new(self):
+        """Regression test for
+        https://github.com/Qiskit/qiskit/issues/14088."""
+        # new construction
+        qc = real_amplitudes(2, reps=1)
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            new_circuit = load(qpy_file)[0]
+            for warning in w:
+                self.assertFalse(
+                    re.search(
+                        r"is not fully identical to its pre-serialization state",
+                        str(warning.message),
+                    )
+                )
+        self.assertEqual(qc, new_circuit)
+
+    def test_duplicated_param_name_legacy(self):
+        """Regression test for
+        https://github.com/Qiskit/qiskit/issues/14089."""
+        op = SparsePauliOp(["ZIZI", "IZIZ", "ZIIZ"])
+        x = ParameterVector("γ", 1)
+        # legacy construction
+        with self.assertWarns(DeprecationWarning):
+            ansatz = QAOAAnsatz(op, reps=1)
+        ansatz = ansatz.assign_parameters({ansatz.parameters[1]: x[0]})
+        qc = QuantumCircuit(4)
+        qc.append(ansatz, range(4))
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            new_circuit = load(qpy_file)[0]
+            for warning in w:
+                self.assertFalse(
+                    re.search(
+                        r"is not fully identical to its pre-serialization state",
+                        str(warning.message),
+                    )
+                )
+        self.assertEqual(qc, new_circuit)
+
+    def test_duplicated_param_name_new(self):
+        """Regression test for
+        https://github.com/Qiskit/qiskit/issues/14089."""
+        op = SparsePauliOp(["ZIZI", "IZIZ", "ZIIZ"])
+        x = ParameterVector("γ", 1)
+        # new construction
+        ansatz = qaoa_ansatz(op, reps=1)
+        ansatz = ansatz.assign_parameters({ansatz.parameters[1]: x[0]})
+        qc = QuantumCircuit(4)
+        qc.append(ansatz, range(4))
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            new_circuit = load(qpy_file)[0]
+            for warning in w:
+                self.assertFalse(
+                    re.search(
+                        r"is not fully identical to its pre-serialization state",
+                        str(warning.message),
+                    )
+                )
+        self.assertEqual(qc, new_circuit)
+
     def test_parameter_expression_global_phase(self):
         """Test a circuit with a parameter expression global_phase."""
         theta = Parameter("theta")
@@ -928,12 +1123,51 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertEqual([x.name for x in new_circuit.parameters], expected_params)
         self.assertDeprecatedBitProperties(qc, new_circuit)
 
+    def test_parameter_vector_equality(self):
+        """Test parameter vector equality after serialization."""
+
+        def dump_load_param_vec(qc):
+            params = qc.parameters
+            vector = qc.parameters[0].vector
+            qpy_file = io.BytesIO()
+            dump(qc, qpy_file)
+            qpy_file.seek(0)
+            new_circuit = load(qpy_file)[0]
+            new_params = new_circuit.parameters
+            new_vector = new_circuit.parameters[0].vector
+            return params, new_params, vector, new_vector
+
+        with self.subTest("manual"):
+            x = ParameterVector("γ", 2)
+            qc = QuantumCircuit(3)
+            qc.rzz(x[0], 0, 1)
+            with self.assertWarns(UserWarning):
+                params, new_params, vector, new_vector = dump_load_param_vec(qc)
+
+            self.assertTrue(all(p == q for p, q in zip(params, new_params)))
+            # vector[0] is part of the circuit
+            self.assertTrue(vector[0] == new_vector[0])
+            # vector[1] is not part of the circuit
+            self.assertTrue(vector[1] != new_vector[1])
+
+        with self.subTest("real_amplitudes"):
+            qc = real_amplitudes(2, reps=1)
+            params, new_params, vector, new_vector = dump_load_param_vec(qc)
+            self.assertTrue(all(p == q for p, q in zip(params, new_params)))
+            self.assertTrue(all(p == q for p, q in zip(vector, new_vector)))
+
+        with self.subTest("zz_feature_map"):
+            qc = zz_feature_map(2, reps=1)
+            params, new_params, vector, new_vector = dump_load_param_vec(qc)
+            self.assertTrue(all(p == q for p, q in zip(params, new_params)))
+            self.assertTrue(all(p == q for p, q in zip(vector, new_vector)))
+
     def test_parameter_vector_element_in_expression(self):
         """Test a circuit with a parameter vector used in a parameter expression."""
         qc = QuantumCircuit(7)
         entanglement = [[i, i + 1] for i in range(7 - 1)]
         input_params = ParameterVector("x_par", 14)
-        user_params = ParameterVector("\u03B8_par", 1)
+        user_params = ParameterVector("\u03b8_par", 1)
 
         for i in range(qc.num_qubits):
             qc.ry(user_params[0], qc.qubits[i])
@@ -1087,7 +1321,8 @@ class TestLoadFromQPY(QiskitTestCase):
             qc.h(0)
             qc.cx(0, 1)
             qc.measure(0, 0)
-            qc.break_loop().c_if(0, True)
+            with qc.if_test((0, True)):
+                qc.break_loop()
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
         qpy_file.seek(0)
@@ -1103,7 +1338,8 @@ class TestLoadFromQPY(QiskitTestCase):
             qc.h(0)
             qc.cx(0, 1)
             qc.measure(0, 0)
-            qc.break_loop().c_if(0, True)
+            with qc.if_test((0, True)):
+                qc.break_loop()
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
         qpy_file.seek(0)
@@ -1112,7 +1348,7 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertDeprecatedBitProperties(qc, new_circuit)
 
     def test_qpy_clbit_switch(self):
-        """Test QPY serialisation for a switch statement with a Clbit target."""
+        """Test QPY serialization for a switch statement with a Clbit target."""
         case_t = QuantumCircuit(2, 1)
         case_t.x(0)
         case_f = QuantumCircuit(2, 1)
@@ -1129,7 +1365,7 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertDeprecatedBitProperties(qc, new_circuit)
 
     def test_qpy_register_switch(self):
-        """Test QPY serialisation for a switch statement with a ClassicalRegister target."""
+        """Test QPY serialization for a switch statement with a ClassicalRegister target."""
         qreg = QuantumRegister(2, "q")
         creg = ClassicalRegister(3, "c")
 
@@ -1189,9 +1425,11 @@ class TestLoadFromQPY(QiskitTestCase):
     def test_ucr_gates(self):
         """Test qpy with UCRX, UCRY, and UCRZ gates."""
         qc = QuantumCircuit(3)
-        qc.ucrz([0, 0, 0, -np.pi], [0, 1], 2)
-        qc.ucry([0, 0, 0, -np.pi], [0, 2], 1)
-        qc.ucrx([0, 0, 0, -np.pi], [2, 1], 0)
+        angles = [0, 0, 0, -np.pi]
+        ucrx, ucry, ucrz = UCRXGate(angles), UCRYGate(angles), UCRZGate(angles)
+        qc.append(ucrz, [2, 0, 1])
+        qc.append(ucry, [1, 0, 2])
+        qc.append(ucrx, [0, 2, 1])
         qc.measure_all()
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
@@ -1203,7 +1441,7 @@ class TestLoadFromQPY(QiskitTestCase):
     def test_controlled_gate(self):
         """Test a custom controlled gate."""
         qc = QuantumCircuit(3)
-        controlled_gate = DCXGate().control(1)
+        controlled_gate = DCXGate().control(1, annotated=False)
         qc.append(controlled_gate, [0, 1, 2])
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
@@ -1215,7 +1453,7 @@ class TestLoadFromQPY(QiskitTestCase):
     def test_controlled_gate_open_controls(self):
         """Test a controlled gate with open controls round-trips exactly."""
         qc = QuantumCircuit(3)
-        controlled_gate = DCXGate().control(1, ctrl_state=0)
+        controlled_gate = DCXGate().control(1, ctrl_state=0, annotated=False)
         qc.append(controlled_gate, [0, 1, 2])
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
@@ -1235,7 +1473,7 @@ class TestLoadFromQPY(QiskitTestCase):
 
         qc = QuantumCircuit(3)
         qc.append(custom_gate, [0])
-        controlled_gate = custom_gate.control(2)
+        controlled_gate = custom_gate.control(2, annotated=False)
         qc.append(controlled_gate, [0, 1, 2])
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
@@ -1262,22 +1500,27 @@ class TestLoadFromQPY(QiskitTestCase):
         qc = QuantumCircuit(6)
         mcu1_gate = MCU1Gate(np.pi, 2)
         mcx_gate = MCXGate(5)
-        mcx_gray_gate = MCXGrayCode(5)
-        mcx_recursive_gate = MCXRecursive(4)
-        mcx_vchain_gate = MCXVChain(3)
+        with self.assertWarns(DeprecationWarning):
+            mcx_gray_gate = MCXGrayCode(5)
+        with self.assertWarns(DeprecationWarning):
+            mcx_recursive_gate = MCXRecursive(4)
+        with self.assertWarns(DeprecationWarning):
+            mcx_vchain_gate = MCXVChain(3)
+        mcmt_gate = MCMTGate(ZGate(), 2, 1)
         qc.append(mcu1_gate, [0, 2, 1])
         qc.append(mcx_gate, list(range(0, 6)))
         qc.append(mcx_gray_gate, list(range(0, 6)))
         qc.append(mcx_recursive_gate, list(range(0, 5)))
         qc.append(mcx_vchain_gate, list(range(0, 5)))
+        qc.append(mcmt_gate, list(range(0, 3)))
         qc.mcp(np.pi, [0, 2], 1)
-        qc.mct([0, 2], 1)
         qc.mcx([0, 2], 1)
         qc.measure_all()
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
         qpy_file.seek(0)
-        new_circuit = load(qpy_file)[0]
+        with self.assertWarns(DeprecationWarning):
+            new_circuit = load(qpy_file)[0]
         self.assertEqual(qc, new_circuit)
         self.assertDeprecatedBitProperties(qc, new_circuit)
 
@@ -1302,6 +1545,25 @@ class TestLoadFromQPY(QiskitTestCase):
 
         qc = QuantumCircuit(2)
         qc.append(CustomCXGate(), [0, 1])
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+        self.assertEqual(qc, new_circ)
+        self.assertEqual(qc.decompose(), new_circ.decompose())
+        self.assertDeprecatedBitProperties(qc, new_circ)
+
+    def test_multiple_controlled_gates(self):
+        """Test multiple controlled gates with same name but different
+        parameter values.
+
+        Reproduce from: https://github.com/Qiskit/qiskit-terra/issues/10735
+        """
+
+        qc = QuantumCircuit(3)
+        for i in range(3):
+            c2ry = RYGate(i + 1).control(2, annotated=False)
+            qc.append(c2ry, [i % 3, (i + 1) % 3, (i + 2) % 3])
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
         qpy_file.seek(0)
@@ -1413,13 +1675,16 @@ class TestLoadFromQPY(QiskitTestCase):
 
     def test_diagonal_gate(self):
         """Test that a `DiagonalGate` successfully roundtrips."""
+        diag = DiagonalGate([1, -1, -1, 1])
+
         qc = QuantumCircuit(2)
-        qc.diagonal([1, -1, -1, 1], [0, 1])
+        qc.append(diag, [0, 1])
+
         with io.BytesIO() as fptr:
             dump(qc, fptr)
             fptr.seek(0)
             new_circuit = load(fptr)[0]
-        # DiagonalGate (and a bunch of the qiskit.extensions gates) have non-deterministic
+        # DiagonalGate (and some of the qiskit.circuit.library gates) have non-deterministic
         # definitions with regard to internal instruction names, so cannot be directly compared for
         # equality.
         self.assertIs(type(qc.data[0].operation), type(new_circuit.data[0].operation))
@@ -1450,6 +1715,7 @@ class TestLoadFromQPY(QiskitTestCase):
         """Test that `IfElseOp` and `WhileLoopOp` can have an `Expr` node as their `condition`, and
         that this round-trips through QPY."""
         inner = QuantumCircuit(1)
+        inner.x(0)
         outer = QuantumCircuit(1, 1)
         control_flow(outer, expr.lift(outer.clbits[0]), inner.copy(), [0], [])
 
@@ -1608,8 +1874,466 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertEqual(qc.cregs, new_circuit.cregs)
         self.assertDeprecatedBitProperties(qc, new_circuit)
 
-    def test_qpy_deprecation(self):
-        """Test the old import path's deprecations fire."""
-        with self.assertWarnsRegex(DeprecationWarning, "is deprecated"):
-            # pylint: disable=no-name-in-module, unused-import, redefined-outer-name, reimported
-            from qiskit.circuit.qpy_serialization import dump, load
+    def test_box(self):
+        """Test that box, including duration, unit and label roundtrips."""
+        qc = QuantumCircuit(2)
+        with qc.box():  # Instruction 0
+            qc.cx(0, 1)
+        with qc.box(duration=1, unit="dt", label="hello"):  # Instruction 1
+            with qc.box(duration=2.5, unit="s", label="world"):  # Instruction 1-0
+                qc.cx(0, 1)
+
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            out = load(fptr)[0]
+
+        self.assertEqual(qc, out)
+        self.assertDeprecatedBitProperties(qc, out)
+
+        # ... and a couple of manual checks, to be extra sure we check things not in `__eq__`.
+        box_0 = out.data[0].operation
+        self.assertIsNone(box_0.duration)
+        self.assertIsNone(box_0.label)
+
+        box_1 = out.data[1].operation
+        self.assertEqual(box_1.duration, 1)
+        self.assertEqual(box_1.unit, "dt")
+        self.assertEqual(box_1.label, "hello")
+
+        box_1_0 = box_1.blocks[0].data[0].operation
+        self.assertEqual(box_1_0.duration, 2.5)
+        self.assertEqual(box_1_0.unit, "s")
+        self.assertEqual(box_1_0.label, "world")
+
+    def test_box_with_stretch(self):
+        """Test that box's duration and unit round-trip with stretches."""
+        qc = QuantumCircuit(2)
+        a = qc.add_stretch("a")
+        b = qc.add_stretch("b")
+        with qc.box(duration=a):
+            with qc.box(duration=expr.mul(2, b)):
+                pass
+
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            out = load(fptr)[0]
+
+        box_outer = out.data[0].operation
+        self.assertEqual(box_outer.duration, a)
+        self.assertEqual(box_outer.unit, "expr")
+        box_inner = box_outer.blocks[0].data[0].operation
+        self.assertEqual(box_inner.duration, expr.mul(2, b))
+        self.assertEqual(box_inner.unit, "expr")
+        self.assertEqual(qc, out)
+
+    def test_multiple_nested_control_custom_definitions(self):
+        """Test that circuits with multiple controlled custom gates that in turn depend on custom
+        gates can be exported successfully when there are several such gates in the outer circuit.
+        See gh-9746"""
+        inner_1 = QuantumCircuit(1, name="inner_1")
+        inner_1.x(0)
+        inner_2 = QuantumCircuit(1, name="inner_2")
+        inner_2.y(0)
+
+        outer_1 = QuantumCircuit(1, name="outer_1")
+        outer_1.append(inner_1.to_gate(), [0], [])
+        outer_2 = QuantumCircuit(1, name="outer_2")
+        outer_2.append(inner_2.to_gate(), [0], [])
+
+        qc = QuantumCircuit(2)
+        qc.append(outer_1.to_gate().control(1, annotated=False), [0, 1], [])
+        qc.append(outer_2.to_gate().control(1, annotated=False), [0, 1], [])
+
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            new_circuit = load(fptr)[0]
+        self.assertEqual(qc, new_circuit)
+        self.assertDeprecatedBitProperties(qc, new_circuit)
+
+    @ddt.data(0, "01", [1, 0, 0, 0])
+    def test_valid_circuit_with_initialize_instruction(self, param):
+        """Tests that circuit that has initialize instruction can be saved and correctly retrieved"""
+        qc = QuantumCircuit(2)
+        qc.initialize(param, qc.qubits)
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            new_circuit = load(fptr)[0]
+        self.assertEqual(qc, new_circuit)
+        self.assertDeprecatedBitProperties(qc, new_circuit)
+
+    def test_clifford(self):
+        """Test that circuits with Clifford operations can be saved and retrieved correctly."""
+        cliff1 = Clifford.from_dict(
+            {
+                "stabilizer": ["-IZX", "+ZYZ", "+ZII"],
+                "destabilizer": ["+ZIZ", "+ZXZ", "-XIX"],
+            }
+        )
+        cliff2 = Clifford.from_dict(
+            {
+                "stabilizer": ["+YX", "+ZZ"],
+                "destabilizer": ["+IZ", "+YI"],
+            }
+        )
+
+        circuit = QuantumCircuit(6, 1)
+        circuit.cx(0, 1)
+        circuit.append(cliff1, [2, 4, 5])
+        circuit.h(4)
+        circuit.append(cliff2, [3, 0])
+
+        with io.BytesIO() as fptr:
+            dump(circuit, fptr)
+            fptr.seek(0)
+            new_circuit = load(fptr)[0]
+        self.assertEqual(circuit, new_circuit)
+
+    def test_annotated_operations(self):
+        """Test that circuits with annotated operations can be saved and retrieved correctly."""
+        op1 = AnnotatedOperation(
+            CXGate(), [InverseModifier(), ControlModifier(1), PowerModifier(1.4), InverseModifier()]
+        )
+        op2 = AnnotatedOperation(XGate(), InverseModifier())
+
+        circuit = QuantumCircuit(6, 1)
+        circuit.cx(0, 1)
+        circuit.append(op1, [0, 1, 2])
+        circuit.h(4)
+        circuit.append(op2, [1])
+
+        with io.BytesIO() as fptr:
+            dump(circuit, fptr)
+            fptr.seek(0)
+            new_circuit = load(fptr)[0]
+        self.assertEqual(circuit, new_circuit)
+
+    def test_annotated_operations_iterative(self):
+        """Test that circuits with iterative annotated operations can be saved and
+        retrieved correctly.
+        """
+        op = AnnotatedOperation(AnnotatedOperation(XGate(), InverseModifier()), ControlModifier(1))
+        circuit = QuantumCircuit(4)
+        circuit.h(0)
+        circuit.append(op, [0, 2])
+        circuit.cx(2, 3)
+        with io.BytesIO() as fptr:
+            dump(circuit, fptr)
+            fptr.seek(0)
+            new_circuit = load(fptr)[0]
+        self.assertEqual(circuit, new_circuit)
+
+    def test_load_empty_vars(self):
+        """Test loading empty circuits with variables."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+        all_vars = {
+            a: expr.lift(False),
+            b: expr.lift(3, type=b.type),
+            expr.Var.new("θψφ", types.Bool()): expr.logic_not(a),
+            expr.Var.new("🐍🐍🐍", types.Uint(8)): expr.bit_and(b, b),
+        }
+
+        inputs = QuantumCircuit(inputs=list(all_vars))
+        with io.BytesIO() as fptr:
+            dump(inputs, fptr)
+            fptr.seek(0)
+            new_inputs = load(fptr)[0]
+        self.assertMinimalVarEqual(inputs, new_inputs)
+        self.assertDeprecatedBitProperties(inputs, new_inputs)
+
+        # Reversed order just to check there's no sorting shenanigans.
+        captures = QuantumCircuit(captures=list(all_vars)[::-1])
+        with io.BytesIO() as fptr:
+            dump(captures, fptr)
+            fptr.seek(0)
+            new_captures = load(fptr)[0]
+        self.assertMinimalVarEqual(captures, new_captures)
+        self.assertDeprecatedBitProperties(captures, new_captures)
+
+        declares = QuantumCircuit(declarations=all_vars)
+        with io.BytesIO() as fptr:
+            dump(declares, fptr)
+            fptr.seek(0)
+            new_declares = load(fptr)[0]
+        self.assertMinimalVarEqual(declares, new_declares)
+        self.assertDeprecatedBitProperties(declares, new_declares)
+
+    def test_load_empty_vars_if(self):
+        """Test loading circuit with vars in if/else closures."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("θψφ", types.Bool())
+        c = expr.Var.new("c", types.Uint(8))
+        d = expr.Var.new("🐍🐍🐍", types.Uint(8))
+
+        qc = QuantumCircuit(inputs=[a])
+        qc.add_var(b, expr.logic_not(a))
+        qc.add_var(c, expr.lift(0, c.type))
+        with qc.if_test(b) as else_:
+            qc.store(c, expr.lift(3, c.type))
+        with else_:
+            qc.add_var(d, expr.lift(7, d.type))
+
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            new_qc = load(fptr)[0]
+        self.assertMinimalVarEqual(qc, new_qc)
+        self.assertDeprecatedBitProperties(qc, new_qc)
+
+        old_if_else = qc.data[-1].operation
+        new_if_else = new_qc.data[-1].operation
+        # Sanity check for test.
+        self.assertIsInstance(old_if_else, IfElseOp)
+        self.assertIsInstance(new_if_else, IfElseOp)
+        self.assertEqual(len(old_if_else.blocks), len(new_if_else.blocks))
+
+        for old, new in zip(old_if_else.blocks, new_if_else.blocks):
+            self.assertMinimalVarEqual(old, new)
+            self.assertDeprecatedBitProperties(old, new)
+
+    def test_load_empty_vars_while(self):
+        """Test loading circuit with vars in while closures."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("θψφ", types.Bool())
+        c = expr.Var.new("🐍🐍🐍", types.Uint(8))
+
+        qc = QuantumCircuit(inputs=[a])
+        qc.add_var(b, expr.logic_not(a))
+        with qc.while_loop(b):
+            qc.add_var(c, expr.lift(7, c.type))
+
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            new_qc = load(fptr)[0]
+        self.assertMinimalVarEqual(qc, new_qc)
+        self.assertDeprecatedBitProperties(qc, new_qc)
+
+        old_while = qc.data[-1].operation
+        new_while = new_qc.data[-1].operation
+        # Sanity check for test.
+        self.assertIsInstance(old_while, WhileLoopOp)
+        self.assertIsInstance(new_while, WhileLoopOp)
+        self.assertEqual(len(old_while.blocks), len(new_while.blocks))
+
+        for old, new in zip(old_while.blocks, new_while.blocks):
+            self.assertMinimalVarEqual(old, new)
+            self.assertDeprecatedBitProperties(old, new)
+
+    def test_load_empty_vars_switch(self):
+        """Test loading circuit with vars in switch closures."""
+        a = expr.Var.new("🐍🐍🐍", types.Uint(8))
+
+        qc = QuantumCircuit(1, 1, inputs=[a])
+        qc.measure(0, 0)
+        b_outer = qc.add_var("b", False)
+        with qc.switch(a) as case:
+            with case(0):
+                qc.store(b_outer, True)
+            with case(1):
+                qc.store(qc.clbits[0], False)
+            with case(2):
+                # Explicit shadowing.
+                qc.add_var("b", True)
+            with case(3):
+                qc.store(a, expr.lift(1, a.type))
+            with case(case.DEFAULT):
+                pass
+
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            new_qc = load(fptr)[0]
+        self.assertMinimalVarEqual(qc, new_qc)
+        self.assertDeprecatedBitProperties(qc, new_qc)
+
+        old_switch = qc.data[-1].operation
+        new_switch = new_qc.data[-1].operation
+        # Sanity check for test.
+        self.assertIsInstance(old_switch, SwitchCaseOp)
+        self.assertIsInstance(new_switch, SwitchCaseOp)
+        self.assertEqual(len(old_switch.blocks), len(new_switch.blocks))
+
+        for old, new in zip(old_switch.blocks, new_switch.blocks):
+            self.assertMinimalVarEqual(old, new)
+            self.assertDeprecatedBitProperties(old, new)
+
+    def test_roundtrip_index_expr(self):
+        """Test that the `Index` node round-trips."""
+        a = expr.Var.new("a", types.Uint(8))
+        cr = ClassicalRegister(4, "cr")
+        qc = QuantumCircuit(cr, inputs=[a])
+        qc.store(expr.index(cr, 0), expr.index(a, a))
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            new_qc = load(fptr)[0]
+        self.assertEqual(qc, new_qc)
+        self.assertDeprecatedBitProperties(qc, new_qc)
+
+    def test_roundtrip_bitshift_expr(self):
+        """Test that bit-shift expressions can round-trip."""
+        a = expr.Var.new("a", types.Uint(8))
+        cr = ClassicalRegister(4, "cr")
+        qc = QuantumCircuit(cr, inputs=[a])
+        with qc.if_test(expr.equal(expr.shift_right(expr.shift_left(a, 1), 1), a)):
+            pass
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            new_qc = load(fptr)[0]
+        self.assertEqual(qc, new_qc)
+        self.assertDeprecatedBitProperties(qc, new_qc)
+
+    @ddt.idata(range(QPY_COMPATIBILITY_VERSION, 12))
+    def test_pre_v12_rejects_standalone_var(self, version):
+        """Test that dumping to older QPY versions rejects standalone vars."""
+        a = expr.Var.new("a", types.Bool())
+        qc = QuantumCircuit(inputs=[a])
+        with (
+            io.BytesIO() as fptr,
+            self.assertRaisesRegex(
+                UnsupportedFeatureForVersion, "version 12 is required.*realtime variables"
+            ),
+        ):
+            dump(qc, fptr, version=version)
+
+    @ddt.idata(range(QPY_COMPATIBILITY_VERSION, 12))
+    def test_pre_v12_rejects_index(self, version):
+        """Test that dumping to older QPY versions rejects the `Index` node."""
+        # Be sure to use a register, since standalone vars would be rejected for other reasons.
+        qc = QuantumCircuit(ClassicalRegister(2, "cr"))
+        qc.store(expr.index(qc.cregs[0], 0), False)
+        with (
+            io.BytesIO() as fptr,
+            self.assertRaisesRegex(UnsupportedFeatureForVersion, "version 12 is required.*Index"),
+        ):
+            dump(qc, fptr, version=version)
+
+    @ddt.idata(range(QPY_COMPATIBILITY_VERSION, 14))
+    def test_pre_v14_rejects_float_typed_expr(self, version):
+        """Test that dumping to older QPY versions rejects float-typed expressions."""
+        qc = QuantumCircuit()
+        with qc.if_test(expr.less(1.0, 2.0)):
+            pass
+        with (
+            io.BytesIO() as fptr,
+            self.assertRaisesRegex(UnsupportedFeatureForVersion, "version 14 is required.*float"),
+        ):
+            dump(qc, fptr, version=version)
+
+    @ddt.idata(range(QPY_COMPATIBILITY_VERSION, 14))
+    def test_pre_v14_rejects_duration_typed_expr(self, version):
+        """Test that dumping to older QPY versions rejects duration-typed expressions."""
+        from qiskit.circuit import Duration
+
+        qc = QuantumCircuit()
+        with qc.if_test(expr.less(Duration.dt(10), Duration.dt(100))):
+            pass
+        with (
+            io.BytesIO() as fptr,
+            self.assertRaisesRegex(
+                UnsupportedFeatureForVersion, "version 14 is required.*duration"
+            ),
+        ):
+            dump(qc, fptr, version=version)
+
+    @ddt.idata(range(QPY_COMPATIBILITY_VERSION, 14))
+    def test_pre_v14_rejects_stretch_expr(self, version):
+        """Test that dumping to older QPY versions rejects duration-typed expressions."""
+        qc = QuantumCircuit()
+        qc.add_stretch("a")
+        with (
+            io.BytesIO() as fptr,
+            self.assertRaisesRegex(UnsupportedFeatureForVersion, "version 14 is required.*stretch"),
+        ):
+            dump(qc, fptr, version=version)
+
+    @ddt.idata(range(max(QPY_COMPATIBILITY_VERSION, 14), 16))
+    def test_pre_v16_rejects_ps_duration(self, version):
+        """Test that dumping to older QPY versions rejects Duration.ps."""
+        from qiskit.circuit import Duration
+
+        qc = QuantumCircuit()
+        with qc.if_test(expr.less(Duration.ns(1000), Duration.ps(1))):
+            pass
+        with (
+            io.BytesIO() as fptr,
+            self.assertRaisesRegex(
+                UnsupportedFeatureForVersion, "version 16 is required.*Duration.ps"
+            ),
+        ):
+            dump(qc, fptr, version=version)
+
+    def test_roundtrip_from_gzip(self):
+        """Test that we can write out and read from a stdlib gzip file.
+
+        Regression test of https://github.com/Qiskit/qiskit/issues/15157."""
+        qc = QuantumCircuit(2, 2, name="first")
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure(qc.qubits, qc.clbits)
+        circuits = [qc, qc.copy(name="second")]
+        with tempfile.TemporaryFile() as base_fptr:
+            with gzip.open(base_fptr, mode="w+b") as fptr:
+                dump(circuits, fptr)
+            base_fptr.seek(0)
+            with gzip.open(base_fptr, mode="r+b") as fptr:
+                out_circuits = load(fptr)
+        self.assertEqual(circuits, out_circuits)
+        self.assertEqual([qc.name for qc in circuits], [qc.name for qc in out_circuits])
+
+
+class TestSymengineLoadFromQPY(QiskitTestCase):
+    """Test use of symengine in qpy set of methods."""
+
+    def setUp(self):
+        super().setUp()
+
+        theta = Parameter("theta")
+        phi = Parameter("phi")
+        sum_param = theta + phi
+        qc = QuantumCircuit(5, 1)
+        qc.h(0)
+        for i in range(4):
+            qc.cx(i, i + 1)
+        qc.barrier()
+        qc.rz(sum_param, range(3))
+        qc.rz(phi, 3)
+        qc.rz(theta, 4)
+        qc.barrier()
+        for i in reversed(range(4)):
+            qc.cx(i, i + 1)
+        qc.h(0)
+        qc.measure(0, 0)
+
+        self.qc = qc
+
+    def assertDeprecatedBitProperties(self, original, roundtripped):
+        """Test that deprecated bit attributes are equal if they are set in the original circuit."""
+        owned_qubits = [
+            (a, b) for a, b in zip(original.qubits, roundtripped.qubits) if a._register is not None
+        ]
+        if owned_qubits:
+            original_qubits, roundtripped_qubits = zip(*owned_qubits)
+            self.assertEqual(original_qubits, roundtripped_qubits)
+        owned_clbits = [
+            (a, b) for a, b in zip(original.clbits, roundtripped.clbits) if a._register is not None
+        ]
+        if owned_clbits:
+            original_clbits, roundtripped_clbits = zip(*owned_clbits)
+            self.assertEqual(original_clbits, roundtripped_clbits)
+
+    @unittest.skipIf(not optionals.HAS_SYMENGINE, "Install symengine to run this test.")
+    def test_symengine_full_path(self):
+        """Test use_symengine option for circuit with parameter expressions."""
+        qpy_file = io.BytesIO()
+        dump(self.qc, qpy_file, use_symengine=True)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+        self.assertEqual(self.qc, new_circ)
+        self.assertDeprecatedBitProperties(self.qc, new_circ)

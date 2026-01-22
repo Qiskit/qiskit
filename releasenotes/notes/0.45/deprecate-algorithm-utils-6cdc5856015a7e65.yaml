@@ -1,0 +1,14 @@
+---
+deprecations:
+  - |
+    The algorithm utils in ``qiskit.utils.validation`` and ``qiskit.utils.algorithm_globals``
+    are now deprecated and will be removed in no less than 3 months from the release date.
+    These utils were introduced with the ``qiskit.algorithms`` module to support
+    legacy and primitive-based algorithm workflows. Now that ``qiskit.algorithms`` is deprecated
+    and the primitive-based algorithms codebase has been migrated to a standalone
+    `library <https://github.com/qiskit-community/qiskit-algorithms>`_, these utils are no
+    longer used in the context of Qiskit. If your application allows it, we recommend that
+    you migrate your code to use ``qiskit_algorithms``, where you will be able to import
+    the relevant utilities in ``algorithm_globals`` and ``validation`` from
+    ``qiskit_algorithms.utils``. Please note that legacy functionality has not been migrated
+    to the new package.

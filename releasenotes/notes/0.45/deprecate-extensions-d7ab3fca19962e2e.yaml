@@ -1,0 +1,40 @@
+---
+deprecations:
+  - |
+    To streamline the structure of Qiskit's gates and operations, the :mod:`qiskit.extensions`
+    module is pending deprecation and will be deprecated in a future release.
+    The following objects have been moved to :mod:`qiskit.circuit.library`
+
+    * :class:`~.library.DiagonalGate`,
+    * :class:`~.library.HamiltonianGateGate`,
+    * :class:`~.library.Initialize`,
+    * :class:`~.library.Isometry`,
+    * :class:`~.library.generalized_gates.mcg_up_diag.MCGupDiag`,
+    * :class:`~.library.UCGate`,
+    * :class:`~.library.UCPauliRotGate`,
+    * :class:`~.library.UCRXGate`,
+    * :class:`~.library.UCRYGate`,
+    * :class:`~.library.UCRZGate`,
+    * :class:`~.library.UnitaryGate`.
+
+    These instructions have already been deprecated in this release,
+
+    * :class:`~.SingleQubitUnitary`, instead use :class:`.library.UnitaryGate`,
+    * :class:`~.extensions.Snapshot`, which has been superseded by Qiskit Aer's save instructions,
+
+    along with their circuit methods
+
+    * :meth:`.QuantumCircuit.snapshot`,
+    * :meth:`.QuantumCircuit.squ`.
+
+    In addition, the following circuit methods are pending deprecation
+
+    * :meth:`.QuantumCircuit.diagonal`,
+    * :meth:`.QuantumCircuit.hamiltonian`,
+    * :meth:`.QuantumCircuit.isometry` and :meth:`.QuantumCircuit.iso`,
+    * :meth:`.QuantumCircuit.uc`,
+    * :meth:`.QuantumCircuit.ucrx`,
+    * :meth:`.QuantumCircuit.ucry`,
+    * :meth:`.QuantumCircuit.ucrz`.
+
+    Since the entire module is pending deprecation, so is :class:`.ExtensionError`.

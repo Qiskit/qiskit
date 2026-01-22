@@ -16,15 +16,15 @@ from typing import Optional
 
 import numpy as np
 
-from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.singleton import SingletonGate, stdlib_singleton_key
 from qiskit.circuit._utils import with_gate_array
+from qiskit._accelerate.circuit import StandardGate
 
 from .xx_plus_yy import XXPlusYYGate
 
 
 @with_gate_array([[1, 0, 0, 0], [0, 0, 1j, 0], [0, 1j, 0, 0], [0, 0, 0, 1]])
-class iSwapGate(Gate):
+class iSwapGate(SingletonGate):
     r"""iSWAP gate.
 
     A 2-qubit XX+YY interaction.
@@ -35,17 +35,17 @@ class iSwapGate(Gate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.iswap` method.
 
-    **Circuit Symbol:**
+    Circuit symbol:
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ─⨂─
               │
         q_1: ─⨂─
 
-    **Reference Implementation:**
+    Reference implementation:
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌───┐┌───┐     ┌───┐
         q_0: ┤ S ├┤ H ├──■──┤ X ├─────
@@ -53,7 +53,7 @@ class iSwapGate(Gate):
         q_1: ┤ S ├─────┤ X ├──■──┤ H ├
              └───┘     └───┘     └───┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -85,43 +85,34 @@ class iSwapGate(Gate):
             \end{pmatrix}
     """
 
+    _standard_gate = StandardGate.ISwap
+
     def __init__(self, label: Optional[str] = None):
-        """Create new iSwap gate."""
+        """
+        Args:
+            label: An optional label for the gate.
+        """
         super().__init__("iswap", 2, [], label=label)
 
+    _singleton_lookup_key = stdlib_singleton_key()
+
     def _define(self):
-        """
-        gate iswap a,b {
-            s q[0];
-            s q[1];
-            h q[0];
-            cx q[0],q[1];
-            cx q[1],q[0];
-            h q[1];
-        }
-        """
+        """Default definition"""
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit import QuantumCircuit
 
-        from .h import HGate
-        from .s import SGate
-        from .x import CXGate
+        #      ┌───┐┌───┐     ┌───┐
+        # q_0: ┤ S ├┤ H ├──■──┤ X ├─────
+        #      ├───┤└───┘┌─┴─┐└─┬─┘┌───┐
+        # q_1: ┤ S ├─────┤ X ├──■──┤ H ├
+        #      └───┘     └───┘     └───┘
 
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (SGate(), [q[0]], []),
-            (SGate(), [q[1]], []),
-            (HGate(), [q[0]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (CXGate(), [q[1], q[0]], []),
-            (HGate(), [q[1]], []),
-        ]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.ISwap._get_definition(self.params), legacy_qubits=True
+        )
 
-        self.definition = qc
-
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         return XXPlusYYGate(-np.pi * exponent)
+
+    def __eq__(self, other):
+        return isinstance(other, iSwapGate)

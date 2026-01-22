@@ -33,7 +33,7 @@ class RGQFTMultiplier(Multiplier):
     As an example, a circuit that performs a modular QFT multiplication on two 2-qubit
     sized input registers with an output register of 2 qubits, is as follows:
 
-    .. parsed-literal::
+    .. code-block:: text
 
           a_0: ────────────────────────────────────────■───────■──────■──────■────────────────
                                                        │       │      │      │
@@ -48,7 +48,14 @@ class RGQFTMultiplier(Multiplier):
         out_1: ┤1     ├─────────■───────────────■──────────────■─────────────■───────┤1      ├
                └──────┘                                                              └───────┘
 
-    **References:**
+    .. seealso::
+
+        The :class:`.MultiplierGate` objects represents a multiplication, like this circuit class,
+        but allows the compiler to select the optimal decomposition based on the context.
+        Specific implementations can be set via the :class:`.HLSConfig`, e.g. this circuit
+        can be chosen via ``Multiplier=["qft_r17"]``.
+
+    References:
 
     [1] Ruiz-Perez et al., Quantum arithmetic with the Quantum Fourier Transform, 2017.
     `arXiv:1411.5949 <https://arxiv.org/pdf/1411.5949.pdf>`_
@@ -92,7 +99,7 @@ class RGQFTMultiplier(Multiplier):
                 for k in range(1, self.num_result_qubits + 1):
                     lam = (2 * np.pi) / (2 ** (i + j + k - 2 * num_state_qubits))
                     circuit.append(
-                        PhaseGate(lam).control(2),
+                        PhaseGate(lam).control(2, annotated=False),
                         [qr_a[num_state_qubits - j], qr_b[num_state_qubits - i], qr_out[k - 1]],
                     )
 

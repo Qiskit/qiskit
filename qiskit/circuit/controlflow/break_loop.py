@@ -15,35 +15,24 @@
 from typing import Optional
 
 from qiskit.circuit.instruction import Instruction
+from qiskit._accelerate.circuit import ControlFlowType
 from .builder import InstructionPlaceholder, InstructionResources
 
 
 class BreakLoopOp(Instruction):
-    """A circuit operation which, when encountered, jumps to the end of
-    the nearest enclosing loop.
-
-    .. note:
-
-        Can be inserted only within the body of a loop op, and must span
-        the full width of that block.
-
-    **Circuit symbol:**
-
-    .. parsed-literal::
-
-             ┌──────────────┐
-        q_0: ┤0             ├
-             │              │
-        q_1: ┤1             ├
-             │  break_loop  │
-        q_2: ┤2             ├
-             │              │
-        c_0: ╡0             ╞
-             └──────────────┘
-
+    """A circuit operation which, when encountered, jumps to the end of the nearest enclosing loop.
+    Can only be used inside loops.
     """
 
+    _control_flow_type = ControlFlowType.BreakLoop
+
     def __init__(self, num_qubits: int, num_clbits: int, label: Optional[str] = None):
+        """
+        Args:
+            num_qubits: the number of qubits this affects.
+            num_clbits: the number of qubits this affects.
+            label: an optional string label for the instruction.
+        """
         super().__init__("break_loop", num_qubits, num_clbits, [], label=label)
 
 
@@ -62,7 +51,7 @@ class BreakLoopPlaceholder(InstructionPlaceholder):
 
     def concrete_instruction(self, qubits, clbits):
         return (
-            self._copy_mutable_properties(BreakLoopOp(len(qubits), len(clbits), label=self.label)),
+            BreakLoopOp(len(qubits), len(clbits), label=self.label),
             InstructionResources(qubits=tuple(qubits), clbits=tuple(clbits)),
         )
 

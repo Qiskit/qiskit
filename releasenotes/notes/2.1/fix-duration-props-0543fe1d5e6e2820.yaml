@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Added missing ``repr`` support for :class:`~.Duration`.
+  - |
+    Added missing support for Python pickling of :class:`~.Duration`.
+    This was preventing parallel transpilation of circuits with 
+    :meth:`~.QuantumCircuit.delay` instructions that use duration
+    expressions.
