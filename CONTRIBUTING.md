@@ -381,7 +381,9 @@ following PR metadata items are set correctly:
 
 * The "milestone" is set to the expected release version.  For PRs to be
   backported, this should be (for example) "2.3.2".  For PRs for the next minor
-  release, it should be (for example) "2.4.0".
+  release, it should be (for example) "2.4.0".  If the PR is unrelated to any
+  particular release (such as a change only to a test), you can leave this
+  blank.
 
   This metadata lets us quickly jump from `git log` to the PR page, and see
   there which Qiskit release a patch went out in.
