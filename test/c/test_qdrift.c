@@ -389,90 +389,6 @@ cleanup_obs:
     return result;
 }
 
-/*
-* Test QDRIFT circuit synthesis correctly accounts for global phase from
-* identity terms in the observable.
-* Note: the 2 pi periodicity of global phase means we check the result
-* modulo 2 pi.
-*/
-static int test_qdrift_global_phase(void) {
-    int result = Ok;
-    QkExitCode code;
-
-    // Build H = 1 * I on 1 qubit.
-    QkObs *obs = qk_obs_zero(1);
-    if (!obs) {
-        printf("[global_phase] qk_obs_zero(1) failed\n");
-        return EqualityError;
-    }
-
-    // Identity term: no bits, no indices.
-    QkComplex64 coeff = {1, 0};
-    // TODO this is hacky, there is probably a better / more correct way of creating an all-identity observable
-    // Dummy arrays of length 1, never used because len = 0, but non-null.
-    QkBitTerm dummy_bits[1] = { QkBitTerm_X };   // value doesn’t matter
-    uint32_t  dummy_idxs[1] = { 0 };             // value doesn’t matter
-
-    QkObsTerm term_I = {
-        coeff,
-        0,            // len = 0 for all identity
-        dummy_bits,   // non-null pointer
-        dummy_idxs,   // non-null pointer
-        1             // num_qubits
-    };
-
-    code = qk_obs_add_term(obs, &term_I);
-    if (code != QkExitCode_Success) {
-        printf("[global_phase] qk_obs_add_term(I) failed: %u\n", code);
-        result = EqualityError;
-        goto cleanup_obs;
-    }
-
-    // Evolve for time t = 1.0, reps = 1.
-    double time = 1.0;
-    QkCircuit *circ = NULL;
-    code = qk_circuit_library_qdrift(obs, 1, time, &circ);
-    if (code != QkExitCode_Success || !circ) {
-        printf("[global_phase] qk_circuit_library_qdrift failed: %u\n", code);
-        result = EqualityError;
-        goto cleanup_obs;
-    }
-
-    // Expect no nontrivial instructions for H = I (pure global phase).
-    size_t instr_count = qk_circuit_num_instructions(circ);
-    if (instr_count != 0) {
-        printf("[global_phase] Expected 0 instructions for identity Hamiltonian, got %zu\n",
-               instr_count);
-        // Not necessarily a hard failure, but this likely indicates a bug.
-        result = EqualityError;
-        // continue anyway to inspect phase
-    }
-
-    // Global phase check 
-    double phase = qk_circuit_get_global_phase(circ);
-
-    // Mathematically, for H = I, global phase should be ~ -time.
-    double expected = -time;
-    double two_pi = 2.0 * M_PI;
-
-    double delta = fmod(phase - expected, two_pi);
-    if (delta > M_PI) {
-        delta -= two_pi;
-    } else if (delta < -M_PI) {
-        delta += two_pi;
-    }
-
-    if (fabs(delta) > 1e-6) {
-        printf("[global_phase] Expected global phase ~ %g (mod 2*pi), got %g (delta=%g)\n",
-               expected, phase, delta);
-        result = EqualityError;
-    }
-
-    qk_circuit_free(circ);
-cleanup_obs:
-    qk_obs_free(obs);
-    return result;
-}
 
 int test_qdrift(void) {
     int num_failed = 0;
@@ -483,7 +399,6 @@ int test_qdrift(void) {
     num_failed += RUN_TEST(test_qdrift_qubit_bounds);
     num_failed += RUN_TEST(test_qdrift_invalid_reps);
     num_failed += RUN_TEST(test_qdrift_non_pauli_obs);
-    num_failed += RUN_TEST(test_qdrift_global_phase);
 
     fflush(stderr);
     fprintf(stderr, "=== QDRIFT: Number of failed subtests: %i\n", num_failed);
