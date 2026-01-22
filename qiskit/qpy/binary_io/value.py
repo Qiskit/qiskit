@@ -368,6 +368,13 @@ class _ExprWriter(expr.ExprVisitor[None]):
         node.target.accept(self)
         node.index.accept(self)
 
+    def visit_range(self, node, /):
+        self.file_obj.write(type_keys.Expression.RANGE)
+        self._write_expr_type(node.type)
+        node.start.accept(self)
+        node.stop.accept(self)
+        node.step.accept(self)
+
 
 def _write_expr(
     file_obj,
@@ -807,6 +814,13 @@ def _read_expr(
         )
     if type_key == type_keys.Expression.INDEX:
         return expr.Index(
+            _read_expr(file_obj, clbits, cregs, standalone_vars),
+            _read_expr(file_obj, clbits, cregs, standalone_vars),
+            type_,
+        )
+    if type_key == type_keys.Expression.RANGE:
+        return expr.Range(
+            _read_expr(file_obj, clbits, cregs, standalone_vars),
             _read_expr(file_obj, clbits, cregs, standalone_vars),
             _read_expr(file_obj, clbits, cregs, standalone_vars),
             type_,

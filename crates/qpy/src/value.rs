@@ -22,7 +22,7 @@ use pyo3::types::PyAny;
 
 use qiskit_circuit::bit::{ClassicalRegister, ShareableClbit};
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::classical::expr::{Expr, Stretch, Var};
+use qiskit_circuit::classical::expr::{Expr, Range, Stretch, Var};
 use qiskit_circuit::classical::types::Type;
 use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::duration::Duration;
@@ -297,7 +297,8 @@ pub enum GenericValue {
     Complex64(Complex64),
     CaseDefault,
     Register(ParamRegisterValue), // This is not the full register data; rather, it's the name stored inside instructions, or a clbit address
-    Range(PyRange),
+    Range(PyRange), // Python range (start, stop, step as integers)
+    RangeExpr(Range), // Range expression from qiskit.circuit.classical.expr
     Tuple(Vec<GenericValue>),
     NumpyObject(Py<PyAny>), // currently we store the python object without converting it to rust space
     ParameterExpressionSymbol(Symbol),
@@ -554,6 +555,11 @@ pub(crate) fn serialize_generic_value(
             let range_pack = formats::RangePack { start, stop, step };
             (ValueType::Range, serialize(&range_pack))
         }
+        GenericValue::RangeExpr(range_expr) => {
+            // Serialize Range expression as an Expression
+            let expr = Expr::Range(Box::new(range_expr.clone()));
+            (ValueType::Expression, serialize_expression(&expr, qpy_data)?)
+        }
         GenericValue::Modifier(py_object) => (
             ValueType::Modifier,
             serialize(&py_pack_modifier(py_object)?),
@@ -608,12 +614,24 @@ pub(crate) fn pack_for_collection(value: &ForCollection) -> GenericValue {
                 .collect(),
         ),
         ForCollection::PyRange(py_range) => GenericValue::Range(*py_range),
+        ForCollection::Range(range_expr) => GenericValue::RangeExpr(range_expr.clone()),
     }
 }
 
 pub(crate) fn unpack_for_collection(value: &GenericValue) -> PyResult<ForCollection> {
     match value {
         GenericValue::Range(py_range) => Ok(ForCollection::PyRange(*py_range)),
+        GenericValue::RangeExpr(range_expr) => Ok(ForCollection::Range(range_expr.clone())),
+        GenericValue::Expression(expr) => {
+            // Convert Range expressions to ForCollection::Range when unpacking
+            // This keeps Range expressions on the same code path as other expressions
+            // until we need to identify it as a Range for ForCollection unpacking
+            if let Expr::Range(range) = expr {
+                Ok(ForCollection::Range((**range).clone()))
+            } else {
+                Err(PyValueError::new_err("Could not unpack ForCollection"))
+            }
+        }
         GenericValue::Tuple(vec) => {
             let value_list = vec
                 .iter()

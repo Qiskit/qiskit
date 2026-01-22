@@ -448,6 +448,7 @@ pub(crate) fn py_convert_from_generic_value(value: &GenericValue) -> PyResult<Py
         GenericValue::Circuit(py_object) => Ok(py_object.clone()),
         GenericValue::Modifier(py_object) => Ok(py_object.clone()),
         GenericValue::Range(py_range) => py_range.into_py_any(py),
+        GenericValue::RangeExpr(range_expr) => range_expr.clone().into_py_any(py),
         GenericValue::NumpyObject(py_object) => Ok(py_object.clone()),
         GenericValue::Tuple(values) => {
             let elements: Vec<Py<PyAny>> = values
