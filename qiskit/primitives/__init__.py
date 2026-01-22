@@ -506,6 +506,24 @@ Sampler V1
    BaseSamplerV1
    SamplerResult
 
+
+Containers
+----------
+
+.. autosummary::
+   :toctree: ../stubs/
+
+  BitArray
+  DataBin
+  PrimitiveResult
+  PubResult
+  EstimatorPubLike
+  SamplerPubLike
+  SamplerPubResult
+  BindingsArrayLike
+  ObservableLike
+  ObservablesArrayLike
+
 """
 
 from .base import (
