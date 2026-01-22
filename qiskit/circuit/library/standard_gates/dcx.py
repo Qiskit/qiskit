@@ -23,7 +23,7 @@ class DCXGate(SingletonGate):
     r"""Double-CX gate.
 
     A 2-qubit Clifford gate consisting of two back-to-back
-    CNOTs with alternate controls.
+    CX gates with alternate controls.
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.dcx` method.
