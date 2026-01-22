@@ -297,7 +297,7 @@ pub enum GenericValue {
     Complex64(Complex64),
     CaseDefault,
     Register(ParamRegisterValue), // This is not the full register data; rather, it's the name stored inside instructions, or a clbit address
-    Range(PyRange),             // Python range (start, stop, step as integers)
+    Range(PyRange),                // Python range (start, stop, step as integers)
     RangeExpr(Range),             // Range expression from qiskit.circuit.classical.expr
     Tuple(Vec<GenericValue>),
     NumpyObject(Py<PyAny>), // currently we store the python object without converting it to rust space
