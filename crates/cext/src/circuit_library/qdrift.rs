@@ -93,8 +93,9 @@ fn qdrift_build_circuit(
         }
     }
 
+    // global phase tracking to be added in a separate PR
+    let global_phase = Param::Float(0.0);
     // Zero hamiltonian
-    let global_phase = Param::Float(-time * kappa);
     if lambda == 0.0 {
         return CircuitData::from_packed_operations(
             num_qubits,
@@ -159,65 +160,68 @@ fn qdrift_build_circuit(
         .map_err(|_| ExitCode::ArithmeticError)
 }
 
+/// @ingroup QkCircuitLibrary
 /// The QDrift Trotterization method, which selects each term in the Trotterization randomly,
 /// with a probability proportional to its weight.
 /// Based on the work of Earl Campbell in Ref. [1].
 ///
-/// # Parameters
+/// @param obs Pointer to a valid @c QkObs. Requirements:
+///   - All coefficients @f$c_j@f$ must be real (imaginary parts numerically zero).
+///   - Terms must be Pauli operators only (no projectors).
+///     Projectors can be computationally inefficient: a term containing @f$n@f$ projectors
+///     may expand to @f$2^n@f$ Pauli terms. If your observable contains projectors,
+///     consider decomposing it into Pauli terms first.
+/// @param reps Number of outer repetitions (independent segments). Must be strictly positive.
+///             @c reps==0 is rejected with a non-success @c ExitCode.
+/// @param time Evolution time @f$t@f$ in @f$\exp(-i t H)@f$. May be positive, negative, or zero.
+///             The target gate count scales quadratically in @f$|t|@f$.
+/// @param[out] out Output parameter. On success, @c *out is set to a newly allocated circuit.
+///                 On failure, @c *out is set to @c NULL.
 ///
-/// - `obs`: Pointer to a valid `QkObs` with the following conditions?
-///   - Contain only *real* coefficients `c_j` (imaginary parts must be
-///     numerically zero).
-///   - Projectors are computationally inefficient - For example, the decomposition acting on a
-///     term with :math:`n` projectors will use :math:`2^n` Pauli terms.
-/// - `reps`: The number of outer repetitions `n` in the product formula,
-///   i.e. QDRIFT approximates `exp(-i * time * H)` by a product of
-///   `reps` independently sampled segments.  Must be strictly positive;
-///   `reps == 0` is rejected with a non-success `ExitCode`.
-/// - `time`: Evolution time `t` in `exp(-i * t * H)`.  This is a real
-///   scalar and may be positive, negative, or zero.  The total number of
-///   gates scales quadratically in `|time|`.
-/// - `out`: Output parameter. On success, `*out` is set to point to a newly
-///   allocated circuit object (*QkCircuitData) representing the synthesized
-///   QDRIFT circuit.  On failure, `*out` is set to `NULL`.
-///
-/// # Returns
-///
-/// - `ExitCode::Success` if a circuit was successfully synthesized and
-///   written to `*out`.
-/// - A non-success `ExitCode` if:
-///   - `obs` is null or otherwise invalid,
-///   - `reps` is zero,
+/// @return @c ExitCode::Success on success. Otherwise a non-success @c ExitCode if:
+///   - @p obs is NULL or otherwise invalid (e.g. contains projectors),
+///   - @p reps is zero,
 ///   - the observable contains non-real coefficients,
 ///   - an internal allocation or conversion fails.
 ///
-/// In all error cases, `*out` is set to `NULL` and no circuit is leaked.
+/// @details
+/// Behavior and guarantees:
+/// - Gate count scaling: for @f$\lambda=\sum_j |c_j|@f$, the target gate count is
+///   @f$N=\lceil 2 \lambda^2 \, t^2 \, \mathrm{reps} \rceil@f$.
+/// - Identity terms: pure-identity Hamiltonians (e.g. @f$H=I@f$) produce circuits with no
+///   nontrivial instructions and a global phase equal to the analytically expected value
+///   (e.g. @f$-t@f$ for @f$H=I@f$).
+/// - Stochasticity: repeated calls with the same inputs may produce different gate sequences,
+///   but share the same distribution over term types and the same expected gate count
 ///
-/// # Behavior and guarantees
-///
-/// - **Gate count scaling**: For a Hamiltonian with :math:`\lambda = \sum_j |c_j|`, the
-///   target gate count is :math:`N = \lceil 2 \lambda^2 \, \text{time}^2 \, \text{reps} \rceil`.  For small
-///   examples this yields, for instance, `N = 1` for :math:`\lambda = 1`, `time = 0.5`,
-///   `reps = 1`; `N = 2` for :math:`\lambda = 1`, `time = 1.0`, `reps = 1`; and
-///   `N = 4` for the same Hamiltonian with `reps = 2`.
-/// - **Identity terms**: Pure-identity Hamiltonians (e.g. `H = I`) produce
-///   circuits with zero nontrivial instructions and a nonzero global phase
-///   equal to the analytically expected value (e.g. `-time` for `H = I`).
-/// - **Stochasticity**: Because term indices are sampled randomly,
-///   different calls with the same `(obs, reps, time)` may produce
-///   different gate *sequences*, but they will share the same distribution
-///   over term types and the same expected gate count.
-///
-/// # Safety
-///
+/// Safety:
 /// This function assumes:
-///
-/// - `obs` is a valid pointer to an observable allocated and managed by the
-///   Qiskit C API.
-/// - `out` is a valid, writable pointer to a location that can hold a
-///   `*mut CircuitData`.
-///
+/// - @p obs is a valid pointer managed by the Qiskit C API.
+/// - @p out is a valid writable pointer to a location that can hold a @c QkCircuit*.
 /// Violating these conditions may cause undefined behavior.
+/// 
+/// @par Example
+/// @code{.c}
+/// // 2-qubit observable H = XI + ZZ
+/// // QkObs *obs = qk_obs_zero(2);
+///
+/// // Term 1: X on qubit 1 (XI).
+/// QkBitTerm bit_term_1[1] = {QkBitTerm_X};
+/// QkComplex64 coeff_1 = {1, 0};
+/// uint32_t indices_1[1] = {1};
+/// QkObsTerm term_1 = {coeff_1, 1, bit_term_1, indices_1, 2};
+/// code = qk_obs_add_term(obs, &term_1);
+///
+/// // Term 2: ZZ on qubits {0,1}.
+/// QkBitTerm bit_term_2[2] = {QkBitTerm_Z, QkBitTerm_Z};
+/// QkComplex64 coeff_2 = {1, 0};
+/// uint32_t indices_2[2] = {0, 1};
+/// QkObsTerm term_2 = {coeff_2, 2, bit_term_2, indices_2, 2};
+/// code = qk_obs_add_term(obs, &term_2);
+///
+/// QkCircuit *circ = NULL;
+/// code = qk_circuit_library_qdrift(obs, 1, 0.5, &circ);
+/// @endcode
 ///
 /// # References
 /// - [1]: E. Campbell, “A random compiler for fast Hamiltonian simulation” (2018).[https://arxiv.org/abs/1811.08017](https://arxiv.org/abs/1811.08017)
