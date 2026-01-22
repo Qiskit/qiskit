@@ -27,7 +27,7 @@ class TGate(SingletonGate):
     r"""Single qubit T gate (:math:`\sqrt[4]{Z}`).
 
     It induces a :math:`\pi/4` phase, and is sometimes called the :math:`\pi/8` gate, because
-    it is equivalent to :math:`\exp(i\pi/8 Z)` up to a global phase.
+    it is equivalent to :math:`\exp(i\pi/8~Z)` up to a global phase.
 
     This is a non-Clifford gate and a fourth-root of Pauli-Z.
 
