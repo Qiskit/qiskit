@@ -160,71 +160,86 @@ fn qdrift_build_circuit(
         .map_err(|_| ExitCode::ArithmeticError)
 }
 
-/// @ingroup QkCircuitLibrary
-/// The QDrift Trotterization method, which selects each term in the Trotterization randomly,
-/// with a probability proportional to its weight.
-/// Based on the work of Earl Campbell in Ref. [1].
-///
-/// @param obs Pointer to a valid @c QkObs. Requirements:
-///   - All coefficients @f$c_j@f$ must be real (imaginary parts numerically zero).
-///   - Terms must be Pauli operators only (no projectors).
-///     Projectors can be computationally inefficient: a term containing @f$n@f$ projectors
-///     may expand to @f$2^n@f$ Pauli terms. If your observable contains projectors,
-///     consider decomposing it into Pauli terms first.
-/// @param reps Number of outer repetitions (independent segments). Must be strictly positive.
-///             @c reps==0 is rejected with a non-success @c ExitCode.
-/// @param time Evolution time @f$t@f$ in @f$\exp(-i t H)@f$. May be positive, negative, or zero.
-///             The target gate count scales quadratically in @f$|t|@f$.
-/// @param[out] out Output parameter. On success, @c *out is set to a newly allocated circuit.
-///                 On failure, @c *out is set to @c NULL.
-///
-/// @return @c ExitCode::Success on success. Otherwise a non-success @c ExitCode if:
-///   - @p obs is NULL or otherwise invalid (e.g. contains projectors),
-///   - @p reps is zero,
-///   - the observable contains non-real coefficients,
-///   - an internal allocation or conversion fails.
-///
-/// @details
-/// Behavior and guarantees:
-/// - Gate count scaling: for @f$\lambda=\sum_j |c_j|@f$, the target gate count is
-///   @f$N=\lceil 2 \lambda^2 \, t^2 \, \mathrm{reps} \rceil@f$.
-/// - Identity terms: pure-identity Hamiltonians (e.g. @f$H=I@f$) produce circuits with no
-///   nontrivial instructions and a global phase equal to the analytically expected value
-///   (e.g. @f$-t@f$ for @f$H=I@f$).
-/// - Stochasticity: repeated calls with the same inputs may produce different gate sequences,
-///   but share the same distribution over term types and the same expected gate count
-///
-/// Safety:
-/// This function assumes:
-/// - @p obs is a valid pointer managed by the Qiskit C API.
-/// - @p out is a valid writable pointer to a location that can hold a @c QkCircuit*.
-/// Violating these conditions may cause undefined behavior.
-/// 
-/// @par Example
-/// @code{.c}
-/// // 2-qubit observable H = XI + ZZ
-/// // QkObs *obs = qk_obs_zero(2);
-///
-/// // Term 1: X on qubit 1 (XI).
-/// QkBitTerm bit_term_1[1] = {QkBitTerm_X};
-/// QkComplex64 coeff_1 = {1, 0};
-/// uint32_t indices_1[1] = {1};
-/// QkObsTerm term_1 = {coeff_1, 1, bit_term_1, indices_1, 2};
-/// code = qk_obs_add_term(obs, &term_1);
-///
-/// // Term 2: ZZ on qubits {0,1}.
-/// QkBitTerm bit_term_2[2] = {QkBitTerm_Z, QkBitTerm_Z};
-/// QkComplex64 coeff_2 = {1, 0};
-/// uint32_t indices_2[2] = {0, 1};
-/// QkObsTerm term_2 = {coeff_2, 2, bit_term_2, indices_2, 2};
-/// code = qk_obs_add_term(obs, &term_2);
-///
-/// QkCircuit *circ = NULL;
-/// code = qk_circuit_library_qdrift(obs, 1, 0.5, &circ);
-/// @endcode
-///
-/// # References
-/// - [1]: E. Campbell, “A random compiler for fast Hamiltonian simulation” (2018).[https://arxiv.org/abs/1811.08017](https://arxiv.org/abs/1811.08017)
+/**
+ * @ingroup QkCircuitLibrary
+ *
+ * Implements the QDrift Trotterization method, which selects Hamiltonian terms
+ * randomly with probability proportional to their absolute coefficients.
+ *
+ * This implementation follows the method introduced by Earl Campbell [1].
+ *
+ * @param obs
+ * Pointer to a valid QkObs. Requirements:
+ * - All coefficients c_j must be real (imaginary parts numerically zero).
+ * - Terms must be Pauli operators only (no projectors).
+ *   Projectors can be computationally inefficient: a term containing n
+ *   projectors may expand to 2^n Pauli terms. If your observable contains
+ *   projectors, consider decomposing it into Pauli terms first.
+ *
+ * @param reps
+ * Number of outer repetitions (independent segments). Must be strictly
+ * positive. A value of reps == 0 is rejected with a non-success ExitCode.
+ *
+ * @param time
+ * Evolution time t in exp(-i t H). May be positive, negative, or zero.
+ * The target gate count scales quadratically in |t|.
+ *
+ * @param[out] out
+ * Output parameter. On success, *out is set to a newly allocated circuit.
+ * On failure, *out is set to NULL.
+ *
+ * @return
+ * ExitCode::Success on success. Otherwise a non-success ExitCode if:
+ * - obs is NULL or otherwise invalid (e.g. contains projectors),
+ * - reps is zero,
+ * - the observable contains non-real coefficients,
+ * - an internal allocation or conversion fails.
+ *
+ * @details
+ * Behavior and guarantees:
+ * - Gate count scaling: for lambda = sum_j |c_j|, the target gate count is
+ *   N = ceil(2 * lambda^2 * t^2 * reps).
+ * - Identity terms: pure-identity Hamiltonians (e.g. H = I) produce circuits
+ *   with no nontrivial instructions and a global phase equal to the
+ *   analytically expected value (e.g. -t for H = I).
+ * - Stochasticity: repeated calls with identical inputs may produce different
+ *   gate sequences, but share the same distribution over term types and the
+ *   same expected gate count.
+ *
+ * @warning
+ * Safety assumptions:
+ * - obs must be a valid pointer managed by the Qiskit C API.
+ * - out must be a valid writable pointer to a QkCircuit* location.
+ * Violating these conditions may cause undefined behavior.
+ *
+ * @par Example
+ * @code{.c}
+ * // 2-qubit observable H = XI + ZZ
+ * // QkObs *obs = qk_obs_zero(2);
+ *
+ * // Term 1: X on qubit 1 (XI).
+ * QkBitTerm bit_term_1[1] = { QkBitTerm_X };
+ * QkComplex64 coeff_1 = { 1, 0 };
+ * uint32_t indices_1[1] = { 1 };
+ * QkObsTerm term_1 = { coeff_1, 1, bit_term_1, indices_1, 2 };
+ * code = qk_obs_add_term(obs, &term_1);
+ *
+ * // Term 2: ZZ on qubits {0,1}.
+ * QkBitTerm bit_term_2[2] = { QkBitTerm_Z, QkBitTerm_Z };
+ * QkComplex64 coeff_2 = { 1, 0 };
+ * uint32_t indices_2[2] = { 0, 1 };
+ * QkObsTerm term_2 = { coeff_2, 2, bit_term_2, indices_2, 2 };
+ * code = qk_obs_add_term(obs, &term_2);
+ *
+ * QkCircuit *circ = NULL;
+ * code = qk_circuit_library_qdrift(obs, 1, 0.5, &circ);
+ * @endcode
+ *
+ * @par References
+ * - [1] E. Campbell, "A random compiler for fast Hamiltonian simulation",
+ *   Phys. Rev. Lett. 123, 070503 (2019).
+ *   https://arxiv.org/abs/1811.08017
+ */
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_library_qdrift(
