@@ -11,6 +11,10 @@ community in this goal.
 * [Set up Python virtual development environment](#set-up-python-virtual-development-environment)
 * [Installing Qiskit from source](#installing-qiskit-from-source)
 * [Issues and pull requests](#issues-and-pull-requests)
+  * [Pull request author checklist](#pull-request-author-checklist)
+  * [Code review](#code-review)
+  * [Pull request merging checking](#pull-request-merging-checklist)
+  * [Use of AI tools](#use-of-ai-tools)
 * [Contributor Licensing Agreement](#contributor-licensing-agreement)
 * [Changelog generation](#changelog-generation)
 * [Release notes](#release-notes)
@@ -180,7 +184,7 @@ Before marking your Pull Request as "ready for review" make sure you have follow
 PR Checklist below. PRs that adhere to this list are more likely to get reviewed and
 merged in a timely manner.
 
-### Pull request checklist
+### Pull request author checklist
 
 When submitting a pull request and you feel it is ready for review,
 please ensure that:
@@ -192,6 +196,7 @@ please ensure that:
    If your code fails the local style checks (specifically the black
    or Rust code formatting check) you can use `tox -eblack` and
    `cargo fmt` to automatically fix the code formatting.
+
 2. The documentation has been updated accordingly. In particular, if a
    function or class has been modified during the PR, please update the
    *docstring* accordingly.
@@ -199,16 +204,49 @@ please ensure that:
    If your pull request is adding a new class, function, or module that is
    intended to be user facing ensure that you've also added those to a
    documentation `autosummary` index to include it in the api documentation.
+
 3. If you are of the opinion that the modifications you made warrant additional tests,
-   feel free to include them
+   feel free to include them.
+
 4. Ensure that if your change has an end user facing impact (new feature,
-   deprecation, removal etc) that you have added a reno release note for that
+   deprecation, removal etc) that you have added a `reno` release note for that
    change and that the PR is tagged for the changelog.
-5. All contributors have signed the CLA.
-6. The PR has a concise and explanatory title (e.g. `Fixes Issue1234` is a bad title!).
+
+5. All contributors have [signed the CLA](#contributor-licensing-agreement).
+
+   You will need to ensure that all commits in the PR chain have a correctly configured
+   email address, and the email address is registered to a GitHub account that has signed
+   the CLA.  A bot will leave a comment with a link to sign the CLA.
+
+6. The PR has a concise and explanatory title that can be understood without
+   clicking on another GitHub issue.
+
+   The PR title will become the summary line of the commit, which appears in `git log`.
+   For example, "Fixes Issue 1234" is a bad title, and "Fix `ApplyLayout` with
+   empty layouts" is good.
+
 7. If the PR addresses an open issue the PR description includes the `fixes #issue-number`
-  syntax to link the PR to that issue (**you must use the exact phrasing in order for GitHub
-  to automatically close the issue when the PR merges**)
+   syntax to link the PR to that issue (**you must use the exact phrasing in order for GitHub
+   to automatically close the issue when the PR merges**)
+
+### Use of AI tools
+
+> [!WARNING]
+> If you use any AI tool while preparing your code contribution, you **must** disclose the name of the tool and its version in the PR description.
+
+When using AI tools for code generation, your submission must still be your own original work of authorship, as required by the [Contributor License Agreement (CLA)](https://qisk.it/cla). It is your responsibility to make sure that:
+
+- You review and fully understand the generated code, and you can explain the reasoning behind it during review.
+- The usage of the AI tool does not violate any third-party license obligations.
+- The AI tool's terms and conditions allow its output to be used in open source projects and are compatible with the [Qiskit license](LICENSE.txt), the [Qiskit CLA](https://qisk.it/cla), and [these Contributor Guidelines](CONTRIBUTING.md).
+- You only use AI tools that have features to:
+  * filter out generated code substantially similar to training data, or
+  * identify similar training code so you can comply with the original license obligations (notice, attribution, etc.) and only contribute if it's compatible with the [Qiskit license](LICENSE.txt).
+- You disclose the name and version of the AI tool in your PR description.
+
+Submissions that appear unreviewed or copied directly from an AI tool without proper understanding may be requested to be revised or declined.
+
+Remember that spamming issues or pull requests with AI-generated comments is prohibited under the [Qiskit Code of Conduct](https://qisk.it/coc).
 
 
 ### Code review
@@ -239,17 +277,25 @@ suggested changes, if you particularly like something!
 #### What to focus on in review
 
 * Is everything in [the PR checklist](#pull-request-checklist) done?
+
 * Are any new public APIs easy to use, well documented, and consistent with
   other parts of the Qiskit API?
+
 * Do any changes to the code have knock-on effects for other parts of Qiskit
   that may be using them, or do they imply changes to the assumptions in
   our data structures?
+
 * Are there any edge cases you can think of that the code might not handle well?
   Could the PR benefit from extra tests to cover these, or to verify other edge
   cases that it *does* handle successfully?
+
 * Is the code reasonably easy for you to understand?  This particular point is
   tricky; the more you review code, the easier it will be for you to understand
   other code, so don't worry about this as much if you're getting started.
+
+* If this PR is a bugfix, is it suitable for backport?  If not, could the PR be
+  split into a "simple" bugfix that is suitable for backport and a follow-on
+  improvement?  (Not all bugfixes *must* be backported.)
 
 #### Writing review comments
 
@@ -257,12 +303,14 @@ suggested changes, if you particularly like something!
   remember that the author might have already thought about it and have a
   reason.  Try "What do you think about us raising a `TypeError` here instead of
   returning `None`?", rather than "You should raise an exception here".
+
 * Try to make each round of review thorough.  Don't add one or two comments on
   one file, then come back a day later and add a couple of other unrelated
   comments on a different file, and so on.  Try to review the whole PR
   thoroughly in one go; it's easier to catch bugs like this, and less
   frustrating for the PR creator. If that's too much for you, consider
   asking if the PR could be split into smaller independent chunks.
+
 * Try to keep the number of comments reasonable.  This depends on the size of
   the PR, but remember that there's somebody who'll read all your comments, and
   it can be demoralizing if you get a PR back and it's got 30 comments on from a
@@ -270,6 +318,7 @@ suggested changes, if you particularly like something!
   consider if you could group several of them into one theme, and ask them as a
   more detailed question with a focus on only one part of the code.  Try not to
   comment the same thing in many places.
+
 * Try to avoid saying "you do" in review comments, and instead try to
   say things like "we do" even when talking about new code. It's not a big
   change, yet it helps to make us think about Qiskit's code as something that we
@@ -279,13 +328,16 @@ suggested changes, if you particularly like something!
 
 * Ask questions if you don't understand what a reviewer is saying, or if you're
   not certain whether they're suggesting changes.
+
 * Feel free to respond to suggestions or questions with your reasoning for doing
   things a different way, if you don't fully agree with the review comment.
   Code review is a collaborative two-way process.
+
 * Don't use the "update branch" on GitHub unless a maintainer suggests it or
   there are merge conflicts.  The merge queue will take care of this when the
   PR is approved, and pressing it unnecessarily uses up CI resources that other
   PRs might need.
+
 * Try not to take suggestions personally.  It's hard to communicate over text,
   especially when we might have different native languages and we're talking
   about improving something.  Assume that the reviewer was acting in good faith,
@@ -296,8 +348,10 @@ suggested changes, if you particularly like something!
 
 #### Things that shouldn't be said
 
-* Anything about the formatting of the code.  We have automated code formatters
-  that enforce a uniform style, and CI requires them to have been run.
+* Anything about the formatting of the code, unless it is illegible.  We have
+  automated code formatters that enforce a uniform style, and CI requires them
+  to have been run.
+
 * Minor stylistic changes in _how_ people code, except where they might be
   seriously affecting performance or legibility.  There are lots of ways to
   program, especially in Python, and lots of ways that achieve the same thing.
@@ -318,25 +372,50 @@ suggested changes, if you particularly like something!
   Both are perfectly legible, and focusing on small details like this is
   frustrating for everybody.
 
+### Pull request merging checklist
 
-### Use of AI tools
+When a PR is fully approved by code owners, it can be queued for merge.
+Authorised users (those with write access to the repository) will be able to
+press the "merge when ready" button.  Before enqueuing for merge, check that the
+following PR metadata items are set correctly:
 
-> [!WARNING]
-> If you use any AI tool while preparing your code contribution, you **must** disclose the name of the tool and its version in the PR description.
+* The "milestone" is set to the expected release version.  For PRs to be
+  backported, this should be (for example) "2.3.2".  For PRs for the next minor
+  release, it should be (for example) "2.4.0".
 
-When using AI tools for code generation, your submission must still be your own original work of authorship, as required by the [Contributor License Agreement (CLA)](https://qisk.it/cla). It is your responsibility to make sure that:
+  This metadata lets us quickly jump from `git log` to the PR page, and see
+  there which Qiskit release a patch went out in.
 
-- You review and fully understand the generated code, and you can explain the reasoning behind it during review.
-- The usage of the AI tool does not violate any third-party license obligations.
-- The AI tool's terms and conditions allow its output to be used in open source projects and are compatible with the [Qiskit license](LICENSE.txt), the [Qiskit CLA](https://qisk.it/cla), and [these Contributor Guidelines](CONTRIBUTING.md).
-- You only use AI tools that have features to:
-  * filter out generated code substantially similar to training data, or
-  * identify similar training code so you can comply with the original license obligations (notice, attribution, etc.) and only contribute if it's compatible with the [Qiskit license](LICENSE.txt).
-- You disclose the name and version of the AI tool in your PR description.
+* The correct "Changelog: X" label is applied, including "Changelog: None" if
+  the PR need not appear.
 
-Submissions that appear unreviewed or copied directly from an AI tool without proper understanding may be requested to be revised or declined.
+  These labels are much simpler than the `reno` structure; they are for the
+  GitHub "releases" page instead, and categorize PRs into "Added", "Deprecated",
+  "Changed" or "Fixed".
 
-Remember that spamming issues or pull requests with AI-generated comments is prohibited under the [Qiskit Code of Conduct](https://qisk.it/coc).
+* Suitable backport commands have been set, if necessary.
+
+  In most cases, applying the label "stable backport potential" is sufficient.
+  In this case, the Mergify bot will open a backport PR to the most recent
+  stable branch (for example `stable/2.3` if we are currently preparing for
+  2.4.0).  If you need more complex backports, write a GitHub comment of the
+  form:
+
+  ```
+  @Mergifyio backport <branch> <branch2> ...
+  ```
+
+  You can have as many branches as necessary.  It usually only necessary to do
+  this to support old major branches.
+
+* Any issues fixed by the PR have their own "Fix #<num>" line in the author's PR
+  comment.  If you are empowered to merge PRs, you should be empowered to edit
+  the author's comment to add these, if necessary.
+
+If a PR is backported, the Mergify bot will open a PR for each branch to
+backport it to.  Assuming there are no merge conflicts, you can immediately
+approve and enqueue those PRs; a GitHub Actions workflow will copy across the
+labels (except for "stable backport potential") and milestone.
 
 
 ## Contributor Licensing Agreement
