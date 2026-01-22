@@ -56,6 +56,8 @@ from qiskit.circuit.library import (
     U3Gate,
     U2Gate,
     RGate,
+    CUGate,
+    CU3Gate,
 )
 from test import combine, QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -139,6 +141,8 @@ class TestPBCTransformation(QiskitTestCase):
             U3Gate(0.13, -0.24, 0.65),
             RGate(0.12, -0.34),
             U2Gate(0.12, -0.34),
+            CUGate(0.12, -0.34, 0.56, -0.78),
+            CU3Gate(0.13, -0.24, 0.67, -0.58),
         ],
         global_phase=[0, 1.0, -3.0],
     )
