@@ -414,6 +414,12 @@ following PR metadata items are set correctly:
   comment.  If you are empowered to merge PRs, you should be empowered to edit
   the author's comment to add these, if necessary.
 
+* The PR title is clear, concise, and does not link to GitHub issues.
+
+  As a merger, you can edit the title; there is an "edit" button at the top right
+  of the PR main page, right of the title.  This title becomes the `git` commit
+  summary line, so should be understandable without reference to GitHub.
+
 If a PR is backported, the Mergify bot will open a PR for each branch to
 backport it to.  Assuming there are no merge conflicts, you can immediately
 approve and enqueue those PRs; a GitHub Actions workflow will copy across the
