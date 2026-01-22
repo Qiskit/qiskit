@@ -12,7 +12,6 @@
 
 use std::ffi::{CStr, CString, c_char};
 
-#[cfg(feature = "cbinding")]
 use crate::dag::COperationKind;
 use crate::exit_codes::ExitCode;
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
