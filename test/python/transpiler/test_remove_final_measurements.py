@@ -304,6 +304,144 @@ class TestRemoveFinalMeasurements(QiskitTestCase):
         final_barriers = calc_final_ops(circuit_to_dag(qc), {"barrier"})
         self.assertEqual(final_barriers, [])
 
+    def test_measurements_with_control_flow_succesors(self):
+        """Final measurements with control flow successors should not be considered final."""
+
+        def build_if_circuit():
+            q0 = QuantumRegister(3, "q0")
+            c0 = ClassicalRegister(2, "c0")
+            qc = QuantumCircuit(q0, c0)
+
+            #        ┌───┐┌─┐
+            #  q0_0: ┤ H ├┤M├──────────────────────────
+            #        ├───┤└╥┘┌─┐
+            #  q0_1: ┤ X ├─╫─┤M├───────────────────────
+            #        └───┘ ║ └╥┘┌────── ┌───┐ ───────┐
+            #  q0_2: ──────╫──╫─┤ If-0  ┤ X ├  End-0 ├─
+            #              ║  ║ └──╥─── └───┘ ───────┘
+            #              ║  ║ ┌──╨──┐
+            #  c0: 2/══════╩══╩═╡ 0x3 ╞════════════════
+            #              0  1 └─────┘
+
+            qc.h(0)
+            qc.x(1)
+            qc.measure(q0[0], c0[0])
+            qc.measure(q0[1], c0[1])
+            with qc.if_test((c0, 0b11)):
+                qc.x(q0[2])
+            return qc
+
+        def build_while_circuit():
+            q0 = QuantumRegister(3, "q0")
+            c0 = ClassicalRegister(2, "c0")
+            qc = QuantumCircuit(q0, c0)
+
+            #       ┌───┐┌─┐
+            # q0_0: ┤ H ├┤M├─────────────────────────────
+            #       ├───┤└╥┘┌─┐
+            # q0_1: ┤ X ├─╫─┤M├──────────────────────────
+            #       └───┘ ║ └╥┘┌───────── ┌───┐ ───────┐
+            # q0_2: ──────╫──╫─┤ While-0  ┤ X ├  End-0 ├─
+            #             ║  ║ └────╥──── └───┘ ───────┘
+            #             ║  ║   ┌──╨──┐
+            # c0: 2/══════╩══╩═══╡ 0x3 ╞═════════════════
+
+            qc.h(0)
+            qc.x(1)
+            qc.measure(q0[0], c0[0])
+            qc.measure(q0[1], c0[1])
+            with qc.while_loop((c0, 0b11)):
+                qc.x(q0[2])
+            return qc
+
+        def build_switch_circuit():
+            q0 = QuantumRegister(3, "q0")
+            c0 = ClassicalRegister(2, "c0")
+            qc = QuantumCircuit(q0, c0)
+
+            #       ┌───┐┌─┐
+            # q0_0: ┤ H ├┤M├───────────────────────────────────────────────────────────────
+            #       ├───┤└╥┘┌─┐
+            # q0_1: ┤ X ├─╫─┤M├────────────────────────────────────────────────────────────
+            #       └───┘ ║ └╥┘┌────────── ┌──────────── ┌───┐┌──────────── ┌───┐ ───────┐
+            # q0_2: ──────╫──╫─┤ Switch-0  ┤ Case-0 (0)  ┤ X ├┤ Case-0 (3)  ┤ Z ├  End-0 ├─
+            #             ║  ║ └────╥───── └──────────── └───┘└──────────── └───┘ ───────┘
+            #             ║  ║   ┌──╨──┐
+            # c0: 2/══════╩══╩═══╡ 0x3 ╞═══════════════════════════════════════════════════
+            # .            0  1   └─────┘
+
+            qc.h(0)
+            qc.x(1)
+            qc.measure(q0[0], c0[0])
+            qc.measure(q0[1], c0[1])
+            with qc.switch(c0) as case:
+                with case(0):
+                    qc.x(2)
+                with case(3):
+                    qc.z(2)
+
+            return qc
+
+        for desc, qc in [
+            ("if", build_if_circuit()),
+            ("while", build_while_circuit()),
+            ("switch", build_switch_circuit()),
+        ]:
+            with self.subTest(control_flow=desc):
+                dag = circuit_to_dag(qc)
+                final_ops = calc_final_ops(dag=dag, final_op_names={"measure", "barrier"})
+                self.assertEqual(final_ops, [], f"Failed for control flow: {desc}")
+
+    def test_measurements_with_some_control_flow_successor(self):
+        """Test circuit with some measurements having control flow successors"""
+
+        q0 = QuantumRegister(3, "q0")
+        c0 = ClassicalRegister(1, "c0")
+        c1 = ClassicalRegister(1, "c1")
+
+        #       ┌───┐┌─┐
+        # q0_0: ┤ H ├┤M├──────────────────────────
+        #       ├───┤└╥┘┌─┐
+        # q0_1: ┤ X ├─╫─┤M├───────────────────────
+        #       └───┘ ║ └╥┘┌────── ┌───┐ ───────┐
+        # q0_2: ──────╫──╫─┤ If-0  ┤ X ├  End-0 ├─
+        #             ║  ║ └──╥─── └───┘ ───────┘
+        #             ║  ║ ┌──╨──┐
+        # c0: 1/══════╩══╬═╡ 0x1 ╞════════════════
+        #             0  ║ └─────┘
+        # c1: 1/═════════╩════════════════════════
+        #                0
+
+        qc = QuantumCircuit(q0, c0, c1)
+        qc.h(0)
+        qc.x(1)
+        qc.measure(q0[0], c0[0])
+        qc.measure(q0[1], c1[0])
+        with qc.if_test((c0, 0b1)):
+            qc.x(q0[2])
+        dag = circuit_to_dag(qc)
+        final_ops = calc_final_ops(dag=dag, final_op_names={"measure", "barrier"})
+        self.assertEqual(len(final_ops), 1)
+
+    def test_mid_circuit_measures_with_control_flow_sucessors(self):
+        """Test circuit having mid circuit measurement with control flow successors."""
+
+        q0 = QuantumRegister(3, "q0")
+        c0 = ClassicalRegister(1, "c0")
+        c1 = ClassicalRegister(1, "c1")
+
+        qc = QuantumCircuit(q0, c0, c1)
+        qc.h(0)
+        qc.x(1)
+        qc.measure(q0[0], c0[0])
+        qc.measure(q0[1], c1[0])
+        with qc.if_test((c0, 0b1)):
+            qc.x(q0[2])
+        qc.measure_all()
+        dag = circuit_to_dag(qc)
+        final_ops = calc_final_ops(dag=dag, final_op_names={"measure", "barrier"})
+        self.assertEqual(len(final_ops), 5)
+
 
 if __name__ == "__main__":
     unittest.main()
