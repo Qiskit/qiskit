@@ -208,8 +208,11 @@ pub(crate) fn write_expression<W: Write + Seek>(
             write_expression(&binary_node.right, writer, endian, (qpy_data,))?;
         }
         Expr::Range(range_node) => {
-            ExpressionElementPack::Range(pack_expression_type(&range_node.ty))
-                .write_options(writer, endian, ())?;
+            ExpressionElementPack::Range(pack_expression_type(&range_node.ty)).write_options(
+                writer,
+                endian,
+                (),
+            )?;
             write_expression(&range_node.start, writer, endian, (qpy_data,))?;
             write_expression(&range_node.stop, writer, endian, (qpy_data,))?;
             write_expression(&range_node.step, writer, endian, (qpy_data,))?;

@@ -297,8 +297,8 @@ pub enum GenericValue {
     Complex64(Complex64),
     CaseDefault,
     Register(ParamRegisterValue), // This is not the full register data; rather, it's the name stored inside instructions, or a clbit address
-    Range(PyRange), // Python range (start, stop, step as integers)
-    RangeExpr(Range), // Range expression from qiskit.circuit.classical.expr
+    Range(PyRange),             // Python range (start, stop, step as integers)
+    RangeExpr(Range),             // Range expression from qiskit.circuit.classical.expr
     Tuple(Vec<GenericValue>),
     NumpyObject(Py<PyAny>), // currently we store the python object without converting it to rust space
     ParameterExpressionSymbol(Symbol),
@@ -558,7 +558,10 @@ pub(crate) fn serialize_generic_value(
         GenericValue::RangeExpr(range_expr) => {
             // Serialize Range expression as an Expression
             let expr = Expr::Range(Box::new(range_expr.clone()));
-            (ValueType::Expression, serialize_expression(&expr, qpy_data)?)
+            (
+                ValueType::Expression,
+                serialize_expression(&expr, qpy_data)?,
+            )
         }
         GenericValue::Modifier(py_object) => (
             ValueType::Modifier,
