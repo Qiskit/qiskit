@@ -185,6 +185,30 @@ fn replace_gate_by_pauli_vec(gate: StandardGate, angles: &[f64]) -> GateToPBCVec
             ],
             (angles[1] + angles[2]) / 2.0,
         ),
+        StandardGate::U3 => (
+            vec![
+                ("Z", angles[2] / 2.0, &[0]),
+                ("Y", angles[0] / 2.0, &[0]),
+                ("Z", angles[1] / 2.0, &[0]),
+            ],
+            (angles[1] + angles[2]) / 2.0,
+        ),
+        StandardGate::R => (
+            vec![
+                ("Z", FRAC_PI_4 - angles[1] / 2.0, &[0]),
+                ("Y", angles[0] / 2.0, &[0]),
+                ("Z", -FRAC_PI_4 + angles[1] / 2.0, &[0]),
+            ],
+            0.0,
+        ),
+        StandardGate::U2 => (
+            vec![
+                ("Z", angles[1] / 2.0, &[0]),
+                ("Y", FRAC_PI_4, &[0]),
+                ("Z", angles[0] / 2.0, &[0]),
+            ],
+            (angles[0] + angles[1]) / 2.0,
+        ),
         _ => unreachable!(
             "This is only called for one and two qubit gates with no paramers or with a single parameter."
         ),
@@ -258,7 +282,10 @@ pub fn py_pbc_transformation(py: Python, dag: &mut DAGCircuit) -> PyResult<DAGCi
                     }
                 }
                 // handling only 1-qubit and 2-qubit gates with several parameters
-                else if matches!(gate, StandardGate::U) {
+                else if matches!(
+                    gate,
+                    StandardGate::U | StandardGate::U2 | StandardGate::U3 | StandardGate::R
+                ) {
                     let params = inst.params_view();
                     let angles: Vec<f64> = params
                         .iter()

@@ -53,6 +53,9 @@ from qiskit.circuit.library import (
     DCXGate,
     ECRGate,
     UGate,
+    U3Gate,
+    U2Gate,
+    RGate,
 )
 from test import combine, QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -131,7 +134,12 @@ class TestPBCTransformation(QiskitTestCase):
         self.assertEqual(Operator(qct), Operator(qc))
 
     @combine(
-        gate=[UGate(0.12, -0.34, 0.56)],
+        gate=[
+            UGate(0.12, -0.34, 0.56),
+            U3Gate(0.13, -0.24, 0.65),
+            RGate(0.12, -0.34),
+            U2Gate(0.12, -0.34),
+        ],
         global_phase=[0, 1.0, -3.0],
     )
     def test_many_param_gates_transpiled(self, gate, global_phase):
