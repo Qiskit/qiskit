@@ -46,7 +46,7 @@ fn qdrift_build_circuit(
         return Err(ExitCode::CInputError);
     }
 
-    // If the observable contains projectors, return an error. 
+    // If the observable contains projectors, return an error.
     // User should explicitly opt in to Pauli decomposition.
     if obs.bit_terms().iter().any(|b| b.is_projector()) {
         return Err(ExitCode::CInputError);
@@ -61,7 +61,6 @@ fn qdrift_build_circuit(
     let mut mags: Vec<f64> = Vec::with_capacity(n_terms);
     let mut signs: Vec<f64> = Vec::with_capacity(n_terms);
     let mut lambda = 0.0f64;
-    let mut kappa = 0.0f64;
 
     for (i, &c) in obs.coeffs().iter().enumerate() {
         let start = boundaries[i];
@@ -69,13 +68,9 @@ fn qdrift_build_circuit(
         let is_identity = start == end;
 
         let r = approx_real(&c);
-        let r = match r {
-            Err(e) => return Err(e),
-            Ok(r) => r,
-        };
+        let r = r?;
 
         if is_identity {
-            kappa += r;
             mags.push(0.0);
             signs.push(0.0);
             continue;
@@ -207,9 +202,11 @@ fn qdrift_build_circuit(
  *   same expected gate count.
  *
  * @warning
+ * # Safety
  * Safety assumptions:
  * - obs must be a valid pointer managed by the Qiskit C API.
  * - out must be a valid writable pointer to a QkCircuit* location.
+ *  
  * Violating these conditions may cause undefined behavior.
  *
  * @par Example
