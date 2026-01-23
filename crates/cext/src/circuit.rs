@@ -843,7 +843,7 @@ pub unsafe extern "C" fn qk_circuit_inst_unitary(
 /// @param circuit A pointer to the circuit to get the instruction kind from.
 /// @param index The index of the instruction to get the kind for.
 ///
-/// @return A ``COperationKind`` enum value representing the kind of instruction at the given
+/// @return A ``QkOperationKind`` enum value representing the kind of instruction at the given
 /// index.
 ///
 /// # Safety
