@@ -40,7 +40,7 @@ pub fn run_elide_permutations(dag: &DAGCircuit) -> PyResult<Option<(DAGCircuit, 
 
     // note that DAGCircuit::copy_empty_like clones the interners
     let mut new_dag = dag.copy_empty_like_with_capacity(0, 0, VarsMode::Alike, BlocksMode::Keep)?;
-    for node_index in dag.topological_op_nodes(false)? {
+    for node_index in dag.topological_op_nodes(false) {
         if let NodeType::Operation(inst) = &dag[node_index] {
             match inst.op.view() {
                 OperationRef::StandardGate(StandardGate::Swap) => {

@@ -50,6 +50,12 @@ unsafe impl ::bytemuck::CheckedBitPattern for UnaryOp {
     }
 }
 
+impl UnaryOp {
+    pub fn from_u8(value: u8) -> PyResult<UnaryOp> {
+        Ok(bytemuck::checked::cast::<u8, UnaryOp>(value))
+    }
+}
+
 impl<'py> IntoPyObject<'py> for Unary {
     type Target = PyAny;
     type Output = Bound<'py, PyAny>;

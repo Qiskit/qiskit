@@ -23,6 +23,7 @@ use pyo3::types::{PyBool, PyList, PyTuple, PyType};
 use pyo3::{PyResult, intern};
 
 use crate::circuit_data::CircuitData;
+use crate::dag_circuit::DAGCircuit;
 use crate::duration::Duration;
 use crate::imports::{CONTROLLED_GATE, GATE, INSTRUCTION, OPERATION, WARNINGS_WARN};
 use crate::instruction::{Instruction, Parameters, create_py_op};
@@ -105,6 +106,8 @@ impl CircuitInstruction {
 }
 
 impl Instruction for CircuitInstruction {
+    type Block = CircuitData;
+
     fn op(&self) -> OperationRef<'_> {
         self.operation.view()
     }
@@ -128,7 +131,7 @@ impl CircuitInstruction {
         clbits: Option<Bound<PyAny>>,
     ) -> PyResult<Self> {
         let py = operation.py();
-        let op_parts = operation.extract::<OperationFromPython>()?;
+        let op_parts = operation.extract::<OperationFromPython<CircuitData>>()?;
 
         Ok(Self {
             operation: op_parts.operation,
@@ -268,7 +271,14 @@ impl CircuitInstruction {
     /// Is the :class:`.Operation` contained in this instruction a control-flow operation (i.e. an
     /// instance of :class:`.ControlFlowOp`)?
     pub fn is_control_flow(&self) -> bool {
-        self.operation.try_control_flow().is_some()
+        self.operation
+            .try_control_flow()
+            .is_some_and(|control_flow| {
+                !matches!(
+                    control_flow.control_flow,
+                    ControlFlow::BreakLoop | ControlFlow::ContinueLoop
+                )
+            })
     }
 
     /// Does this instruction contain any :class:`.ParameterExpression` parameters?
@@ -305,7 +315,7 @@ impl CircuitInstruction {
         };
 
         if let Some(operation) = operation {
-            let op_parts = operation.extract::<OperationFromPython>()?;
+            let op_parts = operation.extract::<OperationFromPython<CircuitData>>()?;
             let params = if let Some(params) = params {
                 extract_params(op_parts.operation.view(), &params)?
             } else {
@@ -517,7 +527,7 @@ impl CircuitInstruction {
 /// ```rust
 /// #[pyfunction]
 /// fn accepts_op_from_python(ob: &Bound<PyAny>) -> PyResult<()> {
-///     let py_op = ob.extract::<OperationFromPython>()?;
+///     let py_op = ob.extract::<OperationFromPython<CircuitData>>()?;
 ///     // ... use `py_op.operation`, `py_op.params`, etc.
 ///     Ok(())
 /// }
@@ -525,14 +535,19 @@ impl CircuitInstruction {
 ///
 /// though you can also accept `ob: OperationFromPython` directly, if you don't also need a handle
 /// to the Python object that it came from.  The handle is useful for the Python-operation caching.
+///
+/// The generic argument controls how control-flow blocks are extracted.  Typically you choose this
+/// to match the place you'll be putting the blocks.  If you want to fail the extraction if there's
+/// control-flow blocks, use `qiskit_circuit::NoBlocks`.  If you want to leave the blocks
+/// unextracted, use `Py<PyAny>`.
 #[derive(Debug)]
-pub struct OperationFromPython {
+pub struct OperationFromPython<T> {
     pub operation: PackedOperation,
-    pub params: Option<Parameters<CircuitData>>,
+    pub params: Option<Parameters<T>>,
     pub label: Option<Box<String>>,
 }
 
-impl OperationFromPython {
+impl<T: CircuitBlock> OperationFromPython<T> {
     /// Takes the params out of [OperationFromPython::params].
     ///
     /// Panics if params is not a parameter list.
@@ -543,17 +558,52 @@ impl OperationFromPython {
     /// Takes the blocks out of [OperationFromPython::params].
     ///
     /// Panics if params is not a block list.
-    pub fn take_blocks(&mut self) -> Option<Vec<CircuitData>> {
+    pub fn take_blocks(&mut self) -> Option<Vec<T>> {
         self.params.take().map(|p| p.unwrap_blocks())
     }
 }
 
-impl Instruction for OperationFromPython {
+/// Marker object for use with `OperationFromPython` that marks that the extraction should fail if
+/// the object contains circuit blocks.
+pub struct NoBlocks;
+
+/// Helper trait implemented by `CircuitData` and `DAGCircuit` to implement extraction from
+/// a Python-owned control-flow block into a suitable Rust type.
+///
+/// This shouldn't need to be imported anywhere nor implemented by anything else; it's only intended
+/// to let the `OperationFromPython` extraction be generic.
+pub trait CircuitBlock: Sized {
+    fn extract_py_block(ob: Bound<CircuitData>) -> PyResult<Self>;
+}
+impl CircuitBlock for CircuitData {
+    fn extract_py_block(ob: Bound<CircuitData>) -> PyResult<Self> {
+        Ok(ob.borrow().clone())
+    }
+}
+impl CircuitBlock for DAGCircuit {
+    fn extract_py_block(ob: Bound<CircuitData>) -> PyResult<Self> {
+        Self::from_circuit_data(&ob.borrow(), false, None, None, None, None)
+    }
+}
+impl CircuitBlock for NoBlocks {
+    fn extract_py_block(_ob: Bound<CircuitData>) -> PyResult<Self> {
+        Err(PyTypeError::new_err("control-flow ops are not valid here"))
+    }
+}
+impl CircuitBlock for Py<PyAny> {
+    fn extract_py_block(ob: Bound<CircuitData>) -> PyResult<Self> {
+        Ok(ob.into_any().unbind())
+    }
+}
+
+impl<T> Instruction for OperationFromPython<T> {
+    type Block = T;
+
     fn op(&self) -> OperationRef<'_> {
         self.operation.view()
     }
 
-    fn parameters(&self) -> Option<&Parameters<CircuitData>> {
+    fn parameters(&self) -> Option<&Parameters<T>> {
         self.params.as_ref()
     }
 
@@ -562,7 +612,7 @@ impl Instruction for OperationFromPython {
     }
 }
 
-impl<'a, 'py> FromPyObject<'a, 'py> for OperationFromPython {
+impl<'a, 'py, T: CircuitBlock> FromPyObject<'a, 'py> for OperationFromPython<T> {
     type Error = PyErr;
 
     fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
@@ -873,10 +923,10 @@ impl<'a, 'py> FromPyObject<'a, 'py> for OperationFromPython {
 
 /// Extracts a Python-space params list into an optional [Parameters] list, given
 /// the corresponding operation reference.
-pub fn extract_params(
+pub fn extract_params<T: CircuitBlock>(
     op: OperationRef,
     params: &Bound<PyAny>,
-) -> PyResult<Option<Parameters<CircuitData>>> {
+) -> PyResult<Option<Parameters<T>>> {
     let data_attr = intern!(params.py(), "_data");
     Ok(match op {
         OperationRef::ControlFlow(cf) => match &cf.control_flow {
@@ -886,15 +936,15 @@ pub fn extract_params(
                 // We skip the first two parameters (collection and loop_param) since we
                 // store those directly on the operation in Rust.
                 let mut params = params.try_iter()?.skip(2);
-                Some(Parameters::Blocks(vec![
+                Some(Parameters::Blocks(vec![T::extract_py_block(
                     params
                         .next()
                         .ok_or_else(|| {
                             PyValueError::new_err("not enough values to unpack (expected 3)")
                         })??
                         .getattr(data_attr)?
-                        .extract()?,
-                ]))
+                        .cast_into()?,
+                )?]))
             }
             _ => {
                 // For all other control flow operations with blocks, the 'params' in Python land
@@ -906,11 +956,7 @@ pub fn extract_params(
                         Ok(block) if !block.is_none() => true,
                         _ => false,
                     })
-                    .map(|p| -> PyResult<_> {
-                        p?.getattr(data_attr)?
-                            .extract::<CircuitData>()
-                            .map_err(PyErr::from)
-                    })
+                    .map(|p| T::extract_py_block(p?.getattr(data_attr)?.cast_into()?))
                     .collect::<PyResult<_>>()?;
                 Some(Parameters::Blocks(blocks))
             }

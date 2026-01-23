@@ -68,7 +68,7 @@ pub extern "C" fn qk_circuit_new(num_qubits: u32, num_clbits: u32) -> *mut Circu
         None
     };
 
-    let circuit = CircuitData::new(qubits, clbits, None, 0, (0.).into()).unwrap();
+    let circuit = CircuitData::new(qubits, clbits, (0.).into()).unwrap();
     Box::into_raw(Box::new(circuit))
 }
 
