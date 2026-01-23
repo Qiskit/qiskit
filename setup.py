@@ -13,6 +13,7 @@
 "The Qiskit setup file."
 
 import os
+import warnings
 from setuptools import setup
 from setuptools_rust import Binding, RustExtension
 
@@ -26,9 +27,23 @@ from setuptools_rust import Binding, RustExtension
 # unergonomic to do otherwise.
 
 
-# If RUST_DEBUG is set, force compiling in debug mode. Else, use the default behavior of whether
-# it's an editable installation.
-rust_debug = True if os.getenv("RUST_DEBUG") == "1" else None
+# Check for a default build profile from the environment (`--release` or `--debug` flags to
+# `build_rust` override this default).  If not present, we also check if `RUST_DEBUG=1` for
+# convenience, since we did that (undocumented) until Qiskit 2.4.
+if (build_profile := os.getenv("QISKIT_BUILD_PROFILE", None)) is None:
+    rust_debug = os.getenv("RUST_DEBUG", None) == "1" or None
+else:
+    match build_profile.lower():
+        case "debug":
+            rust_debug = True
+        case "release":
+            rust_debug = False
+        case _:
+            warnings.warn(
+                f"QISKIT_BUILD_PROFILE set to unknown value '{build_profile}'."
+                " Valid values are 'debug' and 'release'."
+            )
+            rust_debug = None
 
 # If QISKIT_NO_CACHE_GATES is set then don't enable any features while building
 #
