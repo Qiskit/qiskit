@@ -75,6 +75,63 @@ static int test_add(void) {
 }
 
 /**
+ * Test adding two observables.
+ */
+static int test_addmul(void) {
+    QkObs *left = qk_obs_identity(100);
+    QkObs *right = qk_obs_identity(100);
+    QkComplex64 factor = {2.0, 2.0};
+    QkObs *result = qk_obs_addmul(left, right, &factor);
+
+    // construct the expected observable: coeff * Id
+    QkObs *expected = qk_obs_identity(100);
+    QkBitTerm bit_terms[] = {};
+    uint32_t indices[] = {};
+    QkObsTerm term = {factor, 0, bit_terms, indices, 100};
+    qk_obs_add_term(expected, &term);
+
+    // perform the check
+    bool is_equal = qk_obs_equal(expected, result);
+
+    qk_obs_free(left);
+    qk_obs_free(right);
+    qk_obs_free(result);
+    qk_obs_free(expected);
+
+    return !is_equal ? EqualityError : Ok;
+}
+
+/**
+ * Test adding two observables.
+ */
+static int test_iaddmul(void) {
+    QkObs *left = qk_obs_identity(100);
+    QkObs *right = qk_obs_identity(100);
+    QkComplex64 factor = {2.0, 2.0};
+    int err = qk_obs_iaddmul(left, right, &factor);
+
+    if (err != QkExitCode_Success) {
+        return err;
+    }
+
+    // construct the expected observable: coeff * Id
+    QkObs *expected = qk_obs_identity(100);
+    QkBitTerm bit_terms[] = {};
+    uint32_t indices[] = {};
+    QkObsTerm term = {factor, 0, bit_terms, indices, 100};
+    qk_obs_add_term(expected, &term);
+
+    // perform the check
+    bool is_equal = qk_obs_equal(expected, left);
+
+    qk_obs_free(left);
+    qk_obs_free(right);
+    qk_obs_free(expected);
+
+    return !is_equal ? EqualityError : Ok;
+}
+
+/**
  * Test composing two observables.
  */
 static int test_compose(void) {
@@ -868,6 +925,8 @@ int test_sparse_observable(void) {
     num_failed += RUN_TEST(test_zero);
     num_failed += RUN_TEST(test_identity);
     num_failed += RUN_TEST(test_add);
+    num_failed += RUN_TEST(test_addmul);
+    num_failed += RUN_TEST(test_iaddmul);
     num_failed += RUN_TEST(test_compose);
     num_failed += RUN_TEST(test_compose_map);
     num_failed += RUN_TEST(test_compose_scalar);
