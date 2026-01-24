@@ -51,7 +51,7 @@ jobs:
         runner: ["ubuntu-latest", "ubuntu-24.04-arm"]
     uses: ./.github/workflows/test-linux.yml
     with:
-      python-version: "3.13"
+      python-version: "3.14"
       install-from-sdist: true
       install-optionals: false
       runner: ${{ matrix.runner }}
@@ -61,7 +61,7 @@ jobs:
     name: Python Unit Tests
     strategy:
       matrix:
-        python_version: ["3.10", "3.13"]
+        python_version: ["3.10", "3.14"]
         runner: ["macos-14"]
     uses: ./.github/workflows/test-mac.yml
     with:
@@ -74,7 +74,7 @@ jobs:
     name: Python Unit Tests
     strategy:
       matrix:
-        python_version: ["3.10", "3.13"]
+        python_version: ["3.10", "3.14"]
         runner: ["windows-latest"]
     uses: ./.github/workflows/test-windows.yml
     with:
