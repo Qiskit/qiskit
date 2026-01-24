@@ -584,6 +584,41 @@ pub unsafe extern "C" fn qk_obs_multiply(
 }
 
 /// @ingroup QkObs
+/// Multiply the observable in-place by a complex coefficient.
+///
+/// @param obs A pointer to the observable.
+/// @param coeff The coefficient to multiply the observable with.
+///
+/// @return An exit code. This is ``>0`` if the multiplication failed.
+///
+/// # Example
+/// ```c
+///     QkObs *obs = qk_obs_identity(100);
+///     QkComplex64 coeff = {2, 0};
+///     QkExitCode exit = qk_obs_imultiply(obs, &coeff);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if any of the following is violated
+/// * ``obs`` is a valid, non-null pointer to a ``QkObs``
+/// * ``coeff`` is a valid, non-null pointer to a ``QkComplex64``
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_obs_imultiply(
+    obs: *mut SparseObservable,
+    coeff: *const Complex64,
+) -> ExitCode {
+    // SAFETY: Per documentation, the pointers are non-null and aligned.
+    let obs = unsafe { mut_ptr_as_ref(obs) };
+    let coeff = unsafe { const_ptr_as_ref(coeff) };
+
+    *obs *= *coeff;
+
+    ExitCode::Success
+}
+
+/// @ingroup QkObs
 /// Add two observables.
 ///
 /// @param left A pointer to the left observable.
@@ -614,6 +649,40 @@ pub unsafe extern "C" fn qk_obs_add(
 
     let result = left + right;
     Box::into_raw(Box::new(result))
+}
+
+/// @ingroup QkObs
+/// Add an observable to an existing one.
+///
+/// @param left A pointer to the left observable.
+/// @param right A pointer to the right observable.
+///
+/// @return An exit code. This is ``>0`` if the addition failed.
+///
+/// # Example
+/// ```c
+///     QkObs *left = qk_obs_identity(100);
+///     QkObs *right = qk_obs_zero(100);
+///     QkExitCode exit = qk_obs_iadd(left, right);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``left`` or ``right`` are not valid, non-null pointers to
+/// ``QkObs``\ s.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_obs_iadd(
+    left: *mut SparseObservable,
+    right: *const SparseObservable,
+) -> ExitCode {
+    // SAFETY: Per documentation, the pointers are non-null and aligned.
+    let left = unsafe { mut_ptr_as_ref(left) };
+    let right = unsafe { const_ptr_as_ref(right) };
+
+    *left += right;
+
+    ExitCode::Success
 }
 
 /// @ingroup QkObs

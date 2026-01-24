@@ -75,6 +75,26 @@ static int test_add(void) {
 }
 
 /**
+ * Test adding two observables in-place.
+ */
+static int test_iadd(void) {
+    QkObs *left = qk_obs_identity(100);
+    QkObs *right = qk_obs_identity(100);
+    int err = qk_obs_iadd(left, right);
+
+    if (err != QkExitCode_Success) {
+        return err;
+    }
+
+    size_t num_terms = qk_obs_num_terms(left);
+
+    qk_obs_free(left);
+    qk_obs_free(right);
+
+    return (num_terms != 2) ? EqualityError : Ok;
+}
+
+/**
  * Test composing two observables.
  */
 static int test_compose(void) {
@@ -219,6 +239,43 @@ static int test_mult(void) {
         // deallocate before returning
         qk_obs_free(obs);
         qk_obs_free(result);
+        qk_obs_free(expected);
+
+        if (!is_equal) {
+            return EqualityError;
+        }
+    }
+
+    return Ok;
+}
+
+/**
+ * Test multiplying an observable in-place by a complex coefficient.
+ */
+static int test_imult(void) {
+    QkComplex64 coeffs[3] = {{2.0, 0.0}, {0.0, 2.0}, {2.0, 2.0}};
+
+    for (int i = 0; i < 3; i++) {
+        QkObs *obs = qk_obs_identity(100);
+
+        int err = qk_obs_imultiply(obs, &coeffs[i]);
+
+        if (err != QkExitCode_Success) {
+            return err;
+        }
+
+        // construct the expected observable: coeff * Id
+        QkObs *expected = qk_obs_zero(100);
+        QkBitTerm bit_terms[] = {};
+        uint32_t indices[] = {};
+        QkObsTerm term = {coeffs[i], 0, bit_terms, indices, 100};
+        qk_obs_add_term(expected, &term);
+
+        // perform the check
+        bool is_equal = qk_obs_equal(expected, obs);
+
+        // deallocate before returning
+        qk_obs_free(obs);
         qk_obs_free(expected);
 
         if (!is_equal) {
@@ -868,10 +925,12 @@ int test_sparse_observable(void) {
     num_failed += RUN_TEST(test_zero);
     num_failed += RUN_TEST(test_identity);
     num_failed += RUN_TEST(test_add);
+    num_failed += RUN_TEST(test_iadd);
     num_failed += RUN_TEST(test_compose);
     num_failed += RUN_TEST(test_compose_map);
     num_failed += RUN_TEST(test_compose_scalar);
     num_failed += RUN_TEST(test_mult);
+    num_failed += RUN_TEST(test_imult);
     num_failed += RUN_TEST(test_canonicalize);
     num_failed += RUN_TEST(test_copy);
     num_failed += RUN_TEST(test_num_terms);
