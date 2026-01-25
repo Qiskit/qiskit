@@ -1,5 +1,5 @@
 ---
-features:
+features_quantum_info:
   - |
     Added the :meth:`.PauliLindbladMap.generators` method, which provides a more
     convenient accessor for the map's generator terms. This is an alias for the existing
