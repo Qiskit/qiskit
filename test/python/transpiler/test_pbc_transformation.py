@@ -17,6 +17,7 @@ from ddt import ddt
 from qiskit.circuit import QuantumCircuit
 from qiskit.transpiler.passes import PBCTransformation
 from qiskit.quantum_info import Operator
+from qiskit.circuit.random import random_circuit
 from qiskit.circuit.library import (
     RXGate,
     RYGate,
@@ -58,6 +59,8 @@ from qiskit.circuit.library import (
     RGate,
     CUGate,
     CU3Gate,
+    XXPlusYYGate,
+    XXMinusYYGate,
 )
 from test import combine, QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -143,6 +146,8 @@ class TestPBCTransformation(QiskitTestCase):
             U2Gate(0.12, -0.34),
             CUGate(0.12, -0.34, 0.56, -0.78),
             CU3Gate(0.13, -0.24, 0.67),
+            XXPlusYYGate(0.12, -0.34),
+            XXMinusYYGate(0.12, -0.34),
         ],
         global_phase=[0, 1.0, -3.0],
     )
@@ -153,6 +158,18 @@ class TestPBCTransformation(QiskitTestCase):
         qc = QuantumCircuit(num_qubits)
         qc.global_phase = global_phase
         qc.append(gate, range(num_qubits))
+        qct = PBCTransformation()(qc)
+        ops_names = set(qct.count_ops().keys())
+        self.assertEqual(ops_names, {"PauliEvolution"})
+        self.assertEqual(Operator(qct), Operator(qc))
+
+    def test_random_circuit(self):
+        """Test that a pesudo-random circuit with 1-qubit and 2-qubit gates is tranlated into
+        Pauli product rotatations correctly."""
+        num_qubits = 5
+        depth = 200
+        seed = 1234
+        qc = random_circuit(num_qubits=num_qubits, depth=depth, max_operands=2, seed=seed)
         qct = PBCTransformation()(qc)
         ops_names = set(qct.count_ops().keys())
         self.assertEqual(ops_names, {"PauliEvolution"})
