@@ -381,38 +381,34 @@ pub fn py_pbc_transformation(py: Python, dag: &mut DAGCircuit) -> PyResult<DAGCi
                         | StandardGate::CRX
                         | StandardGate::CRY
                 ) {
-                    if (inst.params_view()).len() == 1 {
-                        let angle = &inst.params_view()[0];
-                        let (sequence, global_phase_update) = replace_gate_by_pauli_rotation(gate);
-                        for (paulis, phase_rescale, qubits) in sequence {
-                            let original_qubits = dag.get_qargs(inst.qubits);
-                            let updated_qubits: Vec<Qubit> = qubits
-                                .iter()
-                                .map(|q| original_qubits[*q as usize])
-                                .collect();
-                            let time = multiply_param(angle, *phase_rescale);
-                            let py_gate = generate_pauli_evolution_gate(
-                                py_evo_cls,
-                                paulis,
-                                time.clone(),
-                                qubits,
-                            )?;
+                    let angle = &inst.params_view()[0];
+                    let (sequence, global_phase_update) = replace_gate_by_pauli_rotation(gate);
+                    for (paulis, phase_rescale, qubits) in sequence {
+                        let original_qubits = dag.get_qargs(inst.qubits);
+                        let updated_qubits: Vec<Qubit> = qubits
+                            .iter()
+                            .map(|q| original_qubits[*q as usize])
+                            .collect();
+                        let time = multiply_param(angle, *phase_rescale);
+                        let py_gate = generate_pauli_evolution_gate(
+                            py_evo_cls,
+                            paulis,
+                            time.clone(),
+                            qubits,
+                        )?;
 
-                            new_dag.apply_operation_back(
-                                py_gate.into(),
-                                &updated_qubits,
-                                &[],
-                                Some(Parameters::Params(smallvec![time])),
-                                None,
-                                #[cfg(feature = "cache_pygates")]
-                                None,
-                            )?;
-                        }
-                        global_phase =
-                            radd_param(multiply_param(angle, global_phase_update), global_phase);
-                    } else {
-                        panic!();
+                        new_dag.apply_operation_back(
+                            py_gate.into(),
+                            &updated_qubits,
+                            &[],
+                            Some(Parameters::Params(smallvec![time])),
+                            None,
+                            #[cfg(feature = "cache_pygates")]
+                            None,
+                        )?;
                     }
+                    global_phase =
+                        radd_param(multiply_param(angle, global_phase_update), global_phase);
                 }
                 // handling only 1-qubit and 2-qubit gates with more than one parameter
                 else if matches!(
