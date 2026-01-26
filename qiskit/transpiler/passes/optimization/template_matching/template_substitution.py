@@ -497,7 +497,6 @@ class TemplateSubstitution:
         """
         import sympy as sym
 
-        # Our native form is sympy, so we don't need to do anything.
         circuit_params, template_params = [], []
         # Set of all parameter names that are present in the circuits to be optimized.
         circuit_params_set = set()
