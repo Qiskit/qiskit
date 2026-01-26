@@ -16,15 +16,7 @@
 from qiskit.transpiler import Target
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.quantum_info import get_clifford_gate_names
-from .utils import (
-    grover_circuit,
-    mcx_circuit,
-    modular_adder_circuit,
-    multiplier_circuit,
-    qaoa_circuit,
-    qft_circuit,
-    trotter_circuit,
-)
+from .utils import create_ft_circuit
 
 
 class TranspilerCliffordRZBenchmarks:
@@ -41,7 +33,6 @@ class TranspilerCliffordRZBenchmarks:
             ("qaoa", 64, 3),
             ("qaoa", 128, 2),
             ("qaoa", 128, 3),
-            ("grover", 512),
             ("multiplier", 64, 2),
             ("multiplier", 64, 3),
             ("multiplier", 128, 2),
@@ -51,24 +42,8 @@ class TranspilerCliffordRZBenchmarks:
         if (circuit_name, n_qubits, optimization_level) in slow_tests:
             raise NotImplementedError
 
-        if circuit_name == "qft":
-            circuit = qft_circuit(n_qubits)
-        elif circuit_name == "trotter":
-            circuit = trotter_circuit(n_qubits)
-        elif circuit_name == "qaoa":
-            circuit = qaoa_circuit(n_qubits)
-        elif circuit_name == "grover":
-            circuit = grover_circuit(n_qubits)
-        elif circuit_name == "mcx":
-            circuit = mcx_circuit(n_qubits)
-        elif circuit_name == "multiplier":
-            circuit = multiplier_circuit(n_qubits)
-        elif circuit_name == "modular_adder":
-            circuit = modular_adder_circuit(n_qubits)
-        else:
-            raise ValueError("Error: unknown circuit")
+        self.circuit = create_ft_circuit(circuit_name, n_qubits)
 
-        self.circuit = circuit
         target = Target.from_configuration(["rz", "measure"] + get_clifford_gate_names(), n_qubits)
         self.pm = generate_preset_pass_manager(
             optimization_level=optimization_level, target=target, seed_transpiler=0
@@ -93,24 +68,16 @@ class TranspilerCliffordTBenchmarks:
     timeout = 300
 
     def setup(self, circuit_name, n_qubits, optimization_level):
-        if circuit_name == "qft":
-            circuit = qft_circuit(n_qubits)
-        elif circuit_name == "trotter":
-            circuit = trotter_circuit(n_qubits, reps=2)
-        elif circuit_name == "qaoa":
-            circuit = qaoa_circuit(n_qubits)
-        elif circuit_name == "grover":
-            circuit = grover_circuit(n_qubits)
-        elif circuit_name == "mcx":
-            circuit = mcx_circuit(n_qubits)
-        elif circuit_name == "multiplier":
-            circuit = multiplier_circuit(n_qubits)
-        elif circuit_name == "modular_adder":
-            circuit = modular_adder_circuit(n_qubits)
-        else:
-            raise ValueError("Error: unknown circuit")
+        slow_tests = {
+            ("grover", 8, 1),
+            ("grover", 8, 2),
+            ("grover", 8, 3),
+        }
 
-        self.circuit = circuit
+        if (circuit_name, n_qubits, optimization_level) in slow_tests:
+            raise NotImplementedError
+
+        self.circuit = create_ft_circuit(circuit_name, n_qubits, reps=2)
         target = Target.from_configuration(
             ["t", "tdg", "measure"] + get_clifford_gate_names(), n_qubits
         )
