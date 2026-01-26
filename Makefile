@@ -150,13 +150,14 @@ fix_cformat:
 # Abstraction over calling Cargo to build the C extension in "standalone" C
 # mode.  This _also_ builds the C header file as a side-effect into
 # `target/qiskit.h`.  Recipes that use this as a prerequisite should ensure they
-# set `C_LIB_CARGO_FLAGS` to choose the build profile.
+# set `C_LIB_CARGO_FLAGS` to choose the build profile.  The `C_LIB_RUSTC_FLAGS`
+# variable can also be set to add additional logic (like coverage instructions).
 #
 # Typically, downstream recipes should depend on `build-clib-release` or `build-clib-dev`
 # instead.
 .PHONY: build-clib build-clib-release build-clib-dev
 build-clib:
-	cargo rustc -p qiskit-cext --crate-type cdylib ${C_LIB_CARGO_FLAGS}
+	cargo rustc -p qiskit-cext --crate-type cdylib ${C_LIB_CARGO_FLAGS} -- ${C_LIB_RUSTC_FLAGS}
 build-clib-release: C_LIB_CARGO_FLAGS=--release
 build-clib-release: build-clib
 build-clib-dev: C_LIB_CARGO_FLAGS=--profile dev
@@ -203,6 +204,10 @@ ctest: cheader build-clib-dev
 	# -C Debug is needed for windows to work, if you don't specify Debug (or
 	#  release) explicitly ctest doesn't run on windows
 	ctest -V -C Debug --test-dir $(C_DIR_TEST_BUILD)
+
+.PHONY: ccoverage
+ccoverage: C_LIB_RUSTC_FLAGS=-Cinstrument-coverage -Cincremental=false
+ccoverage: ctest
 
 .PHONY: cclean
 cclean:
