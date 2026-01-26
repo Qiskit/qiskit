@@ -303,16 +303,25 @@ class TestFunctionalPauliRotations(QiskitTestCase):
 
         with self.subTest(msg="constant"):
             gate = PiecewiseChebyshevGate(0.123, num_state_qubits=3, degree=0)
-            ref = lambda x: 0.123 / 2
+
+            def ref(x):
+                return 0.123 / 2
+
             self.assertFunctionIsCorrect(gate, ref, num_ancilla_qubits=0)
 
         with self.subTest(msg="linear"):
-            target = lambda x: x
+
+            def target(x):
+                return x
+
             gate = PiecewiseChebyshevGate(target, num_state_qubits=3, degree=1)
             self.assertFunctionIsCorrect(gate, target, num_ancilla_qubits=0)
 
         with self.subTest(msg="poly"):
-            target = lambda x: x**3 - x
+
+            def target(x):
+                return x**3 - x
+
             gate = PiecewiseChebyshevGate(target, num_state_qubits=5, degree=3)
             self.assertFunctionIsCorrect(gate, target, num_ancilla_qubits=0)
 
@@ -349,7 +358,9 @@ class TestFunctionalPauliRotations(QiskitTestCase):
         with self.assertRaises(TypeError):
             _ = PiecewiseChebyshevGate(constant, 2, 0)
 
-        as_lambda = lambda x: x**3 if x <= 1 else x
+        def as_lambda(x):
+            return x**3 if x <= 1 else x
+
         with self.assertRaises(TypeError):
             _ = PiecewiseChebyshevGate(as_lambda, 2, 1, breakpoints=[1])
 

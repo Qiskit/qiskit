@@ -297,7 +297,7 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
         cond_counter = 0
         for instr in qc:
             cond = getattr(instr.operation, "_condition", None)
-            if not cond is None:
+            if cond is not None:
                 cond_counter += 1
                 break  # even one conditional is enough for the check.
 
@@ -481,7 +481,7 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
                 continue
 
             cond = getattr(instr.operation, "_condition", None)
-            if not cond is None:
+            if cond is not None:
                 if instr.operation.num_qubits == 1:
                     cond_counter_1q += 1
 

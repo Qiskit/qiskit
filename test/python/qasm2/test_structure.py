@@ -1740,8 +1740,13 @@ class TestCustomClassical(QiskitTestCase):
             my_gate(0.5, 0.25) q[0];
             my_gate(0.25, 0.5) q[0];
         """
-        f = lambda x, y: x - y
-        g = lambda x: 2 * x
+
+        def f(x, y):
+            return x - y
+
+        def g(x):
+            return 2 * x
+
         parsed = qiskit.qasm2.loads(
             program,
             custom_classical=[

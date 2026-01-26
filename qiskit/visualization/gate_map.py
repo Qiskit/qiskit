@@ -1297,7 +1297,7 @@ def plot_error_map(backend, figsize=(15, 12), show_title=True, qubit_coordinates
         directed = False
         if num_qubits < 20:
             for edge in cmap:
-                if not [edge[1], edge[0]] in cmap:
+                if [edge[1], edge[0]] not in cmap:
                     directed = True
                     break
         for line in cmap.get_edges():

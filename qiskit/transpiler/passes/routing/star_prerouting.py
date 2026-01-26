@@ -405,7 +405,7 @@ class StarPreRouting(TransformationPass):
                         check=False,
                     )
 
-                    if not inner_node is last_2q_gate and not isinstance(inner_node.op, Barrier):
+                    if inner_node is not last_2q_gate and not isinstance(inner_node.op, Barrier):
                         new_dag.apply_operation_back(
                             SwapGate(),
                             _apply_mapping(inner_node.qargs, qubit_mapping, dag.qubits),

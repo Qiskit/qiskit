@@ -764,7 +764,8 @@ class TestNLocalFunction(QiskitTestCase):
         layer_1 = [(0, 1, 2), (0, 2, 3)]
         layer_2 = [(2, 1, 0), (0, 2, 3)]
 
-        entanglement = lambda offset: layer_1 if offset % 2 == 0 else layer_2
+        def entanglement(offset):
+            return layer_1 if offset % 2 == 0 else layer_2
 
         nlocal = QuantumCircuit(4)
         nlocal.compose(

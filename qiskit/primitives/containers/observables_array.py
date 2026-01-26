@@ -158,7 +158,7 @@ class ObservablesArray(ShapedMixin):
 
     def __array__(self, dtype=None, copy=None) -> np.ndarray:  # pylint: disable=unused-argument
         """Convert to a Numpy.ndarray with elements of type dict."""
-        if dtype is None or dtype == object:
+        if dtype is None or dtype is object:
             tmp_result = self.__getitem__(tuple(slice(None) for _ in self._array.shape))
             if len(self._array.shape) == 0:
                 result = np.ndarray(shape=self._array.shape, dtype=dict)

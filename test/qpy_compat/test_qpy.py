@@ -1140,8 +1140,8 @@ def load_qpy(qpy_files, version_parts):
             try:
                 with open(path, "rb") as fd:
                     load(fd)
-            except:
-                msg = f"Loading circuit with pulse gates should not raise"
+            except Exception:
+                msg = "Loading circuit with pulse gates should not raise"
                 sys.stderr.write(msg)
                 sys.exit(1)
         else:

@@ -17,7 +17,22 @@
 from copy import deepcopy
 
 from qiskit.transpiler import CouplingMap
-from qiskit.transpiler.passes import *
+from qiskit.transpiler.passes import (
+    FullAncillaAllocation,
+    EnlargeWithAncilla,
+    ApplyLayout,
+    SabreSwap,
+    BasicSwap,
+    Layout2qDistance,
+    DenseLayout,
+    CheckMap,
+    TrivialLayout,
+    SetLayout,
+    SabreLayout,
+    GateDirection,
+    CheckGateDirection,
+    CSPLayout,
+)
 from qiskit.converters import circuit_to_dag
 
 from .utils import random_circuit

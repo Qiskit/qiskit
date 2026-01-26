@@ -35,7 +35,7 @@ from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
 X = SparsePauliOp("X")
 Y = SparsePauliOp("Y")
 Z = SparsePauliOp("Z")
-I = SparsePauliOp("I")
+I = SparsePauliOp("I")  # noqa: E741
 
 
 @ddt

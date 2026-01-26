@@ -351,9 +351,15 @@ class TestDagCompose(QiskitTestCase):
         source.add_creg(a_src)
         source.add_creg(b_src)
 
-        test_1 = lambda: expr.lift(a_src[0])
-        test_2 = lambda: expr.logic_not(b_src[1])
-        test_3 = lambda: expr.cast(expr.bit_and(b_src, 2), types.Bool())
+        def test_1():
+            return expr.lift(a_src[0])
+
+        def test_2():
+            return expr.logic_not(b_src[1])
+
+        def test_3():
+            return expr.cast(expr.bit_and(b_src, 2), types.Bool())
+
         node_1 = source.apply_operation_back(IfElseOp(test_1(), inner.copy(), None), qr_src, [])
         node_2 = source.apply_operation_back(
             IfElseOp(test_2(), inner.copy(), inner.copy()), qr_src, []
@@ -395,10 +401,18 @@ class TestDagCompose(QiskitTestCase):
         source.add_creg(a_src)
         source.add_creg(b_src)
 
-        test_1 = lambda: expr.lift(a_src[0])
-        test_2 = lambda: expr.logic_not(b_src[1])
-        test_3 = lambda: expr.lift(b_src)
-        test_4 = lambda: expr.bit_and(b_src, 2)
+        def test_1():
+            return expr.lift(a_src[0])
+
+        def test_2():
+            return expr.logic_not(b_src[1])
+
+        def test_3():
+            return expr.lift(b_src)
+
+        def test_4():
+            return expr.bit_and(b_src, 2)
+
         node_1 = source.apply_operation_back(
             SwitchCaseOp(test_1(), [(False, inner1.copy()), (True, inner2.copy())]), qr_src, []
         )

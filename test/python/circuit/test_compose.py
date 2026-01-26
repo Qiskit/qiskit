@@ -705,10 +705,18 @@ class TestCircuitCompose(QiskitTestCase):
         source = QuantumCircuit(QuantumRegister(1), a_src, b_src, c_src)
         target_var = source.add_input("target_var", types.Uint(2))
 
-        test_1 = lambda: expr.lift(a_src[0])
-        test_2 = lambda: expr.logic_not(b_src[1])
-        test_3 = lambda: expr.logic_and(expr.bit_and(b_src, 2), expr.less(c_src, 7))
-        test_4 = lambda: expr.bit_xor(expr.index(target_var, 0), expr.index(target_var, 1))
+        def test_1():
+            return expr.lift(a_src[0])
+
+        def test_2():
+            return expr.logic_not(b_src[1])
+
+        def test_3():
+            return expr.logic_and(expr.bit_and(b_src, 2), expr.less(c_src, 7))
+
+        def test_4():
+            return expr.bit_xor(expr.index(target_var, 0), expr.index(target_var, 1))
+
         source.if_test(test_1(), inner.copy(), [0], [])
         source.if_else(test_2(), inner.copy(), inner.copy(), [0], [])
         source.while_loop(test_3(), inner.copy(), [0], [])
@@ -754,10 +762,18 @@ class TestCircuitCompose(QiskitTestCase):
         c_src = ClassicalRegister(name="c_src", bits=list(a_src) + list(b_src))
         source = QuantumCircuit(QuantumRegister(1), a_src, b_src, c_src)
 
-        test_1 = lambda: expr.lift(a_src[0])
-        test_2 = lambda: expr.logic_not(b_src[1])
-        test_3 = lambda: expr.lift(b_src)
-        test_4 = lambda: expr.bit_and(c_src, 7)
+        def test_1():
+            return expr.lift(a_src[0])
+
+        def test_2():
+            return expr.logic_not(b_src[1])
+
+        def test_3():
+            return expr.lift(b_src)
+
+        def test_4():
+            return expr.bit_and(c_src, 7)
+
         source.switch(test_1(), [(False, inner1.copy()), (True, inner2.copy())], [0], [])
         source.switch(test_2(), [(False, inner1.copy()), (True, inner2.copy())], [0], [])
         source.switch(test_3(), [(0, inner1.copy()), (CASE_DEFAULT, inner2.copy())], [0], [])

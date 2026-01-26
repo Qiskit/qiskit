@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 import copy
-
+from typing import TYPE_CHECKING
 from qiskit.circuit.exceptions import CircuitError
 
 # pylint: disable=cyclic-import
@@ -22,6 +22,10 @@ from . import QuantumRegister
 from .quantumcircuit import QuantumCircuit
 from .gate import Gate
 from ._utils import _ctrl_state_to_int
+
+
+if TYPE_CHECKING:
+    from qiskit.circuit.annotated_operation import AnnotatedOperation
 
 
 class ControlledGate(Gate):

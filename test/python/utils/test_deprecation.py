@@ -262,7 +262,7 @@ Qiskit 9.99. It will be removed in 2 releases.
             # We assign an arbitrary variable `c` because it will be included in
             # `my_func.__code__.co_varnames` and we want to make sure that does not break the
             # implementation.
-            c = 0  # pylint: disable=unused-variable
+            c = 0  # noqa: F841
             del kwargs
             del my_kwarg
 

@@ -19,7 +19,7 @@ from ddt import data, ddt, unpack
 from qiskit.quantum_info import SparsePauliOp, anti_commutator, commutator, double_commutator
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
-I = SparsePauliOp("I")
+I = SparsePauliOp("I")  # noqa: E741
 X = SparsePauliOp("X")
 Y = SparsePauliOp("Y")
 Z = SparsePauliOp("Z")

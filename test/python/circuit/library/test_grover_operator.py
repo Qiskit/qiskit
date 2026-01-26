@@ -215,7 +215,8 @@ class TestGroverOperator(QiskitTestCase):
         # without extra qubit space, the MCX gates are synthesized without ancillas
         basis_gates = ["u", "cx"]
 
-        is_2q = lambda inst: len(inst.qubits) == 2
+        def is_2q(inst):
+            return len(inst.qubits) == 2
 
         with self.subTest(msg="no auxiliaries"):
             tqc = transpile(grover_op, basis_gates=basis_gates)

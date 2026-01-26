@@ -145,25 +145,33 @@ def pauli_feature_map(
     # the Rust implementation expects the entanglement to be a str or list[tuple[int]] (or the
     # callable to return these types), therefore we normalize the entanglement here
     if callable(entanglement):
-        normalized = lambda offset: _normalize_entanglement(entanglement(offset))
+        circuit = QuantumCircuit._from_circuit_data(
+            _fast_map(
+                feature_dimension,
+                paulis=paulis,
+                entanglement=lambda offset: _normalize_entanglement(entanglement(offset)),
+                reps=reps,
+                parameters=parameters,
+                data_map_func=data_map_func,
+                alpha=alpha,
+                insert_barriers=insert_barriers,
+            ),
+            name=name,
+        )
     else:
-        normalized = _normalize_entanglement(entanglement)
-
-    # construct from Rust
-    circuit = QuantumCircuit._from_circuit_data(
-        _fast_map(
-            feature_dimension,
-            paulis=paulis,
-            entanglement=normalized,
-            reps=reps,
-            parameters=parameters,
-            data_map_func=data_map_func,
-            alpha=alpha,
-            insert_barriers=insert_barriers,
-        ),
-        name=name,
-    )
-
+        circuit = QuantumCircuit._from_circuit_data(
+            _fast_map(
+                feature_dimension,
+                paulis=paulis,
+                entanglement=_normalize_entanglement(entanglement),
+                reps=reps,
+                parameters=parameters,
+                data_map_func=data_map_func,
+                alpha=alpha,
+                insert_barriers=insert_barriers,
+            ),
+            name=name,
+        )
     return circuit
 
 

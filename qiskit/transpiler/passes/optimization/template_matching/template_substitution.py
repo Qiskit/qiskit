@@ -498,8 +498,6 @@ class TemplateSubstitution:
         import sympy as sym
 
         # Our native form is sympy, so we don't need to do anything.
-        to_native_symbolic = lambda x: x
-
         circuit_params, template_params = [], []
         # Set of all parameter names that are present in the circuits to be optimized.
         circuit_params_set = set()
@@ -590,7 +588,7 @@ class TemplateSubstitution:
             return None
         # If there's multiple solutions, arbitrarily pick the first one.
         sol = {
-            param.name: ParameterExpression(circ_dict, str(to_native_symbolic(expr)))
+            param.name: ParameterExpression(circ_dict, str(expr))
             for param, expr in sym_sol[0].items()
         }
         fake_bind = {key: sol[key.name] for key in temp_symbols}

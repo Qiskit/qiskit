@@ -220,18 +220,12 @@ environment = "MACOSX_DEPLOYMENT_TARGET='10.12' RUSTUP_TOOLCHAIN=stable"
 test-command = "cp -r {project}/test . && stestr --test-path test/python run --abbreviate"
 repair-wheel-command = "cp {wheel} {dest_dir}/. && pipx run abi3audit --strict --report {wheel}"
 
-[tool.ruff]
-select = [
-  # Rules in alphabetic order
-  "C4",    # category: flake8-comprehensions
-  "EXE",   # Category: flake8-executable
-  "F631",  # assert-tuple
-  "F632",  # is-literal
-  "F634",  # if-tuple
-  "F823",  # undefined-local
-  "G",     # flake8-logging-format
-  "T10",   # category: flake8-debugger
-]
+[tool.ruff.lint]
+ignore = ["E402", "F401"]
+
+[tool.ruff.lint.per-file-ignores]
+"*.ipynb" = ["F821"]
+
 
 [tool.pylint.main]
 extension-pkg-allow-list = [

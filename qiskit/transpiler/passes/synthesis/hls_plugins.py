@@ -511,6 +511,7 @@ Multiplier Synthesis
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 import warnings
 import numpy as np
 import rustworkx as rx
@@ -604,6 +605,9 @@ from qiskit.transpiler.optimization_metric import OptimizationMetric
 
 from qiskit._accelerate.high_level_synthesis import synthesize_operation, HighLevelSynthesisData
 from .plugin import HighLevelSynthesisPlugin
+
+if TYPE_CHECKING:
+    from qiskit.circuit.quantumcircuitdata import CircuitInstruction
 
 
 class DefaultSynthesisClifford(HighLevelSynthesisPlugin):

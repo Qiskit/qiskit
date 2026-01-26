@@ -65,7 +65,31 @@ from qiskit.circuit import Measure, Reset, Barrier
 from qiskit.providers.fake_provider import GenericBackendV2
 
 # pylint: disable=wildcard-import,unused-wildcard-import
-from qiskit.circuit.library.standard_gates import *
+from qiskit.circuit.library.standard_gates import (
+    HGate,
+    IGate,
+    SGate,
+    SdgGate,
+    TGate,
+    TdgGate,
+    XGate,
+    YGate,
+    ZGate,
+    CXGate,
+    CYGate,
+    CZGate,
+    SwapGate,
+    CCXGate,
+    CSwapGate,
+    PhaseGate,
+    RXGate,
+    RYGate,
+    RZGate,
+    UGate,
+    RZZGate,
+    CPhaseGate,
+    CUGate,
+)
 from ..python.legacy_cmaps import ALMADEN_CMAP, KYOTO_CMAP
 
 from qiskit_aer import AerSimulator  # pylint: disable=wrong-import-order
