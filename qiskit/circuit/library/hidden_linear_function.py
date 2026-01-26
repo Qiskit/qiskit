@@ -75,8 +75,7 @@ class HiddenLinearFunction(QuantumCircuit):
         removal_timeline="in Qiskit 3.0",
     )
     def __init__(self, adjacency_matrix: list | np.ndarray) -> None:
-        """Create new HLF circuit.
-
+        """
         Args:
             adjacency_matrix: a symmetric n-by-n list of 0-1 lists.
                 n will be the number of qubits.

@@ -15,7 +15,6 @@
 from __future__ import annotations
 
 from cmath import exp
-from typing import Optional
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.parameterexpression import ParameterValueType
@@ -64,10 +63,10 @@ class RZGate(Gate):
 
     _standard_gate = StandardGate.RZ
 
-    def __init__(self, phi: ParameterValueType, label: Optional[str] = None):
+    def __init__(self, phi: ParameterValueType, label: str | None = None):
         """
         Args:
-            theta: The rotation angle.
+            phi: The rotation angle.
             label: An optional label for the gate.
         """
         super().__init__("rz", 1, [phi], label=label)
@@ -239,7 +238,12 @@ class CRZGate(ControlledGate):
         *,
         _base_label=None,
     ):
-        """Create new CRZ gate."""
+        """
+        Args:
+            theta: The rotation angle.
+            label: An optional label for the gate.
+            ctrl_state: The control state for the control qubit. Defaults to 1.
+        """
         super().__init__(
             "crz",
             2,

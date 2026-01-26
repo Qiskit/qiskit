@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """U1 Gate."""
+
 from __future__ import annotations
 from cmath import exp
 import numpy
@@ -233,7 +234,12 @@ class CU1Gate(ControlledGate):
         *,
         _base_label=None,
     ):
-        """Create new CU1 gate."""
+        """
+        Args:
+            theta: The rotation angle.
+            label: An optional label for the gate.
+            ctrl_state: The control state for the control qubit. Defaults to 1.
+        """
         super().__init__(
             "cu1",
             2,

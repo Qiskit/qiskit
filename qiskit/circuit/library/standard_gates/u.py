@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Two-pulse single-qubit gate."""
+"""General single-qubit gate."""
 
 from __future__ import annotations
 
@@ -18,7 +18,6 @@ import cmath
 import copy as _copy
 import math
 from cmath import exp
-from typing import Optional
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
@@ -85,7 +84,7 @@ class UGate(Gate):
         theta: ParameterValueType,
         phi: ParameterValueType,
         lam: ParameterValueType,
-        label: Optional[str] = None,
+        label: str | None = None,
     ):
         r"""
         Args:
@@ -99,7 +98,7 @@ class UGate(Gate):
     def inverse(self, annotated: bool = False):
         r"""Return inverted U gate.
 
-        :math:`U(\theta,\phi,\lambda)^{\dagger} =U(-\theta,-\lambda,-\phi))`
+        :math:`U(\theta,\phi,\lambda)^{\dagger} = U(-\theta,-\lambda,-\phi)`
 
         Args:
             annotated: when set to ``True``, this is typically used to return an
@@ -299,7 +298,15 @@ class CUGate(ControlledGate):
         *,
         _base_label=None,
     ):
-        """Create new CU gate."""
+        r"""
+        Args:
+            theta: The angle :math:`\theta`.
+            phi: The angle :math:`\phi`.
+            lam: The angle :math:`\lambda`.
+            gamma: The angle :math:`\gamma`.
+            label: An optional label for the gate.
+            ctrl_state: The control state for the control qubit. Defaults to 1.
+        """
         super().__init__(
             "cu",
             2,
@@ -328,7 +335,7 @@ class CUGate(ControlledGate):
     def inverse(self, annotated: bool = False):
         r"""Return inverted CU gate.
 
-        :math:`CU(\theta,\phi,\lambda,\gamma)^{\dagger} = CU(-\theta,-\phi,-\lambda,-\gamma))`
+        :math:`CU(\theta,\phi,\lambda,\gamma)^{\dagger} = CU(-\theta,-\phi,-\lambda,-\gamma)`
 
         Args:
             annotated: when set to ``True``, this is typically used to return an

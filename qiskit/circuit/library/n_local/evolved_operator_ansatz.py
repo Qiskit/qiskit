@@ -288,9 +288,11 @@ class EvolvedOperatorAnsatz(NLocal):
 
     def __init__(
         self,
-        operators=None,
+        operators: (
+            BaseOperator | QuantumCircuit | list[QuantumCircuit | BaseOperator] | None
+        ) = None,
         reps: int = 1,
-        evolution=None,
+        evolution: EvolutionSynthesis | None = None,
         insert_barriers: bool = False,
         name: str = "EvolvedOps",
         parameter_prefix: str | Sequence[str] = "t",
@@ -299,15 +301,12 @@ class EvolvedOperatorAnsatz(NLocal):
     ):
         """
         Args:
-            operators (BaseOperator | QuantumCircuit | list | None): The operators
-                to evolve. If a circuit is passed, we assume it implements an already evolved
-                operator and thus the circuit is not evolved again. Can be a single operator
-                (circuit) or a list of operators (and circuits).
+            operators: The operators to evolve. If a circuit is passed, we assume it implements an
+                already evolved operator and thus the circuit is not evolved again. Can be a single
+                operator (circuit) or a list of operators (and circuits).
             reps: The number of times to repeat the evolved operators.
-            evolution (EvolutionBase | EvolutionSynthesis | None):
-                A specification of which evolution synthesis to use for the
-                :class:`.PauliEvolutionGate`.
-                Defaults to first order Trotterization.
+            evolution: A specification of which evolution synthesis to use for the
+                :class:`.PauliEvolutionGate`. Defaults to first order Trotterization.
             insert_barriers: Whether to insert barriers in between each evolution.
             name: The name of the circuit.
             parameter_prefix: Set the names of the circuit parameters. If a string, the same prefix
@@ -390,19 +389,21 @@ class EvolvedOperatorAnsatz(NLocal):
         self._evolution = evol
 
     @property
-    def operators(self):
+    def operators(self) -> list[QuantumCircuit | BaseOperator]:
         """The operators that are evolved in this circuit.
 
         Returns:
-            list: The operators to be evolved (and circuits) contained in this ansatz.
+            The operators to be evolved (and circuits) contained in this ansatz.
         """
         return self._operators
 
     @operators.setter
-    def operators(self, operators=None) -> None:
+    def operators(
+        self, operators: BaseOperator | QuantumCircuit | list[QuantumCircuit | BaseOperator]
+    ) -> None:
         """Set the operators to be evolved.
 
-        operators (Optional[Union[QuantumCircuit, list]]): The operators to evolve.
+        operators: The operators to evolve.
             If a circuit is passed, we assume it implements an already evolved operator and thus
             the circuit is not evolved again. Can be a single operator (circuit) or a list of
             operators (and circuits).

@@ -13,7 +13,7 @@
 """X, CX, CCX and multi-controlled X gates."""
 from __future__ import annotations
 import warnings
-from typing import Optional, Type
+from typing import Type
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
@@ -74,7 +74,7 @@ class XGate(SingletonGate):
 
     _standard_gate = StandardGate.X
 
-    def __init__(self, label: Optional[str] = None):
+    def __init__(self, label: str | None = None):
         """
         Args:
             label: An optional label for the gate.
@@ -220,7 +220,11 @@ class CXGate(SingletonControlledGate):
         *,
         _base_label=None,
     ):
-        """Create new CX gate."""
+        """
+        Args:
+            label: An optional label for the gate.
+            ctrl_state: The control state for the control qubit. Defaults to 1.
+        """
         super().__init__(
             "cx",
             2,
@@ -363,7 +367,11 @@ class CCXGate(SingletonControlledGate):
         *,
         _base_label=None,
     ):
-        """Create new CCX gate."""
+        """
+        Args:
+            label: An optional label for the gate.
+            ctrl_state: The control state for the control qubit. Defaults to 11.
+        """
         super().__init__(
             "ccx",
             3,
@@ -473,8 +481,11 @@ class RCCXGate(SingletonGate):
 
     _standard_gate = StandardGate.RCCX
 
-    def __init__(self, label: Optional[str] = None):
-        """Create a new simplified CCX gate."""
+    def __init__(self, label: str | None = None):
+        """
+        Args:
+            label: An optional label for the gate.
+        """
         super().__init__("rccx", 3, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
@@ -519,8 +530,7 @@ class C3SXGate(SingletonControlledGate):
         *,
         _base_label=None,
     ):
-        """Create a new 3-qubit controlled sqrt-X gate.
-
+        """
         Args:
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
@@ -569,7 +579,11 @@ class C3XGate(SingletonControlledGate):
         *,
         _base_label=None,
     ):
-        """Create a new 3-qubit controlled X gate."""
+        """
+        Args:
+            label: An optional label for the gate.
+            ctrl_state: The control state for the control qubit. Defaults to 111.
+        """
         super().__init__(
             "mcx",
             4,
@@ -678,8 +692,11 @@ class RC3XGate(SingletonGate):
 
     _standard_gate = StandardGate.RC3X
 
-    def __init__(self, label: Optional[str] = None):
-        """Create a new RC3X gate."""
+    def __init__(self, label: str | None = None):
+        """
+        Args:
+            label: An optional label for the gate.
+        """
         super().__init__("rcccx", 4, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
