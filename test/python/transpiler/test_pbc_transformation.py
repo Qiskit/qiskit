@@ -15,7 +15,7 @@
 from ddt import ddt
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.transpiler.passes import PBCTransformation
+from qiskit.transpiler.passes import PBCTransformation, RemoveBarriers, RemoveFinalMeasurements
 from qiskit.quantum_info import Operator
 from qiskit.circuit.random import random_circuit
 from qiskit.circuit.library import (
@@ -181,10 +181,19 @@ class TestPBCTransformation(QiskitTestCase):
         num_qubits = 4
         depth = 10
         seed = 5678
+        qc = QuantumCircuit(num_qubits)
+        qc0 = QuantumCircuit(num_qubits)
         for _ in range(num_qubits):
-            qc = random_circuit(num_qubits=num_qubits, depth=depth, max_operands=2, seed=seed)
+            qc1 = random_circuit(num_qubits=num_qubits, depth=depth, max_operands=2, seed=seed)
+            qc.compose(qc1, inplace=True)
+            qc0.compose(qc1, inplace=True)
             qc.barrier()
         qc.measure_all()
         qct = PBCTransformation()(qc)
         ops_names = set(qct.count_ops().keys())
         self.assertEqual(ops_names, {"PauliEvolution", "barrier", "measure"})
+        qct1 = RemoveFinalMeasurements()(qct)
+        qct2 = RemoveBarriers()(qct1)
+        ops_names = set(qct2.count_ops().keys())
+        self.assertEqual(ops_names, {"PauliEvolution"})
+        self.assertEqual(Operator(qct2), Operator(qc0))
