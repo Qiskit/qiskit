@@ -83,9 +83,10 @@ class TranspilerCliffordRZBenchmarks:
 
 
 class TranspilerCliffordTBenchmarks:
-    # note: QAOA circuit is not included as it's parametric
+    # Note: QAOA circuits are not included because they are parametric, and
+    # for Trotter circuits we decrease the number of reps to 2.
     circuit_names = ["qft", "trotter", "grover", "mcx", "multiplier", "modular_adder"]
-    num_qubits = [8, 16, 32]
+    num_qubits = [4, 8]
     optimization_level = [0, 1, 2, 3]
     params = (circuit_names, num_qubits, optimization_level)
     param_names = ["circuit_name", "n_qubits", "optimization_level"]
@@ -95,7 +96,7 @@ class TranspilerCliffordTBenchmarks:
         if circuit_name == "qft":
             circuit = qft_circuit(n_qubits)
         elif circuit_name == "trotter":
-            circuit = trotter_circuit(n_qubits)
+            circuit = trotter_circuit(n_qubits, reps=2)
         elif circuit_name == "qaoa":
             circuit = qaoa_circuit(n_qubits)
         elif circuit_name == "grover":
@@ -114,7 +115,9 @@ class TranspilerCliffordTBenchmarks:
             ["t", "tdg", "measure"] + get_clifford_gate_names(), n_qubits
         )
         self.pm = generate_preset_pass_manager(
-            optimization_level=optimization_level, target=target, seed_transpiler=0
+            optimization_level=optimization_level,
+            target=target,
+            seed_transpiler=0,
         )
 
     def time_transpile(self, _, __, ___):
