@@ -295,10 +295,29 @@ fn replace_gate_by_pauli_vec(gate: StandardGate, angles: &[f64]) -> GateToPBCVec
     }
 }
 
+fn generate_pauli_evolution_gate(
+    py_evo_cls: &Bound<PyAny>,
+    paulis: &str,
+    time: f64,
+    qubits: &[u32],
+) -> PyResult<PyGate> {
+    let py_pauli = PySparseObservable::from_label(paulis.chars().collect::<String>().as_str())?;
+    let py_evo = py_evo_cls.call1((py_pauli, time))?;
+    let py_gate = PyGate {
+        qubits: qubits.len() as u32,
+        clbits: 0,
+        params: 1,
+        op_name: "PauliEvolution".to_string(),
+        gate: py_evo.into(),
+    };
+    Ok(py_gate)
+}
+
 #[pyfunction]
 #[pyo3(name = "pbc_transformation")]
 pub fn py_pbc_transformation(py: Python, dag: &mut DAGCircuit) -> PyResult<DAGCircuit> {
     let mut new_dag = dag.copy_empty_like_with_capacity(0, 0, VarsMode::Alike, BlocksMode::Keep)?;
+    let py_evo_cls = PAULI_EVOLUTION_GATE.get_bound(py);
 
     // Iterate over nodes in the DAG and collect nodes
     let mut global_phase: f64 = 0.;
@@ -333,18 +352,8 @@ pub fn py_pbc_transformation(py: Python, dag: &mut DAGCircuit) -> PyResult<DAGCi
                                 .map(|q| original_qubits[*q as usize])
                                 .collect();
                             let time = phase_rescale * angle;
-                            let py_pauli = PySparseObservable::from_label(
-                                paulis.chars().collect::<String>().as_str(),
-                            )?;
-                            let py_evo_cls = PAULI_EVOLUTION_GATE.get_bound(py);
-                            let py_evo = py_evo_cls.call1((py_pauli, time))?;
-                            let py_gate = PyGate {
-                                qubits: qubits.len() as u32,
-                                clbits: 0,
-                                params: 1,
-                                op_name: "PauliEvolution".to_string(),
-                                gate: py_evo.into(),
-                            };
+                            let py_gate =
+                                generate_pauli_evolution_gate(py_evo_cls, paulis, time, qubits)?;
 
                             new_dag.apply_operation_back(
                                 py_gate.into(),
@@ -392,18 +401,8 @@ pub fn py_pbc_transformation(py: Python, dag: &mut DAGCircuit) -> PyResult<DAGCi
                             .map(|q| original_qubits[*q as usize])
                             .collect();
                         let time = phase_rescale;
-                        let py_pauli = PySparseObservable::from_label(
-                            paulis.chars().collect::<String>().as_str(),
-                        )?;
-                        let py_evo_cls = PAULI_EVOLUTION_GATE.get_bound(py);
-                        let py_evo = py_evo_cls.call1((py_pauli, time))?;
-                        let py_gate = PyGate {
-                            qubits: qubits.len() as u32,
-                            clbits: 0,
-                            params: 1,
-                            op_name: "PauliEvolution".to_string(),
-                            gate: py_evo.into(),
-                        };
+                        let py_gate =
+                            generate_pauli_evolution_gate(py_evo_cls, paulis, time, qubits)?;
 
                         new_dag.apply_operation_back(
                             py_gate.into(),
@@ -451,18 +450,8 @@ pub fn py_pbc_transformation(py: Python, dag: &mut DAGCircuit) -> PyResult<DAGCi
                             .map(|q| original_qubits[*q as usize])
                             .collect();
                         let time = phase_rescale;
-                        let py_pauli = PySparseObservable::from_label(
-                            paulis.chars().collect::<String>().as_str(),
-                        )?;
-                        let py_evo_cls = PAULI_EVOLUTION_GATE.get_bound(py);
-                        let py_evo = py_evo_cls.call1((py_pauli, time))?;
-                        let py_gate = PyGate {
-                            qubits: qubits.len() as u32,
-                            clbits: 0,
-                            params: 1,
-                            op_name: "PauliEvolution".to_string(),
-                            gate: py_evo.into(),
-                        };
+                        let py_gate =
+                            generate_pauli_evolution_gate(py_evo_cls, paulis, *time, qubits)?;
 
                         new_dag.apply_operation_back(
                             py_gate.into(),
