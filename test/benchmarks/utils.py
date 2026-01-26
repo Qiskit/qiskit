@@ -402,11 +402,23 @@ def mcx_circuit(num_qubits: int):
     """A Clifford+T -friendly circuit for multi-controlled X gate.
 
     Parameters:
-        num_qubits: Number of qubits in the output circuit.
+        num_qubits: Number of qubits in the output circuit (including
+            one target and one ancilla qubits)
     Returns:
         QuantumCircuit: Output circuit.
     """
-    circuit = synth_mcx_1_clean_kg24(num_qubits - 2)
+    num_control_qubits = num_qubits - 2
+    if num_control_qubits == 0:
+        circuit = QuantumCircuit(num_qubits)
+        circuit.x(0)
+    elif num_control_qubits == 1:
+        circuit = QuantumCircuit(num_qubits)
+        circuit.cx(0, 1)
+    elif num_control_qubits == 2:
+        circuit = QuantumCircuit(num_qubits)
+        circuit.ccx(0, 1, 2)
+    else:
+        circuit = synth_mcx_1_clean_kg24(num_control_qubits)
     return circuit
 
 
