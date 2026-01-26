@@ -18,7 +18,7 @@ use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, FRAC_PI_8, PI};
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::imports::PAULI_EVOLUTION_GATE;
 use qiskit_circuit::instruction::Parameters;
-use qiskit_circuit::operations::{OperationRef, Param, PyGate, StandardGate};
+use qiskit_circuit::operations::{Operation, OperationRef, Param, PyGate, StandardGate};
 use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
 use qiskit_quantum_info::sparse_observable::PySparseObservable;
 
@@ -324,7 +324,9 @@ pub fn py_pbc_transformation(py: Python, dag: &mut DAGCircuit) -> PyResult<DAGCi
 
     for node_index in dag.topological_op_nodes(false) {
         if let NodeType::Operation(inst) = &dag[node_index] {
-            if let OperationRef::StandardGate(gate) = inst.op.view() {
+            if (inst.op.name() == "measure") | (inst.op.name() == "barrier") {
+                new_dag.push_back(inst.clone())?;
+            } else if let OperationRef::StandardGate(gate) = inst.op.view() {
                 // handling only 1-qubit and 2-qubit gates with a single parameter
                 if matches!(
                     gate,

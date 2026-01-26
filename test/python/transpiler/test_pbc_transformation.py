@@ -164,8 +164,8 @@ class TestPBCTransformation(QiskitTestCase):
         self.assertEqual(Operator(qct), Operator(qc))
 
     def test_random_circuit(self):
-        """Test that a pesudo-random circuit with 1-qubit and 2-qubit gates is tranlated into
-        Pauli product rotatations correctly."""
+        """Test that a pesudo-random circuit with 1-qubit and 2-qubit gates
+        is tranlated into Pauli product rotatations correctly."""
         num_qubits = 5
         depth = 200
         seed = 1234
@@ -174,3 +174,17 @@ class TestPBCTransformation(QiskitTestCase):
         ops_names = set(qct.count_ops().keys())
         self.assertEqual(ops_names, {"PauliEvolution"})
         self.assertEqual(Operator(qct), Operator(qc))
+
+    def test_random_circuit_measure_barrier(self):
+        """Test that a pesudo-random circuit with 1-qubit and 2-qubit gates, measurements and barriers
+        is tranlated into Pauli product rotatations correctly."""
+        num_qubits = 4
+        depth = 10
+        seed = 5678
+        for _ in range(num_qubits):
+            qc = random_circuit(num_qubits=num_qubits, depth=depth, max_operands=2, seed=seed)
+            qc.barrier()
+        qc.measure_all()
+        qct = PBCTransformation()(qc)
+        ops_names = set(qct.count_ops().keys())
+        self.assertEqual(ops_names, {"PauliEvolution", "barrier", "measure"})
