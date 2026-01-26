@@ -18,12 +18,14 @@ use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, FRAC_PI_8, PI};
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::imports::PAULI_EVOLUTION_GATE;
 use qiskit_circuit::instruction::Parameters;
-use qiskit_circuit::operations::{Operation, OperationRef, Param, PyGate, StandardGate};
+use qiskit_circuit::operations::{
+    Operation, OperationRef, Param, PyGate, StandardGate, add_param, multiply_param, radd_param,
+};
 use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
 use qiskit_quantum_info::sparse_observable::PySparseObservable;
 
 type GateToPBCType<'a> = (&'static [(&'static str, f64, &'static [u32])], f64);
-type GateToPBCVec<'a> = (Vec<(&'static str, f64, &'static [u32])>, f64);
+type GateToPBCVec<'a> = (Vec<(&'static str, Param, &'static [u32])>, Param);
 
 /// Map gates to a list of equivalent Pauli rotations and a global phase.
 /// Each element of the list is of the form ((Pauli string, phase rescale factor, [qubit indices]), global_phase).
@@ -175,119 +177,153 @@ fn replace_gate_by_pauli_rotation(gate: StandardGate) -> GateToPBCType<'static> 
 /// Each element of the list is of the form ((Pauli string, [phases], [qubit indices]), global_phase).
 /// The convention is
 /// `original_gate = PauliEvolutionGate(pauli, phase) * e^{i global_phase}`
-fn replace_gate_by_pauli_vec(gate: StandardGate, angles: &[f64]) -> GateToPBCVec<'static> {
+fn replace_gate_by_pauli_vec(gate: StandardGate, angles: &[Param]) -> GateToPBCVec<'static> {
     match gate {
         StandardGate::U => (
             vec![
-                ("Z", angles[2] / 2.0, &[0]),
-                ("Y", angles[0] / 2.0, &[0]),
-                ("Z", angles[1] / 2.0, &[0]),
+                ("Z", multiply_param(&angles[2], 0.5), &[0]),
+                ("Y", multiply_param(&angles[0], 0.5), &[0]),
+                ("Z", multiply_param(&angles[1], 0.5), &[0]),
             ],
-            (angles[1] + angles[2]) / 2.0,
+            multiply_param(&radd_param(angles[1].clone(), angles[2].clone()), 0.5),
         ),
         StandardGate::U3 => (
             vec![
-                ("Z", angles[2] / 2.0, &[0]),
-                ("Y", angles[0] / 2.0, &[0]),
-                ("Z", angles[1] / 2.0, &[0]),
+                ("Z", multiply_param(&angles[2], 0.5), &[0]),
+                ("Y", multiply_param(&angles[0], 0.5), &[0]),
+                ("Z", multiply_param(&angles[1], 0.5), &[0]),
             ],
-            (angles[1] + angles[2]) / 2.0,
+            multiply_param(&radd_param(angles[1].clone(), angles[2].clone()), 0.5),
         ),
         StandardGate::R => (
             vec![
-                ("Z", FRAC_PI_4 - angles[1] / 2.0, &[0]),
-                ("Y", angles[0] / 2.0, &[0]),
-                ("Z", -FRAC_PI_4 + angles[1] / 2.0, &[0]),
+                (
+                    "Z",
+                    multiply_param(&add_param(&angles[1], -FRAC_PI_2), -0.5),
+                    &[0],
+                ),
+                ("Y", multiply_param(&angles[0], 0.5), &[0]),
+                (
+                    "Z",
+                    multiply_param(&add_param(&angles[1], -FRAC_PI_2), 0.5),
+                    &[0],
+                ),
             ],
-            0.0,
+            Param::Float(0.0),
         ),
         StandardGate::U2 => (
             vec![
-                ("Z", angles[1] / 2.0, &[0]),
-                ("Y", FRAC_PI_4, &[0]),
-                ("Z", angles[0] / 2.0, &[0]),
+                ("Z", multiply_param(&angles[1], 0.5), &[0]),
+                ("Y", Param::Float(FRAC_PI_4), &[0]),
+                ("Z", multiply_param(&angles[0], 0.5), &[0]),
             ],
-            (angles[0] + angles[1]) / 2.0,
+            multiply_param(&radd_param(angles[0].clone(), angles[1].clone()), 0.5),
         ),
         StandardGate::CU => (
             vec![
                 (
                     "Z",
-                    angles[3] / 2.0 + angles[1] / 4.0 + angles[2] / 4.0,
+                    radd_param(
+                        radd_param(
+                            multiply_param(&angles[3], 0.5),
+                            multiply_param(&angles[1], 0.25),
+                        ),
+                        multiply_param(&angles[2], 0.25),
+                    ),
                     &[0],
                 ),
-                ("Z", angles[2] / 4.0 - angles[1] / 4.0, &[1]),
-                ("XZ", FRAC_PI_4, &[0, 1]),
-                ("Z", -FRAC_PI_4, &[0]),
-                ("X", -FRAC_PI_4, &[1]),
-                ("Z", -angles[2] / 4.0 - angles[1] / 4.0, &[1]),
-                ("Y", -angles[0] / 4.0, &[1]),
-                ("XZ", FRAC_PI_4, &[0, 1]),
-                ("Z", -FRAC_PI_4, &[0]),
-                ("X", -FRAC_PI_4, &[1]),
-                ("Y", angles[0] / 4.0, &[1]),
-                ("Z", angles[1] / 2.0, &[1]),
+                (
+                    "Z",
+                    radd_param(
+                        multiply_param(&angles[2], 0.25),
+                        multiply_param(&angles[1], -0.25),
+                    ),
+                    &[1],
+                ),
+                ("XZ", Param::Float(FRAC_PI_4), &[0, 1]),
+                ("Z", Param::Float(-FRAC_PI_4), &[0]),
+                ("X", Param::Float(-FRAC_PI_4), &[1]),
+                (
+                    "Z",
+                    radd_param(
+                        multiply_param(&angles[2], -0.25),
+                        multiply_param(&angles[1], -0.25),
+                    ),
+                    &[1],
+                ),
+                ("Y", multiply_param(&angles[0], -0.25), &[1]),
+                ("XZ", Param::Float(FRAC_PI_4), &[0, 1]),
+                ("Z", Param::Float(-FRAC_PI_4), &[0]),
+                ("X", Param::Float(-FRAC_PI_4), &[1]),
+                ("Y", multiply_param(&angles[0], 0.25), &[1]),
+                ("Z", multiply_param(&angles[1], 0.5), &[1]),
             ],
-            angles[3] / 2.0 + angles[1] / 4.0 + angles[2] / 4.0 - FRAC_PI_2,
+            radd_param(
+                radd_param(
+                    multiply_param(&angles[3], 0.5),
+                    multiply_param(&angles[1], 0.25),
+                ),
+                add_param(&multiply_param(&angles[2], 0.25), -FRAC_PI_2),
+            ),
         ),
         StandardGate::CU3 => (
             vec![
-                ("Z", angles[1] / 4.0 + angles[2] / 4.0, &[0]),
-                ("Z", angles[2] / 4.0 - angles[1] / 4.0, &[1]),
-                ("XZ", FRAC_PI_4, &[0, 1]),
-                ("Z", -FRAC_PI_4, &[0]),
-                ("X", -FRAC_PI_4, &[1]),
-                ("Z", -angles[2] / 4.0 - angles[1] / 4.0, &[1]),
-                ("Y", -angles[0] / 4.0, &[1]),
-                ("XZ", FRAC_PI_4, &[0, 1]),
-                ("Z", -FRAC_PI_4, &[0]),
-                ("X", -FRAC_PI_4, &[1]),
-                ("Y", angles[0] / 4.0, &[1]),
-                ("Z", angles[1] / 2.0, &[1]),
+                (
+                    "Z",
+                    radd_param(
+                        multiply_param(&angles[1], 0.25),
+                        multiply_param(&angles[2], 0.25),
+                    ),
+                    &[0],
+                ),
+                (
+                    "Z",
+                    radd_param(
+                        multiply_param(&angles[2], 0.25),
+                        multiply_param(&angles[1], -0.25),
+                    ),
+                    &[1],
+                ),
+                ("XZ", Param::Float(FRAC_PI_4), &[0, 1]),
+                ("Z", Param::Float(-FRAC_PI_4), &[0]),
+                ("X", Param::Float(-FRAC_PI_4), &[1]),
+                (
+                    "Z",
+                    radd_param(
+                        multiply_param(&angles[2], -0.25),
+                        multiply_param(&angles[1], -0.25),
+                    ),
+                    &[1],
+                ),
+                ("Y", multiply_param(&angles[0], -0.25), &[1]),
+                ("XZ", Param::Float(FRAC_PI_4), &[0, 1]),
+                ("Z", Param::Float(-FRAC_PI_4), &[0]),
+                ("X", Param::Float(-FRAC_PI_4), &[1]),
+                ("Y", multiply_param(&angles[0], 0.25), &[1]),
+                ("Z", multiply_param(&angles[1], 0.5), &[1]),
             ],
-            angles[1] / 4.0 + angles[2] / 4.0 - FRAC_PI_2,
+            radd_param(
+                multiply_param(&angles[1], 0.25),
+                add_param(&multiply_param(&angles[2], 0.25), -FRAC_PI_2),
+            ),
         ),
         StandardGate::XXPlusYY => (
             vec![
-                ("Z", angles[1] / 2.0 + FRAC_PI_4, &[0]),
-                ("Z", 3.0 * FRAC_PI_4, &[1]),
-                ("X", FRAC_PI_4, &[1]),
-                ("Z", FRAC_PI_4, &[1]),
-                ("XZ", FRAC_PI_4, &[1, 0]),
-                ("Z", -FRAC_PI_4, &[1]),
-                ("X", -FRAC_PI_4, &[0]),
-                ("Y", -1.0 * angles[0] / 4.0, &[0]),
-                ("Y", -1.0 * angles[0] / 4.0, &[1]),
-                ("XZ", FRAC_PI_4, &[1, 0]),
-                ("Z", -FRAC_PI_4, &[1]),
-                ("X", -FRAC_PI_4, &[0]),
-                ("Z", -1.0 * angles[1] / 2.0 - FRAC_PI_4, &[0]),
-                ("Z", FRAC_PI_4, &[1]),
-                ("X", FRAC_PI_4, &[1]),
-                ("Z", 3.0 * FRAC_PI_4, &[1]),
+                ("Z", multiply_param(&angles[1], 0.5), &[0]),
+                ("XX", multiply_param(&angles[0], 0.25), &[0, 1]),
+                ("YY", multiply_param(&angles[0], 0.25), &[0, 1]),
+                ("Z", multiply_param(&angles[1], -0.5), &[0]),
             ],
-            -FRAC_PI_2,
+            Param::Float(0.0),
         ),
         StandardGate::XXMinusYY => (
             vec![
-                ("Z", 3.0 * FRAC_PI_4, &[0]),
-                ("X", FRAC_PI_4, &[0]),
-                ("Z", FRAC_PI_4, &[0]),
-                ("Z", -1.0 * angles[1] / 2.0 + FRAC_PI_4, &[1]),
-                ("XZ", FRAC_PI_4, &[0, 1]),
-                ("Z", -FRAC_PI_4, &[0]),
-                ("X", -FRAC_PI_4, &[1]),
-                ("Y", angles[0] / 4.0, &[0]),
-                ("Y", -1.0 * angles[0] / 4.0, &[1]),
-                ("XZ", FRAC_PI_4, &[0, 1]),
-                ("Z", -FRAC_PI_4, &[0]),
-                ("X", -FRAC_PI_4, &[1]),
-                ("Z", FRAC_PI_4, &[0]),
-                ("X", FRAC_PI_4, &[0]),
-                ("Z", 3.0 * FRAC_PI_4, &[0]),
-                ("Z", angles[1] / 2.0 - FRAC_PI_4, &[1]),
+                ("Z", multiply_param(&angles[1], -0.5), &[0]),
+                ("XX", multiply_param(&angles[0], 0.25), &[0, 1]),
+                ("YY", multiply_param(&angles[0], -0.25), &[0, 1]),
+                ("Z", multiply_param(&angles[1], 0.5), &[0]),
             ],
-            -FRAC_PI_2,
+            Param::Float(0.0),
         ),
         _ => unreachable!(
             "This is only called for one and two qubit gates with no paramers or with a single parameter."
@@ -298,7 +334,7 @@ fn replace_gate_by_pauli_vec(gate: StandardGate, angles: &[f64]) -> GateToPBCVec
 fn generate_pauli_evolution_gate(
     py_evo_cls: &Bound<PyAny>,
     paulis: &str,
-    time: f64,
+    time: Param,
     qubits: &[u32],
 ) -> PyResult<PyGate> {
     let py_pauli = PySparseObservable::from_label(paulis.chars().collect::<String>().as_str())?;
@@ -320,7 +356,7 @@ pub fn py_pbc_transformation(py: Python, dag: &mut DAGCircuit) -> PyResult<DAGCi
     let py_evo_cls = PAULI_EVOLUTION_GATE.get_bound(py);
 
     // Iterate over nodes in the DAG and collect nodes
-    let mut global_phase: f64 = 0.;
+    let mut global_phase = Param::Float(0.0);
 
     for node_index in dag.topological_op_nodes(false) {
         if let NodeType::Operation(inst) = &dag[node_index] {
@@ -345,7 +381,8 @@ pub fn py_pbc_transformation(py: Python, dag: &mut DAGCircuit) -> PyResult<DAGCi
                         | StandardGate::CRX
                         | StandardGate::CRY
                 ) {
-                    if let Param::Float(angle) = inst.params_view()[0] {
+                    if (inst.params_view()).len() == 1 {
+                        let angle = &inst.params_view()[0];
                         let (sequence, global_phase_update) = replace_gate_by_pauli_rotation(gate);
                         for (paulis, phase_rescale, qubits) in sequence {
                             let original_qubits = dag.get_qargs(inst.qubits);
@@ -353,21 +390,26 @@ pub fn py_pbc_transformation(py: Python, dag: &mut DAGCircuit) -> PyResult<DAGCi
                                 .iter()
                                 .map(|q| original_qubits[*q as usize])
                                 .collect();
-                            let time = phase_rescale * angle;
-                            let py_gate =
-                                generate_pauli_evolution_gate(py_evo_cls, paulis, time, qubits)?;
+                            let time = multiply_param(angle, *phase_rescale);
+                            let py_gate = generate_pauli_evolution_gate(
+                                py_evo_cls,
+                                paulis,
+                                time.clone(),
+                                qubits,
+                            )?;
 
                             new_dag.apply_operation_back(
                                 py_gate.into(),
                                 &updated_qubits,
                                 &[],
-                                Some(Parameters::Params(smallvec![Param::Float(time)])),
+                                Some(Parameters::Params(smallvec![time])),
                                 None,
                                 #[cfg(feature = "cache_pygates")]
                                 None,
                             )?;
                         }
-                        global_phase += global_phase_update * angle;
+                        global_phase =
+                            radd_param(multiply_param(angle, global_phase_update), global_phase);
                     } else {
                         panic!();
                     }
@@ -384,18 +426,8 @@ pub fn py_pbc_transformation(py: Python, dag: &mut DAGCircuit) -> PyResult<DAGCi
                         | StandardGate::XXPlusYY
                         | StandardGate::XXMinusYY
                 ) {
-                    let params = inst.params_view();
-                    let angles: Vec<f64> = params
-                        .iter()
-                        .map(|param| {
-                            if let Param::Float(angle) = param {
-                                *angle
-                            } else {
-                                panic!();
-                            }
-                        })
-                        .collect();
-                    let (sequence, global_phase_update) = replace_gate_by_pauli_vec(gate, &angles);
+                    let angles = inst.params_view();
+                    let (sequence, global_phase_update) = replace_gate_by_pauli_vec(gate, angles);
                     for (paulis, phase_rescale, qubits) in sequence {
                         let original_qubits = dag.get_qargs(inst.qubits);
                         let updated_qubits: Vec<Qubit> = qubits
@@ -403,20 +435,24 @@ pub fn py_pbc_transformation(py: Python, dag: &mut DAGCircuit) -> PyResult<DAGCi
                             .map(|q| original_qubits[*q as usize])
                             .collect();
                         let time = phase_rescale;
-                        let py_gate =
-                            generate_pauli_evolution_gate(py_evo_cls, paulis, time, qubits)?;
+                        let py_gate = generate_pauli_evolution_gate(
+                            py_evo_cls,
+                            paulis,
+                            time.clone(),
+                            qubits,
+                        )?;
 
                         new_dag.apply_operation_back(
                             py_gate.into(),
                             &updated_qubits,
                             &[],
-                            Some(Parameters::Params(smallvec![Param::Float(time)])),
+                            Some(Parameters::Params(smallvec![time])),
                             None,
                             #[cfg(feature = "cache_pygates")]
                             None,
                         )?;
                     }
-                    global_phase += global_phase_update;
+                    global_phase = radd_param(global_phase, global_phase_update);
                 }
                 // handling only 1-qubit and 2-qubit gates with no parameters
                 else if matches!(
@@ -452,8 +488,12 @@ pub fn py_pbc_transformation(py: Python, dag: &mut DAGCircuit) -> PyResult<DAGCi
                             .map(|q| original_qubits[*q as usize])
                             .collect();
                         let time = phase_rescale;
-                        let py_gate =
-                            generate_pauli_evolution_gate(py_evo_cls, paulis, *time, qubits)?;
+                        let py_gate = generate_pauli_evolution_gate(
+                            py_evo_cls,
+                            paulis,
+                            Param::Float(*time),
+                            qubits,
+                        )?;
 
                         new_dag.apply_operation_back(
                             py_gate.into(),
@@ -465,7 +505,7 @@ pub fn py_pbc_transformation(py: Python, dag: &mut DAGCircuit) -> PyResult<DAGCi
                             None,
                         )?;
                     }
-                    global_phase += global_phase_update;
+                    global_phase = add_param(&global_phase, global_phase_update);
                 }
             } else {
                 panic!();
@@ -475,7 +515,7 @@ pub fn py_pbc_transformation(py: Python, dag: &mut DAGCircuit) -> PyResult<DAGCi
         }
     }
 
-    new_dag.add_global_phase(&Param::Float(global_phase))?;
+    new_dag.add_global_phase(&global_phase)?;
 
     Ok(new_dag)
 }
