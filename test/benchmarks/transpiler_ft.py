@@ -10,8 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-member,invalid-name,missing-docstring,no-name-in-module
-# pylint: disable=attribute-defined-outside-init,unsubscriptable-object
+# pylint: disable=missing-docstring
+# pylint: disable=attribute-defined-outside-init
 
 from qiskit.transpiler import Target
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
