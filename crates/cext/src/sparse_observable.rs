@@ -589,13 +589,13 @@ pub unsafe extern "C" fn qk_obs_multiply(
 /// @param obs A pointer to the observable.
 /// @param coeff The coefficient to multiply the observable with.
 ///
-/// @return An exit code. This is ``>0`` if the multiplication failed.
+/// @return An exit code. This function only returns ``QkExitCode_Success``.
 ///
 /// # Example
 /// ```c
-///     QkObs *obs = qk_obs_identity(100);
-///     QkComplex64 coeff = {2, 0};
-///     QkExitCode exit = qk_obs_imultiply(obs, &coeff);
+/// QkObs *obs = qk_obs_identity(100);
+/// QkComplex64 coeff = {2, 0};
+/// QkExitCode exit = qk_obs_imultiply(obs, &coeff);
 /// ```
 ///
 /// # Safety

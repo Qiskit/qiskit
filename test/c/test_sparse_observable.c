@@ -80,7 +80,7 @@ static int test_add(void) {
 static int test_iadd(void) {
     QkObs *left = qk_obs_identity(100);
     QkObs *right = qk_obs_identity(100);
-    int err = qk_obs_iadd(left, right);
+    QkExitCode err = qk_obs_iadd(left, right);
 
     if (err != QkExitCode_Success) {
         return err;
@@ -258,7 +258,7 @@ static int test_imult(void) {
     for (int i = 0; i < 3; i++) {
         QkObs *obs = qk_obs_identity(100);
 
-        int err = qk_obs_imultiply(obs, &coeffs[i]);
+        QkExitCode err = qk_obs_imultiply(obs, &coeffs[i]);
 
         if (err != QkExitCode_Success) {
             return err;
