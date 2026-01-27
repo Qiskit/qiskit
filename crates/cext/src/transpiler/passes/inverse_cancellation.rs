@@ -82,3 +82,62 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_inverse_cancellation(
     };
     *circuit = out_circuit;
 }
+
+/// @ingroup QkTranspilerPasses
+/// Run the InverseCancellation transpiler pass on a DAG Circuit.
+///
+/// Cancels pairs of consecutive gates that are inverses of each other.
+/// The cancelled gates consist of pairs of self-inverse gates:
+///    - QkGate_H
+///    - QkGate_X
+///    - QkGate_Y
+///    - QkGate_Z
+///    - QkGate_CH
+///    - QkGate_CX
+///    - QkGate_CY
+///    - QkGate_CZ
+///    - QkGate_ECR
+///    - QkGate_Swap
+///    - QkGate_CCX
+///    - QkGate_CCZ
+///    - QkGate_CSwap
+///    - QkGate_RCCX
+///    - QkGate_C3X
+///
+/// and pairs of inverse gates:
+///    - (QkGate_T, QkGate_Tdg)
+///    - (QkGate_S, QkGate_Sdg)
+///    - (QkGate_SX, QkGate_SXdg)
+///    - (QkGate_CS, QkGate_CSdg)
+///
+/// @param dag A pointer to the DAG Circuit to run InverseCancellation on.
+///
+/// # Example
+///
+/// ```c
+///     QkDag *dag = qk_dag_new();
+///     QkQuantumRegister *qr = qk_quantum_register_new(2, "my_register");
+///     qk_dag_add_quantum_register(dag, qr);
+///
+///     uint32_t qargs[1] = {0};
+///     qk_dag_apply_gate(dag, QkGate_X, qargs, NULL, false);
+///     qk_dag_apply_gate(dag, QkGate_H, qargs, NULL, false);
+///     qk_dag_apply_gate(dag, QkGate_H, qargs, NULL, false);
+///     qk_dag_apply_gate(dag, QkGate_Y, qargs, NULL, false);
+///     qk_dag_transpiler_pass_standalone_inverse_cancellation(dag);
+///     qk_dag_free(dag);
+///     qk_quantum_register_free(qr);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_dag_transpiler_pass_standalone_inverse_cancellation(
+    dag: *mut DAGCircuit,
+) {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let dag = unsafe { mut_ptr_as_ref(dag) };
+    run_inverse_cancellation_standard_gates(dag);
+}

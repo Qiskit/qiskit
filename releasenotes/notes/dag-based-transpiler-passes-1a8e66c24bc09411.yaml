@@ -1,0 +1,28 @@
+---
+features_c:
+  - |
+    Added DAG-based variants of the standalone transpiler pass functions in the C API.
+    These new functions operate directly on ``QkDag`` objects instead of ``QkCircuit``,
+    avoiding the overhead of circuit-to-DAG and DAG-to-circuit conversions when chaining
+    multiple passes together. The new functions follow the naming convention
+    ``qk_dag_transpiler_pass_standalone_*`` and include:
+
+    * ``qk_dag_transpiler_pass_standalone_basis_translator``
+    * ``qk_dag_transpiler_pass_standalone_commutative_cancellation``
+    * ``qk_dag_transpiler_pass_standalone_consolidate_blocks``
+    * ``qk_dag_transpiler_pass_standalone_elide_permutations``
+    * ``qk_dag_transpiler_pass_standalone_check_gate_direction``
+    * ``qk_dag_transpiler_pass_standalone_gate_direction``
+    * ``qk_dag_transpiler_pass_standalone_inverse_cancellation``
+    * ``qk_dag_transpiler_standalone_optimize_1q_sequences``
+    * ``qk_dag_transpiler_pass_standalone_remove_diagonal_gates_before_measure``
+    * ``qk_dag_transpiler_pass_standalone_remove_identity_equivalent``
+    * ``qk_dag_transpiler_pass_standalone_sabre_layout``
+    * ``qk_dag_transpiler_pass_standalone_split_2q_unitaries``
+    * ``qk_dag_transpiler_pass_standalone_unitary_synthesis``
+    * ``qk_dag_transpiler_pass_standalone_vf2_layout_average``
+    * ``qk_dag_transpiler_pass_standalone_vf2_layout_exact``
+
+    These are useful when building custom transpilation pipelines in C where you want
+    to apply multiple passes sequentially without repeated conversions between
+    circuit and DAG representations.
