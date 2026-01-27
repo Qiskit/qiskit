@@ -1205,7 +1205,7 @@ class SparsePauliOp(LinearOp):
         return None if inplace else bound
 
     def apply_layout(
-        self, layout: TranspileLayout | List[int] | None, num_qubits: int | None = None
+        self, layout: TranspileLayout | list[int] | None, num_qubits: int | None = None
     ) -> SparsePauliOp:
         """Apply a transpiler layout to this :class:`~.SparsePauliOp`
 

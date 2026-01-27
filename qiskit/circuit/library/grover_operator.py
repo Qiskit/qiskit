@@ -440,10 +440,10 @@ class GroverOperator(QuantumCircuit):
     )
     def __init__(
         self,
-        oracle: Union[QuantumCircuit, Statevector],
-        state_preparation: Optional[QuantumCircuit] = None,
-        zero_reflection: Optional[Union[QuantumCircuit, DensityMatrix, Operator]] = None,
-        reflection_qubits: Optional[List[int]] = None,
+        oracle: QuantumCircuit | Statevector,
+        state_preparation: QuantumCircuit | None = None,
+        zero_reflection: QuantumCircuit | DensityMatrix | Operator | None = None,
+        reflection_qubits: list[int] | None = None,
         insert_barriers: bool = False,
         mcx_mode: str = "noancilla",
         name: str = "Q",
@@ -565,7 +565,7 @@ class GroverOperator(QuantumCircuit):
 
 # TODO use the oracle compiler or the bit string oracle
 def _zero_reflection(
-    num_state_qubits: int, qubits: List[int], mcx_mode: Optional[str] = None
+    num_state_qubits: int, qubits: list[int], mcx_mode: str | None = None
 ) -> QuantumCircuit:
     qr_state = QuantumRegister(num_state_qubits, "state")
     reflection = QuantumCircuit(qr_state, name="S_0")

@@ -207,12 +207,11 @@ class PadDynamicalDecoupling(BasePadding):
             mid = 1 / num_pulses
             end = mid / 2
             self._spacing = [end] + [mid] * (num_pulses - 1) + [end]
-        else:
-            if sum(self._spacing) != 1 or any(a < 0 for a in self._spacing):
-                raise TranspilerError(
-                    "The spacings must be given in terms of fractions "
-                    "of the slack period and sum to 1."
-                )
+        elif sum(self._spacing) != 1 or any(a < 0 for a in self._spacing):
+            raise TranspilerError(
+                "The spacings must be given in terms of fractions "
+                "of the slack period and sum to 1."
+            )
 
         # Check if DD sequence is identity
         if num_pulses != 1:

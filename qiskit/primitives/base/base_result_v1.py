@@ -22,7 +22,7 @@ from typing import Any, Dict
 
 from numpy import ndarray
 
-ExperimentData = Dict[str, Any]
+ExperimentData = dict[str, Any]
 
 
 class _BasePrimitiveResultV1(ABC):

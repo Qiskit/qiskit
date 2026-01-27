@@ -13,7 +13,6 @@
 """A module for visualizing device coupling maps"""
 
 import math
-from typing import List
 
 import numpy as np
 import rustworkx as rx
@@ -939,8 +938,8 @@ def plot_gate_map(
 @_optionals.HAS_GRAPHVIZ.require_in_call
 def plot_coupling_map(
     num_qubits: int,
-    qubit_coordinates: List[List[int]],
-    coupling_map: List[List[int]],
+    qubit_coordinates: list[list[int]],
+    coupling_map: list[list[int]],
     figsize=None,
     plot_directed=False,
     label_qubits=True,
@@ -1010,9 +1009,8 @@ def plot_coupling_map(
 
     if qubit_labels is None:
         qubit_labels = list(range(num_qubits))
-    else:
-        if len(qubit_labels) != num_qubits:
-            raise QiskitError("Length of qubit labels does not equal number of qubits.")
+    elif len(qubit_labels) != num_qubits:
+        raise QiskitError("Length of qubit labels does not equal number of qubits.")
 
     if not label_qubits:
         qubit_labels = [""] * num_qubits

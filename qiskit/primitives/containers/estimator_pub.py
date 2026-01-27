@@ -201,9 +201,9 @@ class EstimatorPub(ShapedMixin):
 
 EstimatorPubLike = Union[
     EstimatorPub,
-    Tuple[QuantumCircuit, ObservablesArrayLike],
-    Tuple[QuantumCircuit, ObservablesArrayLike, BindingsArrayLike],
-    Tuple[QuantumCircuit, ObservablesArrayLike, BindingsArrayLike, Real],
+    tuple[QuantumCircuit, ObservablesArrayLike],
+    tuple[QuantumCircuit, ObservablesArrayLike, BindingsArrayLike],
+    tuple[QuantumCircuit, ObservablesArrayLike, BindingsArrayLike, Real],
 ]
 """A Pub (Primitive Unified Bloc) for an Estimator primitive.
 

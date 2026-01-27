@@ -230,7 +230,7 @@ def _parallel_ignore_user_settings():
     ignored within this context."""
     # The way around this would be to encapsulate `should_run_in_parallel` into a class, but since
     # it's a singleton, it ends up being functionally no different to a global anyway.
-    global _PARALLEL_IGNORE_USER_SETTINGS  # pylint: disable=global-statement
+    global _PARALLEL_IGNORE_USER_SETTINGS  # noqa: PLW0603
 
     should_run_in_parallel.cache_clear()
     previous, _PARALLEL_IGNORE_USER_SETTINGS = _PARALLEL_IGNORE_USER_SETTINGS, True
@@ -250,7 +250,7 @@ def _parallel_override(value: bool):
     process is available, and will not allow process-based parallelism at a depth greater than 1."""
     # The way around this would be to encapsulate `should_run_in_parallel` into a class, but since
     # it's a singleton, it ends up being functionally no different to a global anyway.
-    global _PARALLEL_OVERRIDE  # pylint: disable=global-statement
+    global _PARALLEL_OVERRIDE  # noqa: PLW0603
 
     should_run_in_parallel.cache_clear()
     previous, _PARALLEL_OVERRIDE = _PARALLEL_OVERRIDE, value

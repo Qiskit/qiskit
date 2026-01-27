@@ -41,10 +41,10 @@ class StatePreparation(Gate):
 
     def __init__(
         self,
-        params: Union[str, list, int, Statevector],
-        num_qubits: Optional[int] = None,
+        params: str | list | int | Statevector,
+        num_qubits: int | None = None,
         inverse: bool = False,
-        label: Optional[str] = None,
+        label: str | None = None,
         normalize: bool = False,
     ):
         r"""
@@ -270,7 +270,7 @@ class UniformSuperpositionGate(Gate):
     def __init__(
         self,
         num_superpos_states: int = 2,
-        num_qubits: Optional[int] = None,
+        num_qubits: int | None = None,
     ):
         r"""
         Args:
@@ -293,11 +293,10 @@ class UniformSuperpositionGate(Gate):
             raise ValueError("num_superpos_states must be a positive integer greater than 1.")
         if num_qubits is None:
             num_qubits = int(math.ceil(math.log2(num_superpos_states)))
-        else:
-            if not (isinstance(num_qubits, int) and (num_qubits >= math.log2(num_superpos_states))):
-                raise ValueError(
-                    "num_qubits must be an integer greater than or equal to log2(num_superpos_states)."
-                )
+        elif not (isinstance(num_qubits, int) and (num_qubits >= math.log2(num_superpos_states))):
+            raise ValueError(
+                "num_qubits must be an integer greater than or equal to log2(num_superpos_states)."
+            )
         super().__init__("USup", num_qubits, [num_superpos_states])
 
     def _define(self):

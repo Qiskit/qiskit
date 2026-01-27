@@ -77,7 +77,7 @@ class RYYGate(Gate):
 
     _standard_gate = StandardGate.RYY
 
-    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
+    def __init__(self, theta: ParameterValueType, label: str | None = None):
         """
         Args:
             theta: The rotation angle.

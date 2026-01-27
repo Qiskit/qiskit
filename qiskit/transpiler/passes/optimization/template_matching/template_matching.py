@@ -101,20 +101,19 @@ class TemplateMatching:
                             l_q_sub[q] = node_circuit_perm[node_template.qindices.index(q)]
                         l_q.append(l_q_sub)
         # Not controlled
+        # Symmetric gate
+        elif node_template.op.name not in ["rxx", "ryy", "rzz", "swap", "iswap", "ms"]:
+            l_q_sub = [-1] * n_qubits_t
+            for q in node_template.qindices:
+                l_q_sub[q] = node_circuit.qindices[node_template.qindices.index(q)]
+            l_q.append(l_q_sub)
+        # Not symmetric
         else:
-            # Symmetric gate
-            if node_template.op.name not in ["rxx", "ryy", "rzz", "swap", "iswap", "ms"]:
+            for perm_q in itertools.permutations(node_circuit.qindices):
                 l_q_sub = [-1] * n_qubits_t
                 for q in node_template.qindices:
-                    l_q_sub[q] = node_circuit.qindices[node_template.qindices.index(q)]
+                    l_q_sub[q] = perm_q[node_template.qindices.index(q)]
                 l_q.append(l_q_sub)
-            # Not symmetric
-            else:
-                for perm_q in itertools.permutations(node_circuit.qindices):
-                    l_q_sub = [-1] * n_qubits_t
-                    for q in node_template.qindices:
-                        l_q_sub[q] = perm_q[node_template.qindices.index(q)]
-                    l_q.append(l_q_sub)
 
         # Classical control
         if not node_template.cindices or not node_circuit.cindices:

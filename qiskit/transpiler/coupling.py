@@ -401,7 +401,7 @@ class CouplingMap:
         """Return a set of qubits in the largest connected component."""
         return max(rx.weakly_connected_components(self.graph), key=len)
 
-    def connected_components(self) -> List["CouplingMap"]:
+    def connected_components(self) -> list["CouplingMap"]:
         """Separate a :Class:`~.CouplingMap` into subgraph :class:`~.CouplingMap`
         for each connected component.
 

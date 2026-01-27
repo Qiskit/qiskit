@@ -2425,7 +2425,7 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
         return AnnotatedOperation(cur, canonical_modifiers)
 
     @staticmethod
-    def _are_inverse_ops(inst1: "CircuitInstruction", inst2: "CircuitInstruction"):
+    def _are_inverse_ops(inst1: CircuitInstruction, inst2: CircuitInstruction):
         """A very naive function that checks whether two circuit instructions are inverse of
         each other. The main use-case covered is a ``QFTGate`` and its inverse, represented as
         an ``AnnotatedOperation`` with a single ``InverseModifier``.

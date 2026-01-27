@@ -730,8 +730,8 @@ VF2Limits = collections.namedtuple("VF2Limits", ("call_limit", "max_trials"))
 
 def get_vf2_limits(
     optimization_level: int,
-    layout_method: Optional[str] = None,
-    initial_layout: Optional[Layout] = None,
+    layout_method: str | None = None,
+    initial_layout: Layout | None = None,
     exact_match: bool = False,
 ) -> VF2Limits:
     """Get the VF2 limits for VF2-based layout passes.

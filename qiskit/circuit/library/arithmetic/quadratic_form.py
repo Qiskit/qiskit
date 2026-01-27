@@ -73,12 +73,10 @@ class QuadraticForm(QuantumCircuit):
     )
     def __init__(
         self,
-        num_result_qubits: Optional[int] = None,
-        quadratic: Optional[
-            Union[np.ndarray, List[List[Union[float, ParameterExpression]]]]
-        ] = None,
-        linear: Optional[Union[np.ndarray, List[Union[float, ParameterExpression]]]] = None,
-        offset: Optional[Union[float, ParameterExpression]] = None,
+        num_result_qubits: int | None = None,
+        quadratic: np.ndarray | list[list[float | ParameterExpression]] | None = None,
+        linear: np.ndarray | list[float | ParameterExpression] | None = None,
+        offset: float | ParameterExpression | None = None,
         little_endian: bool = True,
     ) -> None:
         r"""
@@ -177,8 +175,8 @@ class QuadraticForm(QuantumCircuit):
 
     @staticmethod
     def required_result_qubits(
-        quadratic: Union[np.ndarray, List[List[float]]],
-        linear: Union[np.ndarray, List[float]],
+        quadratic: np.ndarray | list[list[float]],
+        linear: np.ndarray | list[float],
         offset: float,
     ) -> int:
         """Get the number of required result qubits.

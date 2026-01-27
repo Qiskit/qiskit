@@ -21,7 +21,7 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 class ApproximateCircuit(QuantumCircuit, ABC):
     """A base class that represents an approximate circuit."""
 
-    def __init__(self, num_qubits: int, name: Optional[str] = None) -> None:
+    def __init__(self, num_qubits: int, name: str | None = None) -> None:
         """
         Args:
             num_qubits: number of qubit this circuit will span.

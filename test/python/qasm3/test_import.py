@@ -492,16 +492,12 @@ class TestQASM3Import(QiskitTestCase):
         expected = QuantumCircuit(q0, [q1], q2)
         expected.h(q0[0])
         expected.h(q0[1])
-        #
         expected.cx(q0[0], q1)
         expected.cx(q0[1], q1)
-        #
         expected.cx(q0[0], q2[0])
         expected.cx(q0[0], q2[1])
-        #
         expected.cx(q0[0], q2[0])
         expected.cx(q0[1], q2[1])
-        #
         expected.ccx(q0[1], q1, q2[0])
         expected.ccx(q0[0], q1, q2[1])
         self.assertEqual(parsed, expected)

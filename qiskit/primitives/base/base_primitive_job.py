@@ -19,7 +19,7 @@ from typing import Generic, TypeVar, Union
 from ..containers import PrimitiveResult
 from .base_result_v1 import _BasePrimitiveResultV1
 
-ResultT = TypeVar("ResultT", bound=Union[_BasePrimitiveResultV1, PrimitiveResult])
+ResultT = TypeVar("ResultT", bound=_BasePrimitiveResultV1 | PrimitiveResult)
 StatusT = TypeVar("StatusT")
 
 

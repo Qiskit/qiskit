@@ -62,7 +62,7 @@ class SwapGate(SingletonGate):
 
     _standard_gate = StandardGate.Swap
 
-    def __init__(self, label: Optional[str] = None):
+    def __init__(self, label: str | None = None):
         """
         Args:
             label: An optional label for the gate.

@@ -17,7 +17,8 @@ Instruction collection.
 from __future__ import annotations
 
 from collections.abc import MutableSequence
-from typing import Callable, TYPE_CHECKING
+from typing import TYPE_CHECKING
+from collections.abc import Callable
 
 from qiskit.circuit.exceptions import CircuitError
 from .operation import Operation

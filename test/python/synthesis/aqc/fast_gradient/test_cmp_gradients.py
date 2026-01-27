@@ -15,7 +15,6 @@ Tests equivalence of the default and fast gradient computation routines.
 """
 
 import unittest
-from typing import Tuple
 from time import perf_counter
 import numpy as np
 
@@ -42,7 +41,7 @@ class TestCompareGradientImpls(QiskitTestCase):
 
     def _compare(
         self, num_qubits: int, depth: int
-    ) -> Tuple[int, int, float, float, float, float, float]:
+    ) -> tuple[int, int, float, float, float, float, float]:
         """
         Calculates gradient and objective function value for the original
         and the fast implementations, and compares the outputs from both.

@@ -123,7 +123,7 @@ class MPLDefaultStyle(DefaultStyle):
     def __init__(self):
         path = self.DEFAULT_STYLE_PATH / Path(self.DEFAULT_STYLE_NAME).with_suffix(".json")
 
-        with open(path, "r") as infile:
+        with open(path) as infile:
             default_style = json.load(infile)
 
         # set shortcuts, such as "ec" for "edgecolor"

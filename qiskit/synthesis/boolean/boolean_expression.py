@@ -16,7 +16,8 @@ import ast
 import itertools
 import re
 from os.path import isfile
-from typing import Union, Callable
+from typing import Union
+from collections.abc import Callable
 import numpy as np
 
 from .boolean_expression_visitor import (
@@ -60,7 +61,7 @@ class TruthTable:
             for assignment in itertools.product([False, True], repeat=self.num_bits)
         ]
 
-    def __getitem__(self, key: Union[str, tuple[bool]]) -> bool:
+    def __getitem__(self, key: str | tuple[bool]) -> bool:
         if isinstance(key, str):
             key = (bit != "0" for bit in key)
         if self.explicit_storage:
@@ -103,7 +104,7 @@ class BooleanExpression:
             self.args.sort(key=var_order.index)
         self.truth_table_ = None
 
-    def simulate(self, bitstring: Union[str, tuple]) -> bool:
+    def simulate(self, bitstring: str | tuple) -> bool:
         """Evaluate the expression on a bitstring.
 
         This evaluation is done classically.
@@ -227,6 +228,6 @@ class BooleanExpression:
         """
         if not isfile(filename):
             raise FileNotFoundError(f"The file {filename} does not exists.")
-        with open(filename, "r") as dimacs_file:
+        with open(filename) as dimacs_file:
             dimacs = dimacs_file.read()
         return BooleanExpression.from_dimacs(dimacs)

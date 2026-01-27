@@ -18,7 +18,8 @@ from __future__ import annotations
 
 from copy import deepcopy
 from collections.abc import Iterable, Mapping as _Mapping
-from typing import Union, Mapping, overload, TYPE_CHECKING
+from typing import Union, overload, TYPE_CHECKING
+from collections.abc import Mapping
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -43,7 +44,7 @@ ObservableLike = Union[
     Pauli,
     SparsePauliOp,
     SparseObservable,
-    Mapping[Union[str, Pauli], float],
+    Mapping[str | Pauli, float],
 ]
 """Types that can be natively used to construct a Hermitian Estimator observable."""
 

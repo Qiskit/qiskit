@@ -152,11 +152,10 @@ class UnitarySynthesis(TransformationPass):
             self._basis_gates = set(target.operation_names)
         if synth_gates:
             self._synth_gates = synth_gates
+        elif pulse_optimize:
+            self._synth_gates = ["unitary", "swap"]
         else:
-            if pulse_optimize:
-                self._synth_gates = ["unitary", "swap"]
-            else:
-                self._synth_gates = ["unitary"]
+            self._synth_gates = ["unitary"]
 
         self._synth_gates = set(self._synth_gates) - self._basis_gates
 

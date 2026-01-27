@@ -15,7 +15,7 @@
 import functools
 import inspect
 import types
-from typing import Type, Callable
+from collections.abc import Callable
 
 
 # On user-defined classes, `__new__` is magically inferred to be a staticmethod, `__init_subclass__`
@@ -117,7 +117,7 @@ class _WrappedMethod:
         return out
 
 
-def wrap_method(cls: Type, name: str, *, before: Callable = None, after: Callable = None):
+def wrap_method(cls: type, name: str, *, before: Callable = None, after: Callable = None):
     """Wrap the functionality the instance- or class method ``cls.name`` with additional behavior
     ``before`` and ``after``.
 

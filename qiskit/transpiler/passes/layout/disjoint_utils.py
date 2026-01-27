@@ -21,7 +21,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 
 
 def require_layout_isolated_to_component(
-    dag: DAGCircuit, components_source: Union[Target, CouplingMap]
+    dag: DAGCircuit, components_source: Target | CouplingMap
 ):
     """
     Check that the layout of the dag does not require connectivity across connected components

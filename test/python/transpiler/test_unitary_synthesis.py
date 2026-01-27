@@ -173,13 +173,13 @@ class TestUnitarySynthesisBasisGates(QiskitTestCase):
 
         if natural_direction is False:
             self.assertTrue(
-                all(((qr[1], qr[0]) == instr.qubits for instr in qc_out.get_instructions("cx")))
+                all((qr[1], qr[0]) == instr.qubits for instr in qc_out.get_instructions("cx"))
             )
         else:
             # the decomposer defaults to the [1, 0] direction but the coupling
             # map specifies a [0, 1] direction. Check that this is respected.
             self.assertTrue(
-                all(((qr[0], qr[1]) == instr.qubits for instr in qc_out.get_instructions("cx")))
+                all((qr[0], qr[1]) == instr.qubits for instr in qc_out.get_instructions("cx"))
             )
         self.assertEqual(Operator(qc), Operator(qc_out))
 
@@ -383,18 +383,18 @@ class TestUnitarySynthesisBasisGates(QiskitTestCase):
 
         self.assertTrue(
             all(
-                (
+                
                     (1, 0) == (circ_10_index[instr.qubits[0]], circ_10_index[instr.qubits[1]])
                     for instr in circ_10.get_instructions("cx")
-                )
+                
             )
         )
         self.assertTrue(
             all(
-                (
+                
                     (0, 1) == (circ_01_index[instr.qubits[0]], circ_01_index[instr.qubits[1]])
                     for instr in circ_01.get_instructions("cx")
-                )
+                
             )
         )
 

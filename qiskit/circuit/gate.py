@@ -13,7 +13,7 @@
 """Unitary gate."""
 
 from __future__ import annotations
-from typing import Iterator, Iterable
+from collections.abc import Iterator, Iterable
 import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression
@@ -93,10 +93,10 @@ class Gate(Instruction):
         else:
             return AnnotatedOperation(self, PowerModifier(exponent))
 
-    def __pow__(self, exponent: float) -> "Gate":
+    def __pow__(self, exponent: float) -> Gate:
         return self.power(exponent)
 
-    def _return_repeat(self, exponent: float) -> "Gate":
+    def _return_repeat(self, exponent: float) -> Gate:
         gate = Gate(name=f"{self.name}*{exponent}", num_qubits=self.num_qubits, params=[])
         gate.validate_parameter = self.validate_parameter
         gate.params = self.params

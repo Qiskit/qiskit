@@ -76,11 +76,10 @@ class Optimize1qGates(TransformationPass):
                     right_name = "p"
                 else:
                     right_name = "u1"
+            elif use_p:
+                right_name = "p"
             else:
-                if use_p:
-                    right_name = "p"
-                else:
-                    right_name = "u1"
+                right_name = "u1"
             right_parameters = (0, 0, 0)  # (theta, phi, lambda)
             right_global_phase = 0
             for current_node in run:
@@ -223,8 +222,7 @@ class Optimize1qGates(TransformationPass):
                 if (
                     not isinstance(right_parameters[0], ParameterExpression)
                     and abs(np.mod(right_parameters[0], (2 * np.pi))) < self.eps
-                    and right_name != "u1"
-                    and right_name != "p"
+                    and right_name not in {"u1", "p"}
                 ):
                     if use_p:
                         right_name = "p"

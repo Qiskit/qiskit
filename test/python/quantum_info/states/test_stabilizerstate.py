@@ -79,12 +79,12 @@ class StabilizerStateTestingTools:
                     values. If None no rounding is done (Default: None)
             dict_almost_equal (bool): utilize assertDictAlmostEqual when true, assertDictEqual when false
         """
-        for outcome_bitstring in target_dict:
+        for outcome_bitstring, target_prob in target_dict.items():
             (testcase.assertDictAlmostEqual if (dict_almost_equal) else testcase.assertDictEqual)(
                 stab.probabilities_dict_from_bitstring(
                     outcome_bitstring=outcome_bitstring, qargs=qargs, decimals=decimals
                 ),
-                {outcome_bitstring: target_dict[outcome_bitstring]},
+                {outcome_bitstring: target_prob},
             )
 
 
@@ -565,7 +565,7 @@ class TestStabilizerState(QiskitTestCase):
                 self.assertDictEqual(value, target_dict)
                 StabilizerStateTestingTools._verify_individual_bitstrings(self, target_dict, stab)
                 probs = stab.probabilities()
-                target = np.array(([expected_result] * (2**num_qubits)))
+                target = np.array([expected_result] * (2**num_qubits))
                 self.assertTrue(np.allclose(probs, target))
 
         # H gate at qubit 0, Every gate after is an X gate

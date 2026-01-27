@@ -85,7 +85,7 @@ class UGate(Gate):
         theta: ParameterValueType,
         phi: ParameterValueType,
         lam: ParameterValueType,
-        label: Optional[str] = None,
+        label: str | None = None,
     ):
         r"""
         Args:

@@ -92,18 +92,18 @@ def _encode_replay_entry(inst, file_obj, version, r_side=False):
             entry = struct.pack(
                 formats.PARAM_EXPR_ELEM_V13_PACK,
                 255,
-                "s".encode("utf8"),
+                b"s",
                 b"\x00",
-                "n".encode("utf8"),
+                b"n",
                 b"\x00",
             )
         else:
             entry = struct.pack(
                 formats.PARAM_EXPR_ELEM_V13_PACK,
                 255,
-                "n".encode("utf8"),
+                b"n",
                 b"\x00",
-                "s".encode("utf8"),
+                b"s",
                 b"\x00",
             )
         file_obj.write(entry)
@@ -112,18 +112,18 @@ def _encode_replay_entry(inst, file_obj, version, r_side=False):
             entry = struct.pack(
                 formats.PARAM_EXPR_ELEM_V13_PACK,
                 255,
-                "e".encode("utf8"),
+                b"e",
                 b"\x00",
-                "n".encode("utf8"),
+                b"n",
                 b"\x00",
             )
         else:
             entry = struct.pack(
                 formats.PARAM_EXPR_ELEM_V13_PACK,
                 255,
-                "n".encode("utf8"),
+                b"n",
                 b"\x00",
-                "e".encode("utf8"),
+                b"e",
                 b"\x00",
             )
         file_obj.write(entry)
@@ -147,9 +147,9 @@ def _encode_replay_subs(subs, file_obj, version):
     entry = struct.pack(
         formats.PARAM_EXPR_ELEM_V13_PACK,
         subs.op,
-        "u".encode("utf8"),
+        b"u",
         struct.pack("!QQ", len(data), 0),
-        "n".encode("utf8"),
+        b"n",
         b"\x00",
     )
     file_obj.write(entry)
@@ -205,7 +205,7 @@ def _write_parameter_expression(file_obj, obj, use_symengine, *, version):
 
         # serialize value
         value_key = symbol_key
-        value_data = bytes()
+        value_data = b""
 
         elem_header = struct.pack(
             formats.PARAM_EXPR_MAP_ELEM_V3_PACK,

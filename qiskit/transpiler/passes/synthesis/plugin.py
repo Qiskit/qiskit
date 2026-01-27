@@ -395,7 +395,6 @@ a circuit adhering to the linear nearest-neighbor connectivity.
 """
 
 import abc
-from typing import List
 
 import stevedore
 
@@ -729,7 +728,7 @@ class HighLevelSynthesisPluginManager:
         return list(self.plugins_by_op.keys())
 
 
-def high_level_synthesis_plugin_names(op_name: str) -> List[str]:
+def high_level_synthesis_plugin_names(op_name: str) -> list[str]:
     """Return a list of plugin names installed for a given high level object name
 
     Args:

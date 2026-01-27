@@ -22,7 +22,8 @@ from __future__ import annotations
 import abc
 import itertools
 import typing
-from typing import Collection, Iterable, FrozenSet, Tuple, Union, Optional, Sequence
+from typing import FrozenSet, Tuple, Union, Optional
+from collections.abc import Collection, Iterable, Sequence
 
 from qiskit._accelerate.circuit import CircuitData
 from qiskit.circuit import Register
@@ -161,7 +162,7 @@ class CircuitScopeInterface(abc.ABC):
         """
 
     @abc.abstractmethod
-    def get_var(self, name: str) -> Optional[expr.Var]:
+    def get_var(self, name: str) -> expr.Var | None:
         """Get the variable (if any) in scope with the given name.
 
         This should call up to the parent scope if in a control-flow builder scope, in case the
@@ -175,7 +176,7 @@ class CircuitScopeInterface(abc.ABC):
         """
 
     @abc.abstractmethod
-    def get_stretch(self, name: str) -> Optional[expr.Stretch]:
+    def get_stretch(self, name: str) -> expr.Stretch | None:
         """Get the stretch (if any) in scope with the given name.
 
         This should call up to the parent scope if in a control-flow builder scope, in case the
@@ -250,8 +251,8 @@ class InstructionPlaceholder(Instruction, abc.ABC):
 
     @abc.abstractmethod
     def concrete_instruction(
-        self, qubits: FrozenSet[Qubit], clbits: FrozenSet[Clbit]
-    ) -> Tuple[Instruction, InstructionResources]:
+        self, qubits: frozenset[Qubit], clbits: frozenset[Clbit]
+    ) -> tuple[Instruction, InstructionResources]:
         """Get a concrete, complete instruction that is valid to act over all the given resources.
 
         The returned resources may not be the full width of the given resources, but will certainly
@@ -351,7 +352,7 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
         parent: CircuitScopeInterface,
         registers: Iterable[Register] = (),
         allow_jumps: bool = True,
-        forbidden_message: Optional[str] = None,
+        forbidden_message: str | None = None,
     ):
         """
         Args:
@@ -579,7 +580,7 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
             raise CircuitError("This scope contains no instructions.")
         return self._instructions.pop()
 
-    def add_bits(self, bits: Iterable[Union[Qubit, Clbit]]):
+    def add_bits(self, bits: Iterable[Qubit | Clbit]):
         """Add extra bits to this scope that are not associated with any concrete instruction yet.
 
         This is useful for expanding a scope's resource width when it may contain ``break`` or
@@ -616,8 +617,8 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
         self.add_bits(register)
 
     def build(
-        self, all_qubits: FrozenSet[Qubit], all_clbits: FrozenSet[Clbit]
-    ) -> "qiskit.circuit.QuantumCircuit":
+        self, all_qubits: frozenset[Qubit], all_clbits: frozenset[Clbit]
+    ) -> qiskit.circuit.QuantumCircuit:
         """Build this scoped block into a complete :obj:`.QuantumCircuit` instance.
 
         This will build a circuit which contains all of the necessary qubits and clbits and no
@@ -734,7 +735,7 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
         out._current_scope().extend(out_data)
         return out
 
-    def copy(self) -> "ControlFlowBuilderBlock":
+    def copy(self) -> ControlFlowBuilderBlock:
         """Return a semi-shallow copy of this builder block.
 
         The instruction lists and sets of qubits and clbits will be new instances (so mutations will

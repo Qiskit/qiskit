@@ -829,7 +829,7 @@ class TestDumpStream(QiskitTestCase):
             os.chdir(tmpdir)
             try:
                 qasm2.dump(qc, "myfile.qasm")
-                with open("myfile.qasm", "r") as fptr:
+                with open("myfile.qasm") as fptr:
                     written = fptr.read()
             finally:
                 os.chdir(prevdir)
@@ -847,7 +847,7 @@ class TestDumpStream(QiskitTestCase):
             os.chdir(tmpdir)
             try:
                 qasm2.dump(qc, pathlib.Path(".") / "myfile.qasm")
-                with open("myfile.qasm", "r") as fptr:
+                with open("myfile.qasm") as fptr:
                     written = fptr.read()
             finally:
                 os.chdir(prevdir)

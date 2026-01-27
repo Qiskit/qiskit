@@ -74,7 +74,7 @@ class XGate(SingletonGate):
 
     _standard_gate = StandardGate.X
 
-    def __init__(self, label: Optional[str] = None):
+    def __init__(self, label: str | None = None):
         """
         Args:
             label: An optional label for the gate.
@@ -473,7 +473,7 @@ class RCCXGate(SingletonGate):
 
     _standard_gate = StandardGate.RCCX
 
-    def __init__(self, label: Optional[str] = None):
+    def __init__(self, label: str | None = None):
         """Create a new simplified CCX gate."""
         super().__init__("rccx", 3, [], label=label)
 
@@ -678,7 +678,7 @@ class RC3XGate(SingletonGate):
 
     _standard_gate = StandardGate.RC3X
 
-    def __init__(self, label: Optional[str] = None):
+    def __init__(self, label: str | None = None):
         """Create a new RC3X gate."""
         super().__init__("rcccx", 4, [], label=label)
 
@@ -828,7 +828,7 @@ class MCXGate(ControlledGate):
         """
         # The CXGate and CCXGate will be implemented for all modes of the MCX, and
         # the C3XGate and C4XGate are handled in the gate definition.
-        explicit: dict[int, Type[ControlledGate]] = {1: CXGate, 2: CCXGate}
+        explicit: dict[int, type[ControlledGate]] = {1: CXGate, 2: CCXGate}
         gate_class = explicit.get(num_ctrl_qubits, None)
         if gate_class is not None:
             gate = gate_class.__new__(

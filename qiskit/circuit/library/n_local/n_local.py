@@ -988,7 +988,7 @@ class NLocal(BlueprintCircuit):
         other: QuantumCircuit | qiskit.circuit.Instruction,
         entanglement: list[int] | str | list[list[int]] | None = None,
         front: bool = False,
-    ) -> "NLocal":
+    ) -> NLocal:
         """Append another layer to the NLocal.
 
         Args:

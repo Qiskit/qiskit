@@ -60,7 +60,7 @@ class PowerModifier(Modifier):
 class AnnotatedOperation(Operation):
     """Annotated operation."""
 
-    def __init__(self, base_op: Operation, modifiers: Union[Modifier, List[Modifier]]):
+    def __init__(self, base_op: Operation, modifiers: Modifier | list[Modifier]):
         """
         Create a new AnnotatedOperation.
 
@@ -99,7 +99,7 @@ class AnnotatedOperation(Operation):
         """
         self.base_op = base_op
         """The base operation that the modifiers in this annotated operation applies to."""
-        self.modifiers = modifiers if isinstance(modifiers, List) else [modifiers]
+        self.modifiers = modifiers if isinstance(modifiers, list) else [modifiers]
         """Ordered sequence of the modifiers to apply to :attr:`base_op`.  The modifiers are applied
         in order from lowest index to highest index."""
 
@@ -131,7 +131,7 @@ class AnnotatedOperation(Operation):
             and self.base_op == other.base_op
         )
 
-    def copy(self) -> "AnnotatedOperation":
+    def copy(self) -> AnnotatedOperation:
         """Return a copy of the :class:`~.AnnotatedOperation`."""
         return AnnotatedOperation(base_op=self.base_op.copy(), modifiers=self.modifiers.copy())
 

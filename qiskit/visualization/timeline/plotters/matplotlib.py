@@ -14,8 +14,6 @@
 
 """Matplotlib plotter API."""
 
-from typing import Optional, Tuple
-
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
@@ -34,7 +32,7 @@ class MplPlotter(BasePlotter):
     This plotter arranges bits along y axis of 2D canvas with vertical offset.
     """
 
-    def __init__(self, canvas: core.DrawerCanvas, axis: Optional[plt.Axes] = None):
+    def __init__(self, canvas: core.DrawerCanvas, axis: plt.Axes | None = None):
         """Create new plotter.
 
         Args:
@@ -137,7 +135,7 @@ class MplPlotter(BasePlotter):
 
     def _time_bucket_outline(
         self, xvals: np.ndarray, yvals: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Generate outline of time bucket. Edges are smoothly faded.
 
         Args:

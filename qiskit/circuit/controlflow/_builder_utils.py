@@ -15,7 +15,8 @@
 from __future__ import annotations
 
 import dataclasses
-from typing import Iterable, Tuple, Set, Union, TypeVar, TYPE_CHECKING
+from typing import Tuple, Set, Union, TypeVar, TYPE_CHECKING
+from collections.abc import Iterable
 
 from qiskit.circuit import (  # pylint: disable=cyclic-import
     ClassicalRegister,
@@ -29,7 +30,7 @@ if TYPE_CHECKING:
     from qiskit.circuit import QuantumCircuit, Register
 
 _ConditionT = TypeVar(
-    "_ConditionT", bound=Union[Tuple[ClassicalRegister, int], Tuple[Clbit, int], expr.Expr]
+    "_ConditionT", bound=tuple[ClassicalRegister, int] | tuple[Clbit, int] | expr.Expr
 )
 
 
@@ -105,7 +106,7 @@ def condition_resources(
 
 def partition_registers(
     registers: Iterable[Register],
-) -> Tuple[Set[QuantumRegister], Set[ClassicalRegister]]:
+) -> tuple[set[QuantumRegister], set[ClassicalRegister]]:
     """Partition a sequence of registers into its quantum and classical registers."""
     qregs = set()
     cregs = set()
@@ -154,8 +155,8 @@ def unify_circuit_resources(circuits: Iterable[QuantumCircuit]) -> Iterable[Quan
 
 
 def _unify_circuit_resources_rebuild(  # pylint: disable=invalid-name  # (it's too long?!)
-    circuits: Tuple[QuantumCircuit, ...],
-) -> Tuple[QuantumCircuit, QuantumCircuit]:
+    circuits: tuple[QuantumCircuit, ...],
+) -> tuple[QuantumCircuit, QuantumCircuit]:
     """
     Ensure that all the given circuits have all the same qubits and clbits, and that they
     are defined in the same order.  The order is important for binding when the bodies are used in

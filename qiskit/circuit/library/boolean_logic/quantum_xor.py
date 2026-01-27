@@ -38,8 +38,8 @@ class XOR(QuantumCircuit):
     def __init__(
         self,
         num_qubits: int,
-        amount: Optional[int] = None,
-        seed: Optional[int] = None,
+        amount: int | None = None,
+        seed: int | None = None,
     ) -> None:
         """
         Args:

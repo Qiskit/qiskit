@@ -235,10 +235,8 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
         n_nodes = 0
         if isinstance(inter_graph, list):
             for ctrl, trgt, _ in inter_graph:
-                if ctrl > n_nodes:
-                    n_nodes = ctrl
-                if trgt > n_nodes:
-                    n_nodes = trgt
+                n_nodes = max(n_nodes, ctrl)
+                n_nodes = max(n_nodes, trgt)
             n_nodes += 1  # ctrl, trgt are qubit indices.
         else:
             n_nodes = inter_graph.num_nodes()

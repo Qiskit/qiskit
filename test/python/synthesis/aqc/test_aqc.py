@@ -75,7 +75,7 @@ class TestAqc(QiskitTestCase):
         seed = 12345
         np.random.seed(seed)
 
-        num_qubits = int(3)
+        num_qubits = 3
         cnots = make_cnot_network(
             num_qubits=num_qubits, network_layout="spin", connectivity_type="full", depth=0
         )
@@ -108,7 +108,7 @@ class TestAqc(QiskitTestCase):
         """
         seed = 12345
 
-        num_qubits = int(3)
+        num_qubits = 3
         cnots = make_cnot_network(
             num_qubits=num_qubits, network_layout="spin", connectivity_type="full", depth=0
         )

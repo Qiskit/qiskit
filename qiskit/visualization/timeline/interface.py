@@ -19,7 +19,7 @@ The drawer canvas object is internally initialized from the input data and
 the configured canvas is passed to one of the plotter APIs to generate a visualization data.
 """
 
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Any
 
 from qiskit import circuit
 from qiskit.transpiler.target import Target
@@ -33,21 +33,21 @@ from qiskit.utils import deprecate_arg
 @deprecate_arg("show_barriers", new_alias="plot_barriers", since="1.1.0", pending=True)
 def draw(
     program: circuit.QuantumCircuit,
-    style: Optional[Dict[str, Any]] = None,
-    time_range: Tuple[int, int] = None,
-    disable_bits: List[types.Bits] = None,
-    show_clbits: Optional[bool] = None,
-    idle_wires: Optional[bool] = None,
-    plot_barriers: Optional[bool] = None,
-    show_delays: Optional[bool] = None,
+    style: dict[str, Any] | None = None,
+    time_range: tuple[int, int] = None,
+    disable_bits: list[types.Bits] = None,
+    show_clbits: bool | None = None,
+    idle_wires: bool | None = None,
+    plot_barriers: bool | None = None,
+    show_delays: bool | None = None,
     show_labels: bool = True,
-    plotter: Optional[str] = types.Plotter.MPL.value,
-    axis: Optional[Any] = None,
-    filename: Optional[str] = None,
-    target: Optional[Target] = None,
+    plotter: str | None = types.Plotter.MPL.value,
+    axis: Any | None = None,
+    filename: str | None = None,
+    target: Target | None = None,
     *,
-    show_idle: Optional[bool] = None,
-    show_barriers: Optional[bool] = None,
+    show_idle: bool | None = None,
+    show_barriers: bool | None = None,
 ):
     r"""Generate visualization data for scheduled circuit programs.
 

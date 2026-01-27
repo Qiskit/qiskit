@@ -227,12 +227,11 @@ class TestContextAwareDD(QiskitTestCase):
                     else:
                         # other gate (CZ) has no specific behavior, use target-specific sequence
                         order = 0
-                else:  # top gate has no specific behavior
-                    if bottom in ["cx", "ecr"]:
-                        # use ctrl-specific sequence
-                        order = 1
-                    else:  # both gates do not have special behavior, use 0
-                        order = 0
+                elif bottom in ["cx", "ecr"]:
+                    # use ctrl-specific sequence
+                    order = 1
+                else:  # both gates do not have special behavior, use 0
+                    order = 0
 
                 # construct circuit with specified gates
                 circuit = QuantumCircuit(5)

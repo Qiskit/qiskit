@@ -15,7 +15,8 @@ Dataclass tools for data namespaces (bins)
 """
 from __future__ import annotations
 
-from typing import Any, ItemsView, Iterable, KeysView, ValuesView
+from typing import Any
+from collections.abc import ItemsView, Iterable, KeysView, ValuesView
 
 import numpy as np
 

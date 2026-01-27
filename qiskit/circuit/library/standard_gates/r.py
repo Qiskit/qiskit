@@ -55,7 +55,7 @@ class RGate(Gate):
         self,
         theta: ParameterValueType,
         phi: ParameterValueType,
-        label: Optional[str] = None,
+        label: str | None = None,
     ):
         r"""
         Args:

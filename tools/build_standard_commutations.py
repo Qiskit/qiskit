@@ -18,7 +18,6 @@ depending on the present commutation relation.
 import io
 import itertools
 from functools import lru_cache
-from typing import List
 
 import qiskit.circuit.library.standard_gates as stdg
 from qiskit.circuit import CommutationChecker, Gate
@@ -92,7 +91,7 @@ def _get_relative_placement(first_qargs, second_qargs) -> tuple:
     return tuple(qubits_g2.get(q_g0, None) for q_g0 in first_qargs)
 
 
-def _get_unparameterizable_gates() -> List[Gate]:
+def _get_unparameterizable_gates() -> list[Gate]:
     """Retrieve a list of non-parmaterized gates with up to 3 qubits, using the python inspection module
     Return:
         A list of non-parameterized gates to be considered in the commutation library
@@ -103,7 +102,7 @@ def _get_unparameterizable_gates() -> List[Gate]:
     return [g for g in gates if len(g.params) == 0]
 
 
-def _get_rotation_gates() -> List[Gate]:
+def _get_rotation_gates() -> list[Gate]:
     """Retrieve a list of parmaterized gates we know the commutation relations of with up
     to 3 qubits, using the python inspection module
     Return:
@@ -114,11 +113,11 @@ def _get_rotation_gates() -> List[Gate]:
     return [g for g in gates if g.name in SUPPORTED_ROTATIONS]
 
 
-def _generate_commutation_dict(considered_gates: List[Gate] = None) -> dict:
+def _generate_commutation_dict(considered_gates: list[Gate] = None) -> dict:
     """Compute the commutation relation of considered gates
 
     Args:
-        considered_gates List[Gate]: a list of gates between which the commutation should be determined
+        considered_gates list[Gate]: a list of gates between which the commutation should be determined
 
     Return:
         A dictionary that includes the commutation relation for each
@@ -206,8 +205,8 @@ def _simplify_commuting_dict(commuting_dict: dict) -> dict:
         commuting_dict (dict): A commutation dictionary with simplified entries
     """
     # Remove relative placement key if commutation is independent of relative placement
-    for ops in commuting_dict.keys():
-        gates_commutations = set(commuting_dict[ops].values())
+    for ops, commuting_gates in commuting_dict.items():
+        gates_commutations = set(commuting_gates.values())
         if len(gates_commutations) == 1:
             commuting_dict[ops] = next(iter(gates_commutations))
 

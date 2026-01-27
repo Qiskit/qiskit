@@ -15,7 +15,7 @@ Quantum Shannon Decomposition.
 Method is described in arXiv:quant-ph/0406176.
 """
 from __future__ import annotations
-from typing import Callable
+from collections.abc import Callable
 import scipy
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit, QuantumRegister

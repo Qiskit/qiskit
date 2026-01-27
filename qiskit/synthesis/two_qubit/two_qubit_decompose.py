@@ -150,7 +150,7 @@ class TwoQubitWeylDecomposition:
     K2r: np.ndarray
 
     unitary_matrix: np.ndarray  # The unitary that was input
-    requested_fidelity: Optional[float]  # None means no automatic specialization
+    requested_fidelity: float | None  # None means no automatic specialization
     calculated_fidelity: float  # Fidelity after specialization
 
     _specializations = two_qubit_decompose.Specialization
@@ -249,7 +249,7 @@ class TwoQubitWeylDecomposition:
         requested_fidelity: float,
         _specialization: two_qubit_decompose.Specialization | None = None,
         **kwargs,
-    ) -> "TwoQubitWeylDecomposition":
+    ) -> TwoQubitWeylDecomposition:
         """Decode bytes into :class:`.TwoQubitWeylDecomposition`."""
         # Used by __repr__
         del kwargs  # Unused (just for display)
@@ -270,7 +270,7 @@ class TwoQubitControlledUDecomposer:
     :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}`
     gate that is locally equivalent to an :class:`.RXXGate`."""
 
-    def __init__(self, rxx_equivalent_gate: Type[Gate], euler_basis: str = "ZXZ"):
+    def __init__(self, rxx_equivalent_gate: type[Gate], euler_basis: str = "ZXZ"):
         r"""Initialize the KAK decomposition.
 
         Args:

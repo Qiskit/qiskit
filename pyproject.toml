@@ -220,8 +220,40 @@ environment = "MACOSX_DEPLOYMENT_TARGET='10.12' RUSTUP_TOOLCHAIN=stable"
 test-command = "cp -r {project}/test . && stestr --test-path test/python run --abbreviate"
 repair-wheel-command = "cp {wheel} {dest_dir}/. && pipx run abi3audit --strict --report {wheel}"
 
+[tool.ruff]
+line-length = 110
+
 [tool.ruff.lint]
-ignore = ["E402", "F401"]
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # Pylint
+    "PL",
+    # pyupgrade
+    "UP",
+]
+ignore = [
+    "E402",  # module-import-not-at-top-of-file false positives with module docs
+    "F401",  # unused-import false triggers on init re-exports with __all__
+    "E501",  # line-too-long rely on black for formatting
+    "PLR2004",  # magic-value-comparison overly pedantic especially in tests
+    "PLR0911",  # too-many-return-statements
+    "PLR0912",  # too-many-branches
+    "PLR0904",  # too-many-public-methods
+    "PLR0914",  # too-many-locals
+    "PLR0915",  # too-many-statements
+    "PLR1702",  # too-many-nested-blocks
+    "PLR0904",  # too-many-public-methods
+    "PLC0415",  # import-outside-top-level
+    "E731",     # lambda-assignment
+    "PLW1514",  # unspecified-encoding do not want to implement
+    "PLR0913",  # too-many-arguments
+    "PLW1641",  # eq-without-hash  not everything has to be hashablie
+    "PLW3301",  # nested-min-max
+    "PLW2901",  # redefined-loop-variablke - TODO fix this
+]
 
 [tool.ruff.lint.per-file-ignores]
 "*.ipynb" = ["F821"]
@@ -257,14 +289,12 @@ disable = [
     "protected-access", # disabled as we don't follow the public vs private convention strictly
     "duplicate-code", # disabled as it is too verbose
     "redundant-returns-doc", # for @abstractmethod, it cannot interpret "pass"
-    "too-many-lines", "too-many-branches", "too-many-locals", "too-many-nested-blocks", "too-many-statements",
-    "too-many-instance-attributes", "too-many-arguments", "too-many-public-methods", "too-few-public-methods", "too-many-ancestors",
+    "too-many-instance-attributes", "too-many-arguments", "too-few-public-methods", "too-many-ancestors",
     "unnecessary-pass", # allow for methods with just "pass", for clarity
     "unnecessary-dunder-call", # do not want to implement
     "no-else-return",  # relax "elif" after a clause with a return
     "docstring-first-line-empty", # relax docstring style
     "import-outside-toplevel", "import-error", # overzealous with our optionals/dynamic packages
-    "nested-min-max", # this gives false equivalencies if implemented for the current lint version
     "consider-using-max-builtin", "consider-using-min-builtin",  # unnecessary stylistic opinion
 # TODO(#9614): these were added in modern Pylint. Decide if we want to enable them. If so,
 #  remove from here and fix the issues. Else, move it above this section and add a comment
@@ -272,7 +302,6 @@ disable = [
     "no-member",  # for dynamically created members
     "not-context-manager",
     "unnecessary-lambda-assignment",  # do not want to implement
-    "unspecified-encoding",  # do not want to implement
 ]
 
 enable = [

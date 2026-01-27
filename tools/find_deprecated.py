@@ -25,7 +25,7 @@ import argparse
 import requests
 
 
-def short_path(path: Path) -> Optional[Path]:
+def short_path(path: Path) -> Path | None:
     """shorten the full path, when possible"""
     original_path = path
     while path is not None:
@@ -318,10 +318,10 @@ def print_main(directory: str, pending: str, format_: str) -> None:
             if format_ == "md":
                 lines.append(f" - `{deprecation.location_str}` (`{deprecation.target}`)")
         if format_ == "md":
-            since_version = f"**{since_version or 'n/a'}**"
+            formatted_since_version = f"**{since_version or 'n/a'}**"
             DETAILS = ""
         if lines:
-            print(f"\n{since_version}: {DETAILS}")
+            print(f"\n{formatted_since_version}: {DETAILS}")
             print("\n".join(lines))
 
 

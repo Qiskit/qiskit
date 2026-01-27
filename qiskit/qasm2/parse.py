@@ -13,7 +13,7 @@
 """Python-space bytecode interpreter for the output of the main Rust parser logic."""
 import dataclasses
 import math
-from typing import Iterable, Callable
+from collections.abc import Iterable, Callable
 from typing_extensions import Unpack
 
 import numpy as np

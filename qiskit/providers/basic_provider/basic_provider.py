@@ -98,7 +98,7 @@ class BasicProvider:
             ret[backend_name] = backend_instance
         return ret
 
-    def _get_backend_instance(self, backend_cls: Type[Backend]) -> Backend:
+    def _get_backend_instance(self, backend_cls: type[Backend]) -> Backend:
         """
         Return an instance of a backend from its class.
 

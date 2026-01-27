@@ -15,7 +15,8 @@ Bindings array class
 """
 from __future__ import annotations
 
-from typing import Mapping, Union, Tuple
+from typing import Union, Tuple
+from collections.abc import Mapping
 from collections.abc import Iterable, Mapping as _Mapping
 from itertools import chain, islice
 
@@ -33,7 +34,7 @@ __all__ = ["ParameterLike", "BindingsArrayLike"]
 ParameterLike = Union[Parameter, str]
 """A parameter or parameter name."""
 
-BindingsArrayLike = Mapping[Union[ParameterLike, Tuple[ParameterLike, ...]], ArrayLike]
+BindingsArrayLike = Mapping[ParameterLike | tuple[ParameterLike, ...], ArrayLike]
 """A mapping of numeric bindings for circuit parameters.
 
 This allows array values for single or multi-dimensional sweeps over parameter values.

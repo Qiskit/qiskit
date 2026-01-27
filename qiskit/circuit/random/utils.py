@@ -190,11 +190,9 @@ def random_circuit_from_graph(
             edge_list.append((ctrl, trgt))
             edges_probs.append(prob)
 
-            if ctrl > num_qubits:
-                num_qubits = ctrl
+            num_qubits = max(num_qubits, ctrl)
 
-            if trgt > num_qubits:
-                num_qubits = trgt
+            num_qubits = max(num_qubits, trgt)
 
         num_qubits += 1  # ctrl, trgt are qubit indices.
         edge_list = np.array(edge_list)

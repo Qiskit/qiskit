@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import itertools
 
-from typing import Optional, List, Any
+from typing import Any
 from collections.abc import Mapping
 import io
 import copy
@@ -67,7 +67,7 @@ class InstructionProperties(BaseInstructionProperties):
         *args,  # pylint: disable=unused-argument
         **kwargs,  # pylint: disable=unused-argument
     ):
-        return super(InstructionProperties, cls).__new__(  # pylint: disable=too-many-function-args
+        return super().__new__(  # pylint: disable=too-many-function-args
             cls, duration, error
         )
 
@@ -305,7 +305,7 @@ class Target(BaseTarget):
         """
         if description is not None:
             description = str(description)
-        out = super(Target, cls).__new__(  # pylint: disable=too-many-function-args
+        out = super().__new__(  # pylint: disable=too-many-function-args
             cls,
             description,
             num_qubits,
@@ -795,7 +795,7 @@ class Target(BaseTarget):
         num_qubits: int | None = None,
         coupling_map: CouplingMap | None = None,
         instruction_durations: InstructionDurations | None = None,
-        concurrent_measurements: Optional[List[List[int]]] = None,
+        concurrent_measurements: list[list[int]] | None = None,
         dt: float | None = None,
         timing_constraints: TimingConstraints | None = None,
         custom_name_mapping: dict[str, Any] | None = None,

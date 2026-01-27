@@ -13,7 +13,8 @@
 
 """Utility functions for working with Results."""
 
-from typing import Sequence, Union, Optional, Dict, List
+from typing import Union, Optional, Dict, List
+from collections.abc import Sequence
 from collections import Counter
 from copy import deepcopy
 
@@ -30,12 +31,12 @@ from qiskit._accelerate import results as results_rs  # pylint: disable=no-name-
 
 
 def marginal_counts(
-    result: Union[dict, Result],
-    indices: Optional[List[int]] = None,
+    result: dict | Result,
+    indices: list[int] | None = None,
     inplace: bool = False,
     format_marginal: bool = False,
-    marginalize_memory: Optional[bool] = True,
-) -> Union[Dict[str, int], Result]:
+    marginalize_memory: bool | None = True,
+) -> dict[str, int] | Result:
     """Marginalize counts from an experiment over some indices of interest.
 
     Args:
@@ -125,13 +126,13 @@ def _adjust_creg_sizes(creg_sizes, indices):
 
 
 def marginal_memory(
-    memory: Union[List[str], np.ndarray],
-    indices: Optional[List[int]] = None,
+    memory: list[str] | np.ndarray,
+    indices: list[int] | None = None,
     int_return: bool = False,
     hex_return: bool = False,
     avg_data: bool = False,
     parallel_threshold: int = 1000,
-) -> Union[List[str], np.ndarray]:
+) -> list[str] | np.ndarray:
     """Marginalize shot memory
 
     This function is multithreaded and will launch a thread pool with threads equal to the number
@@ -197,9 +198,9 @@ def marginal_memory(
 
 def marginal_distribution(
     counts: dict,
-    indices: Optional[Sequence[int]] = None,
+    indices: Sequence[int] | None = None,
     format_marginal: bool = False,
-) -> Dict[str, int]:
+) -> dict[str, int]:
     """Marginalize counts from an experiment over some indices of interest.
 
     Unlike :func:`~.marginal_counts` this function respects the order of

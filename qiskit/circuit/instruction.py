@@ -102,7 +102,7 @@ class Instruction(Operation):
         self.params = params  # must be at last (other properties may be required for validation)
 
     @property
-    def base_class(self) -> Type[Instruction]:
+    def base_class(self) -> type[Instruction]:
         """Get the base class of this instruction.  This is guaranteed to be in the inheritance tree
         of ``self``.
 
@@ -176,9 +176,8 @@ class Instruction(Operation):
             if isinstance(self_param, numpy.ndarray):
                 if numpy.array_equal(self_param, other_param):
                     continue
-            else:
-                if self_param == other_param:
-                    continue
+            elif self_param == other_param:
+                continue
 
             try:
                 self_asarray = numpy.asarray(self_param)
@@ -213,7 +212,7 @@ class Instruction(Operation):
             f"num_clbits={self.num_clbits}, params={self.params})"
         )
 
-    def soft_compare(self, other: "Instruction") -> bool:
+    def soft_compare(self, other: Instruction) -> bool:
         """
         Soft comparison between gates. Their names, number of qubits, and classical
         bit numbers must match. The number of parameters must match. Each parameter

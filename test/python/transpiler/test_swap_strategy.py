@@ -12,7 +12,6 @@
 
 """Tests for swap strategies."""
 
-from typing import List
 from ddt import data, ddt, unpack
 import numpy as np
 
@@ -61,7 +60,7 @@ class TestSwapStrategy(QiskitTestCase):
         (5, [4, 3, 2, 1, 0]),
     )
     @unpack
-    def test_inverse_composed_permutation(self, layer_idx: int, expected: List[int]):
+    def test_inverse_composed_permutation(self, layer_idx: int, expected: list[int]):
         """Test the inverse of the permutations."""
         self.assertEqual(self.line_strategy.inverse_composed_permutation(layer_idx), expected)
 

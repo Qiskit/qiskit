@@ -172,9 +172,9 @@ class SamplerPub(ShapedMixin):
 SamplerPubLike = Union[
     SamplerPub,
     QuantumCircuit,
-    Tuple[QuantumCircuit],
-    Tuple[QuantumCircuit, BindingsArrayLike],
-    Tuple[QuantumCircuit, BindingsArrayLike, Union[Integral, None]],
+    tuple[QuantumCircuit],
+    tuple[QuantumCircuit, BindingsArrayLike],
+    tuple[QuantumCircuit, BindingsArrayLike, Integral | None],
 ]
 """A Pub (Primitive Unified Bloc) for a Sampler.
 

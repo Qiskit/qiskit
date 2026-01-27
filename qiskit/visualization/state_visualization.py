@@ -18,7 +18,7 @@ Visualization functions for quantum states.
 """
 
 import math
-from typing import List, Union
+from typing import Union
 from functools import reduce
 import colorsys
 
@@ -589,11 +589,10 @@ def plot_state_city(
         ax.set_yticks(np.arange(0.5, ly + 0.5, 1))
         if max_dz != min_dz:
             ax.axes.set_zlim3d(min_dz, max(max_dzr + 1e-9, max_dzi))
+        elif min_dz == 0:
+            ax.axes.set_zlim3d(min_dz, max(max_dzr + 1e-9, max_dzi))
         else:
-            if min_dz == 0:
-                ax.axes.set_zlim3d(min_dz, max(max_dzr + 1e-9, max_dzi))
-            else:
-                ax.axes.set_zlim3d(auto=True)
+            ax.axes.set_zlim3d(auto=True)
         ax.get_autoscalez_on()
 
         ax.xaxis.set_ticklabels(
@@ -1263,7 +1262,7 @@ def _shade_colors(color, normals, lightsource=None):
 
 
 def state_to_latex(
-    state: Union[Statevector, DensityMatrix], dims: bool = None, convention: str = "ket", **args
+    state: Statevector | DensityMatrix, dims: bool = None, convention: str = "ket", **args
 ) -> str:
     """Return a Latex representation of a state. Wrapper function
     for `qiskit.visualization.array_to_latex` for convention 'vector'.
@@ -1307,7 +1306,7 @@ def state_to_latex(
     return prefix + latex_str + suffix
 
 
-def _numbers_to_latex_terms(numbers: List[complex], decimals: int = 10) -> List[str]:
+def _numbers_to_latex_terms(numbers: list[complex], decimals: int = 10) -> list[str]:
     """Convert a list of numbers to latex formatted terms
 
     The first non-zero term is treated differently. For this term a leading + is suppressed.
@@ -1328,7 +1327,7 @@ def _numbers_to_latex_terms(numbers: List[complex], decimals: int = 10) -> List[
 
 
 def _state_to_latex_ket(
-    data: List[complex], max_size: int = 12, prefix: str = "", decimals: int = 10
+    data: list[complex], max_size: int = 12, prefix: str = "", decimals: int = 10
 ) -> str:
     """Convert state vector to latex representation
 

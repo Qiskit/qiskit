@@ -14,7 +14,8 @@
 
 from __future__ import annotations
 
-from typing import Optional, Union, Iterable, TYPE_CHECKING
+from typing import Optional, Union, TYPE_CHECKING
+from collections.abc import Iterable
 import itertools
 
 from qiskit.circuit import ClassicalRegister, Clbit  # pylint: disable=cyclic-import
@@ -150,7 +151,7 @@ class IfElseOp(ControlFlowOp):
         else:
             return (self.params[0], self.params[1])
 
-    def replace_blocks(self, blocks: Iterable[QuantumCircuit]) -> "IfElseOp":
+    def replace_blocks(self, blocks: Iterable[QuantumCircuit]) -> IfElseOp:
         """Replace blocks and return new instruction.
 
         Args:
@@ -187,7 +188,7 @@ class IfElsePlaceholder(InstructionPlaceholder):
         true_block: ControlFlowBuilderBlock,
         false_block: ControlFlowBuilderBlock | None = None,
         *,
-        label: Optional[str] = None,
+        label: str | None = None,
     ):
         """
         Args:
@@ -200,7 +201,7 @@ class IfElsePlaceholder(InstructionPlaceholder):
         """
         # These are protected names because we're not trying to clash with parent attributes.
         self.__true_block = true_block
-        self.__false_block: Optional[ControlFlowBuilderBlock] = false_block
+        self.__false_block: ControlFlowBuilderBlock | None = false_block
         self.__resources = self._calculate_placeholder_resources()
         super().__init__(
             "if_else", len(self.__resources.qubits), len(self.__resources.clbits), [], label=label
@@ -208,7 +209,7 @@ class IfElsePlaceholder(InstructionPlaceholder):
         # Set the condition after super().__init__() has initialized it to None.
         self._condition = validate_condition(condition)
 
-    def with_false_block(self, false_block: ControlFlowBuilderBlock) -> "IfElsePlaceholder":
+    def with_false_block(self, false_block: ControlFlowBuilderBlock) -> IfElsePlaceholder:
         """Return a new placeholder instruction, with the false block set to the given value,
         updating the bits used by both it and the true body, if necessary.
 
@@ -360,7 +361,7 @@ class IfContext:
         return self._condition
 
     @property
-    def appended_instructions(self) -> Union[InstructionSet, None]:
+    def appended_instructions(self) -> InstructionSet | None:
         """Get the instruction set that was created when this block finished.  If the block has not
         yet finished, then this will be ``None``."""
         return self._appended_instructions

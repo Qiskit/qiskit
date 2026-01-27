@@ -64,7 +64,7 @@ class RZGate(Gate):
 
     _standard_gate = StandardGate.RZ
 
-    def __init__(self, phi: ParameterValueType, label: Optional[str] = None):
+    def __init__(self, phi: ParameterValueType, label: str | None = None):
         """
         Args:
             theta: The rotation angle.

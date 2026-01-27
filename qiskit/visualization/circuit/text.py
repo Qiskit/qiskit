@@ -946,11 +946,10 @@ class TextDrawing:
 
             if bot_line is None:
                 lines.append(top_line)
+            elif self.should_compress(top_line, bot_line):
+                lines.append(TextDrawing.merge_lines(lines.pop(), top_line))
             else:
-                if self.should_compress(top_line, bot_line):
-                    lines.append(TextDrawing.merge_lines(lines.pop(), top_line))
-                else:
-                    lines.append(TextDrawing.merge_lines(lines[-1], top_line, icod="bot"))
+                lines.append(TextDrawing.merge_lines(lines[-1], top_line, icod="bot"))
 
             # MID
             mid_line = ""
@@ -1847,13 +1846,12 @@ class Layer:
                         affected_bit.connect(wire_char, ["top"])
                     else:
                         affected_bit.connect(wire_char, ["bot", "top"])
+                elif index == 0:
+                    affected_bit.connect(wire_char, ["bot"])
+                elif index == len(affected_bits) - 1:
+                    affected_bit.connect(wire_char, ["top"], label)
                 else:
-                    if index == 0:
-                        affected_bit.connect(wire_char, ["bot"])
-                    elif index == len(affected_bits) - 1:
-                        affected_bit.connect(wire_char, ["top"], label)
-                    else:
-                        affected_bit.connect(wire_char, ["bot", "top"])
+                    affected_bit.connect(wire_char, ["bot", "top"])
 
             if label:
                 for affected_bit in affected_bits:

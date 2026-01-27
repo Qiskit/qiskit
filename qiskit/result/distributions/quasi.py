@@ -113,7 +113,7 @@ class QuasiDistribution(dict):
                 diff += val * val
             else:
                 diff += (beta / num_elems) * (beta / num_elems)
-                new_probs[key] = sorted_probs[key] + beta / num_elems
+                new_probs[key] = val + beta / num_elems
         if return_distance:
             return ProbDistribution(new_probs, self.shots), sqrt(diff)
         return ProbDistribution(new_probs, self.shots)

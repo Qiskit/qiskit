@@ -65,7 +65,7 @@ class SXGate(SingletonGate):
 
     _standard_gate = StandardGate.SX
 
-    def __init__(self, label: Optional[str] = None):
+    def __init__(self, label: str | None = None):
         """
         Args:
             label: An optional label for the gate.
@@ -177,7 +177,7 @@ class SXdgGate(SingletonGate):
 
     _standard_gate = StandardGate.SXdg
 
-    def __init__(self, label: Optional[str] = None):
+    def __init__(self, label: str | None = None):
         """Create new SXdg gate."""
         super().__init__("sxdg", 1, [], label=label)
 

@@ -15,7 +15,8 @@
 import itertools
 import math
 from collections import OrderedDict, namedtuple
-from typing import Dict, List, Generator, Any
+from typing import Dict, List, Any
+from collections.abc import Generator
 
 import rustworkx as rx
 
@@ -96,15 +97,15 @@ class _DAGDependencyV2:
         self.cregs = OrderedDict()
 
         # List of Qubit/Clbit wires that the DAG acts on.
-        self.qubits: List[Qubit] = []
-        self.clbits: List[Clbit] = []
+        self.qubits: list[Qubit] = []
+        self.clbits: list[Clbit] = []
 
         # Dictionary mapping of Qubit and Clbit instances to a tuple comprised of
         # 0) corresponding index in dag.{qubits,clbits} and
         # 1) a list of Register-int pairs for each Register containing the Bit and
         # its index within that register.
-        self._qubit_indices: Dict[Qubit, BitLocations] = {}
-        self._clbit_indices: Dict[Clbit, BitLocations] = {}
+        self._qubit_indices: dict[Qubit, BitLocations] = {}
+        self._clbit_indices: dict[Clbit, BitLocations] = {}
 
         self._global_phase = 0
 

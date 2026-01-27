@@ -1037,14 +1037,13 @@ def assert_equal(reference, qpy, count, version_parts, bind=None, equivalent=Fal
             )
             sys.stderr.write(msg)
             sys.exit(1)
-    else:
-        if reference != qpy:
-            msg = (
-                f"Reference Circuit {count}:\n{reference}\nis not equivalent to "
-                f"qpy loaded circuit {count}:\n{qpy}\n"
-            )
-            sys.stderr.write(msg)
-            sys.exit(1)
+    elif reference != qpy:
+        msg = (
+            f"Reference Circuit {count}:\n{reference}\nis not equivalent to "
+            f"qpy loaded circuit {count}:\n{qpy}\n"
+        )
+        sys.stderr.write(msg)
+        sys.exit(1)
     # Check deprecated bit properties, if set.  The QPY dumping code before Terra 0.23.2 didn't
     # include enough information for us to fully reconstruct this, so we only test if newer.
     if version_parts >= (0, 23, 2) and isinstance(reference, QuantumCircuit):

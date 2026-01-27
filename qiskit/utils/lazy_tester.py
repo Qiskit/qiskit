@@ -20,7 +20,8 @@ import importlib
 import subprocess
 import typing
 import warnings
-from typing import Union, Iterable, Dict, Optional, Callable, Type
+from typing import Union
+from collections.abc import Iterable, Callable
 
 from qiskit.exceptions import MissingOptionalLibraryError, OptionalDependencyImportWarning
 from .classtools import wrap_method
@@ -167,10 +168,10 @@ class LazyDependencyManager(abc.ABC):
         return out
 
     @typing.overload
-    def require_in_instance(self, feature_or_class: Type) -> Type: ...
+    def require_in_instance(self, feature_or_class: type) -> type: ...
 
     @typing.overload
-    def require_in_instance(self, feature_or_class: str) -> Callable[[Type], Type]: ...
+    def require_in_instance(self, feature_or_class: str) -> Callable[[type], type]: ...
 
     def require_in_instance(self, feature_or_class):
         """A class decorator that requires the dependency is available when the class is
@@ -246,12 +247,12 @@ class LazyImportTester(LazyDependencyManager):
 
     def __init__(
         self,
-        name_map_or_modules: Union[str, Dict[str, Iterable[str]], Iterable[str]],
+        name_map_or_modules: str | dict[str, Iterable[str]] | Iterable[str],
         *,
-        name: Optional[str] = None,
-        callback: Optional[Callable[[bool], None]] = None,
-        install: Optional[str] = None,
-        msg: Optional[str] = None,
+        name: str | None = None,
+        callback: Callable[[bool], None] | None = None,
+        install: str | None = None,
+        msg: str | None = None,
     ):
         """
         Args:
@@ -332,12 +333,12 @@ class LazySubprocessTester(LazyDependencyManager):
 
     def __init__(
         self,
-        command: Union[str, Iterable[str]],
+        command: str | Iterable[str],
         *,
-        name: Optional[str] = None,
-        callback: Optional[Callable[[bool], None]] = None,
-        install: Optional[str] = None,
-        msg: Optional[str] = None,
+        name: str | None = None,
+        callback: Callable[[bool], None] | None = None,
+        install: str | None = None,
+        msg: str | None = None,
     ):
         """
         Args:

@@ -12,7 +12,8 @@
 
 """Search for star connectivity patterns and replace them with."""
 import itertools
-from typing import Iterable, Union, Optional, List, Tuple
+from typing import Union
+from collections.abc import Iterable
 from math import floor, log10
 
 from qiskit.circuit import Barrier
@@ -68,11 +69,10 @@ class StarBlock:
                 self.nodes.append(node)
                 self.num2q += 1
                 added = True
-        else:
-            if self.center in node.qargs:
-                self.nodes.append(node)
-                self.num2q += 1
-                added = True
+        elif self.center in node.qargs:
+            self.nodes.append(node)
+            self.num2q += 1
+            added = True
 
         return added
 
@@ -116,8 +116,8 @@ class StarPreRouting(TransformationPass):
     def __init__(self):
         """StarPreRouting"""
 
-        self._pending_nodes: Optional[list[Union[DAGOpNode, DAGDepNode]]] = None
-        self._in_degree: Optional[dict[Union[DAGOpNode, DAGDepNode], int]] = None
+        self._pending_nodes: list[DAGOpNode | DAGDepNode] | None = None
+        self._in_degree: dict[DAGOpNode | DAGDepNode, int] | None = None
         super().__init__()
 
     def _setup_in_degrees(self, dag):
@@ -138,7 +138,7 @@ class StarPreRouting(TransformationPass):
             if deg == 0:
                 self._pending_nodes.append(node)
 
-    def _op_nodes(self, dag) -> Iterable[Union[DAGOpNode, DAGDepNode]]:
+    def _op_nodes(self, dag) -> Iterable[DAGOpNode | DAGDepNode]:
         """Returns DAG nodes."""
         if not isinstance(dag, DAGDependency):
             return dag.op_nodes()
@@ -286,8 +286,8 @@ class StarPreRouting(TransformationPass):
         return new_dag
 
     def determine_star_blocks_processing(
-        self, dag: Union[DAGCircuit, DAGDependency], min_block_size: int
-    ) -> Tuple[List[StarBlock], Union[List[DAGOpNode], List[DAGDepNode]]]:
+        self, dag: DAGCircuit | DAGDependency, min_block_size: int
+    ) -> tuple[list[StarBlock], list[DAGOpNode] | list[DAGDepNode]]:
         """Returns star blocks in dag and the processing order of nodes within these star blocks
         Args:
             dag (DAGCircuit or DAGDependency): a dag on which star blocks should be determined.

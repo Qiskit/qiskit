@@ -81,30 +81,29 @@ class Counts(dict):
                 elif first_key.startswith("0b"):
                     self.int_raw = {int(key, 0): value for key, value in data.items()}
                     self.hex_raw = {hex(key): value for key, value in self.int_raw.items()}
-                else:
-                    if not creg_sizes and not memory_slots:
-                        # bit strings with no leading 0b or dit strings
-                        self.hex_raw = None
-                        self.int_raw = None
-                        if all(isinstance(k, str) for k in data):
-                            bin_data = data
-                        else:
-                            raise TypeError("All keys must be of the same type")
+                elif not creg_sizes and not memory_slots:
+                    # bit strings with no leading 0b or dit strings
+                    self.hex_raw = None
+                    self.int_raw = None
+                    if all(isinstance(k, str) for k in data):
+                        bin_data = data
                     else:
-                        hex_dict = {}
-                        int_dict = {}
-                        for bitstring, value in data.items():
-                            if not self.bitstring_regex.search(bitstring):
-                                raise exceptions.QiskitError(
-                                    "Counts objects with dit strings do not "
-                                    "currently support dit string formatting parameters "
-                                    "creg_sizes or memory_slots"
-                                )
-                            int_key = self._remove_space_underscore(bitstring)
-                            int_dict[int_key] = value
-                            hex_dict[hex(int_key)] = value
-                        self.hex_raw = hex_dict
-                        self.int_raw = int_dict
+                        raise TypeError("All keys must be of the same type")
+                else:
+                    hex_dict = {}
+                    int_dict = {}
+                    for bitstring, value in data.items():
+                        if not self.bitstring_regex.search(bitstring):
+                            raise exceptions.QiskitError(
+                                "Counts objects with dit strings do not "
+                                "currently support dit string formatting parameters "
+                                "creg_sizes or memory_slots"
+                            )
+                        int_key = self._remove_space_underscore(bitstring)
+                        int_dict[int_key] = value
+                        hex_dict[hex(int_key)] = value
+                    self.hex_raw = hex_dict
+                    self.int_raw = int_dict
             else:
                 raise TypeError(
                     "Invalid input key type %s, must be either an int "

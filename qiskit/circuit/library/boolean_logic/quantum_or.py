@@ -62,7 +62,7 @@ class OR(QuantumCircuit):
     def __init__(
         self,
         num_variable_qubits: int,
-        flags: Optional[List[int]] = None,
+        flags: list[int] | None = None,
         mcx_mode: str = "noancilla",
     ) -> None:
         """

@@ -85,7 +85,7 @@ class DefaultStyle:
 
 
 def load_style(
-    style: Union[dict, str, None],
+    style: dict | str | None,
     style_dict: type[StyleDict],
     default_style: DefaultStyle,
     user_config_opt: str,

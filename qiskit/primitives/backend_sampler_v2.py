@@ -17,7 +17,8 @@ from __future__ import annotations
 import warnings
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Any, Iterable, Union
+from typing import Any, Union
+from collections.abc import Iterable
 
 import numpy as np
 from numpy.typing import NDArray

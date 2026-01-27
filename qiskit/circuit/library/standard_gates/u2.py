@@ -90,7 +90,7 @@ class U2Gate(Gate):
         self,
         phi: ParameterValueType,
         lam: ParameterValueType,
-        label: Optional[str] = None,
+        label: str | None = None,
     ):
         r"""
         Args:

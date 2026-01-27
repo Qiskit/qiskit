@@ -282,12 +282,11 @@ class PauliEvolutionGate(Gate):
             ctrl_state = "1" * num_ctrl_qubits
         elif isinstance(ctrl_state, int):
             ctrl_state = bin(ctrl_state)[2:].zfill(num_ctrl_qubits)
-        else:
-            if len(ctrl_state) != num_ctrl_qubits:
-                raise ValueError(
-                    f"Length of ctrl_state ({len(ctrl_state)}) must match "
-                    f"num_ctrl_qubits ({num_ctrl_qubits})"
-                )
+        elif len(ctrl_state) != num_ctrl_qubits:
+            raise ValueError(
+                f"Length of ctrl_state ({len(ctrl_state)}) must match "
+                f"num_ctrl_qubits ({num_ctrl_qubits})"
+            )
 
         # Implementing the controlled version of an evolution,
         #   |0><0| \otimes 1 + |1><1| \otimes exp(it H),
@@ -457,14 +456,13 @@ def _pauli_rotation_trace_and_dim(gate: PauliEvolutionGate) -> tuple[complex, in
         else:
             return None
     # If the operator is a SparsePauliOp, it should have a single term.
+    elif len(operator.paulis) == 1:
+        label = operator.paulis.to_labels()[0]
+        label = label.replace("I", "")
+        dim = len(label)
+        angle = operator.coeffs[0].real * gate.time
     else:
-        if len(operator.paulis) == 1:
-            label = operator.paulis.to_labels()[0]
-            label = label.replace("I", "")
-            dim = len(label)
-            angle = operator.coeffs[0].real * gate.time
-        else:
-            return None
+        return None
 
     if dim == 0:
         # This is an identity Pauli rotation.
