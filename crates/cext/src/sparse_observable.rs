@@ -627,10 +627,10 @@ pub unsafe extern "C" fn qk_obs_add(
 ///
 /// # Example
 /// ```c
-///     QkObs *left = qk_obs_zero(100);
-///     QkObs *right = qk_obs_identity(100);
-///     QkComplex64 factor = {2, 0};
-///     QkObs *result = qk_obs_addmul(left, right, factor);
+/// QkObs *left = qk_obs_zero(100);
+/// QkObs *right = qk_obs_identity(100);
+/// QkComplex64 factor = {2, 0};
+/// QkObs *result = qk_obs_addmul(left, right, factor);
 /// ```
 ///
 /// # Safety

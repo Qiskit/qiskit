@@ -876,7 +876,8 @@ impl SparseObservable {
             .extend(rhs.boundaries[1..].iter().map(|boundary| offset + boundary));
     }
 
-    /// Add two [SparseObservable] instances while scaling the coefficients of `rhs`.
+    /// Add two [SparseObservable] instances while scaling the coefficients of `rhs`
+    /// with `factor`.
     ///
     /// # Panics
     ///
