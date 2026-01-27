@@ -657,13 +657,13 @@ pub unsafe extern "C" fn qk_obs_add(
 /// @param left A pointer to the left observable.
 /// @param right A pointer to the right observable.
 ///
-/// @return An exit code. This is ``>0`` if the addition failed.
+/// @return An exit code. This function only returns ``QkExitCode_Success``.
 ///
 /// # Example
 /// ```c
-///     QkObs *left = qk_obs_identity(100);
-///     QkObs *right = qk_obs_zero(100);
-///     QkExitCode exit = qk_obs_iadd(left, right);
+/// QkObs *left = qk_obs_identity(100);
+/// QkObs *right = qk_obs_zero(100);
+/// QkExitCode exit = qk_obs_add_inplace(left, right);
 /// ```
 ///
 /// # Safety
