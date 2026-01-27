@@ -21,6 +21,7 @@ import typing
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library.generalized_gates import Isometry
 from .state_preparation import StatePreparation
 
@@ -83,6 +84,25 @@ class Initialize(Instruction):
         initialize_circuit.reset(q)
         initialize_circuit.append(self._stateprep, q)
         self.definition = initialize_circuit
+
+    def inverse(self, annotated: bool = False):
+        """Invert this instruction.
+
+        Args:
+            annotated: if set to ``True`` the output inverse gate will be returned
+                as :class:`.AnnotatedOperation`.
+
+        Returns:
+            The inverse operation.
+
+        Raises:
+            CircuitError: if the instruction is not composite
+                and an inverse has not been implemented for it.
+        """
+        raise CircuitError(
+            f"inverse() not implemented for {self.name}. "
+            f"{self.name} is a non-unitary instruction and cannot be inverted."
+        )
 
     def gates_to_uncompute(self) -> QuantumCircuit:
         """Call to create a circuit with gates that take the desired vector to zero.
