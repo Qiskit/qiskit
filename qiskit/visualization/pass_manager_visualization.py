@@ -305,8 +305,14 @@ def make_output(graph, raw, filename):
         # pylint says this isn't a method - it is
         graph.write_png(tmppath)
 
-        image = Image.open(tmppath)
-        os.remove(tmppath)
+        # [Current Code - Causes WinError 32]
+        # image = Image.open(tmppath)
+        # os.remove(tmppath)
+
+        # [Proposed Fix]
+        image = Image.open(tmppath).copy()
+
+        # ... existing code continues ...
         if filename:
-            image.save(filename, "PNG")
+            image.save(filename)
         return image
