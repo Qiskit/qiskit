@@ -2024,6 +2024,7 @@ name = "qiskit-accelerate"
 version = "2.5.0-dev"
 dependencies = [
  "approx",
+ "faer",
  "hashbrown 0.15.5",
  "itertools 0.14.0",
  "nalgebra",
@@ -2281,6 +2282,7 @@ dependencies = [
  "anyhow",
  "approx",
  "bytemuck",
+ "faer",
  "fixedbitset 0.5.7",
  "hashbrown 0.15.5",
  "indexmap",

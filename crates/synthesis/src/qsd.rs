@@ -13,9 +13,9 @@
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
-use approx::abs_diff_eq;
+use faer::{Mat, MatRef, Scale};
 use hashbrown::HashMap;
-use nalgebra::{DMatrix, DMatrixView, DVector, Matrix4, QR, stack};
+use nalgebra::Matrix4;
 use ndarray::prelude::*;
 use num_complex::Complex64;
 use numpy::PyReadonlyArray2;
@@ -28,7 +28,10 @@ use thiserror::Error;
 use crate::euler_one_qubit_decomposer::{
     EulerBasis, EulerBasisSet, unitary_to_gate_sequence_inner,
 };
-use crate::linalg::{closest_unitary, is_hermitian_matrix, svd_decomposition, verify_unitary};
+use crate::linalg::{
+    block_matrix_faer, closest_unitary_faer, faer_to_ndarray, from_diagonal_faer,
+    is_zero_matrix_faer, svd_decomposition_faer, verify_unitary_faer,
+};
 use crate::two_qubit_decompose::{TwoQubitBasisDecomposer, two_qubit_decompose_up_to_diagonal};
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError, PyCircuitData};
@@ -89,7 +92,7 @@ enum VWType {
 ///
 /// Decomposed quantum circuit.
 pub fn quantum_shannon_decomposition(
-    mat: &DMatrix<Complex64>,
+    mat: MatRef<Complex64>,
     opt_a1: Option<bool>,
     opt_a2: Option<bool>,
     one_qubit_decomposer_basis_set: Option<&EulerBasisSet>,
@@ -110,7 +113,7 @@ pub fn quantum_shannon_decomposition(
     let one_qubit_decomposer = one_qubit_decomposer_basis_set.unwrap_or(&default_1q_basis);
     let two_qubit_decomposer = two_qubit_decomposer.unwrap_or(&default_2q_decomposer);
 
-    if abs_diff_eq!(DMatrix::identity(dim, dim), mat) {
+    if (Mat::<Complex64>::identity(dim, dim).as_ref() - mat).norm_max() < 1e-8 {
         let out_qubits = (0..num_qubits)
             .map(|_| ShareableQubit::new_anonymous())
             .collect::<Vec<_>>();
@@ -127,7 +130,7 @@ pub fn quantum_shannon_decomposition(
 }
 
 fn qsd_inner(
-    mat: &DMatrix<Complex64>,
+    mat: MatRef<Complex64>,
     opt_a1: Option<bool>,
     opt_a2: Option<bool>,
     two_qubit_decomposer: &TwoQubitBasisDecomposer,
@@ -138,14 +141,9 @@ fn qsd_inner(
     let num_qubits = dim.ilog2() as usize;
     let opt_a1_val = opt_a1.unwrap_or(true);
     if dim == 2 {
-        let dim = ::ndarray::Dim(mat.shape());
-        let strides = ::ndarray::Dim(mat.strides());
-        // SAFETY: We know the array is a 2x2 and contiguous block (DMatrix uses a vec for backing storage) so we
-        // don't need to check for invalid format
-        let array =
-            unsafe { ArrayView2::from_shape_ptr(dim.strides(strides), mat.get_unchecked(0)) };
+        let array = faer_to_ndarray(mat);
         let sequence =
-            unitary_to_gate_sequence_inner(array, one_qubit_decomposer, 0, None, true, None);
+            unitary_to_gate_sequence_inner(array.view(), one_qubit_decomposer, 0, None, true, None);
 
         return match sequence {
             Some(seq) => Ok(CircuitData::from_standard_gates(
@@ -187,17 +185,12 @@ fn qsd_inner(
             out.push(packed_inst)?;
             return Ok(out);
         }
-        let dim = ::ndarray::Dim(mat.shape());
-        let strides = ::ndarray::Dim(mat.strides());
-        // SAFETY: We know the array is a 4x4 and contiguous block (DMatrix uses a vec for backing storage) so we
-        // don't need to check for invalid format
-        let array =
-            unsafe { ArrayView2::from_shape_ptr(dim.strides(strides), mat.get_unchecked(0)) };
+        let array = faer_to_ndarray(mat);
         let sequence = two_qubit_decomposer
-            .call_inner(array, None, false, None)
+            .call_inner(array.view(), None, false, None)
             .unwrap_or_else(|_| {
                 two_qubit_decomposer
-                    .call_inner(array, None, false, None)
+                    .call_inner(array.view(), None, false, None)
                     .unwrap()
             });
         let global_phase = sequence.global_phase();
@@ -223,10 +216,11 @@ fn qsd_inner(
         for ctrl_index in 0..num_qubits {
             let [um00, um11, um01, um10] = extract_multiplex_blocks(mat, ctrl_index);
 
-            if is_zero_matrix(&um01, None) && is_zero_matrix(&um10, None) {
+            if is_zero_matrix_faer(um01.as_ref(), None) && is_zero_matrix_faer(um10.as_ref(), None)
+            {
                 return Ok(demultiplex(
-                    &um00,
-                    &um11,
+                    um00.as_ref(),
+                    um11.as_ref(),
                     opt_a1_val,
                     false, // opt_a2
                     depth,
@@ -251,14 +245,19 @@ fn qsd_inner(
 
     let mut out = CircuitData::with_capacity(num_qubits as u32, 0, gates_bound, Param::Float(0.))?;
     // perform block ZXZ decomposition from [2]
-    let (a1, a2, b, c) = block_zxz_decomp(mat);
+    let (a1, a2, b, c) = block_zxz_decomp(mat.as_ref());
+    debug_assert!(zxz_decomp_verify(
+        mat,
+        a1.as_ref(),
+        a2.as_ref(),
+        b.as_ref(),
+        c.as_ref()
+    ));
 
-    debug_assert!(zxz_decomp_verify(mat, &a1, &a2, &b, &c));
-
-    let iden = DMatrix::<Complex64>::identity(dim / 2, dim / 2);
+    let iden = Mat::<Complex64>::identity(dim / 2, dim / 2);
     let (left_circuit, vmat_c, _) = demultiplex(
-        &iden,
-        &c,
+        iden.as_ref(),
+        c.as_ref(),
         opt_a1_val,
         opt_a2_val,
         depth,
@@ -268,8 +267,8 @@ fn qsd_inner(
         one_qubit_decomposer,
     )?;
     let (right_circuit, _, wmat_a) = demultiplex(
-        &a1,
-        &a2,
+        a1.as_ref(),
+        a2.as_ref(),
         opt_a1_val,
         opt_a2_val,
         depth,
@@ -285,7 +284,7 @@ fn qsd_inner(
     let b1 = &wmat_a * &vmat_c;
     let b2 = if opt_a1_val {
         // zmat is needed in order to reduce two cz gates, and combine them into the B2 matrix
-        let mut zmat = DMatrix::<Complex64>::zeros(dim / 2, dim / 2);
+        let mut zmat = Mat::<Complex64>::zeros(dim / 2, dim / 2);
         for i in 0..dim / 2 {
             zmat[(i, i)] = if i < dim / 4 {
                 Complex64::ONE
@@ -293,14 +292,13 @@ fn qsd_inner(
                 -Complex64::ONE
             };
         }
-
         &zmat * &wmat_a * &b * &vmat_c * &zmat
     } else {
         &wmat_a * &b * &vmat_c
     };
     let middle_circ = demultiplex(
-        &b1,
-        &b2,
+        b1.as_ref(),
+        b2.as_ref(),
         opt_a1_val,
         opt_a2_val,
         depth,
@@ -325,10 +323,10 @@ fn qsd_inner(
     }
 }
 
-fn zxz_decomp_svd(a: DMatrixView<Complex64>) -> (DMatrix<Complex64>, DMatrix<Complex64>) {
-    let (v, sigma, w_dg) = svd_decomposition(a);
+fn zxz_decomp_svd(a: MatRef<Complex64>) -> (Mat<Complex64>, Mat<Complex64>) {
+    let (v, sigma, w_dg) = svd_decomposition_faer(a);
 
-    let s = &v * &sigma * &v.adjoint();
+    let s = v.as_ref() * sigma * v.adjoint();
     let u = v * w_dg;
 
     (s, u)
@@ -336,53 +334,70 @@ fn zxz_decomp_svd(a: DMatrixView<Complex64>) -> (DMatrix<Complex64>, DMatrix<Com
 
 /// Block ZXZ decomposition method, by Krol and Al-Ars [2]
 fn block_zxz_decomp(
-    mat: &DMatrix<Complex64>,
+    mat: MatRef<Complex64>,
 ) -> (
-    DMatrix<Complex64>,
-    DMatrix<Complex64>,
-    DMatrix<Complex64>,
-    DMatrix<Complex64>,
+    Mat<Complex64>,
+    Mat<Complex64>,
+    Mat<Complex64>,
+    Mat<Complex64>,
 ) {
-    debug_assert!(verify_unitary(mat));
+    debug_assert!(verify_unitary_faer(mat));
 
     let i = Complex64::new(0.0, 1.0);
     let n = mat.shape().0 / 2;
-    let x = mat.view((0, 0), (n, n));
-    let y = mat.view((0, n), (n, n));
-    let u21 = mat.view((n, 0), (n, n));
-    let u22 = mat.view((n, n), (n, n));
+    let x = mat.submatrix(0, 0, n, n);
+    let y = mat.submatrix(0, n, n, n);
+    let u21 = mat.submatrix(n, 0, n, n);
+    let u22 = mat.submatrix(n, n, n, n);
     let (sx, ux) = zxz_decomp_svd(x);
     let (sy, uy) = zxz_decomp_svd(y);
-    let c = ((&uy.adjoint() * &ux) * i).adjoint();
-    let a1 = (sx + sy * i) * &ux;
-    let a2 = u21 + (u22 * (uy.adjoint() * ux) * i);
-    let b = (a1.adjoint() * x) * Complex64::from(2.0) - DMatrix::<Complex64>::identity(n, n);
+    let c = ((uy.adjoint() * &ux) * Scale(i)).adjoint().to_owned();
+    let a1 = (sx + sy * Scale(i)) * &ux;
+    let a2 = u21 + (u22 * (uy.adjoint() * ux) * Scale(i));
+    let b = (a1.adjoint() * x) * Scale(Complex64::from(2.0)) - Mat::<Complex64>::identity(n, n);
     (a1, a2, b, c)
 }
 
 /// Verify ZXZ decomposition gives the same unitary
-#[allow(clippy::toplevel_ref_arg)]
 fn zxz_decomp_verify(
-    mat: &DMatrix<Complex64>,
-    a1: &DMatrix<Complex64>,
-    a2: &DMatrix<Complex64>,
-    b: &DMatrix<Complex64>,
-    c: &DMatrix<Complex64>,
+    mat: MatRef<Complex64>,
+    a1: MatRef<Complex64>,
+    a2: MatRef<Complex64>,
+    b: MatRef<Complex64>,
+    c: MatRef<Complex64>,
 ) -> bool {
     let n = mat.shape().0 / 2;
-    let iden = DMatrix::<Complex64>::identity(n, n);
+    let zero = Mat::<Complex64>::zeros(n, n);
+    let iden = Mat::<Complex64>::identity(n, n);
 
-    let a_block = stack![a1, 0; 0, a2];
+    let a_block = block_matrix_faer(a1, zero.as_ref(), zero.as_ref(), a2);
 
     let b1 = &iden + b;
     let b2 = &iden - b;
-    let b_block = stack![b1, b2; b2, b1];
+    let b_block = block_matrix_faer(b1.as_ref(), b2.as_ref(), b2.as_ref(), b1.as_ref());
 
-    let c_block = stack![iden, 0; 0, c];
+    let c_block = block_matrix_faer(iden.as_ref(), zero.as_ref(), zero.as_ref(), c);
 
-    let mat_check = a_block * b_block * c_block * Complex64::from(0.5);
+    let mat_check = &a_block * &b_block * &c_block * Scale(Complex64::from(0.5));
 
-    abs_diff_eq!(mat, &mat_check, epsilon = 1e-7)
+    (mat - mat_check).norm_max() < 1e-7
+}
+
+fn eigendecomposition(
+    mat: MatRef<Complex64>,
+) -> Result<(Vec<Complex64>, Mat<Complex64>), QSDError> {
+    let eigh = mat.eigen();
+
+    match eigh {
+        Ok(eigh) => {
+            let vmat = eigh.U().to_owned();
+            // ToDo: check if I can remove this?
+            let vmat = closest_unitary_faer(vmat.as_ref());
+            let eigvals: Vec<Complex64> = eigh.S().column_vector().iter().cloned().collect();
+            Ok((eigvals, vmat))
+        }
+        Err(_) => Err(QSDError::SchurDecompositionFailed),
+    }
 }
 
 ///  Decompose a generic multiplexer.
@@ -414,8 +429,8 @@ fn zxz_decomp_verify(
 /// as we start with the demultiplexing step that does not work with the optimization A.2 of [1, 2].
 #[allow(clippy::too_many_arguments)]
 fn demultiplex(
-    um0: &DMatrix<Complex64>,
-    um1: &DMatrix<Complex64>,
+    um0: MatRef<Complex64>,
+    um1: MatRef<Complex64>,
     opt_a1: bool,
     opt_a2: bool,
     depth: usize,
@@ -423,9 +438,9 @@ fn demultiplex(
     vw_type: VWType,
     two_qubit_decomposer: &TwoQubitBasisDecomposer,
     one_qubit_decomposer: &EulerBasisSet,
-) -> Result<(CircuitData, DMatrix<Complex64>, DMatrix<Complex64>), QSDError> {
-    let um0 = closest_unitary(um0.as_view());
-    let um1 = closest_unitary(um1.as_view());
+) -> Result<(CircuitData, Mat<Complex64>, Mat<Complex64>), QSDError> {
+    let um0 = closest_unitary_faer(um0.as_ref());
+    let um1 = closest_unitary_faer(um1.as_ref());
 
     let dim = um0.shape().0 + um1.shape().0;
     let num_qubits = dim.ilog2() as usize;
@@ -435,25 +450,18 @@ fn demultiplex(
         .chain([_ctrl_index])
         .map(Qubit::new)
         .collect();
-    let um0um1 = &um0 * um1.adjoint();
-    let (eigvals, vmat) = if is_hermitian_matrix(um0um1.as_view()) {
-        let eigh = um0um1.symmetric_eigen();
-        let evals = eigh.eigenvalues;
-        let eigvals = evals.map(|x| Complex64::new(x, 0.));
-        let orthonormal_eigenvectors = QR::new(eigh.eigenvectors).q();
-        (eigvals, orthonormal_eigenvectors)
-    } else {
-        let schur = nalgebra::linalg::Schur::try_new(um0um1, 1e-12, 100000)
-            .ok_or(QSDError::SchurDecompositionFailed)?;
-        let (vmat, evals) = schur.unpack();
-        let eigvals = evals.diagonal();
-        (eigvals, vmat)
-    };
-    let d_values: DVector<Complex64> = eigvals.map(|x| x.sqrt());
-    let d_mat: DMatrix<Complex64> = DMatrix::from_diagonal(&d_values);
-    let wmat = &d_mat * vmat.adjoint() * &um1;
-
-    debug_assert!(demultiplex_verify(&um0, &um1, &vmat, &wmat, &d_mat));
+    let um0um1 = um0.as_ref() * um1.adjoint();
+    let (eigvals, vmat): (Vec<Complex64>, Mat<Complex64>) = eigendecomposition(um0um1.as_ref())?;
+    let d_values: Vec<Complex64> = eigvals.iter().map(|x| x.sqrt()).collect();
+    let d_mat: Mat<Complex64> = from_diagonal_faer(&d_values);
+    let wmat = d_mat.as_ref() * vmat.adjoint() * um1.as_ref();
+    debug_assert!(demultiplex_verify(
+        um0.as_ref(),
+        um1.as_ref(),
+        vmat.as_ref(),
+        wmat.as_ref(),
+        d_mat.as_ref()
+    ));
 
     let out_qubits = (0..num_qubits)
         .map(|_| ShareableQubit::new_anonymous())
@@ -465,7 +473,7 @@ fn demultiplex(
     match vw_type {
         VWType::OnlyW | VWType::All => {
             let left_circuit = qsd_inner(
-                &wmat,
+                wmat.as_ref(),
                 Some(opt_a1),
                 Some(opt_a2),
                 two_qubit_decomposer,
@@ -502,7 +510,7 @@ fn demultiplex(
     match vw_type {
         VWType::OnlyV | VWType::All => {
             let right_circuit = qsd_inner(
-                &vmat,
+                vmat.as_ref(),
                 Some(opt_a1),
                 Some(opt_a2),
                 two_qubit_decomposer,
@@ -516,23 +524,24 @@ fn demultiplex(
     Ok((out, vmat, wmat))
 }
 
-#[allow(clippy::toplevel_ref_arg)]
 fn demultiplex_verify(
-    um0: &DMatrix<Complex64>,
-    um1: &DMatrix<Complex64>,
-    vmat: &DMatrix<Complex64>,
-    wmat: &DMatrix<Complex64>,
-    dmat: &DMatrix<Complex64>,
+    um0: MatRef<Complex64>,
+    um1: MatRef<Complex64>,
+    vmat: MatRef<Complex64>,
+    wmat: MatRef<Complex64>,
+    dmat: MatRef<Complex64>,
 ) -> bool {
-    let u_block = stack![um0, 0; 0, um1];
-    let v_block = stack![vmat, 0; 0, vmat];
-    let w_block = stack![wmat, 0; 0, wmat];
-    let d_inv = dmat.adjoint();
-    let d_block = stack![dmat, 0; 0, d_inv];
+    let n = um0.nrows();
+    let zero = Mat::<Complex64>::zeros(n, n);
 
-    let u_check = v_block * d_block * w_block;
+    let u_block = block_matrix_faer(um0, zero.as_ref(), zero.as_ref(), um1);
+    let v_block = block_matrix_faer(vmat, zero.as_ref(), zero.as_ref(), vmat);
+    let w_block = block_matrix_faer(wmat, zero.as_ref(), zero.as_ref(), wmat);
+    let d_inv = dmat.adjoint().to_owned();
+    let d_block = block_matrix_faer(dmat, zero.as_ref(), zero.as_ref(), d_inv.as_ref());
+    let u_check = &v_block * &d_block * &w_block;
 
-    abs_diff_eq!(u_block, u_check, epsilon = 1e-7)
+    (u_block.as_ref() - u_check.as_ref()).norm_max() < 1e-7
 }
 
 /// This function synthesizes UCRZ without the final CX gate,
@@ -644,7 +653,7 @@ where
 /// [ um00 | um01 ]
 /// [ ---- | ---- ]
 /// [ um10 | um11 ]
-fn extract_multiplex_blocks(umat: &DMatrix<Complex64>, k: usize) -> [DMatrix<Complex64>; 4] {
+fn extract_multiplex_blocks(umat: MatRef<Complex64>, k: usize) -> [Mat<Complex64>; 4] {
     let dim = umat.shape().0;
     let num_qubits = dim.ilog2() as usize;
     let half_dim = dim / 2;
@@ -663,17 +672,11 @@ fn extract_multiplex_blocks(umat: &DMatrix<Complex64>, k: usize) -> [DMatrix<Com
     let um01 = ud4.slice(s![0, .., 1, ..]);
     let um10 = ud4.slice(s![1, .., 0, ..]);
     [
-        DMatrix::from_fn(um00.shape()[0], um00.shape()[1], |i, j| um00[[i, j]]),
-        DMatrix::from_fn(um11.shape()[0], um11.shape()[1], |i, j| um11[[i, j]]),
-        DMatrix::from_fn(um01.shape()[0], um01.shape()[1], |i, j| um01[[i, j]]),
-        DMatrix::from_fn(um10.shape()[0], um10.shape()[1], |i, j| um10[[i, j]]),
+        Mat::from_fn(um00.shape()[0], um00.shape()[1], |i, j| um00[[i, j]]),
+        Mat::from_fn(um11.shape()[0], um11.shape()[1], |i, j| um11[[i, j]]),
+        Mat::from_fn(um01.shape()[0], um01.shape()[1], |i, j| um01[[i, j]]),
+        Mat::from_fn(um10.shape()[0], um10.shape()[1], |i, j| um01[[i, j]]),
     ]
-}
-
-// check whether a matrix is zero (up to tolerance)
-fn is_zero_matrix(mat: &DMatrix<Complex64>, atol: Option<f64>) -> bool {
-    mat.iter()
-        .all(|x| abs_diff_eq!(*x, Complex64::ZERO, epsilon = atol.unwrap_or(1e-12)))
 }
 
 /// The optimization A.2 from [1, 2]. This decomposes two qubit unitaries into a
@@ -893,7 +896,7 @@ pub fn qs_decomposition(
     two_qubit_decomposer: Option<&TwoQubitBasisDecomposer>,
 ) -> PyResult<PyCircuitData> {
     let array: ArrayView2<Complex64> = mat.as_array();
-    let mat = DMatrix::from_fn(array.shape()[0], array.shape()[1], |i, j| array[[i, j]]);
+    let mat = Mat::from_fn(array.shape()[0], array.shape()[1], |i, j| array[[i, j]]);
     let mut one_qubit_decomposer_basis_set = EulerBasisSet::new();
     let one_qubit_decomposer = if let Some(basis_string) = one_qubit_decomposer_basis_string {
         let basis = basis_string
@@ -905,7 +908,7 @@ pub fn qs_decomposition(
         None
     };
     let res = quantum_shannon_decomposition(
-        &mat,
+        mat.as_ref(),
         opt_a1,
         opt_a2,
         one_qubit_decomposer,

@@ -11,11 +11,13 @@
 // that they have been altered from the originals.
 
 use approx::{abs_diff_eq, relative_ne};
+use faer::Mat;
 use faer::MatRef;
 use nalgebra::{DMatrix, DMatrixView, Dim, Dyn, MatrixView, ViewStorage};
 use ndarray::ArrayView2;
 use ndarray::ShapeBuilder;
 use num_complex::Complex64;
+use qiskit_circuit::util::C_ZERO;
 
 pub mod cos_sin_decomp;
 
@@ -195,6 +197,7 @@ pub fn svd_decomposition(
 ) -> (DMatrix<Complex64>, DMatrix<Complex64>, DMatrix<Complex64>) {
     let mat_view: DMatrixView<Complex64> = mat.as_view();
     let faer_mat: MatRef<Complex64> = nalgebra_to_faer(mat_view);
+
     let faer_svd = faer_mat.svd().unwrap();
 
     let u_faer = faer_svd.U();
@@ -220,6 +223,98 @@ pub fn svd_decomposition(
     ));
 
     (u_na.into(), s_na, v_na)
+}
+
+pub fn svd_decomposition_faer(
+    mat: MatRef<Complex64>,
+) -> (Mat<Complex64>, Mat<Complex64>, Mat<Complex64>) {
+    let svd = mat.svd().expect("Call to faer SVD failed");
+
+    let u = svd.U().to_owned();
+    let s = svd.S();
+    let v = svd.V().adjoint().to_owned();
+
+    let sigma = Mat::from_fn(
+        u.ncols(),
+        v.nrows(),
+        |i, j| {
+            if i == j { s[i] } else { C_ZERO }
+        },
+    );
+
+    (u, sigma, v)
+}
+
+pub fn closest_unitary_faer(mat: MatRef<Complex64>) -> Mat<Complex64> {
+    let (u, _sigma, v_t) = svd_decomposition_faer(mat);
+    u.as_ref() * v_t.as_ref()
+}
+
+pub fn from_diagonal_faer(diag: &[Complex64]) -> Mat<Complex64> {
+    let n = diag.len();
+    Mat::from_fn(n, n, |i, j| {
+        if i == j {
+            diag[i]
+        } else {
+            Complex64::new(0., 0.)
+        }
+    })
+}
+
+/// Returns a block matrix `[a, b; c, d]`.
+/// The matrices `a`, `b`, `c`, `d` are all assumed to be square matrices of the same size
+pub fn block_matrix_faer(
+    a: MatRef<Complex64>,
+    b: MatRef<Complex64>,
+    c: MatRef<Complex64>,
+    d: MatRef<Complex64>,
+) -> Mat<Complex64> {
+    let n = a.nrows();
+    let mut block_matrix = Mat::<Complex64>::zeros(2 * n, 2 * n);
+    for i in 0..n {
+        for j in 0..n {
+            block_matrix[(i, j)] = a[(i, j)];
+        }
+    }
+    for i in 0..n {
+        for j in 0..n {
+            block_matrix[(i, j + n)] = b[(i, j)];
+        }
+    }
+    for i in 0..n {
+        for j in 0..n {
+            block_matrix[(i + n, j)] = c[(i, j)];
+        }
+    }
+    for i in 0..n {
+        for j in 0..n {
+            block_matrix[(i + n, j + n)] = d[(i, j)];
+        }
+    }
+    block_matrix
+}
+
+/// Verifies the given matrix U is unitary by comparing U*U to the identity matrix
+pub fn verify_unitary_faer(u: MatRef<Complex64>) -> bool {
+    let n = u.shape().0;
+
+    let id_mat = Mat::<Complex64>::identity(n, n);
+    let uu = u.adjoint() * u;
+
+    (uu.as_ref() - id_mat.as_ref()).norm_max() < 1e-7
+}
+
+// check whether a matrix is zero (up to tolerance)
+pub fn is_zero_matrix_faer(mat: MatRef<Complex64>, atol: Option<f64>) -> bool {
+    let atol = atol.unwrap_or(1e-12);
+    for i in 0..mat.nrows() {
+        for j in 0..mat.ncols() {
+            if !abs_diff_eq!(mat[(i, j)], Complex64::ZERO, epsilon = atol) {
+                return false;
+            }
+        }
+    }
+    true
 }
 
 #[cfg(test)]

@@ -30,6 +30,7 @@ thiserror.workspace = true
 bytemuck.workspace = true
 fixedbitset.workspace = true
 anyhow.workspace = true
+faer.workspace = true
 
 [dependencies.uuid]
 workspace = true
