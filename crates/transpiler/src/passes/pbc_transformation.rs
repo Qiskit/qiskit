@@ -328,7 +328,7 @@ fn replace_gate_by_pauli_vec(gate: StandardGate, angles: &[Param]) -> GateToPBCV
             Param::Float(0.0),
         ),
         _ => unreachable!(
-            "This is only called for one and two qubit gates with no paramers or with a single parameter."
+            "This is only called for one and two qubit gates with more than one parameter."
         ),
     }
 }
