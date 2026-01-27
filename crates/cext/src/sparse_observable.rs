@@ -630,7 +630,7 @@ pub unsafe extern "C" fn qk_obs_add(
 /// QkObs *left = qk_obs_zero(100);
 /// QkObs *right = qk_obs_identity(100);
 /// QkComplex64 factor = {2, 0};
-/// QkObs *result = qk_obs_addmul(left, right, factor);
+/// QkObs *result = qk_obs_scaled_add(left, right, factor);
 /// ```
 ///
 /// # Safety
@@ -639,7 +639,7 @@ pub unsafe extern "C" fn qk_obs_add(
 /// ``QkObs``\ s.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_obs_addmul(
+pub unsafe extern "C" fn qk_obs_scaled_add(
     left: *const SparseObservable,
     right: *const SparseObservable,
     factor: *const Complex64,
@@ -649,7 +649,7 @@ pub unsafe extern "C" fn qk_obs_addmul(
     let right = unsafe { const_ptr_as_ref(right) };
     let factor = unsafe { const_ptr_as_ref(factor) };
 
-    let result = left.addmul(right, *factor);
+    let result = left.scaled_add(right, *factor);
     Box::into_raw(Box::new(result))
 }
 
@@ -667,7 +667,7 @@ pub unsafe extern "C" fn qk_obs_addmul(
 /// QkObs *left = qk_obs_zero(100);
 /// QkObs *right = qk_obs_identity(100);
 /// QkComplex64 factor = {2, 0};
-/// QkExitCode exit = qk_obs_iaddmul(left, right, factor);
+/// QkExitCode exit = qk_obs_scaled_add_inplace(left, right, factor);
 /// ```
 ///
 /// # Safety
@@ -676,7 +676,7 @@ pub unsafe extern "C" fn qk_obs_addmul(
 /// ``QkObs``\ s.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_obs_iaddmul(
+pub unsafe extern "C" fn qk_obs_scaled_add_inplace(
     left: *mut SparseObservable,
     right: *const SparseObservable,
     factor: *const Complex64,
@@ -686,7 +686,7 @@ pub unsafe extern "C" fn qk_obs_iaddmul(
     let right = unsafe { const_ptr_as_ref(right) };
     let factor = unsafe { const_ptr_as_ref(factor) };
 
-    left.iaddmul(right, *factor);
+    left.scaled_add_inplace(right, *factor);
 
     ExitCode::Success
 }

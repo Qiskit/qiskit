@@ -855,7 +855,7 @@ impl SparseObservable {
     /// # Panics
     ///
     /// If the number of qubits of `rhs` and `self` differ.
-    pub fn iaddmul(&mut self, rhs: &SparseObservable, factor: Complex64) {
+    pub fn scaled_add_inplace(&mut self, rhs: &SparseObservable, factor: Complex64) {
         if rhs.num_qubits != self.num_qubits {
             panic!(
                 "operand ({}) has a different number of qubits to the base ({})",
@@ -877,14 +877,14 @@ impl SparseObservable {
     /// # Panics
     ///
     /// If the number of qubits of `other` and `self` differ.
-    pub fn addmul(&self, rhs: &SparseObservable, factor: Complex64) -> SparseObservable {
+    pub fn scaled_add(&self, rhs: &SparseObservable, factor: Complex64) -> SparseObservable {
         let mut out = SparseObservable::with_capacity(
             self.num_qubits,
             self.coeffs.len() + rhs.coeffs.len(),
             self.bit_terms.len() + rhs.bit_terms.len(),
         );
         out += self;
-        out.iaddmul(rhs, factor);
+        out.scaled_add_inplace(rhs, factor);
         out
     }
 

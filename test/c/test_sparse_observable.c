@@ -77,11 +77,11 @@ static int test_add(void) {
 /**
  * Test adding two observables.
  */
-static int test_addmul(void) {
+static int test_scaled_add(void) {
     QkObs *left = qk_obs_identity(100);
     QkObs *right = qk_obs_identity(100);
     QkComplex64 factor = {2.0, 2.0};
-    QkObs *result = qk_obs_addmul(left, right, &factor);
+    QkObs *result = qk_obs_scaled_add(left, right, &factor);
 
     // construct the expected observable: coeff * Id
     QkObs *expected = qk_obs_identity(100);
@@ -104,11 +104,11 @@ static int test_addmul(void) {
 /**
  * Test adding two observables.
  */
-static int test_iaddmul(void) {
+static int test_scaled_add_inplace(void) {
     QkObs *left = qk_obs_identity(100);
     QkObs *right = qk_obs_identity(100);
     QkComplex64 factor = {2.0, 2.0};
-    int err = qk_obs_iaddmul(left, right, &factor);
+    int err = qk_obs_scaled_add_inplace(left, right, &factor);
 
     if (err != QkExitCode_Success) {
         return err;
@@ -925,8 +925,8 @@ int test_sparse_observable(void) {
     num_failed += RUN_TEST(test_zero);
     num_failed += RUN_TEST(test_identity);
     num_failed += RUN_TEST(test_add);
-    num_failed += RUN_TEST(test_addmul);
-    num_failed += RUN_TEST(test_iaddmul);
+    num_failed += RUN_TEST(test_scaled_add);
+    num_failed += RUN_TEST(test_scaled_add_inplace);
     num_failed += RUN_TEST(test_compose);
     num_failed += RUN_TEST(test_compose_map);
     num_failed += RUN_TEST(test_compose_scalar);

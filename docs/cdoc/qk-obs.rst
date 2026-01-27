@@ -244,8 +244,8 @@ You can:
 
 * compose (multiply) two observables via ``qk_obs_compose`` and ``qk_obs_compose_map``
 
-* compute ``left + scalar * right`` for two observables and a complex scalar with ``qk_obs_addmul``
-  and ``qk_obs_iaddmul``
+* compute ``left + scalar * right`` for two observables and a complex scalar with
+  ``qk_obs_scaled_add`` and ``qk_obs_scaled_add_inplace``
 
 
 Functions
