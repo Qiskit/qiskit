@@ -360,12 +360,8 @@ class BindingsArrayTestCase(QiskitTestCase):
     @ddt.unpack
     def test_as_array_bad_param_raises(self, kwvals_str, args_str):
         """Test as_array() raises when a parameter key is missing."""
-
-        def kwval_param(param):
-            return Parameter(param) if kwvals_str else param
-
-        def args_param(param):
-            return Parameter(param) if args_str else param
+        kwval_param = lambda param: Parameter(param) if kwvals_str else param
+        args_param = lambda param: Parameter(param) if args_str else param
 
         ba = BindingsArray({(kwval_param("a"), kwval_param("b")): np.empty((5, 2))})
         with self.assertRaisesRegex(ValueError, "Expected 2 parameters but 1 received"):
@@ -382,12 +378,8 @@ class BindingsArrayTestCase(QiskitTestCase):
     @ddt.unpack
     def test_as_array(self, kwvals_str, args_str):
         """Test as_array() works for various combinations of string/Parameter inputs."""
-
-        def kwval_param(param):
-            return Parameter(param) if kwvals_str else param
-
-        def args_param(param):
-            return Parameter(param) if args_str else param
+        kwval_param = lambda param: Parameter(param) if kwvals_str else param
+        args_param = lambda param: Parameter(param) if args_str else param
 
         arr_a = np.linspace(0, 20, 250).reshape((25, 5, 2))
         arr_b = np.linspace(0, 5, 375).reshape((25, 5, 3))

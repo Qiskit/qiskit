@@ -80,9 +80,7 @@ def exact_dag_from_coupling(coupling, repeats=1):
 
 
 def setup_cache():
-    def rng():
-        return np.random.default_rng(2025_04_08)
-
+    rng = lambda: np.random.default_rng(2025_04_08)
     out = State({}, {}, {})
     for num_qubits, distance in HEAVY_HEX_DISTANCE.items():
         cm = CouplingMap.from_heavy_hex(distance, bidirectional=False)
