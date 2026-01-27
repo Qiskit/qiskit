@@ -660,14 +660,14 @@ pub unsafe extern "C" fn qk_obs_addmul(
 /// @param right A pointer to the right observable.
 /// @param factor The factor to multiply the coefficients with.
 ///
-/// @return An exit code. This is ``>0`` if the operation failed.
+/// @return An exit code. This function only returns ``QkExitCode_Success``.
 ///
 /// # Example
 /// ```c
-///     QkObs *left = qk_obs_zero(100);
-///     QkObs *right = qk_obs_identity(100);
-///     QkComplex64 factor = {2, 0};
-///     QkExitCode exit = qk_obs_iaddmul(left, right, factor);
+/// QkObs *left = qk_obs_zero(100);
+/// QkObs *right = qk_obs_identity(100);
+/// QkComplex64 factor = {2, 0};
+/// QkExitCode exit = qk_obs_iaddmul(left, right, factor);
 /// ```
 ///
 /// # Safety
