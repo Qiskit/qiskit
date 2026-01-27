@@ -331,17 +331,17 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
     """
 
     __slots__ = (
-        "_instructions",
-        "registers",
-        "global_phase",
         "_allow_jumps",
-        "_parent",
         "_built",
         "_forbidden_message",
-        "_vars_local",
-        "_vars_capture",
-        "_stretches_local",
+        "_instructions",
+        "_parent",
         "_stretches_capture",
+        "_stretches_local",
+        "_vars_capture",
+        "_vars_local",
+        "global_phase",
+        "registers",
     )
 
     def __init__(

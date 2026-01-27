@@ -37,12 +37,12 @@ class CouplingMap:
     """
 
     __slots__ = (
-        "description",
-        "graph",
         "_dist_matrix",
+        "_is_symmetric",
         "_qubit_list",
         "_size",
-        "_is_symmetric",
+        "description",
+        "graph",
     )
 
     def __init__(self, couplinglist=None, description=None):
@@ -212,7 +212,7 @@ class CouplingMap:
         )
         if not paths:
             raise CouplingError(
-                f"Nodes {str(physical_qubit1)} and {str(physical_qubit2)} are not connected"
+                f"Nodes {physical_qubit1!s} and {physical_qubit2!s} are not connected"
             )
         return paths[physical_qubit2]
 

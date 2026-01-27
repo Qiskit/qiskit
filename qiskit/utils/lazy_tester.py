@@ -32,7 +32,7 @@ class _RequireNow:
     :meth:`.LazyDependencyManager.require_now`.  This helpful when used with :func:`.wrap_method`,
     as the callable needs to be compatible with all signatures and be picklable."""
 
-    __slots__ = ("_tester", "_feature")
+    __slots__ = ("_feature", "_tester")
 
     def __init__(self, tester, feature):
         self._tester = tester
@@ -84,7 +84,7 @@ class LazyDependencyManager(abc.ABC):
     command-line tools are available, respectively.
     """
 
-    __slots__ = ("_bool", "_callback", "_name", "_install", "_msg")
+    __slots__ = ("_bool", "_callback", "_install", "_msg", "_name")
 
     def __init__(self, *, name=None, callback=None, install=None, msg=None):
         """

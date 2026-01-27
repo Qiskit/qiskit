@@ -329,7 +329,7 @@ class IfContext:
         Terra.
     """
 
-    __slots__ = ("_circuit", "_condition", "_in_loop", "_label", "_depth", "_appended")
+    __slots__ = ("_appended", "_circuit", "_condition", "_depth", "_in_loop", "_label")
 
     def __init__(
         self,
@@ -436,7 +436,7 @@ class ElseContext:
         Terra.
     """
 
-    __slots__ = ("_if_instruction", "_if_registers", "_if_context", "_used")
+    __slots__ = ("_if_context", "_if_instruction", "_if_registers", "_used")
 
     def __init__(self, if_context: IfContext):
         # We want to avoid doing any processing until we're actually used, because the `if` block

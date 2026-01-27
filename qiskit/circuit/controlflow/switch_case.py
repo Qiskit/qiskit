@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-__all__ = ("SwitchCaseOp", "CASE_DEFAULT")
+__all__ = ("CASE_DEFAULT", "SwitchCaseOp")
 
 import contextlib
 from typing import Union, Any, Literal, TYPE_CHECKING

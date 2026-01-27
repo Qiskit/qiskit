@@ -404,7 +404,7 @@ class TestGateEquivalenceEqual(QiskitTestCase):
                 op2 = Operator(equivalency)
                 msg = (
                     f"Equivalence entry from '{gate.name}' to:\n"
-                    f"{str(equivalency.draw('text'))}\nfailed"
+                    f"{equivalency.draw('text')!s}\nfailed"
                 )
                 self.assertEqual(op1, op2, msg)
 

@@ -1073,7 +1073,7 @@ def plot_coupling_map(
         out_dict["style"] = "filled"
         out_dict["shape"] = "circle"
         out_dict["fontcolor"] = f'"{font_color}"'
-        out_dict["fontsize"] = f'"{str(font_size)}!"'
+        out_dict["fontsize"] = f'"{font_size!s}!"'
         out_dict["height"] = str(qubit_size * px)
         out_dict["fixedsize"] = "True"
         out_dict["fontname"] = '"DejaVu Sans"'

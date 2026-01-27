@@ -1262,7 +1262,7 @@ def _shade_colors(color, normals, lightsource=None):
 
 
 def state_to_latex(
-    state: Statevector | DensityMatrix, dims: bool = None, convention: str = "ket", **args
+    state: Statevector | DensityMatrix, dims: bool | None = None, convention: str = "ket", **args
 ) -> str:
     """Return a Latex representation of a state. Wrapper function
     for `qiskit.visualization.array_to_latex` for convention 'vector'.

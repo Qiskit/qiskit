@@ -523,18 +523,18 @@ what you need, consider using :mod:`qiskit.qpy` instead.
 '''
 
 __all__ = [
-    "load",
-    "loads",
+    "LEGACY_CUSTOM_CLASSICAL",
+    "LEGACY_CUSTOM_INSTRUCTIONS",
+    "LEGACY_INCLUDE_PATH",
+    "CustomClassical",
+    "CustomInstruction",
+    "QASM2Error",
+    "QASM2ExportError",
+    "QASM2ParseError",
     "dump",
     "dumps",
-    "CustomInstruction",
-    "CustomClassical",
-    "LEGACY_CUSTOM_INSTRUCTIONS",
-    "LEGACY_CUSTOM_CLASSICAL",
-    "LEGACY_INCLUDE_PATH",
-    "QASM2Error",
-    "QASM2ParseError",
-    "QASM2ExportError",
+    "load",
+    "loads",
 ]
 
 import os

@@ -139,7 +139,7 @@ class CheckDecompositions(QiskitTestCase):
         repr1 = repr(weyl1)
         with self.assertNoLogs("qiskit.synthesis"):
             weyl2: TwoQubitWeylDecomposition = eval(repr1)  # pylint: disable=eval-used
-        msg_base = f"weyl1:\n{repr1}\nweyl2:\n{repr(weyl2)}"
+        msg_base = f"weyl1:\n{repr1}\nweyl2:\n{weyl2!r}"
         self.assertEqual(type(weyl1), type(weyl2), msg_base)
         maxdiff = np.max(abs(weyl1.unitary_matrix - weyl2.unitary_matrix))
         self.assertEqual(maxdiff, 0, msg=f"Unitary matrix differs by {maxdiff}\n" + msg_base)
@@ -161,7 +161,7 @@ class CheckDecompositions(QiskitTestCase):
 
         pkl = pickle.dumps(weyl1, protocol=max(4, pickle.DEFAULT_PROTOCOL))
         weyl2 = pickle.loads(pkl)
-        msg_base = f"weyl1:\n{weyl1}\nweyl2:\n{repr(weyl2)}"
+        msg_base = f"weyl1:\n{weyl1}\nweyl2:\n{weyl2!r}"
         self.assertEqual(type(weyl1), type(weyl2), msg_base)
         maxdiff = np.max(abs(weyl1.unitary_matrix - weyl2.unitary_matrix))
         self.assertEqual(maxdiff, 0, msg=f"Unitary matrix differs by {maxdiff}\n" + msg_base)

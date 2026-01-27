@@ -172,8 +172,8 @@ class BasePassManager(ABC):
     def run(
         self,
         in_programs: Any | list[Any],
-        callback: Callable = None,
-        num_processes: int = None,
+        callback: Callable | None = None,
+        num_processes: int | None = None,
         *,
         property_set: dict[str, object] | None = None,
         **kwargs,

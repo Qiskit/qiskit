@@ -197,9 +197,9 @@ from qiskit._accelerate.circuit import Annotation
 
 __all__ = [
     "Annotation",  # Also exported in `qiskit.circuit`, but for convenience is here too.
-    "QPYSerializer",
     "OpenQASM3Serializer",
     "QPYFromOpenQASM3Serializer",
+    "QPYSerializer",
     "iter_namespaces",
 ]
 

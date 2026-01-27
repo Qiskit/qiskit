@@ -116,7 +116,7 @@ class PadDynamicalDecoupling(BasePadding):
     def __init__(
         self,
         durations: InstructionDurations = None,
-        dd_sequence: list[Gate] = None,
+        dd_sequence: list[Gate] | None = None,
         qubits: list[int] | None = None,
         spacing: list[float] | None = None,
         skip_reset_qubits: bool = True,

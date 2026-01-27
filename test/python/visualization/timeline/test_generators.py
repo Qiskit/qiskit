@@ -27,7 +27,7 @@ class TestGates(QiskitTestCase):
         """Setup."""
         super().setUp()
 
-        self.qubit = list(qiskit.QuantumRegister(1, name="foo"))[0]
+        self.qubit = next(iter(qiskit.QuantumRegister(1, name="foo")))
 
         self.u1 = types.ScheduledGate(
             t0=100, operand=library.U1Gate(0), duration=0, bits=[self.qubit], bit_position=0

@@ -71,7 +71,7 @@ class _WrappedMethod:
     function call, but with the ``function`` called before or after.
     """
 
-    __slots__ = ("_method_decorator", "_method_has_get", "_method", "_before", "_after")
+    __slots__ = ("_after", "_before", "_method", "_method_decorator", "_method_has_get")
 
     def __init__(self, method, before=None, after=None):
         if isinstance(method, (classmethod, staticmethod)):
@@ -117,7 +117,9 @@ class _WrappedMethod:
         return out
 
 
-def wrap_method(cls: type, name: str, *, before: Callable = None, after: Callable = None):
+def wrap_method(
+    cls: type, name: str, *, before: Callable | None = None, after: Callable | None = None
+):
     """Wrap the functionality the instance- or class method ``cls.name`` with additional behavior
     ``before`` and ``after``.
 

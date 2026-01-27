@@ -148,8 +148,8 @@ class LineData(ElementaryData):
         xvals: np.ndarray | list[types.Coordinate],
         yvals: np.ndarray | list[types.Coordinate],
         bit: types.Bits,
-        meta: dict[str, Any] = None,
-        styles: dict[str, Any] = None,
+        meta: dict[str, Any] | None = None,
+        styles: dict[str, Any] | None = None,
     ):
         """Create new line.
 
@@ -175,8 +175,8 @@ class BoxData(ElementaryData):
         xvals: np.ndarray | list[types.Coordinate],
         yvals: np.ndarray | list[types.Coordinate],
         bit: types.Bits,
-        meta: dict[str, Any] = None,
-        styles: dict[str, Any] = None,
+        meta: dict[str, Any] | None = None,
+        styles: dict[str, Any] | None = None,
     ):
         """Create new box.
 
@@ -210,8 +210,8 @@ class TextData(ElementaryData):
         bit: types.Bits,
         text: str,
         latex: str | None = None,
-        meta: dict[str, Any] = None,
-        styles: dict[str, Any] = None,
+        meta: dict[str, Any] | None = None,
+        styles: dict[str, Any] | None = None,
     ):
         """Create new text.
 
@@ -241,7 +241,7 @@ class GateLinkData(ElementaryData):
     """
 
     def __init__(
-        self, xval: types.Coordinate, bits: list[types.Bits], styles: dict[str, Any] = None
+        self, xval: types.Coordinate, bits: list[types.Bits], styles: dict[str, Any] | None = None
     ):
         """Create new bit link.
 

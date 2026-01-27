@@ -96,7 +96,7 @@ class Header(ASTNode):
         : version? include*
     """
 
-    __slots__ = ("version", "includes")
+    __slots__ = ("includes", "version")
 
     def __init__(self, version, includes):
         self.version = version
@@ -216,7 +216,7 @@ class StringifyAndPray(Expression):
 
 
 class Range(Expression):
-    __slots__ = ("start", "step", "end")
+    __slots__ = ("end", "start", "step")
 
     def __init__(
         self,
@@ -294,7 +294,7 @@ class DurationUnit(enum.Enum):
 
 
 class DurationLiteral(Expression):
-    __slots__ = ("value", "unit")
+    __slots__ = ("unit", "value")
 
     def __init__(self, value: float, unit: DurationUnit):
         self.value = value
@@ -314,7 +314,7 @@ class Unary(Expression):
 
 
 class Binary(Expression):
-    __slots__ = ("op", "left", "right")
+    __slots__ = ("left", "op", "right")
 
     class Op(enum.Enum):
         BIT_AND = "&"
@@ -342,7 +342,7 @@ class Binary(Expression):
 
 
 class Cast(Expression):
-    __slots__ = ("type", "operand")
+    __slots__ = ("operand", "type")
 
     def __init__(self, type: ClassicalType, operand: Expression):
         self.type = type
@@ -350,7 +350,7 @@ class Cast(Expression):
 
 
 class Index(Expression):
-    __slots__ = ("target", "index")
+    __slots__ = ("index", "target")
 
     def __init__(self, target: Expression, index: Expression):
         self.target = target
@@ -411,7 +411,7 @@ class Designator(ASTNode):
 class ClassicalDeclaration(Statement):
     """Declaration of a classical type, optionally initializing it to a value."""
 
-    __slots__ = ("type", "identifier", "initializer")
+    __slots__ = ("identifier", "initializer", "type")
 
     def __init__(self, type_: ClassicalType, identifier: Identifier, initializer=None):
         self.type = type_
@@ -423,7 +423,7 @@ class StretchDeclaration(Statement):
     """Declaration of a stretch variable, optionally with a lower bound
     expression."""
 
-    __slots__ = ("identifier", "bound")
+    __slots__ = ("bound", "identifier")
 
     def __init__(self, identifier: Identifier, bound=None):
         self.identifier = identifier
@@ -447,7 +447,7 @@ class QuantumDeclaration(ASTNode):
          'qubit' designator? Identifier
     """
 
-    __slots__ = ("identifier", "designator")
+    __slots__ = ("designator", "identifier")
 
     def __init__(self, identifier: Identifier, designator=None):
         self.identifier = identifier
@@ -479,7 +479,7 @@ class QuantumGateModifierName(enum.Enum):
 class QuantumGateModifier(ASTNode):
     """A modifier of a gate. For example, in ``ctrl @ x $0``, the ``ctrl @`` is the modifier."""
 
-    __slots__ = ("modifier", "argument")
+    __slots__ = ("argument", "modifier")
 
     def __init__(self, modifier: QuantumGateModifierName, argument: Expression | None = None):
         self.modifier = modifier
@@ -492,7 +492,7 @@ class QuantumGateCall(QuantumInstruction):
         : quantumGateModifier* quantumGateName ( LPAREN expressionList? RPAREN )? indexIdentifierList
     """
 
-    __slots__ = ("quantumGateName", "indexIdentifierList", "parameters", "modifiers")
+    __slots__ = ("indexIdentifierList", "modifiers", "parameters", "quantumGateName")
 
     def __init__(
         self,
@@ -510,7 +510,7 @@ class QuantumGateCall(QuantumInstruction):
 class DefcalCallStatement(Statement):
     """A quantum-like call that may have an assignment location."""
 
-    __slots__ = ("ident", "parameters", "qubits", "lvalue")
+    __slots__ = ("ident", "lvalue", "parameters", "qubits")
 
     def __init__(
         self,
@@ -605,7 +605,7 @@ class QuantumGateDefinition(Statement):
         : 'gate' quantumGateSignature quantumBlock
     """
 
-    __slots__ = ("name", "params", "qubits", "body")
+    __slots__ = ("body", "name", "params", "qubits")
 
     def __init__(
         self,
@@ -627,7 +627,7 @@ class SubroutineDefinition(Statement):
         returnSignature? subroutineBlock
     """
 
-    __slots__ = ("identifier", "arguments", "subroutineBlock")
+    __slots__ = ("arguments", "identifier", "subroutineBlock")
 
     def __init__(
         self,
@@ -658,7 +658,7 @@ class CalibrationDefinition(Statement):
         ;
     """
 
-    __slots__ = ("name", "identifierList", "calibrationArgumentList")
+    __slots__ = ("calibrationArgumentList", "identifierList", "name")
 
     def __init__(
         self,
@@ -677,7 +677,7 @@ class BranchingStatement(Statement):
         : 'if' LPAREN booleanExpression RPAREN programBlock ( 'else' programBlock )?
     """
 
-    __slots__ = ("condition", "true_body", "false_body")
+    __slots__ = ("condition", "false_body", "true_body")
 
     def __init__(self, condition: Expression, true_body: ProgramBlock, false_body=None):
         self.condition = condition
@@ -698,7 +698,7 @@ class ForLoopStatement(Statement):
             | "[" Range "]"
     """
 
-    __slots__ = ("indexset", "parameter", "body")
+    __slots__ = ("body", "indexset", "parameter")
 
     def __init__(
         self,
@@ -720,7 +720,7 @@ class WhileLoopStatement(Statement):
         WhileLoop: "while" "(" Expression ")" ProgramBlock
     """
 
-    __slots__ = ("condition", "body")
+    __slots__ = ("body", "condition")
 
     def __init__(self, condition: Expression, body: ProgramBlock):
         self.condition = condition
@@ -732,7 +732,7 @@ class BoxStatement(Statement):
 
     # TODO: the `annotations` field maybe should move to `Statement` if it becomes more generally
     # supported.
-    __slots__ = ("annotations", "duration", "body")
+    __slots__ = ("annotations", "body", "duration")
 
     def __init__(
         self,
@@ -786,7 +786,7 @@ class SwitchStatementPreview(Statement):
 
     The stabilized form of the syntax instead uses :class:`.SwitchStatement`."""
 
-    __slots__ = ("target", "cases")
+    __slots__ = ("cases", "target")
 
     def __init__(
         self, target: Expression, cases: Iterable[tuple[Iterable[Expression], ProgramBlock]]
@@ -802,7 +802,7 @@ class SwitchStatement(Statement):
     cannot be joined with other cases (even though that's meaningless, the V1 syntax permitted it).
     """
 
-    __slots__ = ("target", "cases", "default")
+    __slots__ = ("cases", "default", "target")
 
     def __init__(
         self,

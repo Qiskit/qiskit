@@ -16,10 +16,10 @@ from __future__ import annotations
 
 __all__ = [
     "ExprVisitor",
-    "iter_vars",
-    "iter_identifiers",
-    "structurally_equivalent",
     "is_lvalue",
+    "iter_identifiers",
+    "iter_vars",
+    "structurally_equivalent",
 ]
 
 import typing
@@ -186,9 +186,9 @@ class _StructuralEquivalenceImpl(ExprVisitor[bool]):
     # `other` state in the class instance.
 
     __slots__ = (
-        "self_key",
-        "other_key",
         "other",
+        "other_key",
+        "self_key",
     )
 
     def __init__(self, other: expr.Expr, self_key, other_key):

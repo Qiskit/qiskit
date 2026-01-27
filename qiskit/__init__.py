@@ -165,6 +165,6 @@ __all__ = [
     "QiskitError",
     "QuantumCircuit",
     "QuantumRegister",
-    "transpile",
     "generate_preset_pass_manager",
+    "transpile",
 ]

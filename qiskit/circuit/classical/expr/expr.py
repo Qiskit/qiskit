@@ -14,14 +14,14 @@
 
 
 __all__ = [
-    "Expr",
-    "Var",
-    "Stretch",
-    "Value",
-    "Cast",
-    "Unary",
     "Binary",
+    "Cast",
+    "Expr",
     "Index",
+    "Stretch",
+    "Unary",
+    "Value",
+    "Var",
 ]
 
 import enum

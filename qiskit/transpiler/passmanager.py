@@ -128,8 +128,8 @@ class PassManager(BasePassManager):
         self,
         circuits: _CircuitsT,
         output_name: str | None = None,
-        callback: Callable = None,
-        num_processes: int = None,
+        callback: Callable | None = None,
+        num_processes: int | None = None,
         *,
         property_set: dict[str, object] | None = None,
     ) -> _CircuitsT:
@@ -407,7 +407,7 @@ class StagedPassManager(PassManager):
         circuits: _CircuitsT,
         output_name: str | None = None,
         callback: Callable | None = None,
-        num_processes: int = None,
+        num_processes: int | None = None,
         *,
         property_set: dict[str, object] | None = None,
     ) -> _CircuitsT:

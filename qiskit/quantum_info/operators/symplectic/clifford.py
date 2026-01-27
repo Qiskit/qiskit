@@ -239,7 +239,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         return 0
 
     def __repr__(self):
-        return f"Clifford({repr(self.tableau)})"
+        return f"Clifford({self.tableau!r})"
 
     def __str__(self):
         return (

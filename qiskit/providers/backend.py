@@ -83,10 +83,10 @@ class BackendV2(Backend, ABC):
     def __init__(
         self,
         provider=None,
-        name: str = None,
-        description: str = None,
-        online_date: datetime.datetime = None,
-        backend_version: str = None,
+        name: str | None = None,
+        description: str | None = None,
+        online_date: datetime.datetime | None = None,
+        backend_version: str | None = None,
         **fields,
     ):
         """Initialize a BackendV2 based backend

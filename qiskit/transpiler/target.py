@@ -236,12 +236,12 @@ class Target(BaseTarget):
     """
 
     __slots__ = (
-        "_gate_map",
         "_coupling_graph",
+        "_gate_map",
         "_instruction_durations",
         "_instruction_schedule_map",
-        "_non_global_basis_strict",
         "_non_global_basis",
+        "_non_global_basis_strict",
     )
 
     def __new__(

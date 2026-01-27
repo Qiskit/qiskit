@@ -14,10 +14,10 @@
 
 
 __all__ = [
-    "Type",
     "Bool",
     "Duration",
     "Float",
+    "Type",
     "Uint",
 ]
 

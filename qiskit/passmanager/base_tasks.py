@@ -39,7 +39,7 @@ class Task(ABC):
         self,
         passmanager_ir: PassManagerIR,
         state: PassManagerState,
-        callback: Callable = None,
+        callback: Callable | None = None,
     ) -> tuple[PassManagerIR, PassManagerState]:
         """Execute optimization task for input Qiskit IR.
 
@@ -73,7 +73,7 @@ class GenericPass(Task, ABC):
         self,
         passmanager_ir: PassManagerIR,
         state: PassManagerState,
-        callback: Callable = None,
+        callback: Callable | None = None,
     ) -> tuple[PassManagerIR, PassManagerState]:
         # Overriding this method is not safe.
         # Pass subclass must keep current implementation.
@@ -203,7 +203,7 @@ class BaseController(Task, ABC):
         self,
         passmanager_ir: PassManagerIR,
         state: PassManagerState,
-        callback: Callable = None,
+        callback: Callable | None = None,
     ) -> tuple[PassManagerIR, PassManagerState]:
         # Overriding this method is not safe.
         # Pass subclass must keep current implementation.

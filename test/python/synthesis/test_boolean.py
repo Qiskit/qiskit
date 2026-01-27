@@ -36,7 +36,7 @@ class TestTruthTable(QiskitTestCase):
 
         def func(vals):
             x0, x1, x2, x3 = vals
-            return (x0 and x1 or not x2) ^ x3
+            return ((x0 and x1) or not x2) ^ x3
 
         table = TruthTable(func, 4)
         self.assertEqual(str(table), "1111000100001110")

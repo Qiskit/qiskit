@@ -551,7 +551,7 @@ class QCircuitImage:
                 wire2 = self._wire_map[node.cargs[0]]
             self._latex[wire2][col] = (
                 f"\\dstick{{_{{_{{\\hspace{{{cond_offset}em}}{idx_str}}}}}}} "
-                f"\\cw \\ar @{{<=}} [-{str(wire2 - wire1)},0]"
+                f"\\cw \\ar @{{<=}} [-{wire2 - wire1!s},0]"
             )
         else:
             wire2 = self._wire_map[node.cargs[0]]
@@ -620,7 +620,7 @@ class QCircuitImage:
             control = "\\control" if op.condition[1] else "\\controlo"
             self._latex[cwire][
                 col
-            ] = f"{control} \\cw^({meas_offset}){{^{{\\mathtt{{{label}}}}}}} \\cwx[-{str(gap)}]"
+            ] = f"{control} \\cw^({meas_offset}){{^{{\\mathtt{{{label}}}}}}} \\cwx[-{gap!s}]"
 
         # If condition is a register and cregbundle is false
         else:

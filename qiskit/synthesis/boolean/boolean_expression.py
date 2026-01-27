@@ -82,7 +82,7 @@ class TruthTable:
 class BooleanExpression:
     """A Boolean Expression"""
 
-    def __init__(self, expression: str, var_order: list = None) -> None:
+    def __init__(self, expression: str, var_order: list | None = None) -> None:
         """
         Args:
             expression (str): The logical expression string.

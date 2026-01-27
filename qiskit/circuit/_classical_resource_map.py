@@ -40,7 +40,7 @@ class VariableMapper(expr.ExprVisitor[expr.Expr]):
     # would just be noise.
     # pylint: disable=missing-function-docstring
 
-    __slots__ = ("target_cregs", "register_map", "bit_map", "var_map", "add_register")
+    __slots__ = ("add_register", "bit_map", "register_map", "target_cregs", "var_map")
 
     def __init__(
         self,

@@ -463,7 +463,7 @@ def random_circuit(
     conditional=False,
     reset=False,
     seed=None,
-    num_operand_distribution: dict = None,
+    num_operand_distribution: dict | None = None,
 ):
     """Generate random circuit of arbitrary size and form.
 

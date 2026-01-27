@@ -59,7 +59,7 @@ class DoWhileController(BaseController):
     def __init__(
         self,
         tasks: Task | Iterable[Task] = (),
-        do_while: Callable[[PropertySet], bool] = None,
+        do_while: Callable[[PropertySet], bool] | None = None,
         *,
         options: dict[str, Any] | None = None,
     ):
@@ -94,7 +94,7 @@ class ConditionalController(BaseController):
     def __init__(
         self,
         tasks: Task | Iterable[Task] = (),
-        condition: Callable[[PropertySet], bool] = None,
+        condition: Callable[[PropertySet], bool] | None = None,
         *,
         options: dict[str, Any] | None = None,
     ):

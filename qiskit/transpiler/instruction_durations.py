@@ -37,7 +37,7 @@ class InstructionDurations:
     """
 
     def __init__(
-        self, instruction_durations: InstructionDurationsType | None = None, dt: float = None
+        self, instruction_durations: InstructionDurationsType | None = None, dt: float | None = None
     ):
         self.duration_by_name: dict[str, tuple[float, str]] = {}
         self.duration_by_name_qubits: dict[tuple[str, tuple[int, ...]], tuple[float, str]] = {}
@@ -82,7 +82,7 @@ class InstructionDurations:
             return backend.target.durations()
         raise TypeError("Unsupported backend type: {backend}")
 
-    def update(self, inst_durations: InstructionDurationsType | None, dt: float = None):
+    def update(self, inst_durations: InstructionDurationsType | None, dt: float | None = None):
         """Update self with inst_durations (inst_durations overwrite self).
 
         Args:

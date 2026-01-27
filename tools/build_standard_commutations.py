@@ -113,7 +113,7 @@ def _get_rotation_gates() -> list[Gate]:
     return [g for g in gates if g.name in SUPPORTED_ROTATIONS]
 
 
-def _generate_commutation_dict(considered_gates: list[Gate] = None) -> dict:
+def _generate_commutation_dict(considered_gates: list[Gate] | None = None) -> dict:
     """Compute the commutation relation of considered gates
 
     Args:

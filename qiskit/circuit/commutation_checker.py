@@ -51,7 +51,7 @@ class CommutationChecker:
 
     def __init__(
         self,
-        standard_gate_commutations: dict = None,
+        standard_gate_commutations: dict | None = None,
         cache_max_entries: int = 10**6,
         *,
         gates: set[str] | None = None,

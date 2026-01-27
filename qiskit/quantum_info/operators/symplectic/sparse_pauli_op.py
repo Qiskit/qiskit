@@ -798,7 +798,10 @@ class SparsePauliOp(LinearOp):
 
     @staticmethod
     def from_list(
-        obj: Iterable[tuple[str, complex]], dtype: type | None = None, *, num_qubits: int = None
+        obj: Iterable[tuple[str, complex]],
+        dtype: type | None = None,
+        *,
+        num_qubits: int | None = None,
     ) -> SparsePauliOp:
         """Construct from a list of Pauli strings and coefficients.
 

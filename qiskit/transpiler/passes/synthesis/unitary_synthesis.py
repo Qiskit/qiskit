@@ -56,7 +56,7 @@ class UnitarySynthesis(TransformationPass):
 
     def __init__(
         self,
-        basis_gates: list[str] = None,
+        basis_gates: list[str] | None = None,
         approximation_degree: float | None = 1.0,
         coupling_map: CouplingMap = None,
         pulse_optimize: bool | None = None,
@@ -64,7 +64,7 @@ class UnitarySynthesis(TransformationPass):
         synth_gates: list[str] | None = None,
         method: str = "default",
         min_qubits: int = 0,
-        plugin_config: dict = None,
+        plugin_config: dict | None = None,
         target: Target = None,
         fallback_on_default: bool = False,
     ):

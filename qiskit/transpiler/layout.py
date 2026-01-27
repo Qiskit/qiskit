@@ -35,7 +35,7 @@ if TYPE_CHECKING:
 class Layout:
     """Two-ways dict to represent a Layout."""
 
-    __slots__ = ("_regs", "_p2v", "_v2p")
+    __slots__ = ("_p2v", "_regs", "_v2p")
 
     def __init__(self, input_dict=None):
         """construct a Layout from a bijective dictionary, mapping

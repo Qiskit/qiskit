@@ -1358,7 +1358,7 @@ class TextDrawing:
 
         if isinstance(node.op, SwitchCaseOp):
             # Create an empty circuit at the head of the circuit_list if a Switch box
-            circuit_list.insert(0, list(node.op.cases_specifier())[0][1].copy_empty_like())
+            circuit_list.insert(0, next(iter(node.op.cases_specifier()))[1].copy_empty_like())
 
         for circ_num, circuit in enumerate(circuit_list):
             # Update the wire_map with the qubits and clbits from the inner circuit

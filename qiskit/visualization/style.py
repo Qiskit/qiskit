@@ -184,7 +184,7 @@ def load_style(
                     break
                 except json.JSONDecodeError as err:
                     warn(
-                        f"Could not decode JSON in file '{path}': {str(err)}. "
+                        f"Could not decode JSON in file '{path}': {err!s}. "
                         "Will use default style.",
                         UserWarning,
                         2,

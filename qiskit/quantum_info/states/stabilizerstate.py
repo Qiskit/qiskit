@@ -705,7 +705,7 @@ class StabilizerState(QuantumState):
         outcome: list[str],
         outcome_prob: float,
         probs: dict[str, float],
-        outcome_bitstring: str = None,
+        outcome_bitstring: str | None = None,
     ):
         """Recursive helper function for calculating the probabilities
 

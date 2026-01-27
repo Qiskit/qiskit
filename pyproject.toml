@@ -235,6 +235,8 @@ select = [
     "UP",
     # bandit
     "S",
+    # Ruff native rules
+    "RUF",
 ]
 ignore = [
     "E402",  # module-import-not-at-top-of-file false positives with module docs
@@ -255,13 +257,19 @@ ignore = [
     "PLW1641",  # eq-without-hash  not everything has to be hashablie
     "PLW3301",  # nested-min-max
     "PLW2901",  # redefined-loop-variablke - TODO fix this
+    "RUF003",   # ambiguous-unicode-character-comment
+    "RUF005",   # collection-literal-concatenation
+    "RUF012",   # mutable-class-default"
+    "RUF001",   # ambiguous-unicode-character-string
+    "RUF002",   # ambiguous-unicode-character-docstring
+    "RUF007",   # zip-instead-of-pairwise overly opinionated
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "*.ipynb" = ["F821"]
 # Security rules from bandit don't apply to tests and utils
 "tools/*" = ["S603"]
-"test/*" = ["S110", "S301", "S603", "S311", "S307"]
+"test/*" = ["S110", "S301", "S603", "S311", "S307", "RUF015"]
 "test/randomized/*" = ["S101"]
 "test/qpy_compat/*" = ["S101"]
 "test/benchmarks/*" = ["S101"]

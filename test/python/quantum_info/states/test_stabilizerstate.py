@@ -37,7 +37,7 @@ class StabilizerStateTestingTools:
     """Test tools for verifying test cases in StabilizerState"""
 
     @staticmethod
-    def _bitstring_product_dict(bitstring_length: int, skip_entries: dict = None) -> dict:
+    def _bitstring_product_dict(bitstring_length: int, skip_entries: dict | None = None) -> dict:
         """Retrieves a dict of every possible product of '0', '1' for length bitstring_length
         pass in a dict to use the keys as entries to skip adding to the dict
 
@@ -62,8 +62,8 @@ class StabilizerStateTestingTools:
         testcase: QiskitTestCase,
         target_dict: dict,
         stab: StabilizerState,
-        qargs: list = None,
-        decimals: int = None,
+        qargs: list | None = None,
+        decimals: int | None = None,
         dict_almost_equal: bool = False,
     ) -> None:
         """Helper that iterates through the target_dict and checks all probabilities by

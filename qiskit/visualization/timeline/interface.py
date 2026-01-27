@@ -34,8 +34,8 @@ from qiskit.utils import deprecate_arg
 def draw(
     program: circuit.QuantumCircuit,
     style: dict[str, Any] | None = None,
-    time_range: tuple[int, int] = None,
-    disable_bits: list[types.Bits] = None,
+    time_range: tuple[int, int] | None = None,
+    disable_bits: list[types.Bits] | None = None,
     show_clbits: bool | None = None,
     idle_wires: bool | None = None,
     plot_barriers: bool | None = None,

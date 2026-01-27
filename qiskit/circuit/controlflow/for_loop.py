@@ -163,9 +163,9 @@ class ForLoopContext:
     __slots__ = (
         "_circuit",
         "_generate_loop_parameter",
-        "_loop_parameter",
         "_indexset",
         "_label",
+        "_loop_parameter",
         "_used",
     )
 

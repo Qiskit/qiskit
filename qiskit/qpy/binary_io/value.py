@@ -241,7 +241,7 @@ def _write_parameter_expression(file_obj, obj, use_symengine, *, version):
 
 
 class _ExprWriter(expr.ExprVisitor[None]):
-    __slots__ = ("file_obj", "clbit_indices", "standalone_var_indices", "version")
+    __slots__ = ("clbit_indices", "file_obj", "standalone_var_indices", "version")
 
     def __init__(self, file_obj, clbit_indices, standalone_var_indices, version):
         self.file_obj = file_obj
