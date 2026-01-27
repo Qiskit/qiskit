@@ -514,6 +514,24 @@ class TestInitialize(QiskitTestCase):
         statevector = Statevector(qc)
         self.assertTrue(np.allclose(statevector, desired_vector))
 
+    def test_inverse_raises_circuit_error(self):
+        """Test that inverse() on Initialize raises CircuitError early."""
+        from qiskit.circuit.exceptions import CircuitError
+
+        qc = QuantumCircuit(4)
+        qc.initialize(0, qc.qubits)
+        qc.h(0)
+        qc.h(1)
+        qc.h(2)
+        qc.h(3)
+
+        with self.assertRaises(CircuitError) as context:
+            qc.inverse()
+
+        error_msg = str(context.exception)
+        self.assertIn("inverse() not implemented for initialize", error_msg)
+        self.assertIn("non-unitary instruction", error_msg)
+
 
 class TestInstructionParam(QiskitTestCase):
     """Test conversion of numpy type parameters."""
