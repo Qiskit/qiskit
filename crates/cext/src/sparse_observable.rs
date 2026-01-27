@@ -595,7 +595,7 @@ pub unsafe extern "C" fn qk_obs_multiply(
 /// ```c
 /// QkObs *obs = qk_obs_identity(100);
 /// QkComplex64 coeff = {2, 0};
-/// QkExitCode exit = qk_obs_imultiply(obs, &coeff);
+/// QkExitCode exit = qk_obs_multiply_inplace(obs, &coeff);
 /// ```
 ///
 /// # Safety
@@ -605,7 +605,7 @@ pub unsafe extern "C" fn qk_obs_multiply(
 /// * ``coeff`` is a valid, non-null pointer to a ``QkComplex64``
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_obs_imultiply(
+pub unsafe extern "C" fn qk_obs_multiply_inplace(
     obs: *mut SparseObservable,
     coeff: *const Complex64,
 ) -> ExitCode {
@@ -672,7 +672,7 @@ pub unsafe extern "C" fn qk_obs_add(
 /// ``QkObs``\ s.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_obs_iadd(
+pub unsafe extern "C" fn qk_obs_add_inplace(
     left: *mut SparseObservable,
     right: *const SparseObservable,
 ) -> ExitCode {

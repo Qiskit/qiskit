@@ -77,10 +77,10 @@ static int test_add(void) {
 /**
  * Test adding two observables in-place.
  */
-static int test_iadd(void) {
+static int test_add_inplace(void) {
     QkObs *left = qk_obs_identity(100);
     QkObs *right = qk_obs_identity(100);
-    QkExitCode err = qk_obs_iadd(left, right);
+    QkExitCode err = qk_obs_add_inplace(left, right);
 
     if (err != QkExitCode_Success) {
         return err;
@@ -252,13 +252,13 @@ static int test_mult(void) {
 /**
  * Test multiplying an observable in-place by a complex coefficient.
  */
-static int test_imult(void) {
+static int test_mult_inplace(void) {
     QkComplex64 coeffs[3] = {{2.0, 0.0}, {0.0, 2.0}, {2.0, 2.0}};
 
     for (int i = 0; i < 3; i++) {
         QkObs *obs = qk_obs_identity(100);
 
-        QkExitCode err = qk_obs_imultiply(obs, &coeffs[i]);
+        QkExitCode err = qk_obs_multiply_inplace(obs, &coeffs[i]);
 
         if (err != QkExitCode_Success) {
             return err;
@@ -925,12 +925,12 @@ int test_sparse_observable(void) {
     num_failed += RUN_TEST(test_zero);
     num_failed += RUN_TEST(test_identity);
     num_failed += RUN_TEST(test_add);
-    num_failed += RUN_TEST(test_iadd);
+    num_failed += RUN_TEST(test_add_inplace);
     num_failed += RUN_TEST(test_compose);
     num_failed += RUN_TEST(test_compose_map);
     num_failed += RUN_TEST(test_compose_scalar);
     num_failed += RUN_TEST(test_mult);
-    num_failed += RUN_TEST(test_imult);
+    num_failed += RUN_TEST(test_mult_inplace);
     num_failed += RUN_TEST(test_canonicalize);
     num_failed += RUN_TEST(test_copy);
     num_failed += RUN_TEST(test_num_terms);

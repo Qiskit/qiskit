@@ -3,4 +3,4 @@
 # use a code example for complicated features.
 features_c:
   - Added two new functions for in-place arithmetic operations on :c:struct`QkObs`,
-    namely :c:func:`qk_obs_iadd` and :c:func:`qk_obs_imultiply`.
+    namely :c:func:`qk_obs_add_inplace` and :c:func:`qk_obs_multiply_inplace`.
