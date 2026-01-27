@@ -46,14 +46,7 @@ fn replace_gate_by_pauli_rotation(gate: StandardGate) -> GateToPBCType<'static> 
         StandardGate::Tdg => (&[("Z", -FRAC_PI_8, &[0])], -FRAC_PI_8),
         StandardGate::SX => (&[("X", FRAC_PI_4, &[0])], FRAC_PI_4),
         StandardGate::SXdg => (&[("X", -FRAC_PI_4, &[0])], -FRAC_PI_4),
-        StandardGate::H => (
-            &[
-                ("Z", FRAC_PI_4, &[0]),
-                ("X", FRAC_PI_4, &[0]),
-                ("Z", FRAC_PI_4, &[0]),
-            ],
-            FRAC_PI_2,
-        ),
+        StandardGate::H => (&[("Y", FRAC_PI_4, &[0]), ("X", FRAC_PI_2, &[0])], FRAC_PI_2),
         StandardGate::RZ => (&[("Z", 0.5, &[0])], 0.0),
         StandardGate::RX => (&[("X", 0.5, &[0])], 0.0),
         StandardGate::RY => (&[("Y", 0.5, &[0])], 0.0),
@@ -85,16 +78,13 @@ fn replace_gate_by_pauli_rotation(gate: StandardGate) -> GateToPBCType<'static> 
         ),
         StandardGate::CH => (
             &[
-                ("Z", FRAC_PI_2, &[1]),
-                ("X", FRAC_PI_4, &[1]),
-                ("Z", 3.0 * FRAC_PI_8, &[1]),
+                ("X", -1.0 * FRAC_PI_4, &[1]),
+                ("Z", -1.0 * FRAC_PI_8, &[1]),
                 ("XZ", FRAC_PI_4, &[0, 1]),
                 ("Z", -FRAC_PI_4, &[0]),
-                ("X", -FRAC_PI_4, &[1]),
-                ("Z", FRAC_PI_8, &[1]),
-                ("X", FRAC_PI_4, &[1]),
+                ("Y", -FRAC_PI_8, &[1]),
             ],
-            3.0 * FRAC_PI_4,
+            7.0 * FRAC_PI_4,
         ),
         StandardGate::CS => (
             &[
@@ -145,14 +135,12 @@ fn replace_gate_by_pauli_rotation(gate: StandardGate) -> GateToPBCType<'static> 
         ),
         StandardGate::ECR => (
             &[
+                ("XZ", -1.0 * FRAC_PI_4, &[0, 1]),
                 ("Y", -FRAC_PI_2, &[0]),
-                ("Z", FRAC_PI_4, &[0]),
-                ("X", -FRAC_PI_4, &[1]),
-                ("XZ", FRAC_PI_4, &[0, 1]),
-                ("Z", -FRAC_PI_4, &[0]),
-                ("X", -FRAC_PI_4, &[1]),
+                ("Z", FRAC_PI_2, &[1]),
+                ("Y", FRAC_PI_2, &[1]),
             ],
-            -2.0 * PI,
+            PI,
         ),
         StandardGate::RZZ => (&[("ZZ", 0.5, &[0, 1])], 0.0),
         StandardGate::RXX => (&[("XX", 0.5, &[0, 1])], 0.0),
