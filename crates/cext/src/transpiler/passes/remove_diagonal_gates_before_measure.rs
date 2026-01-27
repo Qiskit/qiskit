@@ -51,3 +51,41 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_remove_diagonal_gates_bef
     let result = dag_to_circuit(&dag, false).expect("DAG to Circuit conversion failed");
     *circuit = result;
 }
+
+/// @ingroup QkTranspilerPasses
+/// Run the ``RemoveDiagonalGatesBeforeMeasure`` pass on a DAG Circuit.
+///
+/// Transpiler pass to remove diagonal gates (like RZ, T, Z, etc) before
+/// a measurement. Including diagonal 2Q gates.
+///
+/// @param circuit A pointer to the circuit to run this pass on
+///
+/// # Example
+///
+/// ```c
+///     QkDag *dag = qk_dag_new();
+///     QkQuantumRegister *qr = qk_quantum_register_new(1, "qr");
+///     QkClassicalRegister *cr = qk_classical_register_new(1, "cr");
+///     qk_dag_add_quantum_register(dag, qr);
+///     qk_dag_add_classical_register(dag, cr);
+///     qk_dag_apply_gate(dag, QkGate_Z, (uint32_t[1]){0}, NULL, false);
+///     qk_dag_apply_measure(dag, 0, 0, false);
+///     qk_dag_transpiler_pass_standalone_remove_diagonal_gates_before_measure(dag);
+///     // ...
+///     qk_dag_free(dag);
+///     qk_quantum_register_free(qr);
+///     qk_classical_register_free(cr);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_dag_transpiler_pass_standalone_remove_diagonal_gates_before_measure(
+    dag: *mut DAGCircuit,
+) {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let dag = unsafe { mut_ptr_as_ref(dag) };
+    run_remove_diagonal_before_measure(dag);
+}

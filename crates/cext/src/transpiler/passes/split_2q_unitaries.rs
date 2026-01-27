@@ -90,3 +90,47 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_split_2q_unitaries(
         }
     }
 }
+
+/// @ingroup QkTranspilerPasses
+/// Run the Split2QUnitaries transpiler pass on a DAG Circuit
+///
+/// @param dag A mutable pointer to the DAG Circuit to run Split2QUnitaries on. This will be
+///     replaced with the new DAG if any gates are optimized.
+/// @param requested_fidelity Allowed tolerance for splitting two-qubit unitaries and gate decompositions.
+/// @param split_swaps Whether to attempt to split swap gates, resulting in a permutation of the qubits.
+///
+/// @return If any swap equivalent unitaries are split this function returns a pointer to a ``TranspileLayout``
+///     that contains the permutation induced by this circuit optimization. If no swap equivalent
+///     unitaries are split this will be a null pointer.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDAG``.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_dag_transpiler_pass_standalone_split_2q_unitaries(
+    dag: *mut DAGCircuit,
+    requested_fidelity: f64,
+    split_swaps: bool,
+) -> *mut TranspileLayout {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let dag = unsafe { mut_ptr_as_ref(dag) };
+    let result = run_split_2q_unitaries(dag, requested_fidelity, split_swaps)
+        .unwrap_or_else(|_| panic!("Running the Split2qUnitaries pass failed"));
+    match result {
+        Some((out_dag, permutation)) => {
+            let num_input_qubits = dag.num_qubits() as u32;
+            let qubits = out_dag.qubits().objects().clone();
+            let qregs = out_dag.qregs().to_vec();
+            *dag = out_dag;
+            Box::into_raw(Box::new(TranspileLayout::new(
+                None,
+                Some(permutation.into_iter().map(Qubit::new).collect()),
+                qubits,
+                num_input_qubits,
+                qregs,
+            )))
+        }
+        None => std::ptr::null_mut(),
+    }
+}
