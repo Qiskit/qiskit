@@ -240,7 +240,7 @@ class SolovayKitaevDecomposition:
         circuit = QuantumCircuit._from_circuit_data(data, legacy_qubits=True)
 
         if return_dag:
-            from qiskit.converters import circuit_to_dag  # pylint: disable=cyclic-import
+            from qiskit.converters import circuit_to_dag
 
             return circuit_to_dag(circuit)
 

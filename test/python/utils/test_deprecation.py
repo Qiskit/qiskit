@@ -22,7 +22,7 @@ from qiskit.utils.deprecation import (
     deprecate_arg,
     deprecate_func,
 )
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @deprecate_func(

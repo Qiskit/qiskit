@@ -137,7 +137,7 @@ class AnnotatedOperation(Operation):
 
     def to_matrix(self):
         """Return a matrix representation (allowing to construct Operator)."""
-        from qiskit.quantum_info.operators import Operator  # pylint: disable=cyclic-import
+        from qiskit.quantum_info.operators import Operator
 
         operator = Operator(self.base_op)
 
@@ -178,7 +178,7 @@ class AnnotatedOperation(Operation):
         Returns:
             A controlled version of the given operation.
         """
-        # pylint: disable=unused-argument
+
         extended_modifiers = self.modifiers.copy()
         extended_modifiers.append(
             ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
@@ -197,7 +197,7 @@ class AnnotatedOperation(Operation):
         Returns:
             Inverse version of the given operation.
         """
-        # pylint: disable=unused-argument
+
         extended_modifiers = self.modifiers.copy()
         extended_modifiers.append(InverseModifier())
         return AnnotatedOperation(self.base_op, extended_modifiers)
@@ -215,7 +215,7 @@ class AnnotatedOperation(Operation):
         Returns:
             An operation implementing ``gate^exponent``
         """
-        # pylint: disable=unused-argument
+
         extended_modifiers = self.modifiers.copy()
         extended_modifiers.append(PowerModifier(exponent))
         return AnnotatedOperation(self.base_op, extended_modifiers)

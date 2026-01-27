@@ -250,7 +250,7 @@ class SuperOp(QuantumChannel):
                          specified quantum state subsystem dimensions.
         """
         # Prevent cyclic imports by importing DensityMatrix here
-        # pylint: disable=cyclic-import
+
         from qiskit.quantum_info.states.densitymatrix import DensityMatrix
 
         if not isinstance(state, DensityMatrix):

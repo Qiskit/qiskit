@@ -25,7 +25,7 @@ from qiskit.synthesis.unitary import qsd
 from qiskit.circuit.library import XGate, ZGate, PhaseGate, UGate, UCGate, UnitaryGate
 from qiskit.quantum_info import random_unitary
 from qiskit.quantum_info.operators.predicates import matrix_equal
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt

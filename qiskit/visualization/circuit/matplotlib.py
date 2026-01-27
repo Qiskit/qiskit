@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name,inconsistent-return-statements
 
 """mpl circuit visualization backend."""
 
@@ -1108,7 +1107,7 @@ class MatplotlibDrawer:
                 self._get_colors(node, node_data)
 
                 if verbose:
-                    print(op)  # pylint: disable=bad-builtin
+                    print(op)
 
                 # add conditional
                 if getattr(op, "condition", None) or isinstance(op, SwitchCaseOp):

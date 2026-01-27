@@ -181,7 +181,6 @@ class OrGate(Gate):
 
         self.definition = circuit
 
-    # pylint: disable=unused-argument
     def inverse(self, annotated: bool = False):
         r"""Return inverted OR gate (itself).
 

@@ -21,13 +21,13 @@
 #
 # We use a lot of dummy classes in test cases, for which there is absolutely no point defining
 # docstrings.
-# pylint: disable=missing-class-docstring,missing-function-docstring
+
 
 import unittest
 import sys
 
 from qiskit.utils import wrap_method
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 def call_first_argument_with(*args, **kwargs):
@@ -357,7 +357,7 @@ class TestWrapMethod(QiskitTestCase):
         mock = unittest.mock.Mock()
         dummy = Dummy(mock)
         self.assertIs(dummy.mock, mock)
-        self.assertEqual(dummy.extra, "hello, world")  # pylint: disable=no-member
+        self.assertEqual(dummy.extra, "hello, world")
         mock.assert_has_calls(
             [unittest.mock.call("__init__"), unittest.mock.call("extra")],
             any_order=False,

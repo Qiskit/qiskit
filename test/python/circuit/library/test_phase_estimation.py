@@ -19,7 +19,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import PhaseEstimation, QFT, phase_estimation, RXGate
 from qiskit.quantum_info import Statevector
 from qiskit.compiler import transpile
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestPhaseEstimation(QiskitTestCase):

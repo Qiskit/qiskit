@@ -713,7 +713,7 @@ def _read_expr(
     cregs: collections.abc.Mapping[str, ClassicalRegister],
     standalone_vars: collections.abc.Sequence[expr.Var],
 ) -> expr.Expr:
-    # pylint: disable=too-many-return-statements
+
     type_key = file_obj.read(formats.EXPRESSION_DISCRIMINATOR_SIZE)
     type_ = _read_expr_type(file_obj)
     if type_key == type_keys.Expression.VAR:
@@ -1087,7 +1087,6 @@ def loads_value(
     Raises:
         QpyError: Serializer for given format is not ready.
     """
-    # pylint: disable=too-many-return-statements
 
     if isinstance(type_key, bytes):
         type_key = type_keys.Value(type_key)

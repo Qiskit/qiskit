@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=too-many-return-statements
 
 """
 A target object represents the minimum set of information the transpiler needs
@@ -45,7 +44,7 @@ from qiskit.transpiler.timing_constraints import TimingConstraints
 
 # import QubitProperties here to provide convenience alias for building a
 # full target
-from qiskit.providers.backend import QubitProperties  # pylint: disable=unused-import
+from qiskit.providers.backend import QubitProperties
 
 logger = logging.getLogger(__name__)
 
@@ -60,19 +59,19 @@ class InstructionProperties(BaseInstructionProperties):
     custom attributes for those custom/additional properties by the backend.
     """
 
-    def __new__(  # pylint: disable=keyword-arg-before-vararg
+    def __new__(
         cls,
-        duration=None,  # pylint: disable=keyword-arg-before-vararg
-        error=None,  # pylint: disable=keyword-arg-before-vararg
-        *args,  # pylint: disable=unused-argument
-        **kwargs,  # pylint: disable=unused-argument
+        duration=None,
+        error=None,
+        *args,
+        **kwargs,
     ):
-        return super().__new__(cls, duration, error)  # pylint: disable=too-many-function-args
+        return super().__new__(cls, duration, error)
 
     def __init__(
         self,
-        duration: float | None = None,  # pylint: disable=unused-argument
-        error: float | None = None,  # pylint: disable=unused-argument
+        duration: float | None = None,
+        error: float | None = None,
     ):
         """Create a new ``InstructionProperties`` object
 
@@ -303,7 +302,7 @@ class Target(BaseTarget):
         """
         if description is not None:
             description = str(description)
-        out = super().__new__(  # pylint: disable=too-many-function-args
+        out = super().__new__(
             cls,
             description,
             num_qubits,
@@ -593,7 +592,7 @@ class Target(BaseTarget):
         for gate, qarg_map in self._gate_map.items():
             if qarg_map is None:
                 if self._gate_name_map[gate].num_qubits == 2:
-                    self._coupling_graph = None  # pylint: disable=attribute-defined-outside-init
+                    self._coupling_graph = None
                     return
                 continue
             for qarg, properties in qarg_map.items():
@@ -603,9 +602,7 @@ class Target(BaseTarget):
                         return
                     continue
                 if len(qarg) == 1:
-                    self._coupling_graph[qarg[0]] = (
-                        properties  # pylint: disable=attribute-defined-outside-init
-                    )
+                    self._coupling_graph[qarg[0]] = properties
                 elif len(qarg) == 2:
                     try:
                         edge_data = self._coupling_graph.get_edge_data(*qarg)
@@ -616,7 +613,7 @@ class Target(BaseTarget):
         if self._coupling_graph.num_edges() == 0 and (
             qargs is None or any(x is None for x in qargs)
         ):
-            self._coupling_graph = None  # pylint: disable=attribute-defined-outside-init
+            self._coupling_graph = None
 
     def build_coupling_map(self, two_q_gate=None, filter_idle_qubits=False):
         """Get a :class:`~qiskit.transpiler.CouplingMap` from this target.
@@ -890,7 +887,7 @@ class Target(BaseTarget):
         else:
             one_qubit_gates = []
             two_qubit_gates = []
-            global_ideal_variable_width_gates = []  # pylint: disable=invalid-name
+            global_ideal_variable_width_gates = []
             if num_qubits is None:
                 num_qubits = len(coupling_map.graph)
             for gate in basis_gates:
@@ -969,7 +966,7 @@ class _FakeTarget(Target):
 
     def __new__(
         cls,
-        coupling_map=None,  # pylint: disable=unused-argument
+        coupling_map=None,
         description=None,
         num_qubits=0,
         dt=None,
@@ -996,15 +993,15 @@ class _FakeTarget(Target):
     def __init__(
         self,
         coupling_map=None,
-        description=None,  # pylint: disable=unused-argument
-        num_qubits=0,  # pylint: disable=unused-argument
-        dt=None,  # pylint: disable=unused-argument
-        granularity=1,  # pylint: disable=unused-argument
-        min_length=1,  # pylint: disable=unused-argument
-        pulse_alignment=1,  # pylint: disable=unused-argument
-        acquire_alignment=1,  # pylint: disable=unused-argument
-        qubit_properties=None,  # pylint: disable=unused-argument
-        concurrent_measurements=None,  # pylint: disable=unused-argument
+        description=None,
+        num_qubits=0,
+        dt=None,
+        granularity=1,
+        min_length=1,
+        pulse_alignment=1,
+        acquire_alignment=1,
+        qubit_properties=None,
+        concurrent_measurements=None,
     ):
         super().__init__()
         if coupling_map is None or isinstance(coupling_map, CouplingMap):
@@ -1015,7 +1012,7 @@ class _FakeTarget(Target):
     def __len__(self):
         return len(self._gate_map)
 
-    def build_coupling_map(self, *args, **kwargs):  # pylint: disable=unused-argument
+    def build_coupling_map(self, *args, **kwargs):
         return copy.deepcopy(self._coupling_map)
 
     def instruction_supported(self, *args, **kwargs):

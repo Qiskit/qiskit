@@ -82,7 +82,7 @@ class Gate(Instruction):
         Raises:
             CircuitError: If gate is not unitary
         """
-        # pylint: disable=cyclic-import
+
         from qiskit.quantum_info.operators import Operator
         from qiskit.circuit.library.generalized_gates.unitary import UnitaryGate
 
@@ -145,7 +145,7 @@ class Gate(Instruction):
             QiskitError: invalid ``ctrl_state``.
         """
         if not annotated:  # captures both None and False
-            # pylint: disable=cyclic-import
+
             from ._add_control import add_control
 
             return add_control(self, num_ctrl_qubits, label, ctrl_state)

@@ -25,7 +25,7 @@ from qiskit.circuit import Qubit
 from qiskit.converters import circuit_to_instruction, circuit_to_gate
 from qiskit.circuit.equivalence import EquivalenceLibrary, Key, Equivalence, NodeData, EdgeData
 from qiskit.utils import optionals
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 from ..visualization.visualization import QiskitVisualizationTestCase, path_to_diagram_reference
 

@@ -44,7 +44,7 @@ from ..blueprintcircuit import BlueprintCircuit
 
 
 if typing.TYPE_CHECKING:
-    import qiskit  # pylint: disable=cyclic-import
+    import qiskit
 
 # entanglement for an individual block, e.g. if the block is CXGate() and we have
 # 3 qubits, this could be [(0, 1), (1, 2), (2, 0)]
@@ -815,7 +815,6 @@ class NLocal(BlueprintCircuit):
         """
         return None
 
-    # pylint: disable=too-many-return-statements
     def get_entangler_map(
         self, rep_num: int, block_num: int, num_block_qubits: int
     ) -> Sequence[Sequence[int]]:
@@ -1081,7 +1080,7 @@ class NLocal(BlueprintCircuit):
         """Convert ``block`` to a circuit of correct width and parameterized using the iterator."""
         if self._overwrite_block_parameters:
             # check if special parameters should be used
-            # pylint: disable=assignment-from-none
+
             if params is None:
                 params = self._parameter_generator(rep_num, block_num, indices)
             if params is None:
@@ -1144,7 +1143,7 @@ class NLocal(BlueprintCircuit):
                 for indices in entangler_map:
                     # It's actually nontrivially faster to use a listcomp and pass that to `tuple`
                     # than to pass a generator expression directly.
-                    # pylint: disable=consider-using-generator
+
                     instr = CircuitInstruction(
                         simple_block.gate(*itertools.islice(param_iter, simple_block.num_params)),
                         tuple([target_qubits[i] for i in indices]),
@@ -1237,7 +1236,6 @@ class NLocal(BlueprintCircuit):
 
             self.append(block, self.qubits, copy=False)
 
-    # pylint: disable=unused-argument
     def _parameter_generator(self, rep: int, block: int, indices: list[int]) -> Parameter | None:
         """If certain blocks should use certain parameters this method can be overridden."""
         return None

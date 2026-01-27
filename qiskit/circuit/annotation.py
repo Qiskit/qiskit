@@ -328,7 +328,7 @@ class QPYSerializer(abc.ABC):
         """
         return b""
 
-    def load_state(self, namespace: str, payload: bytes):  # pylint: disable=unused-argument
+    def load_state(self, namespace: str, payload: bytes):
         """Initialize the state of the deserializer for a given ``namespace`` key.
 
         When in a QPY loading context, this method will be called exactly once, before all calls to

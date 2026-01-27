@@ -27,7 +27,7 @@ from qiskit.circuit.library.generalized_gates import Isometry
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.quantum_info.states.statevector import (
     Statevector,
-)  # pylint: disable=cyclic-import
+)
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 

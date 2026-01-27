@@ -13,7 +13,7 @@
 """Test commutation checker class ."""
 
 import unittest
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 import numpy as np
 from ddt import idata, ddt, data, unpack

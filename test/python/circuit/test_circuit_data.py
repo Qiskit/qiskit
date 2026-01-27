@@ -29,7 +29,7 @@ from qiskit.circuit import (
 from qiskit.circuit.classical import types, expr
 from qiskit.circuit.library import HGate, XGate, CXGate, RXGate, Measure
 from qiskit.circuit.exceptions import CircuitError
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit import transpile
 
@@ -914,7 +914,6 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
         qc.cz(0, 1)
 
         class NotAnInstruction:
-            # pylint: disable=missing-class-docstring,missing-function-docstring
             def to_instruction(self):
                 return CXGate()
 
@@ -929,7 +928,6 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
         classes to be used, not just `Instruction`."""
 
         class MyOp(Operation):
-            # pylint: disable=missing-class-docstring,missing-function-docstring
 
             @property
             def name(self):

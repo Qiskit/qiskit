@@ -33,8 +33,8 @@ from qiskit.transpiler.passes.routing.sabre_swap import Heuristic, SetScaling
 from qiskit.transpiler import CouplingMap, Layout, PassManager, Target, TranspilerError
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.utils import optionals
-from test.utils._canonical import canonicalize_control_flow  # pylint: disable=wrong-import-order
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test.utils._canonical import canonicalize_control_flow
+from test import QiskitTestCase
 
 from ..legacy_cmaps import MUMBAI_CMAP
 

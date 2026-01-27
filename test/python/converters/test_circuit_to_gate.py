@@ -21,7 +21,7 @@ from qiskit.circuit import Gate, Qubit
 from qiskit.circuit.classical import expr, types
 from qiskit.quantum_info import Operator
 from qiskit.exceptions import QiskitError
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestCircuitToGate(QiskitTestCase):

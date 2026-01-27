@@ -27,4 +27,4 @@ from qiskit._accelerate.circuit.classical.types import (
     Uint,
     Float,
     Duration,
-)  # pylint: disable=unused-import
+)

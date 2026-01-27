@@ -12,10 +12,9 @@
 
 """Test cases for circuit annotations."""
 
-# pylint: disable=missing-class-docstring,missing-function-docstring
 
 from qiskit.circuit import annotation
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 # Most of the tests for this module are elsewhere, such as for OpenQASM 3 serialisation being in the
 # OpenQASM 3 tests, and similar for QPY.

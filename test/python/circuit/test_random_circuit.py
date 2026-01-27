@@ -22,7 +22,7 @@ from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.random import random_circuit
 from qiskit.circuit.random.utils import random_circuit_from_graph
 from qiskit.converters import circuit_to_dag
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestCircuitRandom(QiskitTestCase):
@@ -169,14 +169,14 @@ class TestCircuitRandom(QiskitTestCase):
 
 
 def incomplete_graph(n_nodes):
-    # pylint: disable=missing-function-docstring
+
     pydi_graph = rx.generators.directed_complete_graph(n_nodes)
     pydi_graph.remove_edge(1, 3)
     return pydi_graph
 
 
 def digraph_with_no_edges(n_nodes):
-    # pylint: disable=missing-function-docstring
+
     graph = rx.PyDiGraph()
     graph.add_nodes_from(range(n_nodes))
     return graph

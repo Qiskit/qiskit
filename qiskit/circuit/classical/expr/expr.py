@@ -35,7 +35,7 @@ from qiskit._accelerate.circuit.classical.expr import (
     Unary,
     Binary,
     Index,
-)  # pylint: disable=unused-import
+)
 
 
 class _UnaryOp(enum.Enum):

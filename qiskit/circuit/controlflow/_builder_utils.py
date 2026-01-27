@@ -18,7 +18,7 @@ import dataclasses
 from typing import Union, TypeVar, TYPE_CHECKING
 from collections.abc import Iterable
 
-from qiskit.circuit import (  # pylint: disable=cyclic-import
+from qiskit.circuit import (
     ClassicalRegister,
     Clbit,
     QuantumRegister,
@@ -154,7 +154,7 @@ def unify_circuit_resources(circuits: Iterable[QuantumCircuit]) -> Iterable[Quan
     return _unify_circuit_registers(circuits)
 
 
-def _unify_circuit_resources_rebuild(  # pylint: disable=invalid-name  # (it's too long?!)
+def _unify_circuit_resources_rebuild(  # (it's too long?!)
     circuits: tuple[QuantumCircuit, ...],
 ) -> tuple[QuantumCircuit, QuantumCircuit]:
     """
@@ -164,7 +164,7 @@ def _unify_circuit_resources_rebuild(  # pylint: disable=invalid-name  # (it's t
 
     This function will always rebuild the objects into new :class:`.QuantumCircuit` instances.
     """
-    # pylint: disable=cyclic-import
+
     from qiskit.circuit import QuantumCircuit
 
     qubits, clbits = set(), set()

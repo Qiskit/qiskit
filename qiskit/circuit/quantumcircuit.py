@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=bad-docstring-quotes,invalid-name
 
 """Quantum circuit object."""
 
@@ -44,7 +43,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.utils import deprecate_func, deprecate_arg
-from . import (  # pylint: disable=cyclic-import
+from . import (
     Bit,
     QuantumRegister,
     Qubit,
@@ -75,7 +74,7 @@ from .delay import Delay
 from .store import Store
 
 
-if typing.TYPE_CHECKING:  # pylint: disable=cyclic-import
+if typing.TYPE_CHECKING:
     import types as builtin_types
     import qiskit
     from qiskit.circuit import Annotation
@@ -1683,7 +1682,7 @@ class QuantumCircuit:
             return False
 
         if apply_layout:
-            from qiskit.transpiler import Layout  # pylint: disable=cyclic-import
+            from qiskit.transpiler import Layout
 
             virtuals = self.qubits.copy()
             if num_qubits is not None and num_qubits > original_num_qubits:
@@ -1693,7 +1692,7 @@ class QuantumCircuit:
             initial_layout = None
         self._data.make_physical(num_qubits)
         if initial_layout is not None:
-            from qiskit.transpiler import TranspileLayout  # pylint: disable=cyclic-import
+            from qiskit.transpiler import TranspileLayout
 
             self._layout = TranspileLayout(
                 initial_layout=initial_layout,
@@ -3538,7 +3537,7 @@ class QuantumCircuit:
     @typing.overload
     def add_input(self, name_or_var: expr.Var, type_: None = None, /) -> expr.Var: ...
 
-    def add_input(  # pylint: disable=missing-raises-doc
+    def add_input(
         self, name_or_var: str | expr.Var, type_: types.Type | None = None, /
     ) -> expr.Var:
         """Register a variable as an input to the circuit.
@@ -3754,7 +3753,7 @@ class QuantumCircuit:
             qiskit.circuit.Instruction: a composite instruction encapsulating this circuit (can be
                 decomposed back).
         """
-        # pylint: disable=cyclic-import
+
         from qiskit.converters.circuit_to_instruction import circuit_to_instruction
 
         return circuit_to_instruction(self, parameter_map, label=label)
@@ -3780,7 +3779,7 @@ class QuantumCircuit:
         Returns:
             Gate: a composite gate encapsulating this circuit (can be decomposed back).
         """
-        # pylint: disable=cyclic-import
+
         from qiskit.converters.circuit_to_gate import circuit_to_gate
 
         return circuit_to_gate(self, parameter_map, label=label)
@@ -3806,7 +3805,7 @@ class QuantumCircuit:
         Returns:
             QuantumCircuit: a circuit one level decomposed
         """
-        # pylint: disable=cyclic-import
+
         from qiskit.transpiler.passes.basis.decompose import Decompose
         from qiskit.converters.circuit_to_dag import circuit_to_dag
         from qiskit.converters.dag_to_circuit import dag_to_circuit
@@ -3833,7 +3832,7 @@ class QuantumCircuit:
         Returns:
             a DAG representing this same circuit.
         """
-        # pylint: disable=cyclic-import
+
         from qiskit.converters import circuit_to_dag
 
         return circuit_to_dag(self, copy_operations=copy_operations)
@@ -3991,7 +3990,6 @@ class QuantumCircuit:
                qc.draw(output='mpl', style={'backgroundcolor': '#EEEEEE'})
         """
 
-        # pylint: disable=cyclic-import
         from qiskit.visualization import circuit_drawer
 
         return circuit_drawer(
@@ -4542,7 +4540,7 @@ class QuantumCircuit:
         Returns:
             QuantumCircuit: Returns circuit with measurements when ``inplace = False``.
         """
-        # pylint: disable=cyclic-import
+
         from qiskit.converters.circuit_to_dag import circuit_to_dag
 
         if inplace:
@@ -4642,7 +4640,7 @@ class QuantumCircuit:
         Returns:
             QuantumCircuit: Returns the resulting circuit when ``inplace=False``, else None.
         """
-        # pylint: disable=cyclic-import
+
         from qiskit.transpiler.passes import RemoveFinalMeasurements
         from qiskit.converters import circuit_to_dag
 
@@ -4705,7 +4703,7 @@ class QuantumCircuit:
         See also:
             :func:`.qasm2.load`: the complete interface to the OpenQASM 2 importer.
         """
-        # pylint: disable=cyclic-import
+
         from qiskit import qasm2
 
         return qasm2.load(
@@ -4728,7 +4726,7 @@ class QuantumCircuit:
         See also:
             :func:`.qasm2.loads`: the complete interface to the OpenQASM 2 importer.
         """
-        # pylint: disable=cyclic-import
+
         from qiskit import qasm2
 
         return qasm2.loads(
@@ -4898,7 +4896,7 @@ class QuantumCircuit:
         strict: bool = ...,
     ) -> None: ...
 
-    def assign_parameters(  # pylint: disable=missing-raises-doc
+    def assign_parameters(
         self,
         parameters: Mapping[Parameter, ParameterValueType] | Iterable[ParameterValueType],
         inplace: bool = False,
@@ -5150,7 +5148,7 @@ class QuantumCircuit:
             copy=False,
         )
 
-    def id(self, qubit: QubitSpecifier) -> InstructionSet:  # pylint: disable=invalid-name
+    def id(self, qubit: QubitSpecifier) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.IGate`.
 
         For the full matrix form of this gate, see the underlying gate documentation.
@@ -5175,7 +5173,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        # pylint: disable=cyclic-import
+
         from .library.generalized_gates.gms import MSGate
 
         return self.append(MSGate(len(qubits), theta), qubits, copy=False)
@@ -5281,7 +5279,7 @@ class QuantumCircuit:
             q_target: The qubit targeted by the gate.
             use_basis_gates: use p, u, cx basis gates.
         """
-        # pylint: disable=cyclic-import
+
         from .library.standard_gates.rx import RXGate
         from qiskit.synthesis.multi_controlled import (
             _apply_cu,
@@ -5347,7 +5345,7 @@ class QuantumCircuit:
             mode: The implementation mode to use.
             use_basis_gates: use p, u, cx basis gates
         """
-        # pylint: disable=cyclic-import
+
         from .library.standard_gates.ry import RYGate
         from qiskit.synthesis.multi_controlled import (
             _apply_cu,
@@ -5443,7 +5441,7 @@ class QuantumCircuit:
             q_target: The qubit targeted by the gate.
             use_basis_gates: use p, u, cx basis gates.
         """
-        # pylint: disable=cyclic-import
+
         from .library.standard_gates.rz import CRZGate, RZGate
         from qiskit.synthesis.multi_controlled import _mcsu2_real_diagonal
 
@@ -6625,7 +6623,7 @@ class QuantumCircuit:
                 q_1: ┤1                                          ├
                      └───────────────────────────────────────────┘
         """
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit.library.data_preparation import StatePreparation
 
         if qubits is None:
@@ -6746,7 +6744,7 @@ class QuantumCircuit:
                 q_1: ┤1                                   ├
                      └────────────────────────────────────┘
         """
-        # pylint: disable=cyclic-import
+
         from .library.data_preparation.initializer import Initialize
 
         if qubits is None:
@@ -6790,7 +6788,7 @@ class QuantumCircuit:
                 circuit = QuantumCircuit(2)
                 circuit.unitary(matrix, [0, 1])
         """
-        # pylint: disable=cyclic-import
+
         from .library.generalized_gates.unitary import UnitaryGate
 
         gate = UnitaryGate(obj, label=label)
@@ -7651,7 +7649,7 @@ class QuantumCircuit:
         if unit == "s":
             return dur
         if unit == "dt":
-            from qiskit.circuit.duration import duration_in_dt  # pylint: disable=cyclic-import
+            from qiskit.circuit.duration import duration_in_dt
 
             return duration_in_dt(dur, target.dt)
 

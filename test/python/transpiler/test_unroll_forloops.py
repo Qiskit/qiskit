@@ -17,7 +17,7 @@ import unittest
 from qiskit.circuit import QuantumCircuit, Parameter, QuantumRegister, ClassicalRegister
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes.utils.unroll_forloops import UnrollForLoops
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestUnrollForLoops(QiskitTestCase):

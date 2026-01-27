@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
 
 """
 Expand 2-qubit Unitary operators into an equivalent
@@ -488,7 +487,7 @@ class TwoQubitBasisDecomposer:
 class _LazyTwoQubitCXDecomposer(TwoQubitBasisDecomposer):
     __slots__ = ("_inner",)
 
-    def __init__(self):  # pylint: disable=super-init-not-called
+    def __init__(self):
         self._inner = None
 
     def _load(self):

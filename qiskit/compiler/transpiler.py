@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-sequence-index
 
 """Circuit transpile function"""
 import logging
@@ -34,7 +33,7 @@ logger = logging.getLogger(__name__)
 _CircuitT = TypeVar("_CircuitT", bound=QuantumCircuit | list[QuantumCircuit])
 
 
-def transpile(  # pylint: disable=too-many-return-statements
+def transpile(
     circuits: _CircuitT,
     backend: Backend | None = None,
     basis_gates: list[str] | None = None,

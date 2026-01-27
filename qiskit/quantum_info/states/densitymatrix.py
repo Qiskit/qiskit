@@ -172,7 +172,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         Raises:
             ValueError: when an invalid output method is selected.
         """
-        # pylint: disable=cyclic-import
+
         from qiskit.visualization.state_visualization import state_drawer
 
         return state_drawer(self, output=output, **drawer_args)
@@ -180,7 +180,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
     def _ipython_display_(self):
         out = self.draw()
         if isinstance(out, str):
-            print(out)  # pylint: disable=bad-builtin
+            print(out)
         else:
             from IPython.display import display
 

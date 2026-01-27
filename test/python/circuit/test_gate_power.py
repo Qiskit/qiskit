@@ -47,7 +47,7 @@ from qiskit.circuit.library import (
     SwapGate,
 )
 from qiskit.quantum_info.operators import Operator
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt

@@ -132,7 +132,7 @@ class BasePass(GenericPass, metaclass=MetaPass):
             If on transformation pass, the resulting QuantumCircuit.
             If analysis pass, the input circuit.
         """
-        from qiskit.transpiler import PassManager  # pylint: disable=cyclic-import
+        from qiskit.transpiler import PassManager
 
         pm = PassManager([self])
         # Previous versions of the `__call__` function would not construct a `PassManager`, but just
@@ -151,11 +151,11 @@ class BasePass(GenericPass, metaclass=MetaPass):
         return out
 
 
-class AnalysisPass(BasePass):  # pylint: disable=abstract-method
+class AnalysisPass(BasePass):
     """An analysis pass: change property set, not DAG."""
 
 
-class TransformationPass(BasePass):  # pylint: disable=abstract-method
+class TransformationPass(BasePass):
     """A transformation pass: change DAG, not property set."""
 
     def execute(

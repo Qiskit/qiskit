@@ -162,7 +162,7 @@ class BooleanExpression:
         Raises:
             ValueError: If ``circuit_type`` is not either 'bit' or 'phase'.
         """
-        # pylint: disable=cyclic-import
+
         from .boolean_expression_synth import (
             synth_bit_oracle_from_esop,
             synth_phase_oracle_from_esop,

@@ -105,7 +105,7 @@ from qiskit.transpiler.target import InstructionProperties, Target
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler import WrapAngleRegistry
 
-from test import QiskitTestCase, combine, slow_test  # pylint: disable=wrong-import-order
+from test import QiskitTestCase, combine, slow_test
 
 from ..legacy_cmaps import MELBOURNE_CMAP, RUESCHLIKON_CMAP, TOKYO_CMAP, MUMBAI_CMAP
 
@@ -2849,7 +2849,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
 
         # When the annotation framework expands to have more semantics, the test here might need to
         # expand to mark the custom annotations as being safe under any circuit transformation.
-        class Custom(Annotation):  # pylint: disable=missing-class-docstring
+        class Custom(Annotation):
             namespace = "custom"
 
             def __init__(self, value):

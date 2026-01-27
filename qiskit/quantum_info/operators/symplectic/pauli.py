@@ -597,7 +597,6 @@ class Pauli(BasePauli):
         if qargs is None:
             qargs = getattr(other, "qargs", None)
 
-        # pylint: disable=cyclic-import
         from qiskit.quantum_info.operators.symplectic.clifford import Clifford
 
         if not isinstance(other, (Pauli, Instruction, QuantumCircuit, Clifford)):

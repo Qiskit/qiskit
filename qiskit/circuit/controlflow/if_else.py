@@ -18,7 +18,7 @@ from typing import Optional, Union, TYPE_CHECKING
 from collections.abc import Iterable
 import itertools
 
-from qiskit.circuit import ClassicalRegister, Clbit  # pylint: disable=cyclic-import
+from qiskit.circuit import ClassicalRegister, Clbit
 from qiskit.circuit.classical import expr
 from qiskit.circuit.instructionset import InstructionSet
 from qiskit.circuit.exceptions import CircuitError
@@ -75,7 +75,7 @@ class IfElseOp(ControlFlowOp):
                 evaluates to false.
             label: An optional label for identifying the instruction.
         """
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         # Type checking generally left to @params.setter, but required here for
@@ -108,7 +108,7 @@ class IfElseOp(ControlFlowOp):
 
     @params.setter
     def params(self, parameters):
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         true_body, false_body = parameters

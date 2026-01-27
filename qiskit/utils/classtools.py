@@ -26,7 +26,7 @@ _MAGIC_STATICMETHODS = {"__new__"}
 _MAGIC_CLASSMETHODS = {"__init_subclass__", "__prepare__"}
 
 
-class _lift_to_method:  # pylint: disable=invalid-name
+class _lift_to_method:
     """A decorator that ensures that an input callable object implements ``__get__``.  It is
     returned unchanged if so, otherwise it is turned into the default implementation for functions,
     which makes them bindable to instances.

@@ -22,8 +22,8 @@ from qiskit.synthesis.clifford import (
     synth_clifford_greedy,
 )
 
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
-from test import combine  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
+from test import combine
 
 
 @ddt

@@ -29,7 +29,7 @@ from qiskit.circuit.library import (
 )
 from qiskit.transpiler.passes import HighLevelSynthesis, HLSConfig
 from qiskit.synthesis.arithmetic import multiplier_qft_r17, multiplier_cumulative_h18
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt

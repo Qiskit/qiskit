@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-function-docstring
 
 """Test scheduled circuit (quantum circuit with duration)."""
 from ddt import ddt, data
@@ -25,7 +24,7 @@ from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.transpiler import InstructionProperties, Target
 from qiskit.transpiler.exceptions import TranspilerError
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt

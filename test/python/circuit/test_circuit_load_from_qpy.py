@@ -76,7 +76,7 @@ from qiskit.quantum_info import Pauli, SparsePauliOp, Clifford
 from qiskit.quantum_info.random import random_unitary
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.utils import optionals
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt.ddt
@@ -1234,7 +1234,7 @@ class TestLoadFromQPY(QiskitTestCase):
         class CustomDeserializer(json.JSONDecoder):
             """Custom json decoder to handle CustomObject."""
 
-            def object_hook(self, o):  # pylint: disable=invalid-name,method-hidden
+            def object_hook(self, o):
                 """Hook to override default decoder.
 
                 Normally specified as a kwarg on load() that overloads the

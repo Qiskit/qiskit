@@ -67,8 +67,8 @@ from qiskit.synthesis.two_qubit.two_qubit_decompose import (
 from qiskit._accelerate.two_qubit_decompose import two_qubit_decompose_up_to_diagonal
 from qiskit._accelerate.two_qubit_decompose import Specialization
 from qiskit._accelerate.two_qubit_decompose import Ud
-from test import combine  # pylint: disable=wrong-import-order
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import combine
+from test import QiskitTestCase
 
 
 def make_oneq_cliffords():
@@ -138,7 +138,7 @@ class CheckDecompositions(QiskitTestCase):
         """Fail if eval(repr(weyl1)) not equal to weyl1"""
         repr1 = repr(weyl1)
         with self.assertNoLogs("qiskit.synthesis"):
-            weyl2: TwoQubitWeylDecomposition = eval(repr1)  # pylint: disable=eval-used
+            weyl2: TwoQubitWeylDecomposition = eval(repr1)
         msg_base = f"weyl1:\n{repr1}\nweyl2:\n{weyl2!r}"
         self.assertEqual(type(weyl1), type(weyl2), msg_base)
         maxdiff = np.max(abs(weyl1.unitary_matrix - weyl2.unitary_matrix))
@@ -180,7 +180,7 @@ class CheckDecompositions(QiskitTestCase):
 
     def check_two_qubit_weyl_decomposition(self, target_unitary, tolerance=1.0e-12):
         """Check TwoQubitWeylDecomposition() works for a given operator"""
-        # pylint: disable=invalid-name
+
         with self.assertNoLogs("qiskit.synthesis"):
             decomp = TwoQubitWeylDecomposition(target_unitary, fidelity=None)
         # self.assertRoundTrip(decomp)  # Too slow

@@ -13,7 +13,6 @@
 """User-space constructor functions for the expression tree, which do some of the inference and
 lifting boilerplate work."""
 
-# pylint: disable=redefined-builtin,redefined-outer-name
 
 from __future__ import annotations
 
@@ -70,7 +69,7 @@ def lift_legacy_condition(
     condition: tuple[qiskit.circuit.Clbit | qiskit.circuit.ClassicalRegister, int], /
 ) -> Expr:
     """Lift a legacy two-tuple equality condition into a new-style :class:`Expr`."""
-    from qiskit.circuit import Clbit  # pylint: disable=cyclic-import
+    from qiskit.circuit import Clbit
 
     target, value = condition
     if isinstance(target, Clbit):
@@ -113,7 +112,7 @@ def lift(value: typing.Any, /, type: types.Type | None = None) -> Expr:
         if type is not None:
             raise ValueError("use 'cast' to cast existing expressions, not 'lift'")
         return value
-    from qiskit.circuit import Clbit, ClassicalRegister, Duration  # pylint: disable=cyclic-import
+    from qiskit.circuit import Clbit, ClassicalRegister, Duration
 
     inferred: types.Type
     if value is True or value is False or isinstance(value, Clbit):

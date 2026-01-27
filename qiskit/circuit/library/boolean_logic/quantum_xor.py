@@ -137,7 +137,6 @@ class BitwiseXorGate(Gate):
             and self.amount == other.amount
         )
 
-    # pylint: disable=unused-argument
     def inverse(self, annotated: bool = False):
         r"""Return inverted BitwiseXorGate gate (itself).
 

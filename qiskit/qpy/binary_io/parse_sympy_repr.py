@@ -64,7 +64,7 @@ class ParseSympyWalker(ast.NodeVisitor):
     def __init__(self):
         self.stack = []
 
-    def visit_UnaryOp(self, node: ast.UnaryOp):  # pylint: disable=invalid-name
+    def visit_UnaryOp(self, node: ast.UnaryOp):
         """Visit a python unary op node"""
         self.visit(node.operand)
         arg = self.stack.pop()
@@ -79,11 +79,11 @@ class ParseSympyWalker(ast.NodeVisitor):
         else:
             raise QpyError(f"Invalid unary op as part of sympy srepr: {node.op}")
 
-    def visit_Constant(self, node: ast.Constant):  # pylint: disable=invalid-name
+    def visit_Constant(self, node: ast.Constant):
         """Visit a constant node."""
         self.stack.append(node.value)
 
-    def visit_Call(self, node: ast.Call):  # pylint: disable=invalid-name
+    def visit_Call(self, node: ast.Call):
         """Visit a call node
 
         This can only be parameter expression allowed sympy call types.

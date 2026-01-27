@@ -74,7 +74,7 @@ class RZGate(Gate):
 
     def _define(self):
         """Default definition"""
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         # global phase: -0.5*φ
@@ -252,7 +252,7 @@ class CRZGate(ControlledGate):
 
     def _define(self):
         """Default definition"""
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         # q_0: ─────────────■────────────────■──

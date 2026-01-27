@@ -159,12 +159,12 @@ class SabreSwap(TransformationPass):
         self.fake_run = fake_run
 
     @functools.cached_property
-    def dist_matrix(self):  # pylint: disable=missing-function-docstring
+    def dist_matrix(self):
         # This property is not intended to be public API, it just keeps backwards compatibility.
         return None if self._routing_target is None else self._routing_target.distance_matrix()
 
     @functools.cached_property
-    def coupling_map(self):  # pylint: disable=missing-function-docstring
+    def coupling_map(self):
         # This property is not intended to be public API, it just keeps backwards compatibility.
         return (
             None

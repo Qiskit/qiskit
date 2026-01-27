@@ -465,13 +465,13 @@ class GroverOperator(QuantumCircuit):
 
         # store inputs
         if isinstance(oracle, Statevector):
-            from qiskit.circuit.library import Diagonal  # pylint: disable=cyclic-import
+            from qiskit.circuit.library import Diagonal
 
             oracle = Diagonal((-1) ** oracle.data)
         self._oracle = oracle
 
         if isinstance(zero_reflection, (Operator, DensityMatrix)):
-            from qiskit.circuit.library import Diagonal  # pylint: disable=cyclic-import
+            from qiskit.circuit.library import Diagonal
 
             zero_reflection = Diagonal(zero_reflection.data.diagonal())
         self._zero_reflection = zero_reflection

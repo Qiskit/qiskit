@@ -36,7 +36,6 @@ if TYPE_CHECKING:
     from qiskit.circuit import annotation
 
 
-# pylint: disable=invalid-name
 QPY_SUPPORTED_TYPES = QuantumCircuit
 
 # Some standard-library types claim to be `IOBase.seekable`, but don't actually support arbitrary
@@ -375,7 +374,7 @@ def load(
     env_qiskit_version = [int(x) for x in version_match.group("release").split(".")]
 
     qiskit_version = (data.major_version, data.minor_version, data.patch_version)
-    # pylint: disable=too-many-boolean-expressions
+
     if (
         env_qiskit_version[0] < qiskit_version[0]
         or (

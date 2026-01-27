@@ -35,7 +35,7 @@ from qiskit.transpiler.passes import (
 )
 from qiskit.providers.fake_provider import GenericBackendV2
 
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class Mock127q(GenericBackendV2):

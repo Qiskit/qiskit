@@ -80,7 +80,6 @@ class BasicPrinter:
     _FLOAT_TYPE_LOOKUP = {type: f"float[{type.value}]" for type in ast.FloatType}
 
     # The visitor names include the class names, so they mix snake_case with PascalCase.
-    # pylint: disable=invalid-name
 
     def __init__(
         self,

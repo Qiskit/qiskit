@@ -330,7 +330,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
                *Scalable randomized benchmarking of non-Clifford gates*,
                npj Quantum Inf 2, 16012 (2016).
         """
-        # pylint: disable=cyclic-import
+
         from qiskit.synthesis.cnotdihedral import synth_cnotdihedral_full
 
         return synth_cnotdihedral_full(self)

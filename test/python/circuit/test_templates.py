@@ -21,8 +21,8 @@ import numpy as np
 from qiskit import QuantumCircuit
 from qiskit.quantum_info.operators import Operator
 import qiskit.circuit.library.templates as templib
-from test import combine  # pylint: disable=wrong-import-order
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import combine
+from test import QiskitTestCase
 
 
 @ddt

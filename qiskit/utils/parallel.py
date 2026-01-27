@@ -78,7 +78,7 @@ def _physical_cpus_assuming_twofold_smt():
     if (sched_getaffinity := getattr(os, "sched_getaffinity", None)) is not None:
         # It is callable, just pylint doesn't recognise it as `os.sched_getaffinity` because of the
         # `getattr`.
-        # pylint: disable=not-callable
+
         num_cpus = len(sched_getaffinity(0))
     else:
         num_cpus = os.cpu_count() or 1
@@ -198,7 +198,7 @@ def should_run_in_parallel(num_processes: int | None = None) -> bool:
             ...     assert not should_run_in_parallel(8)
     """
     # It's a configuration function with many simple choices - it'd be less clean to return late.
-    # pylint: disable=too-many-return-statements
+
     num_processes = default_num_processes() if num_processes is None else num_processes
     if num_processes < 2:
         # There's no resources to parallelise over.

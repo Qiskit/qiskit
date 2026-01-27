@@ -542,7 +542,7 @@ from pathlib import Path
 from typing import Union, Optional, Literal
 from collections.abc import Iterable
 
-# pylint: disable=c-extension-no-member
+
 from qiskit._accelerate import qasm2 as _qasm2
 from qiskit.circuit import QuantumCircuit
 from . import parse as _parse

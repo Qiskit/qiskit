@@ -46,7 +46,7 @@ class GlobalPhaseGate(Gate):
         super().__init__("global_phase", 0, [phase], label=label)
 
     def _define(self):
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         self.definition = QuantumCircuit._from_circuit_data(

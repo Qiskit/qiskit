@@ -25,7 +25,7 @@ from .n_local import n_local, BlockEntanglement
 from .two_local import TwoLocal
 
 if typing.TYPE_CHECKING:
-    import qiskit  # pylint: disable=cyclic-import
+    import qiskit
 
 
 def efficient_su2(

@@ -24,7 +24,7 @@ from qiskit.transpiler import CouplingMap, Target, InstructionProperties, Transp
 from qiskit.transpiler.passes import DenseLayout
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.passes.layout.dense_layout import _build_error_matrix
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 from ..legacy_cmaps import TOKYO_CMAP
 

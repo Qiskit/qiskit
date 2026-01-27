@@ -259,7 +259,7 @@ class Statevector(QuantumState, TolerancesMixin):
                 sv.draw(output='hinton')
 
         """
-        # pylint: disable=cyclic-import
+
         from qiskit.visualization.state_visualization import state_drawer
 
         return state_drawer(self, output=output, **drawer_args)
@@ -267,7 +267,7 @@ class Statevector(QuantumState, TolerancesMixin):
     def _ipython_display_(self):
         out = self.draw()
         if isinstance(out, str):
-            print(out)  # pylint: disable=bad-builtin
+            print(out)
         else:
             from IPython.display import display
 
@@ -974,7 +974,7 @@ class Statevector(QuantumState, TolerancesMixin):
         # pylint complains about a cyclic import since the following Initialize file
         # imports the StatePreparation, which again requires the Statevector (this file),
         # but as this is a local import, it's not actually an issue and can be ignored
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit.library.data_preparation.initializer import Initialize
 
         mat = Operator._instruction_to_matrix(obj)

@@ -81,7 +81,7 @@ class GenericPass(Task, ABC):
         self.property_set = state.property_set
 
         if self.requires:
-            # pylint: disable=cyclic-import
+
             from .flow_controllers import FlowControllerLinear
 
             passmanager_ir, state = FlowControllerLinear(self.requires).execute(

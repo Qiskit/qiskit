@@ -84,7 +84,7 @@ class XGate(SingletonGate):
 
     def _define(self):
         """Default definition"""
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         #    ┌──────────┐
@@ -377,7 +377,7 @@ class CCXGate(SingletonControlledGate):
 
     def _define(self):
         """Default definition"""
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         #                                                        ┌───┐
@@ -481,7 +481,6 @@ class RCCXGate(SingletonGate):
     def _define(self):
         """Default definition"""
 
-        # pylint: disable=cyclic-import
         from qiskit.circuit import QuantumCircuit
 
         # q_0: ────────────────────────■────────────────────────
@@ -541,7 +540,7 @@ class C3SXGate(SingletonControlledGate):
 
     def _define(self):
         """Default definition"""
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         self.definition = QuantumCircuit._from_circuit_data(
@@ -584,7 +583,7 @@ class C3XGate(SingletonControlledGate):
     # seems like open controls not happening?
     def _define(self):
         """Default definition"""
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         self.definition = QuantumCircuit._from_circuit_data(
@@ -685,7 +684,7 @@ class RC3XGate(SingletonGate):
 
     def _define(self):
         """Default definition"""
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         self.definition = QuantumCircuit._from_circuit_data(
@@ -731,7 +730,7 @@ class C4XGate(SingletonControlledGate):
     # seems like open controls not happening?
     def _define(self):
         """Default definition"""
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .h import HGate
         from .p import CPhaseGate
@@ -925,7 +924,7 @@ class MCXGate(ControlledGate):
 
     def _define(self):
         """This definition is based on MCPhaseGate implementation."""
-        # pylint: disable=cyclic-import
+
         from qiskit.synthesis.multi_controlled import synth_mcx_noaux_v24
 
         qc = synth_mcx_noaux_v24(self.num_ctrl_qubits)
@@ -1090,7 +1089,7 @@ class MCXGrayCode(MCXGate):
 
     def _define(self):
         """Define the MCX gate using the Gray code."""
-        # pylint: disable=cyclic-import
+
         from qiskit.synthesis.multi_controlled import synth_mcx_gray_code
 
         qc = synth_mcx_gray_code(self.num_ctrl_qubits)
@@ -1172,7 +1171,6 @@ class MCXRecursive(MCXGate):
     def _define(self):
         """Define the MCX gate using recursion."""
 
-        # pylint: disable=cyclic-import
         from qiskit.synthesis.multi_controlled import synth_mcx_1_clean_b95
 
         qc = synth_mcx_1_clean_b95(self.num_ctrl_qubits)
@@ -1197,13 +1195,13 @@ class MCXVChain(MCXGate):
     def __new__(
         cls,
         num_ctrl_qubits: int | None = None,
-        dirty_ancillas: bool = False,  # pylint: disable=unused-argument
+        dirty_ancillas: bool = False,
         label: str | None = None,
         ctrl_state: int | str | None = None,
         *,
         _base_label=None,
-        relative_phase: bool = False,  # pylint: disable=unused-argument
-        action_only: bool = False,  # pylint: disable=unused-argument
+        relative_phase: bool = False,
+        action_only: bool = False,
     ):
         """Create a new MCX instance.
 
@@ -1291,7 +1289,7 @@ class MCXVChain(MCXGate):
         """Define the MCX gate using a V-chain of CX gates."""
 
         if self._dirty_ancillas:
-            # pylint: disable=cyclic-import
+
             from qiskit.synthesis.multi_controlled import synth_mcx_n_dirty_i15
 
             qc = synth_mcx_n_dirty_i15(
@@ -1301,7 +1299,7 @@ class MCXVChain(MCXGate):
             )
 
         else:  # use clean ancillas
-            # pylint: disable=cyclic-import
+
             from qiskit.synthesis.multi_controlled import synth_mcx_n_clean_m15
 
             qc = synth_mcx_n_clean_m15(self.num_ctrl_qubits)

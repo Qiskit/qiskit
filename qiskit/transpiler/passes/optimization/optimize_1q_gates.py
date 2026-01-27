@@ -337,7 +337,7 @@ class Optimize1qGates(TransformationPass):
         return (theta, phi, lamb)
 
     @staticmethod
-    def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):  # pylint: disable=invalid-name
+    def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
         """Express a Y.Z.Y single qubit gate as a Z.Y.Z gate.
 
         Solve the equation

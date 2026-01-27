@@ -219,7 +219,7 @@ def from_bytecode(bytecode, custom_instructions: Iterable[CustomInstruction]):
     should consider that a bug in the Rust code."""
     # The method `QuantumCircuit._append` is a semi-public method, so isn't really subject to
     # "protected access".
-    # pylint: disable=protected-access
+
     qc = QuantumCircuit()
     qubits = []
     clbits = []
@@ -327,7 +327,7 @@ class _DefinedGate(Gate):
     def _define(self):
         # This is a stripped-down version of the bytecode interpreter; there's very few opcodes that
         # we actually need to handle within gate bodies.
-        # pylint: disable=protected-access
+
         qubits = [Qubit() for _ in [None] * self.num_qubits]
         qc = QuantumCircuit(qubits)
         for op in self._bytecode:
@@ -392,7 +392,7 @@ def _opaque_builder(name, num_qubits):
 
 # The natural way to reduce returns in this function would be to use a lookup table for the opcodes,
 # but the PyO3 enum entities aren't (currently) hashable.
-def _evaluate_argument(expr, parameters):  # pylint: disable=too-many-return-statements
+def _evaluate_argument(expr, parameters):
     """Inner recursive function to calculate the value of a mathematical expression given the
     concrete values in the `parameters` field."""
     if isinstance(expr, ExprConstant):

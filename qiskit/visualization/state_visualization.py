@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-# pylint: disable=missing-param-doc,missing-type-doc,unused-argument
 
 """
 Visualization functions for quantum states.

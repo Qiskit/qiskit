@@ -123,7 +123,6 @@ class PassManager(BasePassManager):
         """
         super().replace(index, tasks=passes)
 
-    # pylint: disable=arguments-differ
     def run(  # pylint:disable=arguments-renamed
         self,
         circuits: _CircuitsT,
@@ -339,12 +338,12 @@ class StagedPassManager(PassManager):
     @property
     def stages(self) -> tuple[str, ...]:
         """Pass manager stages"""
-        return self._stages  # pylint: disable=no-member
+        return self._stages
 
     @property
     def expanded_stages(self) -> tuple[str, ...]:
         """Expanded Pass manager stages including ``pre_`` and ``post_`` phases."""
-        return self._expanded_stages  # pylint: disable=no-member
+        return self._expanded_stages
 
     def _generate_expanded_stages(self) -> Iterator[str]:
         for stage in self.stages:

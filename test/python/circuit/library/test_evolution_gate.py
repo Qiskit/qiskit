@@ -30,7 +30,7 @@ from qiskit.quantum_info import Operator, SparsePauliOp, Pauli, Statevector, Spa
 from qiskit.transpiler.passes import HLSConfig, HighLevelSynthesis
 from qiskit.utils import optionals
 from qiskit.circuit._utils import _compute_control_matrix
-from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
+from test import QiskitTestCase, combine
 
 X = SparsePauliOp("X")
 Y = SparsePauliOp("Y")

@@ -159,19 +159,18 @@ class DataBin(ShapedMixin):
     # projects have made the appropriate changes.
 
     @property
-    def _FIELDS(self) -> tuple[str, ...]:  # pylint: disable=invalid-name
+    def _FIELDS(self) -> tuple[str, ...]:
         return tuple(self._data)
 
     @property
-    def _FIELD_TYPES(self) -> tuple[Any, ...]:  # pylint: disable=invalid-name
+    def _FIELD_TYPES(self) -> tuple[Any, ...]:
         return tuple(map(type, self.values()))
 
     @property
-    def _SHAPE(self) -> tuple[int, ...]:  # pylint: disable=invalid-name
+    def _SHAPE(self) -> tuple[int, ...]:
         return self.shape
 
 
-# pylint: disable=unused-argument
 def make_data_bin(
     fields: Iterable[tuple[str, type]], shape: tuple[int, ...] | None = None
 ) -> type[DataBin]:

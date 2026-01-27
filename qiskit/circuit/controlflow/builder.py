@@ -419,7 +419,7 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
 
     @staticmethod
     def _raise_on_jump(operation):
-        # pylint: disable=cyclic-import
+
         from .break_loop import BreakLoopOp, BreakLoopPlaceholder
         from .continue_loop import ContinueLoopOp, ContinueLoopPlaceholder
 
@@ -645,7 +645,7 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
             and using the minimal set of resources necessary to support them, within the enclosing
             scope.
         """
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit, SwitchCaseOp
 
         # There's actually no real problem with building a scope more than once.  This flag is more

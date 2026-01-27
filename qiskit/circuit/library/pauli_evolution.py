@@ -157,7 +157,7 @@ class PauliEvolutionGate(Gate):
         self.operator = operator
 
         if synthesis is None:
-            # pylint: disable=cyclic-import
+
             from qiskit.synthesis.evolution import LieTrotter
 
             synthesis = LieTrotter()
@@ -221,12 +221,10 @@ class PauliEvolutionGate(Gate):
         # return as dense matrix, since that's what the interface dictates
         return exp.toarray()
 
-    # pylint: disable=unused-argument
     def inverse(self, annotated: bool = False):
         """Return the inverse, which is obtained by flipping the sign of the evolution time."""
         return PauliEvolutionGate(self.operator, -self.time, synthesis=self.synthesis)
 
-    # pylint: disable=unused-argument
     def power(self, exponent: float, annotated: bool = False) -> Gate:
         """Raise this gate to the power of ``exponent``.
 
@@ -247,7 +245,6 @@ class PauliEvolutionGate(Gate):
     def _return_repeat(self, exponent: float) -> PauliEvolutionGate:
         return self.power(exponent)  # same implementation
 
-    # pylint: disable=unused-argument
     def control(
         self,
         num_ctrl_qubits: int = 1,
@@ -420,7 +417,6 @@ def _merge_two_pauli_evolutions(
     return None
 
 
-# pylint: disable=too-many-return-statements
 def _pauli_rotation_trace_and_dim(gate: PauliEvolutionGate) -> tuple[complex, int] | None:
     """
     For a multi-qubit Pauli rotation, return a tuple ``(Tr(gate) / dim, dim)``.

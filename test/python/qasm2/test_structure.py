@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring
 
 import io
 import math
@@ -35,7 +34,7 @@ from qiskit.circuit import (
     library as lib,
 )
 from qiskit.quantum_info import Operator
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 from . import gate_builder
 
@@ -1731,7 +1730,7 @@ class TestCustomClassical(QiskitTestCase):
         self.assertEqual(parsed, qc)
 
     def test_use_in_gate_definition(self):
-        # pylint: disable=invalid-name
+
         program = """
             gate my_gate(a, b) q {
                 U(f(a, b), g(f(b, f(b, a))), b) q;

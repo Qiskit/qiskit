@@ -17,7 +17,7 @@ import numpy as np
 
 from qiskit.quantum_info import Statevector
 from qiskit.visualization.state_visualization import _paulivec_data
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestStatePlotTools(QiskitTestCase):

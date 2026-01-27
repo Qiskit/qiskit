@@ -10,13 +10,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-function-docstring
 
 """Test library of quantum circuits."""
 import copy
 
 from qiskit.circuit import Qubit, QuantumRegister
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestQubitClass(QiskitTestCase):

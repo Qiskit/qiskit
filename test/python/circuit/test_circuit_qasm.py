@@ -21,7 +21,7 @@ from qiskit.circuit import Parameter, Qubit, Clbit, Gate
 from qiskit.circuit.library import C3SXGate, CCZGate, CSGate, CSdgGate, PermutationGate
 from qiskit.qasm2.exceptions import QASM2Error as QasmError
 from qiskit.qasm2 import dumps
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 # Regex pattern to match valid OpenQASM identifiers
 VALID_QASM2_IDENTIFIER = re.compile("[a-z][a-zA-Z_0-9]*")
@@ -394,7 +394,6 @@ mcx q[0],q[1],q[2],q[3];"""
         self.assertEqual(dumps(qc), expected_qasm)
 
     def test_circuit_qasm_with_mcx_gate_variants(self):
-        # pylint: disable=line-too-long
         """Test circuit qasm() method with MCXGrayCode, MCXRecursive, MCXVChain"""
         import qiskit.circuit.library as cl
 
@@ -700,8 +699,6 @@ reset q[1];"""
     def test_nested_gate_naming_clashes(self):
         """Test that gates that have naming clashes but only appear in the body of another gate
         still get exported correctly."""
-
-        # pylint: disable=missing-class-docstring
 
         class Inner(Gate):
             def __init__(self, param):

@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
 
 """Test for the DAGCircuit object"""
 
@@ -3651,8 +3650,6 @@ class TestDAGMakePhysical(DAGTest):
 
 class TestStructurallyEqual(DAGTest):
     """Test structural-equality checks."""
-
-    # pylint: disable=missing-function-docstring
 
     def test_deterministic_circuit(self):
         """Two DAGs created from the same circuit should be structurally equal."""

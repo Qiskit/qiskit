@@ -17,7 +17,7 @@ import ast
 from os import path
 from ddt import ddt, unpack, data
 
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 from qiskit import transpile
 from qiskit.providers.basic_provider import BasicSimulator
 
@@ -69,7 +69,6 @@ class TestTruthTable(QiskitTestCase):
 
 @ddt
 class TestBooleanExpression(QiskitTestCase):
-    # pylint: disable=possibly-used-before-assignment
     """Test boolean expression."""
 
     @data(
@@ -168,7 +167,7 @@ class TestBooleanExpressionDIMACS(QiskitTestCase):
 
     def test_bad_formatting(self):
         """Tests DIMACS parsing on edge cases"""
-        # pylint: disable=trailing-whitespace
+
         dimacs = """p cnf 2 1
          
         1 2 0"""  # has empty line with whitespace - should ignore it

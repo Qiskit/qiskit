@@ -32,8 +32,6 @@ from qiskit._accelerate.two_qubit_decompose import two_qubit_decompose_up_to_dia
 from qiskit._accelerate import qsd
 
 
-# pylint: disable=invalid-name
-# pylint: disable=too-many-return-statements
 def qs_decomposition(
     mat: np.ndarray,
     opt_a1: bool | None = None,
@@ -142,7 +140,7 @@ def qs_decomposition(
             if opt_a2 and _depth > 0:
                 from qiskit.circuit.library.generalized_gates.unitary import (
                     UnitaryGate,
-                )  # pylint: disable=cyclic-import
+                )
 
                 def decomp_2q(mat):
                     ugate = UnitaryGate(mat)
@@ -378,7 +376,6 @@ def _apply_a2(circ):
     from qiskit.quantum_info import Operator
     from qiskit.circuit.library.generalized_gates.unitary import UnitaryGate
 
-    # pylint: disable=cyclic-import
     from qiskit.transpiler.passes.synthesis import HighLevelSynthesis
 
     decomposer = two_qubit_decompose_up_to_diagonal

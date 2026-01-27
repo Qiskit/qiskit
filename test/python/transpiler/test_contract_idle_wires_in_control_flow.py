@@ -10,13 +10,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-class-docstring,missing-module-docstring,missing-function-docstring
 
 from qiskit.circuit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.circuit.classical import expr, types
 from qiskit.transpiler.passes import ContractIdleWiresInControlFlow
 
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestContractIdleWiresInControlFlow(QiskitTestCase):

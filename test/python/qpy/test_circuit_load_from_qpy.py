@@ -26,7 +26,7 @@ from qiskit.qpy.common import QPY_VERSION
 from qiskit.transpiler import TranspileLayout, CouplingMap
 from qiskit.compiler import transpile
 from qiskit.qpy.formats import FILE_HEADER_V10_PACK, FILE_HEADER_V10, FILE_HEADER_V10_SIZE
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class QpyCircuitTestCase(QiskitTestCase):
@@ -332,7 +332,7 @@ class TestUseSymengineFlag(QpyCircuitTestCase):
     def test_use_symengine_with_bool_like(self, use_symengine):
         """Test that the use_symengine flag is set correctly with a bool-like input."""
 
-        class Booly:  # pylint: disable=missing-class-docstring,missing-function-docstring
+        class Booly:
             def __init__(self, value):
                 self.value = value
 
@@ -384,7 +384,6 @@ class TestSymbolExpr(QpyCircuitTestCase):
 
 
 class TestAnnotations(QpyCircuitTestCase):
-    # pylint: disable=missing-class-docstring,missing-function-docstring,redefined-outer-name
 
     def test_wrapping_openqasm3(self):
         class My(annotation.Annotation):
@@ -616,8 +615,6 @@ class TestOutputStreamProperties(QpyCircuitTestCase):
 
     class UnseekableStream(io.IOBase):
         """A wrapper around a binary stream that is not seekable."""
-
-        # pylint: disable=missing-function-docstring
 
         def __init__(self, base):
             self._base = base

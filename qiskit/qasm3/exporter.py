@@ -1450,7 +1450,6 @@ class _ExprBuilder(expr.ExprVisitor[ast.Expression]):
     def visit_stretch(self, node, /):
         return self.lookup(node)
 
-    # pylint: disable=too-many-return-statements
     def visit_value(self, node, /):
         if node.type.kind is types.Bool:
             return ast.BooleanLiteral(node.value)

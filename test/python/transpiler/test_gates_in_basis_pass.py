@@ -23,7 +23,7 @@ from qiskit.transpiler.passes import BasisTranslator
 from qiskit.transpiler.passes import GatesInBasis
 from qiskit.transpiler.target import Target
 from qiskit.providers.fake_provider import GenericBackendV2
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestGatesInBasisPass(QiskitTestCase):

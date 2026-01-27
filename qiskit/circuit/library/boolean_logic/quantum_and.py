@@ -180,7 +180,6 @@ class AndGate(Gate):
 
         self.definition = circuit
 
-    # pylint: disable=unused-argument
     def inverse(self, annotated: bool = False):
         r"""Return inverted AND gate (itself).
 

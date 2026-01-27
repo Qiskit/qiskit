@@ -76,7 +76,7 @@ def multiplier_cumulative_h18(
     circuit = QuantumCircuit(qr_a, qr_b, qr_out)
 
     # prepare adder as controlled gate
-    # pylint: disable=cyclic-import
+
     from qiskit.circuit.library.arithmetic import HalfAdderGate, ModularAdderGate
 
     adder = HalfAdderGate(num_state_qubits)

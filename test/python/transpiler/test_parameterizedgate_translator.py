@@ -19,7 +19,7 @@ from qiskit.circuit.library import n_local
 from qiskit.exceptions import QiskitError
 from qiskit.transpiler.passes import TranslateParameterizedGates
 from qiskit.providers.fake_provider import GenericBackendV2
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestTranslateParameterized(QiskitTestCase):

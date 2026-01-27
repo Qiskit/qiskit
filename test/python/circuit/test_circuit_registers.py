@@ -26,7 +26,7 @@ from qiskit.circuit import (
 )
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.qasm2 import dumps
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestCircuitRegisters(QiskitTestCase):

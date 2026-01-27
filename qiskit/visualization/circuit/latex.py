@@ -50,7 +50,7 @@ class QCircuitImage:
     Thanks to Eric Sabo for the initial implementation for Qiskit.
     """
 
-    def __init__(  # pylint: disable=bad-docstring-quotes
+    def __init__(
         self,
         qubits,
         clbits,

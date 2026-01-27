@@ -62,7 +62,7 @@ class ForLoopOp(ControlFlowOp):
 
     @params.setter
     def params(self, parameters):
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         indexset, loop_parameter, body = parameters

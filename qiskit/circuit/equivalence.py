@@ -17,7 +17,7 @@ import rustworkx as rx
 
 
 from qiskit.exceptions import InvalidFileError
-from qiskit._accelerate.equivalence import (  # pylint: disable=unused-import
+from qiskit._accelerate.equivalence import (
     BaseEquivalenceLibrary,
     Key,
     Equivalence,

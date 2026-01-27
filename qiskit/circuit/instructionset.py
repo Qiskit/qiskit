@@ -33,7 +33,7 @@ class InstructionSet:
 
     __slots__ = ("_instructions", "_requester")
 
-    def __init__(  # pylint: disable=bad-docstring-quotes
+    def __init__(
         self,
         *,
         resource_requester: Callable[..., ClassicalRegister | Clbit] | None = None,

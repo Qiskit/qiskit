@@ -27,7 +27,7 @@ from qiskit.result.distributions.probability import ProbDistribution
 from qiskit.result.distributions.quasi import QuasiDistribution
 from qiskit.result.postprocess import _bin_to_hex
 
-from qiskit._accelerate import results as results_rs  # pylint: disable=no-name-in-module
+from qiskit._accelerate import results as results_rs
 
 
 def marginal_counts(

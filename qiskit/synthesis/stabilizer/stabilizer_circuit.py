@@ -30,7 +30,6 @@ def synth_circuit_from_stabilizers(
     allow_underconstrained: bool = False,
     invert: bool = False,
 ) -> QuantumCircuit:
-    # pylint: disable=line-too-long
     """Synthesis of a circuit that generates a state stabilized by the stabilizers
     using Gaussian elimination with Clifford gates.
     If the stabilizers are underconstrained, and ``allow_underconstrained`` is ``True``,

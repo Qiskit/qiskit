@@ -17,7 +17,7 @@ import copy
 from typing import TYPE_CHECKING
 from qiskit.circuit.exceptions import CircuitError
 
-# pylint: disable=cyclic-import
+
 from . import QuantumRegister
 from .quantumcircuit import QuantumCircuit
 from .gate import Gate
