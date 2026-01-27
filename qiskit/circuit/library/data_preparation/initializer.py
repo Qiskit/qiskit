@@ -86,18 +86,16 @@ class Initialize(Instruction):
         self.definition = initialize_circuit
 
     def inverse(self, annotated: bool = False):
-        """Invert this instruction.
+        """Raises an error as :class:`.Initialize` cannot be inverted.
 
         Args:
-            annotated: if set to ``True`` the output inverse gate will be returned
-                as :class:`.AnnotatedOperation`.
+            annotated: Not applicable.
 
         Returns:
-            The inverse operation.
+            Not applicable.
 
         Raises:
-            CircuitError: if the instruction is not composite
-                and an inverse has not been implemented for it.
+            CircuitError: ``Initialize.inverse`` always raises this error.
         """
         raise CircuitError(
             f"inverse() not implemented for {self.name}. "
