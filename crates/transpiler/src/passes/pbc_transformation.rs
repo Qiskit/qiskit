@@ -24,6 +24,8 @@ use qiskit_circuit::operations::{
 use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
 use qiskit_quantum_info::sparse_observable::PySparseObservable;
 
+use crate::TranspilerError;
+
 type GateToPBCType<'a> = (&'static [(&'static str, f64, &'static [u32])], f64);
 type GateToPBCVec<'a> = (Vec<(&'static str, Param, &'static [u32])>, Param);
 
@@ -363,6 +365,12 @@ pub fn py_pbc_transformation(py: Python, dag: &mut DAGCircuit) -> PyResult<DAGCi
             if (inst.op.name() == "measure") | (inst.op.name() == "barrier") {
                 new_dag.push_back(inst.clone())?;
             } else if let OperationRef::StandardGate(gate) = inst.op.view() {
+                if gate.num_qubits() > 2 {
+                    return Err(TranspilerError::new_err(format!(
+                        "Unable to run PBC tranformation as the circuit contains instructions not supported by the pass: {:?}",
+                        gate.name()
+                    )));
+                }
                 // handling only 1-qubit and 2-qubit gates with a single parameter
                 if matches!(
                     gate,
@@ -504,7 +512,10 @@ pub fn py_pbc_transformation(py: Python, dag: &mut DAGCircuit) -> PyResult<DAGCi
                     global_phase = add_param(&global_phase, global_phase_update);
                 }
             } else {
-                panic!();
+                return Err(TranspilerError::new_err(format!(
+                    "Unable to run PBC tranformation as the circuit contains instructions not supported by the pass: {:?}",
+                    inst.op.name()
+                )));
             }
         } else {
             unreachable!();

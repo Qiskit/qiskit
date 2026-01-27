@@ -15,6 +15,7 @@
 from ddt import ddt
 
 from qiskit.circuit import QuantumCircuit, Parameter
+from qiskit.transpiler import TranspilerError
 from qiskit.transpiler.passes import PBCTransformation, RemoveBarriers, RemoveFinalMeasurements
 from qiskit.quantum_info import Operator
 from qiskit.circuit.random import random_circuit
@@ -61,6 +62,10 @@ from qiskit.circuit.library import (
     CU3Gate,
     XXPlusYYGate,
     XXMinusYYGate,
+    CCXGate,
+    C3XGate,
+    C4XGate,
+    MCXGate,
 )
 from test import combine, QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -237,3 +242,23 @@ class TestPBCTransformation(QiskitTestCase):
         qc_bound = qc.assign_parameters([0.123] * num_params)
         qct_bound = qct.assign_parameters([0.123] * num_params)
         self.assertEqual(Operator(qct_bound), Operator(qc_bound))
+
+    @combine(
+        gate=[
+            CCXGate(),
+            C3XGate(),
+            C4XGate(),
+            MCXGate(5),
+        ]
+    )
+    def test_unsupported_gates_raise_error(self, gate):
+        """Test that unsupported gates raise a trasnpiler error."""
+        num_qubits = gate.num_qubits
+        qc = QuantumCircuit(num_qubits)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.append(gate, range(num_qubits))
+        qc.rzz(0.123, 0, 1)
+
+        with self.assertRaises(TranspilerError):
+            _ = PBCTransformation()(qc)
