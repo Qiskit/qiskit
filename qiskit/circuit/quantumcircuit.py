@@ -4202,7 +4202,7 @@ class QuantumCircuit:
         """Count each operation kind in the circuit.
 
         Returns:
-            collections.OrderedDict: A breakdown of how many operations of each kind, sorted by amount.
+            OrderedDict: A breakdown of how many operations of each kind, sorted by amount.
         """
         ops_dict = self._data.count_ops()
         return OrderedDict(ops_dict)
@@ -4713,12 +4713,12 @@ class QuantumCircuit:
             return None
 
     @staticmethod
-    def from_qasm_file(path: Union[str, os.PathLike]) -> "QuantumCircuit":
+    def from_qasm_file(path: str | os.PathLike) -> "QuantumCircuit":
         """Read an OpenQASM 2.0 program from a file and convert to an instance of
         :class:`.QuantumCircuit`.
 
         Args:
-          path (str | os.PathLike): Path to the file for an OpenQASM 2 program
+          path (str): Path to the file for an OpenQASM 2 program
 
         Return:
           QuantumCircuit: The QuantumCircuit object for the input OpenQASM 2.
