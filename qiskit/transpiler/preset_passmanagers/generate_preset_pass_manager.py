@@ -28,7 +28,7 @@ from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.preset_passmanagers.common import is_clifford_t_basis
 from qiskit.transpiler.target import Target, _FakeTarget
 
-from .level0 import level_0_pass_manager
+from .level0 import level_0_pass_manager, level_0_clifford_t_pass_manager
 from .level1 import level_1_pass_manager
 from .level2 import level_2_pass_manager
 from .level3 import level_3_pass_manager
@@ -307,16 +307,30 @@ def generate_preset_pass_manager(
         basis_gates=pm_config.basis_gates, target=pm_config.target
     )
 
-    if optimization_level == 0:
-        pm = level_0_pass_manager(pm_config)
-    elif optimization_level == 1:
-        pm = level_1_pass_manager(pm_config)
-    elif optimization_level == 2:
-        pm = level_2_pass_manager(pm_config)
-    elif optimization_level == 3:
-        pm = level_3_pass_manager(pm_config)
+    if pm_config._is_clifford_t:
+        if optimization_level == 0:
+            pm = level_0_clifford_t_pass_manager(pm_config)
+        elif optimization_level == 1:
+            pm = level_1_pass_manager(pm_config)
+        elif optimization_level == 2:
+            pm = level_2_pass_manager(pm_config)
+        elif optimization_level == 3:
+            pm = level_3_pass_manager(pm_config)
+        else:
+            raise ValueError(f"Invalid optimization level {optimization_level}")
+
     else:
-        raise ValueError(f"Invalid optimization level {optimization_level}")
+        if optimization_level == 0:
+            pm = level_0_pass_manager(pm_config)
+        elif optimization_level == 1:
+            pm = level_1_pass_manager(pm_config)
+        elif optimization_level == 2:
+            pm = level_2_pass_manager(pm_config)
+        elif optimization_level == 3:
+            pm = level_3_pass_manager(pm_config)
+        else:
+            raise ValueError(f"Invalid optimization level {optimization_level}")
+
     return pm
 
 
