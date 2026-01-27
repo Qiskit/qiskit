@@ -12,7 +12,7 @@
 
 """Durations of instructions, one of transpiler configurations."""
 from __future__ import annotations
-from typing import Optional, List, Tuple, Union
+from typing import Union
 from collections.abc import Iterable
 
 import qiskit.circuit
@@ -254,11 +254,11 @@ class InstructionDurations:
         return units_used
 
 
-InstructionDurationsType = Union[
-    list[tuple[str, Iterable[int] | None, float, Iterable[float] | None, str]],
-    list[tuple[str, Iterable[int] | None, float, Iterable[float] | None]],
-    list[tuple[str, Iterable[int] | None, float, str]],
-    list[tuple[str, Iterable[int] | None, float]],
-    InstructionDurations,
-]
+InstructionDurationsType = (
+    list[tuple[str, Iterable[int] | None, float, Iterable[float] | None, str]]
+    | list[tuple[str, Iterable[int] | None, float, Iterable[float] | None]]
+    | list[tuple[str, Iterable[int] | None, float, str]]
+    | list[tuple[str, Iterable[int] | None, float]]
+    | InstructionDurations
+)
 """List of tuples representing (instruction name, qubits indices, parameters, duration)."""

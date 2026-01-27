@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 import dataclasses
-from typing import Union, List
+from typing import Union
 
 from qiskit.circuit.operation import Operation
 from qiskit.circuit.parameterexpression import ParameterValueType

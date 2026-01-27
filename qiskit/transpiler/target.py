@@ -67,9 +67,7 @@ class InstructionProperties(BaseInstructionProperties):
         *args,  # pylint: disable=unused-argument
         **kwargs,  # pylint: disable=unused-argument
     ):
-        return super().__new__(  # pylint: disable=too-many-function-args
-            cls, duration, error
-        )
+        return super().__new__(cls, duration, error)  # pylint: disable=too-many-function-args
 
     def __init__(
         self,

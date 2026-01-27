@@ -15,7 +15,7 @@
 import itertools
 import math
 from collections import OrderedDict, namedtuple
-from typing import Dict, List, Any
+from typing import Any
 from collections.abc import Generator
 
 import rustworkx as rx

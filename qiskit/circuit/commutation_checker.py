@@ -13,7 +13,7 @@
 """Code from commutative_analysis pass that checks commutation relations between DAG nodes."""
 
 from __future__ import annotations
-from typing import List, Union, Set, Optional
+from typing import Union
 from collections.abc import Sequence
 
 from qiskit.circuit.operation import Operation

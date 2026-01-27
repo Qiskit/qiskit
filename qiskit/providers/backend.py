@@ -18,7 +18,7 @@
 from abc import ABC
 from abc import abstractmethod
 import datetime
-from typing import List, Union, Tuple
+from typing import Union
 
 from qiskit.circuit.gate import Instruction
 from qiskit._accelerate.target import QubitProperties
@@ -239,9 +239,7 @@ class BackendV2(Backend, ABC):
         """
         raise NotImplementedError
 
-    def qubit_properties(
-        self, qubit: int | list[int]
-    ) -> QubitProperties | list[QubitProperties]:
+    def qubit_properties(self, qubit: int | list[int]) -> QubitProperties | list[QubitProperties]:
         """Return QubitProperties for a given qubit.
 
         If there are no defined or the backend doesn't support querying these

@@ -17,7 +17,7 @@ from __future__ import annotations
 __all__ = ("SwitchCaseOp", "CASE_DEFAULT")
 
 import contextlib
-from typing import Union, Any, Tuple, Optional, List, Literal, TYPE_CHECKING
+from typing import Union, Any, Literal, TYPE_CHECKING
 from collections.abc import Iterable
 
 from qiskit.circuit import ClassicalRegister, Clbit  # pylint: disable=cyclic-import

@@ -18,7 +18,7 @@ import gzip
 import io
 import shutil
 from json import JSONEncoder, JSONDecoder
-from typing import Union, List, BinaryIO, Type, Optional, TYPE_CHECKING
+from typing import Union, BinaryIO, TYPE_CHECKING
 from collections.abc import Callable
 from collections.abc import Iterable, Mapping
 import struct

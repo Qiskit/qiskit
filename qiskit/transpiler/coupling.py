@@ -20,7 +20,6 @@ onto a device with this coupling.
 """
 
 import math
-from typing import List
 
 import rustworkx as rx
 from rustworkx.visualization import graphviz_draw

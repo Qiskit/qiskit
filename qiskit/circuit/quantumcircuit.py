@@ -26,9 +26,6 @@ import typing
 from collections import OrderedDict
 from typing import (
     Union,
-    Optional,
-    Tuple,
-    Type,
     TypeVar,
     Any,
     Literal,
@@ -95,22 +92,10 @@ S = TypeVar("S")
 T = TypeVar("T")
 
 # Types that can be coerced to a valid Qubit specifier in a circuit.
-QubitSpecifier = Union[
-    Qubit,
-    QuantumRegister,
-    int,
-    slice,
-    Sequence[Qubit | int],
-]
+QubitSpecifier = Qubit | QuantumRegister | int | slice | Sequence[Qubit | int]
 
 # Types that can be coerced to a valid Clbit specifier in a circuit.
-ClbitSpecifier = Union[
-    Clbit,
-    ClassicalRegister,
-    int,
-    slice,
-    Sequence[Clbit | int],
-]
+ClbitSpecifier = Clbit | ClassicalRegister | int | slice | Sequence[Clbit | int]
 
 # Generic type which is either :obj:`~Qubit` or :obj:`~Clbit`, used to specify types of functions
 # which operate on either type of bit, but not both at the same time.
@@ -4576,9 +4561,7 @@ class QuantumCircuit:
         else:
             return None
 
-    def measure_all(
-        self, inplace: bool = True, add_bits: bool = True
-    ) -> QuantumCircuit | None:
+    def measure_all(self, inplace: bool = True, add_bits: bool = True) -> QuantumCircuit | None:
         """Adds measurement to all qubits.
 
         By default, adds new classical bits in a :obj:`.ClassicalRegister` to store these

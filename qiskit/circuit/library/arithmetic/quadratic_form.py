@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from typing import Union, Optional, List
+from typing import Union
 import math
 from collections.abc import Sequence
 
@@ -24,7 +24,7 @@ from qiskit.circuit import QuantumCircuit, QuantumRegister, ParameterExpression,
 from qiskit.utils.deprecation import deprecate_func
 from ..basis_change import QFT, QFTGate
 
-_ValueType = Union[int, float, np.integer, np.floating, ParameterExpression]
+_ValueType = int | float | np.integer | np.floating | ParameterExpression
 
 
 class QuadraticForm(QuantumCircuit):

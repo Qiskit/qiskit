@@ -968,8 +968,7 @@ def _write_instruction(
             and not hasattr(controlflow, gate_class_name)
             and gate_class_name not in ["Clifford", "PauliProductMeasurement"]
         )
-        or gate_class_name == "Gate"
-        or gate_class_name == "Instruction"
+        or gate_class_name in {"Gate", "Instruction"}
         or isinstance(instruction.operation, library.BlueprintCircuit)
     ):
         gate_class_name = instruction.operation.name

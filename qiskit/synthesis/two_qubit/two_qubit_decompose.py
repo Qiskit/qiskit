@@ -27,7 +27,7 @@ from __future__ import annotations
 import io
 import base64
 import warnings
-from typing import Optional, Type, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 import logging
 

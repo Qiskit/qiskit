@@ -14,7 +14,6 @@
 
 from __future__ import annotations
 import warnings
-from typing import List, Optional
 import numpy as np
 
 from qiskit.circuit import QuantumRegister, AncillaRegister, QuantumCircuit, Gate

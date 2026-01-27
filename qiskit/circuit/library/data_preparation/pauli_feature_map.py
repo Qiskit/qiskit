@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence, Mapping
-from typing import Optional, List, Union, Dict, Tuple
+from typing import Union
 from collections.abc import Callable
 from functools import reduce
 import numpy as np
@@ -422,7 +422,9 @@ class PauliFeatureMap(NLocal):
         self,
         feature_dimension: int | None = None,
         reps: int = 2,
-        entanglement: str | dict[int, list[tuple[int]]] | Callable[[int], str | dict[int, list[tuple[int]]]] = "full",
+        entanglement: (
+            str | dict[int, list[tuple[int]]] | Callable[[int], str | dict[int, list[tuple[int]]]]
+        ) = "full",
         alpha: float = 2.0,
         paulis: list[str] | None = None,
         data_map_func: Callable[[np.ndarray], float] | None = None,

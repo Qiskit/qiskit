@@ -15,7 +15,7 @@ Bindings array class
 """
 from __future__ import annotations
 
-from typing import Union, Tuple
+from typing import Union
 from collections.abc import Mapping
 from collections.abc import Iterable, Mapping as _Mapping
 from itertools import chain, islice
@@ -31,7 +31,7 @@ from .shape import ShapedMixin, ShapeInput, shape_tuple
 __all__ = ["ParameterLike", "BindingsArrayLike"]
 
 
-ParameterLike = Union[Parameter, str]
+ParameterLike = Parameter | str
 """A parameter or parameter name."""
 
 BindingsArrayLike = Mapping[ParameterLike | tuple[ParameterLike, ...], ArrayLike]

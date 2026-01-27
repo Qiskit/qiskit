@@ -35,7 +35,8 @@ PermuteElement = TypeVar("PermuteElement")
 Permutation = dict[PermuteElement, PermuteElement]
 Swap = tuple[PermuteElement, PermuteElement]
 
+
 # Represents a circuit for permuting to a mapping.
 class PermutationCircuit(NamedTuple):
     circuit: DAGCircuit
-    inputmap:  dict[int | Qubit, Qubit]  # A mapping from architecture nodes to circuit registers.
+    inputmap: dict[int | Qubit, Qubit]  # A mapping from architecture nodes to circuit registers.

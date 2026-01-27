@@ -12,7 +12,7 @@
 
 """Second-order Pauli-Z expansion circuit."""
 
-from typing import List, Union, Optional, Dict, Tuple
+from typing import Union
 from collections.abc import Callable
 import numpy as np
 from qiskit.utils.deprecation import deprecate_func
@@ -108,7 +108,9 @@ class ZZFeatureMap(PauliFeatureMap):
         self,
         feature_dimension: int,
         reps: int = 2,
-        entanglement: str | dict[int, list[tuple[int]]] | Callable[[int], str | dict[int, list[tuple[int]]]] = "full",
+        entanglement: (
+            str | dict[int, list[tuple[int]]] | Callable[[int], str | dict[int, list[tuple[int]]]]
+        ) = "full",
         data_map_func: Callable[[np.ndarray], float] | None = None,
         parameter_prefix: str = "x",
         insert_barriers: bool = False,

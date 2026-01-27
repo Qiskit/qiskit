@@ -383,18 +383,14 @@ class TestUnitarySynthesisBasisGates(QiskitTestCase):
 
         self.assertTrue(
             all(
-                
-                    (1, 0) == (circ_10_index[instr.qubits[0]], circ_10_index[instr.qubits[1]])
-                    for instr in circ_10.get_instructions("cx")
-                
+                (1, 0) == (circ_10_index[instr.qubits[0]], circ_10_index[instr.qubits[1]])
+                for instr in circ_10.get_instructions("cx")
             )
         )
         self.assertTrue(
             all(
-                
-                    (0, 1) == (circ_01_index[instr.qubits[0]], circ_01_index[instr.qubits[1]])
-                    for instr in circ_01.get_instructions("cx")
-                
+                (0, 1) == (circ_01_index[instr.qubits[0]], circ_01_index[instr.qubits[1]])
+                for instr in circ_01.get_instructions("cx")
             )
         )
 

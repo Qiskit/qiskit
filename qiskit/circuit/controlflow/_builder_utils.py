@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 import dataclasses
-from typing import Tuple, Set, Union, TypeVar, TYPE_CHECKING
+from typing import Union, TypeVar, TYPE_CHECKING
 from collections.abc import Iterable
 
 from qiskit.circuit import (  # pylint: disable=cyclic-import

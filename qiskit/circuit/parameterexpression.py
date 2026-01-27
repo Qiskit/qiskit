@@ -138,4 +138,4 @@ def sympify(expression):
 
 # Redefine the type so external imports get an evaluated reference; Sphinx needs this to understand
 # the type hints.
-ParameterValueType = Union[ParameterExpression, float]
+ParameterValueType = ParameterExpression | float

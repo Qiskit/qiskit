@@ -13,7 +13,7 @@
 """The Grover operator."""
 
 from __future__ import annotations
-from typing import List, Optional, Union
+from typing import Union
 import numpy
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister, AncillaQubit

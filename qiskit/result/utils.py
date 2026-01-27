@@ -13,7 +13,7 @@
 
 """Utility functions for working with Results."""
 
-from typing import Union, Optional, Dict, List
+from typing import Union
 from collections.abc import Sequence
 from collections import Counter
 from copy import deepcopy

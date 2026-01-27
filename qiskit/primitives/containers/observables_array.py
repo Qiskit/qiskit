@@ -37,19 +37,13 @@ if TYPE_CHECKING:
 # Public API classes
 __all__ = ["ObservableLike", "ObservablesArrayLike"]
 
-IndexType = Union[int, slice, None]  # pylint: disable=used-before-assignment
+IndexType = int | slice | None
 
-ObservableLike = Union[
-    str,
-    Pauli,
-    SparsePauliOp,
-    SparseObservable,
-    Mapping[str | Pauli, float],
-]
+ObservableLike = str | Pauli | SparsePauliOp | SparseObservable | Mapping[str | Pauli, float]
 """Types that can be natively used to construct a Hermitian Estimator observable."""
 
 
-ObservablesArrayLike = Union[ObservableLike, ArrayLike]
+ObservablesArrayLike = ObservableLike | ArrayLike
 """Types that can be natively converted to an array of Hermitian Estimator observables."""
 
 

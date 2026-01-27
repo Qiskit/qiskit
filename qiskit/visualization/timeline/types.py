@@ -26,6 +26,8 @@ class ScheduledGate(NamedTuple):
     duration: int
     bits: list[circuit.Qubit | circuit.Clbit]
     bit_position: int
+
+
 ScheduledGate.__doc__ = "A gate instruction with embedded time."
 ScheduledGate.t0.__doc__ = "Time when the instruction is issued."
 ScheduledGate.operand.__doc__ = "Gate object associated with the gate."
@@ -38,6 +40,8 @@ class GateLink(NamedTuple):
     t0: int
     opname: str
     bits: list[circuit.Qubit | circuit.Clbit]
+
+
 GateLink.__doc__ = "Dedicated object to represent a relationship between instructions."
 GateLink.t0.__doc__ = "A position where the link is placed."
 GateLink.opname.__doc__ = "Name of gate associated with this link."
@@ -48,6 +52,8 @@ class Barrier(NamedTuple):
     t0: int
     bits: list[circuit.Qubit | circuit.Clbit]
     bit_position: int
+
+
 Barrier.__doc__ = "Dedicated object to represent a barrier instruction."
 Barrier.t0.__doc__ = "A position where the barrier is placed."
 Barrier.bits.__doc__ = "List of bit associated with the instruction."
@@ -58,6 +64,8 @@ class HorizontalAxis(NamedTuple):
     window: tuple[int, int]
     axis_map: dict[int, int]
     label: str
+
+
 HorizontalAxis.__doc__ = "Data to represent configuration of horizontal axis."
 HorizontalAxis.window.__doc__ = "Left and right edge of graph."
 HorizontalAxis.axis_map.__doc__ = "Mapping of apparent coordinate system and actual location."

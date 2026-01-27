@@ -17,7 +17,6 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from collections import OrderedDict
-from typing import Type
 
 import logging
 

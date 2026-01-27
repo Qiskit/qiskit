@@ -31,7 +31,7 @@ else:
     # `qiskit/tools` folder in their path, which will appear as a "namespace package" with no valid
     # location.  We catch that case as "not actually having Qiskit 0.x" as a convenience to devs.
     _has_tools = getattr(importlib.util.find_spec("qiskit.tools"), "has_location", False)
-    _suppress_error = os.environ.get("QISKIT_SUPPRESS_1_0_IMPORT_ERROR", False) == "1"
+    _suppress_error = os.environ.get("QISKIT_SUPPRESS_1_0_IMPORT_ERROR", "") == "1"
     if not _suppress_error and _has_tools:
         raise ImportError(
             "Qiskit is installed in an invalid environment that has both Qiskit >=1.0"

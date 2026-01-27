@@ -45,7 +45,7 @@ class FlowControllerLinear(BaseController):
         return list(self.tasks)
 
     def iter_tasks(self, state: PassManagerState) -> Generator[Task, PassManagerState, None]:
-        for task in self.tasks:
+        for task in self.tasks:  # noqa: UP028
             yield task
 
 
