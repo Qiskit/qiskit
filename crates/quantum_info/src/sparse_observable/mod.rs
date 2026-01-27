@@ -862,12 +862,7 @@ impl SparseObservable {
                 rhs.num_qubits, self.num_qubits
             );
         }
-        self.coeffs.extend_from_slice(
-            &rhs.coeffs
-                .iter()
-                .map(|c| c * factor)
-                .collect::<Vec<Complex64>>(),
-        );
+        self.coeffs.extend(rhs.coeffs.iter().map(|c| c * factor));
         self.bit_terms.extend_from_slice(&rhs.bit_terms);
         self.indices.extend_from_slice(&rhs.indices);
         // We only need to write out the new endpoints, not the initial zero.
