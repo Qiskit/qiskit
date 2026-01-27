@@ -31,7 +31,7 @@ def _minimal_ext_cmd(cmd):
     env["LANGUAGE"] = "C"
     env["LANG"] = "C"
     env["LC_ALL"] = "C"
-    with subprocess.Popen(
+    with subprocess.Popen(  # noqa: S603  We are calling git with fixed arguments
         cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,

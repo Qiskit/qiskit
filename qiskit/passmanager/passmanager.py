@@ -350,7 +350,7 @@ def _run_workflow_in_new_process(
     """
     return _run_workflow(
         program=program,
-        pass_manager=dill.loads(pass_manager_bin),
+        pass_manager=dill.loads(pass_manager_bin),  # noqa: S301 Only used for IPC
         initial_property_set=initial_property_set,
-        callback=dill.loads(callback),
+        callback=dill.loads(callback),  # noqa: S301 Only used for IPC
     )

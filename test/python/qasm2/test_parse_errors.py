@@ -788,7 +788,7 @@ class TestCustomClassical(QiskitTestCase):
             qiskit.qasm2.loads(
                 program, custom_classical=[qiskit.qasm2.CustomClassical("raises", 0, raises)]
             )
-        assert excinfo.exception.__cause__ is inner_exception
+        self.assertIs(excinfo.exception.__cause__, inner_exception)
 
     def test_cannot_be_used_as_gate(self):
         program = """

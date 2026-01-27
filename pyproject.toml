@@ -233,6 +233,8 @@ select = [
     "PL",
     # pyupgrade
     "UP",
+    # bandit
+    "S",
 ]
 ignore = [
     "E402",  # module-import-not-at-top-of-file false positives with module docs
@@ -257,6 +259,14 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "*.ipynb" = ["F821"]
+# Security rules from bandit don't apply to tests and utils
+"tools/*" = ["S603"]
+"test/*" = ["S110", "S301", "S603", "S311", "S307"]
+"test/randomized/*" = ["S101"]
+"test/qpy_compat/*" = ["S101"]
+"test/benchmarks/*" = ["S101"]
+# Visualization functions often subprocess to visualization tools
+"qiskit/visualization/*" = ["S603", "S607"]
 
 
 [tool.pylint.main]

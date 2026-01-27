@@ -355,7 +355,7 @@ class LazySubprocessTester(LazyDependencyManager):
 
     def _is_available(self):
         try:
-            subprocess.run(
+            subprocess.run(  # noqa: S603
                 self._command, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
             )
         except (OSError, subprocess.SubprocessError):

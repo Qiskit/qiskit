@@ -506,9 +506,10 @@ class TestScheduledCircuit(QiskitTestCase):
     def test_duration_on_same_instruction_instance(self, scheduling_method):
         """See: https://github.com/Qiskit/qiskit-terra/issues/5771"""
         backend = GenericBackendV2(3, seed=42, dt=self.dt)
-        assert backend.target.durations().get(
-            "cx", qubits=(0, 1), unit="dt"
-        ) != backend.target.durations().get("cx", qubits=(1, 2), unit="dt")
+        self.assertNotEqual(
+            backend.target.durations().get("cx", qubits=(0, 1), unit="dt"),
+            backend.target.durations().get("cx", qubits=(1, 2), unit="dt"),
+        )
         qc = QuantumCircuit(3)
         qc.cz(0, 1)
         qc.cz(1, 2)

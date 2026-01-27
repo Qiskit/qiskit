@@ -390,7 +390,7 @@ class TestQuantumCircuitData(QiskitTestCase):
     def test_setitem_slice(self, sli, value_length):
         """Test that __setitem__ with slice is equivalent to that of list."""
         reg_size = 20
-        assert value_length <= reg_size
+        self.assertLessEqual(value_length, reg_size)
         qr = QuantumRegister(reg_size)
         default_bit = Qubit()
         data_list = [
@@ -418,7 +418,7 @@ class TestQuantumCircuitData(QiskitTestCase):
     def test_setitem_slice_negative(self, sli, value_length):
         """Test that __setitem__ with slice is equivalent to that of list."""
         reg_size = 20
-        assert value_length <= reg_size
+        self.assertLessEqual(value_length, reg_size)
         qr = QuantumRegister(reg_size)
         default_bit = Qubit()
         data_list = [
@@ -1014,7 +1014,7 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
         self.assertEqual(data.num_input_vars, 0)
         self.assertEqual(data.num_captured_vars, 1)
         self.assertEqual(data.num_declared_vars, 1)
-        assert c1 in data.get_captured_vars()
+        self.assertIn(c1, data.get_captured_vars())
 
     def test_local_stretches(self):
         """Test local stretch variables handling"""
