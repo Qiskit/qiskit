@@ -13,7 +13,6 @@
 """X, CX, CCX and multi-controlled X gates."""
 from __future__ import annotations
 import warnings
-from typing import Type
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
@@ -845,7 +844,7 @@ class MCXGate(ControlledGate):
         """
         # The CXGate and CCXGate will be implemented for all modes of the MCX, and
         # the C3XGate and C4XGate are handled in the gate definition.
-        explicit: dict[int, Type[ControlledGate]] = {1: CXGate, 2: CCXGate}
+        explicit: dict[int, type[ControlledGate]] = {1: CXGate, 2: CCXGate}
         gate_class = explicit.get(num_ctrl_qubits, None)
         if gate_class is not None:
             gate = gate_class.__new__(

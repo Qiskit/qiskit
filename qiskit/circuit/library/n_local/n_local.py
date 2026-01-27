@@ -48,7 +48,7 @@ if typing.TYPE_CHECKING:
 
 # entanglement for an individual block, e.g. if the block is CXGate() and we have
 # 3 qubits, this could be [(0, 1), (1, 2), (2, 0)]
-BlockEntanglement = typing.Union[str, Iterable[Iterable[int]]]
+BlockEntanglement = str | Iterable[Iterable[int]]
 
 
 def n_local(
