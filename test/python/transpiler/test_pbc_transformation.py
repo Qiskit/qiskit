@@ -14,7 +14,7 @@
 
 from ddt import ddt
 
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.transpiler.passes import PBCTransformation, RemoveBarriers, RemoveFinalMeasurements
 from qiskit.quantum_info import Operator
 from qiskit.circuit.random import random_circuit
@@ -197,3 +197,43 @@ class TestPBCTransformation(QiskitTestCase):
         ops_names = set(qct2.count_ops().keys())
         self.assertEqual(ops_names, {"PauliEvolution"})
         self.assertEqual(Operator(qct2), Operator(qc0))
+
+    @combine(
+        gate=[
+            RXGate(Parameter("theta")),
+            RYGate(Parameter("theta")),
+            RZGate(Parameter("theta")),
+            PhaseGate(Parameter("theta")),
+            U1Gate(Parameter("theta")),
+            RZZGate(Parameter("theta")),
+            RXXGate(Parameter("theta")),
+            RZXGate(Parameter("theta")),
+            RYYGate(Parameter("theta")),
+            CPhaseGate(Parameter("theta")),
+            CU1Gate(Parameter("theta")),
+            CRZGate(Parameter("theta")),
+            CRXGate(Parameter("theta")),
+            CRYGate(Parameter("theta")),
+            UGate(Parameter("theta"), Parameter("phi"), Parameter("lam")),
+            U3Gate(Parameter("theta"), Parameter("phi"), Parameter("lam")),
+            RGate(Parameter("theta"), Parameter("phi")),
+            U2Gate(Parameter("theta"), Parameter("phi")),
+            CUGate(Parameter("theta"), Parameter("phi"), Parameter("lam"), Parameter("gamma")),
+            CU3Gate(Parameter("theta"), Parameter("phi"), Parameter("lam")),
+            XXPlusYYGate(Parameter("theta"), Parameter("phi")),
+            XXMinusYYGate(Parameter("theta"), Parameter("phi")),
+        ],
+    )
+    def test_parametrized_gates(self, gate):
+        """Test that a circuit with 1-qubit and 2-qubit parametrized gates
+        is tranlated into Pauli product rotatations correctly."""
+        num_qubits = gate.num_qubits
+        num_params = len(gate.params)
+        qc = QuantumCircuit(num_qubits)
+        qc.append(gate, range(num_qubits))
+        qct = PBCTransformation()(qc)
+        ops_names = set(qct.count_ops().keys())
+        self.assertEqual(ops_names, {"PauliEvolution"})
+        qc_bound = qc.assign_parameters([0.123] * num_params)
+        qct_bound = qct.assign_parameters([0.123] * num_params)
+        self.assertEqual(Operator(qct_bound), Operator(qc_bound))
