@@ -25,7 +25,7 @@ use crate::operations::{
 use crate::{Block, Clbit, Qubit};
 use hashbrown::HashMap;
 use nalgebra::Matrix2;
-use ndarray::Array2;
+use ndarray::{Array2, CowArray, Ix2};
 use num_complex::Complex64;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyType};
@@ -423,6 +423,21 @@ impl PackedOperation {
         }
     }
 
+    /// Does this [PackedOperation] represent an explicit gate?
+    ///
+    /// This can be either a [StandardGate] or a [PyGate].
+    #[inline]
+    pub fn is_gate(&self) -> bool {
+        if matches!(self.discriminant(), PackedOperationType::StandardGate) {
+            true
+        } else if matches!(self.discriminant(), PackedOperationType::PyOperationTypes) {
+            let op: &PyOperationTypes = self.try_into().unwrap();
+            matches!(op, PyOperationTypes::Gate(_))
+        } else {
+            false
+        }
+    }
+
     /// Create a `PackedOperation` from a `StandardGate`.
     #[inline]
     pub fn from_standard_gate(standard: StandardGate) -> Self {
@@ -813,11 +828,28 @@ impl PackedInstruction {
         Ok(())
     }
 
+    /// Extract an owned `ndarray` matrix from this instruction, if available.
+    ///
+    /// The returned value is always owned.  If you may be able to handle a read-only reference, see
+    /// [try_cow_array] instead.
     pub fn try_matrix(&self) -> Option<Array2<Complex64>> {
         match self.op.view() {
             OperationRef::StandardGate(g) => g.matrix(self.params_view()),
             OperationRef::Gate(g) => g.matrix(),
             OperationRef::Unitary(u) => u.matrix(),
+            _ => None,
+        }
+    }
+
+    /// Extract an `ndarray` matrix from this instruciton, if available.
+    ///
+    /// The returned value will preferentially be a view, if the matrix already exists (e.g. for
+    /// `Unitary`).
+    pub fn try_cow_array(&self) -> Option<CowArray<Complex64, Ix2>> {
+        match self.op.view() {
+            OperationRef::StandardGate(g) => g.matrix(self.params_view()).map(CowArray::from),
+            OperationRef::Gate(g) => g.matrix().map(CowArray::from),
+            OperationRef::Unitary(u) => Some(CowArray::from(u.matrix_view())),
             _ => None,
         }
     }
