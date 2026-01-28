@@ -335,6 +335,8 @@ of the following, which derive :class:`.QuantumCircuit` and are eagerly construc
    :template: autosummary/class_no_inherited_members.rst
 
    Diagonal
+   MCMT
+   MCMTVChain
    MCXGrayCode
    MCXRecursive
    MCXVChain
@@ -881,6 +883,8 @@ from .blueprintcircuit import BlueprintCircuit
 from .generalized_gates import (
     Diagonal,
     DiagonalGate,
+    MCMT,
+    MCMTVChain,
     Permutation,
     PermutationGate,
     GMS,
