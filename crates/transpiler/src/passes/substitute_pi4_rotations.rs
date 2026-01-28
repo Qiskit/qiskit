@@ -1041,7 +1041,7 @@ fn is_angle_close_to_multiple_of_pi_k(
     // fidelity-based tolerance
     let f_pro = tr_over_dim.abs().powi(2);
     let gate_fidelity = (dim * f_pro + 1.) / (dim + 1.);
-    let rem = (4 * k).try_into().unwrap();
+    let rem = 4 * k as i64;
     if (1. - gate_fidelity).abs() < tol {
         Some((closest_integer as i64).rem_euclid(rem) as usize)
     } else {
