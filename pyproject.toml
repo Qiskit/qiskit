@@ -1,6 +1,5 @@
 [build-system]
-# We duplicate the `requires` in `requirements-dev.txt` as a
-# convenience for developers.
+# This is duplicated as `dependency-groups.build` for convenience.
 requires = [
     "setuptools>=77.0",
     "setuptools-rust",
@@ -43,8 +42,12 @@ classifiers = [
 # These are configured in the `tool.setuptools.dynamic` table.
 dynamic = ["version", "readme", "dependencies"]
 
-# If modifying this table, be sure to sync with `requirements-optional.txt` and
-# `qiskit.utils.optionals`.
+# The optional dependencies of a project are part of the interface presented through
+#   pip install qiskit[extra1,extra2,...]
+# They all involve actually installing `qiskit` as part of the same command.  Use these for sets of
+# _extra_ packages we expose to users.
+#
+# If modifying this table, sync with `qiskit.utils.optionals` and `requirements-optionals.txt`
 [project.optional-dependencies]
 qasm3-import = [
     "qiskit-qasm3-import >= 0.1.0",
@@ -172,6 +175,59 @@ trivial = "qiskit.transpiler.preset_passmanagers.builtin_plugins:TrivialLayoutPa
 alap = "qiskit.transpiler.preset_passmanagers.builtin_plugins:AlapSchedulingPassManager"
 asap = "qiskit.transpiler.preset_passmanagers.builtin_plugins:AsapSchedulingPassManager"
 default = "qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultSchedulingPassManager"
+
+# Dependency groups are for developers working with the source code.  Install a dependency group by
+# (for example) `pip install --group dev`.
+#
+# These are not exposed to end-users of the package, nor in the standard `pip install qiskit`
+# process.  If you intended that, use `project.optional-dependencies` instead.
+[dependency-groups]
+# Sync with `build-system.requires`.
+build = ["setuptools>=77.0", "setuptools-rust"]
+# We use quite tight pins on pylint and astroid because they have a habit of adding new
+# on-by-default lints that are harder to deal with.
+lint = [
+    "pylint~=3.2.0",
+    "astroid~=3.2.0",
+    "ruff==0.0.267",
+    "reno>=4.1.0",  # duplicated with `doc`
+    "black[jupyter]~=25.1",
+]
+# Dependencies to run the test suite.  This group needs to be installable on all Python versions
+# that Qiskit supports.
+test = [
+    "stestr>=2.0",
+    "ddt>=1.2.0",
+    "coverage>=4.4.0",
+    "threadpoolctl",  # More detail from Numpy/Scipy BLAS-usage reports.
+]
+# Random tests.
+test-random = [
+    "qiskit-aer",
+    "hypothesis>=4.24.3",
+]
+# Dependencies to build the documentation.  It's ok if the range of Python versions that can build
+# the docs is more restrictive than Python versions that Qiskit supports.
+doc = [
+    "Sphinx>=6.0,<7.2",
+    "openqasm-pygments",
+    "reno>=4.1.0",  # duplicated with `lint`
+    "sphinxcontrib-katex==0.9.9",
+    "breathe>=4.35.0",
+]
+# The complete development environment.  This doesn't _need_ to work on all Python versions (in
+# particular, we don't always expect `doc` to run on the oldest supported Pythons).  People working
+# with older Pythons can install subgroups themselves.
+#
+# If you are familiar with the old Qiskit development structure, `pip install --group dev` replaces
+# the old `pip install -r requirements-dev.txt`.
+dev = [
+    {include-group = "build"},
+    {include-group = "lint"},
+    {include-group = "test"},
+    {include-group = "test-random"},
+    {include-group = "doc"},
+]
 
 [tool.setuptools]
 include-package-data = true

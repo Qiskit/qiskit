@@ -33,8 +33,7 @@ jobs:
           python -m venv image_tests
           image_tests/bin/python -m pip install -U \
             -c constraints.txt \
-            -r requirements.txt \
-            -r requirements-dev.txt \
+            --group test \
             -r requirements-optional.txt \
             -e .
           sudo apt-get update

@@ -41,8 +41,8 @@ jobs:
       - name: Ensure basic build requirements
         run: python -m pip install -c constraints.txt --upgrade pip setuptools wheel
 
-      - name: Build and install qiskit-terra
-        run: python -m pip install -c constraints.txt -e .
+      - name: Build and install Qiskit and requirements
+        run: python -m pip install -c constraints.txt --group test -r requirements-optional.txt -e .
         env:
           CARGO_INCREMENTAL: 0
           RUSTFLAGS: "-Cinstrument-coverage"
@@ -51,7 +51,6 @@ jobs:
       - name: Generate unittest coverage report
         run: |
           set -e
-          python -m pip install -c constraints.txt -r requirements-dev.txt -r requirements-optional.txt
           python tools/report_numpy_state.py
           stestr run
         env:
