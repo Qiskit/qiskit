@@ -315,9 +315,10 @@ fn try_merge(
             (inst1.op.view(), inst2.op.view())
         {
             let merged_instruction = Python::attach(|py| -> PyResult<Option<PackedInstruction>> {
-                let merge_result = imports::MERGE_TWO_PAULI_EVOLUTIONS
-                    .get_bound(py)
-                    .call1((py_gate1.gate.clone_ref(py), py_gate2.gate.clone_ref(py)))?;
+                let merge_result = imports::MERGE_TWO_PAULI_EVOLUTIONS.get_bound(py).call1((
+                    py_gate1.instruction.clone_ref(py),
+                    py_gate2.instruction.clone_ref(py),
+                ))?;
 
                 if merge_result.is_none() {
                     Ok(None)
