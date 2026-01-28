@@ -18,13 +18,31 @@ from qiskit._accelerate.pbc_transformation import pbc_transformation
 
 
 class PBCTransformation(TransformationPass):
-    """
-    Map gates to a list of equivalent Pauli product rotations and a global phase.
-    Each element of the list is of the form
-    ((Pauli string, phase rescale factor, [qubit indices]), global phase).
-    For gates that didn't have a phase (e.g. X)
-    the phase rescale factor is simply the phase of the rotation gate. The convention is
-    `original_gate = PauliEvolutionGate(pauli, phase) * e^{i global_phase * phase}`
+    r"""
+    Convert a quanutm circuit containing single-qubit and two-qubit standard gates,
+    barriers and measurements, into an equivalent list of Pauli product rotations,
+    implemented as :class:`.PauliEvolutionGate`, and a global phase.
+
+    For example::
+
+      from qiskit.circuit import QuantumCircuit
+      from qiskit.transpiler.passes import PBCTransformation
+      from qiskit.quantum_info import Operator
+
+      qc = QuantumCircuit(3)
+      qc.h(0)
+      qc.cx(0, 1)
+      qc.ry(0.123, 0)
+      qc.t(2)
+      qc.rzz(pi/4, 0, 2)
+
+      # The transformed circuit consists of PauliEvolution gates
+      qct = PBCTransformation()(qc)
+      ops_names = set(qct.count_ops().keys())
+      self.assertEqual(ops_names, {"PauliEvolution"})
+
+      # The circuits before and after the transformation are equivalent
+      assert Operator(qc) == Operator(qct)
     """
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
