@@ -18,7 +18,7 @@ from numpy.testing import assert_allclose
 import scipy.linalg as la
 
 from qiskit.quantum_info.quaternion import Quaternion
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestQuaternions(QiskitTestCase):

@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-function-docstring
 
 """Test library of quantum circuits."""
 
@@ -21,7 +20,7 @@ from qiskit.circuit import QuantumRegister
 from qiskit.circuit import AncillaRegister
 from qiskit.circuit import ClassicalRegister
 from qiskit.circuit.exceptions import CircuitError
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt

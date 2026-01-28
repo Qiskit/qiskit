@@ -20,7 +20,7 @@ from qiskit import QuantumCircuit
 from qiskit.circuit.library import DiagonalGate
 from qiskit.quantum_info import Statevector, Operator
 from qiskit.quantum_info.operators.predicates import matrix_equal
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt

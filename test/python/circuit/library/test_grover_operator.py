@@ -21,7 +21,7 @@ from qiskit.circuit import QuantumCircuit, Qubit, AncillaQubit
 from qiskit.circuit.library import GroverOperator, grover_operator
 from qiskit.converters import circuit_to_dag
 from qiskit.quantum_info import Operator, Statevector, DensityMatrix
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt

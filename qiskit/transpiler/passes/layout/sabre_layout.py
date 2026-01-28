@@ -180,7 +180,7 @@ class SabreLayout(TransformationPass):
         self.skip_routing = skip_routing
 
     @property
-    def coupling_map(self):  # pylint: disable=missing-function-docstring
+    def coupling_map(self):
         # This property is not intended to be public API, it just keeps backwards compatibility.
         if self._coupling_map is None:
             self._coupling_map = self.target.build_coupling_map()

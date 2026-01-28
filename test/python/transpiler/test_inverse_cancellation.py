@@ -35,7 +35,7 @@ from qiskit.circuit.library import (
     CZGate,
     RZGate,
 )
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt.ddt

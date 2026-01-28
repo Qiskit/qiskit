@@ -16,7 +16,8 @@ from __future__ import annotations
 
 import time
 from abc import ABC, abstractmethod
-from typing import Callable, Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
+from collections.abc import Callable
 
 from qiskit.exceptions import QiskitError
 from qiskit.providers.backend import Backend
@@ -52,7 +53,7 @@ class JobV1(Job, ABC):
     version = 1
     _async = True
 
-    def __init__(self, backend: Optional[Backend], job_id: str, **kwargs) -> None:
+    def __init__(self, backend: Backend | None, job_id: str, **kwargs) -> None:
         """Initializes the asynchronous job.
 
         Args:
@@ -92,7 +93,7 @@ class JobV1(Job, ABC):
         return self.status() in JOB_FINAL_STATES
 
     def wait_for_final_state(
-        self, timeout: Optional[float] = None, wait: float = 5, callback: Optional[Callable] = None
+        self, timeout: float | None = None, wait: float = 5, callback: Callable | None = None
     ) -> None:
         """Poll the job status until it progresses to a final state such as ``DONE`` or ``ERROR``.
 

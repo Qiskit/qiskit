@@ -21,7 +21,7 @@ from qiskit.circuit import QuantumRegister, Qubit
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.exceptions import LayoutError
 from qiskit._accelerate.nlayout import NLayout
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class LayoutTest(QiskitTestCase):

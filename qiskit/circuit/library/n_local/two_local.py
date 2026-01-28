@@ -24,7 +24,7 @@ from .n_local import NLocal
 from ..standard_gates import get_standard_gate_name_mapping
 
 if typing.TYPE_CHECKING:
-    import qiskit  # pylint: disable=cyclic-import
+    import qiskit
 
 
 class TwoLocal(NLocal):

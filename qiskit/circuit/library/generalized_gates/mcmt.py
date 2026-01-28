@@ -170,7 +170,7 @@ class MCMTVChain(MCMT):
         super().__init__(gate, num_ctrl_qubits, num_target_qubits)
 
     def _build(self):
-        # pylint: disable=cyclic-import
+
         from qiskit.synthesis.multi_controlled import synth_mcmt_vchain
 
         synthesized = synth_mcmt_vchain(self.gate, self.num_ctrl_qubits, self.num_target_qubits)
@@ -252,7 +252,7 @@ class MCMTGate(ControlledGate):
 
     def _define(self):
         """Default definition relying on gate.control. Control state is handled by superclass."""
-        # pylint: disable=cyclic-import
+
         from qiskit.transpiler.passes.synthesis.hls_plugins import MCMTSynthesisDefault
 
         self.definition = MCMTSynthesisDefault().run(self)

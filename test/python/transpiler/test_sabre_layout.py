@@ -28,7 +28,7 @@ from qiskit.compiler.transpiler import transpile
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.transpiler.passes.layout.sabre_pre_layout import SabrePreLayout
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
-from test import QiskitTestCase, slow_test  # pylint: disable=wrong-import-order
+from test import QiskitTestCase, slow_test
 
 from ..legacy_cmaps import ALMADEN_CMAP, MUMBAI_CMAP
 
@@ -211,7 +211,6 @@ rz(0) q4835[1];
             [layout[q] for q in qc.qubits], [2, 0, 5, 1, 7, 3, 14, 6, 9, 8, 10, 11, 4, 12]
         )
 
-    # pylint: disable=line-too-long
     def test_layout_many_search_trials(self):
         """Test recreate failure from randomized testing that overflowed."""
         qc = QuantumCircuit.from_qasm_str(

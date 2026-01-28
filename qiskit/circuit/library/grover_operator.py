@@ -13,7 +13,7 @@
 """The Grover operator."""
 
 from __future__ import annotations
-from typing import List, Optional, Union
+from typing import Union
 import numpy
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister, AncillaQubit
@@ -440,10 +440,10 @@ class GroverOperator(QuantumCircuit):
     )
     def __init__(
         self,
-        oracle: Union[QuantumCircuit, Statevector],
-        state_preparation: Optional[QuantumCircuit] = None,
-        zero_reflection: Optional[Union[QuantumCircuit, DensityMatrix, Operator]] = None,
-        reflection_qubits: Optional[List[int]] = None,
+        oracle: QuantumCircuit | Statevector,
+        state_preparation: QuantumCircuit | None = None,
+        zero_reflection: QuantumCircuit | DensityMatrix | Operator | None = None,
+        reflection_qubits: list[int] | None = None,
         insert_barriers: bool = False,
         mcx_mode: str = "noancilla",
         name: str = "Q",
@@ -465,13 +465,13 @@ class GroverOperator(QuantumCircuit):
 
         # store inputs
         if isinstance(oracle, Statevector):
-            from qiskit.circuit.library import Diagonal  # pylint: disable=cyclic-import
+            from qiskit.circuit.library import Diagonal
 
             oracle = Diagonal((-1) ** oracle.data)
         self._oracle = oracle
 
         if isinstance(zero_reflection, (Operator, DensityMatrix)):
-            from qiskit.circuit.library import Diagonal  # pylint: disable=cyclic-import
+            from qiskit.circuit.library import Diagonal
 
             zero_reflection = Diagonal(zero_reflection.data.diagonal())
         self._zero_reflection = zero_reflection
@@ -565,7 +565,7 @@ class GroverOperator(QuantumCircuit):
 
 # TODO use the oracle compiler or the bit string oracle
 def _zero_reflection(
-    num_state_qubits: int, qubits: List[int], mcx_mode: Optional[str] = None
+    num_state_qubits: int, qubits: list[int], mcx_mode: str | None = None
 ) -> QuantumCircuit:
     qr_state = QuantumRegister(num_state_qubits, "state")
     reflection = QuantumCircuit(qr_state, name="S_0")

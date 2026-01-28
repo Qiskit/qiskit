@@ -321,7 +321,7 @@ class Z2Symmetries:
 
         return operator
 
-    def taper_clifford(self, operator: SparsePauliOp) -> Union[SparsePauliOp, list[SparsePauliOp]]:
+    def taper_clifford(self, operator: SparsePauliOp) -> SparsePauliOp | list[SparsePauliOp]:
         """Operate the second part of the tapering.
         This function assumes that the input operators have already been transformed using
         :meth:`convert_clifford`. The redundant qubits due to the symmetries are dropped and
@@ -335,24 +335,23 @@ class Z2Symmetries:
 
         """
 
-        tapered_ops: Union[SparsePauliOp, list[SparsePauliOp]]
+        tapered_ops: SparsePauliOp | list[SparsePauliOp]
         if self.is_empty():
             tapered_ops = operator
+        # If the operator is zero we still need to taper the operator to reduce its size i.e. the
+        # number of qubits so for example 0*"IIII" could taper to 0*"II" when symmetries remove
+        # two qubits.
+        elif self.tapering_values is None:
+            tapered_ops = [
+                self._taper(operator, list(coeff))
+                for coeff in itertools.product([1, -1], repeat=len(self._sq_list))
+            ]
         else:
-            # If the operator is zero we still need to taper the operator to reduce its size i.e. the
-            # number of qubits so for example 0*"IIII" could taper to 0*"II" when symmetries remove
-            # two qubits.
-            if self.tapering_values is None:
-                tapered_ops = [
-                    self._taper(operator, list(coeff))
-                    for coeff in itertools.product([1, -1], repeat=len(self._sq_list))
-                ]
-            else:
-                tapered_ops = self._taper(operator, self.tapering_values)
+            tapered_ops = self._taper(operator, self.tapering_values)
 
         return tapered_ops
 
-    def taper(self, operator: SparsePauliOp) -> Union[SparsePauliOp, list[SparsePauliOp]]:
+    def taper(self, operator: SparsePauliOp) -> SparsePauliOp | list[SparsePauliOp]:
         """
         Taper an operator based on the z2_symmetries info and sector defined by `tapering_values`.
         Returns operator if the symmetry object is empty.

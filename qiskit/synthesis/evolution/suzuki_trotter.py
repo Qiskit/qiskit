@@ -149,11 +149,7 @@ class SuzukiTrotter(ProductFormula):
         time = evolution.time
 
         def to_sparse_list(operator):
-            sparse_list = (
-                operator.to_sparse_list()
-                if isinstance(operator, SparsePauliOp)
-                else operator.to_sparse_list()
-            )
+            sparse_list = operator.to_sparse_list()
             paulis = [
                 (pauli, indices, real_or_fail(coeff) * time * 2 / self.reps)
                 for pauli, indices, coeff in sparse_list

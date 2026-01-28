@@ -122,7 +122,7 @@ class RZXGate(Gate):
 
     _standard_gate = StandardGate.RZX
 
-    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
+    def __init__(self, theta: ParameterValueType, label: str | None = None):
         """
         Args:
             theta: The rotation angle.
@@ -132,7 +132,7 @@ class RZXGate(Gate):
 
     def _define(self):
         """Default definition"""
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         # q_0: ───────■─────────────■───────

@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from qiskit.circuit import ClassicalRegister, Clbit  # pylint: disable=cyclic-import
+from qiskit.circuit import ClassicalRegister, Clbit
 from qiskit.circuit.classical import expr
 from qiskit.circuit.exceptions import CircuitError
 from qiskit._accelerate.circuit import ControlFlowType
@@ -73,7 +73,7 @@ class WhileLoopOp(ControlFlowOp):
 
     @params.setter
     def params(self, parameters):
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         (body,) = parameters

@@ -169,7 +169,7 @@ class MSGate(Gate):
 
     def validate_parameter(self, parameter):
         if isinstance(parameter, Sequence):
-            # pylint: disable=super-with-arguments
+
             return [
                 [super(MSGate, self).validate_parameter(theta) for theta in row]
                 for row in parameter

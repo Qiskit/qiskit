@@ -26,7 +26,7 @@ class ContinueLoopOp(Instruction):
 
     _control_flow_type = ControlFlowType.ContinueLoop
 
-    def __init__(self, num_qubits: int, num_clbits: int, label: Optional[str] = None):
+    def __init__(self, num_qubits: int, num_clbits: int, label: str | None = None):
         """
         Args:
             num_qubits: the number of qubits this affects.
@@ -46,7 +46,7 @@ class ContinueLoopPlaceholder(InstructionPlaceholder):
         Terra.
     """
 
-    def __init__(self, *, label: Optional[str] = None):
+    def __init__(self, *, label: str | None = None):
         super().__init__("continue_loop", 0, 0, [], label=label)
 
     def concrete_instruction(self, qubits, clbits):

@@ -21,7 +21,7 @@ from qiskit.circuit.library import QFT
 from qiskit.synthesis.qft import synth_qft_line, synth_qft_full
 from qiskit.quantum_info import Operator
 from qiskit.synthesis.linear.linear_circuits_utils import check_lnn_connectivity
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt

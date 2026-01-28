@@ -333,7 +333,7 @@ def load(
         The ``annotation_handlers`` argument.  This requires ``qiskit_qasm3_import>=0.6.0``.
     """
 
-    with open(filename, "r") as fptr:
+    with open(filename) as fptr:
         program = fptr.read()
     return loads(program, num_qubits=num_qubits, annotation_handlers=annotation_handlers)
 

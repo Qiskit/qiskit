@@ -52,8 +52,8 @@ def available_versions():
             data = json.load(fd)
         min_version = min_version and packaging.version.parse(min_version)
         max_version = max_version and packaging.version.parse(max_version)
-        for other_version, payload in data["releases"].items():
-            other_version = packaging.version.parse(other_version)
+        for raw_other_version, payload in data["releases"].items():
+            other_version = packaging.version.parse(raw_other_version)
             if min_version is not None and other_version < min_version:
                 continue
             if max_version is not None and other_version >= max_version:

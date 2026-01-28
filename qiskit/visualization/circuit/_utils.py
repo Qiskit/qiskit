@@ -302,11 +302,10 @@ def get_wire_label(drawer, register, index, layout=None, cregbundle=True):
                         f"{{{virt_reg[:].index(virt_bit)}}} "
                         f"\\mapsto {{{index}}}"
                     )
+            elif drawer == "text":
+                wire_label = f"{index_str} -> {index}"
             else:
-                if drawer == "text":
-                    wire_label = f"{index_str} -> {index}"
-                else:
-                    wire_label = f"{index_str} \\mapsto {{{index}}}"
+                wire_label = f"{index_str} \\mapsto {{{index}}}"
         if drawer != "text":
             wire_label = wire_label.replace(" ", "\\;")  # use wider spaces
     else:
@@ -617,8 +616,7 @@ class _LayerSpooler(list):
                 for carg in node.cargs:
                     try:
                         carg_bit = next(bit for bit in self.measure_map if carg == bit)
-                        if self.measure_map[carg_bit] > index_stop:
-                            index_stop = self.measure_map[carg_bit]
+                        index_stop = max(index_stop, self.measure_map[carg_bit])
                     except StopIteration:
                         pass
             while curr_index > index_stop:
@@ -649,8 +647,7 @@ class _LayerSpooler(list):
         if isinstance(node.op, Measure):
             if not measure_layer:
                 measure_layer = len(self) - 1
-            if measure_layer > self.measure_map[measure_bit]:
-                self.measure_map[measure_bit] = measure_layer
+            self.measure_map[measure_bit] = max(self.measure_map[measure_bit], measure_layer)
 
     def slide_from_right(self, node, index):
         """Insert node into rightmost layer as long there is no conflict."""
@@ -692,7 +689,7 @@ class _LayerSpooler(list):
         # as equal if their contents and node IDs happen to be the same.
         # This is particularly important for the matplotlib drawer, which
         # keys several of its internal data structures with these nodes.
-        global _GLOBAL_NID  # pylint: disable=global-statement
+        global _GLOBAL_NID  # noqa: PLW0603
         node._node_id = _GLOBAL_NID
         _GLOBAL_NID += 1
         if self.justification == "left":

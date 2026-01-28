@@ -71,7 +71,7 @@ class BasePadding(TransformationPass):
         self.target = target
         self.durations = durations
 
-    def get_duration(self, node, dag):  # pylint: disable=too-many-return-statements
+    def get_duration(self, node, dag):
         """Get duration of a given node in the circuit."""
         if node.name == "delay":
             return node.op.duration
@@ -169,7 +169,7 @@ class BasePadding(TransformationPass):
                 self._apply_scheduled_op(new_dag, t0, node.op, node.qargs, node.cargs)
             else:
                 raise TranspilerError(
-                    f"Operation {repr(node)} is likely added after the circuit is scheduled. "
+                    f"Operation {node!r} is likely added after the circuit is scheduled. "
                     "Schedule the circuit again if you transformed it."
                 )
 

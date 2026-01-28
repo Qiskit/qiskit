@@ -38,8 +38,8 @@ class XOR(QuantumCircuit):
     def __init__(
         self,
         num_qubits: int,
-        amount: Optional[int] = None,
-        seed: Optional[int] = None,
+        amount: int | None = None,
+        seed: int | None = None,
     ) -> None:
         """
         Args:
@@ -137,7 +137,6 @@ class BitwiseXorGate(Gate):
             and self.amount == other.amount
         )
 
-    # pylint: disable=unused-argument
     def inverse(self, annotated: bool = False):
         r"""Return inverted BitwiseXorGate gate (itself).
 

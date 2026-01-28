@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name,missing-docstring
-# pylint: disable=attribute-defined-outside-init
 
 from qiskit import transpile
 from qiskit.circuit.library.standard_gates import XGate

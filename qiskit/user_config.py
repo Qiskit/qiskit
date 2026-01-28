@@ -128,7 +128,7 @@ class UserConfig:
                 )
             except ValueError as err:
                 raise exceptions.QiskitUserConfigError(
-                    f"Value assigned to circuit_reverse_bits is not valid. {str(err)}"
+                    f"Value assigned to circuit_reverse_bits is not valid. {err!s}"
                 )
             if circuit_reverse_bits is not None:
                 self.settings["circuit_reverse_bits"] = circuit_reverse_bits
@@ -140,7 +140,7 @@ class UserConfig:
                 )
             except ValueError as err:
                 raise exceptions.QiskitUserConfigError(
-                    f"Value assigned to circuit_idle_wires is not valid. {str(err)}"
+                    f"Value assigned to circuit_idle_wires is not valid. {err!s}"
                 )
             if circuit_idle_wires is not None:
                 self.settings["circuit_idle_wires"] = circuit_idle_wires
@@ -152,7 +152,7 @@ class UserConfig:
                 )
             except ValueError as err:
                 raise exceptions.QiskitUserConfigError(
-                    f"Value assigned to circuit_measure_arrows is not valid. {str(err)}"
+                    f"Value assigned to circuit_measure_arrows is not valid. {err!s}"
                 )
             if circuit_measure_arrows is not None:
                 self.settings["circuit_measure_arrows"] = circuit_measure_arrows
@@ -266,7 +266,7 @@ def set_config(key, value, section=None, file_path=None):
             config.write(cfgfile)
     except OSError as ex:
         raise exceptions.QiskitUserConfigError(
-            f"Unable to load the config file {filename}. Error: '{str(ex)}'"
+            f"Unable to load the config file {filename}. Error: '{ex!s}'"
         )
 
     # validates config

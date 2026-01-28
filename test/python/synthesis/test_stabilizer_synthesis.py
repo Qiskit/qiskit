@@ -22,8 +22,8 @@ from qiskit.quantum_info.states import StabilizerState
 from qiskit.quantum_info import random_clifford
 from qiskit.synthesis.stabilizer import synth_stabilizer_layers, synth_stabilizer_depth_lnn
 from qiskit.synthesis.linear.linear_circuits_utils import check_lnn_connectivity
-from test import combine  # pylint: disable=wrong-import-order
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import combine
+from test import QiskitTestCase
 
 
 @ddt

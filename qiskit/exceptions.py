@@ -112,7 +112,7 @@ class MissingOptionalLibraryError(QiskitError, ImportError):
     """Raised when an optional library is missing."""
 
     def __init__(
-        self, libname: str, name: str, pip_install: Optional[str] = None, msg: Optional[str] = None
+        self, libname: str, name: str, pip_install: str | None = None, msg: str | None = None
     ) -> None:
         """Set the error message.
         Args:

@@ -55,7 +55,7 @@ class RGate(Gate):
         self,
         theta: ParameterValueType,
         phi: ParameterValueType,
-        label: Optional[str] = None,
+        label: str | None = None,
     ):
         r"""
         Args:
@@ -67,7 +67,7 @@ class RGate(Gate):
 
     def _define(self):
         """Default definition"""
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         #    ┌───────────────────────┐

@@ -162,7 +162,6 @@ Plugin API
 """
 
 import abc
-from typing import List, Optional, Dict
 
 import stevedore
 
@@ -183,7 +182,7 @@ class PassManagerStagePlugin(abc.ABC):
 
     @abc.abstractmethod
     def pass_manager(
-        self, pass_manager_config: PassManagerConfig, optimization_level: Optional[int] = None
+        self, pass_manager_config: PassManagerConfig, optimization_level: int | None = None
     ) -> PassManager | None:
         """This method is designed to return a :class:`~.PassManager` for the stage this implements
 
@@ -268,7 +267,7 @@ class PassManagerStagePluginManager:
         stage_name: str,
         plugin_name: str,
         pm_config: PassManagerConfig,
-        optimization_level: Optional[int] = None,
+        optimization_level: int | None = None,
     ):
         if plugin_name not in stage_obj:
             raise TranspilerError(f"Invalid plugin name {plugin_name} for stage {stage_name}")
@@ -276,7 +275,7 @@ class PassManagerStagePluginManager:
         return plugin_obj.obj.pass_manager(pm_config, optimization_level)
 
 
-def list_stage_plugins(stage_name: str) -> List[str]:
+def list_stage_plugins(stage_name: str) -> list[str]:
     """Get a list of installed plugins for a stage.
 
     Args:
@@ -305,7 +304,7 @@ def list_stage_plugins(stage_name: str) -> List[str]:
         raise TranspilerError(f"Invalid stage name: {stage_name}")
 
 
-def passmanager_stage_plugins(stage: str) -> Dict[str, PassManagerStagePlugin]:
+def passmanager_stage_plugins(stage: str) -> dict[str, PassManagerStagePlugin]:
     """Return a dict with, for each stage name, the class type of the plugin.
 
     This function is useful for getting more information about a plugin:

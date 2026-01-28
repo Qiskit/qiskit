@@ -159,7 +159,6 @@ def evolved_operator_ansatz(
 
     circuit = QuantumCircuit(num_qubits, name=name)
 
-    # pylint: disable=cyclic-import
     from qiskit.circuit.library.hamiltonian_gate import HamiltonianGate
 
     for rep in range(reps):
@@ -433,7 +432,6 @@ class EvolvedOperatorAnsatz(NLocal):
 
     def _evolve_operator(self, operator, time):
 
-        # pylint: disable=cyclic-import
         from qiskit.circuit.library.hamiltonian_gate import HamiltonianGate
 
         # if the operator is specified as matrix use exact matrix exponentiation

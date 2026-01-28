@@ -15,7 +15,7 @@ Constraint Satisfaction Problem. It tries to find a solution that fully
 satisfy the circuit, i.e. no further swap is needed. If no solution is
 found, no ``property_set['layout']`` is set.
 """
-import random
+import numpy as np
 
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
@@ -70,6 +70,7 @@ class CSPLayout(AnalysisPass):
         self.call_limit = call_limit
         self.time_limit = time_limit
         self.seed = seed
+        self._rng = np.random.default_rng(self.seed)
 
     def run(self, dag):
         """run the layout method"""
@@ -95,7 +96,7 @@ class CSPLayout(AnalysisPass):
 
         variables = list(range(len(qubits)))
         variable_domains = list(self.coupling_map.physical_qubits)
-        random.Random(self.seed).shuffle(variable_domains)
+        self._rng.shuffle(variable_domains)
 
         problem = Problem(solver)
         problem.addVariables(variables, variable_domains)

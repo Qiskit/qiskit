@@ -53,7 +53,7 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label
         input circuit. Upon decomposition, this gate will
         yield the components comprising the original circuit.
     """
-    # pylint: disable=cyclic-import
+
     from qiskit.circuit.quantumcircuit import QuantumCircuit
 
     if circuit.clbits:

@@ -14,7 +14,6 @@
 Utility functions for debugging and testing.
 """
 
-from typing import Tuple
 import numpy as np
 from scipy.stats import unitary_group
 import qiskit.synthesis.unitary.aqc.fast_gradient.fast_grad_utils as fgu
@@ -93,7 +92,7 @@ def rand_matrix(dim: int, kind: str = "complex") -> np.ndarray:
         return np.random.randint(low=1, high=100, size=(dim, dim), dtype=np.int64)
 
 
-def make_test_matrices2x2(n: int, k: int, kind: str = "complex") -> Tuple[np.ndarray, np.ndarray]:
+def make_test_matrices2x2(n: int, k: int, kind: str = "complex") -> tuple[np.ndarray, np.ndarray]:
     """
     Creates a ``2^n x 2^n`` random matrix made as a Kronecker product of identity
     ones and a single 1-qubit gate. This models a layer in quantum circuit with
@@ -118,7 +117,7 @@ def make_test_matrices2x2(n: int, k: int, kind: str = "complex") -> Tuple[np.nda
 
 def make_test_matrices4x4(
     n: int, j: int, k: int, kind: str = "complex"
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Creates a ``2^n x 2^n`` random matrix made as a Kronecker product of identity
     ones and a single 2-qubit gate. This models a layer in quantum circuit with

@@ -20,7 +20,7 @@ from numpy import sqrt, isclose
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import PhaseOracle, PhaseOracleGate, BitFlipOracleGate
 from qiskit.quantum_info import Statevector
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt

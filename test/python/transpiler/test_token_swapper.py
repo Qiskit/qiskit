@@ -34,7 +34,7 @@ from numpy import random
 from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
 from qiskit.transpiler.passes.routing.algorithms import util
 
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestGeneral(QiskitTestCase):

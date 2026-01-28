@@ -162,7 +162,7 @@ def phase_estimation(
     quantum-phase-estimation.ipynb>`_
 
     """
-    # pylint: disable=cyclic-import
+
     from qiskit.circuit.library import PermutationGate, QFTGate
 
     qr_eval = QuantumRegister(num_evaluation_qubits, "eval")

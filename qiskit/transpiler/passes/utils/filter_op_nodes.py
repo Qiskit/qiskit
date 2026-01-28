@@ -12,7 +12,7 @@
 
 """Filter ops from a circuit"""
 
-from typing import Callable
+from collections.abc import Callable
 
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode
 from qiskit.transpiler.basepasses import TransformationPass

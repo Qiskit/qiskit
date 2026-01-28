@@ -13,7 +13,7 @@
 """Test transpiler pass that cancels inverse gates while exploiting the commutation relations."""
 
 import unittest
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 import numpy as np
 from ddt import data, ddt

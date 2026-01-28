@@ -20,7 +20,7 @@ from qiskit.circuit.random import random_clifford_circuit
 from qiskit.transpiler.passes import SubstitutePi4Rotations
 from qiskit.quantum_info import Operator, get_clifford_gate_names
 from qiskit.circuit.library import RXGate, RYGate, RZGate
-from test import combine, QiskitTestCase  # pylint: disable=wrong-import-order
+from test import combine, QiskitTestCase
 
 
 @ddt

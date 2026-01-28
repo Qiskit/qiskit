@@ -15,13 +15,13 @@
 from __future__ import annotations
 
 __all__ = [
+    "CastKind",
     "Ordering",
+    "cast_kind",
+    "greater",
     "is_subtype",
     "is_supertype",
     "order",
-    "greater",
-    "CastKind",
-    "cast_kind",
 ]
 
 import enum

@@ -19,7 +19,7 @@ import numpy as np
 from qiskit.circuit.library import FourierChecking, fourier_checking
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.quantum_info import Operator
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt

@@ -12,7 +12,7 @@
 """
 Circuit synthesis for the Clifford class into layers.
 """
-# pylint: disable=invalid-name
+
 
 from __future__ import annotations
 from collections.abc import Callable
@@ -20,7 +20,7 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info import Clifford  # pylint: disable=cyclic-import
+from qiskit.quantum_info import Clifford
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
     _append_h,
     _append_s,

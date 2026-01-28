@@ -15,7 +15,7 @@
 import numpy as np
 
 from qiskit.result import marginal_memory
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestMarginalMemory(QiskitTestCase):

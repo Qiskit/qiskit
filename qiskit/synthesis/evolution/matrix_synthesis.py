@@ -27,7 +27,7 @@ class MatrixExponential(EvolutionSynthesis):
     """
 
     def synthesize(self, evolution):
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit.library.hamiltonian_gate import HamiltonianGate
 
         # get operators and time to evolve

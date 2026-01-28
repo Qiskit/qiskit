@@ -20,7 +20,7 @@ from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library import HGate, RXGate, YGate, RYGate, RZGate, QAOAAnsatz, qaoa_ansatz
 from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.utils import optionals
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt

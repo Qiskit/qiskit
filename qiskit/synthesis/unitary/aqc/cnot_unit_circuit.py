@@ -28,8 +28,8 @@ class CNOTUnitCircuit(ApproximateCircuit):
         self,
         num_qubits: int,
         cnots: np.ndarray,
-        tol: Optional[float] = 0.0,
-        name: Optional[str] = None,
+        tol: float | None = 0.0,
+        name: str | None = None,
     ) -> None:
         """
         Args:

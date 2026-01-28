@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
 
 """Test QuantumCircuit.compose()."""
 
@@ -33,7 +32,7 @@ from qiskit.circuit import (
 )
 from qiskit.circuit.library import HGate, RZGate, CXGate, CCXGate, n_local
 from qiskit.circuit.classical import expr, types
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestCircuitCompose(QiskitTestCase):

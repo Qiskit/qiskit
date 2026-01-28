@@ -1374,7 +1374,7 @@ In both these cases, the matrix form of :class:`.CCXGate` in ``ctrl_state = 1`` 
         \end{pmatrix}
 """
 
-from qiskit._accelerate.circuit import (  # pylint: disable=unused-import
+from qiskit._accelerate.circuit import (
     Bit,
     Qubit,
     AncillaQubit,
@@ -1391,7 +1391,7 @@ from . import _utils
 from .quantumcircuit import QuantumCircuit
 from .gate import Gate
 
-# pylint: disable=cyclic-import
+
 from . import annotation
 from .annotation import Annotation
 from .controlledgate import ControlledGate

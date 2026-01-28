@@ -28,7 +28,7 @@ from qiskit.primitives.containers.data_bin import DataBin
 from qiskit.primitives.containers.sampler_pub import SamplerPub
 from qiskit.primitives.statevector_sampler import StatevectorSampler
 from qiskit.providers import JobStatus
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestStatevectorSampler(QiskitTestCase):

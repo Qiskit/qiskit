@@ -101,7 +101,7 @@ class U1Gate(Gate):
 
     def _define(self):
         """Default definition"""
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         #    ┌──────┐
@@ -246,7 +246,7 @@ class CU1Gate(ControlledGate):
 
     def _define(self):
         """Default definition"""
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         #      ┌────────┐
@@ -393,7 +393,7 @@ class MCU1Gate(ControlledGate):
         )
 
     def _define(self):
-        # pylint: disable=cyclic-import
+
         if self.num_ctrl_qubits == 0:
             definition = U1Gate(self.params[0]).definition
         elif self.num_ctrl_qubits == 1:

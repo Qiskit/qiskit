@@ -26,7 +26,7 @@ from qiskit.circuit import (
 )
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.qasm2 import dumps
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestCircuitRegisters(QiskitTestCase):
@@ -82,7 +82,7 @@ class TestCircuitRegisters(QiskitTestCase):
         """Test attempt to pass different types of integer as indices
         of QuantumRegister and ClassicalRegister
         """
-        ints = [int(2), np.int32(2), np.int64(2)]
+        ints = [2, np.int32(2), np.int64(2)]
         for index in ints:
             with self.subTest(index=index):
                 qr = QuantumRegister(4)

@@ -45,8 +45,8 @@ operands = [
     complex(0, 1),
     complex(-1, 0),
     2.3,
-    int(5),
-    int(-5),
+    5,
+    (-5),
     1.0,
     -1.0,
     0,
@@ -339,11 +339,10 @@ class TestParameterExpression(QiskitTestCase):
             self.assertIsInstance(res, ParameterExpression)
             if isinstance(bind_value, complex):
                 self.assertAlmostEqual(res.numeric(), cmath.log(bind_value))
+            elif bind_value > 0:
+                self.assertAlmostEqual(res.numeric(), math.log(bind_value))
             else:
-                if bind_value > 0:
-                    self.assertAlmostEqual(res.numeric(), math.log(bind_value))
-                else:
-                    self.assertAlmostEqual(res.numeric(), cmath.log(bind_value))
+                self.assertAlmostEqual(res.numeric(), cmath.log(bind_value))
 
     @combine(expression=operands)
     def test_sign_simple(self, expression):

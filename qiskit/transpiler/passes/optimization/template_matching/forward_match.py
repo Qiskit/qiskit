@@ -294,11 +294,10 @@ class ForwardMatch:
                         return target_qubits_template == target_qubits_circuit
                 else:
                     return False
+        elif node_template.op.name in ["rxx", "ryy", "rzz", "swap", "iswap", "ms"]:
+            return set(self.qarg_indices) == set(node_template.qindices)
         else:
-            if node_template.op.name in ["rxx", "ryy", "rzz", "swap", "iswap", "ms"]:
-                return set(self.qarg_indices) == set(node_template.qindices)
-            else:
-                return self.qarg_indices == node_template.qindices
+            return self.qarg_indices == node_template.qindices
 
     def _is_same_c_conf(self, node_circuit, node_template):
         """

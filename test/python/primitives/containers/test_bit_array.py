@@ -698,7 +698,7 @@ class BitArrayTestCase(QiskitTestCase):
             expval = ba.expectation_values(op)
             # both 0 and 1 appear 5 times
             self.assertEqual(expval.shape, ba.shape)
-            np.testing.assert_allclose(expval, np.zeros((ba.shape)))
+            np.testing.assert_allclose(expval, np.zeros(ba.shape))
 
             expval = ba.expectation_values(op2)
             self.assertEqual(expval.shape, ba.shape)
@@ -730,17 +730,17 @@ class BitArrayTestCase(QiskitTestCase):
         with self.subTest("Pauli"):
             expval = ba.expectation_values(pauli)
             self.assertEqual(expval.shape, ba.shape)
-            np.testing.assert_allclose(expval, np.zeros((ba.shape)))
+            np.testing.assert_allclose(expval, np.zeros(ba.shape))
 
         with self.subTest("SparsePauliOp"):
             expval = ba.expectation_values(sp_op)
             self.assertEqual(expval.shape, ba.shape)
-            np.testing.assert_allclose(expval, np.zeros((ba.shape)))
+            np.testing.assert_allclose(expval, np.zeros(ba.shape))
 
             expval = ba.expectation_values(sp_op2)
             # 6th bit are all 0
             self.assertEqual(expval.shape, ba.shape)
-            np.testing.assert_allclose(expval, np.ones((ba.shape)))
+            np.testing.assert_allclose(expval, np.ones(ba.shape))
 
         with self.subTest("ObservableArray"):
             obs = ["Z", "0", "1"]

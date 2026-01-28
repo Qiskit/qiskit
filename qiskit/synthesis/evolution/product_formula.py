@@ -33,7 +33,7 @@ from .evolution_synthesis import EvolutionSynthesis
 if typing.TYPE_CHECKING:
     from qiskit.circuit.library import PauliEvolutionGate
 
-SparsePauliLabel = typing.Tuple[str, list[int], ParameterValueType]
+SparsePauliLabel = tuple[str, list[int], ParameterValueType]
 
 
 class ProductFormula(EvolutionSynthesis):

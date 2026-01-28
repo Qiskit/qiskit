@@ -10,14 +10,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
 
 """Tests for generator of timeline drawer."""
 
 import qiskit
 from qiskit.visualization.timeline import generators, types, stylesheet
 from qiskit.circuit import library, Delay
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestGates(QiskitTestCase):
@@ -27,7 +26,7 @@ class TestGates(QiskitTestCase):
         """Setup."""
         super().setUp()
 
-        self.qubit = list(qiskit.QuantumRegister(1, name="foo"))[0]
+        self.qubit = next(iter(qiskit.QuantumRegister(1, name="foo")))
 
         self.u1 = types.ScheduledGate(
             t0=100, operand=library.U1Gate(0), duration=0, bits=[self.qubit], bit_position=0
