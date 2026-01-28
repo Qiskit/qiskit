@@ -4202,7 +4202,7 @@ class QuantumCircuit:
         """Count each operation kind in the circuit.
 
         Returns:
-            OrderedDict: A breakdown of how many operations of each kind, sorted by amount.
+            A breakdown of how many operations of each kind, sorted by amount.
         """
         ops_dict = self._data.count_ops()
         return OrderedDict(ops_dict)
@@ -4718,7 +4718,7 @@ class QuantumCircuit:
         :class:`.QuantumCircuit`.
 
         Args:
-          path (str): Path to the file for an OpenQASM 2 program
+          path: Path to the file for an OpenQASM 2 program
 
         Return:
           QuantumCircuit: The QuantumCircuit object for the input OpenQASM 2.
