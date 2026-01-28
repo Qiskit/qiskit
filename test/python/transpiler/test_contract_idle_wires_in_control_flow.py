@@ -39,6 +39,43 @@ class TestContractIdleWiresInControlFlow(QiskitTestCase):
             qc.cx(0, 1)
         self.assertEqual(ContractIdleWiresInControlFlow()(qc), qc)
 
+    def test_break_loop(self):
+        qc = QuantumCircuit(3, 1)
+        with qc.while_loop((qc.clbits[0], False)):
+            qc.cx(0, 1)
+            qc.noop(2)
+            with qc.if_test((0, True)):
+                qc.break_loop()
+
+        expected = QuantumCircuit(3, 1)
+        with expected.while_loop((expected.clbits[0], False)):
+            expected.cx(0, 1)
+            # keep the noop since the optimization currently
+            # marks all qubits in break_loop's containing block as used
+            expected.noop(2)
+            with expected.if_test((0, True)):
+                expected.break_loop()
+
+        self.assertEqual(ContractIdleWiresInControlFlow()(qc), expected)
+
+    def test_continue_loop(self):
+        qc = QuantumCircuit(3, 1)
+        with qc.while_loop((qc.clbits[0], False)):
+            qc.cx(0, 1)
+            qc.noop(2)
+            with qc.if_test((0, True)):
+                qc.continue_loop()
+
+        expected = QuantumCircuit(3, 1)
+        with expected.while_loop((expected.clbits[0], False)):
+            expected.cx(0, 1)
+            # keep the noop since the optimization currently
+            # marks all qubits in continue_loop's containing block as used
+            expected.noop(2)
+            with expected.if_test((0, True)):
+                expected.continue_loop()
+        self.assertEqual(ContractIdleWiresInControlFlow()(qc), expected)
+
     def test_disparate_if_else_left_alone(self):
         qc = QuantumCircuit(3, 1)
         # The true body only uses 0, the false body only uses (1, 2), but because they're part of
