@@ -1001,7 +1001,7 @@ static int test_target_operation(void) {
         qk_target_op_get(target, inst_idx, &op);
 
         if (strcmp(op.name, names[inst_idx]) != 0) {
-            printf("The operation names did not match. Expected %s, got %s", names[inst_idx],
+            printf("The operation names did not match. Expected %s, got %s\n", names[inst_idx],
                    op.name);
             result = EqualityError;
             break;
@@ -1010,14 +1010,14 @@ static int test_target_operation(void) {
         char *op_types[6] = {"Gate", "Barrier", "Delay", "Measure", "Reset", "Unitary"};
         if (inst_idx < 7) {
             if (op.op_type != QkOperationKind_Gate) {
-                printf("The operation's type did not match, expected Gate, got %s",
+                printf("The operation's type did not match, expected Gate, got %s\n",
                        op_types[(size_t)op.op_type]);
                 result = EqualityError;
                 break;
             }
             QkGate gate = qk_target_op_gate(target, inst_idx);
             if (gate != std_gates[inst_idx]) {
-                printf("The gate type did not match. Expected %i, got %i", std_gates[inst_idx],
+                printf("The gate type did not match. Expected %i, got %i\n", std_gates[inst_idx],
                        gate);
                 result = EqualityError;
                 break;
@@ -1042,14 +1042,14 @@ static int test_target_operation(void) {
             }
         } else if (inst_idx == 7) {
             if (op.op_type != QkOperationKind_Measure) {
-                printf("The operation's type did not match, expected Measure, got %s",
+                printf("The operation's type did not match, expected Measure, got %s\n",
                        op_types[(size_t)op.op_type]);
                 result = EqualityError;
                 break;
             }
         } else {
             if (op.op_type != QkOperationKind_Reset) {
-                printf("The operation's type did not match, expected Reset, got %s",
+                printf("The operation's type did not match, expected Reset, got %s\n",
                        op_types[(size_t)op.op_type]);
                 result = EqualityError;
                 break;
