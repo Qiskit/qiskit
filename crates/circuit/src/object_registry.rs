@@ -10,50 +10,15 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use crate::CapacityError;
 use hashbrown::HashMap;
 use hashbrown::hash_map::OccupiedError;
-use pyo3::exceptions::{PyKeyError, PyRuntimeError, PyValueError};
+use pyo3::exceptions::{PyKeyError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::PyList;
 use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
 use std::sync::OnceLock;
-use thiserror::Error;
-
-/// This struct models the error conditions that can be raised from the
-/// rust methods of the [ObjectRegistry] struct. The goal is to explicitly
-/// enumerate all the error types that are returned by these functions and
-/// make it clear that the return type is part of the interface.
-///
-/// In the the future it is expected this single enum will be replaced by per
-/// method error types to make it even more obvious, but this is a step
-/// towards that as we migrate from Python -> Rust.
-#[non_exhaustive]
-#[derive(Error, Debug)]
-pub enum ObjectRegistryError {
-    #[error("Object {0} has not been added to this circuit.")]
-    ObjectMissing(String),
-    #[error("Cannot add object {0}, which would exceed circuit capacity for its kind.")]
-    ExceedsCapacity(String),
-    #[error("Existing object {0} cannot be re-added in strict mode.")]
-    DuplicateObject(String),
-}
-
-impl From<ObjectRegistryError> for PyErr {
-    fn from(error: ObjectRegistryError) -> Self {
-        match error {
-            ObjectRegistryError::ObjectMissing(b) => {
-                PyKeyError::new_err(format!("Object {b} has not been added to this circuit."))
-            }
-            ObjectRegistryError::ExceedsCapacity(b) => PyRuntimeError::new_err(format!(
-                "Cannot add object {b}, which would exceed circuit capacity for its kind.",
-            )),
-            ObjectRegistryError::DuplicateObject(b) => PyValueError::new_err(format!(
-                "Existing object {b} cannot be re-added in strict mode."
-            )),
-        }
-    }
-}
 
 /// Wrapper for Python-side objects that implements [Hash] and [Eq], allowing them to be
 /// used in Rust hash-based sets and maps.
@@ -148,6 +113,50 @@ impl PartialEq for PyObjectAsKey {
 }
 impl Eq for PyObjectAsKey {}
 
+/// Error types for attempts to add unique objects.
+#[derive(Clone, Debug, thiserror::Error)]
+pub enum AddError<T: Debug = String, B: Debug = String> {
+    #[error("cannot add object {ob:?} as it is already mapped to {key:?}")]
+    Duplicate { key: T, ob: B },
+    #[error(transparent)]
+    Capacity(#[from] CapacityError),
+}
+impl<T: Debug, B: Debug> AddError<T, B> {
+    pub fn erase_type(self) -> AddError {
+        match self {
+            Self::Duplicate { key, ob } => AddError::Duplicate {
+                key: format!("{key:?}"),
+                ob: format!("{ob:?}"),
+            },
+            Self::Capacity(c) => AddError::Capacity(c),
+        }
+    }
+}
+impl<T: Debug, B: Debug> From<AddError<T, B>> for PyErr {
+    fn from(val: AddError<T, B>) -> PyErr {
+        match val {
+            AddError::Duplicate { .. } => PyValueError::new_err(val.to_string()),
+            AddError::Capacity(c) => c.into(),
+        }
+    }
+}
+
+/// Error return from functions that look up an object in the registry.
+#[derive(Clone, Debug, thiserror::Error)]
+#[error("object {0:?} is not present")]
+pub struct AbsentObject<T: Debug = String>(T);
+impl<T: Debug> AbsentObject<T> {
+    /// Erase the internal type of the object by evaluating the debug formatting.
+    pub fn erase_type(self) -> AbsentObject {
+        AbsentObject(format!("{:?}", self.0))
+    }
+}
+impl<T: Debug> From<AbsentObject<T>> for PyErr {
+    fn from(val: AbsentObject<T>) -> Self {
+        PyKeyError::new_err(val.to_string())
+    }
+}
+
 /// A registry of unique objects, each mapped to a unique index.
 ///
 /// This is used to associate sharable bits and other globally unique
@@ -168,7 +177,7 @@ pub struct ObjectRegistry<T, B> {
 
 impl<T, B> Default for ObjectRegistry<T, B>
 where
-    T: From<u32> + Copy,
+    T: From<u32> + Copy + Debug,
     u32: From<T>,
     B: Clone + Eq + Hash + Debug,
 {
@@ -187,7 +196,7 @@ impl<T: Eq, B: Eq + Hash> Eq for ObjectRegistry<T, B> {}
 
 impl<T, B> ObjectRegistry<T, B>
 where
-    T: From<u32> + Copy,
+    T: From<u32> + Copy + Debug,
     u32: From<T>,
     B: Clone + Eq + Hash + Debug,
 {
@@ -229,15 +238,10 @@ where
     pub fn map_objects<U: IntoIterator<Item = B>>(
         &self,
         objects: U,
-    ) -> Result<impl Iterator<Item = T> + use<T, B, U>, ObjectRegistryError> {
+    ) -> Result<impl Iterator<Item = T> + use<T, B, U>, AbsentObject<B>> {
         let v: Result<Vec<_>, _> = objects
             .into_iter()
-            .map(|b| {
-                self.indices
-                    .get(&b)
-                    .copied()
-                    .ok_or_else(|| ObjectRegistryError::ObjectMissing(format!("{b:?}")))
-            })
+            .map(|b| self.indices.get(&b).copied().ok_or(AbsentObject(b)))
             .collect();
         v.map(|x| x.into_iter())
     }
@@ -262,12 +266,11 @@ where
     }
 
     /// Registers a new object, automatically creating a unique index within the registry.
-    pub fn add(&mut self, object: B, strict: bool) -> Result<T, ObjectRegistryError> {
-        let idx: u32 = self
-            .objects
-            .len()
-            .try_into()
-            .map_err(|_| ObjectRegistryError::ExceedsCapacity(format!("{object:?}")))?;
+    ///
+    /// Errors if the object is already in the registry.  To ignore duplicates, use
+    /// [add_allow_existing].
+    pub fn add(&mut self, object: B) -> Result<T, AddError<T, B>> {
+        let idx: u32 = self.objects.len().try_into().map_err(|_| CapacityError)?;
         // Dump the cache
         self.cached.take();
         match self.indices.try_insert(object.clone(), idx.into()) {
@@ -275,24 +278,34 @@ where
                 self.objects.push(object);
                 Ok(idx.into())
             }
-            Err(OccupiedError { entry, .. }) if !strict => Ok(*entry.get()),
-            _ => Err(ObjectRegistryError::DuplicateObject(format!("{object:?}"))),
+            Err(OccupiedError { value, entry: _ }) => Err(AddError::Duplicate {
+                key: value,
+                ob: object,
+            }),
         }
     }
+    /// Add an object to the registry, returning the existing key in the case of duplication.
+    pub fn add_allow_existing(&mut self, object: B) -> Result<T, CapacityError> {
+        match self.add(object) {
+            Ok(key) | Err(AddError::Duplicate { key, ob: _ }) => Ok(key),
+            Err(AddError::Capacity(c)) => Err(c),
+        }
+    }
+    // Add an object to the registry, panicking if it is a duplicate or out of capacity.
+    pub fn add_unique_within_capacity(&mut self, object: B) -> T {
+        self.add(object)
+            .unwrap_or_else(|e| panic!("{}", e.to_string()))
+    }
 
-    pub fn replace(&mut self, index: T, replacement: B) -> PyResult<()> {
+    pub fn replace(&mut self, index: T, replacement: B) {
         self.cached.take();
         let to_replace = &mut self.objects[<u32 as From<T>>::from(index) as usize];
         self.indices.remove(to_replace);
         *to_replace = replacement.clone();
         self.indices.insert(replacement, index);
-        Ok(())
     }
 
-    pub fn remove_indices<I>(&mut self, indices: I)
-    where
-        I: IntoIterator<Item = T>,
-    {
+    pub fn remove_indices(&mut self, indices: impl IntoIterator<Item = T>) {
         let mut indices_sorted: Vec<usize> = indices
             .into_iter()
             .map(|i| <u32 as From<T>>::from(i) as usize)
