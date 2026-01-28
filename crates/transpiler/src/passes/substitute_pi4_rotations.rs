@@ -16,6 +16,7 @@ use pyo3::wrap_pyfunction;
 use qiskit_circuit::BlocksMode;
 use qiskit_circuit::Qubit;
 use qiskit_circuit::VarsMode;
+use qiskit_circuit::operations::Operation;
 use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, FRAC_PI_8, PI};
 
 use crate::gate_metrics::rotation_trace_and_dim;
@@ -33,215 +34,171 @@ type SubstituteSequencePi2<'a> = [(&'a [(StandardGate, &'a [u32])], f64); 8];
 const MINIMUM_TOL: f64 = 1e-12;
 
 /// Table for RZ(k * pi / 4) substitutions, with 0 <= k < 16
-static RZ_SUBSTITUTIONS: SubstituteSequencePi4 = [
+static RZ_SUBSTITUTIONS: [(&[StandardGate], f64); 16] = [
     (&[], 0.0),
-    (&[(StandardGate::T, &[0])], -FRAC_PI_8),
-    (&[(StandardGate::S, &[0])], -FRAC_PI_4),
-    (
-        &[(StandardGate::S, &[0]), (StandardGate::T, &[0])],
-        -3.0 * FRAC_PI_8,
-    ),
-    (&[(StandardGate::Z, &[0])], -FRAC_PI_2),
-    (
-        &[(StandardGate::Z, &[0]), (StandardGate::T, &[0])],
-        -5.0 * FRAC_PI_8,
-    ),
-    (&[(StandardGate::Sdg, &[0])], -3.0 * FRAC_PI_4),
-    (&[(StandardGate::Tdg, &[0])], -7.0 * FRAC_PI_8),
+    (&[StandardGate::T], -FRAC_PI_8),
+    (&[StandardGate::S], -FRAC_PI_4),
+    (&[StandardGate::S, StandardGate::T], -3.0 * FRAC_PI_8),
+    (&[StandardGate::Z], -FRAC_PI_2),
+    (&[StandardGate::Z, StandardGate::T], -5.0 * FRAC_PI_8),
+    (&[StandardGate::Sdg], -3.0 * FRAC_PI_4),
+    (&[StandardGate::Tdg], -7.0 * FRAC_PI_8),
     (&[], -PI),
-    (&[(StandardGate::T, &[0])], 7.0 * FRAC_PI_8),
-    (&[(StandardGate::S, &[0])], 3.0 * FRAC_PI_4),
-    (
-        &[(StandardGate::S, &[0]), (StandardGate::T, &[0])],
-        5.0 * FRAC_PI_8,
-    ),
-    (&[(StandardGate::Z, &[0])], FRAC_PI_2),
-    (
-        &[(StandardGate::Z, &[0]), (StandardGate::T, &[0])],
-        3.0 * FRAC_PI_8,
-    ),
-    (&[(StandardGate::Sdg, &[0])], FRAC_PI_4),
-    (&[(StandardGate::Tdg, &[0])], FRAC_PI_8),
+    (&[StandardGate::T], 7.0 * FRAC_PI_8),
+    (&[StandardGate::S], 3.0 * FRAC_PI_4),
+    (&[StandardGate::S, StandardGate::T], 5.0 * FRAC_PI_8),
+    (&[StandardGate::Z], FRAC_PI_2),
+    (&[StandardGate::Z, StandardGate::T], 3.0 * FRAC_PI_8),
+    (&[StandardGate::Sdg], FRAC_PI_4),
+    (&[StandardGate::Tdg], FRAC_PI_8),
 ];
 
 /// Table for RX(k * pi / 4) substitutions, with 0 <= k < 16
-static RX_SUBSTITUTIONS: SubstituteSequencePi4 = [
+static RX_SUBSTITUTIONS: [(&[StandardGate], f64); 16] = [
     (&[], 0.0),
     (
-        &[
-            (StandardGate::H, &[0]),
-            (StandardGate::T, &[0]),
-            (StandardGate::H, &[0]),
-        ],
+        &[StandardGate::H, StandardGate::T, StandardGate::H],
         -FRAC_PI_8,
     ),
-    (&[(StandardGate::SX, &[0])], -FRAC_PI_4),
+    (&[StandardGate::SX], -FRAC_PI_4),
     (
         &[
-            (StandardGate::SX, &[0]),
-            (StandardGate::H, &[0]),
-            (StandardGate::T, &[0]),
-            (StandardGate::H, &[0]),
+            StandardGate::SX,
+            StandardGate::H,
+            StandardGate::T,
+            StandardGate::H,
         ],
         -3.0 * FRAC_PI_8,
     ),
-    (&[(StandardGate::X, &[0])], -FRAC_PI_2),
+    (&[StandardGate::X], -FRAC_PI_2),
     (
         &[
-            (StandardGate::X, &[0]),
-            (StandardGate::H, &[0]),
-            (StandardGate::T, &[0]),
-            (StandardGate::H, &[0]),
+            StandardGate::X,
+            StandardGate::H,
+            StandardGate::T,
+            StandardGate::H,
         ],
         -5.0 * FRAC_PI_8,
     ),
-    (&[(StandardGate::SXdg, &[0])], -3.0 * FRAC_PI_4),
+    (&[StandardGate::SXdg], -3.0 * FRAC_PI_4),
     (
-        &[
-            (StandardGate::H, &[0]),
-            (StandardGate::Tdg, &[0]),
-            (StandardGate::H, &[0]),
-        ],
+        &[StandardGate::H, StandardGate::Tdg, StandardGate::H],
         -7.0 * FRAC_PI_8,
     ),
     (&[], -PI),
     (
-        &[
-            (StandardGate::H, &[0]),
-            (StandardGate::T, &[0]),
-            (StandardGate::H, &[0]),
-        ],
+        &[StandardGate::H, StandardGate::T, StandardGate::H],
         7.0 * FRAC_PI_8,
     ),
-    (&[(StandardGate::SX, &[0])], 3.0 * FRAC_PI_4),
+    (&[StandardGate::SX], 3.0 * FRAC_PI_4),
     (
         &[
-            (StandardGate::SX, &[0]),
-            (StandardGate::H, &[0]),
-            (StandardGate::T, &[0]),
-            (StandardGate::H, &[0]),
+            StandardGate::SX,
+            StandardGate::H,
+            StandardGate::T,
+            StandardGate::H,
         ],
         5.0 * FRAC_PI_8,
     ),
-    (&[(StandardGate::X, &[0])], FRAC_PI_2),
+    (&[StandardGate::X], FRAC_PI_2),
     (
         &[
-            (StandardGate::X, &[0]),
-            (StandardGate::H, &[0]),
-            (StandardGate::T, &[0]),
-            (StandardGate::H, &[0]),
+            StandardGate::X,
+            StandardGate::H,
+            StandardGate::T,
+            StandardGate::H,
         ],
         3.0 * FRAC_PI_8,
     ),
-    (&[(StandardGate::SXdg, &[0])], FRAC_PI_4),
+    (&[StandardGate::SXdg], FRAC_PI_4),
     (
-        &[
-            (StandardGate::H, &[0]),
-            (StandardGate::Tdg, &[0]),
-            (StandardGate::H, &[0]),
-        ],
+        &[StandardGate::H, StandardGate::Tdg, StandardGate::H],
         FRAC_PI_8,
     ),
 ];
 
 /// Table for RY(k * pi / 4) substitutions, with 0 <= k < 16
-static RY_SUBSTITUTIONS: SubstituteSequencePi4 = [
+static RY_SUBSTITUTIONS: [(&[StandardGate], f64); 16] = [
     (&[], 0.0),
     (
-        &[
-            (StandardGate::SX, &[0]),
-            (StandardGate::T, &[0]),
-            (StandardGate::SXdg, &[0]),
-        ],
+        &[StandardGate::SX, StandardGate::T, StandardGate::SXdg],
         -FRAC_PI_8,
     ),
-    (&[(StandardGate::Z, &[0]), (StandardGate::H, &[0])], 0.0),
+    (&[StandardGate::Z, StandardGate::H], 0.0),
     (
         &[
-            (StandardGate::SX, &[0]),
-            (StandardGate::T, &[0]),
-            (StandardGate::S, &[0]),
-            (StandardGate::SXdg, &[0]),
+            StandardGate::SX,
+            StandardGate::T,
+            StandardGate::S,
+            StandardGate::SXdg,
         ],
         -3.0 * FRAC_PI_8,
     ),
-    (&[(StandardGate::Y, &[0])], -FRAC_PI_2),
+    (&[StandardGate::Y], -FRAC_PI_2),
     (
         &[
-            (StandardGate::Y, &[0]),
-            (StandardGate::SX, &[0]),
-            (StandardGate::T, &[0]),
-            (StandardGate::SXdg, &[0]),
+            StandardGate::Y,
+            StandardGate::SX,
+            StandardGate::T,
+            StandardGate::SXdg,
         ],
         -5.0 * FRAC_PI_8,
     ),
-    (&[(StandardGate::H, &[0]), (StandardGate::Z, &[0])], -PI),
+    (&[StandardGate::H, StandardGate::Z], -PI),
     (
-        &[
-            (StandardGate::SX, &[0]),
-            (StandardGate::Tdg, &[0]),
-            (StandardGate::SXdg, &[0]),
-        ],
+        &[StandardGate::SX, StandardGate::Tdg, StandardGate::SXdg],
         -7.0 * FRAC_PI_8,
     ),
     (&[], -PI),
     (
-        &[
-            (StandardGate::SX, &[0]),
-            (StandardGate::T, &[0]),
-            (StandardGate::SXdg, &[0]),
-        ],
+        &[StandardGate::SX, StandardGate::T, StandardGate::SXdg],
         7.0 * FRAC_PI_8,
     ),
-    (&[(StandardGate::Z, &[0]), (StandardGate::H, &[0])], -PI),
+    (&[StandardGate::Z, StandardGate::H], -PI),
     (
         &[
-            (StandardGate::SX, &[0]),
-            (StandardGate::T, &[0]),
-            (StandardGate::S, &[0]),
-            (StandardGate::SXdg, &[0]),
+            StandardGate::SX,
+            StandardGate::T,
+            StandardGate::S,
+            StandardGate::SXdg,
         ],
         5.0 * FRAC_PI_8,
     ),
-    (&[(StandardGate::Y, &[0])], FRAC_PI_2),
+    (&[StandardGate::Y], FRAC_PI_2),
     (
         &[
-            (StandardGate::Y, &[0]),
-            (StandardGate::SX, &[0]),
-            (StandardGate::T, &[0]),
-            (StandardGate::SXdg, &[0]),
+            StandardGate::Y,
+            StandardGate::SX,
+            StandardGate::T,
+            StandardGate::SXdg,
         ],
         3.0 * FRAC_PI_8,
     ),
-    (&[(StandardGate::H, &[0]), (StandardGate::Z, &[0])], 0.0),
+    (&[StandardGate::H, StandardGate::Z], 0.0),
     (
-        &[
-            (StandardGate::SX, &[0]),
-            (StandardGate::Tdg, &[0]),
-            (StandardGate::SXdg, &[0]),
-        ],
+        &[StandardGate::SX, StandardGate::Tdg, StandardGate::SXdg],
         FRAC_PI_8,
     ),
 ];
 
 /// Table for P(k * pi / 4) substitutions, with 0 <= k < 16
-static P_SUBSTITUTIONS: SubstituteSequencePi4 = [
+static P_SUBSTITUTIONS: [(&[StandardGate], f64); 16] = [
     (&[], 0.0),
-    (&[(StandardGate::T, &[0])], 0.0),
-    (&[(StandardGate::S, &[0])], 0.0),
-    (&[(StandardGate::S, &[0]), (StandardGate::T, &[0])], 0.0),
-    (&[(StandardGate::Z, &[0])], 0.0),
-    (&[(StandardGate::Z, &[0]), (StandardGate::T, &[0])], 0.0),
-    (&[(StandardGate::Sdg, &[0])], 0.0),
-    (&[(StandardGate::Tdg, &[0])], 0.0),
+    (&[StandardGate::T], 0.0),
+    (&[StandardGate::S], 0.0),
+    (&[StandardGate::S, StandardGate::T], 0.0),
+    (&[StandardGate::Z], 0.0),
+    (&[StandardGate::Z, StandardGate::T], 0.0),
+    (&[StandardGate::Sdg], 0.0),
+    (&[StandardGate::Tdg], 0.0),
     (&[], 0.0),
-    (&[(StandardGate::T, &[0])], 0.0),
-    (&[(StandardGate::S, &[0])], 0.0),
-    (&[(StandardGate::S, &[0]), (StandardGate::T, &[0])], 0.0),
-    (&[(StandardGate::Z, &[0])], 0.0),
-    (&[(StandardGate::Z, &[0]), (StandardGate::T, &[0])], 0.0),
-    (&[(StandardGate::Sdg, &[0])], 0.0),
-    (&[(StandardGate::Tdg, &[0])], 0.0),
+    (&[StandardGate::T], 0.0),
+    (&[StandardGate::S], 0.0),
+    (&[StandardGate::S, StandardGate::T], 0.0),
+    (&[StandardGate::Z], 0.0),
+    (&[StandardGate::Z, StandardGate::T], 0.0),
+    (&[StandardGate::Sdg], 0.0),
+    (&[StandardGate::Tdg], 0.0),
 ];
 
 /// Table for RZZ(k * pi / 4) substitutions, with 0 <= k < 16
@@ -1103,16 +1060,25 @@ fn is_angle_close_to_multiple_of_pi_k(
 /// Note that even multiples of pi/4 (resectively pi/2 for controlled rotations),
 /// or equivalently, integer multiples of pi/2 (respectively pi for controlled rotations),
 /// can be written using only Clifford gates.
-fn replace_rotation_by_discrete(
+fn replace_1q_rotation_by_discrete(
     gate: StandardGate,
     multiple: usize,
-) -> (&'static [(StandardGate, &'static [u32])], f64) {
+) -> (&'static [StandardGate], f64) {
     match gate {
         StandardGate::RX => RX_SUBSTITUTIONS[multiple],
         StandardGate::RY => RY_SUBSTITUTIONS[multiple],
         StandardGate::RZ => RZ_SUBSTITUTIONS[multiple],
         StandardGate::Phase => P_SUBSTITUTIONS[multiple],
         StandardGate::U1 => P_SUBSTITUTIONS[multiple],
+        _ => unreachable!("This is only called for 1-qubit rotation gates."),
+    }
+}
+
+fn replace_2q_rotation_by_discrete(
+    gate: StandardGate,
+    multiple: usize,
+) -> (&'static [(StandardGate, &'static [u32])], f64) {
+    match gate {
         StandardGate::RZZ => RZZ_SUBSTITUTIONS[multiple],
         StandardGate::RXX => RXX_SUBSTITUTIONS[multiple],
         StandardGate::RZX => RZX_SUBSTITUTIONS[multiple],
@@ -1122,7 +1088,7 @@ fn replace_rotation_by_discrete(
         StandardGate::CRZ => CRZ_SUBSTITUTIONS[multiple],
         StandardGate::CRX => CRX_SUBSTITUTIONS[multiple],
         StandardGate::CRY => CRY_SUBSTITUTIONS[multiple],
-        _ => unreachable!("This is only called for rotation gates."),
+        _ => unreachable!("This is only called for 2-qubit rotation gates."),
     }
 }
 
@@ -1170,7 +1136,7 @@ pub fn py_run_substitute_pi4_rotations(
     let tol = MINIMUM_TOL.max(1.0 - approximation_degree);
     let mut global_phase_update: f64 = 0.;
 
-    for node_index in dag.topological_op_nodes(false)? {
+    for node_index in dag.topological_op_nodes(false) {
         if let NodeType::Operation(inst) = &dag[node_index] {
             if let OperationRef::StandardGate(gate) = inst.op.view() {
                 if matches!(
@@ -1191,12 +1157,25 @@ pub fn py_run_substitute_pi4_rotations(
                         | StandardGate::CRY
                 ) {
                     let k = rotation_to_pi_div(gate);
+                    let num_qubits = gate.num_qubits();
                     if let Param::Float(angle) = inst.params_view()[0] {
                         if let Some(multiple) =
                             is_angle_close_to_multiple_of_pi_k(gate, k, angle, tol)
                         {
-                            let (sequence, phase_update) =
-                                replace_rotation_by_discrete(gate, multiple);
+                            let (sequence, phase_update) = if num_qubits == 2 {
+                                let (sequence, phase_update) =
+                                    replace_2q_rotation_by_discrete(gate, multiple);
+                                (sequence.to_vec(), phase_update)
+                            } else {
+                                // num_qubits == 1
+                                let (new_gate, phase_update) =
+                                    replace_1q_rotation_by_discrete(gate, multiple);
+
+                                let qubit: &'static [u32] = &[0];
+                                let mut sequence = Vec::with_capacity(new_gate.len());
+                                sequence.extend(new_gate.iter().map(|g| (*g, qubit)));
+                                (sequence, phase_update)
+                            };
                             for (new_gate, qubits) in sequence {
                                 let original_qubits = dag.get_qargs(inst.qubits);
                                 let updated_qubits: Vec<Qubit> = qubits
@@ -1205,7 +1184,7 @@ pub fn py_run_substitute_pi4_rotations(
                                     .collect();
                                 let new_qubits = new_dag.add_qargs(&updated_qubits);
                                 new_dag.push_back(PackedInstruction::from_standard_gate(
-                                    *new_gate, None, new_qubits,
+                                    new_gate, None, new_qubits,
                                 ))?;
                             }
                             global_phase_update += phase_update;
