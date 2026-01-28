@@ -53,7 +53,10 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.optimization_metric import OptimizationMetric
 from qiskit.utils import deprecate_func
-from qiskit.quantum_info.operators.symplectic.clifford_circuits import _CLIFFORD_GATE_NAMES
+from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
+    _CLIFFORD_GATE_NAMES,
+    get_clifford_gate_names,
+)
 
 
 _ControlFlowState = collections.namedtuple("_ControlFlowState", ("working", "not_working"))
@@ -492,79 +495,33 @@ def generate_translation_passmanager(
             translator,
         ]
         fix_1q = [translator]
-    elif method == "clifford_t":
-        # The list of extended basis gates consists of the specified Clifford+T basis gates and
-        # additionally the 1q-gate "u".
-        # We set target=None to make sure extended_basis_gates is not overwritten by the target.
-        extended_basis_gates = list(basis_gates) + ["u"]
-
+    elif method == "clifford_rz_translator":
+        clifford_rz_gates = get_clifford_gate_names() + ["t", "tdg", "rz"]
         unroll = [
-            # Use the UnitarySynthesis pass to unroll 1-qubit and 2-qubit gates named "unitary" into
-            # extended_basis_gates.
+            # Use unitary synthesis for basis aware decomposition of
+            # UnitaryGates before custom unrolling
             UnitarySynthesis(
-                basis_gates=extended_basis_gates,
+                clifford_rz_gates,
                 approximation_degree=approximation_degree,
                 coupling_map=coupling_map,
                 plugin_config=unitary_synthesis_plugin_config,
                 method=unitary_synthesis_method,
                 target=None,
             ),
-            # Use the HighLevelSynthesis pass to unroll all the remaining 1q and 2q custom
-            # gates into extended_basis_gates + the gates in the equivalence library.
-            # We set target=None to make sure extended_basis_gates is not overwritten by the target.
             HighLevelSynthesis(
                 hls_config=hls_config,
                 coupling_map=coupling_map,
                 target=None,
                 use_qubit_indices=True,
                 equivalence_library=sel,
-                basis_gates=extended_basis_gates,
+                basis_gates=clifford_rz_gates,
                 qubits_initially_zero=qubits_initially_zero,
                 optimization_metric=OptimizationMetric.COUNT_T,
             ),
-            # Use the BasisTranslator pass to translate all the gates into extended_basis_gates.
-            # In other words, this translates the gates in the equivalence library that are not
-            # in extended_basis_gates to gates in extended_basis_gates only.
-            # Note that we do not want to make any assumptions on which Clifford gates are present
-            # in basis_gates. The BasisTranslator will do the conversion if possible (and provide
-            # a helpful error message otherwise).
-            BasisTranslator(sel, extended_basis_gates, None),
-            # The next step is to resynthesize blocks of consecutive 1q-gates into Clifford+T.
-            # Use Collect1qRuns and ConsolidateBlocks passes to replace such blocks by 1q "unitary"
-            # gates.
-            Collect1qRuns(),
-            ConsolidateBlocks(
-                basis_gates=None,
-                target=None,
-                approximation_degree=approximation_degree,
-                force_consolidate=True,
-            ),
-            # We use the "clifford" unitary synthesis plugin to replace single-qubit
-            # unitary gates that can be represented as Cliffords by Clifford gates.
-            UnitarySynthesis(method="clifford", plugin_config={"max_qubits": 1}),
-            # We decompose single-qubit unitary gates using the UnitarySynthesisPlugin interface.
-            # By default it's the "default" method (which currently calls the Solovay-Kitaev
-            # decomposition). If a custom ``unitary_synthesis_method`` method is specified, it should
-            # either return the synthesized circuit in the Clifford+T basis set, or ``None``
-            # in which case the default method would be called as fallback.
-            UnitarySynthesis(
-                basis_gates=basis_gates,
-                approximation_degree=approximation_degree,
-                coupling_map=coupling_map,
-                plugin_config=unitary_synthesis_plugin_config,
-                method=unitary_synthesis_method,
-                min_qubits=1,
-                target=None,
-                fallback_on_default=True,
-            ),
-            # Finally, we use BasisTranslator to translate Clifford+T circuit to the actually
-            # specified set of basis gates.
-            BasisTranslator(sel, basis_gates, target),
+            # HLS does not translate gates in the equivalence library, so we need BT for this.
+            BasisTranslator(sel, clifford_rz_gates, None),
         ]
-        # We use the BasisTranslator pass to translate any 1q-gates added by GateDirection
-        # into basis_gates.
-        translator = BasisTranslator(sel, basis_gates, target)
-        fix_1q = [translator]
+        fix_1q = []
     elif method == "synthesis":
         unroll = [
             # # Use unitary synthesis for basis aware decomposition of
@@ -626,25 +583,28 @@ def generate_translation_passmanager(
         ]
     else:
         raise TranspilerError(f"Invalid translation method {method}.")
-    # Our built-ins don't 100% guarantee that 2q gate direction is respected, so we might need to
-    # run a little bit of fix up on them.  `GateDirection` doesn't guarantee that 1q gates are
-    # ISA safe after it runs, so we need another run too.
-    if (coupling_map and not coupling_map.is_symmetric) or (
-        target is not None and target.get_non_global_operation_names(strict_direction=True)
-    ):
-        unroll.append(CheckGateDirection(coupling_map, target=target))
 
-        def _direction_condition(property_set):
-            return not property_set["is_direction_mapped"]
+    if method != "clifford_rz_translator":
+        # Our built-ins don't 100% guarantee that 2q gate direction is respected, so we might need to
+        # run a little bit of fix up on them.  `GateDirection` doesn't guarantee that 1q gates are
+        # ISA safe after it runs, so we need another run too.
+        if (coupling_map and not coupling_map.is_symmetric) or (
+            target is not None and target.get_non_global_operation_names(strict_direction=True)
+        ):
+            unroll.append(CheckGateDirection(coupling_map, target=target))
 
-        unroll.append(
-            ConditionalController(
-                [GateDirection(coupling_map, target=target)] + fix_1q,
-                condition=_direction_condition,
+            def _direction_condition(property_set):
+                return not property_set["is_direction_mapped"]
+
+            unroll.append(
+                ConditionalController(
+                    [GateDirection(coupling_map, target=target)] + fix_1q,
+                    condition=_direction_condition,
+                )
             )
-        )
-    if target is not None and target.has_angle_bounds():
-        unroll.append(WrapAngles(target))
+        if target is not None and target.has_angle_bounds():
+            unroll.append(WrapAngles(target))
+
     return PassManager(unroll)
 
 

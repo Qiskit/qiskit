@@ -29,9 +29,9 @@ from qiskit.transpiler.preset_passmanagers.common import is_clifford_t_basis
 from qiskit.transpiler.target import Target, _FakeTarget
 
 from .level0 import level_0_pass_manager, level_0_clifford_t_pass_manager
-from .level1 import level_1_pass_manager
-from .level2 import level_2_pass_manager
-from .level3 import level_3_pass_manager
+from .level1 import level_1_pass_manager, level_1_clifford_t_pass_manager
+from .level2 import level_2_pass_manager, level_2_clifford_t_pass_manager
+from .level3 import level_3_pass_manager, level_3_clifford_t_pass_manager
 
 
 OVER_3Q_GATES = ["ccx", "ccz", "cswap", "rccx", "c3x", "c3sx", "rc3x"]
@@ -311,11 +311,11 @@ def generate_preset_pass_manager(
         if optimization_level == 0:
             pm = level_0_clifford_t_pass_manager(pm_config)
         elif optimization_level == 1:
-            pm = level_1_pass_manager(pm_config)
+            pm = level_1_clifford_t_pass_manager(pm_config)
         elif optimization_level == 2:
-            pm = level_2_pass_manager(pm_config)
+            pm = level_2_clifford_t_pass_manager(pm_config)
         elif optimization_level == 3:
-            pm = level_3_pass_manager(pm_config)
+            pm = level_3_clifford_t_pass_manager(pm_config)
         else:
             raise ValueError(f"Invalid optimization level {optimization_level}")
 

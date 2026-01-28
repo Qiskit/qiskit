@@ -16,8 +16,12 @@ Level 0 pass manager: no explicit optimization other than mapping to backend.
 """
 
 from qiskit.transpiler.passmanager_config import PassManagerConfig
-from qiskit.transpiler.passmanager import PassManager, StagedPassManager
+from qiskit.transpiler.passmanager import StagedPassManager
 from qiskit.transpiler.preset_passmanagers import common
+from qiskit.transpiler.preset_passmanagers.builtin_plugins import (
+    CliffordTOptimizationPassManager,
+    CliffordTTranslationPassManager,
+)
 from qiskit.transpiler.preset_passmanagers.plugin import (
     PassManagerStagePluginManager,
 )
@@ -104,14 +108,8 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     )
 
 
-
-
-
-
 def level_0_clifford_t_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassManager:
     """Level 0 Clifford+T pass manager."""
-
-    print("BUILDING CLIFFORD+T LEVEL0 PASS MANAGER")
 
     plugin_manager = PassManagerStagePluginManager()
     basis_gates = pass_manager_config.basis_gates
@@ -122,8 +120,6 @@ def level_0_clifford_t_pass_manager(pass_manager_config: PassManagerConfig) -> S
     routing_method = pass_manager_config.routing_method or "default"
     rz_translation_method = pass_manager_config.translation_method or "default"
     rz_optimization_method = pass_manager_config.optimization_method or "default"
-    t_translation_method = "default"
-    t_optimization_method = "default"
 
     scheduling_method = pass_manager_config.scheduling_method or "default"
     target = pass_manager_config.target
@@ -141,7 +137,7 @@ def level_0_clifford_t_pass_manager(pass_manager_config: PassManagerConfig) -> S
         layout = None
         routing = None
 
-    translation = plugin_manager.get_passmanager_stage(
+    rz_translation = plugin_manager.get_passmanager_stage(
         "translation", rz_translation_method, pass_manager_config, optimization_level=0
     )
 
@@ -162,32 +158,28 @@ def level_0_clifford_t_pass_manager(pass_manager_config: PassManagerConfig) -> S
     init = plugin_manager.get_passmanager_stage(
         "init", init_method, pass_manager_config, optimization_level=0
     )
-    optimization = plugin_manager.get_passmanager_stage(
+    rz_optimization = plugin_manager.get_passmanager_stage(
         "optimization", rz_optimization_method, pass_manager_config, optimization_level=0
     )
 
-
-    # For now, create the PassManagers for t_translation and t_optimization here, and then
-    # move them to a common place, so that they can be shared between multiple passes.
-    t_translation = PassManager(
-        []
+    # ToDo: make a plugin interface
+    t_translation = CliffordTTranslationPassManager().pass_manager(
+        pass_manager_config, optimization_level=0
     )
-
-    t_optimization = PassManager([]
-        
+    t_optimization = CliffordTOptimizationPassManager().pass_manager(
+        pass_manager_config, optimization_level=0
     )
 
     stages = [
-            "init",
-            "layout",
-            "routing",
-            "rz_translation",
-            "rz_optimization",
-            "t_translation",
-            "t_optimization",
-            "scheduling",
+        "init",
+        "layout",
+        "routing",
+        "rz_translation",
+        "rz_optimization",
+        "t_translation",
+        "t_optimization",
+        "scheduling",
     ]
-
 
     return StagedPassManager(
         stages=stages,
@@ -195,9 +187,9 @@ def level_0_clifford_t_pass_manager(pass_manager_config: PassManagerConfig) -> S
         init=init,
         layout=layout,
         routing=routing,
-        rz_translation=translation,
-        rz_optimization=optimization,
-        t_translation = t_translation,
-        t_optimization = t_optimization,
+        rz_translation=rz_translation,
+        rz_optimization=rz_optimization,
+        t_translation=t_translation,
+        t_optimization=t_optimization,
         scheduling=sched,
     )
