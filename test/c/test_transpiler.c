@@ -262,8 +262,9 @@ int test_init_stage_empty(void) {
     QkDag *dag = qk_dag_new();
     QkQuantumRegister *qr = qk_quantum_register_new(1024, "qr");
     qk_dag_add_quantum_register(dag, qr);
-    QkTranspileLayout **layout = malloc(sizeof(QkTranspileLayout *));
-    int compile_result = qk_transpile_stage_init(dag, target, NULL, layout, NULL);
+    QkTranspileState **state = malloc(sizeof(QkTranspileState *));
+    *state = NULL;
+    int compile_result = qk_transpile_stage_init(dag, target, NULL, state, NULL);
     if (compile_result != 0) {
         result = EqualityError;
         printf("Running the init stage failed\n");
@@ -277,8 +278,8 @@ int test_init_stage_empty(void) {
 cleanup:
     qk_target_free(target);
     qk_dag_free(dag);
-    qk_transpile_layout_free(*layout);
-    free(layout);
+    qk_transpile_state_free(*state);
+    free(state);
     return result;
 }
 
@@ -296,9 +297,9 @@ int test_layout_stage_empty(void) {
     QkDag *dag = qk_dag_new();
     QkQuantumRegister *qr = qk_quantum_register_new(1024, "qr");
     qk_dag_add_quantum_register(dag, qr);
-    QkTranspileLayout **layout = malloc(sizeof(QkTranspileLayout *));
-    *layout = NULL;
-    int compile_result = qk_transpile_stage_layout(dag, target, NULL, layout, NULL);
+    QkTranspileState **state = malloc(sizeof(QkTranspileState *));
+    *state = NULL;
+    int compile_result = qk_transpile_stage_layout(dag, target, NULL, state, NULL);
     if (compile_result != 0) {
         result = EqualityError;
         printf("Running the layout stage failed\n");
@@ -309,7 +310,8 @@ int test_layout_stage_empty(void) {
         result = EqualityError;
         printf("Number of dag qubits %u does not match expected result 2048", num_dag_qubits);
     }
-    uint32_t num_layout_qubits = qk_transpile_layout_num_output_qubits(*layout);
+    QkTranspileLayout *layout = qk_transpile_state_layout(*state);
+    uint32_t num_layout_qubits = qk_transpile_layout_num_output_qubits(layout);
     if (num_layout_qubits != 2048) {
         result = EqualityError;
         printf("Number of layout qubits %u does not match expected result 2048\n",
@@ -318,8 +320,8 @@ int test_layout_stage_empty(void) {
 cleanup:
     qk_target_free(target);
     qk_dag_free(dag);
-    qk_transpile_layout_free(*layout);
-    free(layout);
+    qk_transpile_state_free(*state);
+    free(state);
     return result;
 }
 
@@ -337,16 +339,17 @@ int test_routing_stage_empty(void) {
     QkDag *dag = qk_dag_new();
     QkQuantumRegister *qr = qk_quantum_register_new(1024, "qr");
     qk_dag_add_quantum_register(dag, qr);
-    QkTranspileLayout **layout = malloc(sizeof(QkTranspileLayout *));
-    *layout = NULL;
+    QkTranspileState **state = malloc(sizeof(QkTranspileState *));
+    *state = NULL;
     // Run layout stage to populate the QkTranspileLayout
-    int compile_result = qk_transpile_stage_layout(dag, target, NULL, layout, NULL);
+    int compile_result = qk_transpile_stage_layout(dag, target, NULL, state, NULL);
     if (compile_result != 0) {
         result = EqualityError;
         printf("Running the layout stage failed\n");
         goto cleanup;
     }
-    compile_result = qk_transpile_stage_routing(dag, target, NULL, *layout, NULL);
+    // The layout should already be written to the state object, so we can dereference.
+    compile_result = qk_transpile_stage_routing(dag, target, NULL, *state, NULL);
     if (compile_result != 0) {
         result = EqualityError;
         printf("Running the routing stage failed\n");
@@ -357,7 +360,8 @@ int test_routing_stage_empty(void) {
         result = EqualityError;
         printf("Number of dag qubits %u does not match expected result 2048", num_dag_qubits);
     }
-    uint32_t num_layout_qubits = qk_transpile_layout_num_output_qubits(*layout);
+    QkTranspileLayout *layout = qk_transpile_state_layout(*state);
+    uint32_t num_layout_qubits = qk_transpile_layout_num_output_qubits(layout);
     if (num_layout_qubits != 2048) {
         result = EqualityError;
         printf("Number of layout qubits %u does not match expected result 2048\n",
@@ -366,8 +370,8 @@ int test_routing_stage_empty(void) {
 cleanup:
     qk_target_free(target);
     qk_dag_free(dag);
-    qk_transpile_layout_free(*layout);
-    free(layout);
+    qk_transpile_state_free(*state);
+    free(state);
     return result;
 }
 
