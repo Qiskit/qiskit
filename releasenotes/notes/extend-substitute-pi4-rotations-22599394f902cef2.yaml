@@ -6,7 +6,7 @@ features_transpiler:
 
     * single-qubit rotation gates: class:`.PhaseGate`,
     * two-qubit rotation gates: :class:`.RXXGate`, :class:`.RYYGate`, :class:`.RZZGate`, :class:`.RZXGate`,
-    * two-qubit controlled rotation gates: :class:`.CPhaseGate`, :class:`.CRXGate`, :class:`.CRYGate`, :class:`.CRZGate.
+    * two-qubit controlled rotation gates: :class:`.CPhaseGate`, :class:`.CRXGate`, :class:`.CRYGate`, :class:`.CRZGate`.
 
     For single-qubit rotation gates (:class:`.RXGate`, :class:`.RYGate`, :class:`.RZGate`,
     :class:`.PhaseGate`) and two-qubit rotation gates (:class:`.RXXGate`, :class:`.RYYGate`,
