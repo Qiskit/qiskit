@@ -996,7 +996,6 @@ static int test_target_operation(void) {
                            QkGate_CX, QkGate_Y,  QkGate_GlobalPhase};
     // Allocate for the Target operation
     QkTargetOp op;
-    bool end_iteration = false;
     for (size_t inst_idx = 0; inst_idx < target_length; inst_idx++) {
         // This method panics if the index is not valid.
         qk_target_op_get(target, inst_idx, &op);
@@ -1005,8 +1004,7 @@ static int test_target_operation(void) {
             printf("The operation names did not match. Expected %s, got %s", names[inst_idx],
                    op.name);
             result = EqualityError;
-            end_iteration = true;
-            goto cleanup;
+            break;
         }
 
         char *op_types[6] = {"Gate", "Barrier", "Delay", "Measure", "Reset", "Unitary"};
@@ -1015,16 +1013,14 @@ static int test_target_operation(void) {
                 printf("The operation's type did not match, expected Gate, got %s",
                        op_types[(size_t)op.op_type]);
                 result = EqualityError;
-                end_iteration = true;
-                goto cleanup;
+                break;
             }
             QkGate gate = qk_target_op_gate(target, inst_idx);
             if (gate != std_gates[inst_idx]) {
                 printf("The gate type did not match. Expected %i, got %i", std_gates[inst_idx],
                        gate);
                 result = EqualityError;
-                end_iteration = true;
-                goto cleanup;
+                break;
             }
             if (inst_idx == 1) {
                 double param_val = qk_param_as_real(op.params[0]);
@@ -1033,8 +1029,7 @@ static int test_target_operation(void) {
                         "The param value for instruction '%s' did not match. Expected %f, got %f\n",
                         op.name, 3.14, param_val);
                     result = EqualityError;
-                    end_iteration = true;
-                    goto cleanup;
+                    break;
                 }
             } else {
                 if (op.params == NULL && op.num_params != 0) {
@@ -1042,8 +1037,7 @@ static int test_target_operation(void) {
                            "NULL params.\n",
                            op.name, op.num_params);
                     result = EqualityError;
-                    end_iteration = true;
-                    goto cleanup;
+                    break;
                 }
             }
         } else if (inst_idx == 7) {
@@ -1051,25 +1045,21 @@ static int test_target_operation(void) {
                 printf("The operation's type did not match, expected Measure, got %s",
                        op_types[(size_t)op.op_type]);
                 result = EqualityError;
-                end_iteration = true;
-                goto cleanup;
+                break;
             }
         } else {
             if (op.op_type != QkOperationKind_Reset) {
                 printf("The operation's type did not match, expected Reset, got %s",
                        op_types[(size_t)op.op_type]);
                 result = EqualityError;
-                end_iteration = true;
-                goto cleanup;
+                break;
             }
         }
         // Free the operation at the end of each loop iteration.
-    cleanup:
         qk_target_op_clear(&op);
-        if (end_iteration) {
-            break;
-        }
     }
+    // Free the operation once again in case loop ends early.
+    qk_target_op_clear(&op);
     qk_target_free(target);
     return result;
 }

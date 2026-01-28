@@ -1342,7 +1342,7 @@ pub struct CTargetOp {
     /// The number of qubits this operation supports. Will default to
     /// `(uint32_t)-1` in the case of a variadic.
     pub num_qubits: u32,
-    /// The parameters tied to this operation if fixed, as `QkParam`.
+    /// The parameters tied to this operation, as `QkParam`.
     /// If there are no parameters then this value will be represented
     /// with a `NULL` pointer.
     pub params: *mut *const Param,
@@ -1427,8 +1427,10 @@ pub unsafe extern "C" fn qk_target_op_get(
                     .params_view()
                     .iter()
                     .map(|param| match param {
+                        Param::Float(_) | Param::ParameterExpression(_) => {
+                            std::ptr::from_ref(param)
+                        }
                         Param::Obj(_) => panic!("Objects are not supported in the C API."),
-                        _ => std::ptr::from_ref(param),
                     })
                     .collect(),
             );
