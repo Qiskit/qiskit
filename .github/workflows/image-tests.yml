@@ -31,14 +31,16 @@ jobs:
         run: |
           set -e
           python -m venv image_tests
-          image_tests/bin/python -m pip install -U \
+          source image_tests/bin/activate
+          python -m pip install -U pip
+          pip install -U \
             -c constraints.txt \
             --group test \
             -r requirements-optional.txt \
             -e .
           sudo apt-get update
           sudo apt-get install -y graphviz pandoc
-          image_tests/bin/pip check
+          pip check
       - name: Run image tests
         run: |
           image_tests/bin/python -m unittest discover -v test/visual
