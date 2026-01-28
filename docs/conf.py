@@ -116,6 +116,12 @@ autodoc_default_options = {
 # Move type hints from signatures to the parameter descriptions (except in overload cases, where
 # that's not possible).
 autodoc_typehints = "description"
+# Tell Sphinx it does not need to attempt to parse `# type:` comments for type hints.  We don't use
+# them for documentation, and having this set causes Sphinx to use a custom static-analysis checker
+# to find type hints, which (as of Sphinx 9.1.0, at least) is not as reliable at finding type hints
+# inherited from parent classes.
+autodoc_use_type_comments = False
+# Pull class documentation from both the class docstring and the `__init__`.
 autoclass_content = "both"
 # Some type hints are too long to be understandable. So, we set up aliases to be used instead.
 autodoc_type_aliases = {

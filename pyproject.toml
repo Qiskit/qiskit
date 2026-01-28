@@ -210,7 +210,8 @@ test-random = [
 # Dependencies to build the documentation.  It's ok if the range of Python versions that can build
 # the docs is more restrictive than Python versions that Qiskit supports.
 doc = [
-    "Sphinx>=6.0,<7.2",
+    "Sphinx==9.1.0",
+    "docutils==0.22.4",
     "openqasm-pygments",
     "reno>=4.1.0",  # duplicated with `lint`
     "sphinxcontrib-katex==0.9.9",
