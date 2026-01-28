@@ -252,11 +252,11 @@ manylinux-s390x-image = "manylinux2014"
 skip = "cp38-* cp39-* *musllinux* *win32 *i686"
 test-skip = "*win32 *linux_i686"
 test-command = "cp -r {project}/test . && QISKIT_PARALLEL=FALSE stestr --test-path test/python run --abbreviate"
-# We need to use pre-built versions of Numpy and Scipy in the tests; they have a
-# tendency to crash if they're installed from source by `pip install`, and since
-# Numpy 1.22 there are no i686 wheels, so we force pip to use older ones without
-# restricting any dependencies that Numpy and Scipy might have.
-before-test = "pip install --prefer-binary --only-binary=numpy,scipy numpy scipy -c constraints.txt --group test"
+test-groups = ["test"]
+# We need to use pre-built versions of Numpy and Scipy in the tests; we don't configure
+# the CI machines to succeed at a source build, but the latest versions of these packages
+# don't support the same range of Python versions as we do.
+before-test = "pip install --only-binary=numpy,scipy numpy scipy -c constraints.txt"
 # Some jobs locally override the before-build and environment configuration if a
 # specific job override is needed. For example tier 1 platforms locally override
 # the before-build and environment configuration to enable PGO,
