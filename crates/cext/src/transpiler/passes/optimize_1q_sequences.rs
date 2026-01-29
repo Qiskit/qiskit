@@ -18,12 +18,12 @@ use qiskit_transpiler::{passes::run_optimize_1q_gates_decomposition, target::Tar
 
 /// @ingroup QkTranspilerPasses
 /// \qk_deprecated{2.4.0|use :c:func:`qk_transpiler_pass_standalone_optimize_1q_sequences` instead.}
-
+///
 /// Runs the Optimize1qGatesDecomposition pass in standalone mode on a circuit.
 ///
 /// Optimize1qGatesDecomposition optimizes single-qubit gate sequences by re-synthesizing
 /// the unitary under the constraints of the target's basis gates and error rates.
-/// 
+///
 ///
 /// The decision of whether to replace the original chain depends on:
 /// - If the original chain was out of basis.
