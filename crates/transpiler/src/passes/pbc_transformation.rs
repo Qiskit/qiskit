@@ -372,33 +372,21 @@ pub fn py_pbc_transformation(py: Python, dag: &mut DAGCircuit) -> PyResult<DAGCi
                     gate.name()
                 )));
             }
-            // handling only 1-qubit and 2-qubit gates with a single parameter
-            if matches!(
-                gate,
-                StandardGate::RX
-                    | StandardGate::RY
-                    | StandardGate::RZ
-                    | StandardGate::Phase
-                    | StandardGate::U1
-                    | StandardGate::RZZ
-                    | StandardGate::RXX
-                    | StandardGate::RZX
-                    | StandardGate::RYY
-                    | StandardGate::CPhase
-                    | StandardGate::CU1
-                    | StandardGate::CRZ
-                    | StandardGate::CRX
-                    | StandardGate::CRY
-            ) {
-                let angle = &inst.params_view()[0];
+            // handling only 1-qubit and 2-qubit gates with no parameter or with a single parameter
+            if gate.num_params() <= 1 {
                 let (sequence, global_phase_update) = replace_gate_by_pauli_rotation(gate);
+                let angle: Param = if gate.num_params() == 1 {
+                    inst.params_view()[0].clone()
+                } else {
+                    Param::Float(1.0)
+                };
                 for (paulis, phase_rescale, qubits) in sequence {
                     let original_qubits = dag.get_qargs(inst.qubits);
                     let updated_qubits: Vec<Qubit> = qubits
                         .iter()
                         .map(|q| original_qubits[*q as usize])
                         .collect();
-                    let time = multiply_param(angle, *phase_rescale);
+                    let time = multiply_param(&angle, *phase_rescale);
                     let py_gate =
                         generate_pauli_evolution_gate(py_evo_cls, paulis, time.clone(), qubits)?;
 
@@ -412,7 +400,8 @@ pub fn py_pbc_transformation(py: Python, dag: &mut DAGCircuit) -> PyResult<DAGCi
                         None,
                     )?;
                 }
-                global_phase = radd_param(multiply_param(angle, global_phase_update), global_phase);
+                global_phase =
+                    radd_param(multiply_param(&angle, global_phase_update), global_phase);
             }
             // handling only 1-qubit and 2-qubit gates with more than one parameter
             else if matches!(
@@ -449,59 +438,6 @@ pub fn py_pbc_transformation(py: Python, dag: &mut DAGCircuit) -> PyResult<DAGCi
                     )?;
                 }
                 global_phase = radd_param(global_phase, global_phase_update);
-            }
-            // handling only 1-qubit and 2-qubit gates with no parameters
-            else if matches!(
-                gate,
-                StandardGate::I
-                    | StandardGate::X
-                    | StandardGate::Y
-                    | StandardGate::Z
-                    | StandardGate::S
-                    | StandardGate::Sdg
-                    | StandardGate::T
-                    | StandardGate::Tdg
-                    | StandardGate::SX
-                    | StandardGate::SXdg
-                    | StandardGate::H
-                    | StandardGate::CX
-                    | StandardGate::CZ
-                    | StandardGate::CY
-                    | StandardGate::CH
-                    | StandardGate::CS
-                    | StandardGate::CSdg
-                    | StandardGate::CSX
-                    | StandardGate::Swap
-                    | StandardGate::ISwap
-                    | StandardGate::DCX
-                    | StandardGate::ECR
-            ) {
-                let (sequence, global_phase_update) = replace_gate_by_pauli_rotation(gate);
-                for (paulis, phase_rescale, qubits) in sequence {
-                    let original_qubits = dag.get_qargs(inst.qubits);
-                    let updated_qubits: Vec<Qubit> = qubits
-                        .iter()
-                        .map(|q| original_qubits[*q as usize])
-                        .collect();
-                    let time = phase_rescale;
-                    let py_gate = generate_pauli_evolution_gate(
-                        py_evo_cls,
-                        paulis,
-                        Param::Float(*time),
-                        qubits,
-                    )?;
-
-                    new_dag.apply_operation_back(
-                        py_gate.into(),
-                        &updated_qubits,
-                        &[],
-                        Some(Parameters::Params(smallvec![Param::Float(*time)])),
-                        None,
-                        #[cfg(feature = "cache_pygates")]
-                        None,
-                    )?;
-                }
-                global_phase = add_param(&global_phase, global_phase_update);
             }
         } else {
             return Err(TranspilerError::new_err(format!(
