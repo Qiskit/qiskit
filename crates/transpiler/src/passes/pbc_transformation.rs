@@ -19,8 +19,8 @@ use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::imports::PAULI_EVOLUTION_GATE;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
-    Operation, OperationRef, Param, PauliProductMeasurement, PyGate, StandardGate, add_param,
-    multiply_param, radd_param,
+    Operation, OperationRef, Param, PauliProductMeasurement, PyInstruction, PyOperationTypes,
+    StandardGate, add_param, multiply_param, radd_param,
 };
 use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
 use qiskit_quantum_info::sparse_observable::PySparseObservable;
@@ -319,16 +319,16 @@ fn generate_pauli_evolution_gate(
     paulis: &str,
     time: Param,
     qubits: &[u32],
-) -> PyResult<PyGate> {
+) -> PyResult<PyOperationTypes> {
     let py_pauli = PySparseObservable::from_label(paulis.chars().collect::<String>().as_str())?;
     let py_evo = py_evo_cls.call1((py_pauli, time))?;
-    let py_gate = PyGate {
+    let py_gate = PyOperationTypes::Gate(PyInstruction {
         qubits: qubits.len() as u32,
         clbits: 0,
         params: 1,
         op_name: "PauliEvolution".to_string(),
-        gate: py_evo.into(),
-    };
+        instruction: py_evo.into(),
+    });
     Ok(py_gate)
 }
 
