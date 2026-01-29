@@ -169,15 +169,7 @@ fn replace_gate_by_pauli_rotation(gate: StandardGate) -> GateToPBCType<'static> 
 /// `original_gate = PauliEvolutionGate(pauli, phase) * e^{i global_phase}`
 fn replace_gate_by_pauli_vec(gate: StandardGate, angles: &[Param]) -> GateToPBCVec<'static> {
     match gate {
-        StandardGate::U => (
-            vec![
-                ("Z", multiply_param(&angles[2], 0.5), &[0]),
-                ("Y", multiply_param(&angles[0], 0.5), &[0]),
-                ("Z", multiply_param(&angles[1], 0.5), &[0]),
-            ],
-            multiply_param(&radd_param(angles[1].clone(), angles[2].clone()), 0.5),
-        ),
-        StandardGate::U3 => (
+        StandardGate::U | StandardGate::U3 => (
             vec![
                 ("Z", multiply_param(&angles[2], 0.5), &[0]),
                 ("Y", multiply_param(&angles[0], 0.5), &[0]),
