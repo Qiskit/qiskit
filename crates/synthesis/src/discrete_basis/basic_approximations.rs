@@ -17,7 +17,7 @@ use num_traits::FloatConst;
 use numpy::{Complex64, PyReadonlyArray2};
 use pyo3::{exceptions::PyValueError, prelude::*};
 use qiskit_circuit::{
-    Qubit,
+    NoBlocks, Qubit,
     circuit_data::CircuitData,
     circuit_instruction::OperationFromPython,
     operations::{Operation, OperationRef, Param, StandardGate},
@@ -283,7 +283,7 @@ impl GateSequence {
     /// Legacy method for backward compatibility with Python SK.
     #[staticmethod]
     fn from_gates_and_matrix(
-        gates: Vec<OperationFromPython>,
+        gates: Vec<OperationFromPython<NoBlocks>>,
         matrix_so3: PyReadonlyArray2<f64>,
         phase: f64,
     ) -> PyResult<Self> {
@@ -355,7 +355,7 @@ impl Point for BasicPoint {
 ///
 /// This struct allows to construct a tree of basic approximations and to query the closest
 /// sequence given an target sequence (or SO(3) matrix).
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct BasicApproximations {
     /// All points as flattened SO(3) matrix stored in a R* tree. This does not include the
     /// sequence of gates, see ``approximations``.

@@ -708,7 +708,7 @@ fn run_on_circuitdata(
                     output_circuit.global_phase().clone(),
                     synthesized_circuit.global_phase().clone(),
                 );
-                output_circuit.set_global_phase(updated_global_phase)?;
+                output_circuit.set_global_phase_param(updated_global_phase)?;
             }
         }
     }
@@ -939,9 +939,9 @@ fn synthesize_op_using_plugins(
         OperationRef::StandardInstruction(instruction) => instruction
             .create_py_op(py, Some(params.iter().cloned().collect()), label)?
             .into_any(),
-        OperationRef::Gate(gate) => gate.gate.clone_ref(py),
+        OperationRef::Gate(gate) => gate.instruction.clone_ref(py),
         OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
-        OperationRef::Operation(operation) => operation.operation.clone_ref(py),
+        OperationRef::Operation(operation) => operation.instruction.clone_ref(py),
         OperationRef::Unitary(unitary) => unitary.create_py_op(py, label)?.into_any(),
         OperationRef::PauliProductMeasurement(ppm) => ppm.create_py_op(py, label)?.into_any(),
     };
@@ -977,7 +977,7 @@ fn py_synthesize_operation(
     data: &Bound<HighLevelSynthesisData>,
     tracker: &mut QubitTracker,
 ) -> PyResult<Option<(CircuitData, Vec<usize>)>> {
-    let op: OperationFromPython = py_op.extract()?;
+    let op: OperationFromPython<Py<PyAny>> = py_op.extract()?;
 
     // Check if the operation can be skipped.
     if definitely_skip_op(py, data, &op.operation, &input_qubits) {
@@ -1052,6 +1052,7 @@ pub fn run_high_level_synthesis(
                 data: output_circuit,
                 name: dag.get_name().cloned(),
                 metadata: dag.get_metadata().map(|m| m.bind(py)).cloned(),
+                transpile_layout: None,
             },
             false,
             None,

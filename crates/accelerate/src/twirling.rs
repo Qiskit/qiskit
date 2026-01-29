@@ -12,7 +12,6 @@
 
 use std::f64::consts::PI;
 
-use crate::QiskitError;
 use hashbrown::HashMap;
 use ndarray::ArrayView2;
 use ndarray::linalg::kron;
@@ -29,7 +28,10 @@ use qiskit_circuit::instruction::Instruction;
 use qiskit_circuit::operations::StandardGate::{I, X, Y, Z};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedInstruction;
-use qiskit_circuit::{BlocksMode, VarsMode};
+
+use crate::QiskitError;
+
+use qiskit_circuit::{BlocksMode, NoBlocks, VarsMode};
 use qiskit_transpiler::passes::run_optimize_1q_gates_decomposition;
 use qiskit_transpiler::target::Target;
 use rand::prelude::*;
@@ -297,7 +299,7 @@ fn generate_twirled_circuit(
     if optimizer_target.is_some() {
         let mut dag = DAGCircuit::from_circuit_data(&out_circ, false, None, None, None, None)?;
         run_optimize_1q_gates_decomposition(&mut dag, optimizer_target, None, None)?;
-        dag_to_circuit(&dag, false)
+        Ok(dag_to_circuit(&dag, false)?)
     } else {
         Ok(out_circ)
     }
@@ -308,7 +310,7 @@ fn generate_twirled_circuit(
 pub(crate) fn twirl_circuit(
     circ: &CircuitData,
     twirled_gate: Option<Vec<StandardGate>>,
-    custom_twirled_gates: Option<Vec<OperationFromPython>>,
+    custom_twirled_gates: Option<Vec<OperationFromPython<NoBlocks>>>,
     seed: Option<u64>,
     num_twirls: usize,
     optimizer_target: Option<&Target>,

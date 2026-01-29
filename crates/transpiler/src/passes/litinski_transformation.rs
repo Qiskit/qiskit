@@ -16,8 +16,8 @@ use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::imports::PAULI_EVOLUTION_GATE;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
-    Operation, OperationRef, Param, PauliProductMeasurement, PyGate, StandardGate,
-    StandardInstruction, multiply_param,
+    Operation, OperationRef, Param, PauliProductMeasurement, PyInstruction, PyOperationTypes,
+    StandardGate, StandardInstruction, multiply_param,
 };
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::{BlocksMode, VarsMode};
@@ -101,7 +101,7 @@ pub fn run_litinski_transformation(
     let mut clifford_ops: Vec<&PackedInstruction> = Vec::with_capacity(clifford_count);
     // Apply the Litinski transformation: that is, express a given circuit as a sequence of Pauli
     // product rotations and Pauli product measurements, followed by a final Clifford operator.
-    for node_index in dag.topological_op_nodes(false)? {
+    for node_index in dag.topological_op_nodes(false) {
         // Convert T and Tdg gates to RZ rotations.
         if let NodeType::Operation(inst) = &dag[node_index] {
             let name = inst.op.name();
@@ -270,13 +270,13 @@ pub fn run_litinski_transformation(
                         multiply_param(&angle, 0.5)
                     };
                     let py_evo = py_evo_cls.call1((obs, time.clone()))?;
-                    let py_gate = PyGate {
+                    let py_gate = PyOperationTypes::Gate(PyInstruction {
                         qubits: indices.len() as u32,
                         clbits: 0,
                         params: 1,
                         op_name: "PauliEvolution".to_string(),
-                        gate: py_evo.into(),
-                    };
+                        instruction: py_evo.into(),
+                    });
 
                     new_dag.apply_operation_back(
                         py_gate.into(),

@@ -15,8 +15,9 @@ use std::hash::Hasher;
 use std::sync::OnceLock;
 
 use crate::TupleLikeArg;
+use crate::circuit_data::CircuitData;
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython, extract_params};
-use crate::operations::{Operation, OperationRef, Param, PythonOperation};
+use crate::operations::{Operation, OperationRef, Param, PyOperationTypes, PythonOperation};
 
 use ahash::AHasher;
 use approx::relative_eq;
@@ -126,7 +127,7 @@ impl DAGOpNode {
         qargs: Option<TupleLikeArg>,
         cargs: Option<TupleLikeArg>,
     ) -> PyResult<Py<Self>> {
-        let py_op = op.extract::<OperationFromPython>()?;
+        let py_op = op.extract::<OperationFromPython<CircuitData>>()?;
         let qargs = qargs.map_or_else(|| PyTuple::empty(py), |q| q.value);
         let cargs = cargs.map_or_else(|| PyTuple::empty(py), |c| c.value);
         let instruction = CircuitInstruction {
@@ -254,9 +255,15 @@ impl DAGOpNode {
         if deepcopy {
             instruction.operation = match instruction.operation.view() {
                 OperationRef::ControlFlow(cf) => cf.clone().into(),
-                OperationRef::Gate(gate) => gate.py_deepcopy(py, None)?.into(),
-                OperationRef::Instruction(instruction) => instruction.py_deepcopy(py, None)?.into(),
-                OperationRef::Operation(operation) => operation.py_deepcopy(py, None)?.into(),
+                OperationRef::Gate(gate) => {
+                    PyOperationTypes::Gate(gate.py_deepcopy(py, None)?).into()
+                }
+                OperationRef::Instruction(instruction) => {
+                    PyOperationTypes::Instruction(instruction.py_deepcopy(py, None)?).into()
+                }
+                OperationRef::Operation(operation) => {
+                    PyOperationTypes::Operation(operation.py_deepcopy(py, None)?).into()
+                }
                 OperationRef::StandardGate(gate) => gate.into(),
                 OperationRef::StandardInstruction(instruction) => instruction.into(),
                 OperationRef::Unitary(unitary) => unitary.clone().into(),
@@ -300,12 +307,16 @@ impl DAGOpNode {
         Ok(CircuitInstruction {
             operation: if deepcopy {
                 match self.instruction.operation.view() {
-                    OperationRef::ControlFlow(cf) => cf.clone().into(),
-                    OperationRef::Gate(gate) => gate.py_deepcopy(py, None)?.into(),
-                    OperationRef::Instruction(instruction) => {
-                        instruction.py_deepcopy(py, None)?.into()
+                    OperationRef::Gate(gate) => {
+                        PyOperationTypes::Gate(gate.py_deepcopy(py, None)?).into()
                     }
-                    OperationRef::Operation(operation) => operation.py_deepcopy(py, None)?.into(),
+                    OperationRef::Instruction(instruction) => {
+                        PyOperationTypes::Instruction(instruction.py_deepcopy(py, None)?).into()
+                    }
+                    OperationRef::Operation(operation) => {
+                        PyOperationTypes::Operation(operation.py_deepcopy(py, None)?).into()
+                    }
+                    OperationRef::ControlFlow(cf) => cf.clone().into(),
                     OperationRef::StandardGate(gate) => gate.into(),
                     OperationRef::StandardInstruction(instruction) => instruction.into(),
                     OperationRef::Unitary(unitary) => unitary.clone().into(),
@@ -330,7 +341,7 @@ impl DAGOpNode {
 
     #[setter]
     fn set_op(&mut self, op: &Bound<PyAny>) -> PyResult<()> {
-        let res = op.extract::<OperationFromPython>()?;
+        let res = op.extract::<OperationFromPython<CircuitData>>()?;
         self.instruction.operation = res.operation;
         self.instruction.params = res.params;
         self.instruction.label = res.label;
@@ -448,7 +459,7 @@ impl DAGOpNode {
     fn set_name(&mut self, py: Python, new_name: Py<PyAny>) -> PyResult<()> {
         let op = self.instruction.get_operation_mut(py)?;
         op.setattr(intern!(py, "name"), new_name)?;
-        self.instruction.operation = op.extract::<OperationFromPython>()?.operation;
+        self.instruction.operation = op.extract::<OperationFromPython<CircuitData>>()?.operation;
         Ok(())
     }
 

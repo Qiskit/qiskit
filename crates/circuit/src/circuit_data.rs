@@ -25,12 +25,13 @@ use crate::classical::expr;
 use crate::dag_circuit::{DAGStretchType, DAGVarType, add_global_phase};
 use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
 use crate::interner::{Interned, InternedMap, Interner};
-use crate::object_registry::ObjectRegistry;
+use crate::object_registry::{ObjectRegistry, ObjectRegistryError};
 use crate::operations::{
-    ControlFlow, ControlFlowView, Operation, OperationRef, Param, PythonOperation, StandardGate,
+    ControlFlow, ControlFlowView, Operation, OperationRef, Param, PyOperationTypes,
+    PythonOperation, StandardGate,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
-use crate::parameter::parameter_expression::ParameterExpression;
+use crate::parameter::parameter_expression::{ParameterError, ParameterExpression};
 use crate::parameter::symbol_expr::{Symbol, Value};
 use crate::parameter_table::{ParameterTable, ParameterTableError, ParameterUse, ParameterUuid};
 use crate::register_data::RegisterData;
@@ -42,7 +43,7 @@ use crate::{
 use num_complex::Complex64;
 use numpy::PyReadonlyArray1;
 use pyo3::IntoPyObjectExt;
-use pyo3::exceptions::{PyRuntimeError, PyTypeError, PyValueError};
+use pyo3::exceptions::{PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyList, PySet, PyTuple, PyType};
 use pyo3::{PyTraverseError, PyVisit, import_exception, intern};
@@ -51,8 +52,101 @@ use crate::instruction::Parameters;
 use hashbrown::{HashMap, HashSet};
 use indexmap::IndexMap;
 use smallvec::SmallVec;
+use thiserror::Error;
 
 import_exception!(qiskit.circuit.exceptions, CircuitError);
+
+/// This struct models the error conditions that can be raised from the
+/// rust methods of the [CircuitData] struct. The goal is to explicitly
+/// enumerate all the error types that are returned by these functions and
+/// make it clear that the return type is part of the interface.
+///
+/// In the the future it is expected this single enum will be replaced by per
+/// method error types to make it even more obvious, but this is a step
+/// towards that as we migrate from Python -> Rust.
+#[non_exhaustive]
+#[derive(Error, Debug)]
+pub enum CircuitDataError {
+    #[error("invalid type for global phase")]
+    InvalidGlobalPhaseType,
+    #[error(transparent)]
+    ObjectRegistryError(#[from] ObjectRegistryError),
+    // Explicitly an error returned from calling Python
+    #[error(transparent)]
+    ErrorFromPython(#[from] PyErr),
+    #[error(transparent)]
+    ParameterTableError(#[from] ParameterTableError),
+    #[error("already present in the circuit")]
+    DuplicateStretch,
+    #[error("already present in the circuit")]
+    DuplicateVar,
+    #[error("cannot add var as its name shadows an existing identifier")]
+    VarShadowing,
+    #[error("cannot add variables that wrap `Clbit` or `ClassicalRegister` instances")]
+    VarWrappingClbit,
+    #[error("circuits with input variables cannot be enclosed, so they cannot be closures")]
+    CaptureWithInputVars,
+    #[error("circuits to be enclosed with captures cannot have input variables")]
+    InputWithCaptureVars,
+    #[error("cannot add stretch as its name shadows an existing identifier")]
+    StretchShadowing,
+    #[error(
+        "Mismatching number of values and parameters. For partial binding please pass a mapping of parameter to value pairs."
+    )]
+    ParameterSliceLenMismatch,
+    #[error(transparent)]
+    ParameterError(#[from] ParameterError),
+    #[error("Invalid Parameter")]
+    InvalidParameter,
+    #[error("bad type after binding for gate '{0}': '{1}'")]
+    StandardGateParameterIsComplex(String, String),
+}
+
+impl From<CircuitDataError> for PyErr {
+    fn from(error: CircuitDataError) -> Self {
+        match error {
+            CircuitDataError::InvalidGlobalPhaseType => {
+                PyTypeError::new_err("invalid type for global phase")
+            }
+            CircuitDataError::ObjectRegistryError(e) => e.into(),
+            CircuitDataError::ErrorFromPython(e) => e,
+            CircuitDataError::ParameterTableError(e) => e.into(),
+            CircuitDataError::DuplicateStretch => {
+                CircuitError::new_err("already present in the circuit")
+            }
+            CircuitDataError::DuplicateVar => {
+                CircuitError::new_err("already present in the circuit")
+            }
+            CircuitDataError::VarShadowing => {
+                CircuitError::new_err("cannot add var as its name shadows an existing identifier")
+            }
+            CircuitDataError::CaptureWithInputVars => CircuitError::new_err(
+                "circuits with input variables cannot be enclosed, so they cannot be closures",
+            ),
+            CircuitDataError::StretchShadowing => CircuitError::new_err(
+                "cannot add stretch as its name shadows an existing identifier",
+            ),
+            CircuitDataError::VarWrappingClbit => CircuitError::new_err(
+                "cannot add variables that wrap `Clbit` or `ClassicalRegister` instances",
+            ),
+            CircuitDataError::InputWithCaptureVars => CircuitError::new_err(
+                "circuits to be enclosed with captures cannot have input variables",
+            ),
+            CircuitDataError::ParameterSliceLenMismatch => PyValueError::new_err(
+                "Mismatching number of values and parameters. For partial binding please pass a mapping of {parameter: value} pairs.",
+            ),
+            CircuitDataError::ParameterError(e) => e.into(),
+            CircuitDataError::InvalidParameter => {
+                PyValueError::new_err("An invalid parameter was provided.")
+            }
+            CircuitDataError::StandardGateParameterIsComplex(gate_name, expr) => {
+                CircuitError::new_err(format!(
+                    "bad type after binding for gate '{gate_name}': '{expr}'"
+                ))
+            }
+        }
+    }
+}
 
 /// A tuple of a `CircuitData`'s internal state used for pickle's `__setstate__()` method.
 type CircuitDataState<'py> = (
@@ -297,53 +391,14 @@ pub enum CircuitVar {
 impl CircuitData {
     #[new]
     #[pyo3(signature = (qubits=None, clbits=None, data=None, reserve=0, global_phase=Param::Float(0.0)))]
-    pub fn new(
+    pub fn py_new(
         qubits: Option<Vec<ShareableQubit>>,
         clbits: Option<Vec<ShareableClbit>>,
         data: Option<&Bound<PyAny>>,
         reserve: usize,
         global_phase: Param,
     ) -> PyResult<Self> {
-        let qubit_size = qubits.as_ref().map_or(0, |bits| bits.len());
-        let clbit_size = clbits.as_ref().map_or(0, |bits| bits.len());
-        let qubits_registry = ObjectRegistry::with_capacity(qubit_size);
-        let clbits_registry = ObjectRegistry::with_capacity(clbit_size);
-        let qubit_indices = BitLocator::with_capacity(qubit_size);
-        let clbit_indices = BitLocator::with_capacity(clbit_size);
-
-        let mut self_ = CircuitData {
-            data: Vec::new(),
-            qargs_interner: Interner::new(),
-            cargs_interner: Interner::new(),
-            qubits: qubits_registry,
-            clbits: clbits_registry,
-            blocks: ControlFlowBlocks::new(),
-            param_table: ParameterTable::new(),
-            global_phase: Param::Float(0.),
-            qregs: RegisterData::new(),
-            cregs: RegisterData::new(),
-            qubit_indices,
-            clbit_indices,
-            vars: ObjectRegistry::new(),
-            stretches: ObjectRegistry::new(),
-            identifier_info: IndexMap::default(),
-            vars_input: Vec::new(),
-            vars_capture: Vec::new(),
-            vars_declare: Vec::new(),
-            stretches_capture: Vec::new(),
-            stretches_declare: Vec::new(),
-        };
-        self_.set_global_phase(global_phase)?;
-        if let Some(qubits) = qubits {
-            for bit in qubits.into_iter() {
-                self_.add_qubit(bit, true)?;
-            }
-        }
-        if let Some(clbits) = clbits {
-            for bit in clbits.into_iter() {
-                self_.add_clbit(bit, true)?;
-            }
-        }
+        let mut self_ = Self::new(qubits, clbits, global_phase)?;
         if let Some(data) = data {
             self_.reserve(reserve);
             self_.extend(data)?;
@@ -640,12 +695,9 @@ impl CircuitData {
     /// Raises:
     ///     ValueError: The specified ``bit`` is already present and flag ``strict``
     ///         was provided.
-    #[pyo3(signature = (bit, *, strict=true))]
-    pub fn add_qubit(&mut self, bit: ShareableQubit, strict: bool) -> PyResult<()> {
-        let index = self.qubits.add(bit.clone(), strict)?;
-        self.qubit_indices
-            .insert(bit, BitLocations::new(index.0, []));
-        Ok(())
+    #[pyo3(name="add_qubit", signature = (bit, *, strict=true))]
+    pub fn py_add_qubit(&mut self, bit: ShareableQubit, strict: bool) -> PyResult<()> {
+        Ok(self.add_qubit(bit, strict)?)
     }
 
     /// Registers a :class:`.QuantumRegister` instance.
@@ -692,12 +744,9 @@ impl CircuitData {
     /// Raises:
     ///     ValueError: The specified ``bit`` is already present and flag ``strict``
     ///         was provided.
-    #[pyo3(signature = (bit, *, strict=true))]
-    pub fn add_clbit(&mut self, bit: ShareableClbit, strict: bool) -> PyResult<()> {
-        let index = self.clbits.add(bit.clone(), strict)?;
-        self.clbit_indices
-            .insert(bit, BitLocations::new(index.0, []));
-        Ok(())
+    #[pyo3(name="add_clbit", signature = (bit, *, strict=true))]
+    pub fn py_add_clbit(&mut self, bit: ShareableClbit, strict: bool) -> PyResult<()> {
+        Ok(self.add_clbit(bit, strict)?)
     }
 
     /// Registers a :class:`.QuantumRegister` instance.
@@ -751,13 +800,16 @@ impl CircuitData {
             let memo = PyDict::new(py);
             for inst in &self.data {
                 let new_op = match inst.op.view() {
+                    OperationRef::Gate(gate) => {
+                        PyOperationTypes::Gate(gate.py_deepcopy(py, Some(&memo))?).into()
+                    }
                     OperationRef::ControlFlow(cf) => cf.clone().into(),
-                    OperationRef::Gate(gate) => gate.py_deepcopy(py, Some(&memo))?.into(),
                     OperationRef::Instruction(instruction) => {
-                        instruction.py_deepcopy(py, Some(&memo))?.into()
+                        PyOperationTypes::Instruction(instruction.py_deepcopy(py, Some(&memo))?)
+                            .into()
                     }
                     OperationRef::Operation(operation) => {
-                        operation.py_deepcopy(py, Some(&memo))?.into()
+                        PyOperationTypes::Operation(operation.py_deepcopy(py, Some(&memo))?).into()
                     }
                     OperationRef::StandardGate(gate) => gate.into(),
                     OperationRef::StandardInstruction(instruction) => instruction.into(),
@@ -777,10 +829,14 @@ impl CircuitData {
         } else if copy_instructions {
             for inst in &self.data {
                 let new_op = match inst.op.view() {
+                    OperationRef::Gate(gate) => PyOperationTypes::Gate(gate.py_copy(py)?).into(),
+                    OperationRef::Instruction(instruction) => {
+                        PyOperationTypes::Instruction(instruction.py_copy(py)?).into()
+                    }
+                    OperationRef::Operation(operation) => {
+                        PyOperationTypes::Operation(operation.py_copy(py)?).into()
+                    }
                     OperationRef::ControlFlow(cf) => cf.clone().into(),
-                    OperationRef::Gate(gate) => gate.py_copy(py)?.into(),
-                    OperationRef::Instruction(instruction) => instruction.py_copy(py)?.into(),
-                    OperationRef::Operation(operation) => operation.py_copy(py)?.into(),
                     OperationRef::StandardGate(gate) => gate.into(),
                     OperationRef::StandardInstruction(instruction) => instruction.into(),
                     OperationRef::Unitary(unitary) => unitary.clone().into(),
@@ -817,7 +873,7 @@ impl CircuitData {
     /// CircuitData: The empty copy like self.
     #[pyo3(name = "copy_empty_like", signature = (*, vars_mode=VarsMode::Alike))]
     pub fn py_copy_empty_like(&self, vars_mode: VarsMode) -> PyResult<Self> {
-        self.copy_empty_like(vars_mode, BlocksMode::Drop)
+        Ok(self.copy_empty_like(vars_mode, BlocksMode::Drop)?)
     }
 
     /// Reserves capacity for at least ``additional`` more
@@ -897,8 +953,8 @@ impl CircuitData {
                 continue;
             }
             let py_op = func.call1((self.unpack_py_op(py, instr)?,))?;
-            let result = py_op.extract::<OperationFromPython>()?;
-            let params = self.extract_blocks_from_circuit_parameters(result.params.as_ref());
+            let result = py_op.extract::<OperationFromPython<CircuitData>>()?;
+            let params = self.take_parameter_blocks(result.params);
             let inst = &mut self.data[index];
             inst.op = result.operation;
             inst.params = params;
@@ -980,7 +1036,7 @@ impl CircuitData {
     ) -> PyResult<()> {
         let qubits_is_some = qubits.is_some();
         let clbits_is_some = clbits.is_some();
-        let mut temp = CircuitData::new(qubits, clbits, None, 0, self.global_phase.clone())?;
+        let mut temp = CircuitData::new(qubits, clbits, self.global_phase.clone())?;
 
         // Add qregs if provided.
         if let Some(qregs) = qregs {
@@ -1057,7 +1113,7 @@ impl CircuitData {
     }
 
     pub fn __delitem__(&mut self, index: PySequenceIndex) -> PyResult<()> {
-        self.delitem(index.with_len(self.data.len())?)
+        Ok(self.delitem(index.with_len(self.data.len())?)?)
     }
 
     pub fn __setitem__(&mut self, index: PySequenceIndex, value: &Bound<PyAny>) -> PyResult<()> {
@@ -1153,7 +1209,7 @@ impl CircuitData {
     /// Primary entry point for appending an instruction from Python space.
     pub fn append(&mut self, value: &Bound<CircuitInstruction>) -> PyResult<()> {
         let packed = self.pack(value.py(), &value.borrow())?;
-        self.push(packed)
+        Ok(self.push(packed)?)
     }
 
     /// Backup entry point for appending an instruction from Python space, in the unusual case that
@@ -1205,7 +1261,7 @@ impl CircuitData {
                 let qubits_id = self.qargs_interner.insert_owned(qubits);
                 let clbits_id = self.cargs_interner.insert_owned(clbits);
                 let params = inst.params.as_ref().map(|params| {
-                    Box::new(params.map_blocks(|b| self.blocks.push(other.blocks[*b].clone())))
+                    Box::new(params.map_blocks_ref(|b| self.blocks.push(other.blocks[*b].clone())))
                 });
                 self.push(PackedInstruction {
                     op: inst.op.clone(),
@@ -1238,19 +1294,19 @@ impl CircuitData {
                 )));
             }
             let mut old_table = std::mem::take(&mut self.param_table);
-            self.assign_parameters_inner(
+            Ok(self.assign_parameters_inner(
                 array
                     .iter()
                     .map(|value| Param::Float(*value))
                     .zip(old_table.drain_ordered())
                     .map(|(value, (obj, uses))| (obj, value, uses)),
-            )
+            )?)
         } else {
             let values = sequence
                 .try_iter()?
                 .map(|ob| Param::extract_no_coerce(ob?.as_borrowed()))
                 .collect::<PyResult<Vec<_>>>()?;
-            self.assign_parameters_from_slice(&values)
+            Ok(self.assign_parameters_from_slice(&values)?)
         }
     }
 
@@ -1268,7 +1324,7 @@ impl CircuitData {
                 items.push((symbol, value.0, uses));
             }
         }
-        self.assign_parameters_inner(items)
+        Ok(self.assign_parameters_inner(items)?)
     }
 
     pub fn clear(&mut self) {
@@ -1443,24 +1499,12 @@ impl CircuitData {
     /// entries for the global phase, regardless of what value is currently stored there.  It's not
     /// uncommon for subclasses and other parts of Qiskit to have filled in the global phase field
     /// by copies or other means, before making the parameter table consistent.
-    #[setter]
-    pub fn set_global_phase(&mut self, angle: Param) -> PyResult<()> {
-        if let Param::ParameterExpression(expr) = &self.global_phase {
-            for symbol in expr.iter_symbols() {
-                match self.param_table.remove_use(
-                    ParameterUuid::from_symbol(symbol),
-                    ParameterUse::GlobalPhase,
-                ) {
-                    Ok(_)
-                    | Err(ParameterTableError::ParameterNotTracked(_))
-                    | Err(ParameterTableError::UsageNotTracked(_)) => (),
-                    // Any errors added later might want propagating.
-                }
-            }
-        };
+    #[setter(global_phase)]
+    pub fn set_global_phase_param(&mut self, angle: Param) -> Result<(), CircuitDataError> {
+        self.clear_global_phase();
         match &angle {
             Param::Float(angle) => {
-                self.global_phase = Param::Float(angle.rem_euclid(2. * std::f64::consts::PI));
+                self.set_global_phase_f64(*angle);
                 Ok(())
             }
             Param::ParameterExpression(expr) => {
@@ -1471,7 +1515,7 @@ impl CircuitData {
                 self.global_phase = angle;
                 Ok(())
             }
-            _ => Err(PyTypeError::new_err("invalid type for global phase")),
+            _ => Err(CircuitDataError::InvalidGlobalPhaseType),
         }
     }
 
@@ -1587,24 +1631,24 @@ impl CircuitData {
     #[pyo3(name = "has_input_var")]
     fn py_has_input_var(&self, name: &str) -> PyResult<bool> {
         Ok(matches!(
-            self.identifier_info.get(name),
-            Some(CircuitIdentifierInfo::Var(var_info)) if matches!(var_info.type_, CircuitVarType::Input)))
+        self.identifier_info.get(name),
+        Some(CircuitIdentifierInfo::Var(var_info)) if matches!(var_info.type_, CircuitVarType::Input)))
     }
 
     /// Check if the circuit contains a local variable with the given name.
     #[pyo3(name = "has_declared_var")]
     fn py_has_declared_var(&self, name: &str) -> PyResult<bool> {
         Ok(matches!(
-            self.identifier_info.get(name),
-            Some(CircuitIdentifierInfo::Var(var_info)) if matches!(var_info.type_, CircuitVarType::Declare)))
+        self.identifier_info.get(name),
+        Some(CircuitIdentifierInfo::Var(var_info)) if matches!(var_info.type_, CircuitVarType::Declare)))
     }
 
     /// Check if the circuit contains a capture variable with the given name.
     #[pyo3(name = "has_captured_var")]
     fn py_has_captured_var(&self, name: &str) -> PyResult<bool> {
         Ok(matches!(
-            self.identifier_info.get(name),
-            Some(CircuitIdentifierInfo::Var(var_info)) if matches!(var_info.type_, CircuitVarType::Capture)))
+        self.identifier_info.get(name),
+        Some(CircuitIdentifierInfo::Var(var_info)) if matches!(var_info.type_, CircuitVarType::Capture)))
     }
 
     /// Return a list of the captured variables tracked in this circuit.
@@ -1673,6 +1717,15 @@ impl CircuitData {
         self.vars_declare.len()
     }
 
+    /// Return the total number of identifiers in the circuit (vars + stretches)
+    pub fn num_identifiers(&self) -> usize {
+        self.num_input_vars()
+            + self.num_captured_vars()
+            + self.num_declared_vars()
+            + self.num_captured_stretches()
+            + self.num_declared_stretches()
+    }
+
     /// Add a captured stretch to the circuit.
     ///
     /// Args:
@@ -1719,16 +1772,16 @@ impl CircuitData {
     #[pyo3(name = "has_captured_stretch")]
     fn py_has_captured_stretch(&self, name: &str) -> PyResult<bool> {
         Ok(matches!(
-            self.identifier_info.get(name),
-            Some(CircuitIdentifierInfo::Stretch(stretch_info)) if matches!(stretch_info.type_, CircuitStretchType::Capture)))
+        self.identifier_info.get(name),
+        Some(CircuitIdentifierInfo::Stretch(stretch_info)) if matches!(stretch_info.type_, CircuitStretchType::Capture)))
     }
 
     /// Check if the circuit contains a local stretch with the given name.
     #[pyo3(name = "has_declared_stretch")]
     fn py_has_declared_stretch(&self, name: &str) -> PyResult<bool> {
         Ok(matches!(
-            self.identifier_info.get(name),
-            Some(CircuitIdentifierInfo::Stretch(stretch_info)) if matches!(stretch_info.type_, CircuitStretchType::Declare)))
+        self.identifier_info.get(name),
+        Some(CircuitIdentifierInfo::Stretch(stretch_info)) if matches!(stretch_info.type_, CircuitStretchType::Declare)))
     }
 
     // Return the stretch variable in the circuit corresponding to the given name, or None if no such variable.
@@ -1782,6 +1835,68 @@ impl CircuitData {
 }
 
 impl CircuitData {
+    pub fn new(
+        qubits: Option<Vec<ShareableQubit>>,
+        clbits: Option<Vec<ShareableClbit>>,
+        global_phase: Param,
+    ) -> Result<Self, CircuitDataError> {
+        let qubit_size = qubits.as_ref().map_or(0, |bits| bits.len());
+        let clbit_size = clbits.as_ref().map_or(0, |bits| bits.len());
+        let qubits_registry = ObjectRegistry::with_capacity(qubit_size);
+        let clbits_registry = ObjectRegistry::with_capacity(clbit_size);
+        let qubit_indices = BitLocator::with_capacity(qubit_size);
+        let clbit_indices = BitLocator::with_capacity(clbit_size);
+
+        let mut self_ = CircuitData {
+            data: Vec::new(),
+            qargs_interner: Interner::new(),
+            cargs_interner: Interner::new(),
+            qubits: qubits_registry,
+            clbits: clbits_registry,
+            blocks: ControlFlowBlocks::new(),
+            param_table: ParameterTable::new(),
+            global_phase: Param::Float(0.),
+            qregs: RegisterData::new(),
+            cregs: RegisterData::new(),
+            qubit_indices,
+            clbit_indices,
+            vars: ObjectRegistry::new(),
+            stretches: ObjectRegistry::new(),
+            identifier_info: IndexMap::default(),
+            vars_input: Vec::new(),
+            vars_capture: Vec::new(),
+            vars_declare: Vec::new(),
+            stretches_capture: Vec::new(),
+            stretches_declare: Vec::new(),
+        };
+        self_.set_global_phase_param(global_phase)?;
+        if let Some(qubits) = qubits {
+            for bit in qubits.into_iter() {
+                self_.add_qubit(bit, true)?;
+            }
+        }
+        if let Some(clbits) = clbits {
+            for bit in clbits.into_iter() {
+                self_.add_clbit(bit, true)?;
+            }
+        }
+        Ok(self_)
+    }
+
+    pub fn add_qubit(&mut self, bit: ShareableQubit, strict: bool) -> Result<(), CircuitDataError> {
+        let index = self.qubits.add(bit.clone(), strict)?;
+        self.qubit_indices
+            .insert(bit, BitLocations::new(index.0, []));
+        Ok(())
+    }
+
+    pub fn add_clbit(&mut self, bit: ShareableClbit, strict: bool) -> Result<(), CircuitDataError> {
+        let index = self.clbits.add(bit.clone(), strict)?;
+        self.clbit_indices
+            .insert(bit, BitLocations::new(index.0, []));
+        Ok(())
+    }
+
     #[inline]
     pub fn blocks(&self) -> &ControlFlowBlocks<CircuitData> {
         &self.blocks
@@ -1796,7 +1911,7 @@ impl CircuitData {
     /// and condition will not be propagated back.
     ///
     /// The provided `instr` MUST belong to this circuit.
-    fn unpack_py_op(&self, py: Python, instr: &PackedInstruction) -> PyResult<Py<PyAny>> {
+    pub fn unpack_py_op(&self, py: Python, instr: &PackedInstruction) -> PyResult<Py<PyAny>> {
         // `OnceLock::get_or_init` and the non-stabilised `get_or_try_init`, which would otherwise
         // be nice here are both non-reentrant.  This is a problem if the init yields control to the
         // Python interpreter as this one does, since that can allow CPython to freeze the thread
@@ -1847,18 +1962,26 @@ impl CircuitData {
         self.blocks.push(block)
     }
 
-    /// Given a `params` object in terms of owned Python-space circuit objects (such as from an
-    /// `OperationFromPython` extraction), add all the blocks to the circuit and return the `params`
-    /// field suitable for inclusion in a `PackedInstruction`.
+    /// Take the blocks from an extraction from an `OperationFromPython<CircuitData>` and add them
+    /// to this circuit.
     ///
-    /// The inverse of this method is [unpack_blocks_to_circuit_parameters].
-    fn extract_blocks_from_circuit_parameters(
+    /// Returns the parameters in terms of block references.
+    fn take_parameter_blocks(
+        &mut self,
+        params: Option<Parameters<CircuitData>>,
+    ) -> Option<Box<Parameters<Block>>> {
+        params.map(|params| Box::new(params.map_blocks(|block| self.add_block(block))))
+    }
+
+    /// Extract the blocks from a Python-space `CircuitInstruction` and add them to this DAG.
+    ///
+    /// The inverse of this is [unpack_blocks_to_circuit_parameters].  The version for when you can
+    /// take the blocks directly is [take_parameter_blocks].
+    pub fn extract_blocks_from_circuit_parameters(
         &mut self,
         params: Option<&Parameters<CircuitData>>,
     ) -> Option<Box<Parameters<Block>>> {
-        params
-            .map(|params| params.map_blocks(|block| self.add_block(block.clone())))
-            .map(Box::new)
+        params.map(|params| Box::new(params.map_blocks_ref(|block| self.add_block(block.clone()))))
     }
 
     /// Given a `params` object from an instruction packed into this circuit, extract any relevant
@@ -1866,11 +1989,11 @@ impl CircuitData {
     /// space.
     ///
     /// The inverse of this method is [extract_blocks_from_circuit_parameters].
-    fn unpack_blocks_to_circuit_parameters(
+    pub fn unpack_blocks_to_circuit_parameters(
         &self,
         params: Option<&Parameters<Block>>,
     ) -> Option<Parameters<CircuitData>> {
-        params.map(|params| params.map_blocks(|block| self.blocks[*block].clone()))
+        params.map(|params| params.map_blocks_ref(|block| self.blocks[*block].clone()))
     }
 
     /// Gets an immutable view of a control flow operation.
@@ -1884,12 +2007,14 @@ impl CircuitData {
         ControlFlowView::try_from_instruction(instr, &self.blocks)
     }
 
-    pub fn copy_empty_like(&self, vars_mode: VarsMode, blocks_mode: BlocksMode) -> PyResult<Self> {
+    pub fn copy_empty_like(
+        &self,
+        vars_mode: VarsMode,
+        blocks_mode: BlocksMode,
+    ) -> Result<Self, CircuitDataError> {
         let mut res = CircuitData::new(
             Some(self.qubits.objects().clone()),
             Some(self.clbits.objects().clone()),
-            None,
-            0,
             self.global_phase.clone(),
         )?;
 
@@ -1977,15 +2102,18 @@ impl CircuitData {
         num_clbits: u32,
         instructions: I,
         global_phase: Param,
-    ) -> PyResult<Self>
+    ) -> Result<Self, CircuitDataError>
     where
         I: IntoIterator<
-            Item = PyResult<(
-                PackedOperation,
-                SmallVec<[Param; 3]>,
-                Vec<Qubit>,
-                Vec<Clbit>,
-            )>,
+            Item = Result<
+                (
+                    PackedOperation,
+                    SmallVec<[Param; 3]>,
+                    Vec<Qubit>,
+                    Vec<Clbit>,
+                ),
+                CircuitDataError,
+            >,
         >,
     {
         let instruction_iter = instructions.into_iter();
@@ -2041,9 +2169,9 @@ impl CircuitData {
     ///   registers in the circuit.
     /// * clbit_indices: The Mapping between clbit instances and their locations within
     ///   registers in the circuit.
-    /// * Instructions: An iterator with items of type: `PyResult<PackedInstruction>`
+    /// * Instructions: An iterator with items of type: `Result<PackedInstruction, CircuitDataError>`
     ///   that contains the instructions to insert in iterator order to the new
-    ///   CircuitData. This returns a `PyResult` to facilitate the case where
+    ///   CircuitData. This returns a `Result` to facilitate the case where
     ///   you need to make a python copy (such as with `PackedOperation::py_deepcopy()`)
     ///   of the operation while iterating for constructing the new `CircuitData`. An
     ///   example of this use case is in `qiskit_circuit::converters::dag_to_circuit`.
@@ -2063,9 +2191,9 @@ impl CircuitData {
         instructions: I,
         global_phase: Param,
         variables: Vec<CircuitVar>,
-    ) -> PyResult<Self>
+    ) -> Result<Self, CircuitDataError>
     where
-        I: IntoIterator<Item = PyResult<PackedInstruction>>,
+        I: IntoIterator<Item = Result<PackedInstruction, CircuitDataError>>,
     {
         let instruction_iter = instructions.into_iter();
         let mut res = CircuitData {
@@ -2096,7 +2224,7 @@ impl CircuitData {
 
         // use the global phase setter to ensure parameters are registered
         // in the parameter table
-        res.set_global_phase(global_phase)?;
+        res.set_global_phase_param(global_phase)?;
 
         for inst in instruction_iter {
             res.push(inst?)?;
@@ -2138,7 +2266,7 @@ impl CircuitData {
         num_qubits: u32,
         instructions: I,
         global_phase: Param,
-    ) -> PyResult<Self>
+    ) -> Result<Self, CircuitDataError>
     where
         I: IntoIterator<Item = (StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>)>,
     {
@@ -2162,7 +2290,7 @@ impl CircuitData {
         num_clbits: u32,
         instruction_capacity: usize,
         global_phase: Param,
-    ) -> PyResult<Self> {
+    ) -> Result<Self, CircuitDataError> {
         let mut res = CircuitData {
             data: Vec::with_capacity(instruction_capacity),
             qargs_interner: Interner::new(),
@@ -2188,7 +2316,7 @@ impl CircuitData {
 
         // use the global phase setter to ensure parameters are registered
         // in the parameter table
-        res.set_global_phase(global_phase)?;
+        res.set_global_phase_param(global_phase)?;
 
         if num_qubits > 0 {
             for _i in 0..num_qubits {
@@ -2252,7 +2380,7 @@ impl CircuitData {
         operation: StandardGate,
         params: &[Param],
         qargs: &[Qubit],
-    ) -> PyResult<()> {
+    ) -> Result<(), CircuitDataError> {
         let params = (!params.is_empty()).then(|| Box::new(params.iter().cloned().collect()));
         let qubits = self.qargs_interner.insert(qargs);
         self.push(PackedInstruction::from_standard_gate(
@@ -2270,7 +2398,7 @@ impl CircuitData {
         params: Option<Parameters<Block>>,
         qargs: &[Qubit],
         cargs: &[Clbit],
-    ) -> PyResult<()> {
+    ) -> Result<(), CircuitDataError> {
         let qubits = self.qargs_interner.insert(qargs);
         let clbits = self.cargs_interner.insert(cargs);
         self.push(PackedInstruction {
@@ -2282,6 +2410,31 @@ impl CircuitData {
             #[cfg(feature = "cache_pygates")]
             py_op: OnceLock::new(),
         })
+    }
+
+    pub fn set_global_phase_f64(&mut self, phase: f64) {
+        self.clear_global_phase();
+        self.global_phase = Param::Float(phase.rem_euclid(::std::f64::consts::TAU));
+    }
+
+    /// Reset the global phase of the circuit to zero, updating any parameter tracking.
+    fn clear_global_phase(&mut self) {
+        let old = ::std::mem::replace(&mut self.global_phase, Param::Float(0.0));
+        let Param::ParameterExpression(expr) = old else {
+            return;
+        };
+        for symbol in expr.iter_symbols() {
+            match self.param_table.remove_use(
+                ParameterUuid::from_symbol(symbol),
+                ParameterUse::GlobalPhase,
+            ) {
+                Ok(_)
+                | Err(ParameterTableError::ParameterNotTracked(_))
+                | Err(ParameterTableError::UsageNotTracked(_))
+                | Err(ParameterTableError::NameConflict(_)) => (),
+                // Any errors added later might want propagating.
+            }
+        }
     }
 
     #[inline]
@@ -2301,7 +2454,10 @@ impl CircuitData {
 
     /// Add the entries from the `PackedInstruction` at the given index to the internal parameter
     /// table.
-    fn track_instruction_parameters(&mut self, instruction_index: usize) -> PyResult<()> {
+    fn track_instruction_parameters(
+        &mut self,
+        instruction_index: usize,
+    ) -> Result<(), CircuitDataError> {
         let instr = &self.data[instruction_index];
         let Some(parameters) = self.data[instruction_index].params.as_deref() else {
             return Ok(());
@@ -2325,7 +2481,8 @@ impl CircuitData {
                 let view = ControlFlowView::try_from_instruction(instr, &self.blocks)
                     .expect("all instructions with blocks should be control flow");
                 for_each_symbol_use_in_control_flow(instruction_index, view, |symbol, usage| {
-                    self.param_table.track(symbol, Some(usage)).map(|_| ())
+                    self.param_table.track(symbol, Some(usage))?;
+                    Ok(())
                 })?
             }
         }
@@ -2334,7 +2491,10 @@ impl CircuitData {
 
     /// Remove the entries from the `PackedInstruction` at the given index from the internal
     /// parameter table.
-    fn untrack_instruction_parameters(&mut self, instruction_index: usize) -> PyResult<()> {
+    fn untrack_instruction_parameters(
+        &mut self,
+        instruction_index: usize,
+    ) -> Result<(), CircuitDataError> {
         let instr = &self.data[instruction_index];
         let Some(parameters) = self.data[instruction_index].params.as_deref() else {
             return Ok(());
@@ -2358,7 +2518,8 @@ impl CircuitData {
                 let view = ControlFlowView::try_from_instruction(instr, &self.blocks)
                     .expect("all instructions with blocks should be control flow");
                 for_each_symbol_use_in_control_flow(instruction_index, view, |symbol, usage| {
-                    self.param_table.untrack(symbol, usage)
+                    self.param_table.untrack(symbol, usage)?;
+                    Ok(())
                 })?
             }
         }
@@ -2369,7 +2530,7 @@ impl CircuitData {
     ///
     /// This is necessary each time an insertion or removal occurs on `self.data` other than in the
     /// last position.
-    fn reindex_parameter_table(&mut self) -> PyResult<()> {
+    fn reindex_parameter_table(&mut self) -> Result<(), CircuitDataError> {
         self.param_table.clear();
 
         for inst_index in 0..self.data.len() {
@@ -2388,7 +2549,7 @@ impl CircuitData {
     /// Native internal driver of `__delitem__` that uses a Rust-space version of the
     /// `SequenceIndex`.  This assumes that the `SequenceIndex` contains only in-bounds indices, and
     /// panics if not.
-    fn delitem(&mut self, indices: SequenceIndex) -> PyResult<()> {
+    fn delitem(&mut self, indices: SequenceIndex) -> Result<(), CircuitDataError> {
         // We need to delete in reverse order so we don't invalidate higher indices with a deletion.
         for index in indices.descending() {
             self.untrack_instruction_blocks(index);
@@ -2400,7 +2561,7 @@ impl CircuitData {
         Ok(())
     }
 
-    fn pack(&mut self, py: Python, inst: &CircuitInstruction) -> PyResult<PackedInstruction> {
+    pub fn pack(&mut self, py: Python, inst: &CircuitInstruction) -> PyResult<PackedInstruction> {
         let qubits = self.qargs_interner.insert_owned(
             self.qubits
                 .map_objects(inst.qubits.extract::<Vec<ShareableQubit>>(py)?.into_iter())?
@@ -2444,12 +2605,12 @@ impl CircuitData {
     }
 
     /// Assigns parameters to circuit data based on a slice of `Param`.
-    pub fn assign_parameters_from_slice(&mut self, slice: &[Param]) -> PyResult<()> {
+    pub fn assign_parameters_from_slice(
+        &mut self,
+        slice: &[Param],
+    ) -> Result<(), CircuitDataError> {
         if slice.len() != self.param_table.num_parameters() {
-            return Err(PyValueError::new_err(concat!(
-                "Mismatching number of values and parameters. For partial binding ",
-                "please pass a mapping of {parameter: value} pairs."
-            )));
+            return Err(CircuitDataError::ParameterSliceLenMismatch);
         }
         let mut old_table = std::mem::take(&mut self.param_table);
         self.assign_parameters_inner(
@@ -2463,7 +2624,7 @@ impl CircuitData {
     /// Assigns parameters to circuit data based on a mapping of `ParameterUuid` : `Param`.
     /// This mapping assumes that the provided `ParameterUuid` keys are instances
     /// of `ParameterExpression`.
-    pub fn assign_parameters_from_mapping<I, T>(&mut self, iter: I) -> PyResult<()>
+    pub fn assign_parameters_from_mapping<I, T>(&mut self, iter: I) -> Result<(), CircuitDataError>
     where
         I: IntoIterator<Item = (ParameterUuid, T)>,
         T: AsRef<Param>,
@@ -2471,16 +2632,14 @@ impl CircuitData {
         let mut items = Vec::new();
         for (param_uuid, value) in iter {
             // Assume all the Parameters are already in the circuit
-            let symbol = self.get_parameter_by_uuid(param_uuid);
-            if let Some(symbol) = symbol {
-                items.push((
-                    symbol.clone(),
-                    value.as_ref().clone(),
-                    self.param_table.pop(param_uuid)?,
-                ));
-            } else {
-                return Err(PyValueError::new_err("An invalid parameter was provided."));
-            }
+            let symbol = self
+                .get_parameter_by_uuid(param_uuid)
+                .ok_or(ParameterTableError::ParameterNotTracked(param_uuid))?;
+            items.push((
+                symbol.clone(),
+                value.as_ref().clone(),
+                self.param_table.pop(param_uuid)?,
+            ));
         }
         self.assign_parameters_inner(items)
     }
@@ -2489,7 +2648,11 @@ impl CircuitData {
     ///
     /// This is not generally efficient, and mostly just a convenience for the recursive case of
     /// control flow.
-    fn assign_single_parameter(&mut self, symbol: Symbol, value: &Param) -> PyResult<()> {
+    fn assign_single_parameter(
+        &mut self,
+        symbol: Symbol,
+        value: &Param,
+    ) -> Result<(), CircuitDataError> {
         let Ok(uses) = self.param_table.pop(ParameterUuid::from_symbol(&symbol)) else {
             return Ok(());
         };
@@ -2566,6 +2729,16 @@ impl CircuitData {
         self.cregs.registers()
     }
 
+    /// Returns the index of the qubit in the circuit
+    pub fn qubit_index(&self, qubit: &ShareableQubit) -> Option<u32> {
+        self.qubits.find(qubit).map(|qubit| qubit.0)
+    }
+
+    /// Returns the index of the clbit in the circuit
+    pub fn clbit_index(&self, clbit: &ShareableClbit) -> Option<u32> {
+        self.clbits.find(clbit).map(|clbit| clbit.0)
+    }
+
     /// Returns an immutable view of the [QuantumRegister] data struct in the circuit.
     #[inline(always)]
     pub fn qregs_data(&self) -> &RegisterData<QuantumRegister> {
@@ -2605,6 +2778,10 @@ impl CircuitData {
         self.cargs_interner().get(index)
     }
 
+    /// Insert cargs into the interner and return the interned value
+    pub fn add_cargs(&mut self, clbits: &[Clbit]) -> Interned<[Clbit]> {
+        self.cargs_interner.insert(clbits)
+    }
     /// Internal method for assigning parameters.
     ///
     /// Note that currently if any [ParameterUse] identifies a basic block,
@@ -2613,20 +2790,18 @@ impl CircuitData {
     /// have to keep a mapping of [Block] to all instructions that use it and
     /// add/create an additional block if only some uses are replaced. This is
     /// not a use-case that we currently have.
-    fn assign_parameters_inner<I, T>(&mut self, iter: I) -> PyResult<()>
+    fn assign_parameters_inner<I, T>(&mut self, iter: I) -> Result<(), CircuitDataError>
     where
         I: IntoIterator<Item = (Symbol, T, HashSet<ParameterUse>)>,
         T: AsRef<Param> + Clone,
     {
-        let inconsistent =
-            || PyRuntimeError::new_err("internal error: circuit parameter table is inconsistent");
-
+        let inconsistent = || panic!("internal error: parameter table is in an inconsistent state");
         // Bind a single `Parameter` into a `ParameterExpression`.
         let bind_expr = |expr: &ParameterExpression,
                          symbol: &Symbol,
                          value: &Param,
                          coerce: bool|
-         -> PyResult<Param> {
+         -> Result<Param, CircuitDataError> {
             let new_expr = match value {
                 Param::Float(f) => {
                     let map: HashMap<&Symbol, Value> = HashMap::from([(symbol, Value::Real(*f))]);
@@ -2638,27 +2813,29 @@ impl CircuitData {
                     expr.subs(&map, false)?
                 }
                 Param::Obj(ob) => {
-                    Python::attach(|py| {
+                    Python::attach(|py| -> Result<_, CircuitDataError> {
                         // The integer handling is only needed to support the case where an int is
                         // passed in directly instead of a float. This will be handled when we add
                         // int to the param enum to support dt target.
                         if let Ok(int) = ob.extract::<i64>(py) {
                             let map: HashMap<&Symbol, Value> =
                                 HashMap::from([(symbol, Value::Int(int))]);
-                            expr.bind(&map, false).map_err(|x| x.into())
+                            Ok(expr.bind(&map, false)?)
                         } else if let Ok(c) = ob.extract::<Complex64>(py) {
                             let map: HashMap<&Symbol, Value> =
                                 HashMap::from([(symbol, Value::Complex(c))]);
-                            expr.bind(&map, false).map_err(|x| x.into())
+                            Ok(expr.bind(&map, false)?)
                         } else {
                             Err(PyTypeError::new_err(format!(
                                 "Cannot assign object ({ob}) object to parameter."
-                            )))
+                            ))
+                            .into())
                         }
                     })?
                 }
             };
-            Param::from_expr(new_expr, coerce)
+            // Param::from_expr() only errors in the python path when calling Python
+            Ok(Param::from_expr(new_expr, coerce)?)
         };
 
         let mut user_operations = HashMap::new();
@@ -2676,9 +2853,14 @@ impl CircuitData {
                 match usage {
                     ParameterUse::GlobalPhase => {
                         let Param::ParameterExpression(expr) = &self.global_phase else {
-                            return Err(inconsistent());
+                            inconsistent()
                         };
-                        self.set_global_phase(bind_expr(expr, &symbol, value.as_ref(), true)?)?;
+                        self.set_global_phase_param(bind_expr(
+                            expr,
+                            &symbol,
+                            value.as_ref(),
+                            true,
+                        )?)?;
                     }
                     ParameterUse::Index {
                         instruction,
@@ -2690,21 +2872,20 @@ impl CircuitData {
                             let previous = &mut self.data[instruction];
                             let params = previous.params_mut();
                             let Param::ParameterExpression(expr) = &params[parameter] else {
-                                return Err(inconsistent());
+                                panic!("internal error: parameter table contains non-parameters");
                             };
                             let new_param = bind_expr(expr, &symbol, value.as_ref(), true)?;
 
                             // standard gates don't allow for complex parameters
                             if let Param::Obj(expr) = &new_param {
-                                return Err(CircuitError::new_err(format!(
-                                    "bad type after binding for gate '{}': '{:?}'",
-                                    standard.name(),
-                                    expr,
-                                )));
+                                return Err(CircuitDataError::StandardGateParameterIsComplex(
+                                    standard.name().to_string(),
+                                    format!("{expr:?}"),
+                                ));
                             }
                             params[parameter] = new_param.clone();
                             for uuid in uuids.iter() {
-                                self.param_table.add_use(*uuid, usage)?
+                                self.param_table.add_use(*uuid, usage)?;
                             }
                             #[cfg(feature = "cache_pygates")]
                             {
@@ -2719,20 +2900,20 @@ impl CircuitData {
                         } else if let OperationRef::ControlFlow(op) = previous_op.view() {
                             let blocks = self.data[instruction].blocks_view();
                             let block_to_edit = match &op.control_flow {
-                                ControlFlow::BreakLoop => Err(inconsistent()),
-                                ControlFlow::ContinueLoop => Err(inconsistent()),
+                                ControlFlow::BreakLoop => inconsistent(),
+                                ControlFlow::ContinueLoop => inconsistent(),
                                 ControlFlow::ForLoop { .. } => {
                                     match parameter {
                                         // In Python land, the loop body exists at parameter
                                         // position 2.
-                                        2 => Ok(blocks[0]),
-                                        _ => Err(inconsistent()),
+                                        2 => blocks[0],
+                                        _ => inconsistent(),
                                     }
                                 }
                                 // Most control flow instructions use the parameters for
                                 // *just* their blocks.
-                                _ => Ok(blocks[parameter]),
-                            }?;
+                                _ => blocks[parameter],
+                            };
                             if !seen_blocks.contains(&block_to_edit) {
                                 self.blocks[block_to_edit]
                                     .assign_single_parameter(symbol.clone(), value.as_ref())?;
@@ -2764,7 +2945,7 @@ impl CircuitData {
                             // it in rust without Python that's a mistake and this attach() call
                             // will panic and point out the error of your ways when this comment is
                             // read.
-                            Python::attach(|py| {
+                            Python::attach(|py| -> Result<_, CircuitDataError> {
                                 let validate_parameter_attr = intern!(py, "validate_parameter");
                                 let assign_parameters_attr = intern!(py, "assign_parameters");
 
@@ -2775,7 +2956,7 @@ impl CircuitData {
                                 // All "user" operations (e.g. PyOperation) use Parameters::Param.
                                 let previous_param = &previous.params_view()[parameter];
                                 let new_param = match previous_param {
-                                    Param::Float(_) => return Err(inconsistent()),
+                                    Param::Float(_) => inconsistent(),
                                     Param::ParameterExpression(expr) => {
                                         let new_param =
                                             bind_expr(expr, &symbol, value.as_ref(), false)?;
@@ -2814,11 +2995,10 @@ impl CircuitData {
                                             )?,
                                         }
                                     }
-                                    // TODO: remove this, assuming only control flow needed it
-                                    Param::Obj(block) => {
-                                        let obj = block.bind_borrowed(py);
+                                    Param::Obj(obj) => {
+                                        let obj = obj.bind_borrowed(py);
                                         if !obj.is_instance(QUANTUM_CIRCUIT.get_bound(py))? {
-                                            return Err(inconsistent());
+                                            inconsistent()
                                         }
                                         Param::extract_no_coerce(
                                             obj.call_method(
@@ -2836,17 +3016,13 @@ impl CircuitData {
                                 };
                                 op.getattr(intern!(py, "params"))?
                                     .set_item(parameter, new_param)?;
-                                let new_op = op.extract::<OperationFromPython>()?;
+                                let new_op = op.extract::<OperationFromPython<CircuitData>>()?;
                                 previous.op = new_op.operation;
-                                previous.params = match new_op.params {
-                                    Some(Parameters::Params(params)) => {
-                                        Some(Box::new(Parameters::Params(params)))
-                                    }
-                                    Some(Parameters::Blocks(_)) => {
-                                        unreachable!("unexpected control flow")
-                                    }
-                                    None => None,
-                                };
+                                previous.params = new_op.params.map(|params| {
+                                    Box::new(
+                                        params.map_blocks(|_| panic!("unexpected control flow")),
+                                    )
+                                });
                                 previous.label = new_op.label;
                                 #[cfg(feature = "cache_pygates")]
                                 {
@@ -2963,7 +3139,7 @@ impl CircuitData {
         capacity: Option<usize>,
         vars_mode: VarsMode,
         blocks_mode: BlocksMode,
-    ) -> PyResult<Self> {
+    ) -> Result<Self, CircuitDataError> {
         let mut res = CircuitData {
             data: Vec::with_capacity(capacity.unwrap_or(other.data.len())),
             qargs_interner: other.qargs_interner.clone(),
@@ -2990,7 +3166,7 @@ impl CircuitData {
             stretches_capture: Vec::new(),
             stretches_declare: Vec::new(),
         };
-        res.set_global_phase(other.global_phase.clone())?;
+        res.set_global_phase_param(other.global_phase.clone())?;
         if let VarsMode::Drop = vars_mode {
             return Ok(res);
         }
@@ -3041,7 +3217,7 @@ impl CircuitData {
     /// * packed: The new packed instruction to insert to the end of the CircuitData
     ///   The qubits and clbits **must** already be present in the interner for this
     ///   function to work. If they are not this will corrupt the circuit.
-    pub fn push(&mut self, packed: PackedInstruction) -> PyResult<()> {
+    pub fn push(&mut self, packed: PackedInstruction) -> Result<(), CircuitDataError> {
         let new_index = self.data.len();
         self.data.push(packed);
         self.track_instruction_blocks(new_index);
@@ -3049,12 +3225,10 @@ impl CircuitData {
     }
 
     /// Add a param to the current global phase of the circuit
-    pub fn add_global_phase(&mut self, value: &Param) -> PyResult<()> {
+    pub fn add_global_phase(&mut self, value: &Param) -> Result<(), CircuitDataError> {
         match value {
-            Param::Obj(_) => Err(PyTypeError::new_err(
-                "Invalid parameter type, only float and parameter expression are supported",
-            )),
-            _ => self.set_global_phase(add_global_phase(&self.global_phase, value)?),
+            Param::Obj(_) => Err(CircuitDataError::InvalidGlobalPhaseType),
+            _ => self.set_global_phase_param(add_global_phase(&self.global_phase, value)),
         }
     }
 
@@ -3068,24 +3242,24 @@ impl CircuitData {
     /// # Returns:
     ///
     /// The [Var] index of the variable in the circuit.
-    pub fn add_var(&mut self, var: expr::Var, var_type: CircuitVarType) -> PyResult<Var> {
+    pub fn add_var(
+        &mut self,
+        var: expr::Var,
+        var_type: CircuitVarType,
+    ) -> Result<Var, CircuitDataError> {
         let name = {
             let expr::Var::Standalone { name, .. } = &var else {
-                return Err(CircuitError::new_err(
-                    "cannot add variables that wrap `Clbit` or `ClassicalRegister` instances",
-                ));
+                return Err(CircuitDataError::VarWrappingClbit);
             };
             name.clone()
         };
 
         match self.identifier_info.get(&name) {
             Some(CircuitIdentifierInfo::Var(info)) if Some(&var) == self.vars.get(info.var) => {
-                return Err(CircuitError::new_err("already present in the circuit"));
+                return Err(CircuitDataError::DuplicateVar);
             }
             Some(_) => {
-                return Err(CircuitError::new_err(
-                    "cannot add var as its name shadows an existing identifier",
-                ));
+                return Err(CircuitDataError::VarShadowing);
             }
             _ => {}
         }
@@ -3094,14 +3268,10 @@ impl CircuitData {
             CircuitVarType::Input
                 if !self.vars_capture.is_empty() || !self.stretches_capture.is_empty() =>
             {
-                return Err(CircuitError::new_err(
-                    "circuits to be enclosed with captures cannot have input variables",
-                ));
+                return Err(CircuitDataError::InputWithCaptureVars);
             }
             CircuitVarType::Capture if !self.vars_input.is_empty() => {
-                return Err(CircuitError::new_err(
-                    "circuits with input variables cannot be enclosed, so they cannot be closures",
-                ));
+                return Err(CircuitDataError::CaptureWithInputVars);
             }
             _ => {}
         }
@@ -3159,28 +3329,24 @@ impl CircuitData {
         &mut self,
         stretch: expr::Stretch,
         stretch_type: CircuitStretchType,
-    ) -> PyResult<Stretch> {
+    ) -> Result<Stretch, CircuitDataError> {
         let name = stretch.name.clone();
 
         match self.identifier_info.get(&name) {
             Some(CircuitIdentifierInfo::Stretch(info))
                 if Some(&stretch) == self.stretches.get(info.stretch) =>
             {
-                return Err(CircuitError::new_err("already present in the circuit"));
+                return Err(CircuitDataError::DuplicateStretch);
             }
             Some(_) => {
-                return Err(CircuitError::new_err(
-                    "cannot add stretch as its name shadows an existing identifier",
-                ));
+                return Err(CircuitDataError::StretchShadowing);
             }
             _ => {}
         }
 
         if let CircuitStretchType::Capture = stretch_type {
             if !self.vars_input.is_empty() {
-                return Err(CircuitError::new_err(
-                    "circuits with input variables cannot be enclosed, so they cannot be closures",
-                ));
+                return Err(CircuitDataError::CaptureWithInputVars);
             }
         }
 
@@ -3225,7 +3391,7 @@ impl CircuitData {
     }
 
     /// Return a copy of the circuit with instructions in reverse order
-    pub fn reverse(self) -> PyResult<Self> {
+    pub fn reverse(self) -> Result<Self, CircuitDataError> {
         let mut out = Self::clone_empty_like(
             &self,
             Some(self.data().len()),
@@ -3389,14 +3555,11 @@ where
 ///
 /// This encapsulates the logic of both [CircuitData::track_parameters] and
 /// [CircuitData::untrack_parameters].
-fn for_each_symbol_use_in_control_flow<F, E>(
+fn for_each_symbol_use_in_control_flow(
     instruction_index: usize,
     cf: ControlFlowView<CircuitData>,
-    mut action: F,
-) -> Result<(), E>
-where
-    F: FnMut(&Symbol, ParameterUse) -> Result<(), E>,
-{
+    mut action: impl FnMut(&Symbol, ParameterUse) -> Result<(), CircuitDataError>,
+) -> Result<(), CircuitDataError> {
     match cf {
         ControlFlowView::ForLoop {
             loop_param,
@@ -3441,4 +3604,70 @@ where
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::converters::dag_to_circuit;
+    use crate::dag_circuit::DAGCircuit;
+    use crate::operations::{ArrayType, PauliProductMeasurement, UnitaryGate};
+    use nalgebra::{Matrix2, Matrix4};
+
+    #[cfg(not(miri))]
+    #[test]
+    fn packed_pointer_types_behave() -> PyResult<()> {
+        // This is largely to exercise the packed-pointer logic under debug builds (since the
+        // Python-space tests run with Rust in relaese mode) and Miri.
+        let mut qc = CircuitData::from_packed_operations(4, 1, [], Param::Float(0.0))?;
+        qc.push_packed_operation(
+            Box::new(PauliProductMeasurement {
+                z: vec![true, true, true],
+                x: vec![false, false, true],
+                neg: false,
+            })
+            .into(),
+            None,
+            &[Qubit(0), Qubit(1), Qubit(2)],
+            &[Clbit(0)],
+        )?;
+        qc.push_packed_operation(
+            Box::new(UnitaryGate {
+                array: ArrayType::OneQ(Matrix2::identity()),
+            })
+            .into(),
+            None,
+            &[Qubit(2)],
+            &[],
+        )?;
+        qc.push_packed_operation(
+            Box::new(UnitaryGate {
+                array: ArrayType::TwoQ(Matrix4::identity()),
+            })
+            .into(),
+            None,
+            &[Qubit(2), Qubit(3)],
+            &[],
+        )?;
+        let check = |left: &CircuitData, right: &CircuitData| {
+            for (a, b) in ::std::iter::zip(left.data(), right.data()) {
+                match (a.op.view(), b.op.view()) {
+                    (OperationRef::Unitary(a), OperationRef::Unitary(b)) => assert_eq!(a, b),
+                    (
+                        OperationRef::PauliProductMeasurement(a),
+                        OperationRef::PauliProductMeasurement(b),
+                    ) => assert_eq!(a, b),
+                    (a, b) => panic!("unexpected types in iterator:\n{a:?}\n{b:?}"),
+                }
+            }
+        };
+        let other = qc.clone();
+        check(&qc, &other);
+        let roundtrip = dag_to_circuit(
+            &DAGCircuit::from_circuit_data(&qc, false, None, None, None, None)?,
+            false,
+        )?;
+        check(&qc, &roundtrip);
+        Ok(())
+    }
 }
