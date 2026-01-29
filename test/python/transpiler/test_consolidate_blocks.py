@@ -767,3 +767,100 @@ class TestConsolidateBlocks(QiskitTestCase):
         pass_.property_set["block_list"] = [[not_an_op_node]]
         with self.assertRaisesRegex(IndexError, "node index.*was not a valid operation"):
             pass_.run(dag)
+
+
+class TestCollect1qRuns(QiskitTestCase):
+    """
+    Additional correctness tests for the Collect1qRuns transpiler pass.
+    """
+
+    def test_filter(self):
+        """Test filter_fn argument."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.t(0)
+        qc.cx(0, 1)
+        qc.h(1)
+        qc.s(1)
+        qc.tdg(1)
+
+        with self.subTest("filter_fn is not specified"):
+            pm = PassManager([Collect1qRuns()])
+            pm.run(qc)
+            runs = pm.property_set.get("run_list", [])
+            self.assertEqual(len(runs), 2)
+
+        with self.subTest("filter_fn is None"):
+            pm = PassManager([Collect1qRuns(filter_fn=None)])
+            pm.run(qc)
+            runs = pm.property_set.get("run_list", [])
+            self.assertEqual(len(runs), 2)
+
+        with self.subTest("only runs with at least one S-gate"):
+
+            def at_least_one_s_gate(_dag, run):
+                return any(node.op.name == "s" for node in run)
+
+            pm = PassManager([Collect1qRuns(filter_fn=at_least_one_s_gate)])
+            pm.run(qc)
+            runs = pm.property_set.get("run_list", [])
+            self.assertEqual(len(runs), 1)
+
+        with self.subTest("only runs without H-gates"):
+
+            def no_h_gates(_dag, run):
+                return all(node.op.name != "h" for node in run)
+
+            pm = PassManager([Collect1qRuns(filter_fn=no_h_gates)])
+            pm.run(qc)
+            runs = pm.property_set.get("run_list", [])
+            self.assertEqual(len(runs), 0)
+
+
+class TestCollect2qBlocks(QiskitTestCase):
+    """
+    Additional correctness tests for the Collect2qBlocks transpiler pass.
+    """
+
+    def test_filter(self):
+        """Test filter_fn argument."""
+        qc = QuantumCircuit(3)
+        qc.h(0)  # first block
+        qc.cx(0, 1)  # first block
+        qc.cx(1, 2)  # second block
+        qc.cx(2, 1)  # second block
+        qc.cx(1, 0)  # third block
+        qc.cx(0, 1)  # third block
+        qc.cx(1, 0)  # third block
+
+        with self.subTest("filter_fn is not specified"):
+            pm = PassManager([Collect2qBlocks()])
+            pm.run(qc)
+            blocks = pm.property_set.get("block_list", [])
+            self.assertEqual(len(blocks), 3)
+
+        with self.subTest("filter_fn is None"):
+            pm = PassManager([Collect2qBlocks(filter_fn=None)])
+            pm.run(qc)
+            blocks = pm.property_set.get("block_list", [])
+            self.assertEqual(len(blocks), 3)
+
+        with self.subTest("only blocks with at least 3 gates"):
+
+            def at_least_three_gates(_dag, run):
+                return len(run) >= 3
+
+            pm = PassManager([Collect2qBlocks(filter_fn=at_least_three_gates)])
+            pm.run(qc)
+            blocks = pm.property_set.get("block_list", [])
+            self.assertEqual(len(blocks), 1)
+
+        with self.subTest("only blocks with at least 4 gates"):
+
+            def at_least_four_gates(_dag, run):
+                return len(run) >= 4
+
+            pm = PassManager([Collect2qBlocks(filter_fn=at_least_four_gates)])
+            pm.run(qc)
+            blocks = pm.property_set.get("block_list", [])
+            self.assertEqual(len(blocks), 0)
