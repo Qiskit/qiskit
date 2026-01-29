@@ -259,6 +259,7 @@ class Expression(TypeKeyBase):
     UNARY = b"u"
     BINARY = b"b"
     INDEX = b"i"
+    RANGE = b"r"
 
     @classmethod
     def assign(cls, obj):
