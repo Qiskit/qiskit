@@ -33,7 +33,7 @@ use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::ObjectRegistry;
 use crate::operations::{
     ArrayType, InstructionDuration, Condition, ControlFlow, ControlFlowInstruction, ControlFlowView,
-    Operation, OperationRef, Param, PythonOperation, StandardGate, StandardInstruction,
+    Operation, OperationRef, Param, PyOperationTypes, PythonOperation, StandardGate, StandardInstruction,
     SwitchTarget,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
