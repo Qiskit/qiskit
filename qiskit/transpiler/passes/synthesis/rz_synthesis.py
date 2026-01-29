@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 
-"""RZ Synthesis (to be replaced by Janani's code)."""
+"""A temporary RZSynthesis pass. This will be replaced by Janani's Rust implementation."""
 
 
 from qiskit.transpiler.basepasses import TransformationPass
@@ -28,7 +28,7 @@ class RZSynthesis(TransformationPass):
     def run(self, dag):
         """Run RZSynthesis on `dag`.
 
-        This will be replaced by a much better and rust version of the pass.
+        This will be replaced by a much better rust version of the pass.
         """
         ops = dag.count_ops()
 

@@ -518,7 +518,7 @@ def generate_translation_passmanager(
                 qubits_initially_zero=qubits_initially_zero,
                 optimization_metric=OptimizationMetric.COUNT_T,
             ),
-            # HLS does not translate gates in the equivalence library, so we need BT for this.
+            # Check: HLS does not translate gates in the equivalence library, so we need BT for this.
             BasisTranslator(sel, clifford_rz_gates, None),
         ]
         fix_1q = []

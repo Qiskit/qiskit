@@ -320,7 +320,6 @@ class StagedPassManager(PassManager):
             setattr(self, stage, pm)
 
     def _validate_stages(self, stages: Iterable[str]) -> None:
-        print(f"In validate: {stages = }")
         invalid_stages = [
             stage for stage in stages if self.invalid_stage_regex.search(stage) is not None
         ]

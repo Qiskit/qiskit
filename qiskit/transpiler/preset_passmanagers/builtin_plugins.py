@@ -14,7 +14,6 @@
 
 import os
 
-from qiskit.quantum_info.operators.symplectic.clifford_circuits import get_clifford_gate_names
 from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayout
 from qiskit.transpiler.passes.optimization.split_2q_unitaries import Split2QUnitaries
 from qiskit.transpiler.passmanager import PassManager
@@ -59,6 +58,7 @@ from qiskit.passmanager.flow_controllers import ConditionalController, DoWhileCo
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
+from qiskit.quantum_info.operators.symplectic.clifford_circuits import get_clifford_gate_names
 from qiskit.utils import default_num_processes
 from qiskit import user_config
 
