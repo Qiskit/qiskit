@@ -32,7 +32,7 @@ use crate::error::DAGCircuitError;
 use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::ObjectRegistry;
 use crate::operations::{
-    ArrayType, BoxDuration, Condition, ControlFlow, ControlFlowInstruction, ControlFlowView,
+    ArrayType, InstructionDuration, Condition, ControlFlow, ControlFlowInstruction, ControlFlowView,
     Operation, OperationRef, Param, PythonOperation, StandardGate, StandardInstruction,
     SwitchTarget,
 };
@@ -2281,8 +2281,8 @@ impl DAGCircuit {
                                     },
                                 ) => {
                                     let duration_eq = match duration_a {
-                                        Some(BoxDuration::Expr(duration_a)) => match duration_b {
-                                            Some(BoxDuration::Expr(duration_b)) => duration_a
+                                        Some(InstructionDuration::Expr(duration_a)) => match duration_b {
+                                            Some(InstructionDuration::Expr(duration_b)) => duration_a
                                                 .structurally_equivalent_by_key(
                                                     &slf_var_key,
                                                     duration_b,
@@ -2290,9 +2290,9 @@ impl DAGCircuit {
                                                 ),
                                             _ => false,
                                         },
-                                        Some(BoxDuration::Duration(duration_a)) => match duration_b
+                                        Some(InstructionDuration::Duration(duration_a)) => match duration_b
                                         {
-                                            Some(BoxDuration::Duration(duration_b)) => {
+                                            Some(InstructionDuration::Duration(duration_b)) => {
                                                 duration_a == duration_b
                                             }
                                             _ => false,
