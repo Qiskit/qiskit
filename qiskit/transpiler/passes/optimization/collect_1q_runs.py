@@ -12,16 +12,10 @@
 
 """Collect sequences of uninterrupted gates acting on 1 qubit."""
 
-from __future__ import annotations
-
-import typing
-
 from collections.abc import Callable
 
 from qiskit.transpiler.basepasses import AnalysisPass
-
-if typing.TYPE_CHECKING:
-    from qiskit.dagcircuit import DAGCircuit, DAGOpNode
+from qiskit.dagcircuit import DAGCircuit, DAGOpNode
 
 
 class Collect1qRuns(AnalysisPass):
