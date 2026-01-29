@@ -33,6 +33,7 @@ rsgridsynth =  "0.2.0"
 rstar = "0.12.2"
 serde = { version = "1.0", features = ["derive"] }
 thiserror.workspace = true
+fixedbitset.workspace = true
 
 # `bincode` is a dead project and needs replacement.  The development
 # process ended acrimoniously with the developer rewriting git history
