@@ -71,7 +71,13 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parametervector import ParameterVector
 from qiskit.synthesis import LieTrotter, SuzukiTrotter
-from qiskit.qpy import dump, load, UnsupportedFeatureForVersion, QPY_COMPATIBILITY_VERSION
+from qiskit.qpy import (
+    dump,
+    load,
+    UnsupportedFeatureForVersion,
+    QPY_COMPATIBILITY_VERSION,
+    QPY_VERSION,
+)
 from qiskit.quantum_info import Pauli, SparsePauliOp, Clifford
 from qiskit.quantum_info.random import random_unitary
 from qiskit.circuit.controlledgate import ControlledGate
@@ -2286,6 +2292,19 @@ class TestLoadFromQPY(QiskitTestCase):
                 out_circuits = load(fptr)
         self.assertEqual(circuits, out_circuits)
         self.assertEqual([qc.name for qc in circuits], [qc.name for qc in out_circuits])
+
+    @ddt.idata(range(max(QPY_COMPATIBILITY_VERSION, 13), QPY_VERSION + 1))
+    def test_ancilla_register_with_physical(self, version):
+        """Test for possible conflicts when naming a register 'ancilla'"""
+        qc = QuantumCircuit(QuantumRegister(2, "qr"), QuantumRegister(2, "ancilla"))
+        qc.ensure_physical(qc.num_qubits + 1)
+
+        with io.BytesIO() as fptr:
+            dump(qc, fptr, version=version)
+            fptr.seek(0)
+            out_circuit = load(fptr)[0]
+
+        self.assertEqual(qc, out_circuit)
 
 
 class TestSymengineLoadFromQPY(QiskitTestCase):
