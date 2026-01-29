@@ -217,7 +217,12 @@ class CPhaseGate(ControlledGate):
         *,
         _base_label=None,
     ):
-        """Create new CPhase gate."""
+        """
+        Args:
+            theta: The rotation angle.
+            label: An optional label for the gate.
+            ctrl_state: The control state for the control qubit. Defaults to 1.
+        """
         super().__init__(
             "cp",
             2,
@@ -340,7 +345,13 @@ class MCPhaseGate(ControlledGate):
         *,
         _base_label=None,
     ):
-        """Create new MCPhase gate."""
+        """
+        Args:
+            lam: The rotation angle.
+            num_ctrl_qubits: The number of control qubits.
+            label: An optional label for the gate.
+            ctrl_state: The control state for the control qubit. Defaults to 1.
+        """
         super().__init__(
             "mcphase",
             num_ctrl_qubits + 1,

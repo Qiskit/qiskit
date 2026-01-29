@@ -15,7 +15,6 @@
 from __future__ import annotations
 
 import warnings
-from typing import List, Optional
 import numpy as np
 
 from qiskit.circuit import QuantumRegister, AncillaRegister, QuantumCircuit, Gate
@@ -75,8 +74,8 @@ class WeightedAdder(BlueprintCircuit):
 
     def __init__(
         self,
-        num_state_qubits: Optional[int] = None,
-        weights: Optional[List[int]] = None,
+        num_state_qubits: int | None = None,
+        weights: list[int] | None = None,
         name: str = "adder",
     ) -> None:
         """
@@ -106,7 +105,7 @@ class WeightedAdder(BlueprintCircuit):
         return 1
 
     @property
-    def weights(self) -> List[int]:
+    def weights(self) -> list[int]:
         """The weights for the qubit states.
 
         Returns:
@@ -119,7 +118,7 @@ class WeightedAdder(BlueprintCircuit):
         return None
 
     @weights.setter
-    def weights(self, weights: List[int]) -> None:
+    def weights(self, weights: list[int]) -> None:
         """Set the weights for summing the qubit states.
 
         Args:

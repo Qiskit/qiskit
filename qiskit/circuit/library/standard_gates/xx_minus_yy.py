@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import math
 from cmath import exp
-from typing import Optional
 
 import numpy as np
 
@@ -64,7 +63,7 @@ class XXMinusYYGate(Gate):
         self,
         theta: ParameterValueType,
         beta: ParameterValueType = 0,
-        label: Optional[str] = "(XX-YY)",
+        label: str | None = "(XX-YY)",
     ):
         """
         Args:

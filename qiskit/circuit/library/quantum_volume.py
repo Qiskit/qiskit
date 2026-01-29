@@ -14,8 +14,6 @@
 
 from __future__ import annotations
 
-from typing import Optional, Union
-
 import numpy as np
 from qiskit.circuit import QuantumCircuit, CircuitInstruction
 from qiskit.circuit.library.generalized_gates import PermutationGate, UnitaryGate
@@ -67,8 +65,8 @@ class QuantumVolume(QuantumCircuit):
     def __init__(
         self,
         num_qubits: int,
-        depth: Optional[int] = None,
-        seed: Optional[Union[int, np.random.Generator]] = None,
+        depth: int | None = None,
+        seed: int | np.random.Generator | None = None,
         classical_permutation: bool = True,
         *,
         flatten: bool = False,

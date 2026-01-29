@@ -11,9 +11,10 @@
 # that they have been altered from the originals.
 
 """T and Tdg gate."""
-import math
-from typing import Optional
 
+from __future__ import annotations
+
+import math
 import numpy
 
 from qiskit.circuit.singleton import SingletonGate, stdlib_singleton_key
@@ -56,7 +57,7 @@ class TGate(SingletonGate):
 
     _standard_gate = StandardGate.T
 
-    def __init__(self, label: Optional[str] = None):
+    def __init__(self, label: str | None = None):
         """
         Args:
             label: An optional label for the gate.
@@ -132,7 +133,7 @@ class TdgGate(SingletonGate):
 
     _standard_gate = StandardGate.Tdg
 
-    def __init__(self, label: Optional[str] = None):
+    def __init__(self, label: str | None = None):
         """
         Args:
             label: An optional label for the gate.
