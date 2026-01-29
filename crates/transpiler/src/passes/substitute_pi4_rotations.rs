@@ -1137,60 +1137,58 @@ pub fn py_run_substitute_pi4_rotations(
     let mut global_phase_update: f64 = 0.;
 
     for node_index in dag.topological_op_nodes(false) {
-        if let NodeType::Operation(inst) = &dag[node_index] {
-            if let OperationRef::StandardGate(gate) = inst.op.view() {
-                if matches!(
-                    gate,
-                    StandardGate::RX
-                        | StandardGate::RY
-                        | StandardGate::RZ
-                        | StandardGate::Phase
-                        | StandardGate::U1
-                        | StandardGate::RZZ
-                        | StandardGate::RXX
-                        | StandardGate::RZX
-                        | StandardGate::RYY
-                        | StandardGate::CPhase
-                        | StandardGate::CU1
-                        | StandardGate::CRZ
-                        | StandardGate::CRX
-                        | StandardGate::CRY
-                ) {
-                    let k = rotation_to_pi_div(gate);
-                    let num_qubits = gate.num_qubits();
-                    if let Param::Float(angle) = inst.params_view()[0] {
-                        if let Some(multiple) =
-                            is_angle_close_to_multiple_of_pi_k(gate, k, angle, tol)
-                        {
-                            let (sequence, phase_update) = if num_qubits == 2 {
-                                let (sequence, phase_update) =
-                                    replace_2q_rotation_by_discrete(gate, multiple);
-                                (sequence.to_vec(), phase_update)
-                            } else {
-                                // num_qubits == 1
-                                let (new_gate, phase_update) =
-                                    replace_1q_rotation_by_discrete(gate, multiple);
-
-                                let qubit: &'static [u32] = &[0];
-                                let mut sequence = Vec::with_capacity(new_gate.len());
-                                sequence.extend(new_gate.iter().map(|g| (*g, qubit)));
-                                (sequence, phase_update)
-                            };
-                            for (new_gate, qubits) in sequence {
-                                let original_qubits = dag.get_qargs(inst.qubits);
-                                let updated_qubits: Vec<Qubit> = qubits
-                                    .iter()
-                                    .map(|q| original_qubits[*q as usize])
-                                    .collect();
-                                let new_qubits = new_dag.add_qargs(&updated_qubits);
-                                new_dag.push_back(PackedInstruction::from_standard_gate(
-                                    new_gate, None, new_qubits,
-                                ))?;
-                            }
-                            global_phase_update += phase_update;
+        let NodeType::Operation(inst) = &dag[node_index] else {
+            unreachable!("dag.topological_op_nodes only returns Operations");
+        };
+        if let OperationRef::StandardGate(gate) = inst.op.view() {
+            if matches!(
+                gate,
+                StandardGate::RX
+                    | StandardGate::RY
+                    | StandardGate::RZ
+                    | StandardGate::Phase
+                    | StandardGate::U1
+                    | StandardGate::RZZ
+                    | StandardGate::RXX
+                    | StandardGate::RZX
+                    | StandardGate::RYY
+                    | StandardGate::CPhase
+                    | StandardGate::CU1
+                    | StandardGate::CRZ
+                    | StandardGate::CRX
+                    | StandardGate::CRY
+            ) {
+                let k = rotation_to_pi_div(gate);
+                let num_qubits = gate.num_qubits();
+                if let Param::Float(angle) = inst.params_view()[0] {
+                    if let Some(multiple) = is_angle_close_to_multiple_of_pi_k(gate, k, angle, tol)
+                    {
+                        let (sequence, phase_update) = if num_qubits == 2 {
+                            let (sequence, phase_update) =
+                                replace_2q_rotation_by_discrete(gate, multiple);
+                            (sequence.to_vec(), phase_update)
                         } else {
-                            new_dag.push_back(inst.clone())?;
+                            // num_qubits == 1
+                            let (new_gate, phase_update) =
+                                replace_1q_rotation_by_discrete(gate, multiple);
+
+                            let qubit: &'static [u32] = &[0];
+                            let mut sequence = Vec::with_capacity(new_gate.len());
+                            sequence.extend(new_gate.iter().map(|g| (*g, qubit)));
+                            (sequence, phase_update)
+                        };
+                        for (new_gate, qubits) in sequence {
+                            let original_qubits = dag.get_qargs(inst.qubits);
+                            let updated_qubits: Vec<Qubit> = qubits
+                                .iter()
+                                .map(|q| original_qubits[*q as usize])
+                                .collect();
+                            let new_qubits = new_dag.add_qargs(&updated_qubits);
+                            new_dag.push_back(PackedInstruction::from_standard_gate(
+                                new_gate, None, new_qubits,
+                            ))?;
                         }
+                        global_phase_update += phase_update;
                     } else {
                         new_dag.push_back(inst.clone())?;
                     }
@@ -1201,7 +1199,7 @@ pub fn py_run_substitute_pi4_rotations(
                 new_dag.push_back(inst.clone())?;
             }
         } else {
-            unreachable!();
+            new_dag.push_back(inst.clone())?;
         }
     }
 
