@@ -197,6 +197,10 @@ impl Param {
                         Python::attach(|py| Ok(Self::Obj(c.into_py_any(py)?)))
                     }
                 }
+                Value::Rational {
+                    numerator,
+                    denominator,
+                } => Ok(Self::Float(numerator as f64 / denominator as f64)),
             },
             Err(_) => Ok(Self::ParameterExpression(Arc::new(expr))),
         }
