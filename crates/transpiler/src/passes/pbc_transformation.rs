@@ -366,7 +366,7 @@ pub fn py_pbc_transformation(py: Python, dag: &mut DAGCircuit) -> PyResult<DAGCi
                 None,
             )?;
         } else if let OperationRef::StandardGate(gate) = inst.op.view() {
-            if gate.num_qubits() > 2 {
+            if (gate.num_qubits() > 2) | (gate.num_qubits() < 1) {
                 return Err(TranspilerError::new_err(format!(
                     "Unable to run PBC tranformation as the circuit contains instructions not supported by the pass: {:?}",
                     gate.name()
