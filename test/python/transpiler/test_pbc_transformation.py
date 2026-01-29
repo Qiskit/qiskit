@@ -16,7 +16,7 @@ from ddt import ddt
 
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.transpiler import TranspilerError
-from qiskit.transpiler.passes import PBCTransformation, RemoveBarriers, RemoveFinalMeasurements
+from qiskit.transpiler.passes import PBCTransformation
 from qiskit.quantum_info import Operator
 from qiskit.circuit.random import random_circuit
 from qiskit.circuit.library import (
@@ -181,27 +181,25 @@ class TestPBCTransformation(QiskitTestCase):
         self.assertEqual(Operator(qct), Operator(qc))
 
     def test_random_circuit_measure_barrier(self):
-        """Test that a pesudo-random circuit with 1-qubit and 2-qubit gates, measurements and barriers
+        """Test that a pesudo-random circuit with 1-qubit and 2-qubit gates,
+        measurements, delays, resets and barriers,
         is tranlated into Pauli product rotatations correctly."""
         num_qubits = 4
         depth = 10
         seed = 5678
         qc = QuantumCircuit(num_qubits)
-        qc0 = QuantumCircuit(num_qubits)
-        for _ in range(num_qubits):
+        for i in range(num_qubits):
             qc1 = random_circuit(num_qubits=num_qubits, depth=depth, max_operands=2, seed=seed)
             qc.compose(qc1, inplace=True)
-            qc0.compose(qc1, inplace=True)
+            qc.delay(i)
+            qc.reset((i + 1) % num_qubits)
             qc.barrier()
         qc.measure_all()
         qct = PBCTransformation()(qc)
         ops_names = set(qct.count_ops().keys())
-        self.assertEqual(ops_names, {"PauliEvolution", "barrier", "measure"})
-        qct1 = RemoveFinalMeasurements()(qct)
-        qct2 = RemoveBarriers()(qct1)
-        ops_names = set(qct2.count_ops().keys())
-        self.assertEqual(ops_names, {"PauliEvolution"})
-        self.assertEqual(Operator(qct2), Operator(qc0))
+        self.assertEqual(
+            ops_names, {"PauliEvolution", "pauli_product_measurement", "delay", "reset", "barrier"}
+        )
 
     @combine(
         gate=[

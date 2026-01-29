@@ -19,7 +19,8 @@ use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::imports::PAULI_EVOLUTION_GATE;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
-    Operation, OperationRef, Param, PyGate, StandardGate, add_param, multiply_param, radd_param,
+    Operation, OperationRef, Param, PauliProductMeasurement, PyGate, StandardGate, add_param,
+    multiply_param, radd_param,
 };
 use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
 use qiskit_quantum_info::sparse_observable::PySparseObservable;
@@ -342,8 +343,28 @@ pub fn py_pbc_transformation(py: Python, dag: &mut DAGCircuit) -> PyResult<DAGCi
 
     for node_index in dag.topological_op_nodes(false) {
         if let NodeType::Operation(inst) = &dag[node_index] {
-            if (inst.op.name() == "measure") | (inst.op.name() == "barrier") {
+            if (inst.op.name() == "barrier")
+                | (inst.op.name() == "reset")
+                | (inst.op.name() == "delay")
+            {
                 new_dag.push_back(inst.clone())?;
+            } else if inst.op.name() == "measure" {
+                let z = vec![true];
+                let x = vec![false];
+                let neg = false;
+                let ppm = PauliProductMeasurement { z, x, neg };
+                let ppm_qubits = dag.get_qargs(inst.qubits);
+                let ppm_clbits = dag.get_cargs(inst.clbits);
+
+                new_dag.apply_operation_back(
+                    ppm.into(),
+                    ppm_qubits,
+                    ppm_clbits,
+                    None,
+                    None,
+                    #[cfg(feature = "cache_pygates")]
+                    None,
+                )?;
             } else if let OperationRef::StandardGate(gate) = inst.op.view() {
                 if gate.num_qubits() > 2 {
                     return Err(TranspilerError::new_err(format!(
