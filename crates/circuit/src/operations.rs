@@ -419,9 +419,7 @@ impl InstructionDuration {
             DelayUnit::EXPR => {
                 if let Param::Obj(obj) = param {
                     // The param should be an expr::Expr
-                    Python::attach(|py| {
-                        obj.bind(py).extract::<expr::Expr>().ok().map(Self::Expr)
-                    })
+                    Python::attach(|py| obj.bind(py).extract::<expr::Expr>().ok().map(Self::Expr))
                 } else {
                     None
                 }

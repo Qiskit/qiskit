@@ -35,7 +35,7 @@ use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::imports;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
-    ArrayType, InstructionDuration, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction,
+    ArrayType, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction, InstructionDuration,
     Operation, OperationRef, Param, PauliProductMeasurement, PyInstruction, StandardGate,
     StandardInstruction, SwitchTarget, UnitaryGate,
 };

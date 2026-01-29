@@ -38,7 +38,7 @@ use qiskit_circuit::interner::Interned;
 use qiskit_circuit::operations::ArrayType;
 use qiskit_circuit::operations::UnitaryGate;
 use qiskit_circuit::operations::{
-    InstructionDuration, CaseSpecifier, Condition, StandardInstructionType, SwitchTarget,
+    CaseSpecifier, Condition, InstructionDuration, StandardInstructionType, SwitchTarget,
 };
 use qiskit_circuit::operations::{
     ControlFlow, ControlFlowInstruction, ControlFlowType, Param, PauliProductMeasurement,
