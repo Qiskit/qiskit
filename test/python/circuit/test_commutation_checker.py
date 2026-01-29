@@ -28,6 +28,8 @@ from qiskit.circuit import (
     Qubit,
     QuantumCircuit,
 )
+from qiskit.transpiler.passmanager import PassManager
+from qiskit.transpiler.passes.optimization.light_cone import LightCone
 from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
 from qiskit.circuit.library import (
     Barrier,
@@ -570,6 +572,51 @@ class TestCommutationChecker(QiskitTestCase):
         x = PauliEvolutionGate(SparsePauliOp([19 * "X" + "I"]))
         with self.subTest(left=z, right=x):
             self.assertFalse(scc.commute(z, qargs, [], x, qargs, []))
+
+    def test_pauli_evolution_standard_gates(self):
+        """Test PauliEvolutionGate commutations with standard gates (rotations)."""
+        # H and H should commute
+        self.assertTrue(scc.commute(HGate(), [0], [], HGate(), [0], []))
+        # H and Z should NOT commute
+        self.assertFalse(scc.commute(HGate(), [0], [], ZGate(), [0], []))
+
+        # RX(0.5) and PauliEvo(X) should commute
+        evo_x = PauliEvolutionGate(SparsePauliOp("X"), time=1.0)
+        self.assertTrue(scc.commute(RXGate(0.5), [0], [], evo_x, [0], []))
+
+        # RX(0.5) and PauliEvo(Z) should NOT commute
+        evo_z = PauliEvolutionGate(SparsePauliOp("Z"), time=1.0)
+        self.assertFalse(scc.commute(RXGate(0.5), [0], [], evo_z, [0], []))
+
+        # HGate (generator X+Z) and PauliEvolutionGate(X+Z) should commute
+        evo_xz = PauliEvolutionGate(SparsePauliOp(["X", "Z"], [1.0, 1.0]), time=1.0)
+        self.assertTrue(scc.commute(HGate(), [0], [], evo_xz, [0], []))
+
+    def test_light_cone_index_out_of_bounds(self):
+        """Test scanning a circuit with dispersed indices does not panic.
+        See https://github.com/Qiskit/qiskit/issues/15021
+        """
+        qc = QuantumCircuit(18)
+        qc.rx(np.pi / 3, range(0, qc.num_qubits))
+        bit_terms = "ZZZZZZZZZ"
+        indices = [0, 1, 2, 3, 4, 9, 10, 12, 13]
+        pm = PassManager(
+            [
+                LightCone(
+                    bit_terms=bit_terms,
+                    indices=indices,
+                )
+            ]
+        )
+        # This should not raise a PanicException or IndexError
+        reduced_circ = pm.run(qc)
+
+        expected_qc = QuantumCircuit(18)
+        # RX gates on the measured indices do not commute with Z, so they should remain.
+        # RX gates on other qubits commute with Identity (implied by observable), so they are removed.
+        expected_qc.rx(np.pi / 3, indices)
+
+        self.assertEqual(reduced_circ, expected_qc)
 
 
 def build_pauli_gate(pauli_string: str, gate_type: str) -> Gate:
