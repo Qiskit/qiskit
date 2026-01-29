@@ -12,6 +12,9 @@
 
 # pylint: disable=wrong-import-position,wrong-import-order
 
+# The documentation of the root namespace is manual in `docs/apidoc/root.rst`, so that the
+# :mod:`qiskit` Sphinx cross-reference can more easily point to the top-level API table in our
+# documentation build.
 """Main Qiskit public functionality."""
 
 import importlib.metadata
@@ -138,6 +141,7 @@ sys.modules["qiskit._accelerate.unroll_3q_or_more"] = _accelerate.unroll_3q_or_m
 sys.modules["qiskit._accelerate.substitute_pi4_rotations"] = _accelerate.substitute_pi4_rotations
 sys.modules["qiskit._accelerate.pbc_transformation"] = _accelerate.pbc_transformation
 
+
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 
 # The main qiskit operators
@@ -159,6 +163,9 @@ from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from .version import __version__
 
 
+# The Qiskit repo root is documented manually in `docs/apidoc/root.rst`.  Make sure that all
+# re-exports in `__all__` and any functions/objects defined in-line in this file and intended to be
+# exported to users at the `qiskit.` root are documented in that file.
 __all__ = [
     "AncillaRegister",
     "ClassicalRegister",

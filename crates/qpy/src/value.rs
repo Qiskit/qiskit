@@ -663,7 +663,7 @@ pub(crate) fn get_circuit_type_key(op: &PackedOperation) -> PyResult<CircuitInst
         | OperationRef::PauliProductMeasurement(_) => Ok(CircuitInstructionType::Instruction),
         OperationRef::Unitary(_) => Ok(CircuitInstructionType::Gate),
         OperationRef::Gate(pygate) => Python::attach(|py| {
-            let gate = pygate.gate.bind(py);
+            let gate = pygate.instruction.bind(py);
             if gate.is_instance(imports::PAULI_EVOLUTION_GATE.get_bound(py))? {
                 Ok(CircuitInstructionType::PauliEvolutionGate)
             } else if gate.is_instance(imports::CONTROLLED_GATE.get_bound(py))? {
@@ -674,7 +674,7 @@ pub(crate) fn get_circuit_type_key(op: &PackedOperation) -> PyResult<CircuitInst
         }),
         OperationRef::Operation(operation) => Python::attach(|py| {
             if operation
-                .operation
+                .instruction
                 .bind(py)
                 .is_instance(imports::ANNOTATED_OPERATION.get_bound(py))?
             {
