@@ -35,7 +35,7 @@ use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::imports;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
-    ArrayType, BoxDuration, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction,
+    ArrayType, InstructionDuration, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction,
     Operation, OperationRef, Param, PauliProductMeasurement, PyInstruction, StandardGate,
     StandardInstruction, SwitchTarget, UnitaryGate,
 };
@@ -353,8 +353,8 @@ fn pack_control_flow_inst(
             let duration_param = match duration {
                 None => GenericValue::Null,
                 Some(box_duration) => match box_duration {
-                    BoxDuration::Duration(duration) => GenericValue::Duration(duration),
-                    BoxDuration::Expr(exp) => GenericValue::Expression(exp),
+                    InstructionDuration::Duration(duration) => GenericValue::Duration(duration),
+                    InstructionDuration::Expr(exp) => GenericValue::Expression(exp),
                 },
             };
             let mut params = Vec::new();

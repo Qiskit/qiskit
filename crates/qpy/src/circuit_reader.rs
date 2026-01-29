@@ -38,7 +38,7 @@ use qiskit_circuit::interner::Interned;
 use qiskit_circuit::operations::ArrayType;
 use qiskit_circuit::operations::UnitaryGate;
 use qiskit_circuit::operations::{
-    BoxDuration, CaseSpecifier, Condition, StandardInstructionType, SwitchTarget,
+    InstructionDuration, CaseSpecifier, Condition, StandardInstructionType, SwitchTarget,
 };
 use qiskit_circuit::operations::{
     ControlFlow, ControlFlowInstruction, ControlFlowType, Param, PauliProductMeasurement,
@@ -455,8 +455,8 @@ fn unpack_control_flow(
                 ));
             };
             let duration = match duration_value {
-                GenericValue::Duration(duration) => Some(BoxDuration::Duration(duration)),
-                GenericValue::Expression(exp) => Some(BoxDuration::Expr(exp.clone())),
+                GenericValue::Duration(duration) => Some(InstructionDuration::Duration(duration)),
+                GenericValue::Expression(exp) => Some(InstructionDuration::Expr(exp.clone())),
                 _ => None,
             };
             let annotations = unpack_annotations(&instruction.annotations, qpy_data)?;
