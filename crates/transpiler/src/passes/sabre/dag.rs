@@ -19,7 +19,7 @@ use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
 use qiskit_circuit::operations::ControlFlowView;
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::{Qubit, VirtualQubit};
+use qiskit_circuit::{Block, Qubit, VirtualQubit};
 
 /// The type of a node in the Sabre interactions graph.
 #[derive(Clone, Debug)]
@@ -33,18 +33,21 @@ pub enum InteractionKind {
     /// A two-qubit interaction.  This is the principal component that we're concerned with.
     TwoQ([VirtualQubit; 2]),
     /// A control-flow operation on more than two qubits.  If it's only on a single qubit, it'll be
-    /// handled by `Synchronize`.  If it's on 2q, it'll be handled by `TwoQ`.  We need to store both
-    /// the Sabre version and the DAG representation of the block, so we can reconstruct things
-    /// later.  When control-flow ops are represented with native DAGs, we won't need to store the
-    /// temporary.
-    ControlFlow(Box<[(SabreDAG, DAGCircuit)]>),
+    /// handled by `Synchronize`.  If it's on 2q, it'll be handled by `TwoQ`.  We store the
+    /// Sabre version and the ID of the block, so we can retrieve the inner DAG and reconstruct things
+    /// later.
+    ControlFlow(Box<[(SabreDAG, Block)]>),
 }
 impl InteractionKind {
-    fn from_control_flow(cf: ControlFlowView<DAGCircuit>) -> Result<Self, SabreDAGError> {
+    fn from_control_flow(
+        cf: ControlFlowView<DAGCircuit>,
+        block_ids: impl Iterator<Item = Block>,
+    ) -> Result<Self, SabreDAGError> {
         let blocks: Box<[_]> = cf
             .blocks()
             .into_iter()
-            .map(|dag| Ok((SabreDAG::from_dag(dag)?, dag.clone())))
+            .zip(block_ids)
+            .map(|(dag, id)| Ok((SabreDAG::from_dag(dag)?, id)))
             .collect::<Result<_, SabreDAGError>>()?;
         Ok(Self::ControlFlow(blocks))
     }
@@ -159,7 +162,7 @@ impl SabreDAG {
                 panic!("op nodes should always be of type `Operation`");
             };
             let kind = if let Some(cf) = dag.try_view_control_flow(inst) {
-                InteractionKind::from_control_flow(cf)?
+                InteractionKind::from_control_flow(cf, inst.blocks_view().iter().copied())?
             } else {
                 InteractionKind::from_op(&inst.op, dag.get_qargs(inst.qubits))?
             };
