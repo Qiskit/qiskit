@@ -334,7 +334,7 @@ fn generate_pauli_evolution_gate(
 #[pyfunction]
 #[pyo3(name = "pbc_transformation")]
 pub fn py_pbc_transformation(py: Python, dag: &mut DAGCircuit) -> PyResult<DAGCircuit> {
-    let mut new_dag = dag.copy_empty_like_with_capacity(0, 0, VarsMode::Alike, BlocksMode::Keep)?;
+    let mut new_dag = dag.copy_empty_like(VarsMode::Alike, BlocksMode::Drop)?;
     let py_evo_cls = PAULI_EVOLUTION_GATE.get_bound(py);
 
     // Iterate over nodes in the DAG and collect nodes
