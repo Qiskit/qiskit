@@ -21,6 +21,7 @@ mod qubit_properties;
 pub use errors::TargetError;
 pub use instruction_properties::InstructionProperties;
 pub use qargs::{Qargs, QargsRef};
+use qiskit_circuit::operations::StandardGate;
 pub use qubit_properties::QubitProperties;
 
 use std::{ops::Index, sync::OnceLock};
@@ -32,7 +33,7 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use pyo3::{
     IntoPyObjectExt,
-    exceptions::{PyAttributeError, PyIndexError, PyKeyError, PyValueError},
+    exceptions::{PyAttributeError, PyIndexError, PyKeyError},
     prelude::*,
     pyclass,
     types::{PyDict, PyList, PySet},
@@ -280,9 +281,9 @@ impl Target {
         qubit_properties = None,
         concurrent_measurements = None,
     ))]
-    pub fn new(
+    pub fn py_new(
         description: Option<String>,
-        mut num_qubits: Option<u32>,
+        num_qubits: Option<u32>,
         dt: Option<f64>,
         granularity: Option<u32>,
         min_length: Option<u32>,
@@ -291,34 +292,18 @@ impl Target {
         qubit_properties: Option<Vec<QubitProperties>>,
         concurrent_measurements: Option<Vec<Vec<PhysicalQubit>>>,
     ) -> PyResult<Self> {
-        if let Some(qubit_properties) = qubit_properties.as_ref() {
-            if num_qubits.is_some_and(|num_qubits| num_qubits > 0) {
-                if num_qubits.unwrap() as usize != qubit_properties.len() {
-                    return Err(PyValueError::new_err(
-                        "The value of num_qubits specified does not match the \
-                            length of the input qubit_properties list",
-                    ));
-                }
-            } else {
-                num_qubits = Some(qubit_properties.len() as u32)
-            }
-        }
-        Ok(Target {
+        Target::new(
             description,
             num_qubits,
             dt,
-            granularity: granularity.unwrap_or(1),
-            min_length: min_length.unwrap_or(1),
-            pulse_alignment: pulse_alignment.unwrap_or(1),
-            acquire_alignment: acquire_alignment.unwrap_or(1),
+            granularity,
+            min_length,
+            pulse_alignment,
+            acquire_alignment,
             qubit_properties,
             concurrent_measurements,
-            gate_map: GateMap::default(),
-            _gate_name_map: IndexMap::default(),
-            global_operations: IndexMap::default(),
-            qarg_gate_map: IndexMap::default(),
-            angle_bounds: HashMap::new(),
-        })
+        )
+        .map_err(|e| e.into())
     }
 
     /// Add a new instruction to the `Target` after it has been processed in python.
@@ -905,10 +890,63 @@ impl Target {
             Ok(self.angle_bounds[name].angles_supported(&angles))
         }
     }
+
+    #[staticmethod]
+    #[pyo3(name = "build_clifford_t")]
+    pub fn py_build_clifford_t(
+        num_qubits: u32,
+        edges: Option<Vec<(u32, u32)>>,
+        description: Option<String>,
+    ) -> PyResult<Self> {
+        Self::build_clifford_t(num_qubits, edges.as_deref(), description).map_err(|e| e.into())
+    }
 }
 
 // Rust native methods
 impl Target {
+    pub fn new(
+        description: Option<String>,
+        num_qubits: Option<u32>,
+        dt: Option<f64>,
+        granularity: Option<u32>,
+        min_length: Option<u32>,
+        pulse_alignment: Option<u32>,
+        acquire_alignment: Option<u32>,
+        qubit_properties: Option<Vec<QubitProperties>>,
+        concurrent_measurements: Option<Vec<Vec<PhysicalQubit>>>,
+    ) -> Result<Self, TargetError> {
+        // If num_qubits and qubit_properties are given, check they are consistent
+        if let Some(qubit_properties) = qubit_properties.as_ref() {
+            if let Some(num_qubits) = num_qubits {
+                if num_qubits > 0 && num_qubits as usize != qubit_properties.len() {
+                    return Err(TargetError::NumQubitsMismatch {
+                        num_qubits,
+                        num_props: qubit_properties.len(),
+                    });
+                }
+            }
+        };
+
+        // Set the number of qubits to the properties map length, if it is given
+        let num_qubits = num_qubits.or(qubit_properties.as_ref().map(|prop| prop.len() as u32));
+
+        Ok(Target {
+            description,
+            num_qubits,
+            dt,
+            granularity: granularity.unwrap_or(1),
+            min_length: min_length.unwrap_or(1),
+            pulse_alignment: pulse_alignment.unwrap_or(1),
+            acquire_alignment: acquire_alignment.unwrap_or(1),
+            qubit_properties,
+            concurrent_measurements,
+            gate_map: GateMap::default(),
+            _gate_name_map: IndexMap::default(),
+            global_operations: IndexMap::default(),
+            qarg_gate_map: IndexMap::default(),
+            angle_bounds: HashMap::new(),
+        })
+    }
     /// Adds a [PackedOperation] to the [Target].
     ///
     /// Said addition results in a [NormalOperation] in the [Target] as variadics
@@ -1610,6 +1648,78 @@ impl Target {
     /// Retrieves a gate location in the gate map by index
     pub fn get_op_by_index(&self, index: usize) -> Option<&TargetOperation> {
         self._gate_name_map.get_index(index).map(|(_, op)| op)
+    }
+
+    /// Constructor for Clifford+T basis gate sets.
+    pub fn build_clifford_t(
+        num_qubits: u32,
+        edges: Option<&[(u32, u32)]>,
+        description: Option<String>,
+    ) -> Result<Self, TargetError> {
+        let mut target = Self::new(
+            description,
+            Some(num_qubits),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        )?;
+        let single_qubit: [PackedOperation; 11] = [
+            StandardGate::T.into(),
+            StandardGate::Tdg.into(),
+            StandardGate::I.into(),
+            StandardGate::X.into(),
+            StandardGate::Y.into(),
+            StandardGate::Z.into(),
+            StandardGate::H.into(),
+            StandardGate::S.into(),
+            StandardGate::Sdg.into(),
+            StandardGate::SX.into(),
+            StandardGate::SXdg.into(),
+        ];
+        let two_qubit: [PackedOperation; 7] = [
+            StandardGate::CX.into(),
+            StandardGate::CY.into(),
+            StandardGate::CZ.into(),
+            StandardGate::Swap.into(),
+            StandardGate::ISwap.into(),
+            StandardGate::ECR.into(),
+            StandardGate::DCX.into(),
+        ];
+
+        for packed_gate in single_qubit {
+            let props = (0..num_qubits)
+                .map(|i| ([PhysicalQubit(i)].into(), None))
+                .collect();
+
+            target.add_instruction(packed_gate, None, None, Some(props))?;
+        }
+
+        for packed_gate in two_qubit {
+            let props: PropsMap = match edges {
+                Some(edges) => edges
+                    .iter()
+                    .map(|(i, j)| ([PhysicalQubit(*i), PhysicalQubit(*j)].into(), None))
+                    .collect(),
+                None => (0..num_qubits)
+                    .flat_map(|i| {
+                        (i..num_qubits).flat_map(move |j| {
+                            [
+                                ([PhysicalQubit(i), PhysicalQubit(j)].into(), None),
+                                ([PhysicalQubit(j), PhysicalQubit(i)].into(), None),
+                            ]
+                        })
+                    })
+                    .collect(),
+            };
+
+            target.add_instruction(packed_gate, None, None, Some(props))?;
+        }
+
+        Ok(target)
     }
 }
 

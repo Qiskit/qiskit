@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use pyo3::exceptions::PyValueError;
 use thiserror::Error;
 
 /// A collection of the Errors possible in the [Target].
@@ -28,6 +29,8 @@ pub enum TargetError {
         instruction: String,
         arguments: String,
     },
+    #[error["The number of qubits ({num_qubits}) does not match the nuber of qubit properties ({num_props})"]]
+    NumQubitsMismatch { num_qubits: u32, num_props: usize },
     #[error(
         "The number of parameters for {instruction}: {instruction_num} does not match the provided number of parameters: {argument_num}."
     )]
@@ -54,6 +57,9 @@ pub enum TargetError {
 
 impl From<TargetError> for ::pyo3::PyErr {
     fn from(val: TargetError) -> Self {
-        crate::TranspilerError::new_err(val.to_string())
+        match val {
+            TargetError::NumQubitsMismatch { .. } => PyValueError::new_err(val.to_string()),
+            _ => crate::TranspilerError::new_err(val.to_string()),
+        }
     }
 }
