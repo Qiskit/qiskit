@@ -20,3 +20,4 @@ from .solovay_kitaev_synthesis import SolovayKitaev, SolovayKitaevSynthesis
 from .ross_selinger_plugin import RossSelingerSynthesis
 from .clifford_unitary_synth_plugin import CliffordUnitarySynthesis
 from .aqc_plugin import AQCSynthesisPlugin
+from .rz_synthesis import RZSynthesis
