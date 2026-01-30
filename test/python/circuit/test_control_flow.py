@@ -18,6 +18,7 @@ import math
 from ddt import ddt, data, unpack, idata
 
 from qiskit.circuit import Clbit, ClassicalRegister, Instruction, Parameter, QuantumCircuit, Qubit
+from qiskit import transpile
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.controlflow import CASE_DEFAULT, condition_resources, node_resources
 from qiskit.circuit.library import XGate, RXGate
@@ -1281,3 +1282,17 @@ class TestAddingControlFlowOperations(QiskitTestCase):
             )
         with self.assertRaisesRegex(CircuitError, "not in this circuit"):
             outer.append(BoxOp(inner.copy()), [0], [0])
+
+    def test_transpiling_with_control_flow(self):
+        """Test we don't run into compilation errors when transpiling circuits with control flows"""
+        qc = QuantumCircuit(1, 1)
+
+        with qc.for_loop(range(1000)):
+            qc.h(0)
+            qc.measure(0, 0)
+            with qc.if_test((0, False)):
+                qc.continue_loop()
+            qc.break_loop()
+
+        transpiled = transpile(qc)
+        self.assertIsNotNone(transpiled)
