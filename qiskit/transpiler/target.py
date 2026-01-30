@@ -42,6 +42,7 @@ from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.timing_constraints import TimingConstraints
+from qiskit.quantum_info import get_clifford_gate_names
 
 # import QubitProperties here to provide convenience alias for building a
 # full target
@@ -956,6 +957,13 @@ class Target(BaseTarget):
             for gate in global_ideal_variable_width_gates:
                 target.add_instruction(name_mapping[gate], name=gate)
         return target
+
+    @classmethod
+    def build_clifford_t(
+        cls, num_qubits: int | None, coupling_map: CouplingMap | None = None
+    ) -> Target:
+        basis_gates = get_clifford_gate_names() + ["t", "tdg"]
+        return Target.from_configuration(basis_gates, num_qubits, coupling_map)
 
 
 Mapping.register(Target)
