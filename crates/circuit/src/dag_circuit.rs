@@ -3744,7 +3744,12 @@ impl DAGCircuit {
             .node_references()
             .filter_map(|(node_index, node_type)| match node_type {
                 NodeType::Operation(node) => {
-                    if node.op.try_control_flow().is_some() {
+                    if node.op.try_control_flow().is_some_and(|control_flow| {
+                        !matches!(
+                            control_flow.control_flow,
+                            ControlFlow::BreakLoop | ControlFlow::ContinueLoop
+                        )
+                    }) {
                         Some(self.unpack_into(py, node_index, node_type))
                     } else {
                         None
