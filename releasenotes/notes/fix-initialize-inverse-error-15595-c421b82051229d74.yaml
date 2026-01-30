@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixed a bug where calling :meth:`.QuantumCircuit.inverse` on a circuit containing
+    :meth:`.QuantumCircuit.initialize` would raise a misleading internal error about invalid
+    parameter types instead of a clear :class:`.CircuitError`. The :class:`.Initialize`
+    instruction is now properly detected as non-invertible and raises :class:`.CircuitError`
+    with an informative error message early, similar to how :class:`.Reset` behaves.
+    Fixed `#15595 <https://github.com/Qiskit/qiskit/issues/15595>`__.
+
