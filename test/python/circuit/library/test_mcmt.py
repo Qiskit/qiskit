@@ -18,13 +18,18 @@ from itertools import repeat
 from ddt import ddt, data, unpack
 import numpy as np
 
+from qiskit.exceptions import QiskitError
 from qiskit.compiler import transpile
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Parameter
 from qiskit.circuit.library import (
+    MCMT,
+    MCMTVChain,
+    CHGate,
     XGate,
     ZGate,
-    HGate,
     RYGate,
+    CXGate,
+    CZGate,
     MCMTGate,
     GlobalPhaseGate,
     SwapGate,
@@ -44,12 +49,13 @@ from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
 class TestMCMT(QiskitTestCase):
     """Test the multi-controlled multi-target circuit."""
 
-    def test_mcmt_as_normal_control(self):
+    @data(MCMT, MCMTVChain)
+    def test_mcmt_as_normal_control(self, mcmt_class):
         """Test that the MCMT can act as normal control gate."""
-        mcmt = MCMTGate(gate=HGate(), num_ctrl_qubits=1, num_target_qubits=1)
-
         qc = QuantumCircuit(2)
-        qc.append(mcmt, [0, 1])
+        with self.assertWarns(DeprecationWarning):
+            mcmt = mcmt_class(gate=CHGate(), num_ctrl_qubits=1, num_target_qubits=1)
+        qc = qc.compose(mcmt, [0, 1])
 
         ref = QuantumCircuit(2)
         ref.ch(0, 1)
@@ -62,22 +68,54 @@ class TestMCMT(QiskitTestCase):
     def test_missing_qubits(self):
         """Test that an error is raised if qubits are missing."""
         with self.subTest(msg="no control qubits"):
-            with self.assertRaises(ValueError):
-                _ = MCMTGate(XGate(), num_ctrl_qubits=0, num_target_qubits=1)
+            with self.assertWarns(DeprecationWarning):
+                with self.assertRaises(AttributeError):
+                    _ = MCMT(XGate(), num_ctrl_qubits=0, num_target_qubits=1)
 
         with self.subTest(msg="no target qubits"):
-            with self.assertRaises(ValueError):
-                _ = MCMTGate(ZGate(), num_ctrl_qubits=4, num_target_qubits=0)
+            with self.assertWarns(DeprecationWarning):
+                with self.assertRaises(AttributeError):
+                    _ = MCMT(ZGate(), num_ctrl_qubits=4, num_target_qubits=0)
+
+    def test_different_gate_types(self):
+        """Test the different supported input types for the target gate."""
+        x_circ = QuantumCircuit(1)
+        x_circ.x(0)
+        for input_gate in [x_circ, QuantumCircuit.cx, QuantumCircuit.x, "cx", "x", CXGate()]:
+            with self.subTest(input_gate=input_gate):
+                with self.assertWarns(DeprecationWarning):
+                    mcmt = MCMT(input_gate, 2, 2)
+                if isinstance(input_gate, QuantumCircuit):
+                    self.assertEqual(mcmt.gate.definition[0].operation, XGate())
+                    self.assertEqual(len(mcmt.gate.definition), 1)
+                else:
+                    self.assertEqual(mcmt.gate, XGate())
+
+    def test_mcmt_v_chain_ancilla_test(self):
+        """Test too few and too many ancillas for the MCMT V-chain mode."""
+        with self.subTest(msg="insufficient number of auxiliary qubits on gate"):
+            qc = QuantumCircuit(5)
+            with self.assertWarns(DeprecationWarning):
+                mcmt = MCMTVChain(ZGate(), 3, 1)
+            with self.assertRaises(QiskitError):
+                qc.append(mcmt, range(5))
+
+        with self.subTest(msg="too many auxiliary qubits on gate"):
+            qc = QuantumCircuit(9)
+            with self.assertWarns(DeprecationWarning):
+                mcmt = MCMTVChain(ZGate(), 3, 1)
+            with self.assertRaises(QiskitError):
+                qc.append(mcmt, range(9))
 
     @data(
-        [ZGate(), 1, 1],
-        [HGate(), 1, 1],
-        [ZGate(), 3, 3],
-        [HGate(), 3, 3],
-        [ZGate(), 1, 5],
-        [HGate(), 1, 5],
-        [ZGate(), 5, 1],
-        [HGate(), 5, 1],
+        [CZGate(), 1, 1],
+        [CHGate(), 1, 1],
+        [CZGate(), 3, 3],
+        [CHGate(), 3, 3],
+        [CZGate(), 1, 5],
+        [CHGate(), 1, 5],
+        [CZGate(), 5, 1],
+        [CHGate(), 5, 1],
     )
     @unpack
     def test_mcmt_v_chain_simulation(self, cgate, num_controls, num_targets):
@@ -93,17 +131,21 @@ class TestMCMT(QiskitTestCase):
             # on a 0 state)
             qc.x(targets)
 
-            # Ensure the circuit has enough ancillas for the V-chain decomposition
             num_ancillas = max(0, num_controls - 1)
+
             if num_ancillas > 0:
                 ancillas = QuantumRegister(num_ancillas)
                 qc.add_register(ancillas)
+                qubits = controls[:] + targets[:] + ancillas[:]
+            else:
+                qubits = controls[:] + targets[:]
 
             for i in subset:
                 qc.x(controls[i])
 
-            mcmt = MCMTGate(cgate, num_controls, num_targets)
-            qc.append(mcmt, controls[:] + targets[:])
+            with self.assertWarns(DeprecationWarning):
+                mcmt = MCMTVChain(cgate, num_controls, num_targets)
+            qc.compose(mcmt, qubits, inplace=True)
 
             for i in subset:
                 qc.x(controls[i])
@@ -113,11 +155,11 @@ class TestMCMT(QiskitTestCase):
             # target register is initially |11...1>, with length equal to 2**(n_targets)
             vec_exp = np.array([0] * (2 ** (num_targets) - 1) + [1])
 
-            if isinstance(cgate, ZGate):
+            if isinstance(cgate, CZGate):
                 # Z gate flips the last qubit only if it's applied an odd number of times
                 if len(subset) == num_controls and (num_controls % 2) == 1:
                     vec_exp[-1] = -1
-            elif isinstance(cgate, HGate):
+            elif isinstance(cgate, CHGate):
                 # if all the control qubits have been activated,
                 # we repeatedly apply the kronecker product of the Hadamard
                 # with itself and then multiply the results for the original
@@ -276,6 +318,20 @@ class TestMCMT(QiskitTestCase):
         self.assertEqual(circuit.count_ops().get("cry", 0), num_target)
         self.assertEqual(circuit.num_parameters, 1)
         self.assertEqual(circuit.parameters[0], theta)
+
+    def test_mcmt_circuit_as_gate(self):
+        """Test the MCMT plugin is only triggered for the gate, not the same-named circuit.
+
+        Regression test of #13563.
+        """
+        circuit = QuantumCircuit(2)
+        gate = RYGate(0.1)
+        with self.assertWarns(DeprecationWarning):
+            mcmt = MCMT(gate=gate, num_ctrl_qubits=1, num_target_qubits=1)
+        circuit.append(mcmt, circuit.qubits)  # append the MCMT circuit as gate called "MCMT"
+
+        transpiled = transpile(circuit, basis_gates=["u", "cx"])
+        self.assertEqual(Operator(transpiled), Operator(gate.control(1, annotated=False)))
 
 
 if __name__ == "__main__":

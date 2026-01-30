@@ -78,8 +78,8 @@ test_randomized:
 	python3 -m unittest discover -s test/randomized -t . -v
 
 coverage:
-	coverage3 run --source qiskit -m unittest discover -s test/python -q
-	coverage3 report
+	coverage run --source qiskit -m unittest discover -s test/python -q
+	coverage report
 
 coverage_erase:
 	coverage erase

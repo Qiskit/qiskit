@@ -145,7 +145,7 @@ fn try_extract_op_from_pauli_gate(
     // In that case we return None.
     Python::attach(|py| {
         let py_obs = gate
-            .gate
+            .instruction
             .call_method0(py, intern!(py, "_extract_sparse_observable"))
             .ok()? // Return None if the method didn't exist
             .cast_bound::<PySparseObservable>(py)
@@ -170,7 +170,7 @@ fn try_extract_op_from_pauli_evo(
 
     Python::attach(|py| {
         let py_obs = gate
-            .gate
+            .instruction
             .call_method0(py, intern!(py, "_extract_sparse_observable"))
             .ok()? // Return None if the method didn't exist
             .cast_bound::<PySparseObservable>(py)
@@ -825,7 +825,7 @@ pub fn try_matrix_with_definition(
             Some(
                 QI_OPERATOR
                     .get_bound(py)
-                    .call1((gate.gate.clone_ref(py),))
+                    .call1((gate.instruction.clone_ref(py),))
                     .ok()?
                     .getattr(intern!(py, "data"))
                     .ok()?
@@ -845,7 +845,7 @@ pub fn try_matrix_with_definition(
             Some(
                 QI_OPERATOR
                     .get_bound(py)
-                    .call1((operation.operation.clone_ref(py),))
+                    .call1((operation.instruction.clone_ref(py),))
                     .ok()?
                     .getattr(intern!(py, "data"))
                     .ok()?

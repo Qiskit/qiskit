@@ -676,7 +676,7 @@ fn get_2q_decomposers(
                         RXXEquivalent::Standard(standard)
                     }
                     OperationRef::Gate(gate) => Python::attach(|py| {
-                        RXXEquivalent::CustomPython(gate.gate.bind(py).get_type().unbind())
+                        RXXEquivalent::CustomPython(gate.instruction.bind(py).get_type().unbind())
                     }),
                     _ => continue,
                 };

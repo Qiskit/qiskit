@@ -18,7 +18,7 @@ use crate::bit::{ShareableClbit, ShareableQubit};
 use crate::circuit_data::{CircuitData, CircuitDataError, CircuitVar};
 use crate::dag_circuit::DAGIdentifierInfo;
 use crate::dag_circuit::{DAGCircuit, NodeType};
-use crate::operations::{OperationRef, PythonOperation};
+use crate::operations::{OperationRef, PyOperationTypes, PythonOperation};
 use crate::{Clbit, Qubit};
 
 /// An extractable representation of a QuantumCircuit reserved only for
@@ -134,13 +134,20 @@ pub fn dag_to_circuit(
                 let op = match instr.op.view() {
                     OperationRef::ControlFlow(cf) => cf.clone().into(),
                     OperationRef::Gate(gate) => {
-                        Python::attach(|py| gate.py_deepcopy(py, None))?.into()
+                        PyOperationTypes::Gate(Python::attach(|py| gate.py_deepcopy(py, None))?)
+                            .into()
                     }
                     OperationRef::Instruction(instruction) => {
-                        Python::attach(|py| instruction.py_deepcopy(py, None))?.into()
+                        PyOperationTypes::Instruction(Python::attach(|py| {
+                            instruction.py_deepcopy(py, None)
+                        })?)
+                        .into()
                     }
                     OperationRef::Operation(operation) => {
-                        Python::attach(|py| operation.py_deepcopy(py, None))?.into()
+                        PyOperationTypes::Operation(Python::attach(|py| {
+                            operation.py_deepcopy(py, None)
+                        })?)
+                        .into()
                     }
                     OperationRef::StandardGate(gate) => gate.into(),
                     OperationRef::StandardInstruction(instruction) => instruction.into(),

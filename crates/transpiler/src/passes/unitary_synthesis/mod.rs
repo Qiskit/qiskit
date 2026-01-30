@@ -28,7 +28,9 @@ use crate::target::Target;
 use qiskit_circuit::bit::QuantumRegister;
 use qiskit_circuit::dag_circuit::{DAGCircuit, DAGCircuitBuilder};
 use qiskit_circuit::instruction::Parameters;
-use qiskit_circuit::operations::{Operation, OperationRef, Param, PythonOperation, StandardGate};
+use qiskit_circuit::operations::{
+    Operation, OperationRef, Param, PyOperationTypes, PythonOperation, StandardGate,
+};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::{BlocksMode, PhysicalQubit, Qubit, VarsMode};
 use qiskit_synthesis::euler_one_qubit_decomposer::unitary_to_gate_sequence_inner;
@@ -545,9 +547,12 @@ fn synthesize_2q_matrix_onto(
         let op = match gate.view() {
             OperationRef::StandardGate(gate) => PackedOperation::from(gate),
             OperationRef::Gate(py_gate) => Python::attach(|py| -> PyResult<_> {
-                let py_gate = Box::new(py_gate.py_copy(py)?);
-                py_gate.gate.setattr(py, intern!(py, "params"), params)?;
-                Ok(PackedOperation::from(py_gate))
+                let gate = py_gate.py_copy(py)?;
+                gate.instruction
+                    .setattr(py, intern!(py, "params"), params)?;
+                Ok(PackedOperation::from(Box::new(PyOperationTypes::Gate(
+                    gate,
+                ))))
             })?,
             _ => panic!("internal logic error: decomposed sequence contains a non-gate"),
         };
