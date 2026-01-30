@@ -12,8 +12,6 @@
 
 """iSWAP gate."""
 
-from typing import Optional
-
 import numpy as np
 
 from qiskit.circuit.singleton import SingletonGate, stdlib_singleton_key
@@ -87,7 +85,7 @@ class iSwapGate(SingletonGate):
 
     _standard_gate = StandardGate.ISwap
 
-    def __init__(self, label: Optional[str] = None):
+    def __init__(self, label: str | None = None):
         """
         Args:
             label: An optional label for the gate.

@@ -11,9 +11,11 @@
 # that they have been altered from the originals.
 
 """One-pulse single-qubit gate."""
+
+from __future__ import annotations
+
 from math import sqrt, pi
 from cmath import exp
-from typing import Optional
 import numpy
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
@@ -90,7 +92,7 @@ class U2Gate(Gate):
         self,
         phi: ParameterValueType,
         lam: ParameterValueType,
-        label: Optional[str] = None,
+        label: str | None = None,
     ):
         r"""
         Args:

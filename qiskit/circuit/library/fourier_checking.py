@@ -59,8 +59,7 @@ class FourierChecking(QuantumCircuit):
         removal_timeline="in Qiskit 3.0",
     )
     def __init__(self, f: Sequence[int], g: Sequence[int]) -> None:
-        """Create Fourier checking circuit.
-
+        """
         Args:
             f: truth table for f, length 2**n list of {1,-1}.
             g: truth table for g, length 2**n list of {1,-1}.

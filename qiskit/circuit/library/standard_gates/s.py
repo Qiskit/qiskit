@@ -14,8 +14,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 import numpy
 
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
@@ -60,7 +58,7 @@ class SGate(SingletonGate):
 
     _standard_gate = StandardGate.S
 
-    def __init__(self, label: Optional[str] = None):
+    def __init__(self, label: str | None = None):
         """
         Args:
             label: An optional label for the gate.
@@ -178,7 +176,7 @@ class SdgGate(SingletonGate):
 
     _standard_gate = StandardGate.Sdg
 
-    def __init__(self, label: Optional[str] = None):
+    def __init__(self, label: str | None = None):
         """
         Args:
             label: An optional label for the gate.
@@ -301,7 +299,11 @@ class CSGate(SingletonControlledGate):
         *,
         _base_label=None,
     ):
-        """Create new CS gate."""
+        """
+        Args:
+            label: An optional label for the gate.
+            ctrl_state: The control state for the control qubit. Defaults to 1.
+        """
         super().__init__(
             "cs",
             2,
@@ -392,7 +394,11 @@ class CSdgGate(SingletonControlledGate):
         *,
         _base_label=None,
     ):
-        """Create new CSdg gate."""
+        """
+        Args:
+            label: An optional label for the gate.
+            ctrl_state: The control state for the control qubit. Defaults to 1.
+        """
         super().__init__(
             "csdg",
             2,

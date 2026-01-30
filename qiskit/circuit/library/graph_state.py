@@ -65,8 +65,7 @@ class GraphState(QuantumCircuit):
         removal_timeline="in Qiskit 3.0",
     )
     def __init__(self, adjacency_matrix: list | np.ndarray) -> None:
-        """Create graph state preparation circuit.
-
+        """
         Args:
             adjacency_matrix: input graph as n-by-n list of 0-1 lists
 
