@@ -136,7 +136,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_gate_direction(
 ///    qk_dag_add_quantum_register(dag, qr);
 ///    qk_dag_apply_gate(dag, QkGate_CX, (uint32_t[]){1,0}, NULL, false);
 ///
-///    bool direction_ok = qk_dag_transpiler_pass_standalone_check_gate_direction(dag, target);
+///    bool direction_ok = qk_transpiler_pass_check_gate_direction(dag, target);
 /// ```
 ///
 /// # Safety
@@ -144,7 +144,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_gate_direction(
 /// Behavior is undefined if ``dag`` or ``target`` are not valid, non-null pointers to ``QkDag`` and ``QkTarget`` objects, respectively.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_dag_transpiler_pass_standalone_check_gate_direction(
+pub unsafe extern "C" fn qk_transpiler_pass_check_gate_direction(
     dag: *const DAGCircuit,
     target: *const Target,
 ) -> bool {
@@ -181,7 +181,7 @@ pub unsafe extern "C" fn qk_dag_transpiler_pass_standalone_check_gate_direction(
 ///    qk_dag_add_quantum_register(dag, qr);
 ///    qk_dag_apply_gate(dag, QkGate_CX, (uint32_t[]){1,0}, NULL, false);  
 ///
-///    qk_dag_transpiler_pass_standalone_gate_direction(dag, target);
+///    qk_transpiler_pass_gate_direction(dag, target);
 /// ```
 ///
 /// # Safety
@@ -189,7 +189,7 @@ pub unsafe extern "C" fn qk_dag_transpiler_pass_standalone_check_gate_direction(
 /// Behavior is undefined if ``dag`` or ``target`` are not valid, non-null pointers to ``QkDag`` and ``QkTarget`` objects, respectively.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_dag_transpiler_pass_standalone_gate_direction(
+pub unsafe extern "C" fn qk_transpiler_pass_gate_direction(
     dag: *mut DAGCircuit,
     target: *const Target,
 ) {

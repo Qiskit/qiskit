@@ -57,7 +57,7 @@ use qiskit_transpiler::{passes::run_optimize_1q_gates_decomposition, target::Tar
 ///     }
 ///
 ///     // Run transpiler pass
-///     qk_transpiler_standalone_optimize_1q_sequences(circuit, target);
+///     qk_transpiler_pass_standalone_optimize_1q_sequences(circuit, target);
 ///
 ///     // Clean up
 ///     qk_target_free(target);
@@ -69,7 +69,7 @@ use qiskit_transpiler::{passes::run_optimize_1q_gates_decomposition, target::Tar
 /// if ``target`` is not a valid pointer to a ``QkTarget``.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_transpiler_standalone_optimize_1q_sequences(
+pub unsafe extern "C" fn qk_transpiler_pass_standalone_optimize_1q_sequences(
     circuit: *mut CircuitData,
     target: *const Target,
 ) {
@@ -143,7 +143,7 @@ pub unsafe extern "C" fn qk_transpiler_standalone_optimize_1q_sequences(
 ///     }
 ///
 ///     // Run transpiler pass
-///     qk_dag_transpiler_standalone_optimize_1q_sequences(circuit, target);
+///     qk_transpiler_pass_optimize_1q_sequences(dag, target);
 ///
 ///     // Clean up
 ///     qk_target_free(target);
@@ -156,7 +156,7 @@ pub unsafe extern "C" fn qk_transpiler_standalone_optimize_1q_sequences(
 /// if ``target`` is not a valid pointer to a ``QkTarget``.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_dag_transpiler_standalone_optimize_1q_sequences(
+pub unsafe extern "C" fn qk_transpiler_pass_optimize_1q_sequences(
     dag: *mut DAGCircuit,
     target: *const Target,
 ) {

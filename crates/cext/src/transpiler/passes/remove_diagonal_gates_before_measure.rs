@@ -70,7 +70,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_remove_diagonal_gates_bef
 ///     qk_dag_add_classical_register(dag, cr);
 ///     qk_dag_apply_gate(dag, QkGate_Z, (uint32_t[1]){0}, NULL, false);
 ///     qk_dag_apply_measure(dag, 0, 0, false);
-///     qk_dag_transpiler_pass_standalone_remove_diagonal_gates_before_measure(dag);
+///     qk_transpiler_pass_remove_diagonal_gates_before_measure(dag);
 ///     // ...
 ///     qk_dag_free(dag);
 ///     qk_quantum_register_free(qr);
@@ -82,7 +82,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_remove_diagonal_gates_bef
 /// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_dag_transpiler_pass_standalone_remove_diagonal_gates_before_measure(
+pub unsafe extern "C" fn qk_transpiler_pass_remove_diagonal_gates_before_measure(
     dag: *mut DAGCircuit,
 ) {
     // SAFETY: Per documentation, the pointer is non-null and aligned.

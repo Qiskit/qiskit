@@ -91,7 +91,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_consolidate_blocks(
 /// if ``target`` is not a valid pointer to a ``QkTarget``.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_dag_transpiler_pass_standalone_consolidate_blocks(
+pub unsafe extern "C" fn qk_transpiler_pass_consolidate_blocks(
     dag: *mut DAGCircuit,
     target: *const Target,
     approximation_degree: f64,

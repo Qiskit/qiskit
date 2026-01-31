@@ -108,7 +108,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_split_2q_unitaries(
 /// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDAG``.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_dag_transpiler_pass_standalone_split_2q_unitaries(
+pub unsafe extern "C" fn qk_transpiler_pass_split_2q_unitaries(
     dag: *mut DAGCircuit,
     requested_fidelity: f64,
     split_swaps: bool,

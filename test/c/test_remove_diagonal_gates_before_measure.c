@@ -78,7 +78,7 @@ int test_dag_remove_z_gate(void) {
         goto cleanup;
     }
 
-    qk_dag_transpiler_pass_standalone_remove_diagonal_gates_before_measure(dag);
+    qk_transpiler_pass_remove_diagonal_gates_before_measure(dag);
 
     size_t num_ops = qk_dag_num_op_nodes(dag);
     if (1 != num_ops) {

@@ -51,7 +51,7 @@ static int test_dag_inverse_cancellation_removes_gates(void) {
     qk_dag_apply_gate(dag, QkGate_Y, qargs, NULL, false);
 
     size_t before = qk_dag_num_op_nodes(dag);
-    qk_dag_transpiler_pass_standalone_inverse_cancellation(dag);
+    qk_transpiler_pass_inverse_cancellation(dag);
     size_t after = qk_dag_num_op_nodes(dag);
 
     // X, H, H, Y -> H-H cancels -> X, Y (4 gates become 2)

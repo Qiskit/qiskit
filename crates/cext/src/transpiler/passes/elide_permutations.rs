@@ -119,7 +119,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_elide_permutations(
 ///             qk_dag_apply_gate(dag, QkGate_CX, qargs, NULL, false);
 ///         }
 ///     }
-///     QkTranspileLayout *elide_result = qk_dag_transpiler_pass_standalone_elide_permutations(dag);
+///     QkTranspileLayout *elide_result = qk_transpiler_pass_elide_permutations(dag);
 /// ```
 ///
 /// # Safety
@@ -127,7 +127,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_elide_permutations(
 /// Behavior is undefined if ``circuit``  is not a valid, non-null pointer to a ``QkCircuit``.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_dag_transpiler_pass_standalone_elide_permutations(
+pub unsafe extern "C" fn qk_transpiler_pass_elide_permutations(
     dag: *mut DAGCircuit,
 ) -> *mut TranspileLayout {
     // SAFETY: Per documentation, the pointer is non-null and aligned.

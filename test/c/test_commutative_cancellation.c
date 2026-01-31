@@ -118,7 +118,7 @@ static int test_dag_commutative_cancellation_target(void) {
     qk_dag_apply_gate(dag, QkGate_RZ, rz_qargs, rz_params, false);
     qk_dag_apply_gate(dag, QkGate_CX, cx_qargs, NULL, false);
 
-    result = qk_dag_transpiler_pass_standalone_commutative_cancellation(dag, target, 1.0);
+    result = qk_transpiler_pass_commutative_cancellation(dag, target, 1.0);
     if (result != 0) {
         printf("Running the pass failed");
         goto cleanup;
@@ -155,7 +155,7 @@ static int test_dag_commutative_cancellation_no_target(void) {
     qk_dag_apply_gate(dag, QkGate_RZ, rz_qargs, rz_params, false);
     qk_dag_apply_gate(dag, QkGate_CX, cx_qargs, NULL, false);
 
-    result = qk_dag_transpiler_pass_standalone_commutative_cancellation(dag, NULL, 1.0);
+    result = qk_transpiler_pass_commutative_cancellation(dag, NULL, 1.0);
     if (result != 0) {
         printf("Running the pass failed");
         goto cleanup;

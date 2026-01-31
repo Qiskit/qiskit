@@ -124,7 +124,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_commutative_cancellation(
 /// qk_dag_apply_gate(dag, QkGate_CX, cx_qargs, NULL, false);
 /// qk_dag_apply_gate(dag, QkGate_Z, (uint32_t[]){0}, NULL, false);
 /// qk_dag_apply_gate(dag, QkGate_CX, cx_qargs, NULL, false);
-/// qk_dag_transpiler_pass_standalone_commutative_cancellation(dag, NULL, 1.0);
+/// qk_transpiler_pass_commutative_cancellation(dag, NULL, 1.0);
 /// ```
 ///
 /// # Safety
@@ -133,7 +133,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_commutative_cancellation(
 /// ``QkDag`` is not expected to be null and behavior is undefined if it is.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_dag_transpiler_pass_standalone_commutative_cancellation(
+pub unsafe extern "C" fn qk_transpiler_pass_commutative_cancellation(
     dag: *mut DAGCircuit,
     target: *const Target,
     approximation_degree: f64,
@@ -235,7 +235,7 @@ mod tests {
         )
         .unwrap();
         let result = unsafe {
-            qk_dag_transpiler_pass_standalone_commutative_cancellation(
+            qk_transpiler_pass_commutative_cancellation(
                 &mut dag,
                 std::ptr::null(),
                 1.0,

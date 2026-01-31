@@ -128,12 +128,12 @@ static int test_dag_check_gate_direction(void) {
     qk_dag_apply_gate(dag, QkGate_CX, qargs, NULL, false);
     qk_dag_apply_gate(dag, QkGate_CX, &qargs[1], NULL, false);
 
-    bool check_pass = qk_dag_transpiler_pass_standalone_check_gate_direction(dag, target);
+    bool check_pass = qk_transpiler_pass_check_gate_direction(dag, target);
     if (!check_pass)
         result = EqualityError;
     else {
         qk_dag_apply_gate(dag, QkGate_CX, &qargs[2], NULL, false);
-        check_pass = qk_dag_transpiler_pass_standalone_check_gate_direction(dag, target);
+        check_pass = qk_transpiler_pass_check_gate_direction(dag, target);
         if (check_pass)
             result = EqualityError;
     }
@@ -165,7 +165,7 @@ static int test_dag_gate_direction_simple(void) {
     qk_dag_apply_gate(dag, QkGate_CX, &qargs[2], NULL, false);    // would be replaced by 5 gates
     qk_dag_apply_gate(dag, QkGate_RZX, &qargs[3], params, false); // would be replaced by 5 gates
 
-    qk_dag_transpiler_pass_standalone_gate_direction(dag, target);
+    qk_transpiler_pass_gate_direction(dag, target);
 
     if (qk_dag_num_op_nodes(dag) != 12) {
         result = EqualityError;

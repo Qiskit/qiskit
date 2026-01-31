@@ -70,7 +70,7 @@ static int test_dag_remove_identity_equiv_removes_gates(void) {
     qk_dag_apply_gate(dag, QkGate_RZ, qargs, params_zero, false);
     qk_dag_apply_gate(dag, QkGate_RX, qargs, params, false);
 
-    qk_dag_transpiler_pass_standalone_remove_identity_equivalent(dag, target, 1.0);
+    qk_transpiler_pass_remove_identity_equivalent(dag, target, 1.0);
     if (qk_dag_num_op_nodes(dag) != 1) {
         result = EqualityError;
         printf("The gates weren't removed by this circuit");

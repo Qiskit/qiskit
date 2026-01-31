@@ -166,7 +166,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_remove_identity_equivalen
 ///     uint32_t rz_qargs[1] = {1,};
 ///     double rz_params[1] = {0.,};
 ///     qk_dag_apply_gate(dag, QkGate_RZ, rz_qargs, rz_params, false);
-///     qk_dag_transpiler_pass_standalone_remove_identity_equivalent(qc, target, 1.0);
+///     qk_transpiler_pass_remove_identity_equivalent(qc, target, 1.0);
 /// ```
 ///
 /// # Safety
@@ -174,7 +174,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_remove_identity_equivalen
 /// Behavior is undefined if ``dag`` or ``target`` is not a valid, non-null pointer to a ``QkDag`` and ``QkTarget``.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_dag_transpiler_pass_standalone_remove_identity_equivalent(
+pub unsafe extern "C" fn qk_transpiler_pass_remove_identity_equivalent(
     dag: *mut DAGCircuit,
     target: *const Target,
     approximation_degree: f64,

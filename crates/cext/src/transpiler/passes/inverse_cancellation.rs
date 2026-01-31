@@ -124,7 +124,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_inverse_cancellation(
 ///     qk_dag_apply_gate(dag, QkGate_H, qargs, NULL, false);
 ///     qk_dag_apply_gate(dag, QkGate_H, qargs, NULL, false);
 ///     qk_dag_apply_gate(dag, QkGate_Y, qargs, NULL, false);
-///     qk_dag_transpiler_pass_standalone_inverse_cancellation(dag);
+///     qk_transpiler_pass_inverse_cancellation(dag);
 ///     qk_dag_free(dag);
 ///     qk_quantum_register_free(qr);
 /// ```
@@ -134,7 +134,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_inverse_cancellation(
 /// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_dag_transpiler_pass_standalone_inverse_cancellation(
+pub unsafe extern "C" fn qk_transpiler_pass_inverse_cancellation(
     dag: *mut DAGCircuit,
 ) {
     // SAFETY: Per documentation, the pointer is non-null and aligned.

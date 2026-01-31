@@ -116,7 +116,7 @@ static int test_dag_elide_permutations_no_result(void) {
         }
     }
     int result = Ok;
-    QkTranspileLayout *pass_result = qk_dag_transpiler_pass_standalone_elide_permutations(dag);
+    QkTranspileLayout *pass_result = qk_transpiler_pass_elide_permutations(dag);
     if (pass_result != NULL) {
         printf("A gate was elided when one shouldn't have been\n");
         qk_transpile_layout_free(pass_result);
@@ -145,7 +145,7 @@ static int test_dag_elide_permutations_swap_result(void) {
         }
     }
     int result = Ok;
-    QkTranspileLayout *pass_result = qk_dag_transpiler_pass_standalone_elide_permutations(dag);
+    QkTranspileLayout *pass_result = qk_transpiler_pass_elide_permutations(dag);
     if (pass_result == NULL) {
         printf("A gate wasn't elided when one should have been\n");
         result = EqualityError;

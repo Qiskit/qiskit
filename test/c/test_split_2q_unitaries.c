@@ -192,7 +192,7 @@ static int test_dag_split_2q_unitaries_no_unitaries(void) {
         }
     }
     QkTranspileLayout *split_result =
-        qk_dag_transpiler_pass_standalone_split_2q_unitaries(dag, 1 - 1e-16, true);
+        qk_transpiler_pass_split_2q_unitaries(dag, 1 - 1e-16, true);
     int result = Ok;
     if (split_result != NULL) {
         result = EqualityError;
@@ -237,7 +237,7 @@ static int test_dag_split_2q_unitaries_x_y_unitary(void) {
     uint32_t qargs[2] = {0, 1};
     qk_dag_apply_unitary(dag, unitary, qargs, 2, false);
     QkTranspileLayout *split_result =
-        qk_dag_transpiler_pass_standalone_split_2q_unitaries(dag, 1 - 1e-16, true);
+        qk_transpiler_pass_split_2q_unitaries(dag, 1 - 1e-16, true);
     int result = Ok;
     if (split_result != NULL) {
         result = EqualityError;
@@ -305,7 +305,7 @@ static int test_dag_split_2q_unitaries_swap_x_y_unitary(void) {
     uint32_t qargs[2] = {0, 1};
     qk_dag_apply_unitary(dag, unitary, qargs, 2, false);
     QkTranspileLayout *split_result =
-        qk_dag_transpiler_pass_standalone_split_2q_unitaries(dag, 1 - 1e-16, true);
+        qk_transpiler_pass_split_2q_unitaries(dag, 1 - 1e-16, true);
     int result = Ok;
     if (split_result == NULL) {
         result = EqualityError;
