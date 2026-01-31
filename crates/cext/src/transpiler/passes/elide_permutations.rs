@@ -85,3 +85,68 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_elide_permutations(
         None => std::ptr::null_mut(),
     }
 }
+
+/// @ingroup QkTranspilerPasses
+/// Run the ElidePermutations transpiler pass on a DAG Circuit.
+///
+/// The ElidePermutations transpiler pass removes any permutation operations from a pre-layout
+/// DAG Circuit.
+///
+/// This pass is intended to be run before a layout (mapping virtual qubits to physical qubits) is
+/// set during the transpilation pipeline. This pass iterates over the circuit
+/// and when a Swap gate is encountered it permutes the virtual qubits in
+/// the circuit and removes the swap gate. This will effectively remove any
+/// swap gates in the circuit prior to running layout. This optimization is
+/// not valid after a layout has been set and should not be run in this case.
+///
+/// @param circuit A pointer to the circuit to run ElidePermutations on. If there are changes made
+///     the object pointed to is changed in place. In case of gates being elided the original circuit's
+///     allocations are freed by this function.
+///
+/// @return the layout object containing the output permutation induced by the elided gates in the
+///         circuit. If no elisions are performed this will be a null pointer and the input circuit
+///         is unchanged.
+///
+/// # Example
+///
+/// ```c
+///     QkDag *dag = qk_dag_new();
+///     QkQuantumRegister *qr = qk_quantum_register_new(4, "qr");
+///     qk_dag_add_quantum_register(dag, qr);
+///     for (uint32_t i = 0; i < qk_dag_num_qubits(dag) - 1; i++) {
+///         uint32_t qargs[2] = {i, i + 1};
+///         for (uint32_t j = 0; j < i + 1; j++) {
+///             qk_dag_apply_gate(dag, QkGate_CX, qargs, NULL, false);
+///         }
+///     }
+///     QkTranspileLayout *elide_result = qk_transpiler_pass_elide_permutations(dag);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit``  is not a valid, non-null pointer to a ``QkCircuit``.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_transpiler_pass_elide_permutations(
+    dag: *mut DAGCircuit,
+) -> *mut TranspileLayout {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let dag = unsafe { mut_ptr_as_ref(dag) };
+    let res = run_elide_permutations(dag).unwrap();
+    match res {
+        Some(res) => {
+            let circuit =
+                dag_to_circuit(&res.0, false).expect("Internal DAG to Circuit conversion failed.");
+            let num_input_qubits = circuit.num_qubits() as u32;
+            *dag = res.0;
+            Box::into_raw(Box::new(TranspileLayout::new(
+                None,
+                Some(res.1.into_iter().map(Qubit::new).collect()),
+                circuit.qubits().objects().clone(),
+                num_input_qubits,
+                circuit.qregs().to_vec(),
+            )))
+        }
+        None => std::ptr::null_mut(),
+    }
+}
