@@ -176,7 +176,10 @@ class Optimize1qGates(TransformationPass):
                         right_parameters[2] + np.pi / 2,
                     )
                 elif name_tuple[1] == "nop":
-                    right_name = left_name
+                    if not use_u and left_name == "u":
+                        right_name = "u3"
+                    else:
+                        right_name = left_name
                     right_parameters = left_parameters
                 else:
                     # For composing u3's or u2's with u3's, use
@@ -304,6 +307,9 @@ class Optimize1qGates(TransformationPass):
             if right_name == "u":
                 if "u" in self.basis:
                     new_op = UGate(*right_parameters)
+                else:
+                    # This branch should be unreachable
+                    raise TranspilerError("unreachable.")
             if right_name == "u3":
                 if "u3" in self.basis:
                     new_op = U3Gate(*right_parameters)
