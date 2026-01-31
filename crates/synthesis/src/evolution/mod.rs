@@ -75,3 +75,5 @@ pub fn evolution(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(pauli_network_synthesis, m)?)?;
     Ok(())
 }
+
+pub mod suzuki_trotter;
