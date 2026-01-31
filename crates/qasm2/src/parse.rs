@@ -25,7 +25,7 @@ use crate::error::{
 };
 use crate::expr::{Expr, ExprParser};
 use crate::lex::{Token, TokenContext, TokenStream, TokenType, Version};
-use crate::{CustomClassical, CustomInstruction};
+use crate::{ClassicalCallableExt, CustomClassical, CustomInstruction};
 
 /// The number of gates that are built in to the OpenQASM 2 language.  This is U and CX.
 const N_BUILTIN_GATES: usize = 2;
@@ -110,10 +110,7 @@ pub enum GlobalSymbol {
         num_qubits: usize,
         index: GateId,
     },
-    Classical {
-        callable: Py<PyAny>,
-        num_params: usize,
-    },
+    Classical(ClassicalCallableExt),
 }
 
 impl GlobalSymbol {
@@ -312,10 +309,7 @@ impl State {
             }
             match state.symbols.insert(
                 classical.name.clone(),
-                GlobalSymbol::Classical {
-                    num_params: classical.num_params,
-                    callable: classical.callable.clone(),
-                },
+                GlobalSymbol::Classical(classical.callable.clone()),
             ) {
                 Some(GlobalSymbol::Gate { .. }) => {
                     let message = match classical.name.as_str() {
