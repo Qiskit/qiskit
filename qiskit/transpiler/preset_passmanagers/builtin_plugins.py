@@ -32,8 +32,14 @@ from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.transpiler.passes import ElidePermutations
 from qiskit.transpiler.passes import RemoveDiagonalGatesBeforeMeasure
-from qiskit.transpiler.passes import OptimizeCliffordT
+from qiskit.transpiler.passes import CommutativeOptimization
 from qiskit.transpiler.passes import BasisTranslator
+from qiskit.transpiler.passes import RZSynthesis
+from qiskit.transpiler.passes import OptimizeCliffordT
+from qiskit.transpiler.passes import SubstitutePi4Rotations
+from qiskit.transpiler.passes import Collect1qRuns
+from qiskit.transpiler.passes import Collect2qBlocks
+from qiskit.transpiler.passes import GateDirection
 from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler.preset_passmanagers.plugin import (
     PassManagerStagePlugin,
@@ -55,6 +61,7 @@ from qiskit.passmanager.flow_controllers import ConditionalController, DoWhileCo
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
+from qiskit.quantum_info.operators.symplectic.clifford_circuits import get_clifford_gate_names
 from qiskit.utils import default_num_processes
 from qiskit import user_config
 
@@ -196,7 +203,7 @@ class BasisTranslatorPassManager(PassManagerStagePlugin):
 
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
         if pass_manager_config._is_clifford_t:
-            method = "clifford_t"
+            method = "clifford_rz_translator"
         else:
             method = "translator"
         return common.generate_translation_passmanager(
@@ -492,7 +499,7 @@ class OptimizationPassManager(PassManagerStagePlugin):
 
         # Use the dedicated plugin for the Clifford+T basis when appropriate.
         if pass_manager_config._is_clifford_t:
-            return CliffordTOptimizationPassManager().pass_manager(
+            return CliffordRZOptimizationPassManager().pass_manager(
                 pass_manager_config, optimization_level
             )
 
@@ -964,15 +971,23 @@ def _get_trial_count(default_trials=5):
     return default_trials
 
 
-class CliffordTOptimizationPassManager(PassManagerStagePlugin):
-    """Plugin class for optimization stage"""
+class CliffordRZOptimizationPassManager(PassManagerStagePlugin):
+    """Plugin class for optimization stage
+
+    THIS IS NOW FOR THE RZ-TRANSLATION STAGE!!!
+
+    """
 
     def pass_manager(self, pass_manager_config, optimization_level=None):
         """Build pass manager for optimization stage."""
+
+        clifford_rz_gates = get_clifford_gate_names() + ["t", "tdg", "rz"]
+
         match optimization_level:
             case 0:
                 return None
             case 1:
+                pre_loop = []
                 loop = [
                     InverseCancellation(),
                     ContractIdleWiresInControlFlow(),
@@ -980,6 +995,28 @@ class CliffordTOptimizationPassManager(PassManagerStagePlugin):
                 post_loop = []
                 loop_check, continue_loop = _optimization_check_fixed_point()
             case 2 | 3:
+                clifford_t_gates = get_clifford_gate_names() + ["t", "tdg"]
+
+                def consolidate_run_fn(_dag, run):
+                    return any(node.op.name not in clifford_t_gates for node in run)
+
+                pre_loop = [
+                    Collect1qRuns(consolidate_run_fn),
+                    Collect2qBlocks(consolidate_run_fn),
+                    ConsolidateBlocks(
+                        basis_gates=clifford_rz_gates,
+                        target=None,
+                        approximation_degree=pass_manager_config.approximation_degree,
+                    ),
+                    UnitarySynthesis(
+                        clifford_rz_gates,
+                        approximation_degree=pass_manager_config.approximation_degree,
+                        coupling_map=pass_manager_config.coupling_map,
+                        method=pass_manager_config.unitary_synthesis_method,
+                        plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
+                        target=None,
+                    ),
+                ]
                 # The optimization loop runs OptimizeCliffordT + CommutativeCancellation
                 # until fixpoint.
                 loop = [
@@ -987,16 +1024,84 @@ class CliffordTOptimizationPassManager(PassManagerStagePlugin):
                         approximation_degree=pass_manager_config.approximation_degree,
                         target=pass_manager_config.target,
                     ),
-                    OptimizeCliffordT(),
-                    CommutativeCancellation(target=pass_manager_config.target),
+                    CommutativeOptimization(),
                     ContractIdleWiresInControlFlow(),
                 ]
-                # We need to run BasisTranslator because OptimizeCliffordT does not consider the basis.
-                post_loop = [
-                    BasisTranslator(
-                        sel, pass_manager_config.basis_gates, pass_manager_config.target
-                    )
+
+                # MAYBE WE WANT THIS FOR TRANSLATING RX -> RZ, if CommutativeOptimization is applied?
+                post_loop = [BasisTranslator(sel, clifford_rz_gates, None)]
+                loop_check, continue_loop = _optimization_check_fixed_point()
+            case bad:
+                raise TranspilerError(f"Invalid optimization_level: {bad}")
+
+        optimization = PassManager()
+        optimization.append(pre_loop + loop_check)
+        optimization.append(DoWhileController(loop + loop_check, do_while=continue_loop))
+        optimization.append(post_loop)
+        return optimization
+
+
+class CliffordTTranslationPassManager(PassManagerStagePlugin):
+    """Plugin for translation stage from Clifford+RZ to Clifford+T."""
+
+    def pass_manager(self, pass_manager_config, optimization_level=None):
+        basis_gates = pass_manager_config.basis_gates
+        target = pass_manager_config.target
+
+        rz_to_t_translation = PassManager(
+            [
+                SubstitutePi4Rotations(),
+                RZSynthesis(),
+                BasisTranslator(sel, basis_gates, target),
+            ]
+        )
+        return rz_to_t_translation
+
+
+class CliffordTOptimizationPassManager(PassManagerStagePlugin):
+    """Plugin for Clifford+T optimization stage."""
+
+    def pass_manager(self, pass_manager_config, optimization_level=None):
+        basis_gates = pass_manager_config.basis_gates
+        target = pass_manager_config.target
+
+        def should_fix_direction(property_set):
+            res = not property_set["all_gates_in_basis"]
+            return res
+
+        fix_direction = [
+            GatesInBasis(pass_manager_config.basis_gates, target=pass_manager_config.target),
+            ConditionalController(
+                GateDirection(
+                    coupling_map=pass_manager_config.coupling_map, target=pass_manager_config.target
+                ),
+                condition=should_fix_direction,
+            ),
+        ]
+
+        fix_1q = [BasisTranslator(sel, basis_gates, target)]
+
+        optimization = PassManager()
+
+        match optimization_level:
+            case 0:
+                return PassManager(fix_direction + fix_1q)
+
+            case 1:
+                loop = [
+                    InverseCancellation(),
+                    OptimizeCliffordT(),
+                    ContractIdleWiresInControlFlow(),
                 ]
+                post_loop = fix_direction + fix_1q
+                loop_check, continue_loop = _optimization_check_fixed_point()
+            case 2 | 3:
+                loop = [
+                    OptimizeCliffordT(),
+                    CommutativeOptimization(),
+                    ContractIdleWiresInControlFlow(),
+                ]
+                post_loop = [SubstitutePi4Rotations()] + fix_direction + fix_1q
                 loop_check, continue_loop = _optimization_check_fixed_point()
             case bad:
                 raise TranspilerError(f"Invalid optimization_level: {bad}")
