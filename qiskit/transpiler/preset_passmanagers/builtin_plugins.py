@@ -37,6 +37,8 @@ from qiskit.transpiler.passes import BasisTranslator
 from qiskit.transpiler.passes import RZSynthesis
 from qiskit.transpiler.passes import OptimizeCliffordT
 from qiskit.transpiler.passes import SubstitutePi4Rotations
+from qiskit.transpiler.passes import Collect1qRuns
+from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler.preset_passmanagers.plugin import (
     PassManagerStagePlugin,
@@ -162,6 +164,10 @@ class DefaultInitPassManager(PassManagerStagePlugin):
             # since this involves resynthesizing 2-qubit unitaries.
             if not pass_manager_config._is_clifford_t:
                 init.append(ConsolidateBlocks())
+            else:
+                init.append(Collect1qRuns())
+                init.append(Collect2qBlocks())
+                init.append(ConsolidateBlocks()) ## FIXME
 
             # If approximation degree is None that indicates a request to approximate up to the
             # error rates in the target. However, in the init stage we don't yet know the target
