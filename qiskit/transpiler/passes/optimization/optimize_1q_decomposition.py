@@ -98,6 +98,12 @@ class Optimize1qGatesDecomposition(TransformationPass):
             self._basis_gates = None
 
         self.error_map = self._build_error_map()
+        num_qubits = 0
+        if self._target:
+            num_qubits = self._target.num_qubits
+            if num_qubits is None:
+                num_qubits = 0
+        self._state = optimize_1q_gates_decomposition.Optimize1qGatesDecompositionState(num_qubits)
 
     def _build_error_map(self):
         # include path for when target exists but target.num_qubits is None (BasicSimulator)
@@ -210,9 +216,10 @@ class Optimize1qGatesDecomposition(TransformationPass):
         """
         optimize_1q_gates_decomposition.optimize_1q_gates_decomposition(
             dag,
+            self._state,
             target=self._target,
-            global_decomposers=self._global_decomposers,
             basis_gates=self._basis_gates,
+            global_decomposers=self._global_decomposers,
         )
         return dag
 
