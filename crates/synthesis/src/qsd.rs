@@ -10,6 +10,9 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use pyo3::exceptions::PyRuntimeError;
+use std::panic;
+use std::panic::AssertUnwindSafe;
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
@@ -873,14 +876,22 @@ pub fn qs_decomposition(
     } else {
         None
     };
-    let res = quantum_shannon_decomposition(
-        &mat,
-        opt_a1,
-        opt_a2,
-        one_qubit_decomposer,
-        two_qubit_decomposer,
-    )?;
-    Ok(res)
+
+    // catch if there is a panic while calculating the CircuitData
+    let result = panic::catch_unwind(AssertUnwindSafe(|| {
+        quantum_shannon_decomposition(
+            &mat,
+            opt_a1,
+            opt_a2,
+            one_qubit_decomposer,
+            two_qubit_decomposer,
+        )
+    }));
+
+    match result {
+        Ok(data) => Ok(data?),
+        Err(_err) => Err(PyRuntimeError::new_err("rust panic during qs_decomposition")),
+    }
 }
 
 pub fn qsd_mod(m: &Bound<PyModule>) -> PyResult<()> {
