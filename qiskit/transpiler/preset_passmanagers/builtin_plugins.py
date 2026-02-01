@@ -164,10 +164,6 @@ class DefaultInitPassManager(PassManagerStagePlugin):
             # since this involves resynthesizing 2-qubit unitaries.
             if not pass_manager_config._is_clifford_t:
                 init.append(ConsolidateBlocks())
-            else:
-                init.append(Collect1qRuns())
-                init.append(Collect2qBlocks())
-                init.append(ConsolidateBlocks()) ## FIXME
 
             # If approximation degree is None that indicates a request to approximate up to the
             # error rates in the target. However, in the init stage we don't yet know the target
@@ -990,6 +986,7 @@ class CliffordRZOptimizationPassManager(PassManagerStagePlugin):
             case 0:
                 return None
             case 1:
+                pre_loop = []
                 loop = [
                     InverseCancellation(),
                     ContractIdleWiresInControlFlow(),
@@ -997,6 +994,28 @@ class CliffordRZOptimizationPassManager(PassManagerStagePlugin):
                 post_loop = []
                 loop_check, continue_loop = _optimization_check_fixed_point()
             case 2 | 3:
+                clifford_t_gates = get_clifford_gate_names() + ["t", "tdg"]
+
+                def consolidate_run_fn(_dag, run):
+                    return any(node.op.name not in clifford_t_gates for node in run)
+
+                pre_loop = [
+                    Collect1qRuns(consolidate_run_fn),
+                    Collect2qBlocks(consolidate_run_fn),
+                    ConsolidateBlocks(
+                        basis_gates=clifford_rz_gates,
+                        target=None,
+                        approximation_degree=pass_manager_config.approximation_degree,
+                    ),
+                    UnitarySynthesis(
+                        clifford_rz_gates,
+                        approximation_degree=pass_manager_config.approximation_degree,
+                        coupling_map=pass_manager_config.coupling_map,
+                        method=pass_manager_config.unitary_synthesis_method,
+                        plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
+                        target=None,
+                    ),
+                ]
                 # The optimization loop runs OptimizeCliffordT + CommutativeCancellation
                 # until fixpoint.
                 loop = [
@@ -1015,7 +1034,7 @@ class CliffordRZOptimizationPassManager(PassManagerStagePlugin):
                 raise TranspilerError(f"Invalid optimization_level: {bad}")
 
         optimization = PassManager()
-        optimization.append(loop_check)
+        optimization.append(pre_loop + loop_check)
         optimization.append(DoWhileController(loop + loop_check, do_while=continue_loop))
         optimization.append(post_loop)
         return optimization
@@ -1030,6 +1049,7 @@ class CliffordTTranslationPassManager(PassManagerStagePlugin):
 
         rz_to_t_translation = PassManager(
             [
+                SubstitutePi4Rotations(),
                 RZSynthesis(),
                 BasisTranslator(sel, basis_gates, target),
             ]
