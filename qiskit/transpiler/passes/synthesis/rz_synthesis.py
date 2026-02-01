@@ -21,8 +21,8 @@ from qiskit.synthesis import gridsynth_rz
 class RZSynthesis(TransformationPass):
     """Convert Clifford+T+RZ circuit to Clifford+T circuit."""
 
-    def __init__(self):
-        # ToDo: add tolerance!
+    def __init__(self, approximation_degree: float = 1.0):
+        self.approximation_degree = approximation_degree
         super().__init__()
 
     def run(self, dag):
@@ -35,14 +35,15 @@ class RZSynthesis(TransformationPass):
         if ops.get("rz", 0) == 0:
             return dag
 
+        tol = max(1 - self.approximation_degree, 1e-12)
+
         new_dag = dag.copy_empty_like()
 
         for node in dag.topological_op_nodes():
             if node.name == "rz":
                 qubit = node.qargs[0]
                 angle = node.op.params[0]
-                # print(f"I see an RZ with angle = {angle} on qubit = {qubit}")
-                inner_t_circuit = gridsynth_rz(node.op.params[0])
+                inner_t_circuit = gridsynth_rz(angle, tol)
                 for inner_t_node in inner_t_circuit:
                     new_dag.apply_operation_back(inner_t_node.operation, [qubit], [])
                 new_dag.global_phase += inner_t_circuit.global_phase
