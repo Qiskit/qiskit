@@ -159,16 +159,21 @@ class UnitaryGate(Gate):
                 qs_decomposition,
             )
 
-            self.definition = qs_decomposition(self.to_matrix())
-            # Since iterative Quantum Shannon Decomposition may provide imprecise matrices,
-            # we use the Isometry decomposition in this case
-            # pylint: disable=cyclic-import
-            from qiskit.quantum_info.operators import Operator
+            try:
+                # Since iterative Quantum Shannon Decomposition may provide imprecise matrices,
+                # and the rust code may panic,
+                # we use the Isometry decomposition in this case
+                self.definition = qs_decomposition(self.to_matrix())
+                # pylint: disable=cyclic-import
+                from qiskit.quantum_info.operators import Operator
 
-            if not (
-                matrix_equal(Operator(self.definition).to_matrix(), self.to_matrix(), atol=1e-7)
-            ):
-                self.definition = Isometry(self.matrix, 0, 0).definition
+                if not (
+                    matrix_equal(Operator(self.definition).to_matrix(), self.to_matrix(), atol=1e-7)
+                ):
+                    self.definition = Isometry(self.to_matrix(), 0, 0).definition
+
+            except RuntimeError:
+                self.definition = Isometry(self.to_matrix(), 0, 0).definition
 
     def control(
         self,
@@ -199,13 +204,18 @@ class UnitaryGate(Gate):
             cmat = _compute_control_matrix(mat, num_ctrl_qubits, ctrl_state=None)
             from qiskit.synthesis.unitary.qsd import qs_decomposition
 
-            cmat_def = qs_decomposition(cmat, opt_a1=True, opt_a2=False)
-            # Since iterative cosine-sine decomposition may provide imprecise matrices,
-            # we use the Isometry decomposition in this case
-            # pylint: disable=cyclic-import
-            from qiskit.quantum_info.operators import Operator
+            try:
+                # Since iterative Quantum Shannon Decomposition may provide imprecise matrices,
+                # and the rust code may panic,
+                # we use the Isometry decomposition in this case
+                cmat_def = qs_decomposition(cmat, opt_a1=True, opt_a2=False)
+                # pylint: disable=cyclic-import
+                from qiskit.quantum_info.operators import Operator
 
-            if not matrix_equal(Operator(cmat_def).to_matrix(), cmat, atol=1e-7):
+                if not matrix_equal(Operator(cmat_def).to_matrix(), cmat, atol=1e-7):
+                    self.definition = Isometry(cmat, 0, 0).definition
+
+            except RuntimeError:
                 self.definition = Isometry(cmat, 0, 0).definition
 
             gate = ControlledGate(
