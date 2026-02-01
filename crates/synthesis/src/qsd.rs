@@ -890,7 +890,9 @@ pub fn qs_decomposition(
 
     match result {
         Ok(data) => Ok(data?),
-        Err(_err) => Err(PyRuntimeError::new_err("rust panic during qs_decomposition")),
+        Err(_err) => Err(PyRuntimeError::new_err(
+            "rust panic during qs_decomposition",
+        )),
     }
 }
 
