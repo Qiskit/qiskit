@@ -20,7 +20,9 @@ from typing import Iterable, Optional, Union, TYPE_CHECKING
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
 from qiskit._accelerate.circuit import ControlFlowType
+from qiskit.circuit.classical.expr import Range
 from .control_flow import ControlFlowOp
+
 
 if TYPE_CHECKING:
     from qiskit.circuit import QuantumCircuit
@@ -36,7 +38,7 @@ class ForLoopOp(ControlFlowOp):
 
     def __init__(
         self,
-        indexset: Iterable[int],
+        indexset: Union[Iterable[int], Range],
         loop_parameter: Union[Parameter, None],
         body: QuantumCircuit,
         label: Optional[str] = None,
@@ -104,7 +106,7 @@ class ForLoopOp(ControlFlowOp):
 
         # Consume indexset into a tuple unless it was provided as a range.
         # Preserve ranges so that they can be exported as OpenQASM 3 ranges.
-        indexset = indexset if isinstance(indexset, range) else tuple(indexset)
+        indexset = indexset if isinstance(indexset, (range, Range)) else tuple(indexset)
 
         self._params = [indexset, loop_parameter, body]
 
@@ -171,7 +173,7 @@ class ForLoopContext:
     def __init__(
         self,
         circuit: QuantumCircuit,
-        indexset: Iterable[int],
+        indexset: Union[Iterable[int], Range],
         loop_parameter: Optional[Parameter] = None,
         *,
         label: Optional[str] = None,
@@ -181,7 +183,7 @@ class ForLoopContext:
         self._loop_parameter = loop_parameter
         # We can pass through `range` instances because OpenQASM 3 has native support for this type
         # of iterator set.
-        self._indexset = indexset if isinstance(indexset, range) else tuple(indexset)
+        self._indexset = indexset if isinstance(indexset, (range, Range)) else tuple(indexset)
         self._label = label
         self._used = False
 
