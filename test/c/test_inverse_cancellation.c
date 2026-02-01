@@ -22,7 +22,7 @@
 /**
  * Test inverse cancellation.
  */
-static int test_inverse_cancellation_removes_gates(void) {
+static int test_standalone_inverse_cancellation_removes_gates(void) {
     int result = Ok;
 
     QkCircuit *qc = qk_circuit_new(2, 2);
@@ -38,8 +38,35 @@ static int test_inverse_cancellation_removes_gates(void) {
     return result;
 }
 
+static int test_inverse_cancellation_removes_gates(void) {
+    int result = Ok;
+
+    QkDag *dag = qk_dag_new();
+    QkQuantumRegister *qr = qk_quantum_register_new(2, "my_register");
+    qk_dag_add_quantum_register(dag, qr);
+    uint32_t qargs[1] = {0};
+    qk_dag_apply_gate(dag, QkGate_X, qargs, NULL, false);
+    qk_dag_apply_gate(dag, QkGate_H, qargs, NULL, false);
+    qk_dag_apply_gate(dag, QkGate_H, qargs, NULL, false);
+    qk_dag_apply_gate(dag, QkGate_Y, qargs, NULL, false);
+
+    size_t before = qk_dag_num_op_nodes(dag);
+    qk_transpiler_pass_inverse_cancellation(dag);
+    size_t after = qk_dag_num_op_nodes(dag);
+
+    // X, H, H, Y -> H-H cancels -> X, Y (4 gates become 2)
+    if (before != 4 || after != 2) {
+        result = EqualityError;
+    }
+
+    qk_dag_free(dag);
+    qk_quantum_register_free(qr);
+    return result;
+}
+
 int test_inverse_cancellation(void) {
     int num_failed = 0;
+    num_failed += RUN_TEST(test_standalone_inverse_cancellation_removes_gates);
     num_failed += RUN_TEST(test_inverse_cancellation_removes_gates);
 
     fflush(stderr);

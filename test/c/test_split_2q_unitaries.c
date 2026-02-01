@@ -18,7 +18,7 @@
 #include <stdio.h>
 #include <string.h>
 
-static int test_split_2q_unitaries_no_unitaries(void) {
+static int test_standalone_split_2q_unitaries_no_unitaries(void) {
     QkCircuit *qc = qk_circuit_new(5, 0);
     for (uint32_t i = 0; i < qk_circuit_num_qubits(qc) - 1; i++) {
         uint32_t qargs[2] = {i, i + 1};
@@ -56,7 +56,7 @@ cleanup:
     return result;
 }
 
-static int test_split_2q_unitaries_x_y_unitary(void) {
+static int test_standalone_split_2q_unitaries_x_y_unitary(void) {
     QkCircuit *qc = qk_circuit_new(2, 0);
     QkComplex64 c0 = {0., 0.};
     QkComplex64 neg_im = {0., -1.};
@@ -113,7 +113,7 @@ cleanup:
     return result;
 }
 
-static int test_split_2q_unitaries_swap_x_y_unitary(void) {
+static int test_standalone_split_2q_unitaries_swap_x_y_unitary(void) {
     QkCircuit *qc = qk_circuit_new(2, 0);
     QkComplex64 c0 = {0., 0.};
     QkComplex64 neg_im = {0., -1.};
@@ -181,8 +181,201 @@ cleanup:
     return result;
 }
 
+static int test_split_2q_unitaries_no_unitaries(void) {
+    QkDag *dag = qk_dag_new();
+    QkQuantumRegister *qr = qk_quantum_register_new(5, "qr");
+    qk_dag_add_quantum_register(dag, qr);
+    for (uint32_t i = 0; i < qk_dag_num_qubits(dag) - 1; i++) {
+        uint32_t qargs[2] = {i, i + 1};
+        for (uint32_t j = 0; j < i + 1; j++) {
+            qk_dag_apply_gate(dag, QkGate_CX, qargs, NULL, false);
+        }
+    }
+    QkTranspileLayout *split_result =
+        qk_transpiler_pass_split_2q_unitaries(dag, 1 - 1e-16, true);
+    int result = Ok;
+    if (split_result != NULL) {
+        result = EqualityError;
+        printf("Permutation returned for a circuit that shouldn't split\n");
+        qk_transpile_layout_free(split_result);
+        goto cleanup;
+    }
+    QkCircuit *temp_circuit = qk_dag_to_circuit(dag);
+    QkOpCounts counts = qk_circuit_count_ops(temp_circuit);
+    qk_circuit_free(temp_circuit);
+    if (counts.len != 1) {
+        printf("More than 1 type of gate in the circuit\n");
+        result = EqualityError;
+        goto ops_cleanup;
+    }
+    for (size_t i = 0; i < counts.len; i++) {
+        int gate = strcmp(counts.data[i].name, "cx");
+        if (gate != 0) {
+            printf("gates changed when there should be no circuit changes\n");
+            result = EqualityError;
+            goto cleanup;
+        }
+    }
+ops_cleanup:
+    qk_opcounts_clear(&counts);
+cleanup:
+    qk_dag_free(dag);
+    qk_quantum_register_free(qr);
+    return result;
+}
+
+static int test_split_2q_unitaries_x_y_unitary(void) {
+    QkDag *dag = qk_dag_new();
+    QkQuantumRegister *qr = qk_quantum_register_new(2, "qr");
+    qk_dag_add_quantum_register(dag, qr);
+    QkComplex64 c0 = {0., 0.};
+    QkComplex64 neg_im = {0., -1.};
+    QkComplex64 im = {0., 1.};
+    QkComplex64 unitary[16] = {
+        c0, c0, c0, neg_im, c0, c0, neg_im, c0, c0, im, c0, c0, im, c0, c0, c0,
+    };
+    uint32_t qargs[2] = {0, 1};
+    qk_dag_apply_unitary(dag, unitary, qargs, 2, false);
+    QkTranspileLayout *split_result =
+        qk_transpiler_pass_split_2q_unitaries(dag, 1 - 1e-16, true);
+    int result = Ok;
+    if (split_result != NULL) {
+        result = EqualityError;
+        printf("Permutation returned for a circuit that shouldn't isn't a swap equivalent\n");
+        qk_transpile_layout_free(split_result);
+        goto cleanup;
+    }
+     QkCircuit *temp_circuit = qk_dag_to_circuit(dag);
+    QkOpCounts counts = qk_circuit_count_ops(temp_circuit);
+    qk_circuit_free(temp_circuit);
+    if (counts.len != 1) {
+        printf("More than 1 type of gate in the circuit\n");
+        result = EqualityError;
+        goto ops_cleanup;
+    }
+    for (size_t i = 0; i < counts.len; i++) {
+        int gate = strcmp(counts.data[i].name, "unitary");
+        if (gate != 0) {
+            printf("Gates outside expected set in output circuit\n");
+            result = EqualityError;
+            goto ops_cleanup;
+        }
+        size_t count = counts.data[i].count;
+        if (count != 2) {
+            printf("Unexpected gate counts found\n");
+            result = EqualityError;
+            goto ops_cleanup;
+        }
+    }
+
+    size_t num_ops = qk_dag_num_op_nodes(dag);
+    uint32_t *op_nodes = malloc(sizeof(uint32_t) * num_ops);
+    qk_dag_topological_op_nodes(dag, op_nodes);
+
+    QkCircuitInstruction inst;
+    for (size_t i = 0; i < num_ops; i++) {
+        qk_dag_get_instruction(dag, op_nodes[i], &inst);
+        if (inst.num_qubits != 1) {
+            printf("Gate %zu operates on more than 1 qubit: %u\n", i, inst.num_qubits);
+            result = EqualityError;
+            goto ops_cleanup;
+        }
+        qk_circuit_instruction_clear(&inst);
+    }
+    free(op_nodes);
+
+ops_cleanup:
+    qk_opcounts_clear(&counts);
+cleanup:
+    qk_dag_free(dag);
+    qk_quantum_register_free(qr);
+    return result;
+}
+
+static int test_split_2q_unitaries_swap_x_y_unitary(void) {
+    QkDag *dag = qk_dag_new();
+    QkQuantumRegister *qr = qk_quantum_register_new(2, "qr");
+    qk_dag_add_quantum_register(dag, qr);
+    QkComplex64 c0 = {0., 0.};
+    QkComplex64 neg_im = {0., -1.};
+    QkComplex64 im = {0., 1.};
+    QkComplex64 unitary[16] = {
+        c0, c0, c0, neg_im, c0, neg_im, c0, c0, c0, c0, im, c0, im, c0, c0, c0,
+    };
+    uint32_t qargs[2] = {0, 1};
+    qk_dag_apply_unitary(dag, unitary, qargs, 2, false);
+    QkTranspileLayout *split_result =
+        qk_transpiler_pass_split_2q_unitaries(dag, 1 - 1e-16, true);
+    int result = Ok;
+    if (split_result == NULL) {
+        result = EqualityError;
+        printf("Permutation not returned for a circuit that should have one\n");
+        goto cleanup;
+    }
+    uint32_t permutation[2];
+    qk_transpile_layout_output_permutation(split_result, permutation);
+    uint32_t expected[2] = {1, 0};
+    for (int i = 0; i < 2; i++) {
+        if (permutation[i] != expected[i]) {
+            printf("Permutation at position %d not as expected, found %u expected %u\n", i,
+                   permutation[i], expected[i]);
+            goto cleanup;
+        }
+    }
+
+    QkCircuit *temp_circuit = qk_dag_to_circuit(dag);
+    QkOpCounts counts = qk_circuit_count_ops(temp_circuit);
+    qk_circuit_free(temp_circuit);
+    if (counts.len != 1) {
+        printf("More than 1 type of gate in the circuit\n");
+        result = EqualityError;
+        goto ops_cleanup;
+    }
+    for (size_t i = 0; i < counts.len; i++) {
+        int gate = strcmp(counts.data[i].name, "unitary");
+        if (gate != 0) {
+            printf("Gates outside expected set in output circuit\n");
+            result = EqualityError;
+            goto ops_cleanup;
+        }
+        size_t count = counts.data[i].count;
+        if (count != 2) {
+            printf("Unexpected gate counts found\n");
+            result = EqualityError;
+            goto ops_cleanup;
+        }
+    }
+
+    size_t num_ops = qk_dag_num_op_nodes(dag);
+    uint32_t *op_nodes = malloc(sizeof(uint32_t) * num_ops);
+    qk_dag_topological_op_nodes(dag, op_nodes);
+
+    QkCircuitInstruction inst;
+    for (size_t i = 0; i < num_ops; i++) {
+        qk_dag_get_instruction(dag, op_nodes[i], &inst);
+        if (inst.num_qubits != 1) {
+            printf("Gate %zu operates on more than 1 qubit: %u\n", i, inst.num_qubits);
+            result = EqualityError;
+            goto ops_cleanup;
+        }
+        qk_circuit_instruction_clear(&inst);
+    }
+    free(op_nodes);
+
+ops_cleanup:
+    qk_opcounts_clear(&counts);
+cleanup:
+    qk_transpile_layout_free(split_result);
+    qk_dag_free(dag);
+    qk_quantum_register_free(qr);
+    return result;
+}
+
 int test_split_2q_unitaries(void) {
     int num_failed = 0;
+    num_failed += RUN_TEST(test_standalone_split_2q_unitaries_no_unitaries);
+    num_failed += RUN_TEST(test_standalone_split_2q_unitaries_x_y_unitary);
+    num_failed += RUN_TEST(test_standalone_split_2q_unitaries_swap_x_y_unitary);
     num_failed += RUN_TEST(test_split_2q_unitaries_no_unitaries);
     num_failed += RUN_TEST(test_split_2q_unitaries_x_y_unitary);
     num_failed += RUN_TEST(test_split_2q_unitaries_swap_x_y_unitary);

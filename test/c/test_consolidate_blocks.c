@@ -35,7 +35,7 @@ static bool args_cmp(uint32_t *args1, uint32_t args1_len, uint32_t *args2, uint3
 /**
  * Test a small block of gates can be turned into a unitary on same wires
  */
-static int test_consolidate_small_block(void) {
+static int test_standalone_consolidate_small_block(void) {
     int result = Ok;
 
     // Build circuit
@@ -70,7 +70,7 @@ cleanup:
 /**
  * Order of qubits and the corresponding unitary is correct
  */
-static int test_wire_order(void) {
+static int test_standalone_wire_order(void) {
     int result = Ok;
 
     // Build circuit
@@ -108,7 +108,7 @@ cleanup:
 /**
  * blocks of more than 2 qubits work.
  */
-static int test_3q_blocks(void) {
+static int test_standalone_3q_blocks(void) {
     int result = Ok;
 
     // Build circuit
@@ -144,7 +144,7 @@ cleanup:
 /**
  * Test a non-cx kak gate is consolidated correctly with a target.
  */
-static int test_non_cx_target(void) {
+static int test_standalone_non_cx_target(void) {
     int result = Ok;
 
     // Create circuit
@@ -283,10 +283,10 @@ cleanup:
 
 int test_consolidate_blocks(void) {
     int num_failed = 0;
-    num_failed += RUN_TEST(test_consolidate_small_block);
-    num_failed += RUN_TEST(test_wire_order);
-    num_failed += RUN_TEST(test_3q_blocks);
-    num_failed += RUN_TEST(test_non_cx_target);
+    num_failed += RUN_TEST(test_standalone_consolidate_small_block);
+    num_failed += RUN_TEST(test_standalone_wire_order);
+    num_failed += RUN_TEST(test_standalone_3q_blocks);
+    num_failed += RUN_TEST(test_standalone_non_cx_target);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
