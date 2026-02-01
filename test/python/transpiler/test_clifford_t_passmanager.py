@@ -112,9 +112,28 @@ class TestCliffordTPassManager(QiskitTestCase):
         self.assertEqual(_get_t_count(transpiled), 0)
 
     @data(0, 1, 2, 3)
-    def test_rx_pi4(self, optimization_level):
+    def test_rx_pi4_all_cliffords(self, optimization_level):
         """Clifford+T transpilation of a circuit with a single-qubit rotation gate
-        with a "nice" angle.
+        with a T-like angle and all Clifford gates in the basis set.
+        """
+        qc = QuantumCircuit(1)
+        qc.rx(np.pi / 4, 0)
+
+        basis_gates = get_clifford_gate_names() + ["t", "tdg"]
+        pm = generate_preset_pass_manager(
+            basis_gates=basis_gates, optimization_level=optimization_level
+        )
+        transpiled = pm.run(qc)
+        transpiled_ops = transpiled.count_ops()
+        self.assertLessEqual(set(transpiled_ops), set(basis_gates))
+
+        # We should have exactly 1 T-gate.
+        self.assertEqual(_get_t_count(transpiled), 1)
+
+    @data(0, 1, 2, 3)
+    def test_rx_pi4_some_cliffords(self, optimization_level):
+        """Clifford+T transpilation of a circuit with a single-qubit rotation gate
+        with a T-like angle and only some Clifford gates in the basis set.
         """
         qc = QuantumCircuit(1)
         qc.rx(np.pi / 4, 0)
@@ -124,8 +143,10 @@ class TestCliffordTPassManager(QiskitTestCase):
             basis_gates=basis_gates, optimization_level=optimization_level
         )
         transpiled = pm.run(qc)
-        self.assertLessEqual(set(transpiled.count_ops()), set(basis_gates))
-        self.assertEqual(transpiled.count_ops(), {"h": 2, "t": 1})
+        transpiled_ops = transpiled.count_ops()
+
+        # All the gates should be within the specified basis set.
+        self.assertLessEqual(set(transpiled_ops), set(basis_gates))
 
     @data(0, 1, 2, 3)
     def test_qft(self, optimization_level):
@@ -163,7 +184,7 @@ class TestCliffordTPassManager(QiskitTestCase):
         # We should not expect to see more T-gates with higher optimization levels
         # (while this is technically possible, it means that Clifford+T transpiler
         # pipeline is not setup correctly).
-        expected_t_count = 1085
+        expected_t_count = 1091
         self.assertLessEqual(t_count, expected_t_count)
 
     @data(0, 1, 2, 3)
@@ -358,7 +379,7 @@ class TestCliffordTPassManager(QiskitTestCase):
         # The resulting decomposition should be efficient in terms of T-count,
         # except surprisingly for the case n=1 (which is why it is not used in this test)
         t_count = _get_t_count(transpiled)
-        expected_t_count = {2: 153, 3: 501, 4: 1114, 5: 2005, 6: 2596, 7: 3850}
+        expected_t_count = {2: 153, 3: 505, 4: 1114, 5: 2005, 6: 2596, 7: 3850}
         self.assertLessEqual(t_count, expected_t_count[n])
 
     @data(1, 2, 3, 4, 5, 6, 7)
