@@ -306,7 +306,8 @@ fn optimize_clifford_t_1q(
     }
     global_phase += phase_update;
 
-    is_reduced.then_some((optimized_sequence, global_phase))
+    (is_reduced || optimized_sequence.len() < raw_run.len())
+        .then_some((optimized_sequence, global_phase))
 }
 
 #[pyfunction]
