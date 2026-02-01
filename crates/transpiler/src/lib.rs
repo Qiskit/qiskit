@@ -25,6 +25,7 @@ pub mod transpiler;
 pub use transpiler::transpile;
 
 mod gate_metrics;
+pub mod standard_generators;
 
 use pyo3::import_exception;
 
