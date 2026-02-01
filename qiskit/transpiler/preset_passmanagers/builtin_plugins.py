@@ -39,6 +39,7 @@ from qiskit.transpiler.passes import OptimizeCliffordT
 from qiskit.transpiler.passes import SubstitutePi4Rotations
 from qiskit.transpiler.passes import Collect1qRuns
 from qiskit.transpiler.passes import Collect2qBlocks
+from qiskit.transpiler.passes import GateDirection
 from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler.preset_passmanagers.plugin import (
     PassManagerStagePlugin,
@@ -1064,18 +1065,35 @@ class CliffordTOptimizationPassManager(PassManagerStagePlugin):
         basis_gates = pass_manager_config.basis_gates
         target = pass_manager_config.target
 
+        def should_fix_direction(property_set):
+            res = not property_set["all_gates_in_basis"]
+            return res
+
+        fix_direction = [
+            GatesInBasis(pass_manager_config.basis_gates, target=pass_manager_config.target),
+            ConditionalController(
+                GateDirection(
+                    coupling_map=pass_manager_config.coupling_map, target=pass_manager_config.target
+                ),
+                condition=should_fix_direction,
+            ),
+        ]
+
+        fix_1q = [BasisTranslator(sel, basis_gates, target)]
+
+        optimization = PassManager()
+
         match optimization_level:
             case 0:
-                return PassManager([])
+                return PassManager(fix_direction + fix_1q)
+
             case 1:
                 loop = [
                     InverseCancellation(),
                     OptimizeCliffordT(),
                     ContractIdleWiresInControlFlow(),
                 ]
-                post_loop = [
-                    BasisTranslator(sel, basis_gates, target),
-                ]
+                post_loop = fix_direction + fix_1q
                 loop_check, continue_loop = _optimization_check_fixed_point()
             case 2 | 3:
                 loop = [
@@ -1083,10 +1101,7 @@ class CliffordTOptimizationPassManager(PassManagerStagePlugin):
                     CommutativeOptimization(),
                     ContractIdleWiresInControlFlow(),
                 ]
-                post_loop = [
-                    SubstitutePi4Rotations(),
-                    BasisTranslator(sel, basis_gates, target),
-                ]
+                post_loop = [SubstitutePi4Rotations()] + fix_direction + fix_1q
                 loop_check, continue_loop = _optimization_check_fixed_point()
             case bad:
                 raise TranspilerError(f"Invalid optimization_level: {bad}")

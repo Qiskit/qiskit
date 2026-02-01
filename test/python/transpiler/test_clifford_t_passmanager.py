@@ -267,7 +267,8 @@ class TestCliffordTPassManager(QiskitTestCase):
 
         self.assertEqual(transpiled, expected)
 
-    def test_gate_direction_remapped(self):
+    @data(0, 1, 2, 3)
+    def test_gate_direction_remapped(self, optimization_level):
         """Test that gate directions are correct."""
         qc = QuantumCircuit(2)
         qc.cx(0, 1)
@@ -276,7 +277,9 @@ class TestCliffordTPassManager(QiskitTestCase):
         coupling_map = CouplingMap([[1, 0]])
 
         pm = generate_preset_pass_manager(
-            basis_gates=basis_gates, coupling_map=coupling_map, optimization_level=0
+            basis_gates=basis_gates,
+            coupling_map=coupling_map,
+            optimization_level=optimization_level,
         )
 
         transpiled = pm.run(qc)
