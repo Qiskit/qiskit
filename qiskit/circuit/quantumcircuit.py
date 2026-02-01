@@ -1708,9 +1708,11 @@ class QuantumCircuit:
             if num_qubits is not None and num_qubits > original_num_qubits:
 
                 ancilla_register_name = "ancilla"
+                ancilla_suffix = 0
                 reg_names = [reg.name for reg in self.qregs]
                 while ancilla_register_name in reg_names:
-                    ancilla_register_name = ancilla_register_name + "_"
+                    ancilla_register_name = f"{ancilla_register_name}{ancilla_suffix}"
+                    ancilla_suffix += 1
                 virtuals.extend(
                     QuantumRegister(num_qubits - original_num_qubits, ancilla_register_name)
                 )
@@ -3632,10 +3634,10 @@ class QuantumCircuit:
                 )
 
         for register in regs:
-            # if isinstance(register, Register) and any(
-            #     register.name == reg.name for reg in self.qregs + self.cregs
-            # ):
-            #     raise CircuitError(f'register name "{register.name}" already exists')
+            if isinstance(register, Register) and any(
+                register.name == reg.name for reg in self.qregs + self.cregs
+            ):
+                raise CircuitError(f'register name "{register.name}" already exists')
 
             if isinstance(register, AncillaRegister):
                 for bit in register:
