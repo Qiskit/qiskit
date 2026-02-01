@@ -1,0 +1,11 @@
+fixes:
+  - |
+    The synthesis of :class:`~qiskit.circuit.library.UnitaryGate` and 
+    :func:`~qiskit.circuit.library.UnitaryGate.control` is based on 
+    :func:`~qiskit.synthesis.qs_decomposition`.
+    However, since iterative Quantum Shannon Decomposition may provide imprecise matrices, 
+    and the rust code may panic when calcualting SVD or Schur decompositions, 
+    we now use the :class:`~qiskit.circuit.library.Isometry` decomposition when
+    :func:`~qiskit.synthesis.qs_decomposition` panic or fails.
+
+    See `#15610 <https://github.com/Qiskit/qiskit/issues/15610>`__.
