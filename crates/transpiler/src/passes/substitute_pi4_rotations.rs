@@ -1141,23 +1141,7 @@ pub fn py_run_substitute_pi4_rotations(
             unreachable!("dag.topological_op_nodes only returns Operations");
         };
         if let OperationRef::StandardGate(gate) = inst.op.view() {
-            if matches!(
-                gate,
-                StandardGate::RX
-                    | StandardGate::RY
-                    | StandardGate::RZ
-                    | StandardGate::Phase
-                    | StandardGate::U1
-                    | StandardGate::RZZ
-                    | StandardGate::RXX
-                    | StandardGate::RZX
-                    | StandardGate::RYY
-                    | StandardGate::CPhase
-                    | StandardGate::CU1
-                    | StandardGate::CRZ
-                    | StandardGate::CRX
-                    | StandardGate::CRY
-            ) {
+            if gate.num_params() == 1 {
                 let k = rotation_to_pi_div(gate);
                 let num_qubits = gate.num_qubits();
                 if let Param::Float(angle) = inst.params_view()[0] {
