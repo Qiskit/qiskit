@@ -1,0 +1,20 @@
+---
+features_transpiler:
+  - Added :meth:`.Target.build_clifford_t` to conveniently build a
+    :class:`.Target` for Clifford+T transpilation. This target includes
+    all standard Clifford gates, the :class:`.TGate` and the
+    :class:`.TdgGate`. Per default, an all-to-all connectivity for all
+    two-qubit Cliffords is assumed, but you can specify a specific
+    ``coupling_map``.
+
+    Example::
+
+      from qiskit.circuit import QuantumCircuit
+      from qiskit.transpiler import Target, transpile
+
+      circuit = QuantumCircuit(2)
+      circuit.rx(0.2, 0)
+      circuit.rzz(1.3, 0, 1)
+
+      target = Target.build_clifford_t(num_qubits=2)
+      cliff_t = transpile(circuit, target=target)

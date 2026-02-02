@@ -382,6 +382,37 @@ class TestCliffordTPassManager(QiskitTestCase):
         self.assertLessEqual(t_count, expected_t_count[n])
 
 
+class TestCliffordTTarget(QiskitTestCase):
+    """Tests for the Clifford+T target."""
+
+    def test_default(self):
+        """Test the default setup."""
+
+        num_qubits = 3
+        target = Target.build_clifford_t(num_qubits)
+
+        with self.subTest(msg="all-to-all connectivity"):
+            # ``None`` means no coupling map constraints
+            cmap = target.build_coupling_map()
+            self.assertIsNone(cmap)
+
+        with self.subTest(msg="check gates"):
+            expected_basis = set(get_clifford_gate_names()) | {"t", "tdg"}
+            basis = set(target.operation_names)
+
+            self.assertEqual(expected_basis, basis)
+
+    def test_coupling_map(self):
+        """Test the coupling map is respected."""
+
+        num_qubits = 3
+        cmap = CouplingMap([(0, 1), (1, 2), (2, 0)])
+        target = Target.build_clifford_t(num_qubits, cmap)
+
+        edges = set(target.build_coupling_map().get_edges())
+        self.assertEqual(set(cmap.get_edges()), edges)
+
+
 def _get_t_count(qc):
     """Returns the number of T/Tdg gates in a circuit."""
     ops = qc.count_ops()
