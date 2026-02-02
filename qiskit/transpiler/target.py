@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -165,7 +165,7 @@ class Target(BaseTarget):
     you call :meth:`.add_instruction` the bounds are applied for all qargs that it
     is defined on. The bounds are specified of a list of 2-tuples of floats where
     the first float is the lower bound and the second float is the upper bound. For example,
-    if you specfied an angle bound::
+    if you specified an angle bound::
 
         [(0.0, 3.14), (-3.14, 3.14), (0.0, 1.0)]
 
@@ -175,7 +175,7 @@ class Target(BaseTarget):
     inclusively as well. A bound can also be specified with ``None`` instead
     of a 2-tuple which indicates that parameter has no constraints. For example::
 
-        [(0.0, 3.14, None, None)]
+        [(0.0, 3.14), None, None]
 
     indicates an angle bound for a 3 parameter gate where only the first
     parameter is restricted to angles between 0.0 and 3.14 and the other

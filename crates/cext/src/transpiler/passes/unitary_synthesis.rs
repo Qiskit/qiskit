@@ -4,20 +4,21 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use hashbrown::HashSet;
-
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 
+use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_transpiler::passes::run_unitary_synthesis;
+use qiskit_transpiler::passes::{
+    UnitarySynthesisConfig, UnitarySynthesisState, run_unitary_synthesis,
+};
 use qiskit_transpiler::target::Target;
 
 /// @ingroup QkTranspilerPasses
@@ -75,7 +76,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_unitary_synthesis(
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
     let target = unsafe { const_ptr_as_ref(target) };
-    let mut dag = match DAGCircuit::from_circuit_data(circuit, false, None, None, None, None) {
+    let dag = match DAGCircuit::from_circuit_data(circuit, false, None, None, None, None) {
         Ok(dag) => dag,
         Err(e) => panic!("{}", e),
     };
@@ -84,19 +85,21 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_unitary_synthesis(
     } else {
         Some(approximation_degree)
     };
-    let qubit_indices = (0..dag.num_qubits()).collect();
-    let out_dag = match run_unitary_synthesis(
-        &mut dag,
-        qubit_indices,
-        min_qubits,
-        Some(target),
-        HashSet::new(),
-        ["unitary".to_string()].into_iter().collect(),
-        HashSet::new(),
+    let physical_qubits = (0..dag.num_qubits() as u32)
+        .map(PhysicalQubit::new)
+        .collect::<Vec<_>>();
+    let mut synthesis_state = UnitarySynthesisState::new(UnitarySynthesisConfig {
         approximation_degree,
-        None,
-        None,
-        false,
+        run_python_decomposers: false,
+        ..Default::default()
+    });
+    let out_dag = match run_unitary_synthesis(
+        &dag,
+        &["unitary".to_string()].into_iter().collect(),
+        min_qubits,
+        &physical_qubits,
+        &mut synthesis_state,
+        target.into(),
     ) {
         Ok(dag) => dag,
         Err(e) => panic!("{}", e),
@@ -111,7 +114,6 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_unitary_synthesis(
 #[cfg(all(test, not(miri)))]
 mod tests {
     use super::*;
-    use pyo3::prelude::*;
 
     use qiskit_circuit::Qubit;
     use qiskit_circuit::bit::ShareableQubit;
@@ -129,8 +131,6 @@ mod tests {
         let mut qc = CircuitData::new(
             Some((0..3).map(|_| ShareableQubit::new_anonymous()).collect()),
             None,
-            None,
-            0,
             (0.).into(),
         )
         .unwrap();
@@ -182,7 +182,7 @@ mod tests {
             None,    // concurrent_measurements
         )
         .unwrap();
-        let params: Option<Parameters<Py<PyAny>>> = Some(Parameters::Params(smallvec![
+        let params = Some(Parameters::Params(smallvec![
             Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
                 "ϴ", None, None,
             )))),

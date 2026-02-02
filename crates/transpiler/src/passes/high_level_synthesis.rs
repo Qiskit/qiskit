@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -16,7 +16,6 @@ use nalgebra::DMatrix;
 use ndarray::prelude::*;
 use pyo3::Bound;
 use pyo3::IntoPyObjectExt;
-use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
 use qiskit_circuit::bit::ShareableQubit;
@@ -26,7 +25,7 @@ use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::CX_GATE;
-use qiskit_circuit::imports::{HLS_SYNTHESIZE_OP_USING_PLUGINS, QUANTUM_CIRCUIT};
+use qiskit_circuit::imports::HLS_SYNTHESIZE_OP_USING_PLUGINS;
 use qiskit_circuit::operations::{
     Operation, OperationRef, Param, StandardGate, StandardInstruction, radd_param,
 };
@@ -575,12 +574,11 @@ fn run_on_circuitdata(
         // Check if synthesis for this operation can be skipped
         if definitely_skip_op(py, data, &inst.op, &op_qubits) {
             if let Some(cf) = input_circuit.try_view_control_flow(inst) {
-                let blocks: Vec<_> = Python::attach(|py| {
-                    cf.blocks()
-                        .into_iter()
-                        .map(|b| output_circuit.add_block(b.bind(py)))
-                        .collect()
-                });
+                let blocks: Vec<_> = cf
+                    .blocks()
+                    .into_iter()
+                    .map(|b| output_circuit.add_block(b.clone()))
+                    .collect();
                 output_circuit.push(PackedInstruction {
                     params: (!blocks.is_empty()).then(|| Box::new(Parameters::Blocks(blocks))),
                     ..inst.clone()
@@ -599,17 +597,6 @@ fn run_on_circuitdata(
         // avoid complications related to tracking qubit status for while- loops.
         // In the future, this handling can potentially be improved.
         if let Some(control_flow) = input_circuit.try_view_control_flow(inst) {
-            let quantum_circuit_cls = QUANTUM_CIRCUIT.get_bound(py);
-
-            // old_blocks_py keeps the original QuantumCircuit's appearing within control-flow ops
-            // new_blocks_py keeps the recursively synthesized circuits
-            let old_blocks_py: Vec<Bound<PyAny>> = control_flow
-                .blocks()
-                .into_iter()
-                .map(|b| b.bind(py).clone())
-                .collect();
-            let mut new_blocks_py: Vec<Bound<PyAny>> = Vec::with_capacity(old_blocks_py.len());
-
             // We do not allow using any additional qubits outside of the block.
             let mut block_tracker = tracker.clone();
             let to_disable = (0..tracker.num_qubits())
@@ -618,31 +605,15 @@ fn run_on_circuitdata(
             block_tracker.disable(to_disable);
             block_tracker.set_dirty(&op_qubits);
 
-            for block_py in old_blocks_py {
-                let old_block_py: QuantumCircuitData = block_py.extract()?;
-                let (new_block, _) = run_on_circuitdata(
-                    py,
-                    &old_block_py.data,
-                    &op_qubits,
-                    data,
-                    &mut block_tracker,
-                )?;
-                let new_block = new_block.into_bound_py_any(py)?;
-
-                // We create the new quantum circuit by calling copy_empty_like on the old quantum circuit
-                // and manually set the circuit data to the (recursively synthesized) data.
-                // This makes sure that all the python-space information (qregs, cregs, input variables)
-                // get copied correctly.
-                let new_block_py: Bound<'_, PyAny> = quantum_circuit_cls
-                    .call_method1(intern!(py, "copy_empty_like"), (block_py,))?;
-                new_block_py.setattr(intern!(py, "_data"), &new_block)?;
-                new_blocks_py.push(new_block_py);
-            }
-
-            let blocks = new_blocks_py
+            let blocks = control_flow
+                .blocks()
                 .into_iter()
-                .map(|b| output_circuit.add_block(&b))
-                .collect();
+                .map(|block| -> PyResult<_> {
+                    let (new_block, _) =
+                        run_on_circuitdata(py, block, &op_qubits, data, &mut block_tracker)?;
+                    Ok(output_circuit.add_block(new_block))
+                })
+                .collect::<PyResult<_>>()?;
             let packed_instruction = PackedInstruction::from_control_flow(
                 inst.op.control_flow().clone(),
                 blocks,
@@ -737,7 +708,7 @@ fn run_on_circuitdata(
                     output_circuit.global_phase().clone(),
                     synthesized_circuit.global_phase().clone(),
                 );
-                output_circuit.set_global_phase(updated_global_phase)?;
+                output_circuit.set_global_phase_param(updated_global_phase)?;
             }
         }
     }
@@ -968,9 +939,9 @@ fn synthesize_op_using_plugins(
         OperationRef::StandardInstruction(instruction) => instruction
             .create_py_op(py, Some(params.iter().cloned().collect()), label)?
             .into_any(),
-        OperationRef::Gate(gate) => gate.gate.clone_ref(py),
+        OperationRef::Gate(gate) => gate.instruction.clone_ref(py),
         OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
-        OperationRef::Operation(operation) => operation.operation.clone_ref(py),
+        OperationRef::Operation(operation) => operation.instruction.clone_ref(py),
         OperationRef::Unitary(unitary) => unitary.create_py_op(py, label)?.into_any(),
         OperationRef::PauliProductMeasurement(ppm) => ppm.create_py_op(py, label)?.into_any(),
     };
@@ -1006,7 +977,7 @@ fn py_synthesize_operation(
     data: &Bound<HighLevelSynthesisData>,
     tracker: &mut QubitTracker,
 ) -> PyResult<Option<(CircuitData, Vec<usize>)>> {
-    let op: OperationFromPython = py_op.extract()?;
+    let op: OperationFromPython<Py<PyAny>> = py_op.extract()?;
 
     // Check if the operation can be skipped.
     if definitely_skip_op(py, data, &op.operation, &input_qubits) {
@@ -1081,6 +1052,7 @@ pub fn run_high_level_synthesis(
                 data: output_circuit,
                 name: dag.get_name().cloned(),
                 metadata: dag.get_metadata().map(|m| m.bind(py)).cloned(),
+                transpile_layout: None,
             },
             false,
             None,

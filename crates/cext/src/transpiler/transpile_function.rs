@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -15,6 +15,7 @@ use std::ffi::c_char;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_transpiler::commutation_checker::get_standard_commutation_checker;
+use qiskit_transpiler::passes::{UnitarySynthesisConfig, UnitarySynthesisState};
 use qiskit_transpiler::standard_equivalence_library::generate_standard_equivalence_library;
 use qiskit_transpiler::target::Target;
 use qiskit_transpiler::transpile;
@@ -164,6 +165,11 @@ pub unsafe extern "C" fn qk_transpile_stage_init(
         }
         Some(options.approximation_degree)
     };
+    let mut synthesis_state = UnitarySynthesisState::new(UnitarySynthesisConfig {
+        approximation_degree,
+        run_python_decomposers: false,
+        ..Default::default()
+    });
     let mut commutation_checker = get_standard_commutation_checker();
 
     match init_stage(
@@ -171,6 +177,7 @@ pub unsafe extern "C" fn qk_transpile_stage_init(
         target,
         options.optimization_level.into(),
         approximation_degree,
+        &mut synthesis_state,
         &mut out_layout,
         &mut commutation_checker,
     ) {
@@ -408,6 +415,11 @@ pub unsafe extern "C" fn qk_transpile_stage_optimization(
         }
         Some(options.approximation_degree)
     };
+    let mut synthesis_state = UnitarySynthesisState::new(UnitarySynthesisConfig {
+        approximation_degree,
+        run_python_decomposers: false,
+        ..Default::default()
+    });
     let mut equiv_lib = generate_standard_equivalence_library();
     let mut commutation_checker = get_standard_commutation_checker();
 
@@ -416,6 +428,7 @@ pub unsafe extern "C" fn qk_transpile_stage_optimization(
         target,
         options.optimization_level.into(),
         approximation_degree,
+        &mut synthesis_state,
         &mut commutation_checker,
         &mut equiv_lib,
         &mut layout,
@@ -510,9 +523,14 @@ pub unsafe extern "C" fn qk_transpile_stage_translation(
         }
         Some(options.approximation_degree)
     };
+    let mut synthesis_state = UnitarySynthesisState::new(UnitarySynthesisConfig {
+        approximation_degree,
+        run_python_decomposers: false,
+        ..Default::default()
+    });
     let mut equiv_lib = generate_standard_equivalence_library();
 
-    match translation_stage(dag, target, approximation_degree, &mut equiv_lib) {
+    match translation_stage(dag, target, &mut synthesis_state, &mut equiv_lib) {
         Ok(_) => ExitCode::Success,
         Err(e) => {
             if !error.is_null() {

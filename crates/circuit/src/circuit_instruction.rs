@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -22,12 +22,14 @@ use pyo3::IntoPyObjectExt;
 use pyo3::types::{PyBool, PyList, PyTuple, PyType};
 use pyo3::{PyResult, intern};
 
+use crate::circuit_data::CircuitData;
+use crate::dag_circuit::DAGCircuit;
 use crate::duration::Duration;
 use crate::imports::{CONTROLLED_GATE, GATE, INSTRUCTION, OPERATION, WARNINGS_WARN};
 use crate::instruction::{Instruction, Parameters, create_py_op};
 use crate::operations::{
     ArrayType, BoxDuration, ControlFlow, ControlFlowInstruction, ControlFlowType, Operation,
-    OperationRef, Param, PauliProductMeasurement, PyGate, PyInstruction, PyOperation, StandardGate,
+    OperationRef, Param, PauliProductMeasurement, PyInstruction, PyOperationTypes, StandardGate,
     StandardInstruction, StandardInstructionType, UnitaryGate,
 };
 use crate::packed_instruction::PackedOperation;
@@ -78,7 +80,7 @@ pub struct CircuitInstruction {
     /// A sequence of the classical bits that this operation reads from or writes to.
     #[pyo3(get)]
     pub clbits: Py<PyTuple>,
-    pub params: Option<Parameters<Py<PyAny>>>,
+    pub params: Option<Parameters<CircuitData>>,
     pub label: Option<Box<String>>,
     #[cfg(feature = "cache_pygates")]
     pub py_op: OnceLock<Py<PyAny>>,
@@ -104,11 +106,13 @@ impl CircuitInstruction {
 }
 
 impl Instruction for CircuitInstruction {
+    type Block = CircuitData;
+
     fn op(&self) -> OperationRef<'_> {
         self.operation.view()
     }
 
-    fn parameters(&self) -> Option<&Parameters<Py<PyAny>>> {
+    fn parameters(&self) -> Option<&Parameters<CircuitData>> {
         self.params.as_ref()
     }
 
@@ -127,7 +131,7 @@ impl CircuitInstruction {
         clbits: Option<Bound<PyAny>>,
     ) -> PyResult<Self> {
         let py = operation.py();
-        let op_parts = operation.extract::<OperationFromPython>()?;
+        let op_parts = operation.extract::<OperationFromPython<CircuitData>>()?;
 
         Ok(Self {
             operation: op_parts.operation,
@@ -213,10 +217,18 @@ impl CircuitInstruction {
                 } => [
                     collection.into_py_any(py)?,
                     loop_param.clone().into_py_any(py)?,
-                    self.blocks_view()[0].clone_ref(py),
+                    self.blocks_view()[0]
+                        .clone()
+                        .into_py_quantum_circuit(py)?
+                        .unbind(),
                 ]
                 .into_py_any(py),
-                _ => self.blocks_view().into_py_any(py),
+                _ => self
+                    .blocks_view()
+                    .iter()
+                    .map(|block| block.clone().into_py_quantum_circuit(py))
+                    .collect::<PyResult<Vec<_>>>()?
+                    .into_py_any(py),
             },
             _ => self.params_view().into_py_any(py),
         }
@@ -244,7 +256,7 @@ impl CircuitInstruction {
         match self.operation.view() {
             OperationRef::StandardGate(standard) => Ok(standard.num_ctrl_qubits() != 0),
             OperationRef::Gate(gate) => gate
-                .gate
+                .instruction
                 .bind(py)
                 .is_instance(CONTROLLED_GATE.get_bound(py)),
             _ => Ok(false),
@@ -259,7 +271,14 @@ impl CircuitInstruction {
     /// Is the :class:`.Operation` contained in this instruction a control-flow operation (i.e. an
     /// instance of :class:`.ControlFlowOp`)?
     pub fn is_control_flow(&self) -> bool {
-        self.operation.try_control_flow().is_some()
+        self.operation
+            .try_control_flow()
+            .is_some_and(|control_flow| {
+                !matches!(
+                    control_flow.control_flow,
+                    ControlFlow::BreakLoop | ControlFlow::ContinueLoop
+                )
+            })
     }
 
     /// Does this instruction contain any :class:`.ParameterExpression` parameters?
@@ -296,7 +315,7 @@ impl CircuitInstruction {
         };
 
         if let Some(operation) = operation {
-            let op_parts = operation.extract::<OperationFromPython>()?;
+            let op_parts = operation.extract::<OperationFromPython<CircuitData>>()?;
             let params = if let Some(params) = params {
                 extract_params(op_parts.operation.view(), &params)?
             } else {
@@ -397,8 +416,8 @@ impl CircuitInstruction {
     ) -> PyResult<Py<PyAny>> {
         fn params_eq(
             py: Python,
-            left: Option<&Parameters<Py<PyAny>>>,
-            right: Option<&Parameters<Py<PyAny>>>,
+            left: Option<&Parameters<CircuitData>>,
+            right: Option<&Parameters<CircuitData>>,
         ) -> PyResult<bool> {
             if left.is_none() && right.is_none() {
                 return Ok(true);
@@ -440,8 +459,14 @@ impl CircuitInstruction {
                     if blocks_a.len() != blocks_b.len() {
                         return Ok(false);
                     }
+                    // TODO: we should be able to do the semantic-equality comparison from Rust
+                    // space in the future, without going via Python.  See gh-15267.
                     for (a, b) in blocks_a.iter().zip(blocks_b) {
-                        if !a.bind(py).eq(b)? {
+                        if !a
+                            .clone()
+                            .into_py_quantum_circuit(py)?
+                            .eq(b.clone().into_py_quantum_circuit(py)?)?
+                        {
                             return Ok(false);
                         }
                     }
@@ -502,7 +527,7 @@ impl CircuitInstruction {
 /// ```rust
 /// #[pyfunction]
 /// fn accepts_op_from_python(ob: &Bound<PyAny>) -> PyResult<()> {
-///     let py_op = ob.extract::<OperationFromPython>()?;
+///     let py_op = ob.extract::<OperationFromPython<CircuitData>>()?;
 ///     // ... use `py_op.operation`, `py_op.params`, etc.
 ///     Ok(())
 /// }
@@ -510,14 +535,19 @@ impl CircuitInstruction {
 ///
 /// though you can also accept `ob: OperationFromPython` directly, if you don't also need a handle
 /// to the Python object that it came from.  The handle is useful for the Python-operation caching.
+///
+/// The generic argument controls how control-flow blocks are extracted.  Typically you choose this
+/// to match the place you'll be putting the blocks.  If you want to fail the extraction if there's
+/// control-flow blocks, use `qiskit_circuit::NoBlocks`.  If you want to leave the blocks
+/// unextracted, use `Py<PyAny>`.
 #[derive(Debug)]
-pub struct OperationFromPython {
+pub struct OperationFromPython<T> {
     pub operation: PackedOperation,
-    pub params: Option<Parameters<Py<PyAny>>>,
+    pub params: Option<Parameters<T>>,
     pub label: Option<Box<String>>,
 }
 
-impl OperationFromPython {
+impl<T: CircuitBlock> OperationFromPython<T> {
     /// Takes the params out of [OperationFromPython::params].
     ///
     /// Panics if params is not a parameter list.
@@ -528,17 +558,52 @@ impl OperationFromPython {
     /// Takes the blocks out of [OperationFromPython::params].
     ///
     /// Panics if params is not a block list.
-    pub fn take_blocks(&mut self) -> Option<Vec<Py<PyAny>>> {
+    pub fn take_blocks(&mut self) -> Option<Vec<T>> {
         self.params.take().map(|p| p.unwrap_blocks())
     }
 }
 
-impl Instruction for OperationFromPython {
+/// Marker object for use with `OperationFromPython` that marks that the extraction should fail if
+/// the object contains circuit blocks.
+pub struct NoBlocks;
+
+/// Helper trait implemented by `CircuitData` and `DAGCircuit` to implement extraction from
+/// a Python-owned control-flow block into a suitable Rust type.
+///
+/// This shouldn't need to be imported anywhere nor implemented by anything else; it's only intended
+/// to let the `OperationFromPython` extraction be generic.
+pub trait CircuitBlock: Sized {
+    fn extract_py_block(ob: Bound<CircuitData>) -> PyResult<Self>;
+}
+impl CircuitBlock for CircuitData {
+    fn extract_py_block(ob: Bound<CircuitData>) -> PyResult<Self> {
+        Ok(ob.borrow().clone())
+    }
+}
+impl CircuitBlock for DAGCircuit {
+    fn extract_py_block(ob: Bound<CircuitData>) -> PyResult<Self> {
+        Self::from_circuit_data(&ob.borrow(), false, None, None, None, None)
+    }
+}
+impl CircuitBlock for NoBlocks {
+    fn extract_py_block(_ob: Bound<CircuitData>) -> PyResult<Self> {
+        Err(PyTypeError::new_err("control-flow ops are not valid here"))
+    }
+}
+impl CircuitBlock for Py<PyAny> {
+    fn extract_py_block(ob: Bound<CircuitData>) -> PyResult<Self> {
+        Ok(ob.into_any().unbind())
+    }
+}
+
+impl<T> Instruction for OperationFromPython<T> {
+    type Block = T;
+
     fn op(&self) -> OperationRef<'_> {
         self.operation.view()
     }
 
-    fn parameters(&self) -> Option<&Parameters<Py<PyAny>>> {
+    fn parameters(&self) -> Option<&Parameters<T>> {
         self.params.as_ref()
     }
 
@@ -547,7 +612,7 @@ impl Instruction for OperationFromPython {
     }
 }
 
-impl<'a, 'py> FromPyObject<'a, 'py> for OperationFromPython {
+impl<'a, 'py, T: CircuitBlock> FromPyObject<'a, 'py> for OperationFromPython<T> {
     type Error = PyErr;
 
     fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
@@ -803,13 +868,15 @@ impl<'a, 'py> FromPyObject<'a, 'py> for OperationFromPython {
 
         if ob_type.is_subclass(GATE.get_bound(py))? {
             let params = get_params()?;
-            let operation = PackedOperation::from_gate(Box::new(PyGate {
-                qubits: ob.getattr(intern!(py, "num_qubits"))?.extract()?,
-                clbits: 0,
-                params: params.len()? as u32,
-                op_name: ob.getattr(intern!(py, "name"))?.extract()?,
-                gate: ob.to_owned().unbind(),
-            }));
+            let operation = PackedOperation::from_py_operation(Box::new(PyOperationTypes::Gate(
+                PyInstruction {
+                    qubits: ob.getattr(intern!(py, "num_qubits"))?.extract()?,
+                    clbits: 0,
+                    params: params.len()? as u32,
+                    op_name: ob.getattr(intern!(py, "name"))?.extract()?,
+                    instruction: ob.to_owned().unbind(),
+                },
+            )));
             let params = extract_params(operation.view(), &params)?;
             return Ok(OperationFromPython {
                 operation,
@@ -819,13 +886,15 @@ impl<'a, 'py> FromPyObject<'a, 'py> for OperationFromPython {
         }
         if ob_type.is_subclass(INSTRUCTION.get_bound(py))? {
             let params = get_params()?;
-            let operation = PackedOperation::from_instruction(Box::new(PyInstruction {
-                qubits: ob.getattr(intern!(py, "num_qubits"))?.extract()?,
-                clbits: ob.getattr(intern!(py, "num_clbits"))?.extract()?,
-                params: params.len()? as u32,
-                op_name: ob.getattr(intern!(py, "name"))?.extract()?,
-                instruction: ob.to_owned().unbind(),
-            }));
+            let operation = PackedOperation::from_py_operation(Box::new(
+                PyOperationTypes::Instruction(PyInstruction {
+                    qubits: ob.getattr(intern!(py, "num_qubits"))?.extract()?,
+                    clbits: ob.getattr(intern!(py, "num_clbits"))?.extract()?,
+                    params: params.len()? as u32,
+                    op_name: ob.getattr(intern!(py, "name"))?.extract()?,
+                    instruction: ob.to_owned().unbind(),
+                }),
+            ));
             let params = extract_params(operation.view(), &params)?;
             return Ok(OperationFromPython {
                 operation,
@@ -835,13 +904,15 @@ impl<'a, 'py> FromPyObject<'a, 'py> for OperationFromPython {
         }
         if ob_type.is_subclass(OPERATION.get_bound(py))? {
             let params = get_params()?;
-            let operation = PackedOperation::from_operation(Box::new(PyOperation {
-                qubits: ob.getattr(intern!(py, "num_qubits"))?.extract()?,
-                clbits: ob.getattr(intern!(py, "num_clbits"))?.extract()?,
-                params: params.len()? as u32,
-                op_name: ob.getattr(intern!(py, "name"))?.extract()?,
-                operation: ob.to_owned().unbind(),
-            }));
+            let operation = PackedOperation::from_py_operation(Box::new(
+                PyOperationTypes::Operation(PyInstruction {
+                    qubits: ob.getattr(intern!(py, "num_qubits"))?.extract()?,
+                    clbits: ob.getattr(intern!(py, "num_clbits"))?.extract()?,
+                    params: params.len()? as u32,
+                    op_name: ob.getattr(intern!(py, "name"))?.extract()?,
+                    instruction: ob.to_owned().unbind(),
+                }),
+            ));
             let params = extract_params(operation.view(), &params)?;
             return Ok(OperationFromPython {
                 operation,
@@ -858,10 +929,11 @@ impl<'a, 'py> FromPyObject<'a, 'py> for OperationFromPython {
 
 /// Extracts a Python-space params list into an optional [Parameters] list, given
 /// the corresponding operation reference.
-pub fn extract_params(
+pub fn extract_params<T: CircuitBlock>(
     op: OperationRef,
     params: &Bound<PyAny>,
-) -> PyResult<Option<Parameters<Py<PyAny>>>> {
+) -> PyResult<Option<Parameters<T>>> {
+    let data_attr = intern!(params.py(), "_data");
     Ok(match op {
         OperationRef::ControlFlow(cf) => match &cf.control_flow {
             ControlFlow::BreakLoop => None,
@@ -870,19 +942,27 @@ pub fn extract_params(
                 // We skip the first two parameters (collection and loop_param) since we
                 // store those directly on the operation in Rust.
                 let mut params = params.try_iter()?.skip(2);
-                Some(Parameters::Blocks(vec![params.next().unwrap()?.unbind()]))
+                Some(Parameters::Blocks(vec![T::extract_py_block(
+                    params
+                        .next()
+                        .ok_or_else(|| {
+                            PyValueError::new_err("not enough values to unpack (expected 3)")
+                        })??
+                        .getattr(data_attr)?
+                        .cast_into()?,
+                )?]))
             }
             _ => {
                 // For all other control flow operations with blocks, the 'params' in Python land
                 // are exactly the blocks.
-                let blocks: Vec<Py<PyAny>> = params
+                let blocks = params
                     .try_iter()?
                     .take_while(|p| match p {
                         // In the case of IfElse, the "false" body might be None.
                         Ok(block) if !block.is_none() => true,
                         _ => false,
                     })
-                    .map(|p| p.map(|p| p.unbind()))
+                    .map(|p| T::extract_py_block(p?.getattr(data_attr)?.cast_into()?))
                     .collect::<PyResult<_>>()?;
                 Some(Parameters::Blocks(blocks))
             }

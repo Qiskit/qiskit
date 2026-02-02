@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -38,6 +38,7 @@ from typing import (
     Literal,
     overload,
 )
+import os
 from math import pi
 import numpy as np
 from qiskit._accelerate.circuit import CircuitData
@@ -82,6 +83,7 @@ from .store import Store
 
 
 if typing.TYPE_CHECKING:  # pylint: disable=cyclic-import
+    import types as builtin_types
     import qiskit
     from qiskit.circuit import Annotation
     from qiskit.transpiler.layout import TranspileLayout
@@ -3012,10 +3014,8 @@ class QuantumCircuit:
 
     @typing.overload
     def get_parameter(self, name: str, default: T) -> Union[Parameter, T]: ...
-
-    # The builtin `types` module has `EllipsisType`, but only from 3.10+!
     @typing.overload
-    def get_parameter(self, name: str, default: type(...) = ...) -> Parameter: ...
+    def get_parameter(self, name: str, default: builtin_types.EllipsisType = ...) -> Parameter: ...
 
     # We use a _literal_ `Ellipsis` as the marker value to leave `None` available as a default.
     def get_parameter(self, name: str, default: typing.Any = ...) -> Parameter:
@@ -3092,10 +3092,8 @@ class QuantumCircuit:
 
     @typing.overload
     def get_var(self, name: str, default: T) -> Union[expr.Var, T]: ...
-
-    # The builtin `types` module has `EllipsisType`, but only from 3.10+!
     @typing.overload
-    def get_var(self, name: str, default: type(...) = ...) -> expr.Var: ...
+    def get_var(self, name: str, default: builtin_types.EllipsisType = ...) -> expr.Var: ...
 
     # We use a _literal_ `Ellipsis` as the marker value to leave `None` available as a default.
     def get_var(self, name: str, default: typing.Any = ...):
@@ -3167,10 +3165,8 @@ class QuantumCircuit:
 
     @typing.overload
     def get_stretch(self, name: str, default: T) -> Union[expr.Stretch, T]: ...
-
-    # The builtin `types` module has `EllipsisType`, but only from 3.10+!
     @typing.overload
-    def get_stretch(self, name: str, default: type(...) = ...) -> expr.Stretch: ...
+    def get_stretch(self, name: str, default: builtin_types.EllipsisType = ...) -> expr.Stretch: ...
 
     def get_stretch(self, name: str, default: typing.Any = ...):
         """Retrieve a stretch that is accessible in this circuit scope by name.
@@ -3233,11 +3229,9 @@ class QuantumCircuit:
 
     @typing.overload
     def get_identifier(self, name: str, default: T) -> Union[expr.Var | expr.Stretch, T]: ...
-
-    # The builtin `types` module has `EllipsisType`, but only from 3.10+!
     @typing.overload
     def get_identifier(
-        self, name: str, default: type(...) = ...
+        self, name: str, default: builtin_types.EllipsisType = ...
     ) -> Union[expr.Var, expr.Stretch]: ...
 
     # We use a _literal_ `Ellipsis` as the marker value to leave `None` available as a default.
@@ -4204,14 +4198,11 @@ class QuantumCircuit:
         """
         return self._data.num_clbits
 
-    # The stringified return type is because OrderedDict can't be subscripted before Python 3.9, and
-    # typing.OrderedDict wasn't added until 3.7.2.  It can be turned into a proper type once 3.6
-    # support is dropped.
-    def count_ops(self) -> "OrderedDict[Instruction, int]":
+    def count_ops(self) -> OrderedDict[str, int]:
         """Count each operation kind in the circuit.
 
         Returns:
-            OrderedDict: a breakdown of how many operations of each kind, sorted by amount.
+            A breakdown of how many operations of each kind, sorted by amount.
         """
         ops_dict = self._data.count_ops()
         return OrderedDict(ops_dict)
@@ -4722,12 +4713,12 @@ class QuantumCircuit:
             return None
 
     @staticmethod
-    def from_qasm_file(path: str) -> "QuantumCircuit":
+    def from_qasm_file(path: str | os.PathLike) -> "QuantumCircuit":
         """Read an OpenQASM 2.0 program from a file and convert to an instance of
         :class:`.QuantumCircuit`.
 
         Args:
-          path (str): Path to the file for an OpenQASM 2 program
+          path: Path to the file for an OpenQASM 2 program
 
         Return:
           QuantumCircuit: The QuantumCircuit object for the input OpenQASM 2.

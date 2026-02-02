@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -497,7 +497,7 @@ used to transform any :class:`.PhaseGate` outside the specified angle bounds. Yo
 need to write a function that takes in the angle values for the gate and returns
 a :class:`.DAGCircuit`. For example::
 
-    from qiskit.transpiler.passes.utils.wrap_angles import WRAP_ANGLE_REGISTRY
+    from qiskit.transpiler.passes import WrapAngles
 
     def fold_phase(angles: List[float], qubits: List[int]) -> DAGCircuit:
         angle = angles[0]
@@ -511,7 +511,7 @@ a :class:`.DAGCircuit`. For example::
             dag.apply_operation_back(PhaseGate(math.pi), [dag.qubits[0]])
         return dag
 
-    WRAP_ANGLE_REGISTRY.add_wrapper("phase", fold_phase)
+    WrapAngles.DEFAULT_REGISTRY.add_wrapper("phase", fold_phase)
 
 This function will transform the out of bounds gates into one that respects the angle
 bounds in the target and the target's other constraints (although not particularly well).

@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -144,6 +144,29 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         state = Statevector(circuit)
 
         fname = "qsphere.png"
+        self.graph_state_drawer(state=state, output="qsphere", filename=fname)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, 0.99)
+
+    def test_plot_entangled_state_qsphere(self):
+        """test for plot_state_qsphere"""
+        circuit = QuantumCircuit(2)
+        circuit.x(0)
+        circuit.z(0)
+        circuit.h(0)
+        circuit.cx(0, 1)
+
+        # getting the state using quantum_info
+        state = Statevector(circuit)
+
+        fname = "entangled_qsphere.png"
         self.graph_state_drawer(state=state, output="qsphere", filename=fname)
 
         ratio = VisualTestUtilities._save_diff(

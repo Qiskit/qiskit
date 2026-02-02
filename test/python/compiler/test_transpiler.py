@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -92,8 +92,12 @@ from qiskit.quantum_info import Operator, random_unitary
 from qiskit.utils import should_run_in_parallel
 from qiskit.transpiler import CouplingMap, Layout, PassManager, passes
 from qiskit.transpiler.exceptions import TranspilerError, CircuitTooWideForTarget
-from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, GateDirection, VF2PostLayout
-from qiskit.transpiler.passes.utils.wrap_angles import WRAP_ANGLE_REGISTRY
+from qiskit.transpiler.passes import (
+    BarrierBeforeFinalMeasurements,
+    GateDirection,
+    VF2PostLayout,
+    WrapAngles,
+)
 
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager, level_0_pass_manager
@@ -3234,18 +3238,12 @@ class TestTranspileParallel(QiskitTestCase):
             CZGate(),
             {(0, 1): InstructionProperties(error=5e-3), (1, 0): InstructionProperties(error=5e-3)},
         )
-        global WRAP_ANGLE_REGISTRY  # pylint: disable=global-statement
-        WRAP_ANGLE_REGISTRY.add_wrapper("rzz", fold_rzz)
-
-        def cleanup_wrap_registry():
-            global WRAP_ANGLE_REGISTRY  # pylint: disable=global-statement
-            WRAP_ANGLE_REGISTRY = WrapAngleRegistry()
-
-        self.addCleanup(cleanup_wrap_registry)
-
-        transpiled = transpile(
-            circs, target=target, optimization_level=opt_level, seed_transpiler=1234567890
-        )
+        registry = WrapAngleRegistry()
+        registry.add_wrapper("rzz", fold_rzz)
+        with patch.object(WrapAngles, "DEFAULT_REGISTRY", registry):
+            transpiled = transpile(
+                circs, target=target, optimization_level=opt_level, seed_transpiler=1234567890
+            )
 
         self.assertTrue(Operator.from_circuit(transpiled[0]).equiv(Operator.from_circuit(circs[0])))
         self.assertTrue(Operator.from_circuit(transpiled[1]).equiv(Operator.from_circuit(circs[1])))
