@@ -27,7 +27,7 @@ use qiskit_quantum_info::sparse_observable::PySparseObservable;
 
 use crate::TranspilerError;
 
-type GateToPBCType<'a> = (&'static [(&'static str, f64, &'static [u32])], f64);
+type GateToPBCType<'a> = (&'a [(&'a str, f64, &'a [u32])], f64);
 type GateToPBCVec<'a> = (Vec<(&'static str, Param, &'static [u32])>, Param);
 
 /// Map gates to a list of equivalent Pauli rotations and a global phase.
@@ -35,134 +35,145 @@ type GateToPBCVec<'a> = (Vec<(&'static str, Param, &'static [u32])>, Param);
 /// For gates that didn't have a phase (e.g. X)
 /// the phase rescale factor is simply the phase of the rotation gate. The convention is
 /// `original_gate = PauliEvolutionGate(pauli, phase) * e^{i global_phase * phase}`
-fn replace_gate_by_pauli_rotation(gate: StandardGate) -> GateToPBCType<'static> {
-    match gate {
-        StandardGate::I => (&[("I", 0.0, &[0])], 0.0),
-        StandardGate::X => (&[("X", FRAC_PI_2, &[0])], FRAC_PI_2),
-        StandardGate::Y => (&[("Y", FRAC_PI_2, &[0])], FRAC_PI_2),
-        StandardGate::Z => (&[("Z", FRAC_PI_2, &[0])], FRAC_PI_2),
-        StandardGate::S => (&[("Z", FRAC_PI_4, &[0])], FRAC_PI_4),
-        StandardGate::Sdg => (&[("Z", -FRAC_PI_4, &[0])], -FRAC_PI_4),
-        StandardGate::T => (&[("Z", FRAC_PI_8, &[0])], FRAC_PI_8),
-        StandardGate::Tdg => (&[("Z", -FRAC_PI_8, &[0])], -FRAC_PI_8),
-        StandardGate::SX => (&[("X", FRAC_PI_4, &[0])], FRAC_PI_4),
-        StandardGate::SXdg => (&[("X", -FRAC_PI_4, &[0])], -FRAC_PI_4),
-        StandardGate::H => (&[("Y", FRAC_PI_4, &[0]), ("X", FRAC_PI_2, &[0])], FRAC_PI_2),
-        StandardGate::RZ => (&[("Z", 0.5, &[0])], 0.0),
-        StandardGate::RX => (&[("X", 0.5, &[0])], 0.0),
-        StandardGate::RY => (&[("Y", 0.5, &[0])], 0.0),
-        StandardGate::Phase => (&[("Z", 0.5, &[0])], 0.5),
-        StandardGate::U1 => (&[("Z", 0.5, &[0])], 0.5),
-        StandardGate::CX => (
-            &[
-                ("XZ", FRAC_PI_4, &[0, 1]),
-                ("Z", -FRAC_PI_4, &[0]),
-                ("X", -FRAC_PI_4, &[1]),
-            ],
-            -FRAC_PI_4,
-        ),
-        StandardGate::CZ => (
-            &[
-                ("ZZ", FRAC_PI_4, &[0, 1]),
-                ("Z", -FRAC_PI_4, &[0]),
-                ("Z", -FRAC_PI_4, &[1]),
-            ],
-            -FRAC_PI_4,
-        ),
-        StandardGate::CY => (
-            &[
-                ("YZ", FRAC_PI_4, &[0, 1]),
-                ("Z", -FRAC_PI_4, &[0]),
-                ("Y", -FRAC_PI_4, &[1]),
-            ],
-            -FRAC_PI_4,
-        ),
-        StandardGate::CH => (
-            &[
-                ("X", -1.0 * FRAC_PI_4, &[1]),
-                ("Z", -1.0 * FRAC_PI_8, &[1]),
-                ("XZ", FRAC_PI_4, &[0, 1]),
-                ("Z", -FRAC_PI_4, &[0]),
-                ("Y", -FRAC_PI_8, &[1]),
-            ],
-            7.0 * FRAC_PI_4,
-        ),
-        StandardGate::CS => (
-            &[
-                ("ZZ", -FRAC_PI_8, &[0, 1]),
-                ("Z", FRAC_PI_8, &[0]),
-                ("Z", FRAC_PI_8, &[1]),
-            ],
-            FRAC_PI_8,
-        ),
-        StandardGate::CSdg => (
-            &[
-                ("ZZ", FRAC_PI_8, &[0, 1]),
-                ("Z", -FRAC_PI_8, &[0]),
-                ("Z", -FRAC_PI_8, &[1]),
-            ],
-            -FRAC_PI_8,
-        ),
-        StandardGate::CSX => (
-            &[
-                ("XZ", -FRAC_PI_8, &[0, 1]),
-                ("Z", FRAC_PI_8, &[0]),
-                ("X", FRAC_PI_8, &[1]),
-            ],
-            FRAC_PI_8,
-        ),
-        StandardGate::Swap => (
-            &[
-                ("XX", FRAC_PI_4, &[0, 1]),
-                ("YY", FRAC_PI_4, &[0, 1]),
-                ("ZZ", FRAC_PI_4, &[0, 1]),
-            ],
-            FRAC_PI_4,
-        ),
-        StandardGate::ISwap => (
-            &[("XX", -FRAC_PI_4, &[0, 1]), ("YY", -FRAC_PI_4, &[0, 1])],
-            0.0,
-        ),
-        StandardGate::DCX => (
-            &[
-                ("XZ", FRAC_PI_4, &[0, 1]),
-                ("Z", -FRAC_PI_4, &[0]),
-                ("X", -FRAC_PI_4, &[1]),
-                ("XZ", FRAC_PI_4, &[1, 0]),
-                ("X", -FRAC_PI_4, &[0]),
-                ("Z", -FRAC_PI_4, &[1]),
-            ],
-            -FRAC_PI_2,
-        ),
-        StandardGate::ECR => (
-            &[
-                ("XZ", -1.0 * FRAC_PI_4, &[0, 1]),
-                ("Y", -FRAC_PI_2, &[0]),
-                ("Z", FRAC_PI_2, &[1]),
-                ("Y", FRAC_PI_2, &[1]),
-            ],
-            PI,
-        ),
-        StandardGate::RZZ => (&[("ZZ", 0.5, &[0, 1])], 0.0),
-        StandardGate::RXX => (&[("XX", 0.5, &[0, 1])], 0.0),
-        StandardGate::RYY => (&[("YY", 0.5, &[0, 1])], 0.0),
-        StandardGate::RZX => (&[("XZ", 0.5, &[0, 1])], 0.0),
-        StandardGate::CPhase => (
-            &[("ZZ", -0.25, &[0, 1]), ("Z", 0.25, &[0]), ("Z", 0.25, &[1])],
-            0.25,
-        ),
-        StandardGate::CU1 => (
-            &[("ZZ", -0.25, &[0, 1]), ("Z", 0.25, &[0]), ("Z", 0.25, &[1])],
-            0.25,
-        ),
-        StandardGate::CRZ => (&[("ZZ", -0.25, &[0, 1]), ("Z", 0.25, &[1])], 0.0),
-        StandardGate::CRX => (&[("XZ", -0.25, &[0, 1]), ("X", 0.25, &[1])], 0.0),
-        StandardGate::CRY => (&[("YZ", -0.25, &[0, 1]), ("Y", 0.25, &[1])], 0.0),
-        _ => unreachable!(
-            "This is only called for one and two qubit gates with no paramers or with a single parameter."
-        ),
-    }
-}
+static STANDARD_GATE_SUBSTITUTIONS: [Option<GateToPBCType>; 52] = [
+    None,                                                                 // GlobalPhase
+    Some((&[("Y", FRAC_PI_4, &[0]), ("X", FRAC_PI_2, &[0])], FRAC_PI_2)), // H
+    Some((&[("I", 0.0, &[0])], 0.0)),                                     // I
+    Some((&[("X", FRAC_PI_2, &[0])], FRAC_PI_2)),                         // X
+    Some((&[("Y", FRAC_PI_2, &[0])], FRAC_PI_2)),                         // Y
+    Some((&[("Z", FRAC_PI_2, &[0])], FRAC_PI_2)),                         // Z
+    Some((&[("Z", 0.5, &[0])], 0.5)),                                     // Phase
+    None,                                                                 // R
+    Some((&[("X", 0.5, &[0])], 0.0)),                                     // RX
+    Some((&[("Y", 0.5, &[0])], 0.0)),                                     // RY
+    Some((&[("Z", 0.5, &[0])], 0.0)),                                     // RZ
+    Some((&[("Z", FRAC_PI_4, &[0])], FRAC_PI_4)),                         // S
+    Some((&[("Z", -FRAC_PI_4, &[0])], -FRAC_PI_4)),                       // Sdg
+    Some((&[("X", FRAC_PI_4, &[0])], FRAC_PI_4)),                         // SX
+    Some((&[("X", -FRAC_PI_4, &[0])], -FRAC_PI_4)),                       // SXdg
+    Some((&[("Z", FRAC_PI_8, &[0])], FRAC_PI_8)),                         // T
+    Some((&[("Z", -FRAC_PI_8, &[0])], -FRAC_PI_8)),                       // Tdg
+    None,                                                                 // U
+    Some((&[("Z", 0.5, &[0])], 0.5)),                                     // U1
+    None,                                                                 // U2
+    None,                                                                 // U3
+    Some((
+        &[
+            ("X", -1.0 * FRAC_PI_4, &[1]),
+            ("Z", -1.0 * FRAC_PI_8, &[1]),
+            ("XZ", FRAC_PI_4, &[0, 1]),
+            ("Z", -FRAC_PI_4, &[0]),
+            ("Y", -FRAC_PI_8, &[1]),
+        ],
+        7.0 * FRAC_PI_4,
+    )), // CH
+    Some((
+        &[
+            ("XZ", FRAC_PI_4, &[0, 1]),
+            ("Z", -FRAC_PI_4, &[0]),
+            ("X", -FRAC_PI_4, &[1]),
+        ],
+        -FRAC_PI_4,
+    )), // CX
+    Some((
+        &[
+            ("YZ", FRAC_PI_4, &[0, 1]),
+            ("Z", -FRAC_PI_4, &[0]),
+            ("Y", -FRAC_PI_4, &[1]),
+        ],
+        -FRAC_PI_4,
+    )), // CY
+    Some((
+        &[
+            ("ZZ", FRAC_PI_4, &[0, 1]),
+            ("Z", -FRAC_PI_4, &[0]),
+            ("Z", -FRAC_PI_4, &[1]),
+        ],
+        -FRAC_PI_4,
+    )), // CZ
+    Some((
+        &[
+            ("XZ", FRAC_PI_4, &[0, 1]),
+            ("Z", -FRAC_PI_4, &[0]),
+            ("X", -FRAC_PI_4, &[1]),
+            ("XZ", FRAC_PI_4, &[1, 0]),
+            ("X", -FRAC_PI_4, &[0]),
+            ("Z", -FRAC_PI_4, &[1]),
+        ],
+        -FRAC_PI_2,
+    )), // DCX
+    Some((
+        &[
+            ("XZ", -1.0 * FRAC_PI_4, &[0, 1]),
+            ("Y", -FRAC_PI_2, &[0]),
+            ("Z", FRAC_PI_2, &[1]),
+            ("Y", FRAC_PI_2, &[1]),
+        ],
+        PI,
+    )), // ECR
+    Some((
+        &[
+            ("XX", FRAC_PI_4, &[0, 1]),
+            ("YY", FRAC_PI_4, &[0, 1]),
+            ("ZZ", FRAC_PI_4, &[0, 1]),
+        ],
+        FRAC_PI_4,
+    )), // Swap
+    Some((
+        &[("XX", -FRAC_PI_4, &[0, 1]), ("YY", -FRAC_PI_4, &[0, 1])],
+        0.0,
+    )), // ISwap
+    Some((
+        &[("ZZ", -0.25, &[0, 1]), ("Z", 0.25, &[0]), ("Z", 0.25, &[1])],
+        0.25,
+    )), // CPhase
+    Some((&[("XZ", -0.25, &[0, 1]), ("X", 0.25, &[1])], 0.0)),            // CRX
+    Some((&[("YZ", -0.25, &[0, 1]), ("Y", 0.25, &[1])], 0.0)),            // CRY
+    Some((&[("ZZ", -0.25, &[0, 1]), ("Z", 0.25, &[1])], 0.0)),            // CRZ
+    Some((
+        &[
+            ("ZZ", -FRAC_PI_8, &[0, 1]),
+            ("Z", FRAC_PI_8, &[0]),
+            ("Z", FRAC_PI_8, &[1]),
+        ],
+        FRAC_PI_8,
+    )), // CS
+    Some((
+        &[
+            ("ZZ", FRAC_PI_8, &[0, 1]),
+            ("Z", -FRAC_PI_8, &[0]),
+            ("Z", -FRAC_PI_8, &[1]),
+        ],
+        -FRAC_PI_8,
+    )), // CSdg
+    Some((
+        &[
+            ("XZ", -FRAC_PI_8, &[0, 1]),
+            ("Z", FRAC_PI_8, &[0]),
+            ("X", FRAC_PI_8, &[1]),
+        ],
+        FRAC_PI_8,
+    )), // CSX
+    None,                                                                 // CU
+    Some((
+        &[("ZZ", -0.25, &[0, 1]), ("Z", 0.25, &[0]), ("Z", 0.25, &[1])],
+        0.25,
+    )), // CU1
+    None,                                                                 // CU3
+    Some((&[("XX", 0.5, &[0, 1])], 0.0)),                                 // RXX
+    Some((&[("YY", 0.5, &[0, 1])], 0.0)),                                 // RYY
+    Some((&[("ZZ", 0.5, &[0, 1])], 0.0)),                                 // RZZ
+    Some((&[("XZ", 0.5, &[0, 1])], 0.0)),                                 // RZX
+    None,                                                                 // XXMinusYY
+    None,                                                                 // XXPlusYY
+    None,                                                                 // CCX
+    None,                                                                 // CCZ
+    None,                                                                 // CSwap
+    None,                                                                 // RCCX
+    None,                                                                 // C3X
+    None,                                                                 // C3SX
+    None,                                                                 // RC3X
+];
 
 /// Map gates with more than one paramter to a list of equivalent Pauli rotations and a global phase.
 /// Each element of the list is of the form ((Pauli string, [phases], [qubit indices]), global_phase).
@@ -374,34 +385,46 @@ pub fn py_pbc_transformation(py: Python, dag: &mut DAGCircuit) -> PyResult<DAGCi
             }
             // handling only 1-qubit and 2-qubit gates with no parameter or with a single parameter
             if gate.num_params() <= 1 {
-                let (sequence, global_phase_update) = replace_gate_by_pauli_rotation(gate);
-                let angle: Param = if gate.num_params() == 1 {
-                    inst.params_view()[0].clone()
-                } else {
-                    Param::Float(1.0)
-                };
-                for (paulis, phase_rescale, qubits) in sequence {
-                    let original_qubits = dag.get_qargs(inst.qubits);
-                    let updated_qubits: Vec<Qubit> = qubits
-                        .iter()
-                        .map(|q| original_qubits[*q as usize])
-                        .collect();
-                    let time = multiply_param(&angle, *phase_rescale);
-                    let py_gate =
-                        generate_pauli_evolution_gate(py_evo_cls, paulis, time.clone(), qubits)?;
+                if let Some((sequence, global_phase_update)) =
+                    STANDARD_GATE_SUBSTITUTIONS[gate as usize]
+                {
+                    let angle: Param = if gate.num_params() == 1 {
+                        inst.params_view()[0].clone()
+                    } else {
+                        Param::Float(1.0)
+                    };
+                    for (paulis, phase_rescale, qubits) in sequence {
+                        let original_qubits = dag.get_qargs(inst.qubits);
+                        let updated_qubits: Vec<Qubit> = qubits
+                            .iter()
+                            .map(|q| original_qubits[*q as usize])
+                            .collect();
+                        let time = multiply_param(&angle, *phase_rescale);
+                        let py_gate = generate_pauli_evolution_gate(
+                            py_evo_cls,
+                            paulis,
+                            time.clone(),
+                            qubits,
+                        )?;
 
-                    new_dag.apply_operation_back(
-                        py_gate.into(),
-                        &updated_qubits,
-                        &[],
-                        Some(Parameters::Params(smallvec![time])),
-                        None,
-                        #[cfg(feature = "cache_pygates")]
-                        None,
-                    )?;
+                        new_dag.apply_operation_back(
+                            py_gate.into(),
+                            &updated_qubits,
+                            &[],
+                            Some(Parameters::Params(smallvec![time])),
+                            None,
+                            #[cfg(feature = "cache_pygates")]
+                            None,
+                        )?;
+                    }
+                    global_phase =
+                        radd_param(multiply_param(&angle, global_phase_update), global_phase);
+                } else {
+                    return Err(TranspilerError::new_err(format!(
+                        "Unable to run PBC tranformation as the circuit contains instructions not supported by the pass: {:?}",
+                        inst.op.name()
+                    )));
                 }
-                global_phase =
-                    radd_param(multiply_param(&angle, global_phase_update), global_phase);
             }
             // handling only 1-qubit and 2-qubit gates with more than one parameter
             else if matches!(
