@@ -105,7 +105,17 @@ def sympify(expression):
             rhs = stack.pop()
             lhs = stack.pop()
 
-            if (
+            # Handle reverse operations (RSUB, RDIV, RPOW) by swapping operands
+            if inst.op in {OpCode.RSUB, OpCode.RDIV, OpCode.RPOW}:
+                # For reverse operations, we need rhs op lhs instead of lhs op rhs
+                # For RPOW: rhs ** lhs, for RDIV: rhs / lhs, for RSUB: rhs - lhs
+                if inst.op == OpCode.RPOW:
+                    stack.append(getattr(rhs, "__pow__")(lhs))
+                elif inst.op == OpCode.RDIV:
+                    stack.append(getattr(rhs, "__truediv__")(lhs))
+                elif inst.op == OpCode.RSUB:
+                    stack.append(getattr(rhs, "__sub__")(lhs))
+            elif (
                 not isinstance(lhs, sympy.Basic)
                 and isinstance(rhs, sympy.Basic)
                 and inst.op in [OpCode.ADD, OpCode.MUL]
