@@ -1023,6 +1023,8 @@ static CRY_SUBSTITUTIONS: SubstituteSequencePi2 = [
 
 /// For a given angle, if it is a multiple of PI/k, calculate the multiple mod (4*k),
 /// Otherwise, return `None`.
+/// E.g, if the angle is a multiple of PI/4 then, then it returns k, where 0 <= k < 16
+/// and if the angle is a multiple of PI/2 then, then it returns k, where 0 <= k < 8
 fn is_angle_close_to_multiple_of_pi_k(
     gate: StandardGate,
     k: usize,
