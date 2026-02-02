@@ -310,7 +310,8 @@ pub unsafe extern "C" fn qk_transpile_stage_routing(
         seed,
         &sabre_heuristic,
         out_layout,
-        LayoutSource::Trivial,
+        // Use Sabre here to ensure we run VF2PostLayout
+        LayoutSource::Sabre,
     ) {
         Err(e) => {
             if !error.is_null() {
