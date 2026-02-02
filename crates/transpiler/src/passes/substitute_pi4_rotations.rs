@@ -1159,8 +1159,7 @@ pub fn py_run_substitute_pi4_rotations(
                                 replace_1q_rotation_by_discrete(gate, multiple);
 
                             let qubit: &'static [u32] = &[0];
-                            let mut sequence = Vec::with_capacity(new_gate.len());
-                            sequence.extend(new_gate.iter().map(|g| (*g, qubit)));
+                            let sequence = new_gate.iter().map(|g| (*g, qubit)).collect();
                             (sequence, phase_update)
                         };
                         for (new_gate, qubits) in sequence {
