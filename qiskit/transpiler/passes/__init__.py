@@ -271,6 +271,7 @@ from .synthesis import SolovayKitaevSynthesis
 from .synthesis import RossSelingerSynthesis
 from .synthesis import UnitarySynthesis
 from .synthesis import unitary_synthesis_plugin_names
+from .synthesis import SynthesizeRZRotations
 
 # circuit scheduling
 from .scheduling import ALAPScheduleAnalysis

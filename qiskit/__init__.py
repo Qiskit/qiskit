@@ -136,6 +136,7 @@ sys.modules["qiskit._accelerate.angle_bound_registry"] = _accelerate.angle_bound
 sys.modules["qiskit._accelerate.litinski_transformation"] = _accelerate.litinski_transformation
 sys.modules["qiskit._accelerate.unroll_3q_or_more"] = _accelerate.unroll_3q_or_more
 sys.modules["qiskit._accelerate.substitute_pi4_rotations"] = _accelerate.substitute_pi4_rotations
+sys.modules["qiskit._accelerate.synthesize_rz_rotations"] = _accelerate.synthesize_rz_rotations
 
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 

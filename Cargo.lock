@@ -2097,6 +2097,7 @@ dependencies = [
  "rand_pcg",
  "rayon",
  "rayon-cond",
+ "rsgridsynth",
  "rustworkx-core",
  "smallvec",
  "thiserror 2.0.18",
