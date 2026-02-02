@@ -231,7 +231,7 @@ pub struct Target {
 impl Target {
     /// Create a new ``Target`` object
     ///
-    ///Args:
+    /// Args:
     ///    description (str): An optional string to describe the Target.
     ///    num_qubits (int): An optional int to specify the number of qubits
     ///        the backend target has. If not set it will be implicitly set
@@ -240,7 +240,7 @@ impl Target {
     ///        noiseless simulator that doesn't have constraints on the
     ///        instructions so the transpiler knows how many qubits are
     ///        available.
-    ///    dt (float): The system time resolution of input signals in seconds
+    ///    dt (float): The system time resolution of input signals in seconds.
     ///    granularity (int): An integer value representing minimum pulse gate
     ///        resolution in units of ``dt``. A user-defined pulse gate should
     ///        have duration of a multiple of this granularity value.
@@ -890,20 +890,40 @@ impl Target {
             Ok(self.angle_bounds[name].angles_supported(&angles))
         }
     }
-
-    #[staticmethod]
-    #[pyo3(name = "build_clifford_t")]
-    pub fn py_build_clifford_t(
-        num_qubits: u32,
-        edges: Option<Vec<(u32, u32)>>,
-        description: Option<String>,
-    ) -> PyResult<Self> {
-        Self::build_clifford_t(num_qubits, edges.as_deref(), description).map_err(|e| e.into())
-    }
 }
 
 // Rust native methods
 impl Target {
+    /// Create a new ``Target`` object
+    ///
+    /// # Arguments
+    ///
+    /// * `description` - An optional string to describe the [Target].
+    /// * `num_qubits` - An optional integer to specify the number of qubits the backend target has.
+    ///     If not set it will be implicitly set based on the qargs of the added instructions.
+    /// * `dt` - The system time resolution of input signals in seconds.
+    /// * `granularity` - An integer value representing minimum pulse gate resolution in units of
+    ///     `dt`. A user-defined pulse gate should have duration of a multiple of this granularity
+    ///     value.
+    /// * `min_length` - An integer value representing minimum pulse gate length in units of `dt`. A
+    ///     user-defined pulse gate should be longer than this length.
+    /// * `pulse_alignment` - An integer value representing a time resolution of gate instruction
+    ///     starting time. Gate instruction should start at time which is a multiple of the
+    ///     alignment value.
+    /// * `acquire_alignment` - An integer value representing a time resolution of measure
+    ///     instruction starting time. Measure instruction should start at time which is a multiple
+    ///     of the alignment value.
+    /// * `qubit_properties` - A vector of [QubitProperties] objects defining the characteristics of
+    ///     each qubit on the target device. If specified the length of this list must match the
+    ///     number of qubits in the target, where the index in the list matches the qubit number the
+    ///     properties are defined for. If some qubits don't have properties available you can set
+    ///     that entry to `None`
+    /// * `concurrent_measurements` - A list of sets of qubits that must be measured together.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Target)` - The new [Target].
+    /// * `Err(TargetError)` - An error if the number of qubits and qubit properties do not match.
     pub fn new(
         description: Option<String>,
         num_qubits: Option<u32>,
@@ -947,6 +967,7 @@ impl Target {
             angle_bounds: HashMap::new(),
         })
     }
+
     /// Adds a [PackedOperation] to the [Target].
     ///
     /// Said addition results in a [NormalOperation] in the [Target] as variadics
@@ -1648,78 +1669,6 @@ impl Target {
     /// Retrieves a gate location in the gate map by index
     pub fn get_op_by_index(&self, index: usize) -> Option<&TargetOperation> {
         self._gate_name_map.get_index(index).map(|(_, op)| op)
-    }
-
-    /// Constructor for Clifford+T basis gate sets.
-    pub fn build_clifford_t(
-        num_qubits: u32,
-        edges: Option<&[(u32, u32)]>,
-        description: Option<String>,
-    ) -> Result<Self, TargetError> {
-        let mut target = Self::new(
-            description,
-            Some(num_qubits),
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-        )?;
-        let single_qubit: [PackedOperation; 11] = [
-            StandardGate::T.into(),
-            StandardGate::Tdg.into(),
-            StandardGate::I.into(),
-            StandardGate::X.into(),
-            StandardGate::Y.into(),
-            StandardGate::Z.into(),
-            StandardGate::H.into(),
-            StandardGate::S.into(),
-            StandardGate::Sdg.into(),
-            StandardGate::SX.into(),
-            StandardGate::SXdg.into(),
-        ];
-        let two_qubit: [PackedOperation; 7] = [
-            StandardGate::CX.into(),
-            StandardGate::CY.into(),
-            StandardGate::CZ.into(),
-            StandardGate::Swap.into(),
-            StandardGate::ISwap.into(),
-            StandardGate::ECR.into(),
-            StandardGate::DCX.into(),
-        ];
-
-        for packed_gate in single_qubit {
-            let props = (0..num_qubits)
-                .map(|i| ([PhysicalQubit(i)].into(), None))
-                .collect();
-
-            target.add_instruction(packed_gate, None, None, Some(props))?;
-        }
-
-        for packed_gate in two_qubit {
-            let props: PropsMap = match edges {
-                Some(edges) => edges
-                    .iter()
-                    .map(|(i, j)| ([PhysicalQubit(*i), PhysicalQubit(*j)].into(), None))
-                    .collect(),
-                None => (0..num_qubits)
-                    .flat_map(|i| {
-                        (i..num_qubits).flat_map(move |j| {
-                            [
-                                ([PhysicalQubit(i), PhysicalQubit(j)].into(), None),
-                                ([PhysicalQubit(j), PhysicalQubit(i)].into(), None),
-                            ]
-                        })
-                    })
-                    .collect(),
-            };
-
-            target.add_instruction(packed_gate, None, None, Some(props))?;
-        }
-
-        Ok(target)
     }
 }
 
