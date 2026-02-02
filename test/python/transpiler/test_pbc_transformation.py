@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test PBCTransformation optimization pass"""
+"""Test PBCTransformation pass"""
 
 from ddt import ddt
 
@@ -32,7 +32,7 @@ from test import combine, QiskitTestCase  # pylint: disable=wrong-import-order
 
 @ddt
 class TestPBCTransformation(QiskitTestCase):
-    """Test the PBC Transformation optimization pass."""
+    """Test the PBC Transformation pass."""
 
     def setUp(self):
         super().setUp()
