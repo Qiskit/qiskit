@@ -406,11 +406,11 @@ class TestCliffordTTarget(QiskitTestCase):
         """Test the coupling map is respected."""
 
         num_qubits = 3
-        cmap = CouplingMap([(0, 1), (1, 2), (2, 0)])
-        target = Target.build_clifford_t(num_qubits, cmap)
+        target_cmap = CouplingMap([(0, 1), (1, 2), (2, 0)])
+        target = Target.build_clifford_t(num_qubits, target_cmap)
 
-        edges = set(target.build_coupling_map().get_edges())
-        self.assertEqual(set(cmap.get_edges()), edges)
+        cmap = target.build_coupling_map()
+        self.assertEqual(target_cmap, cmap)
 
 
 def _get_t_count(qc):

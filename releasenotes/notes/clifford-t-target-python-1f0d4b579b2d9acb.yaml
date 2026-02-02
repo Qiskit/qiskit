@@ -9,8 +9,8 @@ features_transpiler:
 
     Example::
 
-      from qiskit.circuit import QuantumCircuit
-      from qiskit.transpiler import Target, transpile
+      from qiskit import QuantumCircuit, transpile
+      from qiskit.transpiler import Target
 
       circuit = QuantumCircuit(2)
       circuit.rx(0.2, 0)
