@@ -59,7 +59,7 @@ impl From<QSDError> for PyErr {
                 PyRuntimeError::new_err("two-qubit decomposition failed")
             }
             QSDError::SchurDecompositionFailed => {
-                PyRuntimeError::new_err("Shcur decomposition failed")
+                PyRuntimeError::new_err("Schur decomposition failed")
             }
             QSDError::CircuitConstructionFailed => {
                 PyRuntimeError::new_err("circuit construction failed")
