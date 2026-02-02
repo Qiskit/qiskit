@@ -331,6 +331,7 @@ pub fn translation_stage(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 #[inline]
 pub fn optimization_stage(
     dag: &mut DAGCircuit,
