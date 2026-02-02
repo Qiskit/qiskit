@@ -179,13 +179,18 @@ $(C_INCLUDE_FILES_OUT_MANUAL): $(C_DIR_OUT_INCLUDE)/%.h: $(C_DIR_SRC_INCLUDE)/%.
 	cp $< $@
 $(C_INCLUDE_FILES_OUT_GENERATED): $(C_DIR_OUT_INCLUDE)/%.h: $(C_DIR_CARGO_TARGET)/%.h | $(C_DIR_OUT_INCLUDE_ALL)
 	cp $< $@
-$(C_LIBQISKIT_OUT): build-clib-release | $(C_DIR_OUT_LIB)
-	cp $(C_DIR_CARGO_TARGET)/release/$(C_LIB_CARGO_FILENAME) $@
 
 .PHONY: cheader
 cheader: $(C_INCLUDE_FILES_OUT_GENERATED) $(C_INCLUDE_FILES_OUT_MANUAL)
+# `clib` and `clib-dev` are conflicting rules - they both attempt to "install" the
+# shared library into the output `lib` directory, but they differ between release
+# and dev mode.
 .PHONY: clib
-clib: $(C_LIBQISKIT_OUT)
+clib: build-clib-release | $(C_DIR_OUT_LIB)
+	cp $(C_DIR_CARGO_TARGET)/release/$(C_LIB_CARGO_FILENAME) $(C_LIBQISKIT_OUT)
+.PHONY:
+clib-dev: build-clib-dev | $(C_DIR_OUT_LIB)
+	cp $(C_DIR_CARGO_TARGET)/debug/$(C_LIB_CARGO_FILENAME) $(C_LIBQISKIT_OUT)
 .PHONY: c
 c: cheader clib
 
