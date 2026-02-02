@@ -20,7 +20,7 @@ use qiskit_circuit::operations::{
     StandardInstruction, multiply_param,
 };
 use qiskit_circuit::packed_instruction::PackedInstruction;
-use qiskit_circuit::{BlocksMode, VarsMode};
+use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
 
 use qiskit_quantum_info::clifford::Clifford;
 use qiskit_quantum_info::sparse_observable::SparseObservable;
@@ -42,11 +42,12 @@ static SUPPORTED_INSTRUCTION_NAMES: [&str; 20] = [
 static HANDLED_INSTRUCTION_NAMES: [&str; 4] = ["t", "tdg", "rz", "measure"];
 
 #[pyfunction]
-#[pyo3(signature = (dag, fix_clifford=true))]
+#[pyo3(signature = (dag, fix_clifford=true, insert_barrier=false))]
 pub fn run_litinski_transformation(
     py: Python,
     dag: &DAGCircuit,
     fix_clifford: bool,
+    insert_barrier: bool,
 ) -> PyResult<Option<DAGCircuit>> {
     let op_counts = dag.get_op_counts();
 
@@ -321,6 +322,12 @@ pub fn run_litinski_transformation(
     // Since we aim to preserve the global phase of the circuit, we add the Clifford operations from
     // the original circuit (and not the final Clifford operator).
     if fix_clifford {
+        // If specified, insert barriers between the Clifford and the rest of the circuit.
+        if insert_barrier {
+            let barrier = StandardInstruction::Barrier(dag.num_qubits() as u32).into();
+            let qubits = (0..dag.num_qubits() as u32).map(Qubit).collect::<Vec<_>>();
+            new_dag.apply_operation_back(barrier, &qubits, &[], None, None, None)?;
+        }
         for inst in clifford_ops.into_iter() {
             new_dag.push_back(inst.clone())?;
         }
