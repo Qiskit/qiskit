@@ -53,7 +53,6 @@ use qiskit_transpiler::target::Target;
 /// Behavior is undefined if ``circuit`` or ``target`` is not a valid, ``QkCircuit`` and ``QkTarget``.
 /// ``QkCircuit`` is not expected to be null and behavior is undefined if it is.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpiler_pass_standalone_commutative_cancellation(
     circuit: *mut CircuitData,
     target: *const Target,
