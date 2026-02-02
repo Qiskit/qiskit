@@ -377,7 +377,7 @@ pub fn py_pbc_transformation(py: Python, dag: &mut DAGCircuit) -> PyResult<DAGCi
                 None,
             )?;
         } else if let OperationRef::StandardGate(gate) = inst.op.view() {
-            if (gate.num_qubits() > 2) | (gate.num_qubits() < 1) {
+            if gate.num_qubits() > 2 {
                 return Err(TranspilerError::new_err(format!(
                     "Unable to run PBC tranformation as the circuit contains instructions not supported by the pass: {:?}",
                     gate.name()
@@ -419,6 +419,9 @@ pub fn py_pbc_transformation(py: Python, dag: &mut DAGCircuit) -> PyResult<DAGCi
                     }
                     global_phase =
                         radd_param(multiply_param(&angle, global_phase_update), global_phase);
+                } else if matches!(gate, StandardGate::GlobalPhase) {
+                    let global_phase_update = inst.params_view()[0].clone();
+                    global_phase = radd_param(global_phase, global_phase_update);
                 } else {
                     return Err(TranspilerError::new_err(format!(
                         "Unable to run PBC tranformation as the circuit contains instructions not supported by the pass: {:?}",
