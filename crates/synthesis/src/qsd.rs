@@ -10,9 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use pyo3::exceptions::PyRuntimeError;
-use std::panic;
-use std::panic::AssertUnwindSafe;
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
@@ -22,9 +19,10 @@ use nalgebra::{DMatrix, DMatrixView, DVector, Matrix4, QR, stack};
 use ndarray::prelude::*;
 use num_complex::Complex64;
 use numpy::PyReadonlyArray2;
-use pyo3::exceptions::PyValueError;
+use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use smallvec::smallvec;
+use thiserror::Error;
 
 use crate::euler_one_qubit_decomposer::{
     EulerBasis, EulerBasisSet, unitary_to_gate_sequence_inner,
@@ -40,6 +38,41 @@ use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
 use qiskit_quantum_info::convert_2q_block_matrix::instructions_to_matrix;
 
 const EPS: f64 = 1e-10;
+
+/// Errors that might occur during QSD synthesis algorithm
+#[derive(Error, Debug)]
+pub enum QSDError {
+    #[error("2-qubit decomposition failed")]
+    TwoQubitDecompositionFailed,
+
+    #[error("Schur decomposition failed")]
+    SchurDecompositionFailed,
+
+    #[error("From standard gates failed")]
+    CircuitConstructionFailed,
+}
+
+impl From<QSDError> for PyErr {
+    fn from(error: QSDError) -> Self {
+        match error {
+            QSDError::TwoQubitDecompositionFailed => {
+                PyRuntimeError::new_err("two-qubit decomposition failed")
+            }
+            QSDError::SchurDecompositionFailed => {
+                PyRuntimeError::new_err("Shcur decomposition failed")
+            }
+            QSDError::CircuitConstructionFailed => {
+                PyRuntimeError::new_err("circuit construction failed")
+            }
+        }
+    }
+}
+
+impl From<CircuitDataError> for QSDError {
+    fn from(_error: CircuitDataError) -> Self {
+        QSDError::CircuitConstructionFailed
+    }
+}
 
 // when performing demultiplaxing, this enum is used to specify the actions that needs to be done
 enum VWType {
@@ -67,7 +100,7 @@ pub fn quantum_shannon_decomposition(
     opt_a2: Option<bool>,
     one_qubit_decomposer_basis_set: Option<&EulerBasisSet>,
     two_qubit_decomposer: Option<&TwoQubitBasisDecomposer>,
-) -> PyResult<CircuitData> {
+) -> Result<CircuitData, QSDError> {
     let dim = mat.shape().0;
     let num_qubits = dim.ilog2() as usize;
     let mut default_1q_basis = EulerBasisSet::new();
@@ -79,7 +112,8 @@ pub fn quantum_shannon_decomposition(
         1.0,
         "U",
         None,
-    )?;
+    )
+    .map_err(|_| QSDError::TwoQubitDecompositionFailed)?;
     let one_qubit_decomposer = one_qubit_decomposer_basis_set.unwrap_or(&default_1q_basis);
     let two_qubit_decomposer = two_qubit_decomposer.unwrap_or(&default_2q_decomposer);
 
@@ -89,14 +123,14 @@ pub fn quantum_shannon_decomposition(
             .collect::<Vec<_>>();
         return Ok(CircuitData::new(Some(out_qubits), None, Param::Float(0.))?);
     }
-    Ok(qsd_inner(
+    qsd_inner(
         mat,
         opt_a1,
         opt_a2,
         two_qubit_decomposer,
         one_qubit_decomposer,
         0,
-    )?)
+    )
 }
 
 fn qsd_inner(
@@ -106,7 +140,7 @@ fn qsd_inner(
     two_qubit_decomposer: &TwoQubitBasisDecomposer,
     one_qubit_decomposer: &EulerBasisSet,
     depth: usize,
-) -> Result<CircuitData, CircuitDataError> {
+) -> Result<CircuitData, QSDError> {
     let dim = mat.shape().0;
     let num_qubits = dim.ilog2() as usize;
     let opt_a1_val = opt_a1.unwrap_or(true);
@@ -121,7 +155,7 @@ fn qsd_inner(
             unitary_to_gate_sequence_inner(array, one_qubit_decomposer, 0, None, true, None);
 
         return match sequence {
-            Some(seq) => CircuitData::from_standard_gates(
+            Some(seq) => Ok(CircuitData::from_standard_gates(
                 1,
                 seq.gates.into_iter().map(|(gate, params)| {
                     (
@@ -131,12 +165,12 @@ fn qsd_inner(
                     )
                 }),
                 Param::Float(seq.global_phase),
-            ),
+            )?),
             None => {
                 let out_qubits = (0..num_qubits)
                     .map(|_| ShareableQubit::new_anonymous())
                     .collect::<Vec<_>>();
-                CircuitData::new(Some(out_qubits), None, Param::Float(0.))
+                Ok(CircuitData::new(Some(out_qubits), None, Param::Float(0.))?)
             }
         };
     } else if dim == 4 {
@@ -174,7 +208,7 @@ fn qsd_inner(
                     .unwrap()
             });
         let global_phase = sequence.global_phase();
-        return CircuitData::from_packed_operations(
+        return Ok(CircuitData::from_packed_operations(
             num_qubits as u32,
             0,
             sequence
@@ -189,7 +223,7 @@ fn qsd_inner(
                     ))
                 }),
             Param::Float(global_phase),
-        );
+        )?);
     }
     // Check whether the matrix is equivalent to a block diagonal w.r.t ctrl_index
     if opt_a2 != Some(true) {
@@ -396,7 +430,7 @@ fn demultiplex(
     vw_type: VWType,
     two_qubit_decomposer: &TwoQubitBasisDecomposer,
     one_qubit_decomposer: &EulerBasisSet,
-) -> Result<(CircuitData, DMatrix<Complex64>, DMatrix<Complex64>), CircuitDataError> {
+) -> Result<(CircuitData, DMatrix<Complex64>, DMatrix<Complex64>), QSDError> {
     let um0 = closest_unitary(um0.as_view());
     let um1 = closest_unitary(um1.as_view());
 
@@ -416,7 +450,8 @@ fn demultiplex(
         let orthonormal_eigenvectors = QR::new(eigh.eigenvectors).q();
         (eigvals, orthonormal_eigenvectors)
     } else {
-        let schur = nalgebra::linalg::Schur::try_new(um0um1, 1e-12, 100000).unwrap();
+        let schur = nalgebra::linalg::Schur::try_new(um0um1, 1e-12, 100000)
+            .ok_or(QSDError::SchurDecompositionFailed)?;
         let (vmat, evals) = schur.unpack();
         let eigvals = evals.diagonal();
         (eigvals, vmat)
@@ -513,7 +548,7 @@ fn get_ucrz(
     num_qubits: usize,
     angles: &mut [f64],
     vw_type_all: bool,
-) -> Result<CircuitData, CircuitDataError> {
+) -> Result<CircuitData, QSDError> {
     let out_qubits = (0..num_qubits)
         .map(|_| ShareableQubit::new_anonymous())
         .collect::<Vec<_>>();
@@ -577,11 +612,7 @@ fn update_angle(angle_1: f64, angle_2: f64) -> [f64; 2] {
     [(angle_1 + angle_2) / 2., (angle_1 - angle_2) / 2.]
 }
 
-fn append(
-    circ: &mut CircuitData,
-    new: CircuitData,
-    qubit_map: &[Qubit],
-) -> Result<(), CircuitDataError> {
+fn append(circ: &mut CircuitData, new: CircuitData, qubit_map: &[Qubit]) -> Result<(), QSDError> {
     let new_qubits_map = circ.merge_qargs(new.qargs_interner(), |x| Some(qubit_map[x.index()]));
     circ.add_global_phase(new.global_phase())?;
     for inst in new.into_data_iter() {
@@ -654,7 +685,7 @@ fn is_zero_matrix(mat: &DMatrix<Complex64>, atol: Option<f64>) -> bool {
 fn apply_a2(
     circ: &CircuitData,
     two_qubit_decomposer: &TwoQubitBasisDecomposer,
-) -> Result<CircuitData, CircuitDataError> {
+) -> Result<CircuitData, QSDError> {
     let ind2q: Vec<usize> = circ
         .data()
         .iter()
@@ -692,7 +723,8 @@ fn apply_a2(
                 circ.data().iter(),
                 [Qubit(0), Qubit(1)],
                 circ.qargs_interner(),
-            )?,
+            )
+            .map_err(|_| QSDError::CircuitConstructionFailed)?,
             None => new_matrices[&ind[0]].to_owned(),
         };
         let mat2 = match diagonal_rollover.get(&ind[1]) {
@@ -700,7 +732,8 @@ fn apply_a2(
                 circ.data().iter(),
                 [Qubit(0), Qubit(1)],
                 circ.qargs_interner(),
-            )?,
+            )
+            .map_err(|_| QSDError::CircuitConstructionFailed)?,
             None => new_matrices[&ind[1]].to_owned(),
         };
         let (diagonal_mat, qc2cx) = two_qubit_decompose_up_to_diagonal(mat1.view()).unwrap();
@@ -877,23 +910,14 @@ pub fn qs_decomposition(
         None
     };
 
-    // catch if there is a panic while calculating the CircuitData
-    let result = panic::catch_unwind(AssertUnwindSafe(|| {
-        quantum_shannon_decomposition(
-            &mat,
-            opt_a1,
-            opt_a2,
-            one_qubit_decomposer,
-            two_qubit_decomposer,
-        )
-    }));
-
-    match result {
-        Ok(data) => Ok(data?),
-        Err(_err) => Err(PyRuntimeError::new_err(
-            "rust panic during qs_decomposition",
-        )),
-    }
+    quantum_shannon_decomposition(
+        &mat,
+        opt_a1,
+        opt_a2,
+        one_qubit_decomposer,
+        two_qubit_decomposer,
+    )
+    .map_err(PyErr::from)
 }
 
 pub fn qsd_mod(m: &Bound<PyModule>) -> PyResult<()> {
