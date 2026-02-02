@@ -14,7 +14,7 @@
 
 from ddt import ddt
 
-from qiskit.circuit import QuantumCircuit, Parameter
+from qiskit.circuit import QuantumCircuit, Gate, Parameter
 from qiskit.transpiler import TranspilerError
 from qiskit.transpiler.passes import PBCTransformation
 from qiskit.quantum_info import Operator
@@ -25,7 +25,6 @@ from qiskit.circuit.library import (
     C3XGate,
     C4XGate,
     MCXGate,
-    GlobalPhaseGate,
 )
 from test import combine, QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -43,17 +42,19 @@ class TestPBCTransformation(QiskitTestCase):
         """Test that standard 1-qubit and 2-qubit gates are translated into
         Pauli product rotatations correctly."""
         for gate in self.standard_gates.values():
-            if gate.name not in ["measure", "barrier", "delay", "reset"]:
-                num_qubits = gate.num_qubits
-                if num_qubits in [1, 2]:
-                    params = [angle * (i + 1) for i in range(len(gate.params))]
-                    qc = QuantumCircuit(num_qubits)
-                    qc.global_phase = global_phase
-                    qc.append(gate.base_class(*params), range(num_qubits))
-                    qct = PBCTransformation()(qc)
-                    ops_names = set(qct.count_ops().keys())
+            if not isinstance(gate, Gate):
+                continue
+            num_qubits = gate.num_qubits
+            if num_qubits < 3:
+                params = [angle * (i + 1) for i in range(len(gate.params))]
+                qc = QuantumCircuit(max(num_qubits, 1))
+                qc.global_phase = global_phase
+                qc.append(gate.base_class(*params), range(num_qubits))
+                qct = PBCTransformation()(qc)
+                ops_names = set(qct.count_ops().keys())
+                if ops_names:
                     self.assertEqual(ops_names, {"PauliEvolution"})
-                    self.assertEqual(Operator(qct), Operator(qc))
+                self.assertEqual(Operator(qct), Operator(qc))
 
     def test_random_circuit(self):
         """Test that a pesudo-random circuit with 1-qubit and 2-qubit gates
@@ -93,19 +94,21 @@ class TestPBCTransformation(QiskitTestCase):
         is translated into Pauli product rotations correctly."""
         symbols = [Parameter("theta"), Parameter("phi"), Parameter("lam"), Parameter("gamma")]
         for gate in self.standard_gates.values():
-            if gate.name not in ["measure", "barrier", "delay", "reset"]:
-                num_qubits = gate.num_qubits
-                num_params = len(gate.params)
-                if num_qubits in [1, 2]:
-                    params = symbols[:num_params]
-                    qc = QuantumCircuit(num_qubits)
-                    qc.append(gate.base_class(*params), range(num_qubits))
-                    qct = PBCTransformation()(qc)
-                    ops_names = set(qct.count_ops().keys())
+            if not isinstance(gate, Gate):
+                continue
+            num_qubits = gate.num_qubits
+            num_params = len(gate.params)
+            if num_qubits < 3:
+                params = symbols[:num_params]
+                qc = QuantumCircuit(max(num_qubits, 1))
+                qc.append(gate.base_class(*params), range(num_qubits))
+                qct = PBCTransformation()(qc)
+                ops_names = set(qct.count_ops().keys())
+                if ops_names:
                     self.assertEqual(ops_names, {"PauliEvolution"})
-                    qc_bound = qc.assign_parameters([0.123] * num_params)
-                    qct_bound = qct.assign_parameters([0.123] * num_params)
-                    self.assertEqual(Operator(qct_bound), Operator(qc_bound))
+                qc_bound = qc.assign_parameters([0.123] * num_params)
+                qct_bound = qct.assign_parameters([0.123] * num_params)
+                self.assertEqual(Operator(qct_bound), Operator(qc_bound))
 
     @combine(
         gate=[
@@ -113,13 +116,12 @@ class TestPBCTransformation(QiskitTestCase):
             C3XGate(),
             C4XGate(),
             MCXGate(5),
-            GlobalPhaseGate(0.1),
         ]
     )
     def test_unsupported_gates_raise_error(self, gate):
         """Test that unsupported gates raise a transpiler error."""
         num_qubits = gate.num_qubits
-        qc = QuantumCircuit(num_qubits + 2)
+        qc = QuantumCircuit(num_qubits)
         qc.h(0)
         qc.cx(0, 1)
         qc.append(gate, range(num_qubits))
