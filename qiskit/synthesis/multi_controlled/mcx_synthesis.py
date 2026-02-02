@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -59,7 +59,7 @@ def synth_mcx_n_dirty_i15(
 
     References:
         1. Iten et. al., *Quantum Circuits for Isometries*, Phys. Rev. A 93, 032318 (2016),
-           `arXiv:1501.06911 <http://arxiv.org/abs/1501.06911>`_
+           `arXiv:1501.06911 <https://arxiv.org/abs/1501.06911>`_
     """
     return QuantumCircuit._from_circuit_data(
         synth_mcx_n_dirty_i15_rs(num_ctrl_qubits, relative_phase, action_only)
@@ -125,7 +125,7 @@ def synth_mcx_1_clean_b95(num_ctrl_qubits: int) -> QuantumCircuit:
         1. Barenco et. al., *Elementary gates for quantum computation*, Phys.Rev. A52 3457 (1995),
            `arXiv:quant-ph/9503016 <https://arxiv.org/abs/quant-ph/9503016>`_
         2. Iten et. al., *Quantum Circuits for Isometries*, Phys. Rev. A 93, 032318 (2016),
-           `arXiv:1501.06911 <http://arxiv.org/abs/1501.06911>`_
+           `arXiv:1501.06911 <https://arxiv.org/abs/1501.06911>`_
     """
 
     if num_ctrl_qubits == 3:

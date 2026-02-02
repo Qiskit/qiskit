@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -335,6 +335,8 @@ of the following, which derive :class:`.QuantumCircuit` and are eagerly construc
    :template: autosummary/class_no_inherited_members.rst
 
    Diagonal
+   MCMT
+   MCMTVChain
    MCXGrayCode
    MCXRecursive
    MCXVChain
@@ -780,7 +782,7 @@ References:
 
 Maslov, D. and Dueck, G. W. and Miller, D. M.,
 Techniques for the synthesis of reversible Toffoli networks, 2007
-http://dx.doi.org/10.1145/1278349.1278355
+https://dx.doi.org/10.1145/1278349.1278355
 
 .. currentmodule:: qiskit.circuit.library.templates.nct
 .. autofunction:: template_nct_2a_1
@@ -881,6 +883,8 @@ from .blueprintcircuit import BlueprintCircuit
 from .generalized_gates import (
     Diagonal,
     DiagonalGate,
+    MCMT,
+    MCMTVChain,
     Permutation,
     PermutationGate,
     GMS,
