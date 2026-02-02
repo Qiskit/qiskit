@@ -21,7 +21,8 @@ class PBCTransformation(TransformationPass):
     r"""
     Convert a quanutm circuit containing single-qubit and two-qubit standard gates,
     barriers and measurements, into an equivalent list of Pauli product rotations,
-    implemented as :class:`.PauliEvolutionGate`, and a global phase.
+    implemented as :class:`.PauliEvolutionGate` and a global phase,
+    as well as :class:`.PauliProductMeasurement`.
 
     For example::
 
