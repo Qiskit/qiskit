@@ -7,7 +7,7 @@ features_transpiler:
     two-qubit Cliffords is assumed, but you can specify a specific
     ``coupling_map``.
 
-    For example:
+    For example
 
     .. code-block:: python
 
