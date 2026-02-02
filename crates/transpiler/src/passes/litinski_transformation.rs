@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -16,8 +16,8 @@ use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::imports::PAULI_EVOLUTION_GATE;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
-    Operation, OperationRef, Param, PauliProductMeasurement, PyGate, StandardGate,
-    StandardInstruction, multiply_param,
+    Operation, OperationRef, Param, PauliProductMeasurement, PyInstruction, PyOperationTypes,
+    StandardGate, StandardInstruction, multiply_param,
 };
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::{BlocksMode, VarsMode};
@@ -270,13 +270,13 @@ pub fn run_litinski_transformation(
                         multiply_param(&angle, 0.5)
                     };
                     let py_evo = py_evo_cls.call1((obs, time.clone()))?;
-                    let py_gate = PyGate {
+                    let py_gate = PyOperationTypes::Gate(PyInstruction {
                         qubits: indices.len() as u32,
                         clbits: 0,
                         params: 1,
                         op_name: "PauliEvolution".to_string(),
-                        gate: py_evo.into(),
-                    };
+                        instruction: py_evo.into(),
+                    });
 
                     new_dag.apply_operation_back(
                         py_gate.into(),
