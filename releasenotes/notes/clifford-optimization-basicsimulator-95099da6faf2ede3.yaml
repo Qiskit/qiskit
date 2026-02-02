@@ -1,6 +1,6 @@
 ---
 
-features:
+features_providers:
   - |
     The :class:`~qiskit.providers.basic_provider.BasicSimulator` now
     automatically detects and optimizes simulation of Clifford circuits
