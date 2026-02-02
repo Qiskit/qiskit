@@ -22,8 +22,49 @@ use qiskit_transpiler::transpile_layout::TranspileLayout;
 /// @ingroup QkTranspilerPasses
 /// Run the ElidePermutations transpiler pass on a circuit.
 ///
+/// Refer to the ``qk_transpiler_pass_elide_permutations`` function for more details about the pass.
+///
+/// @param circuit A pointer to the circuit to run ElidePermutations on.
+/// @return The layout object containing the output permutation, or null if no elisions performed.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+#[unsafe(no_mangle)]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_transpiler_pass_standalone_elide_permutations(
+    circuit: *mut CircuitData,
+) -> *mut TranspileLayout {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let circuit = unsafe { mut_ptr_as_ref(circuit) };
+    let dag = match DAGCircuit::from_circuit_data(circuit, false, None, None, None, None) {
+        Ok(dag) => dag,
+        Err(_e) => panic!("Internal circuit to DAG conversion failed."),
+    };
+    let res = run_elide_permutations(&dag).unwrap();
+    match res {
+        Some(res) => {
+            let out_circuit =
+                dag_to_circuit(&res.0, false).expect("Internal DAG to Circuit conversion failed.");
+            let num_input_qubits = circuit.num_qubits() as u32;
+            *circuit = out_circuit;
+            Box::into_raw(Box::new(TranspileLayout::new(
+                None,
+                Some(res.1.into_iter().map(Qubit::new).collect()),
+                circuit.qubits().objects().clone(),
+                num_input_qubits,
+                circuit.qregs().to_vec(),
+            )))
+        }
+        None => std::ptr::null_mut(),
+    }
+}
+
+/// @ingroup QkTranspilerPasses
+/// Run the ElidePermutations transpiler pass on a DAG Circuit.
+///
 /// The ElidePermutations transpiler pass removes any permutation operations from a pre-layout
-/// circuit.
+/// DAG Circuit.
 ///
 /// This pass is intended to be run before a layout (mapping virtual qubits to physical qubits) is
 /// set during the transpilation pipeline. This pass iterates over the circuit
@@ -43,14 +84,16 @@ use qiskit_transpiler::transpile_layout::TranspileLayout;
 /// # Example
 ///
 /// ```c
-///     QkCircuit *qc = qk_circuit_new(4, 0);
-///     for (uint32_t i = 0; i < qk_circuit_num_qubits(qc) - 1; i++) {
+///     QkDag *dag = qk_dag_new();
+///     QkQuantumRegister *qr = qk_quantum_register_new(4, "qr");
+///     qk_dag_add_quantum_register(dag, qr);
+///     for (uint32_t i = 0; i < qk_dag_num_qubits(dag) - 1; i++) {
 ///         uint32_t qargs[2] = {i, i + 1};
-///         for (uint32_t j = 0; j<i+1; j++) {
-///             qk_circuit_gate(qc, QkGate_CX, qargs, NULL);
+///         for (uint32_t j = 0; j < i + 1; j++) {
+///             qk_dag_apply_gate(dag, QkGate_CX, qargs, NULL, false);
 ///         }
 ///     }
-///     QkTranspileLayout *elide_result = qk_transpiler_pass_standalone_elide_permutations(qc);
+///     QkTranspileLayout *elide_result = qk_transpiler_pass_elide_permutations(dag);
 /// ```
 ///
 /// # Safety
@@ -58,22 +101,18 @@ use qiskit_transpiler::transpile_layout::TranspileLayout;
 /// Behavior is undefined if ``circuit``  is not a valid, non-null pointer to a ``QkCircuit``.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_transpiler_pass_standalone_elide_permutations(
-    circuit: *mut CircuitData,
+pub unsafe extern "C" fn qk_transpiler_pass_elide_permutations(
+    dag: *mut DAGCircuit,
 ) -> *mut TranspileLayout {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
-    let circuit = unsafe { mut_ptr_as_ref(circuit) };
-    let dag = match DAGCircuit::from_circuit_data(circuit, false, None, None, None, None) {
-        Ok(dag) => dag,
-        Err(_e) => panic!("Internal circuit to DAG conversion failed."),
-    };
-    let res = run_elide_permutations(&dag).unwrap();
+    let dag = unsafe { mut_ptr_as_ref(dag) };
+    let res = run_elide_permutations(dag).unwrap();
     match res {
         Some(res) => {
-            let out_circuit =
+            let circuit =
                 dag_to_circuit(&res.0, false).expect("Internal DAG to Circuit conversion failed.");
             let num_input_qubits = circuit.num_qubits() as u32;
-            *circuit = out_circuit;
+            *dag = res.0;
             Box::into_raw(Box::new(TranspileLayout::new(
                 None,
                 Some(res.1.into_iter().map(Qubit::new).collect()),

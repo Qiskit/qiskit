@@ -22,7 +22,7 @@
 /**
  * Test running sabre layout that requires layout and routing
  */
-static int test_sabre_layout_applies_layout(void) {
+static int test_standalone_sabre_layout_applies_layout(void) {
     int result = Ok;
 
     const uint32_t num_qubits = 5;
@@ -130,7 +130,7 @@ cleanup:
 /**
  * Test running sabre layout that performs no transformation.
  */
-static int test_sabre_layout_no_swap(void) {
+static int test_standalone_sabre_layout_no_swap(void) {
     int result = Ok;
 
     const uint32_t num_qubits = 5;
@@ -202,8 +202,208 @@ cleanup:
     return result;
 }
 
+/**
+ * Test running sabre layout that requires layout and routing
+ */
+static int test_sabre_layout_applies_layout(void) {
+    int result = Ok;
+
+    const uint32_t num_qubits = 5;
+    QkTarget *target = qk_target_new(num_qubits);
+
+    qk_target_add_instruction(target, qk_target_entry_new(QkGate_U));
+    QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
+    for (uint32_t i = 0; i < num_qubits - 1; i++) {
+        uint32_t qargs[2] = {i, i + 1};
+        double inst_error = 0.0090393 * (num_qubits - i);
+        double inst_duration = 0.020039;
+        qk_target_entry_add_property(cx_entry, qargs, 2, inst_duration, inst_error);
+    }
+
+    qk_target_add_instruction(target, cx_entry);
+
+    QkDag *dag = qk_dag_new();
+    QkQuantumRegister *qr = qk_quantum_register_new(5, "qr");
+    qk_dag_add_quantum_register(dag, qr);
+    for (uint32_t i = 0; i < qk_dag_num_qubits(dag) - 1; i++) {
+        uint32_t qargs[2] = {0, i + 1};
+        qk_dag_apply_gate(dag, QkGate_CX, qargs, NULL, false);
+    }
+    QkSabreLayoutOptions options = qk_sabre_layout_options_default();
+    options.seed = 2025;
+    QkTranspileLayout *layout_result =
+        qk_transpiler_pass_sabre_layout(dag, target, &options);
+
+    QkCircuit *temp_circuit = qk_dag_to_circuit(dag);
+    QkOpCounts op_counts = qk_circuit_count_ops(temp_circuit);
+    qk_circuit_free(temp_circuit);
+    if (op_counts.len != 2) {
+        printf("More than 2 types of gates in circuit, circuit's instructions are:\n");
+        print_dag(dag);
+        result = EqualityError;
+        goto cleanup;
+    }
+    for (size_t i = 0; i < op_counts.len; i++) {
+        const char *name = op_counts.data[i].name;
+        int swap_gate = strcmp(name, "swap");
+        int cx_gate = strcmp(name, "cx");
+        if (cx_gate != 0 && swap_gate != 0) {
+            printf("Gate type of %s found in the circuit which isn't expected\n", name);
+            result = EqualityError;
+            goto cleanup;
+        }
+        size_t count = op_counts.data[i].count;
+        if (swap_gate == 0 && count != 2) {
+            printf("Unexpected number of swaps %zu found in the circuit.\n", count);
+            result = EqualityError;
+            goto cleanup;
+        }
+    }
+    uint32_t expected_initial_layout[5] = {1, 0, 2, 3, 4};
+    uint32_t result_initial_layout[5];
+    qk_transpile_layout_initial_layout(layout_result, false, result_initial_layout);
+    for (uint32_t i = 0; i < 5; i++) {
+        if (result_initial_layout[i] != expected_initial_layout[i]) {
+            printf("Initial layout maps qubit %d to %d, expected %d instead\n", i,
+                   result_initial_layout[i], expected_initial_layout[i]);
+            result = EqualityError;
+            goto cleanup;
+        }
+    }
+
+    uint32_t expected_permutation[5] = {0, 3, 1, 2, 4};
+    uint32_t result_permutation[5];
+    qk_transpile_layout_output_permutation(layout_result, result_permutation);
+    for (uint32_t i = 0; i < 5; i++) {
+        if (result_permutation[i] != expected_permutation[i]) {
+            printf("Output permutation maps qubit %d to %d, expected %d instead\n", i,
+                   result_permutation[i], expected_permutation[i]);
+            result = EqualityError;
+            goto cleanup;
+        }
+    }
+    QkDag *expected_dag = qk_dag_new();
+    QkQuantumRegister *expected_qr = qk_quantum_register_new(5, "expected_qr");
+    qk_dag_add_quantum_register(expected_dag, expected_qr);
+    uint32_t qargs[2] = {1, 0};
+    qk_dag_apply_gate(expected_dag, QkGate_CX, qargs, NULL, false);
+    qargs[0] = 1;
+    qargs[1] = 2;
+    qk_dag_apply_gate(expected_dag, QkGate_CX, qargs, NULL, false);
+    qargs[0] = 2;
+    qargs[1] = 1;
+    qk_dag_apply_gate(expected_dag, QkGate_Swap, qargs, NULL, false);
+    qargs[0] = 2;
+    qargs[1] = 3;
+    qk_dag_apply_gate(expected_dag, QkGate_CX, qargs, NULL, false);
+    qargs[0] = 3;
+    qargs[1] = 2;
+    qk_dag_apply_gate(expected_dag, QkGate_Swap, qargs, NULL, false);
+    qargs[0] = 3;
+    qargs[1] = 4;
+    qk_dag_apply_gate(expected_dag, QkGate_CX, qargs, NULL, false);
+    bool compare_result = compare_dags(dag, expected_dag);
+    if (!compare_result) {
+        result = EqualityError;
+    }
+    qk_dag_free(expected_dag);
+
+cleanup:
+    qk_opcounts_clear(&op_counts);
+    qk_quantum_register_free(expected_qr);
+    qk_transpile_layout_free(layout_result);
+    qk_dag_free(dag);
+    qk_quantum_register_free(qr);
+    qk_target_free(target);
+    return result;
+}
+
+/**
+ * Test running sabre layout that performs no transformation.
+ */
+static int test_sabre_layout_no_swap(void) {
+    int result = Ok;
+
+    const uint32_t num_qubits = 5;
+    QkTarget *target = qk_target_new(num_qubits);
+    qk_target_add_instruction(target, qk_target_entry_new(QkGate_U));
+    QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
+    for (uint32_t i = 0; i < num_qubits - 1; i++) {
+        uint32_t qargs[2] = {i, i + 1};
+        double inst_error = 0.0090393 * (num_qubits - i);
+        double inst_duration = 0.020039;
+
+        qk_target_entry_add_property(cx_entry, qargs, 2, inst_duration, inst_error);
+    }
+
+    qk_target_add_instruction(target, cx_entry);
+
+    QkDag *dag = qk_dag_new();
+    QkQuantumRegister *qr = qk_quantum_register_new(5, "qr");
+    qk_dag_add_quantum_register(dag, qr);
+    for (uint32_t i = 0; i < qk_dag_num_qubits(dag) - 1; i++) {
+        uint32_t qargs[2] = {i, i + 1};
+        for (uint32_t j = 0; j < i + 1; j++) {
+            qk_dag_apply_gate(dag, QkGate_CX, qargs, NULL, false);
+        }
+    }
+    QkSabreLayoutOptions options = qk_sabre_layout_options_default();
+    options.seed = 2025;
+    QkTranspileLayout *layout_result =
+        qk_transpiler_pass_sabre_layout(dag, target, &options);
+    QkDag *expected_dag = qk_dag_new();
+    QkQuantumRegister *expected_qr = qk_quantum_register_new(5, "expected_qr");
+    qk_dag_add_quantum_register(expected_dag, expected_qr);
+    for (uint32_t i = 0; i < qk_dag_num_qubits(dag) - 1; i++) {
+        uint32_t qargs[2] = {i, i + 1};
+        for (uint32_t j = 0; j < i + 1; j++) {
+            qk_dag_apply_gate(expected_dag, QkGate_CX, qargs, NULL, false);
+        }
+    }
+    bool circuit_eq = compare_dags(dag, expected_dag);
+    if (!circuit_eq) {
+        result = EqualityError;
+        goto cleanup;
+    }
+    uint32_t expected_initial_layout[5] = {0, 1, 2, 3, 4};
+    uint32_t result_initial_layout[5];
+    qk_transpile_layout_initial_layout(layout_result, false, result_initial_layout);
+    for (uint32_t i = 0; i < 5; i++) {
+        if (result_initial_layout[i] != expected_initial_layout[i]) {
+            printf("Initial layout maps qubit %d to %d, expected %d instead\n", i,
+                   result_initial_layout[i], expected_initial_layout[i]);
+            result = EqualityError;
+            goto cleanup;
+        }
+    }
+    uint32_t expected_permutation[5] = {0, 1, 2, 3, 4};
+    uint32_t result_permutation[5];
+    qk_transpile_layout_output_permutation(layout_result, result_permutation);
+    for (uint32_t i = 0; i < 5; i++) {
+        if (result_permutation[i] != expected_permutation[i]) {
+            printf("Output permutation maps qubit %d to %d, expected %d instead\n", i,
+                   result_permutation[i], expected_permutation[i]);
+            result = EqualityError;
+            goto cleanup;
+        }
+    }
+
+cleanup:
+    qk_quantum_register_free(expected_qr);
+    qk_dag_free(expected_dag);
+    qk_transpile_layout_free(layout_result);
+    qk_dag_free(dag);
+    qk_quantum_register_free(qr);
+    qk_target_free(target);
+
+    return result;
+}
+
+
 int test_sabre_layout(void) {
     int num_failed = 0;
+    num_failed += RUN_TEST(test_standalone_sabre_layout_no_swap);
+    num_failed += RUN_TEST(test_standalone_sabre_layout_applies_layout);
     num_failed += RUN_TEST(test_sabre_layout_no_swap);
     num_failed += RUN_TEST(test_sabre_layout_applies_layout);
 
