@@ -21,7 +21,6 @@ mod qubit_properties;
 pub use errors::TargetError;
 pub use instruction_properties::InstructionProperties;
 pub use qargs::{Qargs, QargsRef};
-use qiskit_circuit::operations::StandardGate;
 pub use qubit_properties::QubitProperties;
 
 use std::{ops::Index, sync::OnceLock};
@@ -900,7 +899,8 @@ impl Target {
     ///
     /// * `description` - An optional string to describe the [Target].
     /// * `num_qubits` - An optional integer to specify the number of qubits the backend target has.
-    ///     If not set it will be implicitly set based on the qargs of the added instructions.
+    ///     If this is not set, or has a value of 0, it will be implicitly set based on the qargs
+    ///     of the added instructions.
     /// * `dt` - The system time resolution of input signals in seconds.
     /// * `granularity` - An integer value representing minimum pulse gate resolution in units of
     ///     `dt`. A user-defined pulse gate should have duration of a multiple of this granularity
@@ -936,23 +936,24 @@ impl Target {
         concurrent_measurements: Option<Vec<Vec<PhysicalQubit>>>,
     ) -> Result<Self, TargetError> {
         // If num_qubits and qubit_properties are given, check they are consistent
+        let mut num_qubits_checked = num_qubits;
         if let Some(qubit_properties) = qubit_properties.as_ref() {
-            if let Some(num_qubits) = num_qubits {
-                if num_qubits > 0 && num_qubits as usize != qubit_properties.len() {
+            if num_qubits.is_some_and(|num_qubits| num_qubits > 0) {
+                if num_qubits.unwrap() as usize != qubit_properties.len() {
                     return Err(TargetError::NumQubitsMismatch {
-                        num_qubits,
+                        num_qubits: num_qubits.unwrap(),
                         num_props: qubit_properties.len(),
                     });
                 }
+            } else {
+                // Set the number of qubits to the properties map length, if it is given
+                num_qubits_checked = Some(qubit_properties.len() as u32)
             }
         };
 
-        // Set the number of qubits to the properties map length, if it is given
-        let num_qubits = num_qubits.or(qubit_properties.as_ref().map(|prop| prop.len() as u32));
-
         Ok(Target {
             description,
-            num_qubits,
+            num_qubits: num_qubits_checked,
             dt,
             granularity: granularity.unwrap_or(1),
             min_length: min_length.unwrap_or(1),
