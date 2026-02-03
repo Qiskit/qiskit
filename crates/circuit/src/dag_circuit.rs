@@ -7718,7 +7718,7 @@ impl DAGCircuit {
     ) -> PyResult<Self> {
         let num_qubits = qc_data.num_qubits();
         let num_clbits = qc_data.num_clbits();
-        let num_ops = qc_data.__len__();
+        let num_ops = qc_data.len();
         let num_vars =
             qc_data.num_declared_vars() + qc_data.num_input_vars() + qc_data.num_captured_vars();
         let num_stretches = qc_data.num_declared_stretches() + qc_data.num_captured_stretches();

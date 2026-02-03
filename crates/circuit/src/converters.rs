@@ -15,7 +15,7 @@ use pyo3::intern;
 use pyo3::prelude::*;
 
 use crate::bit::{ShareableClbit, ShareableQubit};
-use crate::circuit_data::{CircuitData, CircuitDataError, CircuitVar};
+use crate::circuit_data::{CircuitData, CircuitDataError, CircuitVar, PyCircuitData};
 use crate::dag_circuit::DAGIdentifierInfo;
 use crate::dag_circuit::{DAGCircuit, NodeType};
 use crate::operations::{OperationRef, PyOperationTypes, PythonOperation};
@@ -38,7 +38,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for QuantumCircuitData<'py> {
         let py = ob.py();
         ob.getattr("data")?; // in case _data is lazily generated in python
         let circuit_data = ob.getattr("_data")?;
-        let data_borrowed = circuit_data.extract::<CircuitData>()?;
+        let data_borrowed = circuit_data.extract::<PyCircuitData>()?.inner;
         Ok(QuantumCircuitData {
             data: data_borrowed,
             name: ob.getattr(intern!(py, "name"))?.extract()?,
