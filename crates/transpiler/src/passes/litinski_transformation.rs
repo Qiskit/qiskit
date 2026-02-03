@@ -326,7 +326,15 @@ pub fn run_litinski_transformation(
         if insert_barrier {
             let barrier = StandardInstruction::Barrier(dag.num_qubits() as u32).into();
             let qubits = (0..dag.num_qubits() as u32).map(Qubit).collect::<Vec<_>>();
-            new_dag.apply_operation_back(barrier, &qubits, &[], None, None, None)?;
+            new_dag.apply_operation_back(
+                barrier,
+                &qubits,
+                &[],
+                None,
+                None,
+                #[cfg(feature = "cache_pygates")]
+                None,
+            )?;
         }
         for inst in clifford_ops.into_iter() {
             new_dag.push_back(inst.clone())?;
