@@ -68,7 +68,6 @@ use qiskit_transpiler::{passes::run_optimize_1q_gates_decomposition, target::Tar
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit`` and
 /// if ``target`` is not a valid pointer to a ``QkTarget``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpiler_standalone_optimize_1q_sequences(
     circuit: *mut CircuitData,
     target: *const Target,

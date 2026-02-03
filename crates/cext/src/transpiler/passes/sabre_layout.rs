@@ -105,7 +105,6 @@ pub extern "C" fn qk_sabre_layout_options_default() -> SabreLayoutOptions {
 ///
 /// Behavior is undefined if ``circuit`` or ``target`` is not a valid, non-null pointer to a ``QkCircuit`` and ``QkTarget``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpiler_pass_standalone_sabre_layout(
     circuit: *mut CircuitData,
     target: *const Target,

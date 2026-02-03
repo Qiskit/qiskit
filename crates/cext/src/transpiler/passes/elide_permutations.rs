@@ -57,7 +57,6 @@ use qiskit_transpiler::transpile_layout::TranspileLayout;
 ///
 /// Behavior is undefined if ``circuit``  is not a valid, non-null pointer to a ``QkCircuit``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpiler_pass_standalone_elide_permutations(
     circuit: *mut CircuitData,
 ) -> *mut TranspileLayout {

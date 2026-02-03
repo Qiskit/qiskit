@@ -66,7 +66,6 @@ use qiskit_transpiler::target::Target;
 ///
 /// Behavior is undefined if ``circuit`` or ``target`` is not a valid, non-null pointer to a ``QkCircuit`` and ``QkTarget``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpiler_pass_standalone_unitary_synthesis(
     circuit: *mut CircuitData,
     target: *const Target,
