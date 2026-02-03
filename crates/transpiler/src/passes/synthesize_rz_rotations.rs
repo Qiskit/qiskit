@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 use pyo3::prelude::*;
-use std::f64::consts::{PI, TAU};
+use std::f64::consts::PI;
 
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::operations::{OperationRef, Param, StandardGate};
@@ -19,7 +19,8 @@ use qiskit_synthesis::ross_selinger::py_gridsynth_rz;
 
 // static ROTATION_GATE_NAMES: &str = "rz";
 // const EPSILON: f64 = 1e-10;
-const FOUR_PI: f64 = 2.0 * TAU;
+const TWO_PI: f64 = 2.0 * PI;
+const FOUR_PI: f64 = 4.0 * PI;
 
 /// Rz(theta+2*n*pi) = (-1)^n Rz(theta)
 /// Normalize angle first (to handle negative angles as well)
@@ -29,11 +30,11 @@ const FOUR_PI: f64 = 2.0 * TAU;
 // Add tolerance to this after working out approximation rules
 fn rz_cyclicity(angle: f64) -> (f64, f64) {
     let angle_normalized = angle.rem_euclid(FOUR_PI);
-    if angle_normalized >= TAU {
+    if angle_normalized >= TWO_PI {
         // Rz(theta) where theta in [2*pi, 4*pi)
         // = -Rz(theta - 2*pi) = e^(i*pi) Rz(theta - 2*pi)
         // Map to [0, 2*pi) and update global phase
-        (angle_normalized - TAU, PI)
+        (angle_normalized - TWO_PI, PI)
     } else {
         // Already in [0, 2*pi)
         (angle_normalized, 0.0)
