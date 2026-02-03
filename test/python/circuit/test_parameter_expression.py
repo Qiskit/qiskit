@@ -575,3 +575,36 @@ class TestParameterExpression(QiskitTestCase):
         sympy_result2 = res2.sympify()
         expected2 = sympy.Symbol("a") ** (2 * sympy.Symbol("b"))
         self.assertEqual(sympy_result2, expected2)
+
+    @unittest.skipUnless(HAS_SYMPY, "Sympy is required for this test")
+    def test_sympify_reverse_operations(self):
+        """Test that sympify correctly handles all reverse operations (RPOW, RDIV, RSUB).
+
+        This test ensures that reverse operations correctly swap operands when converting
+        to sympy expressions. Reverse operations are used when the left operand is numeric
+        and the right operand is a ParameterExpression.
+        """
+        import sympy
+
+        a, b = Parameter("a"), Parameter("b")
+
+        # Test RPOW: a ** (b - 2) should convert to a ** (b - 2)
+        # This uses RPOW internally when the exponent is a ParameterExpression
+        res_pow = a ** (b - 2)
+        sympy_pow = res_pow.sympify()
+        expected_pow = sympy.Symbol("a") ** (sympy.Symbol("b") - 2)
+        self.assertEqual(sympy_pow, expected_pow)
+
+        # Test RDIV: 2 / a should convert to 2 / a
+        # RDIV is used when left operand is numeric and right is ParameterExpression
+        res_div = 2 / a
+        sympy_div = res_div.sympify()
+        expected_div = 2 / sympy.Symbol("a")
+        self.assertEqual(sympy_div, expected_div)
+
+        # Test RSUB: 2 - a should convert to 2 - a
+        # RSUB is used when left operand is numeric and right is ParameterExpression
+        res_sub = 2 - a
+        sympy_sub = res_sub.sympify()
+        expected_sub = 2 - sympy.Symbol("a")
+        self.assertEqual(sympy_sub, expected_sub)
