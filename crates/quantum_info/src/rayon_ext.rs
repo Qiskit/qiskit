@@ -18,6 +18,7 @@
 use rayon::iter::plumbing::*;
 use rayon::prelude::*;
 
+#[allow(dead_code)]
 pub trait ParallelSliceMutExt<T: Send>: ParallelSliceMut<T> {
     /// Create a parallel iterator over mutable chunks of uneven lengths for this iterator.
     ///
