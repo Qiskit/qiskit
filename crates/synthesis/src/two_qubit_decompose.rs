@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -1279,6 +1279,13 @@ impl TwoQubitGateSequence {
             global_phase: 0.,
         }
     }
+    /// Create this sequence from the consituent parts.
+    pub fn from_sequence(gates: TwoQubitSequenceVec, global_phase: f64) -> Self {
+        Self {
+            gates,
+            global_phase,
+        }
+    }
 }
 
 impl Default for TwoQubitGateSequence {
@@ -2058,7 +2065,7 @@ impl TwoQubitBasisDecomposer {
                 OperationRef::StandardGate(standard) => {
                     standard.create_py_op(py, Some(params), None)?.into_any()
                 }
-                OperationRef::Gate(gate) => gate.gate.clone_ref(py),
+                OperationRef::Gate(gate) => gate.instruction.clone_ref(py),
                 OperationRef::Unitary(unitary) => unitary.create_py_op(py, None)?.into_any(),
                 _ => unreachable!("decomposer gate must be a gate"),
             },
@@ -2554,7 +2561,7 @@ impl TwoQubitControlledUDecomposer {
             }
             OperationRef::Gate(gate) => {
                 Python::attach(|py: Python| -> PyResult<(PackedOperation, SmallVec<_>)> {
-                    let raw_inverse = gate.gate.call_method0(py, intern!(py, "inverse"))?;
+                    let raw_inverse = gate.instruction.call_method0(py, intern!(py, "inverse"))?;
                     let mut inverse: OperationFromPython<NoBlocks> = raw_inverse.extract(py)?;
                     let params = inverse.take_params().unwrap_or_default();
                     Ok((inverse.operation, params))
