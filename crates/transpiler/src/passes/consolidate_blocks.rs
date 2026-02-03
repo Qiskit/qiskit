@@ -268,6 +268,7 @@ fn py_run_consolidate_blocks(
         }
         let mut basis_count: usize = 0;
         let mut outside_basis = false;
+        let mut is_all_unitary = true;
         for node in &block {
             let inst = dag[*node].unwrap_operation();
             block_qargs.extend(dag.get_qargs(inst.qubits));
@@ -282,6 +283,13 @@ fn py_run_consolidate_blocks(
                 phys_qargs.get(dag, inst.qubits),
             ) {
                 outside_basis = true;
+            }
+            // Check if this is a Unitary gate
+            if !matches!(
+                inst.op.view(),
+                qiskit_circuit::operations::OperationRef::Unitary(_)
+            ) {
+                is_all_unitary = false;
             }
         }
         if block_qargs.len() > 2 {
@@ -362,6 +370,7 @@ fn py_run_consolidate_blocks(
                     || block.len() > MAX_2Q_DEPTH
                     || (basis_gates.is_some() && outside_basis)
                     || (target.is_some() && outside_basis)
+                    || is_all_unitary
                 {
                     if approx::abs_diff_eq!(aview2(&TWO_QUBIT_IDENTITY), matrix) {
                         for node in block {
