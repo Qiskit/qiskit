@@ -4,12 +4,19 @@ from qiskit._accelerate.synthesize_rz_rotations import synthesize_rz_rotations
 
 
 class SynthesizeRZRotations(TransformationPass):
-    """Replace RZ gates with Clifford+T decompositions using gridsynth.
+    """Replace RZ gates with Clifford+T decompositions in an efficient manner.
 
     This pass replaces all single-qubit RZ rotation gates with sequences
-    of Clifford+T gates (H, S, T gates) using the gridsynth algorithm.
+    of Clifford+T gates. We first canonicalize angles based on the 4π cyclicity 
+    of RZ gates, and further utilize the property RZ(θ+2π) = e^{iπ} RZ(θ) to map
+    angles to the [0, 2π) range to limit the number of distinct angles synthesized.
+    We then iterate over the dag to identify RZ gates and replace them with their
+    Clifford+T approximations.
 
     Args:
+        [Change this to approximation degree in later iteration to maintain
+        consistency across other passes]
+        
         epsilon: Precision parameter for gridsynth approximation.
         Default: 1e-10.
 
