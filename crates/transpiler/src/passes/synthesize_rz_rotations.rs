@@ -1,10 +1,10 @@
 // This code is part of Qiskit.
 //
-// (C) Copyright IBM 2025
+// (C) Copyright IBM 2026
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -12,17 +12,13 @@
 
 use pyo3::prelude::*;
 use std::f64::consts::{PI, TAU};
-use std::ops::Rem;
 
 use qiskit_circuit::dag_circuit::DAGCircuit;
-// use qiskit_circuit::dag_circuit::add_global_phase;
-// use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{OperationRef, Param, StandardGate};
 use qiskit_synthesis::ross_selinger::py_gridsynth_rz;
 
-static ROTATION_GATE_NAMES: &str = "rz";
-
-const EPSILON: f64 = 1e-10;
+// static ROTATION_GATE_NAMES: &str = "rz";
+// const EPSILON: f64 = 1e-10;
 const FOUR_PI: f64 = 2.0 * TAU;
 
 /// Rz(theta+2*n*pi) = (-1)^n Rz(theta)
@@ -30,18 +26,14 @@ const FOUR_PI: f64 = 2.0 * TAU;
 /// Check whether theta/2*pi is odd or even
 /// If odd, synthesize Rz(theta) and update global phase by pi
 /// If even, synthesize Rz(theta) as is
-/// Add tolerance to this after working out approximation rules
-
+// Add tolerance to this after working out approximation rules
 fn rz_cyclicity(angle: f64) -> (f64, f64) {
-    
-    let angle_normalized = angle.rem(FOUR_PI);
-
+    let angle_normalized = angle.rem_euclid(FOUR_PI);
     if angle_normalized >= TAU {
         // Rz(theta) where theta in [2*pi, 4*pi)
         // = -Rz(theta - 2*pi) = e^(i*pi) Rz(theta - 2*pi)
-        let angle = angle_normalized - TAU; // Map to [0, 2*pi)
-        let phase_update = PI; // Global phase
-        (angle, phase_update)
+        // Map to [0, 2*pi) and update global phase
+        (angle_normalized - TAU, PI)
     } else {
         // Already in [0, 2*pi)
         (angle_normalized, 0.0)
@@ -56,17 +48,14 @@ fn rz_cyclicity(angle: f64) -> (f64, f64) {
 /// an equivalent set of Clifford+T gates synthesized via gridsynth
 ///  in addition to the global phase to be updated
 ///  based on which range the angle lies in (as in fn rz_cyclicity).
-
 fn synthesize_rz_gate_via_gridsynth(
     angle: f64,
     _epsilon: f64,
 ) -> PyResult<(Vec<StandardGate>, Param)> {
     let (angle_normalized, phase_update) = rz_cyclicity(angle);
-    let _epsilon = EPSILON;
+    // let _epsilon = _epsilon;
 
-    let synth_circ = py_gridsynth_rz(angle_normalized, _epsilon);
-
-    let mut circ_data = synth_circ?;
+    let mut circ_data = py_gridsynth_rz(angle_normalized, _epsilon)?;
     circ_data.add_global_phase(&Param::Float(phase_update))?;
 
     // get sequence of standard gates
@@ -106,25 +95,20 @@ fn synthesize_rz_gate_via_gridsynth(
 #[pyfunction]
 #[pyo3(name = "synthesize_rz_rotations")]
 pub fn py_run_synthesize_rz_rotations(dag: &mut DAGCircuit, epsilon: f64) -> PyResult<()> {
-    
     // Skip the pass if there are no RZ rotation gates.
 
-    if dag
-        .get_op_counts()
-        .keys()
-        .all(|k| !ROTATION_GATE_NAMES.contains(k.as_str()))
-    {
+    if dag.get_op_counts().keys().all(|k| k != "rz") {
         return Ok(());
     }
 
-    // Iterate over nodes in the DAG and collect nodes that have RZ gates. 
+    // Iterate over nodes in the DAG and collect nodes that have RZ gates.
 
     let candidates: Vec<_> = dag
         .op_nodes(false)
         .filter_map(|(node_index, inst)| {
             if let OperationRef::StandardGate(StandardGate::RZ) = inst.op.view() {
                 if let Param::Float(angle) = inst.params_view()[0] {
-                    Some((node_index, StandardGate::RZ, angle))
+                    Some((node_index, angle))
                 } else {
                     None
                 }
@@ -134,7 +118,7 @@ pub fn py_run_synthesize_rz_rotations(dag: &mut DAGCircuit, epsilon: f64) -> PyR
         })
         .collect();
 
-    for (node_index, _gate, angle) in candidates {
+    for (node_index, angle) in candidates {
         let (sequence, phase_update) = synthesize_rz_gate_via_gridsynth(angle, epsilon)?;
 
         // we should remove the original gate, and instead add the sequence of gates
