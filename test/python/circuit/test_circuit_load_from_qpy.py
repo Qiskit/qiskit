@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -1715,6 +1715,7 @@ class TestLoadFromQPY(QiskitTestCase):
         """Test that `IfElseOp` and `WhileLoopOp` can have an `Expr` node as their `condition`, and
         that this round-trips through QPY."""
         inner = QuantumCircuit(1)
+        inner.x(0)
         outer = QuantumCircuit(1, 1)
         control_flow(outer, expr.lift(outer.clbits[0]), inner.copy(), [0], [])
 

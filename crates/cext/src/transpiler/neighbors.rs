@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -67,7 +67,6 @@ pub struct CNeighbors {
 ///
 /// `neighbors` must point to a valid, initialized `QkNeighbors` object.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_neighbors_is_all_to_all(neighbors: *const CNeighbors) -> bool {
     // SAFETY: per documentation, `neighbors` points to a valid initialized `CNeighbors`.
     unsafe { (*neighbors).neighbors.is_null() && (*neighbors).partition.is_null() }
@@ -111,7 +110,6 @@ pub unsafe extern "C" fn qk_neighbors_is_all_to_all(neighbors: *const CNeighbors
 /// `target` must point to a valid `QkTarget` object.  `neighbors` must be aligned and safe to write
 /// to, but need not be initialized.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_neighbors_from_target(
     target: *const Target,
     neighbors: *mut CNeighbors,
@@ -168,7 +166,6 @@ pub unsafe extern "C" fn qk_neighbors_from_target(
 /// `neighbors` must point to a valid, initialized `QkNeighbors` object, which must have been
 /// initialized by a call to `qk_neighbors_from_target` and unaltered since then.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_neighbors_clear(neighbors: *mut CNeighbors) {
     // SAFETY: per documentation, `neighbors` points to a valid initialised `CNeighbors`.
     let neighbors = unsafe { mut_ptr_as_ref(neighbors) };

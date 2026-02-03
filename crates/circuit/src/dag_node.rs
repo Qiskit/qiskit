@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -17,7 +17,7 @@ use std::sync::OnceLock;
 use crate::TupleLikeArg;
 use crate::circuit_data::CircuitData;
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython, extract_params};
-use crate::operations::{Operation, OperationRef, Param, PythonOperation};
+use crate::operations::{Operation, OperationRef, Param, PyOperationTypes, PythonOperation};
 
 use ahash::AHasher;
 use approx::relative_eq;
@@ -255,9 +255,15 @@ impl DAGOpNode {
         if deepcopy {
             instruction.operation = match instruction.operation.view() {
                 OperationRef::ControlFlow(cf) => cf.clone().into(),
-                OperationRef::Gate(gate) => gate.py_deepcopy(py, None)?.into(),
-                OperationRef::Instruction(instruction) => instruction.py_deepcopy(py, None)?.into(),
-                OperationRef::Operation(operation) => operation.py_deepcopy(py, None)?.into(),
+                OperationRef::Gate(gate) => {
+                    PyOperationTypes::Gate(gate.py_deepcopy(py, None)?).into()
+                }
+                OperationRef::Instruction(instruction) => {
+                    PyOperationTypes::Instruction(instruction.py_deepcopy(py, None)?).into()
+                }
+                OperationRef::Operation(operation) => {
+                    PyOperationTypes::Operation(operation.py_deepcopy(py, None)?).into()
+                }
                 OperationRef::StandardGate(gate) => gate.into(),
                 OperationRef::StandardInstruction(instruction) => instruction.into(),
                 OperationRef::Unitary(unitary) => unitary.clone().into(),
@@ -301,12 +307,16 @@ impl DAGOpNode {
         Ok(CircuitInstruction {
             operation: if deepcopy {
                 match self.instruction.operation.view() {
-                    OperationRef::ControlFlow(cf) => cf.clone().into(),
-                    OperationRef::Gate(gate) => gate.py_deepcopy(py, None)?.into(),
-                    OperationRef::Instruction(instruction) => {
-                        instruction.py_deepcopy(py, None)?.into()
+                    OperationRef::Gate(gate) => {
+                        PyOperationTypes::Gate(gate.py_deepcopy(py, None)?).into()
                     }
-                    OperationRef::Operation(operation) => operation.py_deepcopy(py, None)?.into(),
+                    OperationRef::Instruction(instruction) => {
+                        PyOperationTypes::Instruction(instruction.py_deepcopy(py, None)?).into()
+                    }
+                    OperationRef::Operation(operation) => {
+                        PyOperationTypes::Operation(operation.py_deepcopy(py, None)?).into()
+                    }
+                    OperationRef::ControlFlow(cf) => cf.clone().into(),
                     OperationRef::StandardGate(gate) => gate.into(),
                     OperationRef::StandardInstruction(instruction) => instruction.into(),
                     OperationRef::Unitary(unitary) => unitary.clone().into(),

@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -1366,11 +1366,11 @@ and changing two payloads the INSTRUCTION metadata payload and the CUSTOM_INSTRU
 These now have new fields to better account for :class:`~.ControlledGate` objects in a circuit.
 In addition, new payload MAP_ITEM is defined to implement the :ref:`qpy_mapping` block.
 
-With the support of ``ScheduleBlock``, now :class:`~.QuantumCircuit` can be
-serialized together with :attr:`~.QuantumCircuit.calibrations`, or
-`Pulse Gates <https://quantum.cloud.ibm.com/docs/guides/pulse>`_.
-In QPY version 5 and above, :ref:`qpy_circuit_calibrations` payload is
-packed after the :ref:`qpy_instructions` block.
+.. note::
+
+    Support for representing pulse schedules and custom calibrations was removed in Qiskit v2.0.
+    When loading QPY payloads, these data fields are now ignored or raise an error when using
+    Qiskit for deserialization.
 
 In QPY version 5 and above,
 

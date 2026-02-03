@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -58,7 +58,6 @@ use qiskit_transpiler::target::Target;
 /// Behavior is undefined if ``circuit`` and/or ``target`` are not valid, non-null
 /// pointers to a ``QkCircuit`` or ``QkTarget``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpiler_pass_standalone_basis_translator(
     circuit: *mut CircuitData,
     target: *const Target,
