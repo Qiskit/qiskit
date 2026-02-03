@@ -1,8 +1,9 @@
 ---
 features_transpiler:
   - |
-    A new transpiler pass :class:`~qiskit.transpiler.passes.SynthesizeRZRotations`
-    that decomposes :class:`~qiskit.circuit.library.RZGate` rotations in a circuit into 
+    
+    A new transpiler pass :class:`.SynthesizeRZRotations`
+    that decomposes :class:`.RZGate` rotations in a circuit into 
     sequences of Clifford+T gates using the Ross-Sellinger algorithm. The pass accepts an
     ``epsilon`` parameter that controls the approximation accuracy as from Ross-Sellinger
      Synthesis. [WIP]
