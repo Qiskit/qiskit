@@ -416,7 +416,13 @@ int test_optimization_stage_empty(void) {
     QkDag *dag = qk_dag_new();
     QkQuantumRegister *qr = qk_quantum_register_new(2048, "qr");
     qk_dag_add_quantum_register(dag, qr);
-    int compile_result = qk_transpile_stage_optimization(dag, target, NULL, NULL);
+    uint32_t *layout_mapping = malloc(sizeof(uint32_t) * 2048);
+    for (uint32_t i = 0; i < 2048; i++) {
+        layout_mapping[2047 - i] = i;
+    };
+    QkTranspileLayout *layout =
+        qk_transpile_layout_generate_from_mapping(dag, target, layout_mapping);
+    int compile_result = qk_transpile_stage_optimization(dag, target, NULL, NULL, layout);
     if (compile_result != 0) {
         result = EqualityError;
         printf("Running the optimization stage failed\n");
@@ -428,6 +434,7 @@ int test_optimization_stage_empty(void) {
         printf("Number of dag qubits %u does not match expected result 2048", num_dag_qubits);
     }
 cleanup:
+    qk_transpile_layout_free(layout);
     qk_target_free(target);
     qk_dag_free(dag);
     return result;
