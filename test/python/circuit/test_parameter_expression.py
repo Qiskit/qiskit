@@ -547,3 +547,31 @@ class TestParameterExpression(QiskitTestCase):
         result = expression.sympify()
         expected = sympy.Symbol("p[0]") + 1
         self.assertEqual(expected, result)
+
+    @unittest.skipUnless(HAS_SYMPY, "Sympy is required for this test")
+    def test_sympify_rpow_operand_order(self):
+        """Test that sympify correctly handles RPOW operations with swapped operands.
+
+        This test verifies the fix for issue #15583, where ParameterExpression.sympify()
+        was incorrectly swapping operands for reverse power operations (RPOW).
+        """
+        import sympy
+
+        a, b = Parameter("a"), Parameter("b")
+        # This creates a ** (b - 2), which uses RPOW internally
+        res = a ** (b - 2)
+
+        # The string representation should be correct
+        self.assertEqual(str(res), "a**(-2 + b)")
+
+        # The sympify result should match the correct order: a ** (b - 2)
+        sympy_result = res.sympify()
+        expected = sympy.Symbol("a") ** (sympy.Symbol("b") - 2)
+
+        self.assertEqual(sympy_result, expected)
+
+        # Test with a product expression as exponent (as mentioned in the issue)
+        res2 = a ** (2 * b)
+        sympy_result2 = res2.sympify()
+        expected2 = sympy.Symbol("a") ** (2 * sympy.Symbol("b"))
+        self.assertEqual(sympy_result2, expected2)
