@@ -333,12 +333,10 @@ static RXX_SUBSTITUTIONS: SubstituteSequencePi4 = [
     (
         &[
             (StandardGate::H, &[0]),
-            (StandardGate::H, &[1]),
-            (StandardGate::CZ, &[0, 1]),
+            (StandardGate::CX, &[0, 1]),
             (StandardGate::S, &[0]),
-            (StandardGate::S, &[1]),
+            (StandardGate::SX, &[1]),
             (StandardGate::H, &[0]),
-            (StandardGate::H, &[1]),
         ],
         -FRAC_PI_4,
     ),
@@ -375,12 +373,10 @@ static RXX_SUBSTITUTIONS: SubstituteSequencePi4 = [
     (
         &[
             (StandardGate::H, &[0]),
-            (StandardGate::H, &[1]),
-            (StandardGate::CZ, &[0, 1]),
+            (StandardGate::CX, &[0, 1]),
             (StandardGate::Sdg, &[0]),
-            (StandardGate::Sdg, &[1]),
+            (StandardGate::SXdg, &[1]),
             (StandardGate::H, &[0]),
-            (StandardGate::H, &[1]),
         ],
         -3.0 * FRAC_PI_4,
     ),
@@ -412,12 +408,10 @@ static RXX_SUBSTITUTIONS: SubstituteSequencePi4 = [
     (
         &[
             (StandardGate::H, &[0]),
-            (StandardGate::H, &[1]),
-            (StandardGate::CZ, &[0, 1]),
+            (StandardGate::CX, &[0, 1]),
             (StandardGate::S, &[0]),
-            (StandardGate::S, &[1]),
+            (StandardGate::SX, &[1]),
             (StandardGate::H, &[0]),
-            (StandardGate::H, &[1]),
         ],
         3.0 * FRAC_PI_4,
     ),
@@ -454,12 +448,10 @@ static RXX_SUBSTITUTIONS: SubstituteSequencePi4 = [
     (
         &[
             (StandardGate::H, &[0]),
-            (StandardGate::H, &[1]),
-            (StandardGate::CZ, &[0, 1]),
+            (StandardGate::CX, &[0, 1]),
             (StandardGate::Sdg, &[0]),
-            (StandardGate::Sdg, &[1]),
+            (StandardGate::SXdg, &[1]),
             (StandardGate::H, &[0]),
-            (StandardGate::H, &[1]),
         ],
         FRAC_PI_4,
     ),
@@ -492,11 +484,9 @@ static RZX_SUBSTITUTIONS: SubstituteSequencePi4 = [
     ),
     (
         &[
-            (StandardGate::H, &[1]),
-            (StandardGate::CZ, &[0, 1]),
+            (StandardGate::CX, &[0, 1]),
             (StandardGate::S, &[0]),
-            (StandardGate::S, &[1]),
-            (StandardGate::H, &[1]),
+            (StandardGate::SX, &[1]),
         ],
         -FRAC_PI_4,
     ),
@@ -528,11 +518,9 @@ static RZX_SUBSTITUTIONS: SubstituteSequencePi4 = [
     ),
     (
         &[
-            (StandardGate::H, &[1]),
-            (StandardGate::CZ, &[0, 1]),
+            (StandardGate::CX, &[0, 1]),
             (StandardGate::Sdg, &[0]),
-            (StandardGate::Sdg, &[1]),
-            (StandardGate::H, &[1]),
+            (StandardGate::SXdg, &[1]),
         ],
         -3.0 * FRAC_PI_4,
     ),
@@ -559,11 +547,9 @@ static RZX_SUBSTITUTIONS: SubstituteSequencePi4 = [
     ),
     (
         &[
-            (StandardGate::H, &[1]),
-            (StandardGate::CZ, &[0, 1]),
+            (StandardGate::CX, &[0, 1]),
             (StandardGate::S, &[0]),
-            (StandardGate::S, &[1]),
-            (StandardGate::H, &[1]),
+            (StandardGate::SX, &[1]),
         ],
         3.0 * FRAC_PI_4,
     ),
@@ -595,11 +581,9 @@ static RZX_SUBSTITUTIONS: SubstituteSequencePi4 = [
     ),
     (
         &[
-            (StandardGate::H, &[1]),
-            (StandardGate::CZ, &[0, 1]),
+            (StandardGate::CX, &[0, 1]),
             (StandardGate::Sdg, &[0]),
-            (StandardGate::Sdg, &[1]),
-            (StandardGate::H, &[1]),
+            (StandardGate::SXdg, &[1]),
         ],
         FRAC_PI_4,
     ),
@@ -656,14 +640,7 @@ static RYY_SUBSTITUTIONS: SubstituteSequencePi4 = [
         -3.0 * FRAC_PI_8,
     ),
     (
-        &[
-            (StandardGate::Sdg, &[0]),
-            (StandardGate::Sdg, &[1]),
-            (StandardGate::X, &[0]),
-            (StandardGate::X, &[1]),
-            (StandardGate::S, &[0]),
-            (StandardGate::S, &[1]),
-        ],
+        &[(StandardGate::Y, &[0]), (StandardGate::Y, &[1])],
         -FRAC_PI_2,
     ),
     (
@@ -742,14 +719,7 @@ static RYY_SUBSTITUTIONS: SubstituteSequencePi4 = [
         5.0 * FRAC_PI_8,
     ),
     (
-        &[
-            (StandardGate::Sdg, &[0]),
-            (StandardGate::Sdg, &[1]),
-            (StandardGate::X, &[0]),
-            (StandardGate::X, &[1]),
-            (StandardGate::S, &[0]),
-            (StandardGate::S, &[1]),
-        ],
+        &[(StandardGate::Y, &[0]), (StandardGate::Y, &[1])],
         FRAC_PI_2,
     ),
     (
@@ -964,12 +934,7 @@ static CRY_SUBSTITUTIONS: SubstituteSequencePi2 = [
         0.0,
     ),
     (
-        &[
-            (StandardGate::SX, &[1]),
-            (StandardGate::CZ, &[0, 1]),
-            (StandardGate::Sdg, &[0]),
-            (StandardGate::SXdg, &[1]),
-        ],
+        &[(StandardGate::CY, &[0, 1]), (StandardGate::Sdg, &[0])],
         0.0,
     ),
     (
@@ -999,15 +964,7 @@ static CRY_SUBSTITUTIONS: SubstituteSequencePi2 = [
         ],
         0.0,
     ),
-    (
-        &[
-            (StandardGate::SX, &[1]),
-            (StandardGate::CZ, &[0, 1]),
-            (StandardGate::S, &[0]),
-            (StandardGate::SXdg, &[1]),
-        ],
-        0.0,
-    ),
+    (&[(StandardGate::CY, &[0, 1]), (StandardGate::S, &[0])], 0.0),
     (
         &[
             (StandardGate::SX, &[1]),
@@ -1023,8 +980,8 @@ static CRY_SUBSTITUTIONS: SubstituteSequencePi2 = [
 
 /// For a given angle, if it is a multiple of PI/k, calculate the multiple mod (4*k),
 /// Otherwise, return `None`.
-/// E.g, if the angle is a multiple of PI/4 then, then it returns k, where 0 <= k < 16
-/// and if the angle is a multiple of PI/2 then, then it returns k, where 0 <= k < 8
+/// E.g, if the angle is a multiple m of PI/4 then, then it returns m, where 0 <= m < 16,
+/// and if the angle is a multiple m of PI/2 then, then it returns m, where 0 <= m < 8.
 fn is_angle_close_to_multiple_of_pi_k(
     gate: StandardGate,
     k: usize,
