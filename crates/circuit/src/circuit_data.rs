@@ -213,7 +213,6 @@ type CircuitDataState<'py> = (
 /// Raises:
 ///     KeyError: if ``data`` contains a reference to a bit that is not present
 ///         in ``qubits`` or ``clbits``.
-// #[pyclass(sequence, module = "qiskit._accelerate.circuit")]
 #[derive(Clone, Debug)]
 pub struct CircuitData {
     /// The packed instruction listing.
@@ -3903,6 +3902,15 @@ impl PyCircuitData {
     /// Return the number of unbound compile-time symbolic parameters tracked by the circuit.
     pub fn num_parameters(&self) -> usize {
         self.inner.num_parameters()
+    }
+
+     /// Return the width of the circuit. This is the number of qubits plus the
+    /// number of clbits.
+    ///
+    /// Returns:
+    ///     int: The width of the circuit.
+    pub fn width(&self) -> usize {
+        self.inner.width()
     }
 }
 
