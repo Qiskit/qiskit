@@ -517,7 +517,7 @@ class TestAnnotations(QpyCircuitTestCase):
                 return isinstance(other, TypeA)
 
             def __repr__(self):
-                return f"TypeA()"
+                return "TypeA()"
 
         class TypeB(annotation.Annotation):
             namespace = "b"
@@ -526,7 +526,7 @@ class TestAnnotations(QpyCircuitTestCase):
                 return isinstance(other, TypeB)
 
             def __repr__(self):
-                return f"TypeB()"
+                return "TypeB()"
 
         class SerializerA(annotation.QPYSerializer):
             def dump_annotation(self, namespace, annotation):
