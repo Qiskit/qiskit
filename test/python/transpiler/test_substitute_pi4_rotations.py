@@ -15,7 +15,7 @@
 from ddt import ddt
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit.random import random_clifford_circuit
 from qiskit.transpiler.passes import SubstitutePi4Rotations
 from qiskit.quantum_info import Operator, get_clifford_gate_names
@@ -207,3 +207,28 @@ class TestSubstitutePi4Rotations(QiskitTestCase):
 
         self.assertEqual(qct, expected)
         self.assertEqual(Operator(qct), Operator(qc))
+
+    def test_nested_control_flow(self):
+        """Test unrolling nested control flow blocks."""
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(1)
+        qc1 = QuantumCircuit(2)
+        qc1.rzz(np.pi / 4, 0, 1)
+        qc2 = QuantumCircuit(2)
+        qc2.global_phase = -np.pi / 8
+        qc2.cx(0, 1)
+        qc2.t(1)
+        qc2.cx(0, 1)
+
+        qc = QuantumCircuit(qr, cr)
+        with qc.for_loop(range(3)):
+            with qc.while_loop((cr, 0)):
+                qc.compose(qc1, [0, 1], inplace=True)
+        qct = SubstitutePi4Rotations()(qc)
+
+        qc_exp = QuantumCircuit(qr, cr)
+        with qc_exp.for_loop(range(3)):
+            with qc_exp.while_loop((cr, 0)):
+                qc_exp.compose(qc2, [0, 1], inplace=True)
+
+        self.assertEqual(qct, qc_exp)

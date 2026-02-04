@@ -14,6 +14,7 @@
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
+from qiskit.transpiler.passes.utils import control_flow
 from qiskit._accelerate.substitute_pi4_rotations import substitute_pi4_rotations
 
 
@@ -75,6 +76,7 @@ class SubstitutePi4Rotations(TransformationPass):
         super().__init__()
         self.approximation_degree = approximation_degree
 
+    @control_flow.trivial_recurse
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the Substitute Pi4-Rotations optimization pass on ``dag``.
 
