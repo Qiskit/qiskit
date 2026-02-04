@@ -1115,7 +1115,7 @@ pub fn py_run_substitute_pi4_rotations(
                             let (new_gate, phase_update) =
                                 replace_1q_rotation_by_discrete(gate, multiple);
 
-                            let qubit: &'static [u32] = &[0];
+                            let qubit: &[u32] = &[0];
                             let sequence = new_gate.iter().map(|g| (*g, qubit)).collect();
                             (sequence, phase_update)
                         };
