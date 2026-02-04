@@ -3904,7 +3904,7 @@ impl PyCircuitData {
         self.inner.num_parameters()
     }
 
-     /// Return the width of the circuit. This is the number of qubits plus the
+    /// Return the width of the circuit. This is the number of qubits plus the
     /// number of clbits.
     ///
     /// Returns:
