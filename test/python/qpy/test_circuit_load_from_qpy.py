@@ -21,7 +21,7 @@ from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit, Parameter, Ga
 from qiskit.circuit.random import random_circuit
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.exceptions import QiskitError
-from qiskit.qpy import dump, load, formats, get_qpy_version, QPY_COMPATIBILITY_VERSION
+from qiskit.qpy import dump, load, formats, get_qpy_version, QPY_COMPATIBILITY_VERSION, QpyError
 from qiskit.qpy.common import QPY_VERSION
 from qiskit.transpiler import TranspileLayout, CouplingMap
 from qiskit.compiler import transpile
@@ -60,6 +60,18 @@ class QpyCircuitTestCase(QiskitTestCase):
                 file_version,
                 f"Generated QPY file version {file_version} does not match request version {version}",
             )
+        if annotation_factories is not None:
+
+            def flat_annotations(qc):
+                for inst in qc.data:
+                    op = inst.operation
+                    if inst.name == "box":
+                        yield op.annotations
+                    if inst.is_control_flow():
+                        for block in op.blocks:
+                            yield from flat_annotations(block)
+
+            self.assertEqual(list(flat_annotations(circuit)), list(flat_annotations(new_circuit)))
 
 
 class TestVersions(QpyCircuitTestCase):
@@ -399,6 +411,9 @@ class TestAnnotations(QpyCircuitTestCase):
                     and self.value == other.value
                 )
 
+            def __repr__(self):
+                return f"My({self.namespace!r}, {self.value!r})"
+
         class Serializer(annotation.OpenQASM3Serializer):
             def load(self, namespace, payload):
                 return My(namespace, payload)
@@ -420,6 +435,9 @@ class TestAnnotations(QpyCircuitTestCase):
 
             def __eq__(self, other):
                 return isinstance(other, Dummy)
+
+            def __repr__(self):
+                return "Dummy()"
 
         class Serializer(annotation.QPYSerializer):
             def load_annotation(self, payload):
@@ -446,6 +464,9 @@ class TestAnnotations(QpyCircuitTestCase):
 
             def __eq__(self, other):
                 return isinstance(other, My) and self.value == other.value
+
+            def __repr__(self):
+                return f"My({self.value!r})"
 
         class Serializer(annotation.QPYSerializer):
             def __init__(self):
@@ -495,11 +516,17 @@ class TestAnnotations(QpyCircuitTestCase):
             def __eq__(self, other):
                 return isinstance(other, TypeA)
 
+            def __repr__(self):
+                return f"TypeA()"
+
         class TypeB(annotation.Annotation):
             namespace = "b"
 
             def __eq__(self, other):
                 return isinstance(other, TypeB)
+
+            def __repr__(self):
+                return f"TypeB()"
 
         class SerializerA(annotation.QPYSerializer):
             def dump_annotation(self, namespace, annotation):
@@ -559,6 +586,9 @@ class TestAnnotations(QpyCircuitTestCase):
                     and self.value == other.value
                 )
 
+            def __repr__(self):
+                return f"My({self.namespace!r}, {self.value!r})"
+
         triggered_not_implemented = False
 
         class Serializer(annotation.QPYSerializer):
@@ -608,6 +638,17 @@ class TestAnnotations(QpyCircuitTestCase):
             },
         )
         self.assertTrue(triggered_not_implemented)
+
+    def test_reject_unknown_namespace(self):
+        class Unknown(annotation.Annotation):
+            namespace = "unknown"
+
+        qc = QuantumCircuit()
+        with qc.box([Unknown()]):
+            pass
+
+        with io.BytesIO() as fptr, self.assertRaisesRegex(QpyError, "No configured annotation"):
+            dump(qc, fptr)
 
 
 @ddt
