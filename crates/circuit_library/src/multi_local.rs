@@ -220,19 +220,15 @@ pub fn n_local(
             ledger.get_parameters(LayerType::Rotation, reps),
             &skipped_qubits,
         ));
-        Ok(CircuitData::from_packed_operations(
-            num_qubits,
-            0,
-            packed_insts,
-            Param::Float(0.0),
-        )?.into())
+        Ok(
+            CircuitData::from_packed_operations(num_qubits, 0, packed_insts, Param::Float(0.0))?
+                .into(),
+        )
     } else {
-        Ok(CircuitData::from_packed_operations(
-            num_qubits,
-            0,
-            packed_insts,
-            Param::Float(0.0),
-        )?.into())
+        Ok(
+            CircuitData::from_packed_operations(num_qubits, 0, packed_insts, Param::Float(0.0))?
+                .into(),
+        )
     }
 }
 

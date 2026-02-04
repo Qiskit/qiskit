@@ -97,11 +97,10 @@ pub fn synth_qft_line(
         _append_reverse_permutation_lnn_kms(&mut instructions, num_qubits);
     }
 
-    Ok(CircuitData::from_standard_gates(
-        num_qubits as u32,
-        instructions,
-        Param::Float(0.0),
-    )?.into())
+    Ok(
+        CircuitData::from_standard_gates(num_qubits as u32, instructions, Param::Float(0.0))?
+            .into(),
+    )
 }
 
 #[inline]

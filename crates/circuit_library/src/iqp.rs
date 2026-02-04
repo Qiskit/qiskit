@@ -144,11 +144,7 @@ pub fn py_iqp(interactions: PyReadonlyArray2<i64>) -> PyResult<PyCircuitData> {
 
     let num_qubits = view.ncols() as u32;
     let instructions = iqp(view);
-    Ok(CircuitData::from_standard_gates(
-        num_qubits,
-        instructions,
-        Param::Float(0.0),
-    )?.into())
+    Ok(CircuitData::from_standard_gates(num_qubits, instructions, Param::Float(0.0))?.into())
 }
 
 /// Generate a random Instantaneous Quantum Polynomial time (IQP) circuit.
@@ -165,9 +161,5 @@ pub fn py_random_iqp(num_qubits: u32, seed: Option<u64>) -> PyResult<PyCircuitDa
     let interactions = generate_random_interactions(num_qubits, seed);
     let view = interactions.view();
     let instructions = iqp(view);
-    Ok(CircuitData::from_standard_gates(
-        num_qubits,
-        instructions,
-        Param::Float(0.0),
-    )?.into())
+    Ok(CircuitData::from_standard_gates(num_qubits, instructions, Param::Float(0.0))?.into())
 }

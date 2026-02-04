@@ -29,7 +29,9 @@ use pyo3::types::{PyAny, PyDict, PyTuple};
 use qiskit_circuit::bit::{
     ClassicalRegister, PyClbit, PyQubit, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
-use qiskit_circuit::circuit_data::{CircuitData, CircuitStretchType, CircuitVarType, PyCircuitData};
+use qiskit_circuit::circuit_data::{
+    CircuitData, CircuitStretchType, CircuitVarType, PyCircuitData,
+};
 use qiskit_circuit::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::imports;

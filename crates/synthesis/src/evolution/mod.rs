@@ -68,7 +68,8 @@ pub fn pauli_network_synthesis(
         upto_clifford,
         upto_phase,
         resynth_clifford_method,
-    ).map(Into::into)
+    )
+    .map(Into::into)
 }
 
 pub fn evolution(m: &Bound<PyModule>) -> PyResult<()> {

@@ -24,11 +24,7 @@ fn py_synth_mcx_n_dirty_i15(
     relative_phase: bool,
     action_only: bool,
 ) -> PyResult<PyCircuitData> {
-    Ok(synth_mcx_n_dirty_i15(
-        num_controls,
-        relative_phase,
-        action_only,
-    )?.into())
+    Ok(synth_mcx_n_dirty_i15(num_controls, relative_phase, action_only)?.into())
 }
 
 #[pyfunction]

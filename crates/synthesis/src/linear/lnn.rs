@@ -320,9 +320,8 @@ pub fn py_synth_cnot_depth_line_kms(mat: PyReadonlyArray2<bool>) -> PyResult<PyC
                 smallvec![Qubit(ctrl as u32), Qubit(target as u32)],
             )
         });
-    Ok(CircuitData::from_standard_gates(
-        num_qubits as u32,
-        instructions,
-        Param::Float(0.0),
-    )?.into())
+    Ok(
+        CircuitData::from_standard_gates(num_qubits as u32, instructions, Param::Float(0.0))?
+            .into(),
+    )
 }

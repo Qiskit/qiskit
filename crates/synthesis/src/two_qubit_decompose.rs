@@ -2284,7 +2284,8 @@ impl TwoQubitBasisDecomposer {
                 ))
             }),
             Param::Float(sequence.global_phase),
-        )?.into())
+        )?
+        .into())
     }
 
     fn num_basis_gates(&self, unitary: PyReadonlyArray2<Complex64>) -> PyResult<usize> {
@@ -2980,7 +2981,8 @@ impl TwoQubitControlledUDecomposer {
                 ))
             }),
             Param::Float(sequence.global_phase),
-        )?.into())
+        )?
+        .into())
     }
 }
 

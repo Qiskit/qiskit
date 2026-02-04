@@ -153,7 +153,8 @@ pub fn mcmt_v_chain(
                 .chain(targets)
                 .chain(flip_control_state),
             Param::Float(0.0),
-        )?.into())
+        )?
+        .into())
     } else {
         // If the number of controls is larger than 1, and we need to apply the V-chain,
         // create it here and sandwich the targets in-between.
@@ -172,6 +173,7 @@ pub fn mcmt_v_chain(
                 .chain(up_chain)
                 .chain(flip_control_state),
             Param::Float(0.0),
-        )?.into())
+        )?
+        .into())
     }
 }

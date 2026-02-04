@@ -126,7 +126,8 @@ pub fn pauli_feature_map(
         0,
         packed_insts.into_iter().map(Ok),
         Param::Float(0.0),
-    )?.into())
+    )?
+    .into())
 }
 
 fn _get_h_layer(feature_dimension: u32) -> impl Iterator<Item = Instruction> {

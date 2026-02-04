@@ -11,8 +11,8 @@
 // that they have been altered from the originals.
 
 use std::fmt::Debug;
-use std::ops::Deref;
 use std::hash::{Hash, RandomState};
+use std::ops::Deref;
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
@@ -257,7 +257,12 @@ pub struct CircuitData {
     global_phase: Param,
 }
 
-#[pyclass(name="CircuitData", freelist = 20, sequence, module = "qiskit._accelerate.circuit")]
+#[pyclass(
+    name = "CircuitData",
+    freelist = 20,
+    sequence,
+    module = "qiskit._accelerate.circuit"
+)]
 #[derive(Clone, Debug)]
 pub struct PyCircuitData {
     pub inner: CircuitData,
@@ -503,7 +508,7 @@ impl CircuitData {
     /// Return the number of unbound compile-time symbolic parameters tracked by the circuit.
     pub fn num_parameters(&self) -> usize {
         self.param_table.num_parameters()
-    }    
+    }
 
     /// Return the width of the circuit. This is the number of qubits plus the
     /// number of clbits.
@@ -664,8 +669,6 @@ impl CircuitData {
     pub fn reserve(&mut self, additional: usize) {
         self.data.reserve(additional);
     }
-
-    
 
     /// Move this [CircuitData] into a complete Python `QuantumCircuit` object.
     pub fn into_py_quantum_circuit(self, py: Python) -> PyResult<Bound<PyAny>> {
@@ -1325,8 +1328,6 @@ impl CircuitData {
     pub fn iter_parameters(&self) -> impl Iterator<Item = &Symbol> {
         self.param_table.iter_symbols()
     }
-
-    
 
     /// Assigns parameters to circuit data based on a mapping of `ParameterUuid` : `Param`.
     /// This mapping assumes that the provided `ParameterUuid` keys are instances
@@ -2144,41 +2145,40 @@ impl CircuitData {
         Ok(())
     }
 
-        pub fn extend(&mut self, other: &CircuitData) -> PyResult<()> {
-            // Fast path to avoid unnecessary construction of CircuitInstruction instances.
-            self.data.reserve(other.data.len());
-            for inst in other.data.iter() {
-                let qubits = other
-                    .qargs_interner
-                    .get(inst.qubits)
-                    .iter()
-                    .map(|b| Ok(self.qubits.find(other.qubits.get(*b).unwrap()).unwrap()))
-                    .collect::<PyResult<Vec<Qubit>>>()?;
-                let clbits = other
-                    .cargs_interner
-                    .get(inst.clbits)
-                    .iter()
-                    .map(|b| Ok(self.clbits.find(other.clbits.get(*b).unwrap()).unwrap()))
-                    .collect::<PyResult<Vec<Clbit>>>()?;
-                let qubits_id = self.qargs_interner.insert_owned(qubits);
-                let clbits_id = self.cargs_interner.insert_owned(clbits);
-                let params = inst.params.as_ref().map(|params| {
-                    Box::new(params.map_blocks_ref(|b| self.blocks.push(other.blocks[*b].clone())))
-                });
-                self.push(PackedInstruction {
-                    op: inst.op.clone(),
-                    qubits: qubits_id,
-                    clbits: clbits_id,
-                    params,
-                    label: inst.label.clone(),
-                    #[cfg(feature = "cache_pygates")]
-                    py_op: inst.py_op.clone(),
-                })?;
-            }
+    pub fn extend(&mut self, other: &CircuitData) -> PyResult<()> {
+        // Fast path to avoid unnecessary construction of CircuitInstruction instances.
+        self.data.reserve(other.data.len());
+        for inst in other.data.iter() {
+            let qubits = other
+                .qargs_interner
+                .get(inst.qubits)
+                .iter()
+                .map(|b| Ok(self.qubits.find(other.qubits.get(*b).unwrap()).unwrap()))
+                .collect::<PyResult<Vec<Qubit>>>()?;
+            let clbits = other
+                .cargs_interner
+                .get(inst.clbits)
+                .iter()
+                .map(|b| Ok(self.clbits.find(other.clbits.get(*b).unwrap()).unwrap()))
+                .collect::<PyResult<Vec<Clbit>>>()?;
+            let qubits_id = self.qargs_interner.insert_owned(qubits);
+            let clbits_id = self.cargs_interner.insert_owned(clbits);
+            let params = inst.params.as_ref().map(|params| {
+                Box::new(params.map_blocks_ref(|b| self.blocks.push(other.blocks[*b].clone())))
+            });
+            self.push(PackedInstruction {
+                op: inst.op.clone(),
+                qubits: qubits_id,
+                clbits: clbits_id,
+                params,
+                label: inst.label.clone(),
+                #[cfg(feature = "cache_pygates")]
+                py_op: inst.py_op.clone(),
+            })?;
+        }
         Ok(())
     }
-    
-    
+
     pub fn assign_parameters_from_array(&mut self, array: ArrayView1<f64>) -> PyResult<()> {
         if array.len() != self.param_table.num_parameters() {
             return Err(PyValueError::new_err(concat!(
@@ -2362,7 +2362,7 @@ impl CircuitData {
             + self.num_declared_stretches()
     }
 
-     /// Return the number of local stretch variables in the circuit.
+    /// Return the number of local stretch variables in the circuit.
     pub fn num_declared_stretches(&self) -> usize {
         self.stretches_declare.len()
     }
@@ -2372,8 +2372,8 @@ impl CircuitData {
         self.stretches_capture.len()
     }
 
-     // TODO: in the long run, `CircuitData` should no rely on this method
-     pub fn unpack_py_op(&self, py: Python, instr: &PackedInstruction) -> PyResult<Py<PyAny>> {
+    // TODO: in the long run, `CircuitData` should no rely on this method
+    pub fn unpack_py_op(&self, py: Python, instr: &PackedInstruction) -> PyResult<Py<PyAny>> {
         // `OnceLock::get_or_init` and the non-stabilised `get_or_try_init`, which would otherwise
         // be nice here are both non-reentrant.  This is a problem if the init yields control to the
         // Python interpreter as this one does, since that can allow CPython to freeze the thread
@@ -2401,6 +2401,10 @@ impl CircuitData {
 
     pub fn len(&self) -> usize {
         self.data.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 }
 
@@ -2682,14 +2686,15 @@ impl PyCircuitData {
         reserve: usize,
         global_phase: Param,
     ) -> PyResult<Self> {
-        let mut circuit_data: PyCircuitData = CircuitData::new(qubits, clbits, global_phase)?.into();
+        let mut circuit_data: PyCircuitData =
+            CircuitData::new(qubits, clbits, global_phase)?.into();
         if let Some(data) = data {
             circuit_data.reserve(reserve);
             circuit_data.extend(data)?;
         }
         Ok(circuit_data)
-    } 
-    
+    }
+
     pub fn __reduce__(self_: &Bound<PyCircuitData>, py: Python<'_>) -> PyResult<Py<PyAny>> {
         let ty: Bound<PyType> = self_.get_type();
         let args = {
@@ -2947,7 +2952,7 @@ impl PyCircuitData {
     pub fn global_phase(&self, py: Python) -> PyResult<Py<PyAny>> {
         self.inner.global_phase.clone().into_py_any(py)
     }
-    
+
     /// A dict mapping Qubit instances to tuple comprised of 0) the corresponding index in
     /// circuit.qubits and 1) a list of Register-int pairs for each Register containing the Bit and
     /// its index within that register.
@@ -2965,7 +2970,8 @@ impl PyCircuitData {
 
         for (index, qubit) in self.inner.qubits.objects().iter().enumerate() {
             if !self.inner.qubit_indices.contains_key(qubit) {
-                self.inner.qubit_indices
+                self.inner
+                    .qubit_indices
                     .insert(qubit.clone(), BitLocations::new(index as u32, []));
             }
         }
@@ -3026,7 +3032,8 @@ impl PyCircuitData {
 
         for (index, clbit) in self.inner.clbits.objects().iter().enumerate() {
             if !self.inner.clbit_indices.contains_key(clbit) {
-                self.inner.clbit_indices
+                self.inner
+                    .clbit_indices
                     .insert(clbit.clone(), BitLocations::new(index as u32, []));
             }
         }
@@ -3074,11 +3081,11 @@ impl PyCircuitData {
     }
 
     pub fn get_parameter_by_name(&self, py: Python, name: &str) -> Option<Py<PyAny>> {
-        self.inner.param_table
+        self.inner
+            .param_table
             .parameter_by_name(name)
             .map(|ob| ob.clone().into_py_any(py).unwrap())
     }
-    
 
     /// Put ``self`` into the canonical physical form, with the given number of qubits.
     ///
@@ -3113,7 +3120,7 @@ impl PyCircuitData {
         };
         self.inner.make_physical(num_qubits);
         Ok(())
-    } 
+    }
 
     /// Registers a :class:`.Qubit` instance.
     ///
@@ -3184,7 +3191,10 @@ impl PyCircuitData {
     /// CircuitData: The empty copy like self.
     #[pyo3(name = "copy_empty_like", signature = (*, vars_mode=VarsMode::Alike))]
     pub fn py_copy_empty_like(&self, vars_mode: VarsMode) -> PyResult<Self> {
-        Ok(self.inner.copy_empty_like(vars_mode, BlocksMode::Drop)?.into())
+        Ok(self
+            .inner
+            .copy_empty_like(vars_mode, BlocksMode::Drop)?
+            .into())
     }
 
     /// Reserves capacity for at least ``additional`` more
@@ -3197,7 +3207,7 @@ impl PyCircuitData {
         self.inner.reserve(additional);
     }
 
-     #[pyo3(signature = (index=None))]
+    #[pyo3(signature = (index=None))]
     pub fn pop(&mut self, py: Python<'_>, index: Option<PySequenceIndex>) -> PyResult<Py<PyAny>> {
         let index = index.unwrap_or(PySequenceIndex::Int(-1));
         let native_index = index.with_len(self.inner.data.len())?;
@@ -3243,7 +3253,9 @@ impl PyCircuitData {
             let inst = &self.inner.data[index];
             let qubits = self.inner.qargs_interner.get(inst.qubits);
             let clbits = self.inner.cargs_interner.get(inst.clbits);
-            let params = self.inner.unpack_blocks_to_circuit_parameters(inst.params.as_deref());
+            let params = self
+                .inner
+                .unpack_blocks_to_circuit_parameters(inst.params.as_deref());
             CircuitInstruction {
                 operation: inst.op.clone(),
                 qubits: PyTuple::new(py, self.inner.qubits.map_indices(qubits))
@@ -3330,7 +3342,7 @@ impl PyCircuitData {
         self.inner.insert(index, packed)
     }
 
-     /// Primary entry point for appending an instruction from Python space.
+    /// Primary entry point for appending an instruction from Python space.
     pub fn append(&mut self, value: &Bound<CircuitInstruction>) -> PyResult<()> {
         let packed = self.inner.pack(value.py(), &value.borrow())?;
         Ok(self.inner.push(packed)?)
@@ -3496,8 +3508,11 @@ impl PyCircuitData {
                         // in `identifier_info` of the other CircuitData - which match the stretches encountered during the
                         // iteration here - are monotonically increasing.
                         if let CircuitStretchType::Declare = rhs_stretch_info.get_type() {
-                            let rhs_stretch_idx =
-                                other_cd.inner.identifier_info.get_index_of(id_name).unwrap();
+                            let rhs_stretch_idx = other_cd
+                                .inner
+                                .identifier_info
+                                .get_index_of(id_name)
+                                .unwrap();
                             if rhs_stretch_idx < prev_rhs_stretch_idx {
                                 return Ok(false);
                             }
@@ -3532,7 +3547,7 @@ impl PyCircuitData {
         }
     }
 
-      fn __traverse__(&self, visit: PyVisit<'_>) -> Result<(), PyTraverseError> {
+    fn __traverse__(&self, visit: PyVisit<'_>) -> Result<(), PyTraverseError> {
         // Note:
         //   There's no need to visit the native Rust data
         //   structures used for internal tracking: the only Python
@@ -3570,7 +3585,7 @@ impl PyCircuitData {
     /// by copies or other means, before making the parameter table consistent.
     #[setter(global_phase)]
     pub fn set_global_phase_param(&mut self, angle: Param) -> Result<(), CircuitDataError> {
-       self.inner.set_global_phase_param(angle)
+        self.inner.set_global_phase_param(angle)
     }
 
     pub fn num_nonlocal_gates(&self) -> usize {
@@ -3625,7 +3640,7 @@ impl PyCircuitData {
         Ok(())
     }
 
-     /// Add an input variable to the circuit.
+    /// Add an input variable to the circuit.
     ///
     /// Args:
     ///     var: the variable to add.
@@ -3698,7 +3713,8 @@ impl PyCircuitData {
     fn py_get_captured_vars(&self, py: Python) -> PyResult<Py<PyList>> {
         Ok(PyList::new(
             py,
-            self.inner.get_vars(CircuitVarType::Capture)
+            self.inner
+                .get_vars(CircuitVarType::Capture)
                 .map(|var| var.clone().into_pyobject(py).unwrap()),
         )?
         .unbind())
@@ -3709,7 +3725,8 @@ impl PyCircuitData {
     fn py_get_declared_vars(&self, py: Python) -> PyResult<Py<PyList>> {
         Ok(PyList::new(
             py,
-            self.inner.get_vars(CircuitVarType::Declare)
+            self.inner
+                .get_vars(CircuitVarType::Declare)
                 .map(|var| var.clone().into_pyobject(py).unwrap()),
         )?
         .unbind())
@@ -3730,7 +3747,8 @@ impl PyCircuitData {
     fn py_get_input_vars(&self, py: Python) -> PyResult<Py<PyList>> {
         Ok(PyList::new(
             py,
-            self.inner.get_vars(CircuitVarType::Input)
+            self.inner
+                .get_vars(CircuitVarType::Input)
                 .map(|var| var.clone().into_pyobject(py).unwrap()),
         )?
         .unbind())
@@ -3759,13 +3777,14 @@ impl PyCircuitData {
         self.inner.num_identifiers()
     }
 
-     /// Add a captured stretch to the circuit.
+    /// Add a captured stretch to the circuit.
     ///
     /// Args:
     ///     stretch: the stretch variable to add.
     #[pyo3(name = "add_captured_stretch")]
     fn py_add_captured_stretch(&mut self, stretch: expr::Stretch) -> PyResult<()> {
-        self.inner.add_stretch(stretch, CircuitStretchType::Capture)?;
+        self.inner
+            .add_stretch(stretch, CircuitStretchType::Capture)?;
         Ok(())
     }
 
@@ -3820,7 +3839,9 @@ impl PyCircuitData {
     // Return the stretch variable in the circuit corresponding to the given name, or None if no such variable.
     #[pyo3(name = "get_stretch")]
     pub fn py_get_stretch(&self, py: Python, name: &str) -> PyResult<Py<PyAny>> {
-        if let Some(CircuitIdentifierInfo::Stretch(stretch_info)) = self.inner.identifier_info.get(name) {
+        if let Some(CircuitIdentifierInfo::Stretch(stretch_info)) =
+            self.inner.identifier_info.get(name)
+        {
             let stretch = self
                 .inner
                 .stretches
@@ -3838,10 +3859,9 @@ impl PyCircuitData {
     fn py_get_captured_stretches(&self, py: Python) -> PyResult<Py<PyList>> {
         Ok(PyList::new(
             py,
-            self
-            .inner
-            .get_stretches(CircuitStretchType::Capture)
-            .map(|stretch| stretch.clone().into_pyobject(py).unwrap()),
+            self.inner
+                .get_stretches(CircuitStretchType::Capture)
+                .map(|stretch| stretch.clone().into_pyobject(py).unwrap()),
         )?
         .unbind())
     }
@@ -3851,13 +3871,14 @@ impl PyCircuitData {
     fn py_get_declared_stretches(&self, py: Python) -> PyResult<Py<PyList>> {
         Ok(PyList::new(
             py,
-            self.inner.get_stretches(CircuitStretchType::Declare)
+            self.inner
+                .get_stretches(CircuitStretchType::Declare)
                 .map(|stretch| stretch.clone().into_pyobject(py).unwrap()),
         )?
         .unbind())
     }
 
-     /// Return the number of local stretch variables in the circuit.
+    /// Return the number of local stretch variables in the circuit.
     #[getter]
     pub fn num_declared_stretches(&self) -> usize {
         self.inner.num_declared_stretches()
@@ -3867,6 +3888,21 @@ impl PyCircuitData {
     #[getter]
     pub fn num_captured_stretches(&self) -> usize {
         self.inner.num_captured_stretches()
+    }
+
+    #[getter]
+    pub fn qregs(&self) -> &[QuantumRegister] {
+        self.inner.qregs()
+    }
+
+    #[getter]
+    pub fn cregs(&self) -> &[ClassicalRegister] {
+        self.inner.cregs()
+    }
+
+    /// Return the number of unbound compile-time symbolic parameters tracked by the circuit.
+    pub fn num_parameters(&self) -> usize {
+        self.inner.num_parameters()
     }
 }
 
@@ -3891,7 +3927,9 @@ impl PyCircuitData {
                 return Ok(ob.clone_ref(py));
             }
         }
-        let params = self.inner.unpack_blocks_to_circuit_parameters(instr.params.as_deref());
+        let params = self
+            .inner
+            .unpack_blocks_to_circuit_parameters(instr.params.as_deref());
         let out = instruction::create_py_op(
             py,
             instr.op.view(),
@@ -3933,21 +3971,17 @@ impl PyCircuitData {
     pub fn qubit_indices(&self) -> &BitLocator<ShareableQubit, QuantumRegister> {
         self.inner.qubit_indices()
     }
-    
+
     pub fn clbit_indices(&self) -> &BitLocator<ShareableClbit, ClassicalRegister> {
         self.inner.clbit_indices()
     }
 
-    pub fn qregs(&self) -> &[QuantumRegister] {
-        self.inner.qregs()
-    }
-
-    pub fn cregs(&self) -> &[ClassicalRegister] {
-        self.inner.cregs()
-    }
-
     pub fn data(&self) -> &[PackedInstruction] {
         self.inner.data()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.inner.is_empty()
     }
 
     pub fn len(&self) -> usize {

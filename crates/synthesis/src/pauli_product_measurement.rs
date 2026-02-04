@@ -12,7 +12,7 @@
 
 use pyo3::prelude::*;
 
-use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData, CircuitError};
+use qiskit_circuit::circuit_data::{CircuitData, CircuitError, PyCircuitData};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::operations::OperationRef;

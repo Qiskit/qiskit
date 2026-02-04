@@ -393,7 +393,8 @@ pub(crate) fn twirl_circuit(
                 twirling_mask,
                 custom_gate_twirling_sets.as_ref(),
                 optimizer_target,
-            ).map(Into::into)
+            )
+            .map(Into::into)
         })
         .collect()
 }

@@ -182,7 +182,7 @@ pub fn dag_to_circuit(
 
 #[pyfunction(name = "dag_to_circuit", signature = (dag, copy_operations = true))]
 pub fn py_dag_to_circuit(
- dag: &DAGCircuit,
+    dag: &DAGCircuit,
     copy_operations: bool,
 ) -> Result<PyCircuitData, CircuitDataError> {
     dag_to_circuit(dag, copy_operations).map(Into::into)

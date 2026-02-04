@@ -143,5 +143,6 @@ pub fn quantum_volume(num_qubits: u32, depth: usize, seed: Option<u64>) -> PyRes
             .enumerate()
             .map(|x| build_instruction(x, &mut outer_rng)),
         Param::Float(0.),
-    )?.into())
+    )?
+    .into())
 }
