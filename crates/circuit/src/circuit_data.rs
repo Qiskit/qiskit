@@ -2149,6 +2149,7 @@ impl CircuitData {
         }
         Ok(out)
     }
+
     /// Clone a new [CircuitData] from a [DAGCircuit], but applying a Python deepcopy
     ///
     /// This is the logical equivalent of Python's `dag_to_circuit`.
@@ -2177,6 +2178,7 @@ impl CircuitData {
         }
         Ok(out)
     }
+
     fn empty_like_from_dag(dag: &DAGCircuit) -> Result<Self, CircuitDataError> {
         let mut out = Self {
             data: Vec::new(),
