@@ -35,8 +35,9 @@ use qiskit_circuit::imports::QI_OPERATOR;
 use qiskit_circuit::instruction::{Instruction, Parameters};
 use qiskit_circuit::object_registry::ObjectRegistry;
 use qiskit_circuit::operations::{
-    Operation, OperationRef, Param, STANDARD_GATE_SIZE, StandardGate,
+    Operation, OperationRef, Param, STANDARD_GATE_SIZE, StandardGate, StandardInstruction,
 };
+use qiskit_quantum_info::sparse_observable::BitTerm;
 
 use qiskit_circuit::{Clbit, Qubit};
 use qiskit_quantum_info::unitary_compose;
@@ -228,6 +229,18 @@ fn try_pauli_generator(
     match operation {
         OperationRef::StandardGate(gate) => {
             let local = generator_observable(*gate)?;
+            let out = SparseObservable::identity(num_qubits);
+            Some(out.compose_map(&local, |i| qubits[i as usize].0))
+        }
+        OperationRef::StandardInstruction(StandardInstruction::Measure) => {
+            let coeffs = vec![Complex64::new(1.0, 0.0)];
+            let bit_terms = vec![BitTerm::Z];
+            let indices = vec![0];
+            let boundaries = vec![0, 1];
+            // Safety: These vectors are trivially valid.
+            let local = unsafe {
+                SparseObservable::new_unchecked(1, coeffs, bit_terms, indices, boundaries)
+            };
             let out = SparseObservable::identity(num_qubits);
             Some(out.compose_map(&local, |i| qubits[i as usize].0))
         }

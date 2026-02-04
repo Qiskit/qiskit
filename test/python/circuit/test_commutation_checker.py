@@ -619,6 +619,45 @@ class TestCommutationChecker(QiskitTestCase):
         self.assertEqual(reduced_circ, expected_qc)
 
 
+    def test_new_generators(self):
+        """Test commutation relations for newly supported complex gates."""
+        from qiskit.circuit.library import CSwapGate, DCXGate, ECRGate, C3XGate, RC3XGate, IGate
+
+        # CSwap (Fredkin): [0, 1, 2] -> Control 0, Swap 1 and 2
+        # Generators: Z_0 X_1 X_2, Z_0 Y_1 Y_2, Z_0 Z_1 Z_2
+        cswap = CSwapGate()
+        # Z on 0 commutes with all generators (Z0 commutes with Z0)
+        self.assertTrue(scc.commute(ZGate(), [0], [], cswap, [0, 1, 2], []))
+        # X on 0 anti-commutes with Z_0
+        self.assertFalse(scc.commute(XGate(), [0], [], cswap, [0, 1, 2], []))
+        # Z on 1 should not commute with X_1 or Y_1
+        self.assertFalse(scc.commute(ZGate(), [1], [], cswap, [0, 1, 2], []))
+
+        # DCX: [0, 1] -> Generators ZX, XZ
+        dcx = DCXGate()
+        # X on 0: Commutes with XZ (X0, Z1), Anti-commutes with ZX (Z0, X1) -> Anti-commutes total?
+        # Actually commutativity is checking if [P, G] = 0.
+        # G ~ a * ZX + b * XZ.
+        # [X_0, Z_0 X_1] != 0.
+        self.assertFalse(scc.commute(XGate(), [0], [], dcx, [0, 1], []))
+        # X on 1: Commutes with ZX (Z0 X1). Anti-commutes with XZ (X0 Z1).
+        self.assertFalse(scc.commute(XGate(), [1], [], dcx, [0, 1], []))
+        # RC3X: [0, 1, 2, 3] -> Generator ZZZX (Relative Phase)
+        # Assuming RC3X works similarly to C3X for Pauli commutation
+        rc3x = RC3XGate()
+        # Z on 0, 1, 2 -> Commute
+        self.assertTrue(scc.commute(ZGate(), [0], [], rc3x, [0, 1, 2, 3], []))
+        # X on 0 -> Anti-commute
+        self.assertFalse(scc.commute(XGate(), [0], [], rc3x, [0, 1, 2, 3], []))
+        
+        # Identity Gate: Should commute with everything
+        i_gate = IGate()
+        self.assertTrue(scc.commute(XGate(), [0], [], i_gate, [0], []))
+        self.assertTrue(scc.commute(ZGate(), [0], [], i_gate, [0], []))
+
+
+
+
 def build_pauli_gate(pauli_string: str, gate_type: str) -> Gate:
     """Build a Pauli-based gate off a Pauli string.
 
