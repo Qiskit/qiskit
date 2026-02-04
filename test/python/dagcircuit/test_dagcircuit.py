@@ -3788,5 +3788,231 @@ class TestStructurallyEqual(QiskitTestCase):
         self.assertFalse(left.structurally_equal(right))
 
 
+class TestTopologicalSorter(QiskitTestCase):
+    """
+    Test suite for the interactive TopologicalSorter.
+    """
+
+    def test_topological_sorter_diamond_graph_layer_by_layer(self):
+        """
+        Tests the layer-by-layer sorting of a diamond-shaped gate graph.
+        A -> {B, C} -> D
+        """
+        dag = DAGCircuit()
+        qr = QuantumRegister(3, "q")
+        dag.add_qreg(qr)
+        # diamond-shaped graph:
+        #        (A) H on q0
+        #       /       \
+        #      /         \
+        # (B) CX on q0,q1   (C) X on q0
+        #      \         /
+        #       \       /
+        #       (D) CX on q1,q0
+        node_a = dag.apply_operation_back(HGate(), [qr[0]], [])
+        node_b = dag.apply_operation_back(CXGate(), [qr[0], qr[1]], [])
+        node_c = dag.apply_operation_back(XGate(), [qr[2]], [])
+        node_d = dag.apply_operation_back(CZGate(), [qr[1], qr[2]], [])
+
+        # --- Test Forward Sort ---
+        sorter_fwd = dag.topological_sorter()
+
+        # Collect the actual layers yielded by the sorter
+        collected_layers_fwd = []
+        while sorter_fwd:
+            ready_nodes = sorter_fwd.get_ready()
+            collected_layers_fwd.append(ready_nodes)
+            sorter_fwd.done(ready_nodes)
+
+        # Filter out wire nodes to focus on operations
+        op_layers_fwd = [
+            [node for node in layer if isinstance(node, DAGOpNode)]
+            for layer in collected_layers_fwd
+        ]
+        op_layers_fwd = [layer for layer in op_layers_fwd if layer]
+
+        self.assertEqual(len(op_layers_fwd), 3)
+        self.assertCountEqual(op_layers_fwd[0], [node_a, node_c])
+        self.assertEqual(op_layers_fwd[1], [node_b])
+        self.assertEqual(op_layers_fwd[2], [node_d])
+
+        # --- Test Reverse Sort ---
+        sorter_rev = dag.topological_sorter(reverse=True)
+        collected_layers_rev = []
+        while sorter_rev:
+            ready_nodes = sorter_rev.get_ready()
+            collected_layers_rev.append(ready_nodes)
+            sorter_rev.done(ready_nodes)
+
+        op_layers_rev = [
+            [node for node in layer if isinstance(node, DAGOpNode)]
+            for layer in collected_layers_rev
+        ]
+        op_layers_rev = [layer for layer in op_layers_rev if layer]
+
+        self.assertEqual(len(op_layers_rev), 3)
+        self.assertEqual(op_layers_rev[0], [node_d])
+        self.assertCountEqual(op_layers_rev[1], [node_b, node_c])
+        self.assertEqual(op_layers_rev[2], [node_a])
+
+    def test_topological_sorter_with_real_gates(self):
+        """
+        The circuit structure creates distinct topological layers:
+        Layer 1: H(q0), X(q2)      (Parallel)
+        Layer 2: CX(q0, q1)       (Depends on H)
+        Layer 3: RX(q1), Barrier  (Parallel, depend on CX)
+        Layer 4: Measure(q1->c0)  (Depends on RX)
+        """
+        dag = DAGCircuit()
+        qr = QuantumRegister(3, "q")
+        cr = ClassicalRegister(1, "c")
+        dag.add_qreg(qr)
+        dag.add_creg(cr)
+        q = dag.qubits
+        c = dag.clbits
+
+        # --- DAG Circuit ---
+        # Layer 1
+        dag.apply_operation_back(HGate(), [q[0]], [])
+        dag.apply_operation_back(XGate(), [q[2]], [])
+        # Layer 2
+        dag.apply_operation_back(CXGate(), [q[0], q[1]], [])
+        # Layer 3
+        dag.apply_operation_back(RXGate(0.5), [q[1]], [])
+        dag.apply_operation_back(Barrier(3), [q[0], q[1], q[2]], [])
+        # Layer 4
+        dag.apply_operation_back(Measure(), [q[1]], [c[0]])
+
+        # The circuit dependency graph:
+        #
+        #      H (q0)
+        #       |
+        #       |
+        #     CX (q0, q1)
+        #       | \
+        #       |  \
+        #       |   \
+        #       |    +----+   X (q2)
+        #       |
+        #       |             |
+        #     RX (q1)         |
+        #        \     Barrier (q0, q1, q2)
+        #         \       |
+        #          \      |
+        #             Measure (q1, c0)
+
+        # --- Test Forward Sort ---
+        sorter_fwd = dag.topological_sorter()
+        sorted_nodes_fwd = []
+        while sorter_fwd:
+            ready_nodes = sorter_fwd.get_ready()
+            ready_nodes.sort(key=lambda n: n.name if isinstance(n, DAGOpNode) else "")
+            sorted_nodes_fwd.extend(ready_nodes)
+            sorter_fwd.done(ready_nodes)
+
+        sorted_ops_fwd = [node for node in sorted_nodes_fwd if isinstance(node, DAGOpNode)]
+        op_names_fwd = [node.op.name for node in sorted_ops_fwd]
+
+        self.assertEqual(len(sorted_ops_fwd), 6)
+        self.assertEqual(op_names_fwd, ["h", "x", "cx", "rx", "barrier", "measure"])
+
+        for wire in dag.wires:
+            expected_order = list(dag.nodes_on_wire(wire))
+            actual_order = [node for node in sorted_nodes_fwd if node in expected_order]
+
+            self.assertEqual(
+                actual_order,
+                expected_order,
+            )
+
+        # --- Test Reverse Sort ---
+        sorter_rev = dag.topological_sorter(reverse=True)
+        sorted_nodes_rev = []
+        while sorter_rev:
+            ready_nodes = sorter_rev.get_ready()
+            ready_nodes.sort(key=lambda n: n.name if isinstance(n, DAGOpNode) else "")
+            sorted_nodes_rev.extend(ready_nodes)
+            sorter_rev.done(ready_nodes)
+
+        sorted_ops_rev = [node for node in sorted_nodes_rev if isinstance(node, DAGOpNode)]
+        op_names_rev = [node.op.name for node in sorted_ops_rev]
+
+        self.assertEqual(len(sorted_ops_rev), 6)
+
+        self.assertEqual(op_names_rev, ["measure", "barrier", "rx", "x", "cx", "h"])
+
+    def test_topological_sorter_with_initial_nodes(self):
+        """
+        Tests a partial sort starting from a specific initial node.
+        """
+        dag = DAGCircuit()
+        qr = QuantumRegister(3, "q")
+        dag.add_qreg(qr)
+        q = dag.qubits
+
+        # Build a circuit with distinct, non-interfering parts
+        dag.apply_operation_back(HGate(), [q[0]], [])
+        cx_gate = dag.apply_operation_back(CXGate(), [q[0], q[1]], [])
+        rx_gate = dag.apply_operation_back(RXGate(0.5), [q[1]], [])
+
+        # Add independent gate on q2
+        dag.apply_operation_back(XGate(), [q[2]], [])
+
+        # --- Perform a partial sort starting from the CX gate ---
+        # The sorter should only yield the CX gate and its descendants (the RX gate).
+        # It should ignore the H gate (a predecessor) and the X gate (unrelated).
+        sorter = dag.topological_sorter(initial=[cx_gate])
+        sorted_nodes = []
+        while sorter:
+            ready_nodes = sorter.get_ready()
+            sorted_nodes.extend(ready_nodes)
+            sorter.done(ready_nodes)
+
+        sorted_ops = [node for node in sorted_nodes if isinstance(node, DAGOpNode)]
+
+        self.assertEqual(len(sorted_ops), 2)
+        self.assertEqual(sorted_ops, [cx_gate, rx_gate])
+
+    def test_sorter_get_node_index_except(self):
+        """
+        Tests get_node_index's behavior through the TopologicalSorter.
+        """
+        dag = DAGCircuit()
+        dag.add_qreg(QuantumRegister(1, "q"))
+        dag.apply_operation_back(HGate(), [dag.qubits[0]], [])
+
+        sorter_invalid = dag.topological_sorter()
+
+        # The sorter.done() method calls get_node_index internally.
+        with self.assertRaises(DAGCircuitError) as cm:
+            sorter_invalid.done(["this-is-not-a-node"])
+
+        expected_error = r"Invalid object type '.*' provided\. Expected a DAGNode object\."
+        self.assertRegex(str(cm.exception), expected_error)
+
+    def test_sorter_raises_on_duplicate_done_call(self):
+        """
+        Tests that calling done() twice on the same node raises an error.
+        """
+        dag = DAGCircuit()
+        qr = QuantumRegister(1, "q")
+        dag.add_qreg(qr)
+        dag.apply_operation_back(HGate(), [qr[0]], [])
+
+        sorter = dag.topological_sorter()
+
+        # Get the first layer (which will contain the HGate and input node)
+        ready_nodes = sorter.get_ready()
+
+        # The first call should succeed.
+        sorter.done(ready_nodes)
+
+        # The second call with the same nodes should fail.
+        with self.assertRaises(DAGCircuitError) as cm:
+            sorter.done(ready_nodes)
+
+        self.assertRegex(str(cm.exception), "has already been marked as done")
+
+
 if __name__ == "__main__":
     unittest.main()
