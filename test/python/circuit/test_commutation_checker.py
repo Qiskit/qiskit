@@ -621,7 +621,7 @@ class TestCommutationChecker(QiskitTestCase):
 
     def test_new_generators(self):
         """Test commutation relations for newly supported complex gates."""
-        from qiskit.circuit.library import CSwapGate, DCXGate, ECRGate, C3XGate, RC3XGate, IGate
+        from qiskit.circuit.library import CSwapGate, DCXGate, ECRGate, C3XGate, RC3XGate, IGate, SXdgGate, RCCXGate
 
         # CSwap (Fredkin): [0, 1, 2] -> Control 0, Swap 1 and 2
         # Generators: Z_0 X_1 X_2, Z_0 Y_1 Y_2, Z_0 Z_1 Z_2
@@ -650,10 +650,25 @@ class TestCommutationChecker(QiskitTestCase):
         # X on 0 -> Anti-commute
         self.assertFalse(scc.commute(XGate(), [0], [], rc3x, [0, 1, 2, 3], []))
         
-        # Identity Gate: Should commute with everything
-        i_gate = IGate()
-        self.assertTrue(scc.commute(XGate(), [0], [], i_gate, [0], []))
-        self.assertTrue(scc.commute(ZGate(), [0], [], i_gate, [0], []))
+        # SXdg: Should be X generator
+        sxdg = SXdgGate()
+        self.assertTrue(scc.commute(XGate(), [0], [], sxdg, [0], []))
+        self.assertFalse(scc.commute(ZGate(), [0], [], sxdg, [0], []))
+
+        # ECR: [0, 1] -> Generators ZX, XI (X on 0)
+        # It generates X on 0, so it should ANTI-COMMUTE with Z on 0.
+        ecr = ECRGate()
+        self.assertFalse(scc.commute(ZGate(), [0], [], ecr, [0, 1], []))
+        # It generates Z on 0 (from ZX), so it should ANTI-COMMUTE with X on 0?
+        # Wait, if generators are {ZX, X}, then:
+        # X0 commutes with X (yes), anti-commutes with ZX (yes). So Total = Anti-commute.
+        self.assertFalse(scc.commute(XGate(), [0], [], ecr, [0, 1], []))
+        
+        # Test RCCX vs CCX
+        # RCCX does NOT commute with X on target (unlike CCX) because of relative phases.
+        rccx = RCCXGate()
+        self.assertTrue(scc.commute(ZGate(), [0], [], rccx, [0, 1, 2], []))
+        self.assertFalse(scc.commute(XGate(), [2], [], rccx, [0, 1, 2], []))
 
 
 

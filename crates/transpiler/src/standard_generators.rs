@@ -33,9 +33,9 @@ pub fn generator_observable(gate: StandardGate) -> Option<SparseObservable> {
     // The number of qubits is inferred from the gate type logic below.
     let (definition, num_qubits): (Vec<Vec<(u32, BitTerm)>>, u32) = match gate {
         // Single Qubit Gates (act on q0)
-        StandardGate::X | StandardGate::SX | StandardGate::SXdg | StandardGate::RX => {
-            (vec![vec![(0, BitTerm::X)]], 1)
-        }
+        // Rotation Paulis
+        // X-type: [X]
+        StandardGate::X | StandardGate::RX | StandardGate::SX | StandardGate::SXdg | StandardGate::R => (vec![vec![(0, BitTerm::X)]], 1),
         StandardGate::Y | StandardGate::RY => (vec![vec![(0, BitTerm::Y)]], 1),
         StandardGate::Z
         | StandardGate::S
@@ -81,8 +81,15 @@ pub fn generator_observable(gate: StandardGate) -> Option<SparseObservable> {
             ],
             2,
         ),
-        // ECR: [ZX] - REMOVED due to verification failure (appears to act as Y on q0?)
-        // StandardGate::ECR => (vec![vec![(0, BitTerm::Z), (1, BitTerm::X)]], 2),
+        // ECR: [ZX, XI] (suggested by feedback)
+        // This means it effectively generates both ZX interactions and X rotations on q0.
+        StandardGate::ECR => (
+            vec![
+                vec![(0, BitTerm::Z), (1, BitTerm::X)], // ZX
+                vec![(0, BitTerm::X)],                  // XI (X on 0)
+            ],
+            2,
+        ),
         // RXX: [XX]
         StandardGate::RXX => (vec![vec![(0, BitTerm::X), (1, BitTerm::X)]], 2),
         // RYY: [YY]
@@ -113,7 +120,7 @@ pub fn generator_observable(gate: StandardGate) -> Option<SparseObservable> {
         ),
 
         // Three Qubit Gates (q0, q1, q2) like CCX (Toffoli): [ZZX] (Z on 0, Z on 1, X on 2)
-        StandardGate::CCX | StandardGate::RCCX => (
+        StandardGate::CCX => (
             vec![vec![(0, BitTerm::Z), (1, BitTerm::Z), (2, BitTerm::X)]],
             3,
         ),
