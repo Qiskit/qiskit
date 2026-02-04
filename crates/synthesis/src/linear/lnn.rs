@@ -17,7 +17,7 @@ use smallvec::smallvec;
 
 use pyo3::prelude::*;
 use qiskit_circuit::Qubit;
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::operations::{Param, StandardGate};
 
 // Optimize the synthesis of an n-qubit circuit contains only CX gates for
@@ -305,7 +305,7 @@ pub fn py_synth_cnot_lnn_instructions(
 /// Returns: The CircuitData of the synthesized circuit.
 #[pyfunction]
 #[pyo3(signature = (mat))]
-pub fn py_synth_cnot_depth_line_kms(mat: PyReadonlyArray2<bool>) -> PyResult<CircuitData> {
+pub fn py_synth_cnot_depth_line_kms(mat: PyReadonlyArray2<bool>) -> PyResult<PyCircuitData> {
     let num_qubits = mat.as_array().nrows(); // is a quadratic matrix
     let (cx_instructions_rows_m2nw, cx_instructions_rows_nw2id) =
         synth_cnot_lnn_instructions(mat.as_array());
@@ -324,5 +324,5 @@ pub fn py_synth_cnot_depth_line_kms(mat: PyReadonlyArray2<bool>) -> PyResult<Cir
         num_qubits as u32,
         instructions,
         Param::Float(0.0),
-    )?)
+    )?.into())
 }

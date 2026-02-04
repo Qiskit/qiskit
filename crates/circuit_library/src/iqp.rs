@@ -17,7 +17,7 @@ use numpy::PyReadonlyArray2;
 use pyo3::prelude::*;
 use qiskit_circuit::{
     Qubit,
-    circuit_data::CircuitData,
+    circuit_data::{CircuitData, PyCircuitData},
     operations::{Param, StandardGate},
 };
 use rand::{Rng, SeedableRng};
@@ -135,7 +135,7 @@ pub fn check_symmetric(matrix: &ArrayView2<i64>) -> bool {
 ///     `arXiv:1504.07999 <https://arxiv.org/abs/1504.07999>`_
 #[pyfunction]
 #[pyo3(signature = (interactions))]
-pub fn py_iqp(interactions: PyReadonlyArray2<i64>) -> PyResult<CircuitData> {
+pub fn py_iqp(interactions: PyReadonlyArray2<i64>) -> PyResult<PyCircuitData> {
     let array = interactions.as_array();
     let view = array.view();
     if !check_symmetric(&view) {
@@ -148,7 +148,7 @@ pub fn py_iqp(interactions: PyReadonlyArray2<i64>) -> PyResult<CircuitData> {
         num_qubits,
         instructions,
         Param::Float(0.0),
-    )?)
+    )?.into())
 }
 
 /// Generate a random Instantaneous Quantum Polynomial time (IQP) circuit.
@@ -161,7 +161,7 @@ pub fn py_iqp(interactions: PyReadonlyArray2<i64>) -> PyResult<CircuitData> {
 ///     A random IQP circuit.
 #[pyfunction]
 #[pyo3(signature = (num_qubits, seed=None))]
-pub fn py_random_iqp(num_qubits: u32, seed: Option<u64>) -> PyResult<CircuitData> {
+pub fn py_random_iqp(num_qubits: u32, seed: Option<u64>) -> PyResult<PyCircuitData> {
     let interactions = generate_random_interactions(num_qubits, seed);
     let view = interactions.view();
     let instructions = iqp(view);
@@ -169,5 +169,5 @@ pub fn py_random_iqp(num_qubits: u32, seed: Option<u64>) -> PyResult<CircuitData
         num_qubits,
         instructions,
         Param::Float(0.0),
-    )?)
+    )?.into())
 }

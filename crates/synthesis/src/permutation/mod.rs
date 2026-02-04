@@ -17,7 +17,7 @@ use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
 use qiskit_circuit::Qubit;
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::operations::{Param, StandardGate};
 
 use super::linear_phase::cz_depth_lnn::LnnGatesVec;
@@ -44,7 +44,7 @@ pub fn _inverse_pattern(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<Py<P
 
 #[pyfunction]
 #[pyo3(signature = (pattern))]
-pub fn _synth_permutation_basic(pattern: PyArrayLike1<i64>) -> PyResult<CircuitData> {
+pub fn _synth_permutation_basic(pattern: PyArrayLike1<i64>) -> PyResult<PyCircuitData> {
     let view = pattern.as_array();
     let num_qubits = view.len();
     Ok(CircuitData::from_standard_gates(
@@ -57,12 +57,12 @@ pub fn _synth_permutation_basic(pattern: PyArrayLike1<i64>) -> PyResult<CircuitD
             )
         }),
         Param::Float(0.0),
-    )?)
+    )?.into())
 }
 
 #[pyfunction]
 #[pyo3(signature = (pattern))]
-fn _synth_permutation_acg(pattern: PyArrayLike1<i64>) -> PyResult<CircuitData> {
+fn _synth_permutation_acg(pattern: PyArrayLike1<i64>) -> PyResult<PyCircuitData> {
     let inverted = utils::invert(&pattern.as_array());
     let view = inverted.view();
     let num_qubits = view.len();
@@ -79,14 +79,14 @@ fn _synth_permutation_acg(pattern: PyArrayLike1<i64>) -> PyResult<CircuitData> {
             )
         }),
         Param::Float(0.0),
-    )?)
+    )?.into())
 }
 
 /// Synthesize a permutation circuit for a linear nearest-neighbor
 /// architecture using the Kutin, Moulton, Smithline method.
 #[pyfunction]
 #[pyo3(signature = (pattern))]
-pub fn _synth_permutation_depth_lnn_kms(pattern: PyArrayLike1<i64>) -> PyResult<CircuitData> {
+pub fn _synth_permutation_depth_lnn_kms(pattern: PyArrayLike1<i64>) -> PyResult<PyCircuitData> {
     let mut inverted = utils::invert(&pattern.as_array());
     let mut view = inverted.view_mut();
     let num_qubits = view.len();
@@ -107,7 +107,7 @@ pub fn _synth_permutation_depth_lnn_kms(pattern: PyArrayLike1<i64>) -> PyResult<
             )
         }),
         Param::Float(0.0),
-    )?)
+    )?.into())
 }
 
 /// A single layer of CX gates.
@@ -174,14 +174,14 @@ pub(crate) fn _append_reverse_permutation_lnn_kms(gates: &mut LnnGatesVec, num_q
 ///        `arXiv:quant-ph/0701194 <https://arxiv.org/abs/quant-ph/0701194>`_
 #[pyfunction]
 #[pyo3(signature = (num_qubits))]
-fn synth_permutation_reverse_lnn_kms(num_qubits: usize) -> PyResult<CircuitData> {
+fn synth_permutation_reverse_lnn_kms(num_qubits: usize) -> PyResult<PyCircuitData> {
     let mut gates = LnnGatesVec::new();
     _append_reverse_permutation_lnn_kms(&mut gates, num_qubits);
     Ok(CircuitData::from_standard_gates(
         num_qubits as u32,
         gates,
         Param::Float(0.0),
-    )?)
+    )?.into())
 }
 
 pub fn permutation(m: &Bound<PyModule>) -> PyResult<()> {

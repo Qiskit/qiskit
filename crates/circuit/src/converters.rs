@@ -38,7 +38,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for QuantumCircuitData<'py> {
         let py = ob.py();
         ob.getattr("data")?; // in case _data is lazily generated in python
         let circuit_data = ob.getattr("_data")?;
-        let data_borrowed = circuit_data.extract::<PyCircuitData>()?.inner;
+        let data_borrowed = circuit_data.extract::<PyCircuitData>()?.into();
         Ok(QuantumCircuitData {
             data: data_borrowed,
             name: ob.getattr(intern!(py, "name"))?.extract()?,
@@ -106,7 +106,6 @@ pub fn circuit_to_dag(
     )
 }
 
-#[pyfunction(signature = (dag, copy_operations = true))]
 pub fn dag_to_circuit(
     dag: &DAGCircuit,
     copy_operations: bool,
@@ -181,8 +180,16 @@ pub fn dag_to_circuit(
     )
 }
 
+#[pyfunction(name = "dag_to_circuit", signature = (dag, copy_operations = true))]
+pub fn py_dag_to_circuit(
+ dag: &DAGCircuit,
+    copy_operations: bool,
+) -> Result<PyCircuitData, CircuitDataError> {
+    dag_to_circuit(dag, copy_operations).map(Into::into)
+}
+
 pub fn converters(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(circuit_to_dag, m)?)?;
-    m.add_function(wrap_pyfunction!(dag_to_circuit, m)?)?;
+    m.add_function(wrap_pyfunction!(py_dag_to_circuit, m)?)?;
     Ok(())
 }

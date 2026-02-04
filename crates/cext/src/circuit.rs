@@ -848,7 +848,7 @@ pub unsafe extern "C" fn qk_circuit_count_ops(circuit: *const CircuitData) -> Op
 pub unsafe extern "C" fn qk_circuit_num_instructions(circuit: *const CircuitData) -> usize {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
-    circuit.__len__()
+    circuit.len()
 }
 
 /// A circuit instruction representation.

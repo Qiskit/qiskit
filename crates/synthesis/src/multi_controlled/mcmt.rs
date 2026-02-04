@@ -12,7 +12,7 @@
 
 use crate::QiskitError;
 use pyo3::prelude::*;
-use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
+use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError, PyCircuitData};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::operations::{Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
@@ -99,7 +99,7 @@ pub fn mcmt_v_chain(
     num_ctrl_qubits: usize,
     num_target_qubits: usize,
     control_state: Option<usize>,
-) -> PyResult<CircuitData> {
+) -> PyResult<PyCircuitData> {
     if num_ctrl_qubits < 1 {
         return Err(QiskitError::new_err("Need at least 1 control qubit."));
     }
@@ -153,7 +153,7 @@ pub fn mcmt_v_chain(
                 .chain(targets)
                 .chain(flip_control_state),
             Param::Float(0.0),
-        )?)
+        )?.into())
     } else {
         // If the number of controls is larger than 1, and we need to apply the V-chain,
         // create it here and sandwich the targets in-between.
@@ -172,6 +172,6 @@ pub fn mcmt_v_chain(
                 .chain(up_chain)
                 .chain(flip_control_state),
             Param::Float(0.0),
-        )?)
+        )?.into())
     }
 }

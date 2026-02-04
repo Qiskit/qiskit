@@ -13,7 +13,7 @@
 use pyo3::prelude::*;
 use pyo3::types::PySequence;
 use pyo3::types::PyString;
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::operations::{
     Param, StandardGate, StandardInstruction, add_param, multiply_param, multiply_params,
 };
@@ -62,7 +62,7 @@ pub fn pauli_feature_map(
     alpha: f64,
     insert_barriers: bool,
     data_map_func: Option<&Bound<PyAny>>,
-) -> PyResult<CircuitData> {
+) -> PyResult<PyCircuitData> {
     // normalize the Pauli strings
     let pauli_strings = _get_paulis(feature_dimension, paulis)?;
 
@@ -126,7 +126,7 @@ pub fn pauli_feature_map(
         0,
         packed_insts.into_iter().map(Ok),
         Param::Float(0.0),
-    )?)
+    )?.into())
 }
 
 fn _get_h_layer(feature_dimension: u32) -> impl Iterator<Item = Instruction> {

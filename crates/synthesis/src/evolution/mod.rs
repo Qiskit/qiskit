@@ -15,7 +15,7 @@ mod pauli_network;
 use pyo3::prelude::*;
 use pyo3::types::PyList;
 
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::PyCircuitData;
 
 use crate::evolution::pauli_network::pauli_network_synthesis_inner;
 
@@ -59,7 +59,7 @@ pub fn pauli_network_synthesis(
     upto_clifford: bool,
     upto_phase: bool,
     resynth_clifford_method: usize,
-) -> PyResult<CircuitData> {
+) -> PyResult<PyCircuitData> {
     pauli_network_synthesis_inner(
         num_qubits,
         pauli_network,
@@ -68,7 +68,7 @@ pub fn pauli_network_synthesis(
         upto_clifford,
         upto_phase,
         resynth_clifford_method,
-    )
+    ).map(Into::into)
 }
 
 pub fn evolution(m: &Bound<PyModule>) -> PyResult<()> {

@@ -29,7 +29,7 @@ use pyo3::types::{PyAny, PyDict, PyTuple};
 use qiskit_circuit::bit::{
     ClassicalRegister, PyClbit, PyQubit, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
-use qiskit_circuit::circuit_data::{CircuitData, CircuitStretchType, CircuitVarType};
+use qiskit_circuit::circuit_data::{CircuitData, CircuitStretchType, CircuitVarType, PyCircuitData};
 use qiskit_circuit::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::imports;
@@ -202,9 +202,10 @@ fn pack_instruction_blocks(
                 .map(|block| -> PyResult<_> {
                     // we explicitly name the block "unnamed" because otherwise it will be assigned a serial number name (e.g. "circuit-45")
                     // which would result in inconsistant results, e.g. when packing the same circuit twice on the same run
+                    let py_block: PyCircuitData = block.clone().into();
                     let circuit = imports::QUANTUM_CIRCUIT
                         .get_bound(py)
-                        .call_method1("_from_circuit_data", (block.clone(), false, "unnamed"))?;
+                        .call_method1("_from_circuit_data", (py_block, false, "unnamed"))?;
                     py_pack_param(&circuit, qpy_data, Endian::Little)
                 })
                 .collect::<PyResult<_>>()
@@ -684,7 +685,7 @@ fn pack_circuit_header(
     let header = formats::CircuitHeaderV12Pack {
         num_qubits: qpy_data.circuit_data.num_qubits() as u32,
         num_clbits: qpy_data.circuit_data.num_clbits() as u32,
-        num_instructions: qpy_data.circuit_data.__len__() as u64,
+        num_instructions: qpy_data.circuit_data.len() as u64,
         num_vars: qpy_data.circuit_data.num_identifiers() as u32,
         circuit_name: circuit_name.unwrap_or_default(),
         global_phase_data: global_phase_data.data,

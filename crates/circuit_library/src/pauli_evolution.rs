@@ -12,7 +12,7 @@
 
 use pyo3::types::{PyList, PyNone, PyString, PyTuple};
 use pyo3::{intern, prelude::*};
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::operations;
 use qiskit_circuit::operations::{Param, StandardGate, multiply_param, radd_param};
@@ -349,7 +349,7 @@ pub fn py_pauli_evolution(
     sparse_paulis: &Bound<PyList>,
     insert_barriers: bool,
     do_fountain: bool,
-) -> PyResult<CircuitData> {
+) -> PyResult<PyCircuitData> {
     let num_paulis = sparse_paulis.len();
     let mut paulis: Vec<String> = Vec::with_capacity(num_paulis);
     let mut indices: Vec<Vec<u32>> = Vec::with_capacity(num_paulis);
@@ -406,7 +406,7 @@ pub fn py_pauli_evolution(
         0,
         evos,
         global_phase,
-    )?)
+    )?.into())
 }
 
 /// Build a CX chain over the active qubits. E.g. with q_1 inactive, this would return

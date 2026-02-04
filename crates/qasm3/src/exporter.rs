@@ -30,7 +30,7 @@ use pyo3::prelude::*;
 use qiskit_circuit::bit::{
     ClassicalRegister, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::PyCircuitData;
 use qiskit_circuit::operations::{DelayUnit, StandardInstruction};
 use qiskit_circuit::operations::{Operation, Param};
 use qiskit_circuit::packed_instruction::PackedInstruction;
@@ -207,13 +207,13 @@ impl Iterator for Counter {
 }
 
 struct BuildScope {
-    circuit_data: CircuitData,
+    circuit_data: PyCircuitData,
     bit_map: HashMap<BitType, BitType>,
 }
 
 impl BuildScope {
     fn new(
-        circuit_data: &CircuitData,
+        circuit_data: &PyCircuitData,
         qubits: &[ShareableQubit],
         clbits: &[ShareableClbit],
     ) -> Self {
@@ -237,7 +237,7 @@ impl BuildScope {
         }
     }
 
-    fn with_mappings(circuit_data: CircuitData, bit_map: HashMap<BitType, BitType>) -> Self {
+    fn with_mappings(circuit_data: PyCircuitData, bit_map: HashMap<BitType, BitType>) -> Self {
         Self {
             circuit_data,
             bit_map,
@@ -525,7 +525,7 @@ impl Exporter {
         }
     }
 
-    pub fn dumps(&self, circuit_data: &CircuitData, islayout: bool) -> ExporterResult<String> {
+    pub fn dumps(&self, circuit_data: &PyCircuitData, islayout: bool) -> ExporterResult<String> {
         let mut builder = QASM3Builder::new(
             circuit_data,
             islayout,
@@ -547,7 +547,7 @@ impl Exporter {
 
     pub fn dump<W: Write>(
         &self,
-        circuit_data: &CircuitData,
+        circuit_data: &PyCircuitData,
         islayout: bool,
         writer: &mut W,
     ) -> ExporterResult<()> {
@@ -592,7 +592,7 @@ pub struct QASM3Builder {
 
 impl<'a> QASM3Builder {
     pub fn new(
-        circuit_data: &'a CircuitData,
+        circuit_data: &'a PyCircuitData,
         is_layout: bool,
         includes: Vec<String>,
         basis_gates: Vec<String>,
@@ -633,7 +633,7 @@ impl<'a> QASM3Builder {
     #[allow(dead_code)]
     fn new_scope<F>(
         &mut self,
-        circuit_data: &CircuitData,
+        circuit_data: &PyCircuitData,
         qubits: Vec<BitType>,
         clbits: Vec<BitType>,
         f: F,
@@ -690,7 +690,7 @@ impl<'a> QASM3Builder {
         result
     }
 
-    fn new_context<F>(&mut self, body: &'a CircuitData, f: F) -> ExporterResult<QuantumBlock>
+    fn new_context<F>(&mut self, body: &'a PyCircuitData, f: F) -> ExporterResult<QuantumBlock>
     where
         F: FnOnce(&mut QASM3Builder) -> QuantumBlock,
     {
@@ -1324,6 +1324,7 @@ impl<'a> QASM3Builder {
             })
             .collect();
         if let Some(instruction) = instr.try_definition() {
+            let instruction: PyCircuitData = instruction.into();
             let params_def = params
                 .iter()
                 .enumerate()
@@ -1360,7 +1361,7 @@ impl<'a> QASM3Builder {
                 }
 
                 let mut stmts_tmp = Vec::new();
-                for instr in instruction.data() {
+                for instr in instruction.inner.data() {
                     let _ = builder.build_instruction(instr, &mut stmts_tmp);
                 }
                 QuantumBlock {

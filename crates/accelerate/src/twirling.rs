@@ -19,7 +19,7 @@ use ndarray::prelude::*;
 use num_complex::Complex64;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
@@ -308,13 +308,13 @@ fn generate_twirled_circuit(
 #[pyfunction]
 #[pyo3(signature=(circ, twirled_gate=None, custom_twirled_gates=None, seed=None, num_twirls=1, optimizer_target=None))]
 pub(crate) fn twirl_circuit(
-    circ: &CircuitData,
+    circ: &PyCircuitData,
     twirled_gate: Option<Vec<StandardGate>>,
     custom_twirled_gates: Option<Vec<OperationFromPython<NoBlocks>>>,
     seed: Option<u64>,
     num_twirls: usize,
     optimizer_target: Option<&Target>,
-) -> PyResult<Vec<CircuitData>> {
+) -> PyResult<Vec<PyCircuitData>> {
     let mut rng = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
         None => Pcg64Mcg::from_os_rng(),
@@ -393,7 +393,7 @@ pub(crate) fn twirl_circuit(
                 twirling_mask,
                 custom_gate_twirling_sets.as_ref(),
                 optimizer_target,
-            )
+            ).map(Into::into)
         })
         .collect()
 }

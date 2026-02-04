@@ -19,7 +19,7 @@ use pyo3::IntoPyObjectExt;
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
 use qiskit_circuit::bit::ShareableQubit;
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::converters::dag_to_circuit;
@@ -976,7 +976,7 @@ fn py_synthesize_operation(
     input_qubits: Vec<Qubit>,
     data: &Bound<HighLevelSynthesisData>,
     tracker: &mut QubitTracker,
-) -> PyResult<Option<(CircuitData, Vec<usize>)>> {
+) -> PyResult<Option<(PyCircuitData, Vec<usize>)>> {
     let op: OperationFromPython<Py<PyAny>> = py_op.extract()?;
 
     // Check if the operation can be skipped.
@@ -994,7 +994,7 @@ fn py_synthesize_operation(
         op.label.as_deref().map(|l| l.as_str()),
     )?;
 
-    Ok(result.map(|res| (res.0, res.1.iter().map(|x| x.index()).collect())))
+    Ok(result.map(|res| (res.0.into(), res.1.iter().map(|x| x.index()).collect())))
 }
 
 /// Runs HighLevelSynthesis transpiler pass.

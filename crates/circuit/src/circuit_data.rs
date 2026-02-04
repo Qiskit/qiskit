@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 use std::fmt::Debug;
+use std::ops::Deref;
 use std::hash::{Hash, RandomState};
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
@@ -274,6 +275,14 @@ impl From<PyCircuitData> for CircuitData {
     }
 }
 
+impl Deref for PyCircuitData {
+    type Target = CircuitData;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum CircuitVarType {
     Input = 0,
@@ -405,15 +414,6 @@ pub enum CircuitVar {
     Stretch(expr::Stretch, CircuitStretchType),
 }
 
-impl CircuitData {
-    
-
-   
-
-   
-}
-
-/******************************************************************************* */
 impl CircuitData {
     pub fn new(
         qubits: Option<Vec<ShareableQubit>>,
@@ -1255,7 +1255,7 @@ impl CircuitData {
     fn reindex_parameter_table(&mut self) -> Result<(), CircuitDataError> {
         self.param_table.clear();
 
-        for inst_index in 0..self.data.len() {
+        for inst_index in 0..self.len() {
             self.track_instruction_parameters(inst_index)?;
         }
         if matches!(self.global_phase, Param::Float(_)) {
@@ -1925,7 +1925,7 @@ impl CircuitData {
     ///   The qubits and clbits **must** already be present in the interner for this
     ///   function to work. If they are not this will corrupt the circuit.
     pub fn push(&mut self, packed: PackedInstruction) -> Result<(), CircuitDataError> {
-        let new_index = self.data.len();
+        let new_index = self.len();
         self.data.push(packed);
         self.track_instruction_blocks(new_index);
         self.track_instruction_parameters(new_index)
@@ -2124,12 +2124,12 @@ impl CircuitData {
         let index = {
             if index < 0 {
                 // This can't exceed `isize::MAX` because `self.data[0]` is larger than a byte.
-                index += self.data.len() as isize;
+                index += self.len() as isize;
             }
             if index < 0 {
                 0
-            } else if index as usize > self.data.len() {
-                self.data.len()
+            } else if index as usize > self.len() {
+                self.len()
             } else {
                 index as usize
             }
@@ -2302,28 +2302,6 @@ impl CircuitData {
     fn add_declared_var(&mut self, var: expr::Var) -> PyResult<()> {
         self.add_var(var, CircuitVarType::Declare)?;
         Ok(())
-    }
-
-    /// Check if this realtime variable is in the circuit.
-    ///
-    /// Args:
-    ///     var: the variable or name to check.
-    fn has_var(&self, var: &Bound<PyAny>) -> PyResult<bool> {
-        if let Ok(name) = var.extract::<String>() {
-            Ok(matches!(
-                self.identifier_info.get(&name),
-                Some(CircuitIdentifierInfo::Var(_))
-            ))
-        } else {
-            let var = var.extract::<expr::Var>()?;
-            let expr::Var::Standalone { name, .. } = &var else {
-                return Ok(false);
-            };
-            if let Some(CircuitIdentifierInfo::Var(info)) = self.identifier_info.get(name) {
-                return Ok(&var == self.vars.get(info.var).unwrap());
-            }
-            Ok(false)
-        }
     }
 
     /// Check if the circuit contains an input variable with the given name.
@@ -2720,7 +2698,7 @@ impl PyCircuitData {
                 (!self_.inner.qubits.is_empty()).then_some(self_.inner.qubits.objects().clone()),
                 (!self_.inner.clbits.is_empty()).then_some(self_.inner.clbits.objects().clone()),
                 None::<()>,
-                self_.inner.data.len(),
+                self_.len(),
                 self_.inner.global_phase.clone(),
             )
         };
@@ -2808,7 +2786,7 @@ impl PyCircuitData {
     ///         The callable to invoke.
     #[pyo3(signature = (func))]
     pub fn foreach_op(&self, py: Python<'_>, func: &Bound<PyAny>) -> PyResult<()> {
-        for inst in self.inner.data.iter() {
+        for inst in self.data().iter() {
             func.call1((self.unpack_py_op(py, inst)?,))?;
         }
         Ok(())
@@ -2822,7 +2800,7 @@ impl PyCircuitData {
     ///         The callable to invoke.
     #[pyo3(signature = (func))]
     pub fn foreach_op_indexed(&self, py: Python<'_>, func: &Bound<PyAny>) -> PyResult<()> {
-        for (index, inst) in self.inner.data.iter().enumerate() {
+        for (index, inst) in self.data().iter().enumerate() {
             func.call1((index, self.unpack_py_op(py, inst)?))?;
         }
         Ok(())
@@ -2843,7 +2821,7 @@ impl PyCircuitData {
     #[pyo3(signature = (func))]
     pub fn map_nonstandard_ops(&mut self, py: Python<'_>, func: &Bound<PyAny>) -> PyResult<()> {
         for index in 0..self.inner.data.len() {
-            let instr = &self.inner.data[index];
+            let instr = &self.data()[index];
             if instr.op.try_standard_gate().is_some() {
                 continue;
             }
@@ -3282,7 +3260,7 @@ impl PyCircuitData {
             .into_py_any(py)
             .unwrap()
         };
-        match index.with_len(self.inner.data.len())? {
+        match index.with_len(self.data().len())? {
             SequenceIndex::Int(index) => Ok(get_single(index)),
             indices => PyList::new(py, indices.iter().map(get_single))?.into_py_any(py),
         }
@@ -3369,7 +3347,7 @@ impl PyCircuitData {
         value: &Bound<CircuitInstruction>,
         params: &Bound<PyList>,
     ) -> PyResult<()> {
-        let instruction_index = self.inner.data.len();
+        let instruction_index = self.len();
         let packed = self.inner.pack(value.py(), &value.borrow())?;
         self.inner.data.push(packed);
         for item in params.iter() {
@@ -3940,5 +3918,47 @@ impl PyCircuitData {
             (self,),
             Some(&kwargs),
         )
+    }
+
+    /// Returns an immutable view of the Qubits registered in the circuit
+    pub fn qubits(&self) -> &ObjectRegistry<Qubit, ShareableQubit> {
+        self.inner.qubits()
+    }
+
+    /// Returns an immutable view of the Classical bits registered in the circuit
+    pub fn clbits(&self) -> &ObjectRegistry<Clbit, ShareableClbit> {
+        self.inner.clbits()
+    }
+
+    pub fn qubit_indices(&self) -> &BitLocator<ShareableQubit, QuantumRegister> {
+        self.inner.qubit_indices()
+    }
+    
+    pub fn clbit_indices(&self) -> &BitLocator<ShareableClbit, ClassicalRegister> {
+        self.inner.clbit_indices()
+    }
+
+    pub fn qregs(&self) -> &[QuantumRegister] {
+        self.inner.qregs()
+    }
+
+    pub fn cregs(&self) -> &[ClassicalRegister] {
+        self.inner.cregs()
+    }
+
+    pub fn data(&self) -> &[PackedInstruction] {
+        self.inner.data()
+    }
+
+    pub fn len(&self) -> usize {
+        self.inner.len()
+    }
+
+    pub fn qargs_interner(&self) -> &Interner<[Qubit]> {
+        self.inner.qargs_interner()
+    }
+
+    pub fn cargs_interner(&self) -> &Interner<[Clbit]> {
+        self.inner.cargs_interner()
     }
 }
