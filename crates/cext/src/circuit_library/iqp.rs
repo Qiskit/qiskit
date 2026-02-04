@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -44,7 +44,6 @@ use qiskit_circuit_library::iqp::{check_symmetric, iqp, py_random_iqp};
 /// invalid pointer or a buffer that is too small results in undefined
 /// behaviour.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_library_iqp(
     num_qubits: u32,
     interactions: *const i64, // row-major n×n
@@ -103,7 +102,6 @@ pub unsafe extern "C" fn qk_circuit_library_iqp(
 ///
 /// @return A newly allocated `QkCircuit*` (caller must free with `qk_circuit_free`).
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub extern "C" fn qk_circuit_library_random_iqp(num_qubits: u32, seed: i64) -> *mut CircuitData {
     let seed = if seed < 0 { None } else { Some(seed as u64) };
     let circuit_data = py_random_iqp(num_qubits, seed)

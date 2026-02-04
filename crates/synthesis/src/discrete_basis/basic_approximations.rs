@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -355,7 +355,7 @@ impl Point for BasicPoint {
 ///
 /// This struct allows to construct a tree of basic approximations and to query the closest
 /// sequence given an target sequence (or SO(3) matrix).
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct BasicApproximations {
     /// All points as flattened SO(3) matrix stored in a R* tree. This does not include the
     /// sequence of gates, see ``approximations``.
