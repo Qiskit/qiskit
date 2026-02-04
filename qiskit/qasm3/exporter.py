@@ -1273,7 +1273,11 @@ class QASM3Builder:
             "s": ast.DurationUnit.SECOND,
             "dt": ast.DurationUnit.SAMPLE,
         }
-        return ast.DurationLiteral(duration, unit_map[unit])
+        try:
+            unit_enum = unit_map[unit]
+        except KeyError as exc:  # pragma: no cover - defensive guard
+            raise QASM3ExporterError(f"Unsupported duration unit: {unit!r}") from exc
+        return ast.DurationLiteral(duration, unit_enum)
 
     def build_integer(self, value) -> ast.IntegerLiteral:
         """Build an integer literal, raising a :obj:`.QASM3ExporterError` if the input is not
