@@ -24,6 +24,7 @@ from qiskit.compiler import transpile
 from qiskit.circuit.library import UCRXGate, UCRYGate, UCRZGate
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
+rng = np.random.default_rng(2026_02_05)
 angles_list = [
     [0],
     [0.4],
@@ -31,9 +32,9 @@ angles_list = [
     [0, 0.8],
     [0, 0, 1, 1],
     [0, 1, 0.5, 1],
-    (2 * np.pi * np.random.rand(2**3)).tolist(),
-    (2 * np.pi * np.random.rand(2**4)).tolist(),
-    (2 * np.pi * np.random.rand(2**5)).tolist(),
+    (2 * np.pi * rng.random(2**3)).tolist(),
+    (2 * np.pi * rng.random(2**4)).tolist(),
+    (2 * np.pi * rng.random(2**5)).tolist(),
 ]
 
 rot_axis_list = ["X", "Y", "Z"]
@@ -55,7 +56,9 @@ class TestUCRXYZ(QiskitTestCase):
                 qc.append(gate, q)
 
                 # Decompose the gate
-                qc = transpile(qc, basis_gates=["u1", "u3", "u2", "cx", "id"])
+                qc = transpile(
+                    qc, basis_gates=["u1", "u3", "u2", "cx", "id"], seed_transpiler=2026_02_05
+                )
                 # Simulate the decomposed gate
                 unitary = Operator(qc)
                 unitary_desired = _get_ucr_matrix(angles, rot_axis)
