@@ -46,22 +46,66 @@ pub fn generator_observable(gate: StandardGate) -> Option<SparseObservable> {
         StandardGate::H => (&[&[(0, BitTerm::X)], &[(0, BitTerm::Z)]], 1),
 
         // Two Qubit Gates (q0, q1)
-        // CX (CNOT): [ZX] -> Z on 0, X on 1
-        StandardGate::CX | StandardGate::CSX | StandardGate::CRX | StandardGate::RZX => {
-            (&[&[(0, BitTerm::Z), (1, BitTerm::X)]], 2)
-        }
-        // CZ, CP, etc: [ZZ]
+        // Two Qubit Gates (q0, q1)
+        // CX (CNOT): [ZX, IX, ZI] -> Z on 0, X on 1 + locals
+        StandardGate::CX | StandardGate::CSX => (
+            &[
+                &[(0, BitTerm::Z), (1, BitTerm::X)],
+                &[(1, BitTerm::X)],
+                &[(0, BitTerm::Z)],
+            ],
+            2,
+        ),
+        // CRX: [ZX, IX]
+        StandardGate::CRX => (
+            &[
+                &[(0, BitTerm::Z), (1, BitTerm::X)],
+                &[(1, BitTerm::X)],
+            ],
+            2,
+        ),
+        // RZX: [ZX] (Pure interaction)
+        StandardGate::RZX => (&[&[(0, BitTerm::Z), (1, BitTerm::X)]], 2),
+        // CZ, CP, etc: [ZZ, IZ, ZI]
         StandardGate::CZ
         | StandardGate::CPhase
-        | StandardGate::CRZ
-        | StandardGate::RZZ
         | StandardGate::CS
         | StandardGate::CSdg
-        | StandardGate::CU1 => (&[&[(0, BitTerm::Z), (1, BitTerm::Z)]], 2),
-        // CY, CRY: [ZY]
-        StandardGate::CY | StandardGate::CRY => {
-            (&[&[(0, BitTerm::Z), (1, BitTerm::Y)]], 2)
-        }
+        | StandardGate::CU1 => (
+            &[
+                &[(0, BitTerm::Z), (1, BitTerm::Z)],
+                &[(1, BitTerm::Z)],
+                &[(0, BitTerm::Z)],
+            ],
+            2,
+        ),
+        // CRZ: [ZZ, IZ]
+        StandardGate::CRZ => (
+            &[
+                &[(0, BitTerm::Z), (1, BitTerm::Z)],
+                &[(1, BitTerm::Z)],
+            ],
+            2,
+        ),
+        // RZZ: [ZZ]
+        StandardGate::RZZ => (&[&[(0, BitTerm::Z), (1, BitTerm::Z)]], 2),
+        // CY: [ZY, IY, ZI]
+        StandardGate::CY => (
+            &[
+                &[(0, BitTerm::Z), (1, BitTerm::Y)],
+                &[(1, BitTerm::Y)],
+                &[(0, BitTerm::Z)],
+            ],
+            2,
+        ),
+        // CRY: [ZY, IY]
+        StandardGate::CRY => (
+            &[
+                &[(0, BitTerm::Z), (1, BitTerm::Y)],
+                &[(1, BitTerm::Y)],
+            ],
+            2,
+        ),
         // Swap: [XX, YY, ZZ]
         StandardGate::Swap => (
             &[
@@ -180,9 +224,13 @@ mod tests {
     fn test_cx_generator() {
         let obs = generator_observable(StandardGate::CX).expect("CX should have generator");
         assert_eq!(obs.num_qubits(), 2);
-        // ZX -> Z on 0, X on 1
-        assert_eq!(obs.indices(), &[0, 1]);
-        assert_eq!(obs.bit_terms(), &[BitTerm::Z, BitTerm::X]);
+        // ZX, IX, ZI
+        assert_eq!(obs.num_terms(), 3);
+        let bit_terms = obs.bit_terms();
+        assert_eq!(bit_terms[0], BitTerm::X); // ZX -> X on 1
+        assert_eq!(bit_terms[1], BitTerm::Z); // ZX -> Z on 0
+        assert_eq!(bit_terms[2], BitTerm::X); // IX -> X on 1
+        assert_eq!(bit_terms[3], BitTerm::Z); // ZI -> Z on 0
     }
 
     #[test]
