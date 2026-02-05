@@ -69,27 +69,29 @@ fn build_layers(dag: &DAGCircuit) -> Vec<Vec<NodeIndex>> {
 
     for layer in dag.multigraph_layers() {
         for node_index in layer.into_iter().sorted() {
-            if let NodeType::Operation(instruction_to_insert) = &dag.dag()[node_index] {
-                let (node_min, node_max) = get_instruction_range(
-                    dag.get_qargs(instruction_to_insert.qubits),
-                    dag.get_cargs(instruction_to_insert.clbits),
-                    dag.num_qubits(),
-                );
+            let NodeType::Operation(instruction_to_insert) = &dag.dag()[node_index] else {
+                continue;
+            };
 
-                // Check for instruction range overlap
-                if (node_min..=node_max).any(|idx| used_wires.contains(&idx)) {
-                    current_layer = None; // Indication for starting a new layer
-                    used_wires.clear();
-                }
-                used_wires.extend(node_min..=node_max);
+            let (node_min, node_max) = get_instruction_range(
+                dag.get_qargs(instruction_to_insert.qubits),
+                dag.get_cargs(instruction_to_insert.clbits),
+                dag.num_qubits(),
+            );
 
-                if current_layer.is_none() {
-                    layers.push(Vec::new());
-                    current_layer = layers.last_mut();
-                }
-
-                current_layer.as_mut().unwrap().push(node_index);
+            // Check for instruction range overlap
+            if (node_min..=node_max).any(|idx| used_wires.contains(&idx)) {
+                current_layer = None; // Indication for starting a new layer
+                used_wires.clear();
             }
+            used_wires.extend(node_min..=node_max);
+
+            if current_layer.is_none() {
+                layers.push(Vec::new());
+                current_layer = layers.last_mut();
+            }
+
+            current_layer.as_mut().unwrap().push(node_index);
         }
     }
 
@@ -107,7 +109,7 @@ fn get_instruction_range(
     let indices = node_qubits
         .iter()
         .map(|q| q.index())
-        .chain(node_clbits.iter().map(|c| c.index() + num_qubits));
+        .chain(node_clbits.iter().max().map(|c| c.index() + num_qubits));
 
     match indices.minmax() {
         MinMaxResult::MinMax(min, max) => (min, max),
@@ -432,8 +434,9 @@ impl<'a> VisualizationLayer<'a> {
 /// A Plain, logical 2D representation of a circuit.
 ///
 /// A dense representation of the circuit of size N * (M + 1), where the first
-/// layer(column) represents the qubits and clbits inputs in the circuits, and
-/// M is the number of operation layers.
+/// layer(column) represents the qubits and clbits inputs in the circuits,
+/// M is the number of operation layers and N is the number of
+/// qubits and clbits (or cregs if bundling is enabled).
 ///
 /// This structure follows a column-major order, where each layer represents a column of the circuit,
 #[derive(Clone)]
@@ -589,7 +592,7 @@ impl Debug for VisualizationMatrix<'_> {
     }
 }
 
-// better name for the struct
+// TO DO: better name for the struct
 #[derive(Clone)]
 struct TextWireElement {
     top: String,
@@ -605,27 +608,19 @@ impl Debug for TextWireElement {
 
 impl TextWireElement {
     fn width(&self) -> usize {
-        // return the max of all strings
-        // self.top.len().max(self.mid.len()).max(self.bot.len())
-        let top = self.top.chars().count();
-        let mid = self.mid.chars().count();
-        let bot = self.bot.chars().count();
-        if top >= mid && top >= bot {
-            top
-        } else if mid >= top && mid >= bot {
-            mid
-        } else {
-            bot
-        }
+        self.top
+            .chars()
+            .count()
+            .max(self.mid.chars().count())
+            .max(self.bot.chars().count())
     }
 
     fn left_pad_string(s: &mut String, pad_char: char, width: usize) {
         let current_width = s.len();
         if current_width < width {
             let pad_size = width - current_width;
-            let pad_str = pad_char.to_string().repeat(pad_size);
-            let new_str = format!("{}{}", pad_str, s);
-            *s = new_str;
+            s.reserve(pad_size);
+            (0..pad_size).for_each(|_| s.insert(0, pad_char));
         }
     }
 
@@ -635,10 +630,9 @@ impl TextWireElement {
             let pad_size = width - current_width;
             let left_pad = pad_size / 2;
             let right_pad = pad_size - left_pad;
-            let left_pad_str = pad_char.to_string().repeat(left_pad);
-            let right_pad_str = pad_char.to_string().repeat(right_pad);
-            let new_str = format!("{}{}{}", left_pad_str, s, right_pad_str);
-            *s = new_str;
+            s.reserve(pad_size);
+            (0..left_pad).for_each(|_| s.insert(0, pad_char));
+            (0..right_pad).for_each(|_| s.push(pad_char));
         }
     }
 
@@ -719,7 +713,7 @@ impl TextDrawer {
                 match std_instruction {
                     StandardInstruction::Measure => "M".to_string(),
                     StandardInstruction::Reset => "|0>".to_string(),
-                    StandardInstruction::Barrier(_) => "░".to_string(),
+                    StandardInstruction::Barrier(_) => BARRIER.to_string(),
                     StandardInstruction::Delay(delay_unit) => {
                         match instruction.params_view().first().unwrap() {
                             Param::Float(duration) => {
@@ -734,72 +728,84 @@ impl TextDrawer {
                 }
             }
             OperationRef::StandardGate(standard_gate) => {
-                let mut label = match standard_gate {
-                    StandardGate::GlobalPhase => "",
-                    StandardGate::H => "H",
-                    StandardGate::I => "I",
-                    StandardGate::X => "X",
-                    StandardGate::Y => "Y",
-                    StandardGate::Z => "Z",
-                    StandardGate::Phase => "P",
-                    StandardGate::R => "R",
-                    StandardGate::RX => "Rx",
-                    StandardGate::RY => "Ry",
-                    StandardGate::RZ => "Rz",
-                    StandardGate::S => "S",
-                    StandardGate::Sdg => "Sdg",
-                    StandardGate::SX => "√X",
-                    StandardGate::SXdg => "√Xdg",
-                    StandardGate::T => "T",
-                    StandardGate::Tdg => "Tdg",
-                    StandardGate::U => "U",
-                    StandardGate::U1 => "U1",
-                    StandardGate::U2 => "U2",
-                    StandardGate::U3 => "U3",
-                    StandardGate::CH => "H",
-                    StandardGate::CX => "X",
-                    StandardGate::CY => "Y",
-                    StandardGate::CZ => "Z",
-                    StandardGate::DCX => "Dcx",
-                    StandardGate::ECR => "Ecr",
-                    StandardGate::Swap => "",
-                    StandardGate::ISwap => "Iswap",
-                    StandardGate::CPhase => "P",
-                    StandardGate::CRX => "Rx",
-                    StandardGate::CRY => "Ry",
-                    StandardGate::CRZ => "Rz",
-                    StandardGate::CS => "S",
-                    StandardGate::CSdg => "Sdg",
-                    StandardGate::CSX => "Sx",
-                    StandardGate::CU => "U",
-                    StandardGate::CU1 => "U1",
-                    StandardGate::CU3 => "U3",
-                    StandardGate::RXX => "Rxx",
-                    StandardGate::RYY => "Ryy",
-                    StandardGate::RZZ => "Rzz",
-                    StandardGate::RZX => "Rzx",
-                    StandardGate::XXMinusYY => "XX-YY",
-                    StandardGate::XXPlusYY => "XX+YY",
-                    StandardGate::CCX => "X",
-                    StandardGate::CCZ => "Z",
-                    StandardGate::CSwap => "",
-                    StandardGate::RCCX => "Rccx",
-                    StandardGate::C3X => "X",
-                    StandardGate::C3SX => "Sx",
-                    StandardGate::RC3X => "Rcccx",
-                }
-                .to_string();
+                // let mut label = match standard_gate {
+                //     StandardGate::GlobalPhase => "",
+                //     StandardGate::H => "H",
+                //     StandardGate::I => "I",
+                //     StandardGate::X => "X",
+                //     StandardGate::Y => "Y",
+                //     StandardGate::Z => "Z",
+                //     StandardGate::Phase => "P",
+                //     StandardGate::R => "R",
+                //     StandardGate::RX => "Rx",
+                //     StandardGate::RY => "Ry",
+                //     StandardGate::RZ => "Rz",
+                //     StandardGate::S => "S",
+                //     StandardGate::Sdg => "Sdg",
+                //     StandardGate::SX => "√X",
+                //     StandardGate::SXdg => "√Xdg",
+                //     StandardGate::T => "T",
+                //     StandardGate::Tdg => "Tdg",
+                //     StandardGate::U => "U",
+                //     StandardGate::U1 => "U1",
+                //     StandardGate::U2 => "U2",
+                //     StandardGate::U3 => "U3",
+                //     StandardGate::CH => "H",
+                //     StandardGate::CX => "X",
+                //     StandardGate::CY => "Y",
+                //     StandardGate::CZ => "Z",
+                //     StandardGate::DCX => "Dcx",
+                //     StandardGate::ECR => "Ecr",
+                //     StandardGate::Swap => "",
+                //     StandardGate::ISwap => "Iswap",
+                //     StandardGate::CPhase => "P",
+                //     StandardGate::CRX => "Rx",
+                //     StandardGate::CRY => "Ry",
+                //     StandardGate::CRZ => "Rz",
+                //     StandardGate::CS => "S",
+                //     StandardGate::CSdg => "Sdg",
+                //     StandardGate::CSX => "Sx",
+                //     StandardGate::CU => "U",
+                //     StandardGate::CU1 => "U1",
+                //     StandardGate::CU3 => "U3",
+                //     StandardGate::RXX => "Rxx",
+                //     StandardGate::RYY => "Ryy",
+                //     StandardGate::RZZ => "Rzz",
+                //     StandardGate::RZX => "Rzx",
+                //     StandardGate::XXMinusYY => "XX-YY",
+                //     StandardGate::XXPlusYY => "XX+YY",
+                //     StandardGate::CCX => "X",
+                //     StandardGate::CCZ => "Z",
+                //     StandardGate::CSwap => "",
+                //     StandardGate::RCCX => "Rccx",
+                //     StandardGate::C3X => "X",
+                //     StandardGate::C3SX => "Sx",
+                //     StandardGate::RC3X => "Rcccx",
+                // }
+                // .to_string();
 
-                let custom_label = instruction.label.clone();
-                if custom_label.is_some() && *custom_label.unwrap() != label {
-                    label = *instruction.label.clone().unwrap()
+                static STANDARD_GATE_LABELS: [&str; crate::operations::STANDARD_GATE_SIZE] = [
+                    "", "H", "I", "X", "Y", "Z", "P", "R", "Rx", "Ry", "Rz", "S", "Sdg", "√X",
+                    "√Xdg", "T", "Tdg", "U", "U1", "U2", "U3", "H", "X", "Y", "Z", "Dcx", "Ecr",
+                    "", "Iswap", "P", "Rx", "Ry", "Rz", "S", "Sdg", "Sx", "U", "U1", "U3", "Rxx",
+                    "Ryy", "Rzz", "Rzx", "XX-YY", "XX+YY", "X", "Z", "", "Rccx", "X", "Sx",
+                    "Rcccx",
+                ];
+
+                let mut label = STANDARD_GATE_LABELS[standard_gate as usize].to_string();
+
+                if let Some(custom_label) = instruction.label.clone() {
+                    if *custom_label != label {
+                        label = *custom_label;
+                    }
                 }
+
                 if standard_gate.num_params() > 0 {
                     let params = instruction
                         .params_view()
                         .iter()
                         .map(|param| match param {
-                            Param::Float(f) => format!("{}", f),
+                            Param::Float(f) => f.to_string(),
                             _ => format!("{:?}", param),
                         })
                         .join(",");
@@ -830,11 +836,12 @@ impl TextDrawer {
         cregbundle: bool,
         layer_ind: usize,
     ) -> Vec<TextWireElement> {
-        let mut wires: Vec<TextWireElement> = vec![];
-        for (i, element) in layer.0.iter().enumerate() {
-            let wire = Self::draw_element(element, vis_mat, cregbundle, i);
-            wires.push(wire);
-        }
+        let mut wires: Vec<TextWireElement> = layer
+            .0
+            .iter()
+            .enumerate()
+            .map(|(i, element)| Self::draw_element(element, vis_mat, cregbundle, i))
+            .collect();
 
         let num_qubits = vis_mat.circuit.num_qubits();
 
@@ -1119,22 +1126,41 @@ impl TextDrawer {
         // of screen width limit
         let layer_widths = (1..num_layers).map(|layer| self.get_layer_width(layer));
         let (mut start, mut current_fold) = (1usize, 0usize);
-        let mut ranges: Vec<(usize, usize)> = Vec::new();
+        // let mut ranges: Vec<(usize, usize)> = Vec::new();
 
-        for (i, layer_width) in layer_widths.enumerate() {
-            current_fold += layer_width;
-            if current_fold > fold {
-                ranges.push((start, i + 1));
-                start = i + 1;
-                current_fold = layer_width;
-            }
-        }
-        ranges.push((start, num_layers));
+        let ranges: Vec<(usize, usize)> = layer_widths
+            .enumerate()
+            .filter_map(|(i, layer_width)| {
+                current_fold += layer_width;
+                if current_fold > fold {
+                    let range = (start, i + 1);
+                    start = i + 1;
+                    current_fold = layer_width;
+                    Some(range)
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<(usize, usize)>>()
+            .into_iter()
+            .chain(std::iter::once((start, num_layers)))
+            .collect();
+
+        // for (i, layer_width) in layer_widths.enumerate() {
+        //     current_fold += layer_width;
+        //     if current_fold > fold {
+        //         ranges.push((start, i + 1));
+        //         start = i + 1;
+        //         current_fold = layer_width;
+        //     }
+        // }
+        // ranges.push((start, num_layers));
 
         let mut output = String::new();
 
+        let mut wire_strings: Vec<String> = Vec::new();
         for (start, end) in ranges {
-            let mut wire_strings: Vec<String> = Vec::new();
+            wire_strings.clear();
 
             for wire in &self.wires {
                 let top_line: String = wire[start..end]
