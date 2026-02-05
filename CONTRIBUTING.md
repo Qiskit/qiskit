@@ -126,14 +126,24 @@ If you use Rustup, it will automatically install the correct Rust version
 currently used by the project.
 
 Once you have a Rust compiler installed, you can rely on the normal Python
-build/install steps to install Qiskit. This means you just run
-`pip install .` in your local git clone to build and install Qiskit.
+build/install steps to install Qiskit. This means you run `pip install .` or
+`pip install -e .` in your local git clone to build and install Qiskit.
+Note that changes to Rust files will not be reflected in an editable install
+until you recompile.  You can recompile the Rust components of an editable
+install by running
+```
+python setup.py build_rust --inplace [--release | --debug]
+```
+Modifications to Rust files will not take effect until the Rust extension module
+is recompiled with the above command.
 
-Do note that if you do use develop mode/editable install (via `python setup.py develop` or `pip install -e .`) the Rust extension will be built in debug mode
-without any optimizations enabled. This will result in poor runtime performance.
-If you'd like to use an editable install with an optimized binary you can
-run `python setup.py build_rust --release --inplace` after you install in
-editable mode to recompile the rust extensions in release mode.
+By default, `pip install .` will build the Rust components in "release" mode
+and `pip install -e .` (or `python setup.py build_rust --inplace`) will build
+them in "debug" mode, without optimizations.  Debug mode will have poor
+runtime performance.  You can set the environment variable `QISKIT_BUILD_PROFILE`
+to `release` or `debug` to control the default.  The `--release`/`--debug` flag
+to `build_rust` overrides this default.
+
 
 Note that in order to run `python setup.py ...` commands you need to have the 
 build dependency packages, which are listed in the `pyproject.toml` file under 
@@ -704,8 +714,10 @@ well.
 
 ### Testing the C API
 
-The C API test suite is located at `test/c/`. It is built and run using `cmake`
-and `ctest` which can be triggered simply via:
+The C API test suite is located at `test/c/`.  This is a CMake project and uses
+CMake's `ctest` runner.  To build and run the tests, use the `ctest` recipe in
+the top-level `Makefile`, which you can run with
+
 ```bash
 make ctest
 ```

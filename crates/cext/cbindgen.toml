@@ -14,16 +14,11 @@ after_includes = """
 #include "qiskit/attributes.h"
 #include "qiskit/complex.h"
 
-// Always expose [cfg(feature = "cbinding")] -- workaround for
-// https://github.com/mozilla/cbindgen/issues/995
-#define QISKIT_WITH_CBINDINGS
-
 typedef struct QkQuantumRegister QkQuantumRegister;
 typedef struct QkClassicalRegister QkClassicalRegister;
 """
 
 [defines]
-"feature = cbinding" = "QISKIT_WITH_CBINDINGS"
 "feature = python_binding" = "QISKIT_C_PYTHON_INTERFACE"
 
 [parse]

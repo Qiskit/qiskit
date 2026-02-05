@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -486,15 +486,19 @@ class CouplingMap:
             return False
         return set(self.graph.edge_list()) == set(other.graph.edge_list())
 
-    def draw(self):
+    def draw(self, method="neato"):
         """Draws the coupling map.
 
         This function calls the :func:`~rustworkx.visualization.graphviz_draw` function from the
         ``rustworkx`` package to draw the :class:`CouplingMap` object.
+
+        Args:
+            method (str): The layout method to use. See the documentation for
+                :func:`~rustworkx.visualization.graphviz_draw` for the list of supported methods
 
         Returns:
             PIL.Image: Drawn coupling map.
 
         """
 
-        return graphviz_draw(self.graph, method="neato")
+        return graphviz_draw(self.graph, method=method)

@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -22,12 +22,15 @@ use crate::bit::{
 use crate::bit_locator::BitLocator;
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use crate::classical::expr;
-use crate::dag_circuit::{DAGStretchType, DAGVarType, add_global_phase};
+use crate::dag_circuit::{
+    DAGCircuit, DAGIdentifierInfo, DAGStretchType, DAGVarType, add_global_phase,
+};
 use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
 use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::{ObjectRegistry, ObjectRegistryError};
 use crate::operations::{
-    ControlFlow, ControlFlowView, Operation, OperationRef, Param, PythonOperation, StandardGate,
+    ControlFlow, ControlFlowView, Operation, OperationRef, Param, PyOperationTypes,
+    PythonOperation, StandardGate,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::{ParameterError, ParameterExpression};
@@ -378,12 +381,6 @@ impl CircuitIdentifierInfo {
             _ => Err(PyValueError::new_err("Invalid identifier info type")),
         }
     }
-}
-
-/// A convenience enum used in [CircuitData::from_packed_instructions]
-pub enum CircuitVar {
-    Var(expr::Var, CircuitVarType),
-    Stretch(expr::Stretch, CircuitStretchType),
 }
 
 #[pymethods]
@@ -799,13 +796,16 @@ impl CircuitData {
             let memo = PyDict::new(py);
             for inst in &self.data {
                 let new_op = match inst.op.view() {
+                    OperationRef::Gate(gate) => {
+                        PyOperationTypes::Gate(gate.py_deepcopy(py, Some(&memo))?).into()
+                    }
                     OperationRef::ControlFlow(cf) => cf.clone().into(),
-                    OperationRef::Gate(gate) => gate.py_deepcopy(py, Some(&memo))?.into(),
                     OperationRef::Instruction(instruction) => {
-                        instruction.py_deepcopy(py, Some(&memo))?.into()
+                        PyOperationTypes::Instruction(instruction.py_deepcopy(py, Some(&memo))?)
+                            .into()
                     }
                     OperationRef::Operation(operation) => {
-                        operation.py_deepcopy(py, Some(&memo))?.into()
+                        PyOperationTypes::Operation(operation.py_deepcopy(py, Some(&memo))?).into()
                     }
                     OperationRef::StandardGate(gate) => gate.into(),
                     OperationRef::StandardInstruction(instruction) => instruction.into(),
@@ -825,10 +825,14 @@ impl CircuitData {
         } else if copy_instructions {
             for inst in &self.data {
                 let new_op = match inst.op.view() {
+                    OperationRef::Gate(gate) => PyOperationTypes::Gate(gate.py_copy(py)?).into(),
+                    OperationRef::Instruction(instruction) => {
+                        PyOperationTypes::Instruction(instruction.py_copy(py)?).into()
+                    }
+                    OperationRef::Operation(operation) => {
+                        PyOperationTypes::Operation(operation.py_copy(py)?).into()
+                    }
                     OperationRef::ControlFlow(cf) => cf.clone().into(),
-                    OperationRef::Gate(gate) => gate.py_copy(py)?.into(),
-                    OperationRef::Instruction(instruction) => instruction.py_copy(py)?.into(),
-                    OperationRef::Operation(operation) => operation.py_copy(py)?.into(),
                     OperationRef::StandardGate(gate) => gate.into(),
                     OperationRef::StandardInstruction(instruction) => instruction.into(),
                     OperationRef::Unitary(unitary) => unitary.clone().into(),
@@ -1492,8 +1496,23 @@ impl CircuitData {
     /// uncommon for subclasses and other parts of Qiskit to have filled in the global phase field
     /// by copies or other means, before making the parameter table consistent.
     #[setter(global_phase)]
-    pub fn py_set_global_phase(&mut self, angle: Param) -> PyResult<()> {
-        Ok(self.set_global_phase(angle)?)
+    pub fn set_global_phase_param(&mut self, angle: Param) -> Result<(), CircuitDataError> {
+        self.clear_global_phase();
+        match &angle {
+            Param::Float(angle) => {
+                self.set_global_phase_f64(*angle);
+                Ok(())
+            }
+            Param::ParameterExpression(expr) => {
+                for symbol in expr.iter_symbols() {
+                    self.param_table
+                        .track(symbol, Some(ParameterUse::GlobalPhase))?;
+                }
+                self.global_phase = angle;
+                Ok(())
+            }
+            _ => Err(CircuitDataError::InvalidGlobalPhaseType),
+        }
     }
 
     pub fn num_nonlocal_gates(&self) -> usize {
@@ -1694,6 +1713,15 @@ impl CircuitData {
         self.vars_declare.len()
     }
 
+    /// Return the total number of identifiers in the circuit (vars + stretches)
+    pub fn num_identifiers(&self) -> usize {
+        self.num_input_vars()
+            + self.num_captured_vars()
+            + self.num_declared_vars()
+            + self.num_captured_stretches()
+            + self.num_declared_stretches()
+    }
+
     /// Add a captured stretch to the circuit.
     ///
     /// Args:
@@ -1837,7 +1865,7 @@ impl CircuitData {
             stretches_capture: Vec::new(),
             stretches_declare: Vec::new(),
         };
-        self_.set_global_phase(global_phase)?;
+        self_.set_global_phase_param(global_phase)?;
         if let Some(qubits) = qubits {
             for bit in qubits.into_iter() {
                 self_.add_qubit(bit, true)?;
@@ -1865,38 +1893,6 @@ impl CircuitData {
         Ok(())
     }
 
-    pub fn set_global_phase(&mut self, angle: Param) -> Result<(), CircuitDataError> {
-        if let Param::ParameterExpression(expr) = &self.global_phase {
-            for symbol in expr.iter_symbols() {
-                match self.param_table.remove_use(
-                    ParameterUuid::from_symbol(symbol),
-                    ParameterUse::GlobalPhase,
-                ) {
-                    Ok(_)
-                    | Err(ParameterTableError::ParameterNotTracked(_))
-                    | Err(ParameterTableError::UsageNotTracked(_)) => (),
-                    Err(ParameterTableError::NameConflict(_)) => (),
-                    // Any errors added later might want propagating.
-                }
-            }
-        };
-        match &angle {
-            Param::Float(angle) => {
-                self.global_phase = Param::Float(angle.rem_euclid(2. * std::f64::consts::PI));
-                Ok(())
-            }
-            Param::ParameterExpression(expr) => {
-                for symbol in expr.iter_symbols() {
-                    self.param_table
-                        .track(symbol, Some(ParameterUse::GlobalPhase))?;
-                }
-                self.global_phase = angle;
-                Ok(())
-            }
-            Param::Obj(_) => Err(CircuitDataError::InvalidGlobalPhaseType),
-        }
-    }
-
     #[inline]
     pub fn blocks(&self) -> &ControlFlowBlocks<CircuitData> {
         &self.blocks
@@ -1911,7 +1907,7 @@ impl CircuitData {
     /// and condition will not be propagated back.
     ///
     /// The provided `instr` MUST belong to this circuit.
-    fn unpack_py_op(&self, py: Python, instr: &PackedInstruction) -> PyResult<Py<PyAny>> {
+    pub fn unpack_py_op(&self, py: Python, instr: &PackedInstruction) -> PyResult<Py<PyAny>> {
         // `OnceLock::get_or_init` and the non-stabilised `get_or_try_init`, which would otherwise
         // be nice here are both non-reentrant.  This is a problem if the init yields control to the
         // Python interpreter as this one does, since that can allow CPython to freeze the thread
@@ -1977,7 +1973,7 @@ impl CircuitData {
     ///
     /// The inverse of this is [unpack_blocks_to_circuit_parameters].  The version for when you can
     /// take the blocks directly is [take_parameter_blocks].
-    fn extract_blocks_from_circuit_parameters(
+    pub fn extract_blocks_from_circuit_parameters(
         &mut self,
         params: Option<&Parameters<CircuitData>>,
     ) -> Option<Box<Parameters<Block>>> {
@@ -1989,7 +1985,7 @@ impl CircuitData {
     /// space.
     ///
     /// The inverse of this method is [extract_blocks_from_circuit_parameters].
-    fn unpack_blocks_to_circuit_parameters(
+    pub fn unpack_blocks_to_circuit_parameters(
         &self,
         params: Option<&Parameters<Block>>,
     ) -> Option<Parameters<CircuitData>> {
@@ -2142,107 +2138,94 @@ impl CircuitData {
         Ok(res)
     }
 
-    /// A constructor for CircuitData from an iterator of PackedInstruction objects
+    /// Clone a new [CircuitData] from a [DAGCircuit].
     ///
-    /// This is typically useful when iterating over a CircuitData or DAGCircuit
-    /// to construct a new CircuitData from the iterator of PackedInstructions. As
-    /// such it requires that you have `BitData` and `Interner` objects to run. If
-    /// you just wish to build a circuit data from an iterator of instructions
-    /// the `from_packed_operations` or `from_standard_gates` constructor methods
-    /// are a better choice
+    /// This is the logical equivalent of Python's `dag_to_circuit`.
+    pub fn from_dag_ref(dag: &DAGCircuit) -> Result<Self, CircuitDataError> {
+        let mut out = Self::empty_like_from_dag(dag)?;
+        out.data.reserve(dag.num_ops());
+        for node in dag.topological_op_nodes(false) {
+            out.push(dag[node].unwrap_operation().clone())?;
+        }
+        Ok(out)
+    }
+
+    /// Clone a new [CircuitData] from a [DAGCircuit], but applying a Python deepcopy
     ///
-    /// # Args
-    ///
-    /// * py: A GIL handle this is needed to instantiate Qubits in Python space
-    /// * qubits: The BitData to use for the new circuit's qubits
-    /// * clbits: The BitData to use for the new circuit's clbits
-    /// * blocks: The blocks used by the instructions.
-    /// * qargs_interner: The interner for Qubit objects in the circuit. This must
-    ///   contain all the Interned<Qubit> indices stored in the
-    ///   PackedInstructions from `instructions`
-    /// * cargs_interner: The interner for Clbit objects in the circuit. This must
-    ///   contain all the Interned<Clbit> indices stored in the
-    ///   PackedInstructions from `instructions`
-    /// * qregs: The internal QuantumRegister data stored within the circuit.
-    /// * cregs: The internal ClassicalRegister data stored within the circuit.
-    /// * qubit_indices: The Mapping between qubit instances and their locations within
-    ///   registers in the circuit.
-    /// * clbit_indices: The Mapping between clbit instances and their locations within
-    ///   registers in the circuit.
-    /// * Instructions: An iterator with items of type: `Result<PackedInstruction, CircuitDataError>`
-    ///   that contains the instructions to insert in iterator order to the new
-    ///   CircuitData. This returns a `Result` to facilitate the case where
-    ///   you need to make a python copy (such as with `PackedOperation::py_deepcopy()`)
-    ///   of the operation while iterating for constructing the new `CircuitData`. An
-    ///   example of this use case is in `qiskit_circuit::converters::dag_to_circuit`.
-    /// * global_phase: The global phase value to use for the new circuit.
-    /// * variables: variables and stretches to add in order to the new circuit.
-    #[allow(clippy::too_many_arguments)]
-    pub fn from_packed_instructions<I>(
-        qubits: ObjectRegistry<Qubit, ShareableQubit>,
-        clbits: ObjectRegistry<Clbit, ShareableClbit>,
-        blocks: ControlFlowBlocks<CircuitData>,
-        qargs_interner: Interner<[Qubit]>,
-        cargs_interner: Interner<[Clbit]>,
-        qregs: RegisterData<QuantumRegister>,
-        cregs: RegisterData<ClassicalRegister>,
-        qubit_indices: BitLocator<ShareableQubit, QuantumRegister>,
-        clbit_indices: BitLocator<ShareableClbit, ClassicalRegister>,
-        instructions: I,
-        global_phase: Param,
-        variables: Vec<CircuitVar>,
-    ) -> Result<Self, CircuitDataError>
-    where
-        I: IntoIterator<Item = Result<PackedInstruction, CircuitDataError>>,
-    {
-        let instruction_iter = instructions.into_iter();
-        let mut res = CircuitData {
-            data: Vec::with_capacity(instruction_iter.size_hint().0),
-            qargs_interner,
-            cargs_interner,
-            qubits,
-            clbits,
-            blocks,
-            param_table: ParameterTable::new(),
-            global_phase: Param::Float(0.0),
-            qregs,
-            cregs,
-            qubit_indices,
-            clbit_indices,
+    /// This is the logical equivalent of Python's `dag_to_circuit`.
+    pub fn from_dag_ref_deepcopy(py: Python, dag: &DAGCircuit) -> Result<Self, CircuitDataError> {
+        let mut out = Self::empty_like_from_dag(dag)?;
+        out.data.reserve(dag.num_ops());
+        for node in dag.topological_op_nodes(false) {
+            let inst = dag[node].unwrap_operation();
+            let op = match inst.op.view() {
+                OperationRef::ControlFlow(_)
+                | OperationRef::StandardGate(_)
+                | OperationRef::StandardInstruction(_)
+                | OperationRef::Unitary(_)
+                | OperationRef::PauliProductMeasurement(_) => inst.op.clone(),
+                OperationRef::Gate(gate) => {
+                    PyOperationTypes::Gate(gate.py_deepcopy(py, None)?).into()
+                }
+                OperationRef::Instruction(inst) => {
+                    PyOperationTypes::Instruction(inst.py_deepcopy(py, None)?).into()
+                }
+                OperationRef::Operation(op) => {
+                    PyOperationTypes::Operation(op.py_deepcopy(py, None)?).into()
+                }
+            };
+            out.push(PackedInstruction { op, ..inst.clone() })?;
+        }
+        Ok(out)
+    }
+
+    fn empty_like_from_dag(dag: &DAGCircuit) -> Result<Self, CircuitDataError> {
+        let mut out = Self {
+            data: Vec::new(),
+            qargs_interner: dag.qargs_interner().clone(),
+            cargs_interner: dag.cargs_interner().clone(),
+            qubits: dag.qubits().clone(),
+            clbits: dag.clbits().clone(),
+            blocks: dag
+                .blocks()
+                .try_map_without_references(Self::from_dag_ref)?,
+            qregs: dag.qregs_data().clone(),
+            cregs: dag.cregs_data().clone(),
+            qubit_indices: dag.qubit_locations().clone(),
+            clbit_indices: dag.clbit_locations().clone(),
             vars: ObjectRegistry::new(),
             stretches: ObjectRegistry::new(),
-            identifier_info: IndexMap::with_capacity_and_hasher(
-                variables.len(),
-                RandomState::default(),
-            ),
+            identifier_info: Default::default(),
             vars_input: Vec::new(),
             vars_capture: Vec::new(),
             vars_declare: Vec::new(),
             stretches_capture: Vec::new(),
             stretches_declare: Vec::new(),
+            param_table: ParameterTable::new(),
+            global_phase: Param::Float(0.0),
         };
-
-        // use the global phase setter to ensure parameters are registered
-        // in the parameter table
-        res.set_global_phase(global_phase)?;
-
-        for inst in instruction_iter {
-            res.push(inst?)?;
-        }
-
-        // Add variables and stretches in order
-        for var in variables {
-            match var {
-                CircuitVar::Var(var, type_) => {
-                    res.add_var(var, type_)?;
+        out.set_global_phase_param(dag.global_phase().clone())?;
+        for id in dag.identifiers() {
+            match id {
+                DAGIdentifierInfo::Stretch(info) => {
+                    out.add_stretch(
+                        dag.get_stretch(info.get_stretch())
+                            .expect("DAG should only return valid stretches")
+                            .clone(),
+                        info.get_type().into(),
+                    )?;
                 }
-                CircuitVar::Stretch(stretch, type_) => {
-                    res.add_stretch(stretch, type_)?;
+                DAGIdentifierInfo::Var(info) => {
+                    out.add_var(
+                        dag.get_var(info.get_var())
+                            .expect("DAG should only return valid vars")
+                            .clone(),
+                        info.get_type().into(),
+                    )?;
                 }
             }
         }
-
-        Ok(res)
+        Ok(out)
     }
 
     /// An alternate constructor to build a new `CircuitData` from an iterator
@@ -2316,7 +2299,7 @@ impl CircuitData {
 
         // use the global phase setter to ensure parameters are registered
         // in the parameter table
-        res.set_global_phase(global_phase)?;
+        res.set_global_phase_param(global_phase)?;
 
         if num_qubits > 0 {
             for _i in 0..num_qubits {
@@ -2410,6 +2393,31 @@ impl CircuitData {
             #[cfg(feature = "cache_pygates")]
             py_op: OnceLock::new(),
         })
+    }
+
+    pub fn set_global_phase_f64(&mut self, phase: f64) {
+        self.clear_global_phase();
+        self.global_phase = Param::Float(phase.rem_euclid(::std::f64::consts::TAU));
+    }
+
+    /// Reset the global phase of the circuit to zero, updating any parameter tracking.
+    fn clear_global_phase(&mut self) {
+        let old = ::std::mem::replace(&mut self.global_phase, Param::Float(0.0));
+        let Param::ParameterExpression(expr) = old else {
+            return;
+        };
+        for symbol in expr.iter_symbols() {
+            match self.param_table.remove_use(
+                ParameterUuid::from_symbol(symbol),
+                ParameterUse::GlobalPhase,
+            ) {
+                Ok(_)
+                | Err(ParameterTableError::ParameterNotTracked(_))
+                | Err(ParameterTableError::UsageNotTracked(_))
+                | Err(ParameterTableError::NameConflict(_)) => (),
+                // Any errors added later might want propagating.
+            }
+        }
     }
 
     #[inline]
@@ -2536,7 +2544,7 @@ impl CircuitData {
         Ok(())
     }
 
-    fn pack(&mut self, py: Python, inst: &CircuitInstruction) -> PyResult<PackedInstruction> {
+    pub fn pack(&mut self, py: Python, inst: &CircuitInstruction) -> PyResult<PackedInstruction> {
         let qubits = self.qargs_interner.insert_owned(
             self.qubits
                 .map_objects(inst.qubits.extract::<Vec<ShareableQubit>>(py)?.into_iter())?
@@ -2704,6 +2712,16 @@ impl CircuitData {
         self.cregs.registers()
     }
 
+    /// Returns the index of the qubit in the circuit
+    pub fn qubit_index(&self, qubit: &ShareableQubit) -> Option<u32> {
+        self.qubits.find(qubit).map(|qubit| qubit.0)
+    }
+
+    /// Returns the index of the clbit in the circuit
+    pub fn clbit_index(&self, clbit: &ShareableClbit) -> Option<u32> {
+        self.clbits.find(clbit).map(|clbit| clbit.0)
+    }
+
     /// Returns an immutable view of the [QuantumRegister] data struct in the circuit.
     #[inline(always)]
     pub fn qregs_data(&self) -> &RegisterData<QuantumRegister> {
@@ -2743,6 +2761,10 @@ impl CircuitData {
         self.cargs_interner().get(index)
     }
 
+    /// Insert cargs into the interner and return the interned value
+    pub fn add_cargs(&mut self, clbits: &[Clbit]) -> Interned<[Clbit]> {
+        self.cargs_interner.insert(clbits)
+    }
     /// Internal method for assigning parameters.
     ///
     /// Note that currently if any [ParameterUse] identifies a basic block,
@@ -2816,7 +2838,12 @@ impl CircuitData {
                         let Param::ParameterExpression(expr) = &self.global_phase else {
                             inconsistent()
                         };
-                        self.set_global_phase(bind_expr(expr, &symbol, value.as_ref(), true)?)?;
+                        self.set_global_phase_param(bind_expr(
+                            expr,
+                            &symbol,
+                            value.as_ref(),
+                            true,
+                        )?)?;
                     }
                     ParameterUse::Index {
                         instruction,
@@ -3122,7 +3149,7 @@ impl CircuitData {
             stretches_capture: Vec::new(),
             stretches_declare: Vec::new(),
         };
-        res.set_global_phase(other.global_phase.clone())?;
+        res.set_global_phase_param(other.global_phase.clone())?;
         if let VarsMode::Drop = vars_mode {
             return Ok(res);
         }
@@ -3184,7 +3211,7 @@ impl CircuitData {
     pub fn add_global_phase(&mut self, value: &Param) -> Result<(), CircuitDataError> {
         match value {
             Param::Obj(_) => Err(CircuitDataError::InvalidGlobalPhaseType),
-            _ => self.set_global_phase(add_global_phase(&self.global_phase, value)),
+            _ => self.set_global_phase_param(add_global_phase(&self.global_phase, value)),
         }
     }
 

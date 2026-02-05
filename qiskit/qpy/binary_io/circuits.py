@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -54,6 +54,7 @@ from qiskit.quantum_info import SparseObservable
 from qiskit.circuit.library import PauliProductMeasurement
 from qiskit.synthesis import evolution as evo_synth
 from qiskit.transpiler.layout import Layout, TranspileLayout
+from qiskit._accelerate import qpy as _qpy
 
 if typing.TYPE_CHECKING:
     from qiskit.circuit.annotation import QPYSerializer, Annotation
@@ -293,7 +294,11 @@ def _loads_instruction_parameter(
 ):
     if type_key == type_keys.Program.CIRCUIT:
         param = common.data_from_binary(
-            data_bytes, read_circuit, version=version, annotation_factories=annotation_factories
+            data_bytes,
+            read_circuit,
+            version=version,
+            annotation_factories=annotation_factories,
+            use_rust=False,
         )
     elif type_key == type_keys.Value.MODIFIER:
         param = common.data_from_binary(data_bytes, _read_modifier)
@@ -831,6 +836,7 @@ def _read_custom_operations(file_obj, version, vectors, annotation_state):
                         read_circuit,
                         version=version,
                         annotation_factories=annotation_state.factories,
+                        use_rust=False,
                     )
                 elif name.startswith(r"###PauliEvolutionGate_"):
                     definition_circuit = common.data_from_binary(
@@ -879,7 +885,7 @@ def _read_calibrations(file_obj, version, vectors, metadata_deserializer):
         schedules.read_schedule_block(file_obj, version, metadata_deserializer)
 
 
-def _dumps_register(register, index_map):
+def _py_serialize_register_param(register, index_map):
     if isinstance(register, ClassicalRegister):
         return register.name.encode(common.ENCODE)
     # Clbit.
@@ -892,7 +898,11 @@ def _dumps_instruction_parameter(
     if isinstance(param, QuantumCircuit):
         type_key = type_keys.Program.CIRCUIT
         data_bytes = common.data_to_binary(
-            param, write_circuit, version=version, annotation_factories=annotation_factories
+            param,
+            write_circuit,
+            version=version,
+            annotation_factories=annotation_factories,
+            use_rust=False,
         )
     elif isinstance(param, Modifier):
         type_key = type_keys.Value.MODIFIER
@@ -921,7 +931,7 @@ def _dumps_instruction_parameter(
         data_bytes = struct.pack("<d", param)
     elif isinstance(param, (Clbit, ClassicalRegister)):
         type_key = type_keys.Value.REGISTER
-        data_bytes = _dumps_register(param, index_map)
+        data_bytes = _py_serialize_register_param(param, index_map)
     else:
         type_key, data_bytes = value.dumps_value(
             param,
@@ -1003,7 +1013,9 @@ def _write_instruction(
             extra_type = type_keys.Condition.EXPRESSION
         else:
             extra_type = type_keys.Condition.TWO_TUPLE
-            condition_register = _dumps_register(instruction.operation._condition[0], index_map)
+            condition_register = _py_serialize_register_param(
+                instruction.operation._condition[0], index_map
+            )
             condition_value = int(instruction.operation._condition[1])
 
     gate_class_name = gate_class_name.encode(common.ENCODE)
@@ -1254,6 +1266,7 @@ def _write_custom_operation(
             write_circuit,
             version=version,
             annotation_factories=annotation_state.factories,
+            use_rust=False,
         )
         size = len(data)
         num_ctrl_qubits = operation.num_ctrl_qubits
@@ -1269,6 +1282,7 @@ def _write_custom_operation(
             write_circuit,
             version=version,
             annotation_factories=annotation_state.factories,
+            use_rust=False,
         )
         size = len(data)
     if base_gate is None:
@@ -1499,6 +1513,7 @@ def write_circuit(
     use_symengine=False,
     version=common.QPY_VERSION,
     annotation_factories=None,
+    use_rust=True,
 ):
     """Write a single QuantumCircuit object in the file like object.
 
@@ -1516,7 +1531,20 @@ def write_circuit(
         version (int): The QPY format version to use for serializing this circuit
         annotation_factories (dict): a mapping of namespaces to zero-argument factory functions that
             produce instances of :class:`.annotation.QPYSerializer`.
+        use_rust (bool): whether to use the rust based serialization engine. On by default.
     """
+    if use_rust:
+        if annotation_factories is None:
+            annotation_factories = {}
+        _qpy.write_circuit(
+            file_obj,
+            circuit,
+            metadata_serializer,
+            use_symengine,
+            version,
+            annotation_factories=annotation_factories,
+        )
+        return
     annotation_state = _AnnotationSerializationState(annotation_factories or {})
     metadata_raw = json.dumps(
         circuit.metadata, separators=(",", ":"), cls=metadata_serializer
@@ -1625,7 +1653,12 @@ def write_circuit(
 
 
 def read_circuit(
-    file_obj, version, metadata_deserializer=None, use_symengine=False, annotation_factories=None
+    file_obj,
+    version,
+    metadata_deserializer=None,
+    use_symengine=False,
+    annotation_factories=None,
+    use_rust=True,
 ):
     """Read a single QuantumCircuit object from the file like object.
 
@@ -1646,12 +1679,21 @@ def read_circuit(
             deserialize the payload.
         annotation_factories (dict): mapping of namespaces to factory functions for custom
             annotation deserializer objects.
+        use_rust (bool): whether to use the rust based deserialization engine. On by default.
     Returns:
         QuantumCircuit: The circuit object from the file.
 
     Raises:
         QpyError: Invalid register.
     """
+
+    if use_rust:
+        if annotation_factories is None:
+            annotation_factories = {}
+        return _qpy.read_circuit(
+            file_obj, version, metadata_deserializer, use_symengine, annotation_factories
+        )
+
     vectors = {}
     if version < 2:
         header, name, metadata = _read_header(file_obj, metadata_deserializer=metadata_deserializer)

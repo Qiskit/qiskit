@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -47,6 +47,12 @@ unsafe impl ::bytemuck::CheckedBitPattern for UnaryOp {
 
     fn is_valid_bit_pattern(bits: &Self::Bits) -> bool {
         *bits > 0 && *bits < 3
+    }
+}
+
+impl UnaryOp {
+    pub fn from_u8(value: u8) -> PyResult<UnaryOp> {
+        Ok(bytemuck::checked::cast::<u8, UnaryOp>(value))
     }
 }
 

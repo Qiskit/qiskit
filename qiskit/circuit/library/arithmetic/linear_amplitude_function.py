@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -70,10 +70,10 @@ class LinearAmplitudeFunction(QuantumCircuit):
     References:
 
     [1] Woerner, S., & Egger, D. J. (2018). Quantum Risk Analysis.
-    `arXiv:1806.06893 <http://arxiv.org/abs/1806.06893>`_
+    `arXiv:1806.06893 <https://arxiv.org/abs/1806.06893>`_
 
     [2] Gacon, J., Zoufal, C., & Woerner, S. (2020). Quantum-Enhanced Simulation-Based Optimization.
-    `arXiv:2005.10780 <http://arxiv.org/abs/2005.10780>`_
+    `arXiv:2005.10780 <https://arxiv.org/abs/2005.10780>`_
     """
 
     @deprecate_func(
@@ -229,11 +229,11 @@ class LinearAmplitudeFunctionGate(Gate):
 
     [1] Woerner, S., & Egger, D. J. (2018).
     Quantum Risk Analysis.
-    `arXiv:1806.06893 <http://arxiv.org/abs/1806.06893>`_
+    `arXiv:1806.06893 <https://arxiv.org/abs/1806.06893>`_
 
     [2] Gacon, J., Zoufal, C., & Woerner, S. (2020).
     Quantum-Enhanced Simulation-Based Optimization.
-    `arXiv:2005.10780 <http://arxiv.org/abs/2005.10780>`_
+    `arXiv:2005.10780 <https://arxiv.org/abs/2005.10780>`_
     """
 
     def __init__(

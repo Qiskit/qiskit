@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -315,9 +315,10 @@ fn try_merge(
             (inst1.op.view(), inst2.op.view())
         {
             let merged_instruction = Python::attach(|py| -> PyResult<Option<PackedInstruction>> {
-                let merge_result = imports::MERGE_TWO_PAULI_EVOLUTIONS
-                    .get_bound(py)
-                    .call1((py_gate1.gate.clone_ref(py), py_gate2.gate.clone_ref(py)))?;
+                let merge_result = imports::MERGE_TWO_PAULI_EVOLUTIONS.get_bound(py).call1((
+                    py_gate1.instruction.clone_ref(py),
+                    py_gate2.instruction.clone_ref(py),
+                ))?;
 
                 if merge_result.is_none() {
                     Ok(None)
@@ -412,7 +413,7 @@ pub fn run_commutative_optimization(
     // this does not happen right now).
     let mut new_dag = dag.copy_empty_like_with_same_capacity(VarsMode::Alike, BlocksMode::Keep)?;
 
-    let node_indices = dag.topological_op_nodes(false)?.collect::<Vec<_>>();
+    let node_indices = dag.topological_op_nodes(false).collect::<Vec<_>>();
     let num_nodes = node_indices.len();
 
     let mut node_actions: Vec<NodeAction> = vec![NodeAction::Keep; num_nodes];
@@ -506,7 +507,7 @@ pub fn run_commutative_optimization(
         return Ok(None);
     }
 
-    new_dag.set_global_phase(new_global_phase)?;
+    new_dag.set_global_phase_param(new_global_phase)?;
 
     for idx in 0..num_nodes {
         match &node_actions[idx] {
