@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed an issue where the OpenQASM 3 exporter would produce invalid
+    identifiers when register names started with ASCII digits (e.g., ``3qr``)
+    or contained Unicode number characters (e.g., ``²``). These invalid
+    characters are now properly escaped to underscores.
+    Fixes `#15304 <https://github.com/Qiskit/qiskit/issues/15304>`__ and
+    `#15303 <https://github.com/Qiskit/qiskit/issues/15303>`__.
