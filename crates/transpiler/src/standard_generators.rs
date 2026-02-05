@@ -143,26 +143,25 @@ pub fn generator_observable(gate: StandardGate) -> Option<SparseObservable> {
             ],
             2,
         ),
-        // DCX: [ZX, XZ]
-        StandardGate::DCX => (
-            &[
-                &[(0, BitTerm::Z), (1, BitTerm::X)],
-                &[(0, BitTerm::X), (1, BitTerm::Z)],
-            ],
-            2,
-        ),
+        // DCX: Not supported due to complex generator structure (non-commuting terms?). 
+        // Returning None falls back to generic matrix multiplication check which is safe.
+        StandardGate::DCX => return None,
 
         // Three Qubit Gates (q0, q1, q2) like CCX (Toffoli): [ZZX] (Z on 0, Z on 1, X on 2)
         StandardGate::CCX => (
             &[&[(0, BitTerm::Z), (1, BitTerm::Z), (2, BitTerm::X)]],
             3,
         ),
-        // CSwap (Fredkin): [ZXX, ZYY, ZZZ]
+        // CSwap (Fredkin): sum of [ZXX, ZYY, ZZZ] + [XX, YY, ZZ] + [Z] locals.
         StandardGate::CSwap => (
             &[
                 &[(0, BitTerm::Z), (1, BitTerm::X), (2, BitTerm::X)],
                 &[(0, BitTerm::Z), (1, BitTerm::Y), (2, BitTerm::Y)],
                 &[(0, BitTerm::Z), (1, BitTerm::Z), (2, BitTerm::Z)],
+                &[(1, BitTerm::X), (2, BitTerm::X)],
+                &[(1, BitTerm::Y), (2, BitTerm::Y)],
+                &[(1, BitTerm::Z), (2, BitTerm::Z)],
+                &[(0, BitTerm::Z)],
             ],
             3,
         ),
