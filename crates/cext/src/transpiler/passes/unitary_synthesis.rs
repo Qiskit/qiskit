@@ -14,7 +14,6 @@ use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 
 use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_transpiler::passes::{
     UnitarySynthesisConfig, UnitarySynthesisState, run_unitary_synthesis,
@@ -103,11 +102,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_unitary_synthesis(
         Ok(dag) => dag,
         Err(e) => panic!("{}", e),
     };
-    let out_circuit = match dag_to_circuit(&out_dag, false) {
-        Ok(qc) => qc,
-        Err(e) => panic!("{}", e),
-    };
-    *circuit = out_circuit;
+    *circuit = CircuitData::from_dag_ref(&out_dag).unwrap();
 }
 
 #[cfg(all(test, not(miri)))]
