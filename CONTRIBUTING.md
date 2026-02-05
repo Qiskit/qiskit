@@ -288,15 +288,8 @@ message summary line from the git log for the release to the changelog.
 If there are multiple `Changelog:` tags on a PR the git commit message summary
 line from the git log will be used for each changelog category tagged.
 
-The current categories for each label are as follows:
-
-| PR Label               | Changelog Category |
-| -----------------------|--------------------|
-| Changelog: Deprecation | Deprecated         |
-| Changelog: New Feature | Added              |
-| Changelog: API Change  | Changed            |
-| Changelog: Removal     | Removed            |
-| Changelog: Bugfix      | Fixed              |
+The current categories for each label are configured in `qiskit_bot.yaml` in
+the repository root.
 
 ## Release notes
 
