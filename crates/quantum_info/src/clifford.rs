@@ -69,14 +69,17 @@ impl Clifford {
         }
     }
 
+    #[inline]
     pub fn get_phase(&self) -> &FixedBitSet {
         self.tableau.get(2 * self.num_qubits).unwrap()
     }
 
+    #[inline]
     pub fn get_z(&self, qubit: usize) -> &FixedBitSet {
         self.tableau.get(self.num_qubits + qubit).unwrap()
     }
 
+    #[inline]
     pub fn get_z_mut(&mut self, qubit: usize) -> &mut FixedBitSet {
         self.tableau.get_mut(self.num_qubits + qubit).unwrap()
     }
