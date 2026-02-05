@@ -27,16 +27,14 @@ pub fn generator_observable(gate: StandardGate) -> Option<SparseObservable> {
         sorted_components.into_iter().unzip()
     }
 
-    // Define the generator terms for each supported gate.
-    // Each element in the outer vector is a "term" in the SparseObservable (a product of Paulis).
-    // Each term is a vector of (qubit_index, PauliOperator).
-    // The number of qubits is inferred from the gate type logic below.
-    let (definition, num_qubits): (Vec<Vec<(u32, BitTerm)>>, u32) = match gate {
+    // Definitions using static slices to avoid generic Vec allocation overhead.
+    // Each gate returns (terms_list, num_qubits).
+    // terms_list is a slice of terms. Each term is a slice of (qubit, generic Pauli).
+    let (definition, num_qubits): (&[&[(u32, BitTerm)]], u32) = match gate {
         // Single Qubit Gates (act on q0)
-        // Rotation Paulis
         // X-type: [X]
-        StandardGate::X | StandardGate::RX | StandardGate::SX | StandardGate::SXdg | StandardGate::R => (vec![vec![(0, BitTerm::X)]], 1),
-        StandardGate::Y | StandardGate::RY => (vec![vec![(0, BitTerm::Y)]], 1),
+        StandardGate::X | StandardGate::RX | StandardGate::SX | StandardGate::SXdg | StandardGate::R => (&[&[(0, BitTerm::X)]], 1),
+        StandardGate::Y | StandardGate::RY => (&[&[(0, BitTerm::Y)]], 1),
         StandardGate::Z
         | StandardGate::S
         | StandardGate::Sdg
@@ -44,13 +42,13 @@ pub fn generator_observable(gate: StandardGate) -> Option<SparseObservable> {
         | StandardGate::Tdg
         | StandardGate::RZ
         | StandardGate::Phase
-        | StandardGate::U1 => (vec![vec![(0, BitTerm::Z)]], 1),
-        StandardGate::H => (vec![vec![(0, BitTerm::X)], vec![(0, BitTerm::Z)]], 1),
+        | StandardGate::U1 => (&[&[(0, BitTerm::Z)]], 1),
+        StandardGate::H => (&[&[(0, BitTerm::X)], &[(0, BitTerm::Z)]], 1),
 
         // Two Qubit Gates (q0, q1)
         // CX (CNOT): [ZX] -> Z on 0, X on 1
         StandardGate::CX | StandardGate::CSX | StandardGate::CRX | StandardGate::RZX => {
-            (vec![vec![(0, BitTerm::Z), (1, BitTerm::X)]], 2)
+            (&[&[(0, BitTerm::Z), (1, BitTerm::X)]], 2)
         }
         // CZ, CP, etc: [ZZ]
         StandardGate::CZ
@@ -59,89 +57,88 @@ pub fn generator_observable(gate: StandardGate) -> Option<SparseObservable> {
         | StandardGate::RZZ
         | StandardGate::CS
         | StandardGate::CSdg
-        | StandardGate::CU1 => (vec![vec![(0, BitTerm::Z), (1, BitTerm::Z)]], 2),
+        | StandardGate::CU1 => (&[&[(0, BitTerm::Z), (1, BitTerm::Z)]], 2),
         // CY, CRY: [ZY]
         StandardGate::CY | StandardGate::CRY => {
-            (vec![vec![(0, BitTerm::Z), (1, BitTerm::Y)]], 2)
+            (&[&[(0, BitTerm::Z), (1, BitTerm::Y)]], 2)
         }
         // Swap: [XX, YY, ZZ]
         StandardGate::Swap => (
-            vec![
-                vec![(0, BitTerm::X), (1, BitTerm::X)],
-                vec![(0, BitTerm::Y), (1, BitTerm::Y)],
-                vec![(0, BitTerm::Z), (1, BitTerm::Z)],
+            &[
+                &[(0, BitTerm::X), (1, BitTerm::X)],
+                &[(0, BitTerm::Y), (1, BitTerm::Y)],
+                &[(0, BitTerm::Z), (1, BitTerm::Z)],
             ],
             2,
         ),
         // iSwap: [XX, YY]
         StandardGate::ISwap => (
-            vec![
-                vec![(0, BitTerm::X), (1, BitTerm::X)],
-                vec![(0, BitTerm::Y), (1, BitTerm::Y)],
+            &[
+                &[(0, BitTerm::X), (1, BitTerm::X)],
+                &[(0, BitTerm::Y), (1, BitTerm::Y)],
             ],
             2,
         ),
-        // ECR: [ZX, XI] (suggested by feedback)
-        // This means it effectively generates both ZX interactions and X rotations on q0.
+        // ECR: [ZX, XI]
         StandardGate::ECR => (
-            vec![
-                vec![(0, BitTerm::Z), (1, BitTerm::X)], // ZX
-                vec![(0, BitTerm::X)],                  // XI (X on 0)
+            &[
+                &[(0, BitTerm::Z), (1, BitTerm::X)], // ZX
+                &[(0, BitTerm::X)],                  // XI (X on 0)
             ],
             2,
         ),
         // RXX: [XX]
-        StandardGate::RXX => (vec![vec![(0, BitTerm::X), (1, BitTerm::X)]], 2),
+        StandardGate::RXX => (&[&[(0, BitTerm::X), (1, BitTerm::X)]], 2),
         // RYY: [YY]
-        StandardGate::RYY => (vec![vec![(0, BitTerm::Y), (1, BitTerm::Y)]], 2),
+        StandardGate::RYY => (&[&[(0, BitTerm::Y), (1, BitTerm::Y)]], 2),
         // XXMinusYY: [XX, YY]
         StandardGate::XXMinusYY | StandardGate::XXPlusYY => (
-            vec![
-                vec![(0, BitTerm::X), (1, BitTerm::X)],
-                vec![(0, BitTerm::Y), (1, BitTerm::Y)],
+            &[
+                &[(0, BitTerm::X), (1, BitTerm::X)],
+                &[(0, BitTerm::Y), (1, BitTerm::Y)],
             ],
             2,
         ),
         // CH: [ZX, ZZ]
         StandardGate::CH => (
-            vec![
-                vec![(0, BitTerm::Z), (1, BitTerm::X)],
-                vec![(0, BitTerm::Z), (1, BitTerm::Z)],
+            &[
+                &[(0, BitTerm::Z), (1, BitTerm::X)],
+                &[(0, BitTerm::Z), (1, BitTerm::Z)],
             ],
             2,
         ),
-        // DCX: [ZX, XZ] (q0->q1 CX, q1->q0 CX) - Generators of both?
+        // DCX: [ZX, XZ]
         StandardGate::DCX => (
-            vec![
-                vec![(0, BitTerm::Z), (1, BitTerm::X)],
-                vec![(0, BitTerm::X), (1, BitTerm::Z)],
+            &[
+                &[(0, BitTerm::Z), (1, BitTerm::X)],
+                &[(0, BitTerm::X), (1, BitTerm::Z)],
             ],
             2,
         ),
 
         // Three Qubit Gates (q0, q1, q2) like CCX (Toffoli): [ZZX] (Z on 0, Z on 1, X on 2)
         StandardGate::CCX => (
-            vec![vec![(0, BitTerm::Z), (1, BitTerm::Z), (2, BitTerm::X)]],
+            &[&[(0, BitTerm::Z), (1, BitTerm::Z), (2, BitTerm::X)]],
             3,
         ),
         // CSwap (Fredkin): [ZXX, ZYY, ZZZ]
         StandardGate::CSwap => (
-            vec![
-                vec![(0, BitTerm::Z), (1, BitTerm::X), (2, BitTerm::X)],
-                vec![(0, BitTerm::Z), (1, BitTerm::Y), (2, BitTerm::Y)],
-                vec![(0, BitTerm::Z), (1, BitTerm::Z), (2, BitTerm::Z)],
+            &[
+                &[(0, BitTerm::Z), (1, BitTerm::X), (2, BitTerm::X)],
+                &[(0, BitTerm::Z), (1, BitTerm::Y), (2, BitTerm::Y)],
+                &[(0, BitTerm::Z), (1, BitTerm::Z), (2, BitTerm::Z)],
             ],
             3,
         ),
         // CCZ: [ZZZ]
         StandardGate::CCZ => (
-            vec![vec![(0, BitTerm::Z), (1, BitTerm::Z), (2, BitTerm::Z)]],
+            &[&[(0, BitTerm::Z), (1, BitTerm::Z), (2, BitTerm::Z)]],
             3,
         ),
 
         // Four Qubit Gates like C3X, C3SX, RC3X: [ZZZX]
         StandardGate::C3X | StandardGate::C3SX | StandardGate::RC3X => (
-            vec![vec![
+            &[&[
                 (0, BitTerm::Z),
                 (1, BitTerm::Z),
                 (2, BitTerm::Z),
@@ -150,9 +147,8 @@ pub fn generator_observable(gate: StandardGate) -> Option<SparseObservable> {
             4,
         ),
 
-        // Global Phase: [] - No generators (identity up to phase) - Empty observable?
-        // Commutes with everything. Identity commutes with everything.
-        StandardGate::GlobalPhase | StandardGate::I => (vec![], 0),
+        // Global Phase: [] - No generators (identity up to phase) - Empty observable.
+        StandardGate::GlobalPhase | StandardGate::I => (&[], 0),
 
         // Others not handled yet (return None)
         _ => return None,
@@ -164,7 +160,7 @@ pub fn generator_observable(gate: StandardGate) -> Option<SparseObservable> {
     let mut coeffs = Vec::new();
 
     for term_pattern in definition {
-        let (mut indices, mut bits) = make_term_data(&term_pattern);
+        let (mut indices, mut bits) = make_term_data(term_pattern);
         all_indices.append(&mut indices);
         all_bit_terms.append(&mut bits);
         boundaries.push(all_bit_terms.len()); // Boundary is length of bit_terms
