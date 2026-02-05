@@ -90,13 +90,8 @@ impl Clifford {
         self.scratch |= &self.tableau[qubit];
         self.scratch &= &self.tableau[qubit + self.num_qubits];
         self.tableau[2 * self.num_qubits] ^= &self.scratch;
-        self.scratch.clear();
-        self.scratch |= &self.tableau[qubit + self.num_qubits];
-        self.scratch ^= &self.tableau[qubit];
-        std::mem::swap(
-            &mut self.tableau[self.num_qubits + qubit],
-            &mut self.scratch,
-        );
+        let (lhs, rhs) = self.tableau.split_at_mut(qubit + 1);
+        rhs[self.num_qubits - 1] ^= lhs.last().unwrap();
     }
 
     /// Modifies the tableau in-place by appending Sdg-gate
@@ -107,13 +102,8 @@ impl Clifford {
         self.scratch.toggle_range(..);
         self.scratch &= x;
         self.tableau[2 * self.num_qubits] ^= &self.scratch;
-        self.scratch.clear();
-        self.scratch |= &self.tableau[qubit];
-        self.scratch ^= &self.tableau[qubit + self.num_qubits];
-        std::mem::swap(
-            &mut self.tableau[qubit + self.num_qubits],
-            &mut self.scratch,
-        );
+        let (lhs, rhs) = self.tableau.split_at_mut(qubit + 1);
+        rhs[self.num_qubits - 1] ^= lhs.last().unwrap();
     }
 
     /// Modifies the tableau in-place by appending SX-gate
@@ -125,10 +115,8 @@ impl Clifford {
         self.scratch.toggle_range(..);
         self.scratch &= z;
         self.tableau[2 * self.num_qubits] ^= &self.scratch;
-        self.scratch.clear();
-        self.scratch |= &self.tableau[qubit];
-        self.scratch ^= &self.tableau[qubit + self.num_qubits];
-        std::mem::swap(&mut self.tableau[qubit], &mut self.scratch);
+        let (lhs, rhs) = self.tableau.split_at_mut(qubit + 1);
+        *lhs.last_mut().unwrap() ^= &rhs[self.num_qubits - 1];
     }
 
     /// Modifies the tableau in-place by appending SXDG-gate
@@ -137,10 +125,8 @@ impl Clifford {
         self.scratch |= &self.tableau[qubit];
         self.scratch &= &self.tableau[qubit + self.num_qubits];
         self.tableau[2 * self.num_qubits] ^= &self.scratch;
-        self.scratch.clear();
-        self.scratch |= &self.tableau[qubit];
-        self.scratch ^= &self.tableau[qubit + self.num_qubits];
-        std::mem::swap(&mut self.tableau[qubit], &mut self.scratch);
+        let (lhs, rhs) = self.tableau.split_at_mut(qubit + 1);
+        *lhs.last_mut().unwrap() ^= &rhs[self.num_qubits - 1];
     }
 
     /// Modifies the tableau in-place by appending H-gate
@@ -225,18 +211,14 @@ impl Clifford {
 
     /// Modifies the tableau in-place by appending X-gate
     pub fn append_x(&mut self, qubit: usize) {
-        self.scratch.clear();
-        self.scratch |= &self.tableau[2 * self.num_qubits];
-        self.scratch ^= &self.tableau[qubit + self.num_qubits];
-        std::mem::swap(&mut self.tableau[2 * self.num_qubits], &mut self.scratch);
+        let (lhs, rhs) = self.tableau.split_at_mut(qubit + self.num_qubits + 1);
+        *rhs.last_mut().unwrap() ^= lhs.last().unwrap();
     }
 
     /// Modifies the tableau in-place by appending Z-gate
     pub fn append_z(&mut self, qubit: usize) {
-        self.scratch.clear();
-        self.scratch |= &self.tableau[2 * self.num_qubits];
-        self.scratch ^= &self.tableau[qubit];
-        std::mem::swap(&mut self.tableau[2 * self.num_qubits], &mut self.scratch);
+        let (lhs, rhs) = self.tableau.split_at_mut(qubit + 1);
+        *rhs.last_mut().unwrap() ^= lhs.last().unwrap();
     }
 
     /// Modifies the tableau in-place by appending Y-gate
