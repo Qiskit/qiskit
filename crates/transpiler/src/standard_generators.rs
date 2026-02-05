@@ -71,8 +71,8 @@ pub fn generator_observable(gate: StandardGate) -> Option<SparseObservable> {
             ],
             2,
         ),
-        // iSwap: [XX, YY]
-        StandardGate::ISwap => (
+        // iSwap, XXMinusYY, XXPlusYY: [XX, YY]
+        StandardGate::ISwap | StandardGate::XXMinusYY | StandardGate::XXPlusYY => (
             &[
                 &[(0, BitTerm::X), (1, BitTerm::X)],
                 &[(0, BitTerm::Y), (1, BitTerm::Y)],
@@ -91,14 +91,6 @@ pub fn generator_observable(gate: StandardGate) -> Option<SparseObservable> {
         StandardGate::RXX => (&[&[(0, BitTerm::X), (1, BitTerm::X)]], 2),
         // RYY: [YY]
         StandardGate::RYY => (&[&[(0, BitTerm::Y), (1, BitTerm::Y)]], 2),
-        // XXMinusYY: [XX, YY]
-        StandardGate::XXMinusYY | StandardGate::XXPlusYY => (
-            &[
-                &[(0, BitTerm::X), (1, BitTerm::X)],
-                &[(0, BitTerm::Y), (1, BitTerm::Y)],
-            ],
-            2,
-        ),
         // CH: [ZX, ZZ]
         StandardGate::CH => (
             &[
