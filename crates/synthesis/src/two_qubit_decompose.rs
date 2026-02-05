@@ -58,7 +58,9 @@ use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::{CX_GATE, H_GATE, ONE_QUBIT_IDENTITY, S_GATE, SDG_GATE};
 use qiskit_circuit::instruction::{Instruction, Parameters};
-use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
+use qiskit_circuit::operations::{
+    Operation, OperationRef, Param, PyInstruction, PyOpKind, StandardGate,
+};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::util::{C_M_ONE, C_ONE, C_ZERO, GateArray1Q, GateArray2Q, IM, M_IM, c64};
 use qiskit_circuit::{NoBlocks, Qubit, impl_intopyobject_for_copy_pyclass};
@@ -2065,7 +2067,9 @@ impl TwoQubitBasisDecomposer {
                 OperationRef::StandardGate(standard) => {
                     standard.create_py_op(py, Some(params), None)?.into_any()
                 }
-                OperationRef::Gate(gate) => gate.instruction.clone_ref(py),
+                // Strictly this only makes sense if it's a gate, but if it _isn't_, there's already
+                // been an internal logic error.
+                OperationRef::PyCustom(inst) => inst.ob.clone_ref(py),
                 OperationRef::Unitary(unitary) => unitary.create_py_op(py, None)?.into_any(),
                 _ => unreachable!("decomposer gate must be a gate"),
             },
@@ -2559,14 +2563,16 @@ impl TwoQubitControlledUDecomposer {
                     .unwrap();
                 (res.0.into(), res.1)
             }
-            OperationRef::Gate(gate) => {
-                Python::attach(|py: Python| -> PyResult<(PackedOperation, SmallVec<_>)> {
-                    let raw_inverse = gate.instruction.call_method0(py, intern!(py, "inverse"))?;
-                    let mut inverse: OperationFromPython<NoBlocks> = raw_inverse.extract(py)?;
-                    let params = inverse.take_params().unwrap_or_default();
-                    Ok((inverse.operation, params))
-                })?
-            }
+            OperationRef::PyCustom(PyInstruction {
+                kind: PyOpKind::Gate,
+                ob,
+                ..
+            }) => Python::attach(|py: Python| -> PyResult<(PackedOperation, SmallVec<_>)> {
+                let raw_inverse = ob.call_method0(py, intern!(py, "inverse"))?;
+                let mut inverse: OperationFromPython<NoBlocks> = raw_inverse.extract(py)?;
+                let params = inverse.take_params().unwrap_or_default();
+                Ok((inverse.operation, params))
+            })?,
             // UnitaryGate isn't applicable here as the 2q gate here is the parameterized
             // ControlledU equivalent used in the decomposition. This precludes UnitaryGate
             _ => panic!("Only 2q gate objects can be inverted in the decomposer"),

@@ -24,7 +24,7 @@ use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::TWO_QUBIT_IDENTITY;
 use qiskit_circuit::imports::QI_OPERATOR;
 use qiskit_circuit::interner::Interner;
-use qiskit_circuit::operations::{ArrayType, OperationRef};
+use qiskit_circuit::operations::{ArrayType, OperationRef, PyInstruction, PyOpKind};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 
 use crate::QiskitError;
@@ -40,10 +40,17 @@ pub fn get_matrix_from_inst(inst: &PackedInstruction) -> PyResult<Array2<Complex
             "Parameterized gates can't be consolidated",
         ));
     }
-    let OperationRef::Gate(gate) = inst.op.view() else {
-        return Err(QiskitError::new_err(
-            "Can't compute matrix of non-unitary op",
-        ));
+    let gate_ob = match inst.op.view() {
+        OperationRef::PyCustom(PyInstruction {
+            kind: PyOpKind::Gate,
+            ob,
+            ..
+        }) => ob,
+        _ => {
+            return Err(QiskitError::new_err(
+                "Can't compute matrix of non-unitary op",
+            ));
+        }
     };
     // If the operation is a custom python gate, we will acquire the gil and use an
     // Operator. Otherwise, using op.matrix() should work.  A user should not be
@@ -51,7 +58,7 @@ pub fn get_matrix_from_inst(inst: &PackedInstruction) -> PyResult<Array2<Complex
     Python::attach(|py| {
         Ok(QI_OPERATOR
             .get_bound(py)
-            .call1((gate.instruction.clone_ref(py),))?
+            .call1((gate_ob,))?
             .getattr(intern!(py, "data"))?
             .extract::<PyReadonlyArray2<Complex64>>()?
             .as_array()
