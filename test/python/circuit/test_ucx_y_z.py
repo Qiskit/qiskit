@@ -62,7 +62,7 @@ class TestUCRXYZ(QiskitTestCase):
                 # Simulate the decomposed gate
                 unitary = Operator(qc)
                 unitary_desired = _get_ucr_matrix(angles, rot_axis)
-                self.assertTrue(matrix_equal(unitary_desired, unitary, ignore_phase=True))
+                self.assertTrue(matrix_equal(unitary_desired, unitary))
 
 
 def _get_ucr_matrix(angles, rot_axis):
