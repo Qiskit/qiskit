@@ -86,8 +86,7 @@ impl Clifford {
 
     /// Modifies the tableau in-place by appending S-gate
     pub fn append_s(&mut self, qubit: usize) {
-        self.scratch.clear();
-        self.scratch |= &self.tableau[qubit];
+        self.scratch.clone_from(&self.tableau[qubit]);
         self.scratch &= &self.tableau[qubit + self.num_qubits];
         self.tableau[2 * self.num_qubits] ^= &self.scratch;
         let (lhs, rhs) = self.tableau.split_at_mut(qubit + 1);
@@ -97,8 +96,7 @@ impl Clifford {
     /// Modifies the tableau in-place by appending Sdg-gate
     pub fn append_sdg(&mut self, qubit: usize) {
         let x = &self.tableau[qubit];
-        self.scratch.clear();
-        self.scratch |= &self.tableau[qubit + self.num_qubits];
+        self.scratch.clone_from(&self.tableau[qubit + self.num_qubits]);
         self.scratch.toggle_range(..);
         self.scratch &= x;
         self.tableau[2 * self.num_qubits] ^= &self.scratch;
@@ -110,8 +108,7 @@ impl Clifford {
     pub fn append_sx(&mut self, qubit: usize) {
         let x = &self.tableau[qubit];
         let z = &self.tableau[qubit + self.num_qubits];
-        self.scratch.clear();
-        self.scratch |= x;
+        self.scratch.clone_from(x);
         self.scratch.toggle_range(..);
         self.scratch &= z;
         self.tableau[2 * self.num_qubits] ^= &self.scratch;
@@ -121,8 +118,7 @@ impl Clifford {
 
     /// Modifies the tableau in-place by appending SXDG-gate
     pub fn append_sxdg(&mut self, qubit: usize) {
-        self.scratch.clear();
-        self.scratch |= &self.tableau[qubit];
+        self.scratch.clone_from(&self.tableau[qubit]);
         self.scratch &= &self.tableau[qubit + self.num_qubits];
         self.tableau[2 * self.num_qubits] ^= &self.scratch;
         let (lhs, rhs) = self.tableau.split_at_mut(qubit + 1);
@@ -133,8 +129,7 @@ impl Clifford {
     pub fn append_h(&mut self, qubit: usize) {
         let x = &self.tableau[qubit];
         let z = &self.tableau[qubit + self.num_qubits];
-        self.scratch.clear();
-        self.scratch |= x;
+        self.scratch.clone_from(x);
         self.scratch &= z;
         self.tableau[2 * self.num_qubits] ^= &self.scratch;
         self.tableau.swap(qubit, self.num_qubits + qubit);
@@ -154,19 +149,16 @@ impl Clifford {
         let x1 = &self.tableau[qubit1];
         let z1 = &self.tableau[qubit1 + self.num_qubits];
 
-        self.scratch.clear();
-        self.scratch |= x1;
+        self.scratch.clone_from(x1);
         self.scratch ^= z0;
         self.scratch.toggle_range(..);
         self.scratch &= z1;
         self.scratch &= x0;
         self.tableau[2 * self.num_qubits] ^= &self.scratch;
-        self.scratch.clear();
-        self.scratch |= &self.tableau[qubit1];
+        self.scratch.clone_from(&self.tableau[qubit1]);
         self.scratch ^= &self.tableau[qubit0];
         std::mem::swap(&mut self.tableau[qubit1], &mut self.scratch);
-        self.scratch.clear();
-        self.scratch |= &self.tableau[qubit0 + self.num_qubits];
+        self.scratch.clone_from(&self.tableau[qubit0 + self.num_qubits]);
         self.scratch ^= &self.tableau[qubit1 + self.num_qubits];
         std::mem::swap(
             &mut self.tableau[qubit0 + self.num_qubits],
@@ -180,20 +172,17 @@ impl Clifford {
         let z0 = &self.tableau[qubit0 + self.num_qubits];
         let x1 = &self.tableau[qubit1];
         let z1 = &self.tableau[qubit1 + self.num_qubits];
-        self.scratch.clear();
-        self.scratch |= z0;
+        self.scratch.clone_from(z0);
         self.scratch ^= z1;
         self.scratch &= &(x0 & x1);
         self.tableau[2 * self.num_qubits] ^= &self.scratch;
-        self.scratch.clear();
-        self.scratch |= &self.tableau[qubit1 + self.num_qubits];
+        self.scratch.clone_from(&self.tableau[qubit1 + self.num_qubits]);
         self.scratch ^= &self.tableau[qubit0];
         std::mem::swap(
             &mut self.tableau[qubit1 + self.num_qubits],
             &mut self.scratch,
         );
-        self.scratch.clear();
-        self.scratch |= &self.tableau[qubit0 + self.num_qubits];
+        self.scratch.clone_from(&self.tableau[qubit0 + self.num_qubits]);
         self.scratch ^= &self.tableau[qubit1];
         std::mem::swap(
             &mut self.tableau[qubit0 + self.num_qubits],
@@ -223,8 +212,7 @@ impl Clifford {
 
     /// Modifies the tableau in-place by appending Y-gate
     pub fn append_y(&mut self, qubit: usize) {
-        self.scratch.clear();
-        self.scratch |= &self.tableau[qubit];
+        self.scratch.clone_from(&self.tableau[qubit]);
         self.scratch ^= &self.tableau[qubit + self.num_qubits];
         self.tableau[2 * self.num_qubits] ^= &self.scratch;
     }
@@ -259,8 +247,7 @@ impl Clifford {
     /// Modifies the tableau in-place by appending V-gate.
     /// This is equivalent to an Sdg gate followed by an H gate.
     pub fn append_v(&mut self, qubit: usize) {
-        self.scratch.clear();
-        self.scratch |= &self.tableau[qubit];
+        self.scratch.clone_from(&self.tableau[qubit]);
         self.scratch ^= &self.tableau[qubit + self.num_qubits];
         self.tableau.swap(qubit, self.num_qubits + qubit);
         std::mem::swap(&mut self.tableau[qubit], &mut self.scratch);
@@ -269,8 +256,7 @@ impl Clifford {
     /// Modifies the tableau in-place by appending W-gate.
     /// This is equivalent to two V gates.
     pub fn append_w(&mut self, qubit: usize) {
-        self.scratch.clear();
-        self.scratch |= &self.tableau[qubit];
+        self.scratch.clone_from(&self.tableau[qubit]);
         self.scratch ^= &self.tableau[qubit + self.num_qubits];
         self.tableau.swap(qubit, self.num_qubits + qubit);
         std::mem::swap(
