@@ -32,7 +32,7 @@ pub struct SymplecticMatrix {
 pub struct Clifford {
     /// Number of qubits.
     pub num_qubits: usize,
-    /// Matrix with dimensions (2 * num_qubits) x (2 * num_qubits + 1).
+    /// Matrix with dimensions (2 * num_qubits + 1) x (2 * num_qubits).
     pub tableau: Vec<FixedBitSet>,
     scratch: FixedBitSet,
 }
@@ -54,15 +54,15 @@ impl Clifford {
             num_qubits,
             tableau: (0..2 * num_qubits + 1)
                 .map(|i| {
-                    let mut row = FixedBitSet::with_capacity(2 * num_qubits);
+                    let mut column = FixedBitSet::with_capacity(2 * num_qubits);
                     if i < 2 * num_qubits {
-                        // SAFETY: We know row is large enough since it's larger than the range
+                        // SAFETY: We know column is large enough since it's larger than the range
                         // i is from
                         unsafe {
-                            row.insert_unchecked(i);
+                            column.insert_unchecked(i);
                         }
                     }
-                    row
+                    column
                 })
                 .collect(),
             scratch: FixedBitSet::with_capacity(2 * num_qubits),
