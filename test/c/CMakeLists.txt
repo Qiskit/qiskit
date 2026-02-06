@@ -1,7 +1,7 @@
 # This file is inspired by the description of handling a larger number of tests
 # provided here:
 # https://cmake.org/cmake/help/book/mastering-cmake/chapter/Testing%20With%20CMake%20and%20CTest.html
-cmake_minimum_required (VERSION 3.27)
+cmake_minimum_required (VERSION 3.20)
 
 # Since we only use CMake to scaffold `ctest`, we just have the whole
 # configuration here.
