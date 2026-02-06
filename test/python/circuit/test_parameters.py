@@ -2145,7 +2145,7 @@ class TestParameterExpressions(QiskitTestCase):
             (a + b).numeric()
 
     def test_repeat_with_parameterized_gates(self):
-        """Tests that repeating a circuit with paramerized gates
+        """Tests that repeating a circuit with parameterized gates
         handles parameters correctly.
 
         See https://github.com/Qiskit/qiskit/issues/15645.
