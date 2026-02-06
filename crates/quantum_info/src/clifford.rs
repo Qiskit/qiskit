@@ -69,6 +69,17 @@ impl Clifford {
         }
     }
 
+    /// Creates a new Clifford of num qubits with no elements set
+    pub fn empty(num_qubits: usize) -> Self {
+        Self {
+            num_qubits,
+            tableau: (0..2 * num_qubits + 1)
+                .map(|_| FixedBitSet::with_capacity(2 * num_qubits))
+                .collect(),
+            scratch: FixedBitSet::with_capacity(2 * num_qubits),
+        }
+    }
+
     #[inline]
     pub fn get_phase(&self) -> &FixedBitSet {
         self.tableau.get(2 * self.num_qubits).unwrap()
@@ -96,7 +107,8 @@ impl Clifford {
     /// Modifies the tableau in-place by appending Sdg-gate
     pub fn append_sdg(&mut self, qubit: usize) {
         let x = &self.tableau[qubit];
-        self.scratch.clone_from(&self.tableau[qubit + self.num_qubits]);
+        self.scratch
+            .clone_from(&self.tableau[qubit + self.num_qubits]);
         self.scratch.toggle_range(..);
         self.scratch &= x;
         self.tableau[2 * self.num_qubits] ^= &self.scratch;
@@ -158,7 +170,8 @@ impl Clifford {
         self.scratch.clone_from(&self.tableau[qubit1]);
         self.scratch ^= &self.tableau[qubit0];
         std::mem::swap(&mut self.tableau[qubit1], &mut self.scratch);
-        self.scratch.clone_from(&self.tableau[qubit0 + self.num_qubits]);
+        self.scratch
+            .clone_from(&self.tableau[qubit0 + self.num_qubits]);
         self.scratch ^= &self.tableau[qubit1 + self.num_qubits];
         std::mem::swap(
             &mut self.tableau[qubit0 + self.num_qubits],
@@ -176,13 +189,15 @@ impl Clifford {
         self.scratch ^= z1;
         self.scratch &= &(x0 & x1);
         self.tableau[2 * self.num_qubits] ^= &self.scratch;
-        self.scratch.clone_from(&self.tableau[qubit1 + self.num_qubits]);
+        self.scratch
+            .clone_from(&self.tableau[qubit1 + self.num_qubits]);
         self.scratch ^= &self.tableau[qubit0];
         std::mem::swap(
             &mut self.tableau[qubit1 + self.num_qubits],
             &mut self.scratch,
         );
-        self.scratch.clone_from(&self.tableau[qubit0 + self.num_qubits]);
+        self.scratch
+            .clone_from(&self.tableau[qubit0 + self.num_qubits]);
         self.scratch ^= &self.tableau[qubit1];
         std::mem::swap(
             &mut self.tableau[qubit0 + self.num_qubits],

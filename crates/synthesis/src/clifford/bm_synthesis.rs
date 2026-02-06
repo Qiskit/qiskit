@@ -309,7 +309,7 @@ pub fn synth_clifford_bm_inner(
     }
 
     // This is the Clifford that we will reduce to a product of single-qubit Cliffords
-    let mut clifford = Clifford::identity(num_qubits);
+    let mut clifford = Clifford::empty(num_qubits);
     tableau
         .indexed_iter()
         .for_each(|(index, v)| clifford.tableau[index.1].set(index.0, *v));
