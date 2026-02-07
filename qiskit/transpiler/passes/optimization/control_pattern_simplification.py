@@ -10,115 +10,168 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Transpiler pass for simplifying multi-controlled gates with complementary control patterns."""
+"""Simplify multi-controlled gates by Boolean algebraic reduction of control patterns."""
 
-from dataclasses import dataclass
-from typing import List, Optional, Tuple
 import numpy as np
 
-from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.dagcircuit import DAGCircuit, DAGOpNode
 from qiskit.circuit import ControlledGate
+from qiskit.circuit.annotated_operation import AnnotatedOperation
 from qiskit.circuit.library import CXGate, XGate
+from qiskit.transpiler.basepasses import TransformationPass
 
 
 class BitwisePatternAnalyzer:
-    """Analyzes control patterns using pure bitwise operations."""
+    """Analyze control-state bit patterns for Boolean simplification opportunities."""
 
-    def __init__(self, num_qubits: int):
+    def __init__(self, num_qubits):
         self.num_qubits = num_qubits
 
-    def _find_common_bits(self, patterns: List[str]) -> Tuple[List[int], str]:
-        """Find bit positions with same value across all patterns."""
+    def _find_common_bits(self, patterns):
+        """Find bit positions that have the same value across all patterns."""
         if not patterns:
-            return [], ""
-        common_pos, common_vals = [], []
-        for pos in range(len(patterns[0])):
-            bits = set(p[pos] for p in patterns)
-            if len(bits) == 1:
-                common_pos.append(pos)
-                common_vals.append(patterns[0][pos])
-        return common_pos, "".join(common_vals)
+            return [], 0
+        # AND all patterns together to find bits that are 1 in all
+        all_ones = patterns[0]
+        # AND all inverted patterns to find bits that are 0 in all
+        all_zeros = ~patterns[0]
+        for p in patterns[1:]:
+            all_ones &= p
+            all_zeros &= ~p
+        mask = (1 << self.num_qubits) - 1
+        all_zeros &= mask
 
-    def _check_single_variable(self, patterns: List[str]) -> Optional[Tuple[int, str]]:
-        """Check if patterns simplify to a single variable control."""
+        common_pos = []
+        common_val = 0
+        for pos in range(self.num_qubits):
+            bit_mask = 1 << pos
+            if all_ones & bit_mask:
+                common_pos.append(pos)
+                common_val |= bit_mask
+            elif all_zeros & bit_mask:
+                common_pos.append(pos)
+                # bit is 0 in common_val already
+        return common_pos, common_val
+
+    def _check_single_variable(self, patterns):
+        """Check if the pattern set simplifies to controlling on a single qubit."""
         n = self.num_qubits
         pattern_set = set(patterns)
         if len(pattern_set) != 2 ** (n - 1):
             return None
         for ctrl_pos in range(n):
-            for val in ["0", "1"]:
+            for val in (0, 1):
                 expected = set()
+                bit_mask = 1 << ctrl_pos
                 for combo in range(2 ** (n - 1)):
-                    p = ""
+                    p = 0
                     bit_idx = 0
                     for pos in range(n):
                         if pos == ctrl_pos:
-                            p += val
+                            if val:
+                                p |= bit_mask
                         else:
-                            p += str((combo >> bit_idx) & 1)
+                            if (combo >> bit_idx) & 1:
+                                p |= 1 << pos
                             bit_idx += 1
                     expected.add(p)
                 if pattern_set == expected:
                     return (ctrl_pos, val)
         return None
 
-    def simplify_patterns_pairwise(self, patterns: List[str]) -> Optional[List[dict]]:
-        """Find ONE pairwise optimization (Hamming distance 1, 2, or n)."""
+    def simplify_patterns_pairwise(self, patterns):
+        """Find one pairwise simplification (complementary, XOR, or XOR-chain)."""
         if len(patterns) < 2:
             return None
         patterns_list = sorted(set(patterns))
-        for i, p1 in enumerate(patterns_list):
-            for p2 in patterns_list[i + 1 :]:
-                diff = [k for k in range(len(p1)) if p1[k] != p2[k]]
-                hamming = len(diff)
-                if hamming == 1:  # Complementary pair
-                    common = [k for k in range(len(p1)) if k != diff[0]]
+        n = self.num_qubits
+
+        # Hash-based search for Hamming distance 1 (complementary pairs)
+        pattern_set = set(patterns_list)
+        for p in patterns_list:
+            for bit_pos in range(n):
+                neighbor = p ^ (1 << bit_pos)
+                if neighbor > p and neighbor in pattern_set:
+                    # Found complementary pair differing at bit_pos
+                    common_pos = [k for k in range(n) if k != bit_pos]
+                    # Reindex ctrl_state to only include common positions
+                    ctrl_state = 0
+                    for idx, k in enumerate(common_pos):
+                        if p & (1 << k):
+                            ctrl_state |= 1 << idx
                     return [
                         {
                             "type": "complementary",
-                            "patterns": [p1, p2],
-                            "control_positions": common,
-                            "ctrl_state": "".join(p1[k] for k in common),
+                            "patterns": [p, neighbor],
+                            "control_positions": common_pos,
+                            "ctrl_state": ctrl_state,
                         }
                     ]
-                if hamming == 2:  # XOR pair
+
+        # O(n^2) search for Hamming distance 2 (XOR) and n (full chain)
+        for i, p1 in enumerate(patterns_list):
+            for p2 in patterns_list[i + 1 :]:
+                xor_val = p1 ^ p2
+                hamming = bin(xor_val).count("1")
+                if hamming == 2:
+                    diff = []
+                    for k in range(n):
+                        if xor_val & (1 << k):
+                            diff.append(k)
                     pi, pj = diff
-                    bits = (p1[pi] + p1[pj], p2[pi] + p2[pj])
-                    if bits in [("10", "01"), ("01", "10")]:
+                    b1_i = (p1 >> pi) & 1
+                    b1_j = (p1 >> pj) & 1
+                    b2_i = (p2 >> pi) & 1
+                    b2_j = (p2 >> pj) & 1
+                    bits = ((b1_i, b1_j), (b2_i, b2_j))
+                    if bits in [((1, 0), (0, 1)), ((0, 1), (1, 0))]:
                         xtype = "xor_standard"
-                    elif bits in [("11", "00"), ("00", "11")]:
+                    elif bits in [((1, 1), (0, 0)), ((0, 0), (1, 1))]:
                         xtype = "xor_with_x"
                     else:
                         continue
-                    common = [k for k in range(len(p1)) if k not in diff]
+                    common = [k for k in range(n) if k not in diff]
                     ctrl_pos = sorted(common + [pj])
+                    ctrl_state = 0
+                    for idx, k in enumerate(ctrl_pos):
+                        if k == pj:
+                            ctrl_state |= 1 << idx
+                        elif p1 & (1 << k):
+                            ctrl_state |= 1 << idx
                     return [
                         {
                             "type": xtype,
                             "patterns": [p1, p2],
                             "control_positions": ctrl_pos,
-                            "ctrl_state": "".join(
-                                "1" if idx == pj else p1[idx] for idx in ctrl_pos
-                            ),
+                            "ctrl_state": ctrl_state,
                             "xor_qubits": [pi, pj],
                         }
                     ]
-                if hamming == len(p1) >= 2:  # XOR chain
+                if hamming == n >= 2:
+                    diff = []
+                    for k in range(n):
+                        if xor_val & (1 << k):
+                            diff.append(k)
+                    anchor = diff[0]
+                    targets = diff[1:]
+                    anchor_val = (p1 >> anchor) & 1
+                    ctrl_state = 0
+                    for idx in range(len(targets)):
+                        if anchor_val:
+                            ctrl_state |= 1 << idx
                     return [
                         {
                             "type": "xor_chain",
                             "patterns": [p1, p2],
-                            "control_positions": diff[1:],
-                            "ctrl_state": p1[diff[0]] * (hamming - 1),
-                            "xor_anchor": diff[0],
-                            "xor_targets": diff[1:],
+                            "control_positions": targets,
+                            "ctrl_state": ctrl_state,
+                            "xor_anchor": anchor,
+                            "xor_targets": targets,
                         }
                     ]
         return None
 
-    def simplify_patterns_iterative(self, patterns: List[str]) -> Tuple:
-        """Iteratively simplify patterns using pairwise optimizations."""
+    def simplify_patterns_iterative(self, patterns):
+        """Apply pairwise simplifications repeatedly until no more are found."""
         remaining = sorted(set(patterns))
         all_opts = []
         while len(remaining) >= 2:
@@ -136,18 +189,18 @@ class BitwisePatternAnalyzer:
             None,
         )
 
-    def simplify_patterns(self, patterns: List[str]) -> Tuple:
-        """Main entry point for pattern simplification."""
-        if not patterns or len(set(len(p) for p in patterns)) > 1:
+    def simplify_patterns(self, patterns):
+        """Determine the best simplification for a set of control patterns."""
+        if not patterns:
             return ("no_optimization", None, None)
         unique = sorted(set(patterns))
         n = self.num_qubits
         # Complete partition
         if len(unique) == 2**n:
-            return ("unconditional", [], "")
+            return ("unconditional", [], 0)
         # Complement: all but one pattern
         if len(unique) == 2**n - 1:
-            all_p = {format(i, f"0{n}b") for i in range(2**n)}
+            all_p = set(range(2**n))
             missing = list(all_p - set(unique))
             if len(missing) == 1:
                 return ("complement", list(range(n)), missing[0])
@@ -165,45 +218,47 @@ class BitwisePatternAnalyzer:
         if single:
             return ("single", [single[0]], single[1])
         # Common bits (AND)
-        common_pos, common_vals = self._find_common_bits(unique)
+        common_pos, common_val = self._find_common_bits(unique)
         if common_pos and len(common_pos) < n:
             varying = [i for i in range(n) if i not in common_pos]
             if len(unique) == 2 ** len(varying):
-                return ("single" if len(common_pos) == 1 else "and", common_pos, common_vals)
+                # Reindex ctrl_state for just the common positions
+                ctrl_state = 0
+                for idx, pos in enumerate(common_pos):
+                    if common_val & (1 << pos):
+                        ctrl_state |= 1 << idx
+                cls = "single" if len(common_pos) == 1 else "and"
+                return (cls, common_pos, ctrl_state)
         return ("no_optimization", None, None)
 
 
-@dataclass
-class ControlledGateInfo:
-    """Information about a controlled gate for optimization analysis."""
-
-    node: DAGOpNode
-    operation: ControlledGate
-    control_qubits: List[int]
-    target_qubits: List[int]
-    ctrl_state: str
-    params: Tuple[float, ...]
-
-
 class ControlPatternSimplification(TransformationPass):
-    """Simplify multi-controlled gates using Boolean algebraic pattern matching."""
+    """Simplify groups of multi-controlled gates that share the same base gate and target
+    by applying Boolean algebra to their control-state patterns."""
 
     def __init__(self, tolerance=1e-10):
+        """ControlPatternSimplification initializer.
+
+        Args:
+            tolerance (float): numerical tolerance for comparing gate parameters.
+        """
         super().__init__()
         self.tolerance = tolerance
 
-    def _extract_pattern(self, gate: ControlledGate, num_ctrl: int) -> str:
-        """Extract control pattern as binary string (LSB-first internally)."""
-        cs = gate.ctrl_state
-        if cs is None:
-            return "1" * num_ctrl
-        if isinstance(cs, str):
-            return cs[::-1]
-        if isinstance(cs, int):
-            return format(cs, f"0{num_ctrl}b")[::-1]
-        return "1" * num_ctrl
+    def _get_controlled_info(self, op):
+        """Return ``(base_gate, num_ctrl_qubits, ctrl_state)`` or ``None``."""
+        if isinstance(op, ControlledGate):
+            return (op.base_gate, op.num_ctrl_qubits, op.ctrl_state)
+        if isinstance(op, AnnotatedOperation):
+            from qiskit.circuit import ControlModifier
 
-    def _params_match(self, p1: Tuple, p2: Tuple) -> bool:
+            ctrl_mods = [m for m in op.modifiers if isinstance(m, ControlModifier)]
+            if ctrl_mods:
+                nc = sum(m.num_ctrl_qubits for m in ctrl_mods)
+                return (op.base_op, nc, ctrl_mods[0].ctrl_state)
+        return None
+
+    def _params_match(self, p1, p2):
         """Check if two parameter tuples match within tolerance."""
         if len(p1) != len(p2):
             return False
@@ -216,23 +271,27 @@ class ControlPatternSimplification(TransformationPass):
             for a, b in zip(p1, p2)
         )
 
-    def _collect_gates(self, dag: DAGCircuit) -> List[List[ControlledGateInfo]]:
+    def _collect_gates(self, dag):
         """Collect runs of consecutive controlled gates from the DAG."""
         runs, current = [], []
         for node in dag.topological_op_nodes():
-            if isinstance(node.op, ControlledGate):
-                nc = node.op.num_ctrl_qubits
+            info = self._get_controlled_info(node.op)
+            if info is not None:
+                base_gate, nc, ctrl_state = info
                 qargs = [dag.find_bit(q).index for q in node.qargs]
-                current.append(
-                    ControlledGateInfo(
-                        node=node,
-                        operation=node.op,
-                        control_qubits=qargs[:nc],
-                        target_qubits=qargs[nc:],
-                        ctrl_state=self._extract_pattern(node.op, nc),
-                        params=tuple(node.op.params) if node.op.params else (),
-                    )
-                )
+                ctrl_qubits = qargs[:nc]
+                tgt_qubits = qargs[nc:]
+                params = tuple(node.op.params) if node.op.params else ()
+                # Normalize control qubit ordering and remap ctrl_state
+                if ctrl_qubits != sorted(ctrl_qubits):
+                    sort_order = sorted(range(nc), key=lambda k: ctrl_qubits[k])
+                    new_cs = 0
+                    for new_idx, old_idx in enumerate(sort_order):
+                        if ctrl_state & (1 << old_idx):
+                            new_cs |= 1 << new_idx
+                    ctrl_qubits = [ctrl_qubits[k] for k in sort_order]
+                    ctrl_state = new_cs
+                current.append((node, base_gate, ctrl_qubits, tgt_qubits, ctrl_state, params))
             elif current:
                 runs.append(current)
                 current = []
@@ -240,98 +299,122 @@ class ControlPatternSimplification(TransformationPass):
             runs.append(current)
         return runs
 
-    def _group_same_controls(
-        self, gates: List[ControlledGateInfo]
-    ) -> List[List[ControlledGateInfo]]:
-        """Group gates with same control qubits."""
+    def _group_same_controls(self, gates):
+        """Group gates sharing the same base gate, control qubits, and target."""
         if len(gates) < 2:
             return []
-        groups, i = [], 0
-        while i < len(gates):
-            group, base = [gates[i]], gates[i]
-            j = i + 1
-            while j < len(gates):
-                c = gates[j]
+        groups = []
+        used = set()
+        for i in range(len(gates)):
+            if i in used:
+                continue
+            _, bg_i, ctrl_i, tgt_i, _, params_i = gates[i]
+            group = [gates[i]]
+            group_indices = [i]
+            for j in range(i + 1, len(gates)):
+                if j in used:
+                    continue
+                _, bg_j, ctrl_j, tgt_j, _, params_j = gates[j]
                 if (
-                    c.operation.base_gate.name == base.operation.base_gate.name
-                    and c.target_qubits == base.target_qubits
-                    and set(c.control_qubits) == set(base.control_qubits)
-                    and self._params_match(c.params, base.params)
+                    bg_j.name == bg_i.name
+                    and tgt_j == tgt_i
+                    and ctrl_j == ctrl_i
+                    and self._params_match(params_j, params_i)
                 ):
-                    group.append(c)
-                    j += 1
+                    group.append(gates[j])
+                    group_indices.append(j)
                 else:
-                    break
+                    # Two controlled gates commute if their target qubits
+                    # are disjoint (shared controls don't break commutativity).
+                    # For safety, also require no target-control overlap.
+                    group_tgts = set(tgt_i)
+                    gate_tgts = set(tgt_j)
+                    if (
+                        group_tgts.isdisjoint(gate_tgts)
+                        and group_tgts.isdisjoint(set(ctrl_j))
+                        and gate_tgts.isdisjoint(set(ctrl_i))
+                    ):
+                        continue  # skip over commuting gate
+                    else:
+                        break
             if len(group) >= 2:
                 groups.append(group)
-            i = j if j > i + 1 else i + 1
+                used.update(group_indices)
         return groups
 
-    def _group_mixed_controls(
-        self, gates: List[ControlledGateInfo]
-    ) -> List[List[ControlledGateInfo]]:
-        """Group gates with subset/superset control qubits."""
+    def _group_mixed_controls(self, gates):
+        """Group gates with subset/superset control qubit relationships."""
         if len(gates) < 2:
             return []
         groups, used = [], set()
-        for i, base in enumerate(gates):
+        for i in range(len(gates)):
             if i in used:
                 continue
-            group, base_c = [base], set(base.control_qubits)
-            for j, cand in enumerate(gates[i + 1 :], start=i + 1):
+            _, bg_i, ctrl_i, tgt_i, _, params_i = gates[i]
+            group = [gates[i]]
+            base_c = set(ctrl_i)
+            for j in range(i + 1, len(gates)):
                 if j in used:
                     continue
-                cand_c = set(cand.control_qubits)
+                _, bg_j, ctrl_j, tgt_j, _, params_j = gates[j]
+                cand_c = set(ctrl_j)
                 if (
-                    cand.operation.base_gate.name == base.operation.base_gate.name
-                    and cand.target_qubits == base.target_qubits
-                    and self._params_match(cand.params, base.params)
+                    bg_j.name == bg_i.name
+                    and tgt_j == tgt_i
+                    and self._params_match(params_j, params_i)
                     and (base_c <= cand_c or cand_c <= base_c)
                 ):
-                    group.append(cand)
+                    group.append(gates[j])
                     used.add(j)
-            if len(group) >= 2 and len(set(len(g.control_qubits) for g in group)) > 1:
+            if len(group) >= 2 and len(set(len(g[2]) for g in group)) > 1:
                 groups.append(group)
                 used.add(i)
         return groups
 
-    def _expand_pattern(
-        self, pattern: str, gate_ctrls: List[int], superset: List[int]
-    ) -> List[str]:
-        """Expand pattern to superset of control qubits."""
+    def _expand_pattern(self, ctrl_state, gate_ctrls, superset):
+        """Expand a control pattern to a superset of control qubits."""
         missing = [q for q in superset if q not in gate_ctrls]
         if not missing:
-            return [pattern]
+            return [ctrl_state]
         expanded = []
+        gate_ctrl_set = set(gate_ctrls)
         for combo in range(2 ** len(missing)):
-            p, pi, ci = "", 0, 0
-            for q in superset:
-                if q in gate_ctrls:
-                    p += pattern[pi]
-                    pi += 1
+            p = 0
+            gate_bit_idx = 0
+            miss_bit_idx = 0
+            for sup_idx, q in enumerate(superset):
+                if q in gate_ctrl_set:
+                    if ctrl_state & (1 << gate_bit_idx):
+                        p |= 1 << sup_idx
+                    gate_bit_idx += 1
                 else:
-                    p += str((combo >> ci) & 1)
-                    ci += 1
+                    if (combo >> miss_bit_idx) & 1:
+                        p |= 1 << sup_idx
+                    miss_bit_idx += 1
             expanded.append(p)
         return expanded
 
-    def _build_gate(self, base_gate, params, ctrl_qubits, target_qubits, ctrl_state) -> Tuple:
-        """Build a controlled gate."""
+    def _build_gate(self, base_gate, params, ctrl_qubits, target_qubits, ctrl_state):
+        """Build a ``(gate, qargs)`` tuple from the given parameters."""
         gate = base_gate(*params) if params else base_gate()
         if not ctrl_qubits:
             return (gate, target_qubits)
         return (
-            gate.control(len(ctrl_qubits), ctrl_state=ctrl_state[::-1]),
+            gate.control(len(ctrl_qubits), ctrl_state=ctrl_state, annotated=False),
             ctrl_qubits + target_qubits,
         )
 
-    def _build_optimized(self, group, optimizations, remaining) -> List[Tuple]:
-        """Build optimized gates for pairwise optimizations."""
-        bg = type(group[0].operation.base_gate)
-        params, tgt, all_c = group[0].params, group[0].target_qubits, group[0].control_qubits
+    def _build_optimized(self, group, optimizations, remaining):
+        """Translate pairwise optimization descriptions into gate operations."""
+        bg = type(group[0][1])  # base_gate type
+        params = group[0][5]  # params
+        tgt = group[0][3]  # target_qubits
+        all_c = group[0][2]  # control_qubits
         gates = []
         for opt in optimizations:
-            t, cp, cs = opt["type"], opt["control_positions"], opt["ctrl_state"]
+            t = opt["type"]
+            cp = opt["control_positions"]
+            cs = opt["ctrl_state"]
             cq = [all_c[p] for p in cp]
             if t == "complementary":
                 gates.append(self._build_gate(bg, params, cq, tgt, cs))
@@ -357,87 +440,119 @@ class ControlPatternSimplification(TransformationPass):
                     ]
                 )
             elif t == "xor_chain":
-                anc, tgts = all_c[opt["xor_anchor"]], [all_c[x] for x in opt["xor_targets"]]
+                anc = all_c[opt["xor_anchor"]]
+                tgts = [all_c[x] for x in opt["xor_targets"]]
                 for tc in tgts:
                     gates.append((CXGate(), [anc, tc]))
                 gates.append(self._build_gate(bg, params, cq, tgt, cs))
                 for tc in reversed(tgts):
                     gates.append((CXGate(), [anc, tc]))
-        # Remaining patterns
-        rem_int = {int(p, 2) for p in remaining}
+        # Remaining unmatched patterns
+        rem_set = set(remaining)
         for g in group:
-            if int(g.ctrl_state, 2) in rem_int:
-                gates.append((g.operation, g.control_qubits + g.target_qubits))
+            if g[4] in rem_set:  # ctrl_state
+                gates.append((g[0].op, [g[2][i] for i in range(len(g[2]))] + g[3]))
         return gates or None
 
-    def run(self, dag: DAGCircuit) -> DAGCircuit:
-        """Run the ControlPatternSimplification pass."""
-        to_apply = []
+    def run(self, dag):
+        """Run the ControlPatternSimplification pass on ``dag``.
+
+        Args:
+            dag (DAGCircuit): the DAG to be optimized.
+
+        Returns:
+            DAGCircuit: the optimized DAG.
+        """
+        # Identify groups of gates to optimize and their replacements.
+        # Use _node_id (stable DAG node identifier) as keys.
+        nodes_to_replace = {}
         for run in self._collect_gates(dag):
             used = set()
             # Mixed control counts
             for group in self._group_mixed_controls(run):
-                superset = sorted(set().union(*(set(g.control_qubits) for g in group)))
+                all_ctrls = sorted(set().union(*(set(g[2]) for g in group)))
                 expanded = []
                 for g in group:
-                    expanded.extend(self._expand_pattern(g.ctrl_state, g.control_qubits, superset))
-                if len(set(expanded)) == 2 ** len(superset):
-                    bg = type(group[0].operation.base_gate)
-                    to_apply.append(
-                        (
-                            group,
-                            [self._build_gate(bg, group[0].params, [], group[0].target_qubits, "")],
-                        )
-                    )
-                    used.update(id(g) for g in group)
+                    expanded.extend(self._expand_pattern(g[4], g[2], all_ctrls))
+                if len(set(expanded)) == 2 ** len(all_ctrls):
+                    bg = type(group[0][1])
+                    repl = [self._build_gate(bg, group[0][5], [], group[0][3], 0)]
+                    nodes_to_replace[group[0][0]._node_id] = repl
+                    for g in group[1:]:
+                        nodes_to_replace[g[0]._node_id] = None
+                    used.update(g[0]._node_id for g in group)
+
             # Same control qubits
-            remaining = [g for g in run if id(g) not in used]
-            for group in self._group_same_controls(remaining):
-                patterns = [g.ctrl_state for g in group]
-                nq, unique = len(group[0].control_qubits), set(patterns)
+            remaining_gates = [g for g in run if g[0]._node_id not in used]
+            for group in self._group_same_controls(remaining_gates):
+                patterns = [g[4] for g in group]
+                nq = len(group[0][2])
+                unique = set(patterns)
                 g0 = group[0]
-                bg, params, ctrls, tgt = (
-                    type(g0.operation.base_gate),
-                    g0.params,
-                    g0.control_qubits,
-                    g0.target_qubits,
-                )
+                bg = type(g0[1])
+                params = g0[5]
+                ctrls = g0[2]
+                tgt = g0[3]
+
                 repl = None
-                if len(unique) == 1:  # Merge angles
-                    repl = [
-                        self._build_gate(
-                            bg,
-                            (sum(g.params[0] for g in group),) if params else (),
-                            ctrls,
-                            tgt,
-                            g0.ctrl_state,
-                        )
-                    ]
+                if len(unique) == 1:
+                    # All gates have the same ctrl_state: merge angles
+                    merged_params = (sum(g[5][0] for g in group),) if params else ()
+                    repl = [self._build_gate(bg, merged_params, ctrls, tgt, g0[4])]
                 else:
-                    cls, info, cs = BitwisePatternAnalyzer(nq).simplify_patterns(patterns)
-                    if cls == "single" and info:
-                        repl = [self._build_gate(bg, params, [ctrls[info[0]]], tgt, cs)]
-                    elif cls == "and" and info:
-                        repl = [self._build_gate(bg, params, [ctrls[i] for i in info], tgt, cs)]
-                    elif cls == "unconditional":
-                        repl = [self._build_gate(bg, params, [], tgt, "")]
-                    elif cls == "complement" and info:
-                        neg = tuple(-p for p in params) if params else ()
-                        repl = [
-                            self._build_gate(bg, params, [], tgt, ""),
-                            self._build_gate(bg, neg, [ctrls[i] for i in info], tgt, cs),
-                        ]
-                    elif cls == "pairwise_iterative" and info:
-                        repl = self._build_optimized(
-                            group, info["optimizations"], info["remaining_patterns"]
-                        )
-                    elif cls == "pairwise" and info:
-                        repl = self._build_optimized(group, info, [])
+                    # Check for duplicate patterns: merge them first
+                    from collections import Counter
+
+                    counts = Counter(patterns)
+                    has_duplicates = any(c > 1 for c in counts.values())
+                    if has_duplicates:
+                        # Merge duplicate patterns by summing angles, keep
+                        # unique patterns as-is. Only proceed with pattern
+                        # simplification on the unique-count subset.
+                        repl = []
+                        for cs_val, cnt in counts.items():
+                            if cnt > 1 and params:
+                                mp = (params[0] * cnt,) + params[1:]
+                            else:
+                                mp = params
+                            repl.append(self._build_gate(bg, mp, ctrls, tgt, cs_val))
+                    else:
+                        # Each pattern appears exactly once: safe to simplify
+                        cls, info, cs = BitwisePatternAnalyzer(nq).simplify_patterns(patterns)
+                        if cls == "single" and info:
+                            repl = [self._build_gate(bg, params, [ctrls[info[0]]], tgt, cs)]
+                        elif cls == "and" and info:
+                            repl = [self._build_gate(bg, params, [ctrls[i] for i in info], tgt, cs)]
+                        elif cls == "unconditional":
+                            repl = [self._build_gate(bg, params, [], tgt, 0)]
+                        elif cls == "complement" and info:
+                            neg = tuple(-p for p in params) if params else ()
+                            repl = [
+                                self._build_gate(bg, params, [], tgt, 0),
+                                self._build_gate(bg, neg, [ctrls[i] for i in info], tgt, cs),
+                            ]
+                        elif cls == "pairwise_iterative" and info:
+                            repl = self._build_optimized(
+                                group, info["optimizations"], info["remaining_patterns"]
+                            )
+                        elif cls == "pairwise" and info:
+                            repl = self._build_optimized(group, info, [])
+
                 if repl:
-                    to_apply.append((group, repl))
-        for group, repl in to_apply:
-            for g in group:
-                dag.remove_op_node(g.node)
-            for gate, qargs in repl:
-                dag.apply_operation_back(gate, [dag.qubits[i] for i in qargs])
-        return dag
+                    nodes_to_replace[group[0][0]._node_id] = repl
+                    for g in group[1:]:
+                        nodes_to_replace[g[0]._node_id] = None
+
+        # Build a new DAG preserving topological order
+        new_dag = dag.copy_empty_like()
+        for node in dag.topological_op_nodes():
+            nid = node._node_id
+            if nid in nodes_to_replace:
+                replacement = nodes_to_replace[nid]
+                if replacement is not None:
+                    for gate, qargs in replacement:
+                        new_dag.apply_operation_back(gate, [new_dag.qubits[i] for i in qargs])
+            else:
+                new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
+
+        return new_dag
