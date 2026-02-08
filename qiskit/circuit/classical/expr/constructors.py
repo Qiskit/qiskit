@@ -762,3 +762,33 @@ Duration())
         right,
         type,
     )
+
+
+def negate(operand: typing.Any, /) -> Expr:
+    """Negate an expression node from the given value, resolving any implicit casts and
+    lifting the value into a :class:`Value` node if required.
+    
+    Examples:
+        Negation of a floating point number::
+
+            >>> from qiskit.circuit.classical import expr
+            >>> expr.negate(5.0)
+            Unary(\
+Unary.Op.NEGATE, \
+Value(5.0, Float()), \
+Float())
+
+        Negation of a duration::
+
+            >>> from qiskit.circuit import Duration
+            >>> from qiskit.circuit.classical import expr
+            >>> expr.negate(Duration.dt(1000))
+            Unary(\
+Unary.Op.NEGATE, \
+Value(Duration.dt(1000), Duration()), \
+Duration())
+    """
+    operand = lift(operand)
+    if operand.type.kind not in (types.Float, types.Duration):
+        raise TypeError(f"cannot apply '{Unary.Op.NEGATE}' to type '{operand.type}'")
+    return Unary(Unary.Op.NEGATE, operand, operand.type)
