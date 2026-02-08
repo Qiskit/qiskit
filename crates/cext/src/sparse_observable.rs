@@ -623,7 +623,6 @@ pub unsafe extern "C" fn qk_obs_add(
 /// Behavior is undefined if ``left`` or ``right`` are not valid, non-null pointers to
 /// ``QkObs``\ s.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_obs_scaled_add(
     left: *const SparseObservable,
     right: *const SparseObservable,
@@ -658,7 +657,6 @@ pub unsafe extern "C" fn qk_obs_scaled_add(
 /// Behavior is undefined if ``left`` or ``right`` are not valid, non-null pointers to
 /// ``QkObs``\ s.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_obs_scaled_add_inplace(
     left: *mut SparseObservable,
     right: *const SparseObservable,
