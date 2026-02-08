@@ -1099,47 +1099,52 @@ pub fn py_run_substitute_pi4_rotations(
         let NodeType::Operation(inst) = &dag[node_index] else {
             unreachable!("dag.topological_op_nodes only returns Operations");
         };
-        if let OperationRef::StandardGate(gate) = inst.op.view() {
-            if gate.num_params() == 1 {
-                let k = rotation_to_pi_div(gate);
-                let num_qubits = gate.num_qubits();
-                if let Param::Float(angle) = inst.params_view()[0] {
-                    if let Some(multiple) = is_angle_close_to_multiple_of_pi_k(gate, k, angle, tol)
-                    {
-                        let (sequence, phase_update) = if num_qubits == 2 {
-                            let (sequence, phase_update) =
-                                replace_2q_rotation_by_discrete(gate, multiple);
-                            (sequence.to_vec(), phase_update)
-                        } else {
-                            // num_qubits == 1
-                            let (new_gate, phase_update) =
-                                replace_1q_rotation_by_discrete(gate, multiple);
+        let gate = if let OperationRef::StandardGate(gate) = inst.op.view() {
+            gate
+        } else {
+            new_dag.push_back(inst.clone())?;
+            continue;
+        };
 
-                            let qubit: &[u32] = &[0];
-                            let sequence = new_gate.iter().map(|g| (*g, qubit)).collect();
-                            (sequence, phase_update)
-                        };
-                        for (new_gate, qubits) in sequence {
-                            let original_qubits = dag.get_qargs(inst.qubits);
-                            let updated_qubits: Vec<Qubit> = qubits
-                                .iter()
-                                .map(|q| original_qubits[*q as usize])
-                                .collect();
-                            let new_qubits = new_dag.add_qargs(&updated_qubits);
-                            new_dag.push_back(PackedInstruction::from_standard_gate(
-                                new_gate, None, new_qubits,
-                            ))?;
-                        }
-                        global_phase_update += phase_update;
-                    } else {
-                        new_dag.push_back(inst.clone())?;
-                    }
-                } else {
-                    new_dag.push_back(inst.clone())?;
-                }
+        if gate.num_params() != 1 {
+            new_dag.push_back(inst.clone())?;
+            continue;
+        }
+
+        let angle = if let Param::Float(angle) = inst.params_view()[0] {
+            angle
+        } else {
+            new_dag.push_back(inst.clone())?;
+            continue;
+        };
+
+        let k = rotation_to_pi_div(gate);
+        let num_qubits = gate.num_qubits();
+
+        if let Some(multiple) = is_angle_close_to_multiple_of_pi_k(gate, k, angle, tol) {
+            let (sequence, phase_update) = if num_qubits == 2 {
+                let (sequence, phase_update) = replace_2q_rotation_by_discrete(gate, multiple);
+                (sequence.to_vec(), phase_update)
             } else {
-                new_dag.push_back(inst.clone())?;
+                // num_qubits == 1
+                let (new_gate, phase_update) = replace_1q_rotation_by_discrete(gate, multiple);
+
+                let qubit: &[u32] = &[0];
+                let sequence = new_gate.iter().map(|g| (*g, qubit)).collect();
+                (sequence, phase_update)
+            };
+            for (new_gate, qubits) in sequence {
+                let original_qubits = dag.get_qargs(inst.qubits);
+                let updated_qubits: Vec<Qubit> = qubits
+                    .iter()
+                    .map(|q| original_qubits[*q as usize])
+                    .collect();
+                let new_qubits = new_dag.add_qargs(&updated_qubits);
+                new_dag.push_back(PackedInstruction::from_standard_gate(
+                    new_gate, None, new_qubits,
+                ))?;
             }
+            global_phase_update += phase_update;
         } else {
             new_dag.push_back(inst.clone())?;
         }
