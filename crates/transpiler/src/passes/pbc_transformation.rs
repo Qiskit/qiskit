@@ -366,8 +366,7 @@ pub fn py_pbc_transformation(py: Python, dag: &mut DAGCircuit) -> PyResult<DAGCi
         let NodeType::Operation(inst) = &dag[node_index] else {
             unreachable!("dag.topological_op_nodes only returns Operations");
         };
-        if (inst.op.name() == "barrier") | (inst.op.name() == "reset") | (inst.op.name() == "delay")
-        {
+        if ["barrier", "reset", "delay"].contains(&inst.op.name()) {
             new_dag.push_back(inst.clone())?;
         } else if inst.op.name() == "measure" {
             let z = vec![true];
