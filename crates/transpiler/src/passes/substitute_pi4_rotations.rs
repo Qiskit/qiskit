@@ -1087,7 +1087,7 @@ pub fn py_run_substitute_pi4_rotations(
         return Ok(None);
     }
 
-    let mut new_dag = dag.copy_empty_like_with_capacity(0, 0, VarsMode::Alike, BlocksMode::Keep)?;
+    let mut new_dag = dag.copy_empty_like_with_capacity(0, 0, VarsMode::Alike, BlocksMode::Drop)?;
 
     // Iterate over nodes in the DAG and collect nodes that are rotation gates
     // with an angle that is sufficiently close to a multiple of pi/4
