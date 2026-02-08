@@ -42,6 +42,7 @@ from qiskit.transpiler.preset_passmanagers.plugin import (
 from qiskit.transpiler.passes.optimization import (
     Optimize1qGatesDecomposition,
     CommutativeCancellation,
+    CommutativeOptimization,
     ConsolidateBlocks,
     InverseCancellation,
     RemoveIdentityEquivalent,
@@ -152,11 +153,15 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                     ContractIdleWiresInControlFlow(),
                 ]
             )
-            init.append(CommutativeCancellation())
 
-            # We do not want to consolidate blocks for a Clifford+T basis set,
-            # since this involves resynthesizing 2-qubit unitaries.
-            if not pass_manager_config._is_clifford_t:
+            # For continuous basis sets, we now CommutativeOptimization instead of
+            # CommutativeCancellation. For Clifford+T transpilation, we still use
+            # CommutativeCancellation and disable consolidating
+            # blocks as this involves resynthesizing 2-qubit unitaries.
+            if pass_manager_config._is_clifford_t:
+                init.append(CommutativeCancellation())
+            else:
+                init.append(CommutativeOptimization())
                 init.append(ConsolidateBlocks())
 
             # If approximation degree is None that indicates a request to approximate up to the
@@ -531,10 +536,10 @@ class OptimizationPassManager(PassManagerStagePlugin):
                         approximation_degree=pass_manager_config.approximation_degree,
                         target=pass_manager_config.target,
                     ),
+                    CommutativeOptimization(),
                     Optimize1qGatesDecomposition(
                         basis=pass_manager_config.basis_gates, target=pass_manager_config.target
                     ),
-                    CommutativeCancellation(target=pass_manager_config.target),
                     ContractIdleWiresInControlFlow(),
                 ]
                 post_loop = []
@@ -559,10 +564,10 @@ class OptimizationPassManager(PassManagerStagePlugin):
                         approximation_degree=pass_manager_config.approximation_degree,
                         target=pass_manager_config.target,
                     ),
+                    CommutativeOptimization(),
                     Optimize1qGatesDecomposition(
                         basis=pass_manager_config.basis_gates, target=pass_manager_config.target
                     ),
-                    CommutativeCancellation(target=pass_manager_config.target),
                     ContractIdleWiresInControlFlow(),
                 ]
                 post_loop = []
