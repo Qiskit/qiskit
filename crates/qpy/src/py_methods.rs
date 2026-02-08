@@ -17,9 +17,7 @@ use pyo3::IntoPyObjectExt;
 use pyo3::exceptions::{PyIOError, PyTypeError, PyValueError};
 use pyo3::intern;
 use pyo3::prelude::*;
-use pyo3::types::{
-    PyAny, PyComplex, PyDict, PyFloat, PyInt, PyIterator, PyList, PyString, PyTuple,
-};
+use pyo3::types::{PyAny, PyComplex, PyDict, PyFloat, PyInt, PyList, PyString, PyTuple};
 use qiskit_circuit::classical::expr::Expr;
 use std::num::NonZero;
 use std::sync::Arc;
@@ -28,7 +26,7 @@ use qiskit_circuit::bit::{ClassicalRegister, ShareableClbit};
 use qiskit_circuit::classical;
 use qiskit_circuit::imports;
 use qiskit_circuit::operations::{Operation, OperationRef, PyRange};
-use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
+use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::parameter::parameter_expression::{
     PyParameter, PyParameterExpression, PyParameterVectorElement,
 };
@@ -478,35 +476,6 @@ pub(crate) fn py_pack_param(
         Endian::Little => serialize_generic_value(&value.as_le(), qpy_data)?,
     };
     Ok(formats::GenericDataPack { type_key, data })
-}
-
-pub(crate) fn py_get_instruction_annotations(
-    instruction: &PackedInstruction,
-    qpy_data: &mut QPYWriteData,
-) -> PyResult<Option<formats::InstructionsAnnotationPack>> {
-    Python::attach(|py| {
-        if let OperationRef::Instruction(inst) = instruction.op.view() {
-            let op = inst.instruction.bind(py);
-            if op.is_instance(imports::CONTROL_FLOW_BOX_OP.get_bound(py))? {
-                let annotations_iter = PyIterator::from_object(&op.getattr("annotations")?)?;
-                let annotations: Vec<formats::InstructionAnnotationPack> = annotations_iter
-                    .map(|annotation| {
-                        let (namespace_index, payload) = qpy_data
-                            .annotation_handler
-                            .serialize(&annotation?.unbind())?;
-                        Ok(formats::InstructionAnnotationPack {
-                            namespace_index,
-                            payload,
-                        })
-                    })
-                    .collect::<PyResult<_>>()?;
-                if !annotations.is_empty() {
-                    return Ok(Some(formats::InstructionsAnnotationPack { annotations }));
-                }
-            }
-        }
-        Ok(None)
-    })
 }
 
 pub(crate) fn py_pack_modifier(modifier: &Py<PyAny>) -> PyResult<formats::ModifierPack> {
