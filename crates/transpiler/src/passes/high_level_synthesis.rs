@@ -787,8 +787,7 @@ fn extract_definition(op: &PackedOperation, params: &[Param]) -> PyResult<Option
             }
         }
         OperationRef::StandardGate(g) => Ok(g.definition(params)),
-        OperationRef::Gate(g) => Ok(g.definition()),
-        OperationRef::Instruction(i) => Ok(i.definition()),
+        OperationRef::PyCustom(i) => Ok(i.definition()),
         OperationRef::PauliProductMeasurement(ppm) => Ok(Some(synthesize_ppm(ppm)?)),
         OperationRef::StandardInstruction(i) => match i {
             StandardInstruction::Measure
@@ -796,7 +795,7 @@ fn extract_definition(op: &PackedOperation, params: &[Param]) -> PyResult<Option
             | StandardInstruction::Barrier(_)
             | StandardInstruction::Delay(_) => Ok(None),
         },
-        OperationRef::ControlFlow(_) | OperationRef::Operation(_) => Ok(None),
+        OperationRef::ControlFlow(_) => Ok(None),
     }
 }
 
@@ -939,9 +938,7 @@ fn synthesize_op_using_plugins(
         OperationRef::StandardInstruction(instruction) => instruction
             .create_py_op(py, Some(params.iter().cloned().collect()), label)?
             .into_any(),
-        OperationRef::Gate(gate) => gate.instruction.clone_ref(py),
-        OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
-        OperationRef::Operation(operation) => operation.instruction.clone_ref(py),
+        OperationRef::PyCustom(inst) => inst.ob.clone_ref(py),
         OperationRef::Unitary(unitary) => unitary.create_py_op(py, label)?.into_any(),
         OperationRef::PauliProductMeasurement(ppm) => ppm.create_py_op(py, label)?.into_any(),
     };

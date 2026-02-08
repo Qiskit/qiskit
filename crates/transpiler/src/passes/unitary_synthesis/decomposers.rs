@@ -43,7 +43,9 @@ use crate::passes::optimize_clifford_t::CLIFFORD_T_GATE_NAMES;
 use crate::target::{NormalOperation, Target, TargetOperation};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::instruction::Instruction;
-use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
+use qiskit_circuit::operations::{
+    Operation, OperationRef, Param, PyInstruction, PyOpKind, StandardGate,
+};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{PhysicalQubit, imports};
 use qiskit_synthesis::discrete_basis::solovay_kitaev::SolovayKitaevSynthesis;
@@ -202,7 +204,7 @@ impl StaticKakSource {
                     .collect::<Vec<_>>();
                 g.matrix(&params).map(CowArray::from)
             }
-            OperationRef::Gate(g) => g.matrix().map(CowArray::from),
+            OperationRef::PyCustom(i) => i.matrix().map(CowArray::from),
             OperationRef::Unitary(u) => Some(CowArray::from(u.matrix_view())),
             _ => None,
         }
@@ -675,8 +677,12 @@ fn get_2q_decomposers(
                     OperationRef::StandardGate(standard @ super::PARAM_SET!()) => {
                         RXXEquivalent::Standard(standard)
                     }
-                    OperationRef::Gate(gate) => Python::attach(|py| {
-                        RXXEquivalent::CustomPython(gate.instruction.bind(py).get_type().unbind())
+                    OperationRef::PyCustom(PyInstruction {
+                        kind: PyOpKind::Gate,
+                        ob,
+                        ..
+                    }) => Python::attach(|py| {
+                        RXXEquivalent::CustomPython(ob.bind(py).get_type().unbind())
                     }),
                     _ => continue,
                 };

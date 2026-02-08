@@ -311,14 +311,13 @@ fn try_merge(
 
     // Special handling for PauliEvolutionGates.
     if inst1.op.name() == "PauliEvolution" && inst2.op.name() == "PauliEvolution" {
-        if let (OperationRef::Gate(py_gate1), OperationRef::Gate(py_gate2)) =
+        if let (OperationRef::PyCustom(py_gate1), OperationRef::PyCustom(py_gate2)) =
             (inst1.op.view(), inst2.op.view())
         {
             let merged_instruction = Python::attach(|py| -> PyResult<Option<PackedInstruction>> {
-                let merge_result = imports::MERGE_TWO_PAULI_EVOLUTIONS.get_bound(py).call1((
-                    py_gate1.instruction.clone_ref(py),
-                    py_gate2.instruction.clone_ref(py),
-                ))?;
+                let merge_result = imports::MERGE_TWO_PAULI_EVOLUTIONS
+                    .get_bound(py)
+                    .call1((py_gate1.ob.clone_ref(py), py_gate2.ob.clone_ref(py)))?;
 
                 if merge_result.is_none() {
                     Ok(None)

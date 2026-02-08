@@ -17,7 +17,7 @@ use std::sync::OnceLock;
 use crate::TupleLikeArg;
 use crate::circuit_data::CircuitData;
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython, extract_params};
-use crate::operations::{Operation, OperationRef, Param, PyOperationTypes, PythonOperation};
+use crate::operations::{Operation, OperationRef, Param};
 
 use ahash::AHasher;
 use approx::relative_eq;
@@ -253,22 +253,7 @@ impl DAGOpNode {
         deepcopy: bool,
     ) -> PyResult<Py<PyAny>> {
         if deepcopy {
-            instruction.operation = match instruction.operation.view() {
-                OperationRef::ControlFlow(cf) => cf.clone().into(),
-                OperationRef::Gate(gate) => {
-                    PyOperationTypes::Gate(gate.py_deepcopy(py, None)?).into()
-                }
-                OperationRef::Instruction(instruction) => {
-                    PyOperationTypes::Instruction(instruction.py_deepcopy(py, None)?).into()
-                }
-                OperationRef::Operation(operation) => {
-                    PyOperationTypes::Operation(operation.py_deepcopy(py, None)?).into()
-                }
-                OperationRef::StandardGate(gate) => gate.into(),
-                OperationRef::StandardInstruction(instruction) => instruction.into(),
-                OperationRef::Unitary(unitary) => unitary.clone().into(),
-                OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
-            };
+            instruction.operation = instruction.operation.py_deepcopy(py, None)?;
             #[cfg(feature = "cache_pygates")]
             {
                 instruction.py_op = OnceLock::new();
@@ -306,22 +291,7 @@ impl DAGOpNode {
     fn _to_circuit_instruction(&self, py: Python, deepcopy: bool) -> PyResult<CircuitInstruction> {
         Ok(CircuitInstruction {
             operation: if deepcopy {
-                match self.instruction.operation.view() {
-                    OperationRef::Gate(gate) => {
-                        PyOperationTypes::Gate(gate.py_deepcopy(py, None)?).into()
-                    }
-                    OperationRef::Instruction(instruction) => {
-                        PyOperationTypes::Instruction(instruction.py_deepcopy(py, None)?).into()
-                    }
-                    OperationRef::Operation(operation) => {
-                        PyOperationTypes::Operation(operation.py_deepcopy(py, None)?).into()
-                    }
-                    OperationRef::ControlFlow(cf) => cf.clone().into(),
-                    OperationRef::StandardGate(gate) => gate.into(),
-                    OperationRef::StandardInstruction(instruction) => instruction.into(),
-                    OperationRef::Unitary(unitary) => unitary.clone().into(),
-                    OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
-                }
+                self.instruction.operation.py_deepcopy(py, None)?
             } else {
                 self.instruction.operation.clone()
             },
@@ -445,8 +415,7 @@ impl DAGOpNode {
     fn definition<'py>(&self, py: Python<'py>) -> PyResult<Option<Bound<'py, PyAny>>> {
         let definition = match self.instruction.operation.view() {
             OperationRef::StandardGate(g) => g.definition(self.instruction.params_view()),
-            OperationRef::Gate(g) => g.definition(),
-            OperationRef::Instruction(i) => i.definition(),
+            OperationRef::PyCustom(i) => i.definition(),
             _ => None,
         };
         definition

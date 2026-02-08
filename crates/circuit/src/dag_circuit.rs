@@ -33,8 +33,8 @@ use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::ObjectRegistry;
 use crate::operations::{
     ArrayType, BoxDuration, Condition, ControlFlow, ControlFlowInstruction, ControlFlowView,
-    Operation, OperationRef, Param, PyOperationTypes, PythonOperation, StandardGate,
-    StandardInstruction, SwitchTarget,
+    Operation, OperationRef, Param, PyInstruction, PyOpKind, StandardGate, StandardInstruction,
+    SwitchTarget,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::ParameterExpression;
@@ -2537,51 +2537,45 @@ impl DAGCircuit {
                                     }
                                     _ => false,
                                 } && check_args()),
-                                [
-                                    OperationRef::Instruction(op1),
-                                    OperationRef::Instruction(op2),
-                                ] => {
-                                    Ok(op1.instruction.bind(py).eq(&op2.instruction)?
-                                        && check_args())
-                                }
-                                [OperationRef::Gate(op1), OperationRef::Gate(op2)] => {
-                                    Ok(op1.instruction.bind(py).eq(&op2.instruction)?
-                                        && check_args())
-                                }
-                                [OperationRef::Operation(op1), OperationRef::Operation(op2)] => {
-                                    Ok(op1.instruction.bind(py).eq(&op2.instruction)?
-                                        && check_args())
+                                [OperationRef::PyCustom(op1), OperationRef::PyCustom(op2)] => {
+                                    Ok(op1.ob.bind(py).eq(&op2.ob)? && check_args())
                                 }
                                 // Handle the edge case where we end up with a Python object and a standard
                                 // gate/instruction.
                                 // This typically only happens if we have a ControlledGate in Python
                                 // and we have mutable state set.
-                                [OperationRef::StandardGate(_), OperationRef::Gate(op2)] => {
-                                    Ok(slf.unpack_py_op(py, inst1)?.bind(py).eq(&op2.instruction)?
-                                        && check_args())
-                                }
-                                [OperationRef::Gate(op1), OperationRef::StandardGate(_)] => {
-                                    Ok(other
-                                        .unpack_py_op(py, inst2)?
-                                        .bind(py)
-                                        .eq(&op1.instruction)?
-                                        && check_args())
-                                }
+                                [
+                                    OperationRef::StandardGate(_),
+                                    OperationRef::PyCustom(PyInstruction {
+                                        kind: PyOpKind::Gate,
+                                        ob,
+                                        ..
+                                    }),
+                                ] => Ok(slf.unpack_py_op(py, inst1)?.eq(ob)? && check_args()),
+                                [
+                                    OperationRef::PyCustom(PyInstruction {
+                                        kind: PyOpKind::Gate,
+                                        ob,
+                                        ..
+                                    }),
+                                    OperationRef::StandardGate(_),
+                                ] => Ok(other.unpack_py_op(py, inst2)?.eq(ob)? && check_args()),
                                 [
                                     OperationRef::StandardInstruction(_),
-                                    OperationRef::Instruction(op2),
-                                ] => {
-                                    Ok(slf.unpack_py_op(py, inst1)?.bind(py).eq(&op2.instruction)?
-                                        && check_args())
-                                }
+                                    OperationRef::PyCustom(PyInstruction {
+                                        kind: PyOpKind::Instruction,
+                                        ob,
+                                        ..
+                                    }),
+                                ] => Ok(slf.unpack_py_op(py, inst1)?.eq(ob)? && check_args()),
                                 [
-                                    OperationRef::Instruction(op1),
+                                    OperationRef::PyCustom(PyInstruction {
+                                        kind: PyOpKind::Instruction,
+                                        ob,
+                                        ..
+                                    }),
                                     OperationRef::StandardInstruction(_),
-                                ] => Ok(other
-                                    .unpack_py_op(py, inst2)?
-                                    .bind(py)
-                                    .eq(&op1.instruction)?
-                                    && check_args()),
+                                ] => Ok(other.unpack_py_op(py, inst2)?.eq(ob)? && check_args()),
                                 [OperationRef::Unitary(op_a), OperationRef::Unitary(op_b)] => {
                                     match [&op_a.array, &op_b.array] {
                                         [ArrayType::NDArray(a), ArrayType::NDArray(b)] => Ok(
@@ -2819,14 +2813,8 @@ impl DAGCircuit {
                     OperationRef::StandardInstruction(right),
                 ) => Ok(left == right),
                 (OperationRef::Unitary(left), OperationRef::Unitary(right)) => Ok(left == right),
-                (OperationRef::Gate(left), OperationRef::Gate(right)) => {
-                    Python::attach(|py| left.instruction.bind(py).eq(&right.instruction))
-                }
-                (OperationRef::Instruction(left), OperationRef::Instruction(right)) => {
-                    Python::attach(|py| left.instruction.bind(py).eq(&right.instruction))
-                }
-                (OperationRef::Operation(left), OperationRef::Operation(right)) => {
-                    Python::attach(|py| left.instruction.bind(py).eq(&right.instruction))
+                (OperationRef::PyCustom(left), OperationRef::PyCustom(right)) => {
+                    Python::attach(|py| left.ob.bind(py).eq(&right.ob))
                 }
                 _ => Ok(false),
             }
@@ -3779,9 +3767,11 @@ impl DAGCircuit {
             .node_references()
             .filter_map(|(node, weight)| match weight {
                 NodeType::Operation(packed) => match packed.op.view() {
-                    OperationRef::Gate(_) | OperationRef::StandardGate(_) => {
-                        Some(self.unpack_into(py, node, weight))
-                    }
+                    OperationRef::PyCustom(PyInstruction {
+                        kind: PyOpKind::Gate,
+                        ..
+                    })
+                    | OperationRef::StandardGate(_) => Some(self.unpack_into(py, node, weight)),
                     _ => None,
                 },
                 _ => None,
@@ -5095,7 +5085,11 @@ impl DAGCircuit {
     /// and condition will not be propagated back.
     ///
     /// Panics if `node` does not refer to an operation.
-    pub fn unpack_py_op(&self, py: Python, instr: &PackedInstruction) -> PyResult<Py<PyAny>> {
+    pub fn unpack_py_op<'py>(
+        &self,
+        py: Python<'py>,
+        instr: &PackedInstruction,
+    ) -> PyResult<Bound<'py, PyAny>> {
         // `OnceLock::get_or_init` and the non-stabilised `get_or_try_init`, which would otherwise
         // be nice here are both non-reentrant.  This is a problem if the init yields control to the
         // Python interpreter as this one does, since that can allow CPython to freeze the thread
@@ -5103,7 +5097,7 @@ impl DAGCircuit {
         #[cfg(feature = "cache_pygates")]
         {
             if let Some(ob) = instr.py_op.get() {
-                return Ok(ob.clone_ref(py));
+                return Ok(ob.bind(py).clone());
             }
         }
         let out = instruction::create_py_op(
@@ -5117,7 +5111,7 @@ impl DAGCircuit {
         // interpreted Python code for a standard gate, so we need to take care that some other
         // Python thread might have populated the cache before we do.
         let _ = instr.py_op.set(out.clone_ref(py));
-        Ok(out)
+        Ok(out.into_bound(py))
     }
 
     pub fn new() -> Self {
@@ -5946,9 +5940,11 @@ impl DAGCircuit {
                     OperationRef::StandardGate(gate) => {
                         Ok(Some(gate.num_qubits() <= 2 && !inst.is_parameterized()))
                     }
-                    OperationRef::Gate(gate) => {
-                        Ok(Some(gate.num_qubits() <= 2 && !inst.is_parameterized()))
-                    }
+                    OperationRef::PyCustom(PyInstruction {
+                        kind: PyOpKind::Gate,
+                        qubits: ..=2,
+                        ..
+                    }) => Ok(Some(!inst.is_parameterized())),
                     OperationRef::Unitary(gate) => Ok(Some(gate.num_qubits() <= 2)),
                     _ => Ok(Some(false)),
                 },
@@ -6337,13 +6333,15 @@ impl DAGCircuit {
     }
 
     fn may_have_additional_wires(&self, instr: &PackedInstruction) -> bool {
-        if instr.op.try_control_flow().is_some() {
-            return true;
+        match instr.op.view() {
+            OperationRef::ControlFlow(_) => true,
+            OperationRef::PyCustom(PyInstruction {
+                kind: PyOpKind::Instruction,
+                op_name,
+                ..
+            }) => op_name == "store",
+            _ => false,
         }
-        let OperationRef::Instruction(inst) = instr.op.view() else {
-            return false;
-        };
-        inst.op_name == "store"
     }
 
     fn additional_wires(
@@ -6426,8 +6424,8 @@ impl DAGCircuit {
                     vars.push(self.vars.find(var).unwrap());
                 }
             }
-        } else if let OperationRef::Instruction(instr) = instr.op.view() {
-            let op = instr.instruction.bind(py);
+        } else if let OperationRef::PyCustom(instr) = instr.op.view() {
+            let op = instr.ob.bind(py);
             if op.is_instance(imports::STORE_OP.get_bound(py))? {
                 let (expr_clbits, expr_vars) = wires_from_expr(&op.getattr("lvalue")?.extract()?)?;
                 for bit in expr_clbits {
@@ -7865,29 +7863,7 @@ impl DAGCircuit {
         new_dag.try_extend(qc_data.iter().map(|instr| -> PyResult<PackedInstruction> {
             Ok(PackedInstruction {
                 op: if copy_op {
-                    match instr.op.view() {
-                        OperationRef::ControlFlow(cf) => cf.clone().into(),
-                        OperationRef::Gate(gate) => {
-                            PyOperationTypes::Gate(Python::attach(|py| gate.py_deepcopy(py, None))?)
-                                .into()
-                        }
-                        OperationRef::Instruction(instruction) => {
-                            PyOperationTypes::Instruction(Python::attach(|py| {
-                                instruction.py_deepcopy(py, None)
-                            })?)
-                            .into()
-                        }
-                        OperationRef::Operation(operation) => {
-                            PyOperationTypes::Operation(Python::attach(|py| {
-                                operation.py_deepcopy(py, None)
-                            })?)
-                            .into()
-                        }
-                        OperationRef::StandardGate(gate) => gate.into(),
-                        OperationRef::StandardInstruction(instruction) => instruction.into(),
-                        OperationRef::Unitary(unitary) => unitary.clone().into(),
-                        OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
-                    }
+                    instr.op.clone_with_py_deepcopy()?
                 } else {
                     instr.op.clone()
                 },

@@ -34,7 +34,7 @@ use qiskit_circuit::imports::QI_OPERATOR;
 use qiskit_circuit::instruction::{Instruction, Parameters};
 use qiskit_circuit::object_registry::ObjectRegistry;
 use qiskit_circuit::operations::{
-    Operation, OperationRef, Param, STANDARD_GATE_SIZE, StandardGate,
+    Operation, OperationRef, Param, PyOpKind, STANDARD_GATE_SIZE, StandardGate,
 };
 use qiskit_circuit::{Clbit, Qubit};
 use qiskit_quantum_info::unitary_compose;
@@ -135,7 +135,7 @@ fn try_extract_op_from_pauli_gate(
     qubits: &[Qubit],
     num_qubits: u32,
 ) -> Option<SparseObservable> {
-    let OperationRef::Gate(gate) = pauli_gate else {
+    let OperationRef::PyCustom(gate) = pauli_gate else {
         // Gate is called "pauli" but is not a Python gate
         return None;
     };
@@ -145,7 +145,7 @@ fn try_extract_op_from_pauli_gate(
     // In that case we return None.
     Python::attach(|py| {
         let py_obs = gate
-            .instruction
+            .ob
             .call_method0(py, intern!(py, "_extract_sparse_observable"))
             .ok()? // Return None if the method didn't exist
             .cast_bound::<PySparseObservable>(py)
@@ -163,14 +163,14 @@ fn try_extract_op_from_pauli_evo(
     qubits: &[Qubit],
     num_qubits: u32,
 ) -> Option<SparseObservable> {
-    let OperationRef::Gate(gate) = operation else {
+    let OperationRef::PyCustom(gate) = operation else {
         // Gate is called "PauliEvo" but is not a Python gate
         return None;
     };
 
     Python::attach(|py| {
         let py_obs = gate
-            .instruction
+            .ob
             .call_method0(py, intern!(py, "_extract_sparse_observable"))
             .ok()? // Return None if the method didn't exist
             .cast_bound::<PySparseObservable>(py)
@@ -778,13 +778,11 @@ fn commutation_precheck(
         }
     }
 
-    if matches!(
-        op1,
-        OperationRef::StandardInstruction(_) | OperationRef::Instruction(_)
-    ) || matches!(
-        op2,
-        OperationRef::StandardInstruction(_) | OperationRef::Instruction(_)
-    ) {
+    if [op1, op2].iter().any(|op| match op {
+        OperationRef::StandardInstruction(_) => true,
+        OperationRef::PyCustom(inst) => inst.kind == PyOpKind::Instruction,
+        _ => false,
+    }) {
         return PrecheckStatus::NonCommuting;
     }
 
@@ -811,41 +809,19 @@ pub fn try_matrix_with_definition(
     match operation {
         OperationRef::StandardGate(gate) => gate.matrix(params),
         OperationRef::Unitary(unitary) => unitary.matrix(),
-        OperationRef::Gate(gate) => Python::attach(|py| -> Option<_> {
-            if let Some(matrix) = gate.matrix() {
+        OperationRef::PyCustom(inst) => Python::attach(|py| -> Option<_> {
+            if let Some(matrix) = inst.matrix() {
                 return Some(matrix);
             }
-
-            if matrix_from_definition_max_qubits
-                .is_some_and(|max_qubits| max_qubits < operation.num_qubits())
+            if matrix_from_definition_max_qubits.is_some_and(|max| max < inst.qubits)
+                || inst.kind == PyOpKind::Instruction
             {
                 return None;
             }
-
             Some(
                 QI_OPERATOR
                     .get_bound(py)
-                    .call1((gate.instruction.clone_ref(py),))
-                    .ok()?
-                    .getattr(intern!(py, "data"))
-                    .ok()?
-                    .extract::<PyReadonlyArray2<Complex64>>()
-                    .ok()?
-                    .as_array()
-                    .to_owned(),
-            )
-        }),
-        OperationRef::Operation(operation) => Python::attach(|py| -> Option<_> {
-            if matrix_from_definition_max_qubits
-                .is_some_and(|max_qubits| max_qubits < operation.num_qubits())
-            {
-                return None;
-            }
-
-            Some(
-                QI_OPERATOR
-                    .get_bound(py)
-                    .call1((operation.instruction.clone_ref(py),))
+                    .call1((inst.ob.clone_ref(py),))
                     .ok()?
                     .getattr(intern!(py, "data"))
                     .ok()?

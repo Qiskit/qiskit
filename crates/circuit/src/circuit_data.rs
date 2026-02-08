@@ -29,8 +29,8 @@ use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
 use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::{ObjectRegistry, ObjectRegistryError};
 use crate::operations::{
-    ControlFlow, ControlFlowView, Operation, OperationRef, Param, PyOperationTypes,
-    PythonOperation, StandardGate,
+    ControlFlow, ControlFlowView, Operation, OperationRef, Param, PyOpKind, PythonOperation,
+    StandardGate,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::{ParameterError, ParameterExpression};
@@ -45,7 +45,7 @@ use crate::{
 use num_complex::Complex64;
 use numpy::PyReadonlyArray1;
 use pyo3::IntoPyObjectExt;
-use pyo3::exceptions::{PyTypeError, PyValueError};
+use pyo3::exceptions::{PyRuntimeError, PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyList, PySet, PyTuple, PyType};
 use pyo3::{PyTraverseError, PyVisit, import_exception, intern};
@@ -796,17 +796,8 @@ impl CircuitData {
             let memo = PyDict::new(py);
             for inst in &self.data {
                 let new_op = match inst.op.view() {
-                    OperationRef::Gate(gate) => {
-                        PyOperationTypes::Gate(gate.py_deepcopy(py, Some(&memo))?).into()
-                    }
                     OperationRef::ControlFlow(cf) => cf.clone().into(),
-                    OperationRef::Instruction(instruction) => {
-                        PyOperationTypes::Instruction(instruction.py_deepcopy(py, Some(&memo))?)
-                            .into()
-                    }
-                    OperationRef::Operation(operation) => {
-                        PyOperationTypes::Operation(operation.py_deepcopy(py, Some(&memo))?).into()
-                    }
+                    OperationRef::PyCustom(inst) => inst.py_deepcopy(py, Some(&memo))?.into(),
                     OperationRef::StandardGate(gate) => gate.into(),
                     OperationRef::StandardInstruction(instruction) => instruction.into(),
                     OperationRef::Unitary(unitary) => unitary.clone().into(),
@@ -825,13 +816,7 @@ impl CircuitData {
         } else if copy_instructions {
             for inst in &self.data {
                 let new_op = match inst.op.view() {
-                    OperationRef::Gate(gate) => PyOperationTypes::Gate(gate.py_copy(py)?).into(),
-                    OperationRef::Instruction(instruction) => {
-                        PyOperationTypes::Instruction(instruction.py_copy(py)?).into()
-                    }
-                    OperationRef::Operation(operation) => {
-                        PyOperationTypes::Operation(operation.py_copy(py)?).into()
-                    }
+                    OperationRef::PyCustom(inst) => inst.py_copy(py)?.into(),
                     OperationRef::ControlFlow(cf) => cf.clone().into(),
                     OperationRef::StandardGate(gate) => gate.into(),
                     OperationRef::StandardInstruction(instruction) => instruction.into(),
@@ -2154,27 +2139,15 @@ impl CircuitData {
     ///
     /// This is the logical equivalent of Python's `dag_to_circuit`.
     pub fn from_dag_ref_deepcopy(py: Python, dag: &DAGCircuit) -> Result<Self, CircuitDataError> {
+        let memo = PyDict::new(py);
         let mut out = Self::empty_like_from_dag(dag)?;
         out.data.reserve(dag.num_ops());
         for node in dag.topological_op_nodes(false) {
             let inst = dag[node].unwrap_operation();
-            let op = match inst.op.view() {
-                OperationRef::ControlFlow(_)
-                | OperationRef::StandardGate(_)
-                | OperationRef::StandardInstruction(_)
-                | OperationRef::Unitary(_)
-                | OperationRef::PauliProductMeasurement(_) => inst.op.clone(),
-                OperationRef::Gate(gate) => {
-                    PyOperationTypes::Gate(gate.py_deepcopy(py, None)?).into()
-                }
-                OperationRef::Instruction(inst) => {
-                    PyOperationTypes::Instruction(inst.py_deepcopy(py, None)?).into()
-                }
-                OperationRef::Operation(op) => {
-                    PyOperationTypes::Operation(op.py_deepcopy(py, None)?).into()
-                }
-            };
-            out.push(PackedInstruction { op, ..inst.clone() })?;
+            out.push(PackedInstruction {
+                op: inst.op.py_deepcopy(py, Some(&memo))?,
+                ..inst.clone()
+            })?;
         }
         Ok(out)
     }
@@ -2833,7 +2806,8 @@ impl CircuitData {
                 uuids.push(self.param_table.track(&inner_symbol, None)?)
             }
             for usage in uses {
-                match usage {
+                let (instruction, parameter) = match usage {
+                    // Peel off the global-phase handling first because it's much simpler.
                     ParameterUse::GlobalPhase => {
                         let Param::ParameterExpression(expr) = &self.global_phase else {
                             inconsistent()
@@ -2844,179 +2818,177 @@ impl CircuitData {
                             value.as_ref(),
                             true,
                         )?)?;
+                        continue;
                     }
                     ParameterUse::Index {
                         instruction,
                         parameter,
-                    } => {
-                        let parameter = parameter as usize;
-                        let previous_op = &self.data[instruction].op;
-                        if let OperationRef::StandardGate(standard) = previous_op.view() {
-                            let previous = &mut self.data[instruction];
-                            let params = previous.params_mut();
-                            let Param::ParameterExpression(expr) = &params[parameter] else {
-                                panic!("internal error: parameter table contains non-parameters");
-                            };
-                            let new_param = bind_expr(expr, &symbol, value.as_ref(), true)?;
+                    } => (instruction, parameter as usize),
+                };
+                let previous = &mut self.data[instruction];
+                match previous.op.view() {
+                    OperationRef::StandardGate(_)
+                    | OperationRef::StandardInstruction(_)
+                    | OperationRef::Unitary(_)
+                    | OperationRef::PauliProductMeasurement(_) => {
+                        let params = previous.params_mut();
+                        let Param::ParameterExpression(expr) = &params[parameter] else {
+                            panic!("internal error: parameter table contains non-parameters");
+                        };
+                        let new_param = bind_expr(expr, &symbol, value.as_ref(), true)?;
 
-                            // standard gates don't allow for complex parameters
-                            if let Param::Obj(expr) = &new_param {
-                                return Err(CircuitDataError::StandardGateParameterIsComplex(
-                                    standard.name().to_string(),
-                                    format!("{expr:?}"),
-                                ));
-                            }
-                            params[parameter] = new_param.clone();
-                            for uuid in uuids.iter() {
-                                self.param_table.add_use(*uuid, usage)?;
-                            }
-                            #[cfg(feature = "cache_pygates")]
-                            {
-                                // Standard gates can all rebuild their definitions, so if the
-                                // cached py_op exists, discard it to prompt the instruction
-                                // to rebuild its cached python gate upon request later on. This is
-                                // done to avoid an unintentional duplicated reference to the same gate
-                                // instance in python. For more information, see
-                                // https://github.com/Qiskit/qiskit/issues/13504
-                                previous.py_op.take();
-                            }
-                        } else if let OperationRef::ControlFlow(op) = previous_op.view() {
-                            let blocks = self.data[instruction].blocks_view();
-                            let block_to_edit = match &op.control_flow {
-                                ControlFlow::BreakLoop => inconsistent(),
-                                ControlFlow::ContinueLoop => inconsistent(),
-                                ControlFlow::ForLoop { .. } => {
-                                    match parameter {
-                                        // In Python land, the loop body exists at parameter
-                                        // position 2.
-                                        2 => blocks[0],
-                                        _ => inconsistent(),
-                                    }
+                        // standard gates don't allow for complex parameters
+                        if let Param::Obj(expr) = &new_param {
+                            return Err(CircuitDataError::StandardGateParameterIsComplex(
+                                previous.op.name().to_string(),
+                                format!("{expr:?}"),
+                            ));
+                        }
+                        params[parameter] = new_param.clone();
+                        for uuid in uuids.iter() {
+                            self.param_table.add_use(*uuid, usage)?;
+                        }
+                        #[cfg(feature = "cache_pygates")]
+                        {
+                            // Standard gates can all rebuild their definitions, so if the
+                            // cached py_op exists, discard it to prompt the instruction
+                            // to rebuild its cached python gate upon request later on. This is
+                            // done to avoid an unintentional duplicated reference to the same gate
+                            // instance in python. For more information, see
+                            // https://github.com/Qiskit/qiskit/issues/13504
+                            previous.py_op.take();
+                        }
+                    }
+                    OperationRef::ControlFlow(op) => {
+                        let blocks = previous.blocks_view();
+                        let block_to_edit = match &op.control_flow {
+                            ControlFlow::BreakLoop => inconsistent(),
+                            ControlFlow::ContinueLoop => inconsistent(),
+                            ControlFlow::ForLoop { .. } => {
+                                match parameter {
+                                    // In Python land, the loop body exists at parameter
+                                    // position 2.
+                                    2 => blocks[0],
+                                    _ => inconsistent(),
                                 }
-                                // Most control flow instructions use the parameters for
-                                // *just* their blocks.
-                                _ => blocks[parameter],
-                            };
-                            if !seen_blocks.contains(&block_to_edit) {
-                                self.blocks[block_to_edit]
-                                    .assign_single_parameter(symbol.clone(), value.as_ref())?;
-                                seen_blocks.insert(block_to_edit);
                             }
-                            for uuid in uuids.iter() {
-                                self.param_table.add_use(*uuid, usage)?
-                            }
-                            #[cfg(feature = "cache_pygates")]
-                            {
-                                let previous = &mut self.data[instruction];
-                                previous.py_op.take();
-                            }
-                        } else {
-                            // Track user operations we've seen so we can rebind their definitions.
-                            // Strictly this can add the same binding pair more than once, if an
-                            // instruction has the same `Parameter` in several of its `params`, but
-                            // we're going to turn that into a `dict` anyway, so it doesn't matter.
-                            user_operations
-                                .entry(instruction)
-                                .or_insert_with(Vec::new)
-                                .push((symbol.clone(), value.as_ref().clone()));
+                            // Most control flow instructions use the parameters for
+                            // *just* their blocks.
+                            _ => blocks[parameter],
+                        };
+                        if !seen_blocks.contains(&block_to_edit) {
+                            self.blocks[block_to_edit]
+                                .assign_single_parameter(symbol.clone(), value.as_ref())?;
+                            seen_blocks.insert(block_to_edit);
+                        }
+                        for uuid in uuids.iter() {
+                            self.param_table.add_use(*uuid, usage)?
+                        }
+                        #[cfg(feature = "cache_pygates")]
+                        {
+                            let previous = &mut self.data[instruction];
+                            previous.py_op.take();
+                        }
+                    }
+                    OperationRef::PyCustom(inst) => {
+                        // Track user operations we've seen so we can rebind their definitions.
+                        // Strictly this can add the same binding pair more than once, if an
+                        // instruction has the same `Parameter` in several of its `params`, but
+                        // we're going to turn that into a `dict` anyway, so it doesn't matter.
+                        user_operations
+                            .entry(instruction)
+                            .or_insert_with(Vec::new)
+                            .push((symbol.clone(), value.as_ref().clone()));
+                        // The separate Python-only attachment here is just a lifetime trick because
+                        // `previous` and `inst` share a (mutable) lifetime and so can't be captured
+                        // by the same closure.
+                        let py_ob = Python::attach(|py| inst.ob.clone_ref(py));
+                        Python::attach(|py| -> Result<_, CircuitDataError> {
+                            let py_ob = py_ob.into_bound(py);
+                            let validate_parameter_attr = intern!(py, "validate_parameter");
+                            let assign_parameters_attr = intern!(py, "assign_parameters");
 
-                            // This is a Python-only path, since we don't have any operations in
-                            // Rust that accept a `Param::ParameterExpression` which aren't standard
-                            // gates. Technically `StandardInstruction::Delay` could, but in
-                            // practice that's not a common path, and it's only supported for
-                            // backwards compatability from before Stretch was introduced. If we did
-                            // it in rust without Python that's a mistake and this attach() call
-                            // will panic and point out the error of your ways when this comment is
-                            // read.
-                            Python::attach(|py| -> Result<_, CircuitDataError> {
-                                let validate_parameter_attr = intern!(py, "validate_parameter");
-                                let assign_parameters_attr = intern!(py, "assign_parameters");
-
-                                let op = self
-                                    .unpack_py_op(py, &self.data[instruction])?
-                                    .into_bound(py);
-                                let previous = &mut self.data[instruction];
-                                // All "user" operations (e.g. PyOperation) use Parameters::Param.
-                                let previous_param = &previous.params_view()[parameter];
-                                let new_param = match previous_param {
-                                    Param::Float(_) => inconsistent(),
-                                    Param::ParameterExpression(expr) => {
-                                        let new_param =
-                                            bind_expr(expr, &symbol, value.as_ref(), false)?;
-                                        // Historically, `assign_parameters` called `validate_parameter`
-                                        // only when a `ParameterExpression` became fully bound.  Some
-                                        // "generalised" (or user) gates fail without this, though
-                                        // arguably, that's them indicating they shouldn't be allowed to
-                                        // be parametric.
-                                        //
-                                        // Our `bind_expr` coercion means that a non-parametric
-                                        // `ParameterExperssion` after binding would have been coerced
-                                        // to a numeric quantity already, so the match here is
-                                        // definitely parameterized.
-                                        match &new_param {
-                                            Param::ParameterExpression(expr) => {
-                                                match expr.try_to_value(true) {
-                                                    Ok(_) => {
-                                                        // fully bound, validate parameters
-                                                        Param::extract_no_coerce(
-                                                            op.call_method1(
+                            // All "user" operations (e.g. PyOperation) use Parameters::Param.
+                            let previous_param = &previous.params_view()[parameter];
+                            let new_param = match previous_param {
+                                Param::Float(_) => inconsistent(),
+                                Param::ParameterExpression(expr) => {
+                                    let new_param =
+                                        bind_expr(expr, &symbol, value.as_ref(), false)?;
+                                    // Historically, `assign_parameters` called `validate_parameter`
+                                    // only when a `ParameterExpression` became fully bound.  Some
+                                    // "generalised" (or user) gates fail without this, though
+                                    // arguably, that's them indicating they shouldn't be allowed to
+                                    // be parametric.
+                                    //
+                                    // Our `bind_expr` coercion means that a non-parametric
+                                    // `ParameterExperssion` after binding would have been coerced
+                                    // to a numeric quantity already, so the match here is
+                                    // definitely parameterized.
+                                    match &new_param {
+                                        Param::ParameterExpression(expr) => {
+                                            match expr.try_to_value(true) {
+                                                Ok(_) => {
+                                                    // fully bound, validate parameters
+                                                    Param::extract_no_coerce(
+                                                        py_ob
+                                                            .call_method1(
                                                                 validate_parameter_attr,
                                                                 (new_param,),
                                                             )?
                                                             .as_borrowed(),
-                                                        )?
-                                                    }
-                                                    Err(_) => new_param, // not bound yet, cannot validate
+                                                    )?
                                                 }
+                                                Err(_) => new_param, // not bound yet, cannot validate
                                             }
-                                            new_param => Param::extract_no_coerce(
-                                                op.call_method1(
+                                        }
+                                        new_param => Param::extract_no_coerce(
+                                            py_ob
+                                                .call_method1(
                                                     validate_parameter_attr,
                                                     (new_param,),
                                                 )?
                                                 .as_borrowed(),
-                                            )?,
-                                        }
+                                        )?,
                                     }
-                                    Param::Obj(obj) => {
-                                        let obj = obj.bind_borrowed(py);
-                                        if !obj.is_instance(QUANTUM_CIRCUIT.get_bound(py))? {
-                                            inconsistent()
-                                        }
-                                        Param::extract_no_coerce(
-                                            obj.call_method(
-                                                assign_parameters_attr,
-                                                ([(symbol.clone(), value.as_ref().clone_ref(py))]
-                                                    .into_py_dict(py)?,),
-                                                Some(
-                                                    &[("inplace", false), ("flat_input", true)]
-                                                        .into_py_dict(py)?,
-                                                ),
-                                            )?
-                                            .as_borrowed(),
+                                }
+                                Param::Obj(obj) => {
+                                    let obj = obj.bind_borrowed(py);
+                                    if !obj.is_instance(QUANTUM_CIRCUIT.get_bound(py))? {
+                                        inconsistent()
+                                    }
+                                    Param::extract_no_coerce(
+                                        obj.call_method(
+                                            assign_parameters_attr,
+                                            ([(symbol.clone(), value.as_ref().clone_ref(py))]
+                                                .into_py_dict(py)?,),
+                                            Some(
+                                                &[("inplace", false), ("flat_input", true)]
+                                                    .into_py_dict(py)?,
+                                            ),
                                         )?
-                                    }
-                                };
-                                op.getattr(intern!(py, "params"))?
-                                    .set_item(parameter, new_param)?;
-                                let new_op = op.extract::<OperationFromPython<CircuitData>>()?;
-                                previous.op = new_op.operation;
-                                previous.params = new_op.params.map(|params| {
-                                    Box::new(
-                                        params.map_blocks(|_| panic!("unexpected control flow")),
-                                    )
-                                });
-                                previous.label = new_op.label;
-                                #[cfg(feature = "cache_pygates")]
-                                {
-                                    previous.py_op = op.unbind().into();
+                                        .as_borrowed(),
+                                    )?
                                 }
-                                for uuid in uuids.iter() {
-                                    self.param_table.add_use(*uuid, usage)?
-                                }
-                                Ok(())
-                            })?;
-                        }
+                            };
+                            py_ob
+                                .getattr(intern!(py, "params"))?
+                                .set_item(parameter, new_param)?;
+                            let new_op = py_ob.extract::<OperationFromPython<CircuitData>>()?;
+                            previous.op = new_op.operation;
+                            previous.params = new_op.params.map(|params| {
+                                Box::new(params.map_blocks(|_| panic!("unexpected control flow")))
+                            });
+                            previous.label = new_op.label;
+                            #[cfg(feature = "cache_pygates")]
+                            {
+                                previous.py_op = py_ob.unbind().into();
+                            }
+                            for uuid in uuids.iter() {
+                                self.param_table.add_use(*uuid, usage)?
+                            }
+                            Ok(())
+                        })?;
                     }
                 }
             }
@@ -3032,28 +3004,30 @@ impl CircuitData {
                     .into_py_dict(py)
                     .unwrap();
                 for (instruction, bindings) in user_operations {
-                    // We only put non-standard gates in `user_operations`, so we're not risking creating a
-                    // previously non-existent Python object.
-                    let instruction = &self.data[instruction];
-                    let definition_cache =
-                        if matches!(instruction.op.view(), OperationRef::Operation(_)) {
-                            // `Operation` instances don't have a `definition` as part of their interfaces, but
-                            // they might be an `AnnotatedOperation`, which is one of our special built-ins.
-                            // This should be handled more completely in the user-customisation interface by a
-                            // delegating method, but that's not the data model we currently have.
-                            let py_op = self.unpack_py_op(py, instruction)?;
-                            let py_op = py_op.bind(py);
-                            if !py_op.is_instance(ANNOTATED_OPERATION.get_bound(py))? {
+                    let OperationRef::PyCustom(inst) = self.data[instruction].op.view() else {
+                        return Err(PyRuntimeError::new_err(
+                            "internal logic error: a 'user operation' was stored in the wrong type",
+                        ));
+                    };
+                    let definition_cache = match inst.kind {
+                        PyOpKind::Operation => {
+                            // `Operation` instances don't have a `definition` as part of their
+                            // interfaces, but they might be an `AnnotatedOperation`, which is one
+                            // of our special built-ins.  This should be handled more completely in
+                            // the user-customisation interface by a delegating method, but that's
+                            // not the data model we currently have.
+                            let ob = inst.ob.bind(py);
+                            if ob.is_instance(ANNOTATED_OPERATION.get_bound(py))? {
+                                ob.getattr(intern!(py, "base_op"))?
+                                    .getattr(_definition_attr)?
+                            } else {
                                 continue;
                             }
-                            py_op
-                                .getattr(intern!(py, "base_op"))?
-                                .getattr(_definition_attr)?
-                        } else {
-                            self.unpack_py_op(py, instruction)?
-                                .bind(py)
-                                .getattr(_definition_attr)?
-                        };
+                        }
+                        PyOpKind::Instruction | PyOpKind::Gate => {
+                            inst.ob.bind(py).getattr(_definition_attr)?
+                        }
+                    };
                     if !definition_cache.is_none() {
                         definition_cache.call_method(
                             assign_parameters_attr,
