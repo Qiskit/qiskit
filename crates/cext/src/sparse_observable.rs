@@ -623,7 +623,7 @@ pub unsafe extern "C" fn qk_obs_add(
 /// @param right A pointer to the right observable.
 /// @param factor The factor to multiply the coefficients with.
 ///
-/// @return A pointer to the result ``left + factor * right``.
+/// @return An owned pointer to the result ``left + factor * right``.
 ///
 /// # Example
 /// ```c
