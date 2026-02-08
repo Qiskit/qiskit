@@ -11,6 +11,8 @@
 // that they have been altered from the originals.
 
 mod pointers;
+#[cfg(feature = "python_binding")]
+mod py;
 
 pub mod circuit;
 pub mod circuit_library;

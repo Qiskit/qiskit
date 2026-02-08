@@ -1367,6 +1367,94 @@ pub unsafe extern "C" fn qk_dag_free(dag: *mut DAGCircuit) {
 }
 
 /// @ingroup QkDag
+/// Pass ownership of a `QkDag` object to Python.
+///
+/// It is not safe to use the `QkDag` pointer after calling this function.  In particular, you
+/// should not attempt to clear or free it.
+///
+/// @param dag The owned object.
+/// @return An owned Python reference to the object.
+///
+/// # Safety
+///
+/// The caller must be attached to a Python interpreter.  Behavior is undefined if `dag` is not a
+/// valid non-null pointer to an initialized `QkDag`.
+#[unsafe(no_mangle)]
+#[cfg(feature = "python_binding")]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_dag_to_python(dag: *mut DAGCircuit) -> *mut ::pyo3::ffi::PyObject {
+    // SAFETY: per documentation, we are attached to an interpreter, and `dag` is a valid non-null
+    // and aligned pointer to `DAGCircuit`.
+    unsafe { crate::py::into_py(::pyo3::Python::assume_attached(), dag) }
+}
+
+/// @ingroup QkDag
+/// Retrieve a `QkDag` pointer from a Python object.
+///
+/// This borrows a Python reference and extracts the `QkDag` pointer for it, if it is of
+/// the correct type.  The returned pointer is borrowed from the `ob` pointer.  If the
+/// ``PyObject`` is not the correct type, the return value is ``NULL`` and the exception
+/// state of the Python interpreter is set.
+///
+/// You must be attached to a Python interpreter to call this function.
+///
+/// You can also use `qk_dag_convert_from_python`, which is logically the exact same as this
+/// function, but can be directly used as a "converter" function for the `PyArg_Parse*`
+/// family of Python converter functions.
+///
+/// @param ob A borrowed Python object.
+/// @return A pointer to the native object, or `NULL` if the Python object is the wrong type.
+///
+/// # Safety
+///
+/// The caller must be attached to a Python interpreter.  Behavior is undefined if `ob` is
+/// not a valid non-null pointer to a Python object.
+#[unsafe(no_mangle)]
+#[cfg(feature = "python_binding")]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_dag_borrow_from_python(
+    ob: *mut pyo3::ffi::PyObject,
+) -> *mut DAGCircuit {
+    // SAFETY: per documentation, we are attached to a Python interpreter, and `ob` points to a
+    // valid PyObject.
+    unsafe { crate::py::borrow(::pyo3::Python::assume_attached(), ob) }
+}
+
+/// @ingroup QkDag
+/// Retrieve a DAG pointer from a Python object.
+///
+/// This borrows a Python reference and extracts the `QkDag` pointer for it into ``address``, if it
+/// is of the correct type.  The returned pointer is borrowed from the `object` pointer.  If the
+/// ``PyObject`` is not the correct type, the return value is 1, the exception state of the Python
+/// interpreter is set, and ``address`` is unchanged.
+///
+/// You must be attached to a Python interpreter to call this function.
+///
+/// You can also use `qk_dag_borrow_from_python`, which is logically the exact same as this, but
+/// with a more natural signature for direct usage.
+///
+/// @param object A borrowed Python object.
+/// @param address The location to write the output to.
+/// @return 0 on success, 1 on failure.
+///
+/// # Safety
+///
+/// The caller must be attached to a Python interpreter.  Behavior is undefined if `object`
+/// is not a valid non-null pointer to a Python object, or if `address` is not a pointer to
+/// writeable data of the correct type.
+#[unsafe(no_mangle)]
+#[cfg(feature = "python_binding")]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_dag_convert_from_python(
+    object: *mut ::pyo3::ffi::PyObject,
+    address: *mut ::std::ffi::c_void,
+) -> ::std::ffi::c_int {
+    // SAFETY: per documentation, we are attached to a Python interpreter, `object` is a valid
+    // pointer to a PyObject, and `address` points to enough space to write a pointer.
+    unsafe { crate::py::convert::<DAGCircuit>(::pyo3::Python::assume_attached(), object, address) }
+}
+
+/// @ingroup QkDag
 /// Convert a given DAG to a circuit.
 ///
 /// The new circuit is copied from the DAG; the original ``dag`` reference is still owned by the
