@@ -108,11 +108,7 @@ static int test_scaled_add_inplace(void) {
     QkObs *left = qk_obs_identity(100);
     QkObs *right = qk_obs_identity(100);
     QkComplex64 factor = {2.0, 2.0};
-    int err = qk_obs_scaled_add_inplace(left, right, &factor);
-
-    if (err != QkExitCode_Success) {
-        return err;
-    }
+    qk_obs_scaled_add_inplace(left, right, &factor);
 
     // construct the expected observable: coeff * Id
     QkObs *expected = qk_obs_identity(100);

@@ -660,14 +660,12 @@ pub unsafe extern "C" fn qk_obs_scaled_add(
 /// @param right A pointer to the right observable.
 /// @param factor The factor to multiply the coefficients with.
 ///
-/// @return An exit code. This function only returns ``QkExitCode_Success``.
-///
 /// # Example
 /// ```c
 /// QkObs *left = qk_obs_zero(100);
 /// QkObs *right = qk_obs_identity(100);
 /// QkComplex64 factor = {2, 0};
-/// QkExitCode exit = qk_obs_scaled_add_inplace(left, right, factor);
+/// qk_obs_scaled_add_inplace(left, right, factor);
 /// ```
 ///
 /// # Safety
@@ -680,15 +678,13 @@ pub unsafe extern "C" fn qk_obs_scaled_add_inplace(
     left: *mut SparseObservable,
     right: *const SparseObservable,
     factor: *const Complex64,
-) -> ExitCode {
+) {
     // SAFETY: Per documentation, the pointers are non-null and aligned.
     let left = unsafe { mut_ptr_as_ref(left) };
     let right = unsafe { const_ptr_as_ref(right) };
     let factor = unsafe { const_ptr_as_ref(factor) };
 
     left.scaled_add_inplace(right, *factor);
-
-    ExitCode::Success
 }
 
 /// @ingroup QkObs
