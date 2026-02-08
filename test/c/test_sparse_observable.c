@@ -98,7 +98,7 @@ static int test_scaled_add(void) {
     qk_obs_free(result);
     qk_obs_free(expected);
 
-    return !is_equal ? EqualityError : Ok;
+    return is_equal ? Ok : EqualityError;
 }
 
 /**
@@ -124,7 +124,7 @@ static int test_scaled_add_inplace(void) {
     qk_obs_free(right);
     qk_obs_free(expected);
 
-    return !is_equal ? EqualityError : Ok;
+    return is_equal ? Ok : EqualityError;
 }
 
 /**
