@@ -96,3 +96,22 @@ class TestQPYRoundtrip(QiskitTestCase):
         qc.switch(expr.bit_and(cr, 3), [(1, body.copy())], [0], [])
         qc.switch(expr.logic_not(qc.clbits[0]), [(False, body.copy())], [0], [])
         self.assert_roundtrip_equal(qc, version=17)
+
+    def test_for_loop_with_range(self):
+        """Check the ForLoop control flow gate with Range expression passes roundtrip"""
+        from qiskit.circuit.classical import types
+
+        qc = QuantumCircuit(2, 1)
+        # Create a Range expression using expr.Range
+        start = expr.lift(0, types.Uint(8))
+        stop = expr.lift(5, types.Uint(8))
+        step = expr.lift(1, types.Uint(8))
+        range_expr = expr.Range(start, stop, step)
+
+        with qc.for_loop(range_expr):
+            qc.h(0)
+            qc.cx(0, 1)
+            qc.measure(0, 0)
+            with qc.if_test((0, True)):
+                qc.break_loop()
+        self.assert_roundtrip_equal(qc, version=17)
