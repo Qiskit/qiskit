@@ -29,7 +29,7 @@ use crate::euler_one_qubit_decomposer::{
 use crate::linalg::{closest_unitary, is_hermitian_matrix, svd_decomposition, verify_unitary};
 use crate::two_qubit_decompose::{TwoQubitBasisDecomposer, two_qubit_decompose_up_to_diagonal};
 use qiskit_circuit::bit::ShareableQubit;
-use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
+use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError, PyCircuitData};
 use qiskit_circuit::interner::Interned;
 use qiskit_circuit::operations::{ArrayType, OperationRef, Param, StandardGate, UnitaryGate};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
@@ -860,7 +860,7 @@ pub fn qs_decomposition(
     opt_a2: Option<bool>,
     one_qubit_decomposer_basis_string: Option<String>,
     two_qubit_decomposer: Option<&TwoQubitBasisDecomposer>,
-) -> PyResult<CircuitData> {
+) -> PyResult<PyCircuitData> {
     let array: ArrayView2<Complex64> = mat.as_array();
     let mat = DMatrix::from_fn(array.shape()[0], array.shape()[1], |i, j| array[[i, j]]);
     let mut one_qubit_decomposer_basis_set = EulerBasisSet::new();
@@ -880,7 +880,7 @@ pub fn qs_decomposition(
         one_qubit_decomposer,
         two_qubit_decomposer,
     )?;
-    Ok(res)
+    Ok(res.into())
 }
 
 pub fn qsd_mod(m: &Bound<PyModule>) -> PyResult<()> {

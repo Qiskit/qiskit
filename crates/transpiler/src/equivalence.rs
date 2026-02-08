@@ -38,7 +38,7 @@ use rustworkx_core::petgraph::{
 };
 
 use qiskit_circuit::NoBlocks;
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::imports::{ImportOnceCell, QUANTUM_CIRCUIT};
 use qiskit_circuit::instruction::Parameters;
@@ -339,9 +339,9 @@ impl<'a, 'py> FromPyObject<'a, 'py> for CircuitFromPython {
     fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         if ob.is_instance(QUANTUM_CIRCUIT.get_bound(ob.py()))? {
             let data: Bound<PyAny> = ob.getattr("_data")?;
-            let data_downcast: Bound<CircuitData> = data.cast_into()?;
-            let data_extract: CircuitData = data_downcast.extract()?;
-            Ok(Self(data_extract))
+            let data_downcast: Bound<PyCircuitData> = data.cast_into()?;
+            let data_extract: PyCircuitData = data_downcast.extract()?;
+            Ok(Self(data_extract.into()))
         } else {
             Err(PyTypeError::new_err(
                 "Provided object was not an instance of QuantumCircuit",

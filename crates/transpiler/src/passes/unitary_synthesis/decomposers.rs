@@ -41,7 +41,7 @@ use super::{
 use crate::QiskitError;
 use crate::passes::optimize_clifford_t::CLIFFORD_T_GATE_NAMES;
 use crate::target::{NormalOperation, Target, TargetOperation};
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::instruction::Instruction;
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
@@ -326,7 +326,7 @@ impl Decomposer2q {
                     .bind(py)
                     .call((matrix.to_pyarray(py),), Some(kwargs.bind(py)))?
                     .getattr(intern!(py, "_data"))?
-                    .cast_into::<CircuitData>()?;
+                    .cast_into::<PyCircuitData>()?;
                 circuit_to_2q_sequence(&circuit.borrow())
             }),
             Self::StaticKak {

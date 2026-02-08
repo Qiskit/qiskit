@@ -258,7 +258,7 @@ pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
         duration::Duration::type_object(m.py()).getattr("dt")?,
     )?;
 
-    m.add_class::<circuit_data::CircuitData>()?;
+    m.add_class::<circuit_data::PyCircuitData>()?;
     m.add_class::<circuit_instruction::CircuitInstruction>()?;
     m.add_class::<dag_circuit::DAGCircuit>()?;
     m.add_class::<dag_node::DAGNode>()?;

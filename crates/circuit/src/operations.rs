@@ -19,7 +19,7 @@ use std::sync::Arc;
 use std::{fmt, vec};
 
 use crate::bit::{ClassicalRegister, ShareableClbit};
-use crate::circuit_data::CircuitData;
+use crate::circuit_data::{CircuitData, PyCircuitData};
 use crate::classical::expr;
 use crate::duration::Duration;
 use crate::packed_instruction::PackedInstruction;
@@ -2850,8 +2850,8 @@ impl StandardGate {
         self.num_params()
     }
 
-    pub fn _get_definition(&self, params: Vec<Param>) -> Option<CircuitData> {
-        self.definition(&params)
+    pub fn _get_definition(&self, params: Vec<Param>) -> Option<PyCircuitData> {
+        self.definition(&params).map(Into::into)
     }
 
     pub fn _inverse(&self, params: Vec<Param>) -> Option<(StandardGate, SmallVec<[Param; 3]>)> {
@@ -3137,7 +3137,8 @@ impl PyInstruction {
                 Ok(definition) => definition
                     .getattr(py, intern!(py, "_data"))
                     .ok()?
-                    .extract::<CircuitData>(py)
+                    .extract::<PyCircuitData>(py)
+                    .map(Into::into)
                     .ok(),
                 Err(_) => None,
             }
