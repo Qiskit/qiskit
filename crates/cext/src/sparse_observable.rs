@@ -588,7 +588,6 @@ pub unsafe extern "C" fn qk_obs_multiply(
 /// * ``obs`` is a valid, non-null pointer to a ``QkObs``
 /// * ``coeff`` is a valid, non-null pointer to a ``QkComplex64``
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_obs_multiply_inplace(
     obs: *mut SparseObservable,
     coeff: *const Complex64,
@@ -650,7 +649,6 @@ pub unsafe extern "C" fn qk_obs_add(
 /// Behavior is undefined if ``left`` or ``right`` are not valid, non-null pointers to
 /// ``QkObs``\ s.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_obs_add_inplace(
     left: *mut SparseObservable,
     right: *const SparseObservable,
