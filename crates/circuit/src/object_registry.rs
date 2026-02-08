@@ -294,7 +294,7 @@ where
     // Add an object to the registry, panicking if it is a duplicate or out of capacity.
     pub fn add_unique_within_capacity(&mut self, object: B) -> T {
         self.add(object)
-            .unwrap_or_else(|e| panic!("{}", e.to_string()))
+            .expect("caller should ensure uniqueness and capacity bounds")
     }
 
     pub fn replace(&mut self, index: T, replacement: B) {
