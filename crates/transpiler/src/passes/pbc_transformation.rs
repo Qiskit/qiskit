@@ -402,8 +402,8 @@ pub fn py_pbc_transformation(py: Python, dag: &mut DAGCircuit) -> PyResult<DAGCi
                     } else {
                         Param::Float(1.0)
                     };
+                    let original_qubits = dag.get_qargs(inst.qubits);
                     for (paulis, phase_rescale, qubits) in sequence {
-                        let original_qubits = dag.get_qargs(inst.qubits);
                         let updated_qubits: Vec<Qubit> = qubits
                             .iter()
                             .map(|q| original_qubits[*q as usize])
@@ -451,9 +451,9 @@ pub fn py_pbc_transformation(py: Python, dag: &mut DAGCircuit) -> PyResult<DAGCi
                     | StandardGate::XXMinusYY
             ) {
                 let angles = inst.params_view();
+                let original_qubits = dag.get_qargs(inst.qubits);
                 let (sequence, global_phase_update) = replace_gate_by_pauli_vec(gate, angles);
                 for (paulis, phase_rescale, qubits) in sequence {
-                    let original_qubits = dag.get_qargs(inst.qubits);
                     let updated_qubits: Vec<Qubit> = qubits
                         .iter()
                         .map(|q| original_qubits[*q as usize])
