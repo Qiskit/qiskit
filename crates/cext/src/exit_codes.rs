@@ -72,6 +72,7 @@ impl From<ArithmeticError> for ExitCode {
     fn from(value: ArithmeticError) -> Self {
         match value {
             ArithmeticError::MismatchedQubits { left: _, right: _ } => ExitCode::MismatchedQubits,
+            ArithmeticError::InvalidOperation(_) => ExitCode::ArithmeticError,
         }
     }
 }
