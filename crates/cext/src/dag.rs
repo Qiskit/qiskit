@@ -17,7 +17,6 @@ use smallvec::smallvec;
 use crate::exit_codes::ExitCode;
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeIndex, NodeType};
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
@@ -42,7 +41,6 @@ use crate::pointers::{check_ptr, const_ptr_as_ref, mut_ptr_as_ref};
 /// QkDag *empty = qk_dag_new();
 /// ```
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub extern "C" fn qk_dag_new() -> *mut DAGCircuit {
     let dag = DAGCircuit::new();
     Box::into_raw(Box::new(dag))
@@ -68,7 +66,6 @@ pub extern "C" fn qk_dag_new() -> *mut DAGCircuit {
 /// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag`` and
 /// if ``reg`` is not a valid, non-null pointer to a ``QkQuantumRegister``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_dag_add_quantum_register(
     dag: *mut DAGCircuit,
     reg: *const QuantumRegister,
@@ -102,7 +99,6 @@ pub unsafe extern "C" fn qk_dag_add_quantum_register(
 /// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag`` and
 /// if ``reg`` is not a valid, non-null pointer to a ``QkClassicalRegister``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_dag_add_classical_register(
     dag: *mut DAGCircuit,
     reg: *const ClassicalRegister,
@@ -137,7 +133,6 @@ pub unsafe extern "C" fn qk_dag_add_classical_register(
 ///
 /// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_dag_num_qubits(dag: *const DAGCircuit) -> u32 {
     // SAFETY: Per documentation, the pointer is to valid data.
     let dag = unsafe { const_ptr_as_ref(dag) };
@@ -165,7 +160,6 @@ pub unsafe extern "C" fn qk_dag_num_qubits(dag: *const DAGCircuit) -> u32 {
 ///
 /// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_dag_num_clbits(dag: *const DAGCircuit) -> u32 {
     // SAFETY: Per documentation, the pointer is to valid data.
     let dag = unsafe { const_ptr_as_ref(dag) };
@@ -197,7 +191,6 @@ pub unsafe extern "C" fn qk_dag_num_clbits(dag: *const DAGCircuit) -> u32 {
 ///
 /// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_dag_num_op_nodes(dag: *const DAGCircuit) -> usize {
     // SAFETY: Per documentation, the pointer is to valid data.
     let dag = unsafe { const_ptr_as_ref(dag) };
@@ -243,7 +236,6 @@ pub enum CDagNodeType {
 ///
 /// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_dag_node_type(dag: *const DAGCircuit, node: u32) -> CDagNodeType {
     // SAFETY: Per documentation, the pointer is to valid data.
     let dag = unsafe { const_ptr_as_ref(dag) };
@@ -270,7 +262,6 @@ pub unsafe extern "C" fn qk_dag_node_type(dag: *const DAGCircuit, node: u32) -> 
 ///
 /// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_dag_qubit_in_node(dag: *const DAGCircuit, qubit: u32) -> u32 {
     // SAFETY: Per documentation, the pointer is to valid data.
     let dag = unsafe { const_ptr_as_ref(dag) };
@@ -289,7 +280,6 @@ pub unsafe extern "C" fn qk_dag_qubit_in_node(dag: *const DAGCircuit, qubit: u32
 ///
 /// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_dag_qubit_out_node(dag: *const DAGCircuit, qubit: u32) -> u32 {
     // SAFETY: Per documentation, the pointer is to valid data.
     let dag = unsafe { const_ptr_as_ref(dag) };
@@ -308,7 +298,6 @@ pub unsafe extern "C" fn qk_dag_qubit_out_node(dag: *const DAGCircuit, qubit: u3
 ///
 /// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_dag_clbit_in_node(dag: *const DAGCircuit, clbit: u32) -> u32 {
     // SAFETY: Per documentation, the pointer is to valid data.
     let dag = unsafe { const_ptr_as_ref(dag) };
@@ -327,7 +316,6 @@ pub unsafe extern "C" fn qk_dag_clbit_in_node(dag: *const DAGCircuit, clbit: u32
 ///
 /// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_dag_clbit_out_node(dag: *const DAGCircuit, clbit: u32) -> u32 {
     // SAFETY: Per documentation, the pointer is to valid data.
     let dag = unsafe { const_ptr_as_ref(dag) };
@@ -346,7 +334,6 @@ pub unsafe extern "C" fn qk_dag_clbit_out_node(dag: *const DAGCircuit, clbit: u3
 ///
 /// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_dag_wire_node_value(dag: *const DAGCircuit, node: u32) -> u32 {
     // SAFETY: Per documentation, the pointer is to valid data.
     let dag = unsafe { const_ptr_as_ref(dag) };
@@ -375,7 +362,6 @@ pub unsafe extern "C" fn qk_dag_wire_node_value(dag: *const DAGCircuit, node: u3
 ///
 /// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_dag_op_node_num_qubits(dag: *const DAGCircuit, node: u32) -> u32 {
     // SAFETY: Per documentation, the pointer is to valid data.
     let dag = unsafe { const_ptr_as_ref(dag) };
@@ -397,7 +383,6 @@ pub unsafe extern "C" fn qk_dag_op_node_num_qubits(dag: *const DAGCircuit, node:
 ///
 /// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_dag_op_node_num_clbits(dag: *const DAGCircuit, node: u32) -> u32 {
     // SAFETY: Per documentation, the pointer is to valid data.
     let dag = unsafe { const_ptr_as_ref(dag) };
@@ -419,7 +404,6 @@ pub unsafe extern "C" fn qk_dag_op_node_num_clbits(dag: *const DAGCircuit, node:
 ///
 /// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_dag_op_node_num_params(dag: *const DAGCircuit, node: u32) -> u32 {
     // SAFETY: Per documentation, the pointer is to valid data.
     let dag = unsafe { const_ptr_as_ref(dag) };
@@ -442,7 +426,6 @@ pub unsafe extern "C" fn qk_dag_op_node_num_params(dag: *const DAGCircuit, node:
 ///
 /// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_dag_op_node_qubits(dag: *const DAGCircuit, node: u32) -> *const u32 {
     // SAFETY: Per documentation, the pointer is to valid data.
     let dag = unsafe { const_ptr_as_ref(dag) };
@@ -465,7 +448,6 @@ pub unsafe extern "C" fn qk_dag_op_node_qubits(dag: *const DAGCircuit, node: u32
 ///
 /// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_dag_op_node_clbits(dag: *const DAGCircuit, node: u32) -> *const u32 {
     // SAFETY: Per documentation, the pointer is to valid data.
     let dag = unsafe { const_ptr_as_ref(dag) };
@@ -511,7 +493,6 @@ pub unsafe extern "C" fn qk_dag_op_node_clbits(dag: *const DAGCircuit, node: u32
 ///
 /// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_dag_apply_gate(
     dag: *mut DAGCircuit,
     gate: StandardGate,
@@ -619,7 +600,6 @@ pub unsafe extern "C" fn qk_dag_apply_gate(
 /// Behavior is undefined if `dag` is not an aligned, non-null pointer to a valid ``QkDag``,
 /// or if `qubit` or `clbit` are out of range.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_dag_apply_measure(
     dag: *mut DAGCircuit,
     qubit: u32,
@@ -680,7 +660,6 @@ pub unsafe extern "C" fn qk_dag_apply_measure(
 /// Behavior is undefined if `dag` is not an aligned, non-null pointer to a valid ``QkDag``,
 /// or if `qubit` is out of range.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_dag_apply_reset(dag: *mut DAGCircuit, qubit: u32, front: bool) -> u32 {
     // SAFETY: per documentation, `dag` points to valid data.
     let dag = unsafe { mut_ptr_as_ref(dag) };
@@ -746,7 +725,6 @@ pub unsafe extern "C" fn qk_dag_apply_reset(dag: *mut DAGCircuit, qubit: u32, fr
 /// * `qubits` is not aligned or is not valid for `num_qubits` reads of initialized, in-bounds and
 ///   unduplicated indices, unless `qubits` is null.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_dag_apply_barrier(
     dag: *mut DAGCircuit,
     qubits: *const u32,
@@ -817,7 +795,6 @@ pub unsafe extern "C" fn qk_dag_apply_barrier(
 /// * `matrix` is not an aligned pointer to `4**num_qubits` initialized values,
 /// * `qubits` is not an aligned pointer to `num_qubits` initialized values.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_dag_apply_unitary(
     dag: *mut DAGCircuit,
     matrix: *const Complex64,
@@ -904,7 +881,6 @@ pub unsafe extern "C" fn qk_dag_apply_unitary(
 /// You can check ``qk_dag_op_node_num_params`` to determine how many params
 /// are required for any given operation node.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_dag_op_node_gate_op(
     dag: *const DAGCircuit,
     node: u32,
@@ -947,7 +923,6 @@ pub unsafe extern "C" fn qk_dag_op_node_gate_op(
 /// Behavior is undefined if `dag` is not a non-null pointer to a valid `QkDag`, if `out` is
 /// unaligned, or if `out` is not valid for `4**num_qubits` writes of `QkComplex64`.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_dag_op_node_unitary(
     dag: *const DAGCircuit,
     node: u32,
@@ -1025,7 +1000,6 @@ pub enum COperationKind {
 ///
 /// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_dag_op_node_kind(dag: *const DAGCircuit, node: u32) -> COperationKind {
     // SAFETY: Per documentation, the pointer is to valid data.
     let dag = unsafe { const_ptr_as_ref(dag) };
@@ -1095,7 +1069,6 @@ pub struct CDagNeighbors {
 ///
 /// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_dag_successors(dag: *const DAGCircuit, node: u32) -> CDagNeighbors {
     // SAFETY: Per documentation, the pointers are to valid data.
     let dag = unsafe { const_ptr_as_ref(dag) };
@@ -1142,7 +1115,6 @@ pub unsafe extern "C" fn qk_dag_successors(dag: *const DAGCircuit, node: u32) ->
 ///
 /// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_dag_predecessors(dag: *const DAGCircuit, node: u32) -> CDagNeighbors {
     // SAFETY: Per documentation, the pointers are to valid data.
     let dag = unsafe { const_ptr_as_ref(dag) };
@@ -1170,7 +1142,6 @@ pub unsafe extern "C" fn qk_dag_predecessors(dag: *const DAGCircuit, node: u32) 
 /// Behavior is undefined if ``neighbors`` is not a valid, non-null pointer to a QkDagNeighbors
 /// object populated with either ``qk_dag_successors`` or ``qk_dag_predecessors``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_dag_neighbors_clear(neighbors: *mut CDagNeighbors) {
     // SAFETY: Per documentation, the pointer is to a valid data.
     let neighbors = unsafe { mut_ptr_as_ref(neighbors) };
@@ -1230,7 +1201,6 @@ pub unsafe extern "C" fn qk_dag_neighbors_clear(neighbors: *mut CDagNeighbors) {
 /// Behavior is undefined if either `dag` or `instruction` are not valid, aligned, non-null pointers
 /// to the relevant data type.  The fields of `instruction` need not be initialized.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_dag_get_instruction(
     dag: *const DAGCircuit,
     index: u32,
@@ -1317,7 +1287,6 @@ pub unsafe extern "C" fn qk_dag_get_instruction(
 /// If ``qubit`` nor ``clbit`` are NULL, it must contains a less or equal amount
 /// than what the circuit owns.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_dag_compose(
     dag: *mut DAGCircuit,
     other: *const DAGCircuit,
@@ -1383,7 +1352,6 @@ pub unsafe extern "C" fn qk_dag_compose(
 /// Behavior is undefined if ``dag`` is not either null or a valid pointer to a
 /// ``QkDag``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_dag_free(dag: *mut DAGCircuit) {
     if !dag.is_null() {
         if !dag.is_aligned() {
@@ -1427,11 +1395,10 @@ pub unsafe extern "C" fn qk_dag_free(dag: *mut DAGCircuit) {
 ///
 /// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_dag_to_circuit(dag: *const DAGCircuit) -> *mut CircuitData {
     // SAFETY: Per documentation, the pointer is to valid data.
     let dag = unsafe { const_ptr_as_ref(dag) };
-    let circuit = dag_to_circuit(dag, true)
+    let circuit = CircuitData::from_dag_ref(dag)
         .expect("Error occurred while converting DAGCircuit to CircuitData");
 
     Box::into_raw(Box::new(circuit))
@@ -1480,7 +1447,6 @@ pub unsafe extern "C" fn qk_dag_to_circuit(dag: *const DAGCircuit) -> *mut Circu
 /// or if ``out_order`` is not a valid, non-null pointer to a sequence of ``qk_dag_num_op_nodes(dag)``
 /// consecutive elements of ``uint32_t``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_dag_topological_op_nodes(dag: *const DAGCircuit, out_order: *mut u32) {
     // SAFETY: Per documentation, ``dag`` is non-null and valid.
     let dag = unsafe { const_ptr_as_ref(dag) };
@@ -1542,7 +1508,6 @@ pub unsafe extern "C" fn qk_dag_topological_op_nodes(dag: *const DAGCircuit, out
 /// Behavior is undefined if ``dag`` and ``replacement`` are not a valid, non-null pointer to a
 /// ``QkDag``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_dag_substitute_node_with_dag(
     dag: *mut DAGCircuit,
     node: u32,
@@ -1606,7 +1571,6 @@ pub unsafe extern "C" fn qk_dag_substitute_node_with_dag(
 ///
 /// Behavior is undefined if ``dag`` is not a valid pointer to a ``QkDag``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_dag_copy_empty_like(
     dag: *const DAGCircuit,
     vars_mode: CVarsMode,

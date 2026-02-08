@@ -523,8 +523,8 @@ mod test_consolidate_blocks {
     use indexmap::IndexMap;
 
     use qiskit_circuit::{
-        PhysicalQubit, Qubit, circuit_data::CircuitData, converters::dag_to_circuit,
-        dag_circuit::DAGCircuit, operations::StandardGate,
+        PhysicalQubit, Qubit, circuit_data::CircuitData, dag_circuit::DAGCircuit,
+        operations::StandardGate,
     };
     use smallvec::smallvec;
 
@@ -590,7 +590,7 @@ mod test_consolidate_blocks {
         run_consolidate_blocks(&mut circ_as_dag, false, None, Some(&target))
             .expect("Error while running the consolidate blocks pass.");
 
-        let circ_result = dag_to_circuit(&circ_as_dag, false)
+        let circ_result = CircuitData::from_dag_ref(&circ_as_dag)
             .expect("Error while converting the DAG to a circuit.");
 
         let data = circ_result.data();

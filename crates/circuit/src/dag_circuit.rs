@@ -43,7 +43,7 @@ use crate::slice::PySequenceIndex;
 use crate::variable_mapper::VariableMapper;
 use crate::{
     Block, BlockMapper, BlocksMode, Clbit, ControlFlowBlocks, Qubit, Stretch, TupleLikeArg, Var,
-    VarsMode, converters, imports, instruction, vf2,
+    VarsMode, imports, instruction, vf2,
 };
 
 use hashbrown::{HashMap, HashSet};
@@ -2340,7 +2340,7 @@ impl DAGCircuit {
                                                 .get_bound(py)
                                                 .call1((Uuid::new_v4().to_string(),))?;
                                             let mut body_a_circuit =
-                                                converters::dag_to_circuit(body_a, false)?;
+                                                CircuitData::from_dag_ref(body_a)?;
                                             if body_a_circuit.uses_parameter(loop_param_a) {
                                                 body_a_circuit.assign_parameters_from_mapping([
                                                     (
@@ -2369,7 +2369,7 @@ impl DAGCircuit {
                                             )?;
 
                                             let mut body_b_circuit =
-                                                converters::dag_to_circuit(body_b, false)?;
+                                                CircuitData::from_dag_ref(body_b)?;
                                             if body_b_circuit.uses_parameter(loop_param_b) {
                                                 body_b_circuit.assign_parameters_from_mapping([
                                                     (
@@ -5061,9 +5061,7 @@ impl DAGCircuit {
     ) -> PyResult<Option<Parameters<CircuitData>>> {
         Ok(params
             .map(|params| {
-                params.try_map_blocks_ref(|block| {
-                    converters::dag_to_circuit(&self.blocks[*block], false)
-                })
+                params.try_map_blocks_ref(|block| CircuitData::from_dag_ref(&self.blocks[*block]))
             })
             .transpose()?)
     }

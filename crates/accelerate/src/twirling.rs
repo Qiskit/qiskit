@@ -21,7 +21,6 @@ use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::ONE_QUBIT_IDENTITY;
 use qiskit_circuit::instruction::Instruction;
@@ -299,7 +298,7 @@ fn generate_twirled_circuit(
     if optimizer_target.is_some() {
         let mut dag = DAGCircuit::from_circuit_data(&out_circ, false, None, None, None, None)?;
         run_optimize_1q_gates_decomposition(&mut dag, optimizer_target, None, None)?;
-        Ok(dag_to_circuit(&dag, false)?)
+        Ok(CircuitData::from_dag_ref(&dag)?)
     } else {
         Ok(out_circ)
     }

@@ -22,7 +22,6 @@ use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::converters::QuantumCircuitData;
-use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::CX_GATE;
 use qiskit_circuit::imports::HLS_SYNTHESIZE_OP_USING_PLUGINS;
@@ -1037,7 +1036,7 @@ pub fn run_high_level_synthesis(
         // Regular-path: we synthesize the circuit recursively. Except for
         // this conversion from DAGCircuit to CircuitData and back, all
         // the recursive functions work with CircuitData objects only.
-        let circuit = dag_to_circuit(dag, false)?;
+        let circuit = CircuitData::from_dag_ref(dag)?;
 
         let num_qubits = circuit.num_qubits();
         let input_qubits: Vec<Qubit> = (0..num_qubits).map(Qubit::new).collect();
