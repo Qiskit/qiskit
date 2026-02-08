@@ -54,6 +54,9 @@ class PBCTransformation(TransformationPass):
 
         Returns:
             The output DAG.
+
+        Raises:
+            TranspilerError: if the circuit contains instructions not supported by the pass.
         """
         dag = pbc_transformation(dag)
 

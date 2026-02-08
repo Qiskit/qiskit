@@ -31,10 +31,11 @@ type GateToPBCType<'a> = (&'a [(&'a str, f64, &'a [u32])], f64);
 type GateToPBCVec<'a> = (Vec<(&'static str, Param, &'static [u32])>, Param);
 
 /// Map gates to a list of equivalent Pauli rotations and a global phase.
-/// Each element of the list is of the form ((Pauli string, phase rescale factor, [qubit indices]), global_phase).
-/// For gates that didn't have a phase (e.g. X)
-/// the phase rescale factor is simply the phase of the rotation gate. The convention is
-/// `original_gate = PauliEvolutionGate(pauli, phase) * e^{i global_phase * phase}`
+/// Each element of the list is of the form ((pauli, phase, [qubit indices]), global_phase).
+/// For gates that don not have a parameter (e.g. X), the convention is:
+/// `original_gate = PauliEvolutionGate(pauli, phase) * e^{i global_phase}`
+/// For one parameter gates with a single parameter "angle", the convention is:
+/// `original_gate = PauliEvolutionGate(pauli, phase * angle) * e^{i global_phase * angle}`
 static STANDARD_GATE_SUBSTITUTIONS: [Option<GateToPBCType>; 52] = [
     None,                                                                 // GlobalPhase
     Some((&[("Y", FRAC_PI_4, &[0]), ("X", FRAC_PI_2, &[0])], FRAC_PI_2)), // H
@@ -175,8 +176,8 @@ static STANDARD_GATE_SUBSTITUTIONS: [Option<GateToPBCType>; 52] = [
     None,                                                                 // RC3X
 ];
 
-/// Map gates with more than one paramter to a list of equivalent Pauli rotations and a global phase.
-/// Each element of the list is of the form ((Pauli string, [phases], [qubit indices]), global_phase).
+/// Map gates with more than one parameter to a list of equivalent Pauli rotations and a global phase.
+/// Each element of the list is of the form ((pauli, [phases], [qubit indices]), global_phase).
 /// The convention is
 /// `original_gate = PauliEvolutionGate(pauli, phase) * e^{i global_phase}`
 fn replace_gate_by_pauli_vec(gate: StandardGate, angles: &[Param]) -> GateToPBCVec<'static> {
@@ -325,6 +326,9 @@ fn replace_gate_by_pauli_vec(gate: StandardGate, angles: &[Param]) -> GateToPBCV
     }
 }
 
+/// Takes an input of the form (pauli, time, [qubit indices]),
+/// and outputs a corresponding PauliEvolutionGate(pauli, time) gate
+/// on the qubit indices.
 fn generate_pauli_evolution_gate(
     py_evo_cls: &Bound<PyAny>,
     paulis: &str,
@@ -343,6 +347,12 @@ fn generate_pauli_evolution_gate(
     Ok(py_gate)
 }
 
+/// Convert a quanutm circuit containing single-qubit and two-qubit standard gates,
+/// barriers and measurements, into an equivalent list of Pauli product rotations,
+/// implemented as PauliEvolutionGate and a global phase,
+/// as well as PauliProductMeasurement.
+/// Raises a TranspilerError: if the circuit contains instructions not supported by
+/// the PBC transformation pass.
 #[pyfunction]
 #[pyo3(name = "pbc_transformation")]
 pub fn py_pbc_transformation(py: Python, dag: &mut DAGCircuit) -> PyResult<DAGCircuit> {
@@ -379,7 +389,7 @@ pub fn py_pbc_transformation(py: Python, dag: &mut DAGCircuit) -> PyResult<DAGCi
         } else if let OperationRef::StandardGate(gate) = inst.op.view() {
             if gate.num_qubits() > 2 {
                 return Err(TranspilerError::new_err(format!(
-                    "Unable to run PBC tranformation as the circuit contains instructions not supported by the pass: {:?}",
+                    "Unable to run PBC transformation as the circuit contains instructions not supported by the pass: {:?}",
                     gate.name()
                 )));
             }
@@ -424,7 +434,7 @@ pub fn py_pbc_transformation(py: Python, dag: &mut DAGCircuit) -> PyResult<DAGCi
                     global_phase = radd_param(global_phase, global_phase_update);
                 } else {
                     return Err(TranspilerError::new_err(format!(
-                        "Unable to run PBC tranformation as the circuit contains instructions not supported by the pass: {:?}",
+                        "Unable to run PBC transformation as the circuit contains instructions not supported by the pass: {:?}",
                         inst.op.name()
                     )));
                 }
@@ -467,7 +477,7 @@ pub fn py_pbc_transformation(py: Python, dag: &mut DAGCircuit) -> PyResult<DAGCi
             }
         } else {
             return Err(TranspilerError::new_err(format!(
-                "Unable to run PBC tranformation as the circuit contains instructions not supported by the pass: {:?}",
+                "Unable to run PBC transformation as the circuit contains instructions not supported by the pass: {:?}",
                 inst.op.name()
             )));
         }
