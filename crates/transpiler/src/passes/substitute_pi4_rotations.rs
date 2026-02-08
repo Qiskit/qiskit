@@ -1008,8 +1008,8 @@ fn is_angle_close_to_multiple_of_pi_k(
     }
 }
 
-/// Gets a rotation gate and outputs an equivalent vector of standard gates
-/// in {Clifford, T, Tdg} and a global phase.
+/// The following two functions get a rotation gate and outputs an equivalent vector of
+/// standard gates in {Clifford, T, Tdg} and a global phase.
 /// For single-qubit rotation gates (RX, RY, RZ, Phase) and two-qubit rotation gates
 /// (RXX, RYY, RZZ, RZX), when the angle is a multiple of pi/4, the decomposition requires
 /// a single T or Tdg gate as well as some Clifford gates.
@@ -1019,6 +1019,8 @@ fn is_angle_close_to_multiple_of_pi_k(
 /// Note that even multiples of pi/4 (resectively pi/2 for controlled rotations),
 /// or equivalently, integer multiples of pi/2 (respectively pi for controlled rotations),
 /// can be written using only Clifford gates.
+///
+/// Function for 1-qubit gates
 fn replace_1q_rotation_by_discrete(
     gate: StandardGate,
     multiple: usize,
@@ -1033,6 +1035,7 @@ fn replace_1q_rotation_by_discrete(
     }
 }
 
+/// Function for 2-qubit gates
 fn replace_2q_rotation_by_discrete(
     gate: StandardGate,
     multiple: usize,
