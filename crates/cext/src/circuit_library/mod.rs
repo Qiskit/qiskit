@@ -11,4 +11,5 @@
 // that they have been altered from the originals.
 
 pub mod iqp;
+pub mod qaoa_ansatz;
 pub mod quantum_volume;
