@@ -80,11 +80,7 @@ static int test_add(void) {
 static int test_add_inplace(void) {
     QkObs *left = qk_obs_identity(100);
     QkObs *right = qk_obs_identity(100);
-    QkExitCode err = qk_obs_add_inplace(left, right);
-
-    if (err != QkExitCode_Success) {
-        return err;
-    }
+    qk_obs_add_inplace(left, right);
 
     size_t num_terms = qk_obs_num_terms(left);
 
@@ -258,11 +254,7 @@ static int test_mult_inplace(void) {
     for (int i = 0; i < 3; i++) {
         QkObs *obs = qk_obs_identity(100);
 
-        QkExitCode err = qk_obs_multiply_inplace(obs, &coeffs[i]);
-
-        if (err != QkExitCode_Success) {
-            return err;
-        }
+        qk_obs_multiply_inplace(obs, &coeffs[i]);
 
         // construct the expected observable: coeff * Id
         QkObs *expected = qk_obs_zero(100);

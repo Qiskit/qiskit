@@ -589,13 +589,11 @@ pub unsafe extern "C" fn qk_obs_multiply(
 /// @param obs A pointer to the observable.
 /// @param coeff The coefficient to multiply the observable with.
 ///
-/// @return An exit code. This function only returns ``QkExitCode_Success``.
-///
 /// # Example
 /// ```c
 /// QkObs *obs = qk_obs_identity(100);
 /// QkComplex64 coeff = {2, 0};
-/// QkExitCode exit = qk_obs_multiply_inplace(obs, &coeff);
+/// qk_obs_multiply_inplace(obs, &coeff);
 /// ```
 ///
 /// # Safety
@@ -608,14 +606,12 @@ pub unsafe extern "C" fn qk_obs_multiply(
 pub unsafe extern "C" fn qk_obs_multiply_inplace(
     obs: *mut SparseObservable,
     coeff: *const Complex64,
-) -> ExitCode {
+) {
     // SAFETY: Per documentation, the pointers are non-null and aligned.
     let obs = unsafe { mut_ptr_as_ref(obs) };
     let coeff = unsafe { const_ptr_as_ref(coeff) };
 
     *obs *= *coeff;
-
-    ExitCode::Success
 }
 
 /// @ingroup QkObs
@@ -657,13 +653,11 @@ pub unsafe extern "C" fn qk_obs_add(
 /// @param left A pointer to the left observable.
 /// @param right A pointer to the right observable.
 ///
-/// @return An exit code. This function only returns ``QkExitCode_Success``.
-///
 /// # Example
 /// ```c
 /// QkObs *left = qk_obs_identity(100);
 /// QkObs *right = qk_obs_zero(100);
-/// QkExitCode exit = qk_obs_add_inplace(left, right);
+/// qk_obs_add_inplace(left, right);
 /// ```
 ///
 /// # Safety
@@ -675,14 +669,12 @@ pub unsafe extern "C" fn qk_obs_add(
 pub unsafe extern "C" fn qk_obs_add_inplace(
     left: *mut SparseObservable,
     right: *const SparseObservable,
-) -> ExitCode {
+) {
     // SAFETY: Per documentation, the pointers are non-null and aligned.
     let left = unsafe { mut_ptr_as_ref(left) };
     let right = unsafe { const_ptr_as_ref(right) };
 
     *left += right;
-
-    ExitCode::Success
 }
 
 /// @ingroup QkObs
