@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import math
 from cmath import exp
-from typing import Optional
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
@@ -90,7 +89,7 @@ class U3Gate(Gate):
         theta: ParameterValueType,
         phi: ParameterValueType,
         lam: ParameterValueType,
-        label: Optional[str] = None,
+        label: str | None = None,
     ):
         r"""
         Args:
@@ -104,7 +103,7 @@ class U3Gate(Gate):
     def inverse(self, annotated: bool = False):
         r"""Return inverted U3 gate.
 
-        :math:`U3(\theta,\phi,\lambda)^{\dagger} =U3(-\theta,-\lambda,-\phi))`
+        :math:`U3(\theta,\phi,\lambda)^{\dagger} = U3(-\theta,-\lambda,-\phi)`
 
         Args:
             annotated: when set to ``True``, this is typically used to return an
@@ -284,7 +283,14 @@ class CU3Gate(ControlledGate):
         *,
         _base_label=None,
     ):
-        """Create new CU3 gate."""
+        r"""
+        Args:
+            theta: The angle :math:`\theta`.
+            phi: The angle :math:`\phi`.
+            lam: The angle :math:`\lambda`.
+            label: An optional label for the gate.
+            ctrl_state: The control state for the control qubit. Defaults to 1.
+        """
         super().__init__(
             "cu3",
             2,
@@ -313,7 +319,7 @@ class CU3Gate(ControlledGate):
     def inverse(self, annotated: bool = False):
         r"""Return inverted CU3 gate.
 
-        :math:`CU3(\theta,\phi,\lambda)^{\dagger} =CU3(-\theta,-\phi,-\lambda))`
+        :math:`CU3(\theta,\phi,\lambda)^{\dagger} = CU3(-\theta,-\phi,-\lambda)`
 
         Args:
             annotated: when set to ``True``, this is typically used to return an

@@ -13,8 +13,6 @@
 
 """Bitwise XOR circuit and gate."""
 
-from typing import Optional
-
 import numpy as np
 from qiskit.circuit import QuantumCircuit, Gate
 from qiskit.circuit.exceptions import CircuitError
@@ -38,8 +36,8 @@ class XOR(QuantumCircuit):
     def __init__(
         self,
         num_qubits: int,
-        amount: Optional[int] = None,
-        seed: Optional[int] = None,
+        amount: int | None = None,
+        seed: int | None = None,
     ) -> None:
         """
         Args:

@@ -14,8 +14,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 import numpy
 
 from qiskit.circuit._utils import _ctrl_state_to_int, with_gate_array, with_controlled_gate_array
@@ -76,7 +74,7 @@ class ZGate(SingletonGate):
 
     _standard_gate = StandardGate.Z
 
-    def __init__(self, label: Optional[str] = None):
+    def __init__(self, label: str | None = None):
         """
         Args:
             label: An optional label for the gate.
@@ -204,7 +202,11 @@ class CZGate(SingletonControlledGate):
         *,
         _base_label=None,
     ):
-        """Create new CZ gate."""
+        """
+        Args:
+            label: An optional label for the gate.
+            ctrl_state: The control state for the control qubit. Defaults to 1.
+        """
         super().__init__(
             "cz",
             2,
@@ -340,7 +342,11 @@ class CCZGate(SingletonControlledGate):
         *,
         _base_label=None,
     ):
-        """Create new CCZ gate."""
+        """
+        Args:
+            label: An optional label for the gate.
+            ctrl_state: The control state for the control qubit. Defaults to 11.
+        """
         super().__init__(
             "ccz",
             3,

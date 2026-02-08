@@ -12,8 +12,6 @@
 
 """Global Phase Gate"""
 
-from typing import Optional
-
 import numpy
 
 from qiskit.circuit.gate import Gate
@@ -37,7 +35,7 @@ class GlobalPhaseGate(Gate):
 
     _standard_gate = StandardGate.GlobalPhase
 
-    def __init__(self, phase: ParameterValueType, label: Optional[str] = None):
+    def __init__(self, phase: ParameterValueType, label: str | None = None):
         """
         Args:
             phase: The value of phase it takes.
