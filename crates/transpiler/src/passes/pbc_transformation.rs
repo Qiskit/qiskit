@@ -27,8 +27,8 @@ use qiskit_quantum_info::sparse_observable::PySparseObservable;
 
 use crate::TranspilerError;
 
-type GateToPBCType<'a> = (&'a [(&'a str, f64, &'a [u32])], f64);
-type GateToPBCVec<'a> = (Vec<(&'static str, Param, &'static [u32])>, Param);
+type GateToPBCType = (&'static [(&'static str, f64, &'static [u32])], f64);
+type GateToPBCVec = (Vec<(&'static str, Param, &'static [u32])>, Param);
 
 /// Map gates to a list of equivalent Pauli rotations and a global phase.
 /// Each element of the list is of the form ((pauli, phase, [qubit indices]), global_phase).
@@ -180,7 +180,7 @@ static STANDARD_GATE_SUBSTITUTIONS: [Option<GateToPBCType>; 52] = [
 /// Each element of the list is of the form ((pauli, [phases], [qubit indices]), global_phase).
 /// The convention is
 /// `original_gate = PauliEvolutionGate(pauli, phase) * e^{i global_phase}`
-fn replace_gate_by_pauli_vec(gate: StandardGate, angles: &[Param]) -> GateToPBCVec<'static> {
+fn replace_gate_by_pauli_vec(gate: StandardGate, angles: &[Param]) -> GateToPBCVec {
     match gate {
         StandardGate::U | StandardGate::U3 => (
             vec![
