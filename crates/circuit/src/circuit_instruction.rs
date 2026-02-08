@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -29,7 +29,7 @@ use crate::imports::{CONTROLLED_GATE, GATE, INSTRUCTION, OPERATION, WARNINGS_WAR
 use crate::instruction::{Instruction, Parameters, create_py_op};
 use crate::operations::{
     ArrayType, BoxDuration, ControlFlow, ControlFlowInstruction, ControlFlowType, Operation,
-    OperationRef, Param, PauliProductMeasurement, PyGate, PyInstruction, PyOperation, StandardGate,
+    OperationRef, Param, PauliProductMeasurement, PyInstruction, PyOperationTypes, StandardGate,
     StandardInstruction, StandardInstructionType, UnitaryGate,
 };
 use crate::packed_instruction::PackedOperation;
@@ -256,7 +256,7 @@ impl CircuitInstruction {
         match self.operation.view() {
             OperationRef::StandardGate(standard) => Ok(standard.num_ctrl_qubits() != 0),
             OperationRef::Gate(gate) => gate
-                .gate
+                .instruction
                 .bind(py)
                 .is_instance(CONTROLLED_GATE.get_bound(py)),
             _ => Ok(false),
@@ -868,13 +868,15 @@ impl<'a, 'py, T: CircuitBlock> FromPyObject<'a, 'py> for OperationFromPython<T> 
 
         if ob_type.is_subclass(GATE.get_bound(py))? {
             let params = get_params()?;
-            let operation = PackedOperation::from_gate(Box::new(PyGate {
-                qubits: ob.getattr(intern!(py, "num_qubits"))?.extract()?,
-                clbits: 0,
-                params: params.len()? as u32,
-                op_name: ob.getattr(intern!(py, "name"))?.extract()?,
-                gate: ob.to_owned().unbind(),
-            }));
+            let operation = PackedOperation::from_py_operation(Box::new(PyOperationTypes::Gate(
+                PyInstruction {
+                    qubits: ob.getattr(intern!(py, "num_qubits"))?.extract()?,
+                    clbits: 0,
+                    params: params.len()? as u32,
+                    op_name: ob.getattr(intern!(py, "name"))?.extract()?,
+                    instruction: ob.to_owned().unbind(),
+                },
+            )));
             let params = extract_params(operation.view(), &params)?;
             return Ok(OperationFromPython {
                 operation,
@@ -884,13 +886,15 @@ impl<'a, 'py, T: CircuitBlock> FromPyObject<'a, 'py> for OperationFromPython<T> 
         }
         if ob_type.is_subclass(INSTRUCTION.get_bound(py))? {
             let params = get_params()?;
-            let operation = PackedOperation::from_instruction(Box::new(PyInstruction {
-                qubits: ob.getattr(intern!(py, "num_qubits"))?.extract()?,
-                clbits: ob.getattr(intern!(py, "num_clbits"))?.extract()?,
-                params: params.len()? as u32,
-                op_name: ob.getattr(intern!(py, "name"))?.extract()?,
-                instruction: ob.to_owned().unbind(),
-            }));
+            let operation = PackedOperation::from_py_operation(Box::new(
+                PyOperationTypes::Instruction(PyInstruction {
+                    qubits: ob.getattr(intern!(py, "num_qubits"))?.extract()?,
+                    clbits: ob.getattr(intern!(py, "num_clbits"))?.extract()?,
+                    params: params.len()? as u32,
+                    op_name: ob.getattr(intern!(py, "name"))?.extract()?,
+                    instruction: ob.to_owned().unbind(),
+                }),
+            ));
             let params = extract_params(operation.view(), &params)?;
             return Ok(OperationFromPython {
                 operation,
@@ -900,13 +904,15 @@ impl<'a, 'py, T: CircuitBlock> FromPyObject<'a, 'py> for OperationFromPython<T> 
         }
         if ob_type.is_subclass(OPERATION.get_bound(py))? {
             let params = get_params()?;
-            let operation = PackedOperation::from_operation(Box::new(PyOperation {
-                qubits: ob.getattr(intern!(py, "num_qubits"))?.extract()?,
-                clbits: ob.getattr(intern!(py, "num_clbits"))?.extract()?,
-                params: params.len()? as u32,
-                op_name: ob.getattr(intern!(py, "name"))?.extract()?,
-                operation: ob.to_owned().unbind(),
-            }));
+            let operation = PackedOperation::from_py_operation(Box::new(
+                PyOperationTypes::Operation(PyInstruction {
+                    qubits: ob.getattr(intern!(py, "num_qubits"))?.extract()?,
+                    clbits: ob.getattr(intern!(py, "num_clbits"))?.extract()?,
+                    params: params.len()? as u32,
+                    op_name: ob.getattr(intern!(py, "name"))?.extract()?,
+                    instruction: ob.to_owned().unbind(),
+                }),
+            ));
             let params = extract_params(operation.view(), &params)?;
             return Ok(OperationFromPython {
                 operation,

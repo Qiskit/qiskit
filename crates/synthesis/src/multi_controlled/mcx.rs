@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -15,7 +15,7 @@ use pyo3::types::PyAnyMethods;
 use pyo3::{PyResult, Python};
 use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
 use qiskit_circuit::operations::{
-    Operation, OperationRef, Param, PyGate, StandardGate, multiply_param,
+    Operation, OperationRef, Param, PyInstruction, PyOperationTypes, StandardGate, multiply_param,
 };
 use qiskit_circuit::{BlocksMode, imports};
 use qiskit_circuit::{Clbit, Qubit, VarsMode};
@@ -316,7 +316,7 @@ fn add_reset_gadget(
 /// # References
 ///
 /// 1. Iten et al., *Quantum Circuits for Isometries*, Phys. Rev. A 93, 032318 (2016),
-///    [arXiv:1501.06911] (http://arxiv.org/abs/1501.06911).
+///    [arXiv:1501.06911] (https://arxiv.org/abs/1501.06911).
 pub fn synth_mcx_n_dirty_i15(
     num_controls: usize,
     relative_phase: bool,
@@ -426,13 +426,13 @@ pub fn synth_mcx_noaux_v24(
             .call1((PI, num_controls))
             .map_err(CircuitDataError::ErrorFromPython)?;
 
-        let as_py_gate = PyGate {
+        let as_py_gate = PyOperationTypes::Gate(PyInstruction {
             qubits: num_qubits,
             clbits: 0,
             params: 1,
             op_name: "mcphase".to_string(),
-            gate: mcphase_gate.into(),
-        };
+            instruction: mcphase_gate.into(),
+        });
 
         circuit.push_packed_operation(
             as_py_gate.into(),
