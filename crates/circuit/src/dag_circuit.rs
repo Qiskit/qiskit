@@ -32,9 +32,9 @@ use crate::error::DAGCircuitError;
 use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::ObjectRegistry;
 use crate::operations::{
-    ArrayType, BoxDuration, Condition, ControlFlow, ControlFlowInstruction, ControlFlowView,
-    Operation, OperationRef, Param, PyOperationTypes, PythonOperation, StandardGate,
-    StandardInstruction, SwitchTarget,
+    ArrayType, Condition, ControlFlow, ControlFlowInstruction, ControlFlowView,
+    InstructionDuration, Operation, OperationRef, Param, PyOperationTypes, PythonOperation,
+    StandardGate, StandardInstruction, SwitchTarget,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::ParameterExpression;
@@ -2291,22 +2291,26 @@ impl DAGCircuit {
                                     },
                                 ) => {
                                     let duration_eq = match duration_a {
-                                        Some(BoxDuration::Expr(duration_a)) => match duration_b {
-                                            Some(BoxDuration::Expr(duration_b)) => duration_a
-                                                .structurally_equivalent_by_key(
-                                                    &slf_var_key,
-                                                    duration_b,
-                                                    &other_var_key,
-                                                ),
-                                            _ => false,
-                                        },
-                                        Some(BoxDuration::Duration(duration_a)) => match duration_b
-                                        {
-                                            Some(BoxDuration::Duration(duration_b)) => {
-                                                duration_a == duration_b
+                                        Some(InstructionDuration::Expr(duration_a)) => {
+                                            match duration_b {
+                                                Some(InstructionDuration::Expr(duration_b)) => {
+                                                    duration_a.structurally_equivalent_by_key(
+                                                        &slf_var_key,
+                                                        duration_b,
+                                                        &other_var_key,
+                                                    )
+                                                }
+                                                _ => false,
                                             }
-                                            _ => false,
-                                        },
+                                        }
+                                        Some(InstructionDuration::Duration(duration_a)) => {
+                                            match duration_b {
+                                                Some(InstructionDuration::Duration(duration_b)) => {
+                                                    duration_a == duration_b
+                                                }
+                                                _ => false,
+                                            }
+                                        }
                                         None => duration_b.is_none(),
                                     };
                                     Ok(duration_eq && block_eq(body_a, body_b)?)

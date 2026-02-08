@@ -404,9 +404,66 @@ impl FromStr for ControlFlowType {
 }
 
 #[derive(Clone, Debug, IntoPyObject, PartialEq)]
-pub enum BoxDuration {
+pub enum InstructionDuration {
     Duration(Duration),
     Expr(expr::Expr),
+}
+
+impl InstructionDuration {
+    /// Create an InstructionDuration from a DelayUnit and a Param value.
+    ///
+    /// This is used to convert from the Delay instruction's representation
+    /// (unit + param) to the unified duration representation.
+    pub fn from_delay_unit_and_param(unit: DelayUnit, param: &Param) -> Option<Self> {
+        match unit {
+            DelayUnit::EXPR => {
+                if let Param::Obj(obj) = param {
+                    // The param should be an expr::Expr
+                    Python::attach(|py| obj.bind(py).extract::<expr::Expr>().ok().map(Self::Expr))
+                } else {
+                    None
+                }
+            }
+            DelayUnit::DT => match param {
+                Param::Float(f) => Some(Self::Duration(Duration::dt(*f as i64))),
+                Param::Obj(obj) => Python::attach(|py| {
+                    obj.bind(py)
+                        .extract::<i64>()
+                        .ok()
+                        .map(|v| Self::Duration(Duration::dt(v)))
+                }),
+                _ => None,
+            },
+            DelayUnit::PS => match param {
+                Param::Float(f) => Some(Self::Duration(Duration::ps(*f))),
+                _ => None,
+            },
+            DelayUnit::NS => match param {
+                Param::Float(f) => Some(Self::Duration(Duration::ns(*f))),
+                _ => None,
+            },
+            DelayUnit::US => match param {
+                Param::Float(f) => Some(Self::Duration(Duration::us(*f))),
+                _ => None,
+            },
+            DelayUnit::MS => match param {
+                Param::Float(f) => Some(Self::Duration(Duration::ms(*f))),
+                _ => None,
+            },
+            DelayUnit::S => match param {
+                Param::Float(f) => Some(Self::Duration(Duration::s(*f))),
+                _ => None,
+            },
+        }
+    }
+
+    /// Get the unit string for this duration.
+    pub fn unit(&self) -> &'static str {
+        match self {
+            Self::Duration(d) => d.unit(),
+            Self::Expr(_) => "expr",
+        }
+    }
 }
 
 /// A literal Python range extracted to a Rust object.
@@ -505,7 +562,7 @@ pub struct ControlFlowInstruction {
 #[repr(align(8))]
 pub enum ControlFlow {
     Box {
-        duration: Option<BoxDuration>,
+        duration: Option<InstructionDuration>,
         annotations: Vec<Py<PyAny>>,
     },
     BreakLoop,
@@ -627,10 +684,10 @@ impl ControlFlowInstruction {
             } => {
                 let (duration, unit) = match duration {
                     Some(duration) => match duration {
-                        BoxDuration::Duration(duration) => {
+                        InstructionDuration::Duration(duration) => {
                             (Some(duration.py_value(py)?), Some(duration.unit()))
                         }
-                        BoxDuration::Expr(expr) => {
+                        InstructionDuration::Expr(expr) => {
                             (Some(expr.clone().into_py_any(py)?), Some("expr"))
                         }
                     },
@@ -765,7 +822,7 @@ impl Operation for ControlFlowInstruction {
 #[derive(Clone, Debug)]
 pub enum ControlFlowView<'a, T> {
     Box {
-        duration: Option<&'a BoxDuration>,
+        duration: Option<&'a InstructionDuration>,
         body: &'a T,
     },
     BreakLoop,

@@ -28,9 +28,9 @@ use crate::duration::Duration;
 use crate::imports::{CONTROLLED_GATE, GATE, INSTRUCTION, OPERATION, WARNINGS_WARN};
 use crate::instruction::{Instruction, Parameters, create_py_op};
 use crate::operations::{
-    ArrayType, BoxDuration, ControlFlow, ControlFlowInstruction, ControlFlowType, Operation,
-    OperationRef, Param, PauliProductMeasurement, PyInstruction, PyOperationTypes, StandardGate,
-    StandardInstruction, StandardInstructionType, UnitaryGate,
+    ArrayType, ControlFlow, ControlFlowInstruction, ControlFlowType, InstructionDuration,
+    Operation, OperationRef, Param, PauliProductMeasurement, PyInstruction, PyOperationTypes,
+    StandardGate, StandardInstruction, StandardInstructionType, UnitaryGate,
 };
 use crate::packed_instruction::PackedOperation;
 use crate::parameter::parameter_expression::ParameterExpression;
@@ -726,15 +726,25 @@ impl<'a, 'py, T: CircuitBlock> FromPyObject<'a, 'py> for OperationFromPython<T> 
                         let unit: Option<String> = ob.getattr(intern!(py, "unit"))?.extract()?;
                         let duration = if let Some(py_duration) = py_duration {
                             Some(match unit.as_deref().unwrap_or("dt") {
-                                "dt" => BoxDuration::Duration(Duration::dt(
+                                "dt" => InstructionDuration::Duration(Duration::dt(
                                     py_duration.extract::<f64>()? as i64,
                                 )),
-                                "s" => BoxDuration::Duration(Duration::s(py_duration.extract()?)),
-                                "ms" => BoxDuration::Duration(Duration::ms(py_duration.extract()?)),
-                                "us" => BoxDuration::Duration(Duration::us(py_duration.extract()?)),
-                                "ns" => BoxDuration::Duration(Duration::ns(py_duration.extract()?)),
-                                "ps" => BoxDuration::Duration(Duration::ps(py_duration.extract()?)),
-                                "expr" => BoxDuration::Expr(py_duration.extract()?),
+                                "s" => InstructionDuration::Duration(Duration::s(
+                                    py_duration.extract()?,
+                                )),
+                                "ms" => InstructionDuration::Duration(Duration::ms(
+                                    py_duration.extract()?,
+                                )),
+                                "us" => InstructionDuration::Duration(Duration::us(
+                                    py_duration.extract()?,
+                                )),
+                                "ns" => InstructionDuration::Duration(Duration::ns(
+                                    py_duration.extract()?,
+                                )),
+                                "ps" => InstructionDuration::Duration(Duration::ps(
+                                    py_duration.extract()?,
+                                )),
+                                "expr" => InstructionDuration::Expr(py_duration.extract()?),
                                 _ => {
                                     return Err(PyValueError::new_err(format!(
                                         "duration unit '{}' is unsupported",
