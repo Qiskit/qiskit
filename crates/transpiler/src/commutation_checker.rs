@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use crate::standard_generators::generator_observable;
 use hashbrown::{HashMap, HashSet};
 use ndarray::Array2;
 use ndarray::linalg::kron;
@@ -34,8 +35,10 @@ use qiskit_circuit::imports::QI_OPERATOR;
 use qiskit_circuit::instruction::{Instruction, Parameters};
 use qiskit_circuit::object_registry::ObjectRegistry;
 use qiskit_circuit::operations::{
-    Operation, OperationRef, Param, STANDARD_GATE_SIZE, StandardGate,
+    Operation, OperationRef, Param, STANDARD_GATE_SIZE, StandardGate, StandardInstruction,
 };
+use qiskit_quantum_info::sparse_observable::BitTerm;
+
 use qiskit_circuit::{Clbit, Qubit};
 use qiskit_quantum_info::unitary_compose;
 use thiserror::Error;
@@ -223,11 +226,30 @@ fn try_pauli_generator(
     qubits: &[Qubit],
     num_qubits: u32,
 ) -> Option<SparseObservable> {
-    match operation.name() {
-        "pauli" => try_extract_op_from_pauli_gate(operation, qubits, num_qubits),
-        "PauliEvolution" => try_extract_op_from_pauli_evo(operation, qubits, num_qubits),
-        "pauli_product_measurement" => try_extract_op_from_ppm(operation, qubits, num_qubits),
-        _ => None,
+    match operation {
+        OperationRef::StandardGate(gate) => {
+            let local = generator_observable(*gate)?;
+            let out = SparseObservable::identity(num_qubits);
+            Some(out.compose_map(&local, |i| qubits[i as usize].0))
+        }
+        OperationRef::StandardInstruction(StandardInstruction::Measure) => {
+            let coeffs = vec![Complex64::new(1.0, 0.0)];
+            let bit_terms = vec![BitTerm::Z];
+            let indices = vec![0];
+            let boundaries = vec![0, 1];
+            // Safety: These vectors are trivially valid.
+            let local = unsafe {
+                SparseObservable::new_unchecked(1, coeffs, bit_terms, indices, boundaries)
+            };
+            let out = SparseObservable::identity(num_qubits);
+            Some(out.compose_map(&local, |i| qubits[i as usize].0))
+        }
+        _ => match operation.name() {
+            "pauli" => try_extract_op_from_pauli_gate(operation, qubits, num_qubits),
+            "PauliEvolution" => try_extract_op_from_pauli_evo(operation, qubits, num_qubits),
+            "pauli_product_measurement" => try_extract_op_from_ppm(operation, qubits, num_qubits),
+            _ => None,
+        },
     }
 }
 
@@ -504,11 +526,17 @@ impl CommutationChecker {
             _ => (),
         };
 
-        // Handle commutations in between Pauli-based gates, like PauliGate or PauliEvolutionGate
-        let size = qargs1.iter().chain(qargs2.iter()).max().unwrap().0 + 1;
-        if let Some(obs1) = try_pauli_generator(op1, qargs1, size) {
-            if let Some(obs2) = try_pauli_generator(op2, qargs2, size) {
-                return Ok(obs1.commutes(&obs2, tol));
+        // Handle commutations in between Pauli-based gates, like PauliGate or PauliEvolutionGate.
+        // We only use this path if at least one of the gates is NOT a standard gate.
+        // If both are standard gates, we fall through to use the existing matrix/library path.
+        if !matches!(op1, OperationRef::StandardGate(_))
+            || !matches!(op2, OperationRef::StandardGate(_))
+        {
+            let size = qargs1.iter().chain(qargs2.iter()).max().unwrap().0 + 1;
+            if let Some(obs1) = try_pauli_generator(op1, qargs1, size) {
+                if let Some(obs2) = try_pauli_generator(op2, qargs2, size) {
+                    return Ok(obs1.commutes(&obs2, tol));
+                }
             }
         }
 

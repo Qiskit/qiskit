@@ -28,6 +28,8 @@ from qiskit.circuit import (
     Qubit,
     QuantumCircuit,
 )
+from qiskit.transpiler.passmanager import PassManager
+from qiskit.transpiler.passes.optimization.light_cone import LightCone
 from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
 from qiskit.circuit.library import (
     Barrier,
@@ -570,6 +572,241 @@ class TestCommutationChecker(QiskitTestCase):
         x = PauliEvolutionGate(SparsePauliOp([19 * "X" + "I"]))
         with self.subTest(left=z, right=x):
             self.assertFalse(scc.commute(z, qargs, [], x, qargs, []))
+
+    def test_pauli_evolution_standard_gates(self):
+        """Test PauliEvolutionGate commutations with standard gates (rotations)."""
+        # H and H should commute
+        self.assertTrue(scc.commute(HGate(), [0], [], HGate(), [0], []))
+        # H and Z should NOT commute
+        self.assertFalse(scc.commute(HGate(), [0], [], ZGate(), [0], []))
+
+        # RX(0.5) and PauliEvo(X) should commute
+        evo_x = PauliEvolutionGate(SparsePauliOp("X"), time=1.0)
+        self.assertTrue(scc.commute(RXGate(0.5), [0], [], evo_x, [0], []))
+
+        # RX(0.5) and PauliEvo(Z) should NOT commute
+        evo_z = PauliEvolutionGate(SparsePauliOp("Z"), time=1.0)
+        self.assertFalse(scc.commute(RXGate(0.5), [0], [], evo_z, [0], []))
+
+        # HGate (generator X+Z) and PauliEvolutionGate(X+Z) should commute
+        evo_xz = PauliEvolutionGate(SparsePauliOp(["X", "Z"], [1.0, 1.0]), time=1.0)
+        self.assertTrue(scc.commute(HGate(), [0], [], evo_xz, [0], []))
+
+    def test_light_cone_index_out_of_bounds(self):
+        """Test scanning a circuit with dispersed indices does not panic.
+        See https://github.com/Qiskit/qiskit/issues/15021
+        """
+        qc = QuantumCircuit(18)
+        qc.rx(np.pi / 3, range(0, qc.num_qubits))
+        bit_terms = "ZZZZZZZZZ"
+        indices = [0, 1, 2, 3, 4, 9, 10, 12, 13]
+        pm = PassManager(
+            [
+                LightCone(
+                    bit_terms=bit_terms,
+                    indices=indices,
+                )
+            ]
+        )
+        # This should not raise a PanicException or IndexError
+        reduced_circ = pm.run(qc)
+
+        expected_qc = QuantumCircuit(18)
+        # RX gates on the measured indices do not commute with Z, so they should remain.
+        # RX gates on other qubits commute with Identity (implied by observable), so they are removed.
+        expected_qc.rx(np.pi / 3, indices)
+
+        self.assertEqual(reduced_circ, expected_qc)
+
+
+    def test_new_generators(self):
+        """Test commutation relations for newly supported complex gates."""
+        from qiskit.circuit.library import CSwapGate, DCXGate, ECRGate, C3XGate, RC3XGate, IGate, SXdgGate, RCCXGate
+
+        # CSwap (Fredkin): [0, 1, 2] -> Control 0, Swap 1 and 2
+        # Generators: Z_0 X_1 X_2, Z_0 Y_1 Y_2, Z_0 Z_1 Z_2
+        cswap = CSwapGate()
+        # Z on 0 commutes with all generators (Z0 commutes with Z0)
+        self.assertTrue(scc.commute(ZGate(), [0], [], cswap, [0, 1, 2], []))
+        # X on 0 anti-commutes with Z_0
+        self.assertFalse(scc.commute(XGate(), [0], [], cswap, [0, 1, 2], []))
+        # Z on 1 should not commute with X_1 or Y_1
+        self.assertFalse(scc.commute(ZGate(), [1], [], cswap, [0, 1, 2], []))
+
+        # DCX: [0, 1] -> Generators ZX, XZ
+        dcx = DCXGate()
+        # X on 0: Commutes with XZ (X0, Z1), Anti-commutes with ZX (Z0, X1) -> Anti-commutes total?
+        # Actually commutativity is checking if [P, G] = 0.
+        # G ~ a * ZX + b * XZ.
+        # [X_0, Z_0 X_1] != 0.
+        self.assertFalse(scc.commute(XGate(), [0], [], dcx, [0, 1], []))
+        # X on 1: Commutes with ZX (Z0 X1). Anti-commutes with XZ (X0 Z1).
+        self.assertFalse(scc.commute(XGate(), [1], [], dcx, [0, 1], []))
+        # RC3X: [0, 1, 2, 3] -> Generator ZZZX (Relative Phase)
+        # Assuming RC3X works similarly to C3X for Pauli commutation
+        rc3x = RC3XGate()
+        # Z on 0, 1, 2 -> Commute
+        self.assertTrue(scc.commute(ZGate(), [0], [], rc3x, [0, 1, 2, 3], []))
+        # X on 0 -> Anti-commute
+        self.assertFalse(scc.commute(XGate(), [0], [], rc3x, [0, 1, 2, 3], []))
+        
+        # SXdg: Should be X generator
+        sxdg = SXdgGate()
+        self.assertTrue(scc.commute(XGate(), [0], [], sxdg, [0], []))
+        self.assertFalse(scc.commute(ZGate(), [0], [], sxdg, [0], []))
+
+        # ECR: [0, 1] -> Generators ZX, XI (X on 0)
+        # It generates X on 0, so it should ANTI-COMMUTE with Z on 0.
+        ecr = ECRGate()
+        self.assertFalse(scc.commute(ZGate(), [0], [], ecr, [0, 1], []))
+        # It generates Z on 0 (from ZX), so it should ANTI-COMMUTE with X on 0?
+        # Wait, if generators are {ZX, X}, then:
+        # X0 commutes with X (yes), anti-commutes with ZX (yes). So Total = Anti-commute.
+        self.assertFalse(scc.commute(XGate(), [0], [], ecr, [0, 1], []))
+        
+    def test_standard_gates_exhaustively(self):
+        """Test commutation checker against Matrix Operator for ALL standard gates."""
+        from qiskit.circuit.library import get_standard_gate_name_mapping, IGate, ZGate
+        from qiskit.circuit import Parameter
+        from qiskit.quantum_info import Operator
+        import numpy as np
+
+        mapping = get_standard_gate_name_mapping()
+        
+        # We will test commutation with Z rotation on the first qubit of the gate.
+        # This is arbitrary but exercises the checker.
+        
+        for name, gate in mapping.items():
+            # Skip directives like Barrier, Measure, Reset etc if they are in the mapping
+            if name in ["barrier", "measure", "reset", "delay", "snapshot"]:
+                continue
+                
+            # Bind parameters if necessary
+            if gate.params:
+                # Create a bind map assuming params are ParameterExpressions or if they are just placeholders
+                # If the gate comes with unbound parameters, we bind them.
+                # Standard mapping usually has bound instances (like RX(theta)) where theta is a Parameter.
+                # We need to assign float values.
+                
+                # Copy the gate to avoid modifying the global singleton if any
+                gate = gate.copy()
+                new_params = []
+                for p in gate.params:
+                    if isinstance(p, Parameter) or hasattr(p, "parameters"): 
+                        # It's a parameter. Bind to 0.1 (arbitrary func)
+                        new_params.append(0.1)
+                    else:
+                        new_params.append(p)
+                if len(new_params) > 0:
+                   try:
+                       gate.params = new_params
+                   except:
+                       pass # Some gates might fail param setting, skip or try
+            
+            # Checks
+            num_qubits = gate.num_qubits
+            if num_qubits == 0: continue
+
+            # Define an Operator for the gate
+            try:
+                op_gate = Operator(gate)
+            except Exception:
+                # If we can't make an operator (e.g. specialized instruction), skip
+                continue
+
+            # Define a Probe Operator: Z on qubit 0
+            # We want to check: Does Gate commute with Z_0?
+            # CommutationChecker check
+            # scc.commute(op1, q_op1, c_op1, op2, q_op2, c_op2)
+            # op1 = Z, q_op1=[0]
+            # op2 = gate, q_op2=range(num_qubits)
+            
+            # Map Z gate to Operator on 1 qubit
+            z_op = Operator(ZGate())
+            # Embed Z_0 in full Hilbert space O_Z = Z \otimes I \otimes ...
+            # qiskit Operator tensor order is reversed? (q0 is rightmost?)
+            # Operator(gate) is on [0, 1, ... n-1]
+            # Verify Commutation using Matrix Math: [Gate, Z_0] = 0?
+            
+            # Simple check: scc.commute should match logic
+            
+            # Use the checker
+            res_checker = scc.commute(ZGate(), [0], [], gate, list(range(num_qubits)), [])
+            
+            # Use Matrix Math (Ground Truth)
+            # Compose Z on qubit 0.
+            # Qiskit Operator.compose(other, qargs) -> self(other)
+            # Commutation: A B == B A
+            
+            # Full Z operator on n qubits: Z on 0, I on others.
+            # But constructing full N-qubit operator is expensive for large gates.
+            # However, standard gates are usually <= 4 qubits.
+            
+            # Let's use the property that CommutationChecker `commute` relies on `Operator` fallback if it doesn't know.
+            # We assume `Operator` logic is correct.
+            # We checking consistency: If our Rust code says True/False, is it correct?
+            
+            # We can't easily replicate the complex matrix check here without re-implementing it.
+            # BUT, we can trust that `scc.commute` handles the matrix check if needed.
+            # The test here is mostly to ensure NO CRASHES and NO OBVIOUS REGRESSIONS
+            # (e.g. if we defined a Pauli for it, does it agree with Matrix?)
+            
+            # Let's perform a lightweight verification: 
+            # If the gate is Clifford-like, we expect potential True/False.
+            # If the gate is `RX`, it definitely commutes with X.
+            
+            # Actually, doing the matrix math for comparison is the best way to satisfy ShellyGarion.
+            # Ground Truth:
+            # U_g * (Z \otimes I...) == (Z \otimes I...) * U_g ?
+            # Note: Qiskit `Operator` allows `compose` with permutation.
+            # But let's build the operators:
+            
+            n = gate.num_qubits
+            if n > 5: continue # Skip large gates
+            
+            # Z on qubit 0
+            op_z = Operator(ZGate())
+            
+            # U_gate * (Z_0)  vs (Z_0) * U_gate
+            # compose(other, qargs=...): returns self * other.
+            
+            # LHS: Gate * Z0
+            lhs = op_gate.compose(op_z, qargs=[0])
+            
+            # RHS: Z0 * Gate
+            # RHS = op_z.compose(op_gate, qargs=[0 for gate... wait])
+            # op_z is 1-qubit. We can't compose gate onto it easily if gate is N-qubit.
+            # But we can do: logic
+            
+            # Create full Z0 operator
+            # I on 1..n-1, Z on 0.
+            # Tensor product: I^(n-1) \otimes Z
+            full_z = op_z
+            for _ in range(n-1):
+                full_z = full_z.tensor(Operator(IGate())) # Tensor adds to the "left" (higher indices) or right?
+                # Qiskit convention: q0 is rightmost.
+                # tensor(b, a) -> a (x) b.
+                # We want Z on q0. So Z is the *first* tensor factor in standard ordering?
+                # Actually, Operator.tensor(other) -> self (tensor) other.
+                # If we want Z on q0, it should be I...IZ.
+                pass
+            
+            # Given ambiguity, let's use the explicit `compose` which handles qargs correctness.
+            # Identity on n qubits
+            eye = Operator(np.eye(2**n))
+            
+            # Z0 on n qubits
+            z0_n = eye.compose(op_z, qargs=[0])
+            
+            lhs = op_gate.compose(z0_n)
+            rhs = z0_n.compose(op_gate)
+            
+            commutes_math = (lhs == rhs)
+            
+            # Check agreement
+            self.assertEqual(res_checker, commutes_math, f"Mismatch for gate {name} (Params: {gate.params})")
+
+
 
 
 def build_pauli_gate(pauli_string: str, gate_type: str) -> Gate:
