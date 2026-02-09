@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -50,7 +50,7 @@ define a computation unit of work for the estimator to complete:
 * a single :class:`~qiskit.circuit.QuantumCircuit`, possibly parametrized, whose final state we
   define as :math:`\psi(\theta)`,
 
-* one or more observables (specified as any :class:`~.ObservablesArrayLike`, including
+* one or more observables (specified as any ``ObservablesArrayLike``, including
   :class:`~.quantum_info.Pauli`, :class:`~.SparsePauliOp`, ``str``) that specify which expectation
   values to estimate, denoted :math:`H_j`, and
 
@@ -408,6 +408,22 @@ level, however, here are some notable differences keep in mind when migrating fr
 Primitives API
 ==============
 
+Parameters V2
+-------------
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   ParameterLike
+   BindingsArray
+
+.. list-table::
+   :widths: auto
+   :header-rows: 0
+
+   * - :py:obj:`BindingsArrayLike`
+     - alias of :py:obj:`Mapping[ParameterLike | Tuple[ParameterLike, ...], ArrayLike]`
+
 Estimator V2
 ------------
 
@@ -417,6 +433,22 @@ Estimator V2
    BaseEstimatorV2
    StatevectorEstimator
    BackendEstimatorV2
+   EstimatorPub
+   ObservablesArray
+   ObservableLike
+
+.. list-table::
+   :widths: auto
+   :header-rows: 0
+
+   * - :py:obj:`EstimatorPubLike`
+     - alias of :py:obj:`EstimatorPub` \|
+       :py:obj:`Tuple[QuantumCircuit, ObservablesArrayLike]` \|
+       :py:obj:`Tuple[QuantumCircuit, ObservablesArrayLike, BindingsArrayLike]` \|
+       :py:obj:`Tuple[QuantumCircuit, ObservablesArrayLike, BindingsArrayLike, Real]`
+
+   * - :py:obj:`ObservablesArrayLike`
+     - alias of :py:obj:`ObservableLike | ArrayLike`
 
 Sampler V2
 ----------
@@ -427,6 +459,19 @@ Sampler V2
    BaseSamplerV2
    StatevectorSampler
    BackendSamplerV2
+   SamplerPub
+
+.. list-table::
+   :widths: auto
+   :header-rows: 0
+
+   * - :py:obj:`SamplerPubLike`
+     - alias of :py:obj:`SamplerPub` \|
+       :py:obj:`QuantumCircuit` \|
+       :py:obj:`Tuple[QuantumCircuit]` \|
+       :py:obj:`Tuple[QuantumCircuit, BindingsArrayLike]` \|
+       :py:obj:`Tuple[QuantumCircuit, BindingsArrayLike, Integral | None]`
+
 
 Results V2
 ----------
@@ -476,11 +521,16 @@ from .containers import (
     DataBin,
     PrimitiveResult,
     PubResult,
+    EstimatorPub,
     EstimatorPubLike,
+    SamplerPub,
     SamplerPubLike,
     SamplerPubResult,
+    ParameterLike,
+    BindingsArray,
     BindingsArrayLike,
     ObservableLike,
+    ObservablesArray,
     ObservablesArrayLike,
 )
 from .primitive_job import BasePrimitiveJob, PrimitiveJob

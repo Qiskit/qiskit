@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -12,6 +12,9 @@
 
 # pylint: disable=wrong-import-position,wrong-import-order
 
+# The documentation of the root namespace is manual in `docs/apidoc/root.rst`, so that the
+# :mod:`qiskit` Sphinx cross-reference can more easily point to the top-level API table in our
+# documentation build.
 """Main Qiskit public functionality."""
 
 import importlib.metadata
@@ -137,6 +140,7 @@ sys.modules["qiskit._accelerate.litinski_transformation"] = _accelerate.litinski
 sys.modules["qiskit._accelerate.unroll_3q_or_more"] = _accelerate.unroll_3q_or_more
 sys.modules["qiskit._accelerate.substitute_pi4_rotations"] = _accelerate.substitute_pi4_rotations
 
+
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 
 # The main qiskit operators
@@ -158,6 +162,9 @@ from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from .version import __version__
 
 
+# The Qiskit repo root is documented manually in `docs/apidoc/root.rst`.  Make sure that all
+# re-exports in `__all__` and any functions/objects defined in-line in this file and intended to be
+# exported to users at the `qiskit.` root are documented in that file.
 __all__ = [
     "AncillaRegister",
     "ClassicalRegister",
