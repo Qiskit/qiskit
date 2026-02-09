@@ -464,7 +464,8 @@ pub(crate) fn load_value(
             Ok(GenericValue::Register(register_value))
         }
         ValueType::Circuit => {
-            let (packed_circuit, _) = deserialize::<formats::QPYCircuitV17>(bytes)?;
+            let (packed_circuit, _) =
+                deserialize_with_args::<formats::QPYCircuit, (u32,)>(bytes, (qpy_data.version,))?;
             Python::attach(|py| {
                 let circuit = unpack_circuit(
                     py,

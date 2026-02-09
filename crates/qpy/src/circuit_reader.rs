@@ -61,7 +61,7 @@ use crate::bytes::Bytes;
 use crate::consts::standard_gate_from_gate_class_name;
 use crate::formats;
 use crate::formats::ConditionData;
-use crate::formats::QPYCircuitV17;
+use crate::formats::QPYCircuit;
 use crate::params::generic_value_to_param;
 use crate::py_methods::py_convert_from_generic_value;
 use crate::py_methods::{
@@ -71,8 +71,8 @@ use crate::value::ParamRegisterValue;
 use crate::value::unpack_for_collection;
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionType, ExpressionVarDeclaration, GenericValue,
-    QPYReadData, RegisterType, ValueType, deserialize, deserialize_with_args,
-    load_param_register_value, load_value, unpack_duration_value, unpack_generic_value,
+    QPYReadData, RegisterType, ValueType, deserialize_with_args, load_param_register_value,
+    load_value, unpack_duration_value, unpack_generic_value,
 };
 
 // This is a helper struct, designed to pass data within methods
@@ -1084,7 +1084,7 @@ fn deserialize_pauli_evolution_gate(
 
 fn read_custom_instructions(
     py: Python,
-    packed_circuit: &formats::QPYCircuitV17,
+    packed_circuit: &formats::QPYCircuit,
     qpy_data: &mut QPYReadData,
 ) -> PyResult<HashMap<String, CustomCircuitInstructionData>> {
     let mut result = HashMap::new();
@@ -1099,7 +1099,11 @@ fn read_custom_instructions(
             } else {
                 Some(unpack_circuit(
                     py,
-                    &deserialize::<QPYCircuitV17>(&operation.data)?.0,
+                    &deserialize_with_args::<QPYCircuit, (u32,)>(
+                        &operation.data,
+                        (qpy_data.version,),
+                    )?
+                    .0,
                     qpy_data.version,
                     None,
                     qpy_data.use_symengine,
@@ -1121,7 +1125,7 @@ fn read_custom_instructions(
     Ok(result)
 }
 fn add_standalone_vars(
-    packed_circuit: &formats::QPYCircuitV17,
+    packed_circuit: &formats::QPYCircuit,
     qpy_data: &mut QPYReadData,
 ) -> PyResult<()> {
     let mut index: u16 = 0;
@@ -1181,7 +1185,7 @@ fn add_standalone_vars(
 }
 
 fn add_registers_and_bits(
-    packed_circuit: &formats::QPYCircuitV17,
+    packed_circuit: &formats::QPYCircuit,
     qpy_data: &mut QPYReadData,
 ) -> PyResult<()> {
     let num_qubits = packed_circuit.header.num_qubits as usize;
@@ -1302,7 +1306,7 @@ fn add_registers_and_bits(
 
 pub(crate) fn unpack_circuit(
     py: Python,
-    packed_circuit: &QPYCircuitV17,
+    packed_circuit: &QPYCircuit,
     version: u32,
     metadata_deserializer: Option<&Bound<PyAny>>,
     use_symengine: bool,
@@ -1321,15 +1325,26 @@ pub(crate) fn unpack_circuit(
         vectors: HashMap::new(),
         annotation_handler: AnnotationHandler::new(annotation_factories),
     };
-    let annotation_deserializers_data: Vec<(String, Bytes)> = packed_circuit
-        .annotation_headers
-        .state_headers
-        .iter()
-        .map(|data| (data.namespace.clone(), data.state.clone()))
-        .collect();
-    qpy_data
-        .annotation_handler
-        .load_deserializers(annotation_deserializers_data)?;
+    if let Some(annotation_headers) = &packed_circuit.annotation_headers {
+        let annotation_deserializers_data: Vec<(String, Bytes)> = annotation_headers
+            .state_headers
+            .iter()
+            .map(|data| (data.namespace.clone(), data.state.clone()))
+            .collect();
+
+        qpy_data
+            .annotation_handler
+            .load_deserializers(annotation_deserializers_data)?;
+    }
+    // let annotation_deserializers_data: Vec<(String, Bytes)> = packed_circuit
+    //     .annotation_headers
+    //     .state_headers
+    //     .iter()
+    //     .map(|data| (data.namespace.clone(), data.state.clone()))
+    //     .collect();
+    // qpy_data
+    //     .annotation_handler
+    //     .load_deserializers(annotation_deserializers_data)?;
     let global_phase = generic_value_to_param(
         &load_value(
             packed_circuit.header.global_phase_type,
@@ -1405,7 +1420,8 @@ pub(crate) fn py_read_circuit(
     let pos = file_obj.call_method0("tell")?.extract::<usize>()?;
     let bytes = file_obj.call_method0("read")?;
     let serialized_circuit: &[u8] = bytes.cast::<PyBytes>()?.as_bytes();
-    let (packed_circuit, bytes_read) = deserialize::<formats::QPYCircuitV17>(serialized_circuit)?;
+    let (packed_circuit, bytes_read) =
+        deserialize_with_args::<formats::QPYCircuit, (u32,)>(serialized_circuit, (version,))?;
     let unpacked_circuit = unpack_circuit(
         py,
         &packed_circuit,

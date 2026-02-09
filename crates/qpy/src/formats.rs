@@ -37,13 +37,18 @@ use std::marker::PhantomData;
 // 5) Instruction: The sequential list of gates in the circuit.
 // 6) Calibrations: Obsolete; this was pulse-related data. Here for backwards compatability.
 // 7) Layout: The transpilation layout, if one exists (otherwise a dummy is used).
-#[derive(BinWrite, Debug)]
+#[binrw]
 #[brw(big)]
-pub struct QPYCircuitV17 {
+#[derive(Debug)]
+#[brw(import (version: u32))]
+pub struct QPYCircuit {
     pub header: CircuitHeaderV12Pack,
+    #[br(count = header.num_vars)]
     pub standalone_vars: Vec<ExpressionVarDeclarationPack>,
-    pub annotation_headers: AnnotationHeaderStaticPack,
+    #[br(if(version >= 15))]
+    pub annotation_headers: Option<AnnotationHeaderStaticPack>,
     pub custom_instructions: CustomCircuitInstructionsPack,
+    #[br(count = header.num_instructions, args { inner: (true,) })]
     pub instructions: Vec<CircuitInstructionV2Pack>,
     pub calibrations: CalibrationsPack,
     pub layout: LayoutV2Pack,
@@ -942,49 +947,6 @@ pub struct AnnotationHeaderStaticPack {
     pub num_namespaces: u32,
     #[br(count = num_namespaces)]
     pub state_headers: Vec<AnnotationStateHeaderPack>,
-}
-
-// implementations of custom read/write for the more complex data types
-impl BinRead for QPYCircuitV17 {
-    type Args<'a> = ();
-
-    fn read_options<R: Read + Seek>(
-        reader: &mut R,
-        endian: Endian,
-        _: Self::Args<'_>,
-    ) -> BinResult<Self> {
-        let header = CircuitHeaderV12Pack::read_options(reader, endian, ())?;
-        let mut standalone_vars = Vec::with_capacity(header.num_vars as usize);
-        for _ in 0..header.num_vars {
-            standalone_vars.push(ExpressionVarDeclarationPack::read_options(
-                reader,
-                endian,
-                (),
-            )?);
-        }
-        let annotation_headers = AnnotationHeaderStaticPack::read_options(reader, endian, ())?;
-        let custom_instructions = CustomCircuitInstructionsPack::read_options(reader, endian, ())?;
-        let mut instructions = Vec::with_capacity(header.num_vars as usize);
-        for _ in 0..header.num_instructions {
-            // read instructions, including circuit bits (the `true` arg)
-            instructions.push(CircuitInstructionV2Pack::read_options(
-                reader,
-                endian,
-                (true,),
-            )?);
-        }
-        let calibrations = CalibrationsPack::read_options(reader, endian, ())?;
-        let layout = LayoutV2Pack::read_options(reader, endian, ())?;
-        Ok(Self {
-            header,
-            standalone_vars,
-            annotation_headers,
-            custom_instructions,
-            instructions,
-            calibrations,
-            layout,
-        })
-    }
 }
 
 /// helper for passing PyResult errors that arise during binrw parsing

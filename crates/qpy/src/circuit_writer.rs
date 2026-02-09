@@ -1124,7 +1124,7 @@ pub(crate) fn pack_circuit(
     _use_symengine: bool,
     version: u32,
     annotation_factories: &Bound<PyDict>,
-) -> PyResult<formats::QPYCircuitV17> {
+) -> PyResult<formats::QPYCircuit> {
     let annotation_handler = AnnotationHandler::new(annotation_factories);
     let mut qpy_data = QPYWriteData {
         circuit_data: &mut circuit.data,
@@ -1152,8 +1152,8 @@ pub(crate) fn pack_circuit(
         .into_iter()
         .map(|(namespace, state)| formats::AnnotationStateHeaderPack { namespace, state })
         .collect();
-    let annotation_headers = formats::AnnotationHeaderStaticPack { state_headers };
-    Ok(formats::QPYCircuitV17 {
+    let annotation_headers = Some(formats::AnnotationHeaderStaticPack { state_headers });
+    Ok(formats::QPYCircuit {
         header,
         standalone_vars,
         annotation_headers,
