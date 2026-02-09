@@ -10,7 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::QiskitError;
 use pyo3::prelude::*;
 use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
@@ -100,8 +99,22 @@ pub fn mcmt_v_chain(
     num_target_qubits: usize,
     control_state: Option<usize>,
 ) -> PyResult<CircuitData> {
-    if num_ctrl_qubits < 1 {
-        return Err(QiskitError::new_err("Need at least 1 control qubit."));
+    if num_ctrl_qubits == 0 {
+        // Special case of no control qubits
+        let targets = (0..num_target_qubits).map(|i| {
+            Ok((
+                controlled_gate.operation.clone(),
+                controlled_gate.take_params().unwrap_or_default().clone(),
+                vec![Qubit::new(i)],
+                vec![] as Vec<Clbit>,
+            ))
+        });
+        return Ok(CircuitData::from_packed_operations(
+            num_target_qubits as u32,
+            0,
+            targets,
+            Param::Float(0.0),
+        )?);
     }
 
     let gate_params: SmallVec<[Param; 3]> = controlled_gate.take_params().unwrap_or_default();
