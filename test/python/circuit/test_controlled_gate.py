@@ -650,6 +650,36 @@ class TestControlledGate(QiskitTestCase):
             with self.subTest(msg=f"control state = {ctrl_state}"):
                 self.assertTrue(matrix_equal(simulated, expected))
 
+    def test_append_mcrx_with_0_controls(self):
+        """Test appending mcrx with 0 controls."""
+        qc = QuantumCircuit(1)
+        qc.mcrx(0.1, [], 0)
+        self.assertEqual(Operator(qc), Operator(RXGate(0.1)))
+
+    def test_append_mcry_with_0_controls(self):
+        """Test appending mcry with 0 controls."""
+        qc = QuantumCircuit(1)
+        qc.mcry(0.1, [], 0)
+        self.assertEqual(Operator(qc), Operator(RYGate(0.1)))
+
+    def test_append_mcrz_with_0_controls(self):
+        """Test appending mcrz with 0 controls."""
+        qc = QuantumCircuit(1)
+        qc.mcrz(0.1, [], 0)
+        self.assertEqual(Operator(qc), Operator(RZGate(0.1)))
+
+    def test_append_mcp_with_0_controls(self):
+        """Test appending mcp with 0 controls."""
+        qc = QuantumCircuit(1)
+        qc.mcp(0.1, [], 0)
+        self.assertEqual(Operator(qc), Operator(PhaseGate(0.1)))
+
+    def test_append_mcx_with_0_controls(self):
+        """Test appending mcx with 0 controls."""
+        qc = QuantumCircuit(1)
+        qc.mcx([], 0)
+        self.assertEqual(Operator(qc), Operator(XGate()))
+
     @combine(num_controls=[1, 2, 4], use_basis_gates=[True, False])
     def test_multi_controlled_y_rotation_matrix_basic_mode(self, num_controls, use_basis_gates):
         """Test the multi controlled Y rotation using the mode 'basic'.

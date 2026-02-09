@@ -217,7 +217,7 @@ class TestMCSynthesisCorrectness(QiskitTestCase):
         self.assertSynthesisCorrect(XGate(), 4, synthesized_circuit, clean_ancillas=False)
 
     @combine(
-        num_ctrl_qubits=[1, 2, 3, 4, 5, 6, 7],
+        num_ctrl_qubits=[0, 1, 2, 3, 4, 5, 6, 7],
         base_gate=[
             XGate(),
             YGate(),

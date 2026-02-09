@@ -46,6 +46,9 @@ class ControlModifier(Modifier):
     ctrl_state: int | str | None = None
 
     def __init__(self, num_ctrl_qubits: int = 0, ctrl_state: int | str | None = None):
+        if num_ctrl_qubits < 0:
+            raise CircuitError("The number of control qubits must be non-negative.")
+
         self.num_ctrl_qubits = num_ctrl_qubits
         self.ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
 
