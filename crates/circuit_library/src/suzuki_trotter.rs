@@ -27,7 +27,7 @@ pub fn suzuki_trotter_evolution(
     preserve_order: bool,
     insert_barriers: bool,
 ) -> Result<CircuitData, String> {
-    if order > 1 && order % 2 != 0 {
+    if order > 1 && order % 2 != 0 || order == 0 {
         return Err(format!(
             "Suzuki product formulae are symmetric and therefore only defined \
             for when the order is 1 or even, not {}.",
