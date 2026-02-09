@@ -221,12 +221,14 @@ class TestSubstitutePi4Rotations(QiskitTestCase):
         qc2.cx(0, 1)
 
         qc = QuantumCircuit(qr, cr)
+        qc.compose(qc1, [0, 1], inplace=True)
         with qc.for_loop(range(3)):
             with qc.while_loop((cr, 0)):
                 qc.compose(qc1, [0, 1], inplace=True)
         qct = SubstitutePi4Rotations()(qc)
 
         qc_exp = QuantumCircuit(qr, cr)
+        qc_exp.compose(qc2, [0, 1], inplace=True)
         with qc_exp.for_loop(range(3)):
             with qc_exp.while_loop((cr, 0)):
                 qc_exp.compose(qc2, [0, 1], inplace=True)
