@@ -238,9 +238,9 @@ Mathematical manipulation
 ``QkObs`` supports fundamental arithmetic operations in between observables or with scalars.
 You can:
 
-* add two observables using ``qk_obs_add``
+* add two observables using ``qk_obs_add`` and ``qk_obs_add_inplace``
 
-* multiply by a complex number with ``qk_obs_multiply``
+* multiply by a complex number with ``qk_obs_multiply`` and ``qk_obs_multiply_inplace``
 
 * compose (multiply) two observables via ``qk_obs_compose`` and ``qk_obs_compose_map``
 
