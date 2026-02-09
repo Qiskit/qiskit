@@ -409,6 +409,7 @@ pub struct GenericDataSequencePack {
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
+#[br(import (version: u32))]
 pub struct PauliEvolutionDefPack {
     #[bw(calc = pauli_data.len() as u64)]
     pub operator_size: u64,
@@ -418,7 +419,7 @@ pub struct PauliEvolutionDefPack {
     pub time_size: u64,
     #[bw(calc = synth_data.len() as u64)]
     pub synth_method_size: u64,
-    #[br(count = operator_size)]
+    #[br(count = operator_size, args { inner: (version,) })]
     pub pauli_data: Vec<PauliDataPack>,
     #[br(count = time_size)]
     pub time_data: Bytes,
@@ -428,14 +429,34 @@ pub struct PauliEvolutionDefPack {
 
 // A pauli operator data for pauli evolution gates
 // The operator is given either as a SparesePauliOp list or as a SparasePauliObservable
+// SparasePauliObservable was added in V17
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
-pub enum PauliDataPack {
+pub enum PauliDataPackV17 {
     #[brw(magic = 0u8)] // old style: sparse pauli op list
     SparsePauliOp(SparsePauliOpListElemPack),
     #[brw(magic = 1u8)] // new style added in v17: sparse observable
     SparseObservable(SparsePauliObservableElemPack),
+}
+
+// The V16 version of the Pauli data pack only allows SparsePauliOp and doesn't use a distinguishing first byte
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub enum PauliDataPackV16 {
+    SparsePauliOp(SparsePauliOpListElemPack),
+}
+
+#[binrw]
+#[derive(Debug)]
+#[br(import(version: u32))]
+pub enum PauliDataPack {
+    #[br(pre_assert(version <= 16))]
+    V16(PauliDataPackV16),
+
+    #[br(pre_assert(version >= 17))]
+    V17(PauliDataPackV17),
 }
 
 // SparsePauliOpList is a serialized python numpy array

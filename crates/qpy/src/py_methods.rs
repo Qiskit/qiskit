@@ -229,8 +229,8 @@ fn pack_sparse_pauli_op(
             inds_data,
             bounds_data,
         };
-        Ok(formats::PauliDataPack::SparseObservable(
-            sparse_observable_pack,
+        Ok(formats::PauliDataPack::V17(
+            formats::PauliDataPackV17::SparseObservable(sparse_observable_pack),
         ))
     } else {
         // this is the case of SparsePauliOp, which we convert to a numpy list
@@ -238,7 +238,9 @@ fn pack_sparse_pauli_op(
         let value = py_convert_to_generic_value(&op_as_np_list)?;
         let (_, data) = serialize_generic_value(&value, qpy_data)?;
         let pack = formats::SparsePauliOpListElemPack { data };
-        Ok(formats::PauliDataPack::SparsePauliOp(pack))
+        Ok(formats::PauliDataPack::V17(
+            formats::PauliDataPackV17::SparsePauliOp(pack),
+        ))
     }
 }
 

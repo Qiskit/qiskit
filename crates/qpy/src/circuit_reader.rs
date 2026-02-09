@@ -988,13 +988,16 @@ fn deserialize_pauli_evolution_gate(
 ) -> PyResult<Py<PyAny>> {
     let json = py.import("json")?;
     let evo_synth_library = py.import("qiskit.synthesis.evolution")?;
-    let (packed_data, _) = deserialize::<formats::PauliEvolutionDefPack>(data)?;
+    let (packed_data, _) =
+        deserialize_with_args::<formats::PauliEvolutionDefPack, (u32,)>(data, (qpy_data.version,))?;
     // operators as stored as a numpy dump that can be loaded into Python's SparsePauliOp.from_list
     let operators: Vec<Py<PyAny>> = packed_data
         .pauli_data
         .iter()
         .map(|elem| match elem {
-            formats::PauliDataPack::SparseObservable(sparse_observable_pack) => {
+            formats::PauliDataPack::V17(formats::PauliDataPackV17::SparseObservable(
+                sparse_observable_pack,
+            )) => {
                 let num_qubits = sparse_observable_pack.num_qubits;
                 let coeffs = sparse_observable_pack
                     .coeff_data
@@ -1021,7 +1024,13 @@ fn deserialize_pauli_evolution_gate(
                     SparseObservable::new(num_qubits, coeffs, bit_terms, indices, boundaries)?;
                 Ok(sparse_observable.into_py_any(py)?)
             }
-            formats::PauliDataPack::SparsePauliOp(sparse_pauli_op_pack) => {
+            formats::PauliDataPack::V17(formats::PauliDataPackV17::SparsePauliOp(
+                sparse_pauli_op_pack,
+            ))
+            | formats::PauliDataPack::V16(formats::PauliDataPackV16::SparsePauliOp(
+                sparse_pauli_op_pack,
+            )) => {
+                // formats::PauliDataPack::SparsePauliOp(sparse_pauli_op_pack) => {
                 let data =
                     load_value(ValueType::NumpyObject, &sparse_pauli_op_pack.data, qpy_data)?;
                 if let GenericValue::NumpyObject(op_raw_data) = data {
