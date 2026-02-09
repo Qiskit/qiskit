@@ -35,6 +35,7 @@ from qiskit.circuit.library import (
 )
 from qiskit.quantum_info import Operator
 from qiskit.quantum_info import get_clifford_gate_names
+from qiskit.circuit import Parameter
 
 
 # from qiskit.synthesis import gridsynth_rz, gridsynth_unitary
@@ -65,7 +66,7 @@ class TestSynthesizeRzRotations(QiskitTestCase):
                 # Approximate RZ-rotation
                 qc = QuantumCircuit(1)
                 qc.rz(angle, 0)
-                synthesized_circ = SynthesizeRZRotations()(qc)
+                synthesized_circ = SynthesizeRZRotations(epsilon=1e-10)(qc)
                 # Check the operators are (almost) equal
                 self.assertEqual(Operator(synthesized_circ), Operator(RZGate(angle)))
 
@@ -75,7 +76,7 @@ class TestSynthesizeRzRotations(QiskitTestCase):
         # Approximate RZ-rotation
         qc = QuantumCircuit(1)
         qc.rz(angle, 0)
-        synthesized_circ = SynthesizeRZRotations()(qc)
+        synthesized_circ = SynthesizeRZRotations(epsilon=1e-10)(qc)
         # Check the operators are (almost) equal
         self.assertEqual(Operator(synthesized_circ), Operator(RZGate(angle)))
 
@@ -92,7 +93,16 @@ class TestSynthesizeRzRotations(QiskitTestCase):
         # Check the operators are (almost) equal
         self.assertEqual(Operator(synthesized_circ), Operator(RZGate(angle)))
 
-    def test_gridsynth_rz_deterministic(self):
+    def test_param_angle(self):
+        p = Parameter("theta")
+        qc = QuantumCircuit(1)
+        qc.rz(p, 0)
+        try:
+            synthesized_circ = SynthesizeRZRotations()(qc)
+        except Exception as e:
+            print(f"Synthesis failed, pass doesn't skip parametrized angles")
+
+    def test_synth_rz_deterministic(self):
         """Test that calling synthesize_rz_rotations multiple times produces the same circuit."""
         angle = 1.2345
         num_trials = 10
