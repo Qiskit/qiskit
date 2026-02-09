@@ -32,7 +32,7 @@ type GateToPBCVec = (Vec<(&'static str, Param, &'static [u32])>, Param);
 
 /// Map gates to a list of equivalent Pauli rotations and a global phase.
 /// Each element of the list is of the form ((pauli, phase, [qubit indices]), global_phase).
-/// For gates that don not have a parameter (e.g. X), the convention is:
+/// For gates that do not have a parameter (e.g. X), the convention is:
 /// `original_gate = PauliEvolutionGate(pauli, phase) * e^{i global_phase}`
 /// For one parameter gates with a single parameter "angle", the convention is:
 /// `original_gate = PauliEvolutionGate(pauli, phase * angle) * e^{i global_phase * angle}`
@@ -177,7 +177,7 @@ static STANDARD_GATE_SUBSTITUTIONS: [Option<GateToPBCType>; 52] = [
 ];
 
 /// Map gates with more than one parameter to a list of equivalent Pauli rotations and a global phase.
-/// Each element of the list is of the form ((pauli, [phases], [qubit indices]), global_phase).
+/// Each element of the list is of the form ((pauli, phase, [qubit indices]), global_phase).
 /// The convention is
 /// `original_gate = PauliEvolutionGate(pauli, phase) * e^{i global_phase}`
 fn replace_gate_by_pauli_vec(gate: StandardGate, angles: &[Param]) -> GateToPBCVec {
@@ -347,7 +347,7 @@ fn generate_pauli_evolution_gate(
     Ok(py_gate)
 }
 
-/// Convert a quanutm circuit containing single-qubit and two-qubit standard gates,
+/// Convert a quantum circuit containing single-qubit and two-qubit standard gates,
 /// barriers and measurements, into an equivalent list of Pauli product rotations,
 /// implemented as PauliEvolutionGate and a global phase,
 /// as well as PauliProductMeasurement.
