@@ -674,7 +674,7 @@ pub unsafe extern "C" fn qk_obs_add_inplace(
 /// QkObs *left = qk_obs_zero(100);
 /// QkObs *right = qk_obs_identity(100);
 /// QkComplex64 factor = {2, 0};
-/// QkObs *result = qk_obs_scaled_add(left, right, factor);
+/// QkObs *result = qk_obs_scaled_add(left, right, &factor);
 /// ```
 ///
 /// # Safety
@@ -708,7 +708,7 @@ pub unsafe extern "C" fn qk_obs_scaled_add(
 /// QkObs *left = qk_obs_zero(100);
 /// QkObs *right = qk_obs_identity(100);
 /// QkComplex64 factor = {2, 0};
-/// qk_obs_scaled_add_inplace(left, right, factor);
+/// qk_obs_scaled_add_inplace(left, right, &factor);
 /// ```
 ///
 /// # Safety
