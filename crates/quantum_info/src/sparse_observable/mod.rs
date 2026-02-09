@@ -1829,7 +1829,12 @@ impl<'a, 'py> FromPyObject<'a, 'py> for BitTerm {
 /// A single term from a complete :class:`SparseObservable`.
 ///
 /// These are typically created by indexing into or iterating through a :class:`SparseObservable`.
-#[pyclass(name = "Term", frozen, module = "qiskit.quantum_info")]
+#[pyclass(
+    name = "Term",
+    frozen,
+    module = "qiskit.quantum_info",
+    skip_from_py_object
+)]
 #[derive(Clone, Debug)]
 struct PySparseTerm {
     inner: SparseTerm,
@@ -3172,10 +3177,10 @@ impl PySparseObservable {
     )]
     unsafe fn from_raw_parts<'py>(
         num_qubits: u32,
-        coeffs: PyArrayLike1<'py, Complex64>,
-        bit_terms: PyArrayLike1<'py, u8>,
-        indices: PyArrayLike1<'py, u32>,
-        boundaries: PyArrayLike1<'py, usize>,
+        coeffs: PyArrayLike1<'py, Complex64, numpy::AllowTypeChange>,
+        bit_terms: PyArrayLike1<'py, u8, numpy::AllowTypeChange>,
+        indices: PyArrayLike1<'py, u32, numpy::AllowTypeChange>,
+        boundaries: PyArrayLike1<'py, usize, numpy::AllowTypeChange>,
         check: bool,
     ) -> PyResult<Self> {
         let coeffs = coeffs.as_array().to_vec();
@@ -4200,7 +4205,7 @@ impl ArrayView {
 
 /// Use the Numpy Python API to convert a `PyArray` into a dynamically chosen `dtype`, copying only
 /// if required.
-fn cast_array_type<'py, T>(
+fn cast_array_type<'py, T: numpy::Element>(
     py: Python<'py>,
     array: Bound<'py, PyArray1<T>>,
     dtype: Option<&Bound<'py, PyAny>>,

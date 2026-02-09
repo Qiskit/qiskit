@@ -19,8 +19,7 @@ use pyo3::types::PyString;
 use qiskit_circuit::impl_intopyobject_for_copy_pyclass;
 
 /// Affect the dynamic scaling of the weight of node-set-based heuristics (basic and lookahead).
-#[pyclass]
-#[pyo3(module = "qiskit._accelerate.sabre", frozen, eq)]
+#[pyclass(module = "qiskit._accelerate.sabre", frozen, eq, from_py_object)]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SetScaling {
     /// No dynamic scaling of the weight.
@@ -47,8 +46,7 @@ impl SetScaling {
 
 /// Define the characteristics of the basic heuristic.  This is a simple sum of the physical
 /// distances of every gate in the front layer.
-#[pyclass]
-#[pyo3(module = "qiskit._accelerate.sabre", frozen)]
+#[pyclass(module = "qiskit._accelerate.sabre", frozen, from_py_object)]
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct BasicHeuristic {
     /// The relative weighting of this heuristic to others.  Typically you should just set this to
@@ -83,8 +81,7 @@ impl BasicHeuristic {
 
 /// Define the characteristics of the lookahead heuristic.  This is a sum of the physical distances
 /// of every gate in the lookahead set, which is gates immediately after the front layer.
-#[pyclass]
-#[pyo3(module = "qiskit._accelerate.sabre", frozen)]
+#[pyclass(module = "qiskit._accelerate.sabre", frozen, from_py_object)]
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct LookaheadHeuristic {
     /// The relative weight of this heuristic.  Typically this is defined relative to the
@@ -127,7 +124,7 @@ impl LookaheadHeuristic {
 /// multiplier associated with it, beginning at 1.0, and has :attr:`increment` added to it each time
 /// the qubit is involved in a swap.  The final heuristic is calculated by multiplying all other
 /// components by the maximum multiplier involved in a given swap.
-#[pyclass]
+#[pyclass(from_py_object)]
 #[pyo3(module = "qiskit._accelerate.sabre", frozen)]
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct DecayHeuristic {
@@ -162,8 +159,7 @@ impl DecayHeuristic {
 
 /// A complete description of the heuristic that Sabre will use.  See the individual elements for a
 /// greater description.
-#[pyclass]
-#[pyo3(module = "qiskit._accelerate.sabre", frozen)]
+#[pyclass(module = "qiskit._accelerate.sabre", frozen, eq, skip_from_py_object)]
 #[derive(Clone, Debug, PartialEq)]
 pub struct Heuristic {
     pub basic: Option<BasicHeuristic>,
@@ -251,10 +247,6 @@ impl Heuristic {
                 ..self.clone()
             })
         }
-    }
-
-    pub fn __eq__(&self, py: Python, other: Py<PyAny>) -> bool {
-        other.extract::<Self>(py).is_ok_and(|other| self == &other)
     }
 
     pub fn __repr__(&self, py: Python) -> PyResult<Py<PyAny>> {
