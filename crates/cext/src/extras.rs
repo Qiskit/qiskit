@@ -1,6 +1,6 @@
 // This code is part of Qiskit.
 //
-// (C) Copyright IBM 2024
+// (C) Copyright IBM 2026
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,13 +10,10 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-mod extras;
-mod pointers;
+//! The purpose of this module is to have "dummy" definitions of objects that Qiskit and `cext` use,
+//! but aren't otherwise visible to `cbindgen.`  This is principally types that are macro-generated.
 
-pub mod circuit;
-pub mod circuit_library;
-pub mod dag;
-pub mod exit_codes;
-pub mod param;
-pub mod sparse_observable;
-pub mod transpiler;
+#[allow(dead_code)] // used by cbindgen
+pub struct QuantumRegister;
+#[allow(dead_code)] // used by cbindgen
+pub struct ClassicalRegister;
