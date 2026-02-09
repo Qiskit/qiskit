@@ -661,6 +661,75 @@ pub unsafe extern "C" fn qk_obs_add_inplace(
 }
 
 /// @ingroup QkObs
+/// Add two observables while scaling the coefficients of the right one.
+///
+/// @param left A pointer to the left observable.
+/// @param right A pointer to the right observable.
+/// @param factor The factor to multiply the coefficients with.
+///
+/// @return An owned pointer to the result ``left + factor * right``.
+///
+/// # Example
+/// ```c
+/// QkObs *left = qk_obs_zero(100);
+/// QkObs *right = qk_obs_identity(100);
+/// QkComplex64 factor = {2, 0};
+/// QkObs *result = qk_obs_scaled_add(left, right, &factor);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``left`` or ``right`` are not valid, non-null pointers to
+/// ``QkObs``\ s.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_obs_scaled_add(
+    left: *const SparseObservable,
+    right: *const SparseObservable,
+    factor: *const Complex64,
+) -> *mut SparseObservable {
+    // SAFETY: Per documentation, the pointers are non-null and aligned.
+    let left = unsafe { const_ptr_as_ref(left) };
+    let right = unsafe { const_ptr_as_ref(right) };
+    let factor = unsafe { const_ptr_as_ref(factor) };
+
+    let result = left.scaled_add(right, *factor);
+    Box::into_raw(Box::new(result))
+}
+
+/// @ingroup QkObs
+/// Add a scaled observable to an existing one.
+///
+/// @param left A pointer to the left observable.
+/// @param right A pointer to the right observable.
+/// @param factor The factor to multiply the coefficients with.
+///
+/// # Example
+/// ```c
+/// QkObs *left = qk_obs_zero(100);
+/// QkObs *right = qk_obs_identity(100);
+/// QkComplex64 factor = {2, 0};
+/// qk_obs_scaled_add_inplace(left, right, &factor);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``left`` or ``right`` are not valid, non-null pointers to
+/// ``QkObs``\ s.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_obs_scaled_add_inplace(
+    left: *mut SparseObservable,
+    right: *const SparseObservable,
+    factor: *const Complex64,
+) {
+    // SAFETY: Per documentation, the pointers are non-null and aligned.
+    let left = unsafe { mut_ptr_as_ref(left) };
+    let right = unsafe { const_ptr_as_ref(right) };
+    let factor = unsafe { const_ptr_as_ref(factor) };
+
+    left.scaled_add_inplace(right, *factor);
+}
+
+/// @ingroup QkObs
 /// Compose (multiply) two observables.
 ///
 /// @param first One observable.
