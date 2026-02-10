@@ -728,61 +728,6 @@ impl TextDrawer {
                 }
             }
             OperationRef::StandardGate(standard_gate) => {
-                // let mut label = match standard_gate {
-                //     StandardGate::GlobalPhase => "",
-                //     StandardGate::H => "H",
-                //     StandardGate::I => "I",
-                //     StandardGate::X => "X",
-                //     StandardGate::Y => "Y",
-                //     StandardGate::Z => "Z",
-                //     StandardGate::Phase => "P",
-                //     StandardGate::R => "R",
-                //     StandardGate::RX => "Rx",
-                //     StandardGate::RY => "Ry",
-                //     StandardGate::RZ => "Rz",
-                //     StandardGate::S => "S",
-                //     StandardGate::Sdg => "Sdg",
-                //     StandardGate::SX => "√X",
-                //     StandardGate::SXdg => "√Xdg",
-                //     StandardGate::T => "T",
-                //     StandardGate::Tdg => "Tdg",
-                //     StandardGate::U => "U",
-                //     StandardGate::U1 => "U1",
-                //     StandardGate::U2 => "U2",
-                //     StandardGate::U3 => "U3",
-                //     StandardGate::CH => "H",
-                //     StandardGate::CX => "X",
-                //     StandardGate::CY => "Y",
-                //     StandardGate::CZ => "Z",
-                //     StandardGate::DCX => "Dcx",
-                //     StandardGate::ECR => "Ecr",
-                //     StandardGate::Swap => "",
-                //     StandardGate::ISwap => "Iswap",
-                //     StandardGate::CPhase => "P",
-                //     StandardGate::CRX => "Rx",
-                //     StandardGate::CRY => "Ry",
-                //     StandardGate::CRZ => "Rz",
-                //     StandardGate::CS => "S",
-                //     StandardGate::CSdg => "Sdg",
-                //     StandardGate::CSX => "Sx",
-                //     StandardGate::CU => "U",
-                //     StandardGate::CU1 => "U1",
-                //     StandardGate::CU3 => "U3",
-                //     StandardGate::RXX => "Rxx",
-                //     StandardGate::RYY => "Ryy",
-                //     StandardGate::RZZ => "Rzz",
-                //     StandardGate::RZX => "Rzx",
-                //     StandardGate::XXMinusYY => "XX-YY",
-                //     StandardGate::XXPlusYY => "XX+YY",
-                //     StandardGate::CCX => "X",
-                //     StandardGate::CCZ => "Z",
-                //     StandardGate::CSwap => "",
-                //     StandardGate::RCCX => "Rccx",
-                //     StandardGate::C3X => "X",
-                //     StandardGate::C3SX => "Sx",
-                //     StandardGate::RC3X => "Rcccx",
-                // }
-                // .to_string();
 
                 static STANDARD_GATE_LABELS: [&str; crate::operations::STANDARD_GATE_SIZE] = [
                     "", "H", "I", "X", "Y", "Z", "P", "R", "Rx", "Ry", "Rz", "S", "Sdg", "√X",
@@ -845,13 +790,7 @@ impl TextDrawer {
 
         let num_qubits = vis_mat.circuit.num_qubits();
 
-        let mut layer_width = 0;
-        for wire in wires.iter() {
-            let w = wire.width();
-            if w > layer_width {
-                layer_width = w;
-            }
-        }
+        let layer_width = wires.iter().map(|wire| wire.width()).max().unwrap_or(0);
 
         for (i, wire) in wires.iter_mut().enumerate() {
             if layer_ind == 0 {
