@@ -5485,7 +5485,7 @@ class QuantumCircuit:
         n_c = len(control_qubits)
 
         if n_c == 0:
-            self.append(RZGate(lam), [target_qubit])
+            self.rz(lam, target_qubit)
 
         elif n_c == 1:
             if use_basis_gates:
