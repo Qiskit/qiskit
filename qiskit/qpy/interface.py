@@ -395,6 +395,10 @@ def load(
             "version"
         )
 
+    # Rust does not support reading pulse calibrations, which were dropped in qiskit 2.0.0
+    if qiskit_version[0] < 2:
+        use_rust = False
+
     if data.qpy_version < 5:
         type_key = type_keys.Program.CIRCUIT
     else:

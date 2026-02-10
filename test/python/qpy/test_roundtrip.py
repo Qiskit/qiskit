@@ -152,9 +152,9 @@ class TestQPYRoundtrip(QiskitTestCase):
         qc = QuantumCircuit(1)
         a = Parameter("a")
         b = Parameter("b")
-        expr = a + b
-        expr = expr.subs({b: a})
-        qc.ry(expr, 0)
+        exp = a + b
+        exp = exp.subs({b: a})
+        qc.ry(exp, 0)
         self.assert_roundtrip_equal(qc, version=version)
 
     @idata(range(QPY_RUST_READ_MIN_VERSION, QPY_VERSION + 1))
