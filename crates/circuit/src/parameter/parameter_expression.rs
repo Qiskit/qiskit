@@ -2122,18 +2122,36 @@ pub fn qpy_replay(
                 None
                 | Some(ParameterValueType::Parameter(_))
                 | Some(ParameterValueType::VectorElement(_)) => {
+                    // For POW operations: if LHS is a Parameter and RHS is an expression (None),
+                    // we need to use RPOW instead of POW
                     let op = match op {
                         symbol_expr::BinaryOp::Add => OpCode::ADD,
                         symbol_expr::BinaryOp::Sub => OpCode::SUB,
                         symbol_expr::BinaryOp::Mul => OpCode::MUL,
                         symbol_expr::BinaryOp::Div => OpCode::DIV,
-                        symbol_expr::BinaryOp::Pow => OpCode::POW,
+                        symbol_expr::BinaryOp::Pow => {
+                            // If RHS is None (an expression), use RPOW and swap operands
+                            if rhs_value.is_none() {
+                                OpCode::RPOW
+                            } else {
+                                OpCode::POW
+                            }
+                        }
                     };
-                    replay.push(OPReplay {
-                        op,
-                        lhs: lhs_value,
-                        rhs: rhs_value,
-                    });
+                    if op == OpCode::RPOW {
+                        // For RPOW, swap lhs and rhs
+                        replay.push(OPReplay {
+                            op,
+                            lhs: rhs_value,
+                            rhs: lhs_value,
+                        });
+                    } else {
+                        replay.push(OPReplay {
+                            op,
+                            lhs: lhs_value,
+                            rhs: rhs_value,
+                        });
+                    }
                 }
                 _ => {
                     let op = match op {
