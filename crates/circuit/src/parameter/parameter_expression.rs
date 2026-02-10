@@ -2141,7 +2141,7 @@ pub fn qpy_replay(
                             lhs: lhs_value,
                             rhs: rhs_value,
                         });
-                    }   
+                    }
                 }
                 _ => {
                     let op = match op {
