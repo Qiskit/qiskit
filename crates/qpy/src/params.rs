@@ -322,11 +322,8 @@ pub(crate) fn unpack_parameter_expression(
                 )
             }
         };
-        if qpy_data.version >= 15 {
-            param_uuid_map.insert(symbol_uuid, value.clone());
-        } else {
-            param_name_map.insert(symbol_name, value.clone());
-        }
+        param_uuid_map.insert(symbol_uuid, value.clone());
+        param_name_map.insert(symbol_name, value.clone());
     }
     let parameter_expression_data = deserialize_vec::<formats::ParameterExpressionElementPack>(
         &parameter_expression_pack.expression_data,

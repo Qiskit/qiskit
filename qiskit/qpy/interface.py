@@ -195,7 +195,7 @@ def dump(
             f"{common.QPY_COMPATIBILITY_VERSION} and {common.QPY_VERSION} for `qpy.dump`."
         )
 
-    use_rust = version >= common.QPY_RUST_MIN_VERSION
+    use_rust = version >= common.QPY_RUST_WRITE_MIN_VERSION
 
     version_match = VERSION_PATTERN_REGEX.search(__version__)
     version_parts = [int(x) for x in version_match.group("release").split(".")]
@@ -358,7 +358,7 @@ def load(
             )
         )
 
-    use_rust = version >= common.QPY_RUST_MIN_VERSION
+    use_rust = version >= common.QPY_RUST_READ_MIN_VERSION
 
     config = user_config.get_config()
     min_qpy_version = config.get("min_qpy_version")
