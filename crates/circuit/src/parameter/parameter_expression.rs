@@ -2121,13 +2121,27 @@ pub fn qpy_replay(
             match lhs_value {
                 Some(ParameterValueType::Parameter(_))
                 | Some(ParameterValueType::VectorElement(_)) => {
-                    // For POW operations: if LHS is a Parameter and RHS is an expression (None),
-                    // we need to use RPOW instead of POW
+                    // For non-commutative operations (SUB, DIV, POW): if LHS is a Parameter and RHS is
+                    // an expression (None), we need to use reverse operations (RSUB, RDIV, RPOW)
                     let op = match op {
                         symbol_expr::BinaryOp::Add => OpCode::ADD,
-                        symbol_expr::BinaryOp::Sub => OpCode::SUB,
+                        symbol_expr::BinaryOp::Sub => {
+                            // If RHS is None (an expression), use RSUB
+                            if rhs_value.is_none() {
+                                OpCode::RSUB
+                            } else {
+                                OpCode::SUB
+                            }
+                        }
                         symbol_expr::BinaryOp::Mul => OpCode::MUL,
-                        symbol_expr::BinaryOp::Div => OpCode::DIV,
+                        symbol_expr::BinaryOp::Div => {
+                            // If RHS is None (an expression), use RDIV
+                            if rhs_value.is_none() {
+                                OpCode::RDIV
+                            } else {
+                                OpCode::DIV
+                            }
+                        }
                         symbol_expr::BinaryOp::Pow => {
                             // If RHS is None (an expression), use RPOW
                             if rhs_value.is_none() {
@@ -2137,8 +2151,8 @@ pub fn qpy_replay(
                             }
                         }
                     };
-                    if op == OpCode::RPOW {
-                        // For RPOW, swap lhs and rhs (Python's sympify will swap again to get correct order)
+                    if op == OpCode::RPOW || op == OpCode::RDIV || op == OpCode::RSUB {
+                        // For reverse operations, swap lhs and rhs (Python's sympify will swap again to get correct order)
                         replay.push(OPReplay {
                             op,
                             lhs: rhs_value,
