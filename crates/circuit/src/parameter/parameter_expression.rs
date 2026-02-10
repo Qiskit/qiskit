@@ -2129,7 +2129,7 @@ pub fn qpy_replay(
                         symbol_expr::BinaryOp::Mul => OpCode::MUL,
                         symbol_expr::BinaryOp::Div => OpCode::DIV,
                         symbol_expr::BinaryOp::Pow => {
-                            // If RHS is None (an expression), use RPOW and swap operands
+                            // If RHS is None (an expression), use RPOW
                             if rhs_value.is_none() {
                                 OpCode::RPOW
                             } else {
@@ -2138,7 +2138,7 @@ pub fn qpy_replay(
                         }
                     };
                     if op == OpCode::RPOW {
-                        // For RPOW, swap lhs and rhs
+                        // For RPOW, swap lhs and rhs (Python's sympify will swap again to get correct order)
                         replay.push(OPReplay {
                             op,
                             lhs: rhs_value,
