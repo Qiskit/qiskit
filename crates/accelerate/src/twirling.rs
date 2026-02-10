@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -12,7 +12,6 @@
 
 use std::f64::consts::PI;
 
-use crate::QiskitError;
 use hashbrown::HashMap;
 use ndarray::ArrayView2;
 use ndarray::linalg::kron;
@@ -29,6 +28,9 @@ use qiskit_circuit::instruction::Instruction;
 use qiskit_circuit::operations::StandardGate::{I, X, Y, Z};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedInstruction;
+
+use crate::QiskitError;
+
 use qiskit_circuit::{BlocksMode, NoBlocks, VarsMode};
 use qiskit_transpiler::passes::run_optimize_1q_gates_decomposition;
 use qiskit_transpiler::target::Target;

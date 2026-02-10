@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -282,9 +282,9 @@ pub enum OperationRef<'a> {
     ControlFlow(&'a ControlFlowInstruction),
     StandardGate(StandardGate),
     StandardInstruction(StandardInstruction),
-    Gate(&'a PyGate),
+    Gate(&'a PyInstruction),
     Instruction(&'a PyInstruction),
-    Operation(&'a PyOperation),
+    Operation(&'a PyInstruction),
     Unitary(&'a UnitaryGate),
     PauliProductMeasurement(&'a PauliProductMeasurement),
 }
@@ -3014,6 +3014,14 @@ pub trait PythonOperation: Sized {
     fn py_copy(&self, py: Python) -> PyResult<Self>;
 }
 
+#[derive(Clone, Debug)]
+#[repr(align(8))]
+pub enum PyOperationTypes {
+    Operation(PyInstruction),
+    Instruction(PyInstruction),
+    Gate(PyInstruction),
+}
+
 /// This class is used to wrap a Python side Instruction that is not in the standard library
 #[derive(Clone, Debug)]
 // We bit-pack pointers to this, so having a known alignment even on 32-bit systems is good.
@@ -3077,33 +3085,6 @@ impl Operation for PyInstruction {
     }
 }
 
-impl PyOperation {
-    /// returns the class name of the python gate
-    pub fn class_name(&self) -> PyResult<String> {
-        Python::attach(|py| -> PyResult<String> {
-            self.operation
-                .getattr(py, intern!(py, "__class__"))?
-                .getattr(py, intern!(py, "__name__"))?
-                .extract::<String>(py)
-        })
-    }
-}
-
-impl PyInstruction {
-    pub fn definition(&self) -> Option<CircuitData> {
-        Python::attach(|py| -> Option<CircuitData> {
-            match self.instruction.getattr(py, intern!(py, "definition")) {
-                Ok(definition) => definition
-                    .getattr(py, intern!(py, "_data"))
-                    .ok()?
-                    .extract::<CircuitData>(py)
-                    .ok(),
-                Err(_) => None,
-            }
-        })
-    }
-}
-
 impl PyInstruction {
     /// returns the number of control qubits in the instruction
     /// returns 0 if the instruction is not controlled
@@ -3135,65 +3116,10 @@ impl PyInstruction {
                 .extract::<String>(py)
         })
     }
-}
-/// This class is used to wrap a Python side Gate that is not in the standard library
-#[derive(Clone, Debug)]
-// We bit-pack pointers to this, so having a known alignment even on 32-bit systems is good.
-#[repr(align(8))]
-pub struct PyGate {
-    pub qubits: u32,
-    pub clbits: u32,
-    pub params: u32,
-    pub op_name: String,
-    pub gate: Py<PyAny>,
-}
 
-impl PythonOperation for PyGate {
-    fn py_deepcopy(&self, py: Python, memo: Option<&Bound<'_, PyDict>>) -> PyResult<Self> {
-        let deepcopy = imports::DEEPCOPY.get_bound(py);
-        Ok(PyGate {
-            gate: deepcopy.call1((&self.gate, memo))?.unbind(),
-            qubits: self.qubits,
-            clbits: self.clbits,
-            params: self.params,
-            op_name: self.op_name.clone(),
-        })
-    }
-
-    fn py_copy(&self, py: Python) -> PyResult<Self> {
-        let copy_attr = intern!(py, "copy");
-        Ok(PyGate {
-            gate: self.gate.call_method0(py, copy_attr)?,
-            qubits: self.qubits,
-            clbits: self.clbits,
-            params: self.params,
-            op_name: self.op_name.clone(),
-        })
-    }
-}
-
-impl Operation for PyGate {
-    fn name(&self) -> &str {
-        self.op_name.as_str()
-    }
-    fn num_qubits(&self) -> u32 {
-        self.qubits
-    }
-    fn num_clbits(&self) -> u32 {
-        self.clbits
-    }
-    fn num_params(&self) -> u32 {
-        self.params
-    }
-    fn directive(&self) -> bool {
-        false
-    }
-}
-
-impl PyGate {
     pub fn matrix(&self) -> Option<Array2<Complex64>> {
         Python::attach(|py| -> Option<Array2<Complex64>> {
-            match self.gate.getattr(py, intern!(py, "to_matrix")) {
+            match self.instruction.getattr(py, intern!(py, "to_matrix")) {
                 Ok(to_matrix) => {
                     let res: Option<Py<PyAny>> = to_matrix.call0(py).ok()?.extract(py).ok();
                     match res {
@@ -3211,7 +3137,7 @@ impl PyGate {
 
     pub fn definition(&self) -> Option<CircuitData> {
         Python::attach(|py| -> Option<CircuitData> {
-            match self.gate.getattr(py, intern!(py, "definition")) {
+            match self.instruction.getattr(py, intern!(py, "definition")) {
                 Ok(definition) => definition
                     .getattr(py, intern!(py, "_data"))
                     .ok()?
@@ -3228,109 +3154,13 @@ impl PyGate {
         }
         Python::attach(|py| -> Option<[[Complex64; 2]; 2]> {
             let array = self
-                .gate
+                .instruction
                 .call_method0(py, intern!(py, "to_matrix"))
                 .ok()?
                 .extract::<PyReadonlyArray2<Complex64>>(py)
                 .ok()?;
             let arr = array.as_array();
             Some([[arr[[0, 0]], arr[[0, 1]]], [arr[[1, 0]], arr[[1, 1]]]])
-        })
-    }
-}
-
-impl PyGate {
-    /// returns the number of control qubits in the gate
-    /// returns 0 if the gate is not controlled
-    pub fn num_ctrl_qubits(&self) -> u32 {
-        Python::attach(|py| {
-            self.gate
-                .getattr(py, "num_ctrl_qubits")
-                .and_then(|py_num_ctrl_qubits| py_num_ctrl_qubits.extract::<u32>(py))
-                .unwrap_or(0)
-        })
-    }
-
-    /// returns the control state of the gate as a decimal number
-    /// returns 2^num_ctrl_bits-1 (the '11...1' state) if the gate has not control state data
-    pub fn ctrl_state(&self) -> u32 {
-        Python::attach(|py| {
-            self.gate
-                .getattr(py, "ctrl_state")
-                .and_then(|py_ctrl_state| py_ctrl_state.extract::<u32>(py))
-                .unwrap_or((1 << self.num_ctrl_qubits()) - 1)
-        })
-    }
-
-    /// returns the class name of the python gate
-    pub fn class_name(&self) -> PyResult<String> {
-        Python::attach(|py| -> PyResult<String> {
-            self.gate
-                .getattr(py, intern!(py, "__class__"))?
-                .getattr(py, intern!(py, "__name__"))?
-                .extract::<String>(py)
-        })
-    }
-}
-
-/// This class is used to wrap a Python side Operation that is not in the standard library
-#[derive(Clone, Debug)]
-// We bit-pack pointers to this, so having a known alignment even on 32-bit systems is good.
-#[repr(align(8))]
-pub struct PyOperation {
-    pub qubits: u32,
-    pub clbits: u32,
-    pub params: u32,
-    pub op_name: String,
-    pub operation: Py<PyAny>,
-}
-
-impl PythonOperation for PyOperation {
-    fn py_deepcopy(&self, py: Python, memo: Option<&Bound<'_, PyDict>>) -> PyResult<Self> {
-        let deepcopy = imports::DEEPCOPY.get_bound(py);
-        Ok(PyOperation {
-            operation: deepcopy.call1((&self.operation, memo))?.unbind(),
-            qubits: self.qubits,
-            clbits: self.clbits,
-            params: self.params,
-            op_name: self.op_name.clone(),
-        })
-    }
-
-    fn py_copy(&self, py: Python) -> PyResult<Self> {
-        let copy_attr = intern!(py, "copy");
-        Ok(PyOperation {
-            operation: self.operation.call_method0(py, copy_attr)?,
-            qubits: self.qubits,
-            clbits: self.clbits,
-            params: self.params,
-            op_name: self.op_name.clone(),
-        })
-    }
-}
-
-impl Operation for PyOperation {
-    fn name(&self) -> &str {
-        self.op_name.as_str()
-    }
-    fn num_qubits(&self) -> u32 {
-        self.qubits
-    }
-    fn num_clbits(&self) -> u32 {
-        self.clbits
-    }
-    fn num_params(&self) -> u32 {
-        self.params
-    }
-    fn directive(&self) -> bool {
-        Python::attach(|py| -> bool {
-            match self.operation.getattr(py, intern!(py, "_directive")) {
-                Ok(directive) => {
-                    let res: bool = directive.extract(py).unwrap();
-                    res
-                }
-                Err(_) => false,
-            }
         })
     }
 }
