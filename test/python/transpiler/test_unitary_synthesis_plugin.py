@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -175,9 +175,9 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.unitary(np.eye(4, dtype=np.complex128), [0, 1])
         pm = PassManager([UnitarySynthesis(basis_gates=["u", "cx"], method="_controllable")])
-        with self.mock_default_run_method():
+        with self.mock_default_run_method() as mocked:
             _ = pm.run(qc)
-            self.DEFAULT_PLUGIN.run.assert_not_called()  # pylint: disable=no-member
+            mocked.assert_not_called()
         self.MOCK_PLUGINS["_controllable"].run.assert_called()
 
     def test_max_qubits_are_respected(self):
@@ -188,9 +188,9 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.unitary(np.eye(4, dtype=np.complex128), [0, 1])
         pm = PassManager([UnitarySynthesis(basis_gates=["u", "cx"], method="_controllable")])
-        with self.mock_default_run_method():
+        with self.mock_default_run_method() as mocked:
             _ = pm.run(qc)
-            self.DEFAULT_PLUGIN.run.assert_called()  # pylint: disable=no-member
+            mocked.assert_called()
         self.MOCK_PLUGINS["_controllable"].run.assert_not_called()
 
     def test_min_qubits_are_respected(self):
@@ -201,9 +201,9 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.unitary(np.eye(4, dtype=np.complex128), [0, 1])
         pm = PassManager([UnitarySynthesis(basis_gates=["u", "cx"], method="_controllable")])
-        with self.mock_default_run_method():
+        with self.mock_default_run_method() as mocked:
             _ = pm.run(qc)
-            self.DEFAULT_PLUGIN.run.assert_called()  # pylint: disable=no-member
+            mocked.assert_called()
         self.MOCK_PLUGINS["_controllable"].run.assert_not_called()
 
     def test_all_keywords_passed_to_default_on_fallback(self):
@@ -218,12 +218,10 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.unitary(np.eye(4, dtype=np.complex128), [0, 1])
         pm = PassManager([UnitarySynthesis(basis_gates=["u", "cx"], method="_controllable")])
-        with self.mock_default_run_method():
+        with self.mock_default_run_method() as mocked:
             _ = pm.run(qc)
-            self.DEFAULT_PLUGIN.run.assert_called()  # pylint: disable=no-member
-            # This access should be `run.call_args.kwargs`, but the namedtuple access wasn't added
-            # until Python 3.8.
-            call_kwargs = self.DEFAULT_PLUGIN.run.call_args[1]  # pylint: disable=no-member
+            mocked.assert_called()
+            call_kwargs = mocked.call_args.kwargs
         expected_kwargs = [
             "basis_gates",
             "coupling_map",
@@ -257,9 +255,7 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
         ) as plugin_mock:
             _ = pm.run(qc)
             plugin_mock.assert_called()
-            # This access should be `run.call_args.kwargs`, but the namedtuple access wasn't added
-            # until Python 3.8.
-            call_kwargs = plugin_mock.call_args[1]
+            call_kwargs = plugin_mock.call_args.kwargs
         expected_kwargs = [
             "config",
         ]
@@ -286,12 +282,10 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
                 )
             ]
         )
-        with self.mock_default_run_method():
+        with self.mock_default_run_method() as mocked:
             _ = pm.run(qc)
-            self.DEFAULT_PLUGIN.run.assert_called()  # pylint: disable=no-member
-            # This access should be `run.call_args.kwargs`, but the namedtuple access wasn't added
-            # until Python 3.8.
-            call_kwargs = self.DEFAULT_PLUGIN.run.call_args[1]  # pylint: disable=no-member
+            mocked.assert_called()
+            call_kwargs = mocked.call_args.kwargs
         expected_kwargs = [
             "basis_gates",
             "coupling_map",
@@ -327,13 +321,11 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
             ]
         )
 
-        with self.mock_default_run_method():
+        with self.mock_default_run_method() as mocked:
             _ = pm.run(qc)
-            self.DEFAULT_PLUGIN.run.assert_not_called()  # pylint: disable=no-member
+            mocked.assert_not_called()
             self.MOCK_PLUGINS["_controllable"].run.assert_called()  # pylint: disable=no-member
-            call_kwargs = self.MOCK_PLUGINS["_controllable"].run.call_args[
-                1
-            ]  # pylint: disable=no-member
+            call_kwargs = self.MOCK_PLUGINS["_controllable"].run.call_args.kwargs
 
         self.assertIn("basis_gates", call_kwargs)
         self.assertEqual(call_kwargs["basis_gates"], set(target_basis_gates))
@@ -366,13 +358,15 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
                     )
                 ]
             )
-            with unittest.mock.patch.object(
-                ControllableSynthesis, "run", return_value=return_dag
-            ) as plugin_mock:
-                with self.mock_default_run_method():
-                    _ = pm.run(qc)
-                    plugin_mock.assert_called()
-                    self.DEFAULT_PLUGIN.run.assert_not_called()  # pylint: disable=no-member
+            with (
+                unittest.mock.patch.object(
+                    ControllableSynthesis, "run", return_value=return_dag
+                ) as plugin_mock,
+                self.mock_default_run_method() as run_mock,
+            ):
+                _ = pm.run(qc)
+                plugin_mock.assert_called()
+                run_mock.assert_not_called()
 
         # Plugin returns None and fallback is disabled:
         # the default plugin should not be called.
@@ -386,13 +380,15 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
                     )
                 ]
             )
-            with unittest.mock.patch.object(
-                ControllableSynthesis, "run", return_value=None
-            ) as plugin_mock:
-                with self.mock_default_run_method():
-                    _ = pm.run(qc)
-                    plugin_mock.assert_called()
-                    self.DEFAULT_PLUGIN.run.assert_not_called()  # pylint: disable=no-member
+            with (
+                unittest.mock.patch.object(
+                    ControllableSynthesis, "run", return_value=None
+                ) as plugin_mock,
+                self.mock_default_run_method() as run_mock,
+            ):
+                _ = pm.run(qc)
+                plugin_mock.assert_called()
+                run_mock.assert_not_called()
 
         # Plugin returns a DAG and fallback is enabled:
         # the default plugin should not be called.
@@ -406,13 +402,15 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
                     )
                 ]
             )
-            with unittest.mock.patch.object(
-                ControllableSynthesis, "run", return_value=return_dag
-            ) as plugin_mock:
-                with self.mock_default_run_method():
-                    _ = pm.run(qc)
-                    plugin_mock.assert_called()
-                    self.DEFAULT_PLUGIN.run.assert_not_called()  # pylint: disable=no-member
+            with (
+                unittest.mock.patch.object(
+                    ControllableSynthesis, "run", return_value=return_dag
+                ) as plugin_mock,
+                self.mock_default_run_method() as run_mock,
+            ):
+                _ = pm.run(qc)
+                plugin_mock.assert_called()
+                run_mock.assert_not_called()
 
         # Plugin returns None and fallback is enabled:
         # this time the default plugin should be called.
@@ -426,13 +424,15 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
                     )
                 ]
             )
-            with unittest.mock.patch.object(
-                ControllableSynthesis, "run", return_value=None
-            ) as plugin_mock:
-                with self.mock_default_run_method():
-                    _ = pm.run(qc)
-                    plugin_mock.assert_called()
-                    self.DEFAULT_PLUGIN.run.assert_called()  # pylint: disable=no-member
+            with (
+                unittest.mock.patch.object(
+                    ControllableSynthesis, "run", return_value=None
+                ) as plugin_mock,
+                self.mock_default_run_method() as run_mock,
+            ):
+                _ = pm.run(qc)
+                plugin_mock.assert_called()
+                run_mock.assert_called()
 
 
 if __name__ == "__main__":

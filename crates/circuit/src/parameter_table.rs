@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -26,12 +26,23 @@ use crate::parameter::symbol_expr::Symbol;
 
 import_exception!(qiskit.circuit, CircuitError);
 
+/// This struct models the error conditions that can be raised from the
+/// rust methods of the [ParameterTable] struct. The goal is to explicitly
+/// enumerate all the error types that are returned by these functions and
+/// make it clear that the return type is part of the interface.
+///
+/// In the the future it is expected this single enum will be replaced by per
+/// method error types to make it even more obvious, but this is a step
+/// towards that as we migrate from Python -> Rust.
+#[non_exhaustive]
 #[derive(Error, Debug)]
 pub enum ParameterTableError {
     #[error("parameter '{0:?}' is not tracked in the table")]
     ParameterNotTracked(ParameterUuid),
     #[error("usage {0:?} is not tracked by the table")]
     UsageNotTracked(ParameterUse),
+    #[error("name conflict adding parameter '{0}'")]
+    NameConflict(String),
 }
 impl From<ParameterTableError> for PyErr {
     fn from(value: ParameterTableError) -> PyErr {
@@ -129,7 +140,7 @@ impl ParameterTable {
         &mut self,
         symbol: &Symbol,
         usage: Option<ParameterUse>,
-    ) -> PyResult<ParameterUuid> {
+    ) -> Result<ParameterUuid, ParameterTableError> {
         let uuid = ParameterUuid::from_symbol(symbol);
         match self.by_uuid.entry(uuid) {
             Entry::Occupied(mut entry) => {
@@ -140,10 +151,7 @@ impl ParameterTable {
             Entry::Vacant(entry) => {
                 let repr = symbol.repr(false);
                 if self.by_repr.contains_key(&repr) {
-                    return Err(CircuitError::new_err(format!(
-                        "name conflict adding parameter '{}'",
-                        &repr
-                    )));
+                    return Err(ParameterTableError::NameConflict(repr));
                 }
                 self.by_repr.insert(repr.clone(), uuid);
                 let mut uses = HashSet::new();
@@ -164,9 +172,12 @@ impl ParameterTable {
 
     /// Untrack one use of a single [Symbol] object from the table, discarding all
     /// other tracking of that [Symbol] if this was the last usage of it.
-    pub fn untrack(&mut self, symbol: &Symbol, usage: ParameterUse) -> PyResult<()> {
+    pub fn untrack(
+        &mut self,
+        symbol: &Symbol,
+        usage: ParameterUse,
+    ) -> Result<(), ParameterTableError> {
         self.remove_use(ParameterUuid::from_symbol(symbol), usage)
-            .map_err(PyErr::from)
     }
 
     /// Lookup the Python parameter object by name.

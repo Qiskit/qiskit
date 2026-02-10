@@ -126,14 +126,24 @@ If you use Rustup, it will automatically install the correct Rust version
 currently used by the project.
 
 Once you have a Rust compiler installed, you can rely on the normal Python
-build/install steps to install Qiskit. This means you just run
-`pip install .` in your local git clone to build and install Qiskit.
+build/install steps to install Qiskit. This means you run `pip install .` or
+`pip install -e .` in your local git clone to build and install Qiskit.
+Note that changes to Rust files will not be reflected in an editable install
+until you recompile.  You can recompile the Rust components of an editable
+install by running
+```
+python setup.py build_rust --inplace [--release | --debug]
+```
+Modifications to Rust files will not take effect until the Rust extension module
+is recompiled with the above command.
 
-Do note that if you do use develop mode/editable install (via `python setup.py develop` or `pip install -e .`) the Rust extension will be built in debug mode
-without any optimizations enabled. This will result in poor runtime performance.
-If you'd like to use an editable install with an optimized binary you can
-run `python setup.py build_rust --release --inplace` after you install in
-editable mode to recompile the rust extensions in release mode.
+By default, `pip install .` will build the Rust components in "release" mode
+and `pip install -e .` (or `python setup.py build_rust --inplace`) will build
+them in "debug" mode, without optimizations.  Debug mode will have poor
+runtime performance.  You can set the environment variable `QISKIT_BUILD_PROFILE`
+to `release` or `debug` to control the default.  The `--release`/`--debug` flag
+to `build_rust` overrides this default.
+
 
 Note that in order to run `python setup.py ...` commands you need to have the 
 build dependency packages, which are listed in the `pyproject.toml` file under 
@@ -278,15 +288,8 @@ message summary line from the git log for the release to the changelog.
 If there are multiple `Changelog:` tags on a PR the git commit message summary
 line from the git log will be used for each changelog category tagged.
 
-The current categories for each label are as follows:
-
-| PR Label               | Changelog Category |
-| -----------------------|--------------------|
-| Changelog: Deprecation | Deprecated         |
-| Changelog: New Feature | Added              |
-| Changelog: API Change  | Changed            |
-| Changelog: Removal     | Removed            |
-| Changelog: Bugfix      | Fixed              |
+The current categories for each label are configured in `qiskit_bot.yaml` in
+the repository root.
 
 ## Release notes
 
@@ -704,8 +707,10 @@ well.
 
 ### Testing the C API
 
-The C API test suite is located at `test/c/`. It is built and run using `cmake`
-and `ctest` which can be triggered simply via:
+The C API test suite is located at `test/c/`.  This is a CMake project and uses
+CMake's `ctest` runner.  To build and run the tests, use the `ctest` recipe in
+the top-level `Makefile`, which you can run with
+
 ```bash
 make ctest
 ```
@@ -886,7 +891,7 @@ is a need additional release candidates can be published from `stable/*` and whe
 release is ready a full release will be tagged and published from `stable/*`.
 
 ## Adding deprecation warnings
-The qiskit code is part of Qiskit and, therefore, the [Qiskit Deprecation Policy](./DEPRECATION.md) fully applies here. Additionally, qiskit does not allow `DeprecationWarning`s in its testsuite. If you are deprecating code, you should add a test to use the new/non-deprecated method (most of the time based on the existing test of the deprecated method) and alter the existing test to check that the deprecated method still works as expected, [using `assertWarns`](https://docs.python.org/3/library/unittest.html#unittest.TestCase.assertWarns). The `assertWarns` context will silence the deprecation warning while checking that it raises.
+The Qiskit code is part of Qiskit and, therefore, the [Qiskit Deprecation Policy](./DEPRECATION.md) fully applies here. Additionally, Qiskit's testsuite breaks if a `DeprecationWarning` is emitted. If you are deprecating code, you should add a test to use the new/non-deprecated method (most of the time based on the existing test of the deprecated method) and alter the existing test to check that the deprecated method still works as expected, [using `assertWarns`](https://docs.python.org/3/library/unittest.html#unittest.TestCase.assertWarns). The `assertWarns` context will silence the deprecation warning while checking that it raises.
 
 For example, if `Obj.method1` is being deprecated in favour of `Obj.method2`, the existing test (or tests) for `method1` might look like this:
 

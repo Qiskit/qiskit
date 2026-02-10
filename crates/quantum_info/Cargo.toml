@@ -25,6 +25,7 @@ ndarray-einsum = "0.8.0"
 rand.workspace = true
 rand_pcg.workspace = true
 rand_distr.workspace = true
+fixedbitset.workspace = true
 
 [dependencies.ndarray]
 workspace = true
