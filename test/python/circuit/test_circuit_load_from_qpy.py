@@ -25,11 +25,11 @@ import re
 import ddt
 import numpy as np
 
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.circuit import CASE_DEFAULT, IfElseOp, WhileLoopOp, SwitchCaseOp
 from qiskit.circuit.classical import expr, types
-from qiskit.circuit import Clbit
-from qiskit.circuit import Qubit
+from qiskit.circuit import Clbit, Qubit
+from qiskit.transpiler import Target, CouplingMap
 from qiskit.circuit.random import random_circuit
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.library import (
@@ -2304,6 +2304,24 @@ class TestLoadFromQPY(QiskitTestCase):
             fptr.seek(0)
             out_circuit = load(fptr)[0]
 
+        self.assertEqual(qc, out_circuit)
+
+        qc = QuantumCircuit(QuantumRegister(2, "qr"), QuantumRegister(2, "ancilla"))
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(1, 2)
+        qc = transpile(
+            qc,
+            target=Target.from_configuration(
+                basis_gates=["sx", "rz", "cz"], coupling_map=CouplingMap.from_line(5)
+            ),
+            optimization_level=1,
+        )
+
+        with io.BytesIO() as fptr:
+            dump(qc, fptr, version=17)
+            fptr.seek(0)
+            out_circuit = load(fptr)[0]
         self.assertEqual(qc, out_circuit)
 
 
