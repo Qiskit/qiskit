@@ -2119,8 +2119,7 @@ pub fn qpy_replay(
 
             // add the expression to the replay
             match lhs_value {
-                None
-                | Some(ParameterValueType::Parameter(_))
+                Some(ParameterValueType::Parameter(_))
                 | Some(ParameterValueType::VectorElement(_)) => {
                     // For POW operations: if LHS is a Parameter and RHS is an expression (None),
                     // we need to use RPOW instead of POW
@@ -2152,6 +2151,21 @@ pub fn qpy_replay(
                             rhs: rhs_value,
                         });
                     }
+                }
+                None => {
+                    // When LHS is an expression (None), use normal operations
+                    let op = match op {
+                        symbol_expr::BinaryOp::Add => OpCode::ADD,
+                        symbol_expr::BinaryOp::Sub => OpCode::SUB,
+                        symbol_expr::BinaryOp::Mul => OpCode::MUL,
+                        symbol_expr::BinaryOp::Div => OpCode::DIV,
+                        symbol_expr::BinaryOp::Pow => OpCode::POW,
+                    };
+                    replay.push(OPReplay {
+                        op,
+                        lhs: lhs_value,
+                        rhs: rhs_value,
+                    });
                 }
                 _ => {
                     let op = match op {
