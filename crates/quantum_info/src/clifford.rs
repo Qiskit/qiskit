@@ -13,7 +13,7 @@ use std::fmt;
 
 use crate::sparse_observable::BitTerm;
 use fixedbitset::FixedBitSet;
-use ndarray::Array2;
+use ndarray::{Array2, ArrayView2};
 use qiskit_circuit::Qubit;
 
 /// Symplectic matrix.
@@ -72,15 +72,22 @@ impl Clifford {
         }
     }
 
-    /// Creates a new Clifford of num qubits with no elements set
-    pub fn empty(num_qubits: usize) -> Self {
-        Self {
+    /// Creates a new Clifford from a tableau array of bools
+    #[inline]
+    pub fn from_array(tableau_array: ArrayView2<bool>) -> Self {
+        let tableau_shape = tableau_array.shape();
+        let num_qubits = tableau_shape[0] / 2;
+        let mut out = Self {
             num_qubits,
             tableau: (0..2 * num_qubits + 1)
                 .map(|_| FixedBitSet::with_capacity(2 * num_qubits))
                 .collect(),
             scratch: FixedBitSet::with_capacity(2 * num_qubits),
-        }
+        };
+        tableau_array
+            .indexed_iter()
+            .for_each(|(index, v)| out.tableau[index.1].set(index.0, *v));
+        out
     }
 
     #[inline]
