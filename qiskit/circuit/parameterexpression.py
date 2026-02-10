@@ -117,11 +117,13 @@ def sympify(expression):
                     stack.append(getattr(rhs, "__pow__")(lhs))
                 elif inst.op == OpCode.RDIV:
                     # Construct division directly: rhs / lhs (e.g., 2 / a)
-                    # Use sympy's division operator to handle the case where __rtruediv__ returns NotImplemented
+                    # Use sympy's division operator to handle the case where
+                    # __rtruediv__ returns NotImplemented
                     stack.append(rhs / lhs)
                 elif inst.op == OpCode.RSUB:
                     # Construct subtraction directly: rhs - lhs (e.g., 2 - a)
-                    # Use sympy's subtraction operator to handle the case where __rsub__ returns NotImplemented
+                    # Use sympy's subtraction operator to handle the case where
+                    # __rsub__ returns NotImplemented
                     stack.append(rhs - lhs)
             elif (
                 not isinstance(lhs, sympy.Basic)
