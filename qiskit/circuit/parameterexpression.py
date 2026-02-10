@@ -109,12 +109,17 @@ def sympify(expression):
             if inst.op in {OpCode.RSUB, OpCode.RDIV, OpCode.RPOW}:
                 # For reverse operations, we need rhs op lhs instead of lhs op rhs
                 # For RPOW: rhs ** lhs, for RDIV: rhs / lhs, for RSUB: rhs - lhs
+                # We use reverse methods (__rsub__, __rtruediv__, __rpow__) to get the correct order
                 if inst.op == OpCode.RPOW:
-                    stack.append(getattr(rhs, "__pow__")(lhs))
+                    # Try __rpow__ first (Python 3.11+), fallback to __pow__ if not available
+                    if hasattr(rhs, "__rpow__"):
+                        stack.append(getattr(rhs, "__rpow__")(lhs))
+                    else:
+                        stack.append(getattr(rhs, "__pow__")(lhs))
                 elif inst.op == OpCode.RDIV:
-                    stack.append(getattr(rhs, "__truediv__")(lhs))
+                    stack.append(getattr(rhs, "__rtruediv__")(lhs))
                 elif inst.op == OpCode.RSUB:
-                    stack.append(getattr(rhs, "__sub__")(lhs))
+                    stack.append(getattr(rhs, "__rsub__")(lhs))
             elif (
                 not isinstance(lhs, sympy.Basic)
                 and isinstance(rhs, sympy.Basic)
