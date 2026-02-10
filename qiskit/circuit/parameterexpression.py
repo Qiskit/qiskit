@@ -110,15 +110,19 @@ def sympify(expression):
                 # For reverse operations, the Rust code already swapped operands in the replay,
                 # so we need to apply the operation with rhs op lhs to get the correct result.
                 # For RPOW: rhs ** lhs (Rust already swapped, so we use __pow__ directly)
-                # For RDIV: rhs / lhs (use __rtruediv__ to get correct order: 2 / a)
-                # For RSUB: rhs - lhs (use __rsub__ to get correct order: 2 - a)
+                # For RDIV: rhs / lhs (construct division directly: 2 / a)
+                # For RSUB: rhs - lhs (construct subtraction directly: 2 - a)
                 if inst.op == OpCode.RPOW:
                     # Rust already swapped operands, so we use __pow__ directly: rhs ** lhs
                     stack.append(getattr(rhs, "__pow__")(lhs))
                 elif inst.op == OpCode.RDIV:
-                    stack.append(getattr(rhs, "__rtruediv__")(lhs))
+                    # Construct division directly: rhs / lhs (e.g., 2 / a)
+                    # Use sympy's division operator to handle the case where __rtruediv__ returns NotImplemented
+                    stack.append(rhs / lhs)
                 elif inst.op == OpCode.RSUB:
-                    stack.append(getattr(rhs, "__rsub__")(lhs))
+                    # Construct subtraction directly: rhs - lhs (e.g., 2 - a)
+                    # Use sympy's subtraction operator to handle the case where __rsub__ returns NotImplemented
+                    stack.append(rhs - lhs)
             elif (
                 not isinstance(lhs, sympy.Basic)
                 and isinstance(rhs, sympy.Basic)
