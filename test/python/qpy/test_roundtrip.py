@@ -18,6 +18,7 @@ from ddt import ddt, idata
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit.library import PauliEvolutionGate
+from qiskit.circuit.parameter import Parameter
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.circuit.classical import expr
 from qiskit.synthesis import LieTrotter
@@ -120,4 +121,37 @@ class TestQPYRoundtrip(QiskitTestCase):
 
         qc = QuantumCircuit(2)
         qc.append(evo, range(2))
+        self.assert_roundtrip_equal(qc, version=version)
+
+    @idata(range(QPY_RUST_MIN_VERSION, QPY_VERSION + 1))
+    def test_parameter_expression(self, version):
+        """Test loading a circuit with parameter expression works"""
+        theta = Parameter("theta")
+        phi = Parameter("phi")
+        sum_param = theta + phi
+        qc = QuantumCircuit(5, 1)
+        qc.h(0)
+        for i in range(4):
+            qc.cx(i, i + 1)
+
+        qc.barrier()
+        qc.rz(sum_param, range(3))
+        qc.rz(phi, 3)
+        qc.rz(theta, 4)
+        qc.barrier()
+        for i in reversed(range(4)):
+            qc.cx(i, i + 1)
+        qc.h(0)
+        qc.measure(0, 0)
+        self.assert_roundtrip_equal(qc, version=version)
+
+    @idata(range(QPY_RUST_MIN_VERSION, QPY_VERSION + 1))
+    def test_parameter_expression_subs(self, version):
+        """Test loading a circuit with parameter substitution works"""
+        qc = QuantumCircuit(1)
+        a = Parameter("a")
+        b = Parameter("b")
+        expr = a + b
+        expr = expr.subs({b: a})
+        qc.ry(expr, 0)
         self.assert_roundtrip_equal(qc, version=version)

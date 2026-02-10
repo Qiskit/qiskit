@@ -181,6 +181,13 @@ impl<'a> TryFrom<&'a Bytes> for &'a str {
     }
 }
 
+impl TryFrom<Bytes> for String {
+    type Error = PyErr;
+    fn try_from(bytes: Bytes) -> Result<Self, Self::Error> {
+        String::from_utf8(bytes.0).map_err(|_| PyValueError::new_err("Not a valid UTF-8 string"))
+    }
+}
+
 impl TryFrom<&Bytes> for bool {
     type Error = PyErr;
     fn try_from(bytes: &Bytes) -> Result<Self, Self::Error> {

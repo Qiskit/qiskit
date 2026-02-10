@@ -288,8 +288,9 @@ pub(crate) fn unpack_parameter_expression(
 ) -> PyResult<ParameterExpression> {
     // we begin by loading the symbol table data and hashing it according to each symbol's uuid
     let mut param_uuid_map: HashMap<[u8; 16], GenericValue> = HashMap::new();
+    let mut param_name_map: HashMap<String, GenericValue> = HashMap::new(); // For QPY 14 and less
     for item in &parameter_expression_pack.symbol_table_data {
-        let (symbol_uuid, _, value) = match item {
+        let (symbol_uuid, value, symbol_name) = match item {
             formats::ParameterExpressionSymbolPack::ParameterExpression(_) => {
                 continue;
             }
@@ -299,7 +300,11 @@ pub(crate) fn unpack_parameter_expression(
                     ValueType::Parameter => GenericValue::ParameterExpressionSymbol(symbol.clone()),
                     _ => load_value(symbol_pack.value_key, &symbol_pack.value_data, qpy_data)?,
                 };
-                (symbol_pack.symbol_data.uuid, symbol, value)
+                (
+                    symbol_pack.symbol_data.uuid,
+                    value,
+                    symbol_pack.symbol_data.name.clone(),
+                )
             }
             formats::ParameterExpressionSymbolPack::ParameterVector(symbol_pack) => {
                 // this call will also create the corresponding vector and update qpy_data if needed
@@ -310,10 +315,15 @@ pub(crate) fn unpack_parameter_expression(
                     }
                     _ => load_value(symbol_pack.value_key, &symbol_pack.value_data, qpy_data)?,
                 };
-                (symbol_pack.symbol_data.uuid, symbol, value)
+                (
+                    symbol_pack.symbol_data.uuid,
+                    value,
+                    symbol_pack.symbol_data.name.clone(),
+                )
             }
         };
         param_uuid_map.insert(symbol_uuid, value.clone());
+        param_name_map.insert(symbol_name, value.clone());
     }
     let parameter_expression_data = deserialize_vec::<formats::ParameterExpressionElementPack>(
         &parameter_expression_pack.expression_data,
@@ -335,11 +345,25 @@ pub(crate) fn unpack_parameter_expression(
             let mut subs_mapping: HashMap<Symbol, ParameterExpression> = HashMap::new();
 
             for item in mapping_pack.items {
-                let key_uuid: [u8; 16] = (&item.key_bytes).try_into()?;
-                let value_generic_item = load_value(item.item_type, &item.item_bytes, qpy_data)?;
-                let key_generic_item = param_uuid_map.get(&key_uuid).ok_or_else(|| {
-                    PyValueError::new_err(format!("Parameter UUID not found: {:?}", &key_uuid))
-                })?;
+                let (value_generic_item, key_generic_item) = if qpy_data.version >= 15 {
+                    // UUID based element hashing
+                    let key_uuid: [u8; 16] = (&item.key_bytes).try_into()?;
+                    let value_generic_item =
+                        load_value(item.item_type, &item.item_bytes, qpy_data)?;
+                    let key_generic_item = param_uuid_map.get(&key_uuid).ok_or_else(|| {
+                        PyValueError::new_err(format!("Parameter UUID not found: {:?}", &key_uuid))
+                    })?;
+                    (value_generic_item, key_generic_item)
+                } else {
+                    // Name based element hashing
+                    let key_name: String = item.key_bytes.try_into()?;
+                    let value_generic_item =
+                        load_value(item.item_type, &item.item_bytes, qpy_data)?;
+                    let key_generic_item = param_name_map.get(&key_name).ok_or_else(|| {
+                        PyValueError::new_err(format!("Parameter name not found: {:?}", &key_name))
+                    })?;
+                    (value_generic_item, key_generic_item)
+                };
                 let key = if let GenericValue::ParameterExpressionSymbol(symbol) = key_generic_item
                 {
                     symbol

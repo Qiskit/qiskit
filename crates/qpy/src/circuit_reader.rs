@@ -1336,15 +1336,6 @@ pub(crate) fn unpack_circuit(
             .annotation_handler
             .load_deserializers(annotation_deserializers_data)?;
     }
-    // let annotation_deserializers_data: Vec<(String, Bytes)> = packed_circuit
-    //     .annotation_headers
-    //     .state_headers
-    //     .iter()
-    //     .map(|data| (data.namespace.clone(), data.state.clone()))
-    //     .collect();
-    // qpy_data
-    //     .annotation_handler
-    //     .load_deserializers(annotation_deserializers_data)?;
     let global_phase = generic_value_to_param(
         &load_value(
             packed_circuit.header.global_phase_type,
