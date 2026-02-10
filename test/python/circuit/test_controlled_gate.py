@@ -1403,7 +1403,7 @@ class TestControlledGate(QiskitTestCase):
         # is just some high number to make sure we unwrap any controlled and custom gates.
         self.assertEqual(set(assigned.decompose(reps=3).parameters), set())
 
-    @data(-1, 0, 1.4, "1", 4, 10)
+    @data(-1, 1.4, "1", 4, 10)
     def test_improper_num_ctrl_qubits(self, num_ctrl_qubits):
         """
         Test improperly specified num_ctrl_qubits.
@@ -1411,8 +1411,22 @@ class TestControlledGate(QiskitTestCase):
         num_qubits = 4
         with self.assertRaises(CircuitError):
             ControlledGate(
-                name="cgate", num_qubits=num_qubits, params=[], num_ctrl_qubits=num_ctrl_qubits
+                name="cgate",
+                num_qubits=num_qubits,
+                params=[],
+                num_ctrl_qubits=num_ctrl_qubits,
+                base_gate=XGate(),
             )
+
+    @data((-1, CircuitError), (1.4, CircuitError), ("1", TypeError))
+    @unpack
+    def test_improper_num_ctrl_qubits_in_control(self, num_ctrl_qubits, error):
+        """
+        Test improperly specified num_ctrl_qubits.
+        """
+
+        with self.assertRaises(error):
+            _ = XGate().control(num_ctrl_qubits=num_ctrl_qubits)
 
     def test_improper_num_ctrl_qubits_base_gate(self):
         """Test that the allowed number of control qubits takes the base gate into account."""
