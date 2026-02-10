@@ -410,7 +410,7 @@ pub(crate) fn load_value(
             Ok(GenericValue::Complex64(value))
         }
         ValueType::String => {
-            let value: String = bytes.try_into()?;
+            let value: String = bytes.clone().try_into()?;
             Ok(GenericValue::String(value))
         }
         ValueType::Range => {

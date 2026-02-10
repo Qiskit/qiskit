@@ -166,14 +166,6 @@ impl TryFrom<&Bytes> for Complex64 {
     }
 }
 
-impl TryFrom<&Bytes> for String {
-    type Error = PyErr;
-    fn try_from(bytes: &Bytes) -> Result<Self, Self::Error> {
-        String::from_utf8(bytes.0.clone())
-            .map_err(|_| PyValueError::new_err("Not a valid UTF-8 string"))
-    }
-}
-
 impl<'a> TryFrom<&'a Bytes> for &'a str {
     type Error = PyErr;
     fn try_from(bytes: &'a Bytes) -> Result<Self, Self::Error> {

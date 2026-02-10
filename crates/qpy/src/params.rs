@@ -287,8 +287,8 @@ pub(crate) fn unpack_parameter_expression(
     qpy_data: &mut QPYReadData,
 ) -> PyResult<ParameterExpression> {
     // we begin by loading the symbol table data and hashing it according to each symbol's uuid
-    let mut param_uuid_map: HashMap<[u8; 16], GenericValue> = HashMap::new();
-    let mut param_name_map: HashMap<String, GenericValue> = HashMap::new(); // For QPY 14 and less
+    let mut param_uuid_map: HashMap<[u8; 16], GenericValue> = HashMap::new(); // For QPY version >= 15
+    let mut param_name_map: HashMap<String, GenericValue> = HashMap::new(); // For QPY version <= 14
     for item in &parameter_expression_pack.symbol_table_data {
         let (symbol_uuid, value, symbol_name) = match item {
             formats::ParameterExpressionSymbolPack::ParameterExpression(_) => {
@@ -322,8 +322,11 @@ pub(crate) fn unpack_parameter_expression(
                 )
             }
         };
-        param_uuid_map.insert(symbol_uuid, value.clone());
-        param_name_map.insert(symbol_name, value.clone());
+        if qpy_data.version >= 15 {
+            param_uuid_map.insert(symbol_uuid, value.clone());
+        } else {
+            param_name_map.insert(symbol_name, value.clone());
+        }
     }
     let parameter_expression_data = deserialize_vec::<formats::ParameterExpressionElementPack>(
         &parameter_expression_pack.expression_data,
@@ -336,17 +339,12 @@ pub(crate) fn unpack_parameter_expression(
     let mut sub_operations: Vec<(usize, HashMap<Symbol, ParameterExpression>)> = Vec::new();
     for element in parameter_expression_data {
         if let formats::ParameterExpressionElementPack::Substitute(subs) = element {
-            // In the python code, substitutions were put on the stack with the rest of the operations
-            // And applied during the Parameter Expression construction phase. This seems to be unsupported in the current
-            // Rust implementation, so we assume every
-
-            // we construct a pydictionary describing the substitution and letting the python Parameter class handle it
             let mapping_pack = deserialize::<formats::MappingPack>(&subs.mapping_data)?.0;
             let mut subs_mapping: HashMap<Symbol, ParameterExpression> = HashMap::new();
 
             for item in mapping_pack.items {
                 let (value_generic_item, key_generic_item) = if qpy_data.version >= 15 {
-                    // UUID based element hashing
+                    // UUID based element hashing used in QPY >= 15
                     let key_uuid: [u8; 16] = (&item.key_bytes).try_into()?;
                     let value_generic_item =
                         load_value(item.item_type, &item.item_bytes, qpy_data)?;
@@ -355,8 +353,10 @@ pub(crate) fn unpack_parameter_expression(
                     })?;
                     (value_generic_item, key_generic_item)
                 } else {
-                    // Name based element hashing
+                    // Name based element hashing used in QPY <= 14
                     let key_name: String = item.key_bytes.try_into()?;
+                    // This line could lead to clashes in the case of duplicate parameter names
+                    // This is indeed the reason QPY15 moved to UUID based hashing
                     let value_generic_item =
                         load_value(item.item_type, &item.item_bytes, qpy_data)?;
                     let key_generic_item = param_name_map.get(&key_name).ok_or_else(|| {
