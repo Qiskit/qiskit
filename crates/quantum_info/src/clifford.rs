@@ -32,7 +32,10 @@ pub struct SymplecticMatrix {
 pub struct Clifford {
     /// Number of qubits.
     pub num_qubits: usize,
-    /// Matrix with dimensions (2 * num_qubits + 1) x (2 * num_qubits).
+    /// The (2 * num qubits) x (2 * num qubits + 1) stabilizer tableau stored
+    /// as a vector of (2 * num_qubits) + 1 columns,
+    /// each of length (2 * num_qubits). The element in row
+    /// i and column j can be access as tableau[j][i].
     pub tableau: Vec<FixedBitSet>,
     scratch: FixedBitSet,
 }
