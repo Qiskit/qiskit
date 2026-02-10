@@ -30,7 +30,7 @@ class SubstitutePi4Rotations(TransformationPass):
     For two-qubit controlled rotation gates (:class:`.CPhaseGate`, :class:`.CRXGate`,
     :class:`.CRYGate`, :class:`.CRZGate`), when the angle is a multiple of :math:`\pi/2`,
     the decomposition requires
-    three :class:`.TGate` or :class:`.TdgGate` gates for :class:`.CPhaseGate`and two otherwise,
+    three :class:`.TGate` or :class:`.TdgGate` gates for :class:`.CPhaseGate` and two otherwise,
     as well as some Clifford gates.
     Note that even multiples of :math:`\pi/4` (respectively, :math:`\pi/2` for controlled rotations),
     or equivalently, integer multiples of :math:`\pi/2`
