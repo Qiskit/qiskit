@@ -61,6 +61,7 @@ operands = [
     ParameterVector("b", 1)[0] + (0 * 1) * Parameter("ZERO"),
     nested_expr,
     nested_vector_expr,
+    Parameter("a0") / int(3) + int(2) * Parameter("a1") / int(3),
 ]
 
 bind_values = [math.pi, -math.pi, 5, -5, complex(2, 1), complex(-1, 2), 0, complex(0, 0)]
@@ -547,3 +548,11 @@ class TestParameterExpression(QiskitTestCase):
         result = expression.sympify()
         expected = sympy.Symbol("p[0]") + 1
         self.assertEqual(expected, result)
+
+    def test_print_rational(self):
+        """Test printing parameter expression with rational numbers"""
+        a = Parameter("a")
+        self.assertEqual("2*a/3", str(2 * a / 3))
+        self.assertEqual("(-2)*a/3", str((-2) * a / 3))
+        self.assertEqual("a/3", str(1 * a / 3))
+        self.assertEqual("(-2)*a/3", str(2 * (-a) / 3))
