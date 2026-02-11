@@ -1014,7 +1014,7 @@ def generate_circuits(version_parts, current_version, load_context=False):
     return output_circuits
 
 
-def assert_equal(reference, qpy, count, version_parts, bind=None, equivalent=False):
+def assert_equal(reference, qpy, count, version_parts, bind=None, equivalent=False, context="Unknown context"):
     """Compare two circuits."""
     if bind is not None:
         reference_parameter_names = [x.name for x in reference.parameters]
@@ -1032,6 +1032,7 @@ def assert_equal(reference, qpy, count, version_parts, bind=None, equivalent=Fal
     if equivalent:
         if not Operator.from_circuit(reference).equiv(Operator.from_circuit(qpy)):
             msg = (
+                f"For {context}:\n"
                 f"Reference Circuit {count}:\n{reference}\nis not equivalent to "
                 f"qpy loaded circuit {count}:\n{qpy}\n"
             )
@@ -1040,6 +1041,7 @@ def assert_equal(reference, qpy, count, version_parts, bind=None, equivalent=Fal
     else:
         if reference != qpy:
             msg = (
+                f"For {context}:\n"
                 f"Reference Circuit {count}:\n{reference}\nis not equivalent to "
                 f"qpy loaded circuit {count}:\n{qpy}\n"
             )
@@ -1053,6 +1055,7 @@ def assert_equal(reference, qpy, count, version_parts, bind=None, equivalent=Fal
         ):
             if ref_bit._register is not None and ref_bit != qpy_bit:
                 msg = (
+                    f"For {context}:\n"
                     f"Reference Circuit {count}:\n"
                     "deprecated bit-level register information mismatch\n"
                     f"reference bit: {ref_bit}\n"
@@ -1066,17 +1069,17 @@ def assert_equal(reference, qpy, count, version_parts, bind=None, equivalent=Fal
         and isinstance(reference, QuantumCircuit)
         and reference.layout != qpy.layout
     ):
-        msg = f"Circuit {count} layout mismatch {reference.layout} != {qpy.layout}\n"
+        msg = f"For {context}:\nCircuit {count} layout mismatch {reference.layout} != {qpy.layout}\n"
         sys.stderr.write(msg)
         sys.exit(4)
 
     # Don't compare name on bound circuits
     if bind is None and reference.name != qpy.name:
-        msg = f"Circuit {count} name mismatch {reference.name} != {qpy.name}\n{reference}\n{qpy}"
+        msg = f"For {context}:\nCircuit {count} name mismatch {reference.name} != {qpy.name}\n{reference}\n{qpy}"
         sys.stderr.write(msg)
         sys.exit(2)
     if reference.metadata != qpy.metadata:
-        msg = f"Circuit {count} metadata mismatch: {reference.metadata} != {qpy.metadata}"
+        msg = f"For {context}:\nCircuit {count} metadata mismatch: {reference.metadata} != {qpy.metadata}"
         sys.stderr.write(msg)
         sys.exit(3)
 
@@ -1122,9 +1125,10 @@ def load_qpy(qpy_files, version_parts):
                 bind = np.linspace(1.0, 2.0, 15)
             elif path == "replay_with_expressions.qpy":
                 bind = [2.0]
-
+            
+            context = f"Version {version_parts}, QPY file {path}, Circuit number {i}"
             assert_equal(
-                circuit, qpy_circuits[i], i, version_parts, bind=bind, equivalent=equivalent
+                circuit, qpy_circuits[i], i, version_parts, bind=bind, equivalent=equivalent, context=context
             )
 
     from qiskit.qpy.exceptions import QpyError

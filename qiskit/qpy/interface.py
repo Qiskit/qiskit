@@ -357,9 +357,8 @@ def load(
                 file_obj.read(formats.FILE_HEADER_V10_SIZE),
             )
         )
-
     use_rust = version >= common.QPY_RUST_READ_MIN_VERSION
-
+    
     config = user_config.get_config()
     min_qpy_version = config.get("min_qpy_version")
     if min_qpy_version is not None and data.qpy_version < min_qpy_version:
@@ -428,7 +427,6 @@ def load(
 
     programs = []
     for i in range(data.num_programs):
-        print(f"reading program {i}")
         if data.qpy_version >= 16:
             # Deserialize each program using their byte offsets
             file_obj.seek(program_offsets[i])
