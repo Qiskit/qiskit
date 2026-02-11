@@ -35,5 +35,3 @@ int run(const char *name, int (*test_function)(void));
 
 bool compare_circuits(const QkCircuit *res, const QkCircuit *expected);
 void print_circuit(const QkCircuit *qc);
-bool compare_dags(const QkDag *res, const QkDag *expected);
-void print_dag(const QkDag *dag);
