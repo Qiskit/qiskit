@@ -41,9 +41,9 @@ def synth_mcx_n_dirty_i15(
     Synthesize a multi-controlled X gate with :math:`k` controls based on the paper
     by Iten et al. [1].
 
-    For :math:`k\ge 4` the method uses :math:`k - 2` dirty ancillary qubits, producing a circuit
-    with :math:`2 * k - 1` qubits and at most :math:`8 * k - 6` CX gates. For :math:`k\le 3`
-    explicit efficient circuits are used instead.
+    For :math:`k\ge 4`, the method uses :math:`k - 2` dirty ancillary qubits, producing a circuit
+    with :math:`2 * k - 1` qubits and at most :math:`8 * k - 6` CX gates. For :math:`k\le 3`,
+    explicitly constructed efficient circuits that require no ancillary qubits are used instead.
 
     Args:
         num_ctrl_qubits: The number of control qubits.
@@ -100,7 +100,8 @@ def synth_mcx_n_clean_m15(num_ctrl_qubits: int) -> QuantumCircuit:
     Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using :math:`k - 2`
     clean ancillary qubits with producing a circuit with :math:`2 * k - 1` qubits
     and at most :math:`6 * k - 6` CX gates, by Maslov [1].
-    For :math:`k\le 2` the returned circuit contains a single X, CX or CCX gate respectively.
+    For :math:`k\le 2`, the returned circuit consists of a single X, CX or CCX gate
+    (corresponding to :math:`k = 0, 1, 2`, respectively) and uses no ancillary qubits.
 
     Args:
         num_ctrl_qubits: The number of control qubits.
@@ -154,7 +155,8 @@ def synth_mcx_1_clean_b95(num_ctrl_qubits: int) -> QuantumCircuit:
     Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using a single
     clean ancillary qubit producing a circuit with :math:`k + 2` qubits and at most
     :math:`16 * k - 24` CX gates, by [1], [2].
-    For :math:`k\le 2` the returned circuit contains a single X, CX or CCX gate respectively.
+    For :math:`k\le 2`, the returned circuit consists of a single X, CX or CCX gate
+    (corresponding to :math:`k = 0, 1, 2`, respectively) and uses no ancillary qubits.
 
     Args:
         num_ctrl_qubits: The number of control qubits.
@@ -225,7 +227,8 @@ def synth_mcx_gray_code(num_ctrl_qubits: int) -> QuantumCircuit:
     Produces a quantum circuit with :math:`k + 1` qubits. This method
     produces exponentially many CX gates and should be used only for small
     values of :math:`k`.
-    For :math:`k\le 2` the returned circuit contains a single X, CX or CCX gate respectively.
+    For :math:`k\le 2`, the returned circuit consists of a single X, CX or CCX gate
+    (corresponding to :math:`k = 0, 1, 2`, respectively) and uses no ancillary qubits.
 
     Args:
         num_ctrl_qubits: The number of control qubits.
@@ -412,7 +415,8 @@ def synth_mcx_1_kg24(num_ctrl_qubits: int, clean: bool = True) -> QuantumCircuit
     r"""
     Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using :math:`1` ancillary qubit as
     described in Sec. 5 of [1].
-    For :math:`k\le 2` the returned circuit contains a single X, CX or CCX gate respectively.
+    For :math:`k\le 2`, the returned circuit consists of a single X, CX or CCX gate
+    (corresponding to :math:`k = 0, 1, 2`, respectively) and uses no ancillary qubits.
 
     Args:
         num_ctrl_qubits: The number of control qubits.
@@ -467,6 +471,8 @@ def synth_mcx_1_clean_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
     Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using :math:`1` clean
     ancillary qubit producing a circuit with :math:`2k-3` Toffoli gates or :math:`6k-6`
     CX gates and depth :math:`O(k)` as described in Sec. 5.1 of [1].
+    For :math:`k\le 2`, the returned circuit consists of a single X, CX or CCX gate
+    (corresponding to :math:`k = 0, 1, 2`, respectively) and uses no ancillary qubits.
 
     Args:
         num_ctrl_qubits: The number of control qubits.
@@ -498,7 +504,8 @@ def synth_mcx_1_dirty_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
     Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using :math:`1` dirty
     ancillary qubit producing a circuit with :math:`4k-8` Toffoli gates or :math:`12k-18`
     CX gates and depth :math:`O(k)` as described in Sec. 5.3 of [1].
-    For :math:`k\le 2` the returned circuit contains a single X, CX or CCX gate respectively.
+    For :math:`k\le 2`, the returned circuit consists of a single X, CX or CCX gate
+    (corresponding to :math:`k = 0, 1, 2`, respectively) and uses no ancillary qubits.
 
     Args:
         num_ctrl_qubits: The number of control qubits.
@@ -590,7 +597,8 @@ def synth_mcx_2_kg24(num_ctrl_qubits: int, clean: bool = True) -> QuantumCircuit
     r"""
     Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using :math:`2` ancillary qubits.
     as described in Sec. 5 of [1].
-    For :math:`k\le 2` the returned circuit contains a single X, CX or CCX gate respectively.
+    For :math:`k\le 2`, the returned circuit consists of a single X, CX or CCX gate
+    (corresponding to :math:`k = 0, 1, 2`, respectively) and uses no ancillary qubits.
 
     Args:
         num_ctrl_qubits: The number of control qubits.
@@ -662,7 +670,8 @@ def synth_mcx_2_clean_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
     Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using :math:`2` clean
     ancillary qubits producing a circuit with :math:`2k-3` Toffoli gates or :math:`6k-6`
     CX gates and depth :math:`O(\log(k))` as described in Sec. 5.2 of [1].
-    For :math:`k\le 2` the returned circuit contains a single X, CX or CCX gate respectively.
+    For :math:`k\le 2`, the returned circuit consists of a single X, CX or CCX gate
+    (corresponding to :math:`k = 0, 1, 2`, respectively) and uses no ancillary qubits.
 
     Args:
         num_ctrl_qubits: The number of control qubits.
@@ -692,9 +701,10 @@ def synth_mcx_2_clean_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
 def synth_mcx_2_dirty_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
     r"""
     Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using :math:`2` dirty
-    ancillary qubits producing a circuit with :math:`4k-8` Toffoli gates or :math:`12k-18`CX
+    ancillary qubits producing a circuit with :math:`4k-8` Toffoli gates or :math:`12k-18` CX
     gates and depth :math:`O(\log(k))` as described in Sec. 5.4 of [1].
-    For :math:`k\le 2` the returned circuit contains a single X, CX or CCX gate respectively.
+    For :math:`k\le 2`, the returned circuit consists of a single X, CX or CCX gate
+    (corresponding to :math:`k = 0, 1, 2`, respectively) and uses no ancillary qubits.
 
     Args:
         num_ctrl_qubits: The number of control qubits.
