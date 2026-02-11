@@ -84,19 +84,22 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_gate_direction(
 ///
 /// # Example
 /// ```c
-///    QkTarget *target = qk_target_new(2);
-///    uint32_t qargs[3] = {0,1};
+/// QkTarget *target = qk_target_new(2);
+/// uint32_t qargs[3] = {0,1};
 ///
-///    QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
-///    qk_target_entry_add_property(cx_entry, qargs, 2, 0.0, 0.0);
-///    qk_target_add_instruction(target, cx_entry);
+/// QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
+/// qk_target_entry_add_property(cx_entry, qargs, 2, 0.0, 0.0);
+/// qk_target_add_instruction(target, cx_entry);
 ///
-///    QkDag *dag = qk_dag_new();
-///    QkQuantumRegister *qr = qk_quantum_register_new(2, "qr");
-///    qk_dag_add_quantum_register(dag, qr);
-///    qk_dag_apply_gate(dag, QkGate_CX, (uint32_t[]){1,0}, NULL, false);
+/// QkDag *dag = qk_dag_new();
+/// QkQuantumRegister *qr = qk_quantum_register_new(2, "qr");
+/// qk_dag_add_quantum_register(dag, qr);
+/// qk_dag_apply_gate(dag, QkGate_CX, (uint32_t[]){1,0}, NULL, false);
 ///
-///    bool direction_ok = qk_transpiler_pass_check_gate_direction(dag, target);
+/// bool direction_ok = qk_transpiler_pass_check_gate_direction(dag, target);
+/// qk_quantum_register_free(qr);
+/// qk_dag_free(dag);
+/// qk_target_free(target);
 /// ```
 ///
 /// # Safety
@@ -111,7 +114,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_check_gate_direction(
     let dag = unsafe { const_ptr_as_ref(dag) };
     let target = unsafe { const_ptr_as_ref(target) };
 
-    check_direction_target(&dag, target).expect("Unexpected error occurred in CheckGateDirection")
+    check_direction_target(dag, target).expect("Unexpected error occurred in CheckGateDirection")
 }
 
 /// @ingroup QkTranspilerPasses
@@ -121,26 +124,26 @@ pub unsafe extern "C" fn qk_transpiler_pass_check_gate_direction(
 /// This pass supports replacements for the ``cx``, ``cz``, ``ecr``, ``swap``, ``rzx``, ``rxx``, ``ryy`` and
 /// ``rzz`` gates, using predefined identities.
 ///
-/// @param dag A pointer to the DAG on which to run the GateDirection pass. The DAG will be modified
+/// @param dag A pointer to the DAG Circuit on which to run the GateDirection pass. The DAG will be modified
 ///     in place by the pass.
 /// @param target A pointer to the target used for checking gate directions.
 ///
 /// # Example
 /// ```c
-///    QkTarget *target = qk_target_new(3);
+/// QkTarget *target = qk_target_new(3);
 ///
-///    uint32_t qargs[2] = {0,1};
+/// uint32_t qargs[2] = {0,1};
 ///
-///    QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
-///    qk_target_entry_add_property(cx_entry, qargs, 2, 0.0, 0.0);
-///    qk_target_add_instruction(target, cx_entry);
+/// QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
+/// qk_target_entry_add_property(cx_entry, qargs, 2, 0.0, 0.0);
+/// qk_target_add_instruction(target, cx_entry);
 ///
-///    QkDag *dag = qk_dag_new();
-///    QkQuantumRegister *qr = qk_quantum_register_new(3, "qr");
-///    qk_dag_add_quantum_register(dag, qr);
-///    qk_dag_apply_gate(dag, QkGate_CX, (uint32_t[]){1,0}, NULL, false);  
+/// QkDag *dag = qk_dag_new();
+/// QkQuantumRegister *qr = qk_quantum_register_new(3, "qr");
+/// qk_dag_add_quantum_register(dag, qr);
+/// qk_dag_apply_gate(dag, QkGate_CX, (uint32_t[]){1,0}, NULL, false);  
 ///
-///    qk_transpiler_pass_gate_direction(dag, target);
+/// qk_transpiler_pass_gate_direction(dag, target);
 /// ```
 ///
 /// # Safety
