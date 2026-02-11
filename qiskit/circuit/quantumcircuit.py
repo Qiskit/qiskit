@@ -1903,7 +1903,7 @@ class QuantumCircuit:
             except QiskitError:
                 inst = self.to_instruction()
             for i in range(reps):
-                repeated_circ._append(inst, self.qubits, self.clbits)
+                repeated_circ.append(inst, self.qubits, self.clbits)
                 if insert_barriers and i != reps - 1:
                     repeated_circ.barrier()
 
