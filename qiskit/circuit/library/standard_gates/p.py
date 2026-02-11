@@ -360,7 +360,7 @@ class MCPhaseGate(ControlledGate):
 
         if self.num_ctrl_qubits == 0:
             qc.p(self.params[0], 0)
-        if self.num_ctrl_qubits == 1:
+        elif self.num_ctrl_qubits == 1:
             qc.cp(self.params[0], 0, 1)
         else:
             lam = self.params[0]
