@@ -395,10 +395,6 @@ def load(
             "version"
         )
 
-    # Rust does not support reading pulse calibrations, which were dropped in qiskit 2.0.0
-    if qiskit_version[0] < 2:
-        use_rust = False
-
     if data.qpy_version < 5:
         type_key = type_keys.Program.CIRCUIT
     else:
@@ -432,6 +428,7 @@ def load(
 
     programs = []
     for i in range(data.num_programs):
+        print(f"reading program {i}")
         if data.qpy_version >= 16:
             # Deserialize each program using their byte offsets
             file_obj.seek(program_offsets[i])

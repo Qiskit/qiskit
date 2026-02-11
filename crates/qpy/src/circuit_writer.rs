@@ -1141,7 +1141,9 @@ pub(crate) fn pack_circuit(
     )?;
     // Pulse has been removed in Qiskit 2.0. As long as we keep QPY at version 13,
     // we need to write an empty calibrations header since read_circuit expects it
-    let calibrations = formats::CalibrationsPack { num_cals: 0 };
+    let calibrations = formats::CalibrationsPack {
+        calibrations: vec![],
+    };
     let (instructions, mut custom_instructions_hash) = pack_instructions(&mut qpy_data)?;
     let custom_instructions =
         pack_custom_instructions(&mut custom_instructions_hash, &mut qpy_data)?;
