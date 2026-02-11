@@ -110,7 +110,6 @@ pub unsafe extern "C" fn qk_transpiler_standalone_optimize_1q_sequences(
 /// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag`` and
 /// if ``target`` is not a valid pointer to a ``QkTarget``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpiler_pass_optimize_1q_sequences(
     dag: *mut DAGCircuit,
     target: *const Target,

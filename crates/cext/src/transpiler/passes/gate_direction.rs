@@ -103,7 +103,6 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_gate_direction(
 ///
 /// Behavior is undefined if ``dag`` or ``target`` are not valid, non-null pointers to ``QkDag`` and ``QkTarget`` objects, respectively.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpiler_pass_check_gate_direction(
     dag: *const DAGCircuit,
     target: *const Target,
@@ -148,7 +147,6 @@ pub unsafe extern "C" fn qk_transpiler_pass_check_gate_direction(
 ///
 /// Behavior is undefined if ``dag`` or ``target`` are not valid, non-null pointers to ``QkDag`` and ``QkTarget`` objects, respectively.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpiler_pass_gate_direction(
     dag: *mut DAGCircuit,
     target: *const Target,

@@ -120,7 +120,6 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_remove_identity_equivalen
 ///
 /// Behavior is undefined if ``dag`` or ``target`` is not a valid, non-null pointer to a ``QkDag`` and ``QkTarget``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpiler_pass_remove_identity_equivalent(
     dag: *mut DAGCircuit,
     target: *const Target,
