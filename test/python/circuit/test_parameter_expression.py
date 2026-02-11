@@ -547,3 +547,64 @@ class TestParameterExpression(QiskitTestCase):
         result = expression.sympify()
         expected = sympy.Symbol("p[0]") + 1
         self.assertEqual(expected, result)
+
+    @unittest.skipUnless(HAS_SYMPY, "Sympy is required for this test")
+    def test_sympify_rpow_operand_order(self):
+        """Test that sympify correctly handles RPOW operations with swapped operands.
+
+        This test verifies the fix for issue #15583, where ParameterExpression.sympify()
+        was incorrectly swapping operands for reverse power operations (RPOW).
+        """
+        import sympy
+
+        a, b = Parameter("a"), Parameter("b")
+        # This creates a ** (b - 2), which uses RPOW internally
+        res = a ** (b - 2)
+
+        # The string representation should be correct
+        self.assertEqual(str(res), "a**(-2 + b)")
+
+        # The sympify result should match the correct order: a ** (b - 2)
+        sympy_result = res.sympify()
+        expected = sympy.Symbol("a") ** (sympy.Symbol("b") - 2)
+
+        self.assertEqual(sympy_result, expected)
+
+        # Test with a product expression as exponent (as mentioned in the issue)
+        res2 = a ** (2 * b)
+        sympy_result2 = res2.sympify()
+        expected2 = sympy.Symbol("a") ** (2 * sympy.Symbol("b"))
+        self.assertEqual(sympy_result2, expected2)
+
+    @unittest.skipUnless(HAS_SYMPY, "Sympy is required for this test")
+    def test_sympify_reverse_operations(self):
+        """Test that sympify correctly handles all reverse operations (RPOW, RDIV, RSUB).
+
+        This test ensures that reverse operations correctly swap operands when converting
+        to sympy expressions. Reverse operations are used when the left operand is numeric
+        and the right operand is a ParameterExpression.
+        """
+        import sympy
+
+        a, b = Parameter("a"), Parameter("b")
+
+        # Test RPOW: a ** (b - 2) should convert to a ** (b - 2)
+        # This uses RPOW internally when the exponent is a ParameterExpression
+        res_pow = a ** (b - 2)
+        sympy_pow = res_pow.sympify()
+        expected_pow = sympy.Symbol("a") ** (sympy.Symbol("b") - 2)
+        self.assertEqual(sympy_pow, expected_pow)
+
+        # Test RDIV: 2 / a should convert to 2 / a
+        # RDIV is used when left operand is numeric and right is ParameterExpression
+        res_div = 2 / a
+        sympy_div = res_div.sympify()
+        expected_div = 2 / sympy.Symbol("a")
+        self.assertEqual(sympy_div, expected_div)
+
+        # Test RSUB: 2 - a should convert to 2 - a
+        # RSUB is used when left operand is numeric and right is ParameterExpression
+        res_sub = 2 - a
+        sympy_sub = res_sub.sympify()
+        expected_sub = 2 - sympy.Symbol("a")
+        self.assertEqual(sympy_sub, expected_sub)
