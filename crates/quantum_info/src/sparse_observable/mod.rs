@@ -850,6 +850,44 @@ impl SparseObservable {
         out
     }
 
+    /// Add another [SparseObservable] onto this one, while scaling its coefficients.
+    ///
+    /// # Panics
+    ///
+    /// If the number of qubits of `rhs` and `self` differ.
+    pub fn scaled_add_inplace(&mut self, rhs: &SparseObservable, factor: Complex64) {
+        if rhs.num_qubits != self.num_qubits {
+            panic!(
+                "operand ({}) has a different number of qubits to the base ({})",
+                rhs.num_qubits, self.num_qubits
+            );
+        }
+        self.coeffs.extend(rhs.coeffs.iter().map(|c| c * factor));
+        self.bit_terms.extend_from_slice(&rhs.bit_terms);
+        self.indices.extend_from_slice(&rhs.indices);
+        // We only need to write out the new endpoints, not the initial zero.
+        let offset = self.boundaries[self.boundaries.len() - 1];
+        self.boundaries
+            .extend(rhs.boundaries[1..].iter().map(|boundary| offset + boundary));
+    }
+
+    /// Add two [SparseObservable] instances while scaling the coefficients of `rhs`
+    /// with `factor`.
+    ///
+    /// # Panics
+    ///
+    /// If the number of qubits of `other` and `self` differ.
+    pub fn scaled_add(&self, rhs: &SparseObservable, factor: Complex64) -> SparseObservable {
+        let mut out = SparseObservable::with_capacity(
+            self.num_qubits,
+            self.coeffs.len() + rhs.coeffs.len(),
+            self.bit_terms.len() + rhs.bit_terms.len(),
+        );
+        out += self;
+        out.scaled_add_inplace(rhs, factor);
+        out
+    }
+
     /// Get a view onto a representation of a single sparse term.
     ///
     /// This is effectively an indexing operation into the [SparseObservable].  Recall that two

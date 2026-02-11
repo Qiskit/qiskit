@@ -14,7 +14,6 @@ use crate::pointers::mut_ptr_as_ref;
 
 use qiskit_circuit::Qubit;
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_transpiler::passes::run_elide_permutations;
 use qiskit_transpiler::transpile_layout::TranspileLayout;
@@ -31,7 +30,6 @@ use qiskit_transpiler::transpile_layout::TranspileLayout;
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpiler_pass_standalone_elide_permutations(
     circuit: *mut CircuitData,
 ) -> *mut TranspileLayout {
@@ -44,8 +42,8 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_elide_permutations(
     let res = run_elide_permutations(&dag).unwrap();
     match res {
         Some(res) => {
-            let out_circuit =
-                dag_to_circuit(&res.0, false).expect("Internal DAG to Circuit conversion failed.");
+            let out_circuit = CircuitData::from_dag_ref(&res.0)
+                .expect("Internal DAG to Circuit conversion failed.");
             let num_input_qubits = circuit.num_qubits() as u32;
             *circuit = out_circuit;
             Box::into_raw(Box::new(TranspileLayout::new(
