@@ -17,6 +17,8 @@ use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::operations::{OperationRef, Param, StandardGate};
 use qiskit_synthesis::ross_selinger::py_gridsynth_rz;
 
+const MINIMUM_EPSILON: f64 = 1e-2;
+
 // look up table for phase update and gates added during
 // canonicalization of angles
 
@@ -71,9 +73,9 @@ fn canonicalize_angle(angle: f64) -> (u8, f64) {
 /// This prevents redundant synthesis calls for angles as much as possible.
 fn synthesize_rz_gate_via_gridsynth(
     angle: f64,
-    _epsilon: f64,
+    epsilon: f64,
 ) -> PyResult<(Vec<StandardGate>, Param)> {
-    let circ_data = py_gridsynth_rz(angle, _epsilon)?;
+    let circ_data = py_gridsynth_rz(angle, epsilon)?;
 
     // obtain phase from circuit data
     let phase = circ_data.global_phase().clone();
@@ -95,13 +97,17 @@ fn synthesize_rz_gate_via_gridsynth(
 
 #[pyfunction]
 #[pyo3(name = "synthesize_rz_rotations")]
-pub fn py_run_synthesize_rz_rotations(dag: &mut DAGCircuit, epsilon: f64) -> PyResult<()> {
-    
+pub fn py_run_synthesize_rz_rotations(
+    dag: &mut DAGCircuit,
+    approximation_degree: f64,
+) -> PyResult<()> {
+    // ensure epsilon does not fall below a minimum value to preserve fidelity of synthesis
+    let epsilon = MINIMUM_EPSILON.min(1. - approximation_degree);
     // Skip the pass if there are no RZ rotation gates.
     if dag.get_op_counts().keys().all(|k| k != "rz") {
         return Ok(());
     }
-    
+
     // Iterate over nodes in the DAG and collect nodes that have RZ gates.
     // Canonicalize angles already at this stage, so that we can use them for sorting.
     let mut candidates: Vec<_> = dag
@@ -131,10 +137,10 @@ pub fn py_run_synthesize_rz_rotations(dag: &mut DAGCircuit, epsilon: f64) -> PyR
         // todo: allow delta-difference with delta depending on epsilon
         let should_recompute = prev_result
             .as_ref()
-            .is_none_or(|(prev_angle, _)| *prev_angle != angle);
+            .is_none_or(|(prev_angle, _)| *prev_angle + epsilon / 2. < angle);
 
         if should_recompute {
-            let (sequence, phase_update) = synthesize_rz_gate_via_gridsynth(angle, epsilon)?;
+            let (sequence, phase_update) = synthesize_rz_gate_via_gridsynth(angle, epsilon / 2.)?;
 
             prev_result = Some((angle, (sequence, phase_update)));
         }
