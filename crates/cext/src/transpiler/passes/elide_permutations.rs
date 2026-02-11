@@ -23,8 +23,14 @@ use qiskit_transpiler::transpile_layout::TranspileLayout;
 ///
 /// Refer to the ``qk_transpiler_pass_elide_permutations`` function for more details about the pass.
 ///
-/// @param circuit A pointer to the circuit to run ElidePermutations on.
-/// @return The layout object containing the output permutation, or null if no elisions performed.
+/// @param circuit A pointer to the circuit to run ElidePermutations on. If there are changes made
+///     the object pointed to is changed in place. In case of gates being elided the original circuit's
+///     allocations are freed by this function.
+///
+/// @return the layout object containing the output permutation induced by the elided gates in the
+///         circuit. If no elisions are performed this will be a null pointer and the input circuit
+///         is unchanged. The caller is responsible for freeing the returned layout by calling
+///         ``qk_transpile_layout_free``.
 ///
 /// # Safety
 ///
@@ -39,7 +45,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_elide_permutations(
         Ok(dag) => dag,
         Err(_e) => panic!("Internal circuit to DAG conversion failed."),
     };
-    let res = run_elide_permutations(&dag).unwrap();
+    let res = run_elide_permutations(&dag).expect("ElidePermutations pass failed.");
     match res {
         Some(res) => {
             let out_circuit = CircuitData::from_dag_ref(&res.0)
@@ -71,39 +77,44 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_elide_permutations(
 /// swap gates in the circuit prior to running layout. This optimization is
 /// not valid after a layout has been set and should not be run in this case.
 ///
-/// @param circuit A pointer to the circuit to run ElidePermutations on. If there are changes made
+/// @param dag A pointer to the DAG to run ElidePermutations on. If there are changes made
 ///     the object pointed to is changed in place. In case of gates being elided the original circuit's
 ///     allocations are freed by this function.
 ///
 /// @return the layout object containing the output permutation induced by the elided gates in the
 ///         circuit. If no elisions are performed this will be a null pointer and the input circuit
-///         is unchanged.
+///         is unchanged. The caller is responsible for freeing the returned layout by calling
+///         ``qk_transpile_layout_free``.
 ///
 /// # Example
 ///
 /// ```c
-///     QkDag *dag = qk_dag_new();
-///     QkQuantumRegister *qr = qk_quantum_register_new(4, "qr");
-///     qk_dag_add_quantum_register(dag, qr);
-///     for (uint32_t i = 0; i < qk_dag_num_qubits(dag) - 1; i++) {
-///         uint32_t qargs[2] = {i, i + 1};
-///         for (uint32_t j = 0; j < i + 1; j++) {
-///             qk_dag_apply_gate(dag, QkGate_CX, qargs, NULL, false);
-///         }
+/// QkDag *dag = qk_dag_new();
+/// QkQuantumRegister *qr = qk_quantum_register_new(4, "qr");
+/// qk_dag_add_quantum_register(dag, qr);
+/// for (uint32_t i = 0; i < qk_dag_num_qubits(dag) - 1; i++) {
+///     uint32_t qargs[2] = {i, i + 1};
+///     for (uint32_t j = 0; j < i + 1; j++) {
+///         qk_dag_apply_gate(dag, QkGate_CX, qargs, NULL, false);
 ///     }
-///     QkTranspileLayout *elide_result = qk_transpiler_pass_elide_permutations(dag);
+/// }
+/// QkTranspileLayout *elide_result = qk_transpiler_pass_elide_permutations(dag);
+/// if (elide_result == NULL) {
+///     qk_transpile_layout_free(elide_result);
+/// }
+/// qk_dag_free(dag);
 /// ```
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``circuit``  is not a valid, non-null pointer to a ``QkCircuit``.
+/// Behavior is undefined if ``dag``  is not a valid, non-null pointer to a ``QkDAG``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_transpiler_pass_elide_permutations(
     dag: *mut DAGCircuit,
 ) -> *mut TranspileLayout {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let dag = unsafe { mut_ptr_as_ref(dag) };
-    let res = run_elide_permutations(dag).unwrap();
+    let res = run_elide_permutations(dag).expect("ElidePermutations pass failed.");
     match res {
         Some(res) => {
             let num_input_qubits = dag.num_qubits() as u32;
