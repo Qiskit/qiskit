@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -45,7 +45,7 @@ pub fn run_asap_schedule_analysis<T: TimeOps>(
         idle_after.insert(Wire::Clbit(Clbit::new(index)), zero);
     }
 
-    for node_index in dag.topological_op_nodes()? {
+    for node_index in dag.topological_op_nodes(false) {
         let op = dag[node_index].unwrap_operation();
 
         let qargs: Vec<Wire> = dag
@@ -176,7 +176,7 @@ pub fn py_run_asap_schedule_analysis(
         let mut op_durations = HashMap::new();
         for (py_node, py_duration) in node_durations.iter() {
             let node_idx = py_node
-                .downcast_into::<DAGOpNode>()?
+                .cast_into::<DAGOpNode>()?
                 .extract::<DAGNode>()?
                 .node
                 .expect("Node index not found.");
@@ -194,7 +194,7 @@ pub fn py_run_asap_schedule_analysis(
         let mut op_durations = HashMap::new();
         for (py_node, py_duration) in node_durations.iter() {
             let node_idx = py_node
-                .downcast_into::<DAGOpNode>()?
+                .cast_into::<DAGOpNode>()?
                 .extract::<DAGNode>()?
                 .node
                 .expect("Node index not found.");

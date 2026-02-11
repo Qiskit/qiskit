@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -17,6 +17,7 @@ use std::num::NonZero;
 
 use numpy::{PyArray2, ToPyArray};
 use pyo3::Python;
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 
@@ -29,25 +30,21 @@ use rayon_cond::CondIterator;
 use rustworkx_core::dictmap::*;
 use rustworkx_core::petgraph::prelude::*;
 use rustworkx_core::petgraph::visit::{EdgeCount, EdgeRef};
-use rustworkx_core::shortest_path::dijkstra;
+use rustworkx_core::shortest_path::{dijkstra, distance_matrix};
 use rustworkx_core::token_swapper::token_swapper;
 use smallvec::{SmallVec, smallvec};
 
-use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::dag_circuit::{DAGCircuit, DAGCircuitBuilder, NodeType, Wire};
-use qiskit_circuit::nlayout::NLayout;
-use qiskit_circuit::operations::{OperationRef, StandardGate};
-use qiskit_circuit::packed_instruction::PackedInstruction;
-use qiskit_circuit::{PhysicalQubit, Qubit, VirtualQubit, getenv_use_multiple_threads, imports};
-
-use crate::TranspilerError;
-use crate::target::{Target, TargetCouplingError};
-
 use super::dag::{InteractionKind, SabreDAG};
-use super::distance::distance_matrix;
 use super::heuristic::{BasicHeuristic, DecayHeuristic, Heuristic, LookaheadHeuristic, SetScaling};
 use super::layer::{ExtendedSet, FrontLayer};
-use super::neighbors::Neighbors;
+use crate::TranspilerError;
+use crate::neighbors::Neighbors;
+use crate::target::{Target, TargetCouplingError};
+use qiskit_circuit::dag_circuit::{DAGCircuit, DAGCircuitBuilder, NodeType, Wire};
+use qiskit_circuit::nlayout::NLayout;
+use qiskit_circuit::operations::{ControlFlow, StandardGate};
+use qiskit_circuit::packed_instruction::PackedInstruction;
+use qiskit_circuit::{BlocksMode, PhysicalQubit, Qubit, VirtualQubit, getenv_use_multiple_threads};
 
 /// Number of trials for control flow block swap epilogues.
 const SWAP_EPILOGUE_TRIALS: usize = 4;
@@ -131,6 +128,7 @@ impl RoutingResult<'_> {
             self.num_qubits(),
             self.dag.num_ops() + num_swaps,
             self.dag.dag().edge_count() + 2 * num_swaps,
+            BlocksMode::Drop,
         )?;
         self.rebuild_onto(dag, |q| q)
     }
@@ -207,7 +205,7 @@ impl RoutingResult<'_> {
             match item.kind {
                 RoutedItemKind::Simple => apply_op(inst, &layout, &mut dag)?,
                 RoutedItemKind::ControlFlow(num_blocks) => {
-                    let blocks = blocks
+                    let mut blocks = blocks
                         .by_ref()
                         .take(num_blocks.get() as usize)
                         .map(|block| block.rebuild())
@@ -240,36 +238,24 @@ impl RoutingResult<'_> {
                             idle.push(qubit);
                         }
                     }
-                    let new_inst = Python::attach(|py| -> PyResult<_> {
-                        // TODO: have to use Python-space `dag_to_circuit` because the Rust-space is
-                        // only half the conversion (since it doesn't handle vars or stretches).
-                        let dag_to_circuit = imports::DAG_TO_CIRCUIT.get_bound(py);
-                        let blocks = blocks
-                            .into_iter()
-                            .map(|mut dag| {
-                                dag.remove_qubits(idle.iter().copied())?;
-                                dag_to_circuit.call1((dag, false))
-                            })
-                            .collect::<Result<Vec<_>, _>>()?;
-
-                        let OperationRef::Instruction(py_inst) = inst.op.view() else {
-                            panic!("control-flow nodes must be PyInstruction");
-                        };
-                        let new_node = py_inst
-                            .instruction
-                            .bind(py)
-                            .call_method1("replace_blocks", (blocks,))?;
-                        let op: OperationFromPython = new_node.extract()?;
-                        Ok(PackedInstruction {
-                            op: op.operation,
-                            qubits: dag.insert_qargs(&qargs),
-                            clbits: inst.clbits,
-                            params: (!op.params.is_empty()).then(|| Box::new(op.params)),
-                            label: op.label,
-                            #[cfg(feature = "cache_pygates")]
-                            py_op: new_node.unbind().into(),
-                        })
-                    })?;
+                    for dag in &mut blocks {
+                        dag.remove_qubits(idle.iter().copied())?;
+                    }
+                    let mut new_op = inst.op.control_flow().clone();
+                    if !matches!(
+                        &new_op.control_flow,
+                        ControlFlow::BreakLoop | ControlFlow::ContinueLoop
+                    ) {
+                        new_op.num_qubits = blocks[0].num_qubits() as u32;
+                    }
+                    let blocks = blocks.into_iter().map(|b| dag.add_block(b)).collect();
+                    let new_inst = PackedInstruction::from_control_flow(
+                        new_op,
+                        blocks,
+                        dag.insert_qargs(&qargs),
+                        inst.clbits,
+                        inst.label.as_deref().cloned(),
+                    );
                     dag.push_back(new_inst)?
                 }
             };
@@ -296,7 +282,7 @@ pub struct RoutingTarget {
 impl RoutingTarget {
     pub fn from_neighbors(neighbors: Neighbors) -> Self {
         Self {
-            distance: distance_matrix(&neighbors, usize::MAX, f64::NAN),
+            distance: distance_matrix(&neighbors, usize::MAX, false, f64::NAN),
             neighbors,
         }
     }
@@ -322,41 +308,32 @@ impl PyRoutingTarget {
     }
 
     fn __getstate__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
+        let (neighbors, partition) = self
+            .0
+            .as_ref()
+            .map(|tg| tg.neighbors.clone().take())
+            .unzip();
         let out_dict = PyDict::new(py);
-        out_dict.set_item(
-            "neighbors",
-            self.0.as_ref().map(|x| x.neighbors.neighbors.clone()),
-        )?;
-        out_dict.set_item(
-            "partition",
-            self.0.as_ref().map(|x| x.neighbors.partition.clone()),
-        )?;
+        out_dict.set_item("neighbors", neighbors)?;
+        out_dict.set_item("partition", partition)?;
         Ok(out_dict)
     }
 
     fn __setstate__(&mut self, value: Bound<PyDict>) -> PyResult<()> {
-        let neighbors_array: Option<Vec<PhysicalQubit>> = value
+        let neighbors = value
             .get_item("neighbors")?
             .map(|x| x.extract())
             .transpose()?;
-        if let Some(neighbors_array) = neighbors_array {
-            let partition: Vec<usize> = value
-                .get_item("partition")?
-                .map(|x| x.extract())
-                .transpose()?
-                .unwrap();
-            let neighbors = Neighbors {
-                neighbors: neighbors_array,
-                partition,
-            };
-            if self.0.is_none() {
-                self.0 = Some(RoutingTarget::from_neighbors(neighbors));
-            } else {
-                self.0.as_mut().unwrap().distance =
-                    distance_matrix(&neighbors, usize::MAX, f64::NAN);
-                self.0.as_mut().unwrap().neighbors = neighbors;
-            }
-        }
+        let partition = value
+            .get_item("partition")?
+            .map(|x| x.extract())
+            .transpose()?;
+        let (Some(neighbors), Some(partition)) = (neighbors, partition) else {
+            return Ok(());
+        };
+        let neighbors = Neighbors::from_parts(neighbors, partition)
+            .map_err(|e| PyValueError::new_err(e.to_string()))?;
+        self.0 = Some(RoutingTarget::from_neighbors(neighbors));
         Ok(())
     }
 

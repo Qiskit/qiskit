@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -99,7 +99,7 @@ class RGQFTMultiplier(Multiplier):
                 for k in range(1, self.num_result_qubits + 1):
                     lam = (2 * np.pi) / (2 ** (i + j + k - 2 * num_state_qubits))
                     circuit.append(
-                        PhaseGate(lam).control(2),
+                        PhaseGate(lam).control(2, annotated=False),
                         [qr_a[num_state_qubits - j], qr_b[num_state_qubits - i], qr_out[k - 1]],
                     )
 

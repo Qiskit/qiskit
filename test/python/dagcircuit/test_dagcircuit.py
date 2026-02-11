@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -1143,6 +1143,67 @@ class TestDagNodeSelection(QiskitTestCase):
             ("h", (self.qubit2,)),
         ]
         self.assertEqual(expected, [(i.op.name, i.qargs) for i in named_nodes])
+
+    def test_topological_nodes_reversals(self):
+        """Test topological_nodes in reverse order following the example pattern."""
+
+        self.dag.apply_operation_back(CXGate(), [self.qubit1, self.qubit2])
+        self.dag.apply_operation_back(XGate(), [self.qubit2])
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1])
+        self.dag.apply_operation_back(HGate(), [self.qubit0])
+
+        nodes_in_reverse = self.dag.topological_nodes(reverse=True)
+
+        qr = self.dag.qregs["qr"]
+        cr = self.dag.cregs["cr"]
+
+        expected = [
+            qr[0],
+            ("h", (self.qubit0,)),
+            qr[1],
+            ("cx", (self.qubit0, self.qubit1)),
+            qr[0],
+            qr[2],
+            ("x", (self.qubit2,)),
+            ("cx", (self.qubit1, self.qubit2)),
+            qr[1],
+            qr[2],
+            cr[0],
+            cr[0],
+            cr[1],
+            cr[1],
+        ]
+
+        self.assertEqual(
+            [
+                ((i.op.name, i.qargs) if isinstance(i, DAGOpNode) else i.wire)
+                for i in nodes_in_reverse
+            ],
+            expected,
+        )
+
+    def test_topological_op_nodes_reversals(self):
+        """Test topological_op_nodes in reverse order following the example pattern."""
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit0], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit2, self.qubit1], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit2], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit2], [])
+
+        op_nodes_in_reverse = list(self.dag.topological_op_nodes(reverse=True))
+
+        expected = [
+            ("h", (self.qubit2,)),
+            ("cx", (self.qubit0, self.qubit2)),
+            ("h", (self.qubit0,)),
+            ("cx", (self.qubit2, self.qubit1)),
+            ("cx", (self.qubit0, self.qubit1)),
+        ]
+
+        self.assertEqual(
+            [(i.op.name, i.qargs) for i in op_nodes_in_reverse],
+            expected,
+        )
 
     def test_dag_nodes_on_wire(self):
         """Test that listing the gates on a qubit/classical bit gets the correct gates"""
@@ -2688,6 +2749,7 @@ class TestDagSubstituteNode(QiskitTestCase):
         dag.add_creg(cr1)
         dag.add_creg(cr2)
         node = dag.apply_operation_back(IfElseOp(expr.logic_not(cr1), body.copy(), None), qr, [])
+        self.assertEqual(dag.num_blocks(), 1)  # Sanity check.
         dag.substitute_node(node, IfElseOp(expr.equal(cr1, 0), body.copy(), None), inplace=inplace)
 
         expected = DAGCircuit()
@@ -2697,6 +2759,9 @@ class TestDagSubstituteNode(QiskitTestCase):
         expected.apply_operation_back(IfElseOp(expr.equal(cr1, 0), body.copy(), None), qr, [])
 
         self.assertEqual(dag, expected)
+        # If the below assertion fails, `substitute_node` most likely failed to track the refcounts
+        # correctly / failed to free a block after the substitution.
+        self.assertEqual(dag.num_blocks(), 1)
 
     @data(True, False)
     def test_reject_replace_if_else_op_with_other_resources(self, inplace):

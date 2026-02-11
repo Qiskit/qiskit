@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import gzip
 import io
 import shutil
 from json import JSONEncoder, JSONDecoder
@@ -36,6 +37,13 @@ if TYPE_CHECKING:
 
 # pylint: disable=invalid-name
 QPY_SUPPORTED_TYPES = QuantumCircuit
+
+# Some standard-library types claim to be `IOBase.seekable`, but don't actually support arbitrary
+# seeking in write mode.  We won't expand this list for incorrect third-party types, but
+# pragmatically, we can workaround trouble in the stdlib.
+#
+# See https://github.com/Qiskit/qiskit/issues/15157#issuecomment-3389209015 for more detail.
+KNOWN_BAD_SEEKERS = (gzip.GzipFile,)
 
 # This version pattern is taken from the pypa packaging project:
 # https://github.com/pypa/packaging/blob/21.3/packaging/version.py#L223-L254
@@ -187,6 +195,8 @@ def dump(
             f"{common.QPY_COMPATIBILITY_VERSION} and {common.QPY_VERSION} for `qpy.dump`."
         )
 
+    use_rust = version >= common.QPY_RUST_MIN_VERSION
+
     version_match = VERSION_PATTERN_REGEX.search(__version__)
     version_parts = [int(x) for x in version_match.group("release").split(".")]
     encoding = type_keys.SymExprEncoding.assign(use_symengine)
@@ -209,15 +219,16 @@ def dump(
             out_stream,
             circuit,
             metadata_serializer=metadata_serializer,
-            use_symengine=use_symengine,
+            use_symengine=bool(use_symengine),
             version=version,
             annotation_factories=annotation_factories,
+            use_rust=use_rust,
         )
 
     if version >= 16:
         # We need a circuit table.
-        if file_obj.seekable():
-            # Fast path to write the seekable stream in place.
+        if file_obj.seekable() and not isinstance(file_obj, KNOWN_BAD_SEEKERS):
+            # Fast path for properly seekable streams
             file_offsets = []
             table_start = file_obj.tell()
             # Skip past the circuit table to write circuit contents first.
@@ -347,6 +358,8 @@ def load(
             )
         )
 
+    use_rust = version >= common.QPY_RUST_MIN_VERSION
+
     config = user_config.get_config()
     min_qpy_version = config.get("min_qpy_version")
     if min_qpy_version is not None and data.qpy_version < min_qpy_version:
@@ -423,8 +436,9 @@ def load(
                 file_obj,
                 data.qpy_version,
                 metadata_deserializer=metadata_deserializer,
-                use_symengine=use_symengine,
+                use_symengine=bool(use_symengine),
                 annotation_factories=annotation_factories,
+                use_rust=use_rust,
             )
         )
     return programs

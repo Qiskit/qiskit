@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -21,7 +21,7 @@ static QkTarget *create_target() {
     QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
 
     double rzx_params[1] = {1.5};
-    QkTargetEntry *rzx_entry = qk_target_entry_new_fixed(QkGate_RZX, rzx_params);
+    QkTargetEntry *rzx_entry = qk_target_entry_new_fixed(QkGate_RZX, rzx_params, "rzx");
 
     if (qk_target_entry_add_property(cx_entry, qargs, 2, 0.0, 0.0) != Ok ||
         qk_target_entry_add_property(cx_entry, &qargs[1], 2, 0.0, 0.0) != Ok ||

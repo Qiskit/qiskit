@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -62,6 +62,9 @@ class GroupMixin(ABC):
         return self.tensor(other)
 
     def __matmul__(self, other) -> Self:
+        # Allow Statevector @ Operator to call Statevector.evolve
+        if other.__class__.__name__ == "Statevector":
+            return other.evolve(self)
         return self.dot(other)
 
     @abstractmethod

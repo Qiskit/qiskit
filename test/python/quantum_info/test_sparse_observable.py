@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -2334,6 +2334,49 @@ class TestSparseObservable(QiskitTestCase):
             SparseObservable.identity(5).compose("XYZX", qargs=[0, 1, 2, 0])
         with self.assertRaisesRegex(ValueError, "duplicate indices in qargs"):
             SparseObservable.identity(5).compose("XYZX", qargs=[0, 1, 1, 0])
+
+    @ddt.data(
+        ("Y", "Y", True),
+        ("Y", "Z", False),
+        ("XX", "ZZ", True),
+        ("0XX", "0ZZ", True),
+        ("1XX", "0ZZ", True),
+        ("+XX", "0ZZ", False),
+    )
+    @ddt.unpack
+    def test_commute_single(self, p1, p2, expected):
+        """Test commutation"""
+        op1 = SparseObservable(p1)
+        op2 = SparseObservable(p2)
+        self.assertEqual(op1.commutes(op2), expected)
+
+    def test_commute_sums(self):
+        """Test commutation for sums of Paulis."""
+        xz = SparseObservable.from_sparse_list([("X", [0], 1), ("Z", [0], 1)], num_qubits=3)
+        zx = SparseObservable.from_sparse_list([("Z", [0], 1), ("X", [0], 1)], num_qubits=3)
+        self.assertTrue(xz.commutes(zx))
+
+        x = SparseObservable.from_sparse_list([("X", [0], 1)], num_qubits=3)
+        self.assertFalse(xz.commutes(x))
+
+        y = SparseObservable.from_sparse_list([("Y", [2], 1)], num_qubits=3)
+        self.assertTrue(xz.commutes(y))
+
+        n = 10
+        x_pairs = SparseObservable.from_sparse_list(
+            [("XX", [i, i + 1], 1) for i in range(n - 1)], num_qubits=n
+        )
+        z_pairs = SparseObservable.from_sparse_list(
+            [("ZZ", [i, i + 1], 1) for i in range(n - 1)], num_qubits=n
+        )
+        self.assertTrue(x_pairs.commutes(x_pairs))
+        self.assertFalse(z_pairs.commutes(x_pairs))
+
+        xxyy = SparseObservable.from_sparse_list(
+            [("XX", [0, 1], 1), ("YY", [0, 1], 1)], num_qubits=2
+        )
+        zz = SparseObservable.from_sparse_list([("ZZ", [0, 1], 1)], num_qubits=2)
+        self.assertTrue(zz.commutes(xxyy))
 
 
 def canonicalize_term(pauli, indices, coeff):

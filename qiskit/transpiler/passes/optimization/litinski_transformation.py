@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -22,9 +22,12 @@ class LitinskiTransformation(TransformationPass):
     """
     Applies Litinski transform to a circuit.
 
-    The transform applies to a circuit containing Clifford + RZ-rotation gates (including T and Tdg),
-    and moves Clifford gates to the end of the circuit, while changing rotation gates to multi-qubit
-    rotations (represented using PauliEvolution gates).
+    The transform applies to a circuit containing Clifford, single-qubit RZ-rotation gates
+    (including T and Tdg), and standard Z-measurements, and moves Clifford gates to the end
+    of the circuit. In the process, it changes RZ-rotations to product pauli rotations
+    (implemented as :class:`.PauliEvolutionGate` gates), and changes Z-measurements
+    to product pauli measurements (implemented using :class:`.PauliProductMeasurement`
+    instructions).
 
     The pass supports all of the Clifford gates in the list returned by
     :func:`.get_clifford_gate_names`:

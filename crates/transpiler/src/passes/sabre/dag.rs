@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -12,31 +12,14 @@
 
 use hashbrown::HashMap;
 use pyo3::prelude::*;
-use pyo3::types::PyTuple;
 use rustworkx_core::petgraph::prelude::*;
 use thiserror::Error;
 
-use qiskit_circuit::converters::circuit_to_dag;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
-use qiskit_circuit::operations::{Operation, OperationRef, PyInstruction};
+use qiskit_circuit::operations::ControlFlowView;
+use qiskit_circuit::operations::Operation;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Qubit, VirtualQubit};
-
-// TODO: replace with simple map over `op.blocks()` once vars and stretches are in `CircuitData`
-// (and then even simpler logic once control flow is in Rust).
-fn control_flow_block_dags<'a>(
-    py: Python<'a>,
-    inst: &'a PyInstruction,
-) -> PyResult<impl Iterator<Item = PyResult<DAGCircuit>> + 'a> {
-    // Can't do `op.blocks()` because `CircuitData` doesn't track the vars.
-    Ok(inst
-        .instruction
-        .bind(py)
-        .getattr("blocks")?
-        .downcast::<PyTuple>()?
-        .iter()
-        .map(move |block| circuit_to_dag(block.extract()?, false, None, None)))
-}
 
 /// The type of a node in the Sabre interactions graph.
 #[derive(Clone, Debug)]
@@ -57,23 +40,18 @@ pub enum InteractionKind {
     ControlFlow(Box<[(SabreDAG, DAGCircuit)]>),
 }
 impl InteractionKind {
+    fn from_control_flow(cf: ControlFlowView<DAGCircuit>) -> Result<Self, SabreDAGError> {
+        let blocks: Box<[_]> = cf
+            .blocks()
+            .into_iter()
+            .map(|dag| Ok((SabreDAG::from_dag(dag)?, dag.clone())))
+            .collect::<Result<_, SabreDAGError>>()?;
+        Ok(Self::ControlFlow(blocks))
+    }
+
     fn from_op(op: &PackedOperation, qargs: &[Qubit]) -> Result<Self, SabreDAGError> {
         if op.directive() {
             return Ok(Self::Synchronize);
-        }
-        if op.control_flow() {
-            let OperationRef::Instruction(inst) = op.view() else {
-                panic!("control-flow ops should always be PyInstruction");
-            };
-            let blocks = Python::attach(|py| {
-                control_flow_block_dags(py, inst)?
-                    .map(|dag| {
-                        dag.and_then(|dag| Ok((SabreDAG::from_dag(&dag)?, dag)))
-                            .map_err(SabreDAGError::from)
-                    })
-                    .collect::<Result<Box<[_]>, _>>()
-            })?;
-            return Ok(Self::ControlFlow(blocks));
         }
         match qargs {
             // We're assuming that if the instruction has classical wires (like a `PyInstruction` or
@@ -176,14 +154,15 @@ impl SabreDAG {
                 single.map_or(Predecessors::AllUnmapped, Predecessors::Single)
             };
 
-        for dag_node in dag
-            .topological_op_nodes()
-            .expect("infallible if DAG is in a valid state")
-        {
+        for dag_node in dag.topological_op_nodes(false) {
             let NodeType::Operation(inst) = &dag[dag_node] else {
                 panic!("op nodes should always be of type `Operation`");
             };
-            let kind = InteractionKind::from_op(&inst.op, dag.get_qargs(inst.qubits))?;
+            let kind = if let Some(cf) = dag.try_view_control_flow(inst) {
+                InteractionKind::from_control_flow(cf)?
+            } else {
+                InteractionKind::from_op(&inst.op, dag.get_qargs(inst.qubits))?
+            };
             match predecessors(dag_node, &wire_pos) {
                 Predecessors::AllUnmapped => match kind {
                     InteractionKind::Synchronize => {

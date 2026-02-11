@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -95,7 +95,9 @@ def synth_phase_oracle_from_esop(esop, num_qubits):
                 qc.x(qubit_indices[0])
         else:  # use custom controlled-Z gate
             # we use the last qubit as the target, flipping it if the control is 0 for that qubit
-            gate = ZGate().control(len(qubit_indices) - 1, ctrl_state=control_state[:-1][::-1])
+            gate = ZGate().control(
+                len(qubit_indices) - 1, ctrl_state=control_state[:-1][::-1], annotated=False
+            )
             if control_state[-1] == "0":
                 qc.x(qubit_indices[-1])
             qc.append(gate, qubit_indices)
@@ -119,6 +121,6 @@ def synth_bit_oracle_from_esop(esop, num_qubits):
     for qubit_indices, control_data in clause_data:
         control_state = "".join(control_data)
         # use custom controlled-X gate
-        gate = XGate().control(len(qubit_indices), ctrl_state=control_state[::-1])
+        gate = XGate().control(len(qubit_indices), ctrl_state=control_state[::-1], annotated=False)
         qc.append(gate, qubit_indices + (output_index,))
     return qc

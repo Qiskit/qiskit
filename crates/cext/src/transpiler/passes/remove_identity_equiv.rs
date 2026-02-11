@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -13,7 +13,6 @@
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_transpiler::passes::run_remove_identity_equiv;
 use qiskit_transpiler::target::Target;
@@ -78,7 +77,6 @@ use qiskit_transpiler::target::Target;
 ///
 /// Behavior is undefined if ``circuit`` or ``target`` is not a valid, non-null pointer to a ``QkCircuit`` and ``QkTarget``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpiler_pass_standalone_remove_identity_equivalent(
     circuit: *mut CircuitData,
     target: *const Target,
@@ -102,10 +100,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_remove_identity_equivalen
         Some(approximation_degree)
     };
 
-    run_remove_identity_equiv(&mut dag, approximation_degree, Some(target));
-    let out_circuit = match dag_to_circuit(&dag, false) {
-        Ok(qc) => qc,
-        Err(e) => panic!("{}", e),
-    };
-    *circuit = out_circuit;
+    run_remove_identity_equiv(&mut dag, approximation_degree, Some(target))
+        .unwrap_or_else(|_| panic!("Remove identity equiv failed."));
+    *circuit = CircuitData::from_dag_ref(&dag).unwrap();
 }

@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -240,7 +240,7 @@ class TestCircuitCompose(QiskitTestCase):
             larger = QuantumCircuit(4)
             larger.h(range(3))
             larger.append(sub.to_instruction(), [3, 2, 1])
-            larger.append(sub.control(), [0, 1, 2, 3])
+            larger.append(sub.control(annotated=False), [0, 1, 2, 3])
 
             circuit = larger.tensor(larger)
             operator = Operator(larger).tensor(Operator(larger))

@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -724,7 +724,7 @@ classes associated to each name.
 .. autofunction:: get_control_flow_name_mapping
 
 These control-flow operations (:class:`IfElseOp`, :class:`WhileLoopOp`,
-:class:`SwitchCaseOp`, :class:`ForLoopOp` and :class:`.BoxOp`) all have specific state that defines
+:class:`SwitchCaseOp`, :class:`ForLoopOp`, and :class:`BoxOp`) all have specific state that defines
 the branching conditions and strategies, but contain all the different subcircuit blocks that might
 be entered in their :attr:`~ControlFlowOp.blocks` property.
 

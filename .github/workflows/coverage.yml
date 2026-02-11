@@ -18,7 +18,7 @@ jobs:
       RUSTUP_TOOLCHAIN: stable
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         name: Install Python
         with:
@@ -61,14 +61,7 @@ jobs:
           PYTHON: "coverage run --source qiskit --parallel-mode"
 
       - name: Generate ctest coverage report
-        run: |
-          cargo rustc --crate-type cdylib -p qiskit-cext -- -Cinstrument-coverage -Cincremental=false
-          mkdir -p dist/c/include/qiskit
-          cp target/qiskit.h dist/c/include/.
-          cp crates/cext/include/complex.h dist/c/include/qiskit/.
-          cmake -S. -Btest/c/build
-          cmake --build test/c/build
-          ctest -V --test-dir test/c/build
+        run: make ccoverage
         env:
           LLVM_PROFILE_FILE: "qiskit-%p-%m.profraw"
 
@@ -82,7 +75,7 @@ jobs:
       - name: Generate lcov with grcov
         run: |
           # Copy ctest coverage to cwd
-          cp test/c/build/test/c/*profraw .
+          cp test/c/build/*profraw .
           # We set the --source-dir to '.' because we want all paths to appear relative to the repo
           # root (we need to combine them with the Python ones), but we only care about `grcov`
           # keeping the `crates/*` files; we don't care about coverage in dependencies.
@@ -95,7 +88,7 @@ jobs:
           lcov --add-tracefile python.info --add-tracefile rust.info --output-file coveralls.info
 
       - name: Coveralls
-        uses: coverallsapp/github-action@v2.3.6
+        uses: coverallsapp/github-action@v2.3.7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path-to-lcov: coveralls.info

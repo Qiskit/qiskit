@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -70,6 +70,11 @@ real_values = [0.41, 0.9, -0.83, math.pi, -math.pi / 124, -42.42]
 @ddt.ddt
 class TestParameterExpression(QiskitTestCase):
     """Test parameter expression."""
+
+    @ddt.data(param_x, param_x + param_y, (param_x + 1.0).bind({param_x: 1.0}))
+    def test_num_parameters(self, expr):
+        """Do the two ways of getting the number of unbound parameters agree?"""
+        self.assertEqual(len(expr.parameters), expr.num_parameters)
 
     @combine(
         left=operands,

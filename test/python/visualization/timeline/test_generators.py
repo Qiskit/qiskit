@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -61,7 +61,6 @@ class TestGates(QiskitTestCase):
             "bits": [self.qubit],
             "t0": 100,
             "duration": 20,
-            "unitary": "[[1.+0.j 0.-0.j]\n [0.+0.j 1.+0.j]]",
             "parameters": "0, 0, 0",
         }
         self.assertDictEqual(ref_meta, drawing_obj.meta)

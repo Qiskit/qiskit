@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -40,6 +40,65 @@ logger = logging.getLogger(__name__)
 @ddt
 class TestStatevector(QiskitTestCase):
     """Tests for Statevector class."""
+
+    def test_from_circuit_bell_state(self):
+        """Test from_circuit creates Bell state correctly."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        sv = Statevector.from_circuit(qc)
+        expected_data = np.array([1 / np.sqrt(2), 0, 0, 1 / np.sqrt(2)])
+        expected = Statevector(expected_data)
+
+        self.assertTrue(sv.equiv(expected))
+
+    def test_from_circuit_transpilation_consistency(self):
+        """Statevector.from_circuit gives consistent results under transpilation."""
+
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.swap(1, 2)
+        qc.z(0)
+
+        backend = BasicSimulator()
+        transpiled_opt0 = transpile(qc, backend, optimization_level=0)
+        transpiled_opt2 = transpile(qc, backend, optimization_level=2)
+
+        sv1 = Statevector.from_circuit(transpiled_opt0)
+        sv2 = Statevector.from_circuit(transpiled_opt2)
+
+        self.assertTrue(sv1.equiv(sv2))
+
+        sv2_nolayout = Statevector.from_circuit(transpiled_opt2, ignore_set_layout=True)
+        self.assertFalse(sv1.equiv(sv2_nolayout))
+
+    def test_from_circuit_vs_manual_method(self):
+        """Test from_circuit matches manual operator evolution."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        sv1 = Statevector.from_circuit(qc)
+
+        initial_state = Statevector.from_label("00")
+        op = Operator.from_circuit(qc)
+        sv2 = initial_state.evolve(op)
+
+        self.assertTrue(sv1.equiv(sv2))
+
+    def test_from_circuit_ignore_layout(self):
+        """Test from_circuit with ignore_set_layout parameter."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        # Without layout, both should give same result
+        sv1 = Statevector.from_circuit(qc, ignore_set_layout=False)
+        sv2 = Statevector.from_circuit(qc, ignore_set_layout=True)
+
+        self.assertTrue(sv1.equiv(sv2))
 
     @classmethod
     def rand_vec(cls, n, normalize=False):
@@ -150,7 +209,7 @@ class TestStatevector(QiskitTestCase):
         qc.x(0)
         qc.h(1)
         gate = qc.to_gate()
-        gate_ctrl = gate.control()
+        gate_ctrl = gate.control(annotated=False)
 
         circuit = QuantumCircuit(3)
         circuit.x(0)
@@ -276,6 +335,16 @@ class TestStatevector(QiskitTestCase):
             target = Statevector(np.dot(op.data, vec))
             evolved = Statevector(vec).evolve(op)
             self.assertEqual(target, evolved)
+
+    def test_evolve_operator_overload_dimensions(self):
+        """Test that the @ operator returns a Statevector of correct dimension, type and value."""
+        op = random_unitary(4)  # 4x4 unitary
+        vec = Statevector(self.rand_vec(4))  # 4-dim state vector
+        result = op @ vec
+        target = op.data @ vec.data
+        self.assertIsInstance(result, Statevector)
+        self.assertEqual(result.data.shape, (4,))
+        self.assertTrue(np.array_equal(result.data, target))
 
     def test_evolve_subsystem(self):
         """Test subsystem _evolve method."""

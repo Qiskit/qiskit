@@ -4,14 +4,24 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
 use crate::pointers::const_ptr_as_ref;
+use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::nlayout::{NLayout, PhysicalQubit};
+use qiskit_transpiler::target::Target;
 use qiskit_transpiler::transpile_layout::TranspileLayout;
+
+#[cfg(feature = "python_binding")]
+use pyo3::Python;
+#[cfg(feature = "python_binding")]
+use pyo3::ffi::PyObject;
+#[cfg(feature = "python_binding")]
+use qiskit_circuit::circuit_data::CircuitData;
 
 /// @ingroup QkTranspileLayout
 /// Return the number of qubits in the input circuit to the transpiler.
@@ -25,7 +35,6 @@ use qiskit_transpiler::transpile_layout::TranspileLayout;
 /// Behavior is undefined if ``layout`` is not a valid, non-null pointer to a
 /// ``QkTranspileLayout``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_layout_num_input_qubits(
     layout: *const TranspileLayout,
 ) -> u32 {
@@ -45,7 +54,6 @@ pub unsafe extern "C" fn qk_transpile_layout_num_input_qubits(
 /// Behavior is undefined if ``layout`` is not a valid, non-null pointer to a
 /// ``QkTranspileLayout``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_layout_num_output_qubits(
     layout: *const TranspileLayout,
 ) -> u32 {
@@ -87,7 +95,6 @@ pub unsafe extern "C" fn qk_transpile_layout_num_output_qubits(
 /// ``qk_transpile_layout_num_input_qubits()``) or the number of output qubits if ``filter_ancillas``
 /// is false (which can be queried with ``qk_transpile_layout_num_output_qubits()``).
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_layout_initial_layout(
     layout: *const TranspileLayout,
     filter_ancillas: bool,
@@ -142,7 +149,6 @@ pub unsafe extern "C" fn qk_transpile_layout_initial_layout(
 /// of output qubits in the ``QkTranspileLayout`` which can be queried with
 /// ``qk_transpile_layout_num_output_qubits()``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_layout_output_permutation(
     layout: *const TranspileLayout,
     output_permutation: *mut u32,
@@ -196,7 +202,6 @@ pub unsafe extern "C" fn qk_transpile_layout_output_permutation(
 /// ``qk_transpile_layout_num_input_qubits()``) or the number of output qubits if ``filter_ancillas``
 /// is false (which can be queried with ``qk_transpile_layout_num_output_qubits()``).
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_layout_final_layout(
     layout: *const TranspileLayout,
     filter_ancillas: bool,
@@ -217,6 +222,66 @@ pub unsafe extern "C" fn qk_transpile_layout_final_layout(
 }
 
 /// @ingroup QkTranspileLayout
+/// Generate a ``QkTranspileLayout`` from a initial layout mapping
+///
+/// This will generate a ``QkTranspileLayout`` with the initial layout set (and no ouptput
+/// permutation) from a provided mapping. The intent of this function is to enable creating
+/// a custom layout pass that also creates a ``QkTranspileLayout`` that you can use with
+/// subsequent stage functions such as ``qk_transpile_stage_routing``.
+///
+/// @param original_dag: A pointer to the original dag prior to running a custom layout pass. This
+///     dag must have fewer than or the same number of qubits as ``target``.
+/// @param target: A pointer to the target that layout was run on. This target must have fixed
+///     number of qubits set.
+/// @param qubit_mapping: A pointer to the layout mapping array. This array must have the same
+///     number of elements as there are qubits in target and each element is a unique integer and
+///     the all must fall in the range of 0 to ``num_qubits`` where ``num_qubits`` is the
+///     number of qubits indicated in the provided value for ``target``.
+///     The first elements represent the virtual qubits in ``original_dag`` and the value
+///     represents the physical qubit in the target which the virtual qubit is mapped too.
+///     For example an array of ``[1, 0, 2]`` would map virtual qubit 0 -> physical qubit 1,
+///     virtual qubit 1 -> physical qubit 0, and virtual qubit 2 -> physical qubit 2. For elements
+///     that are not in the original dag these are treated as ancilla qubits, but still must be
+///     mapped to a physical qubit. This array will be copied into the output ``QkTranspileLayout``
+///     so you must still free it after calling this function.
+///
+/// @returns The QkTranspileLayout object with the initial layout set
+///
+/// # Safety
+/// Behavior is undefined if ``original_dag`` and target ``target`` are not a valid, aligned,
+/// non-null pointer to a ``QkDag`` or a ``QkTarget`` respectively. ``qubit_mapping`` must be a
+/// valid pointer to a contiguous array of ``uint32_t`` with enough space for the number of qubits
+/// indicated in ``target``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_transpile_layout_generate_from_mapping(
+    original_dag: *const DAGCircuit,
+    target: *const Target,
+    qubit_mapping: *const u32,
+) -> *mut TranspileLayout {
+    // SAFETY: Per the documentation these are valid pointers to the appropriate type
+    let dag = unsafe { const_ptr_as_ref(original_dag) };
+    let target = unsafe { const_ptr_as_ref(target) };
+    // SAFETY: Per the documentation this must be a valid pointer to a u32 array with
+    // target.num_qubits elements.
+    let virt_to_phys: Vec<PhysicalQubit> = unsafe {
+        std::slice::from_raw_parts(
+            qubit_mapping as *const PhysicalQubit,
+            target.num_qubits.unwrap() as usize,
+        )
+    }
+    .to_vec();
+    let initial_layout = NLayout::from_virtual_to_physical(virt_to_phys).unwrap();
+    let transpile_layout: TranspileLayout = TranspileLayout::new(
+        Some(initial_layout),
+        None,
+        dag.qubits().objects().to_owned(),
+        dag.num_qubits() as u32,
+        dag.qregs().to_vec(),
+    );
+    Box::into_raw(Box::new(transpile_layout))
+}
+
+/// @ingroup QkTranspileLayout
 /// Free a ``QkTranspileLayout`` object
 ///
 /// @param layout a pointer to the layout to free
@@ -225,7 +290,6 @@ pub unsafe extern "C" fn qk_transpile_layout_final_layout(
 ///
 /// Behavior is undefined if ``layout`` is not a valid, non-null pointer to a ``QkTranspileLayout``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_layout_free(layout: *mut TranspileLayout) {
     if !layout.is_null() {
         if !layout.is_aligned() {
@@ -236,6 +300,40 @@ pub unsafe extern "C" fn qk_transpile_layout_free(layout: *mut TranspileLayout) 
         unsafe {
             let _ = Box::from_raw(layout);
         }
+    }
+}
+
+/// @ingroup QkTranspileLayout
+/// Generate a Python-space ``TranspileLayout`` object from a ``QkTranspileLayout``.
+///
+/// The created Python-space object is a copy of the ``QkTranspileLayout`` provided, the data
+/// representation is different between C and Python and the data is not moved to Python like
+/// for some other ``*_to_python`` functions.
+///
+/// @param layout a pointer to a ``QkTranspileLayout``.
+/// @param circuit a pointer to the original ``QkCircuit``.
+/// @return the PyObject pointer for the Python space TranspileLayout object.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``layout`` and ``circuit`` are not valid, non-null pointers to a
+/// ``QkTranspileLayout`` and ``QkCircuit`` respectively. It is assumed that the thread currently
+/// executing this function holds the Python GIL. This is required to create the Python object
+/// returned by this function.
+#[unsafe(no_mangle)]
+#[cfg(feature = "python_binding")]
+pub unsafe extern "C" fn qk_transpile_layout_to_python(
+    layout: *const TranspileLayout,
+    circuit: *const CircuitData,
+) -> *mut PyObject {
+    // SAFETY: Per the documentation layout and circuit are valid pointers
+    // and the thread running the function holds the gil.
+    unsafe {
+        let layout = const_ptr_as_ref(layout);
+        let circuit = const_ptr_as_ref(circuit);
+        let py = Python::assume_attached();
+        let res = layout.to_py_native(py, circuit.qubits().objects()).unwrap();
+        res.into_ptr()
     }
 }
 

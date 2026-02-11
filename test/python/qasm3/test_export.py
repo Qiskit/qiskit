@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -113,8 +113,11 @@ class TestCircuitQASM3(QiskitTestCase):
         # be useful for the tests must _never_ have false positive matches.  We use an explicit
         # space (`\s`) or semicolon rather than the end-of-word `\b` because we want to ensure that
         # the exporter isn't putting out invalid characters as part of the identifiers.
+        alpha = r"a-zA-Z\u0370-\u03ff"
+        id_first = rf"[{alpha}_]"
+        id_cont = rf"[{alpha}_0-9]"
         cls.register_regex = re.compile(
-            r"^\s*(let|(qu)?bit(\[\d+\])?)\s+(?P<name>\w+)[\s;]", re.U | re.M
+            rf"^\s*(let|(qu)?bit(\[\d+\])?)\s+(?P<name>{id_first}{id_cont}*)[\s;]", re.U | re.M
         )
         scalar_type_names = {
             "angle",
@@ -127,7 +130,7 @@ class TestCircuitQASM3(QiskitTestCase):
         cls.scalar_parameter_regex = re.compile(
             r"^\s*((input|output|const)\s+)?"  # Modifier
             rf"({'|'.join(scalar_type_names)})\s*(\[[^\]]+\])?\s+"  # Type name and designator
-            r"(?P<name>\w+)[\s;]",  # Parameter name
+            rf"(?P<name>{id_first}{id_cont}*)[\s;]",  # Parameter name
             re.U | re.M,
         )
         super().setUpClass()
@@ -1477,21 +1480,27 @@ box[a] {
         """Test that both types of register are emitted with safely escaped names if they begin with
         invalid names. Regression test of gh-9658."""
         qc = QuantumCircuit(
-            QuantumRegister(2, name="q_{reg}"), ClassicalRegister(2, name="c_{reg}")
+            QuantumRegister(2, name="q_{reg}"),
+            ClassicalRegister(2, name="c_{reg}"),
+            QuantumRegister(2, name="²"),
+            ClassicalRegister(2, name="2c"),
+            QuantumRegister(2, name="abc?!abc$%^&"),
+            ClassicalRegister(2, name="?!abc$%^&"),
         )
-        qc.measure([0, 1], [0, 1])
+        qc.measure(qc.qubits, qc.clbits)
         out_qasm = dumps(qc)
         matches = {match_["name"] for match_ in self.register_regex.finditer(out_qasm)}
-        self.assertEqual(len(matches), 2, msg=f"Observed OQ3 output:\n{out_qasm}")
+        self.assertEqual(len(matches), 6, msg=f"Observed OQ3 output:\n{out_qasm}")
 
     def test_parameters_have_escaped_names(self):
         """Test that parameters are emitted with safely escaped names if they begin with invalid
         names. Regression test of gh-9658."""
         qc = QuantumCircuit(1)
-        qc.u(Parameter("p_{0}"), 2 * Parameter("p_?0!"), 0, 0)
+        qc.u(Parameter("p_{0}"), 2 * Parameter("2p"), Parameter("a²"), 0)
+        qc.rz(Parameter("!$abc%$&"), 0)
         out_qasm = dumps(qc)
         matches = {match_["name"] for match_ in self.scalar_parameter_regex.finditer(out_qasm)}
-        self.assertEqual(len(matches), 2, msg=f"Observed OQ3 output:\n{out_qasm}")
+        self.assertEqual(len(matches), 4, msg=f"Observed OQ3 output:\n{out_qasm}")
 
     def test_parameter_expression_after_naming_escape(self):
         """Test that :class:`.Parameter` instances are correctly renamed when they are used with
@@ -2771,19 +2780,6 @@ class TestQASM3ExporterFailurePaths(QiskitTestCase):
         qc = QuantumCircuit(qubits, *registers)
         exporter = Exporter(alias_classical_registers=False)
         with self.assertRaisesRegex(QASM3ExporterError, r"classical registers .* overlap"):
-            exporter.dumps(qc)
-
-    @data([1, 2, 1.1], [1j, 2])
-    def test_disallow_for_loops_with_non_integers(self, indices):
-        """Test that the exporter rejects ``for`` loops that include non-integer values in their
-        index sets."""
-        loop_body = QuantumCircuit()
-        qc = QuantumCircuit(2, 2)
-        qc.for_loop(indices, None, loop_body, [], [])
-        exporter = Exporter()
-        with self.assertRaisesRegex(
-            QASM3ExporterError, r"The values in OpenQASM 3 'for' loops must all be integers.*"
-        ):
             exporter.dumps(qc)
 
     def test_disallow_custom_subroutine_with_parameters(self):

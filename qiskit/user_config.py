@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -190,11 +190,18 @@ class UserConfig:
                 self.settings["sabre_all_threads"] = sabre_all_threads
 
             # Parse min_qpy_version
-            min_qpy_version = self.config_parser.getint("default", "min_qpy_version", fallback=None)
+            try:
+                min_qpy_version = self.config_parser.getint(
+                    "default", "min_qpy_version", fallback=None
+                )
+            except ValueError as ve:
+                raise exceptions.QiskitUserConfigError(
+                    "min_qpy_version is not a valid QPY version."
+                ) from ve
             if min_qpy_version:
                 if min_qpy_version < 0:
                     raise exceptions.QiskitUserConfigError(
-                        f"{min_qpy_version} is not a valid QPY version."
+                        f"min_qpy_version {min_qpy_version} is not a valid QPY version."
                     )
                 self.settings["min_qpy_version"] = min_qpy_version
 

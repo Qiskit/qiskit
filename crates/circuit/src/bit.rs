@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -86,22 +86,28 @@ where
             self.index as usize,
             self.registers
                 .into_pyobject(py)?
-                .downcast_into::<PyList>()?
+                .cast_into::<PyList>()?
                 .unbind(),
         )
         .into_pyobject(py)
     }
 }
 
-impl<'py, R> FromPyObject<'py> for BitLocations<R>
+impl<'a, 'py, R> FromPyObject<'a, 'py> for BitLocations<R>
 where
-    R: Debug + Clone + Register + for<'a> IntoPyObject<'a> + for<'a> FromPyObject<'a>,
+    R: Debug
+        + Clone
+        + Register
+        + IntoPyObject<'py>
+        + for<'b> FromPyObject<'b, 'py, Error: Into<PyErr>>,
 {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let ob_down = ob.downcast::<PyBitLocations>()?.borrow();
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, PyErr> {
+        let ob_down = ob.cast::<PyBitLocations>()?.borrow();
         Ok(Self {
             index: ob_down.index as u32,
-            registers: ob_down.registers.extract(ob.py())?,
+            registers: ob_down.registers.bind(ob.py()).extract()?,
         })
     }
 }
@@ -297,6 +303,8 @@ pub trait Register {
     fn bits(&self) -> impl ExactSizeIterator<Item = Self::Bit>;
     /// Gets a bit by index
     fn get(&self, index: usize) -> Option<Self::Bit>;
+    /// Checks if the register is owning or alias
+    fn is_owning(&self) -> bool;
 }
 
 /// Create a (Bit, Register) pair, and the associated Python objects.
@@ -365,6 +373,24 @@ macro_rules! create_bit_object {
                     uid: Self::anonymous_instance_count().fetch_add(1, Ordering::Relaxed),
                     subclass: Default::default(),
                 })
+            }
+
+            /// Return the register owning the bit, if it exists
+            pub fn owning_register(&self) -> Option<$reg_struct> {
+                match &self.0 {
+                    BitInfo::Owned { register, .. } => {
+                        Some($reg_struct(Arc::new(RegisterInfo::Owning(register.clone()))))
+                    }
+                    BitInfo::Anonymous { .. } => None,
+                }
+            }
+
+            /// Return the index of the bit in its owning register, if it exists
+            pub fn owning_register_index(&self) -> Option<u32> {
+                match &self.0 {
+                    BitInfo::Owned { index, .. } => Some(*index),
+                    BitInfo::Anonymous { .. } => None,
+                }
             }
         }
 
@@ -509,9 +535,11 @@ macro_rules! create_bit_object {
             }
         }
 
-        impl<'py> FromPyObject<'py> for $bit_struct {
-            fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-                Ok(ob.downcast::<$pybit_struct>()?.borrow().0.clone())
+        impl<'a, 'py> FromPyObject<'a, 'py> for $bit_struct {
+            type Error = ::pyo3::CastError<'a, 'py>;
+
+            fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
+                ob.cast::<$pybit_struct>().map(|ob| ob.borrow().0.clone())
             }
         }
         // The owning impl of `IntoPyObject` needs to be done manually, to better handle
@@ -604,6 +632,7 @@ macro_rules! create_bit_object {
             pub fn iter(&self) -> impl ExactSizeIterator<Item = $bit_struct> + '_ {
                 self.0.iter()
             }
+
         }
 
         impl Register for $reg_struct {
@@ -627,11 +656,19 @@ macro_rules! create_bit_object {
             fn get(&self, index: usize) -> Option<Self::Bit> {
                 self.0.get(index)
             }
+            fn is_owning(&self) -> bool {
+                match self.0.as_ref() {
+                    RegisterInfo::Owning(_) => true,
+                    RegisterInfo::Alias {..} => false,
+                }
+            }
         }
 
-        impl<'py> FromPyObject<'py> for $reg_struct {
-            fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-                Ok(ob.downcast::<$pyreg_struct>()?.borrow().0.clone())
+        impl<'a, 'py> FromPyObject<'a, 'py> for $reg_struct {
+            type Error = ::pyo3::CastError<'a, 'py>;
+
+            fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
+                ob.cast::<$pyreg_struct>().map(|ob| ob.borrow().0.clone())
             }
         }
         // The owning impl of `IntoPyObject` needs to be done manually, to better handle
@@ -761,7 +798,7 @@ macro_rules! create_bit_object {
                             Ok(PyList::new(ob.py(), s.into_iter().map(get_inner))?.into_any())
                         }
                     }
-                } else if let Ok(list) = ob.downcast::<PyList>() {
+                } else if let Ok(list) = ob.cast::<PyList>() {
                     let out = PyList::empty(ob.py());
                     for item in list.iter() {
                         out.append(get_inner(PySequenceIndex::convert_idx(

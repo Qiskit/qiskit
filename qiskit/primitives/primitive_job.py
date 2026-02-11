@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -23,8 +23,13 @@ from .base.base_primitive_job import BasePrimitiveJob, ResultT
 
 
 class PrimitiveJob(BasePrimitiveJob[ResultT, JobStatus]):
-    """
-    Primitive job class for the reference implementations of Primitives.
+    """Handle to a job from the reference implementations of the primitives in Qiskit.
+
+    This is a concrete implementation of the :class:`.BasePrimitiveJob` interface.  See the
+    documentation of that class for a discussion of the interface.
+
+    Primitives implementers looking to create their own job classes should not subclass this, but
+    instead subclass the interface definition :class:`.BasePrimitiveJob`.
     """
 
     def __init__(self, function, *args, **kwargs):

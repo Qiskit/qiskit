@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -18,6 +18,7 @@ import typing
 
 from qiskit.circuit.delay import Delay
 from qiskit.circuit.exceptions import CircuitError
+from qiskit._accelerate.circuit import ControlFlowType
 from .control_flow import ControlFlowOp
 
 if typing.TYPE_CHECKING:
@@ -39,6 +40,8 @@ class BoxOp(ControlFlowOp):
 
     Typically you create this by using the builder-interface form of :meth:`.QuantumCircuit.box`.
     """
+
+    _control_flow_type = ControlFlowType.Box
 
     def __init__(
         self,
