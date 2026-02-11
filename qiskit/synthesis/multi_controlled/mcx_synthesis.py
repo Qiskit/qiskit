@@ -490,7 +490,7 @@ def synth_mcx_1_clean_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
 
     if num_ctrl_qubits < 0:
         raise QiskitError(
-            "The method synth_mcx_n_dirty_i15 cannot be called with a negative number of control qubits."
+            "The method synth_mcx_1_clean_kg24 cannot be called with a negative number of control qubits."
         )
 
     if num_ctrl_qubits <= 2:
@@ -522,7 +522,7 @@ def synth_mcx_1_dirty_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
     """
     if num_ctrl_qubits < 0:
         raise QiskitError(
-            "The method synth_mcx_n_dirty_i15 cannot be called with a negative number of control qubits."
+            "The method synth_mcx_1_dirty_kg24 cannot be called with a negative number of control qubits."
         )
 
     if num_ctrl_qubits <= 2:
@@ -617,7 +617,7 @@ def synth_mcx_2_kg24(num_ctrl_qubits: int, clean: bool = True) -> QuantumCircuit
 
     if num_ctrl_qubits < 0:
         raise QiskitError(
-            "The method synth_mcx_n_dirty_i15 cannot be called with a negative number of control qubits."
+            "The method synth_mcx_2_kg24 cannot be called with a negative number of control qubits."
         )
 
     if num_ctrl_qubits <= 2:
@@ -689,7 +689,7 @@ def synth_mcx_2_clean_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
 
     if num_ctrl_qubits < 0:
         raise QiskitError(
-            "The method synth_mcx_n_dirty_i15 cannot be called with a negative number of control qubits."
+            "The method synth_mcx_2_clean_kg24 cannot be called with a negative number of control qubits."
         )
 
     if num_ctrl_qubits <= 2:
@@ -721,7 +721,7 @@ def synth_mcx_2_dirty_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
     """
     if num_ctrl_qubits < 0:
         raise QiskitError(
-            "The method synth_mcx_n_dirty_i15 cannot be called with a negative number of control qubits."
+            "The method synth_mcx_2_dirty_kg24 cannot be called with a negative number of control qubits."
         )
 
     if num_ctrl_qubits <= 2:
