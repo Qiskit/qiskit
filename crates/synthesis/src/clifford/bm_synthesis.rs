@@ -4,15 +4,16 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
 use crate::clifford::utils::CliffordGatesVec;
+use fixedbitset::FixedBitSet;
 use itertools::iproduct;
-use ndarray::{ArrayView2, arr1, arr2, s};
+use ndarray::{ArrayView2, arr2};
 use qiskit_circuit::Qubit;
 use qiskit_circuit::operations::StandardGate;
 use qiskit_quantum_info::clifford::Clifford;
@@ -32,16 +33,16 @@ fn cx_cost(clifford: &Clifford) -> usize {
 /// for a 2-qubit Clifford.
 fn cx_cost2(clifford: &Clifford) -> usize {
     let r00 = rank2(
-        clifford.tableau[[0, 0]],
-        clifford.tableau[[0, 2]],
-        clifford.tableau[[2, 0]],
-        clifford.tableau[[2, 2]],
+        clifford.tableau[0][0],
+        clifford.tableau[2][0],
+        clifford.tableau[0][2],
+        clifford.tableau[2][2],
     );
     let r01 = rank2(
-        clifford.tableau[[0, 1]],
-        clifford.tableau[[0, 3]],
-        clifford.tableau[[2, 1]],
-        clifford.tableau[[2, 3]],
+        clifford.tableau[1][0],
+        clifford.tableau[3][0],
+        clifford.tableau[1][2],
+        clifford.tableau[3][2],
     );
     if r00 == 2 { r01 } else { r01 + 1 - r00 }
 }
@@ -65,16 +66,31 @@ fn cx_cost3(clifford: &Clifford) -> usize {
     let mut r2 = arr2(&[[0, 0, 0], [0, 0, 0], [0, 0, 0]]);
     for (q1, q2) in iproduct!(0..3, 0..3) {
         r2[[q1, q2]] = rank2(
-            clifford.tableau[[q1, q2]],
-            clifford.tableau[[q1, q2 + 3]],
-            clifford.tableau[[q1 + 3, q2]],
-            clifford.tableau[[q1 + 3, q2 + 3]],
+            clifford.tableau[q2][q1],
+            clifford.tableau[q2 + 3][q1],
+            clifford.tableau[q2][q1 + 3],
+            clifford.tableau[q2 + 3][q1 + 3],
         );
-        let mut mask = arr1(&[false, false, false, false, false, false]);
-        mask[q2] = true;
-        mask[q2 + 3] = true;
-        let xs = clifford.tableau.slice(s![q1, 0..6]);
-        let zs = clifford.tableau.slice(s![q1 + 3, 0..6]);
+        let mut mask = FixedBitSet::with_capacity(6);
+        // SAFETY: These indices are always valid because q2 is 0..3 so these
+        // toggles will always be < 6.
+        unsafe {
+            mask.toggle_unchecked(q2);
+            mask.toggle_unchecked(q2 + 3);
+        }
+
+        let mut xs = FixedBitSet::with_capacity(6);
+        let mut zs = FixedBitSet::with_capacity(6);
+        (0..6)
+            .map(|x| clifford.tableau[x][q1])
+            .enumerate()
+            .filter(|(_, x)| *x)
+            .for_each(|(i, _)| unsafe { xs.toggle_unchecked(i) });
+        (0..6)
+            .map(|x| clifford.tableau[x][q1 + 3])
+            .enumerate()
+            .filter(|(_, x)| *x)
+            .for_each(|(i, _)| unsafe { zs.toggle_unchecked(i) });
         let ys = &xs ^ &zs;
         let is_loc_x = (&xs & &mask) == xs;
         let is_loc_z = (&zs & &mask) == zs;
@@ -160,7 +176,6 @@ fn reduce_cost(
                     reduced_cliff.append_w(qubit1);
                 }
                 reduced_cliff.append_cx(qubit0, qubit1);
-
                 let new_cost = cx_cost(&reduced_cliff);
 
                 // If the cost is reduced, we are done.
@@ -208,8 +223,8 @@ fn reduce_cost(
 /// ``gates`` vector. The ``output_qubit`` specifies for which qubit (in a possibly
 /// larger circuit) the decomposition corresponds.
 fn decompose_clifford_1q(cliff: &Clifford, gates: &mut CliffordGatesVec, output_qubit: usize) {
-    let destab_phase = cliff.tableau[[0, 2]];
-    let stab_phase = cliff.tableau[[1, 2]];
+    let destab_phase = cliff.tableau[2][0];
+    let stab_phase = cliff.tableau[2][1];
 
     if destab_phase && !stab_phase {
         gates.push((
@@ -231,10 +246,10 @@ fn decompose_clifford_1q(cliff: &Clifford, gates: &mut CliffordGatesVec, output_
         ));
     }
 
-    let destab_x = cliff.tableau[[0, 0]];
-    let destab_z = cliff.tableau[[0, 1]];
-    let stab_x = cliff.tableau[[1, 0]];
-    let stab_z = cliff.tableau[[1, 1]];
+    let destab_x = cliff.tableau[0][0];
+    let destab_z = cliff.tableau[1][0];
+    let stab_x = cliff.tableau[0][1];
+    let stab_z = cliff.tableau[1][1];
 
     if stab_z && !stab_x {
         if destab_z {
@@ -294,10 +309,7 @@ pub fn synth_clifford_bm_inner(
     }
 
     // This is the Clifford that we will reduce to a product of single-qubit Cliffords
-    let mut clifford = Clifford {
-        num_qubits,
-        tableau: tableau.to_owned(),
-    };
+    let mut clifford = Clifford::from_array(tableau);
 
     if num_qubits == 1 {
         let mut gates = CliffordGatesVec::new();
@@ -323,23 +335,18 @@ pub fn synth_clifford_bm_inner(
 
     // Decompose the remaining cost-0 Clifford into a product of 1-qubit Cliffords.
     for qubit in 0..num_qubits {
-        let arr = arr2(&[
-            [
-                clifford.tableau[[qubit, qubit]],
-                clifford.tableau[[qubit, qubit + num_qubits]],
-                clifford.tableau[[qubit, 2 * num_qubits]],
-            ],
-            [
-                clifford.tableau[[qubit + num_qubits, qubit]],
-                clifford.tableau[[qubit + num_qubits, qubit + num_qubits]],
-                clifford.tableau[[qubit + num_qubits, 2 * num_qubits]],
-            ],
-        ]);
-
-        let clifford1q = Clifford {
-            num_qubits: 1,
-            tableau: arr,
-        };
+        let mut tableau = vec![
+            FixedBitSet::with_capacity(2),
+            FixedBitSet::with_capacity(2),
+            FixedBitSet::with_capacity(2),
+        ];
+        tableau[0].set(0, clifford.tableau[qubit][qubit]);
+        tableau[1].set(0, clifford.tableau[qubit + num_qubits][qubit]);
+        tableau[2].set(0, clifford.tableau[2 * num_qubits][qubit]);
+        tableau[0].set(1, clifford.tableau[qubit][qubit + num_qubits]);
+        tableau[1].set(1, clifford.tableau[qubit + num_qubits][qubit + num_qubits]);
+        tableau[2].set(1, clifford.tableau[2 * num_qubits][qubit + num_qubits]);
+        let clifford1q = Clifford::new(1, tableau);
 
         decompose_clifford_1q(&clifford1q, &mut all_gates, qubit);
     }

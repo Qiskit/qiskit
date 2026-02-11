@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -82,7 +82,6 @@ impl TryFrom<&CSparseTerm> for SparseTermView<'_> {
 /// ```
 ///
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub extern "C" fn qk_obs_zero(num_qubits: u32) -> *mut SparseObservable {
     let obs = SparseObservable::zero(num_qubits);
     Box::into_raw(Box::new(obs))
@@ -101,7 +100,6 @@ pub extern "C" fn qk_obs_zero(num_qubits: u32) -> *mut SparseObservable {
 /// ```
 ///
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub extern "C" fn qk_obs_identity(num_qubits: u32) -> *mut SparseObservable {
     let obs = SparseObservable::identity(num_qubits);
     Box::into_raw(Box::new(obs))
@@ -155,7 +153,6 @@ pub extern "C" fn qk_obs_identity(num_qubits: u32) -> *mut SparseObservable {
 ///     sorted in ascending order, the first element is 0 and the last element is
 ///     smaller than ``num_terms``
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_obs_new(
     num_qubits: u32,
     num_terms: u64,
@@ -194,7 +191,6 @@ pub unsafe extern "C" fn qk_obs_new(
 ///
 /// Behavior is undefined if ``obs`` is not either null or a valid pointer to a ``QkObs``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_obs_free(obs: *mut SparseObservable) {
     if !obs.is_null() {
         if !obs.is_aligned() {
@@ -234,7 +230,6 @@ pub unsafe extern "C" fn qk_obs_free(obs: *mut SparseObservable) {
 ///   * ``obs`` is a valid, non-null pointer to a ``QkObs``
 ///   * ``cterm`` is a valid, non-null pointer to a ``QkObsTerm``
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_obs_add_term(
     obs: *mut SparseObservable,
     cterm: *const CSparseTerm,
@@ -283,7 +278,6 @@ pub unsafe extern "C" fn qk_obs_add_term(
 /// * ``obs`` is a valid, non-null pointer to a ``QkObs``
 /// * ``out`` is a valid, non-null pointer to a ``QkObsTerm``
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_obs_term(
     obs: *mut SparseObservable,
     index: u64,
@@ -327,7 +321,6 @@ pub unsafe extern "C" fn qk_obs_term(
 ///
 /// Behavior is undefined ``obs`` is not a valid, non-null pointer to a ``QkObs``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_obs_num_terms(obs: *const SparseObservable) -> usize {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let obs = unsafe { const_ptr_as_ref(obs) };
@@ -352,7 +345,6 @@ pub unsafe extern "C" fn qk_obs_num_terms(obs: *const SparseObservable) -> usize
 ///
 /// Behavior is undefined ``obs`` is not a valid, non-null pointer to a ``QkObs``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_obs_num_qubits(obs: *const SparseObservable) -> u32 {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let obs = unsafe { const_ptr_as_ref(obs) };
@@ -377,7 +369,6 @@ pub unsafe extern "C" fn qk_obs_num_qubits(obs: *const SparseObservable) -> u32 
 ///
 /// Behavior is undefined ``obs`` is not a valid, non-null pointer to a ``QkObs``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_obs_len(obs: *const SparseObservable) -> usize {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let obs = unsafe { const_ptr_as_ref(obs) };
@@ -410,7 +401,6 @@ pub unsafe extern "C" fn qk_obs_len(obs: *const SparseObservable) -> usize {
 ///
 /// Behavior is undefined ``obs`` is not a valid, non-null pointer to a ``QkObs``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_obs_coeffs(obs: *mut SparseObservable) -> *mut Complex64 {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let obs = unsafe { mut_ptr_as_ref(obs) };
@@ -453,7 +443,6 @@ pub unsafe extern "C" fn qk_obs_coeffs(obs: *mut SparseObservable) -> *mut Compl
 ///
 /// Behavior is undefined ``obs`` is not a valid, non-null pointer to a ``QkObs``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_obs_indices(obs: *mut SparseObservable) -> *mut u32 {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let obs = unsafe { mut_ptr_as_ref(obs) };
@@ -495,7 +484,6 @@ pub unsafe extern "C" fn qk_obs_indices(obs: *mut SparseObservable) -> *mut u32 
 ///
 /// Behavior is undefined ``obs`` is not a valid, non-null pointer to a ``QkObs``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_obs_boundaries(obs: *mut SparseObservable) -> *mut usize {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let obs = unsafe { mut_ptr_as_ref(obs) };
@@ -541,7 +529,6 @@ pub unsafe extern "C" fn qk_obs_boundaries(obs: *mut SparseObservable) -> *mut u
 /// Behavior is undefined ``obs`` is not a valid, non-null pointer to a ``QkObs``,
 /// or if invalid valus are written into the resulting ``QkBitTerm`` pointer.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_obs_bit_terms(obs: *mut SparseObservable) -> *mut BitTerm {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let obs = unsafe { mut_ptr_as_ref(obs) };
@@ -570,7 +557,6 @@ pub unsafe extern "C" fn qk_obs_bit_terms(obs: *mut SparseObservable) -> *mut Bi
 /// * ``obs`` is a valid, non-null pointer to a ``QkObs``
 /// * ``coeff`` is a valid, non-null pointer to a ``QkComplex64``
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_obs_multiply(
     obs: *const SparseObservable,
     coeff: *const Complex64,
@@ -581,6 +567,36 @@ pub unsafe extern "C" fn qk_obs_multiply(
 
     let result = obs * (*coeff);
     Box::into_raw(Box::new(result))
+}
+
+/// @ingroup QkObs
+/// Multiply the observable in-place by a complex coefficient.
+///
+/// @param obs A pointer to the observable.
+/// @param coeff The coefficient to multiply the observable with.
+///
+/// # Example
+/// ```c
+/// QkObs *obs = qk_obs_identity(100);
+/// QkComplex64 coeff = {2, 0};
+/// qk_obs_multiply_inplace(obs, &coeff);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if any of the following is violated
+/// * ``obs`` is a valid, non-null pointer to a ``QkObs``
+/// * ``coeff`` is a valid, non-null pointer to a ``QkComplex64``
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_obs_multiply_inplace(
+    obs: *mut SparseObservable,
+    coeff: *const Complex64,
+) {
+    // SAFETY: Per documentation, the pointers are non-null and aligned.
+    let obs = unsafe { mut_ptr_as_ref(obs) };
+    let coeff = unsafe { const_ptr_as_ref(coeff) };
+
+    *obs *= *coeff;
 }
 
 /// @ingroup QkObs
@@ -603,7 +619,6 @@ pub unsafe extern "C" fn qk_obs_multiply(
 /// Behavior is undefined if ``left`` or ``right`` are not valid, non-null pointers to
 /// ``QkObs``\ s.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_obs_add(
     left: *const SparseObservable,
     right: *const SparseObservable,
@@ -614,6 +629,104 @@ pub unsafe extern "C" fn qk_obs_add(
 
     let result = left + right;
     Box::into_raw(Box::new(result))
+}
+
+/// @ingroup QkObs
+/// Add an observable to an existing one.
+///
+/// @param left A pointer to the left observable.
+/// @param right A pointer to the right observable.
+///
+/// # Example
+/// ```c
+/// QkObs *left = qk_obs_identity(100);
+/// QkObs *right = qk_obs_zero(100);
+/// qk_obs_add_inplace(left, right);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``left`` or ``right`` are not valid, non-null pointers to
+/// ``QkObs``\ s.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_obs_add_inplace(
+    left: *mut SparseObservable,
+    right: *const SparseObservable,
+) {
+    // SAFETY: Per documentation, the pointers are non-null and aligned.
+    let left = unsafe { mut_ptr_as_ref(left) };
+    let right = unsafe { const_ptr_as_ref(right) };
+
+    *left += right;
+}
+
+/// @ingroup QkObs
+/// Add two observables while scaling the coefficients of the right one.
+///
+/// @param left A pointer to the left observable.
+/// @param right A pointer to the right observable.
+/// @param factor The factor to multiply the coefficients with.
+///
+/// @return An owned pointer to the result ``left + factor * right``.
+///
+/// # Example
+/// ```c
+/// QkObs *left = qk_obs_zero(100);
+/// QkObs *right = qk_obs_identity(100);
+/// QkComplex64 factor = {2, 0};
+/// QkObs *result = qk_obs_scaled_add(left, right, &factor);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``left`` or ``right`` are not valid, non-null pointers to
+/// ``QkObs``\ s.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_obs_scaled_add(
+    left: *const SparseObservable,
+    right: *const SparseObservable,
+    factor: *const Complex64,
+) -> *mut SparseObservable {
+    // SAFETY: Per documentation, the pointers are non-null and aligned.
+    let left = unsafe { const_ptr_as_ref(left) };
+    let right = unsafe { const_ptr_as_ref(right) };
+    let factor = unsafe { const_ptr_as_ref(factor) };
+
+    let result = left.scaled_add(right, *factor);
+    Box::into_raw(Box::new(result))
+}
+
+/// @ingroup QkObs
+/// Add a scaled observable to an existing one.
+///
+/// @param left A pointer to the left observable.
+/// @param right A pointer to the right observable.
+/// @param factor The factor to multiply the coefficients with.
+///
+/// # Example
+/// ```c
+/// QkObs *left = qk_obs_zero(100);
+/// QkObs *right = qk_obs_identity(100);
+/// QkComplex64 factor = {2, 0};
+/// qk_obs_scaled_add_inplace(left, right, &factor);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``left`` or ``right`` are not valid, non-null pointers to
+/// ``QkObs``\ s.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_obs_scaled_add_inplace(
+    left: *mut SparseObservable,
+    right: *const SparseObservable,
+    factor: *const Complex64,
+) {
+    // SAFETY: Per documentation, the pointers are non-null and aligned.
+    let left = unsafe { mut_ptr_as_ref(left) };
+    let right = unsafe { const_ptr_as_ref(right) };
+    let factor = unsafe { const_ptr_as_ref(factor) };
+
+    left.scaled_add_inplace(right, *factor);
 }
 
 /// @ingroup QkObs
@@ -637,7 +750,6 @@ pub unsafe extern "C" fn qk_obs_add(
 /// Behavior is undefined if ``first`` or ``second`` are not valid, non-null pointers to
 /// ``QkObs``\ s.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_obs_compose(
     first: *const SparseObservable,
     second: *const SparseObservable,
@@ -678,7 +790,6 @@ pub unsafe extern "C" fn qk_obs_compose(
 ///   * ``qargs`` must point to an array of ``uint32_t``, readable for ``qk_obs_num_qubits(second)``
 ///     elements (meaning the number of qubits in ``second``)
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_obs_compose_map(
     first: *const SparseObservable,
     second: *const SparseObservable,
@@ -761,7 +872,6 @@ pub unsafe extern "C" fn qk_obs_compose_map(
 /// is not a valid, non-null pointer to a sequence of ``qk_obs_num_qubits(obs)`` consecutive
 /// elements of ``uint32_t``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_obs_apply_layout(
     obs: *mut SparseObservable,
     layout: *const u32,
@@ -815,7 +925,6 @@ pub unsafe extern "C" fn qk_obs_apply_layout(
 ///
 /// Behavior is undefined ``obs`` is not a valid, non-null pointer to a ``QkObs``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_obs_canonicalize(
     obs: *const SparseObservable,
     tol: f64,
@@ -844,7 +953,6 @@ pub unsafe extern "C" fn qk_obs_canonicalize(
 ///
 /// Behavior is undefined ``obs`` is not a valid, non-null pointer to a ``QkObs``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_obs_copy(obs: *const SparseObservable) -> *mut SparseObservable {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let obs = unsafe { const_ptr_as_ref(obs) };
@@ -876,7 +984,6 @@ pub unsafe extern "C" fn qk_obs_copy(obs: *const SparseObservable) -> *mut Spars
 /// Behavior is undefined if ``obs`` or ``other`` are not valid, non-null pointers to
 /// ``QkObs``\ s.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_obs_equal(
     obs: *const SparseObservable,
     other: *const SparseObservable,
@@ -913,7 +1020,6 @@ pub unsafe extern "C" fn qk_obs_equal(
 /// Do not change the length of the string after it's returned (by writing a nul byte somewhere
 /// inside the string or removing the final one), although values can be mutated.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_obs_str(obs: *const SparseObservable) -> *mut c_char {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let obs = unsafe { const_ptr_as_ref(obs) };
@@ -932,7 +1038,6 @@ pub unsafe extern "C" fn qk_obs_str(obs: *const SparseObservable) -> *mut c_char
 /// Behavior is undefined if ``str`` is not a pointer returned by ``qk_obs_str`` or
 /// ``qk_obsterm_str``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_str_free(string: *mut c_char) {
     if !string.is_null() {
         if !string.is_aligned() {
@@ -972,7 +1077,6 @@ pub unsafe extern "C" fn qk_str_free(string: *mut c_char) {
 ///
 /// Do not change the length of the string after it's returned, although values can be mutated.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_obsterm_str(term: *const CSparseTerm) -> *mut c_char {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let term = unsafe { const_ptr_as_ref(term) };
@@ -1000,7 +1104,6 @@ pub unsafe extern "C" fn qk_obsterm_str(term: *const CSparseTerm) -> *mut c_char
 ///
 /// The behavior is undefined if ``bit_term`` is not a valid ``uint8_t`` value of a ``QkBitTerm``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub extern "C" fn qk_bitterm_label(bit_term: BitTerm) -> u8 {
     // BitTerm is implemented as u8, which is calling convention compatible with C,
     // hence we can pass ``bit_term`` by value
@@ -1027,7 +1130,6 @@ pub extern "C" fn qk_bitterm_label(bit_term: BitTerm) -> u8 {
 /// function.
 #[unsafe(no_mangle)]
 #[cfg(feature = "python_binding")]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_obs_to_python(obs: *const SparseObservable) -> *mut PyObject {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let obs = unsafe { const_ptr_as_ref(obs) };

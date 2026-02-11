@@ -12,6 +12,7 @@ The version of the Qiskit package and crates is mentioned in a few places:
 * `Cargo.toml` for defining the Rust crates
 * `crates/cext/include/qiskit/version.h` for defining the C header file
 * `docs/release_notes.rst` for configuring the release-notes documentation build
+* `.mergify.yml` (implicitly via a branch name) for configuring where Mergify targets backports
 
 In principle, the first three version numbers should be the same at all times.
 However, the different languages have different conventions about formatting.
@@ -51,7 +52,7 @@ The procedure for a new minor-version release, with respect to version numbers i
 
 1. on `main`, push a PR that bumps the version from `2.2.0.dev0` to `2.2.0rc1` (and moves the loose release notes into `releasenotes/notes/2.2`, and then do the rest of the release process)
 2. `qiskit-bot` will create a `stable/2.2` branch from that commit, since that's the one you should tag.
-3. on `main`, immediately push a PR that bumps the version to `2.3.0.dev0` to open development on the 2.3 series.
+3. on `main`, immediately push a PR that bumps the version to `2.3.0.dev0` to open development on the 2.3 series, including updating `.mergify.yml` to backport to the new stable branch.
 
 You will need to run `cargo build` as part of a version-bump commit to propagate the changes in `Cargo.toml` to `Cargo.lock`.
 
