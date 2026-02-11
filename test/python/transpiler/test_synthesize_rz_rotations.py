@@ -33,12 +33,12 @@ from qiskit.circuit.library import (
 from qiskit.quantum_info import Operator
 from qiskit.quantum_info import get_clifford_gate_names
 from qiskit.circuit import Parameter
+from qiskit.synthesis import gridsynth_rz
 
 
 from qiskit.converters import dag_to_circuit
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes.synthesis import SynthesizeRZRotations
-from qiskit.transpiler.passes.synthesis import RossSelingerSynthesis
 
 
 from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
@@ -112,19 +112,16 @@ class TestSynthesizeRzRotations(QiskitTestCase):
         spectral_norm = np.linalg.norm(error_matrix, 2)
         self.assertLessEqual(spectral_norm, 1 - approximation_degree)
 
-    # This test currently fails with minor discrepancy in T-count (64 as
-    # opposed to 62, 88 as opposed to 81. This is likely because we are
-    # calling gridsynth with a different epsilon = epsilon/2,
-    # to account for rounding off angles. Could potentially be fixed by
-    # calling gridsynth directly with epsilon/2 to get T-counts and do
-    # the matching
     def test_t_counts(self):
         """Test if the expected t-counts are accurate."""
         qc = QuantumCircuit(1)
         qc.rz(1.0, 0)
         approximation_degrees = [0.999999, 0.99999999, 0.9999999999]
-        t_expected = [62, 81, 105]
-        # t_expected_circs = [RossSelingerSynthesis(epsilon=(1-approximation_degrees[i])/2)(qc)]
+        # t_expected = [62, 81, 105]
+        t_expected_circs = [gridsynth_rz(1.0, (1 - aps) / 2) for aps in approximation_degrees]
+        t_expected = [
+            t_expected_circs[i].count_ops().get("t", 0) for i in range(len(approximation_degrees))
+        ]
         for ads, t_expect in zip(approximation_degrees, t_expected):
             with self.subTest(eps=ads, t_expect=t_expect):
                 print(ads, t_expect)
