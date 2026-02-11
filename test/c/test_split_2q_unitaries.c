@@ -200,24 +200,28 @@ static int test_split_2q_unitaries_no_unitaries(void) {
         qk_transpile_layout_free(split_result);
         goto cleanup;
     }
-    QkCircuit *temp_circuit = qk_dag_to_circuit(dag);
-    QkOpCounts counts = qk_circuit_count_ops(temp_circuit);
-    qk_circuit_free(temp_circuit);
-    if (counts.len != 1) {
-        printf("More than 1 type of gate in the circuit\n");
-        result = EqualityError;
-        goto ops_cleanup;
-    }
-    for (size_t i = 0; i < counts.len; i++) {
-        int gate = strcmp(counts.data[i].name, "cx");
-        if (gate != 0) {
-            printf("gates changed when there should be no circuit changes\n");
+    size_t num_ops = qk_dag_num_op_nodes(dag);
+    uint32_t *ops = malloc(num_ops * sizeof(*ops));
+    qk_dag_topological_op_nodes(dag, ops);
+    QkGate first_gate = qk_dag_op_node_gate_op(dag, ops[0], NULL);
+    for (size_t i = 1; i < num_ops; i++) {
+        QkGate gate = qk_dag_op_node_gate_op(dag, ops[i], NULL);
+        if (gate != first_gate) {
+            printf("More than 1 type of gate in DAG\n");
             result = EqualityError;
-            goto cleanup;
+            goto ops_cleanup;
+        }
+    }
+    for (size_t i = 0; i < num_ops; i++) {
+        QkGate gate = qk_dag_op_node_gate_op(dag, ops[i], NULL);
+        if (gate != QkGate_CX) {
+            printf("gates changed when there should be no DAG changes\n");
+            result = EqualityError;
+            goto ops_cleanup;
         }
     }
 ops_cleanup:
-    qk_opcounts_clear(&counts);
+    free(ops);
 cleanup:
     qk_dag_free(dag);
     qk_quantum_register_free(qr);
@@ -245,47 +249,42 @@ static int test_split_2q_unitaries_x_y_unitary(void) {
         qk_transpile_layout_free(split_result);
         goto cleanup;
     }
-     QkCircuit *temp_circuit = qk_dag_to_circuit(dag);
-    QkOpCounts counts = qk_circuit_count_ops(temp_circuit);
-    qk_circuit_free(temp_circuit);
-    if (counts.len != 1) {
-        printf("More than 1 type of gate in the circuit\n");
-        result = EqualityError;
-        goto ops_cleanup;
-    }
-    for (size_t i = 0; i < counts.len; i++) {
-        int gate = strcmp(counts.data[i].name, "unitary");
-        if (gate != 0) {
-            printf("Gates outside expected set in output circuit\n");
+    size_t num_ops = qk_dag_num_op_nodes(dag);
+    uint32_t *ops = malloc(num_ops * sizeof(*ops));
+    qk_dag_topological_op_nodes(dag, ops);
+    QkOperationKind first_kind = qk_dag_op_node_kind(dag, ops[0]);
+    for (size_t i = 1; i < num_ops; i++) {
+        QkOperationKind kind = qk_dag_op_node_kind(dag, ops[i]);
+        if (kind != first_kind) {
+            printf("More than 1 type of gate in DAG\n");
             result = EqualityError;
             goto ops_cleanup;
         }
-        size_t count = counts.data[i].count;
-        if (count != 2) {
+    }
+    for (size_t i = 0; i < num_ops; i++) {
+        QkOperationKind kind = qk_dag_op_node_kind(dag, ops[i]);
+        if (kind != QkOperationKind_Unitary) {
+            printf("Gates outside expected set in output DAG\n");
+            result = EqualityError;
+            goto ops_cleanup;
+        }
+        if (num_ops != 2) {
             printf("Unexpected gate counts found\n");
             result = EqualityError;
             goto ops_cleanup;
         }
     }
-
-    size_t num_ops = qk_dag_num_op_nodes(dag);
-    uint32_t *op_nodes = malloc(sizeof(uint32_t) * num_ops);
-    qk_dag_topological_op_nodes(dag, op_nodes);
-
-    QkCircuitInstruction inst;
     for (size_t i = 0; i < num_ops; i++) {
-        qk_dag_get_instruction(dag, op_nodes[i], &inst);
-        if (inst.num_qubits != 1) {
-            printf("Gate %zu operates on more than 1 qubit: %u\n", i, inst.num_qubits);
+        uint32_t nq = qk_dag_op_node_num_qubits(dag, ops[i]);
+        if (nq != 1) {
+            printf("Gate %zu operates on more than 1 qubit: %u\n", i, nq);
             result = EqualityError;
             goto ops_cleanup;
         }
-        qk_circuit_instruction_clear(&inst);
     }
-    free(op_nodes);
 
 ops_cleanup:
-    qk_opcounts_clear(&counts);
+    free(ops);
 cleanup:
     qk_dag_free(dag);
     qk_quantum_register_free(qr);
@@ -323,47 +322,44 @@ static int test_split_2q_unitaries_swap_x_y_unitary(void) {
         }
     }
 
-    QkCircuit *temp_circuit = qk_dag_to_circuit(dag);
-    QkOpCounts counts = qk_circuit_count_ops(temp_circuit);
-    qk_circuit_free(temp_circuit);
-    if (counts.len != 1) {
-        printf("More than 1 type of gate in the circuit\n");
-        result = EqualityError;
-        goto ops_cleanup;
-    }
-    for (size_t i = 0; i < counts.len; i++) {
-        int gate = strcmp(counts.data[i].name, "unitary");
-        if (gate != 0) {
-            printf("Gates outside expected set in output circuit\n");
+    size_t num_ops = qk_dag_num_op_nodes(dag);
+    uint32_t *ops = malloc(num_ops * sizeof(*ops));
+    qk_dag_topological_op_nodes(dag, ops);
+    QkOperationKind first_kind = qk_dag_op_node_kind(dag, ops[0]);
+    for (size_t i = 1; i < num_ops; i++) {
+        QkOperationKind kind = qk_dag_op_node_kind(dag, ops[i]);
+        if (kind != first_kind) {
+            printf("More than 1 type of gate in DAG\n");
             result = EqualityError;
             goto ops_cleanup;
         }
-        size_t count = counts.data[i].count;
-        if (count != 2) {
+    }
+
+    for (size_t i = 0; i < num_ops; i++) {
+        QkOperationKind kind = qk_dag_op_node_kind(dag, ops[i]);
+        if (kind != QkOperationKind_Unitary) {
+            printf("Gates outside expected set in output DAG\n");
+            result = EqualityError;
+            goto ops_cleanup;
+        }
+        if (num_ops != 2) {
             printf("Unexpected gate counts found\n");
             result = EqualityError;
             goto ops_cleanup;
         }
     }
 
-    size_t num_ops = qk_dag_num_op_nodes(dag);
-    uint32_t *op_nodes = malloc(sizeof(uint32_t) * num_ops);
-    qk_dag_topological_op_nodes(dag, op_nodes);
-
-    QkCircuitInstruction inst;
     for (size_t i = 0; i < num_ops; i++) {
-        qk_dag_get_instruction(dag, op_nodes[i], &inst);
-        if (inst.num_qubits != 1) {
-            printf("Gate %zu operates on more than 1 qubit: %u\n", i, inst.num_qubits);
+        uint32_t nq = qk_dag_op_node_num_qubits(dag, ops[i]);
+        if (nq != 1) {
+            printf("Gate %zu operates on more than 1 qubit: %u\n", i, nq);
             result = EqualityError;
             goto ops_cleanup;
         }
-        qk_circuit_instruction_clear(&inst);
     }
-    free(op_nodes);
 
 ops_cleanup:
-    qk_opcounts_clear(&counts);
+    free(ops);
 cleanup:
     qk_transpile_layout_free(split_result);
     qk_dag_free(dag);

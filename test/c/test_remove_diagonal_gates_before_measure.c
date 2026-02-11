@@ -73,7 +73,7 @@ int test_remove_z_gate(void) {
     qk_dag_apply_measure(dag, 0, 0, false);
 
     if (2 != qk_dag_num_op_nodes(dag)) {
-        printf("Circuit build failure");
+        printf("DAG build failure");
         result = RuntimeError;
         goto cleanup;
     }
@@ -82,7 +82,7 @@ int test_remove_z_gate(void) {
 
     size_t num_ops = qk_dag_num_op_nodes(dag);
     if (1 != num_ops) {
-        printf("Circuit should only have a single instruction");
+        printf("DAG should only have a single instruction");
         result = EqualityError;
         goto cleanup;
     }
@@ -94,7 +94,7 @@ int test_remove_z_gate(void) {
     qk_dag_get_instruction(dag, op_nodes[0], &inst);
 
     if (0 != strcmp("measure", inst.name)) {
-        printf("Circuit should contain a single 'measure' instruction. Instead, it has one: '%s'.",
+        printf("DAG should contain a single 'measure' instruction. Instead, it has one: '%s'.",
                inst.name);
         result = EqualityError;
     }

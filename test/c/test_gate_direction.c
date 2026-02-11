@@ -112,7 +112,7 @@ cleanup:
 }
 
 /**
- * Test running CheckGateDirection on a simple circuit.
+ * Test running CheckGateDirection on a simple DAG.
  */
 static int test_check_gate_direction(void) {
     QkTarget *target = create_target();
@@ -145,7 +145,7 @@ static int test_check_gate_direction(void) {
 }
 
 /**
- * Test running GateDirection on a simple circuit.
+ * Test running GateDirection on a simple DAG.
  */
 static int test_gate_direction_simple(void) {
     QkTarget *target = create_target();

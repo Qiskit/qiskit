@@ -17,6 +17,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 /**
@@ -161,25 +162,29 @@ static int test_elide_permutations_swap_result(void) {
             goto result_cleanup;
         }
     }
-    QkCircuit *qc = qk_dag_to_circuit(dag);
-    QkOpCounts op_counts = qk_circuit_count_ops(qc);
-    if (op_counts.len != 1) {
-        printf("More than 1 type of gates in circuit\n");
-        result = EqualityError;
-        goto ops_cleanup;
+    size_t num_ops = qk_dag_num_op_nodes(dag);
+    uint32_t *ops = malloc(num_ops * sizeof(*ops));
+    qk_dag_topological_op_nodes(dag, ops);
+    QkGate first_gate = qk_dag_op_node_gate_op(dag, ops[0], NULL);
+    for (size_t i = 1; i < num_ops; i++) {
+        QkGate gate = qk_dag_op_node_gate_op(dag, ops[i], NULL);
+        if (gate != first_gate) {
+            printf("More than 1 type of gates in DAG\n");
+            result = EqualityError;
+            goto ops_cleanup;
+        }
     }
-    for (size_t i = 0; i < op_counts.len; i++) {
-        int swap_gate = strcmp(op_counts.data[i].name, "swap");
-        if (swap_gate == 0) {
-            printf("Swap gate in circuit which should have been elided\n");
+    for (size_t i = 0; i < num_ops; i++) {
+        QkGate gate = qk_dag_op_node_gate_op(dag, ops[i], NULL);
+        if (gate == QkGate_Swap) {
+            printf("Swap gate in DAG which should have been elided\n");
             result = EqualityError;
             goto ops_cleanup;
         }
     }
 
 ops_cleanup:
-    qk_opcounts_clear(&op_counts);
-    qk_circuit_free(qc);
+    free(ops);
 result_cleanup:
     qk_transpile_layout_free(pass_result);
 cleanup:
