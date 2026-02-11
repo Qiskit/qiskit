@@ -62,7 +62,7 @@ static int build_unitary_target(QkTarget *target, uint32_t num_qubits) {
 /**
  * Test running UnitarySynthesis on a single gate
  */
-static int test_standalone_unitary_synthesis_identity_matrix(void) {
+static int test_unitary_synthesis_identity_matrix(void) {
     const uint32_t num_qubits = 5;
     QkTarget *target = qk_target_new(num_qubits);
     int result = Ok;
@@ -94,7 +94,7 @@ cleanup:
 /**
  * Test running UnitarySynthesis on a single gate
  */
-static int test_standalone_unitary_synthesis_multiqubit_identity_matrix(void) {
+static int test_unitary_synthesis_multiqubit_identity_matrix(void) {
     const uint32_t num_qubits = 5;
     QkTarget *target = qk_target_new(num_qubits);
     int result = Ok;
@@ -125,85 +125,10 @@ cleanup:
     return result;
 }
 
-/**
- * Test running UnitarySynthesis on a single gate
- */
-static int test_unitary_synthesis_identity_matrix(void) {
-    const uint32_t num_qubits = 5;
-    QkTarget *target = qk_target_new(num_qubits);
-    int result = Ok;
-    result = build_unitary_target(target, num_qubits);
-    if (result != Ok) {
-        goto cleanup;
-    }
-    // Create a circuit with line connectivity.
-    QkDag *dag = qk_dag_new();
-    QkQuantumRegister *qr = qk_quantum_register_new(1, "qr");
-    qk_dag_add_quantum_register(dag, qr);
-    QkComplex64 c0 = {0., 0.};
-    QkComplex64 c1 = {1., 0.};
-    QkComplex64 unitary[4] = {c1, c0,  // row 0
-                              c0, c1}; // row 1
-    uint32_t qargs[1] = {0};
-    qk_dag_apply_unitary(dag, unitary, qargs, 1, false);
-    qk_transpiler_pass_unitary_synthesis(dag, target, 0, 1.0);
-    size_t num_instructions = qk_dag_num_op_nodes(dag);
-    if (num_instructions != 0) {
-        printf("Identity unitary not removed from the circuit as expected");
-        result = EqualityError;
-    }
-    qk_dag_free(dag);
-    qk_quantum_register_free(qr);
-
-cleanup:
-    qk_target_free(target);
-    return result;
-}
-
-/**
- * Test running UnitarySynthesis on a single gate
- */
-static int test_unitary_synthesis_multiqubit_identity_matrix(void) {
-    const uint32_t num_qubits = 5;
-    QkTarget *target = qk_target_new(num_qubits);
-    int result = Ok;
-    result = build_unitary_target(target, num_qubits);
-    if (result != Ok) {
-        goto cleanup;
-    }
-    // Create a circuit with line connectivity.
-    QkDag *dag = qk_dag_new();
-    QkQuantumRegister *qr = qk_quantum_register_new(3, "qr");
-    qk_dag_add_quantum_register(dag, qr);
-    QkComplex64 c0 = {0., 0.};
-    QkComplex64 c1 = {1., 0.};
-    QkComplex64 unitary[64] = {c1, c0, c0, c0, c0, c0, c0, c0, c0, c1, c0, c0, c0, c0, c0, c0,
-                               c0, c0, c1, c0, c0, c0, c0, c0, c0, c0, c0, c1, c0, c0, c0, c0,
-                               c0, c0, c0, c0, c1, c0, c0, c0, c0, c0, c0, c0, c0, c1, c0, c0,
-                               c0, c0, c0, c0, c0, c0, c1, c0, c0, c0, c0, c0, c0, c0, c0, c1};
-    uint32_t qargs[3] = {0, 1, 2};
-    qk_dag_apply_unitary(dag, unitary, qargs, 3, false);
-    qk_transpiler_pass_unitary_synthesis(dag, target, 0, 1.0);
-    size_t num_instructions = qk_dag_num_op_nodes(dag);
-    if (num_instructions != 0) {
-        printf("Identity unitary not removed from the circuit as expected");
-        result = EqualityError;
-    }
-    qk_dag_free(dag);
-    qk_quantum_register_free(qr);
-
-cleanup:
-    qk_target_free(target);
-    return result;
-}
-
 int test_unitary_synthesis(void) {
     int num_failed = 0;
-    num_failed += RUN_TEST(test_standalone_unitary_synthesis_identity_matrix);
-    num_failed += RUN_TEST(test_standalone_unitary_synthesis_multiqubit_identity_matrix);
     num_failed += RUN_TEST(test_unitary_synthesis_identity_matrix);
     num_failed += RUN_TEST(test_unitary_synthesis_multiqubit_identity_matrix);
-
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);

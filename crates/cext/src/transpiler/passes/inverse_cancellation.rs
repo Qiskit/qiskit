@@ -20,37 +20,6 @@ use qiskit_transpiler::passes::run_inverse_cancellation_standard_gates;
 /// @ingroup QkTranspilerPasses
 /// Run the InverseCancellation transpiler pass on a circuit.
 ///
-/// Refer to the ``qk_transpiler_pass_inverse_cancellation`` function for more details about the pass.
-///
-/// @param circuit A pointer to the circuit to run InverseCancellation on.
-///
-/// # Safety
-///
-/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
-#[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_transpiler_pass_standalone_inverse_cancellation(
-    circuit: *mut CircuitData,
-) {
-    // SAFETY: Per documentation, the pointer is non-null and aligned.
-    let circuit = unsafe { mut_ptr_as_ref(circuit) };
-    let mut dag = match DAGCircuit::from_circuit_data(circuit, false, None, None, None, None) {
-        Ok(dag) => dag,
-        Err(_) => panic!("Internal Circuit -> DAG conversion failed"),
-    };
-
-    run_inverse_cancellation_standard_gates(&mut dag);
-
-    let out_circuit = match dag_to_circuit(&dag, false) {
-        Ok(qc) => qc,
-        Err(_) => panic!("Internal DAG -> Circuit conversion failed"),
-    };
-    *circuit = out_circuit;
-}
-
-/// @ingroup QkTranspilerPasses
-/// Run the InverseCancellation transpiler pass on a DAG Circuit.
-///
 /// Cancels pairs of consecutive gates that are inverses of each other.
 /// The cancelled gates consist of pairs of self-inverse gates:
 ///    - QkGate_H
@@ -75,34 +44,41 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_inverse_cancellation(
 ///    - (QkGate_SX, QkGate_SXdg)
 ///    - (QkGate_CS, QkGate_CSdg)
 ///
-/// @param dag A pointer to the DAG Circuit to run InverseCancellation on.
+/// @param circuit A pointer to the circuit to run InverseCancellation on. If the pass is able to
+/// remove any gates, the original circuit will be replaced by the circuit produced by this pass.
 ///
 /// # Example
 ///
 /// ```c
-///     QkDag *dag = qk_dag_new();
-///     QkQuantumRegister *qr = qk_quantum_register_new(2, "my_register");
-///     qk_dag_add_quantum_register(dag, qr);
-///
+///     QkCircuit *qc = qk_circuit_new(2, 2);
 ///     uint32_t qargs[1] = {0};
-///     qk_dag_apply_gate(dag, QkGate_X, qargs, NULL, false);
-///     qk_dag_apply_gate(dag, QkGate_H, qargs, NULL, false);
-///     qk_dag_apply_gate(dag, QkGate_H, qargs, NULL, false);
-///     qk_dag_apply_gate(dag, QkGate_Y, qargs, NULL, false);
-///     qk_transpiler_pass_inverse_cancellation(dag);
-///     qk_dag_free(dag);
-///     qk_quantum_register_free(qr);
+///     qk_circuit_gate(qc, QkGate_X, qargs, NULL);
+///     qk_circuit_gate(qc, QkGate_H, qargs, NULL);
+///     qk_circuit_gate(qc, QkGate_H, qargs, NULL);
+///     qk_circuit_gate(qc, QkGate_Y, qargs, NULL);
+///     qk_transpiler_pass_standalone_inverse_cancellation(qc);
 /// ```
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
 #[unsafe(no_mangle)]
 #[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_transpiler_pass_inverse_cancellation(
-    dag: *mut DAGCircuit,
+pub unsafe extern "C" fn qk_transpiler_pass_standalone_inverse_cancellation(
+    circuit: *mut CircuitData,
 ) {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
-    let dag = unsafe { mut_ptr_as_ref(dag) };
-    run_inverse_cancellation_standard_gates(dag);
+    let circuit = unsafe { mut_ptr_as_ref(circuit) };
+    let mut dag = match DAGCircuit::from_circuit_data(circuit, false, None, None, None, None) {
+        Ok(dag) => dag,
+        Err(_) => panic!("Internal Circuit -> DAG conversion failed"),
+    };
+
+    run_inverse_cancellation_standard_gates(&mut dag);
+
+    let out_circuit = match dag_to_circuit(&dag, false) {
+        Ok(qc) => qc,
+        Err(_) => panic!("Internal DAG -> Circuit conversion failed"),
+    };
+    *circuit = out_circuit;
 }

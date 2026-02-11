@@ -50,7 +50,7 @@ static int build_target(QkTarget *target, uint32_t num_qubits) {
 /**
  * Test running VF2Layout on a line connectivity
  */
-static int test_standalone_vf2_average_line(void) {
+static int test_vf2_average_line(void) {
     const uint32_t num_qubits = 5;
     QkTarget *target = qk_target_new(num_qubits);
     int result = Ok;
@@ -102,7 +102,7 @@ target_cleanup:
 /**
  * Test VF2Layout where a solution isn't possible
  */
-static int test_standalone_vf2_no_layout_found(void) {
+static int test_vf2_no_layout_found(void) {
     const uint32_t num_qubits = 5;
     QkTarget *target = qk_target_new(num_qubits);
     int result = Ok;
@@ -138,7 +138,7 @@ target_cleanup:
 /**
  * Test exact-match VF2 layout when no solution is possible because of available 1q operations.
  */
-static int test_standalone_vf2_exact_no_layout_1q_semantics(void) {
+static int test_vf2_exact_no_layout_1q_semantics(void) {
     int result = RuntimeError;
     uint32_t num_qubits = 5;
     uint32_t line[5] = {0, 1, 2, 3, 4};
@@ -186,7 +186,7 @@ target_failure:
  * Test exact-match VF2 layout when no solution is possible because of available 2q operations, even
  * though the structure of the graph matches.
  */
-static int test_standalone_vf2_exact_no_layout_2q_semantics(void) {
+static int test_vf2_exact_no_layout_2q_semantics(void) {
     int result = RuntimeError;
     uint32_t num_qubits = 5;
     uint32_t line[5] = {0, 1, 2, 3, 4};
@@ -233,7 +233,7 @@ target_failure:
  * Test exact-match VF2 layout when no solution is possible because the edge structure couldn't
  * match this interaction graph, no matter the nodes.
  */
-static int test_standalone_vf2_exact_no_layout_2q_structure(void) {
+static int test_vf2_exact_no_layout_2q_structure(void) {
     int result = RuntimeError;
     uint32_t num_qubits = 5;
     uint32_t line[5] = {0, 1, 2, 3, 4};
@@ -281,7 +281,7 @@ target_failure:
 /**
  * Test exact-match VF2 layout when the existing layout is already as good as it can be.
  */
-static int test_standalone_vf2_exact_no_improvement(void) {
+static int test_vf2_exact_no_improvement(void) {
     int result = RuntimeError;
     uint32_t num_qubits = 5;
     uint32_t line[5] = {0, 1, 2, 3, 4};
@@ -342,7 +342,7 @@ target_failure:
 /**
  * Test exact-match VF2 layout when there is a better mapping to find.
  */
-static int test_standalone_vf2_exact_remap(void) {
+static int test_vf2_exact_remap(void) {
     int result = RuntimeError;
     uint32_t num_qubits = 5;
     uint32_t line[5] = {0, 1, 2, 3, 4};
@@ -398,389 +398,8 @@ target_failure:
     return result;
 }
 
-/**
- * Test running VF2Layout on a line connectivity
- */
-static int test_vf2_average_line(void) {
-    const uint32_t num_qubits = 5;
-    QkTarget *target = qk_target_new(num_qubits);
-    int result = Ok;
-    result = build_target(target, num_qubits);
-    if (result != Ok) {
-        goto target_cleanup;
-    }
-    // Create a circuit with line connectivity.
-    QkDag *dag = qk_dag_new();
-    QkQuantumRegister *qr = qk_quantum_register_new(num_qubits, "qr");
-    qk_dag_add_quantum_register(dag, qr);
-    for (uint32_t i = 0; i < qk_dag_num_qubits(dag) - 1; i++) {
-        uint32_t qargs[2] = {i, i + 1};
-        for (uint32_t j = 0; j < i + 1; j++) {
-            qk_dag_apply_gate(dag, QkGate_CX, qargs, NULL, false);
-        }
-    }
-    QkVF2LayoutConfiguration *layout_config = qk_vf2_layout_configuration_new();
-    qk_vf2_layout_configuration_set_call_limit(layout_config, 10000, 10000);
-    QkVF2LayoutResult *layout_result =
-        qk_transpiler_pass_vf2_layout_average(dag, target, layout_config, false);
-    if (!qk_vf2_layout_result_has_match(layout_result)) {
-        printf("%s: No layout was found\n", __func__);
-        result = EqualityError;
-        goto layout_cleanup;
-    }
-    // Higher indexed physical qubits have lower error rates and
-    // higher indexed virtual qubits have more gates. VF2 should
-    // chose a trivial layout since it's the lowest error rate
-    // in mapping these lines together.
-    uint32_t expected[5] = {0, 1, 2, 3, 4};
-    for (uint32_t i = 0; i < num_qubits; i++) {
-        uint32_t phys = qk_vf2_layout_result_map_virtual_qubit(layout_result, i);
-        if (phys != expected[i]) {
-            printf("%s: Unexpected layout result virtual qubit %d mapped to %d\n", __func__, phys,
-                   expected[i]);
-            result = EqualityError;
-            goto layout_cleanup;
-        }
-    }
-
-layout_cleanup:
-    qk_vf2_layout_result_free(layout_result);
-    qk_vf2_layout_configuration_free(layout_config);
-    qk_dag_free(dag);
-    qk_quantum_register_free(qr);
-
-target_cleanup:
-    qk_target_free(target);
-    return result;
-}
-
-/**
- * Test VF2Layout where a solution isn't possible
- */
-static int test_vf2_no_layout_found(void) {
-    const uint32_t num_qubits = 5;
-    QkTarget *target = qk_target_new(num_qubits);
-    int result = Ok;
-    result = build_target(target, num_qubits);
-    if (result != Ok) {
-        goto target_cleanup;
-    }
-    QkDag *dag = qk_dag_new();
-    QkQuantumRegister *qr = qk_quantum_register_new(5, "qr");
-    qk_dag_add_quantum_register(dag, qr);
-    for (uint32_t i = 0; i < qk_dag_num_qubits(dag); i++) {
-        for (uint32_t j = 0; j < qk_dag_num_qubits(dag); j++) {
-            if (i == j) {
-                continue;
-            }
-            uint32_t qargs[2] = {i, j};
-            qk_dag_apply_gate(dag, QkGate_CX, qargs, NULL, false);
-        }
-    }
-    QkVF2LayoutResult *layout_result =
-        qk_transpiler_pass_vf2_layout_average(dag, target, NULL, false);
-    if (qk_vf2_layout_result_has_match(layout_result)) {
-        printf("%s: Unexpected layout found when one shouldn't be possible", __func__);
-        result = EqualityError;
-        goto layout_cleanup;
-    }
-layout_cleanup:
-    qk_vf2_layout_result_free(layout_result);
-    qk_dag_free(dag);
-    qk_quantum_register_free(qr);
-target_cleanup:
-    qk_target_free(target);
-    return result;
-}
-
-/**
- * Test exact-match VF2 layout when no solution is possible because of available 1q operations.
- */
-static int test_vf2_exact_no_layout_1q_semantics(void) {
-    int result = RuntimeError;
-    uint32_t num_qubits = 5;
-    uint32_t line[5] = {0, 1, 2, 3, 4};
-
-    QkTarget *target = qk_target_new(num_qubits);
-    result = build_target(target, num_qubits);
-    if (result != Ok)
-        goto target_failure;
-
-    QkDag *dag = qk_dag_new();
-    QkQuantumRegister *qr = qk_quantum_register_new(num_qubits, "qr");
-    qk_dag_add_quantum_register(dag, qr);
-    // The CX line is fine, as are the X gates.
-    for (uint32_t i = 0; i < num_qubits - 1; i++) {
-        qk_dag_apply_gate(dag, QkGate_CX, &line[i], NULL, false);
-        qk_dag_apply_gate(dag, QkGate_X, &line[i], NULL, false);
-    }
-    // This Y gate isn't fine.
-    qk_dag_apply_gate(dag, QkGate_Y, &line[num_qubits - 1], NULL, false);   
-    QkVF2LayoutResult *layout_result =
-        qk_transpiler_pass_vf2_layout_exact(dag, target, NULL);
-    if (qk_vf2_layout_result_has_match(layout_result)) {
-        printf("%s: unexpected match\n", __func__);
-        result = EqualityError;
-        goto cleanup;
-    }
-    if (qk_vf2_layout_result_has_improvement(layout_result)) {
-        printf("%s: claimed improvement without a match\n", __func__);
-        result = EqualityError;
-        goto cleanup;
-    }
-    result = Ok;
-
-cleanup:
-    qk_vf2_layout_result_free(layout_result);
-    qk_dag_free(dag);
-    qk_quantum_register_free(qr);
-    qk_target_free(target);
-    return result;
-
-target_failure:
-    printf("%s: failed to build_target\n", __func__);
-    return result;
-}
-
-/**
- * Test exact-match VF2 layout when no solution is possible because of available 2q operations, even
- * though the structure of the graph matches.
- */
-static int test_vf2_exact_no_layout_2q_semantics(void) {
-    int result = RuntimeError;
-    uint32_t num_qubits = 5;
-    uint32_t line[5] = {0, 1, 2, 3, 4};
-
-    QkTarget *target = qk_target_new(num_qubits);
-    result = build_target(target, num_qubits);
-    if (result != Ok) {
-        goto target_failure;
-    }
-
-    QkDag *dag = qk_dag_new();
-    QkQuantumRegister *qr = qk_quantum_register_new(num_qubits, "qr");
-    qk_dag_add_quantum_register(dag, qr);
-    
-    // The CX line is fine, as are the X gates.
-    for (uint32_t i = 0; i < num_qubits - 1; i++) {
-        qk_dag_apply_gate(dag, QkGate_CX, &line[i], NULL, false);
-        qk_dag_apply_gate(dag, QkGate_X, &line[i], NULL, false);
-    }
-    // This CZ is not fine.
-    qk_dag_apply_gate(dag, QkGate_CZ, line, NULL, false);
-    QkVF2LayoutResult *layout_result =
-        qk_transpiler_pass_vf2_layout_exact(dag, target, NULL);
-    if (qk_vf2_layout_result_has_match(layout_result)) {
-        printf("%s: unexpected match\n", __func__);
-        goto cleanup;
-    }
-    if (qk_vf2_layout_result_has_improvement(layout_result)) {
-        printf("%s: claimed improvement without a match\n", __func__);
-        goto cleanup;
-    }
-    result = Ok;
-
-cleanup:
-    qk_vf2_layout_result_free(layout_result);
-    qk_dag_free(dag);
-    qk_quantum_register_free(qr);
-    qk_target_free(target);
-    return result;
-
-target_failure:
-    printf("%s: failed to build_target\n", __func__);
-    return result;
-}
-
-/**
- * Test exact-match VF2 layout when no solution is possible because the edge structure couldn't
- * match this interaction graph, no matter the nodes.
- */
-static int test_vf2_exact_no_layout_2q_structure(void) {
-    int result = RuntimeError;
-    uint32_t num_qubits = 5;
-    uint32_t line[5] = {0, 1, 2, 3, 4};
-
-    QkTarget *target = qk_target_new(num_qubits);
-    result = build_target(target, num_qubits);
-    if (result != Ok)
-        goto target_failure;
-
-    QkDag *dag = qk_dag_new();
-    QkQuantumRegister *qr = qk_quantum_register_new(num_qubits, "qr");
-    qk_dag_add_quantum_register(dag, qr);
-    // The CX line is fine, as are the X gates.
-    for (uint32_t i = 0; i < num_qubits - 1; i++) {
-        qk_dag_apply_gate(dag, QkGate_CX, &line[i], NULL, false);
-        qk_dag_apply_gate(dag, QkGate_X, &line[i], NULL, false);
-    }
-    // This CX is backwards and so not fine.
-    uint32_t bad_cx[2] = {1, 0};
-    qk_dag_apply_gate(dag, QkGate_CX, bad_cx, NULL, false);
-
-    QkVF2LayoutResult *layout_result =
-        qk_transpiler_pass_vf2_layout_exact(dag, target, NULL);
-    if (qk_vf2_layout_result_has_match(layout_result)) {
-        printf("%s: unexpected match\n", __func__);
-        goto cleanup;
-    }
-    if (qk_vf2_layout_result_has_improvement(layout_result)) {
-        printf("%s: claimed improvement without a match\n", __func__);
-        goto cleanup;
-    }
-    result = Ok;
-
-cleanup:
-    qk_vf2_layout_result_free(layout_result);
-    qk_dag_free(dag);
-    qk_quantum_register_free(qr);
-    qk_target_free(target);
-    return result;
-
-target_failure:
-    result = RuntimeError;
-    printf("%s: failed to build_target\n", __func__);
-    qk_target_free(target);
-    return result;
-}
-
-/**
- * Test exact-match VF2 layout when the existing layout is already as good as it can be.
- */
-static int test_vf2_exact_no_improvement(void) {
-    int result = RuntimeError;
-    uint32_t num_qubits = 5;
-    uint32_t line[5] = {0, 1, 2, 3, 4};
-
-    QkTarget *target = qk_target_new(num_qubits);
-    if (qk_target_add_instruction(target, qk_target_entry_new(QkGate_X)))
-        goto target_failure;
-    QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
-    // In this target, the errors get stronger on higher-indexed CXs.
-    for (uint32_t i = 0; i < num_qubits - 1; i++) {
-        double error = 0.0625 * (i + 1);
-        if (qk_target_entry_add_property(cx_entry, line + i, 2, 0.0, error))
-            goto target_failure;
-    }
-    if (qk_target_add_instruction(target, cx_entry))
-        goto target_failure;
-
-    QkDag *dag = qk_dag_new();
-    QkQuantumRegister *qr = qk_quantum_register_new(num_qubits, "qr");
-    qk_dag_add_quantum_register(dag, qr);
-    // There are more CXes on the early qubits, so we should prefer those to stay on the early
-    // indexes, like they already are.
-    for (uint32_t i = 0; i < num_qubits - 1; i++) {
-        qk_dag_apply_gate(dag, QkGate_X, &line[i], NULL, false);
-        for (uint32_t j = num_qubits; j; j--)
-            qk_dag_apply_gate(dag, QkGate_CX, &line[i], NULL, false);
-    }
-
-    QkVF2LayoutResult *layout_result =
-        qk_transpiler_pass_vf2_layout_exact(dag, target, NULL);
-    if (!qk_vf2_layout_result_has_match(layout_result)) {
-        printf("%s: failed to find a layout\n", __func__);
-        goto cleanup;
-    }
-    if (qk_vf2_layout_result_has_improvement(layout_result)) {
-        printf("%s: claimed improvement but original was optimal\n", __func__);
-        goto cleanup;
-    }
-    for (uint32_t i = 0; i < num_qubits; i++) {
-        uint32_t mapped = qk_vf2_layout_result_map_virtual_qubit(layout_result, i);
-        if (mapped != i) {
-            printf("%s: no-improvement result falsely mapped %u to %u\n", __func__, mapped, i);
-            goto cleanup;
-        }
-    }
-    result = Ok;
-
-cleanup:
-    qk_vf2_layout_result_free(layout_result);
-    qk_dag_free(dag);
-    qk_quantum_register_free(qr);
-    qk_target_free(target);
-    return result;
-
-target_failure:
-    printf("%s: failed to build_target\n", __func__);
-    qk_target_free(target);
-    return result;
-}
-
-/**
- * Test exact-match VF2 layout when there is a better mapping to find.
- */
-static int test_vf2_exact_remap(void) {
-    int result = RuntimeError;
-    uint32_t num_qubits = 5;
-    uint32_t line[5] = {0, 1, 2, 3, 4};
-
-    QkTarget *target = qk_target_new(num_qubits);
-    if (qk_target_add_instruction(target, qk_target_entry_new(QkGate_X)))
-        goto target_failure;
-    QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
-    // In this target, the errors get stronger on higher-indexed CXs, and it's bidirectional.
-    for (uint32_t i = 0; i < num_qubits - 1; i++) {
-        double error = 0.0625 * (i + 1);
-        if (qk_target_entry_add_property(cx_entry, line + i, 2, 0.0, error))
-            goto target_failure;
-        uint32_t reverse[2] = {line[i + 1], line[i]};
-        if (qk_target_entry_add_property(cx_entry, reverse, 2, 0.0, error))
-            goto target_failure;
-    }
-    if (qk_target_add_instruction(target, cx_entry))
-        goto target_failure;
-
-    QkDag *dag = qk_dag_new();
-    QkQuantumRegister *qr = qk_quantum_register_new(num_qubits, "qr");
-    qk_dag_add_quantum_register(dag, qr);
-    // There are more CXes on the _late_ qubits, so VF2 should completely invert the mapping.
-    for (uint32_t i = 0; i < num_qubits - 1; i++) {
-        for (uint32_t j = i + 1; j; j--)
-            qk_dag_apply_gate(dag, QkGate_CX, &line[i], NULL, false);
-    }
-
-    QkVF2LayoutResult *layout_result =
-        qk_transpiler_pass_vf2_layout_exact(dag, target, NULL);
-    if (!qk_vf2_layout_result_has_improvement(layout_result)) {
-        printf("%s: failed to improve non-optimal layout\n", __func__);
-        goto cleanup;
-    }
-    for (uint32_t i = 0; i < num_qubits; i++) {
-        // The correct result is {4, 3, 2, 1, 0}.
-        uint32_t mapped = qk_vf2_layout_result_map_virtual_qubit(layout_result, i);
-        if (mapped != num_qubits - i - 1) {
-            printf("%s: improvement result falsely mapped %u to %u\n", __func__, mapped, i);
-            goto cleanup;
-        }
-    }
-    result = Ok;
-
-cleanup:
-    qk_vf2_layout_result_free(layout_result);
-    qk_dag_free(dag);
-    qk_quantum_register_free(qr);
-    qk_target_free(target);
-    return result;
-
-target_failure:
-    printf("%s: failed to build_target\n", __func__);
-    qk_target_free(target);
-    return result;
-}
-
 int test_vf2_layout(void) {
     int num_failed = 0;
-    num_failed += RUN_TEST(test_standalone_vf2_average_line);
-    num_failed += RUN_TEST(test_standalone_vf2_no_layout_found);
-
-    num_failed += RUN_TEST(test_standalone_vf2_exact_no_layout_1q_semantics);
-    num_failed += RUN_TEST(test_standalone_vf2_exact_no_layout_2q_semantics);
-    num_failed += RUN_TEST(test_standalone_vf2_exact_no_layout_2q_structure);
-    num_failed += RUN_TEST(test_standalone_vf2_exact_no_improvement);
-    num_failed += RUN_TEST(test_standalone_vf2_exact_remap);
-
     num_failed += RUN_TEST(test_vf2_average_line);
     num_failed += RUN_TEST(test_vf2_no_layout_found);
 

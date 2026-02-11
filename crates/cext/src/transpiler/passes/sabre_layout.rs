@@ -60,14 +60,46 @@ pub extern "C" fn qk_sabre_layout_options_default() -> SabreLayoutOptions {
 /// @ingroup QkTranspilerPasses
 /// Run the SabreLayout transpiler pass on a circuit.
 ///
-/// Refer to the ``qk_transpiler_pass_sabre_layout`` function for more details about the pass.
+/// The SabreLayout pass chooses a layout via an iterative bidirectional routing of the input
+/// circuit.
 ///
-/// @param circuit A pointer to the circuit to run SabreLayout on.
-/// @param target A pointer to the target to run SabreLayout on.
-/// @param options A pointer to the options for SabreLayout.
+/// Starting with a random initial Layout, the algorithm does a full routing of the circuit to end up with a final_layout.
+/// This final_layout is then used as the initial_layout for routing the reverse circuit. The algorithm iterates a number
+/// of times until it finds an initial_layout that reduces full routing cost.
+///
+/// This method exploits the reversibility of quantum circuits, and tries to include global circuit information in the
+/// choice of initial_layout.
+///
+/// This pass will run both layout and routing and will transform the circuit so that the layout is applied to the input
+/// (meaning that the output circuit will have ancilla qubits allocated for unused qubits on the coupling map and the
+/// qubits will be reordered to match the mapped physical qubits) and then routing will be applied. This is done because
+/// the pass will run parallel seed trials with different random seeds for selecting the random initial layout and then
+/// selecting the routed output which results in the least number of swap gates needed. This final
+/// swap calculation is the same as performing a final routing, so it's more efficient to apply it
+/// after computing it.
+///
+/// This function is multithreaded and will launch a thread pool with threads equal to the number
+/// of CPUs by default. You can tune the number of threads with the ``RAYON_NUM_THREADS``
+/// environment variable. For example, setting ``RAYON_NUM_THREADS=4`` would limit the thread pool
+/// to 4 threads.
+///
+/// # References
+///
+/// [1] Henry Zou and Matthew Treinish and Kevin Hartman and Alexander Ivrii and Jake Lishman.
+/// "LightSABRE: A Lightweight and Enhanced SABRE Algorithm"
+/// [arXiv:2409.08368](https://doi.org/10.48550/arXiv.2409.08368)
+///
+/// [2] Li, Gushu, Yufei Ding, and Yuan Xie. "Tackling the qubit mapping problem
+/// for NISQ-era quantum devices." ASPLOS 2019.
+/// [arXiv:1809.02573](https://arxiv.org/pdf/1809.02573.pdf)
+///
+/// @param circuit A pointer to the circuit to run SabreLayout on. The circuit
+///     is modified in place and the original circuit's allocations are freed by this function.
+/// @param target A pointer to the target to run SabreLayout on
+/// @param options A pointer to the options for SabreLayout
 ///
 /// @return The transpile layout that describes the layout and output permutation caused
-///     by the pass.
+///     by the pass
 ///
 /// # Safety
 ///
@@ -131,113 +163,5 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_sabre_layout(
         result.qubits().objects().clone(),
         num_input_qubits,
         result.qregs().to_vec(),
-    )))
-}
-
-/// @ingroup QkTranspilerPasses
-/// Run the SabreLayout transpiler pass on a DAG circuit.
-///
-/// The SabreLayout pass chooses a layout via an iterative bidirectional routing of the input
-/// DAG circuit.
-///
-/// Starting with a random initial Layout, the algorithm does a full routing of the circuit to end up with a final_layout.
-/// This final_layout is then used as the initial_layout for routing the reverse circuit. The algorithm iterates a number
-/// of times until it finds an initial_layout that reduces full routing cost.
-///
-/// This method exploits the reversibility of quantum circuits, and tries to include global circuit information in the
-/// choice of initial_layout.
-///
-/// This pass will run both layout and routing and will transform the circuit so that the layout is applied to the input
-/// (meaning that the output circuit will have ancilla qubits allocated for unused qubits on the coupling map and the
-/// qubits will be reordered to match the mapped physical qubits) and then routing will be applied. This is done because
-/// the pass will run parallel seed trials with different random seeds for selecting the random initial layout and then
-/// selecting the routed output which results in the least number of swap gates needed. This final
-/// swap calculation is the same as performing a final routing, so it's more efficient to apply it
-/// after computing it.
-///
-/// This function is multithreaded and will launch a thread pool with threads equal to the number
-/// of CPUs by default. You can tune the number of threads with the ``RAYON_NUM_THREADS``
-/// environment variable. For example, setting ``RAYON_NUM_THREADS=4`` would limit the thread pool
-/// to 4 threads.
-///
-/// # References
-///
-/// [1] Henry Zou and Matthew Treinish and Kevin Hartman and Alexander Ivrii and Jake Lishman.
-/// "LightSABRE: A Lightweight and Enhanced SABRE Algorithm"
-/// [arXiv:2409.08368](https://doi.org/10.48550/arXiv.2409.08368)
-///
-/// [2] Li, Gushu, Yufei Ding, and Yuan Xie. "Tackling the qubit mapping problem
-/// for NISQ-era quantum devices." ASPLOS 2019.
-/// [arXiv:1809.02573](https://arxiv.org/pdf/1809.02573.pdf)
-///
-/// @param dag A pointer to the DAG circuit to run SabreLayout on. The circuit
-///     is modified in place and the original circuit's allocations are freed by this function.
-/// @param target A pointer to the target to run SabreLayout on
-/// @param options A pointer to the options for SabreLayout
-///
-/// @return The transpile layout that describes the layout and output permutation caused
-///     by the pass
-///
-/// # Safety
-///
-/// Behavior is undefined if ``circuit`` or ``target`` is not a valid, non-null pointer to a ``QkCircuit`` and ``QkTarget``.
-#[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_transpiler_pass_sabre_layout(
-    dag: *mut DAGCircuit,
-    target: *const Target,
-    options: *const SabreLayoutOptions,
-) -> *mut TranspileLayout {
-    // SAFETY: Per documentation, the pointer is non-null and aligned.
-    let dag = unsafe { mut_ptr_as_ref(dag) };
-    let target = unsafe { const_ptr_as_ref(target) };
-    let options = unsafe { const_ptr_as_ref(options) };
-    let num_input_qubits = dag.num_qubits() as u32;
-
-    let heuristic = heuristic::Heuristic::new(
-        Some(heuristic::BasicHeuristic::new(
-            1.0,
-            heuristic::SetScaling::Constant,
-        )),
-        Some(heuristic::LookaheadHeuristic::new(
-            0.5,
-            20,
-            heuristic::SetScaling::Size,
-        )),
-        Some(heuristic::DecayHeuristic::new(0.001, 5)),
-        Some(10 * target.num_qubits.unwrap() as usize),
-        1e-10,
-    );
-    let (result, initial_layout, final_layout) = sabre_layout_and_routing(
-        dag,
-        target,
-        &heuristic,
-        options.max_iterations,
-        options.num_swap_trials,
-        options.num_random_trials,
-        Some(options.seed),
-        Vec::new(),
-        false,
-    )
-    .unwrap_or_else(|_| panic!("Sabre layout failed."));
-    let out_permutation = (0..result.num_qubits() as u32)
-        .map(|ref q| {
-            Qubit(
-                final_layout
-                    .virtual_to_physical(initial_layout.physical_to_virtual(PhysicalQubit(*q)))
-                    .0,
-            )
-        })
-        .collect();
-    let qubits = result.qubits().objects().clone();
-    let qregs = result.qregs().to_vec();
-    *dag = result;
-
-    Box::into_raw(Box::new(TranspileLayout::new(
-        Some(initial_layout),
-        Some(out_permutation),
-        qubits,
-        num_input_qubits,
-        qregs,
     )))
 }

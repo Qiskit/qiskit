@@ -20,12 +20,15 @@ use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 /// @ingroup QkTranspilerPasses
 /// Run the ConsolidateBlocks pass on a circuit.
 ///
-/// Refer to the ``qk_transpiler_pass_consolidate_blocks`` function for more details about the pass.
+/// ConsolidateBlocks is a transpiler pass that consolidates consecutive blocks of
+/// gates operating on the same qubits into a Unitary gate, to later on be
+/// resynthesized, which leads to a more optimal subcircuit.
 ///
 /// @param circuit A pointer to the circuit to run ConsolidateBlocks on.
-/// @param target A pointer to the target.
-/// @param approximation_degree A float between `[0.0, 1.0]` or `NaN`.
-/// @param force_consolidate Force block consolidation.
+/// @param target A pointer to the target to run ConsolidateBlocks on.
+/// @param approximation_degree A float between `[0.0, 1.0]` or a `NaN` which
+/// defaults to `1.0`. Lower approximates more.
+/// @param force_consolidate: Force block consolidation.
 ///
 /// # Safety
 ///
@@ -67,48 +70,4 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_consolidate_blocks(
     let result_circuit = dag_to_circuit(&circ_as_dag, true)
         .expect("Error while converting from DAGCircuit to CircuitData.");
     *circuit = result_circuit;
-}
-
-/// @ingroup QkTranspilerPasses
-/// Run the ConsolidateBlocks pass on a DAG Circuit.
-///
-/// ConsolidateBlocks is a transpiler pass that consolidates consecutive blocks of
-/// gates operating on the same qubits into a Unitary gate, to later on be
-/// resynthesized, which leads to a more optimal subcircuit.
-///
-/// @param dag A pointer to the DAG Circuit to run ConsolidateBlocks on.
-/// @param target A pointer to the target to run ConsolidateBlocks on.
-/// @param approximation_degree A float between `[0.0, 1.0]` or a `NaN` which
-/// defaults to `1.0`. Lower approximates more.
-/// @param force_consolidate: Force block consolidation.
-///
-/// # Safety
-///
-/// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag`` and
-/// if ``target`` is not a valid pointer to a ``QkTarget``.
-#[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_transpiler_pass_consolidate_blocks(
-    dag: *mut DAGCircuit,
-    target: *const Target,
-    approximation_degree: f64,
-    force_consolidate: bool,
-) {
-    let dag = unsafe { mut_ptr_as_ref(dag) };
-    let target = unsafe {
-        if target.is_null() {
-            None
-        } else {
-            Some(const_ptr_as_ref(target))
-        }
-    };
-    let approximation_degree = if approximation_degree.is_nan() {
-        1.0
-    } else {
-        approximation_degree
-    };
-
-    // Call the pass
-    run_consolidate_blocks(dag, force_consolidate, Some(approximation_degree), target)
-        .expect("Error running the consolidate blocks pass.");
 }

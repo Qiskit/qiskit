@@ -19,7 +19,7 @@
 #include <stdio.h>
 #include <string.h>
 
-static int test_standalone_commutative_cancellation_target(void) {
+static int test_commutative_cancellation_target(void) {
     const uint32_t num_qubits = 5;
     QkTarget *target = qk_target_new(num_qubits);
     qk_target_add_instruction(target, qk_target_entry_new(QkGate_Z));
@@ -59,7 +59,7 @@ cleanup:
     return result;
 }
 
-static int test_standalone_commutative_cancellation_no_target(void) {
+static int test_commutative_cancellation_no_target(void) {
     int result = Ok;
 
     QkCircuit *qc = qk_circuit_new(2, 0);
@@ -92,89 +92,8 @@ cleanup:
     return result;
 }
 
-static int test_commutative_cancellation_target(void) {
-    const uint32_t num_qubits = 5;
-    QkTarget *target = qk_target_new(num_qubits);
-    qk_target_add_instruction(target, qk_target_entry_new(QkGate_Z));
-    qk_target_add_instruction(target, qk_target_entry_new(QkGate_SX));
-    qk_target_add_instruction(target, qk_target_entry_new(QkGate_CX));
-
-    int result = Ok;
-
-    QkDag *dag = qk_dag_new();
-    QkQuantumRegister *qr = qk_quantum_register_new(2, "qr");
-    qk_dag_add_quantum_register(dag, qr);
-    uint32_t cx_qargs[2] = {
-        0,
-        1,
-    };
-    uint32_t rz_qargs[1] = {
-        0,
-    };
-    double rz_params[1] = {
-        3.14159,
-    };
-    qk_dag_apply_gate(dag, QkGate_CX, cx_qargs, NULL, false);
-    qk_dag_apply_gate(dag, QkGate_RZ, rz_qargs, rz_params, false);
-    qk_dag_apply_gate(dag, QkGate_CX, cx_qargs, NULL, false);
-
-    result = qk_transpiler_pass_commutative_cancellation(dag, target, 1.0);
-    if (result != 0) {
-        printf("Running the pass failed");
-        goto cleanup;
-    }
-
-    if (qk_dag_num_op_nodes(dag) != 1) {
-        result = EqualityError;
-        printf("The gates weren't removed by this circuit");
-    }
-cleanup:
-    qk_dag_free(dag);
-    qk_quantum_register_free(qr);
-    qk_target_free(target);
-    return result;
-}
-
-static int test_commutative_cancellation_no_target(void) {
-    int result = Ok;
-
-    QkDag *dag = qk_dag_new();
-    QkQuantumRegister *qr = qk_quantum_register_new(2, "qr");
-    qk_dag_add_quantum_register(dag, qr);
-    uint32_t cx_qargs[2] = {
-        0,
-        1,
-    };
-    uint32_t rz_qargs[1] = {
-        0,
-    };
-    double rz_params[1] = {
-        3.14159,
-    };
-    qk_dag_apply_gate(dag, QkGate_CX, cx_qargs, NULL, false);
-    qk_dag_apply_gate(dag, QkGate_RZ, rz_qargs, rz_params, false);
-    qk_dag_apply_gate(dag, QkGate_CX, cx_qargs, NULL, false);
-
-    result = qk_transpiler_pass_commutative_cancellation(dag, NULL, 1.0);
-    if (result != 0) {
-        printf("Running the pass failed");
-        goto cleanup;
-    }
-
-    if (qk_dag_num_op_nodes(dag) != 1) {
-        result = EqualityError;
-        printf("The gates weren't removed by this circuit");
-    }
-cleanup:
-    qk_dag_free(dag);
-    qk_quantum_register_free(qr);
-    return result;
-}
-
 int test_commutative_cancellation(void) {
     int num_failed = 0;
-    num_failed += RUN_TEST(test_standalone_commutative_cancellation_target);
-    num_failed += RUN_TEST(test_standalone_commutative_cancellation_no_target);
     num_failed += RUN_TEST(test_commutative_cancellation_target);
     num_failed += RUN_TEST(test_commutative_cancellation_no_target);
 

@@ -22,14 +22,45 @@ use qiskit_transpiler::passes::{
 use qiskit_transpiler::target::Target;
 
 /// @ingroup QkTranspilerPasses
-/// Run the UnitarySynthesis transpiler pass on a circuit.
+/// Run the UnitarySynthesis transpiler pass.
 ///
-/// Refer to the ``qk_transpiler_pass_unitary_synthesis`` function for more details about the pass.
+/// The UnitarySynthesis transpiler pass will synthesize any UnitaryGates in the circuit into gates
+/// available in the target.
 ///
-/// @param circuit A pointer to the circuit to run UnitarySynthesis on.
-/// @param target A pointer to the target to run UnitarySynthesis on.
-/// @param min_qubits The minimum number of qubits in the unitary to synthesize.
-/// @param approximation_degree Heuristic dial used for circuit approximation.
+/// @param circuit A pointer to the circuit to run UnitarySynthesis on
+/// @param target A pointer to the target to run UnitarySynthesis on
+/// @param min_qubits The minimum number of qubits in the unitary to synthesize. If the unitary
+///        is less than the specified number of qubits it will not be synthesized.
+/// @param approximation_degree heuristic dial used for circuit approximation
+///        (1.0=no approximation, 0.0=maximal approximation). Approximation can
+///        make the synthesized circuit cheaper at the cost of straying from
+///        the original unitary. If NAN, the target approximation is based on gate fidelities
+///        in the ``target``.
+///
+/// # Example
+///
+/// ```c
+///     QkTarget *target = qk_target_new(2);
+///     uint32_t current_num_qubits = qk_target_num_qubits(target);
+///     QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
+///     for (uint32_t i = 0; i < current_num_qubits - 1; i++) {
+///         uint32_t qargs[2] = {i, i + 1};
+///         double inst_error = 0.0090393 * (current_num_qubits - i);
+///         double inst_duration = 0.020039;
+///         qk_target_entry_add_property(cx_entry, qargs, 2, inst_duration, inst_error);
+///     }
+///     QkExitCode result_cx = qk_target_add_instruction(target, cx_entry);
+///     QkCircuit *qc = qk_circuit_new(2, 0);
+///     QkComplex64 c0 = {0., 0.};
+///     QkComplex64 c1 = {1., 0.};
+///     QkComplex64 unitary[16] = {c1, c0, c0, c0,  // row 0
+///                                c0, c1, c0, c0,  // row 1
+///                                c0, c0, c1, c0,  // row 2
+///                                c0, c0, c0, c1}; // row 3
+///     uint32_t qargs[2] = {0, 1};
+///     qk_circuit_unitary(qc, unitary, qargs, 2, false);
+///     qk_transpiler_pass_standalone_unitary_synthesis(qc, target, 0, 1.0);
+/// ```
 ///
 /// # Safety
 ///
@@ -185,206 +216,4 @@ mod tests {
         gate_names.sort();
         assert_eq!(gate_names, vec!["cx", "u"]);
     }
-
-    #[test]
-    fn test_dag_pass_synthesis() {
-        let mut dag = DAGCircuit::new();
-        for _ in 0..3 {
-            dag.add_qubit_unchecked(ShareableQubit::new_anonymous())
-                .unwrap();
-        }
-
-        let array = StandardGate::CZ.matrix(&[]).unwrap();
-        let gate = UnitaryGate {
-            array: ArrayType::NDArray(array),
-        };
-        dag.apply_operation_back(
-            PackedOperation::from_unitary(Box::new(gate)),
-            &[Qubit(0), Qubit(1)],
-            &[],
-            None,
-            None,
-        )
-        .unwrap();
-        let array = StandardGate::DCX.matrix(&[]).unwrap();
-        let gate = UnitaryGate {
-            array: ArrayType::NDArray(array),
-        };
-        dag.apply_operation_back(
-            PackedOperation::from_unitary(Box::new(gate)),
-            &[Qubit(1), Qubit(2)],
-            &[],
-            None,
-            None,
-        )
-        .unwrap();
-        let array = StandardGate::DCX.matrix(&[]).unwrap();
-        let gate = UnitaryGate {
-            array: ArrayType::NDArray(array),
-        };
-        dag.apply_operation_back(
-            PackedOperation::from_unitary(Box::new(gate)),
-            &[Qubit(1), Qubit(2)],
-            &[],
-            None,
-            None,
-        )
-        .unwrap();
-        let array = StandardGate::Tdg.matrix(&[]).unwrap();
-        let gate = UnitaryGate {
-            array: ArrayType::NDArray(array),
-        };
-        dag.apply_operation_back(
-            PackedOperation::from_unitary(Box::new(gate)),
-            &[Qubit(1)],
-            &[],
-            None,
-            None,
-        )
-        .unwrap();
-        let array = StandardGate::CY.matrix(&[]).unwrap();
-        let gate = UnitaryGate {
-            array: ArrayType::NDArray(array),
-        };
-        dag.apply_operation_back(
-            PackedOperation::from_unitary(Box::new(gate)),
-            &[Qubit(0), Qubit(2)],
-            &[],
-            None,
-            None,
-        )
-        .unwrap();
-
-        let mut target = Target::new(
-            Some("Fake Target".to_string()),
-            Some(3), // num_qubits
-            None,    // dt
-            None,    // granularity
-            None,    // min_length
-            None,    // pulse_alignment
-            None,    // acquire_alignment
-            None,    // qubit_properties
-            None,    // concurrent_measurements
-        )
-        .unwrap();
-        let params = Some(Parameters::Params(smallvec![
-            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
-                "ϴ", None, None,
-            )))),
-            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
-                "φ", None, None,
-            )))),
-            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
-                "λ", None, None,
-            )))),
-        ]));
-        target
-            .add_instruction(
-                PackedOperation::from_standard_gate(StandardGate::U),
-                params,
-                None,
-                None,
-            )
-            .unwrap();
-        target
-            .add_instruction(
-                PackedOperation::from_standard_gate(StandardGate::CX),
-                None,
-                None,
-                None,
-            )
-            .unwrap();
-        unsafe {
-            qk_transpiler_pass_unitary_synthesis(&mut dag, &target, 0, 1.0);
-        };
-        let out_circuit = dag_to_circuit(&dag, false).unwrap();
-        let mut gate_names = out_circuit.count_ops().keys().copied().collect::<Vec<_>>();
-        gate_names.sort();
-        assert_eq!(gate_names, vec!["cx", "u"]);
-    }
-}
-
-/// @ingroup QkTranspilerPasses
-/// Run the UnitarySynthesis transpiler pass.
-///
-/// The UnitarySynthesis transpiler pass will synthesize any UnitaryGates in the DAG circuit into gates
-/// available in the target.
-///
-/// @param circuit A pointer to the circuit to run UnitarySynthesis on
-/// @param target A pointer to the target to run UnitarySynthesis on
-/// @param min_qubits The minimum number of qubits in the unitary to synthesize. If the unitary
-///        is less than the specified number of qubits it will not be synthesized.
-/// @param approximation_degree heuristic dial used for circuit approximation
-///        (1.0=no approximation, 0.0=maximal approximation). Approximation can
-///        make the synthesized circuit cheaper at the cost of straying from
-///        the original unitary. If NAN, the target approximation is based on gate fidelities
-///        in the ``target``.
-///
-/// # Example
-///
-/// ```c
-///     QkTarget *target = qk_target_new(2);
-///     uint32_t current_num_qubits = qk_target_num_qubits(target);
-///     QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
-///     for (uint32_t i = 0; i < current_num_qubits - 1; i++) {
-///         uint32_t qargs[2] = {i, i + 1};
-///         double inst_error = 0.0090393 * (current_num_qubits - i);
-///         double inst_duration = 0.020039;
-///         qk_target_entry_add_property(cx_entry, qargs, 2, inst_duration, inst_error);
-///     }
-///     QkExitCode result_cx = qk_target_add_instruction(target, cx_entry);
-///     QkDag *dag = qk_dag_new();
-///     QkQuantumRegister *qr = qk_quantum_register_new(2, "qr");
-///     qk_dag_add_quantum_register(dag, qr);
-///     QkComplex64 c0 = {0., 0.};
-///     QkComplex64 c1 = {1., 0.};
-///     QkComplex64 unitary[16] = {c1, c0, c0, c0,  // row 0
-///                                c0, c1, c0, c0,  // row 1
-///                                c0, c0, c1, c0,  // row 2
-///                                c0, c0, c0, c1}; // row 3
-///     uint32_t qargs[2] = {0, 1};
-///     qk_dag_apply_unitary(dag, unitary, qargs, 1, false);
-///     qk_transpiler_pass_unitary_synthesis(dag, target, 0, 1.0);
-/// ```
-///
-/// # Safety
-///
-/// Behavior is undefined if ``circuit`` or ``target`` is not a valid, non-null pointer to a ``QkCircuit`` and ``QkTarget``.
-#[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
-pub unsafe extern "C" fn qk_transpiler_pass_unitary_synthesis(
-    dag: *mut DAGCircuit,
-    target: *const Target,
-    min_qubits: usize,
-    approximation_degree: f64,
-) {
-    // SAFETY: Per documentation, the pointer is non-null and aligned.
-    let dag = unsafe { mut_ptr_as_ref(dag) };
-    let target = unsafe { const_ptr_as_ref(target) };
-
-    let approximation_degree = if approximation_degree.is_nan() {
-        None
-    } else {
-        Some(approximation_degree)
-    };
-    let physical_qubits = (0..dag.num_qubits() as u32)
-        .map(PhysicalQubit::new)
-        .collect::<Vec<_>>();
-    let mut synthesis_state = UnitarySynthesisState::new(UnitarySynthesisConfig {
-        approximation_degree,
-        run_python_decomposers: false,
-        ..Default::default()
-    });
-    let out_dag = match run_unitary_synthesis(
-        &dag,
-        &["unitary".to_string()].into_iter().collect(),
-        min_qubits,
-        &physical_qubits,
-        &mut synthesis_state,
-        target.into(),
-    ) {
-        Ok(dag) => dag,
-        Err(e) => panic!("{}", e),
-    };
-    *dag = out_dag;
 }
