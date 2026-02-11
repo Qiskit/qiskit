@@ -77,33 +77,33 @@ pub unsafe extern "C" fn qk_transpiler_standalone_optimize_1q_sequences(
 ///
 /// # Example
 ///
-///     QkTarget *target = qk_target_new(1);
-///     double u_errors[3] = {0., 1e-4, 1e-4};
-///     for (int idx = 0; idx < 3; idx++) {
-///         QkTargetEntry *u_entry = qk_target_entry_new(QkGate_U);
-///         uint32_t qargs[1] = {
-///             0,
-///         };
-///         qk_target_entry_add_property(u_entry, qargs, 1, NAN, u_errors[idx]);
-///         qk_target_add_instruction(target, u_entry);
-///     }
+/// QkTarget *target = qk_target_new(1);
+/// double u_errors[3] = {0., 1e-4, 1e-4};
+/// for (int idx = 0; idx < 3; idx++) {
+/// QkTargetEntry *u_entry = qk_target_entry_new(QkGate_U);
+///     uint32_t qargs[1] = {
+///         0,
+///     };
+///     qk_target_entry_add_property(u_entry, qargs, 1, NAN, u_errors[idx]);
+///     qk_target_add_instruction(target, u_entry);
+/// }
 ///
-///     // Build circuit
-///     QkDag *dag = qk_dag_new();
-///     QkQuantumRegister *qr = qk_quantum_register_new(1, "qr");
-///     qk_dag_add_quantum_register(dag, qr);
-///     uint32_t qubits[1] = {0};
-///     for (int iter = 0; iter < 3; iter++) {
-///         qk_dag_apply_gate(dag, QkGate_H, qubits, NULL, false);
-///     }
+/// // Build circuit
+/// QkDag *dag = qk_dag_new();
+/// QkQuantumRegister *qr = qk_quantum_register_new(1, "qr");
+/// qk_dag_add_quantum_register(dag, qr);
+/// uint32_t qubits[1] = {0};
+/// for (int iter = 0; iter < 3; iter++) {
+///     qk_dag_apply_gate(dag, QkGate_H, qubits, NULL, false);
+/// }
 ///
-///     // Run transpiler pass
-///     qk_transpiler_pass_optimize_1q_sequences(dag, target);
+/// // Run transpiler pass
+/// qk_transpiler_pass_optimize_1q_sequences(dag, target);
 ///
-///     // Clean up
-///     qk_target_free(target);
-///     qk_dag_free(dag);
-///     qk_quantum_register_free(qr);
+/// // Clean up
+/// qk_target_free(target);
+/// qk_dag_free(dag);
+/// qk_quantum_register_free(qr);
 ///
 /// # Safety
 ///

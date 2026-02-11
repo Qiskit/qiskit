@@ -43,23 +43,23 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_remove_diagonal_gates_bef
 /// Transpiler pass to remove diagonal gates (like RZ, T, Z, etc) before
 /// a measurement. Including diagonal 2Q gates.
 ///
-/// @param circuit A pointer to the circuit to run this pass on
+/// @param dag A pointer to the DAG to run this pass on
 ///
 /// # Example
 ///
 /// ```c
-///     QkDag *dag = qk_dag_new();
-///     QkQuantumRegister *qr = qk_quantum_register_new(1, "qr");
-///     QkClassicalRegister *cr = qk_classical_register_new(1, "cr");
-///     qk_dag_add_quantum_register(dag, qr);
-///     qk_dag_add_classical_register(dag, cr);
-///     qk_dag_apply_gate(dag, QkGate_Z, (uint32_t[1]){0}, NULL, false);
-///     qk_dag_apply_measure(dag, 0, 0, false);
-///     qk_transpiler_pass_remove_diagonal_gates_before_measure(dag);
-///     // ...
-///     qk_dag_free(dag);
-///     qk_quantum_register_free(qr);
-///     qk_classical_register_free(cr);
+/// QkDag *dag = qk_dag_new();
+/// QkQuantumRegister *qr = qk_quantum_register_new(1, "qr");
+/// QkClassicalRegister *cr = qk_classical_register_new(1, "cr");
+/// qk_dag_add_quantum_register(dag, qr);
+/// qk_dag_add_classical_register(dag, cr);
+/// qk_dag_apply_gate(dag, QkGate_Z, (uint32_t[1]){0}, NULL, false);
+/// qk_dag_apply_measure(dag, 0, 0, false);
+/// qk_transpiler_pass_remove_diagonal_gates_before_measure(dag);
+/// // ...
+/// qk_dag_free(dag);
+/// qk_quantum_register_free(qr);
+/// qk_classical_register_free(cr);
 /// ```
 ///
 /// # Safety

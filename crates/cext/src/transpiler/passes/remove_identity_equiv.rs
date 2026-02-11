@@ -76,8 +76,8 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_remove_identity_equivalen
 ///
 /// where \f$d = 2^n\f$ is the dimension of the gate for \f$n\f$ qubits.
 ///
-/// @param dag A pointer to the DAG circuit to run RemoveIdentityEquivalent on. This circuit
-/// pointed to will be updated with the modified circuit if the pass is able to remove any gates.
+/// @param dag A pointer to the DAG to run RemoveIdentityEquivalent on. This DAG
+/// pointed to will be updated with the modified DAG if the pass is able to remove any gates.
 /// @param target The target for the RemoveIdentityEquivalent pass. If ``approximation_degree`` is set to
 /// ``NAN`` the tolerance for determining whether an operation is equivalent to
 /// identity will be set to the reported error rate in the target. Otherwise
@@ -91,29 +91,29 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_remove_identity_equivalen
 /// # Example
 ///
 /// ```c
-///     QkTarget *target = qk_target_new(5);
-///     uint32_t current_num_qubits = qk_target_num_qubits(target);
-///     QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
-///     for (uint32_t i = 0; i < current_num_qubits - 1; i++) {
-///         uint32_t qargs[2] = {i, i + 1};
-///         double inst_error = 0.0090393 * (current_num_qubits - i);
-///         double inst_duration = 0.020039;
-///         qk_target_entry_add_property(cx_entry, qargs, 2, inst_duration, inst_error);
+/// QkTarget *target = qk_target_new(5);
+/// uint32_t current_num_qubits = qk_target_num_qubits(target);
+/// QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
+/// for (uint32_t i = 0; i < current_num_qubits - 1; i++) {
+///     uint32_t qargs[2] = {i, i + 1};
+///     double inst_error = 0.0090393 * (current_num_qubits - i);
+///     double inst_duration = 0.020039;
+///     qk_target_entry_add_property(cx_entry, qargs, 2, inst_duration, inst_error);
+/// }
+/// QkExitCode result_cx = qk_target_add_instruction(target, cx_entry);
+/// QkDag *dag = qk_dag_new();
+/// QkQuantumRegister *qr = qk_quantum_register_new(4, "qr");
+/// qk_dag_add_quantum_register(dag, qr);
+/// for (uint32_t i = 0; i < qk_dag_num_qubits(dag) - 1; i++) {
+///     uint32_t qargs[2] = {i, i + 1};
+///     for (uint32_t j = 0; j<i+1; j++) {
+///     qk_dag_apply_gate(dag, QkGate_CX, qargs, NULL, false);
 ///     }
-///     QkExitCode result_cx = qk_target_add_instruction(target, cx_entry);
-///     QkDag *dag = qk_dag_new();
-///     QkQuantumRegister *qr = qk_quantum_register_new(4, "qr");
-///     qk_dag_add_quantum_register(dag, qr);
-///     for (uint32_t i = 0; i < qk_dag_num_qubits(dag) - 1; i++) {
-///         uint32_t qargs[2] = {i, i + 1};
-///         for (uint32_t j = 0; j<i+1; j++) {
-///             qk_dag_apply_gate(dag, QkGate_CX, qargs, NULL, false);
-///         }
-///     }
-///     uint32_t rz_qargs[1] = {1,};
-///     double rz_params[1] = {0.,};
-///     qk_dag_apply_gate(dag, QkGate_RZ, rz_qargs, rz_params, false);
-///     qk_transpiler_pass_remove_identity_equivalent(qc, target, 1.0);
+/// }
+/// uint32_t rz_qargs[1] = {1,};
+/// double rz_params[1] = {0.,};
+/// qk_dag_apply_gate(dag, QkGate_RZ, rz_qargs, rz_params, false);
+/// qk_transpiler_pass_remove_identity_equivalent(qc, target, 1.0);
 /// ```
 ///
 /// # Safety
