@@ -779,7 +779,6 @@ pub unsafe extern "C" fn qk_circuit_unitary(
 /// if ``index`` is out of bounds for the number of instructions in the circuit,
 /// if `out` is not valid for `4**num_qubits` writes of `QkComplex64`.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_inst_unitary(
     circuit: *mut CircuitData,
     index: usize,
@@ -833,7 +832,6 @@ pub unsafe extern "C" fn qk_circuit_inst_unitary(
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``
 /// and if ``index`` is out of bounds for the number of instructions in the circuit.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_instruction_kind(
     circuit: *const CircuitData,
     index: usize,
