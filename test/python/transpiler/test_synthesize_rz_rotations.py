@@ -10,9 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test the SynthesizeRzRotations pass."""
-
-### [WIP Note] More tests need to be added, these are just basic sanity checks.
 
 import unittest
 import numpy as np
@@ -38,13 +35,13 @@ from qiskit.quantum_info import get_clifford_gate_names
 from qiskit.circuit import Parameter
 
 
-# from qiskit.synthesis import gridsynth_rz, gridsynth_unitary
-# from qiskit.synthesis import synthesize_rz_rotations
 from qiskit.converters import dag_to_circuit
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes.synthesis import SynthesizeRZRotations
+from qiskit.transpiler.passes.synthesis import RossSelingerSynthesis
 
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
+from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
 
 
 # Set of single-qubit Clifford gates
@@ -66,7 +63,7 @@ class TestSynthesizeRzRotations(QiskitTestCase):
                 # Approximate RZ-rotation
                 qc = QuantumCircuit(1)
                 qc.rz(angle, 0)
-                synthesized_circ = SynthesizeRZRotations(epsilon=1e-10)(qc)
+                synthesized_circ = SynthesizeRZRotations()(qc)
                 # Check the operators are (almost) equal
                 self.assertEqual(Operator(synthesized_circ), Operator(RZGate(angle)))
 
@@ -76,31 +73,71 @@ class TestSynthesizeRzRotations(QiskitTestCase):
         # Approximate RZ-rotation
         qc = QuantumCircuit(1)
         qc.rz(angle, 0)
-        synthesized_circ = SynthesizeRZRotations(epsilon=1e-10)(qc)
+        synthesized_circ = SynthesizeRZRotations()(qc)
         # Check the operators are (almost) equal
         self.assertEqual(Operator(synthesized_circ), Operator(RZGate(angle)))
 
-    # [TO DO] could combine tests for angle and epsilon
-
     @data(1e-9, 1e-10, 1e-11)
-    def test_synthesize_rz_with_epsilon(self, epsilon):
+    def test_synthesize_rz_with_approximation_degree(self, epsilon):
         """Test that synthesize_rz_rotations works correctly."""
+        approximation_degree = 1 - epsilon
         # Approximate RZ-rotation
         qc = QuantumCircuit(1)
         angle = np.random.uniform(0, 4 * np.pi)
         qc.rz(angle, 0)
-        synthesized_circ = SynthesizeRZRotations(epsilon=epsilon)(qc)
+        synthesized_circ = SynthesizeRZRotations(approximation_degree=approximation_degree)(qc)
         # Check the operators are (almost) equal
         self.assertEqual(Operator(synthesized_circ), Operator(RZGate(angle)))
+
+    @data(
+        0.99,
+        0.999,
+        0.9999,
+        0.99999,
+        0.999999,
+        0.9999999,
+        0.99999999,
+        0.999999999,
+        0.9999999999,
+        0.99999999999,
+        0.999999999999,
+    )
+    def test_approximation_error(self, approximation_degree):
+        """Test that the argument ``approximation_degree`` works correctly,"""
+        qc = QuantumCircuit(1)
+        theta = np.random.uniform(0, 4 * np.pi)
+        qc.rz(theta, 0)
+        approximate_circuit = SynthesizeRZRotations(approximation_degree)(qc)
+        error_matrix = Operator(RZGate(theta)).data - Operator(approximate_circuit).data
+        spectral_norm = np.linalg.norm(error_matrix, 2)
+        self.assertLessEqual(spectral_norm, 1 - approximation_degree)
+
+    # This test currently fails with minor discrepancy in T-count (64 as
+    # opposed to 62, 88 as opposed to 81. This is likely because we are
+    # calling gridsynth with a different epsilon = epsilon/2,
+    # to account for rounding off angles. Could potentially be fixed by
+    # calling gridsynth directly with epsilon/2 to get T-counts and do
+    # the matching
+    def test_t_counts(self):
+        """Test if the expected t-counts are accurate."""
+        qc = QuantumCircuit(1)
+        qc.rz(1.0, 0)
+        approximation_degrees = [0.999999, 0.99999999, 0.9999999999]
+        t_expected = [62, 81, 105]
+        # t_expected_circs = [RossSelingerSynthesis(epsilon=(1-approximation_degrees[i])/2)(qc)]
+        for ads, t_expect in zip(approximation_degrees, t_expected):
+            with self.subTest(eps=ads, t_expect=t_expect):
+                print(ads, t_expect)
+                qct = SynthesizeRZRotations(ads)(qc)
+                t_count = qct.count_ops().get("t", 0)
+                self.assertLessEqual(t_count, t_expect)
 
     def test_param_angle(self):
         p = Parameter("theta")
         qc = QuantumCircuit(1)
         qc.rz(p, 0)
-        try:
-            synthesized_circ = SynthesizeRZRotations()(qc)
-        except Exception as e:
-            print(f"Synthesis failed, pass doesn't skip parametrized angles")
+        synthesized_circ = SynthesizeRZRotations()(qc)
+        self.assertEqual(qc, synthesized_circ)
 
     def test_synth_rz_deterministic(self):
         """Test that calling synthesize_rz_rotations multiple times produces the same circuit."""
@@ -114,5 +151,25 @@ class TestSynthesizeRzRotations(QiskitTestCase):
         for idx in range(1, len(approximate_circuits)):
             self.assertEqual(approximate_circuits[idx], approximate_circuits[0])
 
-    ## test to check all ops are clifford+T
-    ## test to check
+    @data(8, 10)
+    def test_angle_canonicalization(self, num_qubits):
+        """Test that the angle canonicalization and corresponding
+        phase, gate updates in synthesize_rz_rotations works correctly."""
+        qc = QuantumCircuit(num_qubits)
+        angle = np.random.uniform(0, np.pi / 2)
+        [qc.rz(_ * np.pi / 2 + angle, _) for _ in range(num_qubits)]
+        synthesized_circ = SynthesizeRZRotations()(qc)
+        # Check the operators are (almost) equal
+        self.assertEqual(Operator(synthesized_circ), Operator(qc))
+
+    @combine(num_qubits=[5, 8], depth=[6, 10], approximation_degree=[0.99, 0.999])
+    def test_dag_traversal_logic(self, num_qubits, depth, approximation_degree):
+        """Test that synthesize_rz_rotations works correctly for larger circuits."""
+        qc = QuantumCircuit(num_qubits)
+        [
+            [qc.rz(np.random.uniform(0, 4 * np.pi), _) for _ in range(num_qubits)]
+            for _ in range(depth)
+        ]
+        synthesized_circ = SynthesizeRZRotations()(qc)
+        # Check the operators are (almost) equal
+        self.assertEqual(Operator(synthesized_circ), Operator(qc))
