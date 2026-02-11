@@ -106,16 +106,14 @@ pub unsafe extern "C" fn qk_transpiler_pass_elide_permutations(
     let res = run_elide_permutations(dag).unwrap();
     match res {
         Some(res) => {
-            let circuit =
-                dag_to_circuit(&res.0, false).expect("Internal DAG to Circuit conversion failed.");
-            let num_input_qubits = circuit.num_qubits() as u32;
+            let num_input_qubits = dag.num_qubits() as u32;
             *dag = res.0;
             Box::into_raw(Box::new(TranspileLayout::new(
                 None,
                 Some(res.1.into_iter().map(Qubit::new).collect()),
-                circuit.qubits().objects().clone(),
+                dag.qubits().objects().clone(),
                 num_input_qubits,
-                circuit.qregs().to_vec(),
+                dag.qregs().to_vec(),
             )))
         }
         None => std::ptr::null_mut(),
