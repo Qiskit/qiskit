@@ -177,7 +177,13 @@ fn recognize_instruction_type(
         InstructionType::PauliProductMeasurement
     } else if name == UNITARY_GATE_CLASS_NAME {
         InstructionType::Unitary
-    } else if ControlFlowType::from_str(name).is_ok() {
+    } else if ControlFlowType::from_str(name).is_ok()
+        || matches!(
+            name,
+            // We don't handle old style SwitchCaseOp in rust yet
+            "IfElseOp" | "WhileLoopOp" | "ForLoopOp" | "BreakLoopOp" | "ContinueLoopOp"
+        )
+    {
         InstructionType::ControlFlow
     }
     // StandardInstructionType names are lowercase, actual class names are capitalized
@@ -454,7 +460,21 @@ fn unpack_control_flow(
 ) -> PyResult<(PackedOperation, Vec<GenericValue>)> {
     let mut param_values: Vec<GenericValue> = Vec::new(); // Params for control structures hold the control flow blocks
     // the instruction values contain the data needed to reconstruct the control flow
-    let control_flow_name = ControlFlowType::from_str(instruction.gate_class_name.as_str())
+
+    // Convert Python class names (e.g., "IfElseOp") to snake_case (e.g., "if_else")
+    // for backwards compatibility with old QPY versions
+    let gate_class_name = instruction.gate_class_name.as_str();
+    let normalized_name = match gate_class_name {
+        "IfElseOp" => "if_else",
+        "WhileLoopOp" => "while_loop",
+        "ForLoopOp" => "for_loop",
+        "SwitchCaseOp" => "switch_case",
+        "BreakLoopOp" => "break_loop",
+        "ContinueLoopOp" => "continue_loop",
+        _ => gate_class_name,
+    };
+
+    let control_flow_name = ControlFlowType::from_str(normalized_name)
         .map_err(|_| PyValueError::new_err("Unable to find control flow"))?;
     let control_flow = match control_flow_name {
         ControlFlowType::Box => {
@@ -518,6 +538,12 @@ fn unpack_control_flow(
         }
         ControlFlowType::SwitchCase => {
             let mut instruction_values = get_instruction_values(instruction, qpy_data)?;
+            if instruction_values.len() < 3 {
+                return Err(PyValueError::new_err(format!(
+                    "Switch case instruction has {} parameters, expected at least 3 (target, label_spec, cases)",
+                    instruction_values.len()
+                )));
+            }
             param_values = instruction_values.split_off(3);
             let mut iter = instruction_values.into_iter();
             let ((target_value, label_spec_value), cases_value) = iter
