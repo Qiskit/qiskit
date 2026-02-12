@@ -3,9 +3,11 @@
 use super::BitTerm;
 use super::SparseObservable;
 use num_complex::Complex64;
+use pyo3::prelude::*;
 use qiskit_circuit::operations::Param;
 
 // Standard single-qubit gates.
+#[pyclass(module = "qiskit._accelerate.standard_generators")]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum StandardGate {
     Id,
@@ -115,7 +117,12 @@ static SINGLE_QUBIT_GENERATORS: [&[BitTerm]; 14] = {
 };
 
 /// Return an observable for the generator of `gate`, if we have one.
-pub fn generator_observable(gate: StandardGate, _params: &[Param]) -> Option<SparseObservable> {
+/// Return an observable for the generator of `gate`, if we have one.
+pub fn generator_observable(
+    gate: StandardGate,
+    params: &[qiskit_circuit::operations::Param],
+) -> Option<SparseObservable> {
+    let _params = params;
     let num_qubits = gate.num_qubits();
 
     if num_qubits == 1 {
@@ -326,9 +333,9 @@ pub fn generator_observable(gate: StandardGate, _params: &[Param]) -> Option<Spa
                 vec![0, 2, 4],
             )
         }
-        // XXMinusYY(t, beta) = t/4 (XX - YY)
-        StandardGate::XXMinusYY => {
-            let t = if let [qiskit_circuit::operations::Param::Float(theta), _] = _params {
+        // XXPlusYY(t, beta) | XXMinusYY(t, beta)
+        StandardGate::XXPlusYY | StandardGate::XXMinusYY => {
+            let t = if let [qiskit_circuit::operations::Param::Float(theta), ..] = _params {
                 *theta
             } else {
                 1.0
@@ -374,6 +381,22 @@ pub fn generator_observable(gate: StandardGate, _params: &[Param]) -> Option<Spa
         SparseObservable::new(num_qubits, coeffs, bit_terms, indices, boundaries)
             .expect("invalid multi-qubit generator layout"),
     )
+}
+
+#[pyfunction(name = "generator_observable")]
+#[pyo3(signature = (gate, params = None))]
+pub fn generator_observable_py(
+    gate: StandardGate,
+    params: Option<Vec<qiskit_circuit::operations::Param>>,
+) -> Option<SparseObservable> {
+    let params = params.unwrap_or_default();
+    generator_observable(gate, &params)
+}
+
+pub fn standard_generators(m: &Bound<PyModule>) -> PyResult<()> {
+    m.add_class::<StandardGate>()?;
+    m.add_function(wrap_pyfunction!(generator_observable_py, m)?)?;
+    Ok(())
 }
 
 #[cfg(test)]

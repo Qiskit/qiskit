@@ -71,6 +71,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_quantum_info::sparse_pauli_op::sparse_pauli_op, "sparse_pauli_op")?;
     add_submodule(m, ::qiskit_quantum_info::unitary_sim::unitary_sim, "unitary_sim")?;
     add_submodule(m, ::qiskit_transpiler::passes::split_2q_unitaries_mod, "split_2q_unitaries")?;
+    add_submodule(m, ::qiskit_quantum_info::sparse_observable::standard_generators::standard_generators, "standard_generators")?;
     add_submodule(m, ::qiskit_synthesis::synthesis, "synthesis")?;
     add_submodule(m, ::qiskit_transpiler::target::target, "target")?;
     add_submodule(m, ::qiskit_accelerate::twirling::twirling, "twirling")?;
