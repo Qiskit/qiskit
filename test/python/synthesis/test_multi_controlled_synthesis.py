@@ -119,7 +119,7 @@ class TestMCSynthesisCorrectness(QiskitTestCase):
         )
         self.assertTrue(result)
 
-    @data(1, 2, 3, 4, 5, 6)
+    @data(0, 1, 2, 3, 4, 5, 6)
     def test_mcx_n_dirty_i15(self, num_ctrl_qubits: int):
         """Test synth_mcx_n_dirty_i15 by comparing synthesized and expected matrices."""
         synthesized_circuit = synth_mcx_n_dirty_i15(num_ctrl_qubits)
@@ -127,7 +127,7 @@ class TestMCSynthesisCorrectness(QiskitTestCase):
             XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=False
         )
 
-    @data(3, 4, 5, 6)
+    @data(0, 1, 2, 3, 4, 5, 6)
     def test_mcx_n_clean_m15(self, num_ctrl_qubits: int):
         """Test synth_mcx_n_clean_m15 by comparing synthesized and expected matrices."""
         # Note: the method requires at least 3 control qubits
@@ -136,61 +136,55 @@ class TestMCSynthesisCorrectness(QiskitTestCase):
             XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=True
         )
 
-    @data(3, 4, 5, 6, 7, 8)
+    @data(0, 1, 2, 3, 4, 5, 6, 7, 8)
     def test_mcx_1_clean_b95(self, num_ctrl_qubits: int):
         """Test synth_mcx_1_clean_b95 by comparing synthesized and expected matrices."""
-        # Note: the method requires at least 3 control qubits
         synthesized_circuit = synth_mcx_1_clean_b95(num_ctrl_qubits)
         self.assertSynthesisCorrect(
             XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=True
         )
 
-    @data(3, 4, 5, 6, 7, 8)
+    @data(0, 1, 2, 3, 4, 5, 6, 7, 8)
     def test_mcx_1_clean_kg24(self, num_ctrl_qubits: int):
         """Test synth_mcx_1_clean_kg24 by comparing synthesized and expected matrices."""
-        # Note: the method requires at least 3 control qubits
         synthesized_circuit = synth_mcx_1_clean_kg24(num_ctrl_qubits)
         self.assertSynthesisCorrect(
             XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=True
         )
 
-    @data(3, 4, 5, 6, 7, 8)
+    @data(0, 1, 2, 3, 4, 5, 6, 7, 8)
     def test_mcx_1_dirty_kg24(self, num_ctrl_qubits: int):
         """Test synth_mcx_1_dirty_kg24 by comparing synthesized and expected matrices."""
-        # Note: the method requires at least 3 control qubits
         synthesized_circuit = synth_mcx_1_dirty_kg24(num_ctrl_qubits)
         self.assertSynthesisCorrect(
             XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=False
         )
 
-    @data(3, 4, 5, 6, 7, 8)
+    @data(0, 1, 2, 3, 4, 5, 6, 7, 8)
     def test_mcx_2_clean_kg24(self, num_ctrl_qubits: int):
         """Test synth_mcx_2_clean_kg24 by comparing synthesized and expected matrices."""
-        # Note: the method requires at least 3 control qubits
         synthesized_circuit = synth_mcx_2_clean_kg24(num_ctrl_qubits)
         self.assertSynthesisCorrect(
             XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=True
         )
 
-    @data(3, 4, 5, 6, 7, 8)
+    @data(0, 1, 2, 3, 4, 5, 6, 7, 8)
     def test_mcx_2_dirty_kg24(self, num_ctrl_qubits: int):
         """Test synth_mcx_2_dirty_kg24 by comparing synthesized and expected matrices."""
-        # Note: the method requires at least 3 control qubits
         synthesized_circuit = synth_mcx_2_dirty_kg24(num_ctrl_qubits)
         self.assertSynthesisCorrect(
             XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=False
         )
 
-    @data(3, 4, 5, 6, 7, 8)
+    @data(0, 1, 2, 3, 4, 5, 6, 7, 8)
     def test_mcx_gray_code(self, num_ctrl_qubits: int):
         """Test synth_mcx_gray_code by comparing synthesized and expected matrices."""
-        # Note: the method requires at least 3 control qubits
         synthesized_circuit = synth_mcx_gray_code(num_ctrl_qubits)
         self.assertSynthesisCorrect(
             XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=False
         )
 
-    @data(1, 2, 3, 4, 5, 6, 7, 8)
+    @data(0, 1, 2, 3, 4, 5, 6, 7, 8)
     def test_mcx_noaux_v24(self, num_ctrl_qubits: int):
         """Test synth_mcx_noaux_v24 by comparing synthesized and expected matrices."""
         synthesized_circuit = synth_mcx_noaux_v24(num_ctrl_qubits)
@@ -198,7 +192,7 @@ class TestMCSynthesisCorrectness(QiskitTestCase):
             XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=False
         )
 
-    @data(1, 2, 3, 4, 5, 6, 7, 8)
+    @data(0, 1, 2, 3, 4, 5, 6, 7, 8)
     def test_mcx_noaux_hp24(self, num_ctrl_qubits: int):
         """Test synth_mcx_noaux_hp24 by comparing synthesized and expected matrices."""
         synthesized_circuit = synth_mcx_noaux_hp24(num_ctrl_qubits)
@@ -217,7 +211,7 @@ class TestMCSynthesisCorrectness(QiskitTestCase):
         self.assertSynthesisCorrect(XGate(), 4, synthesized_circuit, clean_ancillas=False)
 
     @combine(
-        num_ctrl_qubits=[1, 2, 3, 4, 5, 6, 7],
+        num_ctrl_qubits=[0, 1, 2, 3, 4, 5, 6, 7],
         base_gate=[
             XGate(),
             YGate(),

@@ -211,7 +211,7 @@ ctest: cheader build-clib-dev
 	ctest -V -C Debug --test-dir $(C_DIR_TEST_BUILD)
 
 .PHONY: ccoverage
-ccoverage: C_LIB_RUSTC_FLAGS=-Cinstrument-coverage -Cincremental=false
+ccoverage: C_LIB_RUSTC_FLAGS=-Cinstrument-coverage
 ccoverage: ctest
 
 .PHONY: cclean

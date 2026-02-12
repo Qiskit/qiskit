@@ -5,18 +5,20 @@ style = "type"
 cpp_compat = true
 usize_is_size_t = true
 
-after_includes = """
+# The `Python.h` file is documented as wanting to be the first file included, because it reserves
+# the right to define macros that impact the system-header includes.  Putting it here means it comes
+# before our include guard, but `Python.h` has its own, so it shouldn't be harmful.
+header = """
 #ifdef QISKIT_C_PYTHON_INTERFACE
     #include <Python.h>
 #endif
-
-#include "qiskit/version.h"
-#include "qiskit/attributes.h"
-#include "qiskit/complex.h"
-
-typedef struct QkQuantumRegister QkQuantumRegister;
-typedef struct QkClassicalRegister QkClassicalRegister;
 """
+# Manually written include files.
+includes = [
+    "qiskit/version.h",
+    "qiskit/attributes.h",
+    "qiskit/complex.h",
+]
 
 [defines]
 "feature = python_binding" = "QISKIT_C_PYTHON_INTERFACE"
