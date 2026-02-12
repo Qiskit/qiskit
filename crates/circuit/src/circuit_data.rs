@@ -2924,7 +2924,7 @@ impl CircuitData {
                             // Rust that accept a `Param::ParameterExpression` which aren't standard
                             // gates. Technically `StandardInstruction::Delay` could, but in
                             // practice that's not a common path, and it's only supported for
-                            // backwards compatability from before Stretch was introduced. If we did
+                            // backwards compatibility from before Stretch was introduced. If we did
                             // it in rust without Python that's a mistake and this attach() call
                             // will panic and point out the error of your ways when this comment is
                             // read.

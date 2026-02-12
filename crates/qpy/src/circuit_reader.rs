@@ -1273,7 +1273,7 @@ fn add_registers_and_bits(
             }
         }
     }
-    // now add the bits to the ciruit, and then add the registers
+    // now add the bits to the circuit, and then add the registers
     for qubit in final_qubit_list {
         qpy_data.circuit_data.add_qubit(qubit, true)?;
     }

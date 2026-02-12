@@ -148,7 +148,7 @@ pub trait ShareableBit: Clone + Eq + Hash + Debug {
     const DESCRIPTION: &'static str;
 }
 // An internal trait to let `RegisterInfo` manifest full `ShareableBit` instances from `BitInfo`
-// structs without leaking that implemntation detail into the public.
+// structs without leaking that implementation detail into the public.
 trait ManifestableBit: ShareableBit {
     fn from_info(val: BitInfo<<Self as ShareableBit>::Subclass>) -> Self;
     fn info(&self) -> &BitInfo<<Self as ShareableBit>::Subclass>;

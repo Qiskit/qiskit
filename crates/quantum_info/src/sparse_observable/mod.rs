@@ -694,7 +694,7 @@ impl SparseObservable {
 
     /// Calculate the transpose.
     ///
-    /// This operation transposes the individual bit terms but does directly act
+    /// This operation transposes the individual bit terms but does not directly act
     /// on the coefficients.
     pub fn transpose(&self) -> SparseObservable {
         let mut out = self.clone();
@@ -3234,7 +3234,7 @@ impl PySparseObservable {
     /// .. note::
     ///
     ///     When using this for equality comparisons, note that floating-point rounding and the
-    ///     non-associativity fo floating-point addition may cause non-zero coefficients of summed
+    ///     non-associativity of floating-point addition may cause non-zero coefficients of summed
     ///     terms to compare unequal.  To compare two observables up to a tolerance, it is safest to
     ///     compare the canonicalized difference of the two observables to zero.
     ///

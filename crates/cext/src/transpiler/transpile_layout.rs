@@ -77,7 +77,7 @@ pub unsafe extern "C" fn qk_transpile_layout_num_output_qubits(
 /// qubit -> 0, and virtual qubit 2 -> physical qubit 2.
 ///
 /// @param layout A pointer to the ``QkTranspileLayout``.
-/// @param filter_ancillas If set to true the output array will not include any indicies for any
+/// @param filter_ancillas If set to true the output array will not include any indices for any
 /// ancillas added by the transpiler.
 /// @param initial_layout A pointer to the array where this function will write the initial layout
 /// to. This must have sufficient space for the full array which will either be
@@ -188,7 +188,7 @@ pub unsafe extern "C" fn qk_transpile_layout_output_permutation(
 /// physical qubit 2 at the end of the transpiled circuit, 1 -> 0, and 2 -> 1.
 ///
 /// @param layout A pointer to the ``QkTranspileLayout``.
-/// @param filter_ancillas If set to true the output array will not include any indicies for any
+/// @param filter_ancillas If set to true the output array will not include any indices for any
 /// ancillas added by the transpiler.
 /// @param final_layout A pointer to the array where this function will write the final layout to.
 /// This must have sufficient space for the output which will either be the number of input or

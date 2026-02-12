@@ -35,7 +35,7 @@ use std::marker::PhantomData;
 // 3) Annotation Headers: The annotation-related global data.
 // 4) Custom instructions: List of custom gates used in the circuits, e.g. gate with nonstandard control
 // 5) Instruction: The sequential list of gates in the circuit.
-// 6) Calibrations: Obsolete; this was pulse-related data. Here for backwards compatability.
+// 6) Calibrations: Obsolete; this was pulse-related data. Here for backwards compatibility.
 // 7) Layout: The transpilation layout, if one exists (otherwise a dummy is used).
 #[derive(BinWrite, Debug)]
 #[brw(big)]
@@ -129,7 +129,7 @@ pub struct CircuitInstructionV2Pack {
     pub annotations: Option<InstructionsAnnotationPack>,
 }
 
-// To save space, the extras key encoded data about the existance of annotations
+// To save space, the extras key encoded data about the existence of annotations
 // in its msb, and about the type of condition (Two-tuple, Expression or None) in the two lsbs.
 pub mod extras_key_parts {
     pub const ANNOTATIONS: u8 = 0b1000_0000;
