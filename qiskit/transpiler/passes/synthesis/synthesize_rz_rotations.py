@@ -80,8 +80,8 @@ class SynthesizeRZRotations(TransformationPass):
 
     def __init__(self, approximation_degree: float = 0.9999999999):
         """
-        Args:t
-        approximation_degree: float = 0.9999999999
+        Args:
+            approximation_degree: float = 0.9999999999
         """
         super().__init__()
         self.approximation_degree = approximation_degree
