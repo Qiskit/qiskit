@@ -345,7 +345,9 @@ fn unpack_instruction(
     // If so, wrap it in an IfElseOp (for backwards compatibility with old QPY versions)
     let condition = unpack_condition(&instruction.condition, qpy_data)?;
     let (op, params) = match condition {
-        Some(cond) if !matches!(instruction_type, InstructionType::ControlFlow) => wrap_condtional_gate(instruction, op, cond, qubits, clbits, params, qpy_data)?,
+        Some(cond) if !matches!(instruction_type, InstructionType::ControlFlow) => {
+            wrap_condtional_gate(instruction, op, cond, qubits, clbits, params, qpy_data)?
+        }
         _ => (op, params),
     };
 

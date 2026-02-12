@@ -22,10 +22,10 @@ use binrw::{binread, binrw, binwrite};
 use qiskit_circuit::operations::Condition;
 use qiskit_circuit::packed_instruction::PackedOperation;
 
+use qiskit_circuit::Block;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::interner::Interned;
 use qiskit_circuit::operations::{ControlFlow, ControlFlowInstruction};
-use qiskit_circuit::Block;
 use qiskit_circuit::{Clbit, Qubit};
 
 use pyo3::prelude::*;
@@ -180,10 +180,7 @@ pub fn wrap_condtional_gate(
     clbits: Interned<[Clbit]>,
     params: Option<Box<Parameters<Block>>>,
     qpy_data: &mut QPYReadData,
-) -> PyResult<(
-    PackedOperation,
-    Option<Box<Parameters<Block>>>,
-)> {
+) -> PyResult<(PackedOperation, Option<Box<Parameters<Block>>>)> {
     use qiskit_circuit::circuit_data::CircuitData;
     use qiskit_circuit::operations::Param;
     use smallvec::SmallVec;
