@@ -10,39 +10,23 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""Test the SynthesizeRZRotations pass"""
 
-import unittest
 import numpy as np
 
 from ddt import ddt, data
 
-from qiskit import transpile
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.library import (
-    RZGate,
-    IGate,
-    XGate,
-    YGate,
-    ZGate,
-    HGate,
-    SGate,
-    SdgGate,
-    SXGate,
-    SXdgGate,
-)
+from qiskit.circuit.library import RZGate
 from qiskit.quantum_info import Operator
 from qiskit.quantum_info import get_clifford_gate_names
 from qiskit.circuit import Parameter
 from qiskit.synthesis import gridsynth_rz
-
-
-from qiskit.converters import dag_to_circuit
-from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes.synthesis import SynthesizeRZRotations
-
 
 from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
 
+# pylint: disable=expression-not-assigned
 
 # Set of single-qubit Clifford gates
 CLIFFORD_GATES_1Q_SET = {"id", "x", "y", "z", "h", "s", "sdg", "sx", "sxdg"}
@@ -124,12 +108,12 @@ class TestSynthesizeRzRotations(QiskitTestCase):
         ]
         for ads, t_expect in zip(approximation_degrees, t_expected):
             with self.subTest(eps=ads, t_expect=t_expect):
-                print(ads, t_expect)
                 qct = SynthesizeRZRotations(ads)(qc)
                 t_count = qct.count_ops().get("t", 0)
                 self.assertLessEqual(t_count, t_expect)
 
     def test_param_angle(self):
+        """ "Test to see if parametrized angles remain unaffected"""
         p = Parameter("theta")
         qc = QuantumCircuit(1)
         qc.rz(p, 0)
@@ -159,8 +143,8 @@ class TestSynthesizeRzRotations(QiskitTestCase):
         # Check the operators are (almost) equal
         self.assertEqual(Operator(synthesized_circ), Operator(qc))
 
-    @combine(num_qubits=[5, 8], depth=[6, 10], approximation_degree=[0.99, 0.999])
-    def test_dag_traversal_logic(self, num_qubits, depth, approximation_degree):
+    @combine(num_qubits=[5, 8], depth=[6, 10])
+    def test_dag_traversal_logic(self, num_qubits, depth):
         """Test that synthesize_rz_rotations works correctly for larger circuits."""
         qc = QuantumCircuit(num_qubits)
         [

@@ -1,3 +1,17 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2026
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+"""Synthesize RZ gates to Clifford+T efficiently"""
+
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
 from qiskit._accelerate.synthesize_rz_rotations import synthesize_rz_rotations
@@ -62,12 +76,13 @@ class SynthesizeRZRotations(TransformationPass):
       # The circuits before and after the transformation are equivalent
       assert Operator(qc) == Operator(qct)
 
-    Args:
-        approximation_degree: float = 0.9999999999
-
     """
 
     def __init__(self, approximation_degree: float = 0.9999999999):
+        """
+        Args:t
+        approximation_degree: float = 0.9999999999
+        """
         super().__init__()
         self.approximation_degree = approximation_degree
 
