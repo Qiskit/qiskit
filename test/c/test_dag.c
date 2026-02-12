@@ -1153,6 +1153,50 @@ cleanup:
     return result;
 }
 
+static int test_dag_replace_block_with_unitary(void) {
+    int result = Ok;
+
+    // Create a DAG with H, T, S, T, H gates on the second qubit
+    QkDag *dag = qk_dag_new();
+    QkQuantumRegister *qr = qk_quantum_register_new(2, "qr");
+    qk_dag_add_quantum_register(dag, qr);
+    uint32_t qubit[1] = {1};
+    qk_dag_apply_gate(dag, QkGate_H, qubit, NULL, false);
+    uint32_t idx1 = qk_dag_apply_gate(dag, QkGate_T, qubit, NULL, false);
+    uint32_t idx2 = qk_dag_apply_gate(dag, QkGate_S, qubit, NULL, false);
+    uint32_t idx3 = qk_dag_apply_gate(dag, QkGate_T, qubit, NULL, false);
+    qk_dag_apply_gate(dag, QkGate_H, qubit, NULL, false);
+
+    // Replace the inner T, S, T gates by a unitary gate (representing Z)
+    uint32_t replaced_ids[3] = {idx1, idx2, idx3};
+    static const QkComplex64 mat_z[4] = {{1, 0}, {0, 0}, {0, 0}, {-1, 0}};
+    uint32_t new_node_idx =
+        qk_dag_replace_block_with_unitary(dag, 3, replaced_ids, mat_z, 1, qubit);
+
+    // The resulting DAG should have 3 operations
+    size_t num_ops = qk_dag_num_op_nodes(dag);
+    if (num_ops != 3) {
+        result = EqualityError;
+        printf("Number of instructions is %zd but expected 3\n", num_ops);
+        goto cleanup;
+    }
+
+    // And the new operation must be unitary
+    QkOperationKind new_node_kind = qk_dag_op_node_kind(dag, new_node_idx);
+    if (new_node_kind != QkOperationKind_Unitary) {
+        result = EqualityError;
+        printf(
+            "The new node with index %u has incorrect operation type: expected: %d but got %d.\n",
+            new_node_idx, new_node_kind, new_node_kind);
+    }
+
+cleanup:
+    qk_quantum_register_free(qr);
+    qk_dag_free(dag);
+
+    return result;
+}
+
 int test_dag(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_empty);
@@ -1171,6 +1215,7 @@ int test_dag(void) {
     num_failed += RUN_TEST(test_dag_copy_empty_like);
     num_failed += RUN_TEST(test_dag_compose);
     num_failed += RUN_TEST(test_dag_compose_permuted);
+    num_failed += RUN_TEST(test_dag_replace_block_with_unitary);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);

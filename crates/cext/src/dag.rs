@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 use anyhow::Error;
+use hashbrown::HashMap;
 use num_complex::Complex64;
 use smallvec::smallvec;
 
@@ -1462,7 +1463,7 @@ pub unsafe extern "C" fn qk_dag_topological_op_nodes(dag: *const DAGCircuit, out
 }
 
 /// @ingroup QkDag
-/// Replace a node in a `QkDag` with a subcircuit specfied by another `QkDag`
+/// Replace a node in a `QkDag` with a subcircuit specified by another `QkDag`
 ///
 /// @param dag A pointer to the DAG.
 /// @param node The node index of the operation to replace with the other `QkDag`. This
@@ -1585,4 +1586,100 @@ pub unsafe extern "C" fn qk_dag_copy_empty_like(
         .copy_empty_like_with_capacity(0, 0, vars_mode, blocks_mode)
         .expect("Failed to copy the DAG.");
     Box::into_raw(Box::new(copied_dag))
+}
+
+/// @ingroup QkDag
+/// Replace a block of node indices in a `QkDag` with a unitary gate.
+///
+/// @param dag A pointer to the DAG.
+/// @param num_block_ids Number of node indices to replace.
+/// @param block_ids A list of node indices to replace.
+/// @param matrix An unitary matrix of total size ``4**num_qubits``.
+/// @param num_qubits The number of qubits the unitary gate applies to.
+/// @param qubits An array of distinct ``uint32_t`` indices of the qubits.
+///
+/// # Example
+///
+/// ```c
+///
+/// // Create a DAG with H, T, S, T, H gates on the second qubit
+/// QkDag *dag = qk_dag_new();
+/// QkQuantumRegister *qr = qk_quantum_register_new(2, "qr");
+/// qk_dag_add_quantum_register(dag, qr);
+/// uint32_t qubit[1] = {1};
+/// qk_dag_apply_gate(dag, QkGate_H, qubit, NULL, false);
+/// uint32_t idx1 = qk_dag_apply_gate(dag, QkGate_T, qubit, NULL, false);
+/// uint32_t idx2 = qk_dag_apply_gate(dag, QkGate_S, qubit, NULL, false);
+/// uint32_t idx3 = qk_dag_apply_gate(dag, QkGate_T, qubit, NULL, false);
+/// qk_dag_apply_gate(dag, QkGate_H, qubit, NULL, false);
+///
+/// // Replace the inner T, S, T gates by a unitary gate (representing Z)
+/// uint32_t replaced_ids[3] = {idx1, idx2, idx3};
+/// static const QkComplex64 mat_z[4] = {{1, 0}, {0, 0}, {0, 0}, {-1, 0}};
+/// uint32_t new_node_idx =
+///     qk_dag_replace_block_with_unitary(dag, 3, replaced_ids, mat_z, 1, qubit);
+///
+/// // free the register and dag pointer when done
+/// qk_quantum_register_free(qr);
+/// qk_dag_free(dag);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if any of:
+/// * `dag` is not an aligned, non-null pointer to a valid ``QkDag``,
+/// * `qubits` is not an aligned pointer to `num_qubits` initialized values.
+/// * `matrix` is not an aligned pointer to `4**num_qubits` initialized values,
+/// * `block_ids` is not an aligned pointer to `num_block_ids` initialized values.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_dag_replace_block_with_unitary(
+    dag: *mut DAGCircuit,
+    num_block_ids: u32,
+    block_ids: *const u32,
+    matrix: *const Complex64,
+    num_qubits: u32,
+    qubits: *const u32,
+) -> u32 {
+    // SAFETY: per documentation, `dag` points to valid data.
+    let dag = unsafe { mut_ptr_as_ref(dag) };
+
+    // SAFETY: per documentation, `matrix` is aligned and valid for `4**num_qubits` reads of
+    // initialised data.
+    let array = unsafe { unitary_from_pointer(matrix, num_qubits, None) }
+        .expect("infallible without tolerance checking");
+
+    let block = unsafe {
+        ::std::slice::from_raw_parts(block_ids as *const NodeIndex, num_block_ids as usize)
+    };
+
+    let qubits = if num_qubits == 0 {
+        // This handles the case of C passing us a null pointer for a scalar matrix; Rust slices
+        // can't be backed by the null pointer.
+        &[]
+    } else {
+        // SAFETY: per documentation, `qubits` is aligned and valid for `num_qubits` reads.  Per
+        // previous check, `num_qubits` is nonzero so `qubits` cannot be null.
+        unsafe { ::std::slice::from_raw_parts(qubits as *const Qubit, num_qubits as usize) }
+    };
+
+    let qubit_pos_map = qubits
+        .iter()
+        .enumerate()
+        .map(|(i, q)| (*q, i))
+        .collect::<HashMap<_, _>>();
+    let clbit_pos_map: HashMap<Clbit, usize> = HashMap::new();
+
+    let new_index = dag
+        .replace_block(
+            block,
+            Box::new(UnitaryGate { array }).into(),
+            None,
+            None,
+            false,
+            &qubit_pos_map,
+            &clbit_pos_map,
+        )
+        .expect("Failed to replace nodes in the DAG");
+
+    new_index.index() as u32
 }
