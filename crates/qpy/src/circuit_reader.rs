@@ -243,11 +243,18 @@ pub fn instruction_values_to_params(
     qpy_data: &mut QPYReadData,
 ) -> PyResult<Option<Box<Parameters<Block>>>> {
     // currently QPY has no dedicated representation for blocks, only for py circuit objects
-    // so we use the following heuristic: if all the elements of `values` are circuits
+    // so we use the following heuristic: if all the NON-NULL elements of `values` are circuits
     // treat `values` as a vector of blocks
-    // we assume that if-else with a None else block will be handled in a way that the None is not present here
-    if !values.is_empty()
-        && values
+    // Null values represent missing else blocks in if-else statements and should be filtered out
+
+    // Filter out Null values and check if remaining values are all circuits
+    let non_null_values: Vec<&GenericValue> = values
+        .iter()
+        .filter(|val| !matches!(val, GenericValue::Null))
+        .collect();
+
+    if !non_null_values.is_empty()
+        && non_null_values
             .iter()
             .all(|val| matches!(val, GenericValue::Circuit(_) | GenericValue::CircuitData(_)))
     {

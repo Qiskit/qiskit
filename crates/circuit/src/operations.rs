@@ -391,13 +391,13 @@ impl FromStr for ControlFlowType {
 
     fn from_str(name: &str) -> Result<Self, Self::Err> {
         match name {
-            "box" => Ok(ControlFlowType::Box),
-            "break_loop" => Ok(ControlFlowType::BreakLoop),
-            "continue_loop" => Ok(ControlFlowType::ContinueLoop),
-            "for_loop" => Ok(ControlFlowType::ForLoop),
-            "if_else" => Ok(ControlFlowType::IfElse),
-            "switch_case" => Ok(ControlFlowType::SwitchCase),
-            "while_loop" => Ok(ControlFlowType::WhileLoop),
+            "box" | "BoxOp" => Ok(ControlFlowType::Box),
+            "break_loop" | "BreakLoopOp" => Ok(ControlFlowType::BreakLoop),
+            "continue_loop" | "ContinueLoopOp" => Ok(ControlFlowType::ContinueLoop),
+            "for_loop" | "ForLoopOp" => Ok(ControlFlowType::ForLoop),
+            "if_else" | "IfElseOp" => Ok(ControlFlowType::IfElse),
+            "switch_case" | "SwitchCaseOp" => Ok(ControlFlowType::SwitchCase),
+            "while_loop" | "WhileLoopOp" => Ok(ControlFlowType::WhileLoop),
             _ => Err(()),
         }
     }
