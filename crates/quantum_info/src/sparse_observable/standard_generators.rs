@@ -1,8 +1,8 @@
 // src/sparse_observable/standard_generators.rs
 
-use num_complex::Complex64;
 use super::BitTerm;
 use super::SparseObservable;
+use num_complex::Complex64;
 use qiskit_circuit::operations::Param;
 
 // Standard single-qubit gates.
@@ -376,15 +376,13 @@ pub fn generator_observable(gate: StandardGate, _params: &[Param]) -> Option<Spa
     )
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn rx_has_some_generator() {
-        let obs = generator_observable(StandardGate::Rx, &[])
-            .expect("Rx should have a generator");
+        let obs = generator_observable(StandardGate::Rx, &[]).expect("Rx should have a generator");
         assert!(!obs.bit_terms().is_empty());
     }
 }
