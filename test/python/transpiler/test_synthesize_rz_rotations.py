@@ -154,3 +154,4 @@ class TestSynthesizeRzRotations(QiskitTestCase):
         synthesized_circ = SynthesizeRZRotations()(qc)
         # Check the operators are (almost) equal
         self.assertEqual(Operator(synthesized_circ), Operator(qc))
+        

@@ -94,8 +94,6 @@ class SynthesizeRZRotations(TransformationPass):
             The output DAG.
         """
         new_dag = synthesize_rz_rotations(dag, self.approximation_degree)
-
         if new_dag is None:
             return dag
-
         return new_dag
