@@ -448,6 +448,9 @@ pub(crate) fn py_convert_from_generic_value(value: &GenericValue) -> PyResult<Py
         GenericValue::ParameterExpressionVectorSymbol(symbol) => symbol.clone().into_py_any(py),
         GenericValue::ParameterExpression(exp) => exp.as_ref().clone().into_py_any(py),
         GenericValue::Circuit(py_object) => Ok(py_object.clone()),
+        GenericValue::CircuitData(circuit_data) => {
+            Ok(circuit_data.clone().into_py_quantum_circuit(py)?.unbind())
+        }
         GenericValue::Modifier(py_object) => Ok(py_object.clone()),
         GenericValue::Range(py_range) => py_range.into_py_any(py),
         GenericValue::NumpyObject(py_object) => Ok(py_object.clone()),

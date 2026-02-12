@@ -16,6 +16,7 @@ use pyo3::types::PyModule;
 use pyo3::{Bound, PyResult, wrap_pyfunction};
 
 mod annotations;
+mod backwards_comp;
 mod bytes;
 mod circuit_reader;
 mod circuit_writer;

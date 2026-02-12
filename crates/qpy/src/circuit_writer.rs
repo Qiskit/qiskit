@@ -42,8 +42,9 @@ use qiskit_circuit::operations::{
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 
 use crate::annotations::AnnotationHandler;
+use crate::backwards_comp::CalibrationsPack;
 use crate::bytes::Bytes;
-use crate::formats::{self, ConditionPack};
+use crate::formats;
 use crate::params::pack_param_obj;
 use crate::py_methods::{
     PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME, UNITARY_GATE_CLASS_NAME, gate_class_name,
@@ -341,7 +342,7 @@ fn pack_control_flow_inst(
     qpy_data: &mut QPYWriteData,
 ) -> PyResult<formats::CircuitInstructionV2Pack> {
     let mut packed_annotations = None;
-    let mut packed_condition: ConditionPack = Default::default();
+    let mut packed_condition: formats::ConditionPack = Default::default();
     let mut extras_key = 0; // should contain a combination of condition key and annotations key, if present
 
     let params = match control_flow_inst.control_flow.clone() {
@@ -1141,7 +1142,7 @@ pub(crate) fn pack_circuit(
     )?;
     // Pulse has been removed in Qiskit 2.0. As long as we keep QPY at version 13,
     // we need to write an empty calibrations header since read_circuit expects it
-    let calibrations = formats::CalibrationsPack {
+    let calibrations = CalibrationsPack {
         calibrations: vec![],
     };
     let (instructions, mut custom_instructions_hash) = pack_instructions(&mut qpy_data)?;

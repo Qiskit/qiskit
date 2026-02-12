@@ -57,6 +57,7 @@ use std::sync::Arc;
 use smallvec::SmallVec;
 
 use crate::annotations::AnnotationHandler;
+use crate::backwards_comp::wrap_condtional_gate;
 use crate::bytes::Bytes;
 use crate::consts::standard_gate_from_gate_class_name;
 use crate::formats;
@@ -88,7 +89,7 @@ struct CustomCircuitInstructionData {
 
 // This is a helper enum to make the code clearer by splitting instruction reading into cases
 #[derive(Debug)]
-enum InstructionType {
+pub enum InstructionType {
     // these instruction types are rust-native
     StandardGate,
     StandardInstruction,
@@ -237,7 +238,7 @@ fn get_instruction_values(
 }
 
 // converts a list of generic values to the params format expected for a PackedInstruction params
-fn instruction_values_to_params(
+pub fn instruction_values_to_params(
     values: Vec<GenericValue>,
     qpy_data: &mut QPYReadData,
 ) -> PyResult<Option<Box<Parameters<Block>>>> {
@@ -248,7 +249,7 @@ fn instruction_values_to_params(
     if !values.is_empty()
         && values
             .iter()
-            .all(|val| matches!(val, GenericValue::Circuit(_)))
+            .all(|val| matches!(val, GenericValue::Circuit(_) | GenericValue::CircuitData(_)))
     {
         // blocks
         let inst_blocks: Vec<CircuitData> = values
@@ -323,8 +324,8 @@ fn unpack_instruction(
     qpy_data: &mut QPYReadData,
 ) -> PyResult<PackedInstruction> {
     let label = (!instruction.label.is_empty()).then(|| Box::new(instruction.label.clone()));
-    let (op, parameter_values) = match recognize_instruction_type(instruction, custom_instructions)
-    {
+    let instruction_type = recognize_instruction_type(instruction, custom_instructions);
+    let (op, parameter_values) = match instruction_type {
         InstructionType::StandardGate => unpack_standard_gate(instruction, qpy_data)?,
         InstructionType::StandardInstruction => unpack_standard_instruction(instruction, qpy_data)?,
         InstructionType::PauliProductMeasurement => {
@@ -339,6 +340,15 @@ fn unpack_instruction(
     };
     let (qubits, clbits) = get_instruction_bits(instruction, qpy_data);
     let params = instruction_values_to_params(parameter_values, qpy_data)?;
+
+    // Check if this is a non-control-flow instruction with a condition
+    // If so, wrap it in an IfElseOp (for backwards compatibility with old QPY versions)
+    let condition = unpack_condition(&instruction.condition, qpy_data)?;
+    let (op, params) = match condition {
+        Some(cond) if !matches!(instruction_type, InstructionType::ControlFlow) => wrap_condtional_gate(instruction, op, cond, qubits, clbits, params, qpy_data)?,
+        _ => (op, params),
+    };
+
     Ok(PackedInstruction {
         op,
         qubits,
