@@ -17,7 +17,7 @@ use num_complex::Complex64;
 use num_complex::ComplexFloat;
 use qiskit_circuit::object_registry::PyObjectAsKey;
 use qiskit_quantum_info::sparse_observable::standard_generators::{
-    generator_observable, StandardGate as SparseStandardGate,
+    StandardGate as SparseStandardGate, generator_observable,
 };
 use qiskit_quantum_info::sparse_observable::{PySparseObservable, SparseObservable};
 use smallvec::SmallVec;
