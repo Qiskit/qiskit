@@ -1598,6 +1598,8 @@ pub unsafe extern "C" fn qk_dag_copy_empty_like(
 /// @param num_qubits The number of qubits the unitary gate applies to.
 /// @param qubits An array of distinct ``uint32_t`` indices of the qubits.
 ///
+/// @return The index of the newly added operation node.
+///
 /// # Example
 ///
 /// ```c
