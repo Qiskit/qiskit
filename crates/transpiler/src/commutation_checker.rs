@@ -16,8 +16,10 @@ use ndarray::linalg::kron;
 use num_complex::Complex64;
 use num_complex::ComplexFloat;
 use qiskit_circuit::object_registry::PyObjectAsKey;
-use qiskit_quantum_info::sparse_observable::PySparseObservable;
-use qiskit_quantum_info::sparse_observable::SparseObservable;
+use qiskit_quantum_info::sparse_observable::standard_generators::{
+    generator_observable, StandardGate as SparseStandardGate,
+};
+use qiskit_quantum_info::sparse_observable::{PySparseObservable, SparseObservable};
 use smallvec::SmallVec;
 use std::fmt::Debug;
 
@@ -218,11 +220,63 @@ fn try_extract_op_from_ppm(
     Some(out.compose_map(&local, |i| qubits[i as usize].0))
 }
 
+fn map_standard_to_sparse(gate: StandardGate) -> Option<SparseStandardGate> {
+    match gate {
+        StandardGate::I => Some(SparseStandardGate::Id),
+        StandardGate::X => Some(SparseStandardGate::X),
+        StandardGate::Y => Some(SparseStandardGate::Y),
+        StandardGate::Z => Some(SparseStandardGate::Z),
+        StandardGate::RX => Some(SparseStandardGate::Rx),
+        StandardGate::RY => Some(SparseStandardGate::Ry),
+        StandardGate::RZ => Some(SparseStandardGate::Rz),
+        StandardGate::Phase | StandardGate::U1 => Some(SparseStandardGate::Rz),
+        StandardGate::H => Some(SparseStandardGate::H),
+        StandardGate::S => Some(SparseStandardGate::S),
+        StandardGate::Sdg => Some(SparseStandardGate::Sdg),
+        StandardGate::SX => Some(SparseStandardGate::SX),
+        StandardGate::SXdg => Some(SparseStandardGate::SXdg),
+        StandardGate::T => Some(SparseStandardGate::T),
+        StandardGate::Tdg => Some(SparseStandardGate::Tdg),
+        StandardGate::CX => Some(SparseStandardGate::CX),
+        StandardGate::CY => Some(SparseStandardGate::CY),
+        StandardGate::CZ => Some(SparseStandardGate::CZ),
+        StandardGate::CRX => Some(SparseStandardGate::CRX),
+        StandardGate::CRY => Some(SparseStandardGate::CRY),
+        StandardGate::CRZ => Some(SparseStandardGate::CRZ),
+        StandardGate::CPhase => Some(SparseStandardGate::CPhase),
+        StandardGate::ECR => Some(SparseStandardGate::ECR),
+        StandardGate::Swap => Some(SparseStandardGate::Swap),
+        StandardGate::ISwap => Some(SparseStandardGate::ISwap),
+        StandardGate::RXX => Some(SparseStandardGate::RXX),
+        StandardGate::RYY => Some(SparseStandardGate::RYY),
+        StandardGate::RZZ => Some(SparseStandardGate::RZZ),
+        StandardGate::RZX => Some(SparseStandardGate::RZX),
+        StandardGate::XXPlusYY => Some(SparseStandardGate::XXPlusYY),
+        StandardGate::XXMinusYY => Some(SparseStandardGate::XXMinusYY),
+        StandardGate::CCX => Some(SparseStandardGate::CCX),
+        StandardGate::CSwap => Some(SparseStandardGate::CSwap),
+        StandardGate::CSX => Some(SparseStandardGate::CSX),
+        StandardGate::CS => Some(SparseStandardGate::CS),
+        StandardGate::CSdg => Some(SparseStandardGate::CSdg),
+        _ => None,
+    }
+}
+
 fn try_pauli_generator(
     operation: &OperationRef,
+    params: &[Param],
     qubits: &[Qubit],
     num_qubits: u32,
 ) -> Option<SparseObservable> {
+    if let OperationRef::StandardGate(gate) = operation {
+        if let Some(sparse_gate) = map_standard_to_sparse(*gate) {
+            if let Some(local) = generator_observable(sparse_gate, params) {
+                let out = SparseObservable::identity(num_qubits);
+                return Some(out.compose_map(&local, |i| qubits[i as usize].0));
+            }
+        }
+    }
+
     match operation.name() {
         "pauli" => try_extract_op_from_pauli_gate(operation, qubits, num_qubits),
         "PauliEvolution" => try_extract_op_from_pauli_evo(operation, qubits, num_qubits),
@@ -239,8 +293,7 @@ where
     T: From<u32> + Copy,
     u32: From<T>,
 {
-    // Using `PyObjectAsKey` here is a total hack, but this is a short-term workaround before a
-    // larger refactor of the commutation checker.
+    // Use `PyObjectAsKey` as a workaround before a larger refactor of the commutation checker.
     let mut registry: ObjectRegistry<T, PyObjectAsKey> = ObjectRegistry::new();
 
     for bit in py_bits1.iter().chain(py_bits2.iter()) {
@@ -506,9 +559,9 @@ impl CommutationChecker {
 
         // Handle commutations in between Pauli-based gates, like PauliGate or PauliEvolutionGate
         let size = qargs1.iter().chain(qargs2.iter()).max().unwrap().0 + 1;
-        if let Some(obs1) = try_pauli_generator(op1, qargs1, size) {
-            if let Some(obs2) = try_pauli_generator(op2, qargs2, size) {
-                return Ok(obs1.commutes(&obs2, tol));
+        if let Some(pauli1) = try_pauli_generator(op1, params1, qargs1, size) {
+            if let Some(pauli2) = try_pauli_generator(op2, params2, qargs2, size) {
+                return Ok(pauli1.commutes(&pauli2, tol));
             }
         }
 
