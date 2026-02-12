@@ -46,6 +46,7 @@ def validate_condition(condition: _ConditionT) -> _ConditionT:
 
     Returns:
         The same condition as passed, if it was valid.
+
     """
     if isinstance(condition, expr.Expr):
         if condition.type.kind is not types.Bool:
@@ -69,7 +70,8 @@ def validate_condition(condition: _ConditionT) -> _ConditionT:
 @dataclasses.dataclass
 class LegacyResources:
     """A pair of the :class:`.Clbit` and :class:`.ClassicalRegister` resources used by some other
-    object (such as a legacy condition or :class:`.expr.Expr` node)."""
+    object (such as a legacy condition or :class:`.expr.Expr` node).
+    """
 
     clbits: tuple[Clbit, ...]
     cregs: tuple[ClassicalRegister, ...]
@@ -77,7 +79,8 @@ class LegacyResources:
 
 def node_resources(node: expr.Expr) -> LegacyResources:
     """Get the legacy classical resources (:class:`.Clbit` and :class:`.ClassicalRegister`)
-    referenced by an :class:`~.expr.Expr`."""
+    referenced by an :class:`~.expr.Expr`.
+    """
     # It's generally convenient for us to ensure that the resources are returned in some
     # deterministic order.  This uses the ordering of 'dict' objects to fake out an ordered set.
     clbits = {}
@@ -95,7 +98,8 @@ def condition_resources(
     condition: tuple[ClassicalRegister, int] | tuple[Clbit, int] | expr.Expr,
 ) -> LegacyResources:
     """Get the legacy classical resources (:class:`.Clbit` and :class:`.ClassicalRegister`)
-    referenced by a legacy condition or an :class:`~.expr.Expr`."""
+    referenced by a legacy condition or an :class:`~.expr.Expr`.
+    """
     if isinstance(condition, expr.Expr):
         return node_resources(condition)
     target, _ = condition
@@ -122,8 +126,7 @@ def partition_registers(
 
 
 def unify_circuit_resources(circuits: Iterable[QuantumCircuit]) -> Iterable[QuantumCircuit]:
-    """
-    Ensure that all the given ``circuits`` have all the same qubits, clbits and registers, and
+    """Ensure that all the given ``circuits`` have all the same qubits, clbits and registers, and
     that they are defined in the same order.  The order is important for binding when the bodies are
     used in the 3-tuple :obj:`.Instruction` context.
 
@@ -157,14 +160,12 @@ def unify_circuit_resources(circuits: Iterable[QuantumCircuit]) -> Iterable[Quan
 def _unify_circuit_resources_rebuild(  # (it's too long?!)
     circuits: tuple[QuantumCircuit, ...],
 ) -> tuple[QuantumCircuit, QuantumCircuit]:
-    """
-    Ensure that all the given circuits have all the same qubits and clbits, and that they
+    """Ensure that all the given circuits have all the same qubits and clbits, and that they
     are defined in the same order.  The order is important for binding when the bodies are used in
     the 3-tuple :obj:`.Instruction` context.
 
     This function will always rebuild the objects into new :class:`.QuantumCircuit` instances.
     """
-
     from qiskit.circuit import QuantumCircuit
 
     qubits, clbits = set(), set()
@@ -196,8 +197,7 @@ def _unify_circuit_resources_rebuild(  # (it's too long?!)
 
 
 def _unify_circuit_registers(circuits: Iterable[QuantumCircuit]) -> Iterable[QuantumCircuit]:
-    """
-    Ensure that ``true_body`` and ``false_body`` have the same registers defined within them.  These
+    """Ensure that ``true_body`` and ``false_body`` have the same registers defined within them.  These
     do not need to be in the same order between circuits.  The two input circuits are returned,
     mutated to have the same registers.
     """

@@ -77,8 +77,8 @@ class SabrePreLayout(AnalysisPass):
 
         Raises:
             TranspilerError: At runtime, if neither ``coupling_map`` or ``target`` are provided.
-        """
 
+        """
         self.max_distance = max_distance
         self.error_rate = error_rate
         self.max_trials_vf2 = max_trials_vf2
@@ -102,8 +102,8 @@ class SabrePreLayout(AnalysisPass):
 
         Args:
             dag (DAGCircuit): DAG to create starting layout for.
-        """
 
+        """
         if self.coupling_map is None:
             raise TranspilerError(
                 "SabrePreLayout requires coupling_map to be used with either"

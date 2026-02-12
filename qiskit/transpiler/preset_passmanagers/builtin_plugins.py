@@ -489,7 +489,6 @@ class OptimizationPassManager(PassManagerStagePlugin):
 
     def pass_manager(self, pass_manager_config, optimization_level=None):
         """Build pass manager for optimization stage."""
-
         # Use the dedicated plugin for the Clifford+T basis when appropriate.
         if pass_manager_config._is_clifford_t:
             return CliffordTOptimizationPassManager().pass_manager(
@@ -618,7 +617,6 @@ class AlapSchedulingPassManager(PassManagerStagePlugin):
 
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
         """Build scheduling stage PassManager"""
-
         instruction_durations = pass_manager_config.instruction_durations
         scheduling_method = pass_manager_config.scheduling_method
         timing_constraints = pass_manager_config.timing_constraints
@@ -634,7 +632,6 @@ class AsapSchedulingPassManager(PassManagerStagePlugin):
 
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
         """Build scheduling stage PassManager"""
-
         instruction_durations = pass_manager_config.instruction_durations
         scheduling_method = pass_manager_config.scheduling_method
         timing_constraints = pass_manager_config.timing_constraints
@@ -650,7 +647,6 @@ class DefaultSchedulingPassManager(PassManagerStagePlugin):
 
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
         """Build scheduling stage PassManager"""
-
         instruction_durations = pass_manager_config.instruction_durations
         scheduling_method = None
         timing_constraints = pass_manager_config.timing_constraints or TimingConstraints()
@@ -672,7 +668,8 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
 
         def _layout_not_perfect(property_set):
             """Return ``True`` if the first attempt at layout has been checked and found to be
-            imperfect.  In this case, perfection means "does not require any swap routing"."""
+            imperfect.  In this case, perfection means "does not require any swap routing".
+            """
             return property_set["is_swap_mapped"] is not None and not property_set["is_swap_mapped"]
 
         def _vf2_match_not_found(property_set):

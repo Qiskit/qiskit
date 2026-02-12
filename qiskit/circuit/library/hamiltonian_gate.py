@@ -10,9 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Gate described by the time evolution of a Hermitian Hamiltonian operator.
-"""
+"""Gate described by the time evolution of a Hermitian Hamiltonian operator."""
 
 from __future__ import annotations
 import math
@@ -50,14 +48,14 @@ class HamiltonianGate(Gate):
         time: float | ParameterExpression,
         label: str | None = None,
     ) -> None:
-        """
-        Args:
+        """Args:
             data: A hermitian operator.
             time: Time evolution parameter.
             label: Unitary name for backend [Default: ``None``].
 
         Raises:
             ValueError: if input data is not an N-qubit unitary operator.
+
         """
         if hasattr(data, "to_matrix"):
             # If input is Gate subclass or some other class object that has

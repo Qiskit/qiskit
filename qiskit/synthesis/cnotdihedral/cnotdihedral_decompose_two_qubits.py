@@ -9,9 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""
-Circuit synthesis for the CNOTDihedral class.
-"""
+"""Circuit synthesis for the CNOTDihedral class."""
 
 import numpy as np
 from qiskit.circuit import QuantumCircuit
@@ -20,7 +18,7 @@ from qiskit.quantum_info import CNOTDihedral
 
 
 def synth_cnotdihedral_two_qubits(elem: CNOTDihedral) -> QuantumCircuit:
-    """Decompose a :class:`.CNOTDihedral` element on a single qubit and two
+    r"""Decompose a :class:`.CNOTDihedral` element on a single qubit and two
     qubits into a :class:`.QuantumCircuit`.
     This decomposition has an optimal number of :class:`.CXGate`\\ s.
 
@@ -36,8 +34,8 @@ def synth_cnotdihedral_two_qubits(elem: CNOTDihedral) -> QuantumCircuit:
     References:
         1. Shelly Garion and Andrew W. Cross, *On the structure of the CNOT-Dihedral group*,
            `arXiv:2006.12042 [quant-ph] <https://arxiv.org/abs/2006.12042>`_
-    """
 
+    """
     circuit = QuantumCircuit(elem.num_qubits)
 
     if elem.num_qubits > 2:

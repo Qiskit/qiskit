@@ -10,9 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-A collection of useful quantum information functions for operators.
-"""
+"""A collection of useful quantum information functions for operators."""
 
 from __future__ import annotations
 import logging
@@ -38,7 +36,6 @@ def process_fidelity(
     require_tp: bool = True,
 ) -> float:
     r"""Return the process fidelity of a noisy quantum channel.
-
 
     The process fidelity :math:`F_{\text{pro}}(\mathcal{E}, \mathcal{F})`
     between two quantum channels :math:`\mathcal{E}, \mathcal{F}` is given by
@@ -83,6 +80,7 @@ def process_fidelity(
 
     Raises:
         QiskitError: if the channel and target do not have the same dimensions.
+
     """
     # Format inputs
     channel = _input_formatter(channel, SuperOp, "process_fidelity", "channel")
@@ -185,6 +183,7 @@ def average_gate_fidelity(
     Raises:
         QiskitError: if the channel and target do not have the same dimensions,
                      or have different input and output dimensions.
+
     """
     # Format inputs
     channel = _input_formatter(channel, SuperOp, "average_gate_fidelity", "channel")
@@ -242,6 +241,7 @@ def gate_error(
     Raises:
         QiskitError: if the channel and target do not have the same dimensions,
                      or have different input and output dimensions.
+
     """
     # Format inputs
     channel = _input_formatter(channel, SuperOp, "gate_error", "channel")
@@ -286,6 +286,7 @@ def diamond_norm(choi: Choi | QuantumChannel, solver: str = "SCS", **kwargs) -> 
         Any additional kwargs will be passed to the ``cvxpy.solve``
         function. See the CVXPY documentation for information on available
         SDP solvers.
+
     """
     from scipy import sparse
 

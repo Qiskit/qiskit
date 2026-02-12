@@ -22,11 +22,11 @@ class Size(AnalysisPass):
     """
 
     def __init__(self, *, recurse=False):
-        """
-        Args:
-            recurse: whether to allow recursion into control flow.  If this is ``False`` (default),
-                the pass will throw an error when control flow is present, to avoid returning a
-                number with little meaning.
+        """Args:
+        recurse: whether to allow recursion into control flow.  If this is ``False`` (default),
+            the pass will throw an error when control flow is present, to avoid returning a
+            number with little meaning.
+
         """
         super().__init__()
         self.recurse = recurse

@@ -10,9 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Exception for errors when there's an error in the Result
-"""
+"""Exception for errors when there's an error in the Result"""
 
 from qiskit.exceptions import QiskitError
 
@@ -29,9 +27,10 @@ class ResultError(QiskitError):
                 error = {'status': 403,
                          'message': 'Your credits are not enough.',
                          'code': 'MAX_CREDITS_EXCEEDED'}
+
     """
 
-    def __init__(self, error):
+    def __init__(self, error):  # noqa: D107
         super().__init__(error["message"])
         self.status = error["status"]
         self.code = error["code"]

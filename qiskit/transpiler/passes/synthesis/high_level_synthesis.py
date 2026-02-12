@@ -10,9 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-High-level-synthesis transpiler pass.
-"""
+"""High-level-synthesis transpiler pass."""
 
 from __future__ import annotations
 
@@ -113,6 +111,7 @@ class HLSConfig:
                 a smaller value means a better circuit. If ``None``, the
                 quality of the circuit is its size (i.e. the number of gates that it contains).
             kwargs: a dictionary mapping higher-level-objects to lists of synthesis methods.
+
         """
         self.use_default_on_unspecified = use_default_on_unspecified
         self.plugin_selection = plugin_selection
@@ -126,7 +125,8 @@ class HLSConfig:
 
     def set_methods(self, hls_name, hls_methods):
         """Sets the list of synthesis methods for a given higher-level-object. This overwrites
-        the lists of methods if also set previously."""
+        the lists of methods if also set previously.
+        """
         self.methods[hls_name] = hls_methods
 
 
@@ -201,8 +201,7 @@ class HighLevelSynthesis(TransformationPass):
         qubits_initially_zero: bool = True,
         optimization_metric: OptimizationMetric = OptimizationMetric.COUNT_2Q,
     ):
-        r"""
-        HighLevelSynthesis initializer.
+        r"""HighLevelSynthesis initializer.
 
         Args:
             hls_config: Optional, the high-level-synthesis config that specifies synthesis methods
@@ -225,6 +224,7 @@ class HighLevelSynthesis(TransformationPass):
                 (i.e. in the zero state) to synthesize an operation.
             optimization_metric:  Specifies the optimization criterion used by the default synthesis
                 methods for high-level-objects (when available).
+
         """
         super().__init__()
 
@@ -279,6 +279,7 @@ class HighLevelSynthesis(TransformationPass):
         Raises:
             TranspilerError: when the transpiler is unable to synthesize the given DAG
             (for instance, when the specified synthesis method is not available).
+
         """
         res = run_on_dag(dag, self.data, self.qubits_initially_zero)
         return res if res is not None else dag
@@ -307,8 +308,7 @@ def _synthesize_op_using_plugins(
     data: HighLevelSynthesisData,
     tracker: QubitTracker,
 ) -> tuple[QuantumCircuit, tuple[int], QubitTracker] | None:
-    """
-    Attempts to synthesize an operation using plugin mechanism.
+    """Attempts to synthesize an operation using plugin mechanism.
 
     Input:
         operation: the operation to be synthesized.

@@ -10,9 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Qubit reset to computational zero.
-"""
+"""Qubit reset to computational zero."""
 
 from qiskit.circuit.singleton import SingletonInstruction, stdlib_singleton_key
 from qiskit._accelerate.circuit import StandardInstructionType
@@ -24,9 +22,9 @@ class Reset(SingletonInstruction):
     _standard_instruction_type = StandardInstructionType.Reset
 
     def __init__(self, label=None):
-        """
-        Args:
-            label: optional string label of this instruction.
+        """Args:
+        label: optional string label of this instruction.
+
         """
         super().__init__("reset", 1, 0, [], label=label)
 

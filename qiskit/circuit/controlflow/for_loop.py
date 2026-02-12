@@ -42,13 +42,13 @@ class ForLoopOp(ControlFlowOp):
         body: QuantumCircuit,
         label: str | None = None,
     ):
-        """
-        Args:
-            indexset: A collection of integers to loop over.
-            loop_parameter: The placeholder parameterizing ``body`` to which
-                the values from ``indexset`` will be assigned.
-            body: The loop body to be repeatedly executed.
-            label: An optional label for identifying the instruction.
+        """Args:
+        indexset: A collection of integers to loop over.
+        loop_parameter: The placeholder parameterizing ``body`` to which
+            the values from ``indexset`` will be assigned.
+        body: The loop body to be repeatedly executed.
+        label: An optional label for identifying the instruction.
+
         """
         num_qubits = body.num_qubits
         num_clbits = body.num_clbits

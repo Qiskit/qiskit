@@ -11,9 +11,7 @@
 # that they have been altered from the originals.
 
 
-"""
-Sampler Pub class
-"""
+"""Sampler Pub class"""
 
 from __future__ import annotations
 
@@ -55,6 +53,7 @@ class SamplerPub(ShapedMixin):
             shots: A specific number of shots to run with. This value takes
                 precedence over any value owed by or supplied to a sampler.
             validate: If ``True``, the input data is validated during initialization.
+
         """
         super().__init__()
         self._circuit = circuit
@@ -93,6 +92,7 @@ class SamplerPub(ShapedMixin):
 
         Returns:
             A coerced sampler pub.
+
         """
         # Validate shots kwarg if provided
         if shots is not None:

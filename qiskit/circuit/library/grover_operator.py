@@ -99,7 +99,6 @@ def grover_operator(
     introduced global phase does not matter for Grover's algorithm.
 
     Examples:
-
     We can construct a Grover operator just from the phase oracle:
 
     .. plot::
@@ -200,7 +199,6 @@ def grover_operator(
         name: The name of the circuit.
 
     References:
-
     [1] L. K. Grover (1996), A fast quantum mechanical algorithm for database search,
     `arXiv:quant-ph/9605043 <https://arxiv.org/abs/quant-ph/9605043>`_.
 
@@ -210,6 +208,7 @@ def grover_operator(
     [3] Brassard, G., Hoyer, P., Mosca, M., & Tapp, A. (2000).
     Quantum Amplitude Amplification and Estimation.
     `arXiv:quant-ph/0005055 <https://arxiv.org/abs/quant-ph/0005055>`_.
+
     """
     # We inherit the ancillas/qubits structure from the oracle, if it is given as circuit.
     if isinstance(oracle, QuantumCircuit):
@@ -421,7 +420,6 @@ class GroverOperator(QuantumCircuit):
         wrap the circuit into an opaque gate.
 
     References:
-
     [1] L. K. Grover (1996), A fast quantum mechanical algorithm for database search,
     `arXiv:quant-ph/9605043 <https://arxiv.org/abs/quant-ph/9605043>`_.
 
@@ -431,6 +429,7 @@ class GroverOperator(QuantumCircuit):
     [3] Brassard, G., Hoyer, P., Mosca, M., & Tapp, A. (2000).
     Quantum Amplitude Amplification and Estimation.
     `arXiv:quant-ph/0005055 <https://arxiv.org/abs/quant-ph/0005055>`_.
+
     """
 
     @deprecate_func(
@@ -448,18 +447,18 @@ class GroverOperator(QuantumCircuit):
         mcx_mode: str = "noancilla",
         name: str = "Q",
     ) -> None:
-        r"""
-        Args:
-            oracle: The phase oracle implementing a reflection about the bad state. Note that this
-                is not a bitflip oracle, see the docstring for more information.
-            state_preparation: The operator preparing the good and bad state.
-                For Grover's algorithm, this is a n-qubit Hadamard gate and for amplitude
-                amplification or estimation the operator :math:`\mathcal{A}`.
-            zero_reflection: The reflection about the zero state, :math:`\mathcal{S}_0`.
-            reflection_qubits: Qubits on which the zero reflection acts on.
-            insert_barriers: Whether barriers should be inserted between the reflections and A.
-            mcx_mode: The mode to use for building the default zero reflection.
-            name: The name of the circuit.
+        r"""Args:
+        oracle: The phase oracle implementing a reflection about the bad state. Note that this
+            is not a bitflip oracle, see the docstring for more information.
+        state_preparation: The operator preparing the good and bad state.
+            For Grover's algorithm, this is a n-qubit Hadamard gate and for amplitude
+            amplification or estimation the operator :math:`\mathcal{A}`.
+        zero_reflection: The reflection about the zero state, :math:`\mathcal{S}_0`.
+        reflection_qubits: Qubits on which the zero reflection acts on.
+        insert_barriers: Whether barriers should be inserted between the reflections and A.
+        mcx_mode: The mode to use for building the default zero reflection.
+        name: The name of the circuit.
+
         """
         super().__init__(name=name)
 

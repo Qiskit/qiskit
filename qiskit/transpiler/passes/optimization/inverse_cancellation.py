@@ -10,9 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-A generic InverseCancellation pass for any set of gate-inverse pairs.
-"""
+"""A generic InverseCancellation pass for any set of gate-inverse pairs."""
 from __future__ import annotations
 
 from typing import Union
@@ -31,7 +29,8 @@ from qiskit._accelerate.inverse_cancellation import (
 
 class InverseCancellation(TransformationPass):
     """Cancel specific Gates which are inverses of each other when they occur back-to-
-    back."""
+    back.
+    """
 
     def __init__(
         self,
@@ -81,6 +80,7 @@ class InverseCancellation(TransformationPass):
 
         Raises:
             TranspilerError: Input is not a self-inverse gate or a pair of inverse gates.
+
         """
         self.self_inverse_gates = []
         self.inverse_gate_pairs = []
@@ -128,6 +128,7 @@ class InverseCancellation(TransformationPass):
 
         Returns:
             DAGCircuit: Transformed DAG.
+
         """
         if self._use_standard_gates:
             run_inverse_cancellation_standard_gates(dag)

@@ -36,6 +36,7 @@ class RemoveDiagonalGatesBeforeMeasure(TransformationPass):
 
         Returns:
             DAGCircuit: the optimized DAG.
+
         """
         remove_diagonal_gates_before_measure(dag)
         return dag

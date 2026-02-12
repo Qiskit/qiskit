@@ -10,9 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Kraus representation of a Quantum Channel.
-"""
+"""Kraus representation of a Quantum Channel."""
 
 from __future__ import annotations
 import copy
@@ -60,6 +58,7 @@ class Kraus(QuantumChannel):
         1. C.J. Wood, J.D. Biamonte, D.G. Cory, *Tensor networks and graphical calculus
            for open quantum systems*, Quant. Inf. Comp. 15, 0579-0811 (2015).
            `arXiv:1111.6950 [quant-ph] <https://arxiv.org/abs/1111.6950>`_
+
     """
 
     def __init__(
@@ -68,7 +67,7 @@ class Kraus(QuantumChannel):
         input_dims: tuple | None = None,
         output_dims: tuple | None = None,
     ):
-        """Initialize a quantum channel Kraus operator.
+        r"""Initialize a quantum channel Kraus operator.
 
         Args:
             data: data to initialize superoperator.
@@ -85,6 +84,7 @@ class Kraus(QuantumChannel):
             used. If the input does not correspond to an N-qubit channel, it
             will assign a single subsystem with dimension specified by the
             shape of the input.
+
         """
         # If the input is a list or tuple we assume it is a list of Kraus
         # matrices, if it is a numpy array we assume that it is a single Kraus

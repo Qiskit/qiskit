@@ -55,7 +55,8 @@ if _optionals.HAS_CONSTRAINT:
 
         def recursiveBacktracking(self, solutions, domains, vconstraints, assignments, single):
             """Like ``constraint.RecursiveBacktrackingSolver.recursiveBacktracking`` but
-            limited in the amount of calls by ``self.call_limit``"""
+            limited in the amount of calls by ``self.call_limit``
+            """
             if self.limit_reached():
                 return None
             return super().recursiveBacktracking(

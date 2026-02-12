@@ -29,7 +29,8 @@ def _bin_to_hex(bitstring):
 
 def _pad_zeros(bitstring, memory_slots):
     """If the bitstring is truncated, pad extra zeros to make its
-    length equal to memory_slots"""
+    length equal to memory_slots
+    """
     return format(int(bitstring, 2), f"0{memory_slots}b")
 
 
@@ -44,8 +45,7 @@ def _separate_bitstring(bitstring, creg_sizes):
 
 
 def format_counts_memory(shot_memory, header=None):
-    """
-    Format a single bitstring (memory) from a single shot experiment.
+    """Format a single bitstring (memory) from a single shot experiment.
 
     - The hexadecimals are expanded to bitstrings
 
@@ -61,6 +61,7 @@ def format_counts_memory(shot_memory, header=None):
 
     Returns:
         dict: a formatted memory
+
     """
     if shot_memory.startswith("0x"):
         shot_memory = _hex_to_bin(shot_memory)
@@ -85,6 +86,7 @@ def _list_to_complex_array(complex_list):
 
     Raises:
         QiskitError: If inner most array of input nested list is not of length 2.
+
     """
     arr = np.asarray(complex_list, dtype=np.complex128)
     if not arr.shape[-1] == 2:
@@ -106,6 +108,7 @@ def format_level_0_memory(memory):
     Raises:
         QiskitError: If the returned numpy array does not have 2 (avg) or 3 (single)
             indices.
+
     """
     formatted_memory = _list_to_complex_array(memory)
     # infer meas_return from shape of returned data.
@@ -127,6 +130,7 @@ def format_level_1_memory(memory):
     Raises:
         QiskitError: If the returned numpy array does not have 1 (avg) or 2 (single)
             indices.
+
     """
     formatted_memory = _list_to_complex_array(memory)
     # infer meas_return from shape of returned data.
@@ -145,6 +149,7 @@ def format_level_2_memory(memory, header=None):
 
     Returns:
         list[str]: List of bitstrings
+
     """
     memory_list = []
     for shot_memory in memory:
@@ -163,6 +168,7 @@ def format_counts(counts, header=None):
 
     Returns:
         dict: a formatted counts
+
     """
     counts_dict = {}
     for key, val in counts.items():
@@ -181,8 +187,8 @@ def format_statevector(vec, decimals=None):
 
     Returns:
         list[complex]: a list of python complex numbers.
-    """
 
+    """
     from qiskit.quantum_info.states.statevector import Statevector
 
     if isinstance(vec, Statevector):
@@ -216,8 +222,8 @@ def format_unitary(mat, decimals=None):
 
     Returns:
         list[list[complex]]: a matrix of complex numbers
-    """
 
+    """
     from qiskit.quantum_info.operators.operator import Operator
 
     if isinstance(mat, Operator):

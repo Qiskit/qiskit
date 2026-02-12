@@ -32,7 +32,7 @@ class RemoveIdentityEquivalent(TransformationPass):
 
     .. math::
 
-        \bar{F} = \frac{1 + d F_{\text{process}}}{1 + d},\ 
+        \bar{F} = \frac{1 + d F_{\text{process}}}{1 + d},\
 
         F_{\text{process}} = \frac{|\mathrm{Tr}(G)|^2}{d^2}
 
@@ -60,11 +60,12 @@ class RemoveIdentityEquivalent(TransformationPass):
                 ``approximation_degree=None`` it uses the error rate specified in the ``Target`` for
                 the gate being evaluated, and a numeric value other than 1 with ``target`` set is
                 used as a scaling factor of the target's error rate.
+
         """
         super().__init__()
         self._approximation_degree = approximation_degree
         self._target = target
 
-    def run(self, dag: DAGCircuit) -> DAGCircuit:
+    def run(self, dag: DAGCircuit) -> DAGCircuit:  # noqa: D102
         remove_identity_equiv(dag, self._approximation_degree, self._target)
         return dag

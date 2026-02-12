@@ -31,6 +31,7 @@ class CheckGateDirection(AnalysisPass):
             coupling_map (CouplingMap): Directed graph representing a coupling map.
             target (Target): The backend target to use for this pass. If this is specified
                 it will be used instead of the coupling map
+
         """
         super().__init__()
         self.coupling_map = coupling_map
@@ -44,6 +45,7 @@ class CheckGateDirection(AnalysisPass):
 
         Args:
             dag (DAGCircuit): DAG to check.
+
         """
         # Only use "check_gate_direction_target" if a target exists and target.operation_names
         # is not empty, else use "check_gate_direction_coupling".

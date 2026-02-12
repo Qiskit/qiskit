@@ -11,8 +11,7 @@
 # that they have been altered from the originals.
 
 
-"""
-Expand 2-qubit Unitary operators into an equivalent
+"""Expand 2-qubit Unitary operators into an equivalent
 decomposition over SU(2)+fixed 2q basis gate, using the KAK method.
 
 May be exact or approximate expansion. In either case uses the minimal
@@ -85,6 +84,7 @@ def decompose_two_qubit_product_gate(special_unitary_matrix: np.ndarray):
         special_unitary_matrix: special unitary matrix to decompose
     Raises:
         QiskitError: if decomposition isn't possible.
+
     """
     special_unitary_matrix = np.asarray(special_unitary_matrix, dtype=complex)
     (L, R, phase) = two_qubit_decompose.decompose_two_qubit_product_gate(special_unitary_matrix)
@@ -154,7 +154,7 @@ class TwoQubitWeylDecomposition:
 
     _specializations = two_qubit_decompose.Specialization
 
-    def __init__(
+    def __init__(  # noqa: D107
         self,
         unitary_matrix: np.ndarray,
         fidelity: float | None = 1.0 - 1.0e-9,
@@ -267,7 +267,11 @@ class TwoQubitWeylDecomposition:
 class TwoQubitControlledUDecomposer:
     r"""Decompose two-qubit unitary in terms of a desired
     :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}`
-    gate that is locally equivalent to an :class:`.RXXGate`."""
+    gate that is locally equivalent to an :class:`.RXXGate`.
+
+    .. automethod:: __call__
+
+    """
 
     def __init__(self, rxx_equivalent_gate: type[Gate], euler_basis: str = "ZXZ"):
         r"""Initialize the KAK decomposition.
@@ -285,6 +289,7 @@ class TwoQubitControlledUDecomposer:
 
         Raises:
             QiskitError: If the gate is not locally equivalent to an :class:`.RXXGate`.
+
         """
         if rxx_equivalent_gate._standard_gate is not None:
             self._inner_decomposer = two_qubit_decompose.TwoQubitControlledUDecomposer(
@@ -302,15 +307,21 @@ class TwoQubitControlledUDecomposer:
     def __call__(
         self, unitary: Operator | np.ndarray, approximate=False, use_dag=False, *, atol=DEFAULT_ATOL
     ) -> QuantumCircuit:
-        """Returns the Weyl decomposition in circuit form.
+        r"""Returns the Weyl decomposition in circuit form.
 
         Args:
             unitary (Operator or ndarray): :math:`4 \times 4` unitary to synthesize.
+            approximate (bool): Whether to run an approximate synthesis (this argument currently
+                has no effect).
+            use_dag (bool): Should the output be a :class:`.DAGCircuit` instead of a :class:`.QuantumCircuit`
+                (this argument currently has no effect).
+            atol (float): The absolute tolerance to use for the the synthesis. Note that this argument is
+                used by passing it internally to :class:`.OneQubitEulerDecomposer`, so you can refer to that
+                class's documentation for details on how it's used.
 
         Returns:
             QuantumCircuit: Synthesized quantum circuit.
 
-        Note: atol is passed to OneQubitEulerDecomposer.
         """
         circ_data = self._inner_decomposer(np.asarray(unitary, dtype=complex), atol)
         return QuantumCircuit._from_circuit_data(circ_data, legacy_qubits=True)
@@ -334,9 +345,10 @@ class TwoQubitBasisDecomposer:
 
 
     .. automethod:: __call__
+
     """
 
-    def __init__(
+    def __init__(  # noqa: D107
         self,
         gate: Gate,
         basis_fidelity: float = 1.0,
@@ -371,8 +383,7 @@ class TwoQubitBasisDecomposer:
 
     @staticmethod
     def decomp0(target):
-        r"""
-        Decompose target :math:`\sim U_d(x, y, z)` with :math:`0` uses of the basis gate.
+        r"""Decompose target :math:`\sim U_d(x, y, z)` with :math:`0` uses of the basis gate.
         Result :math:`U_r` has trace:
 
         .. math::
@@ -382,7 +393,6 @@ class TwoQubitBasisDecomposer:
 
         which is optimal for all targets and bases
         """
-
         return two_qubit_decompose.TwoQubitBasisDecomposer.decomp0(target)
 
     def decomp1(self, target):
@@ -400,8 +410,7 @@ class TwoQubitBasisDecomposer:
         return self._inner_decomposer.decomp1(target)
 
     def decomp2_supercontrolled(self, target):
-        r"""
-        Decompose target :math:`\sim U_d(x, y, z)` with :math:`2` uses of the basis gate.
+        r"""Decompose target :math:`\sim U_d(x, y, z)` with :math:`2` uses of the basis gate.
 
         For supercontrolled basis :math:`\sim U_d(\pi/4, b, 0)`, all b, result :math:`U_r` has trace
 
@@ -419,8 +428,7 @@ class TwoQubitBasisDecomposer:
         return self._inner_decomposer.decomp2_supercontrolled(target)
 
     def decomp3_supercontrolled(self, target):
-        r"""
-        Decompose target with :math:`3` uses of the basis.
+        r"""Decompose target with :math:`3` uses of the basis.
         This is an exact decomposition for supercontrolled basis :math:`\sim U_d(\pi/4, b, 0)`, all b,
         and any target. No guarantees for non-supercontrolled basis.
         """
@@ -452,8 +460,8 @@ class TwoQubitBasisDecomposer:
 
         Raises:
             QiskitError: if ``pulse_optimize`` is True but we don't know how to do it.
-        """
 
+        """
         unitary = np.asarray(unitary, dtype=complex)
         if use_dag:
             return self._inner_decomposer.to_dag(
@@ -469,8 +477,7 @@ class TwoQubitBasisDecomposer:
             return QuantumCircuit._from_circuit_data(circ_data, legacy_qubits=True)
 
     def traces(self, target):
-        r"""
-        Give the expected traces :math:`\Big\vert\text{Tr}(U \cdot U_\text{target}^{\dag})\Big\vert`
+        r"""Give the expected traces :math:`\Big\vert\text{Tr}(U \cdot U_\text{target}^{\dag})\Big\vert`
         for a different number of basis gates.
         """
         return self._inner_decomposer.traces(target._inner_decomposition)

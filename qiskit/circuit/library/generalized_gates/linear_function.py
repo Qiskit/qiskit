@@ -37,7 +37,6 @@ class LinearFunction(Gate):
     by cnot_synth, which is the big-endian (and not the little-endian) bit-ordering convention.
 
     Example:
-     
     The circuit
 
     .. code-block:: text
@@ -60,11 +59,11 @@ class LinearFunction(Gate):
 
 
     References:
-
     [1] Ketan N. Patel, Igor L. Markov, and John P. Hayes,
     Optimal synthesis of linear reversible circuits,
     Quantum Inf. Comput. 8(3) (2008).
     `Online at umich.edu. <https://web.eecs.umich.edu/~imarkov/pubs/jour/qic08-cnot.pdf>`_
+
     """
 
     def __init__(
@@ -79,8 +78,7 @@ class LinearFunction(Gate):
         ),
         validate_input: bool = False,
     ) -> None:
-        """
-        Args:
+        """Args:
             linear: data from which a linear function can be constructed. It can be either a
                 nxn matrix (describing the linear transformation), a permutation (which is a
                 special case of a linear function), another linear function, a clifford (when
@@ -97,8 +95,8 @@ class LinearFunction(Gate):
                 or the input quantum circuit contains non-linear objects
                 (for example, a Hadamard gate, or a Clifford that does
                 not correspond to a linear function).
-        """
 
+        """
         original_circuit = None
 
         if isinstance(linear, (list, np.ndarray)):
@@ -237,6 +235,7 @@ class LinearFunction(Gate):
 
         Returns:
             QuantumCircuit: A circuit implementing the evolution.
+
         """
         return self.definition
 
@@ -285,6 +284,7 @@ class LinearFunction(Gate):
 
         Returns:
             LinearFunction: extended linear function.
+
         """
         extended_mat = np.eye(num_qubits, dtype=bool)
 

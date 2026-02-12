@@ -25,11 +25,11 @@ class FunctionalPauliRotations(BlueprintCircuit, ABC):
     def __init__(
         self, num_state_qubits: int | None = None, basis: str = "Y", name: str = "F"
     ) -> None:
-        r"""
-        Args:
-            num_state_qubits: The number of qubits representing the state :math:`|x\rangle`.
-            basis: The kind of Pauli rotation to use. Must be 'X', 'Y' or 'Z'.
-            name: The name of the circuit object.
+        r"""Args:
+        num_state_qubits: The number of qubits representing the state :math:`|x\rangle`.
+        basis: The kind of Pauli rotation to use. Must be 'X', 'Y' or 'Z'.
+        name: The name of the circuit object.
+
         """
         super().__init__(name=name)
 
@@ -49,6 +49,7 @@ class FunctionalPauliRotations(BlueprintCircuit, ABC):
 
         Returns:
             The kind of Pauli rotation used in controlled rotation.
+
         """
         return self._basis
 
@@ -61,6 +62,7 @@ class FunctionalPauliRotations(BlueprintCircuit, ABC):
 
         Raises:
             ValueError: The provided basis in not X, Y or Z.
+
         """
         basis = basis.lower()
         if self._basis is None or basis != self._basis:
@@ -75,6 +77,7 @@ class FunctionalPauliRotations(BlueprintCircuit, ABC):
 
         Returns:
             The number of state qubits.
+
         """
         return self._num_state_qubits
 
@@ -87,6 +90,7 @@ class FunctionalPauliRotations(BlueprintCircuit, ABC):
 
         Args:
             num_state_qubits: The new number of qubits.
+
         """
         if self._num_state_qubits is None or num_state_qubits != self._num_state_qubits:
             self._invalidate()
@@ -100,6 +104,7 @@ class FunctionalPauliRotations(BlueprintCircuit, ABC):
 
         Args:
             num_state_qubits: The new number of qubits.
+
         """
         raise NotImplementedError
 
@@ -109,5 +114,6 @@ class FunctionalPauliRotations(BlueprintCircuit, ABC):
 
         Returns:
             The minimal number of ancillas required.
+
         """
         return 0

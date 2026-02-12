@@ -10,9 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Mixin for operator scalar multiplication interface.
-"""
+"""Mixin for operator scalar multiplication interface."""
 
 import sys
 from abc import ABC, abstractmethod
@@ -59,4 +57,5 @@ class MultiplyMixin(ABC):
 
         Returns:
             CLASS: the CLASS other * self.
+
         """

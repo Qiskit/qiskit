@@ -10,8 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-A two-ways dict to represent a layout.
+"""A two-ways dict to represent a layout.
 
 Layout is the relation between virtual (qu)bits and physical (qu)bits.
 Virtual (qu)bits are tuples, e.g. `(QuantumRegister(3, 'qr'), 2)` or simply `qr[2]`.
@@ -38,8 +37,9 @@ class Layout:
     __slots__ = ("_p2v", "_regs", "_v2p")
 
     def __init__(self, input_dict=None):
-        """construct a Layout from a bijective dictionary, mapping
-        virtual qubits to physical qubits"""
+        """Construct a Layout from a bijective dictionary, mapping
+        virtual qubits to physical qubits
+        """
         self._regs = []
         self._p2v = {}
         self._v2p = {}
@@ -84,6 +84,7 @@ class Layout:
                     {0: qr[0],
                      1: qr[1],
                      2: qr[2]}
+
         """
         for key, value in input_dict.items():
             virtual, physical = Layout.order_based_on_type(key, value)
@@ -94,7 +95,7 @@ class Layout:
 
     @staticmethod
     def order_based_on_type(value1, value2):
-        """decides which one is physical/virtual based on the type. Returns (virtual, physical)"""
+        """Decides which one is physical/virtual based on the type. Returns (virtual, physical)"""
         if isinstanceint(value1) and isinstance(value2, (Qubit, type(None))):
             physical = int(value1)
             virtual = value2
@@ -164,13 +165,13 @@ class Layout:
         return layout_copy
 
     def add(self, virtual_bit, physical_bit=None):
-        """
-        Adds a map element between `bit` and `physical_bit`. If `physical_bit` is not
+        """Adds a map element between `bit` and `physical_bit`. If `physical_bit` is not
         defined, `bit` will be mapped to a new physical bit.
 
         Args:
             virtual_bit (tuple): A (qu)bit. For example, (QuantumRegister(3, 'qr'), 2).
             physical_bit (int): A physical bit. For example, 3.
+
         """
         if physical_bit is None:
             if len(self._p2v) == 0:
@@ -193,6 +194,7 @@ class Layout:
 
         Args:
             reg (Register): A (qu)bit Register. For example, QuantumRegister(3, 'qr').
+
         """
         self._regs.append(reg)
         for bit in reg:
@@ -200,23 +202,22 @@ class Layout:
                 self.add(bit)
 
     def get_registers(self):
-        """
-        Returns the registers in the layout [QuantumRegister(2, 'qr0'), QuantumRegister(3, 'qr1')]
+        """Returns the registers in the layout [QuantumRegister(2, 'qr0'), QuantumRegister(3, 'qr1')]
+
         Returns:
             Set: A set of Registers in the layout
+
         """
         return set(self._regs)
 
     def get_virtual_bits(self):
-        """
-        Returns the dictionary where the keys are virtual (qu)bits and the
+        """Returns the dictionary where the keys are virtual (qu)bits and the
         values are physical (qu)bits.
         """
         return self._v2p
 
     def get_physical_bits(self):
-        """
-        Returns the dictionary where the keys are physical (qu)bits and the
+        """Returns the dictionary where the keys are physical (qu)bits and the
         values are virtual (qu)bits.
         """
         return self._p2v
@@ -227,8 +228,10 @@ class Layout:
         Args:
             left (tuple or int): Item to swap with right.
             right (tuple or int): Item to swap with left.
+
         Raises:
             LayoutError: If left and right have not the same type.
+
         """
         if type(left) is not type(right):
             raise LayoutError("The method swap only works with elements of the same type.")
@@ -250,11 +253,14 @@ class Layout:
 
         Args:
             another_layout (Layout): The other layout to combine.
+
         Returns:
             dict: A "edge map".
+
         Raises:
             LayoutError: another_layout can be bigger than self, but not smaller.
                 Otherwise, raises.
+
         """
         edge_map = {}
 
@@ -278,6 +284,7 @@ class Layout:
 
         Returns:
             List: ordered bits.
+
         """
         order = [0] * len(bits)
 
@@ -294,8 +301,10 @@ class Layout:
 
         Args:
             *regs (Registers, Qubits): registers and qubits to include in the layout.
+
         Returns:
             Layout: A layout with all the `regs` in the given order.
+
         """
         layout = Layout()
         for reg in regs:
@@ -315,10 +324,13 @@ class Layout:
             int_list (list): A list of integers.
             *qregs (QuantumRegisters): The quantum registers to apply
                 the layout to.
+
         Returns:
             Layout: The corresponding Layout object.
+
         Raises:
             LayoutError: Invalid input layout.
+
         """
         if not all(isinstanceint(i) for i in int_list):
             raise LayoutError("Expected a list of ints")
@@ -345,8 +357,7 @@ class Layout:
 
     @staticmethod
     def from_qubit_list(qubit_list, *qregs):
-        """
-        Populates a Layout from a list containing virtual
+        """Populates a Layout from a list containing virtual
         qubits, Qubit or None.
 
         Args:
@@ -354,10 +365,12 @@ class Layout:
                 e.g.: [qr[0], None, qr[2], qr[3]]
             *qregs (QuantumRegisters): The quantum registers to apply
                 the layout to.
+
         Returns:
             Layout: the corresponding Layout object
         Raises:
             LayoutError: If the elements are not Qubit or None
+
         """
         out = Layout()
         for physical, virtual in enumerate(qubit_list):
@@ -389,6 +402,7 @@ class Layout:
 
         Returns:
             A new layout object the represents this layout composed with the ``other`` layout.
+
         """
         other_v2p = other.get_virtual_bits()
         return Layout({virt: other_v2p[qubits[phys]] for virt, phys in self._v2p.items()})
@@ -411,6 +425,7 @@ class Layout:
 
         Returns:
             A new layout object the represents the inverse of this layout.
+
         """
         source_qubit_to_position = {q: p for p, q in enumerate(source_qubits)}
         return Layout(
@@ -436,7 +451,6 @@ class Layout:
         to ``2``, ``1`` to ``0`` and ``2`` to ``1``, with the corresponding
         permutation being ``[1, 2, 0]``.
         """
-
         perm = [None] * len(qubits)
         for i, q in enumerate(qubits):
             pos = self._v2p[q]
@@ -572,9 +586,11 @@ class TranspileLayout:
             filter_ancillas: If set to ``True`` only qubits in the input circuit
                 will be in the returned layout. Any ancilla qubits added to the
                 output circuit will be filtered from the returned object.
+
         Returns:
             A layout object mapping the input circuit's :class:`~.circuit.Qubit`
             objects to the positions of the selected physical qubits.
+
         """
         if not filter_ancillas:
             return self.initial_layout
@@ -596,8 +612,8 @@ class TranspileLayout:
         Return:
             A layout array that maps a position in the array to its new position in the output
             circuit.
-        """
 
+        """
         virtual_map = self.initial_layout.get_virtual_bits()
         if filter_ancillas:
             output = [None] * self._input_qubit_count
@@ -620,6 +636,7 @@ class TranspileLayout:
         Returns:
             A layout array that maps a position in the array to its new position in the output
             circuit.
+
         """
         if self.final_layout is None:
             return list(range(len(self._output_qubit_list)))
@@ -665,6 +682,7 @@ class TranspileLayout:
 
         Returns:
             A list of final positions for each input circuit qubit.
+
         """
         if self._input_qubit_count is None:
             # TODO: After there is a way to differentiate the ancilla qubits added by the transpiler
@@ -739,6 +757,7 @@ class TranspileLayout:
 
         Returns:
             A layout object mapping to the final positions for each qubit.
+
         """
         res = self.final_index_layout(filter_ancillas=filter_ancillas)
         pos_to_virt = {v: k for k, v in self.input_qubit_mapping.items()}
@@ -801,6 +820,7 @@ class TranspileLayout:
             dag: the current state of the :class:`.DAGCircuit`.
             property_set: the current transpiler's property set.  This must at least have the
                 ``layout`` key set.
+
         """
         initial_layout = property_set["layout"]
         final_layout = property_set["final_layout"]
@@ -958,6 +978,7 @@ class TranspileLayout:
         Args:
             property_set: the :class:`.PropertySet` (or general :class:`dict`) that the output
                 should be written into.  This mutates the input in place.
+
         """
         for always_overwrite in (
             "layout",

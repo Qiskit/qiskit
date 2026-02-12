@@ -57,11 +57,11 @@ class IQP(QuantumCircuit):
         _generate_circuit_library_visualization(circuit.decompose())
 
     References:
-
     [1] M. J. Bremner et al. Average-case complexity versus approximate
     simulation of commuting quantum computations,
     Phys. Rev. Lett. 117, 080501 (2016).
     `arXiv:1504.07999 <https://arxiv.org/abs/1504.07999>`_
+
     """
 
     @deprecate_func(
@@ -77,6 +77,7 @@ class IQP(QuantumCircuit):
 
         Raises:
             CircuitError: if the inputs is not as symmetric matrix.
+
         """
         circuit = iqp(interactions)
         super().__init__(*circuit.qregs, name=circuit.name)
@@ -118,7 +119,6 @@ def iqp(
            _generate_circuit_library_visualization(circuit)
 
     References:
-
     [1] M. J. Bremner et al. Average-case complexity versus approximate
     simulation of commuting quantum computations,
     Phys. Rev. Lett. 117, 080501 (2016).
@@ -130,6 +130,7 @@ def iqp(
 
     Returns:
         An IQP circuit.
+
     """
     # if no interactions are given, generate them
     num_qubits = len(interactions)
@@ -173,6 +174,7 @@ def random_iqp(
 
     Returns:
         An IQP circuit.
+
     """
     # set the label -- if the number of qubits is too large, do not show the interactions matrix
     circuit = QuantumCircuit._from_circuit_data(py_random_iqp(num_qubits, seed), legacy_qubits=True)

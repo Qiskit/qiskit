@@ -57,17 +57,16 @@ class RGate(Gate):
         phi: ParameterValueType,
         label: str | None = None,
     ):
-        r"""
-        Args:
-            theta: The rotation angle :math:`\theta`.
-            phi: The angle specifying the rotation axis, given by :math:`\cos(\phi) x + \sin(\phi)y`.
-            label: An optional label for the gate.
+        r"""Args:
+        theta: The rotation angle :math:`\theta`.
+        phi: The angle specifying the rotation axis, given by :math:`\cos(\phi) x + \sin(\phi)y`.
+        label: An optional label for the gate.
+
         """
         super().__init__("r", 1, [theta, phi], label=label)
 
     def _define(self):
         """Default definition"""
-
         from qiskit.circuit import QuantumCircuit
 
         #    ┌───────────────────────┐
@@ -89,6 +88,7 @@ class RGate(Gate):
 
         Returns:
             RGate: inverse gate.
+
         """
         return RGate(-self.params[0], self.params[1])
 

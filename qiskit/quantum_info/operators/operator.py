@@ -10,9 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Matrix Operator class.
-"""
+"""Matrix Operator class."""
 
 from __future__ import annotations
 
@@ -112,6 +110,7 @@ class Operator(LinearOp):
             Note that two operators initialized via this method are only considered equivalent if they
             match up to their canonical qubit order (or: permutation). See :meth:`.Operator.from_circuit`
             to specify a different qubit permutation.
+
         """
         op_shape = None
         if isinstance(data, (list, np.ndarray)):
@@ -210,7 +209,6 @@ class Operator(LinearOp):
                 ``'latex_source'`` is selected for ``output``.
 
         """
-
         from qiskit.visualization import array_to_latex
 
         default_output = "repr"
@@ -276,6 +274,7 @@ class Operator(LinearOp):
             '-': [[0.5, -0.5], [-0.5 , 0.5]]
             'r': [[0.5, -0.5j], [0.5j , 0.5]]
             'l': [[0.5, 0.5j], [-0.5j , 0.5]]
+
         """
         # Check label is valid
         label_mats = {
@@ -312,14 +311,15 @@ class Operator(LinearOp):
             front (bool): When set to ``True`` the permutation is applied before the
                 operator, when set to ``False`` the permutation is applied after the
                 operator.
+
         Returns:
             Operator: The modified operator.
 
         Raises:
             QiskitError: if the size of the permutation pattern does not match the
                 dimensions of the operator.
-        """
 
+        """
         # See https://github.com/Qiskit/qiskit-terra/pull/9403 for the math
         # behind the following code.
 
@@ -417,10 +417,11 @@ class Operator(LinearOp):
             final_layout (Layout): If specified this kwarg can be used to represent the
                 output permutation caused by swap insertions during the routing stage
                 of the transpiler.
+
         Returns:
             Operator: An operator representing the input circuit
-        """
 
+        """
         if layout is None:
             if not ignore_set_layout:
                 layout = getattr(circuit, "_layout", None)
@@ -477,7 +478,6 @@ class Operator(LinearOp):
 
     def to_instruction(self):
         """Convert to a UnitaryGate instruction."""
-
         from qiskit.circuit.library.generalized_gates.unitary import UnitaryGate
 
         return UnitaryGate(self.data)
@@ -548,7 +548,7 @@ class Operator(LinearOp):
     def power(
         self, n: float, branch_cut_rotation=cmath.pi * 1e-12, assume_unitary=False
     ) -> Operator:
-        """Return the matrix power of the operator.
+        r"""Return the matrix power of the operator.
 
         Non-integer powers of operators with an eigenvalue whose complex phase is :math:`\\pi` have
         a branch cut in the complex plane, which makes the calculation of the principal root around
@@ -592,6 +592,7 @@ class Operator(LinearOp):
             It is only safe to set the argument ``assume_unitary`` to ``True`` when the operator
             is unitary (or, more generally, normal). Otherwise, the function will return an
             incorrect output.
+
         """
         if self.input_dims() != self.output_dims():
             raise QiskitError("Can only power with input_dims = output_dims.")
@@ -654,8 +655,8 @@ class Operator(LinearOp):
         Raises:
             QiskitError: if other is not an operator, or has incompatible
                          dimensions.
-        """
 
+        """
         from qiskit.quantum_info.operators.scalar_op import ScalarOp
 
         if qargs is None:
@@ -682,6 +683,7 @@ class Operator(LinearOp):
 
         Raises:
             QiskitError: if other is not a valid complex number.
+
         """
         if not isinstance(other, Number):
             raise QiskitError("other is not a number")
@@ -699,6 +701,7 @@ class Operator(LinearOp):
 
         Returns:
             bool: True if operators are equivalent up to global phase.
+
         """
         if not isinstance(other, Operator):
             try:
@@ -724,6 +727,7 @@ class Operator(LinearOp):
 
         Returns:
             Operator: the operator with reversed subsystem order.
+
         """
         ret = _copy.copy(self)
         axes = tuple(range(self._op_shape._num_qargs_l - 1, -1, -1))
@@ -756,6 +760,7 @@ class Operator(LinearOp):
 
         Raises:
             QiskitError: if mat is not an even rank tensor.
+
         """
         rank = tensor.ndim
         rank_mat = mat.ndim

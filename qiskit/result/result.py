@@ -37,11 +37,12 @@ class Result:
         date (str): optional date field
         status (str): optional status field
         header (dict): an optional free form dictionary header
+
     """
 
     _metadata = {}
 
-    def __init__(
+    def __init__(  # noqa: D107
         self,
         *,
         backend_name=None,
@@ -86,6 +87,7 @@ class Result:
 
         Returns:
             dict: The dictionary form of the Result
+
         """
         out_dict = {
             "backend_name": self.backend_name,
@@ -114,11 +116,11 @@ class Result:
             data (dict): A dictionary representing the Result to create. It
                          will be in the same format as output by
                          :meth:`to_dict`.
+
         Returns:
             Result: The ``Result`` object from the input dictionary.
 
         """
-
         in_data = copy.copy(data)
         in_data["results"] = [ExperimentResult.from_dict(x) for x in in_data.pop("results")]
         return cls(**in_data)
@@ -169,6 +171,7 @@ class Result:
 
         Raises:
             QiskitError: if data for the experiment could not be retrieved.
+
         """
         try:
             return self._get_experiment(experiment).data.to_dict()
@@ -200,6 +203,7 @@ class Result:
 
         Raises:
             QiskitError: if there is no memory data for the circuit.
+
         """
         exp_result = self._get_experiment(experiment)
         try:
@@ -245,6 +249,7 @@ class Result:
 
         Raises:
             QiskitError: if there are no counts for the experiment.
+
         """
         if experiment is None:
             exp_keys = range(len(self.results))
@@ -295,6 +300,7 @@ class Result:
 
         Raises:
             QiskitError: if there is no statevector for the experiment.
+
         """
         try:
             return postprocess.format_statevector(
@@ -318,6 +324,7 @@ class Result:
 
         Raises:
             QiskitError: if there is no unitary for the experiment.
+
         """
         try:
             return postprocess.format_unitary(self.data(experiment)["unitary"], decimals=decimals)
@@ -337,6 +344,7 @@ class Result:
         Raises:
             QiskitError: if there is no data for the experiment, or an unhandled
                 error occurred while fetching the data.
+
         """
         # Automatically return the first result if no key was provided.
         if key is None:

@@ -33,10 +33,10 @@ class UnrollCustomDefinitions(TransformationPass):
                 Ignored if ``target`` is also specified.
             target (Optional[Target]): The :class:`~.Target` object corresponding to the compilation
                 target. When specified, any argument specified for ``basis_gates`` is ignored.
-             min_qubits (int): The minimum number of qubits for operations in the input
-                 dag to translate.
-        """
+            min_qubits (int): The minimum number of qubits for operations in the input
+                dag to translate.
 
+        """
         super().__init__()
         self._equiv_lib = equivalence_library
         self._basis_gates = basis_gates
@@ -55,8 +55,8 @@ class UnrollCustomDefinitions(TransformationPass):
 
         Returns:
             DAGCircuit: output unrolled dag
-        """
 
+        """
         if self._basis_gates is None and self._target is None:
             return dag
 

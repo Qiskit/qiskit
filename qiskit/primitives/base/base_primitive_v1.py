@@ -23,6 +23,14 @@ class BasePrimitiveV1(ABC):
     """Primitive V1 abstract base class."""
 
     def __init__(self, options: dict | None = None):
+        """Intialize a new primitive instance
+
+        Args:
+            options: An optional options dict. The allowed values in this
+                are specified in the subclass that implements this abstract
+                interface.
+
+        """
         self._run_options = Options()
         if options is not None:
             self._run_options.update_options(**options)
@@ -33,6 +41,7 @@ class BasePrimitiveV1(ABC):
 
         Returns:
             options
+
         """
         return self._run_options
 
@@ -41,5 +50,6 @@ class BasePrimitiveV1(ABC):
 
         Args:
             **fields: The fields to update the options
+
         """
         self._run_options.update_options(**fields)

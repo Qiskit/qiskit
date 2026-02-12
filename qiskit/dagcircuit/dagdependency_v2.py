@@ -76,9 +76,7 @@ class _DAGDependencyV2:
     """
 
     def __init__(self):
-        """
-        Create an empty _DAGDependencyV2.
-        """
+        """Create an empty _DAGDependencyV2."""
         # Circuit name
         self.name = None
 
@@ -127,7 +125,8 @@ class _DAGDependencyV2:
         """Set the global phase of the circuit.
 
         Args:
-            angle (float, ParameterExpression)
+            angle (float, ParameterExpression): The angle to set the global phase to.
+
         """
         if isinstance(angle, ParameterExpression):
             self._global_phase = angle
@@ -145,8 +144,10 @@ class _DAGDependencyV2:
 
     def depth(self):
         """Return the circuit depth.
+
         Returns:
             int: the circuit depth
+
         """
         depth = rx.dag_longest_path_length(self._multi_graph)
         return depth if depth >= 0 else 0
@@ -224,8 +225,7 @@ class _DAGDependencyV2:
                 )
 
     def find_bit(self, bit: Bit) -> BitLocations:
-        """
-        Finds locations in the _DAGDependencyV2, by mapping the Qubit and Clbit to positional index
+        """Finds locations in the _DAGDependencyV2, by mapping the Qubit and Clbit to positional index
         BitLocations is defined as: BitLocations = namedtuple("BitLocations", ("index", "registers"))
 
         Args:
@@ -239,9 +239,10 @@ class _DAGDependencyV2:
                 pairs with an entry for each :obj:`~Register` in the circuit which contains the
                 :obj:`~Bit` (and the index in the :obj:`~Register` at which it can be found).
 
-          Raises:
+        Raises:
             DAGDependencyError: If the supplied :obj:`~Bit` was of an unknown type.
             DAGDependencyError: If the supplied :obj:`~Bit` could not be found on the circuit.
+
         """
         try:
             if isinstance(bit, Qubit):
@@ -262,6 +263,7 @@ class _DAGDependencyV2:
             operation (qiskit.circuit.Operation): operation as a quantum gate
             qargs (list[~qiskit.circuit.Qubit]): list of qubits on which the operation acts
             cargs (list[Clbit]): list of classical wires to attach to
+
         """
         new_node = DAGOpNode(
             op=operation,
@@ -273,8 +275,7 @@ class _DAGDependencyV2:
         self._increment_op(new_node.op)
 
     def _update_edges(self):
-        """
-        Updates DagDependencyV2 by adding edges to the newly added node (max_node)
+        """Updates DagDependencyV2 by adding edges to the newly added node (max_node)
         from the previously added nodes.
         For each previously added node (prev_node), an edge from prev_node to max_node
         is added if max_node is "reachable" from prev_node (this means that the two
@@ -326,12 +327,12 @@ class _DAGDependencyV2:
                     reachable[predecessor_id] = False
 
     def _get_node(self, node_id):
-        """
-        Args:
+        """Args:
             node_id (int): label of considered node.
 
         Returns:
             node: corresponding to the label.
+
         """
         return self._multi_graph.get_node_data(node_id)
 
@@ -360,15 +361,14 @@ class _DAGDependencyV2:
         return self._op_names
 
     def op_nodes(self):
-        """
-        Returns:
-            generator(dict): iterator over all the nodes.
+        """Returns:
+        generator(dict): iterator over all the nodes.
+
         """
         return iter(self._multi_graph.nodes())
 
     def topological_nodes(self, key=None) -> Generator[DAGOpNode, Any, Any]:
-        """
-        Yield nodes in topological order.
+        """Yield nodes in topological order.
 
         Args:
             key (Callable): A callable which will take a DAGNode object and
@@ -378,6 +378,7 @@ class _DAGDependencyV2:
 
         Returns:
             generator(DAGOpNode): node in topological order
+
         """
 
         def _key(x):
@@ -391,13 +392,13 @@ class _DAGDependencyV2:
         return iter(rx.lexicographical_topological_sort(self._multi_graph, key=key))
 
     def topological_op_nodes(self, key=None) -> Generator[DAGOpNode, Any, Any]:
-        """
-        Yield nodes in topological order. This is a wrapper for topological_nodes since
+        """Yield nodes in topological order. This is a wrapper for topological_nodes since
         all nodes are op nodes. It's here so that calls to dag.topological_op_nodes can
         use either DAGCircuit or _DAGDependencyV2.
 
         Returns:
             generator(DAGOpNode): nodes in topological order.
+
         """
         return self.topological_nodes(key)
 
@@ -426,8 +427,7 @@ class _DAGDependencyV2:
         return {self._multi_graph[x] for x in rx.descendants(self._multi_graph, node._node_id)}
 
     def bfs_successors(self, node):
-        """
-        Returns an iterator of tuples of (DAGOpNode, [DAGOpNodes]) where the DAGOpNode is the
+        """Returns an iterator of tuples of (DAGOpNode, [DAGOpNodes]) where the DAGOpNode is the
         current node and [DAGOpNode] is its successors in  BFS order.
         """
         return iter(rx.bfs_successors(self._multi_graph, node._node_id))
@@ -443,6 +443,7 @@ class _DAGDependencyV2:
 
         Returns:
             _DAGDependencyV2: An empty copy of self.
+
         """
         target_dag = _DAGDependencyV2()
         target_dag.name = self.name
@@ -465,8 +466,7 @@ class _DAGDependencyV2:
         return target_dag
 
     def draw(self, scale=0.7, filename=None, style="color"):
-        """
-        Draws the _DAGDependencyV2 graph.
+        """Draws the _DAGDependencyV2 graph.
 
         This function needs `pydot <https://github.com/erocarrera/pydot>`, which in turn needs
         Graphviz <https://www.graphviz.org/>` to be installed.
@@ -479,6 +479,7 @@ class _DAGDependencyV2:
 
         Returns:
             Ipython.display.Image: if in Jupyter notebook and not saving to file, otherwise None.
+
         """
         from qiskit.visualization.dag_visualization import dag_drawer
 
@@ -521,10 +522,12 @@ class _DAGDependencyV2:
                 a contiguous block and won't introduce a cycle when it's
                 contracted to a single node, this can be set to ``False`` to
                 improve the runtime performance of this method.
+
         Raises:
             DAGDependencyError: if ``cycle_check`` is set to ``True`` and replacing
                 the specified block introduces a cycle or if ``node_block`` is
                 empty.
+
         """
         block_qargs = set()
         block_cargs = set()

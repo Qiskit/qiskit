@@ -67,8 +67,8 @@ class TimeUnitConversion(TransformationPass):
 
         Raises:
             TranspilerError: if the units are not unifiable
-        """
 
+        """
         inst_durations = InstructionDurations()
         if self._durations_provided:
             inst_durations.update(self.inst_durations, getattr(self.inst_durations, "dt", None))

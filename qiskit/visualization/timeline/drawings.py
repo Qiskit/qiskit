@@ -10,8 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Drawing objects for timeline drawer.
+"""Drawing objects for timeline drawer.
 
 Drawing objects play two important roles:
     - Allowing unittests of visualization module. Usually it is hard for image files to be tested.
@@ -103,6 +102,7 @@ class ElementaryData(ABC):
             bits: Qubit or Clbit object bound to this drawing.
             meta: Meta data dictionary of the object.
             styles: Style keyword args of the object. This conforms to `matplotlib`.
+
         """
         if bits and isinstance(bits, (circuit.Qubit, circuit.Clbit)):
             bits = [bits]
@@ -160,6 +160,7 @@ class LineData(ElementaryData):
             bit: Bit associated to this object.
             meta: Meta data dictionary of the object.
             styles: Style keyword args of the object. This conforms to `matplotlib`.
+
         """
         super().__init__(
             data_type=data_type, xvals=xvals, yvals=yvals, bits=bit, meta=meta, styles=styles
@@ -190,6 +191,7 @@ class BoxData(ElementaryData):
 
         Raises:
             VisualizationError: When number of data points are not equals to 2.
+
         """
         if len(xvals) != 2 or len(yvals) != 2:
             raise VisualizationError("Length of data points are not equals to 2.")
@@ -224,6 +226,7 @@ class TextData(ElementaryData):
             latex: If set this string is used instead of `text`.
             meta: Meta data dictionary of the object.
             styles: Style keyword args of the object. This conforms to `matplotlib`.
+
         """
         self.text = text
         self.latex = latex
@@ -249,6 +252,7 @@ class GateLinkData(ElementaryData):
             xval: Horizontal coordinate that the object is drawn.
             bits: Bit associated to this object.
             styles: Style keyword args of the object. This conforms to `matplotlib`.
+
         """
         super().__init__(
             data_type=types.LineType.GATE_LINK,

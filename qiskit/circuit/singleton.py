@@ -10,8 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-========================================================
+"""========================================================
 Singleton instructions (:mod:`qiskit.circuit.singleton`)
 ========================================================
 
@@ -401,7 +400,8 @@ class _SingletonBase(metaclass=_SingletonMeta):
     """Base class of all the user-facing (library-author-facing) singleton classes such as
     :class:`SingletonGate`.
 
-    This defines the shared interface for those singletons."""
+    This defines the shared interface for those singletons.
+    """
 
     __slots__ = ()
 
@@ -477,7 +477,8 @@ class _SingletonInstructionOverrides(Instruction):
 
         Subclass "overrides" classes can override this method if the user/library-author-facing
         class they are providing overrides for has more lazy attributes or user-exposed state
-        with interior mutability."""
+        with interior mutability.
+        """
         instruction._define()
         # We use this `list` subclass that rejects all mutation rather than a simple `tuple` because
         # the `params` typing is specified as `list`. Various places in the library and beyond do
@@ -510,7 +511,8 @@ class SingletonInstruction(Instruction, _SingletonBase, overrides=_SingletonInst
     attributes is not available and they can only be set at creation time, or on an object that has
     been specifically made mutable using :meth:`~.Instruction.to_mutable`. If any of these
     attributes are used during creation, then instead of using a single shared global instance of
-    the same gate a new separate instance will be created."""
+    the same gate a new separate instance will be created.
+    """
 
     __slots__ = ()
 
@@ -519,7 +521,8 @@ class _SingletonGateOverrides(_SingletonInstructionOverrides, Gate):
     """Overrides for all the mutable methods and properties of `Gate` to make it immutable.
 
     This class just exists for the principle; there's no additional overrides required compared
-    to :class:`~.circuit.Instruction`."""
+    to :class:`~.circuit.Instruction`.
+    """
 
     __slots__ = ()
 
@@ -529,7 +532,8 @@ class SingletonGate(Gate, _SingletonBase, overrides=_SingletonGateOverrides):
 
     This class is very similar to :class:`SingletonInstruction`, except implies unitary
     :class:`.Gate` semantics as well.  The same caveats around setting attributes in that class
-    apply here as well."""
+    apply here as well.
+    """
 
     __slots__ = ()
 
@@ -576,8 +580,8 @@ def stdlib_singleton_key(*, num_ctrl_qubits: int = 0):
         num_ctrl_qubits: if given, this implies that the gate is a :class:`.ControlledGate`, and
             will have a fixed number of qubits that are used as the control.  This is necessary to
             allow ``ctrl_state`` to be given as either ``None`` or as an all-ones integer/string.
-    """
 
+    """
     if num_ctrl_qubits:
 
         def key(label=None, ctrl_state=None, *, _base_label=None):

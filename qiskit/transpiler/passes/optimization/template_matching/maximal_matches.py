@@ -10,53 +10,48 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-It stores all maximal matches from the given matches obtained by the template
+"""It stores all maximal matches from the given matches obtained by the template
 matching algorithm.
 """
 
 
 class Match:
-    """
-    Class Match is an object to store a list of match with its qubits and
+    """Class Match is an object to store a list of match with its qubits and
     clbits configuration.
     """
 
     def __init__(self, match, qubit, clbit):
-        """
-        Create a Match with necessary arguments.
+        """Create a Match with necessary arguments.
+
         Args:
             match (list): list of a match.
             qubit (list): list of qubits configuration.
             clbit (list): list of clbits configuration.
-        """
 
+        """
         self.match = match
         self.qubit = qubit
         self.clbit = clbit
 
 
 class MaximalMatches:
-    """
-    Class MaximalMatches allows to sort and store the maximal matches from the list
+    """Class MaximalMatches allows to sort and store the maximal matches from the list
     of matches obtained with the template matching algorithm.
     """
 
     def __init__(self, template_matches):
-        """
-        Initialize MaximalMatches with the necessary arguments.
+        """Initialize MaximalMatches with the necessary arguments.
+
         Args:
             template_matches (list): list of matches obtained from running the algorithm.
+
         """
         self.template_matches = template_matches
 
         self.max_match_list = []
 
     def run_maximal_matches(self):
-        """
-        Method that extracts and stores maximal matches in decreasing length order.
-        """
-
+        """Method that extracts and stores maximal matches in decreasing length order."""
         self.max_match_list = [
             Match(
                 sorted(self.template_matches[0].match),

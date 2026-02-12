@@ -57,9 +57,9 @@ class TGate(SingletonGate):
     _standard_gate = StandardGate.T
 
     def __init__(self, label: str | None = None):
-        """
-        Args:
-            label: An optional label for the gate.
+        """Args:
+        label: An optional label for the gate.
+
         """
         super().__init__("t", 1, [], label=label)
 
@@ -67,7 +67,6 @@ class TGate(SingletonGate):
 
     def _define(self):
         """Default definition"""
-
         from qiskit.circuit import QuantumCircuit
 
         #    ┌────────┐
@@ -89,6 +88,7 @@ class TGate(SingletonGate):
 
         Returns:
             TdgGate: inverse of :class:`.TGate`
+
         """
         return TdgGate()
 
@@ -133,9 +133,9 @@ class TdgGate(SingletonGate):
     _standard_gate = StandardGate.Tdg
 
     def __init__(self, label: str | None = None):
-        """
-        Args:
-            label: An optional label for the gate.
+        """Args:
+        label: An optional label for the gate.
+
         """
         super().__init__("tdg", 1, [], label=label)
 
@@ -143,7 +143,6 @@ class TdgGate(SingletonGate):
 
     def _define(self):
         """Default definition"""
-
         from qiskit.circuit import QuantumCircuit
 
         #    ┌─────────┐
@@ -165,6 +164,7 @@ class TdgGate(SingletonGate):
 
         Returns:
             TGate: inverse of :class:`.TdgGate`
+
         """
         return TGate()
 

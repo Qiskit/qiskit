@@ -46,6 +46,7 @@ class UserConfig:
         Args:
             filename (str): The path to the user config file. If one isn't
                 specified, ~/.qiskit/settings.conf is used.
+
         """
         if filename is None:
             self.filename = DEFAULT_FILENAME
@@ -229,6 +230,7 @@ def set_config(key, value, section=None, file_path=None):
 
     Raises:
         QiskitUserConfigError: if the config is invalid
+
     """
     filename = file_path or os.getenv("QISKIT_SETTINGS", DEFAULT_FILENAME)
     section = "default" if section is None else section
@@ -285,6 +287,7 @@ def get_config():
 
     Returns:
         dict: The settings dict from the parsed config file.
+
     """
     if os.getenv("QISKIT_IGNORE_USER_SETTINGS", "false").lower() == "true":
         return {}

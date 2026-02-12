@@ -46,6 +46,7 @@ class TimingConstraints:
 
         Raises:
             TranspilerError: When any invalid constraint value is passed.
+
         """
         self.granularity = granularity
         self.min_length = min_length

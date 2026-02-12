@@ -10,9 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Exception for errors raised by the transpiler.
-"""
+"""Exception for errors raised by the transpiler."""
 from qiskit.exceptions import QiskitError
 from qiskit.passmanager.exceptions import PassManagerError
 

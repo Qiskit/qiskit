@@ -10,9 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Mixin for gate operator interface.
-"""
+"""Mixin for gate operator interface."""
 
 import sys
 from abc import ABC, abstractmethod
@@ -85,6 +83,7 @@ class GroupMixin(ABC):
         .. note:
             Tensor uses reversed operator ordering to :meth:`expand`.
             For two operators of the same type ``a.tensor(b) = b.expand(a)``.
+
         """
 
     @abstractmethod
@@ -101,6 +100,7 @@ class GroupMixin(ABC):
         .. note:
             Expand is the opposite operator ordering to :meth:`tensor`.
             For two operators of the same type ``a.expand(b) = b.tensor(a)``.
+
         """
 
     @abstractmethod
@@ -131,6 +131,7 @@ class GroupMixin(ABC):
             Setting the ``front=True`` kwarg changes this to `right` matrix
             multiplication and is equivalent to the :meth:`dot` method
             ``A.dot(B) == A.compose(B, front=True)``.
+
         """
 
     def dot(self, other, qargs=None) -> Self:
@@ -148,6 +149,7 @@ class GroupMixin(ABC):
         .. note::
             The dot product can be obtained using the ``@`` binary operator.
             Hence ``a.dot(b)`` is equivalent to ``a @ b``.
+
         """
         return self.compose(other, qargs=qargs, front=True)
 
@@ -163,6 +165,7 @@ class GroupMixin(ABC):
         Raises:
             QiskitError: if the input and output dimensions of the operator
                          are not equal, or the power is not a positive integer.
+
         """
         # NOTE: if a subclass can have negative or non-integer powers
         # this method should be overridden in that class.

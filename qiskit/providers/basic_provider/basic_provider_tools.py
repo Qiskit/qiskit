@@ -53,11 +53,13 @@ def single_gate_matrix(gate: str, params: list[float] | None = None) -> np.ndarr
     Args:
         gate: the single qubit gate name
         params: the operation parameters op['params']
+
     Returns:
         array: A numpy array representing the matrix
     Raises:
         QiskitError: If a gate outside the supported set is passed in for the
             ``Gate`` argument.
+
     """
     if params is None:
         params = []
@@ -127,8 +129,8 @@ def einsum_matmul_index(gate_indices: list[int], number_of_qubits: int) -> str:
 
     Returns:
         str: An indices string for the Numpy.einsum function.
-    """
 
+    """
     mat_l, mat_r, tens_lin, tens_lout = _einsum_matmul_index_helper(gate_indices, number_of_qubits)
 
     # Right indices for the N-qubit input and output tensor
@@ -154,8 +156,8 @@ def einsum_vecmul_index(gate_indices: list[int], number_of_qubits: int) -> str:
 
     Returns:
         str: An indices string for the Numpy.einsum function.
-    """
 
+    """
     mat_l, mat_r, tens_lin, tens_lout = _einsum_matmul_index_helper(gate_indices, number_of_qubits)
 
     # Combine indices into matrix multiplication string format
@@ -185,8 +187,8 @@ def _einsum_matmul_index_helper(
     Raises:
         QiskitError: if the total number of qubits plus the number of
         contracted indices is greater than 26.
-    """
 
+    """
     # Since we use ASCII alphabet for einsum index labels we are limited
     # to 26 total free left (lowercase) and 26 right (uppercase) indexes.
     # The rank of the contracted tensor reduces this as we need to use that

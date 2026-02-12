@@ -34,6 +34,13 @@ class ParameterVector:
     __slots__ = ("_name", "_params", "_root_uuid")
 
     def __init__(self, name, length=0):
+        """Instantiate a new :class:`.ParameterVector` instance.
+
+        Args:
+            name (str): The name of the parameter vector
+            length (int): The number of elements in the vector
+
+        """
         self._name = name
         self._root_uuid = uuid4()
         root_uuid_int = self._root_uuid.int
@@ -50,13 +57,15 @@ class ParameterVector:
     def params(self):
         """A list of the contained :class:`ParameterVectorElement` instances.
 
-        It is not safe to mutate this list."""
+        It is not safe to mutate this list.
+        """
         return self._params
 
     def index(self, value):
         """Find the index of a :class:`ParameterVectorElement` within the list.
 
-        It is typically much faster to use the :attr:`ParameterVectorElement.index` property."""
+        It is typically much faster to use the :attr:`ParameterVectorElement.index` property.
+        """
         return self._params.index(value)
 
     def __getitem__(self, key):

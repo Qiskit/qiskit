@@ -66,7 +66,6 @@ def excitation_preserving(
     gate for the mode ``"fsim"``.
 
     Examples:
-
     With linear entanglement, this circuit is given by:
 
     .. plot::
@@ -108,6 +107,7 @@ def excitation_preserving(
 
     Returns:
         An excitation-preserving circuit.
+
     """
     supported_modes = ["iswap", "fsim"]
     if mode not in supported_modes:
@@ -173,7 +173,6 @@ class ExcitationPreserving(TwoLocal):
     The rotations of the ExcitationPreserving ansatz can be written as
 
     Examples:
-
         >>> ansatz = ExcitationPreserving(3, reps=1, insert_barriers=True, entanglement='linear')
         >>> print(ansatz.decompose())  # show the circuit
              ┌──────────┐ ░ ┌────────────┐┌────────────┐                             ░ ┌──────────┐
@@ -232,8 +231,7 @@ class ExcitationPreserving(TwoLocal):
         name: str = "ExcitationPreserving",
         flatten: bool | None = None,
     ) -> None:
-        """
-        Args:
+        """Args:
             num_qubits: The number of qubits of the ExcitationPreserving circuit.
             mode: Choose the entangler mode, can be `'iswap'` or `'fsim'`.
             reps: Specifies how often the structure of a rotation layer followed by an entanglement
@@ -264,6 +262,7 @@ class ExcitationPreserving(TwoLocal):
 
         Raises:
             ValueError: If the selected mode is not supported.
+
         """
         supported_modes = ["iswap", "fsim"]
         if mode not in supported_modes:
@@ -297,5 +296,6 @@ class ExcitationPreserving(TwoLocal):
 
         Returns:
             The parameter bounds.
+
         """
         return self.num_parameters * [(-pi, pi)]

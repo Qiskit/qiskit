@@ -25,6 +25,7 @@ def circuit_to_dagdependency(circuit, create_preds_and_succs=True):
 
     Return:
         DAGDependency: the DAG representing the input circuit as a dag dependency.
+
     """
     dagdependency = DAGDependency()
     dagdependency.name = circuit.name

@@ -11,9 +11,7 @@
 # that they have been altered from the originals.
 
 
-"""
-Visualization function for DAG circuit representation.
-"""
+"""Visualization function for DAG circuit representation."""
 
 import io
 import subprocess
@@ -142,8 +140,8 @@ def dag_drawer(
             }
 
             dag_drawer(dag, style=style)
-    """
 
+    """
     from PIL import Image
 
     # NOTE: use type str checking to avoid potential cyclical import

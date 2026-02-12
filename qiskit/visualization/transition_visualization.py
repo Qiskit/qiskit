@@ -10,9 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Visualization function for animation of state transitions by applying gates to single qubit.
-"""
+"""Visualization function for animation of state transitions by applying gates to single qubit."""
 import sys
 from math import sin, cos, acos, sqrt
 import numpy as np
@@ -23,7 +21,6 @@ from qiskit.utils.deprecation import deprecate_func
 
 def _normalize(v, tolerance=0.00001):
     """Makes sure magnitude of the vector is 1 with given tolerance"""
-
     mag2 = sum(n * n for n in v)
     if abs(mag2 - 1.0) > tolerance:
         mag = sqrt(mag2)
@@ -68,7 +65,6 @@ class _Quaternion:
 
     def __mul__(self, b):
         """Multiplication of quaternion with quaternion or vector"""
-
         if isinstance(b, _Quaternion):
             return self._multiply_with_quaternion(b)
         elif isinstance(b, (list, tuple, np.ndarray)):
@@ -127,8 +123,7 @@ class _Quaternion:
     removal_timeline="in the 2.0 release",
 )
 def visualize_transition(circuit, trace=False, saveas=None, fpg=100, spg=2):
-    """
-    Creates animation showing transitions between states of a single
+    """Creates animation showing transitions between states of a single
     qubit by applying quantum gates.
 
     Args:

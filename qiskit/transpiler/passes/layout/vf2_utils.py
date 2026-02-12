@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""This module contains common utils for vf2 layout passes."""
+"""Common utils for vf2 layout passes."""
 
 # This re-export was implicitly public by us suggesting users import it from here during its
 # announcement release note, so we should maintain it.

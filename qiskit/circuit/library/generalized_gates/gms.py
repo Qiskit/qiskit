@@ -11,9 +11,7 @@
 # that they have been altered from the originals.
 
 
-"""
-Global Mølmer–Sørensen gate.
-"""
+"""Global Mølmer–Sørensen gate."""
 
 from __future__ import annotations
 from collections.abc import Sequence
@@ -68,7 +66,6 @@ class GMS(QuantumCircuit):
         exp(-i \sum_{i=1}^{n} \sum_{j=i+1}^{n} X{\otimes}X \frac{\chi_{ij}}{2})
 
     References:
-
     [1] Sørensen, A. and Mølmer, K., Multi-particle entanglement of hot trapped ions.
     Physical Review Letters. 82 (9): 1835–1838.
     `arXiv:9810040 <https://arxiv.org/abs/quant-ph/9810040>`_
@@ -76,6 +73,7 @@ class GMS(QuantumCircuit):
     [2] Maslov, D. and Nam, Y., Use of global interactions in efficient quantum circuit
     constructions. New Journal of Physics, 20(3), p.033018.
     `arXiv:1707.06356 <https://arxiv.org/abs/1707.06356>`_
+
     """
 
     @deprecate_func(
@@ -84,12 +82,12 @@ class GMS(QuantumCircuit):
         removal_timeline="in Qiskit 3.0",
     )
     def __init__(self, num_qubits: int, theta: list[list[float]] | np.ndarray) -> None:
-        """
-        Args:
-            num_qubits: width of gate.
-            theta: a num_qubits x num_qubits symmetric matrix of
-                interaction angles for each qubit pair. The upper
-                triangle is considered.
+        """Args:
+        num_qubits: width of gate.
+        theta: a num_qubits x num_qubits symmetric matrix of
+            interaction angles for each qubit pair. The upper
+            triangle is considered.
+
         """
         super().__init__(num_qubits, name="gms")
         if not isinstance(theta, list):
@@ -129,7 +127,6 @@ class MSGate(Gate):
 
 
     References:
-
     [1] Sørensen, A. and Mølmer, K., Multi-particle entanglement of hot trapped ions.
     Physical Review Letters. 82 (9): 1835–1838.
     `arXiv:9810040 <https://arxiv.org/abs/quant-ph/9810040>`_
@@ -137,6 +134,7 @@ class MSGate(Gate):
     [2] Maslov, D. and Nam, Y., Use of global interactions in efficient quantum circuit
     constructions. New Journal of Physics, 20(3), p.033018.
     `arXiv:1707.06356 <https://arxiv.org/abs/1707.06356>`_
+
     """
 
     def __init__(
@@ -145,13 +143,13 @@ class MSGate(Gate):
         theta: ParameterValueType | Sequence[Sequence[ParameterValueType]],
         label: str | None = None,
     ):
-        """
-        Args:
-            num_qubits: The number of qubits the MS gate acts on.
-            theta: The XX rotation angles. If a single value, the same angle is used on all
-                interactions. Alternatively an upper-triangular, square matrix with width
-                ``num_qubits`` can be provided with interaction angles for each qubit pair.
-            label: A gate label.
+        """Args:
+        num_qubits: The number of qubits the MS gate acts on.
+        theta: The XX rotation angles. If a single value, the same angle is used on all
+            interactions. Alternatively an upper-triangular, square matrix with width
+            ``num_qubits`` can be provided with interaction angles for each qubit pair.
+        label: A gate label.
+
         """
         super().__init__("ms", num_qubits, [theta], label=label)
 
@@ -167,7 +165,7 @@ class MSGate(Gate):
 
         self.definition = qc
 
-    def validate_parameter(self, parameter):
+    def validate_parameter(self, parameter):  # noqa: D102
         if isinstance(parameter, Sequence):
 
             return [

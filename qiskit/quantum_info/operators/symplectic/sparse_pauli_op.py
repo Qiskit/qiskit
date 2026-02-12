@@ -9,9 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""
-N-Qubit Sparse Pauli Operator class.
-"""
+"""N-Qubit Sparse Pauli Operator class."""
 
 from __future__ import annotations
 from typing import TYPE_CHECKING
@@ -124,6 +122,7 @@ class SparsePauliOp(LinearOp):
 
         Raises:
             QiskitError: If the input data or coeffs are invalid.
+
         """
         if ignore_pauli_phase and not isinstance(data, PauliList):
             raise QiskitError("ignore_pauli_phase=True is only valid with PauliList data")
@@ -226,6 +225,7 @@ class SparsePauliOp(LinearOp):
 
         Returns:
             bool: True if the operator is equivalent to ``self``.
+
         """
         if not super().__eq__(other):
             return False
@@ -445,6 +445,7 @@ class SparsePauliOp(LinearOp):
 
         Returns:
             bool: True if the operator is unitary, False otherwise.
+
         """
         # Get default atol and rtol
         if atol is None:
@@ -473,6 +474,7 @@ class SparsePauliOp(LinearOp):
 
         Returns:
             SparsePauliOp: the simplified SparsePauliOp operator.
+
         """
         # Get default atol and rtol
         if atol is None:
@@ -595,6 +597,7 @@ class SparsePauliOp(LinearOp):
 
         Returns:
             array: the indices for sorting the table.
+
         """
         sort_coeffs_inds = np.argsort(self._coeffs, kind="stable")
         pauli_list = self._pauli_list[sort_coeffs_inds]
@@ -669,6 +672,7 @@ class SparsePauliOp(LinearOp):
 
         Returns:
             SparsePauliOp: a sorted copy of the original table.
+
         """
         indices = self.argsort(weight=weight)
         return SparsePauliOp(self._pauli_list[indices], self._coeffs[indices])
@@ -689,6 +693,7 @@ class SparsePauliOp(LinearOp):
 
         Returns:
             SparsePauliOp: This operator with chopped coefficients.
+
         """
         realpart_nonzero = np.abs(self.coeffs.real) > tol
         imagpart_nonzero = np.abs(self.coeffs.imag) > tol
@@ -730,6 +735,7 @@ class SparsePauliOp(LinearOp):
             QiskitError: if the input list is empty.
             QiskitError: if the input list includes an object that is not SparsePauliOp.
             QiskitError: if the numbers of qubits of the objects in the input list do not match.
+
         """
         if len(ops) == 0:
             raise QiskitError("Input list is empty")
@@ -775,6 +781,7 @@ class SparsePauliOp(LinearOp):
 
         Raises:
             QiskitError: if the input operator is not an N-qubit operator.
+
         """
         # Get default atol and rtol
         if atol is None:
@@ -834,6 +841,7 @@ class SparsePauliOp(LinearOp):
         Raises:
             QiskitError: If an empty list is passed and num_qubits is None.
             QiskitError: If num_qubits and the objects in the input list do not match.
+
         """
         obj = list(obj)  # To convert zip or other iterable
         size = len(obj)
@@ -914,6 +922,7 @@ class SparsePauliOp(LinearOp):
         Raises:
             QiskitError: If the number of qubits is incompatible with the indices of the Pauli terms.
             QiskitError: If the designated qubit is already assigned.
+
         """
         obj = list(obj)  # To convert zip or other iterable
         size = len(obj)
@@ -966,6 +975,7 @@ class SparsePauliOp(LinearOp):
 
         Returns:
             A :class:`.SparsePauliOp` version of the observable.
+
         """
         as_sparse_list = obs.as_paulis().to_sparse_list()
         return SparsePauliOp.from_sparse_list(as_sparse_list, obs.num_qubits)
@@ -983,6 +993,7 @@ class SparsePauliOp(LinearOp):
 
         Returns:
             list or array: List of pairs (label, coeff) for rows of the PauliList.
+
         """
         # Dtype for a structured array with string labels and complex coeffs
         pauli_labels = self.paulis.to_labels(array=True)
@@ -1017,6 +1028,7 @@ class SparsePauliOp(LinearOp):
         Returns:
             array: A dense matrix if `sparse=False`.
             csr_matrix: A sparse matrix in CSR format if `sparse=True`.
+
         """
         if self.coeffs.dtype == object:
             # Fallback to slow Python-space method.
@@ -1054,6 +1066,7 @@ class SparsePauliOp(LinearOp):
 
         Returns:
             LabelIterator: label iterator object for the SparsePauliOp.
+
         """
 
         class LabelIterator(CustomIterator):
@@ -1083,6 +1096,7 @@ class SparsePauliOp(LinearOp):
 
         Returns:
             MatrixIterator: matrix iterator object for the PauliList.
+
         """
 
         class MatrixIterator(CustomIterator):
@@ -1113,6 +1127,7 @@ class SparsePauliOp(LinearOp):
             rustworkx.PyGraph: the non-commutation graph with nodes for each Pauli and edges
                 indicating a non-commutation relation. Each node will hold the index of the Pauli
                 term it corresponds to in its data. The edges of the graph hold no data.
+
         """
         return self.paulis.noncommutation_graph(qubit_wise)
 
@@ -1140,6 +1155,7 @@ class SparsePauliOp(LinearOp):
         Returns:
             list[SparsePauliOp]: List of SparsePauliOp where each SparsePauliOp contains
                 commuting Pauli operators.
+
         """
         groups = self.paulis._commuting_groups(qubit_wise)
         return [self[group] for group in groups.values()]
@@ -1175,6 +1191,7 @@ class SparsePauliOp(LinearOp):
         Returns:
             A copy of the operator with bound parameters, if ``inplace`` is ``False``, otherwise
             ``None``.
+
         """
         if inplace:
             bound = self
@@ -1225,6 +1242,7 @@ class SparsePauliOp(LinearOp):
 
         Returns:
             A new :class:`.SparsePauliOp` with the provided layout applied
+
         """
         from qiskit.transpiler.layout import TranspileLayout
 

@@ -95,6 +95,7 @@ class BasisTranslator(TransformationPass):
             target (Target): The backend compilation target
             min_qubits (int): The minimum number of qubits for operations in the input
                 dag to translate.
+
         """
         super().__init__()
         self._equiv_lib = equivalence_library
@@ -115,8 +116,8 @@ class BasisTranslator(TransformationPass):
 
         Returns:
             DAGCircuit: translated circuit.
-        """
 
+        """
         out = base_run(
             dag,
             self._equiv_lib,

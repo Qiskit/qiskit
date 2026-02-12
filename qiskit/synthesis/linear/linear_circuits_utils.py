@@ -33,6 +33,7 @@ def transpose_cx_circ(qc: QuantumCircuit):
 
     Raises:
         CircuitError: if qc has a non-CX gate.
+
     """
     transposed_circ = QuantumCircuit(qc.qubits, qc.clbits, name=qc.name + "_transpose")
     for instruction in reversed(qc.data):
@@ -58,6 +59,7 @@ def optimize_cx_4_options(function: Callable, mat: np.ndarray, optimize_count: b
 
     Raises:
         QiskitError: if mat is not an invertible matrix.
+
     """
     if not check_invertible_binary_matrix(mat):
         raise QiskitError("The matrix is not invertible.")
@@ -114,6 +116,7 @@ def check_lnn_connectivity(qc: QuantumCircuit) -> bool:
 
     Raises:
         CircuitError: if qc has a non-CX two-qubit gate.
+
     """
     for instruction in qc.data:
         if instruction.operation.num_qubits > 1:

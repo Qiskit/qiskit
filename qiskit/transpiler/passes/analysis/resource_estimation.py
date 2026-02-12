@@ -25,14 +25,16 @@ class ResourceEstimation(AnalysisPass):
     """Automatically require analysis passes for resource estimation.
 
     An analysis pass for automatically running:
-    * Depth()
-    * Width()
-    * Size()
-    * CountOps()
-    * NumTensorFactors()
+
+     * :class:`.Depth`
+     * :class:`.Width`
+     * :class:`.Size`
+     * :class:`.CountOps`
+     * :class:`.NumTensorFactors`
+
     """
 
-    def __init__(self):
+    def __init__(self):  # noqa: D107
         super().__init__()
         self.requires += [Depth(), Width(), Size(), CountOps(), NumTensorFactors(), NumQubits()]
 

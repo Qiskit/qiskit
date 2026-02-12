@@ -10,9 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Object ND-array initialization function.
-"""
+"""Object ND-array initialization function."""
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -48,6 +46,7 @@ def object_array(
 
     Raises:
         ValueError: If the input cannot be coerced into an object array.
+
     """
     if isinstance(arr, np.ndarray):
         if arr.dtype != object or order is not None or copy is True:

@@ -42,14 +42,16 @@ def sampled_expectation_value(
 
     Note that passing a raw dict requires bit-string keys.
 
-    Parameters:
+    Args:
         dist: Input sampled distribution.
         oper: The operator for the observable.
 
     Returns:
         The expectation value.
+
     Raises:
         QiskitError: if the input distribution or operator is an invalid type
+
     """
     from .counts import Counts
     from qiskit.quantum_info import Pauli, SparsePauliOp, SparseObservable

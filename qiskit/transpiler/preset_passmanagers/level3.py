@@ -47,6 +47,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
 
     Raises:
         TranspilerError: if the passmanager config is invalid.
+
     """
     plugin_manager = PassManagerStagePluginManager()
     basis_gates = pass_manager_config.basis_gates

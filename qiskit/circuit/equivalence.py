@@ -28,7 +28,8 @@ from qiskit._accelerate.equivalence import (
 
 class EquivalenceLibrary(BaseEquivalenceLibrary):
     """A library providing a one-way mapping of Gates to their equivalent
-    implementations as QuantumCircuits."""
+    implementations as QuantumCircuits.
+    """
 
     def draw(self, filename=None):
         """Draws the equivalence relations available in the library.
@@ -43,6 +44,7 @@ class EquivalenceLibrary(BaseEquivalenceLibrary):
 
         Raises:
             InvalidFileError: if filename is not valid.
+
         """
         image_type = None
         if filename:

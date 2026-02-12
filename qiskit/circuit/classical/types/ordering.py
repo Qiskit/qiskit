@@ -40,7 +40,8 @@ class Ordering(enum.Enum):
     ordering, so it's possible for two types to have no sub-typing relationship.
 
     Note that the sub-/supertyping relationship is not the same as whether a type can be explicitly
-    cast from one to another."""
+    cast from one to another.
+    """
 
     LESS = enum.auto()
     """The left type is a strict subtype of the right type."""
@@ -85,6 +86,7 @@ def order(left: Type, right: Type, /) -> Ordering:
 
             >>> types.order(types.Uint(8), types.Bool())
             Ordering.NONE
+
     """
     if (orderer := _ORDERERS.get((left.kind, right.kind))) is None:
         return Ordering.NONE
@@ -109,6 +111,7 @@ def is_subtype(left: Type, right: Type, /, strict: bool = False) -> bool:
             True
             >>> types.is_subtype(types.Bool(), types.Bool(), strict=True)
             False
+
     """
     order_ = order(left, right)
     return order_ is Ordering.LESS or (not strict and order_ is Ordering.EQUAL)
@@ -132,6 +135,7 @@ def is_supertype(left: Type, right: Type, /, strict: bool = False) -> bool:
             True
             >>> types.is_supertype(types.Bool(), types.Bool(), strict=True)
             False
+
     """
     order_ = order(left, right)
     return order_ is Ordering.GREATER or (not strict and order_ is Ordering.EQUAL)
@@ -156,6 +160,7 @@ def greater(left: Type, right: Type, /) -> Type:
             >>> from qiskit.circuit.classical import types
             >>> types.greater(types.Uint(8), types.Uint(16))
             types.Uint(16)
+
     """
     order_ = order(left, right)
     if order_ is Ordering.NONE:
@@ -223,6 +228,7 @@ def cast_kind(from_: Type, to_: Type, /) -> CastKind:
             <CastKind.LOSSLESS: 3>
             >>> types.cast_kind(types.Uint(16), types.Uint(8))
             <CastKind.DANGEROUS: 4>
+
     """
     if (coercer := _ALLOWED_CASTS.get((from_.kind, to_.kind))) is None:
         return CastKind.NONE

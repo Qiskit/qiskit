@@ -41,6 +41,7 @@ def synth_permutation_basic(pattern: list[int] | np.ndarray[int]) -> QuantumCirc
 
     Returns:
         The synthesized quantum circuit.
+
     """
     return QuantumCircuit._from_circuit_data(_synth_permutation_basic(pattern), legacy_qubits=True)
 
@@ -74,5 +75,6 @@ def synth_permutation_acg(pattern: list[int] | np.ndarray[int]) -> QuantumCircui
         2. N. Alon, F. R. K. Chung, and R. L. Graham.
            *Routing Permutations on Graphs Via Matchings.*,
            `(Full paper) <https://www.cs.tau.ac.il/~nogaa/PDFS/r.pdf>`_
+
     """
     return QuantumCircuit._from_circuit_data(_synth_permutation_acg(pattern), legacy_qubits=True)

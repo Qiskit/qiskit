@@ -30,6 +30,7 @@ class FixedPoint(AnalysisPass):
 
         Args:
             property_to_check (str): The property to check if a fixed point was reached.
+
         """
         super().__init__()
         self._property = property_to_check

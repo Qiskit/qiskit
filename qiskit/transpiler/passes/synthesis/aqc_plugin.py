@@ -9,8 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""
-====================
+"""====================
 AQC Synthesis Plugin
 ====================
 
@@ -27,8 +26,7 @@ from qiskit.transpiler.passes.synthesis.plugin import UnitarySynthesisPlugin
 
 
 class AQCSynthesisPlugin(UnitarySynthesisPlugin):
-    """
-    An AQC-based Qiskit unitary synthesis plugin.
+    """An AQC-based Qiskit unitary synthesis plugin.
 
     This plugin is invoked by :func:`~.compiler.transpile` when the ``unitary_synthesis_method``
     parameter is set to ``"aqc"``.
@@ -74,7 +72,8 @@ class AQCSynthesisPlugin(UnitarySynthesisPlugin):
     @property
     def supports_natural_direction(self):
         """The plugin does not support natural direction,
-        it assumes bidirectional two qubit gates."""
+        it assumes bidirectional two qubit gates.
+        """
         return False
 
     @property
@@ -100,7 +99,8 @@ class AQCSynthesisPlugin(UnitarySynthesisPlugin):
     @property
     def supports_basis_gates(self):
         """The plugin does not support basis gates and by default it synthesizes a circuit using
-        ``["rx", "ry", "rz", "cx"]`` gate basis."""
+        ``["rx", "ry", "rz", "cx"]`` gate basis.
+        """
         return False
 
     @property

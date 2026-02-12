@@ -9,9 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""
-Optimized list of Pauli operators
-"""
+"""Optimized list of Pauli operators"""
 
 from __future__ import annotations
 
@@ -135,6 +133,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         Additional Information:
             The input array is not copied so multiple Pauli tables
             can share the same underlying array.
+
         """
         if isinstance(data, BasePauli):
             base_z, base_x, base_phase = data._z, data._x, data._phase
@@ -177,6 +176,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         Raises:
             QiskitError: If the input list is empty or contains invalid
             Pauli strings.
+
         """
         if not isinstance(data, (list, tuple, set, np.ndarray)):
             data = [data]
@@ -247,6 +247,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         Returns:
             np.ndarray: An array of ``True`` or ``False`` for entrywise equivalence
                         of the current table.
+
         """
         if not isinstance(other, PauliList):
             other = PauliList(other)
@@ -379,6 +380,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         Raises:
             QiskitError: if ``ind`` is out of bounds for the array size or
                          number of qubits.
+
         """
         if isinstance(ind, int):
             ind = [ind]
@@ -426,6 +428,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
         Raises:
             QiskitError: if the insertion index is invalid.
+
         """
         if not isinstance(ind, int):
             raise QiskitError("Insert index must be an integer.")
@@ -488,6 +491,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
         Returns:
             array: the indices for sorting the table.
+
         """
         # Get order of each Pauli using
         # I => 0, X => 1, Y => 2, Z => 3
@@ -593,6 +597,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
         Returns:
             PauliList: a sorted copy of the original table.
+
         """
         return self[self.argsort(weight=weight, phase=phase)]
 
@@ -633,6 +638,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             unique_counts: np.array, optional
                 The number of times each of the unique values comes up in the
                 original array. Only provided if ``return_counts`` is ``True``.
+
         """
         # Check if we need to stack the phase array
         if np.any(self._phase != self._phase[0]):
@@ -681,6 +687,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             QiskitError: if other cannot be converted to a PauliList, does
                          not have either 1 or the same number of Paulis as
                          the current list.
+
         """
         if not isinstance(other, PauliList):
             other = PauliList(other)
@@ -699,6 +706,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             QiskitError: if other cannot be converted to a PauliList, does
                          not have either 1 or the same number of Paulis as
                          the current list.
+
         """
         if not isinstance(other, PauliList):
             other = PauliList(other)
@@ -732,6 +740,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
                          not have either 1 or the same number of Paulis as
                          the current list, or has the wrong number of qubits
                          for the specified ``qargs``.
+
         """
         if qargs is None:
             qargs = getattr(other, "qargs", None)
@@ -760,6 +769,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
                          not have either 1 or the same number of Paulis as
                          the current list, or has the wrong number of qubits
                          for the specified ``qargs``.
+
         """
         return self.compose(other, qargs=qargs, front=True, inplace=inplace)
 
@@ -776,6 +786,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
         Returns:
             PauliList: the concatenated list ``self`` + ``other``.
+
         """
         if qargs is None:
             qargs = getattr(other, "qargs", None)
@@ -814,6 +825,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
         Raises:
             QiskitError: if the phase is not in the set [1, -1j, -1, 1j].
+
         """
         return PauliList(super()._multiply(other))
 
@@ -846,6 +858,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
         Returns:
             bool: ``True`` if Paulis commute, ``False`` if they anti-commute.
+
         """
         if qargs is None:
             qargs = getattr(other, "qargs", None)
@@ -862,6 +875,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
         Returns:
             bool: ``True`` if Paulis anticommute, ``False`` if they commute.
+
         """
         return np.logical_not(self.commutes(other, qargs=qargs))
 
@@ -877,6 +891,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
         Returns:
             array: index array of the commuting rows.
+
         """
         return self._commutes_with_all(other)
 
@@ -892,6 +907,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
         Returns:
             array: index array of the anti-commuting rows.
+
         """
         return self._commutes_with_all(other, anti=True)
 
@@ -905,6 +921,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
         Returns:
             array: index array of commuting or anti-commuting row.
+
         """
         if not isinstance(other, PauliList):
             other = PauliList(other)
@@ -946,6 +963,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
         Raises:
             QiskitError: if the Clifford number of qubits and qargs don't match.
+
         """
         from qiskit.circuit import Instruction
 
@@ -990,6 +1008,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
         Returns:
             list or array: The rows of the PauliList in label form.
+
         """
         if (self.phase == 1).any():
             prefix_len = 2
@@ -1042,6 +1061,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             list: A list of dense Pauli matrices if ``array=False` and ``sparse=False`.
             list: A list of sparse Pauli matrices if ``array=False`` and ``sparse=True``.
             array: A dense rank-3 array of Pauli matrices if ``array=True``.
+
         """
         if not array:
             # We return a list of Numpy array matrices
@@ -1069,6 +1089,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
         Returns:
             LabelIterator: label iterator object for the PauliList.
+
         """
 
         class LabelIterator(CustomIterator):
@@ -1096,6 +1117,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
         Returns:
             MatrixIterator: matrix iterator object for the PauliList.
+
         """
 
         class MatrixIterator(CustomIterator):
@@ -1128,6 +1150,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
         Returns:
             PauliList: the constructed PauliList.
+
         """
         if isinstance(phase, np.ndarray) and np.ndim(phase) > 1:
             raise ValueError(f"phase should be at most 1D but has {np.ndim(phase)} dimensions.")
@@ -1145,6 +1168,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
         Returns:
             list[tuple[int,int]]: A list of pairs of indices of the PauliList that are not commutable.
+
         """
         # convert a Pauli operator into int vector where {I: 0, X: 2, Y: 3, Z: 1}
         mat1 = np.array(
@@ -1180,6 +1204,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             rustworkx.PyGraph: the non-commutation graph with nodes for each Pauli and edges
                 indicating a non-commutation relation. Each node will hold the index of the Pauli
                 term it corresponds to in its data. The edges of the graph hold no data.
+
         """
         edges = self._noncommutation_graph(qubit_wise)
         graph = rx.PyGraph()
@@ -1200,6 +1225,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
         Returns:
             dict[int, list[int]]: Dictionary of color indices mapping to a list of Pauli indices.
+
         """
         graph = self.noncommutation_graph(qubit_wise)
         # Keys in coloring_dict are nodes, values are colors
@@ -1214,6 +1240,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
         Returns:
             list[PauliList]: List of PauliLists where each PauliList contains commutable Pauli operators.
+
         """
         return self.group_commuting(qubit_wise=True)
 
@@ -1237,6 +1264,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
         Returns:
             list[PauliList]: List of PauliLists where each PauliList contains commuting Pauli operators.
+
         """
         groups = self._commuting_groups(qubit_wise)
         return [self[group] for group in groups.values()]

@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"Circuit operation representing a ``continue`` from a loop."
+"""Circuit operation representing a ``continue`` from a loop."""
 
 from typing import Optional
 
@@ -27,11 +27,11 @@ class ContinueLoopOp(Instruction):
     _control_flow_type = ControlFlowType.ContinueLoop
 
     def __init__(self, num_qubits: int, num_clbits: int, label: str | None = None):
-        """
-        Args:
-            num_qubits: the number of qubits this affects.
-            num_clbits: the number of qubits this affects.
-            label: an optional string label for the instruction.
+        """Args:
+        num_qubits: the number of qubits this affects.
+        num_clbits: the number of qubits this affects.
+        label: an optional string label for the instruction.
+
         """
         super().__init__("continue_loop", num_qubits, num_clbits, [], label=label)
 

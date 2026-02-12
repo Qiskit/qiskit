@@ -10,9 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Data containers for primitives.
-"""
+"""Data containers for primitives."""
 
 
 from .bindings_array import ParameterLike, BindingsArray, BindingsArrayLike

@@ -67,7 +67,6 @@ class VBERippleCarryAdder(Adder):
             is functionally equivalent to ``kind="full"``.
 
     References:
-
     [1] Vedral et al., Quantum Networks for Elementary Arithmetic Operations, 1995.
     `arXiv:quant-ph/9511018 <https://arxiv.org/pdf/quant-ph/9511018.pdf>`_
 
@@ -76,8 +75,7 @@ class VBERippleCarryAdder(Adder):
     def __init__(
         self, num_state_qubits: int, kind: str = "full", name: str = "VBERippleCarryAdder"
     ) -> None:
-        """
-        Args:
+        """Args:
             num_state_qubits: The size of the register.
             kind: The kind of adder, can be ``'full'`` for a full adder, ``'half'`` for a half
                 adder, or ``'fixed'`` for a fixed-sized adder. A full adder includes both carry-in
@@ -87,6 +85,7 @@ class VBERippleCarryAdder(Adder):
 
         Raises:
             ValueError: If ``num_state_qubits`` is lower than 1.
+
         """
         super().__init__(num_state_qubits, name=name)
         circuit = adder_ripple_v95(num_state_qubits, kind)

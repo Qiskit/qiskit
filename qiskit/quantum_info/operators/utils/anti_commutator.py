@@ -30,7 +30,9 @@ def anti_commutator(a: OperatorTypeT, b: OperatorTypeT) -> OperatorTypeT:
     Args:
         a: Operator a.
         b: Operator b.
+
     Returns:
         The anti-commutator
+
     """
     return a @ b + b @ a

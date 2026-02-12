@@ -61,9 +61,9 @@ class SGate(SingletonGate):
     _standard_gate = StandardGate.S
 
     def __init__(self, label: str | None = None):
-        """
-        Args:
-            label: An optional label for the gate.
+        """Args:
+        label: An optional label for the gate.
+
         """
         super().__init__("s", 1, [], label=label)
 
@@ -71,7 +71,6 @@ class SGate(SingletonGate):
 
     def _define(self):
         """Default definition"""
-
         from qiskit.circuit import QuantumCircuit
 
         #    ┌────────┐
@@ -109,8 +108,8 @@ class SGate(SingletonGate):
 
         Returns:
             A controlled version of this gate.
-        """
 
+        """
         if num_ctrl_qubits == 1:
             gate = CSGate(label=label, ctrl_state=ctrl_state, _base_label=self.label)
         else:
@@ -133,6 +132,7 @@ class SGate(SingletonGate):
 
         Returns:
             SdgGate: inverse of :class:`.SGate`
+
         """
         return SdgGate()
 
@@ -179,9 +179,9 @@ class SdgGate(SingletonGate):
     _standard_gate = StandardGate.Sdg
 
     def __init__(self, label: str | None = None):
-        """
-        Args:
-            label: An optional label for the gate.
+        """Args:
+        label: An optional label for the gate.
+
         """
         super().__init__("sdg", 1, [], label=label)
 
@@ -189,7 +189,6 @@ class SdgGate(SingletonGate):
 
     def _define(self):
         """Default definition"""
-
         from qiskit.circuit import QuantumCircuit
 
         #    ┌─────────┐
@@ -227,6 +226,7 @@ class SdgGate(SingletonGate):
 
         Returns:
             A controlled version of this gate.
+
         """
         if num_ctrl_qubits == 1:
             gate = CSdgGate(label=label, ctrl_state=ctrl_state, _base_label=self.label)
@@ -250,6 +250,7 @@ class SdgGate(SingletonGate):
 
         Returns:
             SGate: inverse of :class:`.SdgGate`
+
         """
         return SGate()
 
@@ -317,7 +318,6 @@ class CSGate(SingletonControlledGate):
 
     def _define(self):
         """Default definition"""
-
         from qiskit.circuit import QuantumCircuit
 
         #      ┌───┐
@@ -341,6 +341,7 @@ class CSGate(SingletonControlledGate):
 
         Returns:
             CSdgGate: inverse of :class:`.CSGate`
+
         """
         return CSdgGate(ctrl_state=self.ctrl_state)
 
@@ -407,7 +408,6 @@ class CSdgGate(SingletonControlledGate):
 
     def _define(self):
         """Default definition"""
-
         from qiskit.circuit import QuantumCircuit
 
         #      ┌─────┐
@@ -431,6 +431,7 @@ class CSdgGate(SingletonControlledGate):
 
         Returns:
             CSGate: inverse of :class:`.CSdgGate`
+
         """
         return CSGate(ctrl_state=self.ctrl_state)
 

@@ -118,21 +118,21 @@ class RZXGate(Gate):
                                     -i & 0 & 1  & 0 \\
                                     0  & i & 0  & 1
                                 \end{pmatrix}
+
     """
 
     _standard_gate = StandardGate.RZX
 
     def __init__(self, theta: ParameterValueType, label: str | None = None):
-        """
-        Args:
-            theta: The rotation angle.
-            label: An optional label for the gate.
+        """Args:
+        theta: The rotation angle.
+        label: An optional label for the gate.
+
         """
         super().__init__("rzx", 2, [theta], label=label)
 
     def _define(self):
         """Default definition"""
-
         from qiskit.circuit import QuantumCircuit
 
         # q_0: ───────■─────────────■───────
@@ -153,8 +153,9 @@ class RZXGate(Gate):
                 :class:`.Gate`. However, for this class this argument is ignored as the inverse
                 of this gate is always a :class:`.RZXGate` with an inverted parameter value.
 
-         Returns:
+        Returns:
             RZXGate: inverse gate.
+
         """
         return RZXGate(-self.params[0])
 

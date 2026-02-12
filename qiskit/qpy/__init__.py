@@ -10,8 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-=====================================
+r"""=====================================
 QPY serialization (:mod:`qiskit.qpy`)
 =====================================
 
@@ -2215,12 +2214,13 @@ struct is used:
 
 this matches the internal C representation of Python's complex type. [#f3]_
 
-References
+References:
 ==========
 
 .. [#f1] https://tools.ietf.org/html/rfc1700
 .. [#f2] https://numpy.org/doc/stable/reference/generated/numpy.lib.format.html
 .. [#f3] https://docs.python.org/3/c-api/complex.html#c.Py_complex
+
 """
 
 from .exceptions import QpyError, UnsupportedFeatureForVersion, QPYLoadingDeprecatedFeatureWarning

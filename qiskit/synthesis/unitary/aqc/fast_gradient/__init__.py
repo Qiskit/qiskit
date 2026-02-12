@@ -10,8 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-r"""
-================================================================================
+r"""================================================================================
 Fast implementation of objective function class
 (:mod:`qiskit.synthesis.unitary.aqc.fast_gradient`)
 ================================================================================
@@ -158,7 +157,7 @@ is an intermediate matrix.
   is still a room for further improvement, of course.
 
 References:
-
     [1]: Liam Madden, Andrea Simonetto, Best Approximate Quantum Compiling Problems.
     `arXiv:2106.05649 <https://arxiv.org/abs/2106.05649>`_
+
 """

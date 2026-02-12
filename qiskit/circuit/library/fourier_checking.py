@@ -44,13 +44,13 @@ class FourierChecking(QuantumCircuit):
     Fourier checking is a special case of :math:`k`-fold forrelation [2].
 
     References:
-
     [1] S. Aaronson, BQP and the Polynomial Hierarchy, 2009 (Section 3.2).
     `arXiv:0910.4698 <https://arxiv.org/abs/0910.4698>`_
 
     [2] S. Aaronson, A. Ambainis, Forrelation: a problem that
     optimally separates quantum from classical computing, 2014.
     `arXiv:1411.5729 <https://arxiv.org/abs/1411.5729>`_
+
     """
 
     @deprecate_func(
@@ -78,6 +78,7 @@ class FourierChecking(QuantumCircuit):
                g = [1, 1, -1, -1]
                circuit = FourierChecking(f, g)
                _generate_circuit_library_visualization(circuit)
+
         """
         num_qubits = math.log2(len(f))
 
@@ -133,13 +134,13 @@ def fourier_checking(f: Sequence[int], g: Sequence[int]) -> QuantumCircuit:
        circuit.draw('mpl')
 
     References:
-
     [1] S. Aaronson, BQP and the Polynomial Hierarchy, 2009 (Section 3.2).
     `arXiv:0910.4698 <https://arxiv.org/abs/0910.4698>`_
 
     [2] S. Aaronson, A. Ambainis, Forrelation: a problem that
     optimally separates quantum from classical computing, 2014.
     `arXiv:1411.5729 <https://arxiv.org/abs/1411.5729>`_
+
     """
     num_qubits = math.log2(len(f))
 

@@ -9,8 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""
-Circuit synthesis for 2-qubit and 3-qubit Cliffords based on Bravyi & Maslov
+"""Circuit synthesis for 2-qubit and 3-qubit Cliffords based on Bravyi & Maslov
 decomposition.
 """
 
@@ -39,6 +38,7 @@ def synth_clifford_bm(clifford: Clifford) -> QuantumCircuit:
         1. S. Bravyi, D. Maslov, *Hadamard-free circuits expose the
            structure of the Clifford group*,
            `arXiv:2003.09412 [quant-ph] <https://arxiv.org/abs/2003.09412>`_
+
     """
     circuit = QuantumCircuit._from_circuit_data(
         synth_clifford_bm_inner(clifford.tableau.astype(bool)),

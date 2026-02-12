@@ -9,9 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""
-Utility functions for primitives
-"""
+"""Utility functions for primitives"""
 from __future__ import annotations
 
 import numpy as np
@@ -33,7 +31,8 @@ def _statevector_from_circuit(
 
     Args:
         circuit: The quantum circuit.
-        seed: The random number generator or None.
+        rng: The random number generator or None.
+
     """
     sv = Statevector.from_int(0, 2**circuit.num_qubits)
     sv.seed(rng)
@@ -57,6 +56,7 @@ def bound_circuit_to_instruction(circuit: QuantumCircuit) -> Instruction:
 
     Returns:
         An :class:`~qiskit.circuit.Instruction` object
+
     """
     if len(circuit.qregs) > 1:
         return circuit.to_instruction()

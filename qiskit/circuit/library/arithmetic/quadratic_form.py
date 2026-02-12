@@ -60,7 +60,6 @@ class QuadraticForm(QuantumCircuit):
     The implementation of this circuit is discussed in [1], Fig. 6.
 
     References:
-
     [1] Gilliam et al., Grover Adaptive Search for Constrained Polynomial Binary Optimization.
     `arXiv:1912.04088 <https://arxiv.org/pdf/1912.04088.pdf>`_
 
@@ -79,8 +78,7 @@ class QuadraticForm(QuantumCircuit):
         offset: float | ParameterExpression | None = None,
         little_endian: bool = True,
     ) -> None:
-        r"""
-        Args:
+        r"""Args:
             num_result_qubits: The number of qubits to encode the result. Called :math:`m` in
                 the class documentation.
             quadratic: A matrix containing the quadratic coefficients, :math:`A`.
@@ -92,6 +90,7 @@ class QuadraticForm(QuantumCircuit):
             ValueError: If ``linear`` and ``quadratic`` have mismatching sizes.
             ValueError: If ``num_result_qubits`` is unspecified but cannot be determined because
                 some values of the quadratic form are parameterized.
+
         """
         # check inputs match
         if quadratic is not None and linear is not None:
@@ -189,6 +188,7 @@ class QuadraticForm(QuantumCircuit):
         Returns:
             The number of qubits needed to represent the value of the quadratic form
             in twos complement.
+
         """
         return QuadraticFormGate.required_result_qubits(quadratic, linear, offset)
 
@@ -226,7 +226,6 @@ class QuadraticFormGate(Gate):
     The implementation of this circuit is discussed in [1], Fig. 6.
 
     References:
-
     [1] Gilliam et al., Grover Adaptive Search for Constrained Polynomial Binary Optimization.
     `arXiv:1912.04088 <https://arxiv.org/pdf/1912.04088.pdf>`_
 
@@ -235,11 +234,22 @@ class QuadraticFormGate(Gate):
     def __init__(
         self,
         num_result_qubits: int | None = None,
-        quadratic: Sequence[Sequence[float]] | None = None,
-        linear: Sequence[Sequence[float]] | None = None,
+        quadratic: Sequence[Sequence[float]] | np.ndarray[float] | None = None,
+        linear: Sequence[Sequence[float]] | np.ndarray[float] | None = None,
         offset: float | None = None,
         label: str = "Q(x)",
     ):
+        """Instantiate a new :class:`.QuadraticForm` instance
+
+        Args:
+            num_result_qubits: The number of result qubits to start the value of th quadratic form
+                in
+            quadratic: A matrix containing the quadratic coefficients.
+            linear: An array containing the linear coefficients.
+            offset: A constant offset
+            label: A label to apply to the new gate
+
+        """
         # check inputs match
         if quadratic is not None and linear is not None:
             if len(quadratic) != len(linear):
@@ -285,8 +295,8 @@ class QuadraticFormGate(Gate):
         Returns:
             The number of qubits needed to represent the value of the quadratic form
             in twos complement.
-        """
 
+        """
         bounds = []  # bounds = [minimum value, maximum value]
         for condition in [lambda x: x < 0, lambda x: x > 0]:
             bound = 0.0
@@ -303,7 +313,7 @@ class QuadraticFormGate(Gate):
 
         return num_result_qubits
 
-    def validate_parameter(self, parameter):
+    def validate_parameter(self, parameter):  # noqa: D102
         if isinstance(parameter, _ValueType):
             return parameter
 

@@ -84,6 +84,7 @@ def plot_gate_map(
            backend = GenericBackendV2(num_qubits=5)
 
            plot_gate_map(backend)
+
     """
     qubit_coordinates_map = {}
 
@@ -996,6 +997,7 @@ def plot_coupling_map(
             qubit_coordinates = [[0, 1], [1, 1], [1, 0], [1, 2], [2, 0], [2, 2], [2, 1], [3, 1]]
             coupling_map = [[0, 1], [1, 2], [2, 3], [3, 5], [4, 5], [5, 6], [2, 4], [6, 7]]
             plot_coupling_map(num_qubits, qubit_coordinates, coupling_map)
+
     """
     import matplotlib.pyplot as plt
     from .utils import matplotlib_close_if_inline
@@ -1169,6 +1171,7 @@ def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None
             backend = GenericBackendV2(num_qubits=5)
             new_circ_lv3 = transpile(ghz, backend=backend, optimization_level=3)
             plot_circuit_layout(new_circ_lv3, backend)
+
     """
     if circuit._layout is None:
         raise QiskitError("Circuit has no layout. Perhaps it has not been transpiled.")
@@ -1258,6 +1261,7 @@ def plot_error_map(backend, figsize=(15, 12), show_title=True, qubit_coordinates
 
             backend = GenericBackendV2(num_qubits=5)
             plot_error_map(backend)
+
     """
     import matplotlib
     import matplotlib.pyplot as plt

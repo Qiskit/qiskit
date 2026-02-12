@@ -45,9 +45,7 @@ class SolovayKitaevDecomposition:
         depth: int = 12,
         check_input: bool = False,
     ) -> None:
-        """
-
-        .. note::
+        """.. note::
 
             If ``basic_approximations`` is passed as ``.npy`` file, pickle is used internally
             to load the data. This is a potential security vulnerability and only trusted files
@@ -72,6 +70,7 @@ class SolovayKitaevDecomposition:
                 sufficiently high.
             check_input: If ``True``, perform intermediate steps checking whether the matrices
                 are of expected form.
+
         """
         if basic_approximations is None:
             if basis_gates is not None:
@@ -139,6 +138,7 @@ class SolovayKitaevDecomposition:
 
         Raises:
             ValueError: If the number of gate combinations and associated matrices does not match.
+
         """
         # new data format stored by the Rust internal class
         if isinstance(data, str) and data[-4:] != ".npy":
@@ -192,6 +192,7 @@ class SolovayKitaevDecomposition:
         Raises:
             ValueError: If the filename has a `.npy` extension. The format is not `.npy`,
                 and storing as such can cause errors when loading the file again.
+
         """
         # Safety guard: previously, we serialized via npy, but this format is incompatible
         # with the current serialization, using Rust's serde + bincode. While we can still load
@@ -223,6 +224,7 @@ class SolovayKitaevDecomposition:
 
         Returns:
             A one-qubit circuit approximating the ``gate_matrix`` in the specified discrete basis.
+
         """
         # handle overriding the check_input setting
         self_check_input = self.check_input
@@ -269,6 +271,7 @@ class SolovayKitaevDecomposition:
 
         Returns:
             ``GateSequence`` in that approximates ``sequence``.
+
         """
         return self._sk.find_basic_approximation(sequence)
 

@@ -9,9 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""
-Parameter Class for variable parameters.
-"""
+"""Parameter Class for variable parameters."""
 
 import qiskit._accelerate.circuit
 

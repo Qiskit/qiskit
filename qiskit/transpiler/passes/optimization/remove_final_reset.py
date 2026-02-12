@@ -28,6 +28,7 @@ class RemoveFinalReset(TransformationPass):
 
         Returns:
             DAGCircuit: the optimized DAG.
+
         """
         for output_node in dag.output_map.values():
             if isinstance(output_node.wire, Qubit):

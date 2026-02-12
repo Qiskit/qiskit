@@ -67,7 +67,6 @@ class HRSCumulativeMultiplier(Multiplier):
         can be chosen via ``Multiplier=["cumulative_h18"]``.
 
     References:
-
     [1] Häner et al., Optimizing Quantum Circuits for Arithmetic, 2018.
     `arXiv:1805.12445 <https://arxiv.org/pdf/1805.12445.pdf>`_
 
@@ -80,8 +79,7 @@ class HRSCumulativeMultiplier(Multiplier):
         adder: QuantumCircuit | None = None,
         name: str = "HRSCumulativeMultiplier",
     ) -> None:
-        r"""
-        Args:
+        r"""Args:
             num_state_qubits: The number of qubits in either input register for
                 state :math:`|a\rangle` or :math:`|b\rangle`. The two input
                 registers must have the same number of qubits.
@@ -93,8 +91,10 @@ class HRSCumulativeMultiplier(Multiplier):
             adder: Half adder circuit to be used for performing multiplication. The
                 CDKMRippleCarryAdder is used as default if no adder is provided.
             name: The name of the circuit object.
+
         Raises:
             NotImplementedError: If ``num_result_qubits`` is not default and a custom adder is provided.
+
         """
         super().__init__(num_state_qubits, num_result_qubits, name=name)
 

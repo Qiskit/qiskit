@@ -9,9 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""
-Circuit simulation for the Clifford class.
-"""
+"""Circuit simulation for the Clifford class."""
 
 from __future__ import annotations
 
@@ -35,6 +33,7 @@ def _append_circuit(clifford, circuit, qargs=None):
 
     Raises:
         QiskitError: if input circuit cannot be decomposed into Clifford operations.
+
     """
     if qargs is None:
         qargs = list(range(clifford.num_qubits))
@@ -63,6 +62,7 @@ def _prepend_circuit(clifford, circuit, qargs=None):
 
     Raises:
         QiskitError: if input circuit cannot be decomposed into Clifford operations.
+
     """
     if qargs is None:
         qargs = list(range(clifford.num_qubits))
@@ -92,8 +92,8 @@ def _append_operation(clifford, operation, qargs=None):
 
     Raises:
         QiskitError: if input operation cannot be converted into Clifford operations.
-    """
 
+    """
     if isinstance(operation, (Barrier, Delay)):
         return clifford
 
@@ -212,8 +212,8 @@ def _prepend_operation(clifford, operation, qargs=None):
 
     Raises:
         QiskitError: if input operation cannot be converted into Clifford operations.
-    """
 
+    """
     if isinstance(operation, (Barrier, Delay)):
         return clifford
 
@@ -358,6 +358,7 @@ def _append_rz(clifford, qubit, multiple):
 
     Returns:
         Clifford: the updated Clifford.
+
     """
     if multiple % 4 == 1:
         return _append_s(clifford, qubit)
@@ -379,6 +380,7 @@ def _prepend_rz(clifford, qubit, multiple):
 
     Returns:
         Clifford: the updated Clifford.
+
     """
     if multiple % 4 == 1:
         return _prepend_s(clifford, qubit)
@@ -399,8 +401,8 @@ def _append_i(clifford, qubit):
 
     Returns:
         Clifford: the updated Clifford.
-    """
 
+    """
     return clifford
 
 
@@ -413,8 +415,8 @@ def _prepend_i(clifford, qubit):
 
     Returns:
         Clifford: the updated Clifford.
-    """
 
+    """
     return clifford
 
 
@@ -427,6 +429,7 @@ def _append_x(clifford, qubit):
 
     Returns:
         Clifford: the updated Clifford.
+
     """
     clifford.phase ^= clifford.z[:, qubit]
     return clifford
@@ -441,6 +444,7 @@ def _prepend_x(clifford, qubit):
 
     Returns:
         Clifford: the updated Clifford.
+
     """
     clifford.stab_phase[qubit] ^= True
     return clifford
@@ -455,6 +459,7 @@ def _append_y(clifford, qubit):
 
     Returns:
         Clifford: the updated Clifford.
+
     """
     x = clifford.x[:, qubit]
     z = clifford.z[:, qubit]
@@ -471,6 +476,7 @@ def _prepend_y(clifford, qubit):
 
     Returns:
         Clifford: the updated Clifford.
+
     """
     clifford.stab_phase[qubit] ^= True
     clifford.destab_phase[qubit] ^= True
@@ -486,6 +492,7 @@ def _append_z(clifford, qubit):
 
     Returns:
         Clifford: the updated Clifford.
+
     """
     clifford.phase ^= clifford.x[:, qubit]
     return clifford
@@ -500,6 +507,7 @@ def _prepend_z(clifford, qubit):
 
     Returns:
         Clifford: the updated Clifford.
+
     """
     clifford.destab_phase[qubit] ^= True
     return clifford
@@ -514,6 +522,7 @@ def _append_h(clifford, qubit):
 
     Returns:
         Clifford: the updated Clifford.
+
     """
     x = clifford.x[:, qubit]
     z = clifford.z[:, qubit]
@@ -533,6 +542,7 @@ def _prepend_h(clifford, qubit):
 
     Returns:
         Clifford: the updated Clifford.
+
     """
     destab = clifford.destab[qubit, :]
     stab = clifford.stab[qubit, :]
@@ -552,6 +562,7 @@ def _append_s(clifford, qubit):
 
     Returns:
         Clifford: the updated Clifford.
+
     """
     x = clifford.x[:, qubit]
     z = clifford.z[:, qubit]
@@ -570,6 +581,7 @@ def _prepend_s(clifford, qubit):
 
     Returns:
         Clifford: the updated Clifford.
+
     """
     destab_x = clifford.destab_x[qubit, :]
     stab_x = clifford.stab_x[qubit, :]
@@ -596,6 +608,7 @@ def _append_sdg(clifford, qubit):
 
     Returns:
         Clifford: the updated Clifford.
+
     """
     x = clifford.x[:, qubit]
     z = clifford.z[:, qubit]
@@ -613,6 +626,7 @@ def _prepend_sdg(clifford, qubit):
 
     Returns:
         Clifford: the updated Clifford.
+
     """
     destab_x = clifford.destab_x[qubit, :]
     stab_x = clifford.stab_x[qubit, :]
@@ -639,6 +653,7 @@ def _append_sx(clifford, qubit):
 
     Returns:
         Clifford: the updated Clifford.
+
     """
     x = clifford.x[:, qubit]
     z = clifford.z[:, qubit]
@@ -657,6 +672,7 @@ def _prepend_sx(clifford, qubit):
 
     Returns:
         Clifford: the updated Clifford.
+
     """
     destab_x = clifford.destab_x[qubit, :]
     stab_x = clifford.stab_x[qubit, :]
@@ -683,6 +699,7 @@ def _append_sxdg(clifford, qubit):
 
     Returns:
         Clifford: the updated Clifford.
+
     """
     x = clifford.x[:, qubit]
     z = clifford.z[:, qubit]
@@ -701,6 +718,7 @@ def _prepend_sxdg(clifford, qubit):
 
     Returns:
         Clifford: the updated Clifford.
+
     """
     destab_x = clifford.destab_x[qubit, :]
     stab_x = clifford.stab_x[qubit, :]
@@ -729,6 +747,7 @@ def _append_v(clifford, qubit):
 
     Returns:
         Clifford: the updated Clifford.
+
     """
     x = clifford.x[:, qubit]
     z = clifford.z[:, qubit]
@@ -749,6 +768,7 @@ def _prepend_v(clifford, qubit):
 
     Returns:
         Clifford: the updated Clifford.
+
     """
     destab = clifford.destab[qubit, :]
     stab = clifford.stab[qubit, :]
@@ -780,6 +800,7 @@ def _append_w(clifford, qubit):
 
     Returns:
         Clifford: the updated Clifford.
+
     """
     x = clifford.x[:, qubit]
     z = clifford.z[:, qubit]
@@ -800,6 +821,7 @@ def _prepend_w(clifford, qubit):
 
     Returns:
         Clifford: the updated Clifford.
+
     """
     destab = clifford.destab[qubit, :]
     stab = clifford.stab[qubit, :]
@@ -830,6 +852,7 @@ def _append_cx(clifford, control, target):
 
     Returns:
         Clifford: the updated Clifford.
+
     """
     x0 = clifford.x[:, control]
     z0 = clifford.z[:, control]
@@ -851,6 +874,7 @@ def _prepend_cx(clifford, control, target):
 
     Returns:
         Clifford: the updated Clifford.
+
     """
     destab_x_c = clifford.destab_x[control]
     destab_z_c = clifford.destab_z[control]
@@ -885,6 +909,7 @@ def _append_cz(clifford, control, target):
 
     Returns:
         Clifford: the updated Clifford.
+
     """
     x0 = clifford.x[:, control]
     z0 = clifford.z[:, control]
@@ -906,6 +931,7 @@ def _prepend_cz(clifford, control, target):
 
     Returns:
         Clifford: the updated Clifford.
+
     """
     destab_x_c = clifford.destab_x[control]
     destab_z_c = clifford.destab_z[control]
@@ -940,6 +966,7 @@ def _append_cy(clifford, control, target):
 
     Returns:
         Clifford: the updated Clifford.
+
     """
     clifford = _append_sdg(clifford, target)
     clifford = _append_cx(clifford, control, target)
@@ -957,6 +984,7 @@ def _prepend_cy(clifford, control, target):
 
     Returns:
         Clifford: the updated Clifford.
+
     """
     clifford = _prepend_s(clifford, target)
     clifford = _prepend_cx(clifford, control, target)
@@ -974,6 +1002,7 @@ def _append_swap(clifford, qubit0, qubit1):
 
     Returns:
         Clifford: the updated Clifford.
+
     """
     clifford.x[:, [qubit0, qubit1]] = clifford.x[:, [qubit1, qubit0]]
     clifford.z[:, [qubit0, qubit1]] = clifford.z[:, [qubit1, qubit0]]
@@ -990,6 +1019,7 @@ def _prepend_swap(clifford, qubit0, qubit1):
 
     Returns:
         Clifford: the updated Clifford.
+
     """
     clifford.stab[[qubit0, qubit1], :] = clifford.stab[[qubit1, qubit0], :]
     clifford.destab[[qubit0, qubit1], :] = clifford.destab[[qubit1, qubit0], :]
@@ -1006,6 +1036,7 @@ def _append_iswap(clifford, qubit0, qubit1):
 
     Returns:
         Clifford: the updated Clifford.
+
     """
     clifford = _append_s(clifford, qubit0)
     clifford = _append_h(clifford, qubit0)
@@ -1026,6 +1057,7 @@ def _prepend_iswap(clifford, qubit0, qubit1):
 
     Returns:
         Clifford: the updated Clifford.
+
     """
     clifford = _prepend_s(clifford, qubit0)
     clifford = _prepend_h(clifford, qubit0)
@@ -1046,6 +1078,7 @@ def _append_dcx(clifford, qubit0, qubit1):
 
     Returns:
         Clifford: the updated Clifford.
+
     """
     clifford = _append_cx(clifford, qubit0, qubit1)
     clifford = _append_cx(clifford, qubit1, qubit0)
@@ -1062,6 +1095,7 @@ def _prepend_dcx(clifford, qubit0, qubit1):
 
     Returns:
         Clifford: the updated Clifford.
+
     """
     clifford = _prepend_cx(clifford, qubit1, qubit0)
     clifford = _prepend_cx(clifford, qubit0, qubit1)
@@ -1078,6 +1112,7 @@ def _append_ecr(clifford, qubit0, qubit1):
 
     Returns:
         Clifford: the updated Clifford.
+
     """
     clifford = _append_s(clifford, qubit0)
     clifford = _append_sx(clifford, qubit1)
@@ -1097,6 +1132,7 @@ def _prepend_ecr(clifford, qubit0, qubit1):
 
     Returns:
         Clifford: the updated Clifford.
+
     """
     clifford = _prepend_x(clifford, qubit0)
     clifford = _prepend_cx(clifford, qubit0, qubit1)

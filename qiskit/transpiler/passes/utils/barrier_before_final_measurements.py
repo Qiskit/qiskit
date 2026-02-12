@@ -27,6 +27,13 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
     """
 
     def __init__(self, label=None):
+        """Instantiate a new :class:`.BarrierBeforeFinalMeasurements` instance
+
+        Args:
+            label (str): An optional label that will be assigned to the :class:`.Barrier` inserted
+                to the circuit by this pass.
+
+        """
         super().__init__()
         self.label = label
 

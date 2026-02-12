@@ -116,8 +116,7 @@ class ZZFeatureMap(PauliFeatureMap):
         insert_barriers: bool = False,
         name: str = "ZZFeatureMap",
     ) -> None:
-        """
-        Args:
+        """Args:
             feature_dimension: Number of features.
             reps: The number of repeated circuits, has a min. value of 1.
             entanglement: Specifies the entanglement structure. Refer to
@@ -129,6 +128,7 @@ class ZZFeatureMap(PauliFeatureMap):
 
         Raises:
             ValueError: If the feature dimension is smaller than 2.
+
         """
         if feature_dimension < 2:
             raise ValueError(

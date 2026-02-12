@@ -10,8 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Tools for building optimal circuits out of XX interactions.
+"""Tools for building optimal circuits out of XX interactions.
 
 Inputs:
  + A set of native XX operations, described as strengths.
@@ -46,15 +45,13 @@ from .weyl import (
 
 
 def decompose_xxyy_into_xxyy_xx(a_target, b_target, a_source, b_source, interaction):
-    """
-    Consumes a target canonical interaction CAN(a_target, b_target) and source interactions
+    """Consumes a target canonical interaction CAN(a_target, b_target) and source interactions
     CAN(a1, b1), CAN(a2), then manufactures a circuit identity of the form
 
     CAN(a_target, b_target) = (Zr, Zs) CAN(a_source, b_source) (Zu, Zv) CAN(interaction) (Zx, Zy).
 
     Returns the 6-tuple (r, s, u, v, x, y).
     """
-
     cplus, cminus = math.cos(a_source + b_source), math.cos(a_source - b_source)
     splus, sminus = math.sin(a_source + b_source), math.sin(a_source - b_source)
     ca, sa = np.cos(interaction), np.sin(interaction)
@@ -145,15 +142,13 @@ def decompose_xxyy_into_xxyy_xx(a_target, b_target, a_source, b_source, interact
 
 
 def xx_circuit_step(source, strength, target, embodiment):
-    """
-    Builds a single step in an XX-based circuit.
+    """Builds a single step in an XX-based circuit.
 
     `source` and `target` are positive canonical coordinates; `strength` is the interaction strength
     at this step in the circuit as a canonical coordinate (so that CX = RZX(pi/2) corresponds to
     pi/4); and `embodiment` is a Qiskit circuit which enacts the canonical gate of the prescribed
     interaction `strength`.
     """
-
     permute_source_for_overlap, permute_target_for_overlap = None, None
 
     # apply all possible reflections, shifts to the source
@@ -249,8 +244,7 @@ def xx_circuit_step(source, strength, target, embodiment):
 
 
 def canonical_xx_circuit(target, strength_sequence, basis_embodiments):
-    """
-    Assembles a Qiskit circuit from a specified `strength_sequence` of XX-type interactions which
+    """Assembles a Qiskit circuit from a specified `strength_sequence` of XX-type interactions which
     emulates the canonical gate at canonical coordinate `target`.  The circuits supplied by
     `basis_embodiments` are used to instantiate the individual XX actions.
 

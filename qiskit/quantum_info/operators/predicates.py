@@ -10,14 +10,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Predicates for operators.
-"""
+"""Predicates for operators."""
 
 from __future__ import annotations
 import functools
 import numpy as np
 
+# Update matrix_equal docstring if these change
 ATOL_DEFAULT = 1e-8
 RTOL_DEFAULT = 1e-5
 
@@ -37,8 +36,7 @@ def _identity_matrix(size):
 
 
 def matrix_equal(mat1, mat2, ignore_phase=False, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT, props=None):
-    # pylint: disable-next=consider-using-f-string
-    f"""Test if two arrays are equal.
+    """Test if two arrays are equal.
 
     The final comparison is implemented using Numpy.allclose. See its
     documentation for additional information on tolerance parameters.
@@ -52,16 +50,16 @@ def matrix_equal(mat1, mat2, ignore_phase=False, rtol=RTOL_DEFAULT, atol=ATOL_DE
         mat2 (matrix_like): a matrix
         ignore_phase (bool): ignore complex-phase differences between
             matrices [Default: False]
-        rtol (double): the relative tolerance parameter [Default {RTOL_DEFAULT}].
-        atol (double): the absolute tolerance parameter [Default {ATOL_DEFAULT}].
+        rtol (double): the relative tolerance parameter [Default 1e-5].
+        atol (double): the absolute tolerance parameter [Default 1e-8].
         props (dict | None): if not ``None`` and ``ignore_phase`` is ``True``
             returns the phase difference between the two matrices under
             ``props['phase_difference']``
 
     Returns:
         bool: True if the matrices are equal or False otherwise.
-    """
 
+    """
     if atol is None:
         atol = ATOL_DEFAULT
     if rtol is None:

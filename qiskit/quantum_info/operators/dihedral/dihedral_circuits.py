@@ -9,9 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""
-Circuit simulation for the CNOTDihedral class
-"""
+"""Circuit simulation for the CNOTDihedral class"""
 
 from __future__ import annotations
 import numpy as np
@@ -29,12 +27,14 @@ def _append_circuit(elem, circuit, qargs=None):
         elem (CNOTDihedral): the CNOTDihedral element to update.
         circuit (QuantumCircuit or Instruction): the gate or composite gate to apply.
         qargs (list or None): The qubits to apply gates to.
+
     Returns:
         CNOTDihedral: the updated CNOTDihedral.
+
     Raises:
         QiskitError: if input gates cannot be decomposed into CNOTDihedral gates.
-    """
 
+    """
     if qargs is None:
         qargs = list(range(elem.num_qubits))
 

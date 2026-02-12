@@ -10,8 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Optimize the synthesis of an n-qubit circuit contains only CX gates for
+"""Optimize the synthesis of an n-qubit circuit contains only CX gates for
 linear nearest neighbor (LNN) connectivity.
 The depth of the circuit is bounded by 5*n, while the gate count is approximately 2.5*n^2
 
@@ -19,6 +18,7 @@ References:
     [1]: Kutin, S., Moulton, D. P., Smithline, L. (2007).
          Computation at a Distance.
          `arXiv:quant-ph/0701194 <https://arxiv.org/abs/quant-ph/0701194>`_.
+
 """
 
 from __future__ import annotations
@@ -30,8 +30,7 @@ from qiskit._accelerate.synthesis.linear import py_synth_cnot_depth_line_kms as 
 
 
 def synth_cnot_depth_line_kms(mat: np.ndarray[bool]) -> QuantumCircuit:
-    """
-    Synthesize linear reversible circuit for linear nearest-neighbor architectures using
+    """Synthesize linear reversible circuit for linear nearest-neighbor architectures using
     Kutin, Moulton, Smithline method.
 
     Synthesis algorithm for linear reversible circuits from [1], section 7.
@@ -51,6 +50,7 @@ def synth_cnot_depth_line_kms(mat: np.ndarray[bool]) -> QuantumCircuit:
         1. Kutin, S., Moulton, D. P., Smithline, L.,
            *Computation at a distance*, Chicago J. Theor. Comput. Sci., vol. 2007, (2007),
            `arXiv:quant-ph/0701194 <https://arxiv.org/abs/quant-ph/0701194>`_
+
     """
     if not check_invertible_binary_matrix(mat):
         raise QiskitError("The input matrix is not invertible.")

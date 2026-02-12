@@ -151,6 +151,7 @@ class SabreLayout(TransformationPass):
         Raises:
             TranspilerError: If both ``routing_pass`` and ``swap_trials`` or
             both ``routing_pass`` and ``layout_trials`` are specified
+
         """
         super().__init__()
         if isinstance(coupling_map, Target) and not isinstance(coupling_map, _FakeTarget):
@@ -180,7 +181,7 @@ class SabreLayout(TransformationPass):
         self.skip_routing = skip_routing
 
     @property
-    def coupling_map(self):
+    def coupling_map(self):  # noqa: D102
         # This property is not intended to be public API, it just keeps backwards compatibility.
         if self._coupling_map is None:
             self._coupling_map = self.target.build_coupling_map()
@@ -200,6 +201,7 @@ class SabreLayout(TransformationPass):
 
         Raises:
             TranspilerError: if dag wider than the target.
+
         """
         if self.target.num_qubits is None:
             raise TranspilerError("given 'Target' was not initialized with a qubit count")

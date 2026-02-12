@@ -97,17 +97,16 @@ class XXPlusYYGate(Gate):
         beta: ParameterValueType = 0,
         label: str | None = "(XX+YY)",
     ):
-        """
-        Args:
-            theta: The rotation angle.
-            beta: The phase angle.
-            label: The label of the gate.
+        """Args:
+        theta: The rotation angle.
+        beta: The phase angle.
+        label: The label of the gate.
+
         """
         super().__init__("xx_plus_yy", 2, [theta, beta], label=label)
 
     def _define(self):
         """Default definition"""
-
         from qiskit.circuit import QuantumCircuit
 
         #      ┌───────┐┌───┐      ┌───┐┌──────────┐┌───┐┌─────┐┌────────┐
@@ -132,6 +131,7 @@ class XXPlusYYGate(Gate):
 
         Returns:
             XXPlusYYGate: inverse gate.
+
         """
         return XXPlusYYGate(-self.params[0], self.params[1])
 

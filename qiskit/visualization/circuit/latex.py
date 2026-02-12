@@ -42,7 +42,7 @@ from ._utils import (
 
 
 class QCircuitImage:
-    """This class contains methods to create \\LaTeX circuit images.
+    r"""This class contains methods to create \\LaTeX circuit images.
 
     The class targets the \\LaTeX package Q-circuit
     (https://arxiv.org/pdf/quant-ph/0406003).
@@ -80,8 +80,8 @@ class QCircuitImage:
             circuit (QuantumCircuit): the circuit that's being displayed
         Raises:
             ImportError: If pylatexenc is not installed
-        """
 
+        """
         self._circuit = circuit
         self._qubits = qubits
         self._clbits = clbits
@@ -162,7 +162,6 @@ class QCircuitImage:
 
     def latex(self):
         """Return LaTeX string representation of circuit."""
-
         self._initialize_latex_array()
         self._build_latex_array()
         header_1 = r"\documentclass[border=2px]{standalone}" + "\n"
@@ -250,7 +249,6 @@ class QCircuitImage:
 
     def _get_image_depth(self):
         """Get depth information for the circuit."""
-
         # wires in the beginning and end
         columns = 2
         if self._cregbundle and (
@@ -346,7 +344,6 @@ class QCircuitImage:
 
     def _get_beamer_page(self):
         """Get height, width & scale attributes for the beamer page."""
-
         # PIL python package limits image size to around a quarter gigabyte
         # this means the beamer image should be limited to < 50000
         # if you want to avoid a "warning" too, set it to < 25000
@@ -376,8 +373,7 @@ class QCircuitImage:
         return (height, width, self._scale)
 
     def _build_latex_array(self):
-        """Returns an array of strings containing \\LaTeX for this circuit."""
-
+        r"""Returns an array of strings containing \\LaTeX for this circuit."""
         column = 1
         # Leave a column to display number of classical registers if needed
         if self._cregbundle and (

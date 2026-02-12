@@ -10,8 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Module for the primary interface to the circuit drawers.
+"""Module for the primary interface to the circuit drawers.
 
 This module contains the end user facing API for drawing quantum circuits.
 There are 3 available drawer backends:
@@ -206,6 +205,7 @@ def circuit_drawer(
             qc.h(0)
             qc.measure(0, 0)
             circuit_drawer(qc, output="mpl", style={"backgroundcolor": "#EEEEEE"})
+
     """
     image = None
     expr_len = max(expr_len, 0)
@@ -437,6 +437,7 @@ def _text_circuit_drawer(
 
     Raises:
         VisualizationError: When the filename extension is not .txt.
+
     """
     qubits, clbits, nodes = _utils._get_layered_instructions(
         circuit,
@@ -523,6 +524,7 @@ def _latex_circuit_drawer(
         MissingOptionalLibraryError: if pillow, pdflatex, or poppler are not installed
         VisualizationError: if one of the conversion utilities failed for some internal or
             file-access reason.
+
     """
     from PIL import Image
 
@@ -634,6 +636,7 @@ def _generate_latex_source(
 
     Returns:
         str: Latex string appropriate for writing to file.
+
     """
     qubits, clbits, nodes = _utils._get_layered_instructions(
         circuit,
@@ -726,8 +729,8 @@ def _matplotlib_circuit_drawer(
     Returns:
         matplotlib.figure: a matplotlib figure object for the circuit diagram
             if the ``ax`` kwarg is not set.
-    """
 
+    """
     qubits, clbits, nodes = _utils._get_layered_instructions(
         circuit,
         reverse_bits=reverse_bits,

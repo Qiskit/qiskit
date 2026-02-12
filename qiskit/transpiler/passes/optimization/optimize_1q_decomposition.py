@@ -78,6 +78,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
                 and the Euler basis. Ignored if ``target`` is also specified.
             target (Optional[Target]): The :class:`~.Target` object corresponding to the compilation
                 target. When specified, any argument specified for ``basis_gates`` is ignored.
+
         """
         super().__init__()
 
@@ -136,8 +137,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
         return decomposers
 
     def _resynthesize_run(self, matrix, qubit=None):
-        """
-        Re-synthesizes one 2x2 `matrix`, typically extracted via `dag.collect_1q_runs`.
+        """Re-synthesizes one 2x2 `matrix`, typically extracted via `dag.collect_1q_runs`.
 
         Returns the newly synthesized circuit in the indicated basis, or None
         if no synthesis routine applied.
@@ -167,9 +167,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
         return out_dag
 
     def _substitution_checks(self, old_run, new_circ, basis, qubit, old_error=None, new_error=None):
-        """
-        Returns `True` when it is recommended to replace `old_run` with `new_circ` over `basis`.
-        """
+        """Returns `True` when it is recommended to replace `old_run` with `new_circ` over `basis`."""
         if new_circ is None:
             return False
 
@@ -207,6 +205,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
 
         Returns:
             DAGCircuit: the optimized DAG.
+
         """
         optimize_1q_gates_decomposition.optimize_1q_gates_decomposition(
             dag,
@@ -217,8 +216,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
         return dag
 
     def _error(self, circuit, qubit):
-        """
-        Calculate a rough error for a `circuit` that runs on a specific
+        """Calculate a rough error for a `circuit` that runs on a specific
         `qubit` of `target` (`circuit` is a list of DAGOPNodes).
 
         Use basis errors from target if available, otherwise use length

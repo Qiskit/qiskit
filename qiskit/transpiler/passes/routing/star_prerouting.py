@@ -33,7 +33,7 @@ from qiskit.transpiler.layout import Layout
 class StarBlock:
     """Defines blocks representing star-shaped pieces of a circuit."""
 
-    def __init__(self, nodes=None, center=None, num2q=0):
+    def __init__(self, nodes=None, center=None, num2q=0):  # noqa: D107
         self.center = center
         self.num2q = num2q
         self.nodes = [] if nodes is None else nodes
@@ -43,11 +43,9 @@ class StarBlock:
         return self.nodes
 
     def append_node(self, node):
-        """
-        If node can be added to block while keeping the block star-shaped, and
+        """If node can be added to block while keeping the block star-shaped, and
         return True. Otherwise, does not add node to block and returns False.
         """
-
         added = False
 
         if len(node.qargs) == 1:
@@ -77,9 +75,7 @@ class StarBlock:
         return added
 
     def size(self):
-        """
-        Returns the number of two-qubit quantum gates in this block.
-        """
+        """Returns the number of two-qubit quantum gates in this block."""
         return self.num2q
 
 
@@ -115,7 +111,6 @@ class StarPreRouting(TransformationPass):
 
     def __init__(self):
         """StarPreRouting"""
-
         self._pending_nodes: list[DAGOpNode | DAGDepNode] | None = None
         self._in_degree: dict[DAGOpNode | DAGDepNode, int] | None = None
         super().__init__()
@@ -253,7 +248,7 @@ class StarPreRouting(TransformationPass):
 
         return matching_blocks, processing_order
 
-    def run(self, dag):
+    def run(self, dag):  # noqa: D102
         # Extract StarBlocks from DAGCircuit / DAGDependency / DAGDependencyV2
         star_blocks, processing_order = self.determine_star_blocks_processing(dag, min_block_size=2)
 
@@ -296,6 +291,7 @@ class StarPreRouting(TransformationPass):
         Returns:
             List[StarBlock]: a list of star blocks in the given dag
             Union[List[DAGOpNode], List[DAGDepNode]]: a list of operations specifying processing order
+
         """
         blocks, processing_order = self.collect_all_matching_blocks(
             dag, min_block_size=min_block_size
@@ -313,6 +309,7 @@ class StarPreRouting(TransformationPass):
         Returns:
             new_dag: a dag specifying the pre-routed circuit
             qubit_mapping: the final qubit mapping after pre-routing
+
         """
         node_to_block_id = {}
         for i, block in enumerate(blocks):

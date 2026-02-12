@@ -10,8 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-=================================
+"""=================================
 Clifford Unitary Synthesis Plugin
 =================================
 
@@ -90,7 +89,6 @@ class CliffordUnitarySynthesis(UnitarySynthesisPlugin):
 
     def run(self, unitary, **options):
         """Run the CliffordUnitarySynthesis plugin on the given unitary."""
-
         config = options.get("config") or {}
 
         min_qubits = config.get("min_qubits", 1)

@@ -57,9 +57,9 @@ class HGate(SingletonGate):
     _standard_gate = StandardGate.H
 
     def __init__(self, label: str | None = None):
-        """
-        Args:
-            label: An optional label for the gate.
+        """Args:
+        label: An optional label for the gate.
+
         """
         super().__init__("h", 1, [], label=label)
 
@@ -67,7 +67,6 @@ class HGate(SingletonGate):
 
     def _define(self):
         """Default definition"""
-
         from qiskit.circuit import QuantumCircuit
 
         #    ┌────────────┐
@@ -105,6 +104,7 @@ class HGate(SingletonGate):
 
         Returns:
             A controlled version of this gate.
+
         """
         if num_ctrl_qubits == 1:
             gate = CHGate(label=label, ctrl_state=ctrl_state, _base_label=self.label)
@@ -128,6 +128,7 @@ class HGate(SingletonGate):
 
         Returns:
             HGate: inverse gate (self-inverse).
+
         """
         return HGate()  # self-inverse
 
@@ -219,7 +220,6 @@ class CHGate(SingletonControlledGate):
 
     def _define(self):
         """Default definition"""
-
         from qiskit.circuit import QuantumCircuit
 
         # q_0: ─────────────────■─────────────────────

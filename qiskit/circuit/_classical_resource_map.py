@@ -34,7 +34,8 @@ class VariableMapper(expr.ExprVisitor[expr.Expr]):
     to add new aliasing registers to the outer circuit object, if there is not already a suitable
     register for the mapping available in the circuit.  If this parameter is not given, a
     ``ValueError`` will be raised instead.  The given ``add_register`` callable may choose to raise
-    its own exception."""
+    its own exception.
+    """
 
     # We don't want docstrings for the inherited visitor methods, which are self-explanatory and
     # would just be noise.
@@ -57,7 +58,8 @@ class VariableMapper(expr.ExprVisitor[expr.Expr]):
 
     def _map_register(self, theirs: ClassicalRegister) -> ClassicalRegister:
         """Map the target's registers to suitable equivalents in the destination, adding an
-        extra one if there's no exact match."""
+        extra one if there's no exact match.
+        """
         if (mapped_theirs := self.register_map.get(theirs.name)) is not None:
             return mapped_theirs
         mapped_bits = [self.bit_map[bit] for bit in theirs]
@@ -116,7 +118,8 @@ class VariableMapper(expr.ExprVisitor[expr.Expr]):
 
     def map_target(self, target, /):
         """Map the real-time variables in a ``target`` of a :class:`.SwitchCaseOp` to the new
-        circuit, as defined in the ``circuit`` argument of the initializer of this class."""
+        circuit, as defined in the ``circuit`` argument of the initializer of this class.
+        """
         if isinstance(target, Clbit):
             return self.bit_map[target]
         if isinstance(target, ClassicalRegister):

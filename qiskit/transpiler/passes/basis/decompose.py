@@ -37,12 +37,12 @@ class Decompose(TransformationPass):
         ) = None,
         apply_synthesis: bool = False,
     ) -> None:
-        """
-        Args:
-            gates_to_decompose: optional subset of gates to be decomposed,
-                identified by gate label, name or type. Defaults to all gates.
-            apply_synthesis: If ``True``, run :class:`.HighLevelSynthesis` to synthesize operations
-                that do not have a definition attached.
+        """Args:
+        gates_to_decompose: optional subset of gates to be decomposed,
+            identified by gate label, name or type. Defaults to all gates.
+        apply_synthesis: If ``True``, run :class:`.HighLevelSynthesis` to synthesize operations
+            that do not have a definition attached.
+
         """
         super().__init__()
         self.gates_to_decompose = gates_to_decompose
@@ -56,6 +56,7 @@ class Decompose(TransformationPass):
 
         Returns:
             output dag where ``gate`` was expanded.
+
         """
         # We might use HLS to synthesize objects that do not have a definition
         hls = HighLevelSynthesis(qubits_initially_zero=False) if self.apply_synthesis else None

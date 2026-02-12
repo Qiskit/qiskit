@@ -9,9 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""
-Multiple-Controlled U3 gate utilities. Not using ancillary qubits.
-"""
+"""Multiple-Controlled U3 gate utilities. Not using ancillary qubits."""
 
 import math
 import numpy as np
@@ -40,8 +38,8 @@ def _apply_cu(circuit, theta, phi, lam, control, target, use_basis_gates=True):
 
 def _apply_mcu_graycode(circuit, theta, phi, lam, ctls, tgt, use_basis_gates):
     """Apply multi-controlled u gate from ctls to tgt using graycode
-    pattern with single-step angles theta, phi, lam."""
-
+    pattern with single-step angles theta, phi, lam.
+    """
     n = len(ctls)
 
     gray_code = _generate_gray_code(n)
@@ -84,8 +82,7 @@ def _mcsu2_real_diagonal(
     num_controls: int,
     use_basis_gates: bool = False,
 ) -> QuantumCircuit:
-    """
-    Return a multi-controlled SU(2) gate [1]_ with a real main diagonal or secondary diagonal.
+    """Return a multi-controlled SU(2) gate [1]_ with a real main diagonal or secondary diagonal.
 
     Args:
         gate: SU(2) Gate whose unitary matrix has one real diagonal.
@@ -104,7 +101,6 @@ def _mcsu2_real_diagonal(
             `arXiv:2302.06377 (2023) <https://arxiv.org/abs/2302.06377>`__
 
     """
-
     from qiskit.circuit.library.standard_gates import RXGate, RYGate, RZGate
     from qiskit.circuit.library.generalized_gates import UnitaryGate
     from qiskit.quantum_info.operators.predicates import is_unitary_matrix

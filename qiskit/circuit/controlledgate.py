@@ -67,7 +67,6 @@ class ControlledGate(Gate):
             CircuitError: ctrl_state < 0 or ctrl_state > 2**num_ctrl_qubits.
 
         Examples:
-
         Create a controlled standard gate and apply it to a circuit.
 
         .. plot::
@@ -100,6 +99,7 @@ class ControlledGate(Gate):
            qc2 = QuantumCircuit(4)
            qc2.append(custom, [0, 3, 1, 2])
            qc2.draw('mpl')
+
         """
         self.base_gate = None if base_gate is None else base_gate.copy()
         super().__init__(name, num_qubits, params, label=label)
@@ -141,6 +141,7 @@ class ControlledGate(Gate):
 
         Args:
             excited_def: The circuit with all closed controls.
+
         """
         self._definition = excited_def
 
@@ -173,6 +174,7 @@ class ControlledGate(Gate):
 
         Returns:
             int: The number of control qubits for the gate.
+
         """
         return self._num_ctrl_qubits
 
@@ -185,6 +187,7 @@ class ControlledGate(Gate):
 
         Raises:
             CircuitError: ``num_ctrl_qubits`` is not an integer in ``[0, num_qubits]``.
+
         """
         if num_ctrl_qubits != int(num_ctrl_qubits):
             raise CircuitError("The number of control qubits must be an integer.")
@@ -213,6 +216,7 @@ class ControlledGate(Gate):
 
         Raises:
             CircuitError: ctrl_state is invalid.
+
         """
         self._ctrl_state = _ctrl_state_to_int(ctrl_state, self.num_ctrl_qubits)
         self._open_ctrl = self.ctrl_state < 2**self.num_ctrl_qubits - 1
@@ -226,6 +230,7 @@ class ControlledGate(Gate):
 
         Raises:
             CircuitError: Controlled gate does not define a base gate
+
         """
         if self.base_gate:
             return self.base_gate.params
@@ -241,6 +246,7 @@ class ControlledGate(Gate):
 
         Raises:
             CircuitError: If controlled gate does not define a base gate.
+
         """
         if self.base_gate:
             if self.base_gate.mutable:

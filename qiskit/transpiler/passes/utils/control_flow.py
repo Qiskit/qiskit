@@ -23,7 +23,8 @@ from qiskit.dagcircuit import DAGCircuit
 def map_blocks(dag_mapping: Callable[[DAGCircuit], DAGCircuit], op: ControlFlowOp) -> ControlFlowOp:
     """Use the ``dag_mapping`` function to replace the blocks of a :class:`.ControlFlowOp` with new
     ones.  Each block will be automatically converted to a :class:`.DAGCircuit` and then returned
-    to a :class:`.QuantumCircuit`."""
+    to a :class:`.QuantumCircuit`.
+    """
     return op.replace_blocks(
         [
             dag_to_circuit(dag_mapping(circuit_to_dag(block)), copy_operations=False)
@@ -47,7 +48,8 @@ def trivial_recurse(method):
         if isinstance(node.op, ControlFlowOp):
             dag.substitute_node(node, map_blocks(self.run, node.op))
 
-    from with :meth:`.BasePass.run`."""
+    from with :meth:`.BasePass.run`.
+    """
 
     @functools.wraps(method)
     def out(self, dag):

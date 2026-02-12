@@ -35,7 +35,8 @@ class TruthTable:
 
     For a number of bits at most `EXPLICIT_REP_THRESHOLD` the values of the table
     are explicitly computed and stored. Otherwise, the values are computed on the fly
-    and stored in a dictionary."""
+    and stored in a dictionary.
+    """
 
     EXPLICIT_REP_THRESHOLD = (
         12  # above this number of bits, do not explicitly save the values in a list
@@ -55,7 +56,8 @@ class TruthTable:
 
     def all_assignments(self) -> list[tuple[bool]]:
         """Return an ordered list of all assignments, ordered from right to left
-        i.e. 000, 100, 010, 110, 001, 101, 011, 111"""
+        i.e. 000, 100, 010, 110, 001, 101, 011, 111
+        """
         return [
             tuple(reversed(assignment))
             for assignment in itertools.product([False, True], repeat=self.num_bits)
@@ -83,13 +85,13 @@ class BooleanExpression:
     """A Boolean Expression"""
 
     def __init__(self, expression: str, var_order: list | None = None) -> None:
-        """
-        Args:
-            expression (str): The logical expression string.
-            name (str): Optional. Instruction gate name. Otherwise part of the expression is
-               going to be used.
-            var_order(list): A list with the order in which variables will be created.
-               (default: by appearance)
+        """Args:
+        expression (str): The logical expression string.
+        name (str): Optional. Instruction gate name. Otherwise part of the expression is
+           going to be used.
+        var_order(list): A list with the order in which variables will be created.
+           (default: by appearance)
+
         """
         self.expression = expression
         self.expression_ast = ast.parse(expression)
@@ -115,6 +117,7 @@ class BooleanExpression:
 
         Returns:
             bool: result of the evaluation.
+
         """
         if self.num_bits != len(bitstring):
             raise ValueError(
@@ -157,12 +160,14 @@ class BooleanExpression:
 
         Args:
             circuit_type: which type of oracle to create, 'bit' or 'phase' flip oracle.
+
         Returns:
             QuantumCircuit: A circuit implementing the logic network.
+
         Raises:
             ValueError: If ``circuit_type`` is not either 'bit' or 'phase'.
-        """
 
+        """
         from .boolean_expression_synth import (
             synth_bit_oracle_from_esop,
             synth_phase_oracle_from_esop,
@@ -181,6 +186,7 @@ class BooleanExpression:
     @staticmethod
     def from_dimacs(dimacs: str):
         """Create a BooleanExpression from a string in the DIMACS format.
+
         Args:
             dimacs : A string in DIMACS format.
 
@@ -189,6 +195,7 @@ class BooleanExpression:
 
         Raises:
             ValueError: If the string is not formatted according to DIMACS rules
+
         """
         header_regex = re.compile(r"p\s+cnf\s+(\d+)\s+(\d+)")
         clause_regex = re.compile(r"(-?\d+)")
@@ -217,6 +224,7 @@ class BooleanExpression:
     @staticmethod
     def from_dimacs_file(filename: str):
         """Create a BooleanExpression from a file in the DIMACS format.
+
         Args:
             filename: A file in DIMACS format.
 
@@ -225,6 +233,7 @@ class BooleanExpression:
 
         Raises:
             FileNotFoundError: If filename is not found.
+
         """
         if not isfile(filename):
             raise FileNotFoundError(f"The file {filename} does not exists.")

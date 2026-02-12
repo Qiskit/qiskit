@@ -45,6 +45,7 @@ class Optimize1qGates(TransformationPass):
             target (Target): The :class:`~.Target` representing the target backend, if both
                 ``basis`` and ``target`` are specified then this argument will take
                 precedence and ``basis`` will be ignored.
+
         """
         super().__init__()
         self.basis = set(basis) if basis else {"u1", "u2", "u3"}
@@ -62,6 +63,7 @@ class Optimize1qGates(TransformationPass):
 
         Raises:
             TranspilerError: if ``YZY`` and ``ZYZ`` angles do not give same rotation matrix.
+
         """
         use_u = "u" in self.basis
         use_p = "p" in self.basis
@@ -366,7 +368,6 @@ def _split_runs_on_parameters(runs):
     """Finds runs containing parameterized gates and splits them into sequential
     runs excluding the parameterized gates.
     """
-
     out = []
     for run in runs:
         # We exclude only u3 and u gate because for u1 and u2 we can really straightforward

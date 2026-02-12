@@ -10,9 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Additional utilities for Operators.
-"""
+"""Additional utilities for Operators."""
 
 from __future__ import annotations
 
@@ -41,6 +39,7 @@ def _equal_with_ancillas(
 
     Returns:
         bool: True iff operators are equal up to clean ancilla qubits.
+
     """
     if op1.dim != op2.dim:
         return False

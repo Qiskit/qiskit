@@ -10,9 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Exception for errors raised by the Basic Provider.
-"""
+"""Exception for errors raised by the Basic Provider."""
 
 from qiskit.exceptions import QiskitError
 

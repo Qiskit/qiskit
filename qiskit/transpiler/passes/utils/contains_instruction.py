@@ -31,6 +31,7 @@ class ContainsInstruction(AnalysisPass):
                 the DAG. The output in the property set is set to ``contains_`` prefixed on each
                 value for this parameter.
             recurse (bool): if ``True`` (default), then recurse into control-flow operations.
+
         """
         super().__init__()
         self._instruction_names = (

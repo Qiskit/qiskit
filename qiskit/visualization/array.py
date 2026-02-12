@@ -9,9 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""
-Tools to create LaTeX arrays.
-"""
+"""Tools to create LaTeX arrays."""
 
 import numpy as np
 
@@ -30,8 +28,10 @@ def _num_to_latex(raw_value, decimals=15, first_term=True, coefficient=False):
                             of a ket.
         first_term (bool): If a coefficient, whether this number is the first
                            coefficient in the expression.
+
     Returns:
         str: latex code
+
     """
     import sympy  # runtime import
 
@@ -86,6 +86,7 @@ def _matrix_to_latex(matrix, decimals=10, prefix="", max_size=(8, 8)):
     Raises:
         ValueError: If minimum value in max_size < 3
         MissingOptionalLibraryError: If sympy is not installed
+
     """
     if min(max_size) < 3:
         raise ValueError("""Smallest value in max_size must be greater than or equal to 3""")
@@ -175,6 +176,7 @@ def array_to_latex(array, precision=10, prefix="", source=False, max_size=8):
         ValueError: If the dimension of array is not 1 or 2.
         MissingOptionalLibraryError: If ``source`` is ``False`` and ``IPython.display.Latex`` cannot be
                      imported. Or if sympy is not installed.
+
     """
     try:
         array = np.asarray(array)

@@ -53,6 +53,7 @@ def swap_permutation(
       swaps: param mapping: A mapping of Keys to Values, where the Keys are being swapped.
       mapping: The permutation to have swaps applied to.
       allow_missing_keys: Whether to allow swaps of missing keys in mapping.
+
     """
     for swap_step in swaps:
         for sw1, sw2 in swap_step:
@@ -76,10 +77,13 @@ def permutation_circuit(swaps: Iterable[list[Swap[_V]]]) -> PermutationCircuit:
     """Produce a circuit description of a list of swaps.
         With a given permutation and permuter you can compute the swaps using the permuter function
         then feed it into this circuit function to obtain a circuit description.
+
     Args:
       swaps: An iterable of swaps to perform.
+
     Returns:
       A MappingCircuit with the circuit and a mapping of node to qubit in the circuit.
+
     """
     # Construct a circuit with each unique node id becoming a quantum register of size 1.
     dag = DAGCircuit()

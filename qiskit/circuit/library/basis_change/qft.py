@@ -92,14 +92,14 @@ class QFT(BlueprintCircuit):
         insert_barriers: bool = False,
         name: str | None = None,
     ) -> None:
-        """
-        Args:
-            num_qubits: The number of qubits on which the QFT acts.
-            approximation_degree: The degree of approximation (0 for no approximation).
-            do_swaps: Whether to include the final swaps in the QFT.
-            inverse: If True, the inverse Fourier transform is constructed.
-            insert_barriers: If True, barriers are inserted as visualization improvement.
-            name: The name of the circuit.
+        """Args:
+        num_qubits: The number of qubits on which the QFT acts.
+        approximation_degree: The degree of approximation (0 for no approximation).
+        do_swaps: Whether to include the final swaps in the QFT.
+        inverse: If True, the inverse Fourier transform is constructed.
+        insert_barriers: If True, barriers are inserted as visualization improvement.
+        name: The name of the circuit.
+
         """
         if name is None:
             name = "IQFT" if inverse else "QFT"
@@ -117,6 +117,7 @@ class QFT(BlueprintCircuit):
 
         Returns:
             The number of qubits in the circuit.
+
         """
         # This method needs to be overwritten to allow adding the setter for num_qubits while still
         # complying to pylint.
@@ -130,6 +131,7 @@ class QFT(BlueprintCircuit):
 
         Args:
             num_qubits: The new number of qubits.
+
         """
         if num_qubits != self.num_qubits:
             self._invalidate()
@@ -144,6 +146,7 @@ class QFT(BlueprintCircuit):
 
         Returns:
             The currently set approximation degree.
+
         """
         return self._approximation_degree
 
@@ -156,6 +159,7 @@ class QFT(BlueprintCircuit):
 
         Raises:
             ValueError: If the approximation degree is smaller than 0.
+
         """
         if approximation_degree < 0:
             raise ValueError("Approximation degree cannot be smaller than 0.")
@@ -170,6 +174,7 @@ class QFT(BlueprintCircuit):
 
         Returns:
             True, if barriers are inserted, False if not.
+
         """
         return self._insert_barriers
 
@@ -179,6 +184,7 @@ class QFT(BlueprintCircuit):
 
         Args:
             insert_barriers: If True, barriers are inserted, if False not.
+
         """
         if insert_barriers != self._insert_barriers:
             self._invalidate()
@@ -190,6 +196,7 @@ class QFT(BlueprintCircuit):
 
         Returns:
             True, if the final swaps are applied, False if not.
+
         """
         return self._do_swaps
 
@@ -199,6 +206,7 @@ class QFT(BlueprintCircuit):
 
         Args:
             do_swaps: If True, the final swaps are applied, if False not.
+
         """
         if do_swaps != self._do_swaps:
             self._invalidate()
@@ -209,6 +217,7 @@ class QFT(BlueprintCircuit):
 
         Returns:
             True, if the inverse Fourier transform is implemented, False otherwise.
+
         """
         return self._inverse
 
@@ -223,8 +232,8 @@ class QFT(BlueprintCircuit):
 
         Returns:
             The inverted circuit.
-        """
 
+        """
         if self.name in ("QFT", "IQFT"):
             name = "QFT" if self._inverse else "IQFT"
         else:
@@ -293,9 +302,9 @@ class QFTGate(Gate):
         self,
         num_qubits: int,
     ):
-        """
-        Args:
-            num_qubits: The number of qubits on which the QFT acts.
+        """Args:
+        num_qubits: The number of qubits on which the QFT acts.
+
         """
         super().__init__(name="qft", num_qubits=num_qubits, params=[])
 

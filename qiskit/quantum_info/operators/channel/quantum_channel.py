@@ -10,9 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Abstract base class for Quantum Channels.
-"""
+"""Abstract base class for Quantum Channels."""
 
 from __future__ import annotations
 import copy
@@ -59,6 +57,7 @@ class QuantumChannel(LinearOp):
 
         Raises:
             QiskitError: if arguments are invalid.
+
         """
         self._data = data
         super().__init__(num_qubits=num_qubits, op_shape=op_shape)
@@ -156,6 +155,7 @@ class QuantumChannel(LinearOp):
             ie. for a channel :math:`\mathcal{{E}}`, the SuperOp of
             the powered channel :math:`\mathcal{{E}}^\n` is
             :math:`S_{{\mathcal{{E}}^n}} = S_{{\mathcal{{E}}}}^n`.
+
         """
         if n > 0 and isinstance(n, Integral):
             return super().power(n)
@@ -244,8 +244,8 @@ class QuantumChannel(LinearOp):
 
         Raises:
             QiskitError: if input data is not an N-qubit CPTP quantum channel.
-        """
 
+        """
         # Check if input is an N-qubit CPTP channel.
         num_qubits = int(math.log2(self._input_dim))
         if self._input_dim != self._output_dim or 2**num_qubits != self._input_dim:
@@ -319,6 +319,7 @@ class QuantumChannel(LinearOp):
         Raises:
             QiskitError: if the quantum channel dimension does not match the
                          specified quantum state subsystem dimensions.
+
         """
         pass
 

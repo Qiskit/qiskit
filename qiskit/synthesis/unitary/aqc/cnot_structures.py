@@ -9,9 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""
-These are the CNOT structure methods: anything that you need for creating CNOT structures.
-"""
+"""These are the CNOT structure methods: anything that you need for creating CNOT structures."""
 import logging
 import math
 
@@ -25,8 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 def _lower_limit(num_qubits: int) -> int:
-    """
-    Returns lower limit on the number of CNOT units that guarantees exact representation of
+    """Returns lower limit on the number of CNOT units that guarantees exact representation of
     a unitary operator by quantum gates.
 
     Args:
@@ -34,6 +31,7 @@ def _lower_limit(num_qubits: int) -> int:
 
     Returns:
         lower limit on the number of CNOT units.
+
     """
     num_cnots = math.ceil((4**num_qubits - 3 * num_qubits - 1) / 4.0)
     return num_cnots
@@ -45,8 +43,7 @@ def make_cnot_network(
     connectivity_type: str = "full",
     depth: int = 0,
 ) -> np.ndarray:
-    """
-    Generates a network consisting of building blocks each containing a CNOT gate and possibly some
+    """Generates a network consisting of building blocks each containing a CNOT gate and possibly some
     single-qubit ones. This network models a quantum operator in question. Note, each building
     block has 2 input and outputs corresponding to a pair of qubits. What we actually return here
     is a chain of indices of qubit pairs shared by every building block in a row.
@@ -66,6 +63,7 @@ def make_cnot_network(
     Raises:
          ValueError: if unsupported type of CNOT-network layout or number of qubits or combination
             of parameters are passed.
+
     """
     if num_qubits < 2:
         raise ValueError("Number of qubits must be greater or equal to 2")
@@ -112,8 +110,7 @@ def make_cnot_network(
 
 
 def _get_connectivity(num_qubits: int, connectivity: str) -> dict:
-    """
-    Generates connectivity structure between qubits.
+    """Generates connectivity structure between qubits.
 
     Args:
         num_qubits: number of qubits.
@@ -124,6 +121,7 @@ def _get_connectivity(num_qubits: int, connectivity: str) -> dict:
 
     Raises:
          ValueError: if unsupported type of CNOT-network layout is passed.
+
     """
     if num_qubits == 1:
         links = {0: [0]}
@@ -157,8 +155,7 @@ def _get_connectivity(num_qubits: int, connectivity: str) -> dict:
 
 
 def _sequential_network(num_qubits: int, links: dict, depth: int) -> np.ndarray:
-    """
-    Generates a sequential network.
+    """Generates a sequential network.
 
     Args:
         num_qubits: number of qubits.
@@ -167,6 +164,7 @@ def _sequential_network(num_qubits: int, links: dict, depth: int) -> np.ndarray:
 
     Returns:
         A matrix of ``(2, N)`` that defines layers in qubit network.
+
     """
     layer = 0
     cnots = np.zeros((2, depth), dtype=int)
@@ -182,8 +180,7 @@ def _sequential_network(num_qubits: int, links: dict, depth: int) -> np.ndarray:
 
 
 def _spin_network(num_qubits: int, depth: int) -> np.ndarray:
-    """
-    Generates a spin-like network.
+    """Generates a spin-like network.
 
     Args:
         num_qubits: number of qubits.
@@ -191,6 +188,7 @@ def _spin_network(num_qubits: int, depth: int) -> np.ndarray:
 
     Returns:
         A matrix of size ``2 x L`` that defines layers in qubit network.
+
     """
     layer = 0
     cnots = np.zeros((2, depth), dtype=int)
@@ -211,8 +209,7 @@ def _spin_network(num_qubits: int, depth: int) -> np.ndarray:
 
 
 def _cartan_network(num_qubits: int) -> np.ndarray:
-    """
-    Cartan decomposition in a recursive way, starting from n = 3.
+    """Cartan decomposition in a recursive way, starting from n = 3.
 
     Args:
         num_qubits: number of qubits.
@@ -223,6 +220,7 @@ def _cartan_network(num_qubits: int) -> np.ndarray:
 
     Raises:
         ValueError: if number of qubits is less than 3.
+
     """
     n = num_qubits
     if n > 3:
@@ -246,8 +244,7 @@ def _cartan_network(num_qubits: int) -> np.ndarray:
 
 
 def _cyclic_spin_network(num_qubits: int, depth: int) -> np.ndarray:
-    """
-    Same as in the spin-like network, but the first and the last qubits are also connected.
+    """Same as in the spin-like network, but the first and the last qubits are also connected.
 
     Args:
         num_qubits: number of qubits.
@@ -255,8 +252,8 @@ def _cyclic_spin_network(num_qubits: int, depth: int) -> np.ndarray:
 
     Returns:
         A matrix of size ``2 x L`` that defines layers in qubit network.
-    """
 
+    """
     cnots = np.zeros((2, depth), dtype=int)
     z = 0
     while True:
@@ -282,8 +279,7 @@ def _cyclic_spin_network(num_qubits: int, depth: int) -> np.ndarray:
 
 
 def _cyclic_line_network(num_qubits: int, depth: int) -> np.ndarray:
-    """
-    Generates a line based CNOT structure.
+    """Generates a line based CNOT structure.
 
     Args:
         num_qubits: number of qubits.
@@ -291,8 +287,8 @@ def _cyclic_line_network(num_qubits: int, depth: int) -> np.ndarray:
 
     Returns:
         A matrix of size ``2 x L`` that defines layers in qubit network.
-    """
 
+    """
     cnots = np.zeros((2, depth), dtype=int)
     for i in range(depth):
         cnots[0, i] = (i + 0) % num_qubits

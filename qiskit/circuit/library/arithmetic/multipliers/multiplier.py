@@ -61,17 +61,18 @@ class Multiplier(QuantumCircuit):
         num_result_qubits: int | None = None,
         name: str = "Multiplier",
     ) -> None:
-        """
-        Args:
+        """Args:
             num_state_qubits: The number of qubits in each of the input registers.
             num_result_qubits: The number of result qubits to limit the output to.
                 Default value is ``2 * num_state_qubits`` to represent any possible
                 result from the multiplication of the two inputs.
             name: The name of the circuit.
+
         Raises:
             ValueError: If ``num_state_qubits`` is smaller than 1.
             ValueError: If ``num_result_qubits`` is smaller than ``num_state_qubits``.
             ValueError: If ``num_result_qubits`` is larger than ``2 * num_state_qubits``.
+
         """
         if num_state_qubits < 1:
             raise ValueError("The number of qubits must be at least 1.")
@@ -98,6 +99,7 @@ class Multiplier(QuantumCircuit):
 
         Returns:
             The number of state qubits.
+
         """
         return self._num_state_qubits
 
@@ -107,6 +109,7 @@ class Multiplier(QuantumCircuit):
 
         Returns:
             The number of result qubits.
+
         """
         return self._num_result_qubits
 
@@ -145,17 +148,18 @@ class MultiplierGate(Gate):
         num_result_qubits: int | None = None,
         label: str | None = None,
     ) -> None:
-        """
-        Args:
+        """Args:
             num_state_qubits: The number of qubits in each of the input registers.
             num_result_qubits: The number of result qubits to limit the output to.
                 Default value is ``2 * num_state_qubits`` to represent any possible
                 result from the multiplication of the two inputs.
             name: The name of the circuit.
+
         Raises:
             ValueError: If ``num_state_qubits`` is smaller than 1.
             ValueError: If ``num_result_qubits`` is smaller than ``num_state_qubits``.
             ValueError: If ``num_result_qubits`` is larger than ``2 * num_state_qubits``.
+
         """
         if num_state_qubits < 1:
             raise ValueError("The number of state qubits must be at least 1.")
@@ -179,6 +183,7 @@ class MultiplierGate(Gate):
 
         Returns:
             The number of state qubits.
+
         """
         return self._num_state_qubits
 
@@ -188,6 +193,7 @@ class MultiplierGate(Gate):
 
         Returns:
             The number of result qubits.
+
         """
         return self._num_result_qubits
 

@@ -9,9 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""
-Circuit synthesis for the Clifford class into layers.
-"""
+"""Circuit synthesis for the Clifford class into layers."""
 
 
 from __future__ import annotations
@@ -41,9 +39,7 @@ from qiskit.synthesis.linear.linear_matrix_utils import (
 
 
 def _default_cx_synth_func(mat):
-    """
-    Construct the layer of CX gates from a boolean invertible matrix mat.
-    """
+    """Construct the layer of CX gates from a boolean invertible matrix mat."""
     CX_circ = synth_cnot_count_full_pmh(mat)
     CX_circ.name = "CX"
 
@@ -51,9 +47,7 @@ def _default_cx_synth_func(mat):
 
 
 def _default_cz_synth_func(symmetric_mat):
-    """
-    Construct the layer of CZ gates from a symmetric matrix.
-    """
+    """Construct the layer of CZ gates from a symmetric matrix."""
     nq = symmetric_mat.shape[0]
     qc = QuantumCircuit(nq, name="CZ")
 
@@ -113,8 +107,8 @@ def synth_clifford_layers(
         1. S. Bravyi, D. Maslov, *Hadamard-free circuits expose the
            structure of the Clifford group*,
            `arXiv:2003.09412 [quant-ph] <https://arxiv.org/abs/2003.09412>`_
-    """
 
+    """
     num_qubits = cliff.num_qubits
     if cz_func_reverse_qubits:
         cliff0 = _reverse_clifford(cliff)
@@ -202,8 +196,8 @@ def _create_graph_state(cliff, validate=False):
         2. S. Aaronson, D. Gottesman, *Improved Simulation of Stabilizer Circuits*,
            Phys. Rev. A 70, 052328 (2004).
            `arXiv:quant-ph/0406196 <https://arxiv.org/abs/quant-ph/0406196>`_
-    """
 
+    """
     num_qubits = cliff.num_qubits
     rank = compute_rank(np.asarray(cliff.stab_x, dtype=bool))
     H1_circ = QuantumCircuit(num_qubits, name="H1")
@@ -267,8 +261,8 @@ def _decompose_graph_state(cliff, validate, cz_synth_func):
 
     Raises:
         QiskitError: if cliff does not induce a graph state.
-    """
 
+    """
     num_qubits = cliff.num_qubits
     rank = compute_rank(np.asarray(cliff.stab_x, dtype=bool))
     cliff_cpy = cliff.copy()
@@ -333,8 +327,8 @@ def _decompose_hadamard_free(
 
     Raises:
         QiskitError: if cliff is not Hadamard free.
-    """
 
+    """
     num_qubits = cliff.num_qubits
     destabx = cliff.destab_x
     destabz = cliff.destab_z
@@ -382,7 +376,6 @@ def _decompose_hadamard_free(
 
 def _calc_pauli_diff(cliff, cliff_target):
     """Given two Cliffords that differ by a Pauli, we find this Pauli."""
-
     num_qubits = cliff.num_qubits
     if cliff.num_qubits != cliff_target.num_qubits:
         raise QiskitError("num_qubits is not the same for the original clifford and the target.")
@@ -436,6 +429,7 @@ def synth_clifford_depth_lnn(cliff):
         3. Dmitri Maslov, Willers Yang, *CNOT circuits need little help to implement arbitrary
            Hadamard-free Clifford transformations they generate*,
            `arXiv:2210.16195 <https://arxiv.org/abs/2210.16195>`_.
+
     """
     circ = synth_clifford_layers(
         cliff,

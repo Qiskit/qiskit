@@ -47,8 +47,8 @@ def get_control_flow_name_mapping():
         .. code-block:: text
 
             <class 'qiskit.circuit.controlflow.if_else.IfElseOp'>
-    """
 
+    """
     name_mapping = {
         "if_else": IfElseOp,
         "while_loop": WhileLoopOp,

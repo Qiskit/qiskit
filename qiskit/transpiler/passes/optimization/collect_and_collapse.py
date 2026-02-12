@@ -12,7 +12,8 @@
 
 
 """Provides a general transpiler pass for collecting and consolidating blocks of nodes
-in a circuit."""
+in a circuit.
+"""
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.converters import dag_to_dagdependency, dagdependency_to_dag
@@ -47,14 +48,14 @@ class CollectAndCollapse(TransformationPass):
         collapse_function,
         do_commutative_analysis=False,
     ):
-        """
-        Args:
-            collect_function (callable): a function that takes a DAG and returns a list
-                of "collected" blocks of nodes
-            collapse_function (callable): a function that takes a DAG and a list of
-                "collected" blocks, and consolidates each block.
-            do_commutative_analysis (bool): if True, exploits commutativity relations
-                between nodes.
+        """Args:
+        collect_function (callable): a function that takes a DAG and returns a list
+            of "collected" blocks of nodes
+        collapse_function (callable): a function that takes a DAG and a list of
+            "collected" blocks, and consolidates each block.
+        do_commutative_analysis (bool): if True, exploits commutativity relations
+            between nodes.
+
         """
         self.collect_function = collect_function
         self.collapse_function = collapse_function
@@ -65,12 +66,14 @@ class CollectAndCollapse(TransformationPass):
     @control_flow.trivial_recurse
     def run(self, dag):
         """Run the CollectLinearFunctions pass on `dag`.
+
         Args:
             dag (DAGCircuit): the DAG to be optimized.
+
         Returns:
             DAGCircuit: the optimized DAG.
-        """
 
+        """
         # If the option commutative_analysis is set, construct DAGDependency from the given DAGCircuit.
         if self.do_commutative_analysis:
             dag = dag_to_dagdependency(dag)

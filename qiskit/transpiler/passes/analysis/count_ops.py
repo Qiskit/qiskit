@@ -19,9 +19,15 @@ class CountOps(AnalysisPass):
     """Count the operations in a DAG circuit.
 
     The result is saved in ``property_set['count_ops']`` as an integer.
+
+    Args:
+        recurse (bool): If set to ``True`` (the default), the count will
+            recurse into contol flow operations and count the operations
+            in control flow blocks.
+
     """
 
-    def __init__(self, *, recurse=True):
+    def __init__(self, *, recurse=True):  # noqa: D107
         super().__init__()
         self.recurse = recurse
 

@@ -36,6 +36,7 @@ def average_data(counts: dict, observable: dict | np.ndarray | list) -> float:
 
     Returns:
         Double: Average of the observable
+
     """
     if not isinstance(observable, dict):
         observable = make_dict_observable(observable)

@@ -36,8 +36,8 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
 
         Returns:
             DAGCircuit: the optimized DAG.
-        """
 
+        """
         swaps = dag.op_nodes(SwapGate)
         for swap in swaps[::-1]:
             if getattr(swap.op, "_condition", None) is not None:

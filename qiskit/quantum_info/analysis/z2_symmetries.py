@@ -27,8 +27,7 @@ from ..operators import Pauli, SparsePauliOp
 
 
 class Z2Symmetries:
-    r"""
-    The $Z_2$ symmetry converter identifies symmetries from the problem hamiltonian and uses them to
+    r"""The $Z_2$ symmetry converter identifies symmetries from the problem hamiltonian and uses them to
     provide a tapered - more efficient - representation of operators as Paulis for this problem. For each
     identified symmetry, one qubit can be eliminated in the Pauli representation at the cost of having to
     test two symmetry sectors (for the two possible eigenvalues - tapering values - of the symmetry).
@@ -45,6 +44,7 @@ class Z2Symmetries:
     References:
         [1]: Bravyi, S., et al, "Tapering off qubits to simulate fermionic Hamiltonians"
             `arXiv:1701.08213 <https://arxiv.org/abs/1701.08213>`__
+
     """
 
     def __init__(
@@ -56,8 +56,7 @@ class Z2Symmetries:
         *,
         tol: float = 1e-14,
     ):
-        r"""
-        Args:
+        r"""Args:
             symmetries: Object representing the list of $Z_2$ symmetries. These correspond to
                 the generators of the symmetry group $\langle \tau_1, \tau_2\dots \rangle>$.
             sq_paulis: Object representing the list of single-qubit Pauli $\sigma^x_{q(i)}$
@@ -72,6 +71,7 @@ class Z2Symmetries:
             QiskitError: Invalid paulis. The lists of symmetries, single-qubit paulis support paulis
                 and tapering values must be of equal length. This length is the number of applied
                 symmetries and translates directly to the number of eliminated qubits.
+
         """
         symmetries = list(symmetries)
         sq_paulis = list(sq_paulis)
@@ -115,11 +115,11 @@ class Z2Symmetries:
 
     @property
     def cliffords(self) -> list[SparsePauliOp]:
-        """
-        Get clifford operators, built based on symmetries and single-qubit X.
+        """Get clifford operators, built based on symmetries and single-qubit X.
 
         Returns:
             A list of unitaries used to diagonalize the Hamiltonian.
+
         """
         cliffords = [
             (SparsePauliOp(pauli_symm) + SparsePauliOp(sq_pauli)) / math.sqrt(2)
@@ -169,21 +169,21 @@ class Z2Symmetries:
         return ret
 
     def is_empty(self) -> bool:
-        """
-        Check the z2_symmetries is empty or not.
+        """Check the z2_symmetries is empty or not.
 
         Returns:
             Empty or not.
+
         """
         return len(self._symmetries) == 0 or len(self._sq_paulis) == 0 or len(self._sq_list) == 0
 
     @classmethod
     def find_z2_symmetries(cls, operator: SparsePauliOp) -> Z2Symmetries:
-        """
-        Finds Z2 Pauli-type symmetries of a :class:`.SparsePauliOp`.
+        """Finds Z2 Pauli-type symmetries of a :class:`.SparsePauliOp`.
 
         Returns:
             A ``Z2Symmetries`` instance.
+
         """
         pauli_symmetries = []
         sq_paulis = []
@@ -230,8 +230,7 @@ class Z2Symmetries:
         ]
 
         def _test_symmetry_row_col(row: int, col: int, idx_test: list, row_test: list) -> bool:
-            """
-            Utility method that determines how to build the list of single-qubit Pauli X operators and
+            """Utility method that determines how to build the list of single-qubit Pauli X operators and
             the list of corresponding qubit indices from the stacked symmetries.
             This method is successively applied to Z type, X type and Y type symmetries (in this order)
             to build the letter at position (col) of the Pauli word corresponding to the symmetry at
@@ -249,6 +248,7 @@ class Z2Symmetries:
             Returns:
                 Whether or not this symmetry type should be used to build this letter of this
                 single-qubit Pauli X operator.
+
             """
             stacked_symm_idx_tests = np.array(
                 [
@@ -312,7 +312,6 @@ class Z2Symmetries:
             ``SparsePauliOp`` corresponding to the converted operator.
 
         """
-
         if not self.is_empty() and not _sparse_pauli_op_is_zero(operator):
             # If the operator is zero then we can skip the following.
             for clifford in self.cliffords:
@@ -334,7 +333,6 @@ class Z2Symmetries:
             If tapering_values is None: [:class:`SparsePauliOp`]; otherwise, :class:`SparsePauliOp`.
 
         """
-
         tapered_ops: SparsePauliOp | list[SparsePauliOp]
         if self.is_empty():
             tapered_ops = operator
@@ -352,8 +350,7 @@ class Z2Symmetries:
         return tapered_ops
 
     def taper(self, operator: SparsePauliOp) -> SparsePauliOp | list[SparsePauliOp]:
-        """
-        Taper an operator based on the z2_symmetries info and sector defined by `tapering_values`.
+        """Taper an operator based on the z2_symmetries info and sector defined by `tapering_values`.
         Returns operator if the symmetry object is empty.
 
         The tapering is a two-step algorithm which first converts the operator into a
@@ -373,7 +370,6 @@ class Z2Symmetries:
             If tapering_values is None: [:class:`SparsePauliOp`]; otherwise, :class:`SparsePauliOp`.
 
         """
-
         converted_ops = self.convert_clifford(operator)
         tapered_ops = self.taper_clifford(converted_ops)
 
@@ -395,14 +391,14 @@ class Z2Symmetries:
         return spo
 
     def __eq__(self, other: Z2Symmetries) -> bool:
-        """
-        Overload `==` operation to evaluate equality between Z2Symmetries.
+        """Overload `==` operation to evaluate equality between Z2Symmetries.
 
         Args:
             other: The `Z2Symmetries` to compare to self.
 
         Returns:
             A bool equal to the equality of self and other.
+
         """
         if not isinstance(other, Z2Symmetries):
             return False
@@ -416,14 +412,14 @@ class Z2Symmetries:
 
 
 def _kernel_f2(matrix_in):
-    """
-    Compute the kernel of a binary matrix on the binary finite field.
+    """Compute the kernel of a binary matrix on the binary finite field.
 
     Args:
         matrix_in (numpy.ndarray): Binary matrix.
 
     Returns:
         The list of kernel vectors.
+
     """
     size = matrix_in.shape
     kernel = []
@@ -440,14 +436,14 @@ def _kernel_f2(matrix_in):
 
 
 def _row_echelon_f2(matrix_in):
-    """
-    Compute the row Echelon form of a binary matrix on the binary finite field.
+    """Compute the row Echelon form of a binary matrix on the binary finite field.
 
     Args:
         matrix_in (numpy.ndarray): Binary matrix.
 
     Returns:
         Matrix_in in Echelon row form.
+
     """
     size = matrix_in.shape
 

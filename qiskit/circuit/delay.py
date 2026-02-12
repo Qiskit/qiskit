@@ -10,9 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Delay instruction (for circuit module).
-"""
+"""Delay instruction (for circuit module)."""
 import numpy as np
 
 from qiskit.circuit.classical import expr, types
@@ -31,8 +29,7 @@ class Delay(Instruction):
     _standard_instruction_type = StandardInstructionType.Delay
 
     def __init__(self, duration, unit=None):
-        """
-        Args:
+        """Args:
             duration: the length of time of the duration. If this is an
                 :class:`~.expr.Expr`, it must be a constant expression of type
                 :class:`~.types.Duration` and the ``unit`` parameter should be
@@ -43,6 +40,7 @@ class Delay(Instruction):
         Raises:
             CircuitError: A ``duration`` expression was specified with a resolved
                 type that is not timing-based, or the ``unit`` was improperly specified.
+
         """
         duration, self._unit = self._validate_arguments(duration, unit)
         super().__init__("delay", 1, 0, params=[duration])
@@ -102,6 +100,7 @@ class Delay(Instruction):
 
         Returns:
             np.ndarray: matrix representation.
+
         """
         return self.__array__(dtype=complex)
 

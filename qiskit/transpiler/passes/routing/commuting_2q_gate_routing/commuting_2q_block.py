@@ -28,12 +28,12 @@ class Commuting2qBlock(Gate):
     """
 
     def __init__(self, node_block: Iterable[DAGOpNode]) -> None:
-        """
-        Args:
+        """Args:
             node_block: A block of nodes that commute.
 
         Raises:
             QiskitError: If the nodes in the node block do not apply to two-qubits.
+
         """
         qubits: set[Qubit] = set()
         cbits: set[Clbit] = set()

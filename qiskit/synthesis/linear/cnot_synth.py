@@ -10,8 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Implementation of the GraySynth algorithm for synthesizing CNOT-Phase
+"""Implementation of the GraySynth algorithm for synthesizing CNOT-Phase
 circuits with efficient CNOT cost, and the Patel-Hayes-Markov algorithm
 for optimal synthesis of linear (CNOT-only) reversible circuits.
 """
@@ -27,8 +26,7 @@ from qiskit._accelerate.synthesis.linear import synth_cnot_count_full_pmh as fas
 def synth_cnot_count_full_pmh(
     state: list[list[bool]] | np.ndarray[bool], section_size: int | None = None
 ) -> QuantumCircuit:
-    r"""
-    Synthesize linear reversible circuits for all-to-all architecture
+    r"""Synthesize linear reversible circuits for all-to-all architecture
     using Patel, Markov and Hayes method.
 
     This function is an implementation of the Patel, Markov and Hayes algorithm from [1]
@@ -54,6 +52,7 @@ def synth_cnot_count_full_pmh(
            *Optimal synthesis of linear reversible circuits*,
            Quantum Information & Computation 8.3 (2008): 282-294.
            `arXiv:quant-ph/0302002 [quant-ph] <https://arxiv.org/abs/quant-ph/0302002>`_
+
     """
     normalized = np.asarray(state).astype(bool)
     if section_size is not None and normalized.shape[1] < section_size:

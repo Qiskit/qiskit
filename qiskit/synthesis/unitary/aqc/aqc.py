@@ -70,13 +70,13 @@ class Minimizer(Protocol):
 
         Returns:
              The SciPy minimization result object.
+
         """
         ...
 
 
 class AQC:
-    """
-    A generic implementation of the Approximate Quantum Compiler. This implementation is agnostic of
+    """A generic implementation of the Approximate Quantum Compiler. This implementation is agnostic of
     the underlying implementation of the approximate circuit, objective, and optimizer. Users may
     pass corresponding implementations of the abstract classes:
 
@@ -108,12 +108,12 @@ class AQC:
         optimizer: Minimizer | None = None,
         seed: int | None = None,
     ):
-        """
-        Args:
-            optimizer: an optimizer to be used in the optimization procedure of the search for
-                the best approximate circuit. By default, the scipy minimizer with the
-                ``L-BFGS-B`` method is used with max iterations set to 1000.
-            seed: a seed value to be used by a random number generator.
+        """Args:
+        optimizer: an optimizer to be used in the optimization procedure of the search for
+            the best approximate circuit. By default, the scipy minimizer with the
+            ``L-BFGS-B`` method is used with max iterations set to 1000.
+        seed: a seed value to be used by a random number generator.
+
         """
         import scipy.optimize
 
@@ -131,8 +131,7 @@ class AQC:
         approximating_objective: ApproximatingObjective,
         initial_point: np.ndarray | None = None,
     ) -> None:
-        """
-        Approximately compiles a circuit represented as a unitary matrix by solving an optimization
+        """Approximately compiles a circuit represented as a unitary matrix by solving an optimization
         problem defined by ``approximating_objective`` and using ``approximate_circuit`` as a
         template for the approximate circuit.
 
@@ -142,6 +141,7 @@ class AQC:
                 obtained in the optimization procedure.
             approximating_objective: a definition of the optimization problem.
             initial_point: initial values of angles/parameters to start optimization from.
+
         """
         matrix_dim = target_matrix.shape[0]
         # check if it is actually a special unitary matrix

@@ -61,6 +61,7 @@ class ApplyLayout(TransformationPass):
 
         Raises:
             TranspilerError: if no layout is found in ``property_set`` or no full physical qubits.
+
         """
         if (post_layout := self.property_set.pop("post_layout", None)) is not None:
             return self._apply_post_layout(dag, post_layout)

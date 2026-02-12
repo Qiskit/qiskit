@@ -64,12 +64,12 @@ class AND(QuantumCircuit):
         flags: list[int] | None = None,
         mcx_mode: str = "noancilla",
     ) -> None:
-        """
-        Args:
-            num_variable_qubits: The qubits of which the AND is computed. The result will be written
-                into an additional result qubit.
-            flags: A list of +1/0/-1 marking negations or omissions of qubits.
-            mcx_mode: The mode to be used to implement the multi-controlled X gate.
+        """Args:
+        num_variable_qubits: The qubits of which the AND is computed. The result will be written
+            into an additional result qubit.
+        flags: A list of +1/0/-1 marking negations or omissions of qubits.
+        mcx_mode: The mode to be used to implement the multi-controlled X gate.
+
         """
         self.num_variable_qubits = num_variable_qubits
         self.flags = flags
@@ -147,11 +147,11 @@ class AndGate(Gate):
         num_variable_qubits: int,
         flags: list[int] | None = None,
     ) -> None:
-        """
-        Args:
-            num_variable_qubits: The qubits of which the AND is computed. The result will be written
-                into an additional result qubit.
-            flags: A list of +1/0/-1 marking negations or omissions of qubits.
+        """Args:
+        num_variable_qubits: The qubits of which the AND is computed. The result will be written
+            into an additional result qubit.
+        flags: A list of +1/0/-1 marking negations or omissions of qubits.
+
         """
         super().__init__("and", num_variable_qubits + 1, [])
         self.num_variable_qubits = num_variable_qubits
@@ -191,6 +191,7 @@ class AndGate(Gate):
 
         Returns:
             AndGate: inverse gate (self-inverse).
+
         """
         return AndGate(self.num_variable_qubits, self.flags)
 

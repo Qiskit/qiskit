@@ -60,13 +60,12 @@ class PhaseOracle(QuantumCircuit):
         expression: str | BooleanExpression,
         var_order: list[str] | None = None,
     ) -> None:
-        """
-        Args:
-            expression: A Python-like boolean expression string or a `BooleanExpression` object.
-            var_order: A list with the order in which variables will be created.
-               (default: by appearance)
-        """
+        """Args:
+        expression: A Python-like boolean expression string or a `BooleanExpression` object.
+        var_order: A list with the order in which variables will be created.
+           (default: by appearance)
 
+        """
         if isinstance(expression, str):
             expression = BooleanExpression(expression, var_order=var_order)
         self.boolean_expression = expression
@@ -86,6 +85,7 @@ class PhaseOracle(QuantumCircuit):
 
         Returns:
             True if the bitstring is a good state, False otherwise.
+
         """
         return self.boolean_expression.simulate(bitstring[::-1])
 
@@ -133,6 +133,7 @@ class PhaseOracle(QuantumCircuit):
 
         Returns:
             PhaseOracle: A quantum circuit with a phase oracle.
+
         """
         expr = BooleanExpression.from_dimacs_file(filename)
         return cls(expr)
@@ -174,13 +175,13 @@ class PhaseOracleGate(Gate):
         var_order: list[str] | None = None,
         label: str | None = None,
     ) -> None:
-        """
-        Args:
-            expression: A Python-like boolean expression string or a `BooleanExpression` object.
-            var_order: A list with the order in which variables will be created.
-               (default: by appearance)
-            label: A label for the gate to display in visualizations. Per default, the label is
-                set to display the textual represntation of the boolean expression (truncated if needed)
+        """Args:
+        expression: A Python-like boolean expression string or a `BooleanExpression` object.
+        var_order: A list with the order in which variables will be created.
+           (default: by appearance)
+        label: A label for the gate to display in visualizations. Per default, the label is
+            set to display the textual represntation of the boolean expression (truncated if needed)
+
         """
         if label is None:
             if isinstance(expression, str):
@@ -247,6 +248,7 @@ class PhaseOracleGate(Gate):
 
         Returns:
             PhaseOracleGate: A quantum circuit with a phase oracle.
+
         """
         expr = BooleanExpression.from_dimacs_file(filename)
         return cls(expr)

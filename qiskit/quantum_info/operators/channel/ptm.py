@@ -11,9 +11,7 @@
 # that they have been altered from the originals.
 
 
-"""
-Pauli Transfer Matrix (PTM) representation of a Quantum Channel.
-"""
+"""Pauli Transfer Matrix (PTM) representation of a Quantum Channel."""
 
 from __future__ import annotations
 import copy as _copy
@@ -68,6 +66,7 @@ class PTM(QuantumChannel):
         1. C.J. Wood, J.D. Biamonte, D.G. Cory, *Tensor networks and graphical calculus
            for open quantum systems*, Quant. Inf. Comp. 15, 0579-0811 (2015).
            `arXiv:1111.6950 [quant-ph] <https://arxiv.org/abs/1111.6950>`_
+
     """
 
     def __init__(
@@ -91,6 +90,7 @@ class PTM(QuantumChannel):
             If the input or output dimensions are None, they will be
             automatically determined from the input data. The PTM
             representation is only valid for N-qubit channels.
+
         """
         # If the input is a raw list or matrix we assume that it is
         # already a Chi matrix.

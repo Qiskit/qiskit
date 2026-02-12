@@ -67,6 +67,9 @@ class PassManagerConfig:
                 :class:`~qiskit.transpiler.passes.UnitarySynthesis` pass. Will
                 search installed plugins for a valid method. You can see a list of
                 installed plugins with :func:`.unitary_synthesis_plugin_names`.
+            unitary_synthesis_plugin_config (dict): The configuration dictionary that will
+                be passed to the specified unitary synthesis plugin. Refer to the plugin
+                documentation on how to use this.
             target (Target): The backend target
             hls_config (HLSConfig): An optional configuration class to use for
                 :class:`~qiskit.transpiler.passes.HighLevelSynthesis` pass.
@@ -76,6 +79,7 @@ class PassManagerConfig:
                 to use.
             qubits_initially_zero (bool): Indicates whether the input circuit is
                 zero-initialized.
+
         """
         self.initial_layout = initial_layout
         self.basis_gates = basis_gates
@@ -115,6 +119,7 @@ class PassManagerConfig:
 
         Raises:
             AttributeError: If the backend does not support a `configuration()` method.
+
         """
         res = cls(**pass_manager_options)
         if res.basis_gates is None:

@@ -35,7 +35,6 @@ class PhaseEstimation(QuantumCircuit):
     algorithms, such as Shor's algorithm or Quantum Amplitude Estimation.
 
     References:
-
     [1] Kitaev, A. Y. (1995). Quantum measurements and the Abelian Stabilizer Problem. 1–22.
     `quant-ph/9511026 <https://arxiv.org/abs/quant-ph/9511026>`_
 
@@ -61,8 +60,7 @@ class PhaseEstimation(QuantumCircuit):
         iqft: QuantumCircuit | None = None,
         name: str = "QPE",
     ) -> None:
-        """
-        Args:
+        """Args:
             num_evaluation_qubits: The number of evaluation qubits.
             unitary: The unitary operation :math:`U` which will be repeated and controlled.
             iqft: A inverse Quantum Fourier Transform, per default the inverse of
@@ -87,6 +85,7 @@ class PhaseEstimation(QuantumCircuit):
             unitary.y(1)
             circuit = PhaseEstimation(3, unitary)
             _generate_circuit_library_visualization(circuit)
+
         """
         qr_eval = QuantumRegister(num_evaluation_qubits, "eval")
         qr_state = QuantumRegister(unitary.num_qubits, "q")
@@ -150,7 +149,6 @@ def phase_estimation(
        circuit.draw("mpl")
 
     References:
-
     [1] Kitaev, A. Y. (1995). Quantum measurements and the Abelian Stabilizer Problem. 1–22.
     `quant-ph/9511026 <https://arxiv.org/abs/quant-ph/9511026>`_
 
@@ -162,7 +160,6 @@ def phase_estimation(
     quantum-phase-estimation.ipynb>`_
 
     """
-
     from qiskit.circuit.library import PermutationGate, QFTGate
 
     qr_eval = QuantumRegister(num_evaluation_qubits, "eval")

@@ -41,13 +41,13 @@ class LieTrotter(SuzukiTrotter):
         e^{-it(XI + ZZ)} = e^{-it XI}e^{-it ZZ} + \mathcal{O}(t^2).
 
     References:
-
         [1]: D. Berry, G. Ahokas, R. Cleve and B. Sanders,
         "Efficient quantum algorithms for simulating sparse Hamiltonians" (2006).
         `arXiv:quant-ph/0508139 <https://arxiv.org/abs/quant-ph/0508139>`_
         [2]: N. Hatano and M. Suzuki,
         "Finding Exponential Product Formulas of Higher Orders" (2005).
         `arXiv:math-ph/0506007 <https://arxiv.org/pdf/math-ph/0506007.pdf>`_
+
     """
 
     def __init__(
@@ -64,30 +64,30 @@ class LieTrotter(SuzukiTrotter):
         *,
         atomic_evolution_sparse_observable: bool = False,
     ) -> None:
-        r"""
-        Args:
-            reps: The number of time steps.
-            insert_barriers: Whether to insert barriers between the atomic evolutions.
-            cx_structure: How to arrange the CX gates for the Pauli evolutions, can be
-                ``"chain"``, where next neighbor connections are used, or ``"fountain"``,
-                where all qubits are connected to one. This only takes effect when
-                ``atomic_evolution is None``.
-            atomic_evolution: A function to apply the evolution of a single
-                :class:`~.quantum_info.Pauli`, or :class:`.SparsePauliOp` of only commuting terms,
-                to a circuit. The function takes in three arguments: the circuit to append the
-                evolution to, the Pauli operator to evolve, and the evolution time. By default, a
-                single Pauli evolution is decomposed into a chain of ``CX`` gates and a single
-                ``RZ`` gate.
-            wrap: Whether to wrap the atomic evolutions into custom gate objects. This only takes
-                effect when ``atomic_evolution is None``.
-            preserve_order: If ``False``, allows reordering the terms of the operator to
-                potentially yield a shallower evolution circuit. Not relevant
-                when synthesizing operator with a single term.
-            atomic_evolution_sparse_observable: If a custom ``atomic_evolution`` is passed,
-                which does not yet support :class:`.SparseObservable`\ s as input, set this
-                argument to ``False`` to automatically apply a conversion to :class:`.SparsePauliOp`.
-                This argument is supported until Qiskit 2.2, at which point all atomic evolutions
-                are required to support :class:`.SparseObservable`\ s as input.
+        r"""Args:
+        reps: The number of time steps.
+        insert_barriers: Whether to insert barriers between the atomic evolutions.
+        cx_structure: How to arrange the CX gates for the Pauli evolutions, can be
+            ``"chain"``, where next neighbor connections are used, or ``"fountain"``,
+            where all qubits are connected to one. This only takes effect when
+            ``atomic_evolution is None``.
+        atomic_evolution: A function to apply the evolution of a single
+            :class:`~.quantum_info.Pauli`, or :class:`.SparsePauliOp` of only commuting terms,
+            to a circuit. The function takes in three arguments: the circuit to append the
+            evolution to, the Pauli operator to evolve, and the evolution time. By default, a
+            single Pauli evolution is decomposed into a chain of ``CX`` gates and a single
+            ``RZ`` gate.
+        wrap: Whether to wrap the atomic evolutions into custom gate objects. This only takes
+            effect when ``atomic_evolution is None``.
+        preserve_order: If ``False``, allows reordering the terms of the operator to
+            potentially yield a shallower evolution circuit. Not relevant
+            when synthesizing operator with a single term.
+        atomic_evolution_sparse_observable: If a custom ``atomic_evolution`` is passed,
+            which does not yet support :class:`.SparseObservable`\ s as input, set this
+            argument to ``False`` to automatically apply a conversion to :class:`.SparsePauliOp`.
+            This argument is supported until Qiskit 2.2, at which point all atomic evolutions
+            are required to support :class:`.SparseObservable`\ s as input.
+
         """
         super().__init__(
             1,
@@ -109,6 +109,7 @@ class LieTrotter(SuzukiTrotter):
 
         Raises:
             NotImplementedError: If a custom atomic evolution is set, which cannot be serialized.
+
         """
         if self._atomic_evolution is not None:
             raise NotImplementedError(

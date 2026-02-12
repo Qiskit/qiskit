@@ -65,16 +65,15 @@ class RZGate(Gate):
     _standard_gate = StandardGate.RZ
 
     def __init__(self, phi: ParameterValueType, label: str | None = None):
-        """
-        Args:
-            theta: The rotation angle.
-            label: An optional label for the gate.
+        """Args:
+        theta: The rotation angle.
+        label: An optional label for the gate.
+
         """
         super().__init__("rz", 1, [phi], label=label)
 
     def _define(self):
         """Default definition"""
-
         from qiskit.circuit import QuantumCircuit
 
         # global phase: -0.5*φ
@@ -115,6 +114,7 @@ class RZGate(Gate):
 
         Returns:
             A controlled version of this gate.
+
         """
         if num_ctrl_qubits == 1:
             gate = CRZGate(
@@ -142,6 +142,7 @@ class RZGate(Gate):
 
         Returns:
             RZGate: inverse gate.
+
         """
         return RZGate(-self.params[0])
 
@@ -252,7 +253,6 @@ class CRZGate(ControlledGate):
 
     def _define(self):
         """Default definition"""
-
         from qiskit.circuit import QuantumCircuit
 
         # q_0: ─────────────■────────────────■──
@@ -273,8 +273,9 @@ class CRZGate(ControlledGate):
                 :class:`.Gate`. However, for this class this argument is ignored as the inverse
                 of this gate is always a :class:`.CRZGate` with an inverted parameter value.
 
-         Returns:
+        Returns:
             CRZGate: inverse gate.
+
         """
         return CRZGate(-self.params[0], ctrl_state=self.ctrl_state)
 

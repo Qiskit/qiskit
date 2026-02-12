@@ -39,6 +39,7 @@ def filter_backends(
     Returns:
         list[Backend]: a list of backend instances matching the
             conditions.
+
     """
 
     def _match_all(obj, criteria):
@@ -91,6 +92,7 @@ def resolve_backend_name(
     Raises:
         LookupError: if name cannot be resolved through regular available
             names, nor deprecated, nor alias names.
+
     """
     # account for BackendV2
     available = []

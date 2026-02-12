@@ -9,9 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""
-Circuit synthesis for a stabilizer state preparation circuit.
-"""
+"""Circuit synthesis for a stabilizer state preparation circuit."""
 
 
 from __future__ import annotations
@@ -79,8 +77,8 @@ def synth_stabilizer_layers(
         1. S. Bravyi, D. Maslov, *Hadamard-free circuits expose the
            structure of the Clifford group*,
            `arXiv:2003.09412 [quant-ph] <https://arxiv.org/abs/2003.09412>`_
-    """
 
+    """
     if not isinstance(stab, StabilizerState):
         raise QiskitError("The input is not a StabilizerState.")
 
@@ -122,7 +120,6 @@ def synth_stabilizer_layers(
 
 def _calc_pauli_diff_stabilizer(cliff, cliff_target):
     """Given two Cliffords whose stabilizers differ by a Pauli, we find this Pauli."""
-
     from qiskit.quantum_info.operators.symplectic import Pauli
 
     num_qubits = cliff.num_qubits
@@ -166,7 +163,7 @@ def _calc_pauli_diff_stabilizer(cliff, cliff_target):
 
 
 def synth_stabilizer_depth_lnn(stab: StabilizerState) -> QuantumCircuit:
-    """Synthesis of an n-qubit stabilizer state for linear-nearest neighbor connectivity,
+    r"""Synthesis of an n-qubit stabilizer state for linear-nearest neighbor connectivity,
     in 2-qubit depth :math:`2n+2` and two distinct CX layers, using :class:`.CXGate`\\ s and phase gates
     (:class:`.SGate`, :class:`.SdgGate` or :class:`.ZGate`).
 
@@ -183,8 +180,8 @@ def synth_stabilizer_depth_lnn(stab: StabilizerState) -> QuantumCircuit:
         2. Dmitri Maslov, Martin Roetteler,
            *Shorter stabilizer circuits via Bruhat decomposition and quantum circuit transformations*,
            `arXiv:1705.09176 <https://arxiv.org/abs/1705.09176>`_.
-    """
 
+    """
     circ = synth_stabilizer_layers(
         stab,
         cz_synth_func=synth_cz_depth_line_mr,

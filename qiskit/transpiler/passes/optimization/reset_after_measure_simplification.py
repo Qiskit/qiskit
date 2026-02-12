@@ -23,7 +23,7 @@ from qiskit.dagcircuit.dagnode import DAGOpNode
 
 
 class ResetAfterMeasureSimplification(TransformationPass):
-    """This pass replaces reset after measure with a conditional X gate.
+    """Replace resets after measurements with a conditional X gate.
 
     This optimization is suitable for use on IBM Quantum systems where the
     reset operation is performed by a measurement followed by a conditional

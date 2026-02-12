@@ -36,7 +36,7 @@ SIMULATORS = [BasicSimulator]
 class BasicProvider:
     """Provider for test simulators."""
 
-    def __init__(self) -> None:
+    def __init__(self) -> None:  # noqa: D107
         super().__init__()
 
         # Populate the list of test backends (simulators)
@@ -44,14 +44,18 @@ class BasicProvider:
 
     def get_backend(self, name=None, **kwargs):
         """Return a single backend matching the specified filtering.
+
         Args:
             name (str): name of the backend.
             **kwargs: dict used for filtering.
+
         Returns:
             Backend: a backend matching the filtering.
+
         Raises:
             QiskitBackendNotFoundError: if no backend could be found or
                 more than one backend matches the filtering criteria.
+
         """
         backends = self.backends(name, **kwargs)
         if len(backends) > 1:
@@ -62,12 +66,15 @@ class BasicProvider:
 
     def backends(self, name: str | None = None, filters: Callable | None = None) -> list[Backend]:
         """Return a list of backends matching the specified filtering.
+
         Args:
             name: name of the backend.
             filters: callable for filtering.
+
         Returns:
             list[Backend]: a list of Backends that match the filtering
                 criteria.
+
         """
         backends = self._backends.values()
         if name:
@@ -81,14 +88,14 @@ class BasicProvider:
         return filter_backends(backends, filters=filters)
 
     def _verify_backends(self) -> OrderedDict[str, Backend]:
-        """
-        Return the test backends in `BACKENDS` that are
+        """Return the test backends in `BACKENDS` that are
         effectively available (as some of them might depend on the presence
         of an optional dependency or on the existence of a binary).
 
         Returns:
             dict[str:Backend]: a dict of test backend instances for
                 the backends that could be instantiated, keyed by backend name.
+
         """
         ret = OrderedDict()
         for backend_cls in SIMULATORS:
@@ -98,15 +105,17 @@ class BasicProvider:
         return ret
 
     def _get_backend_instance(self, backend_cls: type[Backend]) -> Backend:
-        """
-        Return an instance of a backend from its class.
+        """Return an instance of a backend from its class.
 
         Args:
             backend_cls (class): backend class.
+
         Returns:
             Backend: a backend instance.
+
         Raises:
             QiskitError: if the backend could not be instantiated.
+
         """
         # Verify that the backend can be instantiated.
         try:

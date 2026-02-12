@@ -10,9 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-A module for using quaternions.
-"""
+"""A module for using quaternions."""
 from __future__ import annotations
 import math
 import numpy as np
@@ -22,9 +20,11 @@ class Quaternion:
     """A class representing a Quaternion."""
 
     def __init__(self, data):
+        """Instantiate a new :class:`.Quaternion` instance."""
         self.data = np.asarray(data, dtype=float)
 
     def __call__(self, idx):
+        """Return the quaternion data at each index."""
         return self.data[idx]
 
     def __repr__(self):
@@ -60,6 +60,7 @@ class Quaternion:
 
         Returns:
             Quaternion: Normalized quaternion.
+
         """
         if inplace:
             nrm = self.norm()
@@ -75,6 +76,7 @@ class Quaternion:
 
         Returns:
             ndarray: Rotation matrix.
+
         """
         w, x, y, z = self.normalize().data
         mat = np.array(
@@ -93,6 +95,7 @@ class Quaternion:
 
         Returns:
             ndarray: Array of Euler angles.
+
         """
         mat = self.to_matrix()
         euler = np.zeros(3, dtype=float)
@@ -121,6 +124,7 @@ class Quaternion:
 
         Raises:
             ValueError: Invalid input axis.
+
         """
         out = np.zeros(4, dtype=float)
         if axis == "x":
@@ -145,6 +149,7 @@ class Quaternion:
 
         Returns:
             Quaternion: Quaternion representation of Euler rotation.
+
         """
         angles = np.asarray(angles, dtype=float)
         quat = (

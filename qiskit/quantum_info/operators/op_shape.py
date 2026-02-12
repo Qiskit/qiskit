@@ -10,9 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Multi-partite matrix and vector shape class
-"""
+"""Multi-partite matrix and vector shape class"""
 
 from __future__ import annotations
 import copy
@@ -181,7 +179,6 @@ class OpShape:
 
     def _validate(self, shape, raise_exception=False):
         """Validate OpShape against a matrix or vector shape."""
-
         ndim = len(shape)
         if ndim > 2:
             if raise_exception:

@@ -37,6 +37,7 @@ class Layout2qDistance(AnalysisPass):
         Args:
             coupling_map (Union[CouplingMap, Target]): Directed graph represented a coupling map.
             property_name (str): The property name to save the score. Default: layout_score
+
         """
         super().__init__()
         if isinstance(coupling_map, Target):
@@ -48,10 +49,11 @@ class Layout2qDistance(AnalysisPass):
         self.property_name = property_name
 
     def run(self, dag):
-        """
-        Run the Layout2qDistance pass on `dag`.
+        """Run the Layout2qDistance pass on `dag`.
+
         Args:
             dag (DAGCircuit): DAG to evaluate.
+
         """
         layout = self.property_set["layout"]
 

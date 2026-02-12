@@ -30,6 +30,7 @@ def make_dict_observable(matrix_observable: list | np.ndarray) -> dict:
     Returns:
         Dict: A dictionary with all observable states as keys, and corresponding
         values being the observed value for that state
+
     """
     dict_observable = {}
     observable = np.array(matrix_observable)

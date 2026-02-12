@@ -57,6 +57,7 @@ class SuzukiTrotter(ProductFormula):
         [2]: N. Hatano and M. Suzuki,
         "Finding Exponential Product Formulas of Higher Orders" (2005).
         `arXiv:math-ph/0506007 <https://arxiv.org/pdf/math-ph/0506007.pdf>`_
+
     """
 
     def __init__(
@@ -74,8 +75,7 @@ class SuzukiTrotter(ProductFormula):
         *,
         atomic_evolution_sparse_observable: bool = False,
     ) -> None:
-        r"""
-        Args:
+        r"""Args:
             order: The order of the product formula.
             reps: The number of time steps.
             insert_barriers: Whether to insert barriers between the atomic evolutions.
@@ -101,6 +101,7 @@ class SuzukiTrotter(ProductFormula):
 
         Raises:
             ValueError: If order is not even
+
         """
         if order > 1 and order % 2 == 1:
             raise ValueError(
@@ -144,6 +145,7 @@ class SuzukiTrotter(ProductFormula):
 
         Returns:
             The Pauli network implementing the Trotter expansion.
+
         """
         operators = evolution.operator
         time = evolution.time

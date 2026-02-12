@@ -30,7 +30,6 @@ class Operation(ABC):
     compilation.
 
     Example:
-
         Add a Clifford and a Toffoli gate to a :class:`QuantumCircuit`.
 
         .. plot::
@@ -45,6 +44,7 @@ class Operation(ABC):
            qc.append(cliff, [0, 1])
            qc.ccx(0, 1, 2)
            qc.draw('mpl')
+
     """
 
     __slots__ = ()

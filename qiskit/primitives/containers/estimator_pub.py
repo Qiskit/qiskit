@@ -11,9 +11,7 @@
 # that they have been altered from the originals.
 
 
-"""
-Estimator Pub class
-"""
+"""Estimator Pub class"""
 
 from __future__ import annotations
 
@@ -64,6 +62,7 @@ class EstimatorPub(ShapedMixin):
         Raises:
             ValueError: If the ``observables`` and ``parameter_values`` are not broadcastable, that
                 is, if their shapes, when right-aligned, do not agree or equal 1.
+
         """
         super().__init__()
         self._circuit = circuit
@@ -115,6 +114,7 @@ class EstimatorPub(ShapedMixin):
 
         Returns:
             An estimator pub.
+
         """
         # Validate precision kwarg if provided
         if precision is not None:

@@ -41,8 +41,7 @@ class XOR(QuantumCircuit):
         amount: int | None = None,
         seed: int | None = None,
     ) -> None:
-        """
-        Args:
+        """Args:
             num_qubits: the width of circuit.
             amount: the xor amount in decimal form.
             seed: random seed in case a random xor is requested.
@@ -59,6 +58,7 @@ class XOR(QuantumCircuit):
             from qiskit.visualization.library import _generate_circuit_library_visualization
             circuit = XOR(5, seed=42)
             _generate_circuit_library_visualization(circuit)
+
         """
         circuit = QuantumCircuit(num_qubits, name="xor")
 
@@ -105,13 +105,13 @@ class BitwiseXorGate(Gate):
         num_qubits: int,
         amount: int,
     ) -> None:
-        """
-        Args:
+        """Args:
             num_qubits: the width of circuit.
             amount: the xor amount in decimal form.
 
         Raises:
             CircuitError: if the xor bitstring exceeds available qubits.
+
         """
         if len(bin(amount)[2:]) > num_qubits:
             raise CircuitError("Bits in 'amount' exceed circuit width")
@@ -148,19 +148,19 @@ class BitwiseXorGate(Gate):
 
         Returns:
             BitwiseXorGate: inverse gate (self-inverse).
+
         """
         return BitwiseXorGate(self.num_qubits, self.amount)
 
 
 def random_bitwise_xor(num_qubits: int, seed: int) -> BitwiseXorGate:
-    """
-    Create a random BitwiseXorGate.
+    """Create a random BitwiseXorGate.
 
     Args:
         num_qubits: the width of circuit.
         seed: random seed in case a random xor is requested.
-    """
 
+    """
     rng = np.random.default_rng(seed)
     amount = rng.integers(0, 2**num_qubits)
     return BitwiseXorGate(num_qubits, amount)

@@ -10,8 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Given -CZ-CX- transformation (a layer consisting only CNOT gates
+"""Given -CZ-CX- transformation (a layer consisting only CNOT gates
     followed by a layer consisting only CZ gates)
 Return a depth-5n circuit implementation of the -CZ-CX- transformation over LNN.
 
@@ -26,6 +25,7 @@ References:
     [1] S. A. Kutin, D. P. Moulton, and L. M. Smithline, "Computation at a distance," 2007.
     [2] D. Maslov and W. Yang, "CNOT circuits need little help to implement arbitrary
         Hadamard-free Clifford transformations they generate," 2022.
+
 """
 
 import numpy as np
@@ -34,8 +34,7 @@ from qiskit._accelerate.synthesis.linear_phase import py_synth_cx_cz_depth_line_
 
 
 def synth_cx_cz_depth_line_my(mat_x: np.ndarray, mat_z: np.ndarray) -> QuantumCircuit:
-    """
-    Joint synthesis of a -CZ-CX- circuit for linear nearest neighbor (LNN) connectivity,
+    """Joint synthesis of a -CZ-CX- circuit for linear nearest neighbor (LNN) connectivity,
     with 2-qubit depth at most 5n, based on Maslov and Yang.
     This method computes the CZ circuit inside the CX circuit via phase gate insertions.
 
@@ -56,6 +55,7 @@ def synth_cx_cz_depth_line_my(mat_x: np.ndarray, mat_z: np.ndarray) -> QuantumCi
         2. Dmitri Maslov, Willers Yang, *CNOT circuits need little help to implement arbitrary
            Hadamard-free Clifford transformations they generate*,
            `arXiv:2210.16195 <https://arxiv.org/abs/2210.16195>`_.
+
     """
     circuit_data = py_synth_cx_cz_depth_line_my(mat_x.astype(bool), mat_z.astype(bool))
     return QuantumCircuit._from_circuit_data(circuit_data, legacy_qubits=True)

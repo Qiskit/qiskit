@@ -43,6 +43,7 @@ class ProbDistribution(dict):
         Raises:
             TypeError: If the input keys are not a string or int
             ValueError: If the string format of the keys is incorrect
+
         """
         self.shots = shots
         self._num_bits = 0
@@ -75,7 +76,7 @@ class ProbDistribution(dict):
     def binary_probabilities(self, num_bits=None):
         """Build a probabilities dictionary with binary string keys
 
-        Parameters:
+        Args:
             num_bits (int): number of bits in the binary bitstrings (leading
                 zeros will be padded). If None, a default value will be used.
                 If keys are given as integers or strings with binary or hex prefix,
@@ -86,6 +87,7 @@ class ProbDistribution(dict):
         Returns:
             dict: A dictionary where the keys are binary strings in the format
                 ``"0110"``
+
         """
         n = self._num_bits if num_bits is None else num_bits
         return {format(key, "b").zfill(n): value for key, value in self.items()}
@@ -96,5 +98,6 @@ class ProbDistribution(dict):
         Returns:
             dict: A dictionary where the keys are hexadecimal strings in the
                 format ``"0x1a"``
+
         """
         return {hex(key): value for key, value in self.items()}

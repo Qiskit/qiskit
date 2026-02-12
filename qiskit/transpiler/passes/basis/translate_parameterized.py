@@ -34,7 +34,6 @@ class TranslateParameterizedGates(TransformationPass):
     e.g. for the ``UGate`` if it's not in the specified gate list).
 
     Example:
-
         The following, multiply nested circuit::
 
             from qiskit.circuit import QuantumCircuit, ParameterVector
@@ -82,8 +81,7 @@ class TranslateParameterizedGates(TransformationPass):
         equivalence_library: EquivalenceLibrary | None = None,
         target: Target | None = None,
     ) -> None:
-        """
-        Args:
+        """Args:
             supported_gates: A list of suppported basis gates specified as string. If ``None``,
                 a ``target`` must be provided.
             equivalence_library: The equivalence library to translate the gates. Defaults
@@ -94,6 +92,7 @@ class TranslateParameterizedGates(TransformationPass):
 
         Raises:
             ValueError: If neither of ``supported_gates`` and ``target`` are passed.
+
         """
         super().__init__()
 
@@ -125,6 +124,7 @@ class TranslateParameterizedGates(TransformationPass):
 
         Raises:
             QiskitError: If the circuit cannot be unrolled.
+
         """
         for node in dag.op_nodes():
             # check whether it is parameterized and we need to decompose it

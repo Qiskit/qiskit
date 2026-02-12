@@ -87,21 +87,21 @@ class U1Gate(Gate):
 
         Reference for virtual Z gate implementation:
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
+
     """
 
     _standard_gate = StandardGate.U1
 
     def __init__(self, theta: ParameterValueType, label: str | None = None):
-        """
-        Args:
-            theta: The rotation angle.
-            label: An optional label for the gate.
+        """Args:
+        theta: The rotation angle.
+        label: An optional label for the gate.
+
         """
         super().__init__("u1", 1, [theta], label=label)
 
     def _define(self):
         """Default definition"""
-
         from qiskit.circuit import QuantumCircuit
 
         #    ┌──────┐
@@ -136,8 +136,8 @@ class U1Gate(Gate):
 
         Returns:
             A controlled version of this gate.
-        """
 
+        """
         if num_ctrl_qubits == 1:
             gate = CU1Gate(self.params[0], label=label, ctrl_state=ctrl_state)
         else:
@@ -156,6 +156,7 @@ class U1Gate(Gate):
 
         Returns:
             U1Gate: inverse gate.
+
         """
         return U1Gate(-self.params[0])
 
@@ -246,7 +247,6 @@ class CU1Gate(ControlledGate):
 
     def _define(self):
         """Default definition"""
-
         from qiskit.circuit import QuantumCircuit
 
         #      ┌────────┐
@@ -280,6 +280,7 @@ class CU1Gate(ControlledGate):
 
         Returns:
             A controlled version of this gate.
+
         """
         ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
         new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
@@ -306,6 +307,7 @@ class CU1Gate(ControlledGate):
 
         Returns:
             CU1Gate: inverse gate.
+
         """
         return CU1Gate(-self.params[0], ctrl_state=self.ctrl_state)
 
@@ -426,6 +428,7 @@ class MCU1Gate(ControlledGate):
 
         Returns:
             A controlled version of this gate.
+
         """
         ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
         new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
@@ -450,6 +453,7 @@ class MCU1Gate(ControlledGate):
 
         Returns:
             MCU1Gate: inverse gate.
+
         """
         return MCU1Gate(
             -self.params[0], num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state

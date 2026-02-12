@@ -11,9 +11,7 @@
 # that they have been altered from the originals.
 
 
-"""
-Transformations between QuantumChannel representations.
-"""
+"""Transformations between QuantumChannel representations."""
 
 from __future__ import annotations
 import math
@@ -387,6 +385,7 @@ def _bipartite_tensor(mat1, mat2, shape1=None, shape2=None):
 
     Raises:
         QiskitError: if input matrices are wrong shape.
+
     """
     # Convert inputs to numpy arrays
     mat1 = np.array(mat1)

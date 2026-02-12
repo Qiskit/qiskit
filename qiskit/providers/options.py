@@ -158,7 +158,7 @@ class Options(Mapping):
         out.__setstate__((self._fields.copy(), self.validator.copy()))
         return out
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs):  # noqa: D107
         super().__setattr__("_fields", kwargs)
         super().__setattr__("validator", {})
 
@@ -203,13 +203,14 @@ class Options(Mapping):
                 list it will list the valid values for a field. If it's a
                 ``type`` the validator will just enforce the value is of a
                 certain type.
+
         Raises:
             KeyError: If field is not present in the options object
             ValueError: If the ``validator_value`` has an invalid value for a
                 given type
             TypeError: If ``validator_value`` is not a valid type
-        """
 
+        """
         if field not in self._fields:
             raise KeyError(f"Field '{field}' is not present in this options object")
         if isinstance(validator_value, tuple):

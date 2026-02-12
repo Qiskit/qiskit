@@ -10,9 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-A module for drawing circuits in ascii art or some other text representation
-"""
+"""A module for drawing circuits in ascii art or some other text representation"""
 
 from io import StringIO
 from warnings import warn
@@ -137,8 +135,8 @@ class DrawElement:
             wire_char (char): For example '║' or '│'.
             where (list["top", "bot"]): Where the connector should be set.
             label (string): Some connectors have a label (see cu1, for example).
-        """
 
+        """
         if "top" in where and self.top_connector:
             self.top_connect = self.top_connector[wire_char]
 
@@ -242,6 +240,7 @@ class MultiBox(DrawElement):
         Args:
             input_length (int): Rhe amount of wires affected.
             order (int): Which middle element is this one?
+
         """
         if input_length == order == 0:
             self.top_connect = self.label
@@ -465,9 +464,7 @@ class BoxOnClWireBot(MultiBox, BoxOnClWire):
 
 
 class DirectOnQuWire(DrawElement):
-    """
-    Element to the wire (without the box).
-    """
+    """Element to the wire (without the box)."""
 
     def __init__(self, label=""):
         super().__init__(label)
@@ -567,9 +564,7 @@ class OpenBullet(DirectOnQuWire):
 
 
 class DirectOnClWire(DrawElement):
-    """
-    Element to the classical wire (without the box).
-    """
+    """Element to the classical wire (without the box)."""
 
     def __init__(self, label=""):
         super().__init__(label)
@@ -640,6 +635,7 @@ class EmptyWire(DrawElement):
 
         Returns:
             list: The new layer, with no Nones.
+
         """
         for nones in [i for i, x in enumerate(layer) if x is None]:
             layer[nones] = EmptyWire("═") if nones >= first_clbit else EmptyWire("─")
@@ -666,6 +662,7 @@ class BreakWire(DrawElement):
 
         Returns:
             list: The new layer.
+
         """
         breakwire_layer = []
         for _ in range(layer_length):
@@ -688,6 +685,7 @@ class InputWire(DrawElement):
 
         Returns:
             list: The new layer
+
         """
         longest = max(len(name) for name in names)
         inputs_wires = []
@@ -768,9 +766,11 @@ class TextDrawing:
         return self.single_string()
 
     def single_string(self):
-        """Creates a long string with the ascii art.
+        r"""Creates a long string with the ascii art.
+
         Returns:
             str: The lines joined by a newline (``\\n``)
+
         """
         # Because jupyter calls both __repr__ and __repr_html__, this prevents the code
         # from running twice.
@@ -799,6 +799,7 @@ class TextDrawing:
         Args:
             filename (str): File to dump the ascii art.
             encoding (str): Optional. Force encoding, instead of self.encoding.
+
         """
         with open(filename, mode="w", encoding=encoding or self.encoding) as text_file:
             text_file.write(self.single_string())
@@ -815,6 +816,7 @@ class TextDrawing:
 
         Returns:
             list: A list of lines with the text drawing.
+
         """
         if line_length is None:
             line_length = self.line_length
@@ -881,6 +883,7 @@ class TextDrawing:
 
         Returns:
             List: The list of wire names.
+
         """
         if with_initial_state:
             initial_qubit_value = "|0>"
@@ -916,7 +919,8 @@ class TextDrawing:
 
     def should_compress(self, top_line, bot_line):
         """Decides if the top_line and bot_line should be merged,
-        based on `self.vertical_compression`."""
+        based on `self.vertical_compression`.
+        """
         if self.vertical_compression == "high":
             return True
         if self.vertical_compression == "low":
@@ -933,8 +937,10 @@ class TextDrawing:
 
         Args:
             wires (list): A list of wires with nodes.
+
         Returns:
             list: A list of lines with the text drawing.
+
         """
         lines = []
         bot_line = None
@@ -980,8 +986,10 @@ class TextDrawing:
             top (str): the top line
             bot (str): the bottom line
             icod (top or bot): in case of doubt, which line should have priority? Default: "top".
+
         Returns:
             str: The merge of both lines.
+
         """
         ret = ""
         for topc, botc in zip(top, bot):
@@ -1031,11 +1039,11 @@ class TextDrawing:
 
     @staticmethod
     def normalize_width(layer):
-        """
-        When the elements of the layer have different widths, sets the width to the max elements.
+        """When the elements of the layer have different widths, sets the width to the max elements.
 
         Args:
             layer (list): A list of elements.
+
         """
         nodes = list(filter(lambda x: x is not None, layer))
         longest = max(node.length for node in nodes)
@@ -1044,8 +1052,7 @@ class TextDrawing:
 
     @staticmethod
     def controlled_wires(node, wire_map, ctrl_text, conditional, mod_control):
-        """
-        Analyzes the node in the layer and checks if the controlled arguments are in
+        """Analyzes the node in the layer and checks if the controlled arguments are in
         the box or out of the box.
 
         Args:
@@ -1062,6 +1069,7 @@ class TextDrawing:
               - tuple: controlled arguments on bottom of the "node box", and its status
               - tuple: controlled arguments in the "node box", and its status
               - the rest of the arguments
+
         """
         op = node.op
         num_ctrl_qubits = mod_control.num_ctrl_qubits if mod_control else op.num_ctrl_qubits
@@ -1101,7 +1109,8 @@ class TextDrawing:
     def _node_to_gate(self, node, layer, gate_wire_map):
         """Convert a dag op node into its corresponding Gate object, and establish
         any connections it introduces between qubits. gate_wire_map is the flow_wire_map
-        if gate is inside a ControlFlowOp, else it's self._wire_map"""
+        if gate is inside a ControlFlowOp, else it's self._wire_map
+        """
         op = node.op
         current_cons = []
         current_cons_cond = []
@@ -1271,12 +1280,14 @@ class TextDrawing:
         return layer, current_cons, current_cons_cond, connection_label
 
     def build_layers(self):
-        """
-        Constructs layers.
+        """Constructs layers.
+
         Returns:
             list: List of DrawElements.
+
         Raises:
             VisualizationError: When the drawing is, for some reason, impossible to be drawn.
+
         """
         wire_names = self.wire_names(with_initial_state=self.initial_state)
         if not wire_names:
@@ -1309,14 +1320,14 @@ class TextDrawing:
 
     def add_control_flow(self, node, layers, wire_map):
         """Add control flow ops to the circuit drawing."""
-
         if (isinstance(node.op, SwitchCaseOp) and isinstance(node.op.target, expr.Expr)) or (
             getattr(node.op, "condition", None) and isinstance(node.op.condition, expr.Expr)
         ):
 
             def lookup_var(var):
                 """Look up a classical-expression variable or register/bit in our internal symbol
-                table, and return an OQ3-like identifier."""
+                table, and return an OQ3-like identifier.
+                """
                 # We don't attempt to disambiguate anything like register/var naming collisions; we
                 # already don't really show classical variables.
                 if isinstance(var, expr.Var):
@@ -1413,7 +1424,6 @@ class TextDrawing:
 
     def draw_flow_box(self, node, flow_wire_map, section, circ_num=0, conditional=False):
         """Draw the left, middle, or right of a control flow box"""
-
         op = node.op
         depth = str(self._nest_depth)
         if section == CF_LEFT:
@@ -1543,10 +1553,11 @@ class Layer:
 
     @property
     def full_layer(self):
-        """
-        Returns the composition of qubits and classic wires.
+        """Returns the composition of qubits and classic wires.
+
         Returns:
             String: self.qubit_layer + self.clbit_layer
+
         """
         return self.qubit_layer + self.clbit_layer
 
@@ -1556,6 +1567,7 @@ class Layer:
         Args:
             qubit (qbit): Element of self.qubits.
             element (DrawElement): Element to set in the qubit
+
         """
         self.qubit_layer[self._wire_map[qubit]] = element
 
@@ -1565,6 +1577,7 @@ class Layer:
         Args:
             clbit (cbit): Element of self.clbits.
             element (DrawElement): Element to set in the clbit
+
         """
         register = get_bit_register(self._circuit, clbit)
         if self.cregbundle and register is not None:
@@ -1712,6 +1725,7 @@ class Layer:
 
         Returns:
             List: list of tuples of connections between clbits for multi-bit conditions
+
         """
         if isinstance(condition, expr.Expr):
             # If fixing this, please update the docstrings of `QuantumCircuit.draw` and
@@ -1773,6 +1787,7 @@ class Layer:
 
         Returns:
             List: list of tuples of open or closed bullets for condition bits
+
         """
         current_cons = []
         wire_max = max(wire_map[bit] for bit in clbits)
@@ -1813,8 +1828,10 @@ class Layer:
             bot_connect (char): None or a char connector on the bottom
             conditional (bool): If the box has a conditional
             controlled_edge (list): A list of bit that are controlled (to draw them at the edge)
+
         Return:
             List: A list of indexes of the box.
+
         """
         return self._set_multibox(
             label,
@@ -1830,8 +1847,8 @@ class Layer:
 
         Args:
             wire_char (char): For example '║' or '│'.
-        """
 
+        """
         for label, affected_bits in self.connections:
 
             if not affected_bits:

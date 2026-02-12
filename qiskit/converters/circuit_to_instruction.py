@@ -58,8 +58,8 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
             circ.measure(q[0], c[0])
             circ.rz(0.5, q[1])
             circuit_to_instruction(circ)
-    """
 
+    """
     from qiskit.circuit.quantumcircuit import QuantumCircuit
 
     if circuit.num_input_vars:

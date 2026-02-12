@@ -11,9 +11,7 @@
 # that they have been altered from the originals.
 
 
-"""
-Common functions across several serialization and deserialization modules.
-"""
+"""Common functions across several serialization and deserialization modules."""
 
 import io
 import struct
@@ -37,6 +35,7 @@ def read_generic_typed_data(file_obj):
 
     Returns:
         tuple: Tuple of type key binary and the bytes object of the single data.
+
     """
     data = formats.INSTRUCTION_PARAM._make(
         struct.unpack(formats.INSTRUCTION_PARAM_PACK, file_obj.read(formats.INSTRUCTION_PARAM_SIZE))
@@ -56,6 +55,7 @@ def read_sequence(file_obj, deserializer, **kwargs):
 
     Returns:
         list: Deserialized object.
+
     """
     sequence = []
 
@@ -87,6 +87,7 @@ def read_mapping(file_obj, deserializer, **kwargs):
 
     Returns:
         dict: Deserialized object.
+
     """
     mapping = {}
 
@@ -116,6 +117,7 @@ def read_type_key(file_obj):
 
     Returns:
         bytes: Type key.
+
     """
     return formats.TYPE_KEY._make(
         struct.unpack(formats.TYPE_KEY_PACK, file_obj.read(formats.TYPE_KEY_SIZE))
@@ -129,6 +131,7 @@ def write_generic_typed_data(file_obj, type_key, data_binary):
         file_obj (File): A file like object to write data.
         type_key (Enum): Object type of the data.
         data_binary (bytes): Binary data to write.
+
     """
     data_header = struct.pack(formats.INSTRUCTION_PARAM_PACK, type_key, len(data_binary))
     file_obj.write(data_header)
@@ -144,6 +147,7 @@ def write_sequence(file_obj, sequence, serializer, **kwargs):
         serializer (Callable): Serializer callback that can handle input object type.
             This must return type key and binary data of each element.
         kwargs: Options set to the serializer.
+
     """
     num_elements = len(sequence)
 
@@ -169,6 +173,7 @@ def write_mapping(file_obj, mapping, serializer, **kwargs):
         serializer (Callable): Serializer callback that can handle mapping item.
             This must return type key and binary data of the mapping value.
         kwargs: Options set to the serializer.
+
     """
     num_elements = len(mapping)
 
@@ -191,6 +196,7 @@ def write_type_key(file_obj, type_key):
     Args:
         file_obj (File): A file like object that contains the QPY binary data.
         type_key (bytes): Type key to write.
+
     """
     file_obj.write(struct.pack(formats.TYPE_KEY_PACK, type_key))
 
@@ -205,6 +211,7 @@ def data_to_binary(obj, serializer, **kwargs):
 
     Returns:
         bytes: Binary data.
+
     """
     with io.BytesIO() as container:
         serializer(container, obj, **kwargs)
@@ -224,6 +231,7 @@ def sequence_to_binary(sequence, serializer, **kwargs):
 
     Returns:
         bytes: Binary data.
+
     """
     with io.BytesIO() as container:
         write_sequence(container, sequence, serializer, **kwargs)
@@ -250,6 +258,7 @@ def mapping_to_binary(mapping, serializer, **kwargs):
 
     Returns:
         bytes: Binary data.
+
     """
     with io.BytesIO() as container:
         write_mapping(container, mapping, serializer, **kwargs)
@@ -268,6 +277,7 @@ def data_from_binary(binary_data, deserializer, **kwargs):
 
     Returns:
         any: Deserialized object.
+
     """
     with io.BytesIO(binary_data) as container:
         container.seek(0)
@@ -286,6 +296,7 @@ def sequence_from_binary(binary_data, deserializer, **kwargs):
 
     Returns:
         any: Deserialized sequence.
+
     """
     with io.BytesIO(binary_data) as container:
         sequence = read_sequence(container, deserializer, **kwargs)
@@ -311,6 +322,7 @@ def mapping_from_binary(binary_data, deserializer, **kwargs):
 
     Returns:
         dict: Deserialized object.
+
     """
     with io.BytesIO(binary_data) as container:
         mapping = read_mapping(container, deserializer, **kwargs)

@@ -35,6 +35,7 @@ class DenseLayout(AnalysisPass):
         Even though a ``'layout'`` is not strictly a property of the DAG,
         in the transpiler architecture it is best passed around between passes
         by being set in ``property_set``.
+
     """
 
     def __init__(self, coupling_map=None, target=None):
@@ -43,6 +44,7 @@ class DenseLayout(AnalysisPass):
         Args:
             coupling_map (Coupling): directed graph representing a coupling map.
             target (Target): A target representing the target backend.
+
         """
         super().__init__()
         self.coupling_map = coupling_map
@@ -62,6 +64,7 @@ class DenseLayout(AnalysisPass):
 
         Raises:
             TranspilerError: if dag wider than self.coupling_map
+
         """
         if self.coupling_map is None:
             raise TranspilerError(
@@ -128,9 +131,13 @@ class DenseLayout(AnalysisPass):
 
         Args:
             num_qubits (int): Number of subset qubits to consider.
+            num_meas (int): Number of measurements to consider
+            num_cx (int): Number of cx gates to consider
+            coupling_map (CouplingMap): CouplingMap for the target
 
         Returns:
             ndarray: Array of qubits to use for best connectivity mapping.
+
         """
         from scipy.sparse import coo_matrix, csgraph
 

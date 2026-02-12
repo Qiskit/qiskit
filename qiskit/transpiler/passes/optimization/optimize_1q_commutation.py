@@ -45,8 +45,7 @@ NOTE: These rules are _symmetric_, so that they may be applied in reverse.
 
 
 class Optimize1qGatesSimpleCommutation(TransformationPass):
-    """
-    Optimizes 1Q gate strings interrupted by 2Q gates by commuting the components and
+    """Optimizes 1Q gate strings interrupted by 2Q gates by commuting the components and
     resynthesizing the results.  The commutation rules are stored in ``commutation_table``.
 
     NOTE: In addition to those mentioned in ``commutation_table``, this pass has some limitations:
@@ -62,15 +61,15 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
     #       to signify the absence of a run.
 
     def __init__(self, basis=None, run_to_completion=False, target=None):
-        """
-        Args:
-            basis (List[str]): See also `Optimize1qGatesDecomposition`.
-            run_to_completion (bool): If `True`, this pass retries until it is unable to do any more
-                work.  If `False`, it finds and performs one optimization, and for full optimization
-                the user is obligated to re-call the pass until the output stabilizes.
-            target (Target): The :class:`~.Target` representing the target backend, if both
-                ``basis`` and this are specified then this argument will take
-                precedence and ``basis`` will be ignored.
+        """Args:
+        basis (List[str]): See also `Optimize1qGatesDecomposition`.
+        run_to_completion (bool): If `True`, this pass retries until it is unable to do any more
+            work.  If `False`, it finds and performs one optimization, and for full optimization
+            the user is obligated to re-call the pass until the output stabilizes.
+        target (Target): The :class:`~.Target` representing the target backend, if both
+            ``basis`` and this are specified then this argument will take
+            precedence and ``basis`` will be ignored.
+
         """
         super().__init__()
 
@@ -79,8 +78,7 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
 
     @staticmethod
     def _find_adjoining_run(dag, runs, run, front=True):
-        """
-        Finds the run which abuts `run` from the front (or the rear if `front == False`), separated
+        """Finds the run which abuts `run` from the front (or the rear if `front == False`), separated
         by a blocking node.
 
         Returns a pair of the abutting multiqubit gate and the run which it separates from this
@@ -106,13 +104,11 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
 
     @staticmethod
     def _commute_through(blocker, run, front=True):
-        """
-        Pulls `DAGOpNode`s from the front of `run` (or the back, if `front == False`) until it
+        """Pulls `DAGOpNode`s from the front of `run` (or the back, if `front == False`) until it
         encounters a gate which does not commute with `blocker`.
 
         Returns a pair of lists whose concatenation is `run`.
         """
-
         if run == []:
             return [], []
         # use deque to have modification
@@ -153,8 +149,7 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
             return list(run_clone), list(commuted)
 
     def _resynthesize(self, run, qubit):
-        """
-        Synthesizes an efficient circuit from a sequence `run` of `DAGOpNode`s.
+        """Synthesizes an efficient circuit from a sequence `run` of `DAGOpNode`s.
 
         NOTE: Returns None when resynthesis is not possible.
         """
@@ -171,11 +166,9 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
 
     @staticmethod
     def _replace_subdag(dag, old_run, new_dag):
-        """
-        Replaces a nonempty sequence `old_run` of `DAGNode`s, assumed to be a complete chain in
+        """Replaces a nonempty sequence `old_run` of `DAGNode`s, assumed to be a complete chain in
         `dag`, with the circuit `new_circ`.
         """
-
         node_map = dag.substitute_node_with_dag(old_run[0], new_dag)
 
         for node in old_run[1:]:
@@ -185,12 +178,10 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
         mov_list(old_run, spliced_run)
 
     def _step(self, dag):
-        """
-        Performs one full pass of optimization work.
+        """Performs one full pass of optimization work.
 
         Returns True if `dag` changed, False if no work on `dag` was possible.
         """
-
         runs = dag.collect_1q_runs()
         did_work = False
 
@@ -240,14 +231,13 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
         return did_work
 
     def run(self, dag):
-        """
-        Args:
+        """Args:
             dag (DAGCircuit): the DAG to be optimized.
 
         Returns:
             DAGCircuit: the optimized DAG.
-        """
 
+        """
         # python doesn't support tail calls
         while True:
             did_work = self._step(dag)
@@ -258,10 +248,7 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
 
 
 def mov_list(destination, source):
-    """
-    Replace `destination` in-place with `source`.
-    """
-
+    """Replace `destination` in-place with `source`."""
     while destination:
         del destination[0]
     destination += source

@@ -33,10 +33,10 @@ class Barrier(Instruction):
     _standard_instruction_type = StandardInstructionType.Barrier
 
     def __init__(self, num_qubits: int, label: str | None = None):
-        """
-        Args:
-            num_qubits: the number of qubits for the barrier.
-            label: the optional label of this barrier.
+        """Args:
+        num_qubits: the number of qubits for the barrier.
+        label: the optional label of this barrier.
+
         """
         self._label = label
         super().__init__("barrier", num_qubits, 0, [], label=label)

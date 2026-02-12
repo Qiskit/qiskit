@@ -10,8 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Defines bare dataclasses which house polytope information, as well as a specialized data structure
+"""Defines bare dataclasses which house polytope information, as well as a specialized data structure
 which describes those two-qubit programs accessible to a given sequence of XX-type interactions.
 """
 
@@ -29,8 +28,7 @@ from .utilities import EPSILON
 
 @dataclass
 class ConvexPolytopeData:
-    """
-    The raw data underlying a ConvexPolytope.  Describes a single convex
+    """The raw data underlying a ConvexPolytope.  Describes a single convex
     polytope, specified by families of `inequalities` and `equalities`, each
     entry of which respectively corresponds to
 
@@ -48,17 +46,13 @@ class ConvexPolytopeData:
 
 @dataclass
 class PolytopeData:
-    """
-    The raw data of a union of convex polytopes.
-    """
+    """The raw data of a union of convex polytopes."""
 
     convex_subpolytopes: list[ConvexPolytopeData]
 
 
 def polytope_has_element(polytope, point):
-    """
-    Tests whether `polytope` contains `point.
-    """
+    """Tests whether `polytope` contains `point."""
     return all(
         -EPSILON <= inequality[0] + sum(x * y for x, y in zip(point, inequality[1:]))
         for inequality in polytope.inequalities
@@ -69,9 +63,7 @@ def polytope_has_element(polytope, point):
 
 
 def manual_get_vertex(polytope, seed=42):
-    """
-    Returns a single random vertex from `polytope`.
-    """
+    """Returns a single random vertex from `polytope`."""
     rng = np.random.default_rng(seed)
 
     if isinstance(polytope, PolytopeData):
@@ -103,8 +95,7 @@ def manual_get_vertex(polytope, seed=42):
 
 @dataclass
 class XXPolytope:
-    """
-    Describes those two-qubit programs accessible to a given sequence of XX-type interactions.
+    """Describes those two-qubit programs accessible to a given sequence of XX-type interactions.
 
     NOTE: Strengths are normalized so that CX corresponds to pi / 4, which differs from Qiskit's
           conventions around RZX elsewhere.
@@ -119,9 +110,7 @@ class XXPolytope:
 
     @classmethod
     def from_strengths(cls, *strengths):
-        """
-        Constructs an XXPolytope from a sequence of strengths.
-        """
+        """Constructs an XXPolytope from a sequence of strengths."""
         total_strength, max_strength, place_strength = 0, 0, 0
         for strength in strengths:
             total_strength += strength
@@ -135,9 +124,7 @@ class XXPolytope:
         )
 
     def add_strength(self, new_strength: float = 0.0):
-        """
-        Returns a new XXPolytope with one new XX interaction appended.
-        """
+        """Returns a new XXPolytope with one new XX interaction appended."""
         return XXPolytope(
             total_strength=self.total_strength + new_strength,
             max_strength=max(self.max_strength, new_strength),
@@ -150,9 +137,7 @@ class XXPolytope:
 
     @property
     def _offsets(self):
-        """
-        Returns b with A*x + b ≥ 0 iff x belongs to the XXPolytope.
-        """
+        """Returns b with A*x + b ≥ 0 iff x belongs to the XXPolytope."""
         return np.array(
             [
                 0,
@@ -166,10 +151,7 @@ class XXPolytope:
         )
 
     def member(self, point):
-        """
-        Returns True when `point` is a member of `self`.
-        """
-
+        """Returns True when `point` is a member of `self`."""
         reflected_point = point.copy().reshape(-1, 3)
         rows = reflected_point[:, 0] >= np.pi / 4 + EPSILON
         reflected_point[rows, 0] = np.pi / 2 - reflected_point[rows, 0]
@@ -180,9 +162,7 @@ class XXPolytope:
         )
 
     def nearest(self, point):
-        """
-        Finds the nearest point (in Euclidean or infidelity distance) to `self`.
-        """
+        """Finds the nearest point (in Euclidean or infidelity distance) to `self`."""
         # pylint:disable=invalid-name
 
         # NOTE: A CAS says that there are no degenerate double intersections, and the only

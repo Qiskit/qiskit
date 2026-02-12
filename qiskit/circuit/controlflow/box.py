@@ -51,8 +51,7 @@ class BoxOp(ControlFlowOp):
         label: str | None = None,
         annotations: typing.Iterable[Annotation] = (),
     ):
-        """
-        Default constructor of :class:`BoxOp`.
+        r"""Default constructor of :class:`BoxOp`.
 
         Args:
             body: the circuit to use as the body of the box.  This should explicitly close over any
@@ -65,6 +64,7 @@ class BoxOp(ControlFlowOp):
             annotations: any :class:`.Annotation`\\ s to apply to the box.  In cases where order
                 is important, annotations are to be interpreted in the same order they appear in
                 the iterable.
+
         """
         super().__init__("box", body.num_qubits, body.num_clbits, [body], label=label)
         self.annotations = list(annotations)
@@ -148,12 +148,12 @@ class BoxContext:
         label: str | None = None,
         annotations: typing.Iterable[Annotation] = (),
     ):
-        """
-        Args:
-            circuit: the outermost scope of the circuit under construction.
-            duration: the final duration of the box.
-            unit: the unit of ``duration``.
-            label: an optional label for the box.
+        """Args:
+        circuit: the outermost scope of the circuit under construction.
+        duration: the final duration of the box.
+        unit: the unit of ``duration``.
+        label: an optional label for the box.
+
         """
         self._circuit = circuit
         self._duration = duration

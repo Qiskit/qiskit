@@ -11,9 +11,7 @@
 # that they have been altered from the originals.
 
 
-"""
-Choi-matrix representation of a Quantum Channel.
-"""
+"""Choi-matrix representation of a Quantum Channel."""
 
 from __future__ import annotations
 import copy as _copy
@@ -65,6 +63,7 @@ class Choi(QuantumChannel):
         1. C.J. Wood, J.D. Biamonte, D.G. Cory, *Tensor networks and graphical calculus
            for open quantum systems*, Quant. Inf. Comp. 15, 0579-0811 (2015).
            `arXiv:1111.6950 [quant-ph] <https://arxiv.org/abs/1111.6950>`_
+
     """
 
     def __init__(
@@ -90,6 +89,7 @@ class Choi(QuantumChannel):
             a Numpy array of shape (4**N, 4**N) qubit systems will be used. If
             the input operator is not an N-qubit operator, it will assign a
             single subsystem with dimension specified by the shape of the input.
+
         """
         # If the input is a raw list or matrix we assume that it is
         # already a Choi matrix.

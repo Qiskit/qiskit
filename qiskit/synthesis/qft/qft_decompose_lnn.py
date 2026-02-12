@@ -9,9 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""
-Circuit synthesis for a QFT circuit.
-"""
+"""Circuit synthesis for a QFT circuit."""
 
 from qiskit.circuit import QuantumCircuit
 from qiskit._accelerate.synthesis.qft import synth_qft_line as _synth_qft_line
@@ -51,6 +49,7 @@ def synth_qft_line(
            *Implementation of Shor's algorithm on a linear nearest neighbour qubit array*,
            Quantum Info. Comput. 4, 4 (July 2004), 237–251.
            `arXiv:quant-ph/0402196 [quant-ph] <https://arxiv.org/abs/quant-ph/0402196>`_
+
     """
     _warn_if_precision_loss(num_qubits - approximation_degree - 1)
 

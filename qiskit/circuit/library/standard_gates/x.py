@@ -74,9 +74,9 @@ class XGate(SingletonGate):
     _standard_gate = StandardGate.X
 
     def __init__(self, label: str | None = None):
-        """
-        Args:
-            label: An optional label for the gate.
+        """Args:
+        label: An optional label for the gate.
+
         """
         super().__init__("x", 1, [], label=label)
 
@@ -84,7 +84,6 @@ class XGate(SingletonGate):
 
     def _define(self):
         """Default definition"""
-
         from qiskit.circuit import QuantumCircuit
 
         #    ┌──────────┐
@@ -118,6 +117,7 @@ class XGate(SingletonGate):
 
         Returns:
             A controlled version of this gate.
+
         """
         gate = MCXGate(
             num_ctrl_qubits=num_ctrl_qubits,
@@ -138,6 +138,7 @@ class XGate(SingletonGate):
 
         Returns:
             XGate: inverse gate (self-inverse).
+
         """
         return XGate()  # self-inverse
 
@@ -255,6 +256,7 @@ class CXGate(SingletonControlledGate):
 
         Returns:
             A controlled version of this gate.
+
         """
         ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
         new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
@@ -277,6 +279,7 @@ class CXGate(SingletonControlledGate):
 
         Returns:
             CXGate: inverse gate (self-inverse).
+
         """
         return CXGate(ctrl_state=self.ctrl_state)  # self-inverse
 
@@ -377,7 +380,6 @@ class CCXGate(SingletonControlledGate):
 
     def _define(self):
         """Default definition"""
-
         from qiskit.circuit import QuantumCircuit
 
         #                                                        ┌───┐
@@ -413,6 +415,7 @@ class CCXGate(SingletonControlledGate):
 
         Returns:
             A controlled version of this gate.
+
         """
         ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
         new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
@@ -435,6 +438,7 @@ class CCXGate(SingletonControlledGate):
 
         Returns:
             CCXGate: inverse gate (self-inverse).
+
         """
         return CCXGate(ctrl_state=self.ctrl_state)  # self-inverse
 
@@ -480,7 +484,6 @@ class RCCXGate(SingletonGate):
 
     def _define(self):
         """Default definition"""
-
         from qiskit.circuit import QuantumCircuit
 
         # q_0: ────────────────────────■────────────────────────
@@ -506,6 +509,7 @@ class C3SXGate(SingletonControlledGate):
 
     References:
         [1] Barenco et al., 1995. https://arxiv.org/pdf/quant-ph/9503016.pdf
+
     """
 
     _standard_gate = StandardGate.C3SX
@@ -523,6 +527,7 @@ class C3SXGate(SingletonControlledGate):
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
                 string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
+
         """
         from .sx import SXGate
 
@@ -540,7 +545,6 @@ class C3SXGate(SingletonControlledGate):
 
     def _define(self):
         """Default definition"""
-
         from qiskit.circuit import QuantumCircuit
 
         self.definition = QuantumCircuit._from_circuit_data(
@@ -583,7 +587,6 @@ class C3XGate(SingletonControlledGate):
     # seems like open controls not happening?
     def _define(self):
         """Default definition"""
-
         from qiskit.circuit import QuantumCircuit
 
         self.definition = QuantumCircuit._from_circuit_data(
@@ -611,6 +614,7 @@ class C3XGate(SingletonControlledGate):
 
         Returns:
             A controlled version of this gate.
+
         """
         ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
         new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
@@ -633,6 +637,7 @@ class C3XGate(SingletonControlledGate):
 
         Returns:
             C3XGate: inverse gate (self-inverse).
+
         """
         return C3XGate(ctrl_state=self.ctrl_state)
 
@@ -684,7 +689,6 @@ class RC3XGate(SingletonGate):
 
     def _define(self):
         """Default definition"""
-
         from qiskit.circuit import QuantumCircuit
 
         self.definition = QuantumCircuit._from_circuit_data(
@@ -705,6 +709,7 @@ class C4XGate(SingletonControlledGate):
     References:
         1. Barenco et al., 1995. https://arxiv.org/pdf/quant-ph/9503016.pdf
         2. Maslov, 2015. https://arxiv.org/abs/1508.03273
+
     """
 
     def __init__(
@@ -730,7 +735,6 @@ class C4XGate(SingletonControlledGate):
     # seems like open controls not happening?
     def _define(self):
         """Default definition"""
-
         from qiskit.circuit import QuantumCircuit, QuantumRegister
         from .h import HGate
         from .p import CPhaseGate
@@ -775,6 +779,7 @@ class C4XGate(SingletonControlledGate):
 
         Returns:
             A controlled version of this gate.
+
         """
         ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
         new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
@@ -797,6 +802,7 @@ class C4XGate(SingletonControlledGate):
 
         Returns:
             C4XGate: inverse gate (self-inverse).
+
         """
         return C4XGate(ctrl_state=self.ctrl_state)
 
@@ -891,6 +897,7 @@ class MCXGate(ControlledGate):
 
         Returns:
             MCXGate: inverse gate (self-inverse).
+
         """
         return MCXGate(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state)
 
@@ -924,7 +931,6 @@ class MCXGate(ControlledGate):
 
     def _define(self):
         """This definition is based on MCPhaseGate implementation."""
-
         from qiskit.synthesis.multi_controlled import synth_mcx_noaux_v24
 
         qc = synth_mcx_noaux_v24(self.num_ctrl_qubits)
@@ -956,6 +962,7 @@ class MCXGate(ControlledGate):
 
         Returns:
             A controlled version of this gate.
+
         """
         ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
         new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
@@ -988,8 +995,7 @@ class MCXGate(ControlledGate):
         return gate
 
     def copy(self, name=None):
-        """
-        Copy of the instruction.
+        """Copy of the instruction.
 
         Args:
             name (str): name to be given to the copied circuit, if ``None`` then the name stays the same.
@@ -997,6 +1003,7 @@ class MCXGate(ControlledGate):
         Returns:
             qiskit.circuit.Instruction: a copy of the current instruction, with the name updated if it
             was provided
+
         """
         if self.__class__ in [MCXGrayCode, MCXRecursive, MCXVChain]:
             with warnings.catch_warnings():
@@ -1068,6 +1075,16 @@ class MCXGrayCode(MCXGate):
         label: str | None = None,
         ctrl_state: int | str | None = None,
     ):
+        """Initialize a new :class:`.MCXGrayCode` instance
+
+        Args:
+            num_ctrl_qubits: The number of control qubits for the new gate
+            label: An optional label to apply for the new gate
+            ctrl_state: The optional control state to specify for the new gate as either
+                an integer or a bit string. If not specified the all 1s control state is
+                used. This much match the width of ``num_ctrl_qubits``.
+
+        """
         super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name="mcx_gray")
 
     def inverse(self, annotated: bool = False):
@@ -1081,6 +1098,7 @@ class MCXGrayCode(MCXGate):
 
         Returns:
             MCXGrayCode: inverse gate (self-inverse).
+
         """
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
@@ -1089,7 +1107,6 @@ class MCXGrayCode(MCXGate):
 
     def _define(self):
         """Define the MCX gate using the Gray code."""
-
         from qiskit.synthesis.multi_controlled import synth_mcx_gray_code
 
         qc = synth_mcx_gray_code(self.num_ctrl_qubits)
@@ -1107,6 +1124,7 @@ class MCXRecursive(MCXGate):
     References:
         1. Barenco et al., 1995. https://arxiv.org/pdf/quant-ph/9503016.pdf
         2. Iten et al., 2015. https://arxiv.org/abs/1501.06911
+
     """
 
     @deprecate_func(
@@ -1138,6 +1156,16 @@ class MCXRecursive(MCXGate):
         *,
         _base_label=None,
     ):
+        """Initialize a new :class:`.MCXRecursive` instance
+
+        Args:
+            num_ctrl_qubits: The number of control qubits for the new gate
+            label: An optional label to apply for the new gate
+            ctrl_state: The optional control state to specify for the new gate as either
+                an integer or a bit string. If not specified the all 1s control state is
+                used. This much match the width of ``num_ctrl_qubits``.
+
+        """
         super().__init__(
             num_ctrl_qubits,
             label=label,
@@ -1162,6 +1190,7 @@ class MCXRecursive(MCXGate):
 
         Returns:
             MCXRecursive: inverse gate (self-inverse).
+
         """
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
@@ -1170,7 +1199,6 @@ class MCXRecursive(MCXGate):
 
     def _define(self):
         """Define the MCX gate using recursion."""
-
         from qiskit.synthesis.multi_controlled import synth_mcx_1_clean_b95
 
         qc = synth_mcx_1_clean_b95(self.num_ctrl_qubits)
@@ -1226,19 +1254,18 @@ class MCXVChain(MCXGate):
         relative_phase: bool = False,
         action_only: bool = False,
     ):
-        """
-        Args:
-            dirty_ancillas: when set to ``True``, the method applies an optimized multicontrolled-X gate
-                up to a relative phase using dirty ancillary qubits with the properties of lemmas 7 and 8
-                from arXiv:1501.06911, with at most 8*k - 6 CNOT gates.
-                For k within the range {1, ..., ceil(n/2)}. And for n representing the total number of
-                qubits.
-            relative_phase: when set to ``True``, the method applies the optimized multicontrolled-X gate
-                up to a relative phase, in a way that, by lemma 7 of arXiv:1501.06911, the relative
-                phases of the ``action part`` cancel out with the phases of the ``reset part``.
+        """Args:
+        dirty_ancillas: when set to ``True``, the method applies an optimized multicontrolled-X gate
+            up to a relative phase using dirty ancillary qubits with the properties of lemmas 7 and 8
+            from arXiv:1501.06911, with at most 8*k - 6 CNOT gates.
+            For k within the range {1, ..., ceil(n/2)}. And for n representing the total number of
+            qubits.
+        relative_phase: when set to ``True``, the method applies the optimized multicontrolled-X gate
+            up to a relative phase, in a way that, by lemma 7 of arXiv:1501.06911, the relative
+            phases of the ``action part`` cancel out with the phases of the ``reset part``.
 
-            action_only: when set to ``True``, the method applies only the action part of lemma 8
-                from arXiv:1501.06911.
+        action_only: when set to ``True``, the method applies only the action part of lemma 8
+            from arXiv:1501.06911.
 
         """
         super().__init__(
@@ -1264,6 +1291,7 @@ class MCXVChain(MCXGate):
 
         Returns:
             MCXVChain: inverse gate (self-inverse).
+
         """
         with warnings.catch_warnings():
             warnings.filterwarnings(
@@ -1287,7 +1315,6 @@ class MCXVChain(MCXGate):
 
     def _define(self):
         """Define the MCX gate using a V-chain of CX gates."""
-
         if self._dirty_ancillas:
 
             from qiskit.synthesis.multi_controlled import synth_mcx_n_dirty_i15

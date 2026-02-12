@@ -165,8 +165,8 @@ def random_circuit_from_graph(
         CircuitError: When an invalid interaction graph object is passed.
         ValueError: Given `max_operands=2`, when any edge have probability `None` but not all, or any
             of the probabilities are negative.
-    """
 
+    """
     # max_operands should be 1 or 2
     if max_operands not in {1, 2}:
         raise CircuitError("`max_operands` should be either 1 or 2")
@@ -497,6 +497,7 @@ def random_circuit(
 
     Raises:
         CircuitError: when invalid options given
+
     """
     if seed is None:
         seed = np.random.randint(0, np.iinfo(np.int32).max)
@@ -706,8 +707,8 @@ def random_clifford_circuit(num_qubits, num_gates, gates="all", seed=None):
 
     Returns:
         QuantumCircuit: constructed circuit
-    """
 
+    """
     gates_1q = list(set(_BASIS_1Q.keys()) - {"v", "w", "id", "iden", "sinv"})
     gates_2q = list(_BASIS_2Q.keys())
 

@@ -10,8 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-r"""
-=====================================================================
+r"""=====================================================================
 Approximate Quantum Compiler (:mod:`qiskit.synthesis.unitary.aqc`)
 =====================================================================
 
@@ -164,9 +163,9 @@ faster. Instantiation of accelerated objective function class is similar to the 
 The rest of the code in the above example does not change.
 
 References:
-
     [1]: Liam Madden, Andrea Simonetto, Best Approximate Quantum Compiling Problems.
         `arXiv:2106.05649 <https://arxiv.org/abs/2106.05649>`_
+
 """
 
 from .approximate import ApproximateCircuit, ApproximatingObjective

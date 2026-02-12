@@ -10,8 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-r'''
-================================
+r'''================================
 OpenQASM 2 (:mod:`qiskit.qasm2`)
 ================================
 
@@ -126,8 +125,7 @@ represented by OpenQASM 2.0, they will also emit a custom error.
 .. _qasm2-examples:
 
 Examples
-========
-
+--------
 Exporting examples
 ------------------
 
@@ -520,6 +518,7 @@ Qiskit has some rudimentary support for OpenQASM 3 already; see :mod:`qiskit.qas
 OpenQASM 2 is not a suitable serialization language for Qiskit's :class:`.QuantumCircuit`.  This
 module is provided for interoperability purposes, not as a general serialization format.  If that is
 what you need, consider using :mod:`qiskit.qpy` instead.
+
 '''
 
 __all__ = [
@@ -598,6 +597,7 @@ def loads(
 
     Returns:
         A circuit object representing the same OpenQASM 2 program.
+
     """
     custom_instructions = list(custom_instructions)
     return _parse.from_bytecode(
@@ -642,6 +642,7 @@ def load(
 
     Returns:
         A circuit object representing the same OpenQASM 2 program.
+
     """
     filename = Path(filename)
     include_path = [_normalize_path(path) for path in include_path]

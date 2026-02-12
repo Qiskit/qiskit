@@ -66,7 +66,6 @@ def efficient_su2(
         └──────────┘└──────────┘ ░ └───┘      ░       ░ └───────────┘└───────────┘
 
     Examples:
-
     Per default, the ``"reverse_linear"`` entanglement is used, which, in the case of
     CX gates, is equivalent to an all-to-all entanglement:
 
@@ -112,6 +111,7 @@ def efficient_su2(
 
     Returns:
         An efficient-SU(2) circuit.
+
     """
     if su2_gates is None:
         su2_gates = ["ry", "rz"]
@@ -161,7 +161,6 @@ class EfficientSU2(TwoLocal):
     and options such as skipping unentanglement qubits, which apply here too.
 
     Examples:
-
         >>> circuit = EfficientSU2(3, reps=1)
         >>> print(circuit.decompose())
              ┌──────────┐┌──────────┐          ┌──────────┐┌──────────┐
@@ -219,41 +218,41 @@ class EfficientSU2(TwoLocal):
         name: str = "EfficientSU2",
         flatten: bool | None = None,
     ) -> None:
-        """
-        Args:
-            num_qubits: The number of qubits of the EfficientSU2 circuit.
-            reps: Specifies how often the structure of a rotation layer followed by an entanglement
-                layer is repeated.
-            su2_gates: The SU(2) single qubit gates to apply in single qubit gate layers.
-                If only one gate is provided, the same gate is applied to each qubit.
-                If a list of gates is provided, all gates are applied to each qubit in the provided
-                order.
-            entanglement: Specifies the entanglement structure. Can be a string
-                ('full', 'linear', 'reverse_linear', 'pairwise', 'circular', or 'sca'),
-                a list of integer-pairs specifying the indices of qubits entangled with one another,
-                or a callable returning such a list provided with the index of the entanglement layer.
-                Defaults to 'reverse_linear' entanglement.
-                Note that 'reverse_linear' entanglement provides the same unitary as 'full'
-                with fewer entangling gates.
-                See the Examples section of :class:`~qiskit.circuit.library.TwoLocal` for more
-                detail.
-            initial_state: A `QuantumCircuit` object to prepend to the circuit.
-            skip_unentangled_qubits: If True, the single qubit gates are only applied to qubits
-                that are entangled with another qubit. If False, the single qubit gates are applied
-                to each qubit in the Ansatz. Defaults to False.
-            skip_final_rotation_layer: If False, a rotation layer is added at the end of the
-                ansatz. If True, no rotation layer is added.
-            parameter_prefix: The parameterized gates require a parameter to be defined, for which
-                we use :class:`~qiskit.circuit.ParameterVector`.
-            insert_barriers: If True, barriers are inserted in between each layer. If False,
-                no barriers are inserted.
-            flatten: Set this to ``True`` to output a flat circuit instead of nesting it inside multiple
-                layers of gate objects. By default currently the contents of
-                the output circuit will be wrapped in nested objects for
-                cleaner visualization. However, if you're using this circuit
-                for anything besides visualization its **strongly** recommended
-                to set this flag to ``True`` to avoid a large performance
-                overhead for parameter binding.
+        """Args:
+        num_qubits: The number of qubits of the EfficientSU2 circuit.
+        reps: Specifies how often the structure of a rotation layer followed by an entanglement
+            layer is repeated.
+        su2_gates: The SU(2) single qubit gates to apply in single qubit gate layers.
+            If only one gate is provided, the same gate is applied to each qubit.
+            If a list of gates is provided, all gates are applied to each qubit in the provided
+            order.
+        entanglement: Specifies the entanglement structure. Can be a string
+            ('full', 'linear', 'reverse_linear', 'pairwise', 'circular', or 'sca'),
+            a list of integer-pairs specifying the indices of qubits entangled with one another,
+            or a callable returning such a list provided with the index of the entanglement layer.
+            Defaults to 'reverse_linear' entanglement.
+            Note that 'reverse_linear' entanglement provides the same unitary as 'full'
+            with fewer entangling gates.
+            See the Examples section of :class:`~qiskit.circuit.library.TwoLocal` for more
+            detail.
+        initial_state: A `QuantumCircuit` object to prepend to the circuit.
+        skip_unentangled_qubits: If True, the single qubit gates are only applied to qubits
+            that are entangled with another qubit. If False, the single qubit gates are applied
+            to each qubit in the Ansatz. Defaults to False.
+        skip_final_rotation_layer: If False, a rotation layer is added at the end of the
+            ansatz. If True, no rotation layer is added.
+        parameter_prefix: The parameterized gates require a parameter to be defined, for which
+            we use :class:`~qiskit.circuit.ParameterVector`.
+        insert_barriers: If True, barriers are inserted in between each layer. If False,
+            no barriers are inserted.
+        flatten: Set this to ``True`` to output a flat circuit instead of nesting it inside multiple
+            layers of gate objects. By default currently the contents of
+            the output circuit will be wrapped in nested objects for
+            cleaner visualization. However, if you're using this circuit
+            for anything besides visualization its **strongly** recommended
+            to set this flag to ``True`` to avoid a large performance
+            overhead for parameter binding.
+
         """
         if su2_gates is None:
             su2_gates = [RYGate, RZGate]
@@ -278,5 +277,6 @@ class EfficientSU2(TwoLocal):
 
         Returns:
             The parameter bounds.
+
         """
         return self.num_parameters * [(-pi, pi)]

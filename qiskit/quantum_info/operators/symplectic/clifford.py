@@ -9,9 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""
-Clifford operator class.
-"""
+"""Clifford operator class."""
 from __future__ import annotations
 
 import functools
@@ -42,8 +40,7 @@ from .clifford_circuits import (
 
 
 class Clifford(BaseOperator, AdjointMixin, Operation):
-    r"""
-    An N-qubit unitary operator from the Clifford group.
+    r"""An N-qubit unitary operator from the Clifford group.
 
     An N-qubit Clifford operator takes Paulis to Paulis via conjugation
     (up to a global phase). More precisely, the Clifford group :math:`\mathcal{C}_N`
@@ -140,6 +137,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         1. S. Aaronson, D. Gottesman, *Improved Simulation of Stabilizer Circuits*,
            Phys. Rev. A 70, 052328 (2004).
            `arXiv:quant-ph/0406196 <https://arxiv.org/abs/quant-ph/0406196>`_
+
     """
 
     _COMPOSE_PHASE_LOOKUP = None
@@ -153,7 +151,6 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
 
     def __init__(self, data, validate=True, copy=True):
         """Initialize an operator object."""
-
         from qiskit.circuit.library import LinearFunction, PermutationGate
 
         # Initialize from another Clifford
@@ -572,6 +569,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
 
         Raises:
             QiskitError: if the input is not a Clifford matrix.
+
         """
         tableau = cls._unitary_matrix_to_tableau(matrix)
         if tableau is None:
@@ -590,6 +588,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
 
         Returns:
             Clifford: the Clifford object for this linear function.
+
         """
         from qiskit.synthesis.linear import calc_inverse_matrix
 
@@ -613,8 +612,8 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
 
         Returns:
             Clifford: the Clifford object for this permutation.
-        """
 
+        """
         pat = permutation_gate.pattern
         dim = len(pat)
         symplectic_mat = np.zeros((2 * dim, 2 * dim), dtype=int)
@@ -643,6 +642,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
 
         Raises:
             QiskitError: if the input is not a Clifford operator.
+
         """
         tableau = cls._unitary_matrix_to_tableau(operator.to_matrix())
         if tableau is None:
@@ -667,6 +667,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
             2. S. Aaronson, D. Gottesman, *Improved Simulation of Stabilizer Circuits*,
                Phys. Rev. A 70, 052328 (2004).
                `arXiv:quant-ph/0406196 <https://arxiv.org/abs/quant-ph/0406196>`_
+
         """
         from qiskit.synthesis.clifford import synth_clifford_full
 
@@ -690,6 +691,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         Raises:
             QiskitError: if the input instruction is non-Clifford or contains
                          classical register instruction.
+
         """
         if not isinstance(circuit, (QuantumCircuit, Instruction)):
             raise QiskitError("Input must be a QuantumCircuit or Instruction")
@@ -739,6 +741,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
             * - ``"S"``
               - +Z
               - +Y
+
         """
         # Check label is valid
         label_gates = {
@@ -822,8 +825,10 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
 
         Returns:
             list or array: The rows of the StabilizerTable in label form.
+
         Raises:
             QiskitError: if stabilizer and destabilizer are both False.
+
         """
         if mode not in ("S", "B", "D"):
             raise QiskitError("mode must be B, S, or D.")
@@ -849,7 +854,8 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
     def _hash(self):
         """Produce a hashable value that is unique for each different Clifford.  This should only be
         used internally when the classes being hashed are under our control, because classes of this
-        type are mutable."""
+        type are mutable.
+        """
         return np.packbits(self.tableau).tobytes()
 
     @staticmethod
@@ -879,6 +885,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
 
         Returns:
             Clifford: the modified clifford.
+
         """
         ret = clifford.copy()
         if method in ["A", "T"]:
@@ -945,8 +952,8 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
     @staticmethod
     def _pauli_matrix_to_row(mat, num_qubits):
         """Generate a binary vector (a row of tableau representation) from a Pauli matrix.
-        Return None if the non-Pauli matrix is supplied."""
-
+        Return None if the non-Pauli matrix is supplied.
+        """
         decimals = 6
 
         def find_one_index(x):

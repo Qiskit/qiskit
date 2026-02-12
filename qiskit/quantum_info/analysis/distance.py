@@ -19,7 +19,7 @@ def hellinger_distance(dist_p: dict, dist_q: dict) -> float:
     """Computes the Hellinger distance between
     two counts distributions.
 
-    Parameters:
+    Args:
         dist_p (dict): First dict of counts.
         dist_q (dict): Second dict of counts.
 
@@ -28,6 +28,7 @@ def hellinger_distance(dist_p: dict, dist_q: dict) -> float:
 
     References:
         `Hellinger Distance @ wikipedia <https://en.wikipedia.org/wiki/Hellinger_distance>`_
+
     """
     p_sum = sum(dist_p.values())
     q_sum = sum(dist_q.values())
@@ -55,7 +56,7 @@ def hellinger_distance(dist_p: dict, dist_q: dict) -> float:
 
 
 def hellinger_fidelity(dist_p: dict, dist_q: dict) -> float:
-    """Computes the Hellinger fidelity between
+    r"""Computes the Hellinger fidelity between
     two counts distributions.
 
     The fidelity is defined as :math:`\\left(1-H^{2}\\right)^{2}` where H is the
@@ -65,7 +66,7 @@ def hellinger_fidelity(dist_p: dict, dist_q: dict) -> float:
     :math:`F(Q,P)=\\left(\\sum_{i}\\sqrt{p_{i}q_{i}}\\right)^{2}` that in turn
     is equal to the quantum state fidelity for diagonal density matrices.
 
-    Parameters:
+    Args:
         dist_p (dict): First dict of counts.
         dist_q (dict): Second dict of counts.
 
@@ -99,6 +100,7 @@ def hellinger_fidelity(dist_p: dict, dist_q: dict) -> float:
     References:
         `Quantum Fidelity @ wikipedia <https://en.wikipedia.org/wiki/Fidelity_of_quantum_states>`_
         `Hellinger Distance @ wikipedia <https://en.wikipedia.org/wiki/Hellinger_distance>`_
+
     """
     dist = hellinger_distance(dist_p, dist_q)
     return (1 - dist**2) ** 2

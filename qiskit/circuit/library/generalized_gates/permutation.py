@@ -39,8 +39,7 @@ class Permutation(QuantumCircuit):
         pattern: list[int] | np.ndarray | None = None,
         seed: int | None = None,
     ) -> None:
-        """
-        Args:
+        """Args:
             num_qubits: circuit width.
             pattern: permutation pattern, describing which qubits occupy the
                 positions 0, 1, 2, etc. after applying the permutation, that
@@ -75,6 +74,7 @@ class Permutation(QuantumCircuit):
             A = [2,4,3,0,1]
             circuit = Permutation(5, A)
             _generate_circuit_library_visualization(circuit.decompose())
+
         """
         if pattern is not None:
             if sorted(pattern) != list(range(num_qubits)):
@@ -145,6 +145,7 @@ class PermutationGate(Gate):
                 circuit.append(permutation, [0, 1, 2, 3, 4])
 
                 _generate_circuit_library_visualization(circuit.decompose())
+
         """
         num_qubits = len(pattern)
         if sorted(pattern) != list(range(num_qubits)):
@@ -184,7 +185,6 @@ class PermutationGate(Gate):
 
     def inverse(self, annotated: bool = False) -> PermutationGate:
         """Returns the inverse of the permutation."""
-
         from qiskit.synthesis.permutation.permutation_utils import _inverse_pattern
 
         return PermutationGate(pattern=_inverse_pattern(self.pattern))

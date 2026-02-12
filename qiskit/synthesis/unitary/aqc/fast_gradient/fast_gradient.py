@@ -10,9 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Implementation of the fast objective function class.
-"""
+"""Implementation of the fast objective function class."""
 
 import math
 import warnings
@@ -32,14 +30,20 @@ from ..cnot_unit_objective import CNOTUnitObjective
 
 
 class FastCNOTUnitObjective(CNOTUnitObjective):
-    """
-    Implementation of objective function and gradient calculator, which is
+    """Implementation of objective function and gradient calculator, which is
     similar to
     :class:`~qiskit.transpiler.aqc.DefaultCNOTUnitObjective`
     but several times faster.
     """
 
     def __init__(self, num_qubits: int, cnots: np.ndarray):
+        """Instantiate a new :class:`.FastCNOTUnitObjective` instance
+
+        Args:
+            num_qubits: The number of qubits
+            cnots: a CNOT structure to be used in the optimization procedure.
+
+        """
         super().__init__(num_qubits, cnots)
 
         if not 2 <= num_qubits <= 16:
@@ -77,8 +81,7 @@ class FastCNOTUnitObjective(CNOTUnitObjective):
             self._f_layers[k] = Layer1Q(num_qubits=num_qubits, k=k)
 
     def objective(self, param_values: np.ndarray) -> float:
-        """
-        Computes the objective function and some intermediate data for
+        """Computes the objective function and some intermediate data for
         the subsequent gradient computation.
         See description of the base class method.
         """
@@ -103,11 +106,9 @@ class FastCNOTUnitObjective(CNOTUnitObjective):
         return objective_value
 
     def gradient(self, param_values: np.ndarray) -> np.ndarray:
-        """
-        Computes the gradient of objective function.
+        """Computes the gradient of objective function.
         See description of the base class method.
         """
-
         # If thetas are the same as used for objective value calculation
         # before calling this function, then we re-use the computations,
         # otherwise we have to re-compute the objective.
@@ -124,9 +125,7 @@ class FastCNOTUnitObjective(CNOTUnitObjective):
         return grad
 
     def _init_layers(self):
-        """
-        Initializes C-layers and F-layers by corresponding gate matrices.
-        """
+        """Initializes C-layers and F-layers by corresponding gate matrices."""
         c_gates = self._c_gates
         c_layers = self._c_layers
         for q in range(self.num_cnots):
@@ -138,9 +137,7 @@ class FastCNOTUnitObjective(CNOTUnitObjective):
             f_layers[q].set_from_matrix(mat=f_gates[q])
 
     def _calc_ucf_fuc(self):
-        """
-        Computes matrices ``ucf_mat`` and ``fuc_mat``. Both remain non-finalized.
-        """
+        """Computes matrices ``ucf_mat`` and ``fuc_mat``. Both remain non-finalized."""
         ucf_mat = self._ucf_mat
         fuc_mat = self._fuc_mat
         tmp1 = self._tmp1
@@ -166,9 +163,7 @@ class FastCNOTUnitObjective(CNOTUnitObjective):
             ucf_mat.mul_right_q1(f_layers[q], temp_mat=tmp1, dagger=False)
 
     def _calc_objective_function(self) -> float:
-        """
-        Computes the value of objective function.
-        """
+        """Computes the value of objective function."""
         ucf = self._ucf_mat.finalize(temp_mat=self._tmp1)
         trace_ucf = np.trace(ucf)
         fobj = abs((2**self._num_qubits) - float(np.real(trace_ucf)))
@@ -176,9 +171,7 @@ class FastCNOTUnitObjective(CNOTUnitObjective):
         return fobj
 
     def _calc_gradient4d(self, grad4d: np.ndarray):
-        """
-        Calculates a part gradient contributed by 2-qubit gates.
-        """
+        """Calculates a part gradient contributed by 2-qubit gates."""
         fuc = self._fuc_mat
         tmp1, tmp2 = self._tmp1, self._tmp2
         c_gates = self._c_gates
@@ -201,9 +194,7 @@ class FastCNOTUnitObjective(CNOTUnitObjective):
                 )
 
     def _calc_gradient3n(self, grad3n: np.ndarray):
-        """
-        Calculates a part gradient contributed by 1-qubit gates.
-        """
+        """Calculates a part gradient contributed by 1-qubit gates."""
         ucf = self._ucf_mat
         tmp1, tmp2 = self._tmp1, self._tmp2
         f_gates = self._f_gates

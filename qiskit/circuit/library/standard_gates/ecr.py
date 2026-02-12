@@ -89,9 +89,9 @@ class ECRGate(SingletonGate):
     _standard_gate = StandardGate.ECR
 
     def __init__(self, label: str | None = None) -> None:
-        """
-        Args:
-            label: An optional label for the gate.
+        """Args:
+        label: An optional label for the gate.
+
         """
         super().__init__("ecr", 2, [], label=label)
 
@@ -99,7 +99,6 @@ class ECRGate(SingletonGate):
 
     def _define(self):
         """Default definition (in terms of simpler Clifford gates)"""
-
         from qiskit.circuit import QuantumCircuit
 
         # global phase: 7π/4
@@ -124,6 +123,7 @@ class ECRGate(SingletonGate):
 
         Returns:
             ECRGate: inverse gate (self-inverse).
+
         """
         return ECRGate()  # self-inverse
 

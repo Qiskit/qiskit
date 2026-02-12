@@ -53,10 +53,10 @@ class QuantumVolume(QuantumCircuit):
        _generate_circuit_library_visualization(circuit.decompose())
 
     References:
-
     [1] A. Cross et al. Validating quantum computers using
     randomized model circuits, Phys. Rev. A 100, 032328 (2019).
     `arXiv:1811.12926 <https://arxiv.org/abs/1811.12926>`__
+
     """
 
     @deprecate_func(
@@ -73,16 +73,16 @@ class QuantumVolume(QuantumCircuit):
         *,
         flatten: bool = False,
     ) -> None:
-        """
-        Args:
-            num_qubits: number of active qubits in model circuit.
-            depth: layers of SU(4) operations in model circuit.
-            seed: Random number generator or generator seed.
-            classical_permutation: use classical permutations at every layer,
-                rather than quantum.
-            flatten: If ``False`` (the default), construct a circuit that contains a single
-                instruction, which in turn has the actual volume structure.  If ``True``, construct
-                the volume structure directly.
+        """Args:
+        num_qubits: number of active qubits in model circuit.
+        depth: layers of SU(4) operations in model circuit.
+        seed: Random number generator or generator seed.
+        classical_permutation: use classical permutations at every layer,
+            rather than quantum.
+        flatten: If ``False`` (the default), construct a circuit that contains a single
+            instruction, which in turn has the actual volume structure.  If ``True``, construct
+            the volume structure directly.
+
         """
         import scipy.stats
 
@@ -173,10 +173,10 @@ def quantum_volume(
        circuit.draw('mpl')
 
     References:
-
     [1] A. Cross et al. Validating quantum computers using
     randomized model circuits, Phys. Rev. A 100, 032328 (2019).
     `arXiv:1811.12926 <https://arxiv.org/abs/1811.12926>`__
+
     """
     if isinstance(seed, np.random.Generator):
         max_value = np.iinfo(np.int64).max

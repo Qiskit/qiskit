@@ -10,8 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-.. currentmodule:: qiskit.utils.optionals
+r""".. currentmodule:: qiskit.utils.optionals
 
 Qiskit has several features that are enabled only if certain *optional* dependencies
 are satisfied. This module, :mod:`qiskit.utils.optionals`, has a collection of objects that can

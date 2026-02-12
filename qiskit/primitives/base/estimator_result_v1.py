@@ -9,9 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""
-Estimator V1 result class
-"""
+"""Estimator V1 result class"""
 
 from __future__ import annotations
 
@@ -40,6 +38,7 @@ class EstimatorResult(_BasePrimitiveResultV1):
     Args:
         values (np.ndarray): The array of the expectation values.
         metadata (list[dict]): List of the metadata.
+
     """
 
     values: np.ndarray[Any, np.dtype[np.float64]]

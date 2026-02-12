@@ -10,9 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Module for the primary interface to the circuit drawers.
-"""
+"""Module for the primary interface to the circuit drawers."""
 
 # Temporary import from 0.22.0 to be deprecated in future
 

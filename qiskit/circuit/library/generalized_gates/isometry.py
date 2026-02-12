@@ -11,9 +11,7 @@
 # that they have been altered from the originals.
 
 
-"""
-Generic isometries from m to n qubits.
-"""
+"""Generic isometries from m to n qubits."""
 
 from __future__ import annotations
 
@@ -42,7 +40,6 @@ class Isometry(Instruction):
     The decomposition is based on [1].
 
     References:
-
     [1] Iten et al., Quantum circuits for isometries (2016).
     `Phys. Rev. A 93, 032318
     <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.93.032318>`__.
@@ -63,18 +60,18 @@ class Isometry(Instruction):
         num_ancillas_dirty: int,
         epsilon: float = _EPS,
     ) -> None:
-        r"""
-        Args:
-            isometry: An isometry from :math:`m` to :math`n` qubits, i.e., a complex
-                ``np.ndarray`` of dimension :math:`2^n \times 2^m` with orthonormal columns (given
-                in the computational basis specified by the order of the ancillas
-                and the input qubits, where the ancillas are considered to be more
-                significant than the input qubits).
-            num_ancillas_zero: Number of additional ancillas that start in the state :math:`|0\rangle`
-                (the :math:`n-m` ancillas required for providing the output of the isometry are
-                not accounted for here).
-            num_ancillas_dirty: Number of additional ancillas that start in an arbitrary state.
-            epsilon: Error tolerance of calculations.
+        r"""Args:
+        isometry: An isometry from :math:`m` to :math`n` qubits, i.e., a complex
+            ``np.ndarray`` of dimension :math:`2^n \times 2^m` with orthonormal columns (given
+            in the computational basis specified by the order of the ancillas
+            and the input qubits, where the ancillas are considered to be more
+            significant than the input qubits).
+        num_ancillas_zero: Number of additional ancillas that start in the state :math:`|0\rangle`
+            (the :math:`n-m` ancillas required for providing the output of the isometry are
+            not accounted for here).
+        num_ancillas_dirty: Number of additional ancillas that start in an arbitrary state.
+        epsilon: Error tolerance of calculations.
+
         """
         # Convert to numpy array in case not already an array
         isometry = np.array(isometry, dtype=complex)
@@ -125,16 +122,15 @@ class Isometry(Instruction):
         iso_circuit.append(gate, q[:])
         self.definition = iso_circuit
 
-    def inverse(self, annotated: bool = False):
+    def inverse(self, annotated: bool = False):  # noqa: D102
         self.params = []
         inv = super().inverse(annotated=annotated)
         self.params = [self.iso_data]
         return inv
 
     def _gates_to_uncompute(self):
-        """
-        Call to create a circuit with gates that take the desired isometry to the first 2^m columns
-         of the 2^n*2^n identity matrix (see https://arxiv.org/abs/1501.06911)
+        """Call to create a circuit with gates that take the desired isometry to the first 2^m columns
+        of the 2^n*2^n identity matrix (see https://arxiv.org/abs/1501.06911)
         """
         q = QuantumRegister(self.num_qubits, "q")
         circuit = QuantumCircuit(q, name="isometry_to_uncompute")
@@ -169,9 +165,7 @@ class Isometry(Instruction):
         return circuit
 
     def _decompose_column(self, circuit, q, diag, remaining_isometry, column_index):
-        """
-        Decomposes the column with index column_index.
-        """
+        """Decomposes the column with index column_index."""
         n = int(math.log2(self.iso_data.shape[0]))
         for s in range(n):
             remaining_isometry, diag = self._disentangle(
@@ -180,8 +174,7 @@ class Isometry(Instruction):
         return remaining_isometry, diag
 
     def _disentangle(self, circuit, q, diag, remaining_isometry, column_index, s):
-        """
-        Disentangle the s-th significant qubit (starting with s = 0) into the zero or the one state
+        """Disentangle the s-th significant qubit (starting with s = 0) into the zero or the one state
         (dependent on column_index)
         """
         # To shorten the notation, we introduce:

@@ -177,6 +177,7 @@ def dump(
     Raises:
         TypeError: When invalid data type is input.
         ValueError: When an unsupported version number is passed in for the ``version`` argument.
+
     """
     if not isinstance(programs, Iterable):
         programs = [programs]
@@ -331,8 +332,8 @@ def load(
             that is using symengine symbolic encoding and contains
             :class:`.ParameterExpression` instances.
         QpyError: if known but unsupported data type is loaded.
-    """
 
+    """
     # identify file header version
     version = struct.unpack("!6sB", file_obj.read(7))[1]
     file_obj.seek(0)
@@ -467,8 +468,8 @@ def get_qpy_version(
 
     Returns:
         The QPY version of the specified file.
-    """
 
+    """
     version = struct.unpack("!6sB", file_obj.read(7))[1]
     file_obj.seek(-7, 1)
     return version

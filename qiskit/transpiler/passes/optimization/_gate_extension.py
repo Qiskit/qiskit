@@ -10,8 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Dynamically extend Gate classes with functions required for the Hoare
+"""Dynamically extend Gate classes with functions required for the Hoare
 optimizer, namely triviality-conditions and post-conditions.
 If `_trivial_if` returns `True` and the qubit is in a classical state
 then the gate is trivial.

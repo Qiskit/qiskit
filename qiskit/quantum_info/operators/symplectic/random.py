@@ -9,9 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""
-Random symplectic operator functions
-"""
+"""Random symplectic operator functions"""
 
 from __future__ import annotations
 
@@ -40,6 +38,7 @@ def random_pauli(
 
     Returns:
         Pauli: a random Pauli
+
     """
     if seed is None:
         rng = np.random.default_rng()
@@ -71,6 +70,7 @@ def random_pauli_list(
 
     Returns:
         PauliList: a random PauliList.
+
     """
     if seed is None:
         rng = np.random.default_rng()
@@ -104,6 +104,7 @@ def random_clifford(num_qubits: int, seed: int | np.random.Generator | None = No
         1. S. Bravyi and D. Maslov, *Hadamard-free circuits expose the
            structure of the Clifford group*.
            `arXiv:2003.09412 [quant-ph] <https://arxiv.org/abs/2003.09412>`_
+
     """
     if seed is None:
         rng = np.random.default_rng()

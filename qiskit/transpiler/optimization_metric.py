@@ -11,9 +11,7 @@
 # that they have been altered from the originals.
 
 
-"""
-Enumeration of optimization metrics.
-"""
+"""Enumeration of optimization metrics."""
 
 import enum
 

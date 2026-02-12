@@ -9,9 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""
-Primitive job abstract base class
-"""
+"""Primitive job abstract base class"""
 
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar, Union
@@ -70,6 +68,7 @@ class BasePrimitiveJob(ABC, Generic[ResultT, StatusT]):
         Args:
             job_id: A unique id in the context of the primitive used to run the job.
             kwargs: Any key value metadata to associate with this job.
+
         """
         self._job_id = job_id
         self.metadata = kwargs

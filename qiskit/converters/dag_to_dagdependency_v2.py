@@ -22,6 +22,7 @@ def _dag_to_dagdependency_v2(dag):
 
     Return:
         _DAGDependencyV2: the DAG representing the input circuit as a dag dependency.
+
     """
     dagdependency = _DAGDependencyV2()
     dagdependency.name = dag.name

@@ -59,7 +59,8 @@ UNARY = {
 
 class ParseSympyWalker(ast.NodeVisitor):
     """A custom ast walker that is passed the sympy srepr from QPY < 13 and creates a custom
-    expression."""
+    expression.
+    """
 
     def __init__(self):
         self.stack = []

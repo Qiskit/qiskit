@@ -32,7 +32,8 @@ _T_co = typing.TypeVar("_T_co", covariant=True)
 class ExprVisitor(typing.Generic[_T_co]):
     """Base class for visitors to the :class:`Expr` tree.  Subclasses should override whichever of
     the ``visit_*`` methods that they are able to handle, and should be organized such that
-    non-existent methods will never be called."""
+    non-existent methods will never be called.
+    """
 
     # The method names are self-explanatory and docstrings would just be noise.
 
@@ -147,6 +148,7 @@ def iter_vars(node: expr.Expr) -> typing.Iterator[expr.Var]:
         :func:`iter_identifiers`
             Get an iterator over all identifier nodes in the expression, including
             both :class:`~.expr.Var` and :class:`~.expr.Stretch` nodes.
+
     """
     yield from node.accept(_VAR_WALKER)
 
@@ -171,6 +173,7 @@ def iter_identifiers(node: expr.Expr) -> typing.Iterator[expr.Var | expr.Stretch
     .. seealso::
         :func:`iter_vars`
             Get an iterator over just the :class:`~.expr.Var` nodes in the expression.
+
     """
     yield from node.accept(_IDENT_WALKER)
 
@@ -304,6 +307,7 @@ def structurally_equivalent(
             >>> right_key = {var: i for i, var in enumerate(right_bits)}.get
             >>> expr.structurally_equivalent(left, right, left_key, right_key)
             True
+
     """
     return left.accept(_StructuralEquivalenceImpl(right, left_var_key, right_var_key))
 
@@ -375,5 +379,6 @@ def is_lvalue(node: expr.Expr, /) -> bool:
             True
             >>> expr.is_lvalue(expr.bit_and(a, b))
             False
+
     """
     return node.accept(_IS_LVALUE)

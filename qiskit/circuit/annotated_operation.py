@@ -25,7 +25,8 @@ from qiskit.circuit.exceptions import CircuitError
 
 class Modifier:
     """The base class that all modifiers of :class:`~.AnnotatedOperation` should
-    inherit from."""
+    inherit from.
+    """
 
     pass
 
@@ -40,12 +41,14 @@ class InverseModifier(Modifier):
 @dataclasses.dataclass
 class ControlModifier(Modifier):
     """Control modifier: specifies that the operation is controlled by ``num_ctrl_qubits``
-    and has control state ``ctrl_state``."""
+    and has control state ``ctrl_state``.
+    """
 
     num_ctrl_qubits: int = 0
     ctrl_state: int | str | None = None
 
     def __init__(self, num_ctrl_qubits: int = 0, ctrl_state: int | str | None = None):
+        """Instantiate a :class:`.ControlModifier` instance."""
         if num_ctrl_qubits < 0:
             raise CircuitError("The number of control qubits must be non-negative.")
 
@@ -64,8 +67,7 @@ class AnnotatedOperation(Operation):
     """Annotated operation."""
 
     def __init__(self, base_op: Operation, modifiers: Modifier | list[Modifier]):
-        """
-        Create a new AnnotatedOperation.
+        """Create a new AnnotatedOperation.
 
         An "annotated operation" allows to add a list of modifiers to the
         "base" operation. For now, the only supported modifiers are of
@@ -99,6 +101,7 @@ class AnnotatedOperation(Operation):
 
         Both op1 and op2 are semantically equivalent to an ``SGate()`` which is first
         inverted and then controlled by 2 qubits.
+
         """
         self.base_op = base_op
         """The base operation that the modifiers in this annotated operation applies to."""
@@ -180,8 +183,8 @@ class AnnotatedOperation(Operation):
 
         Returns:
             A controlled version of the given operation.
-        """
 
+        """
         extended_modifiers = self.modifiers.copy()
         extended_modifiers.append(
             ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
@@ -189,8 +192,7 @@ class AnnotatedOperation(Operation):
         return AnnotatedOperation(self.base_op, extended_modifiers)
 
     def inverse(self, annotated: bool = True):
-        """
-        Return the inverse version of itself.
+        """Return the inverse version of itself.
 
         Implemented as an annotated operation, see  :class:`.AnnotatedOperation`.
 
@@ -199,15 +201,14 @@ class AnnotatedOperation(Operation):
 
         Returns:
             Inverse version of the given operation.
-        """
 
+        """
         extended_modifiers = self.modifiers.copy()
         extended_modifiers.append(InverseModifier())
         return AnnotatedOperation(self.base_op, extended_modifiers)
 
     def power(self, exponent: float, annotated: bool = False):
-        """
-        Raise this gate to the power of ``exponent``.
+        """Raise this gate to the power of ``exponent``.
 
         Implemented as an annotated operation, see  :class:`.AnnotatedOperation`.
 
@@ -217,8 +218,8 @@ class AnnotatedOperation(Operation):
 
         Returns:
             An operation implementing ``gate^exponent``
-        """
 
+        """
         extended_modifiers = self.modifiers.copy()
         extended_modifiers.append(PowerModifier(exponent))
         return AnnotatedOperation(self.base_op, extended_modifiers)
@@ -246,8 +247,7 @@ class AnnotatedOperation(Operation):
 
 
 def _canonicalize_modifiers(modifiers):
-    """
-    Returns the canonical representative of the modifier list. This is possible
+    """Returns the canonical representative of the modifier list. This is possible
     since all the modifiers commute; also note that InverseModifier is a special
     case of PowerModifier. The current solution is to compute the total number
     of control qubits / control state and the total power. The InverseModifier

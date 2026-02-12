@@ -50,9 +50,9 @@ class IGate(SingletonGate):
     _standard_gate = StandardGate.I
 
     def __init__(self, label: str | None = None):
-        """
-        Args:
-            label: An optional label for the gate.
+        """Args:
+        label: An optional label for the gate.
+
         """
         super().__init__("id", 1, [], label=label)
 
@@ -69,7 +69,9 @@ class IGate(SingletonGate):
 
         Returns:
             IGate: inverse gate (self-inverse).
-        ."""
+        .
+
+        """
         return IGate()  # self-inverse
 
     def power(self, exponent: float, annotated: bool = False):

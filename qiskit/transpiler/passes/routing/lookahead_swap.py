@@ -92,8 +92,8 @@ class LookaheadSwap(TransformationPass):
             search_width (int): lookahead tree width when ranking best SWAP options.
             fake_run (bool): if true, it will only pretend to do routing, i.e., no
                 swap is effectively added.
-        """
 
+        """
         super().__init__()
         if isinstance(coupling_map, Target):
             self.target = coupling_map
@@ -113,11 +113,12 @@ class LookaheadSwap(TransformationPass):
         Returns:
             DAGCircuit: A dag mapped to be compatible with the coupling_map in
                 the property_set.
+
         Raises:
             TranspilerError: if the coupling map or the layout are not
             compatible with the DAG, or if the coupling_map=None
-        """
 
+        """
         if self.coupling_map is None:
             raise TranspilerError("LookaheadSwap cannot run with coupling_map=None")
 
@@ -201,9 +202,11 @@ def _search_forward_n_swaps(state, gates, depth, width):
         gates (list): Gates to be mapped.
         depth (int): Number of SWAP layers to search before choosing a result.
         width (int): Number of SWAPs to consider at each layer.
+
     Returns:
         Optional(_Step): Describes the solution step found.  If ``None``, no swaps leading to an
         improvement were found.
+
     """
     if state.swaps is None:
         # Include symmetric couplings (e.g [0,1] and [1,0]) as one swap.
@@ -287,6 +290,7 @@ def _map_free_gates(state, gates):
         tuple:
             mapped_gates (list): ops for gates that can be executed, mapped onto layout.
             remaining_gates (list): gates that cannot be executed on the layout.
+
     """
     blocked_qubits = set()
 
@@ -354,6 +358,7 @@ def _score_state_with_swap(swap, state, gates):
         float: the score of the given swap.
         Tuple[int, int]: the input swap that should be performed.
         _SystemState: an updated system state with the new layout contained.
+
     """
     trial_layout = state.layout.copy()
     trial_layout.swap(*swap)

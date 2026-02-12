@@ -10,9 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Simple circuit constructors for Weyl reflections.
-"""
+"""Simple circuit constructors for Weyl reflections."""
 
 from __future__ import annotations
 import numpy as np
@@ -64,8 +62,7 @@ and second qubits and are passed pi as a parameter.
 
 
 def apply_reflection(reflection_name, coordinate):
-    """
-    Given a reflection type and a canonical coordinate, applies the reflection
+    """Given a reflection type and a canonical coordinate, applies the reflection
     and describes a circuit which enacts the reflection + a global phase shift.
     """
     reflection_scalars, reflection_phase_shift, source_reflection_gates = reflection_options[
@@ -80,8 +77,7 @@ def apply_reflection(reflection_name, coordinate):
 
 
 def apply_shift(shift_name, coordinate):
-    """
-    Given a shift type and a canonical coordinate, applies the shift and
+    """Given a shift type and a canonical coordinate, applies the shift and
     describes a circuit which enacts the shift + a global phase shift.
     """
     shift_scalars, shift_phase_shift, source_shift_gates = shift_options[shift_name]
@@ -96,8 +92,7 @@ def apply_shift(shift_name, coordinate):
 
 
 def canonical_rotation_circuit(first_index, second_index):
-    """
-    Given a pair of distinct indices 0 ≤ (first_index, second_index) ≤ 2,
+    """Given a pair of distinct indices 0 ≤ (first_index, second_index) ≤ 2,
     produces a two-qubit circuit which rotates a canonical gate
 
         a0 XX + a1 YY + a2 ZZ

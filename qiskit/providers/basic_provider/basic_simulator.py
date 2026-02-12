@@ -71,7 +71,8 @@ class BasicSimulator(BackendV2):
     """Python implementation of a basic (non-efficient) quantum simulator.
 
     The simulator supports up to 24 qubits for statevector simulation and up to
-    2048 qubits for Clifford/Stabilizer simulation."""
+    2048 qubits for Clifford/Stabilizer simulation.
+    """
 
     # Formerly calculated as `int(log2(local_hardware_info()["memory"]*(1024**3)/16))`.
     # After the removal of `local_hardware_info()`, Statevector simulation is limited to 24 qubits.
@@ -87,8 +88,7 @@ class BasicSimulator(BackendV2):
         target: Target | None = None,
         **fields,
     ) -> None:
-        """
-        Args:
+        """Args:
             provider: An optional backwards reference to the provider object that the backend
                 is from.
             target: An optional target to configure the simulator.
@@ -98,8 +98,8 @@ class BasicSimulator(BackendV2):
         Raises:
             AttributeError: If a field is specified that's outside the backend's
                 options.
-        """
 
+        """
         super().__init__(
             provider=provider,
             name="basic_simulator",
@@ -139,6 +139,7 @@ class BasicSimulator(BackendV2):
 
         Returns:
             The configured target.
+
         """
         # Set num_qubits to None to signal the transpiler not to
         # resize the circuit to fit a specific (potentially too large)
@@ -235,6 +236,7 @@ class BasicSimulator(BackendV2):
         Args:
             gate (matrix_like): an N-qubit unitary matrix
             qubits (list): the list of N-qubits.
+
         """
         # Get the number of qubits
         num_qubits = len(qubits)
@@ -256,6 +258,7 @@ class BasicSimulator(BackendV2):
         Return:
             pair (outcome, probability) where outcome is '0' or '1' and
             probability is the probability of the returned outcome.
+
         """
         # Axis for numpy.sum to compute probabilities
         axis = list(range(self._number_of_qubits))
@@ -280,6 +283,7 @@ class BasicSimulator(BackendV2):
 
         Returns:
             A list of memory values in hex format.
+
         """
         # Get unique qubits that are actually measured and sort in
         # ascending order
@@ -319,6 +323,7 @@ class BasicSimulator(BackendV2):
         Args:
             qubit: index of the qubit measured.
             cmembit: index of the classical memory bit to store outcome in.
+
         """
         # get measure outcome
         outcome, probability = self._get_measure_outcome(qubit)
@@ -343,6 +348,7 @@ class BasicSimulator(BackendV2):
         This is done by doing a simulating a measurement
         outcome and projecting onto the outcome state while
         renormalizing.
+
         """
         # get measure outcome
         outcome, probability = self._get_measure_outcome(qubit)
@@ -369,7 +375,6 @@ class BasicSimulator(BackendV2):
 
     def _set_run_options(self, run_options: dict | None = None) -> None:
         """Set the backend run options for all circuits"""
-
         # Reset internal variables every time "run" is called using saved options
         self._shots = self.options.get("shots")
         self._memory = self.options.get("memory")
@@ -474,6 +479,7 @@ class BasicSimulator(BackendV2):
                     circuit_2q,
                     initial_statevector = np.array([1, 0, 0, 1j]) / math.sqrt(2)
                 )
+
         """
         out_options = {}
         for key, value in run_options.items():
@@ -497,6 +503,7 @@ class BasicSimulator(BackendV2):
 
         Returns:
             Result object
+
         """
         if isinstance(run_input, QuantumCircuit):
             run_input = [run_input]
@@ -539,8 +546,8 @@ class BasicSimulator(BackendV2):
 
         Returns:
             Result dictionary matching _run_circuit format
-        """
 
+        """
         start = time.time()
 
         # Find measurement operations
@@ -640,10 +647,11 @@ class BasicSimulator(BackendV2):
                 "success": boolean
                 "time_taken": simulation time of this single experiment
                 }
+
         Raises:
             BasicProviderError: if an error occurred.
-        """
 
+        """
         # Set these BEFORE the Clifford check
         self._number_of_qubits = circuit.num_qubits
         self._number_of_cmembits = circuit.num_clbits

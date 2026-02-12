@@ -10,9 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-CNOTDihedral Operators
-"""
+"""CNOTDihedral Operators"""
 
 from __future__ import annotations
 from .dihedral import CNOTDihedral

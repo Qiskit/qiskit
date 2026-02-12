@@ -10,9 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-BitArray
-"""
+"""BitArray"""
 
 from __future__ import annotations
 
@@ -85,8 +83,7 @@ class BitArray(ShapedMixin):
     """
 
     def __init__(self, array: NDArray[np.uint8], num_bits: int):
-        """
-        Args:
+        """Args:
             array: The ``uint8`` data array.
             num_bits: How many bit are in each outcome.
 
@@ -94,6 +91,7 @@ class BitArray(ShapedMixin):
             TypeError: If the input is not a NumPy array with type ``numpy.uint8``.
             ValueError: If the input array has fewer than two axes, or the size of the last axis
                 is not the smallest number of bytes that can contain ``num_bits``.
+
         """
         super().__init__()
 
@@ -206,6 +204,7 @@ class BitArray(ShapedMixin):
 
         Returns:
             A ``numpy.uint64``-array with shape ``(*shape, num_shots)``.
+
         """
         return _WEIGHT_LOOKUP[self._array].sum(axis=-1)
 
@@ -223,6 +222,7 @@ class BitArray(ShapedMixin):
 
         Returns:
             A new bit array.
+
         """
         array = np.asarray(array, dtype=bool)
 
@@ -267,6 +267,7 @@ class BitArray(ShapedMixin):
         Raises:
             ValueError: If different mappings have different numbers of shots.
             ValueError: If no counts dictionaries are supplied.
+
         """
         if singleton := isinstance(counts, Mapping):
             counts = [counts]
@@ -309,6 +310,7 @@ class BitArray(ShapedMixin):
 
         Raises:
             ValueError: If no strings are given.
+
         """
         samples = iter(samples)
         try:
@@ -346,6 +348,7 @@ class BitArray(ShapedMixin):
 
         Raises:
             ValueError: If the order is not one of ``"big"`` or ``"little"``.
+
         """
         if order not in ("big", "little"):
             raise ValueError(
@@ -366,6 +369,7 @@ class BitArray(ShapedMixin):
 
         Returns:
             A dictionary mapping bitstrings to the number of occurrences of that bitstring.
+
         """
         mask = 2**self.num_bits - 1
         converter = partial(self._bytes_to_bitstring, num_bits=self.num_bits, mask=mask)
@@ -394,6 +398,7 @@ class BitArray(ShapedMixin):
 
         Returns:
             A list of bitstrings.
+
         """
         mask = 2**self.num_bits - 1
         converter = partial(self._bytes_to_bitstring, num_bits=self.num_bits, mask=mask)
@@ -418,6 +423,7 @@ class BitArray(ShapedMixin):
         Raises:
             ValueError: If the size corresponding to your new shape is not equal to either
                 :attr:`~size`, or the product of :attr:`~size` and :attr:`~num_shots`.
+
         """
         shape = shape_tuple(shape)
         if (size := np.prod(shape, dtype=int)) == self.size:
@@ -443,6 +449,7 @@ class BitArray(ShapedMixin):
         Raises:
             ValueError: If ``axes`` don't match this bit array.
             ValueError: If ``axes`` includes any indices that are out of bounds.
+
         """
         if len(axes) == 0:
             axes = tuple(reversed(range(self.ndim)))
@@ -479,6 +486,7 @@ class BitArray(ShapedMixin):
 
         Raises:
             IndexError: If there are any invalid indices of the bit axis.
+
         """
         if isinstance(indices, int):
             indices = (indices,)
@@ -506,6 +514,7 @@ class BitArray(ShapedMixin):
 
         Raises:
             IndexError: If there are any invalid indices of the shots axis.
+
         """
         if isinstance(indices, int):
             indices = (indices,)
@@ -548,6 +557,7 @@ class BitArray(ShapedMixin):
             IndexError: If ``max(indices)`` is greater than or equal to :attr:`num_bits`.
             IndexError: If ``min(indices)`` is less than negative :attr:`num_bits`.
             ValueError: If the lengths of ``selection`` and ``indices`` do not match.
+
         """
         if isinstance(indices, int):
             indices = (indices,)
@@ -635,6 +645,7 @@ class BitArray(ShapedMixin):
             ValueError: If the provided observables does not have the same number of qubits as
                 the number of bits of this bit array.
             ValueError: If the provided observables are not diagonal.
+
         """
         observables = ObservablesArray.coerce(observables)
         arr_indices = np.fromiter(np.ndindex(self.shape), dtype=object).reshape(self.shape)
@@ -672,6 +683,7 @@ class BitArray(ShapedMixin):
             ValueError: If any bit arrays has a different number of bits.
             ValueError: If any bit arrays has a different number of shots.
             ValueError: If any bit arrays has a different number of dimensions.
+
         """
         if len(bit_arrays) == 0:
             raise ValueError("Need at least one bit array to concatenate")
@@ -719,6 +731,7 @@ class BitArray(ShapedMixin):
             ValueError: If the sequence of bit arrays is empty.
             ValueError: If any bit arrays has a different number of bits.
             ValueError: If any bit arrays has a different shape.
+
         """
         if len(bit_arrays) == 0:
             raise ValueError("Need at least one bit array to stack")
@@ -758,6 +771,7 @@ class BitArray(ShapedMixin):
             ValueError: If the sequence of bit arrays is empty.
             ValueError: If any bit arrays has a different number of shots.
             ValueError: If any bit arrays has a different shape.
+
         """
         if len(bit_arrays) == 0:
             raise ValueError("Need at least one bit array to stack")

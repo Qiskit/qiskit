@@ -10,8 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Superoperator representation of a Quantum Channel."""
+"""Superoperator representation of a Quantum Channel."""
 
 from __future__ import annotations
 
@@ -59,6 +58,7 @@ class SuperOp(QuantumChannel):
         1. C.J. Wood, J.D. Biamonte, D.G. Cory, *Tensor networks and graphical calculus
            for open quantum systems*, Quant. Inf. Comp. 15, 0579-0811 (2015).
            `arXiv:1111.6950 [quant-ph] <https://arxiv.org/abs/1111.6950>`_
+
     """
 
     def __init__(
@@ -84,6 +84,7 @@ class SuperOp(QuantumChannel):
             a Numpy array of shape (4**N, 4**N) qubit systems will be used. If
             the input operator is not an N-qubit operator, it will assign a
             single subsystem with dimension specified by the shape of the input.
+
         """
         # If the input is a raw list or matrix we assume that it is
         # already a superoperator.
@@ -248,6 +249,7 @@ class SuperOp(QuantumChannel):
         Raises:
             QiskitError: if the quantum channel dimension does not match the
                          specified quantum state subsystem dimensions.
+
         """
         # Prevent cyclic imports by importing DensityMatrix here
 

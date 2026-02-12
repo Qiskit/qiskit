@@ -74,9 +74,9 @@ class YGate(SingletonGate):
     _standard_gate = StandardGate.Y
 
     def __init__(self, label: str | None = None):
-        """
-        Args:
-            label: An optional label for the gate.
+        """Args:
+        label: An optional label for the gate.
+
         """
         super().__init__("y", 1, [], label=label)
 
@@ -84,7 +84,6 @@ class YGate(SingletonGate):
 
     def _define(self):
         """Default definition"""
-
         from qiskit.circuit import QuantumCircuit
 
         #    ┌──────────────┐
@@ -122,6 +121,7 @@ class YGate(SingletonGate):
 
         Returns:
             A controlled version of this gate.
+
         """
         if num_ctrl_qubits == 1:
             gate = CYGate(label=label, ctrl_state=ctrl_state, _base_label=self.label)
@@ -145,6 +145,7 @@ class YGate(SingletonGate):
 
         Returns:
             YGate: inverse gate (self-inverse).
+
         """
         return YGate()  # self-inverse
 
@@ -234,7 +235,6 @@ class CYGate(SingletonControlledGate):
 
     def _define(self):
         """Default definition"""
-
         from qiskit.circuit import QuantumCircuit
 
         # q_0: ─────────■───────
@@ -257,6 +257,7 @@ class CYGate(SingletonControlledGate):
 
         Returns:
             CYGate: inverse gate (self-inverse).
+
         """
         return CYGate(ctrl_state=self.ctrl_state)  # self-inverse
 

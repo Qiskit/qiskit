@@ -24,8 +24,7 @@ from qiskit._accelerate.ross_selinger import gridsynth_unitary as gridsynth_unit
 
 
 def gridsynth_rz(angle: float, epsilon: float = 1e-10) -> QuantumCircuit:
-    """
-    Approximate RZ-rotation using the Ross-Selinger algorithm.
+    """Approximate RZ-rotation using the Ross-Selinger algorithm.
 
     The algorithm is described in [1]. The source code (in Rust) is available at
     https://github.com/qiskit-community/rsgridsynth.
@@ -38,12 +37,10 @@ def gridsynth_rz(angle: float, epsilon: float = 1e-10) -> QuantumCircuit:
         A one-qubit circuit approximating ``RZ(angle)``.
 
     References:
-
     [1] Neil J. Ross, Peter Selinger, Optimal ancilla-free Clifford+T approximation of z-rotations,
         `arXiv:1403.2975 <https://arxiv.org/pdf/1403.2975>`_
 
     """
-
     approximate_circuit_data = gridsynth_rz_rs(angle, epsilon)
     approximate_circuit = QuantumCircuit._from_circuit_data(
         approximate_circuit_data, legacy_qubits=True
@@ -52,8 +49,7 @@ def gridsynth_rz(angle: float, epsilon: float = 1e-10) -> QuantumCircuit:
 
 
 def gridsynth_unitary(matrix: np.ndarray, epsilon: float = 1e-10) -> QuantumCircuit:
-    """
-    Approximate a 1-qubit unitary matrix using the Ross-Selinger algorithm.
+    r"""Approximate a 1-qubit unitary matrix using the Ross-Selinger algorithm.
 
     The algorithm is described in [1]. The source code (in Rust) is available at
     https://github.com/qiskit-community/rsgridsynth.
@@ -66,12 +62,10 @@ def gridsynth_unitary(matrix: np.ndarray, epsilon: float = 1e-10) -> QuantumCirc
         A one-qubit circuit approximating ``matrix``.
 
     References:
-
     [1] Neil J. Ross, Peter Selinger, Optimal ancilla-free Clifford+T approximation of z-rotations,
         `arXiv:1403.2975 <https://arxiv.org/pdf/1403.2975>`_
 
     """
-
     approximate_circuit_data = gridsynth_unitary_rs(matrix, epsilon)
     approximate_circuit = QuantumCircuit._from_circuit_data(
         approximate_circuit_data, legacy_qubits=True

@@ -35,8 +35,7 @@ class CommutativeCancellation(TransformationPass):
     """
 
     def __init__(self, basis_gates=None, target=None):
-        """
-        CommutativeCancellation initializer.
+        """CommutativeCancellation initializer.
 
         Args:
             basis_gates (list[str]): Basis gates to consider, e.g.
@@ -46,6 +45,7 @@ class CommutativeCancellation(TransformationPass):
             target (Target): The :class:`~.Target` representing the target backend, if both
                 ``basis_gates`` and ``target`` are specified then this argument will take
                 precedence and ``basis_gates`` will be ignored.
+
         """
         super().__init__()
         if basis_gates:
@@ -77,6 +77,7 @@ class CommutativeCancellation(TransformationPass):
 
         Returns:
             DAGCircuit: the optimized DAG.
+
         """
         commutation_cancellation.cancel_commutations(
             dag, self._commutation_checker, sorted(self.basis)

@@ -57,6 +57,7 @@ class LayoutTransformation(TransformationPass):
 
             trials (int):
                 How many randomized trials to perform, taking the best circuit as output.
+
         """
         super().__init__()
         self.from_layout = from_layout
@@ -85,6 +86,7 @@ class LayoutTransformation(TransformationPass):
         Raises:
             TranspilerError: if the coupling map or the layout are not compatible with the DAG.
                 Or if either of string from/to_layout is not found in `property_set`.
+
         """
         if len(dag.qregs) != 1 or dag.qregs.get("q", None) is None:
             raise TranspilerError("LayoutTransform runs on physical circuits only")

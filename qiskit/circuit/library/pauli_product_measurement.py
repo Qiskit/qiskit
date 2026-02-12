@@ -36,10 +36,10 @@ class PauliProductMeasurement(Instruction):
     indicating the eigenstate of the Pauli product.
 
     References:
-
     [1] Daniel Litinski.
     "A Game of Surface Codes: Large-Scale Quantum Computing with Lattice Surgery"
     `arXiv:1808.02892 <https://arxiv.org/abs/1808.02892>`__
+
     """
 
     def __init__(
@@ -47,8 +47,7 @@ class PauliProductMeasurement(Instruction):
         pauli: qiskit.quantum_info.Pauli,
         label: str | None = None,
     ):
-        """
-        Args:
+        """Args:
             pauli: A tensor product of Pauli operators defining the measurement,
                 for example ``Pauli("XY")`` or ``Pauli("-XYIZ")``.
                 The identity Pauli operator is not permitted.
@@ -64,7 +63,6 @@ class PauliProductMeasurement(Instruction):
             a smaller set of qubits.
 
         """
-
         if not isinstance(pauli, Pauli):
             raise CircuitError(
                 "A Pauli Product Measurement instruction can only be "
@@ -104,8 +102,7 @@ class PauliProductMeasurement(Instruction):
 
     @classmethod
     def _from_pauli_data(cls, z, x, phase, label):
-        """
-        Instantiates a PauliProductMeasurement isntruction from pauli data and label.
+        """Instantiates a PauliProductMeasurement isntruction from pauli data and label.
         This function is used internally from within the rust code and from QPY
         serialization.
         """
@@ -149,6 +146,7 @@ class PauliProductMeasurement(Instruction):
 
         Returns:
             The Pauli product measured by this instruction.
+
         """
         return Pauli((self._pauli_z, self._pauli_x, self._pauli_phase))
 

@@ -53,7 +53,6 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
         Qiskit's Pauli rotations.
 
     Examples:
-
         >>> from qiskit import QuantumCircuit
         >>> from qiskit.circuit.library.arithmetic.piecewise_polynomial_pauli_rotations import\
         ... PiecewisePolynomialPauliRotations
@@ -80,7 +79,6 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
                   └──────────┘
 
     References:
-
     [1] Haener, T., Roetteler, M., & Svore, K. M. (2018).
     Optimizing Quantum Circuits for Arithmetic.
     `arXiv:1805.12445 <https://arxiv.org/abs/1805.12445>`_
@@ -88,6 +86,7 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
     [2] Carrera Vazquez, A., Hiptmair, R., & Woerner, S. (2022).
     Enhancing the Quantum Linear Systems Algorithm using Richardson Extrapolation.
     `ACM Transactions on Quantum Computing 3, 1, Article 2 <https://doi.org/10.1145/3490631>`_
+
     """
 
     @deprecate_func(
@@ -103,17 +102,17 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
         basis: str = "Y",
         name: str = "pw_poly",
     ) -> None:
-        """
-        Args:
-            num_state_qubits: The number of qubits representing the state.
-            breakpoints: The breakpoints to define the piecewise-linear function.
-                Defaults to ``[0]``.
-            coeffs: The coefficients of the polynomials for different segments of the
-                piecewise-linear function. ``coeffs[j][i]`` is the coefficient of the i-th power of x
-                for the j-th polynomial.
-                Defaults to linear: ``[[1]]``.
-            basis: The type of Pauli rotation (``'X'``, ``'Y'``, ``'Z'``).
-            name: The name of the circuit.
+        """Args:
+        num_state_qubits: The number of qubits representing the state.
+        breakpoints: The breakpoints to define the piecewise-linear function.
+            Defaults to ``[0]``.
+        coeffs: The coefficients of the polynomials for different segments of the
+            piecewise-linear function. ``coeffs[j][i]`` is the coefficient of the i-th power of x
+            for the j-th polynomial.
+            Defaults to linear: ``[[1]]``.
+        basis: The type of Pauli rotation (``'X'``, ``'Y'``, ``'Z'``).
+        name: The name of the circuit.
+
         """
         # store parameters
         self._breakpoints = breakpoints if breakpoints is not None else [0]
@@ -136,6 +135,7 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
 
         Returns:
             The list of breakpoints.
+
         """
         if (
             self.num_state_qubits is not None
@@ -152,6 +152,7 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
 
         Args:
             breakpoints: The new breakpoints.
+
         """
         self._invalidate()
         self._breakpoints = breakpoints
@@ -165,6 +166,7 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
 
         Returns:
             The polynomial coefficients per interval as nested lists.
+
         """
         return self._coeffs
 
@@ -174,6 +176,7 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
 
         Args:
             coeffs: The new polynomials.
+
         """
         self._invalidate()
         self._coeffs = coeffs
@@ -194,6 +197,7 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
 
         Returns:
             The mapped coefficients.
+
         """
         return _map_coeffs(self._hom_coeffs)
 
@@ -203,6 +207,7 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
 
         Returns:
             True, if 0 is the first breakpoint, otherwise False.
+
         """
         return np.isclose(0, self.breakpoints[0])
 
@@ -214,8 +219,8 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
 
         Returns:
             Value of piecewise polynomial function at x.
-        """
 
+        """
         y = 0
         for i, breakpt in enumerate(self.breakpoints):
             y = y + (x >= breakpt) * (np.poly1d(self.mapped_coeffs[i][::-1])(x))
@@ -379,7 +384,6 @@ class PiecewisePolynomialPauliRotationsGate(Gate):
                   └──────────┘
 
     References:
-
     [1] Haener, T., Roetteler, M., & Svore, K. M. (2018).
     Optimizing Quantum Circuits for Arithmetic.
     `arXiv:1805.12445 <https://arxiv.org/abs/1805.12445>`_
@@ -387,6 +391,7 @@ class PiecewisePolynomialPauliRotationsGate(Gate):
     [2] Carrera Vazquez, A., Hiptmair, R., & Woerner, S. (2022).
     Enhancing the Quantum Linear Systems Algorithm using Richardson Extrapolation.
     `ACM Transactions on Quantum Computing 3, 1, Article 2 <https://doi.org/10.1145/3490631>`_
+
     """
 
     def __init__(
@@ -397,19 +402,18 @@ class PiecewisePolynomialPauliRotationsGate(Gate):
         basis: str = "Y",
         label: str | None = None,
     ) -> None:
-        """
-        Args:
-            num_state_qubits: The number of qubits representing the state.
-            breakpoints: The breakpoints to define the piecewise-linear function.
-                Defaults to ``[0]``.
-            coeffs: The coefficients of the polynomials for different segments of the
-                piecewise-linear function. ``coeffs[j][i]`` is the coefficient of the i-th power of x
-                for the j-th polynomial.
-                Defaults to linear: ``[[1]]``.
-            basis: The type of Pauli rotation (``'X'``, ``'Y'``, ``'Z'``).
-            label: An optional label for the gate.
-        """
+        """Args:
+        num_state_qubits: The number of qubits representing the state.
+        breakpoints: The breakpoints to define the piecewise-linear function.
+            Defaults to ``[0]``.
+        coeffs: The coefficients of the polynomials for different segments of the
+            piecewise-linear function. ``coeffs[j][i]`` is the coefficient of the i-th power of x
+            for the j-th polynomial.
+            Defaults to linear: ``[[1]]``.
+        basis: The type of Pauli rotation (``'X'``, ``'Y'``, ``'Z'``).
+        label: An optional label for the gate.
 
+        """
         if coeffs is None:
             degree = 0
             coeffs = [[1]]
@@ -442,6 +446,7 @@ class PiecewisePolynomialPauliRotationsGate(Gate):
 
         Returns:
             Value of piecewise polynomial function at x.
+
         """
         mapped_coeffs = _map_coeffs(self.coeffs)
 

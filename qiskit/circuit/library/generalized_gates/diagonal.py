@@ -40,14 +40,14 @@ class Diagonal(QuantumCircuit):
         removal_timeline="in Qiskit 3.0",
     )
     def __init__(self, diag: Sequence[complex]) -> None:
-        r"""
-        Args:
+        r"""Args:
             diag: List of the :math:`2^k` diagonal entries (for a diagonal gate on :math:`k` qubits).
 
         Raises:
             CircuitError: if the list of the diagonal entries or the qubit list is in bad format;
                 if the number of diagonal entries is not :math:`2^k`, where :math:`k` denotes the
                 number of qubits.
+
         """
         DiagonalGate._check_input(diag)
         num_qubits = int(math.log2(len(diag)))
@@ -87,15 +87,15 @@ class DiagonalGate(Gate):
     at ETH in 2018, supervised by Raban Iten and Prof. Renato Renner.
 
     References:
-
     [1] Shende et al., Synthesis of Quantum Logic Circuits, 2009
     `arXiv:0406176 <https://arxiv.org/pdf/quant-ph/0406176.pdf>`_
+
     """
 
     def __init__(self, diag: Sequence[complex]) -> None:
-        r"""
-        Args:
-            diag: list of the :math:`2^k` diagonal entries (for a diagonal gate on :math:`k` qubits).
+        r"""Args:
+        diag: list of the :math:`2^k` diagonal entries (for a diagonal gate on :math:`k` qubits).
+
         """
         self._check_input(diag)
         num_qubits = int(math.log2(len(diag)))
@@ -128,7 +128,8 @@ class DiagonalGate(Gate):
 
     def validate_parameter(self, parameter):
         """Diagonal Gate parameter should accept complex
-        (in addition to the Gate parameter types) and always return build-in complex."""
+        (in addition to the Gate parameter types) and always return build-in complex.
+        """
         if isinstance(parameter, complex):
             return complex(parameter)
         else:
@@ -154,8 +155,7 @@ class DiagonalGate(Gate):
 
 
 def _extract_rz(phi1, phi2):
-    """
-    Extract a Rz rotation (angle given by first output) such that exp(j*phase)*Rz(z_angle)
+    """Extract a Rz rotation (angle given by first output) such that exp(j*phase)*Rz(z_angle)
     is equal to the diagonal matrix with entires exp(1j*ph1) and exp(1j*ph2).
     """
     phase = (phi1 + phi2) / 2.0

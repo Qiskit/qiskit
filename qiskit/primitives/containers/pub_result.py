@@ -10,9 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Base Pub result class
-"""
+"""Base Pub result class"""
 
 from __future__ import annotations
 
@@ -46,6 +44,7 @@ class PubResult:
         Args:
             data: Result data.
             metadata: Metadata specific to this pub. Keys are expected to be strings.
+
         """
         self._data = data
         self._metadata = metadata or {}

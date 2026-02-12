@@ -10,9 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Abstract base classes for primitives module.
-"""
+"""Abstract base classes for primitives module."""
 
 from .base_sampler import BaseSamplerV1, BaseSamplerV2
 from .base_estimator import BaseEstimatorV1, BaseEstimatorV2

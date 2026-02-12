@@ -58,13 +58,13 @@ class LinearPauliRotations(FunctionalPauliRotations):
         basis: str = "Y",
         name: str = "LinRot",
     ) -> None:
-        r"""
-        Args:
-            num_state_qubits: The number of qubits representing the state :math:`|x\rangle`.
-            slope: The slope of the controlled rotation.
-            offset: The offset of the controlled rotation.
-            basis: The type of Pauli rotation ('X', 'Y', 'Z').
-            name: The name of the circuit object.
+        r"""Args:
+        num_state_qubits: The number of qubits representing the state :math:`|x\rangle`.
+        slope: The slope of the controlled rotation.
+        offset: The offset of the controlled rotation.
+        basis: The type of Pauli rotation ('X', 'Y', 'Z').
+        name: The name of the circuit object.
+
         """
         super().__init__(num_state_qubits=num_state_qubits, basis=basis, name=name)
 
@@ -85,6 +85,7 @@ class LinearPauliRotations(FunctionalPauliRotations):
 
         Returns:
             The rotation angle common in all controlled rotations.
+
         """
         return self._slope
 
@@ -93,7 +94,8 @@ class LinearPauliRotations(FunctionalPauliRotations):
         """Set the multiplicative factor of the rotation angles.
 
         Args:
-            The slope of the rotation angles.
+            slope: The slope of the rotation angles.
+
         """
         if self._slope is None or slope != self._slope:
             self._invalidate()
@@ -108,6 +110,7 @@ class LinearPauliRotations(FunctionalPauliRotations):
 
         Returns:
             The offset angle.
+
         """
         return self._offset
 
@@ -117,6 +120,7 @@ class LinearPauliRotations(FunctionalPauliRotations):
 
         Args:
             offset: The offset rotation angle.
+
         """
         if self._offset is None or offset != self._offset:
             self._invalidate()
@@ -130,6 +134,7 @@ class LinearPauliRotations(FunctionalPauliRotations):
 
         Args:
             num_state_qubits: The new number of qubits.
+
         """
         self.qregs = []
 
@@ -204,13 +209,13 @@ class LinearPauliRotationsGate(Gate):
         basis: str = "Y",
         label: str | None = None,
     ) -> None:
-        r"""
-        Args:
-            num_state_qubits: The number of qubits representing the state :math:`|x\rangle`.
-            slope: The slope of the controlled rotation.
-            offset: The offset of the controlled rotation.
-            basis: The type of Pauli rotation ('X', 'Y', 'Z').
-            label: The label of the gate.
+        r"""Args:
+        num_state_qubits: The number of qubits representing the state :math:`|x\rangle`.
+        slope: The slope of the controlled rotation.
+        offset: The offset of the controlled rotation.
+        basis: The type of Pauli rotation ('X', 'Y', 'Z').
+        label: The label of the gate.
+
         """
         super().__init__("LinPauliRot", num_state_qubits + 1, [], label=label)
         self.slope = slope

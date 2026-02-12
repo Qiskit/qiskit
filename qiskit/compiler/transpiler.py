@@ -239,6 +239,7 @@ def transpile(
     Raises:
         TranspilerError: in case of bad inputs to transpiler (like conflicting parameters)
             or errors in passes
+
     """
     arg_circuits_list = isinstance(circuits, list)
     circuits = circuits if arg_circuits_list else [circuits]

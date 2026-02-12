@@ -47,8 +47,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-"""
-Routines for running Python functions in parallel using process pools
+"""Routines for running Python functions in parallel using process pools
 from the multiprocessing library.
 """
 
@@ -138,6 +137,7 @@ def local_hardware_info():
 
     Returns:
         dict: The hardware information.
+
     """
     return {
         "python_compiler": platform.python_compiler(),
@@ -196,6 +196,7 @@ def should_run_in_parallel(num_processes: int | None = None) -> bool:
             ...     assert should_run_in_parallel(8)
             >>> with should_run_in_parallel.override(False):
             ...     assert not should_run_in_parallel(8)
+
     """
     # It's a configuration function with many simple choices - it'd be less clean to return late.
 
@@ -227,7 +228,8 @@ def _parallel_ignore_user_settings():
     configuration variables.
 
     In particular, the ``QISKIT_PARALLEL`` environment variable and the user-configuration file are
-    ignored within this context."""
+    ignored within this context.
+    """
     # The way around this would be to encapsulate `should_run_in_parallel` into a class, but since
     # it's a singleton, it ends up being functionally no different to a global anyway.
     global _PARALLEL_IGNORE_USER_SETTINGS  # noqa: PLW0603
@@ -247,7 +249,8 @@ def _parallel_override(value: bool):
     ``value``.
 
     This is not a *complete* override; Qiskit will never attempt to parallelize if only a single
-    process is available, and will not allow process-based parallelism at a depth greater than 1."""
+    process is available, and will not allow process-based parallelism at a depth greater than 1.
+    """
     # The way around this would be to encapsulate `should_run_in_parallel` into a class, but since
     # it's a singleton, it ends up being functionally no different to a global anyway.
     global _PARALLEL_OVERRIDE  # noqa: PLW0603
@@ -266,8 +269,7 @@ should_run_in_parallel.override = _parallel_override
 
 
 def parallel_map(task, values, task_args=(), task_kwargs=None, num_processes=None):
-    """
-    Parallel execution of a mapping of `values` to the function `task`. This
+    """Parallel execution of a mapping of `values` to the function `task`. This
     is functionally equivalent to::
 
         result = [task(value, *task_args, **task_kwargs) for value in values]
@@ -300,6 +302,7 @@ def parallel_map(task, values, task_args=(), task_kwargs=None, num_processes=Non
                     time.sleep(0.1)
                     return 0
             parallel_map(func, list(range(10)));
+
     """
     task_kwargs = {} if task_kwargs is None else task_kwargs
     if num_processes is None:

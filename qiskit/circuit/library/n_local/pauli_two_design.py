@@ -80,12 +80,12 @@ def pauli_two_design(
         A Pauli 2-design circuit.
 
     References:
-
     [1] Nakata et al., Unitary 2-designs from random X- and Z-diagonal unitaries.
     `arXiv:1502.07514 <https://arxiv.org/pdf/1502.07514.pdf>`_
 
     [2] McClean et al., Barren plateaus in quantum neural network training landscapes.
     `arXiv:1803.11173 <https://arxiv.org/pdf/1803.11173.pdf>`_
+
     """
     rng = np.random.default_rng(seed)
     random_block = Block.from_callable(1, 1, lambda params: _random_pauli_builder(params, rng))
@@ -161,12 +161,12 @@ class PauliTwoDesign(TwoLocal):
         The :func:`.pauli_two_design` function constructs the functionally same circuit, but faster.
 
     References:
-
         [1]: Nakata et al., Unitary 2-designs from random X- and Z-diagonal unitaries.
             `arXiv:1502.07514 <https://arxiv.org/pdf/1502.07514.pdf>`_
 
         [2]: McClean et al., Barren plateaus in quantum neural network training landscapes.
              `arXiv:1803.11173 <https://arxiv.org/pdf/1803.11173.pdf>`_
+
     """
 
     @deprecate_func(
@@ -182,14 +182,13 @@ class PauliTwoDesign(TwoLocal):
         insert_barriers: bool = False,
         name: str = "PauliTwoDesign",
     ):
-        """
-        Args:
-            num_qubits: The number of qubits of the Pauli Two-Design circuit.
-            reps: Specifies how often a block consisting of a rotation layer and entanglement
-                layer is repeated.
-            seed: The seed for randomly choosing the axes of the Pauli rotations.
-            insert_barriers: If ``True``, barriers are inserted in between each layer. If ``False``,
-                no barriers are inserted. Defaults to ``False``.
+        """Args:
+        num_qubits: The number of qubits of the Pauli Two-Design circuit.
+        reps: Specifies how often a block consisting of a rotation layer and entanglement
+            layer is repeated.
+        seed: The seed for randomly choosing the axes of the Pauli rotations.
+        insert_barriers: If ``True``, barriers are inserted in between each layer. If ``False``,
+            no barriers are inserted. Defaults to ``False``.
 
         """
         # store a random number generator
@@ -242,5 +241,6 @@ class PauliTwoDesign(TwoLocal):
 
         Returns:
             The number of possibly distinct parameters.
+
         """
         return (self.reps + 1) * self.num_qubits

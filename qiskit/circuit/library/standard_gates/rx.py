@@ -54,16 +54,15 @@ class RXGate(Gate):
     _standard_gate = StandardGate.RX
 
     def __init__(self, theta: ParameterValueType, label: str | None = None):
-        """
-        Args:
-            theta: The rotation angle.
-            label: An optional label for the gate.
+        """Args:
+        theta: The rotation angle.
+        label: An optional label for the gate.
+
         """
         super().__init__("rx", 1, [theta], label=label)
 
     def _define(self):
         """Default definition"""
-
         from qiskit.circuit import QuantumCircuit
 
         #    ┌────────┐
@@ -103,6 +102,7 @@ class RXGate(Gate):
 
         Returns:
             A controlled version of this gate.
+
         """
         if num_ctrl_qubits == 1:
             gate = CRXGate(
@@ -130,6 +130,7 @@ class RXGate(Gate):
 
         Returns:
             RXGate: inverse gate.
+
         """
         return RXGate(-self.params[0])
 
@@ -233,7 +234,6 @@ class CRXGate(ControlledGate):
 
     def _define(self):
         """Default definition"""
-
         from qiskit.circuit import QuantumCircuit
 
         # q_0: ───────■────────────────────■──────────────────────
@@ -256,6 +256,7 @@ class CRXGate(ControlledGate):
 
         Returns:
             CRXGate: inverse gate.
+
         """
         return CRXGate(-self.params[0], ctrl_state=self.ctrl_state)
 

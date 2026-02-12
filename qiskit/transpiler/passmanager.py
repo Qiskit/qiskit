@@ -48,6 +48,7 @@ class PassManager(BasePassManager):
             passes: A pass set to be added to the pass manager schedule.
             max_iteration: The maximum number of iterations the schedule will be looped if the
                 condition is not met.
+
         """
         super().__init__(
             tasks=passes,
@@ -107,6 +108,7 @@ class PassManager(BasePassManager):
 
         Raises:
             TranspilerError: if a pass in passes is not a proper pass.
+
         """
         super().append(tasks=passes)
 
@@ -120,6 +122,7 @@ class PassManager(BasePassManager):
         Args:
             index: Pass index to replace, based on the position in passes().
             passes: A pass set to be added to the pass manager schedule.
+
         """
         super().replace(index, tasks=passes)
 
@@ -189,6 +192,7 @@ class PassManager(BasePassManager):
 
         Returns:
             The transformed circuit(s).
+
         """
         if callback is not None:
             callback = _legacy_style_callback(callback)
@@ -222,6 +226,7 @@ class PassManager(BasePassManager):
 
         Raises:
             ImportError: when nxpd or pydot not installed.
+
         """
         from qiskit.visualization import pass_manager_drawer
 
@@ -299,6 +304,7 @@ class StagedPassManager(PassManager):
         Raises:
             AttributeError: If a stage in the input keyword arguments is not defined.
             ValueError: If an invalid stage name is specified.
+
         """
         stages = stages or [
             "init",
@@ -369,6 +375,12 @@ class StagedPassManager(PassManager):
         self,
         passes: Task | list[Task],
     ) -> None:
+        """Append a Pass Set to the schedule of passes.
+
+        This method will raise a :class:`NotImplementedError` as it is not supported on
+        :class:`.StagedPassManager`. You should run this method on a stage's
+        pass manager and not on the :class:`.StagedPassManager`.
+        """
         raise NotImplementedError
 
     def replace(
@@ -376,10 +388,23 @@ class StagedPassManager(PassManager):
         index: int,
         passes: BasePass | list[BasePass],
     ) -> None:
+        """Replace a particular pass in the scheduler.
+
+        This method will raise a :class:`NotImplementedError` as it is not supported on
+        :class:`.StagedPassManager`. You should run this method on a stage's
+        pass manager and not on the :class:`.StagedPassManager`.
+        """
         raise NotImplementedError
 
     # Raise NotImplemntedError on individual pass manipulation
     def remove(self, index: int) -> None:
+        """Removes a particular pass in the scheduler.
+
+        This method will raise a :class:`NotImplementedError` as it is not supported on
+        :class:`.StagedPassManager`. You should run this method on a stage's
+        pass manager and not on the :class:`.StagedPassManager`.
+
+        """
         raise NotImplementedError
 
     def __getitem__(self, index):
@@ -401,7 +426,7 @@ class StagedPassManager(PassManager):
     def __add__(self, other):
         raise NotImplementedError
 
-    def run(
+    def run(  # noqa: D102
         self,
         circuits: _CircuitsT,
         output_name: str | None = None,
@@ -413,7 +438,7 @@ class StagedPassManager(PassManager):
         self._update_passmanager()
         return super().run(circuits, output_name, callback, num_processes=num_processes)
 
-    def to_flow_controller(self) -> FlowControllerLinear:
+    def to_flow_controller(self) -> FlowControllerLinear:  # noqa: D102
         self._update_passmanager()
         return super().to_flow_controller()
 

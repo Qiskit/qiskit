@@ -77,9 +77,9 @@ class ZGate(SingletonGate):
     _standard_gate = StandardGate.Z
 
     def __init__(self, label: str | None = None):
-        """
-        Args:
-            label: An optional label for the gate.
+        """Args:
+        label: An optional label for the gate.
+
         """
         super().__init__("z", 1, [], label=label)
 
@@ -87,7 +87,6 @@ class ZGate(SingletonGate):
 
     def _define(self):
         """Default definition"""
-
         from qiskit.circuit import QuantumCircuit
 
         #    ┌──────┐
@@ -126,6 +125,7 @@ class ZGate(SingletonGate):
 
         Returns:
             A controlled version of this gate.
+
         """
         if num_ctrl_qubits == 1:
             gate = CZGate(label=label, ctrl_state=ctrl_state, _base_label=self.label)
@@ -151,6 +151,7 @@ class ZGate(SingletonGate):
 
         Returns:
             ZGate: inverse gate (self-inverse).
+
         """
         return ZGate()  # self-inverse
 
@@ -219,7 +220,6 @@ class CZGate(SingletonControlledGate):
 
     def _define(self):
         """Default definition"""
-
         from qiskit.circuit import QuantumCircuit
 
         # q_0: ───────■───────
@@ -242,6 +242,7 @@ class CZGate(SingletonControlledGate):
 
         Returns:
             CZGate: inverse gate (self-inverse).
+
         """
         return CZGate(ctrl_state=self.ctrl_state)  # self-inverse
 
@@ -272,8 +273,8 @@ class CZGate(SingletonControlledGate):
 
         Returns:
             A controlled version of this gate.
-        """
 
+        """
         if num_ctrl_qubits == 1:
             ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
             new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
@@ -355,7 +356,6 @@ class CCZGate(SingletonControlledGate):
 
     def _define(self):
         """Default definition"""
-
         from qiskit.circuit import QuantumCircuit
 
         # q_0: ───────■───────
@@ -380,6 +380,7 @@ class CCZGate(SingletonControlledGate):
 
         Returns:
             CCZGate: inverse gate (self-inverse).
+
         """
         return CCZGate(ctrl_state=self.ctrl_state)  # self-inverse
 

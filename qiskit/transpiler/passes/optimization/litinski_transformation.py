@@ -19,8 +19,7 @@ from qiskit._accelerate.litinski_transformation import run_litinski_transformati
 
 
 class LitinskiTransformation(TransformationPass):
-    """
-    Applies Litinski transform to a circuit.
+    """Applies Litinski transform to a circuit.
 
     The transform applies to a circuit containing Clifford, single-qubit RZ-rotation gates
     (including T and Tdg), and standard Z-measurements, and moves Clifford gates to the end
@@ -40,20 +39,18 @@ class LitinskiTransformation(TransformationPass):
     ``["t", "tdg", "rz"]``
 
     References:
-
         [1]: Litinski. A Game of Surface Codes.
              `Quantum 3, 128 (2019) <https://quantum-journal.org/papers/q-2019-03-05-128>`_
 
     """
 
     def __init__(self, fix_clifford: bool = True):
-        """
+        """Args:
+        fix_clifford: if ``False`` (non-default), the returned circuit contains
+            only PauliEvolution gates, with the final Clifford gates omitted.
+            Note that in this case the operators of the original and synthesized
+            circuits will generally not be equivalent.
 
-        Args:
-            fix_clifford: if ``False`` (non-default), the returned circuit contains
-                only PauliEvolution gates, with the final Clifford gates omitted.
-                Note that in this case the operators of the original and synthesized
-                circuits will generally not be equivalent.
         """
         super().__init__()
         self.fix_clifford = fix_clifford
@@ -70,6 +67,7 @@ class LitinskiTransformation(TransformationPass):
         Raises:
             TranspilerError: if the circuit contains gates
                 not supported by the pass.
+
         """
         new_dag = run_litinski_transformation(dag, self.fix_clifford)
 

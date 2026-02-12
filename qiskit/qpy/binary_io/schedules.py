@@ -15,7 +15,8 @@
 This module is kept post pulse-removal to allow reading legacy
 payloads containing pulse gates without breaking the load flow.
 The purpose of the `_read` and `_load` methods below is just to advance
-the file handle while consuming pulse data."""
+the file handle while consuming pulse data.
+"""
 import json
 import struct
 
@@ -251,6 +252,7 @@ def read_schedule_block(file_obj, version, metadata_deserializer=None, use_symen
             native mechanism. This is a faster serialization alternative, but not supported in all
             platforms. Please check that your target platform is supported by the symengine library
             before setting this option, as it will be required by qpy to deserialize the payload.
+
     Returns:
         QuantumCircuit: Returns a dummy QuantumCircuit object, containing just name and metadata.
         This function exists just to allow reading legacy payloads containing pulse information
@@ -259,6 +261,7 @@ def read_schedule_block(file_obj, version, metadata_deserializer=None, use_symen
     Raises:
         TypeError: If any of the instructions is invalid data format.
         QiskitError: QPY version is earlier than block support.
+
     """
     if version < 5:
         raise QiskitError(f"QPY version {version} does not support ScheduleBlock.")

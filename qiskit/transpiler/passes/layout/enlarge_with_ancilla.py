@@ -37,6 +37,7 @@ class EnlargeWithAncilla(TransformationPass):
 
         Raises:
             TranspilerError: If there is no layout in the property set or not set at init time.
+
         """
         layout = self.property_set["layout"]
         qubit_indices = self.property_set["original_qubit_indices"]

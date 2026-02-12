@@ -115,6 +115,7 @@ class MPLDefaultStyle(DefaultStyle):
             will always be `gatetextcolor`. The `displaycolor` dict can contain
             any number of elements. User names and labels may be used as keys,
             which allows for custom colors for user-created gates.
+
     """
 
     DEFAULT_STYLE_NAME = "iqp"

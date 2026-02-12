@@ -10,9 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Unitary Synthesis Transpiler Pass
-"""
+"""Unitary Synthesis Transpiler Pass"""
 
 from __future__ import annotations
 from typing import Any
@@ -130,6 +128,7 @@ class UnitarySynthesis(TransformationPass):
             TranspilerError: if ``method`` was specified but is not found in the
                 installed plugins list. The list of installed plugins can be queried with
                 :func:`~qiskit.transpiler.passes.synthesis.plugin.unitary_synthesis_plugin_names`
+
         """
         super().__init__()
         self._basis_gates = set(basis_gates or ())
@@ -170,8 +169,8 @@ class UnitarySynthesis(TransformationPass):
 
         Returns:
             Output dag with UnitaryGates synthesized to target basis.
-        """
 
+        """
         # If there aren't any gates to synthesize in the circuit we can skip all the iteration
         # and just return.
         if not set(self._synth_gates).intersection(dag.count_ops()):
@@ -396,8 +395,7 @@ def _build_gate_errors(target=None):
 
 
 def _build_gate_lengths_by_qubit(target=None):
-    """
-    Builds a `gate_lengths` dictionary from `target (BackendV2)`.
+    """Builds a `gate_lengths` dictionary from `target (BackendV2)`.
 
     The dictionary has the form:
     {(qubits): [Gate, duration]}
@@ -418,8 +416,7 @@ def _build_gate_lengths_by_qubit(target=None):
 
 
 def _build_gate_errors_by_qubit(target=None):
-    """
-    Builds a `gate_error` dictionary from `target (BackendV2)`.
+    """Builds a `gate_error` dictionary from `target (BackendV2)`.
 
     The dictionary has the form:
     {(qubits): [Gate, error]}

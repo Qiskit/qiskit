@@ -91,7 +91,6 @@ class CDKMRippleCarryAdder(Adder):
             is functionally equivalent to ``kind="full"``.
 
     References:
-
     [1] Cuccaro et al., A new quantum ripple-carry addition circuit, 2004.
     `arXiv:quant-ph/0410184 <https://arxiv.org/pdf/quant-ph/0410184.pdf>`_
 
@@ -103,8 +102,7 @@ class CDKMRippleCarryAdder(Adder):
     def __init__(
         self, num_state_qubits: int, kind: str = "full", name: str = "CDKMRippleCarryAdder"
     ) -> None:
-        r"""
-        Args:
+        r"""Args:
             num_state_qubits: The number of qubits in either input register for
                 state :math:`|a\rangle` or :math:`|b\rangle`. The two input
                 registers must have the same number of qubits.
@@ -113,8 +111,10 @@ class CDKMRippleCarryAdder(Adder):
                 and carry-out, a half only carry-out, and a fixed-sized adder neither carry-in
                 nor carry-out.
             name: The name of the circuit object.
+
         Raises:
             ValueError: If ``num_state_qubits`` is lower than 1.
+
         """
         super().__init__(num_state_qubits, name=name)
         circuit = adder_ripple_c04(num_state_qubits, kind)

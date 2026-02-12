@@ -42,8 +42,8 @@ def synth_permutation_depth_lnn_kms(pattern: list[int] | np.ndarray[int]) -> Qua
         1. Samuel A. Kutin, David Petrie Moulton and Lawren M. Smithline.
            *Computation at a distance.*,
            `arXiv:quant-ph/0701194v1 <https://arxiv.org/abs/quant-ph/0701194>`_
-    """
 
+    """
     # In Qiskit, the permutation pattern [2, 4, 3, 0, 1] means that
     # the permutation that maps qubit 2 to position 0, 4 to 1, 3 to 2, 0 to 3, and 1 to 4.
     # In the permutation synthesis code below the notation is opposite:

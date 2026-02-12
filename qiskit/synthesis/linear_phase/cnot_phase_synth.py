@@ -10,8 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Implementation of the GraySynth algorithm for synthesizing CNOT-Phase
+"""Implementation of the GraySynth algorithm for synthesizing CNOT-Phase
 circuits with efficient CNOT cost, and the Patel-Hayes-Markov algorithm
 for optimal synthesis of linear (CNOT-only) reversible circuits.
 """
@@ -81,6 +80,7 @@ def synth_cnot_phase_aam(
            *On the controlled-NOT complexity of controlled-NOT–phase circuits.*,
            Quantum Science and Technology 4.1 (2018): 015002.
            `arXiv:1712.01859 <https://arxiv.org/abs/1712.01859>`_
+
     """
     num_qubits = len(cnots)
 
@@ -189,16 +189,15 @@ def synth_cnot_phase_aam(
 
 
 def _remove_duplicates(lists):
-    """
-    Remove duplicates in list
+    """Remove duplicates in list
 
     Args:
         lists (list): a list which may contain duplicate elements.
 
     Returns:
         list: a list which contains only unique elements.
-    """
 
+    """
     unique_list = []
     for element in lists:
         if element not in unique_list:

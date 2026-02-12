@@ -10,9 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Instruction collection.
-"""
+"""Instruction collection."""
 
 from __future__ import annotations
 
@@ -86,7 +84,8 @@ class InstructionSet:
 
     def _add_ref(self, data: MutableSequence[CircuitInstruction], pos: int):
         """Add a reference to an instruction and its context within a mutable sequence.
-        Updates to the instruction set will modify the specified sequence in place."""
+        Updates to the instruction set will modify the specified sequence in place.
+        """
         self._instructions.append((data, pos))
 
     def inverse(self, annotated: bool = False):
@@ -117,17 +116,20 @@ class InstructionSet:
     @property
     def instructions(self):
         """Legacy getter for the instruction components of an instruction set.  This does not
-        support mutation."""
+        support mutation.
+        """
         return [instruction.operation for instruction in self._instructions_iter()]
 
     @property
     def qargs(self):
         """Legacy getter for the qargs components of an instruction set.  This does not support
-        mutation."""
+        mutation.
+        """
         return [list(instruction.qubits) for instruction in self._instructions_iter()]
 
     @property
     def cargs(self):
         """Legacy getter for the cargs components of an instruction set.  This does not support
-        mutation."""
+        mutation.
+        """
         return [list(instruction.clbits) for instruction in self._instructions_iter()]

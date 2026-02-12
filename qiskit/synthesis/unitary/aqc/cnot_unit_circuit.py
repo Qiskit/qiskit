@@ -9,8 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""
-This is the Parametric Circuit class: anything that you need for a circuit
+"""This is the Parametric Circuit class: anything that you need for a circuit
 to be parametrized and used for approximate compiling optimization.
 """
 from __future__ import annotations
@@ -31,8 +30,7 @@ class CNOTUnitCircuit(ApproximateCircuit):
         tol: float | None = 0.0,
         name: str | None = None,
     ) -> None:
-        """
-        Args:
+        """Args:
             num_qubits: the number of qubits in this circuit.
             cnots: an array of dimensions ``(2, L)`` indicating where the CNOT units will be placed.
             tol: angle parameter less or equal this (small) value is considered equal zero and
@@ -42,6 +40,7 @@ class CNOTUnitCircuit(ApproximateCircuit):
 
         Raises:
             ValueError: if an unsupported parameter is passed.
+
         """
         super().__init__(num_qubits=num_qubits, name=name)
 
@@ -57,19 +56,18 @@ class CNOTUnitCircuit(ApproximateCircuit):
 
     @property
     def thetas(self) -> np.ndarray:
-        """
-        Returns a vector of rotation angles used by CNOT units in this circuit.
+        """Returns a vector of rotation angles used by CNOT units in this circuit.
 
         Returns:
             Parameters of the rotation gates in this circuit.
+
         """
         return self._thetas
 
     def build(self, thetas: np.ndarray) -> None:
-        """
-        Constructs a Qiskit quantum circuit out of the parameters (angles) of this circuit. If a
-            parameter value is less in absolute value than the specified tolerance then the
-            corresponding rotation gate will be skipped in the circuit.
+        """Constructs a Qiskit quantum circuit out of the parameters (angles) of this circuit. If a
+        parameter value is less in absolute value than the specified tolerance then the
+        corresponding rotation gate will be skipped in the circuit.
         """
         n = self.num_qubits
         self._thetas = thetas

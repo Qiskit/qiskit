@@ -88,6 +88,7 @@ class DAGDefaultStyle(DefaultStyle):
 
         qubitedgecolor (str): The edge color for qubits. Overrides edgecolor for these edges.
         clbitedgecolor (str): The edge color for clbits. Overrides edgecolor for these edges.
+
     """
 
     DEFAULT_STYLE_NAME = "plain"

@@ -59,6 +59,7 @@ class BlueprintCircuit(QuantumCircuit, ABC):
         Returns:
             True, if the configuration is valid. Otherwise, depending on the value of
             ``raise_on_failure`` an error is raised or False is returned.
+
         """
         raise NotImplementedError
 
@@ -110,11 +111,12 @@ class BlueprintCircuit(QuantumCircuit, ABC):
 
     @property
     def data(self):
-        """The circuit data (instructions and context).
+        r"""The circuit data (instructions and context).
 
         Returns:
             QuantumCircuitData: a list-like object containing the :class:`.CircuitInstruction`\\ s
             for each instruction.
+
         """
         if not self._is_built:
             self._build()
@@ -146,7 +148,6 @@ class BlueprintCircuit(QuantumCircuit, ABC):
         are still sorted numerically.
 
         Examples:
-
             The snippet below shows that insertion order of parameters does not matter.
 
             .. code-block:: python
@@ -195,6 +196,7 @@ class BlueprintCircuit(QuantumCircuit, ABC):
 
         Returns:
             The sorted :class:`.Parameter` objects in the circuit.
+
         """
         if not self._is_built:
             self._build()
@@ -292,8 +294,8 @@ class BlueprintCircuit(QuantumCircuit, ABC):
         Returns:
             An empty circuit of same dimensions. Note that the result is no longer a
             :class:`.BlueprintCircuit`.
-        """
 
+        """
         cpy = QuantumCircuit(*self.qregs, *self.cregs, name=name, global_phase=self.global_phase)
         _copy_metadata(self, cpy)
         cpy._data = self._data.copy_empty_like(vars_mode=vars_mode)
@@ -307,6 +309,7 @@ class BlueprintCircuit(QuantumCircuit, ABC):
 
         Returns:
             A deepcopy of the current blueprint circuit, with the specified name.
+
         """
         if not self._is_built:
             self._build()

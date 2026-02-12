@@ -63,6 +63,7 @@ class MinimumPoint(TransformationPass):
                 a decrease in the number of values the minimum of the previous
                 n will be set as the output dag and ``minimum_point`` will be set to
                 ``True`` in the property set
+
         """
         super().__init__()
         self.property_set_list = property_set_list

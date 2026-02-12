@@ -10,8 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-A library of template circuits.
+"""A library of template circuits.
 
 Templates are circuits that compute the identity. They find use
 in circuit optimization where matching part of the template allows the compiler

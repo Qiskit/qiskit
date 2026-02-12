@@ -41,7 +41,8 @@ def matplotlib_close_if_inline(figure):
 
     If the backend does not draw figures inline, this does nothing.  This function is to prevent
     duplicate images appearing; the inline backends will capture the figure in preparation and
-    display it as well, whereas the drawers want to return the figure to be displayed."""
+    display it as well, whereas the drawers want to return the figure to be displayed.
+    """
     # This can only called if figure has already been created, so matplotlib must exist.
     import matplotlib.pyplot
 

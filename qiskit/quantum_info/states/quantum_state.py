@@ -10,9 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Abstract QuantumState class.
-"""
+"""Abstract QuantumState class."""
 
 from __future__ import annotations
 import copy
@@ -40,6 +38,7 @@ class QuantumState:
 
             If `op_shape`` is specified it will take precedence over other
             kwargs.
+
         """
         self._op_shape = op_shape
         # RNG for measure functions
@@ -121,6 +120,7 @@ class QuantumState:
 
         Raises:
             QiskitError: if other is not a quantum state.
+
         """
         pass
 
@@ -136,6 +136,7 @@ class QuantumState:
 
         Raises:
             QiskitError: if other is not a quantum state.
+
         """
         pass
 
@@ -150,6 +151,7 @@ class QuantumState:
 
         Raises:
             NotImplementedError: if subclass does not support addition.
+
         """
         raise NotImplementedError(f"{type(self)} does not support addition")
 
@@ -165,6 +167,7 @@ class QuantumState:
         Raises:
             NotImplementedError: if subclass does not support scala
                                  multiplication.
+
         """
         raise NotImplementedError(f"{type(self)} does not support scalar multiplication")
 
@@ -183,6 +186,7 @@ class QuantumState:
         Raises:
             QiskitError: if the operator dimension does not match the
                          specified QuantumState subsystem dimensions.
+
         """
         pass
 
@@ -196,6 +200,7 @@ class QuantumState:
 
         Returns:
             complex: the expectation value.
+
         """
         pass
 
@@ -214,6 +219,7 @@ class QuantumState:
 
         Returns:
             np.array: The Numpy vector array of probabilities.
+
         """
         pass
 
@@ -236,6 +242,7 @@ class QuantumState:
 
         Returns:
             dict: The measurement probabilities in dict (ket) form.
+
         """
         return self._vector_to_dict(
             self.probabilities(qargs=qargs, decimals=decimals),
@@ -264,6 +271,7 @@ class QuantumState:
 
             The seed for random number generator used for sampling can be
             set to a fixed value by using the stats :meth:`seed` method.
+
         """
         # Get measurement probabilities for measured qubits
         probs = self.probabilities(qargs)
@@ -295,6 +303,7 @@ class QuantumState:
 
             The seed for random number generator used for sampling can be
             set to a fixed value by using the stats :meth:`seed` method.
+
         """
         # Sample list of outcomes
         samples = self.sample_memory(shots, qargs=qargs)
@@ -320,6 +329,7 @@ class QuantumState:
                    measurement outcome string label, and ``state`` is the
                    collapsed post-measurement state for the corresponding
                    outcome.
+
         """
         # Sample a single measurement outcome from probabilities
         dims = self.dims(qargs)
@@ -355,6 +365,7 @@ class QuantumState:
         Returns:
             np.array: an array of ket strings if string_label=True, otherwise
                       an array of ket lists.
+
         """
         shifts = [1]
         for dim in dims[:-1]:
@@ -390,6 +401,7 @@ class QuantumState:
 
         Returns:
             dict: the vector in dictionary `ket` form.
+
         """
         # Get indices of non-zero elements
         vals = vec if decimals is None else vec.round(decimals=decimals)
@@ -421,6 +433,7 @@ class QuantumState:
 
         Returns:
             dict: the matrix in dictionary `ket` form.
+
         """
         # Get indices of non-zero elements
         vals = mat if decimals is None else mat.round(decimals=decimals)
@@ -460,6 +473,7 @@ class QuantumState:
         Returns:
             np.array: the marginalized probability vector flattened
                       for the specified qargs.
+
         """
         if qargs is None:
             return probs

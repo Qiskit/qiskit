@@ -11,8 +11,7 @@
 # that they have been altered from the originals.
 
 
-"""
-A target object represents the minimum set of information the transpiler needs
+"""A target object represents the minimum set of information the transpiler needs
 from a backend
 """
 
@@ -59,7 +58,7 @@ class InstructionProperties(BaseInstructionProperties):
     custom attributes for those custom/additional properties by the backend.
     """
 
-    def __new__(
+    def __new__(  # noqa: D102
         cls,
         duration=None,
         error=None,
@@ -80,6 +79,7 @@ class InstructionProperties(BaseInstructionProperties):
                 specified set of qubits
             error: The average error rate for the instruction on the specified
                 set of qubits.
+
         """
         super().__init__()
 
@@ -88,8 +88,7 @@ class InstructionProperties(BaseInstructionProperties):
 
 
 class Target(BaseTarget):
-    """
-    The intent of the ``Target`` object is to inform Qiskit's compiler about
+    """The intent of the ``Target`` object is to inform Qiskit's compiler about
     the constraints of a particular backend so the compiler can compile an
     input circuit to something that works and is optimized for a device. It
     currently contains a description of instructions on a backend and their
@@ -256,8 +255,7 @@ class Target(BaseTarget):
         concurrent_measurements: list | None = None,
         **_subclass_kwargs,
     ):
-        """
-        Create a new :class:`Target` object.
+        """Create a new :class:`Target` object.
 
         Args:
             description (str): An optional string to describe the Target.
@@ -295,10 +293,12 @@ class Target(BaseTarget):
             concurrent_measurements(list): A list of sets of qubits that must be
                 measured together. This must be provided
                 as a nested list like ``[[0, 1], [2, 3, 4]]``.
+
         Raises:
             ValueError: If both ``num_qubits`` and ``qubit_properties`` are both
                 defined and the value of ``num_qubits`` differs from the length of
                 ``qubit_properties``.
+
         """
         if description is not None:
             description = str(description)
@@ -341,6 +341,7 @@ class Target(BaseTarget):
 
         Returns:
             List[str]: A list of operation names for operations that aren't global in this target
+
         """
         if strict_direction:
             if self._non_global_basis_strict is None:
@@ -432,10 +433,12 @@ class Target(BaseTarget):
                 a 3 parameter gate only had a bound on the second parameter you would represent
                 that with: ``[None, [0, 3.14], None]`` which means the first and third parameter
                 allow any value but the second parameter only accepts values between 0 and 3.14.
+
         Raises:
             AttributeError: If gate is already in map
             TranspilerError: If an operation class is passed in for ``instruction`` and no name
                 is specified or ``properties`` is set.
+
         """
         is_class = inspect.isclass(instruction)
         if not is_class:
@@ -480,6 +483,7 @@ class Target(BaseTarget):
             properties (InstructionProperties): The properties to set for this instruction
         Raises:
             KeyError: If ``instruction`` or ``qarg`` are not in the target
+
         """
         super().update_instruction_properties(instruction, qargs, properties)
         self._gate_map[instruction][qargs] = properties
@@ -493,6 +497,7 @@ class Target(BaseTarget):
            operation (str): The operation name to get qargs for
         Returns:
             set: The set of qargs the gate instance applies to.
+
         """
         if None in self._gate_map[operation]:
             return None
@@ -504,6 +509,7 @@ class Target(BaseTarget):
         Returns:
             InstructionDurations: The instruction duration represented in the
                 target
+
         """
         if self._instruction_durations is not None:
             return self._instruction_durations
@@ -520,6 +526,7 @@ class Target(BaseTarget):
 
         Returns:
             TimingConstraints: The timing constraints represented in the ``Target``
+
         """
         return TimingConstraints(
             self.granularity, self.min_length, self.pulse_alignment, self.acquire_alignment
@@ -577,8 +584,10 @@ class Target(BaseTarget):
                 :attr:`~qiskit.transpiler.Target.instructions` attribute. For, example
                 if you want the properties from the third element in
                 :attr:`~qiskit.transpiler.Target.instructions` you would set this to be ``2``.
+
         Returns:
             InstructionProperties: The instruction properties for the specified instruction tuple
+
         """
         instruction_properties = [
             inst_props for qargs in self._gate_map.values() for inst_props in qargs.values()
@@ -638,6 +647,7 @@ class Target(BaseTarget):
                 case of this argument is to be paired with
                 :meth:`.CouplingMap.connected_components` which will handle the holes
                 as expected.
+
         Returns:
             CouplingMap: The :class:`~qiskit.transpiler.CouplingMap` object
                 for this target. If there are no connectivity constraints in
@@ -647,6 +657,7 @@ class Target(BaseTarget):
             ValueError: If a non-two qubit gate is passed in for ``two_q_gate``.
             IndexError: If an Instruction not in the ``Target`` is passed in for
                 ``two_q_gate``.
+
         """
         if self.qargs is None:
             return None
@@ -778,8 +789,9 @@ class Target(BaseTarget):
             duration: The duration in seconds, such as in an :class:`.InstructionProperties`
                 field for an instruction in the target.
 
-        Returns
+        Returns:
             duration: The duration in units of dt
+
         """
         return duration_in_dt(duration, self.dt)
 
@@ -843,6 +855,7 @@ class Target(BaseTarget):
             TranspilerError: If the input basis gates contain > 2 qubits and ``coupling_map`` is
             specified.
             KeyError: If no mapping is available for a specified ``basis_gate``.
+
         """
         granularity = 1
         min_length = 1
@@ -957,8 +970,7 @@ Mapping.register(Target)
 
 
 class _FakeTarget(Target):
-    """
-    Pseudo-target class for INTERNAL use in the transpilation pipeline.
+    """Pseudo-target class for INTERNAL use in the transpilation pipeline.
     It's essentially an empty :class:`.Target` instance with a `coupling_map`
     argument that allows to store connectivity constraints without basis gates.
     This is intended to replace the use of loose constraints in the pipeline.

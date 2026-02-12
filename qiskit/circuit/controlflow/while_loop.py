@@ -43,14 +43,14 @@ class WhileLoopOp(ControlFlowOp):
         body: QuantumCircuit,
         label: str | None = None,
     ):
-        """
-        Args:
-            condition: A condition to be checked prior to executing ``body``. Can be
-                specified as either a tuple of a ``ClassicalRegister`` to be tested
-                for equality with a given ``int``, or as a tuple of a ``Clbit`` to
-                be compared to either a ``bool`` or an ``int``.
-            body: The loop body to be repeatedly executed.
-            label: An optional label for identifying the instruction.
+        """Args:
+        condition: A condition to be checked prior to executing ``body``. Can be
+            specified as either a tuple of a ``ClassicalRegister`` to be tested
+            for equality with a given ``int``, or as a tuple of a ``Clbit`` to
+            be compared to either a ``bool`` or an ``int``.
+        body: The loop body to be repeatedly executed.
+        label: An optional label for identifying the instruction.
+
         """
         num_qubits = body.num_qubits
         num_clbits = body.num_clbits

@@ -22,8 +22,7 @@ if typing.TYPE_CHECKING:
 
 
 def apply_prefix(value: float | ParameterExpression, unit: str) -> float | ParameterExpression:
-    """
-    Given a SI unit prefix and value, apply the prefix to convert to
+    """Given a SI unit prefix and value, apply the prefix to convert to
     standard SI unit.
 
     Args:
@@ -40,6 +39,7 @@ def apply_prefix(value: float | ParameterExpression, unit: str) -> float | Param
 
     Raises:
         ValueError: If the ``units`` aren't recognized.
+
     """
     prefactors = {
         "f": -15,
@@ -72,15 +72,13 @@ def apply_prefix(value: float | ParameterExpression, unit: str) -> float | Param
 
 
 def detach_prefix(value: float, decimal: int | None = None) -> tuple[float, str]:
-    """
-    Given a SI unit value, find the most suitable prefix to scale the value.
+    """Given a SI unit value, find the most suitable prefix to scale the value.
 
     For example, the ``value = 1.3e8`` will be converted into a tuple of ``(130.0, "M")``,
     which represents a scaled value and auxiliary unit that may be used to display the value.
     In above example, that value might be displayed as ``130 MHz`` (unit is arbitrary here).
 
     Example:
-
         >>> value, prefix = detach_prefix(1e4)
         >>> print(f"{value} {prefix}Hz")
         10 kHz
@@ -103,6 +101,7 @@ def detach_prefix(value: float, decimal: int | None = None) -> tuple[float, str]
     Raises:
         ValueError: If the ``value`` is out of range.
         ValueError: If the ``value`` is not real number.
+
     """
     prefactors = {
         -15: "f",

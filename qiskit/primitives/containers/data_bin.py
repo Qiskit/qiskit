@@ -10,9 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Dataclass tools for data namespaces (bins)
-"""
+"""Dataclass tools for data namespaces (bins)"""
 from __future__ import annotations
 
 from typing import Any
@@ -95,8 +93,7 @@ class DataBin(ShapedMixin):
     )
 
     def __init__(self, *, shape: ShapeInput = (), **data):
-        """
-        Args:
+        """Args:
             data: Name/value data to place in the data bin.
             shape: The leading shape common to all entries in the data bin. This defaults to
                 the trivial leading shape of ``()`` that is compatible with all objects.
@@ -104,6 +101,7 @@ class DataBin(ShapedMixin):
         Raises:
             ValueError: If a name overlaps with a method name on this class.
             ValueError: If some value is inconsistent with the provided shape.
+
         """
         if not self._RESTRICTED_NAMES.isdisjoint(data):
             bad_names = sorted(self._RESTRICTED_NAMES.intersection(data))
@@ -188,5 +186,6 @@ def make_data_bin(
 
     Returns:
         The :class:`DataBin` type.
+
     """
     return DataBin

@@ -57,32 +57,32 @@ class ProductFormula(EvolutionSynthesis):
         *,
         atomic_evolution_sparse_observable: bool = False,
     ) -> None:
-        r"""
-        Args:
-            order: The order of the product formula.
-            reps: The number of time steps.
-            insert_barriers: Whether to insert barriers between the atomic evolutions.
-            cx_structure: How to arrange the CX gates for the Pauli evolutions, can be
-                ``"chain"``, where next neighbor connections are used, or ``"fountain"``,
-                where all qubits are connected to one. This only takes effect when
-                ``atomic_evolution is None``.
-            atomic_evolution: A function to apply the evolution of a single
-                :class:`~.quantum_info.Pauli`, or :class:`.SparsePauliOp` of only commuting terms,
-                to a circuit. The function takes in three arguments: the circuit to append the
-                evolution to, the Pauli operator to evolve, and the evolution time. By default, a
-                single Pauli evolution is decomposed into a chain of ``CX`` gates and a single
-                ``RZ`` gate.
-            wrap: Whether to wrap the atomic evolutions into custom gate objects. Note that setting
-                this to ``True`` is slower than ``False``. This only takes effect when
-                ``atomic_evolution is None``.
-            preserve_order: If ``False``, allows reordering the terms of the operator to
-                potentially yield a shallower evolution circuit. Not relevant
-                when synthesizing operator with a single term.
-            atomic_evolution_sparse_observable: If a custom ``atomic_evolution`` is passed,
-                which does not yet support :class:`.SparseObservable`\ s as input, set this
-                argument to ``False`` to automatically apply a conversion to :class:`.SparsePauliOp`.
-                This argument is supported until Qiskit 2.2, at which point all atomic evolutions
-                are required to support :class:`.SparseObservable`\ s as input.
+        r"""Args:
+        order: The order of the product formula.
+        reps: The number of time steps.
+        insert_barriers: Whether to insert barriers between the atomic evolutions.
+        cx_structure: How to arrange the CX gates for the Pauli evolutions, can be
+            ``"chain"``, where next neighbor connections are used, or ``"fountain"``,
+            where all qubits are connected to one. This only takes effect when
+            ``atomic_evolution is None``.
+        atomic_evolution: A function to apply the evolution of a single
+            :class:`~.quantum_info.Pauli`, or :class:`.SparsePauliOp` of only commuting terms,
+            to a circuit. The function takes in three arguments: the circuit to append the
+            evolution to, the Pauli operator to evolve, and the evolution time. By default, a
+            single Pauli evolution is decomposed into a chain of ``CX`` gates and a single
+            ``RZ`` gate.
+        wrap: Whether to wrap the atomic evolutions into custom gate objects. Note that setting
+            this to ``True`` is slower than ``False``. This only takes effect when
+            ``atomic_evolution is None``.
+        preserve_order: If ``False``, allows reordering the terms of the operator to
+            potentially yield a shallower evolution circuit. Not relevant
+            when synthesizing operator with a single term.
+        atomic_evolution_sparse_observable: If a custom ``atomic_evolution`` is passed,
+            which does not yet support :class:`.SparseObservable`\ s as input, set this
+            argument to ``False`` to automatically apply a conversion to :class:`.SparsePauliOp`.
+            This argument is supported until Qiskit 2.2, at which point all atomic evolutions
+            are required to support :class:`.SparseObservable`\ s as input.
+
         """
         super().__init__()
         self.order = order
@@ -119,6 +119,7 @@ class ProductFormula(EvolutionSynthesis):
             A list of Pauli rotations in a sparse format, where each element is
             ``(paulistring, qubits, coefficient)``. For example, the Lie-Trotter expansion
             of ``H = XI + ZZ`` would return ``[("X", [1], 1), ("ZZ", [0, 1], 1)]``.
+
         """
         raise NotImplementedError(
             f"The method ``expand`` is not implemented for {self.__class__}. Implement it to "
@@ -133,6 +134,7 @@ class ProductFormula(EvolutionSynthesis):
 
         Returns:
             QuantumCircuit: A circuit implementing the evolution.
+
         """
         pauli_rotations = self.expand(evolution)
         num_qubits = evolution.num_qubits
@@ -158,6 +160,7 @@ class ProductFormula(EvolutionSynthesis):
 
         Raises:
             NotImplementedError: If a custom atomic evolution is set, which cannot be serialized.
+
         """
         if self._atomic_evolution is not None:
             raise NotImplementedError(
@@ -233,8 +236,7 @@ def reorder_paulis(
     paulis: Sequence[SparsePauliLabel],
     strategy: rx.ColoringStrategy = rx.ColoringStrategy.Saturation,
 ) -> list[SparsePauliLabel]:
-    r"""
-    Creates an equivalent operator by reordering terms in order to yield a
+    r"""Creates an equivalent operator by reordering terms in order to yield a
     shallower circuit after evolution synthesis. The original operator remains
     unchanged.
 
