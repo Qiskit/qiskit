@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -175,12 +175,17 @@ _RESERVED_KEYWORDS = frozenset(
     }
 )
 
-# This probably isn't precisely the same as the OQ3 spec, but we'd need an extra dependency to fully
-# handle all Unicode character classes, and this should be close enough for users who aren't
-# actively _trying_ to break us (fingers crossed).
-_VALID_DECLARABLE_IDENTIFIER = re.compile(r"([\w][\w\d]*)", flags=re.U)
-_VALID_HARDWARE_QUBIT = re.compile(r"\$[\d]+", flags=re.U)
-_BAD_IDENTIFIER_CHARACTERS = re.compile(r"[^\w\d]", flags=re.U)
+# This is deliberately more restrictive than the OQ3 spec - the builtin `re` module has weak Unicode
+# support, and this need here doesn't rise to the level of adding the third-party `regex` as a
+# dependency.  Python's `\w` matches way too much (basically anything in Unicode classes [L?] and
+# [N?], plus _), while `\d` matches way too little (only [Nd]) to be used as a negation.  As a
+# compromise, we allow ASCII letters, Greek letters (since they're a small, contiguous block in
+# Unicode that can be specified easily, and physicists like them), _ and [0-9].  Everything else is
+# escaped.
+_ALPHA = r"a-zA-Z\u0370-\u03ff"  # ASCII alpha, plus the "Greek and Coptic" Unicode block.
+_VALID_DECLARABLE_IDENTIFIER = re.compile(rf"[{_ALPHA}_][{_ALPHA}_0-9]*", flags=re.U)
+_VALID_HARDWARE_QUBIT = re.compile(r"\$[0-9]+", flags=re.U)
+_BAD_IDENTIFIER_CHARACTERS = re.compile(rf"[^{_ALPHA}_0-9]", flags=re.U)
 
 
 class Exporter:

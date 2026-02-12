@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -142,8 +142,15 @@ class Gate(Instruction):
             A controlled version of this gate.
 
         Raises:
-            QiskitError: invalid ``ctrl_state``.
+            QiskitError: invalid ``num_ctrl_qubits`` or ``ctrl_state``.
         """
+        if num_ctrl_qubits < 0:
+            raise CircuitError("The number of control qubits must be non-negative.")
+
+        # In the special case that we have 0 control qubits, we return the copy of the gate itself.
+        if num_ctrl_qubits == 0:
+            return self.copy()
+
         if not annotated:  # captures both None and False
 
             from ._add_control import add_control

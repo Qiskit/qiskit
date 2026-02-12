@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -401,11 +401,23 @@ def mcx_circuit(num_qubits: int):
     """A Clifford+T -friendly circuit for multi-controlled X gate.
 
     Parameters:
-        num_qubits: Number of qubits in the output circuit.
+        num_qubits: Number of qubits in the output circuit (including
+            one target and one ancilla qubits)
     Returns:
         QuantumCircuit: Output circuit.
     """
-    circuit = synth_mcx_1_clean_kg24(num_qubits - 2)
+    num_control_qubits = num_qubits - 2
+    if num_control_qubits == 0:
+        circuit = QuantumCircuit(num_qubits)
+        circuit.x(0)
+    elif num_control_qubits == 1:
+        circuit = QuantumCircuit(num_qubits)
+        circuit.cx(0, 1)
+    elif num_control_qubits == 2:
+        circuit = QuantumCircuit(num_qubits)
+        circuit.ccx(0, 1, 2)
+    else:
+        circuit = synth_mcx_1_clean_kg24(num_control_qubits)
     return circuit
 
 
@@ -431,3 +443,30 @@ def modular_adder_circuit(num_qubits: int):
     """
     circuit = adder_modular_v17(num_qubits // 2)
     return circuit
+
+
+def create_ft_circuit(circuit_name: str, num_qubits: int, reps: int = 10):
+    """Creates circuits for Fault-Tolerance compilation pipelines.
+
+    Parameters:
+        circuit_name: the name of the circuit.
+        num_qubits: Number of qubits in the circuit.
+        reps: Number of repetitions (when applicable).
+    Returns:
+        QuantumCircuit: Output circuit.
+    """
+    circuit_map = {
+        "qft": qft_circuit,
+        "trotter": trotter_circuit,
+        "qaoa": qaoa_circuit,
+        "grover": grover_circuit,
+        "mcx": mcx_circuit,
+        "multiplier": multiplier_circuit,
+        "modular_adder": modular_adder_circuit,
+    }
+    if circuit_name not in circuit_map:
+        raise ValueError(f"Unknown circuit: {circuit_name}")
+    if circuit_name in ["trotter", "qaoa"]:
+        return circuit_map[circuit_name](num_qubits, reps)
+    else:
+        return circuit_map[circuit_name](num_qubits)

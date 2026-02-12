@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -47,16 +47,7 @@ from qiskit.circuit.library import CXGate
 from qiskit.transpiler import Target
 from qiskit.compiler import transpile
 from qiskit.quantum_info import get_clifford_gate_names
-from .utils import (
-    grover_circuit,
-    mcx_circuit,
-    modular_adder_circuit,
-    multiplier_circuit,
-    qaoa_circuit,
-    qft_circuit,
-    random_circuit,
-    trotter_circuit,
-)
+from .utils import random_circuit, create_ft_circuit
 
 
 class Collect2QPassBenchmarks:
@@ -246,23 +237,7 @@ class LitinskiTransformationPassBenchmarks:
         if (circuit_name, n_qubits) in self.slow_tests:
             raise NotImplementedError
 
-        if circuit_name == "qft":
-            circuit = qft_circuit(n_qubits)
-        elif circuit_name == "trotter":
-            circuit = trotter_circuit(n_qubits)
-        elif circuit_name == "qaoa":
-            circuit = qaoa_circuit(n_qubits)
-        elif circuit_name == "grover":
-            circuit = grover_circuit(n_qubits)
-        elif circuit_name == "mcx":
-            circuit = mcx_circuit(n_qubits)
-        elif circuit_name == "multiplier":
-            circuit = multiplier_circuit(n_qubits)
-        elif circuit_name == "modular_adder":
-            circuit = modular_adder_circuit(n_qubits)
-        else:
-            raise ValueError("Error: unknown circuit")
-
+        circuit = create_ft_circuit(circuit_name, n_qubits)
         target = Target.from_configuration(["rz", "measure"] + get_clifford_gate_names(), n_qubits)
 
         # Transpile the circuit with optimization_level=0.

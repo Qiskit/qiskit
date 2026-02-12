@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -37,7 +37,7 @@ class PhaseEstimation(QuantumCircuit):
     References:
 
     [1] Kitaev, A. Y. (1995). Quantum measurements and the Abelian Stabilizer Problem. 1–22.
-    `quant-ph/9511026 <http://arxiv.org/abs/quant-ph/9511026>`_
+    `quant-ph/9511026 <https://arxiv.org/abs/quant-ph/9511026>`_
 
     [2] Michael A. Nielsen and Isaac L. Chuang. 2011.
     Quantum Computation and Quantum Information: 10th Anniversary Edition (10th ed.).
@@ -152,7 +152,7 @@ def phase_estimation(
     References:
 
     [1] Kitaev, A. Y. (1995). Quantum measurements and the Abelian Stabilizer Problem. 1–22.
-    `quant-ph/9511026 <http://arxiv.org/abs/quant-ph/9511026>`_
+    `quant-ph/9511026 <https://arxiv.org/abs/quant-ph/9511026>`_
 
     [2] Michael A. Nielsen and Isaac L. Chuang. 2011.
     Quantum Computation and Quantum Information: 10th Anniversary Edition (10th ed.).

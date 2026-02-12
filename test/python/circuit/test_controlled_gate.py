@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -649,6 +649,36 @@ class TestControlledGate(QiskitTestCase):
             expected = _compute_control_matrix(rot_mat, num_controls, ctrl_state=ctrl_state)
             with self.subTest(msg=f"control state = {ctrl_state}"):
                 self.assertTrue(matrix_equal(simulated, expected))
+
+    def test_append_mcrx_with_0_controls(self):
+        """Test appending mcrx with 0 controls."""
+        qc = QuantumCircuit(1)
+        qc.mcrx(0.1, [], 0)
+        self.assertEqual(Operator(qc), Operator(RXGate(0.1)))
+
+    def test_append_mcry_with_0_controls(self):
+        """Test appending mcry with 0 controls."""
+        qc = QuantumCircuit(1)
+        qc.mcry(0.1, [], 0)
+        self.assertEqual(Operator(qc), Operator(RYGate(0.1)))
+
+    def test_append_mcrz_with_0_controls(self):
+        """Test appending mcrz with 0 controls."""
+        qc = QuantumCircuit(1)
+        qc.mcrz(0.1, [], 0)
+        self.assertEqual(Operator(qc), Operator(RZGate(0.1)))
+
+    def test_append_mcp_with_0_controls(self):
+        """Test appending mcp with 0 controls."""
+        qc = QuantumCircuit(1)
+        qc.mcp(0.1, [], 0)
+        self.assertEqual(Operator(qc), Operator(PhaseGate(0.1)))
+
+    def test_append_mcx_with_0_controls(self):
+        """Test appending mcx with 0 controls."""
+        qc = QuantumCircuit(1)
+        qc.mcx([], 0)
+        self.assertEqual(Operator(qc), Operator(XGate()))
 
     @combine(num_controls=[1, 2, 4], use_basis_gates=[True, False])
     def test_multi_controlled_y_rotation_matrix_basic_mode(self, num_controls, use_basis_gates):
@@ -1373,7 +1403,7 @@ class TestControlledGate(QiskitTestCase):
         # is just some high number to make sure we unwrap any controlled and custom gates.
         self.assertEqual(set(assigned.decompose(reps=3).parameters), set())
 
-    @data(-1, 0, 1.4, "1", 4, 10)
+    @data(-1, 1.4, "1", 4, 10)
     def test_improper_num_ctrl_qubits(self, num_ctrl_qubits):
         """
         Test improperly specified num_ctrl_qubits.
@@ -1381,8 +1411,22 @@ class TestControlledGate(QiskitTestCase):
         num_qubits = 4
         with self.assertRaises(CircuitError):
             ControlledGate(
-                name="cgate", num_qubits=num_qubits, params=[], num_ctrl_qubits=num_ctrl_qubits
+                name="cgate",
+                num_qubits=num_qubits,
+                params=[],
+                num_ctrl_qubits=num_ctrl_qubits,
+                base_gate=XGate(),
             )
+
+    @data((-1, CircuitError), (1.4, CircuitError), ("1", TypeError))
+    @unpack
+    def test_improper_num_ctrl_qubits_in_control(self, num_ctrl_qubits, error):
+        """
+        Test improperly specified num_ctrl_qubits.
+        """
+
+        with self.assertRaises(error):
+            _ = XGate().control(num_ctrl_qubits=num_ctrl_qubits)
 
     def test_improper_num_ctrl_qubits_base_gate(self):
         """Test that the allowed number of control qubits takes the base gate into account."""
