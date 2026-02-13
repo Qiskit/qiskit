@@ -19,14 +19,16 @@ use crate::imports::{
 use crate::instruction::Parameters;
 use crate::interner::Interned;
 use crate::operations::{
-    ControlFlow, ControlFlowInstruction, Operation, OperationRef, Param, PauliProductMeasurement,
-    PyOperationTypes, PythonOperation, StandardGate, StandardInstruction, UnitaryGate,
+    ControlFlow, ControlFlowInstruction, CustomOperationKind, NativeOperation, NativeOperationView,
+    Operation, OperationRef, Param, PauliProductMeasurement, PyOperationTypes, PythonOperation,
+    StandardGate, StandardInstruction, UnitaryGate,
 };
 use crate::{Block, Clbit, Qubit};
 use hashbrown::HashMap;
 use nalgebra::Matrix2;
 use ndarray::{Array2, CowArray, Ix2};
 use num_complex::Complex64;
+use pyo3::exceptions::PyNotImplementedError;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyType};
 use smallvec::SmallVec;
@@ -46,13 +48,14 @@ enum PackedOperationType {
     UnitaryGate = 3,
     PauliProductMeasurement = 4,
     ControlFlow = 5,
+    Native = 6,
 }
 
 unsafe impl ::bytemuck::CheckedBitPattern for PackedOperationType {
     type Bits = u8;
 
     fn is_valid_bit_pattern(bits: &Self::Bits) -> bool {
-        *bits < 6
+        *bits < 7
     }
 }
 unsafe impl ::bytemuck::NoUninit for PackedOperationType {}
@@ -69,6 +72,7 @@ unsafe impl ::bytemuck::NoUninit for PackedOperationType {}
 ///     UnitaryGate(Box<UnitaryGate>),
 ///     PauliProductMeasurement(Box<PauliProductMeasurement>),
 ///     ControlFlow(Box<ControlFlowInstruction>),
+///     Native(Box<dyn CustomOperation>),
 /// }
 /// ```
 ///
@@ -256,7 +260,8 @@ mod standard_instruction {
 /// A private module to encapsulate the encoding of pointer types.
 mod pointer {
     use crate::operations::{
-        ControlFlowInstruction, PauliProductMeasurement, PyOperationTypes, UnitaryGate,
+        ControlFlowInstruction, NativeOperation, PauliProductMeasurement, PyOperationTypes,
+        UnitaryGate,
     };
     use crate::packed_instruction::{PackedOperation, PackedOperationType};
     use std::ptr::NonNull;
@@ -343,6 +348,7 @@ mod pointer {
         PackedOperationType::PauliProductMeasurement
     );
     impl_packable_pointer!(ControlFlowInstruction, PackedOperationType::ControlFlow);
+    impl_packable_pointer!(NativeOperation, PackedOperationType::Native);
 }
 
 impl PackedOperation {
@@ -420,6 +426,15 @@ impl PackedOperation {
             PackedOperationType::PauliProductMeasurement => {
                 OperationRef::PauliProductMeasurement(self.try_into().unwrap())
             }
+            PackedOperationType::Native => {
+                let native: &NativeOperation = self.try_into().unwrap();
+                match native.view() {
+                    NativeOperationView::Gate(gate) => OperationRef::CustomGate(gate),
+                    NativeOperationView::Instruction(instruction) => {
+                        OperationRef::CustomInstruction(instruction)
+                    }
+                }
+            }
         }
     }
 
@@ -428,13 +443,17 @@ impl PackedOperation {
     /// This can be either a [StandardGate] or a [PyGate].
     #[inline]
     pub fn is_gate(&self) -> bool {
-        if matches!(self.discriminant(), PackedOperationType::StandardGate) {
-            true
-        } else if matches!(self.discriminant(), PackedOperationType::PyOperationTypes) {
-            let op: &PyOperationTypes = self.try_into().unwrap();
-            matches!(op, PyOperationTypes::Gate(_))
-        } else {
-            false
+        match self.discriminant() {
+            PackedOperationType::StandardGate => true,
+            PackedOperationType::Native => {
+                let opaque: &NativeOperation = self.try_into().unwrap();
+                matches!(opaque.kind(), CustomOperationKind::Gate)
+            }
+            PackedOperationType::PyOperationTypes => {
+                let op: &PyOperationTypes = self.try_into().unwrap();
+                matches!(op, PyOperationTypes::Gate(_))
+            }
+            _ => false,
         }
     }
 
@@ -577,6 +596,17 @@ impl PackedOperation {
                     .cast::<PyType>()?
                     .is_subclass(py_type);
             }
+            // TODO: Implement Python exposure for Custom Operations.
+            OperationRef::CustomGate(_) => {
+                return Err(PyNotImplementedError::new_err(
+                    "Native gates cannot be exposed to Python yet.",
+                ));
+            }
+            OperationRef::CustomInstruction(_) => {
+                return Err(PyNotImplementedError::new_err(
+                    "Native gates cannot be exposed to Python yet.",
+                ));
+            }
         };
         py_op.is_instance(py_type)
     }
@@ -585,16 +615,7 @@ impl PackedOperation {
 impl Operation for PackedOperation {
     fn name(&self) -> &str {
         let view = self.view();
-        let name = match view {
-            OperationRef::ControlFlow(control_flow) => control_flow.name(),
-            OperationRef::StandardGate(ref standard) => standard.name(),
-            OperationRef::StandardInstruction(ref instruction) => instruction.name(),
-            OperationRef::Gate(gate) => gate.name(),
-            OperationRef::Instruction(instruction) => instruction.name(),
-            OperationRef::Operation(operation) => operation.name(),
-            OperationRef::Unitary(unitary) => unitary.name(),
-            OperationRef::PauliProductMeasurement(ppm) => ppm.name(),
-        };
+        let name = view.name();
         // SAFETY: all of the inner parts of the view are owned by `self`, so it's valid for us to
         // forcibly reborrowing up to our own lifetime. We avoid using `<OperationRef as Operation>`
         // just to avoid a further _potential_ unsafeness, were its implementation to start doing
@@ -644,6 +665,12 @@ impl Clone for PackedOperation {
             }
             OperationRef::Unitary(unitary) => Self::from_unitary(Box::new(unitary.clone())),
             OperationRef::PauliProductMeasurement(ppm) => Self::from_ppm(Box::new(ppm.clone())),
+            OperationRef::CustomInstruction(custom_instruction) => {
+                Self::from(NativeOperation::from(custom_instruction.clone_dyn()))
+            }
+            OperationRef::CustomGate(custom_gate) => {
+                Self::from(NativeOperation::from(custom_gate.clone_dyn()))
+            }
         }
     }
 }
@@ -659,6 +686,7 @@ impl Drop for PackedOperation {
                 PauliProductMeasurement::drop_packed(self)
             }
             PackedOperationType::ControlFlow => ControlFlowInstruction::drop_packed(self),
+            PackedOperationType::Native => NativeOperation::drop_packed(self),
         }
     }
 }

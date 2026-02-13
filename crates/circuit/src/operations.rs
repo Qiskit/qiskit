@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 use approx::relative_eq;
+use std::any::{Any, TypeId};
 use std::f64::consts::PI;
 use std::fmt::Debug;
 use std::num::NonZero;
@@ -22,7 +23,7 @@ use crate::bit::{ClassicalRegister, ShareableClbit};
 use crate::circuit_data::CircuitData;
 use crate::classical::expr;
 use crate::duration::Duration;
-use crate::packed_instruction::PackedInstruction;
+use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::{
     ParameterExpression, PyParameter, PyParameterExpression,
 };
@@ -36,7 +37,7 @@ use num_complex::Complex64;
 use smallvec::{SmallVec, smallvec};
 
 use numpy::{IntoPyArray, PyArray1, PyArray2, PyReadonlyArray2, ToPyArray};
-use pyo3::exceptions::PyValueError;
+use pyo3::exceptions::{PyNotImplementedError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyFloat, PyList, PyTuple};
 use pyo3::{IntoPyObjectExt, Python, intern};
@@ -287,6 +288,8 @@ pub enum OperationRef<'a> {
     Operation(&'a PyInstruction),
     Unitary(&'a UnitaryGate),
     PauliProductMeasurement(&'a PauliProductMeasurement),
+    CustomGate(&'a dyn CustomOperation),
+    CustomInstruction(&'a dyn CustomOperation),
 }
 
 impl Operation for OperationRef<'_> {
@@ -301,6 +304,7 @@ impl Operation for OperationRef<'_> {
             Self::Operation(operation) => operation.name(),
             Self::Unitary(unitary) => unitary.name(),
             Self::PauliProductMeasurement(ppm) => ppm.name(),
+            Self::CustomGate(gate) | Self::CustomInstruction(gate) => gate.name(),
         }
     }
     #[inline]
@@ -314,6 +318,7 @@ impl Operation for OperationRef<'_> {
             Self::Operation(operation) => operation.num_qubits(),
             Self::Unitary(unitary) => unitary.num_qubits(),
             Self::PauliProductMeasurement(ppm) => ppm.num_qubits(),
+            Self::CustomGate(gate) | Self::CustomInstruction(gate) => gate.num_qubits(),
         }
     }
     #[inline]
@@ -327,6 +332,7 @@ impl Operation for OperationRef<'_> {
             Self::Operation(operation) => operation.num_clbits(),
             Self::Unitary(unitary) => unitary.num_clbits(),
             Self::PauliProductMeasurement(ppm) => ppm.num_clbits(),
+            Self::CustomGate(gate) | Self::CustomInstruction(gate) => gate.num_clbits(),
         }
     }
     #[inline]
@@ -340,6 +346,7 @@ impl Operation for OperationRef<'_> {
             Self::Operation(operation) => operation.num_params(),
             Self::Unitary(unitary) => unitary.num_params(),
             Self::PauliProductMeasurement(ppm) => ppm.num_params(),
+            Self::CustomGate(gate) | Self::CustomInstruction(gate) => gate.num_params(),
         }
     }
     #[inline]
@@ -353,6 +360,7 @@ impl Operation for OperationRef<'_> {
             Self::Operation(operation) => operation.directive(),
             Self::Unitary(unitary) => unitary.directive(),
             Self::PauliProductMeasurement(ppm) => ppm.directive(),
+            Self::CustomGate(gate) | Self::CustomInstruction(gate) => gate.directive(),
         }
     }
 }
@@ -3364,3 +3372,387 @@ impl PartialEq for PauliProductMeasurement {
 }
 
 impl Eq for PauliProductMeasurement {}
+
+/// Describes the kind of operation associated with this type.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[repr(u8)]
+pub enum CustomOperationKind {
+    /// A unitary operation in the circuit.
+    Gate,
+    /// A non-unitary operation in the circuit.
+    Instruction,
+}
+
+pub trait CustomOperation: Operation + Any + Debug + Send + Sync {
+    /// Return the custom label assigned to this instruction.
+    fn label(&self) -> Option<&str> {
+        None
+    }
+
+    /// Returns an inverted version of this instruction and the computed parameters.
+    fn inverse(&self, _params: &[Param]) -> Option<(PackedOperation, SmallVec<[Param; 3]>)> {
+        None
+    }
+
+    /// Returns a circuit representing the possible list of instructions that
+    /// this operation is composed of.
+    fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
+        None
+    }
+
+    /// If the instance is a gate, returns the unitary matrix that represents it,
+    /// if the parameters are correct. Otherwise, it returns None.
+    fn matrix(&self, _params: &[Param]) -> Option<Array2<Complex64>> {
+        // TODO: Make fallible.
+        None
+    }
+
+    /// If the instance is a gate, returns the number of control qubits.
+    fn num_ctrl_qubits(&self) -> Option<NonZero<u32>> {
+        None
+    }
+
+    /// If the instance is a gate, checks if it contains any control Qubits.
+    fn is_controlled_gate(&self) -> bool {
+        self.num_ctrl_qubits().is_some()
+    }
+
+    /// Creates python instance of this operation.
+    fn create_py_op<'py>(
+        &self,
+        _py: Python<'py>,
+        _params: Option<SmallVec<[Param; 3]>>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        Err(PyNotImplementedError::new_err(
+            "Rust native operations cannot be exposed to Python yet.",
+        ))
+    }
+
+    /// Returns the python type linked to this operation.
+    fn py_type<'py>(&self, _py: Python<'py>) -> PyResult<&Bound<'py, pyo3::types::PyType>> {
+        Err(PyNotImplementedError::new_err(
+            "Rust native operations cannot be exposed to Python yet.",
+        ))
+    }
+
+    /// Dynamic clone function to clone the original operation type.
+    ///
+    /// As long as the enclosed type `T: Clone`, this implementation will
+    /// trickle down to just calling the implementor's `Clone::clone()` method.
+    fn clone_dyn(&self) -> Box<dyn CustomOperation>;
+
+    /// Returns the kind of operation associated with this type.
+    fn kind(&self) -> CustomOperationKind;
+}
+
+impl dyn CustomOperation + 'static {
+    // Trait implementation needs to be repeated here as upcasting
+    // is stabilized in Rust 1.86+ and we barely missed the cutoff.
+    pub fn downcast_ref<T: CustomOperation + 'static>(&self) -> Option<&T> {
+        (self.type_id() == TypeId::of::<T>()).then(|| unsafe { &*(self as *const _ as *const T) })
+    }
+}
+
+/// Internal representation of a custom operation within a Circuit.
+#[derive(Debug)]
+#[repr(align(8))]
+pub struct NativeOperation {
+    op: Box<dyn CustomOperation>,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum NativeOperationView<'a> {
+    Gate(&'a dyn CustomOperation),
+    Instruction(&'a dyn CustomOperation),
+}
+
+impl NativeOperation {
+    pub fn view(&self) -> NativeOperationView<'_> {
+        match self.kind() {
+            CustomOperationKind::Gate => NativeOperationView::Gate(self.op.as_ref()),
+            CustomOperationKind::Instruction => NativeOperationView::Instruction(self.op.as_ref()),
+        }
+    }
+
+    pub fn kind(&self) -> CustomOperationKind {
+        self.op.kind()
+    }
+}
+
+impl Operation for NativeOperation {
+    fn name(&self) -> &str {
+        match self.view() {
+            NativeOperationView::Gate(custom_gate) => custom_gate.name(),
+            NativeOperationView::Instruction(custom_instruction) => custom_instruction.name(),
+        }
+    }
+
+    fn num_qubits(&self) -> u32 {
+        match self.view() {
+            NativeOperationView::Gate(custom_gate) => custom_gate.num_qubits(),
+            NativeOperationView::Instruction(custom_instruction) => custom_instruction.num_qubits(),
+        }
+    }
+
+    fn num_clbits(&self) -> u32 {
+        match self.view() {
+            NativeOperationView::Gate(custom_gate) => custom_gate.num_clbits(),
+            NativeOperationView::Instruction(custom_instruction) => custom_instruction.num_clbits(),
+        }
+    }
+
+    fn num_params(&self) -> u32 {
+        match self.view() {
+            NativeOperationView::Gate(custom_gate) => custom_gate.num_params(),
+            NativeOperationView::Instruction(custom_instruction) => custom_instruction.num_params(),
+        }
+    }
+
+    fn directive(&self) -> bool {
+        match self.view() {
+            NativeOperationView::Gate(custom_gate) => custom_gate.directive(),
+            NativeOperationView::Instruction(custom_instruction) => custom_instruction.directive(),
+        }
+    }
+}
+
+impl Clone for NativeOperation {
+    fn clone(&self) -> Self {
+        Self {
+            op: self.op.clone_dyn(),
+        }
+    }
+}
+
+impl<T: CustomOperation> From<T> for NativeOperation {
+    fn from(value: T) -> Self {
+        let op = Box::new(value);
+        Self { op }
+    }
+}
+
+impl From<Box<dyn CustomOperation>> for NativeOperation {
+    fn from(value: Box<dyn CustomOperation>) -> Self {
+        Self { op: value }
+    }
+}
+
+#[cfg(test)]
+mod test_custom_gates {
+    use crate::Qubit;
+    use crate::circuit_data::CircuitData;
+    use crate::gate_matrix::H_GATE;
+    use crate::gate_matrix::rx_gate;
+    use crate::operations::CustomOperation;
+    use crate::operations::CustomOperationKind;
+    use crate::operations::NativeOperation;
+    use crate::operations::Operation;
+    use crate::operations::OperationRef;
+    use crate::operations::Param;
+    use crate::operations::StandardGate;
+    use ndarray::aview2;
+    use smallvec::smallvec;
+    use std::f64::consts::PI;
+
+    #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    struct CustomH;
+    impl Operation for CustomH {
+        fn name(&self) -> &str {
+            "h"
+        }
+
+        fn num_qubits(&self) -> u32 {
+            1
+        }
+
+        fn num_clbits(&self) -> u32 {
+            0
+        }
+
+        fn num_params(&self) -> u32 {
+            0
+        }
+
+        fn directive(&self) -> bool {
+            false
+        }
+    }
+
+    impl CustomOperation for CustomH {
+        fn clone_dyn(&self) -> Box<dyn CustomOperation> {
+            Box::new(self.clone())
+        }
+        fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
+            CircuitData::from_standard_gates(
+                1,
+                [(StandardGate::H, smallvec![], smallvec![Qubit(0)])],
+                0.0.into(),
+            )
+            .ok()
+        }
+
+        fn matrix(&self, params: &[Param]) -> Option<ndarray::Array2<numpy::Complex64>> {
+            params.is_empty().then_some(aview2(&H_GATE).to_owned())
+        }
+
+        fn kind(&self) -> CustomOperationKind {
+            CustomOperationKind::Gate
+        }
+    }
+
+    #[derive(Debug, Clone)]
+    pub struct CustomRX;
+
+    impl Operation for CustomRX {
+        fn name(&self) -> &str {
+            "custom_rx"
+        }
+
+        fn num_qubits(&self) -> u32 {
+            1
+        }
+
+        fn num_clbits(&self) -> u32 {
+            0
+        }
+
+        fn num_params(&self) -> u32 {
+            1
+        }
+
+        fn directive(&self) -> bool {
+            false
+        }
+    }
+
+    impl CustomOperation for CustomRX {
+        fn clone_dyn(&self) -> Box<dyn CustomOperation> {
+            Box::new(self.clone())
+        }
+        fn definition(&self, params: &[Param]) -> Option<CircuitData> {
+            (params.len() == 1).then_some(
+                CircuitData::from_standard_gates(
+                    1,
+                    [(
+                        StandardGate::RX,
+                        smallvec![params[0].clone()],
+                        smallvec![Qubit(0)],
+                    )],
+                    0.0.into(),
+                )
+                .expect("Circuit should be built"),
+            )
+        }
+
+        fn matrix(&self, params: &[Param]) -> Option<ndarray::Array2<numpy::Complex64>> {
+            if params.len() == 1 {
+                let Param::Float(param) = params[0] else {
+                    return None;
+                };
+                Some(aview2(&rx_gate(param)).to_owned())
+            } else {
+                None
+            }
+        }
+
+        fn kind(&self) -> CustomOperationKind {
+            CustomOperationKind::Gate
+        }
+    }
+
+    #[test]
+    fn try_custom_h_gate() {
+        let gate: Box<dyn CustomOperation> = Box::new(CustomH);
+
+        // Try downcasting
+        let gate = gate
+            .downcast_ref::<CustomH>()
+            .expect("Should downcast to an H gate");
+
+        assert_eq!(
+            gate.name(),
+            "h",
+            "Gate names did not match, expected 'H' obtained '{}'",
+            gate.name()
+        );
+        assert_eq!(
+            gate.num_qubits(),
+            1,
+            "Gate num_qubits did not match, expected '1' obtained '{}'",
+            gate.num_qubits()
+        );
+        assert_eq!(
+            gate.num_params(),
+            0,
+            "Gate num_qubits did not match, expected '0' obtained '{}'",
+            gate.num_params()
+        );
+        assert_eq!(
+            gate.label(),
+            None,
+            "Gate labels did not match, expected 'None' obtained '{:?}'",
+            gate.label()
+        );
+        let matrix_res = gate.matrix(&[]);
+        let matrix_exp = Some(aview2(&H_GATE));
+        assert_eq!(
+            matrix_res.as_ref().map(|mat| mat.view()),
+            matrix_exp,
+            "Gate matrix did not match, expected {:?} obtained '{:?}'",
+            matrix_exp,
+            matrix_res,
+        );
+
+        let matrix_res = gate.matrix(&[Param::Float(PI)]);
+        let matrix_exp = None;
+        assert_eq!(
+            matrix_res, matrix_exp,
+            "Gate matrix did not match, expected {:?} obtained '{:?}'",
+            matrix_exp, matrix_res
+        );
+
+        let circuit = gate.definition(&[]).expect("Circuit should exist.");
+        assert_eq!(
+            circuit.__len__(),
+            1,
+            "Definition length mismatch, expected {} got {}.",
+            1,
+            circuit.__len__()
+        );
+
+        let hgate = circuit.iter().next().expect("Should be H gate");
+        assert_eq!(
+            hgate.op.standard_gate(),
+            StandardGate::H,
+            "Definition length mismatch, expected {:?} got {:?}.",
+            hgate.op.standard_gate(),
+            StandardGate::H
+        );
+    }
+
+    #[test]
+    fn try_add_to_circuit() {
+        let mut circuit = CircuitData::with_capacity(1, 0, 1, 0.0.into())
+            .expect("Circuit with small capacity should be built.");
+
+        let gate: NativeOperation = CustomH.into();
+
+        // Try downcasting
+        circuit
+            .push_packed_operation(gate.clone().into(), None, &[Qubit(0)], &[])
+            .expect("Instruction should be added to the circuit.");
+
+        // Retrieve operation
+        let retrieved_gate = &circuit.data()[0];
+
+        let OperationRef::CustomGate(gate_as_h) = retrieved_gate.op.view() else {
+            panic!("Gate should be a custom gate of type CustomH");
+        };
+
+        let Some(downcast_gate) = gate_as_h.downcast_ref::<CustomH>() else {
+            panic!("Gate should be a custom gate of type CustomH");
+        };
+
+        assert_eq!(gate_as_h.downcast_ref::<CustomH>(), Some(downcast_gate))
+    }
+}

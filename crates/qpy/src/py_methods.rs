@@ -318,6 +318,11 @@ pub(crate) fn gate_class_name(op: &PackedOperation) -> PyResult<String> {
                 Ok(String::from(PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME))
             }
             OperationRef::ControlFlow(inst) => Ok(inst.name().to_string()),
+            OperationRef::CustomGate(gate) | OperationRef::CustomInstruction(gate) => gate
+                .py_type(py)?
+                .getattr(intern!(py, "__class__"))?
+                .getattr(intern!(py, "__name__"))?
+                .extract::<String>(),
         }?;
         Ok(name)
     })

@@ -29,8 +29,8 @@ use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
 use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::{ObjectRegistry, ObjectRegistryError};
 use crate::operations::{
-    ControlFlow, ControlFlowView, Operation, OperationRef, Param, PyOperationTypes,
-    PythonOperation, StandardGate,
+    ControlFlow, ControlFlowView, NativeOperation, Operation, OperationRef, Param,
+    PyOperationTypes, PythonOperation, StandardGate,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::{ParameterError, ParameterExpression};
@@ -811,6 +811,9 @@ impl CircuitData {
                     OperationRef::StandardInstruction(instruction) => instruction.into(),
                     OperationRef::Unitary(unitary) => unitary.clone().into(),
                     OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
+                    OperationRef::CustomGate(_) | OperationRef::CustomInstruction(_) => {
+                        inst.op.clone()
+                    }
                 };
                 res.data.push(PackedInstruction {
                     op: new_op,
@@ -837,6 +840,9 @@ impl CircuitData {
                     OperationRef::StandardInstruction(instruction) => instruction.into(),
                     OperationRef::Unitary(unitary) => unitary.clone().into(),
                     OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
+                    OperationRef::CustomGate(_) | OperationRef::CustomInstruction(_) => {
+                        inst.op.clone()
+                    }
                 };
                 res.data.push(PackedInstruction {
                     op: new_op,
@@ -2172,6 +2178,10 @@ impl CircuitData {
                 }
                 OperationRef::Operation(op) => {
                     PyOperationTypes::Operation(op.py_deepcopy(py, None)?).into()
+                }
+                OperationRef::CustomGate(custom_operation)
+                | OperationRef::CustomInstruction(custom_operation) => {
+                    NativeOperation::from(custom_operation.clone_dyn()).into()
                 }
             };
             out.push(PackedInstruction { op, ..inst.clone() })?;
