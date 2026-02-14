@@ -3383,6 +3383,25 @@ pub enum CustomOperationKind {
     Instruction,
 }
 
+/// Trait for custom operations implementing certain functions minimal for
+/// them to work properly.
+/// 
+/// Unlike [Operation], this trait focuses on the specific functions that are
+/// typically available for the two main Qiskit operation types: Gate and Instruction.
+/// 
+/// To create any of such, you must implement the [CustomOperation::kind] method, which
+/// returns a [CustomOperationKind] object with two variants:
+/// - [CustomOperationKind::Gate]: For unitary instructions.
+/// - [CustomOperationKind::Instruction]: For non-unitary instruction.
+/// 
+/// When implementing, if [CustomOperationKind::Gate] is the chosen kind. Users should
+/// implement the following methods as they work exclusively with gates:
+/// - [CustomOperation::matrix]
+/// - [CustomOperation::num_ctrl_qubits]
+/// - [CustomOperation::is_controlled_gate]
+/// 
+/// A user must also implement [CustomOperation::clone_dyn] as a way to clone
+/// with the original object's implementation of [Clone] once it is dynamically dispatched.
 pub trait CustomOperation: Operation + Any + Debug + Send + Sync {
     /// Return the custom label assigned to this instruction.
     fn label(&self) -> Option<&str> {
@@ -3460,6 +3479,7 @@ pub struct NativeOperation {
     op: Box<dyn CustomOperation>,
 }
 
+/// A view into a [CustomOperation].
 #[derive(Debug, Clone, Copy)]
 pub enum NativeOperationView<'a> {
     Gate(&'a dyn CustomOperation),
@@ -3541,15 +3561,9 @@ impl From<Box<dyn CustomOperation>> for NativeOperation {
 mod test_custom_gates {
     use crate::Qubit;
     use crate::circuit_data::CircuitData;
-    use crate::gate_matrix::H_GATE;
-    use crate::gate_matrix::rx_gate;
-    use crate::operations::CustomOperation;
-    use crate::operations::CustomOperationKind;
-    use crate::operations::NativeOperation;
-    use crate::operations::Operation;
-    use crate::operations::OperationRef;
-    use crate::operations::Param;
-    use crate::operations::StandardGate;
+    use crate::gate_matrix::{H_GATE, rx_gate};
+    use crate::operations::{CustomOperation, CustomOperationKind};
+    use crate::operations::{NativeOperation, Operation, OperationRef, Param, StandardGate};
     use ndarray::aview2;
     use smallvec::smallvec;
     use std::f64::consts::PI;
@@ -3730,6 +3744,9 @@ mod test_custom_gates {
         );
     }
 
+    // Exclude this test from miri as it uses pointers without provenance
+    // when extracting the view of the `CustomGate`.
+    #[cfg(not(miri))]
     #[test]
     fn try_add_to_circuit() {
         let mut circuit = CircuitData::with_capacity(1, 0, 1, 0.0.into())
