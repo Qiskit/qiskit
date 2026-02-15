@@ -60,7 +60,7 @@ on:
       python-version:
         description: "The Python version to use to host the build runner."
         type: string
-        default: "3.13"
+        default: "3.14"
         required: false
 
       pgo:
