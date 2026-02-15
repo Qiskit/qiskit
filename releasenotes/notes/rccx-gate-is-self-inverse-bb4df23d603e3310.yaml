@@ -1,0 +1,4 @@
+---
+features_circuits:
+  - The :class:`.RCCXGate` is self-inverse so now when calling the ``inverse`` function 
+    for :class:`.RCCXGate` provides an :class:`.RCCXGate`.
