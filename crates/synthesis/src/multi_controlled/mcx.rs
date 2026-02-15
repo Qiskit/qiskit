@@ -417,13 +417,13 @@ pub fn synth_mcx_noaux_v24(
     if num_controls == 0 {
         let mut circuit = CircuitData::with_capacity(1, 0, 1, Param::Float(0.0))?;
         circuit.x(0)?;
-        Ok(circuit.into())
+        Ok(circuit)
     } else if num_controls == 1 {
         let mut circuit = CircuitData::with_capacity(2, 0, 1, Param::Float(0.0))?;
         circuit.cx(0, 1)?;
-        Ok(circuit.into())
+        Ok(circuit)
     } else if num_controls == 2 {
-        Ok(ccx().into())
+        Ok(ccx())
     } else if num_controls == 3 {
         Ok(c3x().into())
     } else if num_controls == 4 {

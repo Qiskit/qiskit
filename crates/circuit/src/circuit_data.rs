@@ -163,6 +163,75 @@ type CircuitDataState<'py> = (
     Vec<expr::Stretch>,
 );
 
+/// The core data structure representing a quantum circuit's instruction sequence and metadata.
+///
+/// `CircuitData` is the internal Rust representation of a quantum circuit, storing the complete
+/// state including instructions, quantum and classical bits, registers, variables, and parameters.
+/// This struct is designed for efficient manipulation and traversal of circuit data from Rust code.
+///
+/// The data is stored in a packed format for memory efficiency, with interned bit arguments to
+/// reduce duplication. Instructions are stored as [`PackedInstruction`] objects in a vector,
+/// allowing for fast sequential access and modification.
+///
+/// # Fields
+///
+/// The struct contains:
+/// - Instruction data and interned bit caches
+/// - Quantum and classical bit registries
+/// - Quantum and classical registers
+/// - Control flow blocks for nested circuit structures
+/// - Variable and stretch registries for dynamic circuits
+/// - Parameter table for parameterized gates
+/// - Global phase information
+///
+/// # Usage
+///
+/// This struct is primarily used internally by the circuit implementation and is wrapped by
+/// [`PyCircuitData`] for Python interoperability. Direct manipulation should be done carefully
+/// to maintain invariants around bit indices, parameter tracking, and register consistency.
+#[derive(Clone, Debug)]
+pub struct CircuitData {
+    /// The packed instruction listing.
+    data: Vec<PackedInstruction>,
+    /// The cache used to intern instruction bits.
+    qargs_interner: Interner<[Qubit]>,
+    /// The cache used to intern instruction bits.
+    cargs_interner: Interner<[Clbit]>,
+    /// Qubits registered in the circuit.
+    qubits: ObjectRegistry<Qubit, ShareableQubit>,
+    /// Clbits registered in the circuit.
+    clbits: ObjectRegistry<Clbit, ShareableClbit>,
+    /// Basic blocks registered in the circuit.
+    blocks: ControlFlowBlocks<CircuitData>,
+    /// QuantumRegisters stored in the circuit
+    qregs: RegisterData<QuantumRegister>,
+    /// ClassicalRegisters stored in the circuit
+    cregs: RegisterData<ClassicalRegister>,
+    /// Mapping between [ShareableQubit] and its locations in
+    /// the circuit
+    qubit_indices: BitLocator<ShareableQubit, QuantumRegister>,
+    /// Mapping between [ShareableClbit] and its locations in
+    /// the circuit
+    clbit_indices: BitLocator<ShareableClbit, ClassicalRegister>,
+    /// Variables registered in the circuit
+    vars: ObjectRegistry<Var, expr::Var>,
+    /// Stretches registered in the circuit
+    stretches: ObjectRegistry<Stretch, expr::Stretch>,
+    /// Variable identifiers, in order of their addition to the circuit
+    identifier_info: IndexMap<String, CircuitIdentifierInfo>,
+
+    // Var and Stretch indices stored in the circuit
+    vars_input: Vec<Var>,
+    vars_capture: Vec<Var>,
+    vars_declare: Vec<Var>,
+
+    stretches_capture: Vec<Stretch>,
+    stretches_declare: Vec<Stretch>,
+
+    param_table: ParameterTable,
+    global_phase: Param,
+}
+
 /// A container for :class:`.QuantumCircuit` instruction listings that stores
 /// :class:`.CircuitInstruction` instances in a packed form by interning
 /// their :attr:`~.CircuitInstruction.qubits` and
@@ -215,49 +284,6 @@ type CircuitDataState<'py> = (
 /// Raises:
 ///     KeyError: if ``data`` contains a reference to a bit that is not present
 ///         in ``qubits`` or ``clbits``.
-#[derive(Clone, Debug)]
-pub struct CircuitData {
-    /// The packed instruction listing.
-    data: Vec<PackedInstruction>,
-    /// The cache used to intern instruction bits.
-    qargs_interner: Interner<[Qubit]>,
-    /// The cache used to intern instruction bits.
-    cargs_interner: Interner<[Clbit]>,
-    /// Qubits registered in the circuit.
-    qubits: ObjectRegistry<Qubit, ShareableQubit>,
-    /// Clbits registered in the circuit.
-    clbits: ObjectRegistry<Clbit, ShareableClbit>,
-    /// Basic blocks registered in the circuit.
-    blocks: ControlFlowBlocks<CircuitData>,
-    /// QuantumRegisters stored in the circuit
-    qregs: RegisterData<QuantumRegister>,
-    /// ClassicalRegisters stored in the circuit
-    cregs: RegisterData<ClassicalRegister>,
-    /// Mapping between [ShareableQubit] and its locations in
-    /// the circuit
-    qubit_indices: BitLocator<ShareableQubit, QuantumRegister>,
-    /// Mapping between [ShareableClbit] and its locations in
-    /// the circuit
-    clbit_indices: BitLocator<ShareableClbit, ClassicalRegister>,
-    /// Variables registered in the circuit
-    vars: ObjectRegistry<Var, expr::Var>,
-    /// Stretches registered in the circuit
-    stretches: ObjectRegistry<Stretch, expr::Stretch>,
-    /// Variable identifiers, in order of their addition to the circuit
-    identifier_info: IndexMap<String, CircuitIdentifierInfo>,
-
-    // Var and Stretch indices stored in the circuit
-    vars_input: Vec<Var>,
-    vars_capture: Vec<Var>,
-    vars_declare: Vec<Var>,
-
-    stretches_capture: Vec<Stretch>,
-    stretches_declare: Vec<Stretch>,
-
-    param_table: ParameterTable,
-    global_phase: Param,
-}
-
 #[pyclass(
     name = "CircuitData",
     freelist = 20,
@@ -588,79 +614,6 @@ impl CircuitData {
         Ok(())
     }
 
-    /// Performs a shallow copy.
-    ///
-    /// Returns:
-    ///     CircuitData: The shallow copy.
-    pub fn copy(&self, py: Python<'_>, copy_instructions: bool, deepcopy: bool) -> PyResult<Self> {
-        let mut res = self.copy_empty_like(VarsMode::Alike, BlocksMode::Keep)?;
-        res.qargs_interner = self.qargs_interner.clone();
-        res.cargs_interner = self.cargs_interner.clone();
-        res.reserve(self.data().len());
-        res.param_table.clone_from(&self.param_table);
-
-        if deepcopy {
-            let memo = PyDict::new(py);
-            for inst in &self.data {
-                let new_op = match inst.op.view() {
-                    OperationRef::Gate(gate) => {
-                        PyOperationTypes::Gate(gate.py_deepcopy(py, Some(&memo))?).into()
-                    }
-                    OperationRef::ControlFlow(cf) => cf.clone().into(),
-                    OperationRef::Instruction(instruction) => {
-                        PyOperationTypes::Instruction(instruction.py_deepcopy(py, Some(&memo))?)
-                            .into()
-                    }
-                    OperationRef::Operation(operation) => {
-                        PyOperationTypes::Operation(operation.py_deepcopy(py, Some(&memo))?).into()
-                    }
-                    OperationRef::StandardGate(gate) => gate.into(),
-                    OperationRef::StandardInstruction(instruction) => instruction.into(),
-                    OperationRef::Unitary(unitary) => unitary.clone().into(),
-                    OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
-                };
-                res.data.push(PackedInstruction {
-                    op: new_op,
-                    qubits: inst.qubits,
-                    clbits: inst.clbits,
-                    params: inst.params.clone(),
-                    label: inst.label.clone(),
-                    #[cfg(feature = "cache_pygates")]
-                    py_op: OnceLock::new(),
-                });
-            }
-        } else if copy_instructions {
-            for inst in &self.data {
-                let new_op = match inst.op.view() {
-                    OperationRef::Gate(gate) => PyOperationTypes::Gate(gate.py_copy(py)?).into(),
-                    OperationRef::Instruction(instruction) => {
-                        PyOperationTypes::Instruction(instruction.py_copy(py)?).into()
-                    }
-                    OperationRef::Operation(operation) => {
-                        PyOperationTypes::Operation(operation.py_copy(py)?).into()
-                    }
-                    OperationRef::ControlFlow(cf) => cf.clone().into(),
-                    OperationRef::StandardGate(gate) => gate.into(),
-                    OperationRef::StandardInstruction(instruction) => instruction.into(),
-                    OperationRef::Unitary(unitary) => unitary.clone().into(),
-                    OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
-                };
-                res.data.push(PackedInstruction {
-                    op: new_op,
-                    qubits: inst.qubits,
-                    clbits: inst.clbits,
-                    params: inst.params.clone(),
-                    label: inst.label.clone(),
-                    #[cfg(feature = "cache_pygates")]
-                    py_op: OnceLock::new(),
-                });
-            }
-        } else {
-            res.data.extend(self.data.iter().cloned());
-        }
-        Ok(res)
-    }
-
     /// Reserves capacity for at least ``additional`` more
     /// :class:`.CircuitInstruction` instances to be added to this container.
     ///
@@ -699,7 +652,7 @@ impl CircuitData {
         params.map(|params| Box::new(params.map_blocks(|block| self.add_block(block))))
     }
 
-    /// Extract the blocks from a Python-space `CircuitInstruction` and add them to this DAG.
+    /// Extract the blocks from a Python-space `CircuitInstruction` and add them to this circuit.
     ///
     /// The inverse of this is [unpack_blocks_to_circuit_parameters].  The version for when you can
     /// take the blocks directly is [take_parameter_blocks].
@@ -816,10 +769,8 @@ impl CircuitData {
     ///
     /// # Arguments
     ///
-    /// * num_qubits: The number of qubits in the circuit. These will be created
-    ///   in Python as loose bits without a register.
-    /// * num_clbits: The number of classical bits in the circuit. These will be created
-    ///   in Python as loose bits without a register.
+    /// * num_qubits: The number of qubits in the circuit.
+    /// * num_clbits: The number of classical bits in the circuit.
     /// * instructions: An iterator of the (packed operation, params, qubits, clbits) to
     ///   add to the circuit
     /// * global_phase: The global phase to use for the circuit
@@ -940,7 +891,6 @@ impl CircuitData {
     ///
     /// # Arguments
     ///
-    /// * py: A GIL handle this is needed to instantiate Qubits in Python space
     /// * num_qubits: The number of qubits in the circuit. These will be created
     ///   in Python as loose bits without a register.
     /// * instructions: An iterator of the standard gate params and qubits to
@@ -1269,7 +1219,7 @@ impl CircuitData {
     }
 
     /// Returns an iterator over all the instructions present in the circuit.
-    pub fn iter(&self) -> impl Iterator<Item = &PackedInstruction> {
+    pub fn iter(&self) -> impl ExactSizeIterator<Item = &PackedInstruction> {
         self.data.iter()
     }
 
@@ -1764,7 +1714,7 @@ impl CircuitData {
 
     /// Consume the CircuitData and create an iterator of the [`PackedInstruction`] objects in the
     /// circuit.
-    pub fn into_data_iter(self) -> impl Iterator<Item = PackedInstruction> {
+    pub fn into_data_iter(self) -> impl ExactSizeIterator<Item = PackedInstruction> {
         self.data.into_iter()
     }
 
@@ -2104,7 +2054,7 @@ impl CircuitData {
         Ok(())
     }
 
-    pub fn extend(&mut self, other: &CircuitData) -> PyResult<()> {
+    pub fn extend(&mut self, other: &CircuitData) -> Result<(), CircuitDataError> {
         // Fast path to avoid unnecessary construction of CircuitInstruction instances.
         self.data.reserve(other.data.len());
         for inst in other.data.iter() {
@@ -2112,14 +2062,14 @@ impl CircuitData {
                 .qargs_interner
                 .get(inst.qubits)
                 .iter()
-                .map(|b| Ok(self.qubits.find(other.qubits.get(*b).unwrap()).unwrap()))
-                .collect::<PyResult<Vec<Qubit>>>()?;
+                .map(|b| self.qubits.find(other.qubits.get(*b).unwrap()).unwrap())
+                .collect::<Vec<Qubit>>();
             let clbits = other
                 .cargs_interner
                 .get(inst.clbits)
                 .iter()
-                .map(|b| Ok(self.clbits.find(other.clbits.get(*b).unwrap()).unwrap()))
-                .collect::<PyResult<Vec<Clbit>>>()?;
+                .map(|b| self.clbits.find(other.clbits.get(*b).unwrap()).unwrap())
+                .collect::<Vec<Clbit>>();
             let qubits_id = self.qargs_interner.insert_owned(qubits);
             let clbits_id = self.cargs_interner.insert_owned(clbits);
             let params = inst.params.as_ref().map(|params| {
@@ -2566,72 +2516,6 @@ fn for_each_symbol_use_in_control_flow(
         }
     }
     Ok(())
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    use crate::converters::py_dag_to_circuit;
-    use crate::dag_circuit::DAGCircuit;
-    use crate::operations::{ArrayType, PauliProductMeasurement, UnitaryGate};
-    use nalgebra::{Matrix2, Matrix4};
-
-    #[cfg(not(miri))]
-    #[test]
-    fn packed_pointer_types_behave() -> PyResult<()> {
-        // This is largely to exercise the packed-pointer logic under debug builds (since the
-        // Python-space tests run with Rust in relaese mode) and Miri.
-        let mut qc = CircuitData::from_packed_operations(4, 1, [], Param::Float(0.0))?;
-        qc.push_packed_operation(
-            Box::new(PauliProductMeasurement {
-                z: vec![true, true, true],
-                x: vec![false, false, true],
-                neg: false,
-            })
-            .into(),
-            None,
-            &[Qubit(0), Qubit(1), Qubit(2)],
-            &[Clbit(0)],
-        )?;
-        qc.push_packed_operation(
-            Box::new(UnitaryGate {
-                array: ArrayType::OneQ(Matrix2::identity()),
-            })
-            .into(),
-            None,
-            &[Qubit(2)],
-            &[],
-        )?;
-        qc.push_packed_operation(
-            Box::new(UnitaryGate {
-                array: ArrayType::TwoQ(Matrix4::identity()),
-            })
-            .into(),
-            None,
-            &[Qubit(2), Qubit(3)],
-            &[],
-        )?;
-        let check = |left: &CircuitData, right: &CircuitData| {
-            for (a, b) in ::std::iter::zip(left.data(), right.data()) {
-                match (a.op.view(), b.op.view()) {
-                    (OperationRef::Unitary(a), OperationRef::Unitary(b)) => assert_eq!(a, b),
-                    (
-                        OperationRef::PauliProductMeasurement(a),
-                        OperationRef::PauliProductMeasurement(b),
-                    ) => assert_eq!(a, b),
-                    (a, b) => panic!("unexpected types in iterator:\n{a:?}\n{b:?}"),
-                }
-            }
-        };
-        let other = qc.clone();
-        check(&qc, &other);
-        let roundtrip = py_dag_to_circuit(
-            &DAGCircuit::from_circuit_data(&qc, false, None, None, None, None)?,
-            false,
-        )?;
-        check(&qc, &roundtrip);
-        Ok(())
-    }
 }
 
 #[pymethods]
@@ -3133,7 +3017,72 @@ impl PyCircuitData {
     ///     PyCircuitData: The shallow copy.
     #[pyo3(signature = (copy_instructions=true, deepcopy=false))]
     pub fn copy(&self, py: Python<'_>, copy_instructions: bool, deepcopy: bool) -> PyResult<Self> {
-        Ok(self.inner.copy(py, copy_instructions, deepcopy)?.into())
+        let mut res = self.copy_empty_like(VarsMode::Alike, BlocksMode::Keep)?;
+        res.qargs_interner = self.qargs_interner.clone();
+        res.cargs_interner = self.cargs_interner.clone();
+        res.reserve(self.data().len());
+        res.param_table.clone_from(&self.param_table);
+
+        if deepcopy {
+            let memo = PyDict::new(py);
+            for inst in &self.data {
+                let new_op = match inst.op.view() {
+                    OperationRef::Gate(gate) => {
+                        PyOperationTypes::Gate(gate.py_deepcopy(py, Some(&memo))?).into()
+                    }
+                    OperationRef::ControlFlow(cf) => cf.clone().into(),
+                    OperationRef::Instruction(instruction) => {
+                        PyOperationTypes::Instruction(instruction.py_deepcopy(py, Some(&memo))?)
+                            .into()
+                    }
+                    OperationRef::Operation(operation) => {
+                        PyOperationTypes::Operation(operation.py_deepcopy(py, Some(&memo))?).into()
+                    }
+                    OperationRef::StandardGate(gate) => gate.into(),
+                    OperationRef::StandardInstruction(instruction) => instruction.into(),
+                    OperationRef::Unitary(unitary) => unitary.clone().into(),
+                    OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
+                };
+                res.data.push(PackedInstruction {
+                    op: new_op,
+                    qubits: inst.qubits,
+                    clbits: inst.clbits,
+                    params: inst.params.clone(),
+                    label: inst.label.clone(),
+                    #[cfg(feature = "cache_pygates")]
+                    py_op: OnceLock::new(),
+                });
+            }
+        } else if copy_instructions {
+            for inst in &self.data {
+                let new_op = match inst.op.view() {
+                    OperationRef::Gate(gate) => PyOperationTypes::Gate(gate.py_copy(py)?).into(),
+                    OperationRef::Instruction(instruction) => {
+                        PyOperationTypes::Instruction(instruction.py_copy(py)?).into()
+                    }
+                    OperationRef::Operation(operation) => {
+                        PyOperationTypes::Operation(operation.py_copy(py)?).into()
+                    }
+                    OperationRef::ControlFlow(cf) => cf.clone().into(),
+                    OperationRef::StandardGate(gate) => gate.into(),
+                    OperationRef::StandardInstruction(instruction) => instruction.into(),
+                    OperationRef::Unitary(unitary) => unitary.clone().into(),
+                    OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
+                };
+                res.data.push(PackedInstruction {
+                    op: new_op,
+                    qubits: inst.qubits,
+                    clbits: inst.clbits,
+                    params: inst.params.clone(),
+                    label: inst.label.clone(),
+                    #[cfg(feature = "cache_pygates")]
+                    py_op: OnceLock::new(),
+                });
+            }
+        } else {
+            res.data.extend(self.data.iter().cloned());
+        }
+        Ok(res.into())
     }
 
     /// Performs a copy with no instructions.
@@ -3337,7 +3286,7 @@ impl PyCircuitData {
 
     pub fn extend(&mut self, itr: &Bound<PyAny>) -> PyResult<()> {
         if let Ok(other) = itr.cast::<PyCircuitData>() {
-            self.inner.extend(&other.borrow().inner)
+            Ok(self.inner.extend(&other.borrow().inner)?)
         } else {
             for v in itr.try_iter()? {
                 self.append(v?.cast()?)?;
@@ -3991,5 +3940,71 @@ impl PyCircuitData {
 
     pub fn cargs_interner(&self) -> &Interner<[Clbit]> {
         self.inner.cargs_interner()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::converters::py_dag_to_circuit;
+    use crate::dag_circuit::DAGCircuit;
+    use crate::operations::{ArrayType, PauliProductMeasurement, UnitaryGate};
+    use nalgebra::{Matrix2, Matrix4};
+
+    #[cfg(not(miri))]
+    #[test]
+    fn packed_pointer_types_behave() -> PyResult<()> {
+        // This is largely to exercise the packed-pointer logic under debug builds (since the
+        // Python-space tests run with Rust in relaese mode) and Miri.
+        let mut qc = CircuitData::from_packed_operations(4, 1, [], Param::Float(0.0))?;
+        qc.push_packed_operation(
+            Box::new(PauliProductMeasurement {
+                z: vec![true, true, true],
+                x: vec![false, false, true],
+                neg: false,
+            })
+            .into(),
+            None,
+            &[Qubit(0), Qubit(1), Qubit(2)],
+            &[Clbit(0)],
+        )?;
+        qc.push_packed_operation(
+            Box::new(UnitaryGate {
+                array: ArrayType::OneQ(Matrix2::identity()),
+            })
+            .into(),
+            None,
+            &[Qubit(2)],
+            &[],
+        )?;
+        qc.push_packed_operation(
+            Box::new(UnitaryGate {
+                array: ArrayType::TwoQ(Matrix4::identity()),
+            })
+            .into(),
+            None,
+            &[Qubit(2), Qubit(3)],
+            &[],
+        )?;
+        let check = |left: &CircuitData, right: &CircuitData| {
+            for (a, b) in ::std::iter::zip(left.data(), right.data()) {
+                match (a.op.view(), b.op.view()) {
+                    (OperationRef::Unitary(a), OperationRef::Unitary(b)) => assert_eq!(a, b),
+                    (
+                        OperationRef::PauliProductMeasurement(a),
+                        OperationRef::PauliProductMeasurement(b),
+                    ) => assert_eq!(a, b),
+                    (a, b) => panic!("unexpected types in iterator:\n{a:?}\n{b:?}"),
+                }
+            }
+        };
+        let other = qc.clone();
+        check(&qc, &other);
+        let roundtrip = py_dag_to_circuit(
+            &DAGCircuit::from_circuit_data(&qc, false, None, None, None, None)?,
+            false,
+        )?;
+        check(&qc, &roundtrip);
+        Ok(())
     }
 }
