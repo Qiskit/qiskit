@@ -510,10 +510,14 @@ fn unpack_control_flow(
             let mut instruction_values = get_instruction_values(instruction, qpy_data)?;
             param_values = instruction_values.split_off(2);
             let mut iter = instruction_values.into_iter();
-            let (collection_value_pack, loop_param_value_pack) =
+            let (mut collection_value_pack, loop_param_value_pack) =
                 iter.next().zip(iter.next()).ok_or(PyValueError::new_err(
                     "For loop instruction missing some of its parameters",
                 ))?;
+            if gate_class_name == "ForLoopOp" {
+                // old style params for loop were stored as little endian
+                collection_value_pack = collection_value_pack.as_le();
+            }
             let collection = unpack_for_collection(&collection_value_pack)?;
             let loop_param = match loop_param_value_pack {
                 GenericValue::ParameterExpressionSymbol(symbol) => Some(symbol),
