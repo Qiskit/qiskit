@@ -143,6 +143,7 @@ The synthesis transpiler plugin documentation can be found in the
    HighLevelSynthesis
    LinearFunctionsToPermutations
    SolovayKitaev
+   SynthesizeRZRotations
    UnitarySynthesis
 
 Post Layout
