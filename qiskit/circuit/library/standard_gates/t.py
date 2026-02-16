@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -24,10 +24,10 @@ from qiskit._accelerate.circuit import StandardGate
 
 @with_gate_array([[1, 0], [0, (1 + 1j) / math.sqrt(2)]])
 class TGate(SingletonGate):
-    r"""Single qubit T gate (Z**0.25).
+    r"""Single qubit T gate (:math:`\sqrt[4]{Z}`).
 
-    It induces a :math:`\pi/4` phase, and is sometimes called the pi/8 gate
-    (because of how the RZ(\pi/4) matrix looks like).
+    It induces a :math:`\pi/4` phase, and is sometimes called the :math:`\pi/8` gate, because
+    it is equivalent to :math:`\exp(i\pi/8~Z)` up to a global phase.
 
     This is a non-Clifford gate and a fourth-root of Pauli-Z.
 
@@ -101,7 +101,7 @@ class TGate(SingletonGate):
 
 @with_gate_array([[1, 0], [0, (1 - 1j) / math.sqrt(2)]])
 class TdgGate(SingletonGate):
-    r"""Single qubit T-adjoint gate (~Z**0.25).
+    r"""Single qubit T-adjoint gate (:math:`T^\dagger`).
 
     It induces a :math:`-\pi/4` phase.
 
@@ -114,7 +114,7 @@ class TdgGate(SingletonGate):
 
     .. math::
 
-        Tdg = \begin{pmatrix}
+        T^\dagger = \begin{pmatrix}
                 1 & 0 \\
                 0 & e^{-i\pi/4}
             \end{pmatrix}
@@ -133,7 +133,10 @@ class TdgGate(SingletonGate):
     _standard_gate = StandardGate.Tdg
 
     def __init__(self, label: Optional[str] = None):
-        """Create new Tdg gate."""
+        """
+        Args:
+            label: An optional label for the gate.
+        """
         super().__init__("tdg", 1, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()

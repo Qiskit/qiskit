@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -21,6 +21,39 @@ pub(crate) fn check_ptr<T>(ptr: *const T) -> Result<(), CInputError> {
         return Err(CInputError::AlignmentError);
     };
     Ok(())
+}
+
+/// Create a slice of length `len` from a given pointer.
+///
+/// If the length is zero, the function is infallible, though the returned slice may not be backed
+/// by the same pointer.  Otherwise, check if the pointer is non-null and aligned.
+///
+/// # Safety
+///
+/// If `len` is non-zero, `ptr` must be valid for `len` reads of initialized memory for lifetime
+/// `'a`.
+pub(crate) unsafe fn try_slice_from_ptr<'a, T>(
+    ptr: *const T,
+    len: usize,
+) -> Result<&'a [T], CInputError> {
+    if len == 0 {
+        Ok(&[])
+    } else {
+        // SAFETY: per documentation, pointer is valid for `len` reads of initialised memory at the
+        // lifetime of the function.
+        check_ptr(ptr).map(|_| unsafe { ::std::slice::from_raw_parts(ptr, len) })
+    }
+}
+/// Create a slice of length `len` from a given pointer.
+///
+/// Panicking variant of [try_slice_from_ptr].
+///
+/// # Safety
+///
+/// If `len` is non-zero, `ptr` must be valid for `len` reads of initialized memory for lifetime
+/// `'a`.
+pub(crate) unsafe fn slice_from_ptr<'a, T>(ptr: *const T, len: usize) -> &'a [T] {
+    unsafe { try_slice_from_ptr(ptr, len) }.expect("caller should ensure a valid pointer")
 }
 
 /// Casts a const pointer to a reference. Panics is the pointer is null or not aligned.

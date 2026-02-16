@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -3055,6 +3055,50 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
             (
                 StandardGate::RZ,
                 &[Qubit(1)],
+                &[Param::ParameterExpression(beta.clone())],
+            ),
+        ],
+        0.0,
+        &mut equiv,
+    )
+    .expect("Error while addding XX_MINUS_YY gate equivalence");
+
+    // XXMinusYYGate
+    // ┌───────────────┐
+    // ┤0              ├
+    // │  {XX-YY}(θ,β) │
+    // ┤1              ├
+    // └───────────────┘
+    //   ┌────────┐┌─────────────┐┌──────────────┐┌───────┐
+    //   ┤ Rz(-β) ├┤0            ├┤0             ├┤ Rz(β) ├
+    // ≡ └────────┘│  Rxx(0.5*θ) ││  Ryy(-0.5*θ) │└───────┘
+    //   ──────────┤1            ├┤1             ├─────────
+    //             └─────────────┘└──────────────┘
+    create_standard_equivalence(
+        StandardGate::XXMinusYY,
+        &[
+            Param::ParameterExpression(theta.clone()),
+            Param::ParameterExpression(beta.clone()),
+        ],
+        &[
+            (
+                StandardGate::RZ,
+                &[Qubit(0)],
+                &[Param::ParameterExpression(neg_beta.clone())],
+            ),
+            (
+                StandardGate::RXX,
+                &[Qubit(0), Qubit(1)],
+                &[Param::ParameterExpression(theta_div_2.clone())],
+            ),
+            (
+                StandardGate::RYY,
+                &[Qubit(0), Qubit(1)],
+                &[Param::ParameterExpression(neg_theta_div_2.clone())],
+            ),
+            (
+                StandardGate::RZ,
+                &[Qubit(0)],
                 &[Param::ParameterExpression(beta.clone())],
             ),
         ],

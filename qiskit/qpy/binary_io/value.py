@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -463,7 +463,7 @@ def _read_parameter_vec(file_obj, vectors):
         vectors[root_uuid] = (ParameterVector(name, data.vector_size), set())
     vector = vectors[root_uuid][0]
 
-    if vector[data.index].uuid != root_uuid:
+    if vector[data.index].uuid != uuid.UUID(bytes=data.uuid):
         vectors[root_uuid][1].add(data.index)
         vector._params[data.index] = ParameterVectorElement(
             vector, data.index, uuid=uuid.UUID(int=root_uuid_int + data.index)

@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -14,7 +14,6 @@ use super::errors::BasisTranslatorError;
 use hashbrown::HashMap;
 use indexmap::{IndexMap, IndexSet};
 use pyo3::prelude::*;
-use qiskit_circuit::Qubit;
 use qiskit_circuit::bit::QuantumRegister;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
@@ -25,6 +24,7 @@ use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::parameter::symbol_expr::Symbol;
 use qiskit_circuit::parameter_table::ParameterUuid;
+use qiskit_circuit::{NoBlocks, Qubit};
 use qiskit_circuit::{
     dag_circuit::DAGCircuit,
     operations::{Operation, Param},
@@ -73,7 +73,7 @@ pub(super) fn compose_transforms<'a>(
         let gate = if let Some(op) = name_to_packed_operation(&gate_name, gate_num_qubits) {
             op
         } else {
-            let extract_py = Python::attach(|py| -> PyResult<OperationFromPython> {
+            let extract_py = Python::attach(|py| -> PyResult<OperationFromPython<NoBlocks>> {
                 GATE.get_bound(py)
                     .call1((&gate_name, gate_num_qubits, placeholder_params.as_ref()))?
                     .extract()

@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -41,7 +41,11 @@ fn synth_clifford_greedy(clifford: PyReadonlyArray2<bool>) -> PyResult<CircuitDa
         GreedyCliffordSynthesis::new(tableau.view()).map_err(QiskitError::new_err)?;
     let (num_qubits, clifford_gates) = greedy_synthesis.run().map_err(QiskitError::new_err)?;
 
-    CircuitData::from_standard_gates(num_qubits as u32, clifford_gates, Param::Float(0.0))
+    Ok(CircuitData::from_standard_gates(
+        num_qubits as u32,
+        clifford_gates,
+        Param::Float(0.0),
+    )?)
 }
 
 /// Generate a random Clifford tableau.
@@ -77,7 +81,11 @@ fn synth_clifford_bm(clifford: PyReadonlyArray2<bool>) -> PyResult<CircuitData> 
     let tableau = clifford.as_array();
     let (num_qubits, clifford_gates) =
         synth_clifford_bm_inner(tableau).map_err(QiskitError::new_err)?;
-    CircuitData::from_standard_gates(num_qubits as u32, clifford_gates, Param::Float(0.0))
+    Ok(CircuitData::from_standard_gates(
+        num_qubits as u32,
+        clifford_gates,
+        Param::Float(0.0),
+    )?)
 }
 
 pub fn clifford(m: &Bound<PyModule>) -> PyResult<()> {

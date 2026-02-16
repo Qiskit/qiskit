@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -72,6 +72,75 @@ static int test_add(void) {
     qk_obs_free(obs);
 
     return (num_terms != 2) ? EqualityError : Ok;
+}
+
+/**
+ * Test adding two observables in-place.
+ */
+static int test_add_inplace(void) {
+    QkObs *left = qk_obs_identity(100);
+    QkObs *right = qk_obs_identity(100);
+    qk_obs_add_inplace(left, right);
+
+    size_t num_terms = qk_obs_num_terms(left);
+
+    qk_obs_free(left);
+    qk_obs_free(right);
+
+    return (num_terms != 2) ? EqualityError : Ok;
+}
+
+/**
+ * Test adding two observables.
+ */
+static int test_scaled_add(void) {
+    QkObs *left = qk_obs_identity(100);
+    QkObs *right = qk_obs_identity(100);
+    QkComplex64 factor = {2.0, 2.0};
+    QkObs *result = qk_obs_scaled_add(left, right, &factor);
+
+    // construct the expected observable: coeff * Id
+    QkObs *expected = qk_obs_identity(100);
+    QkBitTerm bit_terms[] = {};
+    uint32_t indices[] = {};
+    QkObsTerm term = {factor, 0, bit_terms, indices, 100};
+    qk_obs_add_term(expected, &term);
+
+    // perform the check
+    bool is_equal = qk_obs_equal(expected, result);
+
+    qk_obs_free(left);
+    qk_obs_free(right);
+    qk_obs_free(result);
+    qk_obs_free(expected);
+
+    return is_equal ? Ok : EqualityError;
+}
+
+/**
+ * Test adding two observables.
+ */
+static int test_scaled_add_inplace(void) {
+    QkObs *left = qk_obs_identity(100);
+    QkObs *right = qk_obs_identity(100);
+    QkComplex64 factor = {2.0, 2.0};
+    qk_obs_scaled_add_inplace(left, right, &factor);
+
+    // construct the expected observable: coeff * Id
+    QkObs *expected = qk_obs_identity(100);
+    QkBitTerm bit_terms[] = {};
+    uint32_t indices[] = {};
+    QkObsTerm term = {factor, 0, bit_terms, indices, 100};
+    qk_obs_add_term(expected, &term);
+
+    // perform the check
+    bool is_equal = qk_obs_equal(expected, left);
+
+    qk_obs_free(left);
+    qk_obs_free(right);
+    qk_obs_free(expected);
+
+    return is_equal ? Ok : EqualityError;
 }
 
 /**
@@ -230,6 +299,39 @@ static int test_mult(void) {
 }
 
 /**
+ * Test multiplying an observable in-place by a complex coefficient.
+ */
+static int test_mult_inplace(void) {
+    QkComplex64 coeffs[3] = {{2.0, 0.0}, {0.0, 2.0}, {2.0, 2.0}};
+
+    for (int i = 0; i < 3; i++) {
+        QkObs *obs = qk_obs_identity(100);
+
+        qk_obs_multiply_inplace(obs, &coeffs[i]);
+
+        // construct the expected observable: coeff * Id
+        QkObs *expected = qk_obs_zero(100);
+        QkBitTerm bit_terms[] = {};
+        uint32_t indices[] = {};
+        QkObsTerm term = {coeffs[i], 0, bit_terms, indices, 100};
+        qk_obs_add_term(expected, &term);
+
+        // perform the check
+        bool is_equal = qk_obs_equal(expected, obs);
+
+        // deallocate before returning
+        qk_obs_free(obs);
+        qk_obs_free(expected);
+
+        if (!is_equal) {
+            return EqualityError;
+        }
+    }
+
+    return Ok;
+}
+
+/**
  * Test bringing an observable into canonical form.
  */
 static int test_canonicalize(void) {
@@ -332,6 +434,27 @@ static int test_custom_build(void) {
     qk_obs_free(simplified);
 
     return (num_terms != 2 || num_terms_simplified != 1) ? EqualityError : Ok;
+}
+
+/**
+ * Test building a custom observable with null pointers.
+ */
+static int test_custom_build_zero(void) {
+    int res = Ok;
+    uint32_t num_qubits = 32;
+    QkObs *obs = qk_obs_new(num_qubits, 0, 0, NULL, NULL, NULL, (size_t[1]){0});
+    if (!obs) {
+        fprintf(stderr, "%s: failed to construct observable\n", __func__);
+        return EqualityError;
+    }
+    uint32_t actual_num_qubits = qk_obs_num_qubits(obs);
+    size_t num_terms = qk_obs_num_terms(obs);
+    if (actual_num_qubits != num_qubits || num_terms != 0) {
+        fprintf(stderr, "%s: returned observable has incorrect properties\n", __func__);
+        res = EqualityError;
+    }
+    qk_obs_free(obs);
+    return res;
 }
 
 /**
@@ -728,13 +851,8 @@ static int test_obsterm_id(void) {
     // Initialize observable and add a term
     uint32_t num_qubits = 100;
     QkObs *obs = qk_obs_identity(num_qubits);
-    // NOTE: we allocate larger arrays than needed to avoid error C2466 which
-    // disallows the allocation of an array of constant size 0.
-    // https://learn.microsoft.com/en-us/cpp/error-messages/compiler-errors-1/compiler-error-c2466
-    QkBitTerm bit_terms[1];
-    uint32_t qubits[1];
     QkComplex64 coeff = {1.0, 1.0};
-    QkObsTerm term = {coeff, 0, bit_terms, qubits, num_qubits};
+    QkObsTerm term = {coeff, 0, NULL, NULL, num_qubits};
     int err = qk_obs_add_term(obs, &term);
 
     if (err != 0) {
@@ -852,15 +970,20 @@ int test_sparse_observable(void) {
     num_failed += RUN_TEST(test_zero);
     num_failed += RUN_TEST(test_identity);
     num_failed += RUN_TEST(test_add);
+    num_failed += RUN_TEST(test_add_inplace);
+    num_failed += RUN_TEST(test_scaled_add);
+    num_failed += RUN_TEST(test_scaled_add_inplace);
     num_failed += RUN_TEST(test_compose);
     num_failed += RUN_TEST(test_compose_map);
     num_failed += RUN_TEST(test_compose_scalar);
     num_failed += RUN_TEST(test_mult);
+    num_failed += RUN_TEST(test_mult_inplace);
     num_failed += RUN_TEST(test_canonicalize);
     num_failed += RUN_TEST(test_copy);
     num_failed += RUN_TEST(test_num_terms);
     num_failed += RUN_TEST(test_num_qubits);
     num_failed += RUN_TEST(test_custom_build);
+    num_failed += RUN_TEST(test_custom_build_zero);
     num_failed += RUN_TEST(test_term);
     num_failed += RUN_TEST(test_copy_term);
     num_failed += RUN_TEST(test_bitterm_label);

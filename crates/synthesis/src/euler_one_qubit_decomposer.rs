@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -605,7 +605,7 @@ pub static EULER_BASIS_NAMES: [EulerBasis; EULER_BASIS_SIZE] = [
 ];
 
 /// A structure containing a set of supported `EulerBasis` for running 1q synthesis
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct EulerBasisSet {
     basis: [bool; EULER_BASIS_SIZE],
     initialized: bool,
@@ -618,6 +618,24 @@ impl EulerBasisSet {
             basis: [false; EULER_BASIS_SIZE],
             initialized: false,
         }
+    }
+
+    /// Get the set of supported bases given a function that marks whether each basis gate (by name)
+    /// is supported.
+    ///
+    /// The `is_supported` function may be called more than once for the same gate name.
+    pub fn from_support(mut is_supported: impl FnMut(&str) -> bool) -> Self {
+        let mut out = Self {
+            basis: EULER_BASES.map(|basis| basis.iter().all(|gate| is_supported(gate))),
+            initialized: true,
+        };
+        if out.basis_supported(EulerBasis::U321) && out.basis_supported(EulerBasis::U3) {
+            out.remove(EulerBasis::U3);
+        }
+        if out.basis_supported(EulerBasis::ZSXX) && out.basis_supported(EulerBasis::ZSX) {
+            out.remove(EulerBasis::ZSX);
+        }
+        out
     }
 
     /// Return true if this has been initialized any basis is supported

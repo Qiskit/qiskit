@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -39,7 +39,7 @@ from qiskit.utils import optionals
 
 
 def pauli_mat(label):
-    """Return Pauli matrix from a Pauli label"""
+    """Return Pauli matrix from a Pauli label."""
     mat = np.eye(1, dtype=complex)
     for i in label:
         if i == "I":
@@ -413,7 +413,7 @@ class TestSparsePauliOpConversions(QiskitTestCase):
         self.assertEqual(op.to_list(), target)
 
     def test_to_list_parameters(self):
-        """Test to_operator method with paramters."""
+        """Test to_operator method with parameters."""
         labels = ["XI", "YZ", "YY", "ZZ"]
         coeffs = np.array(ParameterVector("a", 4))
         op = SparsePauliOp(labels, coeffs)
@@ -582,7 +582,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         self.parameter_names = (f"param_{x}" for x in it.count())
 
     def random_spp_op(self, num_qubits, num_terms, use_parameters=False):
-        """Generate a pseudo-random SparsePauliOp"""
+        """Generate a pseudo-random SparsePauliOp."""
         if use_parameters:
             coeffs = np.array(ParameterVector(next(self.parameter_names), num_terms))
         else:
@@ -1142,7 +1142,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
 
     @combine(parameterized=[True, False], qubit_wise=[True, False])
     def test_noncommutation_graph(self, parameterized, qubit_wise):
-        """Test noncommutation graph"""
+        """Test noncommutation graph."""
 
         def commutes(left: Pauli, right: Pauli, qubit_wise: bool) -> bool:
             if len(left) != len(right):
@@ -1178,7 +1178,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
 
     @combine(parameterized=[True, False], qubit_wise=[True, False])
     def test_group_commuting(self, parameterized, qubit_wise):
-        """Test general grouping commuting operators"""
+        """Test general grouping of commuting operators."""
 
         def commutes(left: Pauli, right: Pauli, qubit_wise: bool) -> bool:
             if len(left) != len(right):
@@ -1358,7 +1358,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         self.assertEqual(op, res)
 
     def test_apply_layout_null_layout_and_num_qubits(self):
-        """Test apply_layout with a null layout a num_qubits provided"""
+        """Test apply_layout with a null layout and num_qubits provided."""
         op = SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)])
         res = op.apply_layout(layout=None, num_qubits=5)
         # this should expand the operator
