@@ -19,8 +19,8 @@ use qiskit_synthesis::ross_selinger::py_gridsynth_rz;
 
 const MINIMUM_EPSILON: f64 = 1e-2;
 
-// look up table for phase update and gates added during
-// canonicalization of angles
+/// look up table for phase update and gates added during
+/// canonicalization of angles
 
 static PHASE_GATE_LUT: [(f64, Option<StandardGate>); 8] = [
     (0.0, None),
@@ -33,9 +33,8 @@ static PHASE_GATE_LUT: [(f64, Option<StandardGate>); 8] = [
     (-7. * FRAC_PI_4, Some(StandardGate::Sdg)),
 ];
 
-// Takes angle as f64 and returns (interval,canonical angle)
-// as (u8,f64). Here PI_INTERVALS is a static look up table that
-// returns PI_INTERVALS[i] = i*pi/2
+// Takes angle as f64 and returns \(interval,canonical_angle)
+// as \(u8,f64). 
 // We want to use the following properties of Rz(theta)
 // Rz(theta + pi/2) = Rz(theta).S
 // Rz(theta + pi) = Rz(theta).Z
@@ -44,9 +43,10 @@ static PHASE_GATE_LUT: [(f64, Option<StandardGate>); 8] = [
 // pi/2 and define the angle mapping, gate sequence, and phase update, accordingly.
 // Any angle theta canonicalized as theta_prime from [0,4*pi) -> [0,pi/2)
 // can be uniquely represented by the combination of (theta_prime, interval)
-// where interval is the floor of theta/(pi/2). And based on the interval,
-// the look up table uniquely determines the combination of phase_update
-// and angle to be added. The limits of this uniqueness is determined by the
+// where interval is the floor of theta/(pi/2) and is a u8 bit that functions
+// as an index to the static table that uniquely determines the combination of 
+// phase_update and angle to be added to the DAG after synthesis using the 
+// canonical_angle. The limits of this uniqueness is determined by 
 // angle_normalized = angle.rem_euclid(FOUR_PI); since it is f64, any
 // angle that differs in decimal places beyond f64 will have a non-unique
 // representation.
@@ -65,12 +65,10 @@ fn canonicalize_angle(angle: f64) -> (u8, f64) {
     (interval, angle_normalized)
 }
 
-/// This function will always take input in the range [0,2pi) and
-/// return the sequence of gates to be added, and the global phase
-/// update as from the synthesis. Canonicalization of angles is performed
-/// during dag traversal and the corresponding phase update and gate to be
-/// added can be obtained from the look up table via the interval index.
-/// This prevents redundant synthesis calls for angles as much as possible.
+/// Approximates RZ-rotation using gridsynth. 
+///
+/// Returns the sequence of gates in the  synthesized circuit and 
+/// an update to the global phase.
 fn synthesize_rz_gate_via_gridsynth(
     angle: f64,
     epsilon: f64,
