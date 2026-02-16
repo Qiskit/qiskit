@@ -647,7 +647,7 @@ static int test_substitute_node_with_dag(void) {
 
     if (qk_dag_num_op_nodes(dag) != 4) {
         res = EqualityError;
-        printf("Number of instructions is %zd but expected 4\n", qk_dag_num_op_nodes(dag));
+        printf("Number of instructions is %zu but expected 4\n", qk_dag_num_op_nodes(dag));
         goto cleanup;
     }
 
@@ -1177,7 +1177,7 @@ static int test_dag_replace_block_with_unitary(void) {
     size_t num_ops = qk_dag_num_op_nodes(dag);
     if (num_ops != 3) {
         result = EqualityError;
-        printf("Number of instructions is %zd but expected 3\n", num_ops);
+        printf("Number of instructions is %zu but expected 3\n", num_ops);
         goto cleanup;
     }
 
@@ -1187,7 +1187,49 @@ static int test_dag_replace_block_with_unitary(void) {
         result = EqualityError;
         printf(
             "The new node with index %u has incorrect operation type: expected: %d but got %d.\n",
-            new_node_idx, new_node_kind, new_node_kind);
+            new_node_idx, QkOperationKind_Unitary, new_node_kind);
+    }
+
+cleanup:
+    qk_quantum_register_free(qr);
+    qk_dag_free(dag);
+
+    return result;
+}
+
+static int test_dag_replace_qubitless_block_with_unitary(void) {
+    int result = Ok;
+
+    // Create a DAG with H, GlobalPhase, CX
+    QkDag *dag = qk_dag_new();
+    QkQuantumRegister *qr = qk_quantum_register_new(2, "qr");
+    qk_dag_add_quantum_register(dag, qr);
+
+    qk_dag_apply_gate(dag, QkGate_H, (uint32_t[]){1}, NULL, false);
+    uint32_t idx =
+        qk_dag_apply_gate(dag, QkGate_GlobalPhase, (uint32_t[]){}, (double[]){0.0}, false);
+    qk_dag_apply_gate(dag, QkGate_CX, (uint32_t[]){1}, NULL, false);
+
+    // Replace the global phase gate by a 0-qubit unitary gate
+    static const QkComplex64 identity_mat[1] = {{1, 0}};
+    uint32_t new_node_idx = qk_dag_replace_block_with_unitary(dag, 1, (uint32_t[]){idx},
+                                                              identity_mat, 0, (uint32_t[]){});
+
+    // The resulting DAG should have 3 operations
+    size_t num_ops = qk_dag_num_op_nodes(dag);
+    if (num_ops != 3) {
+        result = EqualityError;
+        printf("Number of instructions is %zu but expected 3\n", num_ops);
+        goto cleanup;
+    }
+
+    // And the new operation must be unitary
+    QkOperationKind new_node_kind = qk_dag_op_node_kind(dag, new_node_idx);
+    if (new_node_kind != QkOperationKind_Unitary) {
+        result = EqualityError;
+        printf(
+            "The new node with index %u has incorrect operation type: expected: %d but got %d.\n",
+            new_node_idx, QkOperationKind_Unitary, new_node_kind);
     }
 
 cleanup:
@@ -1216,6 +1258,7 @@ int test_dag(void) {
     num_failed += RUN_TEST(test_dag_compose);
     num_failed += RUN_TEST(test_dag_compose_permuted);
     num_failed += RUN_TEST(test_dag_replace_block_with_unitary);
+    num_failed += RUN_TEST(test_dag_replace_qubitless_block_with_unitary);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);

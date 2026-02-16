@@ -1589,14 +1589,22 @@ pub unsafe extern "C" fn qk_dag_copy_empty_like(
 }
 
 /// @ingroup QkDag
-/// Replace a block of node indices in a `QkDag` with a unitary gate.
+/// Replace a non-empty contiguous block of DAG nodes in a `QkDag` with a single
+/// unitary gate whose matrix is equal to the overall unitary matrix of the block.
 ///
-/// @param dag A pointer to the DAG.
-/// @param num_block_ids Number of node indices to replace.
-/// @param block_ids A list of node indices to replace.
-/// @param matrix An unitary matrix of total size ``4**num_qubits``.
-/// @param num_qubits The number of qubits the unitary gate applies to.
-/// @param qubits An array of distinct ``uint32_t`` indices of the qubits.
+/// The specified nodes are removed and substituted by a new node acting on
+/// the given qubits.
+///
+/// @param dag Pointer to the DAG.
+/// @param num_block_ids Number of nodes in `block_ids`. This number must be
+///     nonzero.
+/// @param block_ids A non-empty array of nodes to replace.
+/// @param matrix Pointer to a unitary matrix of dimension
+///     ``2^num_qubits x 2^num_qubits``.
+/// @param num_qubits The number of qubits the resulting unitary gate acts on.
+/// @param qubits Array of distinct ``uint32_t`` indices of the qubits.
+///     Each entry specifies the index of the DAG qubit that corresponds to
+///     the respective argument position in the unitary gate.
 ///
 /// @return The index of the newly added operation node.
 ///
@@ -1646,13 +1654,18 @@ pub unsafe extern "C" fn qk_dag_replace_block_with_unitary(
     let dag = unsafe { mut_ptr_as_ref(dag) };
 
     // SAFETY: per documentation, `matrix` is aligned and valid for `4**num_qubits` reads of
-    // initialised data.
+    // initialized data.
     let array = unsafe { unitary_from_pointer(matrix, num_qubits, None) }
         .expect("infallible without tolerance checking");
 
-    let block = unsafe {
-        ::std::slice::from_raw_parts(block_ids as *const NodeIndex, num_block_ids as usize)
-    };
+    // SAFETY: per documentation, `block_ids` is aligned and valid for `num_block_ids` reads. Per
+    // documentation, `num_block_ids` is nonzero so `block_ids` cannot be null.
+    let block_u32 = unsafe { ::std::slice::from_raw_parts(block_ids, num_block_ids as usize) };
+
+    let block: Vec<NodeIndex> = block_u32
+        .iter()
+        .map(|q| NodeIndex::new(*q as usize))
+        .collect();
 
     let qubits = if num_qubits == 0 {
         // This handles the case of C passing us a null pointer for a scalar matrix; Rust slices
@@ -1669,11 +1682,11 @@ pub unsafe extern "C" fn qk_dag_replace_block_with_unitary(
         .enumerate()
         .map(|(i, q)| (*q, i))
         .collect::<HashMap<_, _>>();
-    let clbit_pos_map: HashMap<Clbit, usize> = HashMap::new();
+    let clbit_pos_map = HashMap::new();
 
     let new_index = dag
         .replace_block(
-            block,
+            &block,
             Box::new(UnitaryGate { array }).into(),
             None,
             None,
