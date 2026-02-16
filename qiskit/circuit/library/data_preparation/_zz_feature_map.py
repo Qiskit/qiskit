@@ -33,8 +33,9 @@ class ZZFeatureMap(PauliFeatureMap):
         ┤ H ├┤ P(2.0*φ(x[2])) ├─────────────────────────────────┤ X ├┤ P(2.0*φ(x[1],x[2])) ├┤ X ├
         └───┘└────────────────┘                                 └───┘└─────────────────────┘└───┘
 
-    where :math:`\varphi` is a classical non-linear function, which defaults to :math:`\varphi(x) = x`
-    if and :math:`\varphi(x,y) = (\pi - x)(\pi - y)`.
+    where :math:`\varphi` is a classical non-linear function, which defaults to
+    :math:`\varphi(x) = x` if :math:`|S| = 1` and
+    :math:`\varphi(x,y) = (\pi - x)(\pi - y)` if :math:`|S| > 1`.
 
     Examples:
 
