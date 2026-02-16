@@ -1208,7 +1208,7 @@ static int test_dag_replace_qubitless_block_with_unitary(void) {
     qk_dag_apply_gate(dag, QkGate_H, (uint32_t[]){1}, NULL, false);
     uint32_t idx =
         qk_dag_apply_gate(dag, QkGate_GlobalPhase, (uint32_t[]){}, (double[]){0.0}, false);
-    qk_dag_apply_gate(dag, QkGate_CX, (uint32_t[]){1}, NULL, false);
+    qk_dag_apply_gate(dag, QkGate_CX, (uint32_t[]){0, 1}, NULL, false);
 
     // Replace the global phase gate by a 0-qubit unitary gate
     static const QkComplex64 identity_mat[1] = {{1, 0}};
