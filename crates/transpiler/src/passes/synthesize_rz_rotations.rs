@@ -17,7 +17,8 @@ use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::operations::{OperationRef, Param, StandardGate};
 use qiskit_synthesis::ross_selinger::py_gridsynth_rz;
 
-const MINIMUM_EPSILON: f64 = 1e-2;
+const MINIMUM_EPSILON: f64 = 1e-2; // minimum epsilon for synthesis
+const MAXIMUM_EPSILON: f64 = 1e-12; // maximum epsilon for synthesis
 
 /// look up table for phase update and gates added during
 /// canonicalization of angles
@@ -99,13 +100,13 @@ pub fn py_run_synthesize_rz_rotations(
     dag: &mut DAGCircuit,
     approximation_degree: f64,
 ) -> PyResult<()> {
-    // ensure epsilon does not fall below a minimum value to preserve fidelity of synthesis
-    let epsilon = MINIMUM_EPSILON.min(1. - approximation_degree);
+    
     // Skip the pass if there are no RZ rotation gates.
     if dag.get_op_counts().keys().all(|k| k != "rz") {
         return Ok(());
     }
-
+    // bound epsilon between minimum and max values to ensure fidelity of synthesis
+    let epsilon = MAXIMUM_EPSILON.max(MINIMUM_EPSILON.min(1. - approximation_degree));
     // Iterate over nodes in the DAG and collect nodes that have RZ gates.
     // Canonicalize angles already at this stage, so that we can use them for sorting.
     let mut candidates: Vec<_> = dag
