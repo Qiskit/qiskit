@@ -125,15 +125,16 @@ pub fn py_run_synthesize_rz_rotations(
         })
         .collect();
 
-    // Sort candidates based on the (canonicalized) angles
+    // Sort candidates based on the \(canonicalized) angles
     candidates.sort_unstable_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
 
     let mut prev_result: Option<(f64, (Vec<StandardGate>, Param))> = None;
 
     for (node_index, angle, interval_index) in candidates {
         // Get or compute the sequence and phase update.
-        // Right now we just check if the current angle is exactly equal to the previous angle, but
-        // todo: allow delta-difference with delta depending on epsilon
+        // Using triangle inequality it can be shown that if the current angle is within epsilon/2 
+        // of the previous angle, we can reuse the synthesis of previous angle by calling gridsynth
+        // with epsilon/2
         let should_recompute = prev_result
             .as_ref()
             .is_none_or(|(prev_angle, _)| *prev_angle + epsilon / 2. < angle);
@@ -155,9 +156,7 @@ pub fn py_run_synthesize_rz_rotations(
             dag.insert_1q_on_incoming_qubit((gate, &[]), node_index);
         }
         dag.remove_1q_sequence(&[node_index]);
-        //dag.remove_op_node(node_index);
-        // remove_1q_sequence is marginally faster than remove_op_node
-        // during the tests
+
         dag.add_global_phase(phase_update)?;
         dag.add_global_phase(&Param::Float(PHASE_GATE_LUT[interval_index as usize].0))?;
     }
