@@ -102,7 +102,7 @@ mod inner {
 mod inner {
     use std::ptr;
 
-    #[derive(Debug)]
+    #[derive(Clone, Copy, Debug)]
     pub struct PackedOperationInner {
         pad: u32,
         ptr: *mut (),
@@ -114,7 +114,7 @@ mod inner {
         }
         #[inline]
         pub fn as_u64(self) -> u64 {
-            (u64::from(self.0) << 32) | u64::try_from(self.ptr).expect("usize is 32 bits")
+            (u64::from(self.pad) << 32) | u64::try_from(self.ptr.addr()).expect("usize is 32 bits")
         }
         #[inline]
         pub fn from_ptr(ptr: *mut ()) -> Self {
@@ -123,7 +123,7 @@ mod inner {
         #[inline]
         pub fn from_u64(val: u64) -> Self {
             Self {
-                pad: val >> 32,
+                pad: (val >> 32) as u32,
                 // Rust numeric casting rules guarantee truncation to the least-significant bits.
                 // https://doc.rust-lang.org/reference/expressions/operator-expr.html#r-expr.as.numeric.int-truncation
                 ptr: ptr::without_provenance_mut(val as usize),
