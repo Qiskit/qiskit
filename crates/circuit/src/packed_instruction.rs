@@ -171,7 +171,7 @@ impl From<*mut ()> for PackedOperationInner {
 ///
 /// The least-significant three bits is always the discriminant and identifies which of the above
 /// variants the field contains (and thus the layout required to decode it).  This works even for
-/// pointer variants (like `PyGate`) on 64-bit systems, which are naturally 64 bits themselves,
+/// pointer variants (like `UnitaryGate`) on 64-bit systems, which are naturally 64 bits themselves,
 /// because we use `#[repr(align(8))]` on everything that can go into a `PackedOperation`, so we
 /// guarantee that the least-significant three bits carry no information (they're always 0).
 ///
