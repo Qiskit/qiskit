@@ -73,18 +73,31 @@ class TestSynthesizeRzRotations(QiskitTestCase):
         # Check the operators are (almost) equal
         self.assertEqual(Operator(synthesized_circ), Operator(RZGate(angle)))
 
+    # @data(
+    #     0.99,
+    #     0.999,
+    #     0.9999,
+    #     0.99999,
+    #     0.999999,
+    #     0.9999999,
+    #     0.99999999,
+    #     0.999999999,
+    #     0.9999999999,
+    #     0.99999999999,
+    #     0.999999999999,
+    # )
     @data(
-        0.99,
-        0.999,
-        0.9999,
-        0.99999,
-        0.999999,
-        0.9999999,
-        0.99999999,
-        0.999999999,
-        0.9999999999,
-        0.99999999999,
-        0.999999999999,
+        1 - 1e-2,
+        1 - 1e-3,
+        1 - 1e-4,
+        1 - 1e-5,
+        1 - 1e-6,
+        1 - 1e-7,
+        1 - 1e-8,
+        1 - 1e-9,
+        1 - 1e-10,
+        1 - 1e-11,
+        1 - 1e-12,
     )
     def test_approximation_error(self, approximation_degree):
         """Test that the argument ``approximation_degree`` works correctly,"""
@@ -101,7 +114,6 @@ class TestSynthesizeRzRotations(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.rz(1.0, 0)
         approximation_degrees = [0.999999, 0.99999999, 0.9999999999]
-        # t_expected = [62, 81, 105]
         t_expected_circs = [gridsynth_rz(1.0, (1 - aps) / 2) for aps in approximation_degrees]
         t_expected = [
             t_expected_circs[i].count_ops().get("t", 0) for i in range(len(approximation_degrees))
