@@ -57,7 +57,7 @@ use std::sync::Arc;
 use smallvec::SmallVec;
 
 use crate::annotations::AnnotationHandler;
-use crate::backwards_comp::wrap_condtional_gate;
+use crate::backwards_comp::wrap_conditional_gate;
 use crate::bytes::Bytes;
 use crate::consts::standard_gate_from_gate_class_name;
 use crate::formats;
@@ -359,7 +359,7 @@ fn unpack_instruction(
     let condition = unpack_condition(&instruction.condition, qpy_data)?;
     let (op, params) = match condition {
         Some(cond) if !matches!(instruction_type, InstructionType::ControlFlow) => {
-            wrap_condtional_gate(instruction, op, cond, qubits, clbits, params, qpy_data)?
+            wrap_conditional_gate(instruction, op, cond, qubits, clbits, params, qpy_data)?
         }
         _ => (op, params),
     };

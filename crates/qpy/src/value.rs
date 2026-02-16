@@ -52,7 +52,7 @@ use std::fmt::Debug;
 use std::io::Cursor;
 use uuid::Uuid;
 
-pub const QPY_VERSION: u32 = 15;
+pub const QPY_VERSION: u32 = 17;
 
 // Standard char representation of register types: 'q' qreg, 'c' for creg
 #[binrw]

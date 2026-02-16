@@ -436,7 +436,7 @@ pub struct PauliEvolutionDefPack {
 
 // A pauli operator data for pauli evolution gates
 // The operator is given either as a SparesePauliOp list or as a SparasePauliObservable
-// SparasePauliObservable was added in V17
+// SparsePauliObservable was added in V17
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]

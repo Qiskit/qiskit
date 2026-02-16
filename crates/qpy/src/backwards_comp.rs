@@ -172,7 +172,7 @@ pub struct ScheduleReferenceMapItem {
 
 // handling for non control flow gates with conditionals
 
-pub fn wrap_condtional_gate(
+pub fn wrap_conditional_gate(
     instruction: &formats::CircuitInstructionV2Pack,
     op: PackedOperation,
     cond: Condition,
