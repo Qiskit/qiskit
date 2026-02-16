@@ -22,7 +22,6 @@ const MAXIMUM_EPSILON: f64 = 1e-12; // maximum epsilon for synthesis
 
 /// look up table for phase update and gates added during
 /// canonicalization of angles
-
 static PHASE_GATE_LUT: [(f64, Option<StandardGate>); 8] = [
     (0.0, None),
     (-FRAC_PI_4, Some(StandardGate::S)),
@@ -35,7 +34,7 @@ static PHASE_GATE_LUT: [(f64, Option<StandardGate>); 8] = [
 ];
 
 // Takes angle as f64 and returns \(interval,canonical_angle)
-// as \(u8,f64). 
+// as \(u8,f64).
 // We want to use the following properties of Rz(theta)
 // Rz(theta + pi/2) = Rz(theta).S
 // Rz(theta + pi) = Rz(theta).Z
@@ -45,9 +44,9 @@ static PHASE_GATE_LUT: [(f64, Option<StandardGate>); 8] = [
 // Any angle theta canonicalized as theta_prime from [0,4*pi) -> [0,pi/2)
 // can be uniquely represented by the combination of (theta_prime, interval)
 // where interval is the floor of theta/(pi/2) and is a u8 bit that functions
-// as an index to the static table that uniquely determines the combination of 
-// phase_update and angle to be added to the DAG after synthesis using the 
-// canonical_angle. The limits of this uniqueness is determined by 
+// as an index to the static table that uniquely determines the combination of
+// phase_update and angle to be added to the DAG after synthesis using the
+// canonical_angle. The limits of this uniqueness is determined by
 // angle_normalized = angle.rem_euclid(FOUR_PI); since it is f64, any
 // angle that differs in decimal places beyond f64 will have a non-unique
 // representation.
@@ -66,9 +65,9 @@ fn canonicalize_angle(angle: f64) -> (u8, f64) {
     (interval, angle_normalized)
 }
 
-/// Approximates RZ-rotation using gridsynth. 
+/// Approximates RZ-rotation using gridsynth.
 ///
-/// Returns the sequence of gates in the  synthesized circuit and 
+/// Returns the sequence of gates in the  synthesized circuit and
 /// an update to the global phase.
 fn synthesize_rz_gate_via_gridsynth(
     angle: f64,
@@ -100,7 +99,6 @@ pub fn py_run_synthesize_rz_rotations(
     dag: &mut DAGCircuit,
     approximation_degree: f64,
 ) -> PyResult<()> {
-    
     // Skip the pass if there are no RZ rotation gates.
     if dag.get_op_counts().keys().all(|k| k != "rz") {
         return Ok(());
@@ -132,7 +130,7 @@ pub fn py_run_synthesize_rz_rotations(
 
     for (node_index, angle, interval_index) in candidates {
         // Get or compute the sequence and phase update.
-        // Using triangle inequality it can be shown that if the current angle is within epsilon/2 
+        // Using triangle inequality it can be shown that if the current angle is within epsilon/2
         // of the previous angle, we can reuse the synthesis of previous angle by calling gridsynth
         // with epsilon/2
         let should_recompute = prev_result
