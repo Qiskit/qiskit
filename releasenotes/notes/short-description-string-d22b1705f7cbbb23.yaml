@@ -5,7 +5,8 @@ features_transpiler:
     A new transpiler pass :class:`.SynthesizeRZRotations`
     that decomposes :class:`.RZGate` rotations in a circuit into 
     sequences of Clifford+T gates. The pass accepts an
-    ``epsilon`` parameter that controls the approximation accuracy.
+    ``approximation_degree`` parameter that controls the 
+    approximation accuracy.
     
     Example usage::
     
@@ -15,6 +16,6 @@ features_transpiler:
       qc = QuantumCircuit(1)
       qc.rz(1.23, 0)
       
-      rz_synthesis_pass = SynthesizeRZRotations(epsilon=1e-10)
+      rz_synthesis_pass = SynthesizeRZRotations(approximation_degree=0.9999)
       synthesized_qc = rz_synthesis_pass(qc)
       synthesized_qc.draw()
