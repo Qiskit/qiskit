@@ -16,9 +16,8 @@ use ndarray::linalg::kron;
 use num_complex::Complex64;
 use num_complex::ComplexFloat;
 use qiskit_circuit::object_registry::PyObjectAsKey;
-use qiskit_quantum_info::sparse_observable::standard_generators::{
-    StandardGate as SparseStandardGate, generator_observable,
-};
+use qiskit_circuit::operations::StandardGate as SparseStandardGate;
+use qiskit_quantum_info::sparse_observable::standard_generators::generator_observable;
 use qiskit_quantum_info::sparse_observable::{PySparseObservable, SparseObservable};
 use smallvec::SmallVec;
 use std::fmt::Debug;
@@ -221,45 +220,7 @@ fn try_extract_op_from_ppm(
 }
 
 fn map_standard_to_sparse(gate: StandardGate) -> Option<SparseStandardGate> {
-    match gate {
-        StandardGate::I => Some(SparseStandardGate::Id),
-        StandardGate::X => Some(SparseStandardGate::X),
-        StandardGate::Y => Some(SparseStandardGate::Y),
-        StandardGate::Z => Some(SparseStandardGate::Z),
-        StandardGate::RX => Some(SparseStandardGate::Rx),
-        StandardGate::RY => Some(SparseStandardGate::Ry),
-        StandardGate::RZ => Some(SparseStandardGate::Rz),
-        StandardGate::Phase | StandardGate::U1 => Some(SparseStandardGate::Rz),
-        StandardGate::H => Some(SparseStandardGate::H),
-        StandardGate::S => Some(SparseStandardGate::S),
-        StandardGate::Sdg => Some(SparseStandardGate::Sdg),
-        StandardGate::SX => Some(SparseStandardGate::SX),
-        StandardGate::SXdg => Some(SparseStandardGate::SXdg),
-        StandardGate::T => Some(SparseStandardGate::T),
-        StandardGate::Tdg => Some(SparseStandardGate::Tdg),
-        StandardGate::CX => Some(SparseStandardGate::CX),
-        StandardGate::CY => Some(SparseStandardGate::CY),
-        StandardGate::CZ => Some(SparseStandardGate::CZ),
-        StandardGate::CRX => Some(SparseStandardGate::CRX),
-        StandardGate::CRY => Some(SparseStandardGate::CRY),
-        StandardGate::CRZ => Some(SparseStandardGate::CRZ),
-        StandardGate::CPhase => Some(SparseStandardGate::CPhase),
-        StandardGate::ECR => Some(SparseStandardGate::ECR),
-        StandardGate::Swap => Some(SparseStandardGate::Swap),
-        StandardGate::ISwap => Some(SparseStandardGate::ISwap),
-        StandardGate::RXX => Some(SparseStandardGate::RXX),
-        StandardGate::RYY => Some(SparseStandardGate::RYY),
-        StandardGate::RZZ => Some(SparseStandardGate::RZZ),
-        StandardGate::RZX => Some(SparseStandardGate::RZX),
-        StandardGate::XXPlusYY => Some(SparseStandardGate::XXPlusYY),
-        StandardGate::XXMinusYY => Some(SparseStandardGate::XXMinusYY),
-        StandardGate::CCX => Some(SparseStandardGate::CCX),
-        StandardGate::CSwap => Some(SparseStandardGate::CSwap),
-        StandardGate::CSX => Some(SparseStandardGate::CSX),
-        StandardGate::CS => Some(SparseStandardGate::CS),
-        StandardGate::CSdg => Some(SparseStandardGate::CSdg),
-        _ => None,
-    }
+    Some(gate)
 }
 
 fn try_pauli_generator(

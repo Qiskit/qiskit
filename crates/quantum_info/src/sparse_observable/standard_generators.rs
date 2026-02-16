@@ -4,120 +4,11 @@ use super::BitTerm;
 use super::SparseObservable;
 use num_complex::Complex64;
 use pyo3::prelude::*;
-use qiskit_circuit::operations::Param;
-
-// Standard single-qubit gates.
-#[pyclass(module = "qiskit._accelerate.standard_generators")]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum StandardGate {
-    Id,
-    X,
-    Y,
-    Z,
-    Rx,
-    Ry,
-    Rz,
-    H,
-    S,
-    Sdg,
-    SX,
-    SXdg,
-    T,
-    Tdg,
-    CX,
-    CY,
-    CZ,
-    CRX,
-    CRY,
-    CRZ,
-    CPhase,
-    ECR,
-    Swap,
-    ISwap,
-    RXX,
-    RYY,
-    RZZ,
-    RZX,
-    XXPlusYY,
-    XXMinusYY,
-    CCX,
-    CSwap,
-    CSX,
-    CS,
-    CSdg,
-}
-
-impl StandardGate {
-    pub const NUM_VARIANTS: usize = 22;
-
-    #[inline]
-    pub fn as_index(self) -> usize {
-        self as usize
-    }
-
-    pub fn num_qubits(self) -> u32 {
-        match self {
-            Self::Id
-            | Self::X
-            | Self::Y
-            | Self::Z
-            | Self::Rx
-            | Self::Ry
-            | Self::Rz
-            | Self::H
-            | Self::S
-            | Self::Sdg
-            | Self::SX
-            | Self::SXdg
-            | Self::T
-            | Self::Tdg => 1,
-            Self::CX
-            | Self::CY
-            | Self::CZ
-            | Self::CRX
-            | Self::CRY
-            | Self::CRZ
-            | Self::CPhase
-            | Self::ECR
-            | Self::Swap
-            | Self::ISwap
-            | Self::RXX
-            | Self::RYY
-            | Self::RZZ
-            | Self::RZX
-            | Self::XXPlusYY
-            | Self::XXMinusYY
-            | Self::CSX
-            | Self::CS
-            | Self::CSdg => 2,
-            Self::CCX | Self::CSwap => 3,
-        }
-    }
-}
-
-// Mapping of single-qubit gates to their generators.
-static SINGLE_QUBIT_GENERATORS: [&[BitTerm]; 14] = {
-    use BitTerm::*;
-    [
-        &[],     // Id
-        &[X],    // X
-        &[Y],    // Y
-        &[Z],    // Z
-        &[X],    // Rx
-        &[Y],    // Ry
-        &[Z],    // Rz
-        &[X, Z], // H
-        &[Z],    // S
-        &[Z],    // Sdg
-        &[X],    // SX
-        &[X],    // SXdg
-        &[Z],    // T
-        &[Z],    // Tdg
-    ]
-};
+use qiskit_circuit::operations::Operation;
+use qiskit_circuit::operations::StandardGate;
 
 /// Return an observable for the generator of `gate`, if we have one.
-/// Return an observable for the generator of `gate`, if we have one.
+#[allow(clippy::result_large_err)]
 pub fn generator_observable(
     gate: StandardGate,
     params: &[qiskit_circuit::operations::Param],
@@ -125,27 +16,54 @@ pub fn generator_observable(
     let _params = params;
     let num_qubits = gate.num_qubits();
 
+    use BitTerm::*;
+
+    // Single qubit gates
     if num_qubits == 1 {
-        let idx = gate.as_index();
-        let terms = SINGLE_QUBIT_GENERATORS.get(idx)?;
-        if terms.is_empty() {
-            return None;
-        }
-        let coeffs = vec![Complex64::new(1.0, 0.0); terms.len()];
-        let bit_terms: Vec<BitTerm> = terms.to_vec();
-        let indices: Vec<u32> = (0..bit_terms.len() as u32).map(|_| 0).collect();
-        let boundaries: Vec<usize> = (0..=bit_terms.len()).collect();
+        let (coeffs, terms, indices) = match gate {
+            StandardGate::H => (
+                vec![Complex64::new(1.0, 0.0), Complex64::new(1.0, 0.0)],
+                vec![X, Z],
+                vec![0, 0],
+            ),
+            StandardGate::X | StandardGate::RX | StandardGate::SX | StandardGate::SXdg => {
+                (vec![Complex64::new(1.0, 0.0)], vec![X], vec![0])
+            }
+            StandardGate::Y | StandardGate::RY => {
+                (vec![Complex64::new(1.0, 0.0)], vec![Y], vec![0])
+            }
+            StandardGate::Z
+            | StandardGate::RZ
+            | StandardGate::S
+            | StandardGate::Sdg
+            | StandardGate::T
+            | StandardGate::Tdg
+            | StandardGate::Phase => (vec![Complex64::new(1.0, 0.0)], vec![Z], vec![0]),
+            _ => return None,
+        };
+
+        // Construct boundaries for 1-qubit case (trivial: 0, 1, 2... for each term)
+        // Actually, if terms has N items, boundaries is satisfy: boundaries[i] maps to start of term i.
+        // BitTerms are just terms.
+        // For 1 qubit, each term has 1 op.
+        // So indices should just be [0, 0, ...] (qubit index 0 for each term).
+        // Wait, indices must map term ops to qubits.
+        // Yes, vec![0, 0] for H means: Term 0 acts on qubit 0. Term 1 acts on qubit 0.
+        // Boundaries: 0, 1, 2...
+        // Let's replicate logic from previous implementation.
+        let boundaries: Vec<usize> = (0..=terms.len()).collect();
 
         return Some(
-            SparseObservable::new(num_qubits, coeffs, bit_terms, indices, boundaries)
+            SparseObservable::new(num_qubits, coeffs, terms, indices, boundaries)
                 .expect("invalid 1-qubit generator layout"),
         );
     }
 
     // Multi-qubit gates
-    use BitTerm::*;
     let (coeffs, bit_terms, indices, boundaries) = match gate {
         // CX = Z0X1 - Z0 - X1
+        // (1, -1, -1) coeffs.
+        // Z0 X1 (term 0), Z0 (term 1), X1 (term 2)
         StandardGate::CX | StandardGate::CSX => (
             vec![
                 Complex64::new(1.0, 0.0),
@@ -241,7 +159,7 @@ pub fn generator_observable(
         // ECR = X0 - Y0X1
         StandardGate::ECR => (
             vec![Complex64::new(1.0, 0.0), Complex64::new(-1.0, 0.0)],
-            vec![X, Y, X],
+            vec![X, Y, X], // X0, Y0 X1
             vec![0, 0, 1],
             vec![0, 1, 3],
         ),
@@ -319,20 +237,6 @@ pub fn generator_observable(
                 vec![0, 2],
             )
         }
-        // XXPlusYY(t, beta) = t/4 (XX + YY)
-        StandardGate::XXPlusYY => {
-            let t = if let [qiskit_circuit::operations::Param::Float(theta), _] = _params {
-                *theta
-            } else {
-                1.0
-            };
-            (
-                vec![Complex64::new(t / 4.0, 0.0), Complex64::new(t / 4.0, 0.0)],
-                vec![X, X, Y, Y],
-                vec![0, 1, 0, 1],
-                vec![0, 2, 4],
-            )
-        }
         // XXPlusYY(t, beta) | XXMinusYY(t, beta)
         StandardGate::XXPlusYY | StandardGate::XXMinusYY => {
             let t = if let [qiskit_circuit::operations::Param::Float(theta), ..] = _params {
@@ -340,12 +244,22 @@ pub fn generator_observable(
             } else {
                 1.0
             };
-            (
-                vec![Complex64::new(t / 4.0, 0.0), Complex64::new(-t / 4.0, 0.0)],
-                vec![X, X, Y, Y],
-                vec![0, 1, 0, 1],
-                vec![0, 2, 4],
-            )
+            // Logic for +/- based on variant
+            match gate {
+                StandardGate::XXPlusYY => (
+                    vec![Complex64::new(t / 4.0, 0.0), Complex64::new(t / 4.0, 0.0)],
+                    vec![X, X, Y, Y],
+                    vec![0, 1, 0, 1],
+                    vec![0, 2, 4],
+                ),
+                StandardGate::XXMinusYY => (
+                    vec![Complex64::new(t / 4.0, 0.0), Complex64::new(-t / 4.0, 0.0)],
+                    vec![X, X, Y, Y],
+                    vec![0, 1, 0, 1],
+                    vec![0, 2, 4],
+                ),
+                _ => unreachable!(),
+            }
         }
         // CCX = Z0Z1X2 - Z0X2 - Z1X2 + X2
         StandardGate::CCX => (
@@ -394,6 +308,7 @@ pub fn generator_observable_py(
 }
 
 pub fn standard_generators(m: &Bound<PyModule>) -> PyResult<()> {
+    // Re-export StandardGate to ensure it is available and recognized
     m.add_class::<StandardGate>()?;
     m.add_function(wrap_pyfunction!(generator_observable_py, m)?)?;
     Ok(())
@@ -405,7 +320,7 @@ mod tests {
 
     #[test]
     fn rx_has_some_generator() {
-        let obs = generator_observable(StandardGate::Rx, &[]).expect("Rx should have a generator");
+        let obs = generator_observable(StandardGate::RX, &[]).expect("Rx should have a generator");
         assert!(!obs.bit_terms().is_empty());
     }
 }
