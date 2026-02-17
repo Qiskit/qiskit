@@ -1615,7 +1615,7 @@ pub unsafe extern "C" fn qk_dag_copy_empty_like(
 ///     cycle when contracted to a single node, this can be set to ``false``.
 ///
 /// @return The index of the newly added operation node, or ``UINT32_MAX`` if
-///     ``cycle_check`` is ``true`` and the replacement would inroduce a cycle.
+///     ``cycle_check`` is ``true`` and the replacement would introduce a cycle.
 ///
 /// # Example
 ///
