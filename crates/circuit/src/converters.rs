@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -15,10 +15,8 @@ use pyo3::intern;
 use pyo3::prelude::*;
 
 use crate::bit::{ShareableClbit, ShareableQubit};
-use crate::circuit_data::{CircuitData, CircuitDataError, CircuitVar};
-use crate::dag_circuit::DAGIdentifierInfo;
-use crate::dag_circuit::{DAGCircuit, NodeType};
-use crate::operations::{OperationRef, PyOperationTypes, PythonOperation};
+use crate::circuit_data::{CircuitData, CircuitDataError};
+use crate::dag_circuit::DAGCircuit;
 use crate::{Clbit, Qubit};
 
 /// An extractable representation of a QuantumCircuit reserved only for
@@ -106,79 +104,21 @@ pub fn circuit_to_dag(
     )
 }
 
+/// Convert a :class:`.DAGCircuit` to a :class:`.CircuitData`.
+///
+/// `copy_operations` refers to Python-space operations; if set true, we'll attach to a Python
+/// interpreter to ensure we can copy any objects.  If we're not running in a Python context, pass
+/// `false` to that argument (or better, in Rust space, use `CircuitData::from_dag_ref`).
 #[pyfunction(signature = (dag, copy_operations = true))]
 pub fn dag_to_circuit(
     dag: &DAGCircuit,
     copy_operations: bool,
 ) -> Result<CircuitData, CircuitDataError> {
-    let blocks = dag
-        .blocks()
-        .try_map_without_references(|block| dag_to_circuit(block, copy_operations))?;
-    CircuitData::from_packed_instructions(
-        dag.qubits().clone(),
-        dag.clbits().clone(),
-        blocks,
-        dag.qargs_interner().clone(),
-        dag.cargs_interner().clone(),
-        dag.qregs_data().clone(),
-        dag.cregs_data().clone(),
-        dag.qubit_locations().clone(),
-        dag.clbit_locations().clone(),
-        dag.topological_op_nodes(false).map(|node_index| {
-            let NodeType::Operation(ref instr) = dag[node_index] else {
-                unreachable!(
-                    "The received node from topological_op_nodes() is not an Operation node."
-                )
-            };
-            if copy_operations {
-                let op = match instr.op.view() {
-                    OperationRef::ControlFlow(cf) => cf.clone().into(),
-                    OperationRef::Gate(gate) => {
-                        PyOperationTypes::Gate(Python::attach(|py| gate.py_deepcopy(py, None))?)
-                            .into()
-                    }
-                    OperationRef::Instruction(instruction) => {
-                        PyOperationTypes::Instruction(Python::attach(|py| {
-                            instruction.py_deepcopy(py, None)
-                        })?)
-                        .into()
-                    }
-                    OperationRef::Operation(operation) => {
-                        PyOperationTypes::Operation(Python::attach(|py| {
-                            operation.py_deepcopy(py, None)
-                        })?)
-                        .into()
-                    }
-                    OperationRef::StandardGate(gate) => gate.into(),
-                    OperationRef::StandardInstruction(instruction) => instruction.into(),
-                    OperationRef::Unitary(unitary) => unitary.clone().into(),
-                    OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
-                };
-                let mut instr = instr.clone();
-                instr.op = op;
-                Ok(instr)
-            } else {
-                Ok(instr.clone())
-            }
-        }),
-        dag.get_global_phase(),
-        dag.identifiers() // Map and pass DAGCircuit variables and stretches to CircuitData style
-            .map(|identifier| match identifier {
-                DAGIdentifierInfo::Stretch(dag_stretch_info) => CircuitVar::Stretch(
-                    dag.get_stretch(dag_stretch_info.get_stretch())
-                        .expect("Stretch not found for the specified index")
-                        .clone(),
-                    dag_stretch_info.get_type().into(),
-                ),
-                DAGIdentifierInfo::Var(dag_var_info) => CircuitVar::Var(
-                    dag.get_var(dag_var_info.get_var())
-                        .expect("Var not found for the specified index")
-                        .clone(),
-                    dag_var_info.get_type().into(),
-                ),
-            })
-            .collect::<Vec<CircuitVar>>(),
-    )
+    if copy_operations {
+        Python::attach(|py| CircuitData::from_dag_ref_deepcopy(py, dag))
+    } else {
+        CircuitData::from_dag_ref(dag)
+    }
 }
 
 pub fn converters(m: &Bound<PyModule>) -> PyResult<()> {

@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -14,7 +14,6 @@ use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 
 use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_transpiler::passes::{
     UnitarySynthesisConfig, UnitarySynthesisState, run_unitary_synthesis,
@@ -66,7 +65,6 @@ use qiskit_transpiler::target::Target;
 ///
 /// Behavior is undefined if ``circuit`` or ``target`` is not a valid, non-null pointer to a ``QkCircuit`` and ``QkTarget``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpiler_pass_standalone_unitary_synthesis(
     circuit: *mut CircuitData,
     target: *const Target,
@@ -104,11 +102,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_unitary_synthesis(
         Ok(dag) => dag,
         Err(e) => panic!("{}", e),
     };
-    let out_circuit = match dag_to_circuit(&out_dag, false) {
-        Ok(qc) => qc,
-        Err(e) => panic!("{}", e),
-    };
-    *circuit = out_circuit;
+    *circuit = CircuitData::from_dag_ref(&out_dag).unwrap();
 }
 
 #[cfg(all(test, not(miri)))]

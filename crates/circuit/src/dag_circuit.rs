@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -3754,7 +3754,12 @@ impl DAGCircuit {
             .node_references()
             .filter_map(|(node_index, node_type)| match node_type {
                 NodeType::Operation(node) => {
-                    if node.op.try_control_flow().is_some() {
+                    if node.op.try_control_flow().is_some_and(|control_flow| {
+                        !matches!(
+                            control_flow.control_flow,
+                            ControlFlow::BreakLoop | ControlFlow::ContinueLoop
+                        )
+                    }) {
                         Some(self.unpack_into(py, node_index, node_type))
                     } else {
                         None

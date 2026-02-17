@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -22,11 +22,11 @@ use qiskit_circuit::operations::{
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::{BlocksMode, VarsMode};
 
+use crate::TranspilerError;
+use num_complex::Complex64;
 use qiskit_quantum_info::clifford::Clifford;
 use qiskit_quantum_info::sparse_observable::SparseObservable;
 
-use crate::TranspilerError;
-use num_complex::Complex64;
 use smallvec::smallvec;
 use std::f64::consts::PI;
 
@@ -73,15 +73,9 @@ pub fn run_litinski_transformation(
             unsupported
         )));
     }
-    let non_clifford_handled_count: usize = op_counts
+    let non_clifford_handled_count: usize = HANDLED_INSTRUCTION_NAMES
         .iter()
-        .filter_map(|(k, v)| {
-            if HANDLED_INSTRUCTION_NAMES.contains(&k.as_str()) {
-                Some(v)
-            } else {
-                None
-            }
-        })
+        .filter_map(|name| op_counts.get(*name))
         .sum();
     let clifford_count = dag.size(false)? - non_clifford_handled_count;
 

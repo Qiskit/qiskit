@@ -1,5 +1,5 @@
 ---
-features:
+features_circuits:
   - |
     Added a :meth:`.PauliProductMeasurement.pauli` method to
     return the underlying :class:`~qiskit.quantum_info.Pauli` measured 
