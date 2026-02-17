@@ -54,7 +54,7 @@ class TestDenseLayout(QiskitTestCase):
 
         # The map is a big long sparse line, except the middle 5 physical qubits are all completely
         # connected, so `DenseLayout` should always choose those.
-        left_edge_qubits = range(0, 7)
+        left_edge_qubits = range(7)
         middle_qubits = range(7, 12)
         right_edge_qubits = range(12, 20)
         cm = CouplingMap(

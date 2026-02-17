@@ -759,7 +759,7 @@ class StabilizerState(QuantumState):
             return
 
         for single_qubit_outcome in (
-            range(0, 2)
+            range(2)
             if (outcome_bitstring is None)
             else [int(outcome_bitstring[qubit_for_branching])]
         ):

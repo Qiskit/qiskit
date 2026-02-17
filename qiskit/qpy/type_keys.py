@@ -53,7 +53,6 @@ class TypeKeyBase(bytes, Enum):
             TypeKey: Corresponding key object.
 
         """
-        pass
 
     @classmethod
     @abstractmethod
@@ -67,7 +66,6 @@ class TypeKeyBase(bytes, Enum):
             any: Corresponding class.
 
         """
-        pass
 
 
 class Value(TypeKeyBase):

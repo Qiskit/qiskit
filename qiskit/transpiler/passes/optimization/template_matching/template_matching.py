@@ -203,7 +203,7 @@ class TemplateMatching:
 
         """
         template_nodes = range(node_id_t + 1, self.template_dag_dep.size())
-        circuit_nodes = range(0, self.circuit_dag_dep.size())
+        circuit_nodes = range(self.circuit_dag_dep.size())
         successors_template = self.template_dag_dep.get_node(node_id_t).successors
 
         counter = 1
@@ -253,8 +253,8 @@ class TemplateMatching:
         n_clbits_t = len(self.template_dag_dep.clbits)
 
         # Loop over the indices of both template and circuit.
-        for template_index in range(0, self.template_dag_dep.size()):
-            for circuit_index in range(0, self.circuit_dag_dep.size()):
+        for template_index in range(self.template_dag_dep.size()):
+            for circuit_index in range(self.circuit_dag_dep.size()):
                 # Operations match up to ParameterExpressions.
                 if self.circuit_dag_dep.get_node(circuit_index).op.soft_compare(
                     self.template_dag_dep.get_node(template_index).op
@@ -278,8 +278,8 @@ class TemplateMatching:
                         n_clbits_t,
                     )
 
-                    list_circuit_q = list(range(0, n_qubits_c))
-                    list_circuit_c = list(range(0, n_clbits_c))
+                    list_circuit_q = list(range(n_qubits_c))
+                    list_circuit_c = list(range(n_clbits_c))
 
                     # If the parameter for qubits heuristics is given then extracts
                     # the list of qubits for the successors (length(int)) in the circuit.

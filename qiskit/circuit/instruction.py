@@ -261,7 +261,6 @@ class Instruction(Operation):
         call.  The method should populate :attr:`_definition` with a :class:`.QuantumCircuit` and
         not return a value.
         """
-        pass
 
     @property
     def params(self):

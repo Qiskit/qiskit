@@ -194,7 +194,7 @@ class TestHoareOptimizer(QiskitTestCase):
         # «q_4: ───────────────
         circuit = QuantumCircuit(5)
         circuit.h(0)
-        for i in range(0, 3):
+        for i in range(3):
             circuit.cx(i, i + 1)
             circuit.cx(i + 1, i)
             circuit.cx(i, i + 1)
@@ -216,7 +216,7 @@ class TestHoareOptimizer(QiskitTestCase):
         #                                         └───┘
         expected = QuantumCircuit(5)
         expected.h(0)
-        for i in range(0, 3):
+        for i in range(3):
             expected.cx(i, i + 1)
             expected.cx(i + 1, i)
         expected.cx(3, 4)
@@ -260,7 +260,7 @@ class TestHoareOptimizer(QiskitTestCase):
         # «q_4: ───────────────
         circuit = QuantumCircuit(5)
         circuit.h(0)
-        for i in range(0, 3):
+        for i in range(3):
             circuit.cx(i, i + 1)
             circuit.cx(i + 1, i)
             circuit.cx(i, i + 1)
@@ -282,7 +282,7 @@ class TestHoareOptimizer(QiskitTestCase):
         #                          └───┘
         expected = QuantumCircuit(5)
         expected.h(0)
-        for i in range(0, 4):
+        for i in range(4):
             expected.cx(i, i + 1)
 
         stv = Statevector.from_label("0" * circuit.num_qubits)

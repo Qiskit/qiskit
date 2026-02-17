@@ -59,8 +59,6 @@ else:
     class BaseTestCase(unittest.TestCase):
         """Base test class."""
 
-        pass
-
 
 @enforce_subclasses_call(["setUp", "setUpClass", "tearDown", "tearDownClass"])
 class QiskitTestCase(BaseTestCase):

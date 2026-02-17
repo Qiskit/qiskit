@@ -52,7 +52,7 @@ def _default_cz_synth_func(symmetric_mat):
     qc = QuantumCircuit(nq, name="CZ")
 
     for j in range(nq):
-        for i in range(0, j):
+        for i in range(j):
             if symmetric_mat[i][j]:
                 qc.cz(i, j)
     return qc
@@ -287,11 +287,11 @@ def _decompose_graph_state(cliff, validate, cz_synth_func):
     CZ1_circ = cz_synth_func(stabz_update)
 
     for j in range(num_qubits):
-        for i in range(0, j):
+        for i in range(j):
             if stabz_update[i][j]:
                 _append_cz(cliff_cpy, i, j)
 
-    for i in range(0, num_qubits):
+    for i in range(num_qubits):
         if stabz_update[i][i]:
             S1_circ.s(i)
             _append_s(cliff_cpy, i)
@@ -347,7 +347,7 @@ def _decompose_hadamard_free(
             )
 
     S2_circ = QuantumCircuit(num_qubits, name="S2")
-    for i in range(0, num_qubits):
+    for i in range(num_qubits):
         if destabz_update[i][i]:
             S2_circ.s(i)
 

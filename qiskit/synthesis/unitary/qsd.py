@@ -301,7 +301,7 @@ def _demultiplex(
     nqubits = dim.bit_length() - 1
     if _ctrl_index is None:
         _ctrl_index = nqubits - 1
-    layout = list(range(0, _ctrl_index)) + list(range(_ctrl_index + 1, nqubits)) + [_ctrl_index]
+    layout = list(range(_ctrl_index)) + list(range(_ctrl_index + 1, nqubits)) + [_ctrl_index]
 
     um0um1 = um0 @ um1.T.conjugate()
     if is_hermitian_matrix(um0um1):

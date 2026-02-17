@@ -2350,7 +2350,7 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
                         ctrl_state=modifier.ctrl_state,
                         annotated=False,
                     )
-                    controlled_qubits = list(range(0, modifier.num_ctrl_qubits))
+                    controlled_qubits = list(range(modifier.num_ctrl_qubits))
                     controlled_circuit.append(controlled_op, controlled_qubits)
                 for inst in circuit:
                     inst_op = inst.operation
@@ -2361,7 +2361,7 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
                         ctrl_state=modifier.ctrl_state,
                         annotated=False,
                     )
-                    controlled_qubits = list(range(0, modifier.num_ctrl_qubits)) + [
+                    controlled_qubits = list(range(modifier.num_ctrl_qubits)) + [
                         modifier.num_ctrl_qubits + circuit.find_bit(q).index for q in inst_qubits
                     ]
                     controlled_circuit.append(controlled_op, controlled_qubits)
@@ -2477,7 +2477,7 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
 
         front_circuit = circuit.copy_empty_like()
         front_circuit.global_phase = 0
-        for i in range(0, idx):
+        for i in range(idx):
             front_circuit.append(circuit[i])
         middle_circuit = circuit.copy_empty_like()  # inherits the global phase
         for i in range(idx, ridx + 1):

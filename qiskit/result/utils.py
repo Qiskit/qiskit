@@ -109,7 +109,7 @@ def _adjust_creg_sizes(creg_sizes, indices):
     # Get creg num values and then convert to the cumulative last index per creg.
     # e.g. [2, 1, 3] => [1, 2, 5]
     creg_nums = [x for _, x in creg_sizes]
-    creg_limits = [sum(creg_nums[0:x:1]) - 1 for x in range(0, len(creg_nums) + 1)][1:]
+    creg_limits = [sum(creg_nums[0:x:1]) - 1 for x in range(len(creg_nums) + 1)][1:]
 
     # Now iterate over indices and find which creg that index is in.
     # When found increment the creg size

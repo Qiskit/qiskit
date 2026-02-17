@@ -551,7 +551,7 @@ class TestStabilizerState(QiskitTestCase):
         reasonable to calculate the full dict with probabilities_dict of all possible outcomes"""
 
         qc: QuantumCircuit = QuantumCircuit(num_qubits)
-        for qubit_num in range(0, num_qubits):
+        for qubit_num in range(num_qubits):
             qc.h(qubit_num)
         stab = StabilizerState(qc)
 

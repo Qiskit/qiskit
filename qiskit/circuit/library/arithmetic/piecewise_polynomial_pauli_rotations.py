@@ -512,7 +512,7 @@ def _map_coeffs(coeffs):
     degree = len(coeffs[0]) - 1  # all coeffs should have the same length by now
     for i in range(1, len(coeffs)):
         mapped_coeffs.append([])
-        for j in range(0, degree + 1):
+        for j in range(degree + 1):
             mapped_coeffs[i].append(coeffs[i][j] - coeffs[i - 1][j])
 
     return mapped_coeffs

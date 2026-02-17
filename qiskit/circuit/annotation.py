@@ -366,7 +366,6 @@ class QPYSerializer(abc.ABC):
                 :meth:`dump_state`.
 
         """
-        pass
 
 
 class OpenQASM3Serializer(abc.ABC):

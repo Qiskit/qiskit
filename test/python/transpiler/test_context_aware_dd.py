@@ -542,7 +542,7 @@ class TestContextAwareDD(QiskitTestCase):
         target = backend.target
 
         snake = (
-            list(range(0, 14))[::-1]
+            list(range(14))[::-1]
             + [14]
             + list(range(18, 33))
             + [36]

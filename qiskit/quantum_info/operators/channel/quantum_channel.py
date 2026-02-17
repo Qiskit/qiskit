@@ -321,7 +321,6 @@ class QuantumChannel(LinearOp):
                          specified quantum state subsystem dimensions.
 
         """
-        pass
 
     @classmethod
     def _init_transformer(cls, data):

@@ -133,12 +133,10 @@ class JobV1(Job, ABC):
     @abstractmethod
     def submit(self):
         """Submit the job to the backend for execution."""
-        pass
 
     @abstractmethod
     def result(self) -> Result:
         """Return the results of the job."""
-        pass
 
     def cancel(self):
         """Attempt to cancel the job."""
@@ -147,4 +145,3 @@ class JobV1(Job, ABC):
     @abstractmethod
     def status(self) -> JobStatus:
         """Return the status of the job, among the values of ``JobStatus``."""
-        pass

@@ -67,7 +67,7 @@ class QuasiDistribution(dict):
                 # but the number of bits to represent the largest key.
                 self._num_bits = len(bin(max(data.keys()))) - 2
             elif isinstance(first_key, str):
-                if first_key.startswith("0x") or first_key.startswith("0b"):
+                if first_key.startswith(("0x", "0b")):
                     data = {int(key, 0): value for key, value in data.items()}
                     # `self._num_bits` is not always the exact number of qubits measured,
                     # but the number of bits to represent the largest key.

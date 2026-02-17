@@ -28,14 +28,10 @@ class Modifier:
     inherit from.
     """
 
-    pass
-
 
 @dataclasses.dataclass
 class InverseModifier(Modifier):
     """Inverse modifier: specifies that the operation is inverted."""
-
-    pass
 
 
 @dataclasses.dataclass

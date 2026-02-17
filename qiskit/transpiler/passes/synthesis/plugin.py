@@ -414,7 +414,6 @@ class UnitarySynthesisPlugin(abc.ABC):
         ``None`` and all unitaries (``>= min_qubits`` if it's defined) will be
         passed to this plugin when it's enabled.
         """
-        pass
 
     @property
     @abc.abstractmethod
@@ -426,7 +425,6 @@ class UnitarySynthesisPlugin(abc.ABC):
         ``None`` and all unitaries (``<= max_qubits`` if it's defined) will be
         passed to this plugin when it's enabled.
         """
-        pass
 
     @property
     @abc.abstractmethod
@@ -437,7 +435,6 @@ class UnitarySynthesisPlugin(abc.ABC):
         passed a ``basis_gates`` kwarg with a list of gate names the target
         backend supports. For example, ``['sx', 'x', 'cx', 'id', 'rz']``.
         """
-        pass
 
     @property
     @abc.abstractmethod
@@ -453,7 +450,6 @@ class UnitarySynthesisPlugin(abc.ABC):
         unitary is on. Note that if the target backend doesn't have a coupling
         map set, the ``coupling_map`` kwarg's value will be ``(None, qubit_indices)``.
         """
-        pass
 
     @property
     @abc.abstractmethod
@@ -464,7 +460,6 @@ class UnitarySynthesisPlugin(abc.ABC):
         Refer to the documentation for :class:`~qiskit.transpiler.passes.UnitarySynthesis`
         for the possible values and meaning of these values.
         """
-        pass
 
     @property
     @abc.abstractmethod
@@ -475,7 +470,6 @@ class UnitarySynthesisPlugin(abc.ABC):
         Refer to the documentation for :class:`~qiskit.transpiler.passes.UnitarySynthesis`
         for the possible values and meaning of these values.
         """
-        pass
 
     @property
     def supports_gate_lengths_by_qubit(self):
@@ -548,7 +542,6 @@ class UnitarySynthesisPlugin(abc.ABC):
         as it depends on the target backend reporting gate lengths on every
         gate for each qubit.
         """
-        pass
 
     @property
     @abc.abstractmethod
@@ -569,7 +562,6 @@ class UnitarySynthesisPlugin(abc.ABC):
         are provided by the target device ``Backend`` object and the exact
         meaning might be different depending on the backend.
         """
-        pass
 
     @property
     @abc.abstractmethod
@@ -594,7 +586,6 @@ class UnitarySynthesisPlugin(abc.ABC):
         to an empty list, and a plugin can choose how to deal with the target
         basis gate set not matching the plugin's capabilities.
         """
-        pass
 
     @property
     def supports_target(self):
@@ -637,7 +628,6 @@ class UnitarySynthesisPlugin(abc.ABC):
             ``None`` no substitution will be made.
 
         """
-        pass
 
 
 class UnitarySynthesisPluginManager:
@@ -692,7 +682,6 @@ class HighLevelSynthesisPlugin(abc.ABC):
                 when successful, and ``None`` otherwise.
 
         """
-        pass
 
 
 class HighLevelSynthesisPluginManager:

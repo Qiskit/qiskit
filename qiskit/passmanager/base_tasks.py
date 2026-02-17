@@ -52,7 +52,6 @@ class Task(ABC):
             Optimized Qiskit IR and state of the workflow.
 
         """
-        pass
 
 
 class GenericPass(Task, ABC):
@@ -153,7 +152,6 @@ class GenericPass(Task, ABC):
             Optimized Qiskit IR.
 
         """
-        pass
 
 
 class BaseController(Task, ABC):
@@ -202,7 +200,6 @@ class BaseController(Task, ABC):
             Task: Next task to run.
 
         """
-        pass
 
     def execute(  # noqa: D102
         self,

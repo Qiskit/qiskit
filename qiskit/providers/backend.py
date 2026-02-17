@@ -151,7 +151,6 @@ class BackendV2(Backend, ABC):
 
         :rtype: Target
         """
-        pass
 
     @property
     def num_qubits(self) -> int:
@@ -178,7 +177,6 @@ class BackendV2(Backend, ABC):
 
         If there is no limit this will return None
         """
-        pass
 
     @classmethod
     @abstractmethod
@@ -195,7 +193,6 @@ class BackendV2(Backend, ABC):
                 default values set
 
         """
-        pass
 
     @property
     def dt(self) -> float | None:
@@ -339,4 +336,3 @@ class BackendV2(Backend, ABC):
             Job: The job object for the run
 
         """
-        pass

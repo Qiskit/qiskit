@@ -324,7 +324,7 @@ class TemplateSubstitution:
             if template is None or self._incr_num_parameters(template):
                 continue
 
-            template_list = range(0, self.template_dag_dep.size())
+            template_list = range(self.template_dag_dep.size())
             template_complement = list(set(template_list) - set(template_sublist))
 
             # If the match obey the rule then it is added to the list.
@@ -361,7 +361,7 @@ class TemplateSubstitution:
             circuit_list = circuit_list + elem.circuit_config + elem.pred_block
 
         # Unmatched gates that are not predecessors of any group of matches.
-        self.unmatched_list = sorted(set(range(0, self.circuit_dag_dep.size())) - set(circuit_list))
+        self.unmatched_list = sorted(set(range(self.circuit_dag_dep.size())) - set(circuit_list))
 
     def run_dag_opt(self):
         """It runs the substitution algorithm and creates the optimized DAGCircuit()."""

@@ -27,7 +27,6 @@ class CustomIterator(ABC):
         """Get next item"""
         # This method should be overridden for lazy conversion of
         # iterator only at a given key value
-        pass
 
     def __repr__(self):
         return f"<{type(self.obj)}_iterator at {hex(id(self))}>"

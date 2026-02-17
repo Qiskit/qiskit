@@ -51,8 +51,6 @@ CF_RIGHT = 2
 class TextDrawerEncodingError(VisualizationError):
     """A problem with encoding"""
 
-    pass
-
 
 class DrawElement:
     """An element is an operation that needs to be drawn."""

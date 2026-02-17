@@ -249,6 +249,8 @@ select = [
     "T10",
     # flake8-raise
     "RSE",
+    # flake8-pie
+    "PIE",
 ]
 ignore = [
     "E402",  # module-import-not-at-top-of-file false positives with module docs

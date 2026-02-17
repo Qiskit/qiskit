@@ -153,7 +153,6 @@ class BasePassManager(ABC):
             Pass manager IR.
 
         """
-        pass
 
     @abstractmethod
     def _passmanager_backend(
@@ -175,7 +174,6 @@ class BasePassManager(ABC):
             Output program.
 
         """
-        pass
 
     def run(
         self,

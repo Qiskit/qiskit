@@ -40,4 +40,3 @@ class ResourceEstimation(AnalysisPass):
 
     def run(self, _):
         """Run the ResourceEstimation pass on `dag`."""
-        pass
