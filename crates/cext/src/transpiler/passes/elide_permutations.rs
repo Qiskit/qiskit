@@ -118,7 +118,6 @@ pub unsafe extern "C" fn qk_transpiler_pass_elide_permutations(
     let res = run_elide_permutations(dag).expect("ElidePermutations pass failed.");
     match res {
         Some(res) => {
-            let num_input_qubits = dag.num_qubits() as u32;
             *dag = res.0;
             Box::into_raw(Box::new(TranspileLayout::new(
                 None,
