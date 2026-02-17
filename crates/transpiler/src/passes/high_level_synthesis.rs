@@ -1004,8 +1004,9 @@ fn py_synthesize_operation(
         op.label.as_deref().map(|l| l.as_str()),
     )?;
 
-    Ok(result
-        .map(|res: (CircuitData, Vec<Qubit>)| (res.0, res.1.iter().map(|x| x.index()).collect())))
+    Ok(result.map(|res: (CircuitData, Vec<Qubit>)| {
+        (res.0.into(), res.1.iter().map(|x| x.index()).collect())
+    }))
 }
 
 /// Synthesizes a circuit.
@@ -1015,14 +1016,14 @@ fn py_synthesize_operation(
 #[pyo3(name = "synthesize_circuit", signature = (circuit, input_qubits, data, tracker))]
 fn py_synthesize_circuit(
     py: Python,
-    circuit: &CircuitData,
+    circuit: &PyCircuitData,
     input_qubits: Vec<Qubit>,
     data: &Bound<HighLevelSynthesisData>,
     tracker: &mut QubitTracker,
-) -> PyResult<(CircuitData, Vec<usize>)> {
+) -> PyResult<(PyCircuitData, Vec<usize>)> {
     let res = run_on_circuitdata(py, circuit, &input_qubits, data, tracker)?;
 
-    Ok((res.0, res.1.iter().map(|x| x.index()).collect()))
+    Ok((res.0.into(), res.1.iter().map(|x| x.index()).collect()))
 }
 
 /// Runs HighLevelSynthesis transpiler pass.
