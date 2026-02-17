@@ -13,6 +13,12 @@ jobs:
     name: Qiskit Neko Integration Tests
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout base repository
+        uses: actions/checkout@v5
+        with:
+          sparse-checkout: |
+            constraints.txt
+          sparse-checkout-cone-mode: false
       - name: preinstall dependencies
         run: |
           pip install -U setuptools pip
