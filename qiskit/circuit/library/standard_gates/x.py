@@ -511,6 +511,7 @@ class RCCXGate(SingletonGate):
 
         Returns:
             RCCXGate: inverse gate (self-inverse).
+
         """
         return RCCXGate()
 
