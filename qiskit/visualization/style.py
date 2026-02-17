@@ -79,7 +79,7 @@ class DefaultStyle:
     DEFAULT_STYLE_PATH = None
 
     def __init__(self):
-        raise NotImplementedError()
+        raise NotImplementedError
 
 
 def load_style(

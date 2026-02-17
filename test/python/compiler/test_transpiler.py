@@ -3205,7 +3205,7 @@ class TestTranspileParallel(QiskitTestCase):
                     check=False,
                 )
             else:
-                raise RuntimeError()
+                raise RuntimeError
 
             if pi < angle % (4 * pi) < 3 * pi:
                 new_dag.global_phase += pi

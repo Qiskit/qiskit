@@ -58,7 +58,7 @@ class TestGenericPass(PassManagerTestCase):
 
         class RaiseError(GenericPass):
             def run(self, passmanager_ir):
-                raise TestError()
+                raise TestError
 
         task = RaiseError()
         data = "test_data"

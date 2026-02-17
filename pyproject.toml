@@ -247,6 +247,8 @@ select = [
     "C4",
     # flake8-debugger
     "T10",
+    # flake8-raise
+    "RSE",
 ]
 ignore = [
     "E402",  # module-import-not-at-top-of-file false positives with module docs

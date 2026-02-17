@@ -40,7 +40,7 @@ class LayerBase(ABC):
             mat: external gate matrix that initializes this layer's one.
 
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
     @abstractmethod
     def get_attr(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -50,7 +50,7 @@ class LayerBase(ABC):
             (1) gate matrix; (2) direct permutation; (3) inverse permutations.
 
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
 
 class Layer1Q(LayerBase):
