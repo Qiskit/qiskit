@@ -184,7 +184,7 @@ class QCircuitImage:
         output.write(header_scale)
         if self._global_phase:
             output.write(
-                f"{{$\\mathrm{{global\\,phase:\\,\",}} \\mathrm{{{pi_check(self._global_phase, output='latex')}}}$}}"
+                f"{{$\\mathrm{{global\\,phase:\\,}} \\mathrm{{{pi_check(self._global_phase, output='latex')}}}$}}"
             )
         output.write(qcircuit_line % (self._column_separation, self._wire_separation))
         for i in range(self._img_width):
