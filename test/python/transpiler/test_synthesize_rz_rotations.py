@@ -73,19 +73,6 @@ class TestSynthesizeRzRotations(QiskitTestCase):
         # Check the operators are (almost) equal
         self.assertEqual(Operator(synthesized_circ), Operator(RZGate(angle)))
 
-    # @data(
-    #     0.99,
-    #     0.999,
-    #     0.9999,
-    #     0.99999,
-    #     0.999999,
-    #     0.9999999,
-    #     0.99999999,
-    #     0.999999999,
-    #     0.9999999999,
-    #     0.99999999999,
-    #     0.999999999999,
-    # )
     @data(
         1 - 1e-2,
         1 - 1e-3,
@@ -125,7 +112,7 @@ class TestSynthesizeRzRotations(QiskitTestCase):
                 self.assertLessEqual(t_count, t_expect)
 
     def test_param_angle(self):
-        """ "Test to see if parametrized angles remain unaffected"""
+        """Test to see if parametrized angles remain unaffected"""
         p = Parameter("theta")
         qc = QuantumCircuit(1)
         qc.rz(p, 0)
