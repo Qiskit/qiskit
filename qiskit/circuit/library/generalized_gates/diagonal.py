@@ -40,7 +40,9 @@ class Diagonal(QuantumCircuit):
         removal_timeline="in Qiskit 3.0",
     )
     def __init__(self, diag: Sequence[complex]) -> None:
-        r"""Args:
+        r"""Instantiate a new :class:`.Diagonal` instance.
+
+        Args:
             diag: List of the :math:`2^k` diagonal entries (for a diagonal gate on :math:`k` qubits).
 
         Raises:
