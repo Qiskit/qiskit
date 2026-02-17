@@ -67,7 +67,7 @@ class TestSynthesizeRzRotations(QiskitTestCase):
         approximation_degree = 1 - epsilon
         # Approximate RZ-rotation
         qc = QuantumCircuit(1)
-        angle = np.random.uniform(0, 4 * np.pi)
+        angle = 2.3579
         qc.rz(angle, 0)
         synthesized_circ = SynthesizeRZRotations(approximation_degree=approximation_degree)(qc)
         # Check the operators are (almost) equal
@@ -89,7 +89,7 @@ class TestSynthesizeRzRotations(QiskitTestCase):
     def test_approximation_error(self, approximation_degree):
         """Test that the argument ``approximation_degree`` works correctly,"""
         qc = QuantumCircuit(1)
-        theta = np.random.uniform(0, 4 * np.pi)
+        theta = 2.3579
         qc.rz(theta, 0)
         approximate_circuit = SynthesizeRZRotations(approximation_degree)(qc)
         error_matrix = Operator(RZGate(theta)).data - Operator(approximate_circuit).data
@@ -123,11 +123,9 @@ class TestSynthesizeRzRotations(QiskitTestCase):
         """Test that calling synthesize_rz_rotations multiple times produces the same circuit."""
         angle = 1.2345
         num_trials = 10
-
         qc = QuantumCircuit(1)
         qc.rz(angle, 0)
         approximate_circuits = [SynthesizeRZRotations()(qc) for _ in range(num_trials)]
-
         for idx in range(1, len(approximate_circuits)):
             self.assertEqual(approximate_circuits[idx], approximate_circuits[0])
 
@@ -135,19 +133,25 @@ class TestSynthesizeRzRotations(QiskitTestCase):
     def test_angle_canonicalization(self, num_qubits):
         """Test that the angle canonicalization and corresponding
         phase, gate updates in synthesize_rz_rotations works correctly."""
-        qc = QuantumCircuit(num_qubits)
-        angle = np.random.uniform(0, np.pi / 2)
-        [qc.rz(_ * np.pi / 2 + angle, _) for _ in range(num_qubits)]
-        synthesized_circ = SynthesizeRZRotations()(qc)
+        qcs = [QuantumCircuit(1) for _ in range(num_qubits)]
+        angle = 1.23579
+        [qcs[_].rz(_ * np.pi / 2 + angle, 0) for _ in range(num_qubits)]
+        synthesized_circs = [SynthesizeRZRotations()(qcs[_]) for _ in range(num_qubits)]
+        qc_big = qcs[0].copy()
+        for _ in range(1, num_qubits):
+            qc_big = qc_big.tensor(qcs[_])
+        qc_big_synth = SynthesizeRZRotations()(qc_big)
         # Check the operators are (almost) equal
-        self.assertEqual(Operator(synthesized_circ), Operator(qc))
+        [self.assertEqual(Operator(synthesized_circs[_]), Operator(qcs[_])) for _ in range(num_qubits)]
+        self.assertEqual(Operator(qc_big_synth), Operator(qc_big))
+
 
     @combine(num_qubits=[5, 8], depth=[6, 10])
     def test_dag_traversal_logic(self, num_qubits, depth):
         """Test that synthesize_rz_rotations works correctly for larger circuits."""
         qc = QuantumCircuit(num_qubits)
         [
-            [qc.rz(np.random.uniform(0, 4 * np.pi), _) for _ in range(num_qubits)]
+            [qc.rz(3.57921, _) for _ in range(num_qubits)]
             for _ in range(depth)
         ]
         synthesized_circ = SynthesizeRZRotations()(qc)
