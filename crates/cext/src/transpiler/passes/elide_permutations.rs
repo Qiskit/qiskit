@@ -124,7 +124,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_elide_permutations(
                 None,
                 Some(res.1.into_iter().map(Qubit::new).collect()),
                 dag.qubits().objects().clone(),
-                num_input_qubits,
+                dag.num_qubits() as u32,
                 dag.qregs().to_vec(),
             )))
         }
