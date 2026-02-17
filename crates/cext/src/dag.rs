@@ -1670,12 +1670,12 @@ pub unsafe extern "C" fn qk_dag_replace_block_with_unitary(
 
     // SAFETY: per documentation, `block_ids` is aligned and valid for `num_block_ids` reads. Per
     // documentation, `num_block_ids` is nonzero so `block_ids` cannot be null.
-    let block_u32 = unsafe { ::std::slice::from_raw_parts(block_ids, num_block_ids as usize) };
-
-    let block: Vec<NodeIndex> = block_u32
-        .iter()
-        .map(|q| NodeIndex::new(*q as usize))
-        .collect();
+    // In addition, it is unlikely that petgraph's `NodeIndex` will ever change from `u32`, but
+    // to be fully on the safe side the rust test `verify_default_ix_type` will prevent Qiskit
+    // from compiling if this ever happens.
+    let block = unsafe {
+        ::std::slice::from_raw_parts(block_ids as *const NodeIndex, num_block_ids as usize)
+    };
 
     let qubits = if num_qubits == 0 {
         // This handles the case of C passing us a null pointer for a scalar matrix; Rust slices

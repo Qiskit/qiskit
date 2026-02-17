@@ -8782,6 +8782,7 @@ mod test {
     use hashbrown::HashSet;
     use pyo3::prelude::*;
     use rustworkx_core::petgraph::prelude::*;
+    use rustworkx_core::petgraph::stable_graph::DefaultIx;
     use rustworkx_core::petgraph::visit::IntoEdgeReferences;
 
     fn new_dag(qubits: u32, clbits: u32) -> DAGCircuit {
@@ -9000,5 +9001,14 @@ mod test {
         assert_eq!(empty.cregs(), &[cr]);
         assert_eq!(empty.num_ops(), 0);
         Ok(())
+    }
+
+    #[test]
+    fn verify_default_ix_type() {
+        // This test will prevent Qiskit from compiling in the unlikely scenario
+        // that petgraph's NodeIndex type will change from u32 to something else.
+        // If this does happen, pointer conversions to `*const NodeIndex`` in `dag.rs`
+        // will need to be updated as well.
+        let _: DefaultIx = 0u32;
     }
 }
