@@ -52,7 +52,6 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_split_2q_unitaries(
         Some((out_dag, permutation)) => {
             let out_circuit = CircuitData::from_dag_ref(&out_dag)
                 .expect("Internal DAG -> circuit conversion failed.");
-            let num_input_qubits = circuit.num_qubits() as u32;
             let qubits = out_circuit.qubits().objects().clone();
             let qregs = out_circuit.qregs().to_vec();
             *circuit = out_circuit;
@@ -60,7 +59,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_split_2q_unitaries(
                 None,
                 Some(permutation.into_iter().map(Qubit::new).collect()),
                 qubits,
-                num_input_qubits,
+                dag.num_qubits() as u32,
                 qregs,
             )))
         }
@@ -99,7 +98,6 @@ pub unsafe extern "C" fn qk_transpiler_pass_split_2q_unitaries(
         .unwrap_or_else(|_| panic!("Running the Split2qUnitaries pass failed"));
     match result {
         Some((out_dag, permutation)) => {
-            let num_input_qubits = dag.num_qubits() as u32;
             let qubits = out_dag.qubits().objects().clone();
             let qregs = out_dag.qregs().to_vec();
             *dag = out_dag;
@@ -107,7 +105,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_split_2q_unitaries(
                 None,
                 Some(permutation.into_iter().map(Qubit::new).collect()),
                 qubits,
-                num_input_qubits,
+                dag.num_qubits() as u32,
                 qregs,
             )))
         }
