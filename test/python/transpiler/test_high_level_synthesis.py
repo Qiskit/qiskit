@@ -53,6 +53,7 @@ from qiskit.circuit.library import (
     SGate,
     QAOAAnsatz,
     GlobalPhaseGate,
+    MultiplierGate,
 )
 from qiskit.circuit.library import LinearFunction, PauliEvolutionGate
 from qiskit.quantum_info import (
@@ -76,6 +77,11 @@ from qiskit.transpiler.passes.synthesis.plugin import (
     HighLevelSynthesisPlugin,
     HighLevelSynthesisPluginManager,
     high_level_synthesis_plugin_names,
+)
+from qiskit._accelerate.high_level_synthesis import (
+    synthesize_circuit,
+    HighLevelSynthesisData,
+    QubitTracker,
 )
 from qiskit.transpiler.passes.synthesis.high_level_synthesis import HighLevelSynthesis, HLSConfig
 from qiskit.transpiler.passes.synthesis.hls_plugins import (
@@ -776,6 +782,65 @@ class TestHighLevelSynthesisInterface(QiskitTestCase):
         target = Target.from_configuration(num_qubits=5, basis_gates=["cx", "u"])
         transpiled = HighLevelSynthesis(target=target)(qc)
         self.assertLessEqual(set(transpiled.count_ops()), {"cx", "u"})
+
+    @data(
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+        [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22],
+        [24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13],
+    )
+    def test_qubit_tracking(self, gate_qubits):
+        """Test that the pass tracks qubit states correctly."""
+
+        # Create a quantum circuit with a MultiplierGate (of width 12).
+        num_qubits = 25
+        qc = QuantumCircuit(num_qubits)
+        qc.compose(MultiplierGate(3), gate_qubits, inplace=True)
+
+        # Initialize high-level-synthesis data
+        hls_config = HLSConfig()
+        hls_plugin_manager = HighLevelSynthesisPluginManager()
+        hls_op_names = set(hls_plugin_manager.plugins_by_op.keys())
+
+        target = Target.from_configuration(
+            basis_gates=["cx", "u"],
+            coupling_map=CouplingMap.from_line(num_qubits),
+        )
+        coupling_map = target.build_coupling_map()
+
+        hls_data = HighLevelSynthesisData(
+            hls_config=hls_config,
+            hls_plugin_manager=hls_plugin_manager,
+            coupling_map=coupling_map,
+            target=target,
+            equivalence_library=std_eqlib,
+            hls_op_names=hls_op_names,
+            device_insts={"cx", "u"},
+            use_physical_indices=False,
+            min_qubits=0,
+            unroll_definitions=True,
+            optimize_clifford_t=False,
+        )
+
+        # The tracker keeps the state of each qubits in the circuit.
+        # Initially all the qubits are clean.
+        tracker = QubitTracker(num_qubits, True)
+
+        # Synthesize the circuit, which updates the tracker as a side-effect.
+        # Despite the apparent simplicity of this example, there is a lot going on under
+        # the hood:
+        # - the multiplier is synthesized using the default plugin for multiplier gates,
+        #   which produces annotated half-adder gates
+        # - the annotated half-adder gates are synthesized using the default
+        #   plugin for annotated operations, which produces circuits with MCX gates
+        # - the MCX gates are synthesized using the default plugin for MCX gates
+        #   and use 1 clean ancilla qubit
+        # - the ancilla qubits are supposed to be clean after the synthesis is complete
+        _ = synthesize_circuit(qc._data, list(range(25)), hls_data, tracker)
+
+        # Every qubit in the multiplier gate must be "dirty" and every other qubit
+        # must be clean.
+        for q in range(num_qubits):
+            self.assertEqual(tracker.is_qubit_clean(q), q not in gate_qubits)
 
 
 class TestHighLevelSynthesisQuality(QiskitTestCase):

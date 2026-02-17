@@ -500,6 +500,20 @@ class RCCXGate(SingletonGate):
     def __eq__(self, other):
         return isinstance(other, RCCXGate)
 
+    def inverse(self, annotated: bool = False):
+        """Invert this gate. The RCCX gate is its own inverse.
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as this gate
+                is self-inverse.
+
+        Returns:
+            RCCXGate: inverse gate (self-inverse).
+        """
+        return RCCXGate()
+
 
 @with_controlled_gate_array(_SX_ARRAY, num_ctrl_qubits=3, cached_states=(7,))
 class C3SXGate(SingletonControlledGate):
