@@ -20,6 +20,9 @@
 #include <stdio.h>
 #include <string.h>
 
+typedef int (*optimize_h_gates_fn)(QkTarget *, char **, uint32_t *, size_t);
+typedef int (*optimize_identity_target_fn)(QkTarget *);
+
 /// @brief Generates a typical target where u1 is cheaper than u2 is cheaper than u3.
 /// @return The generated target instance.
 static QkTarget *get_u1_u2_u3_target(void) {
@@ -155,7 +158,7 @@ static int standalone_inner_optimize_h_gates(QkTarget *target, char **gates, uin
     return result;
 }
 
-static int test_standalone_optimize_h_gates(void) {
+static int run_optimize_h_gates(optimize_h_gates_fn optimize_fn) {
     int num_failed = 0;
     QkTarget *targets[5] = {
         get_u1_u2_u3_target(), get_rz_rx_target(),           get_rz_sx_target(),
@@ -183,12 +186,15 @@ static int test_standalone_optimize_h_gates(void) {
     char *names[5] = {"u1_u2_u3", "rz_rx", "rz_sx", "rz_ry_u", "rz_ry_u_noerror"};
     printf("Optimize h gates tests.\n");
     for (int idx = 0; idx < 5; idx++) {
-        int result =
-            standalone_inner_optimize_h_gates(targets[idx], gates[idx], freq[idx], num_gates[idx]);
+        int result = optimize_fn(targets[idx], gates[idx], freq[idx], num_gates[idx]);
         printf("--- Run with %-21s: %s \n", names[idx], (bool)result ? "Fail" : "Ok");
         num_failed += result;
     }
     return num_failed;
+}
+
+static int test_standalone_optimize_h_gates(void) {
+    return run_optimize_h_gates(standalone_inner_optimize_h_gates);
 }
 
 static int standalone_inner_optimize_identity_target(QkTarget *target) {
@@ -212,10 +218,7 @@ static int standalone_inner_optimize_identity_target(QkTarget *target) {
     return result;
 }
 
-/**
- * Transpile: qr:--[RY(θ), RY(-θ)]-- to null.
- */
-static int test_standalone_optimize_identity_target(void) {
+static int run_optimize_identity_target(optimize_identity_target_fn optimize_fn) {
     int num_failed = 0;
     QkTarget *targets[4] = {
         get_u1_u2_u3_target(),
@@ -231,11 +234,18 @@ static int test_standalone_optimize_identity_target(void) {
     };
     printf("Optimize identities with target tests.\n");
     for (int idx = 0; idx < 4; idx++) {
-        int result = standalone_inner_optimize_identity_target(targets[idx]);
+        int result = optimize_fn(targets[idx]);
         printf("--- Run with %-21s: %s \n", names[idx], (bool)result ? "Fail" : "Ok");
         num_failed += result;
     }
     return num_failed;
+}
+
+/**
+ * Transpile: qr:--[RY(θ), RY(-θ)]-- to null.
+ */
+static int test_standalone_optimize_identity_target(void) {
+    return run_optimize_identity_target(standalone_inner_optimize_identity_target);
 }
 
 /**
@@ -346,65 +356,13 @@ static int inner_optimize_identity_target(QkTarget *target) {
     return result;
 }
 
-static int test_optimize_h_gates(void) {
-    int num_failed = 0;
-    QkTarget *targets[5] = {
-        get_u1_u2_u3_target(), get_rz_rx_target(),           get_rz_sx_target(),
-        get_rz_ry_u_target(),  get_rz_ry_u_noerror_target(),
-    };
-    char *gates[5][2] = {{
-                             "u2",
-                         },
-                         {"rz", "rx"},
-                         {"rz", "sx"},
-                         {"u"},
-                         {"u"}};
-
-    uint32_t freq[5][2] = {
-        {
-            1,
-        },
-        {2, 1},
-        {2, 1},
-        {1},
-        {1},
-    };
-
-    size_t num_gates[5] = {1, 2, 2, 1, 1};
-    char *names[5] = {"u1_u2_u3", "rz_rx", "rz_sx", "rz_ry_u", "rz_ry_u_noerror"};
-    printf("Optimize h gates tests.\n");
-    for (int idx = 0; idx < 5; idx++) {
-        int result = inner_optimize_h_gates(targets[idx], gates[idx], freq[idx], num_gates[idx]);
-        printf("--- Run with %-21s: %s \n", names[idx], (bool)result ? "Fail" : "Ok");
-        num_failed += result;
-    }
-    return num_failed;
-}
+static int test_optimize_h_gates(void) { return run_optimize_h_gates(inner_optimize_h_gates); }
 
 /**
  * Transpile: qr:--[RY(θ), RY(-θ)]-- to null.
  */
 static int test_optimize_identity_target(void) {
-    int num_failed = 0;
-    QkTarget *targets[4] = {
-        get_u1_u2_u3_target(),
-        get_rz_rx_target(),
-        get_rz_sx_target(),
-        get_rz_ry_u_target(),
-    };
-    char *names[4] = {
-        "u1_u2_u3",
-        "rz_rx",
-        "rz_sx",
-        "rz_ry_u",
-    };
-    printf("Optimize identities with target tests.\n");
-    for (int idx = 0; idx < 4; idx++) {
-        int result = inner_optimize_identity_target(targets[idx]);
-        printf("--- Run with %-21s: %s \n", names[idx], (bool)result ? "Fail" : "Ok");
-        num_failed += result;
-    }
-    return num_failed;
+    return run_optimize_identity_target(inner_optimize_identity_target);
 }
 
 /**
