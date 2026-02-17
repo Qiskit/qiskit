@@ -13,6 +13,11 @@ jobs:
     name: Qiskit Neko Integration Tests
     runs-on: ubuntu-latest
     steps:
+      - name: preinstall dependencies
+        run: |
+          pip install -U setuptools pip
+          pip install stestr>=3.2.0 -c constraints.txt
+        shell: bash
       - uses: Qiskit/qiskit-neko@main
         with:
           test_selection: terra
