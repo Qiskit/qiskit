@@ -231,7 +231,9 @@ class ExcitationPreserving(TwoLocal):
         name: str = "ExcitationPreserving",
         flatten: bool | None = None,
     ) -> None:
-        """Args:
+        """Instantiate a new :class:`.ExcitationPreserving` instance.
+
+        Args:
             num_qubits: The number of qubits of the ExcitationPreserving circuit.
             mode: Choose the entangler mode, can be `'iswap'` or `'fsim'`.
             reps: Specifies how often the structure of a rotation layer followed by an entanglement
@@ -259,6 +261,7 @@ class ExcitationPreserving(TwoLocal):
                 for anything besides visualization its **strongly** recommended
                 to set this flag to ``True`` to avoid a large performance
                 overhead for parameter binding.
+            name: Name of the circuit.
 
         Raises:
             ValueError: If the selected mode is not supported.

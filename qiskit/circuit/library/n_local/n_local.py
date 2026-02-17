@@ -342,7 +342,9 @@ class NLocal(BlueprintCircuit):
         name: str | None = "nlocal",
         flatten: bool | None = None,
     ) -> None:
-        """Args:
+        """Instantiate a new :class:`.NLocal` instance.
+
+        Args:
             num_qubits: The number of qubits of the circuit.
             rotation_blocks: The blocks used in the rotation layers. If multiple are passed,
                 these will be applied one after another (like new sub-layers).

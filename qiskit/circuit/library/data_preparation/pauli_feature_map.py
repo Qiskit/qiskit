@@ -429,24 +429,27 @@ class PauliFeatureMap(NLocal):
         insert_barriers: bool = False,
         name: str = "PauliFeatureMap",
     ) -> None:
-        """Args:
-        feature_dimension: Number of qubits in the circuit.
-        reps: The number of repeated circuits.
-        entanglement: Specifies the entanglement structure. Can be a string (``'full'``,
-            ``'linear'``, ``'reverse_linear'``, ``'circular'`` or ``'sca'``) or can be a
-            dictionary where the keys represent the number of qubits and the values are list
-            of integer-pairs specifying the indices of qubits that are entangled with one
-            another, for example: ``{1: [(0,), (2,)], 2: [(0,1), (2,0)]}`` or can be a
-            ``Callable[[int], Union[str | Dict[...]]]`` to return an entanglement specific for
-            a repetition
-        alpha: The Pauli rotation factor, multiplicative to the pauli rotations
-        paulis: A list of strings for to-be-used paulis. If None are provided, ``['Z', 'ZZ']``
-            will be used.
-        data_map_func: A mapping function for data x which can be supplied to override the
-            default mapping from :meth:`self_product`.
-        parameter_prefix: The prefix used if default parameters are generated.
-        insert_barriers: If True, barriers are inserted in between the evolution instructions
-            and Hadamard layers.
+        """Instantiate a new :class:`.PauliFeatureMap` instance.
+
+        Args:
+            feature_dimension: Number of qubits in the circuit.
+            reps: The number of repeated circuits.
+            entanglement: Specifies the entanglement structure. Can be a string (``'full'``,
+                ``'linear'``, ``'reverse_linear'``, ``'circular'`` or ``'sca'``) or can be a
+                dictionary where the keys represent the number of qubits and the values are list
+                of integer-pairs specifying the indices of qubits that are entangled with one
+                another, for example: ``{1: [(0,), (2,)], 2: [(0,1), (2,0)]}`` or can be a
+                ``Callable[[int], Union[str | Dict[...]]]`` to return an entanglement specific for
+                a repetition
+            alpha: The Pauli rotation factor, multiplicative to the pauli rotations
+            paulis: A list of strings for to-be-used paulis. If None are provided, ``['Z', 'ZZ']``
+                will be used.
+            data_map_func: A mapping function for data x which can be supplied to override the
+                default mapping from :meth:`self_product`.
+            parameter_prefix: The prefix used if default parameters are generated.
+            insert_barriers: If True, barriers are inserted in between the evolution instructions
+                and Hadamard layers.
+            name: Name of the circuit.
 
         """
         super().__init__(

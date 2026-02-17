@@ -39,7 +39,9 @@ class Permutation(QuantumCircuit):
         pattern: list[int] | np.ndarray | None = None,
         seed: int | None = None,
     ) -> None:
-        """Args:
+        """Instantiate a new :class:`.PermutationGate` instance.
+
+        Args:
             num_qubits: circuit width.
             pattern: permutation pattern, describing which qubits occupy the
                 positions 0, 1, 2, etc. after applying the permutation, that

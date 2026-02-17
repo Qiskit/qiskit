@@ -72,7 +72,9 @@ class UnitaryOverlap(QuantumCircuit):
         prefix2: str = "p2",
         insert_barrier: bool = False,
     ):
-        """Args:
+        """Instantiate a new :class:`.UnitaryOverlap` instance.
+
+        Args:
             unitary1: Unitary acting on the ket vector.
             unitary2: Unitary whose inverse operates on the bra vector.
             prefix1: The name of the parameter vector associated to ``unitary1``,

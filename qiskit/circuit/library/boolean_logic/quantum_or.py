@@ -64,11 +64,13 @@ class OR(QuantumCircuit):
         flags: list[int] | None = None,
         mcx_mode: str = "noancilla",
     ) -> None:
-        """Args:
-        num_variable_qubits: The qubits of which the OR is computed. The result will be written
-            into an additional result qubit.
-        flags: A list of +1/0/-1 marking negations or omissions of qubits.
-        mcx_mode: The mode to be used to implement the multi-controlled X gate.
+        """Instantiate a new :class:`.OR` instance.
+
+        Args:
+            num_variable_qubits: The qubits of which the OR is computed. The result will be written
+                into an additional result qubit.
+            flags: A list of +1/0/-1 marking negations or omissions of qubits.
+            mcx_mode: The mode to be used to implement the multi-controlled X gate.
 
         """
         self.num_variable_qubits = num_variable_qubits

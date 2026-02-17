@@ -255,36 +255,39 @@ class RealAmplitudes(TwoLocal):
         name: str = "RealAmplitudes",
         flatten: bool | None = None,
     ) -> None:
-        """Args:
-        num_qubits: The number of qubits of the RealAmplitudes circuit.
-        reps: Specifies how often the structure of a rotation layer followed by an entanglement
-            layer is repeated.
-        entanglement: Specifies the entanglement structure. Can be a string ('full', 'linear'
-            'reverse_linear, 'circular' or 'sca'), a list of integer-pairs specifying the indices
-            of qubits entangled with one another, or a callable returning such a list provided with
-            the index of the entanglement layer.
-            Default to 'reverse_linear' entanglement.
-            Note that 'reverse_linear' entanglement provides the same unitary as 'full'
-            with fewer entangling gates.
-            See the Examples section of :class:`~qiskit.circuit.library.TwoLocal` for more
-            detail.
-        initial_state: A `QuantumCircuit` object to prepend to the circuit.
-        skip_unentangled_qubits: If True, the single qubit gates are only applied to qubits
-            that are entangled with another qubit. If False, the single qubit gates are applied
-            to each qubit in the Ansatz. Defaults to False.
-        skip_final_rotation_layer: If False, a rotation layer is added at the end of the
-            ansatz. If True, no rotation layer is added.
-        parameter_prefix: The parameterized gates require a parameter to be defined, for which
-            we use :class:`~qiskit.circuit.ParameterVector`.
-        insert_barriers: If True, barriers are inserted in between each layer. If False,
-            no barriers are inserted.
-        flatten: Set this to ``True`` to output a flat circuit instead of nesting it inside multiple
-            layers of gate objects. By default currently the contents of
-            the output circuit will be wrapped in nested objects for
-            cleaner visualization. However, if you're using this circuit
-            for anything besides visualization its **strongly** recommended
-            to set this flag to ``True`` to avoid a large performance
-            overhead for parameter binding.
+        """Instantiate a new :class:`.RealAmplitudes` instance.
+
+        Args:
+            num_qubits: The number of qubits of the RealAmplitudes circuit.
+            reps: Specifies how often the structure of a rotation layer followed by an entanglement
+                layer is repeated.
+            entanglement: Specifies the entanglement structure. Can be a string ('full', 'linear'
+                'reverse_linear, 'circular' or 'sca'), a list of integer-pairs specifying the indices
+                of qubits entangled with one another, or a callable returning such a list provided with
+                the index of the entanglement layer.
+                Default to 'reverse_linear' entanglement.
+                Note that 'reverse_linear' entanglement provides the same unitary as 'full'
+                with fewer entangling gates.
+                See the Examples section of :class:`~qiskit.circuit.library.TwoLocal` for more
+                detail.
+            initial_state: A `QuantumCircuit` object to prepend to the circuit.
+            skip_unentangled_qubits: If True, the single qubit gates are only applied to qubits
+                that are entangled with another qubit. If False, the single qubit gates are applied
+                to each qubit in the Ansatz. Defaults to False.
+            skip_final_rotation_layer: If False, a rotation layer is added at the end of the
+                ansatz. If True, no rotation layer is added.
+            parameter_prefix: The parameterized gates require a parameter to be defined, for which
+                we use :class:`~qiskit.circuit.ParameterVector`.
+            insert_barriers: If True, barriers are inserted in between each layer. If False,
+                no barriers are inserted.
+            flatten: Set this to ``True`` to output a flat circuit instead of nesting it inside multiple
+                layers of gate objects. By default currently the contents of
+                the output circuit will be wrapped in nested objects for
+                cleaner visualization. However, if you're using this circuit
+                for anything besides visualization its **strongly** recommended
+                to set this flag to ``True`` to avoid a large performance
+                overhead for parameter binding.
+            name: Name of the circuit.
 
         """
         super().__init__(

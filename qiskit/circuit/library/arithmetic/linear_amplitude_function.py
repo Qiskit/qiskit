@@ -92,19 +92,21 @@ class LinearAmplitudeFunction(QuantumCircuit):
         breakpoints: list[float] | None = None,
         name: str = "F",
     ) -> None:
-        r"""Args:
-        num_state_qubits: The number of qubits used to encode the variable :math:`x`.
-        slope: The slope of the linear function. Can be a list of slopes if it is a piecewise
-            linear function.
-        offset: The offset of the linear function. Can be a list of offsets if it is a piecewise
-            linear function.
-        domain: The domain of the function as tuple :math:`(x_\min{}, x_\max{})`.
-        image: The image of the function as tuple :math:`(f_\min{}, f_\max{})`.
-        rescaling_factor: The rescaling factor to adjust the accuracy in the Taylor
-            approximation.
-        breakpoints: The breakpoints if the function is piecewise linear. If None, the function
-            is not piecewise.
-        name: Name of the circuit.
+        r"""Instantiate a new :class:`.LinearAmplitudeFunction` instance.
+
+        Args:
+            num_state_qubits: The number of qubits used to encode the variable :math:`x`.
+            slope: The slope of the linear function. Can be a list of slopes if it is a piecewise
+                linear function.
+            offset: The offset of the linear function. Can be a list of offsets if it is a piecewise
+                linear function.
+            domain: The domain of the function as tuple :math:`(x_\min{}, x_\max{})`.
+            image: The image of the function as tuple :math:`(f_\min{}, f_\max{})`.
+            rescaling_factor: The rescaling factor to adjust the accuracy in the Taylor
+                approximation.
+            breakpoints: The breakpoints if the function is piecewise linear. If None, the function
+                is not piecewise.
+            name: Name of the circuit.
 
         """
         if not hasattr(slope, "__len__"):

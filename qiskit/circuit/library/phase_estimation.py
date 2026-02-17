@@ -60,7 +60,9 @@ class PhaseEstimation(QuantumCircuit):
         iqft: QuantumCircuit | None = None,
         name: str = "QPE",
     ) -> None:
-        """Args:
+        """Instantiate a new :class:`.QPE` instance.
+
+        Args:
             num_evaluation_qubits: The number of evaluation qubits.
             unitary: The unitary operation :math:`U` which will be repeated and controlled.
             iqft: A inverse Quantum Fourier Transform, per default the inverse of

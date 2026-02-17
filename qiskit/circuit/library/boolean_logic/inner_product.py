@@ -69,8 +69,10 @@ class InnerProduct(QuantumCircuit):
         removal_timeline="in Qiskit 3.0",
     )
     def __init__(self, num_qubits: int) -> None:
-        """Args:
-        num_qubits: width of top and bottom registers (half total circuit width)
+        """Instantiate a new :class:`.InnerProduct` instance.
+
+        Args:
+            num_qubits: width of top and bottom registers (half total circuit width)
 
         """
         qr_a = QuantumRegister(num_qubits)

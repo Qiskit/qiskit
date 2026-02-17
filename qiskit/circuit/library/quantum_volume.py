@@ -73,15 +73,17 @@ class QuantumVolume(QuantumCircuit):
         *,
         flatten: bool = False,
     ) -> None:
-        """Args:
-        num_qubits: number of active qubits in model circuit.
-        depth: layers of SU(4) operations in model circuit.
-        seed: Random number generator or generator seed.
-        classical_permutation: use classical permutations at every layer,
-            rather than quantum.
-        flatten: If ``False`` (the default), construct a circuit that contains a single
-            instruction, which in turn has the actual volume structure.  If ``True``, construct
-            the volume structure directly.
+        """Instantiate a new :class:`.QuantumVolume` instance.
+
+        Args:
+            num_qubits: number of active qubits in model circuit.
+            depth: layers of SU(4) operations in model circuit.
+            seed: Random number generator or generator seed.
+            classical_permutation: use classical permutations at every layer,
+                rather than quantum.
+            flatten: If ``False`` (the default), construct a circuit that contains a single
+                instruction, which in turn has the actual volume structure.  If ``True``, construct
+                the volume structure directly.
 
         """
         import scipy.stats

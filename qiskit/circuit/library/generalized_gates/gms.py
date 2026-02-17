@@ -82,11 +82,13 @@ class GMS(QuantumCircuit):
         removal_timeline="in Qiskit 3.0",
     )
     def __init__(self, num_qubits: int, theta: list[list[float]] | np.ndarray) -> None:
-        """Args:
-        num_qubits: width of gate.
-        theta: a num_qubits x num_qubits symmetric matrix of
-            interaction angles for each qubit pair. The upper
-            triangle is considered.
+        """Instantiate a new :class:`.MSGate` instance.
+
+        Args:
+            num_qubits: width of gate.
+            theta: a num_qubits x num_qubits symmetric matrix of
+                interaction angles for each qubit pair. The upper
+                triangle is considered.
 
         """
         super().__init__(num_qubits, name="gms")

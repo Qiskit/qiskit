@@ -116,7 +116,9 @@ class ZZFeatureMap(PauliFeatureMap):
         insert_barriers: bool = False,
         name: str = "ZZFeatureMap",
     ) -> None:
-        """Args:
+        """Instantiate a new :class:`.ZZFeatureMap` instance.
+
+        Args:
             feature_dimension: Number of features.
             reps: The number of repeated circuits, has a min. value of 1.
             entanglement: Specifies the entanglement structure. Refer to
@@ -125,6 +127,7 @@ class ZZFeatureMap(PauliFeatureMap):
             parameter_prefix: The prefix used if default parameters are generated.
             insert_barriers: If True, barriers are inserted in between the evolution instructions
                 and hadamard layers.
+            name: Name of the circuit.
 
         Raises:
             ValueError: If the feature dimension is smaller than 2.

@@ -41,7 +41,9 @@ class XOR(QuantumCircuit):
         amount: int | None = None,
         seed: int | None = None,
     ) -> None:
-        """Args:
+        """Instantiate a new :class:`.XOR` instance.
+
+        Args:
             num_qubits: the width of circuit.
             amount: the xor amount in decimal form.
             seed: random seed in case a random xor is requested.

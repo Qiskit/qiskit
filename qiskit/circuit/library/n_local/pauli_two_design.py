@@ -182,13 +182,16 @@ class PauliTwoDesign(TwoLocal):
         insert_barriers: bool = False,
         name: str = "PauliTwoDesign",
     ):
-        """Args:
-        num_qubits: The number of qubits of the Pauli Two-Design circuit.
-        reps: Specifies how often a block consisting of a rotation layer and entanglement
-            layer is repeated.
-        seed: The seed for randomly choosing the axes of the Pauli rotations.
-        insert_barriers: If ``True``, barriers are inserted in between each layer. If ``False``,
-            no barriers are inserted. Defaults to ``False``.
+        """Instantiate a new :class:`.PauliTwoDesign` instance.
+
+        Args:
+            num_qubits: The number of qubits of the Pauli Two-Design circuit.
+            reps: Specifies how often a block consisting of a rotation layer and entanglement
+                layer is repeated.
+            seed: The seed for randomly choosing the axes of the Pauli rotations.
+            insert_barriers: If ``True``, barriers are inserted in between each layer. If ``False``,
+                no barriers are inserted. Defaults to ``False``.
+            name: The name to use for the generated circuit.
 
         """
         # store a random number generator

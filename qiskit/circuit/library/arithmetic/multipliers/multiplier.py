@@ -61,7 +61,9 @@ class Multiplier(QuantumCircuit):
         num_result_qubits: int | None = None,
         name: str = "Multiplier",
     ) -> None:
-        """Args:
+        """Instantiate a new :class:`.Multiplier` instance.
+
+        Args:
             num_state_qubits: The number of qubits in each of the input registers.
             num_result_qubits: The number of result qubits to limit the output to.
                 Default value is ``2 * num_state_qubits`` to represent any possible

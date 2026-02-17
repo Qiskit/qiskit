@@ -53,9 +53,11 @@ class Adder(QuantumCircuit):
         removal_timeline="in Qiskit 3.0",
     )
     def __init__(self, num_state_qubits: int, name: str = "Adder") -> None:
-        """Args:
-        num_state_qubits: The number of qubits in each of the registers.
-        name: The name of the circuit.
+        """Instantiate a new :class:`.Adder` instance.
+
+        Args:
+            num_state_qubits: The number of qubits in each of the registers.
+            name: The name of the circuit.
 
         """
         super().__init__(name=name)

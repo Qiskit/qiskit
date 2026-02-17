@@ -34,7 +34,9 @@ class ExactReciprocal(QuantumCircuit):
     def __init__(
         self, num_state_qubits: int, scaling: float, neg_vals: bool = False, name: str = "1/x"
     ) -> None:
-        r"""Args:
+        r"""Instantiate a new :class:`.ExactReciprocal` instance.
+
+        Args:
             num_state_qubits: The number of qubits representing the value to invert.
             scaling: Scaling factor :math:`s` of the reciprocal function, i.e. to compute
                 :math:`s / x`.

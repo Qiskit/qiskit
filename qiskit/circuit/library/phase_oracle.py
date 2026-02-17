@@ -60,10 +60,12 @@ class PhaseOracle(QuantumCircuit):
         expression: str | BooleanExpression,
         var_order: list[str] | None = None,
     ) -> None:
-        """Args:
-        expression: A Python-like boolean expression string or a `BooleanExpression` object.
-        var_order: A list with the order in which variables will be created.
-           (default: by appearance)
+        """Instantiate a new :class:`.PhaseOracle` instance.
+
+        Args:
+            expression: A Python-like boolean expression string or a `BooleanExpression` object.
+            var_order: A list with the order in which variables will be created.
+               (default: by appearance)
 
         """
         if isinstance(expression, str):

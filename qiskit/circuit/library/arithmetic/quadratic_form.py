@@ -78,7 +78,9 @@ class QuadraticForm(QuantumCircuit):
         offset: float | ParameterExpression | None = None,
         little_endian: bool = True,
     ) -> None:
-        r"""Args:
+        r"""Instantiate a new :class:`.QuadraticForm` instance.
+
+        Args:
             num_result_qubits: The number of qubits to encode the result. Called :math:`m` in
                 the class documentation.
             quadratic: A matrix containing the quadratic coefficients, :math:`A`.

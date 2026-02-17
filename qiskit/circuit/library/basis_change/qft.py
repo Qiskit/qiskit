@@ -92,13 +92,15 @@ class QFT(BlueprintCircuit):
         insert_barriers: bool = False,
         name: str | None = None,
     ) -> None:
-        """Args:
-        num_qubits: The number of qubits on which the QFT acts.
-        approximation_degree: The degree of approximation (0 for no approximation).
-        do_swaps: Whether to include the final swaps in the QFT.
-        inverse: If True, the inverse Fourier transform is constructed.
-        insert_barriers: If True, barriers are inserted as visualization improvement.
-        name: The name of the circuit.
+        """Instantiate a new :class:`.QFT` instance.
+
+        Args:
+            num_qubits: The number of qubits on which the QFT acts.
+            approximation_degree: The degree of approximation (0 for no approximation).
+            do_swaps: Whether to include the final swaps in the QFT.
+            inverse: If True, the inverse Fourier transform is constructed.
+            insert_barriers: If True, barriers are inserted as visualization improvement.
+            name: The name of the circuit.
 
         """
         if name is None:
