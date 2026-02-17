@@ -65,24 +65,24 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_elide_permutations(
 }
 
 /// @ingroup QkTranspilerPasses
-/// Run the ElidePermutations transpiler pass on a DAG Circuit.
+/// Run the ElidePermutations transpiler pass on a DAG.
 ///
 /// The ElidePermutations transpiler pass removes any permutation operations from a pre-layout
-/// DAG Circuit.
+/// DAG.
 ///
 /// This pass is intended to be run before a layout (mapping virtual qubits to physical qubits) is
-/// set during the transpilation pipeline. This pass iterates over the circuit
+/// set during the transpilation pipeline. This pass iterates over the DAG
 /// and when a Swap gate is encountered it permutes the virtual qubits in
-/// the circuit and removes the swap gate. This will effectively remove any
-/// swap gates in the circuit prior to running layout. This optimization is
+/// the DAG and removes the swap gate. This will effectively remove any
+/// swap gates in the DAG prior to running layout. This optimization is
 /// not valid after a layout has been set and should not be run in this case.
 ///
 /// @param dag A pointer to the DAG to run ElidePermutations on. If there are changes made
-///     the object pointed to is changed in place. In case of gates being elided the original circuit's
+///     the object pointed to is changed in place. In case of gates being elided the original DAG's
 ///     allocations are freed by this function.
 ///
 /// @return the layout object containing the output permutation induced by the elided gates in the
-///         circuit. If no elisions are performed this will be a null pointer and the input circuit
+///         DAG. If no elisions are performed this will be a null pointer and the input DAG
 ///         is unchanged. The caller is responsible for freeing the returned layout by calling
 ///         ``qk_transpile_layout_free``.
 ///
