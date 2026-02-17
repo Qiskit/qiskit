@@ -133,7 +133,7 @@ class BasePadding(TransformationPass):
         new_dag._unit = self.property_set["time_unit"]
         new_dag.global_phase = dag.global_phase
 
-        idle_after = {bit: 0 for bit in dag.qubits}
+        idle_after = dict.fromkeys(dag.qubits, 0)
 
         # Compute fresh circuit duration from the node start time dictionary and op duration.
         # Note that pre-scheduled duration may change within the alignment passes, i.e.

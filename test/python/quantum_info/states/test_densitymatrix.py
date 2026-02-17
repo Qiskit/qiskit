@@ -691,22 +691,9 @@ class TestDensityMatrix(QiskitTestCase):
 
         self.assertDictEqual(
             state.probabilities_dict(),
-            {
-                s: p
-                for s in [
-                    "110",
-                    "111",
-                    "112",
-                    "120",
-                    "121",
-                    "311",
-                    "312",
-                    "320",
-                    "321",
-                    "322",
-                    "330",
-                ]
-            },
+            dict.fromkeys(
+                ["110", "111", "112", "120", "121", "311", "312", "320", "321", "322", "330"], p
+            ),
         )
 
         # differences due to rounding

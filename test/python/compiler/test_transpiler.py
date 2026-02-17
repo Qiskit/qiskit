@@ -2182,7 +2182,7 @@ class TestTranspile(QiskitTestCase):
         target.add_instruction(XGate(), {(i,): None for i in range(5)})
         target.add_instruction(SXGate(), {(i,): None for i in range(5)})
         target.add_instruction(RZGate(Parameter("a")), {(i,): None for i in range(5)})
-        target.add_instruction(CZGate(), {pair: None for pair in CouplingMap.from_line(5)})
+        target.add_instruction(CZGate(), dict.fromkeys(CouplingMap.from_line(5)))
         target.add_instruction(IfElseOp, name="if_else")
 
         self.assertEqual(
@@ -2206,8 +2206,8 @@ class TestTranspile(QiskitTestCase):
         target = Target(3)
         target.add_instruction(SXGate(), {(i,): None for i in range(3)})
         target.add_instruction(RZGate(Parameter("a")), {(i,): None for i in range(3)})
-        target.add_instruction(CZGate(), {pair: None for pair in CouplingMap.from_line(3)})
-        target.add_instruction(CXGate(), {pair: None for pair in CouplingMap.from_line(3)})
+        target.add_instruction(CZGate(), dict.fromkeys(CouplingMap.from_line(3)))
+        target.add_instruction(CXGate(), dict.fromkeys(CouplingMap.from_line(3)))
         target.add_instruction(BoxOp, name="box")
 
         out = transpile(qc, target=target, optimization_level=level, initial_layout=[0, 1, 2])
@@ -2225,7 +2225,7 @@ class TestTranspile(QiskitTestCase):
         target = Target(3)
         target.add_instruction(SXGate(), {(i,): None for i in range(3)})
         target.add_instruction(RZGate(Parameter("a")), {(i,): None for i in range(3)})
-        target.add_instruction(CZGate(), {pair: None for pair in CouplingMap.from_line(3)})
+        target.add_instruction(CZGate(), dict.fromkeys(CouplingMap.from_line(3)))
         target.add_instruction(BoxOp, name="box")
 
         out = transpile(qc, target=target, optimization_level=level, initial_layout=[0, 1, 2])
@@ -2246,7 +2246,7 @@ class TestTranspile(QiskitTestCase):
         target = Target(num_qubits)
         target.add_instruction(SXGate(), {(i,): None for i in range(num_qubits)})
         target.add_instruction(RZGate(Parameter("a")), {(i,): None for i in range(num_qubits)})
-        target.add_instruction(CZGate(), {pair: None for pair in CouplingMap.from_line(num_qubits)})
+        target.add_instruction(CZGate(), dict.fromkeys(CouplingMap.from_line(num_qubits)))
         target.add_instruction(BoxOp, name="box")
 
         out = transpile(

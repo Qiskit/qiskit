@@ -296,7 +296,7 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
         wires = sorted(neighbors.union(merged_delay.indices))
         subgraph = self._coupling_map.graph.subgraph(list(wires)).to_undirected()
         glob2loc = dict(zip(wires, subgraph.node_indices()))
-        preset_coloring = {index: None for index in subgraph.node_indices()}
+        preset_coloring = dict.fromkeys(subgraph.node_indices())
 
         # find the neighbor wires and check if ctrl/tgt spectator
         for wire in neighbors:

@@ -968,7 +968,7 @@ class TestParameters(QiskitTestCase):
         for qc in results:
             circuit.compose(qc, inplace=True)
 
-        parameter_values = {x: 1.0 for x in parameters}
+        parameter_values = dict.fromkeys(parameters, 1.0)
 
         bind_circuit = circuit.assign_parameters(parameter_values)
 

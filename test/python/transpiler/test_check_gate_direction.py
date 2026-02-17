@@ -257,7 +257,7 @@ class TestCheckGateDirection(QiskitTestCase):
         """Test recursing into control-flow operations with a coupling map."""
         swapped = Target(num_qubits=5)
         for gate in (CXGate(), CZGate(), ECRGate()):
-            swapped.add_instruction(gate, {qargs: None for qargs in zip(range(4), range(1, 5))})
+            swapped.add_instruction(gate, dict.fromkeys(zip(range(4), range(1, 5))))
 
         matching = Target(num_qubits=5)
         for gate in (CXGate(), CZGate(), ECRGate()):

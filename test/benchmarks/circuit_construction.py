@@ -102,7 +102,7 @@ class ParameterizedCircuitBindBench:
     def time_bind_params(self, _, __, ___):
         # TODO: write more complete benchmarks of assign_parameters
         #  that test more of the input formats / combinations
-        self.circuit.assign_parameters({x: 3.14 for x in self.params})
+        self.circuit.assign_parameters(dict.fromkeys(self.params, 3.14))
 
 
 class ParamaterizedDifferentCircuit:

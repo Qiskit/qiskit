@@ -369,7 +369,7 @@ class PolynomialPauliRotationsGate(Gate):
             if 0 < sum(combination) <= degree:
                 valid_combinations += [combination]
 
-        rotation_coeffs = {control_state: 0.0 for control_state in valid_combinations}
+        rotation_coeffs = dict.fromkeys(valid_combinations, 0.0)
 
         # compute the coefficients for the control states
         for i, coeff in enumerate(self.coeffs[1:]):

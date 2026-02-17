@@ -239,6 +239,14 @@ select = [
     "RUF",
     # pydocstyle
     "D",
+    # flake8-logging-format
+    "G",
+    # flake8-executable
+    "EXE",
+    # flake8-comprehensions
+    "C4",
+    # flake8-debugger
+    "T10",
 ]
 ignore = [
     "E402",  # module-import-not-at-top-of-file false positives with module docs

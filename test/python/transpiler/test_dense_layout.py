@@ -131,7 +131,7 @@ class TestDenseLayout(QiskitTestCase):
         circuit.cx(qr[3], qr[1])
         circuit.cx(qr[0], qr[2])
         dag = circuit_to_dag(circuit)
-        instruction_props = {edge: None for edge in CouplingMap.from_heavy_hex(3).get_edges()}
+        instruction_props = dict.fromkeys(CouplingMap.from_heavy_hex(3).get_edges())
         noiseless_target = Target()
         noiseless_target.add_instruction(CXGate(), instruction_props)
         pass_ = DenseLayout(target=noiseless_target)
@@ -159,9 +159,7 @@ class TestDenseLayout(QiskitTestCase):
     def test_target_too_small_for_circuit(self):
         """Test error is raised when target is too small for circuit."""
         target = Target()
-        target.add_instruction(
-            CXGate(), {edge: None for edge in CouplingMap.from_line(3).get_edges()}
-        )
+        target.add_instruction(CXGate(), dict.fromkeys(CouplingMap.from_line(3).get_edges()))
         dag = circuit_to_dag(QuantumCircuit(5))
         layout_pass = DenseLayout(target=target)
         with self.assertRaises(TranspilerError):

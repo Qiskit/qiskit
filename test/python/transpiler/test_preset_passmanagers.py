@@ -1587,7 +1587,7 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
         target = Target(num_qubits)
         for inst in (lib.IGate(), lib.PhaseGate(Parameter("t")), lib.SXGate()):
             target.add_instruction(inst, {(i,): None for i in range(num_qubits)})
-        target.add_instruction(CXGate(), {pair: None for pair in CouplingMap.from_line(num_qubits)})
+        target.add_instruction(CXGate(), dict.fromkeys(CouplingMap.from_line(num_qubits)))
 
         pm = generate_preset_pass_manager(
             optimization_level=optimization_level,

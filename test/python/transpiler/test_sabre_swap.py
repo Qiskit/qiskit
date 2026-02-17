@@ -222,7 +222,7 @@ class TestSabreSwap(QiskitTestCase):
         """Test that an already mapped circuit is unchanged with target."""
         coupling = CouplingMap.from_ring(5)
         target = Target(num_qubits=5)
-        target.add_instruction(SwapGate(), {edge: None for edge in coupling.get_edges()})
+        target.add_instruction(SwapGate(), dict.fromkeys(coupling.get_edges()))
 
         qr = QuantumRegister(5, "q")
         qc = QuantumCircuit(qr)

@@ -274,7 +274,7 @@ class LazyImportTester(LazyDependencyManager):
         elif isinstance(name_map_or_modules, str):
             self._modules = {name_map_or_modules: ()}
         else:
-            self._modules = {module: () for module in name_map_or_modules}
+            self._modules = dict.fromkeys(name_map_or_modules, ())
         if not self._modules:
             raise ValueError("no modules supplied")
         if name is not None:
