@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -37,7 +37,11 @@ pub(crate) mod cz_depth_lnn;
 fn synth_cz_depth_line_mr(mat: PyReadonlyArray2<bool>) -> PyResult<CircuitData> {
     let view = mat.as_array();
     let (num_qubits, lnn_gates) = cz_depth_lnn::synth_cz_depth_line_mr_inner(view);
-    CircuitData::from_standard_gates(num_qubits as u32, lnn_gates, Param::Float(0.0))
+    Ok(CircuitData::from_standard_gates(
+        num_qubits as u32,
+        lnn_gates,
+        Param::Float(0.0),
+    )?)
 }
 
 pub fn linear_phase(m: &Bound<PyModule>) -> PyResult<()> {

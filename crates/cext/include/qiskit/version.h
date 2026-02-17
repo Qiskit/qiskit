@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -35,8 +35,5 @@
 #define QISKIT_VERSION_HEX                                                                         \
     QISKIT_GET_VERSION_HEX(QISKIT_VERSION_MAJOR, QISKIT_VERSION_MINOR, QISKIT_VERSION_PATCH,       \
                            QISKIT_RELEASE_LEVEL, QISKIT_RELEASE_SERIAL)
-
-// DEPRECATED, to be removed in Qiskit v2.3.
-#define QISKIT_VERSION_NUMERIC(M, m, p) ((M) << 16 | (m) << 8 | (p))
 
 #endif // QISKIT_VERSION_H

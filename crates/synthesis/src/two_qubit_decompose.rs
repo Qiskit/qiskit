@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -61,7 +61,7 @@ use qiskit_circuit::instruction::{Instruction, Parameters};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::util::{C_M_ONE, C_ONE, C_ZERO, GateArray1Q, GateArray2Q, IM, M_IM, c64};
-use qiskit_circuit::{Qubit, impl_intopyobject_for_copy_pyclass};
+use qiskit_circuit::{NoBlocks, Qubit, impl_intopyobject_for_copy_pyclass};
 
 const PI2: f64 = PI / 2.;
 const PI4: f64 = PI / 4.;
@@ -1242,7 +1242,7 @@ impl TwoQubitWeylDecomposition {
                 &[Qubit(1)],
             )?;
         }
-        gate_sequence.set_global_phase(Param::Float(global_phase))?;
+        gate_sequence.set_global_phase_f64(global_phase);
         Ok(gate_sequence)
     }
 }
@@ -1277,6 +1277,13 @@ impl TwoQubitGateSequence {
         TwoQubitGateSequence {
             gates: Vec::new(),
             global_phase: 0.,
+        }
+    }
+    /// Create this sequence from the consituent parts.
+    pub fn from_sequence(gates: TwoQubitSequenceVec, global_phase: f64) -> Self {
+        Self {
+            gates,
+            global_phase,
         }
     }
 }
@@ -2058,7 +2065,7 @@ impl TwoQubitBasisDecomposer {
                 OperationRef::StandardGate(standard) => {
                     standard.create_py_op(py, Some(params), None)?.into_any()
                 }
-                OperationRef::Gate(gate) => gate.gate.clone_ref(py),
+                OperationRef::Gate(gate) => gate.instruction.clone_ref(py),
                 OperationRef::Unitary(unitary) => unitary.create_py_op(py, None)?.into_any(),
                 _ => unreachable!("decomposer gate must be a gate"),
             },
@@ -2076,7 +2083,7 @@ impl TwoQubitBasisDecomposer {
     #[new]
     #[pyo3(signature=(gate, gate_matrix, basis_fidelity=1.0, euler_basis="U", pulse_optimize=None))]
     fn new(
-        gate: OperationFromPython,
+        gate: OperationFromPython<NoBlocks>,
         gate_matrix: PyReadonlyArray2<Complex64>,
         basis_fidelity: f64,
         euler_basis: &str,
@@ -2223,7 +2230,7 @@ impl TwoQubitBasisDecomposer {
         let sequence =
             self.generate_sequence(unitary, basis_fidelity, approximate, _num_basis_uses)?;
         let mut dag = DAGCircuit::with_capacity(2, 0, None, Some(sequence.gates.len()), None, None);
-        dag.set_global_phase(Param::Float(sequence.global_phase))?;
+        dag.set_global_phase_f64(sequence.global_phase);
         dag.add_qubit_unchecked(ShareableQubit::new_anonymous())?;
         dag.add_qubit_unchecked(ShareableQubit::new_anonymous())?;
         let mut builder = dag.into_builder();
@@ -2265,7 +2272,7 @@ impl TwoQubitBasisDecomposer {
     ) -> PyResult<CircuitData> {
         let sequence =
             self.generate_sequence(unitary, basis_fidelity, approximate, _num_basis_uses)?;
-        CircuitData::from_packed_operations(
+        Ok(CircuitData::from_packed_operations(
             2,
             0,
             sequence.gates.into_iter().map(|(gate, params, qubits)| {
@@ -2277,7 +2284,7 @@ impl TwoQubitBasisDecomposer {
                 ))
             }),
             Param::Float(sequence.global_phase),
-        )
+        )?)
     }
 
     fn num_basis_gates(&self, unitary: PyReadonlyArray2<Complex64>) -> PyResult<usize> {
@@ -2554,8 +2561,8 @@ impl TwoQubitControlledUDecomposer {
             }
             OperationRef::Gate(gate) => {
                 Python::attach(|py: Python| -> PyResult<(PackedOperation, SmallVec<_>)> {
-                    let raw_inverse = gate.gate.call_method0(py, intern!(py, "inverse"))?;
-                    let mut inverse: OperationFromPython = raw_inverse.extract(py)?;
+                    let raw_inverse = gate.instruction.call_method0(py, intern!(py, "inverse"))?;
+                    let mut inverse: OperationFromPython<NoBlocks> = raw_inverse.extract(py)?;
                     let params = inverse.take_params().unwrap_or_default();
                     Ok((inverse.operation, params))
                 })?
@@ -2635,7 +2642,7 @@ impl TwoQubitControlledUDecomposer {
             RXXEquivalent::Standard(gate) => PackedOperation::from_standard_gate(*gate),
             RXXEquivalent::CustomPython(gate_cls) => {
                 Python::attach(|py| -> PyResult<PackedOperation> {
-                    let op: OperationFromPython =
+                    let op: OperationFromPython<NoBlocks> =
                         gate_cls.bind(py).call1((self.scale * angle,))?.extract()?;
                     Ok(op.operation)
                 })?
@@ -2961,7 +2968,7 @@ impl TwoQubitControlledUDecomposer {
         atol: Option<f64>,
     ) -> PyResult<CircuitData> {
         let sequence = self.call_inner(unitary.as_array(), atol)?;
-        CircuitData::from_packed_operations(
+        Ok(CircuitData::from_packed_operations(
             2,
             0,
             sequence.gates.into_iter().map(|(gate, params, qubits)| {
@@ -2973,7 +2980,7 @@ impl TwoQubitControlledUDecomposer {
                 ))
             }),
             Param::Float(sequence.global_phase),
-        )
+        )?)
     }
 }
 

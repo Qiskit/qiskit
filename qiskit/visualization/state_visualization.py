@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -948,7 +948,9 @@ def plot_state_qsphere(
         if eigvals[idx] > 0.001:
             # get the max eigenvalue
             state = eigvecs[:, idx]
-            loc = np.absolute(state).argmax()
+            # Rounding to 13 decimals ignores machine epsilon noise (~1e-16)
+            # from the solver, ensuring 'argmax' finds the true analytical winner.
+            loc = np.round(np.absolute(state), decimals=13).argmax()
             # remove the global phase from max element
             angles = (np.angle(state[loc]) + 2 * np.pi) % (2 * np.pi)
             angleset = np.exp(-1j * angles)

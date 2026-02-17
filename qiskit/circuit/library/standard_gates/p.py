@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -360,7 +360,7 @@ class MCPhaseGate(ControlledGate):
 
         if self.num_ctrl_qubits == 0:
             qc.p(self.params[0], 0)
-        if self.num_ctrl_qubits == 1:
+        elif self.num_ctrl_qubits == 1:
             qc.cp(self.params[0], 0, 1)
         else:
             lam = self.params[0]

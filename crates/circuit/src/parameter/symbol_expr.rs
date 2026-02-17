@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -33,7 +33,7 @@ pub const SYMEXPR_EPSILON: f64 = f64::EPSILON * 8.0;
 
 #[derive(Debug, Clone)]
 pub struct Symbol {
-    name: String,                  // the name of the symbol
+    pub name: String,              // the name of the symbol
     pub uuid: Uuid,                // the unique identifier
     pub index: Option<u32>,        // an optional index, if part of a vector
     pub vector: Option<Py<PyAny>>, // Python only: a reference to the vector, if it is an element
@@ -80,10 +80,10 @@ impl<'py> IntoPyObject<'py> for Symbol {
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        match (&self.index, &self.vector) {
-            (Some(_), Some(_)) => Py::new(py, PyParameterVectorElement::from_symbol(self.clone()))?
-                .into_bound_py_any(py),
-            _ => Py::new(py, PyParameter::from_symbol(self.clone()))?.into_bound_py_any(py),
+        if self.is_vector_element() {
+            Py::new(py, PyParameterVectorElement::from_symbol(self.clone()))?.into_bound_py_any(py)
+        } else {
+            Py::new(py, PyParameter::from_symbol(self.clone()))?.into_bound_py_any(py)
         }
     }
 }
@@ -130,6 +130,9 @@ impl Symbol {
             (None, true) => format!("{}_{}", self.name, self.uuid.as_u128()),
             (None, false) => self.name.clone(),
         }
+    }
+    pub fn is_vector_element(&self) -> bool {
+        matches!((&self.index, &self.vector), (Some(_), Some(_)))
     }
 }
 
