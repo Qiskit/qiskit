@@ -308,7 +308,7 @@ cleanup:
 static int inner_optimize_h_gates(QkTarget *target, char **gates, uint32_t *freq,
                                   size_t num_gates) {
     int result = Ok;
-    // Build circuit
+    // Build DAG
     QkDag *dag = qk_dag_new();
     QkQuantumRegister *qr = qk_quantum_register_new(1, "qr");
     qk_dag_add_quantum_register(dag, qr);
@@ -319,13 +319,54 @@ static int inner_optimize_h_gates(QkTarget *target, char **gates, uint32_t *freq
 
     // Run transpiler pass
     qk_transpiler_pass_optimize_1q_sequences(dag, target);
-    QkCircuit *circuit = qk_dag_to_circuit(dag);
-    QkOpCounts counts = qk_circuit_count_ops(circuit);
-    if (!compare_gate_counts(&counts, gates, freq, num_gates)) {
-        result = EqualityError;
+
+    // Count ops via the DAG interface
+    size_t num_ops = qk_dag_num_op_nodes(dag);
+    uint32_t *ops = malloc(num_ops * sizeof(*ops));
+    qk_dag_topological_op_nodes(dag, ops);
+    uint32_t actual_freq[num_gates];
+    memset(actual_freq, 0, num_gates * sizeof(*actual_freq));
+    size_t actual_num_gates = 0;
+    QkCircuitInstruction inst;
+    for (size_t i = 0; i < num_ops; i++) {
+        qk_dag_get_instruction(dag, ops[i], &inst);
+        bool found = false;
+        for (size_t g = 0; g < actual_num_gates; g++) {
+            if (strcmp(inst.name, gates[g]) == 0) {
+                actual_freq[g]++;
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            if (actual_num_gates >= num_gates) {
+                result = EqualityError;
+                qk_circuit_instruction_clear(&inst);
+                goto cleanup;
+            }
+            if (strcmp(inst.name, gates[actual_num_gates]) != 0) {
+                result = EqualityError;
+                qk_circuit_instruction_clear(&inst);
+                goto cleanup;
+            }
+            actual_freq[actual_num_gates] = 1;
+            actual_num_gates++;
+        }
+        qk_circuit_instruction_clear(&inst);
     }
-    qk_opcounts_clear(&counts);
-    qk_circuit_free(circuit);
+    if (actual_num_gates != num_gates) {
+        result = EqualityError;
+        goto cleanup;
+    }
+    for (size_t g = 0; g < num_gates; g++) {
+        if (actual_freq[g] != freq[g]) {
+            result = EqualityError;
+            goto cleanup;
+        }
+    }
+
+cleanup:
+    free(ops);
     qk_dag_free(dag);
     qk_quantum_register_free(qr);
     qk_target_free(target);
