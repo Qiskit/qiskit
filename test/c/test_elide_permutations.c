@@ -17,7 +17,6 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 /**
@@ -172,11 +171,7 @@ static int test_elide_permutations_swap_result(void) {
             printf("More than 1 type of gates in DAG\n");
             result = EqualityError;
             goto ops_cleanup;
-        }
-    }
-    for (size_t i = 0; i < num_ops; i++) {
-        QkGate gate = qk_dag_op_node_gate_op(dag, ops[i], NULL);
-        if (gate == QkGate_Swap) {
+        } else if (gate == QkGate_Swap) {
             printf("Swap gate in DAG which should have been elided\n");
             result = EqualityError;
             goto ops_cleanup;
