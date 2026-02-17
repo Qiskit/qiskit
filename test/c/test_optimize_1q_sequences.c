@@ -134,7 +134,7 @@ static bool compare_gate_counts(QkOpCounts *counts, char **gates, uint32_t *freq
  * Transpile: 0:--[H]-[H]-[H]--
  */
 static int standalone_inner_optimize_h_gates(QkTarget *target, char **gates, uint32_t *freq,
-                                  size_t num_gates) {
+                                             size_t num_gates) {
     int result = Ok;
     // Build circuit
     QkCircuit *circuit = qk_circuit_new(1, 0);
@@ -183,7 +183,8 @@ static int test_standalone_optimize_h_gates(void) {
     char *names[5] = {"u1_u2_u3", "rz_rx", "rz_sx", "rz_ry_u", "rz_ry_u_noerror"};
     printf("Optimize h gates tests.\n");
     for (int idx = 0; idx < 5; idx++) {
-        int result = standalone_inner_optimize_h_gates(targets[idx], gates[idx], freq[idx], num_gates[idx]);
+        int result =
+            standalone_inner_optimize_h_gates(targets[idx], gates[idx], freq[idx], num_gates[idx]);
         printf("--- Run with %-21s: %s \n", names[idx], (bool)result ? "Fail" : "Ok");
         num_failed += result;
     }

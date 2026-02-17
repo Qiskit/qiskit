@@ -193,7 +193,6 @@ cleanup:
     return result;
 }
 
-
 int test_elide_permutations(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_standalone_elide_permutations_no_result);
