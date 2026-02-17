@@ -251,6 +251,9 @@ select = [
     "RSE",
     # flake8-pie
     "PIE",
+    # flake8-no-pep420
+    "INP",
+
 ]
 ignore = [
     "E402",  # module-import-not-at-top-of-file false positives with module docs
@@ -340,6 +343,8 @@ ignore = [
     "D417",
     "D418",
     "D419",
+# Implicit namespace rules don't apply to tools because they're all standalone scripts
+    "INP001",
 ]
 "test/*" = [
     "S110",
@@ -397,7 +402,7 @@ ignore = [
     "D419",
 ]
 "test/randomized/*" = ["S101"]
-"test/qpy_compat/*" = ["S101"]
+"test/qpy_compat/*" = ["S101", "INP001"]
 "test/benchmarks/*" = ["S101"]
 # Operator mix-in usage doesn't work with docstring detection
 "qiskit/quantum_info/operators/*" = ["D102"]
