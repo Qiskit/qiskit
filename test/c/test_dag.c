@@ -1171,7 +1171,7 @@ static int test_dag_replace_block_with_unitary(void) {
     uint32_t replaced_ids[3] = {idx1, idx2, idx3};
     static const QkComplex64 mat_z[4] = {{1, 0}, {0, 0}, {0, 0}, {-1, 0}};
     uint32_t new_node_idx =
-        qk_dag_replace_block_with_unitary(dag, 3, replaced_ids, mat_z, 1, qubit);
+        qk_dag_replace_block_with_unitary(dag, 3, replaced_ids, mat_z, 1, qubit, false);
 
     // The resulting DAG should have 3 operations
     size_t num_ops = qk_dag_num_op_nodes(dag);
@@ -1212,8 +1212,8 @@ static int test_dag_replace_qubitless_block_with_unitary(void) {
 
     // Replace the global phase gate by a 0-qubit unitary gate
     static const QkComplex64 identity_mat[1] = {{1, 0}};
-    uint32_t new_node_idx = qk_dag_replace_block_with_unitary(dag, 1, (uint32_t[]){idx},
-                                                              identity_mat, 0, (uint32_t[]){});
+    uint32_t new_node_idx = qk_dag_replace_block_with_unitary(
+        dag, 1, (uint32_t[]){idx}, identity_mat, 0, (uint32_t[]){}, false);
 
     // The resulting DAG should have 3 operations
     size_t num_ops = qk_dag_num_op_nodes(dag);
@@ -1230,6 +1230,47 @@ static int test_dag_replace_qubitless_block_with_unitary(void) {
         printf(
             "The new node with index %u has incorrect operation type: expected: %d but got %d.\n",
             new_node_idx, QkOperationKind_Unitary, new_node_kind);
+    }
+
+cleanup:
+    qk_quantum_register_free(qr);
+    qk_dag_free(dag);
+
+    return result;
+}
+
+static int test_dag_replace_illegal_block_with_unitary(void) {
+    int result = Ok;
+
+    // Create a DAG with CX, H, CX
+    QkDag *dag = qk_dag_new();
+    QkQuantumRegister *qr = qk_quantum_register_new(2, "qr");
+    qk_dag_add_quantum_register(dag, qr);
+
+    uint32_t idx1 = qk_dag_apply_gate(dag, QkGate_CX, (uint32_t[]){0, 1}, NULL, false);
+    qk_dag_apply_gate(dag, QkGate_H, (uint32_t[]){1}, NULL, false);
+    uint32_t idx2 = qk_dag_apply_gate(dag, QkGate_CX, (uint32_t[]){0, 1}, NULL, false);
+
+    // Try to replace the block consisting of the two CX gates while setting cycle_check
+    // to true. Note that this would introduce a cycle.
+    static const QkComplex64 identity_mat_2[4] = {{1, 0}, {0, 0}, {0, 0}, {1, 0}};
+    uint32_t new_node_idx = qk_dag_replace_block_with_unitary(
+        dag, 2, (uint32_t[]){idx1, idx2}, identity_mat_2, 2, (uint32_t[]){0, 1}, true);
+
+    // The returned node index should be UINT32_MAX, indicating that the
+    // replacing the provided node block would introduce a cycle
+    if (new_node_idx != UINT32_MAX) {
+        result = EqualityError;
+        printf("The new node has index %u but expected %u\n", new_node_idx, UINT32_MAX);
+        goto cleanup;
+    }
+
+    // The original DAG should be left unchanged.
+    size_t num_ops = qk_dag_num_op_nodes(dag);
+    if (num_ops != 3) {
+        result = EqualityError;
+        printf("Number of instructions is %zu but expected 3\n", num_ops);
+        goto cleanup;
     }
 
 cleanup:
@@ -1259,6 +1300,7 @@ int test_dag(void) {
     num_failed += RUN_TEST(test_dag_compose_permuted);
     num_failed += RUN_TEST(test_dag_replace_block_with_unitary);
     num_failed += RUN_TEST(test_dag_replace_qubitless_block_with_unitary);
+    num_failed += RUN_TEST(test_dag_replace_illegal_block_with_unitary);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);

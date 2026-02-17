@@ -1589,24 +1589,33 @@ pub unsafe extern "C" fn qk_dag_copy_empty_like(
 }
 
 /// @ingroup QkDag
-/// Replace a non-empty contiguous block of DAG nodes in a `QkDag` with a single
-/// unitary gate whose matrix is equal to the overall unitary matrix of the block.
+/// Replace a non-empty contiguous block of nodes in a ``QkDag`` with a
+/// single unitary gate whose matrix is equal to the overall unitary of the
+/// block.
 ///
 /// The specified nodes are removed and substituted by a new node acting on
 /// the given qubits.
 ///
 /// @param dag Pointer to the DAG.
-/// @param num_block_ids Number of nodes in `block_ids`. This number must be
-///     nonzero.
-/// @param block_ids A non-empty array of nodes to replace.
-/// @param matrix Pointer to a unitary matrix of dimension
-///     ``2^num_qubits x 2^num_qubits``.
+/// @param num_block_ids Number of entries in ``block_ids``. This number must
+///     be nonzero.
+/// @param block_ids Pointer to a non-empty array of nodes to replace.
+/// @param matrix Pointer to an initialized row-major unitary matrix of size
+///     ``4**num_qubits``.
 /// @param num_qubits The number of qubits the resulting unitary gate acts on.
-/// @param qubits Array of distinct ``uint32_t`` indices of the qubits.
+/// @param qubits Pointer to an array of distinct ``uint32_t`` qubit indices.
 ///     Each entry specifies the index of the DAG qubit that corresponds to
 ///     the respective argument position in the unitary gate.
+/// @param cycle_check If ``true``, the function checks whether replacing the
+///     provided ``block_ids`` with a single node would introduce a cycle in
+///     the DAG (which would invalidate the DAG). If a cycle would be
+///     created, the DAG is left unchanged and ``UINT32_MAX`` is returned.
+///     This checking comes with a run time penalty. If you can guarantee that
+///     the provided ``block_ids`` is a contiguous block and won't introduce a
+///     cycle when contracted to a single node, this can be set to ``false``.
 ///
-/// @return The index of the newly added operation node.
+/// @return The index of the newly added operation node, or ``UINT32_MAX`` if
+///     ``cycle_check`` is ``true`` and the replacement would inroduce a cycle.
 ///
 /// # Example
 ///
@@ -1627,7 +1636,7 @@ pub unsafe extern "C" fn qk_dag_copy_empty_like(
 /// uint32_t replaced_ids[3] = {idx1, idx2, idx3};
 /// static const QkComplex64 mat_z[4] = {{1, 0}, {0, 0}, {0, 0}, {-1, 0}};
 /// uint32_t new_node_idx =
-///     qk_dag_replace_block_with_unitary(dag, 3, replaced_ids, mat_z, 1, qubit);
+///     qk_dag_replace_block_with_unitary(dag, 3, replaced_ids, mat_z, 1, qubit, false);
 ///
 /// // free the register and dag pointer when done
 /// qk_quantum_register_free(qr);
@@ -1649,6 +1658,7 @@ pub unsafe extern "C" fn qk_dag_replace_block_with_unitary(
     matrix: *const Complex64,
     num_qubits: u32,
     qubits: *const u32,
+    cycle_check: bool,
 ) -> u32 {
     // SAFETY: per documentation, `dag` points to valid data.
     let dag = unsafe { mut_ptr_as_ref(dag) };
@@ -1684,17 +1694,18 @@ pub unsafe extern "C" fn qk_dag_replace_block_with_unitary(
         .collect::<HashMap<_, _>>();
     let clbit_pos_map = HashMap::new();
 
-    let new_index = dag
-        .replace_block(
-            &block,
-            Box::new(UnitaryGate { array }).into(),
-            None,
-            None,
-            false,
-            &qubit_pos_map,
-            &clbit_pos_map,
-        )
-        .expect("Failed to replace nodes in the DAG");
+    let res = dag.replace_block(
+        &block,
+        Box::new(UnitaryGate { array }).into(),
+        None,
+        None,
+        cycle_check,
+        &qubit_pos_map,
+        &clbit_pos_map,
+    );
 
-    new_index.index() as u32
+    match res {
+        Ok(new_index) => new_index.index() as u32,
+        Err(_) => u32::MAX,
+    }
 }
