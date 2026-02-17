@@ -57,15 +57,9 @@ static int test_remove_identity_equiv_removes_gates(void) {
     QkDag *dag = qk_dag_new();
     QkQuantumRegister *qr = qk_quantum_register_new(1, "qr");
     qk_dag_add_quantum_register(dag, qr);
-    uint32_t qargs[1] = {
-        0,
-    };
-    double params_zero[1] = {
-        0.,
-    };
-    double params[1] = {
-        1.23,
-    };
+    uint32_t qargs[1] = {0};
+    double params_zero[1] = {0.};
+    double params[1] = {1.23};
     qk_dag_apply_gate(dag, QkGate_I, qargs, NULL, false);
     qk_dag_apply_gate(dag, QkGate_RZ, qargs, params_zero, false);
     qk_dag_apply_gate(dag, QkGate_RX, qargs, params, false);
