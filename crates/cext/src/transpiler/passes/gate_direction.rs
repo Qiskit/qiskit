@@ -144,6 +144,9 @@ pub unsafe extern "C" fn qk_transpiler_pass_check_gate_direction(
 /// qk_dag_apply_gate(dag, QkGate_CX, (uint32_t[]){1,0}, NULL, false);  
 ///
 /// qk_transpiler_pass_gate_direction(dag, target);
+/// qk_quantum_register_free(qr);
+/// qk_dag_free(dag);
+/// qk_target_free(target);
 /// ```
 ///
 /// # Safety
