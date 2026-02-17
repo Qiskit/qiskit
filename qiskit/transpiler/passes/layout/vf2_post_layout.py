@@ -115,7 +115,6 @@ class VF2PostLayout(AnalysisPass):
 
         Raises:
             TypeError: At runtime, if ``target`` isn't provided.
-
         """
         super().__init__()
         self.target = target
@@ -127,7 +126,7 @@ class VF2PostLayout(AnalysisPass):
         self.avg_error_map = None
 
     def run(self, dag):
-        """Run the layout method"""
+        """run the layout method"""
         if self.target is None:
             raise TranspilerError("A target must be specified")
         self.avg_error_map = self.property_set["vf2_avg_error_map"]

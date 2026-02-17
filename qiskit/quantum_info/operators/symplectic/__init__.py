@@ -10,7 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Symplectic Operators"""
+"""
+Symplectic Operators
+"""
 
 from __future__ import annotations
 

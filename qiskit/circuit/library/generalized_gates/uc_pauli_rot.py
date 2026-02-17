@@ -38,10 +38,10 @@ class UCPauliRotGate(Gate):
     """
 
     def __init__(self, angle_list: list[float], rot_axis: str) -> None:
-        r"""Args:
-        angle_list: List of rotation angles :math:`[a_0, ..., a_{2^{k-1}}]`.
-        rot_axis: Rotation axis. Must be either of ``"X"``, ``"Y"`` or ``"Z"``.
-
+        r"""
+        Args:
+            angle_list: List of rotation angles :math:`[a_0, ..., a_{2^{k-1}}]`.
+            rot_axis: Rotation axis. Must be either of ``"X"``, ``"Y"`` or ``"Z"``.
         """
         self.rot_axes = rot_axis
         # Check if angle_list has type "list"
@@ -75,7 +75,8 @@ class UCPauliRotGate(Gate):
         self.definition = ucr_circuit
 
     def _dec_ucrot(self):
-        """Finds a decomposition of a UC rotation gate into elementary gates
+        """
+        Finds a decomposition of a UC rotation gate into elementary gates
         (C-NOTs and single-qubit rotations).
         """
         q = QuantumRegister(self.num_qubits, "q")
@@ -130,7 +131,8 @@ class UCPauliRotGate(Gate):
 
     @staticmethod
     def _dec_uc_rotations(angles, start_index, end_index, reversed_dec):
-        """Calculates rotation angles for a uniformly controlled R_t gate with a C-NOT gate at
+        """
+        Calculates rotation angles for a uniformly controlled R_t gate with a C-NOT gate at
         the end of the circuit. The rotation angles of the gate R_t are stored in
         angles[start_index:end_index]. If reversed_dec == True, it decomposes the gate such that
         there is a C-NOT gate at the start of the circuit (in fact, the circuit topology for

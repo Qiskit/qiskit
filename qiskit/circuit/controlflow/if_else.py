@@ -62,19 +62,20 @@ class IfElseOp(ControlFlowOp):
         false_body: QuantumCircuit | None = None,
         label: str | None = None,
     ):
-        """Args:
-        condition: A condition to be evaluated in real time during circuit execution which,
-            if true, will trigger the evaluation of ``true_body``. Can be
-            specified as either a tuple of a ``ClassicalRegister`` to be
-            tested for equality with a given ``int``, or as a tuple of a
-            ``Clbit`` to be compared to either a ``bool`` or an ``int``.
-        true_body: A program to be executed if ``condition`` evaluates
-            to true.
-        false_body: A optional program to be executed if ``condition``
-            evaluates to false.
-        label: An optional label for identifying the instruction.
-
         """
+        Args:
+            condition: A condition to be evaluated in real time during circuit execution which,
+                if true, will trigger the evaluation of ``true_body``. Can be
+                specified as either a tuple of a ``ClassicalRegister`` to be
+                tested for equality with a given ``int``, or as a tuple of a
+                ``Clbit`` to be compared to either a ``bool`` or an ``int``.
+            true_body: A program to be executed if ``condition`` evaluates
+                to true.
+            false_body: A optional program to be executed if ``condition``
+                evaluates to false.
+            label: An optional label for identifying the instruction.
+        """
+
         from qiskit.circuit import QuantumCircuit
 
         # Type checking generally left to @params.setter, but required here for
@@ -159,8 +160,8 @@ class IfElseOp(ControlFlowOp):
 
         Returns:
             New IfElseOp with replaced blocks.
-
         """
+
         true_body, false_body = (
             ablock for ablock, _ in itertools.zip_longest(blocks, range(2), fillvalue=None)
         )
@@ -189,14 +190,14 @@ class IfElsePlaceholder(InstructionPlaceholder):
         *,
         label: str | None = None,
     ):
-        """Args:
-        condition: the condition to execute the true block on.  This has the same semantics as
-            the ``condition`` argument to :obj:`.IfElseOp`.
-        true_block: the unbuilt scope block that will become the "true" branch at creation time.
-        false_block: if given, the unbuilt scope block that will become the "false" branch at
-            creation time.
-        label: the label to give the operator when it is created.
-
+        """
+        Args:
+            condition: the condition to execute the true block on.  This has the same semantics as
+                the ``condition`` argument to :obj:`.IfElseOp`.
+            true_block: the unbuilt scope block that will become the "true" branch at creation time.
+            false_block: if given, the unbuilt scope block that will become the "false" branch at
+                creation time.
+            label: the label to give the operator when it is created.
         """
         # These are protected names because we're not trying to clash with parent attributes.
         self.__true_block = true_block
@@ -223,7 +224,6 @@ class IfElsePlaceholder(InstructionPlaceholder):
 
         Raises:
             CircuitError: if the false block of this placeholder instruction is already set.
-
         """
         if self.__false_block is not None:
             raise CircuitError(f"false block is already set to {self.__false_block}")
@@ -363,8 +363,7 @@ class IfContext:
     @property
     def appended_instructions(self) -> InstructionSet | None:
         """Get the instruction set that was created when this block finished.  If the block has not
-        yet finished, then this will be ``None``.
-        """
+        yet finished, then this will be ``None``."""
         return self._appended_instructions
 
     @property

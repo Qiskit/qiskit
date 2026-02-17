@@ -50,7 +50,6 @@ class Task(ABC):
 
         Returns:
             Optimized Qiskit IR and state of the workflow.
-
         """
 
 
@@ -61,7 +60,7 @@ class GenericPass(Task, ABC):
     and may modify the input pass manager IR.
     """
 
-    def __init__(self):  # noqa: D107
+    def __init__(self):
         self.property_set = PropertySet()
         self.requires: Iterable[Task] = []
 
@@ -69,7 +68,7 @@ class GenericPass(Task, ABC):
         """Name of the pass."""
         return self.__class__.__name__
 
-    def execute(  # noqa: D102
+    def execute(
         self,
         passmanager_ir: PassManagerIR,
         state: PassManagerState,
@@ -130,7 +129,6 @@ class GenericPass(Task, ABC):
 
         Returns:
             Updated pass manager state.
-
         """
         state.workflow_status.previous_run = run_state
         if run_state == RunState.SUCCESS:
@@ -150,7 +148,6 @@ class GenericPass(Task, ABC):
 
         Returns:
             Optimized Qiskit IR.
-
         """
 
 
@@ -171,7 +168,6 @@ class BaseController(Task, ABC):
 
         Args:
             options: Option for this flow controller.
-
         """
         self._options = options or {}
 
@@ -198,10 +194,9 @@ class BaseController(Task, ABC):
 
         Yields:
             Task: Next task to run.
-
         """
 
-    def execute(  # noqa: D102
+    def execute(
         self,
         passmanager_ir: PassManagerIR,
         state: PassManagerState,

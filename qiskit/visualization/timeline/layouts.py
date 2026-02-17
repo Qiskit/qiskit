@@ -10,7 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""A collection of functions that decide the layout of an output image.
+"""
+A collection of functions that decide the layout of an output image.
 See :py:mod:`~qiskit.visualization.timeline.types` for more info on the required data.
 
 There are 2 types of layout functions in this module.
@@ -63,7 +64,6 @@ def qreg_creg_ascending(bits: list[types.Bits]) -> list[types.Bits]:
 
     Returns:
         Sorted bits.
-
     """
     return [x for x in bits if isinstance(x, circuit.Qubit)] + [
         x for x in bits if isinstance(x, circuit.Clbit)
@@ -80,7 +80,6 @@ def qreg_creg_descending(bits: list[types.Bits]) -> list[types.Bits]:
 
     Returns:
         Sorted bits.
-
     """
     return [x for x in bits[::-1] if isinstance(x, circuit.Qubit)] + [
         x for x in bits[::-1] if isinstance(x, circuit.Clbit)
@@ -97,7 +96,6 @@ def time_map_in_dt(time_window: tuple[int, int]) -> types.HorizontalAxis:
 
     Returns:
         Axis formatter object.
-
     """
     # shift time axis
     t0, t1 = time_window

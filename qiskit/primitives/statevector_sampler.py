@@ -9,7 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""Statevector Sampler V2 class"""
+"""
+Statevector Sampler V2 class
+"""
 
 from __future__ import annotations
 
@@ -47,7 +49,8 @@ class _MeasureInfo:
 
 
 class StatevectorSampler(BaseSamplerV2):
-    """Simple implementation of :class:`BaseSamplerV2` using full state vector simulation.
+    """
+    Simple implementation of :class:`BaseSamplerV2` using full state vector simulation.
 
     This class is implemented via :class:`~.Statevector` which turns provided circuits into
     pure state vectors, and is therefore incompatible with mid-circuit measurements (although
@@ -131,11 +134,11 @@ class StatevectorSampler(BaseSamplerV2):
     """
 
     def __init__(self, *, default_shots: int = 1024, seed: np.random.Generator | int | None = None):
-        """Args:
-        default_shots: The default shots for the sampler if not specified during run.
-        seed: The seed or Generator object for random number generation.
-            If None, a random seeded default RNG will be used.
-
+        """
+        Args:
+            default_shots: The default shots for the sampler if not specified during run.
+            seed: The seed or Generator object for random number generation.
+                If None, a random seeded default RNG will be used.
         """
         self._default_shots = default_shots
         self._seed = seed
@@ -150,7 +153,7 @@ class StatevectorSampler(BaseSamplerV2):
         """Return the seed or Generator object for random number generation."""
         return self._seed
 
-    def run(  # noqa: D102
+    def run(
         self, pubs: Iterable[SamplerPubLike], *, shots: int | None = None
     ) -> PrimitiveJob[PrimitiveResult[SamplerPubResult]]:
         if shots is None:
@@ -251,12 +254,11 @@ def _samples_to_packed_array(
 def _final_measurement_mapping(circuit: QuantumCircuit) -> dict[tuple[ClassicalRegister, int], int]:
     """Return the final measurement mapping for the circuit.
 
-    Args:
+    Parameters:
         circuit: Input quantum circuit.
 
     Returns:
         Mapping of classical bits to qubits for final measurements.
-
     """
     active_qubits = set(range(circuit.num_qubits))
     active_cbits = set(range(circuit.num_clbits))

@@ -20,7 +20,7 @@ from qiskit.transpiler.basepasses import TransformationPass
 class ContractIdleWiresInControlFlow(TransformationPass):
     """Remove idle qubits from control-flow operations of a :class:`.DAGCircuit`."""
 
-    def run(self, dag):  # noqa: D102
+    def run(self, dag):
         # `control_flow_op_nodes` is eager and doesn't borrow; we're mutating the DAG in the loop.
         for node in dag.control_flow_op_nodes() or []:
             inst = node._to_circuit_instruction()
@@ -54,8 +54,7 @@ def _contract_control_flow(inst):
     """Contract a `CircuitInstruction` containing a control-flow operation.
 
     Returns the input object by the same reference if there's no contraction to be done at the call
-    site, though nested control-flow ops may have been contracted in place.
-    """
+    site, though nested control-flow ops may have been contracted in place."""
     op = inst.operation
     idle = set(inst.qubits)
     for block in op.blocks:

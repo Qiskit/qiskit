@@ -73,8 +73,7 @@ class _AnnotationSerializationState:
     def serialize(self, annotation: Annotation) -> (int, bytes):
         """Serialize an annotation using a known serializer (initializing one, if necessary).
 
-        Returns the index of the serializer used, and the serialized annotation.
-        """
+        Returns the index of the serializer used, and the serialized annotation."""
         for namespace in iter_namespaces(annotation.namespace):
             if (existing := self.serializers.get(namespace, None)) is not None:
                 index, serializer = existing
@@ -98,8 +97,7 @@ class _AnnotationSerializationState:
 
     def iter_serializers(self) -> typing.Iterator[tuple[str, QPYSerializer]]:
         """Iterate over the namespaces and serializers that have had at least one successful use, in
-        order of first use.
-        """
+        order of first use."""
         return (
             # Python dictionaries are insertion ordered, and we assign indices in insertion order.
             (namespace, serializer)
@@ -1531,7 +1529,6 @@ def write_circuit(
         annotation_factories (dict): a mapping of namespaces to zero-argument factory functions that
             produce instances of :class:`.annotation.QPYSerializer`.
         use_rust (bool): whether to use the rust based serialization engine. On by default.
-
     """
     if use_rust:
         if annotation_factories is None:
@@ -1680,14 +1677,13 @@ def read_circuit(
         annotation_factories (dict): mapping of namespaces to factory functions for custom
             annotation deserializer objects.
         use_rust (bool): whether to use the rust based deserialization engine. On by default.
-
     Returns:
         QuantumCircuit: The circuit object from the file.
 
     Raises:
         QpyError: Invalid register.
-
     """
+
     if use_rust:
         if annotation_factories is None:
             annotation_factories = {}

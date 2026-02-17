@@ -71,7 +71,6 @@ class BaseSamplerV2(ABC):
 
         Returns:
             The job object of Sampler's result.
-
         """
 
 
@@ -146,11 +145,11 @@ class BaseSamplerV1(BasePrimitiveV1, Generic[T]):
         *,
         options: dict | None = None,
     ):
-        """Initialize ``SamplerV1``.
+        """
+        Initialize ``SamplerV1``.
 
         Args:
             options: Default options.
-
         """
         super().__init__(options)
 
@@ -173,7 +172,6 @@ class BaseSamplerV1(BasePrimitiveV1, Generic[T]):
 
         Raises:
             ValueError: Invalid arguments are given.
-
         """
         # Validation
         circuits, parameter_values = _validate_sampler_args(circuits, parameter_values)

@@ -44,7 +44,6 @@ class BasePassManager(ABC):
             tasks: A pass set to be added to the pass manager schedule.
             max_iteration: The maximum number of iterations the schedule will be looped if the
                 condition is not met.
-
         """
         self._tasks = []
         self.max_iteration = max_iteration
@@ -66,7 +65,6 @@ class BasePassManager(ABC):
 
         Raises:
             TypeError: When any element of tasks is not a subclass of passmanager Task.
-
         """
         if isinstance(tasks, Task):
             tasks = [tasks]
@@ -89,7 +87,6 @@ class BasePassManager(ABC):
         Raises:
             TypeError: When any element of tasks is not a subclass of passmanager Task.
             PassManagerError: If the index is not found.
-
         """
         try:
             self._tasks[index] = tasks
@@ -104,7 +101,6 @@ class BasePassManager(ABC):
 
         Raises:
             PassManagerError: If the index is not found.
-
         """
         try:
             del self._tasks[index]
@@ -146,12 +142,10 @@ class BasePassManager(ABC):
         """Convert input program into pass manager IR.
 
         Args:
-            input_program: Input program.
-            kwargs: Arbitrary arguments passed to the compiler frontend.
+            in_program: Input program.
 
         Returns:
             Pass manager IR.
-
         """
 
     @abstractmethod
@@ -168,11 +162,9 @@ class BasePassManager(ABC):
             in_program: The input program, this can be used if you need
                 any metadata about the original input for the output.
                 It should not be mutated.
-            kwargs: Arbitrary arguments passed to the compiler backend.
 
         Returns:
             Output program.
-
         """
 
     def run(
@@ -228,7 +220,6 @@ class BasePassManager(ABC):
 
         Returns:
             The transformed program(s).
-
         """
         if not self._tasks and not kwargs and callback is None:
             return in_programs
@@ -276,7 +267,6 @@ class BasePassManager(ABC):
 
         Returns:
             A linearized pass manager.
-
         """
         flatten_tasks = list(self._flatten_tasks(self._tasks))
         return FlowControllerLinear(flatten_tasks)
@@ -300,13 +290,10 @@ def _run_workflow(
     Args:
         program: Arbitrary program to optimize.
         pass_manager: Pass manager with scheduled passes.
-        initial_property_set: An optional dictionary that is used to
-            pre-populate the property set of the new pass manager
         **kwargs: Keyword arguments for IR conversion.
 
     Returns:
         Optimized program.
-
     """
     flow_controller = pass_manager.to_flow_controller()
     initial_status = WorkflowStatus()
@@ -355,14 +342,9 @@ def _run_workflow_in_new_process(
     Args:
         program: Arbitrary program to optimize.
         pass_manager_bin: Binary of the pass manager with scheduled passes.
-        initial_property_set: An optional dictionary that is used to
-            pre-populate the property set of the new pass manager
-        callback: An optional callback function that will be called on each
-            pass run as part of the pass manager.
 
     Returns:
           Optimized program.
-
     """
     return _run_workflow(
         program=program,

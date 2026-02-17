@@ -66,7 +66,7 @@ from .printer import BasicPrinter
 
 @dataclasses.dataclass(frozen=True)
 class DefcalInstruction:
-    r"""An instruction that should be assumed by the exporter to have an associated ``defcal``
+    """An instruction that should be assumed by the exporter to have an associated ``defcal``
     statement for it.
 
     .. note::
@@ -203,51 +203,51 @@ class Exporter:
         annotation_handlers: dict[str, OpenQASM3Serializer] | None = None,
         implicit_defcals: dict[str, DefcalInstruction] | None = None,
     ):
-        r"""Args:
-        includes: the filenames that should be emitted as includes.
+        """
+        Args:
+            includes: the filenames that should be emitted as includes.
 
-            .. note::
+                .. note::
 
-                At present, only the standard-library file ``stdgates.inc`` is properly
-                understood by the exporter, in the sense that it knows the gates it defines.
-                You can specify other includes, but you will need to pass the names of the gates
-                they define in the ``basis_gates`` argument to avoid the exporter outputting a
-                separate ``gate`` definition.
+                    At present, only the standard-library file ``stdgates.inc`` is properly
+                    understood by the exporter, in the sense that it knows the gates it defines.
+                    You can specify other includes, but you will need to pass the names of the gates
+                    they define in the ``basis_gates`` argument to avoid the exporter outputting a
+                    separate ``gate`` definition.
 
-        basis_gates: the basic defined gate set of the backend.
-        disable_constants: if ``True``, always emit floating-point constants for numeric
-            parameter values.  If ``False`` (the default), then values close to multiples of
-            OpenQASM 3 constants (``pi``, ``euler``, and ``tau``) will be emitted in terms of those
-            constants instead, potentially improving accuracy in the output.
-        alias_classical_registers: If ``True``, then bits may be contained in more than one
-            register.  If so, the registers will be emitted using "alias" definitions, which
-            might not be well supported by consumers of OpenQASM 3.
+            basis_gates: the basic defined gate set of the backend.
+            disable_constants: if ``True``, always emit floating-point constants for numeric
+                parameter values.  If ``False`` (the default), then values close to multiples of
+                OpenQASM 3 constants (``pi``, ``euler``, and ``tau``) will be emitted in terms of those
+                constants instead, potentially improving accuracy in the output.
+            alias_classical_registers: If ``True``, then bits may be contained in more than one
+                register.  If so, the registers will be emitted using "alias" definitions, which
+                might not be well supported by consumers of OpenQASM 3.
 
-            .. seealso::
-                Parameter ``allow_aliasing``
-                    A value for ``allow_aliasing`` overrides any value given here, and
-                    supersedes this parameter.
-        allow_aliasing: If ``True``, then bits may be contained in more than one register.  If
-            so, the registers will be emitted using "alias" definitions, which might not be
-            well supported by consumers of OpenQASM 3.  Defaults to ``False`` or the value of
-            ``alias_classical_registers``.
+                .. seealso::
+                    Parameter ``allow_aliasing``
+                        A value for ``allow_aliasing`` overrides any value given here, and
+                        supersedes this parameter.
+            allow_aliasing: If ``True``, then bits may be contained in more than one register.  If
+                so, the registers will be emitted using "alias" definitions, which might not be
+                well supported by consumers of OpenQASM 3.  Defaults to ``False`` or the value of
+                ``alias_classical_registers``.
 
-            .. versionadded:: 0.25.0
-        indent: the indentation string to use for each level within an indented block.  Can be
-            set to the empty string to disable indentation.
-        experimental: any experimental features to enable during the export.  See
-            :class:`ExperimentalFeatures` for more details.
-        annotation_handlers: a mapping of namespaces to annotation serializers.  When an
-            :class:`.Annotation` object is encountered, the most specific namespace in this
-            mapping that matches the annotation's :attr:`~.Annotation.namespace` attribute will
-            be used to serialize it.
-        implicit_defcals: mapping of :attr:`.Instruction.name`\\ s to an associated
-            :class:`.DefcalInstruction` object.  All instructions with the key name in the input
-            circuit should be output as if there is a ``defcal`` statement corresponding to the
-            given :class:`.DefcalInstruction` defined.  The key name and the
-            :attr:`.DefcalInstruction.name` do not need to match.  The ``defcal`` name cannot
-            collide with an OpenQASM 3 keyword.
-
+                .. versionadded:: 0.25.0
+            indent: the indentation string to use for each level within an indented block.  Can be
+                set to the empty string to disable indentation.
+            experimental: any experimental features to enable during the export.  See
+                :class:`ExperimentalFeatures` for more details.
+            annotation_handlers: a mapping of namespaces to annotation serializers.  When an
+                :class:`.Annotation` object is encountered, the most specific namespace in this
+                mapping that matches the annotation's :attr:`~.Annotation.namespace` attribute will
+                be used to serialize it.
+            implicit_defcals: mapping of :attr:`.Instruction.name`\\ s to an associated
+                :class:`.DefcalInstruction` object.  All instructions with the key name in the input
+                circuit should be output as if there is a ``defcal`` statement corresponding to the
+                given :class:`.DefcalInstruction` defined.  The key name and the
+                :attr:`.DefcalInstruction.name` do not need to match.  The ``defcal`` name cannot
+                collide with an OpenQASM 3 keyword.
         """
         self.basis_gates = basis_gates
         self.disable_constants = disable_constants
@@ -365,7 +365,7 @@ class GateInfo:
 class SymbolTable:
     """Track Qiskit objects and the OQ3 identifiers used to refer to them."""
 
-    def __init__(self):  # noqa: D107
+    def __init__(self):
         self.gates: dict[str, GateInfo] = {}
         """Mapping of the symbol name to the "definition source" of the gate, which provides its
         signature and decomposition.
@@ -408,8 +408,7 @@ class SymbolTable:
         """Create a new context, such as for a gate definition.
 
         Contexts share the same set of globally defined gates, but have no access to other variables
-        defined in any scope.
-        """
+        defined in any scope."""
         out = SymbolTable()
         out.gates = self.gates
         out.standard_gate_idents = self.standard_gate_idents
@@ -426,8 +425,7 @@ class SymbolTable:
 
     def can_shadow_symbol(self, name: str) -> bool:
         """Whether a new definition of this symbol can be made within the OpenQASM 3 shadowing
-        rules.
-        """
+        rules."""
         return (
             name not in self.variables[-1]
             and name not in self.gates
@@ -438,8 +436,7 @@ class SymbolTable:
         """Get an identifier based on ``name`` that can be safely shadowed within this scope.
 
         If ``unique`` is ``True``, then the name is required to be unique across all live scopes,
-        not just able to be redefined.
-        """
+        not just able to be redefined."""
         name_allowed = (
             (lambda name: not self.symbol_defined(name)) if unique else self.can_shadow_symbol
         )
@@ -494,7 +491,6 @@ class SymbolTable:
             allow_hardware_qubit: whether to allow hardware qubits to pass through as identifiers.
                 Hardware qubits are a dollar sign followed by a non-negative integer, and cannot be
                 declared, so are not suitable identifiers for most objects.
-
         """
         scope_index = 0 if force_global else -1
         # We still need to do this escaping and shadow checking if `force_global`, because we don't
@@ -520,8 +516,7 @@ class SymbolTable:
         This overwrites any previously set identifier, such as during the original registration.
 
         This is generally only useful for tracking "sub" objects, like bits out of a register, which
-        will have an `SubscriptedIdentifier` as their identifier.
-        """
+        will have an `SubscriptedIdentifier` as their identifier."""
         self.objects[-1][variable] = ident
 
     def get_variable(self, variable: object) -> ast.Identifier:
@@ -537,8 +532,7 @@ class SymbolTable:
         If the ``gate`` is given, it will be used to validate that a call to it is compatible (such
         as a known gate from an included file).  If it is not given, it is treated as a user-defined
         "basis gate" that assumes that all calling signatures are valid and that all gates of this
-        name are exactly compatible, which is somewhat dangerous.
-        """
+        name are exactly compatible, which is somewhat dangerous."""
         # Validate the name is usable.
         name = self.escaped_declarable_name(name, allow_rename=False, unique=False)
         ident = ast.Identifier(name)
@@ -562,8 +556,7 @@ class SymbolTable:
         body: ast.QuantumBlock,
     ) -> ast.Identifier:
         """Register the given gate in the symbol table, using the given components to build up the
-        full AST definition.
-        """
+        full AST definition."""
         name = self.escaped_declarable_name(name, allow_rename=True, unique=False)
         ident = ast.Identifier(name)
         self.gates[name] = GateInfo(
@@ -615,8 +608,7 @@ def _gate_canonical_form(gate: Gate) -> Gate:
     in the case of parametric gates.
 
     The definition source provides the number of qubits, the parameter signature and the body of the
-    `gate` statement.  It does not provide the name of the symbol being defined.
-    """
+    `gate` statement.  It does not provide the name of the symbol being defined."""
     # If a gate is part of the Qiskit standard-library gates, we know we can safely produce a
     # reparameterised gate by passing the parameters positionally to the standard-gate constructor
     # (and control state, if appropriate).
@@ -633,8 +625,7 @@ def _gate_canonical_form(gate: Gate) -> Gate:
 @dataclasses.dataclass
 class BuildScope:
     """The structure used in the builder to store the contexts and re-mappings of bits from the
-    top-level scope where the bits were actually defined.
-    """
+    top-level scope where the bits were actually defined."""
 
     circuit: QuantumCircuit
     """The circuit block that we're currently working on exporting."""
@@ -663,43 +654,6 @@ class QASM3Builder:
         annotation_handlers=None,
         implicit_defcals=None,
     ):
-        r"""Initialize a new QASM3Builder instance
-
-        Args:
-            quantumcircuit (QuantumCircuit): The circuit to build the AST from
-            includeslist (list): the filenames that should be emitted as includes.
-
-               .. note::
-
-                    At present, only the standard-library file ``stdgates.inc`` is properly
-                    understood by the exporter, in the sense that it knows the gates it defines.
-                    You can specify other includes, but you will need to pass the names of the gates
-                    they define in the ``basis_gates`` argument to avoid the exporter outputting a
-                    separate ``gate`` definition.
-
-            basis_gates (list): the basic defined gate set of the backend.
-            disable_constants (bool): if ``True``, always emit floating-point constants for numeric
-                parameter values.  If ``False`` (the default), then values close to multiples of
-                OpenQASM 3 constants (``pi``, ``euler``, and ``tau``) will be emitted in terms of those
-                constants instead, potentially improving accuracy in the output.
-            allow_aliasing (bool): If ``True``, then bits may be contained in more than one register.  If
-                so, the registers will be emitted using "alias" definitions, which might not be
-                well supported by consumers of OpenQASM 3.  Defaults to ``False`` or the value of
-                ``alias_classical_registers``.
-            experimental (ExperimentalFeatures): any experimental features to enable during the export.  See
-                :class:`ExperimentalFeatures` for more details.
-            annotation_handlers (dict): a mapping of namespaces to annotation serializers.  When an
-                :class:`.Annotation` object is encountered, the most specific namespace in this
-                mapping that matches the annotation's :attr:`~.Annotation.namespace` attribute will
-                be used to serialize it.
-            implicit_defcals (dict): mapping of :attr:`.Instruction.name`\\ s to an associated
-                :class:`.DefcalInstruction` object.  All instructions with the key name in the input
-                circuit should be output as if there is a ``defcal`` statement corresponding to the
-                given :class:`.DefcalInstruction` defined.  The key name and the
-                :attr:`.DefcalInstruction.name` do not need to match.  The ``defcal`` name cannot
-                collide with an OpenQASM 3 keyword.
-
-        """
         self.scope = BuildScope(
             quantumcircuit,
             {x: x for x in itertools.chain(quantumcircuit.qubits, quantumcircuit.clbits)},
@@ -724,8 +678,7 @@ class QASM3Builder:
     @contextlib.contextmanager
     def new_scope(self, circuit: QuantumCircuit, qubits: Iterable[Qubit], clbits: Iterable[Clbit]):
         """Context manager that pushes a new scope (like a ``for`` or ``while`` loop body) onto the
-        current context stack.
-        """
+        current context stack."""
         current_map = self.scope.bit_map
         qubits = tuple(current_map[qubit] for qubit in qubits)
         clbits = tuple(current_map[clbit] for clbit in clbits)
@@ -759,8 +712,7 @@ class QASM3Builder:
 
     def _lookup_bit(self, bit) -> ast.Identifier:
         """Lookup a Qiskit bit within the current context, and return the name that should be
-        used to represent it in OpenQASM 3 programmes.
-        """
+        used to represent it in OpenQASM 3 programmes."""
         return self.symbols.get_variable(self.scope.bit_map[bit])
 
     def build_program(self):
@@ -862,8 +814,7 @@ class QASM3Builder:
         """Define a gate in the symbol table, including building the gate-definition statement for
         it.
 
-        This recurses through gate-definition statements.
-        """
+        This recurses through gate-definition statements."""
         if issubclass(gate.base_class, library.CXGate) and gate.ctrl_state == 1:
             # CX gets super duper special treatment because it's the base of Qiskit's definition
             # tree, but isn't an OQ3 built-in (it was in OQ2).  We use `issubclass` because we
@@ -934,8 +885,7 @@ class QASM3Builder:
     def hoist_global_parameter_declarations(self):
         """Extend ``self._global_io_declarations`` and ``self._global_classical_declarations`` with
         any implicit declarations used to support the early IBM efforts to use :class:`.Parameter`
-        as an input variable.
-        """
+        as an input variable."""
         self.assert_global_scope()
         circuit = self.scope.circuit
         for parameter in circuit.parameters:
@@ -1011,8 +961,7 @@ class QASM3Builder:
 
         Local :class:`.expr.Var` declarations are handled by the regular local-block scope builder,
         and the :class:`.QuantumCircuit` data model ensures that the only time an IO variable can
-        occur is in an outermost block.
-        """
+        occur is in an outermost block."""
         self.assert_global_scope()
         circuit = self.scope.circuit
         for var in circuit.iter_input_vars():
@@ -1026,8 +975,7 @@ class QASM3Builder:
 
     def build_quantum_declarations(self):
         """Return a list of AST nodes declaring all the qubits in the current scope, and all the
-        alias declarations for these qubits.
-        """
+        alias declarations for these qubits."""
         self.assert_global_scope()
         circuit = self.scope.circuit
         if circuit.layout is not None:
@@ -1079,8 +1027,7 @@ class QASM3Builder:
 
     def build_aliases(self, registers: Iterable[Register]) -> list[ast.AliasStatement]:
         """Return a list of alias declarations for the given registers.  The registers can be either
-        classical or quantum.
-        """
+        classical or quantum."""
         out = []
         for register in registers:
             name = self.symbols.register_variable(register.name, register, allow_rename=True)
@@ -1099,6 +1046,7 @@ class QASM3Builder:
         In addition to everything literally in the circuit's ``data`` field, this also includes
         declarations for any local :class:`.expr.Var` nodes.
         """
+
         # We forward-declare all local variables uninitialised at the top of their scope. It would
         # be nice to declare the variable at the point of first store (so we can write things like
         # `uint[8] a = 12;`), but there's lots of edge-case logic to catch with that around
@@ -1336,8 +1284,7 @@ class QASM3Builder:
     def build_integer(self, value) -> ast.IntegerLiteral:
         """Build an integer literal, raising a :obj:`.QASM3ExporterError` if the input is not
         actually an
-        integer.
-        """
+        integer."""
         if not isinstance(value, numbers.Integral):
             # This is meant to be purely defensive, in case a non-integer slips into the logic
             # somewhere, but no valid Terra object should trigger this.
@@ -1345,10 +1292,9 @@ class QASM3Builder:
         return ast.IntegerLiteral(int(value))
 
     def _rebind_scoped_parameters(self, expression):
-        r"""If the input is a :class:`.ParameterExpression`, rebind any internal
+        """If the input is a :class:`.ParameterExpression`, rebind any internal
         :class:`.Parameter`\\ s so that their names match their names in the scope.  Other inputs
-        are returned unchanged.
-        """
+        are returned unchanged."""
         # This is a little hacky, but the entirety of the Expression handling is essentially
         # missing, pending a new system in Terra to replace it (2022-03-07).
         if not isinstance(expression, ParameterExpression):
@@ -1446,13 +1392,11 @@ def _infer_variable_declaration(
     Returns:
         A suitable :obj:`.ast.ClassicalDeclaration` node, or, if the parameter should *not* be
         declared, then ``None``.
-
     """
 
     def is_loop_variable(circuit, parameter):
         """Recurse into the instructions a parameter is used in, checking at every level if it is
-        used as the loop variable of a ``for`` loop.
-        """
+        used as the loop variable of a ``for`` loop."""
         # This private access is hacky, and shouldn't need to happen; the type of a parameter
         # _should_ be an intrinsic part of the parameter, or somewhere publicly accessible, but
         # Terra doesn't have those concepts yet.  We can only try and guess at the type by looking

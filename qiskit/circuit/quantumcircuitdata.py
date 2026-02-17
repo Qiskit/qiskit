@@ -12,8 +12,7 @@
 
 
 """A wrapper class for the purposes of validating modifications to
-QuantumCircuit.data while maintaining the interface of a python list.
-"""
+QuantumCircuit.data while maintaining the interface of a python list."""
 
 from collections.abc import MutableSequence
 
@@ -29,10 +28,9 @@ CircuitInstruction = qiskit._accelerate.circuit.CircuitInstruction
 
 class QuantumCircuitData(MutableSequence):
     """A wrapper class for the purposes of validating modifications to
-    QuantumCircuit.data while maintaining the interface of a python list.
-    """
+    QuantumCircuit.data while maintaining the interface of a python list."""
 
-    def __init__(self, circuit):  # noqa: D107
+    def __init__(self, circuit):
         self._circuit = circuit
 
     def __getitem__(self, i):

@@ -31,12 +31,12 @@ class LightCone(TransformationPass):
     """
 
     def __init__(self, bit_terms: str | None = None, indices: list[int] | None = None) -> None:
-        """Args:
-        bit_terms: If ``None`` the light-cone will be computed for the set of measurements
-            in the circuit. If a string is specified, the light-cone will correspond to the
-            reduced circuit with the same expectation value for the observable.
-        indices: list of non-trivial indices corresponding to the observable in ``bit_terms``.
-
+        """
+        Args:
+            bit_terms: If ``None`` the light-cone will be computed for the set of measurements
+                in the circuit. If a string is specified, the light-cone will correspond to the
+                reduced circuit with the same expectation value for the observable.
+            indices: list of non-trivial indices corresponding to the observable in ``bit_terms``.
         """
         super().__init__()
         valid_characters = {"X", "Y", "Z", "+", "-", "l", "r", "0", "1"}
@@ -95,8 +95,8 @@ class LightCone(TransformationPass):
 
         Returns:
             The DAG reduced to the light-cone of the observable.
-
         """
+
         # Get the initial light-cone and operations
         lightcone_qubits, lightcone_operations = self._get_initial_lightcone(dag)
 

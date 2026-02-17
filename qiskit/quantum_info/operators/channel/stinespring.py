@@ -9,7 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""Stinespring representation of a Quantum Channel."""
+"""
+Stinespring representation of a Quantum Channel.
+"""
 
 from __future__ import annotations
 import copy
@@ -63,7 +65,6 @@ class Stinespring(QuantumChannel):
         1. C.J. Wood, J.D. Biamonte, D.G. Cory, *Tensor networks and graphical calculus
            for open quantum systems*, Quant. Inf. Comp. 15, 0579-0811 (2015).
            `arXiv:1111.6950 [quant-ph] <https://arxiv.org/abs/1111.6950>`_
-
     """
 
     def __init__(
@@ -88,7 +89,6 @@ class Stinespring(QuantumChannel):
             automatically determined from the input data. This can fail for the
             Stinespring operator if the output dimension cannot be automatically
             determined.
-
         """
         # If the input is a list or tuple we assume it is a pair of general
         # Stinespring matrices. If it is a numpy array we assume that it is

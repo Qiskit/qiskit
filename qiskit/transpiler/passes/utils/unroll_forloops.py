@@ -32,7 +32,6 @@ class UnrollForLoops(TransformationPass):
         Args:
             max_target_depth (int): Optional. Checks if the unrolled block is over a particular
                 subcircuit depth. To disable the check, use ``-1`` (Default).
-
         """
         super().__init__()
         self.max_target_depth = max_target_depth
@@ -46,7 +45,6 @@ class UnrollForLoops(TransformationPass):
 
         Returns:
             DAGCircuit: Transformed DAG.
-
         """
         for forloop_op in dag.op_nodes(ForLoopOp):
             (indexset, loop_param, body) = forloop_op.op.params

@@ -10,21 +10,23 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Utility functions in the fast gradient implementation."""
+"""
+Utility functions in the fast gradient implementation.
+"""
 from __future__ import annotations
 from typing import Union
 import numpy as np
 
 
 def is_permutation(x: np.ndarray) -> bool:
-    """Checks if array is really an index permutation.
+    """
+    Checks if array is really an index permutation.
 
     Args:
-        x: 1D-array of integers that supposedly represents a permutation.
+        1D-array of integers that supposedly represents a permutation.
 
     Returns:
         True, if array is really a permutation of indices.
-
     """
     return (
         isinstance(x, np.ndarray)
@@ -35,7 +37,8 @@ def is_permutation(x: np.ndarray) -> bool:
 
 
 def reverse_bits(x: int | np.ndarray, nbits: int, enable: bool) -> int | np.ndarray:
-    """Reverses the bit order in a number of ``nbits`` length.
+    """
+    Reverses the bit order in a number of ``nbits`` length.
     If ``x`` is an array, then operation is applied to every entry.
 
     Args:
@@ -45,8 +48,8 @@ def reverse_bits(x: int | np.ndarray, nbits: int, enable: bool) -> int | np.ndar
 
     Returns:
         a number or array of numbers with reversed bits.
-
     """
+
     if not enable:
         if isinstance(x, int):
             pass
@@ -68,7 +71,8 @@ def reverse_bits(x: int | np.ndarray, nbits: int, enable: bool) -> int | np.ndar
 
 
 def swap_bits(num: int, a: int, b: int) -> int:
-    """Swaps the bits at positions 'a' and 'b' in the number 'num'.
+    """
+    Swaps the bits at positions 'a' and 'b' in the number 'num'.
 
     Args:
         num: an integer number where bits should be swapped.
@@ -77,14 +81,14 @@ def swap_bits(num: int, a: int, b: int) -> int:
 
     Returns:
         the number with swapped bits.
-
     """
     x = ((num >> a) ^ (num >> b)) & 1
     return num ^ ((x << a) | (x << b))
 
 
 def bit_permutation_1q(n: int, k: int) -> np.ndarray:
-    """Constructs index permutation that brings a circuit consisting of a single
+    """
+    Constructs index permutation that brings a circuit consisting of a single
     1-qubit gate to "standard form": ``kron(I(2^n/2), G)``, as we call it. Here n
     is the number of qubits, ``G`` is a 2x2 gate matrix, ``I(2^n/2)`` is the identity
     matrix of size ``(2^n/2)x(2^n/2)``, and the full size of the circuit matrix is
@@ -100,7 +104,6 @@ def bit_permutation_1q(n: int, k: int) -> np.ndarray:
 
     Returns:
         permutation that brings the whole layer to the standard form.
-
     """
     perm = np.arange(2**n, dtype=np.int64)
     if k != n - 1:
@@ -110,7 +113,8 @@ def bit_permutation_1q(n: int, k: int) -> np.ndarray:
 
 
 def bit_permutation_2q(n: int, j: int, k: int) -> np.ndarray:
-    """Constructs index permutation that brings a circuit consisting of a single
+    """
+    Constructs index permutation that brings a circuit consisting of a single
     2-qubit gate to "standard form": ``kron(I(2^n/4), G)``, as we call it. Here ``n``
     is the number of qubits, ``G`` is a 4x4 gate matrix, ``I(2^n/4)`` is the identity
     matrix of size ``(2^n/4)x(2^n/4)``, and the full size of the circuit matrix is
@@ -127,7 +131,6 @@ def bit_permutation_2q(n: int, j: int, k: int) -> np.ndarray:
 
     Returns:
         permutation that brings the whole layer to the standard form.
-
     """
     dim = 2**n
     perm = np.arange(dim, dtype=np.int64)
@@ -157,14 +160,14 @@ def bit_permutation_2q(n: int, j: int, k: int) -> np.ndarray:
 
 
 def inverse_permutation(perm: np.ndarray) -> np.ndarray:
-    """Returns inverse permutation.
+    """
+    Returns inverse permutation.
 
     Args:
         perm: permutation to be reversed.
 
     Returns:
         inverse permutation.
-
     """
     inv = np.zeros_like(perm)
     inv[perm] = np.arange(perm.size, dtype=np.int64)
@@ -172,7 +175,8 @@ def inverse_permutation(perm: np.ndarray) -> np.ndarray:
 
 
 def make_rx(phi: float, out: np.ndarray) -> np.ndarray:
-    """Makes a 2x2 matrix that corresponds to X-rotation gate.
+    """
+    Makes a 2x2 matrix that corresponds to X-rotation gate.
     This is a fast implementation that does not allocate the output matrix.
 
     Args:
@@ -181,7 +185,6 @@ def make_rx(phi: float, out: np.ndarray) -> np.ndarray:
 
     Returns:
         rotation gate, same object as referenced by "out".
-
     """
     a = 0.5 * phi
     cs, sn = np.cos(a).item(), -1j * np.sin(a).item()
@@ -193,7 +196,8 @@ def make_rx(phi: float, out: np.ndarray) -> np.ndarray:
 
 
 def make_ry(phi: float, out: np.ndarray) -> np.ndarray:
-    """Makes a 2x2 matrix that corresponds to Y-rotation gate.
+    """
+    Makes a 2x2 matrix that corresponds to Y-rotation gate.
     This is a fast implementation that does not allocate the output matrix.
 
     Args:
@@ -202,7 +206,6 @@ def make_ry(phi: float, out: np.ndarray) -> np.ndarray:
 
     Returns:
         rotation gate, same object as referenced by "out".
-
     """
     a = 0.5 * phi
     cs, sn = np.cos(a).item(), np.sin(a).item()
@@ -214,7 +217,8 @@ def make_ry(phi: float, out: np.ndarray) -> np.ndarray:
 
 
 def make_rz(phi: float, out: np.ndarray) -> np.ndarray:
-    """Makes a 2x2 matrix that corresponds to Z-rotation gate.
+    """
+    Makes a 2x2 matrix that corresponds to Z-rotation gate.
     This is a fast implementation that does not allocate the output matrix.
 
     Args:
@@ -223,7 +227,6 @@ def make_rz(phi: float, out: np.ndarray) -> np.ndarray:
 
     Returns:
         rotation gate, same object as referenced by "out".
-
     """
     exp = np.exp(0.5j * phi).item()
     out[0, 0] = 1.0 / exp

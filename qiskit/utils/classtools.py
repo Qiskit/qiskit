@@ -139,7 +139,6 @@ def wrap_method(
 
     Raises:
         ValueError: if the named method is not defined on the class or any parent class.
-
     """
     # The best time to apply decorators to methods is before they are bound (e.g. by using function
     # decorators during the class definition), but if we're making a class decorator, we can't do

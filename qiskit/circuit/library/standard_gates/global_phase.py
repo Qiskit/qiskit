@@ -38,10 +38,10 @@ class GlobalPhaseGate(Gate):
     _standard_gate = StandardGate.GlobalPhase
 
     def __init__(self, phase: ParameterValueType, label: str | None = None):
-        """Args:
-        phase: The value of phase it takes.
-        label: An optional label for the gate.
-
+        """
+        Args:
+            phase: The value of phase it takes.
+            label: An optional label for the gate.
         """
         super().__init__("global_phase", 0, [phase], label=label)
 
@@ -67,7 +67,6 @@ class GlobalPhaseGate(Gate):
 
         Returns:
             GlobalPhaseGate: inverse gate.
-
         """
         return GlobalPhaseGate(-self.params[0])
 

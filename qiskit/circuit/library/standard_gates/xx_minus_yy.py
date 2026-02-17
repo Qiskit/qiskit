@@ -66,16 +66,17 @@ class XXMinusYYGate(Gate):
         beta: ParameterValueType = 0,
         label: str | None = "(XX-YY)",
     ):
-        """Args:
-        theta: The rotation angle.
-        beta: The phase angle.
-        label: The label of the gate.
-
+        """
+        Args:
+            theta: The rotation angle.
+            beta: The phase angle.
+            label: The label of the gate.
         """
         super().__init__("xx_minus_yy", 2, [theta, beta], label=label)
 
     def _define(self):
         """Default definition"""
+
         #       ┌─────┐  ┌────┐┌───┐     ┌─────────┐      ┌─────┐ ┌──────┐┌───┐
         # q_0: ─┤ Sdg ├──┤ √X ├┤ S ├──■──┤ Ry(θ/2) ├───■──┤ Sdg ├─┤ √Xdg ├┤ S ├
         #      ┌┴─────┴─┐├───┬┘└───┘┌─┴─┐├─────────┴┐┌─┴─┐├─────┤┌┴──────┤└───┘
@@ -98,7 +99,6 @@ class XXMinusYYGate(Gate):
 
         Returns:
             XXMinusYYGate: inverse gate.
-
         """
         theta, beta = self.params
         return XXMinusYYGate(-theta, beta)

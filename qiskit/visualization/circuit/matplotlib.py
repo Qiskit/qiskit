@@ -256,6 +256,7 @@ class MatplotlibDrawer:
         """Main entry point to 'matplotlib' ('mpl') drawer. Called from
         ``visualization.circuit_drawer`` and from ``QuantumCircuit.draw`` through circuit_drawer.
         """
+
         # Import matplotlib and load all the figure, window, and style info
         from matplotlib import patches
         from matplotlib import pyplot as plt
@@ -404,6 +405,7 @@ class MatplotlibDrawer:
 
     def _get_layer_widths(self, node_data, wire_map, outer_circuit, glob_data):
         """Compute the layer_widths for the layers"""
+
         layer_widths = {}
         for layer_num, layer in enumerate(self._nodes):
             widest_box = WID
@@ -495,8 +497,7 @@ class MatplotlibDrawer:
 
                         def lookup_var(var):
                             """Look up a classical-expression variable or register/bit in our
-                            internal symbol table, and return an OQ3-like identifier.
-                            """
+                            internal symbol table, and return an OQ3-like identifier."""
                             # We don't attempt to disambiguate anything like register/var naming
                             # collisions; we already don't really show classical variables.
                             if isinstance(var, expr.Var):
@@ -671,6 +672,7 @@ class MatplotlibDrawer:
 
     def _set_bit_reg_info(self, wire_map, qubits_dict, clbits_dict, glob_data):
         """Get all the info for drawing bit/reg names and numbers"""
+
         longest_wire_label_width = 0
         glob_data["n_lines"] = 0
         initial_qbit = r" $|0\rangle$" if self._initial_state else ""
@@ -755,6 +757,7 @@ class MatplotlibDrawer:
         flow_parent=None,
     ):
         """Load all the coordinate info needed to place the gates on the drawing."""
+
         prev_x_index = -1
         for layer in self._nodes:
             curr_x_index = prev_x_index + 1
@@ -853,6 +856,7 @@ class MatplotlibDrawer:
 
     def _get_text_width(self, text, glob_data, fontsize, param=False, reg_remove_under=None):
         """Compute the width of a string in the default font"""
+
         from pylatexenc.latex2text import LatexNodes2Text
 
         if not text:
@@ -898,6 +902,7 @@ class MatplotlibDrawer:
 
     def _draw_regs_wires(self, num_folds, xmax, max_x_index, qubits_dict, clbits_dict, glob_data):
         """Draw the register names and numbers, wires, and vertical lines at the ends"""
+
         for fold_num in range(num_folds + 1):
             # quantum registers
             for qubit in qubits_dict.values():
@@ -1078,6 +1083,7 @@ class MatplotlibDrawer:
         verbose=False,
     ):
         """Draw the gates in the circuit"""
+
         # Add the nodes from all the ControlFlowOps and their coordinates to the main nodes
         self._add_nodes_and_coords(
             nodes,
@@ -1166,6 +1172,7 @@ class MatplotlibDrawer:
 
     def _get_colors(self, node, node_data):
         """Get all the colors needed for drawing the circuit"""
+
         op = node.op
         base_name = getattr(getattr(op, "base_gate", None), "name", None)
         color = None
@@ -1217,6 +1224,7 @@ class MatplotlibDrawer:
 
     def _condition(self, node, node_data, wire_map, outer_circuit, cond_xy, glob_data):
         """Add a conditional to a gate"""
+
         # For SwitchCaseOp convert the target to a fully closed Clbit or register
         # in condition format
         if isinstance(node.op, SwitchCaseOp):
@@ -2020,6 +2028,7 @@ class MatplotlibDrawer:
 
     def _plot_coord(self, x_index, y_index, gate_width, glob_data, flow_op=False):
         """Get the coord positions for an index"""
+
         # Check folding
         fold = self._fold if self._fold > 0 else INFINITE_FOLD
         h_pos = x_index % fold + 1

@@ -36,7 +36,6 @@ class BasicSwap(TransformationPass):
             coupling_map (Union[CouplingMap, Target]): Directed graph represented a coupling map.
             fake_run (bool): if true, it will only pretend to do routing, i.e., no
                 swap is effectively added.
-
         """
         super().__init__()
         if isinstance(coupling_map, Target):
@@ -59,7 +58,6 @@ class BasicSwap(TransformationPass):
         Raises:
             TranspilerError: if the coupling map or the layout are not
             compatible with the DAG, or if the ``coupling_map=None``.
-
         """
         if self.fake_run:
             return self._fake_run(dag)
@@ -141,7 +139,6 @@ class BasicSwap(TransformationPass):
         Raises:
             TranspilerError: if the coupling map or the layout are not
             compatible with the DAG.
-
         """
         if len(dag.qregs) != 1 or dag.qregs.get("q", None) is None:
             raise TranspilerError("Basic swap runs on physical circuits only")

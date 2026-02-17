@@ -44,6 +44,7 @@ class RemoveBarriers(TransformationPass):
     @control_flow.trivial_recurse
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the RemoveBarriers pass on `dag`."""
+
         dag.remove_all_ops_named("barrier")
 
         return dag

@@ -61,7 +61,6 @@ class JobV1(Job, ABC):
             job_id: a unique id in the context of the backend used to run
                 the job.
             kwargs: Any key value metadata to associate with this job.
-
         """
         self._job_id = job_id
         self._backend = backend
@@ -114,7 +113,6 @@ class JobV1(Job, ABC):
         Raises:
             JobTimeoutError: If the job does not reach a final state before the
                 specified timeout.
-
         """
         if not self._async:
             return

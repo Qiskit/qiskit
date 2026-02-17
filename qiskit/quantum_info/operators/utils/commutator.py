@@ -30,9 +30,7 @@ def commutator(a: OperatorTypeT, b: OperatorTypeT) -> OperatorTypeT:
     Args:
         a: Operator a.
         b: Operator b.
-
     Returns:
         The commutator
-
     """
     return a @ b - b @ a

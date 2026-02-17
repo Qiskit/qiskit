@@ -53,15 +53,16 @@ class RYGate(Gate):
     _standard_gate = StandardGate.RY
 
     def __init__(self, theta: ParameterValueType, label: str | None = None):
-        """Args:
-        theta: The rotation angle.
-        label: An optional label for the gate.
-
+        """
+        Args:
+            theta: The rotation angle.
+            label: An optional label for the gate.
         """
         super().__init__("ry", 1, [theta], label=label)
 
     def _define(self):
         """Default definition"""
+
         from qiskit.circuit import QuantumCircuit
 
         #    ┌──────────┐
@@ -101,7 +102,6 @@ class RYGate(Gate):
 
         Returns:
             A controlled version of this gate.
-
         """
         # deliberately capture annotated in [None, False] here
         if num_ctrl_qubits == 1:
@@ -130,7 +130,6 @@ class RYGate(Gate):
 
         Returns:
             RYGate: inverse gate.
-
         """
         return RYGate(-self.params[0])
 
@@ -234,6 +233,7 @@ class CRYGate(ControlledGate):
 
     def _define(self):
         """Default definition"""
+
         from qiskit.circuit import QuantumCircuit
 
         # q_0: ─────────────■────────────────■──
@@ -256,9 +256,7 @@ class CRYGate(ControlledGate):
 
         Returns:
             CRYGate: inverse gate.
-        .
-
-        """
+        ."""
         return CRYGate(-self.params[0], ctrl_state=self.ctrl_state)
 
     def __array__(self, dtype=None, copy=None):

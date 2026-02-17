@@ -30,7 +30,8 @@ def synth_pauli_network_rustiq(
     upto_phase: bool = False,
     resynth_clifford_method: int = 0,
 ) -> QuantumCircuit:
-    """Calls Rustiq's pauli network synthesis algorithm.
+    """
+    Calls Rustiq's pauli network synthesis algorithm.
 
     The algorithm is described in [1]. The source code (in Rust) is available at
     https://github.com/smartiel/rustiq-core.

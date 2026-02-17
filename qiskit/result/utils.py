@@ -61,7 +61,6 @@ def marginal_counts(
 
     Raises:
         QiskitError: in case of invalid indices to marginalize over.
-
     """
     if isinstance(result, Result):
         if not inplace:
@@ -102,6 +101,7 @@ def marginal_counts(
 
 def _adjust_creg_sizes(creg_sizes, indices):
     """Helper to reduce creg_sizes to match indices"""
+
     # Zero out creg_sizes list
     new_creg_sizes = [[creg[0], 0] for creg in creg_sizes]
     indices_sort = sorted(indices)
@@ -166,7 +166,6 @@ def marginal_memory(
 
     Raises:
         ValueError: if both ``int_return`` and ``hex_return`` are set to ``True``
-
     """
     if int_return and hex_return:
         raise ValueError("Either int_return or hex_return can be specified but not both")
@@ -216,13 +215,11 @@ def marginal_distribution(
         format_marginal: Default: False. If True, takes the output of
             marginalize and formats it with placeholders between cregs and
             for non-indices.
-
     Returns:
         dict(str, int): A marginalized dictionary
     Raises:
         QiskitError: If any value in ``indices`` is invalid or the ``counts`` dict
         is invalid.
-
     """
     num_clbits = len(max(counts.keys()).replace(" ", ""))
     if indices is not None and (len(indices) == 0 or not set(indices).issubset(range(num_clbits))):
@@ -275,8 +272,7 @@ def _marginalize(counts, indices=None):
 
 def _format_marginal(counts, marg_counts, indices):
     """Take the output of marginalize and add placeholders for
-    multiple cregs and non-indices.
-    """
+    multiple cregs and non-indices."""
     format_counts = {}
     counts_template = next(iter(counts))
     counts_len = len(counts_template.replace(" ", ""))

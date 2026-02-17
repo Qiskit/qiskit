@@ -45,7 +45,6 @@ class SetLayout(AnalysisPass):
 
         Returns:
             DAGCircuit: the original DAG.
-
         """
         if isinstance(self.layout, list):
             if len(self.layout) != len(dag.qubits):

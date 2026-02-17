@@ -10,7 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Standard gates"""
+"""
+Standard gates
+"""
 
 from .h import HGate, CHGate
 from .i import IGate
@@ -63,8 +65,8 @@ def get_standard_gate_name_mapping():
 
             Instruction(name='cx', num_qubits=2, num_clbits=0, params=[])
             _SingletonCXGate
-
     """
+
     from qiskit.circuit.parameter import Parameter
     from qiskit.circuit.measure import Measure
     from qiskit.circuit.delay import Delay

@@ -31,14 +31,14 @@ class FindCommutingPauliEvolutions(TransformationPass):
         """Check for :class:`.PauliEvolutionGate` objects where the summands all commute.
 
         Args:
-            dag: The DAG circuit in which to look for the commuting evolutions.
+            The DAG circuit in which to look for the commuting evolutions.
 
         Returns:
             The dag in which :class:`.PauliEvolutionGate` objects made of commuting two-qubit Paulis
             have been replaced with :class:`.Commuting2qBlocks`` gate instructions. These gates
             contain nodes of two-qubit :class:`.PauliEvolutionGate` objects.
-
         """
+
         for node in dag.op_nodes():
             if isinstance(node.op, PauliEvolutionGate):
                 operator = node.op.operator
@@ -68,8 +68,8 @@ class FindCommutingPauliEvolutions(TransformationPass):
         Returns:
             True if the operator consists of only single qubit terms (like ``IIX + IZI``),
             and False otherwise.
-
         """
+
         for pauli in operator.paulis:
             if sum(np.logical_or(pauli.x, pauli.z)) > 1:
                 return False
@@ -85,7 +85,6 @@ class FindCommutingPauliEvolutions(TransformationPass):
 
         Returns:
             True if all summands commute, False otherwise.
-
         """
         # get a list of summands that commute
         commuting_subparts = operator.paulis.group_qubit_wise_commuting()
@@ -107,7 +106,6 @@ class FindCommutingPauliEvolutions(TransformationPass):
 
         Raises:
             QiskitError: If the pauli does not exactly have two non-identity terms.
-
         """
         edge = tuple(np.logical_or(pauli.x, pauli.z).nonzero()[0])
 
@@ -125,7 +123,6 @@ class FindCommutingPauliEvolutions(TransformationPass):
 
         Returns:
             A dag made of two-qubit :class:`.PauliEvolutionGate`.
-
         """
         sub_dag = dag.copy_empty_like()
 

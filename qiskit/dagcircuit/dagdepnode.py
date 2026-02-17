@@ -11,20 +11,17 @@
 # that they have been altered from the originals.
 
 
-"""Object to represent the information at a node in the DAGDependency."""
-
+"""Object to represent the information at a node in the DAGCircuit."""
 from __future__ import annotations
 
 from qiskit.exceptions import QiskitError
 
 
 class DAGDepNode:
-    """Object to represent the information at a node in the :class:`.DAGDependency`
+    """Object to represent the information at a node in the DAGDependency().
 
     It is used as the return value from `*_nodes()` functions and can
-    be supplied to functions that take a node. This should not be manually
-    instantiated and that interface is not public or supported, it should only
-    be acquired via the :class:`.DAGDependency` methods.
+    be supplied to functions that take a node.
     """
 
     __slots__ = [
@@ -45,7 +42,7 @@ class DAGDepNode:
         "type",
     ]
 
-    def __init__(  # noqa: D107
+    def __init__(
         self,
         type=None,
         op=None,
@@ -62,6 +59,7 @@ class DAGDepNode:
         cindices: list[int] | None = None,
         nid: int = -1,
     ):
+
         self.type = type
         self._op = op
         self.name = name
@@ -93,7 +91,9 @@ class DAGDepNode:
 
     @property
     def qargs(self):
-        """Returns list of Qubit, else an empty list."""
+        """
+        Returns list of Qubit, else an empty list.
+        """
         return self._qargs
 
     @qargs.setter
@@ -104,7 +104,8 @@ class DAGDepNode:
 
     @staticmethod
     def semantic_eq(node1, node2):
-        """Check if DAG nodes are considered equivalent, e.g., as a node_match for nx.is_isomorphic.
+        """
+        Check if DAG nodes are considered equivalent, e.g., as a node_match for nx.is_isomorphic.
 
         Args:
             node1 (DAGDepNode): A node to compare.
@@ -112,7 +113,6 @@ class DAGDepNode:
 
         Return:
             Bool: If node1 == node2
-
         """
         # For barriers, qarg order is not significant so compare as sets
         if "barrier" == node1.name == node2.name:
@@ -132,12 +132,12 @@ class DAGDepNode:
         return False
 
     def copy(self):
-        """Function to copy a DAGDepNode object.
-
+        """
+        Function to copy a DAGDepNode object.
         Returns:
             DAGDepNode: a copy of a DAGDepNode object.
-
         """
+
         dagdepnode = DAGDepNode()
 
         dagdepnode.type = self.type

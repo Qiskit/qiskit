@@ -45,14 +45,6 @@ class CollectMultiQBlocks(AnalysisPass):
     """
 
     def __init__(self, max_block_size=2, collect_from_back=False):
-        """Instantiate a :class:`.CollectMultiQBlocks` instance
-
-        Args:
-            max_block_size (int): The maximum number of qubits to collect blocks for.
-            collect_from_back (bool): Whether to collect blocks from the front of the
-                dag or by iterating in reverse from the back of the dag.
-
-        """
         super().__init__()
         self.parent = {}  # parent array for the union
 
@@ -70,6 +62,7 @@ class CollectMultiQBlocks(AnalysisPass):
         find the root for my parent. After that, we assign my parent to be
         my root, saving recursion in the future.
         """
+
         if index not in self.parent:
             self.parent[index] = index
             self.bit_groups[index] = [index]
@@ -85,6 +78,7 @@ class CollectMultiQBlocks(AnalysisPass):
         as its parent, thus liking the sets.
         Merges smaller set into larger set in order to have better runtime
         """
+
         set1 = self.find_set(set1)
         set2 = self.find_set(set2)
         if set1 == set2:
@@ -110,6 +104,7 @@ class CollectMultiQBlocks(AnalysisPass):
         After the execution, ``property_set['block_list']`` is set to
         a list of tuples of ``DAGNode`` objects
         """
+
         self.parent = {}  # reset all variables on run
         self.bit_groups = {}
         self.gate_groups = {}
@@ -117,7 +112,7 @@ class CollectMultiQBlocks(AnalysisPass):
         block_list = []
 
         def collect_key(x):
-            """Special key function for topological ordering.
+            """special key function for topological ordering.
             Heuristic for this is to push all gates involving measurement
             or barriers, etc. as far back as possible (because they force
             blocks to end). After that, we process gates in order of lowest

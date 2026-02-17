@@ -56,13 +56,11 @@ class Counts(dict):
                 ``[('c_reg', 2), ('my_creg', 4)]``.
             memory_slots (int): The number of total ``memory_slots`` in the
                 experiment.
-
         Raises:
             TypeError: If the input key type is not an ``int`` or ``str``, or if the
                 input keys are not all of the same type.
             QiskitError: If a dit string key is input with ``creg_sizes`` and/or
                 ``memory_slots``.
-
         """
         bin_data = None
         data = dict(data)
@@ -130,7 +128,6 @@ class Counts(dict):
         Raises:
             QiskitError: when there is >1 count with the same max counts, or
                 an empty object.
-
         """
         if not self:
             raise exceptions.QiskitError("Can not return a most frequent count on an empty object")
@@ -150,7 +147,6 @@ class Counts(dict):
                 bitstrings
         Raises:
             QiskitError: If the Counts object contains counts for dit strings
-
         """
         if self.hex_raw:
             return {key.lower(): value for key, value in self.hex_raw.items()}
@@ -173,7 +169,6 @@ class Counts(dict):
             dict: A dictionary with the keys as integers instead of bitstrings
         Raises:
             QiskitError: If the Counts object contains counts for dit strings
-
         """
         if self.int_raw:
             return self.int_raw

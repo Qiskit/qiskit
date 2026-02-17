@@ -46,7 +46,6 @@ def _validate_estimator_args(
     Raises:
         TypeError: If input arguments are invalid types.
         ValueError: if input arguments are invalid values.
-
     """
     # Singular validation
     circuits = _validate_circuits(circuits)
@@ -79,7 +78,6 @@ def _validate_sampler_args(
     Raises:
         TypeError: If input arguments are invalid types.
         ValueError: if input arguments are invalid values.
-
     """
     # Singular validation
     circuits = _validate_circuits(circuits, requires_measure=True)
@@ -105,8 +103,8 @@ def _init_observable(observable: BaseOperator | str) -> SparsePauliOp:
 
     Raises:
         QiskitError: when observable type cannot be converted to SparsePauliOp.
-
     """
+
     if isinstance(observable, SparsePauliOp):
         return observable
     elif isinstance(observable, BaseOperator) and not isinstance(observable, BasePauli):

@@ -39,7 +39,6 @@ class MplPlotter(BasePlotter):
                 with `.update` method before initializing the plotter.
             axis: Matplotlib axis object. When `axis` is provided, the plotter updates
                 given axis instead of creating and returning new matplotlib figure.
-
         """
         super().__init__(canvas=canvas)
 
@@ -84,6 +83,7 @@ class MplPlotter(BasePlotter):
 
     def draw(self):
         """Output drawings stored in canvas object."""
+
         for _, data in self.canvas.collections:
             xvals = np.asarray(data.xvals, dtype=float)
             yvals = np.asarray(data.yvals, dtype=float)
@@ -143,7 +143,6 @@ class MplPlotter(BasePlotter):
 
         Returns:
             Coordinate vectors of time bucket fringe.
-
         """
         x0, x1 = xvals
         y0, y1 = yvals
@@ -169,23 +168,18 @@ class MplPlotter(BasePlotter):
 
     def save_file(self, filename: str):
         """Save image to file.
-
         Args:
             filename: File path to output image data.
-
         """
         plt.savefig(filename, bbox_inches="tight", dpi=self.canvas.formatter["general.dpi"])
 
     def get_image(self, interactive: bool = False) -> matplotlib.pyplot.Figure:
         """Get image data to return.
-
         Args:
             interactive: When set `True` show the circuit in a new window.
                 This depends on the matplotlib backend being used supporting this.
-
         Returns:
             Matplotlib figure data.
-
         """
         matplotlib_close_if_inline(self.figure)
 

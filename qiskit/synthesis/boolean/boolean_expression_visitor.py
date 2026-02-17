@@ -20,8 +20,7 @@ import _ast
 
 class BooleanExpressionEvalVisitor(ast.NodeVisitor):
     """Node visitor to compute the value of the expression, given the boolean values of the args
-    as defined in https://docs.python.org/3/library/ast.html#ast.NodeVisitor
-    """
+    as defined in https://docs.python.org/3/library/ast.html#ast.NodeVisitor"""
 
     bitops = {
         _ast.BitAnd: lambda values: values[0] and values[1],
@@ -75,8 +74,7 @@ class BooleanExpressionEvalVisitor(ast.NodeVisitor):
 
 class BooleanExpressionArgsCollectorVisitor(ast.NodeVisitor):
     """Node visitor to collect the name of the args of the expression
-    as defined in https://docs.python.org/3/library/ast.html#ast.NodeVisitor
-    """
+    as defined in https://docs.python.org/3/library/ast.html#ast.NodeVisitor"""
 
     def __init__(self):
         self.args = set()

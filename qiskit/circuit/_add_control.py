@@ -125,8 +125,8 @@ def control(
 
     Raises:
         CircuitError: gate contains non-gate in definition
-
     """
+
     from qiskit.circuit import controlledgate
 
     ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)

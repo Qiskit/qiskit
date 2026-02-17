@@ -9,7 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""ParameterExpression Class to enable creating simple expressions of Parameters."""
+"""
+ParameterExpression Class to enable creating simple expressions of Parameters.
+"""
 
 from __future__ import annotations
 

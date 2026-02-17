@@ -24,14 +24,12 @@ class LinearFunctionsToPermutations(TransformationPass):
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the LinearFunctionsToPermutations pass on `dag`.
-
         Args:
             dag: input dag.
-
         Returns:
             Output dag with LinearFunctions synthesized.
-
         """
+
         for node in dag.named_nodes("linear_function"):
             try:
                 pattern = node.op.permutation_pattern()

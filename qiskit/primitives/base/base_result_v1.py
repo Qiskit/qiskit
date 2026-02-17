@@ -9,7 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""Primitive V1 result abstract base class"""
+"""
+Primitive V1 result abstract base class
+"""
 
 from __future__ import annotations
 
@@ -24,10 +26,13 @@ ExperimentData = dict[str, Any]
 
 
 class _BasePrimitiveResultV1(ABC):
-    """Base class for deprecated Primitive V1 result methods."""
+    """
+    Base class for deprecated Primitive V1 result methods.
+    """
 
     def __post_init__(self) -> None:
-        """Verify that all fields in any inheriting result dataclass are consistent, after
+        """
+        Verify that all fields in any inheriting result dataclass are consistent, after
         instantiation, with the number of experiments being represented.
 
         This magic method is specific of `dataclasses.dataclass`, therefore all inheriting
@@ -36,7 +41,6 @@ class _BasePrimitiveResultV1(ABC):
         Raises:
             TypeError: If one of the data fields is not a Sequence or ``numpy.ndarray``.
             ValueError: Inconsistent number of experiments across data fields.
-
         """
         num_experiments = None
         for value in self._field_values:  # type: Sequence

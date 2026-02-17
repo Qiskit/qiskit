@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Common utils for disjoint coupling maps."""
+"""This module contains common utils for disjoint coupling maps."""
 from __future__ import annotations
 from typing import Union
 
@@ -21,7 +21,8 @@ from qiskit.transpiler.exceptions import TranspilerError
 
 
 def require_layout_isolated_to_component(dag: DAGCircuit, components_source: Target | CouplingMap):
-    """Check that the layout of the dag does not require connectivity across connected components
+    """
+    Check that the layout of the dag does not require connectivity across connected components
     in the CouplingMap
 
     Args:
@@ -30,7 +31,6 @@ def require_layout_isolated_to_component(dag: DAGCircuit, components_source: Tar
 
     Raises:
         TranspilerError: Chosen layout is not valid for the target disjoint connectivity.
-
     """
     if isinstance(components_source, Target):
         coupling_map = components_source.build_coupling_map(filter_idle_qubits=True)

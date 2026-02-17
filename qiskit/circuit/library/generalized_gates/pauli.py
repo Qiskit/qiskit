@@ -10,7 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Simulator command to perform multiple pauli gates in a single pass"""
+"""
+Simulator command to perform multiple pauli gates in a single pass
+"""
 
 from __future__ import annotations
 
@@ -43,16 +45,13 @@ class PauliGate(Gate):
     """
 
     def __init__(self, label):
-        """Instantiate a new :class:`.PauliGate` instance
-
-        Args:
-            label: The Pauli label to use for the new gate.
-
-        """
         super().__init__("pauli", len(label), [label])
 
     def _define(self):
-        """Gate pauli (p1 a1,...,pn an) { p1 a1; ... ; pn an; }"""
+        """
+        gate pauli (p1 a1,...,pn an) { p1 a1; ... ; pn an; }
+        """
+
         from qiskit.circuit import QuantumCircuit, QuantumRegister
 
         gates = {"X": XGate, "Y": YGate, "Z": ZGate}
@@ -72,13 +71,13 @@ class PauliGate(Gate):
 
     def __array__(self, dtype=None, copy=None):
         """Return a Numpy.array for the pauli gate.
-        i.e. tensor product of the paulis
-        """
+        i.e. tensor product of the paulis"""
+
         from qiskit.quantum_info.operators import Pauli
 
         return Pauli(self.params[0]).__array__(dtype=dtype, copy=copy)
 
-    def validate_parameter(self, parameter):  # noqa: D102
+    def validate_parameter(self, parameter):
         if isinstance(parameter, str):
             if all(c in ["I", "X", "Y", "Z"] for c in parameter):
                 return parameter

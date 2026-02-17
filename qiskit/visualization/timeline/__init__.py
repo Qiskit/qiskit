@@ -10,7 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Scheduled circuit visualization module."""
+"""
+Scheduled circuit visualization module.
+"""
 
 # interface
 from qiskit.visualization.timeline.interface import draw

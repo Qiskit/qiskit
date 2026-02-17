@@ -37,7 +37,6 @@ class Unroll3qOrMore(TransformationPass):
                 which are present in this list will not be unrolled. If both
                 this and ``target`` are specified only the target will be used
                 for checking which gates are supported.
-
         """
         super().__init__()
         self.target = target
@@ -59,7 +58,6 @@ class Unroll3qOrMore(TransformationPass):
             DAGCircuit: output dag with maximum node degrees of 2
         Raises:
             QiskitError: if a 3q+ gate is not decomposable
-
         """
         # In Rust unitary gates don't have a definition and we always
         # run UnitarySynthesis first in a pass manager. But for backwards

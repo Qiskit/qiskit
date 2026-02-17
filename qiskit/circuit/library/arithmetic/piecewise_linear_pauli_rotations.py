@@ -55,17 +55,17 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
         basis: str = "Y",
         name: str = "pw_lin",
     ) -> None:
-        """Args:
-        num_state_qubits: The number of qubits representing the state.
-        breakpoints: The breakpoints to define the piecewise-linear function.
-            Defaults to ``[0]``.
-        slopes: The slopes for different segments of the piecewise-linear function.
-            Defaults to ``[1]``.
-        offsets: The offsets for different segments of the piecewise-linear function.
-            Defaults to ``[0]``.
-        basis: The type of Pauli rotation (``'X'``, ``'Y'``, ``'Z'``).
-        name: The name of the circuit.
-
+        """
+        Args:
+            num_state_qubits: The number of qubits representing the state.
+            breakpoints: The breakpoints to define the piecewise-linear function.
+                Defaults to ``[0]``.
+            slopes: The slopes for different segments of the piecewise-linear function.
+                Defaults to ``[1]``.
+            offsets: The offsets for different segments of the piecewise-linear function.
+                Defaults to ``[0]``.
+            basis: The type of Pauli rotation (``'X'``, ``'Y'``, ``'Z'``).
+            name: The name of the circuit.
         """
         # store parameters
         self._breakpoints = breakpoints if breakpoints is not None else [0]
@@ -89,7 +89,6 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
 
         Args:
             breakpoints: The new breakpoints.
-
         """
         self._invalidate()
         self._breakpoints = breakpoints
@@ -112,7 +111,6 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
 
         Args:
             slopes: The new slopes.
-
         """
         self._invalidate()
         self._slopes = slopes
@@ -132,7 +130,6 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
 
         Args:
             offsets: The new offsets.
-
         """
         self._invalidate()
         self._offsets = offsets
@@ -143,7 +140,6 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
 
         Returns:
             The mapped slopes.
-
         """
         mapped_slopes = np.zeros_like(self.slopes)
         for i, slope in enumerate(self.slopes):
@@ -157,7 +153,6 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
 
         Returns:
             The mapped offsets.
-
         """
         mapped_offsets = np.zeros_like(self.offsets)
         for i, (offset, slope, point) in enumerate(
@@ -173,7 +168,6 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
 
         Returns:
             True, if 0 is the first breakpoint, otherwise False.
-
         """
         return np.isclose(0, self.breakpoints[0])
 
@@ -185,8 +179,8 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
 
         Returns:
             Value of piecewise linear function at x.
-
         """
+
         y = (x >= self.breakpoints[0]) * (x * self.mapped_slopes[0] + self.mapped_offsets[0])
         for i in range(1, len(self.breakpoints)):
             y = y + (x >= self.breakpoints[i]) * (
@@ -335,7 +329,6 @@ class PiecewiseLinearPauliRotationsGate(Gate):
                 Defaults to ``[0]``.
             basis: The type of Pauli rotation (``'X'``, ``'Y'``, ``'Z'``).
             label: The label of the gate.
-
         """
         self.breakpoints = breakpoints if breakpoints is not None else [0]
         self.slopes = slopes if slopes is not None else [1]

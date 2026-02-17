@@ -33,12 +33,12 @@ class Gate(Instruction):
         params: list,
         label: str | None = None,
     ) -> None:
-        """Args:
-        name: The name of the gate.
-        num_qubits: The number of qubits the gate acts on.
-        params: A list of parameters.
-        label: An optional label for the gate.
-
+        """
+        Args:
+            name: The name of the gate.
+            num_qubits: The number of qubits the gate acts on.
+            params: A list of parameters.
+            label: An optional label for the gate.
         """
         self.definition = None
         super().__init__(name, num_qubits, 0, params, label=label)
@@ -55,7 +55,6 @@ class Gate(Instruction):
         Raises:
             CircuitError: If a Gate subclass does not implement this method an
                 exception will be raised when this base class method is called.
-
         """
         if hasattr(self, "__array__"):
             return self.__array__(dtype=complex)
@@ -82,8 +81,8 @@ class Gate(Instruction):
 
         Raises:
             CircuitError: If gate is not unitary
-
         """
+
         from qiskit.quantum_info.operators import Operator
         from qiskit.circuit.library.generalized_gates.unitary import UnitaryGate
 
@@ -144,7 +143,6 @@ class Gate(Instruction):
 
         Raises:
             QiskitError: invalid ``num_ctrl_qubits`` or ``ctrl_state``.
-
         """
         if num_ctrl_qubits < 0:
             raise CircuitError("The number of control qubits must be non-negative.")
@@ -241,7 +239,6 @@ class Gate(Instruction):
         Raises:
             CircuitError: If the input is not valid. For example, the number of
                 arguments does not match the gate expectation.
-
         """
         if len(qargs) != self.num_qubits or cargs:
             raise CircuitError(

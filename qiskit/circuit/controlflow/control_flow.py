@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Container to encapsulate all control flow operations."""
+"Container to encapsulate all control flow operations."
 
 from __future__ import annotations
 
@@ -42,9 +42,8 @@ class ControlFlowOp(Instruction, ABC):
     @property
     @abstractmethod
     def blocks(self) -> tuple[QuantumCircuit, ...]:
-        r"""Tuple of :class:`.QuantumCircuit`\\ s which may be executed as part of the
-        execution of this :class:`ControlFlowOp`.
-        """
+        """Tuple of :class:`.QuantumCircuit`\\ s which may be executed as part of the
+        execution of this :class:`ControlFlowOp`."""
 
     @abstractmethod
     def replace_blocks(self, blocks: typing.Iterable[QuantumCircuit]) -> ControlFlowOp:
@@ -73,7 +72,6 @@ class ControlFlowOp(Instruction, ABC):
 
         Returns:
             New :class:`ControlFlowOp` with replaced blocks.
-
         """
 
     def iter_captured_vars(self) -> typing.Iterable[expr.Var]:
@@ -87,8 +85,7 @@ class ControlFlowOp(Instruction, ABC):
 
     def iter_captured_stretches(self) -> typing.Iterable[expr.Stretch]:
         """Get an iterator over the unique captured stretch variables in all blocks of this
-        construct.
-        """
+        construct."""
         seen = set()
         for block in self.blocks:
             for stretch in block.iter_captured_stretches():

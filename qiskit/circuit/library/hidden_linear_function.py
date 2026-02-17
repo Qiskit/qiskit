@@ -64,9 +64,9 @@ class HiddenLinearFunction(QuantumCircuit):
         _generate_circuit_library_visualization(circuit)
 
     References:
+
     [1] S. Bravyi, D. Gosset, R. Koenig, Quantum Advantage with Shallow Circuits, 2017.
     `arXiv:1704.00690 <https://arxiv.org/abs/1704.00690>`_
-
     """
 
     @deprecate_func(
@@ -83,7 +83,6 @@ class HiddenLinearFunction(QuantumCircuit):
 
         Raises:
             CircuitError: If A is not symmetric.
-
         """
         circuit = hidden_linear_function(adjacency_matrix)
         super().__init__(*circuit.qregs, name=circuit.name)
@@ -144,7 +143,6 @@ def hidden_linear_function(adjacency_matrix: list | np.ndarray) -> QuantumCircui
 
     [1] S. Bravyi, D. Gosset, R. Koenig, Quantum Advantage with Shallow Circuits, 2017.
     `arXiv:1704.00690 <https://arxiv.org/abs/1704.00690>`_
-
     """
     adjacency_matrix = np.asarray(adjacency_matrix)
     if not np.allclose(adjacency_matrix, adjacency_matrix.transpose()):

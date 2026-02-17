@@ -75,6 +75,7 @@ class TwoLocal(NLocal):
     using the ``parameter_prefix``.
 
     Examples:
+
         >>> two = TwoLocal(3, 'ry', 'cx', 'linear', reps=2, insert_barriers=True)
         >>> print(two.decompose())  # decompose the layers into standard gates
              ┌──────────┐ ░            ░ ┌──────────┐ ░            ░ ┌──────────┐
@@ -170,8 +171,7 @@ class TwoLocal(NLocal):
         name: str = "TwoLocal",
         flatten: bool | None = None,
     ) -> None:
-        """Instantiate a new :class:`.TwoLocal` instance.
-
+        """
         Args:
             num_qubits: The number of qubits of the two-local circuit.
             rotation_blocks: The gates used in the rotation layer. Can be specified via the name of
@@ -248,7 +248,6 @@ class TwoLocal(NLocal):
         Note:
             Outlook: If layers knew their number of parameters as static property, we could also
             allow custom layer types.
-
         """
         if isinstance(layer, QuantumCircuit):
             return layer

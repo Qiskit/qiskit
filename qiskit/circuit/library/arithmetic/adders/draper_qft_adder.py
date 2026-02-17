@@ -58,6 +58,7 @@ class DraperQFTAdder(Adder):
             is functionally equivalent to ``kind="half"``.
 
     References:
+
     [1] T. G. Draper, Addition on a Quantum Computer, 2000.
     `arXiv:quant-ph/0008033 <https://arxiv.org/pdf/quant-ph/0008033.pdf>`_
 
@@ -72,7 +73,8 @@ class DraperQFTAdder(Adder):
     def __init__(
         self, num_state_qubits: int, kind: str = "fixed", name: str = "DraperQFTAdder"
     ) -> None:
-        r"""Args:
+        r"""
+        Args:
             num_state_qubits: The number of qubits in either input register for
                 state :math:`|a\rangle` or :math:`|b\rangle`. The two input
                 registers must have the same number of qubits.
@@ -81,10 +83,8 @@ class DraperQFTAdder(Adder):
                 the most-significant bit, but the fixed-sized adder doesn't and hence performs
                 addition modulo ``2 ** num_state_qubits``.
             name: The name of the circuit object.
-
         Raises:
             ValueError: If ``num_state_qubits`` is lower than 1.
-
         """
         if kind == "full":
             raise ValueError("The DraperQFTAdder only supports 'half' and 'fixed' as ``kind``.")

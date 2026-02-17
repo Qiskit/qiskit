@@ -23,17 +23,17 @@ from qiskit.utils import optionals as _optionals
 
 @_optionals.HAS_Z3.require_in_instance
 class HoareOptimizer(TransformationPass):
-    """A transpiler pass using Hoare logic circuit optimization.
+    """This is a transpiler pass using Hoare logic circuit optimization.
     The inner workings of this are detailed in:
     https://arxiv.org/abs/1810.00375
     """
 
     def __init__(self, size=10):
-        """Args:
+        """
+        Args:
             size (int): size of gate cache, in number of gates
         Raises:
             MissingOptionalLibraryError: if unable to import z3 solver
-
         """
         # This module is just a script that adds several post conditions onto existing classes.
         from . import _gate_extension
@@ -64,7 +64,7 @@ class HoareOptimizer(TransformationPass):
         return var
 
     def _initialize(self, dag):
-        """Create boolean variables for each qubit and apply qb == 0 condition
+        """create boolean variables for each qubit and apply qb == 0 condition
         Args:
             dag (DAGCircuit): input DAG to get qubits from
         """
@@ -79,7 +79,7 @@ class HoareOptimizer(TransformationPass):
             self.solver.add(z3.Not(x))
 
     def _add_postconditions(self, gate, ctrl_ones, trgtqb, trgtvar):
-        """Create boolean variables for each qubit the gate is applied to
+        """create boolean variables for each qubit the gate is applied to
             and apply the relevant post conditions.
             a gate rotating out of the z-basis will not have any valid
             post-conditions, in which case the qubit state is unknown
@@ -105,7 +105,7 @@ class HoareOptimizer(TransformationPass):
             self.solver.add(z3.Implies(z3.Not(ctrl_ones), new_vars[i] == tvar))
 
     def _test_gate(self, gate, ctrl_ones, trgtvar):
-        """Use z3 sat solver to determine triviality of gate
+        """use z3 sat solver to determine triviality of gate
         Args:
             gate (Gate): gate to inspect
             ctrl_ones (BoolRef): z3 condition asserting all control qubits to 1
@@ -142,9 +142,8 @@ class HoareOptimizer(TransformationPass):
         return trivial
 
     def _remove_control(self, gate, ctrlvar, trgtvar):
-        """Use z3 sat solver to determine if all control qubits are in 1 state,
+        """use z3 sat solver to determine if all control qubits are in 1 state,
              and if so replace the Controlled - U by U.
-
         Args:
             gate (Gate): gate to inspect
             ctrlvar (list(BoolRef)): z3 variables corresponding to latest state
@@ -156,7 +155,6 @@ class HoareOptimizer(TransformationPass):
               * bool:if controlled gate can be replaced.
               * DAGCircuit: with U applied to the target qubits.
               * List: with indices of target qubits.
-
         """
         remove = False
 
@@ -195,7 +193,7 @@ class HoareOptimizer(TransformationPass):
         return remove
 
     def _traverse_dag(self, dag):
-        """Traverse DAG in topological order
+        """traverse DAG in topological order
             for each gate check: if any control is 0, or
                                  if triviality conditions are satisfied
             if yes remove gate from dag
@@ -241,16 +239,14 @@ class HoareOptimizer(TransformationPass):
             self._add_postconditions(gate, ctrl_ones, trgtqb, trgtvar)
 
     def _remove_successive_identity(self, dag, qubit, from_idx=None):
-        """Remove gates that have the same set of target qubits, follow each
+        """remove gates that have the same set of target qubits, follow each
             other immediately on these target qubits, and combine to the
             identity (consider sequences of length 2 for now)
-
         Args:
             dag (DAGCircuit): the directed acyclic graph to run on.
             qubit (Qubit): qubit cache to inspect
             from_idx (int): only gates whose indexes in the cache are larger
                             than this value can be removed
-
         """
         i = 0
         while i < len(self.gatecache[qubit]) - 1:
@@ -281,14 +277,12 @@ class HoareOptimizer(TransformationPass):
                             self.gatecache[qbt].remove(node)
 
     def _is_identity(self, sequence):
-        """Determine whether the sequence of gates combines to the identity
+        """determine whether the sequence of gates combines to the identity
             (consider sequences of length 2 for now)
-
         Args:
             sequence (list(DAGOpNode)): gate sequence to inspect
         Returns:
             bool: if gate sequence combines to identity
-
         """
         if len(sequence) != 2:
             raise ValueError("Invalid sequence length")
@@ -318,15 +312,13 @@ class HoareOptimizer(TransformationPass):
         return gate1 == gate2 and par1 == par2
 
     def _seq_as_one(self, sequence):
-        """Use z3 solver to determine if the gates in the sequence are either
+        """use z3 solver to determine if the gates in the sequence are either
             all executed or none of them are executed, based on control qubits
             (consider sequences of length 2 for now)
-
         Args:
             sequence (list(DAGOpNode)): gate sequence to inspect
         Returns:
             bool: if gate sequence is only executed completely or not at all
-
         """
         from z3 import Or, And, Not
         import z3
@@ -346,13 +338,13 @@ class HoareOptimizer(TransformationPass):
         return res
 
     def _multigate_opt(self, dag, qubit, max_idx=None, dnt_rec=None):
-        """Args:
-        dag (DAGCircuit): the directed acyclic graph to run on.
-        qubit (Qubit): qubit whose gate cache is to be optimized
-        max_idx (int): a value indicates a recursive call, optimize
-                       and remove gates up to this point in the cache
-        dnt_rec (list(int)): don't recurse on these qubit caches (again)
-
+        """
+        Args:
+            dag (DAGCircuit): the directed acyclic graph to run on.
+            qubit (Qubit): qubit whose gate cache is to be optimized
+            max_idx (int): a value indicates a recursive call, optimize
+                           and remove gates up to this point in the cache
+            dnt_rec (list(int)): don't recurse on these qubit caches (again)
         """
         if not self.gatecache[qubit]:
             return
@@ -415,12 +407,11 @@ class HoareOptimizer(TransformationPass):
         self.varnum = {}
 
     def run(self, dag):
-        """Args:
+        """
+        Args:
             dag (DAGCircuit): the directed acyclic graph to run on.
-
         Returns:
             DAGCircuit: Transformed DAG.
-
         """
         self._reset()
         self._initialize(dag)

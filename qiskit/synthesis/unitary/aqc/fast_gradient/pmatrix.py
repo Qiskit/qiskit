@@ -10,24 +10,27 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Matrix designed for fast multiplication by permutation and block-diagonal ones."""
+"""
+Matrix designed for fast multiplication by permutation and block-diagonal ones.
+"""
 
 import numpy as np
 from .layer import Layer1Q, Layer2Q
 
 
 class PMatrix:
-    """Wrapper around a matrix that enables fast multiplication by permutation
+    """
+    Wrapper around a matrix that enables fast multiplication by permutation
     matrices and block-diagonal ones.
     """
 
     def __init__(self, num_qubits: int):
-        """Initializes the internal structures of this object but does not set
+        """
+        Initializes the internal structures of this object but does not set
         the matrix yet.
 
         Args:
             num_qubits: number of qubits.
-
         """
         dim = 2**num_qubits
         self._mat = np.empty(0)
@@ -46,7 +49,8 @@ class PMatrix:
         self._temp_block_diag = np.zeros(self._idx_mat.shape, dtype=np.complex128)
 
     def set_matrix(self, mat: np.ndarray):
-        """Copies specified matrix to internal storage. Once the matrix
+        """
+        Copies specified matrix to internal storage. Once the matrix
         is set, the object is ready for use.
 
         **Note**, the matrix will be copied, mind the size issues.
@@ -54,7 +58,6 @@ class PMatrix:
         Args:
             mat: matrix we want to multiply on the left and on the right by
                  layer matrices.
-
         """
         if self._mat.size == 0:
             self._mat = mat.copy()
@@ -63,7 +66,8 @@ class PMatrix:
 
     @staticmethod
     def _init_index_matrix(dim: int) -> np.ndarray:
-        """Fast multiplication can be implemented by picking up a subset of
+        """
+        Fast multiplication can be implemented by picking up a subset of
         entries in a sparse matrix.
 
         Args:
@@ -71,7 +75,6 @@ class PMatrix:
 
         Returns:
             2d-array of indices for the fast multiplication.
-
         """
         all_idx = np.arange(dim * dim, dtype=np.int64).reshape(dim, dim)
         idx = np.full((dim // 4, 4 * 4), fill_value=0, dtype=np.int64)
@@ -82,7 +85,8 @@ class PMatrix:
         return idx
 
     def mul_right_q1(self, layer: Layer1Q, temp_mat: np.ndarray, dagger: bool):
-        """Multiplies ``NxN`` matrix, wrapped by this object, by a 1-qubit layer
+        """
+        Multiplies ``NxN`` matrix, wrapped by this object, by a 1-qubit layer
         matrix of the right, where ``N`` is the actual size of matrices involved,
         ``N = 2^{num. of qubits}``.
 
@@ -92,8 +96,8 @@ class PMatrix:
             temp_mat: a temporary NxN matrix used as a workspace.
             dagger: if true, the right-hand side matrix will be taken as
                     conjugate transposed.
-
         """
+
         gmat, perm, inv_perm = layer.get_attr()
         mat = self._mat
         dim = perm.size
@@ -113,7 +117,8 @@ class PMatrix:
         self._right_perm[:] = inv_perm
 
     def mul_right_q2(self, layer: Layer2Q, temp_mat: np.ndarray, dagger: bool = True):
-        """Multiplies ``NxN`` matrix, wrapped by this object, by a 2-qubit layer
+        """
+        Multiplies ``NxN`` matrix, wrapped by this object, by a 2-qubit layer
         matrix on the right, where ``N`` is the actual size of matrices involved,
         ``N = 2^{num. of qubits}``.
 
@@ -123,8 +128,8 @@ class PMatrix:
             temp_mat: a temporary NxN matrix used as a workspace.
             dagger: if true, the right-hand side matrix will be taken as
                     conjugate transposed.
-
         """
+
         gmat, perm, inv_perm = layer.get_attr()
         mat = self._mat
         dim = perm.size
@@ -144,7 +149,8 @@ class PMatrix:
         self._right_perm[:] = inv_perm
 
     def mul_left_q1(self, layer: Layer1Q, temp_mat: np.ndarray):
-        """Multiplies ``NxN`` matrix, wrapped by this object, by a 1-qubit layer
+        """
+        Multiplies ``NxN`` matrix, wrapped by this object, by a 1-qubit layer
         matrix of the left, where ``dim`` is the actual size of matrices involved,
         ``dim = 2^{num. of qubits}``.
 
@@ -152,7 +158,6 @@ class PMatrix:
             layer: 1-qubit layer, i.e. the layer with just one non-trivial
                    1-qubit gate and other gates are just identity operators.
             temp_mat: a temporary NxN matrix used as a workspace.
-
         """
         mat = self._mat
         gmat, perm, inv_perm = layer.get_attr()
@@ -181,7 +186,8 @@ class PMatrix:
         self._left_perm[:] = inv_perm
 
     def mul_left_q2(self, layer: Layer2Q, temp_mat: np.ndarray):
-        """Multiplies ``NxN`` matrix, wrapped by this object, by a 2-qubit layer
+        """
+        Multiplies ``NxN`` matrix, wrapped by this object, by a 2-qubit layer
         matrix on the left, where ``dim`` is the actual size of matrices involved,
         ``dim = 2^{num. of qubits}``.
 
@@ -189,7 +195,6 @@ class PMatrix:
             layer: 2-qubit layer, i.e. the layer with just one non-trivial
                    2-qubit gate and other gates are just identity operators.
             temp_mat: a temporary NxN matrix used as a workspace.
-
         """
         mat = self._mat
         gmat, perm, inv_perm = layer.get_attr()
@@ -218,7 +223,8 @@ class PMatrix:
         self._left_perm[:] = inv_perm
 
     def product_q1(self, layer: Layer1Q, tmp1: np.ndarray, tmp2: np.ndarray) -> np.complex128:
-        """Computes and returns: ``Trace(mat @ C) = Trace(mat @ P^T @ gmat @ P) =
+        """
+        Computes and returns: ``Trace(mat @ C) = Trace(mat @ P^T @ gmat @ P) =
         Trace((P @ mat @ P^T) @ gmat) = Trace(C @ (P @ mat @ P^T)) =
         vec(gmat^T)^T @ vec(P @ mat @ P^T)``, where mat is ``NxN`` matrix wrapped
         by this object, ``C`` is matrix representation of the layer ``L``, and gmat
@@ -233,7 +239,6 @@ class PMatrix:
 
         Returns:
             trace of the matrix product.
-
         """
         mat = self._mat
         gmat, perm, _ = layer.get_attr()
@@ -252,7 +257,8 @@ class PMatrix:
         return np.complex128(_sum)
 
     def product_q2(self, layer: Layer2Q, tmp1: np.ndarray, tmp2: np.ndarray) -> np.complex128:
-        """Computes and returns: ``Trace(mat @ C) = Trace(mat @ P^T @ gmat @ P) =
+        """
+        Computes and returns: ``Trace(mat @ C) = Trace(mat @ P^T @ gmat @ P) =
         Trace((P @ mat @ P^T) @ gmat) = Trace(C @ (P @ mat @ P^T)) =
         vec(gmat^T)^T @ vec(P @ mat @ P^T)``, where mat is ``NxN`` matrix wrapped
         by this object, ``C`` is matrix representation of the layer ``L``, and gmat
@@ -267,7 +273,6 @@ class PMatrix:
 
         Returns:
             trace of the matrix product.
-
         """
         mat = self._mat
         gmat, perm, _ = layer.get_attr()
@@ -285,7 +290,8 @@ class PMatrix:
         return np.complex128(np.sum(bldia))
 
     def finalize(self, temp_mat: np.ndarray) -> np.ndarray:
-        """Applies the left (row) and right (column) permutations to the matrix.
+        """
+        Applies the left (row) and right (column) permutations to the matrix.
         at the end of computation process.
 
         Args:
@@ -293,7 +299,6 @@ class PMatrix:
 
         Returns:
             finalized matrix with all transformations applied.
-
         """
         mat = self._mat
 

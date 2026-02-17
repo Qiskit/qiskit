@@ -10,7 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""A collection of functions that generate drawings from formatted input data.
+"""
+A collection of functions that generate drawings from formatted input data.
 See :py:mod:`~qiskit.visualization.timeline.types` for more info on the required data.
 
 An end-user can write arbitrary functions that generate custom drawings.
@@ -128,7 +129,6 @@ def gen_sched_gate(
 
     Returns:
         List of `TextData` or `BoxData` drawings.
-
     """
     try:
         label = gate.operand.label or "n/a"
@@ -213,7 +213,6 @@ def gen_full_gate_name(
 
     Returns:
         List of `TextData` drawings.
-
     """
     if gate.duration > 0:
         # gate with finite duration pulse
@@ -306,7 +305,6 @@ def gen_short_gate_name(
 
     Returns:
         List of `TextData` drawings.
-
     """
     if gate.duration > 0:
         # gate with finite duration pulse
@@ -362,7 +360,6 @@ def gen_timeslot(bit: types.Bits, formatter: dict[str, Any]) -> list[drawings.Bo
 
     Returns:
         List of `BoxData` drawings.
-
     """
     styles = {
         "zorder": formatter["layer.timeslot"],
@@ -399,7 +396,6 @@ def gen_bit_name(
 
     Returns:
         List of `TextData` drawings.
-
     """
     styles = {
         "zorder": formatter["layer.bit_name"],
@@ -450,7 +446,6 @@ def gen_barrier(barrier: types.Barrier, formatter: dict[str, Any]) -> list[drawi
 
     Returns:
         List of `LineData` drawings.
-
     """
     styles = {
         "alpha": formatter["alpha.barrier"],
@@ -486,8 +481,8 @@ def gen_gate_link(link: types.GateLink, formatter: dict[str, Any]) -> list[drawi
 
     Returns:
         List of `GateLinkData` drawings.
-
     """
+
     # find line color
     color = formatter["color.gates"].get(link.opname, formatter["color.default_gate"])
 

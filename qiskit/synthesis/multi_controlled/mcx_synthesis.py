@@ -37,7 +37,8 @@ def synth_mcx_n_dirty_i15(
     relative_phase: bool = False,
     action_only: bool = False,
 ) -> QuantumCircuit:
-    r"""Synthesize a multi-controlled X gate with :math:`k` controls based on the paper
+    r"""
+    Synthesize a multi-controlled X gate with :math:`k` controls based on the paper
     by Iten et al. [1].
 
     For :math:`k\ge 4`, the method uses :math:`k - 2` dirty ancillary qubits, producing a circuit
@@ -62,7 +63,6 @@ def synth_mcx_n_dirty_i15(
     References:
         1. Iten et. al., *Quantum Circuits for Isometries*, Phys. Rev. A 93, 032318 (2016),
            `arXiv:1501.06911 <https://arxiv.org/abs/1501.06911>`_
-
     """
     if num_ctrl_qubits < 0:
         raise QiskitError(
@@ -96,7 +96,8 @@ def _synth_mcx_special_cases(num_ctrl_qubits: int) -> QuantumCircuit:
 
 
 def synth_mcx_n_clean_m15(num_ctrl_qubits: int) -> QuantumCircuit:
-    r"""Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using :math:`k - 2`
+    r"""
+    Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using :math:`k - 2`
     clean ancillary qubits with producing a circuit with :math:`2 * k - 1` qubits
     and at most :math:`6 * k - 6` CX gates, by Maslov [1].
     For :math:`k\le 2`, the returned circuit consists of a single X, CX or CCX gate
@@ -114,7 +115,6 @@ def synth_mcx_n_clean_m15(num_ctrl_qubits: int) -> QuantumCircuit:
     References:
         1. Maslov., Phys. Rev. A 93, 022311 (2016),
            `arXiv:1508.03273 <https://arxiv.org/pdf/1508.03273>`_
-
     """
     if num_ctrl_qubits < 0:
         raise QiskitError(
@@ -151,7 +151,8 @@ def synth_mcx_n_clean_m15(num_ctrl_qubits: int) -> QuantumCircuit:
 
 
 def synth_mcx_1_clean_b95(num_ctrl_qubits: int) -> QuantumCircuit:
-    r"""Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using a single
+    r"""
+    Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using a single
     clean ancillary qubit producing a circuit with :math:`k + 2` qubits and at most
     :math:`16 * k - 24` CX gates, by [1], [2].
     For :math:`k\le 2`, the returned circuit consists of a single X, CX or CCX gate
@@ -171,7 +172,6 @@ def synth_mcx_1_clean_b95(num_ctrl_qubits: int) -> QuantumCircuit:
            `arXiv:quant-ph/9503016 <https://arxiv.org/abs/quant-ph/9503016>`_
         2. Iten et. al., *Quantum Circuits for Isometries*, Phys. Rev. A 93, 032318 (2016),
            `arXiv:1501.06911 <https://arxiv.org/abs/1501.06911>`_
-
     """
     if num_ctrl_qubits < 0:
         raise QiskitError(
@@ -221,7 +221,8 @@ def synth_mcx_1_clean_b95(num_ctrl_qubits: int) -> QuantumCircuit:
 
 
 def synth_mcx_gray_code(num_ctrl_qubits: int) -> QuantumCircuit:
-    r"""Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using the Gray code.
+    r"""
+    Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using the Gray code.
 
     Produces a quantum circuit with :math:`k + 1` qubits. This method
     produces exponentially many CX gates and should be used only for small
@@ -237,7 +238,6 @@ def synth_mcx_gray_code(num_ctrl_qubits: int) -> QuantumCircuit:
 
     Returns:
         The synthesized quantum circuit.
-
     """
     if num_ctrl_qubits < 0:
         raise QiskitError(
@@ -263,7 +263,8 @@ def synth_mcx_gray_code(num_ctrl_qubits: int) -> QuantumCircuit:
 
 
 def synth_mcx_noaux_v24(num_ctrl_qubits: int) -> QuantumCircuit:
-    r"""Synthesize a multi-controlled X gate with :math:`k` controls based on
+    r"""
+    Synthesize a multi-controlled X gate with :math:`k` controls based on
     the implementation for MCPhaseGate.
 
     In turn, the MCPhase gate uses the decomposition for multi-controlled
@@ -285,7 +286,6 @@ def synth_mcx_noaux_v24(num_ctrl_qubits: int) -> QuantumCircuit:
         1. Vale et. al., *Circuit Decomposition of Multicontrolled Special Unitary
            Single-Qubit Gates*, IEEE TCAD 43(3) (2024),
            `arXiv:2302.06377 <https://arxiv.org/abs/2302.06377>`_
-
     """
     if num_ctrl_qubits < 0:
         raise QiskitError(
@@ -297,7 +297,8 @@ def synth_mcx_noaux_v24(num_ctrl_qubits: int) -> QuantumCircuit:
 
 
 def synth_mcx_noaux_hp24(num_ctrl_qubits: int) -> QuantumCircuit:
-    r"""Synthesize a multi-controlled X gate with :math:`k` controls based on
+    r"""
+    Synthesize a multi-controlled X gate with :math:`k` controls based on
     the work by Huang and Palsberg.
 
     Produces a quantum circuit with :math:`k + 1` qubits. The number of CX-gates
@@ -316,7 +317,6 @@ def synth_mcx_noaux_hp24(num_ctrl_qubits: int) -> QuantumCircuit:
         1. Huang and Palsberg, *Compiling Conditional Quantum Gates without Using
            Helper Qubits*, PLDI (2024),
            <https://dl.acm.org/doi/10.1145/3656436>`_
-
     """
     if num_ctrl_qubits < 0:
         raise QiskitError(
@@ -328,7 +328,8 @@ def synth_mcx_noaux_hp24(num_ctrl_qubits: int) -> QuantumCircuit:
 
 
 def _n_parallel_ccx_x(n: int, apply_x: bool = True) -> QuantumCircuit:
-    r"""Construct a quantum circuit for creating n-condionally clean ancillae using 3n qubits. This
+    r"""
+    Construct a quantum circuit for creating n-condionally clean ancillae using 3n qubits. This
     implements Fig. 4a of [1]. The circuit applies n relative CCX (RCCX) gates . If apply_x is True,
     each RCCX gate is preceded by an X gate on the target qubit. The order of returned qubits is
     qr_a, qr_b, qr_target.
@@ -343,8 +344,8 @@ def _n_parallel_ccx_x(n: int, apply_x: bool = True) -> QuantumCircuit:
     References:
         1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
         `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
-
     """
+
     n_qubits = 3 * n
     q = QuantumRegister(n_qubits, name="q")
     qc = QuantumCircuit(q, name=f"ccxn_{n}")
@@ -359,7 +360,8 @@ def _n_parallel_ccx_x(n: int, apply_x: bool = True) -> QuantumCircuit:
 
 
 def _linear_depth_ladder_ops(num_ladder_qubits: int) -> tuple[QuantumCircuit, list[int]]:
-    r"""Helper function to create linear-depth ladder operations used in Khattar and Gidney's MCX synthesis.
+    r"""
+    Helper function to create linear-depth ladder operations used in Khattar and Gidney's MCX synthesis.
     In particular, this implements Step-1 and Step-2 on Fig. 3 of [1] except for the first and last
     CCX gates.
 
@@ -376,8 +378,8 @@ def _linear_depth_ladder_ops(num_ladder_qubits: int) -> tuple[QuantumCircuit, li
     References:
         1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
         `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
-
     """
+
     if num_ladder_qubits <= 2:
         raise QiskitError("n_ctrls >= 3 to use MCX ladder. Otherwise, use CCX")
 
@@ -410,7 +412,8 @@ def _linear_depth_ladder_ops(num_ladder_qubits: int) -> tuple[QuantumCircuit, li
 
 
 def synth_mcx_1_kg24(num_ctrl_qubits: int, clean: bool = True) -> QuantumCircuit:
-    r"""Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using :math:`1` ancillary qubit as
+    r"""
+    Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using :math:`1` ancillary qubit as
     described in Sec. 5 of [1].
     For :math:`k\le 2`, the returned circuit consists of a single X, CX or CCX gate
     (corresponding to :math:`k = 0, 1, 2`, respectively) and uses no ancillary qubits.
@@ -428,7 +431,6 @@ def synth_mcx_1_kg24(num_ctrl_qubits: int, clean: bool = True) -> QuantumCircuit
     References:
         1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
         `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
-
     """
     if num_ctrl_qubits < 0:
         raise QiskitError(
@@ -465,7 +467,8 @@ def synth_mcx_1_kg24(num_ctrl_qubits: int, clean: bool = True) -> QuantumCircuit
 
 
 def synth_mcx_1_clean_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
-    r"""Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using :math:`1` clean
+    r"""
+    Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using :math:`1` clean
     ancillary qubit producing a circuit with :math:`2k-3` Toffoli gates or :math:`6k-6`
     CX gates and depth :math:`O(k)` as described in Sec. 5.1 of [1].
     For :math:`k\le 2`, the returned circuit consists of a single X, CX or CCX gate
@@ -483,8 +486,8 @@ def synth_mcx_1_clean_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
     References:
         1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
         `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
-
     """
+
     if num_ctrl_qubits < 0:
         raise QiskitError(
             "synth_mcx_1_clean_kg24 cannot be called with a negative number of control qubits."
@@ -497,7 +500,8 @@ def synth_mcx_1_clean_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
 
 
 def synth_mcx_1_dirty_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
-    r"""Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using :math:`1` dirty
+    r"""
+    Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using :math:`1` dirty
     ancillary qubit producing a circuit with :math:`4k-8` Toffoli gates or :math:`12k-18`
     CX gates and depth :math:`O(k)` as described in Sec. 5.3 of [1].
     For :math:`k\le 2`, the returned circuit consists of a single X, CX or CCX gate
@@ -515,7 +519,6 @@ def synth_mcx_1_dirty_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
     References:
         1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
         `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
-
     """
     if num_ctrl_qubits < 0:
         raise QiskitError(
@@ -531,7 +534,8 @@ def synth_mcx_1_dirty_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
 def _build_logn_depth_ccx_ladder(
     ancilla_idx: int, ctrls: list[int], skip_cond_clean: bool = False
 ) -> tuple[QuantumCircuit, list[int]]:
-    r"""Helper function to build a log-depth ladder compose of CCX and X gates as shown in Fig. 4b of [1].
+    r"""
+    Helper function to build a log-depth ladder compose of CCX and X gates as shown in Fig. 4b of [1].
 
     Args:
         ancilla_idx: Index of the ancillary qubit.
@@ -549,8 +553,8 @@ def _build_logn_depth_ccx_ladder(
     References:
         1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
         `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
-
     """
+
     qc = QuantumCircuit(len(ctrls) + 1)
     anc = [ancilla_idx]
     final_ctrls = []
@@ -589,7 +593,8 @@ def _build_logn_depth_ccx_ladder(
 
 
 def synth_mcx_2_kg24(num_ctrl_qubits: int, clean: bool = True) -> QuantumCircuit:
-    r"""Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using :math:`2` ancillary qubits.
+    r"""
+    Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using :math:`2` ancillary qubits.
     as described in Sec. 5 of [1].
     For :math:`k\le 2`, the returned circuit consists of a single X, CX or CCX gate
     (corresponding to :math:`k = 0, 1, 2`, respectively) and uses no ancillary qubits.
@@ -607,8 +612,8 @@ def synth_mcx_2_kg24(num_ctrl_qubits: int, clean: bool = True) -> QuantumCircuit
     References:
         1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
         `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
-
     """
+
     if num_ctrl_qubits < 0:
         raise QiskitError(
             "synth_mcx_2_kg24 cannot be called with a negative number of control qubits."
@@ -660,7 +665,8 @@ def synth_mcx_2_kg24(num_ctrl_qubits: int, clean: bool = True) -> QuantumCircuit
 
 
 def synth_mcx_2_clean_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
-    r"""Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using :math:`2` clean
+    r"""
+    Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using :math:`2` clean
     ancillary qubits producing a circuit with :math:`2k-3` Toffoli gates or :math:`6k-6`
     CX gates and depth :math:`O(\log(k))` as described in Sec. 5.2 of [1].
     For :math:`k\le 2`, the returned circuit consists of a single X, CX or CCX gate
@@ -678,8 +684,8 @@ def synth_mcx_2_clean_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
     References:
         1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
         `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
-
     """
+
     if num_ctrl_qubits < 0:
         raise QiskitError(
             "synth_mcx_2_clean_kg24 cannot be called with a negative number of control qubits."
@@ -692,7 +698,8 @@ def synth_mcx_2_clean_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
 
 
 def synth_mcx_2_dirty_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
-    r"""Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using :math:`2` dirty
+    r"""
+    Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using :math:`2` dirty
     ancillary qubits producing a circuit with :math:`4k-8` Toffoli gates or :math:`12k-18` CX
     gates and depth :math:`O(\log(k))` as described in Sec. 5.4 of [1].
     For :math:`k\le 2`, the returned circuit consists of a single X, CX or CCX gate
@@ -710,7 +717,6 @@ def synth_mcx_2_dirty_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
     References:
         1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
         `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
-
     """
     if num_ctrl_qubits < 0:
         raise QiskitError(

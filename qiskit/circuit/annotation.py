@@ -10,7 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""======================================================
+"""
+======================================================
 Circuit annotations (:mod:`qiskit.circuit.annotation`)
 ======================================================
 
@@ -86,7 +87,8 @@ used to pass serializers.
 
 
 Examples
---------
+========
+
 A block-collection transpiler pass
 ----------------------------------
 
@@ -213,7 +215,6 @@ def iter_namespaces(namespace: str) -> Iterator[str]:
 
         from qiskit.circuit.annotation import iter_namespaces
         assert list(iter_namespaces("hello.world")) == ["hello.world", "hello", ""]
-
     """
     while namespace:
         yield namespace
@@ -288,7 +289,6 @@ class QPYSerializer(abc.ABC):
             Either the serialized form of the annotation (optionally after mutating the
             serialization state of this class), or :data:`NotImplemented` if the annotation cannot
             be handled.
-
         """
 
     @abc.abstractmethod
@@ -313,7 +313,6 @@ class QPYSerializer(abc.ABC):
 
         Returns:
             The deserialized annotation.
-
         """
 
     def dump_state(self) -> bytes:
@@ -364,7 +363,6 @@ class QPYSerializer(abc.ABC):
             namespace: the namespace key that the corresponding dump was resolved under.
             payload: the state payload that was dumped by the corresponding call to
                 :meth:`dump_state`.
-
         """
 
 
@@ -397,7 +395,6 @@ class OpenQASM3Serializer(abc.ABC):
         Returns:
             the serialized annotation (without the namespace component), or the sentinel
             :data:`NotImplemented` if it cannot be handled by this object.
-
         """
 
     @abc.abstractmethod
@@ -417,15 +414,13 @@ class OpenQASM3Serializer(abc.ABC):
             the created :class:`.Annotation` object, whose :attr:`.Annotation.namespace` attribute
             should be identical to the incoming ``namespace`` argument.  If this class cannot handle
             the annotation, it can also return :data:`NotImplemented`.
-
         """
 
     def as_qpy(self) -> QPYFromOpenQASM3Serializer:
         """Derive a serializer/deserializer for QPY from this OpenQASM 3 variant.
 
         OpenQASM 3 serialization and deserialization is intended to be stateless and return single
-        lines of UTF-8 encoded text.  This is a subset of the allowable serializations for QPY.
-        """
+        lines of UTF-8 encoded text.  This is a subset of the allowable serializations for QPY."""
         return QPYFromOpenQASM3Serializer(self)
 
 
@@ -439,6 +434,7 @@ class QPYFromOpenQASM3Serializer(QPYSerializer):
     of an OpenQASM 3 annotation serializer.
 
     Examples:
+
     Instances of this class can be called like a zero-argument function and return themselves.  This
     lets you use them directly as a factory function to the QPY entry points, such as:
 
@@ -471,17 +467,16 @@ class QPYFromOpenQASM3Serializer(QPYSerializer):
 
     This is safe, without returning separate instances, because the base OpenQASM 3 serializers are
     necessarily stateless.
-
     """
 
     def __init__(self, inner: OpenQASM3Serializer):
-        """Args:
-        inner: the OpenQASM 3 serializer that this is derived from.
-
+        """
+        Args:
+            inner: the OpenQASM 3 serializer that this is derived from.
         """
         self.inner = inner
 
-    def dump_annotation(self, namespace, annotation):  # noqa: D102
+    def dump_annotation(self, namespace, annotation):
         qasm3 = self.inner.dump(annotation)
         if qasm3 is NotImplemented:
             return NotImplemented
@@ -492,7 +487,7 @@ class QPYFromOpenQASM3Serializer(QPYSerializer):
             + qasm3.encode("utf-8")
         )
 
-    def load_annotation(self, payload):  # noqa: D102
+    def load_annotation(self, payload):
         namespace, payload = payload.split(b"\x00", maxsplit=1)
         out = self.inner.load(namespace.decode("utf-8"), payload.decode("utf-8"))
         if out is NotImplemented:
@@ -501,7 +496,7 @@ class QPYFromOpenQASM3Serializer(QPYSerializer):
             )
         return out
 
-    def __call__(self) -> QPYFromOpenQASM3Serializer:  # noqa: D102
+    def __call__(self) -> QPYFromOpenQASM3Serializer:
         # Our internal object is stateless because it's an OpenQASM 3 exporter (which is a stateless
         # format).  Defining this method allows an instance of ourself to be used as a factory
         # function, simplifying the interface for creating a QPY serializer from an OpenQASM 3 one,

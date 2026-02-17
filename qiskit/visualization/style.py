@@ -10,7 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Generic style visualization library."""
+"""
+Generic style visualization library.
+"""
 
 import json
 import os
@@ -24,12 +26,12 @@ from .exceptions import VisualizationError
 
 
 class StyleDict(dict):
-    """Attributes:
-    VALID_FIELDS (set): Set of valid field inputs to a function that supports a style parameter
-    ABBREVIATIONS (dict): Mapping of abbreviation:field for abbreviated inputs to VALID_FIELDS
-        (must exist in VALID FIELDS)
-    NESTED_ATTRS (set): Set of fields that are dictionaries, and need to be updated with .update
-
+    """
+    Attributes:
+        VALID_FIELDS (set): Set of valid field inputs to a function that supports a style parameter
+        ABBREVIATIONS (dict): Mapping of abbreviation:field for abbreviated inputs to VALID_FIELDS
+            (must exist in VALID FIELDS)
+        NESTED_ATTRS (set): Set of fields that are dictionaries, and need to be updated with .update
     """
 
     VALID_FIELDS = set()
@@ -69,10 +71,10 @@ class StyleDict(dict):
 
 
 class DefaultStyle:
-    """Attributes:
-    DEFAULT_STYLE_NAME (str): style name for the default style
-    STYLE_PATH: file path where DEFAULT_STYLE_NAME.json is located
-
+    """
+    Attributes:
+        DEFAULT_STYLE_NAME (str): style name for the default style
+        STYLE_PATH: file path where DEFAULT_STYLE_NAME.json is located
     """
 
     DEFAULT_STYLE_NAME = None
@@ -118,8 +120,8 @@ def load_style(
 
     Returns:
         A tuple containing the style as dictionary and the default font ratio.
-
     """
+
     default = default_style.DEFAULT_STYLE_NAME
 
     # if the style is not given, try to load the configured default (if set),

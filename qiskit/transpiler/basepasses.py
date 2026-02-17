@@ -45,7 +45,7 @@ class MetaPass(abc.ABCMeta):
     # considered as a breaking API change.
     # For example, test.python.transpiler.test_pass_scheduler.TestLogPasses.test_passes_in_linear
 
-    def __call__(cls, *args, **kwargs):  # noqa: D102
+    def __call__(cls, *args, **kwargs):
         pass_instance = type.__call__(cls, *args, **kwargs)
         pass_instance._hash = hash(MetaPass._freeze_init_parameters(cls, args, kwargs))
         return pass_instance
@@ -69,7 +69,7 @@ class MetaPass(abc.ABCMeta):
 class BasePass(GenericPass, metaclass=MetaPass):
     """Base class for transpiler passes."""
 
-    def __init__(self):  # noqa: D107
+    def __init__(self):
         super().__init__()
         self.preserves: Iterable[GenericPass] = []
         self._hash = hash(None)
@@ -93,7 +93,6 @@ class BasePass(GenericPass, metaclass=MetaPass):
 
         Raises:
             NotImplementedError: when this is left unimplemented for a pass.
-
         """
         raise NotImplementedError
 
@@ -132,7 +131,6 @@ class BasePass(GenericPass, metaclass=MetaPass):
         Returns:
             If on transformation pass, the resulting QuantumCircuit.
             If analysis pass, the input circuit.
-
         """
         from qiskit.transpiler import PassManager
 
@@ -160,7 +158,7 @@ class AnalysisPass(BasePass):
 class TransformationPass(BasePass):
     """A transformation pass: change DAG, not property set."""
 
-    def execute(  # noqa: D102
+    def execute(
         self,
         passmanager_ir: PassManagerIR,
         state: PassManagerState,
@@ -181,7 +179,7 @@ class TransformationPass(BasePass):
 
         return new_dag, state
 
-    def update_status(  # noqa: D102
+    def update_status(
         self,
         state: PassManagerState,
         run_state: RunState,

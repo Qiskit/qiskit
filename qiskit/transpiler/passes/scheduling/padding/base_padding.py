@@ -66,9 +66,6 @@ class BasePadding(TransformationPass):
             target: The :class:`~.Target` representing the target backend.
                 If it supplied and it does not support delay instruction on a qubit,
                 padding passes do not pad any idle time of the qubit.
-            durations: he instruction durations. This is mostly for legacy applications without a
-                :class:`.Target`.
-
         """
         super().__init__()
         self.target = target
@@ -111,7 +108,6 @@ class BasePadding(TransformationPass):
         Raises:
             TranspilerError: When a particular node is not scheduled, likely some transform pass
                 is inserted before this node is called.
-
         """
         self._pre_runhook(dag)
 
@@ -211,7 +207,6 @@ class BasePadding(TransformationPass):
 
         Raises:
             TranspilerError: If the whole circuit or instruction is not scheduled.
-
         """
         if "node_start_time" not in self.property_set:
             raise TranspilerError(
@@ -246,7 +241,6 @@ class BasePadding(TransformationPass):
             oper: New operation that is added to the DAG circuit.
             qubits: The list of qubits that the operation acts on.
             clbits: The list of clbits that the operation acts on.
-
         """
         if isinstance(qubits, Qubit):
             qubits = [qubits]
@@ -289,6 +283,5 @@ class BasePadding(TransformationPass):
             t_end: Absolute end time of this interval.
             next_node: Node that follows the sequence.
             prev_node: Node ahead of the sequence.
-
         """
         raise NotImplementedError

@@ -9,7 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""Sampler V1 result class"""
+"""
+Sampler V1 result class
+"""
 
 from __future__ import annotations
 
@@ -37,7 +39,6 @@ class SamplerResult(_BasePrimitiveResultV1):
     Args:
         quasi_dists (list[QuasiDistribution]): List of the quasi-probabilities.
         metadata (list[dict]): List of the metadata.
-
     """
 
     quasi_dists: list[QuasiDistribution]

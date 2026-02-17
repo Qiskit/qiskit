@@ -53,9 +53,9 @@ class DCXGate(SingletonGate):
     _standard_gate = StandardGate.DCX
 
     def __init__(self, label: str | None = None) -> None:
-        """Args:
-        label: An optional label for the gate.
-
+        """
+        Args:
+            label: An optional label for the gate.
         """
         super().__init__("dcx", 2, [], label=label)
 
@@ -63,6 +63,7 @@ class DCXGate(SingletonGate):
 
     def _define(self):
         """Default definition"""
+
         from qiskit.circuit import QuantumCircuit
 
         #           ┌───┐

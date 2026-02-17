@@ -9,7 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""Circuit synthesis for the Clifford class for all-to-all architecture."""
+"""
+Circuit synthesis for the Clifford class for all-to-all architecture.
+"""
 
 from __future__ import annotations
 from qiskit.circuit import QuantumCircuit
@@ -47,7 +49,6 @@ def synth_clifford_full(clifford: Clifford, method: str | None = None) -> Quantu
         3. Sergey Bravyi, Shaohan Hu, Dmitri Maslov, Ruslan Shaydulin,
            *Clifford Circuit Optimization with Templates and Symbolic Pauli Gates*,
            `arXiv:2105.02291 [quant-ph] <https://arxiv.org/abs/2105.02291>`_
-
     """
     num_qubits = clifford.num_qubits
 

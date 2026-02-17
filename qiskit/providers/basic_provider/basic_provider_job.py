@@ -24,7 +24,7 @@ class BasicProviderJob(JobV1):
 
     _async = False
 
-    def __init__(self, backend, job_id, result):  # noqa: D107
+    def __init__(self, backend, job_id, result):
         super().__init__(backend, job_id)
         self._result = result
 
@@ -33,7 +33,6 @@ class BasicProviderJob(JobV1):
 
         Raises:
             JobError: if trying to re-submit the job.
-
         """
         return
 
@@ -42,7 +41,6 @@ class BasicProviderJob(JobV1):
 
         Returns:
             qiskit.result.Result: Result object
-
         """
         if timeout is not None:
             warnings.warn(
@@ -59,7 +57,6 @@ class BasicProviderJob(JobV1):
 
         Returns:
             qiskit.providers.JobStatus: The current JobStatus
-
         """
         return JobStatus.DONE
 

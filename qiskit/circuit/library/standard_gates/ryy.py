@@ -73,21 +73,21 @@ class RYYGate(Gate):
                                     0 & -i & 1 & 0 \\
                                     i & 0 & 0 & 1
                                 \end{pmatrix}
-
     """
 
     _standard_gate = StandardGate.RYY
 
     def __init__(self, theta: ParameterValueType, label: str | None = None):
-        """Args:
-        theta: The rotation angle.
-        label: An optional label for the gate.
-
+        """
+        Args:
+            theta: The rotation angle.
+            label: An optional label for the gate.
         """
         super().__init__("ryy", 2, [theta], label=label)
 
     def _define(self):
         """Default definition"""
+
         from qiskit.circuit import QuantumCircuit
 
         #      ┌──────┐                   ┌────┐
@@ -111,7 +111,6 @@ class RYYGate(Gate):
 
         Returns:
             RYYGate: inverse gate.
-
         """
         return RYYGate(-self.params[0])
 

@@ -9,7 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""This module contains utility functions for circuits."""
+"""
+This module contains utility functions for circuits.
+"""
 
 import math
 import numpy
@@ -20,7 +22,8 @@ from qiskit.circuit.exceptions import CircuitError
 
 
 def _compute_control_matrix(base_mat, num_ctrl_qubits, ctrl_state=None):
-    r"""Compute the controlled version of the input matrix with qiskit ordering.
+    r"""
+    Compute the controlled version of the input matrix with qiskit ordering.
     This function computes the controlled unitary with :math:`n` control qubits
     and :math:`m` target qubits,
 
@@ -42,7 +45,6 @@ def _compute_control_matrix(base_mat, num_ctrl_qubits, ctrl_state=None):
 
     Raises:
         QiskitError: unrecognized mode or invalid ctrl_state
-
     """
     num_target = int(math.log2(base_mat.shape[0]))
     ctrl_dim = 2**num_ctrl_qubits
@@ -76,7 +78,6 @@ def _ctrl_state_to_int(ctrl_state, num_ctrl_qubits):
 
     Raises:
         CircuitError: invalid ctrl_state
-
     """
     ctrl_state_std = None
     if isinstance(ctrl_state, str):
@@ -102,8 +103,7 @@ def _ctrl_state_to_int(ctrl_state, num_ctrl_qubits):
 
 def with_gate_array(base_array):
     """Class decorator that adds an ``__array__`` method to a :class:`.Gate` instance that returns a
-    singleton nonwritable view onto the complex matrix described by ``base_array``.
-    """
+    singleton nonwritable view onto the complex matrix described by ``base_array``."""
     nonwritable = numpy.array(base_array, dtype=numpy.complex128)
     nonwritable.setflags(write=False)
 
@@ -126,8 +126,7 @@ def with_controlled_gate_array(base_array, num_ctrl_qubits, cached_states=None):
     control state.
 
     If ``cached_states`` is not given, then all possible control states are precomputed.  If it is
-    given, it should be an iterable of integers, and only these control states will be cached.
-    """
+    given, it should be an iterable of integers, and only these control states will be cached."""
     base = numpy.asarray(base_array, dtype=numpy.complex128)
 
     def matrix_for_control_state(state):

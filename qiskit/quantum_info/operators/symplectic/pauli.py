@@ -9,7 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""N-qubit Pauli Operator Class"""
+"""
+N-qubit Pauli Operator Class
+"""
 
 from __future__ import annotations
 
@@ -182,7 +184,6 @@ class Pauli(BasePauli):
 
         Raises:
             QiskitError: if input array is invalid shape.
-
         """
         if isinstance(data, BasePauli):
             base_z, base_x, base_phase = data._z, data._x, data._phase
@@ -243,7 +244,6 @@ class Pauli(BasePauli):
         .. note::
 
             Truncation will be disabled if the truncation value is set to 0.
-
         """
         cls.__truncate__ = int(val)
 
@@ -261,7 +261,6 @@ class Pauli(BasePauli):
 
         Returns:
             bool: True if the Pauli's are equivalent up to group phase.
-
         """
         if not isinstance(other, Pauli):
             try:
@@ -343,7 +342,6 @@ class Pauli(BasePauli):
         Raises:
             QiskitError: if ind is out of bounds for the array size or
                          number of qubits.
-
         """
         if isinstance(qubits, (int, np.integer)):
             qubits = [qubits]
@@ -372,7 +370,6 @@ class Pauli(BasePauli):
 
         Raises:
             QiskitError: if the insertion qubits are invalid.
-
         """
         if not isinstance(value, Pauli):
             value = Pauli(value)
@@ -419,7 +416,6 @@ class Pauli(BasePauli):
 
         Returns:
             str: the Pauli string label.
-
         """
         return self._to_label(self.z, self.x, self._phase[0])
 
@@ -432,7 +428,6 @@ class Pauli(BasePauli):
 
         Returns:
             array: The Pauli matrix.
-
         """
         return self._to_matrix(self.z, self.x, self._phase[0], sparse=sparse)
 
@@ -488,7 +483,6 @@ class Pauli(BasePauli):
             Setting the ``front=True`` kwarg changes this to `right` matrix
             multiplication and is equivalent to the :meth:`dot` method
             ``A.dot(B) == A.compose(B, front=True)``.
-
         """
         if qargs is None:
             qargs = getattr(other, "qargs", None)
@@ -507,7 +501,6 @@ class Pauli(BasePauli):
 
         Returns:
             Pauli: The operator self * other.
-
         """
         return self.compose(other, qargs=qargs, front=True, inplace=inplace)
 
@@ -550,7 +543,6 @@ class Pauli(BasePauli):
 
         Returns:
             bool: True if Pauli's commute, False if they anti-commute.
-
         """
         if qargs is None:
             qargs = getattr(other, "qargs", None)
@@ -570,7 +562,6 @@ class Pauli(BasePauli):
 
         Returns:
             bool: True if Pauli's anticommute, False if they commute.
-
         """
         return np.logical_not(self.commutes(other, qargs=qargs))
 
@@ -602,7 +593,6 @@ class Pauli(BasePauli):
 
         Raises:
             QiskitError: if the Clifford number of qubits and qargs don't match.
-
         """
         if qargs is None:
             qargs = getattr(other, "qargs", None)
@@ -631,7 +621,6 @@ class Pauli(BasePauli):
 
         Raises:
             QiskitError: if Pauli string is not valid.
-
         """
         match_ = Pauli._VALID_LABEL_PATTERN.fullmatch(label)
         if match_ is None:
@@ -733,7 +722,6 @@ class Pauli(BasePauli):
 
         Returns:
             A new :class:`~.quantum_info.Pauli` with the provided layout applied
-
         """
         from qiskit.transpiler.layout import TranspileLayout
 

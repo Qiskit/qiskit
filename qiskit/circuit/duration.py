@@ -10,7 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Utilities for handling duration of a circuit instruction."""
+"""
+Utilities for handling duration of a circuit instruction.
+"""
 import warnings
 
 from qiskit.circuit import QuantumCircuit
@@ -19,7 +21,8 @@ from qiskit.utils.units import apply_prefix
 
 
 def duration_in_dt(duration_in_sec: float, dt_in_sec: float) -> int:
-    """Return duration in dt.
+    """
+    Return duration in dt.
 
     Args:
         duration_in_sec: duration [s] to be converted.
@@ -27,7 +30,6 @@ def duration_in_dt(duration_in_sec: float, dt_in_sec: float) -> int:
 
     Returns:
         Duration in dt.
-
     """
     res = round(duration_in_sec / dt_in_sec)
     rounding_error = abs(duration_in_sec - res * dt_in_sec)
@@ -45,7 +47,7 @@ def convert_durations_to_dt(qc: QuantumCircuit, dt_in_sec: float, inplace=True):
 
     Returns a new circuit if `inplace=False`.
 
-    Args:
+    Parameters:
         qc (QuantumCircuit): Duration of dt in seconds used for conversion.
         dt_in_sec (float): Duration of dt in seconds used for conversion.
         inplace (bool): All durations are converted inplace or return new circuit.
@@ -55,7 +57,6 @@ def convert_durations_to_dt(qc: QuantumCircuit, dt_in_sec: float, inplace=True):
 
     Raises:
         CircuitError: if fail to convert durations.
-
     """
     if inplace:
         circ = qc

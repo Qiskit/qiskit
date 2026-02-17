@@ -10,7 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Preset pass manager generation function"""
+"""
+Preset pass manager generation function
+"""
 import copy
 import warnings
 
@@ -183,8 +185,8 @@ def generate_preset_pass_manager(
 
     Raises:
         ValueError: if an invalid value for ``optimization_level`` is passed in.
-
     """
+
     # Handle positional arguments for target and backend. This enables the usage
     # pattern `generate_preset_pass_manager(backend.target)` to generate a default
     # pass manager for a given target.

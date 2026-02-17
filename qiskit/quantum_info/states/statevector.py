@@ -10,7 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Statevector quantum state class."""
+"""
+Statevector quantum state class.
+"""
 from __future__ import annotations
 import copy as _copy
 import math
@@ -80,7 +82,6 @@ class Statevector(QuantumState, TolerancesMixin):
               power of two the state will be initialized as an N-qubit state.
               If it is not a power of two the state will have a single
               d-dimensional subsystem.
-
         """
         if isinstance(data, (list, np.ndarray)):
             # Finally we check if the input is a raw vector in either a
@@ -151,8 +152,8 @@ class Statevector(QuantumState, TolerancesMixin):
 
                 # These will be equivalent up to global phase
                 print(sv1.equiv(sv2))  # True
-
         """
+
         from qiskit.synthesis.permutation.permutation_utils import _inverse_pattern
 
         # Handle layout extraction
@@ -245,6 +246,7 @@ class Statevector(QuantumState, TolerancesMixin):
             ValueError: when an invalid output method is selected.
 
         Examples:
+
             Plot one of the Bell states
 
             .. plot::
@@ -257,6 +259,7 @@ class Statevector(QuantumState, TolerancesMixin):
                 sv.draw(output='hinton')
 
         """
+
         from qiskit.visualization.state_visualization import state_drawer
 
         return state_drawer(self, output=output, **drawer_args)
@@ -280,7 +283,6 @@ class Statevector(QuantumState, TolerancesMixin):
 
         Raises:
             QiskitError: if key is not valid.
-
         """
         if isinstance(key, str):
             try:
@@ -348,7 +350,6 @@ class Statevector(QuantumState, TolerancesMixin):
 
         Raises:
             QiskitError: if other is not a quantum state.
-
         """
         if not isinstance(other, Statevector):
             other = Statevector(other)
@@ -369,7 +370,6 @@ class Statevector(QuantumState, TolerancesMixin):
 
         Raises:
             QiskitError: if other is not a quantum state or has different dimension.
-
         """
         if not isinstance(other, Statevector):
             other = Statevector(other)
@@ -391,7 +391,6 @@ class Statevector(QuantumState, TolerancesMixin):
 
         Raises:
             QiskitError: if other is not a quantum state.
-
         """
         if not isinstance(other, Statevector):
             other = Statevector(other)
@@ -412,7 +411,6 @@ class Statevector(QuantumState, TolerancesMixin):
         Raises:
             QiskitError: if other is not a quantum state, or has
                          incompatible dimensions.
-
         """
         if not isinstance(other, Statevector):
             other = Statevector(other)
@@ -432,7 +430,6 @@ class Statevector(QuantumState, TolerancesMixin):
 
         Raises:
             QiskitError: if other is not a valid complex number.
-
         """
         if not isinstance(other, Number):
             raise QiskitError("other is not a number")
@@ -456,7 +453,6 @@ class Statevector(QuantumState, TolerancesMixin):
         Raises:
             QiskitError: if the operator dimension does not match the
                          specified Statevector subsystem dimensions.
-
         """
         if qargs is None:
             qargs = getattr(other, "qargs", None)
@@ -502,7 +498,6 @@ class Statevector(QuantumState, TolerancesMixin):
 
         Returns:
             bool: True if statevectors are equivalent up to global phase.
-
         """
         if not isinstance(other, Statevector):
             try:
@@ -528,7 +523,6 @@ class Statevector(QuantumState, TolerancesMixin):
 
         Returns:
             Statevector: the Statevector with reversed subsystem order.
-
         """
         ret = _copy.copy(self)
         axes = tuple(range(self._op_shape._num_qargs_l - 1, -1, -1))
@@ -548,7 +542,6 @@ class Statevector(QuantumState, TolerancesMixin):
 
         Returns:
             complex: the expectation value.
-
         """
         n_pauli = len(pauli)
         if qargs is None:
@@ -582,7 +575,6 @@ class Statevector(QuantumState, TolerancesMixin):
 
         Returns:
             complex: the expectation value.
-
         """
         if isinstance(oper, Pauli):
             return self._expectation_value_pauli(oper, qargs)
@@ -600,7 +592,7 @@ class Statevector(QuantumState, TolerancesMixin):
     def probabilities(
         self, qargs: None | list[int] = None, decimals: None | int = None
     ) -> np.ndarray:
-        r"""Return the subsystem measurement probability vector.
+        """Return the subsystem measurement probability vector.
 
         Measurement probabilities are with respect to measurement in the
         computation (diagonal) basis.
@@ -615,6 +607,7 @@ class Statevector(QuantumState, TolerancesMixin):
             np.array: The Numpy vector array of probabilities.
 
         Examples:
+
             Consider a 2-qubit product state
             :math:`|\\psi\\rangle=|+\\rangle\\otimes|0\\rangle`.
 
@@ -700,7 +693,6 @@ class Statevector(QuantumState, TolerancesMixin):
             evolve the subsystems so that the collapsed post-measurement
             states are rotated to the 0-state. The RNG seed for this
             sampling can be set using the :meth:`seed` method.
-
         """
         if qargs is None:
             # Resetting all qubits does not require sampling or RNG
@@ -731,7 +723,7 @@ class Statevector(QuantumState, TolerancesMixin):
 
     @classmethod
     def from_label(cls, label: str) -> Statevector:
-        r"""Return a tensor product of Pauli X,Y,Z eigenstates.
+        """Return a tensor product of Pauli X,Y,Z eigenstates.
 
         .. list-table:: Single-qubit state labels
            :header-rows: 1
@@ -762,7 +754,6 @@ class Statevector(QuantumState, TolerancesMixin):
             QiskitError: if the label contains invalid characters, or the
                          length of the label is larger than an explicitly
                          specified num_qubits.
-
         """
         # Check label is valid
         if re.match(r"^[01rl\-+]+$", label) is None:
@@ -801,7 +792,7 @@ class Statevector(QuantumState, TolerancesMixin):
 
     @staticmethod
     def from_int(i: int, dims: int | tuple | list) -> Statevector:
-        r"""Return a computational basis statevector.
+        """Return a computational basis statevector.
 
         Args:
             i (int): the basis state element.
@@ -821,7 +812,6 @@ class Statevector(QuantumState, TolerancesMixin):
               state. If it is a power of two the state will be initialized
               as an N-qubit state. If it is not a power of  two the state
               will have a single d-dimensional subsystem.
-
         """
         size = np.prod(dims)
         state = np.zeros(size, dtype=complex)
@@ -830,7 +820,7 @@ class Statevector(QuantumState, TolerancesMixin):
 
     @classmethod
     def from_instruction(cls, instruction: Instruction | QuantumCircuit) -> Statevector:
-        r"""Return the output statevector of an instruction.
+        """Return the output statevector of an instruction.
 
         The statevector is initialized in the state :math:`|{0,\\ldots,0}\\rangle` of the
         same number of qubits as the input instruction or circuit, evolved
@@ -845,7 +835,6 @@ class Statevector(QuantumState, TolerancesMixin):
         Raises:
             QiskitError: if the instruction contains invalid instructions for
                          the statevector simulation.
-
         """
         # Convert circuit to an instruction
         if isinstance(instruction, QuantumCircuit):
@@ -873,6 +862,7 @@ class Statevector(QuantumState, TolerancesMixin):
             dict: the dictionary form of the Statevector.
 
         Example:
+
             The ket-form of a 2-qubit statevector
             :math:`|\psi\rangle = |-\rangle\otimes |0\rangle`
 

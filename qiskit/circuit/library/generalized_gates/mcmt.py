@@ -68,7 +68,6 @@ class MCMT(QuantumCircuit):
         Raises:
             AttributeError: If the gate cannot be casted to a controlled gate.
             AttributeError: If the number of controls or targets is 0.
-
         """
         if num_ctrl_qubits == 0 or num_target_qubits == 0:
             raise AttributeError("Need at least one control and one target qubit.")
@@ -138,6 +137,7 @@ class MCMTVChain(MCMT):
        _generate_circuit_library_visualization(circuit.decompose())
 
     Examples:
+
         >>> from qiskit.circuit.library import HGate
         >>> MCMTVChain(HGate(), 3, 2).draw()
 
@@ -155,7 +155,6 @@ class MCMTVChain(MCMT):
              └───┘┌─┴─┐  │    │  ┌─┴─┐└───┘
         q_6: ─────┤ X ├──■────■──┤ X ├─────
                   └───┘          └───┘
-
     """
 
     @deprecate_func(
@@ -168,14 +167,6 @@ class MCMTVChain(MCMT):
         num_ctrl_qubits: int,
         num_target_qubits: int,
     ) -> None:
-        """Instantiate a new :class:`.MCMTVChain` instance
-
-        Args:
-            gate: The base gate to use in the new multi-controlled gate.
-            num_ctrl_qubits: The number of control qubits in the new gate.
-            num_target_qubits: The number of target qubits in the new gate.
-
-        """
         super().__init__(gate, num_ctrl_qubits, num_target_qubits)
 
     def _build(self):
@@ -190,7 +181,7 @@ class MCMTVChain(MCMT):
         """Return the number of ancilla qubits required."""
         return max(0, self.num_ctrl_qubits - 1)
 
-    def inverse(self, annotated: bool = False):  # noqa: D102
+    def inverse(self, annotated: bool = False):
         return MCMTVChain(self.gate, self.num_ctrl_qubits, self.num_target_qubits)
 
 
@@ -226,14 +217,14 @@ class MCMTGate(ControlledGate):
         ctrl_state: int | str | None = None,
         label: str | None = None,
     ) -> None:
-        """Args:
-        gate: The base gate to apply on multiple target qubits, controlled by other qubits.
-            This must be a single-qubit gate or a controlled single-qubit gate.
-        num_ctrl_qubits: The number of control qubits.
-        num_target_qubits: The number of target qubits.
-        ctrl_state: The control state of the control qubits. Defaults to all closed controls.
-        label: The gate label.
-
+        """
+        Args:
+            gate: The base gate to apply on multiple target qubits, controlled by other qubits.
+                This must be a single-qubit gate or a controlled single-qubit gate.
+            num_ctrl_qubits: The number of control qubits.
+            num_target_qubits: The number of target qubits.
+            ctrl_state: The control state of the control qubits. Defaults to all closed controls.
+            label: The gate label.
         """
         if num_target_qubits < 1:
             raise ValueError("Need at least one target qubit.")
@@ -261,6 +252,7 @@ class MCMTGate(ControlledGate):
 
     def _define(self):
         """Default definition relying on gate.control. Control state is handled by superclass."""
+
         from qiskit.transpiler.passes.synthesis.hls_plugins import MCMTSynthesisDefault
 
         self.definition = MCMTSynthesisDefault().run(self)
@@ -268,6 +260,7 @@ class MCMTGate(ControlledGate):
     @staticmethod
     def _identify_base_gate(gate):
         """Get the control base gate. Note this must be a single qubit gate."""
+
         # try getting the standard name from the string
         if isinstance(gate, str):
             standard_gates = get_standard_gate_name_mapping()
@@ -320,7 +313,6 @@ class MCMTGate(ControlledGate):
 
         Returns:
             A controlled version of this gate.
-
         """
         ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
         new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state

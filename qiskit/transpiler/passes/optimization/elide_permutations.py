@@ -58,7 +58,6 @@ class ElidePermutations(TransformationPass):
 
         Returns:
             DAGCircuit: the optimized DAG.
-
         """
         if self.property_set["layout"] is not None:
             logger.warning(

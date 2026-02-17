@@ -10,14 +10,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Quantum Channel Representations Package
+"""
+Quantum Channel Representations Package
 
 For explanation of terminology and details of operations see Ref. [1]
 
 References:
     [1] C.J. Wood, J.D. Biamonte, D.G. Cory, Quant. Inf. Comp. 15, 0579-0811 (2015)
         Open access: arXiv:1111.6950 [quant-ph]
-
 """
 
 from __future__ import annotations

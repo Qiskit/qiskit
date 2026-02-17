@@ -10,13 +10,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Template circuits for X, CX and Toffoli gates.
+"""
+Template circuits for X, CX and Toffoli gates.
 
 References:
+
 Maslov, D. and Dueck, G. W. and Miller, D. M.,
 Techniques for the synthesis of reversible Toffoli networks, 2007
 https://dx.doi.org/10.1145/1278349.1278355
-
 """
 from .template_nct_2a_1 import template_nct_2a_1
 from .template_nct_2a_2 import template_nct_2a_2

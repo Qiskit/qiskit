@@ -10,7 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""ScalarOp class"""
+"""
+ScalarOp class
+"""
 
 from __future__ import annotations
 import copy as _copy
@@ -44,7 +46,6 @@ class ScalarOp(LinearOp):
 
         Raises:
             QiskitError: If the optional coefficient is invalid.
-
         """
         if not isinstance(coeff, Number):
             raise QiskitError(f"coeff {coeff} must be a number.")
@@ -138,7 +139,6 @@ class ScalarOp(LinearOp):
 
         Returns:
             ScalarOp: the ``coeff ** n`` ScalarOp.
-
         """
         ret = self.copy()
         ret._coeff = self.coeff**n
@@ -185,7 +185,6 @@ class ScalarOp(LinearOp):
 
         Raises:
             QiskitError: if other has incompatible dimensions.
-
         """
         if qargs is None:
             qargs = getattr(other, "qargs", None)
@@ -227,7 +226,6 @@ class ScalarOp(LinearOp):
 
         Raises:
             QiskitError: if other is not a valid complex number.
-
         """
         if not isinstance(other, Number):
             raise QiskitError(f"other ({other}) is not a number")
@@ -246,7 +244,6 @@ class ScalarOp(LinearOp):
 
         Returns:
             BaseOperator: the padded operator.
-
         """
         if qargs is None:
             return other

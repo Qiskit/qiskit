@@ -82,7 +82,6 @@ class U2Gate(Gate):
         :class:`~qiskit.circuit.library.standard_gates.U3Gate`:
         U3 is a generalization of U2 that covers all single-qubit rotations,
         using two X90 pulses.
-
     """
 
     _standard_gate = StandardGate.U2
@@ -93,16 +92,17 @@ class U2Gate(Gate):
         lam: ParameterValueType,
         label: str | None = None,
     ):
-        r"""Args:
-        phi: The rotation angle :math:`\phi`.
-        lam: The rotation angle :math:`\lambda`.
-        label: An optional label for the gate.
-
+        r"""
+        Args:
+            phi: The rotation angle :math:`\phi`.
+            lam: The rotation angle :math:`\lambda`.
+            label: An optional label for the gate.
         """
         super().__init__("u2", 1, [phi, lam], label=label)
 
     def _define(self):
         """Default definition"""
+
         from qiskit.circuit import QuantumCircuit
 
         #    ┌────────────┐
@@ -126,7 +126,6 @@ class U2Gate(Gate):
 
         Returns:
             U2Gate: inverse gate.
-
         """
         return U2Gate(-self.params[1] - pi, -self.params[0] + pi)
 

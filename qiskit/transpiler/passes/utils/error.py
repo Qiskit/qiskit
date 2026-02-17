@@ -37,7 +37,6 @@ class Error(AnalysisPass):
 
         Raises:
             TranspilerError: if action is not valid.
-
         """
         super().__init__()
         self.msg = msg

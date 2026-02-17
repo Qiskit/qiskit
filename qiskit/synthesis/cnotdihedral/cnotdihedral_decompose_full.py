@@ -9,7 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""Circuit synthesis for the CNOTDihedral class for all-to-all connectivity."""
+"""
+Circuit synthesis for the CNOTDihedral class for all-to-all connectivity.
+"""
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.quantum_info import CNOTDihedral
@@ -40,8 +42,8 @@ def synth_cnotdihedral_full(elem: CNOTDihedral) -> QuantumCircuit:
         2. Andrew W. Cross, Easwar Magesan, Lev S. Bishop, John A. Smolin and Jay M. Gambetta,
            *Scalable randomized benchmarking of non-Clifford gates*,
            npj Quantum Inf 2, 16012 (2016).
-
     """
+
     num_qubits = elem.num_qubits
 
     if num_qubits < 3:

@@ -68,10 +68,10 @@ class SubstitutePi4Rotations(TransformationPass):
     """
 
     def __init__(self, approximation_degree: float = 1.0):
-        """Args:
-        approximation_degree: Used in the tolerance computations.
-            This gives the threshold for the average gate fidelity.
-
+        """
+        Args:
+            approximation_degree: Used in the tolerance computations.
+                This gives the threshold for the average gate fidelity.
         """
         super().__init__()
         self.approximation_degree = approximation_degree
@@ -85,7 +85,6 @@ class SubstitutePi4Rotations(TransformationPass):
 
         Returns:
             The output DAG.
-
         """
         new_dag = substitute_pi4_rotations(dag, self.approximation_degree)
 

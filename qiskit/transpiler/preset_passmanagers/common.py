@@ -128,7 +128,6 @@ def generate_control_flow_options_check(
         PassManager: a pass manager that populates the ``contains_x`` properties for each of the
         control-flow operations, and raises an error if any of the given options do not support
         control flow, but a circuit with control flow is given.
-
     """
     bad_options = []
     message = "Some options cannot be used with control flow."
@@ -164,8 +163,7 @@ def generate_control_flow_options_check(
 
 def generate_error_on_control_flow(message):
     """Get a pass manager that always raises an error if control flow is present in a given
-    circuit.
-    """
+    circuit."""
     out = PassManager()
     out.append(ContainsInstruction(CONTROL_FLOW_OP_NAMES, recurse=False))
     out.append(ConditionalController(Error(message), condition=_has_control_flow))
@@ -174,8 +172,7 @@ def generate_error_on_control_flow(message):
 
 def if_has_control_flow_else(if_present, if_absent):
     """Generate a pass manager that will run the passes in ``if_present`` if the given circuit
-    has control-flow operations in it, and those in ``if_absent`` if it doesn't.
-    """
+    has control-flow operations in it, and those in ``if_absent`` if it doesn't."""
     if isinstance(if_present, PassManager):
         if_present = if_present.to_flow_controller()
     if isinstance(if_absent, PassManager):
@@ -220,7 +217,6 @@ def generate_unroll_3q(
 
     Returns:
         PassManager: The unroll 3q or more pass manager
-
     """
     unroll_3q = PassManager()
     unroll_3q.append(
@@ -264,19 +260,16 @@ def generate_embed_passmanager(coupling_map):
     Args:
         coupling_map (Union[CouplingMap, Target): The coupling map for the backend to embed
             the circuit to.
-
     Returns:
         PassManager: The embedding passmanager that assumes the layout property
             set has been set in earlier stages
-
     """
     return PassManager([FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()])
 
 
 def _layout_not_perfect(property_set):
     """Return ``True`` if the first attempt at layout has been checked and found to be imperfect.
-    In this case, perfection means "does not require any swap routing".
-    """
+    In this case, perfection means "does not require any swap routing"."""
     return property_set["is_swap_mapped"] is not None and not property_set["is_swap_mapped"]
 
 
@@ -327,10 +320,8 @@ def generate_routing_passmanager(
         vf2_max_trials (int): The maximum number of trials to run VF2 when
             evaluating the vf2 post layout
             pass. If this is ``None`` or ``0`` the vf2 post layout will not be run.
-
     Returns:
         PassManager: The routing pass manager
-
     """
 
     def _run_post_layout_condition(property_set):
@@ -472,7 +463,6 @@ def generate_translation_passmanager(
 
     Raises:
         TranspilerError: If the ``method`` kwarg is not a valid value
-
     """
     if basis_gates is None and target is None:
         return PassManager([])
@@ -674,7 +664,6 @@ def generate_scheduling(instruction_durations, scheduling_method, timing_constra
 
     Raises:
         TranspilerError: If the ``scheduling_method`` kwarg is not a valid value
-
     """
     scheduling = PassManager()
     if scheduling_method:
@@ -750,7 +739,6 @@ def get_vf2_limits(
     Returns:
         VF2Limits: An namedtuple with optional elements
         ``call_limit`` and ``max_trials``.
-
     """
     limits = VF2Limits(None, None)
     if layout_method is None and initial_layout is None:
@@ -782,7 +770,8 @@ _CLIFFORD_T_BASIS = set(_CLIFFORD_GATE_NAMES).union(
 
 
 def is_clifford_t_basis(basis_gates=None, target=None) -> bool:
-    """Checks whether the given basis set can be considered as Clifford+T.
+    """
+    Checks whether the given basis set can be considered as Clifford+T.
 
     For this we require that:
     1. The set only contains Clifford+T gates,
@@ -791,6 +780,7 @@ def is_clifford_t_basis(basis_gates=None, target=None) -> bool:
     In particular, these conditions guarantee that the empty basis set
     is not considered as Clifford+T.
     """
+
     if target is not None:
         basis = set(target.operation_names)
     elif basis_gates is not None:

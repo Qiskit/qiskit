@@ -10,7 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""=======================================
+"""
+=======================================
 Passmanager (:mod:`qiskit.passmanager`)
 =======================================
 
@@ -78,7 +79,8 @@ the :func:`.parallel_map` function.
 
 
 Examples
---------
+========
+
 We look into a toy optimization task, namely, preparing a row of numbers
 and remove a digit if the number is five.
 Such task might be easily done by converting the input numbers into string.
@@ -243,7 +245,6 @@ Exceptions
 ----------
 
 .. autoexception:: PassManagerError
-
 """
 
 from .passmanager import BasePassManager

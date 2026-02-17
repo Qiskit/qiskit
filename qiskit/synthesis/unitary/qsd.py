@@ -9,7 +9,8 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""Quantum Shannon Decomposition.
+"""
+Quantum Shannon Decomposition.
 
 Method is described in arXiv:quant-ph/0406176.
 """
@@ -40,7 +41,8 @@ def qs_decomposition(
     *,
     _depth=0,
 ):
-    r"""Decomposes a unitary matrix into one and two qubit gates using Quantum Shannon Decomposition,
+    r"""
+    Decomposes a unitary matrix into one and two qubit gates using Quantum Shannon Decomposition,
     based on the Block ZXZ-Decomposition.
 
     This decomposition is described in Krol and Al-Ars [2] and improves the method of
@@ -103,7 +105,6 @@ def qs_decomposition(
         2. Krol, Al-Ars, *Beyond Quantum Shannon: Circuit Construction for General
            n-Qubit Gates Based on Block ZXZ-Decomposition*,
            `arXiv:2403.13692 <https://arxiv.org/abs/2403.13692>`_
-
     """
     if (decomposer_1q is None or isinstance(decomposer_1q, OneQubitEulerDecomposer)) and (
         decomposer_2q is None or isinstance(decomposer_2q, TwoQubitBasisDecomposer)
@@ -248,6 +249,7 @@ def _block_zxz_decomp(Umat):
 
 def _closest_unitary(mat):
     """Find the closest unitary matrix to a matrix mat."""
+
     V, _S, Wdg = scipy.linalg.svd(mat)
     mat = V @ Wdg
     return mat
@@ -295,7 +297,6 @@ def _demultiplex(
 
     Returns:
         QuantumCircuit: decomposed circuit
-
     """
     dim = um0.shape[0] + um1.shape[0]  # these should be same dimension
     nqubits = dim.bit_length() - 1
@@ -347,8 +348,7 @@ def _demultiplex(
 
 def _get_ucrz(nqubits, angles, _vw_type=None):
     """This function synthesizes UCRZ without the final CX gate,
-    unless _vw_type = ``all``.
-    """
+    unless _vw_type = ``all``."""
     circuit = QuantumCircuit(nqubits)
     q_controls = circuit.qubits[1:]
     q_target = circuit.qubits[0]
@@ -412,7 +412,8 @@ def _apply_a2(circ):
 
 
 def _extract_multiplex_blocks(umat, k):
-    """A block diagonal gate is represented as:
+    """
+    A block diagonal gate is represented as:
     [ um00 | um01 ]
     [ ---- | ---- ]
     [ um10 | um11 ]
@@ -426,7 +427,6 @@ def _extract_multiplex_blocks(umat, k):
        um01 (ndarray): upper right block
        um10 (ndarray): lower left block
        um11 (ndarray): lower right block
-
     """
     dim = umat.shape[0]
     nqubits = dim.bit_length() - 1
@@ -452,7 +452,8 @@ def _extract_multiplex_blocks(umat, k):
 
 
 def _off_diagonals_are_zero(um01, um10, atol=1e-12):
-    """Checks whether off-diagonal blocks are zero.
+    """
+    Checks whether off-diagonal blocks are zero.
 
     Args:
        um01 (ndarray): upper right block
@@ -461,6 +462,5 @@ def _off_diagonals_are_zero(um01, um10, atol=1e-12):
 
     Returns:
        bool: whether both blocks are zero within tolerance
-
     """
     return np.allclose(um01, 0, atol=atol) and np.allclose(um10, 0, atol=atol)

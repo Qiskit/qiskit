@@ -10,7 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Decompose a single-qubit unitary via Euler angles."""
+"""
+Decompose a single-qubit unitary via Euler angles.
+"""
 from __future__ import annotations
 from typing import TYPE_CHECKING
 import numpy as np
@@ -148,7 +150,6 @@ class OneQubitEulerDecomposer:
 
         Raises:
             QiskitError: If input basis is not recognized.
-
         """
         self.basis = basis  # sets: self._basis, self._params, self._circuit
         self.use_dag = use_dag
@@ -193,7 +194,6 @@ class OneQubitEulerDecomposer:
 
         Raises:
             QiskitError: if input is invalid or synthesis fails.
-
         """
         if hasattr(unitary, "to_operator"):
             # If input is a BaseOperator subclass this attempts to convert
@@ -256,28 +256,26 @@ class OneQubitEulerDecomposer:
         self._params = basis_methods[basis]
 
     def angles(self, unitary: np.ndarray) -> tuple:
-        r"""Return the Euler angles for input array.
+        """Return the Euler angles for input array.
 
         Args:
             unitary: :math:`2\\times2` unitary matrix.
 
         Returns:
             tuple: ``(theta, phi, lambda)``.
-
         """
         unitary = np.asarray(unitary, dtype=complex)
         theta, phi, lam, _ = self._params(unitary)
         return theta, phi, lam
 
     def angles_and_phase(self, unitary: np.ndarray) -> tuple:
-        r"""Return the Euler angles and phase for input array.
+        """Return the Euler angles and phase for input array.
 
         Args:
             unitary: :math:`2\\times2`
 
         Returns:
             tuple: ``(theta, phi, lambda, phase)``.
-
         """
         unitary = np.asarray(unitary, dtype=complex)
         return self._params(unitary)

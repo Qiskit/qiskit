@@ -27,23 +27,25 @@ class ASTNode:
 
 
 class Statement(ASTNode):
-    """statement
-    : expressionStatement
-    | assignmentStatement
-    | classicalDeclarationStatement
-    | branchingStatement
-    | loopStatement
-    | endStatement
-    | aliasStatement
-    | quantumStatement
+    """
+    statement
+        : expressionStatement
+        | assignmentStatement
+        | classicalDeclarationStatement
+        | branchingStatement
+        | loopStatement
+        | endStatement
+        | aliasStatement
+        | quantumStatement
     """
 
     __slots__ = ()
 
 
 class Pragma(ASTNode):
-    """pragma
-    : '#pragma' LBRACE statement* RBRACE  // match any valid openqasm statement
+    """
+    pragma
+        : '#pragma' LBRACE statement* RBRACE  // match any valid openqasm statement
     """
 
     __slots__ = ("content",)
@@ -63,8 +65,9 @@ class Annotation(ASTNode):
 
 
 class CalibrationGrammarDeclaration(Statement):
-    """calibrationGrammarDeclaration
-    : 'defcalgrammar' calibrationGrammar SEMICOLON
+    """
+    calibrationGrammarDeclaration
+        : 'defcalgrammar' calibrationGrammar SEMICOLON
     """
 
     __slots__ = ("name",)
@@ -74,8 +77,9 @@ class CalibrationGrammarDeclaration(Statement):
 
 
 class Program(ASTNode):
-    """program
-    : header (globalStatement | statement)*
+    """
+    program
+        : header (globalStatement | statement)*
     """
 
     __slots__ = ("header", "statements")
@@ -86,8 +90,9 @@ class Program(ASTNode):
 
 
 class Header(ASTNode):
-    """header
-    : version? include*
+    """
+    header
+        : version? include*
     """
 
     __slots__ = ("includes", "version")
@@ -98,8 +103,9 @@ class Header(ASTNode):
 
 
 class Include(ASTNode):
-    """include
-    : 'include' StringLiteral SEMICOLON
+    """
+    include
+        : 'include' StringLiteral SEMICOLON
     """
 
     __slots__ = ("filename",)
@@ -109,8 +115,9 @@ class Include(ASTNode):
 
 
 class Version(ASTNode):
-    """version
-    : 'OPENQASM'(Integer | RealNumber) SEMICOLON
+    """
+    version
+        : 'OPENQASM'(Integer | RealNumber) SEMICOLON
     """
 
     __slots__ = ("version_number",)
@@ -120,12 +127,13 @@ class Version(ASTNode):
 
 
 class QuantumInstruction(ASTNode):
-    """quantumInstruction
-    : quantumGateCall
-    | quantumPhase
-    | quantumMeasurement
-    | quantumReset
-    | quantumBarrier
+    """
+    quantumInstruction
+        : quantumGateCall
+        | quantumPhase
+        | quantumMeasurement
+        | quantumReset
+        | quantumBarrier
     """
 
     __slots__ = ()
@@ -193,14 +201,10 @@ class BitArrayType(ClassicalType):
 
 
 class Expression(ASTNode):
-    """Expression node type."""
-
     __slots__ = ()
 
 
 class StringifyAndPray(Expression):
-    """Node type for a handling :class:`.ParameterExpression`."""
-
     __slots__ = ("obj",)
 
     # This is not a real AST node, yet is somehow very common. It's used when there are
@@ -300,8 +304,6 @@ class Unary(Expression):
     __slots__ = ("op", "operand")
 
     class Op(enum.Enum):
-        """Operation Enum for unary operation types."""
-
         LOGIC_NOT = "!"
         BIT_NOT = "~"
 
@@ -314,8 +316,6 @@ class Binary(Expression):
     __slots__ = ("left", "op", "right")
 
     class Op(enum.Enum):
-        """Operation Enum for binary operation types."""
-
         BIT_AND = "&"
         BIT_OR = "|"
         BIT_XOR = "^"
@@ -357,9 +357,10 @@ class Index(Expression):
 
 
 class IndexSet(ASTNode):
-    """A literal index set of values::
+    """
+    A literal index set of values::
 
-    { Expression (, Expression)* }
+        { Expression (, Expression)* }
     """
 
     __slots__ = ("values",)
@@ -369,8 +370,9 @@ class IndexSet(ASTNode):
 
 
 class QuantumMeasurement(ASTNode):
-    """quantumMeasurement
-    : 'measure' indexIdentifierList
+    """
+    quantumMeasurement
+        : 'measure' indexIdentifierList
     """
 
     __slots__ = ("identifierList",)
@@ -380,9 +382,10 @@ class QuantumMeasurement(ASTNode):
 
 
 class QuantumMeasurementAssignment(Statement):
-    """quantumMeasurementAssignment
-    : quantumMeasurement ARROW indexIdentifierList
-    | indexIdentifier EQUALS quantumMeasurement  # eg: bits = measure qubits;
+    """
+    quantumMeasurementAssignment
+        : quantumMeasurement ARROW indexIdentifierList
+        | indexIdentifier EQUALS quantumMeasurement  # eg: bits = measure qubits;
     """
 
     __slots__ = ("identifier", "quantumMeasurement")
@@ -393,8 +396,9 @@ class QuantumMeasurementAssignment(Statement):
 
 
 class Designator(ASTNode):
-    """designator
-    : LBRACKET expression RBRACKET
+    """
+    designator
+        : LBRACKET expression RBRACKET
     """
 
     __slots__ = ("expression",)
@@ -416,8 +420,7 @@ class ClassicalDeclaration(Statement):
 
 class StretchDeclaration(Statement):
     """Declaration of a stretch variable, optionally with a lower bound
-    expression.
-    """
+    expression."""
 
     __slots__ = ("bound", "identifier")
 
@@ -437,9 +440,10 @@ class AssignmentStatement(Statement):
 
 
 class QuantumDeclaration(ASTNode):
-    """quantumDeclaration
-    : 'qreg' Identifier designator? |   # NOT SUPPORTED
-     'qubit' designator? Identifier
+    """
+    quantumDeclaration
+        : 'qreg' Identifier designator? |   # NOT SUPPORTED
+         'qubit' designator? Identifier
     """
 
     __slots__ = ("designator", "identifier")
@@ -450,8 +454,9 @@ class QuantumDeclaration(ASTNode):
 
 
 class AliasStatement(ASTNode):
-    """aliasStatement
-    : 'let' Identifier EQUALS indexIdentifier SEMICOLON
+    """
+    aliasStatement
+        : 'let' Identifier EQUALS indexIdentifier SEMICOLON
     """
 
     __slots__ = ("identifier", "value")
@@ -481,8 +486,9 @@ class QuantumGateModifier(ASTNode):
 
 
 class QuantumGateCall(QuantumInstruction):
-    """quantumGateCall
-    : quantumGateModifier* quantumGateName ( LPAREN expressionList? RPAREN )? indexIdentifierList
+    """
+    quantumGateCall
+        : quantumGateModifier* quantumGateName ( LPAREN expressionList? RPAREN )? indexIdentifierList
     """
 
     __slots__ = ("indexIdentifierList", "modifiers", "parameters", "quantumGateName")
@@ -519,8 +525,9 @@ class DefcalCallStatement(Statement):
 
 
 class QuantumBarrier(QuantumInstruction):
-    """quantumBarrier
-    : 'barrier' indexIdentifierList
+    """
+    quantumBarrier
+        : 'barrier' indexIdentifierList
     """
 
     __slots__ = ("indexIdentifierList",)
@@ -549,9 +556,10 @@ class QuantumDelay(QuantumInstruction):
 
 
 class ProgramBlock(ASTNode):
-    """programBlock
-    : statement | controlDirective
-    | LBRACE(statement | controlDirective) * RBRACE
+    """
+    programBlock
+        : statement | controlDirective
+        | LBRACE(statement | controlDirective) * RBRACE
     """
 
     __slots__ = ("statements",)
@@ -561,8 +569,9 @@ class ProgramBlock(ASTNode):
 
 
 class ReturnStatement(ASTNode):  # TODO probably should be a subclass of ControlDirective
-    """returnStatement
-    : 'return' ( expression | quantumMeasurement )? SEMICOLON;
+    """
+    returnStatement
+        : 'return' ( expression | quantumMeasurement )? SEMICOLON;
     """
 
     __slots__ = ("expression",)
@@ -572,24 +581,27 @@ class ReturnStatement(ASTNode):  # TODO probably should be a subclass of Control
 
 
 class QuantumBlock(ProgramBlock):
-    """quantumBlock
-    : LBRACE ( quantumStatement | quantumLoop )* RBRACE
+    """
+    quantumBlock
+        : LBRACE ( quantumStatement | quantumLoop )* RBRACE
     """
 
     __slots__ = ()
 
 
 class SubroutineBlock(ProgramBlock):
-    """subroutineBlock
-    : LBRACE statement* returnStatement? RBRACE
+    """
+    subroutineBlock
+        : LBRACE statement* returnStatement? RBRACE
     """
 
     __slots__ = ()
 
 
 class QuantumGateDefinition(Statement):
-    """quantumGateDefinition
-    : 'gate' quantumGateSignature quantumBlock
+    """
+    quantumGateDefinition
+        : 'gate' quantumGateSignature quantumBlock
     """
 
     __slots__ = ("body", "name", "params", "qubits")
@@ -608,9 +620,10 @@ class QuantumGateDefinition(Statement):
 
 
 class SubroutineDefinition(Statement):
-    """subroutineDefinition
-    : 'def' Identifier LPAREN anyTypeArgumentList? RPAREN
-    returnSignature? subroutineBlock
+    """
+    subroutineDefinition
+        : 'def' Identifier LPAREN anyTypeArgumentList? RPAREN
+        returnSignature? subroutineBlock
     """
 
     __slots__ = ("arguments", "identifier", "subroutineBlock")
@@ -627,19 +640,21 @@ class SubroutineDefinition(Statement):
 
 
 class CalibrationArgument(ASTNode):
-    """calibrationArgumentList
-    : classicalArgumentList | expressionList
+    """
+    calibrationArgumentList
+        : classicalArgumentList | expressionList
     """
 
     __slots__ = ()
 
 
 class CalibrationDefinition(Statement):
-    """calibrationDefinition
-    : 'defcal' Identifier
-    ( LPAREN calibrationArgumentList? RPAREN )? identifierList
-    returnSignature? LBRACE .*? RBRACE  // for now, match anything inside body
-    ;
+    """
+    calibrationDefinition
+        : 'defcal' Identifier
+        ( LPAREN calibrationArgumentList? RPAREN )? identifierList
+        returnSignature? LBRACE .*? RBRACE  // for now, match anything inside body
+        ;
     """
 
     __slots__ = ("calibrationArgumentList", "identifierList", "name")
@@ -656,8 +671,9 @@ class CalibrationDefinition(Statement):
 
 
 class BranchingStatement(Statement):
-    """branchingStatement
-    : 'if' LPAREN booleanExpression RPAREN programBlock ( 'else' programBlock )?
+    """
+    branchingStatement
+        : 'if' LPAREN booleanExpression RPAREN programBlock ( 'else' programBlock )?
     """
 
     __slots__ = ("condition", "false_body", "true_body")
@@ -669,7 +685,8 @@ class BranchingStatement(Statement):
 
 
 class ForLoopStatement(Statement):
-    """AST node for ``for`` loops.
+    """
+    AST node for ``for`` loops.
 
     ::
 
@@ -694,7 +711,8 @@ class ForLoopStatement(Statement):
 
 
 class WhileLoopStatement(Statement):
-    """AST node for ``while`` loops.
+    """
+    AST node for ``while`` loops.
 
     ::
 
@@ -765,8 +783,7 @@ class SwitchStatementPreview(Statement):
     """AST node for the proposed 'switch-case' extension to OpenQASM 3, before the syntax was
     stabilized.  This corresponds to the :attr:`.ExperimentalFeatures.SWITCH_CASE_V1` logic.
 
-    The stabilized form of the syntax instead uses :class:`.SwitchStatement`.
-    """
+    The stabilized form of the syntax instead uses :class:`.SwitchStatement`."""
 
     __slots__ = ("cases", "target")
 

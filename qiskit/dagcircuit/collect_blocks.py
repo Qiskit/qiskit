@@ -12,8 +12,7 @@
 
 
 """Various ways to divide a DAG into blocks of nodes, to split blocks of nodes
-into smaller sub-blocks, and to consolidate blocks.
-"""
+into smaller sub-blocks, and to consolidate blocks."""
 from __future__ import annotations
 
 from collections.abc import Iterable, Callable
@@ -46,13 +45,14 @@ class BlockCollector:
     """
 
     def __init__(self, dag: DAGCircuit | DAGDependency):
-        """Args:
+        """
+        Args:
             dag (Union[DAGCircuit, DAGDependency]): The input DAG.
 
         Raises:
             DAGCircuitError: the input object is not a DAG.
-
         """
+
         self.dag = dag
         self._pending_nodes: list[DAGOpNode | DAGDepNode] | None = None
         self._in_degree: dict[DAGOpNode | DAGDepNode, int] | None = None
@@ -256,10 +256,9 @@ class BlockCollector:
 
 class BlockSplitter:
     """Splits a block of nodes into sub-blocks over disjoint qubits.
-    The implementation is based on the Disjoint Set Union data structure.
-    """
+    The implementation is based on the Disjoint Set Union data structure."""
 
-    def __init__(self):  # noqa: D107
+    def __init__(self):
         self.leader = {}  # qubit's group leader
         self.group = {}  # qubit's group
 
@@ -340,13 +339,14 @@ class BlockCollapser:
     """
 
     def __init__(self, dag):
-        """Args:
+        """
+        Args:
             dag (Union[DAGCircuit, DAGDependency]): The input DAG.
 
         Raises:
             DAGCircuitError: the input object is not a DAG.
-
         """
+
         self.dag = dag
 
     def collapse_to_operation(self, blocks, collapse_fn):

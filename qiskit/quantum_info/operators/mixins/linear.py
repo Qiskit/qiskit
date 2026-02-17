@@ -10,7 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Mixin for linear operator interface."""
+"""
+Mixin for linear operator interface.
+"""
 
 import sys
 from abc import ABC, abstractmethod
@@ -79,5 +81,4 @@ class LinearMixin(MultiplyMixin, ABC):
 
         Returns:
             CLASS: the CLASS self + other.
-
         """

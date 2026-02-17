@@ -10,7 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Synthesis of an n-qubit circuit containing only CZ gates for
+"""
+Synthesis of an n-qubit circuit containing only CZ gates for
 linear nearest neighbor (LNN) connectivity, using CX and phase (S, Sdg or Z) gates.
 The two-qubit depth of the circuit is bounded by 2*n+2.
 This algorithm reverts the order of qubits.
@@ -19,7 +20,6 @@ References:
     [1]: Dmitri Maslov, Martin Roetteler,
          Shorter stabilizer circuits via Bruhat decomposition and quantum circuit transformations,
          `arXiv:1705.09176 <https://arxiv.org/abs/1705.09176>`_.
-
 """
 
 import numpy as np
@@ -50,8 +50,8 @@ def synth_cz_depth_line_mr(mat: np.ndarray) -> QuantumCircuit:
         1. Dmitri Maslov, Martin Roetteler,
            *Shorter stabilizer circuits via Bruhat decomposition and quantum circuit transformations*,
            `arXiv:1705.09176 <https://arxiv.org/abs/1705.09176>`_.
-
     """
+
     # Call Rust implementaton
     return QuantumCircuit._from_circuit_data(
         synth_cz_depth_line_mr_inner(mat.astype(bool)), legacy_qubits=True

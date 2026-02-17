@@ -10,7 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""=======================================================
+"""
+=======================================================
 Classical expressions (:mod:`qiskit.circuit.classical`)
 =======================================================
 

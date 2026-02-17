@@ -115,7 +115,6 @@ class VF2Layout(AnalysisPass):
 
         Raises:
             TypeError: At runtime, if neither ``coupling_map`` or ``target`` are provided.
-
         """
         super().__init__()
         self.target = target
@@ -128,7 +127,7 @@ class VF2Layout(AnalysisPass):
         self.avg_error_map = None
 
     def run(self, dag):
-        """Run the layout method"""
+        """run the layout method"""
         if self.target is None and self.coupling_map is None:
             raise TranspilerError("coupling_map or target must be specified.")
         if self.coupling_map is None:

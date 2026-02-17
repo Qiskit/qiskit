@@ -37,6 +37,6 @@ Swap = tuple[PermuteElement, PermuteElement]
 
 
 # Represents a circuit for permuting to a mapping.
-class PermutationCircuit(NamedTuple):  # noqa: D101
+class PermutationCircuit(NamedTuple):
     circuit: DAGCircuit
     inputmap: dict[int | Qubit, Qubit]  # A mapping from architecture nodes to circuit registers.

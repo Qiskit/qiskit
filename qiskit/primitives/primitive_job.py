@@ -9,7 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""Job for the reference implementations of Primitives V1 and V2."""
+"""
+Job for the reference implementations of Primitives V1 and V2.
+"""
 
 import uuid
 from concurrent.futures import ThreadPoolExecutor
@@ -31,9 +33,9 @@ class PrimitiveJob(BasePrimitiveJob[ResultT, JobStatus]):
     """
 
     def __init__(self, function, *args, **kwargs):
-        """Args:
-        function: A callable function to execute the job.
-
+        """
+        Args:
+            function: A callable function to execute the job.
         """
         super().__init__(str(uuid.uuid4()))
         self._future = None

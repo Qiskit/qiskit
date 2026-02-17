@@ -30,7 +30,6 @@ class FullAncillaAllocation(AnalysisPass):
         ancilla locations and their corresponding virtual qubits.
         A separate transformation pass must add those virtual qubits to the
         circuit.
-
     """
 
     def __init__(self, coupling_map):
@@ -38,7 +37,6 @@ class FullAncillaAllocation(AnalysisPass):
 
         Args:
             coupling_map (Union[CouplingMap, Target]): directed graph representing a coupling map.
-
         """
         super().__init__()
         if isinstance(coupling_map, Target):
@@ -67,7 +65,6 @@ class FullAncillaAllocation(AnalysisPass):
 
         Raises:
             TranspilerError: If there is not layout in the property set or not set at init time.
-
         """
         layout = self.property_set.get("layout")
 
@@ -108,7 +105,9 @@ class FullAncillaAllocation(AnalysisPass):
 
     @staticmethod
     def validate_layout(layout_qubits, dag_qubits):
-        """Checks if all the qregs in ``layout_qregs`` already exist in ``dag_qregs``. Otherwise, raise."""
+        """
+        Checks if all the qregs in ``layout_qregs`` already exist in ``dag_qregs``. Otherwise, raise.
+        """
         for qreg in layout_qubits:
             if qreg not in dag_qubits:
                 raise TranspilerError(

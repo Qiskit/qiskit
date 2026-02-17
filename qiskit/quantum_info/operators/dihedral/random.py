@@ -9,7 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""Random CNOTDihedral operator functions"""
+"""
+Random CNOTDihedral operator functions
+"""
 
 from __future__ import annotations
 import numpy as np
@@ -24,11 +26,10 @@ def random_cnotdihedral(num_qubits, seed=None):
         num_qubits (int): the number of qubits for the CNOTDihedral object.
         seed (int or RandomState): Optional. Set a fixed seed or
                                    generator for RNG.
-
     Returns:
         CNOTDihedral: a random CNOTDihedral element.
-
     """
+
     if seed is None:
         rng = np.random.default_rng()
     elif isinstance(seed, np.random.Generator):

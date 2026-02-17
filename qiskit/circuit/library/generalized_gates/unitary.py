@@ -40,6 +40,7 @@ class UnitaryGate(Gate):
     """Class quantum gates specified by a unitary matrix.
 
     Example:
+
     We can create a unitary gate from a unitary matrix then add it to a
     quantum circuit. The matrix can also be directly applied to the quantum
     circuit, see :meth:`.QuantumCircuit.unitary`.
@@ -59,7 +60,6 @@ class UnitaryGate(Gate):
 
         circuit = QuantumCircuit(2)
         circuit.append(gate, [0, 1])
-
     """
 
     def __init__(
@@ -70,7 +70,8 @@ class UnitaryGate(Gate):
         *,
         num_qubits: int | None = None,
     ) -> None:
-        """Args:
+        """
+        Args:
             data: Unitary operator.
             label: Unitary name for backend [Default: ``None``].
             check_input: If set to ``False`` this asserts the input
@@ -82,7 +83,6 @@ class UnitaryGate(Gate):
 
         Raises:
             ValueError: If input data is not an N-qubit unitary operator.
-
         """
         if hasattr(data, "to_matrix"):
             # If input is Gate subclass or some other class object that has
@@ -193,7 +193,6 @@ class UnitaryGate(Gate):
 
         Returns:
             A controlled version of this gate.
-
         """
         if not annotated:
             mat = self.to_matrix()
@@ -227,8 +226,7 @@ class UnitaryGate(Gate):
 
     def _qasm_decomposition(self):
         """Return an unparameterized version of ourselves, so the OQ2 exporter doesn't choke on the
-        non-standard things in our `params` field.
-        """
+        non-standard things in our `params` field."""
         out = self.definition.to_gate()
         out.name = self.name
         return out

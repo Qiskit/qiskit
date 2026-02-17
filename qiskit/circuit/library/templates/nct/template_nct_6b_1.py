@@ -15,7 +15,8 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 
 
 def template_nct_6b_1():
-    """Template 6b_1:
+    """
+    Template 6b_1:
 
     .. code-block:: text
 
@@ -28,7 +29,6 @@ def template_nct_6b_1():
 
     Returns:
         QuantumCircuit: template as a quantum circuit.
-
     """
     qc = QuantumCircuit(3)
     qc.ccx(0, 1, 2)

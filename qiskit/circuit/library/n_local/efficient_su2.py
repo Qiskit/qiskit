@@ -66,6 +66,7 @@ def efficient_su2(
         └──────────┘└──────────┘ ░ └───┘      ░       ░ └───────────┘└───────────┘
 
     Examples:
+
     Per default, the ``"reverse_linear"`` entanglement is used, which, in the case of
     CX gates, is equivalent to an all-to-all entanglement:
 
@@ -111,7 +112,6 @@ def efficient_su2(
 
     Returns:
         An efficient-SU(2) circuit.
-
     """
     if su2_gates is None:
         su2_gates = ["ry", "rz"]
@@ -161,6 +161,7 @@ class EfficientSU2(TwoLocal):
     and options such as skipping unentanglement qubits, which apply here too.
 
     Examples:
+
         >>> circuit = EfficientSU2(3, reps=1)
         >>> print(circuit.decompose())
              ┌──────────┐┌──────────┐          ┌──────────┐┌──────────┐
@@ -218,8 +219,7 @@ class EfficientSU2(TwoLocal):
         name: str = "EfficientSU2",
         flatten: bool | None = None,
     ) -> None:
-        """Instantiate a new :class:`.EfficientSU2` instance.
-
+        """
         Args:
             num_qubits: The number of qubits of the EfficientSU2 circuit.
             reps: Specifies how often the structure of a rotation layer followed by an entanglement
@@ -280,6 +280,5 @@ class EfficientSU2(TwoLocal):
 
         Returns:
             The parameter bounds.
-
         """
         return self.num_parameters * [(-pi, pi)]

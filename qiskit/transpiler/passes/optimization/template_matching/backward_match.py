@@ -10,7 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Template matching in the backward direction, it takes an initial match, a
+"""
+Template matching in the backward direction, it takes an initial match, a
 configuration of qubit, both circuit and template as inputs and the list
 obtained from forward match. The result is a list of matches between the
 template and the circuit.
@@ -29,11 +30,13 @@ from qiskit.circuit.controlledgate import ControlledGate
 
 
 class Match:
-    """Object to represent a match and its qubit configurations."""
+    """
+    Object to represent a match and its qubit configurations.
+    """
 
     def __init__(self, match, qubit, clbit):
-        """Create a Match class with necessary arguments.
-
+        """
+        Create a Match class with necessary arguments.
         Args:
             match (list): list of matched gates.
             qubit (list): list of qubits configuration.
@@ -49,13 +52,15 @@ class Match:
 
 
 class MatchingScenarios:
-    """Class to represent a matching scenario."""
+    """
+    Class to represent a matching scenario.
+    """
 
     def __init__(
         self, circuit_matched, circuit_blocked, template_matched, template_blocked, matches, counter
     ):
-        """Create a MatchingScenarios class with necessary arguments.
-
+        """
+        Create a MatchingScenarios class with necessary arguments.
         Args:
             circuit_matched (list): list of matchedwith attributes in the circuit.
             circuit_blocked (list): list of isblocked attributes in the circuit.
@@ -63,7 +68,6 @@ class MatchingScenarios:
             template_blocked (list): list of isblocked attributes in the template.
             matches (list): list of matches.
             counter (int): counter of the number of circuit gates already considered.
-
         """
         self.circuit_matched = circuit_matched
         self.template_matched = template_matched
@@ -74,29 +78,30 @@ class MatchingScenarios:
 
 
 class MatchingScenariosList:
-    """Object to define a list of MatchingScenarios, with method to append
+    """
+    Object to define a list of MatchingScenarios, with method to append
     and pop elements.
     """
 
     def __init__(self):
-        """Create an empty MatchingScenariosList."""
+        """
+        Create an empty MatchingScenariosList.
+        """
         self.matching_scenarios_list = []
 
     def append_scenario(self, matching):
-        """Append a scenario to the list.
-
+        """
+        Append a scenario to the list.
         Args:
             matching (MatchingScenarios): a scenario of match.
-
         """
         self.matching_scenarios_list.append(matching)
 
     def pop_scenario(self):
-        """Pop the first scenario of the list.
-
+        """
+        Pop the first scenario of the list.
         Returns:
             MatchingScenarios: a scenario of match.
-
         """
         # Pop the first MatchingScenario and returns it
         first = self.matching_scenarios_list[0]
@@ -105,7 +110,8 @@ class MatchingScenariosList:
 
 
 class BackwardMatch:
-    """Class BackwardMatch allows to run backward direction part of template
+    """
+    Class BackwardMatch allows to run backward direction part of template
     matching algorithm.
     """
 
@@ -120,8 +126,8 @@ class BackwardMatch:
         clbits=None,
         heuristics_backward_param=None,
     ):
-        """Create a ForwardMatch class with necessary arguments.
-
+        """
+        Create a ForwardMatch class with necessary arguments.
         Args:
             circuit_dag_dep (DAGDependency): circuit in the dag dependency form.
             template_dag_dep (DAGDependency): template in the dag dependency form.
@@ -132,7 +138,6 @@ class BackwardMatch:
             clbits (list): list of considered clbits in the circuit.
             heuristics_backward_param (list): list that contains the two parameters for
             applying the heuristics (length and survivor).
-
         """
         self.circuit_dag_dep = circuit_dag_dep.copy()
         self.template_dag_dep = template_dag_dep.copy()
@@ -148,12 +153,11 @@ class BackwardMatch:
         self.matching_list = MatchingScenariosList()
 
     def _gate_indices(self):
-        """Function which returns the list of gates that are not match and not
+        """
+        Function which returns the list of gates that are not match and not
         blocked for the first scenario.
-
         Returns:
             list: list of gate id.
-
         """
         gate_indices = []
 
@@ -166,15 +170,13 @@ class BackwardMatch:
         return gate_indices
 
     def _find_backward_candidates(self, template_blocked, matches):
-        """Function which returns the list possible backward candidates in the template dag.
-
+        """
+        Function which returns the list possible backward candidates in the template dag.
         Args:
             template_blocked (list): list of attributes isblocked in the template circuit.
             matches (list): list of matches.
-
         Returns:
             list: list of backward candidates (id).
-
         """
         template_block = []
 
@@ -197,15 +199,13 @@ class BackwardMatch:
         return candidates_indices
 
     def _update_qarg_indices(self, qarg):
-        """Change qubits indices of the current circuit node in order to
+        """
+        Change qubits indices of the current circuit node in order to
         be comparable the indices of the template qubits list.
-
         Args:
             qarg (list): list of qubits indices from the circuit for a given gate.
-
         Returns:
             list: circuit indices update for qubits.
-
         """
         qarg_indices = []
         for q in qarg:
@@ -216,15 +216,13 @@ class BackwardMatch:
         return qarg_indices
 
     def _update_carg_indices(self, carg):
-        """Change clbits indices of the current circuit node in order to
+        """
+        Change clbits indices of the current circuit node in order to
         be comparable the indices of the template qubits list.
-
         Args:
             carg (list): list of clbits indices from the circuit for a given gate.
-
         Returns:
             list: circuit indices update for clbits.
-
         """
         carg_indices = []
         if carg:
@@ -236,29 +234,25 @@ class BackwardMatch:
         return carg_indices
 
     def _is_same_op(self, node_circuit, node_template):
-        """Check if two instructions are the same.
-
+        """
+        Check if two instructions are the same.
         Args:
             node_circuit (DAGDepNode): node in the circuit.
             node_template (DAGDepNode): node in the template.
-
         Returns:
             bool: True if the same, False otherwise.
-
         """
         return node_circuit.op.soft_compare(node_template.op)
 
     def _is_same_q_conf(self, node_circuit, node_template, qarg_circuit):
-        """Check if the qubits configurations are compatible.
-
+        """
+        Check if the qubits configurations are compatible.
         Args:
             node_circuit (DAGDepNode): node in the circuit.
             node_template (DAGDepNode): node in the template.
             qarg_circuit (list): qubits configuration for the Instruction in the circuit.
-
         Returns:
             bool: True if possible, False otherwise.
-
         """
         # If the gate is controlled, then the control qubits have to be compared as sets.
         if isinstance(node_circuit.op, ControlledGate):
@@ -298,16 +292,14 @@ class BackwardMatch:
             return qarg_circuit == node_template.qindices
 
     def _is_same_c_conf(self, node_circuit, node_template, carg_circuit):
-        """Check if the clbits configurations are compatible.
-
+        """
+        Check if the clbits configurations are compatible.
         Args:
             node_circuit (DAGDepNode): node in the circuit.
             node_template (DAGDepNode): node in the template.
             carg_circuit (list): clbits configuration for the Instruction in the circuit.
-
         Returns:
             bool: True if possible, False otherwise.
-
         """
         if (
             node_circuit.type == "op"
@@ -325,15 +317,14 @@ class BackwardMatch:
         return True
 
     def _init_matched_blocked_list(self):
-        """Initialize the list of blocked and matchedwith attributes.
-
+        """
+        Initialize the list of blocked and matchedwith attributes.
         Returns:
             Tuple[list, list, list, list]:
             First list contains the attributes matchedwith in the circuit,
             second list contains the attributes isblocked in the circuit,
             third list contains the attributes matchedwith in the template,
             fourth list contains the attributes isblocked in the template.
-
         """
         circuit_matched = []
         circuit_blocked = []
@@ -352,7 +343,8 @@ class BackwardMatch:
         return circuit_matched, circuit_blocked, template_matched, template_blocked
 
     def _backward_heuristics(self, gate_indices, length, survivor):
-        """Heuristics to cut the tree in the backward match algorithm
+        """
+        Heuristics to cut the tree in the backward match algorithm
         Args:
             gate_indices (list): list of candidates in the circuit.
             length (int): depth for cutting the tree, cutting operation is repeated every length.
@@ -382,19 +374,18 @@ class BackwardMatch:
                 ]
 
     def _backward_metrics(self, scenario):
-        """Heuristics to cut the tree in the backward match algorithm.
-
+        """
+        Heuristics to cut the tree in the backward match algorithm.
         Args:
             scenario (MatchingScenarios): scenario for the given match.
-
         Returns:
             int: length of the match for the given scenario.
-
         """
         return len(scenario.matches)
 
     def run_backward_match(self):
-        """Apply the forward match algorithm and returns the list of matches given an initial match
+        """
+        Apply the forward match algorithm and returns the list of matches given an initial match
         and a circuit qubits configuration.
 
         """

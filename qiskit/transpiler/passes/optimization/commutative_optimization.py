@@ -22,7 +22,8 @@ from qiskit.transpiler.passes.utils.control_flow import trivial_recurse
 
 
 class CommutativeOptimization(TransformationPass):
-    """Cancel/merge gates exploiting commutativity relations.
+    """
+    Cancel/merge gates exploiting commutativity relations.
 
     Specifically, the pass:
 
@@ -38,13 +39,13 @@ class CommutativeOptimization(TransformationPass):
     """
 
     def __init__(self, approximation_degree: float = 1.0, matrix_max_num_qubits: int = 0):
-        """Args:
-        approximation_degree: the threshold used in the the average gate fidelity
-            computation to decide whether pairs of gates can be considered as
-            canceling or commuting.
-        matrix_max_num_qubits: Upper-bound on the number of qubits for the matrix-based
-            commutativity and inverse checks.
-
+        """
+        Args:
+            approximation_degree: the threshold used in the the average gate fidelity
+                computation to decide whether pairs of gates can be considered as
+                canceling or commuting.
+            matrix_max_num_qubits: Upper-bound on the number of qubits for the matrix-based
+                commutativity and inverse checks.
         """
         super().__init__()
         self.commutation_checker = scc.cc
@@ -60,7 +61,6 @@ class CommutativeOptimization(TransformationPass):
 
         Returns:
             DAGCircuit: the optimized DAG.
-
         """
         result = commutative_optimization.commutative_optimization(
             dag, self.commutation_checker, self.approximation_degree, self.matrix_max_num_qubits

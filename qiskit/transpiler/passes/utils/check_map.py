@@ -37,7 +37,6 @@ class CheckMap(AnalysisPass):
             property_set_field (str): An optional string to specify the property set field to
                 store the result of the check. If not provided the result is stored in
                 the property set field ``"is_swap_mapped"``.
-
         """
         super().__init__()
         if property_set_field is None:
@@ -63,7 +62,6 @@ class CheckMap(AnalysisPass):
 
         Args:
             dag (DAGCircuit): DAG to map.
-
         """
         if self._target.qargs is None or not any(
             len(x) == 2 for x in self._target.qargs if x is not None

@@ -11,8 +11,7 @@
 # that they have been altered from the originals.
 
 """User-space constructor functions for the expression tree, which do some of the inference and
-lifting boilerplate work.
-"""
+lifting boilerplate work."""
 
 
 from __future__ import annotations
@@ -55,8 +54,7 @@ if typing.TYPE_CHECKING:
 
 def _coerce_lossless(expr: Expr, type: types.Type) -> Expr | None:
     """Coerce ``expr`` to ``type`` by inserting a suitable :class:`Cast` node, if the cast is
-    lossless.  Otherwise, return ``None``.
-    """
+    lossless.  Otherwise, return ``None``."""
     kind = cast_kind(expr.type, type)
     if kind is CastKind.EQUAL:
         return expr
@@ -109,7 +107,6 @@ def lift(value: typing.Any, /, type: types.Type | None = None) -> Expr:
             Var(ClassicalRegister(3, "c"), Uint(5))
             >>> expr.lift(5, types.Uint(4))
             Value(5, Uint(4))
-
     """
     if isinstance(value, Expr):
         if type is not None:
@@ -158,7 +155,6 @@ def cast(operand: typing.Any, type: types.Type, /) -> Expr:
             >>> value = expr.value(5, types.Uint(32))
             >>> expr.cast(value, types.Uint(8))
             Cast(Value(5, types.Uint(32)), types.Uint(8), implicit=False)
-
     """
     operand = lift(operand)
     if cast_kind(operand.type, type) is CastKind.NONE:
@@ -177,7 +173,6 @@ def bit_not(operand: typing.Any, /) -> Expr:
             >>> from qiskit.circuit.classical import expr
             >>> expr.bit_not(ClassicalRegister(3, "c"))
             Unary(Unary.Op.BIT_NOT, Var(ClassicalRegister(3, 'c'), Uint(3)), Uint(3))
-
     """
     operand = lift(operand)
     if operand.type.kind not in (types.Bool, types.Uint):
@@ -200,7 +195,6 @@ Unary.Op.LOGIC_NOT, \
 Cast(Var(ClassicalRegister(3, 'c'), Uint(3)), \
 Bool(), implicit=True), \
 Bool())
-
     """
     operand = lift(operand)
     coerced_operand = _coerce_lossless(operand, types.Bool())
@@ -211,8 +205,7 @@ Bool())
 
 def _lift_binary_operands(left: typing.Any, right: typing.Any) -> tuple[Expr, Expr]:
     """Lift two binary operands simultaneously, inferring the widths of integer literals in either
-    position to match the other operand.
-    """
+    position to match the other operand."""
     left_int = isinstance(left, int) and not isinstance(left, bool)
     right_int = isinstance(right, int) and not isinstance(right, bool)
     if not (left_int or right_int):
@@ -278,8 +271,7 @@ Binary.Op.BIT_AND, \
 Var(ClassicalRegister(3, 'c'), Uint(3)), \
 Value(7, Uint(3)), \
 Uint(3))
-
-    """
+        """
     return _binary_bitwise(Binary.Op.BIT_AND, left, right)
 
 
@@ -298,7 +290,6 @@ Binary.Op.BIT_OR, \
 Var(ClassicalRegister(3, 'c'), Uint(3)), \
 Value(5, Uint(3)), \
 Uint(3))
-
     """
     return _binary_bitwise(Binary.Op.BIT_OR, left, right)
 
@@ -318,7 +309,6 @@ Binary.Op.BIT_XOR, \
 Var(ClassicalRegister(3, 'c'), Uint(3)), \
 Value(5, Uint(3)), \
 Uint(3))
-
     """
     return _binary_bitwise(Binary.Op.BIT_XOR, left, right)
 
@@ -345,7 +335,6 @@ def logic_and(left: typing.Any, right: typing.Any, /) -> Expr:
             >>> from qiskit.circuit.classical import expr
             >>> expr.logical_and(Clbit(), Clbit())
             Binary(Binary.Op.LOGIC_AND, Var(<clbit 0>, Bool()), Var(<clbit 1>, Bool()), Bool())
-
     """
     return _binary_logical(Binary.Op.LOGIC_AND, left, right)
 
@@ -361,7 +350,6 @@ def logic_or(left: typing.Any, right: typing.Any, /) -> Expr:
             >>> from qiskit.circuit.classical import expr
             >>> expr.logical_and(Clbit(), Clbit())
             Binary(Binary.Op.LOGIC_OR, Var(<clbit 0>, Bool()), Var(<clbit 1>, Bool()), Bool())
-
     """
     return _binary_logical(Binary.Op.LOGIC_OR, left, right)
 
@@ -390,7 +378,6 @@ def equal(left: typing.Any, right: typing.Any, /) -> Expr:
 Var(ClassicalRegister(3, "c"), Uint(3)), \
 Value(7, Uint(3)), \
 Uint(3))
-
     """
     return _equal_like(Binary.Op.EQUAL, left, right)
 
@@ -409,7 +396,6 @@ def not_equal(left: typing.Any, right: typing.Any, /) -> Expr:
 Var(ClassicalRegister(3, "c"), Uint(3)), \
 Value(7, Uint(3)), \
 Uint(3))
-
     """
     return _equal_like(Binary.Op.NOT_EQUAL, left, right)
 
@@ -438,7 +424,6 @@ def less(left: typing.Any, right: typing.Any, /) -> Expr:
 Var(ClassicalRegister(3, "c"), Uint(3)), \
 Value(5, Uint(3)), \
 Uint(3))
-
     """
     return _binary_relation(Binary.Op.LESS, left, right)
 
@@ -457,7 +442,6 @@ def less_equal(left: typing.Any, right: typing.Any, /) -> Expr:
 Var(ClassicalRegister(3, "a"), Uint(3)), \
 Var(ClassicalRegister(3, "b"), Uint(3)), \
 Uint(3))
-
     """
     return _binary_relation(Binary.Op.LESS_EQUAL, left, right)
 
@@ -476,7 +460,6 @@ def greater(left: typing.Any, right: typing.Any, /) -> Expr:
 Var(ClassicalRegister(3, "c"), Uint(3)), \
 Value(5, Uint(3)), \
 Uint(3))
-
     """
     return _binary_relation(Binary.Op.GREATER, left, right)
 
@@ -495,7 +478,6 @@ def greater_equal(left: typing.Any, right: typing.Any, /) -> Expr:
 Var(ClassicalRegister(3, "a"), Uint(3)), \
 Var(ClassicalRegister(3, "b"), Uint(3)), \
 Uint(3))
-
     """
     return _binary_relation(Binary.Op.GREATER_EQUAL, left, right)
 
@@ -543,7 +525,6 @@ Uint(8))
 Value(3, Uint(16)), \
 Var(<UUID>, Uint(8), name='a'), \
 Uint(16))
-
     """
     return _shift_like(Binary.Op.SHIFT_LEFT, left, right, type)
 
@@ -564,7 +545,6 @@ def shift_right(left: typing.Any, right: typing.Any, /, type: types.Type | None 
 Var(ClassicalRegister(8, "a"), Uint(8)), \
 Value(4, Uint(3)), \
 Uint(8))
-
     """
     return _shift_like(Binary.Op.SHIFT_RIGHT, left, right, type)
 
@@ -582,7 +562,6 @@ def index(target: typing.Any, index: typing.Any, /) -> Expr:
             >>> from qiskit.circuit.classical import expr
             >>> expr.index(ClassicalRegister(8, "a"), 3)
             Index(Var(ClassicalRegister(8, "a"), Uint(8)), Value(3, Uint(2)), Bool())
-
     """
     target, index = lift(target), lift(index)
     if target.type.kind is not types.Uint or index.type.kind is not types.Uint:
@@ -632,8 +611,7 @@ Binary.Op.ADD, \
 Value(Duration.dt(1000), Duration()), \
 Value(Duration.dt(1000), Duration()), \
 Duration())
-
-    """
+        """
     return _binary_sum(Binary.Op.ADD, left, right)
 
 
@@ -662,8 +640,7 @@ Binary.Op.SUB, \
 Value(Duration.dt(1000), Duration()), \
 Value(Duration.dt(1000), Duration()), \
 Duration())
-
-    """
+        """
     return _binary_sum(Binary.Op.SUB, left, right)
 
 
@@ -695,7 +672,6 @@ Binary.Op.MUL, \
 Value(Duration.dt(1000), Duration()), \
 Value(0.5, Float()), \
 Duration())
-
     """
     left, right = _lift_binary_operands(left, right)
     type: types.Type
@@ -761,7 +737,6 @@ Binary.Op.DIV, \
 Value(Duration.dt(10000), Duration()), \
 Value(12.0, types.Float()), \
 Duration())
-
     """
     left, right = _lift_binary_operands(left, right)
     type: types.Type

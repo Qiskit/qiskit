@@ -88,9 +88,4 @@ class BaseScheduler(AnalysisPass):
         return duration
 
     def run(self, dag: DAGCircuit):
-        """Base run method
-
-        This must be implemented in subclasses and will raise :class:`NotImplementedError`
-        otherwise.
-        """
         raise NotImplementedError

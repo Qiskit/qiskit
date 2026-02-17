@@ -33,13 +33,6 @@ class FlowControllerLinear(BaseController):
         *,
         options: dict[str, Any] | None = None,
     ):
-        """Initialize a new linear flow controller instance
-
-        Args:
-            tasks: The tasks to execute in the flow controller
-            options: Optional options for the flow controller
-
-        """
         super().__init__(options)
 
         if not isinstance(tasks, Iterable):
@@ -51,9 +44,7 @@ class FlowControllerLinear(BaseController):
         """Alias of tasks for backward compatibility."""
         return list(self.tasks)
 
-    def iter_tasks(  # noqa: D102
-        self, state: PassManagerState
-    ) -> Generator[Task, PassManagerState, None]:
+    def iter_tasks(self, state: PassManagerState) -> Generator[Task, PassManagerState, None]:
         for task in self.tasks:  # noqa: UP028
             yield task
 
@@ -63,8 +54,7 @@ class DoWhileController(BaseController):
     ``False``.
 
     The given tasks will always run at least once, and on iteration of the loop, all the
-    tasks will be run (with the exception of a failure state being set).
-    """
+    tasks will be run (with the exception of a failure state being set)."""
 
     def __init__(
         self,
@@ -73,15 +63,6 @@ class DoWhileController(BaseController):
         *,
         options: dict[str, Any] | None = None,
     ):
-        """Initialize a new do while loop flow controller instance
-
-        Args:
-            tasks: The tasks to execute in the flow controller
-            do_while: A callable function that will be passed the property set
-                and should return whether to continue looping or not
-            options: Optional options for the flow controller
-
-        """
         super().__init__(options)
 
         if not isinstance(tasks, Iterable):
@@ -94,9 +75,7 @@ class DoWhileController(BaseController):
         """Alias of tasks for backward compatibility."""
         return list(self.tasks)
 
-    def iter_tasks(  # noqa: D102
-        self, state: PassManagerState
-    ) -> Generator[Task, PassManagerState, None]:
+    def iter_tasks(self, state: PassManagerState) -> Generator[Task, PassManagerState, None]:
         max_iteration = self._options.get("max_iteration", 1000)
         for _ in range(max_iteration):
             for task in self.tasks:
@@ -110,8 +89,7 @@ class DoWhileController(BaseController):
 
 class ConditionalController(BaseController):
     """A flow controller runs the pipeline once if the condition is true, or does nothing if the
-    condition is false.
-    """
+    condition is false."""
 
     def __init__(
         self,
@@ -120,15 +98,6 @@ class ConditionalController(BaseController):
         *,
         options: dict[str, Any] | None = None,
     ):
-        """Initialize a new do while loop flow controller instance
-
-        Args:
-            tasks: The tasks to execute in the flow controller
-            condition: A callable function that will be passed the property set
-                and should return whether to execute the tasks or not
-            options: Optional options for the flow controller
-
-        """
         super().__init__(options)
 
         if not isinstance(tasks, Iterable):
@@ -141,9 +110,7 @@ class ConditionalController(BaseController):
         """Alias of tasks for backward compatibility."""
         return list(self.tasks)
 
-    def iter_tasks(  # noqa: D102
-        self, state: PassManagerState
-    ) -> Generator[Task, PassManagerState, None]:
+    def iter_tasks(self, state: PassManagerState) -> Generator[Task, PassManagerState, None]:
         if self.condition(state.property_set):
             for task in self.tasks:
                 state = yield task

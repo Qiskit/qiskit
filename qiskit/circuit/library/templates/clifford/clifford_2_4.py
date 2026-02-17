@@ -15,7 +15,8 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 
 
 def clifford_2_4():
-    """Clifford template 2_4:
+    """
+    Clifford template 2_4:
 
     .. code-block:: text
 
@@ -25,7 +26,6 @@ def clifford_2_4():
 
     Returns:
         QuantumCircuit: template as a quantum circuit.
-
     """
     qc = QuantumCircuit(2)
     qc.swap(0, 1)

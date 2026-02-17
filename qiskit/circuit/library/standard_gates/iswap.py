@@ -88,9 +88,9 @@ class iSwapGate(SingletonGate):
     _standard_gate = StandardGate.ISwap
 
     def __init__(self, label: str | None = None):
-        """Args:
-        label: An optional label for the gate.
-
+        """
+        Args:
+            label: An optional label for the gate.
         """
         super().__init__("iswap", 2, [], label=label)
 
@@ -98,6 +98,7 @@ class iSwapGate(SingletonGate):
 
     def _define(self):
         """Default definition"""
+
         from qiskit.circuit import QuantumCircuit
 
         #      ┌───┐┌───┐     ┌───┐

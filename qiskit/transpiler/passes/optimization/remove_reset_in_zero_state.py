@@ -28,7 +28,6 @@ class RemoveResetInZeroState(TransformationPass):
 
         Returns:
             DAGCircuit: the optimized DAG.
-
         """
         resets = dag.op_nodes(Reset)
         for reset in resets:

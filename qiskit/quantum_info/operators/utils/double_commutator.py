@@ -51,11 +51,11 @@ def double_commutator(
         The double commutator
 
     References:
+
         [1]: R. McWeeny.
             Methods of Molecular Quantum Mechanics.
             2nd Edition, Academic Press, 1992.
             ISBN 0-12-486552-6.
-
     """
     sign_num = -1 if commutator else 1
 

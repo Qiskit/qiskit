@@ -10,7 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Methods to create random operators."""
+"""
+Methods to create random operators.
+"""
 
 from __future__ import annotations
 
@@ -39,7 +41,6 @@ def random_unitary(dims: int | tuple, seed: int | np.random.Generator | None = N
 
     Returns:
         Operator: a unitary operator.
-
     """
     if seed is None:
         random_state = DEFAULT_RNG
@@ -72,7 +73,6 @@ def random_hermitian(
 
     Returns:
         Operator: a Hermitian operator.
-
     """
     if seed is None:
         rng = DEFAULT_RNG
@@ -125,7 +125,6 @@ def random_quantum_channel(
 
     Raises:
         QiskitError: if rank or dimensions are invalid.
-
     """
     # Determine total input and output dimensions
     if input_dims is None and output_dims is None:

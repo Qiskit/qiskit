@@ -10,7 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Object to represent a quantum circuit as a directed acyclic graph (DAG).
+"""
+Object to represent a quantum circuit as a directed acyclic graph (DAG).
 
 The nodes in the graph are either input/output nodes or operation nodes.
 The edges correspond to qubits or bits in the circuit. A directed edge

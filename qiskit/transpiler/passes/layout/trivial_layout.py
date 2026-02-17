@@ -38,7 +38,6 @@ class TrivialLayout(AnalysisPass):
 
         Raises:
             TranspilerError: if invalid options
-
         """
         super().__init__()
         if isinstance(coupling_map, Target):
@@ -56,7 +55,6 @@ class TrivialLayout(AnalysisPass):
 
         Raises:
             TranspilerError: if dag wider than the target backend
-
         """
         if self.target is not None:
             if dag.num_qubits() > self.target.num_qubits:

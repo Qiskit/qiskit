@@ -117,7 +117,6 @@ def real_amplitudes(
 
     Returns:
         A real-amplitudes circuit.
-
     """
     # Set entanglement_blocks to None when num_qubits == 1
     entanglement_blocks = ["cx"] if num_qubits > 1 else []
@@ -172,6 +171,7 @@ class RealAmplitudes(TwoLocal):
     rotation with summed rotation angles.
 
     Examples:
+
         >>> ansatz = RealAmplitudes(3, reps=2)  # create the circuit on 3 qubits
         >>> print(ansatz.decompose())
              ┌──────────┐                 ┌──────────┐                 ┌──────────┐
@@ -255,8 +255,7 @@ class RealAmplitudes(TwoLocal):
         name: str = "RealAmplitudes",
         flatten: bool | None = None,
     ) -> None:
-        """Instantiate a new :class:`.RealAmplitudes` instance.
-
+        """
         Args:
             num_qubits: The number of qubits of the RealAmplitudes circuit.
             reps: Specifies how often the structure of a rotation layer followed by an entanglement
@@ -311,6 +310,5 @@ class RealAmplitudes(TwoLocal):
 
         Returns:
             The parameter bounds.
-
         """
         return self.num_parameters * [(-np.pi, np.pi)]

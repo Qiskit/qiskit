@@ -25,8 +25,8 @@ class UCRYGate(UCPauliRotGate):
     """
 
     def __init__(self, angle_list: list[float]) -> None:
-        r"""Args:
-        angle_list: List of rotation angles :math:`[a_0, ..., a_{2^{k-1}}]`.
-
+        r"""
+        Args:
+            angle_list: List of rotation angles :math:`[a_0, ..., a_{2^{k-1}}]`.
         """
         super().__init__(angle_list, "Y")

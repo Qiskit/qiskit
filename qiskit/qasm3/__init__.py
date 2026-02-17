@@ -10,7 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""================================
+"""
+================================
 OpenQASM 3 (:mod:`qiskit.qasm3`)
 ================================
 
@@ -290,7 +291,6 @@ def dumps(circuit, **kwargs) -> str:
 
     Returns:
         str: The OpenQASM 3 serialization
-
     """
     return Exporter(**kwargs).dumps(circuit)
 
@@ -322,7 +322,6 @@ def load(
         num_qubits: keyword argument which provides number of physical/virtual qubits.
         annotation_handlers: a mapping whose keys are (parent) namespaces and values are serializers
             that can handle children of those namesapces.  Requires ``qiskit_qasm3_import>=0.6.0``.
-
     Returns:
         QuantumCircuit: a circuit representation of the OpenQASM 3 program.
 
@@ -332,8 +331,8 @@ def load(
 
     .. versionadded:: 2.1
         The ``annotation_handlers`` argument.  This requires ``qiskit_qasm3_import>=0.6.0``.
-
     """
+
     with open(filename) as fptr:
         program = fptr.read()
     return loads(program, num_qubits=num_qubits, annotation_handlers=annotation_handlers)
@@ -349,6 +348,7 @@ def loads(
     """Load an OpenQASM 3 program from the given string.
 
     Examples:
+
         Load a OpenQASM3 string into a quantum circuit with/without `num_qubits` argument.
 
         .. plot::
@@ -374,7 +374,6 @@ def loads(
         num_qubits: provides number of physical/virtual qubits.
         annotation_handlers: a mapping whose keys are (parent) namespaces and values are serializers
             that can handle children of those namesapces.  Requires ``qiskit_qasm3_import>=0.6.0``.
-
     Returns:
         QuantumCircuit: a circuit representation of the OpenQASM 3 program.
 
@@ -385,8 +384,8 @@ def loads(
 
     .. versionadded:: 2.1
         The ``annotation_handlers`` argument.  This requires ``qiskit_qasm3_import>=0.6.0``.
-
     """
+
     import qiskit_qasm3_import
 
     kwargs = {}

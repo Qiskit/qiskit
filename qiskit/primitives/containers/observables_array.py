@@ -11,7 +11,9 @@
 # that they have been altered from the originals.
 
 
-"""ND-Array container class for Estimator observables."""
+"""
+ND-Array container class for Estimator observables.
+"""
 from __future__ import annotations
 
 from copy import deepcopy
@@ -71,7 +73,6 @@ class ObservablesArray(ShapedMixin):
 
         Raises:
             ValueError: If ``validate=True`` and the input observables array is not valid.
-
         """
         super().__init__()
         if isinstance(observables, ObservablesArray):
@@ -172,7 +173,6 @@ class ObservablesArray(ShapedMixin):
 
         Returns:
             A :class:`numpy.ndarray` with elements of type :class:`~.SparseObservable`.
-
         """
         obs = self.copy() if copy else self
         return obs._array
@@ -206,7 +206,6 @@ class ObservablesArray(ShapedMixin):
         Returns:
             A single :class:`~.SparseObservable` if an integer is given for every array axis, otherwise,
             a new :class:`~.ObservablesArray`.
-
         """
         item = self._array[args]
         if not isinstance(item, np.ndarray):
@@ -224,7 +223,6 @@ class ObservablesArray(ShapedMixin):
 
         Returns:
             A new array.
-
         """
         shape = shape_tuple(*shape)
         return ObservablesArray(self._array.reshape(shape), copy=False, validate=False)
@@ -237,7 +235,6 @@ class ObservablesArray(ShapedMixin):
 
         Returns:
             A new flattened array.
-
         """
         return self.reshape(self.size)
 
@@ -259,7 +256,6 @@ class ObservablesArray(ShapedMixin):
         Raises:
             TypeError: If the input cannot be formatted because its type is not valid.
             ValueError: If the input observable is invalid or empty.
-
         """
         # Pauli-type conversions
         if isinstance(observable, SparsePauliOp):
@@ -315,7 +311,6 @@ class ObservablesArray(ShapedMixin):
 
         Returns:
             A coerced observables array.
-
         """
         if isinstance(observables, ObservablesArray):
             return observables
@@ -331,7 +326,6 @@ class ObservablesArray(ShapedMixin):
         Returns:
             Whether the two observables arrays have the same shape and number of qubits,
             and if so, whether they are equal within tolerance.
-
         """
         if self.num_qubits != other.num_qubits or self.shape != other.shape:
             return False
@@ -368,7 +362,6 @@ class ObservablesArray(ShapedMixin):
 
         Raises:
             QiskitError: ...
-
         """
         if layout is None and num_qubits is None:
             return self.copy()

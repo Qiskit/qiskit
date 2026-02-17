@@ -10,7 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Core module of the timeline drawer.
+"""
+Core module of the timeline drawer.
 
 This module provides the `DrawerCanvas` which is a collection of drawings.
 The canvas instance is not just a container of drawing objects, as it also performs
@@ -100,7 +101,6 @@ class DrawerCanvas:
 
         Returns:
             Time window considering side margin.
-
         """
         t0, t1 = self._time_range
 
@@ -133,7 +133,6 @@ class DrawerCanvas:
 
         Args:
             data: New drawing to add.
-
         """
         if not self.formatter["control.show_clbits"]:
             data.bits = [b for b in data.bits if not isinstance(b, circuit.Clbit)]
@@ -158,7 +157,6 @@ class DrawerCanvas:
 
         Raises:
            VisualizationError: When circuit is not scheduled.
-
         """
         not_gate_like = (circuit.Barrier,)
 
@@ -270,7 +268,6 @@ class DrawerCanvas:
         Args:
             t_start: Left boundary of drawing in units of cycle time.
             t_end: Right boundary of drawing in units of cycle time.
-
         """
         self.time_range = (t_start, t_end)
 
@@ -282,7 +279,6 @@ class DrawerCanvas:
         Args:
             bit: A qubit or classical bit object to disable.
             remove: Set `True` to disable, set `False` to enable.
-
         """
         if remove:
             self.disable_bits.add(bit)
@@ -297,7 +293,6 @@ class DrawerCanvas:
         Args:
             data_type: A drawing data type to disable.
             remove: Set `True` to disable, set `False` to enable.
-
         """
         if isinstance(data_type, Enum):
             data_type_str = str(data_type.value)
@@ -361,7 +356,6 @@ class DrawerCanvas:
 
         Returns:
             Return `True` if the data is visible.
-
         """
         _barriers = [str(types.LineType.BARRIER.value)]
 
@@ -406,7 +400,6 @@ class DrawerCanvas:
 
         Returns:
             Return `True` if the bit is visible.
-
         """
         _gates = [str(types.BoxType.SCHED_GATE.value), str(types.SymbolType.FRAME.value)]
 
@@ -429,7 +422,6 @@ class DrawerCanvas:
 
         Returns:
             Numpy data array with substituted values.
-
         """
 
         def substitute(val: types.Coordinate):

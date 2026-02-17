@@ -11,7 +11,9 @@
 # that they have been altered from the originals.
 
 
-"""QPY Type keys for several namespace."""
+"""
+QPY Type keys for several namespace.
+"""
 
 import uuid
 from abc import abstractmethod
@@ -51,7 +53,6 @@ class TypeKeyBase(bytes, Enum):
 
         Returns:
             TypeKey: Corresponding key object.
-
         """
 
     @classmethod
@@ -64,7 +65,6 @@ class TypeKeyBase(bytes, Enum):
 
         Returns:
             any: Corresponding class.
-
         """
 
 

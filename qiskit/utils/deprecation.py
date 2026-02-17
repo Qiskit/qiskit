@@ -52,10 +52,8 @@ def deprecate_func(
             generated message correctly describes it as such. (This isn't necessary for
             property setters, as their docstring is ignored by Python.)
         stacklevel: Stack level passed to :func:`warnings.warn`.
-
     Returns:
         Callable: The decorated callable.
-
     """
 
     def decorator(func):
@@ -145,7 +143,6 @@ def deprecate_arg(
 
     Returns:
         Callable: The decorated callable.
-
     """
 
     def decorator(func):
@@ -321,7 +318,6 @@ def add_deprecation_to_docstring(
         msg: The full deprecation message.
         since: The version the deprecation started at.
         pending: Is the deprecation still pending?
-
     """
     if "\n" in msg:
         raise ValueError(

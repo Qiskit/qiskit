@@ -91,6 +91,7 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
         print(with_dd.draw(idle_wires=False))
 
     References:
+
         [1] A. Seif et al. (2024). Suppressing Correlated Noise in Quantum Computers via
             Context-Aware Compiling, `arXiv:2403.06852 <https://arxiv.org/abs/2403.06852>`_.
 
@@ -106,7 +107,8 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
         pulse_alignment: int | None = None,
         coloring_strategy: rx.ColoringStrategy = rx.ColoringStrategy.Saturation,
     ) -> None:
-        """Args:
+        """
+        Args:
             target: The :class:`.Target` of the device to run the circuit.
             min_duration: Minimal delay duration (in ``dt``) to insert a DD sequence. This
                 can be useful, e.g. if a big delay block would be interrupted and split into
@@ -127,6 +129,7 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
                 see Section 1.2.2.8 of [2].
 
         References:
+
             [2] A. Kosowski, and K. Manuszewski, Classical Coloring of Graphs, Graph Colorings,
                 2-19, 2004. ISBN 0-8218-3458-4.
 
@@ -158,7 +161,7 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
         # but this would repeat logic and is currently no bottleneck.
         self.requires = [PadDelay(target=target)]
 
-    def run(self, dag: DAGCircuit) -> DAGCircuit:  # noqa: D102
+    def run(self, dag: DAGCircuit) -> DAGCircuit:
         # check the schedule analysis was run
         if "node_start_time" not in self.property_set:
             raise RuntimeError(
@@ -417,7 +420,6 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
 
         Returns:
             A list of adjacent delay blocks.
-
         """
         open_delay_blocks = []
         closed_delay_blocks = []
@@ -737,7 +739,6 @@ class AdjacentDelayBlock:
 
         Raises:
             RuntimeError: If the blocks are not ordered by time and event type.
-
         """
 
         def notify(msg, *args):
@@ -775,9 +776,9 @@ class WalshHadamardSequence:
     """Get Walsh-Hadamard sequences for DD up to arbitrary order."""
 
     def __init__(self, max_order: int = 5):
-        """Args:
-        max_order: The maximal order for which the sequences are computed.
-
+        """
+        Args:
+            max_order: The maximal order for which the sequences are computed.
         """
         # these are set in set_max_order
         self.sequences = None
@@ -816,6 +817,7 @@ class WalshHadamardSequence:
 
 def _get_transformation_matrix(n):
     """Get a 2^n x 2^n Walsh-Hadamard matrix with elements in [0, 1]."""
+
     from qiskit.circuit.library import HGate
 
     had = np.array(HGate()).real * np.sqrt(2)

@@ -30,7 +30,8 @@ _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
 
 class MCGupDiag(Gate):
-    r"""Decomposes a multi-controlled gate :math:`U` up to a diagonal :math:`D` acting on the control
+    r"""
+    Decomposes a multi-controlled gate :math:`U` up to a diagonal :math:`D` acting on the control
     and target qubit (but not on the ancilla qubits), i.e., it implements a circuit corresponding to
     a unitary :math:`U'`, such that :math:`U = D U'`.
     """
@@ -38,7 +39,8 @@ class MCGupDiag(Gate):
     def __init__(
         self, gate: np.ndarray, num_controls: int, num_ancillas_zero: int, num_ancillas_dirty: int
     ) -> None:
-        r"""Args:
+        r"""
+        Args:
             gate: :math:`2 \times 2` unitary given as a (complex) ``ndarray``.
             num_controls: Number of control qubits.
             num_ancillas_zero: Number of ancilla qubits that start in the state zero.
@@ -47,8 +49,8 @@ class MCGupDiag(Gate):
 
         Raises:
             QiskitError: if the input format is wrong; if the array gate is not unitary
-
         """
+
         self.num_controls = num_controls
         self.num_ancillas_zero = num_ancillas_zero
         self.num_ancillas_dirty = num_ancillas_dirty
@@ -99,7 +101,8 @@ class MCGupDiag(Gate):
         return diag
 
     def _dec_mcg_up_diag(self):
-        """Call to create a circuit with gates that implement the MCG up to a diagonal gate.
+        """
+        Call to create a circuit with gates that implement the MCG up to a diagonal gate.
         Remark: The qubits the gate acts on are ordered in the following way:
             q=[q_target,q_controls,q_ancilla_zero,q_ancilla_dirty]
         """

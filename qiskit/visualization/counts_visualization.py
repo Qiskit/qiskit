@@ -10,7 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Visualization functions for measurement counts."""
+"""
+Visualization functions for measurement counts.
+"""
 
 from collections import OrderedDict
 import functools
@@ -29,13 +31,10 @@ def hamming_distance(str1, str2):
     Args:
         str1 (str): First string.
         str2 (str): Second string.
-
     Returns:
         int: Distance between strings.
-
     Raises:
         VisualizationError: Strings not same length
-
     """
     if len(str1) != len(str2):
         raise VisualizationError("Strings not same length.")
@@ -138,7 +137,6 @@ def plot_histogram(
             # Sort by the hamming distance (the number of bit flips to change from
             # one bitstring to the other) from a target string.
             hist2 = plot_histogram(counts, sort='hamming', target_string='001')
-
     """
     if not isinstance(data, list):
         data = [data]
@@ -442,7 +440,7 @@ def _unify_labels(data):
 def _plot_data(data, labels, number_to_keep, kind="counts"):
     """Generate the data needed for plotting counts.
 
-    Args:
+    Parameters:
         data (list or dict): This is either a list of dictionaries or a single
             dict containing the values to represent (ex {'001': 130})
         labels (list): The list of bitstring labels for the plot.
@@ -456,7 +454,6 @@ def _plot_data(data, labels, number_to_keep, kind="counts"):
             (list): List of ndarrays for the bars in each experiment.
             (list): Indices for the locations of the bars for each
                     experiment.
-
     """
     labels_dict = OrderedDict()
     all_pvalues = []

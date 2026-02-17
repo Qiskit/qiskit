@@ -10,7 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""===============================================
+"""
+===============================================
 Top-level exceptions (:mod:`qiskit.exceptions`)
 ===============================================
 
@@ -47,7 +48,8 @@ filename that cannot be used:
 
 
 Warnings
---------
+========
+
 Some particular features of Qiskit may raise custom warnings.  In general, Qiskit will use built-in
 Python warnings (such as :exc:`DeprecationWarning`) when appropriate, but warnings related to
 Qiskit-specific functionality will be subtypes of :exc:`QiskitWarning`.
@@ -82,7 +84,6 @@ features and are comfortable that they make break in later versions, you can sil
     from qiskit.exceptions import ExperimentalWarning
 
     warnings.filterwarnings("ignore", category=ExperimentalWarning)
-
 """
 
 from typing import Optional
@@ -114,13 +115,11 @@ class MissingOptionalLibraryError(QiskitError, ImportError):
         self, libname: str, name: str, pip_install: str | None = None, msg: str | None = None
     ) -> None:
         """Set the error message.
-
         Args:
             libname: Name of missing library
             name: Name of class, function, module that uses this library
             pip_install: pip install command, if any
             msg: Descriptive message, if any
-
         """
         message = [f"The '{libname}' library is required to use '{name}'."]
         if pip_install:

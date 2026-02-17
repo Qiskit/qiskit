@@ -78,12 +78,12 @@ class WeightedAdder(BlueprintCircuit):
         weights: list[int] | None = None,
         name: str = "adder",
     ) -> None:
-        """Args:
-        num_state_qubits: The number of state qubits.
-        weights: List of weights, one for each state qubit. If none are provided they
-            default to 1 for every qubit.
-        name: The name of the circuit.
-
+        """
+        Args:
+            num_state_qubits: The number of state qubits.
+            weights: List of weights, one for each state qubit. If none are provided they
+                default to 1 for every qubit.
+            name: The name of the circuit.
         """
         super().__init__(name=name)
 
@@ -99,7 +99,6 @@ class WeightedAdder(BlueprintCircuit):
 
         Returns:
             The number of qubits needed to represent the weighted sum of the qubits.
-
         """
         if sum(self.weights) > 0:
             return int(np.floor(np.log2(sum(self.weights))) + 1)
@@ -111,7 +110,6 @@ class WeightedAdder(BlueprintCircuit):
 
         Returns:
             The weight for the qubit states.
-
         """
         if self._weights:
             return self._weights
@@ -128,7 +126,6 @@ class WeightedAdder(BlueprintCircuit):
 
         Raises:
             ValueError: If not all weights are close to an integer.
-
         """
         if weights:
             for i, weight in enumerate(weights):
@@ -146,7 +143,6 @@ class WeightedAdder(BlueprintCircuit):
 
         Returns:
             The number of state qubits.
-
         """
         return self._num_state_qubits
 
@@ -156,7 +152,6 @@ class WeightedAdder(BlueprintCircuit):
 
         Args:
             num_state_qubits: The new number of state qubits.
-
         """
         if self._num_state_qubits is None or num_state_qubits != self._num_state_qubits:
             self._invalidate()
@@ -189,7 +184,6 @@ class WeightedAdder(BlueprintCircuit):
 
         Returns:
             The number of carry qubits required to compute the sum.
-
         """
         return self.num_sum_qubits - 1
 
@@ -202,7 +196,6 @@ class WeightedAdder(BlueprintCircuit):
 
         Returns:
             The number of additional control qubits required (0 or 1).
-
         """
         return int(self.num_sum_qubits > 2)
 
@@ -411,12 +404,12 @@ class WeightedSumGate(Gate):
         weights: list[int] | None = None,
         label: str | None = None,
     ) -> None:
-        """Args:
-        num_state_qubits: The number of state qubits.
-        weights: List of weights, one for each state qubit. If none are provided they
-            default to 1 for every qubit.
-        label: The name of the circuit.
-
+        """
+        Args:
+            num_state_qubits: The number of state qubits.
+            weights: List of weights, one for each state qubit. If none are provided they
+                default to 1 for every qubit.
+            label: The name of the circuit.
         """
         if weights is None:
             weights = [1] * num_state_qubits

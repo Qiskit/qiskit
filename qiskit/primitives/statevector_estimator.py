@@ -9,7 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""Statevector Estimator V2 class"""
+"""
+Statevector Estimator V2 class
+"""
 
 from __future__ import annotations
 
@@ -27,7 +29,8 @@ from .utils import _statevector_from_circuit
 
 
 class StatevectorEstimator(BaseEstimatorV2):
-    """Simple implementation of :class:`BaseEstimatorV2` with full state vector simulation.
+    """
+    Simple implementation of :class:`BaseEstimatorV2` with full state vector simulation.
 
     This class is implemented via :class:`~.Statevector` which turns provided circuits into
     pure state vectors. These states are subsequently acted on by :class:`~.SparsePauliOp`,
@@ -111,11 +114,11 @@ class StatevectorEstimator(BaseEstimatorV2):
     def __init__(
         self, *, default_precision: float = 0.0, seed: np.random.Generator | int | None = None
     ):
-        """Args:
-        default_precision: The default precision for the estimator if not specified during run.
-        seed: The seed or Generator object for random number generation.
-            If None, a random seeded default RNG will be used.
-
+        """
+        Args:
+            default_precision: The default precision for the estimator if not specified during run.
+            seed: The seed or Generator object for random number generation.
+                If None, a random seeded default RNG will be used.
         """
         self._default_precision = default_precision
         self._seed = seed
@@ -130,7 +133,7 @@ class StatevectorEstimator(BaseEstimatorV2):
         """Return the seed or Generator object for random number generation."""
         return self._seed
 
-    def run(  # noqa: D102
+    def run(
         self, pubs: Iterable[EstimatorPubLike], *, precision: float | None = None
     ) -> PrimitiveJob[PrimitiveResult[PubResult]]:
         if precision is None:

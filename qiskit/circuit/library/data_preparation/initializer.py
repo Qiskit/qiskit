@@ -10,7 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Initialize qubit registers to desired arbitrary state."""
+"""
+Initialize qubit registers to desired arbitrary state.
+"""
 
 from __future__ import annotations
 from collections.abc import Sequence
@@ -39,6 +41,7 @@ class Initialize(Instruction):
     The initial state is prepared based on the :class:`~.library.Isometry` synthesis described in [1].
 
     References:
+
     [1] Iten et al., Quantum circuits for isometries (2016).
     `Phys. Rev. A 93, 032318
     <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.93.032318>`__.
@@ -51,24 +54,24 @@ class Initialize(Instruction):
         num_qubits: int | None = None,
         normalize: bool = False,
     ) -> None:
-        r"""Args:
-        params: The state to initialize to, can be either of the following.
+        r"""
+        Args:
+            params: The state to initialize to, can be either of the following.
 
-            * Statevector or vector of complex amplitudes to initialize to.
-            * Labels of basis states of the Pauli eigenstates Z, X, Y. See
-              :meth:`.Statevector.from_label`. Notice the order of the labels is reversed with
-              respect to the qubit index to be applied to. Example label '01' initializes the
-              qubit zero to :math:`|1\rangle` and the qubit one to :math:`|0\rangle`.
-            * An integer that is used as a bitmap indicating which qubits to initialize to
-              :math:`|1\rangle`. Example: setting params to 5 would initialize qubit 0 and qubit
-              2 to :math:`|1\rangle` and qubit 1 to :math:`|0\rangle`.
+                * Statevector or vector of complex amplitudes to initialize to.
+                * Labels of basis states of the Pauli eigenstates Z, X, Y. See
+                  :meth:`.Statevector.from_label`. Notice the order of the labels is reversed with
+                  respect to the qubit index to be applied to. Example label '01' initializes the
+                  qubit zero to :math:`|1\rangle` and the qubit one to :math:`|0\rangle`.
+                * An integer that is used as a bitmap indicating which qubits to initialize to
+                  :math:`|1\rangle`. Example: setting params to 5 would initialize qubit 0 and qubit
+                  2 to :math:`|1\rangle` and qubit 1 to :math:`|0\rangle`.
 
-        num_qubits: This parameter is only used if params is an int. Indicates the total
-            number of qubits in the `initialize` call. Example: `initialize` covers 5 qubits
-            and params is 3. This allows qubits 0 and 1 to be initialized to :math:`|1\rangle`
-            and the remaining 3 qubits to be initialized to :math:`|0\rangle`.
-        normalize: Whether to normalize an input array to a unit vector.
-
+            num_qubits: This parameter is only used if params is an int. Indicates the total
+                number of qubits in the `initialize` call. Example: `initialize` covers 5 qubits
+                and params is 3. This allows qubits 0 and 1 to be initialized to :math:`|1\rangle`
+                and the remaining 3 qubits to be initialized to :math:`|0\rangle`.
+            normalize: Whether to normalize an input array to a unit vector.
         """
         self._stateprep = StatePreparation(params, num_qubits, normalize=normalize)
 
@@ -82,12 +85,12 @@ class Initialize(Instruction):
         self.definition = initialize_circuit
 
     def gates_to_uncompute(self) -> QuantumCircuit:
-        r"""Call to create a circuit with gates that take the desired vector to zero.
+        """Call to create a circuit with gates that take the desired vector to zero.
 
         Returns:
             QuantumCircuit: circuit to take ``self.params`` vector to :math:`|{00\\ldots0}\\rangle`
-
         """
+
         isom = Isometry(self.params, 0, 0)
         return isom._gates_to_uncompute()
 

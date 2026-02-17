@@ -10,7 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Operator Mixins"""
+"""
+Operator Mixins
+"""
 
 from inspect import getdoc
 
@@ -33,7 +35,6 @@ def generate_apidocs(cls):
 
     Returns:
         cls: the original class with updated docstrings.
-
     """
 
     def _replace_name(mixin, methods):

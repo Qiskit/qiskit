@@ -101,10 +101,10 @@ class PauliEvolutionGate(Gate):
 
 
     References:
+
     [1] G. Li et al. Paulihedral: A Generalized Block-Wise Compiler Optimization
     Framework For Quantum Simulation Kernels (2021).
     `arXiv:2109.03371 <https://arxiv.org/abs/2109.03371>`__
-
     """
 
     def __init__(
@@ -119,18 +119,18 @@ class PauliEvolutionGate(Gate):
         label: str | None = None,
         synthesis: EvolutionSynthesis | None = None,
     ) -> None:
-        """Args:
-        operator: The operator to evolve. Can also be provided as list of non-commuting
-            operators where the elements are sums of commuting operators.
-            For example: ``[XY + YX, ZZ + ZI + IZ, YY]``.
-        time: The evolution time.
-        label: A label for the gate to display in visualizations. Per default, the label is
-            set to ``exp(-it <operators>)`` where ``<operators>`` is the sum of the Paulis.
-            Note that the label does not include any coefficients of the Paulis. See the
-            class docstring for an example.
-        synthesis: A synthesis strategy. If None, the default synthesis is the Lie-Trotter
-            product formula with a single repetition.
-
+        """
+        Args:
+            operator: The operator to evolve. Can also be provided as list of non-commuting
+                operators where the elements are sums of commuting operators.
+                For example: ``[XY + YX, ZZ + ZI + IZ, YY]``.
+            time: The evolution time.
+            label: A label for the gate to display in visualizations. Per default, the label is
+                set to ``exp(-it <operators>)`` where ``<operators>`` is the sum of the Paulis.
+                Note that the label does not include any coefficients of the Paulis. See the
+                class docstring for an example.
+            synthesis: A synthesis strategy. If None, the default synthesis is the Lie-Trotter
+                product formula with a single repetition.
         """
         if isinstance(operator, list):
             operator = [_to_sparse_op(op) for op in operator]
@@ -170,7 +170,6 @@ class PauliEvolutionGate(Gate):
 
         Returns:
             The evolution time.
-
         """
         return self.params[0]
 
@@ -180,7 +179,6 @@ class PauliEvolutionGate(Gate):
 
         Args:
             time: The evolution time.
-
         """
         self.params = [time]
 
@@ -192,7 +190,6 @@ class PauliEvolutionGate(Gate):
 
         Raises:
             ValueError: If the ``time`` parameters is not numeric.
-
         """
         # check the parameter is numeric, otherwise raise an error
         if isinstance(self.time, ParameterExpression):
@@ -242,7 +239,6 @@ class PauliEvolutionGate(Gate):
 
         Returns:
             An operation implementing ``gate^exponent``.
-
         """
         return PauliEvolutionGate(self.operator, self.time * exponent, synthesis=self.synthesis)
 
@@ -278,7 +274,6 @@ class PauliEvolutionGate(Gate):
 
         Returns:
             A controlled version of this gate.
-
         """
         if ctrl_state is None:
             ctrl_state = "1" * num_ctrl_qubits
@@ -341,6 +336,7 @@ def _to_sparse_op(
     operator: Pauli | SparsePauliOp | SparseObservable,
 ) -> SparsePauliOp | SparseObservable:
     """Cast the operator to a sparse format; either SparseObservable or SparsePauliOp."""
+
     if isinstance(operator, Pauli):
         sparse = SparsePauliOp(operator)
     elif isinstance(operator, (SparseObservable, SparsePauliOp)):
@@ -391,14 +387,15 @@ def _get_default_label(operator):
 def _merge_two_pauli_evolutions(
     gate1: PauliEvolutionGate, gate2: PauliEvolutionGate
 ) -> PauliEvolutionGate | None:
-    """Attempts to merge two PauliEvolutionGates can be merged.
+    """
+    Attempts to merge two PauliEvolutionGates can be merged.
 
     Returns:
+
     * None if the arguments are not of type PauliEvolutionGate or cannot be merged,
     * Combined PauliEvolutionGate otherwise.
 
     This function is internal (used from within Rust code) and not a part of public API.
-
     """
     if not isinstance(gate1, PauliEvolutionGate) or not isinstance(gate2, PauliEvolutionGate):
         return None
@@ -421,7 +418,8 @@ def _merge_two_pauli_evolutions(
 
 
 def _pauli_rotation_trace_and_dim(gate: PauliEvolutionGate) -> tuple[complex, int] | None:
-    """For a multi-qubit Pauli rotation, return a tuple ``(Tr(gate) / dim, dim)``.
+    """
+    For a multi-qubit Pauli rotation, return a tuple ``(Tr(gate) / dim, dim)``.
     For sums of Paulis, parameterized angles, or if projectors are contained, `None` is returned.
 
     This function is internal (used from within Rust code) and not a part of public API.

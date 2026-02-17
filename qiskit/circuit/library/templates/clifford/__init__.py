@@ -10,7 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Template circuits over Clifford gates."""
+"""
+Template circuits over Clifford gates.
+"""
 from .clifford_2_1 import clifford_2_1
 from .clifford_2_2 import clifford_2_2
 from .clifford_2_3 import clifford_2_3

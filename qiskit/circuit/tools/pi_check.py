@@ -44,7 +44,6 @@ def pi_check(inpt, eps=1e-9, output="text", ndigits=None):
 
     Raises:
         QiskitError: if output is not a valid option.
-
     """
     if isinstance(inpt, ParameterExpression):
         param_str = str(inpt)

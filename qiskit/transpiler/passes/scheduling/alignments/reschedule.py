@@ -32,6 +32,7 @@ class ConstrainedReschedule(AnalysisPass):
     so that every instruction start time satisfies alignment constraints.
 
     Examples:
+
         We assume executing the following circuit on a backend with 16 dt of acquire alignment.
 
         .. code-block:: text
@@ -54,10 +55,10 @@ class ConstrainedReschedule(AnalysisPass):
                                          0
 
     Notes:
+
         Your backend may execute circuits violating these alignment constraints.
         However, you may obtain erroneous measurement result because of the
         untracked phase originating in the instruction misalignment.
-
     """
 
     def __init__(
@@ -78,7 +79,6 @@ class ConstrainedReschedule(AnalysisPass):
             target: The :class:`~.Target` representing the target backend, if
                 ``target`` is specified then this argument will take
                 precedence and ``acquire_alignment`` and ``pulse_alignment`` will be ignored.
-
         """
         super().__init__()
         self.acquire_align = acquire_alignment
@@ -99,7 +99,6 @@ class ConstrainedReschedule(AnalysisPass):
 
         Returns:
             A list of non-delay successors.
-
         """
         for next_node in dag.successors(node):
             if not isinstance(next_node, DAGOutNode):
@@ -118,7 +117,6 @@ class ConstrainedReschedule(AnalysisPass):
         Args:
             dag: DAG circuit to be rescheduled with constraints.
             node: Current node.
-
         """
         node_start_time = self.property_set["node_start_time"]
         clbit_write_latency = self.property_set.get("clbit_write_latency", 0)
@@ -226,8 +224,8 @@ class ConstrainedReschedule(AnalysisPass):
 
         Raises:
             TranspilerError: If circuit is not scheduled.
-
         """
+
         if "node_start_time" not in self.property_set:
             raise TranspilerError(
                 f"The input circuit {dag.name} is not scheduled. Call one of scheduling passes "

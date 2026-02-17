@@ -39,13 +39,6 @@ class InstructionDurations:
     def __init__(
         self, instruction_durations: InstructionDurationsType | None = None, dt: float | None = None
     ):
-        """Instantiate a new :class:`.InstructionDurations` instance
-
-        Args:
-            instruction_durations: The source of the instruction durations to populate the object with
-            dt: The dt value for the durations in seconds
-
-        """
         self.duration_by_name: dict[str, tuple[float, str]] = {}
         self.duration_by_name_qubits: dict[tuple[str, tuple[int, ...]], tuple[float, str]] = {}
         self.duration_by_name_qubits_params: dict[
@@ -83,7 +76,6 @@ class InstructionDurations:
         Raises:
             TranspilerError: If dt and dtm is different in the backend.
             TypeError: If the backend is the wrong type
-
         """
         # All durations in seconds in gate_length
         if isinstance(backend, BackendV2):
@@ -102,7 +94,6 @@ class InstructionDurations:
 
         Raises:
             TranspilerError: If the format of instruction_durations is invalid.
-
         """
         if dt:
             self.dt = dt
@@ -179,7 +170,6 @@ class InstructionDurations:
 
         Raises:
             TranspilerError: No duration is defined for the instruction.
-
         """
         if isinstance(inst, Barrier):
             return 0
@@ -255,7 +245,6 @@ class InstructionDurations:
 
         Returns:
             Set of units used in this instruction durations.
-
         """
         units_used = set()
         for _, unit in self.duration_by_name_qubits.values():

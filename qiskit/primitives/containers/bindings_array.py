@@ -10,7 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Bindings array class"""
+"""
+Bindings array class
+"""
 from __future__ import annotations
 
 from typing import Union
@@ -92,7 +94,8 @@ class BindingsArray(ShapedMixin):
         data: BindingsArrayLike | None = None,
         shape: ShapeInput | None = None,
     ):
-        r"""Initialize a :class:`~.BindingsArray`.
+        r"""
+        Initialize a :class:`~.BindingsArray`.
 
         The ``shape`` argument does not need to be provided whenever it can unambiguously
         be inferred from the provided arrays. Ambiguity arises whenever the key of an entry of
@@ -114,7 +117,6 @@ class BindingsArray(ShapedMixin):
             ValueError: If the shape cannot be automatically inferred from the arrays, or if there
                 is some inconsistency in the shape of the given arrays.
             TypeError: If some of the values can't be cast to a float type.
-
         """
         super().__init__()
 
@@ -172,7 +174,7 @@ class BindingsArray(ShapedMixin):
 
         The parameters are indexed along the last dimension of the returned array.
 
-        Args:
+        Parameters:
             parameters: Optional parameters that determine the order of the output.
 
         Returns:
@@ -180,7 +182,6 @@ class BindingsArray(ShapedMixin):
 
         Raises:
             ValueError: If ``parameters`` are provided, but do not match those found in ``data``.
-
         """
         position = 0
         ret = np.empty(shape_tuple(self.shape, self.num_parameters))
@@ -226,7 +227,6 @@ class BindingsArray(ShapedMixin):
 
         Raises:
             ValueError: If the index doesn't have the right number of values.
-
         """
         if len(loc) != self.ndim:
             raise ValueError(f"Expected {loc} to index all dimensions of {self.shape}.")
@@ -246,7 +246,6 @@ class BindingsArray(ShapedMixin):
 
         Returns:
             An object array of the same shape containing all bound circuits.
-
         """
         arr = np.empty(self.shape, dtype=object)
         for idx in np.ndindex(self.shape):
@@ -261,7 +260,6 @@ class BindingsArray(ShapedMixin):
 
         Returns:
             A new bindings array.
-
         """
         return self.reshape(self.size)
 
@@ -278,7 +276,6 @@ class BindingsArray(ShapedMixin):
 
         Raises:
             ValueError: If the provided shape has a different product than the current size.
-
         """
         shape = shape_tuple(shape)
         if any(dim < 0 for dim in shape):
@@ -302,7 +299,6 @@ class BindingsArray(ShapedMixin):
 
         Returns:
             A new bindings array.
-
         """
         if bindings_array is None:
             bindings_array = cls()
@@ -337,7 +333,6 @@ def _standardize_shape(val: np.ndarray, shape: tuple[int, ...]) -> np.ndarray:
 
     Raises:
         ValueError: If the leading shape of ``val`` does not match the ``shape``.
-
     """
     if val.shape == shape:
         val = val[..., None]
@@ -358,7 +353,6 @@ def _infer_shape(data: dict[tuple[Parameter, ...], np.ndarray]) -> tuple[int, ..
 
     Raises:
         ValueError: If this cannot be done unambiguously.
-
     """
     only_possible_shapes = None
 

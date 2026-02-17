@@ -10,7 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Tolerances mixin class."""
+"""
+Tolerances mixin class.
+"""
 
 from abc import ABCMeta
 from qiskit.exceptions import QiskitError
@@ -20,7 +22,7 @@ from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 class TolerancesMeta(ABCMeta):
     """Metaclass to handle tolerances"""
 
-    def __init__(cls, *args, **kwargs):  # noqa: D107
+    def __init__(cls, *args, **kwargs):
         cls._ATOL_DEFAULT = ATOL_DEFAULT
         cls._RTOL_DEFAULT = RTOL_DEFAULT
         cls._MAX_TOL = 1e-4

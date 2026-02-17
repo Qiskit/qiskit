@@ -123,11 +123,11 @@ class BackendSamplerV2(BaseSamplerV2):
         backend: BackendV2,
         options: dict | None = None,
     ):
-        """Args:
-        backend: The backend to run the primitive on.
-        options: The options to control the default shots (``default_shots``) and
-            the random seed for the simulator (``seed_simulator``).
-
+        """
+        Args:
+            backend: The backend to run the primitive on.
+            options: The options to control the default shots (``default_shots``) and
+                the random seed for the simulator (``seed_simulator``).
         """
         self._backend = backend
         self._options = Options(**options) if options else Options()
@@ -142,7 +142,7 @@ class BackendSamplerV2(BaseSamplerV2):
         """Return the options"""
         return self._options
 
-    def run(  # noqa: D102
+    def run(
         self, pubs: Iterable[SamplerPubLike], *, shots: int | None = None
     ) -> PrimitiveJob[PrimitiveResult[SamplerPubResult]]:
         if shots is None:

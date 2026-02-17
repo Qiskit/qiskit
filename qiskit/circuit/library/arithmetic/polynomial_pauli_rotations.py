@@ -30,6 +30,7 @@ def _binomial_coefficients(n):
 
     .. [#] https://github.com/sympy/sympy/blob/sympy-1.5.1/sympy/ntheory/multinomial.py
     """
+
     data = {(0, n): 1, (n, 0): 1}
     temp = 1
     for k in range(1, n // 2 + 1):
@@ -164,13 +165,13 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
         basis: str = "Y",
         name: str = "poly",
     ) -> None:
-        """Args:
-        num_state_qubits: The number of qubits representing the state.
-        coeffs: The coefficients of the polynomial. ``coeffs[i]`` is the coefficient of the
-            i-th power of x. Defaults to linear: [0, 1].
-        basis: The type of Pauli rotation ('X', 'Y', 'Z').
-        name: The name of the circuit.
-
+        """
+        Args:
+            num_state_qubits: The number of qubits representing the state.
+            coeffs: The coefficients of the polynomial. ``coeffs[i]`` is the coefficient of the
+                i-th power of x. Defaults to linear: [0, 1].
+            basis: The type of Pauli rotation ('X', 'Y', 'Z').
+            name: The name of the circuit.
         """
         # set default internal parameters
         self._coeffs = coeffs or [0, 1]
@@ -195,7 +196,6 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
 
         Returns:
             The coefficients of the polynomial.
-
         """
         return self._coeffs
 
@@ -206,8 +206,7 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
         ``coeffs[i]`` is the coefficient of the i-th power of x.
 
         Args:
-            coeffs: The coefficients of the polynomial.
-
+            The coefficients of the polynomial.
         """
         self._invalidate()
         self._coeffs = coeffs
@@ -218,7 +217,6 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
 
         Returns:
             The degree of the polynomial. If the coefficients have not been set, return 0.
-
         """
         if self.coeffs:
             return len(self.coeffs) - 1
@@ -307,7 +305,6 @@ class PolynomialPauliRotationsGate(Gate):
                 i-th power of x. Defaults to linear: [0, 1].
             basis: The type of Pauli rotation ('X', 'Y', 'Z').
             label: A label for the gate.
-
         """
         self.coeffs = coeffs or [0, 1]
         self.basis = basis.lower()
@@ -358,7 +355,6 @@ class PolynomialPauliRotationsGate(Gate):
         Returns:
             A dictionary with pairs ``{control_state: rotation angle}`` where ``control_state``
             is a tuple of ``0`` or ``1`` bits.
-
         """
         # determine the control states
         num_state_qubits = self.num_qubits - 1

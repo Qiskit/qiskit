@@ -9,7 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""PauliList utility functions."""
+"""
+PauliList utility functions.
+"""
 
 from __future__ import annotations
 
@@ -26,7 +28,6 @@ def pauli_basis(num_qubits: int, weight: bool = False) -> PauliList:
 
     Returns:
         PauliList: the Paulis for the basis
-
     """
     pauli_1q = PauliList(["I", "X", "Y", "Z"])
     if num_qubits == 1:

@@ -49,6 +49,7 @@ def synth_mcmt_xgate(
         The synthesized circuit for the MCMT X gate.
 
     """
+
     qr_c = QuantumRegister(num_ctrl_qubits, "ctrl")
     qr_t = QuantumRegister(num_target_qubits, "targ")
     qc = QuantumCircuit(qr_c, qr_t)

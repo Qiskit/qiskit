@@ -66,9 +66,9 @@ class SXGate(SingletonGate):
     _standard_gate = StandardGate.SX
 
     def __init__(self, label: str | None = None):
-        """Args:
-        label: An optional label for the gate.
-
+        """
+        Args:
+            label: An optional label for the gate.
         """
         super().__init__("sx", 1, [], label=label)
 
@@ -76,6 +76,7 @@ class SXGate(SingletonGate):
 
     def _define(self):
         """Default definition"""
+
         from qiskit.circuit import QuantumCircuit
 
         # global phase: π/4
@@ -98,7 +99,6 @@ class SXGate(SingletonGate):
 
         Returns:
             SXdgGate: inverse of :class:`.SXGate`.
-
         """
         return SXdgGate()
 
@@ -130,7 +130,6 @@ class SXGate(SingletonGate):
 
         Returns:
             A controlled version of this gate.
-
         """
         if num_ctrl_qubits == 1:
             gate = CSXGate(label=label, ctrl_state=ctrl_state, _base_label=self.label)
@@ -186,6 +185,7 @@ class SXdgGate(SingletonGate):
 
     def _define(self):
         """Default definition"""
+
         from qiskit.circuit import QuantumCircuit
 
         # global phase: 7π/4
@@ -208,7 +208,6 @@ class SXdgGate(SingletonGate):
 
         Returns:
             SXGate: inverse of :class:`.SXdgGate`
-
         """
         return SXGate()
 
@@ -298,6 +297,7 @@ class CSXGate(SingletonControlledGate):
 
     def _define(self):
         """Default definition"""
+
         from qiskit.circuit import QuantumCircuit
 
         # q_0: ───────■───────

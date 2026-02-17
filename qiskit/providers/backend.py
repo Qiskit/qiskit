@@ -108,8 +108,8 @@ class BackendV2(Backend, ABC):
         Raises:
             AttributeError: If a field is specified that's outside the backend's
                 options
-
         """
+
         self._options = self._default_options()
         self._provider = provider
         if fields:
@@ -191,7 +191,6 @@ class BackendV2(Backend, ABC):
         Returns:
             qiskit.providers.Options: A options object with
                 default values set
-
         """
 
     @property
@@ -204,7 +203,6 @@ class BackendV2(Backend, ABC):
         Returns:
             The input signal timestep in seconds. If the backend doesn't define ``dt``, ``None`` will
             be returned.
-
         """
         return self.target.dt
 
@@ -218,7 +216,6 @@ class BackendV2(Backend, ABC):
         Raises:
             NotImplementedError: if the backend doesn't support querying the
                 output signal timestep
-
         """
         raise NotImplementedError
 
@@ -235,7 +232,6 @@ class BackendV2(Backend, ABC):
         Raises:
             NotImplementedError: if the backend doesn't support querying the
                 measurement mapping
-
         """
         raise NotImplementedError
 
@@ -260,7 +256,6 @@ class BackendV2(Backend, ABC):
         Raises:
             NotImplementedError: if the backend doesn't support querying the
                 qubit properties
-
         """
         # Since the target didn't always have a qubit properties attribute
         # to ensure the behavior here is backwards compatible with earlier
@@ -285,7 +280,6 @@ class BackendV2(Backend, ABC):
         Raises:
             AttributeError: If the field passed in is not part of the
                 options
-
         """
         for field in fields:
             if not hasattr(self._options, field):
@@ -308,7 +302,6 @@ class BackendV2(Backend, ABC):
 
         Returns:
             provider: the provider responsible for the backend.
-
         """
         return self._provider
 
@@ -334,5 +327,4 @@ class BackendV2(Backend, ABC):
 
         Returns:
             Job: The job object for the run
-
         """

@@ -10,7 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Sampler Pub result class"""
+"""
+Sampler Pub result class
+"""
 
 from __future__ import annotations
 
@@ -51,7 +53,6 @@ class SamplerPubResult(PubResult):
             ValueError: If specified names are empty.
             ValueError: If specified name does not exist.
             TypeError: If specified data comes from incompatible types.
-
         """
         if names is None:
             names = list(self.data)

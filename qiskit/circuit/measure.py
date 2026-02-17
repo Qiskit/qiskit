@@ -10,7 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Quantum measurement in the computational basis."""
+"""
+Quantum measurement in the computational basis.
+"""
 
 from qiskit.circuit.singleton import SingletonInstruction, stdlib_singleton_key
 from qiskit.circuit.exceptions import CircuitError
@@ -23,9 +25,9 @@ class Measure(SingletonInstruction):
     _standard_instruction_type = StandardInstructionType.Measure
 
     def __init__(self, label=None):
-        """Args:
-        label: optional string label for this instruction.
-
+        """
+        Args:
+            label: optional string label for this instruction.
         """
         super().__init__("measure", 1, 1, [], label=label)
 

@@ -34,9 +34,9 @@ def synth_integer_comparator_2s(
         A circuit implementing the integer comparator.
 
     References:
+
         [1] J. Gacon et al. "Quantum-enhanced simulation-based optimization"
             `arXiv:2005.10780 <https://arxiv.org/abs/2005.10780>`__.
-
     """
     circuit = QuantumCircuit(2 * num_state_qubits)
     qr_state = circuit.qubits[:num_state_qubits]
@@ -100,7 +100,6 @@ def _get_twos_complement(num_bits: int, value: int) -> list[int]:
 
     Returns:
             The 2's complement of ``self.value``.
-
     """
     twos_complement = pow(2, num_bits) - math.ceil(value)
     twos_complement = f"{twos_complement:b}".rjust(num_bits, "0")

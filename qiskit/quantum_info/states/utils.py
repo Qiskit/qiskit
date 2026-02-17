@@ -10,7 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Quantum information utility functions for states."""
+"""
+Quantum information utility functions for states.
+"""
 
 from __future__ import annotations
 import math
@@ -40,7 +42,6 @@ def partial_trace(state: Statevector | DensityMatrix, qargs: list) -> DensityMat
 
     Raises:
         QiskitError: if input state is invalid.
-
     """
     state = _format_state(state, validate=False)
 
@@ -98,7 +99,6 @@ def shannon_entropy(pvec: list | np.ndarray, base: int = 2) -> float:
 
     Returns:
         float: The Shannon entropy H(pvec).
-
     """
     if base == 2:
 
@@ -163,7 +163,6 @@ def schmidt_decomposition(state, qargs):
         in this notation regardless of the order they are passed. For instance, passing either
         ``qargs=[1,2]`` or ``qargs=[2,1]`` will result in partitioning the state as
         :math:`|q_3q_0\rangle_A\otimes|q_2q_1\rangle_B`.
-
     """
     state = _format_state(state, validate=False)
 
@@ -240,7 +239,6 @@ def _funm_svd(matrix, func):
     Returns:
         ndarray: funm (N, N) Value of the matrix function specified by func
                  evaluated at `A`.
-
     """
     import scipy.linalg as la
 

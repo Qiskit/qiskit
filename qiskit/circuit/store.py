@@ -57,17 +57,16 @@ class Store(Instruction):
 
     This is a low-level primitive of the classical-expression handling (similar to how
     :class:`~.circuit.Measure` is a primitive for quantum measurement), and is not safe for
-    subclassing.
-    """
+    subclassing."""
 
     # This is a compiler/backend intrinsic operation, separate to any quantum processing.
     _directive = True
 
     def __init__(self, lvalue: expr.Expr, rvalue: expr.Expr):
-        """Args:
-        lvalue: the memory location being stored into.
-        rvalue: the expression result being stored.
-
+        """
+        Args:
+            lvalue: the memory location being stored into.
+            rvalue: the expression result being stored.
         """
         if not expr.is_lvalue(lvalue):
             raise CircuitError(f"'{lvalue}' is not an l-value")

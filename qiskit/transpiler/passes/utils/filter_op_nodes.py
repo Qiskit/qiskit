@@ -34,6 +34,7 @@ class FilterOpNodes(TransformationPass):
            returns ``False`` it is removed from the circuit.
 
     Example:
+
         Filter out operations that are labeled ``"foo"``
 
         .. plot::
@@ -52,10 +53,9 @@ class FilterOpNodes(TransformationPass):
                 lambda node: getattr(node.op, "label") != "foo"
             )(circuit)
             circuit.draw('mpl')
-
     """
 
-    def __init__(self, predicate: Callable[[DAGOpNode], bool]):  # noqa: D107
+    def __init__(self, predicate: Callable[[DAGOpNode], bool]):
         super().__init__()
         self.predicate = predicate
 

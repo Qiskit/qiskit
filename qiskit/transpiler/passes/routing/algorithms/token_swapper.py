@@ -52,7 +52,6 @@ class ApproximateTokenSwapper:
         Args:
             graph: Undirected graph represented a coupling map.
             seed: Seed to use for random trials.
-
         """
         self.graph = graph
         self.shortest_paths = rx.graph_distance_matrix(graph)
@@ -74,7 +73,6 @@ class ApproximateTokenSwapper:
 
         Returns:
           The circuit to implement the permutation
-
         """
         sequential_swaps = self.map(permutation, trials=trials)
 
@@ -100,7 +98,6 @@ class ApproximateTokenSwapper:
 
         Returns:
           The swaps to implement the mapping
-
         """
         # Since integer seed is used in rustworkx, take random integer from np.random.randint
         # and use that for the seed.

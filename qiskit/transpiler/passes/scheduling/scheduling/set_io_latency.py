@@ -49,7 +49,6 @@ class SetIOLatency(AnalysisPass):
                 The gate operation occurs after this latency. This appears as a delay
                 in front of the DAGOpNode of the gate.
                 This defaults to 0 dt.
-
         """
         super().__init__()
         self._conditional_latency = conditional_latency
@@ -60,7 +59,6 @@ class SetIOLatency(AnalysisPass):
 
         Args:
             dag: Input DAG circuit.
-
         """
         self.property_set["conditional_latency"] = self._conditional_latency
         self.property_set["clbit_write_latency"] = self._clbit_write_latency

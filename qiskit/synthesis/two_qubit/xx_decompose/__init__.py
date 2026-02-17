@@ -10,7 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Submodule symbol exports for XX decomposition."""
+"""
+Submodule symbol exports for XX decomposition.
+"""
 
 from __future__ import annotations
 from .decomposer import XXDecomposer

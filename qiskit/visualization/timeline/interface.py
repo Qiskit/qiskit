@@ -369,7 +369,6 @@ def draw(
         and update existing stylesheet with custom functions.
         This feature enables you to control the most of the appearance of the output image
         without modifying the codebase of the scheduled circuit drawer.
-
     """
     del show_idle
     del show_barriers

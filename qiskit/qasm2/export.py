@@ -115,7 +115,6 @@ def dump(circuit: QuantumCircuit, filename_or_stream: os.PathLike | io.TextIOBas
 
     Raises:
         QASM2ExportError: if the circuit cannot be represented by OpenQASM 2.
-
     """
     if isinstance(filename_or_stream, io.TextIOBase):
         print(dumps(circuit), file=filename_or_stream)
@@ -135,7 +134,6 @@ def dumps(circuit: QuantumCircuit, /) -> str:
 
     Raises:
         QASM2ExportError: if the circuit cannot be represented by OpenQASM 2.
-
     """
     if circuit.num_parameters > 0:
         raise QASM2ExportError("Cannot represent circuits with unbound parameters in OpenQASM 2.")
@@ -236,8 +234,7 @@ def dumps(circuit: QuantumCircuit, /) -> str:
 
 def _escape_name(name: str, prefix: str) -> str:
     """Returns a valid OpenQASM 2.0 identifier, using `prefix` as a prefix if necessary.  `prefix`
-    must itself be a valid identifier.
-    """
+    must itself be a valid identifier."""
     # Replace all non-ASCII-word characters (letters, digits, underscore) with the underscore.
     escaped_name = re.sub(r"\W", "_", name, flags=re.ASCII)
     if (
@@ -306,8 +303,7 @@ def _define_custom_operation(operation, gates_to_define):
     subcomponents' definitions to the ``gates_to_define`` ordered dictionary.
 
     Returns a potentially new :class:`.Instruction`, which should be used for the
-    :meth:`~.Instruction.qasm` call (it may have been renamed).
-    """
+    :meth:`~.Instruction.qasm` call (it may have been renamed)."""
     if operation.name in _EXISTING_GATE_NAMES:
         return operation
 

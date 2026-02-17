@@ -64,8 +64,7 @@ class OR(QuantumCircuit):
         flags: list[int] | None = None,
         mcx_mode: str = "noancilla",
     ) -> None:
-        """Instantiate a new :class:`.OR` instance.
-
+        """
         Args:
             num_variable_qubits: The qubits of which the OR is computed. The result will be written
                 into an additional result qubit.
@@ -149,11 +148,11 @@ class OrGate(Gate):
         num_variable_qubits: int,
         flags: list[int] | None = None,
     ) -> None:
-        """Args:
-        num_variable_qubits: The qubits of which the OR is computed. The result will be written
-            into an additional result qubit.
-        flags: A list of +1/0/-1 marking negations or omissions of qubits.
-
+        """
+        Args:
+            num_variable_qubits: The qubits of which the OR is computed. The result will be written
+                into an additional result qubit.
+            flags: A list of +1/0/-1 marking negations or omissions of qubits.
         """
         super().__init__("or", num_variable_qubits + 1, [])
         self.num_variable_qubits = num_variable_qubits
@@ -194,7 +193,6 @@ class OrGate(Gate):
 
         Returns:
             OrGate: inverse gate (self-inverse).
-
         """
         return OrGate(self.num_variable_qubits, self.flags)
 

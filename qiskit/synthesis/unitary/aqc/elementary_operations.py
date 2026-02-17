@@ -9,7 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""These are a number of elementary functions that are required for the AQC routines to work."""
+"""
+These are a number of elementary functions that are required for the AQC routines to work.
+"""
 
 import numpy as np
 
@@ -17,7 +19,8 @@ from qiskit.circuit.library.standard_gates import RXGate, RZGate, RYGate
 
 
 def place_unitary(unitary: np.ndarray, n: int, j: int) -> np.ndarray:
-    """Computes I(j - 1) tensor product U tensor product I(n - j), where U is a unitary matrix
+    """
+    Computes I(j - 1) tensor product U tensor product I(n - j), where U is a unitary matrix
     of size ``(2, 2)``.
 
     Args:
@@ -27,13 +30,13 @@ def place_unitary(unitary: np.ndarray, n: int, j: int) -> np.ndarray:
 
     Returns:
         a unitary of n qubits with u in position j.
-
     """
     return np.kron(np.kron(np.eye(2**j), unitary), np.eye(2 ** (n - 1 - j)))
 
 
 def place_cnot(n: int, j: int, k: int) -> np.ndarray:
-    """Places a CNOT from j to k.
+    """
+    Places a CNOT from j to k.
 
     Args:
         n: number of qubits.
@@ -42,7 +45,6 @@ def place_cnot(n: int, j: int, k: int) -> np.ndarray:
 
     Returns:
         a unitary of n qubits with CNOT placed at ``j`` and ``k``.
-
     """
     if j < k:
         unitary = np.kron(
@@ -68,39 +70,39 @@ def place_cnot(n: int, j: int, k: int) -> np.ndarray:
 
 
 def rx_matrix(phi: float) -> np.ndarray:
-    """Computes an RX rotation by the angle of ``phi``.
+    """
+    Computes an RX rotation by the angle of ``phi``.
 
     Args:
         phi: rotation angle.
 
     Returns:
         an RX rotation matrix.
-
     """
     return RXGate(phi).to_matrix()
 
 
 def ry_matrix(phi: float) -> np.ndarray:
-    """Computes an RY rotation by the angle of ``phi``.
+    """
+    Computes an RY rotation by the angle of ``phi``.
 
     Args:
         phi: rotation angle.
 
     Returns:
         an RY rotation matrix.
-
     """
     return RYGate(phi).to_matrix()
 
 
 def rz_matrix(phi: float) -> np.ndarray:
-    """Computes an RZ rotation by the angle of ``phi``.
+    """
+    Computes an RZ rotation by the angle of ``phi``.
 
     Args:
         phi: rotation angle.
 
     Returns:
         an RZ rotation matrix.
-
     """
     return RZGate(phi).to_matrix()

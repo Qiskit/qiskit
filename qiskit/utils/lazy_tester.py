@@ -30,8 +30,7 @@ from .classtools import wrap_method
 class _RequireNow:
     """Helper callable that accepts all function signatures and simply calls
     :meth:`.LazyDependencyManager.require_now`.  This helpful when used with :func:`.wrap_method`,
-    as the callable needs to be compatible with all signatures and be picklable.
-    """
+    as the callable needs to be compatible with all signatures and be picklable."""
 
     __slots__ = ("_feature", "_tester")
 
@@ -88,14 +87,14 @@ class LazyDependencyManager(abc.ABC):
     __slots__ = ("_bool", "_callback", "_install", "_msg", "_name")
 
     def __init__(self, *, name=None, callback=None, install=None, msg=None):
-        """Args:
-        name: the name of this optional dependency.
-        callback: a callback that is called immediately after the availability of the library is
-            tested with the result.  This will only be called once.
-        install: how to install this optional dependency.  Passed to
-            :class:`.MissingOptionalLibraryError` as the ``pip_install`` parameter.
-        msg: an extra message to include in the error raised if this is required.
-
+        """
+        Args:
+            name: the name of this optional dependency.
+            callback: a callback that is called immediately after the availability of the library is
+                tested with the result.  This will only be called once.
+            install: how to install this optional dependency.  Passed to
+                :class:`.MissingOptionalLibraryError` as the ``pip_install`` parameter.
+            msg: an extra message to include in the error raised if this is required.
         """
         self._bool = None
         self._callback = callback
@@ -140,7 +139,6 @@ class LazyDependencyManager(abc.ABC):
         Returns:
             Callable: a decorator that will make its argument require this dependency before it is
             called.
-
         """
         if isinstance(feature_or_callable, str):
             feature = feature_or_callable
@@ -190,7 +188,6 @@ class LazyDependencyManager(abc.ABC):
         Returns:
             Callable: a class decorator that ensures that the wrapped feature is present if the
             class is initialized.
-
         """
         if isinstance(feature_or_class, str):
             feature = feature_or_class
@@ -219,7 +216,6 @@ class LazyDependencyManager(abc.ABC):
 
         Raises:
             MissingOptionalLibraryError: if the dependencies cannot be imported.
-
         """
         if self:
             return
@@ -229,7 +225,8 @@ class LazyDependencyManager(abc.ABC):
 
     @contextlib.contextmanager
     def disable_locally(self):
-        """Create a context, during which the value of the dependency manager will be ``False``.  This
+        """
+        Create a context, during which the value of the dependency manager will be ``False``.  This
         means that within the context, any calls to this object will behave as if the dependency is
         not available, including raising errors.  It is valid to call this method whether or not the
         dependency has already been evaluated.  This is most useful in tests.
@@ -244,8 +241,7 @@ class LazyDependencyManager(abc.ABC):
 
 class LazyImportTester(LazyDependencyManager):
     """A lazy dependency tester for importable Python modules.  Any required objects will only be
-    imported at the point that this object is tested for its Boolean value.
-    """
+    imported at the point that this object is tested for its Boolean value."""
 
     __slots__ = ("_modules",)
 
@@ -258,7 +254,8 @@ class LazyImportTester(LazyDependencyManager):
         install: str | None = None,
         msg: str | None = None,
     ):
-        """Args:
+        """
+        Args:
             name_map_or_modules: if a name map, then a dictionary where the keys are modules or
                 packages, and the values are iterables of names to try and import from that
                 module.  It should be valid to write ``from <module> import <name1>, <name2>, ...``.
@@ -267,7 +264,6 @@ class LazyImportTester(LazyDependencyManager):
 
         Raises:
             ValueError: if no modules are given.
-
         """
         if isinstance(name_map_or_modules, dict):
             self._modules = {module: tuple(names) for module, names in name_map_or_modules.items()}
@@ -344,13 +340,13 @@ class LazySubprocessTester(LazyDependencyManager):
         install: str | None = None,
         msg: str | None = None,
     ):
-        """Args:
+        """
+        Args:
             command: the strings that make up the command to be run.  For example,
                 ``["pdflatex", "-version"]``.
 
         Raises:
             ValueError: if an empty command is given.
-
         """
         self._command = (command,) if isinstance(command, str) else tuple(command)
         if not self._command:

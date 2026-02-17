@@ -18,7 +18,8 @@ from qiskit._accelerate.optimize_clifford_t import optimize_clifford_t
 
 
 class OptimizeCliffordT(TransformationPass):
-    """Optimize sequences of consecutive Clifford+T gates.
+    """
+    Optimize sequences of consecutive Clifford+T gates.
 
     This pass rewrites maximal chains of consecutive single-qubit
     Clifford+T gates, reducing each chain to an equivalent sequence
@@ -29,14 +30,15 @@ class OptimizeCliffordT(TransformationPass):
     """
 
     def run(self, dag: DAGCircuit):
-        """Run the OptimizeCliffordT pass on `dag`.
+        """
+        Run the OptimizeCliffordT pass on `dag`.
 
         Args:
             dag: The directed acyclic graph to run on.
 
         Returns:
             DAGCircuit: Transformed DAG.
-
         """
+
         optimize_clifford_t(dag)
         return dag

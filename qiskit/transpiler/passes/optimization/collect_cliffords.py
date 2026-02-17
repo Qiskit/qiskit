@@ -59,8 +59,8 @@ class CollectCliffords(CollectAndCollapse):
             max_block_width (int | None): specifies the maximum width of the block
                 (that is, the number of qubits over which the block is defined)
                 for the block to be collected.
-
         """
+
         collect_function = partial(
             collect_using_filter_function,
             filter_function=partial(_is_clifford_gate, matrix_based=matrix_based),
@@ -105,6 +105,5 @@ def _is_clifford_gate(node, matrix_based=False):
 
 def _collapse_to_clifford(circuit):
     """Specifies how to construct a ``Clifford`` from a quantum circuit (that must
-    consist of Clifford gates only).
-    """
+    consist of Clifford gates only)."""
     return Clifford(circuit)

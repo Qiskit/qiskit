@@ -9,7 +9,8 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""A definition of the approximate circuit compilation optimization problem based on CNOT unit
+"""
+A definition of the approximate circuit compilation optimization problem based on CNOT unit
 definition.
 """
 from __future__ import annotations
@@ -24,15 +25,16 @@ from .elementary_operations import ry_matrix, rz_matrix, place_unitary, place_cn
 
 
 class CNOTUnitObjective(ApproximatingObjective, ABC):
-    """A base class for a problem definition based on CNOT unit. This class may have different
+    """
+    A base class for a problem definition based on CNOT unit. This class may have different
     subclasses for objective and gradient computations.
     """
 
     def __init__(self, num_qubits: int, cnots: np.ndarray) -> None:
-        """Args:
-        num_qubits: number of qubits.
-        cnots: a CNOT structure to be used in the optimization procedure.
-
+        """
+        Args:
+            num_qubits: number of qubits.
+            cnots: a CNOT structure to be used in the optimization procedure.
         """
         super().__init__()
         self._num_qubits = num_qubits
@@ -41,17 +43,17 @@ class CNOTUnitObjective(ApproximatingObjective, ABC):
 
     @property
     def num_cnots(self):
-        """Returns:
-        A number of CNOT units to be used by the approximate circuit.
-
+        """
+        Returns:
+            A number of CNOT units to be used by the approximate circuit.
         """
         return self._num_cnots
 
     @property
     def num_thetas(self):
-        """Returns:
-        Number of parameters (angles) of rotation gates in this circuit.
-
+        """
+        Returns:
+            Number of parameters (angles) of rotation gates in this circuit.
         """
         return 3 * self._num_qubits + 4 * self._num_cnots
 
@@ -60,10 +62,10 @@ class DefaultCNOTUnitObjective(CNOTUnitObjective):
     """A naive implementation of the objective function based on CNOT units."""
 
     def __init__(self, num_qubits: int, cnots: np.ndarray) -> None:
-        """Args:
-        num_qubits: number of qubits.
-        cnots: a CNOT structure to be used in the optimization procedure.
-
+        """
+        Args:
+            num_qubits: number of qubits.
+            cnots: a CNOT structure to be used in the optimization procedure.
         """
         super().__init__(num_qubits, cnots)
 
@@ -74,7 +76,7 @@ class DefaultCNOTUnitObjective(CNOTUnitObjective):
         self._rotation_matrix: int | np.ndarray | None = None
         self._cnot_matrix: np.ndarray | None = None
 
-    def objective(self, param_values: np.ndarray) -> typing.SupportsFloat:  # noqa: D102
+    def objective(self, param_values: np.ndarray) -> typing.SupportsFloat:
         # rename parameters just to make shorter and make use of our dictionary
         thetas = param_values
         n = self._num_qubits
@@ -167,7 +169,7 @@ class DefaultCNOTUnitObjective(CNOTUnitObjective):
 
         return error
 
-    def gradient(self, param_values: np.ndarray) -> np.ndarray:  # noqa: D102
+    def gradient(self, param_values: np.ndarray) -> np.ndarray:
         # just to make shorter
         thetas = param_values
         # if given thetas are the same as used at the previous objective computations, then

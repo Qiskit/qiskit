@@ -10,7 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""A generic quantum instruction.
+"""
+A generic quantum instruction.
 
 Instructions can be implementable on hardware (u, cx, etc.) or in simulation
 (snapshot, noise, etc.).
@@ -56,7 +57,8 @@ class Instruction(Operation):
     _standard_gate = None
 
     def __init__(self, name, num_qubits, num_clbits, params, label=None):
-        """.. deprecated:: 1.3
+        """
+        .. deprecated:: 1.3
            The parameters ``duration`` and ``unit`` are deprecated since
            Qiskit 1.3, and they will be removed in 2.0 or later.
            An instruction's duration is defined in a backend's Target object.
@@ -72,7 +74,6 @@ class Instruction(Operation):
         Raises:
             CircuitError: when the register is not in the correct format.
             TypeError: when the optional label is provided, but it is not a string.
-
         """
         if not isinstance(num_qubits, int) or not isinstance(num_clbits, int):
             raise CircuitError("num_qubits and num_clbits must be integer.")
@@ -159,7 +160,6 @@ class Instruction(Operation):
 
         Returns:
             bool: are self and other equal.
-
         """
         if (
             not isinstance(other, Instruction)
@@ -212,7 +212,8 @@ class Instruction(Operation):
         )
 
     def soft_compare(self, other: Instruction) -> bool:
-        """Soft comparison between gates. Their names, number of qubits, and classical
+        """
+        Soft comparison between gates. Their names, number of qubits, and classical
         bit numbers must match. The number of parameters must match. Each parameter
         is compared. If one is a ParameterExpression then it is not taken into
         account.
@@ -222,7 +223,6 @@ class Instruction(Operation):
 
         Returns:
             bool: are self and other equal up to parameter expressions.
-
         """
         if (
             self.name != other.name
@@ -282,8 +282,7 @@ class Instruction(Operation):
 
     def is_parameterized(self):
         """Return whether the :class:`Instruction` contains :ref:`compile-time parameters
-        <circuit-compile-time-parameters>`.
-        """
+        <circuit-compile-time-parameters>`."""
         return any(
             isinstance(param, ParameterExpression) and param.parameters for param in self._params
         )
@@ -303,6 +302,7 @@ class Instruction(Operation):
     @property
     def decompositions(self):
         """Get the decompositions of the instruction from the SessionEquivalenceLibrary."""
+
         from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 
         return sel.get_entry(self)
@@ -310,12 +310,14 @@ class Instruction(Operation):
     @decompositions.setter
     def decompositions(self, decompositions):
         """Set the decompositions of the instruction from the SessionEquivalenceLibrary."""
+
         from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 
         sel.set_entry(self, decompositions)
 
     def add_decomposition(self, decomposition):
         """Add a decomposition of the instruction to the SessionEquivalenceLibrary."""
+
         from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 
         sel.add_equivalence(self, decomposition)
@@ -334,7 +336,6 @@ class Instruction(Operation):
 
         Raises:
             TypeError: name is not string or None.
-
         """
         if isinstance(name, (str, type(None))):
             self._label = name
@@ -350,7 +351,6 @@ class Instruction(Operation):
         Returns:
             qiskit.circuit.Instruction: a new instruction with
                 sub-instructions reversed.
-
         """
         # A single `Instruction` cannot really determine whether it is a "composite" instruction or
         # not; it depends on greater context whether it needs to be decomposed.  The `_definition`
@@ -394,7 +394,6 @@ class Instruction(Operation):
         Raises:
             CircuitError: if the instruction is not composite
                 and an inverse has not been implemented for it.
-
         """
         if annotated:
             return AnnotatedOperation(self, InverseModifier())
@@ -427,7 +426,8 @@ class Instruction(Operation):
         return inverse_gate
 
     def copy(self, name=None):
-        """Copy of the instruction.
+        """
+        Copy of the instruction.
 
         Args:
             name (str): name to be given to the copied circuit, if ``None`` then the name stays the same.
@@ -435,7 +435,6 @@ class Instruction(Operation):
         Returns:
             qiskit.circuit.Instruction: a copy of the current instruction, with the name updated if it
             was provided
-
         """
         cpy = self.__deepcopy__()
 
@@ -451,7 +450,8 @@ class Instruction(Operation):
         return cpy
 
     def broadcast_arguments(self, qargs, cargs):
-        """Validation of the arguments.
+        """
+        Validation of the arguments.
 
         Args:
             qargs (List): List of quantum bit arguments.
@@ -463,7 +463,6 @@ class Instruction(Operation):
         Raises:
             CircuitError: If the input is not valid. For example, the number of
                 arguments does not match the gate expectation.
-
         """
         if len(qargs) != self.num_qubits:
             raise CircuitError(
@@ -500,7 +499,6 @@ class Instruction(Operation):
 
         Raises:
             CircuitError: If n < 1.
-
         """
         if int(n) != n or n < 1:
             raise CircuitError("Repeat can only be called with strictly positive integer.")

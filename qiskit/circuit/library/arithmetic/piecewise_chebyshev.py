@@ -56,6 +56,7 @@ class PiecewiseChebyshev(BlueprintCircuit):
         qc.draw(output='mpl')
 
     References:
+
     [1] Haener, T., Roetteler, M., & Svore, K. M. (2018).
     Optimizing Quantum Circuits for Arithmetic.
     `arXiv:1805.12445 <https://arxiv.org/abs/1805.12445>`_
@@ -63,7 +64,6 @@ class PiecewiseChebyshev(BlueprintCircuit):
     [2] Carrera Vazquez, A., Hiptmair, H., & Woerner, S. (2022).
     Enhancing the Quantum Linear Systems Algorithm Using Richardson Extrapolation.
     `ACM Transactions on Quantum Computing 3, 1, Article 2 <https://doi.org/10.1145/3490631>`_
-
     """
 
     def __init__(
@@ -74,16 +74,16 @@ class PiecewiseChebyshev(BlueprintCircuit):
         num_state_qubits: int | None = None,
         name: str = "pw_cheb",
     ) -> None:
-        r"""Args:
-        f_x: the function to be approximated. Constant functions should be specified
-         as f_x = constant.
-        degree: the degree of the polynomials.
-            Defaults to ``1``.
-        breakpoints: the breakpoints to define the piecewise-linear function.
-            Defaults to the full interval.
-        num_state_qubits: number of qubits representing the state.
-        name: The name of the circuit object.
-
+        r"""
+        Args:
+            f_x: the function to be approximated. Constant functions should be specified
+             as f_x = constant.
+            degree: the degree of the polynomials.
+                Defaults to ``1``.
+            breakpoints: the breakpoints to define the piecewise-linear function.
+                Defaults to the full interval.
+            num_state_qubits: number of qubits representing the state.
+            name: The name of the circuit object.
         """
         super().__init__(name=name)
 
@@ -139,7 +139,6 @@ class PiecewiseChebyshev(BlueprintCircuit):
 
         Returns:
             The function to be approximated.
-
         """
         return self._f_x
 
@@ -152,7 +151,6 @@ class PiecewiseChebyshev(BlueprintCircuit):
 
         Args:
             f_x: The new function to be approximated.
-
         """
         if self._f_x is None or f_x != self._f_x:
             self._invalidate()
@@ -166,7 +164,6 @@ class PiecewiseChebyshev(BlueprintCircuit):
 
         Returns:
             The degree of the polynomials.
-
         """
         return self._degree
 
@@ -179,7 +176,6 @@ class PiecewiseChebyshev(BlueprintCircuit):
 
         Args:
             degree: The new degree.
-
         """
         if self._degree is None or degree != self._degree:
             self._invalidate()
@@ -193,7 +189,6 @@ class PiecewiseChebyshev(BlueprintCircuit):
 
         Returns:
             The breakpoints for the piecewise approximation.
-
         """
         breakpoints = self._breakpoints
 
@@ -220,7 +215,6 @@ class PiecewiseChebyshev(BlueprintCircuit):
 
         Args:
             breakpoints: The new breakpoints for the piecewise approximation.
-
         """
         if self._breakpoints is None or breakpoints != self._breakpoints:
             self._invalidate()
@@ -237,7 +231,6 @@ class PiecewiseChebyshev(BlueprintCircuit):
 
         Raises:
             TypeError: If the input function is not in the correct format.
-
         """
         if self.num_state_qubits is None:
             return [[]]
@@ -296,7 +289,6 @@ class PiecewiseChebyshev(BlueprintCircuit):
 
         Args:
             polynomials: The new breakpoints for the piecewise approximation.
-
         """
         if self._polynomials is None or polynomials != self._polynomials:
             self._invalidate()
@@ -310,7 +302,6 @@ class PiecewiseChebyshev(BlueprintCircuit):
 
         Returns:
             The number of state qubits.
-
         """
         return self._num_state_qubits
 
@@ -323,7 +314,6 @@ class PiecewiseChebyshev(BlueprintCircuit):
 
         Args:
             num_state_qubits: The new number of qubits.
-
         """
         if self._num_state_qubits is None or num_state_qubits != self._num_state_qubits:
             self._invalidate()
@@ -351,8 +341,7 @@ class PiecewiseChebyshev(BlueprintCircuit):
 
     def _build(self):
         """Build the circuit if not already build. The operation is considered successful
-        when q_objective is :math:`|1>`
-        """
+        when q_objective is :math:`|1>`"""
         if self._is_built:
             return
 
@@ -398,6 +387,7 @@ class PiecewiseChebyshevGate(Gate):
             qc.draw(output="mpl")
 
     References:
+
     [1] Haener, T., Roetteler, M., & Svore, K. M. (2018).
     Optimizing Quantum Circuits for Arithmetic.
     `arXiv:1805.12445 <https://arxiv.org/abs/1805.12445>`_
@@ -405,7 +395,6 @@ class PiecewiseChebyshevGate(Gate):
     [2] Carrera Vazquez, A., Hiptmair, H., & Woerner, S. (2022).
     Enhancing the Quantum Linear Systems Algorithm Using Richardson Extrapolation.
     `ACM Transactions on Quantum Computing 3, 1, Article 2 <https://doi.org/10.1145/3490631>`_
-
     """
 
     def __init__(
@@ -416,16 +405,16 @@ class PiecewiseChebyshevGate(Gate):
         breakpoints: list[int] | None = None,
         label: str | None = None,
     ) -> None:
-        r"""Args:
-        f_x: the function to be approximated. Constant functions should be specified
-         as f_x = constant.
-        num_state_qubits: number of qubits representing the state.
-        degree: the degree of the polynomials.
-            Defaults to ``1``.
-        breakpoints: the breakpoints to define the piecewise-linear function.
-            Defaults to the full interval.
-        label: A label for the gate.
-
+        r"""
+        Args:
+            f_x: the function to be approximated. Constant functions should be specified
+             as f_x = constant.
+            num_state_qubits: number of qubits representing the state.
+            degree: the degree of the polynomials.
+                Defaults to ``1``.
+            breakpoints: the breakpoints to define the piecewise-linear function.
+                Defaults to the full interval.
+            label: A label for the gate.
         """
         # Store parameters
         self.f_x = f_x
@@ -461,8 +450,8 @@ class PiecewiseChebyshevGate(Gate):
 
         Raises:
             TypeError: If the input function is not in the correct format.
-
         """
+
         # note this must be the private attribute since we handle missing breakpoints at
         # 0 and 2 ^ num_qubits here (e.g. if the function we approximate is not defined at 0
         # and the user takes that into account we just add an identity)

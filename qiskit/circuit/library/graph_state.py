@@ -52,11 +52,11 @@ class GraphState(QuantumCircuit):
        _generate_circuit_library_visualization(circuit)
 
     References:
+
     [1] M. Hein, J. Eisert, H.J. Briegel, Multi-party Entanglement in Graph States,
         `arXiv:0307130 <https://arxiv.org/pdf/quant-ph/0307130.pdf>`_
     [2] D. Koh, Further Extensions of Clifford Circuits & their Classical Simulation Complexities.
         `arXiv:1512.07892 <https://arxiv.org/pdf/1512.07892.pdf>`_
-
     """
 
     @deprecate_func(
@@ -75,8 +75,8 @@ class GraphState(QuantumCircuit):
 
         The circuit prepares a graph state with the given adjacency
         matrix.
-
         """
+
         adjacency_matrix = np.asarray(adjacency_matrix)
         if not np.allclose(adjacency_matrix, adjacency_matrix.transpose()):
             raise CircuitError("The adjacency matrix must be symmetric.")
@@ -120,24 +120,25 @@ class GraphStateGate(Gate):
         circuit.decompose().draw('mpl')
 
     References:
+
     [1] M. Hein, J. Eisert, H.J. Briegel, Multi-party Entanglement in Graph States,
     `arXiv:0307130 <https://arxiv.org/pdf/quant-ph/0307130.pdf>`_
 
     [2] D. Koh, Further Extensions of Clifford Circuits & their Classical Simulation Complexities.
     `arXiv:1512.07892 <https://arxiv.org/pdf/1512.07892.pdf>`_
-
     """
 
     def __init__(self, adjacency_matrix: list | np.ndarray) -> None:
-        """Args:
+        """
+        Args:
             adjacency_matrix: input graph as n-by-n list of 0-1 lists
 
         Raises:
             CircuitError: If adjacency_matrix is not symmetric.
 
         The gate represents a graph state with the given adjacency matrix.
-
         """
+
         adjacency_matrix = np.asarray(adjacency_matrix)
         if not np.allclose(adjacency_matrix, adjacency_matrix.transpose()):
             raise CircuitError("The adjacency matrix must be symmetric.")

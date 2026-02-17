@@ -89,7 +89,6 @@ def evolved_operator_ansatz(
         flatten: If ``True``, a flat circuit is returned instead of nesting it inside multiple
             layers of gate objects. Setting this to ``False`` is significantly less performant,
             especially for parameter binding, but can be desirable for a cleaner visualization.
-
     """
     if reps < 0:
         raise ValueError("reps must be a non-negative integer.")
@@ -216,6 +215,7 @@ def hamiltonian_variational_ansatz(
     minimal set of commuting terms is known it can be passed as sequence into this function.
 
     Examples:
+
     A single operator will be split into commuting terms automatically:
 
     .. plot::
@@ -258,6 +258,7 @@ def hamiltonian_variational_ansatz(
             operator.
 
     References:
+
     [1] D. Wecker et al. Progress towards practical quantum variational algorithms (2015)
     `Phys Rev A 92, 042303 <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.92.042303>`__
 
@@ -295,30 +296,30 @@ class EvolvedOperatorAnsatz(NLocal):
         initial_state: QuantumCircuit | None = None,
         flatten: bool | None = None,
     ):
-        """Args:
-        operators (BaseOperator | QuantumCircuit | list | None): The operators
-            to evolve. If a circuit is passed, we assume it implements an already evolved
-            operator and thus the circuit is not evolved again. Can be a single operator
-            (circuit) or a list of operators (and circuits).
-        reps: The number of times to repeat the evolved operators.
-        evolution (EvolutionBase | EvolutionSynthesis | None):
-            A specification of which evolution synthesis to use for the
-            :class:`.PauliEvolutionGate`.
-            Defaults to first order Trotterization.
-        insert_barriers: Whether to insert barriers in between each evolution.
-        name: The name of the circuit.
-        parameter_prefix: Set the names of the circuit parameters. If a string, the same prefix
-            will be used for each parameters. Can also be a list to specify a prefix per
-            operator.
-        initial_state: A :class:`.QuantumCircuit` object to prepend to the circuit.
-        flatten: Set this to ``True`` to output a flat circuit instead of nesting it inside multiple
-            layers of gate objects. By default currently the contents of
-            the output circuit will be wrapped in nested objects for
-            cleaner visualization. However, if you're using this circuit
-            for anything besides visualization its **strongly** recommended
-            to set this flag to ``True`` to avoid a large performance
-            overhead for parameter binding.
-
+        """
+        Args:
+            operators (BaseOperator | QuantumCircuit | list | None): The operators
+                to evolve. If a circuit is passed, we assume it implements an already evolved
+                operator and thus the circuit is not evolved again. Can be a single operator
+                (circuit) or a list of operators (and circuits).
+            reps: The number of times to repeat the evolved operators.
+            evolution (EvolutionBase | EvolutionSynthesis | None):
+                A specification of which evolution synthesis to use for the
+                :class:`.PauliEvolutionGate`.
+                Defaults to first order Trotterization.
+            insert_barriers: Whether to insert barriers in between each evolution.
+            name: The name of the circuit.
+            parameter_prefix: Set the names of the circuit parameters. If a string, the same prefix
+                will be used for each parameters. Can also be a list to specify a prefix per
+                operator.
+            initial_state: A :class:`.QuantumCircuit` object to prepend to the circuit.
+            flatten: Set this to ``True`` to output a flat circuit instead of nesting it inside multiple
+                layers of gate objects. By default currently the contents of
+                the output circuit will be wrapped in nested objects for
+                cleaner visualization. However, if you're using this circuit
+                for anything besides visualization its **strongly** recommended
+                to set this flag to ``True`` to avoid a large performance
+                overhead for parameter binding.
         """
         super().__init__(
             initial_state=initial_state,
@@ -356,7 +357,6 @@ class EvolvedOperatorAnsatz(NLocal):
 
         Returns:
             The number of qubits.
-
         """
         if self.operators is None:
             return 0
@@ -374,8 +374,8 @@ class EvolvedOperatorAnsatz(NLocal):
 
         Returns:
             EvolutionSynthesis: The evolution converter used to compute the evolution.
-
         """
+
         return self._evolution
 
     @evolution.setter
@@ -384,7 +384,6 @@ class EvolvedOperatorAnsatz(NLocal):
 
         Args:
             evol (EvolutionSynthesis): An evolution synthesis object
-
         """
         self._invalidate()
         self._evolution = evol
@@ -395,7 +394,6 @@ class EvolvedOperatorAnsatz(NLocal):
 
         Returns:
             list: The operators to be evolved (and circuits) contained in this ansatz.
-
         """
         return self._operators
 

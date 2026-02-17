@@ -56,30 +56,6 @@ class CommutationChecker:
         *,
         gates: set[str] | None = None,
     ):
-        """Instantiate a new :class:`.CommutationChecker` instance
-
-        Args:
-            standard_gate_commutations: An optional dictionary of the
-                commutation of gate names pairs to whether they commute or
-                not. The form of the dictionary is::
-
-                    {
-                        (gate_name_a, gate_name_b): True,
-                        (gate_name_a, gate_name_c): {
-                            (0, 1): True,
-                            (1, 0): False,
-                        }
-                    }
-
-                where the first entry indicates the two gates always commute,
-                while the second entry indicates they commute on specific
-                relative qubit arrangements.
-            cache_max_entries: The maximum number of entries to store in the
-                internal cache.
-            gates: An optional set of gates when specified commutation
-                checking will be limited to just these operation names.
-
-        """
         self.cc = RustChecker(standard_gate_commutations, cache_max_entries, gates)
 
     def commute_nodes(
@@ -104,7 +80,8 @@ class CommutationChecker:
         approximation_degree: float = 1.0,
         matrix_max_num_qubits: int = 3,
     ) -> bool:
-        """Checks if two Operations commute. The return value of ``True`` means that the operations
+        """
+        Checks if two Operations commute. The return value of ``True`` means that the operations
         truly commute, and the return value of ``False`` means that either the operations do not
         commute or that the commutation check was skipped (for example, when the operations
         have conditions or have too many qubits).
@@ -128,7 +105,6 @@ class CommutationChecker:
 
         Returns:
             Whether two operations commute.
-
         """
         return self.cc.commute(
             op1,
@@ -167,7 +143,6 @@ class CommutationChecker:
 
         Return:
             bool: True if the gates commute and false if it is not the case.
-
         """
         return self.cc.library.check_commutation_entries(
             first_op, first_qargs, second_op, second_qargs

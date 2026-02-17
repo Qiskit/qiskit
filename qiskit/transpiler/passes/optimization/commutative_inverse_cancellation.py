@@ -24,15 +24,15 @@ class CommutativeInverseCancellation(TransformationPass):
     """Cancel pairs of inverse gates exploiting commutation relations."""
 
     def __init__(self, matrix_based: bool = False, max_qubits: int = 4):
-        """Args:
-        matrix_based: If ``True``, uses matrix representations to check whether two
-            operations are inverse of each other. This makes the checks more powerful,
-            and, in addition, allows canceling pairs of operations that are inverse up to a
-            phase, while updating the global phase of the circuit accordingly.
-            Generally this leads to more reductions at the expense of increased runtime.
-        max_qubits: Limits the number of qubits in matrix-based commutativity and
-            inverse checks.
-
+        """
+        Args:
+            matrix_based: If ``True``, uses matrix representations to check whether two
+                operations are inverse of each other. This makes the checks more powerful,
+                and, in addition, allows canceling pairs of operations that are inverse up to a
+                phase, while updating the global phase of the circuit accordingly.
+                Generally this leads to more reductions at the expense of increased runtime.
+            max_qubits: Limits the number of qubits in matrix-based commutativity and
+                inverse checks.
         """
         self._matrix_based = matrix_based
         self._max_qubits = max_qubits
@@ -59,7 +59,8 @@ class CommutativeInverseCancellation(TransformationPass):
         return False
 
     def _get_inverse(self, op):
-        """Returns an inverse of the given op, or ``None`` if the inverse
+        """
+        Returns an inverse of the given op, or ``None`` if the inverse
         does not exist or is too expensive to compute.
         """
         # Some instructions (such as Initialize) cannot be inverted
@@ -70,7 +71,8 @@ class CommutativeInverseCancellation(TransformationPass):
         return inverse
 
     def _check_equal_upto_phase(self, op1, op2, matrix_based):
-        """Checks whether op1 and op2 are equal up to a phase, that is whether
+        """
+        Checks whether op1 and op2 are equal up to a phase, that is whether
         ``op2 = e^{i * d} op1`` for some phase difference ``d``.
 
         If this is the case, we can replace ``op2 * op1^{-1}`` by ``e^{i * d} I``.
@@ -91,14 +93,14 @@ class CommutativeInverseCancellation(TransformationPass):
         return are_equal, phase_difference
 
     def run(self, dag: DAGCircuit):
-        """Run the CommutativeInverseCancellation pass on `dag`.
+        """
+        Run the CommutativeInverseCancellation pass on `dag`.
 
         Args:
             dag: the directed acyclic graph to run on.
 
         Returns:
             DAGCircuit: Transformed DAG.
-
         """
         topo_sorted_nodes = list(dag.topological_op_nodes())
 

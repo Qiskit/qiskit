@@ -9,7 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""Quantum information measures, metrics, and related functions for states."""
+"""
+Quantum information measures, metrics, and related functions for states.
+"""
 
 from __future__ import annotations
 import numpy as np
@@ -50,7 +52,6 @@ def state_fidelity(
 
     Raises:
         QiskitError: if ``validate=True`` and the inputs are invalid quantum states.
-
     """
     # convert input to numpy arrays
     state1 = _format_state(state1, validate=validate)
@@ -96,7 +97,6 @@ def purity(state: Statevector | DensityMatrix, validate: bool = True) -> float:
 
     Raises:
         QiskitError: if the input isn't a valid quantum state.
-
     """
     state = _format_state(state, validate=validate)
     return state.purity()
@@ -120,7 +120,6 @@ def entropy(state: Statevector | DensityMatrix, base: int = 2) -> float:
 
     Raises:
         QiskitError: if the input state is not a valid QuantumState.
-
     """
     import scipy.linalg as la
 
@@ -154,7 +153,6 @@ def mutual_information(state: Statevector | DensityMatrix, base: int = 2) -> flo
     Raises:
         QiskitError: if the input state is not a valid QuantumState.
         QiskitError: if input is not a bipartite QuantumState.
-
     """
     state = _format_state(state, validate=True)
     if len(state.dims()) != 2:
@@ -200,7 +198,6 @@ def concurrence(state: Statevector | DensityMatrix) -> float:
         QiskitError: if the input state is not a valid QuantumState.
         QiskitError: if input is not a bipartite QuantumState.
         QiskitError: if density matrix input is not a 2-qubit state.
-
     """
     import scipy.linalg as la
 
@@ -241,7 +238,6 @@ def entanglement_of_formation(state: Statevector | DensityMatrix) -> float:
         QiskitError: if the input state is not a valid QuantumState.
         QiskitError: if input is not a bipartite QuantumState.
         QiskitError: if density matrix input is not a 2-qubit state.
-
     """
     state = _format_state(state, validate=True)
     if isinstance(state, Statevector):
@@ -277,8 +273,8 @@ def negativity(state, qargs):
 
     Raises:
         QiskitError: if the input state is not a valid QuantumState.
-
     """
+
     if isinstance(state, Statevector):
         # If input is statevector then converting it into density matrix
         state = DensityMatrix(state)

@@ -11,7 +11,8 @@
 # that they have been altered from the originals.
 
 
-"""===============================
+"""
+===============================
 Utilities (:mod:`qiskit.utils`)
 ===============================
 

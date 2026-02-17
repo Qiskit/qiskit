@@ -876,7 +876,6 @@ def read_standalone_vars(file_obj, num_vars):
         tuple[dict, list]: the first item is a mapping of the ``ExprVarDeclaration`` type keys to
         the variables defined by that type key, and the second is the total order of variable
         declarations.
-
     """
     read_vars = {
         type_keys.ExprVarDeclaration.INPUT: [],
@@ -930,7 +929,6 @@ def write_standalone_vars(file_obj, circuit, version):
     Returns:
         dict[expr.Var | expr.Stretch, int]: a mapping of the variables written to the
             index that they were written at.
-
     """
     index = 0
     out = {}
@@ -989,7 +987,6 @@ def dumps_value(
 
     Raises:
         QpyError: Serializer for given format is not ready.
-
     """
     type_key = type_keys.Value.assign(obj)
 
@@ -1047,7 +1044,6 @@ def write_value(
             before setting this option, as it will be required by qpy to deserialize the payload.
         standalone_var_indices (dict): Dictionary that maps standalone :class:`.expr.Var` entries to
             the index that should be used to refer to them.
-
     """
     type_key, data = dumps_value(
         obj,
@@ -1085,14 +1081,13 @@ def loads_value(
             before setting this option, as it will be required by qpy to deserialize the payload.
         standalone_vars (Sequence[Var]): standalone :class:`.expr.Var` nodes in the order that they
             were declared by the circuit header.
-
     Returns:
         any: Deserialized value object.
 
     Raises:
         QpyError: Serializer for given format is not ready.
-
     """
+
     if isinstance(type_key, bytes):
         type_key = type_keys.Value(type_key)
 
@@ -1171,7 +1166,6 @@ def read_value(
 
     Returns:
         any: Deserialized value object.
-
     """
     type_key, data = common.read_generic_typed_data(file_obj)
 

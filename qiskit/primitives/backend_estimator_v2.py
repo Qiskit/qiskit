@@ -43,7 +43,6 @@ def _run_circuits(
     **run_options,
 ) -> tuple[list[Result], list[dict]]:
     """Remove metadata of circuits and run the circuits on a backend.
-
     Args:
         circuits: The circuits
         backend: The backend
@@ -52,7 +51,6 @@ def _run_circuits(
         **run_options: run_options
     Returns:
         The result and the metadata of the circuits
-
     """
     if isinstance(circuits, QuantumCircuit):
         circuits = [circuits]
@@ -228,12 +226,12 @@ class BackendEstimatorV2(BaseEstimatorV2):
         backend: BackendV2,
         options: dict | None = None,
     ):
-        """Args:
-        backend: The backend to run the primitive on.
-        options: The options to control the default precision (``default_precision``),
-            the operator grouping (``abelian_grouping``), and
-            the random seed for the simulator (``seed_simulator``).
-
+        """
+        Args:
+            backend: The backend to run the primitive on.
+            options: The options to control the default precision (``default_precision``),
+                the operator grouping (``abelian_grouping``), and
+                the random seed for the simulator (``seed_simulator``).
         """
         self._backend = backend
         self._options = Options(**options) if options else Options()
@@ -255,7 +253,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
         """Returns the backend which this sampler object based on."""
         return self._backend
 
-    def run(  # noqa: D102
+    def run(
         self, pubs: Iterable[EstimatorPubLike], *, precision: float | None = None
     ) -> PrimitiveJob[PrimitiveResult[PubResult]]:
         if precision is None:
@@ -326,7 +324,6 @@ class BackendEstimatorV2(BaseEstimatorV2):
             The values ``(circuits, bc_param_ind, bc_obs)`` where ``circuits`` are the circuits to
             execute on the backend, ``bc_param_ind`` are indices of the pub's bindings array and
             ``bc_obs`` is the observables array, both broadcast to the shape of the pub.
-
         """
         circuit = pub.circuit
         observables = pub.observables
@@ -360,7 +357,6 @@ class BackendEstimatorV2(BaseEstimatorV2):
 
         Returns:
             The pub result.
-
         """
         bc_param_ind = data.parameter_indices
         bc_obs = data.observables
@@ -402,7 +398,6 @@ class BackendEstimatorV2(BaseEstimatorV2):
             A flat list of circuits sufficient to measure all Pauli terms in the ``param_obs_map``
             values at the corresponding ``parameter_values`` location, where requisite
             book-keeping is stored as circuit metadata.
-
         """
         circuits = []
         for param_index, pauli_strings in param_obs_map.items():
@@ -431,7 +426,6 @@ class BackendEstimatorV2(BaseEstimatorV2):
             a pauli string as a key and returns the expectation value of the pauli string
             with the pub's circuit bound against the parameter value set in the index of
             the bindings array.
-
         """
         expval_map: dict[tuple[tuple[int, ...], str], tuple[float, float]] = {}
         for count, meta in zip(counts, metadata):
@@ -459,7 +453,6 @@ class BackendEstimatorV2(BaseEstimatorV2):
 
         Returns:
             A list of circuits sufficient to estimate each of the given Paulis.
-
         """
         meas_circuits: list[QuantumCircuit] = []
         if self._options.abelian_grouping:

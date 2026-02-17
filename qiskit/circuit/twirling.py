@@ -78,7 +78,6 @@ def pauli_twirl_2q_gates(
     Returns:
         A copy of the given circuit with Pauli twirling applied to each
         instance of the specified twirling gate.
-
     """
     custom_gates = None
     if isinstance(twirling_gate, str):

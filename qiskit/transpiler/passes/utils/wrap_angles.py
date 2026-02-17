@@ -73,7 +73,6 @@ class WrapAngles(TransformationPass):
             Unless you are planning to run this pass standalone or are building a
             custom :class:`~.transpiler.PassManager` including this pass you will want
             to rely on :attr:`DEFAULT_REGISTRY`.
-
     """
 
     DEFAULT_REGISTRY = WrapAngleRegistry()
@@ -99,13 +98,12 @@ class WrapAngles(TransformationPass):
         * ``qiskit.transpiler.passes.utils.wrap_angles.WRAP_ANGLE_REGISTRY``
     """
 
-    def __init__(self, target, registry=None):  # noqa: D107
+    def __init__(self, target, registry=None):
         super().__init__()
         self.target = target
         self.registry = self.DEFAULT_REGISTRY if registry is None else registry
 
     def run(self, dag):
-        """Run the wrap angles pass."""
         wrap_angles.wrap_angles(dag, self.target, self.registry)
         return dag
 

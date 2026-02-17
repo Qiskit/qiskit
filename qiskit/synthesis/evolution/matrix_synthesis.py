@@ -26,7 +26,7 @@ class MatrixExponential(EvolutionSynthesis):
     for small systems.
     """
 
-    def synthesize(self, evolution):  # noqa: D102
+    def synthesize(self, evolution):
 
         from qiskit.circuit.library.hamiltonian_gate import HamiltonianGate
 

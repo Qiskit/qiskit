@@ -99,6 +99,7 @@ def grover_operator(
     introduced global phase does not matter for Grover's algorithm.
 
     Examples:
+
     We can construct a Grover operator just from the phase oracle:
 
     .. plot::
@@ -199,6 +200,7 @@ def grover_operator(
         name: The name of the circuit.
 
     References:
+
     [1] L. K. Grover (1996), A fast quantum mechanical algorithm for database search,
     `arXiv:quant-ph/9605043 <https://arxiv.org/abs/quant-ph/9605043>`_.
 
@@ -208,7 +210,6 @@ def grover_operator(
     [3] Brassard, G., Hoyer, P., Mosca, M., & Tapp, A. (2000).
     Quantum Amplitude Amplification and Estimation.
     `arXiv:quant-ph/0005055 <https://arxiv.org/abs/quant-ph/0005055>`_.
-
     """
     # We inherit the ancillas/qubits structure from the oracle, if it is given as circuit.
     if isinstance(oracle, QuantumCircuit):
@@ -420,6 +421,7 @@ class GroverOperator(QuantumCircuit):
         wrap the circuit into an opaque gate.
 
     References:
+
     [1] L. K. Grover (1996), A fast quantum mechanical algorithm for database search,
     `arXiv:quant-ph/9605043 <https://arxiv.org/abs/quant-ph/9605043>`_.
 
@@ -429,7 +431,6 @@ class GroverOperator(QuantumCircuit):
     [3] Brassard, G., Hoyer, P., Mosca, M., & Tapp, A. (2000).
     Quantum Amplitude Amplification and Estimation.
     `arXiv:quant-ph/0005055 <https://arxiv.org/abs/quant-ph/0005055>`_.
-
     """
 
     @deprecate_func(
@@ -447,8 +448,7 @@ class GroverOperator(QuantumCircuit):
         mcx_mode: str = "noancilla",
         name: str = "Q",
     ) -> None:
-        r"""Instantiate a new :class:`.GroverOperator` instance.
-
+        r"""
         Args:
             oracle: The phase oracle implementing a reflection about the bad state. Note that this
                 is not a bitflip oracle, see the docstring for more information.

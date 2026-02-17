@@ -10,7 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Template matching for all possible qubit configurations and initial matches. It
+"""
+Template matching for all possible qubit configurations and initial matches. It
 returns the list of all matches obtained from this algorithm.
 
 
@@ -30,7 +31,9 @@ from qiskit.transpiler.passes.optimization.template_matching.backward_match impo
 
 
 class TemplateMatching:
-    """Class TemplatingMatching allows to apply the full template matching algorithm."""
+    """
+    Class TemplatingMatching allows to apply the full template matching algorithm.
+    """
 
     def __init__(
         self,
@@ -39,14 +42,13 @@ class TemplateMatching:
         heuristics_qubits_param=None,
         heuristics_backward_param=None,
     ):
-        """Create a TemplateMatching object with necessary arguments.
-
+        """
+        Create a TemplateMatching object with necessary arguments.
         Args:
             circuit_dag_dep (QuantumCircuit): circuit.
             template_dag_dep (QuantumCircuit): template.
             heuristics_backward_param (list[int]): [length, survivor]
             heuristics_qubits_param (list[int]): [length]
-
         """
         self.circuit_dag_dep = circuit_dag_dep
         self.template_dag_dep = template_dag_dep
@@ -59,18 +61,16 @@ class TemplateMatching:
         )
 
     def _list_first_match_new(self, node_circuit, node_template, n_qubits_t, n_clbits_t):
-        """Returns the list of qubit for circuit given the first match, the unknown qubit are
+        """
+        Returns the list of qubit for circuit given the first match, the unknown qubit are
         replaced by -1.
-
         Args:
             node_circuit (DAGDepNode): First match node in the circuit.
             node_template (DAGDepNode): First match node in the template.
             n_qubits_t (int): number of qubit in the template.
             n_clbits_t (int): number of classical bit in the template.
-
         Returns:
             list: list of qubits to consider in circuit (with specific order).
-
         """
         l_q = []
 
@@ -126,33 +126,29 @@ class TemplateMatching:
         return l_q, l_c
 
     def _sublist(self, lst, exclude, length):
-        """Function that returns all possible combinations of a given length, considering an
+        """
+        Function that returns all possible combinations of a given length, considering an
         excluded list of elements.
-
         Args:
             lst (list): list of qubits indices from the circuit.
             exclude (list): list of qubits from the first matched circuit gate.
             length (int): length of the list to be returned (number of template qubit -
             number of qubit from the first matched template gate).
-
         Yield:
             iterator: Iterator of the possible lists.
-
         """
         for sublist in itertools.combinations([e for e in lst if e not in exclude], length):
             yield list(sublist)
 
     def _list_qubit_clbit_circuit(self, list_first_match, permutation):
-        """Function that returns the list of the circuit qubits and clbits give a permutation
+        """
+        Function that returns the list of the circuit qubits and clbits give a permutation
         and an initial match.
-
         Args:
             list_first_match (list): list of qubits indices for the initial match.
             permutation (list): possible permutation for the circuit qubit.
-
         Returns:
             list: list of circuit qubit for the given permutation and initial match.
-
         """
         list_circuit = []
 
@@ -168,15 +164,15 @@ class TemplateMatching:
         return list_circuit
 
     def _add_match(self, backward_match_list):
-        """Method to add a match in list only if it is not already in it.
+        """
+        Method to add a match in list only if it is not already in it.
         If the match is already in the list, the qubit configuration
         is append to the existing match.
-
         Args:
             backward_match_list (list): match from the backward part of the
             algorithm.
-
         """
+
         already_in = False
 
         for b_match in backward_match_list:
@@ -190,17 +186,15 @@ class TemplateMatching:
                 self.match_list.append(b_match)
 
     def _explore_circuit(self, node_id_c, node_id_t, n_qubits_t, length):
-        """Explore the successors of the node_id_c (up to the given length).
-
+        """
+        Explore the successors of the node_id_c (up to the given length).
         Args:
             node_id_c (int): first match id in the circuit.
             node_id_t (int): first match id in the template.
             n_qubits_t (int): number of qubits in the template.
             length (int): length for exploration of the successors.
-
         Returns:
             list: qubits configuration for the 'length' successors of node_id_c.
-
         """
         template_nodes = range(node_id_t + 1, self.template_dag_dep.size())
         circuit_nodes = range(self.circuit_dag_dep.size())
@@ -238,13 +232,15 @@ class TemplateMatching:
             return list(qubit_set)
 
     def run_template_matching(self):
-        """Run the complete algorithm for finding all maximal matches for the given template and
+        """
+        Run the complete algorithm for finding all maximal matches for the given template and
         circuit. First it fixes the configuration of the circuit due to the first match.
         Then it explores all compatible qubit configurations of the circuit. For each
         qubit configurations, we apply first the Forward part of the algorithm  and then
         the Backward part of the algorithm. The longest matches for the given configuration
         are stored. Finally, the list of stored matches is sorted.
         """
+
         # Get the number of qubits/clbits for both circuit and template.
         n_qubits_c = len(self.circuit_dag_dep.qubits)
         n_clbits_c = len(self.circuit_dag_dep.clbits)

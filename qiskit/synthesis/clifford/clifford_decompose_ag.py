@@ -9,7 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""Circuit synthesis for the Clifford class."""
+"""
+Circuit synthesis for the Clifford class.
+"""
 
 
 # ---------------------------------------------------------------------
@@ -45,7 +47,6 @@ def synth_clifford_ag(clifford: Clifford) -> QuantumCircuit:
         1. S. Aaronson, D. Gottesman, *Improved Simulation of Stabilizer Circuits*,
            Phys. Rev. A 70, 052328 (2004).
            `arXiv:quant-ph/0406196 <https://arxiv.org/abs/quant-ph/0406196>`_
-
     """
     # Use 1-qubit decomposition method
     if clifford.num_qubits == 1:
@@ -151,6 +152,7 @@ def _set_row_z_zero(clifford, circuit, qubit):
     Implemented by applying (reverse) CNOTS assumes qubit < num_qubits
     and _set_row_x_zero has been called first
     """
+
     x = clifford.stab_x[qubit]
     z = clifford.stab_z[qubit]
 

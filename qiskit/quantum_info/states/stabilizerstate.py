@@ -10,7 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Stabilizer state class."""
+"""
+Stabilizer state class.
+"""
 
 from __future__ import annotations
 
@@ -81,7 +83,6 @@ class StabilizerState(QuantumState):
         1. S. Aaronson, D. Gottesman, *Improved Simulation of Stabilizer Circuits*,
            Phys. Rev. A 70, 052328 (2004).
            `arXiv:quant-ph/0406196 <https://arxiv.org/abs/quant-ph/0406196>`_
-
     """
 
     def __init__(
@@ -94,8 +95,8 @@ class StabilizerState(QuantumState):
         Args:
             data: Data from which the stabilizer state can be constructed.
             validate: validate that the stabilizer state data is a valid Clifford.
-
         """
+
         # Initialize from another StabilizerState
         if isinstance(data, StabilizerState):
             self._data = data._data
@@ -127,8 +128,8 @@ class StabilizerState(QuantumState):
 
         Return:
             StabilizerState: a state stabilized by stabilizers.
-
         """
+
         from qiskit.synthesis.stabilizer import synth_circuit_from_stabilizers
 
         circuit = synth_circuit_from_stabilizers(
@@ -168,7 +169,6 @@ class StabilizerState(QuantumState):
 
         Raises:
             QiskitError: if input is not a StabilizerState.
-
         """
         if not self.is_valid():
             raise QiskitError("StabilizerState is not a valid quantum state.")
@@ -183,7 +183,6 @@ class StabilizerState(QuantumState):
 
         Raises:
             QiskitError: if input is not a StabilizerState.
-
         """
         if not self.is_valid():
             raise QiskitError("StabilizerState is not a valid quantum state.")
@@ -210,7 +209,6 @@ class StabilizerState(QuantumState):
 
         Raises:
             QiskitError: if other is not a StabilizerState.
-
         """
         if not isinstance(other, StabilizerState):
             other = StabilizerState(other)
@@ -229,7 +227,6 @@ class StabilizerState(QuantumState):
 
         Raises:
             QiskitError: if other is not a StabilizerState.
-
         """
         if not isinstance(other, StabilizerState):
             other = StabilizerState(other)
@@ -254,7 +251,6 @@ class StabilizerState(QuantumState):
             QiskitError: if other is not a StabilizerState.
             QiskitError: if the operator dimension does not match the
                          specified StabilizerState subsystem dimensions.
-
         """
         if not isinstance(other, StabilizerState):
             other = StabilizerState(other)
@@ -274,7 +270,6 @@ class StabilizerState(QuantumState):
 
         Raises:
             QiskitError: if oper is not a Pauli or SparsePauliOp operator.
-
         """
         if isinstance(oper, Pauli):
             return self._expectation_value_pauli(oper, qargs)
@@ -302,7 +297,6 @@ class StabilizerState(QuantumState):
 
         Raises:
             QiskitError: if oper is not a Pauli operator.
-
         """
         if not isinstance(oper, Pauli):
             raise QiskitError("Operator for expectation value is not a Pauli operator.")
@@ -364,7 +358,6 @@ class StabilizerState(QuantumState):
 
         Returns:
             bool: True if other has a generating set that generates the same StabilizerState.
-
         """
         if not isinstance(other, StabilizerState):
             try:
@@ -412,7 +405,6 @@ class StabilizerState(QuantumState):
 
         Returns:
             np.array: The Numpy vector array of probabilities.
-
         """
         probs_dict = self.probabilities_dict(qargs, decimals)
         if qargs is None:
@@ -456,7 +448,6 @@ class StabilizerState(QuantumState):
 
         Returns:
             dict[str, float]: The measurement probabilities in dict (ket) form.
-
         """
         return self._get_probabilities_dict(
             outcome_bitstring=outcome_bitstring, qargs=qargs, decimals=decimals
@@ -483,7 +474,6 @@ class StabilizerState(QuantumState):
 
         Returns:
             dict: The measurement probabilities in dict (key) form.
-
         """
         return self._get_probabilities_dict(outcome_bitstring=None, qargs=qargs, decimals=decimals)
 
@@ -505,7 +495,6 @@ class StabilizerState(QuantumState):
             evolve the subsystems so that the collapsed post-measurement
             states are rotated to the 0-state. The RNG seed for this
             sampling can be set using the :meth:`seed` method.
-
         """
         # Resetting all qubits does not require sampling or RNG
         if qargs is None:
@@ -542,7 +531,6 @@ class StabilizerState(QuantumState):
                    measurement outcome string label, and ``state`` is the
                    collapsed post-measurement stabilizer state for the
                    corresponding outcome.
-
         """
         if qargs is None:
             qargs = range(self.clifford.num_qubits)
@@ -574,7 +562,6 @@ class StabilizerState(QuantumState):
 
             The seed for random number generator used for sampling can be
             set to a fixed value by using the stats :meth:`seed` method.
-
         """
         memory = []
         for _ in range(shots):
@@ -597,6 +584,7 @@ class StabilizerState(QuantumState):
         (p0, p1) = (0.5, 0.5), (1, 0), or (0, 1)
         The random case happens if there is a row anti-commuting with Z[qubit]
         """
+
         num_qubits = self.clifford.num_qubits
         clifford = self.clifford
         stab_x = self.clifford.stab_x
@@ -636,6 +624,7 @@ class StabilizerState(QuantumState):
     @staticmethod
     def _phase_exponent(x1, z1, x2, z2):
         """Exponent g of i such that Pauli(x1,z1) * Pauli(x2,z2) = i^g Pauli(x1+x2,z1+z2)"""
+
         phase = (x2 * z1 * (1 + 2 * z2 + 2 * x1) - x1 * z2 * (1 + 2 * z1 + 2 * x2)) % 4
         if phase < 0:
             phase += 4  # now phase in {0, 1, 3}
@@ -647,6 +636,7 @@ class StabilizerState(QuantumState):
     @staticmethod
     def _rowsum(accum_pauli, accum_phase, row_pauli, row_phase):
         """Aaronson-Gottesman rowsum helper function"""
+
         newr = 2 * row_phase + 2 * accum_phase
 
         for qubit in range(row_pauli.num_qubits):
@@ -666,8 +656,8 @@ class StabilizerState(QuantumState):
     def _rowsum_nondeterministic(clifford, accum, row):
         """Updating StabilizerState Clifford in the
         non-deterministic rowsum calculation.
-        row and accum are rows in the StabilizerState Clifford.
-        """
+        row and accum are rows in the StabilizerState Clifford."""
+
         row_phase = clifford.phase[row]
         accum_phase = clifford.phase[accum]
 
@@ -688,8 +678,8 @@ class StabilizerState(QuantumState):
     def _rowsum_deterministic(clifford, aux_pauli, row):
         """Updating an auxiliary Pauli aux_pauli in the
         deterministic rowsum calculation.
-        The StabilizerState itself is not updated.
-        """
+        The StabilizerState itself is not updated."""
+
         row_phase = clifford.phase[row]
         accum_phase = aux_pauli.phase
 
@@ -724,7 +714,6 @@ class StabilizerState(QuantumState):
             probs (dict[str, float]): holds the outcomes and probability results
             outcome_bitstring (str): target outcome to measure which reduces measurements, None
                 if not targeting a specific target
-
         """
         qubit_for_branching: int = -1
 
@@ -795,7 +784,6 @@ class StabilizerState(QuantumState):
 
         Returns:
             dict: The measurement probabilities in dict (key) form.
-
         """
         if qargs is None:
             qubits = range(self.clifford.num_qubits)

@@ -10,7 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""===============================
+"""
+===============================
 Solovay-Kitaev Synthesis Plugin
 ===============================
 
@@ -66,6 +67,7 @@ class SolovayKitaev(TransformationPass):
     with an L2-error of approximately 0.01.
 
     Examples:
+
         Per default, the basis gate set is ``["t", "tdg", "h"]``:
 
         .. plot::
@@ -139,6 +141,7 @@ class SolovayKitaev(TransformationPass):
 
 
     References:
+
     [1] Kitaev, A Yu (1997). Quantum computations: algorithms and error correction.
     Russian Mathematical Surveys. 52 (6): 1191–1249.
     `Online <https://iopscience.iop.org/article/10.1070/RM1997v052n06ABEH002155>`_.
@@ -156,23 +159,23 @@ class SolovayKitaev(TransformationPass):
         basis_gates: list[str | Gate] | None = None,
         depth: int = 12,
     ) -> None:
-        r"""Args:
-        recursion_degree: The recursion depth for the Solovay-Kitaev algorithm.
-            A larger recursion depth increases the accuracy and length of the
-            decomposition.
-        basic_approximations: The basic approximations for the finding the best discrete
-            decomposition at the root of the recursion. If a string, it specifies the
-            file to load the approximations from. If a dictionary, it contains
-            ``{label: SO(3)-matrix}`` pairs. If ``None``, a default based on the :math:`H`,
-            :math:`T` and :math:`T^\dagger` gates up to depth 16 is generated.
-            Note that if ``basic_approximations`` is passed, ``basis_gates`` and
-            ``depth`` cannot be set.
-        basis_gates: The basis gates used to build the net of basic approximations.
-            Defaults to ``["h", "t", "tdg"]``. This argument cannot be set if
-            ``basic_approximations`` is provided.
-        depth: The maximal gate depth used in basic approximations. This argument cannot be
-            set if ``basic_approximations`` is provided.
-
+        r"""
+        Args:
+            recursion_degree: The recursion depth for the Solovay-Kitaev algorithm.
+                A larger recursion depth increases the accuracy and length of the
+                decomposition.
+            basic_approximations: The basic approximations for the finding the best discrete
+                decomposition at the root of the recursion. If a string, it specifies the
+                file to load the approximations from. If a dictionary, it contains
+                ``{label: SO(3)-matrix}`` pairs. If ``None``, a default based on the :math:`H`,
+                :math:`T` and :math:`T^\dagger` gates up to depth 16 is generated.
+                Note that if ``basic_approximations`` is passed, ``basis_gates`` and
+                ``depth`` cannot be set.
+            basis_gates: The basis gates used to build the net of basic approximations.
+                Defaults to ``["h", "t", "tdg"]``. This argument cannot be set if
+                ``basic_approximations`` is provided.
+            depth: The maximal gate depth used in basic approximations. This argument cannot be
+                set if ``basic_approximations`` is provided.
         """
         super().__init__()
         self.recursion_degree = recursion_degree
@@ -192,7 +195,6 @@ class SolovayKitaev(TransformationPass):
 
         Raises:
             TranspilerError: if a gates does not have to_matrix
-
         """
         for node in dag.op_nodes():
             # ignore operations on which the algorithm cannot run
@@ -277,8 +279,7 @@ class SolovayKitaevSynthesis(UnitarySynthesisPlugin):
     @property
     def supports_natural_direction(self):
         """The plugin does not support natural direction, it does not assume
-        bidirectional two qubit gates.
-        """
+        bidirectional two qubit gates."""
         return True
 
     @property
@@ -304,8 +305,7 @@ class SolovayKitaevSynthesis(UnitarySynthesisPlugin):
     @property
     def supports_basis_gates(self):
         """The plugin does not support basis gates. By default it synthesis to the
-        ``["h", "t", "tdg"]`` gate basis.
-        """
+        ``["h", "t", "tdg"]`` gate basis."""
         return True
 
     @property
@@ -315,6 +315,7 @@ class SolovayKitaevSynthesis(UnitarySynthesisPlugin):
 
     def run(self, unitary, **options):
         """Run the SolovayKitaevSynthesis synthesis plugin on the given unitary."""
+
         config = options.get("config") or {}
         basis_gates = options.get("basis_gates", None)
         depth = config.get("depth", 12)

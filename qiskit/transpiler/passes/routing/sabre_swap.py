@@ -133,7 +133,6 @@ class SabreSwap(TransformationPass):
                     \frac{1}{\left|{F}\right|} \sum_{gate \in F} D[\pi(gate.q_1)][\pi(gate.q2)]\\
                     + W *\frac{1}{\left|{E}\right|} \sum_{gate \in E} D[\pi(gate.q_1)][\pi(gate.q2)]
                     }
-
         """
         super().__init__()
         self._routing_target = None
@@ -160,12 +159,12 @@ class SabreSwap(TransformationPass):
         self.fake_run = fake_run
 
     @functools.cached_property
-    def dist_matrix(self):  # noqa: D102
+    def dist_matrix(self):
         # This property is not intended to be public API, it just keeps backwards compatibility.
         return None if self._routing_target is None else self._routing_target.distance_matrix()
 
     @functools.cached_property
-    def coupling_map(self):  # noqa: D102
+    def coupling_map(self):
         # This property is not intended to be public API, it just keeps backwards compatibility.
         return (
             None
@@ -178,14 +177,11 @@ class SabreSwap(TransformationPass):
 
         Args:
             dag (DAGCircuit): the directed acyclic graph to be mapped.
-
         Returns:
             DAGCircuit: A dag mapped to be compatible with the coupling_map.
-
         Raises:
             TranspilerError: if the coupling map or the layout are not
             compatible with the DAG, or if the coupling_map=None
-
         """
         if self.target is None:
             raise TranspilerError("SabreSwap cannot run with coupling_map=None")

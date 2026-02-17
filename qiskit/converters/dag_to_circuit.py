@@ -55,8 +55,8 @@ def dag_to_circuit(dag, copy_operations=True):
            dag = circuit_to_dag(circ)
            circuit = dag_to_circuit(dag)
            circuit.draw('mpl')
-
     """
+
     name = dag.name or None
 
     circuit_data = dag_to_circuit_rs(dag, copy_operations)

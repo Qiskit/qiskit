@@ -33,6 +33,7 @@ def synth_weighted_sum_carry(weighted_sum: WeightedSumGate) -> QuantumCircuit:
         [1] Stamatopoulos et al. Option Pricing using Quantum Computers (2020)
             `Quantum 4, 291 <https://doi.org/10.22331/q-2020-07-06-291>`__
     """
+
     num_sum_qubits = weighted_sum.num_sum_qubits
     num_state_qubits = weighted_sum.num_qubits - num_sum_qubits
 

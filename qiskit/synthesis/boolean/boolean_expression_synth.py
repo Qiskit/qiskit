@@ -18,8 +18,7 @@ from qiskit.circuit.library import ZGate, XGate
 
 class EsopGenerator:
     """Generates an ESOP (Exlusive-sum-of-products) representation
-    for a boolean function given by its truth table
-    """
+    for a boolean function given by its truth table"""
 
     def __init__(self, truth_table):
         self.truth_table = truth_table
@@ -76,7 +75,8 @@ class EsopGenerator:
 
 
 def synth_phase_oracle_from_esop(esop, num_qubits):
-    """Generates a phase oracle for the boolean function f given in ESOP (Exlusive sum of products) form
+    """
+    Generates a phase oracle for the boolean function f given in ESOP (Exlusive sum of products) form
     esop is of the form ('01-1', '11-0', ...) etc
     where 1 is the variable, 0 is negated variable and - is don't care
     """
@@ -107,7 +107,8 @@ def synth_phase_oracle_from_esop(esop, num_qubits):
 
 
 def synth_bit_oracle_from_esop(esop, num_qubits):
-    """Generates a bit-flip oracle for the boolean function f given in ESOP (Exlusive sum of products) form
+    """
+    Generates a bit-flip oracle for the boolean function f given in ESOP (Exlusive sum of products) form
     esop is of the form ('01-1', '11-0', ...) etc
     where 1 is the variable, 0 is negated variable and - is don't care
     """

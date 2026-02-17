@@ -11,7 +11,9 @@
 # that they have been altered from the originals.
 
 
-"""High Level Synthesis Plugins
+"""
+
+High Level Synthesis Plugins
 -----------------------------
 
 Clifford Synthesis
@@ -798,7 +800,6 @@ class PMHSynthesisLinearFunction(HighLevelSynthesisPlugin):
            *Optimal synthesis of linear reversible circuits*,
            Quantum Information & Computation 8.3 (2008): 282-294.
            `arXiv:quant-ph/0302002 [quant-ph] <https://arxiv.org/abs/quant-ph/0302002>`_
-
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
@@ -908,11 +909,11 @@ class QFTSynthesisFull(HighLevelSynthesisPlugin):
         2. Donny Cheung,
            *Improved Bounds for the Approximate QFT* (2004),
            `arXiv:quant-ph/0403071 [quant-ph] <https://https://arxiv.org/abs/quant-ph/0403071>`_
-
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given QFTGate."""
+
         # Even though the gate is called "qft", it's not a QFTGate,
         # and we should not synthesize it using the plugin.
         if not isinstance(high_level_object, QFTGate):
@@ -965,11 +966,11 @@ class QFTSynthesisLine(HighLevelSynthesisPlugin):
         2. Donny Cheung,
            *Improved Bounds for the Approximate QFT* (2004),
            `arXiv:quant-ph/0403071 [quant-ph] <https://https://arxiv.org/abs/quant-ph/0403071>`_
-
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given QFTGate."""
+
         # Even though the gate is called "qft", it's not a QFTGate,
         # and we should not synthesize it using the plugin.
         if not isinstance(high_level_object, QFTGate):
@@ -1020,6 +1021,7 @@ class TokenSwapperSynthesisPermutation(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given Permutation."""
+
         if not isinstance(high_level_object, PermutationGate):
             return None
 
@@ -1091,11 +1093,11 @@ class MCXSynthesisNDirtyI15(HighLevelSynthesisPlugin):
     References:
         1. Iten et. al., *Quantum Circuits for Isometries*, Phys. Rev. A 93, 032318 (2016),
            `arXiv:1501.06911 <https://arxiv.org/abs/1501.06911>`_
-
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given MCX gate."""
+
         if not isinstance(high_level_object, (MCXGate, C3XGate, C4XGate)):
             # Unfortunately we occasionally have custom instructions called "mcx"
             # which get wrongly caught by the plugin interface. A simple solution is
@@ -1137,11 +1139,11 @@ class MCXSynthesisNCleanM15(HighLevelSynthesisPlugin):
     References:
         1. Maslov., Phys. Rev. A 93, 022311 (2016),
            `arXiv:1508.03273 <https://arxiv.org/pdf/1508.03273>`_
-
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given MCX gate."""
+
         if not isinstance(high_level_object, (MCXGate, C3XGate, C4XGate)):
             # Unfortunately we occasionally have custom instructions called "mcx"
             # which get wrongly caught by the plugin interface. A simple solution is
@@ -1180,11 +1182,11 @@ class MCXSynthesis1CleanB95(HighLevelSynthesisPlugin):
     References:
         1. Barenco et. al., *Elementary gates for quantum computation*, Phys.Rev. A52 3457 (1995),
            `arXiv:quant-ph/9503016 <https://arxiv.org/abs/quant-ph/9503016>`_
-
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given MCX gate."""
+
         if not isinstance(high_level_object, (MCXGate, C3XGate, C4XGate)):
             # Unfortunately we occasionally have custom instructions called "mcx"
             # which get wrongly caught by the plugin interface. A simple solution is
@@ -1228,11 +1230,11 @@ class MCXSynthesis2CleanKG24(HighLevelSynthesisPlugin):
     References:
         1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
         `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
-
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given MCX gate."""
+
         if not isinstance(high_level_object, (MCXGate, C3XGate, C4XGate)):
             # Unfortunately we occasionally have custom instructions called "mcx"
             # which get wrongly caught by the plugin interface. A simple solution is
@@ -1270,11 +1272,11 @@ class MCXSynthesis2DirtyKG24(HighLevelSynthesisPlugin):
     References:
         1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
         `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
-
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given MCX gate."""
+
         if not isinstance(high_level_object, (MCXGate, C3XGate, C4XGate)):
             # Unfortunately we occasionally have custom instructions called "mcx"
             # which get wrongly caught by the plugin interface. A simple solution is
@@ -1314,11 +1316,11 @@ class MCXSynthesis1CleanKG24(HighLevelSynthesisPlugin):
     References:
         1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
         `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
-
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given MCX gate."""
+
         if not isinstance(high_level_object, (MCXGate, C3XGate, C4XGate)):
             # Unfortunately we occasionally have custom instructions called "mcx"
             # which get wrongly caught by the plugin interface. A simple solution is
@@ -1356,11 +1358,11 @@ class MCXSynthesis1DirtyKG24(HighLevelSynthesisPlugin):
     References:
         1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
         `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
-
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given MCX gate."""
+
         if not isinstance(high_level_object, (MCXGate, C3XGate, C4XGate)):
             # Unfortunately we occasionally have custom instructions called "mcx"
             # which get wrongly caught by the plugin interface. A simple solution is
@@ -1396,6 +1398,7 @@ class MCXSynthesisGrayCode(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given MCX gate."""
+
         if not isinstance(high_level_object, (MCXGate, C3XGate, C4XGate)):
             # Unfortunately we occasionally have custom instructions called "mcx"
             # which get wrongly caught by the plugin interface. A simple solution is
@@ -1427,11 +1430,11 @@ class MCXSynthesisNoAuxV24(HighLevelSynthesisPlugin):
         1. Vale et. al., *Circuit Decomposition of Multicontrolled Special Unitary
            Single-Qubit Gates*, IEEE TCAD 43(3) (2024),
            `arXiv:2302.06377 <https://arxiv.org/abs/2302.06377>`_
-
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given MCX gate."""
+
         if not isinstance(high_level_object, (MCXGate, C3XGate, C4XGate)):
             # Unfortunately we occasionally have custom instructions called "mcx"
             # which get wrongly caught by the plugin interface. A simple solution is
@@ -1462,11 +1465,11 @@ class MCXSynthesisNoAuxHP24(HighLevelSynthesisPlugin):
         1. Huang and Palsberg, *Compiling Conditional Quantum Gates without Using
            Helper Qubits*, PLDI (2024),
            <https://dl.acm.org/doi/10.1145/3656436>`_
-
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given MCX gate."""
+
         if not isinstance(high_level_object, (MCXGate, C3XGate, C4XGate)):
             # Unfortunately we occasionally have custom instructions called "mcx"
             # which get wrongly caught by the plugin interface. A simple solution is
@@ -1498,6 +1501,7 @@ class MCXSynthesisDefault(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given MCX gate."""
+
         if not isinstance(high_level_object, (MCXGate, C3XGate, C4XGate)):
             # Unfortunately we occasionally have custom instructions called "mcx"
             # which get wrongly caught by the plugin interface. A simple solution is
@@ -2330,7 +2334,9 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
 
     @staticmethod
     def _apply_annotations(circuit: QuantumCircuit, modifiers: list[Modifier]) -> QuantumCircuit:
-        """Applies modifiers to a quantum circuit."""
+        """
+        Applies modifiers to a quantum circuit.
+        """
         for modifier in modifiers:
             if isinstance(modifier, InverseModifier):
                 circuit = circuit.inverse()
@@ -2397,7 +2403,9 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
 
     @staticmethod
     def _canonicalize_op(op: Operation) -> Operation:
-        """Combines recursive annotated operations and canonicalizes modifiers."""
+        """
+        Combines recursive annotated operations and canonicalizes modifiers.
+        """
         cur = op
         all_modifiers = []
 
@@ -2450,7 +2458,8 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
     def _conjugate_decomposition(
         circuit: QuantumCircuit,
     ) -> tuple[QuantumCircuit, QuantumCircuit, QuantumCircuit] | None:
-        """Decomposes a circuit ``A`` into 3 sub-circuits ``P``, ``Q``, ``R`` such that
+        """
+        Decomposes a circuit ``A`` into 3 sub-circuits ``P``, ``Q``, ``R`` such that
         ``A = P -- Q -- R`` and ``R = P^{-1}``.
 
         This is accomplished by iteratively finding inverse nodes at the front and at the back of the

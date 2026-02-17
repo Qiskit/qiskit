@@ -10,7 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""==================================================================
+"""
+==================================================================
 Preset Passmanagers (:mod:`qiskit.transpiler.preset_passmanagers`)
 ==================================================================
 

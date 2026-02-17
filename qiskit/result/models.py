@@ -55,7 +55,6 @@ class ExperimentResultData:
             unitary (list or numpy.array): A list or numpy array of the
                 unitary result
             kwargs (any): additional data key-value pairs.
-
         """
         self._data_attributes = []
         if counts is not None:
@@ -88,7 +87,6 @@ class ExperimentResultData:
 
         Returns:
             dict: The dictionary form of the ExperimentResultData
-
         """
         out_dict = {}
         for field in self._data_attributes:
@@ -106,7 +104,6 @@ class ExperimentResultData:
         Returns:
             ExperimentResultData: The ``ExperimentResultData`` object from the
                                   input dictionary.
-
         """
         in_data = copy.copy(data)
         return cls(**in_data)
@@ -120,7 +117,6 @@ class ExperimentResult:
         success (bool): if true, we can trust results for this experiment.
         data (ExperimentResultData): results information.
         meas_level (int): Measurement result level.
-
     """
 
     _metadata = {}
@@ -154,7 +150,6 @@ class ExperimentResult:
 
         Raises:
             QiskitError: If meas_return or meas_level are not valid values
-
         """
         self._metadata = {}
         self.shots = shots
@@ -206,7 +201,6 @@ class ExperimentResult:
 
         Returns:
             dict: The dictionary form of the ExperimentResult
-
         """
         out_dict = {
             "shots": self.shots,
@@ -237,8 +231,8 @@ class ExperimentResult:
         Returns:
             ExperimentResult: The ``ExperimentResult`` object from the input
                               dictionary.
-
         """
+
         in_data = copy.copy(data)
         data_obj = ExperimentResultData.from_dict(in_data.pop("data"))
         shots = in_data.pop("shots")

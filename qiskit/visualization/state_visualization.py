@@ -11,7 +11,9 @@
 # that they have been altered from the originals.
 
 
-"""Visualization functions for quantum states."""
+"""
+Visualization functions for quantum states.
+"""
 
 import math
 from typing import Union
@@ -279,7 +281,6 @@ def plot_bloch_multivector(
         title_font_size (float): Font size for the title.
         title_pad (float): Padding for the title (suptitle ``y`` position is ``0.98``
         and the image height will be extended by ``1 + title_pad/100``).
-        filename (str): file path to save image to.
 
     Returns:
         :class:`matplotlib:matplotlib.figure.Figure` :
@@ -402,7 +403,6 @@ def plot_state_city(
             ax_real only the imaginary component plot will be generated.
             Additionally, if specified there will be no returned Figure since
             it is redundant.
-        filename (str): file path to save image to.
 
     Returns:
         :class:`matplotlib:matplotlib.figure.Figure` :
@@ -642,7 +642,6 @@ def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, f
             the visualization output. If none is specified a new matplotlib
             Figure will be created and used. Additionally, if specified there
             will be no returned Figure since it is redundant.
-        filename (str): file path to save image to.
 
     Returns:
          :class:`matplotlib:matplotlib.figure.Figure` :
@@ -695,7 +694,6 @@ def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, f
 
            matrix = DensityMatrix(qc)
            plot_state_paulivec(matrix, color=['crimson', 'midnightblue', 'seagreen'])
-
     """
     from matplotlib import pyplot as plt
 
@@ -750,7 +748,6 @@ def n_choose_k(n, k):
 
     Returns:
         int: returns the binomial coefficient
-
     """
     if n == 0:
         return 0
@@ -770,7 +767,6 @@ def lex_index(n, k, lst):
 
     Raises:
         VisualizationError: if length of list is not equal to k
-
     """
     if len(lst) != k:
         raise VisualizationError("list should have length k")
@@ -830,7 +826,6 @@ def plot_state_qsphere(
             show the phase for each basis state.
         use_degrees (bool): An optional boolean indicating whether to use
             radians or degrees for the phase values in the plot.
-        filename (str): file path to save image to.
 
     Returns:
         :class:`matplotlib:matplotlib.figure.Figure` :
@@ -880,7 +875,6 @@ def plot_state_qsphere(
            matrix = DensityMatrix(qc)
            plot_state_qsphere(matrix,
                 show_state_phases = True, use_degrees = True)
-
     """
     from matplotlib import gridspec
     from matplotlib import pyplot as plt
@@ -1111,10 +1105,8 @@ def generate_facecolors(x, y, z, dx, dy, dz, color):
         color (array_like): sequence of valid color specifications, optional
     Returns:
         list: Shaded colors for bars.
-
     Raises:
         MissingOptionalLibraryError: If matplotlib is not installed
-
     """
     import matplotlib.colors as mcolors
 
@@ -1207,11 +1199,9 @@ def _generate_normals(polygons):
             varying numbers of vertices. If the polygons all have the same
             number of vertices and array is passed, then the operation will
             be vectorized.
-
     Returns:
         normals: (..., 3) array_like
             A normal vector estimated for the polygon.
-
     """
     if isinstance(polygons, np.ndarray):
         # optimization: polygons all have the same number of points, so can
@@ -1234,7 +1224,8 @@ def _generate_normals(polygons):
 
 
 def _shade_colors(color, normals, lightsource=None):
-    """Shade *color* using normal vectors given by *normals*.
+    """
+    Shade *color* using normal vectors given by *normals*.
     *color* can also be an array of the same length as *normals*.
     """
     from matplotlib.colors import Normalize, LightSource
@@ -1321,10 +1312,8 @@ def _numbers_to_latex_terms(numbers: list[complex], decimals: int = 10) -> list[
     Args:
         numbers: List of numbers to format
         decimals: Number of decimal places to round to (default: 10).
-
     Returns:
         List of formatted terms
-
     """
     first_term = True
     terms = []
@@ -1349,7 +1338,6 @@ def _state_to_latex_ket(
 
     Returns:
         String with LaTeX representation of the state vector
-
     """
     num = int(math.log2(len(data)))
 
@@ -1380,11 +1368,9 @@ def _state_to_latex_ket(
 
 class TextMatrix:
     """Text representation of an array, with `__str__` method so it
-    displays nicely in Jupyter notebooks
-    """
+    displays nicely in Jupyter notebooks"""
 
     def __init__(self, state, max_size=8, dims=None, prefix="", suffix=""):
-        """Initialize a text matrix."""
         self.state = state
         self.max_size = max_size
         if dims is None:  # show dims if state is not only qubits
@@ -1451,7 +1437,6 @@ def state_drawer(state, output=None, **drawer_args):
     **paulivec**: Matplotlib figure, rendering of statevector using `plot_state_paulivec()`.
 
     Args:
-        state (Statevector or DensityMatrix or ndarray): An N-qubit quantum state.
         output (str): Select the output method to use for drawing the
             circuit. Valid choices are ``text``, ``latex``, ``latex_source``,
             ``qsphere``, ``hinton``, ``bloch``, ``city`` or ``paulivec``.
@@ -1470,7 +1455,6 @@ def state_drawer(state, output=None, **drawer_args):
             ``output``.
 
         ValueError: when `output` is not a valid selection.
-
     """
     config = user_config.get_config()
     # Get default 'output' from config file else use 'repr'
@@ -1524,7 +1508,6 @@ def _bloch_multivector_data(state):
 
     Raises:
         VisualizationError: if input is not an N-qubit state.
-
     """
     rho = DensityMatrix(state)
     num = rho.num_qubits
@@ -1555,7 +1538,6 @@ def _paulivec_data(state):
 
     Raises:
         VisualizationError: if input is not an N-qubit state.
-
     """
     rho = SparsePauliOp.from_operator(DensityMatrix(state))
     if rho.num_qubits is None:

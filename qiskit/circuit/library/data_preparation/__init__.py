@@ -10,7 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Data-encoding circuits
+"""
+Data-encoding circuits
 ======================
 
 In machine learning, pattern recognition and image processing, a **data-encoding circuit**

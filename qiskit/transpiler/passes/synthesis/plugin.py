@@ -10,7 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""====================================================================
+"""
+====================================================================
 Synthesis Plugins (:mod:`qiskit.transpiler.passes.synthesis.plugin`)
 ====================================================================
 
@@ -637,7 +638,7 @@ class UnitarySynthesisPluginManager:
     ``ext_plugins`` which contains a list of stevedore plugin objects.
     """
 
-    def __init__(self):  # noqa: D107
+    def __init__(self):
         self.ext_plugins = stevedore.ExtensionManager(
             "qiskit.unitary_synthesis", invoke_on_load=True, propagate_map_exceptions=True
         )
@@ -649,7 +650,6 @@ def unitary_synthesis_plugin_names():
     Returns:
         list: A list of the installed unitary synthesis plugin names. The plugin names are valid
         values for the :func:`~qiskit.compiler.transpile` kwarg ``unitary_synthesis_method``.
-
     """
     # NOTE: This is not a shared global instance to avoid an import cycle
     # at load time for the default plugin.
@@ -680,14 +680,13 @@ class HighLevelSynthesisPlugin(abc.ABC):
         Returns:
             QuantumCircuit: The quantum circuit representation of the Operation
                 when successful, and ``None`` otherwise.
-
         """
 
 
 class HighLevelSynthesisPluginManager:
     """Class tracking the installed high-level-synthesis plugins."""
 
-    def __init__(self):  # noqa: D107
+    def __init__(self):
         self.plugins = stevedore.ExtensionManager(
             "qiskit.synthesis", invoke_on_load=True, propagate_map_exceptions=True
         )

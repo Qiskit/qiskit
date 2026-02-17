@@ -60,6 +60,7 @@ class UCGate(Gate):
     Unnecessary controls and repeated operators can be removed as described in Ref [2].
 
     References:
+
     [1] Bergholm et al., Quantum circuits with uniformly controlled one-qubit gates (2005).
     `Phys. Rev. A 71, 052330 <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.71.052330>`__.
 
@@ -71,7 +72,8 @@ class UCGate(Gate):
     def __init__(
         self, gate_list: list[np.ndarray], up_to_diagonal: bool = False, mux_simp: bool = True
     ):
-        r"""Args:
+        r"""
+        Args:
             gate_list: List of two qubit unitaries :math:`[U_0, ..., U_{2^{k-1}}]`, where each
                 single-qubit unitary :math:`U_i` is given as a :math:`2 \times 2` numpy array.
             up_to_diagonal: Determines if the gate is implemented up to a diagonal.
@@ -84,7 +86,6 @@ class UCGate(Gate):
 
         Raises:
             QiskitError: in case of bad input to the constructor
-
         """
         # check input format
         if not isinstance(gate_list, list):
@@ -118,6 +119,7 @@ class UCGate(Gate):
 
     def _simplify(self, gate_list, num_contr):
         """https://arxiv.org/abs/2409.05618"""
+
         c = set()
         nc = set()
         mux_copy = gate_list.copy()
@@ -217,7 +219,8 @@ class UCGate(Gate):
         self.definition = ucg_circuit
 
     def _dec_ucg(self):
-        """Call to create a circuit that implements the uniformly controlled gate. If
+        """
+        Call to create a circuit that implements the uniformly controlled gate. If
         up_to_diagonal=True, the circuit implements the gate up to a diagonal gate and
         the diagonal gate is also returned.
         """
@@ -276,7 +279,8 @@ class UCGate(Gate):
         return circuit, diag
 
     def _dec_ucg_help(self):
-        """This method finds the single qubit gate arising in the decomposition of UCGates given in
+        """
+        This method finds the single qubit gate arising in the decomposition of UCGates given in
         https://arxiv.org/pdf/quant-ph/0410066.pdf.
         """
         single_qubit_gates = [np.asarray(gate, dtype=complex, order="f") for gate in self.params]

@@ -72,7 +72,6 @@ class CircuitScopeInterface(abc.ABC):
         Returns:
             the instruction context object actually appended.  This is not required to be the same
             as the object given (but typically will be).
-
         """
 
     @abc.abstractmethod
@@ -81,7 +80,6 @@ class CircuitScopeInterface(abc.ABC):
 
         Args:
             data: The instruction listing.
-
         """
 
     @abc.abstractmethod
@@ -107,7 +105,6 @@ class CircuitScopeInterface(abc.ABC):
         Raises:
             CircuitError: if the resource cannot be used by the scope, such as an out-of-range index
                 or a :class:`.Clbit` that isn't actually in the circuit.
-
         """
 
     @abc.abstractmethod
@@ -123,7 +120,6 @@ class CircuitScopeInterface(abc.ABC):
         Raises:
             CircuitError: if the variable cannot be added, such as because it invalidly shadows or
                 redefines an existing name.
-
         """
 
     @abc.abstractmethod
@@ -136,7 +132,6 @@ class CircuitScopeInterface(abc.ABC):
         Raises:
             CircuitError: if the stretch cannot be added, such as because it invalidly shadows or
                 redefines an existing name.
-
         """
 
     @abc.abstractmethod
@@ -153,7 +148,6 @@ class CircuitScopeInterface(abc.ABC):
 
         Raises:
             CircuitError: if the variable is not valid for this scope.
-
         """
 
     @abc.abstractmethod
@@ -165,7 +159,6 @@ class CircuitScopeInterface(abc.ABC):
 
         Raises:
             CircuitError: if the stretch is not valid for this scope.
-
         """
 
     @abc.abstractmethod
@@ -180,7 +173,6 @@ class CircuitScopeInterface(abc.ABC):
 
         Returns:
             the variable if it is found, otherwise ``None``.
-
         """
 
     @abc.abstractmethod
@@ -195,7 +187,6 @@ class CircuitScopeInterface(abc.ABC):
 
         Returns:
             the stretch if it is found, otherwise ``None``.
-
         """
 
     @abc.abstractmethod
@@ -203,8 +194,7 @@ class CircuitScopeInterface(abc.ABC):
         """Called to mark that a :class:`~.circuit.Qubit` should be considered "used" by this scope,
         without appending an explicit instruction.
 
-        The subclass may assume that the ``qubit`` is valid for the root scope.
-        """
+        The subclass may assume that the ``qubit`` is valid for the root scope."""
 
 
 class InstructionResources(typing.NamedTuple):
@@ -220,7 +210,6 @@ class InstructionResources(typing.NamedTuple):
         clbits: A collection of clbits that will be used by the instruction.
         qregs: A collection of quantum registers that are used by the instruction.
         cregs: A collection of classical registers that are used by the instruction.
-
     """
 
     qubits: Collection[Qubit] = ()
@@ -286,7 +275,6 @@ class InstructionPlaceholder(Instruction, abc.ABC):
             A full version of the relevant control-flow instruction, and the resources that it uses.
             This is a "proper" instruction instance, as if it had been defined with the correct
             number of qubits and clbits from the beginning.
-
         """
         raise NotImplementedError
 
@@ -303,7 +291,6 @@ class InstructionPlaceholder(Instruction, abc.ABC):
         Returns:
             A collection of the quantum and classical resources this placeholder instruction will
             certainly use.
-
         """
         raise NotImplementedError
 
@@ -367,30 +354,30 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
         allow_jumps: bool = True,
         forbidden_message: str | None = None,
     ):
-        """Args:
-        qubits: Any qubits this scope should consider itself as using from the beginning.
-        clbits: Any clbits this scope should consider itself as using from the beginning.  Along
-            with ``qubits``, this is useful for things such as ``if`` and ``while`` loop
-            builders, where the classical condition has associated resources, and is known when
-            this scope is created.
-        registers: Any registers this scope should consider itself as using from the
-            beginning.  This is useful for :obj:`.IfElseOp` and :obj:`.WhileLoopOp` instances
-            which use a classical register as their condition.
-        allow_jumps: Whether this builder scope should allow ``break`` and ``continue``
-            statements within it.  This is intended to help give sensible error messages when
-            dangerous behavior is encountered, such as using ``break`` inside an ``if`` context
-            manager that is not within a ``for`` manager.  This can only be safe if the user is
-            going to place the resulting :obj:`.QuantumCircuit` inside a :obj:`.ForLoopOp` that
-            uses *exactly* the same set of resources.  We cannot verify this from within the
-            builder interface (and it is too expensive to do when the ``for`` op is made), so we
-            fail safe, and require the user to use the more verbose, internal form.
-        parent: The scope interface of the containing scope.
-        forbidden_message: If a string is given here, a :exc:`.CircuitError` will be raised on
-            any attempts to append instructions to the scope with this message.  This is used by
-            pseudo scopes where the state machine of the builder scopes has changed into a
-            position where no instructions should be accepted, such as when inside a ``switch``
-            but outside any cases.
-
+        """
+        Args:
+            qubits: Any qubits this scope should consider itself as using from the beginning.
+            clbits: Any clbits this scope should consider itself as using from the beginning.  Along
+                with ``qubits``, this is useful for things such as ``if`` and ``while`` loop
+                builders, where the classical condition has associated resources, and is known when
+                this scope is created.
+            registers: Any registers this scope should consider itself as using from the
+                beginning.  This is useful for :obj:`.IfElseOp` and :obj:`.WhileLoopOp` instances
+                which use a classical register as their condition.
+            allow_jumps: Whether this builder scope should allow ``break`` and ``continue``
+                statements within it.  This is intended to help give sensible error messages when
+                dangerous behavior is encountered, such as using ``break`` inside an ``if`` context
+                manager that is not within a ``for`` manager.  This can only be safe if the user is
+                going to place the resulting :obj:`.QuantumCircuit` inside a :obj:`.ForLoopOp` that
+                uses *exactly* the same set of resources.  We cannot verify this from within the
+                builder interface (and it is too expensive to do when the ``for`` op is made), so we
+                fail safe, and require the user to use the more verbose, internal form.
+            parent: The scope interface of the containing scope.
+            forbidden_message: If a string is given here, a :exc:`.CircuitError` will be raised on
+                any attempts to append instructions to the scope with this message.  This is used by
+                pseudo scopes where the state machine of the builder scopes has changed into a
+                position where no instructions should be accepted, such as when inside a ``switch``
+                but outside any cases.
         """
         self._instructions = CircuitData(qubits, clbits)
         self.registers = set(registers)
@@ -588,8 +575,7 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
 
     def pop(self) -> CircuitInstruction:
         """Get the value of the most recent instruction in this scope, and remove it from this
-        object.
-        """
+        object."""
         if not self._instructions:
             raise CircuitError("This scope contains no instructions.")
         return self._instructions.pop()
@@ -608,7 +594,6 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
 
         Raises:
             TypeError: if the provided bit is of an incorrect type.
-
         """
         for bit in bits:
             if isinstance(bit, Qubit):
@@ -624,7 +609,6 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
 
         Args:
             register: the register to add to the block.
-
         """
         if register in self.registers:
             # Fast return to avoid iterating through the bits.
@@ -660,8 +644,8 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
             A circuit containing concrete versions of all the instructions that were in the scope,
             and using the minimal set of resources necessary to support them, within the enclosing
             scope.
-
         """
+
         from qiskit.circuit import QuantumCircuit, SwitchCaseOp
 
         # There's actually no real problem with building a scope more than once.  This flag is more
@@ -759,7 +743,6 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
 
         Returns:
             a semi-shallow copy of this object.
-
         """
         out = type(self).__new__(type(self))
         out._instructions = self._instructions.copy()

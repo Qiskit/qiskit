@@ -10,7 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Directed graph object for representing coupling between physical qubits.
+"""
+Directed graph object for representing coupling between physical qubits.
 
 The nodes of the graph correspond to physical qubits (represented as integers) and the
 directed edges indicate which physical qubits are coupled and the permitted direction of
@@ -27,7 +28,8 @@ from qiskit.transpiler.exceptions import CouplingError
 
 
 class CouplingMap:
-    """Directed graph specifying fixed coupling.
+    """
+    Directed graph specifying fixed coupling.
 
     Nodes correspond to physical qubits (integers) and directed edges correspond
     to permitted CNOT gates, with source and destination corresponding to control
@@ -44,7 +46,8 @@ class CouplingMap:
     )
 
     def __init__(self, couplinglist=None, description=None):
-        """Create coupling graph. By default, the generated coupling has no nodes.
+        """
+        Create coupling graph. By default, the generated coupling has no nodes.
 
         Args:
             couplinglist (list or None): An initial coupling graph, specified as
@@ -52,7 +55,6 @@ class CouplingMap:
                 It is required that nodes are contiguously indexed starting at 0.
                 Missed nodes will be added as isolated nodes in the coupling map.
             description (str): A string to describe the coupling map.
-
         """
         self.description = description
         # the coupling map graph
@@ -75,11 +77,11 @@ class CouplingMap:
         return self._size
 
     def get_edges(self):
-        """Gets the list of edges in the coupling graph.
+        """
+        Gets the list of edges in the coupling graph.
 
         Returns:
             Tuple(int,int): Each edge is a pair of physical qubits.
-
         """
         return self.graph.edge_list()
 
@@ -93,7 +95,6 @@ class CouplingMap:
 
         Raises:
             CouplingError: if trying to add duplicate qubit
-
         """
         if not isinstance(physical_qubit, int):
             raise CouplingError("Physical qubits should be integers.")
@@ -107,7 +108,8 @@ class CouplingMap:
         self._size = None  # invalidate
 
     def add_edge(self, src, dst):
-        """Add directed edge to coupling graph.
+        """
+        Add directed edge to coupling graph.
 
         src (int): source physical qubit
         dst (int): destination physical qubit
@@ -128,7 +130,8 @@ class CouplingMap:
         return self._qubit_list
 
     def is_connected(self):
-        """Test if the graph is connected.
+        """
+        Test if the graph is connected.
 
         Return True if connected, False otherwise
         """
@@ -182,7 +185,6 @@ class CouplingMap:
 
         Raises:
             CouplingError: if the qubits do not exist in the CouplingMap
-
         """
         if physical_qubit1 >= self.size():
             raise CouplingError(f"{physical_qubit1} not in coupling graph")
@@ -204,7 +206,6 @@ class CouplingMap:
             List: The shortest undirected path
         Raises:
             CouplingError: When there is no path between physical_qubit1, physical_qubit2.
-
         """
         paths = rx.digraph_dijkstra_shortest_paths(
             self.graph, source=physical_qubit1, target=physical_qubit2, as_undirected=True
@@ -217,7 +218,8 @@ class CouplingMap:
 
     @property
     def is_symmetric(self):
-        """Test if the graph is symmetric.
+        """
+        Test if the graph is symmetric.
 
         Return True if symmetric, False otherwise
         """
@@ -226,7 +228,9 @@ class CouplingMap:
         return self._is_symmetric
 
     def make_symmetric(self):
-        """Convert uni-directional edges into bi-directional."""
+        """
+        Convert uni-directional edges into bi-directional.
+        """
         # TODO: replace with PyDiGraph.make_symmetric() after rustworkx
         # 0.13.0 is released.
         edges = self.get_edges()
@@ -238,11 +242,11 @@ class CouplingMap:
         self._is_symmetric = None  # invalidate
 
     def _check_symmetry(self):
-        """Calculates symmetry
+        """
+        Calculates symmetry
 
         Returns:
             Bool: True if symmetric, False otherwise
-
         """
         return self.graph.is_symmetric()
 
@@ -262,8 +266,8 @@ class CouplingMap:
 
         Raises:
             CouplingError: Reduced coupling map must be connected.
-
         """
+
         inv_map = [None] * (max(mapping) + 1)
         for idx, val in enumerate(mapping):
             inv_map[val] = idx
@@ -325,7 +329,7 @@ class CouplingMap:
 
     @classmethod
     def from_heavy_hex(cls, distance, bidirectional=True) -> "CouplingMap":
-        r"""Return a heavy hexagon graph coupling map.
+        """Return a heavy hexagon graph coupling map.
 
         A heavy hexagon graph is described in:
 
@@ -342,7 +346,6 @@ class CouplingMap:
                 ``True``
         Returns:
             CouplingMap: A heavy hex coupling graph
-
         """
         cmap = cls(description="heavy-hex")
         cmap.graph = rx.generators.directed_heavy_hex_graph(distance, bidirectional=bidirectional)
@@ -367,7 +370,6 @@ class CouplingMap:
                 ``True``
         Returns:
             CouplingMap: A heavy square coupling graph
-
         """
         cmap = cls(description="heavy-square")
         cmap.graph = rx.generators.directed_heavy_square_graph(
@@ -387,7 +389,6 @@ class CouplingMap:
                 ``True``
         Returns:
             CouplingMap: A hexagonal lattice coupling graph
-
         """
         cmap = cls(description="hexagonal-lattice")
         cmap.graph = rx.generators.directed_hexagonal_lattice_graph(
@@ -447,7 +448,6 @@ class CouplingMap:
                 components. The order of this list is deterministic but
                 implementation specific and shouldn't be relied upon as
                 part of the API.
-
         """
         # Set payload to index
         for node in self.graph.node_indices():
@@ -480,7 +480,6 @@ class CouplingMap:
 
         Returns:
             bool: Whether or not other is isomorphic to self.
-
         """
         if not isinstance(other, CouplingMap):
             return False
@@ -500,4 +499,5 @@ class CouplingMap:
             PIL.Image: Drawn coupling map.
 
         """
+
         return graphviz_draw(self.graph, method=method)

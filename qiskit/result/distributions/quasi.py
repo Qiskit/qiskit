@@ -39,7 +39,7 @@ class QuasiDistribution(dict):
             and the parameter ``ndigits`` can be manipulated with the
             class attribute ``__ndigits__``. The default is ``15``.
 
-        Args:
+        Parameters:
             data (dict): Input quasiprobability data. Where the keys
                 represent a measured classical value and the value is a
                 float for the quasiprobability of that result.
@@ -55,7 +55,6 @@ class QuasiDistribution(dict):
         Raises:
             TypeError: If the input keys are not a string or int
             ValueError: If the string format of the keys is incorrect
-
         """
         self.shots = shots
         self._stddev_upper_bound = stddev_upper_bound
@@ -91,7 +90,7 @@ class QuasiDistribution(dict):
         it to the closest probability distribution as defined by
         the L2-norm.
 
-        Args:
+        Parameters:
             return_distance (bool): Return the L2 distance between distributions.
 
         Returns:
@@ -100,7 +99,6 @@ class QuasiDistribution(dict):
 
         Notes:
             Method from Smolin et al., Phys. Rev. Lett. 108, 070502 (2012).
-
         """
         sorted_probs = dict(sorted(self.items(), key=lambda item: item[1]))
         num_elems = len(sorted_probs)
@@ -123,7 +121,7 @@ class QuasiDistribution(dict):
     def binary_probabilities(self, num_bits=None):
         """Build a quasi-probabilities dictionary with binary string keys
 
-        Args:
+        Parameters:
             num_bits (int): number of bits in the binary bitstrings (leading
                 zeros will be padded). If None, a default value will be used.
                 If keys are given as integers or strings with binary or hex prefix,
@@ -134,7 +132,6 @@ class QuasiDistribution(dict):
         Returns:
             dict: A dictionary where the keys are binary strings in the format
                 ``"0110"``
-
         """
         n = self._num_bits if num_bits is None else num_bits
         return {format(key, "b").zfill(n): value for key, value in self.items()}
@@ -145,7 +142,6 @@ class QuasiDistribution(dict):
         Returns:
             dict: A dictionary where the keys are hexadecimal strings in the
                 format ``"0x1a"``
-
         """
         return {hex(key): value for key, value in self.items()}
 

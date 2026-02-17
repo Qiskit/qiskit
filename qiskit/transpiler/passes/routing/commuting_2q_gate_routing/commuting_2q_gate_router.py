@@ -110,22 +110,22 @@ class Commuting2qGateRouter(TransformationPass):
         swap_strategy: SwapStrategy | None = None,
         edge_coloring: dict[tuple[int, int], int] | None = None,
     ) -> None:
-        r"""Args:
-        swap_strategy: An instance of a :class:`.SwapStrategy` that holds the swap layers
-            that are used, and the order in which to apply them, to map the instruction to
-            the hardware. If this field is not given, it should be contained in the
-            property set of the pass. This allows other passes to determine the most
-            appropriate swap strategy at run-time.
-        edge_coloring: An optional edge coloring of the coupling map (I.e. no two edges that
-            share a node have the same color). If the edge coloring is given then the commuting
-            gates that can be simultaneously applied given the current qubit permutation are
-            grouped according to the edge coloring and applied according to this edge
-            coloring. Here, a color is an int which is used as the index to define and
-            access the groups of commuting gates that can be applied simultaneously.
-            If the edge coloring is not given then the sets will be built-up using a
-            greedy algorithm. The edge coloring is useful to position gates such as
-            ``RZZGate``\s next to swap gates to exploit CX cancellations.
-
+        r"""
+        Args:
+            swap_strategy: An instance of a :class:`.SwapStrategy` that holds the swap layers
+                that are used, and the order in which to apply them, to map the instruction to
+                the hardware. If this field is not given, it should be contained in the
+                property set of the pass. This allows other passes to determine the most
+                appropriate swap strategy at run-time.
+            edge_coloring: An optional edge coloring of the coupling map (I.e. no two edges that
+                share a node have the same color). If the edge coloring is given then the commuting
+                gates that can be simultaneously applied given the current qubit permutation are
+                grouped according to the edge coloring and applied according to this edge
+                coloring. Here, a color is an int which is used as the index to define and
+                access the groups of commuting gates that can be applied simultaneously.
+                If the edge coloring is not given then the sets will be built-up using a
+                greedy algorithm. The edge coloring is useful to position gates such as
+                ``RZZGate``\s next to swap gates to exploit CX cancellations.
         """
         super().__init__()
         self._swap_strategy = swap_strategy
@@ -146,7 +146,6 @@ class Commuting2qGateRouter(TransformationPass):
                 no swap strategy in the property set.
             TranspilerError: If the quantum circuit contains more than one qubit register.
             TranspilerError: If there are qubits that are not contained in the quantum register.
-
         """
         if self._swap_strategy is None:
             swap_strategy = self.property_set["swap_strategy"]
@@ -211,7 +210,6 @@ class Commuting2qGateRouter(TransformationPass):
 
         Returns:
             A new accumulator with the same registers as ``new_dag``.
-
         """
         # Add all the non-swap strategy nodes that we have accumulated up to now.
         order = layout.reorder_bits(new_dag.qubits)
@@ -228,14 +226,12 @@ class Commuting2qGateRouter(TransformationPass):
         """A helper function to track the movement of virtual qubits through the swaps.
 
         Args:
-            dag: The dagcircuit to use.
             j: The index of decision variable j (i.e. virtual qubit).
             k: The index of decision variable k (i.e. virtual qubit).
             layout: The current layout that takes into account previous swap gates.
 
         Returns:
             The position in the coupling map of the virtual qubits j and k as a tuple.
-
         """
         bit0 = dag.find_bit(layout.get_physical_bits()[j]).index
         bit1 = dag.find_bit(layout.get_physical_bits()[k]).index
@@ -262,7 +258,6 @@ class Commuting2qGateRouter(TransformationPass):
         Returns:
              A list of gate dicts that can be applied. The gates a position 0 are applied first.
              A gate dict has the qubit tuple as key and the gate to apply as value.
-
         """
         if self._edge_coloring is not None:
             return self._edge_coloring_build_sub_layers(current_layer)
@@ -323,7 +318,6 @@ class Commuting2qGateRouter(TransformationPass):
         Returns:
             A dag that is compatible with the coupling map where swap gates have been added
             to map the gates in the :class:`.Commuting2qBlock` to the hardware.
-
         """
         trivial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
         gate_layers = self._make_op_layers(dag, node.op, current_layout, swap_strategy)
@@ -364,6 +358,7 @@ class Commuting2qGateRouter(TransformationPass):
         self, dag: DAGCircuit, op: Commuting2qBlock, layout: Layout, swap_strategy: SwapStrategy
     ) -> dict[int, dict[tuple, Gate]]:
         """Creates layers of two-qubit gates based on the distance in the swap strategy."""
+
         gate_layers: dict[int, dict[tuple, Gate]] = defaultdict(dict)
 
         for node in op.node_block:
@@ -382,14 +377,12 @@ class Commuting2qGateRouter(TransformationPass):
         """Check if the swap strategy can create the required connectivity.
 
         Args:
-            dag: The dagcircuit to use
             node: The dag node for which to check if the swap strategy provides enough connectivity.
             swap_strategy: The swap strategy that is being used.
 
         Raises:
             TranspilerError: If there is an edge that the swap strategy cannot accommodate
                 and if the pass has been configured to raise on such issues.
-
         """
         required_edges = set()
 

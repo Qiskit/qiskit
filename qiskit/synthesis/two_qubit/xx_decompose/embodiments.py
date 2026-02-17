@@ -10,7 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""A library of known embodiments of RXXGate in terms of other gates,
+"""
+A library of known embodiments of RXXGate in terms of other gates,
 for some generic or specific angles.
 
 TODO: discover these automatically from the gates' algebraic definition

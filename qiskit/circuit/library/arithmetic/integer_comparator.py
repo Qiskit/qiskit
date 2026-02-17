@@ -47,13 +47,13 @@ class IntegerComparator(BlueprintCircuit):
         geq: bool = True,
         name: str = "cmp",
     ) -> None:
-        """Args:
-        num_state_qubits: Number of state qubits. If this is set it will determine the number
-            of qubits required for the circuit.
-        value: The fixed value to compare with.
-        geq: If True, evaluate a ``>=`` condition, else ``<``.
-        name: Name of the circuit.
-
+        """
+        Args:
+            num_state_qubits: Number of state qubits. If this is set it will determine the number
+                of qubits required for the circuit.
+            value: The fixed value to compare with.
+            geq: If True, evaluate a ``>=`` condition, else ``<``.
+            name: Name of the circuit.
         """
         super().__init__(name=name)
 
@@ -71,7 +71,6 @@ class IntegerComparator(BlueprintCircuit):
 
         Returns:
             The value against which the value of the qubit register is compared.
-
         """
         return self._value
 
@@ -87,7 +86,6 @@ class IntegerComparator(BlueprintCircuit):
 
         Returns:
             True, if the comparator compares ``>=``, False if ``<``.
-
         """
         return self._geq
 
@@ -97,7 +95,6 @@ class IntegerComparator(BlueprintCircuit):
 
         Args:
             geq: If True, the comparator compares ``>=``, if False ``<``.
-
         """
         if geq != self._geq:
             self._invalidate()
@@ -109,7 +106,6 @@ class IntegerComparator(BlueprintCircuit):
 
         Returns:
             The number of state qubits.
-
         """
         return self._num_state_qubits
 
@@ -121,7 +117,6 @@ class IntegerComparator(BlueprintCircuit):
 
         Args:
             num_state_qubits: The new number of state qubits.
-
         """
         if self._num_state_qubits is None or num_state_qubits != self._num_state_qubits:
             self._invalidate()  # reset data
@@ -189,12 +184,12 @@ class IntegerComparatorGate(Gate):
     def __init__(
         self, num_state_qubits: int, value: int, geq: bool = True, label: str | None = None
     ):
-        r"""Args:
-        num_state_qubits: The number of qubits in the registers.
-        value: The value :math:`L` to compre to.
-        geq: If ``True`` compute :math:`i \geq L`, otherwise compute :math:`i < L`.
-        label: An optional label for the gate.
-
+        r"""
+        Args:
+            num_state_qubits: The number of qubits in the registers.
+            value: The value :math:`L` to compre to.
+            geq: If ``True`` compute :math:`i \geq L`, otherwise compute :math:`i < L`.
+            label: An optional label for the gate.
         """
         super().__init__("IntComp", num_state_qubits + 1, [], label=label)
         self.value = value

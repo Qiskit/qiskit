@@ -10,7 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Driver for a synthesis routine which emits optimal XX-based circuits."""
+"""
+Driver for a synthesis routine which emits optimal XX-based circuits.
+"""
 from __future__ import annotations
 import heapq
 import math
@@ -32,9 +34,11 @@ from .polytopes import XXPolytope
 
 
 def _average_infidelity(p, q):
-    """Computes the infidelity distance between two points p, q expressed in positive canonical
+    """
+    Computes the infidelity distance between two points p, q expressed in positive canonical
     coordinates.
     """
+
     a0, b0, c0 = p
     a1, b1, c1 = q
 
@@ -49,7 +53,8 @@ def _average_infidelity(p, q):
 
 
 class XXDecomposer:
-    r"""A class for optimal decomposition of 2-qubit unitaries into 2-qubit basis gates of ``XX`` type
+    r"""
+    A class for optimal decomposition of 2-qubit unitaries into 2-qubit basis gates of ``XX`` type
     (i.e., each locally equivalent to :math:`CAN(\alpha, 0, 0)` for a possibly varying :math:`alpha`).
 
     Args:
@@ -71,10 +76,9 @@ class XXDecomposer:
         using the method ``_default_embodiment``.
 
     .. automethod:: __call__
-
     """
 
-    def __init__(  # noqa: D107
+    def __init__(
         self,
         basis_fidelity: dict | float = 1.0,
         euler_basis: str = "U",
@@ -103,7 +107,8 @@ class XXDecomposer:
 
     @staticmethod
     def _default_embodiment(strength):
-        """If the user does not provide a custom implementation of XX(strength), then this routine
+        """
+        If the user does not provide a custom implementation of XX(strength), then this routine
         defines a default implementation using RZX.
         """
         xx_circuit = QuantumCircuit(2)
@@ -117,9 +122,11 @@ class XXDecomposer:
         return xx_circuit
 
     def _check_embodiments(self):
-        """Checks that `self.embodiments` is populated with legal circuit embodiments: the key-value
+        """
+        Checks that `self.embodiments` is populated with legal circuit embodiments: the key-value
         pair (angle, circuit) satisfies Operator(circuit) approx RXX(angle).to_matrix().
         """
+
         from qiskit.quantum_info.operators.measures import average_gate_fidelity
 
         for angle, embodiment in self.embodiments.items():
@@ -132,7 +139,8 @@ class XXDecomposer:
 
     @staticmethod
     def _best_decomposition(canonical_coordinate, available_strengths):
-        """Finds the cheapest sequence of `available_strengths` which supports the best approximation
+        """
+        Finds the cheapest sequence of `available_strengths` which supports the best approximation
         to `canonical_coordinate`. Returns a dictionary with keys "cost", "point", and "operations".
 
         NOTE: `canonical_coordinate` is a positive canonical coordinate. `strengths` is a dictionary
@@ -175,7 +183,8 @@ class XXDecomposer:
         return {"point": best_point, "cost": best_cost, "sequence": best_sequence}
 
     def num_basis_gates(self, unitary: Operator | np.ndarray):
-        """Counts the number of gates that would be emitted during re-synthesis.
+        """
+        Counts the number of gates that would be emitted during re-synthesis.
 
         .. note::
             This method is used by :class:`.ConsolidateBlocks`.
@@ -193,10 +202,12 @@ class XXDecomposer:
 
     @staticmethod
     def _strength_to_infidelity(basis_fidelity, approximate=False):
-        """Converts a dictionary mapping XX strengths to fidelities to a dictionary mapping XX
+        """
+        Converts a dictionary mapping XX strengths to fidelities to a dictionary mapping XX
         strengths to infidelities. Also supports one of the other formats Qiskit uses: if only a
         lone float is supplied, it extends it from CX over CX/2 and CX/3 by linear decay.
         """
+
         if isinstance(basis_fidelity, float):
             if not approximate:
                 slope, offset = 1e-10, 1e-12
@@ -221,7 +232,8 @@ class XXDecomposer:
         approximate: bool = True,
         use_dag: bool = False,
     ) -> QuantumCircuit:
-        r"""Fashions a circuit which (perhaps approximately) models the special unitary operation
+        r"""
+        Fashions a circuit which (perhaps approximately) models the special unitary operation
         ``unitary``, using the circuit templates supplied at initialization as ``embodiments``.  The
         routine uses ``basis_fidelity`` to select the optimal circuit template, including when
         performing exact synthesis; the contents of ``basis_fidelity`` is a dictionary mapping
@@ -240,7 +252,6 @@ class XXDecomposer:
 
         Returns:
             QuantumCircuit: Synthesized circuit.
-
         """
         basis_fidelity = basis_fidelity or self.basis_fidelity
         strength_to_infidelity = self._strength_to_infidelity(

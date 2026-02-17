@@ -9,7 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""Optimized list of Pauli operators"""
+"""
+Optimized list of Pauli operators
+"""
 
 
 from __future__ import annotations
@@ -52,7 +54,6 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             z (np.ndarray): input z matrix.
             x (np.ndarray): input x matrix.
             phase (np.ndarray): input phase vector.
-
         """
         self._z = z
         self._x = x
@@ -213,7 +214,6 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
 
         Raises:
             QiskitError: if number of qubits of ``other`` does not match ``qargs``.
-
         """
         if qargs is not None and len(qargs) != other.num_qubits:
             raise QiskitError(
@@ -261,7 +261,6 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
 
         Raises:
             QiskitError: if the Clifford number of qubits and ``qargs`` don't match.
-
         """
         # Check dimension
         if qargs is not None and len(qargs) != other.num_qubits:
@@ -297,6 +296,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
 
     def _evolve_clifford(self, other, qargs=None, frame="h"):
         """Heisenberg picture evolution of a Pauli by a Clifford."""
+
         if frame == "s":
             adj = other
         else:
@@ -427,7 +427,6 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         Returns:
             array: if ``sparse=False``.
             csr_matrix: if ``sparse=True``.
-
         """
         num_qubits = z.size
 
@@ -497,7 +496,6 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
                             label (from either the full or unsigned Pauli group) and
                             the phase ``q`` for the coefficient :math:`(-i)^(q + x.z)`
                             for the label from the full Pauli group.
-
         """
         # Map each qubit to the {I: 0, X: 1, Z: 2, Y: 3} integer form, then use Numpy advanced
         # indexing to get a new data buffer which is compatible with an ASCII string label.
@@ -524,7 +522,6 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
 
         Raises:
             QiskitError: if input gate cannot be decomposed into Clifford gates.
-
         """
         if isinstance(circuit, (Barrier, Delay)):
             return self

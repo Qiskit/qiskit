@@ -25,8 +25,7 @@ from qiskit.transpiler.passes.optimization.collect_and_collapse import (
 
 class CollectLinearFunctions(CollectAndCollapse):
     """Collect blocks of linear gates (:class:`.CXGate` and :class:`.SwapGate` gates)
-    and replaces them by linear functions (:class:`.LinearFunction`).
-    """
+    and replaces them by linear functions (:class:`.LinearFunction`)."""
 
     def __init__(
         self,
@@ -53,8 +52,8 @@ class CollectLinearFunctions(CollectAndCollapse):
             max_block_width (int | None): specifies the maximum width of the block
                 (that is, the number of qubits over which the block is defined)
                 for the block to be collected.
-
         """
+
         collect_function = partial(
             collect_using_filter_function,
             filter_function=_is_linear_gate,
@@ -82,6 +81,5 @@ def _is_linear_gate(node):
 
 def _collapse_to_linear_function(circuit):
     """Specifies how to construct a ``LinearFunction`` from a quantum circuit (that must
-    consist of linear gates only).
-    """
+    consist of linear gates only)."""
     return LinearFunction(circuit)

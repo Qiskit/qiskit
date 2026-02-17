@@ -10,7 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Random state generation."""
+"""
+Random state generation.
+"""
 
 from __future__ import annotations
 from typing import Literal
@@ -43,7 +45,6 @@ def random_statevector(
     Reference:
         K. Zyczkowski and H. Sommers (2001), "Induced measures in the space of mixed quantum states",
         `J. Phys. A: Math. Gen. 34 7111 <https://arxiv.org/abs/quant-ph/0012101>`__.
-
     """
     if seed is None:
         rng = np.random.default_rng()
@@ -82,7 +83,6 @@ def random_density_matrix(
 
     Raises:
         QiskitError: if the method is not valid.
-
     """
     # Flatten dimensions
     dim = np.prod(dims)
@@ -109,7 +109,6 @@ def _ginibre_matrix(nrow, ncol, seed):
     Returns:
         ndarray: A complex rectangular matrix where each real and imaginary
             entry is sampled from the normal distribution.
-
     """
     if seed is None:
         rng = np.random.default_rng()
@@ -123,7 +122,8 @@ def _ginibre_matrix(nrow, ncol, seed):
 
 
 def _random_density_hs(dim, rank, seed):
-    """Generate a random density matrix from the Hilbert-Schmidt metric.
+    """
+    Generate a random density matrix from the Hilbert-Schmidt metric.
 
     Args:
         dim (int): the dimensions of the density matrix.
@@ -133,7 +133,6 @@ def _random_density_hs(dim, rank, seed):
 
     Returns:
         ndarray: rho (N,N)  a density matrix.
-
     """
     mat = _ginibre_matrix(dim, rank, seed)
     mat = mat.dot(mat.conj().T)
@@ -151,7 +150,6 @@ def _random_density_bures(dim, rank, seed):
 
     Returns:
         ndarray: rho (N,N) a density matrix.
-
     """
     density = np.eye(dim) + random_unitary(dim, seed=seed).data
     mat = density.dot(_ginibre_matrix(dim, rank, seed))

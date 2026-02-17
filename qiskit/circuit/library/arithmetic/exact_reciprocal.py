@@ -34,8 +34,7 @@ class ExactReciprocal(QuantumCircuit):
     def __init__(
         self, num_state_qubits: int, scaling: float, neg_vals: bool = False, name: str = "1/x"
     ) -> None:
-        r"""Instantiate a new :class:`.ExactReciprocal` instance.
-
+        r"""
         Args:
             num_state_qubits: The number of qubits representing the value to invert.
             scaling: Scaling factor :math:`s` of the reciprocal function, i.e. to compute
@@ -50,7 +49,6 @@ class ExactReciprocal(QuantumCircuit):
         .. note::
 
             It is assumed that the binary string :math:`x` represents a number < 1.
-
         """
         qr_state = QuantumRegister(num_state_qubits, "state")
         qr_flag = QuantumRegister(1, "flag")
@@ -78,7 +76,8 @@ class ExactReciprocalGate(Gate):
     def __init__(
         self, num_state_qubits: int, scaling: float, neg_vals: bool = False, label: str = "1/x"
     ) -> None:
-        r"""Args:
+        r"""
+        Args:
             num_state_qubits: The number of qubits representing the value to invert.
             scaling: Scaling factor :math:`s` of the reciprocal function, i.e. to compute
                 :math:`s / x`.
@@ -92,7 +91,6 @@ class ExactReciprocalGate(Gate):
         .. note::
 
             It is assumed that the binary string :math:`x` represents a number < 1.
-
         """
         super().__init__("ExactReciprocal", num_state_qubits + 1, [], label=label)
 

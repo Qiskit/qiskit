@@ -36,11 +36,11 @@ if TYPE_CHECKING:
 class _DefaultCaseType:
     # Note: Sphinx uses the docstring of this singleton class object as the documentation of the
     # `CASE_DEFAULT` object.
+
     """A special object that represents the "default" case of a switch statement.  If you use this
     as a case target, it must be the last case, and will match anything that wasn't already matched.
     When using the builder interface of :meth:`.QuantumCircuit.switch`, this can also be accessed as
-    the ``DEFAULT`` attribute of the bound case-builder object.
-    """
+    the ``DEFAULT`` attribute of the bound case-builder object."""
 
     def __repr__(self):
         return "<default case>"
@@ -64,13 +64,14 @@ class SwitchCaseOp(ControlFlowOp):
         *,
         label: str | None = None,
     ):
-        """Args:
-        target: the real-time value to switch on.
-        cases: an ordered iterable of the corresponding value of the ``target`` and the circuit
-            block that should be executed if this is matched.  There is no fall-through between
-            blocks, and the order matters.
-
         """
+        Args:
+            target: the real-time value to switch on.
+            cases: an ordered iterable of the corresponding value of the ``target`` and the circuit
+                block that should be executed if this is matched.  There is no fall-through between
+                blocks, and the order matters.
+        """
+
         from qiskit.circuit import QuantumCircuit
 
         if isinstance(target, expr.Expr):
@@ -160,8 +161,7 @@ class SwitchCaseOp(ControlFlowOp):
         .. seealso::
             :meth:`.SwitchCaseOp.cases`
                 Create a lookup table that you can use for your own purposes to jump from values to
-                the circuit that would be executed.
-        """
+                the circuit that would be executed."""
         return zip(self._label_spec, self._params)
 
     def cases(self):
@@ -326,8 +326,7 @@ class SwitchContext:
     ):
         """Add a sequence of conditions and the single block that should be run if they are
         triggered to the context.  The labels are assumed to have already been validated using
-        :meth:`label_in_use`.
-        """
+        :meth:`label_in_use`."""
         # The labels were already validated when the case scope was entered, so we don't need to do
         # it again.
         self._label_set.update(labels)

@@ -57,6 +57,7 @@ def adder_qft_d00(
             ``AnnotatedOperation`` objects.
 
     References:
+
     [1] T. G. Draper, Addition on a Quantum Computer, 2000.
     `arXiv:quant-ph/0008033 <https://arxiv.org/pdf/quant-ph/0008033.pdf>`_
 
@@ -67,6 +68,7 @@ def adder_qft_d00(
     `arXiv:quant-ph/9511018 <https://arxiv.org/pdf/quant-ph/9511018.pdf>`_
 
     """
+
     if kind == "full":
         raise ValueError("The DraperQFTAdder only supports 'half' and 'fixed' as ``kind``.")
 

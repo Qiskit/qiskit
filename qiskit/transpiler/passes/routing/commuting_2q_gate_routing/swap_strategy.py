@@ -50,7 +50,8 @@ class SwapStrategy:
     def __init__(
         self, coupling_map: CouplingMap, swap_layers: tuple[tuple[tuple[int, int], ...], ...]
     ) -> None:
-        """Args:
+        """
+        Args:
             coupling_map: The coupling map the strategy is implemented for.
             swap_layers: The swap layers of the strategy, specified as tuple of swap layers.
                 Each swap layer is a tuple of edges to which swaps are applied simultaneously.
@@ -61,7 +62,6 @@ class SwapStrategy:
             QiskitError: if the swap strategy is not valid. A swap strategy is valid if all
                 swap gates, specified as tuples, are contained in the edge set of the coupling map.
                 A swap strategy is also invalid if a layer has multiple swaps on the same qubit.
-
         """
         self._coupling_map = coupling_map
         self._num_vertices = coupling_map.size()
@@ -103,7 +103,6 @@ class SwapStrategy:
         Raises:
             ValueError: If the ``num_swap_layers`` is negative.
             ValueError: If the ``line`` has less than 2 elements and no swap strategy can be applied.
-
         """
         if len(line) < 2:
             raise ValueError(f"The line cannot have less than two elements, but is {line}")
@@ -133,7 +132,6 @@ class SwapStrategy:
 
         Returns:
             The number of layers of the swap strategy.
-
         """
         return len(self._swap_layers)
 
@@ -142,7 +140,6 @@ class SwapStrategy:
 
         Returns:
             The representation of the swap strategy.
-
         """
         description = [f"{self.__class__.__name__} with swap layers:\n"]
 
@@ -163,7 +160,6 @@ class SwapStrategy:
         Returns:
             A copy of the swap layer at ``idx`` to avoid any unintentional modification to
             the swap strategy.
-
         """
         return list(self._swap_layers[idx])
 
@@ -175,7 +171,6 @@ class SwapStrategy:
             The distance matrix for the SWAP strategy as an array that cannot be written to. Here,
             the entry (i, j) corresponds to the number of SWAP layers that need to be applied to
             obtain a connection between physical qubits i and j.
-
         """
         if self._distance_matrix is None:
             self._distance_matrix = np.full((self._num_vertices, self._num_vertices), -1, dtype=int)
@@ -196,7 +191,8 @@ class SwapStrategy:
         return self._distance_matrix
 
     def new_connections(self, idx: int) -> list[set[int]]:
-        """Returns the new connections obtained after applying the SWAP layer specified by idx, i.e.
+        """
+        Returns the new connections obtained after applying the SWAP layer specified by idx, i.e.
         a list of qubit pairs that are adjacent to one another after idx steps of the SWAP strategy.
 
         Args:
@@ -205,7 +201,6 @@ class SwapStrategy:
 
         Returns:
             A list of edges representing the new qubit connections.
-
         """
         connections = []
         for i in range(self._num_vertices):
@@ -216,6 +211,7 @@ class SwapStrategy:
 
     def _build_edges(self) -> set[tuple[int, int]]:
         """Build the possible edges that the swap strategy accommodates."""
+
         possible_edges = set()
         for swap_layer_idx in range(len(self) + 1):
             for edge in self.swapped_coupling_map(swap_layer_idx).get_edges():
@@ -230,7 +226,6 @@ class SwapStrategy:
 
         Returns:
             The qubit connections that can be accommodated by the swap strategy.
-
         """
         if self._possible_edges is None:
             self._possible_edges = self._build_edges()
@@ -244,7 +239,6 @@ class SwapStrategy:
         Returns:
             The couplings that cannot be reached as a set of Tuples of int. Here,
             each int corresponds to a qubit in the coupling map.
-
         """
         if self._missing_couplings is None:
             self._missing_couplings = set(zip(*(self.distance_matrix == -1).nonzero()))
@@ -260,7 +254,6 @@ class SwapStrategy:
 
         Returns:
             The swapped coupling map.
-
         """
         permutation = self.inverse_composed_permutation(idx)
 
@@ -281,7 +274,6 @@ class SwapStrategy:
 
         Returns:
             The list with swapped elements
-
         """
         if inplace:
             x = list_to_swap
@@ -294,7 +286,8 @@ class SwapStrategy:
         return x
 
     def inverse_composed_permutation(self, idx: int) -> list[int]:
-        """Returns the inversed composed permutation of all swap layers applied up to layer
+        """
+        Returns the inversed composed permutation of all swap layers applied up to layer
         ``idx``. Permutations are represented by list of integers where the ith element
         corresponds to the mapping of i under the permutation.
 
@@ -303,7 +296,6 @@ class SwapStrategy:
 
         Returns:
             The inversed permutation as a list of integer values.
-
         """
         # Only compute the inverse permutation if it has not been computed before
         if idx not in self._inverse_composed_permutation:

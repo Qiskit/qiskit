@@ -90,7 +90,9 @@ class DAGDependency:
     """
 
     def __init__(self):
-        """Create an empty DAGDependency."""
+        """
+        Create an empty DAGDependency.
+        """
         # Circuit name
         self.name = None
 
@@ -126,8 +128,7 @@ class DAGDependency:
         """Set the global phase of the circuit.
 
         Args:
-            angle (float, ParameterExpression): The angle to set the global phase to.
-
+            angle (float, ParameterExpression)
         """
         from qiskit.circuit.parameterexpression import ParameterExpression  # needed?
 
@@ -151,10 +152,8 @@ class DAGDependency:
 
     def depth(self):
         """Return the circuit depth.
-
         Returns:
             int: the circuit depth
-
         """
         depth = rx.dag_longest_path_length(self._multi_graph)
         return depth if depth >= 0 else 0
@@ -206,36 +205,37 @@ class DAGDependency:
                 self.clbits.append(creg[j])
 
     def _add_multi_graph_node(self, node: DAGDepNode) -> int:
-        """Args:
+        """
+        Args:
             node (DAGDepNode): considered node.
 
         Returns:
             node_id(int): corresponding label to the added node.
-
         """
         node_id = self._multi_graph.add_node(node)
         node.node_id = node_id
         return node_id
 
     def get_nodes(self) -> Iterator[DAGDepNode]:
-        """Returns:
-        generator(dict): iterator over all the nodes.
-
+        """
+        Returns:
+            generator(dict): iterator over all the nodes.
         """
         return iter(self._multi_graph.nodes())
 
     def get_node(self, node_id: int) -> DAGDepNode:
-        """Args:
+        """
+        Args:
             node_id (int): label of considered node.
 
         Returns:
             node: corresponding to the label.
-
         """
         return self._multi_graph.get_node_data(node_id)
 
     def _add_multi_graph_edge(self, src_id: int, dest_id: int, data):
-        """Function to add an edge from given data (dict) between two nodes.
+        """
+        Function to add an edge from given data (dict) between two nodes.
 
         Args:
             src_id (int): label of the first node.
@@ -246,7 +246,8 @@ class DAGDependency:
         self._multi_graph.add_edge(src_id, dest_id, data)
 
     def get_edges(self, src_id, dest_id):
-        """Edge enumeration between two nodes through method get_all_edge_data.
+        """
+        Edge enumeration between two nodes through method get_all_edge_data.
 
         Args:
             src_id (int): label of the first node.
@@ -254,17 +255,17 @@ class DAGDependency:
 
         Returns:
             List: corresponding to all edges between the two nodes.
-
         """
         return self._multi_graph.get_all_edge_data(src_id, dest_id)
 
     def get_all_edges(self):
-        """Enumeration of all edges.
+        """
+        Enumeration of all edges.
 
         Returns:
             List: corresponding to the label.
-
         """
+
         return [
             (src, dest, data)
             for src_node in self._multi_graph.nodes()
@@ -272,83 +273,83 @@ class DAGDependency:
         ]
 
     def get_in_edges(self, node_id):
-        """Enumeration of all incoming edges for a given node.
+        """
+        Enumeration of all incoming edges for a given node.
 
         Args:
             node_id (int): label of considered node.
 
         Returns:
             List: corresponding incoming edges data.
-
         """
         return self._multi_graph.in_edges(node_id)
 
     def get_out_edges(self, node_id):
-        """Enumeration of all outgoing edges for a given node.
+        """
+        Enumeration of all outgoing edges for a given node.
 
         Args:
             node_id (int): label of considered node.
 
         Returns:
             List: corresponding outgoing edges data.
-
         """
         return self._multi_graph.out_edges(node_id)
 
     def direct_successors(self, node_id: int) -> list[int]:
-        """Direct successors id of a given node as sorted list.
+        """
+        Direct successors id of a given node as sorted list.
 
         Args:
             node_id (int): label of considered node.
 
         Returns:
             List: direct successors id as a sorted list
-
         """
         return sorted(self._multi_graph.adj_direction(node_id, False).keys())
 
     def direct_predecessors(self, node_id):
-        """Direct predecessors id of a given node as sorted list.
+        """
+        Direct predecessors id of a given node as sorted list.
 
         Args:
             node_id (int): label of considered node.
 
         Returns:
             List: direct predecessors id as a sorted list
-
         """
         return sorted(self._multi_graph.adj_direction(node_id, True).keys())
 
     def successors(self, node_id: int) -> list[int]:
-        """Successors id of a given node as sorted list.
+        """
+        Successors id of a given node as sorted list.
 
         Args:
             node_id (int): label of considered node.
 
         Returns:
             List: all successors id as a sorted list
-
         """
         return self._multi_graph.get_node_data(node_id).successors
 
     def predecessors(self, node_id: int) -> list[int]:
-        """Predecessors id of a given node as sorted list.
+        """
+        Predecessors id of a given node as sorted list.
 
         Args:
             node_id (int): label of considered node.
 
         Returns:
             List: all predecessors id as a sorted list
-
         """
         return self._multi_graph.get_node_data(node_id).predecessors
 
     def topological_nodes(self):
-        """Yield nodes in topological order.
+        """
+        Yield nodes in topological order.
 
         Returns:
             generator(DAGNode): node in topological order.
-
         """
 
         def _key(x):
@@ -366,7 +367,6 @@ class DAGDependency:
 
         Returns:
             DAGDepNode: the newly added node.
-
         """
         directives = ["measure"]
         if not getattr(operation, "_directive", False) and operation.name not in directives:
@@ -408,14 +408,14 @@ class DAGDependency:
             operation (qiskit.circuit.Operation): operation as a quantum gate
             qargs (list[~qiskit.circuit.Qubit]): list of qubits on which the operation acts
             cargs (list[Clbit]): list of classical wires to attach to
-
         """
         new_node = self._create_op_node(operation, qargs, cargs)
         self._add_multi_graph_node(new_node)
         self._update_edges()
 
     def _update_edges(self):
-        """Updates DagDependency by adding edges to the newly added node (max_node)
+        """
+        Updates DagDependency by adding edges to the newly added node (max_node)
         from the previously added nodes.
         For each previously added node (prev_node), an edge from prev_node to max_node
         is added if max_node is "reachable" from prev_node (this means that the two
@@ -463,7 +463,8 @@ class DAGDependency:
                     reachable[predecessor_id] = False
 
     def _add_successors(self):
-        """Create the list of successors. Update DAGDependency 'successors' attribute. It has to
+        """
+        Create the list of successors. Update DAGDependency 'successors' attribute. It has to
         be used when the DAGDependency() object is complete (i.e. converters).
         """
         for node_id in range(len(self._multi_graph) - 1, -1, -1):
@@ -472,7 +473,8 @@ class DAGDependency:
             )
 
     def _add_predecessors(self):
-        """Create the list of predecessors for each node. Update DAGDependency
+        """
+        Create the list of predecessors for each node. Update DAGDependency
         'predecessors' attribute. It has to be used when the DAGDependency() object
         is complete (i.e. converters).
         """
@@ -482,12 +484,12 @@ class DAGDependency:
             )
 
     def copy(self):
-        """Function to copy a DAGDependency object.
-
+        """
+        Function to copy a DAGDependency object.
         Returns:
             DAGDependency: a copy of a DAGDependency object.
-
         """
+
         dag = DAGDependency()
         dag.name = self.name
         dag.cregs = self.cregs.copy()
@@ -500,7 +502,8 @@ class DAGDependency:
         return dag
 
     def draw(self, scale=0.7, filename=None, style="color"):
-        """Draws the DAGDependency graph.
+        """
+        Draws the DAGDependency graph.
 
         This function needs `pydot <https://github.com/erocarrera/pydot>`, which in turn needs
         Graphviz <https://www.graphviz.org/>` to be installed.
@@ -513,7 +516,6 @@ class DAGDependency:
 
         Returns:
             Ipython.display.Image: if in Jupyter notebook and not saving to file, otherwise None.
-
         """
         from qiskit.visualization.dag_visualization import dag_drawer
 
@@ -556,12 +558,10 @@ class DAGDependency:
                 a contiguous block and won't introduce a cycle when it's
                 contracted to a single node, this can be set to ``False`` to
                 improve the runtime performance of this method.
-
         Raises:
             DAGDependencyError: if ``cycle_check`` is set to ``True`` and replacing
                 the specified block introduces a cycle or if ``node_block`` is
                 empty.
-
         """
         block_qargs = set()
         block_cargs = set()
@@ -603,7 +603,6 @@ def merge_no_duplicates(*iterables):
 
     Yields:
         Iterator: List from the merging of the K lists (without duplicates).
-
     """
     last = object()
     for val in heapq.merge(*iterables):

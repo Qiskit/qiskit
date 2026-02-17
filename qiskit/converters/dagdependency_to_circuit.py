@@ -22,8 +22,8 @@ def dagdependency_to_circuit(dagdependency):
 
     Return:
         QuantumCircuit: the circuit representing the input dag dependency.
-
     """
+
     name = dagdependency.name or None
     circuit = QuantumCircuit(
         dagdependency.qubits,

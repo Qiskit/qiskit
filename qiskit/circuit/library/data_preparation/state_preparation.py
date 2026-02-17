@@ -47,7 +47,8 @@ class StatePreparation(Gate):
         label: str | None = None,
         normalize: bool = False,
     ):
-        r"""Args:
+        r"""
+        Args:
             params:
                 * Statevector: Statevector to initialize to.
                 * list: vector of complex amplitudes to initialize to.
@@ -74,6 +75,7 @@ class StatePreparation(Gate):
         :class:`~.library.Isometry` synthesis described in [1].
 
         References:
+
         [1] Iten et al., Quantum circuits for isometries (2016).
         `Phys. Rev. A 93, 032318
         <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.93.032318>`__.
@@ -201,6 +203,7 @@ class StatePreparation(Gate):
 
     def inverse(self, annotated: bool = False):
         """Return inverted StatePreparation"""
+
         label = (
             None if self._label in ("State Preparation", "State Preparation Dg") else self._label
         )
@@ -220,6 +223,7 @@ class StatePreparation(Gate):
 
     def validate_parameter(self, parameter):
         """StatePreparation instruction parameter can be str, int, float, and complex."""
+
         # StatePreparation instruction parameter can be str
         if isinstance(parameter, str):
             if parameter in ["0", "1", "+", "-", "l", "r"]:
@@ -257,10 +261,10 @@ class UniformSuperpositionGate(Gate):
         to prepare the superposition.
 
     References:
+
     [1]: A. Shukla and P. Vedula (2024), An efficient quantum algorithm for preparation
     of uniform quantum superposition states, `Quantum Inf Process 23, 38
     <https://link.springer.com/article/10.1007/s11128-024-04258-4>`_.
-
     """
 
     def __init__(
@@ -268,7 +272,8 @@ class UniformSuperpositionGate(Gate):
         num_superpos_states: int = 2,
         num_qubits: int | None = None,
     ):
-        r"""Args:
+        r"""
+        Args:
             num_superpos_states (int):
                 A positive integer M = num_superpos_states (> 1) representing the number of computational
                 basis states with an amplitude of 1/sqrt(M) in the uniform superposition

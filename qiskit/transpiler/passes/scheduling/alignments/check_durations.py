@@ -42,7 +42,6 @@ class InstructionDurationCheck(AnalysisPass):
             target: The :class:`~.Target` representing the target backend, if
                 ``target`` is specified then this argument will take
                 precedence and ``acquire_alignment`` and ``pulse_alignment`` will be ignored.
-
         """
         super().__init__()
         self.acquire_align = acquire_alignment
@@ -56,7 +55,6 @@ class InstructionDurationCheck(AnalysisPass):
 
         Args:
             dag: DAG circuit to check instruction durations.
-
         """
         self.property_set["reschedule_required"] = run_instruction_duration_check(
             dag, self.acquire_align, self.pulse_align

@@ -9,7 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""Custom Lazy Iterator class"""
+"""
+Custom Lazy Iterator class
+"""
 
 from __future__ import annotations
 from abc import ABC, abstractmethod
@@ -18,7 +20,7 @@ from abc import ABC, abstractmethod
 class CustomIterator(ABC):
     """Lazy custom iteration and item access."""
 
-    def __init__(self, obj):  # noqa: D107
+    def __init__(self, obj):
         self.obj = obj
         self._iter = 0
 

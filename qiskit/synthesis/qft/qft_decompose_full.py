@@ -9,7 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""Circuit synthesis for a QFT circuit."""
+"""
+Circuit synthesis for a QFT circuit.
+"""
 
 from __future__ import annotations
 import warnings

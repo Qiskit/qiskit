@@ -62,8 +62,7 @@ _BINDING_POWER = {
 
 class BasicPrinter:
     """An OpenQASM 3 AST visitor which writes the tree out in text mode to a stream, where the only
-    formatting is simple block indentation.
-    """
+    formatting is simple block indentation."""
 
     _CONSTANT_LOOKUP = {
         ast.Constant.PI: "pi",
@@ -90,36 +89,36 @@ class BasicPrinter:
         chain_else_if: bool = False,
         experimental: ExperimentalFeatures = ExperimentalFeatures(0),
     ):
-        """Args:
-        stream (io.TextIOBase): the stream that the output will be written to.
-        indent (str): the string to use as a single indentation level.
-        chain_else_if (bool): If ``True``, then constructs of the form::
+        """
+        Args:
+            stream (io.TextIOBase): the stream that the output will be written to.
+            indent (str): the string to use as a single indentation level.
+            chain_else_if (bool): If ``True``, then constructs of the form::
 
-                if (x == 0) {
-                    // ...
-                } else {
-                    if (x == 1) {
+                    if (x == 0) {
+                        // ...
+                    } else {
+                        if (x == 1) {
+                            // ...
+                        } else {
+                            // ...
+                        }
+                    }
+
+                will be collapsed into the equivalent but flatter::
+
+                    if (x == 0) {
+                        // ...
+                    } else if (x == 1) {
                         // ...
                     } else {
                         // ...
                     }
-                }
 
-            will be collapsed into the equivalent but flatter::
-
-                if (x == 0) {
-                    // ...
-                } else if (x == 1) {
-                    // ...
-                } else {
-                    // ...
-                }
-
-            This collapsed form may have less support on backends, so it is turned off by
-            default.  While the output of this printer is always unambiguous, using ``else``
-            without immediately opening an explicit scope with ``{ }`` in nested contexts can
-            cause issues, in the general case, which is why it is sometimes less supported.
-
+                This collapsed form may have less support on backends, so it is turned off by
+                default.  While the output of this printer is always unambiguous, using ``else``
+                without immediately opening an explicit scope with ``{ }`` in nested contexts can
+                cause issues, in the general case, which is why it is sometimes less supported.
         """
         self.stream = stream
         self.indent = indent
@@ -140,7 +139,6 @@ class BasicPrinter:
         Raises:
             RuntimeError: if an AST node is encountered that the visitor is unable to parse.  This
                 typically means that the given AST was malformed.
-
         """
         visitor = None
         for cls_ in type(node).mro():

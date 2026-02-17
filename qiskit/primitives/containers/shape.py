@@ -10,7 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Array shape related classes and functions"""
+"""
+Array shape related classes and functions
+"""
 from __future__ import annotations
 
 from collections.abc import Iterable
@@ -57,15 +59,15 @@ class ShapedMixin(Shaped):
         return f"{type(self).__name__}(<{self.shape}>)"
 
     @property
-    def shape(self):  # noqa: D102
+    def shape(self):
         return self._shape
 
     @property
-    def ndim(self):  # noqa: D102
+    def ndim(self):
         return len(self._shape)
 
     @property
-    def size(self):  # noqa: D102
+    def size(self):
         return int(np.prod(self._shape, dtype=int))
 
 
@@ -80,7 +82,6 @@ def array_coerce(arr: ArrayLike | Shaped) -> NDArray | Shaped:
     Returns:
         Something that is :class:`~Shaped`, and always ``numpy.ndarray`` if the input is not
         already :class:`~Shaped`.
-
     """
     if isinstance(arr, Shaped):
         return arr
@@ -88,7 +89,8 @@ def array_coerce(arr: ArrayLike | Shaped) -> NDArray | Shaped:
 
 
 def _flatten_to_ints(arg: ShapeInput) -> Iterable[int]:
-    """Yield one integer at a time.
+    """
+    Yield one integer at a time.
 
     Args:
         arg: Integers or iterables of integers, possibly nested, to be yielded.
@@ -98,7 +100,6 @@ def _flatten_to_ints(arg: ShapeInput) -> Iterable[int]:
 
     Raises:
         ValueError: If an input is not an iterable or an integer.
-
     """
     for item in arg:
         try:
@@ -113,7 +114,8 @@ def _flatten_to_ints(arg: ShapeInput) -> Iterable[int]:
 
 
 def shape_tuple(*shapes: ShapeInput) -> tuple[int, ...]:
-    """Flatten the input into a single tuple of integers, preserving order.
+    """
+    Flatten the input into a single tuple of integers, preserving order.
 
     Args:
         shapes: Integers or iterables of integers, possibly nested.
@@ -123,6 +125,5 @@ def shape_tuple(*shapes: ShapeInput) -> tuple[int, ...]:
 
     Raises:
         ValueError: If some member of ``shapes`` is not an integer or iterable.
-
     """
     return tuple(_flatten_to_ints(shapes))

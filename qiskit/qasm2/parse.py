@@ -91,6 +91,7 @@ class CustomInstruction:
     any included OpenQASM 2 file.
 
     Examples:
+
         Instruct the importer to use Qiskit's :class:`.ECRGate` and :class:`.RZXGate` objects to
         interpret ``gate`` statements that are known to have been created from those same objects
         during OpenQASM 2 export::
@@ -117,7 +118,6 @@ class CustomInstruction:
             ]
 
             loaded = qasm2.loads(dumped, custom_instructions=custom)
-
     """
 
     name: str
@@ -216,8 +216,7 @@ def from_bytecode(bytecode, custom_instructions: Iterable[CustomInstruction]):
 
     The Rust code is responsible for all validation.  If this function causes any errors to be
     raised by Qiskit (except perhaps for some symbolic manipulations of `Parameter` objects), we
-    should consider that a bug in the Rust code.
-    """
+    should consider that a bug in the Rust code."""
     # The method `QuantumCircuit._append` is a semi-public method, so isn't really subject to
     # "protected access".
 
@@ -318,8 +317,7 @@ def from_bytecode(bytecode, custom_instructions: Iterable[CustomInstruction]):
 
 class _DefinedGate(Gate):
     """A gate object defined by a `gate` statement in an OpenQASM 2 program.  This object lazily
-    binds its parameters to its definition, so it is only synthesized when required.
-    """
+    binds its parameters to its definition, so it is only synthesized when required."""
 
     def __init__(self, name, num_qubits, params, gates, bytecode):
         self._gates = gates
@@ -374,8 +372,7 @@ def _gate_builder(name, num_qubits, known_gates, bytecode):
     `name`.  This produces a `_DefinedGate` class, whose `_define` method runs through the given
     `bytecode` using the current list of `known_gates` to interpret the gate indices.
 
-    The indirection here is mostly needed to correctly close over `known_gates` and `bytecode`.
-    """
+    The indirection here is mostly needed to correctly close over `known_gates` and `bytecode`."""
 
     def definer(*params):
         return _DefinedGate(name, num_qubits, params, known_gates, tuple(bytecode))
@@ -385,8 +382,7 @@ def _gate_builder(name, num_qubits, known_gates, bytecode):
 
 def _opaque_builder(name, num_qubits):
     """Create a gate-builder function of the signature `*params -> Gate` for an opaque gate with a
-    given `name`, which takes the given numbers of qubits.
-    """
+    given `name`, which takes the given numbers of qubits."""
 
     def definer(*params):
         return Gate(name, num_qubits, params)
@@ -398,8 +394,7 @@ def _opaque_builder(name, num_qubits):
 # but the PyO3 enum entities aren't (currently) hashable.
 def _evaluate_argument(expr, parameters):
     """Inner recursive function to calculate the value of a mathematical expression given the
-    concrete values in the `parameters` field.
-    """
+    concrete values in the `parameters` field."""
     if isinstance(expr, ExprConstant):
         return expr.value
     if isinstance(expr, ExprArgument):

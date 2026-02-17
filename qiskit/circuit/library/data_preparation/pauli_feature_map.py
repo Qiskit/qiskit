@@ -101,6 +101,7 @@ def pauli_feature_map(
     and to :func:`.zz_feature_map` for the single- and two-qubit Pauli-:math:`Z` rotations.
 
     Examples:
+
         >>> prep = pauli_feature_map(2, reps=1, paulis=["ZZ"])
         >>> print(prep)
              ┌───┐
@@ -135,9 +136,9 @@ def pauli_feature_map(
         OrderedDict([('cx', 39), ('rx', 36), ('u1', 21), ('h', 15), ('ry', 12), ('rz', 12)])
 
     References:
+
     [1] Havlicek et al. Supervised learning with quantum enhanced feature spaces,
     `Nature 567, 209-212 (2019) <https://www.nature.com/articles/s41586-019-0980-2>`__.
-
     """
     # create parameter vector used in the Pauli feature map
     parameters = ParameterVector(parameter_prefix, feature_dimension)
@@ -198,6 +199,7 @@ def z_feature_map(
     entangling gates.
 
     Examples:
+
         >>> from qiskit.circuit.library import z_feature_map
         >>> prep = z_feature_map(3, reps=3, insert_barriers=True)
         >>> print(prep)
@@ -277,6 +279,7 @@ def zz_feature_map(
     if and :math:`\varphi(x,y) = (\pi - x)(\pi - y)`.
 
     Examples:
+
         >>> from qiskit.circuit.library import zz_feature_map
         >>> prep = zz_feature_map(2, reps=1)
         >>> print(prep)
@@ -307,7 +310,6 @@ def zz_feature_map(
             ParameterVectorElement(θ[21]), ParameterVectorElement(θ[22]),
             ParameterVectorElement(θ[23])
         ])
-
     """
     return pauli_feature_map(
         feature_dimension=feature_dimension,
@@ -368,6 +370,7 @@ class PauliFeatureMap(NLocal):
     and to :class:`.ZZFeatureMap` for the single- and two-qubit Pauli-:math:`Z` rotations.
 
     Examples:
+
         >>> prep = PauliFeatureMap(2, reps=1, paulis=['ZZ'])
         >>> print(prep.decompose())
              ┌───┐
@@ -402,9 +405,9 @@ class PauliFeatureMap(NLocal):
         OrderedDict([('cx', 39), ('rx', 36), ('u1', 21), ('h', 15), ('ry', 12), ('rz', 12)])
 
     References:
+
     [1] Havlicek et al. Supervised learning with quantum enhanced feature spaces,
     `Nature 567, 209-212 (2019) <https://www.nature.com/articles/s41586-019-0980-2>`__.
-
     """
 
     @deprecate_func(
@@ -429,8 +432,7 @@ class PauliFeatureMap(NLocal):
         insert_barriers: bool = False,
         name: str = "PauliFeatureMap",
     ) -> None:
-        """Instantiate a new :class:`.PauliFeatureMap` instance.
-
+        """
         Args:
             feature_dimension: Number of qubits in the circuit.
             reps: The number of repeated circuits.
@@ -452,6 +454,7 @@ class PauliFeatureMap(NLocal):
             name: Name of the circuit.
 
         """
+
         super().__init__(
             num_qubits=feature_dimension,
             reps=reps,
@@ -486,7 +489,6 @@ class PauliFeatureMap(NLocal):
 
         Returns:
             The Pauli strings as list.
-
         """
         return self._paulis
 
@@ -496,7 +498,6 @@ class PauliFeatureMap(NLocal):
 
         Args:
             paulis: The new pauli strings.
-
         """
         self._invalidate()
         self._paulis = paulis
@@ -507,7 +508,6 @@ class PauliFeatureMap(NLocal):
 
         Returns:
             The Pauli rotation factor.
-
         """
         return self._alpha
 
@@ -517,7 +517,6 @@ class PauliFeatureMap(NLocal):
 
         Args:
             alpha: Pauli rotation factor
-
         """
         self._invalidate()
         self._alpha = alpha
@@ -528,7 +527,6 @@ class PauliFeatureMap(NLocal):
 
         Returns:
             The blocks in the entanglement layers.
-
         """
         return [self.pauli_block(pauli) for pauli in self._paulis]
 
@@ -542,7 +540,6 @@ class PauliFeatureMap(NLocal):
 
         Returns:
             The feature dimension of this feature map.
-
         """
         return self.num_qubits
 
@@ -552,7 +549,6 @@ class PauliFeatureMap(NLocal):
 
         Args:
             feature_dimension: The new feature dimension.
-
         """
         self.num_qubits = feature_dimension
 
@@ -648,14 +644,14 @@ class PauliFeatureMap(NLocal):
 
 
 def self_product(x: np.ndarray) -> float:
-    """Define a function map from R^n to R.
+    """
+    Define a function map from R^n to R.
 
     Args:
         x: data
 
     Returns:
         float: the mapped value
-
     """
     coeff = x[0] if len(x) == 1 else reduce(lambda m, n: m * n, np.pi - x)
     return coeff

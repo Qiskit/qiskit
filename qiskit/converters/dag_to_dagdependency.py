@@ -24,8 +24,8 @@ def dag_to_dagdependency(dag, create_preds_and_succs=True):
 
     Return:
         DAGDependency: the DAG representing the input circuit as a dag dependency.
-
     """
+
     dagdependency = DAGDependency()
     dagdependency.name = dag.name
     dagdependency.metadata = dag.metadata

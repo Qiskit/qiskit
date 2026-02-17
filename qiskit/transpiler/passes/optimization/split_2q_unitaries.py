@@ -32,10 +32,10 @@ class Split2QUnitaries(TransformationPass):
     """
 
     def __init__(self, fidelity: float = 1.0 - 1e-16, split_swap: bool = False):
-        """Args:
-        fidelity: Allowed tolerance for splitting two-qubit unitaries and gate decompositions.
-        split_swap: Whether to attempt to split swap gates, resulting in a permutation of the qubits.
-
+        """
+        Args:
+            fidelity: Allowed tolerance for splitting two-qubit unitaries and gate decompositions.
+            split_swap: Whether to attempt to split swap gates, resulting in a permutation of the qubits.
         """
         super().__init__()
         self.requested_fidelity = fidelity

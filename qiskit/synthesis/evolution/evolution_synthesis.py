@@ -30,7 +30,6 @@ class EvolutionSynthesis(ABC):
 
         Returns:
             QuantumCircuit: A circuit implementing the evolution.
-
         """
         raise NotImplementedError
 
@@ -43,7 +42,6 @@ class EvolutionSynthesis(ABC):
 
         Raises:
             NotImplementedError: The interface does not implement this method.
-
         """
         raise NotImplementedError(
             "The settings property is not implemented for the base interface."

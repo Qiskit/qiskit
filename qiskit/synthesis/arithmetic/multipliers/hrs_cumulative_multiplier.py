@@ -55,6 +55,7 @@ def multiplier_cumulative_h18(
             in ``[num_state_qubits, 2 * num_state_qubits]``.
 
     References:
+
     [1] Häner et al., Optimizing Quantum Circuits for Arithmetic, 2018.
     `arXiv:1805.12445 <https://arxiv.org/pdf/1805.12445.pdf>`_
 

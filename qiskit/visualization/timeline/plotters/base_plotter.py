@@ -23,10 +23,8 @@ class BasePlotter(ABC):
 
     def __init__(self, canvas: core.DrawerCanvas):
         """Create new plotter.
-
         Args:
             canvas: Configured drawer canvas object.
-
         """
         self.canvas = canvas
 
@@ -43,23 +41,18 @@ class BasePlotter(ABC):
     @abstractmethod
     def save_file(self, filename: str):
         """Save image to file.
-
         Args:
             filename: File path to output image data.
-
         """
         raise NotImplementedError
 
     @abstractmethod
     def get_image(self, interactive: bool = False) -> Any:
         """Get image data to return.
-
         Args:
             interactive: When set `True` show the circuit in a new window.
                 This depends on the matplotlib backend being used supporting this.
-
         Returns:
             Image data. This depends on the plotter API.
-
         """
         raise NotImplementedError

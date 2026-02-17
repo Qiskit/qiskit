@@ -190,7 +190,6 @@ class Bloch:
             List of strings corresponding to +z and -z axes labels, respectively.
         zlpos (list):
             Positions of +z and -z labels respectively.
-
     """
 
     def __init__(
@@ -292,7 +291,6 @@ class Bloch:
                     see also: https://en.wikipedia.org/wiki/Stokes_parameters
         Raises:
             Exception: If convention is not valid.
-
         """
         ketex = "$\\left.|%s\\right\\rangle$"
         # \left.| is on purpose, so that every ket has the same size
@@ -383,7 +381,6 @@ class Bloch:
             meth (str):
                 Type of points to plot, use 'm' for multicolored, 'l' for points
                 connected with a line.
-
         """
         if not isinstance(points[0], (list, np.ndarray)):
             points = [[points[0]], [points[1]], [points[2]]]
@@ -409,7 +406,6 @@ class Bloch:
         Args:
             vectors (array_like):
                 Array with vectors of unit length or smaller.
-
         """
         if isinstance(vectors[0], (list, np.ndarray)):
             for vec in vectors:
@@ -418,7 +414,7 @@ class Bloch:
             self.vectors.append(vectors)
 
     def add_annotation(self, state_or_vector, text, **kwargs):
-        r"""Add a text or LaTeX annotation to Bloch sphere,
+        """Add a text or LaTeX annotation to Bloch sphere,
         parameterized by a qubit state or a vector.
 
         Args:
@@ -434,10 +430,8 @@ class Bloch:
             **kwargs:
                 Options as for mplot3d.axes3d.text, including:
                 fontsize, color, horizontalalignment, verticalalignment.
-
         Raises:
             Exception: If input not array_like or tuple.
-
         """
         if isinstance(state_or_vector, (list, np.ndarray, tuple)) and len(state_or_vector) == 3:
             vec = state_or_vector
@@ -446,11 +440,15 @@ class Bloch:
         self.annotations.append({"position": vec, "text": text, "opts": kwargs})
 
     def make_sphere(self):
-        """Plots Bloch sphere and data sets."""
+        """
+        Plots Bloch sphere and data sets.
+        """
         self.render()
 
     def render(self, title=""):
-        """Render the Bloch sphere and its data sets in on given figure and axes."""
+        """
+        Render the Bloch sphere and its data sets in on given figure and axes.
+        """
         if self._rendered:
             self.axes.clear()
 
@@ -501,7 +499,7 @@ class Bloch:
         self.axes.set_title(title, fontsize=self.font_size, y=1.08)
 
     def plot_back(self):
-        """Back half of sphere"""
+        """back half of sphere"""
         u_angle = np.linspace(0, np.pi, 25)
         v_angle = np.linspace(0, np.pi, 25)
         x_dir = np.outer(np.cos(u_angle), np.sin(v_angle))
@@ -546,7 +544,7 @@ class Bloch:
         )
 
     def plot_front(self):
-        """Front half of sphere"""
+        """front half of sphere"""
         u_angle = np.linspace(-np.pi, 0, 25)
         v_angle = np.linspace(0, np.pi, 25)
         x_dir = np.outer(np.cos(u_angle), np.sin(v_angle))
@@ -591,7 +589,7 @@ class Bloch:
         )
 
     def plot_axes(self):
-        """Axes"""
+        """axes"""
         span = np.linspace(-1.0, 1.0, 2)
         self.axes.plot(
             span, 0 * span, zs=0, zdir="z", label="X", lw=self.frame_width, color=self.frame_color
@@ -604,7 +602,7 @@ class Bloch:
         )
 
     def plot_axes_labels(self):
-        """Axes labels"""
+        """axes labels"""
         opts = {
             "fontsize": self.font_size,
             "color": self.font_color,
@@ -731,7 +729,9 @@ class Bloch:
             self.axes.text(vec[1], -vec[0], vec[2], annotation["text"], **opts)
 
     def show(self, title=""):
-        """Display Bloch sphere and corresponding data sets."""
+        """
+        Display Bloch sphere and corresponding data sets.
+        """
         self.render(title=title)
         if self.fig:
             plt.show(self.fig)
@@ -748,8 +748,8 @@ class Bloch:
                 Format of output image.
             dirc (str):
                 Directory for output images. Defaults to current working directory.
-
         """
+
         self.render()
         if dirc:
             if not os.path.isdir(os.getcwd() + "/" + str(dirc)):
@@ -769,6 +769,8 @@ class Bloch:
 
 
 def _hide_tick_lines_and_labels(axis):
-    """Set visible property of ticklines and ticklabels of an axis to False"""
+    """
+    Set visible property of ticklines and ticklabels of an axis to False
+    """
     for item in axis.get_ticklines() + axis.get_ticklabels():
         item.set_visible(False)

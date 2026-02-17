@@ -35,7 +35,6 @@ def two_qubit_local_invariants(U: np.ndarray) -> np.ndarray:
     Notes:
         Y. Makhlin, Quant. Info. Proc. 1, 243-252 (2002).
         Zhang et al., Phys Rev A. 67, 042313 (2003).
-
     """
     U = np.asarray(U, dtype=complex)
     if U.shape != (4, 4):
@@ -58,7 +57,6 @@ def local_equivalence(weyl: np.ndarray) -> np.ndarray:
         This uses Eq. 30 from Zhang et al, PRA 67, 042313 (2003),
         but we multiply weyl coordinates by 2 since we are
         working in the reduced chamber.
-
     """
     mat = np.asarray(weyl, dtype=float)
     (a, b, c) = le_rs(mat)

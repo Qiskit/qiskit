@@ -10,7 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Special data types."""
+"""
+Special data types.
+"""
 
 from enum import Enum
 from typing import NamedTuple, Union, NewType

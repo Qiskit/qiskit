@@ -10,7 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Abstract BaseOperator class."""
+"""
+Abstract BaseOperator class.
+"""
 
 from __future__ import annotations
 import copy
@@ -47,7 +49,6 @@ class BaseOperator(GroupMixin, ABC):
 
             If `op_shape`` is specified it will take precedence over other
             kwargs.
-
         """
         self._qargs = None
         if op_shape:
@@ -123,7 +124,6 @@ class BaseOperator(GroupMixin, ABC):
         Raises:
             QiskitError: if combined size of all subsystem input dimension or
                          subsystem output dimensions is not constant.
-
         """
         new_shape = OpShape.auto(
             dims_l=output_dims, dims_r=input_dims, num_qubits=num_qubits, shape=self._op_shape.shape

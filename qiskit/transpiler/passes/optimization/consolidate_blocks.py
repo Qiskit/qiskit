@@ -72,7 +72,6 @@ class ConsolidateBlocks(TransformationPass):
         This pass assumes that the 'blocks_list' property that it reads is
         given such that blocks are in topological order. The blocks are
         collected by a previous pass, such as `Collect2qBlocks`.
-
     """
 
     _QUBIT_MAP_KEY = "ConsolidateBlocks_qubit_map"
@@ -97,7 +96,6 @@ class ConsolidateBlocks(TransformationPass):
             basis_gates (List(str)): Basis gates from which to choose a KAK gate.
             approximation_degree (float): a float between :math:`[0.0, 1.0]`. Lower approximates more.
             target (Target): The target object for the compilation target backend.
-
         """
         super().__init__()
         self.basis_gates = None
@@ -172,9 +170,11 @@ class ConsolidateBlocks(TransformationPass):
         return dag
 
     def _handle_control_flow_ops(self, dag, qubit_map):
-        """Similar to transpiler/passes/utils/control_flow.py except that the
+        """
+        This is similar to transpiler/passes/utils/control_flow.py except that the
         collect blocks is redone for the control flow blocks.
         """
+
         pass_manager = PassManager()
         if "run_list" in self.property_set:
             pass_manager.append(Collect1qRuns())

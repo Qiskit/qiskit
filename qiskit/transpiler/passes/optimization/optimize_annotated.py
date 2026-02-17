@@ -65,7 +65,8 @@ class OptimizeAnnotated(TransformationPass):
         recurse: bool = True,
         do_conjugate_reduction: bool = True,
     ):
-        """OptimizeAnnotated initializer.
+        """
+        OptimizeAnnotated initializer.
 
         Args:
             target: Optional, the backend target to use for this pass.
@@ -80,7 +81,6 @@ class OptimizeAnnotated(TransformationPass):
                 be synthesized). Setting this value to ``False`` precludes the recursion in
                 every case.
             do_conjugate_reduction: controls whether conjugate reduction should be performed.
-
         """
         super().__init__()
 
@@ -112,7 +112,8 @@ class OptimizeAnnotated(TransformationPass):
         return dag
 
     def _run_inner(self, dag) -> tuple[DAGCircuit, bool]:
-        """Optimizes annotated operations.
+        """
+        Optimizes annotated operations.
         Returns True if did something.
         """
         # Fast return
@@ -146,9 +147,11 @@ class OptimizeAnnotated(TransformationPass):
         return dag, opt1 or opt2 or opt3
 
     def _canonicalize(self, dag) -> tuple[DAGCircuit, bool]:
-        """Combines recursive annotated operations and canonicalizes modifiers.
+        """
+        Combines recursive annotated operations and canonicalizes modifiers.
         Returns True if did something.
         """
+
         did_something = False
         for node in dag.op_nodes(op=AnnotatedOperation):
             modifiers = []
@@ -170,12 +173,14 @@ class OptimizeAnnotated(TransformationPass):
     def _conjugate_decomposition(
         self, dag: DAGCircuit
     ) -> tuple[DAGCircuit, DAGCircuit, DAGCircuit] | None:
-        """Decomposes a circuit ``A`` into 3 sub-circuits ``P``, ``Q``, ``R`` such that
+        """
+        Decomposes a circuit ``A`` into 3 sub-circuits ``P``, ``Q``, ``R`` such that
         ``A = P -- Q -- R`` and ``R = P^{-1}``.
 
         This is accomplished by iteratively finding inverse nodes at the front and at the back of the
         circuit.
         """
+
         front_block = []  # nodes collected from the front of the circuit (aka P)
         back_block = []  # nodes collected from the back of the circuit (aka R)
 
@@ -316,7 +321,8 @@ class OptimizeAnnotated(TransformationPass):
     def _conjugate_reduce_op(
         self, op: AnnotatedOperation, base_decomposition: tuple[DAGCircuit, DAGCircuit, DAGCircuit]
     ) -> Operation:
-        """We are given an annotated-operation ``op = M [ B ]`` (where ``B`` is the base operation and
+        """
+        We are given an annotated-operation ``op = M [ B ]`` (where ``B`` is the base operation and
         ``M`` is the list of modifiers) and the "conjugate decomposition" of the definition of ``B``,
         i.e. ``B = P * Q * R``, with ``R = P^{-1}`` (with ``P``, ``Q`` and ``R`` represented as
         ``DAGCircuit`` objects).
@@ -354,7 +360,8 @@ class OptimizeAnnotated(TransformationPass):
         return op_new
 
     def _conjugate_reduction(self, dag) -> tuple[DAGCircuit, bool]:
-        """Looks for annotated operations whose base operation has a nontrivial conjugate decomposition.
+        """
+        Looks for annotated operations whose base operation has a nontrivial conjugate decomposition.
         In such cases, the modifiers of the annotated operation can be moved to the "middle" part of
         the decomposition.
 
@@ -373,7 +380,9 @@ class OptimizeAnnotated(TransformationPass):
         return dag, did_something
 
     def _skip_definition(self, op: Operation) -> bool:
-        """Returns True if we should not recurse into a gate's definition."""
+        """
+        Returns True if we should not recurse into a gate's definition.
+        """
         # Similar to HighLevelSynthesis transpiler pass, we do not recurse into a gate's
         # `definition` for a gate that is supported by the target or in equivalence library.
 
@@ -389,10 +398,12 @@ class OptimizeAnnotated(TransformationPass):
         return False
 
     def _recursively_process_definitions(self, op: Operation) -> bool:
-        """Recursively applies optimizations to op's definition (or to op.base_op's
+        """
+        Recursively applies optimizations to op's definition (or to op.base_op's
         definition if op is an annotated operation).
         Returns True if did something.
         """
+
         # If op is an annotated operation, we descend into its base_op
         if isinstance(op, AnnotatedOperation):
             return self._recursively_process_definitions(op.base_op)
@@ -425,7 +436,8 @@ class OptimizeAnnotated(TransformationPass):
         return opt
 
     def _recurse(self, dag) -> tuple[DAGCircuit, bool]:
-        """Recursively handles gate definitions.
+        """
+        Recursively handles gate definitions.
         Returns True if did something.
         """
         did_something = False

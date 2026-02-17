@@ -32,8 +32,8 @@ class OptimizeCliffords(TransformationPass):
 
         Returns:
             DAGCircuit: the optimized DAG.
-
         """
+
         blocks = []
         prev_node = None
         cur_block = []

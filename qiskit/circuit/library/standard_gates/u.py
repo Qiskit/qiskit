@@ -76,7 +76,6 @@ class UGate(Gate):
     .. math::
 
         U(\theta, 0, 0) = RY(\theta)
-
     """
 
     _standard_gate = StandardGate.U
@@ -88,12 +87,12 @@ class UGate(Gate):
         lam: ParameterValueType,
         label: str | None = None,
     ):
-        r"""Args:
-        theta: The angle :math:`\theta corresponding to the :math:`R_Y(\theta)` rotation.
-        phi: The angle :math:`\phi` corresponding to the :math:`R_Z(\phi)` rotation.
-        lam: The angle :math:`\lambda` corresponding to the :math:`R_Z(\lambda)` rotation.
-        label: An optional label for the gate.
-
+        r"""
+        Args:
+            theta: The angle :math:`\theta corresponding to the :math:`R_Y(\theta)` rotation.
+            phi: The angle :math:`\phi` corresponding to the :math:`R_Z(\phi)` rotation.
+            lam: The angle :math:`\lambda` corresponding to the :math:`R_Z(\lambda)` rotation.
+            label: An optional label for the gate.
         """
         super().__init__("u", 1, [theta, phi, lam], label=label)
 
@@ -110,7 +109,6 @@ class UGate(Gate):
 
         Returns:
             UGate: inverse gate.
-
         """
         return UGate(-self.params[0], -self.params[2], -self.params[1])
 
@@ -144,7 +142,6 @@ class UGate(Gate):
 
         Returns:
             A controlled version of this gate.
-
         """
         if num_ctrl_qubits == 1:
             gate = CUGate(
@@ -315,6 +312,7 @@ class CUGate(ControlledGate):
 
     def _define(self):
         """Default definition"""
+
         from qiskit.circuit import QuantumCircuit
 
         #          ┌──────┐    ┌──────────────┐
@@ -341,7 +339,6 @@ class CUGate(ControlledGate):
 
         Returns:
             CUGate: inverse gate.
-
         """
         return CUGate(
             -self.params[0],

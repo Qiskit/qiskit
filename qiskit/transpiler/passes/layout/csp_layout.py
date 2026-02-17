@@ -57,7 +57,6 @@ class CSPLayout(AnalysisPass):
                 None means no call limit. Default: 1000.
             time_limit (int): Amount of seconds that the pass will try to find a solution.
                 None means no time limit. Default: 10 seconds.
-
         """
         super().__init__()
         if isinstance(coupling_map, Target):
@@ -74,7 +73,7 @@ class CSPLayout(AnalysisPass):
         self._rng = np.random.default_rng(self.seed)
 
     def run(self, dag):
-        """Run the layout method"""
+        """run the layout method"""
         if not self.coupling_map.is_connected():
             raise TranspilerError(
                 "Coupling Map is disjoint, this pass can't be used with a disconnected coupling "

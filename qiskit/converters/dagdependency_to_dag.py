@@ -15,15 +15,15 @@ from qiskit.dagcircuit.dagcircuit import DAGCircuit
 
 
 def dagdependency_to_dag(dagdependency):
-    """Build a :class:`.DAGCircuit`` object from a :class:`.DAGDependency`.
+    """Build a ``DAGCircuit`` object from a ``DAGDependency``.
 
     Args:
-        dagdependency (DAGDependency): the input dag.
+        dag dependency (DAGDependency): the input dag.
 
     Return:
         DAGCircuit: the DAG representing the input circuit.
-
     """
+
     dagcircuit = DAGCircuit()
     dagcircuit.name = dagdependency.name
     dagcircuit.metadata = dagdependency.metadata

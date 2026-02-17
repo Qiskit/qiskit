@@ -165,7 +165,6 @@ class PadDynamicalDecoupling(BasePadding):
             TranspilerError: When pulse gate with the duration which is
                 non-multiple of the alignment constraint value is found.
             TypeError: If ``dd_sequence`` is not specified
-
         """
         super().__init__(target=target, durations=durations)
         self._durations = durations

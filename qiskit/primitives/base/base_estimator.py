@@ -90,7 +90,6 @@ class BaseEstimatorV2(ABC):
 
         Returns:
             A job object that contains results.
-
         """
 
 
@@ -170,11 +169,11 @@ class BaseEstimatorV1(BasePrimitiveV1, Generic[T]):
         *,
         options: dict | None = None,
     ):
-        """Initialize ``EstimatorV1``.
+        """
+        Initialize ``EstimatorV1``.
 
         Args:
             options: Default options.
-
         """
         super().__init__(options)
 
@@ -220,7 +219,6 @@ class BaseEstimatorV1(BasePrimitiveV1, Generic[T]):
         Raises:
             TypeError: Invalid argument type given.
             ValueError: Invalid argument values given.
-
         """
         # Validation
         circuits, observables, parameter_values = _validate_estimator_args(

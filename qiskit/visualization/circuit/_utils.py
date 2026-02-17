@@ -52,6 +52,7 @@ def _is_boolean_expression(gate_text, op):
 
 def get_gate_ctrl_text(op, drawer, style=None):
     """Load the gate_text and ctrl_text strings based on names and labels"""
+
     # if measure_arrows is False, gate_text will be empty for mpl and M- for text drawer
     if drawer == "mpl" and isinstance(op, Measure):
         return "", "", ""
@@ -187,7 +188,6 @@ def get_wire_map(circuit, bits, cregbundle):
     Returns:
         dict((Qubit, Clbit, ClassicalRegister): index): map of bits/registers
             to index
-
     """
     prev_reg = None
     wire_index = 0
@@ -214,7 +214,6 @@ def get_bit_register(circuit, bit):
 
     Returns:
         ClassicalRegister: register associated with the bit
-
     """
     bit_loc = circuit.find_bit(bit)
     return bit_loc.registers[0][0] if bit_loc.registers else None
@@ -232,7 +231,6 @@ def get_bit_reg_index(circuit, bit):
         (ClassicalRegister, None): register associated with the bit
         int: index of the bit from the top of the circuit
         int: index of the bit within the register, if there is a register
-
     """
     bit_loc = circuit.find_bit(bit)
     bit_index = bit_loc.index
@@ -253,7 +251,6 @@ def get_wire_label(drawer, register, index, layout=None, cregbundle=True):
 
     Returns:
         str: label to display for the register/index
-
     """
     index_str = f"{index}" if drawer == "text" else f"{{{index}}}"
     if register is None:
@@ -328,7 +325,6 @@ def get_condition_label_val(condition, circuit, cregbundle):
     Returns:
         str: label to display for the condition
         list(str): list of 1's and 0's indicating values of condition
-
     """
     cond_is_bit = bool(isinstance(condition[0], Clbit))
     cond_val = int(condition[1])
@@ -352,7 +348,8 @@ def get_condition_label_val(condition, circuit, cregbundle):
 
 
 def fix_special_characters(label):
-    """Convert any special characters for mpl and latex drawers.
+    """
+    Convert any special characters for mpl and latex drawers.
     Currently only checks for multiple underscores in register names
     and uses wider space for mpl and latex drawers.
 
@@ -361,7 +358,6 @@ def fix_special_characters(label):
 
     Returns:
         str: label to display
-
     """
     label = label.replace("_", r"\_").replace(" ", "\\;")
     return label
@@ -423,7 +419,8 @@ def _get_layered_instructions(
     wire_map=None,
     measure_arrows=True,
 ):
-    """Given a circuit, return a tuple (qubits, clbits, nodes) where
+    """
+    Given a circuit, return a tuple (qubits, clbits, nodes) where
     qubits and clbits are the quantum and classical registers
     in order (based on reverse_bits or wire_order) and nodes
     is a list of DAGOpNodes.
@@ -443,7 +440,6 @@ def _get_layered_instructions(
 
     Raises:
         VisualizationError: if both reverse_bits and wire_order are entered.
-
     """
     justify = _get_valid_justify_arg(justify)
 
@@ -510,6 +506,7 @@ def _sorted_nodes(dag_layer):
 
 def _get_gate_span(qubits, node, measure_arrows):
     """Return the ordered wires this node would occupy when drawn."""
+
     if isinstance(node.op, ControlFlowOp) and not isinstance(node.op, BoxOp):
         # Because of wrapping boxes for mpl control flow ops, this
         # type of op must be the only op in the layer

@@ -31,7 +31,7 @@ from .solovay_kitaev import SolovayKitaevDecomposition
 def generate_basic_approximations(
     basis_gates: list[str | Gate], depth: int, filename: str | None = None
 ) -> list[GateSequence]:
-    r"""Generates a list of :class:`GateSequence`\\ s with the gates in ``basis_gates``.
+    """Generates a list of :class:`GateSequence`\\ s with the gates in ``basis_gates``.
 
     Args:
         basis_gates: The gates from which to create the sequences of gates.
@@ -43,7 +43,6 @@ def generate_basic_approximations(
 
     Raises:
         ValueError: If ``basis_gates`` contains an invalid gate identifier.
-
     """
     sk = SolovayKitaevDecomposition(basis_gates=basis_gates, depth=depth)
 

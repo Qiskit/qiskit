@@ -53,12 +53,10 @@ class Adder(QuantumCircuit):
         removal_timeline="in Qiskit 3.0",
     )
     def __init__(self, num_state_qubits: int, name: str = "Adder") -> None:
-        """Instantiate a new :class:`.Adder` instance.
-
+        """
         Args:
             num_state_qubits: The number of qubits in each of the registers.
             name: The name of the circuit.
-
         """
         super().__init__(name=name)
         self._num_state_qubits = num_state_qubits
@@ -69,7 +67,6 @@ class Adder(QuantumCircuit):
 
         Returns:
             The number of state qubits.
-
         """
         return self._num_state_qubits
 
@@ -99,10 +96,10 @@ class HalfAdderGate(Gate):
     """
 
     def __init__(self, num_state_qubits: int, label: str | None = None) -> None:
-        """Args:
-        num_state_qubits: The number of qubits in each of the registers.
-        name: The name of the circuit.
-
+        """
+        Args:
+            num_state_qubits: The number of qubits in each of the registers.
+            name: The name of the circuit.
         """
         if num_state_qubits < 1:
             raise ValueError("Need at least 1 state qubit.")
@@ -116,7 +113,6 @@ class HalfAdderGate(Gate):
 
         Returns:
             The number of state qubits.
-
         """
         return self._num_state_qubits
 
@@ -155,10 +151,10 @@ class ModularAdderGate(Gate):
     """
 
     def __init__(self, num_state_qubits: int, label: str | None = None) -> None:
-        """Args:
-        num_state_qubits: The number of qubits in each of the registers.
-        name: The name of the circuit.
-
+        """
+        Args:
+            num_state_qubits: The number of qubits in each of the registers.
+            name: The name of the circuit.
         """
         if num_state_qubits < 1:
             raise ValueError("Need at least 1 state qubit.")
@@ -172,7 +168,6 @@ class ModularAdderGate(Gate):
 
         Returns:
             The number of state qubits.
-
         """
         return self._num_state_qubits
 
@@ -212,10 +207,10 @@ class FullAdderGate(Gate):
     """
 
     def __init__(self, num_state_qubits: int, label: str | None = None) -> None:
-        """Args:
-        num_state_qubits: The number of qubits in each of the registers.
-        name: The name of the circuit.
-
+        """
+        Args:
+            num_state_qubits: The number of qubits in each of the registers.
+            name: The name of the circuit.
         """
         if num_state_qubits < 1:
             raise ValueError("Need at least 1 state qubit.")
@@ -229,7 +224,6 @@ class FullAdderGate(Gate):
 
         Returns:
             The number of state qubits.
-
         """
         return self._num_state_qubits
 

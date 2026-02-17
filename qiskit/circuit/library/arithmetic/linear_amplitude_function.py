@@ -68,12 +68,12 @@ class LinearAmplitudeFunction(QuantumCircuit):
     ``breakpoints`` argument.
 
     References:
+
     [1] Woerner, S., & Egger, D. J. (2018). Quantum Risk Analysis.
     `arXiv:1806.06893 <https://arxiv.org/abs/1806.06893>`_
 
     [2] Gacon, J., Zoufal, C., & Woerner, S. (2020). Quantum-Enhanced Simulation-Based Optimization.
     `arXiv:2005.10780 <https://arxiv.org/abs/2005.10780>`_
-
     """
 
     @deprecate_func(
@@ -92,8 +92,7 @@ class LinearAmplitudeFunction(QuantumCircuit):
         breakpoints: list[float] | None = None,
         name: str = "F",
     ) -> None:
-        r"""Instantiate a new :class:`.LinearAmplitudeFunction` instance.
-
+        r"""
         Args:
             num_state_qubits: The number of qubits used to encode the variable :math:`x`.
             slope: The slope of the linear function. Can be a list of slopes if it is a piecewise
@@ -109,6 +108,7 @@ class LinearAmplitudeFunction(QuantumCircuit):
             name: Name of the circuit.
 
         """
+
         if not hasattr(slope, "__len__"):
             slope = [slope]
         if not hasattr(offset, "__len__"):
@@ -169,7 +169,6 @@ class LinearAmplitudeFunction(QuantumCircuit):
             The ``scaled_value`` mapped back to the domain of :math:`f`, by first inverting
             the transformation used for the Taylor approximation and then mapping back from
             :math:`[0, 1]` to the original domain.
-
         """
         # revert the mapping applied in the Taylor approximation
         value = scaled_value - 1 / 2 + np.pi / 4 * self._rescaling_factor
@@ -227,6 +226,7 @@ class LinearAmplitudeFunctionGate(Gate):
     ``breakpoints`` argument.
 
     References:
+
     [1] Woerner, S., & Egger, D. J. (2018).
     Quantum Risk Analysis.
     `arXiv:1806.06893 <https://arxiv.org/abs/1806.06893>`_
@@ -234,7 +234,6 @@ class LinearAmplitudeFunctionGate(Gate):
     [2] Gacon, J., Zoufal, C., & Woerner, S. (2020).
     Quantum-Enhanced Simulation-Based Optimization.
     `arXiv:2005.10780 <https://arxiv.org/abs/2005.10780>`_
-
     """
 
     def __init__(
@@ -248,20 +247,20 @@ class LinearAmplitudeFunctionGate(Gate):
         breakpoints: list[float] | None = None,
         label: str = "F",
     ) -> None:
-        r"""Args:
-        num_state_qubits: The number of qubits used to encode the variable :math:`x`.
-        slope: The slope of the linear function. Can be a list of slopes if it is a piecewise
-            linear function.
-        offset: The offset of the linear function. Can be a list of offsets if it is a piecewise
-            linear function.
-        domain: The domain of the function as tuple :math:`(x_\min{}, x_\max{})`.
-        image: The image of the function as tuple :math:`(f_\min{}, f_\max{})`.
-        rescaling_factor: The rescaling factor to adjust the accuracy in the Taylor
-            approximation.
-        breakpoints: The breakpoints if the function is piecewise linear. If None, the function
-            is not piecewise.
-        label: A label for the gate.
-
+        r"""
+        Args:
+            num_state_qubits: The number of qubits used to encode the variable :math:`x`.
+            slope: The slope of the linear function. Can be a list of slopes if it is a piecewise
+                linear function.
+            offset: The offset of the linear function. Can be a list of offsets if it is a piecewise
+                linear function.
+            domain: The domain of the function as tuple :math:`(x_\min{}, x_\max{})`.
+            image: The image of the function as tuple :math:`(f_\min{}, f_\max{})`.
+            rescaling_factor: The rescaling factor to adjust the accuracy in the Taylor
+                approximation.
+            breakpoints: The breakpoints if the function is piecewise linear. If None, the function
+                is not piecewise.
+            label: A label for the gate.
         """
         if not hasattr(slope, "__len__"):
             slope = [slope]
@@ -333,7 +332,6 @@ class LinearAmplitudeFunctionGate(Gate):
             The ``scaled_value`` mapped back to the domain of :math:`f`, by first inverting
             the transformation used for the Taylor approximation and then mapping back from
             :math:`[0, 1]` to the original domain.
-
         """
         # revert the mapping applied in the Taylor approximation
         value = scaled_value - 1 / 2 + np.pi / 4 * self.rescaling_factor

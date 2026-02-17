@@ -81,7 +81,6 @@ class U3Gate(Gate):
     .. math::
 
         U3(\theta, 0, 0) = RY(\theta)
-
     """
 
     _standard_gate = StandardGate.U3
@@ -93,12 +92,12 @@ class U3Gate(Gate):
         lam: ParameterValueType,
         label: str | None = None,
     ):
-        r"""Args:
-        theta: The angle :math:`\theta` corresponding to the :math:`R_Y(\theta)` rotation.
-        phi: The angle :math:`\phi` corresponding to the :math:`R_Z(\phi)` rotation.
-        lam: The angle :math:`\lambda` corresponding to the :math:`R_Z(\lambda)` rotation.
-        label: An optional label for the gate.
-
+        r"""
+        Args:
+            theta: The angle :math:`\theta` corresponding to the :math:`R_Y(\theta)` rotation.
+            phi: The angle :math:`\phi` corresponding to the :math:`R_Z(\phi)` rotation.
+            lam: The angle :math:`\lambda` corresponding to the :math:`R_Z(\lambda)` rotation.
+            label: An optional label for the gate.
         """
         super().__init__("u3", 1, [theta, phi, lam], label=label)
 
@@ -115,7 +114,6 @@ class U3Gate(Gate):
 
         Returns:
             U3Gate: inverse gate.
-
         """
         return U3Gate(-self.params[0], -self.params[2], -self.params[1])
 
@@ -149,7 +147,6 @@ class U3Gate(Gate):
 
         Returns:
             A controlled version of this gate.
-
         """
         if num_ctrl_qubits == 1:
             gate = CU3Gate(*self.params, label=label, ctrl_state=ctrl_state)
@@ -165,6 +162,7 @@ class U3Gate(Gate):
 
     def _define(self):
         """Default definition"""
+
         from qiskit.circuit import QuantumCircuit
 
         #    ┌──────────┐
@@ -299,6 +297,7 @@ class CU3Gate(ControlledGate):
 
     def _define(self):
         """Default definition"""
+
         from qiskit.circuit import QuantumCircuit
 
         #      ┌──────────────┐
@@ -325,7 +324,6 @@ class CU3Gate(ControlledGate):
 
         Returns:
             CU3Gate: inverse gate.
-
         """
         return CU3Gate(
             -self.params[0], -self.params[2], -self.params[1], ctrl_state=self.ctrl_state

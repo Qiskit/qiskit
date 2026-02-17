@@ -237,8 +237,6 @@ select = [
     "S",
     # Ruff native rules
     "RUF",
-    # pydocstyle
-    "D",
     # flake8-logging-format
     "G",
     # flake8-executable
@@ -253,7 +251,6 @@ select = [
     "PIE",
     # flake8-no-pep420
     "INP",
-
 ]
 ignore = [
     "E402",  # module-import-not-at-top-of-file false positives with module docs
@@ -280,15 +277,6 @@ ignore = [
     "RUF001",   # ambiguous-unicode-character-string
     "RUF002",   # ambiguous-unicode-character-docstring
     "RUF007",   # zip-instead-of-pairwise overly opinionated
-    "D205",     # missing-blank-line-after-summary - Too many false positives on line wrapping
-    "D401",     # non-imperative-mood
-    "D400",     # missing-trailing-period
-    "D415",     # missing-terminal-punctuation
-    "D105",     # undocumented-magic-method - By default they don't show up in docs
-    "D203",     # incorrect-blank-line-before-class - conflicts with D211
-    "D213",     # multi-line-summary-second-line - conflicts with D212
-    "D404",     # docstring-starts-with-this
-
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -404,77 +392,61 @@ ignore = [
 "test/randomized/*" = ["S101"]
 "test/qpy_compat/*" = ["S101", "INP001"]
 "test/benchmarks/*" = ["S101"]
-# Operator mix-in usage doesn't work with docstring detection
-"qiskit/quantum_info/operators/*" = ["D102"]
 # Visualization functions often subprocess to visualization tools
 "qiskit/visualization/*" = ["S603", "S607"]
-# Non-public modules don't need docs:
-"qiskit/qasm3/ast.py" = [
-    "D101",
-    "D107",
-]
-"qiskit/synthesis/boolean/*" = [
-    "D102",
-    "D107",
-]
-"qiskit/visualization/timeline/types.py" = [
-    "D101",
-    "D102",
-    "D105",
-    "D107",
-]
-"qiskit/visualization/*style*" = [
-    "D101",
-    "D102",
-    "D105",
-    "D107",
-]
-"qiskit/visualization/bloch.py" = [
-    "D101",
-    "D102",
-    "D105",
-    "D107",
-    "D404",
-    "D417",
-]
-"qiskit/visualization/circuit/*" = [
-    "D101",
-    "D102",
-    "D105",
-    "D107",
-    "D404",
-    "D417",
-]
-# Inherited docstring is fine
-"qiskit/transpiler/passes/synthesis/aqc_plugin.py" = ["D102"]
-"qiskit/transpiler/passes/synthesis/clifford_unitary_synth_plugin.py" = ["D102"]
-"qiskit/transpiler/passes/synthesis/hls_plugins.py" = ["D102"]
-"qiskit/transpiler/passes/synthesis/default_unitary_synth_plugin.py" = ["D102"]
-"qiskit/providers/fake_provider/generic_backend_v2.py" = ["D102"]
-"qiskit/providers/basic_provider/basic_simulator.py" = ["D102"]
-"qiskit/primitives/primitive_job.py" = ["D102"]
-"qiskit/circuit/library/standard_gates/*" = ["D102"]
-"qiskit/circuit/controlflow/*" = ["D102", "D107"]
-"qiskit/circuit/reset.py" = ["D102"]
-"qiskit/circuit/measure.py" = ["D102"]
-"qiskit/circuit/library/blueprintcircuit.py" = ["D102"]
-"qiskit/circuit/library/data_preparation/*" = ["D102"]
 
-# Not public
-"qiskit/utils/events/*" = ["D107"]
-"qiskit/transpiler/preset_passmanagers/builtin_plugins.py" = ["D102"]
-"qiskit/qpy/type_keys.py" = ["D102"]
-"qiskit/qpy/binary_io/parse_sympy_repr.py" = ["D107"]
-"qiskit/circuit/classical/expr/visitors.py" = ["D102"]
-"qiskit/circuit/library/templates/*" = ["D100"]
-"qiskit/circuit/quantumcircuitdata.py" = ["D102"]
 
+[tool.pylint.main]
+extension-pkg-allow-list = [
+    "numpy",
+    "qiskit._accelerate",
+    "qiskit._qasm2",
+    "qiskit._qasm3",
+    # We can't allow pylint to load qiskit._qasm2 because it's not able to
+    # statically resolve the cyclical load of the exception and it bugs out.
+    "retworkx",
+    "rustworkx",
+]
+load-plugins = ["pylint.extensions.docparams", "pylint.extensions.docstyle", "pylint.extensions.bad_builtin"]
+py-version = "3.10"  # update it when bumping minimum supported python version
 
 [tool.pylint.basic]
 good-names = ["a", "b", "i", "j", "k", "d", "n", "m", "ex", "v", "w", "x", "y", "z", "Run", "_", "logger", "q", "c", "r", "qr", "cr", "qc", "nd", "pi", "op", "b", "ar", "br", "p", "cp", "ax", "dt", "__unittest", "iSwapGate", "mu"]
 method-rgx = "(([a-z_][a-z0-9_]{2,49})|(assert[A-Z][a-zA-Z0-9]{2,43})|(test_[_a-zA-Z0-9]{2,}))$"
 variable-rgx = "[a-z_][a-z0-9_]{1,30}$"
 
+[tool.pylint.format]
+max-line-length = 105  # default 100
+
+[tool.pylint."messages control"]
+disable = [
+# intentionally disabled:
+    "spelling",  # too noisy
+    "fixme", # disabled as TODOs would show up as warnings
+    "protected-access", # disabled as we don't follow the public vs private convention strictly
+    "duplicate-code", # disabled as it is too verbose
+    "redundant-returns-doc", # for @abstractmethod, it cannot interpret "pass"
+    "too-many-instance-attributes", "too-many-arguments", "too-few-public-methods", "too-many-ancestors",
+    "unnecessary-pass", # allow for methods with just "pass", for clarity
+    "unnecessary-dunder-call", # do not want to implement
+    "no-else-return",  # relax "elif" after a clause with a return
+    "docstring-first-line-empty", # relax docstring style
+    "import-outside-toplevel", "import-error", # overzealous with our optionals/dynamic packages
+    "consider-using-max-builtin", "consider-using-min-builtin",  # unnecessary stylistic opinion
+# TODO(#9614): these were added in modern Pylint. Decide if we want to enable them. If so,
+#  remove from here and fix the issues. Else, move it above this section and add a comment
+#  with the rationale
+    "no-member",  # for dynamically created members
+    "not-context-manager",
+    "unnecessary-lambda-assignment",  # do not want to implement
+]
+
+enable = [
+    "use-symbolic-message-instead"
+]
+
+[tool.pylint.spelling]
+spelling-private-dict-file = ".local-spellings"
 
 [tool.coverage.report]
 exclude_also = [

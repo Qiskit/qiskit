@@ -72,8 +72,7 @@ class UnitaryOverlap(QuantumCircuit):
         prefix2: str = "p2",
         insert_barrier: bool = False,
     ):
-        """Instantiate a new :class:`.UnitaryOverlap` instance.
-
+        """
         Args:
             unitary1: Unitary acting on the ket vector.
             unitary2: Unitary whose inverse operates on the bra vector.
@@ -86,7 +85,6 @@ class UnitaryOverlap(QuantumCircuit):
         Raises:
             CircuitError: Number of qubits in ``unitary1`` and ``unitary2`` does not match.
             CircuitError: Inputs contain measurements and/or resets.
-
         """
         circuit = unitary_overlap(unitary1, unitary2, prefix1, prefix2, insert_barrier)
         super().__init__(*circuit.qregs, name=circuit.name)
@@ -95,6 +93,7 @@ class UnitaryOverlap(QuantumCircuit):
 
 def _check_unitary(circuit):
     """Check a circuit is unitary by checking if all operations are of type ``Gate``."""
+
     for instruction in circuit.data:
         if not isinstance(instruction.operation, (Gate, Barrier)):
             raise CircuitError(
@@ -156,7 +155,6 @@ def unitary_overlap(
     Raises:
         CircuitError: Number of qubits in ``unitary1`` and ``unitary2`` does not match.
         CircuitError: Inputs contain measurements and/or resets.
-
     """
     # check inputs are valid
     if unitary1.num_qubits != unitary2.num_qubits:

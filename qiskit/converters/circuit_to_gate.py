@@ -52,8 +52,8 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label
         Gate: a Gate equivalent to the action of the
         input circuit. Upon decomposition, this gate will
         yield the components comprising the original circuit.
-
     """
+
     from qiskit.circuit.quantumcircuit import QuantumCircuit
 
     if circuit.clbits:

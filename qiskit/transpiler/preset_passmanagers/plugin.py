@@ -10,7 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""".. _transpiler-preset-stage-plugins:
+"""
+.. _transpiler-preset-stage-plugins:
 
 =======================================================================================
 Transpiler Stage Plugin Interface (:mod:`qiskit.transpiler.preset_passmanagers.plugin`)
@@ -183,7 +184,7 @@ class PassManagerStagePlugin(abc.ABC):
     def pass_manager(
         self, pass_manager_config: PassManagerConfig, optimization_level: int | None = None
     ) -> PassManager | None:
-        """Return a :class:`~.PassManager` for the stage this implements
+        """This method is designed to return a :class:`~.PassManager` for the stage this implements
 
         Args:
             pass_manager_config: A configuration object that defines all the target device
@@ -198,7 +199,6 @@ class PassManagerStagePlugin(abc.ABC):
             the :class:`.PassManager` to run, or ``None`` if nothing is needed for this
             configuration (for example, an optimization plugin might return ``None`` at
             ``optimization_level=0``).
-
         """
 
 
@@ -206,7 +206,6 @@ class PassManagerStagePluginManager:
     """Manager class for preset pass manager stage plugins."""
 
     def __init__(self):
-        """Instantiate the plugin manager."""
         super().__init__()
         self.init_plugins = stevedore.ExtensionManager(
             "qiskit.transpiler.init", invoke_on_load=True, propagate_map_exceptions=True
@@ -287,7 +286,6 @@ def list_stage_plugins(stage_name: str) -> list[str]:
 
     Raises:
        TranspilerError: If an invalid stage name is specified.
-
     """
     plugin_mgr = PassManagerStagePluginManager()
     if stage_name == "init":
@@ -342,7 +340,6 @@ def passmanager_stage_plugins(stage: str) -> dict[str, PassManagerStagePlugin]:
 
     Raises:
        TranspilerError: If an invalid stage name is specified.
-
     """
     plugin_mgr = PassManagerStagePluginManager()
     try:

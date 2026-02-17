@@ -40,6 +40,7 @@ class ZFeatureMap(PauliFeatureMap):
     entangling gates.
 
     Examples:
+
         >>> prep = ZFeatureMap(3, reps=3, insert_barriers=True)
         >>> print(prep.decompose())
              ┌───┐ ░ ┌─────────────┐ ░ ┌───┐ ░ ┌─────────────┐ ░ ┌───┐ ░ ┌─────────────┐
@@ -92,8 +93,7 @@ class ZFeatureMap(PauliFeatureMap):
         insert_barriers: bool = False,
         name: str = "ZFeatureMap",
     ) -> None:
-        """Instantiate a new :class:`.ZFeatureMap` instance.
-
+        """
         Args:
             feature_dimension: The number of features
             reps: The number of repeated circuits. Defaults to 2, has a minimum value of 1.

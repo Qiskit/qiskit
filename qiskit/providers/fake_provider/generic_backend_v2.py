@@ -95,45 +95,46 @@ class GenericBackendV2(BackendV2):
         seed: int | None = None,
         noise_info: bool = True,
     ):
-        """Args:
-        num_qubits: Number of qubits that will be used to construct the backend's target.
-            Note that, while there is no limit in the size of the target that can be
-            constructed, this backend runs on local noisy simulators, and these might
-            present limitations in the number of qubits that can be simulated.
-
-        basis_gates: List of basis gate names to be supported by
-            the target. These must be part of the standard qiskit circuit library.
-            The default set of basis gates is ``["id", "rz", "sx", "x", "cx"]``
-            The ``"reset"``,  ``"delay"``, and ``"measure"`` instructions are
-            always supported by default, even if not specified via ``basis_gates``.
-
-        coupling_map: Optional coupling map
-            for the backend. Multiple formats are supported:
-
-            #. :class:`~.CouplingMap` instance
-            #. List, must be given as an edge list representing the two qubit interactions
-               supported by the backend, for example:
-               ``[[0, 1], [0, 3], [1, 2], [1, 5], [2, 5], [4, 1], [5, 3]]``
-
-            If ``coupling_map`` is specified, it must match the number of qubits
-            specified in ``num_qubits``. If ``coupling_map`` is not specified,
-            a fully connected coupling map will be generated with ``num_qubits``
-            qubits.
-
-        control_flow: Flag to enable control flow directives on the target
-            (defaults to False).
-
-        dtm: System time resolution of output signals in nanoseconds.
-            None by default.
-
-        dt: System time resolution of input signals in nanoseconds.
-            None by default.
-
-        seed: Optional seed for generation of default values.
-
-        noise_info: If true, associates gates and qubits with default noise information.
-
         """
+        Args:
+            num_qubits: Number of qubits that will be used to construct the backend's target.
+                Note that, while there is no limit in the size of the target that can be
+                constructed, this backend runs on local noisy simulators, and these might
+                present limitations in the number of qubits that can be simulated.
+
+            basis_gates: List of basis gate names to be supported by
+                the target. These must be part of the standard qiskit circuit library.
+                The default set of basis gates is ``["id", "rz", "sx", "x", "cx"]``
+                The ``"reset"``,  ``"delay"``, and ``"measure"`` instructions are
+                always supported by default, even if not specified via ``basis_gates``.
+
+            coupling_map: Optional coupling map
+                for the backend. Multiple formats are supported:
+
+                #. :class:`~.CouplingMap` instance
+                #. List, must be given as an edge list representing the two qubit interactions
+                   supported by the backend, for example:
+                   ``[[0, 1], [0, 3], [1, 2], [1, 5], [2, 5], [4, 1], [5, 3]]``
+
+                If ``coupling_map`` is specified, it must match the number of qubits
+                specified in ``num_qubits``. If ``coupling_map`` is not specified,
+                a fully connected coupling map will be generated with ``num_qubits``
+                qubits.
+
+            control_flow: Flag to enable control flow directives on the target
+                (defaults to False).
+
+            dtm: System time resolution of output signals in nanoseconds.
+                None by default.
+
+            dt: System time resolution of input signals in nanoseconds.
+                None by default.
+
+            seed: Optional seed for generation of default values.
+
+            noise_info: If true, associates gates and qubits with default noise information.
+        """
+
         super().__init__(
             provider=None,
             name=f"generic_backend_{num_qubits}q",
@@ -189,9 +190,6 @@ class GenericBackendV2(BackendV2):
 
     @property
     def meas_map(self) -> list[list[int]]:
-        """Get the concurrent measurement map, this is an alias for calling
-        ``backend.target.concurrent_measurements``
-        """
         return self._target.concurrent_measurements
 
     def _get_noise_defaults(self, name: str, num_qubits: int) -> tuple:
@@ -281,7 +279,6 @@ class GenericBackendV2(BackendV2):
             instruction: Instance of instruction to be added to the target
             noise_params: Error and duration noise values/ranges to
                 include in instruction properties.
-
         """
         qarg_set = self._coupling_map if instruction.num_qubits > 1 else range(self.num_qubits)
         props = {}
@@ -336,7 +333,6 @@ class GenericBackendV2(BackendV2):
         Raises:
             QiskitError: If input is not :class:`~qiskit.circuit.QuantumCircuit` or a list of
             :class:`~qiskit.circuit.QuantumCircuit` objects.
-
         """
         circuits = run_input
         if not isinstance(circuits, QuantumCircuit) and (

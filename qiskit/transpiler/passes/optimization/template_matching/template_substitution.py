@@ -10,7 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Template matching substitution, given a list of maximal matches it substitutes
+"""
+Template matching substitution, given a list of maximal matches it substitutes
 them in circuit and creates a new optimized dag version of the circuit.
 """
 import collections
@@ -25,12 +26,13 @@ from qiskit.utils import optionals as _optionals
 
 
 class SubstitutionConfig:
-    """Class to store the configuration of a given match substitution, which circuit
+    """
+    Class to store the configuration of a given match substitution, which circuit
     gates, template gates, qubits, and clbits and predecessors of the match
     in the circuit.
     """
 
-    def __init__(  # noqa: D107
+    def __init__(
         self,
         circuit_config,
         template_config,
@@ -57,11 +59,13 @@ class SubstitutionConfig:
 
 
 class TemplateSubstitution:
-    """Class to run the substitution algorithm from the list of maximal matches."""
+    """
+    Class to run the substitution algorithm from the list of maximal matches.
+    """
 
     def __init__(self, max_matches, circuit_dag_dep, template_dag_dep, user_cost_dict=None):
-        """Initialize TemplateSubstitution with necessary arguments.
-
+        """
+        Initialize TemplateSubstitution with necessary arguments.
         Args:
             max_matches (list): list of maximal matches obtained from the running
              the template matching algorithm.
@@ -69,8 +73,8 @@ class TemplateSubstitution:
             template_dag_dep (DAGDependency): template in the dag dependency form.
             user_cost_dict (Optional[dict]): user provided cost dictionary that will override
                 the default cost dictionary.
-
         """
+
         self.match_stack = max_matches
         self.circuit_dag_dep = circuit_dag_dep
         self.template_dag_dep = template_dag_dep
@@ -124,15 +128,13 @@ class TemplateSubstitution:
             }
 
     def _pred_block(self, circuit_sublist, index):
-        """It returns the predecessors of a given part of the circuit.
-
+        """
+        It returns the predecessors of a given part of the circuit.
         Args:
             circuit_sublist (list): list of the gates matched in the circuit.
             index (int): Index of the group of matches.
-
         Returns:
             list: List of predecessors of the current match circuit configuration.
-
         """
         predecessors = set()
         for node_id in circuit_sublist:
@@ -148,15 +150,13 @@ class TemplateSubstitution:
         return pred
 
     def _quantum_cost(self, left, right):
-        """Compare the two parts of the template and returns True if the quantum cost is reduced.
-
+        """
+        Compare the two parts of the template and returns True if the quantum cost is reduced.
         Args:
             left (list): list of matched nodes in the template.
             right (list): list of nodes to be replaced.
-
         Returns:
             bool: True if the quantum cost is reduced
-
         """
         cost_left = 0
         for i in left:
@@ -169,16 +169,14 @@ class TemplateSubstitution:
         return cost_left > cost_right
 
     def _rules(self, circuit_sublist, template_sublist, template_complement):
-        """Set of rules to decide whether the match is to be substitute or not.
-
+        """
+        Set of rules to decide whether the match is to be substitute or not.
         Args:
             circuit_sublist (list): list of the gates matched in the circuit.
             template_sublist (list): list of matched nodes in the template.
             template_complement (list): list of gates not matched in the template.
-
         Returns:
             bool: True if the match respects the given rule for replacement, False otherwise.
-
         """
         if self._quantum_cost(template_sublist, template_complement):
             for elem in circuit_sublist:
@@ -190,18 +188,16 @@ class TemplateSubstitution:
             return False
 
     def _template_inverse(self, template_list, template_sublist, template_complement):
-        """The template circuit realizes the identity operator, then given the list of
+        """
+        The template circuit realizes the identity operator, then given the list of
         matches in the template, it returns the inverse part of the template that
         will be replaced.
-
         Args:
             template_list (list): list of all gates in the template.
             template_sublist (list): list of the gates matched in the circuit.
             template_complement  (list): list of gates not matched in the template.
-
         Returns:
             list: the template inverse part that will substitute the circuit match.
-
         """
         inverse = template_complement
         left = []
@@ -237,17 +233,18 @@ class TemplateSubstitution:
         return total
 
     def _substitution_sort(self):
-        """Sort the substitution list."""
+        """
+        Sort the substitution list.
+        """
         ordered = False
         while not ordered:
             ordered = self._permutation()
 
     def _permutation(self):
-        """Permute two groups of matches if first one has predecessors in the second one.
-
+        """
+        Permute two groups of matches if first one has predecessors in the second one.
         Returns:
             bool: True if the matches groups are in the right order, False otherwise.
-
         """
         for scenario in self.substitution_list:
             predecessors = set()
@@ -267,7 +264,8 @@ class TemplateSubstitution:
         return True
 
     def _remove_impossible(self):
-        """Remove matched groups if they both have predecessors in the other one, they are not
+        """
+        Remove matched groups if they both have predecessors in the other one, they are not
         compatible.
         """
         list_predecessors = []
@@ -303,9 +301,11 @@ class TemplateSubstitution:
             ]
 
     def _substitution(self):
-        """From the list of maximal matches, it chooses which one will be used and gives the necessary
+        """
+        From the list of maximal matches, it chooses which one will be used and gives the necessary
         details for each substitution(template inverse, predecessors of the match).
         """
+
         while self.match_stack:
 
             # Get the first match scenario of the list
@@ -364,7 +364,9 @@ class TemplateSubstitution:
         self.unmatched_list = sorted(set(range(self.circuit_dag_dep.size())) - set(circuit_list))
 
     def run_dag_opt(self):
-        """It runs the substitution algorithm and creates the optimized DAGCircuit()."""
+        """
+        It runs the substitution algorithm and creates the optimized DAGCircuit().
+        """
         self._substitution()
 
         dag_dep_opt = DAGDependency()
@@ -443,7 +445,8 @@ class TemplateSubstitution:
 
     @_optionals.HAS_SYMPY.require_in_call("Bind parameters in templates")
     def _attempt_bind(self, template_sublist, circuit_sublist):
-        """Copies the template and attempts to bind any parameters,
+        """
+        Copies the template and attempts to bind any parameters,
         i.e. attempts to solve for a valid parameter assignment.
         template_sublist and circuit_sublist match up to the
         assignment of the parameters. For example the template
@@ -491,7 +494,6 @@ class TemplateSubstitution:
             DAGDependency: A deep copy of the template with
                 the parameters bound. If no binding satisfies the
                 parameter constraints, returns None.
-
         """
         import sympy as sym
 
@@ -609,7 +611,8 @@ class TemplateSubstitution:
         return template_dag_dep
 
     def _incr_num_parameters(self, template):
-        """Checks if template substitution would increase the number of
+        """
+        Checks if template substitution would increase the number of
         parameters in the circuit.
         """
         template_params = set()

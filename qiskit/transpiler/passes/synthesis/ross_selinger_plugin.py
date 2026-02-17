@@ -10,7 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""==============================
+"""
+==============================
 Ross-Selinger Synthesis Plugin
 ==============================
 
@@ -47,6 +48,7 @@ class RossSelingerSynthesis(UnitarySynthesisPlugin):
         The allowed approximation error.
 
     References:
+
     [1] Neil J. Ross, Peter Selinger, Optimal ancilla-free Clifford+T approximation of z-rotations,
         `arXiv:1403.2975 <https://arxiv.org/pdf/1403.2975>`_
 
@@ -65,8 +67,7 @@ class RossSelingerSynthesis(UnitarySynthesisPlugin):
     @property
     def supports_natural_direction(self):
         """The plugin does not support natural direction, it does not assume
-        bidirectional two qubit gates.
-        """
+        bidirectional two qubit gates."""
         return True
 
     @property
@@ -92,8 +93,7 @@ class RossSelingerSynthesis(UnitarySynthesisPlugin):
     @property
     def supports_basis_gates(self):
         """The plugin does not support basis gates. By default it synthesizes to the
-        ``["h", "s", "t", "x"]`` gate basis.
-        """
+        ``["h", "s", "t", "x"]`` gate basis."""
         return False
 
     @property
