@@ -863,6 +863,7 @@ impl PackedInstruction {
     pub fn try_matrix(&self) -> Option<Array2<Complex64>> {
         match self.op.view() {
             OperationRef::StandardGate(g) => g.matrix(self.params_view()),
+            OperationRef::CustomGate(g) => g.matrix(self.params_view()),
             OperationRef::Gate(g) => g.matrix(),
             OperationRef::Unitary(u) => u.matrix(),
             _ => None,
@@ -873,11 +874,12 @@ impl PackedInstruction {
     ///
     /// The returned value will preferentially be a view, if the matrix already exists (e.g. for
     /// `Unitary`).
-    pub fn try_cow_array(&self) -> Option<CowArray<Complex64, Ix2>> {
+    pub fn try_cow_array(&self) -> Option<CowArray<'_, Complex64, Ix2>> {
         match self.op.view() {
             OperationRef::StandardGate(g) => g.matrix(self.params_view()).map(CowArray::from),
             OperationRef::Gate(g) => g.matrix().map(CowArray::from),
             OperationRef::Unitary(u) => Some(CowArray::from(u.matrix_view())),
+            OperationRef::CustomGate(g) => g.matrix(self.params_view()).map(CowArray::from),
             _ => None,
         }
     }
@@ -891,6 +893,14 @@ impl PackedInstruction {
             }
             OperationRef::Gate(gate) => gate.matrix_as_static_1q(),
             OperationRef::Unitary(unitary) => unitary.matrix_as_static_1q(),
+            OperationRef::CustomGate(g) => {
+                if g.num_qubits() == 1 {
+                    g.matrix(self.params_view())
+                        .map(|mat| [[mat[(0, 0)], mat[(0, 1)]], [mat[(1, 0)], mat[(1, 1)]]])
+                } else {
+                    None
+                }
+            }
             _ => None,
         }
     }
@@ -910,6 +920,9 @@ impl PackedInstruction {
             OperationRef::StandardGate(g) => g.definition(self.params_view()),
             OperationRef::Gate(g) => g.definition(),
             OperationRef::Instruction(i) => i.definition(),
+            OperationRef::CustomGate(g) | OperationRef::CustomInstruction(g) => {
+                g.definition(self.params_view())
+            }
             _ => None,
         }
     }

@@ -1028,8 +1028,7 @@ fn pack_custom_instruction(
             }
             // TODO: Separate the handling of these two as gate also contains matrix definiton
             // And we don't currently serialize gate matrices.
-            OperationRef::CustomGate(gate) |
-            OperationRef::CustomInstruction(gate) => {
+            OperationRef::CustomGate(gate) | OperationRef::CustomInstruction(gate) => {
                 if let Some(definition) = gate.definition(instruction.params_view()) {
                     has_definition = true;
                     let mut qc = QuantumCircuitData {

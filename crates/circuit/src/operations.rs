@@ -3385,21 +3385,21 @@ pub enum CustomOperationKind {
 
 /// Trait for custom operations implementing certain functions minimal for
 /// them to work properly.
-/// 
+///
 /// Unlike [Operation], this trait focuses on the specific functions that are
 /// typically available for the two main Qiskit operation types: Gate and Instruction.
-/// 
+///
 /// To create any of such, you must implement the [CustomOperation::kind] method, which
 /// returns a [CustomOperationKind] object with two variants:
 /// - [CustomOperationKind::Gate]: For unitary instructions.
 /// - [CustomOperationKind::Instruction]: For non-unitary instruction.
-/// 
+///
 /// When implementing, if [CustomOperationKind::Gate] is the chosen kind. Users should
 /// implement the following methods as they work exclusively with gates:
 /// - [CustomOperation::matrix]
 /// - [CustomOperation::num_ctrl_qubits]
 /// - [CustomOperation::is_controlled_gate]
-/// 
+///
 /// A user must also implement [CustomOperation::clone_dyn] as a way to clone
 /// with the original object's implementation of [Clone] once it is dynamically dispatched.
 pub trait CustomOperation: Operation + Any + Debug + Send + Sync {
@@ -3561,9 +3561,11 @@ impl From<Box<dyn CustomOperation>> for NativeOperation {
 mod test_custom_gates {
     use crate::Qubit;
     use crate::circuit_data::CircuitData;
-    use crate::gate_matrix::{H_GATE, rx_gate};
-    use crate::operations::{CustomOperation, CustomOperationKind};
-    use crate::operations::{NativeOperation, Operation, OperationRef, Param, StandardGate};
+    use crate::gate_matrix::H_GATE;
+    use crate::operations::{
+        CustomOperation, CustomOperationKind, NativeOperation, Operation, OperationRef, Param,
+        StandardGate,
+    };
     use ndarray::aview2;
     use smallvec::smallvec;
     use std::f64::consts::PI;
@@ -3607,66 +3609,6 @@ mod test_custom_gates {
 
         fn matrix(&self, params: &[Param]) -> Option<ndarray::Array2<numpy::Complex64>> {
             params.is_empty().then_some(aview2(&H_GATE).to_owned())
-        }
-
-        fn kind(&self) -> CustomOperationKind {
-            CustomOperationKind::Gate
-        }
-    }
-
-    #[derive(Debug, Clone)]
-    pub struct CustomRX;
-
-    impl Operation for CustomRX {
-        fn name(&self) -> &str {
-            "custom_rx"
-        }
-
-        fn num_qubits(&self) -> u32 {
-            1
-        }
-
-        fn num_clbits(&self) -> u32 {
-            0
-        }
-
-        fn num_params(&self) -> u32 {
-            1
-        }
-
-        fn directive(&self) -> bool {
-            false
-        }
-    }
-
-    impl CustomOperation for CustomRX {
-        fn clone_dyn(&self) -> Box<dyn CustomOperation> {
-            Box::new(self.clone())
-        }
-        fn definition(&self, params: &[Param]) -> Option<CircuitData> {
-            (params.len() == 1).then_some(
-                CircuitData::from_standard_gates(
-                    1,
-                    [(
-                        StandardGate::RX,
-                        smallvec![params[0].clone()],
-                        smallvec![Qubit(0)],
-                    )],
-                    0.0.into(),
-                )
-                .expect("Circuit should be built"),
-            )
-        }
-
-        fn matrix(&self, params: &[Param]) -> Option<ndarray::Array2<numpy::Complex64>> {
-            if params.len() == 1 {
-                let Param::Float(param) = params[0] else {
-                    return None;
-                };
-                Some(aview2(&rx_gate(param)).to_owned())
-            } else {
-                None
-            }
         }
 
         fn kind(&self) -> CustomOperationKind {
