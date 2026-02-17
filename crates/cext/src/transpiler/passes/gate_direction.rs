@@ -154,7 +154,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_gate_direction(
     dag: *mut DAGCircuit,
     target: *const Target,
 ) {
-    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    // SAFETY: Per documentation, the pointers are non-null and aligned.
     let dag = unsafe { mut_ptr_as_ref(dag) };
     let target = unsafe { const_ptr_as_ref(target) };
 

@@ -89,6 +89,7 @@ pub unsafe extern "C" fn qk_transpiler_standalone_optimize_1q_sequences(
 /// }
 ///
 /// // Build circuit
+/// ```c
 /// QkDag *dag = qk_dag_new();
 /// QkQuantumRegister *qr = qk_quantum_register_new(1, "qr");
 /// qk_dag_add_quantum_register(dag, qr);
@@ -104,6 +105,7 @@ pub unsafe extern "C" fn qk_transpiler_standalone_optimize_1q_sequences(
 /// qk_target_free(target);
 /// qk_dag_free(dag);
 /// qk_quantum_register_free(qr);
+/// ```
 ///
 /// # Safety
 ///

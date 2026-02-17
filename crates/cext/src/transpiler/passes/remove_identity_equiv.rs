@@ -113,7 +113,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_remove_identity_equivalen
 /// uint32_t rz_qargs[1] = {1,};
 /// double rz_params[1] = {0.,};
 /// qk_dag_apply_gate(dag, QkGate_RZ, rz_qargs, rz_params, false);
-/// qk_transpiler_pass_remove_identity_equivalent(qc, target, 1.0);
+/// qk_transpiler_pass_remove_identity_equivalent(dag, target, 1.0);
 /// ```
 ///
 /// # Safety
@@ -125,7 +125,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_remove_identity_equivalent(
     target: *const Target,
     approximation_degree: f64,
 ) {
-    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    // SAFETY: Per documentation, the pointers are non-null and aligned.
     let dag = unsafe { mut_ptr_as_ref(dag) };
     let target = unsafe { const_ptr_as_ref(target) };
     let approximation_degree = if approximation_degree.is_nan() {

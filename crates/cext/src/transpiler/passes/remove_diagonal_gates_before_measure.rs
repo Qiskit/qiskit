@@ -43,7 +43,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_remove_diagonal_gates_bef
 /// Transpiler pass to remove diagonal gates (like RZ, T, Z, etc) before
 /// a measurement. Including diagonal 2Q gates.
 ///
-/// @param dag A pointer to the DAG to run this pass on
+/// @param dag A pointer to the DAG to run this pass on. The DAG will be modified in place by the pass.
 ///
 /// # Example
 ///

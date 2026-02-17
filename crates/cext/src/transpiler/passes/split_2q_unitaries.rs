@@ -81,7 +81,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_split_2q_unitaries(
 /// @param split_swaps Whether to attempt to split swap gates, resulting in a permutation of the qubits.
 ///
 /// @return If any swap equivalent unitaries are split this function returns a pointer to a ``TranspileLayout``
-///     that contains the permutation induced by this circuit optimization. If no swap equivalent
+///     that contains the permutation induced by this DAG optimization. If no swap equivalent
 ///     unitaries are split this will be a null pointer.
 ///
 /// # Safety
