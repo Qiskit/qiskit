@@ -250,29 +250,24 @@ static int test_split_2q_unitaries_x_y_unitary(void) {
     size_t num_ops = qk_dag_num_op_nodes(dag);
     uint32_t *ops = malloc(num_ops * sizeof(*ops));
     qk_dag_topological_op_nodes(dag, ops);
+    if (num_ops != 2) {
+        printf("Unexpected gate counts found\n");
+        result = EqualityError;
+        goto ops_cleanup;
+    }
     QkOperationKind first_kind = qk_dag_op_node_kind(dag, ops[0]);
-    for (size_t i = 1; i < num_ops; i++) {
+    for (size_t i = 0; i < num_ops; i++) {
         QkOperationKind kind = qk_dag_op_node_kind(dag, ops[i]);
         if (kind != first_kind) {
             printf("More than 1 type of gate in DAG\n");
             result = EqualityError;
             goto ops_cleanup;
         }
-    }
-    for (size_t i = 0; i < num_ops; i++) {
-        QkOperationKind kind = qk_dag_op_node_kind(dag, ops[i]);
         if (kind != QkOperationKind_Unitary) {
             printf("Gates outside expected set in output DAG\n");
             result = EqualityError;
             goto ops_cleanup;
         }
-        if (num_ops != 2) {
-            printf("Unexpected gate counts found\n");
-            result = EqualityError;
-            goto ops_cleanup;
-        }
-    }
-    for (size_t i = 0; i < num_ops; i++) {
         uint32_t nq = qk_dag_op_node_num_qubits(dag, ops[i]);
         if (nq != 1) {
             printf("Gate %zu operates on more than 1 qubit: %u\n", i, nq);
@@ -322,31 +317,24 @@ static int test_split_2q_unitaries_swap_x_y_unitary(void) {
     size_t num_ops = qk_dag_num_op_nodes(dag);
     uint32_t *ops = malloc(num_ops * sizeof(*ops));
     qk_dag_topological_op_nodes(dag, ops);
+    if (num_ops != 2) {
+        printf("Unexpected gate counts found\n");
+        result = EqualityError;
+        goto ops_cleanup;
+    }
     QkOperationKind first_kind = qk_dag_op_node_kind(dag, ops[0]);
-    for (size_t i = 1; i < num_ops; i++) {
+    for (size_t i = 0; i < num_ops; i++) {
         QkOperationKind kind = qk_dag_op_node_kind(dag, ops[i]);
         if (kind != first_kind) {
             printf("More than 1 type of gate in DAG\n");
             result = EqualityError;
             goto ops_cleanup;
         }
-    }
-
-    for (size_t i = 0; i < num_ops; i++) {
-        QkOperationKind kind = qk_dag_op_node_kind(dag, ops[i]);
         if (kind != QkOperationKind_Unitary) {
             printf("Gates outside expected set in output DAG\n");
             result = EqualityError;
             goto ops_cleanup;
         }
-        if (num_ops != 2) {
-            printf("Unexpected gate counts found\n");
-            result = EqualityError;
-            goto ops_cleanup;
-        }
-    }
-
-    for (size_t i = 0; i < num_ops; i++) {
         uint32_t nq = qk_dag_op_node_num_qubits(dag, ops[i]);
         if (nq != 1) {
             printf("Gate %zu operates on more than 1 qubit: %u\n", i, nq);
