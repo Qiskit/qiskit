@@ -52,8 +52,6 @@ use std::fmt::Debug;
 use std::io::Cursor;
 use uuid::Uuid;
 
-pub const QPY_VERSION: u32 = 17;
-
 // Standard char representation of register types: 'q' qreg, 'c' for creg
 #[binrw]
 #[brw(repr = u8)]
@@ -541,7 +539,7 @@ pub(crate) fn serialize_generic_value(
                 &mut circuit.extract(py)?, // TODO: can we avoid cloning here?
                 None,
                 false,
-                QPY_VERSION,
+                qpy_data.version,
                 qpy_data.annotation_handler.annotation_factories,
             )?;
             let serialized_circuit = serialize(&packed_circuit);
@@ -556,7 +554,7 @@ pub(crate) fn serialize_generic_value(
                 &mut quantum_circuit_data,
                 None,
                 false,
-                QPY_VERSION,
+                qpy_data.version,
                 qpy_data.annotation_handler.annotation_factories,
             )?;
             let serialized_circuit = serialize(&packed_circuit);
