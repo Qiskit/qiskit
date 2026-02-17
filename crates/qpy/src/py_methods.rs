@@ -17,9 +17,7 @@ use pyo3::IntoPyObjectExt;
 use pyo3::exceptions::{PyIOError, PyTypeError, PyValueError};
 use pyo3::intern;
 use pyo3::prelude::*;
-use pyo3::types::{
-    PyAny, PyComplex, PyDict, PyFloat, PyInt, PyIterator, PyList, PyString, PyTuple,
-};
+use pyo3::types::{PyAny, PyComplex, PyDict, PyFloat, PyInt, PyList, PyString, PyTuple};
 use qiskit_circuit::classical::expr::Expr;
 use std::num::NonZero;
 use std::sync::Arc;
@@ -27,8 +25,8 @@ use std::sync::Arc;
 use qiskit_circuit::bit::{ClassicalRegister, ShareableClbit};
 use qiskit_circuit::classical;
 use qiskit_circuit::imports;
-use qiskit_circuit::operations::{Operation, OperationRef, PyRange};
-use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
+use qiskit_circuit::operations::{Operation, OperationRef, PyInstruction, PyOpKind, PyRange};
+use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::parameter::parameter_expression::{
     PyParameter, PyParameterExpression, PyParameterVectorElement,
 };
@@ -48,13 +46,11 @@ pub const PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME: &str = "PauliProductMeasure
 
 fn is_python_gate(py: Python, op: &PackedOperation, python_gate: &Bound<PyAny>) -> PyResult<bool> {
     match op.view() {
-        OperationRef::Gate(pygate) => {
-            if pygate.instruction.bind(py).is_instance(python_gate)? {
-                Ok(true)
-            } else {
-                Ok(false)
-            }
-        }
+        OperationRef::PyCustom(PyInstruction {
+            kind: PyOpKind::Gate,
+            ob,
+            ..
+        }) => ob.bind(py).is_instance(python_gate),
         _ => Ok(false),
     }
 }
@@ -154,23 +150,6 @@ pub(crate) fn serialize_metadata(
                 .extract::<String>()?
                 .into())
         }
-    }
-}
-
-// helper method to extract attribute from a py_object
-pub(crate) fn getattr_or_none<'py>(
-    py_object: &'py Bound<'py, PyAny>,
-    name: &str,
-) -> Option<Bound<'py, PyAny>> {
-    match py_object.getattr(name) {
-        Ok(val) => {
-            if val.is_none() {
-                None
-            } else {
-                Some(val)
-            }
-        }
-        Err(_) => None,
     }
 }
 
@@ -287,40 +266,20 @@ pub(crate) fn py_pack_pauli_evolution_gate(
 }
 
 pub(crate) fn gate_class_name(op: &PackedOperation) -> PyResult<String> {
-    Python::attach(|py| {
-        let name = match op.view() {
-            // getting __name__ for standard gates and instructions should
-            // eventually be replaced with a Rust-side mapping
-            OperationRef::StandardGate(gate) => Ok(imports::get_std_gate_class_name(&gate)),
-            OperationRef::StandardInstruction(inst) => {
-                Ok(standard_instruction_class_name(&inst).to_string())
-            }
-            OperationRef::Gate(pygate) => pygate
-                .instruction
-                .bind(py)
-                .getattr(intern!(py, "__class__"))?
-                .getattr(intern!(py, "__name__"))?
-                .extract::<String>(),
-            OperationRef::Instruction(pyinst) => pyinst
-                .instruction
-                .bind(py)
-                .getattr(intern!(py, "__class__"))?
-                .getattr(intern!(py, "__name__"))?
-                .extract::<String>(),
-            OperationRef::Unitary(_) => Ok(UNITARY_GATE_CLASS_NAME.to_string()),
-            OperationRef::Operation(py_op) => py_op
-                .instruction
-                .bind(py)
-                .getattr(intern!(py, "__class__"))?
-                .getattr(intern!(py, "__name__"))?
-                .extract::<String>(),
-            OperationRef::PauliProductMeasurement(_) => {
-                Ok(String::from(PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME))
-            }
-            OperationRef::ControlFlow(inst) => Ok(inst.name().to_string()),
-        }?;
-        Ok(name)
-    })
+    match op.view() {
+        // getting __name__ for standard gates and instructions should
+        // eventually be replaced with a Rust-side mapping
+        OperationRef::StandardGate(gate) => Ok(imports::get_std_gate_class_name(&gate)),
+        OperationRef::StandardInstruction(inst) => {
+            Ok(standard_instruction_class_name(&inst).to_string())
+        }
+        OperationRef::PyCustom(inst) => Python::attach(|py| inst.class_name(py)),
+        OperationRef::Unitary(_) => Ok(UNITARY_GATE_CLASS_NAME.to_string()),
+        OperationRef::PauliProductMeasurement(_) => {
+            Ok(String::from(PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME))
+        }
+        OperationRef::ControlFlow(inst) => Ok(inst.name().to_string()),
+    }
 }
 
 pub(crate) fn py_get_type_key(py_object: &Bound<PyAny>) -> PyResult<ValueType> {
@@ -478,35 +437,6 @@ pub(crate) fn py_pack_param(
         Endian::Little => serialize_generic_value(&value.as_le(), qpy_data)?,
     };
     Ok(formats::GenericDataPack { type_key, data })
-}
-
-pub(crate) fn py_get_instruction_annotations(
-    instruction: &PackedInstruction,
-    qpy_data: &mut QPYWriteData,
-) -> PyResult<Option<formats::InstructionsAnnotationPack>> {
-    Python::attach(|py| {
-        if let OperationRef::Instruction(inst) = instruction.op.view() {
-            let op = inst.instruction.bind(py);
-            if op.is_instance(imports::CONTROL_FLOW_BOX_OP.get_bound(py))? {
-                let annotations_iter = PyIterator::from_object(&op.getattr("annotations")?)?;
-                let annotations: Vec<formats::InstructionAnnotationPack> = annotations_iter
-                    .map(|annotation| {
-                        let (namespace_index, payload) = qpy_data
-                            .annotation_handler
-                            .serialize(&annotation?.unbind())?;
-                        Ok(formats::InstructionAnnotationPack {
-                            namespace_index,
-                            payload,
-                        })
-                    })
-                    .collect::<PyResult<_>>()?;
-                if !annotations.is_empty() {
-                    return Ok(Some(formats::InstructionsAnnotationPack { annotations }));
-                }
-            }
-        }
-        Ok(None)
-    })
 }
 
 pub(crate) fn py_pack_modifier(modifier: &Py<PyAny>) -> PyResult<formats::ModifierPack> {

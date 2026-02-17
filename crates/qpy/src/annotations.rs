@@ -9,6 +9,7 @@
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
+use crate::QpyError;
 use crate::bytes::Bytes;
 use hashbrown::HashMap;
 use pyo3::exceptions::PyIndexError;
@@ -110,7 +111,10 @@ impl<'a> AnnotationHandler<'a> {
                     }
                 }
             }
-            Ok((0, Bytes(Vec::new())))
+            Err(QpyError::new_err(format!(
+                "No configured annotation serializer could handle {}",
+                annotation.bind(py).repr()?,
+            )))
         })
     }
 

@@ -172,11 +172,11 @@ where
 
     // Special handling for large pauli rotation gates.
     if view.name() == "PauliEvolution" {
-        if let OperationRef::Gate(py_gate) = view {
+        if let OperationRef::PyCustom(py_gate) = view {
             let result = Python::attach(|py| -> PyResult<Option<(Complex64, usize)>> {
                 let result = imports::PAULI_ROTATION_TRACE_AND_DIM
                     .get_bound(py)
-                    .call1((py_gate.instruction.clone_ref(py),))?
+                    .call1((py_gate.ob.clone_ref(py),))?
                     .extract()?;
                 Ok(result)
             })?;
