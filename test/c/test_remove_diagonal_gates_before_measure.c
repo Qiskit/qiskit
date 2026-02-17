@@ -87,7 +87,7 @@ int test_remove_z_gate(void) {
         goto cleanup;
     }
 
-    uint32_t *op_nodes = malloc(sizeof(uint32_t) * num_ops);
+    uint32_t op_nodes[1];
     qk_dag_topological_op_nodes(dag, op_nodes);
 
     QkCircuitInstruction inst;
@@ -100,7 +100,6 @@ int test_remove_z_gate(void) {
     }
 
     qk_circuit_instruction_clear(&inst);
-    free(op_nodes);
 cleanup:
     qk_dag_free(dag);
     qk_quantum_register_free(qr);
