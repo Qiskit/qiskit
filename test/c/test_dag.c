@@ -1257,8 +1257,8 @@ static int test_dag_replace_illegal_block_with_unitary(void) {
     uint32_t new_node_idx = qk_dag_replace_block_with_unitary(
         dag, 2, (uint32_t[]){idx1, idx2}, identity_mat_2, 2, (uint32_t[]){0, 1}, true);
 
-    // The returned node index should be UINT32_MAX, indicating that the
-    // replacing the provided node block would introduce a cycle
+    // The returned node index should be UINT32_MAX, indicating that
+    // replacing the provided node block would introduce a cycle.
     if (new_node_idx != UINT32_MAX) {
         result = EqualityError;
         printf("The new node has index %u but expected %u\n", new_node_idx, UINT32_MAX);
