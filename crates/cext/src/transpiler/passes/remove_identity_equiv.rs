@@ -17,7 +17,7 @@ use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_transpiler::passes::run_remove_identity_equiv;
 use qiskit_transpiler::target::Target;
 
-/// @ingroup QkTranspilerPasses
+/// @ingroup QkTranspilerPassesStandalone
 /// Run the RemoveIdentityEquivalent transpiler pass on a circuit.
 ///
 /// Refer to the ``qk_transpiler_pass_remove_identity_equivalent`` function for more details about the pass.

@@ -15,7 +15,7 @@ use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_transpiler::passes::run_remove_diagonal_before_measure;
 
-/// @ingroup QkTranspilerPasses
+/// @ingroup QkTranspilerPassesStandalone
 /// Run the ``RemoveDiagonalGatesBeforeMeasure`` pass on a circuit.
 ///
 /// Refer to the ``qk_transpiler_pass_remove_diagonal_gates_before_measure`` function for more details about the pass.

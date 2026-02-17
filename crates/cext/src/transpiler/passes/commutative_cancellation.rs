@@ -19,7 +19,7 @@ use qiskit_transpiler::commutation_checker::get_standard_commutation_checker;
 use qiskit_transpiler::passes::cancel_commutations;
 use qiskit_transpiler::target::Target;
 
-/// @ingroup QkTranspilerPasses
+/// @ingroup QkTranspilerPassesStandalone
 /// Run the CommutativeCancellation transpiler pass on a circuit.
 ///
 /// This pass cancels the redundant (self-adjoint) gates through commutation relations.

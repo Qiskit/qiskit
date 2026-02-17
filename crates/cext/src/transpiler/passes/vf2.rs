@@ -281,7 +281,7 @@ pub unsafe extern "C" fn qk_vf2_layout_configuration_set_score_initial(
     unsafe { (*config).0.score_initial_layout = score_initial };
 }
 
-/// @ingroup QkTranspilerPasses
+/// @ingroup QkTranspilerPassesStandalone
 /// Use the VF2 algorithm to choose a layout (if possible) for the input circuit, using a
 /// noise-aware scoring heuristic based only on hardware error rates, and not the specific gates in
 /// the circuit.
@@ -369,7 +369,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_vf2_layout_average(
         .unwrap()
 }
 
-/// @ingroup QkTranspilerPasses
+/// @ingroup QkTranspilerPassesStandalone
 /// Use the VF2 algorithm to choose a layout (if possible) for the input circuit, using a
 /// noise-aware scoring heuristic that requires the result is already fully compatible with
 /// the hardware.
@@ -458,7 +458,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_vf2_layout_exact(
         .unwrap()
 }
 
-/// @ingroup QkTranspilerPasses
+/// @ingroup QkTranspilerPassesStandalone
 /// Deprecated version of `qk_transpiler_pass_standalone_vf2_layout_average`.
 ///
 /// This legacy interface does not use `QkVf2LayoutConfiguration`, and has a name that is not clear

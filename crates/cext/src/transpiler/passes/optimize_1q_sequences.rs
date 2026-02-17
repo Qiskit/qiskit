@@ -14,7 +14,7 @@ use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 use qiskit_circuit::{circuit_data::CircuitData, dag_circuit::DAGCircuit};
 use qiskit_transpiler::{passes::run_optimize_1q_gates_decomposition, target::Target};
 
-/// @ingroup QkTranspilerPasses
+/// @ingroup QkTranspilerPassesStandalone
 /// Runs the Optimize1qGatesDecomposition pass on a circuit.
 ///
 /// Refer to the ``qk_transpiler_pass_optimize_1q_sequences`` function for more details about the pass.
@@ -76,7 +76,7 @@ pub unsafe extern "C" fn qk_transpiler_standalone_optimize_1q_sequences(
 /// and will support all basis gates on its Euler basis set.
 ///
 /// # Example
-///
+/// ```c
 /// QkTarget *target = qk_target_new(1);
 /// double u_errors[3] = {0., 1e-4, 1e-4};
 /// for (int idx = 0; idx < 3; idx++) {
@@ -104,7 +104,7 @@ pub unsafe extern "C" fn qk_transpiler_standalone_optimize_1q_sequences(
 /// qk_target_free(target);
 /// qk_dag_free(dag);
 /// qk_quantum_register_free(qr);
-///
+/// ```
 /// # Safety
 ///
 /// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag`` and
