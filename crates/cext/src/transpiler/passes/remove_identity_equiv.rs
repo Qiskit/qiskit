@@ -22,9 +22,17 @@ use qiskit_transpiler::target::Target;
 ///
 /// Refer to the ``qk_transpiler_pass_remove_identity_equivalent`` function for more details about the pass.
 ///
-/// @param circuit A pointer to the circuit to run RemoveIdentityEquivalent on.
-/// @param target The target for the RemoveIdentityEquivalent pass.
-/// @param approximation_degree The degree to approximate for the equivalence check.
+/// @param circuit A pointer to the circuit to run RemoveIdentityEquivalent on. This circuit
+/// pointed to will be updated with the modified circuit if the pass is able to remove any gates.
+/// @param target The target for the RemoveIdentityEquivalent pass. If ``approximation_degree`` is set to
+/// ``NAN`` the tolerance for determining whether an operation is equivalent to
+/// identity will be set to the reported error rate in the target. Otherwise
+/// the ``target`` is not used as the tolerance is independent of the target.
+/// @param approximation_degree The degree to approximate for the equivalence check. This can be a
+/// floating point value between 0 and 1, or ``NAN``. If the value is 1 this does not
+/// approximate above the floating point precision. For a value < 1 this is used as a
+/// scaling factor for the cutoff fidelity. If the value is ``NAN`` this approximates up
+/// to the fidelity for the gate specified in ``target``.
 ///
 /// # Safety
 ///
