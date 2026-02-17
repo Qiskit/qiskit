@@ -3465,8 +3465,10 @@ pub trait CustomOperation: Operation + Any + Debug + Send + Sync {
 }
 
 impl dyn CustomOperation + 'static {
-    // Trait implementation needs to be repeated here as upcasting
+    // Trait implementation needs to be repeated here from Any as upcasting
     // is stabilized in Rust 1.86+ and we barely missed the cutoff.
+    /// Casts a reference to a CustomOperation to its original type if the correct
+    /// type is specified.
     pub fn downcast_ref<T: CustomOperation + 'static>(&self) -> Option<&T> {
         (self.type_id() == TypeId::of::<T>()).then(|| unsafe { &*(self as *const _ as *const T) })
     }
@@ -3487,6 +3489,7 @@ pub enum NativeOperationView<'a> {
 }
 
 impl NativeOperation {
+    /// Returns an immutable view referencing the type of Operation this type is.
     pub fn view(&self) -> NativeOperationView<'_> {
         match self.kind() {
             CustomOperationKind::Gate => NativeOperationView::Gate(self.op.as_ref()),
@@ -3494,8 +3497,15 @@ impl NativeOperation {
         }
     }
 
+    /// Returns the kind of Operation associated with this type.
     pub fn kind(&self) -> CustomOperationKind {
         self.op.kind()
+    }
+
+    /// Casts a NativeOperation to its original type if the correct
+    /// type is specified.
+    pub fn downcast_ref<T: CustomOperation>(&self) -> Option<&T> {
+        self.op.downcast_ref()
     }
 }
 
