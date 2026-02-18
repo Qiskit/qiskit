@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -14,15 +14,20 @@ use approx::relative_eq;
 use std::f64::consts::PI;
 use std::fmt::Debug;
 use std::num::NonZero;
+use std::str::FromStr;
 use std::sync::Arc;
 use std::{fmt, vec};
 
+use crate::bit::{ClassicalRegister, ShareableClbit};
 use crate::circuit_data::CircuitData;
+use crate::classical::expr;
+use crate::duration::Duration;
+use crate::packed_instruction::PackedInstruction;
 use crate::parameter::parameter_expression::{
     ParameterExpression, PyParameter, PyParameterExpression,
 };
 use crate::parameter::symbol_expr::{Symbol, Value};
-use crate::{Qubit, gate_matrix, impl_intopyobject_for_copy_pyclass, imports};
+use crate::{ControlFlowBlocks, Qubit, gate_matrix, impl_intopyobject_for_copy_pyclass, imports};
 
 use nalgebra::{Matrix2, Matrix4};
 use ndarray::{Array2, ArrayView2, Dim, ShapeBuilder, array, aview2};
@@ -30,10 +35,7 @@ use num_bigint::BigUint;
 use num_complex::Complex64;
 use smallvec::{SmallVec, smallvec};
 
-use crate::bit::{ClassicalRegister, ShareableClbit};
-use crate::classical::expr;
-use crate::duration::Duration;
-use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2, ToPyArray};
+use numpy::{IntoPyArray, PyArray1, PyArray2, PyReadonlyArray2, ToPyArray};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyFloat, PyList, PyTuple};
@@ -79,7 +81,10 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Param {
     fn extract(b: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         Ok(if let Ok(py_expr) = b.extract::<PyParameterExpression>() {
             Param::ParameterExpression(Arc::new(py_expr.inner))
+        } else if b.is_instance_of::<PyArray1<i32>>() {
+            Param::Obj(b.to_owned().unbind())
         } else if let Ok(val) = b.extract::<f64>() {
+            // TODO: remove this branch when we raise the NumPy version to 2.4.
             Param::Float(val)
         } else {
             Param::Obj(b.to_owned().unbind())
@@ -88,6 +93,13 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Param {
 }
 
 impl Param {
+    /// Get the float value, if one is stored.
+    pub fn try_float(&self) -> Option<f64> {
+        match self {
+            Self::Float(f) => Some(*f),
+            _ => None,
+        }
+    }
     pub fn eq(&self, other: &Param) -> PyResult<bool> {
         match [self, other] {
             [Self::Float(a), Self::Float(b)] => Ok(a == b),
@@ -270,9 +282,9 @@ pub enum OperationRef<'a> {
     ControlFlow(&'a ControlFlowInstruction),
     StandardGate(StandardGate),
     StandardInstruction(StandardInstruction),
-    Gate(&'a PyGate),
+    Gate(&'a PyInstruction),
     Instruction(&'a PyInstruction),
-    Operation(&'a PyOperation),
+    Operation(&'a PyInstruction),
     Unitary(&'a UnitaryGate),
     PauliProductMeasurement(&'a PauliProductMeasurement),
 }
@@ -350,7 +362,7 @@ impl Operation for OperationRef<'_> {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int)]
 #[repr(u8)]
-pub(crate) enum ControlFlowType {
+pub enum ControlFlowType {
     Box = 0,
     BreakLoop = 1,
     ContinueLoop = 2,
@@ -358,6 +370,37 @@ pub(crate) enum ControlFlowType {
     IfElse = 4,
     SwitchCase = 5,
     WhileLoop = 6,
+}
+
+impl ControlFlowType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            ControlFlowType::Box => "box",
+            ControlFlowType::BreakLoop => "break_loop",
+            ControlFlowType::ContinueLoop => "continue_loop",
+            ControlFlowType::ForLoop => "for_loop",
+            ControlFlowType::IfElse => "if_else",
+            ControlFlowType::SwitchCase => "switch_case",
+            ControlFlowType::WhileLoop => "while_loop",
+        }
+    }
+}
+
+impl FromStr for ControlFlowType {
+    type Err = ();
+
+    fn from_str(name: &str) -> Result<Self, Self::Err> {
+        match name {
+            "box" => Ok(ControlFlowType::Box),
+            "break_loop" => Ok(ControlFlowType::BreakLoop),
+            "continue_loop" => Ok(ControlFlowType::ContinueLoop),
+            "for_loop" => Ok(ControlFlowType::ForLoop),
+            "if_else" => Ok(ControlFlowType::IfElse),
+            "switch_case" => Ok(ControlFlowType::SwitchCase),
+            "while_loop" => Ok(ControlFlowType::WhileLoop),
+            _ => Err(()),
+        }
+    }
 }
 
 #[derive(Clone, Debug, IntoPyObject, PartialEq)]
@@ -570,7 +613,7 @@ impl ControlFlowInstruction {
     pub fn create_py_op(
         &self,
         py: Python,
-        blocks: Option<Vec<Py<PyAny>>>,
+        blocks: Option<Vec<CircuitData>>,
         label: Option<&str>,
     ) -> PyResult<Py<PyAny>> {
         let mut blocks = blocks.into_iter().flatten();
@@ -596,7 +639,10 @@ impl ControlFlowInstruction {
                 imports::BOX_OP.get(py).call1(
                     py,
                     (
-                        blocks.next().unwrap(),
+                        blocks
+                            .next()
+                            .expect("box should have a body")
+                            .into_py_quantum_circuit(py)?,
                         duration,
                         unit,
                         label,
@@ -619,19 +665,43 @@ impl ControlFlowInstruction {
                 loop_param,
             } => imports::FOR_LOOP_OP.get(py).call(
                 py,
-                (collection, loop_param.clone(), blocks.next()),
+                (
+                    collection,
+                    loop_param.clone(),
+                    blocks
+                        .next()
+                        .expect("for loop should have a body")
+                        .into_py_quantum_circuit(py)?,
+                ),
                 kwargs.as_ref(),
             ),
             ControlFlow::IfElse { condition } => imports::IF_ELSE_OP.get(py).call(
                 py,
-                (condition.clone(), blocks.next().unwrap(), blocks.next()),
+                (
+                    condition.clone(),
+                    blocks
+                        .next()
+                        .expect("if should have a true body")
+                        .into_py_quantum_circuit(py)?,
+                    blocks
+                        .next()
+                        .map(|circuit| circuit.into_py_quantum_circuit(py))
+                        .transpose()?,
+                ),
                 kwargs.as_ref(),
             ),
             ControlFlow::Switch {
                 target, label_spec, ..
             } => {
-                let cases_specifier: Vec<(Vec<CaseSpecifier>, Py<PyAny>)> =
-                    label_spec.iter().cloned().zip(blocks).collect();
+                let cases_specifier: Vec<(Vec<CaseSpecifier>, Py<PyAny>)> = label_spec
+                    .iter()
+                    .cloned()
+                    .zip(blocks)
+                    .map(|(cases, body)| {
+                        body.into_py_quantum_circuit(py)
+                            .map(|ob| (cases, ob.unbind()))
+                    })
+                    .collect::<PyResult<_>>()?;
                 imports::SWITCH_CASE_OP.get(py).call(
                     py,
                     (target.clone(), cases_specifier),
@@ -640,7 +710,13 @@ impl ControlFlowInstruction {
             }
             ControlFlow::While { condition, .. } => imports::WHILE_LOOP_OP.get(py).call(
                 py,
-                (condition.clone(), blocks.next()),
+                (
+                    condition.clone(),
+                    blocks
+                        .next()
+                        .expect("while should have a body")
+                        .into_py_quantum_circuit(py)?,
+                ),
                 kwargs.as_ref(),
             ),
         }
@@ -650,13 +726,13 @@ impl ControlFlowInstruction {
 impl Operation for ControlFlowInstruction {
     fn name(&self) -> &str {
         match &self.control_flow {
-            ControlFlow::Box { .. } => "box",
-            ControlFlow::BreakLoop => "break_loop",
-            ControlFlow::ContinueLoop => "continue_loop",
-            ControlFlow::ForLoop { .. } => "for_loop",
-            ControlFlow::IfElse { .. } => "if_else",
-            ControlFlow::Switch { .. } => "switch_case",
-            ControlFlow::While { .. } => "while_loop",
+            ControlFlow::Box { .. } => ControlFlowType::Box.as_str(),
+            ControlFlow::BreakLoop => ControlFlowType::BreakLoop.as_str(),
+            ControlFlow::ContinueLoop => ControlFlowType::ContinueLoop.as_str(),
+            ControlFlow::ForLoop { .. } => ControlFlowType::ForLoop.as_str(),
+            ControlFlow::IfElse { .. } => ControlFlowType::IfElse.as_str(),
+            ControlFlow::Switch { .. } => ControlFlowType::SwitchCase.as_str(),
+            ControlFlow::While { .. } => ControlFlowType::WhileLoop.as_str(),
         }
     }
 
@@ -688,7 +764,10 @@ impl Operation for ControlFlowInstruction {
 /// An ergonomic view of a control flow operation and its blocks.
 #[derive(Clone, Debug)]
 pub enum ControlFlowView<'a, T> {
-    Box(Option<&'a BoxDuration>, &'a T),
+    Box {
+        duration: Option<&'a BoxDuration>,
+        body: &'a T,
+    },
     BreakLoop,
     ContinueLoop,
     ForLoop {
@@ -703,7 +782,7 @@ pub enum ControlFlowView<'a, T> {
     },
     Switch {
         target: &'a SwitchTarget,
-        cases_specifier: Vec<(&'a Vec<CaseSpecifier>, &'a T)>,
+        cases_specifier: Vec<(&'a [CaseSpecifier], &'a T)>,
     },
     While {
         condition: &'a Condition,
@@ -712,9 +791,69 @@ pub enum ControlFlowView<'a, T> {
 }
 
 impl<'a, T> ControlFlowView<'a, T> {
+    /// Produce a complete control-flow view object from the given instruction.
+    ///
+    /// While [CircuitData] and [DAGCircuit] both provide `try_view_control_flow` methods which just
+    /// delegate to this internally, this function is useful for a) code de-duplication and b)
+    /// finer-grained borrow-check control from within the `impl` blocks of [CircuitData] and
+    /// [DAGCircuit].
+    ///
+    /// Panics or produces invalid results if `inst` and `blocks` aren't from compatible sources
+    /// (e.g. the same [CircuitData]).
+    pub fn try_from_instruction(
+        inst: &'a PackedInstruction,
+        blocks: &'a ControlFlowBlocks<T>,
+    ) -> Option<Self> {
+        let OperationRef::ControlFlow(cf) = inst.op.view() else {
+            return None;
+        };
+        let block_ids = inst.blocks_view();
+        let view = match &cf.control_flow {
+            ControlFlow::Box {
+                duration,
+                annotations: _,
+            } => Self::Box {
+                duration: duration.as_ref(),
+                body: &blocks[block_ids[0]],
+            },
+            ControlFlow::BreakLoop => Self::BreakLoop,
+            ControlFlow::ContinueLoop => Self::ContinueLoop,
+            ControlFlow::ForLoop {
+                collection,
+                loop_param,
+            } => Self::ForLoop {
+                collection,
+                loop_param: loop_param.as_ref(),
+                body: &blocks[block_ids[0]],
+            },
+            ControlFlow::IfElse { condition } => Self::IfElse {
+                condition,
+                true_body: &blocks[block_ids[0]],
+                false_body: block_ids.get(1).map(|bid| &blocks[*bid]),
+            },
+            ControlFlow::Switch {
+                target,
+                label_spec,
+                cases: _,
+            } => Self::Switch {
+                target,
+                cases_specifier: label_spec
+                    .iter()
+                    .zip(block_ids)
+                    .map(|(cases, bid)| (cases.as_slice(), &blocks[*bid]))
+                    .collect(),
+            },
+            ControlFlow::While { condition } => Self::While {
+                condition,
+                body: &blocks[block_ids[0]],
+            },
+        };
+        Some(view)
+    }
+
     pub fn blocks(&self) -> Vec<&'a T> {
         match self {
-            ControlFlowView::Box(_, body) => vec![*body],
+            ControlFlowView::Box { body, .. } => vec![*body],
             ControlFlowView::BreakLoop => vec![],
             ControlFlowView::ContinueLoop => vec![],
             ControlFlowView::ForLoop { body, .. } => vec![*body],
@@ -883,7 +1022,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for DelayUnit {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int)]
 #[repr(u8)]
-pub(crate) enum StandardInstructionType {
+pub enum StandardInstructionType {
     Barrier = 0,
     Delay = 1,
     Measure = 2,
@@ -898,6 +1037,31 @@ unsafe impl ::bytemuck::CheckedBitPattern for StandardInstructionType {
     }
 }
 unsafe impl ::bytemuck::NoUninit for StandardInstructionType {}
+
+impl StandardInstructionType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            StandardInstructionType::Barrier => "barrier",
+            StandardInstructionType::Delay => "delay",
+            StandardInstructionType::Measure => "measure",
+            StandardInstructionType::Reset => "reset",
+        }
+    }
+}
+
+impl FromStr for StandardInstructionType {
+    type Err = ();
+
+    fn from_str(name: &str) -> Result<Self, Self::Err> {
+        match name {
+            "barrier" => Ok(StandardInstructionType::Barrier),
+            "delay" => Ok(StandardInstructionType::Delay),
+            "measure" => Ok(StandardInstructionType::Measure),
+            "reset" => Ok(StandardInstructionType::Reset),
+            _ => Err(()),
+        }
+    }
+}
 
 #[derive(Clone, Debug, Copy, Eq, PartialEq, Hash)]
 pub enum StandardInstruction {
@@ -917,10 +1081,10 @@ pub const STANDARD_INSTRUCTION_SIZE: usize = 4;
 impl Operation for StandardInstruction {
     fn name(&self) -> &str {
         match self {
-            StandardInstruction::Barrier(_) => "barrier",
-            StandardInstruction::Delay(_) => "delay",
-            StandardInstruction::Measure => "measure",
-            StandardInstruction::Reset => "reset",
+            StandardInstruction::Barrier(_) => StandardInstructionType::Barrier.as_str(),
+            StandardInstruction::Delay(_) => StandardInstructionType::Delay.as_str(),
+            StandardInstruction::Measure => StandardInstructionType::Measure.as_str(),
+            StandardInstruction::Reset => StandardInstructionType::Reset.as_str(),
         }
     }
 
@@ -1267,7 +1431,7 @@ impl StandardGate {
             Self::CCX => Some((Self::CCX, smallvec![])),
             Self::CCZ => Some((Self::CCZ, smallvec![])),
             Self::CSwap => Some((Self::CSwap, smallvec![])),
-            Self::RCCX => None, // the inverse in not a StandardGate
+            Self::RCCX => Some((Self::RCCX, smallvec![])),
             Self::C3X => Some((Self::C3X, smallvec![])),
             Self::C3SX => None, // the inverse in not a StandardGate
             Self::RC3X => None, // the inverse in not a StandardGate
@@ -2846,6 +3010,14 @@ pub trait PythonOperation: Sized {
     fn py_copy(&self, py: Python) -> PyResult<Self>;
 }
 
+#[derive(Clone, Debug)]
+#[repr(align(8))]
+pub enum PyOperationTypes {
+    Operation(PyInstruction),
+    Instruction(PyInstruction),
+    Gate(PyInstruction),
+}
+
 /// This class is used to wrap a Python side Instruction that is not in the standard library
 #[derive(Clone, Debug)]
 // We bit-pack pointers to this, so having a known alignment even on 32-bit systems is good.
@@ -2910,78 +3082,40 @@ impl Operation for PyInstruction {
 }
 
 impl PyInstruction {
-    pub fn definition(&self) -> Option<CircuitData> {
-        Python::attach(|py| -> Option<CircuitData> {
-            match self.instruction.getattr(py, intern!(py, "definition")) {
-                Ok(definition) => definition
-                    .getattr(py, intern!(py, "_data"))
-                    .ok()?
-                    .extract::<CircuitData>(py)
-                    .ok(),
-                Err(_) => None,
-            }
-        })
-    }
-}
-
-/// This class is used to wrap a Python side Gate that is not in the standard library
-#[derive(Clone, Debug)]
-// We bit-pack pointers to this, so having a known alignment even on 32-bit systems is good.
-#[repr(align(8))]
-pub struct PyGate {
-    pub qubits: u32,
-    pub clbits: u32,
-    pub params: u32,
-    pub op_name: String,
-    pub gate: Py<PyAny>,
-}
-
-impl PythonOperation for PyGate {
-    fn py_deepcopy(&self, py: Python, memo: Option<&Bound<'_, PyDict>>) -> PyResult<Self> {
-        let deepcopy = imports::DEEPCOPY.get_bound(py);
-        Ok(PyGate {
-            gate: deepcopy.call1((&self.gate, memo))?.unbind(),
-            qubits: self.qubits,
-            clbits: self.clbits,
-            params: self.params,
-            op_name: self.op_name.clone(),
+    /// returns the number of control qubits in the instruction
+    /// returns 0 if the instruction is not controlled
+    pub fn num_ctrl_qubits(&self) -> u32 {
+        Python::attach(|py| {
+            self.instruction
+                .getattr(py, "num_ctrl_qubits")
+                .and_then(|py_num_ctrl_qubits| py_num_ctrl_qubits.extract::<u32>(py))
+                .unwrap_or(0)
         })
     }
 
-    fn py_copy(&self, py: Python) -> PyResult<Self> {
-        let copy_attr = intern!(py, "copy");
-        Ok(PyGate {
-            gate: self.gate.call_method0(py, copy_attr)?,
-            qubits: self.qubits,
-            clbits: self.clbits,
-            params: self.params,
-            op_name: self.op_name.clone(),
+    /// returns the control state of the gate as a decimal number
+    /// returns 2^num_ctrl_bits-1 (the '11...1' state) if the gate has not control state data
+    pub fn ctrl_state(&self) -> u32 {
+        Python::attach(|py| {
+            self.instruction
+                .getattr(py, "ctrl_state")
+                .and_then(|py_ctrl_state| py_ctrl_state.extract::<u32>(py))
+                .unwrap_or((1 << self.num_ctrl_qubits()) - 1)
         })
     }
-}
+    /// returns the class name of the python gate
+    pub fn class_name(&self) -> PyResult<String> {
+        Python::attach(|py| -> PyResult<String> {
+            self.instruction
+                .getattr(py, intern!(py, "__class__"))?
+                .getattr(py, intern!(py, "__name__"))?
+                .extract::<String>(py)
+        })
+    }
 
-impl Operation for PyGate {
-    fn name(&self) -> &str {
-        self.op_name.as_str()
-    }
-    fn num_qubits(&self) -> u32 {
-        self.qubits
-    }
-    fn num_clbits(&self) -> u32 {
-        self.clbits
-    }
-    fn num_params(&self) -> u32 {
-        self.params
-    }
-    fn directive(&self) -> bool {
-        false
-    }
-}
-
-impl PyGate {
     pub fn matrix(&self) -> Option<Array2<Complex64>> {
         Python::attach(|py| -> Option<Array2<Complex64>> {
-            match self.gate.getattr(py, intern!(py, "to_matrix")) {
+            match self.instruction.getattr(py, intern!(py, "to_matrix")) {
                 Ok(to_matrix) => {
                     let res: Option<Py<PyAny>> = to_matrix.call0(py).ok()?.extract(py).ok();
                     match res {
@@ -2999,7 +3133,7 @@ impl PyGate {
 
     pub fn definition(&self) -> Option<CircuitData> {
         Python::attach(|py| -> Option<CircuitData> {
-            match self.gate.getattr(py, intern!(py, "definition")) {
+            match self.instruction.getattr(py, intern!(py, "definition")) {
                 Ok(definition) => definition
                     .getattr(py, intern!(py, "_data"))
                     .ok()?
@@ -3016,75 +3150,13 @@ impl PyGate {
         }
         Python::attach(|py| -> Option<[[Complex64; 2]; 2]> {
             let array = self
-                .gate
+                .instruction
                 .call_method0(py, intern!(py, "to_matrix"))
                 .ok()?
                 .extract::<PyReadonlyArray2<Complex64>>(py)
                 .ok()?;
             let arr = array.as_array();
             Some([[arr[[0, 0]], arr[[0, 1]]], [arr[[1, 0]], arr[[1, 1]]]])
-        })
-    }
-}
-
-/// This class is used to wrap a Python side Operation that is not in the standard library
-#[derive(Clone, Debug)]
-// We bit-pack pointers to this, so having a known alignment even on 32-bit systems is good.
-#[repr(align(8))]
-pub struct PyOperation {
-    pub qubits: u32,
-    pub clbits: u32,
-    pub params: u32,
-    pub op_name: String,
-    pub operation: Py<PyAny>,
-}
-
-impl PythonOperation for PyOperation {
-    fn py_deepcopy(&self, py: Python, memo: Option<&Bound<'_, PyDict>>) -> PyResult<Self> {
-        let deepcopy = imports::DEEPCOPY.get_bound(py);
-        Ok(PyOperation {
-            operation: deepcopy.call1((&self.operation, memo))?.unbind(),
-            qubits: self.qubits,
-            clbits: self.clbits,
-            params: self.params,
-            op_name: self.op_name.clone(),
-        })
-    }
-
-    fn py_copy(&self, py: Python) -> PyResult<Self> {
-        let copy_attr = intern!(py, "copy");
-        Ok(PyOperation {
-            operation: self.operation.call_method0(py, copy_attr)?,
-            qubits: self.qubits,
-            clbits: self.clbits,
-            params: self.params,
-            op_name: self.op_name.clone(),
-        })
-    }
-}
-
-impl Operation for PyOperation {
-    fn name(&self) -> &str {
-        self.op_name.as_str()
-    }
-    fn num_qubits(&self) -> u32 {
-        self.qubits
-    }
-    fn num_clbits(&self) -> u32 {
-        self.clbits
-    }
-    fn num_params(&self) -> u32 {
-        self.params
-    }
-    fn directive(&self) -> bool {
-        Python::attach(|py| -> bool {
-            match self.operation.getattr(py, intern!(py, "_directive")) {
-                Ok(directive) => {
-                    let res: bool = directive.extract(py).unwrap();
-                    res
-                }
-                Err(_) => false,
-            }
         })
     }
 }

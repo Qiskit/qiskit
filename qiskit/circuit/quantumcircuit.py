@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -38,6 +38,7 @@ from typing import (
     Literal,
     overload,
 )
+import os
 from math import pi
 import numpy as np
 from qiskit._accelerate.circuit import CircuitData
@@ -82,6 +83,7 @@ from .store import Store
 
 
 if typing.TYPE_CHECKING:  # pylint: disable=cyclic-import
+    import types as builtin_types
     import qiskit
     from qiskit.circuit import Annotation
     from qiskit.transpiler.layout import TranspileLayout
@@ -627,7 +629,7 @@ class QuantumCircuit:
 
     The :class:`QuantumCircuit` class has helper methods to add many of the Qiskit standard-library
     instructions and gates onto a circuit.  These are generally equivalent to manually constructing
-    an instance of the relevent :mod:`qiskit.circuit.library` object, then passing that to
+    an instance of the relevant :mod:`qiskit.circuit.library` object, then passing that to
     :meth:`append` with the remaining arguments placed into the ``qargs`` and ``cargs`` fields as
     appropriate.
 
@@ -1070,7 +1072,7 @@ class QuantumCircuit:
         Default constructor of :class:`QuantumCircuit`.
 
         ..
-            `QuantumCirucit` documents its `__init__` method explicitly, unlike most classes where
+            `QuantumCircuit` documents its `__init__` method explicitly, unlike most classes where
             it's implicitly appended to the class-level documentation, just because the class is so
             huge and has a lot of introductory material to its class docstring.
 
@@ -1903,7 +1905,7 @@ class QuantumCircuit:
             except QiskitError:
                 inst = self.to_instruction()
             for i in range(reps):
-                repeated_circ._append(inst, self.qubits, self.clbits)
+                repeated_circ.append(inst, self.qubits, self.clbits)
                 if insert_barriers and i != reps - 1:
                     repeated_circ.barrier()
 
@@ -1995,7 +1997,7 @@ class QuantumCircuit:
         is ``False``, and as :class:`.AnnotatedOperation` when ``annotated`` is ``True``.
 
         Args:
-            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            num_ctrl_qubits: Number of controls to add. Defaults to ``1``.
             label: An optional label to give the controlled gate for visualization.
                 Defaults to ``None``. Ignored if the controlled gate is implemented as an annotated
                 operation.
@@ -2994,7 +2996,7 @@ class QuantumCircuit:
         # instruction param the inner rust append method will raise a runtime error.
         # When this happens we need to handle the parameters separately.
         # This shouldn't happen in practice but 2 tests were doing this and it's not
-        # explicitly prohibted by the API.
+        # explicitly prohibited by the API.
         try:
             self._data.append(instruction)
         except RuntimeError:
@@ -3012,10 +3014,8 @@ class QuantumCircuit:
 
     @typing.overload
     def get_parameter(self, name: str, default: T) -> Union[Parameter, T]: ...
-
-    # The builtin `types` module has `EllipsisType`, but only from 3.10+!
     @typing.overload
-    def get_parameter(self, name: str, default: type(...) = ...) -> Parameter: ...
+    def get_parameter(self, name: str, default: builtin_types.EllipsisType = ...) -> Parameter: ...
 
     # We use a _literal_ `Ellipsis` as the marker value to leave `None` available as a default.
     def get_parameter(self, name: str, default: typing.Any = ...) -> Parameter:
@@ -3092,10 +3092,8 @@ class QuantumCircuit:
 
     @typing.overload
     def get_var(self, name: str, default: T) -> Union[expr.Var, T]: ...
-
-    # The builtin `types` module has `EllipsisType`, but only from 3.10+!
     @typing.overload
-    def get_var(self, name: str, default: type(...) = ...) -> expr.Var: ...
+    def get_var(self, name: str, default: builtin_types.EllipsisType = ...) -> expr.Var: ...
 
     # We use a _literal_ `Ellipsis` as the marker value to leave `None` available as a default.
     def get_var(self, name: str, default: typing.Any = ...):
@@ -3167,10 +3165,8 @@ class QuantumCircuit:
 
     @typing.overload
     def get_stretch(self, name: str, default: T) -> Union[expr.Stretch, T]: ...
-
-    # The builtin `types` module has `EllipsisType`, but only from 3.10+!
     @typing.overload
-    def get_stretch(self, name: str, default: type(...) = ...) -> expr.Stretch: ...
+    def get_stretch(self, name: str, default: builtin_types.EllipsisType = ...) -> expr.Stretch: ...
 
     def get_stretch(self, name: str, default: typing.Any = ...):
         """Retrieve a stretch that is accessible in this circuit scope by name.
@@ -3233,11 +3229,9 @@ class QuantumCircuit:
 
     @typing.overload
     def get_identifier(self, name: str, default: T) -> Union[expr.Var | expr.Stretch, T]: ...
-
-    # The builtin `types` module has `EllipsisType`, but only from 3.10+!
     @typing.overload
     def get_identifier(
-        self, name: str, default: type(...) = ...
+        self, name: str, default: builtin_types.EllipsisType = ...
     ) -> Union[expr.Var, expr.Stretch]: ...
 
     # We use a _literal_ `Ellipsis` as the marker value to leave `None` available as a default.
@@ -4204,14 +4198,11 @@ class QuantumCircuit:
         """
         return self._data.num_clbits
 
-    # The stringified return type is because OrderedDict can't be subscripted before Python 3.9, and
-    # typing.OrderedDict wasn't added until 3.7.2.  It can be turned into a proper type once 3.6
-    # support is dropped.
-    def count_ops(self) -> "OrderedDict[Instruction, int]":
+    def count_ops(self) -> OrderedDict[str, int]:
         """Count each operation kind in the circuit.
 
         Returns:
-            OrderedDict: a breakdown of how many operations of each kind, sorted by amount.
+            A breakdown of how many operations of each kind, sorted by amount.
         """
         ops_dict = self._data.count_ops()
         return OrderedDict(ops_dict)
@@ -4324,7 +4315,7 @@ class QuantumCircuit:
           QuantumCircuit: a deepcopy of the current circuit, with the specified name
         """
 
-        # vars_mode is "drop" since ``cpy._data`` is overriden anyway with the call to copy,
+        # vars_mode is "drop" since ``cpy._data`` is overridden anyway with the call to copy,
         # so no need to copy variables in this call.
         cpy = self.copy_empty_like(name, vars_mode="drop")
         cpy._data = self._data.copy()
@@ -4722,12 +4713,12 @@ class QuantumCircuit:
             return None
 
     @staticmethod
-    def from_qasm_file(path: str) -> "QuantumCircuit":
+    def from_qasm_file(path: str | os.PathLike) -> "QuantumCircuit":
         """Read an OpenQASM 2.0 program from a file and convert to an instance of
         :class:`.QuantumCircuit`.
 
         Args:
-          path (str): Path to the file for an OpenQASM 2 program
+          path: Path to the file for an OpenQASM 2 program
 
         Return:
           QuantumCircuit: The QuantumCircuit object for the input OpenQASM 2.
@@ -5022,7 +5013,7 @@ class QuantumCircuit:
             target = self
         else:
             if not isinstance(parameters, dict):
-                # We're going to need to access the sorted order wihin the inner Rust method on
+                # We're going to need to access the sorted order within the inner Rust method on
                 # `target`, so warm up our own cache first so that subsequent calls to
                 # `assign_parameters` on `self` benefit as well.
                 _ = self._data.parameters
@@ -5328,7 +5319,9 @@ class QuantumCircuit:
         self._check_dups(all_qubits)
 
         n_c = len(control_qubits)
-        if n_c == 1:  # cu
+        if n_c == 0:
+            self.rx(theta, target_qubit)
+        elif n_c == 1:  # cu
             _apply_cu(
                 self,
                 theta,
@@ -5393,6 +5386,10 @@ class QuantumCircuit:
         all_qubits = control_qubits + target_qubit + ancillary_qubits
         target_qubit = target_qubit[0]
         self._check_dups(all_qubits)
+
+        if len(control_qubits) == 0:
+            self.ry(theta, target_qubit)
+            return
 
         # auto-select the best mode
         if mode is None:
@@ -5486,7 +5483,11 @@ class QuantumCircuit:
         self._check_dups(all_qubits)
 
         n_c = len(control_qubits)
-        if n_c == 1:
+
+        if n_c == 0:
+            self.rz(lam, target_qubit)
+
+        elif n_c == 1:
             if use_basis_gates:
                 self.u(0, 0, lam / 2, target_qubit)
                 self.cx(control_qubits[0], target_qubit)
@@ -7738,7 +7739,7 @@ class _OuterCircuitScopeInterface(CircuitScopeInterface):
         if isinstance(specifier, ClassicalRegister):
             # This is linear complexity for something that should be constant, but QuantumCircuit
             # does not currently keep a hashmap of registers, and requires non-trivial changes to
-            # how it exposes its registers publically before such a map can be safely stored so it
+            # how it exposes its registers publicly before such a map can be safely stored so it
             # doesn't miss updates. (Jake, 2021-11-10).
             if specifier not in self.circuit.cregs:
                 raise CircuitError(f"Register {specifier} is not present in this circuit.")

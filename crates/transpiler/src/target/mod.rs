@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -42,6 +42,7 @@ use smallvec::SmallVec;
 use thiserror::Error;
 
 use qiskit_circuit::PhysicalQubit;
+use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::instruction::{Instruction, Parameters, create_py_op};
 use qiskit_circuit::operations::{Operation, OperationRef, Param};
@@ -76,7 +77,7 @@ impl TargetOperation {
     /// Creates a [TargetOperation] from an instance of [PackedOperation]
     pub fn from_packed_operation(
         operation: PackedOperation,
-        params: Option<Parameters<Py<PyAny>>>,
+        params: Option<Parameters<CircuitData>>,
     ) -> Self {
         NormalOperation::from_packed_operation(operation, params).into()
     }
@@ -93,7 +94,7 @@ impl From<NormalOperation> for TargetOperation {
 #[derive(Debug)]
 pub struct NormalOperation {
     pub operation: PackedOperation,
-    pub params: Option<Parameters<Py<PyAny>>>,
+    pub params: Option<Parameters<CircuitData>>,
     op_object: OnceLock<PyResult<Py<PyAny>>>,
 }
 
@@ -101,7 +102,7 @@ impl NormalOperation {
     /// Creates a of [TargetOperation] from an instance of [PackedOperation]
     pub fn from_packed_operation(
         operation: PackedOperation,
-        params: Option<Parameters<Py<PyAny>>>,
+        params: Option<Parameters<CircuitData>>,
     ) -> Self {
         Self {
             operation,
@@ -112,11 +113,13 @@ impl NormalOperation {
 }
 
 impl Instruction for NormalOperation {
+    type Block = CircuitData;
+
     fn op(&self) -> OperationRef<'_> {
         self.operation.view()
     }
 
-    fn parameters(&self) -> Option<&Parameters<Py<PyAny>>> {
+    fn parameters(&self) -> Option<&Parameters<CircuitData>> {
         self.params.as_ref()
     }
 
@@ -155,10 +158,10 @@ impl<'a, 'py> IntoPyObject<'py> for &'a NormalOperation {
 }
 
 impl<'a, 'py> FromPyObject<'a, 'py> for NormalOperation {
-    type Error = <OperationFromPython as FromPyObject<'a, 'py>>::Error;
+    type Error = <OperationFromPython<CircuitData> as FromPyObject<'a, 'py>>::Error;
 
     fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
-        let operation: OperationFromPython = ob.extract()?;
+        let operation: OperationFromPython<CircuitData> = ob.extract()?;
         Ok(Self {
             operation: operation.operation,
             params: operation.params,
@@ -946,7 +949,7 @@ impl Target {
     pub fn add_instruction(
         &mut self,
         operation: PackedOperation,
-        params: Option<Parameters<Py<PyAny>>>,
+        params: Option<Parameters<CircuitData>>,
         name: Option<&str>,
         props_map: Option<PropsMap>,
     ) -> Result<(), TargetError> {
@@ -1126,30 +1129,41 @@ impl Target {
         })
     }
 
+    /// Get the complete [InstructionProperties] from the [Target] for the given instruction key and
+    /// qargs.
+    pub fn get_instruction_properties<'a, T>(
+        &self,
+        name: &str,
+        qargs: T,
+    ) -> Option<&InstructionProperties>
+    where
+        T: Into<QargsRef<'a>>,
+    {
+        self.gate_map.get(name).and_then(|gate_props| {
+            gate_props
+                .get(&qargs.into())
+                .and_then(|props| props.as_ref())
+        })
+    }
+
     /// Get the error rate of a given instruction in the target
+    #[inline]
     pub fn get_error<'a, T>(&self, name: &str, qargs: T) -> Option<f64>
     where
         T: Into<QargsRef<'a>>,
     {
-        self.gate_map
-            .get(name)
-            .and_then(|gate_props| match gate_props.get(&qargs.into()) {
-                Some(props) => props.as_ref().and_then(|inst_props| inst_props.error),
-                None => None,
-            })
+        self.get_instruction_properties(name, qargs)
+            .and_then(|props| props.error)
     }
 
     /// Get the duration of a given instruction in the target
+    #[inline]
     pub fn get_duration<'a, T>(&self, name: &str, qargs: T) -> Option<f64>
     where
         T: Into<QargsRef<'a>>,
     {
-        self.gate_map
-            .get(name)
-            .and_then(|gate_props| match gate_props.get(&qargs.into()) {
-                Some(props) => props.as_ref().and_then(|inst_props| inst_props.duration),
-                None => None,
-            })
+        self.get_instruction_properties(name, qargs)
+            .and_then(|props| props.duration)
     }
 
     /// Get an iterator over the indices of all physical qubits of the target
@@ -1486,7 +1500,7 @@ impl Target {
 
     // IndexMap methods
 
-    /// Retreive all the gate names in the Target
+    /// Retrieve all the gate names in the Target
     // TODO: Remove once `Target` is being consumed.
     #[allow(dead_code)]
     pub fn keys(&self) -> impl Iterator<Item = &str> {
@@ -1580,6 +1594,22 @@ impl Target {
     /// Check that a given qargs is present in the target
     pub fn contains_qargs<'a, T: Into<QargsRef<'a>>>(&self, qargs: T) -> bool {
         self.qarg_gate_map.contains_key(&qargs.into())
+    }
+
+    /// Retrieves a gate location in the gate map by index
+    pub fn get_gate_index(&self, gate_name: &str) -> Option<usize> {
+        self.gate_map.get_index_of(gate_name)
+    }
+
+    /// Retrieves a gate location in the gate map by index
+    pub fn get_by_index(&self, index: usize) -> Option<(&str, &PropsMap)> {
+        self.gate_map
+            .get_index(index)
+            .map(|(name, props)| (name.as_str(), props))
+    }
+    /// Retrieves a gate location in the gate map by index
+    pub fn get_op_by_index(&self, index: usize) -> Option<&TargetOperation> {
+        self._gate_name_map.get_index(index).map(|(_, op)| op)
     }
 }
 

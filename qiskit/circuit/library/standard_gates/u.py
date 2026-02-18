@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -132,7 +132,7 @@ class UGate(Gate):
         and as ``False`` otherwise.
 
         Args:
-            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            num_ctrl_qubits: Number of controls to add. Defaults to ``1``.
             label: Optional gate label. Ignored if the controlled gate is implemented as an
                 annotated operation.
             ctrl_state: The control state of the gate, specified either as an integer or a bitstring
@@ -187,7 +187,7 @@ class _CUGateParams(list):
     # This awful class is to let `CUGate.params` have its keys settable (as
     # `QuantumCircuit.assign_parameters` requires), while accounting for the problem that `CUGate`
     # was defined to have a different number of parameters to its `base_gate`, which breaks
-    # `ControlledGate`'s assumptions, and would make most parametric `CUGate`s invalid.
+    # `ControlledGate`'s assumptions, and would make most parametric `CUGate` objects invalid.
     #
     # It's constructed only as part of the `CUGate.params` getter, and given that the general
     # circuit model assumes that that's a directly mutable list that _must_ be kept in sync with the

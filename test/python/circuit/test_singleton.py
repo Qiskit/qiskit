@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -394,7 +394,7 @@ class TestSingleton(QiskitTestCase):
         mutable = Discrete(3)
 
         with unittest.mock.patch.dict(sys.modules, {dummy_module.__name__: dummy_module}):
-            # The singletons in `additional_singletons` are statics; their lifetimes should be tied
+            # The singletons in `additional_singletons` are static; their lifetimes should be tied
             # to the type object itself, so if we don't delete it, it should be eligible to be
             # reloaded from and produce the exact instances.
             self.assertIs(default, pickle.loads(pickle.dumps(default)))

@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -16,17 +16,17 @@ use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::imports::PAULI_EVOLUTION_GATE;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
-    Operation, OperationRef, Param, PauliProductMeasurement, PyGate, StandardGate,
-    StandardInstruction, multiply_param,
+    Operation, OperationRef, Param, PauliProductMeasurement, PyInstruction, PyOperationTypes,
+    StandardGate, StandardInstruction, multiply_param,
 };
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::{BlocksMode, VarsMode};
 
+use crate::TranspilerError;
+use num_complex::Complex64;
 use qiskit_quantum_info::clifford::Clifford;
 use qiskit_quantum_info::sparse_observable::SparseObservable;
 
-use crate::TranspilerError;
-use num_complex::Complex64;
 use smallvec::smallvec;
 use std::f64::consts::PI;
 
@@ -69,19 +69,13 @@ pub fn run_litinski_transformation(
             .collect();
 
         return Err(TranspilerError::new_err(format!(
-            "Unable to run Litinski tranformation as the circuit contains instructions not supported by the pass: {:?}",
+            "Unable to run Litinski transformation as the circuit contains instructions not supported by the pass: {:?}",
             unsupported
         )));
     }
-    let non_clifford_handled_count: usize = op_counts
+    let non_clifford_handled_count: usize = HANDLED_INSTRUCTION_NAMES
         .iter()
-        .filter_map(|(k, v)| {
-            if HANDLED_INSTRUCTION_NAMES.contains(&k.as_str()) {
-                Some(v)
-            } else {
-                None
-            }
-        })
+        .filter_map(|name| op_counts.get(*name))
         .sum();
     let clifford_count = dag.size(false)? - non_clifford_handled_count;
 
@@ -101,7 +95,7 @@ pub fn run_litinski_transformation(
     let mut clifford_ops: Vec<&PackedInstruction> = Vec::with_capacity(clifford_count);
     // Apply the Litinski transformation: that is, express a given circuit as a sequence of Pauli
     // product rotations and Pauli product measurements, followed by a final Clifford operator.
-    for node_index in dag.topological_op_nodes()? {
+    for node_index in dag.topological_op_nodes(false) {
         // Convert T and Tdg gates to RZ rotations.
         if let NodeType::Operation(inst) = &dag[node_index] {
             let name = inst.op.name();
@@ -270,13 +264,13 @@ pub fn run_litinski_transformation(
                         multiply_param(&angle, 0.5)
                     };
                     let py_evo = py_evo_cls.call1((obs, time.clone()))?;
-                    let py_gate = PyGate {
+                    let py_gate = PyOperationTypes::Gate(PyInstruction {
                         qubits: indices.len() as u32,
                         clbits: 0,
                         params: 1,
                         op_name: "PauliEvolution".to_string(),
-                        gate: py_evo.into(),
-                    };
+                        instruction: py_evo.into(),
+                    });
 
                     new_dag.apply_operation_back(
                         py_gate.into(),

@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -25,7 +25,7 @@ from ._utils import _ctrl_state_to_int
 
 
 # The list of gates whose controlled versions have efficient synthesis algorithms.
-# For example, a controlled version of X is MCX (with many synthesis algorithms avalable),
+# For example, a controlled version of X is MCX (with many synthesis algorithms available),
 # and a controlled version of Z is MCX + two Hadamard gates.
 #
 # Note: when adding a new gate to this list, also add the decomposition of its controlled

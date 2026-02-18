@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -266,7 +266,7 @@ class PauliEvolutionGate(Gate):
         regardless of the value of ``annotated``.
 
         Args:
-            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            num_ctrl_qubits: Number of controls to add. Defaults to ``1``.
             label: A label for the resulting Pauli evolution gate, to display in visualizations.
                 Per default, the label is set to ``exp(-it <operators>)`` where ``<operators>``
                 is the sum of the Paulis. Note that the label does not include any coefficients

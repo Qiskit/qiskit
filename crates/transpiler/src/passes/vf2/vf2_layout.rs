@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -136,7 +136,7 @@ impl Vf2PassConfiguration {
             }
             None => (None, None),
         };
-        // In the leagcy API, negative `max_trials` means unbounded (which we represent as 0) and
+        // In the legacy API, negative `max_trials` means unbounded (which we represent as 0) and
         // `None` means "choose some values based on the size of the graph structures".
         let max_trials = max_trials.map(|value| value.try_into().unwrap_or(0));
         let shuffle_seed = match shuffle_seed {

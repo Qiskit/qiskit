@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -12,7 +12,6 @@
 
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_transpiler::passes::run_basis_translator;
 use qiskit_transpiler::standard_equivalence_library::generate_standard_equivalence_library;
@@ -29,7 +28,7 @@ use qiskit_transpiler::target::Target;
 /// in the target basis, in which case the circuit remains unchanged.
 /// @param target The target where we will obtain basis gates from.
 /// @param min_qubits The minimum number of qubits for operations in the input
-/// ciruit to translate.
+/// circuit to translate.
 ///
 /// # Example
 ///
@@ -59,7 +58,6 @@ use qiskit_transpiler::target::Target;
 /// Behavior is undefined if ``circuit`` and/or ``target`` are not valid, non-null
 /// pointers to a ``QkCircuit`` or ``QkTarget``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpiler_pass_standalone_basis_translator(
     circuit: *mut CircuitData,
     target: *const Target,
@@ -81,6 +79,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_basis_translator(
             Ok(None) => return,
             Err(e) => panic!("{}", e),
         };
-    let result_circ = dag_to_circuit(&result_dag, false).expect("DAG to Circuit conversion failed");
+    let result_circ =
+        CircuitData::from_dag_ref(&result_dag).expect("DAG to Circuit conversion failed");
     *circ_from_ptr = result_circ;
 }

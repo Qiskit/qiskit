@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -119,7 +119,7 @@ def draw(
         formatter.margin.top: Margin from the top boundary of the figure canvas to
             the zero line of the first time slot (default `0.5`).
         formatter.margin.bottom: Margin from the bottom boundary of the figure canvas to
-            the zero lien of the last time slot (default `0.5`).
+            the zero line of the last time slot (default `0.5`).
         formatter.margin.left_percent:  Margin from the left boundary of the figure canvas to
             the left limit of the horizontal axis. The value is in units of percentage of
             the whole program duration. If the duration is 100 and the value of 0.5 is set,

@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -14,7 +14,7 @@
 
 """Base TestCases for the unit tests.
 
-Implementors of unit tests for Qiskit should subclass
+Implementers of unit tests for Qiskit should subclass
 ``QiskitTestCase`` in order to take advantage of utility functions (for example,
 the environment variables for customizing different options), and the
 decorators in the ``decorators`` package.

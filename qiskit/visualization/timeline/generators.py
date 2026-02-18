@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -106,7 +106,6 @@ import warnings
 from typing import List, Union, Dict, Any, Optional
 
 from qiskit.circuit import Qubit, QuantumCircuit
-from qiskit.circuit.exceptions import CircuitError
 from qiskit.visualization.timeline import types, drawings
 
 
@@ -132,11 +131,6 @@ def gen_sched_gate(
         List of `TextData` or `BoxData` drawings.
     """
     try:
-        unitary = str(gate.operand.to_matrix())
-    except (AttributeError, CircuitError):
-        unitary = "n/a"
-
-    try:
         label = gate.operand.label or "n/a"
     except AttributeError:
         label = "n/a"
@@ -147,7 +141,6 @@ def gen_sched_gate(
         "bits": gate.bits,
         "t0": gate.t0,
         "duration": gate.duration,
-        "unitary": unitary,
         "parameters": ", ".join(map(str, gate.operand.params)),
     }
 

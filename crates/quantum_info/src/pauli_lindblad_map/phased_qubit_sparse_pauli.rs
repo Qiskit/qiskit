@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -122,7 +122,7 @@ impl PhasedQubitSparsePauliList {
     /// Clear all the elements of the list.
     ///
     /// This does not change the capacity of the internal allocations, so subsequent addition or
-    /// substraction of elements in the list may not need to reallocate.
+    /// subtraction of elements in the list may not need to reallocate.
     pub fn clear(&mut self) {
         self.qubit_sparse_pauli_list.clear();
         self.phases.clear();
@@ -1288,7 +1288,7 @@ impl PyPhasedQubitSparsePauliList {
     /// Clear all the elements from the list, making it equal to the empty list again.
     ///
     /// This does not change the capacity of the internal allocations, so subsequent addition or
-    /// substraction operations resulting from composition may not need to reallocate.
+    /// subtraction operations resulting from composition may not need to reallocate.
     ///
     /// Examples:
     ///

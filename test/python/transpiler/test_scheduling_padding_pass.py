@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -129,7 +129,7 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
 
     @data(ALAPScheduleAnalysis, ASAPScheduleAnalysis)
     def test_empty_circuit(self, schedule_pass):
-        """An empty cirucit is trivially scheduled, so we should succeed without error."""
+        """An empty circuit is trivially scheduled, so we should succeed without error."""
         target = Target(num_qubits=4)
         target.add_instruction(
             CXGate(), {(i, i + 1): InstructionProperties(duration=1e-3) for i in range(3)}

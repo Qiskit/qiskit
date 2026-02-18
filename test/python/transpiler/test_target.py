@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -1192,7 +1192,7 @@ Instructions:
         self.assertTrue(deserialized_target.instruction_supported("u_var", (0, 1)))
 
     def test_target_no_num_qubits_qubit_properties(self):
-        """Checks that a Target can be initialized with no qubits but a list of Qubit Properities"""
+        """Checks that a Target can be initialized with no qubits but a list of Qubit Properties"""
 
         # Initialize target qubit properties
         qubit_properties = [QubitProperties()]

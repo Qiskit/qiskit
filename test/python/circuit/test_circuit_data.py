@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -468,7 +468,7 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
     """QuantumCircuit.data operation tests."""
 
     # N.B. Most of the cases here are not expected use cases of circuit.data
-    # but are included as tests to maintain compatability with the previous
+    # but are included as tests to maintain compatibility with the previous
     # list interface of circuit.data.
 
     def test_iteration_of_data_entry(self):
