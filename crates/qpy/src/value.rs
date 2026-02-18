@@ -63,12 +63,13 @@ pub enum RegisterType {
     Creg = b'c',
 }
 
-impl From<u8> for RegisterType {
-    fn from(value: u8) -> Self {
+impl TryFrom<u8> for RegisterType {
+    type Error = QpyError;
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
-            b'q' => Self::Qreg,
-            b'c' => Self::Creg,
-            _ => panic!("Invalid register type specified {value}"),
+            b'q' => Ok(Self::Qreg),
+            b'c' => Ok(Self::Creg),
+            _ => Err(QpyError::InvalidValueType { expected: "b'q', b'c'".to_string(), actual: "{value}".to_string() }),
         }
     }
 }

@@ -126,29 +126,29 @@ pub(crate) fn unpack_expression_var(
     var_type_pack: ExpressionTypePack,
     var_element_pack: ExpressionVarElementPack,
     qpy_data: &QPYReadData,
-) -> Var {
+) -> Result<Var, QpyError> {
     let ty = unpack_expression_type(var_type_pack);
     match var_element_pack {
-        ExpressionVarElementPack::Clbit(index) => Var::Bit {
+        ExpressionVarElementPack::Clbit(index) => Ok(Var::Bit {
             bit: qpy_data
                 .circuit_data
                 .clbits()
                 .get(Clbit(index))
-                .unwrap()
-                .clone(),
-        }, // TODO: error handling?
-        ExpressionVarElementPack::Register(packed_register) => Var::Register {
+                .ok_or_else(|| QpyError::InvalidBit("Clbit not found in circuit data".to_string()))?
+                .clone()
+        }), 
+        ExpressionVarElementPack::Register(packed_register) => Ok(Var::Register {
             register: qpy_data
                 .circuit_data
                 .cregs_data()
                 .get(packed_register.name.as_str())
-                .unwrap()
+                .ok_or_else(|| QpyError::InvalidRegister("Register not found in circuit data".to_string()))?
                 .clone(),
             ty,
-        }, // TODO: can we avoid cloning?
+        }), // TODO: can we avoid cloning?
         ExpressionVarElementPack::Uuid(key) => {
-            let var = qpy_data.standalone_vars.get(&key).unwrap(); // note: this is not an actual expr::Var; merely a key for this var inside the circuit data
-            qpy_data.circuit_data.get_var(*var).unwrap().clone() // TODO: can we avoid cloning?
+            let var = qpy_data.standalone_vars.get(&key).ok_or_else(|| QpyError::InvalidParameter("Standalone var not found in qpy data".to_string()))?; // note: this is not an actual expr::Var; merely a key for this var inside the circuit data
+            Ok(qpy_data.circuit_data.get_var(*var).ok_or_else(|| QpyError::InvalidParameter("Standalone var not found in circuit data".to_string()))?.clone()) // TODO: can we avoid cloning?
         }
     }
 }
@@ -221,7 +221,8 @@ pub(crate) fn read_expression<R: Read + Seek>(
             unpack_expression_value(value_type_pack, value_element_pack),
         )),
         ExpressionElementPack::Var(var_type_pack, var_element_pack) => Ok(Expr::Var(
-            unpack_expression_var(var_type_pack, var_element_pack, qpy_data),
+            unpack_expression_var(var_type_pack, var_element_pack, qpy_data)
+                .map_err(|e| to_binrw_error(reader, e))?,
         )),
         ExpressionElementPack::Stretch(_stretch_type_pack, key) => {
             let stretch = qpy_data.standalone_stretches.get(&key).unwrap();
