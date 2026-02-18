@@ -10,8 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 use crate::bytes::Bytes;
+use crate::QpyError;
 use hashbrown::HashMap;
-use pyo3::exceptions::PyIndexError;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyIterator, PyNotImplemented};
 /// The purpose of AnnotationHandler is to keep track of all the annotation serializers/deserializers at once.
@@ -53,7 +53,7 @@ impl<'a> AnnotationHandler<'a> {
             deserializers,
         }
     }
-    pub fn serialize(&mut self, annotation: &Py<PyAny>) -> PyResult<(u32, Bytes)> {
+    pub fn serialize(&mut self, annotation: &Py<PyAny>) -> Result<(u32, Bytes), QpyError> {
         Python::attach(|py| {
             let annotation_namespace: String = annotation.getattr(py, "namespace")?.extract(py)?;
             let annotation_module = py.import("qiskit.circuit.annotation")?;
@@ -114,11 +114,13 @@ impl<'a> AnnotationHandler<'a> {
         })
     }
 
-    pub fn load(&self, index: u32, payload: Bytes) -> PyResult<Py<PyAny>> {
+    pub fn load(&self, index: u32, payload: Bytes) -> Result<Py<PyAny>, QpyError> {
         if let Some(deserializer) = self.deserializers.get(index as usize) {
-            Python::attach(|py| deserializer.call_method1(py, "load_annotation", (payload,)))
+            Python::attach(|py| -> Result<Py<PyAny>, QpyError> {
+                Ok(deserializer.call_method1(py, "load_annotation", (payload,))?)
+            })
         } else {
-            Err(PyIndexError::new_err(format!(
+            Err(QpyError::ConversionError(format!(
                 "Annotation deserializer index {:?} out of range (0...{:?}), is too large and would overflow",
                 index,
                 self.deserializers.len()
@@ -126,10 +128,10 @@ impl<'a> AnnotationHandler<'a> {
         }
     }
 
-    pub fn dump_serializers(&self) -> PyResult<Vec<(String, Bytes)>> {
+    pub fn dump_serializers(&self) -> Result<Vec<(String, Bytes)>, QpyError> {
         // we need to be a little careful to keep the result sorted by index order
         let mut result: Vec<Option<(String, Bytes)>> = vec![None; self.serializers.len()];
-        Python::attach(|py| -> PyResult<()> {
+        Python::attach(|py| -> Result<(), QpyError> {
             for (namespace, (index, serializer)) in &self.serializers {
                 let state: Bytes = serializer.call_method0(py, "dump_state")?.extract(py)?;
                 result[*index] = Some((namespace.clone(), state));
@@ -139,8 +141,8 @@ impl<'a> AnnotationHandler<'a> {
         Ok(result.into_iter().flatten().collect())
     }
 
-    pub fn load_deserializers(&mut self, data: Vec<(String, Bytes)>) -> PyResult<()> {
-        Python::attach(|py| -> PyResult<()> {
+    pub fn load_deserializers(&mut self, data: Vec<(String, Bytes)>) -> Result<(), QpyError> {
+        Python::attach(|py| -> Result<(), QpyError> {
             for (namespace, state) in data {
                 if let Some(factory) = self.factories.get(&namespace) {
                     let serializer = factory.call0(py)?;

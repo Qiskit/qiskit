@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 // methods for serialization/deserialization of Expression
-use crate::UnsupportedFeatureForVersion;
+use crate::QpyError;
 use crate::formats::{
     ExpressionElementPack, ExpressionTypePack, ExpressionValueElementPack,
     ExpressionVarElementPack, ExpressionVarRegisterPack, to_binrw_error,
@@ -21,7 +21,6 @@ use crate::value::{
 };
 use binrw::{BinRead, BinResult, BinWrite, Endian, Error};
 use num_bigint::BigUint;
-use pyo3::prelude::*;
 use qiskit_circuit::Clbit;
 use qiskit_circuit::classical::expr::{
     Binary, BinaryOp, Cast, Expr, Index, Unary, UnaryOp, Value, Var,
@@ -52,7 +51,7 @@ pub(crate) fn unpack_expression_type(type_pack: ExpressionTypePack) -> Type {
 pub(crate) fn pack_expression_value(
     value: &Value,
     qpy_data: &QPYWriteData,
-) -> PyResult<ExpressionElementPack> {
+) -> Result<ExpressionElementPack, QpyError> {
     let (ty, value_pack) = match value {
         Value::Uint { raw, ty } => {
             match ty {
@@ -64,11 +63,11 @@ pub(crate) fn pack_expression_value(
         Value::Float { raw, ty } => (ty, ExpressionValueElementPack::Float(*raw)),
         Value::Duration(duration) => {
             if qpy_data.version < 16 && matches!(duration, Duration::ps(_)) {
-                return Err(UnsupportedFeatureForVersion::new_err((
-                    "Duration variant 'Duration.ps'",
-                    16,
-                    qpy_data.version,
-                )));
+                return Err(QpyError::UnsupportedFeatureForVersion {
+                    feature: "Duration variant 'Duration.ps'".to_string(),
+                    version: 16,
+                    min_version: qpy_data.version,
+                });
             }
             (
                 &Type::Duration,
