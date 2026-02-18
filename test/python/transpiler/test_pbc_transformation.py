@@ -39,7 +39,7 @@ class TestPBCTransformation(QiskitTestCase):
 
     @combine(angle=[0.12, -0.43], global_phase=[0, 1.0, -3.0])
     def test_standard_gates_transpiled(self, angle, global_phase):
-        """Test that standard 1-qubit and 2-qubit gates are translated into
+        """Test that standard 1-qubit, 2-qubit and 3-qubit gates are translated into
         Pauli product rotatations correctly."""
         for gate in self.standard_gates.values():
             if not isinstance(gate, Gate):
@@ -57,19 +57,19 @@ class TestPBCTransformation(QiskitTestCase):
                 self.assertEqual(Operator(qct), Operator(qc))
 
     def test_random_circuit(self):
-        """Test that a pesudo-random circuit with 1-qubit and 2-qubit gates
+        """Test that a pesudo-random circuit with 1-qubit, 2-qubit and 3-qubit gates
         is translated into Pauli product rotations correctly."""
         num_qubits = 5
         depth = 200
         seed = 1234
-        qc = random_circuit(num_qubits=num_qubits, depth=depth, max_operands=2, seed=seed)
+        qc = random_circuit(num_qubits=num_qubits, depth=depth, max_operands=3, seed=seed)
         qct = PBCTransformation()(qc)
         ops_names = set(qct.count_ops().keys())
         self.assertEqual(ops_names, {"PauliEvolution"})
         self.assertEqual(Operator(qct), Operator(qc))
 
     def test_random_circuit_measure_barrier_delay_reset(self):
-        """Test that a pesudo-random circuit with 1-qubit and 2-qubit gates,
+        """Test that a pesudo-random circuit with 1-qubit, 2-qubit and 3-qubit gates,
         measurements, delays, resets and barriers,
         is translated into Pauli product rotations correctly."""
         num_qubits = 4
@@ -77,7 +77,7 @@ class TestPBCTransformation(QiskitTestCase):
         seed = 5678
         qc = QuantumCircuit(num_qubits)
         for i in range(num_qubits):
-            qc1 = random_circuit(num_qubits=num_qubits, depth=depth, max_operands=2, seed=seed)
+            qc1 = random_circuit(num_qubits=num_qubits, depth=depth, max_operands=3, seed=seed)
             qc.compose(qc1, inplace=True)
             qc.delay(i)
             qc.reset((i + 1) % num_qubits)
