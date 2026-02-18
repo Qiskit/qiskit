@@ -19,9 +19,9 @@ from qiskit._accelerate.pbc_transformation import pbc_transformation
 
 class PBCTransformation(TransformationPass):
     r"""
-    Convert a quanutm circuit containing single-qubit and two-qubit standard gates,
-    barriers and measurements, into an equivalent list of Pauli product rotations,
-    implemented as :class:`.PauliEvolutionGate` and a global phase,
+    Convert a quanutm circuit containing single-qubit, two-qubit and three-qubit
+    standard gates, barriers and measurements, into an equivalent list of
+    Pauli product rotations, implemented as :class:`.PauliEvolutionGate` and a global phase,
     as well as :class:`.PauliProductMeasurement`.
 
     For example::

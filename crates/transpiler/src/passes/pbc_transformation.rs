@@ -167,13 +167,71 @@ static STANDARD_GATE_SUBSTITUTIONS: [Option<GateToPBCType>; 52] = [
     Some((&[("XZ", 0.5, &[0, 1])], 0.0)),                                 // RZX
     None,                                                                 // XXMinusYY
     None,                                                                 // XXPlusYY
-    None,                                                                 // CCX
-    None,                                                                 // CCZ
-    None,                                                                 // CSwap
-    None,                                                                 // RCCX
-    None,                                                                 // C3X
-    None,                                                                 // C3SX
-    None,                                                                 // RC3X
+    Some((
+        &[
+            ("XZZ", FRAC_PI_8, &[0, 1, 2]),
+            ("ZZ", -FRAC_PI_8, &[0, 1]),
+            ("XZ", -FRAC_PI_8, &[1, 2]),
+            ("XZ", -FRAC_PI_8, &[0, 2]),
+            ("Z", FRAC_PI_8, &[0]),
+            ("Z", FRAC_PI_8, &[1]),
+            ("X", FRAC_PI_8, &[2]),
+        ],
+        FRAC_PI_8,
+    )),
+    // CCX
+    Some((
+        &[
+            ("ZZZ", FRAC_PI_8, &[0, 1, 2]),
+            ("ZZ", -FRAC_PI_8, &[0, 1]),
+            ("ZZ", -FRAC_PI_8, &[1, 2]),
+            ("ZZ", -FRAC_PI_8, &[0, 2]),
+            ("Z", FRAC_PI_8, &[0]),
+            ("Z", FRAC_PI_8, &[1]),
+            ("Z", FRAC_PI_8, &[2]),
+        ],
+        FRAC_PI_8,
+    )),
+    // CCZ
+    Some((
+        &[
+            ("XXZ", -FRAC_PI_8, &[0, 1, 2]),
+            ("YYZ", -FRAC_PI_8, &[0, 1, 2]),
+            ("ZZZ", -FRAC_PI_8, &[0, 1, 2]),
+            ("XX", FRAC_PI_8, &[1, 2]),
+            ("YY", FRAC_PI_8, &[1, 2]),
+            ("ZZ", FRAC_PI_8, &[1, 2]),
+            ("Z", FRAC_PI_8, &[0]),
+        ],
+        FRAC_PI_8,
+    )),
+    // CSwap
+    Some((
+        &[
+            ("Z", FRAC_PI_4, &[2]),
+            ("X", FRAC_PI_4, &[2]),
+            ("Z", 3.0 * FRAC_PI_8, &[2]),
+            ("XZ", FRAC_PI_4, &[1, 2]),
+            ("Z", -FRAC_PI_4, &[1]),
+            ("X", -FRAC_PI_4, &[2]),
+            ("Z", -FRAC_PI_8, &[2]),
+            ("XZ", FRAC_PI_4, &[0, 2]),
+            ("Z", -FRAC_PI_4, &[0]),
+            ("X", -FRAC_PI_4, &[2]),
+            ("Z", FRAC_PI_8, &[2]),
+            ("XZ", FRAC_PI_4, &[1, 2]),
+            ("Z", -FRAC_PI_4, &[1]),
+            ("X", -FRAC_PI_4, &[2]),
+            ("Z", FRAC_PI_8, &[2]),
+            ("X", FRAC_PI_4, &[2]),
+            ("Z", FRAC_PI_4, &[2]),
+        ],
+        FRAC_PI_4,
+    )),
+    // RCCX
+    None, // C3X
+    None, // C3SX
+    None, // RC3X
 ];
 
 /// Map gates with more than one parameter to a list of equivalent Pauli rotations and a global phase.
@@ -347,7 +405,7 @@ fn generate_pauli_evolution_gate(
     Ok(py_gate)
 }
 
-/// Convert a quantum circuit containing single-qubit and two-qubit standard gates,
+/// Convert a quantum circuit containing single-qubit, two-qubit and three-qubit standard gates,
 /// barriers and measurements, into an equivalent list of Pauli product rotations,
 /// implemented as PauliEvolutionGate and a global phase,
 /// as well as PauliProductMeasurement.
@@ -386,7 +444,7 @@ pub fn py_pbc_transformation(py: Python, dag: &mut DAGCircuit) -> PyResult<DAGCi
                 None,
             )?;
         } else if let OperationRef::StandardGate(gate) = inst.op.view() {
-            if gate.num_qubits() > 2 {
+            if gate.num_qubits() > 3 {
                 return Err(TranspilerError::new_err(format!(
                     "Unable to run PBC transformation as the circuit contains instructions not supported by the pass: {:?}",
                     gate.name()

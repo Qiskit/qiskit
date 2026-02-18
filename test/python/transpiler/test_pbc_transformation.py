@@ -21,8 +21,8 @@ from qiskit.quantum_info import Operator
 from qiskit.circuit.random import random_circuit
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.circuit.library import (
-    CCXGate,
-    C3XGate,
+    C3SXGate,
+    RC3XGate,
     C4XGate,
     MCXGate,
 )
@@ -45,7 +45,7 @@ class TestPBCTransformation(QiskitTestCase):
             if not isinstance(gate, Gate):
                 continue
             num_qubits = gate.num_qubits
-            if num_qubits < 3:
+            if num_qubits < 4:
                 params = [angle * (i + 1) for i in range(len(gate.params))]
                 qc = QuantumCircuit(max(num_qubits, 1))
                 qc.global_phase = global_phase
@@ -112,8 +112,8 @@ class TestPBCTransformation(QiskitTestCase):
 
     @combine(
         gate=[
-            CCXGate(),
-            C3XGate(),
+            C3SXGate(),
+            RC3XGate(),
             C4XGate(),
             MCXGate(5),
         ]
