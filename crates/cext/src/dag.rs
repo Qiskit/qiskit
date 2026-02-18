@@ -1208,7 +1208,7 @@ pub unsafe extern "C" fn qk_dag_get_instruction(
 ) {
     // SAFETY: per documentation, `dag` is a pointer to valid data.
     let dag = unsafe { const_ptr_as_ref(dag) };
-    let inst = CInstruction::from_packed_instruction_with_floats(
+    let inst = CInstruction::from_packed_instruction_with_numeric(
         dag.dag()[NodeIndex::new(index as usize)].unwrap_operation(),
         dag.qargs_interner(),
         dag.cargs_interner(),

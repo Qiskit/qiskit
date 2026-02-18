@@ -356,8 +356,8 @@ pub unsafe extern "C" fn qk_circuit_num_clbits(circuit: *const CircuitData) -> u
 /// const QkParam *rx_param[1] = {x};
 /// const QkParam *ry_param[1] = {y};
 ///
-/// qk_circuit_gate_param(qc, QkGate_RX, q0, rx_param);
-/// qk_circuit_gate_param(qc, QkGate_RY, q0, ry_param);
+/// qk_circuit_parameterized_gate(qc, QkGate_RX, q0, rx_param);
+/// qk_circuit_parameterized_gate(qc, QkGate_RY, q0, ry_param);
 ///
 /// // check the number of symbols
 /// size_t num_symbols = qk_circuit_num_symbols(qc); // == 2
@@ -515,7 +515,7 @@ pub unsafe extern "C" fn qk_circuit_gate(
 /// QkParam *theta = qk_param_new_symbol("theta");
 /// uint32_t qubit[1] = {0};
 /// const QkParam* params[1] = {theta};
-/// qk_circuit_gate_param(qc, QkGate_RX, qubit, params); // add RX(theta) to the circuit
+/// qk_circuit_parameterized_gate(qc, QkGate_RX, qubit, params); // add RX(theta) to the circuit
 /// ```
 ///
 /// # Safety
@@ -531,7 +531,7 @@ pub unsafe extern "C" fn qk_circuit_gate(
 /// or if any of the elements in the ``params`` array is not a valid, non-null pointer to a
 /// ``QkParam``.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_circuit_gate_param(
+pub unsafe extern "C" fn qk_circuit_parameterized_gate(
     circuit: *mut CircuitData,
     gate: StandardGate,
     qubits: *const u32,
@@ -1078,8 +1078,9 @@ impl CInstruction {
     /// This must be cleared by a call to `qk_circuit_instruction_clear` to avoid leaking its
     /// allocations.
     ///
-    /// Panics if the operation name contains a nul, or if the instruction has non-float parameters.
-    pub(crate) fn from_packed_instruction_with_floats(
+    /// Panics if the operation name contains a nul, or if the instruction has non-numeric
+    /// parameters (not [Param::Float] or [Param::ParameterExpression]).
+    pub(crate) fn from_packed_instruction_with_numeric(
         packed: &PackedInstruction,
         qargs_interner: &Interner<[Qubit]>,
         cargs_interner: &Interner<[Clbit]>,
@@ -1097,7 +1098,7 @@ impl CInstruction {
                 _ => None,
             })
             .collect::<Option<Box<[*const Param]>>>()
-            .expect("caller is responsible for ensuring all parameters are floats");
+            .expect("caller is responsible for ensuring all parameters are numeric");
         Self {
             name,
             num_qubits: qargs.len() as u32,
@@ -1149,7 +1150,7 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
 ) {
     // SAFETY: Per documentation, `circuit` is a pointer to valid data.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
-    let inst = CInstruction::from_packed_instruction_with_floats(
+    let inst = CInstruction::from_packed_instruction_with_numeric(
         &circuit.data()[index],
         circuit.qargs_interner(),
         circuit.cargs_interner(),

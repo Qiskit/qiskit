@@ -1012,7 +1012,7 @@ static int test_get_instruction_params(void) {
         result = RuntimeError;
         goto cleanup;
     }
-    if (qk_circuit_gate_param(qc, QkGate_R, q0, angles) != QkExitCode_Success) {
+    if (qk_circuit_parameterized_gate(qc, QkGate_R, q0, angles) != QkExitCode_Success) {
         result = RuntimeError;
         goto cleanup;
     }
@@ -1123,15 +1123,15 @@ static int test_parameterized_circuit(void) {
     const QkParam *rzz_param[1] = {y};
 
     int result = Ok;
-    if (qk_circuit_gate_param(qc, QkGate_RX, q0, rx_param) != QkExitCode_Success) {
+    if (qk_circuit_parameterized_gate(qc, QkGate_RX, q0, rx_param) != QkExitCode_Success) {
         result = RuntimeError;
         goto cleanup;
     }
-    if (qk_circuit_gate_param(qc, QkGate_RX, q1, rx_param) != QkExitCode_Success) {
+    if (qk_circuit_parameterized_gate(qc, QkGate_RX, q1, rx_param) != QkExitCode_Success) {
         result = RuntimeError;
         goto cleanup;
     }
-    if (qk_circuit_gate_param(qc, QkGate_RZZ, q01, rzz_param) != QkExitCode_Success) {
+    if (qk_circuit_parameterized_gate(qc, QkGate_RZZ, q01, rzz_param) != QkExitCode_Success) {
         result = RuntimeError;
         goto cleanup;
     }
