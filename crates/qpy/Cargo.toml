@@ -24,6 +24,7 @@ num-complex.workspace = true
 bytemuck.workspace = true
 binrw = "0.15"
 uuid = {version = "1", features = ["v4"]}
+thiserror.workspace = true
 
 [dependencies.smallvec]
 workspace = true

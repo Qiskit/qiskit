@@ -966,27 +966,5 @@ impl BinRead for QPYCircuitV17 {
     }
 }
 
-/// helper for passing PyResult errors that arise during binrw parsing
-pub fn to_binrw_error<W: Seek, E: std::error::Error + Send + Sync + 'static>(
-    writer: &mut W,
-    err: E,
-) -> binrw::Error {
-    binrw::Error::Custom {
-        pos: writer.stream_position().unwrap_or(0),
-        err: Box::new(err),
-    }
-}
-
-/// helper for converting custom binrw errors back to PyResult
-pub fn from_binrw_error(err: binrw::Error) -> PyErr {
-    match err {
-        binrw::Error::Custom { err, .. } => {
-            if let Ok(qpy_err) = err.downcast::<PyErr>() {
-                *qpy_err
-            } else {
-                PyRuntimeError::new_err("unknown error")
-            }
-        }
-        _ => PyRuntimeError::new_err("unknown error"),
-    }
-}
+// Re-export the error handling functions from the error module
+pub use crate::error::{from_binrw_error, to_binrw_error};

@@ -10,7 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use pyo3::import_exception;
 use pyo3::prelude::*;
 use pyo3::types::PyModule;
 use pyo3::{Bound, PyResult, wrap_pyfunction};
@@ -20,11 +19,20 @@ mod bytes;
 mod circuit_reader;
 mod circuit_writer;
 mod consts;
+mod error;
 mod expr;
 mod formats;
 mod params;
 mod py_methods;
 mod value;
+
+// Re-export the error types for use throughout the module
+pub use error::{QpyError, from_binrw_error, to_binrw_error};
+
+// Import the Python exception for UnsupportedFeatureForVersion
+// We don't import QpyError from Python since we have our own Rust type
+use pyo3::import_exception;
+import_exception!(qiskit.qpy.exceptions, UnsupportedFeatureForVersion);
 
 /// Internal module supplying the QPY capabilities.  The entries in it should largely
 /// be re-exposed directly to public Python space.
@@ -33,6 +41,3 @@ pub fn qpy(module: &Bound<PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(circuit_reader::py_read_circuit, module)?)?;
     Ok(())
 }
-
-import_exception!(qiskit.qpy.exceptions, UnsupportedFeatureForVersion);
-import_exception!(qiskit.qpy.exceptions, QpyError);

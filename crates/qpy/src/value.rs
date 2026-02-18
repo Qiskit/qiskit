@@ -713,7 +713,7 @@ pub(crate) fn pack_standalone_var(
     usage: ExpressionVarDeclaration,
     version: u32,
     uuid_output: &mut u128,
-) -> PyResult<formats::ExpressionVarDeclarationPack> {
+) -> Result<formats::ExpressionVarDeclarationPack, QpyError> {
     match var {
         Var::Standalone { uuid, name, ty } => {
             let exp_type = pack_expression_type(ty, version)?;
@@ -726,7 +726,7 @@ pub(crate) fn pack_standalone_var(
                 name: name.clone(),
             })
         }
-        _ => Err(QpyError::new_err(format!(
+        _ => Err(QpyError::InvalidExpression(format!(
             "attempted to pack as standalone var the non-standalone var {:?}",
             var
         ))),
