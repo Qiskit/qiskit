@@ -306,6 +306,9 @@ fn optimize_clifford_t_1q(
     }
     global_phase += phase_update;
 
+    // Either we have fewer T-gates, or the number of T-gates remains the same
+    // but we have fewer Clifford gates (as the total number of gates is the number
+    // of T-gates + the number of Clifford gates).
     (is_reduced || optimized_sequence.len() < raw_run.len())
         .then_some((optimized_sequence, global_phase))
 }

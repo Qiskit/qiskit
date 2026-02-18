@@ -35,7 +35,6 @@ use qiskit_circuit::circuit_data::CircuitData;
 /// Behavior is undefined if ``layout`` is not a valid, non-null pointer to a
 /// ``QkTranspileLayout``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_layout_num_input_qubits(
     layout: *const TranspileLayout,
 ) -> u32 {
@@ -55,7 +54,6 @@ pub unsafe extern "C" fn qk_transpile_layout_num_input_qubits(
 /// Behavior is undefined if ``layout`` is not a valid, non-null pointer to a
 /// ``QkTranspileLayout``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_layout_num_output_qubits(
     layout: *const TranspileLayout,
 ) -> u32 {
@@ -97,7 +95,6 @@ pub unsafe extern "C" fn qk_transpile_layout_num_output_qubits(
 /// ``qk_transpile_layout_num_input_qubits()``) or the number of output qubits if ``filter_ancillas``
 /// is false (which can be queried with ``qk_transpile_layout_num_output_qubits()``).
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_layout_initial_layout(
     layout: *const TranspileLayout,
     filter_ancillas: bool,
@@ -152,7 +149,6 @@ pub unsafe extern "C" fn qk_transpile_layout_initial_layout(
 /// of output qubits in the ``QkTranspileLayout`` which can be queried with
 /// ``qk_transpile_layout_num_output_qubits()``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_layout_output_permutation(
     layout: *const TranspileLayout,
     output_permutation: *mut u32,
@@ -206,7 +202,6 @@ pub unsafe extern "C" fn qk_transpile_layout_output_permutation(
 /// ``qk_transpile_layout_num_input_qubits()``) or the number of output qubits if ``filter_ancillas``
 /// is false (which can be queried with ``qk_transpile_layout_num_output_qubits()``).
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_layout_final_layout(
     layout: *const TranspileLayout,
     filter_ancillas: bool,
@@ -258,7 +253,6 @@ pub unsafe extern "C" fn qk_transpile_layout_final_layout(
 /// valid pointer to a contiguous array of ``uint32_t`` with enough space for the number of qubits
 /// indicated in ``target``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_layout_generate_from_mapping(
     original_dag: *const DAGCircuit,
     target: *const Target,
@@ -296,7 +290,6 @@ pub unsafe extern "C" fn qk_transpile_layout_generate_from_mapping(
 ///
 /// Behavior is undefined if ``layout`` is not a valid, non-null pointer to a ``QkTranspileLayout``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_layout_free(layout: *mut TranspileLayout) {
     if !layout.is_null() {
         if !layout.is_aligned() {
@@ -329,7 +322,6 @@ pub unsafe extern "C" fn qk_transpile_layout_free(layout: *mut TranspileLayout) 
 /// returned by this function.
 #[unsafe(no_mangle)]
 #[cfg(feature = "python_binding")]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_layout_to_python(
     layout: *const TranspileLayout,
     circuit: *const CircuitData,

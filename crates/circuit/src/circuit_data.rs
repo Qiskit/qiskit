@@ -22,7 +22,9 @@ use crate::bit::{
 use crate::bit_locator::BitLocator;
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use crate::classical::expr;
-use crate::dag_circuit::{DAGStretchType, DAGVarType, add_global_phase};
+use crate::dag_circuit::{
+    DAGCircuit, DAGIdentifierInfo, DAGStretchType, DAGVarType, add_global_phase,
+};
 use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
 use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::{ObjectRegistry, ObjectRegistryError};
@@ -379,12 +381,6 @@ impl CircuitIdentifierInfo {
             _ => Err(PyValueError::new_err("Invalid identifier info type")),
         }
     }
-}
-
-/// A convenience enum used in [CircuitData::from_packed_instructions]
-pub enum CircuitVar {
-    Var(expr::Var, CircuitVarType),
-    Stretch(expr::Stretch, CircuitStretchType),
 }
 
 #[pymethods]
@@ -2142,107 +2138,94 @@ impl CircuitData {
         Ok(res)
     }
 
-    /// A constructor for CircuitData from an iterator of PackedInstruction objects
+    /// Clone a new [CircuitData] from a [DAGCircuit].
     ///
-    /// This is typically useful when iterating over a CircuitData or DAGCircuit
-    /// to construct a new CircuitData from the iterator of PackedInstructions. As
-    /// such it requires that you have `BitData` and `Interner` objects to run. If
-    /// you just wish to build a circuit data from an iterator of instructions
-    /// the `from_packed_operations` or `from_standard_gates` constructor methods
-    /// are a better choice
+    /// This is the logical equivalent of Python's `dag_to_circuit`.
+    pub fn from_dag_ref(dag: &DAGCircuit) -> Result<Self, CircuitDataError> {
+        let mut out = Self::empty_like_from_dag(dag)?;
+        out.data.reserve(dag.num_ops());
+        for node in dag.topological_op_nodes(false) {
+            out.push(dag[node].unwrap_operation().clone())?;
+        }
+        Ok(out)
+    }
+
+    /// Clone a new [CircuitData] from a [DAGCircuit], but applying a Python deepcopy
     ///
-    /// # Args
-    ///
-    /// * py: A GIL handle this is needed to instantiate Qubits in Python space
-    /// * qubits: The BitData to use for the new circuit's qubits
-    /// * clbits: The BitData to use for the new circuit's clbits
-    /// * blocks: The blocks used by the instructions.
-    /// * qargs_interner: The interner for Qubit objects in the circuit. This must
-    ///   contain all the Interned<Qubit> indices stored in the
-    ///   PackedInstructions from `instructions`
-    /// * cargs_interner: The interner for Clbit objects in the circuit. This must
-    ///   contain all the Interned<Clbit> indices stored in the
-    ///   PackedInstructions from `instructions`
-    /// * qregs: The internal QuantumRegister data stored within the circuit.
-    /// * cregs: The internal ClassicalRegister data stored within the circuit.
-    /// * qubit_indices: The Mapping between qubit instances and their locations within
-    ///   registers in the circuit.
-    /// * clbit_indices: The Mapping between clbit instances and their locations within
-    ///   registers in the circuit.
-    /// * Instructions: An iterator with items of type: `Result<PackedInstruction, CircuitDataError>`
-    ///   that contains the instructions to insert in iterator order to the new
-    ///   CircuitData. This returns a `Result` to facilitate the case where
-    ///   you need to make a python copy (such as with `PackedOperation::py_deepcopy()`)
-    ///   of the operation while iterating for constructing the new `CircuitData`. An
-    ///   example of this use case is in `qiskit_circuit::converters::dag_to_circuit`.
-    /// * global_phase: The global phase value to use for the new circuit.
-    /// * variables: variables and stretches to add in order to the new circuit.
-    #[allow(clippy::too_many_arguments)]
-    pub fn from_packed_instructions<I>(
-        qubits: ObjectRegistry<Qubit, ShareableQubit>,
-        clbits: ObjectRegistry<Clbit, ShareableClbit>,
-        blocks: ControlFlowBlocks<CircuitData>,
-        qargs_interner: Interner<[Qubit]>,
-        cargs_interner: Interner<[Clbit]>,
-        qregs: RegisterData<QuantumRegister>,
-        cregs: RegisterData<ClassicalRegister>,
-        qubit_indices: BitLocator<ShareableQubit, QuantumRegister>,
-        clbit_indices: BitLocator<ShareableClbit, ClassicalRegister>,
-        instructions: I,
-        global_phase: Param,
-        variables: Vec<CircuitVar>,
-    ) -> Result<Self, CircuitDataError>
-    where
-        I: IntoIterator<Item = Result<PackedInstruction, CircuitDataError>>,
-    {
-        let instruction_iter = instructions.into_iter();
-        let mut res = CircuitData {
-            data: Vec::with_capacity(instruction_iter.size_hint().0),
-            qargs_interner,
-            cargs_interner,
-            qubits,
-            clbits,
-            blocks,
-            param_table: ParameterTable::new(),
-            global_phase: Param::Float(0.0),
-            qregs,
-            cregs,
-            qubit_indices,
-            clbit_indices,
+    /// This is the logical equivalent of Python's `dag_to_circuit`.
+    pub fn from_dag_ref_deepcopy(py: Python, dag: &DAGCircuit) -> Result<Self, CircuitDataError> {
+        let mut out = Self::empty_like_from_dag(dag)?;
+        out.data.reserve(dag.num_ops());
+        for node in dag.topological_op_nodes(false) {
+            let inst = dag[node].unwrap_operation();
+            let op = match inst.op.view() {
+                OperationRef::ControlFlow(_)
+                | OperationRef::StandardGate(_)
+                | OperationRef::StandardInstruction(_)
+                | OperationRef::Unitary(_)
+                | OperationRef::PauliProductMeasurement(_) => inst.op.clone(),
+                OperationRef::Gate(gate) => {
+                    PyOperationTypes::Gate(gate.py_deepcopy(py, None)?).into()
+                }
+                OperationRef::Instruction(inst) => {
+                    PyOperationTypes::Instruction(inst.py_deepcopy(py, None)?).into()
+                }
+                OperationRef::Operation(op) => {
+                    PyOperationTypes::Operation(op.py_deepcopy(py, None)?).into()
+                }
+            };
+            out.push(PackedInstruction { op, ..inst.clone() })?;
+        }
+        Ok(out)
+    }
+
+    fn empty_like_from_dag(dag: &DAGCircuit) -> Result<Self, CircuitDataError> {
+        let mut out = Self {
+            data: Vec::new(),
+            qargs_interner: dag.qargs_interner().clone(),
+            cargs_interner: dag.cargs_interner().clone(),
+            qubits: dag.qubits().clone(),
+            clbits: dag.clbits().clone(),
+            blocks: dag
+                .blocks()
+                .try_map_without_references(Self::from_dag_ref)?,
+            qregs: dag.qregs_data().clone(),
+            cregs: dag.cregs_data().clone(),
+            qubit_indices: dag.qubit_locations().clone(),
+            clbit_indices: dag.clbit_locations().clone(),
             vars: ObjectRegistry::new(),
             stretches: ObjectRegistry::new(),
-            identifier_info: IndexMap::with_capacity_and_hasher(
-                variables.len(),
-                RandomState::default(),
-            ),
+            identifier_info: Default::default(),
             vars_input: Vec::new(),
             vars_capture: Vec::new(),
             vars_declare: Vec::new(),
             stretches_capture: Vec::new(),
             stretches_declare: Vec::new(),
+            param_table: ParameterTable::new(),
+            global_phase: Param::Float(0.0),
         };
-
-        // use the global phase setter to ensure parameters are registered
-        // in the parameter table
-        res.set_global_phase_param(global_phase)?;
-
-        for inst in instruction_iter {
-            res.push(inst?)?;
-        }
-
-        // Add variables and stretches in order
-        for var in variables {
-            match var {
-                CircuitVar::Var(var, type_) => {
-                    res.add_var(var, type_)?;
+        out.set_global_phase_param(dag.global_phase().clone())?;
+        for id in dag.identifiers() {
+            match id {
+                DAGIdentifierInfo::Stretch(info) => {
+                    out.add_stretch(
+                        dag.get_stretch(info.get_stretch())
+                            .expect("DAG should only return valid stretches")
+                            .clone(),
+                        info.get_type().into(),
+                    )?;
                 }
-                CircuitVar::Stretch(stretch, type_) => {
-                    res.add_stretch(stretch, type_)?;
+                DAGIdentifierInfo::Var(info) => {
+                    out.add_var(
+                        dag.get_var(info.get_var())
+                            .expect("DAG should only return valid vars")
+                            .clone(),
+                        info.get_type().into(),
+                    )?;
                 }
             }
         }
-
-        Ok(res)
+        Ok(out)
     }
 
     /// An alternate constructor to build a new `CircuitData` from an iterator

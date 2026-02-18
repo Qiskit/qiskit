@@ -173,3 +173,47 @@ class TestOptimizeCliffordT(QiskitTestCase):
 
         self.assertEqual(optimized, expected)
         self.assertEqual(Operator(qc), Operator(expected))
+
+    def test_reduces_clifford_gates(self):
+        """A simple test that the pass reduces the number
+        of Clifford gates even when the number of T-gates
+        remains the same.
+        """
+        qc = QuantumCircuit(1)
+        qc.s(0)
+        qc.t(0)
+        qc.s(0)
+
+        optimized = OptimizeCliffordT()(qc)
+
+        expected = QuantumCircuit(1)
+        expected.t(0)
+        expected.z(0)
+
+        self.assertEqual(optimized, expected)
+        self.assertEqual(Operator(qc), Operator(expected))
+
+    def test_reduces_clifford_gates_2(self):
+        """A simple test that the pass reduces the number
+        of Clifford gates even when the number of T-gates
+        remains the same.
+        """
+        qc = QuantumCircuit(1)
+        qc.s(0)
+        qc.h(0)
+        qc.sx(0)
+        qc.t(0)
+        qc.h(0)
+        qc.z(0)
+        qc.x(0)
+
+        optimized = OptimizeCliffordT()(qc)
+
+        expected = QuantumCircuit(1, global_phase=np.pi / 4)
+        expected.h(0)
+        expected.tdg(0)
+        expected.h(0)
+        expected.x(0)
+
+        self.assertEqual(optimized, expected)
+        self.assertEqual(Operator(qc), Operator(expected))
