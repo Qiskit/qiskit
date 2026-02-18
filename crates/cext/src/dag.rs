@@ -1695,7 +1695,7 @@ pub unsafe extern "C" fn qk_dag_replace_block_with_unitary(
     let clbit_pos_map = HashMap::new();
 
     let res = dag.replace_block(
-        &block,
+        block,
         Box::new(UnitaryGate { array }).into(),
         None,
         None,
