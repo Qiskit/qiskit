@@ -450,7 +450,7 @@ pub fn py_pbc_transformation(py: Python, dag: &mut DAGCircuit) -> PyResult<DAGCi
                     gate.name()
                 )));
             }
-            // handling only 1-qubit and 2-qubit gates with no parameter or with a single parameter
+            // handling only 1-qubit, 2-qubit and 3-qubit gates with no parameter or with a single parameter
             if gate.num_params() <= 1 {
                 if let Some((sequence, global_phase_update)) =
                     STANDARD_GATE_SUBSTITUTIONS[gate as usize]
