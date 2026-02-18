@@ -259,7 +259,7 @@ fn pack_instruction(
         OperationRef::ControlFlow(control_flow_inst) => {
             pack_control_flow_inst(control_flow_inst, instruction, qpy_data)?
         }
-        OperationRef::CustomGate(op) | OperationRef::CustomInstruction(op) => {
+        OperationRef::CustomOperation(op) => {
             pack_custom_operation(op, instruction.params_view(), qpy_data)?
         }
     };
@@ -1028,7 +1028,7 @@ fn pack_custom_instruction(
             }
             // TODO: Separate the handling of these two as gate also contains matrix definiton
             // And we don't currently serialize gate matrices.
-            OperationRef::CustomGate(gate) | OperationRef::CustomInstruction(gate) => {
+            OperationRef::CustomOperation(gate) => {
                 if let Some(definition) = gate.definition(instruction.params_view()) {
                     has_definition = true;
                     let mut qc = QuantumCircuitData {

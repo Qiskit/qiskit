@@ -19,9 +19,9 @@ use crate::imports::{
 use crate::instruction::Parameters;
 use crate::interner::Interned;
 use crate::operations::{
-    ControlFlow, ControlFlowInstruction, CustomOperationKind, NativeOperation, NativeOperationView,
-    Operation, OperationRef, Param, PauliProductMeasurement, PyOperationTypes, PythonOperation,
-    StandardGate, StandardInstruction, UnitaryGate,
+    ControlFlow, ControlFlowInstruction, CustomOp, CustomOperationKind, Operation, OperationRef,
+    Param, PauliProductMeasurement, PyOperationTypes, PythonOperation, StandardGate,
+    StandardInstruction, UnitaryGate,
 };
 use crate::{Block, Clbit, Qubit};
 use hashbrown::HashMap;
@@ -260,8 +260,7 @@ mod standard_instruction {
 /// A private module to encapsulate the encoding of pointer types.
 mod pointer {
     use crate::operations::{
-        ControlFlowInstruction, NativeOperation, PauliProductMeasurement, PyOperationTypes,
-        UnitaryGate,
+        ControlFlowInstruction, CustomOp, PauliProductMeasurement, PyOperationTypes, UnitaryGate,
     };
     use crate::packed_instruction::{PackedOperation, PackedOperationType};
     use std::ptr::NonNull;
@@ -348,7 +347,7 @@ mod pointer {
         PackedOperationType::PauliProductMeasurement
     );
     impl_packable_pointer!(ControlFlowInstruction, PackedOperationType::ControlFlow);
-    impl_packable_pointer!(NativeOperation, PackedOperationType::Native);
+    impl_packable_pointer!(CustomOp, PackedOperationType::Native);
 }
 
 impl PackedOperation {
@@ -427,13 +426,8 @@ impl PackedOperation {
                 OperationRef::PauliProductMeasurement(self.try_into().unwrap())
             }
             PackedOperationType::Native => {
-                let native: &NativeOperation = self.try_into().unwrap();
-                match native.view() {
-                    NativeOperationView::Gate(gate) => OperationRef::CustomGate(gate),
-                    NativeOperationView::Instruction(instruction) => {
-                        OperationRef::CustomInstruction(instruction)
-                    }
-                }
+                let native: &CustomOp = self.try_into().unwrap();
+                OperationRef::CustomOperation(native.view())
             }
         }
     }
@@ -446,7 +440,7 @@ impl PackedOperation {
         match self.discriminant() {
             PackedOperationType::StandardGate => true,
             PackedOperationType::Native => {
-                let opaque: &NativeOperation = self.try_into().unwrap();
+                let opaque: &CustomOp = self.try_into().unwrap();
                 matches!(opaque.kind(), CustomOperationKind::Gate)
             }
             PackedOperationType::PyOperationTypes => {
@@ -597,12 +591,7 @@ impl PackedOperation {
                     .is_subclass(py_type);
             }
             // TODO: Implement Python exposure for Custom Operations.
-            OperationRef::CustomGate(_) => {
-                return Err(PyNotImplementedError::new_err(
-                    "Native gates cannot be exposed to Python yet.",
-                ));
-            }
-            OperationRef::CustomInstruction(_) => {
+            OperationRef::CustomOperation(_) => {
                 return Err(PyNotImplementedError::new_err(
                     "Native gates cannot be exposed to Python yet.",
                 ));
@@ -665,11 +654,8 @@ impl Clone for PackedOperation {
             }
             OperationRef::Unitary(unitary) => Self::from_unitary(Box::new(unitary.clone())),
             OperationRef::PauliProductMeasurement(ppm) => Self::from_ppm(Box::new(ppm.clone())),
-            OperationRef::CustomInstruction(custom_instruction) => {
-                Self::from(NativeOperation::from(custom_instruction.clone_dyn()))
-            }
-            OperationRef::CustomGate(custom_gate) => {
-                Self::from(NativeOperation::from(custom_gate.clone_dyn()))
+            OperationRef::CustomOperation(custom_gate) => {
+                Self::from(CustomOp::from(custom_gate.clone_dyn()))
             }
         }
     }
@@ -686,7 +672,7 @@ impl Drop for PackedOperation {
                 PauliProductMeasurement::drop_packed(self)
             }
             PackedOperationType::ControlFlow => ControlFlowInstruction::drop_packed(self),
-            PackedOperationType::Native => NativeOperation::drop_packed(self),
+            PackedOperationType::Native => CustomOp::drop_packed(self),
         }
     }
 }
@@ -863,7 +849,7 @@ impl PackedInstruction {
     pub fn try_matrix(&self) -> Option<Array2<Complex64>> {
         match self.op.view() {
             OperationRef::StandardGate(g) => g.matrix(self.params_view()),
-            OperationRef::CustomGate(g) => g.matrix(self.params_view()),
+            OperationRef::CustomOperation(g) => g.matrix(self.params_view()),
             OperationRef::Gate(g) => g.matrix(),
             OperationRef::Unitary(u) => u.matrix(),
             _ => None,
@@ -879,7 +865,7 @@ impl PackedInstruction {
             OperationRef::StandardGate(g) => g.matrix(self.params_view()).map(CowArray::from),
             OperationRef::Gate(g) => g.matrix().map(CowArray::from),
             OperationRef::Unitary(u) => Some(CowArray::from(u.matrix_view())),
-            OperationRef::CustomGate(g) => g.matrix(self.params_view()).map(CowArray::from),
+            OperationRef::CustomOperation(g) => g.matrix(self.params_view()).map(CowArray::from),
             _ => None,
         }
     }
@@ -893,7 +879,7 @@ impl PackedInstruction {
             }
             OperationRef::Gate(gate) => gate.matrix_as_static_1q(),
             OperationRef::Unitary(unitary) => unitary.matrix_as_static_1q(),
-            OperationRef::CustomGate(g) => {
+            OperationRef::CustomOperation(g) => {
                 if g.num_qubits() == 1 {
                     g.matrix(self.params_view())
                         .map(|mat| [[mat[(0, 0)], mat[(0, 1)]], [mat[(1, 0)], mat[(1, 1)]]])
@@ -920,9 +906,7 @@ impl PackedInstruction {
             OperationRef::StandardGate(g) => g.definition(self.params_view()),
             OperationRef::Gate(g) => g.definition(),
             OperationRef::Instruction(i) => i.definition(),
-            OperationRef::CustomGate(g) | OperationRef::CustomInstruction(g) => {
-                g.definition(self.params_view())
-            }
+            OperationRef::CustomOperation(g) => g.definition(self.params_view()),
             _ => None,
         }
     }

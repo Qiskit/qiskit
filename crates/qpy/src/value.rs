@@ -686,11 +686,17 @@ pub(crate) fn get_circuit_type_key(op: &PackedOperation) -> PyResult<CircuitInst
                 )))
             }
         }),
-        OperationRef::CustomGate(custom_gate) => match custom_gate.is_controlled_gate() {
+        OperationRef::CustomOperation(custom_gate) => match custom_gate.is_controlled_gate() {
             true => Ok(CircuitInstructionType::ControlledGate),
-            false => Ok(CircuitInstructionType::Gate),
+            false => match custom_gate.kind() {
+                qiskit_circuit::operations::CustomOperationKind::Gate => {
+                    Ok(CircuitInstructionType::Gate)
+                }
+                qiskit_circuit::operations::CustomOperationKind::Instruction => {
+                    Ok(CircuitInstructionType::Instruction)
+                }
+            },
         },
-        OperationRef::CustomInstruction(_) => Ok(CircuitInstructionType::Instruction),
     }
 }
 

@@ -16,7 +16,7 @@ use qiskit_circuit::Qubit;
 use qiskit_circuit::bit::QuantumRegister;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::instruction::Parameters;
-use qiskit_circuit::operations::{CustomOperation, NativeOperation};
+use qiskit_circuit::operations::{CustomOp, CustomOperation};
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::parameter::symbol_expr::Symbol;
 use qiskit_circuit::parameter_table::ParameterUuid;
@@ -61,7 +61,7 @@ pub(super) fn compose_transforms<'a>(
                 "Error while adding register to the circuit".to_string(),
             )
         })?;
-        let gate = NativeOperation::from(CustomDummy {
+        let gate = CustomOp::from(CustomDummy {
             name: gate_name.clone(),
             num_qubits: gate_num_qubits,
             num_params: placeholder_params.len() as u32,

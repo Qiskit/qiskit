@@ -853,8 +853,7 @@ pub unsafe extern "C" fn qk_circuit_instruction_kind(
         OperationRef::Gate(_)
         | OperationRef::Instruction(_)
         | OperationRef::Operation(_)
-        | OperationRef::CustomGate(_)
-        | OperationRef::CustomInstruction(_) => COperationKind::Unknown,
+        | OperationRef::CustomOperation(_) => COperationKind::Unknown,
     }
 }
 

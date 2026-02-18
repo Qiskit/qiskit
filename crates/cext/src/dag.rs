@@ -1021,8 +1021,7 @@ pub unsafe extern "C" fn qk_dag_op_node_kind(dag: *const DAGCircuit, node: u32) 
         OperationRef::Gate(_)
         | OperationRef::Instruction(_)
         | OperationRef::Operation(_)
-        | OperationRef::CustomGate(_)
-        | OperationRef::CustomInstruction(_) => COperationKind::Unknown,
+        | OperationRef::CustomOperation(_) => COperationKind::Unknown,
     }
 }
 
