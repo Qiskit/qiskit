@@ -142,18 +142,17 @@ class TestSynthesizeRzRotations(QiskitTestCase):
             qc_big = qc_big.tensor(qcs[_])
         qc_big_synth = SynthesizeRZRotations()(qc_big)
         # Check the operators are (almost) equal
-        [self.assertEqual(Operator(synthesized_circs[_]), Operator(qcs[_])) for _ in range(num_qubits)]
+        [
+            self.assertEqual(Operator(synthesized_circs[_]), Operator(qcs[_]))
+            for _ in range(num_qubits)
+        ]
         self.assertEqual(Operator(qc_big_synth), Operator(qc_big))
-
 
     @combine(num_qubits=[5, 8], depth=[6, 10])
     def test_dag_traversal_logic(self, num_qubits, depth):
         """Test that synthesize_rz_rotations works correctly for larger circuits."""
         qc = QuantumCircuit(num_qubits)
-        [
-            [qc.rz(3.57921, _) for _ in range(num_qubits)]
-            for _ in range(depth)
-        ]
+        [[qc.rz(3.57921, _) for _ in range(num_qubits)] for _ in range(depth)]
         synthesized_circ = SynthesizeRZRotations()(qc)
         # Check the operators are (almost) equal
         self.assertEqual(Operator(synthesized_circ), Operator(qc))
