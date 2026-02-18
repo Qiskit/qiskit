@@ -1500,7 +1500,7 @@ impl Target {
 
     // IndexMap methods
 
-    /// Retreive all the gate names in the Target
+    /// Retrieve all the gate names in the Target
     // TODO: Remove once `Target` is being consumed.
     #[allow(dead_code)]
     pub fn keys(&self) -> impl Iterator<Item = &str> {

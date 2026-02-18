@@ -48,7 +48,7 @@ class BaseSamplerV2(ABC):
 
             * Optionally, the number of shots to sample.
 
-     * shots: the number of shots to sample. This specification is optional and will be overriden by
+     * shots: the number of shots to sample. This specification is optional and will be overridden by
         the pub-wise shots if provided.
 
     All sampler implementations must implement default value for the ``shots`` in the

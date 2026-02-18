@@ -126,7 +126,7 @@ def plot_state_hinton(state, title="", figsize=None, ax_real=None, ax_imag=None,
         ax1.yaxis.set_major_locator(plt.NullLocator())
 
         for (x, y), w in np.ndenumerate(datareal):
-            # Convert from matrix co-ordinates to plot co-ordinates.
+            # Convert from matrix coordinates to plot coordinates.
             plot_x, plot_y = y, lx - x - 1
             color = "white" if w > 0 else "black"
             size = np.sqrt(np.abs(w) / max_weight)
@@ -154,7 +154,7 @@ def plot_state_hinton(state, title="", figsize=None, ax_real=None, ax_imag=None,
         ax2.yaxis.set_major_locator(plt.NullLocator())
 
         for (x, y), w in np.ndenumerate(dataimag):
-            # Convert from matrix co-ordinates to plot co-ordinates.
+            # Convert from matrix coordinates to plot coordinates.
             plot_x, plot_y = y, lx - x - 1
             color = "white" if w > 0 else "black"
             size = np.sqrt(np.abs(w) / max_weight)
@@ -1297,8 +1297,8 @@ def state_to_latex(
         suffix = f"\\\\\n\\text{{dims={dims_str}}}\n\\end{{align}}"
 
     operator_shape = state._op_shape
-    # we only use the ket convetion for qubit statevectors
-    # this means the operator shape should hve no input dimensions and all output dimensions equal to 2
+    # we only use the ket convention for qubit statevectors
+    # this means the operator shape should have no input dimensions and all output dimensions equal to 2
     is_qubit_statevector = len(operator_shape.dims_r()) == 0 and set(operator_shape.dims_l()) == {2}
     if convention == "ket" and is_qubit_statevector:
         latex_str = _state_to_latex_ket(state._data, **args)

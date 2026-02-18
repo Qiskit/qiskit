@@ -58,7 +58,7 @@ const SWAP_EPILOGUE_TRIALS: usize = 4;
 /// At the time of writing (2025-06-11), Qiskit's Python-space model doesn't allow constructing any
 /// control-flow operations with zero blocks, so we could use `NonZero<u32>` directly.  Technically,
 /// though, a `switch` on a zero-bit register _could_ be valid and have zero blocks, so doing this
-/// little trick makes us safe against that long-range assumption changing, for zero measureable
+/// little trick makes us safe against that long-range assumption changing, for zero measurable
 /// runtime cost.
 #[repr(transparent)]
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]

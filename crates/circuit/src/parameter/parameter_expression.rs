@@ -521,7 +521,7 @@ impl ParameterExpression {
     /// # Returns
     ///
     /// * `Ok(Self)` - A parameter expression with the substituted expressions.
-    /// * `Err(ParameterError)` - An error if the subtitution failed.
+    /// * `Err(ParameterError)` - An error if the substitution failed.
     pub fn subs(
         &self,
         map: &HashMap<Symbol, Self>,

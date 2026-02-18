@@ -2924,7 +2924,7 @@ impl CircuitData {
                             // Rust that accept a `Param::ParameterExpression` which aren't standard
                             // gates. Technically `StandardInstruction::Delay` could, but in
                             // practice that's not a common path, and it's only supported for
-                            // backwards compatability from before Stretch was introduced. If we did
+                            // backwards compatibility from before Stretch was introduced. If we did
                             // it in rust without Python that's a mistake and this attach() call
                             // will panic and point out the error of your ways when this comment is
                             // read.
@@ -2950,7 +2950,7 @@ impl CircuitData {
                                         // be parametric.
                                         //
                                         // Our `bind_expr` coercion means that a non-parametric
-                                        // `ParameterExperssion` after binding would have been coerced
+                                        // `ParameterExpression` after binding would have been coerced
                                         // to a numeric quantity already, so the match here is
                                         // definitely parameterized.
                                         match &new_param {
@@ -3601,7 +3601,7 @@ mod test {
     #[test]
     fn packed_pointer_types_behave() -> PyResult<()> {
         // This is largely to exercise the packed-pointer logic under debug builds (since the
-        // Python-space tests run with Rust in relaese mode) and Miri.
+        // Python-space tests run with Rust in release mode) and Miri.
         let mut qc = CircuitData::from_packed_operations(4, 1, [], Param::Float(0.0))?;
         qc.push_packed_operation(
             Box::new(PauliProductMeasurement {
