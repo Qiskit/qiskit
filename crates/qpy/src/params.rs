@@ -574,7 +574,7 @@ pub(crate) fn pack_param_obj(
     })
 }
 
-pub(crate) fn generic_value_to_param(value: &GenericValue, endian: Endian) -> PyResult<Param> {
+pub(crate) fn generic_value_to_param(value: &GenericValue, endian: Endian) -> Result<Param, QpyError> {
     let value = match endian {
         Endian::Big => value,
         Endian::Little => &value.as_le(),
