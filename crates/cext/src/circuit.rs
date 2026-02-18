@@ -371,7 +371,6 @@ pub unsafe extern "C" fn qk_circuit_num_clbits(circuit: *const CircuitData) -> u
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_num_symbols(circuit: *const CircuitData) -> usize {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
@@ -532,7 +531,6 @@ pub unsafe extern "C" fn qk_circuit_gate(
 /// or if any of the elements in the ``params`` array is not a valid, non-null pointer to a
 /// ``QkParam``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_gate_param(
     circuit: *mut CircuitData,
     gate: StandardGate,
