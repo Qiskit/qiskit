@@ -194,7 +194,7 @@ impl SolovayKitaevSynthesis {
     ///         determines how fast (and if) the algorithm converges and should be chosen
     ///         sufficiently high. Defaults to 12,
     ///     tol (float | None): A tolerance determining the granularity of the basic approximations.
-    ///         Any sequence whose SO(3) representation is withing :math:`\sqrt{\texttt{tol}}` of
+    ///         Any sequence whose SO(3) representation is within :math:`\sqrt{\texttt{tol}}` of
     ///         an existing point, will be discarded. Defaults to ``1e-12``.
     #[new]
     #[pyo3 (signature = (basis_gates=None, depth=12, tol=None, do_checks=false))]

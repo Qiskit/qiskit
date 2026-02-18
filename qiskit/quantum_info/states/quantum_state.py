@@ -154,13 +154,13 @@ class QuantumState:
         raise NotImplementedError(f"{type(self)} does not support addition")
 
     def _multiply(self, other):
-        """Return the scalar multipled state other * self.
+        """Return the scalar multiplied state other * self.
 
         Args:
             other (complex): a complex number.
 
         Returns:
-            QuantumState: the scalar multipled state other * self.
+            QuantumState: the scalar multiplied state other * self.
 
         Raises:
             NotImplementedError: if subclass does not support scala

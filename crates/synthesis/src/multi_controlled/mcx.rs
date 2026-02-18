@@ -662,8 +662,8 @@ fn synth_relative_mcx(num_controls: usize) -> Result<CircuitData, CircuitDataErr
 fn synth_relative_mcx_n_dirty(num_controls: usize) -> Result<CircuitData, CircuitDataError> {
     // For small values of num_controls, it is more efficient to use a relative MCX
     // gate that does not require any auxiliary qubits, while for large values it is
-    // mot efficient to construct the true MCX gate that uses num_controls ancillas.
-    // An interesting question is whether there are relative-MCX implmentations that
+    // not efficient to construct the true MCX gate that uses num_controls ancillas.
+    // An interesting question is whether there are relative-MCX implementations that
     // use ancilla qubits.
     if num_controls < 11 {
         synth_relative_mcx(num_controls)

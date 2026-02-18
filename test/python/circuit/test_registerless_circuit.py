@@ -82,7 +82,7 @@ class TestAddingBitsWithoutRegisters(QiskitTestCase):
         with self.assertRaisesRegex(CircuitError, "bits found already"):
             qc.add_bits(qr[:])
 
-    def test_addding_individual_bit(self):
+    def test_adding_individual_bit(self):
         """Verify we can add a single bit to a circuit."""
         qr = QuantumRegister(3, "qr")
         qc = QuantumCircuit(qr)

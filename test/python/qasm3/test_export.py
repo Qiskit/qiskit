@@ -1455,7 +1455,7 @@ box[a] {
         self.assertEqual(dumps(qc), expected_qasm)
 
     def test_custom_gate_with_hw_qubit_name(self):
-        """Test that the name of a custom gate that is an OQ3 hardware qubit identifer is properly
+        """Test that the name of a custom gate that is an OQ3 hardware qubit identifier is properly
         escaped when translated to OQ3."""
         mygate_circ = QuantumCircuit(1, name="$1")
         mygate_circ.x(0)

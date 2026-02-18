@@ -65,7 +65,7 @@ pub struct ParameterInfo {
 }
 
 /// Type-safe UUID for a symbolic parameter.  This does not track the name of a [Symbol]; it
-/// can't be used alone to reconstruct one.  That tracking remains only withing the
+/// can't be used alone to reconstruct one.  That tracking remains only within the
 /// [ParameterTable].
 #[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
 pub struct ParameterUuid(u128);

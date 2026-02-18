@@ -203,7 +203,7 @@ fn pack_instruction_blocks(
                 .iter()
                 .map(|block| -> PyResult<_> {
                     // we explicitly name the block "unnamed" because otherwise it will be assigned a serial number name (e.g. "circuit-45")
-                    // which would result in inconsistant results, e.g. when packing the same circuit twice on the same run
+                    // which would result in inconsistent results, e.g. when packing the same circuit twice on the same run
                     let py_block: PyCircuitData = block.clone().into();
                     let circuit = imports::QUANTUM_CIRCUIT
                         .get_bound(py)

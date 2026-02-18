@@ -527,7 +527,7 @@ pub unsafe extern "C" fn qk_obs_boundaries(obs: *mut SparseObservable) -> *mut u
 /// # Safety
 ///
 /// Behavior is undefined ``obs`` is not a valid, non-null pointer to a ``QkObs``,
-/// or if invalid valus are written into the resulting ``QkBitTerm`` pointer.
+/// or if invalid values are written into the resulting ``QkBitTerm`` pointer.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_obs_bit_terms(obs: *mut SparseObservable) -> *mut BitTerm {
     // SAFETY: Per documentation, the pointer is non-null and aligned.

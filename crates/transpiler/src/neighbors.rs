@@ -134,7 +134,7 @@ impl Neighbors {
                 neighbors.push(neighbor);
             }
             partition.push(neighbors.len());
-            // Sort per neighbour in the vague hope that branch predicition later will be more
+            // Sort per neighbour in the vague hope that branch prediction later will be more
             // reliable, or memory access patterns will be more predictable.
             neighbors[partition[partition.len() - 2]..partition[partition.len() - 1]].sort();
         }
@@ -473,7 +473,7 @@ mod test {
     #[test]
     fn from_parts_catches_errors() {
         let lift = |idx: Vec<u32>| idx.into_iter().map(PhysicalQubit).collect::<Vec<_>>();
-        // Parition doesn't start from zero.
+        // Partition doesn't start from zero.
         assert_eq!(
             Neighbors::from_parts(lift(vec![1, 0]), vec![1, 2, 2]),
             Err(ConstructionError::PartitionInconsistent)

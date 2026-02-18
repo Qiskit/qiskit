@@ -12,7 +12,7 @@
 
 //! Internals of the decomposer creation and caching for unitary synthesis.
 //!
-//! The decomposer cache logic makes very specifc assumptions about how the cache objects and keys
+//! The decomposer cache logic makes very specific assumptions about how the cache objects and keys
 //! are constructed, so we use this module to localise where all these assumptions are being made,
 //! and to enforce a safe API within the rest of the unitary synthesis logic.
 

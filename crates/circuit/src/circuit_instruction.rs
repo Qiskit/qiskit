@@ -177,7 +177,7 @@ impl CircuitInstruction {
     pub fn get_operation(&self, py: Python) -> PyResult<Py<PyAny>> {
         // This doesn't use `get_or_init` because a) the initialiser is fallible and
         // `get_or_try_init` isn't stable, and b) the initialiser can yield to the Python
-        // interpreter, which might suspend the thread and allow another to inadvertantly attempt to
+        // interpreter, which might suspend the thread and allow another to inadvertently attempt to
         // re-enter the cache setter, which isn't safe.
 
         #[cfg(feature = "cache_pygates")]
@@ -1043,7 +1043,7 @@ fn warn_on_legacy_circuit_instruction_iteration(py: Python) -> PyResult<()> {
             ),
             py.get_type::<PyDeprecationWarning>(),
             // Stack level.  Compared to Python-space calls to `warn`, this is unusually low
-            // beacuse all our internal call structure is now Rust-space and invisible to Python.
+            // because all our internal call structure is now Rust-space and invisible to Python.
             1,
         ))
         .map(|_| ())
