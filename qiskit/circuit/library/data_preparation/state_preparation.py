@@ -11,8 +11,6 @@
 # that they have been altered from the originals.
 """Prepare a quantum state from the state where all qubits are 0."""
 
-from typing import Union, Optional
-
 import math
 import numpy as np
 
@@ -41,10 +39,10 @@ class StatePreparation(Gate):
 
     def __init__(
         self,
-        params: Union[str, list, int, Statevector],
-        num_qubits: Optional[int] = None,
+        params: str | list | int | Statevector,
+        num_qubits: int | None = None,
         inverse: bool = False,
-        label: Optional[str] = None,
+        label: str | None = None,
         normalize: bool = False,
     ):
         r"""
@@ -270,7 +268,7 @@ class UniformSuperpositionGate(Gate):
     def __init__(
         self,
         num_superpos_states: int = 2,
-        num_qubits: Optional[int] = None,
+        num_qubits: int | None = None,
     ):
         r"""
         Args:

@@ -15,7 +15,6 @@
 from __future__ import annotations
 
 import math
-from typing import Optional
 import numpy
 
 from qiskit.circuit.controlledgate import ControlledGate
@@ -53,7 +52,7 @@ class RXGate(Gate):
 
     _standard_gate = StandardGate.RX
 
-    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
+    def __init__(self, theta: ParameterValueType, label: str | None = None):
         """
         Args:
             theta: The rotation angle.
@@ -220,7 +219,12 @@ class CRXGate(ControlledGate):
         *,
         _base_label=None,
     ):
-        """Create new CRX gate."""
+        """
+        Args:
+            theta: The rotation angle.
+            label: An optional label for the gate.
+            ctrl_state: The control state for the control qubit. Defaults to 1.
+        """
         super().__init__(
             "crx",
             2,

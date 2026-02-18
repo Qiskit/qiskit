@@ -12,7 +12,6 @@
 
 """Identity gate."""
 
-from typing import Optional
 from qiskit.circuit.singleton import SingletonGate, stdlib_singleton_key
 from qiskit.circuit._utils import with_gate_array
 from qiskit._accelerate.circuit import StandardGate
@@ -49,7 +48,7 @@ class IGate(SingletonGate):
 
     _standard_gate = StandardGate.I
 
-    def __init__(self, label: Optional[str] = None):
+    def __init__(self, label: str | None = None):
         """
         Args:
             label: An optional label for the gate.
@@ -59,7 +58,7 @@ class IGate(SingletonGate):
     _singleton_lookup_key = stdlib_singleton_key()
 
     def inverse(self, annotated: bool = False):
-        """Returne the inverse gate (itself).
+        """Return the inverse gate (itself).
 
         Args:
             annotated: when set to ``True``, this is typically used to return an
@@ -69,7 +68,7 @@ class IGate(SingletonGate):
 
         Returns:
             IGate: inverse gate (self-inverse).
-        ."""
+        """
         return IGate()  # self-inverse
 
     def power(self, exponent: float, annotated: bool = False):

@@ -21,9 +21,9 @@ from qiskit.utils.deprecation import deprecate_func
 
 
 class PhaseOracle(QuantumCircuit):
-    r"""Phase Oracle.
+    r"""Phase oracle.
 
-    The Phase Oracle object constructs circuits for any arbitrary
+    The phase oracle object constructs circuits for any arbitrary
     input logical expressions. A logical expression is composed of logical operators
     `&` (logical `AND`), `|` (logical  `OR`),
     `~` (logical  `NOT`), and `^` (logical  `XOR`).
@@ -91,9 +91,9 @@ class PhaseOracle(QuantumCircuit):
 
     @classmethod
     def from_dimacs_file(cls, filename: str):
-        r"""Create a PhaseOracle from the string in the DIMACS format.
+        r"""Create a :class:`.PhaseOracle` from the string in the DIMACS format.
 
-        It is possible to build a PhaseOracle from a file in `DIMACS CNF format
+        It is possible to build a :class:`.PhaseOracle` from a file in `DIMACS CNF format
         <https://web.archive.org/web/20190325181937/https://www.satcompetition.org/2009/format-benchmarks2009.html>`__,
         which is the standard format for specifying SATisfiability (SAT) problem instances in
         `Conjunctive Normal Form (CNF) <https://en.wikipedia.org/wiki/Conjunctive_normal_form>`__,
@@ -141,7 +141,7 @@ class PhaseOracle(QuantumCircuit):
 class PhaseOracleGate(Gate):
     r"""Implements a phase oracle.
 
-    The Phase Oracle Gate object constructs circuits for any arbitrary
+    This gate constructs circuits for any arbitrary
     input logical expressions. A logical expression is composed of logical operators
     `&` (logical `AND`), `|` (logical  `OR`),
     `~` (logical  `NOT`), and `^` (logical  `XOR`).
@@ -205,9 +205,9 @@ class PhaseOracleGate(Gate):
 
     @classmethod
     def from_dimacs_file(cls, filename: str) -> PhaseOracleGate:
-        r"""Create a PhaseOracle from the string in the DIMACS format.
+        r"""Create a :class:`.PhaseOracleGate` from the string in the DIMACS format.
 
-        It is possible to build a PhaseOracle from a file in `DIMACS CNF format
+        It is possible to build a :class:`.PhaseOracleGate` from a file in `DIMACS CNF format
         <https://web.archive.org/web/20190325181937/https://www.satcompetition.org/2009/format-benchmarks2009.html>`__,
         which is the standard format for specifying SATisfiability (SAT) problem instances in
         `Conjunctive Normal Form (CNF) <https://en.wikipedia.org/wiki/Conjunctive_normal_form>`__,

@@ -15,7 +15,6 @@
 from __future__ import annotations
 
 from cmath import exp
-from typing import Optional
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit._accelerate.circuit import StandardGate
@@ -34,7 +33,7 @@ class RZZGate(Gate):
     .. code-block:: text
 
         q_0: ───■────
-                │zz(θ)
+                │ZZ(θ)
         q_1: ───■────
 
     Matrix representation:
@@ -89,7 +88,7 @@ class RZZGate(Gate):
 
     _standard_gate = StandardGate.RZZ
 
-    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
+    def __init__(self, theta: ParameterValueType, label: str | None = None):
         """
         Args:
             theta: The rotation angle.

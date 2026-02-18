@@ -15,7 +15,6 @@
 from __future__ import annotations
 
 import math
-from typing import Optional
 import numpy as np
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
@@ -77,7 +76,7 @@ class RYYGate(Gate):
 
     _standard_gate = StandardGate.RYY
 
-    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
+    def __init__(self, theta: ParameterValueType, label: str | None = None):
         """
         Args:
             theta: The rotation angle.

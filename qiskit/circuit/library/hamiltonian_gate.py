@@ -52,7 +52,7 @@ class HamiltonianGate(Gate):
     ) -> None:
         """
         Args:
-            data: A hermitian operator.
+            data: A Hermitian operator.
             time: Time evolution parameter.
             label: Unitary name for backend [Default: ``None``].
 

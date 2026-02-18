@@ -70,8 +70,7 @@ class IQP(QuantumCircuit):
         removal_timeline="in Qiskit 3.0",
     )
     def __init__(self, interactions: list | np.ndarray) -> None:
-        """Create IQP circuit.
-
+        """
         Args:
             interactions: input n-by-n symmetric matrix.
 
