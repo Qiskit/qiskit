@@ -195,7 +195,7 @@ class SolovayKitaevDecomposition:
                 and storing as such can cause errors when loading the file again.
         """
         # Safety guard: previously, we serialized via npy, but this format is incompatible
-        # with the current serialization, using Rust's serde + bincode. While we can still load
+        # with the current serialization, using Rust's binrw. While we can still load
         # .npy files in legacy format, the new format should not be stored as .npy.
         if filename[~3:] == ".npy":
             raise ValueError(
