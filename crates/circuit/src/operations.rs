@@ -3306,6 +3306,67 @@ impl UnitaryGate {
     }
 }
 
+#[derive(Clone, Debug)]
+#[repr(align(8))]
+pub struct PauliRotation {
+    /// The z-component of the pauli.
+    pub z: Vec<bool>,
+    /// The x-component of the pauli.
+    pub x: Vec<bool>,
+    /// The rotation angle, exp(i theta / 2 P)
+    pub angle: Param,
+}
+
+impl Operation for PauliRotation {
+    fn name(&self) -> &str {
+        "pauli_rotation"
+    }
+    fn num_qubits(&self) -> u32 {
+        self.z.len() as u32
+    }
+    fn num_clbits(&self) -> u32 {
+        0
+    }
+    fn num_params(&self) -> u32 {
+        1
+    }
+    fn directive(&self) -> bool {
+        false
+    }
+}
+
+impl PauliRotation {
+    pub fn create_py_op(&self, py: Python, label: Option<&str>) -> PyResult<Py<PyAny>> {
+        let z = self.z.to_pyarray(py);
+        let x = self.x.to_pyarray(py);
+
+        let py_label = if let Some(label) = label {
+            label.into_py_any(py)?
+        } else {
+            py.None()
+        };
+
+        let gate = imports::PAULI_ROTATION_GATE.get_bound(py).call_method1(
+            intern!(py, "_from_pauli_data"),
+            (z, x, self.angle.clone(), py_label),
+        )?;
+        Ok(gate.unbind())
+    }
+}
+
+impl PartialEq for PauliRotation {
+    fn eq(&self, other: &Self) -> bool {
+        self.x == other.x
+            && self.z == other.z
+            && self
+                .angle
+                .eq(&other.angle)
+                .expect("Angles are float or symbol, for which eq is infallible")
+    }
+}
+
+impl Eq for PauliRotation {}
+
 /// This class represents a PauliProductMeasurement instruction.
 #[derive(Clone, Debug)]
 #[repr(align(8))]

@@ -56,13 +56,9 @@ class PauliProductMeasurement(Instruction):
             label: An optional label for the gate to display in circuit visualizations.
                 By default, the label is set to ``PPM(<pauli label>)``.
 
-        .. note::
-
-            While Paulis involving ``"I"``-terms are fully supported, it is recommended to remove
-            ``"I"``-terms from the Pauli when creating a ``PauliProductMeasurement`` instruction,
-            as this does not change the actual measurement but specifies the instruction over
-            a smaller set of qubits.
-
+        Raises:
+            CircuitError: If the Pauli is the all identity operator, has size 0, or a complex
+                phase.
         """
 
         if not isinstance(pauli, Pauli):
@@ -105,7 +101,7 @@ class PauliProductMeasurement(Instruction):
     @classmethod
     def _from_pauli_data(cls, z, x, phase, label):
         """
-        Instantiates a PauliProductMeasurement isntruction from pauli data and label.
+        Instantiates a PauliProductMeasurement instruction from pauli data and label.
         This function is used internally from within the rust code and from QPY
         serialization.
         """
