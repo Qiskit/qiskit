@@ -181,7 +181,7 @@ class TestBooleanExpressionDIMACS(QiskitTestCase):
 
 
 class TestBooleanParse(QiskitTestCase):
-    """Tests the boolean experssion parsers"""
+    """Tests the boolean expression parsers"""
 
     def test_args_collection(self):
         """Tests that args are collected based of appearance in the string"""

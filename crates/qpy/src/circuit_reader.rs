@@ -637,7 +637,7 @@ fn unpack_py_instruction(
                 for param in py_params {
                     args.push(param.unbind());
                 }
-                // in the case if IfElseOp with Null else body, retaining it would confuse the heuristic detemining
+                // in the case if IfElseOp with Null else body, retaining it would confuse the heuristic determining
                 // whether parameter are blocks or true params; we can simply dump it.
                 instruction_values.retain(|value| !matches!(value, GenericValue::Null));
                 gate_class.call1(PyTuple::new(py, args)?)?

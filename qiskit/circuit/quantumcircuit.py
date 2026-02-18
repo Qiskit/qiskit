@@ -1072,7 +1072,7 @@ class QuantumCircuit:
         Default constructor of :class:`QuantumCircuit`.
 
         ..
-            `QuantumCirucit` documents its `__init__` method explicitly, unlike most classes where
+            `QuantumCircuit` documents its `__init__` method explicitly, unlike most classes where
             it's implicitly appended to the class-level documentation, just because the class is so
             huge and has a lot of introductory material to its class docstring.
 
@@ -1997,7 +1997,7 @@ class QuantumCircuit:
         is ``False``, and as :class:`.AnnotatedOperation` when ``annotated`` is ``True``.
 
         Args:
-            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            num_ctrl_qubits: Number of controls to add. Defaults to ``1``.
             label: An optional label to give the controlled gate for visualization.
                 Defaults to ``None``. Ignored if the controlled gate is implemented as an annotated
                 operation.
@@ -2996,7 +2996,7 @@ class QuantumCircuit:
         # instruction param the inner rust append method will raise a runtime error.
         # When this happens we need to handle the parameters separately.
         # This shouldn't happen in practice but 2 tests were doing this and it's not
-        # explicitly prohibted by the API.
+        # explicitly prohibited by the API.
         try:
             self._data.append(instruction)
         except RuntimeError:
@@ -4315,7 +4315,7 @@ class QuantumCircuit:
           QuantumCircuit: a deepcopy of the current circuit, with the specified name
         """
 
-        # vars_mode is "drop" since ``cpy._data`` is overriden anyway with the call to copy,
+        # vars_mode is "drop" since ``cpy._data`` is overridden anyway with the call to copy,
         # so no need to copy variables in this call.
         cpy = self.copy_empty_like(name, vars_mode="drop")
         cpy._data = self._data.copy()
@@ -5013,7 +5013,7 @@ class QuantumCircuit:
             target = self
         else:
             if not isinstance(parameters, dict):
-                # We're going to need to access the sorted order wihin the inner Rust method on
+                # We're going to need to access the sorted order within the inner Rust method on
                 # `target`, so warm up our own cache first so that subsequent calls to
                 # `assign_parameters` on `self` benefit as well.
                 _ = self._data.parameters

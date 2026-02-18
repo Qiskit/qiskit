@@ -350,7 +350,7 @@ macro_rules! create_bit_object {
         /// corresponding bits between two circuits.
         ///
         /// These objects are comparable in a global sense, unlike the lighter [Qubit] or [Clbit]
-        /// index-like objects used only _within_ a cirucit.  We use these objects when comparing
+        /// index-like objects used only _within_ a circuit.  We use these objects when comparing
         /// two circuits to each other, and resolving Python objects, but within the context of a
         /// circuit, we just use the simple indices.
         #[derive(Clone, Debug, PartialEq, Eq, Hash)]

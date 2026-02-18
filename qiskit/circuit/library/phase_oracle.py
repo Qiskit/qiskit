@@ -180,7 +180,7 @@ class PhaseOracleGate(Gate):
             var_order: A list with the order in which variables will be created.
                (default: by appearance)
             label: A label for the gate to display in visualizations. Per default, the label is
-                set to display the textual represntation of the boolean expression (truncated if needed)
+                set to display the textual representation of the boolean expression (truncated if needed)
         """
         if label is None:
             if isinstance(expression, str):

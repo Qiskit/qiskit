@@ -64,7 +64,7 @@ pub unsafe extern "C" fn qk_transpile_layout_num_output_qubits(
 /// @ingroup QkTranspileLayout
 /// Query the initial layout of a ``QkTranspileLayout``.
 ///
-/// The output array from this function represents the mapping from the virutal qubits in the
+/// The output array from this function represents the mapping from the virtual qubits in the
 /// original input circuit to the physical qubit in the output circuit. The
 /// index in the array is the virtual qubit and the value is the physical qubit. For example an
 /// output array of:

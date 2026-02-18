@@ -61,7 +61,7 @@ class BaseEstimatorV2(ABC):
 
         * Optionally, the estimation precision.
 
-     * precision: the estimation precision. This specification is optional and will be overriden by
+     * precision: the estimation precision. This specification is optional and will be overridden by
         the pub-wise shots if provided.
 
     All estimator implementations must implement default value for the ``precision`` in the
