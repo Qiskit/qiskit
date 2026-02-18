@@ -2283,11 +2283,11 @@ class QuantumCircuit:
             )
 
         # Maps bits in 'other' to bits in 'dest'.
-        mapped_qubits: list[Qubit]
-        mapped_clbits: list[Clbit]
+        mapped_qubits: list[Qubit] | None
+        mapped_clbits: list[Clbit] | None
         edge_map: dict[Qubit | Clbit, Qubit | Clbit] = {}
         if qubits is None:
-            mapped_qubits = dest.qubits
+            mapped_qubits = None
             edge_map.update(zip(other.qubits, dest.qubits))
         else:
             mapped_qubits = dest._qbit_argument_conversion(qubits)
@@ -2303,7 +2303,7 @@ class QuantumCircuit:
             edge_map.update(zip(other.qubits, mapped_qubits))
 
         if clbits is None:
-            mapped_clbits = dest.clbits
+            mapped_clbits = None
             edge_map.update(zip(other.clbits, dest.clbits))
         else:
             mapped_clbits = dest._cbit_argument_conversion(clbits)
@@ -2316,7 +2316,7 @@ class QuantumCircuit:
                 raise CircuitError(
                     f"Duplicate clbits referenced in 'clbits' parameter: '{mapped_clbits}'"
                 )
-            edge_map.update(zip(other.clbits, dest._cbit_argument_conversion(clbits)))
+            edge_map.update(zip(other.clbits, mapped_clbits))
 
         dest.duration = None
         dest.unit = "dt"
@@ -2389,9 +2389,8 @@ class QuantumCircuit:
                 return n_op.copy() if n_op is op and copy else n_op
 
             instructions = source._data.copy(copy_instructions=copy)
-            instructions.replace_bits(qubits=new_qubits, clbits=new_clbits)
             instructions.map_nonstandard_ops(map_vars)
-            dest._current_scope().extend(instructions)
+            dest._current_scope().extend(instructions, qubits=new_qubits, clbits=new_clbits)
 
         append_existing = None
         if front:
@@ -2410,7 +2409,9 @@ class QuantumCircuit:
             new_clbits=mapped_clbits,
         )
         if append_existing:
-            dest._current_scope().extend(append_existing)
+            dest._current_scope().extend(
+                append_existing, qubits=mapped_qubits, clbits=mapped_clbits
+            )
 
         return None if inplace else dest
 
@@ -7723,8 +7724,15 @@ class _OuterCircuitScopeInterface(CircuitScopeInterface):
         # QuantumCircuit._append is semi-public, so we just call back to it.
         return self.circuit._append(instruction, _standard_gate=_standard_gate)
 
-    def extend(self, data: CircuitData):
-        self.circuit._data.extend(data)
+    def extend(
+        self,
+        data: CircuitData,
+        qubits: list[Qubit] | None = None,
+        clbits: list[Clbit] | None = None,
+    ):
+        qubits = None if qubits is None else [self.circuit.find_bit(q).index for q in qubits]
+        clbits = None if clbits is None else [self.circuit.find_bit(c).index for c in clbits]
+        self.circuit._data.native_extend(data, qubits=qubits, clbits=clbits)
         self.circuit.duration = None
         self.circuit.unit = "dt"
 
