@@ -208,9 +208,8 @@ static STANDARD_GATE_SUBSTITUTIONS: [Option<GateToPBCType>; 52] = [
     // CSwap
     Some((
         &[
-            ("Z", FRAC_PI_4, &[2]),
-            ("X", FRAC_PI_4, &[2]),
-            ("Z", 3.0 * FRAC_PI_8, &[2]),
+            ("X", -3.0 * FRAC_PI_8, &[2]),
+            ("Y", -FRAC_PI_4, &[2]),
             ("XZ", FRAC_PI_4, &[1, 2]),
             ("Z", -FRAC_PI_4, &[1]),
             ("X", -FRAC_PI_4, &[2]),
@@ -221,12 +220,10 @@ static STANDARD_GATE_SUBSTITUTIONS: [Option<GateToPBCType>; 52] = [
             ("Z", FRAC_PI_8, &[2]),
             ("XZ", FRAC_PI_4, &[1, 2]),
             ("Z", -FRAC_PI_4, &[1]),
-            ("X", -FRAC_PI_4, &[2]),
-            ("Z", FRAC_PI_8, &[2]),
-            ("X", FRAC_PI_4, &[2]),
             ("Z", FRAC_PI_4, &[2]),
+            ("X", FRAC_PI_8, &[2]),
         ],
-        FRAC_PI_4,
+        5.0 * FRAC_PI_4,
     )),
     // RCCX
     None, // C3X
