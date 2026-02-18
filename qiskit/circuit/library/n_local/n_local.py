@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -189,7 +189,7 @@ def n_local(
         circuit = n_local(3, "x", "crx", entangler_map, reps=2)
         circuit.draw("mpl")
 
-    We can set different entanglements per layer, by specifing a callable that takes
+    We can set different entanglements per layer, by specifying a callable that takes
     as input the current layer index, and returns the entanglement structure. For example,
     the following uses different entanglements for odd and even layers:
 
@@ -1273,7 +1273,7 @@ def get_entangler_map(
         qubits on ``num_circuit_qubits`` qubits.
 
     Raises:
-        ValueError: If the entanglement mode ist not supported.
+        ValueError: If the entanglement mode is not supported.
     """
     try:
         return fast_entangler_map(num_circuit_qubits, num_block_qubits, entanglement, offset)

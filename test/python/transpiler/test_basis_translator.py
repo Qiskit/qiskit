@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -85,6 +85,13 @@ class TwoQubitZeroParamGate(Gate):
 
     def __init__(self, name="2q0p"):
         super().__init__(name, 2, [])
+
+
+class TwoQubitOneParamGate(Gate):
+    """Mock two qubit one param gate."""
+
+    def __init__(self, theta, name="2q1p"):
+        super().__init__(name, 2, [theta])
 
 
 class VariadicZeroParamGate(Gate):
@@ -459,6 +466,32 @@ class TestBasisTranslator(QiskitTestCase):
         dag_expected = circuit_to_dag(expected)
         self.assertEqual(dag_translated, dag_expected)
 
+    def test_loop_custom_gate_local_indices(self):
+        """Test with a custom gate inside a loop operation with different local qubit indices"""
+
+        # Create 3 qubit backend
+        backend = GenericBackendV2(num_qubits=3, control_flow=True)
+
+        # Add only this pair as native to the Target.
+        pair = (0, 2)
+        alpha = Parameter("alpha")
+        gate = TwoQubitOneParamGate(alpha)
+
+        # Add custom gate to be supported by the Target.
+        backend.target.add_instruction(gate, {pair: None})  # properties omitted for brevity
+
+        # Make the tracking register
+        qubits = QuantumRegister(3, "data")
+
+        # Create circuit with loop
+        circ = QuantumCircuit(qubits)
+        with circ.for_loop(range(2)):
+            circ.append(gate, [qubits[0], qubits[2]])
+
+        # Run the basis translator
+        result = BasisTranslator(std_eq_lib, [], backend.target)(circ)
+        self.assertEqual(circ, result)
+
     def test_different_bits(self):
         """Test that the basis translator correctly works when the inner blocks of control-flow
         operations are not over the same bits as the outer blocks."""
@@ -500,7 +533,7 @@ class TestBasisTranslator(QiskitTestCase):
 
 
 class TestUnrollerCompatability(QiskitTestCase):
-    """Tests backward compatability with the Unroller pass.
+    """Tests backward compatibility with the Unroller pass.
 
     Duplicate of TestUnroller from test.python.transpiler.test_unroller with
     Unroller replaced by UnrollCustomDefinitions -> BasisTranslator.

@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -33,7 +33,12 @@ from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.operators.symplectic.base_pauli import _count_y
 
 from .base_pauli import BasePauli
-from .clifford_circuits import _append_circuit, _append_operation
+from .clifford_circuits import (
+    _append_circuit,
+    _append_operation,
+    _prepend_operation,
+    _prepend_circuit,
+)
 
 
 class Clifford(BaseOperator, AdjointMixin, Operation):
@@ -433,6 +438,11 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
                 return _append_circuit(self.copy(), other, qargs=qargs)
             if isinstance(other, Instruction):
                 return _append_operation(self.copy(), other, qargs=qargs)
+        else:
+            if isinstance(other, QuantumCircuit):
+                return _prepend_circuit(self.copy(), other, qargs=qargs)
+            if isinstance(other, Instruction):
+                return _prepend_operation(self.copy(), other, qargs=qargs)
 
         if not isinstance(other, Clifford):
             # Not copying is safe since we're going to drop our only reference to `other` at the end

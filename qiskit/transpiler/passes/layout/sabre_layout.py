@@ -4,14 +4,13 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Layout selection using the SABRE bidirectional search approach from Li et al.
-"""
+"""Layout selection using the SABRE bidirectional search approach from Li et al."""
 
 import copy
 import logging
@@ -52,7 +51,7 @@ class SabreLayout(TransformationPass):
     circuit so that the layout is applied to the input dag (meaning that the output
     circuit will have ancilla qubits allocated for unused qubits on the coupling map
     and the qubits will be reordered to match the mapped physical qubits) and then
-    routing will be applied (inserting :class:`~.SwapGate`s to account for limited
+    routing will be applied (inserting :class:`~.SwapGate` objects to account for limited
     connectivity). This is unlike most other layout passes which are :class:`~.AnalysisPass`
     objects and just find an initial layout and set that on the property set. This is
     done because by default the pass will run parallel seed trials with different random

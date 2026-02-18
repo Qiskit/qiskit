@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -187,7 +187,7 @@ class IntegerComparatorGate(Gate):
         r"""
         Args:
             num_state_qubits: The number of qubits in the registers.
-            value: The value :math:`L` to compre to.
+            value: The value :math:`L` to compare to.
             geq: If ``True`` compute :math:`i \geq L`, otherwise compute :math:`i < L`.
             label: An optional label for the gate.
         """

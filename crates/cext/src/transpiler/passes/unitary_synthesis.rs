@@ -4,20 +4,20 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use hashbrown::HashSet;
-
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 
+use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_transpiler::passes::run_unitary_synthesis;
+use qiskit_transpiler::passes::{
+    UnitarySynthesisConfig, UnitarySynthesisState, run_unitary_synthesis,
+};
 use qiskit_transpiler::target::Target;
 
 /// @ingroup QkTranspilerPasses
@@ -65,7 +65,6 @@ use qiskit_transpiler::target::Target;
 ///
 /// Behavior is undefined if ``circuit`` or ``target`` is not a valid, non-null pointer to a ``QkCircuit`` and ``QkTarget``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpiler_pass_standalone_unitary_synthesis(
     circuit: *mut CircuitData,
     target: *const Target,
@@ -75,7 +74,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_unitary_synthesis(
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
     let target = unsafe { const_ptr_as_ref(target) };
-    let mut dag = match DAGCircuit::from_circuit_data(circuit, false, None, None, None, None) {
+    let dag = match DAGCircuit::from_circuit_data(circuit, false, None, None, None, None) {
         Ok(dag) => dag,
         Err(e) => panic!("{}", e),
     };
@@ -84,51 +83,48 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_unitary_synthesis(
     } else {
         Some(approximation_degree)
     };
-    let qubit_indices = (0..dag.num_qubits()).collect();
-    let out_dag = match run_unitary_synthesis(
-        &mut dag,
-        qubit_indices,
-        min_qubits,
-        Some(target),
-        HashSet::new(),
-        ["unitary".to_string()].into_iter().collect(),
-        HashSet::new(),
+    let physical_qubits = (0..dag.num_qubits() as u32)
+        .map(PhysicalQubit::new)
+        .collect::<Vec<_>>();
+    let mut synthesis_state = UnitarySynthesisState::new(UnitarySynthesisConfig {
         approximation_degree,
-        None,
-        None,
-        false,
+        run_python_decomposers: false,
+        ..Default::default()
+    });
+    let out_dag = match run_unitary_synthesis(
+        &dag,
+        &["unitary".to_string()].into_iter().collect(),
+        min_qubits,
+        &physical_qubits,
+        &mut synthesis_state,
+        target.into(),
     ) {
         Ok(dag) => dag,
         Err(e) => panic!("{}", e),
     };
-    let out_circuit = match dag_to_circuit(&out_dag, false) {
-        Ok(qc) => qc,
-        Err(e) => panic!("{}", e),
-    };
-    *circuit = out_circuit;
+    *circuit = CircuitData::from_dag_ref(&out_dag).unwrap();
 }
 
 #[cfg(all(test, not(miri)))]
 mod tests {
     use super::*;
 
-    use std::sync::Arc;
-
     use qiskit_circuit::Qubit;
     use qiskit_circuit::bit::ShareableQubit;
     use qiskit_circuit::circuit_data::CircuitData;
-    use qiskit_circuit::operations::{ArrayType, Operation, Param, StandardGate, UnitaryGate};
+    use qiskit_circuit::instruction::Parameters;
+    use qiskit_circuit::operations::{ArrayType, Param, StandardGate, UnitaryGate};
     use qiskit_circuit::packed_instruction::PackedOperation;
     use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
     use qiskit_circuit::parameter::symbol_expr::Symbol;
+    use smallvec::smallvec;
+    use std::sync::Arc;
 
     #[test]
     fn test_pass_synthesis() {
         let mut qc = CircuitData::new(
             Some((0..3).map(|_| ShareableQubit::new_anonymous()).collect()),
             None,
-            None,
-            0,
             (0.).into(),
         )
         .unwrap();
@@ -137,35 +133,35 @@ mod tests {
             array: ArrayType::NDArray(array),
         };
         let operation = PackedOperation::from_unitary(Box::new(gate));
-        qc.push_packed_operation(operation, &[], &[Qubit(0), Qubit(1)], &[])
+        qc.push_packed_operation(operation, None, &[Qubit(0), Qubit(1)], &[])
             .unwrap();
         let array = StandardGate::DCX.matrix(&[]).unwrap();
         let gate = UnitaryGate {
             array: ArrayType::NDArray(array),
         };
         let operation = PackedOperation::from_unitary(Box::new(gate));
-        qc.push_packed_operation(operation, &[], &[Qubit(1), Qubit(2)], &[])
+        qc.push_packed_operation(operation, None, &[Qubit(1), Qubit(2)], &[])
             .unwrap();
         let array = StandardGate::DCX.matrix(&[]).unwrap();
         let gate = UnitaryGate {
             array: ArrayType::NDArray(array),
         };
         let operation = PackedOperation::from_unitary(Box::new(gate));
-        qc.push_packed_operation(operation, &[], &[Qubit(1), Qubit(2)], &[])
+        qc.push_packed_operation(operation, None, &[Qubit(1), Qubit(2)], &[])
             .unwrap();
         let array = StandardGate::Tdg.matrix(&[]).unwrap();
         let gate = UnitaryGate {
             array: ArrayType::NDArray(array),
         };
         let operation = PackedOperation::from_unitary(Box::new(gate));
-        qc.push_packed_operation(operation, &[], &[Qubit(1)], &[])
+        qc.push_packed_operation(operation, None, &[Qubit(1)], &[])
             .unwrap();
         let array = StandardGate::CY.matrix(&[]).unwrap();
         let gate = UnitaryGate {
             array: ArrayType::NDArray(array),
         };
         let operation = PackedOperation::from_unitary(Box::new(gate));
-        qc.push_packed_operation(operation, &[], &[Qubit(0), Qubit(2)], &[])
+        qc.push_packed_operation(operation, None, &[Qubit(0), Qubit(2)], &[])
             .unwrap();
 
         let mut target = Target::new(
@@ -180,7 +176,7 @@ mod tests {
             None,    // concurrent_measurements
         )
         .unwrap();
-        let params: [Param; 3] = [
+        let params = Some(Parameters::Params(smallvec![
             Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
                 "ϴ", None, None,
             )))),
@@ -190,11 +186,11 @@ mod tests {
             Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
                 "λ", None, None,
             )))),
-        ];
+        ]));
         target
             .add_instruction(
                 PackedOperation::from_standard_gate(StandardGate::U),
-                &params,
+                params,
                 None,
                 None,
             )
@@ -202,7 +198,7 @@ mod tests {
         target
             .add_instruction(
                 PackedOperation::from_standard_gate(StandardGate::CX),
-                &[],
+                None,
                 None,
                 None,
             )

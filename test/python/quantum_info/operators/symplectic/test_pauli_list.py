@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -27,13 +27,29 @@ from qiskit.circuit.library import (
     CZGate,
     HGate,
     IGate,
+    ECRGate,
     SdgGate,
     SGate,
     SwapGate,
+    iSwapGate,
     XGate,
     YGate,
     ZGate,
-    ECRGate,
+    SXGate,
+    SXdgGate,
+    RXGate,
+    RYGate,
+    RZGate,
+    CPhaseGate,
+    CRXGate,
+    CRYGate,
+    CRZGate,
+    RXXGate,
+    RYYGate,
+    RZZGate,
+    RZXGate,
+    XXMinusYYGate,
+    XXPlusYYGate,
 )
 from qiskit.quantum_info.operators import (
     Clifford,
@@ -1984,6 +2000,11 @@ class TestPauliListMethods(QiskitTestCase):
             HGate(),
             SGate(),
             SdgGate(),
+            SXGate(),
+            SXdgGate(),
+            RXGate(theta=np.pi / 2),
+            RYGate(theta=np.pi / 2),
+            RZGate(phi=np.pi / 2),
             Clifford(IGate()),
             Clifford(XGate()),
             Clifford(YGate()),
@@ -2015,6 +2036,17 @@ class TestPauliListMethods(QiskitTestCase):
             CYGate(),
             CZGate(),
             SwapGate(),
+            iSwapGate(),
+            CPhaseGate(theta=np.pi),
+            CRXGate(theta=np.pi),
+            CRYGate(theta=np.pi),
+            CRZGate(theta=np.pi),
+            RXXGate(theta=np.pi / 2),
+            RYYGate(theta=np.pi / 2),
+            RZZGate(theta=np.pi / 2),
+            RZXGate(theta=np.pi / 2),
+            XXMinusYYGate(theta=np.pi),
+            XXPlusYYGate(theta=-np.pi),
             ECRGate(),
             Clifford(CXGate()),
             Clifford(CYGate()),

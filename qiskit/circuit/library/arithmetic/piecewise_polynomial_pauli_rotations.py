@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -84,7 +84,7 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
 
     [1] Haener, T., Roetteler, M., & Svore, K. M. (2018).
     Optimizing Quantum Circuits for Arithmetic.
-    `arXiv:1805.12445 <http://arxiv.org/abs/1805.12445>`_
+    `arXiv:1805.12445 <https://arxiv.org/abs/1805.12445>`_
 
     [2] Carrera Vazquez, A., Hiptmair, R., & Woerner, S. (2022).
     Enhancing the Quantum Linear Systems Algorithm using Richardson Extrapolation.
@@ -312,7 +312,8 @@ class PiecewisePolynomialPauliRotations(FunctionalPauliRotations):
                         basis=self.basis,
                     )
                 circuit.append(
-                    poly_r.to_gate().control(), [qr_ancilla[0]] + qr_state[:] + qr_target
+                    poly_r.to_gate().control(annotated=False),
+                    [qr_ancilla[0]] + qr_state[:] + qr_target,
                 )
 
                 # uncompute comparator
@@ -382,7 +383,7 @@ class PiecewisePolynomialPauliRotationsGate(Gate):
 
     [1] Haener, T., Roetteler, M., & Svore, K. M. (2018).
     Optimizing Quantum Circuits for Arithmetic.
-    `arXiv:1805.12445 <http://arxiv.org/abs/1805.12445>`_
+    `arXiv:1805.12445 <https://arxiv.org/abs/1805.12445>`_
 
     [2] Carrera Vazquez, A., Hiptmair, R., & Woerner, S. (2022).
     Enhancing the Quantum Linear Systems Algorithm using Richardson Extrapolation.
@@ -453,7 +454,7 @@ class PiecewisePolynomialPauliRotationsGate(Gate):
 
     def _define(self):
         num_state_qubits = self.num_qubits - self.num_compare - 1
-        circuit = QuantumCircuit(self.num_qubits, name=self.name)
+        circuit = QuantumCircuit(self.num_qubits)
         qr_state = circuit.qubits[:num_state_qubits]
 
         if len(self.breakpoints) > 2:
@@ -490,7 +491,9 @@ class PiecewisePolynomialPauliRotationsGate(Gate):
                     coeffs=mapped_coeffs[i],
                     basis=self.basis,
                 )
-                circuit.append(poly_r.control(), qr_compare + qr_state[:] + qr_target)
+                circuit.append(
+                    poly_r.control(annotated=False), qr_compare + qr_state[:] + qr_target
+                )
 
                 # uncompute comparator
                 circuit.append(comp, qr_state_full[:])

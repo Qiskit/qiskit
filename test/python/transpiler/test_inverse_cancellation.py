@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -181,7 +181,7 @@ class TestInverseCancellation(QiskitTestCase):
         qc.rx(np.pi / 4, 0)
         qc.rx(np.pi / 4, 0)
         with self.assertRaises(TranspilerError):
-            InverseCancellation([(RXGate(np.pi / 4))])
+            InverseCancellation([RXGate(np.pi / 4)])
 
     def test_string_gate_error(self):
         """Test that when gate is passed as a string an error is raised."""

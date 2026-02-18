@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -1033,7 +1033,7 @@ impl<'a> QASM3Builder {
     ) -> ExporterResult<()> {
         let name = instruction.op.name();
 
-        if instruction.op.control_flow() {
+        if instruction.op.try_control_flow().is_some() {
             Err(QASM3ExporterError::Error(format!(
                 "Control flow {name} is not supported"
             )))
@@ -1313,7 +1313,7 @@ impl<'a> QASM3Builder {
     #[allow(dead_code)]
     fn define_gate(&mut self, instr: &PackedInstruction) -> ExporterResult<()> {
         let operation = &instr.op;
-        let params: Vec<Param> = (0..instr.params_view().len())
+        let params: Vec<Param> = (0..instr.op.num_params())
             .map(|i| {
                 let name = format!("{}_{}", self._gate_param_prefix, i);
                 // TODO this need to be achievable more easily
@@ -1323,7 +1323,7 @@ impl<'a> QASM3Builder {
                 Param::ParameterExpression(Arc::new(expr))
             })
             .collect();
-        if let Some(instruction) = operation.definition(&params) {
+        if let Some(instruction) = instr.try_definition() {
             let params_def = params
                 .iter()
                 .enumerate()

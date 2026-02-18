@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -12,11 +12,13 @@
 
 """Test operations on control flow for dynamic QuantumCircuits."""
 
+import copy
 import math
 
 from ddt import ddt, data, unpack, idata
 
 from qiskit.circuit import Clbit, ClassicalRegister, Instruction, Parameter, QuantumCircuit, Qubit
+from qiskit import transpile
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.controlflow import CASE_DEFAULT, condition_resources, node_resources
 from qiskit.circuit.library import XGate, RXGate
@@ -656,6 +658,26 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
         self.assertNotEqual(BoxOp(body_a, duration=100.0, unit="ns"), base)
         self.assertNotEqual(BoxOp(body_a, duration=300.0, unit="ms"), base)
 
+    def test_box_copy_is_deep(self):
+        """Copying a circuit with a box should deepcopy the body."""
+        qc = QuantumCircuit(2)
+        with qc.box():
+            qc.cx(0, 1)
+
+        qc_copy = qc.copy()
+
+        self.assertIsNot(
+            qc[0].operation.blocks[0],
+            qc_copy[0].operation.blocks[0],
+        )
+
+        qc_deepcopy = copy.deepcopy(qc)
+
+        self.assertIsNot(
+            qc[0].operation.blocks[0],
+            qc_deepcopy[0].operation.blocks[0],
+        )
+
 
 @ddt
 class TestAddingControlFlowOperations(QiskitTestCase):
@@ -1260,3 +1282,17 @@ class TestAddingControlFlowOperations(QiskitTestCase):
             )
         with self.assertRaisesRegex(CircuitError, "not in this circuit"):
             outer.append(BoxOp(inner.copy()), [0], [0])
+
+    def test_transpiling_with_control_flow(self):
+        """Test we don't run into compilation errors when transpiling circuits with control flows"""
+        qc = QuantumCircuit(1, 1)
+
+        with qc.for_loop(range(1000)):
+            qc.h(0)
+            qc.measure(0, 0)
+            with qc.if_test((0, False)):
+                qc.continue_loop()
+            qc.break_loop()
+
+        transpiled = transpile(qc)
+        self.assertIsNotNone(transpiled)

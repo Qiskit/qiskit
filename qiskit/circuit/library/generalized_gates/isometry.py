@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -125,7 +125,7 @@ class Isometry(Instruction):
         gate = self.inv_gate()
         gate = gate.inverse()
         q = QuantumRegister(self.num_qubits, "q")
-        iso_circuit = QuantumCircuit(q, name="isometry")
+        iso_circuit = QuantumCircuit(q)
         iso_circuit.append(gate, q[:])
         self.definition = iso_circuit
 
@@ -153,7 +153,7 @@ class Isometry(Instruction):
         remaining_isometry = self.iso_data.astype(complex)  # note: "astype" does copy the isometry
         diag = []
         m = int(math.log2(self.iso_data.shape[1]))
-        # Decompose the column with index column_index and attache the gate to the circuit object.
+        # Decompose the column with index column_index and attach the gate to the circuit object.
         # Return the isometry that is left to decompose, where the columns up to index column_index
         # correspond to the firstfew columns of the identity matrix up to diag, and hence we only
         # have to save a list containing them.

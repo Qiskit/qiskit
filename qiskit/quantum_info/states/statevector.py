@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -112,6 +112,75 @@ class Statevector(QuantumState, TolerancesMixin):
             elif ndim != 2 or shape[1] != 1:
                 raise QiskitError("Invalid input: not a vector or column-vector.")
         super().__init__(op_shape=OpShape.auto(shape=shape, dims_l=dims, num_qubits_r=0))
+
+    @classmethod
+    def from_circuit(cls, circuit: QuantumCircuit, ignore_set_layout: bool = False) -> Statevector:
+        """Create a Statevector from a quantum circuit.
+
+        Args:
+            circuit (QuantumCircuit): A quantum circuit
+            ignore_set_layout (bool): When set to ``True``, if the input ``circuit``
+                has a layout set, it will be ignored. Defaults to ``False``.
+
+        Returns:
+            The statevector obtained by applying the circuit on the all-zero
+            input state.
+
+        Example:
+            Create a statevector from a transpiled circuit:
+
+            .. plot::
+               :include-source:
+               :nofigs:
+
+                from qiskit import QuantumCircuit, transpile
+                from qiskit.quantum_info import Statevector
+                from qiskit.providers.basic_provider import BasicSimulator
+
+                qc = QuantumCircuit(3)
+                qc.h(0)
+                qc.cx(0, 1)
+                qc.swap(1, 2)
+
+                backend = BasicSimulator()
+                transpiled1 = transpile(qc, backend, optimization_level=0)
+                transpiled2 = transpile(qc, backend, optimization_level=2)
+
+                # Get statevectors accounting for layout changes
+                sv1 = Statevector.from_circuit(transpiled1)
+                sv2 = Statevector.from_circuit(transpiled2)
+
+                # These will be equivalent up to global phase
+                print(sv1.equiv(sv2))  # True
+        """
+
+        from qiskit.synthesis.permutation.permutation_utils import _inverse_pattern
+
+        # Handle layout extraction
+        layout = None
+        if not ignore_set_layout:
+            layout = circuit.layout
+        # Create statevector using from_instruction (which iterates through circuit)
+        statevec = cls.from_instruction(circuit)
+
+        # Apply layout permutations if needed (this handles transpiler layout changes)
+        if not ignore_set_layout and layout is not None:
+            layout_indices = layout.final_index_layout()
+            # Apply LSb0 qubit ordering (least-significant-bit is 0)
+            num_qubits = statevec.num_qubits
+            reversed_perm = [
+                num_qubits - 1 - layout_indices[num_qubits - 1 - i] for i in range(num_qubits)
+            ]
+
+            # Use NumPy tensor reordering to apply the permutation efficiently
+            # Reshape to tensor (one dimension per qubit)
+            data_tensor = np.reshape(statevec._data, (2,) * num_qubits)
+            # Apply permutation via transpose
+            permuted_tensor = np.transpose(data_tensor, reversed_perm)
+            # Flatten back to statevector
+            statevec._data = np.reshape(permuted_tensor, -1)
+
+        return statevec
 
     def __array__(self, dtype=None, copy=_numpy_compat.COPY_ONLY_IF_NEEDED):
         dtype = self.data.dtype if dtype is None else dtype
@@ -483,9 +552,6 @@ class Statevector(QuantumState, TolerancesMixin):
         x_mask = np.dot(1 << qubits, pauli.x)
         z_mask = np.dot(1 << qubits, pauli.z)
         pauli_phase = (-1j) ** pauli.phase if pauli.phase else 1
-
-        if x_mask + z_mask == 0:
-            return pauli_phase * np.linalg.norm(self.data) ** 2
 
         if x_mask == 0:
             return pauli_phase * expval_pauli_no_x(self.data, self.num_qubits, z_mask)

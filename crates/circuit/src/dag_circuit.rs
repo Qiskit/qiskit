@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -15,12 +15,11 @@ use std::hash::Hash;
 use std::sync::Arc;
 
 use ahash::RandomState;
-use approx::relative_eq;
 use smallvec::SmallVec;
 
 use crate::bit::{
-    BitLocations, ClassicalRegister, PyClassicalRegister, PyClbit, PyQubit, QuantumRegister,
-    Register, ShareableClbit, ShareableQubit,
+    BitLocations, ClassicalRegister, PyClbit, PyQubit, QuantumRegister, Register, ShareableClbit,
+    ShareableQubit,
 };
 use crate::bit_locator::BitLocator;
 use crate::circuit_data::{CircuitData, CircuitIdentifierInfo, CircuitStretchType, CircuitVarType};
@@ -33,14 +32,19 @@ use crate::error::DAGCircuitError;
 use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::ObjectRegistry;
 use crate::operations::{
-    ArrayType, Operation, OperationRef, Param, PyInstruction, PythonOperation, StandardGate,
+    ArrayType, BoxDuration, Condition, ControlFlow, ControlFlowInstruction, ControlFlowView,
+    Operation, OperationRef, Param, PyOperationTypes, PythonOperation, StandardGate,
+    StandardInstruction, SwitchTarget,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::ParameterExpression;
 use crate::register_data::RegisterData;
 use crate::slice::PySequenceIndex;
 use crate::variable_mapper::VariableMapper;
-use crate::{Clbit, Qubit, Stretch, TupleLikeArg, Var, VarsMode, imports, vf2};
+use crate::{
+    Block, BlockMapper, BlocksMode, Clbit, ControlFlowBlocks, Qubit, Stretch, TupleLikeArg, Var,
+    VarsMode, converters, imports, instruction, vf2,
+};
 
 use hashbrown::{HashMap, HashSet};
 use indexmap::{IndexMap, IndexSet};
@@ -64,7 +68,7 @@ use rustworkx_core::petgraph;
 use rustworkx_core::petgraph::Incoming;
 use rustworkx_core::petgraph::prelude::StableDiGraph;
 use rustworkx_core::petgraph::prelude::*;
-use rustworkx_core::petgraph::stable_graph::{EdgeReference, IndexType, NodeIndex};
+use rustworkx_core::petgraph::stable_graph::{EdgeReference, IndexType};
 use rustworkx_core::petgraph::unionfind::UnionFind;
 use rustworkx_core::petgraph::visit::{
     EdgeIndexable, IntoEdgeReferences, IntoNodeReferences, NodeFiltered, NodeIndexable,
@@ -74,15 +78,22 @@ use rustworkx_core::traversal::{
     bfs_successors as core_bfs_successors, descendants as core_descendants,
 };
 
+use crate::imports::PARAMETER;
+use crate::instruction::Parameters;
+use crate::parameter_table::ParameterUuid;
+use approx::relative_eq;
 use std::collections::{BTreeMap, VecDeque};
 use std::convert::Infallible;
 use std::f64::consts::PI;
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
+use uuid::Uuid;
 
 static CONTROL_FLOW_OP_NAMES: [&str; 5] =
     ["for_loop", "while_loop", "if_else", "switch_case", "box"];
 static SEMANTIC_EQ_SYMMETRIC: [&str; 4] = ["barrier", "swap", "break_loop", "continue_loop"];
+
+pub use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 #[derive(Clone, Debug)]
 pub enum NodeType {
@@ -201,6 +212,8 @@ pub struct DAGCircuit {
     qubits: ObjectRegistry<Qubit, ShareableQubit>,
     /// Clbits registered in the circuit.
     clbits: ObjectRegistry<Clbit, ShareableClbit>,
+    /// Basic blocks registered in the circuit.
+    blocks: ControlFlowBlocks<DAGCircuit>,
     /// Variables registered in the circuit.
     vars: ObjectRegistry<Var, expr::Var>,
     /// Stretches registered in the circuit.
@@ -255,18 +268,8 @@ fn condition_resources(condition: &Bound<PyAny>) -> PyResult<PyLegacyResources> 
         .get_bound(condition.py())
         .call1((condition,))?;
     Ok(PyLegacyResources {
-        clbits: res.getattr("clbits")?.downcast_into_exact()?.unbind(),
-        cregs: res.getattr("cregs")?.downcast_into_exact()?.unbind(),
-    })
-}
-
-fn node_resources(node: &Bound<PyAny>) -> PyResult<PyLegacyResources> {
-    let res = imports::CONTROL_FLOW_NODE_RESOURCES
-        .get_bound(node.py())
-        .call1((node,))?;
-    Ok(PyLegacyResources {
-        clbits: res.getattr("clbits")?.downcast_into_exact()?.unbind(),
-        cregs: res.getattr("cregs")?.downcast_into_exact()?.unbind(),
+        clbits: res.getattr("clbits")?.cast_into_exact()?.unbind(),
+        cregs: res.getattr("cregs")?.cast_into_exact()?.unbind(),
     })
 }
 
@@ -296,11 +299,11 @@ impl PyBitLocations {
 
     fn __eq__(slf: Bound<Self>, other: Bound<PyAny>) -> PyResult<bool> {
         let borrowed = slf.borrow();
-        if let Ok(other) = other.downcast::<Self>() {
+        if let Ok(other) = other.cast::<Self>() {
             let other_borrowed = other.borrow();
             Ok(borrowed.index == other_borrowed.index
                 && slf.getattr("registers")?.eq(other.getattr("registers")?)?)
-        } else if let Ok(other) = other.downcast::<PyTuple>() {
+        } else if let Ok(other) = other.cast::<PyTuple>() {
             Ok(slf.getattr("index")?.eq(other.get_item(0)?)?
                 && slf.getattr("registers")?.eq(other.get_item(1)?)?)
         } else {
@@ -389,7 +392,7 @@ impl DAGVarInfo {
     }
 
     fn from_pickle(ob: &Bound<PyAny>) -> PyResult<Self> {
-        let val_tuple = ob.downcast::<PyTuple>()?;
+        let val_tuple = ob.cast::<PyTuple>()?;
         Ok(DAGVarInfo {
             var: Var(val_tuple.get_item(0)?.extract()?),
             type_: match val_tuple.get_item(1)?.extract::<u8>()? {
@@ -441,7 +444,7 @@ impl DAGStretchInfo {
     }
 
     fn from_pickle(ob: &Bound<PyAny>) -> PyResult<Self> {
-        let val_tuple = ob.downcast::<PyTuple>()?;
+        let val_tuple = ob.cast::<PyTuple>()?;
         Ok(DAGStretchInfo {
             stretch: Stretch(val_tuple.get_item(0)?.extract()?),
             type_: match val_tuple.get_item(1)?.extract::<u8>()? {
@@ -478,7 +481,7 @@ impl DAGIdentifierInfo {
     }
 
     fn from_pickle(ob: &Bound<PyAny>) -> PyResult<Self> {
-        let val_tuple = ob.downcast::<PyTuple>()?;
+        let val_tuple = ob.cast::<PyTuple>()?;
         match val_tuple.get_item(0)?.extract::<u8>()? {
             0 => Ok(DAGIdentifierInfo::Stretch(DAGStretchInfo::from_pickle(
                 &val_tuple.get_item(1)?,
@@ -796,7 +799,7 @@ impl DAGCircuit {
     }
 
     fn __setstate__(&mut self, py: Python, state: Py<PyAny>) -> PyResult<()> {
-        let dict_state = state.downcast_bound::<PyDict>(py)?;
+        let dict_state = state.cast_bound::<PyDict>(py)?;
         self.name = dict_state.get_item("name")?.unwrap().extract()?;
         self.metadata = dict_state.get_item("metadata")?.unwrap().extract()?;
         self.qregs =
@@ -814,7 +817,7 @@ impl DAGCircuit {
         self.global_phase = dict_state.get_item("global_phase")?.unwrap().extract()?;
         self.op_names = dict_state.get_item("op_name")?.unwrap().extract()?;
         let binding = dict_state.get_item("identifier_info")?.unwrap();
-        let identifier_info_raw = binding.downcast::<PyDict>().unwrap();
+        let identifier_info_raw = binding.cast::<PyDict>().unwrap();
         self.identifier_info =
             IndexMap::with_capacity_and_hasher(identifier_info_raw.len(), RandomState::default());
         for (key, value) in identifier_info_raw.iter() {
@@ -854,17 +857,17 @@ impl DAGCircuit {
             self.clbits.add(bit, false)?;
         }
         let binding = dict_state.get_item("vars")?.unwrap();
-        let vars_raw = binding.downcast::<PyList>()?;
+        let vars_raw = binding.cast::<PyList>()?;
         for v in vars_raw.iter() {
             self.vars.add(v.extract()?, false)?;
         }
         let binding = dict_state.get_item("stretches")?.unwrap();
-        let stretches_raw = binding.downcast::<PyList>()?;
+        let stretches_raw = binding.cast::<PyList>()?;
         for s in stretches_raw.iter() {
             self.stretches.add(s.extract()?, false)?;
         }
         let binding = dict_state.get_item("qubit_io_map")?.unwrap();
-        let qubit_index_map_raw = binding.downcast::<PyDict>().unwrap();
+        let qubit_index_map_raw = binding.cast::<PyDict>().unwrap();
         self.qubit_io_map = Vec::with_capacity(qubit_index_map_raw.len());
         for (_k, v) in qubit_index_map_raw.iter() {
             let indices: [usize; 2] = v.extract()?;
@@ -872,7 +875,7 @@ impl DAGCircuit {
                 .push([NodeIndex::new(indices[0]), NodeIndex::new(indices[1])]);
         }
         let binding = dict_state.get_item("clbit_io_map")?.unwrap();
-        let clbit_index_map_raw = binding.downcast::<PyDict>().unwrap();
+        let clbit_index_map_raw = binding.cast::<PyDict>().unwrap();
         self.clbit_io_map = Vec::with_capacity(clbit_index_map_raw.len());
         for (_k, v) in clbit_index_map_raw.iter() {
             let indices: [usize; 2] = v.extract()?;
@@ -880,7 +883,7 @@ impl DAGCircuit {
                 .push([NodeIndex::new(indices[0]), NodeIndex::new(indices[1])]);
         }
         let binding = dict_state.get_item("var_io_map")?.unwrap();
-        let var_index_map_raw = binding.downcast::<PyDict>().unwrap();
+        let var_index_map_raw = binding.cast::<PyDict>().unwrap();
         self.var_io_map = Vec::with_capacity(var_index_map_raw.len());
         for (_k, v) in var_index_map_raw.iter() {
             let indices: [usize; 2] = v.extract()?;
@@ -889,21 +892,21 @@ impl DAGCircuit {
         }
         // Rebuild Graph preserving index holes:
         let binding = dict_state.get_item("nodes")?.unwrap();
-        let nodes_lst = binding.downcast::<PyList>()?;
+        let nodes_lst = binding.cast::<PyList>()?;
         let binding = dict_state.get_item("edges")?.unwrap();
-        let edges_lst = binding.downcast::<PyList>()?;
+        let edges_lst = binding.cast::<PyList>()?;
         let node_removed: bool = dict_state.get_item("nodes_removed")?.unwrap().extract()?;
         self.dag = StableDiGraph::default();
         if !node_removed {
             for item in nodes_lst.iter() {
-                let node_w = item.downcast::<PyTuple>().unwrap().get_item(1).unwrap();
+                let node_w = item.cast::<PyTuple>().unwrap().get_item(1).unwrap();
                 let weight = self.pack_into(py, &node_w)?;
                 self.dag.add_node(weight);
             }
         } else if nodes_lst.len() == 1 {
             // graph has only one node, handle logic here to save one if in the loop later
             let binding = nodes_lst.get_item(0).unwrap();
-            let item = binding.downcast::<PyTuple>().unwrap();
+            let item = binding.cast::<PyTuple>().unwrap();
             let node_idx: usize = item.get_item(0).unwrap().extract().unwrap();
             let node_w = item.get_item(1).unwrap();
 
@@ -917,7 +920,7 @@ impl DAGCircuit {
             }
         } else {
             let binding = nodes_lst.get_item(nodes_lst.len() - 1).unwrap();
-            let last_item = binding.downcast::<PyTuple>().unwrap();
+            let last_item = binding.cast::<PyTuple>().unwrap();
 
             // list of temporary nodes that will be removed later to re-create holes
             let node_bound_1: usize = last_item.get_item(0).unwrap().extract().unwrap();
@@ -925,7 +928,7 @@ impl DAGCircuit {
                 Vec::with_capacity(node_bound_1 + 1 - nodes_lst.len());
 
             for item in nodes_lst {
-                let item = item.downcast::<PyTuple>().unwrap();
+                let item = item.cast::<PyTuple>().unwrap();
                 let next_index: usize = item.get_item(0).unwrap().extract().unwrap();
                 let weight: Py<PyAny> = item.get_item(1).unwrap().extract().unwrap();
                 while next_index > self.dag.node_bound() {
@@ -952,7 +955,7 @@ impl DAGCircuit {
                 self.dag
                     .add_edge(tmp_node, tmp_node, Wire::Qubit(Qubit(u32::MAX)));
             } else {
-                let triple = item.downcast::<PyTuple>().unwrap();
+                let triple = item.cast::<PyTuple>().unwrap();
                 let edge_p: usize = triple.get_item(0).unwrap().extract().unwrap();
                 let edge_c: usize = triple.get_item(1).unwrap().extract().unwrap();
                 let edge_w = Wire::from_pickle(&triple.get_item(2).unwrap())?;
@@ -1073,12 +1076,10 @@ impl DAGCircuit {
     ///
     /// Args:
     ///     angle (float, :class:`.ParameterExpression`): The phase angle.
-    #[setter]
-    pub fn set_global_phase(&mut self, angle: Param) -> PyResult<()> {
+    #[setter(global_phase)]
+    pub fn set_global_phase_param(&mut self, angle: Param) -> PyResult<()> {
         match angle {
-            Param::Float(angle) => {
-                self.global_phase = Param::Float(angle.rem_euclid(2. * PI));
-            }
+            Param::Float(angle) => self.set_global_phase_f64(angle),
             Param::ParameterExpression(angle) => {
                 self.global_phase = Param::ParameterExpression(angle);
             }
@@ -1367,9 +1368,14 @@ impl DAGCircuit {
     ///
     /// Returns:
     ///     DAGCircuit: An empty copy of self.
-    #[pyo3(signature = (*, vars_mode=VarsMode::Alike))]
-    pub fn copy_empty_like(&self, vars_mode: VarsMode) -> PyResult<Self> {
-        self.copy_empty_like_with_capacity(0, 0, vars_mode)
+    // NOTE: this is typically not want you want from Rust, because you should be making decisions
+    // about the `BlocksMode`.  Python always wants `Drop` (because you can't reproduce references
+    // to existing blocks from Python space), but in Rust you should decide.
+    //
+    // You likely want `copy_empty_like_with_same_capacity`.
+    #[pyo3(name = "copy_empty_like", signature = (*, vars_mode=VarsMode::Alike))]
+    pub fn py_copy_empty_like(&self, vars_mode: VarsMode) -> PyResult<Self> {
+        self.copy_empty_like_with_capacity(0, 0, vars_mode, BlocksMode::Drop)
     }
 
     /// Put ``self`` into the canonical physical form, with the given number of qubits.
@@ -1450,7 +1456,7 @@ impl DAGCircuit {
         cargs: Option<TupleLikeArg>,
         check: bool,
     ) -> PyResult<Py<PyAny>> {
-        let py_op = op.extract::<OperationFromPython>()?;
+        let py_op = op.extract::<OperationFromPython<DAGCircuit>>()?;
         let qargs = qargs
             .map(|q| q.value.extract::<Vec<ShareableQubit>>())
             .transpose()?;
@@ -1472,7 +1478,7 @@ impl DAGCircuit {
                 op: py_op.operation,
                 qubits: qubits_id,
                 clbits: clbits_id,
-                params: (!py_op.params.is_empty()).then(|| Box::new(py_op.params)),
+                params: self.take_parameter_blocks(py_op.params),
                 label: py_op.label,
                 #[cfg(feature = "cache_pygates")]
                 py_op: op.unbind().into(),
@@ -1512,7 +1518,7 @@ impl DAGCircuit {
         cargs: Option<TupleLikeArg>,
         check: bool,
     ) -> PyResult<Py<PyAny>> {
-        let py_op = op.extract::<OperationFromPython>()?;
+        let py_op = op.extract::<OperationFromPython<DAGCircuit>>()?;
         let qargs = qargs
             .map(|q| q.value.extract::<Vec<ShareableQubit>>())
             .transpose()?;
@@ -1534,7 +1540,7 @@ impl DAGCircuit {
                 op: py_op.operation,
                 qubits: qubits_id,
                 clbits: clbits_id,
-                params: (!py_op.params.is_empty()).then(|| Box::new(py_op.params)),
+                params: self.take_parameter_blocks(py_op.params),
                 label: py_op.label,
                 #[cfg(feature = "cache_pygates")]
                 py_op: op.unbind().into(),
@@ -1608,14 +1614,21 @@ impl DAGCircuit {
             .map(|qubits| {
                 qubits
                     .iter()
-                    .map(|q| -> PyResult<ShareableQubit> {
+                    .map(|q| -> PyResult<Qubit> {
                         if q.is_instance_of::<PyInt>() {
-                            Ok(self.qubits.get(Qubit::new(q.extract()?)).unwrap().clone())
+                            let index = q.extract()?;
+                            Ok(Qubit::new(index))
                         } else {
-                            q.extract::<ShareableQubit>()
+                            let shareable_qubit = q.extract::<ShareableQubit>()?;
+                            self.qubits.find(&shareable_qubit).ok_or_else(|| {
+                                DAGCircuitError::new_err(format!(
+                                    "Qubit {:?} not found in DAG",
+                                    shareable_qubit
+                                ))
+                            })
                         }
                     })
-                    .collect::<PyResult<Vec<ShareableQubit>>>()
+                    .collect::<PyResult<Vec<Qubit>>>()
             })
             .transpose()?;
 
@@ -1623,24 +1636,53 @@ impl DAGCircuit {
             .map(|clbits| {
                 clbits
                     .iter()
-                    .map(|c| -> PyResult<ShareableClbit> {
+                    .map(|c| -> PyResult<Clbit> {
                         if c.is_instance_of::<PyInt>() {
-                            Ok(self.clbits.get(Clbit::new(c.extract()?)).unwrap().clone())
+                            let index = c.extract()?;
+                            Ok(Clbit::new(index))
                         } else {
-                            c.extract::<ShareableClbit>()
+                            let shareable_clbit = c.extract::<ShareableClbit>()?;
+                            self.clbits.find(&shareable_clbit).ok_or_else(|| {
+                                DAGCircuitError::new_err(format!(
+                                    "Clbit {:?} not found in DAG",
+                                    shareable_clbit
+                                ))
+                            })
                         }
                     })
-                    .collect::<PyResult<Vec<ShareableClbit>>>()
+                    .collect::<PyResult<Vec<Clbit>>>()
             })
             .transpose()?;
 
+        // TODO: since operations own their blocks in Python land, the best we can do without extra
+        //       tracking is to create a new block in 'self' for every block in 'other'. This will
+        //       lead to duplication if a Python user composes with a DAG that already uses blocks
+        //       registered in 'self'.
+        let block_map = other
+            .blocks()
+            .items()
+            .map(|(index, block)| (index, self.add_block(block.clone())))
+            .collect();
+
         // Compose
         if inplace {
-            self.compose(other, qubits.as_deref(), clbits.as_deref(), inline_captures)?;
+            self.compose(
+                other,
+                qubits.as_deref(),
+                clbits.as_deref(),
+                block_map,
+                inline_captures,
+            )?;
             Ok(None)
         } else {
             let mut dag = self.clone();
-            dag.compose(other, qubits.as_deref(), clbits.as_deref(), inline_captures)?;
+            dag.compose(
+                other,
+                qubits.as_deref(),
+                clbits.as_deref(),
+                block_map,
+                inline_captures,
+            )?;
             let out_obj = dag.into_py_any(py)?;
             Ok(Some(out_obj))
         }
@@ -1726,6 +1768,11 @@ impl DAGCircuit {
         Ok(PyTuple::new(py, result)?.into_any().try_iter()?.unbind())
     }
 
+    /// Return `true` if there are no operation nodes in the graph.
+    fn is_empty(&self) -> bool {
+        self.dag.node_count() == 2 * (self.qubits.len() + self.clbits.len() + self.vars.len())
+    }
+
     /// Return the number of operations.  If there is control flow present, this count may only
     /// be an estimate, as the complete control-flow path cannot be statically known.
     ///
@@ -1755,46 +1802,28 @@ impl DAGCircuit {
                 " but see this method's documentation for the meaning of this."
             )));
         }
-        Python::attach(|py| -> PyResult<()> {
-            // Handle recursively.
-            let circuit_to_dag = imports::CIRCUIT_TO_DAG.get_bound(py);
-            for node in self.dag.node_weights() {
-                let NodeType::Operation(node) = node else {
-                    continue;
-                };
-                if !node.op.control_flow() {
-                    continue;
+
+        // Handle recursively.
+        for control_flow in self
+            .op_nodes(false)
+            .filter_map(|(_, node)| self.try_view_control_flow(node))
+        {
+            match control_flow {
+                ControlFlowView::ForLoop {
+                    collection, body, ..
+                } => {
+                    // TODO: is this the intended logic?
+                    length += collection.len() * body.size(true)?;
                 }
-                let OperationRef::Instruction(inst) = node.op.view() else {
-                    panic!("control flow op must be an instruction");
-                };
-                let inst_bound = inst.instruction.bind(py);
-                if inst_bound.is_instance(imports::FOR_LOOP_OP.get_bound(py))? {
-                    let blocks = inst_bound.getattr("blocks")?;
-                    let block_zero = blocks.get_item(0)?;
-                    let inner_dag: &DAGCircuit = &circuit_to_dag.call1((block_zero,))?.extract()?;
-                    length += node.params_view().len() * inner_dag.size(true)?
-                } else if inst_bound.is_instance(imports::WHILE_LOOP_OP.get_bound(py))? {
-                    let blocks = inst_bound.getattr("blocks")?;
-                    let block_zero = blocks.get_item(0)?;
-                    let inner_dag: &DAGCircuit = &circuit_to_dag.call1((block_zero,))?.extract()?;
-                    length += inner_dag.size(true)?
-                } else if inst_bound.is_instance(imports::IF_ELSE_OP.get_bound(py))?
-                    || inst_bound.is_instance(imports::SWITCH_CASE_OP.get_bound(py))?
-                {
-                    let blocks = inst_bound.getattr("blocks")?;
-                    for block in blocks.try_iter()? {
-                        let inner_dag: &DAGCircuit = &circuit_to_dag.call1((block?,))?.extract()?;
-                        length += inner_dag.size(true)?;
+                _ => {
+                    for block in control_flow.blocks() {
+                        length += block.size(true)?;
                     }
-                } else {
-                    continue;
                 }
-                // We don't count a control-flow node itself!
-                length -= 1;
             }
-            Ok(())
-        })?;
+            // We don't count a control-flow node itself!
+            length -= 1;
+        }
         Ok(length)
     }
 
@@ -1836,40 +1865,29 @@ impl DAGCircuit {
                 " but see this method's documentation for the meaning of this."
             )));
         }
-        let node_lookup = Python::attach(|py| -> PyResult<HashMap<NodeIndex, usize>> {
-            // Handle recursively.
-            let circuit_to_dag = imports::CIRCUIT_TO_DAG.get_bound(py);
-            let mut node_lookup: HashMap<NodeIndex, usize> = HashMap::new();
-            for (node_index, node) in self.dag.node_references() {
-                let NodeType::Operation(node) = node else {
-                    continue;
-                };
-                if !node.op.control_flow() {
-                    continue;
-                }
-                let OperationRef::Instruction(inst) = node.op.view() else {
-                    panic!("control flow op must be an instruction")
-                };
-                let inst_bound = inst.instruction.bind(py);
-                let weight = if inst_bound.is_instance(imports::FOR_LOOP_OP.get_bound(py))? {
-                    node.params_view().len()
-                } else {
-                    1
-                };
-                if weight == 0 {
-                    node_lookup.insert(node_index, 0);
-                } else {
-                    let blocks = inst_bound.getattr("blocks")?;
-                    let mut block_weights: Vec<usize> = Vec::with_capacity(blocks.len()?);
-                    for block in blocks.try_iter()? {
-                        let inner_dag: &DAGCircuit = &circuit_to_dag.call1((block?,))?.extract()?;
-                        block_weights.push(inner_dag.depth(true)?);
-                    }
+        // Handle recursively.
+        let mut node_lookup: HashMap<NodeIndex, usize> = HashMap::new();
+        for (node_index, control_flow) in self
+            .op_nodes(false)
+            .filter_map(|(index, node)| self.try_view_control_flow(node).map(|cf| (index, cf)))
+        {
+            let weight = if let ControlFlowView::ForLoop { collection, .. } = control_flow {
+                collection.len()
+            } else {
+                1
+            };
+            if weight == 0 {
+                node_lookup.insert(node_index, 0);
+            } else {
+                let blocks = control_flow.blocks();
+                let mut block_weights: Vec<usize> = Vec::with_capacity(blocks.len());
+                for block in blocks {
+                    block_weights.push(block.depth(true)?);
                     node_lookup.insert(node_index, weight * block_weights.iter().max().unwrap());
                 }
             }
-            Ok(node_lookup)
-        })?;
+        }
+
         let weight_fn = |edge: EdgeReference<'_, Wire>| -> Result<usize, Infallible> {
             Ok(*node_lookup.get(&edge.target()).unwrap_or(&1))
         };
@@ -1902,6 +1920,11 @@ impl DAGCircuit {
         self.clbits.len()
     }
 
+    /// Return the number of basic blocks in this circuit.
+    pub fn num_blocks(&self) -> usize {
+        self.blocks.len()
+    }
+
     /// Get the number of op nodes in the DAG.
     #[inline]
     pub fn num_ops(&self) -> usize {
@@ -1927,348 +1950,756 @@ impl DAGCircuit {
     }
 
     fn __eq__(&self, py: Python, other: &DAGCircuit) -> PyResult<bool> {
-        // Try to convert to float, but in case of unbound ParameterExpressions
-        // a TypeError will be raise, fallback to normal equality in those
-        // cases.
-        let phase_is_close = |self_phase: f64, other_phase: f64| -> bool {
-            ((self_phase - other_phase + PI).rem_euclid(2. * PI) - PI).abs() <= 1.0e-10
-        };
-        let normalize_param = |param: &Param| {
-            if let Param::ParameterExpression(ob) = param {
-                // try casting ParameterExpression to Param, prioritizing Float
-                Param::from_expr(ob.as_ref().clone(), true)
-            } else {
-                Ok(param.clone())
+        fn eq_inner(
+            py: Python,
+            slf: &DAGCircuit,
+            slf_qubit_map: &HashMap<Qubit, Qubit>,
+            slf_clbit_map: &HashMap<Clbit, Clbit>,
+            other: &DAGCircuit,
+            other_qubit_map: &HashMap<Qubit, Qubit>,
+            other_clbit_map: &HashMap<Clbit, Clbit>,
+        ) -> PyResult<bool> {
+            // Try to convert to float, but in case of unbound ParameterExpressions
+            // a TypeError will be raise, fallback to normal equality in those
+            // cases.
+            let phase_is_close = |self_phase: f64, other_phase: f64| -> bool {
+                ((self_phase - other_phase + PI).rem_euclid(2. * PI) - PI).abs() <= 1.0e-10
+            };
+            let normalize_param = |param: &Param| {
+                if let Param::ParameterExpression(ob) = param {
+                    // try casting ParameterExpression to Param, prioritizing Float
+                    Param::from_expr(ob.as_ref().clone(), true)
+                } else {
+                    Ok(param.clone())
+                }
+            };
+
+            let phase_eq = match [
+                normalize_param(&slf.global_phase)?,
+                normalize_param(&other.global_phase)?,
+            ] {
+                [Param::Float(self_phase), Param::Float(other_phase)] => {
+                    Ok(phase_is_close(self_phase, other_phase))
+                }
+                _ => slf.global_phase.eq(&other.global_phase),
+            }?;
+            if !phase_eq {
+                return Ok(false);
             }
-        };
 
-        let phase_eq = match [
-            normalize_param(&self.global_phase)?,
-            normalize_param(&other.global_phase)?,
-        ] {
-            [Param::Float(self_phase), Param::Float(other_phase)] => {
-                Ok(phase_is_close(self_phase, other_phase))
+            // We don't do any semantic equivalence between Var nodes, as things stand; DAGs can only be
+            // equal in our mind if they use the exact same UUID vars.
+            if slf.vars_input.len() != other.vars_input.len()
+                || slf.vars_capture.len() != other.vars_capture.len()
+                || slf.vars_declare.len() != other.vars_declare.len()
+            {
+                return Ok(false);
             }
-            _ => self.global_phase.eq(&other.global_phase),
-        }?;
-        if !phase_eq {
-            return Ok(false);
-        }
 
-        // We don't do any semantic equivalence between Var nodes, as things stand; DAGs can only be
-        // equal in our mind if they use the exact same UUID vars.
-        if self.vars_input.len() != other.vars_input.len()
-            || self.vars_capture.len() != other.vars_capture.len()
-            || self.vars_declare.len() != other.vars_declare.len()
-        {
-            return Ok(false);
-        }
+            if slf.stretches_capture.len() != other.stretches_capture.len()
+                || slf.stretches_declare.len() != other.stretches_declare.len()
+            {
+                return Ok(false);
+            }
 
-        if self.stretches_capture.len() != other.stretches_capture.len()
-            || self.stretches_declare.len() != other.stretches_declare.len()
-        {
-            return Ok(false);
-        }
+            let var_eq = |our_vars: &HashSet<Var>, their_vars: &HashSet<Var>| -> PyResult<bool> {
+                for our_var in our_vars {
+                    let our_var = slf.vars.get(*our_var).unwrap();
+                    let Some(their_var) = other.vars.find(our_var) else {
+                        // The var isn't registered at all.
+                        return Ok(false);
+                    };
+                    if !their_vars.contains(&their_var) {
+                        // It's registered, but not as the right kind (e.g. not a capture).
+                        return Ok(false);
+                    }
+                }
+                Ok(true)
+            };
 
-        let var_eq = |our_vars: &HashSet<Var>, their_vars: &HashSet<Var>| -> PyResult<bool> {
-            for our_var in our_vars {
-                let our_var = self.vars.get(*our_var).unwrap();
-                let Some(their_var) = other.vars.find(our_var) else {
-                    // The var isn't registered at all.
+            if !var_eq(&slf.vars_input, &other.vars_input)?
+                || !var_eq(&slf.vars_capture, &other.vars_capture)?
+                || !var_eq(&slf.vars_declare, &other.vars_declare)?
+            {
+                return Ok(false);
+            }
+
+            for our_stretch in slf.stretches_capture.iter() {
+                let our_stretch = slf.stretches.get(*our_stretch).unwrap();
+                let Some(their_stretch) = other.stretches.find(our_stretch) else {
+                    // The stretch isn't registered at all.
                     return Ok(false);
                 };
-                if !their_vars.contains(&their_var) {
-                    // It's registered, but not as the right kind (e.g. not a capture).
+                if !other.stretches_capture.contains(&their_stretch) {
+                    // It's registered, but not as a capture.
                     return Ok(false);
                 }
             }
-            Ok(true)
-        };
 
-        if !var_eq(&self.vars_input, &other.vars_input)?
-            || !var_eq(&self.vars_capture, &other.vars_capture)?
-            || !var_eq(&self.vars_declare, &other.vars_declare)?
-        {
-            return Ok(false);
-        }
+            // Declared stretches must match exact order.
+            for (our_stretch, their_stretch) in
+                slf.stretches_declare.iter().zip(&other.stretches_declare)
+            {
+                if slf.stretches.get(*our_stretch) != other.stretches.get(*their_stretch) {
+                    return Ok(false);
+                }
+            }
 
-        for our_stretch in self.stretches_capture.iter() {
-            let our_stretch = self.stretches.get(*our_stretch).unwrap();
-            let Some(their_stretch) = other.stretches.find(our_stretch) else {
-                // The stretch isn't registered at all.
-                return Ok(false);
-            };
-            if !other.stretches_capture.contains(&their_stretch) {
-                // It's registered, but not as a capture.
+            // Check if qregs are the same.
+            let self_qregs = slf.qregs.registers();
+            let other_qregs = &other.qregs;
+            if self_qregs.len() != other_qregs.len() {
                 return Ok(false);
             }
-        }
+            for (regname, self_bits) in self_qregs.iter().map(|reg| (reg.name(), reg)) {
+                let self_bits: Vec<ShareableQubit> = self_bits.bits().collect();
+                let other_bits: Vec<ShareableQubit> = match other_qregs.get(regname) {
+                    Some(bits) => bits.bits().collect(),
+                    None => return Ok(false),
+                };
+                if !slf
+                    .qubits
+                    .map_objects(self_bits)?
+                    .map(|q| &slf_qubit_map[&q])
+                    .eq(other
+                        .qubits
+                        .map_objects(other_bits)?
+                        .map(|q| &other_qubit_map[&q]))
+                {
+                    return Ok(false);
+                }
+            }
 
-        // Declared stretches must match exact order.
-        for (our_stretch, their_stretch) in
-            self.stretches_declare.iter().zip(&other.stretches_declare)
-        {
-            if self.stretches.get(*our_stretch) != other.stretches.get(*their_stretch) {
+            // Check if cregs are the same.
+            let self_cregs = slf.cregs.registers();
+            let other_cregs = &other.cregs;
+            if self_cregs.len() != other_cregs.len() {
                 return Ok(false);
             }
-        }
 
-        let self_bit_indices = {
-            let indices = self
-                .qubits
-                .objects()
-                .into_pyobject(py)?
-                .try_iter()?
-                .chain(self.clbits.objects().into_pyobject(py)?.try_iter()?)
-                .enumerate()
-                .map(|(idx, bit)| -> PyResult<_> { Ok((bit?, idx)) });
-            indices.collect::<PyResult<Vec<_>>>()?.into_py_dict(py)?
-        };
-
-        let other_bit_indices = {
-            let indices = other
-                .qubits
-                .objects()
-                .into_pyobject(py)?
-                .try_iter()?
-                .chain(
-                    other
+            for (regname, self_bits) in self_cregs.iter().map(|reg| (reg.name(), reg)) {
+                let self_bits: Vec<ShareableClbit> = self_bits.bits().collect();
+                let other_bits: Vec<ShareableClbit> = match other_cregs.get(regname) {
+                    Some(bits) => bits.bits().collect(),
+                    None => return Ok(false),
+                };
+                if !slf
+                    .clbits
+                    .map_objects(self_bits)?
+                    .map(|c| &slf_clbit_map[&c])
+                    .eq(other
                         .clbits
-                        .objects()
-                        .clone()
-                        .into_pyobject(py)?
-                        .try_iter()?,
-                )
-                .enumerate()
-                .map(|(idx, bit)| -> PyResult<_> { Ok((bit?, idx)) });
-            indices.collect::<PyResult<Vec<_>>>()?.into_py_dict(py)?
-        };
-
-        // Check if qregs are the same.
-        let self_qregs = self.qregs.registers();
-        let other_qregs = &other.qregs;
-        if self_qregs.len() != other_qregs.len() {
-            return Ok(false);
-        }
-        for (regname, self_bits) in self_qregs.iter().map(|reg| (reg.name(), reg)) {
-            let self_bits: Vec<ShareableQubit> = self_bits.bits().collect();
-            let other_bits: Vec<ShareableQubit> = match other_qregs.get(regname) {
-                Some(bits) => bits.bits().collect(),
-                None => return Ok(false),
-            };
-            if !self
-                .qubits
-                .map_objects(self_bits)?
-                .eq(other.qubits.map_objects(other_bits)?)
-            {
-                return Ok(false);
+                        .map_objects(other_bits)?
+                        .map(|c| &other_clbit_map[&c]))
+                {
+                    return Ok(false);
+                }
             }
-        }
 
-        // Check if cregs are the same.
-        let self_cregs = self.cregs.registers();
-        let other_cregs = &other.cregs;
-        if self_cregs.len() != other_cregs.len() {
-            return Ok(false);
-        }
-
-        for (regname, self_bits) in self_cregs.iter().map(|reg| (reg.name(), reg)) {
-            let self_bits: Vec<ShareableClbit> = self_bits.bits().collect();
-            let other_bits: Vec<ShareableClbit> = match other_cregs.get(regname) {
-                Some(bits) => bits.bits().collect(),
-                None => return Ok(false),
-            };
-            if !self
-                .clbits
-                .map_objects(self_bits)?
-                .eq(other.clbits.map_objects(other_bits)?)
-            {
-                return Ok(false);
-            }
-        }
-
-        // Check for VF2 isomorphic match.
-        let condition_op_check = imports::CONDITION_OP_CHECK.get_bound(py);
-        let switch_case_op_check = imports::SWITCH_CASE_OP_CHECK.get_bound(py);
-        let for_loop_op_check = imports::FOR_LOOP_OP_CHECK.get_bound(py);
-        let box_op_check = imports::BOX_OP_CHECK.get_bound(py);
-        let node_match = |n1: &NodeType, n2: &NodeType| -> PyResult<bool> {
-            match [n1, n2] {
-                [NodeType::Operation(inst1), NodeType::Operation(inst2)] => {
-                    if inst1.op.name() != inst2.op.name() {
-                        return Ok(false);
-                    }
-                    let check_args = || -> bool {
-                        let node1_qargs = self.qargs_interner.get(inst1.qubits);
-                        let node2_qargs = other.qargs_interner.get(inst2.qubits);
-                        let node1_cargs = self.cargs_interner.get(inst1.clbits);
-                        let node2_cargs = other.cargs_interner.get(inst2.clbits);
-                        if SEMANTIC_EQ_SYMMETRIC.contains(&inst1.op.name()) {
-                            let node1_qargs =
-                                node1_qargs.iter().copied().collect::<HashSet<Qubit>>();
-                            let node2_qargs =
-                                node2_qargs.iter().copied().collect::<HashSet<Qubit>>();
-                            let node1_cargs =
-                                node1_cargs.iter().copied().collect::<HashSet<Clbit>>();
-                            let node2_cargs =
-                                node2_cargs.iter().copied().collect::<HashSet<Clbit>>();
-                            if node1_qargs != node2_qargs || node1_cargs != node2_cargs {
+            // Check for VF2 isomorphic match.
+            let node_match = |n1: &NodeType, n2: &NodeType| -> PyResult<bool> {
+                match [n1, n2] {
+                    [NodeType::Operation(inst1), NodeType::Operation(inst2)] => {
+                        if inst1.op.name() != inst2.op.name() {
+                            return Ok(false);
+                        }
+                        let check_args = || -> bool {
+                            let node1_qargs = slf
+                                .qargs_interner
+                                .get(inst1.qubits)
+                                .iter()
+                                .map(|q| &slf_qubit_map[q]);
+                            let node2_qargs = other
+                                .qargs_interner
+                                .get(inst2.qubits)
+                                .iter()
+                                .map(|q| &other_qubit_map[q]);
+                            let node1_cargs = slf
+                                .cargs_interner
+                                .get(inst1.clbits)
+                                .iter()
+                                .map(|c| &slf_clbit_map[c]);
+                            let node2_cargs = other
+                                .cargs_interner
+                                .get(inst2.clbits)
+                                .iter()
+                                .map(|c| &other_clbit_map[c]);
+                            if SEMANTIC_EQ_SYMMETRIC.contains(&inst1.op.name()) {
+                                let node1_qargs = node1_qargs.collect::<HashSet<&Qubit>>();
+                                let node2_qargs = node2_qargs.collect::<HashSet<&Qubit>>();
+                                let node1_cargs = node1_cargs.collect::<HashSet<&Clbit>>();
+                                let node2_cargs = node2_cargs.collect::<HashSet<&Clbit>>();
+                                if node1_qargs != node2_qargs || node1_cargs != node2_cargs {
+                                    return false;
+                                }
+                            } else if node1_qargs.ne(node2_qargs) || node1_cargs.ne(node2_cargs) {
                                 return false;
                             }
-                        } else if node1_qargs != node2_qargs || node1_cargs != node2_cargs {
-                            return false;
-                        }
-                        true
-                    };
-                    match [inst1.op.view(), inst2.op.view()] {
-                        [OperationRef::StandardGate(_), OperationRef::StandardGate(_)]
-                        | [
-                            OperationRef::StandardInstruction(_),
-                            OperationRef::StandardInstruction(_),
-                        ] => Ok(inst1.py_op_eq(py, inst2)?
-                            && check_args()
-                            && inst1
-                                .params_view()
-                                .iter()
-                                .zip(inst2.params_view().iter())
-                                .all(|(a, b)| a.is_close(b, 1e-10).unwrap())),
-                        [
-                            OperationRef::Instruction(op1),
-                            OperationRef::Instruction(op2),
-                        ] => {
-                            if op1.control_flow() && op2.control_flow() {
-                                let n1 = self.unpack_into(py, NodeIndex::new(0), n1)?;
-                                let n2 = other.unpack_into(py, NodeIndex::new(0), n2)?;
-                                let name = op1.name();
-                                if name == "if_else" || name == "while_loop" {
-                                    condition_op_check
-                                        .call1((n1, n2, &self_bit_indices, &other_bit_indices))?
-                                        .extract()
-                                } else if name == "switch_case" {
-                                    switch_case_op_check
-                                        .call1((n1, n2, &self_bit_indices, &other_bit_indices))?
-                                        .extract()
-                                } else if name == "for_loop" {
-                                    for_loop_op_check
-                                        .call1((n1, n2, &self_bit_indices, &other_bit_indices))?
-                                        .extract()
-                                } else if name == "box" {
-                                    box_op_check
-                                        .call1((n1, n2, &self_bit_indices, &other_bit_indices))?
-                                        .extract()
-                                } else {
-                                    Err(PyRuntimeError::new_err(format!(
-                                        "unhandled control-flow operation: {name}"
-                                    )))
-                                }
-                            } else {
-                                Ok(inst1.py_op_eq(py, inst2)? && check_args())
+                            true
+                        };
+                        if let (Some(cf1), Some(cf2)) = (
+                            slf.try_view_control_flow(inst1),
+                            other.try_view_control_flow(inst2),
+                        ) {
+                            if inst1.op.num_qubits() != inst2.op.num_qubits() {
+                                return Ok(false);
                             }
-                        }
-                        [OperationRef::Gate(_op1), OperationRef::Gate(_op2)] => {
-                            Ok(inst1.py_op_eq(py, inst2)? && check_args())
-                        }
-                        [OperationRef::Operation(_op1), OperationRef::Operation(_op2)] => {
-                            Ok(inst1.py_op_eq(py, inst2)? && check_args())
-                        }
-                        // Handle the edge case where we end up with a Python object and a standard
-                        // gate/instruction.
-                        // This typically only happens if we have a ControlledGate in Python
-                        // and we have mutable state set.
-                        [OperationRef::StandardGate(_), OperationRef::Gate(_)]
-                        | [OperationRef::Gate(_), OperationRef::StandardGate(_)]
-                        | [
-                            OperationRef::StandardInstruction(_),
-                            OperationRef::Instruction(_),
-                        ]
-                        | [
-                            OperationRef::Instruction(_),
-                            OperationRef::StandardInstruction(_),
-                        ] => Ok(inst1.py_op_eq(py, inst2)? && check_args()),
-                        [OperationRef::Unitary(op_a), OperationRef::Unitary(op_b)] => {
-                            match [&op_a.array, &op_b.array] {
-                                [ArrayType::NDArray(a), ArrayType::NDArray(b)] => {
-                                    Ok(relative_eq!(a, b, max_relative = 1e-5, epsilon = 1e-8))
+                            // These map the bit indices used in blocks to their indices in the
+                            // root DAG.
+                            let slf_block_qubit_map = (0..inst1.op.num_qubits())
+                                .map(Qubit)
+                                .zip(
+                                    slf.qargs_interner
+                                        .get(inst1.qubits)
+                                        .iter()
+                                        .map(|q| slf_qubit_map[q]),
+                                )
+                                .collect();
+                            let slf_block_clbit_map = (0..inst1.op.num_clbits())
+                                .map(Clbit)
+                                .zip(
+                                    slf.cargs_interner
+                                        .get(inst1.clbits)
+                                        .iter()
+                                        .map(|c| slf_clbit_map[c]),
+                                )
+                                .collect();
+                            let other_block_qubit_map = (0..inst2.op.num_qubits())
+                                .map(Qubit)
+                                .zip(
+                                    other
+                                        .qargs_interner
+                                        .get(inst2.qubits)
+                                        .iter()
+                                        .map(|q| other_qubit_map[q]),
+                                )
+                                .collect();
+                            let other_block_clbit_map = (0..inst2.op.num_clbits())
+                                .map(Clbit)
+                                .zip(
+                                    other
+                                        .cargs_interner
+                                        .get(inst2.clbits)
+                                        .iter()
+                                        .map(|c| other_clbit_map[c]),
+                                )
+                                .collect();
+
+                            let block_eq = |slf_block: &DAGCircuit,
+                                            other_block: &DAGCircuit|
+                             -> PyResult<bool> {
+                                eq_inner(
+                                    py,
+                                    slf_block,
+                                    &slf_block_qubit_map,
+                                    &slf_block_clbit_map,
+                                    other_block,
+                                    &other_block_qubit_map,
+                                    &other_block_clbit_map,
+                                )
+                            };
+
+                            #[derive(Debug, PartialEq)]
+                            enum VarKey {
+                                Bit(Clbit),
+                                Register(Vec<Clbit>),
+                                Var(expr::Var),
+                            }
+
+                            let slf_var_key = |v: &expr::Var| -> VarKey {
+                                match v {
+                                    expr::Var::Standalone { .. } => VarKey::Var(v.clone()),
+                                    expr::Var::Bit { bit } => {
+                                        VarKey::Bit(slf_clbit_map[&slf.clbits.find(bit).unwrap()])
+                                    }
+                                    expr::Var::Register { register, .. } => VarKey::Register(
+                                        register
+                                            .iter()
+                                            .map(|bit| {
+                                                slf_clbit_map[&slf.clbits.find(&bit).unwrap()]
+                                            })
+                                            .collect(),
+                                    ),
                                 }
-                                [ArrayType::OneQ(a), ArrayType::NDArray(b)]
-                                | [ArrayType::NDArray(b), ArrayType::OneQ(a)] => {
-                                    if b.shape()[0] == 2 {
-                                        for i in 0..2 {
-                                            for j in 0..2 {
-                                                if !relative_eq!(
-                                                    b[[i, j]],
-                                                    a[(i, j)],
-                                                    max_relative = 1e-5,
-                                                    epsilon = 1e-8
-                                                ) {
-                                                    return Ok(false);
-                                                }
-                                            }
+                            };
+                            let other_var_key = |v: &expr::Var| -> VarKey {
+                                match v {
+                                    expr::Var::Standalone { .. } => VarKey::Var(v.clone()),
+                                    expr::Var::Bit { bit } => VarKey::Bit(
+                                        other_clbit_map[&other.clbits.find(bit).unwrap()],
+                                    ),
+                                    expr::Var::Register { register, .. } => VarKey::Register(
+                                        register
+                                            .iter()
+                                            .map(|bit| {
+                                                other_clbit_map[&other.clbits.find(&bit).unwrap()]
+                                            })
+                                            .collect(),
+                                    ),
+                                }
+                            };
+
+                            let condition_eq = |condition_a: &Condition,
+                                                condition_b: &Condition|
+                             -> bool {
+                                match condition_a {
+                                    Condition::Bit(bit_a, value_a) => match condition_b {
+                                        Condition::Bit(bit_b, value_b) => {
+                                            value_a == value_b
+                                                && slf_clbit_map[&slf.clbits.find(bit_a).unwrap()]
+                                                    == other_clbit_map
+                                                        [&other.clbits.find(bit_b).unwrap()]
                                         }
-                                        Ok(true)
-                                    } else {
-                                        Ok(false)
+                                        _ => false,
+                                    },
+                                    Condition::Register(reg_a, value_a) => match condition_b {
+                                        Condition::Register(reg_b, value_b) => {
+                                            value_a == value_b
+                                                && reg_a
+                                                    .iter()
+                                                    .map(|a| {
+                                                        slf_clbit_map[&slf.clbits.find(&a).unwrap()]
+                                                    })
+                                                    .eq(reg_b.iter().map(|b| {
+                                                        other_clbit_map
+                                                            [&other.clbits.find(&b).unwrap()]
+                                                    }))
+                                        }
+                                        _ => false,
+                                    },
+                                    Condition::Expr(expr_a) => match condition_b {
+                                        Condition::Expr(expr_b) => expr_a
+                                            .structurally_equivalent_by_key(
+                                                slf_var_key,
+                                                expr_b,
+                                                other_var_key,
+                                            ),
+                                        _ => false,
+                                    },
+                                }
+                            };
+
+                            match (cf1, cf2) {
+                                (
+                                    ControlFlowView::Box {
+                                        duration: duration_a,
+                                        body: body_a,
+                                    },
+                                    ControlFlowView::Box {
+                                        duration: duration_b,
+                                        body: body_b,
+                                    },
+                                ) => {
+                                    let duration_eq = match duration_a {
+                                        Some(BoxDuration::Expr(duration_a)) => match duration_b {
+                                            Some(BoxDuration::Expr(duration_b)) => duration_a
+                                                .structurally_equivalent_by_key(
+                                                    &slf_var_key,
+                                                    duration_b,
+                                                    &other_var_key,
+                                                ),
+                                            _ => false,
+                                        },
+                                        Some(BoxDuration::Duration(duration_a)) => match duration_b
+                                        {
+                                            Some(BoxDuration::Duration(duration_b)) => {
+                                                duration_a == duration_b
+                                            }
+                                            _ => false,
+                                        },
+                                        None => duration_b.is_none(),
+                                    };
+                                    Ok(duration_eq && block_eq(body_a, body_b)?)
+                                }
+                                (ControlFlowView::BreakLoop, ControlFlowView::BreakLoop) => {
+                                    Ok(true)
+                                }
+                                (ControlFlowView::ContinueLoop, ControlFlowView::ContinueLoop) => {
+                                    Ok(true)
+                                }
+                                (
+                                    ControlFlowView::ForLoop {
+                                        collection: collection_a,
+                                        loop_param: loop_param_a,
+                                        body: body_a,
+                                    },
+                                    ControlFlowView::ForLoop {
+                                        collection: collection_b,
+                                        loop_param: loop_param_b,
+                                        body: body_b,
+                                    },
+                                ) => {
+                                    if collection_a != collection_b {
+                                        return Ok(false);
+                                    }
+                                    match (loop_param_a, loop_param_b) {
+                                        (Some(loop_param_a), Some(loop_param_b)) => {
+                                            // Until we have a way to assign parameters in a DAG, we need
+                                            // to convert a for loop's body DAG back to a circuit.
+                                            let sentinel = PARAMETER
+                                                .get_bound(py)
+                                                .call1((Uuid::new_v4().to_string(),))?;
+                                            let mut body_a_circuit =
+                                                converters::dag_to_circuit(body_a, false)?;
+                                            if body_a_circuit.uses_parameter(loop_param_a) {
+                                                body_a_circuit.assign_parameters_from_mapping([
+                                                    (
+                                                        ParameterUuid::from_symbol(loop_param_a),
+                                                        Param::ParameterExpression(Arc::new(
+                                                            ParameterExpression::from_symbol(
+                                                                sentinel.clone().extract()?,
+                                                            ),
+                                                        )),
+                                                    ),
+                                                ])?;
+                                            }
+                                            let body_a = DAGCircuit::from_circuit(
+                                                QuantumCircuitData {
+                                                    data: body_a_circuit,
+                                                    name: body_a.name.clone(),
+                                                    metadata: body_a
+                                                        .metadata
+                                                        .as_ref()
+                                                        .map(|m| m.bind(py).clone()),
+                                                    transpile_layout: None,
+                                                },
+                                                false,
+                                                None,
+                                                None,
+                                            )?;
+
+                                            let mut body_b_circuit =
+                                                converters::dag_to_circuit(body_b, false)?;
+                                            if body_b_circuit.uses_parameter(loop_param_b) {
+                                                body_b_circuit.assign_parameters_from_mapping([
+                                                    (
+                                                        ParameterUuid::from_symbol(loop_param_b),
+                                                        Param::ParameterExpression(Arc::new(
+                                                            ParameterExpression::from_symbol(
+                                                                sentinel.clone().extract()?,
+                                                            ),
+                                                        )),
+                                                    ),
+                                                ])?;
+                                            }
+                                            let body_b = DAGCircuit::from_circuit(
+                                                QuantumCircuitData {
+                                                    data: body_b_circuit,
+                                                    name: body_b.name.clone(),
+                                                    metadata: body_b
+                                                        .metadata
+                                                        .as_ref()
+                                                        .map(|m| m.bind(py).clone()),
+                                                    transpile_layout: None,
+                                                },
+                                                false,
+                                                None,
+                                                None,
+                                            )?;
+                                            block_eq(&body_a, &body_b)
+                                        }
+                                        (None, None) => block_eq(body_a, body_b),
+                                        _ => Ok(false),
                                     }
                                 }
-                                [ArrayType::TwoQ(a), ArrayType::NDArray(b)]
-                                | [ArrayType::NDArray(b), ArrayType::TwoQ(a)] => {
-                                    if b.shape()[0] == 4 {
-                                        for i in 0..4 {
-                                            for j in 0..4 {
-                                                if !relative_eq!(
-                                                    b[[i, j]],
-                                                    a[(i, j)],
-                                                    max_relative = 1e-5,
-                                                    epsilon = 1e-8
-                                                ) {
-                                                    return Ok(false);
+                                (
+                                    ControlFlowView::IfElse {
+                                        condition: condition_a,
+                                        true_body: true_body_a,
+                                        false_body: false_body_a,
+                                    },
+                                    ControlFlowView::IfElse {
+                                        condition: condition_b,
+                                        true_body: true_body_b,
+                                        false_body: false_body_b,
+                                    },
+                                ) => {
+                                    let false_body_eq = || -> PyResult<bool> {
+                                        match (false_body_a, false_body_b) {
+                                            (Some(false_body_a), Some(false_body_b)) => {
+                                                block_eq(false_body_a, false_body_b)
+                                            }
+                                            (None, None) => Ok(true),
+                                            _ => Ok(false),
+                                        }
+                                    };
+                                    Ok(condition_eq(condition_a, condition_b)
+                                        && block_eq(true_body_a, true_body_b)?
+                                        && false_body_eq()?)
+                                }
+                                (
+                                    ControlFlowView::Switch {
+                                        target: target_a,
+                                        cases_specifier: cases_a,
+                                    },
+                                    ControlFlowView::Switch {
+                                        target: target_b,
+                                        cases_specifier: cases_b,
+                                    },
+                                ) => {
+                                    let target_eq = || -> bool {
+                                        match target_a {
+                                            SwitchTarget::Bit(bit_a) => match target_b {
+                                                SwitchTarget::Bit(bit_b) => {
+                                                    slf_clbit_map[&slf.clbits.find(bit_a).unwrap()]
+                                                        == other_clbit_map
+                                                            [&other.clbits.find(bit_b).unwrap()]
                                                 }
+                                                _ => false,
+                                            },
+                                            SwitchTarget::Register(reg_a) => match target_b {
+                                                SwitchTarget::Register(reg_b) => reg_a
+                                                    .iter()
+                                                    .map(|a| {
+                                                        slf_clbit_map[&slf.clbits.find(&a).unwrap()]
+                                                    })
+                                                    .eq(reg_b.iter().map(|b| {
+                                                        other_clbit_map
+                                                            [&other.clbits.find(&b).unwrap()]
+                                                    })),
+                                                _ => false,
+                                            },
+                                            SwitchTarget::Expr(expr_a) => match target_b {
+                                                SwitchTarget::Expr(expr_b) => expr_a
+                                                    .structurally_equivalent_by_key(
+                                                        slf_var_key,
+                                                        expr_b,
+                                                        other_var_key,
+                                                    ),
+                                                _ => false,
+                                            },
+                                        }
+                                    };
+                                    if cases_a.len() != cases_b.len() || !target_eq() {
+                                        return Ok(false);
+                                    }
+                                    for ((a_label_spec, a_block), (b_label_spec, b_block)) in
+                                        cases_a.iter().zip(cases_b.iter())
+                                    {
+                                        if a_label_spec.iter().collect::<HashSet<_>>()
+                                            != b_label_spec.iter().collect::<HashSet<_>>()
+                                        {
+                                            return Ok(false);
+                                        }
+                                        if !block_eq(a_block, b_block)? {
+                                            return Ok(false);
+                                        }
+                                    }
+                                    Ok(true)
+                                }
+                                (
+                                    ControlFlowView::While {
+                                        condition: condition_a,
+                                        body: body_a,
+                                    },
+                                    ControlFlowView::While {
+                                        condition: condition_b,
+                                        body: body_b,
+                                    },
+                                ) => Ok(condition_eq(condition_a, condition_b)
+                                    && block_eq(body_a, body_b)?),
+                                _ => Ok(false),
+                            }
+                        } else {
+                            match [inst1.op.view(), inst2.op.view()] {
+                                [
+                                    OperationRef::StandardGate(gate1),
+                                    OperationRef::StandardGate(gate2),
+                                ] => Ok(gate1 == gate2
+                                    && check_args()
+                                    && inst1
+                                        .params_view()
+                                        .iter()
+                                        .zip(inst2.params_view())
+                                        .all(|(a, b)| a.is_close(b, 1e-10).unwrap())),
+                                [
+                                    OperationRef::StandardInstruction(op1),
+                                    OperationRef::StandardInstruction(op2),
+                                ] => Ok(match [op1, op2] {
+                                    [
+                                        StandardInstruction::Barrier(n1),
+                                        StandardInstruction::Barrier(n2),
+                                    ] => n1 == n2,
+                                    [
+                                        StandardInstruction::Delay(unit1),
+                                        StandardInstruction::Delay(unit2),
+                                    ] => {
+                                        let duration1 = &inst1.params_view()[0];
+                                        let duration2 = &inst2.params_view()[0];
+                                        unit1 == unit2 && duration1.is_close(duration2, 1e-10)?
+                                    }
+                                    [
+                                        StandardInstruction::Measure,
+                                        StandardInstruction::Measure,
+                                    ] => true,
+                                    [StandardInstruction::Reset, StandardInstruction::Reset] => {
+                                        true
+                                    }
+                                    _ => false,
+                                } && check_args()),
+                                [
+                                    OperationRef::Instruction(op1),
+                                    OperationRef::Instruction(op2),
+                                ] => {
+                                    Ok(op1.instruction.bind(py).eq(&op2.instruction)?
+                                        && check_args())
+                                }
+                                [OperationRef::Gate(op1), OperationRef::Gate(op2)] => {
+                                    Ok(op1.instruction.bind(py).eq(&op2.instruction)?
+                                        && check_args())
+                                }
+                                [OperationRef::Operation(op1), OperationRef::Operation(op2)] => {
+                                    Ok(op1.instruction.bind(py).eq(&op2.instruction)?
+                                        && check_args())
+                                }
+                                // Handle the edge case where we end up with a Python object and a standard
+                                // gate/instruction.
+                                // This typically only happens if we have a ControlledGate in Python
+                                // and we have mutable state set.
+                                [OperationRef::StandardGate(_), OperationRef::Gate(op2)] => {
+                                    Ok(slf.unpack_py_op(py, inst1)?.bind(py).eq(&op2.instruction)?
+                                        && check_args())
+                                }
+                                [OperationRef::Gate(op1), OperationRef::StandardGate(_)] => {
+                                    Ok(other
+                                        .unpack_py_op(py, inst2)?
+                                        .bind(py)
+                                        .eq(&op1.instruction)?
+                                        && check_args())
+                                }
+                                [
+                                    OperationRef::StandardInstruction(_),
+                                    OperationRef::Instruction(op2),
+                                ] => {
+                                    Ok(slf.unpack_py_op(py, inst1)?.bind(py).eq(&op2.instruction)?
+                                        && check_args())
+                                }
+                                [
+                                    OperationRef::Instruction(op1),
+                                    OperationRef::StandardInstruction(_),
+                                ] => Ok(other
+                                    .unpack_py_op(py, inst2)?
+                                    .bind(py)
+                                    .eq(&op1.instruction)?
+                                    && check_args()),
+                                [OperationRef::Unitary(op_a), OperationRef::Unitary(op_b)] => {
+                                    match [&op_a.array, &op_b.array] {
+                                        [ArrayType::NDArray(a), ArrayType::NDArray(b)] => Ok(
+                                            relative_eq!(a, b, max_relative = 1e-5, epsilon = 1e-8),
+                                        ),
+                                        [ArrayType::OneQ(a), ArrayType::NDArray(b)]
+                                        | [ArrayType::NDArray(b), ArrayType::OneQ(a)] => {
+                                            if b.shape()[0] == 2 {
+                                                for i in 0..2 {
+                                                    for j in 0..2 {
+                                                        if !relative_eq!(
+                                                            b[[i, j]],
+                                                            a[(i, j)],
+                                                            max_relative = 1e-5,
+                                                            epsilon = 1e-8
+                                                        ) {
+                                                            return Ok(false);
+                                                        }
+                                                    }
+                                                }
+                                                Ok(true)
+                                            } else {
+                                                Ok(false)
                                             }
                                         }
-                                        Ok(true)
-                                    } else {
-                                        Ok(false)
+                                        [ArrayType::TwoQ(a), ArrayType::NDArray(b)]
+                                        | [ArrayType::NDArray(b), ArrayType::TwoQ(a)] => {
+                                            if b.shape()[0] == 4 {
+                                                for i in 0..4 {
+                                                    for j in 0..4 {
+                                                        if !relative_eq!(
+                                                            b[[i, j]],
+                                                            a[(i, j)],
+                                                            max_relative = 1e-5,
+                                                            epsilon = 1e-8
+                                                        ) {
+                                                            return Ok(false);
+                                                        }
+                                                    }
+                                                }
+                                                Ok(true)
+                                            } else {
+                                                Ok(false)
+                                            }
+                                        }
+                                        [ArrayType::OneQ(a), ArrayType::OneQ(b)] => Ok(
+                                            relative_eq!(a, b, max_relative = 1e-5, epsilon = 1e-8),
+                                        ),
+                                        [ArrayType::TwoQ(a), ArrayType::TwoQ(b)] => Ok(
+                                            relative_eq!(a, b, max_relative = 1e-5, epsilon = 1e-8),
+                                        ),
+                                        _ => Ok(false),
                                     }
                                 }
-                                [ArrayType::OneQ(a), ArrayType::OneQ(b)] => {
-                                    Ok(relative_eq!(a, b, max_relative = 1e-5, epsilon = 1e-8))
-                                }
-                                [ArrayType::TwoQ(a), ArrayType::TwoQ(b)] => {
-                                    Ok(relative_eq!(a, b, max_relative = 1e-5, epsilon = 1e-8))
-                                }
+                                [
+                                    OperationRef::PauliProductMeasurement(op_a),
+                                    OperationRef::PauliProductMeasurement(op_b),
+                                ] => Ok(op_a == op_b),
                                 _ => Ok(false),
                             }
                         }
-                        _ => Ok(false),
                     }
+                    [NodeType::QubitIn(bit1), NodeType::QubitIn(bit2)] => {
+                        Ok(slf_qubit_map[bit1] == other_qubit_map[bit2])
+                    }
+                    [NodeType::ClbitIn(bit1), NodeType::ClbitIn(bit2)] => {
+                        Ok(slf_clbit_map[bit1] == other_clbit_map[bit2])
+                    }
+                    [NodeType::QubitOut(bit1), NodeType::QubitOut(bit2)] => {
+                        Ok(slf_qubit_map[bit1] == other_qubit_map[bit2])
+                    }
+                    [NodeType::ClbitOut(bit1), NodeType::ClbitOut(bit2)] => {
+                        Ok(slf_clbit_map[bit1] == other_clbit_map[bit2])
+                    }
+                    [NodeType::VarIn(var1), NodeType::VarIn(var2)]
+                    | [NodeType::VarOut(var1), NodeType::VarOut(var2)] => {
+                        // TODO: do we need to convert classical bits and registers here?
+                        //   no if Var wires are always standalone
+                        Ok(slf.vars.get(*var1).unwrap() == other.vars.get(*var2).unwrap())
+                    }
+                    _ => Ok(false),
                 }
-                [NodeType::QubitIn(bit1), NodeType::QubitIn(bit2)] => Ok(bit1 == bit2),
-                [NodeType::ClbitIn(bit1), NodeType::ClbitIn(bit2)] => Ok(bit1 == bit2),
-                [NodeType::QubitOut(bit1), NodeType::QubitOut(bit2)] => Ok(bit1 == bit2),
-                [NodeType::ClbitOut(bit1), NodeType::ClbitOut(bit2)] => Ok(bit1 == bit2),
-                [NodeType::VarIn(var1), NodeType::VarIn(var2)]
-                | [NodeType::VarOut(var1), NodeType::VarOut(var2)] => {
-                    Ok(self.vars.get(*var1).unwrap() == other.vars.get(*var2).unwrap())
-                }
-                _ => Ok(false),
-            }
-        };
-        let node_match = |n1: &NodeType, n2: &NodeType| -> PyResult<Option<()>> {
-            node_match(n1, n2).map(|ok| ok.then_some(()))
-        };
+            };
+            let node_match = |n1: &NodeType, n2: &NodeType| -> PyResult<Option<()>> {
+                node_match(n1, n2).map(|ok| ok.then_some(()))
+            };
 
-        vf2::is_isomorphic_with_semantics(
-            &self.dag,
-            &other.dag,
-            (node_match, vf2::NoSemantics::new()),
-            true,
-            vf2::Problem::Exact,
-            None,
+            vf2::is_isomorphic_with_semantics(
+                &slf.dag,
+                &other.dag,
+                (node_match, vf2::NoSemantics::new()),
+                true,
+                vf2::Problem::Exact,
+                None,
+            )
+            .map_err(|e| match e {
+                vf2::IsIsomorphicError::NodeMatcher(e) => e,
+                vf2::IsIsomorphicError::EdgeMatcher(_) => unreachable!(),
+            })
+        }
+        if self.num_qubits() != other.num_qubits() || self.num_clbits() != other.num_clbits() {
+            return Ok(false);
+        }
+        let slf_qubit_map: HashMap<Qubit, Qubit> = (0..self.num_qubits())
+            .map(|i| (Qubit::new(i), Qubit::new(i)))
+            .collect();
+        let slf_clbit_map: HashMap<Clbit, Clbit> = (0..self.num_clbits())
+            .map(|i| (Clbit::new(i), Clbit::new(i)))
+            .collect();
+        eq_inner(
+            py,
+            self,
+            &slf_qubit_map,
+            &slf_clbit_map,
+            other,
+            &slf_qubit_map,
+            &slf_clbit_map,
         )
-        .map_err(|e| match e {
-            vf2::IsIsomorphicError::NodeMatcher(e) => e,
-            vf2::IsIsomorphicError::EdgeMatcher(_) => unreachable!(),
-        })
     }
 
     /// Are these two DAGs structurally equal?
@@ -2354,6 +2785,11 @@ impl DAGCircuit {
         let inst_eq = |from_self: &PackedInstruction,
                        from_other: &PackedInstruction|
          -> PyResult<bool> {
+            if from_self.op.try_control_flow().is_some()
+                || from_other.op.try_control_flow().is_some()
+            {
+                return Ok(false);
+            }
             if self.qargs_interner.get(from_self.qubits)
                 != other.qargs_interner.get(from_other.qubits)
             {
@@ -2364,18 +2800,14 @@ impl DAGCircuit {
             {
                 return Ok(false);
             }
-            match (from_self.params.as_ref(), from_other.params.as_ref()) {
-                (None, None) => (),
-                (Some(_), None) | (None, Some(_)) => return Ok(false),
-                (Some(left), Some(right)) => {
-                    if left.len() != right.len() {
-                        return Ok(false);
-                    }
-                    for (left, right) in left.iter().zip(right.iter()) {
-                        if !param_eq(left, right)? {
-                            return Ok(false);
-                        }
-                    }
+            let from_self_params = from_self.params_view();
+            let from_other_params = from_other.params_view();
+            if from_self_params.len() != from_other_params.len() {
+                return Ok(false);
+            }
+            for (left, right) in from_self_params.iter().zip(from_other_params.iter()) {
+                if !param_eq(left, right)? {
+                    return Ok(false);
                 }
             }
             match (from_self.op.view(), from_other.op.view()) {
@@ -2388,13 +2820,13 @@ impl DAGCircuit {
                 ) => Ok(left == right),
                 (OperationRef::Unitary(left), OperationRef::Unitary(right)) => Ok(left == right),
                 (OperationRef::Gate(left), OperationRef::Gate(right)) => {
-                    Python::attach(|py| left.gate.bind(py).eq(&right.gate))
+                    Python::attach(|py| left.instruction.bind(py).eq(&right.instruction))
                 }
                 (OperationRef::Instruction(left), OperationRef::Instruction(right)) => {
                     Python::attach(|py| left.instruction.bind(py).eq(&right.instruction))
                 }
                 (OperationRef::Operation(left), OperationRef::Operation(right)) => {
-                    Python::attach(|py| left.operation.bind(py).eq(&right.operation))
+                    Python::attach(|py| left.instruction.bind(py).eq(&right.instruction))
                 }
                 _ => Ok(false),
             }
@@ -2457,22 +2889,25 @@ impl DAGCircuit {
     ///     key (Callable): A callable which will take a DAGNode object and
     ///         return a string sort key. If not specified the bit qargs and
     ///         cargs of a node will be used for sorting.
+    ///     reverse (bool): If True, yield nodes in reverse topological order.
     ///
     /// Returns:
     ///     generator(DAGOpNode, DAGInNode, or DAGOutNode): node in topological order
-    #[pyo3(name = "topological_nodes", signature=(key=None))]
+    #[pyo3(name = "topological_nodes", signature=(key=None, reverse=false))]
     fn py_topological_nodes(
         &self,
         py: Python,
         key: Option<Bound<PyAny>>,
+        reverse: bool,
     ) -> PyResult<Py<PyIterator>> {
         let nodes: PyResult<Vec<_>> = if let Some(key) = key {
-            self.topological_key_sort(py, &key)?
+            self.topological_key_sort(py, &key, reverse)?
                 .map(|node| self.get_node(py, node))
                 .collect()
         } else {
             // Good path, using interner IDs.
-            self.topological_nodes()?
+            self.topological_nodes(reverse)
+                .into_iter()
                 .map(|n| self.get_node(py, n))
                 .collect()
         };
@@ -2492,17 +2927,19 @@ impl DAGCircuit {
     ///     key (Callable): A callable which will take a DAGNode object and
     ///         return a string sort key. If not specified the qargs and
     ///         cargs of a node will be used for sorting.
+    ///     reverse (bool): If True, yield op nodes in reverse topological order.
     ///
     /// Returns:
     ///     generator(DAGOpNode): op node in topological order
-    #[pyo3(name = "topological_op_nodes", signature=(key=None))]
+    #[pyo3(name = "topological_op_nodes", signature=(key=None, reverse=false))]
     fn py_topological_op_nodes(
         &self,
         py: Python,
         key: Option<Bound<PyAny>>,
+        reverse: bool,
     ) -> PyResult<Py<PyIterator>> {
         let nodes: PyResult<Vec<_>> = if let Some(key) = key {
-            self.topological_key_sort(py, &key)?
+            self.topological_key_sort(py, &key, reverse)?
                 .filter_map(|node| match self.dag.node_weight(node) {
                     Some(NodeType::Operation(_)) => Some(self.get_node(py, node)),
                     _ => None,
@@ -2510,7 +2947,7 @@ impl DAGCircuit {
                 .collect()
         } else {
             // Good path, using interner IDs.
-            self.topological_op_nodes()?
+            self.topological_op_nodes(reverse)
                 .map(|n| self.get_node(py, n))
                 .collect()
         };
@@ -2576,12 +3013,12 @@ impl DAGCircuit {
         let mut qubit_pos_map: HashMap<Qubit, usize> = HashMap::new();
         let mut clbit_pos_map: HashMap<Clbit, usize> = HashMap::new();
         for (bit, index) in wire_pos_map.iter() {
-            if bit.downcast::<PyQubit>().is_ok() {
+            if bit.cast::<PyQubit>().is_ok() {
                 qubit_pos_map.insert(
                     self.qubits.find(&bit.extract::<ShareableQubit>()?).unwrap(),
                     index.extract()?,
                 );
-            } else if bit.downcast::<PyClbit>().is_ok() {
+            } else if bit.cast::<PyClbit>().is_ok() {
                 clbit_pos_map.insert(
                     self.clbits.find(&bit.extract::<ShareableClbit>()?).unwrap(),
                     index.extract()?,
@@ -2594,12 +3031,12 @@ impl DAGCircuit {
         }
 
         let block_ids: Vec<_> = node_block.iter().map(|n| n.node.unwrap()).collect();
-        let py_op = op.extract::<OperationFromPython>()?;
-
+        let py_op = op.extract::<OperationFromPython<DAGCircuit>>()?;
+        let params = self.take_parameter_blocks(py_op.params);
         let new_node = self.replace_block(
             &block_ids,
             py_op.operation,
-            py_op.params,
+            params,
             py_op.label.as_ref().map(|v| v.as_str()),
             cycle_check,
             &qubit_pos_map,
@@ -2650,7 +3087,7 @@ impl DAGCircuit {
                 2,
             ))?;
         }
-        let node_index = match node.downcast::<DAGOpNode>() {
+        let node_index = match node.cast::<DAGOpNode>() {
             Ok(bound_node) => bound_node.borrow().as_ref().node.unwrap(),
             Err(_) => return Err(DAGCircuitError::new_err("expected node DAGOpNode")),
         };
@@ -2659,6 +3096,17 @@ impl DAGCircuit {
             NodeType::Operation(op) => op.clone(),
             _ => return Err(DAGCircuitError::new_err("expected node")),
         };
+
+        // We need to lift any blocks registered with the `input_circuit` up to
+        // the outer circuit.
+        // TODO: since Python expects control flow to be owned by the instruction, it'd be nice
+        //       if we had some special tracking to "deduplicate" Python instances that we've seen
+        //       before.
+        let block_map = input_dag
+            .blocks()
+            .items()
+            .map(|(index, block)| (index, self.add_block(block.clone())))
+            .collect();
 
         type WireMapsTuple = (
             HashMap<Qubit, Qubit>,
@@ -2677,9 +3125,8 @@ impl DAGCircuit {
                 .collect();
             let cargs_set: HashSet<&ShareableClbit> =
                 HashSet::from_iter(cargs_list.iter().cloned());
-            if self.may_have_additional_wires(node.op.view()) {
-                let (add_cargs, _add_vars) =
-                    Python::attach(|py| self.additional_wires(py, node.op.view()))?;
+            if self.may_have_additional_wires(&node) {
+                let (add_cargs, _add_vars) = Python::attach(|py| self.additional_wires(py, &node))?;
                 for wire in add_cargs {
                     let clbit = self.clbits.get(wire).unwrap();
                     if !cargs_set.contains(clbit) {
@@ -2701,7 +3148,7 @@ impl DAGCircuit {
             let mut clbit_wire_map = HashMap::new();
             let var_map = HashMap::new();
             for (index, wire) in wires.iter().enumerate() {
-                if wire.downcast::<PyQubit>().is_ok() {
+                if wire.cast::<PyQubit>().is_ok() {
                     if index >= qargs_len {
                         unreachable!()
                     }
@@ -2711,7 +3158,7 @@ impl DAGCircuit {
                         .unwrap();
                     let self_qubit: Qubit = self.qubits.find(qargs_list[index]).unwrap();
                     qubit_wire_map.insert(input_qubit, self_qubit);
-                } else if wire.downcast::<PyClbit>().is_ok() {
+                } else if wire.cast::<PyClbit>().is_ok() {
                     if index < qargs_len {
                         unreachable!()
                     }
@@ -2736,13 +3183,13 @@ impl DAGCircuit {
             HashMap<Clbit, Clbit>,
             HashMap<expr::Var, expr::Var>,
         ) = match wires {
-            Some(wires) => match wires.downcast::<PyDict>() {
+            Some(wires) => match wires.cast::<PyDict>() {
                 Ok(bound_wires) => {
                     let mut qubit_wire_map = HashMap::new();
                     let mut clbit_wire_map = HashMap::new();
                     let mut var_map = HashMap::new();
                     for (source_wire, target_wire) in bound_wires.iter() {
-                        if source_wire.downcast::<PyQubit>().is_ok() {
+                        if source_wire.cast::<PyQubit>().is_ok() {
                             qubit_wire_map.insert(
                                 input_dag
                                     .qubits
@@ -2752,7 +3199,7 @@ impl DAGCircuit {
                                     .find(&target_wire.extract::<ShareableQubit>()?)
                                     .unwrap(),
                             );
-                        } else if source_wire.downcast::<PyClbit>().is_ok() {
+                        } else if source_wire.cast::<PyClbit>().is_ok() {
                             clbit_wire_map.insert(
                                 input_dag
                                     .clbits
@@ -2769,7 +3216,7 @@ impl DAGCircuit {
                     (qubit_wire_map, clbit_wire_map, var_map)
                 }
                 Err(_) => {
-                    let wires: Bound<PyList> = match wires.downcast::<PyList>() {
+                    let wires: Bound<PyList> = match wires.cast::<PyList>() {
                         Ok(bound_list) => bound_list.clone(),
                         // If someone passes a sequence instead of an exact list (tuple is
                         // occasionally used) cast that to a list and then use it.
@@ -2791,9 +3238,8 @@ impl DAGCircuit {
 
         let input_dag_var_set: HashSet<&expr::Var> = input_dag.vars.objects().iter().collect();
 
-        let node_vars = if self.may_have_additional_wires(node.op.view()) {
-            let (_additional_clbits, additional_vars) =
-                self.additional_wires(py, node.op.view())?;
+        let node_vars = if self.may_have_additional_wires(&node) {
+            let (_additional_clbits, additional_vars) = self.additional_wires(py, &node)?;
             let var_set: HashSet<&expr::Var> = additional_vars
                 .into_iter()
                 .map(|v| self.vars.get(v).unwrap())
@@ -2855,6 +3301,7 @@ impl DAGCircuit {
             Some(&qubit_wire_map),
             Some(&clbit_wire_map),
             Some(&var_map),
+            Some(&block_map),
         )?;
 
         let out_dict = PyDict::new(py);
@@ -2910,7 +3357,7 @@ impl DAGCircuit {
                 2,
             ))?;
         }
-        let mut node: PyRefMut<DAGOpNode> = match node.downcast() {
+        let mut node: PyRefMut<DAGOpNode> = match node.cast() {
             Ok(node) => node.borrow_mut(),
             Err(_) => return Err(DAGCircuitError::new_err("Only DAGOpNodes can be replaced.")),
         };
@@ -2918,14 +3365,13 @@ impl DAGCircuit {
         let node_index = node.as_ref().node.unwrap();
         self.substitute_node_with_py_op(node_index, op)?;
         if inplace {
-            let new_weight = self.dag[node_index].unwrap_operation();
-            let temp: OperationFromPython = op.extract()?;
+            let temp = op.extract::<OperationFromPython<CircuitData>>()?;
             node.instruction.operation = temp.operation;
-            node.instruction.params = new_weight.params_view().iter().cloned().collect();
-            node.instruction.label.clone_from(&new_weight.label);
+            node.instruction.params = temp.params;
+            node.instruction.label = temp.label;
             #[cfg(feature = "cache_pygates")]
             {
-                node.instruction.py_op = new_weight.py_op.clone();
+                node.instruction.py_op = OnceLock::from(op.clone().unbind());
             }
             node.into_py_any(py)
         } else {
@@ -2958,12 +3404,13 @@ impl DAGCircuit {
         let dags = PyList::empty(py);
 
         for comp_nodes in connected_components.iter() {
-            let mut new_dag = self.copy_empty_like(vars_mode)?;
+            let mut new_dag = self.copy_empty_like(vars_mode, BlocksMode::Drop)?;
             new_dag.global_phase = Param::Float(0.);
 
             // A map from nodes in the this DAGCircuit to nodes in the new dag. Used for adding edges
             let mut node_map: HashMap<NodeIndex, NodeIndex> =
                 HashMap::with_capacity(comp_nodes.len());
+            let mut block_map = BlockMapper::new();
 
             // Adding the nodes to the new dag
             let mut non_classical = false;
@@ -2997,8 +3444,10 @@ impl DAGCircuit {
                             node_map.insert(*node, var_out);
                         }
                         NodeType::Operation(pi) => {
-                            let new_node = new_dag.dag.add_node(NodeType::Operation(pi.clone()));
-                            new_dag.increment_op(pi.op.name());
+                            let pi = block_map
+                                .map_instruction(pi, |b| new_dag.add_block(self.blocks[b].clone()));
+                            new_dag.track_instruction(&pi);
+                            let new_node = new_dag.dag.add_node(NodeType::Operation(pi));
                             node_map.insert(*node, new_node);
                             non_classical = true;
                         }
@@ -3057,7 +3506,7 @@ impl DAGCircuit {
                     .idle_wires(py, None)?
                     .into_bound(py)
                     .map(|q| q.unwrap())
-                    .filter(|e| e.downcast::<PyQubit>().is_ok())
+                    .filter(|e| e.cast::<PyQubit>().is_ok())
                     .collect();
 
                 let qubits = PyTuple::new(py, idle_wires)?;
@@ -3203,7 +3652,7 @@ impl DAGCircuit {
     #[pyo3(signature=(nodes=None))]
     fn edges(&self, py: Python, nodes: Option<Bound<PyAny>>) -> PyResult<Py<PyIterator>> {
         let get_node_index = |obj: &Bound<PyAny>| -> PyResult<NodeIndex> {
-            Ok(obj.downcast::<DAGNode>()?.borrow().node.unwrap())
+            Ok(obj.cast::<DAGNode>()?.borrow().node.unwrap())
         };
 
         let actual_nodes: Vec<_> = match nodes {
@@ -3305,7 +3754,12 @@ impl DAGCircuit {
             .node_references()
             .filter_map(|(node_index, node_type)| match node_type {
                 NodeType::Operation(node) => {
-                    if node.op.control_flow() {
+                    if node.op.try_control_flow().is_some_and(|control_flow| {
+                        !matches!(
+                            control_flow.control_flow,
+                            ControlFlow::BreakLoop | ControlFlow::ContinueLoop
+                        )
+                    }) {
                         Some(self.unpack_into(py, node_index, node_type))
                     } else {
                         None
@@ -3393,11 +3847,10 @@ impl DAGCircuit {
 
     /// Returns iterator of the successors of a node as :class:`.DAGOpNode`\ s and
     /// :class:`.DAGOutNode`\ s.
-    fn successors(&self, py: Python, node: &DAGNode) -> PyResult<Py<PyIterator>> {
+    #[pyo3(name = "successors")]
+    fn py_successors(&self, py: Python, node: &DAGNode) -> PyResult<Py<PyIterator>> {
         let successors: PyResult<Vec<_>> = self
-            .dag
-            .neighbors_directed(node.node.unwrap(), Outgoing)
-            .unique()
+            .successors(node.node.unwrap())
             .map(|i| self.get_node(py, i))
             .collect();
         Ok(PyTuple::new(py, successors?)?
@@ -3409,11 +3862,10 @@ impl DAGCircuit {
 
     /// Returns iterator of the predecessors of a node as :class:`.DAGOpNode`\ s and
     /// :class:`.DAGInNode`\ s.
-    fn predecessors(&self, py: Python, node: &DAGNode) -> PyResult<Py<PyIterator>> {
+    #[pyo3(name = "predecessors")]
+    fn py_predecessors(&self, py: Python, node: &DAGNode) -> PyResult<Py<PyIterator>> {
         let predecessors: PyResult<Vec<_>> = self
-            .dag
-            .neighbors_directed(node.node.unwrap(), Incoming)
-            .unique()
+            .predecessors(node.node.unwrap())
             .map(|i| self.get_node(py, i))
             .collect();
         Ok(PyTuple::new(py, predecessors?)?
@@ -3538,7 +3990,7 @@ impl DAGCircuit {
     ///
     /// The descendants are the set of all nodes that can be reached from the target node. In
     /// comparison, :meth:`.DAGCircuit.successors` is an iterator over the immediate successors,
-    /// whereas this method contains all the successors' succesors.
+    /// whereas this method contains all the successors' successors.
     #[pyo3(name = "descendants")]
     fn py_descendants(&self, py: Python, node: &DAGNode) -> PyResult<Py<PySet>> {
         let descendants: PyResult<Vec<Py<PyAny>>> = self
@@ -3594,7 +4046,7 @@ impl DAGCircuit {
     /// Add edges from predecessors to successors.
     #[pyo3(name = "remove_op_node")]
     fn py_remove_op_node(&mut self, node: &Bound<PyAny>) -> PyResult<()> {
-        let node: PyRef<DAGOpNode> = match node.downcast::<DAGOpNode>() {
+        let node: PyRef<DAGOpNode> = match node.cast::<DAGOpNode>() {
             Ok(node) => node.borrow(),
             Err(_) => return Err(DAGCircuitError::new_err("Node not an DAGOpNode")),
         };
@@ -3725,9 +4177,15 @@ impl DAGCircuit {
                 return Ok(PyIterator::from_object(&layer_list)?.into());
             }
 
-            let mut new_layer = self.copy_empty_like(vars_mode)?;
-
-            new_layer.extend(op_nodes.iter().map(|(inst, _)| (*inst).clone()))?;
+            let mut new_layer = self.copy_empty_like(vars_mode, BlocksMode::Drop)?;
+            let mut block_map = BlockMapper::new();
+            let data: Vec<_> = op_nodes
+                .iter()
+                .map(|(inst, _)| {
+                    block_map.map_instruction(inst, |b| new_layer.add_block(self.blocks[b].clone()))
+                })
+                .collect();
+            new_layer.extend(data)?;
 
             let support_iter = new_layer.op_nodes(false).map(|(_, instruction)| {
                 PyTuple::new(
@@ -3756,12 +4214,13 @@ impl DAGCircuit {
     #[pyo3(signature = (*, vars_mode=VarsMode::Captures))]
     fn serial_layers(&self, py: Python, vars_mode: VarsMode) -> PyResult<Py<PyIterator>> {
         let layer_list = PyList::empty(py);
-        for next_node in self.topological_op_nodes()? {
+        for next_node in self.topological_op_nodes(false) {
             let retrieved_node: &PackedInstruction = match self.dag.node_weight(next_node) {
                 Some(NodeType::Operation(node)) => node,
                 _ => unreachable!("A non-operation node was obtained from topological_op_nodes."),
             };
-            let mut new_layer = self.copy_empty_like(vars_mode)?;
+            let mut new_layer = self.copy_empty_like(vars_mode, BlocksMode::Drop)?;
+            let mut block_map = BlockMapper::new();
 
             // Save the support of the operation we add to the layer
             let support_list = PyList::empty(py);
@@ -3773,7 +4232,10 @@ impl DAGCircuit {
                     .map(|qubit| self.qubits.get(*qubit)),
             )?
             .unbind();
-            new_layer.push_back(retrieved_node.clone())?;
+            let inst = block_map.map_instruction(retrieved_node, |b| {
+                new_layer.add_block(self.blocks[b].clone())
+            });
+            new_layer.push_back(inst)?;
 
             if !retrieved_node.op.directive() {
                 support_list.append(qubits)?;
@@ -3905,10 +4367,10 @@ impl DAGCircuit {
         wire: &Bound<PyAny>,
         only_ops: bool,
     ) -> PyResult<Py<PyIterator>> {
-        let wire = if wire.downcast::<PyQubit>().is_ok() {
+        let wire = if wire.cast::<PyQubit>().is_ok() {
             let wire = wire.extract::<ShareableQubit>()?;
             self.qubits.find(&wire).map(Wire::Qubit)
-        } else if wire.downcast::<PyClbit>().is_ok() {
+        } else if wire.cast::<PyClbit>().is_ok() {
             let wire = wire.extract::<ShareableClbit>()?;
             self.clbits.find(&wire).map(Wire::Clbit)
         } else {
@@ -3941,7 +4403,7 @@ impl DAGCircuit {
     ///     Mapping[str, int]: a mapping of operation names to the number of times it appears.
     #[pyo3(name = "count_ops", signature = (*, recurse=true))]
     fn py_count_ops(&self, py: Python, recurse: bool) -> PyResult<Py<PyAny>> {
-        self.count_ops(py, recurse)?.into_py_any(py)
+        self.count_ops(recurse)?.into_py_any(py)
     }
 
     /// Count the occurrences of operation names on the longest path.
@@ -4074,6 +4536,27 @@ impl DAGCircuit {
             ("factors", self.num_tensor_factors().into_py_any(py)?),
             ("operations", self.py_count_ops(py, true)?),
         ]))
+    }
+
+    /// Convert this DAG to a :class:`.QuantumCircuit`.
+    ///
+    /// This is a simple wrapper around :func:`.dag_to_circuit`.
+    ///
+    /// Args:
+    ///     copy_operations: whether to deep copy the individual instructions.  If set to ``False``,
+    ///         the operation is cheaper but mutations to the instructions in the circuit will
+    ///         affect the original circuit.
+    ///
+    /// Returns:
+    ///     a :class:`.QuantumCircuit` representing this same DAG.
+    // If updating this signature, update `dag_to_circuit` as well.
+    #[pyo3(signature=(*, copy_operations=true))]
+    fn to_circuit(slf_: PyRef<Self>, copy_operations: bool) -> PyResult<Bound<PyAny>> {
+        // We go via Python space here to make sure all the extra Python-space components not yet
+        // tracked in `CircuitData` are copied too.
+        imports::DAG_TO_CIRCUIT
+            .get_bound(slf_.py())
+            .call1((slf_, copy_operations))
     }
 
     /// Draws the dag circuit.
@@ -4526,6 +5009,117 @@ impl Default for DAGCircuit {
 }
 
 impl DAGCircuit {
+    /// Gives the DAG ownership of the provided basic block and returns a
+    /// unique identifier that can be used to retrieve a reference to it
+    /// later.
+    ///
+    /// No attempt is made to deduplicate the given block.
+    /// No validation is performed to ensure that the given block is valid
+    /// within the DAG.
+    pub fn add_block(&mut self, block: DAGCircuit) -> Block {
+        self.blocks.push(block)
+    }
+
+    /// Take the blocks from an extraction from an `OperationFromPython<DAGCircuit>` and add them to
+    /// this DAG.
+    ///
+    /// Returns the parameters in terms of block references.
+    pub fn take_parameter_blocks(
+        &mut self,
+        params: Option<Parameters<DAGCircuit>>,
+    ) -> Option<Box<Parameters<Block>>> {
+        params.map(|params| Box::new(params.map_blocks(|block| self.add_block(block))))
+    }
+
+    /// Extract the blocks from a Python-space `CircuitInstruction` and add them to this DAG.
+    ///
+    /// The inverse of this is [unpack_blocks_to_circuit_parameters].
+    fn extract_blocks_from_circuit_parameters(
+        &mut self,
+        params: Option<&Parameters<CircuitData>>,
+    ) -> PyResult<Option<Box<Parameters<Block>>>> {
+        params
+            .map(|params| {
+                params
+                    .try_map_blocks_ref(|block| {
+                        DAGCircuit::from_circuit_data(block, false, None, None, None, None)
+                            .map(|dag| self.add_block(dag))
+                    })
+                    .map(Box::new)
+            })
+            .transpose()
+    }
+
+    /// Given a `params` object from an instruction packed into this DAG, extract any relevant
+    /// blocks into the owned-object `CircuitData` block type, suitable for passing back to Python
+    /// space.
+    ///
+    /// The inverse of this is [extract_blocks_from_circuit_parameters].
+    fn unpack_blocks_to_circuit_parameters(
+        &self,
+        params: Option<&Parameters<Block>>,
+    ) -> PyResult<Option<Parameters<CircuitData>>> {
+        Ok(params
+            .map(|params| {
+                params.try_map_blocks_ref(|block| {
+                    converters::dag_to_circuit(&self.blocks[*block], false)
+                })
+            })
+            .transpose()?)
+    }
+
+    /// Gets a mutable reference to the given basic block.
+    ///
+    /// Panics if the block is not found.
+    pub fn view_block_mut(&mut self, block: Block) -> &mut DAGCircuit {
+        &mut self.blocks[block]
+    }
+
+    /// Gets an immutable view of a control flow operation.
+    ///
+    /// Panics or produces incorrect results if `instr` is not from this DAG (or compatible with it,
+    /// e.g. from a mapped [ControlFlowBlocks]).
+    pub fn try_view_control_flow<'a>(
+        &'a self,
+        instr: &'a PackedInstruction,
+    ) -> Option<ControlFlowView<'a, DAGCircuit>> {
+        ControlFlowView::try_from_instruction(instr, &self.blocks)
+    }
+
+    /// Build a reference to the Python-space operation object (the `Gate`, etc) packed into an
+    /// instruction.  This may construct the reference if the `Instruction` is a standard
+    /// gate or instruction with no already stored operation.
+    ///
+    /// A standard-gate or standard-instruction operation object returned by this function is
+    /// disconnected from the dag; updates to its parameters, label, duration, unit
+    /// and condition will not be propagated back.
+    ///
+    /// Panics if `node` does not refer to an operation.
+    pub fn unpack_py_op(&self, py: Python, instr: &PackedInstruction) -> PyResult<Py<PyAny>> {
+        // `OnceLock::get_or_init` and the non-stabilised `get_or_try_init`, which would otherwise
+        // be nice here are both non-reentrant.  This is a problem if the init yields control to the
+        // Python interpreter as this one does, since that can allow CPython to freeze the thread
+        // and for another to attempt the initialisation.
+        #[cfg(feature = "cache_pygates")]
+        {
+            if let Some(ob) = instr.py_op.get() {
+                return Ok(ob.clone_ref(py));
+            }
+        }
+        let out = instruction::create_py_op(
+            py,
+            instr.op.view(),
+            self.unpack_blocks_to_circuit_parameters(instr.params.as_deref())?,
+            instr.label.as_deref().map(String::as_str),
+        )?;
+        #[cfg(feature = "cache_pygates")]
+        // The unpacking operation can cause a thread pause and concurrency, since it can call
+        // interpreted Python code for a standard gate, so we need to take care that some other
+        // Python thread might have populated the cache before we do.
+        let _ = instr.py_op.set(out.clone_ref(py));
+        Ok(out)
+    }
+
     pub fn new() -> Self {
         DAGCircuit {
             name: None,
@@ -4537,6 +5131,7 @@ impl DAGCircuit {
             cargs_interner: Interner::new(),
             qubits: ObjectRegistry::new(),
             clbits: ObjectRegistry::new(),
+            blocks: ControlFlowBlocks::new(),
             vars: ObjectRegistry::new(),
             stretches: ObjectRegistry::new(),
             global_phase: Param::Float(0.),
@@ -4556,17 +5151,32 @@ impl DAGCircuit {
             stretches_declare: Vec::new(),
         }
     }
+    /// Create an empty DAG, but with all the same qubit data, classical data and metadata
+    /// (including global phase).
+    ///
+    /// This method clones both the `qargs_interner` and `cargs_interner` of `self`;
+    /// `Interned<[Qubit]>` and `Interned<[Clbit]>` keys from `self` are valid in the output DAG.
+    ///
+    /// This does not include any pre-allocated capacity.
+    pub fn copy_empty_like(&self, vars_mode: VarsMode, blocks_mode: BlocksMode) -> PyResult<Self> {
+        self.copy_empty_like_with_capacity(0, 0, vars_mode, blocks_mode)
+    }
 
     /// Create an empty DAG, but with all the same qubit data, classical data and metadata
     /// (including global phase).
     ///
     /// This method clones both the `qargs_interner` and `cargs_interner` of `self`;
     /// `Interned<[Qubit]>` and `Interned<[Clbit]>` keys from `self` are valid in the output DAG.
-    pub fn copy_empty_like_with_same_capacity(&self, vars_mode: VarsMode) -> PyResult<Self> {
+    pub fn copy_empty_like_with_same_capacity(
+        &self,
+        vars_mode: VarsMode,
+        blocks_mode: BlocksMode,
+    ) -> PyResult<Self> {
         self.copy_empty_like_with_capacity(
             self.dag.node_count().saturating_sub(2 * self.width()),
             self.dag.edge_count(),
             vars_mode,
+            blocks_mode,
         )
     }
 
@@ -4580,12 +5190,14 @@ impl DAGCircuit {
         num_ops: usize,
         num_edges: usize,
         vars_mode: VarsMode,
+        blocks_mode: BlocksMode,
     ) -> PyResult<Self> {
         let mut out = self.qubitless_empty_like_with_capacity(
             self.num_qubits(),
             num_ops,
             num_edges,
             vars_mode,
+            blocks_mode,
         )?;
         for bit in self.qubits.objects() {
             out.add_qubit_unchecked(bit.clone())?;
@@ -4615,12 +5227,14 @@ impl DAGCircuit {
         num_qubits: usize,
         num_ops: usize,
         num_edges: usize,
+        blocks_mode: BlocksMode,
     ) -> PyResult<Self> {
         let mut out = self.qubitless_empty_like_with_capacity(
             num_qubits,
             num_ops,
             num_edges,
             VarsMode::Alike,
+            blocks_mode,
         )?;
         out.add_qreg(QuantumRegister::new_owning("q", num_qubits as u32))?;
         Ok(out)
@@ -4648,6 +5262,7 @@ impl DAGCircuit {
         num_ops: usize,
         num_edges: usize,
         vars_mode: VarsMode,
+        blocks_mode: BlocksMode,
     ) -> PyResult<Self> {
         let (num_vars, num_stretches) = match vars_mode {
             VarsMode::Drop => (0, 0),
@@ -4714,6 +5329,9 @@ impl DAGCircuit {
             }
             VarsMode::Drop => (),
         };
+        if blocks_mode == BlocksMode::Keep {
+            target_dag.blocks = self.blocks.clone();
+        }
         Ok(target_dag)
     }
 
@@ -4833,6 +5451,11 @@ impl DAGCircuit {
         &self.cargs_interner
     }
 
+    #[inline(always)]
+    pub fn blocks(&self) -> &ControlFlowBlocks<DAGCircuit> {
+        &self.blocks
+    }
+
     /// Returns an immutable view of the Global Phase `Param` of the circuit
     #[inline(always)]
     pub fn global_phase(&self) -> &Param {
@@ -4930,7 +5553,7 @@ impl DAGCircuit {
 
         // Remove the qubit indices, which will invalidate our mapping of Qubit to
         // Python bits throughout the entire DAG.
-        self.qubits.remove_indices(qubits.clone())?;
+        self.qubits.remove_indices(qubits.clone());
 
         // Update input/output maps to use new Qubits.
         let io_mapping: HashMap<Qubit, [NodeIndex; 2]> = self
@@ -5017,7 +5640,7 @@ impl DAGCircuit {
         Ok(())
     }
 
-    /// Remove the given clbits in the cirucit
+    /// Remove the given clbits in the circuit
     ///
     /// This will reorder all the bits in the circuit.
     pub fn remove_clbits<T: IntoIterator<Item = Clbit>>(&mut self, clbits: T) -> PyResult<()> {
@@ -5058,7 +5681,7 @@ impl DAGCircuit {
 
         // Remove the clbit indices, which will invalidate our mapping of Clbit to
         // Python bits throughout the entire DAG.
-        self.clbits.remove_indices(clbits.clone())?;
+        self.clbits.remove_indices(clbits.clone());
 
         // Update input/output maps to use new Clbits.
         let io_mapping: HashMap<Clbit, [NodeIndex; 2]> = self
@@ -5306,8 +5929,7 @@ impl DAGCircuit {
                 NodeType::Operation(inst) => Ok(inst.op.num_qubits() == 1
                     && inst.op.num_clbits() == 0
                     && !inst.is_parameterized()
-                    && (inst.op.try_standard_gate().is_some()
-                        || inst.op.matrix(inst.params_view()).is_some())),
+                    && (inst.op.try_standard_gate().is_some() || inst.try_matrix().is_some())),
                 _ => Ok(false),
             }
         };
@@ -5344,28 +5966,60 @@ impl DAGCircuit {
         rustworkx_core::dag_algo::collect_bicolor_runs(&self.dag, filter_fn, color_fn).unwrap()
     }
 
-    fn increment_op(&mut self, op: &str) {
-        match self.op_names.get_mut(op) {
-            Some(count) => {
-                *count += 1;
-            }
-            None => {
-                self.op_names.insert(op.to_string(), 1);
-            }
-        }
+    /// Track an instruction from the [DAGCircuit].  This updates the name-count and blocks tracking
+    /// information.
+    ///
+    /// The borrow-check rules of this function require you to track the instruction before you pass
+    /// over ownership of the instruction to the DAG; you can't track an instruction that's already
+    /// in place (use [track_instruction_in_place] if you need that).
+    #[inline]
+    fn track_instruction(&mut self, inst: &PackedInstruction) {
+        track_instruction(inst, &mut self.op_names, &mut self.blocks)
+    }
+    /// Track an instruction from the [DAGCircuit] by node index.  This updates the name-count and
+    /// blocks tracking information.
+    ///
+    /// Panics if the given `node` is not an operation node.
+    ///
+    /// Typically you should prefer to call [track_instruction] before you insert the node, since
+    /// the type system will then ensure you only track correctly typed nodes.  You might need to
+    /// call this function when using complex graph-manipulation functions (like `contract_nodes`)
+    /// that do bulk operations on the DAG, where you never easily hold all the owned instructions.
+    #[inline]
+    fn track_instruction_in_place(&mut self, node: NodeIndex) {
+        track_instruction(
+            self.dag[node].unwrap_operation(),
+            &mut self.op_names,
+            &mut self.blocks,
+        )
     }
 
-    fn decrement_op(&mut self, op: &str) {
-        match self.op_names.get_mut(op) {
-            Some(count) => {
-                if *count > 1 {
-                    *count -= 1;
-                } else {
-                    self.op_names.swap_remove(op);
-                }
-            }
-            None => panic!("Cannot decrement something not added!"),
-        }
+    /// Untrack an instruction from the [DAGCircuit].  This updates the name-count and blocks
+    /// tracking information.
+    ///
+    /// The borrow-check rules of this function require you to untrack the instruction after you
+    /// have removed it from the DAG; you can't untrack an instruction that's still reachable
+    /// through the `&mut self` reference.  If you need that, use [untrack_instruction_in_place].
+    #[inline]
+    fn untrack_instruction(&mut self, inst: &PackedInstruction) {
+        untrack_instruction(inst, &mut self.op_names, &mut self.blocks)
+    }
+    /// Unrtack an instruction from the [DAGCircuit] by node index.  This updates the name-count and
+    /// blocks tracking information.
+    ///
+    /// Panics if the given `node` is not an operation node.
+    ///
+    /// Typically you should prefer to call [untrack_instruction] after you remove the node, since
+    /// the type system will then ensure you only track correctly typed nodes.  You might need to
+    /// call this function when using complex graph-manipulation functions (like `contract_nodes`)
+    /// that do bulk operations on the DAG, where you never easily hold all the owned instructions.
+    #[inline]
+    fn untrack_instruction_in_place(&mut self, node: NodeIndex) {
+        untrack_instruction(
+            self.dag[node].unwrap_operation(),
+            &mut self.op_names,
+            &mut self.blocks,
+        )
     }
 
     pub fn quantum_predecessors(&self, node: NodeIndex) -> impl Iterator<Item = NodeIndex> + '_ {
@@ -5390,13 +6044,9 @@ impl DAGCircuit {
 
     /// Apply a [PackedInstruction] to the back of the circuit.
     ///
-    /// The provided `instr` MUST be valid for this DAG, e.g. its
-    /// bits, registers, vars, and interner IDs must be valid in
-    /// this DAG.
-    ///
-    /// This is mostly used to apply operations from one DAG to
-    /// another that was created from the first via
-    /// [DAGCircuit::copy_empty_like].
+    /// The caller must already have arranged for any interned tracking fields (such as `qubits`,
+    /// `clbits` and any `Block`s) to have been added to the DAG.  The function may panic, or other
+    /// produce an invalid data structure if not.
     #[inline]
     pub fn push_back(&mut self, instr: PackedInstruction) -> PyResult<NodeIndex> {
         self.push_external(instr, Direction::Outgoing)
@@ -5404,13 +6054,9 @@ impl DAGCircuit {
 
     /// Apply a [PackedInstruction] to the front of the circuit.
     ///
-    /// The provided `instr` MUST be valid for this DAG, e.g. its
-    /// bits, registers, vars, and interner IDs must be valid in
-    /// this DAG.
-    ///
-    /// This is mostly used to apply operations from one DAG to
-    /// another that was created from the first via
-    /// [DAGCircuit::copy_empty_like].
+    /// The caller must already have arranged for any interned tracking fields (such as `qubits`,
+    /// `clbits` and any `Block`s) to have been added to the DAG.  The function may panic, or other
+    /// produce an invalid data structure if not.
     #[inline]
     pub fn push_front(&mut self, instr: PackedInstruction) -> PyResult<NodeIndex> {
         self.push_external(instr, Direction::Incoming)
@@ -5423,11 +6069,8 @@ impl DAGCircuit {
     /// Explicitly, [Direction::Outgoing] is equivalent to [push_back], whereas
     /// [Direction::Incoming] is equivalent to [push_front].
     fn push_external(&mut self, instr: PackedInstruction, dir: Direction) -> PyResult<NodeIndex> {
+        self.track_instruction(&instr);
         let (all_cbits, vars) = self.get_classical_resources(&instr)?;
-
-        // Increment the operation count
-        self.increment_op(instr.op.name());
-
         let qubits_id = instr.qubits;
         let new_node = self.dag.add_node(NodeType::Operation(instr));
         let terminus_index = match dir {
@@ -5491,11 +6134,11 @@ impl DAGCircuit {
         instr: &PackedInstruction,
     ) -> PyResult<(Vec<Clbit>, Option<Vec<Var>>)> {
         let (all_clbits, vars): (Vec<Clbit>, Option<Vec<Var>>) = {
-            if self.may_have_additional_wires(instr.op.view()) {
+            if self.may_have_additional_wires(instr) {
                 let mut clbits: IndexSet<Clbit, ::ahash::RandomState> =
                     IndexSet::from_iter(self.cargs_interner.get(instr.clbits).iter().copied());
                 let (additional_clbits, additional_vars) =
-                    Python::attach(|py| self.additional_wires(py, instr.op.view()))?;
+                    Python::attach(|py| self.additional_wires(py, instr))?;
                 for clbit in additional_clbits {
                     clbits.insert(clbit);
                 }
@@ -5513,7 +6156,7 @@ impl DAGCircuit {
         op: PackedOperation,
         qargs: &[Qubit],
         cargs: &[Clbit],
-        params: Option<SmallVec<[Param; 3]>>,
+        params: Option<Parameters<Block>>,
         label: Option<String>,
         #[cfg(feature = "cache_pygates")] py_op: Option<Py<PyAny>>,
     ) -> PyResult<NodeIndex> {
@@ -5535,7 +6178,7 @@ impl DAGCircuit {
         op: PackedOperation,
         qargs: &[Qubit],
         cargs: &[Clbit],
-        params: Option<SmallVec<[Param; 3]>>,
+        params: Option<Parameters<Block>>,
         label: Option<String>,
         #[cfg(feature = "cache_pygates")] py_op: Option<Py<PyAny>>,
     ) -> PyResult<NodeIndex> {
@@ -5558,7 +6201,7 @@ impl DAGCircuit {
         op: PackedOperation,
         qargs: &[Qubit],
         cargs: &[Clbit],
-        params: Option<SmallVec<[Param; 3]>>,
+        params: Option<Parameters<Block>>,
         label: Option<String>,
         #[cfg(feature = "cache_pygates")] py_op: Option<Py<PyAny>>,
         front: bool,
@@ -5593,7 +6236,7 @@ impl DAGCircuit {
         } else {
             OnceLock::new()
         };
-        let packed_instruction = PackedInstruction {
+        let instr = PackedInstruction {
             op,
             qubits: self.qargs_interner.insert(qargs),
             clbits: self.cargs_interner.insert(cargs),
@@ -5604,9 +6247,9 @@ impl DAGCircuit {
         };
 
         if front {
-            self.push_front(packed_instruction)
+            self.push_front(instr)
         } else {
-            self.push_back(packed_instruction)
+            self.push_back(instr)
         }
     }
 
@@ -5624,31 +6267,30 @@ impl DAGCircuit {
         }
     }
 
-    fn topological_nodes(&self) -> PyResult<impl Iterator<Item = NodeIndex> + use<>> {
+    fn topological_nodes(&self, reverse: bool) -> Vec<NodeIndex> {
         let key = |node: NodeIndex| -> Result<SortKeyType, Infallible> { Ok(self.sort_key(node)) };
-        let nodes =
-            rustworkx_core::dag_algo::lexicographical_topological_sort(&self.dag, key, false, None)
-                .map_err(|e| match e {
-                    rustworkx_core::dag_algo::TopologicalSortError::CycleOrBadInitialState => {
-                        PyValueError::new_err(format!("{e}"))
-                    }
-                    rustworkx_core::dag_algo::TopologicalSortError::KeyError(_) => {
-                        unreachable!()
-                    }
-                })?;
-        Ok(nodes.into_iter())
+        let Ok(nodes) = rustworkx_core::dag_algo::lexicographical_topological_sort(
+            &self.dag, key, reverse, None,
+        )
+        .map_err(|e| match e {
+            rustworkx_core::dag_algo::TopologicalSortError::CycleOrBadInitialState => {
+                panic!("DAG should prevent itself from becoming cyclic");
+            }
+        });
+        nodes
     }
 
-    pub fn topological_op_nodes(&self) -> PyResult<impl Iterator<Item = NodeIndex> + '_> {
-        Ok(self.topological_nodes()?.filter(|node: &NodeIndex| {
-            matches!(self.dag.node_weight(*node), Some(NodeType::Operation(_)))
-        }))
+    pub fn topological_op_nodes(&self, reverse: bool) -> impl Iterator<Item = NodeIndex> + '_ {
+        self.topological_nodes(reverse)
+            .into_iter()
+            .filter(|node: &NodeIndex| matches!(&self.dag[*node], NodeType::Operation(_)))
     }
 
     fn topological_key_sort(
         &self,
         py: Python,
         key: &Bound<PyAny>,
+        reverse: bool,
     ) -> PyResult<impl Iterator<Item = NodeIndex> + use<>> {
         // This path (user provided key func) is not ideal, since we no longer
         // use a string key after moving to Rust, in favor of using a tuple
@@ -5657,18 +6299,16 @@ impl DAGCircuit {
             let node = self.get_node(py, node)?;
             key.call1((node,))?.extract()
         };
-        Ok(
-            rustworkx_core::dag_algo::lexicographical_topological_sort(&self.dag, key, false, None)
-                .map_err(|e| match e {
-                    rustworkx_core::dag_algo::TopologicalSortError::CycleOrBadInitialState => {
-                        PyValueError::new_err(format!("{e}"))
-                    }
-                    rustworkx_core::dag_algo::TopologicalSortError::KeyError(ref e) => {
-                        e.clone_ref(py)
-                    }
-                })?
-                .into_iter(),
+        Ok(rustworkx_core::dag_algo::lexicographical_topological_sort(
+            &self.dag, key, reverse, None,
         )
+        .map_err(|e| match e {
+            rustworkx_core::dag_algo::TopologicalSortError::CycleOrBadInitialState => {
+                PyValueError::new_err(format!("{e}"))
+            }
+            rustworkx_core::dag_algo::TopologicalSortError::KeyError(ref e) => e.clone_ref(py),
+        })?
+        .into_iter())
     }
 
     #[inline]
@@ -5696,14 +6336,21 @@ impl DAGCircuit {
             == output_node
     }
 
-    fn may_have_additional_wires(&self, op: OperationRef) -> bool {
-        let OperationRef::Instruction(inst) = op else {
+    fn may_have_additional_wires(&self, instr: &PackedInstruction) -> bool {
+        if instr.op.try_control_flow().is_some() {
+            return true;
+        }
+        let OperationRef::Instruction(inst) = instr.op.view() else {
             return false;
         };
-        inst.control_flow() || inst.op_name == "store"
+        inst.op_name == "store"
     }
 
-    fn additional_wires(&self, py: Python, op: OperationRef) -> PyResult<(Vec<Clbit>, Vec<Var>)> {
+    fn additional_wires(
+        &self,
+        py: Python,
+        instr: &PackedInstruction,
+    ) -> PyResult<(Vec<Clbit>, Vec<Var>)> {
         let wires_from_expr = |node: &expr::Expr| -> PyResult<(Vec<Clbit>, Vec<Var>)> {
             let mut clbits = Vec::new();
             let mut vars: Vec<Var> = Vec::new();
@@ -5726,43 +6373,20 @@ impl DAGCircuit {
         let mut clbits = Vec::new();
         let mut vars = Vec::new();
 
-        if let OperationRef::Instruction(inst) = op {
-            let op = inst.instruction.bind(py);
-            if inst.control_flow() {
-                // The `condition` field might not exist, for example if this a `for` loop, and
-                // that's not an exceptional state for us.
-                if let Ok(condition) = op.getattr(intern!(py, "condition")) {
-                    if !condition.is_none() {
-                        if let Ok(condition) = condition.extract::<expr::Expr>() {
-                            let (expr_clbits, expr_vars) = wires_from_expr(&condition)?;
-                            for bit in expr_clbits {
-                                clbits.push(bit);
-                            }
-                            for var in expr_vars {
-                                vars.push(var);
-                            }
+        if let Some(instr) = self.try_view_control_flow(instr) {
+            match instr {
+                ControlFlowView::IfElse { condition, .. }
+                | ControlFlowView::While { condition, .. } => match condition {
+                    Condition::Bit(bit, _) => {
+                        clbits.push(self.clbits.find(bit).unwrap());
+                    }
+                    Condition::Register(reg, _) => {
+                        for bit in reg.bits() {
+                            clbits.push(self.clbits.find(&bit).unwrap());
                         }
                     }
-                }
-
-                // TODO: this is the Python-side `ControlFlowOp.iter_captured_vars` which iterates
-                //   over vars in all blocks of the op. This needs to be ported to Rust when control
-                //   flow is ported.
-                for var in op.call_method0("iter_captured_vars")?.try_iter()? {
-                    vars.push(self.vars.find(&var?.extract()?).unwrap())
-                }
-                if op.is_instance(imports::SWITCH_CASE_OP.get_bound(py))? {
-                    let target = op.getattr(intern!(py, "target"))?;
-                    if target.downcast::<PyClbit>().is_ok() {
-                        let target_clbit: ShareableClbit = target.extract()?;
-                        clbits.push(self.clbits.find(&target_clbit).unwrap());
-                    } else if target.is_instance_of::<PyClassicalRegister>() {
-                        for bit in target.try_iter()? {
-                            let clbit: ShareableClbit = bit?.extract()?;
-                            clbits.push(self.clbits.find(&clbit).unwrap());
-                        }
-                    } else {
-                        let (expr_clbits, expr_vars) = wires_from_expr(&target.extract()?)?;
+                    Condition::Expr(condition) => {
+                        let (expr_clbits, expr_vars) = wires_from_expr(condition)?;
                         for bit in expr_clbits {
                             clbits.push(bit);
                         }
@@ -5770,8 +6394,41 @@ impl DAGCircuit {
                             vars.push(var);
                         }
                     }
+                },
+                ControlFlowView::Switch { target, .. } => match target {
+                    SwitchTarget::Bit(bit) => {
+                        clbits.push(self.clbits.find(bit).unwrap());
+                    }
+                    SwitchTarget::Register(reg) => {
+                        for bit in reg.bits() {
+                            clbits.push(self.clbits.find(&bit).unwrap());
+                        }
+                    }
+                    SwitchTarget::Expr(expr) => {
+                        let (expr_clbits, expr_vars) = wires_from_expr(expr)?;
+                        for bit in expr_clbits {
+                            clbits.push(bit);
+                        }
+                        for var in expr_vars {
+                            vars.push(var);
+                        }
+                    }
+                },
+
+                // These don't have any classical wires
+                ControlFlowView::Box { .. }
+                | ControlFlowView::BreakLoop
+                | ControlFlowView::ContinueLoop
+                | ControlFlowView::ForLoop { .. } => {}
+            }
+            for block in instr.blocks() {
+                for var in block.captured_vars() {
+                    vars.push(self.vars.find(var).unwrap());
                 }
-            } else if op.is_instance(imports::STORE_OP.get_bound(py))? {
+            }
+        } else if let OperationRef::Instruction(instr) = instr.op.view() {
+            let op = instr.instruction.bind(py);
+            if op.is_instance(imports::STORE_OP.get_bound(py))? {
                 let (expr_clbits, expr_vars) = wires_from_expr(&op.getattr("lvalue")?.extract()?)?;
                 for bit in expr_clbits {
                     clbits.push(bit);
@@ -5835,6 +6492,14 @@ impl DAGCircuit {
         };
         self.dag.add_edge(in_node, out_node, wire);
         Ok((in_node, out_node))
+    }
+
+    /// Set the global phase to a float value.
+    ///
+    /// Unlike the general [set_global_phase_param], this is infallible.
+    #[inline]
+    pub fn set_global_phase_f64(&mut self, angle: f64) {
+        self.global_phase = Param::Float(angle.rem_euclid(::std::f64::consts::TAU));
     }
 
     /// Get the nodes on the given wire.
@@ -5924,14 +6589,11 @@ impl DAGCircuit {
             self.dag.add_edge(source, target, weight);
         }
 
-        match self.dag.remove_node(index) {
-            Some(NodeType::Operation(packed)) => {
-                let op_name = packed.op.name();
-                self.decrement_op(op_name);
-                packed
-            }
-            _ => panic!("Must be called with valid operation node!"),
-        }
+        let Some(NodeType::Operation(packed)) = self.dag.remove_node(index) else {
+            panic!("Must be called with valid operation node!");
+        };
+        self.untrack_instruction(&packed);
+        packed
     }
 
     /// Returns an iterator of the ancestors indices of a node.
@@ -5963,7 +6625,7 @@ impl DAGCircuit {
     }
 
     fn pack_into(&mut self, py: Python, b: &Bound<PyAny>) -> Result<NodeType, PyErr> {
-        Ok(if let Ok(in_node) = b.downcast::<DAGInNode>() {
+        Ok(if let Ok(in_node) = b.cast::<DAGInNode>() {
             let in_node = in_node.borrow();
             let wire = in_node.wire.bind(py);
             if let Ok(qubit) = wire.extract::<ShareableQubit>() {
@@ -5974,7 +6636,7 @@ impl DAGCircuit {
                 let var = wire.extract::<expr::Var>()?;
                 NodeType::VarIn(self.vars.find(&var).unwrap())
             }
-        } else if let Ok(out_node) = b.downcast::<DAGOutNode>() {
+        } else if let Ok(out_node) = b.cast::<DAGOutNode>() {
             let out_node = out_node.borrow();
             let wire = out_node.wire.bind(py);
             if let Ok(qubit) = wire.extract::<ShareableQubit>() {
@@ -5985,7 +6647,7 @@ impl DAGCircuit {
                 let var = wire.extract::<expr::Var>()?;
                 NodeType::VarOut(self.vars.find(&var).unwrap())
             }
-        } else if let Ok(op_node) = b.downcast::<DAGOpNode>() {
+        } else if let Ok(op_node) = b.cast::<DAGOpNode>() {
             let op_node = op_node.borrow();
             let qubits = self.qargs_interner.insert_owned(
                 self.qubits
@@ -6009,8 +6671,8 @@ impl DAGCircuit {
                     )?
                     .collect(),
             );
-            let params = (!op_node.instruction.params.is_empty())
-                .then(|| Box::new(op_node.instruction.params.clone()));
+            let params =
+                self.extract_blocks_from_circuit_parameters(op_node.instruction.params.as_ref())?;
             let inst = PackedInstruction {
                 op: op_node.instruction.operation.clone(),
                 qubits,
@@ -6051,6 +6713,7 @@ impl DAGCircuit {
             NodeType::Operation(packed) => {
                 let qubits = self.qargs_interner.get(packed.qubits);
                 let clbits = self.cargs_interner.get(packed.clbits);
+                let params = self.unpack_blocks_to_circuit_parameters(packed.params.as_deref())?;
                 Py::new(
                     py,
                     (
@@ -6059,7 +6722,7 @@ impl DAGCircuit {
                                 operation: packed.op.clone(),
                                 qubits: PyTuple::new(py, self.qubits.map_indices(qubits))?.unbind(),
                                 clbits: PyTuple::new(py, self.clbits.map_indices(clbits))?.unbind(),
-                                params: packed.params_view().iter().cloned().collect(),
+                                params,
                                 label: packed.label.clone(),
                                 #[cfg(feature = "cache_pygates")]
                                 py_op: packed.py_op.clone(),
@@ -6167,6 +6830,9 @@ impl DAGCircuit {
     ///   If None, trivial mapping will be used.
     /// * var_map: A mapping from the replacement DAGCircuit variables to the replaced node's variables.
     ///   Note: Inferring variable mapping automatically is currently not implemented.
+    /// * block_map: A mapping from the replacement DAGCircuit block IDs to the block IDs of this
+    ///   DAGCircuit. If None, and the replacement DAG has at least one block, the replacement DAG
+    ///   is assumed to use the same block IDs as this DAG, and must have the same number of blocks.
     ///
     /// # Returns
     ///
@@ -6179,6 +6845,7 @@ impl DAGCircuit {
         qubit_map: Option<&HashMap<Qubit, Qubit>>,
         clbit_map: Option<&HashMap<Clbit, Clbit>>,
         var_map: Option<&HashMap<expr::Var, expr::Var>>,
+        block_map: Option<&HashMap<Block, Block>>,
     ) -> PyResult<IndexMap<NodeIndex, NodeIndex, RandomState>> {
         if self.dag.node_weight(node_index).is_none() {
             return Err(PyIndexError::new_err(format!(
@@ -6237,9 +6904,24 @@ impl DAGCircuit {
             }
         };
 
-        let out_map =
-            self.substitute_node_with_graph(node_index, other, qubit_map, clbit_map, var_map)?;
-        self.global_phase = add_global_phase(&self.global_phase, &other.global_phase)?;
+        let block_map = match block_map {
+            Some(block_map) => block_map,
+            None => {
+                if other.num_blocks() > 0 && self.num_blocks() != other.num_blocks() {
+                    panic!(
+                        "'block_map' must be provided when 'other' has a different non-empty set of blocks"
+                    );
+                }
+                let self_blocks = (0..self.num_blocks()).map(Block::new);
+                let other_blocks = (0..other.num_blocks()).map(Block::new);
+                &HashMap::from_iter(other_blocks.zip(self_blocks))
+            }
+        };
+
+        let out_map = self.substitute_node_with_graph(
+            node_index, other, qubit_map, clbit_map, var_map, block_map,
+        )?;
+        self.global_phase = add_global_phase(&self.global_phase, &other.global_phase);
 
         let mut wire_map_dict = HashMap::new();
         for (source, target) in clbit_map.iter() {
@@ -6257,64 +6939,37 @@ impl DAGCircuit {
 
         for (old_node_index, new_node_index) in out_map.iter() {
             let old_node = &other.dag[*old_node_index];
-            let NodeType::Operation(old_inst) = old_node else {
-                continue;
-            };
-            let OperationRef::Instruction(old_op) = old_inst.op.view() else {
-                continue;
-            };
+            if let NodeType::Operation(old_inst) = old_node {
+                if let OperationRef::ControlFlow(cf) = old_inst.op.view() {
+                    match &cf.control_flow {
+                        ControlFlow::Switch {
+                            target,
+                            label_spec,
+                            cases,
+                        } => {
+                            let mapped_target = variable_mapper
+                                .map_target(target, |new_reg| self.add_creg(new_reg.clone()))?;
 
-            if old_op.name() == "switch_case" {
-                Python::attach(|py| -> PyResult<()> {
-                    let target = old_op.instruction.bind(py).getattr("target")?.extract()?;
-                    let kwargs = PyDict::new(py);
-                    kwargs.set_item(
-                        "label",
-                        old_inst
-                            .label
-                            .as_ref()
-                            .map(|x| PyString::new(py, x.as_str())),
-                    )?;
-
-                    let mapped_target = variable_mapper
-                        .map_target(&target, |new_reg| self.add_creg(new_reg.clone()))?;
-                    let new_op = imports::SWITCH_CASE_OP.get_bound(py).call(
-                        (
-                            mapped_target,
-                            old_op.instruction.call_method0(py, "cases_specifier")?,
-                        ),
-                        Some(&kwargs),
-                    )?;
-
-                    if let NodeType::Operation(new_inst) = &mut self.dag[*new_node_index] {
-                        new_inst.op = PyInstruction {
-                            qubits: old_op.num_qubits(),
-                            clbits: old_op.num_clbits(),
-                            params: old_op.num_params(),
-                            control_flow: old_op.control_flow(),
-                            op_name: old_op.name().to_string(),
-                            instruction: new_op.clone().unbind(),
+                            if let NodeType::Operation(new_inst) = &mut self.dag[*new_node_index] {
+                                #[cfg(feature = "cache_pygates")]
+                                {
+                                    new_inst.py_op.take();
+                                }
+                                new_inst.op = ControlFlowInstruction {
+                                    control_flow: ControlFlow::Switch {
+                                        target: mapped_target,
+                                        label_spec: label_spec.clone(),
+                                        cases: *cases,
+                                    },
+                                    num_qubits: cf.num_qubits,
+                                    num_clbits: cf.num_clbits,
+                                }
+                                .into();
+                            }
                         }
-                        .into();
-                        #[cfg(feature = "cache_pygates")]
-                        {
-                            new_inst.py_op = new_op.unbind().into();
-                        }
-                    }
-
-                    Ok(())
-                })?;
-            } else if old_inst.op.control_flow() {
-                Python::attach(|py| -> PyResult<()> {
-                    if let Ok(condition) = old_op
-                        .instruction
-                        .bind(py)
-                        .getattr(intern!(py, "condition"))
-                        .and_then(|c| c.extract())
-                    {
-                        if old_inst.op.name() != "switch_case" {
-                            let new_condition =
-                                variable_mapper.map_condition(&condition, false, |new_reg| {
+                        ControlFlow::IfElse { condition } | ControlFlow::While { condition } => {
+                            let mapped_condition =
+                                variable_mapper.map_condition(condition, false, |new_reg| {
                                     self.add_creg(new_reg.clone())
                                 })?;
 
@@ -6323,24 +6978,32 @@ impl DAGCircuit {
                                 {
                                     new_inst.py_op.take();
                                 }
-                                match new_inst.op.view() {
-                                    OperationRef::Instruction(py_inst) => {
-                                        py_inst.instruction.setattr(
-                                            py,
-                                            "condition",
-                                            new_condition,
-                                        )?;
+                                if matches!(&cf.control_flow, ControlFlow::While { .. }) {
+                                    new_inst.op = ControlFlowInstruction {
+                                        control_flow: ControlFlow::While {
+                                            condition: mapped_condition,
+                                        },
+                                        num_qubits: cf.num_qubits,
+                                        num_clbits: cf.num_clbits,
                                     }
-                                    _ => panic!("Instruction mismatch"),
+                                    .into();
+                                } else {
+                                    new_inst.op = ControlFlowInstruction {
+                                        control_flow: ControlFlow::IfElse {
+                                            condition: mapped_condition,
+                                        },
+                                        num_qubits: cf.num_qubits,
+                                        num_clbits: cf.num_clbits,
+                                    }
+                                    .into();
                                 }
                             }
                         }
+                        _ => (),
                     }
-                    Ok(())
-                })?;
+                }
             }
         }
-
         Ok(out_map)
     }
 
@@ -6351,6 +7014,7 @@ impl DAGCircuit {
         qubit_map: &HashMap<Qubit, Qubit>,
         clbit_map: &HashMap<Clbit, Clbit>,
         var_map: &HashMap<expr::Var, expr::Var>,
+        block_map: &HashMap<Block, Block>,
     ) -> PyResult<IndexMap<NodeIndex, NodeIndex, RandomState>> {
         if self.dag.node_weight(node).is_none() {
             return Err(PyIndexError::new_err(format!(
@@ -6461,7 +7125,11 @@ impl DAGCircuit {
                     .collect();
                 new_inst.qubits = self.qargs_interner.insert_owned(new_qubit_indices);
                 new_inst.clbits = self.cargs_interner.insert_owned(new_clbit_indices);
-                self.increment_op(new_inst.op.name());
+                new_inst.params = new_inst
+                    .params
+                    .as_ref()
+                    .map(|params| Box::new(params.map_blocks_ref(|b| block_map[b])));
+                self.track_instruction(new_inst);
             }
             let new_index = self.dag.add_node(new_node);
             out_map.insert(old_index, new_index);
@@ -6470,11 +7138,8 @@ impl DAGCircuit {
         // to do.
         if out_map.is_empty() {
             match self.dag.remove_node(node) {
-                Some(NodeType::Operation(packed)) => {
-                    let op_name = packed.op.name();
-                    self.decrement_op(op_name);
-                }
-                _ => unreachable!("Must be called with valid operation node!"),
+                Some(NodeType::Operation(packed)) => self.untrack_instruction(&packed),
+                _ => panic!("node must be an op node"),
             }
             // Return a new empty map to clear allocation from out_map
             return Ok(IndexMap::default());
@@ -6579,10 +7244,13 @@ impl DAGCircuit {
             self.dag.add_edge(source_out, target, weight);
         }
         // Remove node
-        if let NodeType::Operation(inst) = &self.dag[node] {
-            self.decrement_op(inst.op.name().to_string().as_str());
+        if let NodeType::Operation(inst) = self
+            .dag
+            .remove_node(node)
+            .expect("node is already checked for presence")
+        {
+            self.untrack_instruction(&inst);
         }
-        self.dag.remove_node(node);
         Ok(out_map)
     }
 
@@ -6718,8 +7386,8 @@ impl DAGCircuit {
             }
         }
 
-        if self.may_have_additional_wires(inst.op.view()) {
-            let (clbits, vars) = Python::attach(|py| self.additional_wires(py, inst.op.view()))?;
+        if self.may_have_additional_wires(inst) {
+            let (clbits, vars) = Python::attach(|py| self.additional_wires(py, inst))?;
             for b in clbits {
                 if !self.clbit_io_map.len() - 1 < b.index() {
                     return Err(DAGCircuitError::new_err(format!(
@@ -6781,6 +7449,7 @@ impl DAGCircuit {
             cargs_interner: Interner::with_capacity(num_clbits),
             qubits: ObjectRegistry::with_capacity(num_qubits),
             clbits: ObjectRegistry::with_capacity(num_clbits),
+            blocks: ControlFlowBlocks::new(),
             vars: ObjectRegistry::with_capacity(num_vars),
             stretches: ObjectRegistry::with_capacity(num_stretches),
             global_phase: Param::Float(0.),
@@ -6809,6 +7478,11 @@ impl DAGCircuit {
         self.qargs_interner.get(index)
     }
 
+    /// Insert qargs into the interner and return the interned value
+    pub fn add_qargs(&mut self, qubits: &[Qubit]) -> Interned<[Qubit]> {
+        self.qargs_interner.insert(qubits)
+    }
+
     /// Get cargs from an intern index
     pub fn get_cargs(&self, index: Interned<[Clbit]>) -> &[Clbit] {
         self.cargs_interner.get(index)
@@ -6820,15 +7494,16 @@ impl DAGCircuit {
         new_gate: (StandardGate, &[f64]),
         old_index: NodeIndex,
     ) {
-        self.increment_op(new_gate.0.name());
-        let old_node = &self.dag[old_index];
-        let inst = if let NodeType::Operation(old_node) = old_node {
+        let inst = if let NodeType::Operation(old_node) = &self.dag[old_index] {
             PackedInstruction {
                 op: new_gate.0.into(),
                 qubits: old_node.qubits,
                 clbits: old_node.clbits,
-                params: (!new_gate.1.is_empty())
-                    .then(|| Box::new(new_gate.1.iter().map(|x| Param::Float(*x)).collect())),
+                params: (!new_gate.1.is_empty()).then(|| {
+                    Box::new(Parameters::Params(
+                        new_gate.1.iter().map(|x| Param::Float(*x)).collect(),
+                    ))
+                }),
                 label: None,
                 #[cfg(feature = "cache_pygates")]
                 py_op: OnceLock::new(),
@@ -6836,6 +7511,7 @@ impl DAGCircuit {
         } else {
             panic!("This method only works if provided index is an op node");
         };
+        self.track_instruction(&inst);
         let new_index = self.dag.add_node(NodeType::Operation(inst));
         let (parent_index, edge_index, weight) = self
             .dag
@@ -6867,11 +7543,8 @@ impl DAGCircuit {
         self.dag.add_edge(parent_index, child_index, weight);
         for node in sequence {
             match self.dag.remove_node(*node) {
-                Some(NodeType::Operation(packed)) => {
-                    let op_name = packed.op.name();
-                    self.decrement_op(op_name);
-                }
-                _ => panic!("Must be called with valid operation node!"),
+                Some(NodeType::Operation(packed)) => self.untrack_instruction(&packed),
+                _ => panic!("This method only works if provided index is an op node"),
             }
         }
     }
@@ -6900,7 +7573,6 @@ impl DAGCircuit {
         }
         for (source, target, weight) in edge_list {
             let (new_op, params) = insert(weight);
-            self.increment_op(new_op.name());
             let qubits = if let Wire::Qubit(qubit) = weight {
                 vec![qubit]
             } else {
@@ -6912,21 +7584,19 @@ impl DAGCircuit {
                 op: new_op,
                 qubits: self.qargs_interner.insert_owned(qubits),
                 clbits: self.cargs_interner.get_default(),
-                params: (!params.is_empty()).then(|| Box::new(params)),
+                params: (!params.is_empty()).then(|| Box::new(Parameters::Params(params))),
                 label: None,
                 #[cfg(feature = "cache_pygates")]
                 py_op: OnceLock::new(),
             };
+            self.track_instruction(&inst);
             let new_index = self.dag.add_node(NodeType::Operation(inst));
             self.dag.add_edge(source, new_index, weight);
             self.dag.add_edge(new_index, target, weight);
         }
 
         match self.dag.remove_node(node) {
-            Some(NodeType::Operation(packed)) => {
-                let op_name = packed.op.name();
-                self.decrement_op(op_name);
-            }
+            Some(NodeType::Operation(packed)) => self.untrack_instruction(&packed),
             _ => panic!("Must be called with valid operation node"),
         }
     }
@@ -6938,7 +7608,7 @@ impl DAGCircuit {
                     "Invalid parameter type, only float and parameter expression are supported",
                 ));
             }
-            _ => self.set_global_phase(add_global_phase(&self.global_phase, value)?)?,
+            _ => self.set_global_phase_param(add_global_phase(&self.global_phase, value))?,
         }
         Ok(())
     }
@@ -6948,16 +7618,11 @@ impl DAGCircuit {
     /// Args:
     ///     py: The python token necessary for control flow recursion
     ///     recurse: Whether to recurse into control flow ops or not
-    pub fn count_ops(
-        &self,
-        py: Python,
-        recurse: bool,
-    ) -> PyResult<IndexMap<String, usize, RandomState>> {
+    pub fn count_ops(&self, recurse: bool) -> PyResult<IndexMap<String, usize, RandomState>> {
         if !recurse || !self.has_control_flow() {
             Ok(self.op_names.clone())
         } else {
             fn inner(
-                py: Python,
                 dag: &DAGCircuit,
                 counts: &mut IndexMap<String, usize, RandomState>,
             ) -> PyResult<()> {
@@ -6967,28 +7632,19 @@ impl DAGCircuit {
                         .and_modify(|count| *count += value)
                         .or_insert(*value);
                 }
-                let circuit_to_dag = imports::CIRCUIT_TO_DAG.get_bound(py);
-                for node in dag.dag.node_weights() {
-                    let NodeType::Operation(node) = node else {
+                for (_, node) in dag.op_nodes(false) {
+                    let Some(control_flow) = dag.try_view_control_flow(node) else {
                         continue;
                     };
-                    if !node.op.control_flow() {
-                        continue;
-                    }
-                    let OperationRef::Instruction(inst) = node.op.view() else {
-                        panic!("control flow op must be an instruction")
-                    };
-                    let blocks = inst.instruction.bind(py).getattr("blocks")?;
-                    for block in blocks.try_iter()? {
-                        let inner_dag: &DAGCircuit = &circuit_to_dag.call1((block?,))?.extract()?;
-                        inner(py, inner_dag, counts)?;
+                    for block in control_flow.blocks() {
+                        inner(block, counts)?;
                     }
                 }
                 Ok(())
             }
             let mut counts =
                 IndexMap::with_capacity_and_hasher(self.op_names.len(), RandomState::default());
-            inner(py, self, &mut counts)?;
+            inner(self, &mut counts)?;
             Ok(counts)
         }
     }
@@ -7036,8 +7692,8 @@ impl DAGCircuit {
     pub fn from_circuit(
         qc: QuantumCircuitData,
         copy_op: bool,
-        qubit_order: Option<Vec<ShareableQubit>>,
-        clbit_order: Option<Vec<ShareableClbit>>,
+        qubit_order: Option<Vec<Qubit>>,
+        clbit_order: Option<Vec<Clbit>>,
     ) -> PyResult<DAGCircuit> {
         // Extract necessary attributes
         let qc_data = qc.data;
@@ -7057,8 +7713,8 @@ impl DAGCircuit {
         copy_op: bool,
         name: Option<String>,
         metadata: Option<Py<PyAny>>,
-        qubit_order: Option<Vec<ShareableQubit>>,
-        clbit_order: Option<Vec<ShareableClbit>>,
+        qubit_order: Option<Vec<Qubit>>,
+        clbit_order: Option<Vec<Clbit>>,
     ) -> PyResult<Self> {
         let num_qubits = qc_data.num_qubits();
         let num_clbits = qc_data.num_clbits();
@@ -7097,14 +7753,19 @@ impl DAGCircuit {
             qubit_ordering
                 .into_iter()
                 .try_for_each(|qubit| -> PyResult<()> {
-                    if new_dag.qubits.find(&qubit).is_some() {
+                    let shareable_qubit = qc_data.qubits().get(qubit).ok_or_else(|| {
+                        DAGCircuitError::new_err(format!("Qubit index {} not found", qubit.0))
+                    })?;
+
+                    if new_dag.qubits.find(shareable_qubit).is_some() {
                         return Err(DAGCircuitError::new_err(format!(
                             "duplicate qubits {:?}",
                             &qubit
                         )));
                     }
-                    let qubit_index = qc_data.qubits().find(&qubit).unwrap();
-                    ordered_vec[qubit_index.index()] = new_dag.add_qubit_unchecked(qubit)?;
+                    let qubit_index = qc_data.qubits().find(shareable_qubit).unwrap();
+                    ordered_vec[qubit_index.index()] =
+                        new_dag.add_qubit_unchecked(shareable_qubit.clone())?;
                     Ok(())
                 })?;
             // The `Vec::get` use is because an arbitrary interner might contain old references to
@@ -7130,14 +7791,19 @@ impl DAGCircuit {
             clbit_ordering
                 .into_iter()
                 .try_for_each(|clbit| -> PyResult<()> {
-                    if new_dag.clbits.find(&clbit).is_some() {
+                    let shareable_clbit = qc_data.clbits().get(clbit).ok_or_else(|| {
+                        DAGCircuitError::new_err(format!("Clbit index {} not found", clbit.0))
+                    })?;
+
+                    if new_dag.clbits.find(shareable_clbit).is_some() {
                         return Err(DAGCircuitError::new_err(format!(
                             "duplicate clbits {:?}",
                             &clbit
                         )));
                     };
-                    let clbit_index = qc_data.clbits().find(&clbit).unwrap();
-                    ordered_vec[clbit_index.index()] = new_dag.add_clbit_unchecked(clbit)?;
+                    let clbit_index = qc_data.clbits().find(shareable_clbit).unwrap();
+                    ordered_vec[clbit_index.index()] =
+                        new_dag.add_clbit_unchecked(shareable_clbit.clone())?;
                     Ok(())
                 })?;
             // The `Vec::get` use is because an arbitrary interner might contain old references to
@@ -7193,23 +7859,34 @@ impl DAGCircuit {
         // After bits and registers are added, copy bitlocations
         new_dag.qubit_locations = qc_data.qubit_indices().clone();
         new_dag.clbit_locations = qc_data.clbit_indices().clone();
-
+        new_dag.blocks = qc_data.blocks().try_map_without_references(|block| {
+            DAGCircuit::from_circuit_data(block, copy_op, None, None, None, None)
+        })?;
         new_dag.try_extend(qc_data.iter().map(|instr| -> PyResult<PackedInstruction> {
             Ok(PackedInstruction {
                 op: if copy_op {
                     match instr.op.view() {
+                        OperationRef::ControlFlow(cf) => cf.clone().into(),
                         OperationRef::Gate(gate) => {
-                            Python::attach(|py| gate.py_deepcopy(py, None))?.into()
+                            PyOperationTypes::Gate(Python::attach(|py| gate.py_deepcopy(py, None))?)
+                                .into()
                         }
                         OperationRef::Instruction(instruction) => {
-                            Python::attach(|py| instruction.py_deepcopy(py, None))?.into()
+                            PyOperationTypes::Instruction(Python::attach(|py| {
+                                instruction.py_deepcopy(py, None)
+                            })?)
+                            .into()
                         }
                         OperationRef::Operation(operation) => {
-                            Python::attach(|py| operation.py_deepcopy(py, None))?.into()
+                            PyOperationTypes::Operation(Python::attach(|py| {
+                                operation.py_deepcopy(py, None)
+                            })?)
+                            .into()
                         }
                         OperationRef::StandardGate(gate) => gate.into(),
                         OperationRef::StandardInstruction(instruction) => instruction.into(),
                         OperationRef::Unitary(unitary) => unitary.clone().into(),
+                        OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
                     }
                 } else {
                     instr.op.clone()
@@ -7231,59 +7908,29 @@ impl DAGCircuit {
         &mut self,
         block_ids: &[NodeIndex],
         op: PackedOperation,
-        params: SmallVec<[Param; 3]>,
+        params: Option<Box<Parameters<Block>>>,
         label: Option<&str>,
         cycle_check: bool,
         qubit_pos_map: &HashMap<Qubit, usize>,
         clbit_pos_map: &HashMap<Clbit, usize>,
     ) -> PyResult<NodeIndex> {
-        let mut block_op_names = Vec::with_capacity(block_ids.len());
         let mut block_qargs: HashSet<Qubit> = HashSet::new();
         let mut block_cargs: HashSet<Clbit> = HashSet::new();
         for nd in block_ids {
-            let weight = self.dag.node_weight(*nd);
-            match weight {
-                Some(NodeType::Operation(packed)) => {
-                    block_op_names.push(packed.op.name().to_string());
-                    block_qargs.extend(self.qargs_interner.get(packed.qubits));
-                    block_cargs.extend(self.cargs_interner.get(packed.clbits));
-                    // Add classical bits from SwitchCaseOp, if applicable.
-                    if let OperationRef::Instruction(op) = packed.op.view() {
-                        if op.name() == "switch_case" {
-                            Python::attach(|py| -> PyResult<()> {
-                                let op_bound = op.instruction.bind(py);
-                                let target = op_bound.getattr(intern!(py, "target"))?;
-                                if target.downcast::<PyClbit>().is_ok() {
-                                    let target_clbit: ShareableClbit = target.extract()?;
-                                    block_cargs.insert(self.clbits.find(&target_clbit).unwrap());
-                                } else if target.is_instance_of::<PyClassicalRegister>() {
-                                    block_cargs.extend(self.clbits.map_objects(
-                                        target.extract::<Vec<ShareableClbit>>()?.into_iter(),
-                                    )?);
-                                } else {
-                                    block_cargs.extend(
-                                        self.clbits.map_objects(
-                                            node_resources(&target)?
-                                                .clbits
-                                                .extract::<Vec<ShareableClbit>>(py)?
-                                                .into_iter(),
-                                        )?,
-                                    );
-                                }
-                                Ok(())
-                            })?;
-                        }
-                    }
-                }
-                Some(_) => {
-                    return Err(DAGCircuitError::new_err(
-                        "Nodes in 'node_block' must be of type 'DAGOpNode'.",
-                    ));
-                }
-                None => {
-                    return Err(DAGCircuitError::new_err(
-                        "Node in 'node_block' not found in DAG.",
-                    ));
+            let NodeType::Operation(instr) = self.dag.node_weight(*nd).ok_or_else(|| {
+                DAGCircuitError::new_err("Node in 'node_block' not found in DAG.")
+            })?
+            else {
+                return Err(DAGCircuitError::new_err(
+                    "Nodes in 'node_block' must be of type 'DAGOpNode'.",
+                ));
+            };
+            block_qargs.extend(self.qargs_interner.get(instr.qubits));
+            block_cargs.extend(self.cargs_interner.get(instr.clbits));
+            if self.may_have_additional_wires(instr) {
+                let (additional_clbits, _) = Python::attach(|py| self.additional_wires(py, instr))?;
+                for clbit in additional_clbits {
+                    block_cargs.insert(clbit);
                 }
             }
         }
@@ -7308,40 +7955,63 @@ impl DAGCircuit {
             )));
         }
 
-        let op_name = op.name().to_string();
         let qubits = self.qargs_interner.insert_owned(block_qargs);
         let clbits = self.cargs_interner.insert_owned(block_cargs);
         let weight = NodeType::Operation(PackedInstruction {
             op,
             qubits,
             clbits,
-            params: (!params.is_empty()).then(|| Box::new(params)),
+            params,
             label: label.map(|label| Box::new(label.to_string())),
             #[cfg(feature = "cache_pygates")]
             py_op: OnceLock::new(),
         });
 
-        let new_node = self
+        // The `contract_nodes` call removes a bunch of weights from the DAG without returning them,
+        // so we need to untrack them before making the call.  If the call fails, though, we have to
+        // restore the tracking to those, so we can't let any `Block`s get garbage collected.  We'll
+        // increment the refcount on any blocks in them now, and then undo it again before
+        // returning.
+        let extra_block_refs = block_ids
+            .iter()
+            .flat_map(|node| self.dag[*node].unwrap_operation().blocks_view())
+            .copied()
+            .inspect(|block| self.blocks.increment(*block))
+            .collect::<Vec<_>>();
+        block_ids
+            .iter()
+            .for_each(|node| self.untrack_instruction_in_place(*node));
+        let out = match self
             .dag
             .contract_nodes(block_ids.iter().copied(), weight, cycle_check)
-            .map_err(|e| match e {
-                ContractError::DAGWouldCycle => DAGCircuitError::new_err(
-                    "Replacing the specified node block would introduce a cycle",
-                ),
-            })?;
-
-        self.increment_op(op_name.as_str());
-        for name in block_op_names {
-            self.decrement_op(name.as_str());
-        }
-        Ok(new_node)
+        {
+            Ok(node) => {
+                self.track_instruction_in_place(node);
+                Ok(node)
+            }
+            Err(e) => {
+                for old in block_ids {
+                    self.track_instruction_in_place(*old);
+                }
+                Err(match e {
+                    ContractError::DAGWouldCycle => DAGCircuitError::new_err(
+                        "Replacing the specified node block would introduce a cycle",
+                    ),
+                })
+            }
+        };
+        extra_block_refs
+            .into_iter()
+            .for_each(|block| _ = self.blocks.decrement(block));
+        out
     }
 
     pub fn compose(
         &mut self,
         other: &DAGCircuit,
-        qubits: Option<&[ShareableQubit]>,
-        clbits: Option<&[ShareableClbit]>,
+        qubits: Option<&[Qubit]>,
+        clbits: Option<&[Clbit]>,
+        block_map: HashMap<Block, Block>,
         inline_captures: bool,
     ) -> PyResult<()> {
         if other.qubits.len() > self.qubits.len() || other.clbits.len() > self.clbits.len() {
@@ -7350,24 +8020,14 @@ impl DAGCircuit {
             ));
         }
 
-        // Number of qubits and clbits must match number in circuit or None
-        let identity_qubit_map: HashMap<ShareableQubit, ShareableQubit> = other
-            .qubits
-            .objects()
-            .iter()
-            .cloned()
-            .zip(self.qubits.objects().iter().cloned())
-            .collect();
-        let identity_clbit_map: HashMap<ShareableClbit, ShareableClbit> = other
-            .clbits
-            .objects()
-            .iter()
-            .cloned()
-            .zip(self.clbits.objects().iter().cloned())
-            .collect();
-
         let qubit_map = match qubits {
-            None => identity_qubit_map.clone(),
+            None => other
+                .qubits
+                .objects()
+                .iter()
+                .cloned()
+                .zip(self.qubits.objects().iter().cloned())
+                .collect(),
             Some(qubits) => {
                 if qubits.len() != other.qubits.len() {
                     return Err(DAGCircuitError::new_err(concat!(
@@ -7376,16 +8036,30 @@ impl DAGCircuit {
                     )));
                 }
                 let other_qubits = other.qubits.objects();
+
                 other_qubits
                     .iter()
                     .cloned()
-                    .zip(qubits.iter().cloned())
-                    .collect()
+                    .zip(qubits.iter().map(|qubit| {
+                        self.qubits.get(*qubit).ok_or_else(|| {
+                            DAGCircuitError::new_err(format!("Qubit index {} not found", qubit.0))
+                        })
+                    }))
+                    .map(|(other_qubit, self_qubit_result)| {
+                        self_qubit_result.map(|self_qubit| (other_qubit, self_qubit.clone()))
+                    })
+                    .collect::<PyResult<HashMap<ShareableQubit, ShareableQubit>>>()?
             }
         };
 
         let clbit_map = match clbits {
-            None => identity_clbit_map.clone(),
+            None => other
+                .clbits
+                .objects()
+                .iter()
+                .cloned()
+                .zip(self.clbits.objects().iter().cloned())
+                .collect(),
             Some(clbits) => {
                 if clbits.len() != other.clbits.len() {
                     return Err(DAGCircuitError::new_err(concat!(
@@ -7397,12 +8071,19 @@ impl DAGCircuit {
                 other_clbits
                     .iter()
                     .cloned()
-                    .zip(clbits.iter().cloned())
-                    .collect()
+                    .zip(clbits.iter().map(|clbit| {
+                        self.clbits.get(*clbit).ok_or_else(|| {
+                            DAGCircuitError::new_err(format!("Clbit index {} not found", clbit.0))
+                        })
+                    }))
+                    .map(|(other_clbit, self_clbit_result)| {
+                        self_clbit_result.map(|self_clbit| (other_clbit, self_clbit.clone()))
+                    })
+                    .collect::<PyResult<HashMap<ShareableClbit, ShareableClbit>>>()?
             }
         };
 
-        self.global_phase = add_global_phase(&self.global_phase, &other.global_phase)?;
+        self.global_phase = add_global_phase(&self.global_phase, &other.global_phase);
 
         // This is all the handling we need for realtime variables, if there's no remapping. They:
         //
@@ -7458,16 +8139,10 @@ impl DAGCircuit {
         }
         let build_var_mapper = |cregs: &RegisterData<ClassicalRegister>| -> VariableMapper {
             let mut edge_map = HashMap::new();
-            if clbit_map.is_empty() {
-                // try to ido a 1-1 mapping in order
-                for (a, b) in identity_clbit_map.iter() {
-                    edge_map.insert(a.clone(), b.clone());
-                }
-            } else {
-                for (a, b) in clbit_map.iter() {
-                    edge_map.insert(a.clone(), b.clone());
-                }
-            };
+            for (a, b) in clbit_map.iter() {
+                edge_map.insert(a.clone(), b.clone());
+            }
+
             VariableMapper::new(
                 cregs.registers().to_vec(),
                 edge_map,
@@ -7477,7 +8152,7 @@ impl DAGCircuit {
         };
         let mut variable_mapper: Option<VariableMapper> = None;
 
-        for node in other.topological_nodes()? {
+        for node in other.topological_nodes(false) {
             match &other.dag[node] {
                 NodeType::QubitIn(q) => {
                     let bit = other.qubits.get(*q).unwrap();
@@ -7519,82 +8194,70 @@ impl DAGCircuit {
                         .map(|bit| self.clbits.find(&clbit_map[bit]).unwrap())
                         .collect::<Vec<Clbit>>();
 
-                    let instr = if inst.op.control_flow() {
-                        let OperationRef::Instruction(op) = inst.op.view() else {
-                            unreachable!("All control_flow ops should be PyInstruction");
-                        };
-                        let py_op = Python::attach(|py| -> PyResult<Py<PyAny>> {
-                            let py_op = op.instruction.bind(py);
-                            let py_op = py_op.call_method0(intern!(py, "to_mutable"))?;
-                            if py_op.is_instance(imports::IF_ELSE_OP.get_bound(py))?
-                                || py_op.is_instance(imports::WHILE_LOOP_OP.get_bound(py))?
-                            {
-                                if let Ok(condition) = py_op
-                                    .getattr(intern!(py, "condition"))
-                                    .and_then(|c| c.extract())
-                                {
-                                    match variable_mapper {
-                                        Some(ref variable_mapper) => {
-                                            let condition = variable_mapper.map_condition(
-                                                &condition,
-                                                true,
-                                                reject_new_register,
-                                            )?;
-                                            py_op.setattr(intern!(py, "condition"), condition)?;
-                                        }
+                    let instr = if let Some(cf) = inst.op.try_control_flow() {
+                        let new_cf = ControlFlowInstruction {
+                            control_flow: match &cf.control_flow {
+                                ControlFlow::IfElse { condition }
+                                | ControlFlow::While { condition } => {
+                                    let mapped_condition = match variable_mapper {
+                                        Some(ref variable_mapper) => variable_mapper
+                                            .map_condition(condition, true, reject_new_register)?,
                                         None => {
                                             let var_mapper = build_var_mapper(&self.cregs);
                                             let condition = var_mapper.map_condition(
-                                                &condition,
+                                                condition,
                                                 true,
                                                 reject_new_register,
                                             )?;
-                                            py_op.setattr(intern!(py, "condition"), condition)?;
                                             variable_mapper = Some(var_mapper);
+                                            condition
+                                        }
+                                    };
+                                    if matches!(&cf.control_flow, ControlFlow::While { .. }) {
+                                        ControlFlow::While {
+                                            condition: mapped_condition,
+                                        }
+                                    } else {
+                                        ControlFlow::IfElse {
+                                            condition: mapped_condition,
                                         }
                                     }
                                 }
-                            } else if py_op.is_instance(imports::SWITCH_CASE_OP.get_bound(py))? {
-                                match variable_mapper {
-                                    Some(ref variable_mapper) => {
-                                        py_op.setattr(
-                                            intern!(py, "target"),
-                                            variable_mapper.map_target(
-                                                &py_op.getattr(intern!(py, "target"))?.extract()?,
-                                                reject_new_register,
-                                            )?,
-                                        )?;
-                                    }
-                                    None => {
-                                        let var_mapper = build_var_mapper(&self.cregs);
-                                        py_op.setattr(
-                                            intern!(py, "target"),
-                                            var_mapper.map_target(
-                                                &py_op.getattr(intern!(py, "target"))?.extract()?,
-                                                reject_new_register,
-                                            )?,
-                                        )?;
-                                        variable_mapper = Some(var_mapper);
+                                ControlFlow::Switch {
+                                    target,
+                                    label_spec,
+                                    cases,
+                                } => {
+                                    let mapped_target = match variable_mapper {
+                                        Some(ref variable_mapper) => variable_mapper
+                                            .map_target(target, reject_new_register)?,
+                                        None => {
+                                            let var_mapper = build_var_mapper(&self.cregs);
+                                            let target = var_mapper
+                                                .map_target(target, reject_new_register)?;
+                                            variable_mapper = Some(var_mapper);
+                                            target
+                                        }
+                                    };
+                                    ControlFlow::Switch {
+                                        target: mapped_target,
+                                        label_spec: label_spec.clone(),
+                                        cases: *cases,
                                     }
                                 }
-                            }
-                            Ok(py_op.unbind())
-                        })?;
+                                _ => cf.control_flow.clone(),
+                            },
+                            num_qubits: cf.num_qubits,
+                            num_clbits: cf.num_clbits,
+                        };
                         PackedInstruction {
-                            op: PackedOperation::from_instruction(
-                                PyInstruction {
-                                    qubits: op.qubits,
-                                    clbits: op.clbits,
-                                    params: op.params,
-                                    op_name: op.op_name.clone(),
-                                    control_flow: op.control_flow,
-                                    instruction: py_op,
-                                }
-                                .into(),
-                            ),
+                            op: new_cf.into(),
                             qubits: self.qargs_interner.insert_owned(mapped_qargs),
                             clbits: self.cargs_interner.insert_owned(mapped_cargs),
-                            params: inst.params.clone(),
+                            params: inst
+                                .params
+                                .as_ref()
+                                .map(|params| Box::new(params.map_blocks_ref(|b| block_map[b]))),
                             label: inst.label.clone(),
                             #[cfg(feature = "cache_pygates")]
                             py_op: OnceLock::new(),
@@ -7628,11 +8291,10 @@ impl DAGCircuit {
         &mut self,
         node_index: NodeIndex,
         new_op: PackedOperation,
-        params: SmallVec<[Param; 3]>,
+        params: Option<Parameters<Block>>,
         label: Option<&str>,
     ) -> PyResult<()> {
         let old_packed = self.dag[node_index].unwrap_operation();
-        let op_name = old_packed.op.name().to_string();
 
         if old_packed.op.num_qubits() != new_op.num_qubits()
             || old_packed.op.num_clbits() != new_op.num_clbits()
@@ -7645,23 +8307,22 @@ impl DAGCircuit {
                 new_op.num_clbits()
             )));
         }
-        let new_op_name = new_op.name().to_string();
-        let new_weight = NodeType::Operation(PackedInstruction {
+        let new_inst = PackedInstruction {
             op: new_op,
             qubits: old_packed.qubits,
             clbits: old_packed.clbits,
-            params: (!params.is_empty()).then(|| params.into()),
+            params: params.map(Box::new),
             label: label.map(|label| Box::new(label.to_string())),
             #[cfg(feature = "cache_pygates")]
             py_op: OnceLock::new(),
-        });
-        if let Some(weight) = self.dag.node_weight_mut(node_index) {
-            *weight = new_weight;
-        }
-
-        // Update self.op_names
-        self.decrement_op(op_name.as_str());
-        self.increment_op(new_op_name.as_str());
+        };
+        self.track_instruction(&new_inst);
+        let NodeType::Operation(old_packed) =
+            ::std::mem::replace(&mut self.dag[node_index], NodeType::Operation(new_inst))
+        else {
+            unreachable!("already asserted this index is an op node during initial checks");
+        };
+        self.untrack_instruction(&old_packed);
         Ok(())
     }
 
@@ -7671,11 +8332,11 @@ impl DAGCircuit {
         node_index: NodeIndex,
         op: &Bound<PyAny>,
     ) -> PyResult<()> {
+        // Extract information from new op
+        let new_op = op.extract::<OperationFromPython<DAGCircuit>>()?;
+        let params = self.take_parameter_blocks(new_op.params);
         // Extract information from node that is going to be replaced
         let old_packed = self.dag[node_index].unwrap_operation();
-        let op_name = old_packed.op.name().to_string();
-        // Extract information from new op
-        let new_op = op.extract::<OperationFromPython>()?;
         let current_wires: HashSet<Wire> =
             self.dag.edges(node_index).map(|e| *e.weight()).collect();
         let mut new_wires: HashSet<Wire> = self
@@ -7690,10 +8351,6 @@ impl DAGCircuit {
                     .map(|x| Wire::Clbit(*x)),
             )
             .collect();
-        let (additional_clbits, additional_vars) =
-            Python::attach(|py| self.additional_wires(py, new_op.operation.view()))?;
-        new_wires.extend(additional_clbits.iter().map(|x| Wire::Clbit(*x)));
-        new_wires.extend(additional_vars.iter().map(|x| Wire::Var(*x)));
 
         if old_packed.op.num_qubits() != new_op.operation.num_qubits()
             || old_packed.op.num_clbits() != new_op.operation.num_clbits()
@@ -7706,11 +8363,23 @@ impl DAGCircuit {
                 new_op.operation.num_clbits()
             )));
         }
-
-        #[cfg(feature = "cache_pygates")]
-        let py_op_cache = Some(op.clone().unbind());
-
         let label = new_op.label.clone();
+
+        let new_instr = PackedInstruction {
+            op: new_op.operation,
+            qubits: old_packed.qubits,
+            clbits: old_packed.clbits,
+            params,
+            label,
+            #[cfg(feature = "cache_pygates")]
+            py_op: OnceLock::from(op.clone().unbind()),
+        };
+
+        let (additional_clbits, additional_vars) =
+            Python::attach(|py| self.additional_wires(py, &new_instr))?;
+        new_wires.extend(additional_clbits.iter().map(|x| Wire::Clbit(*x)));
+        new_wires.extend(additional_vars.iter().map(|x| Wire::Var(*x)));
+
         if new_wires != current_wires {
             // The new wires must be a non-strict subset of the current wires; if they add new
             // wires, we'd not know where to cut the existing wire to insert the new dependency.
@@ -7722,23 +8391,13 @@ impl DAGCircuit {
                 current_wires
             )));
         }
-        let new_op_name = new_op.operation.name().to_string();
-        let new_weight = NodeType::Operation(PackedInstruction {
-            op: new_op.operation,
-            qubits: old_packed.qubits,
-            clbits: old_packed.clbits,
-            params: (!new_op.params.is_empty()).then(|| new_op.params.into()),
-            label,
-            #[cfg(feature = "cache_pygates")]
-            py_op: py_op_cache.map(OnceLock::from).unwrap_or_default(),
-        });
-        if let Some(weight) = self.dag.node_weight_mut(node_index) {
-            *weight = new_weight;
-        }
-
-        // Update self.op_names
-        self.decrement_op(op_name.as_str());
-        self.increment_op(new_op_name.as_str());
+        self.track_instruction(&new_instr);
+        let NodeType::Operation(old_instr) =
+            ::std::mem::replace(&mut self.dag[node_index], NodeType::Operation(new_instr))
+        else {
+            unreachable!("already asserted this index is an op node during initial checks");
+        };
+        self.untrack_instruction(&old_instr);
         Ok(())
     }
 
@@ -7756,6 +8415,16 @@ impl DAGCircuit {
     // Returns an immutable reference to 'metadata'
     pub fn get_metadata(&self) -> Option<&Py<PyAny>> {
         self.metadata.as_ref()
+    }
+
+    /// Returns an iterator over the unique successors of the given node
+    pub fn successors(&self, node: NodeIndex) -> impl Iterator<Item = NodeIndex> {
+        self.dag.neighbors_directed(node, Outgoing).unique()
+    }
+
+    /// Returns an iterator over the unique predecessors of the given node
+    pub fn predecessors(&self, node: NodeIndex) -> impl Iterator<Item = NodeIndex> {
+        self.dag.neighbors_directed(node, Incoming).unique()
     }
 }
 
@@ -7832,7 +8501,7 @@ impl DAGCircuitBuilder {
         op: PackedOperation,
         qubits: &[Qubit],
         clbits: &[Clbit],
-        params: Option<SmallVec<[Param; 3]>>,
+        params: Option<Parameters<Block>>,
         label: Option<String>,
         #[cfg(feature = "cache_pygates")] py_op: Option<Py<PyAny>>,
     ) -> PyResult<NodeIndex> {
@@ -7848,13 +8517,10 @@ impl DAGCircuitBuilder {
         self.push_back(instruction)
     }
 
-    /// Pushes a valid [PackedInstruction] to the back ot the circuit.
+    /// Pushes a valid [PackedInstruction] to the back of the circuit.
     pub fn push_back(&mut self, instr: PackedInstruction) -> PyResult<NodeIndex> {
+        self.dag.track_instruction(&instr);
         let (all_cbits, vars) = self.dag.get_classical_resources(&instr)?;
-
-        // Increment the operation count
-        self.dag.increment_op(instr.op.name());
-
         let qubits_id = instr.qubits;
         let new_node = self.dag.dag.add_node(NodeType::Operation(instr));
 
@@ -7940,7 +8606,7 @@ impl DAGCircuitBuilder {
         op: PackedOperation,
         qubits: &[Qubit],
         clbits: &[Clbit],
-        params: Option<SmallVec<[Param; 3]>>,
+        params: Option<Parameters<Block>>,
         label: Option<String>,
         #[cfg(feature = "cache_pygates")] py_op: Option<Py<PyAny>>,
     ) -> PackedInstruction {
@@ -7985,15 +8651,51 @@ impl DAGCircuitBuilder {
     pub fn insert_qargs(&mut self, qargs: &[Qubit]) -> Interned<[Qubit]> {
         self.dag.qargs_interner.insert(qargs)
     }
+    /// Merge the `qargs` in a different [Interner] into this DAG, remapping the qubits.
+    ///
+    /// This is useful for simplifying the direct mapping of [PackedInstruction]s from one DAG to
+    /// another, like in substitution methods, or rebuilding a new DAG out of a lot of smaller ones.
+    /// See [Interner::merge_map_slice] for more information on the mapping function.
+    pub fn merge_qargs(
+        &mut self,
+        other: &Interner<[Qubit]>,
+        map_fn: impl FnMut(&Qubit) -> Option<Qubit>,
+    ) -> InternedMap<[Qubit]> {
+        self.dag.merge_qargs(other, map_fn)
+    }
 
     /// Packs qargs into the circuit.
     pub fn insert_cargs(&mut self, cargs: &[Clbit]) -> Interned<[Clbit]> {
         self.dag.cargs_interner.insert(cargs)
     }
+    /// Merge the `cargs` in a different [Interner] into this DAG, remapping the clbits.
+    ///
+    /// This is useful for simplifying the direct mapping of [PackedInstruction]s from one DAG to
+    /// another, like in substitution methods, or rebuilding a new DAG out of a lot of smaller ones.
+    /// See [Interner::merge_map_slice] for more information on the mapping function.
+    pub fn merge_cargs(
+        &mut self,
+        other: &Interner<[Clbit]>,
+        map_fn: impl FnMut(&Clbit) -> Option<Clbit>,
+    ) -> InternedMap<[Clbit]> {
+        self.dag.merge_cargs(other, map_fn)
+    }
 
     /// Adds a new value to the global phase of the inner [DAGCircuit].
     pub fn add_global_phase(&mut self, param: &Param) -> PyResult<()> {
         self.dag.add_global_phase(param)
+    }
+
+    /// Gives the DAG ownership of the provided basic block and returns a
+    /// unique identifier that can be used to retrieve a reference to it
+    /// later.
+    ///
+    /// No attempt is made to deduplicate the given block.
+    /// No validation is performed to ensure that the given block is valid
+    /// within this DAG.
+    #[inline]
+    pub fn add_block(&mut self, block: DAGCircuit) -> Block {
+        self.dag.add_block(block)
     }
 }
 
@@ -8008,8 +8710,8 @@ impl ::std::ops::Index<NodeIndex> for DAGCircuit {
 /// Add to global phase. Global phase can only be Float or ParameterExpression so this
 /// does not handle the full possibility of parameter values.
 /// TODO replace/merge this with add_param/radd_param
-pub(crate) fn add_global_phase(phase: &Param, other: &Param) -> PyResult<Param> {
-    Ok(match [phase, other] {
+pub(crate) fn add_global_phase(phase: &Param, other: &Param) -> Param {
+    match [phase, other] {
         [Param::Float(a), Param::Float(b)] => Param::Float(a + b),
         [Param::Float(a), Param::ParameterExpression(b)] => {
             Param::ParameterExpression(Arc::new(b.add(&ParameterExpression::from_f64(*a)).unwrap()))
@@ -8021,7 +8723,51 @@ pub(crate) fn add_global_phase(phase: &Param, other: &Param) -> PyResult<Param> 
             Param::ParameterExpression(Arc::new(a.add(b).expect("Name conflict in add.")))
         }
         _ => panic!("Invalid global phase"),
-    })
+    }
+}
+
+/// Update the tracking fields of the [DAGCircuit].
+///
+/// This is tightly coupled to the [DAGCircuit] internals and should be updated to match them, but
+/// is separate to allow safe borrow checking of instructions that are in-place in the DAG.
+fn track_instruction(
+    inst: &PackedInstruction,
+    op_names: &mut IndexMap<String, usize, RandomState>,
+    blocks: &mut ControlFlowBlocks<DAGCircuit>,
+) {
+    let name = inst.op.name();
+    match op_names.get_mut(name) {
+        Some(count) => {
+            *count += 1;
+        }
+        None => {
+            op_names.insert(name.to_string(), 1);
+        }
+    }
+    for block in inst.blocks_view() {
+        blocks.increment(*block);
+    }
+}
+/// Update the tracking fields of the [DAGCircuit].
+///
+/// This is tightly coupled to the [DAGCircuit] internals and should be updated to match them, but
+/// is separate to allow safe borrow checking of instructions that are in-place in the DAG.
+fn untrack_instruction(
+    inst: &PackedInstruction,
+    op_names: &mut IndexMap<String, usize, RandomState>,
+    blocks: &mut ControlFlowBlocks<DAGCircuit>,
+) {
+    let name = inst.op.name();
+    let count = op_names
+        .get_mut(name)
+        .expect("tracked instructions should have a referenced name");
+    *count -= 1;
+    if *count == 0 {
+        op_names.swap_remove(name);
+    }
+    for block in inst.blocks_view() {
+        blocks.decrement(*block);
+    }
 }
 
 type SortKeyType<'a> = (&'a [Qubit], &'a [Clbit]);
@@ -8029,7 +8775,7 @@ type SortKeyType<'a> = (&'a [Qubit], &'a [Clbit]);
 #[cfg(all(test, not(miri)))]
 mod test {
     use crate::bit::{ClassicalRegister, QuantumRegister};
-    use crate::dag_circuit::{DAGCircuit, Wire};
+    use crate::dag_circuit::{BlocksMode, DAGCircuit, Wire};
     use crate::operations::{StandardGate, StandardInstruction};
     use crate::packed_instruction::{PackedInstruction, PackedOperation};
     use crate::{Clbit, Qubit};
@@ -8241,7 +8987,7 @@ mod test {
             #[cfg(feature = "cache_pygates")]
             None,
         )?;
-        let empty = dag.physical_empty_like_with_capacity(10, 0, 0)?;
+        let empty = dag.physical_empty_like_with_capacity(10, 0, 0, BlocksMode::Drop)?;
         assert_eq!(empty.name.as_deref(), Some("my dag"));
         assert_eq!(
             empty

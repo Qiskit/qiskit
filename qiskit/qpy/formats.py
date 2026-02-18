@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -172,6 +172,14 @@ INSTRUCTION_ANNOTATION_SIZE = struct.calcsize(INSTRUCTION_ANNOTATION_PACK)
 SPARSE_PAULI_OP_LIST_ELEM = namedtuple("SPARSE_PAULI_OP_LIST_ELEMENT", ["size"])
 SPARSE_PAULI_OP_LIST_ELEM_PACK = "!Q"
 SPARSE_PAULI_OP_LIST_ELEM_SIZE = struct.calcsize(SPARSE_PAULI_OP_LIST_ELEM_PACK)
+
+# SparseObservable List - Version 17+
+SPARSE_OBSERVABLE = namedtuple(
+    "SPARSE_OBSERVABLE",
+    ["num_qubits", "coeff_data_len", "bitterm_data_len", "inds_data_len", "bounds_data_len"],
+)
+SPARSE_OBSERVABLE_PACK = "!IQQQQ"
+SPARSE_OBSERVABLE_SIZE = struct.calcsize(SPARSE_OBSERVABLE_PACK)
 
 # Pauli Evolution Gate
 PAULI_EVOLUTION_DEF = namedtuple(

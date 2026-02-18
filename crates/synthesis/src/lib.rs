@@ -4,23 +4,25 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
 pub mod clifford;
-mod discrete_basis;
+pub mod discrete_basis;
 pub mod euler_one_qubit_decomposer;
 mod evolution;
 pub mod linalg;
 pub mod linear;
 pub mod linear_phase;
 mod multi_controlled;
+pub mod pauli_product_measurement;
 mod permutation;
 mod qft;
 pub mod qsd;
+pub mod ross_selinger;
 pub mod two_qubit_decompose;
 
 use pyo3::import_exception;
@@ -48,6 +50,10 @@ pub fn synthesis(m: &Bound<PyModule>) -> PyResult<()> {
     let mc_mod = PyModule::new(m.py(), "multi_controlled")?;
     multi_controlled::multi_controlled(&mc_mod)?;
     m.add_submodule(&mc_mod)?;
+
+    let ppm_mod = PyModule::new(m.py(), "pauli_product_measurement")?;
+    pauli_product_measurement::pauli_product_measurement_mod(&ppm_mod)?;
+    m.add_submodule(&ppm_mod)?;
 
     let evolution_mod = PyModule::new(m.py(), "evolution")?;
     evolution::evolution(&evolution_mod)?;

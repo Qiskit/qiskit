@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -1247,7 +1247,8 @@ class TextDrawing:
             add_connected_gate(node, gates, layer, current_cons, gate_wire_map)
 
         elif len(node.qargs) >= 2 and not node.cargs:
-            layer.set_qu_multibox(node.qargs, gate_text, conditional=conditional)
+            mapped_qargs = [self.qubits[gate_wire_map[q]] for q in node.qargs]
+            layer.set_qu_multibox(mapped_qargs, gate_text, conditional=conditional)
 
         elif node.qargs and node.cargs:
             layer._set_multibox(

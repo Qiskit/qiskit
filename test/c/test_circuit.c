@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -171,6 +171,34 @@ static int test_circuit_copy_with_instructions(void) {
     return Ok;
 }
 
+static int test_circuit_copy_empty_like(void) {
+    QkCircuit *qc = qk_circuit_new(10, 10);
+    for (int i = 0; i < 10; i++) {
+        qk_circuit_measure(qc, i, i);
+        uint32_t qubits[1] = {i};
+        qk_circuit_gate(qc, QkGate_H, qubits, NULL);
+    }
+    QkCircuit *copy = qk_circuit_copy_empty_like(qc, QkVarsMode_Alike, QkBlocksMode_Drop);
+
+    size_t num_instructions = qk_circuit_num_instructions(qc);        // not 0
+    size_t num_copy_instructions = qk_circuit_num_instructions(copy); // 0
+
+    qk_circuit_free(qc);
+    qk_circuit_free(copy);
+
+    if (num_instructions == 0) {
+        printf("Expected the original circuit to remain unchanged, but it is now empty\n");
+        return EqualityError;
+    }
+
+    if (num_copy_instructions != 0) {
+        printf("Expected no operations in the copied-empty-like circuit, but got %zu\n",
+               num_copy_instructions);
+        return EqualityError;
+    }
+    return Ok;
+}
+
 static int test_no_gate_1000_bits(void) {
     QkCircuit *qc = qk_circuit_new(1000, 1000);
     uint32_t num_qubits = qk_circuit_num_qubits(qc);
@@ -288,7 +316,7 @@ static int test_get_gate_counts(void) {
 
     if (c2.len != 1) {
         result = EqualityError;
-        qk_opcounts_clear(&c1);
+        qk_opcounts_clear(&c2);
         goto circuit_cleanup;
     }
     qk_opcounts_clear(&c2);
@@ -791,6 +819,7 @@ static int test_unitary_gate_1q(void) {
     QkComplex64 c1 = {1.0, 0.0};
     QkComplex64 matrix[4] = {c1, c0,  // this
                              c0, c1}; // is
+    QkComplex64 *out = malloc(sizeof(QkComplex64) * 4);
 
     int ec = qk_circuit_unitary(qc, matrix, qubits, 1, false);
     if (ec != QkExitCode_Success) {
@@ -803,6 +832,21 @@ static int test_unitary_gate_1q(void) {
     size_t num_inst = qk_circuit_num_instructions(qc);
     if (num_inst != 1) {
         result = EqualityError;
+        goto cleanup;
+    }
+
+    // Check the instruction's kind
+    QkOperationKind kind = qk_circuit_instruction_kind(qc, num_inst - 1);
+    if (kind != QkOperationKind_Unitary) {
+        result = EqualityError;
+        printf("Expected instruction kind %d but got %d\n", QkOperationKind_Unitary, kind);
+        goto cleanup;
+    }
+    memset(out, 0, sizeof(QkComplex64) * 4);
+    qk_circuit_inst_unitary(qc, num_inst - 1, out);
+    if (memcmp(out, matrix, sizeof(QkComplex64) * 4) != 0) {
+        result = EqualityError;
+        printf("Unitary matrix does not match expected\n");
         goto cleanup;
     }
 
@@ -825,6 +869,7 @@ static int test_unitary_gate_1q(void) {
 
 cleanup:
     qk_circuit_free(qc);
+    free(out);
     return result;
 }
 
@@ -846,6 +891,8 @@ static int test_unitary_gate_3q(void) {
                               c0, c0, c0, c0, c0, c0, c1, c0,  // look
                               c0, c0, c0, c0, c0, c0, c0, c1}; // like a matrix
 
+    size_t dim = 1LLU << 3;
+    QkComplex64 *out = malloc(sizeof(QkComplex64) * dim * dim);
     int ec = qk_circuit_unitary(qc, matrix, qubits, 3, false);
     if (ec != QkExitCode_Success) {
         qk_circuit_free(qc);
@@ -857,6 +904,22 @@ static int test_unitary_gate_3q(void) {
     size_t num_inst = qk_circuit_num_instructions(qc);
     if (num_inst != 1) {
         result = EqualityError;
+        goto cleanup;
+    }
+
+    // Check the instruction's kind
+    QkOperationKind kind = qk_circuit_instruction_kind(qc, num_inst - 1);
+    if (kind != QkOperationKind_Unitary) {
+        result = EqualityError;
+        printf("Expected instruction kind %d but got %d\n", QkOperationKind_Unitary, kind);
+        goto cleanup;
+    }
+
+    memset(out, 0, sizeof(QkComplex64) * dim * dim);
+    qk_circuit_inst_unitary(qc, num_inst - 1, out);
+    if (memcmp(out, matrix, sizeof(QkComplex64) * dim * dim) != 0) {
+        result = EqualityError;
+        printf("Unitary matrix does not match expected\n");
         goto cleanup;
     }
 
@@ -878,6 +941,7 @@ static int test_unitary_gate_3q(void) {
 
 cleanup:
     qk_circuit_free(qc);
+    free(out);
     return result;
 }
 
@@ -1027,6 +1091,9 @@ cleanup:
     return result;
 }
 
+/**
+ * Test adding delay instruction to a circuit.
+ */
 static int test_delay_instruction(void) {
     QkCircuit *qc = qk_circuit_new(2, 0);
     int result = Ok;
@@ -1091,6 +1158,27 @@ cleanup:
     qk_circuit_free(qc);
     return result;
 }
+/**
+ * Test circuit to dag conversion.
+ */
+static int test_circuit_to_dag(void) {
+    QkCircuit *circuit = qk_circuit_new(2, 1);
+    qk_circuit_gate(circuit, QkGate_H, (uint32_t[]){0}, NULL);
+    qk_circuit_gate(circuit, QkGate_CX, (uint32_t[]){0, 1}, NULL);
+
+    QkDag *dag = qk_circuit_to_dag(circuit);
+    qk_circuit_free(circuit);
+
+    int result = Ok;
+    if (qk_dag_num_qubits(dag) != 2 || qk_dag_num_clbits(dag) != 1 ||
+        qk_dag_num_op_nodes(dag) != 2) {
+        printf("Circuit to DAG conversion encountered an issue\n");
+        result = EqualityError;
+    }
+
+    qk_dag_free(dag);
+    return result;
+}
 
 int test_circuit(void) {
     int num_failed = 0;
@@ -1099,6 +1187,7 @@ int test_circuit(void) {
     num_failed += RUN_TEST(test_circuit_with_classical_reg);
     num_failed += RUN_TEST(test_circuit_copy);
     num_failed += RUN_TEST(test_circuit_copy_with_instructions);
+    num_failed += RUN_TEST(test_circuit_copy_empty_like);
     num_failed += RUN_TEST(test_no_gate_1000_bits);
     num_failed += RUN_TEST(test_get_gate_counts);
     num_failed += RUN_TEST(test_get_gate_counts_bv_no_measure);
@@ -1114,6 +1203,7 @@ int test_circuit(void) {
     num_failed += RUN_TEST(test_unitary_gate_3q);
     num_failed += RUN_TEST(test_get_instruction_params);
     num_failed += RUN_TEST(test_parameterized_circuit);
+    num_failed += RUN_TEST(test_circuit_to_dag);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);

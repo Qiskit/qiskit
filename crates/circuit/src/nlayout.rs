@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -52,6 +52,13 @@ macro_rules! qubit_newtype {
             pub fn index(&self) -> usize {
                 self.0 as usize
             }
+
+            /// Specialise a slice of `Qubit` values into a slice of this type's values.
+            pub fn lift_slice(slice: &[$crate::Qubit]) -> &[$id] {
+                // SAFETY: `Qubit` and this type share the exact same set of valid bit patterns and
+                // alignments.
+                unsafe { ::std::slice::from_raw_parts(slice.as_ptr() as *const $id, slice.len()) }
+            }
         }
 
         impl From<$id> for $crate::Qubit {
@@ -65,9 +72,11 @@ macro_rules! qubit_newtype {
             }
         }
 
-        impl pyo3::FromPyObject<'_> for $id {
-            fn extract_bound(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
-                Ok(Self(ob.extract()?))
+        impl<'a, 'py> ::pyo3::FromPyObject<'a, 'py> for $id {
+            type Error = <u32 as FromPyObject<'a, 'py>>::Error;
+
+            fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
+                ob.extract().map(Self)
             }
         }
 

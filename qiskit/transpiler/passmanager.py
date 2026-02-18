@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -271,7 +271,7 @@ class StagedPassManager(PassManager):
         will not change between releases.
 
     These stages will be executed in order and any stage set to ``None`` will be skipped.
-    If a stage is provided multiple times (i.e. at diferent relative positions), the
+    If a stage is provided multiple times (i.e. at different relative positions), the
     associated passes, including pre and post, will run once per declaration.
     If a :class:`~qiskit.transpiler.PassManager` input is being used for more than 1 stage here
     (for example in the case of a :class:`~.Pass` that covers both Layout and Routing) you will
@@ -290,7 +290,7 @@ class StagedPassManager(PassManager):
                 instance. If this is not specified the default stages list
                 ``['init', 'layout', 'routing', 'translation', 'optimization', 'scheduling']`` is
                 used. After instantiation, the final list will be immutable and stored as tuple.
-                If a stage is provided multiple times (i.e. at diferent relative positions), the
+                If a stage is provided multiple times (i.e. at different relative positions), the
                 associated passes, including pre and post, will run once per declaration.
             kwargs: The initial :class:`~.PassManager` values for any stages
                 defined in ``stages``. If a argument is not defined the

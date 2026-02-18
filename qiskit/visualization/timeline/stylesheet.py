@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -263,7 +263,7 @@ def default_style() -> Dict[str, Any]:
             "measure": r"{\rm Measure}",
         },
         "formatter.latex_symbol.frame_change": r"\circlearrowleft",
-        "formatter.unicode_symbol.frame_change": "\u21BA",
+        "formatter.unicode_symbol.frame_change": "\u21ba",
         "formatter.box_height.gate": 0.5,
         "formatter.box_height.timeslot": 0.6,
         "formatter.layer.gate": 3,

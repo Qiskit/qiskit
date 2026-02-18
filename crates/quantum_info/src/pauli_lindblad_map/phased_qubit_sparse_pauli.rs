@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -122,7 +122,7 @@ impl PhasedQubitSparsePauliList {
     /// Clear all the elements of the list.
     ///
     /// This does not change the capacity of the internal allocations, so subsequent addition or
-    /// substraction of elements in the list may not need to reallocate.
+    /// subtraction of elements in the list may not need to reallocate.
     pub fn clear(&mut self) {
         self.qubit_sparse_pauli_list.clear();
         self.phases.clear();
@@ -800,7 +800,7 @@ impl PyPhasedQubitSparsePauli {
         if slf.is(&other) {
             return Ok(true);
         }
-        let Ok(other) = other.downcast_into::<Self>() else {
+        let Ok(other) = other.cast_into::<Self>() else {
             return Ok(false);
         };
         let slf = slf.borrow();
@@ -1039,7 +1039,7 @@ impl PyPhasedQubitSparsePauliList {
             }
             return Self::from_label(&label);
         }
-        if let Ok(pauli_list) = data.downcast_exact::<Self>() {
+        if let Ok(pauli_list) = data.cast_exact::<Self>() {
             check_num_qubits(data)?;
             let borrowed = pauli_list.borrow();
             let inner = borrowed.inner.read().map_err(|_| InnerReadError)?;
@@ -1059,7 +1059,7 @@ impl PyPhasedQubitSparsePauliList {
             };
             return Self::from_sparse_list(vec, num_qubits);
         }
-        if let Ok(term) = data.downcast_exact::<PyPhasedQubitSparsePauli>() {
+        if let Ok(term) = data.cast_exact::<PyPhasedQubitSparsePauli>() {
             return term.borrow().to_phased_qubit_sparse_pauli_list();
         };
         if let Ok(pauli_list) = Self::from_phased_qubit_sparse_paulis(data, num_qubits) {
@@ -1274,14 +1274,12 @@ impl PyPhasedQubitSparsePauliList {
                         "cannot construct an empty PhasedQubitSparsePauliList without knowing `num_qubits`",
                     ));
                 };
-                let py_term = first?.downcast::<PyPhasedQubitSparsePauli>()?.borrow();
+                let py_term = first?.cast::<PyPhasedQubitSparsePauli>()?.borrow();
                 py_term.inner.to_phased_qubit_sparse_pauli_list()
             }
         };
         for bound_py_term in iter {
-            let py_term = bound_py_term?
-                .downcast::<PyPhasedQubitSparsePauli>()?
-                .borrow();
+            let py_term = bound_py_term?.cast::<PyPhasedQubitSparsePauli>()?.borrow();
             inner.add_phased_qubit_sparse_pauli(py_term.inner.view())?;
         }
         Ok(inner.into())
@@ -1290,7 +1288,7 @@ impl PyPhasedQubitSparsePauliList {
     /// Clear all the elements from the list, making it equal to the empty list again.
     ///
     /// This does not change the capacity of the internal allocations, so subsequent addition or
-    /// substraction operations resulting from composition may not need to reallocate.
+    /// subtraction operations resulting from composition may not need to reallocate.
     ///
     /// Examples:
     ///
@@ -1537,7 +1535,7 @@ impl PyPhasedQubitSparsePauliList {
         if slf.is(&other) {
             return Ok(true);
         }
-        let Ok(other) = other.downcast_into::<Self>() else {
+        let Ok(other) = other.cast_into::<Self>() else {
             return Ok(false);
         };
         let slf_borrowed = slf.borrow();

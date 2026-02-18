@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -24,7 +24,6 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.quantum_info import Operator
 from qiskit.transpiler.passes import VF2Layout, ApplyLayout, SabreSwap, SabreLayout
-from qiskit.transpiler.passes.layout.vf2_utils import build_interaction_graph
 from qiskit.transpiler.passes.routing.star_prerouting import StarPreRouting
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.passmanager import PassManager
@@ -497,7 +496,13 @@ class TestStarPreRouting(QiskitTestCase):
         self.assertEqual(swap_count, cp_count - 2)
 
         # Confirm linearization by checking that the number of edges is equal to the number of nodes
-        interaction_graph = build_interaction_graph(new_dag, strict_direction=False)[0]
-        num_edges = interaction_graph.num_edges()
-        num_nodes = interaction_graph.num_nodes()
-        self.assertEqual(num_edges, num_nodes - 1)
+        def get_edge(node, dag):
+            qubits = tuple(dag.find_bit(q).index for q in node.qargs)
+            if len(qubits) != 2:
+                return None
+            return (qubits[0], qubits[1]) if qubits[0] < qubits[1] else (qubits[1], qubits[0])
+
+        edges = {
+            edge for node in new_dag.op_nodes() if (edge := get_edge(node, new_dag)) is not None
+        }
+        self.assertEqual(len(edges), new_dag.num_qubits() - 1)

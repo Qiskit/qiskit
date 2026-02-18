@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -19,6 +19,7 @@ from typing import Iterable, Optional, Union, TYPE_CHECKING
 
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
+from qiskit._accelerate.circuit import ControlFlowType
 from .control_flow import ControlFlowOp
 
 if TYPE_CHECKING:
@@ -30,6 +31,8 @@ class ForLoopOp(ControlFlowOp):
     (``body``) parameterized by a parameter ``loop_parameter`` through
     the set of integer values provided in ``indexset``.
     """
+
+    _control_flow_type = ControlFlowType.ForLoop
 
     def __init__(
         self,

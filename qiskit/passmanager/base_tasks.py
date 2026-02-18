@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -103,7 +103,7 @@ class GenericPass(Task, ABC):
             run_state = RunState.FAIL
             raise
         finally:
-            ret = ret or passmanager_ir
+            ret = passmanager_ir if ret is None else ret
             if run_state != RunState.SKIP:
                 running_time = time.time() - start_time
                 logger.info("Pass: %s - %.5f (ms)", self.name(), running_time * 1000)

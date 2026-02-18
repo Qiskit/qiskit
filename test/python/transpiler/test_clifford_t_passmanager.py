@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -141,6 +141,30 @@ class TestCliffordTPassManager(QiskitTestCase):
         )
         transpiled = pm.run(qc)
         self.assertLessEqual(set(transpiled.count_ops()), set(basis_gates))
+
+    @data(0, 1, 2, 3)
+    def test_multiplier(self, optimization_level):
+        """Clifford+T transpilation of a multiplier gate, using different optimization levels."""
+        gate = MultiplierGate(4)
+        qc = QuantumCircuit(gate.num_qubits)
+        qc.append(gate, qc.qubits)
+
+        # Transpile to a Clifford+T basis set
+        basis_gates = get_clifford_gate_names() + ["t", "tdg"]
+        pm = generate_preset_pass_manager(
+            basis_gates=basis_gates, optimization_level=optimization_level, seed_transpiler=0
+        )
+        transpiled = pm.run(qc)
+
+        self.assertLessEqual(set(transpiled.count_ops()), set(basis_gates))
+        t_count = _get_t_count(transpiled)
+
+        # This is the T-count with optimization level 0.
+        # We should not expect to see more T-gates with higher optimization levels
+        # (while this is technically possible, it means that Clifford+T transpiler
+        # pipeline is not setup correctly).
+        expected_t_count = 1085
+        self.assertLessEqual(t_count, expected_t_count)
 
     @data(0, 1, 2, 3)
     def test_iqp(self, optimization_level):

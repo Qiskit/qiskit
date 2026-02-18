@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -17,7 +17,7 @@ use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::operations;
 use qiskit_circuit::operations::{Param, StandardGate, multiply_param, radd_param};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::{Clbit, Qubit};
+use qiskit_circuit::{Clbit, NoBlocks, Qubit};
 use smallvec::{SmallVec, smallvec};
 
 // custom type for a more readable code
@@ -85,7 +85,7 @@ fn single_qubit_evolution(
 ) -> Box<dyn Iterator<Item = Instruction>> {
     let qubit = vec![Qubit(index)];
 
-    // We don't need to explictly cover the |1><1| projector case (which is the Phase gate),
+    // We don't need to explicitly cover the |1><1| projector case (which is the Phase gate),
     // which will be handled by the multi-qubit evolution.
     match pauli {
         'x' => Box::new(std::iter::once((
@@ -130,7 +130,7 @@ fn two_qubit_evolution<'a>(
     let qubits = vec![Qubit(indices[0]), Qubit(indices[1])];
     let paulistring: String = pauli.iter().collect();
 
-    // We don't need to explictly cover the |11><11| projector case (which is the CPhase gate),
+    // We don't need to explicitly cover the |11><11| projector case (which is the CPhase gate),
     // which will be handled by the multi-qubit evolution. The Paulis need special treatment here
     // since the generic code would use CX-RZ-CX instead of the two-qubit Pauli standard gates.
     match paulistring.as_str() {
@@ -358,9 +358,9 @@ pub fn py_pauli_evolution(
     let mut modified_phase = false; // keep track of whether we modified the phase
 
     for el in sparse_paulis.iter() {
-        let tuple = el.downcast::<PyTuple>()?;
-        let pauli = tuple.get_item(0)?.downcast::<PyString>()?.to_string();
-        let time = Param::extract_no_coerce(&tuple.get_item(2)?)?;
+        let tuple = el.cast::<PyTuple>()?;
+        let pauli = tuple.get_borrowed_item(0)?.cast::<PyString>()?.to_string();
+        let time = Param::extract_no_coerce(tuple.get_borrowed_item(2)?)?;
 
         if pauli.as_str().chars().all(|p| p == 'i') {
             global_phase = radd_param(global_phase, time);
@@ -401,7 +401,12 @@ pub fn py_pauli_evolution(
         global_phase = multiply_param(&global_phase, -0.5);
     }
 
-    CircuitData::from_packed_operations(num_qubits as u32, 0, evos, global_phase)
+    Ok(CircuitData::from_packed_operations(
+        num_qubits as u32,
+        0,
+        evos,
+        global_phase,
+    )?)
 }
 
 /// Build a CX chain over the active qubits. E.g. with q_1 inactive, this would return
@@ -474,7 +479,7 @@ fn add_control(gate: StandardGate, params: &[Param], control_state: &[bool]) -> 
     // We know that all calls here should be valid and unwrap eagerly.
     Python::attach(|py| {
         let pygate = gate
-            .create_py_op(py, Some(params), None)
+            .create_py_op(py, Some(params.iter().cloned().collect()), None)
             .expect("Failed to create Py version of standard gate.");
         let num_controls = control_state.len();
         let py_control_state = PyString::new(
@@ -490,10 +495,10 @@ fn add_control(gate: StandardGate, params: &[Param], control_state: &[bool]) -> 
             .call_method1(
                 py,
                 intern!(py, "control"),
-                (num_controls, label, py_control_state),
+                (num_controls, label, py_control_state, false),
             )
             .expect("Failed to call .control()")
-            .extract::<OperationFromPython>(py)
+            .extract::<OperationFromPython<NoBlocks>>(py)
             .expect("The control state should be valid and match the number of controls.");
 
         controlled_gate.operation

@@ -4,19 +4,18 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
-
-use std::sync::Arc;
 
 use hashbrown::hash_map::Entry;
 use hashbrown::{HashMap, HashSet};
 use num_complex::Complex64;
 use pyo3::exceptions::{PyRuntimeError, PyTypeError, PyValueError, PyZeroDivisionError};
 use pyo3::types::{IntoPyDict, PyComplex, PyFloat, PyInt, PyNotImplemented, PySet, PyString};
+use std::sync::Arc;
 use thiserror::Error;
 use uuid::Uuid;
 
@@ -132,6 +131,13 @@ impl fmt::Display for ParameterExpression {
     }
 }
 
+impl ParameterExpression {
+    pub fn qpy_replay(&self) -> Vec<OPReplay> {
+        let mut replay = Vec::new();
+        qpy_replay(self, &self.name_map, &mut replay);
+        replay
+    }
+}
 // This needs to be implemented manually, because PyO3 does not provide built-in
 // conversions for the subclasses of ParameterExpression in Python. Specifically
 // the Python classes Parameter and ParameterVector are subclasses of
@@ -251,11 +257,15 @@ impl ParameterExpression {
     }
 
     /// Load from a sequence of [OPReplay]s. Used in serialization.
-    pub fn from_qpy(replay: &[OPReplay]) -> Result<Self, ParameterError> {
+    pub fn from_qpy(
+        replay: &[OPReplay],
+        subs_operations: Option<Vec<(usize, HashMap<Symbol, ParameterExpression>)>>,
+    ) -> Result<Self, ParameterError> {
         // the stack contains the latest lhs and rhs values
         let mut stack: Vec<ParameterExpression> = Vec::new();
-
-        for inst in replay.iter() {
+        let subs_operations = subs_operations.unwrap_or_default();
+        let mut current_sub_operation = subs_operations.len(); // we avoid using a queue since we only make one pass anyway
+        for (i, inst) in replay.iter().enumerate() {
             let OPReplay { op, lhs, rhs } = inst;
 
             // put the values on the stack, if they exist
@@ -302,6 +312,15 @@ impl ParameterExpression {
                 }
             };
             stack.push(result);
+            //now check whether any substitutions need to be applied at this stage
+            while current_sub_operation > 0 && subs_operations[current_sub_operation - 1].0 == i + 1
+            {
+                if let Some(exp) = stack.pop() {
+                    let sub_exp = exp.subs(&subs_operations[current_sub_operation - 1].1, false)?;
+                    stack.push(sub_exp);
+                }
+                current_sub_operation -= 1;
+            }
         }
 
         // once we're done, just return the last element in the stack
@@ -502,7 +521,7 @@ impl ParameterExpression {
     /// # Returns
     ///
     /// * `Ok(Self)` - A parameter expression with the substituted expressions.
-    /// * `Err(ParameterError)` - An error if the subtitution failed.
+    /// * `Err(ParameterError)` - An error if the substitution failed.
     pub fn subs(
         &self,
         map: &HashMap<Symbol, Self>,
@@ -727,31 +746,31 @@ impl PyParameterExpression {
     ///
     /// * `Ok(Self)` - The extracted expression.
     /// * `Err(PyResult)` - An error if extraction to all above types failed.
-    pub fn extract_coerce(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
-        if let Ok(i) = ob.downcast::<PyInt>() {
+    pub fn extract_coerce(ob: Borrowed<PyAny>) -> PyResult<Self> {
+        if let Ok(i) = ob.cast::<PyInt>() {
             Ok(ParameterExpression::new(
                 SymbolExpr::Value(Value::from(i.extract::<i64>()?)),
                 HashMap::new(),
             )
             .into())
-        } else if let Ok(r) = ob.downcast::<PyFloat>() {
+        } else if let Ok(r) = ob.cast::<PyFloat>() {
             let r: f64 = r.extract()?;
             if r.is_infinite() || r.is_nan() {
                 return Err(ParameterError::InvalidValue.into());
             }
             Ok(ParameterExpression::new(SymbolExpr::Value(Value::from(r)), HashMap::new()).into())
-        } else if let Ok(c) = ob.downcast::<PyComplex>() {
+        } else if let Ok(c) = ob.cast::<PyComplex>() {
             let c: Complex64 = c.extract()?;
             if c.is_infinite() || c.is_nan() {
                 return Err(ParameterError::InvalidValue.into());
             }
             Ok(ParameterExpression::new(SymbolExpr::Value(Value::from(c)), HashMap::new()).into())
-        } else if let Ok(element) = ob.downcast::<PyParameterVectorElement>() {
+        } else if let Ok(element) = ob.cast::<PyParameterVectorElement>() {
             Ok(ParameterExpression::from_symbol(element.borrow().symbol.clone()).into())
-        } else if let Ok(parameter) = ob.downcast::<PyParameter>() {
+        } else if let Ok(parameter) = ob.cast::<PyParameter>() {
             Ok(ParameterExpression::from_symbol(parameter.borrow().symbol.clone()).into())
         } else {
-            ob.extract::<PyParameterExpression>()
+            ob.extract::<PyParameterExpression>().map_err(Into::into)
         }
     }
 
@@ -816,7 +835,7 @@ impl PyParameterExpression {
     #[allow(non_snake_case)]
     #[staticmethod]
     pub fn _Value(value: &Bound<PyAny>) -> PyResult<Self> {
-        Self::extract_coerce(value)
+        Self::extract_coerce(value.as_borrowed())
     }
 
     /// Check if the expression corresponds to a plain symbol.
@@ -852,6 +871,15 @@ impl PyParameterExpression {
         py_sympify.call1(py, (self.clone(),))
     }
 
+    /// The number of unbound parameters in the expression.
+    ///
+    /// This is equivalent to ``len(expr.parameters)`` but does not involve the overhead of creating
+    /// a set and counting its length.
+    #[getter]
+    pub fn num_parameters(&self) -> usize {
+        self.inner.num_symbols()
+    }
+
     /// Get the parameters present in the expression.
     ///
     /// .. note::
@@ -864,18 +892,15 @@ impl PyParameterExpression {
     pub fn parameters<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PySet>> {
         let py_parameters: Vec<Py<PyAny>> = self
             .inner
-            .name_map
-            .values()
+            .iter_symbols()
             .map(|symbol| {
-                match (&symbol.index, &symbol.vector) {
-                    // if index and vector is set, it is an element
-                    (Some(_index), Some(_vector)) => Ok(Py::new(
-                        py,
-                        PyParameterVectorElement::from_symbol(symbol.clone()),
-                    )?
-                    .into_any()),
-                    // else, a normal parameter
-                    _ => Ok(Py::new(py, PyParameter::from_symbol(symbol.clone()))?.into_any()),
+                if symbol.is_vector_element() {
+                    Ok(
+                        Py::new(py, PyParameterVectorElement::from_symbol(symbol.clone()))?
+                            .into_any(),
+                    )
+                } else {
+                    Ok(Py::new(py, PyParameter::from_symbol(symbol.clone()))?.into_any())
                 }
             })
             .collect::<PyResult<_>>()?;
@@ -1127,7 +1152,7 @@ impl PyParameterExpression {
     ///     A new expression parameterized by any parameters which were not bound by assignment.
     #[pyo3(name = "assign")]
     pub fn py_assign(&self, parameter: PyParameter, value: &Bound<PyAny>) -> PyResult<Self> {
-        if let Ok(expr) = value.downcast::<Self>() {
+        if let Ok(expr) = value.cast::<Self>() {
             let map = [(parameter, expr.borrow().clone())].into_iter().collect();
             self.py_subs(map, false)
         } else if value.extract::<Value>().is_ok() {
@@ -1153,7 +1178,7 @@ impl PyParameterExpression {
     }
 
     pub fn __eq__(&self, rhs: &Bound<PyAny>) -> PyResult<bool> {
-        if let Ok(rhs) = Self::extract_coerce(rhs) {
+        if let Ok(rhs) = Self::extract_coerce(rhs.as_borrowed()) {
             match rhs.inner.expr {
                 SymbolExpr::Value(v) => match self.inner.try_to_value(false) {
                     Ok(e) => Ok(e == v),
@@ -1183,7 +1208,7 @@ impl PyParameterExpression {
     }
 
     pub fn __add__(&self, rhs: &Bound<PyAny>) -> PyResult<Self> {
-        if let Ok(rhs) = Self::extract_coerce(rhs) {
+        if let Ok(rhs) = Self::extract_coerce(rhs.as_borrowed()) {
             Ok(self.inner.add(&rhs.inner)?.into())
         } else {
             Err(pyo3::exceptions::PyTypeError::new_err(
@@ -1193,7 +1218,7 @@ impl PyParameterExpression {
     }
 
     pub fn __radd__(&self, lhs: &Bound<PyAny>) -> PyResult<Self> {
-        if let Ok(lhs) = Self::extract_coerce(lhs) {
+        if let Ok(lhs) = Self::extract_coerce(lhs.as_borrowed()) {
             Ok(lhs.inner.add(&self.inner)?.into())
         } else {
             Err(pyo3::exceptions::PyTypeError::new_err(
@@ -1203,7 +1228,7 @@ impl PyParameterExpression {
     }
 
     pub fn __sub__(&self, rhs: &Bound<PyAny>) -> PyResult<Self> {
-        if let Ok(rhs) = Self::extract_coerce(rhs) {
+        if let Ok(rhs) = Self::extract_coerce(rhs.as_borrowed()) {
             Ok(self.inner.sub(&rhs.inner)?.into())
         } else {
             Err(pyo3::exceptions::PyTypeError::new_err(
@@ -1213,7 +1238,7 @@ impl PyParameterExpression {
     }
 
     pub fn __rsub__(&self, lhs: &Bound<PyAny>) -> PyResult<Self> {
-        if let Ok(lhs) = Self::extract_coerce(lhs) {
+        if let Ok(lhs) = Self::extract_coerce(lhs.as_borrowed()) {
             Ok(lhs.inner.sub(&self.inner)?.into())
         } else {
             Err(pyo3::exceptions::PyTypeError::new_err(
@@ -1224,7 +1249,7 @@ impl PyParameterExpression {
 
     pub fn __mul__<'py>(&self, rhs: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyAny>> {
         let py = rhs.py();
-        if let Ok(rhs) = Self::extract_coerce(rhs) {
+        if let Ok(rhs) = Self::extract_coerce(rhs.as_borrowed()) {
             match self.inner.mul(&rhs.inner) {
                 Ok(result) => PyParameterExpression::from(result).into_bound_py_any(py),
                 Err(e) => Err(PyErr::from(e)),
@@ -1235,7 +1260,7 @@ impl PyParameterExpression {
     }
 
     pub fn __rmul__(&self, lhs: &Bound<PyAny>) -> PyResult<Self> {
-        if let Ok(lhs) = Self::extract_coerce(lhs) {
+        if let Ok(lhs) = Self::extract_coerce(lhs.as_borrowed()) {
             Ok(lhs.inner.mul(&self.inner)?.into())
         } else {
             Err(pyo3::exceptions::PyTypeError::new_err(
@@ -1245,7 +1270,7 @@ impl PyParameterExpression {
     }
 
     pub fn __truediv__(&self, rhs: &Bound<PyAny>) -> PyResult<Self> {
-        if let Ok(rhs) = Self::extract_coerce(rhs) {
+        if let Ok(rhs) = Self::extract_coerce(rhs.as_borrowed()) {
             Ok(self.inner.div(&rhs.inner)?.into())
         } else {
             Err(pyo3::exceptions::PyTypeError::new_err(
@@ -1255,7 +1280,7 @@ impl PyParameterExpression {
     }
 
     pub fn __rtruediv__(&self, lhs: &Bound<PyAny>) -> PyResult<Self> {
-        if let Ok(lhs) = Self::extract_coerce(lhs) {
+        if let Ok(lhs) = Self::extract_coerce(lhs.as_borrowed()) {
             Ok(lhs.inner.div(&self.inner)?.into())
         } else {
             Err(pyo3::exceptions::PyTypeError::new_err(
@@ -1265,7 +1290,7 @@ impl PyParameterExpression {
     }
 
     pub fn __pow__(&self, rhs: &Bound<PyAny>, _modulo: Option<i32>) -> PyResult<Self> {
-        if let Ok(rhs) = Self::extract_coerce(rhs) {
+        if let Ok(rhs) = Self::extract_coerce(rhs.as_borrowed()) {
             Ok(self.inner.pow(&rhs.inner)?.into())
         } else {
             Err(pyo3::exceptions::PyTypeError::new_err(
@@ -1275,7 +1300,7 @@ impl PyParameterExpression {
     }
 
     pub fn __rpow__(&self, lhs: &Bound<PyAny>, _modulo: Option<i32>) -> PyResult<Self> {
-        if let Ok(lhs) = Self::extract_coerce(lhs) {
+        if let Ok(lhs) = Self::extract_coerce(lhs.as_borrowed()) {
             Ok(lhs.inner.pow(&self.inner)?.into())
         } else {
             Err(pyo3::exceptions::PyTypeError::new_err(
@@ -1368,7 +1393,7 @@ impl PyParameterExpression {
     fn __setstate__(&mut self, state: (Vec<OPReplay>, Option<ParameterValueType>)) -> PyResult<()> {
         // if there a replay, load from the replay
         if !state.0.is_empty() {
-            let from_qpy = ParameterExpression::from_qpy(&state.0)?;
+            let from_qpy = ParameterExpression::from_qpy(&state.0, None)?;
             self.inner = from_qpy;
         // otherwise, load from the ParameterValueType
         } else if let Some(value) = state.1 {
@@ -1426,7 +1451,7 @@ impl PyParameterExpression {
 #[pyclass(sequence, subclass, module="qiskit._accelerate.circuit", extends=PyParameterExpression, name="Parameter")]
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd)]
 pub struct PyParameter {
-    symbol: Symbol,
+    pub symbol: Symbol,
 }
 
 impl Hash for PyParameter {
@@ -1600,7 +1625,7 @@ impl PyParameter {
             }
             Some(replacement) => {
                 if allow_unknown_parameters || parameter_values.len() == 1 {
-                    let expr = PyParameterExpression::extract_coerce(replacement)?;
+                    let expr = PyParameterExpression::extract_coerce(replacement.as_borrowed())?;
                     if let SymbolExpr::Value(_) = &expr.inner.expr {
                         expr.clone().into_bound_py_any(py)
                     } else {
@@ -1631,7 +1656,7 @@ impl PyParameter {
         parameter: PyParameter,
         value: &Bound<'py, PyAny>,
     ) -> PyResult<Bound<'py, PyAny>> {
-        if value.downcast::<PyParameterExpression>().is_ok() {
+        if value.cast::<PyParameterExpression>().is_ok() {
             let map = [(parameter, value.clone())].into_iter().collect();
             self.py_subs(py, map, false)
         } else if value.extract::<Value>().is_ok() {
@@ -1653,7 +1678,7 @@ impl PyParameter {
 #[pyclass(sequence, subclass, module="qiskit._accelerate.circuit", extends=PyParameter, name="ParameterVectorElement")]
 #[derive(Clone, Debug, Eq, PartialEq, PartialOrd)]
 pub struct PyParameterVectorElement {
-    symbol: Symbol,
+    pub symbol: Symbol,
 }
 
 impl<'py> IntoPyObject<'py> for PyParameterVectorElement {
@@ -1932,6 +1957,12 @@ unsafe impl ::bytemuck::CheckedBitPattern for OpCode {
 
 unsafe impl ::bytemuck::NoUninit for OpCode {}
 
+impl OpCode {
+    pub fn from_u8(value: u8) -> PyResult<OpCode> {
+        Ok(bytemuck::checked::cast::<u8, OpCode>(value))
+    }
+}
+
 #[pymethods]
 impl OpCode {
     #[new]
@@ -1942,7 +1973,7 @@ impl OpCode {
     }
 
     fn __eq__(&self, other: &Bound<'_, PyAny>) -> bool {
-        if let Ok(code) = other.downcast::<OpCode>() {
+        if let Ok(code) = other.cast::<OpCode>() {
             *code.borrow() == *self
         } else {
             false
@@ -2088,9 +2119,55 @@ pub fn qpy_replay(
 
             // add the expression to the replay
             match lhs_value {
-                None
-                | Some(ParameterValueType::Parameter(_))
+                Some(ParameterValueType::Parameter(_))
                 | Some(ParameterValueType::VectorElement(_)) => {
+                    // For non-commutative operations (SUB, DIV, POW): if LHS is a Parameter and RHS is
+                    // an expression (None), we need to use reverse operations (RSUB, RDIV, RPOW)
+                    let op = match op {
+                        symbol_expr::BinaryOp::Add => OpCode::ADD,
+                        symbol_expr::BinaryOp::Sub => {
+                            // If RHS is None (an expression), use RSUB
+                            if rhs_value.is_none() {
+                                OpCode::RSUB
+                            } else {
+                                OpCode::SUB
+                            }
+                        }
+                        symbol_expr::BinaryOp::Mul => OpCode::MUL,
+                        symbol_expr::BinaryOp::Div => {
+                            // If RHS is None (an expression), use RDIV
+                            if rhs_value.is_none() {
+                                OpCode::RDIV
+                            } else {
+                                OpCode::DIV
+                            }
+                        }
+                        symbol_expr::BinaryOp::Pow => {
+                            // If RHS is None (an expression), use RPOW
+                            if rhs_value.is_none() {
+                                OpCode::RPOW
+                            } else {
+                                OpCode::POW
+                            }
+                        }
+                    };
+                    if op == OpCode::RPOW || op == OpCode::RDIV || op == OpCode::RSUB {
+                        // For reverse operations, swap lhs and rhs (Python's sympify will swap again to get correct order)
+                        replay.push(OPReplay {
+                            op,
+                            lhs: rhs_value,
+                            rhs: lhs_value,
+                        });
+                    } else {
+                        replay.push(OPReplay {
+                            op,
+                            lhs: lhs_value,
+                            rhs: rhs_value,
+                        });
+                    }
+                }
+                None => {
+                    // When LHS is an expression (None), use normal operations
                     let op = match op {
                         symbol_expr::BinaryOp::Add => OpCode::ADD,
                         symbol_expr::BinaryOp::Sub => OpCode::SUB,

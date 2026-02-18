@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -202,7 +202,7 @@ compilation can be repeated later.  There are limits on this:
 In general, a consumer of the :class:`.DAGCircuit` should be able to assume, after any combination
 of built-in, seeded if appropriate, Qiskit passes have run with fixed inputs, that the exact output
 of all :meth:`.DAGCircuit` methods is deterministic.  This includes the order of output even of
-methods that do not make any promise about the order; while the semantics and precide order cannot
+methods that do not make any promise about the order; while the semantics and precise order cannot
 be relied on, the determinism of it for fixed inputs can.
 
 Transpiler-pass authors should consult :ref:`transpiler-custom-passes-determinism` for a discussion
@@ -748,7 +748,11 @@ given :class:`.EquivalenceLibrary` (typically the :data:`.SessionEquivalenceLibr
 towards the ISA.
 
 For a Clifford+T basis set, the single-qubit rotation gates are approximated using the
-:class:`.SolovayKitaevDecomposition` algorithm.
+:class:`.UnitarySynthesis` pass. By default (when ``unitary_synthesis_method='default'``),
+this invokes the :class:`.SolovayKitaevDecomposition` algorithm. A custom synthesis
+method may be also specified, and it should either return the synthesized circuit
+in the Clifford+T basis set or return ``None`` in which case the default method would be called as
+fallback.
 
 This is the default translation method.
 

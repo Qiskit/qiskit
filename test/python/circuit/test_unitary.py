@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -265,6 +265,6 @@ class TestUnitaryCircuit(QiskitTestCase):
     def test_unitary_control(self):
         """Test parameters of controlled - unitary."""
         mat = numpy.array([[0, 1], [1, 0]])
-        gate = UnitaryGate(mat).control()
+        gate = UnitaryGate(mat).control(annotated=False)
         self.assertTrue(numpy.allclose(gate.params, mat))
         self.assertTrue(numpy.allclose(gate.base_gate.params, mat))

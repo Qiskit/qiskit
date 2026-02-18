@@ -126,14 +126,24 @@ If you use Rustup, it will automatically install the correct Rust version
 currently used by the project.
 
 Once you have a Rust compiler installed, you can rely on the normal Python
-build/install steps to install Qiskit. This means you just run
-`pip install .` in your local git clone to build and install Qiskit.
+build/install steps to install Qiskit. This means you run `pip install .` or
+`pip install -e .` in your local git clone to build and install Qiskit.
+Note that changes to Rust files will not be reflected in an editable install
+until you recompile.  You can recompile the Rust components of an editable
+install by running
+```
+python setup.py build_rust --inplace [--release | --debug]
+```
+Modifications to Rust files will not take effect until the Rust extension module
+is recompiled with the above command.
 
-Do note that if you do use develop mode/editable install (via `python setup.py develop` or `pip install -e .`) the Rust extension will be built in debug mode
-without any optimizations enabled. This will result in poor runtime performance.
-If you'd like to use an editable install with an optimized binary you can
-run `python setup.py build_rust --release --inplace` after you install in
-editable mode to recompile the rust extensions in release mode.
+By default, `pip install .` will build the Rust components in "release" mode
+and `pip install -e .` (or `python setup.py build_rust --inplace`) will build
+them in "debug" mode, without optimizations.  Debug mode will have poor
+runtime performance.  You can set the environment variable `QISKIT_BUILD_PROFILE`
+to `release` or `debug` to control the default.  The `--release`/`--debug` flag
+to `build_rust` overrides this default.
+
 
 Note that in order to run `python setup.py ...` commands you need to have the 
 build dependency packages, which are listed in the `pyproject.toml` file under 
@@ -227,6 +237,25 @@ are easier for maintainers to review and more likely to get merged in a timely m
 sure to always be kind and respectful in your interactions with maintainers and other contributors, you can read
 [the Qiskit Code of Conduct](https://github.com/Qiskit/qiskit/blob/main/CODE_OF_CONDUCT.md).
 
+### Use of AI tools
+
+> [!WARNING]
+> If you use any AI tool while preparing your code contribution, you **must** disclose the name of the tool and its version in the PR description.
+
+When using AI tools for code generation, your submission must still be your own original work of authorship, as required by the [Contributor License Agreement (CLA)](https://qisk.it/cla). It is your responsibility to make sure that:
+
+- You review and fully understand the generated code, and you can explain the reasoning behind it during review.
+- The usage of the AI tool does not violate any third-party license obligations.
+- The AI tool's terms and conditions allow its output to be used in open source projects and are compatible with the [Qiskit license](LICENSE.txt), the [Qiskit CLA](https://qisk.it/cla), and [these Contributor Guidelines](CONTRIBUTING.md).
+- You only use AI tools that have features to:
+  * filter out generated code substantially similar to training data, or
+  * identify similar training code so you can comply with the original license obligations (notice, attribution, etc.) and only contribute if it's compatible with the [Qiskit license](LICENSE.txt).
+- You disclose the name and version of the AI tool in your PR description.
+
+Submissions that appear unreviewed or copied directly from an AI tool without proper understanding may be requested to be revised or declined.
+
+Remember that spamming issues or pull requests with AI-generated comments is prohibited under the [Qiskit Code of Conduct](https://qisk.it/coc).
+
 
 ## Contributor Licensing Agreement
 
@@ -238,12 +267,12 @@ contributing it under the terms of the Apache-2.0 license.
 When you contribute to the Qiskit project with a new pull request,
 a bot will evaluate whether you have signed the CLA. If required, the
 bot will comment on the pull request, including a link to accept the
-agreement. The [individual CLA](https://qiskit.org/license/qiskit-cla.pdf)
+agreement. The [individual CLA](https://qisk.it/cla)
 document is available for review as a PDF.
 
 Note: If your contribution is part of your employment or your contribution
 is the property of your employer, then you will more than likely need to sign a
-[corporate CLA](https://qiskit.org/license/qiskit-corporate-cla.pdf) too and
+[corporate CLA](https://qisk.it/corporate-cla) too and
 email it to us at <qiskit@us.ibm.com>.
 
 ## Changelog generation
@@ -259,15 +288,8 @@ message summary line from the git log for the release to the changelog.
 If there are multiple `Changelog:` tags on a PR the git commit message summary
 line from the git log will be used for each changelog category tagged.
 
-The current categories for each label are as follows:
-
-| PR Label               | Changelog Category |
-| -----------------------|--------------------|
-| Changelog: Deprecation | Deprecated         |
-| Changelog: New Feature | Added              |
-| Changelog: API Change  | Changed            |
-| Changelog: Removal     | Removed            |
-| Changelog: Bugfix      | Fixed              |
+The current categories for each label are configured in `qiskit_bot.yaml` in
+the repository root.
 
 ## Release notes
 
@@ -328,9 +350,9 @@ features:
       foo(QuantumCircuit())
 
   - |
-    The :class:`.QuantumCircuit` class has a new method :meth:`~.QuantumCircuit.foo`. 
+    The :class:`.QuantumCircuit` class has a new method :meth:`~.QuantumCircuit.foo`.
     This is the equivalent of calling the :func:`~qiskit.foo` to do something to your
-    :class:`.QuantumCircuit`. This is the equivalent of running :func:`~qiskit.foo` 
+    :class:`.QuantumCircuit`. This is the equivalent of running :func:`~qiskit.foo`
     on your circuit, but provides the convenience of running it natively on
     an object. For example::
 
@@ -425,8 +447,7 @@ environment that tox sets up matches the CI environment more closely and it
 runs the tests in parallel (resulting in much faster execution). To run tests
 on all installed supported python versions and lint/style checks you can simply
 run `tox`. Or if you just want to run the tests once run for a specific python
-version: `tox -epy310` (or replace py310 with the python version you want to use,
-py39 or py311).
+version: `tox -epy313` (or replace py313 with the python version you want to use).
 
 If you just want to run a subset of tests you can pass a selection regex to
 the test runner. For example, if you want to run all tests that have "dag" in
@@ -686,8 +707,10 @@ well.
 
 ### Testing the C API
 
-The C API test suite is located at `test/c/`. It is built and run using `cmake`
-and `ctest` which can be triggered simply via:
+The C API test suite is located at `test/c/`.  This is a CMake project and uses
+CMake's `ctest` runner.  To build and run the tests, use the `ctest` recipe in
+the top-level `Makefile`, which you can run with
+
 ```bash
 make ctest
 ```
@@ -767,14 +790,14 @@ the command line. See [`tox.ini`](tox.ini) for how `tox` invokes them.
 For formatting and lint checking Rust code, you'll need to use different tools than you would for Python. Qiskit uses [rustfmt](https://github.com/rust-lang/rustfmt) for
 code formatting. You can simply run `cargo fmt` (if you installed Rust with the
 default settings using `rustup`), and it will update the code formatting automatically to
-conform to the style guidelines. This is very similar to running `tox -eblack` for Python code. For lint checking, Qiskit uses [clippy](https://github.com/rust-lang/rust-clippy) which can be invoked via `cargo clippy`. 
+conform to the style guidelines. This is very similar to running `tox -eblack` for Python code. For lint checking, Qiskit uses [clippy](https://github.com/rust-lang/rust-clippy) which can be invoked via `cargo clippy`.
 
 Rust lint and formatting checks are included in the `tox -elint` command. For CI to pass you will need both checks to pass without any warnings or errors. Note that this command checks the code but won't apply any modifications, if you need to update formatting, you'll need to run `cargo fmt`.
 
 ### C style and lint
 
 Qiskit uses [clang-format](https://clang.llvm.org/docs/ClangFormat.html) to format C code.
-The style is based on LLVM, with a few Qiskit-specific adjustments. 
+The style is based on LLVM, with a few Qiskit-specific adjustments.
 To check whether the C code conforms to the style guide, you can run `make cformat`. This check
 will need to execute without any warnings or errors for CI to pass.
 Automatic formatting can be applied by `make fix_cformat`.
@@ -868,7 +891,7 @@ is a need additional release candidates can be published from `stable/*` and whe
 release is ready a full release will be tagged and published from `stable/*`.
 
 ## Adding deprecation warnings
-The qiskit code is part of Qiskit and, therefore, the [Qiskit Deprecation Policy](./DEPRECATION.md) fully applies here. Additionally, qiskit does not allow `DeprecationWarning`s in its testsuite. If you are deprecating code, you should add a test to use the new/non-deprecated method (most of the time based on the existing test of the deprecated method) and alter the existing test to check that the deprecated method still works as expected, [using `assertWarns`](https://docs.python.org/3/library/unittest.html#unittest.TestCase.assertWarns). The `assertWarns` context will silence the deprecation warning while checking that it raises.
+The Qiskit code is part of Qiskit and, therefore, the [Qiskit Deprecation Policy](./DEPRECATION.md) fully applies here. Additionally, Qiskit's testsuite breaks if a `DeprecationWarning` is emitted. If you are deprecating code, you should add a test to use the new/non-deprecated method (most of the time based on the existing test of the deprecated method) and alter the existing test to check that the deprecated method still works as expected, [using `assertWarns`](https://docs.python.org/3/library/unittest.html#unittest.TestCase.assertWarns). The `assertWarns` context will silence the deprecation warning while checking that it raises.
 
 For example, if `Obj.method1` is being deprecated in favour of `Obj.method2`, the existing test (or tests) for `method1` might look like this:
 

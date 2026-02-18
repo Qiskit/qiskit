@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -424,7 +424,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
         Returns:
             The map of expectation values takes a pair of an index of the bindings array and
             a pauli string as a key and returns the expectation value of the pauli string
-            with the the pub's circuit bound against the parameter value set in the index of
+            with the pub's circuit bound against the parameter value set in the index of
             the bindings array.
         """
         expval_map: dict[tuple[tuple[int, ...], str], tuple[float, float]] = {}

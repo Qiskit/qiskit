@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -15,7 +15,6 @@ use rand::{Rng, SeedableRng};
 use rand_pcg::Pcg64Mcg;
 
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::{PhysicalQubit, Qubit};
 use qiskit_transpiler::passes::sabre::heuristic;
@@ -26,7 +25,7 @@ use qiskit_transpiler::transpile_layout::TranspileLayout;
 /// The options for running ``qk_transpiler_pass_standalone_sabre_layout``. This struct is used
 /// as an input to control the behavior of the layout and routing algorithms.
 #[repr(C)]
-pub struct QkSabreLayoutOptions {
+pub struct SabreLayoutOptions {
     /// The number of forward-backward iterations in the sabre routing algorithm
     max_iterations: usize,
     /// The number of trials to run of the sabre routing algorithm for each iteration. When > 1 the
@@ -45,9 +44,11 @@ pub struct QkSabreLayoutOptions {
 /// Build a default sabre layout options object. This builds a sabre layout with ``max_iterations``
 /// set to 4, both ``num_swap_trials`` and ``num_random_trials`` set to 20, and the seed selected
 /// by a RNG seeded from system entropy.
+///
+/// @return A ``QkSabreLayoutOptions`` object with default settings.
 #[unsafe(no_mangle)]
-pub extern "C" fn qk_sabre_layout_options_default() -> QkSabreLayoutOptions {
-    QkSabreLayoutOptions {
+pub extern "C" fn qk_sabre_layout_options_default() -> SabreLayoutOptions {
+    SabreLayoutOptions {
         max_iterations: 4,
         num_swap_trials: 20,
         num_random_trials: 20,
@@ -89,7 +90,7 @@ pub extern "C" fn qk_sabre_layout_options_default() -> QkSabreLayoutOptions {
 ///
 /// [2] Li, Gushu, Yufei Ding, and Yuan Xie. "Tackling the qubit mapping problem
 /// for NISQ-era quantum devices." ASPLOS 2019.
-/// [`arXiv:1809.02573](https://arxiv.org/pdf/1809.02573.pdf)
+/// [arXiv:1809.02573](https://arxiv.org/pdf/1809.02573.pdf)
 ///
 /// @param circuit A pointer to the circuit to run SabreLayout on. The circuit
 ///     is modified in place and the original circuit's allocations are freed by this function.
@@ -103,11 +104,10 @@ pub extern "C" fn qk_sabre_layout_options_default() -> QkSabreLayoutOptions {
 ///
 /// Behavior is undefined if ``circuit`` or ``target`` is not a valid, non-null pointer to a ``QkCircuit`` and ``QkTarget``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpiler_pass_standalone_sabre_layout(
     circuit: *mut CircuitData,
     target: *const Target,
-    options: *const QkSabreLayoutOptions,
+    options: *const SabreLayoutOptions,
 ) -> *mut TranspileLayout {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
@@ -141,8 +141,8 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_sabre_layout(
         false,
     )
     .unwrap_or_else(|_| panic!("Sabre layout failed."));
-    let out_circuit = dag_to_circuit(&result, false)
-        .unwrap_or_else(|_| panic!("Internal DAG to circuit conversion failed"));
+    let out_circuit =
+        CircuitData::from_dag_ref(&result).expect("Internal DAG to circuit conversion failed");
     let num_input_qubits = circuit.num_qubits() as u32;
     *circuit = out_circuit;
     let out_permutation = (0..result.num_qubits() as u32)

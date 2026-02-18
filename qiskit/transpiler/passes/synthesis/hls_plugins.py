@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -286,7 +286,7 @@ MCMT Synthesis
    MCMTSynthesisXGate
    MCMTSynthesisDefault
 
-   
+
 Integer comparators
 '''''''''''''''''''
 
@@ -299,8 +299,8 @@ Integer comparators
       - Auxiliary qubits
     * - ``"twos"``
       - :class:`~.IntComparatorSynthesis2s`
-      - use addition with two's complement 
-      - ``n - 1`` clean 
+      - use addition with two's complement
+      - ``n - 1`` clean
     * - ``"noaux"``
       - :class:`~.IntComparatorSynthesisNoAux`
       - flip the target controlled on all :math:`O(2^l)` allowed integer values
@@ -317,7 +317,7 @@ Integer comparators
    IntComparatorSynthesisNoAux
    IntComparatorSynthesisDefault
 
-   
+
 Sums
 ''''
 
@@ -351,7 +351,7 @@ Pauli Evolution Synthesis
       - Targeted connectivity
     * - ``"rustiq"``
       - :class:`~.PauliEvolutionSynthesisRustiq`
-      - use the synthesis method from `Rustiq circuit synthesis library 
+      - use the synthesis method from `Rustiq circuit synthesis library
         <https://github.com/smartiel/rustiq-core>`_
       - all-to-all
     * - ``"default"``
@@ -1088,7 +1088,7 @@ class MCXSynthesisNDirtyI15(HighLevelSynthesisPlugin):
 
     References:
         1. Iten et. al., *Quantum Circuits for Isometries*, Phys. Rev. A 93, 032318 (2016),
-           `arXiv:1501.06911 <http://arxiv.org/abs/1501.06911>`_
+           `arXiv:1501.06911 <https://arxiv.org/abs/1501.06911>`_
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
@@ -1587,7 +1587,9 @@ class MCMTSynthesisNoAux(HighLevelSynthesisPlugin):
             # no broadcasting needed (makes for better circuit diagrams)
             circuit = QuantumCircuit(high_level_object.num_qubits)
             circuit.append(
-                base_gate.control(high_level_object.num_ctrl_qubits, ctrl_state=ctrl_state),
+                base_gate.control(
+                    high_level_object.num_ctrl_qubits, ctrl_state=ctrl_state, annotated=False
+                ),
                 circuit.qubits,
             )
 
@@ -1596,7 +1598,9 @@ class MCMTSynthesisNoAux(HighLevelSynthesisPlugin):
             for i in range(high_level_object.num_target_qubits):
                 base.append(base_gate, [i], [])
 
-            circuit = base.control(high_level_object.num_ctrl_qubits, ctrl_state=ctrl_state)
+            circuit = base.control(
+                high_level_object.num_ctrl_qubits, ctrl_state=ctrl_state, annotated=False
+            )
 
         return circuit.decompose()
 
@@ -2282,7 +2286,7 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
         # Note that synthesize_operation also returns the output qubits on which the
         # operation is defined, however currently the plugin mechanism has no way
         # to return these (and instead the upstream code greedily grabs some ancilla
-        # qubits from the circuit). We should refactor the plugin "run" iterface to
+        # qubits from the circuit). We should refactor the plugin "run" interface to
         # return the actual ancilla qubits used.
         synthesized_base_op_result = synthesize_operation(
             operation.base_op, base_qubits, base_synthesis_data, annotated_tracker

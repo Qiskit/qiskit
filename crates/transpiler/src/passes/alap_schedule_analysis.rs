@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -72,12 +72,7 @@ pub fn run_alap_schedule_analysis<T: TimeOps>(
     // and nodes are packed from the very end of the circuit.
     // The physical meaning of t0 and t1 is flipped here.
 
-    for node_index in dag
-        .topological_op_nodes()?
-        .collect::<Vec<_>>()
-        .into_iter()
-        .rev()
-    {
+    for node_index in dag.topological_op_nodes(true) {
         let op = dag[node_index].unwrap_operation();
 
         let qargs: Vec<Wire> = dag
@@ -190,50 +185,49 @@ pub fn py_run_alap_schedule_analysis(
     // Get the first duration type
     let mut iter = node_durations.iter();
     let py_dict = PyDict::new(py);
-    if let Some((_, first_duration)) = iter.next() {
-        if first_duration.extract::<u64>().is_ok() {
-            // All durations are of type u64
-            let mut op_durations = HashMap::new();
-            for (py_node, py_duration) in node_durations.iter() {
-                let node_idx = py_node
-                    .downcast_into::<DAGOpNode>()?
-                    .extract::<DAGNode>()?
-                    .node
-                    .expect("Node index not found.");
-                let val = py_duration.extract::<u64>()?;
-                op_durations.insert(node_idx, val);
-            }
-            let node_start_time =
-                run_alap_schedule_analysis::<u64>(dag, clbit_write_latency, op_durations)?;
-            for (node_idx, t1) in node_start_time {
-                let node = dag.get_node(py, node_idx)?;
-                py_dict.set_item(node, t1)?;
-            }
-        } else if first_duration.extract::<f64>().is_ok() {
-            // All durations are of type f64
-            let mut op_durations = HashMap::new();
-            for (py_node, py_duration) in node_durations.iter() {
-                let node_idx = py_node
-                    .downcast_into::<DAGOpNode>()?
-                    .extract::<DAGNode>()?
-                    .node
-                    .expect("Node index not found.");
-                let val = py_duration.extract::<f64>()?;
-                op_durations.insert(node_idx, val);
-            }
-            let node_start_time =
-                run_alap_schedule_analysis::<f64>(dag, clbit_write_latency as f64, op_durations)?;
-            for (node_idx, t1) in node_start_time {
-                let node = dag.get_node(py, node_idx)?;
-                py_dict.set_item(node, t1)?;
-            }
-        } else {
-            return Err(TranspilerError::new_err("Duration must be int or float"));
+    let Some((_, first_duration)) = iter.next() else {
+        // Empty circuit.
+        return Ok(py_dict.into());
+    };
+    if first_duration.extract::<u64>().is_ok() {
+        // All durations are of type u64
+        let mut op_durations = HashMap::new();
+        for (py_node, py_duration) in node_durations.iter() {
+            let node_idx = py_node
+                .cast_into::<DAGOpNode>()?
+                .extract::<DAGNode>()?
+                .node
+                .expect("Node index not found.");
+            let val = py_duration.extract::<u64>()?;
+            op_durations.insert(node_idx, val);
+        }
+        let node_start_time =
+            run_alap_schedule_analysis::<u64>(dag, clbit_write_latency, op_durations)?;
+        for (node_idx, t1) in node_start_time {
+            let node = dag.get_node(py, node_idx)?;
+            py_dict.set_item(node, t1)?;
+        }
+    } else if first_duration.extract::<f64>().is_ok() {
+        // All durations are of type f64
+        let mut op_durations = HashMap::new();
+        for (py_node, py_duration) in node_durations.iter() {
+            let node_idx = py_node
+                .cast_into::<DAGOpNode>()?
+                .extract::<DAGNode>()?
+                .node
+                .expect("Node index not found.");
+            let val = py_duration.extract::<f64>()?;
+            op_durations.insert(node_idx, val);
+        }
+        let node_start_time =
+            run_alap_schedule_analysis::<f64>(dag, clbit_write_latency as f64, op_durations)?;
+        for (node_idx, t1) in node_start_time {
+            let node = dag.get_node(py, node_idx)?;
+            py_dict.set_item(node, t1)?;
         }
     } else {
-        return Err(TranspilerError::new_err("No durations provided"));
+        return Err(TranspilerError::new_err("Duration must be int or float"));
     }
-
     Ok(py_dict.into())
 }
 

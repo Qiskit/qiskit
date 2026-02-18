@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -91,7 +91,7 @@ def node_resources(node: expr.Expr) -> LegacyResources:
 
 
 def condition_resources(
-    condition: tuple[ClassicalRegister, int] | tuple[Clbit, int] | expr.Expr
+    condition: tuple[ClassicalRegister, int] | tuple[Clbit, int] | expr.Expr,
 ) -> LegacyResources:
     """Get the legacy classical resources (:class:`.Clbit` and :class:`.ClassicalRegister`)
     referenced by a legacy condition or an :class:`~.expr.Expr`."""
@@ -154,7 +154,7 @@ def unify_circuit_resources(circuits: Iterable[QuantumCircuit]) -> Iterable[Quan
 
 
 def _unify_circuit_resources_rebuild(  # pylint: disable=invalid-name  # (it's too long?!)
-    circuits: Tuple[QuantumCircuit, ...]
+    circuits: Tuple[QuantumCircuit, ...],
 ) -> Tuple[QuantumCircuit, QuantumCircuit]:
     """
     Ensure that all the given circuits have all the same qubits and clbits, and that they

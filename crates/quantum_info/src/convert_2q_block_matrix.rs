@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -24,7 +24,7 @@ use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::TWO_QUBIT_IDENTITY;
 use qiskit_circuit::imports::QI_OPERATOR;
 use qiskit_circuit::interner::Interner;
-use qiskit_circuit::operations::{ArrayType, Operation, OperationRef};
+use qiskit_circuit::operations::{ArrayType, OperationRef};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 
 use crate::QiskitError;
@@ -32,7 +32,7 @@ use crate::versor_u2::{VersorSU2, VersorU2, VersorU2Error};
 
 #[inline]
 pub fn get_matrix_from_inst(inst: &PackedInstruction) -> PyResult<Array2<Complex64>> {
-    if let Some(mat) = inst.op.matrix(inst.params_view()) {
+    if let Some(mat) = inst.try_matrix() {
         return Ok(mat);
     }
     if inst.op.try_standard_gate().is_some() {
@@ -51,7 +51,7 @@ pub fn get_matrix_from_inst(inst: &PackedInstruction) -> PyResult<Array2<Complex
     Python::attach(|py| {
         Ok(QI_OPERATOR
             .get_bound(py)
-            .call1((gate.gate.clone_ref(py),))?
+            .call1((gate.instruction.clone_ref(py),))?
             .getattr(intern!(py, "data"))?
             .extract::<PyReadonlyArray2<Complex64>>()?
             .as_array()

@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -279,7 +279,7 @@ class Instruction(Operation):
                 self._params.append(self.validate_parameter(single_param))
 
     def validate_parameter(self, parameter):
-        """Instruction parameters has no validation or normalization."""
+        """Instruction parameter has no validation or normalization."""
         return parameter
 
     def is_parameterized(self):
@@ -446,7 +446,7 @@ class Instruction(Operation):
 
     def __deepcopy__(self, memo=None):
         cpy = copy.copy(self)
-        cpy._params = copy.copy(self._params)
+        cpy._params = copy.deepcopy(self._params, memo)
         if self._definition:
             cpy._definition = copy.deepcopy(self._definition, memo)
         return cpy

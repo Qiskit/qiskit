@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -15,6 +15,7 @@ use pyo3::{
     types::{PyList, PyTuple},
 };
 use qiskit_circuit::{
+    NoBlocks,
     circuit_instruction::OperationFromPython,
     operations::{Operation, Param, StandardGate},
     packed_instruction::PackedOperation,
@@ -45,13 +46,13 @@ impl BlockOperation {
                 let py_params = PyList::new(py, params.iter().map(|&p| p.clone()))?.into_any();
 
                 let job = builder.call1(py, (py_params,))?;
-                let result = job.downcast_bound::<PyTuple>(py)?;
+                let result = job.cast_bound::<PyTuple>(py)?;
 
-                let operation: OperationFromPython = result.get_item(0)?.extract()?;
+                let operation: OperationFromPython<NoBlocks> = result.get_item(0)?.extract()?;
                 let bound_params = result
                     .get_item(1)?
                     .try_iter()?
-                    .map(|ob| Param::extract_no_coerce(&ob?))
+                    .map(|ob| Param::extract_no_coerce(ob?.as_borrowed()))
                     .collect::<PyResult<SmallVec<[Param; 3]>>>()?;
 
                 Ok((operation.operation, bound_params))
@@ -134,10 +135,10 @@ impl Entanglement {
             .map(|layer| -> PyResult<LayerEntanglement> {
                 if entanglement.is_callable() {
                     let as_any = entanglement.call1((layer,))?;
-                    let as_list = as_any.downcast::<PyList>()?;
+                    let as_list = as_any.cast::<PyList>()?;
                     unpack_entanglement(num_qubits, layer, as_list, entanglement_blocks)
                 } else {
-                    let as_list = entanglement.downcast::<PyList>()?;
+                    let as_list = entanglement.cast::<PyList>()?;
                     unpack_entanglement(num_qubits, layer, as_list, entanglement_blocks)
                 }
             })

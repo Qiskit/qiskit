@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -165,7 +165,7 @@ class Target(BaseTarget):
     you call :meth:`.add_instruction` the bounds are applied for all qargs that it
     is defined on. The bounds are specified of a list of 2-tuples of floats where
     the first float is the lower bound and the second float is the upper bound. For example,
-    if you specfied an angle bound::
+    if you specified an angle bound::
 
         [(0.0, 3.14), (-3.14, 3.14), (0.0, 1.0)]
 
@@ -175,7 +175,7 @@ class Target(BaseTarget):
     inclusively as well. A bound can also be specified with ``None`` instead
     of a 2-tuple which indicates that parameter has no constraints. For example::
 
-        [(0.0, 3.14, None, None)]
+        [(0.0, 3.14), None, None]
 
     indicates an angle bound for a 3 parameter gate where only the first
     parameter is restricted to angles between 0.0 and 3.14 and the other
@@ -202,7 +202,7 @@ class Target(BaseTarget):
 
         This class assumes that qubit indices start at 0 and are a contiguous
         set if you want a submapping the bits will need to be reindexed in
-        a new``Target`` object.
+        a new :class:`Target` object.
 
     .. note::
 
@@ -211,6 +211,30 @@ class Target(BaseTarget):
         an existing object and create a new subset (or use one of the methods
         to do this). The object internally caches different views and these
         would potentially be invalidated by removals.
+
+    Subclassing
+    -----------
+
+    While it is technically possible to subclass :class:`Target`, beware that the majority of the
+    built-in information is in Rust and is queried from Rust in built-in transpiler passes.
+    Python-space overrides are not visible to Rust, and you should not rely on these to change the
+    behavior of Qiskit's built-in transpiler passes.  :class:`Target` is largely supposed to be a
+    representation of a QPU that has specialized *constructors*, not specialized subclasses; the
+    usual API for constructing a :class:`Target` should be a function that returns a base
+    :class:`Target`, not a subclass with a custom initializer.
+
+    You may use subclassing to add *addition* Python-space properties to your :class:`Target`, for
+    example to then interpret in custom backend-specific transpiler stages; the :class:`Target` is
+    passed to stage-plugin constructors.
+
+    You should not subclass :class:`Target` to attempt to modify the behavior of Qiskit's built-in
+    passes; the Python-space subclassing will not be seen by passes written in Rust.
+
+    Further, as the core of :class:`Target` is written in Rust, it uses :meth:`~object.__new__` as
+    its initializer, and you must ensure that the correct arguments are passed through to the
+    underlying implementation.  If you override the signature of the :meth:`~object.__init__`
+    method, you must also include an override of :meth:`~object.__new__` with the same signature,
+    which calls ``super().__new__()`` in a correct manner.
     """
 
     __slots__ = (
@@ -222,10 +246,10 @@ class Target(BaseTarget):
         "_non_global_basis",
     )
 
-    def __new__(  # pylint: disable=keyword-arg-before-vararg
+    def __new__(
         cls,
         description: str | None = None,
-        num_qubits: int = 0,
+        num_qubits: int | None = 0,
         dt: float | None = None,
         granularity: int = 1,
         min_length: int = 1,
@@ -233,19 +257,22 @@ class Target(BaseTarget):
         acquire_alignment: int = 1,
         qubit_properties: list | None = None,
         concurrent_measurements: list | None = None,
+        **_subclass_kwargs,
     ):
         """
-        Create a new ``Target`` object
+        Create a new :class:`Target` object.
 
         Args:
             description (str): An optional string to describe the Target.
             num_qubits (int): An optional int to specify the number of qubits
-                the backend target has. If not set it will be implicitly set
-                based on the qargs when :meth:`~qiskit.Target.add_instruction`
-                is called. Note this must be set if the backend target is for a
-                noiseless simulator that doesn't have constraints on the
-                instructions so the transpiler knows how many qubits are
-                available.
+                the backend target has. This is not a hard limit on the construction; any call to
+                :meth:`add_instruction` will cause the set `num_qubits` to update to accommodate any
+                concrete ``qargs`` in the given properties.
+
+                This can be explicitly set to ``None`` to indicate a :class:`Target` representing a
+                simulator or other abstract machine that imposes no limits on the number of qubits.
+                In this case, all instructions added to the target should be global (with
+                ``properties=None`` or ``properties={None: None}``).
             dt (float): The system time resolution of input signals in seconds
             granularity (int): An integer value representing minimum pulse gate
                 resolution in units of ``dt``. A user-defined pulse gate should
@@ -298,20 +325,6 @@ class Target(BaseTarget):
         out._non_global_basis = None
         out._non_global_basis_strict = None
         return out
-
-    def __init__(
-        self,
-        description=None,  # pylint: disable=unused-argument
-        num_qubits=0,  # pylint: disable=unused-argument
-        dt=None,  # pylint: disable=unused-argument
-        granularity=1,  # pylint: disable=unused-argument
-        min_length=1,  # pylint: disable=unused-argument
-        pulse_alignment=1,  # pylint: disable=unused-argument
-        acquire_alignment=1,  # pylint: disable=unused-argument
-        qubit_properties=None,  # pylint: disable=unused-argument
-        concurrent_measurements=None,  # pylint: disable=unused-argument
-    ):
-        super().__init__()
 
     def get_non_global_operation_names(self, strict_direction=False):
         """Return the non-global operation names for the target

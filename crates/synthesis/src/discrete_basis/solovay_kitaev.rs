@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -15,9 +15,11 @@ use numpy::{Complex64, PyReadonlyArray2};
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::types::PyString;
 use pyo3::{prelude::*, types::PyList};
+use qiskit_circuit::NoBlocks;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
+use qiskit_circuit::instruction::Instruction;
+use qiskit_circuit::operations::{OperationRef, Param, StandardGate};
 
 use crate::discrete_basis::basic_approximations::{BasicApproximations, GateSequence};
 
@@ -31,6 +33,7 @@ use super::math::{self, group_commutator_decomposition};
 /// This generates the basic approximation set once as R-tree and re-uses it for
 /// each queried decomposition.
 #[pyclass]
+#[derive(Clone, Debug)]
 pub struct SolovayKitaevSynthesis {
     /// The set of basic approximations.
     basic_approximations: BasicApproximations,
@@ -80,7 +83,7 @@ impl SolovayKitaevSynthesis {
     /// This attempts to directly construct the SO(3) matrix representation to minimize roundoff
     /// errors. If unsuccessful, this falls back onto constructing the standard U(2) matrix
     /// representation and converting it to SO(3).
-    pub fn synthesize_gate(
+    pub fn synthesize_standard_gate(
         &self,
         gate: &StandardGate,
         params: &[Param],
@@ -98,6 +101,37 @@ impl SolovayKitaevSynthesis {
         let matrix_u2 = math::array2_to_matrix2(&array_u2.view());
         let circuit = output.to_circuit(Some((&matrix_u2, phase)))?;
         Ok(circuit)
+    }
+
+    /// Run the Solovay Kitaev algorithm on an operation.
+    pub fn synthesize_operation(
+        &self,
+        op: &OperationRef,
+        params: &[Param],
+        recursion_degree: usize,
+    ) -> Result<CircuitData, DiscreteBasisError> {
+        match op {
+            OperationRef::StandardGate(gate) => {
+                self.synthesize_standard_gate(gate, params, recursion_degree)
+            }
+            OperationRef::Unitary(unitary) => {
+                let matrix = unitary.matrix_view();
+                let matrix_nalgebra: Matrix2<Complex64> = Matrix2::from_fn(|i, j| matrix[(i, j)]);
+                self.synthesize_matrix(&matrix_nalgebra, recursion_degree)
+            }
+            OperationRef::Gate(gate) => {
+                let matrix = gate.matrix();
+                match matrix {
+                    Some(matrix) => {
+                        let matrix_nalgebra: Matrix2<Complex64> =
+                            Matrix2::from_fn(|i, j| matrix[(i, j)]);
+                        self.synthesize_matrix(&matrix_nalgebra, recursion_degree)
+                    }
+                    None => Err(DiscreteBasisError::NoMatrix),
+                }
+            }
+            _ => Err(DiscreteBasisError::NoMatrix),
+        }
     }
 
     /// Run a recursion step for a gate sequence, given a recursion degree.
@@ -160,7 +194,7 @@ impl SolovayKitaevSynthesis {
     ///         determines how fast (and if) the algorithm converges and should be chosen
     ///         sufficiently high. Defaults to 12,
     ///     tol (float | None): A tolerance determining the granularity of the basic approximations.
-    ///         Any sequence whose SO(3) representation is withing :math:`\sqrt{\texttt{tol}}` of
+    ///         Any sequence whose SO(3) representation is within :math:`\sqrt{\texttt{tol}}` of
     ///         an existing point, will be discarded. Defaults to ``1e-12``.
     #[new]
     #[pyo3 (signature = (basis_gates=None, depth=12, tol=None, do_checks=false))]
@@ -176,7 +210,7 @@ impl SolovayKitaevSynthesis {
             Some(py_gates) => py_gates
                 .iter()
                 .map(|el| {
-                    let py_op = el.extract::<OperationFromPython>()?;
+                    let py_op = el.extract::<OperationFromPython<NoBlocks>>()?;
                     match py_op.operation.view() {
                         OperationRef::StandardGate(gate) => Ok(gate),
                         _ => Err(PyValueError::new_err("Only standard gates accepted.")),
@@ -226,25 +260,20 @@ impl SolovayKitaevSynthesis {
             .map_err(|err| err.into())
     }
 
-    /// Run the Solovay-Kitaev algorithm on a standard gate.
+    /// Run the Solovay-Kitaev algorithm on an operation.
     ///
     /// Args:
-    ///     gate (Gate): The standard gate to approximate.
+    ///     gate (Gate): The operation to approximate.
     ///     recursion_degree (int): The recursion degree of the algorithm.
     ///
     /// Returns:
     ///     CircuitData: The ``CircuitData`` implementing the approximation.
     fn synthesize(
         &self,
-        gate: OperationFromPython,
+        gate: OperationFromPython<NoBlocks>,
         recursion_degree: usize,
     ) -> PyResult<CircuitData> {
-        let params = gate.params;
-        let gate = match gate.operation.view() {
-            OperationRef::StandardGate(gate) => gate,
-            _ => return Err(PyValueError::new_err("Only standard gates are supported.")),
-        };
-        self.synthesize_gate(&gate, &params, recursion_degree)
+        self.synthesize_operation(&gate.operation.view(), gate.params_view(), recursion_degree)
             .map_err(|err| err.into())
     }
 
@@ -267,9 +296,11 @@ impl SolovayKitaevSynthesis {
     ///
     /// Returns:
     ///     CircuitData: The sequence in the set of basic approximations closest to the input.
-    fn query_basic_approximation(&self, gate: OperationFromPython) -> PyResult<CircuitData> {
-        let params = gate.params;
-        let matrix_u2 = match gate.operation.matrix(&params) {
+    fn query_basic_approximation(
+        &self,
+        gate: OperationFromPython<NoBlocks>,
+    ) -> PyResult<CircuitData> {
+        let matrix_u2 = match gate.try_matrix() {
             Some(matrix) => Matrix2::new(
                 matrix[(0, 0)],
                 matrix[(0, 1)],

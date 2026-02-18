@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -26,6 +26,7 @@ import typing
 import warnings
 
 import numpy as np
+
 
 from qiskit import circuit as circuit_mod
 from qiskit.circuit import library, controlflow, CircuitInstruction, ControlFlowOp, IfElseOp
@@ -49,8 +50,11 @@ from qiskit.qpy import common, formats, type_keys
 from qiskit.qpy.exceptions import QpyError, UnsupportedFeatureForVersion
 from qiskit.qpy.binary_io import value, schedules
 from qiskit.quantum_info.operators import SparsePauliOp, Clifford
+from qiskit.quantum_info import SparseObservable
+from qiskit.circuit.library import PauliProductMeasurement
 from qiskit.synthesis import evolution as evo_synth
 from qiskit.transpiler.layout import Layout, TranspileLayout
+from qiskit._accelerate import qpy as _qpy
 
 if typing.TYPE_CHECKING:
     from qiskit.circuit.annotation import QPYSerializer, Annotation
@@ -290,7 +294,11 @@ def _loads_instruction_parameter(
 ):
     if type_key == type_keys.Program.CIRCUIT:
         param = common.data_from_binary(
-            data_bytes, read_circuit, version=version, annotation_factories=annotation_factories
+            data_bytes,
+            read_circuit,
+            version=version,
+            annotation_factories=annotation_factories,
+            use_rust=False,
         )
     elif type_key == type_keys.Value.MODIFIER:
         param = common.data_from_binary(data_bytes, _read_modifier)
@@ -502,6 +510,8 @@ def _read_instruction(
         gate_class = getattr(controlflow, gate_name)
     elif gate_name == "Clifford":
         gate_class = Clifford
+    elif gate_name == "pauli_product_measurement":
+        gate_class = PauliProductMeasurement
     else:
         raise AttributeError(f"Invalid instruction type: {gate_name}")
 
@@ -555,6 +565,8 @@ def _read_instruction(
             "DiagonalGate",
         }:
             gate = gate_class(params)
+        elif gate_name == "PauliProductMeasurement":
+            gate = gate_class._from_pauli_data(*params, label)
         elif gate_name == "QFTGate":
             gate = gate_class(len(qargs), *params)
         else:
@@ -688,6 +700,7 @@ def _read_pauli_evolution_gate(file_obj, version, vectors):
             formats.PAULI_EVOLUTION_DEF_PACK, file_obj.read(formats.PAULI_EVOLUTION_DEF_SIZE)
         )
     )
+
     if pauli_evolution_def.operator_size != 1 and pauli_evolution_def.standalone_op:
         raise ValueError(
             "Can't have a standalone operator with {pauli_evolution_raw[0]} operators in the payload"
@@ -695,14 +708,61 @@ def _read_pauli_evolution_gate(file_obj, version, vectors):
 
     operator_list = []
     for _ in range(pauli_evolution_def.operator_size):
-        op_elem = formats.SPARSE_PAULI_OP_LIST_ELEM._make(
-            struct.unpack(
-                formats.SPARSE_PAULI_OP_LIST_ELEM_PACK,
-                file_obj.read(formats.SPARSE_PAULI_OP_LIST_ELEM_SIZE),
+        sparse_operator = False
+        if version >= 17:
+            sparse_operator = struct.unpack("!?", file_obj.read(1))[0]
+            if sparse_operator:
+                op_elem = formats.SPARSE_OBSERVABLE._make(
+                    struct.unpack(
+                        formats.SPARSE_OBSERVABLE_PACK,
+                        file_obj.read(formats.SPARSE_OBSERVABLE_SIZE),
+                    )
+                )
+                # setting data lengths
+                num_paulis = int(op_elem.coeff_data_len / (2 * struct.calcsize("!d")))
+                num_bitterms = int(op_elem.bitterm_data_len / struct.calcsize("!H"))
+                num_inds = int(op_elem.inds_data_len / struct.calcsize("!I"))
+                num_bounds = int(op_elem.bounds_data_len / struct.calcsize("!Q"))
+
+                # reading coeffs
+                coeff_data = struct.unpack(
+                    f"!{2*num_paulis}d", file_obj.read(op_elem.coeff_data_len)
+                )
+                coeff_read = np.empty(num_paulis, dtype=np.complex128)
+                for ii in range(num_paulis):
+                    coeff_read[ii] = complex(coeff_data[2 * ii], coeff_data[2 * ii + 1])
+
+                # reading bit_terms
+                bitterms_read = list(
+                    struct.unpack(f"!{num_bitterms}H", file_obj.read(op_elem.bitterm_data_len))
+                )
+
+                # reading indices
+                inds_read = list(
+                    struct.unpack(f"!{num_inds}I", file_obj.read(op_elem.inds_data_len))
+                )
+
+                # reading boundaries
+                bounds_read = list(
+                    struct.unpack(f"!{num_bounds}Q", file_obj.read(op_elem.bounds_data_len))
+                )
+
+                operator_list.append(
+                    SparseObservable.from_raw_parts(
+                        op_elem.num_qubits, coeff_read, bitterms_read, inds_read, bounds_read
+                    )
+                )
+
+        if version < 17 or not sparse_operator:
+            # Read SparsePauliOp type operator
+            op_elem = formats.SPARSE_PAULI_OP_LIST_ELEM._make(
+                struct.unpack(
+                    formats.SPARSE_PAULI_OP_LIST_ELEM_PACK,
+                    file_obj.read(formats.SPARSE_PAULI_OP_LIST_ELEM_SIZE),
+                )
             )
-        )
-        op_raw_data = common.data_from_binary(file_obj.read(op_elem.size), np.load)
-        operator_list.append(SparsePauliOp.from_list(op_raw_data))
+            op_raw_data = common.data_from_binary(file_obj.read(op_elem.size), np.load)
+            operator_list.append(SparsePauliOp.from_list(op_raw_data))
 
     if pauli_evolution_def.standalone_op:
         pauli_op = operator_list[0]
@@ -776,6 +836,7 @@ def _read_custom_operations(file_obj, version, vectors, annotation_state):
                         read_circuit,
                         version=version,
                         annotation_factories=annotation_state.factories,
+                        use_rust=False,
                     )
                 elif name.startswith(r"###PauliEvolutionGate_"):
                     definition_circuit = common.data_from_binary(
@@ -824,7 +885,7 @@ def _read_calibrations(file_obj, version, vectors, metadata_deserializer):
         schedules.read_schedule_block(file_obj, version, metadata_deserializer)
 
 
-def _dumps_register(register, index_map):
+def _py_serialize_register_param(register, index_map):
     if isinstance(register, ClassicalRegister):
         return register.name.encode(common.ENCODE)
     # Clbit.
@@ -837,7 +898,11 @@ def _dumps_instruction_parameter(
     if isinstance(param, QuantumCircuit):
         type_key = type_keys.Program.CIRCUIT
         data_bytes = common.data_to_binary(
-            param, write_circuit, version=version, annotation_factories=annotation_factories
+            param,
+            write_circuit,
+            version=version,
+            annotation_factories=annotation_factories,
+            use_rust=False,
         )
     elif isinstance(param, Modifier):
         type_key = type_keys.Value.MODIFIER
@@ -866,7 +931,7 @@ def _dumps_instruction_parameter(
         data_bytes = struct.pack("<d", param)
     elif isinstance(param, (Clbit, ClassicalRegister)):
         type_key = type_keys.Value.REGISTER
-        data_bytes = _dumps_register(param, index_map)
+        data_bytes = _py_serialize_register_param(param, index_map)
     else:
         type_key, data_bytes = value.dumps_value(
             param,
@@ -901,7 +966,7 @@ def _write_instruction(
             not hasattr(library, gate_class_name)
             and not hasattr(circuit_mod, gate_class_name)
             and not hasattr(controlflow, gate_class_name)
-            and gate_class_name != "Clifford"
+            and gate_class_name not in ["Clifford", "PauliProductMeasurement"]
         )
         or gate_class_name == "Gate"
         or gate_class_name == "Instruction"
@@ -948,7 +1013,9 @@ def _write_instruction(
             extra_type = type_keys.Condition.EXPRESSION
         else:
             extra_type = type_keys.Condition.TWO_TUPLE
-            condition_register = _dumps_register(instruction.operation._condition[0], index_map)
+            condition_register = _py_serialize_register_param(
+                instruction.operation._condition[0], index_map
+            )
             condition_value = int(instruction.operation._condition[1])
 
     gate_class_name = gate_class_name.encode(common.ENCODE)
@@ -980,6 +1047,8 @@ def _write_instruction(
         instruction_params = [instruction.operation.tableau]
     elif isinstance(instruction.operation, AnnotatedOperation):
         instruction_params = instruction.operation.modifiers
+    elif isinstance(instruction.operation, PauliProductMeasurement):
+        instruction_params = instruction.operation._to_pauli_data()
     else:
         instruction_params = getattr(instruction.operation, "params", [])
 
@@ -1055,6 +1124,7 @@ def _write_instruction(
 def _write_pauli_evolution_gate(file_obj, evolution_gate, version):
     operator_list = evolution_gate.operator
     standalone = False
+
     if not isinstance(operator_list, list):
         operator_list = [operator_list]
         standalone = True
@@ -1063,12 +1133,51 @@ def _write_pauli_evolution_gate(file_obj, evolution_gate, version):
     def _write_elem(buffer, op):
         elem_data = common.data_to_binary(op.to_list(array=True), np.save)
         elem_metadata = struct.pack(formats.SPARSE_PAULI_OP_LIST_ELEM_PACK, len(elem_data))
+        if version >= 17:
+            elem_sparse_operator = struct.pack("!?", False)
+            buffer.write(elem_sparse_operator)
         buffer.write(elem_metadata)
         buffer.write(elem_data)
 
+    def _write_elem_sparse(buffer, op):
+        bitterms = op.bit_terms
+        coeffs = op.coeffs
+        bounds = op.boundaries
+        inds = op.indices
+        num_qubits = op.num_qubits
+
+        # pack elements as [c1.real, c1.imag, c2.real, c2.imag, ...]
+        coeff_data = struct.pack(
+            f"!{len(coeffs)*2}d", *(val for coeff in coeffs for val in (coeff.real, coeff.imag))
+        )
+        bitterm_data = struct.pack(f"!{len(bitterms)}H", *bitterms)
+        inds_data = struct.pack(f"!{len(inds)}I", *inds)
+        bounds_data = struct.pack(f"!{len(bounds)}Q", *bounds)
+
+        sparse_observable_data_length = struct.pack(
+            formats.SPARSE_OBSERVABLE_PACK,
+            num_qubits,
+            len(coeff_data),
+            len(bitterm_data),
+            len(inds_data),
+            len(bounds_data),
+        )
+
+        elem_sparse_operator = struct.pack("!?", True)
+        buffer.write(elem_sparse_operator)
+        buffer.write(sparse_observable_data_length)
+        buffer.write(coeff_data)
+        buffer.write(bitterm_data)
+        buffer.write(inds_data)
+        buffer.write(bounds_data)
+
     pauli_data_buf = io.BytesIO()
+
     for operator in operator_list:
-        data = common.data_to_binary(operator, _write_elem)
+        if isinstance(operator, SparseObservable):
+            data = common.data_to_binary(operator, _write_elem_sparse)
+        else:
+            data = common.data_to_binary(operator, _write_elem)
         pauli_data_buf.write(data)
 
     time_type, time_data = value.dumps_value(evolution_gate.time, version=version)
@@ -1157,6 +1266,7 @@ def _write_custom_operation(
             write_circuit,
             version=version,
             annotation_factories=annotation_state.factories,
+            use_rust=False,
         )
         size = len(data)
         num_ctrl_qubits = operation.num_ctrl_qubits
@@ -1172,6 +1282,7 @@ def _write_custom_operation(
             write_circuit,
             version=version,
             annotation_factories=annotation_state.factories,
+            use_rust=False,
         )
         size = len(data)
     if base_gate is None:
@@ -1402,6 +1513,7 @@ def write_circuit(
     use_symengine=False,
     version=common.QPY_VERSION,
     annotation_factories=None,
+    use_rust=True,
 ):
     """Write a single QuantumCircuit object in the file like object.
 
@@ -1419,7 +1531,20 @@ def write_circuit(
         version (int): The QPY format version to use for serializing this circuit
         annotation_factories (dict): a mapping of namespaces to zero-argument factory functions that
             produce instances of :class:`.annotation.QPYSerializer`.
+        use_rust (bool): whether to use the rust based serialization engine. On by default.
     """
+    if use_rust:
+        if annotation_factories is None:
+            annotation_factories = {}
+        _qpy.write_circuit(
+            file_obj,
+            circuit,
+            metadata_serializer,
+            use_symengine,
+            version,
+            annotation_factories=annotation_factories,
+        )
+        return
     annotation_state = _AnnotationSerializationState(annotation_factories or {})
     metadata_raw = json.dumps(
         circuit.metadata, separators=(",", ":"), cls=metadata_serializer
@@ -1528,7 +1653,12 @@ def write_circuit(
 
 
 def read_circuit(
-    file_obj, version, metadata_deserializer=None, use_symengine=False, annotation_factories=None
+    file_obj,
+    version,
+    metadata_deserializer=None,
+    use_symengine=False,
+    annotation_factories=None,
+    use_rust=True,
 ):
     """Read a single QuantumCircuit object from the file like object.
 
@@ -1549,12 +1679,21 @@ def read_circuit(
             deserialize the payload.
         annotation_factories (dict): mapping of namespaces to factory functions for custom
             annotation deserializer objects.
+        use_rust (bool): whether to use the rust based deserialization engine. On by default.
     Returns:
         QuantumCircuit: The circuit object from the file.
 
     Raises:
         QpyError: Invalid register.
     """
+
+    if use_rust:
+        if annotation_factories is None:
+            annotation_factories = {}
+        return _qpy.read_circuit(
+            file_obj, version, metadata_deserializer, use_symengine, annotation_factories
+        )
+
     vectors = {}
     if version < 2:
         header, name, metadata = _read_header(file_obj, metadata_deserializer=metadata_deserializer)

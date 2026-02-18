@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -246,7 +246,7 @@ class TestWrapMethod(QiskitTestCase):
 
     def test_can_wrap_with_builtin(self):
         """Test that builtin functions can be used a callback.  Many CPython builtins don't
-        implement the desriptor protocol that all functions defined with ``def`` or ``lambda`` do,
+        implement the descriptor protocol that all functions defined with ``def`` or ``lambda`` do,
         which means we need to take special care that they work.  This is most relevant for
         C-extension functions created via pybind11, Cython or similar, rather than actual Python
         builtins."""

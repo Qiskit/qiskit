@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -25,7 +25,13 @@ from .pub_result import PubResult
 
 
 class SamplerPubResult(PubResult):
-    """Result of Sampler Pub."""
+    """Result of Sampler Pub.
+
+    This is a :class:`.SamplerV2`-specific subclass of :class:`.PubResult` that adds helper methods
+    to deal with the bit-array like :class:`.BitArray` data directly (implicitly going via the
+    :class:`.DataBin` in :attr:`data`).  See :class:`.PubResult` for more documentation on how to
+    use this class.
+    """
 
     def join_data(self, names: Iterable[str] | None = None) -> BitArray | np.ndarray:
         """Join data from many registers into one data container.
