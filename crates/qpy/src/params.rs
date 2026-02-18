@@ -23,6 +23,7 @@ use uuid::Uuid;
 
 use crate::bytes::Bytes;
 use crate::formats;
+use crate::QpyError;
 use crate::py_methods::{py_convert_from_generic_value, py_pack_param};
 use crate::value::{
     GenericValue, QPYReadData, QPYWriteData, ValueType, deserialize, deserialize_vec, load_value,
@@ -531,7 +532,7 @@ pub(crate) fn unpack_parameter_vector(
 pub(crate) fn pack_param_expression(
     exp: &ParameterExpression,
     qpy_data: &QPYWriteData,
-) -> PyResult<formats::GenericDataPack> {
+) -> Result<formats::GenericDataPack, QpyError> {
     // if the parameter expression is a single symbol, we should treat it like a parameter
     // or a parameter vector, depending on whether the `vector` field exists
     if let Ok(symbol) = exp.try_to_symbol() {

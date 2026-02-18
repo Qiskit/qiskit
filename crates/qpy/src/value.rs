@@ -16,7 +16,6 @@ use std::sync::Arc;
 use binrw::meta::{ReadEndian, WriteEndian};
 use binrw::{BinRead, BinWrite, Endian, binrw};
 use hashbrown::HashMap;
-use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
 
@@ -44,7 +43,7 @@ use crate::params::{
 use crate::py_methods::{
     py_deserialize_numpy_object, py_pack_modifier, py_serialize_numpy_object, py_unpack_modifier,
 };
-use crate::{QpyError, UnsupportedFeatureForVersion};
+use crate::QpyError;
 
 use num_bigint::BigUint;
 use num_complex::Complex64;
@@ -238,7 +237,7 @@ where
     value.write(&mut buffer).unwrap();
     buffer.into()
 }
-pub(crate) fn serialize_with_args<T, A>(value: &T, args: A) -> PyResult<Bytes>
+pub(crate) fn serialize_with_args<T, A>(value: &T, args: A) -> Result<Bytes, QpyError>
 where
     T: BinWrite<Args<'static> = A> + WriteEndian + Debug,
     A: Clone + Debug,
@@ -250,7 +249,7 @@ where
     Ok(buffer.into())
 }
 
-pub(crate) fn deserialize<T>(bytes: &[u8]) -> PyResult<(T, usize)>
+pub(crate) fn deserialize<T>(bytes: &[u8]) -> Result<(T, usize), QpyError>
 where
     T: BinRead<Args<'static> = ()> + Debug,
 {
@@ -260,7 +259,7 @@ where
     Ok((value, bytes_read))
 }
 
-pub(crate) fn deserialize_with_args<'a, T, A>(bytes: &[u8], args: A) -> PyResult<(T, usize)>
+pub(crate) fn deserialize_with_args<'a, T, A>(bytes: &[u8], args: A) -> Result<(T, usize), QpyError>
 where
     T: BinRead<Args<'a> = A> + ReadEndian + Debug,
 {
@@ -270,7 +269,7 @@ where
     Ok((value, bytes_read))
 }
 
-pub(crate) fn deserialize_vec<T>(mut bytes: &[u8]) -> PyResult<Vec<T>>
+pub(crate) fn deserialize_vec<T>(mut bytes: &[u8]) -> Result<Vec<T>, QpyError>
 where
     T: BinRead<Args<'static> = ()> + Debug,
 {
@@ -338,7 +337,7 @@ impl GenericValue {
     }
     pub(crate) fn as_circuit_data(&self) -> Option<CircuitData> {
         match self {
-            GenericValue::Circuit(py_circuit) => Python::attach(|py| -> PyResult<CircuitData> {
+            GenericValue::Circuit(py_circuit) => Python::attach(|py| -> Result<CircuitData, QpyError> {
                 Ok(py_circuit.extract::<QuantumCircuitData>(py)?.data)
             })
             .ok(),
@@ -386,7 +385,7 @@ pub(crate) fn load_value(
     type_key: ValueType,
     bytes: &Bytes,
     qpy_data: &mut QPYReadData,
-) -> PyResult<GenericValue> {
+) -> Result<GenericValue, QpyError> {
     match type_key {
         ValueType::Bool => {
             let value: bool = bytes.try_into()?;
@@ -482,7 +481,7 @@ pub(crate) fn load_value(
 
 // a specialized method used for biguints (marked by 'i' like Int64)
 // since the general load method will attempt to load a Int64 instead
-pub(crate) fn load_biguint_value(bytes: &Bytes) -> PyResult<GenericValue> {
+pub(crate) fn load_biguint_value(bytes: &Bytes) -> Result<GenericValue, QpyError> {
     let (bigint_pack, _) = deserialize::<BigIntPack>(bytes)?;
     let bigint = unpack_biguint(bigint_pack);
     Ok(GenericValue::BigInt(bigint))
@@ -492,7 +491,7 @@ pub(crate) fn load_biguint_value(bytes: &Bytes) -> PyResult<GenericValue> {
 pub(crate) fn serialize_generic_value(
     value: &GenericValue,
     qpy_data: &QPYWriteData,
-) -> PyResult<(ValueType, Bytes)> {
+) -> Result<(ValueType, Bytes), QpyError> {
     Ok(match value {
         GenericValue::Bool(value) => (ValueType::Bool, value.into()),
         GenericValue::Int64(value) => (ValueType::Integer, value.into()),
@@ -518,11 +517,11 @@ pub(crate) fn serialize_generic_value(
         ),
         GenericValue::Duration(duration) => {
             if qpy_data.version < 16 && matches!(duration, Duration::ps(_)) {
-                return Err(UnsupportedFeatureForVersion::new_err((
-                    "Duration variant 'Duration.ps'",
-                    16,
-                    qpy_data.version,
-                )));
+                return Err(QpyError::UnsupportedFeatureForVersion{
+                    feature: String::from("Duration variant 'Duration.ps'"),
+                    version: 16,
+                    min_version: qpy_data.version,
+            });
             }
             (
                 ValueType::Tuple, // due to historical reasons, 't' is shared between these data types
@@ -533,7 +532,7 @@ pub(crate) fn serialize_generic_value(
             (ValueType::Expression, serialize_expression(exp, qpy_data)?)
         }
         GenericValue::Null => (ValueType::Null, Bytes::new()),
-        GenericValue::Circuit(circuit) => Python::attach(|py| -> PyResult<_> {
+        GenericValue::Circuit(circuit) => Python::attach(|py| -> Result<_, QpyError> {
             let packed_circuit = pack_circuit(
                 &mut circuit.extract(py)?, // TODO: can we avoid cloning here?
                 None,
@@ -571,7 +570,7 @@ pub(crate) fn serialize_generic_value(
 pub(crate) fn pack_generic_value(
     value: &GenericValue,
     qpy_data: &QPYWriteData,
-) -> PyResult<GenericDataPack> {
+) -> Result<GenericDataPack, QpyError> {
     let (type_key, data) = serialize_generic_value(value, qpy_data)?;
     Ok(GenericDataPack { type_key, data })
 }
@@ -579,7 +578,7 @@ pub(crate) fn pack_generic_value(
 pub(crate) fn unpack_generic_value(
     value_pack: &GenericDataPack,
     qpy_data: &mut QPYReadData,
-) -> PyResult<GenericValue> {
+) -> Result<GenericValue, QpyError> {
     let result = load_value(value_pack.type_key, &value_pack.data, qpy_data)?;
     Ok(result)
 }
@@ -590,7 +589,7 @@ pub(crate) fn unpack_generic_value(
 pub(crate) fn unpack_duration_value(
     value_pack: &GenericDataPack,
     qpy_data: &mut QPYReadData,
-) -> PyResult<GenericValue> {
+) -> Result<GenericValue, QpyError> {
     match value_pack.type_key {
         ValueType::Tuple => {
             let duration = unpack_duration(deserialize::<DurationPack>(&value_pack.data)?.0);
@@ -611,41 +610,41 @@ pub(crate) fn pack_for_collection(value: &ForCollection) -> GenericValue {
     }
 }
 
-pub(crate) fn unpack_for_collection(value: &GenericValue) -> PyResult<ForCollection> {
+pub(crate) fn unpack_for_collection(value: &GenericValue) -> Result<ForCollection, QpyError> {
     match value {
         GenericValue::Range(py_range) => Ok(ForCollection::PyRange(*py_range)),
         GenericValue::Tuple(vec) => {
             let value_list = vec
                 .iter()
-                .map(|val| -> PyResult<_> {
+                .map(|val| -> Result<_, QpyError> {
                     if let GenericValue::Int64(int_val) = val {
                         Ok(*int_val as usize)
                     } else {
-                        Err(PyValueError::new_err("Could not unpack ForCollection"))
+                        Err(QpyError::ConversionError("Could not unpack ForCollection: expected Int64 in tuple".to_string()))
                     }
                 })
-                .collect::<PyResult<_>>()?;
+                .collect::<Result<_, QpyError>>()?;
             Ok(ForCollection::List(value_list))
         }
-        _ => Err(PyValueError::new_err("Could not unpack ForCollection")),
+        _ => Err(QpyError::ConversionError(format!("Could not unpack ForCollection: expected Range or Tuple, got {:?}", value))),
     }
 }
 
 pub(crate) fn pack_generic_value_sequence(
     values: &[GenericValue],
     qpy_data: &QPYWriteData,
-) -> PyResult<GenericDataSequencePack> {
+) -> Result<GenericDataSequencePack, QpyError> {
     let elements = values
         .iter()
         .map(|value| pack_generic_value(value, qpy_data))
-        .collect::<PyResult<_>>()?;
+        .collect::<Result<_, QpyError>>()?;
     Ok(GenericDataSequencePack { elements })
 }
 
 pub(crate) fn unpack_generic_value_sequence(
     value_seqeunce_pack: GenericDataSequencePack,
     qpy_data: &mut QPYReadData,
-) -> PyResult<Vec<GenericValue>> {
+) -> Result<Vec<GenericValue>, QpyError> {
     value_seqeunce_pack
         .elements
         .iter()
@@ -654,7 +653,7 @@ pub(crate) fn unpack_generic_value_sequence(
 }
 
 /// Each instruction type has a char representation in qpy
-pub(crate) fn get_circuit_type_key(op: &PackedOperation) -> PyResult<CircuitInstructionType> {
+pub(crate) fn get_circuit_type_key(op: &PackedOperation) -> Result<CircuitInstructionType, QpyError> {
     match op.view() {
         OperationRef::StandardGate(_) => Ok(CircuitInstructionType::Gate),
         OperationRef::StandardInstruction(_)
@@ -680,7 +679,7 @@ pub(crate) fn get_circuit_type_key(op: &PackedOperation) -> PyResult<CircuitInst
             {
                 Ok(CircuitInstructionType::AnnotatedOperation)
             } else {
-                Err(PyErr::new::<PyValueError, _>(format!(
+                Err(QpyError::InvalidInstruction(format!(
                     "Unable to determine circuit type key for {:?}",
                     operation
                 )))
@@ -689,7 +688,7 @@ pub(crate) fn get_circuit_type_key(op: &PackedOperation) -> PyResult<CircuitInst
     }
 }
 
-pub(crate) fn serialize_expression(exp: &Expr, qpy_data: &QPYWriteData) -> PyResult<Bytes> {
+pub(crate) fn serialize_expression(exp: &Expr, qpy_data: &QPYWriteData) -> Result<Bytes, QpyError> {
     let packed_expression = formats::ExpressionPack {
         expression: exp.clone(),
         _phantom: Default::default(),
@@ -700,7 +699,7 @@ pub(crate) fn serialize_expression(exp: &Expr, qpy_data: &QPYWriteData) -> PyRes
 pub(crate) fn deserialize_expression(
     raw_expression: &Bytes,
     qpy_data: &QPYReadData,
-) -> PyResult<Expr> {
+) -> Result<Expr, QpyError> {
     let (exp_pack, _) = deserialize_with_args::<formats::ExpressionPack, (&QPYReadData,)>(
         raw_expression,
         (qpy_data,),
@@ -747,29 +746,29 @@ pub(crate) fn pack_stretch(
 
 // we convert the type to the serializable struct; this amounts to simple copy unless
 // there's a field not supported in the expected version
-fn pack_expression_type(exp_type: &Type, version: u32) -> PyResult<ExpressionType> {
+fn pack_expression_type(exp_type: &Type, version: u32) -> Result<ExpressionType, QpyError> {
     match exp_type {
         Type::Bool => Ok(ExpressionType::Bool),
         Type::Duration => {
             if version >= 14 {
                 Ok(ExpressionType::Duration)
             } else {
-                Err(UnsupportedFeatureForVersion::new_err((
-                    "duration-typed expressions",
-                    14,
-                    version,
-                )))
+                Err(QpyError::UnsupportedFeatureForVersion {
+                    feature: "duration-typed expressions".to_string(),
+                    version: 14,
+                    min_version: version,
+                })
             }
         }
         Type::Float => {
             if version >= 14 {
                 Ok(ExpressionType::Float)
             } else {
-                Err(UnsupportedFeatureForVersion::new_err((
-                    "float-typed expressions",
-                    14,
-                    version,
-                )))
+                Err(QpyError::UnsupportedFeatureForVersion {
+                    feature: "float-typed expressions".to_string(),
+                    version: 14,
+                    min_version: version,
+                })
             }
         }
         Type::Uint(width) => Ok(ExpressionType::Uint(*width as u32)),
@@ -813,7 +812,7 @@ pub enum ParamRegisterValue {
 pub(crate) fn serialize_param_register_value(
     value: &ParamRegisterValue,
     qpy_data: &QPYWriteData,
-) -> PyResult<Bytes> {
+) -> Result<Bytes, QpyError> {
     match value {
         ParamRegisterValue::Register(register) => Ok(register.name().into()),
         ParamRegisterValue::ShareableClbit(clbit) => {
@@ -821,7 +820,7 @@ pub(crate) fn serialize_param_register_value(
                 .circuit_data
                 .clbits()
                 .find(clbit)
-                .ok_or(PyValueError::new_err("clbit not found"))?
+                .ok_or_else(|| QpyError::InvalidBit("clbit not found".to_string()))?
                 .0
                 .to_string();
             // this is the part where we get hack-y
@@ -836,20 +835,22 @@ pub(crate) fn serialize_param_register_value(
 pub(crate) fn load_param_register_value(
     bytes: &Bytes,
     qpy_data: &mut QPYReadData,
-) -> PyResult<ParamRegisterValue> {
+) -> Result<ParamRegisterValue, QpyError> {
     // If register name prefixed with null character it's a clbit index for single bit condition.
     if bytes.is_empty() {
-        return Err(PyValueError::new_err(
-            "Failed to load register - name missing",
+        return Err(QpyError::InvalidRegister(
+            "Failed to load register - name missing".to_string(),
         ));
     }
     if bytes[0] == 0u8 {
-        let index = Clbit(std::str::from_utf8(&bytes[1..])?.parse()?);
+        let index = Clbit(std::str::from_utf8(&bytes[1..])?.parse().map_err(|e: std::num::ParseIntError| {
+            QpyError::ConversionError(format!("Failed to parse clbit index: {}", e))
+        })?);
         match qpy_data.circuit_data.clbits().get(index) {
             Some(shareable_clbit) => {
                 Ok(ParamRegisterValue::ShareableClbit(shareable_clbit.clone()))
             }
-            None => Err(PyValueError::new_err(format!(
+            None => Err(QpyError::InvalidBit(format!(
                 "Could not find clbit {:?}",
                 index
             ))),
@@ -862,7 +863,7 @@ pub(crate) fn load_param_register_value(
                 return Ok(ParamRegisterValue::Register(creg.clone()));
             }
         }
-        Err(PyValueError::new_err(format!(
+        Err(QpyError::InvalidRegister(format!(
             "Could not find classical register {:?}",
             name
         )))

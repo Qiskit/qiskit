@@ -59,6 +59,7 @@ use smallvec::SmallVec;
 use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
 use crate::consts::standard_gate_from_gate_class_name;
+use crate::QpyError;
 use crate::formats;
 use crate::formats::ConditionData;
 use crate::formats::QPYCircuitV17;
@@ -232,7 +233,7 @@ fn get_instruction_values(
         .params
         .iter()
         .map(|packed_param: &formats::GenericDataPack| unpack_generic_value(packed_param, qpy_data))
-        .collect::<PyResult<_>>()?;
+        .collect::<Result<_, QpyError>>()?;
     Ok(inst_params)
 }
 
@@ -446,7 +447,7 @@ fn unpack_control_flow(
                 .iter()
                 .skip(1)
                 .map(|param| unpack_generic_value(param, qpy_data))
-                .collect::<PyResult<_>>()?;
+                .collect::<Result<_,QpyError>>()?;
             let duration_value = if let Some(duration_pack) = instruction.params.first() {
                 unpack_duration_value(duration_pack, qpy_data)?
             } else {

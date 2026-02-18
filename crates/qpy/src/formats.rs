@@ -18,8 +18,6 @@ use crate::value::{
     QPYReadData, QPYWriteData, RegisterType, ValueType,
 };
 use binrw::{BinRead, BinResult, BinWrite, Endian, binread, binrw, binwrite};
-use pyo3::PyErr;
-use pyo3::exceptions::PyRuntimeError;
 use qiskit_circuit::classical::expr::Expr;
 use std::io::{Read, Seek, Write};
 use std::marker::PhantomData;
