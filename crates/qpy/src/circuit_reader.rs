@@ -309,7 +309,6 @@ fn unpack_annotations(
                 qpy_data
                     .annotation_handler
                     .load(annotation.namespace_index, annotation.payload.clone())
-                    .map_err(QpyError::from)
             })
             .collect::<Result<_, QpyError>>()
     } else {
@@ -689,7 +688,6 @@ fn unpack_py_instruction(
                                 qpy_data
                                     .annotation_handler
                                     .load(annotation.namespace_index, annotation.payload.clone())
-                                    .map_err(QpyError::from)
                             })
                             .collect::<Result<_, QpyError>>()?,
                         None => Vec::new(),
@@ -1129,7 +1127,7 @@ fn deserialize_pauli_evolution_gate(
     let synthesis_settings_dict = synthesis_class_settings
         .cast::<PyDict>()
         .map_err(|e| QpyError::PythonError(e.to_string()))?;
-    let synthesis = synthesis_class.call((), Some(&synthesis_settings_dict))?;
+    let synthesis = synthesis_class.call((), Some(synthesis_settings_dict))?;
     let kwargs = PyDict::new(py);
     kwargs.set_item(intern!(py, "time"), py_time)?;
     kwargs.set_item(intern!(py, "synthesis"), synthesis)?;

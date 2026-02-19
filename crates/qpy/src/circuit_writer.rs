@@ -162,7 +162,9 @@ fn pack_condition(
             let register_size = bytes.len() as u16;
             let data = formats::ConditionData::Register(bytes);
             // TODO: this may cause loss of data, but we are constrained by the current qpy format
-            let low_digits = target_value.iter_u64_digits().next().unwrap() as i64;
+            let low_digits = target_value.iter_u64_digits().next().ok_or_else(|| {
+                QpyError::MissingData("Register condition value is missing".to_string())
+            })? as i64;
             Ok(formats::ConditionPack {
                 register_size,
                 value: low_digits,

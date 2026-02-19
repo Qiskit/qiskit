@@ -506,7 +506,9 @@ pub(crate) fn unpack_parameter_vector(
                     .call1((name.clone(), parameter_vector_pack.vector_size))?
                     .unbind();
                 qpy_data.vectors.insert(root_uuid, (vector, Vec::new()));
-                Ok(qpy_data.vectors.get_mut(&root_uuid).unwrap())
+                qpy_data.vectors.get_mut(&root_uuid).ok_or_else(|| {
+                    QpyError::PythonError("Parameter vector creation failed".to_string())
+                })
             })?,
         };
         let vector = vector_data.0.bind(py);

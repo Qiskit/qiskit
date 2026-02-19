@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use crate::QpyError;
 use crate::bytes::Bytes;
 use crate::expr::{read_expression, write_expression};
 use crate::params::ParameterType;
@@ -245,13 +246,16 @@ pub enum ConditionType {
     Expression = 2,
 }
 
-impl From<u8> for ConditionType {
-    fn from(value: u8) -> Self {
+impl TryFrom<u8> for ConditionType {
+    type Error = QpyError;
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
-            0 => Self::None,
-            1 => Self::TwoTuple,
-            2 => Self::Expression,
-            _ => panic!("Invalid condition type specified {value}"),
+            0 => Ok(Self::None),
+            1 => Ok(Self::TwoTuple),
+            2 => Ok(Self::Expression),
+            _ => Err(QpyError::InvalidParameter(
+                "Invalid condition type specified {value}".to_string(),
+            )),
         }
     }
 }
@@ -317,7 +321,8 @@ impl ConditionPack {
         endian: Endian,
         (register_size, key, value): (u16, u8, i64),
     ) -> BinResult<ConditionPack> {
-        let data = match ConditionType::from(key) {
+        let condition_type = ConditionType::try_from(key).map_err(|e| to_binrw_error(reader, e))?;
+        let data = match condition_type {
             ConditionType::TwoTuple => {
                 let mut buf = vec![0u8; register_size as usize];
                 reader.read_exact(&mut buf)?;
@@ -588,7 +593,14 @@ pub struct ParameterExpressionSubsOpPack {
     #[bw(calc = [0u8; 16])]
     pub _rhs: [u8; 16],
 
-    #[br(count = u64::from_be_bytes(mapping_data_size[..8].try_into().unwrap()))]
+    #[br(count = u64::from_be_bytes(
+        mapping_data_size[..8]
+            .try_into()
+            .map_err(|_| binrw::Error::Custom {
+                pos: 0,
+                err: Box::new(QpyError::InvalidFormat("Failed to parse mapping data size".to_string()))
+            })?
+    ))]
     pub mapping_data: Bytes,
 }
 
