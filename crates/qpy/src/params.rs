@@ -184,7 +184,7 @@ pub(crate) fn pack_parameter_expression(
     exp: &ParameterExpression,
 ) -> Result<formats::ParameterExpressionPack, QpyError> {
     let packed_expression_data = pack_parameter_expression_elements(exp)?;
-    let expression_data = serialize(&packed_expression_data);
+    let expression_data = serialize(&packed_expression_data)?;
     let symbol_table_data: Vec<formats::ParameterExpressionSymbolPack> = exp
         .iter_symbols()
         .map(pack_symbol_table_element)

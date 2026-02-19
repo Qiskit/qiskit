@@ -236,14 +236,14 @@ pub enum CircuitInstructionType {
     AnnotatedOperation = b'a',
 }
 
-pub(crate) fn serialize<T>(value: &T) -> Bytes
+pub(crate) fn serialize<T>(value: &T) -> Result<Bytes, QpyError>
 where
     T: BinWrite + WriteEndian + Debug,
     for<'a> <T as BinWrite>::Args<'a>: Default,
 {
     let mut buffer = Cursor::new(Vec::new());
-    value.write(&mut buffer).unwrap();
-    buffer.into()
+    value.write(&mut buffer)?;
+    Ok(buffer.into())
 }
 pub(crate) fn serialize_with_args<T, A>(value: &T, args: A) -> Result<Bytes, QpyError>
 where
@@ -426,8 +426,9 @@ pub(crate) fn load_value(
             let range_pack = deserialize::<formats::RangePack>(bytes)?.0;
             let start = range_pack.start as isize;
             let stop = range_pack.stop as isize;
-            let step =
-                NonZero::new(range_pack.step as isize).expect("Python does not allow zero steps");
+            let step = NonZero::new(range_pack.step as isize).ok_or_else(|| {
+                QpyError::DeserializationError("range stpe cannot be zero".into())
+            })?;
             let py_range = PyRange { start, stop, step };
             Ok(GenericValue::Range(py_range))
         }
@@ -505,25 +506,25 @@ pub(crate) fn serialize_generic_value(
     Ok(match value {
         GenericValue::Bool(value) => (ValueType::Bool, value.into()),
         GenericValue::Int64(value) => (ValueType::Integer, value.into()),
-        GenericValue::BigInt(bigint) => (ValueType::Integer, serialize(&pack_biguint(bigint))),
+        GenericValue::BigInt(bigint) => (ValueType::Integer, serialize(&pack_biguint(bigint))?),
         GenericValue::Float64(value) => (ValueType::Float, value.into()),
         GenericValue::Complex64(value) => (ValueType::Complex, value.into()),
         GenericValue::String(value) => (ValueType::String, value.into()),
         GenericValue::CaseDefault => (ValueType::CaseDefault, Bytes::new()),
         GenericValue::ParameterExpressionSymbol(symbol) => {
-            (ValueType::Parameter, serialize(&pack_symbol(symbol)))
+            (ValueType::Parameter, serialize(&pack_symbol(symbol))?)
         }
         GenericValue::ParameterExpressionVectorSymbol(symbol) => (
             ValueType::ParameterVector,
-            serialize(&pack_parameter_vector(symbol)?),
+            serialize(&pack_parameter_vector(symbol)?)?,
         ),
         GenericValue::ParameterExpression(exp) => (
             ValueType::ParameterExpression,
-            serialize(&pack_parameter_expression(exp)?),
+            serialize(&pack_parameter_expression(exp)?)?,
         ),
         GenericValue::Tuple(values) => (
             ValueType::Tuple,
-            serialize(&pack_generic_value_sequence(values, qpy_data)?),
+            serialize(&pack_generic_value_sequence(values, qpy_data)?)?,
         ),
         GenericValue::Duration(duration) => {
             if qpy_data.version < 16 && matches!(duration, Duration::ps(_)) {
@@ -535,7 +536,7 @@ pub(crate) fn serialize_generic_value(
             }
             (
                 ValueType::Tuple, // due to historical reasons, 't' is shared between these data types
-                serialize(&pack_duration(duration)),
+                serialize(&pack_duration(duration))?,
             )
         }
         GenericValue::Expression(exp) => {
@@ -550,7 +551,7 @@ pub(crate) fn serialize_generic_value(
                 QPY_VERSION,
                 qpy_data.annotation_handler.annotation_factories,
             )?;
-            let serialized_circuit = serialize(&packed_circuit);
+            let serialized_circuit = serialize(&packed_circuit)?;
             Ok((ValueType::Circuit, serialized_circuit))
         })?,
         GenericValue::NumpyObject(py_obj) => {
@@ -561,11 +562,11 @@ pub(crate) fn serialize_generic_value(
             let stop = py_range.stop as i64;
             let step = py_range.step.get() as i64;
             let range_pack = formats::RangePack { start, stop, step };
-            (ValueType::Range, serialize(&range_pack))
+            (ValueType::Range, serialize(&range_pack)?)
         }
         GenericValue::Modifier(py_object) => (
             ValueType::Modifier,
-            serialize(&py_pack_modifier(py_object)?),
+            serialize(&py_pack_modifier(py_object)?)?,
         ),
         GenericValue::Register(param_register_value) => (
             ValueType::Register,
