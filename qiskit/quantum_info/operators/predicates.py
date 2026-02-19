@@ -44,7 +44,7 @@ def matrix_equal(mat1, mat2, ignore_phase=False, rtol=RTOL_DEFAULT, atol=ATOL_DE
     documentation for additional information on tolerance parameters.
 
     If ignore_phase is True both matrices will be multiplied by
-    exp(-1j * theta) where `theta` is the first nphase for a
+    exp(-1j * theta) where `theta` is the phase of the
     first non-zero matrix element `|a| * exp(1j * theta)`.
 
     Args:

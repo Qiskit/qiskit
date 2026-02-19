@@ -47,7 +47,7 @@ class BaseOperator(GroupMixin, ABC):
 
         .. note::
 
-            If `op_shape`` is specified it will take precedence over other
+            If ``op_shape`` is specified it will take precedence over other
             kwargs.
         """
         self._qargs = None

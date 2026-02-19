@@ -115,7 +115,7 @@ def random_quantum_channel(
 
     Args:
         input_dims (int or tuple): the input dimension of the channel.
-        output_dims (int or tuple): the input dimension of the channel.
+        output_dims (int or tuple): the output dimension of the channel.
         rank (int): Optional. The rank of the quantum channel Choi-matrix.
         seed (int or np.random.Generator): Optional. Set a fixed seed or
                                            generator for RNG.

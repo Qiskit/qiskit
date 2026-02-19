@@ -354,7 +354,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         return ret
 
     def _count_y(self, dtype=None):
-        """Count the number of I Paulis"""
+        """Count the number of Y Paulis"""
         return _count_y(self._x, self._z, dtype=dtype)
 
     @staticmethod
@@ -422,7 +422,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             group_phase (bool): Optional. If ``True`` use group-phase convention
                                 instead of BasePauli ZX-phase convention.
                                 (default: ``False``).
-            sparse (bool): Optional. Of ``True`` return a sparse CSR matrix,
+            sparse (bool): Optional. If ``True`` return a sparse CSR matrix,
                            otherwise return a dense Numpy array
                            (default: ``False``).
 
@@ -727,7 +727,7 @@ def _evolve_rz(base_pauli, qubit, multiple):
 
 
 def _count_y(x, z, dtype=None):
-    """Count the number of I Paulis"""
+    """Count the number of Y Paulis"""
     return (x & z).sum(axis=1, dtype=dtype)
 
 
