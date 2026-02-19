@@ -60,6 +60,9 @@ pub fn generator_observable(
     }
 
     // Multi-qubit gates
+    // The match returns a tuple (coeffs, bit_terms, indices, boundaries) in a flattened
+    // Struct-of-Arrays (SoA) layout for efficiency, to avoid allocating many small vectors.
+    // Term `i` corresponds to the slice `boundaries[i]..boundaries[i+1]` of `bit_terms` and `indices`.
     let (coeffs, bit_terms, indices, boundaries) = match gate {
         // CX = Z0X1 - Z0 - X1
         // (1, -1, -1) coeffs.
