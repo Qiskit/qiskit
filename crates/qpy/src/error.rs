@@ -10,9 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use pyo3::exceptions::{PyRuntimeError, PyValueError};
-use pyo3::types::PyAnyMethods;
-use pyo3::{PyErr, Python};
+use crate::{PyQpyError, PyUnsupportedFeatureForVersion};
+use pyo3::PyErr;
 use thiserror::Error;
 
 /// Errors that can occur during QPY serialization and deserialization operations.
@@ -30,6 +29,10 @@ pub enum QpyError {
         version: u32,
         min_version: u32,
     },
+
+    /// Failure to cast a python object into a specific type
+    #[error("could not cast {name} into {python_type}")]
+    InvalidPythonType { python_type: String, name: String },
 
     /// Invalid value type encountered during serialization/deserialization
     #[error("invalid value type: expected {expected}, got {actual}")]
@@ -120,9 +123,8 @@ pub enum QpyError {
     BinRwError(String),
 
     /// Python error that occurred during a Python call
-    /// This wraps PyErr but stores it as a string to avoid lifetime issues
     #[error("Python error: {0}")]
-    PythonError(String),
+    PythonError(#[from] PyErr),
 }
 
 impl From<QpyError> for PyErr {
@@ -132,58 +134,10 @@ impl From<QpyError> for PyErr {
                 feature,
                 version,
                 min_version,
-            } => {
-                // Use the imported exception type from lib.rs
-                Python::attach(|py| {
-                    py.import("qiskit.qpy.exceptions")
-                        .and_then(|qpy_exceptions| {
-                            qpy_exceptions.getattr("UnsupportedFeatureForVersion")
-                        })
-                        .and_then(|exc_type| exc_type.call1((feature, min_version, version)))
-                        .map(PyErr::from_value)
-                        .unwrap_or_else(|_| {
-                            PyRuntimeError::new_err("Failed to get UnsupportedFeatureForVersion")
-                        })
-                })
-            }
-            QpyError::InvalidValueType { expected, actual } => PyValueError::new_err(format!(
-                "invalid value type: expected {expected}, got {actual}"
-            )),
-            QpyError::InvalidFormat(msg)
-            | QpyError::MissingData(msg)
-            | QpyError::InvalidInstruction(msg)
-            | QpyError::InvalidParameter(msg)
-            | QpyError::InvalidRegister(msg)
-            | QpyError::InvalidBit(msg)
-            | QpyError::ConversionError(msg)
-            | QpyError::CircuitError(msg)
-            | QpyError::InvalidAnnotation(msg)
-            | QpyError::InvalidExpression(msg)
-            | QpyError::InvalidLayout(msg)
-            | QpyError::MetadataError(msg)
-            | QpyError::SerializationError(msg)
-            | QpyError::DeserializationError(msg) => PyValueError::new_err(msg),
-            QpyError::CustomInstructionNotFound(name) => {
-                PyValueError::new_err(format!("custom instruction '{name}' not found"))
-            }
-            QpyError::IoError(e) => PyRuntimeError::new_err(format!("I/O error: {e}")),
-            QpyError::Utf8Error(e) => PyValueError::new_err(format!("UTF-8 error: {e}")),
-            QpyError::IntConversionError(e) => {
-                PyValueError::new_err(format!("integer conversion error: {e}"))
-            }
-            QpyError::CircuitDataError(e) => e.into(),
-            QpyError::ParameterError(e) => e.into(),
-            QpyError::BinRwError(msg) => {
-                PyRuntimeError::new_err(format!("binary parsing error: {msg}"))
-            }
-            QpyError::PythonError(msg) => PyRuntimeError::new_err(msg),
+            } => PyUnsupportedFeatureForVersion::new_err((feature, min_version, version)),
+            QpyError::PythonError(py_err) => py_err,
+            _ => PyQpyError::new_err(error.to_string()),
         }
-    }
-}
-
-impl From<PyErr> for QpyError {
-    fn from(err: PyErr) -> Self {
-        QpyError::PythonError(err.to_string())
     }
 }
 

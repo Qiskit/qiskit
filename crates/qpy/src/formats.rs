@@ -10,7 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::QpyError;
 use crate::bytes::Bytes;
 use crate::expr::{read_expression, write_expression};
 use crate::params::ParameterType;
@@ -18,6 +17,7 @@ use crate::value::{
     BitType, CircuitInstructionType, ExpressionType, ExpressionVarDeclaration, ModifierType,
     QPYReadData, QPYWriteData, RegisterType, ValueType,
 };
+use crate::{QpyError, to_binrw_error};
 use binrw::{BinRead, BinResult, BinWrite, Endian, binread, binrw, binwrite};
 use qiskit_circuit::classical::expr::Expr;
 use std::io::{Read, Seek, Write};
@@ -975,6 +975,3 @@ impl BinRead for QPYCircuitV17 {
         })
     }
 }
-
-// Re-export the error handling functions from the error module
-pub use crate::error::{from_binrw_error, to_binrw_error};

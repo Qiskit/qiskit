@@ -11,14 +11,14 @@
 // that they have been altered from the originals.
 
 // methods for serialization/deserialization of Expression
-use crate::QpyError;
 use crate::formats::{
     ExpressionElementPack, ExpressionTypePack, ExpressionValueElementPack,
-    ExpressionVarElementPack, ExpressionVarRegisterPack, to_binrw_error,
+    ExpressionVarElementPack, ExpressionVarRegisterPack,
 };
 use crate::value::{
     QPYReadData, QPYWriteData, pack_biguint, pack_duration, unpack_biguint, unpack_duration,
 };
+use crate::{QpyError, to_binrw_error};
 use binrw::{BinRead, BinResult, BinWrite, Endian, Error};
 use num_bigint::BigUint;
 use qiskit_circuit::Clbit;

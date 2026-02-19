@@ -34,10 +34,14 @@ mod value;
 // Re-export the error types for use throughout the module
 pub use error::{QpyError, from_binrw_error, to_binrw_error};
 
-// Import the Python exception for UnsupportedFeatureForVersion
-// We don't import QpyError from Python since we have our own Rust type
-use pyo3::import_exception;
-import_exception!(qiskit.qpy.exceptions, UnsupportedFeatureForVersion);
+mod py_exceptions {
+    use pyo3::import_exception;
+    import_exception!(qiskit.qpy.exceptions, UnsupportedFeatureForVersion);
+    import_exception!(qiskit.qpy.exceptions, QpyError);
+}
+
+use py_exceptions::QpyError as PyQpyError;
+use py_exceptions::UnsupportedFeatureForVersion as PyUnsupportedFeatureForVersion;
 
 /// Internal module supplying the QPY capabilities.  The entries in it should largely
 /// be re-exposed directly to public Python space.

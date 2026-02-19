@@ -14,7 +14,6 @@
 
 from qiskit.exceptions import QiskitError, QiskitWarning
 
-
 class QpyError(QiskitError):
     """Errors raised by the qpy module."""
 

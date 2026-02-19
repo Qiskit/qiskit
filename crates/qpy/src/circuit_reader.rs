@@ -500,16 +500,14 @@ fn unpack_control_flow(
             }
         }
         ControlFlowType::IfElse => {
-            let condition = unpack_condition(&instruction.condition, qpy_data)?.ok_or(
-                QpyError::MissingData("if else condition is missing".to_string()),
-            )?;
+            let condition = unpack_condition(&instruction.condition, qpy_data)?
+                .ok_or_else(|| QpyError::MissingData("if else condition is missing".to_string()))?;
             param_values = get_instruction_values(instruction, qpy_data)?;
             ControlFlow::IfElse { condition }
         }
         ControlFlowType::WhileLoop => {
-            let condition = unpack_condition(&instruction.condition, qpy_data)?.ok_or(
-                QpyError::MissingData("if else condition is missing".to_string()),
-            )?;
+            let condition = unpack_condition(&instruction.condition, qpy_data)?
+                .ok_or_else(|| QpyError::MissingData("if else condition is missing".to_string()))?;
             param_values = get_instruction_values(instruction, qpy_data)?;
             ControlFlow::While { condition }
         }
@@ -521,9 +519,11 @@ fn unpack_control_flow(
                 .next()
                 .zip(iter.next())
                 .zip(iter.next())
-                .ok_or(QpyError::MissingData(
-                    "Switch case instruction missing some of its parameters".to_string(),
-                ))?;
+                .ok_or_else(|| {
+                    QpyError::MissingData(
+                        "Switch case instruction missing some of its parameters".to_string(),
+                    )
+                })?;
             let target = match target_value {
                 GenericValue::Expression(exp) => Ok(SwitchTarget::Expr(exp)),
                 GenericValue::Register(ParamRegisterValue::Register(reg)) => {
@@ -750,7 +750,10 @@ fn unpack_py_instruction(
         }
         if gate_class
             .cast_into::<PyType>()
-            .map_err(|e| QpyError::PythonError(e.to_string()))?
+            .map_err(|_| QpyError::InvalidPythonType {
+                python_type: "PyType".to_string(),
+                name: "gate_class".to_string(),
+            })?
             .is_subclass(imports::CONTROLLED_GATE.get_bound(py))?
             && (gate_object.getattr("num_ctrl_qubits")?.extract::<u32>()?
                 != instruction.num_ctrl_qubits
@@ -976,9 +979,12 @@ fn unpack_transpile_layout<'py>(
     if layout.input_mapping_size > 0 {
         let input_qubit_mapping_data = PyDict::new(py);
         let physical_bits_object = initial_layout.call_method0(py, "get_physical_bits")?;
-        let physical_bits = physical_bits_object
-            .cast_bound::<PyDict>(py)
-            .map_err(|e| QpyError::PythonError(e.to_string()))?;
+        let physical_bits = physical_bits_object.cast_bound::<PyDict>(py).map_err(|_| {
+            QpyError::InvalidPythonType {
+                python_type: "PyDict".to_string(),
+                name: "physical_bits".to_string(),
+            }
+        })?;
         for (index, bit) in layout.input_mapping_items.iter().enumerate() {
             let physical_bit = physical_bits.get_item(bit)?.ok_or_else(|| {
                 QpyError::InvalidBit(format!("Could not get physical bit for bit {:?}", bit))
@@ -1102,7 +1108,10 @@ fn deserialize_pauli_evolution_gate(
     let synth_data = json.call_method1("loads", (packed_data.synth_data,))?;
     let synth_data = synth_data
         .cast::<PyDict>()
-        .map_err(|e| QpyError::PythonError(e.to_string()))?;
+        .map_err(|_| QpyError::InvalidPythonType {
+            python_type: "PyDict".to_string(),
+            name: "synth_data".to_string(),
+        })?;
     let synthesis_class_name = synth_data.get_item("class")?.ok_or_else(|| {
         QpyError::MissingData(
             "Could not find synthesis class name for Pauli Evolution Gate".to_string(),
@@ -1113,14 +1122,20 @@ fn deserialize_pauli_evolution_gate(
             "Could not find synthesis class settings for Pauli Evolution Gate".to_string(),
         )
     })?;
-    let synthesis_class = evo_synth_library.getattr(
-        synthesis_class_name
-            .cast::<PyString>()
-            .map_err(|e| QpyError::PythonError(e.to_string()))?,
-    )?;
-    let synthesis_settings_dict = synthesis_class_settings
-        .cast::<PyDict>()
-        .map_err(|e| QpyError::PythonError(e.to_string()))?;
+    let synthesis_class =
+        evo_synth_library.getattr(synthesis_class_name.cast::<PyString>().map_err(|_| {
+            QpyError::InvalidPythonType {
+                python_type: "PyString".to_string(),
+                name: "synthesis_class".to_string(),
+            }
+        })?)?;
+    let synthesis_settings_dict =
+        synthesis_class_settings
+            .cast::<PyDict>()
+            .map_err(|_| QpyError::InvalidPythonType {
+                python_type: "PyDict".to_string(),
+                name: "synthesis_settings_dict".to_string(),
+            })?;
     let synthesis = synthesis_class.call((), Some(synthesis_settings_dict))?;
     let kwargs = PyDict::new(py);
     kwargs.set_item(intern!(py, "time"), py_time)?;
@@ -1455,7 +1470,10 @@ pub(crate) fn py_read_circuit(
     let bytes = file_obj.call_method0("read")?;
     let serialized_circuit: &[u8] = bytes
         .cast::<PyBytes>()
-        .map_err(|e| QpyError::PythonError(e.to_string()))?
+        .map_err(|_| QpyError::InvalidPythonType {
+            python_type: "PyBytes".to_string(),
+            name: "serialized_circuit".to_string(),
+        })?
         .as_bytes();
     let (packed_circuit, bytes_read) = deserialize::<formats::QPYCircuitV17>(serialized_circuit)?;
     let unpacked_circuit = unpack_circuit(

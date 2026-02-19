@@ -37,6 +37,7 @@ use crate::bytes::Bytes;
 use crate::circuit_reader::unpack_circuit;
 use crate::circuit_writer::pack_circuit;
 use crate::formats::{self, BigIntPack, DurationPack, GenericDataPack, GenericDataSequencePack};
+use crate::from_binrw_error;
 use crate::params::{
     pack_parameter_expression, pack_parameter_vector, pack_symbol, unpack_parameter_expression,
     unpack_parameter_vector, unpack_symbol,
@@ -253,7 +254,7 @@ where
     let mut buffer = Cursor::new(Vec::new());
     value
         .write_args(&mut buffer, args)
-        .map_err(formats::from_binrw_error)?;
+        .map_err(from_binrw_error)?;
     Ok(buffer.into())
 }
 
