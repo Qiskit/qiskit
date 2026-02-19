@@ -33,10 +33,11 @@ class ZZFeatureMap(PauliFeatureMap):
         ┤ H ├┤ P(2.0*φ(x[2])) ├─────────────────────────────────┤ X ├┤ P(2.0*φ(x[1],x[2])) ├┤ X ├
         └───┘└────────────────┘                                 └───┘└─────────────────────┘└───┘
 
-    Here, :math:`S` is a set of qubit indices describing the connections in the feature map,
-    and :math:`\varphi` is a classical non-linear function, which defaults to
+    Here, :math:`\varphi` is a classical non-linear function, which defaults to
     :math:`\varphi(x) = x` if :math:`|S| = 1` and
-    :math:`\varphi(x,y) = (\pi - x)(\pi - y)` if :math:`|S| > 1`.
+    :math:`\varphi(x,y) = (\pi - x)(\pi - y)` if :math:`|S| > 1`, and
+    :math:`S` is the set of qubit indices describing the connections in the feature map. 
+    See the docstring of :func:`~.pauli_feature_map.pauli_feature_map` for more detail.
 
     Examples:
 
