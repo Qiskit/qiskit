@@ -36,7 +36,7 @@ class ZZFeatureMap(PauliFeatureMap):
     Here, :math:`\varphi` is a classical non-linear function, which defaults to
     :math:`\varphi(x) = x` if :math:`|S| = 1` and
     :math:`\varphi(x,y) = (\pi - x)(\pi - y)` if :math:`|S| > 1`, and
-    :math:`S` is the set of qubit indices describing the connections in the feature map. 
+    :math:`S` is the set of qubit indices describing the connections in the feature map.
     See the docstring of :func:`~.pauli_feature_map.pauli_feature_map` for more detail.
 
     Examples:
@@ -126,7 +126,7 @@ class ZZFeatureMap(PauliFeatureMap):
             reps: The number of repeated circuits, has a min. value of 1.
             entanglement: Specifies the entanglement structure. Refer to
                 :class:`~qiskit.circuit.library.PauliFeatureMap` for detail.
-            data_map_func: A mapping function for data x.
+            data_map_func: A mapping function for the data ``x``.
             parameter_prefix: The prefix used if default parameters are generated.
             insert_barriers: If ``True``, barriers are inserted in between the evolution instructions
                 and hadamard layers.

@@ -227,7 +227,7 @@ def z_feature_map(
             ``'linear'``, ``'reverse_linear'``, ``'circular'`` or ``'sca'``), a list of
             integer-tuples, or a callable returning these types for each repetition.
         alpha: The Pauli rotation factor, multiplicative to the pauli rotations.
-        data_map_func: A mapping function for data ``x`` which can be supplied to override the
+        data_map_func: A mapping function for the data ``x`` which can be supplied to override the
             default mapping.
         parameter_prefix: The prefix used if default parameters are generated.
         insert_barriers: If ``True``, barriers are inserted in between the evolution instructions
@@ -318,7 +318,7 @@ def zz_feature_map(
     :math:`\varphi(x) = x` if :math:`|S| = 1` and
     :math:`\varphi(x,y) = (\pi - x)(\pi - y)` if :math:`|S| > 1`, and
     :math:`S` is the set of qubit indices describing the connections in the feature map.
-    See the docstring of :func:`~.pauli_feature_map.pauli_feature_map` for more detail.
+    See the docstring of :func:`pauli_feature_map` for more detail.
 
     Args:
         feature_dimension: Number of qubits in the circuit.
@@ -327,7 +327,7 @@ def zz_feature_map(
             ``'linear'``, ``'reverse_linear'``, ``'circular'`` or ``'sca'``), a list of
             integer-tuples, or a callable returning these types for each repetition.
         alpha: The Pauli rotation factor, multiplicative to the pauli rotations.
-        data_map_func: A mapping function for data ``x`` which can be supplied to override the
+        data_map_func: A mapping function for the data ``x`` which can be supplied to override the
             default mapping.
         parameter_prefix: The prefix used if default parameters are generated.
         insert_barriers: If ``True``, barriers are inserted in between the evolution instructions
@@ -507,7 +507,7 @@ class PauliFeatureMap(NLocal):
             alpha: The Pauli rotation factor, multiplicative to the pauli rotations
             paulis: A list of strings for to-be-used paulis. If None are provided, ``['Z', 'ZZ']``
                 will be used.
-            data_map_func: A mapping function for data ``x`` which can be supplied to override the
+            data_map_func: A mapping function for the data ``x`` which can be supplied to override the
                 default mapping.
             parameter_prefix: The prefix used if default parameters are generated.
             insert_barriers: If ``True``, barriers are inserted in between the evolution instructions
