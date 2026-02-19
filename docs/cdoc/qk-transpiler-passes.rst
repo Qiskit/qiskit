@@ -24,16 +24,6 @@ as internally they're converting from the quantum circuit to the dag circuit IR 
 the function returns a new circuit it will convert back before returning. These standalone functions
 are intended to execute single passes in isolation rather than building a custom transpilation pipeline.
 
-DAG-based Passes
-----------------
-
-For users who are working directly with the DAG representation (``QkDag``), the C API also provides
-functions that operate directly on the DAG without the conversion overhead. These functions follow
-the naming convention ``qk_transpiler_pass_*`` and modify the DAG in place. This is
-useful when you need to chain multiple passes together or when you're already working with a DAG
-representation of your circuit. Using DAG-based passes avoids the repeated circuit-to-DAG and
-DAG-to-circuit conversions that would otherwise occur when chaining multiple standalone passes.
-
 Functions
 =========
 
