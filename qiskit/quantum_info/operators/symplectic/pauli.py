@@ -236,7 +236,7 @@ class Pauli(BasePauli):
 
     @classmethod
     def set_truncation(cls, val: int):
-        """Set the max number of Pauli characters to display before truncation/
+        """Set the max number of Pauli characters to display before truncation.
 
         Args:
             val (int): the number of characters.
@@ -412,7 +412,7 @@ class Pauli(BasePauli):
         .. note::
 
             The difference between `to_label` and :meth:`__str__` is that
-            the later will truncate the output for large numbers of qubits.
+            the latter will truncate the output for large numbers of qubits.
 
         Returns:
             str: the Pauli string label.

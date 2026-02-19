@@ -41,7 +41,7 @@ class GroupMixin(ABC):
 
         - ``&``, ``__and__`` -> :meth:`compose`
         - ``@``, ``__matmul__`` -> :meth:`dot`
-        - ``^``, ``__xor__`` -> `:meth:`tensor`
+        - ``^``, ``__xor__`` -> :meth:`tensor`
         - ``**``, ``__pow__`` -> :meth:`power`
 
     The following abstract methods must be implemented by subclasses
@@ -152,7 +152,7 @@ class GroupMixin(ABC):
         return self.compose(other, qargs=qargs, front=True)
 
     def power(self, n) -> Self:
-        """Return the compose of a operator with itself n times.
+        """Return the composition of an operator with itself n times.
 
         Args:
             n (int): the number of times to compose with self (n>0).

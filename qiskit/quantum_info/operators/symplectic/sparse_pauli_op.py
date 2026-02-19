@@ -680,7 +680,7 @@ class SparsePauliOp(LinearOp):
         than ``1e-17`` will be reduced to ``1 X`` whereas :meth:`.SparsePauliOp.simplify` would
         return ``1+1e-17j X``.
 
-        If a both the real and imaginary part of a coefficient is 0 after chopping, the
+        If both the real and imaginary part of a coefficient is 0 after chopping, the
         corresponding Pauli is removed from the operator.
 
         Args:
@@ -753,7 +753,7 @@ class SparsePauliOp(LinearOp):
     def from_operator(
         obj: Operator, atol: float | None = None, rtol: float | None = None
     ) -> SparsePauliOp:
-        """Construct from an Operator objector.
+        """Construct from an Operator object.
 
         Note that the cost of this construction is exponential in general because the number of
         possible Pauli terms in the decomposition is exponential in the number of qubits.
