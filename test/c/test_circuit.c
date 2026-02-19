@@ -1092,6 +1092,53 @@ cleanup:
 }
 
 /**
+ * Test circuit instruction parameter ownership.
+ *
+ * Even if the original circuit is freed, the parameters should be accessible from
+ * the QkCircuitInstruction object, which stores pointers to copies of the parameters.
+ */
+static int test_instruction_params_ownership(void) {
+    QkCircuit *qc = qk_circuit_new(1, 0);
+    uint32_t q0[1] = {0};
+    QkParam *theta = qk_param_new_symbol("theta");
+    const QkParam *angles[1] = {theta};
+
+    // Add a single RX gate with the angle "theta"
+    int result = Ok;
+    if (qk_circuit_parameterized_gate(qc, QkGate_RX, q0, angles) != QkExitCode_Success) {
+        result = RuntimeError;
+        qk_circuit_free(qc);
+        goto cleanup;
+    }
+
+    // Retrieve the circuit instruction, which contains pointers to copies of the parameters
+    QkCircuitInstruction inst;
+    qk_circuit_get_instruction(qc, 0, &inst);
+    if (inst.num_params != 1) {
+        printf("Expected 1 parameter in RX, got %u\n", inst.num_params);
+        result = EqualityError;
+
+        qk_circuit_instruction_clear(&inst);
+        qk_circuit_free(qc);
+        goto cleanup;
+    }
+
+    // Free the circuit and check the parameter is still correctly accessible
+    // from the instruction itself
+    qk_circuit_free(qc);
+
+    QkParam *angle = inst.params[0];
+    if (!qk_param_equal(angle, theta)) {
+        result = EqualityError;
+    }
+    qk_param_free(angle);
+
+cleanup:
+    qk_param_free(theta);
+    return result;
+}
+
+/**
  * Test adding delay instruction to a circuit.
  */
 static int test_delay_instruction(void) {
@@ -1202,6 +1249,7 @@ int test_circuit(void) {
     num_failed += RUN_TEST(test_unitary_gate_1q);
     num_failed += RUN_TEST(test_unitary_gate_3q);
     num_failed += RUN_TEST(test_get_instruction_params);
+    num_failed += RUN_TEST(test_instruction_params_ownership);
     num_failed += RUN_TEST(test_parameterized_circuit);
     num_failed += RUN_TEST(test_circuit_to_dag);
 
