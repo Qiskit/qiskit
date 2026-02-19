@@ -112,7 +112,7 @@ def pauli_feature_map(
         alpha: The Pauli rotation factor, multiplicative to the pauli rotations.
         paulis: A list of strings for to-be-used paulis. If None are provided, ``['Z', 'ZZ']``
             will be used.
-        data_map_func: A mapping function for data x which can be supplied to override the
+        data_map_func: A mapping function for the data ``x`` which can be supplied to override the
             default mapping.
         parameter_prefix: The prefix used if default parameters are generated.
         insert_barriers: If ``True``, barriers are inserted in between the evolution instructions
