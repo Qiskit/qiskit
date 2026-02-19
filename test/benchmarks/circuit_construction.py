@@ -113,7 +113,7 @@ class ParamaterizedDifferentCircuit:
 
     def time_QV100_build(self, circuit_size, num_qubits):
         """Measures an SDKs ability to build a 100Q
-        QV circit from scratch.
+        QV circuit from scratch.
         """
         return quantum_volume(circuit_size, num_qubits, seed=SEED)
 

@@ -2153,7 +2153,7 @@ class TestParameterExpressions(QiskitTestCase):
 
         t_param = Parameter("t")
 
-        # Create a quantum circuit with 2 paramterized gates.
+        # Create a quantum circuit with 2 parameterized gates.
         circuit = QuantumCircuit(5)
         circuit.append(PauliEvolutionGate(Pauli("XZXZX"), time=t_param), [0, 1, 2, 3, 4])
         circuit.append(PauliEvolutionGate(Pauli("IIIXX"), time=t_param / 2), [0, 1, 2, 3, 4])

@@ -1192,7 +1192,7 @@ Instructions:
         self.assertTrue(deserialized_target.instruction_supported("u_var", (0, 1)))
 
     def test_target_no_num_qubits_qubit_properties(self):
-        """Checks that a Target can be initialized with no qubits but a list of Qubit Properities"""
+        """Checks that a Target can be initialized with no qubits but a list of Qubit Properties"""
 
         # Initialize target qubit properties
         qubit_properties = [QubitProperties()]

@@ -394,7 +394,7 @@ class TestSingleton(QiskitTestCase):
         mutable = Discrete(3)
 
         with unittest.mock.patch.dict(sys.modules, {dummy_module.__name__: dummy_module}):
-            # The singletons in `additional_singletons` are statics; their lifetimes should be tied
+            # The singletons in `additional_singletons` are static; their lifetimes should be tied
             # to the type object itself, so if we don't delete it, it should be eligible to be
             # reloaded from and produce the exact instances.
             self.assertIs(default, pickle.loads(pickle.dumps(default)))

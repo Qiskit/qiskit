@@ -202,7 +202,7 @@ compilation can be repeated later.  There are limits on this:
 In general, a consumer of the :class:`.DAGCircuit` should be able to assume, after any combination
 of built-in, seeded if appropriate, Qiskit passes have run with fixed inputs, that the exact output
 of all :meth:`.DAGCircuit` methods is deterministic.  This includes the order of output even of
-methods that do not make any promise about the order; while the semantics and precide order cannot
+methods that do not make any promise about the order; while the semantics and precise order cannot
 be relied on, the determinism of it for fixed inputs can.
 
 Transpiler-pass authors should consult :ref:`transpiler-custom-passes-determinism` for a discussion

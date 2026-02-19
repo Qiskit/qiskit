@@ -238,7 +238,7 @@ class TestUnitarySynthesisBasisGates(QiskitTestCase):
 
     def test_two_qubit_natural_direction_true_gate_length_raises(self):
         """Verify that error is raised if preferred direction cannot be inferred
-        from gate lenghts/errors.
+        from gate lengths/errors.
         """
         qr = QuantumRegister(2)
         coupling_map = CouplingMap([[0, 1], [1, 0], [1, 2], [1, 3], [3, 4]])

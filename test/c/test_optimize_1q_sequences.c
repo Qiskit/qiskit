@@ -144,7 +144,7 @@ static int inner_optimize_h_gates(QkTarget *target, char **gates, uint32_t *freq
     }
 
     // Run transpiler pass
-    qk_transpiler_standalone_optimize_1q_sequences(circuit, target);
+    qk_transpiler_pass_standalone_optimize_1q_sequences(circuit, target);
     QkOpCounts counts = qk_circuit_count_ops(circuit);
     if (!compare_gate_counts(&counts, gates, freq, num_gates)) {
         result = EqualityError;
@@ -201,7 +201,7 @@ static int inner_optimize_identity_target(QkTarget *target) {
     qk_circuit_gate(circuit, QkGate_RY, qubits, params_neg);
 
     // Run transpiler pass
-    qk_transpiler_standalone_optimize_1q_sequences(circuit, target);
+    qk_transpiler_pass_standalone_optimize_1q_sequences(circuit, target);
     if (qk_circuit_num_instructions(circuit) != 0) {
         result = EqualityError;
     }
@@ -250,7 +250,7 @@ static int test_optimize_identity_no_target(void) {
     }
 
     // Run transpiler pass
-    qk_transpiler_standalone_optimize_1q_sequences(circuit, NULL);
+    qk_transpiler_pass_standalone_optimize_1q_sequences(circuit, NULL);
 
     if (qk_circuit_num_instructions(circuit) != 0) {
         result = EqualityError;
@@ -272,7 +272,7 @@ static int test_optimize_error_over_target_3(void) {
     qk_circuit_gate(circuit, QkGate_U, qubits, params);
     QkTarget *target = get_rz_ry_u_noerror_target();
     // Run transpiler pass
-    qk_transpiler_standalone_optimize_1q_sequences(circuit, target);
+    qk_transpiler_pass_standalone_optimize_1q_sequences(circuit, target);
     QkOpCounts counts = qk_circuit_count_ops(circuit);
     if (counts.len != 1) {
         result = EqualityError;

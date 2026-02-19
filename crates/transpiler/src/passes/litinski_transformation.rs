@@ -69,7 +69,7 @@ pub fn run_litinski_transformation(
             .collect();
 
         return Err(TranspilerError::new_err(format!(
-            "Unable to run Litinski tranformation as the circuit contains instructions not supported by the pass: {:?}",
+            "Unable to run Litinski transformation as the circuit contains instructions not supported by the pass: {:?}",
             unsupported
         )));
     }

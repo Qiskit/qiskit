@@ -141,6 +141,6 @@ def wrap_method(cls: Type, name: str, *, before: Callable = None, after: Callabl
     # The best time to apply decorators to methods is before they are bound (e.g. by using function
     # decorators during the class definition), but if we're making a class decorator, we can't do
     # that.  We need the actual definition of the method, so we have to dodge the normal output of
-    # `type.__getattribute__`, which evalutes descriptors if it finds them.
+    # `type.__getattribute__`, which evaluates descriptors if it finds them.
     method = inspect.getattr_static(cls, name)
     setattr(cls, name, _WrappedMethod(method, before, after))

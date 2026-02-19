@@ -734,7 +734,7 @@ class QASM3Builder:
         #   handling, so they get the lowest priority; they get defined as they are encountered.
         #
         # An alternative approach would be to defer naming decisions until we are outputting the
-        # AST, and using some UUID for each symbol we're going to define in the interrim.  This
+        # AST, and using some UUID for each symbol we're going to define in the interim.  This
         # would require relatively large changes to the symbol-table and AST handling, however.
 
         for builtin, gate in _BUILTIN_GATES.items():
@@ -752,7 +752,7 @@ class QASM3Builder:
             self.symbols.register_defcal(defcal)
         for builtin in self.basis_gates:
             if builtin in _BUILTIN_GATES:
-                # It's built into the langauge; we don't need to re-add it.
+                # It's built into the language; we don't need to re-add it.
                 continue
             try:
                 self.symbols.register_gate_without_definition(builtin, None)
