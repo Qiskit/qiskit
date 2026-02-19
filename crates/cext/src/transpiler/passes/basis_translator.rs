@@ -17,7 +17,7 @@ use qiskit_transpiler::passes::run_basis_translator;
 use qiskit_transpiler::standard_equivalence_library::generate_standard_equivalence_library;
 use qiskit_transpiler::target::Target;
 
-/// @ingroup QkTranspilerPasses
+/// @ingroup QkTranspilerPassesStandalone
 /// Run the BasisTranslator transpiler pass on a circuit.
 ///
 /// The BasisTranslator transpiler pass translates gates to a target basis by

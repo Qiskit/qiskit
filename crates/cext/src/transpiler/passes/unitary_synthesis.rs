@@ -20,7 +20,7 @@ use qiskit_transpiler::passes::{
 };
 use qiskit_transpiler::target::Target;
 
-/// @ingroup QkTranspilerPasses
+/// @ingroup QkTranspilerPassesStandalone
 /// Run the UnitarySynthesis transpiler pass.
 ///
 /// The UnitarySynthesis transpiler pass will synthesize any UnitaryGates in the circuit into gates
