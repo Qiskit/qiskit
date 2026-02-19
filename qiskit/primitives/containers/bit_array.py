@@ -87,7 +87,7 @@ class BitArray(ShapedMixin):
         """
         Args:
             array: The ``uint8`` data array.
-            num_bits: How many bit are in each outcome.
+            num_bits: How many bits are in each outcome.
 
         Raises:
             TypeError: If the input is not a NumPy array with type ``numpy.uint8``.
@@ -620,7 +620,7 @@ class BitArray(ShapedMixin):
 
         Args:
             observables: The observable(s) to take the expectation value of.
-                Must have a shape broadcastable with with this bit array and
+                Must have a shape broadcastable with this bit array and
                 the same number of qubits as the number of bits of this bit array.
                 The observables must be diagonal (I, Z, 0 or 1) too.
 
