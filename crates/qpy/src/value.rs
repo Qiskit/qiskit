@@ -87,12 +87,16 @@ pub enum BitType {
     Clbit = b'c',
 }
 
-impl From<u8> for BitType {
-    fn from(value: u8) -> Self {
+impl TryFrom<u8> for BitType {
+    type Error = QpyError;
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
-            b'q' => Self::Qubit,
-            b'c' => Self::Clbit,
-            _ => panic!("Invalid bit type specified {value}"),
+            b'q' => Ok(Self::Qubit),
+            b'c' => Ok(Self::Clbit),
+            _ => Err(QpyError::InvalidValueType {
+                expected: "b'q', b'c'".to_string(),
+                actual: "{value}".to_string(),
+            }),
         }
     }
 }
@@ -258,7 +262,7 @@ where
     T: BinRead<Args<'static> = ()> + Debug,
 {
     let mut cursor = Cursor::new(bytes);
-    let value = T::read_options(&mut cursor, Endian::Big, ()).unwrap();
+    let value = T::read_options(&mut cursor, Endian::Big, ())?;
     let bytes_read = cursor.position() as usize;
     Ok((value, bytes_read))
 }
@@ -268,7 +272,7 @@ where
     T: BinRead<Args<'a> = A> + ReadEndian + Debug,
 {
     let mut cursor = Cursor::new(bytes);
-    let value = T::read_args(&mut cursor, args).unwrap();
+    let value = T::read_args(&mut cursor, args)?;
     let bytes_read = cursor.position() as usize;
     Ok((value, bytes_read))
 }

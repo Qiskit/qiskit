@@ -135,16 +135,15 @@ impl From<QpyError> for PyErr {
             } => {
                 // Use the imported exception type from lib.rs
                 Python::attach(|py| {
-                    let qpy_exceptions = py
-                        .import("qiskit.qpy.exceptions")
-                        .expect("Failed to import qiskit.qpy.exceptions");
-                    let exc_type = qpy_exceptions
-                        .getattr("UnsupportedFeatureForVersion")
-                        .expect("Failed to get UnsupportedFeatureForVersion");
-                    let exc_instance = exc_type
-                        .call1((feature, min_version, version))
-                        .expect("Failed to create UnsupportedFeatureForVersion");
-                    PyErr::from_value(exc_instance)
+                    py.import("qiskit.qpy.exceptions")
+                        .and_then(|qpy_exceptions| {
+                            qpy_exceptions.getattr("UnsupportedFeatureForVersion")
+                        })
+                        .and_then(|exc_type| exc_type.call1((feature, min_version, version)))
+                        .map(PyErr::from_value)
+                        .unwrap_or_else(|_| {
+                            PyRuntimeError::new_err("Failed to get UnsupportedFeatureForVersion")
+                        })
                 })
             }
             QpyError::InvalidValueType { expected, actual } => PyValueError::new_err(format!(
