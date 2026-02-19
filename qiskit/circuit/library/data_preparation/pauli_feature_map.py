@@ -101,7 +101,8 @@ def pauli_feature_map(
 
     Args:
         feature_dimension: Number of qubits in the circuit.
-        reps: The number of repeated circuits.
+        reps: The number of times the evolution layers are 
+            repeated.
         entanglement: Specifies the entanglement structure. Can be a string (``'full'``,
             ``'linear'``, ``'reverse_linear'``, ``'circular'`` or ``'sca'``) or can be a
             dictionary where the keys represent the number of qubits and the values are list
