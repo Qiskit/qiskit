@@ -47,7 +47,8 @@ dynamic = ["version", "readme", "dependencies"]
 # They all involve actually installing `qiskit` as part of the same command.  Use these for sets of
 # _extra_ packages we expose to users.
 #
-# If modifying this table, sync with `qiskit.utils.optionals` and `requirements-optionals.txt`
+# If modifying this table, sync with `qiskit.utils.optionals` and the `optionals-all` dependency
+# group below.
 [project.optional-dependencies]
 qasm3-import = [
     "qiskit-qasm3-import >= 0.1.0",
