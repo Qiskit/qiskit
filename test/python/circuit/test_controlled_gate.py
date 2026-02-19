@@ -926,14 +926,21 @@ class TestControlledGate(QiskitTestCase):
                 [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
             ]
         )
+        # check decomposition of original matrix
         umat.append(UnitaryGate(base_mat), range(4))
+        test_u_op = Operator(umat)
+        isom = Isometry(base_mat, 0, 0).definition
+        self.assertTrue(matrix_equal(base_mat, test_u_op.data, atol=1e-8))
+        self.assertTrue(matrix_equal(base_mat, Operator(isom).data, atol=1e-8))
+
+        # check decomposition of controlled matrix
         cop_mat = _compute_control_matrix(base_mat, 1)
         ugate = umat.to_gate()
         cgate = ugate.control()
-        test_op = Operator(cgate)
-        isom = Isometry(cop_mat, 0, 0).definition
-        self.assertTrue(matrix_equal(cop_mat, test_op.data, atol=1e-8))
-        self.assertTrue(matrix_equal(cop_mat, Operator(isom).data, atol=1e-8))
+        test_ctrl_op = Operator(cgate)
+        isom_ctrl = Isometry(cop_mat, 0, 0).definition
+        self.assertTrue(matrix_equal(cop_mat, test_ctrl_op.data, atol=1e-8))
+        self.assertTrue(matrix_equal(cop_mat, Operator(isom_ctrl).data, atol=1e-8))
 
     @combine(num_ctrl_qubits=[1, 2, 3], ctrl_state=[0, None])
     def test_open_controlled_unitary_z(self, num_ctrl_qubits, ctrl_state):
