@@ -127,7 +127,7 @@ class U1Gate(Gate):
 
 
         Args:
-            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            num_ctrl_qubits: Number of controls to add. Defaults to ``1``.
             label: Optional gate label. Defaults to ``None``.
             ctrl_state: The control state of the gate, specified either as an integer or a bitstring
                 (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``
@@ -272,7 +272,7 @@ class CU1Gate(ControlledGate):
         the value of ``annotated``.
 
         Args:
-            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            num_ctrl_qubits: Number of controls to add. Defaults to ``1``.
             label: Optional gate label. Defaults to ``None``.
             ctrl_state: The control state of the gate, specified either as an integer or a bitstring
                 (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``
@@ -418,7 +418,7 @@ class MCU1Gate(ControlledGate):
         the value of ``annotated``.
 
         Args:
-            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            num_ctrl_qubits: Number of controls to add. Defaults to ``1``.
             label: Optional gate label. Defaults to ``None``.
             ctrl_state: The control state of the gate, specified either as an integer or a bitstring
                 (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``

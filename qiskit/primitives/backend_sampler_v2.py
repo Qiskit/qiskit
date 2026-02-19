@@ -292,7 +292,7 @@ def _analyze_circuit(circuit: QuantumCircuit) -> tuple[list[_MeasureInfo], int]:
 
 
 def _prepare_memory(results: list[Result]) -> list[ResultMemory]:
-    """Joins splitted results if exceeding max_experiments"""
+    """Joins split results if exceeding max_experiments"""
     lst = []
     for res in results:
         for exp in res.results:

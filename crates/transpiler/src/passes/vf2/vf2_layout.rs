@@ -136,7 +136,7 @@ impl Vf2PassConfiguration {
             }
             None => (None, None),
         };
-        // In the leagcy API, negative `max_trials` means unbounded (which we represent as 0) and
+        // In the legacy API, negative `max_trials` means unbounded (which we represent as 0) and
         // `None` means "choose some values based on the size of the graph structures".
         let max_trials = max_trials.map(|value| value.try_into().unwrap_or(0));
         let shuffle_seed = match shuffle_seed {

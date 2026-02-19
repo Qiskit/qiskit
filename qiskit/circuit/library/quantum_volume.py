@@ -160,7 +160,7 @@ def quantum_volume(
             is not specified it will default to ``num_qubits`` layers.
         seed: An optional RNG seed used for generating the random SU(4)
             matrices used in the output circuit. This can be either an
-            integer or a numpy generator. If an integer is specfied it must
+            integer or a numpy generator. If an integer is specified it must
             be an value between 0 and 2**64 - 1.
 
     Reference Circuit:

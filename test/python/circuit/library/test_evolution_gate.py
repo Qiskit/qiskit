@@ -602,7 +602,7 @@ class TestEvolutionGate(QiskitTestCase):
         """Test converting the parameters to sympy is real.
 
         Regression test of #13642, where the parameters in the Pauli evolution had a spurious
-        zero complex part. Even though this is not noticable upon binding or printing the parameter,
+        zero complex part. Even though this is not noticeable upon binding or printing the parameter,
         it does affect the output of Parameter.sympify.
         """
         time = Parameter("t")

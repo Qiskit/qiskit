@@ -130,7 +130,7 @@ class Gate(Instruction):
         is ``False``, and as :class:`.AnnotatedOperation` when ``annotated`` is ``True``.
 
         Args:
-            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            num_ctrl_qubits: Number of controls to add. Defaults to ``1``.
             label: Optional gate label. Defaults to ``None``.
                 Ignored if the controlled gate is implemented as an annotated operation.
             ctrl_state: The control state of the gate, specified either as an integer or a bitstring
@@ -142,8 +142,15 @@ class Gate(Instruction):
             A controlled version of this gate.
 
         Raises:
-            QiskitError: invalid ``ctrl_state``.
+            QiskitError: invalid ``num_ctrl_qubits`` or ``ctrl_state``.
         """
+        if num_ctrl_qubits < 0:
+            raise CircuitError("The number of control qubits must be non-negative.")
+
+        # In the special case that we have 0 control qubits, we return the copy of the gate itself.
+        if num_ctrl_qubits == 0:
+            return self.copy()
+
         if not annotated:  # captures both None and False
             # pylint: disable=cyclic-import
             from ._add_control import add_control

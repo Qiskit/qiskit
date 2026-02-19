@@ -129,7 +129,7 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
 
     @data(ALAPScheduleAnalysis, ASAPScheduleAnalysis)
     def test_empty_circuit(self, schedule_pass):
-        """An empty cirucit is trivially scheduled, so we should succeed without error."""
+        """An empty circuit is trivially scheduled, so we should succeed without error."""
         target = Target(num_qubits=4)
         target.add_instruction(
             CXGate(), {(i, i + 1): InstructionProperties(duration=1e-3) for i in range(3)}

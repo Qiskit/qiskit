@@ -46,6 +46,9 @@ class ControlModifier(Modifier):
     ctrl_state: int | str | None = None
 
     def __init__(self, num_ctrl_qubits: int = 0, ctrl_state: int | str | None = None):
+        if num_ctrl_qubits < 0:
+            raise CircuitError("The number of control qubits must be non-negative.")
+
         self.num_ctrl_qubits = num_ctrl_qubits
         self.ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
 
@@ -169,7 +172,7 @@ class AnnotatedOperation(Operation):
         ``annotated``.
 
         Args:
-            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            num_ctrl_qubits: Number of controls to add. Defaults to ``1``.
             label: Ignored.
             ctrl_state: The control state of the gate, specified either as an integer or a bitstring
                 (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``.

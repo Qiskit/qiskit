@@ -78,7 +78,6 @@ impl Default for TranspileOptions {
 ///
 /// @return A ``QkTranspileOptions`` object with default settings.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub extern "C" fn qk_transpiler_default_options() -> TranspileOptions {
     TranspileOptions::default()
 }
@@ -129,7 +128,6 @@ pub extern "C" fn qk_transpiler_default_options() -> TranspileOptions {
 /// pointer for ``layout`` will be overwritten by this function. If the value pointed to needs to
 /// be freed this must be done outside of this function as it will not be freed by this function.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_stage_init(
     dag: *mut DAGCircuit,
     target: *const Target,
@@ -261,7 +259,6 @@ pub unsafe extern "C" fn qk_transpile_stage_init(
 /// respectively. ``options`` must be a valid pointer a to a ``QkTranspileOptions`` or ``NULL``.
 /// ``error`` must be a valid pointer to a ``char`` pointer or ``NULL``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_stage_routing(
     dag: *mut DAGCircuit,
     target: *const Target,
@@ -378,7 +375,6 @@ pub unsafe extern "C" fn qk_transpile_stage_routing(
 /// be a valid pointer a to a ``QkTranspileOptions`` or ``NULL``. ``error`` must
 /// be a valid pointer to a ``char`` pointer or ``NULL``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_stage_optimization(
     dag: *mut DAGCircuit,
     target: *const Target,
@@ -485,7 +481,6 @@ pub unsafe extern "C" fn qk_transpile_stage_optimization(
 /// a ``QkTranspileOptions`` or ``NULL``. ``error`` must be a valid pointer to a ``char`` pointer
 /// or ``NULL``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_stage_translation(
     dag: *mut DAGCircuit,
     target: *const Target,
@@ -592,7 +587,6 @@ pub unsafe extern "C" fn qk_transpile_stage_translation(
 /// ``NULL`` pointer. ``options`` must be a valid pointer a to a ``QkTranspileOptions`` or ``NULL``.
 /// ``error`` must be a valid pointer to a ``char`` pointer or ``NULL``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_stage_layout(
     dag: *mut DAGCircuit,
     target: *const Target,
@@ -755,7 +749,6 @@ pub unsafe extern "C" fn qk_transpile_stage_layout(
 /// ``options`` must be a valid pointer a to a ``QkTranspileOptions`` or ``NULL``.
 /// ``error`` must be a valid pointer to a ``char`` pointer or ``NULL``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile(
     qc: *const CircuitData,
     target: *const Target,

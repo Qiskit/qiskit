@@ -19,7 +19,7 @@ use thiserror::Error;
 
 use crate::TranspilerError;
 
-/// A collection of the Errrors possible in the [run_basis_translator] function
+/// A collection of the Errors possible in the [run_basis_translator] function
 #[derive(Debug, Error)]
 pub enum BasisTranslatorError {
     #[error[

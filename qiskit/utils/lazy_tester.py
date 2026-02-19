@@ -42,7 +42,7 @@ class _RequireNow:
 
 
 class LazyDependencyManager(abc.ABC):
-    """A mananger for some optional features that are expensive to import, or to verify the
+    """A manager for some optional features that are expensive to import, or to verify the
     existence of.
 
     These objects can be used as Booleans, such as ``if x``, and will evaluate ``True`` if the

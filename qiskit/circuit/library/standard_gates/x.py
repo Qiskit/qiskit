@@ -111,7 +111,7 @@ class XGate(SingletonGate):
         is ignored.
 
         Args:
-            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            num_ctrl_qubits: Number of controls to add. Defaults to ``1``.
             label: Optional gate label. Defaults to ``None``.
             ctrl_state: The control state of the gate, specified either as an integer or a bitstring
                 (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``
@@ -248,7 +248,7 @@ class CXGate(SingletonControlledGate):
         The value of ``annotated`` is ignored.
 
         Args:
-            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            num_ctrl_qubits: Number of controls to add. Defaults to ``1``.
             label: Optional gate label. Defaults to ``None``.
             ctrl_state: The control state of the gate, specified either as an integer or a bitstring
                 (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``
@@ -406,7 +406,7 @@ class CCXGate(SingletonControlledGate):
         The value of `annotated` is ignored.
 
         Args:
-            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            num_ctrl_qubits: Number of controls to add. Defaults to ``1``.
             label: Optional gate label. Defaults to ``None``.
             ctrl_state: The control state of the gate, specified either as an integer or a bitstring
                 (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``
@@ -498,6 +498,20 @@ class RCCXGate(SingletonGate):
 
     def __eq__(self, other):
         return isinstance(other, RCCXGate)
+
+    def inverse(self, annotated: bool = False):
+        """Invert this gate. The RCCX gate is its own inverse.
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as this gate
+                is self-inverse.
+
+        Returns:
+            RCCXGate: inverse gate (self-inverse).
+        """
+        return RCCXGate()
 
 
 @with_controlled_gate_array(_SX_ARRAY, num_ctrl_qubits=3, cached_states=(7,))
@@ -605,7 +619,7 @@ class C3XGate(SingletonControlledGate):
         The value of ``annotated`` is ignored.
 
         Args:
-            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            num_ctrl_qubits: Number of controls to add. Defaults to ``1``.
             label: Optional gate label. Defaults to ``None``.
             ctrl_state: The control state of the gate, specified either as an integer or a bitstring
                 (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``
@@ -769,7 +783,7 @@ class C4XGate(SingletonControlledGate):
         The value of ``annotated`` is ignored.
 
         Args:
-            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            num_ctrl_qubits: Number of controls to add. Defaults to ``1``.
             label: Optional gate label. Defaults to ``None``.
             ctrl_state: The control state of the gate, specified either as an integer or a bitstring
                 (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``
@@ -950,7 +964,7 @@ class MCXGate(ControlledGate):
         The value of ``annotated`` is ignored.
 
         Args:
-            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            num_ctrl_qubits: Number of controls to add. Defaults to ``1``.
             label: Optional gate label. Defaults to ``None``.
             ctrl_state: The control state of the gate, specified either as an integer or a bitstring
                 (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``

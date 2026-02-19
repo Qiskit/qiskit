@@ -174,7 +174,7 @@ fn _update_phase_schedule(
 /// - Width of the circuit (int `n`)
 /// - A CZ circuit, represented by the `n*n` phase schedule phase_schedule
 /// - A CX circuit, represented by box-labels (seq) and whether the box is SWAP+ (swap_plus)
-///   - This circuit corresponds to the CX tranformation that tranforms a matrix to
+///   - This circuit corresponds to the CX transformation that transforms a matrix to
 ///     a NW matrix (c.f. Prop.7.4, [1])
 ///   - SWAP+ is defined in section 3.A. of [2].
 ///   - As previously noted, the northwest diagonalization procedure of [1] consists
