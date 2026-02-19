@@ -94,7 +94,7 @@ class TimeUnitConversion(TransformationPass):
                     # If any of the delays use a stretch expression, we can't run scheduling
                     # passes anyway, so we bail out. In theory, we _could_ still traverse
                     # through the stretch expression and replace any Duration value nodes it may
-                    # contain with ones of the same units, but it'd be complex and probably unuseful.
+                    # contain with ones of the same units, but it'd be complex and probably useless.
                     self.property_set["time_unit"] = "stretch"
                     return dag
 

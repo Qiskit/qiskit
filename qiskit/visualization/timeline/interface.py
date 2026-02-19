@@ -119,7 +119,7 @@ def draw(
         formatter.margin.top: Margin from the top boundary of the figure canvas to
             the zero line of the first time slot (default `0.5`).
         formatter.margin.bottom: Margin from the bottom boundary of the figure canvas to
-            the zero lien of the last time slot (default `0.5`).
+            the zero line of the last time slot (default `0.5`).
         formatter.margin.left_percent:  Margin from the left boundary of the figure canvas to
             the left limit of the horizontal axis. The value is in units of percentage of
             the whole program duration. If the duration is 100 and the value of 0.5 is set,

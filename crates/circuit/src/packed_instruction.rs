@@ -841,7 +841,7 @@ impl PackedInstruction {
         }
     }
 
-    /// Extract an `ndarray` matrix from this instruciton, if available.
+    /// Extract an `ndarray` matrix from this instruction, if available.
     ///
     /// The returned value will preferentially be a view, if the matrix already exists (e.g. for
     /// `Unitary`).

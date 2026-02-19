@@ -737,7 +737,7 @@ pub unsafe extern "C" fn qk_circuit_unitary(
     num_qubits: u32,
     check_input: bool,
 ) -> ExitCode {
-    // SAFETY: Caller quarantees pointer validation, alignment
+    // SAFETY: Caller guarantees pointer validation, alignment
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
     let mat = unsafe { unitary_from_pointer(matrix, num_qubits, check_input.then_some(1e-12)) };
     let Some(mat) = mat else {

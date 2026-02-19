@@ -837,7 +837,7 @@ class TranspileLayout:
         #
         #    qubit `permutation[i]` goes to new index `i`
         #
-        # or in alternative langauge,
+        # or in alternative language,
         #
         #   after the permutation, qubit `i` contains qubit `permutation[i]`.
         #

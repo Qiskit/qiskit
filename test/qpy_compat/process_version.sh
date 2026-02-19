@@ -37,7 +37,7 @@ fi
 
 # `package` is the name of the Python distribution to install (qiskit or qiskit-terra). `version` is
 # the source version: the release with which to generate qpy files with to load with the version
-# under test. 'python_version' is the (compatbile) python version with which to run qiskit within the docker image,
+# under test. 'python_version' is the (compatible) python version with which to run qiskit within the docker image,
 # in the case where docker is used.
 
 package="$1"

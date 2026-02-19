@@ -3990,7 +3990,7 @@ impl DAGCircuit {
     ///
     /// The descendants are the set of all nodes that can be reached from the target node. In
     /// comparison, :meth:`.DAGCircuit.successors` is an iterator over the immediate successors,
-    /// whereas this method contains all the successors' succesors.
+    /// whereas this method contains all the successors' successors.
     #[pyo3(name = "descendants")]
     fn py_descendants(&self, py: Python, node: &DAGNode) -> PyResult<Py<PySet>> {
         let descendants: PyResult<Vec<Py<PyAny>>> = self
@@ -5640,7 +5640,7 @@ impl DAGCircuit {
         Ok(())
     }
 
-    /// Remove the given clbits in the cirucit
+    /// Remove the given clbits in the circuit
     ///
     /// This will reorder all the bits in the circuit.
     pub fn remove_clbits<T: IntoIterator<Item = Clbit>>(&mut self, clbits: T) -> PyResult<()> {
@@ -8517,7 +8517,7 @@ impl DAGCircuitBuilder {
         self.push_back(instruction)
     }
 
-    /// Pushes a valid [PackedInstruction] to the back ot the circuit.
+    /// Pushes a valid [PackedInstruction] to the back of the circuit.
     pub fn push_back(&mut self, instr: PackedInstruction) -> PyResult<NodeIndex> {
         self.dag.track_instruction(&instr);
         let (all_cbits, vars) = self.dag.get_classical_resources(&instr)?;

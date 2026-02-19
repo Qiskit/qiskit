@@ -263,7 +263,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
     @phase.setter
     def phase(self, value):
-        # Convert group phase convetion to internal ZX-phase convention
+        # Convert group phase convention to internal ZX-phase convention
         self._phase[:] = np.mod(value + self._count_y(dtype=self._phase.dtype), 4)
 
     @property

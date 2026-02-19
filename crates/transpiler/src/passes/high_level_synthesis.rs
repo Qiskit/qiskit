@@ -1043,7 +1043,7 @@ pub fn run_high_level_synthesis(
     // done at the top-level since this does not track the qubit states.
 
     // First, we apply a super-fast (but incomplete) check to see if all the operations
-    // present in the circuit are suported by the target / are in the basis.
+    // present in the circuit are supported by the target / are in the basis.
     if all_instructions_supported(py, data, dag)? {
         return Ok(None);
     }

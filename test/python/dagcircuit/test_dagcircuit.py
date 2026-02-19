@@ -92,7 +92,7 @@ def raise_if_dagcircuit_invalid(dag):
         assert len(node.qargs) == node.op.num_qubits
         assert len(node.cargs) == node.op.num_clbits
 
-    # Every edge should be labled with a known wire.
+    # Every edge should be labeled with a known wire.
     edges_outside_wires = [edge_data for edge_data in dag._edges() if edge_data not in dag.wires]
     if edges_outside_wires:
         raise DAGCircuitError(
@@ -1674,7 +1674,7 @@ class TestCircuitControlFlowProperties(QiskitTestCase):
                 # This for loop contributes 3x to size and depth.
                 with qc.for_loop((4, 0, 1)):
                     qc.z(2)
-        # While loops contribute 1x to both size and depth, so thsi
+        # While loops contribute 1x to both size and depth, so this
         with qc.while_loop((qc.clbits[0], True)):
             qc.h(0)
             qc.measure(0, 0)
@@ -3200,7 +3200,7 @@ class TestSwapNodes(QiskitTestCase):
         self.assertEqual(dag, expected)
 
     def test_2q_swap_fully_connected(self):
-        """test swaping full connected 2q gates"""
+        """test swapping full connected 2q gates"""
         dag = DAGCircuit()
         qreg = QuantumRegister(2)
         dag.add_qreg(qreg)
