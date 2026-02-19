@@ -66,7 +66,7 @@ def random_density_matrix(
     method: Literal["Hilbert-Schmidt", "Bures"] = "Hilbert-Schmidt",
     seed: int | np.random.Generator | None = None,
 ) -> DensityMatrix:
-    """Generate a random DensityMatrix.
+    """Generate a random density matrix.
 
     Args:
         dims (int or tuple): the dimensions of the DensityMatrix.

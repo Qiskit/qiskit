@@ -854,7 +854,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         return super().commutes(other, qargs=qargs)
 
     def anticommutes(self, other: BasePauli, qargs: list | None = None) -> bool:
-        """Return ``True`` if other Pauli anticommutes with self.
+        """Return ``True`` if the other Pauli anticommutes with this one.
 
         Args:
             other (PauliList): another PauliList operator.
@@ -881,7 +881,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         return self._commutes_with_all(other)
 
     def anticommutes_with_all(self, other: PauliList) -> np.ndarray:
-        """Return indexes of rows that anti-commute with other.
+        """Return indexes of rows that anticommute with the other Pauli list.
 
         If ``other`` is a multi-row Pauli list the returned vector indexes rows
         of the current PauliList that anti-commute with *all* Paulis in other.

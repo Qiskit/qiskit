@@ -152,7 +152,7 @@ class GroupMixin(ABC):
         return self.compose(other, qargs=qargs, front=True)
 
     def power(self, n) -> Self:
-        """Return the compose of an operator with itself n times.
+        """Return the composition of an operator with itself n times.
 
         Args:
             n (int): the number of times to compose with self (n>0).
