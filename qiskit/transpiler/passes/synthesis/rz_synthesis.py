@@ -35,7 +35,7 @@ class RZSynthesis(TransformationPass):
         if ops.get("rz", 0) == 0:
             return dag
 
-        tol = max(1 - self.approximation_degree, 1e-12)
+        tol = max(1 - self.approximation_degree, 1e-10)
 
         new_dag = dag.copy_empty_like()
 

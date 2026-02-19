@@ -16,6 +16,7 @@ import os
 
 from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayout
 from qiskit.transpiler.passes.optimization.split_2q_unitaries import Split2QUnitaries
+from qiskit.transpiler.passes.synthesis.high_level_synthesis import HighLevelSynthesis
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import ApplyLayout
@@ -82,10 +83,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
     """Plugin class for default init stage."""
 
     def pass_manager(self, pass_manager_config, optimization_level=None):
-        if pass_manager_config._is_clifford_t:
-            optimization_metric = OptimizationMetric.COUNT_T
-        else:
-            optimization_metric = OptimizationMetric.COUNT_2Q
+        optimization_metric = OptimizationMetric.COUNT_2Q
 
         if optimization_level == 0:
             init = None
@@ -160,11 +158,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                 ]
             )
             init.append(CommutativeCancellation())
-
-            # We do not want to consolidate blocks for a Clifford+T basis set,
-            # since this involves resynthesizing 2-qubit unitaries.
-            if not pass_manager_config._is_clifford_t:
-                init.append(ConsolidateBlocks())
+            init.append(ConsolidateBlocks())
 
             # If approximation degree is None that indicates a request to approximate up to the
             # error rates in the target. However, in the init stage we don't yet know the target
@@ -202,14 +196,10 @@ class BasisTranslatorPassManager(PassManagerStagePlugin):
     """Plugin class for translation stage with :class:`~.BasisTranslator`"""
 
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
-        if pass_manager_config._is_clifford_t:
-            method = "clifford_rz_translator"
-        else:
-            method = "translator"
         return common.generate_translation_passmanager(
             pass_manager_config.target,
             basis_gates=pass_manager_config.basis_gates,
-            method=method,
+            method="translator",
             approximation_degree=pass_manager_config.approximation_degree,
             coupling_map=pass_manager_config.coupling_map,
             unitary_synthesis_method=pass_manager_config.unitary_synthesis_method,
@@ -498,11 +488,6 @@ class OptimizationPassManager(PassManagerStagePlugin):
         """Build pass manager for optimization stage."""
 
         # Use the dedicated plugin for the Clifford+T basis when appropriate.
-        if pass_manager_config._is_clifford_t:
-            return CliffordRZOptimizationPassManager().pass_manager(
-                pass_manager_config, optimization_level
-            )
-
         match optimization_level:
             case 0:
                 return None
@@ -971,11 +956,153 @@ def _get_trial_count(default_trials=5):
     return default_trials
 
 
-class CliffordRZOptimizationPassManager(PassManagerStagePlugin):
-    """Plugin class for optimization stage
+class CliffordTInitPassManager(PassManagerStagePlugin):
+    """
+    Clifford+T transpilation stage, which decomposes larger gates into 1-qubit
+    and 2-qubits gates and performs logical optimizations.
+    """
 
-    THIS IS NOW FOR THE RZ-TRANSLATION STAGE!!!
+    # Notes:
+    # In theory, we could leave larger-qubit Clifford gates in-place, provided we do not have
+    # the layout + routing stages, and the rest of the passes know how to handle larger-qubit
+    # Clifford gates.
+    def pass_manager(self, pass_manager_config, optimization_level=None):
+        optimization_metric = OptimizationMetric.COUNT_T
 
+        if optimization_level == 0:
+            init = None
+            if (
+                pass_manager_config.initial_layout
+                or pass_manager_config.coupling_map
+                or (
+                    pass_manager_config.target is not None
+                    and pass_manager_config.target.build_coupling_map() is not None
+                )
+            ):
+                init = common.generate_unroll_3q(
+                    pass_manager_config.target,
+                    pass_manager_config.basis_gates,
+                    pass_manager_config.approximation_degree,
+                    pass_manager_config.unitary_synthesis_method,
+                    pass_manager_config.unitary_synthesis_plugin_config,
+                    pass_manager_config.hls_config,
+                    pass_manager_config.qubits_initially_zero,
+                    optimization_metric,
+                )
+        elif optimization_level == 1:
+            init = PassManager()
+            if (
+                pass_manager_config.initial_layout
+                or pass_manager_config.coupling_map
+                or (
+                    pass_manager_config.target is not None
+                    and pass_manager_config.target.build_coupling_map() is not None
+                )
+            ):
+                init += common.generate_unroll_3q(
+                    pass_manager_config.target,
+                    pass_manager_config.basis_gates,
+                    pass_manager_config.approximation_degree,
+                    pass_manager_config.unitary_synthesis_method,
+                    pass_manager_config.unitary_synthesis_plugin_config,
+                    pass_manager_config.hls_config,
+                    pass_manager_config.qubits_initially_zero,
+                    optimization_metric,
+                )
+            init.append(
+                [
+                    InverseCancellation(),
+                    ContractIdleWiresInControlFlow(),
+                ]
+            )
+
+        elif optimization_level in {2, 3}:
+            init = common.generate_unroll_3q(
+                pass_manager_config.target,
+                pass_manager_config.basis_gates,
+                pass_manager_config.approximation_degree,
+                pass_manager_config.unitary_synthesis_method,
+                pass_manager_config.unitary_synthesis_plugin_config,
+                pass_manager_config.hls_config,
+                pass_manager_config.qubits_initially_zero,
+                optimization_metric,
+            )
+            if pass_manager_config.routing_method != "none":
+                init.append(ElidePermutations())
+            init.append(
+                [
+                    RemoveDiagonalGatesBeforeMeasure(),
+                    # Target not set on RemoveIdentityEquivalent because we haven't applied a Layout
+                    # yet so doing anything relative to an error rate in the target is not valid.
+                    RemoveIdentityEquivalent(
+                        approximation_degree=pass_manager_config.approximation_degree
+                    ),
+                    InverseCancellation(),
+                    ContractIdleWiresInControlFlow(),
+                ]
+            )
+            init.append(CommutativeCancellation())
+
+            # We do not want to consolidate blocks for a Clifford+T basis set,
+            # since this involves resynthesizing 2-qubit unitaries.
+
+            # If approximation degree is None that indicates a request to approximate up to the
+            # error rates in the target. However, in the init stage we don't yet know the target
+            # qubits being used to figure out the fidelity so just use the default fidelity parameter
+            # in this case.
+            split_2q_unitaries_swap = False
+            if pass_manager_config.routing_method != "none":
+                split_2q_unitaries_swap = True
+            if pass_manager_config.approximation_degree is not None:
+                init.append(
+                    Split2QUnitaries(
+                        pass_manager_config.approximation_degree, split_swap=split_2q_unitaries_swap
+                    )
+                )
+            else:
+                init.append(Split2QUnitaries(split_swap=split_2q_unitaries_swap))
+        else:
+            raise TranspilerError(f"Invalid optimization level {optimization_level}")
+        return init
+
+
+class TranslateToCliffordRZPassManager(PassManagerStagePlugin):
+    """
+    Clifford+T transpilation stage, which translates circuits into Clifford+RZ+T basis set.
+    """
+
+    def pass_manager(self, pass_manager_config, optimization_level=None):
+        clifford_rz_gates = get_clifford_gate_names() + ["t", "tdg", "rz"]
+        translate = PassManager(
+            [
+                UnitarySynthesis(
+                    clifford_rz_gates,
+                    approximation_degree=pass_manager_config.approximation_degree,
+                    coupling_map=pass_manager_config.coupling_map,
+                    plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
+                    method=pass_manager_config.unitary_synthesis_method,
+                    target=None,
+                ),
+                HighLevelSynthesis(
+                    hls_config=pass_manager_config.hls_config,
+                    coupling_map=pass_manager_config.coupling_map,
+                    target=None,
+                    use_qubit_indices=True,
+                    equivalence_library=sel,
+                    basis_gates=clifford_rz_gates,
+                    qubits_initially_zero=pass_manager_config.qubits_initially_zero,
+                    optimization_metric=OptimizationMetric.COUNT_T,
+                ),
+                # Check: HLS does not translate gates in the equivalence library, so we need BT for this.
+                BasisTranslator(sel, clifford_rz_gates, None),
+            ]
+        )
+        return translate
+
+
+class OptimizeCliffordRZPassManager(PassManagerStagePlugin):
+    """
+    Clifford+T transpilation stage, which optimizes Clifford+RZ+T circuits.
     """
 
     def pass_manager(self, pass_manager_config, optimization_level=None):
@@ -1041,8 +1168,11 @@ class CliffordRZOptimizationPassManager(PassManagerStagePlugin):
         return optimization
 
 
-class CliffordTTranslationPassManager(PassManagerStagePlugin):
-    """Plugin for translation stage from Clifford+RZ to Clifford+T."""
+class TranslateToCliffordTPassManager(PassManagerStagePlugin):
+    """
+    Clifford+T transpilation stage, which translates Clifford+RZ+T circuits
+    into Clifford+T circuits.
+    """
 
     def pass_manager(self, pass_manager_config, optimization_level=None):
         basis_gates = pass_manager_config.basis_gates
@@ -1058,8 +1188,10 @@ class CliffordTTranslationPassManager(PassManagerStagePlugin):
         return rz_to_t_translation
 
 
-class CliffordTOptimizationPassManager(PassManagerStagePlugin):
-    """Plugin for Clifford+T optimization stage."""
+class OptimizeCliffordTPassManager(PassManagerStagePlugin):
+    """
+    Clifford+T transpilation stage, which optimizes Clifford+T circuits.
+    """
 
     def pass_manager(self, pass_manager_config, optimization_level=None):
         basis_gates = pass_manager_config.basis_gates

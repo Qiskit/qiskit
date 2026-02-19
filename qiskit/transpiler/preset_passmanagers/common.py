@@ -53,10 +53,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.optimization_metric import OptimizationMetric
 from qiskit.utils import deprecate_func
-from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
-    _CLIFFORD_GATE_NAMES,
-    get_clifford_gate_names,
-)
+from qiskit.quantum_info.operators.symplectic.clifford_circuits import _CLIFFORD_GATE_NAMES
 
 
 _ControlFlowState = collections.namedtuple("_ControlFlowState", ("working", "not_working"))
@@ -495,33 +492,6 @@ def generate_translation_passmanager(
             translator,
         ]
         fix_1q = [translator]
-    elif method == "clifford_rz_translator":
-        clifford_rz_gates = get_clifford_gate_names() + ["t", "tdg", "rz"]
-        unroll = [
-            # Use unitary synthesis for basis aware decomposition of
-            # UnitaryGates before custom unrolling
-            UnitarySynthesis(
-                clifford_rz_gates,
-                approximation_degree=approximation_degree,
-                coupling_map=coupling_map,
-                plugin_config=unitary_synthesis_plugin_config,
-                method=unitary_synthesis_method,
-                target=None,
-            ),
-            HighLevelSynthesis(
-                hls_config=hls_config,
-                coupling_map=coupling_map,
-                target=None,
-                use_qubit_indices=True,
-                equivalence_library=sel,
-                basis_gates=clifford_rz_gates,
-                qubits_initially_zero=qubits_initially_zero,
-                optimization_metric=OptimizationMetric.COUNT_T,
-            ),
-            # Check: HLS does not translate gates in the equivalence library, so we need BT for this.
-            BasisTranslator(sel, clifford_rz_gates, None),
-        ]
-        fix_1q = []
     elif method == "synthesis":
         unroll = [
             # # Use unitary synthesis for basis aware decomposition of
@@ -584,26 +554,25 @@ def generate_translation_passmanager(
     else:
         raise TranspilerError(f"Invalid translation method {method}.")
 
-    if method != "clifford_rz_translator":
-        # Our built-ins don't 100% guarantee that 2q gate direction is respected, so we might need to
-        # run a little bit of fix up on them.  `GateDirection` doesn't guarantee that 1q gates are
-        # ISA safe after it runs, so we need another run too.
-        if (coupling_map and not coupling_map.is_symmetric) or (
-            target is not None and target.get_non_global_operation_names(strict_direction=True)
-        ):
-            unroll.append(CheckGateDirection(coupling_map, target=target))
+    # Our built-ins don't 100% guarantee that 2q gate direction is respected, so we might need to
+    # run a little bit of fix up on them.  `GateDirection` doesn't guarantee that 1q gates are
+    # ISA safe after it runs, so we need another run too.
+    if (coupling_map and not coupling_map.is_symmetric) or (
+        target is not None and target.get_non_global_operation_names(strict_direction=True)
+    ):
+        unroll.append(CheckGateDirection(coupling_map, target=target))
 
-            def _direction_condition(property_set):
-                return not property_set["is_direction_mapped"]
+        def _direction_condition(property_set):
+            return not property_set["is_direction_mapped"]
 
-            unroll.append(
-                ConditionalController(
-                    [GateDirection(coupling_map, target=target)] + fix_1q,
-                    condition=_direction_condition,
-                )
+        unroll.append(
+            ConditionalController(
+                [GateDirection(coupling_map, target=target)] + fix_1q,
+                condition=_direction_condition,
             )
-        if target is not None and target.has_angle_bounds():
-            unroll.append(WrapAngles(target))
+        )
+    if target is not None and target.has_angle_bounds():
+        unroll.append(WrapAngles(target))
 
     return PassManager(unroll)
 
