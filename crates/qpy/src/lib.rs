@@ -10,6 +10,11 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+// QPY involves deserializing untrusted user input, which means it's almost _never_ safe to make
+// assertions about it.  Better just to completely deny use of these panicking methods.  This is
+// done here rather than in `Cargo.toml` so we don't override the workspace inheritance of lints.
+#![deny(clippy::unwrap_used, clippy::expect_used)]
+
 use pyo3::prelude::*;
 use pyo3::types::PyModule;
 use pyo3::{Bound, PyResult, wrap_pyfunction};
