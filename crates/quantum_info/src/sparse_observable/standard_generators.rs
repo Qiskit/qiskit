@@ -262,16 +262,6 @@ pub fn generator_observable(
             }
         }
         // CCX = Z0Z1X2 - Z0X2 - Z1X2 + X2
-        StandardGate::CCX => (
-            vec![
-                Complex64::new(1.0, 0.0),
-                Complex64::new(-1.0, 0.0),
-                Complex64::new(-1.0, 0.0),
-                Complex64::new(1.0, 0.0),
-            ],
-            vec![Z, Z, X, Z, X, Z, X, X],
-            vec![0, 1, 2, 0, 2, 1, 2, 2],
-            vec![0, 3, 5, 7, 8],
         ),
         // CSwap = Z0 - Z0X1X2 - Z0Y1Y2 - Z0Z1Z2 + X1X2 + Y1Y2 + Z1Z2
         StandardGate::CSwap => (
