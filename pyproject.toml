@@ -215,9 +215,43 @@ doc = [
     "sphinxcontrib-katex==0.9.9",
     "breathe>=4.35.0",
 ]
+
+
+# These `optionals-*` groups declared all of the optional dependency of Qiskit that can (mostly)
+# reliably be installed by `pip`.  If you are familiar with the old Qiskit repository setup, the
+# complete `optionals-all` corresponds to `requirements-optional.txt`.  If updating this, you
+# probably need to update `qiskit.utils.optionals` as well.
+optionals-test = [
+    "fixtures",
+    "testtools",
+]
+optionals-interactive = [
+    "ipython",
+    "matplotlib>=3.3",
+    "pillow>=4.2.1",
+    "pydot",
+    "pylatexenc>=1.4",
+    "seaborn>=0.9.0",
+]
+optionals-functional = [
+    "qiskit-aer",
+    "qiskit-qasm3-import>=0.5.0",
+    "python-constraint>=1.4",
+    "cvxpy",
+    "scikit-learn>=0.20.0",
+    "z3-solver>=4.7",
+    "sympy>=1.3",
+]
+optionals-all = [
+    {include-group = "optionals-test"},
+    {include-group = "optionals-interactive"},
+    {include-group = "optionals-functional"},
+]
+
 # The complete development environment.  This doesn't _need_ to work on all Python versions (in
 # particular, we don't always expect `doc` to run on the oldest supported Pythons).  People working
-# with older Pythons can install subgroups themselves.
+# with older Pythons can install subgroups themselves.  This doesn't include `all-optionals` because
+# that's typically way heavier than needed for a development environment.
 #
 # If you are familiar with the old Qiskit development structure, `pip install --group dev` replaces
 # the old `pip install -r requirements-dev.txt`.

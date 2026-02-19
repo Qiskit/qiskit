@@ -36,7 +36,7 @@ jobs:
           pip install -U \
             -c constraints.txt \
             --group test \
-            -r requirements-optional.txt \
+            --group optionals-all \
             -e .
           sudo apt-get update
           sudo apt-get install -y graphviz pandoc

@@ -20,7 +20,7 @@ jobs:
           python -m pip install -U \
             -c constraints.txt \
             --group test \
-            -r requirements-optional.txt \
+            --group optionals-all \
             -e .
         env:
           QISKIT_BUILD_PROFILE: release

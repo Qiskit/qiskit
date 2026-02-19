@@ -59,7 +59,7 @@ jobs:
         run: |
           set -e
           source test-job/bin/activate
-          pip install -r requirements-optional.txt -c constraints.txt
+          pip install --group optionals-all -c constraints.txt
           pip check
         if: ${{ inputs.install-optionals }}
       - name: "Run tests"
