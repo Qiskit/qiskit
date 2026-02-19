@@ -101,8 +101,7 @@ def pauli_feature_map(
 
     Args:
         feature_dimension: Number of qubits in the circuit.
-        reps: The number of times the evolution layers are 
-            repeated.
+        reps: The number of times the evolution layers are repeated.
         entanglement: Specifies the entanglement structure. Can be a string (``'full'``,
             ``'linear'``, ``'reverse_linear'``, ``'circular'`` or ``'sca'``) or can be a
             dictionary where the keys represent the number of qubits and the values are list
@@ -114,9 +113,9 @@ def pauli_feature_map(
         paulis: A list of strings for to-be-used paulis. If None are provided, ``['Z', 'ZZ']``
             will be used.
         data_map_func: A mapping function for data x which can be supplied to override the
-            default mapping from :func:`self_product`.
+            default mapping.
         parameter_prefix: The prefix used if default parameters are generated.
-        insert_barriers: If True, barriers are inserted in between the evolution instructions
+        insert_barriers: If ``True``, barriers are inserted in between the evolution instructions
             and Hadamard layers.
         name: The name of the circuit.
 
@@ -223,15 +222,15 @@ def z_feature_map(
 
     Args:
         feature_dimension: Number of qubits in the circuit.
-        reps: The number of repeated circuits.
+        reps: The number of times the evolution layers are repeated.
         entanglement: Specifies the entanglement structure. Can be a string (``'full'``,
             ``'linear'``, ``'reverse_linear'``, ``'circular'`` or ``'sca'``), a list of
             integer-tuples, or a callable returning these types for each repetition.
         alpha: The Pauli rotation factor, multiplicative to the pauli rotations.
         data_map_func: A mapping function for data x which can be supplied to override the
-            default mapping from :func:`self_product`.
+            default mapping.
         parameter_prefix: The prefix used if default parameters are generated.
-        insert_barriers: If True, barriers are inserted in between the evolution instructions
+        insert_barriers: If ``True``, barriers are inserted in between the evolution instructions
             and Hadamard layers.
         name: The name of the circuit.
 
@@ -315,13 +314,14 @@ def zz_feature_map(
         ┤ H ├┤ P(2.0*φ(x[2])) ├─────────────────────────────────┤ X ├┤ P(2.0*φ(x[1],x[2])) ├┤ X ├
         └───┘└────────────────┘                                 └───┘└─────────────────────┘└───┘
 
-    where :math:`\varphi` is a classical non-linear function, which defaults to
+    Here, :math:`S` is a set of qubit indices describing the connections in the feature map,
+    and :math:`\varphi` is a classical non-linear function, which defaults to
     :math:`\varphi(x) = x` if :math:`|S| = 1` and
     :math:`\varphi(x,y) = (\pi - x)(\pi - y)` if :math:`|S| > 1`.
 
     Args:
         feature_dimension: Number of qubits in the circuit.
-        reps: The number of repeated circuits.
+        reps: The number of times the evolution layers are repeated.
         entanglement: Specifies the entanglement structure. Can be a string (``'full'``,
             ``'linear'``, ``'reverse_linear'``, ``'circular'`` or ``'sca'``), a list of
             integer-tuples, or a callable returning these types for each repetition.
@@ -495,7 +495,7 @@ class PauliFeatureMap(NLocal):
         """
         Args:
             feature_dimension: Number of qubits in the circuit.
-            reps: The number of repeated circuits.
+            reps: The number of times the evolution layers are repeated.
             entanglement: Specifies the entanglement structure. Can be a string (``'full'``,
                 ``'linear'``, ``'reverse_linear'``, ``'circular'`` or ``'sca'``) or can be a
                 dictionary where the keys represent the number of qubits and the values are list
@@ -507,9 +507,9 @@ class PauliFeatureMap(NLocal):
             paulis: A list of strings for to-be-used paulis. If None are provided, ``['Z', 'ZZ']``
                 will be used.
             data_map_func: A mapping function for data x which can be supplied to override the
-                default mapping from :meth:`self_product`.
+                default mapping.
             parameter_prefix: The prefix used if default parameters are generated.
-            insert_barriers: If True, barriers are inserted in between the evolution instructions
+            insert_barriers: If ``True``, barriers are inserted in between the evolution instructions
                 and Hadamard layers.
 
         """

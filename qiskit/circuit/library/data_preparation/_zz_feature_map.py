@@ -33,7 +33,8 @@ class ZZFeatureMap(PauliFeatureMap):
         ┤ H ├┤ P(2.0*φ(x[2])) ├─────────────────────────────────┤ X ├┤ P(2.0*φ(x[1],x[2])) ├┤ X ├
         └───┘└────────────────┘                                 └───┘└─────────────────────┘└───┘
 
-    where :math:`\varphi` is a classical non-linear function, which defaults to
+    Here, :math:`S` is a set of qubit indices describing the connections in the feature map,
+    and :math:`\varphi` is a classical non-linear function, which defaults to
     :math:`\varphi(x) = x` if :math:`|S| = 1` and
     :math:`\varphi(x,y) = (\pi - x)(\pi - y)` if :math:`|S| > 1`.
 
@@ -126,7 +127,7 @@ class ZZFeatureMap(PauliFeatureMap):
                 :class:`~qiskit.circuit.library.PauliFeatureMap` for detail.
             data_map_func: A mapping function for data x.
             parameter_prefix: The prefix used if default parameters are generated.
-            insert_barriers: If True, barriers are inserted in between the evolution instructions
+            insert_barriers: If ``True``, barriers are inserted in between the evolution instructions
                 and hadamard layers.
 
         Raises:
