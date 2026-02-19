@@ -9,8 +9,8 @@
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
-use crate::QpyError;
 use crate::bytes::Bytes;
+use crate::error::QpyError;
 use hashbrown::HashMap;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyIterator, PyNotImplemented};

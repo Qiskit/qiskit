@@ -34,9 +34,9 @@ use qiskit_circuit::parameter::parameter_expression::{
 use qiskit_quantum_info::sparse_observable::PySparseObservable;
 use uuid::Uuid;
 
-use crate::QpyError;
 use crate::bytes::Bytes;
 use crate::circuit_writer::standard_instruction_class_name;
+use crate::error::QpyError;
 use crate::formats;
 use crate::value::{
     GenericValue, ModifierType, ParamRegisterValue, QPYWriteData, ValueType,

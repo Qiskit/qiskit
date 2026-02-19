@@ -40,9 +40,9 @@ use qiskit_circuit::operations::{
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 
-use crate::QpyError;
 use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
+use crate::error::QpyError;
 use crate::formats::{self, ConditionPack};
 use crate::params::pack_param_obj;
 use crate::py_methods::{

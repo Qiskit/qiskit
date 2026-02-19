@@ -11,13 +11,13 @@
 // that they have been altered from the originals.
 
 use crate::bytes::Bytes;
+use crate::error::{QpyError, to_binrw_error};
 use crate::expr::{read_expression, write_expression};
 use crate::params::ParameterType;
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionType, ExpressionVarDeclaration, ModifierType,
     QPYReadData, QPYWriteData, RegisterType, ValueType,
 };
-use crate::{QpyError, to_binrw_error};
 use binrw::{BinRead, BinResult, BinWrite, Endian, binread, binrw, binwrite};
 use qiskit_circuit::classical::expr::Expr;
 use std::io::{Read, Seek, Write};

@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 // methods for serialization/deserialization of Expression
+use crate::error::{QpyError, to_binrw_error};
 use crate::formats::{
     ExpressionElementPack, ExpressionTypePack, ExpressionValueElementPack,
     ExpressionVarElementPack, ExpressionVarRegisterPack,
@@ -18,7 +19,6 @@ use crate::formats::{
 use crate::value::{
     QPYReadData, QPYWriteData, pack_biguint, pack_duration, unpack_biguint, unpack_duration,
 };
-use crate::{QpyError, to_binrw_error};
 use binrw::{BinRead, BinResult, BinWrite, Endian, Error};
 use num_bigint::BigUint;
 use qiskit_circuit::Clbit;
@@ -115,7 +115,7 @@ pub(crate) fn pack_expression_var(
                     .clbits()
                     .find(bit)
                     .ok_or_else(|| {
-                        QpyError::InvalidBit("Could not find bit {bit} in circuit".to_string())
+                        QpyError::InvalidBit(format!("Could not find bit {:?} in circuit", bit))
                     })?
                     .0,
             ),

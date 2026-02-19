@@ -20,8 +20,8 @@ use qiskit_circuit::parameter::symbol_expr::Symbol;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::QpyError;
 use crate::bytes::Bytes;
+use crate::error::QpyError;
 use crate::formats;
 use crate::py_methods::{py_convert_from_generic_value, py_pack_param};
 use crate::value::{

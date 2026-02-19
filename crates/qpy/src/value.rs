@@ -31,13 +31,13 @@ use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::parameter::symbol_expr::Symbol;
 use qiskit_circuit::{Clbit, imports};
 
-use crate::QpyError;
 use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
 use crate::circuit_reader::unpack_circuit;
 use crate::circuit_writer::pack_circuit;
+use crate::error::QpyError;
+use crate::error::from_binrw_error;
 use crate::formats::{self, BigIntPack, DurationPack, GenericDataPack, GenericDataSequencePack};
-use crate::from_binrw_error;
 use crate::params::{
     pack_parameter_expression, pack_parameter_vector, pack_symbol, unpack_parameter_expression,
     unpack_parameter_vector, unpack_symbol,

@@ -31,18 +31,6 @@ mod params;
 mod py_methods;
 mod value;
 
-// Re-export the error types for use throughout the module
-pub use error::{QpyError, from_binrw_error, to_binrw_error};
-
-mod py_exceptions {
-    use pyo3::import_exception;
-    import_exception!(qiskit.qpy.exceptions, UnsupportedFeatureForVersion);
-    import_exception!(qiskit.qpy.exceptions, QpyError);
-}
-
-use py_exceptions::QpyError as PyQpyError;
-use py_exceptions::UnsupportedFeatureForVersion as PyUnsupportedFeatureForVersion;
-
 /// Internal module supplying the QPY capabilities.  The entries in it should largely
 /// be re-exposed directly to public Python space.
 pub fn qpy(module: &Bound<PyModule>) -> PyResult<()> {

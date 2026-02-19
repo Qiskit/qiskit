@@ -55,10 +55,10 @@ use std::sync::Arc;
 
 use smallvec::SmallVec;
 
-use crate::QpyError;
 use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
 use crate::consts::standard_gate_from_gate_class_name;
+use crate::error::QpyError;
 use crate::formats;
 use crate::formats::ConditionData;
 use crate::formats::QPYCircuitV17;

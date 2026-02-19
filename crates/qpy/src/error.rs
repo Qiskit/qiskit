@@ -10,9 +10,17 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::{PyQpyError, PyUnsupportedFeatureForVersion};
 use pyo3::PyErr;
 use thiserror::Error;
+
+mod py_exceptions {
+    use pyo3::import_exception;
+    import_exception!(qiskit.qpy.exceptions, UnsupportedFeatureForVersion);
+    import_exception!(qiskit.qpy.exceptions, QpyError);
+}
+
+use py_exceptions::QpyError as PyQpyError;
+use py_exceptions::UnsupportedFeatureForVersion as PyUnsupportedFeatureForVersion;
 
 /// Errors that can occur during QPY serialization and deserialization operations.
 ///

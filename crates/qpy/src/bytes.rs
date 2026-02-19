@@ -12,7 +12,7 @@
 
 use binrw::{BinRead, BinResult, BinWrite, Endian, VecArgs};
 
-use crate::QpyError;
+use crate::error::QpyError;
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyBytes};
 
@@ -82,7 +82,7 @@ impl TryFrom<&Bytes> for f64 {
                 let byte_array: [u8; 8] = data
                     .as_slice()
                     .try_into()
-                    .map_err(|_| QpyError::ConversionError("Expected exactly 16 bytes".to_string()))?;
+                    .map_err(|_| QpyError::ConversionError("Expected exactly 8 bytes".to_string()))?;
                 Ok(f64::from_be_bytes(byte_array))
             }
             16 if data[..8].iter().all(|&byte| byte == 0) => {
