@@ -50,7 +50,7 @@ class BaseEstimatorV2(ABC):
         or tuple of two to four elements that define the unit of work for the
         estimator. These are:
 
-        * A single :class:`~qiskit.circuit.QuantumCircuit`, possibly parametrized,
+        * A single :class:`~qiskit.circuit.QuantumCircuit`, possibly parameterized,
             whose final state we define as :math:`\psi(\theta)`.
 
         * One or more observables (specified as any :class:`~.ObservablesArrayLike`, including
@@ -61,8 +61,13 @@ class BaseEstimatorV2(ABC):
 
         * Optionally, the estimation precision.
 
+<<<<<<< HEAD
      * precision: the estimation precision. This specification is optional and will be overriden by
         the pub-wise shots if provided.
+=======
+     * precision: the estimation precision. This specification is optional and will be overridden by
+        the pub-wise precision if provided.
+>>>>>>> efb767a90 (Fix typos in qiskit.primitives (#15697))
 
     All estimator implementations must implement default value for the ``precision`` in the
     :meth:`.run` method. This default value will be used any time ``precision=None`` is specified, which
@@ -118,7 +123,7 @@ class BaseEstimatorV1(BasePrimitiveV1, Generic[T]):
       (list of list of float).
 
     The method returns a :class:`~qiskit.providers.JobV1` object. Calling
-    :meth:`qiskit.providers.JobV1.result()` yields the
+    :meth:`qiskit.providers.JobV1.result()` yields
     a list of expectation values plus optional metadata like confidence intervals for
     the estimation.
 

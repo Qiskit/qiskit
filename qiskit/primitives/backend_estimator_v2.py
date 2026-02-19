@@ -86,7 +86,7 @@ def _prepare_counts(results: list[Result]):
 
 def _pauli_expval_with_variance(counts: Counts, paulis: PauliList) -> tuple[np.ndarray, np.ndarray]:
     """Return array of expval and variance pairs for input Paulis.
-    Note: All non-identity Pauli's are treated as Z-paulis, assuming
+    Note: All non-identity Paulis are treated as Z-Paulis, assuming
     that basis rotations have been applied to convert them to the
     diagonal basis.
     """
@@ -250,7 +250,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
 
     @property
     def backend(self) -> BackendV2:
-        """Returns the backend which this sampler object based on."""
+        """Returns the backend which this estimator object is based on."""
         return self._backend
 
     def run(
