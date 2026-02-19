@@ -18,13 +18,11 @@ import typing
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, CircuitError, Gate, ParameterExpression
-from qiskit.circuit.quantumcircuit import ParameterValueType
-from qiskit.quantum_info import Pauli
-
 from qiskit._accelerate.circuit_library import pauli_evolution
 
 if typing.TYPE_CHECKING:
-    import qiskit
+    from qiskit.quantum_info import Pauli
+    from qiskit.circuit.quantumcircuit import ParameterValueType
 
 
 class PauliRotationGate(Gate):
@@ -42,7 +40,7 @@ class PauliRotationGate(Gate):
 
     def __init__(
         self,
-        pauli: qiskit.quantum_info.Pauli,
+        pauli: Pauli,
         angle: ParameterValueType,
         label: str | None = None,
     ):
@@ -84,6 +82,8 @@ class PauliRotationGate(Gate):
         This function is used internally from within the rust code and from QPY
         serialization.
         """
+        from qiskit.quantum_info import Pauli  # pylint: disable=cyclic-import
+
         return cls(Pauli((z, x, 0)), angle, label)
 
     def inverse(self, annotated=False):
