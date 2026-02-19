@@ -326,13 +326,11 @@ pub(crate) fn gate_class_name(op: &PackedOperation) -> Result<String, QpyError> 
 pub(crate) fn py_get_type_key(py_object: &Bound<PyAny>) -> Result<ValueType, QpyError> {
     let py: Python<'_> = py_object.py();
     if py_object
-        .is_instance(imports::PARAMETER_VECTOR_ELEMENT.get_bound(py))
-        .unwrap()
+        .is_instance(imports::PARAMETER_VECTOR_ELEMENT.get_bound(py))?
     {
         return Ok(ValueType::ParameterVector);
     } else if py_object
-        .is_instance(imports::PARAMETER.get_bound(py))
-        .unwrap()
+        .is_instance(imports::PARAMETER.get_bound(py))?
     {
         return Ok(ValueType::Parameter);
     } else if py_object.is_instance(imports::PARAMETER_EXPRESSION.get_bound(py))? {
@@ -411,7 +409,8 @@ pub(crate) fn py_convert_to_generic_value(py_object: &Bound<PyAny>) -> Result<Ge
             let start = py_object.getattr("start")?.extract::<isize>()?;
             let stop = py_object.getattr("stop")?.extract::<isize>()?;
             let step = py_object.getattr("step")?.extract::<isize>()?;
-            let step = NonZero::new(step).expect("Python does not allow zero steps");
+            let step = NonZero::new(step)
+                .ok_or_else(|| QpyError::InvalidParameter("range step cannot be zero".to_string()))?;
             let range = PyRange { start, stop, step };
             Ok(GenericValue::Range(range))
         }
