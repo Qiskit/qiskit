@@ -35,7 +35,7 @@ class PubResult:
     about the entire submission).
 
     You typically get instances of this class by iterating over or indexing into a
-    :class:`.PrimitiveResult`, which is what you get from ``MyPritimive().run().result()``.
+    :class:`.PrimitiveResult`, which is what you get from ``MyPrimitive().run().result()``.
     """
 
     __slots__ = ("_data", "_metadata")

@@ -162,7 +162,7 @@ class BaseSamplerV1(BasePrimitiveV1, Generic[T]):
         """Run the job of the sampling of bitstrings.
 
         Args:
-            circuits: One of more circuit objects.
+            circuits: One or more circuit objects.
             parameter_values: Parameters to be bound to the circuit.
             run_options: Backend runtime options used for circuit execution.
 

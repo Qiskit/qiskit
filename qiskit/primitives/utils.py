@@ -25,7 +25,7 @@ def _statevector_from_circuit(
 ) -> Statevector:
     """Generate a statevector from a circuit. Used in StatevectorEstimator class.
 
-    If the input circuit includes any resets for a some subsystem,
+    If the input circuit includes any resets for some subsystem,
     :meth:`.Statevector.reset` behaves in a stochastic way in :meth:`.Statevector.evolve`.
     This function sets a random number generator to be reproducible.
 
@@ -33,7 +33,7 @@ def _statevector_from_circuit(
 
     Args:
         circuit: The quantum circuit.
-        seed: The random number generator or None.
+        rng: The random number generator or None.
     """
     sv = Statevector.from_int(0, 2**circuit.num_qubits)
     sv.seed(rng)
