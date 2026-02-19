@@ -275,6 +275,11 @@ where
 /// It handles the actual commutation checking, cache management, and library
 /// lookups. It's not meant to be a public facing Python object though and only used
 /// internally by the Python class.
+///
+/// This implementation now supports efficient commutation checks for complex gates
+/// (including multi-qubit gates like CCX, CSwap) by analyzing their generators using
+/// the `sparse_observable::standard_generators` module. For efficiency, generator data
+/// is stored and processed using a flattened Struct-of-Arrays (SoA) layout.
 #[pyclass(module = "qiskit._accelerate.commutation_checker")]
 pub struct CommutationChecker {
     library: CommutationLibrary,
