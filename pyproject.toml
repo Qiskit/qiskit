@@ -290,11 +290,14 @@ spelling-private-dict-file = ".local-spellings"
 
 [tool.coverage.report]
 exclude_also = [
-    "def __repr__",               # Printable epresentational string does not typically execute during testing
+    "def __repr__",               # Printable representational string does not typically execute during testing
     "raise NotImplementedError",  # Abstract methods are not testable
-    "raise RuntimeError",         # Exceptions for defensive programming that cannot be tested a head
+    "raise RuntimeError",         # Exceptions for defensive programming that cannot be tested ahead
     "if TYPE_CHECKING:",          # Code that only runs during type checks
     "@abstractmethod",            # Abstract methods are not testable
+    "@overload",                  # Typing overload stubs are never executed directly
+    "^\\.\\.\\.\\s*$",            # Ellipsis-only stub bodies (overload / protocol stubs)
+    "if __name__ == .__main__.:", # Script guard block not run by test-runner
     ]
 
 [tool.pylint.deprecated_builtins]
