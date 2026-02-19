@@ -12,8 +12,8 @@
 
 use binrw::{BinRead, BinResult, BinWrite, Endian, VecArgs};
 
-use pyo3::prelude::*;
 use crate::QpyError;
+use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyBytes};
 
 use num_complex::Complex64;
@@ -107,8 +107,12 @@ impl TryFrom<&Bytes> for (f64, f64) {
             .try_into()
             .map_err(|_| QpyError::ConversionError("Expected exactly 8 bytes".to_string()))?;
         Ok((
-            f64::from_be_bytes(byte_array[0..8].try_into().map_err(|_| QpyError::ConversionError("Failed to convert bytes to f64".to_string()))?),
-            f64::from_be_bytes(byte_array[8..16].try_into().map_err(|_| QpyError::ConversionError("Failed to convert bytes to f64".to_string()))?),
+            f64::from_be_bytes(byte_array[0..8].try_into().map_err(|_| {
+                QpyError::ConversionError("Failed to convert bytes to f64".to_string())
+            })?),
+            f64::from_be_bytes(byte_array[8..16].try_into().map_err(|_| {
+                QpyError::ConversionError("Failed to convert bytes to f64".to_string())
+            })?),
         ))
     }
 }
@@ -160,8 +164,12 @@ impl TryFrom<&Bytes> for Complex64 {
             .as_slice()
             .try_into()
             .map_err(|_| QpyError::ConversionError("Expected exactly 16 bytes".to_string()))?;
-        let real = f64::from_be_bytes(byte_array[0..8].try_into().map_err(|_| QpyError::ConversionError("Failed to convert bytes to f64".to_string()))?);
-        let imag = f64::from_be_bytes(byte_array[8..16].try_into().map_err(|_| QpyError::ConversionError("Failed to convert bytes to f64".to_string()))?);
+        let real = f64::from_be_bytes(byte_array[0..8].try_into().map_err(|_| {
+            QpyError::ConversionError("Failed to convert bytes to f64".to_string())
+        })?);
+        let imag = f64::from_be_bytes(byte_array[8..16].try_into().map_err(|_| {
+            QpyError::ConversionError("Failed to convert bytes to f64".to_string())
+        })?);
         Ok(Complex64::new(real, imag))
     }
 }
@@ -177,7 +185,8 @@ impl TryFrom<&Bytes> for String {
 impl<'a> TryFrom<&'a Bytes> for &'a str {
     type Error = QpyError;
     fn try_from(bytes: &'a Bytes) -> Result<Self, Self::Error> {
-        std::str::from_utf8(&bytes.0).map_err(|_| QpyError::ConversionError("Not a valid UTF-8 string".to_string()))
+        std::str::from_utf8(&bytes.0)
+            .map_err(|_| QpyError::ConversionError("Not a valid UTF-8 string".to_string()))
     }
 }
 
@@ -187,7 +196,9 @@ impl TryFrom<&Bytes> for bool {
         match bytes.0.as_slice() {
             [0] => Ok(false),
             [1] => Ok(true),
-            _ => Err(QpyError::ConversionError("Not a boolean representation".to_string())),
+            _ => Err(QpyError::ConversionError(
+                "Not a boolean representation".to_string(),
+            )),
         }
     }
 }

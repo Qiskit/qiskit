@@ -22,7 +22,9 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum QpyError {
     /// An unsupported feature was encountered for the target QPY version
-    #[error("'{feature}' is not supported in QPY version {version}. Minimum required version is {min_version}")]
+    #[error(
+        "'{feature}' is not supported in QPY version {version}. Minimum required version is {min_version}"
+    )]
     UnsupportedFeatureForVersion {
         feature: String,
         version: u32,
@@ -145,9 +147,9 @@ impl From<QpyError> for PyErr {
                     PyErr::from_value(exc_instance)
                 })
             }
-            QpyError::InvalidValueType { expected, actual } => {
-                PyValueError::new_err(format!("invalid value type: expected {expected}, got {actual}"))
-            }
+            QpyError::InvalidValueType { expected, actual } => PyValueError::new_err(format!(
+                "invalid value type: expected {expected}, got {actual}"
+            )),
             QpyError::InvalidFormat(msg)
             | QpyError::MissingData(msg)
             | QpyError::InvalidInstruction(msg)
@@ -172,7 +174,9 @@ impl From<QpyError> for PyErr {
             }
             QpyError::CircuitDataError(e) => e.into(),
             QpyError::ParameterError(e) => e.into(),
-            QpyError::BinRwError(msg) => PyRuntimeError::new_err(format!("binary parsing error: {msg}")),
+            QpyError::BinRwError(msg) => {
+                PyRuntimeError::new_err(format!("binary parsing error: {msg}"))
+            }
             QpyError::PythonError(msg) => PyRuntimeError::new_err(msg),
         }
     }

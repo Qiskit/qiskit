@@ -40,11 +40,11 @@ use qiskit_circuit::operations::{
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 
+use crate::QpyError;
 use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
 use crate::formats::{self, ConditionPack};
 use crate::params::pack_param_obj;
-use crate::QpyError;
 use crate::py_methods::{
     PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME, UNITARY_GATE_CLASS_NAME, gate_class_name,
     getattr_or_none, py_get_instruction_annotations, py_pack_param, py_pack_pauli_evolution_gate,
@@ -81,10 +81,13 @@ fn get_packed_bit_list(
 /// and the dictionary of custom operations generated in the process
 fn pack_instructions(
     qpy_data: &mut QPYWriteData,
-) -> Result<(
-    Vec<formats::CircuitInstructionV2Pack>,
-    HashMap<String, PackedOperation>,
-), QpyError> {
+) -> Result<
+    (
+        Vec<formats::CircuitInstructionV2Pack>,
+        HashMap<String, PackedOperation>,
+    ),
+    QpyError,
+> {
     let mut custom_operations = HashMap::new();
     let mut custom_new_operations = Vec::new();
     let instructions = qpy_data.circuit_data.data().to_vec();
@@ -189,7 +192,9 @@ fn pack_instruction_blocks(
     let blocks = qpy_data
         .circuit_data
         .unpack_blocks_to_circuit_parameters(inst.params.as_deref())
-        .ok_or_else(|| QpyError::ConversionError("Could not extract blocks from instruction".to_string()))?;
+        .ok_or_else(|| {
+            QpyError::ConversionError("Could not extract blocks from instruction".to_string())
+        })?;
     match blocks {
         Parameters::Params(_) => Err(QpyError::ConversionError(
             "Instruction has params but expected blocks".to_string(),
@@ -736,7 +741,10 @@ fn pack_transpile_layout(
         initial_layout_size = initial_layout.call_method0("__len__")?.extract::<i32>()?;
         let layout_mapping = initial_layout.call_method0("get_physical_bits")?;
         for i in 0..qpy_data.circuit_data.num_qubits() {
-            let qubit = layout_mapping.get_item(i)?.extract::<ShareableQubit>().map_err(|e| QpyError::from(PyErr::from(e)))?;
+            let qubit = layout_mapping
+                .get_item(i)?
+                .extract::<ShareableQubit>()
+                .map_err(|e| QpyError::from(PyErr::from(e)))?;
             input_qubit_mapping.insert(qubit.clone(), i);
             let register = qubit.owning_register();
             let index = qubit.owning_register_index();
@@ -758,8 +766,13 @@ fn pack_transpile_layout(
             .extract()?;
         let mut input_qubit_mapping_array: Vec<u32> = vec![0; input_mapping_size as usize];
         let layout_mapping = initial_layout.call_method0("get_virtual_bits")?;
-        for (qubit, index) in layout_input_qubit_mapping.cast::<PyDict>().map_err(|e| QpyError::from(PyErr::from(e)))? {
-            let qubit = qubit.extract::<ShareableQubit>().map_err(|e| QpyError::from(PyErr::from(e)))?;
+        for (qubit, index) in layout_input_qubit_mapping
+            .cast::<PyDict>()
+            .map_err(|e| QpyError::from(PyErr::from(e)))?
+        {
+            let qubit = qubit
+                .extract::<ShareableQubit>()
+                .map_err(|e| QpyError::from(PyErr::from(e)))?;
             let register = qubit.owning_register();
             if let Some(reg) = register {
                 if qubit.owning_register_index().is_some()
@@ -786,18 +799,26 @@ fn pack_transpile_layout(
         for i in 0..qpy_data.circuit_data.num_qubits() {
             let virtual_bit = final_layout_physical.get_item(i)?;
             if virtual_bit.is_instance_of::<PyClbit>() {
-                let virtual_clbit = virtual_bit.extract::<ShareableClbit>().map_err(|e| QpyError::from(PyErr::from(e)))?;
+                let virtual_clbit = virtual_bit
+                    .extract::<ShareableClbit>()
+                    .map_err(|e| QpyError::from(PyErr::from(e)))?;
                 let index = qpy_data
                     .circuit_data
                     .clbit_index(&virtual_clbit)
-                    .ok_or_else(|| QpyError::ConversionError("Clbit missing an index".to_string()))?;
+                    .ok_or_else(|| {
+                        QpyError::ConversionError("Clbit missing an index".to_string())
+                    })?;
                 final_layout_items.push(index);
             } else if virtual_bit.is_instance_of::<PyQubit>() {
-                let virtual_qubit = virtual_bit.extract::<ShareableQubit>().map_err(|e| QpyError::from(PyErr::from(e)))?;
+                let virtual_qubit = virtual_bit
+                    .extract::<ShareableQubit>()
+                    .map_err(|e| QpyError::from(PyErr::from(e)))?;
                 let index = qpy_data
                     .circuit_data
                     .qubit_index(&virtual_qubit)
-                    .ok_or_else(|| QpyError::ConversionError("Qubit missing an index".to_string()))?;
+                    .ok_or_else(|| {
+                        QpyError::ConversionError("Qubit missing an index".to_string())
+                    })?;
                 final_layout_items.push(index);
             }
         }

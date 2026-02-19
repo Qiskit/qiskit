@@ -20,9 +20,9 @@ use qiskit_circuit::parameter::symbol_expr::Symbol;
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::QpyError;
 use crate::bytes::Bytes;
 use crate::formats;
-use crate::QpyError;
 use crate::py_methods::{py_convert_from_generic_value, py_pack_param};
 use crate::value::{
     GenericValue, QPYReadData, QPYWriteData, ValueType, deserialize, deserialize_vec, load_value,
@@ -115,7 +115,10 @@ pub(crate) fn pack_parameter_expression_by_op(
         19 => Ok(formats::ParameterExpressionElementPack::Rdiv(data)),
         20 => Ok(formats::ParameterExpressionElementPack::Rpow(data)),
         255 => Ok(formats::ParameterExpressionElementPack::Expression(data)),
-        _ => Err(QpyError::ConversionError(format!("Invalid opcode: {}", opcode))),
+        _ => Err(QpyError::ConversionError(format!(
+            "Invalid opcode: {}",
+            opcode
+        ))),
     }
 }
 
@@ -151,7 +154,9 @@ pub(crate) fn unpack_parameter_expression_standard_op(
     }
 }
 
-fn parameter_value_type_from_generic_value(value: &GenericValue) -> Result<ParameterValueType, QpyError> {
+fn parameter_value_type_from_generic_value(
+    value: &GenericValue,
+) -> Result<ParameterValueType, QpyError> {
     match value {
         GenericValue::Complex64(complex) => Ok(ParameterValueType::Complex(*complex)),
         GenericValue::Int64(int) => Ok(ParameterValueType::Int(*int)),
@@ -190,7 +195,9 @@ pub(crate) fn pack_parameter_expression(
     })
 }
 
-fn pack_symbol_table_element(symbol: &Symbol) -> Result<formats::ParameterExpressionSymbolPack, QpyError> {
+fn pack_symbol_table_element(
+    symbol: &Symbol,
+) -> Result<formats::ParameterExpressionSymbolPack, QpyError> {
     let value_data = Bytes::new(); // this was used only when packing symbol tables related to substitution commands and no longer relevant
     if symbol.is_vector_element() {
         let value_key = ValueType::ParameterVector;
@@ -417,8 +424,9 @@ pub(crate) fn unpack_parameter_expression(
             replay.push(OPReplay { op, lhs, rhs });
         };
     }
-    ParameterExpression::from_qpy(&replay, Some(sub_operations))
-        .map_err(|_| QpyError::ConversionError("Failure while loading parameter expression".to_string()))
+    ParameterExpression::from_qpy(&replay, Some(sub_operations)).map_err(|_| {
+        QpyError::ConversionError("Failure while loading parameter expression".to_string())
+    })
 }
 
 pub(crate) fn pack_symbol(symbol: &Symbol) -> formats::ParameterSymbolPack {
@@ -574,7 +582,10 @@ pub(crate) fn pack_param_obj(
     })
 }
 
-pub(crate) fn generic_value_to_param(value: &GenericValue, endian: Endian) -> Result<Param, QpyError> {
+pub(crate) fn generic_value_to_param(
+    value: &GenericValue,
+    endian: Endian,
+) -> Result<Param, QpyError> {
     let value = match endian {
         Endian::Big => value,
         Endian::Little => &value.as_le(),

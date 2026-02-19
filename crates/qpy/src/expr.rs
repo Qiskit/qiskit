@@ -102,11 +102,23 @@ pub(crate) fn unpack_expression_value(
     }
 }
 
-pub(crate) fn pack_expression_var(var: &Var, qpy_data: &QPYWriteData) -> Result<ExpressionElementPack, QpyError> {
+pub(crate) fn pack_expression_var(
+    var: &Var,
+    qpy_data: &QPYWriteData,
+) -> Result<ExpressionElementPack, QpyError> {
     let (ty, value_pack) = match var {
         Var::Bit { bit } => (
             &Type::Bool,
-            ExpressionVarElementPack::Clbit(qpy_data.circuit_data.clbits().find(bit).ok_or_else(|| QpyError::InvalidBit("Could not find bit {bit} in circuit".to_string()))?.0),
+            ExpressionVarElementPack::Clbit(
+                qpy_data
+                    .circuit_data
+                    .clbits()
+                    .find(bit)
+                    .ok_or_else(|| {
+                        QpyError::InvalidBit("Could not find bit {bit} in circuit".to_string())
+                    })?
+                    .0,
+            ),
         ),
         Var::Register { register, ty } => (
             ty,
@@ -116,10 +128,19 @@ pub(crate) fn pack_expression_var(var: &Var, qpy_data: &QPYWriteData) -> Result<
         ),
         Var::Standalone { uuid, name: _, ty } => (
             ty,
-            ExpressionVarElementPack::Uuid(*qpy_data.standalone_var_indices.get(uuid).ok_or_else(|| QpyError::InvalidParameter("Could not find standalone variable {name} in the qpy data".to_string()))?),
+            ExpressionVarElementPack::Uuid(*qpy_data.standalone_var_indices.get(uuid).ok_or_else(
+                || {
+                    QpyError::InvalidParameter(
+                        "Could not find standalone variable {name} in the qpy data".to_string(),
+                    )
+                },
+            )?),
         ),
     };
-    Ok(ExpressionElementPack::Var(pack_expression_type(ty), value_pack))
+    Ok(ExpressionElementPack::Var(
+        pack_expression_type(ty),
+        value_pack,
+    ))
 }
 
 pub(crate) fn unpack_expression_var(
@@ -135,20 +156,32 @@ pub(crate) fn unpack_expression_var(
                 .clbits()
                 .get(Clbit(index))
                 .ok_or_else(|| QpyError::InvalidBit("Clbit not found in circuit data".to_string()))?
-                .clone()
-        }), 
+                .clone(),
+        }),
         ExpressionVarElementPack::Register(packed_register) => Ok(Var::Register {
             register: qpy_data
                 .circuit_data
                 .cregs_data()
                 .get(packed_register.name.as_str())
-                .ok_or_else(|| QpyError::InvalidRegister("Register not found in circuit data".to_string()))?
+                .ok_or_else(|| {
+                    QpyError::InvalidRegister("Register not found in circuit data".to_string())
+                })?
                 .clone(),
             ty,
         }), // TODO: can we avoid cloning?
         ExpressionVarElementPack::Uuid(key) => {
-            let var = qpy_data.standalone_vars.get(&key).ok_or_else(|| QpyError::InvalidParameter("Standalone var not found in qpy data".to_string()))?; // note: this is not an actual expr::Var; merely a key for this var inside the circuit data
-            Ok(qpy_data.circuit_data.get_var(*var).ok_or_else(|| QpyError::InvalidParameter("Standalone var not found in circuit data".to_string()))?.clone()) // TODO: can we avoid cloning?
+            let var = qpy_data.standalone_vars.get(&key).ok_or_else(|| {
+                QpyError::InvalidParameter("Standalone var not found in qpy data".to_string())
+            })?; // note: this is not an actual expr::Var; merely a key for this var inside the circuit data
+            Ok(qpy_data
+                .circuit_data
+                .get_var(*var)
+                .ok_or_else(|| {
+                    QpyError::InvalidParameter(
+                        "Standalone var not found in circuit data".to_string(),
+                    )
+                })?
+                .clone()) // TODO: can we avoid cloning?
         }
     }
 }
@@ -228,16 +261,27 @@ pub(crate) fn read_expression<R: Read + Seek>(
         )),
         ExpressionElementPack::Stretch(_stretch_type_pack, key) => {
             let stretch = qpy_data.standalone_stretches.get(&key).ok_or_else(|| {
-                to_binrw_error(reader, QpyError::InvalidParameter(
-                    format!("Standalone stretch with key {} not found in qpy data", key)
-                ))
+                to_binrw_error(
+                    reader,
+                    QpyError::InvalidParameter(format!(
+                        "Standalone stretch with key {} not found in qpy data",
+                        key
+                    )),
+                )
             })?;
             Ok(Expr::Stretch(
-                qpy_data.circuit_data.get_stretch(*stretch).ok_or_else(|| {
-                    to_binrw_error(reader, QpyError::InvalidParameter(
-                        "Stretch not found in circuit data".to_string()
-                    ))
-                })?.clone(),
+                qpy_data
+                    .circuit_data
+                    .get_stretch(*stretch)
+                    .ok_or_else(|| {
+                        to_binrw_error(
+                            reader,
+                            QpyError::InvalidParameter(
+                                "Stretch not found in circuit data".to_string(),
+                            ),
+                        )
+                    })?
+                    .clone(),
             )) // TODO: can we avoid cloning?
         }
         ExpressionElementPack::Index(index_type_pack) => {

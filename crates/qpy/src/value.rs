@@ -31,6 +31,7 @@ use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::parameter::symbol_expr::Symbol;
 use qiskit_circuit::{Clbit, imports};
 
+use crate::QpyError;
 use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
 use crate::circuit_reader::unpack_circuit;
@@ -43,7 +44,6 @@ use crate::params::{
 use crate::py_methods::{
     py_deserialize_numpy_object, py_pack_modifier, py_serialize_numpy_object, py_unpack_modifier,
 };
-use crate::QpyError;
 
 use num_bigint::BigUint;
 use num_complex::Complex64;
@@ -69,7 +69,10 @@ impl TryFrom<u8> for RegisterType {
         match value {
             b'q' => Ok(Self::Qreg),
             b'c' => Ok(Self::Creg),
-            _ => Err(QpyError::InvalidValueType { expected: "b'q', b'c'".to_string(), actual: "{value}".to_string() }),
+            _ => Err(QpyError::InvalidValueType {
+                expected: "b'q', b'c'".to_string(),
+                actual: "{value}".to_string(),
+            }),
         }
     }
 }
@@ -338,10 +341,12 @@ impl GenericValue {
     }
     pub(crate) fn as_circuit_data(&self) -> Option<CircuitData> {
         match self {
-            GenericValue::Circuit(py_circuit) => Python::attach(|py| -> Result<CircuitData, QpyError> {
-                Ok(py_circuit.extract::<QuantumCircuitData>(py)?.data)
-            })
-            .ok(),
+            GenericValue::Circuit(py_circuit) => {
+                Python::attach(|py| -> Result<CircuitData, QpyError> {
+                    Ok(py_circuit.extract::<QuantumCircuitData>(py)?.data)
+                })
+                .ok()
+            }
             _ => None,
         }
     }
@@ -518,11 +523,11 @@ pub(crate) fn serialize_generic_value(
         ),
         GenericValue::Duration(duration) => {
             if qpy_data.version < 16 && matches!(duration, Duration::ps(_)) {
-                return Err(QpyError::UnsupportedFeatureForVersion{
+                return Err(QpyError::UnsupportedFeatureForVersion {
                     feature: String::from("Duration variant 'Duration.ps'"),
                     version: 16,
                     min_version: qpy_data.version,
-            });
+                });
             }
             (
                 ValueType::Tuple, // due to historical reasons, 't' is shared between these data types
@@ -621,13 +626,18 @@ pub(crate) fn unpack_for_collection(value: &GenericValue) -> Result<ForCollectio
                     if let GenericValue::Int64(int_val) = val {
                         Ok(*int_val as usize)
                     } else {
-                        Err(QpyError::ConversionError("Could not unpack ForCollection: expected Int64 in tuple".to_string()))
+                        Err(QpyError::ConversionError(
+                            "Could not unpack ForCollection: expected Int64 in tuple".to_string(),
+                        ))
                     }
                 })
                 .collect::<Result<_, QpyError>>()?;
             Ok(ForCollection::List(value_list))
         }
-        _ => Err(QpyError::ConversionError(format!("Could not unpack ForCollection: expected Range or Tuple, got {:?}", value))),
+        _ => Err(QpyError::ConversionError(format!(
+            "Could not unpack ForCollection: expected Range or Tuple, got {:?}",
+            value
+        ))),
     }
 }
 
@@ -654,7 +664,9 @@ pub(crate) fn unpack_generic_value_sequence(
 }
 
 /// Each instruction type has a char representation in qpy
-pub(crate) fn get_circuit_type_key(op: &PackedOperation) -> Result<CircuitInstructionType, QpyError> {
+pub(crate) fn get_circuit_type_key(
+    op: &PackedOperation,
+) -> Result<CircuitInstructionType, QpyError> {
     match op.view() {
         OperationRef::StandardGate(_) => Ok(CircuitInstructionType::Gate),
         OperationRef::StandardInstruction(_)
@@ -844,9 +856,11 @@ pub(crate) fn load_param_register_value(
         ));
     }
     if bytes[0] == 0u8 {
-        let index = Clbit(std::str::from_utf8(&bytes[1..])?.parse().map_err(|e: std::num::ParseIntError| {
-            QpyError::ConversionError(format!("Failed to parse clbit index: {}", e))
-        })?);
+        let index = Clbit(std::str::from_utf8(&bytes[1..])?.parse().map_err(
+            |e: std::num::ParseIntError| {
+                QpyError::ConversionError(format!("Failed to parse clbit index: {}", e))
+            },
+        )?);
         match qpy_data.circuit_data.clbits().get(index) {
             Some(shareable_clbit) => {
                 Ok(ParamRegisterValue::ShareableClbit(shareable_clbit.clone()))
