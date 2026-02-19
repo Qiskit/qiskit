@@ -329,7 +329,7 @@ def zz_feature_map(
         data_map_func: A mapping function for data x which can be supplied to override the
             default mapping.
         parameter_prefix: The prefix used if default parameters are generated.
-        insert_barriers: If True, barriers are inserted in between the evolution instructions
+        insert_barriers: If ``True``, barriers are inserted in between the evolution instructions
             and Hadamard layers.
         name: The name of the circuit.
 
