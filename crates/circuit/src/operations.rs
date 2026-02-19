@@ -3100,31 +3100,29 @@ impl Operation for PyInstruction {
 }
 
 impl PyInstruction {
-    /// returns the number of control qubits in the instruction
-    /// returns 0 if the instruction is not controlled
-    pub fn num_ctrl_qubits(&self) -> u32 {
+    /// returns the number of control qubits in the instruction, if any.
+    pub fn num_ctrl_qubits(&self) -> Option<u32> {
         if self.kind != PyOpKind::Gate {
-            return 0;
+            return None;
         }
         Python::attach(|py| {
             self.ob
                 .getattr(py, "num_ctrl_qubits")
                 .and_then(|py_num_ctrl_qubits| py_num_ctrl_qubits.extract::<u32>(py))
-                .unwrap_or(0)
+                .ok()
         })
     }
 
-    /// returns the control state of the gate as a decimal number
-    /// returns 2^num_ctrl_bits-1 (the '11...1' state) if the gate has not control state data
-    pub fn ctrl_state(&self) -> u32 {
+    /// returns the control state of the gate as a decimal number, if any.
+    pub fn ctrl_state(&self) -> Option<u32> {
         if self.kind != PyOpKind::Gate {
-            return 0;
+            return None;
         }
         Python::attach(|py| {
             self.ob
                 .getattr(py, "ctrl_state")
                 .and_then(|py_ctrl_state| py_ctrl_state.extract::<u32>(py))
-                .unwrap_or((1 << self.num_ctrl_qubits()) - 1)
+                .ok()
         })
     }
     /// returns the class name of the python gate
