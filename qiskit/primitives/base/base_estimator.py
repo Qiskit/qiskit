@@ -61,13 +61,8 @@ class BaseEstimatorV2(ABC):
 
         * Optionally, the estimation precision.
 
-<<<<<<< HEAD
-     * precision: the estimation precision. This specification is optional and will be overriden by
-        the pub-wise shots if provided.
-=======
      * precision: the estimation precision. This specification is optional and will be overridden by
         the pub-wise precision if provided.
->>>>>>> efb767a90 (Fix typos in qiskit.primitives (#15697))
 
     All estimator implementations must implement default value for the ``precision`` in the
     :meth:`.run` method. This default value will be used any time ``precision=None`` is specified, which
