@@ -136,7 +136,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         return {"data": self.data, "dims": self._op_shape.dims_l()}
 
     def draw(self, output: str | None = None, **drawer_args):
-        """Return a visualization of the DensityMatrix.
+        """Return a visualization of the density matrix.
 
         **repr**: ASCII TextMatrix of the state's ``__repr__``.
 
@@ -167,7 +167,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         Returns:
             :class:`matplotlib.Figure` or :class:`str` or
             :class:`TextMatrix` or :class:`IPython.display.Latex`:
-            Drawing of the DensityMatrix.
+            Drawing of the density matrix.
 
         Raises:
             ValueError: when an invalid output method is selected.
