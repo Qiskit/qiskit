@@ -29,7 +29,7 @@ from .densitymatrix import DensityMatrix
 def random_statevector(
     dims: int | tuple, seed: int | np.random.Generator | None = None
 ) -> Statevector:
-    """Generator a random Statevector.
+    """Generate a random Statevector.
 
     The statevector is sampled from the uniform distribution. This is the measure
     induced by the Haar measure on unitary matrices.
@@ -66,7 +66,7 @@ def random_density_matrix(
     method: Literal["Hilbert-Schmidt", "Bures"] = "Hilbert-Schmidt",
     seed: int | np.random.Generator | None = None,
 ) -> DensityMatrix:
-    """Generator a random DensityMatrix.
+    """Generate a random DensityMatrix.
 
     Args:
         dims (int or tuple): the dimensions of the DensityMatrix.
