@@ -71,7 +71,7 @@ impl TryFrom<u8> for RegisterType {
             b'c' => Ok(Self::Creg),
             _ => Err(QpyError::InvalidValueType {
                 expected: "b'q', b'c'".to_string(),
-                actual: "{value}".to_string(),
+                actual: value.to_string(),
             }),
         }
     }
@@ -95,7 +95,7 @@ impl TryFrom<u8> for BitType {
             b'c' => Ok(Self::Clbit),
             _ => Err(QpyError::InvalidValueType {
                 expected: "b'q', b'c'".to_string(),
-                actual: "{value}".to_string(),
+                actual: value.to_string(),
             }),
         }
     }
