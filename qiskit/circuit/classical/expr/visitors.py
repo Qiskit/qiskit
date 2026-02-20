@@ -342,7 +342,7 @@ def is_lvalue(node: expr.Expr, /) -> bool:
     """Return whether this expression can be used in l-value positions, that is, whether it has a
     well-defined location in memory, such as one that might be writeable.
 
-    Being an l-value is a necessary but not sufficient for this location to be writeable; it is
+    Being an l-value is necessary but not sufficient for this location to be writeable; it is
     permissible that a larger object containing this memory location may not allow writing from
     the scope that attempts to write to it.  This would be an access property of the containing
     program, however, and not an inherent property of the expression system.

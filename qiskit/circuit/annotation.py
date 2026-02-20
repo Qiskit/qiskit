@@ -49,7 +49,7 @@ handler to invoke.  This includes in QPY and OpenQASM 3 serialization contexts, 
 transpiler passes will also look at annotations' namespaces to determine if they are relevant, and
 so on.
 
-This can be standard Python identifier (e.g. ``my_namespace``), or a dot-separated list of
+This can be a standard Python identifier (e.g. ``my_namespace``), or a dot-separated list of
 identifiers (e.g. ``my_namespace.subnamespace``).  The namespace is used by all consumers of
 annotations to determine what handler should be invoked.
 
@@ -378,7 +378,7 @@ class OpenQASM3Serializer(abc.ABC):
 
     @abc.abstractmethod
     def dump(self, annotation: Annotation) -> str | Literal[NotImplemented]:
-        """Serialize the paylaod of an annotation to a single line of UTF-8 text.
+        """Serialize the payload of an annotation to a single line of UTF-8 text.
 
         The output of this method should not include the annotation's
         :attr:`~.Annotation.namespace` attribute; this is handled automatically by the OpenQASM 3

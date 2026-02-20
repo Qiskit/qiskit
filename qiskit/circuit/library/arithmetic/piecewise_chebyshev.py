@@ -192,7 +192,7 @@ class PiecewiseChebyshev(BlueprintCircuit):
         """
         breakpoints = self._breakpoints
 
-        # it the state qubits are set ensure that the breakpoints match beginning and end
+        # if the state qubits are set ensure that the breakpoints match beginning and end
         if self.num_state_qubits is not None:
             num_states = 2**self.num_state_qubits
 
@@ -288,7 +288,7 @@ class PiecewiseChebyshev(BlueprintCircuit):
         changes.
 
         Args:
-            polynomials: The new breakpoints for the piecewise approximation.
+            polynomials: The new polynomials for the piecewise approximation.
         """
         if self._polynomials is None or polynomials != self._polynomials:
             self._invalidate()
@@ -340,7 +340,7 @@ class PiecewiseChebyshev(BlueprintCircuit):
                 self.add_register(qr_ancilla)
 
     def _build(self):
-        """Build the circuit if not already build. The operation is considered successful
+        """Build the circuit if not already built. The operation is considered successful
         when q_objective is :math:`|1>`"""
         if self._is_built:
             return

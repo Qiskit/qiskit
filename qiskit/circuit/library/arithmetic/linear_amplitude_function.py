@@ -63,7 +63,7 @@ class LinearAmplitudeFunction(QuantumCircuit):
 
         f(x) = \sum_{i=1}^m 1_{[p_{i-1}, p_i]}(x) (\alpha_i x + \beta_i)
 
-    where :math:`1_{[a, b]}` is an indication function that is 1 if the argument is in the interval
+    where :math:`1_{[a, b]}` is an indicator function that is 1 if the argument is in the interval
     :math:`[a, b]` and otherwise 0. The breakpoints :math:`p_i` can be specified by the
     ``breakpoints`` argument.
 
@@ -221,7 +221,7 @@ class LinearAmplitudeFunctionGate(Gate):
 
         f(x) = \sum_{i=1}^m 1_{[p_{i-1}, p_i]}(x) (\alpha_i x + \beta_i)
 
-    where :math:`1_{[a, b]}` is an indication function that is 1 if the argument is in the interval
+    where :math:`1_{[a, b]}` is an indicator function that is 1 if the argument is in the interval
     :math:`[a, b]` and otherwise 0. The breakpoints :math:`p_i` can be specified by the
     ``breakpoints`` argument.
 

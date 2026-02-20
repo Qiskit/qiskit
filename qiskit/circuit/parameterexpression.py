@@ -61,7 +61,7 @@ def sympify(expression):
     .. note::
 
         This is for interoperability only.  Qiskit will not accept or work with raw Sympy or
-        Symegine expressions in its parameters, because they do not contain the tracking
+        Symengine expressions in its parameters, because they do not contain the tracking
         information used in circuit-parameter binding and assignment.
     """
     import sympy

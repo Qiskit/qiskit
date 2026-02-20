@@ -70,7 +70,7 @@ class IfElseOp(ControlFlowOp):
                 ``Clbit`` to be compared to either a ``bool`` or an ``int``.
             true_body: A program to be executed if ``condition`` evaluates
                 to true.
-            false_body: A optional program to be executed if ``condition``
+            false_body: An optional program to be executed if ``condition``
                 evaluates to false.
             label: An optional label for identifying the instruction.
         """

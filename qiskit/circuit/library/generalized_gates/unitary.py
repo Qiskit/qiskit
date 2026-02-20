@@ -37,7 +37,7 @@ if typing.TYPE_CHECKING:
 
 
 class UnitaryGate(Gate):
-    """Class quantum gates specified by a unitary matrix.
+    """Class for quantum gates specified by a unitary matrix.
 
     Example:
 
