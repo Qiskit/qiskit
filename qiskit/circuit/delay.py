@@ -77,7 +77,7 @@ class Delay(Instruction):
 
     @property
     def unit(self):
-        """The unit for the duration of the delay in :attr`.params`"""
+        """The unit for the duration of the delay in :attr:`.params`"""
         return self._unit
 
     @unit.setter

@@ -60,7 +60,7 @@ class FunctionalPauliRotations(BlueprintCircuit, ABC):
             basis: The Pauli rotation to be used.
 
         Raises:
-            ValueError: The provided basis in not X, Y or Z.
+            ValueError: The provided basis is not X, Y or Z.
         """
         basis = basis.lower()
         if self._basis is None or basis != self._basis:
