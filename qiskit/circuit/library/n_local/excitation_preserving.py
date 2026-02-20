@@ -62,7 +62,7 @@ def excitation_preserving(
     a simpler pattern.
 
     This trial wave function consists of layers of :math:`Z` rotations with 2-qubit entanglements.
-    The entangling is created using :math:`XX+YY` rotations and optionally a controlled-phase
+    The entanglement is created using :math:`XX+YY` rotations and optionally a controlled-phase
     gate for the mode ``"fsim"``.
 
     Examples:
@@ -164,7 +164,7 @@ class ExcitationPreserving(TwoLocal):
     a simpler pattern.
 
     This trial wave function consists of layers of :math:`Z` rotations with 2-qubit entanglements.
-    The entangling is created using :math:`XX+YY` rotations and optionally a controlled-phase
+    The entanglement is created using :math:`XX+YY` rotations and optionally a controlled-phase
     gate for the mode ``'fsim'``.
 
     See :class:`~qiskit.circuit.library.RealAmplitudes` for more detail on the possible arguments
