@@ -26,10 +26,11 @@ class RGQFTMultiplier(Multiplier):
     r"""A QFT multiplication circuit to store product of two input registers out-of-place.
 
     Multiplication in this circuit is implemented using the procedure of Fig. 3 in [1], where
-    weighted sum rotations are implemented as given in Fig. 5 in [1]. QFT is used on the output
-    register and is followed by rotations controlled by input registers. The rotations
-    transform the state into the product of two input registers in QFT base, which is
-    reverted from QFT base using inverse QFT.
+    weighted sum rotations are implemented as given in Fig. 5 in [1]. The QFT is used on the
+    output register and is followed by rotations controlled by input registers. The rotations
+    transform the state into the product of two input registers in the QFT basis, which is
+    reverted from the QFT basis using the inverse QFT.
+
     As an example, a circuit that performs a modular QFT multiplication on two 2-qubit
     sized input registers with an output register of 2 qubits, is as follows:
 
@@ -50,7 +51,7 @@ class RGQFTMultiplier(Multiplier):
 
     .. seealso::
 
-        The :class:`.MultiplierGate` objects represents a multiplication, like this circuit class,
+        The :class:`.MultiplierGate` object represents a multiplication, like this circuit class,
         but allows the compiler to select the optimal decomposition based on the context.
         Specific implementations can be set via the :class:`.HLSConfig`, e.g. this circuit
         can be chosen via ``Multiplier=["qft_r17"]``.

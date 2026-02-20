@@ -491,7 +491,7 @@ class Instruction(Operation):
         )
 
     def repeat(self, n):
-        """Creates an instruction with ``self`` repeated :math`n` times.
+        """Creates an instruction with ``self`` repeated :math:`n` times.
 
         Args:
             n (int): Number of times to repeat the instruction
