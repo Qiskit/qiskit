@@ -35,7 +35,7 @@ from qiskit.transpiler.passes import ElidePermutations
 from qiskit.transpiler.passes import RemoveDiagonalGatesBeforeMeasure
 from qiskit.transpiler.passes import CommutativeOptimization
 from qiskit.transpiler.passes import BasisTranslator
-from qiskit.transpiler.passes import RZSynthesis
+from qiskit.transpiler.passes import SynthesizeRZRotations
 from qiskit.transpiler.passes import OptimizeCliffordT
 from qiskit.transpiler.passes import SubstitutePi4Rotations
 from qiskit.transpiler.passes import Collect1qRuns
@@ -1181,7 +1181,7 @@ class TranslateToCliffordTPassManager(PassManagerStagePlugin):
         rz_to_t_translation = PassManager(
             [
                 SubstitutePi4Rotations(),
-                RZSynthesis(),
+                SynthesizeRZRotations(),
                 BasisTranslator(sel, basis_gates, target),
             ]
         )
