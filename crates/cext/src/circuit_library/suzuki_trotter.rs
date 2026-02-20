@@ -10,18 +10,18 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use crate::pointers::const_ptr_as_ref;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit_library::suzuki_trotter::suzuki_trotter_evolution;
 use qiskit_quantum_info::sparse_observable::SparseObservable;
-use crate::pointers::const_ptr_as_ref;
 
 /// @ingroup QkCircuitLibrary
 /// Generate a circuit using the higher order Suzuki-Trotter product formula from an observable.
-/// 
+///
 /// The Suzuki-Trotter formulas improve the error of the Lie-Trotter approximation.
 /// In this implementation, the operators are provided as sum terms of a Pauli operator.
 /// Higher order decompositions are based on recursions, see Ref. [1] for more details.
-/// 
+///
 ///
 /// @param operator  The ``QkObs``  containing the sum of the Pauli terms.
 /// @param order  The order of the product formula.
@@ -31,13 +31,13 @@ use crate::pointers::const_ptr_as_ref;
 ///                potentially yield a shallower evolution circuit. Not relevant
 ///                when synthesizing an observable with a single term.
 /// @param insert_barriers  Whether to insert barriers between the terms evolutions.
-/// 
+///
 /// @return A pointer to the generated circuit.
-/// 
+///
 /// # Example
 /// ```c
 /// QkObs *obs = qk_obs_zero(1);
-/// 
+///
 /// QkBitTerm op1_bits[1] = {QkBitTerm_X};
 /// QkObsTerm term1 = {(QkComplex64){1.0, 0.0}, 1, op1_bits, (uint32_t[1]){0}, 1};
 /// qk_obs_add_term(obs, &term1);
@@ -45,23 +45,23 @@ use crate::pointers::const_ptr_as_ref;
 /// QkBitTerm op2_bits[1] = {QkBitTerm_Y};
 /// QkObsTerm term2 = {(QkComplex64){1.0, 0.0}, 1, op2_bits, (uint32_t[1]){0}, 1};
 /// qk_obs_add_term(obs, &term2);
-/// 
+///
 /// QkCircuit *qc = qk_circuit_library_suzuki_trotter(obs, 2, 1, 0.1, true, false);
-/// 
+///
 /// qk_obs_free(obs);
 /// qk_circuit_free(qc);
 /// ```
-/// 
+///
 /// # Safety
-/// 
+///
 /// Behavior is undefined ``operator`` is not a valid, non-null pointer to a ``QkObs``.
-/// 
+///
 /// # References
-/// 
+///
 /// [1]: D. Berry, G. Ahokas, R. Cleve and B. Sanders,
 /// "Efficient quantum algorithms for simulating sparse Hamiltonians" (2006).
 /// [arXiv:quant-ph/0508139](https://arxiv.org/abs/quant-ph/0508139)
-/// 
+///
 /// [2]: N. Hatano and M. Suzuki,
 /// "Finding Exponential Product Formulas of Higher Orders" (2005).
 /// [arXiv:math-ph/0506007](https://arxiv.org/pdf/math-ph/0506007.pdf)
@@ -77,15 +77,9 @@ pub extern "C" fn qk_circuit_library_suzuki_trotter(
 ) -> *mut CircuitData {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let operator = unsafe { const_ptr_as_ref(operator) };
-    Box::into_raw(Box::new(
-        suzuki_trotter_evolution(
-            operator,
-            order,
-            reps,
-            time,
-            preserve_order,
-            insert_barriers,
-        )
-        .unwrap(),
-    ))
+
+    match suzuki_trotter_evolution(operator, order, reps, time, preserve_order, insert_barriers) {
+        Ok(circuit) => Box::into_raw(Box::new(circuit)),
+        Err(_) => std::ptr::null_mut(),
+    }
 }
