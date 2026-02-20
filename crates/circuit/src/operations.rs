@@ -287,6 +287,7 @@ pub enum OperationRef<'a> {
     Operation(&'a PyInstruction),
     Unitary(&'a UnitaryGate),
     PauliProductMeasurement(&'a PauliProductMeasurement),
+    PauliRotation(&'a PauliRotation),
 }
 
 impl Operation for OperationRef<'_> {
@@ -301,6 +302,7 @@ impl Operation for OperationRef<'_> {
             Self::Operation(operation) => operation.name(),
             Self::Unitary(unitary) => unitary.name(),
             Self::PauliProductMeasurement(ppm) => ppm.name(),
+            Self::PauliRotation(rotation) => rotation.name(),
         }
     }
     #[inline]
@@ -314,6 +316,7 @@ impl Operation for OperationRef<'_> {
             Self::Operation(operation) => operation.num_qubits(),
             Self::Unitary(unitary) => unitary.num_qubits(),
             Self::PauliProductMeasurement(ppm) => ppm.num_qubits(),
+            Self::PauliRotation(rotation) => rotation.num_qubits(),
         }
     }
     #[inline]
@@ -327,6 +330,7 @@ impl Operation for OperationRef<'_> {
             Self::Operation(operation) => operation.num_clbits(),
             Self::Unitary(unitary) => unitary.num_clbits(),
             Self::PauliProductMeasurement(ppm) => ppm.num_clbits(),
+            Self::PauliRotation(rotation) => rotation.num_clbits(),
         }
     }
     #[inline]
@@ -340,6 +344,7 @@ impl Operation for OperationRef<'_> {
             Self::Operation(operation) => operation.num_params(),
             Self::Unitary(unitary) => unitary.num_params(),
             Self::PauliProductMeasurement(ppm) => ppm.num_params(),
+            Self::PauliRotation(rotation) => rotation.num_params(),
         }
     }
     #[inline]
@@ -353,6 +358,7 @@ impl Operation for OperationRef<'_> {
             Self::Operation(operation) => operation.directive(),
             Self::Unitary(unitary) => unitary.directive(),
             Self::PauliProductMeasurement(ppm) => ppm.directive(),
+            Self::PauliRotation(rotation) => rotation.directive(),
         }
     }
 }

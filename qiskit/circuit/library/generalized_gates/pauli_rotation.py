@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import typing
 import numpy as np
+import scipy as sc
 
 from qiskit.circuit import QuantumCircuit, CircuitError, Gate, ParameterExpression
 from qiskit._accelerate.circuit_library import pauli_evolution
@@ -76,7 +77,7 @@ class PauliRotationGate(Gate):
         )
 
     @classmethod
-    def _from_pauli_data(cls, z, x, angle, label):
+    def _from_pauli_data(cls, z, x, angle, label=None):
         """
         Instantiates a PauliRotationGate from raw pauli data, the angle, and the label.
         This function is used internally from within the rust code and from QPY
@@ -87,8 +88,8 @@ class PauliRotationGate(Gate):
         return cls(Pauli((z, x, 0)), angle, label)
 
     def inverse(self, annotated=False):
-        """Prevents from calling ``inverse`` on a PauliProductMeasurement instruction."""
-        raise CircuitError("PauliProductMeasurement is not invertible.")
+        """Return the inverse; a rotation about the negative angle."""
+        return PauliRotationGate(self.pauli(), -self.params[0])
 
     def __eq__(self, other):
         if not isinstance(other, PauliRotationGate):
@@ -101,8 +102,12 @@ class PauliRotationGate(Gate):
         )
 
     def _define(self):
-        label = self.pauli.to_label()
-        evo = pauli_evolution(self.num_qubits, [label])
+        # In the Pauli tensor order, the label i corresponds to qubit n-(i+1), so we
+        # revert the labels. The code below is consistent with PauliEvolutionGate.
+        label = self.pauli().to_label()[::-1]
+        angle = self.params[0]
+        qubits = list(range(self.num_qubits))
+        evo = pauli_evolution(self.num_qubits, [(label, qubits, angle)])
         circuit = QuantumCircuit._from_circuit_data(
             evo,
             legacy_qubits=True,
@@ -120,7 +125,14 @@ class PauliRotationGate(Gate):
         Returns:
             The Pauli rotation axis.
         """
+        from qiskit.quantum_info import Pauli  # pylint: disable=cyclic-import
+
         return Pauli((self._pauli_z, self._pauli_x, 0))
+
+    def to_matrix(self):
+        pauli_matrix = self.pauli().to_matrix(sparse=False)
+        angle = self.params[0]
+        return sc.linalg.expm(-1j * angle / 2 * pauli_matrix)
 
 
 def _get_default_label(pauli, angle) -> str:
@@ -135,8 +147,3 @@ def _get_default_label(pauli, angle) -> str:
         angle = f"{angle:.3f}"
 
     return f"P({pauli.to_label()}, {angle})"
-
-
-def _is_identity_pauli(pauli: Pauli):
-    """Return whether a Pauli has an all-'I' label (up to a phase)."""
-    return not np.any(pauli.z) and not np.any(pauli.x)

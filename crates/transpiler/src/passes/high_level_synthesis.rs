@@ -26,12 +26,14 @@ use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::CX_GATE;
 use qiskit_circuit::imports::HLS_SYNTHESIZE_OP_USING_PLUGINS;
+use qiskit_circuit::operations::multiply_param;
 use qiskit_circuit::operations::{
     Operation, OperationRef, Param, StandardGate, StandardInstruction, radd_param,
 };
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{BlocksMode, Clbit, Qubit, VarsMode};
+use qiskit_circuit_library::pauli_evolution::sparse_term_evolution;
 use qiskit_synthesis::pauli_product_measurement::synthesize_ppm;
 use smallvec::SmallVec;
 
@@ -801,6 +803,30 @@ fn extract_definition(op: &PackedOperation, params: &[Param]) -> PyResult<Option
         OperationRef::Gate(g) => Ok(g.definition()),
         OperationRef::Instruction(i) => Ok(i.definition()),
         OperationRef::PauliProductMeasurement(ppm) => Ok(Some(synthesize_ppm(ppm)?)),
+        OperationRef::PauliRotation(rotation) => {
+            let pauli_string: String = rotation
+                .x
+                .iter()
+                .zip(rotation.z.iter())
+                .map(|(xi, zi)| match (xi, zi) {
+                    (true, true) => "Y",
+                    (true, false) => "X",
+                    (false, true) => "Z",
+                    (false, false) => "I",
+                })
+                .collect();
+            let indices = (0..rotation.num_qubits()).collect();
+            let time = rotation.angle.clone();
+            let instructions =
+                sparse_term_evolution(pauli_string.as_str(), indices, time, false, false);
+            let global_phase = Param::Float(0.0);
+            Ok(Some(CircuitData::from_packed_operations(
+                rotation.num_qubits(),
+                0,
+                instructions.map(Ok),
+                global_phase,
+            )?))
+        }
         OperationRef::StandardInstruction(i) => match i {
             StandardInstruction::Measure
             | StandardInstruction::Reset
@@ -955,6 +981,7 @@ fn synthesize_op_using_plugins(
         OperationRef::Operation(operation) => operation.instruction.clone_ref(py),
         OperationRef::Unitary(unitary) => unitary.create_py_op(py, label)?.into_any(),
         OperationRef::PauliProductMeasurement(ppm) => ppm.create_py_op(py, label)?.into_any(),
+        OperationRef::PauliRotation(rotation) => rotation.create_py_op(py, label)?.into_any(),
     };
 
     let res = HLS_SYNTHESIZE_OP_USING_PLUGINS

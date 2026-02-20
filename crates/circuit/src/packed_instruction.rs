@@ -13,14 +13,15 @@
 use crate::circuit_data::CircuitData;
 use crate::imports::{
     BARRIER, BOX_OP, BREAK_LOOP_OP, CONTINUE_LOOP_OP, DELAY, FOR_LOOP_OP, IF_ELSE_OP, MEASURE,
-    PAULI_PRODUCT_MEASUREMENT, RESET, SWITCH_CASE_OP, UNITARY_GATE, WHILE_LOOP_OP,
-    get_std_gate_class,
+    PAULI_PRODUCT_MEASUREMENT, PAULI_ROTATION_GATE, RESET, SWITCH_CASE_OP, UNITARY_GATE,
+    WHILE_LOOP_OP, get_std_gate_class,
 };
 use crate::instruction::Parameters;
 use crate::interner::Interned;
 use crate::operations::{
     ControlFlow, ControlFlowInstruction, Operation, OperationRef, Param, PauliProductMeasurement,
-    PyOperationTypes, PythonOperation, StandardGate, StandardInstruction, UnitaryGate,
+    PauliRotation, PyOperationTypes, PythonOperation, StandardGate, StandardInstruction,
+    UnitaryGate,
 };
 use crate::{Block, Clbit, Qubit};
 use hashbrown::HashMap;
@@ -46,13 +47,14 @@ enum PackedOperationType {
     UnitaryGate = 3,
     PauliProductMeasurement = 4,
     ControlFlow = 5,
+    PauliRotation = 6,
 }
 
 unsafe impl ::bytemuck::CheckedBitPattern for PackedOperationType {
     type Bits = u8;
 
     fn is_valid_bit_pattern(bits: &Self::Bits) -> bool {
-        *bits < 6
+        *bits < 7
     }
 }
 unsafe impl ::bytemuck::NoUninit for PackedOperationType {}
@@ -256,7 +258,8 @@ mod standard_instruction {
 /// A private module to encapsulate the encoding of pointer types.
 mod pointer {
     use crate::operations::{
-        ControlFlowInstruction, PauliProductMeasurement, PyOperationTypes, UnitaryGate,
+        ControlFlowInstruction, PauliProductMeasurement, PauliRotation, PyOperationTypes,
+        UnitaryGate,
     };
     use crate::packed_instruction::{PackedOperation, PackedOperationType};
     use std::ptr::NonNull;
@@ -342,6 +345,7 @@ mod pointer {
         PauliProductMeasurement,
         PackedOperationType::PauliProductMeasurement
     );
+    impl_packable_pointer!(PauliRotation, PackedOperationType::PauliRotation);
     impl_packable_pointer!(ControlFlowInstruction, PackedOperationType::ControlFlow);
 }
 
@@ -420,6 +424,9 @@ impl PackedOperation {
             PackedOperationType::PauliProductMeasurement => {
                 OperationRef::PauliProductMeasurement(self.try_into().unwrap())
             }
+            PackedOperationType::PauliRotation => {
+                OperationRef::PauliRotation(self.try_into().unwrap())
+            }
         }
     }
 
@@ -473,6 +480,12 @@ impl PackedOperation {
         ppm.into()
     }
 
+    /// Construct a new `PackedOperation` from an owned heap-allocated `PauliProductMeasurement`.
+    #[inline]
+    pub fn from_pauli_rotation(rotation: Box<PauliRotation>) -> Self {
+        rotation.into()
+    }
+
     /// Check equality of the operation, including Python-space checks, if appropriate.
     pub fn py_eq(&self, py: Python, other: &PackedOperation) -> PyResult<bool> {
         match (self.view(), other.view()) {
@@ -499,6 +512,9 @@ impl PackedOperation {
                 OperationRef::PauliProductMeasurement(left),
                 OperationRef::PauliProductMeasurement(right),
             ) => Ok(left == right),
+            (OperationRef::PauliRotation(left), OperationRef::PauliRotation(right)) => {
+                Ok(left == right)
+            }
             _ => Ok(false),
         }
     }
@@ -577,6 +593,12 @@ impl PackedOperation {
                     .cast::<PyType>()?
                     .is_subclass(py_type);
             }
+            OperationRef::PauliRotation(_) => {
+                return PAULI_ROTATION_GATE
+                    .get_bound(py)
+                    .cast::<PyType>()?
+                    .is_subclass(py_type);
+            }
         };
         py_op.is_instance(py_type)
     }
@@ -594,6 +616,7 @@ impl Operation for PackedOperation {
             OperationRef::Operation(operation) => operation.name(),
             OperationRef::Unitary(unitary) => unitary.name(),
             OperationRef::PauliProductMeasurement(ppm) => ppm.name(),
+            OperationRef::PauliRotation(rotation) => rotation.name(),
         };
         // SAFETY: all of the inner parts of the view are owned by `self`, so it's valid for us to
         // forcibly reborrowing up to our own lifetime. We avoid using `<OperationRef as Operation>`
@@ -644,6 +667,9 @@ impl Clone for PackedOperation {
             }
             OperationRef::Unitary(unitary) => Self::from_unitary(Box::new(unitary.clone())),
             OperationRef::PauliProductMeasurement(ppm) => Self::from_ppm(Box::new(ppm.clone())),
+            OperationRef::PauliRotation(rotation) => {
+                Self::from_pauli_rotation(Box::new(rotation.clone()))
+            }
         }
     }
 }
@@ -658,6 +684,7 @@ impl Drop for PackedOperation {
             PackedOperationType::PauliProductMeasurement => {
                 PauliProductMeasurement::drop_packed(self)
             }
+            PackedOperationType::PauliRotation => PauliRotation::drop_packed(self),
             PackedOperationType::ControlFlow => ControlFlowInstruction::drop_packed(self),
         }
     }

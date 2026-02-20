@@ -2640,6 +2640,10 @@ impl DAGCircuit {
                                     OperationRef::PauliProductMeasurement(op_a),
                                     OperationRef::PauliProductMeasurement(op_b),
                                 ] => Ok(op_a == op_b),
+                                [
+                                    OperationRef::PauliRotation(op_a),
+                                    OperationRef::PauliRotation(op_b),
+                                ] => Ok(op_a == op_b),
                                 _ => Ok(false),
                             }
                         }
@@ -7887,6 +7891,7 @@ impl DAGCircuit {
                         OperationRef::StandardInstruction(instruction) => instruction.into(),
                         OperationRef::Unitary(unitary) => unitary.clone().into(),
                         OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
+                        OperationRef::PauliRotation(rotation) => rotation.clone().into(),
                     }
                 } else {
                     instr.op.clone()

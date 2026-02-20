@@ -268,6 +268,7 @@ impl DAGOpNode {
                 OperationRef::StandardInstruction(instruction) => instruction.into(),
                 OperationRef::Unitary(unitary) => unitary.clone().into(),
                 OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
+                OperationRef::PauliRotation(rotation) => rotation.clone().into(),
             };
             #[cfg(feature = "cache_pygates")]
             {
@@ -321,6 +322,7 @@ impl DAGOpNode {
                     OperationRef::StandardInstruction(instruction) => instruction.into(),
                     OperationRef::Unitary(unitary) => unitary.clone().into(),
                     OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
+                    OperationRef::PauliRotation(rotation) => rotation.clone().into(),
                 }
             } else {
                 self.instruction.operation.clone()

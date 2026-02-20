@@ -18,7 +18,7 @@ mod entanglement;
 pub mod iqp;
 mod multi_local;
 mod parameter_ledger;
-mod pauli_evolution;
+pub mod pauli_evolution;
 mod pauli_feature_map;
 pub mod quantum_volume;
 
