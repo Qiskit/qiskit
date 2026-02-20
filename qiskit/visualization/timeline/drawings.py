@@ -68,7 +68,7 @@ between quantum or classical bits during a gate operation.
 
 from abc import ABC
 from enum import Enum
-from typing import Any, Union
+from typing import Any
 
 import numpy as np
 

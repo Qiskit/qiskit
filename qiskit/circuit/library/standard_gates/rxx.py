@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 import math
-from typing import Optional
+
 import numpy
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType

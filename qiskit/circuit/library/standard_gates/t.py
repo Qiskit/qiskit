@@ -12,7 +12,7 @@
 
 """T and Tdg gate."""
 import math
-from typing import Optional
+
 
 import numpy
 

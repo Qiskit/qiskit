@@ -15,7 +15,7 @@ Layer classes for the fast gradient implementation.
 """
 from __future__ import annotations
 from abc import abstractmethod, ABC
-from typing import Optional
+
 import numpy as np
 from .fast_grad_utils import (
     bit_permutation_1q,

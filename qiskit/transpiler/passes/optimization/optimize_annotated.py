@@ -12,7 +12,6 @@
 
 """Optimize annotated operations on a circuit."""
 
-from typing import Union
 
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit.converters import circuit_to_dag, dag_to_circuit
@@ -69,10 +68,10 @@ class OptimizeAnnotated(TransformationPass):
         OptimizeAnnotated initializer.
 
         Args:
-            target: Optional, the backend target to use for this pass.
+            target:  the backend target to use for this pass.
             equivalence_library: The equivalence library used
                 (instructions in this library will not be optimized by this pass).
-            basis_gates: Optional, target basis names to unroll to, e.g. `['u3', 'cx']`
+            basis_gates:  target basis names to unroll to, e.g. `['u3', 'cx']`
                 (instructions in this list will not be optimized by this pass).
                 Ignored if ``target`` is also specified.
             recurse: By default, when either ``target`` or ``basis_gates`` is specified,

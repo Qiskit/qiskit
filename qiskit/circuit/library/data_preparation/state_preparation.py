@@ -11,7 +11,6 @@
 # that they have been altered from the originals.
 """Prepare a quantum state from the state where all qubits are 0."""
 
-from typing import Union, Optional
 
 import math
 import numpy as np

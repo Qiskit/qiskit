@@ -12,7 +12,6 @@
 
 "Circuit operation representing a ``break`` from a loop."
 
-from typing import Optional
 
 from qiskit.circuit.instruction import Instruction
 from qiskit._accelerate.circuit import ControlFlowType

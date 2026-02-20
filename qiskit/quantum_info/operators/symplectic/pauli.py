@@ -461,7 +461,7 @@ class Pauli(BasePauli):
 
         Args:
             other (Pauli): a Pauli object.
-            qargs (list or None): Optional, qubits to apply dot product
+            qargs (list or None):  qubits to apply dot product
                                   on (default: None).
             front (bool): If True compose using right operator multiplication,
                           instead of left multiplication [default: False].
@@ -495,7 +495,7 @@ class Pauli(BasePauli):
 
         Args:
             other (Pauli): an operator object.
-            qargs (list or None): Optional, qubits to apply dot product
+            qargs (list or None):  qubits to apply dot product
                                   on (default: None).
             inplace (bool): If True update in-place (default: False).
 

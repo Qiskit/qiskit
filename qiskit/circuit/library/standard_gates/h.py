@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 from math import sqrt
-from typing import Optional
+
 import numpy
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array

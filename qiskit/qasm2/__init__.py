@@ -539,7 +539,7 @@ __all__ = [
 
 import os
 from pathlib import Path
-from typing import Union, Optional, Literal
+from typing import Literal
 from collections.abc import Iterable
 
 

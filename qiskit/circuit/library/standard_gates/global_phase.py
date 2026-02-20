@@ -12,7 +12,6 @@
 
 """Global Phase Gate"""
 
-from typing import Optional
 
 import numpy
 

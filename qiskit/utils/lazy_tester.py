@@ -20,7 +20,7 @@ import importlib
 import subprocess
 import typing
 import warnings
-from typing import Union
+
 from collections.abc import Iterable, Callable
 
 from qiskit.exceptions import MissingOptionalLibraryError, OptionalDependencyImportWarning

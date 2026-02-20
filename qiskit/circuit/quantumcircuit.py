@@ -24,7 +24,6 @@ import multiprocessing
 import typing
 from collections import OrderedDict
 from typing import (
-    Union,
     TypeVar,
     Any,
     Literal,

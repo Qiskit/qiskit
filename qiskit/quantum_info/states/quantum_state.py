@@ -34,7 +34,7 @@ class QuantumState:
         """Initialize a QuantumState object.
 
         Args:
-            op_shape (OpShape): Optional, an OpShape object for state dimensions.
+            op_shape (OpShape):  an OpShape object for state dimensions.
 
         .. note::
 

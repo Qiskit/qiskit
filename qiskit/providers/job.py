@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import time
 from abc import ABC, abstractmethod
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 from collections.abc import Callable
 
 from qiskit.exceptions import QiskitError

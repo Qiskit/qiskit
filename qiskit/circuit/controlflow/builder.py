@@ -22,7 +22,7 @@ from __future__ import annotations
 import abc
 import itertools
 import typing
-from typing import Union
+
 from collections.abc import Collection, Iterable, Sequence
 
 from qiskit._accelerate.circuit import CircuitData

@@ -16,7 +16,7 @@ import ast
 import itertools
 import re
 from os.path import isfile
-from typing import Union
+
 from collections.abc import Callable
 import numpy as np
 

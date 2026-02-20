@@ -12,7 +12,7 @@
 
 """Search for star connectivity patterns and replace them with."""
 import itertools
-from typing import Union
+
 from collections.abc import Iterable
 from math import floor, log10
 

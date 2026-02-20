@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from typing import Union
+
 import math
 from collections.abc import Sequence
 

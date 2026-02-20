@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from collections.abc import Iterable, Mapping as _Mapping
-from typing import Union, overload, TYPE_CHECKING
+from typing import overload, TYPE_CHECKING
 from collections.abc import Mapping
 
 import numpy as np

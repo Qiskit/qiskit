@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import math
 from cmath import exp
-from typing import Optional
+
 
 import numpy as np
 

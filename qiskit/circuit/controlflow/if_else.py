@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from typing import Optional, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING
 from collections.abc import Iterable
 import itertools
 

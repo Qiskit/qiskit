@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import math
 from cmath import exp
-from typing import Optional
+
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate

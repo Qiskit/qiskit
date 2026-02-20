@@ -86,8 +86,6 @@ features and are comfortable that they make break in later versions, you can sil
     warnings.filterwarnings("ignore", category=ExperimentalWarning)
 """
 
-from typing import Optional
-
 
 class QiskitError(Exception):
     """Base class for errors raised by Qiskit."""

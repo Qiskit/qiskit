@@ -14,7 +14,7 @@
 """Circuit transpile function"""
 import logging
 from time import time
-from typing import Union, Any, TypeVar
+from typing import Any, TypeVar
 from collections.abc import Callable
 
 from qiskit import user_config

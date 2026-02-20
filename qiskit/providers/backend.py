@@ -17,7 +17,7 @@
 from abc import ABC
 from abc import abstractmethod
 import datetime
-from typing import Union
+
 
 from qiskit.circuit.gate import Instruction
 from qiskit._accelerate.target import QubitProperties

@@ -15,7 +15,7 @@ Special data types.
 """
 
 from enum import Enum
-from typing import NamedTuple, Union, NewType
+from typing import NamedTuple, NewType
 
 from qiskit import circuit
 

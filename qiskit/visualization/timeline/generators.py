@@ -103,7 +103,7 @@ the plotter API.
 """
 
 import warnings
-from typing import Union, Any
+from typing import Any
 
 from qiskit.circuit import Qubit, QuantumCircuit
 from qiskit.visualization.timeline import types, drawings

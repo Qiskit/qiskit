@@ -12,7 +12,7 @@
 
 """This module contains common utils for disjoint coupling maps."""
 from __future__ import annotations
-from typing import Union
+
 
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.transpiler.coupling import CouplingMap

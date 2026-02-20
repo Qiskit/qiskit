@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence, Mapping
-from typing import Union
+
 from collections.abc import Callable
 from functools import reduce
 import numpy as np

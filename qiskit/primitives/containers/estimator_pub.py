@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from numbers import Real
 from collections.abc import Mapping
-from typing import Union
+
 
 import numpy as np
 

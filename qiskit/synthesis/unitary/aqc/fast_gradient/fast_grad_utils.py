@@ -14,7 +14,7 @@
 Utility functions in the fast gradient implementation.
 """
 from __future__ import annotations
-from typing import Union
+
 import numpy as np
 
 

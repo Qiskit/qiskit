@@ -105,7 +105,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         Args:
             a ({cls}): an operator object.
             b ({cls}): an operator object.
-            qargs (list or None): Optional, qubits to apply dot product
+            qargs (list or None):  qubits to apply dot product
                                   on (default: None).
             inplace (bool): If True update in-place (default: False).
 

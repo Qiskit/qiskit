@@ -14,7 +14,7 @@ Primitive job abstract base class
 """
 
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar, Union
+from typing import Generic, TypeVar
 
 from ..containers import PrimitiveResult
 from .base_result_v1 import _BasePrimitiveResultV1

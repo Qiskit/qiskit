@@ -12,7 +12,7 @@
 
 """Durations of instructions, one of transpiler configurations."""
 from __future__ import annotations
-from typing import Union
+
 from collections.abc import Iterable
 
 import qiskit.circuit

@@ -16,7 +16,7 @@ Generic style visualization library.
 
 import json
 import os
-from typing import Any, Union
+from typing import Any
 from warnings import warn
 from pathlib import Path
 

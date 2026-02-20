@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from numbers import Integral
-from typing import Union
+
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import CircuitInstruction

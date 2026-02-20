@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 import warnings
-from typing import Optional, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING
 from collections.abc import Iterable
 
 from qiskit.circuit.parameter import Parameter

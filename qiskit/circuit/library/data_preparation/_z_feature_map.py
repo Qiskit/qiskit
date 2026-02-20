@@ -12,7 +12,7 @@
 
 """Create a new first-order Pauli-Z expansion circuit."""
 
-from typing import Optional
+
 from collections.abc import Callable
 import numpy as np
 from qiskit.utils.deprecation import deprecate_func

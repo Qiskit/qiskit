@@ -18,7 +18,7 @@ import itertools
 from collections.abc import Iterable
 from copy import deepcopy
 import math
-from typing import Union, cast
+from typing import cast
 
 import numpy as np
 

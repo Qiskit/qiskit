@@ -21,7 +21,7 @@ import itertools
 import math
 import numbers
 import re
-from typing import Union
+
 from collections.abc import Iterable, Sequence
 
 from qiskit._accelerate.circuit import StandardGate

@@ -12,7 +12,7 @@
 """Base classes for an approximate circuit definition."""
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Optional, SupportsFloat
+from typing import SupportsFloat
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
