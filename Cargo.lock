@@ -1818,7 +1818,7 @@ version = "0.27.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ab53c047fcd1a1d2a8820fe84f05d6be69e9526be40cb03b73f86b6b03e6d87d"
 dependencies = [
- "hashbrown 0.15.5",
+ "hashbrown 0.16.1",
  "indexmap",
  "indoc",
  "libc",
@@ -1910,7 +1910,7 @@ dependencies = [
  "qiskit-transpiler",
  "rand 0.9.2",
  "rand_distr",
- "rand_pcg",
+ "rand_pcg 0.10.1",
  "rayon",
  "rustworkx-core",
  "smallvec",
@@ -1934,7 +1934,7 @@ dependencies = [
  "qiskit-quantum-info",
  "qiskit-transpiler",
  "rand 0.9.2",
- "rand_pcg",
+ "rand_pcg 0.10.1",
  "smallvec",
  "thiserror 2.0.18",
 ]
@@ -1981,7 +1981,7 @@ dependencies = [
  "qiskit-circuit",
  "rand 0.9.2",
  "rand_distr",
- "rand_pcg",
+ "rand_pcg 0.10.1",
  "rayon",
  "smallvec",
  "uuid",
@@ -2071,7 +2071,7 @@ dependencies = [
  "qiskit-circuit",
  "rand 0.9.2",
  "rand_distr",
- "rand_pcg",
+ "rand_pcg 0.10.1",
  "rayon",
  "rustworkx-core",
  "thiserror 2.0.18",
@@ -2101,7 +2101,7 @@ dependencies = [
  "qiskit-quantum-info",
  "rand 0.9.2",
  "rand_distr",
- "rand_pcg",
+ "rand_pcg 0.10.1",
  "rayon",
  "rsgridsynth",
  "rstar",
@@ -2133,7 +2133,7 @@ dependencies = [
  "qiskit-quantum-info",
  "qiskit-synthesis",
  "rand 0.9.2",
- "rand_pcg",
+ "rand_pcg 0.10.1",
  "rayon",
  "rayon-cond",
  "rustworkx-core",
@@ -2223,6 +2223,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "rand_core"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0c8d0fd677905edcbeedbf2edb6494d676f0e98d54d5cf9bda0b061cb8fb8aba"
+
+[[package]]
 name = "rand_distr"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2239,6 +2245,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b48ac3f7ffaab7fac4d2376632268aa5f89abdb55f7ebf8f4d11fffccb2320f7"
 dependencies = [
  "rand_core 0.9.3",
+]
+
+[[package]]
+name = "rand_pcg"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2a36dd10a879f5c16e363eed24471b321b114ce3112c2d5d8df06545fcf48152"
+dependencies = [
+ "rand_core 0.10.0",
 ]
 
 [[package]]
@@ -2424,7 +2439,7 @@ dependencies = [
  "priority-queue",
  "rand 0.9.2",
  "rand_distr",
- "rand_pcg",
+ "rand_pcg 0.9.0",
  "rayon",
  "rayon-cond",
 ]
