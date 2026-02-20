@@ -17,8 +17,8 @@ import numpy as np
 
 from ddt import ddt, data
 from qiskit.circuit import QuantumCircuit, Parameter, CircuitError, CommutationChecker
-from qiskit.circuit.library import PauliRotationGate, PauliEvolutionGate
-from qiskit.quantum_info import Pauli, Operator
+from qiskit.circuit.library import PauliRotationGate, PauliEvolutionGate, PauliProductMeasurement
+from qiskit.quantum_info import Pauli, Operator, SparsePauliOp
 from qiskit.qpy import dump, load
 from qiskit.compiler import transpile
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -76,8 +76,17 @@ class TestPauliRotationGate(QiskitTestCase):
         yy = PauliRotationGate(Pauli("YY"), -0.5)
         self.assertTrue(cc.commute(xx, [0, 1], [], yy, [0, 1], []))
         self.assertTrue(cc.commute(xx, [1, 0], [], yy, [0, 1], []))
-
         self.assertFalse(cc.commute(xx, [2, 0], [], yy, [0, 1], []))
+
+        zzm = PauliProductMeasurement(Pauli("ZZ"))
+        self.assertTrue(cc.commute(zzm, [0, 1], [0], xx, [1, 0], []))
+        self.assertFalse(cc.commute(zzm, [0, 2], [0], xx, [1, 0], []))
+
+        summed = SparsePauliOp(["XXI", "IXI", "IIZ"])
+        evo = PauliEvolutionGate(summed, time=42.2)
+        self.assertTrue(cc.commute(evo, [0, 1, 2], [], xx, [1, 2], []))
+        self.assertFalse(cc.commute(evo, [0, 1, 2], [], xx, [0, 1], []))
+        self.assertFalse(cc.commute(evo, [0, 1, 2], [], yy, [0, 1], []))
 
     def test_pauli_evolution_equivalence(self):
         """Test consistency with the PauliEvolutionGate."""

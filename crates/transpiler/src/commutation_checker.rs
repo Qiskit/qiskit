@@ -183,18 +183,10 @@ fn try_extract_op_from_pauli_evo(
     })
 }
 
-fn try_extract_op_from_ppm(
-    operation: &OperationRef,
-    qubits: &[Qubit],
-    num_qubits: u32,
-) -> Option<SparseObservable> {
-    let OperationRef::PauliProductMeasurement(ppm) = operation else {
-        // Gate is called "pauli_product_measurement" but is not actually a PPM...
-        return None;
-    };
+fn xz_to_observable(x: &[bool], z: &[bool]) -> SparseObservable {
     let mut indices = Vec::new();
     let mut bit_terms = Vec::new();
-    for (i, (x_i, z_i)) in ppm.x.iter().zip(ppm.z.iter()).enumerate() {
+    for (i, (x_i, z_i)) in x.iter().zip(z.iter()).enumerate() {
         // The only failure case possible here is the identity, because of how we're
         // constructing the value to convert.
         let Ok(term) = ::bytemuck::checked::try_cast(((*x_i as u8) << 1) | (*z_i as u8)) else {
@@ -208,12 +200,36 @@ fn try_extract_op_from_ppm(
     let coeffs = vec![Complex64::new(1., 0.)];
     let boundaries = vec![0, bit_terms.len()];
 
+    let num_qubits = x.len() as u32;
     // SAFETY: We know the data is consistent since we constructed it manually, and that indices are
     // sorted in ascending order. Hence, calling new_unchecked is safe.
-    let local = unsafe {
-        SparseObservable::new_unchecked(ppm.num_qubits(), coeffs, bit_terms, indices, boundaries)
-    };
+    unsafe { SparseObservable::new_unchecked(num_qubits, coeffs, bit_terms, indices, boundaries) }
+}
 
+fn try_extract_op_from_ppm(
+    operation: &OperationRef,
+    qubits: &[Qubit],
+    num_qubits: u32,
+) -> Option<SparseObservable> {
+    let OperationRef::PauliProductMeasurement(ppm) = operation else {
+        // Gate is called "pauli_product_measurement" but is not actually a PPM...
+        return None;
+    };
+    let local = xz_to_observable(&ppm.x, &ppm.z);
+    let out = SparseObservable::identity(num_qubits);
+    Some(out.compose_map(&local, |i| qubits[i as usize].0))
+}
+
+fn try_extract_op_from_pauli_rotation(
+    operation: &OperationRef,
+    qubits: &[Qubit],
+    num_qubits: u32,
+) -> Option<SparseObservable> {
+    let OperationRef::PauliRotation(rotation) = operation else {
+        // Gate is called "pauli_rotation" but is not actually the right type
+        return None;
+    };
+    let local = xz_to_observable(&rotation.x, &rotation.z);
     let out = SparseObservable::identity(num_qubits);
     Some(out.compose_map(&local, |i| qubits[i as usize].0))
 }
@@ -227,6 +243,7 @@ fn try_pauli_generator(
         "pauli" => try_extract_op_from_pauli_gate(operation, qubits, num_qubits),
         "PauliEvolution" => try_extract_op_from_pauli_evo(operation, qubits, num_qubits),
         "pauli_product_measurement" => try_extract_op_from_ppm(operation, qubits, num_qubits),
+        "pauli_rotation" => try_extract_op_from_pauli_rotation(operation, qubits, num_qubits),
         _ => None,
     }
 }
