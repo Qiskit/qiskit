@@ -81,13 +81,14 @@ fn manual_include_files() -> anyhow::Result<Vec<PathBuf>> {
     ) -> anyhow::Result<Vec<PathBuf>> {
         for entry in base_dir.read_dir()? {
             let entry = entry?;
+            let name = entry.file_name();
             let path = entry.path();
             if entry.metadata()?.is_dir() {
-                out = recurse(&relative_path.join(&path), &base_dir.join(&path), out)?;
+                out = recurse(&relative_path.join(&name), &base_dir.join(&name), out)?;
             } else {
                 // Only propagate files that look like C/C++ header files.
                 match path.extension().and_then(|s| s.to_str()) {
-                    Some("h") | Some("hpp") => out.push(relative_path.join(&path)),
+                    Some("h") | Some("hpp") => out.push(relative_path.join(&name)),
                     Some(_) | None => (),
                 }
             }
