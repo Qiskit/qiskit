@@ -1,0 +1,7 @@
+---
+upgrade:
+  - |
+    The minimum required version of NumPy has been increased from 1.17 to 1.21.
+    This change was necessary because Qiskit uses :class:`numpy.typing.NDArray`,
+    which was introduced in NumPy 1.21. Users should ensure they have NumPy 1.21
+    or later installed.
