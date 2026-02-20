@@ -1993,6 +1993,7 @@ dependencies = [
  "rand_pcg",
  "rayon",
  "smallvec",
+ "thiserror 2.0.17",
  "uuid",
 ]
 

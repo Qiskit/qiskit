@@ -18,6 +18,7 @@ use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_quantum_info::sparse_observable::SparseObservable;
 use qiskit_synthesis::evolution::suzuki_trotter::{evolution, reorder_terms};
 use smallvec::smallvec;
+use thiserror::Error;
 
 pub fn suzuki_trotter_evolution(
     observable: &SparseObservable,
@@ -26,13 +27,9 @@ pub fn suzuki_trotter_evolution(
     time: f64,
     preserve_order: bool,
     insert_barriers: bool,
-) -> Result<CircuitData, String> {
+) -> Result<CircuitData, EvolutionError> {
     if order > 1 && order % 2 != 0 || order == 0 {
-        return Err(format!(
-            "Suzuki product formulae are symmetric and therefore only defined \
-            for when the order is 1 or even, not {}.",
-            order
-        ));
+        return Err(EvolutionError::OrderSymmetry(order));
     }
 
     let terms_iter = observable.iter().map(|mut view| {
@@ -42,7 +39,10 @@ pub fn suzuki_trotter_evolution(
     let terms = if preserve_order || !preserve_order && observable.bit_terms().len() <= 1 {
         terms_iter.collect()
     } else {
-        reorder_terms(terms_iter)?
+        match reorder_terms(terms_iter) {
+            Ok(terms) => terms,
+            Err(msg) => return Err(EvolutionError::TermsReorder(msg.to_string())),
+        }
     };
 
     // execute evolution
@@ -97,7 +97,7 @@ pub fn suzuki_trotter_evolution(
         global_phase,
     ) {
         Ok(circuit) => Ok(circuit),
-        Err(_) => Err("Failed building circuit".to_string()),
+        Err(_) => Err(EvolutionError::CircuitBuild),
     }
 }
 
@@ -108,4 +108,20 @@ fn create_barrier(num_qubits: u32) -> Instruction {
         (0..num_qubits as u32).map(Qubit).collect(),
         vec![],
     )
+}
+
+#[derive(Debug, Error)]
+pub enum EvolutionError {
+    /// An invalid order value passed to the main method
+    #[error["Suzuki product formulae are symmetric and therefore only defined \
+            for when the order is 1 or even, not {0}."]]
+    OrderSymmetry(u32),
+
+    /// A general error when trying to build circuit from generated instructions
+    #[error["Failed building circuit"]]
+    CircuitBuild,
+
+    /// A general error for terms reordering error
+    #[error["Error ocurred when trying to reorder terms: {0}"]]
+    TermsReorder(String),
 }

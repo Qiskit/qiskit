@@ -100,6 +100,6 @@ pub fn reorder_terms<'a>(
                 .collect())
         }
 
-        Err(_) => Err("An error ocurred while coloring Pauli sparse terms"),
+        Err(_) => Err("Unexpected error when coloring Pauli sparse terms"),
     }
 }

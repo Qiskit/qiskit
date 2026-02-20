@@ -24,6 +24,7 @@ rand.workspace = true
 rand_pcg.workspace = true
 rand_distr.workspace = true
 itertools.workspace = true
+thiserror.workspace = true
 
 [dependencies.pyo3]
 workspace = true
