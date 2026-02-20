@@ -275,8 +275,9 @@ def zz_feature_map(
         ┤ H ├┤ P(2.0*φ(x[2])) ├─────────────────────────────────┤ X ├┤ P(2.0*φ(x[1],x[2])) ├┤ X ├
         └───┘└────────────────┘                                 └───┘└─────────────────────┘└───┘
 
-    where :math:`\varphi` is a classical non-linear function, which defaults to :math:`\varphi(x) = x`
-    if and :math:`\varphi(x,y) = (\pi - x)(\pi - y)`.
+    where :math:`\varphi` is a classical non-linear function, which defaults to
+    :math:`\varphi(x) = x` for single-qubit terms and :math:`\varphi(x,y) = (\pi - x)(\pi - y)`
+    for two-qubit terms.
 
     Examples:
 

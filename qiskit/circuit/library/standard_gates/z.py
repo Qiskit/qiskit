@@ -108,7 +108,7 @@ class ZGate(SingletonGate):
 
         For a single control qubit, the controlled gate is implemented as a
         :class:`.CZGate`. For two control qubits, the controlled gate is implemented
-        as a :class:`.CCZGate`. In these cases, the the value of ``annotated`` is ignored.
+        as a :class:`.CCZGate`. In these cases, the value of ``annotated`` is ignored.
 
         For three or more control qubits, the controlled gate is implemented
         as either :class:`.ControlledGate` when ``annotated`` is ``False``, and

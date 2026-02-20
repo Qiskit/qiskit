@@ -917,7 +917,7 @@ class MCXGate(ControlledGate):
             "Instead, it is recommended to use MCXGate and let HighLevelSynthesis choose "
             "the best synthesis method depending on the number of ancilla qubits available. "
             "However, if a specific synthesis method using a specific number of ancilla "
-            "qubits is require, one can create a custom gate by calling the corresponding "
+            "qubits is required, one can create a custom gate by calling the corresponding "
             "synthesis function directly."
         ),
         since="2.1",

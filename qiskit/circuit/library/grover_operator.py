@@ -56,7 +56,7 @@ def grover_operator(
 
     This class allows setting a different state preparation, as in quantum amplitude
     amplification (a generalization of Grover's algorithm), :math:`\mathcal{A}` might not be
-    a layer of Hardamard gates [3].
+    a layer of Hadamard gates [3].
 
     The action of the phase oracle :math:`\mathcal{S}_f` is defined as
 
@@ -310,7 +310,7 @@ class GroverOperator(QuantumCircuit):
 
     This class allows setting a different state preparation, as in quantum amplitude
     amplification (a generalization of Grover's algorithm), :math:`\mathcal{A}` might not be
-    a layer of Hardamard gates [3].
+    a layer of Hadamard gates [3].
 
     The action of the phase oracle :math:`\mathcal{S}_f` is defined as
 

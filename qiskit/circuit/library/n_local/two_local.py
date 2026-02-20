@@ -39,7 +39,7 @@ class TwoLocal(NLocal):
 
     A set of default entanglement strategies is provided:
 
-    * ``'full'`` entanglement is each qubit is entangled with all the others.
+    * ``'full'`` entanglement is where each qubit is entangled with all the others.
     * ``'linear'`` entanglement is qubit :math:`i` entangled with qubit :math:`i + 1`,
       for all :math:`i \in \{0, 1, ... , n - 2\}`, where :math:`n` is the total number of qubits.
     * ``'reverse_linear'`` entanglement is qubit :math:`i` entangled with qubit :math:`i + 1`,
@@ -176,7 +176,7 @@ class TwoLocal(NLocal):
             num_qubits: The number of qubits of the two-local circuit.
             rotation_blocks: The gates used in the rotation layer. Can be specified via the name of
                 a gate (e.g. ``'ry'``) or the gate type itself (e.g. :class:`.RYGate`).
-                If only one gate is provided, the gate same gate is applied to each qubit.
+                If only one gate is provided, the same gate is applied to each qubit.
                 If a list of gates is provided, all gates are applied to each qubit in the provided
                 order.
                 See the Examples section for more detail.

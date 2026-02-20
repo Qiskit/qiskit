@@ -67,7 +67,7 @@ class RZGate(Gate):
     def __init__(self, phi: ParameterValueType, label: str | None = None):
         """
         Args:
-            theta: The rotation angle.
+            phi: The rotation angle.
             label: An optional label for the gate.
         """
         super().__init__("rz", 1, [phi], label=label)

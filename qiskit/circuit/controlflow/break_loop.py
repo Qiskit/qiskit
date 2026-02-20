@@ -29,7 +29,7 @@ class BreakLoopOp(Instruction):
         """
         Args:
             num_qubits: the number of qubits this affects.
-            num_clbits: the number of qubits this affects.
+            num_clbits: the number of clbits this affects.
             label: an optional string label for the instruction.
         """
         super().__init__("break_loop", num_qubits, num_clbits, [], label=label)

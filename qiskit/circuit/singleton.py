@@ -132,7 +132,7 @@ If your constructor does not have defaults for all its arguments, you must set
 
 Subclasses of :class:`SingletonInstruction` and the other associated classes can control how their
 constructor's arguments are interpreted, in order to help the singleton machinery return the
-singleton even in the case than an optional argument is explicitly set to its default.
+singleton even in the case that an optional argument is explicitly set to its default.
 
 .. automethod:: SingletonInstruction._singleton_lookup_key
 

@@ -624,7 +624,7 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
         This will build a circuit which contains all of the necessary qubits and clbits and no
         others.
 
-        The ``qubits`` and ``clbits`` arguments should be sets that contains all the resources in
+        The ``qubits`` and ``clbits`` arguments should be sets that contain all the resources in
         the outer scope; these will be passed down to inner placeholder instructions, so they can
         apply themselves across the whole scope should they need to.  The resulting
         :obj:`.QuantumCircuit` will be defined over a (nonstrict) subset of these resources.  This

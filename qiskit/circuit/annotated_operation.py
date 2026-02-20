@@ -97,7 +97,7 @@ class AnnotatedOperation(Operation):
         inverted and then controlled by 2 qubits.
         """
         self.base_op = base_op
-        """The base operation that the modifiers in this annotated operation applies to."""
+        """The base operation that the modifiers in this annotated operation apply to."""
         self.modifiers = modifiers if isinstance(modifiers, list) else [modifiers]
         """Ordered sequence of the modifiers to apply to :attr:`base_op`.  The modifiers are applied
         in order from lowest index to highest index."""

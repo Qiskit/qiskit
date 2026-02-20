@@ -82,7 +82,7 @@ def evolved_operator_ansatz(
         insert_barriers: Whether to insert barriers in between each evolution.
         name: The name of the circuit.
         parameter_prefix: Set the names of the circuit parameters. If a string, the same prefix
-            will be used for each parameters. Can also be a list to specify a prefix per
+            will be used for each parameter. Can also be a list to specify a prefix per
             operator.
         remove_identities: If ``True``, ignore identity operators (note that we do not check
             :class:`.Operator` inputs). This will also remove parameters associated with identities.
@@ -254,7 +254,7 @@ def hamiltonian_variational_ansatz(
         insert_barriers: Whether to insert barriers in between each evolution.
         name: The name of the circuit.
         parameter_prefix: Set the names of the circuit parameters. If a string, the same prefix
-            will be used for each parameters. Can also be a list to specify a prefix per
+            will be used for each parameter. Can also be a list to specify a prefix per
             operator.
 
     References:
@@ -310,7 +310,7 @@ class EvolvedOperatorAnsatz(NLocal):
             insert_barriers: Whether to insert barriers in between each evolution.
             name: The name of the circuit.
             parameter_prefix: Set the names of the circuit parameters. If a string, the same prefix
-                will be used for each parameters. Can also be a list to specify a prefix per
+                will be used for each parameter. Can also be a list to specify a prefix per
                 operator.
             initial_state: A :class:`.QuantumCircuit` object to prepend to the circuit.
             flatten: Set this to ``True`` to output a flat circuit instead of nesting it inside multiple
