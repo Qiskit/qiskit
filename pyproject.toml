@@ -188,7 +188,7 @@ build = ["setuptools>=77.0", "setuptools-rust"]
 # We use quite tight pins on pylint and astroid because they have a habit of adding new
 # on-by-default lints that are harder to deal with.
 lint = [
-    "ruff==0.14.14",
+    "ruff==0.15.2",
     "reno>=4.1.0",  # duplicated with `doc`
     "black[jupyter]~=25.1",
 ]
