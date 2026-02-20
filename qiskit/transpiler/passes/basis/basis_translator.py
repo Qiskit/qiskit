@@ -84,7 +84,15 @@ class BasisTranslator(TransformationPass):
     :ref:`custom_basis_gates` for details on adding custom equivalence rules.
     """
 
-    def __init__(self, equivalence_library, target_basis, target=None, min_qubits=0):
+    def __init__(
+        self,
+        equivalence_library,
+        target_basis,
+        target=None,
+        min_qubits=0,
+        *,
+        propagate_labels=True,
+    ):
         """Initialize a BasisTranslator instance.
 
         Args:
@@ -95,6 +103,10 @@ class BasisTranslator(TransformationPass):
             target (Target): The backend compilation target
             min_qubits (int): The minimum number of qubits for operations in the input
                 dag to translate.
+            propagate_labels (bool): If ``True`` (the default), gate labels from
+                the original gate are propagated to each gate in the decomposed
+                replacement circuit. If ``False``, labels are dropped during
+                decomposition.
         """
         super().__init__()
         self._equiv_lib = equivalence_library
@@ -103,6 +115,7 @@ class BasisTranslator(TransformationPass):
         # not part of the official target model.
         self._target = target if target is not None and len(target.operation_names) > 0 else None
         self._min_qubits = min_qubits
+        self._propagate_labels = propagate_labels
 
     def run(self, dag):
         """Translate an input DAGCircuit to the target basis.
@@ -123,6 +136,7 @@ class BasisTranslator(TransformationPass):
             self._min_qubits,
             self._target,
             None if self._target_basis is None else set(self._target_basis),
+            self._propagate_labels,
         )
         # If Rust-space basis translation returns `None`, it's because the input DAG is already
         # suitable and it didn't need to modify anything.

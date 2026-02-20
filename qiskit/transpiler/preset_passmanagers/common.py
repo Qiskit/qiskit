@@ -247,7 +247,9 @@ def generate_unroll_3q(
     if basis_gates is None and target is None:
         unroll_3q.append(Unroll3qOrMore(target, basis_gates))
     else:
-        unroll_3q.append(BasisTranslator(sel, basis_gates, target=target, min_qubits=3))
+        unroll_3q.append(
+            BasisTranslator(sel, basis_gates, target=target, min_qubits=3, propagate_labels=False)
+        )
     return unroll_3q
 
 
@@ -468,7 +470,7 @@ def generate_translation_passmanager(
         return PassManager([])
 
     if method == "translator":
-        translator = BasisTranslator(sel, basis_gates, target)
+        translator = BasisTranslator(sel, basis_gates, target, propagate_labels=False)
         unroll = [
             # Use unitary synthesis for basis aware decomposition of
             # UnitaryGates before custom unrolling
@@ -528,7 +530,7 @@ def generate_translation_passmanager(
             # Note that we do not want to make any assumptions on which Clifford gates are present
             # in basis_gates. The BasisTranslator will do the conversion if possible (and provide
             # a helpful error message otherwise).
-            BasisTranslator(sel, extended_basis_gates, None),
+            BasisTranslator(sel, extended_basis_gates, None, propagate_labels=False),
             # The next step is to resynthesize blocks of consecutive 1q-gates into Clifford+T.
             # Use Collect1qRuns and ConsolidateBlocks passes to replace such blocks by 1q "unitary"
             # gates.
@@ -559,11 +561,11 @@ def generate_translation_passmanager(
             ),
             # Finally, we use BasisTranslator to translate Clifford+T circuit to the actually
             # specified set of basis gates.
-            BasisTranslator(sel, basis_gates, target),
+            BasisTranslator(sel, basis_gates, target, propagate_labels=False),
         ]
         # We use the BasisTranslator pass to translate any 1q-gates added by GateDirection
         # into basis_gates.
-        translator = BasisTranslator(sel, basis_gates, target)
+        translator = BasisTranslator(sel, basis_gates, target, propagate_labels=False)
         fix_1q = [translator]
     elif method == "synthesis":
         unroll = [
