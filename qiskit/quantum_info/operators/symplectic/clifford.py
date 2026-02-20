@@ -631,7 +631,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
 
     @classmethod
     def from_operator(cls, operator: Operator) -> Clifford:
-        """Create a Clifford from a operator.
+        """Create a Clifford from an operator.
 
         Note that this function takes exponentially long time w.r.t. the number of qubits.
 

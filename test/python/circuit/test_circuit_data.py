@@ -468,7 +468,7 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
     """QuantumCircuit.data operation tests."""
 
     # N.B. Most of the cases here are not expected use cases of circuit.data
-    # but are included as tests to maintain compatability with the previous
+    # but are included as tests to maintain compatibility with the previous
     # list interface of circuit.data.
 
     def test_iteration_of_data_entry(self):

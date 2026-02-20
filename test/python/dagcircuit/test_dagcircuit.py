@@ -1686,7 +1686,7 @@ class TestCircuitControlFlowProperties(DAGTest):
                 # This for loop contributes 3x to size and depth.
                 with qc.for_loop((4, 0, 1)):
                     qc.z(2)
-        # While loops contribute 1x to both size and depth, so thsi
+        # While loops contribute 1x to both size and depth, so this
         with qc.while_loop((qc.clbits[0], True)):
             qc.h(0)
             qc.measure(0, 0)
@@ -3212,7 +3212,7 @@ class TestSwapNodes(DAGTest):
         self.assertEqual(dag, expected)
 
     def test_2q_swap_fully_connected(self):
-        """test swaping full connected 2q gates"""
+        """test swapping full connected 2q gates"""
         dag = DAGCircuit()
         qreg = QuantumRegister(2)
         dag.add_qreg(qreg)

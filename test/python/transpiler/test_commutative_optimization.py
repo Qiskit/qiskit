@@ -1152,7 +1152,7 @@ measure q0[1] -> c0[1];
         self.assertEqual(qc, qct)
 
     def test_circuit_with_clbits(self):
-        """Test optimization for circuit wih classical bits."""
+        """Test optimization for circuit with classical bits."""
         qc = QuantumCircuit(2, 2)
         qc.cx(0, 1)
         qc.z(0)

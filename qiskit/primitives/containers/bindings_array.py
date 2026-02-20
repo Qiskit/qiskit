@@ -220,7 +220,7 @@ class BindingsArray(ShapedMixin):
 
         Args:
             circuit: The circuit to bind.
-            loc: A tuple of indices, on for each dimension of this array.
+            loc: A tuple of indices, one for each dimension of this array.
 
         Returns:
             The bound circuit.

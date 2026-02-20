@@ -149,7 +149,7 @@ class Isometry(Instruction):
         remaining_isometry = self.iso_data.astype(complex)  # note: "astype" does copy the isometry
         diag = []
         m = int(math.log2(self.iso_data.shape[1]))
-        # Decompose the column with index column_index and attache the gate to the circuit object.
+        # Decompose the column with index column_index and attach the gate to the circuit object.
         # Return the isometry that is left to decompose, where the columns up to index column_index
         # correspond to the firstfew columns of the identity matrix up to diag, and hence we only
         # have to save a list containing them.

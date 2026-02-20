@@ -1606,7 +1606,7 @@ class TestOpenControlledToMatrix(QiskitTestCase):
     def test_open_controlled_to_matrix(self, gate_class, ctrl_state):
         """Test open controlled to_matrix."""
         if gate_class in {SingletonControlledGate, _SingletonControlledGateOverrides}:
-            self.skipTest("SingletonGateClass isn't intended for direct initalization")
+            self.skipTest("SingletonGateClass isn't intended for direct initialization")
 
         if gate_class is MCMTGate:
             # parameters are (base_gate, num_controls, num_targets)

@@ -321,7 +321,7 @@ def load(
         filename: the filename to load the program from.
         num_qubits: keyword argument which provides number of physical/virtual qubits.
         annotation_handlers: a mapping whose keys are (parent) namespaces and values are serializers
-            that can handle children of those namesapces.  Requires ``qiskit_qasm3_import>=0.6.0``.
+            that can handle children of those namespaces.  Requires ``qiskit_qasm3_import>=0.6.0``.
     Returns:
         QuantumCircuit: a circuit representation of the OpenQASM 3 program.
 
@@ -373,7 +373,7 @@ def loads(
         program: the OpenQASM 3 program.
         num_qubits: provides number of physical/virtual qubits.
         annotation_handlers: a mapping whose keys are (parent) namespaces and values are serializers
-            that can handle children of those namesapces.  Requires ``qiskit_qasm3_import>=0.6.0``.
+            that can handle children of those namespaces.  Requires ``qiskit_qasm3_import>=0.6.0``.
     Returns:
         QuantumCircuit: a circuit representation of the OpenQASM 3 program.
 

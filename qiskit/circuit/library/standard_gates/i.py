@@ -59,7 +59,7 @@ class IGate(SingletonGate):
     _singleton_lookup_key = stdlib_singleton_key()
 
     def inverse(self, annotated: bool = False):
-        """Returne the inverse gate (itself).
+        """Returns the inverse gate (itself).
 
         Args:
             annotated: when set to ``True``, this is typically used to return an

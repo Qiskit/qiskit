@@ -189,7 +189,7 @@ def n_local(
         circuit = n_local(3, "x", "crx", entangler_map, reps=2)
         circuit.draw("mpl")
 
-    We can set different entanglements per layer, by specifing a callable that takes
+    We can set different entanglements per layer, by specifying a callable that takes
     as input the current layer index, and returns the entanglement structure. For example,
     the following uses different entanglements for odd and even layers:
 
@@ -1271,7 +1271,7 @@ def get_entangler_map(
         qubits on ``num_circuit_qubits`` qubits.
 
     Raises:
-        ValueError: If the entanglement mode ist not supported.
+        ValueError: If the entanglement mode is not supported.
     """
     try:
         return fast_entangler_map(num_circuit_qubits, num_block_qubits, entanglement, offset)

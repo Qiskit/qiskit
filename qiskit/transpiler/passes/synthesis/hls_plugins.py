@@ -2290,7 +2290,7 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
         # Note that synthesize_operation also returns the output qubits on which the
         # operation is defined, however currently the plugin mechanism has no way
         # to return these (and instead the upstream code greedily grabs some ancilla
-        # qubits from the circuit). We should refactor the plugin "run" iterface to
+        # qubits from the circuit). We should refactor the plugin "run" interface to
         # return the actual ancilla qubits used.
         synthesized_base_op_result = synthesize_operation(
             operation.base_op, base_qubits, base_synthesis_data, annotated_tracker

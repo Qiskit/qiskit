@@ -2100,7 +2100,7 @@ class TestTranspile(QiskitTestCase):
         self.assertNotIn("barrier", tqc.count_ops())
 
     @data(0, 1, 2, 3)
-    def test_barrier_not_output_input_preservered(self, opt_level):
+    def test_barrier_not_output_input_preserved(self, opt_level):
         """Test that barriers added as part internal transpiler operations do not leak out."""
         qc = QuantumCircuit(2, 2)
         qc.cx(0, 1)
@@ -2193,7 +2193,7 @@ class TestTranspile(QiskitTestCase):
     @data(0, 1, 2, 3)
     def test_no_cancelling_around_box(self, level):
         """Test that operations aren't cancelled through the walls of a 'box'."""
-        # In linear opeartion, we do cz(0,1) - cz(0,1) - cx(1,2) - cx(1,2), so without the `box`,
+        # In linear operation, we do cz(0,1) - cz(0,1) - cx(1,2) - cx(1,2), so without the `box`,
         # the circuit would optimise to the identity.  We want to be sure that the box itself is
         # treated as atomic, though.
         qc = QuantumCircuit(3)

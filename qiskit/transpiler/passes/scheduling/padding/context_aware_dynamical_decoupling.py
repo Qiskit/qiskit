@@ -149,7 +149,7 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
         self._skip_reset_qubits = skip_reset_qubits
         self._skip_dd_threshold = skip_dd_threshold
         self._target = target
-        self._coupling_map = target.build_coupling_map()  # build once and re-use for performance
+        self._coupling_map = target.build_coupling_map()  # build once and reuse for performance
         self._pulse_alignment = (
             target.pulse_alignment if pulse_alignment is None else pulse_alignment
         )

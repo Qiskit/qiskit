@@ -13,7 +13,7 @@
 
 """Multi controlled single-qubit unitary up to diagonal."""
 
-# ToDo: This code should be merged wth the implementation of MCGs
+# ToDo: This code should be merged with the implementation of MCGs
 # ToDo: (introducing a decomposition mode "up_to_diagonal").
 
 import numpy as np

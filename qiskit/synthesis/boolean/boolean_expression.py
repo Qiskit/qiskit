@@ -73,7 +73,7 @@ class TruthTable:
     def __str__(self) -> str:
         if self.explicit_storage:
             return "".join(
-                "1" if self[assignemnt] else "0" for assignemnt in self.all_assignments()
+                "1" if self[assignment] else "0" for assignment in self.all_assignments()
             )
         else:
             return f"Truth table on {self.num_bits} bits (implicit representation)"
@@ -169,7 +169,7 @@ class BooleanExpression:
             EsopGenerator,
         )  # import here to avoid cyclic import
 
-        # generating the esop currntly requires generating the full truth table
+        # generating the esop currently requires generating the full truth table
         # there are many optimizations that can be done to improve this step
         esop = EsopGenerator(self.truth_table).esop
         if circuit_type == "bit":

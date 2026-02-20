@@ -857,8 +857,8 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
         expected.delay(200, [0])
         self.assertEqual(expected, scheduled)
 
-    def test_paramaterized_global_phase(self):
-        """Test paramaterized global phase in DD circuit.
+    def test_parameterized_global_phase(self):
+        """Test parameterized global phase in DD circuit.
         See:https://github.com/Qiskit/qiskit-terra/issues/10569
         """
         dd_sequence = [XGate(), YGate()] * 2

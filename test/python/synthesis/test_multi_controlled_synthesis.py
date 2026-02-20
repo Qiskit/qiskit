@@ -372,7 +372,7 @@ class TestMCSynthesisCounts(QiskitTestCase):
         synthesized_circuit = synth_c4x()
         transpiled_circuit = self.pm.run(synthesized_circuit)
         cx_count = transpiled_circuit.count_ops()["cx"]
-        # The bound from the default constuction for C4X
+        # The bound from the default construction for C4X
         self.assertLessEqual(cx_count, 36)
 
     @combine(

@@ -20,7 +20,7 @@ from .make_observable import make_dict_observable
 
 
 def average_data(counts: dict, observable: dict | np.ndarray | list) -> float:
-    """Compute the mean value of an diagonal observable.
+    """Compute the mean value of a diagonal observable.
 
     Takes in a diagonal observable in dictionary, list or matrix format and then
     calculates the sum_i value(i) P(i) where value(i) is the value of the

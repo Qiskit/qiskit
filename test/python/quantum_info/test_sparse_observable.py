@@ -61,7 +61,7 @@ def lnn_target(num_qubits):
 
 
 class AllowRightArithmetic:
-    """Some type that implements only the right-hand-sided arithmatic operations, and allows
+    """Some type that implements only the right-hand-sided arithmetic operations, and allows
     `SparseObservable` to pass through them.
 
     The purpose of this is to detect that `SparseObservable` is correctly delegating binary

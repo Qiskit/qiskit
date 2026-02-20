@@ -263,7 +263,7 @@ class PauliEvolutionGate(Gate):
         regardless of the value of ``annotated``.
 
         Args:
-            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            num_ctrl_qubits: Number of controls to add. Defaults to ``1``.
             label: A label for the resulting Pauli evolution gate, to display in visualizations.
                 Per default, the label is set to ``exp(-it <operators>)`` where ``<operators>``
                 is the sum of the Paulis. Note that the label does not include any coefficients

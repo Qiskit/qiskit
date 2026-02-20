@@ -478,7 +478,7 @@ def _prepend_y(clifford, qubit):
 
 
 def _append_z(clifford, qubit):
-    """Apply an Z gate to a Clifford.
+    """Apply a Z gate to a Clifford.
 
     Args:
         clifford (Clifford): a Clifford.

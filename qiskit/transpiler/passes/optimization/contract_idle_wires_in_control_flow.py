@@ -30,7 +30,7 @@ class ContractIdleWiresInControlFlow(TransformationPass):
                 continue
             replacement = DAGCircuit()
             # Dictionaries to retain insertion order for reproducibility, and because we can
-            # then re-use them as mapping dictionaries.
+            # then reuse them as mapping dictionaries.
             qubits, clbits, vars_ = {}, {}, {}
             for _, _, wire in dag.edges(node):
                 if isinstance(wire, Qubit):

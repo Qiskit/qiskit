@@ -25,7 +25,7 @@ from ._utils import _ctrl_state_to_int
 
 
 # The list of gates whose controlled versions have efficient synthesis algorithms.
-# For example, a controlled version of X is MCX (with many synthesis algorithms avalable),
+# For example, a controlled version of X is MCX (with many synthesis algorithms available),
 # and a controlled version of Z is MCX + two Hadamard gates.
 #
 # Note: when adding a new gate to this list, also add the decomposition of its controlled

@@ -220,7 +220,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
 
     def test_plot_histogram(self):
         """for testing the plot_histogram"""
-        # specifing counts because we do not want oscillation of
+        # specifying counts because we do not want oscillation of
         # result until a changes is made to plot_histogram
 
         counts = {"11": 500, "00": 500}
