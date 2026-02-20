@@ -100,7 +100,7 @@ class CommutationChecker:
             approximation_degree: If the average gate fidelity in between the two operations
                 is above this number (up to ``1e-12``) they are assumed to commute.
             matrix_max_num_qubits: the maximum number of qubits for which it is allowed to compute
-                the matrix representation. This is needed if there is no efficient heck readily
+                the matrix representation. This is needed if there is no efficient check readily
                 available, e.g. for custom gates.
 
         Returns:

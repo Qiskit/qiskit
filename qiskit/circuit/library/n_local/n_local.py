@@ -108,7 +108,7 @@ def n_local(
     gate should acts, e.g. ``[[ctrl0, target0], [ctrl1, target1], ...]``.
     A set of default entanglement strategies is provided and can be selected by name:
 
-    * ``"full"`` entanglement is each qubit is entangled with all the others.
+    * ``"full"`` entanglement is where each qubit is entangled with all the others.
     * ``"linear"`` entanglement is qubit :math:`i` entangled with qubit :math:`i + 1`,
         for all :math:`i \in \{0, 1, ... , n - 2\}`, where :math:`n` is the total number of qubits.
     * ``"reverse_linear"`` entanglement is qubit :math:`i` entangled with qubit :math:`i + 1`,

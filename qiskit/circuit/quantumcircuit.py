@@ -332,7 +332,7 @@ class QuantumCircuit:
 
     Similarly, if you want a circuit that contains all the same data objects (bits, registers,
     variables, etc) but with none of the instructions, you can use :meth:`copy_empty_like`.  This is
-    quite common when you want to build up a new layer of a circuit to then use apply onto the back
+    quite common when you want to build up a new layer of a circuit to then apply onto the back
     with :meth:`compose`, or to do a full rewrite of a circuit's instructions.
 
     .. automethod:: copy_empty_like
@@ -419,7 +419,7 @@ class QuantumCircuit:
     -------------------------------
 
     A :class:`.Bit` instance is, on its own, just a unique handle for circuits to use in their own
-    contexts.  If you have got a :class:`.Bit` instance and a circuit, just can find the contexts
+    contexts.  If you have got a :class:`.Bit` instance and a circuit, you can find the contexts
     that the bit exists in using :meth:`find_bit`, such as its integer index in the circuit and any
     registers it is contained in.
 
@@ -812,7 +812,7 @@ class QuantumCircuit:
 
     :class:`QuantumCircuit` has corresponding methods for all of the control-flow operations that
     are supported by Qiskit.  These have two forms for calling them.  The first is a very
-    straightfowards convenience wrapper that takes in the block bodies of the instructions as
+    straightforward convenience wrapper that takes in the block bodies of the instructions as
     :class:`QuantumCircuit` arguments, and simply constructs and appends the corresponding
     :class:`.ControlFlowOp`.
 
@@ -978,7 +978,7 @@ class QuantumCircuit:
     ==============================
 
     Circuits are a fairly low-level abstraction of quantum algorithms.  However, even within this,
-    there are distinctions. Quantum programmers often want to use a wide arrange of gates and
+    there are distinctions. Quantum programmers often want to use a wide array of gates and
     instructions, and work in a regime where all qubits and interact with all others.  Quantum
     hardware, however, typically has a restrictive set of native gates, and only certain pairs of
     hardware qubits can interact.  We term these two regimes "abstract circuits" and "physical
@@ -3920,7 +3920,7 @@ class QuantumCircuit:
                   the location specified in ``~/.qiskit/settings.conf``.
                 * If a dictionary, every entry overrides the default configuration. If the
                   ``"name"`` key is given, the default configuration is given by that style.
-                  For example, ``{"name": "textbook", "subfontsize": 5}`` loads the ``"texbook"``
+                  For example, ``{"name": "textbook", "subfontsize": 5}`` loads the ``"textbook"``
                   style and sets the subfontsize (e.g. the gate angles) to ``5``.
                 * If ``None`` the default style ``"iqp"`` is used or, if given, the default style
                   specified in ``~/.qiskit/settings.conf``.
@@ -3947,7 +3947,7 @@ class QuantumCircuit:
                 the ``text`` output, will be silently ignored otherwise.
             idle_wires: Include (or not) idle wires (wires with no circuit elements)
                 in output visualization. The string ``"auto"`` is also possible, in which
-                case idle wires are show except that the circuit has a layout attached.
+                case idle wires are shown except when the circuit has a layout attached.
                 Default is ``"auto"`` unless the
                 user config file (usually ``~/.qiskit/settings.conf``) has an
                 alternative value set. For example, ``circuit_idle_wires = False``.
@@ -3975,7 +3975,7 @@ class QuantumCircuit:
             expr_len: The number of characters to display if an :class:`~.expr.Expr`
                 is used for the condition in a :class:`.ControlFlowOp`. If this number is exceeded,
                 the string will be truncated at that number and '...' added to the end.
-            measure_arrows: If True, draw an arrow from each measure box down the the classical bit
+            measure_arrows: If True, draw an arrow from each measure box down to the classical bit
                 or register where the measure value is placed. If False, do not draw arrow, but
                 instead place the name of the bit or register in the measure box.
                 Default is ``True`` unless the user config file (usually ``~/.qiskit/settings.conf``)
@@ -4218,7 +4218,7 @@ class QuantumCircuit:
         """Get instructions matching name.
 
         Args:
-            name (str): The name of instruction to.
+            name (str): The name of instruction to get.
 
         Returns:
             list(tuple): list of (instruction, qargs, cargs).
@@ -5207,7 +5207,7 @@ class QuantumCircuit:
         For the full matrix form of this gate, see the underlying gate documentation.
 
         Args:
-            theta: THe angle of the rotation.
+            theta: The angle of the rotation.
             qubit: The qubit(s) to apply the gate to.
 
         Returns:
@@ -7025,7 +7025,7 @@ class QuantumCircuit:
                 if given an iterable of :class:`.Annotation` objects, the context-manager form of
                 this method is triggered.
             qubits: the qubits to apply the :class:`.BoxOp` to, in the explicit form.
-            clbits: the qubits to apply the :class:`.BoxOp` to, in the explicit form.
+            clbits: the clbits to apply the :class:`.BoxOp` to, in the explicit form.
             label: an optional string label for the instruction.
             duration: an optional explicit duration for the :class:`.BoxOp`.  Scheduling passes are
                 constrained to schedule the contained scope to match a given duration, including
