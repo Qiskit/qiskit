@@ -36,7 +36,7 @@ nom-unicode = "0.4"
 nom-language = "0.1"
 rand = "0.9"
 rand_pcg = "0.9"
-rand_distr = "0.5"
+rand_distr = "0.6"
 num-traits = "0.2"
 uuid = { version = "1.21", features = ["v4", "fast-rng"], default-features = false }
 anyhow = "1.0"
