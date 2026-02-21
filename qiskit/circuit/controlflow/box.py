@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -57,7 +57,7 @@ class BoxOp(ControlFlowOp):
         Args:
             body: the circuit to use as the body of the box.  This should explicitly close over any
                 :class:`.expr.Var` variables that must be incident from the outer circuit.  The
-                required number of qubit and clbits for the resulting instruction are inferred from
+                required number of qubits and clbits for the resulting instruction are inferred from
                 the number in the circuit, even if they are idle.
             duration: an optional duration for the box as a whole.
             unit: the unit of the ``duration``.

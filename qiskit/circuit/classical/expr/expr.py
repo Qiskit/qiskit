@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -92,7 +92,7 @@ class _BinaryOp(enum.Enum):
     right-hand operand.  In all cases, the output bit width is the same as the input, and zeros
     fill in the "exposed" spaces.
 
-    The binary arithmetic operators :data:`ADD`, :data:`SUB:, :data:`MUL`, and :data:`DIV`
+    The binary arithmetic operators :data:`ADD`, :data:`SUB`, :data:`MUL`, and :data:`DIV`
     can be applied to two floats or two unsigned integers, which should be made to be of
     the same width during construction via a cast.
     The :data:`ADD`, :data:`SUB`, and :data:`DIV` operators can be applied on two durations

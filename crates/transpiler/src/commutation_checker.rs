@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -145,7 +145,7 @@ fn try_extract_op_from_pauli_gate(
     // In that case we return None.
     Python::attach(|py| {
         let py_obs = gate
-            .gate
+            .instruction
             .call_method0(py, intern!(py, "_extract_sparse_observable"))
             .ok()? // Return None if the method didn't exist
             .cast_bound::<PySparseObservable>(py)
@@ -170,7 +170,7 @@ fn try_extract_op_from_pauli_evo(
 
     Python::attach(|py| {
         let py_obs = gate
-            .gate
+            .instruction
             .call_method0(py, intern!(py, "_extract_sparse_observable"))
             .ok()? // Return None if the method didn't exist
             .cast_bound::<PySparseObservable>(py)
@@ -322,10 +322,10 @@ impl CommutationChecker {
     #[allow(clippy::too_many_arguments)]
     fn py_commute(
         &mut self,
-        op1: OperationFromPython,
+        op1: OperationFromPython<Py<PyAny>>,
         qargs1: &Bound<'_, PyTuple>,
         cargs1: &Bound<'_, PyTuple>,
-        op2: OperationFromPython,
+        op2: OperationFromPython<Py<PyAny>>,
         qargs2: &Bound<'_, PyTuple>,
         cargs2: &Bound<'_, PyTuple>,
         max_num_qubits: Option<u32>,
@@ -642,7 +642,7 @@ impl CommutationChecker {
         tol: f64,
     ) -> Result<bool, CommutationError> {
         // Compute relative positioning of qargs of the second gate to the first gate.
-        // Since the qargs come out the same BitData, we already know there are no accidential
+        // Since the qargs come out the same BitData, we already know there are no accidental
         // bit-duplications, but this code additionally maps first_qargs to [0..n] and then
         // computes second_qargs relative to that. For example, it performs the mappings
         //  (first_qargs, second_qargs) = ( [1, 2], [0, 2] ) --> ( [0, 1], [2, 1] )
@@ -825,7 +825,7 @@ pub fn try_matrix_with_definition(
             Some(
                 QI_OPERATOR
                     .get_bound(py)
-                    .call1((gate.gate.clone_ref(py),))
+                    .call1((gate.instruction.clone_ref(py),))
                     .ok()?
                     .getattr(intern!(py, "data"))
                     .ok()?
@@ -845,7 +845,7 @@ pub fn try_matrix_with_definition(
             Some(
                 QI_OPERATOR
                     .get_bound(py)
-                    .call1((operation.operation.clone_ref(py),))
+                    .call1((operation.instruction.clone_ref(py),))
                     .ok()?
                     .getattr(intern!(py, "data"))
                     .ok()?

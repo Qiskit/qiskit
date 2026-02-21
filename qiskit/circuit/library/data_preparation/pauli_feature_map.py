@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -274,8 +274,9 @@ def zz_feature_map(
         ┤ H ├┤ P(2.0*φ(x[2])) ├─────────────────────────────────┤ X ├┤ P(2.0*φ(x[1],x[2])) ├┤ X ├
         └───┘└────────────────┘                                 └───┘└─────────────────────┘└───┘
 
-    where :math:`\varphi` is a classical non-linear function, which defaults to :math:`\varphi(x) = x`
-    if and :math:`\varphi(x,y) = (\pi - x)(\pi - y)`.
+    where :math:`\varphi` is a classical non-linear function, which defaults to
+    :math:`\varphi(x) = x` for single-qubit terms and :math:`\varphi(x,y) = (\pi - x)(\pi - y)`
+    for two-qubit terms.
 
     Examples:
 

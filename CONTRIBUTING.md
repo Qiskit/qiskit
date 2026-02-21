@@ -82,14 +82,27 @@ source ~/.venvs/qiskit-dev/bin/activate
 ```
 
 Upgrade pip within the environment to ensure Qiskit dependencies installed in the subsequent sections
-can be located for your system.
+can be located for your system.  You need `pip>=25.1` to use the `--group` feature used to manage
+developer dependency groups.
 
 ```
 pip install -U pip
 ```
 
+You then install Qiskit in editable mode using:
+
 ```
 pip install -e .
+```
+
+Changes to Python packages will need be picked up automatically.
+Changes to Rust files will require a recompilation; see "Installing Qiskit from source" below.
+
+You can easily install all the standard developer dependencies for in-place testing, documentation-building,
+and linting using the `dev` dependency group:
+
+```
+pip install --group dev
 ```
 
 ### Set up a Conda environment
@@ -126,18 +139,29 @@ If you use Rustup, it will automatically install the correct Rust version
 currently used by the project.
 
 Once you have a Rust compiler installed, you can rely on the normal Python
-build/install steps to install Qiskit. This means you just run
-`pip install .` in your local git clone to build and install Qiskit.
+build/install steps to install Qiskit. This means you run `pip install .` or
+`pip install -e .` in your local git clone to build and install Qiskit.
+Note that changes to Rust files will not be reflected in an editable install
+until you recompile.
 
-Do note that if you do use develop mode/editable install (via `python setup.py develop` or `pip install -e .`) the Rust extension will be built in debug mode
-without any optimizations enabled. This will result in poor runtime performance.
-If you'd like to use an editable install with an optimized binary you can
-run `python setup.py build_rust --release --inplace` after you install in
-editable mode to recompile the rust extensions in release mode.
+You can recompile the Rust components of an editable
+install by running
+```
+python setup.py build_rust --inplace [--release | --debug]
+```
+Modifications to Rust files will not take effect until the Rust extension module
+is recompiled with the above command.  You must have the "build" dependencies
+installed in your environment for this command to work.  Do this by running
+```
+pip install --group build
+```
 
-Note that in order to run `python setup.py ...` commands you need to have the 
-build dependency packages, which are listed in the `pyproject.toml` file under 
-the `[build-system]` section, installed in your environment.
+By default, `pip install .` will build the Rust components in "release" mode
+and `pip install -e .` (or `python setup.py build_rust --inplace`) will build
+them in "debug" mode, without optimizations.  Debug mode will have poor
+runtime performance.  You can set the environment variable `QISKIT_BUILD_PROFILE`
+to `release` or `debug` to control the default.  The `--release`/`--debug` flag
+to `build_rust` overrides this default.
 
 ### Compile time options
 
@@ -278,15 +302,8 @@ message summary line from the git log for the release to the changelog.
 If there are multiple `Changelog:` tags on a PR the git commit message summary
 line from the git log will be used for each changelog category tagged.
 
-The current categories for each label are as follows:
-
-| PR Label               | Changelog Category |
-| -----------------------|--------------------|
-| Changelog: Deprecation | Deprecated         |
-| Changelog: New Feature | Added              |
-| Changelog: API Change  | Changed            |
-| Changelog: Removal     | Removed            |
-| Changelog: Bugfix      | Fixed              |
+The current categories for each label are configured in `qiskit_bot.yaml` in
+the repository root.
 
 ## Release notes
 
@@ -427,6 +444,7 @@ build all the documentation into `docs/_build/html` and the release notes in
 particular will be located at `docs/_build/html/release_notes.html`
 
 ## Testing
+
 Once you've made a code change, it is important to verify that your change
 does not break any existing tests and that any new tests that you've added
 also run successfully. Before you open a new pull request for your change,
@@ -473,6 +491,13 @@ tox -epy310 -- -n test.python.compiler.test_transpiler.TestTranspile
 to run a method:
 ```
 tox -epy310 -- -n test.python.compiler.test_transpiler.TestTranspile.test_transpile_non_adjacent_layout
+```
+
+If you want to run the test suite in your local environment without using `tox` as a runner, you can
+either use the `tox devenv -e py310` command to have `tox` construct you a new development environment,
+or you can install the `test` dependency group using your package manager, such as
+```
+pip install --group test
 ```
 
 Alternatively there is a makefile provided to run tests, however this
@@ -633,6 +658,12 @@ If you're not using `tox`, you can also execute Cargo tests directly in your own
 If you haven't done so already, [create a Python virtual environment](#set-up-a-python-venv) and
 **_activate it_**.
 
+You will need to install (at least) the `build` and `test` dependency groups, such as
+```
+pip install --group build --group test
+```
+You can alternatively install the `dev` group, which encompasses both of these.
+
 Then, run the following commands:
 
 ```bash
@@ -704,8 +735,10 @@ well.
 
 ### Testing the C API
 
-The C API test suite is located at `test/c/`. It is built and run using `cmake`
-and `ctest` which can be triggered simply via:
+The C API test suite is located at `test/c/`.  This is a CMake project and uses
+CMake's `ctest` runner.  To build and run the tests, use the `ctest` recipe in
+the top-level `Makefile`, which you can run with
+
 ```bash
 make ctest
 ```
@@ -776,9 +809,13 @@ source tree, but makes up for this by being much faster (and those rare
 oversights will still be caught by the CI after you open a pull request).
 
 Because they are so fast, it is sometimes convenient to run the tools `black` and `ruff` separately
-rather than via `tox`. If you have installed the development packages in your python environment via
-`pip install -r requirements-dev.txt`, then `ruff` and `black` will be available and can be run from
-the command line. See [`tox.ini`](tox.ini) for how `tox` invokes them.
+rather than via `tox`.  You can install all the lint dependencies using the `lint` or `dev`
+dependency groups, such as by
+```
+pip install --group lint
+```
+After this, `ruff` and `black` will be available and can be run from the command line. See
+[`tox.ini`](tox.ini) for how `tox` invokes them.
 
 ### Rust style and lint
 
@@ -886,7 +923,7 @@ is a need additional release candidates can be published from `stable/*` and whe
 release is ready a full release will be tagged and published from `stable/*`.
 
 ## Adding deprecation warnings
-The qiskit code is part of Qiskit and, therefore, the [Qiskit Deprecation Policy](./DEPRECATION.md) fully applies here. Additionally, qiskit does not allow `DeprecationWarning`s in its testsuite. If you are deprecating code, you should add a test to use the new/non-deprecated method (most of the time based on the existing test of the deprecated method) and alter the existing test to check that the deprecated method still works as expected, [using `assertWarns`](https://docs.python.org/3/library/unittest.html#unittest.TestCase.assertWarns). The `assertWarns` context will silence the deprecation warning while checking that it raises.
+The Qiskit code is part of Qiskit and, therefore, the [Qiskit Deprecation Policy](./DEPRECATION.md) fully applies here. Additionally, Qiskit's testsuite breaks if a `DeprecationWarning` is emitted. If you are deprecating code, you should add a test to use the new/non-deprecated method (most of the time based on the existing test of the deprecated method) and alter the existing test to check that the deprecated method still works as expected, [using `assertWarns`](https://docs.python.org/3/library/unittest.html#unittest.TestCase.assertWarns). The `assertWarns` context will silence the deprecation warning while checking that it raises.
 
 For example, if `Obj.method1` is being deprecated in favour of `Obj.method2`, the existing test (or tests) for `method1` might look like this:
 

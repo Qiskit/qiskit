@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -100,7 +100,7 @@ def lift(value: typing.Any, /, type: types.Type | None = None) -> Expr:
 
         The type of the return value can be influenced, if the given value could be interpreted
         losslessly as the given type (use :func:`cast` to perform a full set of casting
-        operations, include lossy ones)::
+        operations, including lossy ones)::
 
             >>> from qiskit.circuit import ClassicalRegister
             >>> from qiskit.circuit.classical import expr, types
@@ -334,7 +334,7 @@ def logic_and(left: typing.Any, right: typing.Any, /) -> Expr:
 
             >>> from qiskit.circuit import Clbit
             >>> from qiskit.circuit.classical import expr
-            >>> expr.logical_and(Clbit(), Clbit())
+            >>> expr.logic_and(Clbit(), Clbit())
             Binary(Binary.Op.LOGIC_AND, Var(<clbit 0>, Bool()), Var(<clbit 1>, Bool()), Bool())
     """
     return _binary_logical(Binary.Op.LOGIC_AND, left, right)
@@ -349,7 +349,7 @@ def logic_or(left: typing.Any, right: typing.Any, /) -> Expr:
 
             >>> from qiskit.circuit import Clbit
             >>> from qiskit.circuit.classical import expr
-            >>> expr.logical_and(Clbit(), Clbit())
+            >>> expr.logic_or(Clbit(), Clbit())
             Binary(Binary.Op.LOGIC_OR, Var(<clbit 0>, Bool()), Var(<clbit 1>, Bool()), Bool())
     """
     return _binary_logical(Binary.Op.LOGIC_OR, left, right)
@@ -438,7 +438,7 @@ def less_equal(left: typing.Any, right: typing.Any, /) -> Expr:
 
             >>> from qiskit.circuit import ClassicalRegister
             >>> from qiskit.circuit.classical import expr
-            >>> expr.less(ClassicalRegister(3, "a"), ClassicalRegister(3, "b"))
+            >>> expr.less_equal(ClassicalRegister(3, "a"), ClassicalRegister(3, "b"))
             Binary(Binary.Op.LESS_EQUAL, \
 Var(ClassicalRegister(3, "a"), Uint(3)), \
 Var(ClassicalRegister(3, "b"), Uint(3)), \
@@ -456,7 +456,7 @@ def greater(left: typing.Any, right: typing.Any, /) -> Expr:
 
             >>> from qiskit.circuit import ClassicalRegister
             >>> from qiskit.circuit.classical import expr
-            >>> expr.less(ClassicalRegister(3, "c"), 5)
+            >>> expr.greater(ClassicalRegister(3, "c"), 5)
             Binary(Binary.Op.GREATER, \
 Var(ClassicalRegister(3, "c"), Uint(3)), \
 Value(5, Uint(3)), \
@@ -474,7 +474,7 @@ def greater_equal(left: typing.Any, right: typing.Any, /) -> Expr:
 
             >>> from qiskit.circuit import ClassicalRegister
             >>> from qiskit.circuit.classical import expr
-            >>> expr.less(ClassicalRegister(3, "a"), ClassicalRegister(3, "b"))
+            >>> expr.greater_equal(ClassicalRegister(3, "a"), ClassicalRegister(3, "b"))
             Binary(Binary.Op.GREATER_EQUAL, \
 Var(ClassicalRegister(3, "a"), Uint(3)), \
 Var(ClassicalRegister(3, "b"), Uint(3)), \

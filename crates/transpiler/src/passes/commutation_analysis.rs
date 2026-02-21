@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -155,7 +155,7 @@ pub fn py_analyze_commutations(
     // First set the {wire: [commuting_nodes_1, ...]} bit
     for (wire, commutations) in commutation_set {
         // we know all wires are of type Wire::Qubit, since in analyze_commutations_inner
-        // we only iterater over the qubits
+        // we only iterate over the qubits
         let py_wire = match wire {
             Wire::Qubit(q) => dag.qubits().get(q).unwrap().into_pyobject(py),
             _ => return Err(PyValueError::new_err("Unexpected wire type.")),

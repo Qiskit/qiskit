@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -87,7 +87,7 @@ class BitArray(ShapedMixin):
         """
         Args:
             array: The ``uint8`` data array.
-            num_bits: How many bit are in each outcome.
+            num_bits: How many bits are in each outcome.
 
         Raises:
             TypeError: If the input is not a NumPy array with type ``numpy.uint8``.
@@ -620,7 +620,7 @@ class BitArray(ShapedMixin):
 
         Args:
             observables: The observable(s) to take the expectation value of.
-                Must have a shape broadcastable with with this bit array and
+                Must have a shape broadcastable with this bit array and
                 the same number of qubits as the number of bits of this bit array.
                 The observables must be diagonal (I, Z, 0 or 1) too.
 

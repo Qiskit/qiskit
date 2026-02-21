@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -192,7 +192,7 @@ impl PauliLindbladMap {
     /// Clear all the generator terms from this map, making it equal to the identity map again.
     ///
     /// This does not change the capacity of the internal allocations, so subsequent addition or
-    /// substraction of generator terms may not need to reallocate.
+    /// subtraction of generator terms may not need to reallocate.
     pub fn clear(&mut self) {
         self.rates.clear();
         self.gamma = 1.0;
@@ -752,7 +752,7 @@ impl PyGeneratorTerm {
 /// :math:`\lambda_P` are real numbers. When all the rates :math:`\lambda_P` are non-negative, this
 /// corresponds to a completely positive and trace preserving map. The sum in the exponential is
 /// called the generator, and each individual term the generators. To simplify notation in the rest
-/// of the documention, we denote :math:`L(P)\bigl[\circ\bigr] = P \circ P - \circ`.
+/// of the documentation, we denote :math:`L(P)\bigl[\circ\bigr] = P \circ P - \circ`.
 ///
 /// Quasi-probability representation
 /// ================================
@@ -1089,7 +1089,7 @@ impl PyPauliLindbladMap {
     /// Clear all the generator terms from this map, making it equal to the identity map again.
     ///
     /// This does not change the capacity of the internal allocations, so subsequent addition or
-    /// substraction operations resulting from composition may not need to reallocate.
+    /// subtraction operations resulting from composition may not need to reallocate.
     ///
     /// Examples:
     ///
@@ -1228,6 +1228,18 @@ impl PyPauliLindbladMap {
     fn get_qubit_sparse_pauli_list_copy(&self) -> PyQubitSparsePauliList {
         let inner = self.inner.read().unwrap();
         inner.qubit_sparse_pauli_list.clone().into()
+    }
+
+    /// Get the generators of the map.
+    ///
+    /// This is an alias for :meth:`get_qubit_sparse_pauli_list_copy`, providing a more
+    /// convenient name that aligns with the naming conventions used in Aer and Runtime
+    /// for similar classes.
+    ///
+    /// Returns:
+    ///     QubitSparsePauliList: A copy of the map's generator terms.
+    fn generators(&self) -> PyQubitSparsePauliList {
+        self.get_qubit_sparse_pauli_list_copy()
     }
 
     /// Express the map in terms of a sparse list format.
@@ -1672,14 +1684,14 @@ impl PyPauliLindbladMap {
 
     /// Sum any like terms in the generator, removing them if the resulting rate has an absolute
     /// value within tolerance of zero. This also removes terms whose Pauli operator is proportional
-    /// to the identity, as the correponding generator is actually the zero map.
+    /// to the identity, as the corresponding generator is actually the zero map.
     ///
     /// As a side effect, this sorts the generators into a fixed canonical order.
     ///
     /// .. note::
     ///
     ///     When using this for equality comparisons, note that floating-point rounding and the
-    ///     non-associativity fo floating-point addition may cause non-zero coefficients of summed
+    ///     non-associativity of floating-point addition may cause non-zero coefficients of summed
     ///     terms to compare unequal.  To compare two observables up to a tolerance, it is safest to
     ///     compare the canonicalized difference of the two observables to zero.
     ///

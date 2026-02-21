@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -314,6 +314,18 @@ class TestElidePermutations(QiskitTestCase):
         expected.measure(1, 0)
         expected.measure(2, 1)
         expected.measure(0, 2)
+
+        res = self.swap_pass(qc)
+        self.assertEqual(res, expected)
+
+    def test_single_qubit_permutation(self):
+        """Test permutation defined over a single qubit."""
+        qc = QuantumCircuit(3)
+        qc.append(PermutationGate([0]), [1])
+        qc.h(1)
+
+        expected = QuantumCircuit(3)
+        expected.h(1)
 
         res = self.swap_pass(qc)
         self.assertEqual(res, expected)

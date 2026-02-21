@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -160,7 +160,7 @@ def quantum_volume(
             is not specified it will default to ``num_qubits`` layers.
         seed: An optional RNG seed used for generating the random SU(4)
             matrices used in the output circuit. This can be either an
-            integer or a numpy generator. If an integer is specfied it must
+            integer or a numpy generator. If an integer is specified it must
             be an value between 0 and 2**64 - 1.
 
     Reference Circuit:

@@ -4,19 +4,18 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
-
-use std::sync::Arc;
 
 use hashbrown::hash_map::Entry;
 use hashbrown::{HashMap, HashSet};
 use num_complex::Complex64;
 use pyo3::exceptions::{PyRuntimeError, PyTypeError, PyValueError, PyZeroDivisionError};
 use pyo3::types::{IntoPyDict, PyComplex, PyFloat, PyInt, PyNotImplemented, PySet, PyString};
+use std::sync::Arc;
 use thiserror::Error;
 use uuid::Uuid;
 
@@ -132,6 +131,13 @@ impl fmt::Display for ParameterExpression {
     }
 }
 
+impl ParameterExpression {
+    pub fn qpy_replay(&self) -> Vec<OPReplay> {
+        let mut replay = Vec::new();
+        qpy_replay(self, &self.name_map, &mut replay);
+        replay
+    }
+}
 // This needs to be implemented manually, because PyO3 does not provide built-in
 // conversions for the subclasses of ParameterExpression in Python. Specifically
 // the Python classes Parameter and ParameterVector are subclasses of
@@ -251,11 +257,15 @@ impl ParameterExpression {
     }
 
     /// Load from a sequence of [OPReplay]s. Used in serialization.
-    pub fn from_qpy(replay: &[OPReplay]) -> Result<Self, ParameterError> {
+    pub fn from_qpy(
+        replay: &[OPReplay],
+        subs_operations: Option<Vec<(usize, HashMap<Symbol, ParameterExpression>)>>,
+    ) -> Result<Self, ParameterError> {
         // the stack contains the latest lhs and rhs values
         let mut stack: Vec<ParameterExpression> = Vec::new();
-
-        for inst in replay.iter() {
+        let subs_operations = subs_operations.unwrap_or_default();
+        let mut current_sub_operation = subs_operations.len(); // we avoid using a queue since we only make one pass anyway
+        for (i, inst) in replay.iter().enumerate() {
             let OPReplay { op, lhs, rhs } = inst;
 
             // put the values on the stack, if they exist
@@ -302,6 +312,15 @@ impl ParameterExpression {
                 }
             };
             stack.push(result);
+            //now check whether any substitutions need to be applied at this stage
+            while current_sub_operation > 0 && subs_operations[current_sub_operation - 1].0 == i + 1
+            {
+                if let Some(exp) = stack.pop() {
+                    let sub_exp = exp.subs(&subs_operations[current_sub_operation - 1].1, false)?;
+                    stack.push(sub_exp);
+                }
+                current_sub_operation -= 1;
+            }
         }
 
         // once we're done, just return the last element in the stack
@@ -502,7 +521,7 @@ impl ParameterExpression {
     /// # Returns
     ///
     /// * `Ok(Self)` - A parameter expression with the substituted expressions.
-    /// * `Err(ParameterError)` - An error if the subtitution failed.
+    /// * `Err(ParameterError)` - An error if the substitution failed.
     pub fn subs(
         &self,
         map: &HashMap<Symbol, Self>,
@@ -873,18 +892,15 @@ impl PyParameterExpression {
     pub fn parameters<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PySet>> {
         let py_parameters: Vec<Py<PyAny>> = self
             .inner
-            .name_map
-            .values()
+            .iter_symbols()
             .map(|symbol| {
-                match (&symbol.index, &symbol.vector) {
-                    // if index and vector is set, it is an element
-                    (Some(_index), Some(_vector)) => Ok(Py::new(
-                        py,
-                        PyParameterVectorElement::from_symbol(symbol.clone()),
-                    )?
-                    .into_any()),
-                    // else, a normal parameter
-                    _ => Ok(Py::new(py, PyParameter::from_symbol(symbol.clone()))?.into_any()),
+                if symbol.is_vector_element() {
+                    Ok(
+                        Py::new(py, PyParameterVectorElement::from_symbol(symbol.clone()))?
+                            .into_any(),
+                    )
+                } else {
+                    Ok(Py::new(py, PyParameter::from_symbol(symbol.clone()))?.into_any())
                 }
             })
             .collect::<PyResult<_>>()?;
@@ -1377,7 +1393,7 @@ impl PyParameterExpression {
     fn __setstate__(&mut self, state: (Vec<OPReplay>, Option<ParameterValueType>)) -> PyResult<()> {
         // if there a replay, load from the replay
         if !state.0.is_empty() {
-            let from_qpy = ParameterExpression::from_qpy(&state.0)?;
+            let from_qpy = ParameterExpression::from_qpy(&state.0, None)?;
             self.inner = from_qpy;
         // otherwise, load from the ParameterValueType
         } else if let Some(value) = state.1 {
@@ -1435,7 +1451,7 @@ impl PyParameterExpression {
 #[pyclass(sequence, subclass, module="qiskit._accelerate.circuit", extends=PyParameterExpression, name="Parameter")]
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd)]
 pub struct PyParameter {
-    symbol: Symbol,
+    pub symbol: Symbol,
 }
 
 impl Hash for PyParameter {
@@ -1662,7 +1678,7 @@ impl PyParameter {
 #[pyclass(sequence, subclass, module="qiskit._accelerate.circuit", extends=PyParameter, name="ParameterVectorElement")]
 #[derive(Clone, Debug, Eq, PartialEq, PartialOrd)]
 pub struct PyParameterVectorElement {
-    symbol: Symbol,
+    pub symbol: Symbol,
 }
 
 impl<'py> IntoPyObject<'py> for PyParameterVectorElement {
@@ -1941,6 +1957,12 @@ unsafe impl ::bytemuck::CheckedBitPattern for OpCode {
 
 unsafe impl ::bytemuck::NoUninit for OpCode {}
 
+impl OpCode {
+    pub fn from_u8(value: u8) -> PyResult<OpCode> {
+        Ok(bytemuck::checked::cast::<u8, OpCode>(value))
+    }
+}
+
 #[pymethods]
 impl OpCode {
     #[new]
@@ -2097,9 +2119,55 @@ pub fn qpy_replay(
 
             // add the expression to the replay
             match lhs_value {
-                None
-                | Some(ParameterValueType::Parameter(_))
+                Some(ParameterValueType::Parameter(_))
                 | Some(ParameterValueType::VectorElement(_)) => {
+                    // For non-commutative operations (SUB, DIV, POW): if LHS is a Parameter and RHS is
+                    // an expression (None), we need to use reverse operations (RSUB, RDIV, RPOW)
+                    let op = match op {
+                        symbol_expr::BinaryOp::Add => OpCode::ADD,
+                        symbol_expr::BinaryOp::Sub => {
+                            // If RHS is None (an expression), use RSUB
+                            if rhs_value.is_none() {
+                                OpCode::RSUB
+                            } else {
+                                OpCode::SUB
+                            }
+                        }
+                        symbol_expr::BinaryOp::Mul => OpCode::MUL,
+                        symbol_expr::BinaryOp::Div => {
+                            // If RHS is None (an expression), use RDIV
+                            if rhs_value.is_none() {
+                                OpCode::RDIV
+                            } else {
+                                OpCode::DIV
+                            }
+                        }
+                        symbol_expr::BinaryOp::Pow => {
+                            // If RHS is None (an expression), use RPOW
+                            if rhs_value.is_none() {
+                                OpCode::RPOW
+                            } else {
+                                OpCode::POW
+                            }
+                        }
+                    };
+                    if op == OpCode::RPOW || op == OpCode::RDIV || op == OpCode::RSUB {
+                        // For reverse operations, swap lhs and rhs (Python's sympify will swap again to get correct order)
+                        replay.push(OPReplay {
+                            op,
+                            lhs: rhs_value,
+                            rhs: lhs_value,
+                        });
+                    } else {
+                        replay.push(OPReplay {
+                            op,
+                            lhs: lhs_value,
+                            rhs: rhs_value,
+                        });
+                    }
+                }
+                None => {
+                    // When LHS is an expression (None), use normal operations
                     let op = match op {
                         symbol_expr::BinaryOp::Add => OpCode::ADD,
                         symbol_expr::BinaryOp::Sub => OpCode::SUB,

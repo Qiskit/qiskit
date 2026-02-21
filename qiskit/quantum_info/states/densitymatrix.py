@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -136,7 +136,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         return {"data": self.data, "dims": self._op_shape.dims_l()}
 
     def draw(self, output: str | None = None, **drawer_args):
-        """Return a visualization of the Statevector.
+        """Return a visualization of the density matrix.
 
         **repr**: ASCII TextMatrix of the state's ``__repr__``.
 
@@ -167,7 +167,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         Returns:
             :class:`matplotlib.Figure` or :class:`str` or
             :class:`TextMatrix` or :class:`IPython.display.Latex`:
-            Drawing of the Statevector.
+            Drawing of the density matrix.
 
         Raises:
             ValueError: when an invalid output method is selected.
@@ -519,7 +519,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
 
         Additional Information:
             If all subsystems are reset this will return the ground state
-            on all subsystems. If only a some subsystems are reset this
+            on all subsystems. If only some subsystems are reset this
             function will perform evolution by the reset
             :class:`~qiskit.quantum_info.SuperOp` of the reset subsystems.
         """
@@ -560,7 +560,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
              - :math:`\frac{1}{2}\begin{pmatrix} 1 & i \\ -i & 1 \end{pmatrix}`
 
         Args:
-            label (string): a eigenstate string ket label (see table for
+            label (string): an eigenstate string ket label (see table for
                             allowed values).
 
         Returns:
@@ -593,7 +593,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
 
             * ``Int`` -- the integer specifies the total dimension of the
               state. If it is a power of two the state will be initialized
-              as an N-qubit state. If it is not a power of  two the state
+              as an N-qubit state. If it is not a power of two the state
               will have a single d-dimensional subsystem.
         """
         size = np.prod(dims)

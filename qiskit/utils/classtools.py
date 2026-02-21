@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -141,6 +141,6 @@ def wrap_method(cls: Type, name: str, *, before: Callable = None, after: Callabl
     # The best time to apply decorators to methods is before they are bound (e.g. by using function
     # decorators during the class definition), but if we're making a class decorator, we can't do
     # that.  We need the actual definition of the method, so we have to dodge the normal output of
-    # `type.__getattribute__`, which evalutes descriptors if it finds them.
+    # `type.__getattribute__`, which evaluates descriptors if it finds them.
     method = inspect.getattr_static(cls, name)
     setattr(cls, name, _WrappedMethod(method, before, after))

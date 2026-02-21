@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -61,7 +61,7 @@ class HRSCumulativeMultiplier(Multiplier):
 
     .. seealso::
 
-        The :class:`.MultiplierGate` objects represents a multiplication, like this circuit class,
+        The :class:`.MultiplierGate` object represents a multiplication, like this circuit class,
         but allows the compiler to select the optimal decomposition based on the context.
         Specific implementations can be set via the :class:`.HLSConfig`, e.g. this circuit
         can be chosen via ``Multiplier=["cumulative_h18"]``.

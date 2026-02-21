@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -132,7 +132,7 @@ If your constructor does not have defaults for all its arguments, you must set
 
 Subclasses of :class:`SingletonInstruction` and the other associated classes can control how their
 constructor's arguments are interpreted, in order to help the singleton machinery return the
-singleton even in the case than an optional argument is explicitly set to its default.
+singleton even in the case that an optional argument is explicitly set to its default.
 
 .. automethod:: SingletonInstruction._singleton_lookup_key
 

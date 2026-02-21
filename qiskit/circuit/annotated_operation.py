@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -46,6 +46,9 @@ class ControlModifier(Modifier):
     ctrl_state: int | str | None = None
 
     def __init__(self, num_ctrl_qubits: int = 0, ctrl_state: int | str | None = None):
+        if num_ctrl_qubits < 0:
+            raise CircuitError("The number of control qubits must be non-negative.")
+
         self.num_ctrl_qubits = num_ctrl_qubits
         self.ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
 
@@ -98,7 +101,7 @@ class AnnotatedOperation(Operation):
         inverted and then controlled by 2 qubits.
         """
         self.base_op = base_op
-        """The base operation that the modifiers in this annotated operation applies to."""
+        """The base operation that the modifiers in this annotated operation apply to."""
         self.modifiers = modifiers if isinstance(modifiers, List) else [modifiers]
         """Ordered sequence of the modifiers to apply to :attr:`base_op`.  The modifiers are applied
         in order from lowest index to highest index."""
@@ -169,7 +172,7 @@ class AnnotatedOperation(Operation):
         ``annotated``.
 
         Args:
-            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            num_ctrl_qubits: Number of controls to add. Defaults to ``1``.
             label: Ignored.
             ctrl_state: The control state of the gate, specified either as an integer or a bitstring
                 (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``.

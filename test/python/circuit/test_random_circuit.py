@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -190,7 +190,7 @@ test_cases = (
     (rx.generators.directed_heavy_hex_graph(3), 458),
     # Sparse connected graph
     (rx.generators.directed_path_graph(10), 458),
-    # A graph with no edges, should yeild a circuit with no edges,
+    # A graph with no edges, should yield a circuit with no edges,
     # this means there would be no 2Q gates on that circuit.
     (digraph_with_no_edges(10), 0),
     # A list of tuples of control qubit, target qubit, and edge probability
@@ -254,7 +254,7 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
         """the `min_2q_gate_per_edge` parameter specifies how often each qubit-pair must at
         least be used in a two-qubit gate before the circuit is returned"""
 
-        freq = 8  # Some arbitrary repetations, don't put 1.
+        freq = 8  # Some arbitrary repetitions, don't put 1.
         qc = random_circuit_from_graph(
             interaction_graph=inter_graph, min_2q_gate_per_edge=freq, seed=seed
         )

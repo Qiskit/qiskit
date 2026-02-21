@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -602,7 +602,7 @@ class TestEvolutionGate(QiskitTestCase):
         """Test converting the parameters to sympy is real.
 
         Regression test of #13642, where the parameters in the Pauli evolution had a spurious
-        zero complex part. Even though this is not noticable upon binding or printing the parameter,
+        zero complex part. Even though this is not noticeable upon binding or printing the parameter,
         it does affect the output of Parameter.sympify.
         """
         time = Parameter("t")

@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -115,7 +115,7 @@ def random_quantum_channel(
 
     Args:
         input_dims (int or tuple): the input dimension of the channel.
-        output_dims (int or tuple): the input dimension of the channel.
+        output_dims (int or tuple): the output dimension of the channel.
         rank (int): Optional. The rank of the quantum channel Choi-matrix.
         seed (int or np.random.Generator): Optional. Set a fixed seed or
                                            generator for RNG.

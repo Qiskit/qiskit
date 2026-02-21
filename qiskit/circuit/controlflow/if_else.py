@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -70,7 +70,7 @@ class IfElseOp(ControlFlowOp):
                 ``Clbit`` to be compared to either a ``bool`` or an ``int``.
             true_body: A program to be executed if ``condition`` evaluates
                 to true.
-            false_body: A optional program to be executed if ``condition``
+            false_body: An optional program to be executed if ``condition``
                 evaluates to false.
             label: An optional label for identifying the instruction.
         """

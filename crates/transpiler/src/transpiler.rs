@@ -4,13 +4,11 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
-
-use hashbrown::HashSet;
 
 use anyhow::Result;
 
@@ -52,25 +50,20 @@ impl From<u8> for OptimizationLevel {
 fn unroll_3q_or_more(
     dag: &mut DAGCircuit,
     target: &Target,
-    approximation_degree: Option<f64>,
+    synthesis_state: &mut UnitarySynthesisState,
 ) -> Result<()> {
-    let mut out_dag = run_unitary_synthesis(
+    let physical_qubits = (0..target.num_qubits.unwrap_or(0))
+        .map(PhysicalQubit::new)
+        .collect::<Vec<_>>();
+    *dag = run_unitary_synthesis(
         dag,
-        (0..dag.num_qubits()).collect(),
+        &["unitary", "swap"].map(String::from).into_iter().collect(),
         3,
-        Some(target),
-        HashSet::new(),
-        ["unitary".to_string(), "swap".to_string()]
-            .into_iter()
-            .collect(),
-        HashSet::new(),
-        approximation_degree,
-        None,
-        None,
-        false,
+        &physical_qubits,
+        synthesis_state,
+        target.into(),
     )?;
-    run_unroll_3q_or_more(&mut out_dag, Some(target))?;
-    *dag = out_dag;
+    run_unroll_3q_or_more(dag, Some(target))?;
     Ok(())
 }
 
@@ -80,11 +73,12 @@ pub fn init_stage(
     target: &Target,
     optimization_level: OptimizationLevel,
     approximation_degree: Option<f64>,
+    synthesis_state: &mut UnitarySynthesisState,
     transpile_layout: &mut TranspileLayout,
     commutation_checker: &mut CommutationChecker,
 ) -> Result<()> {
     // Init stage
-    unroll_3q_or_more(dag, target, approximation_degree)?;
+    unroll_3q_or_more(dag, target, synthesis_state)?;
     if optimization_level == OptimizationLevel::Level1 {
         run_inverse_cancellation_standard_gates(dag);
     } else if matches!(
@@ -266,22 +260,19 @@ pub fn routing_stage(
 pub fn translation_stage(
     dag: &mut DAGCircuit,
     target: &Target,
-    approximation_degree: Option<f64>,
+    synthesis_state: &mut UnitarySynthesisState,
     equiv_lib: &mut EquivalenceLibrary,
 ) -> Result<()> {
-    let num_qubits = dag.num_qubits();
+    let physical_qubits = (0..target.num_qubits.unwrap_or(0))
+        .map(PhysicalQubit::new)
+        .collect::<Vec<_>>();
     *dag = run_unitary_synthesis(
         dag,
-        (0..num_qubits).collect(),
+        &["unitary".to_string()].into_iter().collect(),
         0,
-        Some(target),
-        HashSet::new(),
-        ["unitary".to_string()].into_iter().collect(),
-        HashSet::new(),
-        approximation_degree,
-        None,
-        None,
-        false,
+        &physical_qubits,
+        synthesis_state,
+        target.into(),
     )?;
     if let Some(out_dag) = run_basis_translator(dag, equiv_lib, 0, Some(target), None)? {
         *dag = out_dag;
@@ -305,6 +296,7 @@ pub fn optimization_stage(
     target: &Target,
     optimization_level: OptimizationLevel,
     approximation_degree: Option<f64>,
+    synthesis_state: &mut UnitarySynthesisState,
     commutation_checker: &mut CommutationChecker,
     equivalence_library: &mut EquivalenceLibrary,
 ) -> Result<()> {
@@ -312,6 +304,9 @@ pub fn optimization_stage(
     let mut size: Option<usize> = None;
     let mut new_depth;
     let mut new_size;
+    let physical_qubits = (0..target.num_qubits.unwrap_or(0))
+        .map(PhysicalQubit::new)
+        .collect::<Vec<_>>();
     if optimization_level == OptimizationLevel::Level1 {
         new_depth = Some(dag.depth(false)?);
         new_size = Some(dag.size(false)?);
@@ -321,26 +316,20 @@ pub fn optimization_stage(
             run_optimize_1q_gates_decomposition(dag, Some(target), None, None)?;
             run_inverse_cancellation_standard_gates(dag);
             if gates_missing_from_target(dag, target)? {
-                translation_stage(dag, target, approximation_degree, equivalence_library)?;
+                translation_stage(dag, target, synthesis_state, equivalence_library)?;
             }
             new_depth = Some(dag.depth(false)?);
             new_size = Some(dag.size(false)?);
         }
     } else if optimization_level == OptimizationLevel::Level2 {
         run_consolidate_blocks(dag, false, approximation_degree, Some(target))?;
-        let num_qubits = dag.num_qubits();
         *dag = run_unitary_synthesis(
             dag,
-            (0..num_qubits).collect(),
+            &["unitary".to_string()].into_iter().collect(),
             0,
-            Some(target),
-            HashSet::new(),
-            ["unitary".to_string()].into_iter().collect(),
-            HashSet::new(),
-            approximation_degree,
-            None,
-            None,
-            false,
+            &physical_qubits,
+            synthesis_state,
+            target.into(),
         )?;
         new_depth = Some(dag.depth(false)?);
         new_size = Some(dag.size(false)?);
@@ -351,7 +340,7 @@ pub fn optimization_stage(
             run_optimize_1q_gates_decomposition(dag, Some(target), None, None)?;
             cancel_commutations(dag, commutation_checker, None, 1.0)?;
             if gates_missing_from_target(dag, target)? {
-                translation_stage(dag, target, approximation_degree, equivalence_library)?;
+                translation_stage(dag, target, synthesis_state, equivalence_library)?;
             }
             new_depth = Some(dag.depth(false)?);
             new_size = Some(dag.size(false)?);
@@ -362,25 +351,19 @@ pub fn optimization_stage(
 
         while continue_loop {
             run_consolidate_blocks(dag, false, approximation_degree, Some(target))?;
-            let num_qubits = dag.num_qubits();
             *dag = run_unitary_synthesis(
                 dag,
-                (0..num_qubits).collect(),
+                &["unitary"].into_iter().map(|x| x.to_string()).collect(),
                 0,
-                Some(target),
-                HashSet::new(),
-                ["unitary"].into_iter().map(|x| x.to_string()).collect(),
-                HashSet::new(),
-                approximation_degree,
-                None,
-                None,
-                false,
+                &physical_qubits,
+                synthesis_state,
+                target.into(),
             )?;
             run_remove_identity_equiv(dag, approximation_degree, Some(target))?;
             run_optimize_1q_gates_decomposition(dag, Some(target), None, None)?;
             cancel_commutations(dag, commutation_checker, None, 1.0)?;
             if gates_missing_from_target(dag, target)? {
-                translation_stage(dag, target, approximation_degree, equivalence_library)?;
+                translation_stage(dag, target, synthesis_state, equivalence_library)?;
             }
             continue_loop = min_state.update_with(dag);
         }
@@ -418,6 +401,11 @@ pub fn transpile(
     let mut commutation_checker = get_standard_commutation_checker();
     let mut equivalence_library = generate_standard_equivalence_library();
     let sabre_heuristic = get_sabre_heuristic(target)?;
+    let mut synthesis_state = UnitarySynthesisState::new(UnitarySynthesisConfig {
+        approximation_degree,
+        run_python_decomposers: false,
+        ..Default::default()
+    });
 
     let mut transpile_layout: TranspileLayout = TranspileLayout::new(
         None,
@@ -433,6 +421,7 @@ pub fn transpile(
         target,
         optimization_level,
         approximation_degree,
+        &mut synthesis_state,
         &mut transpile_layout,
         &mut commutation_checker,
     )?;
@@ -458,7 +447,7 @@ pub fn transpile(
     translation_stage(
         &mut dag,
         target,
-        approximation_degree,
+        &mut synthesis_state,
         &mut equivalence_library,
     )?;
     // optimization stage
@@ -467,6 +456,7 @@ pub fn transpile(
         target,
         optimization_level,
         approximation_degree,
+        &mut synthesis_state,
         &mut commutation_checker,
         &mut equivalence_library,
     )?;

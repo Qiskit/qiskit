@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -56,7 +56,7 @@ def grover_operator(
 
     This class allows setting a different state preparation, as in quantum amplitude
     amplification (a generalization of Grover's algorithm), :math:`\mathcal{A}` might not be
-    a layer of Hardamard gates [3].
+    a layer of Hadamard gates [3].
 
     The action of the phase oracle :math:`\mathcal{S}_f` is defined as
 
@@ -209,7 +209,7 @@ def grover_operator(
 
     [3] Brassard, G., Hoyer, P., Mosca, M., & Tapp, A. (2000).
     Quantum Amplitude Amplification and Estimation.
-    `arXiv:quant-ph/0005055 <http://arxiv.org/abs/quant-ph/0005055>`_.
+    `arXiv:quant-ph/0005055 <https://arxiv.org/abs/quant-ph/0005055>`_.
     """
     # We inherit the ancillas/qubits structure from the oracle, if it is given as circuit.
     if isinstance(oracle, QuantumCircuit):
@@ -310,7 +310,7 @@ class GroverOperator(QuantumCircuit):
 
     This class allows setting a different state preparation, as in quantum amplitude
     amplification (a generalization of Grover's algorithm), :math:`\mathcal{A}` might not be
-    a layer of Hardamard gates [3].
+    a layer of Hadamard gates [3].
 
     The action of the phase oracle :math:`\mathcal{S}_f` is defined as
 
@@ -430,7 +430,7 @@ class GroverOperator(QuantumCircuit):
 
     [3] Brassard, G., Hoyer, P., Mosca, M., & Tapp, A. (2000).
     Quantum Amplitude Amplification and Estimation.
-    `arXiv:quant-ph/0005055 <http://arxiv.org/abs/quant-ph/0005055>`_.
+    `arXiv:quant-ph/0005055 <https://arxiv.org/abs/quant-ph/0005055>`_.
     """
 
     @deprecate_func(

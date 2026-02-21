@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -236,7 +236,7 @@ class Pauli(BasePauli):
 
     @classmethod
     def set_truncation(cls, val: int):
-        """Set the max number of Pauli characters to display before truncation/
+        """Set the max number of Pauli characters to display before truncation.
 
         Args:
             val (int): the number of characters.
@@ -412,7 +412,7 @@ class Pauli(BasePauli):
         .. note::
 
             The difference between `to_label` and :meth:`__str__` is that
-            the later will truncate the output for large numbers of qubits.
+            the latter will truncate the output for large numbers of qubits.
 
         Returns:
             str: the Pauli string label.

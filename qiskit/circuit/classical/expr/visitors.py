@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -342,7 +342,7 @@ def is_lvalue(node: expr.Expr, /) -> bool:
     """Return whether this expression can be used in l-value positions, that is, whether it has a
     well-defined location in memory, such as one that might be writeable.
 
-    Being an l-value is a necessary but not sufficient for this location to be writeable; it is
+    Being an l-value is necessary but not sufficient for this location to be writeable; it is
     permissible that a larger object containing this memory location may not allow writing from
     the scope that attempts to write to it.  This would be an access property of the containing
     program, however, and not an inherent property of the expression system.

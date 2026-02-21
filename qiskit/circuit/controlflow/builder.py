@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -54,7 +54,7 @@ class CircuitScopeInterface(abc.ABC):
     @property
     @abc.abstractmethod
     def instructions(self) -> Sequence[CircuitInstruction]:
-        """Indexable view onto the :class:`.CircuitInstruction`s backing this scope."""
+        """Indexable view onto the :class:`.CircuitInstruction` objects backing this scope."""
 
     @abc.abstractmethod
     def append(
@@ -623,7 +623,7 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
         This will build a circuit which contains all of the necessary qubits and clbits and no
         others.
 
-        The ``qubits`` and ``clbits`` arguments should be sets that contains all the resources in
+        The ``qubits`` and ``clbits`` arguments should be sets that contain all the resources in
         the outer scope; these will be passed down to inner placeholder instructions, so they can
         apply themselves across the whole scope should they need to.  The resulting
         :obj:`.QuantumCircuit` will be defined over a (nonstrict) subset of these resources.  This

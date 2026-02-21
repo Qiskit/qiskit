@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -35,7 +35,6 @@ use qiskit_circuit::circuit_data::CircuitData;
 /// Behavior is undefined if ``layout`` is not a valid, non-null pointer to a
 /// ``QkTranspileLayout``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_layout_num_input_qubits(
     layout: *const TranspileLayout,
 ) -> u32 {
@@ -55,7 +54,6 @@ pub unsafe extern "C" fn qk_transpile_layout_num_input_qubits(
 /// Behavior is undefined if ``layout`` is not a valid, non-null pointer to a
 /// ``QkTranspileLayout``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_layout_num_output_qubits(
     layout: *const TranspileLayout,
 ) -> u32 {
@@ -66,7 +64,7 @@ pub unsafe extern "C" fn qk_transpile_layout_num_output_qubits(
 /// @ingroup QkTranspileLayout
 /// Query the initial layout of a ``QkTranspileLayout``.
 ///
-/// The output array from this function represents the mapping from the virutal qubits in the
+/// The output array from this function represents the mapping from the virtual qubits in the
 /// original input circuit to the physical qubit in the output circuit. The
 /// index in the array is the virtual qubit and the value is the physical qubit. For example an
 /// output array of:
@@ -79,7 +77,7 @@ pub unsafe extern "C" fn qk_transpile_layout_num_output_qubits(
 /// qubit -> 0, and virtual qubit 2 -> physical qubit 2.
 ///
 /// @param layout A pointer to the ``QkTranspileLayout``.
-/// @param filter_ancillas If set to true the output array will not include any indicies for any
+/// @param filter_ancillas If set to true the output array will not include any indices for any
 /// ancillas added by the transpiler.
 /// @param initial_layout A pointer to the array where this function will write the initial layout
 /// to. This must have sufficient space for the full array which will either be
@@ -97,7 +95,6 @@ pub unsafe extern "C" fn qk_transpile_layout_num_output_qubits(
 /// ``qk_transpile_layout_num_input_qubits()``) or the number of output qubits if ``filter_ancillas``
 /// is false (which can be queried with ``qk_transpile_layout_num_output_qubits()``).
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_layout_initial_layout(
     layout: *const TranspileLayout,
     filter_ancillas: bool,
@@ -152,7 +149,6 @@ pub unsafe extern "C" fn qk_transpile_layout_initial_layout(
 /// of output qubits in the ``QkTranspileLayout`` which can be queried with
 /// ``qk_transpile_layout_num_output_qubits()``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_layout_output_permutation(
     layout: *const TranspileLayout,
     output_permutation: *mut u32,
@@ -192,7 +188,7 @@ pub unsafe extern "C" fn qk_transpile_layout_output_permutation(
 /// physical qubit 2 at the end of the transpiled circuit, 1 -> 0, and 2 -> 1.
 ///
 /// @param layout A pointer to the ``QkTranspileLayout``.
-/// @param filter_ancillas If set to true the output array will not include any indicies for any
+/// @param filter_ancillas If set to true the output array will not include any indices for any
 /// ancillas added by the transpiler.
 /// @param final_layout A pointer to the array where this function will write the final layout to.
 /// This must have sufficient space for the output which will either be the number of input or
@@ -206,7 +202,6 @@ pub unsafe extern "C" fn qk_transpile_layout_output_permutation(
 /// ``qk_transpile_layout_num_input_qubits()``) or the number of output qubits if ``filter_ancillas``
 /// is false (which can be queried with ``qk_transpile_layout_num_output_qubits()``).
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_layout_final_layout(
     layout: *const TranspileLayout,
     filter_ancillas: bool,
@@ -258,7 +253,6 @@ pub unsafe extern "C" fn qk_transpile_layout_final_layout(
 /// valid pointer to a contiguous array of ``uint32_t`` with enough space for the number of qubits
 /// indicated in ``target``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_layout_generate_from_mapping(
     original_dag: *const DAGCircuit,
     target: *const Target,
@@ -296,7 +290,6 @@ pub unsafe extern "C" fn qk_transpile_layout_generate_from_mapping(
 ///
 /// Behavior is undefined if ``layout`` is not a valid, non-null pointer to a ``QkTranspileLayout``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_layout_free(layout: *mut TranspileLayout) {
     if !layout.is_null() {
         if !layout.is_aligned() {
@@ -329,7 +322,6 @@ pub unsafe extern "C" fn qk_transpile_layout_free(layout: *mut TranspileLayout) 
 /// returned by this function.
 #[unsafe(no_mangle)]
 #[cfg(feature = "python_binding")]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_layout_to_python(
     layout: *const TranspileLayout,
     circuit: *const CircuitData,

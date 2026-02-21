@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -149,7 +149,7 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
         self._skip_reset_qubits = skip_reset_qubits
         self._skip_dd_threshold = skip_dd_threshold
         self._target = target
-        self._coupling_map = target.build_coupling_map()  # build once and re-use for performance
+        self._coupling_map = target.build_coupling_map()  # build once and reuse for performance
         self._pulse_alignment = (
             target.pulse_alignment if pulse_alignment is None else pulse_alignment
         )

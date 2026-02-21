@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -14,6 +14,7 @@
 import dataclasses
 import math
 from typing import Iterable, Callable
+from typing_extensions import Unpack
 
 import numpy as np
 
@@ -122,9 +123,7 @@ class CustomInstruction:
     name: str
     num_params: int
     num_qubits: int
-    # This should be `(float*) -> Instruction`, but the older version of Sphinx we're constrained to
-    # use in the Python 3.9 docs build chokes on it, so relax the hint.
-    constructor: Callable[..., Instruction]
+    constructor: Callable[[Unpack[tuple[float, ...]]], Instruction]
     builtin: bool = False
 
 

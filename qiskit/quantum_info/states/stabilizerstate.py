@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -555,14 +555,14 @@ class StabilizerState(QuantumState):
                                 subsystems (Default: None).
 
         Returns:
-            np.array: list of sampled counts if the order sampled.
+            np.array: list of sampled counts in the order sampled.
 
         Additional Information:
 
             This function implements the measurement :meth:`measure` method.
 
             The seed for random number generator used for sampling can be
-            set to a fixed value by using the stats :meth:`seed` method.
+            set to a fixed value by using the state's :meth:`seed` method.
         """
         memory = []
         for _ in range(shots):

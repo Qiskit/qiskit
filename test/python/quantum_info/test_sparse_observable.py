@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -62,7 +62,7 @@ def lnn_target(num_qubits):
 
 
 class AllowRightArithmetic:
-    """Some type that implements only the right-hand-sided arithmatic operations, and allows
+    """Some type that implements only the right-hand-sided arithmetic operations, and allows
     `SparseObservable` to pass through them.
 
     The purpose of this is to detect that `SparseObservable` is correctly delegating binary

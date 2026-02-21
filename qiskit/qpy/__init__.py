@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -1366,11 +1366,11 @@ and changing two payloads the INSTRUCTION metadata payload and the CUSTOM_INSTRU
 These now have new fields to better account for :class:`~.ControlledGate` objects in a circuit.
 In addition, new payload MAP_ITEM is defined to implement the :ref:`qpy_mapping` block.
 
-With the support of ``ScheduleBlock``, now :class:`~.QuantumCircuit` can be
-serialized together with :attr:`~.QuantumCircuit.calibrations`, or
-`Pulse Gates <https://quantum.cloud.ibm.com/docs/guides/pulse>`_.
-In QPY version 5 and above, :ref:`qpy_circuit_calibrations` payload is
-packed after the :ref:`qpy_instructions` block.
+.. note::
+
+    Support for representing pulse schedules and custom calibrations was removed in Qiskit v2.0.
+    When loading QPY payloads, these data fields are now ignored or raise an error when using
+    Qiskit for deserialization.
 
 In QPY version 5 and above,
 
@@ -1771,7 +1771,7 @@ a struct format to represent a :class:`~qiskit.circuit.library.PauliEvolutionGat
 natively in QPY. To accomplish this the :ref:`qpy_custom_definition` struct now supports
 a new type value ``'p'`` to represent a :class:`~qiskit.circuit.library.PauliEvolutionGate`.
 Enties in the custom instructions tables have unique name generated that start with the
-string ``"###PauliEvolutionGate_"`` followed by a uuid string. This gate name is reservered
+string ``"###PauliEvolutionGate_"`` followed by a uuid string. This gate name is reserved
 in QPY and if you have a custom :class:`~qiskit.circuit.Instruction` object with a definition
 set and that name prefix it will error. If it's of type ``'p'`` the data payload is defined
 as follows:
@@ -1892,7 +1892,7 @@ and if it's ``v`` it represents a :class:`~qiskit.circuit.ParameterVectorElement
 The map element struct is immediately followed by the symbol map key payload, if
 ``symbol_type`` is ``p`` then it is followed immediately by a :ref:`qpy_param_struct`
 object (both the struct and utf8 name bytes) and if ``symbol_type`` is ``v``
-then the struct is imediately followed by :ref:`qpy_param_vector` (both the struct
+then the struct is immediately followed by :ref:`qpy_param_vector` (both the struct
 and utf8 name bytes). That is followed by ``size`` bytes for the
 data of the symbol. The data format is dependent on the value of ``type``. If
 ``type`` is ``p`` then it represents a :class:`~qiskit.circuit.Parameter` and
@@ -2178,7 +2178,7 @@ The PARAMETER_EXPR data starts with a header:
 
 Immediately following the header is ``expr_size`` bytes of utf8 data containing
 the expression string, which is the sympy srepr of the expression for the
-parameter expression. Follwing that is a symbol map which contains
+parameter expression. Following that is a symbol map which contains
 ``map_elements`` elements with the format
 
 .. code-block:: c

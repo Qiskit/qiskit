@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -28,7 +28,7 @@ class ParameterVector:
     The elements of a vector are sorted by the name of the vector, then the numeric value of their
     index.
 
-    This class fulfill the :class:`collections.abc.Sequence` interface.
+    This class fulfills the :class:`collections.abc.Sequence` interface.
     """
 
     __slots__ = ("_name", "_params", "_root_uuid")
@@ -99,8 +99,8 @@ class ParameterVector:
         >>> from qiskit.circuit import ParameterVector
         >>> pv = ParameterVector("theta", 20)
         >>> elt_19 = pv[19]
-        >>> rv.resize(10)
-        >>> rv.resize(20)
+        >>> pv.resize(10)
+        >>> pv.resize(20)
         >>> pv[19] == elt_19
         True
         """

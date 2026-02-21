@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -126,7 +126,7 @@ def plot_state_hinton(state, title="", figsize=None, ax_real=None, ax_imag=None,
         ax1.yaxis.set_major_locator(plt.NullLocator())
 
         for (x, y), w in np.ndenumerate(datareal):
-            # Convert from matrix co-ordinates to plot co-ordinates.
+            # Convert from matrix coordinates to plot coordinates.
             plot_x, plot_y = y, lx - x - 1
             color = "white" if w > 0 else "black"
             size = np.sqrt(np.abs(w) / max_weight)
@@ -154,7 +154,7 @@ def plot_state_hinton(state, title="", figsize=None, ax_real=None, ax_imag=None,
         ax2.yaxis.set_major_locator(plt.NullLocator())
 
         for (x, y), w in np.ndenumerate(dataimag):
-            # Convert from matrix co-ordinates to plot co-ordinates.
+            # Convert from matrix coordinates to plot coordinates.
             plot_x, plot_y = y, lx - x - 1
             color = "white" if w > 0 else "black"
             size = np.sqrt(np.abs(w) / max_weight)
@@ -948,7 +948,9 @@ def plot_state_qsphere(
         if eigvals[idx] > 0.001:
             # get the max eigenvalue
             state = eigvecs[:, idx]
-            loc = np.absolute(state).argmax()
+            # Rounding to 13 decimals ignores machine epsilon noise (~1e-16)
+            # from the solver, ensuring 'argmax' finds the true analytical winner.
+            loc = np.round(np.absolute(state), decimals=13).argmax()
             # remove the global phase from max element
             angles = (np.angle(state[loc]) + 2 * np.pi) % (2 * np.pi)
             angleset = np.exp(-1j * angles)
@@ -1295,8 +1297,8 @@ def state_to_latex(
         suffix = f"\\\\\n\\text{{dims={dims_str}}}\n\\end{{align}}"
 
     operator_shape = state._op_shape
-    # we only use the ket convetion for qubit statevectors
-    # this means the operator shape should hve no input dimensions and all output dimensions equal to 2
+    # we only use the ket convention for qubit statevectors
+    # this means the operator shape should have no input dimensions and all output dimensions equal to 2
     is_qubit_statevector = len(operator_shape.dims_r()) == 0 and set(operator_shape.dims_l()) == {2}
     if convention == "ket" and is_qubit_statevector:
         latex_str = _state_to_latex_ket(state._data, **args)

@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -54,7 +54,7 @@ static BIT_TERM_INTO_PY: PyOnceLock<[Option<Py<PyAny>>; 16]> = PyOnceLock::new()
 ///
 /// This is just the Rust-space representation.  We make a separate Python-space `enum.IntEnum` to
 /// represent the same information, since we enforce strongly typed interactions in Rust, including
-/// not allowing the stored values to be outside the valid `BitTerm`s, but doing so in Python would
+/// not allowing the stored values to be outside the valid `BitTerm`\ s, but doing so in Python would
 /// make it very difficult to use the class efficiently with Numpy array views.  We attach this
 /// sister class of `BitTerm` to `SparseObservable` as a scoped class.
 ///
@@ -76,7 +76,7 @@ static BIT_TERM_INTO_PY: PyOnceLock<[Option<Py<PyAny>>; 16]> = PyOnceLock::new()
 /// # Dev notes
 ///
 /// This type is required to be `u8`, but it's a subtype of `u8` because not all `u8` are valid
-/// `BitTerm`s.  For interop with Python space, we accept Numpy arrays of `u8` to represent this,
+/// `BitTerm`\ s.  For interop with Python space, we accept Numpy arrays of `u8` to represent this,
 /// which we transmute into slices of `BitTerm`, after checking that all the values are correct (or
 /// skipping the check if Python space promises that it upheld the checks).
 ///
@@ -600,7 +600,7 @@ impl SparseObservable {
     /// Clear all the terms from this operator, making it equal to the zero operator again.
     ///
     /// This does not change the capacity of the internal allocations, so subsequent addition or
-    /// substraction operations may not need to reallocate.
+    /// subtraction operations may not need to reallocate.
     pub fn clear(&mut self) {
         self.coeffs.clear();
         self.bit_terms.clear();
@@ -694,7 +694,7 @@ impl SparseObservable {
 
     /// Calculate the transpose.
     ///
-    /// This operation transposes the individual bit terms but does directly act
+    /// This operation transposes the individual bit terms but does not directly act
     /// on the coefficients.
     pub fn transpose(&self) -> SparseObservable {
         let mut out = self.clone();
@@ -847,6 +847,44 @@ impl SparseObservable {
                 }
             }
         }
+        out
+    }
+
+    /// Add another [SparseObservable] onto this one, while scaling its coefficients.
+    ///
+    /// # Panics
+    ///
+    /// If the number of qubits of `rhs` and `self` differ.
+    pub fn scaled_add_inplace(&mut self, rhs: &SparseObservable, factor: Complex64) {
+        if rhs.num_qubits != self.num_qubits {
+            panic!(
+                "operand ({}) has a different number of qubits to the base ({})",
+                rhs.num_qubits, self.num_qubits
+            );
+        }
+        self.coeffs.extend(rhs.coeffs.iter().map(|c| c * factor));
+        self.bit_terms.extend_from_slice(&rhs.bit_terms);
+        self.indices.extend_from_slice(&rhs.indices);
+        // We only need to write out the new endpoints, not the initial zero.
+        let offset = self.boundaries[self.boundaries.len() - 1];
+        self.boundaries
+            .extend(rhs.boundaries[1..].iter().map(|boundary| offset + boundary));
+    }
+
+    /// Add two [SparseObservable] instances while scaling the coefficients of `rhs`
+    /// with `factor`.
+    ///
+    /// # Panics
+    ///
+    /// If the number of qubits of `other` and `self` differ.
+    pub fn scaled_add(&self, rhs: &SparseObservable, factor: Complex64) -> SparseObservable {
+        let mut out = SparseObservable::with_capacity(
+            self.num_qubits,
+            self.coeffs.len() + rhs.coeffs.len(),
+            self.bit_terms.len() + rhs.bit_terms.len(),
+        );
+        out += self;
+        out.scaled_add_inplace(rhs, factor);
         out
     }
 
@@ -1284,7 +1322,7 @@ mod compose {
         /// Stack of the coefficients to this point.  We could recalculate by a full
         /// multiplication on each go, but most steps will be in the low indices, where we can
         /// re-use all the multiplications that came before.  This is one longer than the length
-        /// of `multliples`, because it starts off populated with the product of the
+        /// of `multiples`, because it starts off populated with the product of the
         /// non-multiple coefficients (or 1).
         coeffs: Vec<Complex64>,
         /// The full set of indices (including ones that don't correspond to multiples).  Within
@@ -2249,7 +2287,7 @@ impl PySparseTerm {
 /// associative, :class:`SparseObservable` makes no guarantees about the summation order).
 ///
 /// These two categories of representation degeneracy can cause the ``==`` operator to claim that
-/// two observables are not equal, despite representating the same object.  In these cases, it can
+/// two observables are not equal, despite representing the same object.  In these cases, it can
 /// be convenient to define some *canonical form*, which allows observables to be compared
 /// structurally.
 ///
@@ -2431,7 +2469,7 @@ impl PySparseTerm {
 #[derive(Debug)]
 pub struct PySparseObservable {
     // This class keeps a pointer to a pure Rust-SparseTerm and serves as interface from Python.
-    inner: Arc<RwLock<SparseObservable>>,
+    pub inner: Arc<RwLock<SparseObservable>>,
 }
 
 #[pymethods]
@@ -3172,7 +3210,7 @@ impl PySparseObservable {
     /// Clear all the terms from this operator, making it equal to the zero operator again.
     ///
     /// This does not change the capacity of the internal allocations, so subsequent addition or
-    /// substraction operations may not need to reallocate.
+    /// subtraction operations may not need to reallocate.
     ///
     /// Examples:
     ///
@@ -3196,7 +3234,7 @@ impl PySparseObservable {
     /// .. note::
     ///
     ///     When using this for equality comparisons, note that floating-point rounding and the
-    ///     non-associativity fo floating-point addition may cause non-zero coefficients of summed
+    ///     non-associativity of floating-point addition may cause non-zero coefficients of summed
     ///     terms to compare unequal.  To compare two observables up to a tolerance, it is safest to
     ///     compare the canonicalized difference of the two observables to zero.
     ///
