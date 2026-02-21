@@ -19,6 +19,20 @@ pub static GENERATED_FILE: &str = "qiskit.h";
 pub static PYTHON_BINDING_FEATURE: &str = "python_binding";
 pub static PYTHON_BINDING_DEFINE: &str = "QISKIT_C_PYTHON_INTERFACE";
 
+pub static COPYRIGHT: &str = "\
+// This code is part of Qiskit.
+//
+// (C) Copyright IBM 2026
+//
+// This code is licensed under the Apache License, Version 2.0. You may
+// obtain a copy of this license in the LICENSE.txt file in the root directory
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
+//
+// Any modifications or derivative works of this code must retain this
+// copyright notice, and modified files need to carry a notice indicating
+// that they have been altered from the originals.
+";
+
 pub static INCLUDE_GUARD: &str = "QISKIT_H";
 /// Crates that contain definitions of objects that are exposed through the C API.
 pub static QISKIT_PUBLIC_API_CRATES: &[&str] =
@@ -100,6 +114,14 @@ fn manual_include_files() -> anyhow::Result<Vec<PathBuf>> {
 
 /// Get the Qiskit configuration
 fn get_config() -> anyhow::Result<cbindgen::Config> {
+    // `Python.h` is required to be the first file included because it reserves the right to define
+    // preprocessor macros that affect standard-library includes.  This causes it to be ahead of our
+    // include guard, but `Python.h` has its own, so we should be fine.
+    let header = Some(format!(
+        "{}\n{}",
+        COPYRIGHT,
+        guarded_python_import(PYTHON_BINDING_DEFINE)
+    ));
     let enumeration = cbindgen::EnumConfig {
         prefix_with_name: true,
         ..Default::default()
@@ -158,10 +180,7 @@ fn get_config() -> anyhow::Result<cbindgen::Config> {
         })
         .collect::<Result<Vec<_>, _>>()?;
     Ok(cbindgen::Config {
-        // `Python.h` is required to be the first file included because it reserves the right to
-        // define preprocessor macros that affect standard-library includes.  This causes it to be
-        // ahead of our include guard, but `Python.h` has its own, so we should be fine.
-        header: Some(guarded_python_import(PYTHON_BINDING_DEFINE)),
+        header,
         language: cbindgen::Language::C,
         include_version: true,
         include_guard: Some(INCLUDE_GUARD.into()),

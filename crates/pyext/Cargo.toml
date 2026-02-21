@@ -4,6 +4,7 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
+build = "build.rs"
 
 [lib]
 name = "qiskit_pyext"
@@ -21,6 +22,10 @@ workspace = true
 # feature a default, and run `cargo test --no-default-features` to turn it off.
 default = ["pyo3/extension-module"]
 cache_pygates = ["pyo3/extension-module", "qiskit-circuit/cache_pygates", "qiskit-accelerate/cache_pygates", "qiskit-transpiler/cache_pygates", "qiskit-cext/cache_pygates", "qiskit-qpy/cache_pygates"]
+
+[build-dependencies]
+anyhow.workspace = true
+qiskit-bindgen.workspace = true
 
 [dependencies]
 pyo3.workspace = true
