@@ -139,6 +139,7 @@ sys.modules["qiskit._accelerate.substitute_pi4_rotations"] = _accelerate.substit
 
 
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
+import qiskit.capi
 
 # The main qiskit operators
 from qiskit.circuit import ClassicalRegister
