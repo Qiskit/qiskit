@@ -54,18 +54,15 @@ pub fn suzuki_trotter_evolution(
 
     let mut global_phase = Param::Float(0.0);
     let mut modified_phase = false;
-    for (index, coeff) in iter_repeated.clone() {
-        let view = &terms[*index];
-        if view.bit_terms.len() == 0 {
-            global_phase = radd_param(global_phase, (view.coeff.re * coeff).into());
-            modified_phase = true;
-        }
-    }
 
     let repeated_evo = iter_repeated
         .enumerate()
         .map(|(i, (index, coeff))| {
             let view = &terms[*index];
+            if view.bit_terms.len() == 0 {
+                global_phase = radd_param(global_phase.clone(), (view.coeff.re * coeff).into());
+                modified_phase = true;
+            }
             let instructions = sparse_term_evolution(
                 view.bit_terms
                     .iter()
@@ -86,17 +83,18 @@ pub fn suzuki_trotter_evolution(
         })
         .flatten();
 
-    if modified_phase {
-        global_phase = multiply_param(&global_phase, -0.5);
-    }
-
     match CircuitData::from_packed_operations(
         observable.num_qubits() as u32,
         0,
         repeated_evo,
-        global_phase,
+        Param::Float(0.0),
     ) {
-        Ok(circuit) => Ok(circuit),
+        Ok(mut circuit) => {
+            if modified_phase {
+                let _ = circuit.set_global_phase(multiply_param(&global_phase, -0.5));
+            }
+            Ok(circuit)
+        }
         Err(_) => Err(EvolutionError::CircuitBuild),
     }
 }
