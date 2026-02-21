@@ -64,6 +64,7 @@ setup(
             binding=Binding.PyO3,
             debug=rust_debug,
             features=features,
+            data_files={"include": "qiskit.capi"},
         )
     ],
     options={"bdist_wheel": {"py_limited_api": "cp310"}},
