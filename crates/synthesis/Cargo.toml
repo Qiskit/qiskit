@@ -33,7 +33,7 @@ rsgridsynth =  "0.2.0"
 rstar = "0.12.2"
 thiserror.workspace = true
 fixedbitset.workspace = true
-binrw = "0.15"
+binrw.workspace = true
 
 [dependencies.faer-ext]
 version = "0.7.1"

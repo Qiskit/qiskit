@@ -83,17 +83,27 @@ struct SerializableGateSequence {
 #[brw(big)]
 struct SerializableHashMap {
     #[br(temp)]
-    #[bw(calc = map.len() as u64)]
+    #[bw(calc = data.len() as u64)]
     len: u64,
 
     #[br(count = len)]
-    #[bw(calc = map.iter().map(|(key, value)| (*key as u64, value.clone())).collect::<Vec<_>>()
-    )]
     data: Vec<(u64, SerializableGateSequence)>,
+}
 
-    #[br(calc = data.into_iter().map(|(key, value)| (key as usize, value)).collect())]
-    #[bw(ignore)]
-    map: HashMap<usize, SerializableGateSequence>,
+impl SerializableHashMap {
+    fn into_hashmap(self) -> HashMap<usize, SerializableGateSequence> {
+        self.data
+            .into_iter()
+            .map(|(key, value)| (key as usize, value))
+            .collect()
+    }
+    fn from_hashmap(map: HashMap<usize, SerializableGateSequence>) -> Self {
+        let data = map
+            .iter()
+            .map(|(key, value)| (*key as u64, value.clone()))
+            .collect::<Vec<_>>();
+        SerializableHashMap { data }
+    }
 }
 
 impl From<&GateSequence> for SerializableGateSequence {
@@ -497,11 +507,9 @@ impl BasicApproximations {
 
         // Write the HashMap to file using binrw
         let mut file = ::std::fs::File::create(filename)?;
-        SerializableHashMap {
-            map: serializable_approx,
-        }
-        .write(&mut file)
-        .map_err(::std::io::Error::other)
+        SerializableHashMap::from_hashmap(serializable_approx)
+            .write(&mut file)
+            .map_err(::std::io::Error::other)
     }
 
     /// Load the basic approximations from a file. See [Self::save] for saving the object.
@@ -509,7 +517,7 @@ impl BasicApproximations {
         let mut file = ::std::fs::File::open(filename)?;
         let serializable_approx = SerializableHashMap::read(&mut file)
             .map_err(::std::io::Error::other)?
-            .map;
+            .into_hashmap();
 
         // construct the GateSequence from its serializable version
         let approximations = serializable_approx
