@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 use std::fmt::Debug;
-use std::hash::{Hash, RandomState};
+use std::hash::Hash;
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
@@ -22,9 +22,7 @@ use crate::bit::{
 use crate::bit_locator::BitLocator;
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use crate::classical::expr;
-use crate::dag_circuit::{
-    DAGCircuit, DAGIdentifierInfo, DAGStretchType, DAGVarType, add_global_phase,
-};
+use crate::dag_circuit::{DAGCircuit, add_global_phase};
 use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
 use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::{ObjectRegistry, ObjectRegistryError};
@@ -38,6 +36,9 @@ use crate::parameter::symbol_expr::{Symbol, Value};
 use crate::parameter_table::{ParameterTable, ParameterTableError, ParameterUse, ParameterUuid};
 use crate::register_data::RegisterData;
 use crate::slice::{PySequenceIndex, SequenceIndex};
+use crate::var_stretch_container::{
+    StretchType, VarStretchContainer, VarStretchContainerError, VarType,
+};
 use crate::{
     Block, BlocksMode, Clbit, ControlFlowBlocks, Qubit, Stretch, Var, VarsMode, instruction,
 };
@@ -78,20 +79,8 @@ pub enum CircuitDataError {
     ErrorFromPython(#[from] PyErr),
     #[error(transparent)]
     ParameterTableError(#[from] ParameterTableError),
-    #[error("already present in the circuit")]
-    DuplicateStretch,
-    #[error("already present in the circuit")]
-    DuplicateVar,
-    #[error("cannot add var as its name shadows an existing identifier")]
-    VarShadowing,
-    #[error("cannot add variables that wrap `Clbit` or `ClassicalRegister` instances")]
-    VarWrappingClbit,
-    #[error("circuits with input variables cannot be enclosed, so they cannot be closures")]
-    CaptureWithInputVars,
-    #[error("circuits to be enclosed with captures cannot have input variables")]
-    InputWithCaptureVars,
-    #[error("cannot add stretch as its name shadows an existing identifier")]
-    StretchShadowing,
+    #[error(transparent)]
+    VarStretchContainerError(#[from] VarStretchContainerError),
     #[error(
         "Mismatching number of values and parameters. For partial binding please pass a mapping of parameter to value pairs."
     )]
@@ -113,27 +102,7 @@ impl From<CircuitDataError> for PyErr {
             CircuitDataError::ObjectRegistryError(e) => e.into(),
             CircuitDataError::ErrorFromPython(e) => e,
             CircuitDataError::ParameterTableError(e) => e.into(),
-            CircuitDataError::DuplicateStretch => {
-                CircuitError::new_err("already present in the circuit")
-            }
-            CircuitDataError::DuplicateVar => {
-                CircuitError::new_err("already present in the circuit")
-            }
-            CircuitDataError::VarShadowing => {
-                CircuitError::new_err("cannot add var as its name shadows an existing identifier")
-            }
-            CircuitDataError::CaptureWithInputVars => CircuitError::new_err(
-                "circuits with input variables cannot be enclosed, so they cannot be closures",
-            ),
-            CircuitDataError::StretchShadowing => CircuitError::new_err(
-                "cannot add stretch as its name shadows an existing identifier",
-            ),
-            CircuitDataError::VarWrappingClbit => CircuitError::new_err(
-                "cannot add variables that wrap `Clbit` or `ClassicalRegister` instances",
-            ),
-            CircuitDataError::InputWithCaptureVars => CircuitError::new_err(
-                "circuits to be enclosed with captures cannot have input variables",
-            ),
+            CircuitDataError::VarStretchContainerError(e) => CircuitError::new_err(e.to_string()),
             CircuitDataError::ParameterSliceLenMismatch => PyValueError::new_err(
                 "Mismatching number of values and parameters. For partial binding please pass a mapping of {parameter: value} pairs.",
             ),
@@ -238,149 +207,12 @@ pub struct CircuitData {
     /// Mapping between [ShareableClbit] and its locations in
     /// the circuit
     clbit_indices: BitLocator<ShareableClbit, ClassicalRegister>,
-    /// Variables registered in the circuit
-    vars: ObjectRegistry<Var, expr::Var>,
-    /// Stretches registered in the circuit
-    stretches: ObjectRegistry<Stretch, expr::Stretch>,
-    /// Variable identifiers, in order of their addition to the circuit
-    identifier_info: IndexMap<String, CircuitIdentifierInfo>,
-
-    // Var and Stretch indices stored in the circuit
-    vars_input: Vec<Var>,
-    vars_capture: Vec<Var>,
-    vars_declare: Vec<Var>,
-
-    stretches_capture: Vec<Stretch>,
-    stretches_declare: Vec<Stretch>,
+    /// Variables and stretches registered in the circuit
+    vars_stretches: VarStretchContainer,
 
     param_table: ParameterTable,
     #[pyo3(get)]
     global_phase: Param,
-}
-
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub enum CircuitVarType {
-    Input = 0,
-    Capture = 1,
-    Declare = 2,
-}
-
-impl From<DAGVarType> for CircuitVarType {
-    fn from(value: DAGVarType) -> Self {
-        match value {
-            DAGVarType::Input => CircuitVarType::Input,
-            DAGVarType::Capture => CircuitVarType::Capture,
-            DAGVarType::Declare => CircuitVarType::Declare,
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct CircuitVarInfo {
-    var: Var,
-    type_: CircuitVarType,
-}
-
-impl CircuitVarInfo {
-    fn to_pickle(&self, py: Python) -> PyResult<Py<PyAny>> {
-        (self.var.0, self.type_ as u8).into_py_any(py)
-    }
-
-    fn from_pickle(ob: &Bound<PyAny>) -> PyResult<Self> {
-        let val_tuple = ob.cast::<PyTuple>()?;
-        Ok(CircuitVarInfo {
-            var: Var(val_tuple.get_item(0)?.extract()?),
-            type_: match val_tuple.get_item(1)?.extract::<u8>()? {
-                0 => CircuitVarType::Input,
-                1 => CircuitVarType::Capture,
-                2 => CircuitVarType::Declare,
-                _ => return Err(PyValueError::new_err("Invalid var type")),
-            },
-        })
-    }
-
-    pub fn get_var(&self) -> Var {
-        self.var
-    }
-
-    pub fn get_type(&self) -> CircuitVarType {
-        self.type_
-    }
-}
-
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub enum CircuitStretchType {
-    Capture = 0,
-    Declare = 1,
-}
-
-impl From<DAGStretchType> for CircuitStretchType {
-    fn from(value: DAGStretchType) -> Self {
-        match value {
-            DAGStretchType::Declare => CircuitStretchType::Declare,
-            DAGStretchType::Capture => CircuitStretchType::Capture,
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct CircuitStretchInfo {
-    stretch: Stretch,
-    type_: CircuitStretchType,
-}
-
-impl CircuitStretchInfo {
-    fn to_pickle(&self, py: Python) -> PyResult<Py<PyAny>> {
-        (self.stretch.0, self.type_ as u8).into_py_any(py)
-    }
-
-    fn from_pickle(ob: &Bound<PyAny>) -> PyResult<Self> {
-        let val_tuple = ob.cast::<PyTuple>()?;
-        Ok(CircuitStretchInfo {
-            stretch: Stretch(val_tuple.get_item(0)?.extract()?),
-            type_: match val_tuple.get_item(1)?.extract::<u8>()? {
-                0 => CircuitStretchType::Capture,
-                1 => CircuitStretchType::Declare,
-                _ => return Err(PyValueError::new_err("Invalid stretch type")),
-            },
-        })
-    }
-
-    pub fn get_stretch(&self) -> Stretch {
-        self.stretch
-    }
-
-    pub fn get_type(&self) -> CircuitStretchType {
-        self.type_
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum CircuitIdentifierInfo {
-    Stretch(CircuitStretchInfo),
-    Var(CircuitVarInfo),
-}
-
-impl CircuitIdentifierInfo {
-    fn to_pickle(&self, py: Python) -> PyResult<Py<PyAny>> {
-        match self {
-            CircuitIdentifierInfo::Stretch(info) => (0, info.to_pickle(py)?).into_py_any(py),
-            CircuitIdentifierInfo::Var(info) => (1, info.to_pickle(py)?).into_py_any(py),
-        }
-    }
-
-    fn from_pickle(ob: &Bound<PyAny>) -> PyResult<Self> {
-        let val_tuple = ob.cast::<PyTuple>()?;
-        match val_tuple.get_item(0)?.extract::<u8>()? {
-            0 => Ok(CircuitIdentifierInfo::Stretch(
-                CircuitStretchInfo::from_pickle(&val_tuple.get_item(1)?)?,
-            )),
-            1 => Ok(CircuitIdentifierInfo::Var(CircuitVarInfo::from_pickle(
-                &val_tuple.get_item(1)?,
-            )?)),
-            _ => Err(PyValueError::new_err("Invalid identifier info type")),
-        }
-    }
 }
 
 #[pymethods]
@@ -451,18 +283,16 @@ impl CircuitData {
         };
         let state = {
             let borrowed = self_.borrow();
+            let vars_stretches_state = borrowed.vars_stretches.to_pickle(py);
+
             (
                 borrowed.qregs.registers().to_vec(),
                 borrowed.cregs.registers().to_vec(),
                 borrowed.qubit_indices.cached(py).clone_ref(py),
                 borrowed.clbit_indices.cached(py).clone_ref(py),
-                borrowed
-                    .identifier_info
-                    .iter()
-                    .map(|(k, v)| (k.clone(), v.clone().to_pickle(py).unwrap()))
-                    .collect::<Vec<(String, Py<PyAny>)>>(),
-                borrowed.vars.objects().clone(),
-                borrowed.stretches.objects().clone(),
+                vars_stretches_state.0, // identifiers vector
+                vars_stretches_state.1, // Var objects
+                vars_stretches_state.2, // Stretch objects
             )
         };
         (ty, args, state, self_.try_iter()?).into_py_any(py)
@@ -483,43 +313,8 @@ impl CircuitData {
         borrowed_mut.qubit_indices = BitLocator::from_py_dict(&state.2)?;
         borrowed_mut.clbit_indices = BitLocator::from_py_dict(&state.3)?;
 
-        borrowed_mut.identifier_info =
-            IndexMap::with_capacity_and_hasher(state.4.len(), RandomState::default());
-        for identifier_info in state.4 {
-            let circuit_id_info =
-                CircuitIdentifierInfo::from_pickle(identifier_info.1.bind(slf.py()))?;
-            match &circuit_id_info {
-                CircuitIdentifierInfo::Stretch(stretch_info) => {
-                    match stretch_info.type_ {
-                        CircuitStretchType::Capture => &mut borrowed_mut.stretches_capture,
-                        CircuitStretchType::Declare => &mut borrowed_mut.stretches_declare,
-                    }
-                    .push(stretch_info.stretch);
-                }
-                CircuitIdentifierInfo::Var(var_info) => {
-                    match var_info.type_ {
-                        CircuitVarType::Input => &mut borrowed_mut.vars_input,
-                        CircuitVarType::Capture => &mut borrowed_mut.vars_capture,
-                        CircuitVarType::Declare => &mut borrowed_mut.vars_declare,
-                    }
-                    .push(var_info.var);
-                }
-            }
-            borrowed_mut
-                .identifier_info
-                .insert(identifier_info.0, circuit_id_info);
-        }
-
-        borrowed_mut.vars = ObjectRegistry::<Var, expr::Var>::with_capacity(state.5.len());
-        for var in state.5 {
-            borrowed_mut.vars.add(var, false)?;
-        }
-
-        borrowed_mut.stretches =
-            ObjectRegistry::<Stretch, expr::Stretch>::with_capacity(state.6.len());
-        for stretch in state.6 {
-            borrowed_mut.stretches.add(stretch, false)?;
-        }
+        borrowed_mut.vars_stretches =
+            VarStretchContainer::from_pickle(slf.py(), (state.4, state.5, state.6))?;
 
         Ok(())
     }
@@ -1365,68 +1160,9 @@ impl CircuitData {
             {
                 return Ok(false);
             }
-            let other_cd = other_cd.borrow();
 
-            if self_cd.num_input_vars() != other_cd.num_input_vars()
-                || self_cd.num_captured_vars() != other_cd.num_captured_vars()
-                || self_cd.num_declared_vars() != other_cd.num_declared_vars()
-                || self_cd.num_captured_stretches() != other_cd.num_captured_stretches()
-                || self_cd.num_declared_stretches() != other_cd.num_declared_stretches()
-            {
+            if self_cd.vars_stretches != other_cd.borrow().vars_stretches {
                 return Ok(false);
-            }
-
-            let mut prev_rhs_stretch_idx = 0usize;
-            for (id_name, lhs_id_info) in &self_cd.identifier_info {
-                let Some(rhs_id_info) = other_cd.identifier_info.get(id_name) else {
-                    return Ok(false); // Identifier does not exist on the other CircuitData
-                };
-
-                match (lhs_id_info, rhs_id_info) {
-                    (
-                        CircuitIdentifierInfo::Var(lhs_var_info),
-                        CircuitIdentifierInfo::Var(rhs_var_info),
-                    ) => {
-                        if lhs_var_info.get_type() != rhs_var_info.get_type()
-                            || !other_cd
-                                .vars
-                                .contains(self_cd.vars.get(lhs_var_info.get_var()).unwrap())
-                        {
-                            return Ok(false); // Not the same var type or UUID
-                        }
-                    }
-                    (
-                        CircuitIdentifierInfo::Stretch(lhs_stretch_info),
-                        CircuitIdentifierInfo::Stretch(rhs_stretch_info),
-                    ) => {
-                        if lhs_stretch_info.get_type() != rhs_stretch_info.get_type()
-                            || !other_cd.stretches.contains(
-                                self_cd
-                                    .stretches
-                                    .get(lhs_stretch_info.get_stretch())
-                                    .unwrap(),
-                            )
-                        {
-                            return Ok(false); // Not the same stretch type or UUID
-                        };
-
-                        // Check whether the declared stretches in the other CircuitData follow the same order of
-                        // declaration as in self. This is done by verifying that the indices of the declared stretches
-                        // in `identifier_info` of the other CircuitData - which match the stretches encountered during the
-                        // iteration here - are monotonically increasing.
-                        if let CircuitStretchType::Declare = rhs_stretch_info.get_type() {
-                            let rhs_stretch_idx =
-                                other_cd.identifier_info.get_index_of(id_name).unwrap();
-                            if rhs_stretch_idx < prev_rhs_stretch_idx {
-                                return Ok(false);
-                            }
-                            prev_rhs_stretch_idx = rhs_stretch_idx;
-                        }
-                    }
-                    _ => {
-                        return Ok(false);
-                    }
-                }
             }
         }
 
@@ -1576,7 +1312,7 @@ impl CircuitData {
     ///     var: the variable to add.
     #[pyo3(name = "add_input_var")]
     fn py_add_input_var(&mut self, var: expr::Var) -> PyResult<()> {
-        self.add_var(var, CircuitVarType::Input)?;
+        self.add_var(var, VarType::Input)?;
         Ok(())
     }
 
@@ -1586,65 +1322,50 @@ impl CircuitData {
     ///     var: the variable to add.
     #[pyo3(name = "add_captured_var")]
     fn py_add_captured_var(&mut self, var: expr::Var) -> PyResult<()> {
-        self.add_var(var, CircuitVarType::Capture)?;
+        self.add_var(var, VarType::Capture)?;
         Ok(())
     }
 
-    /// Add a local variable to the circuit.
+    /// Add a declared variable to the circuit.
     ///
     /// Args:
     ///     var: the variable to add.
     #[pyo3(name = "add_declared_var")]
     fn py_add_declared_var(&mut self, var: expr::Var) -> PyResult<()> {
-        self.add_var(var, CircuitVarType::Declare)?;
+        self.add_var(var, VarType::Declare)?;
         Ok(())
     }
 
-    /// Check if this realtime variable is in the circuit.
+    /// Check if this variable is in the circuit.
     ///
     /// Args:
     ///     var: the variable or name to check.
     #[pyo3(name = "has_var")]
     fn py_has_var(&self, var: &Bound<PyAny>) -> PyResult<bool> {
         if let Ok(name) = var.extract::<String>() {
-            Ok(matches!(
-                self.identifier_info.get(&name),
-                Some(CircuitIdentifierInfo::Var(_))
-            ))
+            Ok(self.vars_stretches.has_var(&name))
         } else {
             let var = var.extract::<expr::Var>()?;
-            let expr::Var::Standalone { name, .. } = &var else {
-                return Ok(false);
-            };
-            if let Some(CircuitIdentifierInfo::Var(info)) = self.identifier_info.get(name) {
-                return Ok(&var == self.vars.get(info.var).unwrap());
-            }
-            Ok(false)
+            Ok(self.vars_stretches.vars().contains(&var))
         }
     }
 
-    /// Check if the circuit contains an input variable with the given name.
+    /// Check if the circuit contains an input variable with the specified name.
     #[pyo3(name = "has_input_var")]
     fn py_has_input_var(&self, name: &str) -> PyResult<bool> {
-        Ok(matches!(
-        self.identifier_info.get(name),
-        Some(CircuitIdentifierInfo::Var(var_info)) if matches!(var_info.type_, CircuitVarType::Input)))
+        Ok(self.vars_stretches.has_var_by_type(name, VarType::Input))
     }
 
-    /// Check if the circuit contains a local variable with the given name.
+    /// Check if the circuit contains a local variable with the specified name.
     #[pyo3(name = "has_declared_var")]
     fn py_has_declared_var(&self, name: &str) -> PyResult<bool> {
-        Ok(matches!(
-        self.identifier_info.get(name),
-        Some(CircuitIdentifierInfo::Var(var_info)) if matches!(var_info.type_, CircuitVarType::Declare)))
+        Ok(self.vars_stretches.has_var_by_type(name, VarType::Declare))
     }
 
-    /// Check if the circuit contains a capture variable with the given name.
+    /// Check if the circuit contains a capture variable with the specified name.
     #[pyo3(name = "has_captured_var")]
     fn py_has_captured_var(&self, name: &str) -> PyResult<bool> {
-        Ok(matches!(
-        self.identifier_info.get(name),
-        Some(CircuitIdentifierInfo::Var(var_info)) if matches!(var_info.type_, CircuitVarType::Capture)))
+        Ok(self.vars_stretches.has_var_by_type(name, VarType::Capture))
     }
 
     /// Return a list of the captured variables tracked in this circuit.
@@ -1652,7 +1373,8 @@ impl CircuitData {
     fn py_get_captured_vars(&self, py: Python) -> PyResult<Py<PyList>> {
         Ok(PyList::new(
             py,
-            self.get_vars(CircuitVarType::Capture)
+            self.vars_stretches
+                .iter_vars(VarType::Capture)
                 .map(|var| var.clone().into_pyobject(py).unwrap()),
         )?
         .unbind())
@@ -1663,25 +1385,21 @@ impl CircuitData {
     fn py_get_declared_vars(&self, py: Python) -> PyResult<Py<PyList>> {
         Ok(PyList::new(
             py,
-            self.get_vars(CircuitVarType::Declare)
+            self.vars_stretches
+                .iter_vars(VarType::Declare)
                 .map(|var| var.clone().into_pyobject(py).unwrap()),
         )?
         .unbind())
     }
 
-    // Return the variable in the circuit corresponding to the given name, or None if no such variable.
+    /// Return the variable in the circuit corresponding to the specified name, or None if no such variable.                                                                                                                                                                                                                                                                  Return the variable in the circuit corresponding to the given name, or None if no such variable.
     #[pyo3(name = "get_var")]
     fn py_get_var(&self, py: Python, name: &str) -> PyResult<Py<PyAny>> {
-        if let Some(CircuitIdentifierInfo::Var(var_info)) = self.identifier_info.get(name) {
-            let var = self
-                .vars
-                .get(var_info.var)
-                .expect("Expected Var for the given name identifier")
-                .clone();
-            return var.into_py_any(py);
+        if let Some(var) = self.vars_stretches.get_var(name) {
+            var.clone().into_py_any(py)
+        } else {
+            Ok(py.None())
         }
-
-        Ok(py.None())
     }
 
     /// Return a list of the input variables tracked in this circuit
@@ -1689,7 +1407,8 @@ impl CircuitData {
     fn py_get_input_vars(&self, py: Python) -> PyResult<Py<PyList>> {
         Ok(PyList::new(
             py,
-            self.get_vars(CircuitVarType::Input)
+            self.vars_stretches
+                .iter_vars(VarType::Input)
                 .map(|var| var.clone().into_pyobject(py).unwrap()),
         )?
         .unbind())
@@ -1698,28 +1417,19 @@ impl CircuitData {
     /// Return the number of classical input variables in the circuit.
     #[getter]
     pub fn num_input_vars(&self) -> usize {
-        self.vars_input.len()
+        self.vars_stretches.num_vars(VarType::Input)
     }
 
     /// Return the number of captured variables in the circuit.
     #[getter]
     pub fn num_captured_vars(&self) -> usize {
-        self.vars_capture.len()
+        self.vars_stretches.num_vars(VarType::Capture)
     }
 
     /// Return the number of local variables in the circuit.
     #[getter]
     pub fn num_declared_vars(&self) -> usize {
-        self.vars_declare.len()
-    }
-
-    /// Return the total number of identifiers in the circuit (vars + stretches)
-    pub fn num_identifiers(&self) -> usize {
-        self.num_input_vars()
-            + self.num_captured_vars()
-            + self.num_declared_vars()
-            + self.num_captured_stretches()
-            + self.num_declared_stretches()
+        self.vars_stretches.num_vars(VarType::Declare)
     }
 
     /// Add a captured stretch to the circuit.
@@ -1728,7 +1438,7 @@ impl CircuitData {
     ///     stretch: the stretch variable to add.
     #[pyo3(name = "add_captured_stretch")]
     fn py_add_captured_stretch(&mut self, stretch: expr::Stretch) -> PyResult<()> {
-        self.add_stretch(stretch, CircuitStretchType::Capture)?;
+        self.add_stretch(stretch, StretchType::Capture)?;
         Ok(())
     }
 
@@ -1737,62 +1447,49 @@ impl CircuitData {
     /// Args:
     ///     stretch: the stretch variable to add.
     #[pyo3(name = "add_declared_stretch")]
-    fn py_add_declared_stretch(&mut self, var: expr::Stretch) -> PyResult<()> {
-        self.add_stretch(var, CircuitStretchType::Declare)?;
+    fn py_add_declared_stretch(&mut self, stretch: expr::Stretch) -> PyResult<()> {
+        self.add_stretch(stretch, StretchType::Declare)?;
         Ok(())
     }
 
     /// Check if this stretch variable is in the circuit.
     ///
     /// Args:
-    ///     var: the variable or name to check.
+    ///     stretch: the stretch or name to check.
     #[pyo3(name = "has_stretch")]
     fn py_has_stretch(&self, stretch: &Bound<PyAny>) -> PyResult<bool> {
         if let Ok(name) = stretch.extract::<String>() {
-            Ok(matches!(
-                self.identifier_info.get(&name),
-                Some(CircuitIdentifierInfo::Stretch(_))
-            ))
+            Ok(self.vars_stretches.has_stretch(&name))
         } else {
             let stretch = stretch.extract::<expr::Stretch>()?;
-            if let Some(CircuitIdentifierInfo::Stretch(info)) =
-                self.identifier_info.get(&stretch.name)
-            {
-                return Ok(&stretch == self.stretches.get(info.stretch).unwrap());
-            }
-            Ok(false)
+            Ok(self.vars_stretches.stretches().contains(&stretch))
         }
     }
 
-    /// Check if the circuit contains a capture stretch with the given name.
+    /// Check if the circuit contains a captured stretch with the specified name.
     #[pyo3(name = "has_captured_stretch")]
     fn py_has_captured_stretch(&self, name: &str) -> PyResult<bool> {
-        Ok(matches!(
-        self.identifier_info.get(name),
-        Some(CircuitIdentifierInfo::Stretch(stretch_info)) if matches!(stretch_info.type_, CircuitStretchType::Capture)))
+        Ok(self
+            .vars_stretches
+            .has_stretch_by_type(name, StretchType::Capture))
     }
 
-    /// Check if the circuit contains a local stretch with the given name.
+    /// Check if the circuit contains a local stretch with the specified name.
     #[pyo3(name = "has_declared_stretch")]
     fn py_has_declared_stretch(&self, name: &str) -> PyResult<bool> {
-        Ok(matches!(
-        self.identifier_info.get(name),
-        Some(CircuitIdentifierInfo::Stretch(stretch_info)) if matches!(stretch_info.type_, CircuitStretchType::Declare)))
+        Ok(self
+            .vars_stretches
+            .has_stretch_by_type(name, StretchType::Declare))
     }
 
-    // Return the stretch variable in the circuit corresponding to the given name, or None if no such variable.
+    // Return the stretch in the circuit corresponding to the specified name, or None if no such variable.
     #[pyo3(name = "get_stretch")]
-    pub fn py_get_stretch(&self, py: Python, name: &str) -> PyResult<Py<PyAny>> {
-        if let Some(CircuitIdentifierInfo::Stretch(stretch_info)) = self.identifier_info.get(name) {
-            let stretch = self
-                .stretches
-                .get(stretch_info.stretch)
-                .expect("Expected Stretch for the given name identifier")
-                .clone();
-            return stretch.into_py_any(py);
+    fn py_get_stretch(&self, py: Python, name: &str) -> PyResult<Py<PyAny>> {
+        if let Some(stretch) = self.vars_stretches.get_stretch(name) {
+            stretch.clone().into_py_any(py)
+        } else {
+            Ok(py.None())
         }
-
-        Ok(py.None())
     }
 
     /// Return a list of the captured stretch variables tracked in this circuit.
@@ -1800,7 +1497,8 @@ impl CircuitData {
     fn py_get_captured_stretches(&self, py: Python) -> PyResult<Py<PyList>> {
         Ok(PyList::new(
             py,
-            self.get_stretches(CircuitStretchType::Capture)
+            self.vars_stretches
+                .iter_stretches(StretchType::Capture)
                 .map(|stretch| stretch.clone().into_pyobject(py).unwrap()),
         )?
         .unbind())
@@ -1811,7 +1509,8 @@ impl CircuitData {
     fn py_get_declared_stretches(&self, py: Python) -> PyResult<Py<PyList>> {
         Ok(PyList::new(
             py,
-            self.get_stretches(CircuitStretchType::Declare)
+            self.vars_stretches
+                .iter_stretches(StretchType::Declare)
                 .map(|stretch| stretch.clone().into_pyobject(py).unwrap()),
         )?
         .unbind())
@@ -1820,13 +1519,13 @@ impl CircuitData {
     /// Return the number of local stretch variables in the circuit.
     #[getter]
     pub fn num_declared_stretches(&self) -> usize {
-        self.stretches_declare.len()
+        self.vars_stretches.num_stretches(StretchType::Declare)
     }
 
     /// Return the number of captured stretch variables in the circuit.
     #[getter]
     pub fn num_captured_stretches(&self) -> usize {
-        self.stretches_capture.len()
+        self.vars_stretches.num_stretches(StretchType::Capture)
     }
 }
 
@@ -1856,14 +1555,7 @@ impl CircuitData {
             cregs: RegisterData::new(),
             qubit_indices,
             clbit_indices,
-            vars: ObjectRegistry::new(),
-            stretches: ObjectRegistry::new(),
-            identifier_info: IndexMap::default(),
-            vars_input: Vec::new(),
-            vars_capture: Vec::new(),
-            vars_declare: Vec::new(),
-            stretches_capture: Vec::new(),
-            stretches_declare: Vec::new(),
+            vars_stretches: VarStretchContainer::new(),
         };
         self_.set_global_phase_param(global_phase)?;
         if let Some(qubits) = qubits {
@@ -1896,6 +1588,40 @@ impl CircuitData {
     #[inline]
     pub fn blocks(&self) -> &ControlFlowBlocks<CircuitData> {
         &self.blocks
+    }
+
+    /// Adds a variable to the circuit and register it as a var of type `var_type`.
+    ///
+    /// # Arguments
+    ///
+    /// * `var` - The [expr::Var] object to add.
+    /// * `var_type` - The classification of the added variable within the circuit.
+    ///
+    /// # Returns
+    ///
+    /// The [Var] index of the newly added var within the circuit on success, or an error otherwise.
+    #[inline]
+    pub fn add_var(&mut self, var: expr::Var, var_type: VarType) -> Result<Var, CircuitDataError> {
+        Ok(self.vars_stretches.add_var(var, var_type)?)
+    }
+
+    /// Adds a stretch to the circuit and register it as a stretch of type `stretch_type`.
+    ///
+    /// # Arguments
+    ///
+    /// * `stretch` - The [expr::Stretch] object to add.
+    /// * `stretch_type` - The classification of the added stretch within the circuit.
+    ///
+    /// # Returns
+    ///
+    /// The [Stretch] index of the newly added stretch within the circuit on success, or an error otherwise.
+    #[inline]
+    pub fn add_stretch(
+        &mut self,
+        stretch: expr::Stretch,
+        stretch_type: StretchType,
+    ) -> Result<Stretch, CircuitDataError> {
+        Ok(self.vars_stretches.add_stretch(stretch, stretch_type)?)
     }
 
     /// Build a reference to the Python-space operation object (the `Gate`, etc) packed into an
@@ -2027,46 +1753,15 @@ impl CircuitData {
         res.qubit_indices = self.qubit_indices.clone();
         res.clbit_indices = self.clbit_indices.clone();
 
-        if let VarsMode::Drop = vars_mode {
-            return Ok(res);
-        }
-
-        let map_stretch_type = |type_| {
-            if let VarsMode::Captures = vars_mode {
-                CircuitStretchType::Capture
-            } else {
-                type_
+        match vars_mode {
+            VarsMode::Alike => {
+                res.vars_stretches = self.vars_stretches.clone();
             }
+            VarsMode::Captures => {
+                res.vars_stretches = self.vars_stretches.clone_as_captures();
+            }
+            VarsMode::Drop => {}
         };
-
-        let map_var_type = |type_| {
-            if let VarsMode::Captures = vars_mode {
-                CircuitVarType::Capture
-            } else {
-                type_
-            }
-        };
-
-        for info in self.identifier_info.values() {
-            match info {
-                CircuitIdentifierInfo::Stretch(CircuitStretchInfo { stretch, type_ }) => {
-                    let stretch = self
-                        .stretches
-                        .get(*stretch)
-                        .expect("Stretch not found for the specified index")
-                        .clone();
-                    res.add_stretch(stretch, map_stretch_type(*type_))?;
-                }
-                CircuitIdentifierInfo::Var(CircuitVarInfo { var, type_, .. }) => {
-                    let var = self
-                        .vars
-                        .get(*var)
-                        .expect("Var not found for the specified index")
-                        .clone();
-                    res.add_var(var, map_var_type(*type_))?;
-                }
-            }
-        }
 
         Ok(res)
     }
@@ -2193,38 +1888,12 @@ impl CircuitData {
             cregs: dag.cregs_data().clone(),
             qubit_indices: dag.qubit_locations().clone(),
             clbit_indices: dag.clbit_locations().clone(),
-            vars: ObjectRegistry::new(),
-            stretches: ObjectRegistry::new(),
-            identifier_info: Default::default(),
-            vars_input: Vec::new(),
-            vars_capture: Vec::new(),
-            vars_declare: Vec::new(),
-            stretches_capture: Vec::new(),
-            stretches_declare: Vec::new(),
+            vars_stretches: dag.vars_stretches_view().clone(),
             param_table: ParameterTable::new(),
             global_phase: Param::Float(0.0),
         };
         out.set_global_phase_param(dag.global_phase().clone())?;
-        for id in dag.identifiers() {
-            match id {
-                DAGIdentifierInfo::Stretch(info) => {
-                    out.add_stretch(
-                        dag.get_stretch(info.get_stretch())
-                            .expect("DAG should only return valid stretches")
-                            .clone(),
-                        info.get_type().into(),
-                    )?;
-                }
-                DAGIdentifierInfo::Var(info) => {
-                    out.add_var(
-                        dag.get_var(info.get_var())
-                            .expect("DAG should only return valid vars")
-                            .clone(),
-                        info.get_type().into(),
-                    )?;
-                }
-            }
-        }
+
         Ok(out)
     }
 
@@ -2287,14 +1956,7 @@ impl CircuitData {
             cregs: RegisterData::new(),
             qubit_indices: BitLocator::with_capacity(num_qubits as usize),
             clbit_indices: BitLocator::with_capacity(num_clbits as usize),
-            vars: ObjectRegistry::new(),
-            stretches: ObjectRegistry::new(),
-            identifier_info: IndexMap::default(),
-            vars_input: Vec::new(),
-            vars_capture: Vec::new(),
-            vars_declare: Vec::new(),
-            stretches_capture: Vec::new(),
-            stretches_declare: Vec::new(),
+            vars_stretches: VarStretchContainer::new(),
         };
 
         // use the global phase setter to ensure parameters are registered
@@ -3084,9 +2746,9 @@ impl CircuitData {
         self.data.into_iter()
     }
 
-    /// Returns an iterator over the stored identifiers in order of insertion
-    pub fn identifiers(&self) -> impl ExactSizeIterator<Item = &CircuitIdentifierInfo> {
-        self.identifier_info.values()
+    /// Returns an immutable view of the vars and stretches in the circuit
+    pub fn vars_stretches_view(&self) -> &VarStretchContainer {
+        &self.vars_stretches
     }
 
     /// Remove the label for an instruction in the circuit
@@ -3123,7 +2785,7 @@ impl CircuitData {
         vars_mode: VarsMode,
         blocks_mode: BlocksMode,
     ) -> Result<Self, CircuitDataError> {
-        let mut res = CircuitData {
+        let res = CircuitData {
             data: Vec::with_capacity(capacity.unwrap_or(other.data.len())),
             qargs_interner: other.qargs_interner.clone(),
             cargs_interner: other.cargs_interner.clone(),
@@ -3140,56 +2802,12 @@ impl CircuitData {
             cregs: other.cregs.clone(),
             qubit_indices: other.qubit_indices.clone(),
             clbit_indices: other.clbit_indices.clone(),
-            vars: ObjectRegistry::new(),
-            stretches: ObjectRegistry::new(),
-            identifier_info: IndexMap::new(),
-            vars_input: Vec::new(),
-            vars_capture: Vec::new(),
-            vars_declare: Vec::new(),
-            stretches_capture: Vec::new(),
-            stretches_declare: Vec::new(),
+            vars_stretches: match vars_mode {
+                VarsMode::Alike => other.vars_stretches.clone(),
+                VarsMode::Captures => other.vars_stretches.clone_as_captures(),
+                VarsMode::Drop => VarStretchContainer::new(),
+            },
         };
-        res.set_global_phase_param(other.global_phase.clone())?;
-        if let VarsMode::Drop = vars_mode {
-            return Ok(res);
-        }
-
-        let map_stretch_type = |type_| {
-            if let VarsMode::Captures = vars_mode {
-                CircuitStretchType::Capture
-            } else {
-                type_
-            }
-        };
-
-        let map_var_type = |type_| {
-            if let VarsMode::Captures = vars_mode {
-                CircuitVarType::Capture
-            } else {
-                type_
-            }
-        };
-
-        for info in other.identifier_info.values() {
-            match info {
-                CircuitIdentifierInfo::Stretch(CircuitStretchInfo { stretch, type_ }) => {
-                    let stretch = other
-                        .stretches
-                        .get(*stretch)
-                        .expect("Stretch not found for the specified index")
-                        .clone();
-                    res.add_stretch(stretch, map_stretch_type(*type_))?;
-                }
-                CircuitIdentifierInfo::Var(CircuitVarInfo { var, type_, .. }) => {
-                    let var = other
-                        .vars
-                        .get(*var)
-                        .expect("Var not found for the specified index")
-                        .clone();
-                    res.add_var(var, map_var_type(*type_))?;
-                }
-            }
-        }
         Ok(res)
     }
 
@@ -3214,165 +2832,6 @@ impl CircuitData {
             _ => self.set_global_phase_param(add_global_phase(&self.global_phase, value)),
         }
     }
-
-    /// Add a classical variable to the circuit.
-    ///
-    /// # Arguments:
-    ///
-    /// * var: the new variable to add.
-    /// * var_type: the type the variable should have in the circuit.
-    ///
-    /// # Returns:
-    ///
-    /// The [Var] index of the variable in the circuit.
-    pub fn add_var(
-        &mut self,
-        var: expr::Var,
-        var_type: CircuitVarType,
-    ) -> Result<Var, CircuitDataError> {
-        let name = {
-            let expr::Var::Standalone { name, .. } = &var else {
-                return Err(CircuitDataError::VarWrappingClbit);
-            };
-            name.clone()
-        };
-
-        match self.identifier_info.get(&name) {
-            Some(CircuitIdentifierInfo::Var(info)) if Some(&var) == self.vars.get(info.var) => {
-                return Err(CircuitDataError::DuplicateVar);
-            }
-            Some(_) => {
-                return Err(CircuitDataError::VarShadowing);
-            }
-            _ => {}
-        }
-
-        match var_type {
-            CircuitVarType::Input
-                if !self.vars_capture.is_empty() || !self.stretches_capture.is_empty() =>
-            {
-                return Err(CircuitDataError::InputWithCaptureVars);
-            }
-            CircuitVarType::Capture if !self.vars_input.is_empty() => {
-                return Err(CircuitDataError::CaptureWithInputVars);
-            }
-            _ => {}
-        }
-
-        let var_idx = self.vars.add(var, true)?;
-        match var_type {
-            CircuitVarType::Input => &mut self.vars_input,
-            CircuitVarType::Capture => &mut self.vars_capture,
-            CircuitVarType::Declare => &mut self.vars_declare,
-        }
-        .push(var_idx);
-
-        self.identifier_info.insert(
-            name,
-            CircuitIdentifierInfo::Var(CircuitVarInfo {
-                var: var_idx,
-                type_: var_type,
-            }),
-        );
-        Ok(var_idx)
-    }
-
-    /// Return a variable given its unique [Var] index in the circuit or
-    /// None if `var` is not a valid var index for this circuit.
-    pub fn get_var(&self, var: Var) -> Option<&expr::Var> {
-        self.vars.get(var)
-    }
-
-    /// Return an iterator for variables contained in the circuit.
-    ///
-    /// # Arguments:
-    ///
-    /// var_type: the type of variables to return an iterator for.
-    pub fn get_vars(&self, var_type: CircuitVarType) -> impl ExactSizeIterator<Item = &expr::Var> {
-        match var_type {
-            CircuitVarType::Input => &self.vars_input,
-            CircuitVarType::Capture => &self.vars_capture,
-            CircuitVarType::Declare => &self.vars_declare,
-        }
-        .iter()
-        .map(|var| self.vars.get(*var).unwrap())
-    }
-
-    /// Add a stretch variable to the circuit.
-    ///
-    /// # Arguments:
-    ///
-    /// * stretch: the new stretch to add.
-    /// * stretch_type: the type the stretch should have in the circuit.
-    ///
-    /// # Returns:
-    ///
-    /// The [Stretch] index of the stretch in the circuit.
-    pub fn add_stretch(
-        &mut self,
-        stretch: expr::Stretch,
-        stretch_type: CircuitStretchType,
-    ) -> Result<Stretch, CircuitDataError> {
-        let name = stretch.name.clone();
-
-        match self.identifier_info.get(&name) {
-            Some(CircuitIdentifierInfo::Stretch(info))
-                if Some(&stretch) == self.stretches.get(info.stretch) =>
-            {
-                return Err(CircuitDataError::DuplicateStretch);
-            }
-            Some(_) => {
-                return Err(CircuitDataError::StretchShadowing);
-            }
-            _ => {}
-        }
-
-        if let CircuitStretchType::Capture = stretch_type {
-            if !self.vars_input.is_empty() {
-                return Err(CircuitDataError::CaptureWithInputVars);
-            }
-        }
-
-        let stretch_idx = self.stretches.add(stretch, true)?;
-        match stretch_type {
-            CircuitStretchType::Capture => &mut self.stretches_capture,
-            CircuitStretchType::Declare => &mut self.stretches_declare,
-        }
-        .push(stretch_idx);
-
-        self.identifier_info.insert(
-            name,
-            CircuitIdentifierInfo::Stretch(CircuitStretchInfo {
-                stretch: stretch_idx,
-                type_: stretch_type,
-            }),
-        );
-        Ok(stretch_idx)
-    }
-
-    /// Return a stretch variable given its unique [Stretch] index in the circuit or
-    /// None if `stretch` is not a valid stretch index for this circuit.
-    pub fn get_stretch(&self, stretch: Stretch) -> Option<&expr::Stretch> {
-        self.stretches.get(stretch)
-    }
-
-    /// Return an iterator for stretch variables contained in the circuit.
-    ///
-    /// # Arguments:
-    ///
-    /// stretch_type: the type of stretches to return an iterator for.
-    pub fn get_stretches(
-        &self,
-        stretch_type: CircuitStretchType,
-    ) -> impl ExactSizeIterator<Item = &expr::Stretch> {
-        match stretch_type {
-            CircuitStretchType::Capture => &self.stretches_capture,
-            CircuitStretchType::Declare => &self.stretches_declare,
-        }
-        .iter()
-        .map(|stretch| self.stretches.get(*stretch).unwrap())
-    }
-
     /// Return a copy of the circuit with instructions in reverse order
     pub fn reverse(self) -> Result<Self, CircuitDataError> {
         let mut out = Self::clone_empty_like(
