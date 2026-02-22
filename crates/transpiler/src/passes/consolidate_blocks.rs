@@ -369,10 +369,7 @@ fn py_run_consolidate_blocks(
                     || block.len() > MAX_2Q_DEPTH
                     || (basis_gates.is_some() && outside_basis)
                     || (target.is_some() && outside_basis)
-                    || (basis_gates.is_none()
-                        && target.is_none()
-                        && has_unitary
-                        && block.len() > 1)
+                    || (basis_gates.is_none() && target.is_none() && has_unitary && block.len() > 1)
                 {
                     if approx::abs_diff_eq!(aview2(&TWO_QUBIT_IDENTITY), matrix) {
                         for node in block {
