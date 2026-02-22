@@ -866,10 +866,24 @@ pub fn vf2_layout_pass_exact(
         }
     };
     // Remap node indices back to virtual/physical qubits.
-    let mapping = mapping
+    // Keep track of which PhysicalQubits are left idle.
+    let mut coupling_indices: Vec<bool> = vec![true; coupling_qubits.len()];
+    let mut mapping: HashMap<VirtualQubit, PhysicalQubit> = mapping
         .iter()
-        .map(|(k, v)| (interactions.nodes[k.index()], coupling_qubits[v.index()]))
+        .map(|(k, v)| {
+            coupling_indices[v.index()] = false;
+            (interactions.nodes[k.index()], coupling_qubits[v.index()])
+        })
         .collect();
+    // Use the idle virtual qubits and map them to the idle physical ones.
+    mapping.extend(
+        interactions.idle.iter().copied().zip(
+            coupling_indices
+                .iter()
+                .enumerate()
+                .filter_map(|(idx, val)| val.then_some(coupling_qubits[idx])),
+        ),
+    );
     Ok(Vf2PassReturn::Solution(mapping))
 }
 
