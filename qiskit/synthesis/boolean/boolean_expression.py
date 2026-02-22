@@ -226,7 +226,7 @@ class BooleanExpression:
             FileNotFoundError: If filename is not found.
         """
         if not isfile(filename):
-            raise FileNotFoundError(f"The file {filename} does not exists.")
+            raise FileNotFoundError(f"The file {filename} does not exist.")
         with open(filename, "r") as dimacs_file:
             dimacs = dimacs_file.read()
         return BooleanExpression.from_dimacs(dimacs)

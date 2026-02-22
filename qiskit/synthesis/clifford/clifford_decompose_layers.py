@@ -229,7 +229,7 @@ def _create_graph_state(cliff, validate=False):
             for i in range(rank, num_qubits):
                 if stab[i, 0:num_qubits].any():
                     raise QiskitError(
-                        "After Gauss elimination, the final num_qubits - rank rows"
+                        "After Gauss elimination, the final num_qubits - rank rows "
                         "contain non-zero elements"
                     )
 
@@ -348,7 +348,7 @@ def _decompose_hadamard_free(
     if validate:
         if (destabz_update != destabz_update.T).any():
             raise QiskitError(
-                "The multiplication of the inverse of destabx and"
+                "The multiplication of the inverse of destabx and "
                 "destabz is not a symmetric matrix."
             )
 
