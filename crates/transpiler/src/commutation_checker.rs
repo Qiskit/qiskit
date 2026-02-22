@@ -236,7 +236,7 @@ fn get_bits_from_py<T>(
     py_bits2: &Bound<'_, PyTuple>,
 ) -> PyResult<(Vec<T>, Vec<T>)>
 where
-    T: From<u32> + Copy,
+    T: From<u32> + Copy + Debug,
     u32: From<T>,
 {
     // Using `PyObjectAsKey` here is a total hack, but this is a short-term workaround before a
@@ -244,7 +244,7 @@ where
     let mut registry: ObjectRegistry<T, PyObjectAsKey> = ObjectRegistry::new();
 
     for bit in py_bits1.iter().chain(py_bits2.iter()) {
-        registry.add(bit.into(), false)?;
+        registry.add_allow_existing(bit.into())?;
     }
 
     Ok((
