@@ -105,7 +105,9 @@ class TestIsometry(QiskitTestCase):
         # Simulate the decomposed gate
         unitary = Operator(qc).data
         iso_from_circuit = unitary[::, 0 : 2**num_q_input]
-        self.assertTrue(matrix_equal(iso_from_circuit, iso, ignore_phase=True, rtol=1e-6, atol=1e-6))
+        self.assertTrue(
+            matrix_equal(iso_from_circuit, iso, ignore_phase=True, rtol=1e-6, atol=1e-6)
+        )
 
     @data(
         np.eye(2, 2),

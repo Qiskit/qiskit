@@ -342,7 +342,11 @@ class TestSplit2QUnitaries(QiskitTestCase):
         expected_op = Operator(qc_split)
 
         self.assertTrue(
-            all(inst.operation.num_qubits == 1 for inst in res.data if inst.operation.name == "unitary")
+            all(
+                inst.operation.num_qubits == 1
+                for inst in res.data
+                if inst.operation.name == "unitary"
+            )
         )
         self.assertTrue(expected_op.equiv(res_op))
         self.assertTrue(matrix_equal(expected_op.data, res_op.data, ignore_phase=True))
