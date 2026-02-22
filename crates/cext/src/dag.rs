@@ -1590,11 +1590,10 @@ pub unsafe extern "C" fn qk_dag_copy_empty_like(
 
 /// @ingroup QkDag
 /// Replace a non-empty contiguous block of nodes in a ``QkDag`` with a
-/// single unitary gate whose matrix is equal to the overall unitary of the
-/// block.
+/// single unitary gate corresponding to the specified unitary matrix.
 ///
-/// The specified nodes are removed and substituted by a new node acting on
-/// the given qubits.
+/// Upon replacement, the nodes in the block are removed and substituted by
+/// a new node acting on the given qubits.
 ///
 /// @param dag Pointer to the DAG.
 /// @param num_block_ids Number of entries in ``block_ids``. This number must
@@ -1620,7 +1619,6 @@ pub unsafe extern "C" fn qk_dag_copy_empty_like(
 /// # Example
 ///
 /// ```c
-///
 /// // Create a DAG with H, T, S, T, H gates on the second qubit
 /// QkDag *dag = qk_dag_new();
 /// QkQuantumRegister *qr = qk_quantum_register_new(2, "qr");
