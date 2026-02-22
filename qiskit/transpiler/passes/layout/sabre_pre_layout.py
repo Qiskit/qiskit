@@ -52,20 +52,17 @@ class SabrePreLayout(AnalysisPass):
     def __init__(
         self,
         coupling_map: CouplingMap | Target,
-        min_distance: int = 1,
         max_distance: int = 2,
         error_rate: float = 0.1,
         max_trials_vf2: int | None = 100,
         call_limit_vf2: None | int | tuple[int | None, int | None] = None,
         improve_layout: bool = True,
+        min_distance: int = 1,
     ):
         """
         Args:
             coupling_map: Directed graph representing the original coupling map or a target modelling
                 the backend (including its connectivity).
-            min_distance: The minimum distance to run the inner VF2 search with the augmented coupling
-                map. This can be used to skip running the distance-1 check as this corresponds to
-                running the ``VF2Layout`` pass.
             max_distance: The maximum distance to run the inner VF2 search with the augmented coupling
                 map. In particular, this also specified the maximum distance between the original nodes
                 that become connected in the augmented coupling map.
@@ -82,6 +79,9 @@ class SabrePreLayout(AnalysisPass):
                 found.
             improve_layout: Unused (the option became obsolete with the introduction of on-the-fly
                 scoring in VF2).
+            min_distance: The minimum distance to run the inner VF2 search with the augmented coupling
+                map. This can be used to skip running the distance-1 check as this corresponds to
+                running the ``VF2Layout`` pass.
 
         Raises:
             TranspilerError: At runtime, if the argument ``coupling_map`` is not provided.
