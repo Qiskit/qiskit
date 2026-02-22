@@ -968,6 +968,7 @@ class CliffordTInitPassManager(PassManagerStagePlugin):
     # Clifford gates.
     def pass_manager(self, pass_manager_config, optimization_level=None):
         optimization_metric = OptimizationMetric.COUNT_T
+        clifford_rz_gates = get_clifford_gate_names() + ["t", "tdg", "rz"]
 
         if optimization_level == 0:
             init = None
@@ -980,8 +981,8 @@ class CliffordTInitPassManager(PassManagerStagePlugin):
                 )
             ):
                 init = common.generate_unroll_3q(
-                    pass_manager_config.target,
-                    pass_manager_config.basis_gates,
+                    None,
+                    clifford_rz_gates,
                     pass_manager_config.approximation_degree,
                     pass_manager_config.unitary_synthesis_method,
                     pass_manager_config.unitary_synthesis_plugin_config,
@@ -1000,8 +1001,8 @@ class CliffordTInitPassManager(PassManagerStagePlugin):
                 )
             ):
                 init += common.generate_unroll_3q(
-                    pass_manager_config.target,
-                    pass_manager_config.basis_gates,
+                    None,
+                    clifford_rz_gates,
                     pass_manager_config.approximation_degree,
                     pass_manager_config.unitary_synthesis_method,
                     pass_manager_config.unitary_synthesis_plugin_config,
@@ -1018,8 +1019,8 @@ class CliffordTInitPassManager(PassManagerStagePlugin):
 
         elif optimization_level in {2, 3}:
             init = common.generate_unroll_3q(
-                pass_manager_config.target,
-                pass_manager_config.basis_gates,
+                None,
+                clifford_rz_gates,
                 pass_manager_config.approximation_degree,
                 pass_manager_config.unitary_synthesis_method,
                 pass_manager_config.unitary_synthesis_plugin_config,
@@ -1041,7 +1042,7 @@ class CliffordTInitPassManager(PassManagerStagePlugin):
                     ContractIdleWiresInControlFlow(),
                 ]
             )
-            init.append(CommutativeCancellation())
+            init.append(CommutativeOptimization())
 
             # We do not want to consolidate blocks for a Clifford+T basis set,
             # since this involves resynthesizing 2-qubit unitaries.
