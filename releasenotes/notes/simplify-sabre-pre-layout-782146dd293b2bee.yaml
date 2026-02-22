@@ -1,15 +1,15 @@
 ---
 features_transpiler:
   - |
-    Added a new argument ``min_distance`` to :class:`.SabrePreLayout` pass, that
-    specifies the minimum distance to run the internal VF2 search with the
-    augmented coupling map. This can be used to skip running the distance-1 check
-    as this corresponds to simply running the ``VF2Layout`` pass.
-upgrade_transpiler:
+    Added a new argument ``min_distance`` to the :class:`.SabrePreLayout` pass, that
+    specifies the distance for the first VF2 run with the augmented coupling map.
+    Setting ``min_distance > 1`` skips all smaller-distance checks, and in particular
+    skips the distance-1 check which corresponds to running the ``VF2Layout`` pass.
+other:
   - |
     The :class:`.SabrePreLayout` pass is simplified to leverage
     improvements in the :class:`.VF2Layout` pass. The expensive post-processing
     step to minimize "extra" edges in the layout has been removed, as this
-    optimization is now handled more efficiently by ``VF2Layout``'s internal
-    scoring mechanism. As a result, the ``improve_layout`` argument is now
+    optimization is now handled more efficiently by internal scoring mechanism
+    of ``VF2Layout``. Consequently, the ``improve_layout`` argument is now
     obsolete and has no effect.
