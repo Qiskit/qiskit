@@ -205,9 +205,7 @@ fn pack_instruction_blocks(
                     // we explicitly name the block "unnamed" because otherwise it will be assigned a serial number name (e.g. "circuit-45")
                     // which would result in inconsistent results, e.g. when packing the same circuit twice on the same run
                     let py_block: PyCircuitData = block.clone().into();
-                    let circuit = imports::QUANTUM_CIRCUIT
-                        .get_bound(py)
-                        .call_method1("_from_circuit_data", (py_block, false, "unnamed"))?;
+                    let circuit = py_block.into_py_quantum_circuit(py)?;
                     py_pack_param(&circuit, qpy_data, Endian::Little)
                 })
                 .collect::<PyResult<_>>()

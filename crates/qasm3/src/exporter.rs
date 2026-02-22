@@ -30,7 +30,7 @@ use pyo3::prelude::*;
 use qiskit_circuit::bit::{
     ClassicalRegister, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
-use qiskit_circuit::circuit_data::PyCircuitData;
+use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{DelayUnit, StandardInstruction};
 use qiskit_circuit::operations::{Operation, Param};
 use qiskit_circuit::packed_instruction::PackedInstruction;
@@ -207,13 +207,13 @@ impl Iterator for Counter {
 }
 
 struct BuildScope {
-    circuit_data: PyCircuitData,
+    circuit_data: CircuitData,
     bit_map: HashMap<BitType, BitType>,
 }
 
 impl BuildScope {
     fn new(
-        circuit_data: &PyCircuitData,
+        circuit_data: &CircuitData,
         qubits: &[ShareableQubit],
         clbits: &[ShareableClbit],
     ) -> Self {
@@ -237,7 +237,7 @@ impl BuildScope {
         }
     }
 
-    fn with_mappings(circuit_data: PyCircuitData, bit_map: HashMap<BitType, BitType>) -> Self {
+    fn with_mappings(circuit_data: CircuitData, bit_map: HashMap<BitType, BitType>) -> Self {
         Self {
             circuit_data,
             bit_map,
@@ -525,7 +525,7 @@ impl Exporter {
         }
     }
 
-    pub fn dumps(&self, circuit_data: &PyCircuitData, islayout: bool) -> ExporterResult<String> {
+    pub fn dumps(&self, circuit_data: &CircuitData, islayout: bool) -> ExporterResult<String> {
         let mut builder = QASM3Builder::new(
             circuit_data,
             islayout,
@@ -547,7 +547,7 @@ impl Exporter {
 
     pub fn dump<W: Write>(
         &self,
-        circuit_data: &PyCircuitData,
+        circuit_data: &CircuitData,
         islayout: bool,
         writer: &mut W,
     ) -> ExporterResult<()> {
@@ -592,7 +592,7 @@ pub struct QASM3Builder {
 
 impl<'a> QASM3Builder {
     pub fn new(
-        circuit_data: &'a PyCircuitData,
+        circuit_data: &'a CircuitData,
         is_layout: bool,
         includes: Vec<String>,
         basis_gates: Vec<String>,
@@ -633,7 +633,7 @@ impl<'a> QASM3Builder {
     #[allow(dead_code)]
     fn new_scope<F>(
         &mut self,
-        circuit_data: &PyCircuitData,
+        circuit_data: &CircuitData,
         qubits: Vec<BitType>,
         clbits: Vec<BitType>,
         f: F,
@@ -690,7 +690,7 @@ impl<'a> QASM3Builder {
         result
     }
 
-    fn new_context<F>(&mut self, body: &'a PyCircuitData, f: F) -> ExporterResult<QuantumBlock>
+    fn new_context<F>(&mut self, body: &'a CircuitData, f: F) -> ExporterResult<QuantumBlock>
     where
         F: FnOnce(&mut QASM3Builder) -> QuantumBlock,
     {
@@ -738,7 +738,7 @@ impl<'a> QASM3Builder {
         self.register_basis_gates();
         let header = self.build_header();
 
-        self.hoist_global_params()?;
+        self.hoist_global_params();
         let classical_decls = self.hoist_classical_bits()?;
         let qubit_decls = self.build_qubit_decls()?;
         let main_stmts = self.build_top_level_stmts()?;
@@ -791,28 +791,18 @@ impl<'a> QASM3Builder {
         }
     }
 
-    fn hoist_global_params(&mut self) -> ExporterResult<()> {
-        Python::attach(|py| {
-            for param in self.circuit_scope.circuit_data.get_parameters(py)? {
-                let raw_name: String = match param.getattr("name") {
-                    Ok(attr) => match attr.extract() {
-                        Ok(name) => name,
-                        Err(err) => return Err(QASM3ExporterError::PyErr(err)),
-                    },
-                    Err(err) => return Err(QASM3ExporterError::PyErr(err)),
-                };
-                let identifier = Identifier {
-                    string: raw_name.clone(),
-                };
-                let _ = self.symbol_table.bind(&raw_name);
-                self.global_io_decls.push(IODeclaration {
-                    modifier: IOModifier::Input,
-                    type_: ClassicalType::Float(Float::Double),
-                    identifier,
-                });
-            }
-            Ok(())
-        })
+    fn hoist_global_params(&mut self) {
+        for param in self.circuit_scope.circuit_data.parameters() {
+            let identifier = Identifier {
+                string: param.name().to_string(),
+            };
+            let _ = self.symbol_table.bind(param.name());
+            self.global_io_decls.push(IODeclaration {
+                modifier: IOModifier::Input,
+                type_: ClassicalType::Float(Float::Double),
+                identifier,
+            });
+        }
     }
 
     fn hoist_classical_bits(&mut self) -> ExporterResult<Vec<Statement>> {
@@ -1324,7 +1314,6 @@ impl<'a> QASM3Builder {
             })
             .collect();
         if let Some(instruction) = instr.try_definition() {
-            let instruction: PyCircuitData = instruction.into();
             let params_def = params
                 .iter()
                 .enumerate()
@@ -1361,7 +1350,7 @@ impl<'a> QASM3Builder {
                 }
 
                 let mut stmts_tmp = Vec::new();
-                for instr in instruction.inner.data() {
+                for instr in instruction.data() {
                     let _ = builder.build_instruction(instr, &mut stmts_tmp);
                 }
                 QuantumBlock {

@@ -121,14 +121,6 @@ pub fn py_dag_to_circuit(
     }
 }
 
-// #[pyfunction(name = "dag_to_circuit", signature = (dag, copy_operations = true))]
-// pub fn py_dag_to_circuit(
-//     dag: &DAGCircuit,
-//     copy_operations: bool,
-// ) -> Result<PyCircuitData, CircuitDataError> {
-//     dag_to_circuit(dag, copy_operations).map(Into::into)
-// }
-
 pub fn converters(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(circuit_to_dag, m)?)?;
     m.add_function(wrap_pyfunction!(py_dag_to_circuit, m)?)?;
