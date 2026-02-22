@@ -1408,7 +1408,7 @@ class TestStandardMethods(QiskitTestCase):
                 continue
             sig = signature(gate_class)
             if gate_class == MSGate:
-                # due to the signature (num_qubits, theta, *, n_qubits=Noe) the signature detects
+                # due to the signature (num_qubits, theta, *, n_qubits=None) the signature detects
                 # 3 arguments but really its only 2. This if can be removed once the deprecated
                 # n_qubits argument is no longer supported.
                 free_params = 2

@@ -22,11 +22,11 @@ use qiskit_circuit::operations::{
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::{BlocksMode, VarsMode};
 
+use crate::TranspilerError;
+use num_complex::Complex64;
 use qiskit_quantum_info::clifford::Clifford;
 use qiskit_quantum_info::sparse_observable::SparseObservable;
 
-use crate::TranspilerError;
-use num_complex::Complex64;
 use smallvec::smallvec;
 use std::f64::consts::PI;
 
@@ -69,19 +69,13 @@ pub fn run_litinski_transformation(
             .collect();
 
         return Err(TranspilerError::new_err(format!(
-            "Unable to run Litinski tranformation as the circuit contains instructions not supported by the pass: {:?}",
+            "Unable to run Litinski transformation as the circuit contains instructions not supported by the pass: {:?}",
             unsupported
         )));
     }
-    let non_clifford_handled_count: usize = op_counts
+    let non_clifford_handled_count: usize = HANDLED_INSTRUCTION_NAMES
         .iter()
-        .filter_map(|(k, v)| {
-            if HANDLED_INSTRUCTION_NAMES.contains(&k.as_str()) {
-                Some(v)
-            } else {
-                None
-            }
-        })
+        .filter_map(|name| op_counts.get(*name))
         .sum();
     let clifford_count = dag.size(false)? - non_clifford_handled_count;
 

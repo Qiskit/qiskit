@@ -81,7 +81,7 @@ class Stinespring(QuantumChannel):
             output_dims: the output subsystem dimensions.
 
         Raises:
-            QiskitError: if input data cannot be initialized as a
+            QiskitError: if input data cannot be initialized as
                          a list of Kraus matrices.
 
         Additional Information:
@@ -126,7 +126,7 @@ class Stinespring(QuantumChannel):
                 # convert it to a SuperOp
                 data = SuperOp._init_instruction(data)
             else:
-                # We use the QuantumChannel init transform to intialize
+                # We use the QuantumChannel init transform to initialize
                 # other objects into a QuantumChannel or Operator object.
                 data = self._init_transformer(data)
             op_shape = data._op_shape

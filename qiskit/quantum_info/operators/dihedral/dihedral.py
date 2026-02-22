@@ -85,7 +85,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
      :class:`~qiskit.circuit.library.SwapGate`, :class:`~qiskit.circuit.library.CCZGate`.
      They can be converted back into a :class:`~qiskit.circuit.QuantumCircuit`,
      or :class:`~qiskit.circuit.Gate` object using the :meth:`~CNOTDihedral.to_circuit`
-     or :meth:`~CNOTDihderal.to_instruction` methods respectively. Note that this
+     or :meth:`~CNOTDihedral.to_instruction` methods respectively. Note that this
      decomposition is not necessarily optimal in terms of number of gates
      if the number of qubits is more than two.
 

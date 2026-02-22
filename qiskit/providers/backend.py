@@ -70,7 +70,7 @@ class BackendV2(Backend, ABC):
     provider to implement a stage plugin for ``translation`` or ``scheduling``
     that contains the custom compilation passes and then for the hook methods on
     the backend object to return the plugin name so that :func:`~.transpile` will
-    use it by default when targetting the backend.
+    use it by default when targeting the backend.
 
     Subclasses of this should override the public method :meth:`run` and the internal
     :meth:`_default_options`:

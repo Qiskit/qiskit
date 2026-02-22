@@ -27,7 +27,7 @@ use std::ops::{Deref, DerefMut};
 pub struct Bytes(pub Vec<u8>);
 
 impl Bytes {
-    /// This method is used for debugging; it displays the data as a string of hexdecimal digits
+    /// This method is used for debugging; it displays the data as a string of hexadecimal digits
     pub fn to_hex_string(&self) -> String {
         self.0
             .iter()

@@ -246,7 +246,7 @@ class TestWrapMethod(QiskitTestCase):
 
     def test_can_wrap_with_builtin(self):
         """Test that builtin functions can be used a callback.  Many CPython builtins don't
-        implement the desriptor protocol that all functions defined with ``def`` or ``lambda`` do,
+        implement the descriptor protocol that all functions defined with ``def`` or ``lambda`` do,
         which means we need to take special care that they work.  This is most relevant for
         C-extension functions created via pybind11, Cython or similar, rather than actual Python
         builtins."""

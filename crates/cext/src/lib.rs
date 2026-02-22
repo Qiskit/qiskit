@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+mod extras;
 mod pointers;
 
 pub mod circuit;

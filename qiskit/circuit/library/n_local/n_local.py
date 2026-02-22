@@ -108,7 +108,7 @@ def n_local(
     gate should acts, e.g. ``[[ctrl0, target0], [ctrl1, target1], ...]``.
     A set of default entanglement strategies is provided and can be selected by name:
 
-    * ``"full"`` entanglement is each qubit is entangled with all the others.
+    * ``"full"`` entanglement is where each qubit is entangled with all the others.
     * ``"linear"`` entanglement is qubit :math:`i` entangled with qubit :math:`i + 1`,
         for all :math:`i \in \{0, 1, ... , n - 2\}`, where :math:`n` is the total number of qubits.
     * ``"reverse_linear"`` entanglement is qubit :math:`i` entangled with qubit :math:`i + 1`,
@@ -189,7 +189,7 @@ def n_local(
         circuit = n_local(3, "x", "crx", entangler_map, reps=2)
         circuit.draw("mpl")
 
-    We can set different entanglements per layer, by specifing a callable that takes
+    We can set different entanglements per layer, by specifying a callable that takes
     as input the current layer index, and returns the entanglement structure. For example,
     the following uses different entanglements for odd and even layers:
 
@@ -1273,7 +1273,7 @@ def get_entangler_map(
         qubits on ``num_circuit_qubits`` qubits.
 
     Raises:
-        ValueError: If the entanglement mode ist not supported.
+        ValueError: If the entanglement mode is not supported.
     """
     try:
         return fast_entangler_map(num_circuit_qubits, num_block_qubits, entanglement, offset)

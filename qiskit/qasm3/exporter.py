@@ -174,12 +174,17 @@ _RESERVED_KEYWORDS = frozenset(
     }
 )
 
-# This probably isn't precisely the same as the OQ3 spec, but we'd need an extra dependency to fully
-# handle all Unicode character classes, and this should be close enough for users who aren't
-# actively _trying_ to break us (fingers crossed).
-_VALID_DECLARABLE_IDENTIFIER = re.compile(r"([\w][\w\d]*)", flags=re.U)
-_VALID_HARDWARE_QUBIT = re.compile(r"\$[\d]+", flags=re.U)
-_BAD_IDENTIFIER_CHARACTERS = re.compile(r"[^\w\d]", flags=re.U)
+# This is deliberately more restrictive than the OQ3 spec - the builtin `re` module has weak Unicode
+# support, and this need here doesn't rise to the level of adding the third-party `regex` as a
+# dependency.  Python's `\w` matches way too much (basically anything in Unicode classes [L?] and
+# [N?], plus _), while `\d` matches way too little (only [Nd]) to be used as a negation.  As a
+# compromise, we allow ASCII letters, Greek letters (since they're a small, contiguous block in
+# Unicode that can be specified easily, and physicists like them), _ and [0-9].  Everything else is
+# escaped.
+_ALPHA = r"a-zA-Z\u0370-\u03ff"  # ASCII alpha, plus the "Greek and Coptic" Unicode block.
+_VALID_DECLARABLE_IDENTIFIER = re.compile(rf"[{_ALPHA}_][{_ALPHA}_0-9]*", flags=re.U)
+_VALID_HARDWARE_QUBIT = re.compile(r"\$[0-9]+", flags=re.U)
+_BAD_IDENTIFIER_CHARACTERS = re.compile(rf"[^{_ALPHA}_0-9]", flags=re.U)
 
 
 class Exporter:
@@ -729,7 +734,7 @@ class QASM3Builder:
         #   handling, so they get the lowest priority; they get defined as they are encountered.
         #
         # An alternative approach would be to defer naming decisions until we are outputting the
-        # AST, and using some UUID for each symbol we're going to define in the interrim.  This
+        # AST, and using some UUID for each symbol we're going to define in the interim.  This
         # would require relatively large changes to the symbol-table and AST handling, however.
 
         for builtin, gate in _BUILTIN_GATES.items():
@@ -747,7 +752,7 @@ class QASM3Builder:
             self.symbols.register_defcal(defcal)
         for builtin in self.basis_gates:
             if builtin in _BUILTIN_GATES:
-                # It's built into the langauge; we don't need to re-add it.
+                # It's built into the language; we don't need to re-add it.
                 continue
             try:
                 self.symbols.register_gate_without_definition(builtin, None)
