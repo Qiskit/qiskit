@@ -15,7 +15,8 @@
 from __future__ import annotations
 
 import warnings
-from typing import Iterable, Optional, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING
+from collections.abc import Iterable
 
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
@@ -38,10 +39,10 @@ class ForLoopOp(ControlFlowOp):
 
     def __init__(
         self,
-        indexset: Union[Iterable[int], Range],
-        loop_parameter: Union[Parameter, None],
+        indexset: Iterable[int] | Range,
+        loop_parameter: Parameter | None,
         body: QuantumCircuit,
-        label: Optional[str] = None,
+        label: str | None = None,
     ):
         """
         Args:
@@ -63,7 +64,7 @@ class ForLoopOp(ControlFlowOp):
 
     @params.setter
     def params(self, parameters):
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         indexset, loop_parameter, body = parameters
@@ -164,19 +165,19 @@ class ForLoopContext:
     __slots__ = (
         "_circuit",
         "_generate_loop_parameter",
-        "_loop_parameter",
         "_indexset",
         "_label",
+        "_loop_parameter",
         "_used",
     )
 
     def __init__(
         self,
         circuit: QuantumCircuit,
-        indexset: Union[Iterable[int], Range],
-        loop_parameter: Optional[Parameter] = None,
+        indexset: Iterable[int] | Range,
+        loop_parameter: Parameter | None = None,
         *,
-        label: Optional[str] = None,
+        label: str | None = None,
     ):
         self._circuit = circuit
         self._generate_loop_parameter = loop_parameter is None

@@ -35,7 +35,7 @@ use std::marker::PhantomData;
 // 3) Annotation Headers: The annotation-related global data.
 // 4) Custom instructions: List of custom gates used in the circuits, e.g. gate with nonstandard control
 // 5) Instruction: The sequential list of gates in the circuit.
-// 6) Calibrations: Obsolete; this was pulse-related data. Here for backwards compatability.
+// 6) Calibrations: Obsolete; this was pulse-related data. Here for backwards compatibility.
 // 7) Layout: The transpilation layout, if one exists (otherwise a dummy is used).
 #[derive(BinWrite, Debug)]
 #[brw(big)]
@@ -129,7 +129,7 @@ pub struct CircuitInstructionV2Pack {
     pub annotations: Option<InstructionsAnnotationPack>,
 }
 
-// To save space, the extras key encoded data about the existance of annotations
+// To save space, the extras key encoded data about the existence of annotations
 // in its msb, and about the type of condition (Two-tuple, Expression or None) in the two lsbs.
 pub mod extras_key_parts {
     pub const ANNOTATIONS: u8 = 0b1000_0000;
@@ -230,7 +230,7 @@ pub struct RegisterV4Pack {
 // 2) Two-tuple: a tuple of the form (register, target) where the register value should be compared with the target.
 // In this case the target is a python int, represented in rust as BigUInt, but in python qpy it was saved using i64 so we keep it for now.
 // Note that we also use (clbit, bool_target) as two tuple, where the clbit is encoded using the "\x00" hack that can be seen in ParamRegisterValue
-// 3) Expresssion
+// 3) Expression
 // In the two-tuple representation, the target value is stored in the `value` field and the number of bytes in the serialized registered are stored in the
 // `register_size` fields. Both are unused in the other cases, making the packing and decoding of this struct rather non-uniform.
 
@@ -377,7 +377,7 @@ pub struct InitialLayoutItemV2Pack {
 // This can be a wide variety of values, mostly used in instruction parameters.
 // Some (not all) examples:
 // integers (e.g. for switch statements and loops),
-// floats, compelx numbers (e.g. for rx gates),
+// floats, complex numbers (e.g. for rx gates),
 // Parameters (and parameter expressions and vectors) (e.g. for rx gates),
 // Expressions (e.g. for complex conditions in control flow statements),
 // Circuits (e.g. for control flow statements having a body)
@@ -597,7 +597,7 @@ pub struct ParameterExpressionSubsOpPack {
 /// A Parameter Expression is stored in two chunks (along with length data)
 /// 1) The parameter expression data itself, already serialized
 /// 2) The symbol table for the parameter expression (to save space when using the same symbol more than once in the expression)
-/// It's not completely clear to me why the symbol table was originally structrued as it was, since not all the data is used
+/// It's not completely clear to me why the symbol table was originally structured as it was, since not all the data is used
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
@@ -755,7 +755,7 @@ pub enum ExpressionElementPack {
     Range(ExpressionTypePack),
 }
 
-// An expression's var data - either a clbit, a registe, or given by a uuid (for a standalone var)
+// An expression's var data - either a clbit, a register, or given by a uuid (for a standalone var)
 #[derive(BinWrite, BinRead, Debug)]
 #[brw(big)]
 pub enum ExpressionVarElementPack {
@@ -845,7 +845,7 @@ pub struct ModifierPack {
     pub power: f64,
 }
 
-// This is a declaration of a variable that may appear iniside various
+// This is a declaration of a variable that may appear inside various
 // Expressions in the circuit. It contains its uuid, name,
 // usage type (input/capture/local/etc) and type (bool, int, float etc.)
 // This data is not used directly in any expression; rather, its written to the "standalone vars"

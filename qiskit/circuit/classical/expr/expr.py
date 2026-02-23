@@ -14,15 +14,15 @@
 
 
 __all__ = [
-    "Expr",
-    "Var",
-    "Stretch",
-    "Value",
-    "Cast",
-    "Unary",
     "Binary",
+    "Cast",
+    "Expr",
     "Index",
     "Range",
+    "Stretch",
+    "Unary",
+    "Value",
+    "Var",
 ]
 
 import enum
@@ -37,7 +37,6 @@ from qiskit._accelerate.circuit.classical.expr import (
     Binary,
     Index,
     Range,
-)  # pylint: disable=unused-import
 
 
 class _UnaryOp(enum.Enum):
@@ -94,7 +93,7 @@ class _BinaryOp(enum.Enum):
     right-hand operand.  In all cases, the output bit width is the same as the input, and zeros
     fill in the "exposed" spaces.
 
-    The binary arithmetic operators :data:`ADD`, :data:`SUB:, :data:`MUL`, and :data:`DIV`
+    The binary arithmetic operators :data:`ADD`, :data:`SUB`, :data:`MUL`, and :data:`DIV`
     can be applied to two floats or two unsigned integers, which should be made to be of
     the same width during construction via a cast.
     The :data:`ADD`, :data:`SUB`, and :data:`DIV` operators can be applied on two durations

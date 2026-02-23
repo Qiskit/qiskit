@@ -9,7 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-# pylint: disable=missing-class-docstring
+
 
 """Pass manager test cases."""
 
@@ -58,7 +58,7 @@ class TestGenericPass(PassManagerTestCase):
 
         class RaiseError(GenericPass):
             def run(self, passmanager_ir):
-                raise TestError()
+                raise TestError
 
         task = RaiseError()
         data = "test_data"
@@ -124,7 +124,6 @@ class TestGenericPass(PassManagerTestCase):
     def test_run_with_callable(self):
         """Test case: Callable is called after generic pass is run."""
 
-        # pylint: disable=unused-argument
         def test_callable(task, passmanager_ir, property_set, running_time, count):
             logger = getLogger()
             logger.info("%s is running on %s", task.name(), passmanager_ir)

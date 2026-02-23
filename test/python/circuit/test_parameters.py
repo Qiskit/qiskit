@@ -22,17 +22,17 @@ from ddt import data, ddt, named_data
 
 import qiskit
 import qiskit.circuit.library as circlib
-from qiskit.circuit.library.standard_gates.rz import RZGate
+from qiskit.circuit.library import RZGate, PauliEvolutionGate
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit import Gate, Instruction, Parameter, ParameterExpression, ParameterVector
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.compiler import transpile
-from qiskit.quantum_info import Operator
+from qiskit.quantum_info import Operator, Pauli
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.utils import parallel_map
-from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
+from test import QiskitTestCase, combine
 from ..legacy_cmaps import BOGOTA_CMAP
 
 
@@ -968,7 +968,7 @@ class TestParameters(QiskitTestCase):
         for qc in results:
             circuit.compose(qc, inplace=True)
 
-        parameter_values = {x: 1.0 for x in parameters}
+        parameter_values = dict.fromkeys(parameters, 1.0)
 
         bind_circuit = circuit.assign_parameters(parameter_values)
 
@@ -1447,7 +1447,6 @@ def _paramvec_names(prefix, length):
 
 @ddt
 class TestParameterExpressions(QiskitTestCase):
-    # pylint: disable=possibly-used-before-assignment
     """Test expressions of Parameters."""
 
     # supported operations dictionary operation : accuracy (0=exact match)
@@ -2143,6 +2142,36 @@ class TestParameterExpressions(QiskitTestCase):
 
         with self.assertRaisesRegex(TypeError, "unbound parameters"):
             (a + b).numeric()
+
+    def test_repeat_with_parameterized_gates(self):
+        """Tests that repeating a circuit with parameterized gates
+        handles parameters correctly.
+
+        See https://github.com/Qiskit/qiskit/issues/15645.
+        """
+
+        t_param = Parameter("t")
+
+        # Create a quantum circuit with 2 parameterized gates.
+        circuit = QuantumCircuit(5)
+        circuit.append(PauliEvolutionGate(Pauli("XZXZX"), time=t_param), [0, 1, 2, 3, 4])
+        circuit.append(PauliEvolutionGate(Pauli("IIIXX"), time=t_param / 2), [0, 1, 2, 3, 4])
+
+        # Repeat the circuit 10 times.
+        repeated_circuit = circuit.repeat(10)
+
+        # Divide each parameter by num_steps.
+        num_steps = 5
+        repeated_circuit.assign_parameters({t_param: t_param / num_steps}, inplace=True)
+
+        # Decompose the repeated circuit. The decomposed circuit has the two operations
+        # from the circuit repeated 10 times.
+        decomposed_circuit = repeated_circuit.decompose()
+
+        for idx in [0, 1]:
+            expected_param = circuit[idx].operation.params[0] / num_steps
+            actual_param = decomposed_circuit[idx].operation.params[0]
+            self.assertEqual(expected_param, actual_param)
 
 
 class TestParameterEquality(QiskitTestCase):

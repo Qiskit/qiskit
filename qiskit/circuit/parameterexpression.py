@@ -15,7 +15,7 @@ ParameterExpression Class to enable creating simple expressions of Parameters.
 
 from __future__ import annotations
 
-from typing import Union
+
 from qiskit.utils.optionals import HAS_SYMPY
 import qiskit._accelerate.circuit
 
@@ -61,7 +61,7 @@ def sympify(expression):
     .. note::
 
         This is for interoperability only.  Qiskit will not accept or work with raw Sympy or
-        Symegine expressions in its parameters, because they do not contain the tracking
+        Symengine expressions in its parameters, because they do not contain the tracking
         information used in circuit-parameter binding and assignment.
     """
     import sympy
@@ -105,7 +105,27 @@ def sympify(expression):
             rhs = stack.pop()
             lhs = stack.pop()
 
-            if (
+            # Handle reverse operations (RSUB, RDIV, RPOW) by swapping operands
+            if inst.op in {OpCode.RSUB, OpCode.RDIV, OpCode.RPOW}:
+                # For reverse operations, the Rust code already swapped operands in the replay,
+                # so we need to apply the operation with rhs op lhs to get the correct result.
+                # For RPOW: rhs ** lhs (Rust already swapped, so we use __pow__ directly)
+                # For RDIV: rhs / lhs (construct division directly: 2 / a)
+                # For RSUB: rhs - lhs (construct subtraction directly: 2 - a)
+                if inst.op == OpCode.RPOW:
+                    # Rust already swapped operands, so we use __pow__ directly: rhs ** lhs
+                    stack.append(getattr(rhs, "__pow__")(lhs))
+                elif inst.op == OpCode.RDIV:
+                    # Construct division directly: rhs / lhs (e.g., 2 / a)
+                    # Use sympy's division operator to handle the case where
+                    # __rtruediv__ returns NotImplemented
+                    stack.append(rhs / lhs)
+                elif inst.op == OpCode.RSUB:
+                    # Construct subtraction directly: rhs - lhs (e.g., 2 - a)
+                    # Use sympy's subtraction operator to handle the case where
+                    # __rsub__ returns NotImplemented
+                    stack.append(rhs - lhs)
+            elif (
                 not isinstance(lhs, sympy.Basic)
                 and isinstance(rhs, sympy.Basic)
                 and inst.op in [OpCode.ADD, OpCode.MUL]
@@ -138,4 +158,4 @@ def sympify(expression):
 
 # Redefine the type so external imports get an evaluated reference; Sphinx needs this to understand
 # the type hints.
-ParameterValueType = Union[ParameterExpression, float]
+ParameterValueType = ParameterExpression | float

@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import warnings
 from dataclasses import dataclass
-from typing import Iterable
+from collections.abc import Iterable
 
 import numpy as np
 from numpy.typing import NDArray
@@ -94,7 +94,7 @@ class StatevectorSampler(BaseSamplerV2):
         circuit.measure([0, 1], alpha)
         circuit.measure([2], beta)
 
-        # Define a sweep over parameter values, where the second axis is over.
+        # Define a sweep over parameter values, where the second axis is over
         # the two parameters in the circuit.
         params = np.vstack([
             np.linspace(-np.pi, np.pi, 100),

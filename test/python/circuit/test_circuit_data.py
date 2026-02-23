@@ -29,7 +29,7 @@ from qiskit.circuit import (
 from qiskit.circuit.classical import types, expr
 from qiskit.circuit.library import HGate, XGate, CXGate, RXGate, Measure
 from qiskit.circuit.exceptions import CircuitError
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit import transpile
 
@@ -390,7 +390,7 @@ class TestQuantumCircuitData(QiskitTestCase):
     def test_setitem_slice(self, sli, value_length):
         """Test that __setitem__ with slice is equivalent to that of list."""
         reg_size = 20
-        assert value_length <= reg_size
+        self.assertLessEqual(value_length, reg_size)
         qr = QuantumRegister(reg_size)
         default_bit = Qubit()
         data_list = [
@@ -418,7 +418,7 @@ class TestQuantumCircuitData(QiskitTestCase):
     def test_setitem_slice_negative(self, sli, value_length):
         """Test that __setitem__ with slice is equivalent to that of list."""
         reg_size = 20
-        assert value_length <= reg_size
+        self.assertLessEqual(value_length, reg_size)
         qr = QuantumRegister(reg_size)
         default_bit = Qubit()
         data_list = [
@@ -468,7 +468,7 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
     """QuantumCircuit.data operation tests."""
 
     # N.B. Most of the cases here are not expected use cases of circuit.data
-    # but are included as tests to maintain compatability with the previous
+    # but are included as tests to maintain compatibility with the previous
     # list interface of circuit.data.
 
     def test_iteration_of_data_entry(self):
@@ -914,7 +914,6 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
         qc.cz(0, 1)
 
         class NotAnInstruction:
-            # pylint: disable=missing-class-docstring,missing-function-docstring
             def to_instruction(self):
                 return CXGate()
 
@@ -929,7 +928,6 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
         classes to be used, not just `Instruction`."""
 
         class MyOp(Operation):
-            # pylint: disable=missing-class-docstring,missing-function-docstring
 
             @property
             def name(self):
@@ -1014,7 +1012,7 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
         self.assertEqual(data.num_input_vars, 0)
         self.assertEqual(data.num_captured_vars, 1)
         self.assertEqual(data.num_declared_vars, 1)
-        assert c1 in data.get_captured_vars()
+        self.assertIn(c1, data.get_captured_vars())
 
     def test_local_stretches(self):
         """Test local stretch variables handling"""

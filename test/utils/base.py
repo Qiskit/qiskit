@@ -10,11 +10,10 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
 
 """Base TestCases for the unit tests.
 
-Implementors of unit tests for Qiskit should subclass
+Implementers of unit tests for Qiskit should subclass
 ``QiskitTestCase`` in order to take advantage of utility functions (for example,
 the environment variables for customizing different options), and the
 decorators in the ``decorators`` package.
@@ -59,8 +58,6 @@ else:
 
     class BaseTestCase(unittest.TestCase):
         """Base test class."""
-
-        pass
 
 
 @enforce_subclasses_call(["setUp", "setUpClass", "tearDown", "tearDownClass"])

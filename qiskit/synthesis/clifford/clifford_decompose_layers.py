@@ -12,7 +12,7 @@
 """
 Circuit synthesis for the Clifford class into layers.
 """
-# pylint: disable=invalid-name
+
 
 from __future__ import annotations
 from collections.abc import Callable
@@ -20,7 +20,7 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info import Clifford  # pylint: disable=cyclic-import
+from qiskit.quantum_info import Clifford
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
     _append_h,
     _append_s,
@@ -58,7 +58,7 @@ def _default_cz_synth_func(symmetric_mat):
     qc = QuantumCircuit(nq, name="CZ")
 
     for j in range(nq):
-        for i in range(0, j):
+        for i in range(j):
             if symmetric_mat[i][j]:
                 qc.cz(i, j)
     return qc
@@ -229,7 +229,7 @@ def _create_graph_state(cliff, validate=False):
             for i in range(rank, num_qubits):
                 if stab[i, 0:num_qubits].any():
                     raise QiskitError(
-                        "After Gauss elimination, the final num_qubits - rank rows"
+                        "After Gauss elimination, the final num_qubits - rank rows "
                         "contain non-zero elements"
                     )
 
@@ -293,11 +293,11 @@ def _decompose_graph_state(cliff, validate, cz_synth_func):
     CZ1_circ = cz_synth_func(stabz_update)
 
     for j in range(num_qubits):
-        for i in range(0, j):
+        for i in range(j):
             if stabz_update[i][j]:
                 _append_cz(cliff_cpy, i, j)
 
-    for i in range(0, num_qubits):
+    for i in range(num_qubits):
         if stabz_update[i][i]:
             S1_circ.s(i)
             _append_s(cliff_cpy, i)
@@ -348,12 +348,12 @@ def _decompose_hadamard_free(
     if validate:
         if (destabz_update != destabz_update.T).any():
             raise QiskitError(
-                "The multiplication of the inverse of destabx and"
-                "destabz is not a symmetric matrix."
+                "The matrix product inv(destabx) * destabz "
+                "for the given Clifford is not a symmetric matrix."
             )
 
     S2_circ = QuantumCircuit(num_qubits, name="S2")
-    for i in range(0, num_qubits):
+    for i in range(num_qubits):
         if destabz_update[i][i]:
             S2_circ.s(i)
 

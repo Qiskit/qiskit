@@ -22,7 +22,8 @@ from __future__ import annotations
 import abc
 import itertools
 import typing
-from typing import Collection, Iterable, FrozenSet, Tuple, Union, Optional, Sequence
+
+from collections.abc import Collection, Iterable, Sequence
 
 from qiskit._accelerate.circuit import CircuitData
 from qiskit.circuit import Register
@@ -161,7 +162,7 @@ class CircuitScopeInterface(abc.ABC):
         """
 
     @abc.abstractmethod
-    def get_var(self, name: str) -> Optional[expr.Var]:
+    def get_var(self, name: str) -> expr.Var | None:
         """Get the variable (if any) in scope with the given name.
 
         This should call up to the parent scope if in a control-flow builder scope, in case the
@@ -175,7 +176,7 @@ class CircuitScopeInterface(abc.ABC):
         """
 
     @abc.abstractmethod
-    def get_stretch(self, name: str) -> Optional[expr.Stretch]:
+    def get_stretch(self, name: str) -> expr.Stretch | None:
         """Get the stretch (if any) in scope with the given name.
 
         This should call up to the parent scope if in a control-flow builder scope, in case the
@@ -250,8 +251,8 @@ class InstructionPlaceholder(Instruction, abc.ABC):
 
     @abc.abstractmethod
     def concrete_instruction(
-        self, qubits: FrozenSet[Qubit], clbits: FrozenSet[Clbit]
-    ) -> Tuple[Instruction, InstructionResources]:
+        self, qubits: frozenset[Qubit], clbits: frozenset[Clbit]
+    ) -> tuple[Instruction, InstructionResources]:
         """Get a concrete, complete instruction that is valid to act over all the given resources.
 
         The returned resources may not be the full width of the given resources, but will certainly
@@ -330,17 +331,17 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
     """
 
     __slots__ = (
-        "_instructions",
-        "registers",
-        "global_phase",
         "_allow_jumps",
-        "_parent",
         "_built",
         "_forbidden_message",
-        "_vars_local",
-        "_vars_capture",
-        "_stretches_local",
+        "_instructions",
+        "_parent",
         "_stretches_capture",
+        "_stretches_local",
+        "_vars_capture",
+        "_vars_local",
+        "global_phase",
+        "registers",
     )
 
     def __init__(
@@ -351,7 +352,7 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
         parent: CircuitScopeInterface,
         registers: Iterable[Register] = (),
         allow_jumps: bool = True,
-        forbidden_message: Optional[str] = None,
+        forbidden_message: str | None = None,
     ):
         """
         Args:
@@ -418,7 +419,7 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
 
     @staticmethod
     def _raise_on_jump(operation):
-        # pylint: disable=cyclic-import
+
         from .break_loop import BreakLoopOp, BreakLoopPlaceholder
         from .continue_loop import ContinueLoopOp, ContinueLoopPlaceholder
 
@@ -579,7 +580,7 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
             raise CircuitError("This scope contains no instructions.")
         return self._instructions.pop()
 
-    def add_bits(self, bits: Iterable[Union[Qubit, Clbit]]):
+    def add_bits(self, bits: Iterable[Qubit | Clbit]):
         """Add extra bits to this scope that are not associated with any concrete instruction yet.
 
         This is useful for expanding a scope's resource width when it may contain ``break`` or
@@ -616,14 +617,14 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
         self.add_bits(register)
 
     def build(
-        self, all_qubits: FrozenSet[Qubit], all_clbits: FrozenSet[Clbit]
-    ) -> "qiskit.circuit.QuantumCircuit":
+        self, all_qubits: frozenset[Qubit], all_clbits: frozenset[Clbit]
+    ) -> qiskit.circuit.QuantumCircuit:
         """Build this scoped block into a complete :obj:`.QuantumCircuit` instance.
 
         This will build a circuit which contains all of the necessary qubits and clbits and no
         others.
 
-        The ``qubits`` and ``clbits`` arguments should be sets that contains all the resources in
+        The ``qubits`` and ``clbits`` arguments should be sets that contain all the resources in
         the outer scope; these will be passed down to inner placeholder instructions, so they can
         apply themselves across the whole scope should they need to.  The resulting
         :obj:`.QuantumCircuit` will be defined over a (nonstrict) subset of these resources.  This
@@ -644,7 +645,7 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
             and using the minimal set of resources necessary to support them, within the enclosing
             scope.
         """
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit, SwitchCaseOp
 
         # There's actually no real problem with building a scope more than once.  This flag is more
@@ -734,7 +735,7 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
         out._current_scope().extend(out_data)
         return out
 
-    def copy(self) -> "ControlFlowBuilderBlock":
+    def copy(self) -> ControlFlowBuilderBlock:
         """Return a semi-shallow copy of this builder block.
 
         The instruction lists and sets of qubits and clbits will be new instances (so mutations will

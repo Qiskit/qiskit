@@ -1205,7 +1205,9 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         self.assertListEqual(sorted(output_labels), sorted(input_labels))
         # checking that every coeffs are grouped according to sparse_pauli_list group
         paulis_coeff_dict = dict(
-            sum([list(zip(group.paulis.to_labels(), group.coeffs)) for group in groups], [])
+            sum(  # noqa: RUF017
+                [list(zip(group.paulis.to_labels(), group.coeffs)) for group in groups], []
+            )
         )
         self.assertDictEqual(dict(zip(input_labels, coeffs)), paulis_coeff_dict)
 

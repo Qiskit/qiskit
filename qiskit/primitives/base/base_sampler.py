@@ -48,7 +48,7 @@ class BaseSamplerV2(ABC):
 
             * Optionally, the number of shots to sample.
 
-     * shots: the number of shots to sample. This specification is optional and will be overriden by
+     * shots: the number of shots to sample. This specification is optional and will be overridden by
         the pub-wise shots if provided.
 
     All sampler implementations must implement default value for the ``shots`` in the
@@ -162,7 +162,7 @@ class BaseSamplerV1(BasePrimitiveV1, Generic[T]):
         """Run the job of the sampling of bitstrings.
 
         Args:
-            circuits: One of more circuit objects.
+            circuits: One or more circuit objects.
             parameter_values: Parameters to be bound to the circuit.
             run_options: Backend runtime options used for circuit execution.
 

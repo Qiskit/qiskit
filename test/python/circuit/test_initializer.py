@@ -29,7 +29,7 @@ from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.quantum_info import state_fidelity, Statevector, Operator
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.library import Initialize
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt

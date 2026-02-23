@@ -87,7 +87,7 @@ class PMatrix:
     def mul_right_q1(self, layer: Layer1Q, temp_mat: np.ndarray, dagger: bool):
         """
         Multiplies ``NxN`` matrix, wrapped by this object, by a 1-qubit layer
-        matrix of the right, where ``N`` is the actual size of matrices involved,
+        matrix on the right, where ``N`` is the actual size of matrices involved,
         ``N = 2^{num. of qubits}``.
 
         Args:
@@ -151,7 +151,7 @@ class PMatrix:
     def mul_left_q1(self, layer: Layer1Q, temp_mat: np.ndarray):
         """
         Multiplies ``NxN`` matrix, wrapped by this object, by a 1-qubit layer
-        matrix of the left, where ``dim`` is the actual size of matrices involved,
+        matrix on the left, where ``dim`` is the actual size of matrices involved,
         ``dim = 2^{num. of qubits}``.
 
         Args:

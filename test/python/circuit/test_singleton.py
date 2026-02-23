@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-function-docstring,missing-class-docstring
-
 
 """
 Tests for singleton gate and instruction behavior
@@ -39,7 +37,7 @@ from qiskit.circuit import Measure, Reset
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.singleton import SingletonGate
 from qiskit.converters import dag_to_circuit, circuit_to_dag
-from test.utils.base import QiskitTestCase  # pylint: disable=wrong-import-order
+from test.utils.base import QiskitTestCase
 
 
 class TestSingleton(QiskitTestCase):
@@ -292,7 +290,7 @@ class TestSingleton(QiskitTestCase):
                 self.n = n
 
             @staticmethod
-            def _singleton_lookup_key(n=0, label=None):  # pylint: disable=arguments-differ
+            def _singleton_lookup_key(n=0, label=None):
                 # This is an atypical usage - in Qiskit standard gates, the `label` being set
                 # not-None should not generate a singleton, so should return a mutable instance.
                 return (n, label)
@@ -331,7 +329,7 @@ class TestSingleton(QiskitTestCase):
                 self.n = n
 
             @staticmethod
-            def _singleton_lookup_key(n=0, label=None):  # pylint: disable=arguments-differ
+            def _singleton_lookup_key(n=0, label=None):
                 return (n, label)
 
         default = Discrete()
@@ -378,7 +376,7 @@ class TestSingleton(QiskitTestCase):
                 self.n = n
 
             @staticmethod
-            def _singleton_lookup_key(n=0, label=None):  # pylint: disable=arguments-differ
+            def _singleton_lookup_key(n=0, label=None):
                 return (n, label)
 
         # Pickle needs the class to be importable.  We want the class to only be instantiated inside
@@ -394,7 +392,7 @@ class TestSingleton(QiskitTestCase):
         mutable = Discrete(3)
 
         with unittest.mock.patch.dict(sys.modules, {dummy_module.__name__: dummy_module}):
-            # The singletons in `additional_singletons` are statics; their lifetimes should be tied
+            # The singletons in `additional_singletons` are static; their lifetimes should be tied
             # to the type object itself, so if we don't delete it, it should be eligible to be
             # reloaded from and produce the exact instances.
             self.assertIs(default, pickle.loads(pickle.dumps(default)))

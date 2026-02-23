@@ -20,7 +20,7 @@ from typing import Any
 from ddt import data, ddt, unpack
 
 from qiskit.primitives.base.base_result_v1 import _BasePrimitiveResultV1 as BasePrimitiveResult
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @dataclass
