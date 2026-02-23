@@ -7126,7 +7126,7 @@ class QuantumCircuit:
     @typing.overload
     def for_loop(
         self,
-        indexset: Union[Iterable[int], expr.Range],
+        indexset: Iterable[int] | expr.Range,
         loop_parameter: Parameter | None,
         body: None,
         qubits: None,
