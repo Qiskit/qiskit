@@ -75,11 +75,18 @@ class CircuitScopeInterface(abc.ABC):
         """
 
     @abc.abstractmethod
-    def extend(self, data: CircuitData):
+    def extend(
+        self,
+        data: CircuitData,
+        qubits: list[Qubit] | None = None,
+        clbits: list[Clbit] | None = None,
+    ):
         """Appends all instructions from ``data`` to the scope.
 
         Args:
             data: The instruction listing.
+            qubits: an optional qubit remapping to apply
+            clbits: an optional clbit remapping to apply
         """
 
     @abc.abstractmethod
@@ -444,20 +451,25 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
         self._instructions.append(instruction)
         return instruction
 
-    def extend(self, data: CircuitData):
+    def extend(
+        self,
+        data: CircuitData,
+        qubits: list[Qubit] | None = None,
+        clbits: list[Clbit] | None = None,
+    ):
         if self._forbidden_message is not None:
             raise CircuitError(self._forbidden_message)
         if not self._allow_jumps:
             data.foreach_op(self._raise_on_jump)
-        active_qubits, active_clbits = data.active_bits()
-        # Add bits in deterministic order.
-        for b in data.qubits:
-            if b in active_qubits:
-                self.instructions.add_qubit(b, strict=False)
-        for b in data.clbits:
-            if b in active_clbits:
-                self.instructions.add_clbit(b, strict=False)
-        self.instructions.extend(data)
+        mapped_qubits = [
+            self.instructions.add_qubit(b, strict=False)
+            for b in (data.qubits if qubits is None else qubits)
+        ]
+        mapped_clbits = [
+            self.instructions.add_clbit(b, strict=False)
+            for b in (data.clbits if clbits is None else clbits)
+        ]
+        self.instructions.native_extend(data, qubits=mapped_qubits, clbits=mapped_clbits)
 
     def resolve_classical_resource(self, specifier):
         if self._built:
