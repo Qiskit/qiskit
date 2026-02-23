@@ -37,6 +37,7 @@ from qiskit._accelerate.circuit.classical.expr import (
     Binary,
     Index,
     Range,
+)
 
 
 class _UnaryOp(enum.Enum):
