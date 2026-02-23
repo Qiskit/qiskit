@@ -19,6 +19,7 @@ import numpy as np
 import scipy as sc
 
 from qiskit.circuit import QuantumCircuit, CircuitError, Gate, ParameterExpression
+from qiskit.circuit.tools import pi_check
 from qiskit._accelerate.circuit_library import pauli_evolution
 
 if typing.TYPE_CHECKING:
@@ -33,7 +34,7 @@ class PauliRotationGate(Gate):
 
     .. math::
 
-        e^{i \theta / 2 P}
+        R_P(\theta) = e^{-i \theta / 2 P}
 
     for a Pauli :math:`P \in \{I, X, Y, Z\}^{\otimes n}` and a rotation angle
     :math:`\theta \in \mathbb R`, which could be represented by a unbound parameter.
@@ -47,10 +48,8 @@ class PauliRotationGate(Gate):
     ):
         """
         Args:
-            pauli: A tensor product of Pauli operators defining the measurement,
-                for example ``Pauli("XY")`` or ``Pauli("-XYIZ")``.
-                The identity Pauli operator is not permitted.
-                The Pauli may include a phase of :math:`-1`, but not :math:`i` or :math:`-i`.
+            pauli: The Pauli defining the rotation axis. May include a phase of :math:`-1`, but
+                not :math:`i` or :math:`-i`.
             angle: The rotation angle.
             label: An optional label for the gate to display in circuit visualizations.
         """
@@ -67,7 +66,7 @@ class PauliRotationGate(Gate):
         params = [angle if pauli.phase == 0 else -angle]
 
         if label is None:
-            label = _get_default_label(pauli, params[0])
+            label = f"R_{pauli.to_label()}"
 
         super().__init__(
             name="pauli_rotation",
@@ -111,7 +110,7 @@ class PauliRotationGate(Gate):
         circuit = QuantumCircuit._from_circuit_data(
             evo,
             legacy_qubits=True,
-            name="def_ppm",
+            name="def_pauli_rotation",
         )
         self.definition = circuit
 
@@ -133,17 +132,3 @@ class PauliRotationGate(Gate):
         pauli_matrix = self.pauli().to_matrix(sparse=False)
         angle = self.params[0]
         return sc.linalg.expm(-1j * angle / 2 * pauli_matrix)
-
-
-def _get_default_label(pauli, angle) -> str:
-    """Creates the default label for PauliProductMeasurement instruction,
-    used for visualization.
-    """
-    # If the angle is a float, truncate the number of digits we print
-    # TODO use pi check
-    if isinstance(angle, ParameterExpression):
-        angle = str(angle)
-    else:
-        angle = f"{angle:.3f}"
-
-    return f"P({pauli.to_label()}, {angle})"

@@ -133,3 +133,23 @@ class TestPauliRotationGate(QiskitTestCase):
         pauli = Pauli("XIYZ")
         rotation = PauliRotationGate(pauli, 0.0)
         self.assertEqual(rotation.pauli(), pauli)
+
+    def test_draw(self):
+        """Test drawing a Pauli rotation gate circuit."""
+        qc = QuantumCircuit(3)
+        qc.append(PauliRotationGate(Pauli("X"), 0.1), [0])
+        qc.append(PauliRotationGate(Pauli("YY"), np.pi / 2), [1, 2])
+        qc.append(PauliRotationGate(Pauli("ZZZ"), -np.pi / 4), [0, 1, 2])
+        out = str(qc.draw("text"))
+        expected = "\n".join(
+            [
+                "      ┌──────────┐ ┌──────────────┐",
+                "q_0: ─┤ R_X(0.1) ├─┤0             ├",
+                "     ┌┴──────────┴┐│              │",
+                "q_1: ┤0           ├┤1 R_ZZZ(-π/4) ├",
+                "     │  R_YY(π/2) ││              │",
+                "q_2: ┤1           ├┤2             ├",
+                "     └────────────┘└──────────────┘",
+            ]
+        )
+        self.assertEqual(expected, out)
