@@ -164,18 +164,9 @@ mod tests {
         qc.push_packed_operation(operation, None, &[Qubit(0), Qubit(2)], &[])
             .unwrap();
 
-        let mut target = Target::new(
-            Some("Fake Target".to_string()),
-            Some(3), // num_qubits
-            None,    // dt
-            None,    // granularity
-            None,    // min_length
-            None,    // pulse_alignment
-            None,    // acquire_alignment
-            None,    // qubit_properties
-            None,    // concurrent_measurements
-        )
-        .unwrap();
+        let mut target = Target::new()
+            .with_description("Fake Target".to_string())
+            .with_num_qubits(3); // num_qubits
         let params = Some(Parameters::Params(smallvec![
             Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
                 "ϴ", None, None,
