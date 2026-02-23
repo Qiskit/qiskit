@@ -5,3 +5,9 @@ fixes:
     Previously, the exporter would not include the type in the generated code, which could lead to
     invalid OpenQASM 3 code that could not be imported back into Qiskit.
 
+upgrades:
+  - |
+    The OpenQASM 3 exporter (:mod:`qiskit.qasm3`) will now correctly export for loops with an explicit type.
+    By default, the type is now `int`, but it can be overridden by passing a `type` argument to the ForLoopStatement constructor in
+    the qasm3.ast module.
+    
