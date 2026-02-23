@@ -207,7 +207,7 @@ class OneQubitEulerDecomposer:
         # Convert to numpy array in case not already an array
         unitary = np.asarray(unitary, dtype=complex)
 
-        # Check input is a 2-qubit unitary
+        # Check input is a 1-qubit unitary
         if unitary.shape != (2, 2):
             raise QiskitError("OneQubitEulerDecomposer: expected 2x2 input matrix")
         if not is_unitary_matrix(unitary):
