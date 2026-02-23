@@ -42,7 +42,7 @@ def synth_stabilizer_layers(
     """Synthesis of a stabilizer state into layers.
 
     It provides a similar decomposition to the synthesis described in Lemma 8 of reference [1],
-    without the initial Hadamard-free sub-circuit which do not affect the stabilizer state.
+    without the initial Hadamard-free sub-circuit which does not affect the stabilizer state.
 
     For example, a 5-qubit stabilizer state is decomposed into the following layers:
 
