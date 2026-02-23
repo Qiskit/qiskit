@@ -711,6 +711,7 @@ class ForLoopStatement(Statement):
         self.body = body
         self.type = type_
 
+
 class WhileLoopStatement(Statement):
     """
     AST node for ``while`` loops.
