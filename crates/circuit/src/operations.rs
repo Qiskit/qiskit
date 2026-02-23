@@ -25,6 +25,7 @@ use crate::circuit_data::{CircuitData, PyCircuitData};
 use crate::classical::expr;
 use crate::converters::QuantumCircuitData;
 use crate::duration::Duration;
+use crate::imports::{CUSTOM_GATE, CUSTOM_INSTRUCTION};
 use crate::operations::custom_traits::{ClonableOp, ComparableOp};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::{
@@ -39,10 +40,10 @@ use num_bigint::BigUint;
 use num_complex::{Complex64, c64};
 use smallvec::SmallVec;
 
-use numpy::{PyArray1, PyReadonlyArray2, ToPyArray};
+use numpy::{IntoPyArray, PyArray1, PyReadonlyArray2, ToPyArray};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::types::{IntoPyDict, PyDict, PyFloat, PyTuple, PyType};
+use pyo3::types::{IntoPyDict, PyDict, PyFloat, PyList, PyTuple, PyType};
 use pyo3::{IntoPyObjectExt, Python, intern};
 
 // This is a convenience re-export, since basically everywhere in Qiskit expects all the
@@ -2062,6 +2063,149 @@ impl From<Box<dyn CustomOperation>> for BoxedCustomOperation {
     }
 }
 
+#[pyclass(
+    name = "CustomOperation",
+    module = "qiskit.circuit.operation",
+    from_py_object
+)]
+#[derive(Debug, Clone)]
+pub struct PyCustomOperation {
+    inner: Box<dyn CustomOperation>,
+    parameters: Option<SmallVec<[Param; 3]>>,
+}
+
+#[pymethods]
+impl PyCustomOperation {
+    #[getter]
+    fn name(&self) -> &str {
+        self.inner.name()
+    }
+
+    #[getter]
+    fn num_qubits(&self) -> u32 {
+        self.inner.num_qubits()
+    }
+
+    #[getter]
+    fn num_clbits(&self) -> u32 {
+        self.inner.num_clbits()
+    }
+
+    #[getter]
+    fn num_params(&self) -> u32 {
+        self.inner.num_params()
+    }
+
+    #[getter]
+    fn directive(&self) -> bool {
+        self.inner.directive()
+    }
+
+    #[getter]
+    fn label(&self) -> Option<&str> {
+        self.inner.label()
+    }
+
+    #[getter]
+    fn params<'a>(&'a self, py: Python<'a>) -> PyResult<Bound<'a, PyList>> {
+        PyList::new(
+            py,
+            self.parameters
+                .as_deref()
+                .unwrap_or_default()
+                .iter()
+                .cloned(),
+        )
+    }
+
+    #[getter]
+    fn definition<'py>(&'py self, py: Python<'py>) -> Option<Bound<'py, PyAny>> {
+        let params = self.parameters.as_deref().unwrap_or_default();
+        self.inner
+            .definition(params)
+            .map(|circ| circ.into_py_quantum_circuit(py).ok())?
+    }
+
+    fn __array__<'py>(&'py self, dtype: Bound<'py, PyAny>) -> Option<Bound<'py, PyAny>> {
+        let py = dtype.py();
+        let params = self.parameters.as_deref().unwrap_or_default();
+        if let Some(matrix) = self.inner.matrix(params) {
+            let py_matrix = matrix.into_pyarray(py);
+            Some(py_matrix.into_any())
+        } else {
+            None
+        }
+    }
+
+    fn __eq__<'py>(&'py self, other: Bound<'py, PyAny>) -> PyResult<bool> {
+        let as_own = other.cast::<Self>()?;
+        let as_borrowed = as_own.borrow();
+
+        // First compare by instance
+        if self.inner.as_ref() != as_borrowed.inner.as_ref() {
+            return Ok(false);
+        }
+        let compare_params = |self_params: &[Param], other_params: &[Param]| -> PyResult<bool> {
+            if self_params.len() != other_params.len() {
+                return Ok(false);
+            }
+            for (self_param, other_param) in self_params.iter().zip(other_params) {
+                if !self_param.eq(other_param)? {
+                    return Ok(false);
+                }
+            }
+            Ok(true)
+        };
+
+        match [
+            self.parameters.as_deref(),
+            as_borrowed.parameters.as_deref(),
+        ] {
+            [None, None] => Ok(true),
+            [Some(self_params), Some(other_params)] => compare_params(self_params, other_params),
+            _ => Ok(false),
+        }
+    }
+}
+
+impl PyCustomOperation {
+    /// Creates a Python view from a [`CustomOperation`] instance.
+    ///
+    /// # Arguments:
+    ///
+    /// * `op` - The operation instance within a box.
+    /// * `parameters` - The parameters for this operation, if needed.
+    ///
+    /// # Returns:
+    ///
+    /// The python view of the [`CustomOperation`] dyn-object.
+    pub fn new(op: Box<dyn CustomOperation>, parameters: Option<SmallVec<[Param; 3]>>) -> Self {
+        Self {
+            inner: op,
+            parameters,
+        }
+    }
+
+    /// Creates a more complete Python view of the operation with the associated types.
+    ///
+    /// This version of the function will use clone the original instance. If you posess
+    /// ownership of the object and want to consume it, use [`PyCustomOperation::into_py_op.`]
+    pub fn create_py_op<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let cloned = self.clone();
+
+        Self::into_py_op(cloned, py)
+    }
+
+    /// Creates a more complete Python view of the operation with the associated types.
+    pub fn into_py_op<'py>(self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let py_type = match self.inner.is_unitary() {
+            true => CUSTOM_GATE.get_bound(py),
+            false => CUSTOM_INSTRUCTION.get_bound(py),
+        };
+        py_type.call1((self,))
+    }
+}
+
 #[cfg(test)]
 mod test {
     use approx::assert_abs_diff_eq;
@@ -2114,6 +2258,7 @@ mod test_custom_operations {
     use crate::packed_instruction::PackedOperation;
     use crate::{Clbit, Qubit};
     use ndarray::aview2;
+    use pyo3::prelude::*;
     use smallvec::smallvec;
     use std::f64::consts::PI;
 
@@ -2545,5 +2690,70 @@ mod test_custom_operations {
             assert_eq!(op.num_params(), view.num_params());
             assert_eq!(op.directive(), view.directive());
         }
+    }
+
+    #[test]
+    // #[cfg(not(miri))]
+    fn try_python_custom_gate() {
+        let mut circuit = CircuitData::with_capacity(1, 0, 1, 0.0.into())
+            .expect("Circuit with small capacity should be built.");
+
+        let gate = Box::new(ParametrizedAndLabeled::new(Some("custom_rz")));
+
+        // Try downcasting
+        circuit
+            .push_packed_operation(
+                PackedOperation::from_custom_operation(gate),
+                Some(crate::instruction::Parameters::Params(smallvec![
+                    3.14.into()
+                ])),
+                &[Qubit(0)],
+                &[],
+            )
+            .expect("Instruction should be added to the circuit.");
+        circuit
+            .push_packed_operation(
+                PackedOperation::from_custom_operation(Box::new(CustomH)),
+                None,
+                &[Qubit(0)],
+                &[],
+            )
+            .expect("Instruction should be added to the circuit.");
+
+        // Retrieve operation
+        let retrieved_gate = &circuit.data()[0];
+        let retrieved_h_gate = &circuit.data()[1];
+
+        let OperationRef::CustomOperation(gate_as_rx) = retrieved_gate.op.view() else {
+            panic!("Gate should be a custom gate of type CustomH");
+        };
+
+        if gate_as_rx.downcast_ref::<CustomH>().is_some() {
+            panic!("Gate should not be a custom gate of type CustomH");
+        };
+
+        let Some(_) = gate_as_rx.downcast_ref::<ParametrizedAndLabeled>() else {
+            panic!("Gate should be a custom gate of type ParametrizedAndLabeled");
+        };
+
+        // Try Python:
+        Python::attach(|py| -> PyResult<()> {
+            let unpacked_operation = circuit.unpack_py_op(py, retrieved_gate)?.into_bound(py);
+            println!("{}", unpacked_operation.repr()?);
+            println!("{}", unpacked_operation.call_method0("to_matrix")?.repr()?);
+            println!("{}", unpacked_operation.getattr("params")?.repr()?);
+            println!("{}", unpacked_operation.getattr("definition")?.repr()?);
+
+            let unpacked_operation_h = circuit.unpack_py_op(py, retrieved_h_gate)?.into_bound(py);
+            println!("{}", unpacked_operation_h.repr()?);
+            println!(
+                "{}",
+                unpacked_operation_h.call_method0("to_matrix")?.repr()?
+            );
+            println!("{}", unpacked_operation_h.getattr("params")?.repr()?);
+            println!("{}", unpacked_operation_h.getattr("definition")?.repr()?);
+            Ok(())
+        })
+        .expect("Something went wrong on the Python side.");
     }
 }
