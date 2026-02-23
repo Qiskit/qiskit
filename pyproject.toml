@@ -484,59 +484,6 @@ ignore = [
 # Visualization functions often subprocess to visualization tools
 "qiskit/visualization/*" = ["S603", "S607"]
 
-
-[tool.pylint.main]
-extension-pkg-allow-list = [
-    "numpy",
-    "qiskit._accelerate",
-    "qiskit._qasm2",
-    "qiskit._qasm3",
-    # We can't allow pylint to load qiskit._qasm2 because it's not able to
-    # statically resolve the cyclical load of the exception and it bugs out.
-    "retworkx",
-    "rustworkx",
-]
-load-plugins = ["pylint.extensions.docparams", "pylint.extensions.docstyle", "pylint.extensions.bad_builtin"]
-py-version = "3.10"  # update it when bumping minimum supported python version
-
-[tool.pylint.basic]
-good-names = ["a", "b", "i", "j", "k", "d", "n", "m", "ex", "v", "w", "x", "y", "z", "Run", "_", "logger", "q", "c", "r", "qr", "cr", "qc", "nd", "pi", "op", "b", "ar", "br", "p", "cp", "ax", "dt", "__unittest", "iSwapGate", "mu"]
-method-rgx = "(([a-z_][a-z0-9_]{2,49})|(assert[A-Z][a-zA-Z0-9]{2,43})|(test_[_a-zA-Z0-9]{2,}))$"
-variable-rgx = "[a-z_][a-z0-9_]{1,30}$"
-
-[tool.pylint.format]
-max-line-length = 105  # default 100
-
-[tool.pylint."messages control"]
-disable = [
-# intentionally disabled:
-    "spelling",  # too noisy
-    "fixme", # disabled as TODOs would show up as warnings
-    "protected-access", # disabled as we don't follow the public vs private convention strictly
-    "duplicate-code", # disabled as it is too verbose
-    "redundant-returns-doc", # for @abstractmethod, it cannot interpret "pass"
-    "too-many-instance-attributes", "too-many-arguments", "too-few-public-methods", "too-many-ancestors",
-    "unnecessary-pass", # allow for methods with just "pass", for clarity
-    "unnecessary-dunder-call", # do not want to implement
-    "no-else-return",  # relax "elif" after a clause with a return
-    "docstring-first-line-empty", # relax docstring style
-    "import-outside-toplevel", "import-error", # overzealous with our optionals/dynamic packages
-    "consider-using-max-builtin", "consider-using-min-builtin",  # unnecessary stylistic opinion
-# TODO(#9614): these were added in modern Pylint. Decide if we want to enable them. If so,
-#  remove from here and fix the issues. Else, move it above this section and add a comment
-#  with the rationale
-    "no-member",  # for dynamically created members
-    "not-context-manager",
-    "unnecessary-lambda-assignment",  # do not want to implement
-]
-
-enable = [
-    "use-symbolic-message-instead"
-]
-
-[tool.pylint.spelling]
-spelling-private-dict-file = ".local-spellings"
-
 [tool.coverage.report]
 exclude_also = [
     "def __repr__",               # Printable epresentational string does not typically execute during testing
@@ -545,6 +492,3 @@ exclude_also = [
     "if TYPE_CHECKING:",          # Code that only runs during type checks
     "@abstractmethod",            # Abstract methods are not testable
     ]
-
-[tool.pylint.deprecated_builtins]
-bad-functions = ["print"]
