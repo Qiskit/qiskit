@@ -19,7 +19,7 @@ from qiskit.result import marginal_counts
 from qiskit.result import marginal_distribution
 from qiskit.result import Result
 from qiskit.exceptions import QiskitError
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestResultOperations(QiskitTestCase):
@@ -38,7 +38,7 @@ class TestResultOperations(QiskitTestCase):
     def generate_qiskit_result(self):
         """Generate standard Result for testing"""
         memory = [hex(ii) for ii in range(8)]
-        counts = {m: 1 for m in memory}
+        counts = dict.fromkeys(memory, 1)
         data_1 = models.ExperimentResultData(counts=counts, memory=memory)
         exp_result_header_1 = {"creg_sizes": [["c0", 4]], "memory_slots": 4}
         exp_result_1 = models.ExperimentResult(

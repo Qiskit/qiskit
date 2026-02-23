@@ -290,7 +290,6 @@ def _impl_init_subclass(
             # Docstrings are all inherited, and we use more descriptive class methods to better
             # distinguish the `_Singleton` class (`singleton_class`) from the instruction class
             # (`instruction_class`) that it's wrapping.
-            # pylint: disable=missing-function-docstring,bad-classmethod-argument
 
             def __new__(singleton_class, *_args, **_kwargs):
                 raise TypeError(f"cannot create '{singleton_class.__name__}' instances")
@@ -359,8 +358,6 @@ def _impl_init_subclass(
 class _SingletonMeta(type(Instruction)):
     # The inheritance above is to ensure metaclass compatibility with `Instruction`, though pylint
     # doesn't understand that this is a subclass of `type`, so uses metaclass `self` conventions.
-
-    # pylint: disable=bad-classmethod-argument,no-self-argument
 
     # Beware the difference between `type.__new__` and `type.__call__`.  The former is called during
     # creation of the _type object_ (e.g. during a `class A: ...` statement), and the latter is

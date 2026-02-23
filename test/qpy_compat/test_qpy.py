@@ -295,7 +295,7 @@ def generate_param_phase():
     return output_circuits
 
 
-def generate_single_clbit_condition_teleportation(version):  # pylint: disable=invalid-name
+def generate_single_clbit_condition_teleportation(version):
     """Generate single clbit condition teleportation circuit."""
     qr = QuantumRegister(1)
     cr = ClassicalRegister(2, name="name")
@@ -325,7 +325,7 @@ def generate_parameter_vector():
     return qc
 
 
-def generate_parameter_vector_expression():  # pylint: disable=invalid-name
+def generate_parameter_vector_expression():
     """Generate tests for parameter vector element ordering."""
     qc = QuantumCircuit(7, name="vector_expansion")
     entanglement = [[i, i + 1] for i in range(7 - 1)]
@@ -448,7 +448,7 @@ def generate_control_flow_switch_circuits():
 
 def generate_schedule_blocks(current_version):
     """Standard QPY testcase for schedule blocks."""
-    # pylint: disable=no-name-in-module
+
     from qiskit.pulse import builder, channels, library
 
     # Parameterized schedule test is avoided.
@@ -487,7 +487,7 @@ def generate_schedule_blocks(current_version):
     # Raw symbolic pulse
     import symengine as sym
 
-    duration, amp, t = sym.symbols("duration amp t")  # pylint: disable=invalid-name
+    duration, amp, t = sym.symbols("duration amp t")
     expr = amp * sym.sin(2 * sym.pi * t / duration)
     my_pulse = library.SymbolicPulse(
         pulse_type="Sinusoidal",
@@ -510,7 +510,7 @@ def generate_schedule_blocks(current_version):
 
 def generate_referenced_schedule():
     """Test for QPY serialization of unassigned reference schedules."""
-    # pylint: disable=no-name-in-module
+
     from qiskit.pulse import builder, channels, library
 
     schedule_blocks = []
@@ -536,7 +536,7 @@ def generate_referenced_schedule():
 
 def generate_calibrated_circuits():
     """Test for QPY serialization with calibrations."""
-    # pylint: disable=no-name-in-module
+
     from qiskit.pulse import builder, Constant, DriveChannel
 
     circuits = []
@@ -619,7 +619,7 @@ def generate_open_controlled_gates(version):
 
 def generate_acquire_instruction_with_kernel_and_discriminator():
     """Test QPY serialization with Acquire instruction with kernel and discriminator."""
-    # pylint: disable=no-name-in-module
+
     from qiskit.pulse import builder, AcquireChannel, MemorySlot, Discriminator, Kernel
 
     schedule_blocks = []
@@ -1037,14 +1037,13 @@ def assert_equal(reference, qpy, count, version_parts, bind=None, equivalent=Fal
             )
             sys.stderr.write(msg)
             sys.exit(1)
-    else:
-        if reference != qpy:
-            msg = (
-                f"Reference Circuit {count}:\n{reference}\nis not equivalent to "
-                f"qpy loaded circuit {count}:\n{qpy}\n"
-            )
-            sys.stderr.write(msg)
-            sys.exit(1)
+    elif reference != qpy:
+        msg = (
+            f"Reference Circuit {count}:\n{reference}\nis not equivalent to "
+            f"qpy loaded circuit {count}:\n{qpy}\n"
+        )
+        sys.stderr.write(msg)
+        sys.exit(1)
     # Check deprecated bit properties, if set.  The QPY dumping code before Terra 0.23.2 didn't
     # include enough information for us to fully reconstruct this, so we only test if newer.
     if version_parts >= (0, 23, 2) and isinstance(reference, QuantumCircuit):
@@ -1140,8 +1139,8 @@ def load_qpy(qpy_files, version_parts):
             try:
                 with open(path, "rb") as fd:
                     load(fd)
-            except:
-                msg = f"Loading circuit with pulse gates should not raise"
+            except Exception:
+                msg = "Loading circuit with pulse gates should not raise"
                 sys.stderr.write(msg)
                 sys.exit(1)
         else:

@@ -13,7 +13,7 @@
 """Code from commutative_analysis pass that checks commutation relations between DAG nodes."""
 
 from __future__ import annotations
-from typing import List, Union, Set, Optional
+
 from collections.abc import Sequence
 
 from qiskit.circuit.operation import Operation
@@ -51,10 +51,10 @@ class CommutationChecker:
 
     def __init__(
         self,
-        standard_gate_commutations: dict = None,
+        standard_gate_commutations: dict | None = None,
         cache_max_entries: int = 10**6,
         *,
-        gates: Optional[Set[str]] = None,
+        gates: set[str] | None = None,
     ):
         self.cc = RustChecker(standard_gate_commutations, cache_max_entries, gates)
 
@@ -129,10 +129,10 @@ class CommutationChecker:
     def check_commutation_entries(
         self,
         first_op: Operation,
-        first_qargs: List,
+        first_qargs: list,
         second_op: Operation,
-        second_qargs: List,
-    ) -> Union[bool, None]:
+        second_qargs: list,
+    ) -> bool | None:
         """Returns stored commutation relation if any
 
         Args:

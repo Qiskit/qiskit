@@ -15,7 +15,8 @@
 from __future__ import annotations
 
 from collections.abc import Sequence, Mapping
-from typing import Optional, Callable, List, Union, Dict, Tuple
+
+from collections.abc import Callable
 from functools import reduce
 import numpy as np
 
@@ -479,16 +480,14 @@ class PauliFeatureMap(NLocal):
     )
     def __init__(
         self,
-        feature_dimension: Optional[int] = None,
+        feature_dimension: int | None = None,
         reps: int = 2,
-        entanglement: Union[
-            str,
-            Dict[int, List[Tuple[int]]],
-            Callable[[int], Union[str, Dict[int, List[Tuple[int]]]]],
-        ] = "full",
+        entanglement: (
+            str | dict[int, list[tuple[int]]] | Callable[[int], str | dict[int, list[tuple[int]]]]
+        ) = "full",
         alpha: float = 2.0,
-        paulis: Optional[List[str]] = None,
-        data_map_func: Optional[Callable[[np.ndarray], float]] = None,
+        paulis: list[str] | None = None,
+        data_map_func: Callable[[np.ndarray], float] | None = None,
         parameter_prefix: str = "x",
         insert_barriers: bool = False,
         name: str = "PauliFeatureMap",
@@ -512,6 +511,7 @@ class PauliFeatureMap(NLocal):
             parameter_prefix: The prefix used if default parameters are generated.
             insert_barriers: If ``True``, barriers are inserted in between the evolution instructions
                 and Hadamard layers.
+            name: Name of the circuit.
 
         """
 
@@ -532,8 +532,8 @@ class PauliFeatureMap(NLocal):
         self._alpha = alpha
 
     def _parameter_generator(
-        self, rep: int, block: int, indices: List[int]
-    ) -> Optional[List[Parameter]]:
+        self, rep: int, block: int, indices: list[int]
+    ) -> list[Parameter] | None:
         """If certain blocks should use certain parameters this method can be overridden."""
         params = [self.ordered_parameters[i] for i in indices]
         return params
@@ -544,7 +544,7 @@ class PauliFeatureMap(NLocal):
         return self.feature_dimension
 
     @property
-    def paulis(self) -> List[str]:
+    def paulis(self) -> list[str]:
         """The Pauli strings used in the entanglement of the qubits.
 
         Returns:
@@ -553,7 +553,7 @@ class PauliFeatureMap(NLocal):
         return self._paulis
 
     @paulis.setter
-    def paulis(self, paulis: List[str]) -> None:
+    def paulis(self, paulis: list[str]) -> None:
         """Set the pauli strings.
 
         Args:

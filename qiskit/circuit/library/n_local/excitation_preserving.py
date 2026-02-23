@@ -261,6 +261,7 @@ class ExcitationPreserving(TwoLocal):
                 for anything besides visualization its **strongly** recommended
                 to set this flag to ``True`` to avoid a large performance
                 overhead for parameter binding.
+            name: Name of the circuit.
 
         Raises:
             ValueError: If the selected mode is not supported.

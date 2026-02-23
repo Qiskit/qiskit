@@ -90,6 +90,7 @@ class GMS(QuantumCircuit):
             theta: a num_qubits x num_qubits symmetric matrix of
                 interaction angles for each qubit pair. The upper
                 triangle is considered.
+
         """
         super().__init__(num_qubits, name="gms")
         if not isinstance(theta, list):
@@ -169,7 +170,7 @@ class MSGate(Gate):
 
     def validate_parameter(self, parameter):
         if isinstance(parameter, Sequence):
-            # pylint: disable=super-with-arguments
+
             return [
                 [super(MSGate, self).validate_parameter(theta) for theta in row]
                 for row in parameter

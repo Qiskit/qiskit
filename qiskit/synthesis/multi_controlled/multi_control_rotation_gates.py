@@ -104,7 +104,7 @@ def _mcsu2_real_diagonal(
             `arXiv:2302.06377 (2023) <https://arxiv.org/abs/2302.06377>`__
 
     """
-    # pylint: disable=cyclic-import
+
     from qiskit.circuit.library.standard_gates import RXGate, RYGate, RZGate
     from qiskit.circuit.library.generalized_gates import UnitaryGate
     from qiskit.quantum_info.operators.predicates import is_unitary_matrix

@@ -14,7 +14,6 @@
 
 from __future__ import annotations
 
-from typing import Optional, Union
 
 import numpy as np
 from qiskit.circuit import QuantumCircuit, CircuitInstruction
@@ -67,8 +66,8 @@ class QuantumVolume(QuantumCircuit):
     def __init__(
         self,
         num_qubits: int,
-        depth: Optional[int] = None,
-        seed: Optional[Union[int, np.random.Generator]] = None,
+        depth: int | None = None,
+        seed: int | np.random.Generator | None = None,
         classical_permutation: bool = True,
         *,
         flatten: bool = False,
@@ -83,6 +82,7 @@ class QuantumVolume(QuantumCircuit):
             flatten: If ``False`` (the default), construct a circuit that contains a single
                 instruction, which in turn has the actual volume structure.  If ``True``, construct
                 the volume structure directly.
+
         """
         import scipy.stats
 

@@ -34,7 +34,7 @@ class QuantumState:
         """Initialize a QuantumState object.
 
         Args:
-            op_shape (OpShape): Optional, an OpShape object for state dimensions.
+            op_shape (OpShape):  an OpShape object for state dimensions.
 
         .. note::
 
@@ -87,27 +87,22 @@ class QuantumState:
     @abstractmethod
     def is_valid(self, atol=None, rtol=None):
         """Return True if a valid quantum state."""
-        pass
 
     @abstractmethod
     def to_operator(self):
         """Convert state to matrix operator class"""
-        pass
 
     @abstractmethod
     def conjugate(self):
         """Return the conjugate of the operator."""
-        pass
 
     @abstractmethod
     def trace(self):
         """Return the trace of the quantum state as a density matrix."""
-        pass
 
     @abstractmethod
     def purity(self):
         """Return the purity of the quantum state."""
-        pass
 
     @abstractmethod
     def tensor(self, other: QuantumState) -> QuantumState:
@@ -122,7 +117,6 @@ class QuantumState:
         Raises:
             QiskitError: if other is not a quantum state.
         """
-        pass
 
     @abstractmethod
     def expand(self, other: QuantumState) -> QuantumState:
@@ -137,7 +131,6 @@ class QuantumState:
         Raises:
             QiskitError: if other is not a quantum state.
         """
-        pass
 
     def _add(self, other):
         """Return the linear combination self + other.
@@ -184,7 +177,6 @@ class QuantumState:
             QiskitError: if the operator dimension does not match the
                          specified QuantumState subsystem dimensions.
         """
-        pass
 
     @abstractmethod
     def expectation_value(self, oper: BaseOperator, qargs: None | list = None) -> complex:
@@ -197,7 +189,6 @@ class QuantumState:
         Returns:
             complex: the expectation value.
         """
-        pass
 
     @abstractmethod
     def probabilities(self, qargs: None | list = None, decimals: None | int = None) -> np.ndarray:
@@ -215,7 +206,6 @@ class QuantumState:
         Returns:
             np.array: The Numpy vector array of probabilities.
         """
-        pass
 
     def probabilities_dict(self, qargs: None | list = None, decimals: None | int = None) -> dict:
         """Return the subsystem measurement probability dictionary.

@@ -286,6 +286,8 @@ class RealAmplitudes(TwoLocal):
                 for anything besides visualization its **strongly** recommended
                 to set this flag to ``True`` to avoid a large performance
                 overhead for parameter binding.
+            name: Name of the circuit.
+
         """
         super().__init__(
             num_qubits=num_qubits,

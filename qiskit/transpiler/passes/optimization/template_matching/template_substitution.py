@@ -324,7 +324,7 @@ class TemplateSubstitution:
             if template is None or self._incr_num_parameters(template):
                 continue
 
-            template_list = range(0, self.template_dag_dep.size())
+            template_list = range(self.template_dag_dep.size())
             template_complement = list(set(template_list) - set(template_sublist))
 
             # If the match obey the rule then it is added to the list.
@@ -361,7 +361,7 @@ class TemplateSubstitution:
             circuit_list = circuit_list + elem.circuit_config + elem.pred_block
 
         # Unmatched gates that are not predecessors of any group of matches.
-        self.unmatched_list = sorted(set(range(0, self.circuit_dag_dep.size())) - set(circuit_list))
+        self.unmatched_list = sorted(set(range(self.circuit_dag_dep.size())) - set(circuit_list))
 
     def run_dag_opt(self):
         """
@@ -497,9 +497,6 @@ class TemplateSubstitution:
         """
         import sympy as sym
 
-        # Our native form is sympy, so we don't need to do anything.
-        to_native_symbolic = lambda x: x
-
         circuit_params, template_params = [], []
         # Set of all parameter names that are present in the circuits to be optimized.
         circuit_params_set = set()
@@ -590,7 +587,7 @@ class TemplateSubstitution:
             return None
         # If there's multiple solutions, arbitrarily pick the first one.
         sol = {
-            param.name: ParameterExpression(circ_dict, str(to_native_symbolic(expr)))
+            param.name: ParameterExpression(circ_dict, str(expr))
             for param, expr in sym_sol[0].items()
         }
         fake_bind = {key: sol[key.name] for key in temp_symbols}

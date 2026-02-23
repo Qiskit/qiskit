@@ -14,14 +14,14 @@
 
 
 __all__ = [
-    "Expr",
-    "Var",
-    "Stretch",
-    "Value",
-    "Cast",
-    "Unary",
     "Binary",
+    "Cast",
+    "Expr",
     "Index",
+    "Stretch",
+    "Unary",
+    "Value",
+    "Var",
 ]
 
 import enum
@@ -35,7 +35,7 @@ from qiskit._accelerate.circuit.classical.expr import (
     Unary,
     Binary,
     Index,
-)  # pylint: disable=unused-import
+)
 
 
 class _UnaryOp(enum.Enum):

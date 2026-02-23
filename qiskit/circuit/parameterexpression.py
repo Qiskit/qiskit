@@ -15,7 +15,7 @@ ParameterExpression Class to enable creating simple expressions of Parameters.
 
 from __future__ import annotations
 
-from typing import Union
+
 from qiskit.utils.optionals import HAS_SYMPY
 import qiskit._accelerate.circuit
 
@@ -158,4 +158,4 @@ def sympify(expression):
 
 # Redefine the type so external imports get an evaluated reference; Sphinx needs this to understand
 # the type hints.
-ParameterValueType = Union[ParameterExpression, float]
+ParameterValueType = ParameterExpression | float

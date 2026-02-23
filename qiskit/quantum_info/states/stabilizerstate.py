@@ -130,7 +130,6 @@ class StabilizerState(QuantumState):
             StabilizerState: a state stabilized by stabilizers.
         """
 
-        # pylint: disable=cyclic-import
         from qiskit.synthesis.stabilizer import synth_circuit_from_stabilizers
 
         circuit = synth_circuit_from_stabilizers(
@@ -625,7 +624,6 @@ class StabilizerState(QuantumState):
     @staticmethod
     def _phase_exponent(x1, z1, x2, z2):
         """Exponent g of i such that Pauli(x1,z1) * Pauli(x2,z2) = i^g Pauli(x1+x2,z1+z2)"""
-        # pylint: disable=invalid-name
 
         phase = (x2 * z1 * (1 + 2 * z2 + 2 * x1) - x1 * z2 * (1 + 2 * z1 + 2 * x2)) % 4
         if phase < 0:
@@ -705,7 +703,7 @@ class StabilizerState(QuantumState):
         outcome: list[str],
         outcome_prob: float,
         probs: dict[str, float],
-        outcome_bitstring: str = None,
+        outcome_bitstring: str | None = None,
     ):
         """Recursive helper function for calculating the probabilities
 
@@ -750,7 +748,7 @@ class StabilizerState(QuantumState):
             return
 
         for single_qubit_outcome in (
-            range(0, 2)
+            range(2)
             if (outcome_bitstring is None)
             else [int(outcome_bitstring[qubit_for_branching])]
         ):

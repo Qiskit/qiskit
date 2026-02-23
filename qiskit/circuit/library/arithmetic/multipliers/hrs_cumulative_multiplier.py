@@ -12,7 +12,7 @@
 
 """Compute the product of two qubit registers using classical multiplication approach."""
 
-from typing import Optional
+
 from qiskit.circuit import QuantumRegister, AncillaRegister, QuantumCircuit
 
 from .multiplier import Multiplier
@@ -76,8 +76,8 @@ class HRSCumulativeMultiplier(Multiplier):
     def __init__(
         self,
         num_state_qubits: int,
-        num_result_qubits: Optional[int] = None,
-        adder: Optional[QuantumCircuit] = None,
+        num_result_qubits: int | None = None,
+        adder: QuantumCircuit | None = None,
         name: str = "HRSCumulativeMultiplier",
     ) -> None:
         r"""

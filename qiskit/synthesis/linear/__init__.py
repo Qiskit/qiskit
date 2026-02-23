@@ -22,5 +22,4 @@ from .linear_matrix_utils import (
 )
 
 # This re-import is kept for compatibility with Terra 0.23. Eligible for deprecation in 0.25+.
-# pylint: disable=cyclic-import,wrong-import-order
 from qiskit.synthesis.linear_phase import synth_cnot_phase_aam as graysynth

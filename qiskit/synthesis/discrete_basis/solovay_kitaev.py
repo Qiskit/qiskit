@@ -83,15 +83,14 @@ class SolovayKitaevDecomposition:
                 "Either basic_approximations or basis_gates + depth can be specified, not both."
             )
 
+        # Fast Rust path to load the file
+        elif isinstance(basic_approximations, str) and basic_approximations[~3:] != ".npy":
+            self._sk = RustSolovayKitaevSynthesis.from_basic_approximations(
+                basic_approximations, True
+            )
         else:
-            # Fast Rust path to load the file
-            if isinstance(basic_approximations, str) and basic_approximations[~3:] != ".npy":
-                self._sk = RustSolovayKitaevSynthesis.from_basic_approximations(
-                    basic_approximations, True
-                )
-            else:
-                sequences = self.load_basic_approximations(basic_approximations)
-                self._sk = RustSolovayKitaevSynthesis.from_sequences(sequences, True)
+            sequences = self.load_basic_approximations(basic_approximations)
+            self._sk = RustSolovayKitaevSynthesis.from_sequences(sequences, True)
 
         self._depth = depth
         self._check_input = check_input
@@ -241,7 +240,7 @@ class SolovayKitaevDecomposition:
         circuit = QuantumCircuit._from_circuit_data(data, legacy_qubits=True)
 
         if return_dag:
-            from qiskit.converters import circuit_to_dag  # pylint: disable=cyclic-import
+            from qiskit.converters import circuit_to_dag
 
             return circuit_to_dag(circuit)
 

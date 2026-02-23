@@ -38,12 +38,12 @@ class BaseOperator(GroupMixin, ABC):
         """Initialize a BaseOperator shape
 
         Args:
-            input_dims (tuple or int or None): Optional, input dimensions.
-            output_dims (tuple or int or None): Optional, output dimensions.
-            num_qubits (int): Optional, the number of qubits of the operator.
-            shape (tuple): Optional, matrix shape for automatically determining
+            input_dims (tuple or int or None):  input dimensions.
+            output_dims (tuple or int or None):  output dimensions.
+            num_qubits (int):  the number of qubits of the operator.
+            shape (tuple):  matrix shape for automatically determining
                            qubit dimensions.
-            op_shape (OpShape): Optional, an OpShape object for operator dimensions.
+            op_shape (OpShape):  an OpShape object for operator dimensions.
 
         .. note::
 

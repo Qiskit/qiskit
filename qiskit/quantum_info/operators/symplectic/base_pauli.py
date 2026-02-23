@@ -12,7 +12,7 @@
 """
 Optimized list of Pauli operators
 """
-# pylint: disable=invalid-name
+
 
 from __future__ import annotations
 import copy
@@ -105,7 +105,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         Args:
             a ({cls}): an operator object.
             b ({cls}): an operator object.
-            qargs (list or None): Optional, qubits to apply dot product
+            qargs (list or None):  qubits to apply dot product
                                   on (default: None).
             inplace (bool): If True update in-place (default: False).
 
@@ -283,7 +283,6 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
                 ret = ret.compose(other, front=True, qargs=qargs)
             return ret
 
-        # pylint: disable=cyclic-import
         from qiskit.quantum_info.operators.symplectic.clifford import Clifford
 
         # Convert Clifford to quantum circuits
@@ -308,7 +307,6 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         else:
             qargs_ = list(qargs)
 
-        # pylint: disable=cyclic-import
         from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
 
         num_paulis = self._x.shape[0]
@@ -638,7 +636,6 @@ def _evolve_sdg(base_pauli, qubit):
     return base_pauli
 
 
-# pylint: disable=unused-argument
 def _evolve_i(base_pauli, qubit):
     """Update P -> P"""
     return base_pauli

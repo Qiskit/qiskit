@@ -36,7 +36,6 @@ from __future__ import annotations
 import copy
 from itertools import zip_longest
 import math
-from typing import Type
 
 import numpy
 
@@ -102,7 +101,7 @@ class Instruction(Operation):
         self.params = params  # must be at last (other properties may be required for validation)
 
     @property
-    def base_class(self) -> Type[Instruction]:
+    def base_class(self) -> type[Instruction]:
         """Get the base class of this instruction.  This is guaranteed to be in the inheritance tree
         of ``self``.
 
@@ -162,7 +161,7 @@ class Instruction(Operation):
         Returns:
             bool: are self and other equal.
         """
-        if (  # pylint: disable=too-many-boolean-expressions
+        if (
             not isinstance(other, Instruction)
             or self.base_class is not other.base_class
             or self.name != other.name
@@ -176,9 +175,8 @@ class Instruction(Operation):
             if isinstance(self_param, numpy.ndarray):
                 if numpy.array_equal(self_param, other_param):
                     continue
-            else:
-                if self_param == other_param:
-                    continue
+            elif self_param == other_param:
+                continue
 
             try:
                 self_asarray = numpy.asarray(self_param)
@@ -213,7 +211,7 @@ class Instruction(Operation):
             f"num_clbits={self.num_clbits}, params={self.params})"
         )
 
-    def soft_compare(self, other: "Instruction") -> bool:
+    def soft_compare(self, other: Instruction) -> bool:
         """
         Soft comparison between gates. Their names, number of qubits, and classical
         bit numbers must match. The number of parameters must match. Each parameter
@@ -261,8 +259,8 @@ class Instruction(Operation):
         Subclasses should implement this method to provide lazy construction of their public
         :attr:`definition` attribute.  A subclass can use its :attr:`params` at the time of the
         call.  The method should populate :attr:`_definition` with a :class:`.QuantumCircuit` and
-        not return a value."""
-        pass
+        not return a value.
+        """
 
     @property
     def params(self):
@@ -304,7 +302,7 @@ class Instruction(Operation):
     @property
     def decompositions(self):
         """Get the decompositions of the instruction from the SessionEquivalenceLibrary."""
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 
         return sel.get_entry(self)
@@ -312,14 +310,14 @@ class Instruction(Operation):
     @decompositions.setter
     def decompositions(self, decompositions):
         """Set the decompositions of the instruction from the SessionEquivalenceLibrary."""
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 
         sel.set_entry(self, decompositions)
 
     def add_decomposition(self, decomposition):
         """Add a decomposition of the instruction to the SessionEquivalenceLibrary."""
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 
         sel.add_equivalence(self, decomposition)
@@ -403,7 +401,7 @@ class Instruction(Operation):
         if self.definition is None:
             raise CircuitError(f"inverse() not implemented for {self.name}.")
 
-        from qiskit.circuit import Gate  # pylint: disable=cyclic-import
+        from qiskit.circuit import Gate
 
         if self.name.endswith("_dg"):
             name = self.name[:-3]
@@ -509,7 +507,7 @@ class Instruction(Operation):
 
         instruction = self._return_repeat(n)
         if instruction.definition is None:
-            # pylint: disable=cyclic-import
+
             from qiskit.circuit import QuantumCircuit, CircuitInstruction
 
             qc = QuantumCircuit(self.num_qubits, self.num_clbits)

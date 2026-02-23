@@ -13,7 +13,7 @@
 """Utility functions for handling linear reversible circuits."""
 
 import copy
-from typing import Callable
+from collections.abc import Callable
 import numpy as np
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError

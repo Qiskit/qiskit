@@ -63,7 +63,7 @@ from qiskit.circuit._utils import _compute_control_matrix, _ctrl_state_to_int
 from qiskit.quantum_info.operators.operator_utils import _equal_with_ancillas, matrix_equal
 from qiskit.transpiler import generate_preset_pass_manager
 
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt

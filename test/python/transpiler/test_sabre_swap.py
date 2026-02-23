@@ -33,8 +33,8 @@ from qiskit.transpiler.passes.routing.sabre_swap import Heuristic, SetScaling
 from qiskit.transpiler import CouplingMap, Layout, PassManager, Target, TranspilerError
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.utils import optionals
-from test.utils._canonical import canonicalize_control_flow  # pylint: disable=wrong-import-order
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test.utils._canonical import canonicalize_control_flow
+from test import QiskitTestCase
 
 from ..legacy_cmaps import MUMBAI_CMAP
 
@@ -222,7 +222,7 @@ class TestSabreSwap(QiskitTestCase):
         """Test that an already mapped circuit is unchanged with target."""
         coupling = CouplingMap.from_ring(5)
         target = Target(num_qubits=5)
-        target.add_instruction(SwapGate(), {edge: None for edge in coupling.get_edges()})
+        target.add_instruction(SwapGate(), dict.fromkeys(coupling.get_edges()))
 
         qr = QuantumRegister(5, "q")
         qc = QuantumCircuit(qr)

@@ -86,8 +86,6 @@ features and are comfortable that they make break in later versions, you can sil
     warnings.filterwarnings("ignore", category=ExperimentalWarning)
 """
 
-from typing import Optional
-
 
 class QiskitError(Exception):
     """Base class for errors raised by Qiskit."""
@@ -112,7 +110,7 @@ class MissingOptionalLibraryError(QiskitError, ImportError):
     """Raised when an optional library is missing."""
 
     def __init__(
-        self, libname: str, name: str, pip_install: Optional[str] = None, msg: Optional[str] = None
+        self, libname: str, name: str, pip_install: str | None = None, msg: str | None = None
     ) -> None:
         """Set the error message.
         Args:

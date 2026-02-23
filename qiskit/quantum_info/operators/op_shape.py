@@ -181,7 +181,7 @@ class OpShape:
 
     def _validate(self, shape, raise_exception=False):
         """Validate OpShape against a matrix or vector shape."""
-        # pylint: disable=too-many-return-statements
+
         ndim = len(shape)
         if ndim > 2:
             if raise_exception:

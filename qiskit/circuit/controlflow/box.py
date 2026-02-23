@@ -76,7 +76,7 @@ class BoxOp(ControlFlowOp):
 
     @params.setter
     def params(self, parameters):
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         (body,) = parameters
@@ -137,7 +137,7 @@ class BoxContext:
     This is not part of the public interface, and should not be instantiated by users.
     """
 
-    __slots__ = ("_circuit", "_duration", "_unit", "_label", "_annotations")
+    __slots__ = ("_annotations", "_circuit", "_duration", "_label", "_unit")
 
     def __init__(
         self,

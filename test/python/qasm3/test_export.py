@@ -13,7 +13,7 @@
 """Test QASM3 exporter."""
 
 # We can't really help how long the lines output by the exporter are in some cases.
-# pylint: disable=line-too-long,invalid-name
+
 
 from io import StringIO
 from math import pi
@@ -51,7 +51,7 @@ from qiskit.qasm3.exporter import QASM3Builder
 from qiskit.qasm3.printer import BasicPrinter
 from qiskit.qasm3.exceptions import QASM3ImporterError
 from qiskit.quantum_info import Pauli
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 # Custom instruction for defcal testing
@@ -3394,7 +3394,6 @@ class TestQASM3ExporterRust(QiskitTestCase):
 
     def test_annotations(self):
         """Test that the annotation-serialisation framework works."""
-        # pylint: disable=missing-class-docstring,missing-function-docstring
         assert_in = self.assertIn
         assert_equal = self.assertEqual
 
@@ -3432,7 +3431,7 @@ class TestQASM3ExporterRust(QiskitTestCase):
             def load(self, namespace, payload):
                 raise NotImplementedError("unused in test")
 
-            def dump(self, annotation):  # pylint: disable=redefined-outer-name
+            def dump(self, annotation):
                 base, sub = annotation.namespace.split(".", 1)
                 assert_equal(base, "my")
                 assert_in(sub, ("int", "str"))
@@ -3446,7 +3445,7 @@ class TestQASM3ExporterRust(QiskitTestCase):
             def load(self, namespace, payload):
                 raise NotImplementedError("unused in test")
 
-            def dump(self, annotation):  # pylint: disable=redefined-outer-name
+            def dump(self, annotation):
                 if annotation.namespace == "static.global":
                     nonlocal skip_triggered
                     skip_triggered = True
@@ -3458,7 +3457,7 @@ class TestQASM3ExporterRust(QiskitTestCase):
             def load(self, namespace, payload):
                 raise NotImplementedError("unused in test")
 
-            def dump(self, annotation):  # pylint: disable=redefined-outer-name
+            def dump(self, annotation):
                 # This is registered as the global handler, but should only be called when handling
                 # `static.global`.
                 assert_equal(annotation.namespace, "static.global")

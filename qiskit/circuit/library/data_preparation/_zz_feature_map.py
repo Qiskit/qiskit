@@ -12,7 +12,8 @@
 
 """Second-order Pauli-Z expansion circuit."""
 
-from typing import Callable, List, Union, Optional, Dict, Tuple
+
+from collections.abc import Callable
 import numpy as np
 from qiskit.utils.deprecation import deprecate_func
 from .pauli_feature_map import PauliFeatureMap
@@ -110,12 +111,10 @@ class ZZFeatureMap(PauliFeatureMap):
         self,
         feature_dimension: int,
         reps: int = 2,
-        entanglement: Union[
-            str,
-            Dict[int, List[Tuple[int]]],
-            Callable[[int], Union[str, Dict[int, List[Tuple[int]]]]],
-        ] = "full",
-        data_map_func: Optional[Callable[[np.ndarray], float]] = None,
+        entanglement: (
+            str | dict[int, list[tuple[int]]] | Callable[[int], str | dict[int, list[tuple[int]]]]
+        ) = "full",
+        data_map_func: Callable[[np.ndarray], float] | None = None,
         parameter_prefix: str = "x",
         insert_barriers: bool = False,
         name: str = "ZZFeatureMap",
@@ -130,6 +129,7 @@ class ZZFeatureMap(PauliFeatureMap):
             parameter_prefix: The prefix used if default parameters are generated.
             insert_barriers: If ``True``, barriers are inserted in between the evolution instructions
                 and hadamard layers.
+            name: Name of the circuit.
 
         Raises:
             ValueError: If the feature dimension is smaller than 2.

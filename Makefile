@@ -16,7 +16,7 @@ endif
 
 .PHONY: default ruff env lint lint-incr style black test test_randomized pytest pytest_randomized test_ci coverage coverage_erase clean
 
-default: ruff style lint-incr test ;
+default: style lint-incr test ;
 
 # Dependencies need to be installed on the Anaconda virtual environment.
 env:
@@ -27,18 +27,15 @@ env:
 		bash -c "source activate Qiskitenv;pip install -r requirements.txt"; \
 	fi;
 
-# Ignoring generated ones with .py extension.
 lint:
-	pylint -rn qiskit test tools
+	ruff check qiskit test tools setup.py
 	tools/verify_headers.py qiskit test tools
 	tools/find_optional_imports.py
 	tools/find_stray_release_notes.py
 	tools/verify_images.py
 
-# Only pylint on files that have changed from origin/main. Also parallelize (disables cyclic-import check)
 lint-incr:
-	-git fetch -q https://github.com/Qiskit/qiskit-terra.git :lint_incr_latest
-	tools/pylint_incr.py -j4 -rn -sn --paths :/qiskit/*.py :/test/*.py :/tools/*.py
+	ruff check qiskit test tools setup.py
 	tools/verify_headers.py qiskit test tools
 	tools/find_optional_imports.py
 	tools/verify_images.py

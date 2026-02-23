@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name,inconsistent-return-statements
 
 """mpl circuit visualization backend."""
 
@@ -422,10 +421,8 @@ class MatplotlibDrawer:
                 node_data[node].width = WID
                 num_ctrl_qubits = getattr(op, "num_ctrl_qubits", 0)
                 if (
-                    getattr(op, "_directive", False)
-                    and (not op.label or not self._plot_barriers)
-                    or (self._measure_arrows and isinstance(op, Measure))
-                ):
+                    getattr(op, "_directive", False) and (not op.label or not self._plot_barriers)
+                ) or (self._measure_arrows and isinstance(op, Measure)):
                     node_data[node].raw_gate_text = op.name
                     continue
 
@@ -665,8 +662,7 @@ class MatplotlibDrawer:
                         gate_width += 0.21
 
                 box_width = max(gate_width, ctrl_width, param_width, WID)
-                if box_width > widest_box:
-                    widest_box = box_width
+                widest_box = max(widest_box, box_width)
                 if not isinstance(node.op, ControlFlowOp):
                     node_data[node].width = max(raw_gate_width, raw_param_width)
             for node in layer:
@@ -723,8 +719,7 @@ class MatplotlibDrawer:
                 )
                 * 1.15
             )
-            if text_width > longest_wire_label_width:
-                longest_wire_label_width = text_width
+            longest_wire_label_width = max(longest_wire_label_width, text_width)
 
             if isinstance(wire, Qubit):
                 pos = -ii
@@ -1112,7 +1107,7 @@ class MatplotlibDrawer:
                 self._get_colors(node, node_data)
 
                 if verbose:
-                    print(op)  # pylint: disable=bad-builtin
+                    print(op)
 
                 # add conditional
                 if getattr(op, "condition", None) or isinstance(op, SwitchCaseOp):
