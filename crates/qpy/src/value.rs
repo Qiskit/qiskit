@@ -52,8 +52,6 @@ use std::fmt::Debug;
 use std::io::Cursor;
 use uuid::Uuid;
 
-pub const QPY_VERSION: u32 = 15;
-
 // Standard char representation of register types: 'q' qreg, 'c' for creg
 #[binrw]
 #[brw(repr = u8)]
@@ -309,6 +307,7 @@ pub enum GenericValue {
     Expression(Expr),
     Modifier(Py<PyAny>),
     Circuit(Py<PyAny>), // currently we have no rust class corresponding to a circuit, only to the inner CircuitData
+    CircuitData(CircuitData),
 }
 
 // we want to be able to extract the value relatively painlessly;
@@ -342,6 +341,7 @@ impl GenericValue {
                 Ok(py_circuit.extract::<QuantumCircuitData>(py)?.data)
             })
             .ok(),
+            GenericValue::CircuitData(circuit_data) => Some(circuit_data.clone()),
             _ => None,
         }
     }
@@ -410,7 +410,7 @@ pub(crate) fn load_value(
             Ok(GenericValue::Complex64(value))
         }
         ValueType::String => {
-            let value: String = bytes.try_into()?;
+            let value: String = bytes.clone().try_into()?;
             Ok(GenericValue::String(value))
         }
         ValueType::Range => {
@@ -464,7 +464,8 @@ pub(crate) fn load_value(
             Ok(GenericValue::Register(register_value))
         }
         ValueType::Circuit => {
-            let (packed_circuit, _) = deserialize::<formats::QPYCircuitV17>(bytes)?;
+            let (packed_circuit, _) =
+                deserialize_with_args::<formats::QPYCircuit, (u32,)>(bytes, (qpy_data.version,))?;
             Python::attach(|py| {
                 let circuit = unpack_circuit(
                     py,
@@ -538,7 +539,22 @@ pub(crate) fn serialize_generic_value(
                 &mut circuit.extract(py)?, // TODO: can we avoid cloning here?
                 None,
                 false,
-                QPY_VERSION,
+                qpy_data.version,
+                qpy_data.annotation_handler.annotation_factories,
+            )?;
+            let serialized_circuit = serialize(&packed_circuit);
+            Ok((ValueType::Circuit, serialized_circuit))
+        })?,
+        GenericValue::CircuitData(circuit_data) => Python::attach(|py| -> PyResult<_> {
+            let mut quantum_circuit_data = circuit_data
+                .clone()
+                .into_py_quantum_circuit(py)?
+                .extract()?;
+            let packed_circuit = pack_circuit(
+                &mut quantum_circuit_data,
+                None,
+                false,
+                qpy_data.version,
                 qpy_data.annotation_handler.annotation_factories,
             )?;
             let serialized_circuit = serialize(&packed_circuit);

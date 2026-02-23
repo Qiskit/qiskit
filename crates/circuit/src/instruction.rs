@@ -57,7 +57,7 @@ impl<T> Parameters<T> {
     #[inline]
     pub fn unwrap_blocks(self) -> Vec<T> {
         match self {
-            Parameters::Params(_) => panic!("expected params, got blocks"),
+            Parameters::Params(_) => panic!("expected blocks, got params"),
             Parameters::Blocks(blocks) => blocks,
         }
     }

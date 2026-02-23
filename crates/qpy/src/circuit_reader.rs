@@ -57,11 +57,12 @@ use std::sync::Arc;
 use smallvec::SmallVec;
 
 use crate::annotations::AnnotationHandler;
+use crate::backwards_comp::wrap_conditional_gate;
 use crate::bytes::Bytes;
 use crate::consts::standard_gate_from_gate_class_name;
 use crate::formats;
 use crate::formats::ConditionData;
-use crate::formats::QPYCircuitV17;
+use crate::formats::QPYCircuit;
 use crate::params::generic_value_to_param;
 use crate::py_methods::py_convert_from_generic_value;
 use crate::py_methods::{
@@ -71,8 +72,8 @@ use crate::value::ParamRegisterValue;
 use crate::value::unpack_for_collection;
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionType, ExpressionVarDeclaration, GenericValue,
-    QPYReadData, RegisterType, ValueType, deserialize, deserialize_with_args,
-    load_param_register_value, load_value, unpack_duration_value, unpack_generic_value,
+    QPYReadData, RegisterType, ValueType, deserialize_with_args, load_param_register_value,
+    load_value, unpack_duration_value, unpack_generic_value,
 };
 
 // This is a helper struct, designed to pass data within methods
@@ -88,7 +89,7 @@ struct CustomCircuitInstructionData {
 
 // This is a helper enum to make the code clearer by splitting instruction reading into cases
 #[derive(Debug)]
-enum InstructionType {
+pub enum InstructionType {
     // these instruction types are rust-native
     StandardGate,
     StandardInstruction,
@@ -176,7 +177,13 @@ fn recognize_instruction_type(
         InstructionType::PauliProductMeasurement
     } else if name == UNITARY_GATE_CLASS_NAME {
         InstructionType::Unitary
-    } else if ControlFlowType::from_str(name).is_ok() {
+    } else if ControlFlowType::from_str(name).is_ok()
+        || matches!(
+            name,
+            // We don't handle old style SwitchCaseOp in rust yet
+            "IfElseOp" | "WhileLoopOp" | "ForLoopOp" | "BreakLoopOp" | "ContinueLoopOp"
+        )
+    {
         InstructionType::ControlFlow
     }
     // StandardInstructionType names are lowercase, actual class names are capitalized
@@ -237,18 +244,25 @@ fn get_instruction_values(
 }
 
 // converts a list of generic values to the params format expected for a PackedInstruction params
-fn instruction_values_to_params(
+pub fn instruction_values_to_params(
     values: Vec<GenericValue>,
     qpy_data: &mut QPYReadData,
 ) -> PyResult<Option<Box<Parameters<Block>>>> {
     // currently QPY has no dedicated representation for blocks, only for py circuit objects
-    // so we use the following heuristic: if all the elements of `values` are circuits
+    // so we use the following heuristic: if all the NON-NULL elements of `values` are circuits
     // treat `values` as a vector of blocks
-    // we assume that if-else with a None else block will be handled in a way that the None is not present here
-    if !values.is_empty()
-        && values
+    // Null values represent missing else blocks in if-else statements and should be filtered out
+
+    // Filter out Null values and check if remaining values are all circuits
+    let non_null_values: Vec<&GenericValue> = values
+        .iter()
+        .filter(|val| !matches!(val, GenericValue::Null))
+        .collect();
+
+    if !non_null_values.is_empty()
+        && non_null_values
             .iter()
-            .all(|val| matches!(val, GenericValue::Circuit(_)))
+            .all(|val| matches!(val, GenericValue::Circuit(_) | GenericValue::CircuitData(_)))
     {
         // blocks
         let inst_blocks: Vec<CircuitData> = values
@@ -323,8 +337,8 @@ fn unpack_instruction(
     qpy_data: &mut QPYReadData,
 ) -> PyResult<PackedInstruction> {
     let label = (!instruction.label.is_empty()).then(|| Box::new(instruction.label.clone()));
-    let (op, parameter_values) = match recognize_instruction_type(instruction, custom_instructions)
-    {
+    let instruction_type = recognize_instruction_type(instruction, custom_instructions);
+    let (op, parameter_values) = match instruction_type {
         InstructionType::StandardGate => unpack_standard_gate(instruction, qpy_data)?,
         InstructionType::StandardInstruction => unpack_standard_instruction(instruction, qpy_data)?,
         InstructionType::PauliProductMeasurement => {
@@ -339,6 +353,17 @@ fn unpack_instruction(
     };
     let (qubits, clbits) = get_instruction_bits(instruction, qpy_data);
     let params = instruction_values_to_params(parameter_values, qpy_data)?;
+
+    // Check if this is a non-control-flow instruction with a condition
+    // If so, wrap it in an IfElseOp (for backwards compatibility with old QPY versions)
+    let condition = unpack_condition(&instruction.condition, qpy_data)?;
+    let (op, params) = match condition {
+        Some(cond) if !matches!(instruction_type, InstructionType::ControlFlow) => {
+            wrap_conditional_gate(instruction, op, cond, qubits, clbits, params, qpy_data)?
+        }
+        _ => (op, params),
+    };
+
     Ok(PackedInstruction {
         op,
         qubits,
@@ -435,7 +460,21 @@ fn unpack_control_flow(
 ) -> PyResult<(PackedOperation, Vec<GenericValue>)> {
     let mut param_values: Vec<GenericValue> = Vec::new(); // Params for control structures hold the control flow blocks
     // the instruction values contain the data needed to reconstruct the control flow
-    let control_flow_name = ControlFlowType::from_str(instruction.gate_class_name.as_str())
+
+    // Convert Python class names (e.g., "IfElseOp") to snake_case (e.g., "if_else")
+    // for backwards compatibility with old QPY versions
+    let gate_class_name = instruction.gate_class_name.as_str();
+    let normalized_name = match gate_class_name {
+        "IfElseOp" => "if_else",
+        "WhileLoopOp" => "while_loop",
+        "ForLoopOp" => "for_loop",
+        "SwitchCaseOp" => "switch_case",
+        "BreakLoopOp" => "break_loop",
+        "ContinueLoopOp" => "continue_loop",
+        _ => gate_class_name,
+    };
+
+    let control_flow_name = ControlFlowType::from_str(normalized_name)
         .map_err(|_| PyValueError::new_err("Unable to find control flow"))?;
     let control_flow = match control_flow_name {
         ControlFlowType::Box => {
@@ -471,10 +510,14 @@ fn unpack_control_flow(
             let mut instruction_values = get_instruction_values(instruction, qpy_data)?;
             param_values = instruction_values.split_off(2);
             let mut iter = instruction_values.into_iter();
-            let (collection_value_pack, loop_param_value_pack) =
+            let (mut collection_value_pack, loop_param_value_pack) =
                 iter.next().zip(iter.next()).ok_or(PyValueError::new_err(
                     "For loop instruction missing some of its parameters",
                 ))?;
+            if gate_class_name == "ForLoopOp" {
+                // old style params for loop were stored as little endian
+                collection_value_pack = collection_value_pack.as_le();
+            }
             let collection = unpack_for_collection(&collection_value_pack)?;
             let loop_param = match loop_param_value_pack {
                 GenericValue::ParameterExpressionSymbol(symbol) => Some(symbol),
@@ -499,6 +542,12 @@ fn unpack_control_flow(
         }
         ControlFlowType::SwitchCase => {
             let mut instruction_values = get_instruction_values(instruction, qpy_data)?;
+            if instruction_values.len() < 3 {
+                return Err(PyValueError::new_err(format!(
+                    "Switch case instruction has {} parameters, expected at least 3 (target, label_spec, cases)",
+                    instruction_values.len()
+                )));
+            }
             param_values = instruction_values.split_off(3);
             let mut iter = instruction_values.into_iter();
             let ((target_value, label_spec_value), cases_value) = iter
@@ -988,13 +1037,16 @@ fn deserialize_pauli_evolution_gate(
 ) -> PyResult<Py<PyAny>> {
     let json = py.import("json")?;
     let evo_synth_library = py.import("qiskit.synthesis.evolution")?;
-    let (packed_data, _) = deserialize::<formats::PauliEvolutionDefPack>(data)?;
+    let (packed_data, _) =
+        deserialize_with_args::<formats::PauliEvolutionDefPack, (u32,)>(data, (qpy_data.version,))?;
     // operators as stored as a numpy dump that can be loaded into Python's SparsePauliOp.from_list
     let operators: Vec<Py<PyAny>> = packed_data
         .pauli_data
         .iter()
         .map(|elem| match elem {
-            formats::PauliDataPack::SparseObservable(sparse_observable_pack) => {
+            formats::PauliDataPack::V17(formats::PauliDataPackV17::SparseObservable(
+                sparse_observable_pack,
+            )) => {
                 let num_qubits = sparse_observable_pack.num_qubits;
                 let coeffs = sparse_observable_pack
                     .coeff_data
@@ -1021,7 +1073,13 @@ fn deserialize_pauli_evolution_gate(
                     SparseObservable::new(num_qubits, coeffs, bit_terms, indices, boundaries)?;
                 Ok(sparse_observable.into_py_any(py)?)
             }
-            formats::PauliDataPack::SparsePauliOp(sparse_pauli_op_pack) => {
+            formats::PauliDataPack::V17(formats::PauliDataPackV17::SparsePauliOp(
+                sparse_pauli_op_pack,
+            ))
+            | formats::PauliDataPack::V16(formats::PauliDataPackV16::SparsePauliOp(
+                sparse_pauli_op_pack,
+            )) => {
+                // formats::PauliDataPack::SparsePauliOp(sparse_pauli_op_pack) => {
                 let data =
                     load_value(ValueType::NumpyObject, &sparse_pauli_op_pack.data, qpy_data)?;
                 if let GenericValue::NumpyObject(op_raw_data) = data {
@@ -1075,7 +1133,7 @@ fn deserialize_pauli_evolution_gate(
 
 fn read_custom_instructions(
     py: Python,
-    packed_circuit: &formats::QPYCircuitV17,
+    packed_circuit: &formats::QPYCircuit,
     qpy_data: &mut QPYReadData,
 ) -> PyResult<HashMap<String, CustomCircuitInstructionData>> {
     let mut result = HashMap::new();
@@ -1090,7 +1148,11 @@ fn read_custom_instructions(
             } else {
                 Some(unpack_circuit(
                     py,
-                    &deserialize::<QPYCircuitV17>(&operation.data)?.0,
+                    &deserialize_with_args::<QPYCircuit, (u32,)>(
+                        &operation.data,
+                        (qpy_data.version,),
+                    )?
+                    .0,
                     qpy_data.version,
                     None,
                     qpy_data.use_symengine,
@@ -1112,7 +1174,7 @@ fn read_custom_instructions(
     Ok(result)
 }
 fn add_standalone_vars(
-    packed_circuit: &formats::QPYCircuitV17,
+    packed_circuit: &formats::QPYCircuit,
     qpy_data: &mut QPYReadData,
 ) -> PyResult<()> {
     let mut index: u16 = 0;
@@ -1172,7 +1234,7 @@ fn add_standalone_vars(
 }
 
 fn add_registers_and_bits(
-    packed_circuit: &formats::QPYCircuitV17,
+    packed_circuit: &formats::QPYCircuit,
     qpy_data: &mut QPYReadData,
 ) -> PyResult<()> {
     let num_qubits = packed_circuit.header.num_qubits as usize;
@@ -1293,7 +1355,7 @@ fn add_registers_and_bits(
 
 pub(crate) fn unpack_circuit(
     py: Python,
-    packed_circuit: &QPYCircuitV17,
+    packed_circuit: &QPYCircuit,
     version: u32,
     metadata_deserializer: Option<&Bound<PyAny>>,
     use_symengine: bool,
@@ -1312,15 +1374,17 @@ pub(crate) fn unpack_circuit(
         vectors: HashMap::new(),
         annotation_handler: AnnotationHandler::new(annotation_factories),
     };
-    let annotation_deserializers_data: Vec<(String, Bytes)> = packed_circuit
-        .annotation_headers
-        .state_headers
-        .iter()
-        .map(|data| (data.namespace.clone(), data.state.clone()))
-        .collect();
-    qpy_data
-        .annotation_handler
-        .load_deserializers(annotation_deserializers_data)?;
+    if let Some(annotation_headers) = &packed_circuit.annotation_headers {
+        let annotation_deserializers_data: Vec<(String, Bytes)> = annotation_headers
+            .state_headers
+            .iter()
+            .map(|data| (data.namespace.clone(), data.state.clone()))
+            .collect();
+
+        qpy_data
+            .annotation_handler
+            .load_deserializers(annotation_deserializers_data)?;
+    }
     let global_phase = generic_value_to_param(
         &load_value(
             packed_circuit.header.global_phase_type,
@@ -1396,7 +1460,8 @@ pub(crate) fn py_read_circuit(
     let pos = file_obj.call_method0("tell")?.extract::<usize>()?;
     let bytes = file_obj.call_method0("read")?;
     let serialized_circuit: &[u8] = bytes.cast::<PyBytes>()?.as_bytes();
-    let (packed_circuit, bytes_read) = deserialize::<formats::QPYCircuitV17>(serialized_circuit)?;
+    let (packed_circuit, bytes_read) =
+        deserialize_with_args::<formats::QPYCircuit, (u32,)>(serialized_circuit, (version,))?;
     let unpacked_circuit = unpack_circuit(
         py,
         &packed_circuit,

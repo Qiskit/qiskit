@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use crate::backwards_comp::CalibrationsPack;
 use crate::bytes::Bytes;
 use crate::expr::{read_expression, write_expression};
 use crate::params::ParameterType;
@@ -37,14 +38,20 @@ use std::marker::PhantomData;
 // 5) Instruction: The sequential list of gates in the circuit.
 // 6) Calibrations: Obsolete; this was pulse-related data. Here for backwards compatibility.
 // 7) Layout: The transpilation layout, if one exists (otherwise a dummy is used).
-#[derive(BinWrite, Debug)]
+#[binrw]
 #[brw(big)]
-pub struct QPYCircuitV17 {
+#[derive(Debug)]
+#[brw(import (version: u32))]
+pub struct QPYCircuit {
     pub header: CircuitHeaderV12Pack,
+    #[br(count = header.num_vars)]
     pub standalone_vars: Vec<ExpressionVarDeclarationPack>,
-    pub annotation_headers: AnnotationHeaderStaticPack,
+    #[br(if(version >= 15))]
+    pub annotation_headers: Option<AnnotationHeaderStaticPack>,
     pub custom_instructions: CustomCircuitInstructionsPack,
+    #[br(count = header.num_instructions, args { inner: (true,) })]
     pub instructions: Vec<CircuitInstructionV2Pack>,
+    #[br(args(version,))]
     pub calibrations: CalibrationsPack,
     pub layout: LayoutV2Pack,
 }
@@ -409,6 +416,7 @@ pub struct GenericDataSequencePack {
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
+#[br(import (version: u32))]
 pub struct PauliEvolutionDefPack {
     #[bw(calc = pauli_data.len() as u64)]
     pub operator_size: u64,
@@ -418,7 +426,7 @@ pub struct PauliEvolutionDefPack {
     pub time_size: u64,
     #[bw(calc = synth_data.len() as u64)]
     pub synth_method_size: u64,
-    #[br(count = operator_size)]
+    #[br(count = operator_size, args { inner: (version,) })]
     pub pauli_data: Vec<PauliDataPack>,
     #[br(count = time_size)]
     pub time_data: Bytes,
@@ -428,14 +436,34 @@ pub struct PauliEvolutionDefPack {
 
 // A pauli operator data for pauli evolution gates
 // The operator is given either as a SparesePauliOp list or as a SparasePauliObservable
+// SparsePauliObservable was added in V17
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
-pub enum PauliDataPack {
+pub enum PauliDataPackV17 {
     #[brw(magic = 0u8)] // old style: sparse pauli op list
     SparsePauliOp(SparsePauliOpListElemPack),
     #[brw(magic = 1u8)] // new style added in v17: sparse observable
     SparseObservable(SparsePauliObservableElemPack),
+}
+
+// The V16 version of the Pauli data pack only allows SparsePauliOp and doesn't use a distinguishing first byte
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub enum PauliDataPackV16 {
+    SparsePauliOp(SparsePauliOpListElemPack),
+}
+
+#[binrw]
+#[derive(Debug)]
+#[br(import(version: u32))]
+pub enum PauliDataPack {
+    #[br(pre_assert(version <= 16))]
+    V16(PauliDataPackV16),
+
+    #[br(pre_assert(version >= 17))]
+    V17(PauliDataPackV17),
 }
 
 // SparsePauliOpList is a serialized python numpy array
@@ -862,15 +890,6 @@ pub struct ExpressionVarDeclarationPack {
     pub name: String,
 }
 
-// Calibrations are obsolete and won't be used in Qiskit 2.0 and beyond, but we still need to consume that part of the qpy file
-#[binrw]
-#[brw(big)]
-#[derive(Debug)]
-pub struct CalibrationsPack {
-    pub num_cals: u16,
-    // TODO: incomplete; will be needed for previous versions support
-}
-
 // *****Annotation-related data types*****
 
 // The index of the annotation's namespace, and its serialized payload
@@ -921,49 +940,6 @@ pub struct AnnotationHeaderStaticPack {
     pub num_namespaces: u32,
     #[br(count = num_namespaces)]
     pub state_headers: Vec<AnnotationStateHeaderPack>,
-}
-
-// implementations of custom read/write for the more complex data types
-impl BinRead for QPYCircuitV17 {
-    type Args<'a> = ();
-
-    fn read_options<R: Read + Seek>(
-        reader: &mut R,
-        endian: Endian,
-        _: Self::Args<'_>,
-    ) -> BinResult<Self> {
-        let header = CircuitHeaderV12Pack::read_options(reader, endian, ())?;
-        let mut standalone_vars = Vec::with_capacity(header.num_vars as usize);
-        for _ in 0..header.num_vars {
-            standalone_vars.push(ExpressionVarDeclarationPack::read_options(
-                reader,
-                endian,
-                (),
-            )?);
-        }
-        let annotation_headers = AnnotationHeaderStaticPack::read_options(reader, endian, ())?;
-        let custom_instructions = CustomCircuitInstructionsPack::read_options(reader, endian, ())?;
-        let mut instructions = Vec::with_capacity(header.num_vars as usize);
-        for _ in 0..header.num_instructions {
-            // read instructions, including circuit bits (the `true` arg)
-            instructions.push(CircuitInstructionV2Pack::read_options(
-                reader,
-                endian,
-                (true,),
-            )?);
-        }
-        let calibrations = CalibrationsPack::read_options(reader, endian, ())?;
-        let layout = LayoutV2Pack::read_options(reader, endian, ())?;
-        Ok(Self {
-            header,
-            standalone_vars,
-            annotation_headers,
-            custom_instructions,
-            instructions,
-            calibrations,
-            layout,
-        })
-    }
 }
 
 /// helper for passing PyResult errors that arise during binrw parsing
