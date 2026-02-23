@@ -92,7 +92,9 @@ def _synth_mcx_special_cases(num_ctrl_qubits: int) -> QuantumCircuit:
         return qc
 
     else:
-        raise QiskitError("_synth_mcx_special_cases should be called with only 0, 1, or 2 cotrols.")
+        raise QiskitError(
+            "_synth_mcx_special_cases should be called with only 0, 1, or 2 controls."
+        )
 
 
 def synth_mcx_n_clean_m15(num_ctrl_qubits: int) -> QuantumCircuit:
@@ -196,7 +198,7 @@ def synth_mcx_1_clean_b95(num_ctrl_qubits: int) -> QuantumCircuit:
     q_target = q[-2]
     middle = ceil(num_ctrl_qubits / 2)
 
-    # The contruction involving 4 MCX gates is described in Lemma 7.3 of [1], and also
+    # The construction involving 4 MCX gates is described in Lemma 7.3 of [1], and also
     # appears as Lemma 9 in [2]. The optimization that the first and third MCX gates
     # can be synthesized up to relative phase follows from Lemma 7 in [2], as a diagonal
     # gate following the first MCX gate commutes with the second MCX gate, and
@@ -329,7 +331,7 @@ def synth_mcx_noaux_hp24(num_ctrl_qubits: int) -> QuantumCircuit:
 
 def _n_parallel_ccx_x(n: int, apply_x: bool = True) -> QuantumCircuit:
     r"""
-    Construct a quantum circuit for creating n-condionally clean ancillae using 3n qubits. This
+    Construct a quantum circuit for creating n-conditionally clean ancillae using 3n qubits. This
     implements Fig. 4a of [1]. The circuit applies n relative CCX (RCCX) gates . If apply_x is True,
     each RCCX gate is preceded by an X gate on the target qubit. The order of returned qubits is
     qr_a, qr_b, qr_target.
@@ -535,7 +537,7 @@ def _build_logn_depth_ccx_ladder(
     ancilla_idx: int, ctrls: list[int], skip_cond_clean: bool = False
 ) -> tuple[QuantumCircuit, list[int]]:
     r"""
-    Helper function to build a log-depth ladder compose of CCX and X gates as shown in Fig. 4b of [1].
+    Helper function to build a log-depth ladder composed of CCX and X gates as shown in Fig. 4b of [1].
 
     Args:
         ancilla_idx: Index of the ancillary qubit.
@@ -577,9 +579,8 @@ def _build_logn_depth_ccx_ladder(
                 )
             if ccx_t != [ancilla_idx]:
                 qc.compose(_n_parallel_ccx_x(ccx_n), ccx_x + ccx_y + ccx_t, inplace=True)
-            else:
-                if not skip_cond_clean:
-                    qc.rccx(ccx_x[0], ccx_y[0], ccx_t[0])  # # create conditionally clean ancilla
+            elif not skip_cond_clean:
+                qc.rccx(ccx_x[0], ccx_y[0], ccx_t[0])  # # create conditionally clean ancilla
 
             new_anc += nxt_batch[st:]  #                     # newly created cond. clean ancilla
             nxt_batch = ccx_t + nxt_batch[:st]

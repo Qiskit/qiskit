@@ -31,7 +31,7 @@ from qiskit.transpiler import CouplingMap
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.quantum_info import get_clifford_gate_names
 
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt

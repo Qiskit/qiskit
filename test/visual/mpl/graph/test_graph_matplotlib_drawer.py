@@ -24,9 +24,9 @@ from qiskit.visualization.counts_visualization import plot_histogram
 from qiskit.visualization.gate_map import plot_gate_map, plot_coupling_map
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.quantum_info import Statevector
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
-from test.visual import VisualTestUtilities  # pylint: disable=wrong-import-order
-from test.python.legacy_cmaps import (  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
+from test.visual import VisualTestUtilities
+from test.python.legacy_cmaps import (
     YORKTOWN_CMAP,
     LAGOS_CMAP,
     RUESCHLIKON_CMAP,
@@ -220,7 +220,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
 
     def test_plot_histogram(self):
         """for testing the plot_histogram"""
-        # specifing counts because we do not want oscillation of
+        # specifying counts because we do not want oscillation of
         # result until a changes is made to plot_histogram
 
         counts = {"11": 500, "00": 500}

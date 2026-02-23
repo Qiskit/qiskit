@@ -46,7 +46,7 @@ class CliffordUnitarySynthesis(UnitarySynthesisPlugin):
     In addition, the parameter ``plugin_config`` of :class:`.UnitarySynthesis`
     can be used to pass the following plugin-specific parameters:
 
-    * min_qubits: the minumum number of qubits to consider (the default value is 1).
+    * min_qubits: the minimum number of qubits to consider (the default value is 1).
 
     * max_qubits: the maximum number of qubits to consider (the default value is 3).
 

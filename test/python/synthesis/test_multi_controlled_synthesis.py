@@ -63,7 +63,7 @@ from qiskit.circuit._utils import _compute_control_matrix, _ctrl_state_to_int
 from qiskit.quantum_info.operators.operator_utils import _equal_with_ancillas, matrix_equal
 from qiskit.transpiler import generate_preset_pass_manager
 
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt
@@ -372,7 +372,7 @@ class TestMCSynthesisCounts(QiskitTestCase):
         synthesized_circuit = synth_c4x()
         transpiled_circuit = self.pm.run(synthesized_circuit)
         cx_count = transpiled_circuit.count_ops()["cx"]
-        # The bound from the default constuction for C4X
+        # The bound from the default construction for C4X
         self.assertLessEqual(cx_count, 36)
 
     @combine(

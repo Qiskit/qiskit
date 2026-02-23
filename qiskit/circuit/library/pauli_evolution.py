@@ -157,7 +157,7 @@ class PauliEvolutionGate(Gate):
         self.operator = operator
 
         if synthesis is None:
-            # pylint: disable=cyclic-import
+
             from qiskit.synthesis.evolution import LieTrotter
 
             synthesis = LieTrotter()
@@ -221,12 +221,10 @@ class PauliEvolutionGate(Gate):
         # return as dense matrix, since that's what the interface dictates
         return exp.toarray()
 
-    # pylint: disable=unused-argument
     def inverse(self, annotated: bool = False):
         """Return the inverse, which is obtained by flipping the sign of the evolution time."""
         return PauliEvolutionGate(self.operator, -self.time, synthesis=self.synthesis)
 
-    # pylint: disable=unused-argument
     def power(self, exponent: float, annotated: bool = False) -> Gate:
         """Raise this gate to the power of ``exponent``.
 
@@ -247,7 +245,6 @@ class PauliEvolutionGate(Gate):
     def _return_repeat(self, exponent: float) -> PauliEvolutionGate:
         return self.power(exponent)  # same implementation
 
-    # pylint: disable=unused-argument
     def control(
         self,
         num_ctrl_qubits: int = 1,
@@ -266,7 +263,7 @@ class PauliEvolutionGate(Gate):
         regardless of the value of ``annotated``.
 
         Args:
-            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            num_ctrl_qubits: Number of controls to add. Defaults to ``1``.
             label: A label for the resulting Pauli evolution gate, to display in visualizations.
                 Per default, the label is set to ``exp(-it <operators>)`` where ``<operators>``
                 is the sum of the Paulis. Note that the label does not include any coefficients
@@ -282,12 +279,11 @@ class PauliEvolutionGate(Gate):
             ctrl_state = "1" * num_ctrl_qubits
         elif isinstance(ctrl_state, int):
             ctrl_state = bin(ctrl_state)[2:].zfill(num_ctrl_qubits)
-        else:
-            if len(ctrl_state) != num_ctrl_qubits:
-                raise ValueError(
-                    f"Length of ctrl_state ({len(ctrl_state)}) must match "
-                    f"num_ctrl_qubits ({num_ctrl_qubits})"
-                )
+        elif len(ctrl_state) != num_ctrl_qubits:
+            raise ValueError(
+                f"Length of ctrl_state ({len(ctrl_state)}) must match "
+                f"num_ctrl_qubits ({num_ctrl_qubits})"
+            )
 
         # Implementing the controlled version of an evolution,
         #   |0><0| \otimes 1 + |1><1| \otimes exp(it H),
@@ -421,7 +417,6 @@ def _merge_two_pauli_evolutions(
     return None
 
 
-# pylint: disable=too-many-return-statements
 def _pauli_rotation_trace_and_dim(gate: PauliEvolutionGate) -> tuple[complex, int] | None:
     """
     For a multi-qubit Pauli rotation, return a tuple ``(Tr(gate) / dim, dim)``.
@@ -457,14 +452,13 @@ def _pauli_rotation_trace_and_dim(gate: PauliEvolutionGate) -> tuple[complex, in
         else:
             return None
     # If the operator is a SparsePauliOp, it should have a single term.
+    elif len(operator.paulis) == 1:
+        label = operator.paulis.to_labels()[0]
+        label = label.replace("I", "")
+        dim = len(label)
+        angle = operator.coeffs[0].real * gate.time
     else:
-        if len(operator.paulis) == 1:
-            label = operator.paulis.to_labels()[0]
-            label = label.replace("I", "")
-            dim = len(label)
-            angle = operator.coeffs[0].real * gate.time
-        else:
-            return None
+        return None
 
     if dim == 0:
         # This is an identity Pauli rotation.

@@ -642,7 +642,7 @@ impl CommutationChecker {
         tol: f64,
     ) -> Result<bool, CommutationError> {
         // Compute relative positioning of qargs of the second gate to the first gate.
-        // Since the qargs come out the same BitData, we already know there are no accidential
+        // Since the qargs come out the same BitData, we already know there are no accidental
         // bit-duplications, but this code additionally maps first_qargs to [0..n] and then
         // computes second_qargs relative to that. For example, it performs the mappings
         //  (first_qargs, second_qargs) = ( [1, 2], [0, 2] ) --> ( [0, 1], [2, 1] )

@@ -21,7 +21,8 @@ import itertools
 import math
 import numbers
 import re
-from typing import Iterable, List, Sequence, Union
+
+from collections.abc import Iterable, Sequence
 
 from qiskit._accelerate.circuit import StandardGate
 from qiskit.circuit import (
@@ -195,8 +196,8 @@ class Exporter:
         includes: Sequence[str] = ("stdgates.inc",),
         basis_gates: Sequence[str] = ("U",),
         disable_constants: bool = False,
-        alias_classical_registers: bool = None,
-        allow_aliasing: bool = None,
+        alias_classical_registers: bool | None = None,
+        allow_aliasing: bool | None = None,
         indent: str = "  ",
         experimental: ExperimentalFeatures = ExperimentalFeatures(0),
         annotation_handlers: dict[str, OpenQASM3Serializer] | None = None,
@@ -734,7 +735,7 @@ class QASM3Builder:
         #   handling, so they get the lowest priority; they get defined as they are encountered.
         #
         # An alternative approach would be to defer naming decisions until we are outputting the
-        # AST, and using some UUID for each symbol we're going to define in the interrim.  This
+        # AST, and using some UUID for each symbol we're going to define in the interim.  This
         # would require relatively large changes to the symbol-table and AST handling, however.
 
         for builtin, gate in _BUILTIN_GATES.items():
@@ -752,7 +753,7 @@ class QASM3Builder:
             self.symbols.register_defcal(defcal)
         for builtin in self.basis_gates:
             if builtin in _BUILTIN_GATES:
-                # It's built into the langauge; we don't need to re-add it.
+                # It's built into the language; we don't need to re-add it.
                 continue
             try:
                 self.symbols.register_gate_without_definition(builtin, None)
@@ -1024,7 +1025,7 @@ class QASM3Builder:
             )
         return loose_qubits + registers
 
-    def build_aliases(self, registers: Iterable[Register]) -> List[ast.AliasStatement]:
+    def build_aliases(self, registers: Iterable[Register]) -> list[ast.AliasStatement]:
         """Return a list of alias declarations for the given registers.  The registers can be either
         classical or quantum."""
         out = []
@@ -1039,7 +1040,7 @@ class QASM3Builder:
             out.append(ast.AliasStatement(name, ast.IndexSet(elements)))
         return out
 
-    def build_current_scope(self) -> List[ast.Statement]:
+    def build_current_scope(self) -> list[ast.Statement]:
         """Build the instructions that occur in the current scope.
 
         In addition to everything literally in the circuit's ``data`` field, this also includes
@@ -1234,7 +1235,9 @@ class QASM3Builder:
                         f" '{indexset}'."
                     ) from None
             body_ast = ast.ProgramBlock(self.build_current_scope())
-        return ast.ForLoopStatement(indexset_ast, loop_parameter_ast, body_ast)
+            # Force IntType as Qiskit ForLoop only supports indexset made of integers
+            type_ = ast.IntType()
+        return ast.ForLoopStatement(indexset_ast, loop_parameter_ast, body_ast, type_)
 
     def build_annotation(self, annotation: Annotation) -> ast.Annotation:
         """Use the custom serializers to construct an annotation object."""
@@ -1368,7 +1371,7 @@ class QASM3Builder:
 
 def _infer_variable_declaration(
     circuit: QuantumCircuit, parameter: Parameter, parameter_name: ast.Identifier
-) -> Union[ast.ClassicalDeclaration, None]:
+) -> ast.ClassicalDeclaration | None:
     """Attempt to infer what type a parameter should be declared as to work with a circuit.
 
     This is very simplistic; it assumes all parameters are real numbers that need to be input to the
@@ -1454,7 +1457,6 @@ class _ExprBuilder(expr.ExprVisitor[ast.Expression]):
     def visit_stretch(self, node, /):
         return self.lookup(node)
 
-    # pylint: disable=too-many-return-statements
     def visit_value(self, node, /):
         if node.type.kind is types.Bool:
             return ast.BooleanLiteral(node.value)

@@ -16,7 +16,7 @@ import math
 
 from qiskit.transpiler.passes import MinimumPoint
 from qiskit.dagcircuit import DAGCircuit
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestMinimumPointtPass(QiskitTestCase):
@@ -206,7 +206,7 @@ class TestMinimumPointtPass(QiskitTestCase):
         min_pass.property_set["depth"] = 36
         min_pass.property_set["size"] = 40
         min_pass.run(dag)
-        # Fourth iteration the score is also worse than minmum although depth
+        # Fourth iteration the score is also worse than minimum although depth
         # is better than iteration three it's still higher than the minimum point
         # Also size has increased:. Do not update minimum point and since is increased
         state = min_pass.property_set["test_minimum_point_state"]
@@ -219,7 +219,7 @@ class TestMinimumPointtPass(QiskitTestCase):
         min_pass.property_set["depth"] = 36
         min_pass.property_set["size"] = 40
         min_pass.run(dag)
-        # Fifth iteration the score is also worse than minmum although the same
+        # Fifth iteration the score is also worse than minimum although the same
         # with previous iteration. This means do not update minimum point and bump since
         # value
         state = min_pass.property_set["test_minimum_point_state"]
@@ -268,7 +268,7 @@ class TestMinimumPointtPass(QiskitTestCase):
         min_pass.property_set["depth"] = 36
         min_pass.property_set["size"] = 40
         min_pass.run(dag)
-        # Iteration nine the score is worse than the minium point. Do not update minimum point
+        # Iteration nine the score is worse than the minimum point. Do not update minimum point
         # and since is bumped
         state = min_pass.property_set["test_minimum_point_state"]
         self.assertEqual(state.since, 4)

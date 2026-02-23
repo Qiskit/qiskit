@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import typing
 
-from . import Bit, Clbit, ClassicalRegister  # pylint: disable=cyclic-import
+from . import Bit, Clbit, ClassicalRegister
 from .classical import expr
 
 
@@ -38,9 +38,8 @@ class VariableMapper(expr.ExprVisitor[expr.Expr]):
 
     # We don't want docstrings for the inherited visitor methods, which are self-explanatory and
     # would just be noise.
-    # pylint: disable=missing-function-docstring
 
-    __slots__ = ("target_cregs", "register_map", "bit_map", "var_map", "add_register")
+    __slots__ = ("add_register", "bit_map", "register_map", "target_cregs", "var_map")
 
     def __init__(
         self,

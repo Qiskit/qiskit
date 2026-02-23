@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=redefined-builtin
 
 """Object to represent the information at a node in the DAGCircuit."""
 from __future__ import annotations
@@ -26,21 +25,21 @@ class DAGDepNode:
     """
 
     __slots__ = [
-        "type",
         "_op",
-        "name",
         "_qargs",
         "cargs",
-        "sort_key",
-        "node_id",
-        "successors",
-        "predecessors",
-        "reachable",
-        "matchedwith",
-        "isblocked",
-        "successorstovisit",
-        "qindices",
         "cindices",
+        "isblocked",
+        "matchedwith",
+        "name",
+        "node_id",
+        "predecessors",
+        "qindices",
+        "reachable",
+        "sort_key",
+        "successors",
+        "successorstovisit",
+        "type",
     ]
 
     def __init__(
@@ -83,7 +82,7 @@ class DAGDepNode:
     def op(self):
         """Returns the Instruction object corresponding to the op for the node, else None"""
         if not self.type or self.type != "op":
-            raise QiskitError(f"The node {str(self)} is not an op node")
+            raise QiskitError(f"The node {self!s} is not an op node")
         return self._op
 
     @op.setter

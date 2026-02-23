@@ -395,9 +395,9 @@ impl CircuitData {
         global_phase: Param,
     ) -> PyResult<Self> {
         let mut self_ = Self::new(qubits, clbits, global_phase)?;
+        self_.reserve(reserve);
         if let Some(data) = data {
-            self_.reserve(reserve);
-            self_.extend(data)?;
+            self_.py_extend(data)?;
         }
         Ok(self_)
     }
@@ -692,8 +692,8 @@ impl CircuitData {
     ///     ValueError: The specified ``bit`` is already present and flag ``strict``
     ///         was provided.
     #[pyo3(name="add_qubit", signature = (bit, *, strict=true))]
-    pub fn py_add_qubit(&mut self, bit: ShareableQubit, strict: bool) -> PyResult<()> {
-        Ok(self.add_qubit(bit, strict)?)
+    pub fn py_add_qubit(&mut self, bit: ShareableQubit, strict: bool) -> PyResult<u32> {
+        Ok(self.add_qubit(bit, strict)?.0)
     }
 
     /// Registers a :class:`.QuantumRegister` instance.
@@ -741,8 +741,8 @@ impl CircuitData {
     ///     ValueError: The specified ``bit`` is already present and flag ``strict``
     ///         was provided.
     #[pyo3(name="add_clbit", signature = (bit, *, strict=true))]
-    pub fn py_add_clbit(&mut self, bit: ShareableClbit, strict: bool) -> PyResult<()> {
-        Ok(self.add_clbit(bit, strict)?)
+    pub fn py_add_clbit(&mut self, bit: ShareableClbit, strict: bool) -> PyResult<u32> {
+        Ok(self.add_clbit(bit, strict)?.0)
     }
 
     /// Registers a :class:`.QuantumRegister` instance.
@@ -1236,43 +1236,83 @@ impl CircuitData {
         Ok(())
     }
 
-    pub fn extend(&mut self, itr: &Bound<PyAny>) -> PyResult<()> {
-        if let Ok(other) = itr.cast::<CircuitData>() {
-            let other = other.borrow();
-            // Fast path to avoid unnecessary construction of CircuitInstruction instances.
-            self.data.reserve(other.data.len());
-            for inst in other.data.iter() {
-                let qubits = other
-                    .qargs_interner
-                    .get(inst.qubits)
-                    .iter()
-                    .map(|b| Ok(self.qubits.find(other.qubits.get(*b).unwrap()).unwrap()))
-                    .collect::<PyResult<Vec<Qubit>>>()?;
-                let clbits = other
-                    .cargs_interner
-                    .get(inst.clbits)
-                    .iter()
-                    .map(|b| Ok(self.clbits.find(other.clbits.get(*b).unwrap()).unwrap()))
-                    .collect::<PyResult<Vec<Clbit>>>()?;
-                let qubits_id = self.qargs_interner.insert_owned(qubits);
-                let clbits_id = self.cargs_interner.insert_owned(clbits);
-                let params = inst.params.as_ref().map(|params| {
-                    Box::new(params.map_blocks_ref(|b| self.blocks.push(other.blocks[*b].clone())))
-                });
-                self.push(PackedInstruction {
-                    op: inst.op.clone(),
-                    qubits: qubits_id,
-                    clbits: clbits_id,
-                    params,
-                    label: inst.label.clone(),
-                    #[cfg(feature = "cache_pygates")]
-                    py_op: inst.py_op.clone(),
-                })?;
-            }
-            return Ok(());
+    /// Copy `CircuitInstruction` instances from a Python iterator into this object.
+    ///
+    /// This method (with this magic name) forms part of the Python "sequence" API.
+    #[pyo3(name = "extend")]
+    pub fn py_extend(&mut self, other: &Bound<PyAny>) -> PyResult<()> {
+        for inst in other.try_iter()? {
+            self.append(inst?.cast()?)?;
         }
-        for v in itr.try_iter()? {
-            self.append(v?.cast()?)?;
+        Ok(())
+    }
+
+    /// Copy instructions from one `CircuitData`  onto this one, optionally remapping the qubits and
+    /// clbits by index.
+    ///
+    /// This assumes that all the variables and registers used in `other` have been set up
+    /// correctly, but will copy across control-flow blocks as required.
+    #[pyo3(name = "native_extend", signature = (other, *, qubits=None, clbits=None))]
+    pub fn py_native_extend(
+        &mut self,
+        other: &CircuitData,
+        qubits: Option<Vec<Qubit>>,
+        clbits: Option<Vec<Clbit>>,
+    ) -> PyResult<()> {
+        if qubits
+            .as_ref()
+            .is_some_and(|q| q.len() != other.num_qubits())
+        {
+            return Err(PyValueError::new_err(
+                "'qubits' argument is the wrong length",
+            ));
+        } else if other.num_qubits() > self.num_qubits() {
+            return Err(PyValueError::new_err(format!(
+                "too many input qubits ({}) for circuit ({})",
+                other.num_qubits(),
+                self.num_qubits(),
+            )));
+        }
+        if clbits
+            .as_ref()
+            .is_some_and(|q| q.len() != other.num_clbits())
+        {
+            return Err(PyValueError::new_err(
+                "'clbits' argument is the wrong length",
+            ));
+        } else if other.num_clbits() > self.num_clbits() {
+            return Err(PyValueError::new_err(format!(
+                "too many input clbits ({}) for circuit ({})",
+                other.num_clbits(),
+                self.num_clbits(),
+            )));
+        }
+        let qargs_map = self
+            .qargs_interner
+            .merge_map_slice(&other.qargs_interner, |q| {
+                Some(qubits.as_ref().map_or(*q, |qubits| qubits[q.index()]))
+            });
+        let cargs_map = self
+            .cargs_interner
+            .merge_map_slice(&other.cargs_interner, |c| {
+                Some(clbits.as_ref().map_or(*c, |clbits| clbits[c.index()]))
+            });
+        let block_map = other
+            .blocks
+            .items()
+            .map(|(bid, block)| (bid, self.add_block(block.clone())))
+            .collect::<HashMap<_, _>>();
+        self.data.reserve(other.data.len());
+        for inst in other.iter() {
+            self.push(PackedInstruction {
+                qubits: qargs_map[inst.qubits],
+                clbits: cargs_map[inst.clbits],
+                params: inst
+                    .params
+                    .as_ref()
+                    .map(|params| Box::new(params.map_blocks_ref(|bid| block_map[bid]))),
+                ..inst.clone()
+            })?;
         }
         Ok(())
     }
@@ -1879,18 +1919,26 @@ impl CircuitData {
         Ok(self_)
     }
 
-    pub fn add_qubit(&mut self, bit: ShareableQubit, strict: bool) -> Result<(), CircuitDataError> {
+    pub fn add_qubit(
+        &mut self,
+        bit: ShareableQubit,
+        strict: bool,
+    ) -> Result<Qubit, CircuitDataError> {
         let index = self.qubits.add(bit.clone(), strict)?;
         self.qubit_indices
             .insert(bit, BitLocations::new(index.0, []));
-        Ok(())
+        Ok(index)
     }
 
-    pub fn add_clbit(&mut self, bit: ShareableClbit, strict: bool) -> Result<(), CircuitDataError> {
+    pub fn add_clbit(
+        &mut self,
+        bit: ShareableClbit,
+        strict: bool,
+    ) -> Result<Clbit, CircuitDataError> {
         let index = self.clbits.add(bit.clone(), strict)?;
         self.clbit_indices
             .insert(bit, BitLocations::new(index.0, []));
-        Ok(())
+        Ok(index)
     }
 
     #[inline]
@@ -2924,7 +2972,7 @@ impl CircuitData {
                             // Rust that accept a `Param::ParameterExpression` which aren't standard
                             // gates. Technically `StandardInstruction::Delay` could, but in
                             // practice that's not a common path, and it's only supported for
-                            // backwards compatability from before Stretch was introduced. If we did
+                            // backwards compatibility from before Stretch was introduced. If we did
                             // it in rust without Python that's a mistake and this attach() call
                             // will panic and point out the error of your ways when this comment is
                             // read.
@@ -2950,7 +2998,7 @@ impl CircuitData {
                                         // be parametric.
                                         //
                                         // Our `bind_expr` coercion means that a non-parametric
-                                        // `ParameterExperssion` after binding would have been coerced
+                                        // `ParameterExpression` after binding would have been coerced
                                         // to a numeric quantity already, so the match here is
                                         // definitely parameterized.
                                         match &new_param {
@@ -3601,7 +3649,7 @@ mod test {
     #[test]
     fn packed_pointer_types_behave() -> PyResult<()> {
         // This is largely to exercise the packed-pointer logic under debug builds (since the
-        // Python-space tests run with Rust in relaese mode) and Miri.
+        // Python-space tests run with Rust in release mode) and Miri.
         let mut qc = CircuitData::from_packed_operations(4, 1, [], Param::Float(0.0))?;
         qc.push_packed_operation(
             Box::new(PauliProductMeasurement {

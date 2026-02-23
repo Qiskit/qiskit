@@ -37,7 +37,8 @@ Because a single stylesheet doesn't generate multiple images with different appe
 only one layout function can be chosen for each stylesheet.
 """
 
-from typing import Dict, Any, Mapping
+from typing import Any
+from collections.abc import Mapping
 
 from qiskit.visualization.timeline import generators, layouts
 
@@ -185,7 +186,7 @@ class IQXDebugging(dict):
         return "Timeline style sheet for timeline programmers."
 
 
-def default_style() -> Dict[str, Any]:
+def default_style() -> dict[str, Any]:
     """Define default values of the timeline stylesheet."""
     return {
         "formatter.general.fig_width": 14,

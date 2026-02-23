@@ -149,7 +149,7 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
         self._skip_reset_qubits = skip_reset_qubits
         self._skip_dd_threshold = skip_dd_threshold
         self._target = target
-        self._coupling_map = target.build_coupling_map()  # build once and re-use for performance
+        self._coupling_map = target.build_coupling_map()  # build once and reuse for performance
         self._pulse_alignment = (
             target.pulse_alignment if pulse_alignment is None else pulse_alignment
         )
@@ -299,7 +299,7 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
         wires = sorted(neighbors.union(merged_delay.indices))
         subgraph = self._coupling_map.graph.subgraph(list(wires)).to_undirected()
         glob2loc = dict(zip(wires, subgraph.node_indices()))
-        preset_coloring = {index: None for index in subgraph.node_indices()}
+        preset_coloring = dict.fromkeys(subgraph.node_indices())
 
         # find the neighbor wires and check if ctrl/tgt spectator
         for wire in neighbors:

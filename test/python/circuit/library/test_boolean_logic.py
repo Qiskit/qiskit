@@ -28,7 +28,7 @@ from qiskit.circuit.library import (
     InnerProductGate,
 )
 from qiskit.quantum_info import Statevector, Operator
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt

@@ -129,7 +129,7 @@ class ConstrainedReschedule(AnalysisPass):
             # Directive or delay. These can start at arbitrary time.
             alignment = None
         else:
-            raise TranspilerError(f"Unknown operation type for {repr(node)}.")
+            raise TranspilerError(f"Unknown operation type for {node!r}.")
 
         this_t0 = node_start_time[node]
 
@@ -240,7 +240,7 @@ class ConstrainedReschedule(AnalysisPass):
 
             if start_time is None:
                 raise TranspilerError(
-                    f"Start time of {repr(node)} is not found. This node is likely added after "
+                    f"Start time of {node!r} is not found. This node is likely added after "
                     "this circuit is scheduled. Run scheduler again."
                 )
 

@@ -52,8 +52,8 @@ def available_versions():
             data = json.load(fd)
         min_version = min_version and packaging.version.parse(min_version)
         max_version = max_version and packaging.version.parse(max_version)
-        for other_version, payload in data["releases"].items():
-            other_version = packaging.version.parse(other_version)
+        for raw_other_version, payload in data["releases"].items():
+            other_version = packaging.version.parse(raw_other_version)
             if min_version is not None and other_version < min_version:
                 continue
             if max_version is not None and other_version >= max_version:
@@ -75,7 +75,7 @@ def available_versions():
                     if release["packagetype"] == "bdist_wheel" and not release["yanked"]
                     for tag in tags_from_wheel_name(release["filename"])
                 ):
-                    print(
+                    print(  # noqa: T201
                         f"skipping '{other_version}', which has no installable binary artifacts",
                         file=sys.stderr,
                     )
@@ -96,7 +96,7 @@ def available_versions():
                         python_versions, key=lambda s: tuple(map(int, s.split(".")))
                     )
                 except ValueError:
-                    print(
+                    print(  # noqa: T201
                         f"skipping '{other_version}', which has no installable binary artifacts",
                         file=sys.stderr,
                     )
@@ -118,7 +118,7 @@ def available_versions():
 def main():
     """main"""
     for package, version, python_version in available_versions():
-        print(package, version, python_version)
+        print(package, version, python_version)  # noqa: T201
 
 
 if __name__ == "__main__":
