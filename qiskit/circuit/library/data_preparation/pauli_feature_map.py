@@ -100,6 +100,29 @@ def pauli_feature_map(
     Please refer to :func:`.z_feature_map` for the case of single-qubit Pauli-:math:`Z` rotations
     and to :func:`.zz_feature_map` for the single- and two-qubit Pauli-:math:`Z` rotations.
 
+    Args:
+        feature_dimension: Number of qubits in the circuit.
+        reps: The number of times the evolution layers are repeated.
+        entanglement: Specifies the entanglement structure. Can be a string (``'full'``,
+            ``'linear'``, ``'reverse_linear'``, ``'circular'`` or ``'sca'``) or can be a
+            dictionary where the keys represent the number of qubits and the values are list
+            of integer-pairs specifying the indices of qubits that are entangled with one
+            another, for example: ``{1: [(0,), (2,)], 2: [(0,1), (2,0)]}`` or can be a
+            ``Callable[[int], Union[str | Dict[...]]]`` to return an entanglement specific for
+            a repetition.
+        alpha: The Pauli rotation factor, multiplicative to the pauli rotations.
+        paulis: A list of strings for to-be-used paulis. If None are provided, ``['Z', 'ZZ']``
+            will be used.
+        data_map_func: A mapping function for the data ``x`` which can be supplied to override the
+            default mapping.
+        parameter_prefix: The prefix used if default parameters are generated.
+        insert_barriers: If ``True``, barriers are inserted in between the evolution instructions
+            and Hadamard layers.
+        name: The name of the circuit.
+
+    Returns:
+        A quantum circuit implementing the Pauli feature map.
+
     Examples:
 
         >>> prep = pauli_feature_map(2, reps=1, paulis=["ZZ"])
@@ -198,6 +221,23 @@ def z_feature_map(
     strings are fixed as `['Z']`. As a result the first order expansion will be a circuit without
     entangling gates.
 
+    Args:
+        feature_dimension: Number of qubits in the circuit.
+        reps: The number of times the evolution layers are repeated.
+        entanglement: Specifies the entanglement structure. Can be a string (``'full'``,
+            ``'linear'``, ``'reverse_linear'``, ``'circular'`` or ``'sca'``), a list of
+            integer-tuples, or a callable returning these types for each repetition.
+        alpha: The Pauli rotation factor, multiplicative to the pauli rotations.
+        data_map_func: A mapping function for the data ``x`` which can be supplied to override the
+            default mapping.
+        parameter_prefix: The prefix used if default parameters are generated.
+        insert_barriers: If ``True``, barriers are inserted in between the evolution instructions
+            and Hadamard layers.
+        name: The name of the circuit.
+
+    Returns:
+        A quantum circuit implementing the Z feature map.
+
     Examples:
 
         >>> from qiskit.circuit.library import z_feature_map
@@ -275,9 +315,28 @@ def zz_feature_map(
         ┤ H ├┤ P(2.0*φ(x[2])) ├─────────────────────────────────┤ X ├┤ P(2.0*φ(x[1],x[2])) ├┤ X ├
         └───┘└────────────────┘                                 └───┘└─────────────────────┘└───┘
 
-    where :math:`\varphi` is a classical non-linear function, which defaults to
-    :math:`\varphi(x) = x` for single-qubit terms and :math:`\varphi(x,y) = (\pi - x)(\pi - y)`
-    for two-qubit terms.
+    Here, :math:`\varphi` is a classical non-linear function, which defaults to
+    :math:`\varphi(x) = x` if :math:`|S| = 1` and
+    :math:`\varphi(x,y) = (\pi - x)(\pi - y)` if :math:`|S| > 1`, and
+    :math:`S` is the set of qubit indices describing the connections in the feature map.
+    See the docstring of :func:`pauli_feature_map` for more detail.
+
+    Args:
+        feature_dimension: Number of qubits in the circuit.
+        reps: The number of times the evolution layers are repeated.
+        entanglement: Specifies the entanglement structure. Can be a string (``'full'``,
+            ``'linear'``, ``'reverse_linear'``, ``'circular'`` or ``'sca'``), a list of
+            integer-tuples, or a callable returning these types for each repetition.
+        alpha: The Pauli rotation factor, multiplicative to the pauli rotations.
+        data_map_func: A mapping function for the data ``x`` which can be supplied to override the
+            default mapping.
+        parameter_prefix: The prefix used if default parameters are generated.
+        insert_barriers: If ``True``, barriers are inserted in between the evolution instructions
+            and Hadamard layers.
+        name: The name of the circuit.
+
+    Returns:
+        A quantum circuit implementing the ZZ feature map.
 
     Examples:
 
@@ -436,7 +495,7 @@ class PauliFeatureMap(NLocal):
         """
         Args:
             feature_dimension: Number of qubits in the circuit.
-            reps: The number of repeated circuits.
+            reps: The number of times the evolution layers are repeated.
             entanglement: Specifies the entanglement structure. Can be a string (``'full'``,
                 ``'linear'``, ``'reverse_linear'``, ``'circular'`` or ``'sca'``) or can be a
                 dictionary where the keys represent the number of qubits and the values are list
@@ -447,10 +506,10 @@ class PauliFeatureMap(NLocal):
             alpha: The Pauli rotation factor, multiplicative to the pauli rotations
             paulis: A list of strings for to-be-used paulis. If None are provided, ``['Z', 'ZZ']``
                 will be used.
-            data_map_func: A mapping function for data x which can be supplied to override the
-                default mapping from :meth:`self_product`.
+            data_map_func: A mapping function for the data ``x`` which can be supplied to override the
+                default mapping.
             parameter_prefix: The prefix used if default parameters are generated.
-            insert_barriers: If True, barriers are inserted in between the evolution instructions
+            insert_barriers: If ``True``, barriers are inserted in between the evolution instructions
                 and Hadamard layers.
             name: Name of the circuit.
 

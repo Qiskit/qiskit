@@ -63,6 +63,9 @@ class PauliProductMeasurement(Instruction):
             as this does not change the actual measurement but specifies the instruction over
             a smaller set of qubits.
 
+        Raises:
+            CircuitError: If the Pauli is the all identity operator, has size 0, or a complex
+                phase.
         """
 
         if not isinstance(pauli, Pauli):

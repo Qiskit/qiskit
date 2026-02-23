@@ -139,13 +139,13 @@ class Layer2Q(LayerBase):
 
 def init_layer1q_matrices(thetas: np.ndarray, dst: np.ndarray) -> np.ndarray:
     """
-    Initializes 4x4 matrices of 2-qubit gates defined in the paper.
+    Initializes 2x2 matrices of 1-qubit gates defined in the paper.
 
     Args:
-        thetas: depth x 4 matrix of gate parameters for every layer, where
-                "depth" is the number of layers.
-        dst: destination array of size depth x 4 x 4 that will receive gate
-             matrices of each layer.
+        thetas: n x 3 matrix of gate parameters for every qubit, where
+                "n" is the number of qubits.
+        dst: destination array of size n x 2 x 2 that will receive gate
+             matrices of each qubit.
 
     Returns:
         Returns the "dst" array.
@@ -163,14 +163,14 @@ def init_layer1q_matrices(thetas: np.ndarray, dst: np.ndarray) -> np.ndarray:
 
 def init_layer1q_deriv_matrices(thetas: np.ndarray, dst: np.ndarray) -> np.ndarray:
     """
-    Initializes 4x4 derivative matrices of 2-qubit gates defined in the paper.
+    Initializes 2x2 derivative matrices of 1-qubit gates defined in the paper.
 
     Args:
-        thetas: depth x 4 matrix of gate parameters for every layer, where
-                "depth" is the number of layers.
-        dst: destination array of size depth x 4 x 4 x 4 that will receive gate
-             derivative matrices of each layer; there are 4 parameters per gate,
-             hence, 4 derivative matrices per layer.
+        thetas: n x 3 matrix of gate parameters for every qubit, where
+                "n" is the number of qubits.
+        dst: destination array of size n x 3 x 2 x 2 that will receive gate
+             derivative matrices of each qubit; there are 3 parameters per gate,
+             hence, 3 derivative matrices per qubit.
 
     Returns:
         Returns the "dst" array.

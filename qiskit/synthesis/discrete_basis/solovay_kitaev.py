@@ -55,7 +55,7 @@ class SolovayKitaevDecomposition:
 
         Args:
             basic_approximations: A specification of the basic SO(3) approximations in terms
-                of discrete gates. At each iteration this algorithm, the remaining error is
+                of discrete gates. At each iteration of this algorithm, the remaining error is
                 approximated with the closest sequence of gates in this set.
                 If a ``str``, this specifies a filename from which to load the
                 approximation. If a ``dict``, then this contains
