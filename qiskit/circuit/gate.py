@@ -278,6 +278,7 @@ class Gate(Instruction):
         else:
             raise CircuitError(f"Invalid param type {type(parameter)} for gate {self.name}.")
 
+
 class CustomGate(Gate):
     """Custom Unitary Gate originating from Rust"""
 
