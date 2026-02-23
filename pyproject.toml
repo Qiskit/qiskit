@@ -340,6 +340,8 @@ select = [
     "PIE",
     # flake8-no-pep420
     "INP",
+    # flake8-print
+    "T20",
 ]
 ignore = [
     "E402",  # module-import-not-at-top-of-file false positives with module docs
@@ -372,6 +374,8 @@ ignore = [
 "*.ipynb" = ["F821"]
 # Security rules from bandit don't apply to tests and utils
 "tools/*" = [
+# Tools can print to stdout
+    "T201",
     "S603",
 # Docstring rules don't apply to tools as they're not documented
     "D100",
