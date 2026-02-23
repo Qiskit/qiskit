@@ -277,3 +277,24 @@ class Gate(Instruction):
             return parameter.item()
         else:
             raise CircuitError(f"Invalid param type {type(parameter)} for gate {self.name}.")
+
+class CustomGate(Gate):
+    """Custom Unitary Gate originating from Rust"""
+
+    # Native instance of the gate originating from Rust
+    _native_gate = None
+
+    def __init__(self, native_gate):
+        self._native_gate = native_gate
+        super().__init__(
+            self._native_gate.name,
+            self._native_gate.num_qubits,
+            self._native_gate.params,
+            self._native_gate.label,
+        )
+        self.definition = (
+            None if self._native_gate.definition is None else self._native_gate.definition
+        )
+
+    def __array__(self, dtype=complex):
+        return self._native_gate.__array__(dtype)
