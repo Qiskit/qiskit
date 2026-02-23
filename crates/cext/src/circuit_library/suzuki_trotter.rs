@@ -66,7 +66,6 @@ use qiskit_quantum_info::sparse_observable::SparseObservable;
 /// "Finding Exponential Product Formulas of Higher Orders" (2005).
 /// [arXiv:math-ph/0506007](https://arxiv.org/pdf/math-ph/0506007.pdf)
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub extern "C" fn qk_circuit_library_suzuki_trotter(
     operator: *const SparseObservable,
     order: u32,

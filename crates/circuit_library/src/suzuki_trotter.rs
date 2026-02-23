@@ -91,7 +91,7 @@ pub fn suzuki_trotter_evolution(
     ) {
         Ok(mut circuit) => {
             if modified_phase {
-                let _ = circuit.set_global_phase(multiply_param(&global_phase, -0.5));
+                let _ = circuit.set_global_phase_param(multiply_param(&global_phase, -0.5));
             }
             Ok(circuit)
         }
