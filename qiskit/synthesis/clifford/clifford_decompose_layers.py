@@ -348,8 +348,8 @@ def _decompose_hadamard_free(
     if validate:
         if (destabz_update != destabz_update.T).any():
             raise QiskitError(
-                "The multiplication of the inverse of destabx and "
-                "destabz is not a symmetric matrix."
+                "The matrix product inv(destabx) * destabz "
+                "for the given Clifford is not a symmetric matrix."
             )
 
     S2_circ = QuantumCircuit(num_qubits, name="S2")

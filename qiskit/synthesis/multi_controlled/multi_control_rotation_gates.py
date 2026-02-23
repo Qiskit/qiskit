@@ -130,7 +130,9 @@ def _mcsu2_real_diagonal(
             raise QiskitError(f"The unitary must be a 2x2 matrix, but has shape {unitary.shape}.")
 
         if not is_unitary_matrix(unitary):
-            raise QiskitError(f"The unitary must be a unitary matrix, but is {unitary}.")
+            raise QiskitError(
+                f"The unitary for the input gate must be a unitary matrix, but is {unitary}."
+            )
 
         if not np.isclose(1.0, np.linalg.det(unitary)):
             raise QiskitError(
