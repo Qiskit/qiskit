@@ -47,7 +47,7 @@ def convert_durations_to_dt(qc: QuantumCircuit, dt_in_sec: float, inplace=True):
 
     Returns a new circuit if `inplace=False`.
 
-    Parameters:
+    Args:
         qc (QuantumCircuit): Duration of dt in seconds used for conversion.
         dt_in_sec (float): Duration of dt in seconds used for conversion.
         inplace (bool): All durations are converted inplace or return new circuit.

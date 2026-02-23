@@ -119,6 +119,8 @@ class BasicPrinter:
                 default.  While the output of this printer is always unambiguous, using ``else``
                 without immediately opening an explicit scope with ``{ }`` in nested contexts can
                 cause issues, in the general case, which is why it is sometimes less supported.
+            experimental: any experimental features to enable during the export.  See
+                :class:`ExperimentalFeatures` for more details.
         """
         self.stream = stream
         self.indent = indent

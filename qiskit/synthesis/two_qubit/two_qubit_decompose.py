@@ -299,7 +299,7 @@ class TwoQubitControlledUDecomposer:
         self.scale = self._inner_decomposer.scale
         self.euler_basis = euler_basis
 
-    def __call__(
+    def __call__(  # noqa: D417 TODO: Add support for the undocumented arguments
         self, unitary: Operator | np.ndarray, approximate=False, use_dag=False, *, atol=DEFAULT_ATOL
     ) -> QuantumCircuit:
         """Returns the Weyl decomposition in circuit form.

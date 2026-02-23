@@ -127,7 +127,7 @@ class _DAGDependencyV2:
         """Set the global phase of the circuit.
 
         Args:
-            angle (float, ParameterExpression)
+            angle (float, ParameterExpression): The angle to set the global phase to.
         """
         if isinstance(angle, ParameterExpression):
             self._global_phase = angle

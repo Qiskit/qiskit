@@ -67,6 +67,9 @@ class PassManagerConfig:
                 :class:`~qiskit.transpiler.passes.UnitarySynthesis` pass. Will
                 search installed plugins for a valid method. You can see a list of
                 installed plugins with :func:`.unitary_synthesis_plugin_names`.
+            unitary_synthesis_plugin_config (dict): The configuration dictionary that will
+                be passed to the specified unitary synthesis plugin. Refer to
+                the plugin documentation for how to use this.
             target (Target): The backend target
             hls_config (HLSConfig): An optional configuration class to use for
                 :class:`~qiskit.transpiler.passes.HighLevelSynthesis` pass.

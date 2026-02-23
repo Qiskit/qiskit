@@ -154,6 +154,9 @@ class BoxContext:
             duration: the final duration of the box.
             unit: the unit of ``duration``.
             label: an optional label for the box.
+            annotations: any :class:`.Annotation`\\ s to apply to the box.  In cases where order
+                is important, annotations are to be interpreted in the same order they appear in
+                the iterable.
         """
         self._circuit = circuit
         self._duration = duration
