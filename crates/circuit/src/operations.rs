@@ -3312,6 +3312,13 @@ impl UnitaryGate {
     }
 }
 
+/// A Pauli-based gate model, consisting of PauliRotation and PauliProductMeasurement ops.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum PauliBased {
+    PauliRotation(PauliRotation),
+    PauliProductMeasurement(PauliProductMeasurement),
+}
+
 #[derive(Clone, Debug)]
 #[repr(align(8))]
 pub struct PauliRotation {

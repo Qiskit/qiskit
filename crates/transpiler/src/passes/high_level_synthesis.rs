@@ -26,7 +26,6 @@ use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::CX_GATE;
 use qiskit_circuit::imports::HLS_SYNTHESIZE_OP_USING_PLUGINS;
-use qiskit_circuit::operations::multiply_param;
 use qiskit_circuit::operations::{
     Operation, OperationRef, Param, StandardGate, StandardInstruction, radd_param,
 };

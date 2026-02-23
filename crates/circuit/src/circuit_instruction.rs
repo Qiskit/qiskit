@@ -29,8 +29,8 @@ use crate::imports::{CONTROLLED_GATE, GATE, INSTRUCTION, OPERATION, WARNINGS_WAR
 use crate::instruction::{Instruction, Parameters, create_py_op};
 use crate::operations::{
     ArrayType, BoxDuration, ControlFlow, ControlFlowInstruction, ControlFlowType, Operation,
-    OperationRef, Param, PauliProductMeasurement, PauliRotation, PyInstruction, PyOperationTypes,
-    StandardGate, StandardInstruction, StandardInstructionType, UnitaryGate,
+    OperationRef, Param, PauliBased, PauliProductMeasurement, PauliRotation, PyInstruction,
+    PyOperationTypes, StandardGate, StandardInstruction, StandardInstructionType, UnitaryGate,
 };
 use crate::packed_instruction::PackedOperation;
 use crate::parameter::parameter_expression::ParameterExpression;
@@ -853,14 +853,17 @@ impl<'a, 'py, T: CircuitBlock> FromPyObject<'a, 'py> for OperationFromPython<T> 
 
             let phase = ob.getattr(intern!(py, "_pauli_phase"))?.extract::<u8>()?;
 
-            let pauli_product_measurement = Box::new(PauliProductMeasurement {
+            let pauli_product_measurement = PauliProductMeasurement {
                 z: z.to_owned(),
                 x: x.to_owned(),
                 neg: phase == 2, // phase is only 0 (represents 1) or 2 (represents -1)
-            });
+            };
+            let pbc = Box::new(PauliBased::PauliProductMeasurement(
+                pauli_product_measurement,
+            ));
 
             return Ok(OperationFromPython {
-                operation: PackedOperation::from_ppm(pauli_product_measurement),
+                operation: PackedOperation::from_pauli_based(pbc),
                 params: None,
                 label: extract_label()?,
             });
@@ -880,14 +883,15 @@ impl<'a, 'py, T: CircuitBlock> FromPyObject<'a, 'py> for OperationFromPython<T> 
             let py_angle = get_params()?.get_item(0)?;
             let angle = Param::extract_no_coerce(py_angle.as_borrowed())?;
 
-            let pauli_rotation = Box::new(PauliRotation {
+            let pauli_rotation = PauliRotation {
                 z: z.to_owned(),
                 x: x.to_owned(),
                 angle,
-            });
+            };
+            let pbc = Box::new(PauliBased::PauliRotation(pauli_rotation));
 
             return Ok(OperationFromPython {
-                operation: PackedOperation::from_pauli_rotation(pauli_rotation),
+                operation: PackedOperation::from_pauli_based(pbc),
                 params: None,
                 label: extract_label()?,
             });

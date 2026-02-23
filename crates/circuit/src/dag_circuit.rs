@@ -33,7 +33,7 @@ use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::ObjectRegistry;
 use crate::operations::{
     ArrayType, BoxDuration, Condition, ControlFlow, ControlFlowInstruction, ControlFlowView,
-    Operation, OperationRef, Param, PyOperationTypes, PythonOperation, StandardGate,
+    Operation, OperationRef, Param, PauliBased, PyOperationTypes, PythonOperation, StandardGate,
     StandardInstruction, SwitchTarget,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
@@ -7890,8 +7890,12 @@ impl DAGCircuit {
                         OperationRef::StandardGate(gate) => gate.into(),
                         OperationRef::StandardInstruction(instruction) => instruction.into(),
                         OperationRef::Unitary(unitary) => unitary.clone().into(),
-                        OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
-                        OperationRef::PauliRotation(rotation) => rotation.clone().into(),
+                        OperationRef::PauliProductMeasurement(ppm) => {
+                            PauliBased::PauliProductMeasurement(ppm.clone()).into()
+                        }
+                        OperationRef::PauliRotation(rotation) => {
+                            PauliBased::PauliRotation(rotation.clone()).into()
+                        }
                     }
                 } else {
                     instr.op.clone()

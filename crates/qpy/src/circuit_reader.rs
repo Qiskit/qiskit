@@ -37,6 +37,7 @@ use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::interner::Interned;
 use qiskit_circuit::operations::ArrayType;
+use qiskit_circuit::operations::PauliBased;
 use qiskit_circuit::operations::PauliRotation;
 use qiskit_circuit::operations::UnitaryGate;
 use qiskit_circuit::operations::{
@@ -410,8 +411,9 @@ fn unpack_pauli_product_measurement(
     let neg = unpack_generic_value(&instruction.params[2], qpy_data)?
         .as_typed::<bool>()
         .unwrap();
-    let ppm = Box::new(PauliProductMeasurement { z, x, neg });
-    let op = PackedOperation::from_ppm(ppm);
+    let ppm = PauliProductMeasurement { z, x, neg };
+    let pbc = Box::new(PauliBased::PauliProductMeasurement(ppm));
+    let op = PackedOperation::from_pauli_based(pbc);
     let param_values = Vec::new(); // ppm has no "regular" params; the instruction params were used to reconstruct it
     Ok((op, param_values))
 }
@@ -433,8 +435,9 @@ fn unpack_pauli_rotation(
         .unwrap();
     let angle_value = unpack_generic_value(&instruction.params[2], qpy_data)?;
     let angle = generic_value_to_param(&angle_value, Little)?;
-    let rotation = Box::new(PauliRotation { z, x, angle });
-    let op = PackedOperation::from_pauli_rotation(rotation);
+    let rotation = PauliRotation { z, x, angle };
+    let pbc = Box::new(PauliBased::PauliRotation(rotation));
+    let op = PackedOperation::from_pauli_based(pbc);
     let param_values = vec![angle_value];
     Ok((op, param_values))
 }
