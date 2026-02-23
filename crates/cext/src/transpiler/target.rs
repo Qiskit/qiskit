@@ -61,6 +61,70 @@ pub extern "C" fn qk_target_new(num_qubits: u32) -> *mut Target {
 }
 
 /// @ingroup QkTarget
+/// Retrieve a `QkTarget` pointer from a Python object.
+///
+/// This borrows a Python reference and extracts the `QkTarget` pointer for it, if it is of
+/// the correct type.  The returned pointer is borrowed from the `ob` pointer.  If the
+/// ``PyObject`` is not the correct type, the return value is ``NULL`` and the exception
+/// state of the Python interpreter is set.
+///
+/// You must be attached to a Python interpreter to call this function.
+///
+/// You can also use `qk_target_convert_from_python`, which is logically the exact same as this
+/// function, but can be directly used as a "converter" function for the `PyArg_Parse*`
+/// family of Python converter functions.
+///
+/// @param ob A borrowed Python object.
+/// @return A pointer to the native object, or `NULL` if the Python object is the wrong type.
+///
+/// # Safety
+///
+/// The caller must be attached to a Python interpreter.  Behavior is undefined if `ob` is
+/// not a valid non-null pointer to a Python object.
+#[unsafe(no_mangle)]
+#[cfg(feature = "python_binding")]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_target_borrow_from_python(ob: *mut pyo3::ffi::PyObject) -> *mut Target {
+    // SAFETY: per documentation, we are attached to a Python interpreter and `ob` points to a valid
+    // Python object.
+    unsafe { crate::py::borrow(::pyo3::Python::assume_attached(), ob) }
+}
+
+/// @ingroup QkTarget
+/// Retrieve a Target pointer from a Python object.
+///
+/// This borrows a Python reference and extracts the `QkTarget` pointer for it into ``adress``, if
+/// it is of the correct type.  The returned pointer is borrowed from the `object` pointer.  If the
+/// ``PyObject`` is not the correct type, the return value is 1, the exception state of the Python
+/// interpreter is set, and ``address`` is unchanged.
+///
+/// You must be attached to a Python interpreter to call this function.
+///
+/// You can also use `qk_target_borrow_from_python`, which is logically the exact same as this, but
+/// with a more natural signature for direct usage.
+///
+/// @param object A borrowed Python object.
+/// @param address The location to write the output to.
+/// @return 0 on success, 1 on failure.
+///
+/// # Safety
+///
+/// The caller must be attached to a Python interpreter.  Behavior is undefined if `object`
+/// is not a valid non-null pointer to a Python object, or if `address` is not a pointer to
+/// writeable data of the correct type.
+#[unsafe(no_mangle)]
+#[cfg(feature = "python_binding")]
+#[cfg(feature = "cbinding")]
+pub unsafe extern "C" fn qk_target_convert_from_python(
+    object: *mut ::pyo3::ffi::PyObject,
+    address: *mut ::std::ffi::c_void,
+) -> ::std::ffi::c_int {
+    // SAFETY: per documentation, we are attached to a Python interpreter, `ob` points to a valid
+    // Python object and `address` points to anough space to write a pointer.
+    unsafe { crate::py::convert::<Target>(::pyo3::Python::assume_attached(), object, address) }
+}
+
+/// @ingroup QkTarget
 /// Returns the number of qubits of this ``QkTarget``.
 ///
 /// @param target A pointer to the ``QkTarget``.
