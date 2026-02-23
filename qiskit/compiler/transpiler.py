@@ -89,7 +89,7 @@ def transpile(  # pylint: disable=too-many-return-statements
             device. If any other option is explicitly set (e.g., ``coupling_map``), it
             will override the backend's.
         basis_gates: List of basis gate names to unroll to
-            (e.g: ``['u1', 'u2', 'u3', 'cx']``). If ``None``, do not unroll.
+            (e.g.: ``['u1', 'u2', 'u3', 'cx']``). If ``None``, do not unroll.
         coupling_map: Directed coupling map (perhaps custom) to target in mapping. If
             the coupling map is symmetric, both directions need to be specified.
 
@@ -98,7 +98,7 @@ def transpile(  # pylint: disable=too-many-return-statements
             #. ``CouplingMap`` instance
             #. List, must be given as an adjacency matrix, where each entry
                specifies all directed two-qubit interactions supported by backend,
-               e.g: ``[[0, 1], [0, 3], [1, 2], [1, 5], [2, 5], [4, 1], [5, 3]]``
+               e.g.: ``[[0, 1], [0, 3], [1, 2], [1, 5], [2, 5], [4, 1], [5, 3]]``
         initial_layout: Initial position of virtual qubits on physical qubits.
             If this layout makes the circuit compatible with the coupling_map
             constraints, it will be used. The final layout is not guaranteed to be the same,
@@ -134,7 +134,7 @@ def transpile(  # pylint: disable=too-many-return-statements
             You can see a list of installed plugins by using :func:`~.list_stage_plugins` with
             ``"layout"`` for the ``stage_name`` argument.
         routing_method: Name of routing pass
-            ('basic', 'lookahead', 'stochastic', 'sabre', 'none'). Note
+            ('basic', 'lookahead', 'stochastic', 'sabre', 'none').
             This can also be the external plugin name to use for the ``routing`` stage.
             You can see a list of installed plugins by using :func:`~.list_stage_plugins` with
             ``"routing"`` for the ``stage_name`` argument.
@@ -210,8 +210,8 @@ def transpile(  # pylint: disable=too-many-return-statements
         hls_config: An optional configuration class
             :class:`~qiskit.transpiler.passes.synthesis.HLSConfig` that will be passed directly
             to :class:`~qiskit.transpiler.passes.synthesis.HighLevelSynthesis` transformation pass.
-            This configuration class allows to specify for various high-level objects the lists of
-            synthesis algorithms and their parameters.
+            This configuration class allows specifying the lists of synthesis algorithms and
+            their parameters for various high-level objects.
         init_method: The plugin name to use for the ``init`` stage. By default an external
             plugin is not used. You can see a list of installed plugins by
             using :func:`~.list_stage_plugins` with ``"init"`` for the stage
@@ -368,7 +368,7 @@ def _parse_output_name(output_name, circuits):
                 )
         else:
             raise TranspilerError(
-                "The parameter output_name should be a string or a"
+                "The parameter output_name should be a string or a "
                 f"list of strings: {type(output_name)} was used."
             )
     else:
