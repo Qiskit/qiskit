@@ -562,6 +562,7 @@ class Instruction(Operation):
                     return False
         return True
 
+
 class CustomInstruction(Instruction):
     """Custom Instruction originating from Rust"""
 
