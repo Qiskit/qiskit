@@ -252,7 +252,7 @@ class MatplotlibDrawer:
             "}": (0.1896, 0.1188),
         }
 
-    def draw(self, filename=None, verbose=False):
+    def draw(self, filename=None):
         """Main entry point to 'matplotlib' ('mpl') drawer. Called from
         ``visualization.circuit_drawer`` and from ``QuantumCircuit.draw`` through circuit_drawer.
         """
@@ -390,7 +390,6 @@ class MatplotlibDrawer:
             qubits_dict,
             clbits_dict,
             glob_data,
-            verbose,
         )
         if filename:
             mpl_figure.savefig(
@@ -1080,7 +1079,6 @@ class MatplotlibDrawer:
         qubits_dict,
         clbits_dict,
         glob_data,
-        verbose=False,
     ):
         """Draw the gates in the circuit"""
 
@@ -1105,9 +1103,6 @@ class MatplotlibDrawer:
                 op = node.op
 
                 self._get_colors(node, node_data)
-
-                if verbose:
-                    print(op)
 
                 # add conditional
                 if getattr(op, "condition", None) or isinstance(op, SwitchCaseOp):
