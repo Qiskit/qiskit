@@ -30,12 +30,12 @@ from qiskit.quantum_info import Operator, SparsePauliOp, Pauli, Statevector, Spa
 from qiskit.transpiler.passes import HLSConfig, HighLevelSynthesis
 from qiskit.utils import optionals
 from qiskit.circuit._utils import _compute_control_matrix
-from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
+from test import QiskitTestCase, combine
 
 X = SparsePauliOp("X")
 Y = SparsePauliOp("Y")
 Z = SparsePauliOp("Z")
-I = SparsePauliOp("I")
+I = SparsePauliOp("I")  # noqa: E741
 
 
 @ddt
@@ -602,7 +602,7 @@ class TestEvolutionGate(QiskitTestCase):
         """Test converting the parameters to sympy is real.
 
         Regression test of #13642, where the parameters in the Pauli evolution had a spurious
-        zero complex part. Even though this is not noticable upon binding or printing the parameter,
+        zero complex part. Even though this is not noticeable upon binding or printing the parameter,
         it does affect the output of Parameter.sympify.
         """
         time = Parameter("t")

@@ -3335,7 +3335,7 @@ impl Value {
     // convert sympy compatible format
     pub fn sympify(&self) -> SymbolExpr {
         match self {
-            // imaginary number is comverted to value * symbol 'I'
+            // imaginary number is converted to value * symbol 'I'
             Value::Complex(c) => _add(
                 SymbolExpr::Value(Value::Real(c.re)),
                 _mul(

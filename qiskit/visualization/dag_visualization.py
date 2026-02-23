@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
 
 """
 Visualization function for DAG circuit representation.
@@ -173,7 +172,7 @@ def dag_drawer(
     )
 
     if "DAGDependency" in type_str:
-        # pylint: disable=cyclic-import
+
         from qiskit.visualization.circuit._utils import get_bit_reg_index
 
         qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}

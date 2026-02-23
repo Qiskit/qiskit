@@ -12,7 +12,7 @@
 """
 Circuit synthesis for a stabilizer state preparation circuit.
 """
-# pylint: disable=invalid-name
+
 
 from __future__ import annotations
 
@@ -42,7 +42,7 @@ def synth_stabilizer_layers(
     """Synthesis of a stabilizer state into layers.
 
     It provides a similar decomposition to the synthesis described in Lemma 8 of reference [1],
-    without the initial Hadamard-free sub-circuit which do not affect the stabilizer state.
+    without the initial Hadamard-free sub-circuit which does not affect the stabilizer state.
 
     For example, a 5-qubit stabilizer state is decomposed into the following layers:
 
@@ -110,7 +110,7 @@ def synth_stabilizer_layers(
     layeredCircuit.append(H1_circ, qubit_list)
 
     # Add Pauli layer to fix the Clifford phase signs
-    # pylint: disable=cyclic-import
+
     from qiskit.quantum_info.operators.symplectic import Clifford
 
     clifford_target = Clifford(layeredCircuit)
@@ -123,7 +123,6 @@ def synth_stabilizer_layers(
 def _calc_pauli_diff_stabilizer(cliff, cliff_target):
     """Given two Cliffords whose stabilizers differ by a Pauli, we find this Pauli."""
 
-    # pylint: disable=cyclic-import
     from qiskit.quantum_info.operators.symplectic import Pauli
 
     num_qubits = cliff.num_qubits

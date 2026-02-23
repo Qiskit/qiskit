@@ -53,8 +53,6 @@ CF_RIGHT = 2
 class TextDrawerEncodingError(VisualizationError):
     """A problem with encoding"""
 
-    pass
-
 
 class DrawElement:
     """An element is an operation that needs to be drawn."""
@@ -946,11 +944,10 @@ class TextDrawing:
 
             if bot_line is None:
                 lines.append(top_line)
+            elif self.should_compress(top_line, bot_line):
+                lines.append(TextDrawing.merge_lines(lines.pop(), top_line))
             else:
-                if self.should_compress(top_line, bot_line):
-                    lines.append(TextDrawing.merge_lines(lines.pop(), top_line))
-                else:
-                    lines.append(TextDrawing.merge_lines(lines[-1], top_line, icod="bot"))
+                lines.append(TextDrawing.merge_lines(lines[-1], top_line, icod="bot"))
 
             # MID
             mid_line = ""
@@ -1359,7 +1356,7 @@ class TextDrawing:
 
         if isinstance(node.op, SwitchCaseOp):
             # Create an empty circuit at the head of the circuit_list if a Switch box
-            circuit_list.insert(0, list(node.op.cases_specifier())[0][1].copy_empty_like())
+            circuit_list.insert(0, next(iter(node.op.cases_specifier()))[1].copy_empty_like())
 
         for circ_num, circuit in enumerate(circuit_list):
             # Update the wire_map with the qubits and clbits from the inner circuit
@@ -1847,13 +1844,12 @@ class Layer:
                         affected_bit.connect(wire_char, ["top"])
                     else:
                         affected_bit.connect(wire_char, ["bot", "top"])
+                elif index == 0:
+                    affected_bit.connect(wire_char, ["bot"])
+                elif index == len(affected_bits) - 1:
+                    affected_bit.connect(wire_char, ["top"], label)
                 else:
-                    if index == 0:
-                        affected_bit.connect(wire_char, ["bot"])
-                    elif index == len(affected_bits) - 1:
-                        affected_bit.connect(wire_char, ["top"], label)
-                    else:
-                        affected_bit.connect(wire_char, ["bot", "top"])
+                    affected_bit.connect(wire_char, ["bot", "top"])
 
             if label:
                 for affected_bit in affected_bits:

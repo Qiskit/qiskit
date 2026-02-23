@@ -170,7 +170,7 @@ class OpShape:
 
     @property
     def _dim_l(self):
-        """Return the total input dimension."""
+        """Return the total output dimension."""
         if self._dims_l:
             return reduce(mul, self._dims_l)
         return 2**self._num_qargs_l
@@ -181,7 +181,7 @@ class OpShape:
 
     def _validate(self, shape, raise_exception=False):
         """Validate OpShape against a matrix or vector shape."""
-        # pylint: disable=too-many-return-statements
+
         ndim = len(shape)
         if ndim > 2:
             if raise_exception:
@@ -503,23 +503,23 @@ class OpShape:
                 )
             if self.dims_l(qargs) != other.dims_l():
                 raise QiskitError(
-                    "Cannot add shapes width different left "
+                    "Cannot add shapes with different left "
                     f"dimension on specified qargs {self.dims_l(qargs)} != {other.dims_l()}"
                 )
             if self.dims_r(qargs) != other.dims_r():
                 raise QiskitError(
-                    "Cannot add shapes width different total right "
+                    "Cannot add shapes with different total right "
                     f"dimension on specified qargs{self.dims_r(qargs)} != {other.dims_r()}"
                 )
         elif self != other:
             if self._dim_l != other._dim_l:
                 raise QiskitError(
-                    "Cannot add shapes width different total left "
+                    "Cannot add shapes with different total left "
                     f"dimension {self._dim_l} != {other._dim_l}"
                 )
             if self._dim_r != other._dim_r:
                 raise QiskitError(
-                    "Cannot add shapes width different total right "
+                    "Cannot add shapes with different total right "
                     f"dimension {self._dim_r} != {other._dim_r}"
                 )
         return self

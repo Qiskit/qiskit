@@ -10,12 +10,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-sequence-index
 
 """Circuit transpile function"""
 import logging
 from time import time
-from typing import List, Union, Dict, Callable, Any, Optional, TypeVar
+from typing import Any, TypeVar
+from collections.abc import Callable
 
 from qiskit import user_config
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -30,33 +30,33 @@ from qiskit.transpiler.target import Target
 
 logger = logging.getLogger(__name__)
 
-_CircuitT = TypeVar("_CircuitT", bound=Union[QuantumCircuit, List[QuantumCircuit]])
+_CircuitT = TypeVar("_CircuitT", bound=QuantumCircuit | list[QuantumCircuit])
 
 
-def transpile(  # pylint: disable=too-many-return-statements
+def transpile(
     circuits: _CircuitT,
-    backend: Optional[Backend] = None,
-    basis_gates: Optional[List[str]] = None,
-    coupling_map: Optional[Union[CouplingMap, List[List[int]]]] = None,
-    initial_layout: Optional[Union[Layout, Dict, List]] = None,
-    layout_method: Optional[str] = None,
-    routing_method: Optional[str] = None,
-    translation_method: Optional[str] = None,
-    scheduling_method: Optional[str] = None,
-    dt: Optional[float] = None,
-    approximation_degree: Optional[float] = 1.0,
-    seed_transpiler: Optional[int] = None,
-    optimization_level: Optional[int] = None,
-    callback: Optional[Callable[[BasePass, DAGCircuit, float, PropertySet, int], Any]] = None,
-    output_name: Optional[Union[str, List[str]]] = None,
+    backend: Backend | None = None,
+    basis_gates: list[str] | None = None,
+    coupling_map: CouplingMap | list[list[int]] | None = None,
+    initial_layout: Layout | dict | list | None = None,
+    layout_method: str | None = None,
+    routing_method: str | None = None,
+    translation_method: str | None = None,
+    scheduling_method: str | None = None,
+    dt: float | None = None,
+    approximation_degree: float | None = 1.0,
+    seed_transpiler: int | None = None,
+    optimization_level: int | None = None,
+    callback: Callable[[BasePass, DAGCircuit, float, PropertySet, int], Any] | None = None,
+    output_name: str | list[str] | None = None,
     unitary_synthesis_method: str = "default",
-    unitary_synthesis_plugin_config: Optional[dict] = None,
-    target: Optional[Target] = None,
-    hls_config: Optional[HLSConfig] = None,
-    init_method: Optional[str] = None,
-    optimization_method: Optional[str] = None,
+    unitary_synthesis_plugin_config: dict | None = None,
+    target: Target | None = None,
+    hls_config: HLSConfig | None = None,
+    init_method: str | None = None,
+    optimization_method: str | None = None,
     ignore_backend_supplied_default_methods: bool = False,
-    num_processes: Optional[int] = None,
+    num_processes: int | None = None,
     qubits_initially_zero: bool = True,
 ) -> _CircuitT:
     """Transpile one or more circuits, according to some desired transpilation targets.

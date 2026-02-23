@@ -160,6 +160,11 @@ impl QubitTracker {
             self.state[q.index()] = other.state[q.index()]
         }
     }
+
+    /// Returns whether `qubit` is clean
+    fn is_qubit_clean(&self, qubit: Qubit) -> bool {
+        self.state[qubit.index()]
+    }
 }
 
 #[pymethods]
@@ -228,6 +233,12 @@ impl QubitTracker {
 
     fn num_qubits(&self) -> usize {
         self.num_qubits
+    }
+
+    /// Returns whether qubit is clean
+    #[pyo3(name = "is_qubit_clean")]
+    fn py_is_qubit_clean(&self, qubit: Qubit) -> bool {
+        self.is_qubit_clean(qubit)
     }
 
     /// Copies the contents
@@ -898,7 +909,7 @@ fn synthesize_operation(
         if synthesized_qubits.len() > input_qubits.len() {
             tracker.replace_state(
                 &saved_tracker,
-                (input_qubits.len()..synthesized_qubits.len()).map(Qubit::new),
+                synthesized_qubits[input_qubits.len()..].iter().cloned(),
             );
         }
 
@@ -994,7 +1005,25 @@ fn py_synthesize_operation(
         op.label.as_deref().map(|l| l.as_str()),
     )?;
 
-    Ok(result.map(|res| (res.0, res.1.iter().map(|x| x.index()).collect())))
+    Ok(result
+        .map(|res: (CircuitData, Vec<Qubit>)| (res.0, res.1.iter().map(|x| x.index()).collect())))
+}
+
+/// Synthesizes a circuit.
+///
+/// This function is only used in the Python testing of the HighLevelSynthesis qubit tracking mechanism.
+#[pyfunction]
+#[pyo3(name = "synthesize_circuit", signature = (circuit, input_qubits, data, tracker))]
+fn py_synthesize_circuit(
+    py: Python,
+    circuit: &CircuitData,
+    input_qubits: Vec<Qubit>,
+    data: &Bound<HighLevelSynthesisData>,
+    tracker: &mut QubitTracker,
+) -> PyResult<(CircuitData, Vec<usize>)> {
+    let res = run_on_circuitdata(py, circuit, &input_qubits, data, tracker)?;
+
+    Ok((res.0, res.1.iter().map(|x| x.index()).collect()))
 }
 
 /// Runs HighLevelSynthesis transpiler pass.
@@ -1014,7 +1043,7 @@ pub fn run_high_level_synthesis(
     // done at the top-level since this does not track the qubit states.
 
     // First, we apply a super-fast (but incomplete) check to see if all the operations
-    // present in the circuit are suported by the target / are in the basis.
+    // present in the circuit are supported by the target / are in the basis.
     if all_instructions_supported(py, data, dag)? {
         return Ok(None);
     }
@@ -1066,6 +1095,7 @@ pub fn run_high_level_synthesis(
 pub fn high_level_synthesis_mod(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(run_high_level_synthesis))?;
     m.add_wrapped(wrap_pyfunction!(py_synthesize_operation))?;
+    m.add_wrapped(wrap_pyfunction!(py_synthesize_circuit))?;
 
     m.add_class::<QubitTracker>()?;
     m.add_class::<HighLevelSynthesisData>()?;

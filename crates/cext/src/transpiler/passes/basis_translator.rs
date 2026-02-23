@@ -28,7 +28,7 @@ use qiskit_transpiler::target::Target;
 /// in the target basis, in which case the circuit remains unchanged.
 /// @param target The target where we will obtain basis gates from.
 /// @param min_qubits The minimum number of qubits for operations in the input
-/// ciruit to translate.
+/// circuit to translate.
 ///
 /// # Example
 ///

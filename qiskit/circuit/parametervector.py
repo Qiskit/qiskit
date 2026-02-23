@@ -28,7 +28,7 @@ class ParameterVector:
     The elements of a vector are sorted by the name of the vector, then the numeric value of their
     index.
 
-    This class fulfill the :class:`collections.abc.Sequence` interface.
+    This class fulfills the :class:`collections.abc.Sequence` interface.
     """
 
     __slots__ = ("_name", "_params", "_root_uuid")
@@ -72,7 +72,7 @@ class ParameterVector:
         return f"{self.name}, {[str(item) for item in self.params]}"
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(name={repr(self.name)}, length={len(self)})"
+        return f"{self.__class__.__name__}(name={self.name!r}, length={len(self)})"
 
     def __getnewargs__(self):
         return (self._name, len(self._params))
@@ -99,8 +99,8 @@ class ParameterVector:
         >>> from qiskit.circuit import ParameterVector
         >>> pv = ParameterVector("theta", 20)
         >>> elt_19 = pv[19]
-        >>> rv.resize(10)
-        >>> rv.resize(20)
+        >>> pv.resize(10)
+        >>> pv.resize(20)
         >>> pv[19] == elt_19
         True
         """

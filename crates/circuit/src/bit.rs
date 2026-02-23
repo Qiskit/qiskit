@@ -148,7 +148,7 @@ pub trait ShareableBit: Clone + Eq + Hash + Debug {
     const DESCRIPTION: &'static str;
 }
 // An internal trait to let `RegisterInfo` manifest full `ShareableBit` instances from `BitInfo`
-// structs without leaking that implemntation detail into the public.
+// structs without leaking that implementation detail into the public.
 trait ManifestableBit: ShareableBit {
     fn from_info(val: BitInfo<<Self as ShareableBit>::Subclass>) -> Self;
     fn info(&self) -> &BitInfo<<Self as ShareableBit>::Subclass>;
@@ -350,7 +350,7 @@ macro_rules! create_bit_object {
         /// corresponding bits between two circuits.
         ///
         /// These objects are comparable in a global sense, unlike the lighter [Qubit] or [Clbit]
-        /// index-like objects used only _within_ a cirucit.  We use these objects when comparing
+        /// index-like objects used only _within_ a circuit.  We use these objects when comparing
         /// two circuits to each other, and resolving Python objects, but within the context of a
         /// circuit, we just use the simple indices.
         #[derive(Clone, Debug, PartialEq, Eq, Hash)]

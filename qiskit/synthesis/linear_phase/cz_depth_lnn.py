@@ -52,7 +52,7 @@ def synth_cz_depth_line_mr(mat: np.ndarray) -> QuantumCircuit:
            `arXiv:1705.09176 <https://arxiv.org/abs/1705.09176>`_.
     """
 
-    # Call Rust implementaton
+    # Call Rust implementation
     return QuantumCircuit._from_circuit_data(
         synth_cz_depth_line_mr_inner(mat.astype(bool)), legacy_qubits=True
     )

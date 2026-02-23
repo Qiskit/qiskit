@@ -16,7 +16,7 @@ import io
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit.classical import expr
 from qiskit.qpy.binary_io import write_circuit, read_circuit
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestQPYRoundtrip(QiskitTestCase):

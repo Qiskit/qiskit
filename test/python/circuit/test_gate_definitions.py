@@ -73,7 +73,7 @@ from qiskit.circuit.library import (
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
 )
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 from .gate_utils import _get_free_params
@@ -404,7 +404,7 @@ class TestGateEquivalenceEqual(QiskitTestCase):
                 op2 = Operator(equivalency)
                 msg = (
                     f"Equivalence entry from '{gate.name}' to:\n"
-                    f"{str(equivalency.draw('text'))}\nfailed"
+                    f"{equivalency.draw('text')!s}\nfailed"
                 )
                 self.assertEqual(op1, op2, msg)
 

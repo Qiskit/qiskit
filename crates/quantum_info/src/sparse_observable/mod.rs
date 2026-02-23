@@ -600,7 +600,7 @@ impl SparseObservable {
     /// Clear all the terms from this operator, making it equal to the zero operator again.
     ///
     /// This does not change the capacity of the internal allocations, so subsequent addition or
-    /// substraction operations may not need to reallocate.
+    /// subtraction operations may not need to reallocate.
     pub fn clear(&mut self) {
         self.coeffs.clear();
         self.bit_terms.clear();
@@ -694,7 +694,7 @@ impl SparseObservable {
 
     /// Calculate the transpose.
     ///
-    /// This operation transposes the individual bit terms but does directly act
+    /// This operation transposes the individual bit terms but does not directly act
     /// on the coefficients.
     pub fn transpose(&self) -> SparseObservable {
         let mut out = self.clone();
@@ -1322,7 +1322,7 @@ mod compose {
         /// Stack of the coefficients to this point.  We could recalculate by a full
         /// multiplication on each go, but most steps will be in the low indices, where we can
         /// re-use all the multiplications that came before.  This is one longer than the length
-        /// of `multliples`, because it starts off populated with the product of the
+        /// of `multiples`, because it starts off populated with the product of the
         /// non-multiple coefficients (or 1).
         coeffs: Vec<Complex64>,
         /// The full set of indices (including ones that don't correspond to multiples).  Within
@@ -2287,7 +2287,7 @@ impl PySparseTerm {
 /// associative, :class:`SparseObservable` makes no guarantees about the summation order).
 ///
 /// These two categories of representation degeneracy can cause the ``==`` operator to claim that
-/// two observables are not equal, despite representating the same object.  In these cases, it can
+/// two observables are not equal, despite representing the same object.  In these cases, it can
 /// be convenient to define some *canonical form*, which allows observables to be compared
 /// structurally.
 ///
@@ -3210,7 +3210,7 @@ impl PySparseObservable {
     /// Clear all the terms from this operator, making it equal to the zero operator again.
     ///
     /// This does not change the capacity of the internal allocations, so subsequent addition or
-    /// substraction operations may not need to reallocate.
+    /// subtraction operations may not need to reallocate.
     ///
     /// Examples:
     ///
@@ -3234,7 +3234,7 @@ impl PySparseObservable {
     /// .. note::
     ///
     ///     When using this for equality comparisons, note that floating-point rounding and the
-    ///     non-associativity fo floating-point addition may cause non-zero coefficients of summed
+    ///     non-associativity of floating-point addition may cause non-zero coefficients of summed
     ///     terms to compare unequal.  To compare two observables up to a tolerance, it is safest to
     ///     compare the canonicalized difference of the two observables to zero.
     ///

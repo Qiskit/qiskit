@@ -13,7 +13,7 @@
 """Utility functions for handling linear reversible circuits."""
 
 import copy
-from typing import Callable
+from collections.abc import Callable
 import numpy as np
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
@@ -50,7 +50,7 @@ def optimize_cx_4_options(function: Callable, mat: np.ndarray, optimize_count: b
     Args:
         function: the synthesis function.
         mat: a binary invertible matrix.
-        optimize_count: True if the number of CX gates in optimize, False if the depth is optimized.
+        optimize_count: True if the number of CX gates is optimized, False if the depth is optimized.
 
     Returns:
         QuantumCircuit: an optimized :class:`.QuantumCircuit`, has the best depth or CX count of

@@ -49,12 +49,11 @@ class OptimizeCliffords(TransformationPass):
                 if prev_node is None:
                     blocks.append(cur_block)
                     cur_block = [node]
+                elif prev_node.qargs == node.qargs:
+                    cur_block.append(node)
                 else:
-                    if prev_node.qargs == node.qargs:
-                        cur_block.append(node)
-                    else:
-                        blocks.append(cur_block)
-                        cur_block = [node]
+                    blocks.append(cur_block)
+                    cur_block = [node]
 
                 prev_node = node
 

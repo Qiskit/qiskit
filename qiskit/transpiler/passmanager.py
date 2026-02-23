@@ -18,7 +18,7 @@ import io
 import re
 from collections.abc import Iterator, Iterable, Callable
 from functools import wraps
-from typing import Union, List, Any, TypeVar
+from typing import Any, TypeVar
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
@@ -31,7 +31,7 @@ from .basepasses import BasePass
 from .exceptions import TranspilerError
 from .layout import TranspileLayout
 
-_CircuitsT = TypeVar("_CircuitsT", bound=Union[List[QuantumCircuit], QuantumCircuit])
+_CircuitsT = TypeVar("_CircuitsT", bound=list[QuantumCircuit] | QuantumCircuit)
 
 
 class PassManager(BasePassManager):
@@ -123,13 +123,12 @@ class PassManager(BasePassManager):
         """
         super().replace(index, tasks=passes)
 
-    # pylint: disable=arguments-differ
     def run(  # pylint:disable=arguments-renamed
         self,
         circuits: _CircuitsT,
         output_name: str | None = None,
-        callback: Callable = None,
-        num_processes: int = None,
+        callback: Callable | None = None,
+        num_processes: int | None = None,
         *,
         property_set: dict[str, object] | None = None,
     ) -> _CircuitsT:
@@ -271,7 +270,7 @@ class StagedPassManager(PassManager):
         will not change between releases.
 
     These stages will be executed in order and any stage set to ``None`` will be skipped.
-    If a stage is provided multiple times (i.e. at diferent relative positions), the
+    If a stage is provided multiple times (i.e. at different relative positions), the
     associated passes, including pre and post, will run once per declaration.
     If a :class:`~qiskit.transpiler.PassManager` input is being used for more than 1 stage here
     (for example in the case of a :class:`~.Pass` that covers both Layout and Routing) you will
@@ -290,7 +289,7 @@ class StagedPassManager(PassManager):
                 instance. If this is not specified the default stages list
                 ``['init', 'layout', 'routing', 'translation', 'optimization', 'scheduling']`` is
                 used. After instantiation, the final list will be immutable and stored as tuple.
-                If a stage is provided multiple times (i.e. at diferent relative positions), the
+                If a stage is provided multiple times (i.e. at different relative positions), the
                 associated passes, including pre and post, will run once per declaration.
             kwargs: The initial :class:`~.PassManager` values for any stages
                 defined in ``stages``. If a argument is not defined the
@@ -339,12 +338,12 @@ class StagedPassManager(PassManager):
     @property
     def stages(self) -> tuple[str, ...]:
         """Pass manager stages"""
-        return self._stages  # pylint: disable=no-member
+        return self._stages
 
     @property
     def expanded_stages(self) -> tuple[str, ...]:
         """Expanded Pass manager stages including ``pre_`` and ``post_`` phases."""
-        return self._expanded_stages  # pylint: disable=no-member
+        return self._expanded_stages
 
     def _generate_expanded_stages(self) -> Iterator[str]:
         for stage in self.stages:
@@ -407,7 +406,7 @@ class StagedPassManager(PassManager):
         circuits: _CircuitsT,
         output_name: str | None = None,
         callback: Callable | None = None,
-        num_processes: int = None,
+        num_processes: int | None = None,
         *,
         property_set: dict[str, object] | None = None,
     ) -> _CircuitsT:

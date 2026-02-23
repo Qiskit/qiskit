@@ -58,8 +58,9 @@ jobs:
       - name: Prepare venv
         run: |
           set -e
-          python -m pip install --upgrade pip setuptools wheel
           python -m venv test-job
+          source test-job/bin/activate
+          python -m pip install -U pip
       - name: Set gate-caching settings for build
         if: ${{ !inputs.qiskit-pycache }}
         run: 'echo "QISKIT_NO_CACHE_GATES=1" >> $GITHUB_ENV'
@@ -68,12 +69,11 @@ jobs:
         run: |
           set -e
           source test-job/bin/activate
-          python -m pip install -U pip build
+          python -m pip install -U build
           python -m build --sdist .
           python -m pip install -U \
             -c constraints.txt \
-            -r requirements.txt \
-            -r requirements-dev.txt \
+            --group test \
             dist/qiskit-*.tar.gz
       - name: Install Qiskit directly
         if: ${{ !inputs.install-from-sdist }}
@@ -82,14 +82,13 @@ jobs:
           source test-job/bin/activate
           python -m pip install -U \
             -c constraints.txt \
-            -r requirements.txt \
-            -r requirements-dev.txt \
+            --group test \
             -e .
       - name: Install Optional packages
         run: |
           set -e
           source test-job/bin/activate
-          python -m pip install -r requirements-optional.txt -c constraints.txt
+          python -m pip install --group optionals-all -c constraints.txt
           python -m pip check
         if: ${{ inputs.install-optionals }}
       - name: Install optional non-Python dependencies
