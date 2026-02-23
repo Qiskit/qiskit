@@ -561,3 +561,20 @@ class Instruction(Operation):
                 if x != y:
                     return False
         return True
+
+class CustomInstruction(Instruction):
+    """Custom Instruction originating from Rust"""
+
+    # Native instance of the instruction originating from Rust
+    _native_instrucion = None
+
+    def __init__(self, native_inst):
+        self._native_instrucion = native_inst
+        super().__init__(
+            self._native_instrucion.name,
+            self._native_instrucion.num_qubits,
+            self._native_instrucion.num_clbits,
+            self._native_instrucion.params,
+            self._native_instrucion.label,
+        )
+        self.definition = self._native_instrucion.definition

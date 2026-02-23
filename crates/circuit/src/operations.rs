@@ -23,6 +23,7 @@ use crate::bit::{ClassicalRegister, ShareableClbit};
 use crate::circuit_data::CircuitData;
 use crate::classical::expr;
 use crate::duration::Duration;
+use crate::imports::{CUSTOM_GATE, CUSTOM_INSTRUCTION, QUANTUM_CIRCUIT};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::{
     ParameterExpression, PyParameter, PyParameterExpression,
@@ -37,7 +38,7 @@ use num_complex::Complex64;
 use smallvec::{SmallVec, smallvec};
 
 use numpy::{IntoPyArray, PyArray1, PyArray2, PyReadonlyArray2, ToPyArray};
-use pyo3::exceptions::{PyNotImplementedError, PyValueError};
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyFloat, PyList, PyTuple};
 use pyo3::{IntoPyObjectExt, Python, intern};
@@ -3401,6 +3402,17 @@ pub enum CustomOperationKind {
 ///
 /// A user must also implement [CustomOperation::clone_dyn] as a way to clone
 /// with the original object's implementation of [Clone] once it is dynamically dispatched.
+///
+/// If the implementor wants to expose the operation to Python,
+/// the trait containts the following methods:
+/// - [CustomOperation::create_py_op] which creates a Python instance of
+///   the operation.
+/// - [CustomOperation::py_type] which returns a reference to the Python
+///   type associated with the operation.
+///
+/// The default implementation automatically encloses the operation
+/// inside of a [PyCustomOp] instance. However, it is up to the
+/// user to redefine both methods if the operation has an established Python counterpart.
 pub trait CustomOperation: Operation + Any + Debug + Send + Sync {
     /// Return the custom label assigned to this instruction.
     fn label(&self) -> Option<&str> {
@@ -3435,22 +3447,30 @@ pub trait CustomOperation: Operation + Any + Debug + Send + Sync {
         self.num_ctrl_qubits().is_some()
     }
 
-    /// Creates python instance of this operation.
+    /// Creates a Python instance of the operation and returns a [Bound]
+    /// reference to it.
     fn create_py_op<'py>(
         &self,
-        _py: Python<'py>,
-        _params: Option<SmallVec<[Param; 3]>>,
+        py: Python<'py>,
+        params: Option<SmallVec<[Param; 3]>>,
     ) -> PyResult<Bound<'py, PyAny>> {
-        Err(PyNotImplementedError::new_err(
-            "Rust native operations cannot be exposed to Python yet.",
-        ))
+        let py_class = PyCustomOp::new(self.clone_dyn(), params);
+
+        let py_type = match self.kind() {
+            CustomOperationKind::Gate => CUSTOM_GATE.get_bound(py),
+            CustomOperationKind::Instruction => CUSTOM_INSTRUCTION.get_bound(py),
+        };
+        py_type.call1((py_class,))
     }
 
-    /// Returns the python type linked to this operation.
-    fn py_type<'py>(&self, _py: Python<'py>) -> PyResult<&Bound<'py, pyo3::types::PyType>> {
-        Err(PyNotImplementedError::new_err(
-            "Rust native operations cannot be exposed to Python yet.",
-        ))
+    /// Returns a reference to the Python instance type.
+    fn py_type<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, pyo3::types::PyType>> {
+        Ok(match self.kind() {
+            CustomOperationKind::Gate => CUSTOM_GATE.get_bound(py),
+            CustomOperationKind::Instruction => CUSTOM_INSTRUCTION.get_bound(py),
+        }
+        .clone()
+        .cast_into::<pyo3::types::PyType>()?)
     }
 
     /// Dynamic clone function to clone the original operation type.
@@ -3491,7 +3511,7 @@ impl CustomOp {
         self.op.kind()
     }
 
-    /// Casts a NativeOperation to its original type if the correct
+    /// Casts a CustomOp to its original type if the correct
     /// type is specified.
     pub fn downcast_ref<T: CustomOperation>(&self) -> Option<&T> {
         self.op.downcast_ref()
@@ -3541,15 +3561,106 @@ impl From<Box<dyn CustomOperation>> for CustomOp {
     }
 }
 
+#[pyclass(name = "CustomOperation", module = "qiskit.circuit.operation")]
+#[derive(Debug)]
+pub struct PyCustomOp {
+    inner: Box<dyn CustomOperation>,
+    parameters: Option<SmallVec<[Param; 3]>>,
+}
+
+#[pymethods]
+impl PyCustomOp {
+    #[getter]
+    fn name(&self) -> &str {
+        self.inner.name()
+    }
+
+    #[getter]
+    fn num_qubits(&self) -> u32 {
+        self.inner.num_qubits()
+    }
+
+    #[getter]
+    fn num_clbits(&self) -> u32 {
+        self.inner.num_clbits()
+    }
+
+    #[getter]
+    fn num_params(&self) -> u32 {
+        self.inner.num_params()
+    }
+
+    #[getter]
+    fn directive(&self) -> bool {
+        self.inner.directive()
+    }
+
+    #[getter]
+    fn label(&self) -> Option<&str> {
+        self.inner.label()
+    }
+
+    #[getter]
+    fn params<'a>(&'a self, py: Python<'a>) -> PyResult<Bound<'a, PyList>> {
+        PyList::new(
+            py,
+            self.parameters
+                .as_deref()
+                .unwrap_or_default()
+                .iter()
+                .cloned(),
+        )
+    }
+
+    #[getter]
+    fn definition<'py>(&'py self, py: Python<'py>) -> Option<Bound<'py, PyAny>> {
+        let params = self.parameters.as_deref().unwrap_or_default();
+        let circ_class = QUANTUM_CIRCUIT.get_bound(py);
+        self.inner
+            .definition(params)
+            .map(|circ| circ_class.call_method1("_from_circuit_data", (circ,)).ok())?
+    }
+
+    fn __array__<'py>(&'py self, dtype: Bound<'py, PyAny>) -> Option<Bound<'py, PyAny>> {
+        let py = dtype.py();
+        let params = self.parameters.as_deref().unwrap_or_default();
+        if let Some(matrix) = self.inner.matrix(params) {
+            let py_matrix = matrix.into_pyarray(py);
+            Some(py_matrix.into_any())
+        } else {
+            None
+        }
+    }
+}
+
+impl Clone for PyCustomOp {
+    fn clone(&self) -> Self {
+        Self {
+            inner: self.inner.clone_dyn(),
+            parameters: self.parameters.clone(),
+        }
+    }
+}
+
+impl PyCustomOp {
+    pub fn new(op: Box<dyn CustomOperation>, parameters: Option<SmallVec<[Param; 3]>>) -> Self {
+        Self {
+            inner: op,
+            parameters,
+        }
+    }
+}
+
 #[cfg(test)]
 mod test_custom_gates {
     use crate::Qubit;
     use crate::circuit_data::CircuitData;
-    use crate::gate_matrix::H_GATE;
+    use crate::gate_matrix::{H_GATE, rx_gate};
     use crate::operations::{
         CustomOperation, CustomOperationKind, Operation, OperationRef, Param, StandardGate,
     };
     use ndarray::aview2;
+    use pyo3::prelude::*;
     use smallvec::smallvec;
     use std::f64::consts::PI;
 
@@ -3592,6 +3703,66 @@ mod test_custom_gates {
 
         fn matrix(&self, params: &[Param]) -> Option<ndarray::Array2<numpy::Complex64>> {
             params.is_empty().then_some(aview2(&H_GATE).to_owned())
+        }
+
+        fn kind(&self) -> CustomOperationKind {
+            CustomOperationKind::Gate
+        }
+    }
+
+    #[derive(Debug, Clone)]
+    pub struct CustomRX;
+
+    impl Operation for CustomRX {
+        fn name(&self) -> &str {
+            "custom_rx"
+        }
+
+        fn num_qubits(&self) -> u32 {
+            1
+        }
+
+        fn num_clbits(&self) -> u32 {
+            0
+        }
+
+        fn num_params(&self) -> u32 {
+            1
+        }
+
+        fn directive(&self) -> bool {
+            false
+        }
+    }
+
+    impl CustomOperation for CustomRX {
+        fn clone_dyn(&self) -> Box<dyn CustomOperation> {
+            Box::new(self.clone())
+        }
+        fn definition(&self, params: &[Param]) -> Option<CircuitData> {
+            (params.len() == 1).then_some(
+                CircuitData::from_standard_gates(
+                    1,
+                    [(
+                        StandardGate::RX,
+                        smallvec![params[0].clone()],
+                        smallvec![Qubit(0)],
+                    )],
+                    0.0.into(),
+                )
+                .expect("Circuit should be built"),
+            )
+        }
+
+        fn matrix(&self, params: &[Param]) -> Option<ndarray::Array2<numpy::Complex64>> {
+            if params.len() == 1 {
+                let Param::Float(param) = params[0] else {
+                    return None;
+                };
+                Some(aview2(&rx_gate(param)).to_owned())
+            } else {
+                None
+            }
         }
 
         fn kind(&self) -> CustomOperationKind {
@@ -3670,7 +3841,7 @@ mod test_custom_gates {
     }
 
     // Exclude this test from miri as it uses pointers without provenance
-    // when extracting the view of the `CustomGate`.
+    // when extracting the view of the `CustomOperation`.
     #[cfg(not(miri))]
     #[test]
     fn try_add_to_circuit() {
@@ -3693,5 +3864,65 @@ mod test_custom_gates {
         };
 
         assert_eq!(gate_as_h.downcast_ref::<CustomH>(), Some(downcast_gate))
+    }
+
+    #[test]
+    #[cfg(not(miri))]
+    fn try_python_custom_gate() {
+        let mut circuit = CircuitData::with_capacity(1, 0, 1, 0.0.into())
+            .expect("Circuit with small capacity should be built.");
+
+        let gate = CustomOp::from(CustomRX);
+
+        // Try downcasting
+        circuit
+            .push_packed_operation(
+                gate.clone().into(),
+                Some(crate::instruction::Parameters::Params(smallvec![
+                    3.14.into()
+                ])),
+                &[Qubit(0)],
+                &[],
+            )
+            .expect("Instruction should be added to the circuit.");
+        circuit
+            .push_packed_operation(CustomOp::from(CustomH).into(), None, &[Qubit(0)], &[])
+            .expect("Instruction should be added to the circuit.");
+
+        // Retrieve operation
+        let retrieved_gate = &circuit.data()[0];
+        let retrieved_h_gate = &circuit.data()[1];
+
+        let OperationRef::CustomOperation(gate_as_rx) = retrieved_gate.op.view() else {
+            panic!("Gate should be a custom gate of type CustomH");
+        };
+
+        if gate_as_rx.downcast_ref::<CustomH>().is_some() {
+            panic!("Gate should not be a custom gate of type CustomH");
+        };
+
+        let Some(_) = gate_as_rx.downcast_ref::<CustomRX>() else {
+            panic!("Gate should be a custom gate of type CustomRX");
+        };
+
+        // Try Python:
+        Python::attach(|py| -> PyResult<()> {
+            let unpacked_operation = circuit.unpack_py_op(py, retrieved_gate)?.into_bound(py);
+            println!("{}", unpacked_operation.repr()?);
+            println!("{}", unpacked_operation.call_method0("to_matrix")?.repr()?);
+            println!("{}", unpacked_operation.getattr("params")?.repr()?);
+            println!("{}", unpacked_operation.getattr("definition")?.repr()?);
+
+            let unpacked_operation_h = circuit.unpack_py_op(py, retrieved_h_gate)?.into_bound(py);
+            println!("{}", unpacked_operation_h.repr()?);
+            println!(
+                "{}",
+                unpacked_operation_h.call_method0("to_matrix")?.repr()?
+            );
+            println!("{}", unpacked_operation_h.getattr("params")?.repr()?);
+            println!("{}", unpacked_operation_h.getattr("definition")?.repr()?);
+            Ok(())
+        })
+        .expect("Something went wrong on the Python side.");
     }
 }
