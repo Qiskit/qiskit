@@ -18,6 +18,8 @@ __pycache__/
 
 # C extensions
 *.so
+# Generated C header files included in package.
+/qiskit/capi/include
 
 # Distribution / packaging
 .Python
