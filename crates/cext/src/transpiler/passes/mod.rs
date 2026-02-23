@@ -23,3 +23,4 @@ pub mod sabre_layout;
 pub mod split_2q_unitaries;
 pub mod unitary_synthesis;
 pub mod vf2;
+pub mod wrap_angles;
