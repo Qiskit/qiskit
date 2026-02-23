@@ -78,7 +78,7 @@ class Statevector(QuantumState, TolerancesMixin):
               with the total number of subsystems given by the length of the list.
 
             * ``Int`` or ``None`` -- the length of the input vector
-              specifies the total dimension of the density matrix. If it is a
+              specifies the total dimension of the state. If it is a
               power of two the state will be initialized as an N-qubit state.
               If it is not a power of two the state will have a single
               d-dimensional subsystem.
@@ -259,7 +259,7 @@ class Statevector(QuantumState, TolerancesMixin):
                 sv.draw(output='hinton')
 
         """
-        # pylint: disable=cyclic-import
+
         from qiskit.visualization.state_visualization import state_drawer
 
         return state_drawer(self, output=output, **drawer_args)
@@ -267,7 +267,7 @@ class Statevector(QuantumState, TolerancesMixin):
     def _ipython_display_(self):
         out = self.draw()
         if isinstance(out, str):
-            print(out)  # pylint: disable=bad-builtin
+            print(out)
         else:
             from IPython.display import display
 
@@ -688,7 +688,7 @@ class Statevector(QuantumState, TolerancesMixin):
 
         Additional Information:
             If all subsystems are reset this will return the ground state
-            on all subsystems. If only a some subsystems are reset this
+            on all subsystems. If only some subsystems are reset this
             function will perform a measurement on those subsystems and
             evolve the subsystems so that the collapsed post-measurement
             states are rotated to the 0-state. The RNG seed for this
@@ -744,11 +744,11 @@ class Statevector(QuantumState, TolerancesMixin):
              - :math:`[1 / \\sqrt{2},  -i / \\sqrt{2}]`
 
         Args:
-            label (string): a eigenstate string ket label (see table for
+            label (string): an eigenstate string ket label (see table for
                             allowed values).
 
         Returns:
-            Statevector: The N-qubit basis state density matrix.
+            Statevector: The N-qubit basis state statevector.
 
         Raises:
             QiskitError: if the label contains invalid characters, or the
@@ -810,7 +810,7 @@ class Statevector(QuantumState, TolerancesMixin):
 
             * ``Int`` -- the integer specifies the total dimension of the
               state. If it is a power of two the state will be initialized
-              as an N-qubit state. If it is not a power of  two the state
+              as an N-qubit state. If it is not a power of two the state
               will have a single d-dimensional subsystem.
         """
         size = np.prod(dims)
@@ -974,7 +974,7 @@ class Statevector(QuantumState, TolerancesMixin):
         # pylint complains about a cyclic import since the following Initialize file
         # imports the StatePreparation, which again requires the Statevector (this file),
         # but as this is a local import, it's not actually an issue and can be ignored
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit.library.data_preparation.initializer import Initialize
 
         mat = Operator._instruction_to_matrix(obj)

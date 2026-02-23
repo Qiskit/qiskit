@@ -17,7 +17,7 @@ from qiskit.visualization.timeline import core, stylesheet, generators, layouts
 from qiskit.transpiler.target import Target, InstructionProperties
 from qiskit.circuit import Delay, Parameter, Measure
 from qiskit.circuit.library import HGate, CXGate
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestCanvas(QiskitTestCase):

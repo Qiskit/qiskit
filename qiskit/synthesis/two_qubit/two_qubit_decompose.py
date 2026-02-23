@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
 
 """
 Expand 2-qubit Unitary operators into an equivalent
@@ -27,7 +26,7 @@ from __future__ import annotations
 import io
 import base64
 import warnings
-from typing import Optional, Type, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 import logging
 
@@ -150,7 +149,7 @@ class TwoQubitWeylDecomposition:
     K2r: np.ndarray
 
     unitary_matrix: np.ndarray  # The unitary that was input
-    requested_fidelity: Optional[float]  # None means no automatic specialization
+    requested_fidelity: float | None  # None means no automatic specialization
     calculated_fidelity: float  # Fidelity after specialization
 
     _specializations = two_qubit_decompose.Specialization
@@ -249,7 +248,7 @@ class TwoQubitWeylDecomposition:
         requested_fidelity: float,
         _specialization: two_qubit_decompose.Specialization | None = None,
         **kwargs,
-    ) -> "TwoQubitWeylDecomposition":
+    ) -> TwoQubitWeylDecomposition:
         """Decode bytes into :class:`.TwoQubitWeylDecomposition`."""
         # Used by __repr__
         del kwargs  # Unused (just for display)
@@ -270,7 +269,7 @@ class TwoQubitControlledUDecomposer:
     :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}`
     gate that is locally equivalent to an :class:`.RXXGate`."""
 
-    def __init__(self, rxx_equivalent_gate: Type[Gate], euler_basis: str = "ZXZ"):
+    def __init__(self, rxx_equivalent_gate: type[Gate], euler_basis: str = "ZXZ"):
         r"""Initialize the KAK decomposition.
 
         Args:
@@ -488,7 +487,7 @@ class TwoQubitBasisDecomposer:
 class _LazyTwoQubitCXDecomposer(TwoQubitBasisDecomposer):
     __slots__ = ("_inner",)
 
-    def __init__(self):  # pylint: disable=super-init-not-called
+    def __init__(self):
         self._inner = None
 
     def _load(self):

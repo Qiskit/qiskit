@@ -14,7 +14,7 @@
 
 import collections
 import io
-from typing import Sequence
+from collections.abc import Sequence
 
 from . import ast
 from .experimental import ExperimentalFeatures
@@ -42,21 +42,16 @@ _BINDING_POWER = {
     # Modulo: (19, 20)
     ast.Binary.Op.MUL: _BindingPower(19, 20),
     ast.Binary.Op.DIV: _BindingPower(19, 20),
-    #
     ast.Binary.Op.ADD: _BindingPower(17, 18),
     ast.Binary.Op.SUB: _BindingPower(17, 18),
-    #
     ast.Binary.Op.SHIFT_LEFT: _BindingPower(15, 16),
     ast.Binary.Op.SHIFT_RIGHT: _BindingPower(15, 16),
-    #
     ast.Binary.Op.LESS: _BindingPower(13, 14),
     ast.Binary.Op.LESS_EQUAL: _BindingPower(13, 14),
     ast.Binary.Op.GREATER: _BindingPower(13, 14),
     ast.Binary.Op.GREATER_EQUAL: _BindingPower(13, 14),
-    #
     ast.Binary.Op.EQUAL: _BindingPower(11, 12),
     ast.Binary.Op.NOT_EQUAL: _BindingPower(11, 12),
-    #
     ast.Binary.Op.BIT_AND: _BindingPower(9, 10),
     ast.Binary.Op.BIT_XOR: _BindingPower(7, 8),
     ast.Binary.Op.BIT_OR: _BindingPower(5, 6),
@@ -85,7 +80,6 @@ class BasicPrinter:
     _FLOAT_TYPE_LOOKUP = {type: f"float[{type.value}]" for type in ast.FloatType}
 
     # The visitor names include the class names, so they mix snake_case with PascalCase.
-    # pylint: disable=invalid-name
 
     def __init__(
         self,

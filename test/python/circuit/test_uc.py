@@ -17,7 +17,7 @@ Tests for uniformly controlled single-qubit unitaries.
 
 import unittest
 from ddt import ddt
-from test import combine  # pylint: disable=wrong-import-order
+from test import combine
 import numpy as np
 from scipy.linalg import block_diag
 
@@ -27,7 +27,7 @@ from qiskit.quantum_info.random import random_unitary
 from qiskit.compiler import transpile
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info import Operator
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 _id = np.eye(2, 2)
 _not = np.matrix([[0, 1], [1, 0]])

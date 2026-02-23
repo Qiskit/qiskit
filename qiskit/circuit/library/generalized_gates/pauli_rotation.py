@@ -18,8 +18,7 @@ import typing
 import numpy as np
 import scipy as sc
 
-from qiskit.circuit import QuantumCircuit, CircuitError, Gate, ParameterExpression
-from qiskit.circuit.tools import pi_check
+from qiskit.circuit import QuantumCircuit, CircuitError, Gate
 from qiskit._accelerate.circuit_library import pauli_evolution
 
 if typing.TYPE_CHECKING:

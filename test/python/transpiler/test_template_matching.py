@@ -37,10 +37,10 @@ from qiskit.transpiler.passes import TemplateOptimization
 from qiskit.circuit.library.templates import rzx
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.utils import optionals
-from test.python.quantum_info.operators.symplectic.test_clifford import (  # pylint: disable=wrong-import-order
+from test.python.quantum_info.operators.symplectic.test_clifford import (
     random_clifford_circuit,
 )
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 def _ry_to_rz_template_pass(parameter: Parameter = None, extra_costs=None):
@@ -53,7 +53,7 @@ def _ry_to_rz_template_pass(parameter: Parameter = None, extra_costs=None):
     template.rx(-np.pi / 2, 0)
     template.ry(parameter, 0)
     template.rx(np.pi / 2, 0)
-    template.rz(-parameter, 0)  # pylint: disable=invalid-unary-operand-type
+    template.rz(-parameter, 0)
 
     costs = {"rx": 16, "ry": 16, "rz": 0}
     if extra_costs is not None:

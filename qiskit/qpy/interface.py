@@ -18,7 +18,8 @@ import gzip
 import io
 import shutil
 from json import JSONEncoder, JSONDecoder
-from typing import Union, List, BinaryIO, Type, Optional, Callable, TYPE_CHECKING
+from typing import BinaryIO, TYPE_CHECKING
+from collections.abc import Callable
 from collections.abc import Iterable, Mapping
 import struct
 import warnings
@@ -35,7 +36,6 @@ if TYPE_CHECKING:
     from qiskit.circuit import annotation
 
 
-# pylint: disable=invalid-name
 QPY_SUPPORTED_TYPES = QuantumCircuit
 
 # Some standard-library types claim to be `IOBase.seekable`, but don't actually support arbitrary
@@ -87,12 +87,12 @@ VERSION_PATTERN_REGEX = re.compile(VERSION_PATTERN, re.VERBOSE | re.IGNORECASE)
 
 
 def dump(
-    programs: Union[List[QPY_SUPPORTED_TYPES], QPY_SUPPORTED_TYPES],
+    programs: list[QPY_SUPPORTED_TYPES] | QPY_SUPPORTED_TYPES,
     file_obj: BinaryIO,
-    metadata_serializer: Optional[Type[JSONEncoder]] = None,
+    metadata_serializer: type[JSONEncoder] | None = None,
     use_symengine: bool = False,
     version: int = common.QPY_VERSION,
-    annotation_factories: Optional[Mapping[str, Callable[[], annotation.QPYSerializer]]] = None,
+    annotation_factories: Mapping[str, Callable[[], annotation.QPYSerializer]] | None = None,
 ):
     """Write QPY binary data to a file
 
@@ -276,9 +276,9 @@ def dump(
 
 def load(
     file_obj: BinaryIO,
-    metadata_deserializer: Optional[Type[JSONDecoder]] = None,
-    annotation_factories: Optional[Mapping[str, Callable[[], annotation.QPYSerializer]]] = None,
-) -> List[QPY_SUPPORTED_TYPES]:
+    metadata_deserializer: type[JSONDecoder] | None = None,
+    annotation_factories: Mapping[str, Callable[[], annotation.QPYSerializer]] | None = None,
+) -> list[QPY_SUPPORTED_TYPES]:
     """Load a QPY binary file
 
     This function is used to load a serialized QPY Qiskit program file and create
@@ -374,7 +374,7 @@ def load(
     env_qiskit_version = [int(x) for x in version_match.group("release").split(".")]
 
     qiskit_version = (data.major_version, data.minor_version, data.patch_version)
-    # pylint: disable=too-many-boolean-expressions
+
     if (
         env_qiskit_version[0] < qiskit_version[0]
         or (

@@ -76,7 +76,7 @@ from qiskit.quantum_info import Pauli, SparsePauliOp, Clifford
 from qiskit.quantum_info.random import random_unitary
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.utils import optionals
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt.ddt
@@ -1234,7 +1234,7 @@ class TestLoadFromQPY(QiskitTestCase):
         class CustomDeserializer(json.JSONDecoder):
             """Custom json decoder to handle CustomObject."""
 
-            def object_hook(self, o):  # pylint: disable=invalid-name,method-hidden
+            def object_hook(self, o):
                 """Hook to override default decoder.
 
                 Normally specified as a kwarg on load() that overloads the
@@ -1508,11 +1508,11 @@ class TestLoadFromQPY(QiskitTestCase):
             mcx_vchain_gate = MCXVChain(3)
         mcmt_gate = MCMTGate(ZGate(), 2, 1)
         qc.append(mcu1_gate, [0, 2, 1])
-        qc.append(mcx_gate, list(range(0, 6)))
-        qc.append(mcx_gray_gate, list(range(0, 6)))
-        qc.append(mcx_recursive_gate, list(range(0, 5)))
-        qc.append(mcx_vchain_gate, list(range(0, 5)))
-        qc.append(mcmt_gate, list(range(0, 3)))
+        qc.append(mcx_gate, list(range(6)))
+        qc.append(mcx_gray_gate, list(range(6)))
+        qc.append(mcx_recursive_gate, list(range(5)))
+        qc.append(mcx_vchain_gate, list(range(5)))
+        qc.append(mcmt_gate, list(range(3)))
         qc.mcp(np.pi, [0, 2], 1)
         qc.mcx([0, 2], 1)
         qc.measure_all()

@@ -284,7 +284,8 @@ class HoareOptimizer(TransformationPass):
         Returns:
             bool: if gate sequence combines to identity
         """
-        assert len(sequence) == 2
+        if len(sequence) != 2:
+            raise ValueError("Invalid sequence length")
         # some Instructions (e.g measurements) may not have an inverse.
         try:
             gate1, gate2 = sequence[0].op, sequence[1].op.inverse()
@@ -322,7 +323,8 @@ class HoareOptimizer(TransformationPass):
         from z3 import Or, And, Not
         import z3
 
-        assert len(sequence) == 2
+        if len(sequence) != 2:
+            raise ValueError("Invalid sequence length")
         ctrlvar1 = self._separate_ctrl_trgt(sequence[0])[1]
         ctrlvar2 = self._separate_ctrl_trgt(sequence[1])[1]
 

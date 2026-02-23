@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
 
 """Binary IO for circuit objects."""
 
@@ -948,7 +947,6 @@ def _dumps_instruction_parameter(
     return type_key, data_bytes
 
 
-# pylint: disable=too-many-boolean-expressions
 def _write_instruction(
     file_obj,
     instruction,
@@ -972,8 +970,7 @@ def _write_instruction(
             and not hasattr(controlflow, gate_class_name)
             and gate_class_name not in ["Clifford", "PauliProductMeasurement", "PauliRotationGate"]
         )
-        or gate_class_name == "Gate"
-        or gate_class_name == "Instruction"
+        or gate_class_name in {"Gate", "Instruction"}
         or isinstance(instruction.operation, library.BlueprintCircuit)
     ):
         gate_class_name = instruction.operation.name
@@ -1266,7 +1263,7 @@ def _write_custom_operation(
         has_definition = True
         # Build internal definition to support overloaded subclasses by
         # calling definition getter on object
-        operation.definition  # pylint: disable=pointless-statement
+        operation.definition
         data = common.data_to_binary(
             operation._definition,
             write_circuit,

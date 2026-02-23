@@ -26,21 +26,17 @@
 
 """Type definitions used within the permutation package."""
 
-from typing import TypeVar, Dict, Tuple, NamedTuple, Union
+from typing import TypeVar, NamedTuple
 
 from qiskit.circuit import Qubit
 from qiskit.dagcircuit import DAGCircuit
 
 PermuteElement = TypeVar("PermuteElement")
-Permutation = Dict[PermuteElement, PermuteElement]
-Swap = Tuple[PermuteElement, PermuteElement]
+Permutation = dict[PermuteElement, PermuteElement]
+Swap = tuple[PermuteElement, PermuteElement]
+
 
 # Represents a circuit for permuting to a mapping.
-PermutationCircuit = NamedTuple(
-    "PermutationCircuit",
-    [
-        ("circuit", DAGCircuit),
-        ("inputmap", Dict[Union[int, Qubit], Qubit]),
-        # A mapping from architecture nodes to circuit registers.
-    ],
-)
+class PermutationCircuit(NamedTuple):
+    circuit: DAGCircuit
+    inputmap: dict[int | Qubit, Qubit]  # A mapping from architecture nodes to circuit registers.
