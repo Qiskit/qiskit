@@ -11,7 +11,6 @@
 // that they have been altered from the originals.
 use std::fmt;
 
-use crate::sparse_observable::BitTerm;
 use fixedbitset::FixedBitSet;
 use ndarray::{Array2, ArrayView2};
 use qiskit_circuit::Qubit;
@@ -291,48 +290,8 @@ impl Clifford {
     }
 
     /// Evolving the single-qubit Pauli-Z with Z on qubit qbit.
-    /// Returns the evolved Pauli in the sparse format: (sign, paulis, indices).
-    pub fn get_inverse_z(&self, qbit: usize) -> (bool, Vec<BitTerm>, Vec<Qubit>) {
-        // Potentially overallocated, but this is temporary in the only use from litinski transform.
-        let mut bit_terms = Vec::with_capacity(self.num_qubits);
-        let mut pauli_indices = Vec::<usize>::with_capacity(2 * self.num_qubits);
-        // Compute the y-count to avoid recomputing it later
-        let mut pauli_y_count: u32 = 0;
-
-        let indices = (0..self.num_qubits)
-            .filter_map(|i| {
-                let x_bit = self.tableau[qbit][i + self.num_qubits];
-                let z_bit = self.tableau[qbit][i];
-                match [z_bit, x_bit] {
-                    [true, true] => {
-                        pauli_y_count += 1;
-                        bit_terms.push(BitTerm::Y);
-                        pauli_indices.push(i);
-                        pauli_indices.push(i + self.num_qubits);
-                        Some(Qubit::new(i))
-                    }
-                    [false, true] => {
-                        bit_terms.push(BitTerm::X);
-                        pauli_indices.push(i);
-                        Some(Qubit::new(i))
-                    }
-                    [true, false] => {
-                        bit_terms.push(BitTerm::Z);
-                        pauli_indices.push(i + self.num_qubits);
-                        Some(Qubit::new(i))
-                    }
-                    [false, false] => None,
-                }
-            })
-            .collect();
-
-        let phase = compute_phase_product_pauli(self, &pauli_indices, pauli_y_count);
-        (phase, bit_terms, indices)
-    }
-    pub fn get_inverse_z_for_measurement(
-        &self,
-        qbit: usize,
-    ) -> (bool, Vec<bool>, Vec<bool>, Vec<Qubit>) {
+    /// Returns the evolved Pauli in a sparse ZX format: (sign, z, x, indices).
+    pub fn get_inverse_z(&self, qbit: usize) -> (bool, Vec<bool>, Vec<bool>, Vec<Qubit>) {
         let mut z = Vec::with_capacity(self.num_qubits);
         let mut x = Vec::with_capacity(self.num_qubits);
         let mut indices = Vec::with_capacity(self.num_qubits);

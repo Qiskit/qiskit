@@ -17,12 +17,12 @@ import numpy as np
 from ddt import ddt, data
 
 from qiskit.circuit import QuantumCircuit, Parameter
-from qiskit.circuit.library import QFTGate, PauliEvolutionGate, PauliProductMeasurement
+from qiskit.circuit.library import QFTGate, PauliRotationGate, PauliProductMeasurement
 from qiskit.circuit.random import random_clifford_circuit
 from qiskit.compiler import transpile
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import LitinskiTransformation
-from qiskit.quantum_info import Operator, Pauli, SparseObservable
+from qiskit.quantum_info import Operator, Pauli
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -44,7 +44,7 @@ class TestLitinskiTransformation(QiskitTestCase):
 
         qct = LitinskiTransformation()(qc)
 
-        self.assertEqual(qct.count_ops(), {"PauliEvolution": 4, "cx": 2, "h": 1, "s": 1})
+        self.assertEqual(qct.count_ops(), {"pauli_rotation": 4, "cx": 2, "h": 1, "s": 1})
         self.assertEqual(Operator(qct), Operator(qc))
 
     def test_rz_gates(self):
@@ -60,7 +60,7 @@ class TestLitinskiTransformation(QiskitTestCase):
 
         qct = LitinskiTransformation()(qc)
 
-        self.assertEqual(qct.count_ops(), {"PauliEvolution": 3, "cx": 2, "h": 1, "s": 1})
+        self.assertEqual(qct.count_ops(), {"pauli_rotation": 3, "cx": 2, "h": 1, "s": 1})
         self.assertEqual(Operator(qct), Operator(qc))
 
     def test_omit_clifford_gates(self):
@@ -76,7 +76,7 @@ class TestLitinskiTransformation(QiskitTestCase):
 
         qct = LitinskiTransformation(fix_clifford=False)(qc)
 
-        self.assertEqual(qct.count_ops(), {"PauliEvolution": 3})
+        self.assertEqual(qct.count_ops(), {"pauli_rotation": 3})
 
     def test_parametric_rz_gates(self):
         """Test circuit with parameterized RZ-rotation gates."""
@@ -93,7 +93,7 @@ class TestLitinskiTransformation(QiskitTestCase):
         qc.rz(0.1, 1)
 
         qct = LitinskiTransformation()(qc)
-        self.assertEqual(qct.count_ops(), {"PauliEvolution": 3, "cx": 2, "h": 1, "s": 1})
+        self.assertEqual(qct.count_ops(), {"pauli_rotation": 3, "cx": 2, "h": 1, "s": 1})
 
         qc_bound = qc.assign_parameters([0.123, -1.234])
         qct_bound = qct.assign_parameters([0.123, -1.234])
@@ -209,7 +209,7 @@ class TestLitinskiTransformation(QiskitTestCase):
         qct = LitinskiTransformation()(qc)
 
         expected = QuantumCircuit(2, global_phase=np.pi / 8)
-        expected.append(PauliEvolutionGate(SparseObservable("Z"), np.pi / 8), [0])
+        expected.append(PauliRotationGate(Pauli("Z"), np.pi / 4), [0])
 
         self.assertEqual(qct, expected)
 
@@ -221,7 +221,7 @@ class TestLitinskiTransformation(QiskitTestCase):
         qct = LitinskiTransformation()(qc)
 
         expected = QuantumCircuit(2, global_phase=-np.pi / 8)
-        expected.append(PauliEvolutionGate(SparseObservable("Z"), -np.pi / 8), [0])
+        expected.append(PauliRotationGate(Pauli("Z"), -np.pi / 4), [0])
 
         self.assertEqual(qct, expected)
 
@@ -234,7 +234,7 @@ class TestLitinskiTransformation(QiskitTestCase):
         qct = LitinskiTransformation()(qc)
 
         expected = QuantumCircuit(2, global_phase=np.pi / 8)
-        expected.append(PauliEvolutionGate(SparseObservable("X"), np.pi / 8), [0])
+        expected.append(PauliRotationGate(Pauli("X"), np.pi / 4), [0])
         expected.h(0)
 
         self.assertEqual(qct, expected)
@@ -248,7 +248,7 @@ class TestLitinskiTransformation(QiskitTestCase):
         qct = LitinskiTransformation()(qc)
 
         expected = QuantumCircuit(2, global_phase=-np.pi / 8)
-        expected.append(PauliEvolutionGate(SparseObservable("X"), -np.pi / 8), [0])
+        expected.append(PauliRotationGate(Pauli("X"), -np.pi / 4), [0])
         expected.h(0)
 
         self.assertEqual(qct, expected)
@@ -262,7 +262,7 @@ class TestLitinskiTransformation(QiskitTestCase):
         qct = LitinskiTransformation()(qc)
 
         expected = QuantumCircuit(2, global_phase=np.pi / 8)
-        expected.append(PauliEvolutionGate(SparseObservable("Y"), np.pi / 8), [0])
+        expected.append(PauliRotationGate(Pauli("Y"), np.pi / 4), [0])
         expected.sx(0)
 
         self.assertEqual(qct, expected)
@@ -276,7 +276,7 @@ class TestLitinskiTransformation(QiskitTestCase):
         qct = LitinskiTransformation()(qc)
 
         expected = QuantumCircuit(2, global_phase=-np.pi / 8)
-        expected.append(PauliEvolutionGate(SparseObservable("Y"), -np.pi / 8), [0])
+        expected.append(PauliRotationGate(Pauli("Y"), -np.pi / 4), [0])
         expected.sx(0)
 
         self.assertEqual(qct, expected)
@@ -290,7 +290,7 @@ class TestLitinskiTransformation(QiskitTestCase):
         qct = LitinskiTransformation()(qc)
 
         expected = QuantumCircuit(2, global_phase=np.pi / 8)
-        expected.append(PauliEvolutionGate(SparseObservable("ZZ"), np.pi / 8), [0, 1])
+        expected.append(PauliRotationGate(Pauli("ZZ"), np.pi / 4), [0, 1])
         expected.cx(0, 1)
 
         self.assertEqual(qct, expected)
@@ -304,7 +304,7 @@ class TestLitinskiTransformation(QiskitTestCase):
         qct = LitinskiTransformation()(qc)
 
         expected = QuantumCircuit(2, global_phase=-np.pi / 8)
-        expected.append(PauliEvolutionGate(SparseObservable("ZZ"), -np.pi / 8), [0, 1])
+        expected.append(PauliRotationGate(Pauli("ZZ"), -np.pi / 4), [0, 1])
         expected.cx(0, 1)
 
         self.assertEqual(qct, expected)
@@ -444,14 +444,10 @@ class TestLitinskiTransformation(QiskitTestCase):
 
         # The transformed circuit (as shown at the bottom-right of the figure).
         expected = QuantumCircuit(4, 4)
-        expected.append(PauliEvolutionGate(SparseObservable.from_list([("Z", 1)]), np.pi / 8), [0])
-        expected.append(
-            PauliEvolutionGate(SparseObservable.from_list([("YX", 1)]), np.pi / 8), [1, 2]
-        )
-        expected.append(PauliEvolutionGate(SparseObservable.from_list([("Y", 1)]), -np.pi / 8), [3])
-        expected.append(
-            PauliEvolutionGate(SparseObservable.from_list([("YZZZ", 1)]), -np.pi / 8), [0, 1, 2, 3]
-        )
+        expected.append(PauliRotationGate(Pauli("Z"), np.pi / 4), [0])
+        expected.append(PauliRotationGate(Pauli("YX"), np.pi / 4), [1, 2])
+        expected.append(PauliRotationGate(Pauli("Y"), -np.pi / 4), [3])
+        expected.append(PauliRotationGate(Pauli("YZZZ"), -np.pi / 4), [0, 1, 2, 3])
         expected.append(PauliProductMeasurement(Pauli("YZZY")), [0, 1, 2, 3], [0])
         expected.append(PauliProductMeasurement(Pauli("XX")), [0, 1], [1])
         expected.append(PauliProductMeasurement(Pauli("-Z")), [2], [2])
