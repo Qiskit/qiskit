@@ -105,7 +105,7 @@ from qiskit.transpiler.target import InstructionProperties, Target
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler import WrapAngleRegistry
 
-from test import QiskitTestCase, combine, slow_test  # pylint: disable=wrong-import-order
+from test import QiskitTestCase, combine, slow_test
 
 from ..legacy_cmaps import MELBOURNE_CMAP, RUESCHLIKON_CMAP, TOKYO_CMAP, MUMBAI_CMAP
 
@@ -2182,7 +2182,7 @@ class TestTranspile(QiskitTestCase):
         target.add_instruction(XGate(), {(i,): None for i in range(5)})
         target.add_instruction(SXGate(), {(i,): None for i in range(5)})
         target.add_instruction(RZGate(Parameter("a")), {(i,): None for i in range(5)})
-        target.add_instruction(CZGate(), {pair: None for pair in CouplingMap.from_line(5)})
+        target.add_instruction(CZGate(), dict.fromkeys(CouplingMap.from_line(5)))
         target.add_instruction(IfElseOp, name="if_else")
 
         self.assertEqual(
@@ -2206,8 +2206,8 @@ class TestTranspile(QiskitTestCase):
         target = Target(3)
         target.add_instruction(SXGate(), {(i,): None for i in range(3)})
         target.add_instruction(RZGate(Parameter("a")), {(i,): None for i in range(3)})
-        target.add_instruction(CZGate(), {pair: None for pair in CouplingMap.from_line(3)})
-        target.add_instruction(CXGate(), {pair: None for pair in CouplingMap.from_line(3)})
+        target.add_instruction(CZGate(), dict.fromkeys(CouplingMap.from_line(3)))
+        target.add_instruction(CXGate(), dict.fromkeys(CouplingMap.from_line(3)))
         target.add_instruction(BoxOp, name="box")
 
         out = transpile(qc, target=target, optimization_level=level, initial_layout=[0, 1, 2])
@@ -2225,7 +2225,7 @@ class TestTranspile(QiskitTestCase):
         target = Target(3)
         target.add_instruction(SXGate(), {(i,): None for i in range(3)})
         target.add_instruction(RZGate(Parameter("a")), {(i,): None for i in range(3)})
-        target.add_instruction(CZGate(), {pair: None for pair in CouplingMap.from_line(3)})
+        target.add_instruction(CZGate(), dict.fromkeys(CouplingMap.from_line(3)))
         target.add_instruction(BoxOp, name="box")
 
         out = transpile(qc, target=target, optimization_level=level, initial_layout=[0, 1, 2])
@@ -2246,7 +2246,7 @@ class TestTranspile(QiskitTestCase):
         target = Target(num_qubits)
         target.add_instruction(SXGate(), {(i,): None for i in range(num_qubits)})
         target.add_instruction(RZGate(Parameter("a")), {(i,): None for i in range(num_qubits)})
-        target.add_instruction(CZGate(), {pair: None for pair in CouplingMap.from_line(num_qubits)})
+        target.add_instruction(CZGate(), dict.fromkeys(CouplingMap.from_line(num_qubits)))
         target.add_instruction(BoxOp, name="box")
 
         out = transpile(
@@ -2849,7 +2849,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
 
         # When the annotation framework expands to have more semantics, the test here might need to
         # expand to mark the custom annotations as being safe under any circuit transformation.
-        class Custom(Annotation):  # pylint: disable=missing-class-docstring
+        class Custom(Annotation):
             namespace = "custom"
 
             def __init__(self, value):
@@ -3205,7 +3205,7 @@ class TestTranspileParallel(QiskitTestCase):
                     check=False,
                 )
             else:
-                raise RuntimeError()
+                raise RuntimeError
 
             if pi < angle % (4 * pi) < 3 * pi:
                 new_dag.global_phase += pi

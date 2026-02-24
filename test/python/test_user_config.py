@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-docstring
 
 import os
 import configparser as cp
@@ -19,7 +18,7 @@ from unittest import mock
 
 from qiskit import exceptions
 from qiskit import user_config
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestUserConfig(QiskitTestCase):

@@ -495,18 +495,26 @@ impl CircuitData {
         Ok(self_)
     }
 
-    pub fn add_qubit(&mut self, bit: ShareableQubit, strict: bool) -> Result<(), CircuitDataError> {
+    pub fn add_qubit(
+        &mut self,
+        bit: ShareableQubit,
+        strict: bool,
+    ) -> Result<Qubit, CircuitDataError> {
         let index = self.qubits.add(bit.clone(), strict)?;
         self.qubit_indices
             .insert(bit, BitLocations::new(index.0, []));
-        Ok(())
+        Ok(index)
     }
 
-    pub fn add_clbit(&mut self, bit: ShareableClbit, strict: bool) -> Result<(), CircuitDataError> {
+    pub fn add_clbit(
+        &mut self,
+        bit: ShareableClbit,
+        strict: bool,
+    ) -> Result<Clbit, CircuitDataError> {
         let index = self.clbits.add(bit.clone(), strict)?;
         self.clbit_indices
             .insert(bit, BitLocations::new(index.0, []));
-        Ok(())
+        Ok(index)
     }
 
     #[inline]
@@ -2529,13 +2537,12 @@ impl PyCircuitData {
         reserve: usize,
         global_phase: Param,
     ) -> PyResult<Self> {
-        let mut circuit_data: PyCircuitData =
-            CircuitData::new(qubits, clbits, global_phase)?.into();
+        let mut self_: PyCircuitData = CircuitData::new(qubits, clbits, global_phase)?.into();
+        self_.reserve(reserve);
         if let Some(data) = data {
-            circuit_data.reserve(reserve);
-            circuit_data.extend(data)?;
+            self_.extend(data)?;
         }
-        Ok(circuit_data)
+        Ok(self_)
     }
 
     pub fn __reduce__(self_: &Bound<PyCircuitData>, py: Python<'_>) -> PyResult<Py<PyAny>> {
@@ -2975,8 +2982,8 @@ impl PyCircuitData {
     ///     ValueError: The specified ``bit`` is already present and flag ``strict``
     ///         was provided.
     #[pyo3(name="add_qubit", signature = (bit, *, strict=true))]
-    pub fn py_add_qubit(&mut self, bit: ShareableQubit, strict: bool) -> PyResult<()> {
-        Ok(self.inner.add_qubit(bit, strict)?)
+    pub fn py_add_qubit(&mut self, bit: ShareableQubit, strict: bool) -> PyResult<u32> {
+        Ok(self.inner.add_qubit(bit, strict)?.0)
     }
 
     /// Registers a :class:`.QuantumRegister` instance.
@@ -3008,7 +3015,8 @@ impl PyCircuitData {
     ///         was provided.
     #[pyo3(name="add_clbit", signature = (bit, *, strict=true))]
     pub fn py_add_clbit(&mut self, bit: ShareableClbit, strict: bool) -> PyResult<()> {
-        Ok(self.inner.add_clbit(bit, strict)?)
+        self.inner.add_clbit(bit, strict)?;
+        Ok(())
     }
 
     /// Performs a shallow copy.
@@ -3284,15 +3292,85 @@ impl PyCircuitData {
         Ok(())
     }
 
-    pub fn extend(&mut self, itr: &Bound<PyAny>) -> PyResult<()> {
-        if let Ok(other) = itr.cast::<PyCircuitData>() {
-            Ok(self.inner.extend(&other.borrow().inner)?)
-        } else {
-            for v in itr.try_iter()? {
-                self.append(v?.cast()?)?;
-            }
-            Ok(())
+    /// Copy `CircuitInstruction` instances from a Python iterator into this object.
+    ///
+    /// This method (with this magic name) forms part of the Python "sequence" API.
+    pub fn extend(&mut self, other: &Bound<PyAny>) -> PyResult<()> {
+        for inst in other.try_iter()? {
+            self.append(inst?.cast()?)?;
         }
+        Ok(())
+    }
+    /// Copy instructions from one `PyCircuitData`  onto this one, optionally remapping the qubits and
+    /// clbits by index.
+    ///
+    /// This assumes that all the variables and registers used in `other` have been set up
+    /// correctly, but will copy across control-flow blocks as required.
+    #[pyo3(signature = (other, *, qubits=None, clbits=None))]
+    pub fn native_extend(
+        &mut self,
+        other: &PyCircuitData,
+        qubits: Option<Vec<Qubit>>,
+        clbits: Option<Vec<Clbit>>,
+    ) -> PyResult<()> {
+        if qubits
+            .as_ref()
+            .is_some_and(|q| q.len() != other.num_qubits())
+        {
+            return Err(PyValueError::new_err(
+                "'qubits' argument is the wrong length",
+            ));
+        } else if other.num_qubits() > self.num_qubits() {
+            return Err(PyValueError::new_err(format!(
+                "too many input qubits ({}) for circuit ({})",
+                other.num_qubits(),
+                self.num_qubits(),
+            )));
+        }
+        if clbits
+            .as_ref()
+            .is_some_and(|q| q.len() != other.num_clbits())
+        {
+            return Err(PyValueError::new_err(
+                "'clbits' argument is the wrong length",
+            ));
+        } else if other.num_clbits() > self.num_clbits() {
+            return Err(PyValueError::new_err(format!(
+                "too many input clbits ({}) for circuit ({})",
+                other.num_clbits(),
+                self.num_clbits(),
+            )));
+        }
+        let qargs_map = self
+            .inner
+            .qargs_interner
+            .merge_map_slice(&other.qargs_interner, |q| {
+                Some(qubits.as_ref().map_or(*q, |qubits| qubits[q.index()]))
+            });
+        let cargs_map = self
+            .inner
+            .cargs_interner
+            .merge_map_slice(&other.cargs_interner, |c| {
+                Some(clbits.as_ref().map_or(*c, |clbits| clbits[c.index()]))
+            });
+        let block_map = other
+            .blocks
+            .items()
+            .map(|(bid, block)| (bid, self.inner.add_block(block.clone())))
+            .collect::<HashMap<_, _>>();
+        self.inner.data.reserve(other.data.len());
+        for inst in other.iter() {
+            self.inner.push(PackedInstruction {
+                qubits: qargs_map[inst.qubits],
+                clbits: cargs_map[inst.clbits],
+                params: inst
+                    .params
+                    .as_ref()
+                    .map(|params| Box::new(params.map_blocks_ref(|bid| block_map[bid]))),
+                ..inst.clone()
+            })?;
+        }
+        Ok(())
     }
 
     /// Assign all the circuit parameters, given an iterable input of `Param` instances.

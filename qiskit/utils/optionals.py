@@ -241,7 +241,7 @@ from :mod:`.utils` directly if required, such as::
 .. autoclass:: qiskit.utils.LazySubprocessTester
 """
 
-# NOTE: If you're changing this file, sync it with `requirements-optional.txt` and potentially
+# NOTE: If you're changing this file, sync it with the `optionals-all` dependency group in
 # `pyproject.toml` as well.
 
 import logging as _logging

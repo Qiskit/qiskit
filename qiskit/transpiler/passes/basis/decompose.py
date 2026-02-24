@@ -15,7 +15,6 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Type
 from fnmatch import fnmatch
 
 from qiskit.transpiler.basepasses import TransformationPass
@@ -34,7 +33,7 @@ class Decompose(TransformationPass):
     def __init__(
         self,
         gates_to_decompose: (
-            str | Type[Instruction] | Sequence[str | Type[Instruction]] | None
+            str | type[Instruction] | Sequence[str | type[Instruction]] | None
         ) = None,
         apply_synthesis: bool = False,
     ) -> None:

@@ -16,7 +16,7 @@ Generic style visualization library.
 
 import json
 import os
-from typing import Any, Union
+from typing import Any
 from warnings import warn
 from pathlib import Path
 
@@ -81,11 +81,11 @@ class DefaultStyle:
     DEFAULT_STYLE_PATH = None
 
     def __init__(self):
-        raise NotImplementedError()
+        raise NotImplementedError
 
 
 def load_style(
-    style: Union[dict, str, None],
+    style: dict | str | None,
     style_dict: type[StyleDict],
     default_style: DefaultStyle,
     user_config_opt: str,
@@ -184,7 +184,7 @@ def load_style(
                     break
                 except json.JSONDecodeError as err:
                     warn(
-                        f"Could not decode JSON in file '{path}': {str(err)}. "
+                        f"Could not decode JSON in file '{path}': {err!s}. "
                         "Will use default style.",
                         UserWarning,
                         2,

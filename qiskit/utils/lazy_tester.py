@@ -20,7 +20,8 @@ import importlib
 import subprocess
 import typing
 import warnings
-from typing import Union, Iterable, Dict, Optional, Callable, Type
+
+from collections.abc import Iterable, Callable
 
 from qiskit.exceptions import MissingOptionalLibraryError, OptionalDependencyImportWarning
 from .classtools import wrap_method
@@ -31,7 +32,7 @@ class _RequireNow:
     :meth:`.LazyDependencyManager.require_now`.  This helpful when used with :func:`.wrap_method`,
     as the callable needs to be compatible with all signatures and be picklable."""
 
-    __slots__ = ("_tester", "_feature")
+    __slots__ = ("_feature", "_tester")
 
     def __init__(self, tester, feature):
         self._tester = tester
@@ -83,7 +84,7 @@ class LazyDependencyManager(abc.ABC):
     command-line tools are available, respectively.
     """
 
-    __slots__ = ("_bool", "_callback", "_name", "_install", "_msg")
+    __slots__ = ("_bool", "_callback", "_install", "_msg", "_name")
 
     def __init__(self, *, name=None, callback=None, install=None, msg=None):
         """
@@ -167,10 +168,10 @@ class LazyDependencyManager(abc.ABC):
         return out
 
     @typing.overload
-    def require_in_instance(self, feature_or_class: Type) -> Type: ...
+    def require_in_instance(self, feature_or_class: type) -> type: ...
 
     @typing.overload
-    def require_in_instance(self, feature_or_class: str) -> Callable[[Type], Type]: ...
+    def require_in_instance(self, feature_or_class: str) -> Callable[[type], type]: ...
 
     def require_in_instance(self, feature_or_class):
         """A class decorator that requires the dependency is available when the class is
@@ -246,12 +247,12 @@ class LazyImportTester(LazyDependencyManager):
 
     def __init__(
         self,
-        name_map_or_modules: Union[str, Dict[str, Iterable[str]], Iterable[str]],
+        name_map_or_modules: str | dict[str, Iterable[str]] | Iterable[str],
         *,
-        name: Optional[str] = None,
-        callback: Optional[Callable[[bool], None]] = None,
-        install: Optional[str] = None,
-        msg: Optional[str] = None,
+        name: str | None = None,
+        callback: Callable[[bool], None] | None = None,
+        install: str | None = None,
+        msg: str | None = None,
     ):
         """
         Args:
@@ -269,7 +270,7 @@ class LazyImportTester(LazyDependencyManager):
         elif isinstance(name_map_or_modules, str):
             self._modules = {name_map_or_modules: ()}
         else:
-            self._modules = {module: () for module in name_map_or_modules}
+            self._modules = dict.fromkeys(name_map_or_modules, ())
         if not self._modules:
             raise ValueError("no modules supplied")
         if name is not None:
@@ -332,12 +333,12 @@ class LazySubprocessTester(LazyDependencyManager):
 
     def __init__(
         self,
-        command: Union[str, Iterable[str]],
+        command: str | Iterable[str],
         *,
-        name: Optional[str] = None,
-        callback: Optional[Callable[[bool], None]] = None,
-        install: Optional[str] = None,
-        msg: Optional[str] = None,
+        name: str | None = None,
+        callback: Callable[[bool], None] | None = None,
+        install: str | None = None,
+        msg: str | None = None,
     ):
         """
         Args:
@@ -354,7 +355,7 @@ class LazySubprocessTester(LazyDependencyManager):
 
     def _is_available(self):
         try:
-            subprocess.run(
+            subprocess.run(  # noqa: S603
                 self._command, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
             )
         except (OSError, subprocess.SubprocessError):

@@ -15,7 +15,7 @@
 import functools
 import inspect
 import types
-from typing import Type, Callable
+from collections.abc import Callable
 
 
 # On user-defined classes, `__new__` is magically inferred to be a staticmethod, `__init_subclass__`
@@ -26,7 +26,7 @@ _MAGIC_STATICMETHODS = {"__new__"}
 _MAGIC_CLASSMETHODS = {"__init_subclass__", "__prepare__"}
 
 
-class _lift_to_method:  # pylint: disable=invalid-name
+class _lift_to_method:
     """A decorator that ensures that an input callable object implements ``__get__``.  It is
     returned unchanged if so, otherwise it is turned into the default implementation for functions,
     which makes them bindable to instances.
@@ -71,7 +71,7 @@ class _WrappedMethod:
     function call, but with the ``function`` called before or after.
     """
 
-    __slots__ = ("_method_decorator", "_method_has_get", "_method", "_before", "_after")
+    __slots__ = ("_after", "_before", "_method", "_method_decorator", "_method_has_get")
 
     def __init__(self, method, before=None, after=None):
         if isinstance(method, (classmethod, staticmethod)):
@@ -117,7 +117,9 @@ class _WrappedMethod:
         return out
 
 
-def wrap_method(cls: Type, name: str, *, before: Callable = None, after: Callable = None):
+def wrap_method(
+    cls: type, name: str, *, before: Callable | None = None, after: Callable | None = None
+):
     """Wrap the functionality the instance- or class method ``cls.name`` with additional behavior
     ``before`` and ``after``.
 

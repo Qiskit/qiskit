@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from typing import Union, Optional, List
+
 import math
 from collections.abc import Sequence
 
@@ -24,7 +24,7 @@ from qiskit.circuit import QuantumCircuit, QuantumRegister, ParameterExpression,
 from qiskit.utils.deprecation import deprecate_func
 from ..basis_change import QFT, QFTGate
 
-_ValueType = Union[int, float, np.integer, np.floating, ParameterExpression]
+_ValueType = int | float | np.integer | np.floating | ParameterExpression
 
 
 class QuadraticForm(QuantumCircuit):
@@ -73,12 +73,10 @@ class QuadraticForm(QuantumCircuit):
     )
     def __init__(
         self,
-        num_result_qubits: Optional[int] = None,
-        quadratic: Optional[
-            Union[np.ndarray, List[List[Union[float, ParameterExpression]]]]
-        ] = None,
-        linear: Optional[Union[np.ndarray, List[Union[float, ParameterExpression]]]] = None,
-        offset: Optional[Union[float, ParameterExpression]] = None,
+        num_result_qubits: int | None = None,
+        quadratic: np.ndarray | list[list[float | ParameterExpression]] | None = None,
+        linear: np.ndarray | list[float | ParameterExpression] | None = None,
+        offset: float | ParameterExpression | None = None,
         little_endian: bool = True,
     ) -> None:
         r"""
@@ -177,8 +175,8 @@ class QuadraticForm(QuantumCircuit):
 
     @staticmethod
     def required_result_qubits(
-        quadratic: Union[np.ndarray, List[List[float]]],
-        linear: Union[np.ndarray, List[float]],
+        quadratic: np.ndarray | list[list[float]],
+        linear: np.ndarray | list[float],
         offset: float,
     ) -> int:
         """Get the number of required result qubits.

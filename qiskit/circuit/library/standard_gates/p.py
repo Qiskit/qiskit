@@ -88,7 +88,7 @@ class PhaseGate(Gate):
 
     def _define(self):
         """Default definition"""
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         #    ┌──────────┐
@@ -230,7 +230,7 @@ class CPhaseGate(ControlledGate):
 
     def _define(self):
         """Default definition"""
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         #      ┌────────┐
@@ -352,7 +352,7 @@ class MCPhaseGate(ControlledGate):
         )
 
     def _define(self):
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit, QuantumRegister
 
         qr = QuantumRegister(self.num_qubits, "q")

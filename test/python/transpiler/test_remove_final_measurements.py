@@ -19,7 +19,7 @@ from qiskit.circuit import Clbit
 from qiskit.transpiler.passes import RemoveFinalMeasurements
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.passes.utils.remove_final_measurements import calc_final_ops
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestRemoveFinalMeasurements(QiskitTestCase):
