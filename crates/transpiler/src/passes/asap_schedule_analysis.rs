@@ -177,7 +177,8 @@ pub fn py_run_asap_schedule_analysis(
         for (py_node, py_duration) in node_durations.iter() {
             let node_idx = py_node
                 .cast_into::<DAGOpNode>()?
-                .extract::<DAGNode>()?
+                .cast_into::<DAGNode>()?
+                .borrow()
                 .node
                 .expect("Node index not found.");
             let val = py_duration.extract::<u64>()?;
@@ -195,7 +196,8 @@ pub fn py_run_asap_schedule_analysis(
         for (py_node, py_duration) in node_durations.iter() {
             let node_idx = py_node
                 .cast_into::<DAGOpNode>()?
-                .extract::<DAGNode>()?
+                .cast_into::<DAGNode>()?
+                .borrow()
                 .node
                 .expect("Node index not found.");
             let val = py_duration.extract::<f64>()?;

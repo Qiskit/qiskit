@@ -360,7 +360,7 @@ impl Operation for OperationRef<'_> {
 /// Used to tag control flow instructions via the `_control_flow_type` class
 /// attribute in the corresponding Python class.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int)]
+#[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int, from_py_object)]
 #[repr(u8)]
 pub enum ControlFlowType {
     Box = 0,
@@ -628,10 +628,10 @@ impl ControlFlowInstruction {
                 let (duration, unit) = match duration {
                     Some(duration) => match duration {
                         BoxDuration::Duration(duration) => {
-                            (Some(duration.py_value(py)?), Some(duration.unit()))
+                            (Some(duration.py_value(py)), Some(duration.unit()))
                         }
                         BoxDuration::Expr(expr) => {
-                            (Some(expr.clone().into_py_any(py)?), Some("expr"))
+                            (Some(expr.clone().into_bound_py_any(py)?), Some("expr"))
                         }
                     },
                     None => (None, None),
@@ -1020,7 +1020,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for DelayUnit {
 /// This is also used to tag standard instructions via the `_standard_instruction_type` class
 /// attribute in the corresponding Python class.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int)]
+#[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int, from_py_object)]
 #[repr(u8)]
 pub enum StandardInstructionType {
     Barrier = 0,
@@ -1153,7 +1153,7 @@ impl StandardInstruction {
 
 #[derive(Clone, Debug, Copy, Eq, PartialEq, Hash)]
 #[repr(u8)]
-#[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int)]
+#[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int, from_py_object)]
 pub enum StandardGate {
     GlobalPhase = 0,
     H = 1,

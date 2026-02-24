@@ -197,7 +197,8 @@ memory.
     mapping,
     subclass,
     name = "BaseTarget",
-    module = "qiskit._accelerate.target"
+    module = "qiskit._accelerate.target",
+    skip_from_py_object
 )]
 #[derive(Clone, Debug)]
 pub struct Target {
