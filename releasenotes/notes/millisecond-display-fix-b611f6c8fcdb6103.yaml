@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Correct the text representation of ``DurationUnit::Millisecond`` in the QASM3 AST to use
+    ``"ms"`` instead of ``"us"``.

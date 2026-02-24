@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    The QASM3 exporter now raises ``QASM3ExporterError`` when given an unsupported
+    duration unit instead of a ``KeyError``.
