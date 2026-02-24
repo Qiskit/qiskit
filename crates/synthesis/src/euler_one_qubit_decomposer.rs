@@ -687,7 +687,12 @@ impl Default for EulerBasisSet {
 }
 
 #[derive(Clone, Debug, Copy, Eq, Hash, PartialEq)]
-#[pyclass(module = "qiskit._accelerate.euler_one_qubit_decomposer", eq, eq_int)]
+#[pyclass(
+    module = "qiskit._accelerate.euler_one_qubit_decomposer",
+    eq,
+    eq_int,
+    from_py_object
+)]
 pub enum EulerBasis {
     U3 = 0,
     U321 = 1,

@@ -27,7 +27,10 @@ mod utils;
 /// Checks whether an array of size N is a permutation of 0, 1, ..., N - 1.
 #[pyfunction]
 #[pyo3(signature = (pattern))]
-pub fn _validate_permutation(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<Py<PyAny>> {
+pub fn _validate_permutation(
+    py: Python,
+    pattern: PyArrayLike1<i64, numpy::AllowTypeChange>,
+) -> PyResult<Py<PyAny>> {
     let view = pattern.as_array();
     utils::validate_permutation(&view)?;
     Ok(py.None())
@@ -36,7 +39,10 @@ pub fn _validate_permutation(py: Python, pattern: PyArrayLike1<i64>) -> PyResult
 /// Finds inverse of a permutation pattern.
 #[pyfunction]
 #[pyo3(signature = (pattern))]
-pub fn _inverse_pattern(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<Py<PyAny>> {
+pub fn _inverse_pattern(
+    py: Python,
+    pattern: PyArrayLike1<i64, numpy::AllowTypeChange>,
+) -> PyResult<Py<PyAny>> {
     let view = pattern.as_array();
     let inverse_i64: Vec<i64> = utils::invert(&view).iter().map(|&x| x as i64).collect();
     Ok(inverse_i64.into_pyobject(py)?.unbind())
@@ -44,7 +50,9 @@ pub fn _inverse_pattern(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<Py<P
 
 #[pyfunction]
 #[pyo3(signature = (pattern))]
-pub fn _synth_permutation_basic(pattern: PyArrayLike1<i64>) -> PyResult<CircuitData> {
+pub fn _synth_permutation_basic(
+    pattern: PyArrayLike1<i64, numpy::AllowTypeChange>,
+) -> PyResult<CircuitData> {
     let view = pattern.as_array();
     let num_qubits = view.len();
     Ok(CircuitData::from_standard_gates(
@@ -62,7 +70,9 @@ pub fn _synth_permutation_basic(pattern: PyArrayLike1<i64>) -> PyResult<CircuitD
 
 #[pyfunction]
 #[pyo3(signature = (pattern))]
-fn _synth_permutation_acg(pattern: PyArrayLike1<i64>) -> PyResult<CircuitData> {
+fn _synth_permutation_acg(
+    pattern: PyArrayLike1<i64, numpy::AllowTypeChange>,
+) -> PyResult<CircuitData> {
     let inverted = utils::invert(&pattern.as_array());
     let view = inverted.view();
     let num_qubits = view.len();
@@ -86,7 +96,9 @@ fn _synth_permutation_acg(pattern: PyArrayLike1<i64>) -> PyResult<CircuitData> {
 /// architecture using the Kutin, Moulton, Smithline method.
 #[pyfunction]
 #[pyo3(signature = (pattern))]
-pub fn _synth_permutation_depth_lnn_kms(pattern: PyArrayLike1<i64>) -> PyResult<CircuitData> {
+pub fn _synth_permutation_depth_lnn_kms(
+    pattern: PyArrayLike1<i64, numpy::AllowTypeChange>,
+) -> PyResult<CircuitData> {
     let mut inverted = utils::invert(&pattern.as_array());
     let mut view = inverted.view_mut();
     let num_qubits = view.len();

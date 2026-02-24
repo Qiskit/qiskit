@@ -697,17 +697,19 @@ class ForLoopStatement(Statement):
             | "[" Range "]"
     """
 
-    __slots__ = ("body", "indexset", "parameter")
+    __slots__ = ("body", "indexset", "parameter", "type")
 
     def __init__(
         self,
         indexset: Identifier | IndexSet | Range,
         parameter: Identifier,
         body: ProgramBlock,
+        type_: ClassicalType,
     ):
         self.indexset = indexset
         self.parameter = parameter
         self.body = body
+        self.type = type_
 
 
 class WhileLoopStatement(Statement):

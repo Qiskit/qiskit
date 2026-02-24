@@ -45,10 +45,28 @@ use crate::target::{Qargs, Target};
 use qiskit_circuit::PhysicalQubit;
 
 #[allow(clippy::large_enum_variant)]
-#[derive(Clone, Debug, FromPyObject)]
+#[derive(Clone, Debug)]
 pub enum DecomposerType {
     TwoQubitBasis(TwoQubitBasisDecomposer),
     TwoQubitControlledU(TwoQubitControlledUDecomposer),
+}
+// TODO: we shouldn't need to clone a decomposer on entry from Python space, but should rely on a
+// reference type.  This implementation was added during the transition to PyO3 0.28, to avoid
+// proliferating the cloning derive of `FromPyObject` to `TwoQubitBasisDecomposer` and
+// `TwoQubitControlledUDecomposer`; that clone is usually a mistake.  Using a reference type within
+// this code would require a greater refactor so that the Python-space method
+// `py_run_consolidate_blocks` is not the actual worker function.
+impl<'a, 'py> pyo3::FromPyObject<'a, 'py> for DecomposerType {
+    type Error = pyo3::CastError<'a, 'py>;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
+        if let Ok(ob) = ob.cast::<TwoQubitBasisDecomposer>() {
+            Ok(Self::TwoQubitBasis(ob.borrow().clone()))
+        } else {
+            ob.cast::<TwoQubitControlledUDecomposer>()
+                .map(|ob| Self::TwoQubitControlledU(ob.borrow().clone()))
+        }
+    }
 }
 
 fn get_matrix(gate: &StandardGate) -> ArrayView2<'_, Complex64> {
