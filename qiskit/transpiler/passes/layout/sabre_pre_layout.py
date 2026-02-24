@@ -68,9 +68,10 @@ class SabrePreLayout(AnalysisPass):
                 that become connected in the augmented coupling map.
             error_rate: The error rate to assign to the "extra" edges. A non-zero
                 error rate prioritizes VF2 to choose original edges over extra edges.
-            max_trials_vf2: Specifies the maximum number of VF2 trials. With the introduction of
-                on-the-fly scoring in VF2 this option has little meaning. To bound the time for
-                the pass, set parameters ``max_distance`` and ``call_limit_vf2`` instead.
+            max_trials_vf2: Specifies the maximum number of VF2 trials. This option remains primarily
+                for legacy reasons since the introduction of on-the-fly scoring in VF2, which was
+                introduced in Qiskit 2.3. To bound the time for the pass, set parameters ``max_distance``
+                and ``call_limit_vf2`` instead.
             call_limit_vf2: The maximum number of times that the inner VF2 isomorphism search will
                 attempt to extend the mapping. If ``None``, then no limit.  If a 2-tuple, then the
                 limit starts as the first item, and swaps to the second after the first match is found,
