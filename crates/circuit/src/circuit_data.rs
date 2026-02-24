@@ -29,8 +29,8 @@ use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
 use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::{ObjectRegistry, ObjectRegistryError};
 use crate::operations::{
-    ControlFlow, ControlFlowView, CustomOp, Operation, OperationRef, Param, PyOperationTypes,
-    PythonOperation, StandardGate,
+    ControlFlow, ControlFlowView, CustomOp, CustomOperation, Operation, OperationRef, Param,
+    PyOperationTypes, PythonOperation, StandardGate,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::{ParameterError, ParameterExpression};
@@ -2373,6 +2373,25 @@ impl CircuitData {
         let qubits = self.qargs_interner.insert(qargs);
         self.push(PackedInstruction::from_standard_gate(
             operation, params, qubits,
+        ))
+    }
+
+    /// Appends a custom operation to this instance of [CircuitData].
+    pub fn push_custom_operation<O>(
+        &mut self,
+        operation: O,
+        params: &[Param],
+        qargs: &[Qubit],
+        cargs: &[Clbit],
+    ) -> Result<(), CircuitDataError>
+    where
+        O: CustomOperation,
+    {
+        let params = (!params.is_empty()).then(|| Box::new(params.iter().cloned().collect()));
+        let qubits = self.qargs_interner.insert(qargs);
+        let clbits = self.cargs_interner.insert(cargs);
+        self.push(PackedInstruction::from_custom_operation(
+            operation, qubits, clbits, params,
         ))
     }
 

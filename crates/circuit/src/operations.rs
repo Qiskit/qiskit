@@ -3547,8 +3547,7 @@ mod test_custom_gates {
     use crate::circuit_data::CircuitData;
     use crate::gate_matrix::H_GATE;
     use crate::operations::{
-        CustomOp, CustomOperation, CustomOperationKind, Operation, OperationRef, Param,
-        StandardGate,
+        CustomOperation, CustomOperationKind, Operation, OperationRef, Param, StandardGate,
     };
     use ndarray::aview2;
     use smallvec::smallvec;
@@ -3678,11 +3677,8 @@ mod test_custom_gates {
         let mut circuit = CircuitData::with_capacity(1, 0, 1, 0.0.into())
             .expect("Circuit with small capacity should be built.");
 
-        let gate: CustomOp = CustomH.into();
-
-        // Try downcasting
         circuit
-            .push_packed_operation(gate.clone().into(), None, &[Qubit(0)], &[])
+            .push_custom_operation(CustomH, &[], &[Qubit(0)], &[])
             .expect("Instruction should be added to the circuit.");
 
         // Retrieve operation

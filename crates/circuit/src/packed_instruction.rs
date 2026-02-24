@@ -19,8 +19,8 @@ use crate::imports::{
 use crate::instruction::Parameters;
 use crate::interner::Interned;
 use crate::operations::{
-    ControlFlow, ControlFlowInstruction, CustomOp, CustomOperationKind, Operation, OperationRef,
-    Param, PauliProductMeasurement, PyOperationTypes, PythonOperation, StandardGate,
+    ControlFlow, ControlFlowInstruction, CustomOp, CustomOperation, CustomOperationKind, Operation,
+    OperationRef, Param, PauliProductMeasurement, PyOperationTypes, PythonOperation, StandardGate,
     StandardInstruction, UnitaryGate,
 };
 use crate::{Block, Clbit, Qubit};
@@ -745,6 +745,29 @@ impl PackedInstruction {
             label: label.map(Box::new),
             #[cfg(feature = "cache_pygates")]
             py_op: Default::default(),
+        }
+    }
+
+    /// Pack a [CustomOperation] with parameters into a complete instruction.
+    pub fn from_custom_operation<O>(
+        operation: O,
+        qubits: Interned<[Qubit]>,
+        clbits: Interned<[Clbit]>,
+        params: Option<Box<SmallVec<[Param; 3]>>>,
+    ) -> Self
+    where
+        O: CustomOperation,
+    {
+        let operation = CustomOp::from(operation);
+        let label = operation.view().label().map(ToString::to_string);
+        Self {
+            op: operation.into(),
+            qubits,
+            clbits,
+            params: params.map(|params| Box::new(Parameters::Params(*params))),
+            label: label.map(Box::new),
+            #[cfg(feature = "cache_pygates")]
+            py_op: OnceLock::new(),
         }
     }
 
