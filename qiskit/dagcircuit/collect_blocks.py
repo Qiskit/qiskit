@@ -31,7 +31,7 @@ class BlockCollector:
     into blocks of nodes that satisfy certain criteria. It works both with the
     :class:`~qiskit.dagcircuit.DAGCircuit` and
     :class:`~qiskit.dagcircuit.DAGDependency` representations of a DAG, where
-    DagDependency takes into account commutativity between nodes.
+    the latter takes into account commutativity between nodes.
 
     Collecting nodes from DAGDependency generally leads to more optimal results, but is
     slower, as it requires to construct a DAGDependency beforehand. Thus, DAGCircuit should
@@ -339,7 +339,7 @@ def split_block_into_layers(block: list[DAGOpNode | DAGDepNode]):
 
 class BlockCollapser:
     """This class implements various strategies of consolidating blocks of nodes
-    in a DAG (direct acyclic graph). It works both with
+    in a DAG (directed acyclic graph). It works both with
     the :class:`~qiskit.dagcircuit.DAGCircuit`
     and :class:`~qiskit.dagcircuit.DAGDependency` DAG representations.
     """
