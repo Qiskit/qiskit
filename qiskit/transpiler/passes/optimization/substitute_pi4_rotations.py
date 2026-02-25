@@ -35,14 +35,8 @@ class SubstitutePi4Rotations(TransformationPass):
       from qiskit.transpiler.passes import SubstitutePi4Rotations
       from qiskit.quantum_info import Operator
 
-<<<<<<< HEAD
-      # The following quantum circuit consists of 5 Clifford gates
-      # and three single-qubit rotation gates whose angles are integer multiples of pi/4.
-=======
       # The following quantum circuit consists of 5 Clifford gates,
-      # four rotation gates whose angles are integer multiples of pi/4,
-      # and one controlled rotation gate whose angle is an integer multiple of pi/2
->>>>>>> 537b79c36 (Fix typos in qiskit/transpiler and qiskit/passmanager (#15729))
+      # and three single-qubit rotation gates whose angles are integer multiples of pi/4.
 
       qc = QuantumCircuit(3)
       qc.cx(0, 1)
