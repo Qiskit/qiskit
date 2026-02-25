@@ -3561,7 +3561,11 @@ impl From<Box<dyn CustomOperation>> for CustomOp {
     }
 }
 
-#[pyclass(name = "CustomOperation", module = "qiskit.circuit.operation")]
+#[pyclass(
+    name = "CustomOperation",
+    module = "qiskit.circuit.operation",
+    from_py_object
+)]
 #[derive(Debug)]
 pub struct PyCustomOp {
     inner: Box<dyn CustomOperation>,
