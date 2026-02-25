@@ -36,7 +36,7 @@ use pyo3::types::PyTuple;
 use pyo3::{PyResult, intern};
 
 /// Parent class for DAGOpNode, DAGInNode, and DAGOutNode.
-#[pyclass(module = "qiskit._accelerate.circuit", subclass)]
+#[pyclass(module = "qiskit._accelerate.circuit", subclass, skip_from_py_object)]
 #[derive(Clone, Debug)]
 pub struct DAGNode {
     pub node: Option<NodeIndex>,

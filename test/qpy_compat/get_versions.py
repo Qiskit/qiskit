@@ -75,7 +75,7 @@ def available_versions():
                     if release["packagetype"] == "bdist_wheel" and not release["yanked"]
                     for tag in tags_from_wheel_name(release["filename"])
                 ):
-                    print(
+                    print(  # noqa: T201
                         f"skipping '{other_version}', which has no installable binary artifacts",
                         file=sys.stderr,
                     )
@@ -96,7 +96,7 @@ def available_versions():
                         python_versions, key=lambda s: tuple(map(int, s.split(".")))
                     )
                 except ValueError:
-                    print(
+                    print(  # noqa: T201
                         f"skipping '{other_version}', which has no installable binary artifacts",
                         file=sys.stderr,
                     )
@@ -118,7 +118,7 @@ def available_versions():
 def main():
     """main"""
     for package, version, python_version in available_versions():
-        print(package, version, python_version)
+        print(package, version, python_version)  # noqa: T201
 
 
 if __name__ == "__main__":

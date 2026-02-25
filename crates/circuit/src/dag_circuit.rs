@@ -188,7 +188,7 @@ impl Wire {
 /// There are 3 types of nodes in the graph: inputs, outputs, and operations.
 /// The nodes are connected by directed edges that correspond to qubits and
 /// bits.
-#[pyclass(module = "qiskit._accelerate.circuit")]
+#[pyclass(module = "qiskit._accelerate.circuit", from_py_object)]
 #[derive(Clone, Debug)]
 pub struct DAGCircuit {
     /// Circuit name.  Generally, this corresponds to the name
@@ -280,7 +280,12 @@ fn reject_new_register(reg: &ClassicalRegister) -> PyResult<()> {
     )))
 }
 
-#[pyclass(name = "BitLocations", module = "qiskit._accelerate.circuit", sequence)]
+#[pyclass(
+    name = "BitLocations",
+    module = "qiskit._accelerate.circuit",
+    sequence,
+    skip_from_py_object
+)]
 #[derive(Clone, Debug)]
 pub struct PyBitLocations {
     #[pyo3(get)]

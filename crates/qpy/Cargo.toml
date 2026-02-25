@@ -22,7 +22,7 @@ qiskit-quantum-info.workspace = true
 num-bigint.workspace = true
 num-complex.workspace = true
 bytemuck.workspace = true
-binrw = "0.15"
+binrw.workspace = true
 uuid = {version = "1", features = ["v4"]}
 
 [dependencies.smallvec]

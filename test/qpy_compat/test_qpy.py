@@ -1102,7 +1102,7 @@ def load_qpy(qpy_files, version_parts):
             # so not loading and comparing these payloads.
             # See https://github.com/Qiskit/qiskit/pull/13814
             continue
-        print(f"Loading qpy file: {path}")
+        print(f"Loading qpy file: {path}")  # noqa: T201
         with open(path, "rb") as fd:
             qpy_circuits = load(fd)
         equivalent = path in {"open_controlled_gates.qpy", "controlled_gates.qpy"}

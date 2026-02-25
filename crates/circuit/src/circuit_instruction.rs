@@ -70,7 +70,12 @@ use smallvec::SmallVec;
 ///     mutations of the object do not invalidate the types, nor the restrictions placed on it by
 ///     its context.  Typically this will mean, for example, that :attr:`qubits` must be a sequence
 ///     of distinct items, with no duplicates.
-#[pyclass(freelist = 20, sequence, module = "qiskit._accelerate.circuit")]
+#[pyclass(
+    freelist = 20,
+    sequence,
+    module = "qiskit._accelerate.circuit",
+    from_py_object
+)]
 #[derive(Clone, Debug)]
 pub struct CircuitInstruction {
     pub operation: PackedOperation,

@@ -46,7 +46,13 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Value {
 }
 
 /// A single scalar value.
-#[pyclass(eq, extends = PyExpr, name = "Value", module = "qiskit._accelerate.circuit.classical.expr")]
+#[pyclass(
+    eq,
+    extends = PyExpr,
+    name = "Value",
+    module = "qiskit._accelerate.circuit.classical.expr",
+    from_py_object
+)]
 #[derive(PartialEq, Clone, Debug)]
 pub struct PyValue(Value);
 
