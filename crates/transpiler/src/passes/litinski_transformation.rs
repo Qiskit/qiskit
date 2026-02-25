@@ -13,16 +13,19 @@
 use pyo3::prelude::*;
 
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
+use qiskit_circuit::imports::PAULI_EVOLUTION_GATE;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
-    Operation, OperationRef, Param, PauliBased, PauliProductMeasurement, PauliRotation,
-    StandardGate, StandardInstruction, multiply_param,
+    Operation, OperationRef, Param, PauliBased, PauliProductMeasurement, PyInstruction,
+    PyOperationTypes, StandardGate, StandardInstruction, multiply_param,
 };
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::{BlocksMode, VarsMode};
 
 use crate::TranspilerError;
+use num_complex::Complex64;
 use qiskit_quantum_info::clifford::Clifford;
+use qiskit_quantum_info::sparse_observable::SparseObservable;
 
 use smallvec::smallvec;
 use std::f64::consts::PI;
@@ -41,6 +44,7 @@ static HANDLED_INSTRUCTION_NAMES: [&str; 4] = ["t", "tdg", "rz", "measure"];
 #[pyfunction]
 #[pyo3(signature = (dag, fix_clifford=true))]
 pub fn run_litinski_transformation(
+    py: Python,
     dag: &DAGCircuit,
     fix_clifford: bool,
 ) -> PyResult<Option<DAGCircuit>> {
@@ -77,6 +81,8 @@ pub fn run_litinski_transformation(
 
     let new_dag = dag.copy_empty_like_with_same_capacity(VarsMode::Alike, BlocksMode::Keep)?;
     let mut new_dag = new_dag.into_builder();
+
+    let py_evo_cls = PAULI_EVOLUTION_GATE.get_bound(py);
 
     let num_qubits = dag.num_qubits();
     let mut clifford = Clifford::identity(num_qubits);
@@ -235,24 +241,42 @@ pub fn run_litinski_transformation(
                     // Evolve the single-qubit Pauli-Z with Z on the given qubit.
                     // Returns the evolved Pauli in the sparse format: (sign, pauli z, pauli x, indices),
                     // where signs `true` and `false` correspond to coefficients `-1` and `+1` respectively.
-                    let (sign, z, x, indices) =
+                    let (sign, terms, indices) =
                         clifford.get_inverse_z(dag.get_qargs(inst.qubits)[0].index());
-                    let angle = if sign {
-                        multiply_param(&angle, -1.0)
+                    let coeffs = vec![Complex64::new(1., 0.)];
+                    let terms_len = terms.len() as u32;
+                    let boundaries = vec![0, terms_len as usize];
+                    // SAFETY: This is computed from the clifford and has a known size based on
+                    // the returned terms that is always valid.
+                    let obs = unsafe {
+                        SparseObservable::new_unchecked(
+                            terms_len,
+                            coeffs,
+                            terms,
+                            (0..terms_len).collect(),
+                            boundaries,
+                        )
+                    };
+
+                    let time = if sign {
+                        multiply_param(&angle, -0.5)
                     } else {
-                        angle
+                        multiply_param(&angle, 0.5)
                     };
-                    let pauli_rotation = PauliRotation {
-                        z,
-                        x,
-                        angle: angle.clone(),
-                    };
-                    let pbc = Box::new(PauliBased::PauliRotation(pauli_rotation));
+                    let py_evo = py_evo_cls.call1((obs, time.clone()))?;
+                    let py_gate = PyOperationTypes::Gate(PyInstruction {
+                        qubits: indices.len() as u32,
+                        clbits: 0,
+                        params: 1,
+                        op_name: "PauliEvolution".to_string(),
+                        instruction: py_evo.into(),
+                    });
+
                     new_dag.apply_operation_back(
-                        pbc.into(),
+                        py_gate.into(),
                         &indices,
                         &[],
-                        Some(Parameters::Params(smallvec![angle])),
+                        Some(Parameters::Params(smallvec![time])),
                         None,
                         #[cfg(feature = "cache_pygates")]
                         None,
@@ -261,8 +285,8 @@ pub fn run_litinski_transformation(
                 OperationRef::StandardInstruction(StandardInstruction::Measure) => {
                     // Returns the evolved Pauli in the sparse format: (sign, pauli z, pauli x, indices),
                     // where signs `true` and `false` correspond to coefficients `-1` and `+1` respectively.
-                    let (sign, z, x, indices) =
-                        clifford.get_inverse_z(dag.get_qargs(inst.qubits)[0].index());
+                    let (sign, z, x, indices) = clifford
+                        .get_inverse_z_for_measurement(dag.get_qargs(inst.qubits)[0].index());
                     let ppm = PauliProductMeasurement { z, x, neg: sign };
 
                     let ppm_clbits = dag.get_cargs(inst.clbits);
