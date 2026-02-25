@@ -704,7 +704,8 @@ impl ParameterExpression {
 #[pyclass(
     subclass,
     module = "qiskit._accelerate.circuit",
-    name = "ParameterExpression"
+    name = "ParameterExpression",
+    from_py_object
 )]
 #[derive(Clone, Debug)]
 pub struct PyParameterExpression {
@@ -1448,7 +1449,14 @@ impl PyParameterExpression {
 ///         bc = qc.assign_parameters({phi: 3.14})
 ///         bc.measure_all()
 ///         bc.draw("mpl")
-#[pyclass(sequence, subclass, module="qiskit._accelerate.circuit", extends=PyParameterExpression, name="Parameter")]
+#[pyclass(
+    sequence,
+    subclass,
+    module="qiskit._accelerate.circuit",
+    extends=PyParameterExpression,
+    name="Parameter",
+    from_py_object
+)]
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd)]
 pub struct PyParameter {
     pub symbol: Symbol,
@@ -1675,7 +1683,14 @@ impl PyParameter {
 /// .. note::
 ///     There is very little reason to ever construct this class directly.  Objects of this type are
 ///     automatically constructed efficiently as part of creating a :class:`.ParameterVector`.
-#[pyclass(sequence, subclass, module="qiskit._accelerate.circuit", extends=PyParameter, name="ParameterVectorElement")]
+#[pyclass(
+    sequence,
+    subclass,
+    module="qiskit._accelerate.circuit",
+    extends=PyParameter,
+    name="ParameterVectorElement",
+    from_py_object
+)]
 #[derive(Clone, Debug, Eq, PartialEq, PartialOrd)]
 pub struct PyParameterVectorElement {
     pub symbol: Symbol,
@@ -1913,7 +1928,7 @@ impl From<ParameterValueType> for ParameterExpression {
     }
 }
 
-#[pyclass(module = "qiskit._accelerate.circuit")]
+#[pyclass(module = "qiskit._accelerate.circuit", from_py_object)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, PartialOrd, Ord)]
 #[repr(u8)]
 pub enum OpCode {
@@ -1990,7 +2005,7 @@ impl OpCode {
 }
 
 // enum for QPY replay
-#[pyclass(sequence, module = "qiskit._accelerate.circuit")]
+#[pyclass(sequence, module = "qiskit._accelerate.circuit", from_py_object)]
 #[derive(Clone, Debug)]
 pub struct OPReplay {
     pub op: OpCode,

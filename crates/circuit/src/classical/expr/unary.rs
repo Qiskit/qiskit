@@ -112,7 +112,13 @@ impl PyUnaryOp {
 ///     op: The opcode describing which operation is being done.
 ///     operand: The operand of the operation.
 ///     type: The resolved type of the result.
-#[pyclass(eq, extends = PyExpr, name = "Unary", module = "qiskit._accelerate.circuit.classical.expr")]
+#[pyclass(
+    eq,
+    extends = PyExpr,
+    name = "Unary",
+    module = "qiskit._accelerate.circuit.classical.expr",
+    from_py_object
+)]
 #[derive(PartialEq, Clone, Debug)]
 pub struct PyUnary(Unary);
 

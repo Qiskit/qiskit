@@ -160,7 +160,13 @@ trait ManifestableBit: ShareableBit {
 ///     This class cannot be instantiated directly. Its only purpose is to allow generic type
 ///     checking for :class:`.Clbit` and :class:`.Qubit`.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[pyclass(subclass, name = "Bit", module = "qiskit.circuit", frozen)]
+#[pyclass(
+    subclass,
+    name = "Bit",
+    module = "qiskit.circuit",
+    frozen,
+    skip_from_py_object
+)]
 pub struct PyBit;
 /// Implement a generic register.
 ///
@@ -173,7 +179,8 @@ pub struct PyBit;
     subclass,
     frozen,
     eq,
-    hash
+    hash,
+    skip_from_py_object
 )]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 pub struct PyRegister;
@@ -378,9 +385,9 @@ macro_rules! create_bit_object {
             /// Return the register owning the bit, if it exists
             pub fn owning_register(&self) -> Option<$reg_struct> {
                 match &self.0 {
-                    BitInfo::Owned { register, .. } => {
-                        Some($reg_struct(Arc::new(RegisterInfo::Owning(register.clone()))))
-                    }
+                    BitInfo::Owned { register, .. } => Some($reg_struct(Arc::new(
+                        RegisterInfo::Owning(register.clone()),
+                    ))),
                     BitInfo::Anonymous { .. } => None,
                 }
             }
@@ -409,30 +416,33 @@ macro_rules! create_bit_object {
 
         #[doc = concat!("A ", $bit_desc, ", which can be compared between different circuits.")]
         #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-        #[pyclass(subclass, name=$pybit_name, module="qiskit.circuit", extends=PyBit, frozen, eq, hash)]
+        #[pyclass(subclass, name=$pybit_name, module="qiskit.circuit", extends=PyBit, frozen, eq, hash, skip_from_py_object)]
         pub struct $pybit_struct($bit_struct);
         #[pymethods]
         impl $pybit_struct {
             /// Create a new bit.
             #[new]
             #[pyo3(signature=(register=None, index=None))]
-            fn new(register: Option<Bound<$pyreg_struct>>, index: Option<u32>) -> PyResult<(Self, PyBit)> {
+            fn new(
+                register: Option<Bound<$pyreg_struct>>,
+                index: Option<u32>,
+            ) -> PyResult<(Self, PyBit)> {
                 match (register, index) {
                     (Some(register), Some(index)) => {
                         let register = &register.borrow().0;
                         let bit = register.get(index as usize).ok_or_else(|| {
                             PyIndexError::new_err(format!(
-                                "index {} out of range for size {}", index, register.len()
+                                "index {} out of range for size {}",
+                                index,
+                                register.len()
                             ))
                         })?;
                         Ok((Self(bit), PyBit))
                     }
-                    (None, None) => {
-                        Ok((Self($bit_struct::new_anonymous()), PyBit))
-                    }
-                    _ => {
-                        Err(PyTypeError::new_err("either both 'register' and 'index' are provided, or neither are"))
-                    }
+                    (None, None) => Ok((Self($bit_struct::new_anonymous()), PyBit)),
+                    _ => Err(PyTypeError::new_err(
+                        "either both 'register' and 'index' are provided, or neither are",
+                    )),
                 }
             }
 
@@ -440,9 +450,10 @@ macro_rules! create_bit_object {
                 let ob = &slf.borrow().0;
                 let name = slf.get_type().qualname()?;
                 match &ob.0 {
-                    BitInfo::Owned { register, index } => {
-                        Ok(format!("<{} register=({}, \"{}\"), index={}>", name, register.size, &register.name, index))
-                    }
+                    BitInfo::Owned { register, index } => Ok(format!(
+                        "<{} register=({}, \"{}\"), index={}>",
+                        name, register.size, &register.name, index
+                    )),
                     BitInfo::Anonymous { uid, .. } => Ok(format!("<{name} uid={uid}>")),
                 }
             }
@@ -462,7 +473,7 @@ macro_rules! create_bit_object {
                 // This is deliberately type-erasing up top, so `AncillaQubit` can override the
                 // constructor methods.
                 let ty = slf.get_type();
-                match &slf.borrow().0 .0 {
+                match &slf.borrow().0.0 {
                     BitInfo::Owned { register, index } => (
                         ty.getattr("_from_owned")?,
                         (register.name.to_owned(), register.size, index),
@@ -520,9 +531,9 @@ macro_rules! create_bit_object {
             #[getter]
             fn _register(&self) -> Option<$reg_struct> {
                 match &self.0.0 {
-                    BitInfo::Owned { register, .. } => {
-                        Some($reg_struct(Arc::new(RegisterInfo::Owning(register.clone()))))
-                    }
+                    BitInfo::Owned { register, .. } => Some($reg_struct(Arc::new(
+                        RegisterInfo::Owning(register.clone()),
+                    ))),
                     BitInfo::Anonymous { .. } => None,
                 }
             }
@@ -572,11 +583,13 @@ macro_rules! create_bit_object {
             /// Create a new owning register.
             #[inline]
             pub fn new_owning<S: Into<String>>(name: S, size: u32) -> Self {
-                Self(Arc::new(RegisterInfo::Owning(Arc::new(OwningRegisterInfo {
-                    name: name.into(),
-                    size,
-                    subclass: Default::default(),
-                }))))
+                Self(Arc::new(RegisterInfo::Owning(Arc::new(
+                    OwningRegisterInfo {
+                        name: name.into(),
+                        size,
+                        subclass: Default::default(),
+                    },
+                ))))
             }
 
             /// Create a new aliasing register.
@@ -632,7 +645,6 @@ macro_rules! create_bit_object {
             pub fn iter(&self) -> impl ExactSizeIterator<Item = $bit_struct> + '_ {
                 self.0.iter()
             }
-
         }
 
         impl Register for $reg_struct {
@@ -641,7 +653,7 @@ macro_rules! create_bit_object {
             fn len(&self) -> usize {
                 self.0.len()
             }
-            fn is_empty(&self)-> bool {
+            fn is_empty(&self) -> bool {
                 self.0.is_empty()
             }
             fn name(&self) -> &str {
@@ -659,7 +671,7 @@ macro_rules! create_bit_object {
             fn is_owning(&self) -> bool {
                 match self.0.as_ref() {
                     RegisterInfo::Owning(_) => true,
-                    RegisterInfo::Alias {..} => false,
+                    RegisterInfo::Alias { .. } => false,
                 }
             }
         }
@@ -684,7 +696,7 @@ macro_rules! create_bit_object {
         }
 
         /// Implement a register.
-        #[pyclass(subclass, name=$pyreg_name, module="qiskit.circuit", extends=PyRegister, frozen, eq, hash, sequence)]
+        #[pyclass(subclass, name=$pyreg_name, module="qiskit.circuit", extends=PyRegister, frozen, eq, hash, sequence, skip_from_py_object)]
         #[derive(Clone, Debug, PartialEq, Eq, Hash)]
         pub struct $pyreg_struct($reg_struct);
 
@@ -788,15 +800,14 @@ macro_rules! create_bit_object {
             }
             fn __getitem__<'py>(&self, ob: Bound<'py, PyAny>) -> PyResult<Bound<'py, PyAny>> {
                 let get_inner = |idx| {
-                    self.0.get(idx)
+                    self.0
+                        .get(idx)
                         .expect("PySequenceIndex always returns valid indices")
                 };
                 if let Ok(sequence) = ob.extract::<PySequenceIndex>() {
                     match sequence.with_len(self.0.len())? {
                         SequenceIndex::Int(idx) => get_inner(idx).into_bound_py_any(ob.py()),
-                        s => {
-                            Ok(PyList::new(ob.py(), s.into_iter().map(get_inner))?.into_any())
-                        }
+                        s => Ok(PyList::new(ob.py(), s.into_iter().map(get_inner))?.into_any()),
                     }
                 } else if let Ok(list) = ob.cast::<PyList>() {
                     let out = PyList::empty(ob.py());
@@ -815,12 +826,14 @@ macro_rules! create_bit_object {
             /// The index of the given bit in the register.
             fn index(&self, bit: Bound<$pybit_struct>) -> PyResult<usize> {
                 let bit_inner = bit.borrow();
-                self.0.index_of(&bit_inner.0).ok_or_else(|| {
-                    match bit.repr() {
-                        Ok(repr) => PyValueError::new_err(format!("Bit {repr} not found in register.")),
+                self.0
+                    .index_of(&bit_inner.0)
+                    .ok_or_else(|| match bit.repr() {
+                        Ok(repr) => {
+                            PyValueError::new_err(format!("Bit {repr} not found in register."))
+                        }
                         Err(err) => err,
-                    }
-                })
+                    })
             }
 
             /// Allows for the creation of a new register with a temporary prefix and the
@@ -833,12 +846,11 @@ macro_rules! create_bit_object {
                 name: Option<String>,
                 bits: Option<Vec<$bit_struct>>,
             ) -> PyResult<Py<Self>> {
-                let name =
-                    format!(
-                        "{}{}",
-                        name.unwrap_or(Self::prefix().to_string()),
-                        $reg_struct::anonymous_instance_count().fetch_add(1, Ordering::Relaxed)
-                    );
+                let name = format!(
+                    "{}{}",
+                    name.unwrap_or(Self::prefix().to_string()),
+                    $reg_struct::anonymous_instance_count().fetch_add(1, Ordering::Relaxed)
+                );
                 Py::new(py, Self::py_new(size, Some(name), bits)?)
             }
 
@@ -900,7 +912,7 @@ impl ShareableQubit {
 
 /// A qubit used as an ancilla.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[pyclass(name="AncillaQubit", module="qiskit.circuit", extends=PyQubit, frozen)]
+#[pyclass(name="AncillaQubit", module="qiskit.circuit", extends=PyQubit, frozen, skip_from_py_object)]
 pub struct PyAncillaQubit;
 #[pymethods]
 impl PyAncillaQubit {
@@ -1017,7 +1029,8 @@ impl QuantumRegister {
     name = "AncillaRegister",
     module = "qiskit.circuit",
     frozen,
-    extends=PyQuantumRegister
+    extends=PyQuantumRegister,
+    skip_from_py_object,
 )]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PyAncillaRegister;

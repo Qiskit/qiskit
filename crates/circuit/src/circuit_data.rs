@@ -213,7 +213,7 @@ type CircuitDataState<'py> = (
 /// Raises:
 ///     KeyError: if ``data`` contains a reference to a bit that is not present
 ///         in ``qubits`` or ``clbits``.
-#[pyclass(sequence, module = "qiskit._accelerate.circuit")]
+#[pyclass(sequence, module = "qiskit._accelerate.circuit", from_py_object)]
 #[derive(Clone, Debug)]
 pub struct CircuitData {
     /// The packed instruction listing.
