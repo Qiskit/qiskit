@@ -728,7 +728,6 @@ impl TextDrawer {
                 }
             }
             OperationRef::StandardGate(standard_gate) => {
-
                 static STANDARD_GATE_LABELS: [&str; crate::operations::STANDARD_GATE_SIZE] = [
                     "", "H", "I", "X", "Y", "Z", "P", "R", "Rx", "Ry", "Rz", "S", "Sdg", "√X",
                     "√Xdg", "T", "Tdg", "U", "U1", "U2", "U3", "H", "X", "Y", "Z", "Dcx", "Ecr",
@@ -1209,4 +1208,83 @@ pub fn py_drawer(
     fold: Option<usize>,
 ) -> PyResult<String> {
     draw_circuit(&circuit.data, cregbundle, mergewires, fold)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::bit::{ClassicalRegister, QuantumRegister, ShareableClbit, ShareableQubit};
+
+    fn basic_circuit() -> CircuitData {
+        let qreg = QuantumRegister::new_owning("q", 2);
+
+        let creg_1 = ClassicalRegister::new_owning("c1", 2);
+
+        let creg_2 = ClassicalRegister::new_owning("c2", 2);
+
+        let qubits: Vec<ShareableQubit> = (0..qreg.len())
+            .map(|i| qreg.get(i).expect("index in range"))
+            .collect();
+
+        let clbits: Vec<ShareableClbit> = (0..creg_1.len())
+            .map(|i| creg_1.get(i).expect("index in range"))
+            .chain((0..creg_2.len()).map(|i| creg_2.get(i).expect("index in range")))
+            .collect();
+
+        let mut circuit =
+            CircuitData::new(Some(qubits), Some(clbits), None, 0, Param::Float(0.0)).unwrap();
+
+        _ = circuit.add_creg(creg_1, true);
+        _ = circuit.add_creg(creg_2, true);
+        _ = circuit.add_qreg(qreg, true);
+
+        circuit
+            .push_standard_gate(StandardGate::H, &[], &[Qubit::new(0)])
+            .unwrap();
+
+        circuit
+            .push_standard_gate(StandardGate::CX, &[], &[Qubit::new(0), Qubit::new(1)])
+            .unwrap();
+
+        circuit
+    }
+
+    #[test]
+    fn test_creg_bundle() {
+        let circuit = basic_circuit();
+
+        let result = draw_circuit(&circuit, true, false, None).unwrap();
+
+        let expected = "      ┌───┐     \n q_0: ┤ H ├──■──\n      └───┘  │  \n           ┌─┴─┐\n q_1: ─────┤ X ├\n           └───┘\n                \nc1: 2/══════════\n                \n                \nc2: 2/══════════\n                \n";
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_merge_wires() {
+        let circuit = basic_circuit();
+
+        let result = draw_circuit(&circuit, false, true, None).unwrap();
+
+        let expected = "      ┌───┐     \n q_0: ┤ H ├──■──\n      └───┘┌─┴─┐\n q_1: ─────┤ X ├\n           └───┘\nc1_0: ══════════\n                \nc1_1: ══════════\n                \nc2_0: ══════════\n                \nc2_1: ══════════\n                \n";
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_fold() {
+        let mut circuit = basic_circuit();
+
+        circuit
+            .push_standard_gate(StandardGate::CY, &[], &[Qubit::new(0), Qubit::new(1)])
+            .unwrap();
+
+        circuit
+            .push_standard_gate(StandardGate::CZ, &[], &[Qubit::new(0), Qubit::new(1)])
+            .unwrap();
+
+        let result = draw_circuit(&circuit, false, false, Some(10)).unwrap();
+        let expected = "      ┌───┐     »\n q_0: ┤ H ├──■──»\n      └───┘  │  »\n           ┌─┴─┐»\n q_1: ─────┤ X ├»\n           └───┘»\n                »\nc1_0: ══════════»\n                »\n                »\nc1_1: ══════════»\n                »\n                »\nc2_0: ══════════»\n                »\n                »\nc2_1: ══════════»\n                »\n«                \n« q_0: ──■────■──\n«        │    │  \n«      ┌─┴─┐┌─┴─┐\n« q_1: ┤ Y ├┤ Z ├\n«      └───┘└───┘\n«                \n«c1_0: ══════════\n«                \n«                \n«c1_1: ══════════\n«                \n«                \n«c2_0: ══════════\n«                \n«                \n«c2_1: ══════════\n«                \n";
+        assert_eq!(result, expected);
+    }
 }
