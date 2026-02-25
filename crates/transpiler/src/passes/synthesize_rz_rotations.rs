@@ -46,19 +46,17 @@ static PHASE_GATE_LUT: [(f64, Option<StandardGate>); 8] = [
 // where interval is the floor of theta/(pi/2) and is a u8 bit that functions
 // as an index to the static table that uniquely determines the combination of
 // phase_update and angle to be added to the DAG after synthesis using the
-// canonical_angle. The limits of this uniqueness is determined by
-// angle_normalized = angle.rem_euclid(FOUR_PI); since it is f64, any
-// angle that differs in decimal places beyond f64 will have a non-unique
-// representation.
+// canonical_angle. 
 
 /// Finds a canonical representation of an angle.
 ///
 /// Given `angle`, this returns `(interval, angle_normalized)` such that
 /// angle_normalized = angle (mod pi/2)
 /// (angle - angle_normalized - interval * pi/2) = 0 (mod 4pi)
+/// The canonical representation is limited by the f64 representation.
+/// Any angle that differs in decimal places beyond f64 will be non-unique.
 fn canonicalize_angle(angle: f64) -> (u8, f64) {
     let angle_normalized = angle.rem_euclid(FRAC_PI_2);
-    debug_assert!((0.0..FRAC_PI_2).contains(&angle_normalized));
     let interval = ((angle - angle_normalized) / FRAC_PI_2)
         .round()
         .rem_euclid(8.) as u8;
