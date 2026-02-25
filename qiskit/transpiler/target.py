@@ -102,7 +102,7 @@ class Target(BaseTarget):
     they are made (either through versioning, subclassing, or mixins) to add
     on to the set of information exposed by a target.
 
-    As a basic example, let's assume backend has two qubits, supports
+    As a basic example, let's assume a backend has two qubits, supports
     :class:`~qiskit.circuit.library.UGate` on both qubits and
     :class:`~qiskit.circuit.library.CXGate` in both directions. To model this
     you would create the target like::
@@ -223,7 +223,7 @@ class Target(BaseTarget):
     usual API for constructing a :class:`Target` should be a function that returns a base
     :class:`Target`, not a subclass with a custom initializer.
 
-    You may use subclassing to add *addition* Python-space properties to your :class:`Target`, for
+    You may use subclassing to add *additional* Python-space properties to your :class:`Target`, for
     example to then interpret in custom backend-specific transpiler stages; the :class:`Target` is
     passed to stage-plugin constructors.
 
@@ -404,7 +404,7 @@ class Target(BaseTarget):
                 The operation object to add to the map. If it's parameterized any value
                 of the parameter can be set. Optionally for variable width
                 instructions (such as control flow operations such as :class:`~.ForLoop` or
-                :class:`~MCXGate`) you can specify the class. If the class is specified than the
+                :class:`~MCXGate`) you can specify the class. If the class is specified then the
                 ``name`` argument must be specified. When a class is used the gate is treated as global
                 and not having any properties set.
             properties (dict): A dictionary of qarg entries to an
@@ -625,7 +625,7 @@ class Target(BaseTarget):
 
         If there is a mix of two qubit operations that have a connectivity
         constraint and those that are globally defined this will also return
-        ``None`` because the globally connectivity means there is no constraint
+        ``None`` because the global connectivity means there is no constraint
         on the target. If you wish to see the constraints of the two qubit
         operations that have constraints you should use the ``two_q_gate``
         argument to limit the output to the gates which have a constraint.

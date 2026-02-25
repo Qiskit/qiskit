@@ -50,7 +50,7 @@ class ApproximateTokenSwapper:
         """Construct an ApproximateTokenSwapping object.
 
         Args:
-            graph: Undirected graph represented a coupling map.
+            graph: Undirected graph representing a coupling map.
             seed: Seed to use for random trials.
         """
         self.graph = graph
