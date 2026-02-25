@@ -36,7 +36,7 @@ def _compute_control_matrix(base_mat, num_ctrl_qubits, ctrl_state=None):
 
     Args:
         base_mat (ndarray): unitary to be controlled
-        num_ctrl_qubits (int): number of controls for new unitary
+        num_ctrl_qubits (int): number of controls for the new unitary
         ctrl_state (int or str or None): The control state in decimal or as
             a bitstring (e.g. '111'). If None, use 2**num_ctrl_qubits-1.
 

@@ -43,7 +43,7 @@ commutation. The relative placement is defined by the gate qubit arrangements as
 q1[i] is the ith qubit of the first gate and q2^{-1}[q] returns the qubit index of qubit q in the second
 gate (possibly 'None'). In the second example, the zeroth qubit of cy overlaps with qubit 1 of cx. Non-
 overlapping qubits are specified as 'None' in the dictionary key, e.g. example 3, there is no overlap
-on the zeroth qubit of the first cx but the zeroth qubit of the second gate overlaps with qubit 1 of the
+on the zeroth qubit of the first cx, but the zeroth qubit of the second gate overlaps with qubit 1 of the
 first cx.
 """
 
