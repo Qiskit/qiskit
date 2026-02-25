@@ -31,7 +31,7 @@ class WrapAngles(TransformationPass):
     transformation, but is simple to follow:
 
     .. plot::
-       :alt: Circuit digram of the output from running the WrapAngles pass
+       :alt: Circuit diagram of the output from running the WrapAngles pass
        :include-source:
 
        from qiskit.circuit import Gate, Parameter, Qubit, QuantumCircuit
