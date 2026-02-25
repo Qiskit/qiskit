@@ -433,7 +433,7 @@ class CouplingMap:
         This method will return a list of :class:`~.CouplingMap` objects, one for each connected
         component in this :class:`~.CouplingMap`. The data payload of each node in the
         :attr:`~.CouplingMap.graph` attribute will contain the qubit number in the original
-        graph. This will enables mapping the qubit index in a component subgraph to
+        graph. This will enable mapping the qubit index in a component subgraph to
         the original qubit in the combined :class:`~.CouplingMap`. For example::
 
             from qiskit.transpiler import CouplingMap

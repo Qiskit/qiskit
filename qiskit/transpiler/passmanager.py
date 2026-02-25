@@ -379,7 +379,7 @@ class StagedPassManager(PassManager):
     ) -> None:
         raise NotImplementedError
 
-    # Raise NotImplemntedError on individual pass manipulation
+    # Raise NotImplementedError on individual pass manipulation
     def remove(self, index: int) -> None:
         raise NotImplementedError
 

@@ -58,7 +58,7 @@ class SabreSwap(TransformationPass):
 
     This transpiler pass adds onto the SABRE algorithm in that it will run
     multiple trials of the algorithm with different seeds. The best output,
-    determined by the trial with the least amount of SWAPed inserted, will
+    determined by the trial with the least amount of SWAPs inserted, will
     be selected from the random trials.
 
     **References:**
@@ -114,7 +114,7 @@ class SabreSwap(TransformationPass):
             Second is the basic cost but now evaluated for the
             extended set as well (i.e. :math:`|E|` number of upcoming successors to gates in
             front_layer F). This is weighted by some amount EXTENDED_SET_WEIGHT (W) to
-            signify that upcoming gates are less important that the front_layer.
+            signify that upcoming gates are less important than the front_layer.
 
             .. math::
 
