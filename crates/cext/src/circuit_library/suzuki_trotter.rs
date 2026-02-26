@@ -22,14 +22,13 @@ use qiskit_quantum_info::sparse_observable::SparseObservable;
 /// In this implementation, the operators are provided as sum terms of a Pauli operator.
 /// Higher order decompositions are based on recursions, see Ref. [1] for more details.
 ///
-///
-/// @param operator  The ``QkObs``  containing the sum of the Pauli terms.
-/// @param order  The order of the product formula.
-/// @param reps  The number of time steps.
-/// @param time  The evolution time.
-/// @param preserve_order  If ``false``, allows reordering the terms of the operator to
-///                potentially yield a shallower evolution circuit. Not relevant
-///                when synthesizing an observable with a single term.
+/// @param op The ``QkObs``  containing the sum of the Pauli terms.
+/// @param order The order of the product formula.
+/// @param reps The number of time steps.
+/// @param time The evolution time.
+/// @param preserve_order If ``false``, allows reordering the terms of the operator to
+///   potentially yield a shallower evolution circuit. Not relevant
+///   when synthesizing an observable with a single term.
 /// @param insert_barriers  Whether to insert barriers between the terms evolutions.
 ///
 /// @return A pointer to the generated circuit.
@@ -54,7 +53,7 @@ use qiskit_quantum_info::sparse_observable::SparseObservable;
 ///
 /// # Safety
 ///
-/// Behavior is undefined ``operator`` is not a valid, non-null pointer to a ``QkObs``.
+/// Behavior is undefined ``op`` is not a valid, non-null pointer to a ``QkObs``.
 ///
 /// # References
 ///
@@ -66,8 +65,8 @@ use qiskit_quantum_info::sparse_observable::SparseObservable;
 /// "Finding Exponential Product Formulas of Higher Orders" (2005).
 /// [arXiv:math-ph/0506007](https://arxiv.org/pdf/math-ph/0506007.pdf)
 #[unsafe(no_mangle)]
-pub extern "C" fn qk_circuit_library_suzuki_trotter(
-    operator: *const SparseObservable,
+pub unsafe extern "C" fn qk_circuit_library_suzuki_trotter(
+    op: *const SparseObservable,
     order: u32,
     reps: u32,
     time: f64,
@@ -75,7 +74,7 @@ pub extern "C" fn qk_circuit_library_suzuki_trotter(
     insert_barriers: bool,
 ) -> *mut CircuitData {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
-    let operator = unsafe { const_ptr_as_ref(operator) };
+    let operator = unsafe { const_ptr_as_ref(op) };
 
     match suzuki_trotter_evolution(operator, order, reps, time, preserve_order, insert_barriers) {
         Ok(circuit) => Box::into_raw(Box::new(circuit)),
