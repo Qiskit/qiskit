@@ -699,6 +699,11 @@ def _read_parameter_expr_v13(buf, symbol_map, version, vectors):
                 stack.append(getattr(rhs, method_str)(lhs))
             else:
                 stack.append(getattr(lhs, method_str)(rhs))
+        elif expression_data.OP_CODE == 21:
+            # POS operation is special. We keep all the variables
+            # and force create a new ParameterExpression
+            lhs = stack.pop()
+            stack.append(ParameterExpression(name_map, str(lhs)))
         else:
             lhs = stack.pop()
             stack.append(getattr(lhs, method_str)())

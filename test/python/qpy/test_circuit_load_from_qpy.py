@@ -323,6 +323,18 @@ class TestVersionArg(QpyCircuitTestCase):
         qc.ry(expr, 0)
         self.assert_roundtrip_equal(qc)
 
+    def test_pos(self):
+        """Test expressions with cancelled-out variables works as expected"""
+        qc = QuantumCircuit(1)
+        a = Parameter("A")
+        b = Parameter("B")
+        expr = 0 * a
+        expr = expr * b
+        qc.ry(expr, 0)
+        self.assert_roundtrip_equal(qc)
+        self.assertIn(a, qc.parameters, "Parameter 'A' missing after roundtrip")
+        self.assertIn(b, qc.parameters, "Parameter 'B' missing after roundtrip")
+
 
 @ddt
 class TestUseSymengineFlag(QpyCircuitTestCase):
