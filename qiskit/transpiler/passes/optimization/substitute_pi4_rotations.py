@@ -44,7 +44,7 @@ class SubstitutePi4Rotations(TransformationPass):
 
       # The following quantum circuit consists of 5 Clifford gates,
       # four rotation gates whose angles are integer multiples of pi/4,
-      # and one controlled rotation gate whose angle is an integer multiple pf pi/2
+      # and one controlled rotation gate whose angle is an integer multiple of pi/2
 
       qc = QuantumCircuit(3)
       qc.cx(0, 1)

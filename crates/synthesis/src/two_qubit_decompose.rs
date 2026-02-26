@@ -197,7 +197,7 @@ fn decompose_two_qubit_product_gate(
 ///     QiskitError: if decomposition isn't possible.
 fn py_decompose_two_qubit_product_gate(
     py: Python,
-    special_unitary: PyArrayLike2<Complex64>,
+    special_unitary: PyArrayLike2<Complex64, numpy::AllowTypeChange>,
 ) -> PyResult<(Py<PyAny>, Py<PyAny>, f64)> {
     let view = special_unitary.as_array();
     let (l, r, phase) = decompose_two_qubit_product_gate(view)?;
@@ -417,7 +417,7 @@ fn compute_unitary(sequence: &TwoQubitSequenceVec, global_phase: f64) -> Array2<
 const DEFAULT_FIDELITY: f64 = 1.0 - 1.0e-9;
 
 #[derive(Clone, Debug, Copy, PartialEq, Eq)]
-#[pyclass(module = "qiskit._accelerate.two_qubit_decompose", eq)]
+#[pyclass(module = "qiskit._accelerate.two_qubit_decompose", eq, from_py_object)]
 pub enum Specialization {
     General,
     IdEquiv,
@@ -479,7 +479,11 @@ impl Specialization {
 
 #[derive(Clone, Debug)]
 #[allow(non_snake_case)]
-#[pyclass(module = "qiskit._accelerate.two_qubit_decompose", subclass)]
+#[pyclass(
+    module = "qiskit._accelerate.two_qubit_decompose",
+    subclass,
+    skip_from_py_object
+)]
 pub struct TwoQubitWeylDecomposition {
     #[pyo3(get)]
     a: f64,
@@ -1296,7 +1300,11 @@ impl Default for TwoQubitGateSequence {
 
 #[derive(Clone, Debug)]
 #[allow(non_snake_case)]
-#[pyclass(module = "qiskit._accelerate.two_qubit_decompose", subclass)]
+#[pyclass(
+    module = "qiskit._accelerate.two_qubit_decompose",
+    subclass,
+    skip_from_py_object
+)]
 pub struct TwoQubitBasisDecomposer {
     gate: PackedOperation,
     gate_params: SmallVec<[f64; 3]>,
@@ -2522,7 +2530,11 @@ impl<'py> IntoPyObject<'py> for RXXEquivalent {
 }
 
 #[derive(Clone, Debug)]
-#[pyclass(module = "qiskit._accelerate.two_qubit_decompose", subclass)]
+#[pyclass(
+    module = "qiskit._accelerate.two_qubit_decompose",
+    subclass,
+    skip_from_py_object
+)]
 pub struct TwoQubitControlledUDecomposer {
     rxx_equivalent_gate: RXXEquivalent,
     euler_basis: EulerBasis,

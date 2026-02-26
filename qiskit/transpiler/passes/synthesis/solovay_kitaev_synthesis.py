@@ -194,7 +194,7 @@ class SolovayKitaev(TransformationPass):
             Output dag with 1q gates synthesized in the discrete target basis.
 
         Raises:
-            TranspilerError: if a gates does not have to_matrix
+            TranspilerError: if a gate does not have to_matrix
         """
         for node in dag.op_nodes():
             # ignore operations on which the algorithm cannot run
@@ -304,7 +304,7 @@ class SolovayKitaevSynthesis(UnitarySynthesisPlugin):
 
     @property
     def supports_basis_gates(self):
-        """The plugin does not support basis gates. By default it synthesis to the
+        """The plugin does not support basis gates. By default it synthesizes to the
         ``["h", "t", "tdg"]`` gate basis."""
         return True
 
@@ -323,7 +323,7 @@ class SolovayKitaevSynthesis(UnitarySynthesisPlugin):
         recursion_degree = config.get("recursion_degree", 5)
 
         # Check if we didn't yet construct the Solovay-Kitaev instance (which contains the basic
-        # approximations) or if the basic approximations need need to be recomputed.
+        # approximations) or if the basic approximations need to be recomputed.
         if (SolovayKitaevSynthesis._sk is None) or (
             (basis_gates != SolovayKitaevSynthesis._basis_gates)
             or (depth != SolovayKitaevSynthesis._depth)

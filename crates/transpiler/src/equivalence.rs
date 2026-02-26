@@ -56,7 +56,12 @@ pub static PYDIGRAPH: ImportOnceCell = ImportOnceCell::new("rustworkx", "PyDiGra
 
 // Custom Structs
 
-#[pyclass(frozen, sequence, module = "qiskit._accelerate.equivalence")]
+#[pyclass(
+    frozen,
+    sequence,
+    module = "qiskit._accelerate.equivalence",
+    from_py_object
+)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Key {
     #[pyo3(get)]
@@ -127,7 +132,12 @@ impl Display for Key {
     }
 }
 
-#[pyclass(frozen, sequence, module = "qiskit._accelerate.equivalence")]
+#[pyclass(
+    frozen,
+    sequence,
+    module = "qiskit._accelerate.equivalence",
+    from_py_object
+)]
 #[derive(Debug, Clone)]
 pub struct Equivalence {
     #[pyo3(get)]
@@ -183,7 +193,12 @@ impl Display for Equivalence {
     }
 }
 
-#[pyclass(frozen, sequence, module = "qiskit._accelerate.equivalence")]
+#[pyclass(
+    frozen,
+    sequence,
+    module = "qiskit._accelerate.equivalence",
+    from_py_object
+)]
 #[derive(Debug, Clone)]
 pub struct NodeData {
     #[pyo3(get)]
@@ -227,7 +242,12 @@ impl Display for NodeData {
     }
 }
 
-#[pyclass(frozen, sequence, module = "qiskit._accelerate.equivalence")]
+#[pyclass(
+    frozen,
+    sequence,
+    module = "qiskit._accelerate.equivalence",
+    from_py_object
+)]
 #[derive(Debug, Clone)]
 pub struct EdgeData {
     #[pyo3(get)]
@@ -359,7 +379,8 @@ type KTIType = IndexMap<Key, NodeIndex, RandomState>;
 #[pyclass(
     subclass,
     name = "BaseEquivalenceLibrary",
-    module = "qiskit._accelerate.equivalence"
+    module = "qiskit._accelerate.equivalence",
+    skip_from_py_object
 )]
 #[derive(Debug, Clone)]
 pub struct EquivalenceLibrary {

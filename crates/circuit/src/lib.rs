@@ -42,7 +42,6 @@ pub mod vf2;
 
 mod variable_mapper;
 
-use pyo3::PyTypeInfo;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{PySequence, PyString, PyTuple};
@@ -266,6 +265,7 @@ pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<dag_node::DAGOutNode>()?;
     m.add_class::<dag_node::DAGOpNode>()?;
     m.add_class::<dag_circuit::PyBitLocations>()?;
+    m.add_class::<duration::Duration>()?;
     m.add_class::<operations::ControlFlowType>()?;
     m.add_class::<operations::StandardGate>()?;
     m.add_class::<operations::StandardInstructionType>()?;

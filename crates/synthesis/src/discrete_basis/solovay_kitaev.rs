@@ -32,7 +32,7 @@ use super::math::{self, group_commutator_decomposition};
 ///
 /// This generates the basic approximation set once as R-tree and re-uses it for
 /// each queried decomposition.
-#[pyclass]
+#[pyclass(skip_from_py_object)]
 #[derive(Clone, Debug)]
 pub struct SolovayKitaevSynthesis {
     /// The set of basic approximations.
@@ -282,7 +282,7 @@ impl SolovayKitaevSynthesis {
     /// Query the basic approximation for a [GateSequence].
     ///
     /// Legacy compat.
-    fn find_basic_approximation(&self, sequence: GateSequence) -> GateSequence {
+    fn find_basic_approximation(&self, sequence: &GateSequence) -> GateSequence {
         let approximation = self
             .basic_approximations
             .query(&sequence.matrix_so3)

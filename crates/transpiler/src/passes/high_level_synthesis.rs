@@ -50,7 +50,7 @@ use qiskit_circuit::instruction::{Instruction, Parameters};
 /// The global qubits are numbered by consecutive integers starting at `0`,
 /// and the states are distinguished into clean (:math:`|0\rangle`)
 /// and dirty (unknown).
-#[pyclass]
+#[pyclass(skip_from_py_object)]
 #[derive(Clone, Debug)]
 struct QubitTracker {
     /// The total number of global qubits
@@ -276,7 +276,10 @@ impl QubitTracker {
 }
 
 /// Internal class that encapsulates immutable data required by the HighLevelSynthesis transpiler pass.
-#[pyclass(module = "qiskit._accelerate.high_level_synthesis")]
+#[pyclass(
+    module = "qiskit._accelerate.high_level_synthesis",
+    skip_from_py_object
+)]
 #[derive(Clone, Debug)]
 pub struct HighLevelSynthesisData {
     // The high-level-synthesis config that specifies the synthesis methods

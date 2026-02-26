@@ -40,7 +40,7 @@ the underlying pulse instruction should satisfy other two waveform constraints.
 Pulse alignment constraint
 
     This value is reported by ``timing_constraints["pulse_alignment"]`` in the backend
-    configuration in units of dt. The start time of the all pulse instruction should be
+    configuration in units of dt. The start time of all pulse instructions should be
     multiple of this value. Violation of this constraint may result in the
     backend execution failure.
 
