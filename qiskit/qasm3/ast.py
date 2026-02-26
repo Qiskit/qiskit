@@ -536,6 +536,15 @@ class QuantumBarrier(QuantumInstruction):
         self.indexIdentifierList = indexIdentifierList
 
 
+class QuantumGlobalBarrier:
+    """
+    quantumBarrier
+        : 'barrier'
+    """
+
+    __slots__ = ()
+
+
 class QuantumReset(QuantumInstruction):
     """A built-in ``reset q0;`` statement."""
 
