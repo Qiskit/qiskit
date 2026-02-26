@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use ahash::HashSet;
+use hashbrown::HashSet;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use qiskit_quantum_info::sparse_observable::SparseTermView;
@@ -18,10 +18,9 @@ use rustworkx_core::coloring::{ColoringStrategy, greedy_node_color_with_coloring
 use rustworkx_core::petgraph::graph::NodeIndex;
 use rustworkx_core::petgraph::{Graph, Undirected};
 use std::convert::Infallible;
-use std::usize;
 
 pub fn evolution(order: u32, num_paulis: usize) -> Vec<(usize, f64)> {
-    return match order {
+    match order {
         1 => (0..num_paulis).map(|i| (i, 1.)).collect(),
         2 => (0..num_paulis - 1)
             .map(|i| (i, 0.5))
@@ -33,7 +32,7 @@ pub fn evolution(order: u32, num_paulis: usize) -> Vec<(usize, f64)> {
             let mut outer = evolution(order - 2, num_paulis);
             let outer_len = outer.len();
             outer.iter_mut().for_each(|p| {
-                p.1 *= reduction as f64;
+                p.1 *= reduction;
             });
             let mut outer: Vec<(usize, f64)> =
                 outer.into_iter().cycle().take(outer_len * 2).collect();
@@ -41,7 +40,7 @@ pub fn evolution(order: u32, num_paulis: usize) -> Vec<(usize, f64)> {
 
             let mut inner = evolution(order - 2, num_paulis);
             inner.iter_mut().for_each(|p| {
-                p.1 *= (1.0 - 4.0 * reduction) as f64;
+                p.1 *= 1.0 - 4.0 * reduction;
             });
 
             outer.append(&mut inner);
@@ -49,7 +48,7 @@ pub fn evolution(order: u32, num_paulis: usize) -> Vec<(usize, f64)> {
 
             outer
         }
-    };
+    }
 }
 
 pub fn reorder_terms<'a>(
@@ -59,12 +58,12 @@ pub fn reorder_terms<'a>(
         .sorted_by_key(|view| (view.indices, view.bit_terms))
         .collect();
     let edges: Vec<(usize, usize)> = (0..sorted.len())
-        .combinations(2 as usize)
+        .combinations(2)
         .map(|combination| (combination[0], combination[1]))
         .filter(|(index1, index2)| {
             let (indices1, indices2) = (
-                HashSet::from_iter(sorted[*index1].indices),
-                HashSet::from_iter(sorted[*index2].indices),
+                HashSet::<&u32>::from_iter(sorted[*index1].indices),
+                HashSet::<&u32>::from_iter(sorted[*index2].indices),
             );
             indices1.intersection(&indices2).count() > 0
         })
@@ -94,8 +93,7 @@ pub fn reorder_terms<'a>(
 
             Ok(colors_map
                 .iter()
-                .map(|(_, node_index)| node_index)
-                .flatten()
+                .flat_map(|(_, node_index)| node_index)
                 .map(|index| sorted[graph[**index]])
                 .collect())
         }

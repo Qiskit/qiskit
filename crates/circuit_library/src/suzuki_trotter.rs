@@ -36,7 +36,7 @@ pub fn suzuki_trotter_evolution(
         view.coeff.re *= time * 2.0 / (reps as f64);
         view
     });
-    let terms = if preserve_order || !preserve_order && observable.bit_terms().len() <= 1 {
+    let terms = if preserve_order || observable.bit_terms().len() <= 1 {
         terms_iter.collect()
     } else {
         match reorder_terms(terms_iter) {
@@ -55,36 +55,33 @@ pub fn suzuki_trotter_evolution(
     let mut global_phase = Param::Float(0.0);
     let mut modified_phase = false;
 
-    let repeated_evo = iter_repeated
-        .enumerate()
-        .map(|(i, (index, coeff))| {
-            let view = &terms[*index];
-            if view.bit_terms.len() == 0 {
-                global_phase = radd_param(global_phase.clone(), (view.coeff.re * coeff).into());
-                modified_phase = true;
-            }
-            let instructions = sparse_term_evolution(
-                view.bit_terms
-                    .iter()
-                    .map(|bit| bit.py_label())
-                    .collect::<String>()
-                    .leak(),
-                view.indices.into(),
-                (view.coeff.re * coeff).into(),
-                false,
-                false,
-            )
-            .map(Ok::<Instruction, _>);
+    let repeated_evo = iter_repeated.enumerate().flat_map(|(i, (index, coeff))| {
+        let view = &terms[*index];
+        if view.bit_terms.is_empty() {
+            global_phase = radd_param(global_phase.clone(), (view.coeff.re * coeff).into());
+            modified_phase = true;
+        }
+        let instructions = sparse_term_evolution(
+            view.bit_terms
+                .iter()
+                .map(|bit| bit.py_label())
+                .collect::<String>()
+                .leak(),
+            view.indices.into(),
+            (view.coeff.re * coeff).into(),
+            false,
+            false,
+        )
+        .map(Ok::<Instruction, _>);
 
-            let maybe_barrier = (insert_barriers && i as u32 != repetitions - 1)
-                .then_some(Ok(create_barrier(observable.num_qubits())))
-                .into_iter();
-            instructions.chain(maybe_barrier)
-        })
-        .flatten();
+        let maybe_barrier = (insert_barriers && i as u32 != repetitions - 1)
+            .then_some(Ok(create_barrier(observable.num_qubits())))
+            .into_iter();
+        instructions.chain(maybe_barrier)
+    });
 
     match CircuitData::from_packed_operations(
-        observable.num_qubits() as u32,
+        observable.num_qubits(),
         0,
         repeated_evo,
         Param::Float(0.0),
@@ -103,7 +100,7 @@ fn create_barrier(num_qubits: u32) -> Instruction {
     (
         PackedOperation::from_standard_instruction(StandardInstruction::Barrier(num_qubits)),
         smallvec![],
-        (0..num_qubits as u32).map(Qubit).collect(),
+        (0..num_qubits).map(Qubit).collect(),
         vec![],
     )
 }
