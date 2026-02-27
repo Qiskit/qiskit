@@ -229,7 +229,10 @@ class Isometry(Instruction):
         # UCGate to disentangle a qubit:
         # Find the UCGate, decompose it and apply it to the remaining isometry
         single_qubit_gates = self._find_squs_for_disentangling(v, k, s)
-        if not isometry_rs.ucg_is_identity_up_to_global_phase(single_qubit_gates, self._epsilon):
+        if (
+            not isometry_rs.ucg_is_identity_up_to_global_phase(single_qubit_gates, self._epsilon)
+            or len(single_qubit_gates) == 1
+        ):
             control_labels = list(range(target_label))
             diagonal_ucg = self._append_ucg_up_to_diagonal(
                 circuit, q, single_qubit_gates, control_labels, target_label
