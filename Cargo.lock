@@ -1977,11 +1977,14 @@ dependencies = [
  "numpy",
  "pyo3",
  "qiskit-circuit",
+ "qiskit-quantum-info",
+ "qiskit-synthesis",
  "rand 0.9.2",
  "rand_distr",
  "rand_pcg",
  "rayon",
  "smallvec",
+ "thiserror 2.0.18",
  "uuid",
 ]
 

@@ -59,7 +59,7 @@ class LitinskiTransformation(TransformationPass):
         self.fix_clifford = fix_clifford
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
-        """Run the LitiskiTransformation pass on ``dag``.
+        """Run the LitinskiTransformation pass on ``dag``.
 
         Args:
             dag: the input DAG.
