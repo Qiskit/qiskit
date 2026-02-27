@@ -3645,7 +3645,6 @@ mod test {
     use crate::operations::{ArrayType, PauliProductMeasurement, UnitaryGate};
     use nalgebra::{Matrix2, Matrix4};
 
-    #[cfg(not(miri))]
     #[test]
     fn packed_pointer_types_behave() -> PyResult<()> {
         // This is largely to exercise the packed-pointer logic under debug builds (since the
