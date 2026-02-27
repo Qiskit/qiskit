@@ -269,12 +269,26 @@ class TestMCMT(QiskitTestCase):
             )
         )
 
-    @combine(num_ctrl=range(1, 3), num_targ=range(2, 4))
+    @combine(num_ctrl=range(0, 3), num_targ=range(2, 4))
     def test_mcmt_x_gate(self, num_ctrl, num_targ):
         """Test the MCMT X gate synthesis."""
         ctrl_state = None
 
         synthesized = synth_mcmt_xgate(num_ctrl, num_targ, ctrl_state)
+        result = Operator(synthesized).data
+
+        x_gate_matrix = XGate().to_matrix()
+        target_gate_matrix = reduce(np.kron, repeat(x_gate_matrix, num_targ))
+
+        expected = _compute_control_matrix(target_gate_matrix, num_ctrl, ctrl_state)
+        self.assertTrue(np.allclose(result, expected))
+
+    @data(2, 3, 4)
+    def test_mcmt_vchain_0_controls(self, num_targ):
+        """Test the MCMT vchain synthesis with 0 control qubits."""
+        ctrl_state = None
+        num_ctrl = 0
+        synthesized = synth_mcmt_vchain(XGate(), num_ctrl, num_targ, ctrl_state)
         result = Operator(synthesized).data
 
         x_gate_matrix = XGate().to_matrix()

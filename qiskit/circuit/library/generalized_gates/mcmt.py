@@ -20,6 +20,7 @@ from collections.abc import Callable
 from qiskit import circuit
 from qiskit.circuit import ControlledGate, Gate, QuantumCircuit
 from qiskit.circuit._utils import _ctrl_state_to_int
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.utils.deprecation import deprecate_func
 from ..standard_gates import get_standard_gate_name_mapping
 
@@ -227,9 +228,9 @@ class MCMTGate(ControlledGate):
             label: The gate label.
         """
         if num_target_qubits < 1:
-            raise ValueError("Need at least one target qubit.")
+            raise CircuitError("The number of control qubits must be non-negative.")
 
-        if num_ctrl_qubits < 1:
+        if num_ctrl_qubits < 0:
             raise ValueError("Need at least one control qubit.")
 
         self.num_target_qubits = num_target_qubits

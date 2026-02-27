@@ -1,0 +1,5 @@
+---
+features_circuits:
+  - |
+    The multi-controlled multi-target :class:`.MCMTGate` can now
+    be instantiated with ``num_ctrl_qubits=0``. 
