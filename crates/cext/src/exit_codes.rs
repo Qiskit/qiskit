@@ -66,6 +66,8 @@ pub enum ExitCode {
     DagComposeMismatch = 501,
     /// One or more bit indices were not found during compose.
     DagComposeMissingBit = 502,
+    /// Errors concerning parameter handling.
+    ParameterError = 600,
 }
 
 impl From<ArithmeticError> for ExitCode {
