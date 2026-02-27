@@ -22,7 +22,7 @@ from qiskit.circuit import QuantumCircuit, CircuitError, Gate
 from qiskit._accelerate.circuit_library import pauli_evolution
 
 if typing.TYPE_CHECKING:
-    from qiskit.quantum_info import Pauli
+    import qiskit
     from qiskit.circuit.quantumcircuit import ParameterValueType
 
 
@@ -41,7 +41,7 @@ class PauliProductRotationGate(Gate):
 
     def __init__(
         self,
-        pauli: Pauli,
+        pauli: qiskit.quantum_info.Pauli,
         angle: ParameterValueType,
         label: str | None = None,
     ):
