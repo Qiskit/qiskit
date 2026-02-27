@@ -1408,10 +1408,11 @@ class MatplotlibDrawer:
 
     def _barrier(self, node, node_data, glob_data):
         """Draw a barrier"""
+        topmost_node_idx = self._qubits[0]._index
         for i, xy in enumerate(node_data[node].q_xy):
             xpos, ypos = xy
             # For the topmost barrier, reduce the rectangle if there's a label to allow for the text.
-            if i == 0 and node.op.label is not None:
+            if i == topmost_node_idx and node.op.label is not None:
                 ypos_adj = -0.35
             else:
                 ypos_adj = 0.0
@@ -1436,7 +1437,7 @@ class MatplotlibDrawer:
             self._ax.add_patch(box)
 
             # display the barrier label at the top if there is one
-            if i == 0 and node.op.label is not None:
+            if i == topmost_node_idx and node.op.label is not None:
                 dir_ypos = ypos + 0.65 * HIG
                 self._ax.text(
                     xpos,
