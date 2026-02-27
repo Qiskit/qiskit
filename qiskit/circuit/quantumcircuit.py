@@ -1037,6 +1037,25 @@ class QuantumCircuit:
 
     instances = 0
     prefix = "circuit"
+    name: str
+    """A human-readable name for the circuit.
+
+    Example:
+
+        .. plot::
+            :include-source:
+            :nofigs:
+            :context: reset
+
+            from qiskit import QuantumCircuit
+
+            qc = QuantumCircuit(2, 2, name="my_circuit")
+            print(qc.name)
+
+        .. code-block:: text
+
+            my_circuit
+    """
 
     def __init__(
         self,
@@ -1128,25 +1147,6 @@ class QuantumCircuit:
 
             regs = tuple(int(reg) for reg in regs)  # cast to int
         self._base_name = None
-        self.name: str
-        """A human-readable name for the circuit.
-
-        Example:
-
-            .. plot::
-                :include-source:
-                :nofigs:
-                :context: reset
-
-                from qiskit import QuantumCircuit
-
-                qc = QuantumCircuit(2, 2, name="my_circuit")
-                print(qc.name)
-
-            .. code-block:: text
-
-                my_circuit
-        """
         if name is None:
             self._base_name = self._cls_prefix()
             self._name_update()
