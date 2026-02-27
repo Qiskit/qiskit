@@ -287,7 +287,7 @@ pub enum OperationRef<'a> {
     Operation(&'a PyInstruction),
     Unitary(&'a UnitaryGate),
     PauliProductMeasurement(&'a PauliProductMeasurement),
-    PauliRotation(&'a PauliRotation),
+    PauliProductRotation(&'a PauliProductRotation),
 }
 
 impl Operation for OperationRef<'_> {
@@ -302,7 +302,7 @@ impl Operation for OperationRef<'_> {
             Self::Operation(operation) => operation.name(),
             Self::Unitary(unitary) => unitary.name(),
             Self::PauliProductMeasurement(ppm) => ppm.name(),
-            Self::PauliRotation(rotation) => rotation.name(),
+            Self::PauliProductRotation(rotation) => rotation.name(),
         }
     }
     #[inline]
@@ -316,7 +316,7 @@ impl Operation for OperationRef<'_> {
             Self::Operation(operation) => operation.num_qubits(),
             Self::Unitary(unitary) => unitary.num_qubits(),
             Self::PauliProductMeasurement(ppm) => ppm.num_qubits(),
-            Self::PauliRotation(rotation) => rotation.num_qubits(),
+            Self::PauliProductRotation(rotation) => rotation.num_qubits(),
         }
     }
     #[inline]
@@ -330,7 +330,7 @@ impl Operation for OperationRef<'_> {
             Self::Operation(operation) => operation.num_clbits(),
             Self::Unitary(unitary) => unitary.num_clbits(),
             Self::PauliProductMeasurement(ppm) => ppm.num_clbits(),
-            Self::PauliRotation(rotation) => rotation.num_clbits(),
+            Self::PauliProductRotation(rotation) => rotation.num_clbits(),
         }
     }
     #[inline]
@@ -344,7 +344,7 @@ impl Operation for OperationRef<'_> {
             Self::Operation(operation) => operation.num_params(),
             Self::Unitary(unitary) => unitary.num_params(),
             Self::PauliProductMeasurement(ppm) => ppm.num_params(),
-            Self::PauliRotation(rotation) => rotation.num_params(),
+            Self::PauliProductRotation(rotation) => rotation.num_params(),
         }
     }
     #[inline]
@@ -358,7 +358,7 @@ impl Operation for OperationRef<'_> {
             Self::Operation(operation) => operation.directive(),
             Self::Unitary(unitary) => unitary.directive(),
             Self::PauliProductMeasurement(ppm) => ppm.directive(),
-            Self::PauliRotation(rotation) => rotation.directive(),
+            Self::PauliProductRotation(rotation) => rotation.directive(),
         }
     }
 }
@@ -3312,16 +3312,16 @@ impl UnitaryGate {
     }
 }
 
-/// A Pauli-based gate model, consisting of PauliRotation and PauliProductMeasurement ops.
+/// A Pauli-based gate model, consisting of PauliProductRotation and PauliProductMeasurement ops.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PauliBased {
-    PauliRotation(PauliRotation),
+    PauliProductRotation(PauliProductRotation),
     PauliProductMeasurement(PauliProductMeasurement),
 }
 
 #[derive(Clone, Debug)]
 #[repr(align(8))]
-pub struct PauliRotation {
+pub struct PauliProductRotation {
     /// The z-component of the pauli.
     pub z: Vec<bool>,
     /// The x-component of the pauli.
@@ -3330,9 +3330,9 @@ pub struct PauliRotation {
     pub angle: Param,
 }
 
-impl Operation for PauliRotation {
+impl Operation for PauliProductRotation {
     fn name(&self) -> &str {
-        "pauli_rotation"
+        "pauli_product_rotation"
     }
     fn num_qubits(&self) -> u32 {
         self.z.len() as u32
@@ -3348,7 +3348,7 @@ impl Operation for PauliRotation {
     }
 }
 
-impl PauliRotation {
+impl PauliProductRotation {
     pub fn create_py_op(&self, py: Python, label: Option<&str>) -> PyResult<Py<PyAny>> {
         let z = self.z.to_pyarray(py);
         let x = self.x.to_pyarray(py);
@@ -3367,7 +3367,7 @@ impl PauliRotation {
     }
 }
 
-impl PartialEq for PauliRotation {
+impl PartialEq for PauliProductRotation {
     fn eq(&self, other: &Self) -> bool {
         self.x == other.x
             && self.z == other.z
@@ -3378,7 +3378,7 @@ impl PartialEq for PauliRotation {
     }
 }
 
-impl Eq for PauliRotation {}
+impl Eq for PauliProductRotation {}
 
 /// This class represents a PauliProductMeasurement instruction.
 #[derive(Clone, Debug)]

@@ -225,8 +225,8 @@ fn try_extract_op_from_pauli_rotation(
     qubits: &[Qubit],
     num_qubits: u32,
 ) -> Option<SparseObservable> {
-    let OperationRef::PauliRotation(rotation) = operation else {
-        // Gate is called "pauli_rotation" but is not actually the right type
+    let OperationRef::PauliProductRotation(rotation) = operation else {
+        // Gate is called "pauli_product_rotation" but is not actually the right type
         return None;
     };
     let local = xz_to_observable(&rotation.x, &rotation.z);
@@ -243,7 +243,9 @@ fn try_pauli_generator(
         "pauli" => try_extract_op_from_pauli_gate(operation, qubits, num_qubits),
         "PauliEvolution" => try_extract_op_from_pauli_evo(operation, qubits, num_qubits),
         "pauli_product_measurement" => try_extract_op_from_ppm(operation, qubits, num_qubits),
-        "pauli_rotation" => try_extract_op_from_pauli_rotation(operation, qubits, num_qubits),
+        "pauli_product_rotation" => {
+            try_extract_op_from_pauli_rotation(operation, qubits, num_qubits)
+        }
         _ => None,
     }
 }

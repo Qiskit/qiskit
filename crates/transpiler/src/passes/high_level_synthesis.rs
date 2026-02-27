@@ -805,7 +805,7 @@ fn extract_definition(op: &PackedOperation, params: &[Param]) -> PyResult<Option
         OperationRef::Gate(g) => Ok(g.definition()),
         OperationRef::Instruction(i) => Ok(i.definition()),
         OperationRef::PauliProductMeasurement(ppm) => Ok(Some(synthesize_ppm(ppm)?)),
-        OperationRef::PauliRotation(rotation) => {
+        OperationRef::PauliProductRotation(rotation) => {
             let pauli_string: String = rotation
                 .x
                 .iter()
@@ -983,7 +983,9 @@ fn synthesize_op_using_plugins(
         OperationRef::Operation(operation) => operation.instruction.clone_ref(py),
         OperationRef::Unitary(unitary) => unitary.create_py_op(py, label)?.into_any(),
         OperationRef::PauliProductMeasurement(ppm) => ppm.create_py_op(py, label)?.into_any(),
-        OperationRef::PauliRotation(rotation) => rotation.create_py_op(py, label)?.into_any(),
+        OperationRef::PauliProductRotation(rotation) => {
+            rotation.create_py_op(py, label)?.into_any()
+        }
     };
 
     let res = HLS_SYNTHESIZE_OP_USING_PLUGINS

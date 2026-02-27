@@ -38,7 +38,7 @@ use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::interner::Interned;
 use qiskit_circuit::operations::ArrayType;
 use qiskit_circuit::operations::PauliBased;
-use qiskit_circuit::operations::PauliRotation;
+use qiskit_circuit::operations::PauliProductRotation;
 use qiskit_circuit::operations::UnitaryGate;
 use qiskit_circuit::operations::{
     BoxDuration, CaseSpecifier, Condition, StandardInstructionType, SwitchTarget,
@@ -97,7 +97,7 @@ enum InstructionType {
     StandardGate,
     StandardInstruction,
     PauliProductMeasurement,
-    PauliRotation,
+    PauliProductRotation,
     Unitary,
     ControlFlow,
     // covers instruction types require resorting to python space
@@ -180,7 +180,7 @@ fn recognize_instruction_type(
     if name == PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME {
         InstructionType::PauliProductMeasurement
     } else if name == PAULI_ROTATION_GATE_CLASS_NAME {
-        InstructionType::PauliRotation
+        InstructionType::PauliProductRotation
     } else if name == UNITARY_GATE_CLASS_NAME {
         InstructionType::Unitary
     } else if ControlFlowType::from_str(name).is_ok() {
@@ -337,7 +337,7 @@ fn unpack_instruction(
         InstructionType::PauliProductMeasurement => {
             unpack_pauli_product_measurement(instruction, qpy_data)?
         }
-        InstructionType::PauliRotation => unpack_pauli_rotation(instruction, qpy_data)?,
+        InstructionType::PauliProductRotation => unpack_pauli_rotation(instruction, qpy_data)?,
         InstructionType::Unitary => unpack_unitary(instruction, qpy_data)?,
         InstructionType::ControlFlow => unpack_control_flow(instruction, qpy_data)?,
         InstructionType::Custom => {
@@ -424,7 +424,7 @@ fn unpack_pauli_rotation(
 ) -> PyResult<(PackedOperation, Vec<GenericValue>)> {
     if instruction.params.len() != 3 {
         return Err(PyValueError::new_err(
-            "PauliRotation should have exactly 3 parameters",
+            "PauliProductRotation should have exactly 3 parameters",
         ));
     }
     let z = unpack_generic_value(&instruction.params[0], qpy_data)?
@@ -435,8 +435,8 @@ fn unpack_pauli_rotation(
         .unwrap();
     let angle_value = unpack_generic_value(&instruction.params[2], qpy_data)?;
     let angle = generic_value_to_param(&angle_value, Little)?;
-    let rotation = PauliRotation { z, x, angle };
-    let pbc = Box::new(PauliBased::PauliRotation(rotation));
+    let rotation = PauliProductRotation { z, x, angle };
+    let pbc = Box::new(PauliBased::PauliProductRotation(rotation));
     let op = PackedOperation::from_pauli_based(pbc);
     let param_values = vec![angle_value];
     Ok((op, param_values))

@@ -29,7 +29,7 @@ use crate::imports::{CONTROLLED_GATE, GATE, INSTRUCTION, OPERATION, WARNINGS_WAR
 use crate::instruction::{Instruction, Parameters, create_py_op};
 use crate::operations::{
     ArrayType, BoxDuration, ControlFlow, ControlFlowInstruction, ControlFlowType, Operation,
-    OperationRef, Param, PauliBased, PauliProductMeasurement, PauliRotation, PyInstruction,
+    OperationRef, Param, PauliBased, PauliProductMeasurement, PauliProductRotation, PyInstruction,
     PyOperationTypes, StandardGate, StandardInstruction, StandardInstructionType, UnitaryGate,
 };
 use crate::packed_instruction::PackedOperation;
@@ -872,7 +872,7 @@ impl<'a, 'py, T: CircuitBlock> FromPyObject<'a, 'py> for OperationFromPython<T> 
                 params: None,
                 label: extract_label()?,
             });
-        } else if ob_name == "pauli_rotation" {
+        } else if ob_name == "pauli_product_rotation" {
             let z = ob
                 .getattr(intern!(py, "_pauli_z"))?
                 .extract::<PyReadonlyArray1<bool>>()?
@@ -888,12 +888,12 @@ impl<'a, 'py, T: CircuitBlock> FromPyObject<'a, 'py> for OperationFromPython<T> 
             let py_angle = get_params()?.get_item(0)?;
             let angle = Param::extract_no_coerce(py_angle.as_borrowed())?;
 
-            let pauli_rotation = PauliRotation {
+            let pauli_rotation = PauliProductRotation {
                 z: z.to_owned(),
                 x: x.to_owned(),
                 angle,
             };
-            let pbc = Box::new(PauliBased::PauliRotation(pauli_rotation));
+            let pbc = Box::new(PauliBased::PauliProductRotation(pauli_rotation));
 
             return Ok(OperationFromPython {
                 operation: PackedOperation::from_pauli_based(pbc),
@@ -1029,7 +1029,7 @@ pub fn extract_params<T: CircuitBlock>(
             let params: SmallVec<[Param; 3]> = params.extract()?;
             (!params.is_empty()).then(|| Parameters::Params(params))
         }
-        OperationRef::PauliRotation(_) => {
+        OperationRef::PauliProductRotation(_) => {
             let params: SmallVec<[Param; 3]> = params.extract()?;
             Some(Parameters::Params(params))
         }

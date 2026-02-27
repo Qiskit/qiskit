@@ -36,7 +36,7 @@ use qiskit_circuit::imports;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
     ArrayType, BoxDuration, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction,
-    Operation, OperationRef, Param, PauliProductMeasurement, PauliRotation, PyInstruction,
+    Operation, OperationRef, Param, PauliProductMeasurement, PauliProductRotation, PyInstruction,
     StandardGate, StandardInstruction, SwitchTarget, UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
@@ -226,7 +226,7 @@ fn pack_instruction(
         OperationRef::PauliProductMeasurement(ppm) => {
             pack_pauli_product_measurement(ppm, instruction, qpy_data)?
         }
-        OperationRef::PauliRotation(rotation) => {
+        OperationRef::PauliProductRotation(rotation) => {
             pack_pauli_rotation(rotation, instruction, qpy_data)?
         }
         OperationRef::Unitary(unitary_gate) => pack_unitary_gate(unitary_gate, qpy_data)?,
@@ -339,7 +339,7 @@ fn pack_pauli_product_measurement(
 }
 
 fn pack_pauli_rotation(
-    rotation: &PauliRotation,
+    rotation: &PauliProductRotation,
     instruction: &PackedInstruction,
     qpy_data: &QPYWriteData,
 ) -> PyResult<formats::CircuitInstructionV2Pack> {

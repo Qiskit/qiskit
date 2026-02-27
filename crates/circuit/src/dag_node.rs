@@ -272,8 +272,8 @@ impl DAGOpNode {
                 OperationRef::PauliProductMeasurement(ppm) => {
                     PauliBased::PauliProductMeasurement(ppm.clone()).into()
                 }
-                OperationRef::PauliRotation(rotation) => {
-                    PauliBased::PauliRotation(rotation.clone()).into()
+                OperationRef::PauliProductRotation(rotation) => {
+                    PauliBased::PauliProductRotation(rotation.clone()).into()
                 }
             };
             #[cfg(feature = "cache_pygates")]
@@ -330,8 +330,8 @@ impl DAGOpNode {
                     OperationRef::PauliProductMeasurement(ppm) => {
                         PauliBased::PauliProductMeasurement(ppm.clone()).into()
                     }
-                    OperationRef::PauliRotation(rotation) => {
-                        PauliBased::PauliRotation(rotation.clone()).into()
+                    OperationRef::PauliProductRotation(rotation) => {
+                        PauliBased::PauliProductRotation(rotation.clone()).into()
                     }
                 }
             } else {

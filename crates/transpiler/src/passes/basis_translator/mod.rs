@@ -542,8 +542,8 @@ fn replace_node(
                 OperationRef::PauliProductMeasurement(ppm) => {
                     PauliBased::PauliProductMeasurement(ppm.clone()).into()
                 }
-                OperationRef::PauliRotation(rotation) => {
-                    PauliBased::PauliRotation(rotation.clone()).into()
+                OperationRef::PauliProductRotation(rotation) => {
+                    PauliBased::PauliProductRotation(rotation.clone()).into()
                 }
             };
             let new_params: Option<Parameters<_>> = inner_node.params.as_deref().cloned();
@@ -619,8 +619,8 @@ fn replace_node(
                 OperationRef::PauliProductMeasurement(ppm) => {
                     PauliBased::PauliProductMeasurement(ppm.clone()).into()
                 }
-                OperationRef::PauliRotation(rotation) => {
-                    PauliBased::PauliRotation(rotation.clone()).into()
+                OperationRef::PauliProductRotation(rotation) => {
+                    PauliBased::PauliProductRotation(rotation.clone()).into()
                 }
             };
 

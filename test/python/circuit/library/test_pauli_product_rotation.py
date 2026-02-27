@@ -17,7 +17,11 @@ import numpy as np
 
 from ddt import ddt, data
 from qiskit.circuit import QuantumCircuit, Parameter, CircuitError, CommutationChecker
-from qiskit.circuit.library import PauliRotationGate, PauliEvolutionGate, PauliProductMeasurement
+from qiskit.circuit.library import (
+    PauliProductRotationGate,
+    PauliEvolutionGate,
+    PauliProductMeasurement,
+)
 from qiskit.quantum_info import Pauli, Operator, SparsePauliOp
 from qiskit.qpy import dump, load
 from qiskit.compiler import transpile
@@ -25,14 +29,14 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt
-class TestPauliRotationGate(QiskitTestCase):
-    """Tests for the PauliRotationGate."""
+class TestPauliProductRotationGate(QiskitTestCase):
+    """Tests for the PauliProductRotationGate."""
 
     def test_simple(self):
         """Test a simple rotation gate."""
         pauli = Pauli("XIZZY")
         angle = 0.23
-        rotation = PauliRotationGate(pauli, angle)
+        rotation = PauliProductRotationGate(pauli, angle)
 
         expected = QuantumCircuit(pauli.num_qubits)
         expected.h(4)
@@ -56,24 +60,34 @@ class TestPauliRotationGate(QiskitTestCase):
     def test_equality(self):
         """Test some equalities."""
         x = Parameter("x")
-        self.assertEqual(PauliRotationGate(Pauli("X"), 0.1), PauliRotationGate(Pauli("X"), 0.1))
-        self.assertEqual(PauliRotationGate(Pauli("X"), x), PauliRotationGate(Pauli("X"), x))
-        self.assertEqual(PauliRotationGate(Pauli("X"), -x), PauliRotationGate(Pauli("-X"), x))
+        self.assertEqual(
+            PauliProductRotationGate(Pauli("X"), 0.1), PauliProductRotationGate(Pauli("X"), 0.1)
+        )
+        self.assertEqual(
+            PauliProductRotationGate(Pauli("X"), x), PauliProductRotationGate(Pauli("X"), x)
+        )
+        self.assertEqual(
+            PauliProductRotationGate(Pauli("X"), -x), PauliProductRotationGate(Pauli("-X"), x)
+        )
 
-        self.assertNotEqual(PauliRotationGate(Pauli("X"), 0.1), PauliRotationGate(Pauli("X"), 0.2))
-        self.assertNotEqual(PauliRotationGate(Pauli("Y"), 0.1), PauliRotationGate(Pauli("X"), 0.1))
+        self.assertNotEqual(
+            PauliProductRotationGate(Pauli("X"), 0.1), PauliProductRotationGate(Pauli("X"), 0.2)
+        )
+        self.assertNotEqual(
+            PauliProductRotationGate(Pauli("Y"), 0.1), PauliProductRotationGate(Pauli("X"), 0.1)
+        )
 
     @data("iX", "-iX")
     def test_invalid_phase(self, pauli):
         """Test invalid Pauli phases raises an error."""
         with self.assertRaises(CircuitError):
-            _ = PauliRotationGate(Pauli(pauli), 1.0)
+            _ = PauliProductRotationGate(Pauli(pauli), 1.0)
 
     def test_commutation_checks(self):
         """Test commutative optimization handles the rotation gate."""
         cc = CommutationChecker()
-        xx = PauliRotationGate(Pauli("XX"), 0.1)
-        yy = PauliRotationGate(Pauli("YY"), -0.5)
+        xx = PauliProductRotationGate(Pauli("XX"), 0.1)
+        yy = PauliProductRotationGate(Pauli("YY"), -0.5)
         self.assertTrue(cc.commute(xx, [0, 1], [], yy, [0, 1], []))
         self.assertTrue(cc.commute(xx, [1, 0], [], yy, [0, 1], []))
         self.assertFalse(cc.commute(xx, [2, 0], [], yy, [0, 1], []))
@@ -93,7 +107,7 @@ class TestPauliRotationGate(QiskitTestCase):
         pauli = Pauli("XIYIZ")
         angle = Parameter("theta")
         evo = PauliEvolutionGate(pauli, angle / 2)
-        rotation = PauliRotationGate(pauli, angle)
+        rotation = PauliProductRotationGate(pauli, angle)
 
         self.assertEqual(evo.definition, rotation.definition)
 
@@ -102,7 +116,7 @@ class TestPauliRotationGate(QiskitTestCase):
         pauli = Pauli("IXYZ")
         angle = Parameter("theta")
         circuit = QuantumCircuit(pauli.num_qubits)
-        circuit.append(PauliRotationGate(pauli, angle), circuit.qubits)
+        circuit.append(PauliProductRotationGate(pauli, angle), circuit.qubits)
 
         # trigger Rust-path, HLS decomposition
         basis_gates = ["h", "sx", "sxdg", "rz", "cx"]
@@ -118,9 +132,9 @@ class TestPauliRotationGate(QiskitTestCase):
         qc = QuantumCircuit(6, 2)
         x = Parameter("x")
         # qc.append(PauliProductMeasurement(Pauli("XZ")), [4, 1], [0])
-        qc.append(PauliRotationGate(Pauli("XZ"), 0.2), [4, 1])
-        qc.append(PauliRotationGate(Pauli("Z"), -12, label="wohooo rotation"), [2])
-        qc.append(PauliRotationGate(Pauli("ZZ"), x), [3, 2])
+        qc.append(PauliProductRotationGate(Pauli("XZ"), 0.2), [4, 1])
+        qc.append(PauliProductRotationGate(Pauli("Z"), -12, label="wohooo rotation"), [2])
+        qc.append(PauliProductRotationGate(Pauli("ZZ"), x), [3, 2])
 
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
@@ -131,15 +145,15 @@ class TestPauliRotationGate(QiskitTestCase):
     def test_pauli_accessor(self):
         """Check that ``pauli()`` returns the original Pauli."""
         pauli = Pauli("XIYZ")
-        rotation = PauliRotationGate(pauli, 0.0)
+        rotation = PauliProductRotationGate(pauli, 0.0)
         self.assertEqual(rotation.pauli(), pauli)
 
     def test_draw(self):
         """Test drawing a Pauli rotation gate circuit."""
         qc = QuantumCircuit(3)
-        qc.append(PauliRotationGate(Pauli("X"), 0.1), [0])
-        qc.append(PauliRotationGate(Pauli("YY"), np.pi / 2), [1, 2])
-        qc.append(PauliRotationGate(Pauli("ZZZ"), -np.pi / 4), [0, 1, 2])
+        qc.append(PauliProductRotationGate(Pauli("X"), 0.1), [0])
+        qc.append(PauliProductRotationGate(Pauli("YY"), np.pi / 2), [1, 2])
+        qc.append(PauliProductRotationGate(Pauli("ZZZ"), -np.pi / 4), [0, 1, 2])
         out = str(qc.draw("text"))
         expected = "\n".join(
             [

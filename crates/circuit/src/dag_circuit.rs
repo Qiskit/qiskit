@@ -2646,8 +2646,8 @@ impl DAGCircuit {
                                     OperationRef::PauliProductMeasurement(op_b),
                                 ] => Ok(op_a == op_b),
                                 [
-                                    OperationRef::PauliRotation(op_a),
-                                    OperationRef::PauliRotation(op_b),
+                                    OperationRef::PauliProductRotation(op_a),
+                                    OperationRef::PauliProductRotation(op_b),
                                 ] => Ok(op_a == op_b),
                                 _ => Ok(false),
                             }
@@ -7898,8 +7898,8 @@ impl DAGCircuit {
                         OperationRef::PauliProductMeasurement(ppm) => {
                             PauliBased::PauliProductMeasurement(ppm.clone()).into()
                         }
-                        OperationRef::PauliRotation(rotation) => {
-                            PauliBased::PauliRotation(rotation.clone()).into()
+                        OperationRef::PauliProductRotation(rotation) => {
+                            PauliBased::PauliProductRotation(rotation.clone()).into()
                         }
                     }
                 } else {

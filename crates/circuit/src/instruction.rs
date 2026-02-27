@@ -180,7 +180,7 @@ pub fn create_py_op(
             cf.create_py_op(py, params.map(|p| p.unwrap_blocks()), label)
         }
         OperationRef::PauliProductMeasurement(ppm) => ppm.create_py_op(py, label),
-        OperationRef::PauliRotation(rotation) => rotation.create_py_op(py, label),
+        OperationRef::PauliProductRotation(rotation) => rotation.create_py_op(py, label),
         OperationRef::StandardGate(gate) => {
             gate.create_py_op(py, params.map(|p| p.unwrap_params()), label)
         }

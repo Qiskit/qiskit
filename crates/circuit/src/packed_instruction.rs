@@ -418,7 +418,9 @@ impl PackedOperation {
                     PauliBased::PauliProductMeasurement(measurement) => {
                         OperationRef::PauliProductMeasurement(measurement)
                     }
-                    PauliBased::PauliRotation(rotation) => OperationRef::PauliRotation(rotation),
+                    PauliBased::PauliProductRotation(rotation) => {
+                        OperationRef::PauliProductRotation(rotation)
+                    }
                 }
             }
         }
@@ -500,9 +502,10 @@ impl PackedOperation {
                 OperationRef::PauliProductMeasurement(left),
                 OperationRef::PauliProductMeasurement(right),
             ) => Ok(left == right),
-            (OperationRef::PauliRotation(left), OperationRef::PauliRotation(right)) => {
-                Ok(left == right)
-            }
+            (
+                OperationRef::PauliProductRotation(left),
+                OperationRef::PauliProductRotation(right),
+            ) => Ok(left == right),
             _ => Ok(false),
         }
     }
@@ -581,7 +584,7 @@ impl PackedOperation {
                     .cast::<PyType>()?
                     .is_subclass(py_type);
             }
-            OperationRef::PauliRotation(_) => {
+            OperationRef::PauliProductRotation(_) => {
                 return PAULI_ROTATION_GATE
                     .get_bound(py)
                     .cast::<PyType>()?
@@ -604,7 +607,7 @@ impl Operation for PackedOperation {
             OperationRef::Operation(operation) => operation.name(),
             OperationRef::Unitary(unitary) => unitary.name(),
             OperationRef::PauliProductMeasurement(ppm) => ppm.name(),
-            OperationRef::PauliRotation(rotation) => rotation.name(),
+            OperationRef::PauliProductRotation(rotation) => rotation.name(),
         };
         // SAFETY: all of the inner parts of the view are owned by `self`, so it's valid for us to
         // forcibly reborrowing up to our own lifetime. We avoid using `<OperationRef as Operation>`
@@ -657,8 +660,8 @@ impl Clone for PackedOperation {
             OperationRef::PauliProductMeasurement(ppm) => {
                 Self::from_pauli_based(Box::new(PauliBased::PauliProductMeasurement(ppm.clone())))
             }
-            OperationRef::PauliRotation(rotation) => {
-                Self::from_pauli_based(Box::new(PauliBased::PauliRotation(rotation.clone())))
+            OperationRef::PauliProductRotation(rotation) => {
+                Self::from_pauli_based(Box::new(PauliBased::PauliProductRotation(rotation.clone())))
             }
         }
     }

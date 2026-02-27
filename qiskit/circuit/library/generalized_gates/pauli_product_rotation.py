@@ -19,7 +19,6 @@ import numpy as np
 import scipy as sc
 
 from qiskit.circuit import QuantumCircuit, CircuitError, Gate
-from qiskit.circuit.library import PauliEvolutionGate
 from qiskit._accelerate.circuit_library import pauli_evolution
 
 if typing.TYPE_CHECKING:
@@ -27,7 +26,7 @@ if typing.TYPE_CHECKING:
     from qiskit.circuit.quantumcircuit import ParameterValueType
 
 
-class PauliRotationGate(Gate):
+class PauliProductRotationGate(Gate):
     r"""A generic Pauli rotation.
 
     This implements the unitary operation
@@ -69,7 +68,7 @@ class PauliRotationGate(Gate):
             label = f"R_{pauli.to_label()}"
 
         super().__init__(
-            name="pauli_rotation",
+            name="pauli_product_rotation",
             num_qubits=num_qubits,
             params=params,
             label=label,
@@ -78,7 +77,7 @@ class PauliRotationGate(Gate):
     @classmethod
     def _from_pauli_data(cls, z, x, angle, label=None):
         """
-        Instantiates a PauliRotationGate from raw pauli data, the angle, and the label.
+        Instantiates a PauliProductRotationGate from raw pauli data, the angle, and the label.
         This function is used internally from within the rust code and from QPY
         serialization.
         """
@@ -88,7 +87,7 @@ class PauliRotationGate(Gate):
 
     def inverse(self, annotated=False):
         """Return the inverse; a rotation about the negative angle."""
-        return PauliRotationGate(self.pauli(), -self.params[0])
+        return PauliProductRotationGate(self.pauli(), -self.params[0])
 
     def control(
         self,
@@ -118,12 +117,14 @@ class PauliRotationGate(Gate):
         Raises:
             QiskitError: invalid ``num_ctrl_qubits`` or ``ctrl_state``.
         """
+        from qiskit.circuit.library import PauliEvolutionGate  # pylint: disable=cyclic-import
+
         return PauliEvolutionGate(self.pauli()).control(
             num_ctrl_qubits, label, ctrl_state, annotated
         )
 
     def __eq__(self, other):
-        if not isinstance(other, PauliRotationGate):
+        if not isinstance(other, PauliProductRotationGate):
             return False
 
         return (
@@ -149,8 +150,8 @@ class PauliRotationGate(Gate):
     def pauli(self) -> Pauli:
         """Return the Pauli rotation axis.
 
-        Note that this does not include any potential sign in the :class:`.Pauli` object
-        used to construct this gate, since the sign is absorbed into the rotation angle,
+        Note that this does not include any potential sign in the :class:`~.quantum_info.Pauli`
+        object used to construct this gate, since the sign is absorbed into the rotation angle,
         which is accessible via the ``params`` attribute.
 
         Returns:

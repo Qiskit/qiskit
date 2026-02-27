@@ -657,7 +657,7 @@ pub(crate) fn unpack_generic_value_sequence(
 pub(crate) fn get_circuit_type_key(op: &PackedOperation) -> PyResult<CircuitInstructionType> {
     match op.view() {
         OperationRef::StandardGate(_)
-        | OperationRef::PauliRotation(_)
+        | OperationRef::PauliProductRotation(_)
         | OperationRef::Unitary(_) => Ok(CircuitInstructionType::Gate),
         OperationRef::StandardInstruction(_)
         | OperationRef::Instruction(_)
