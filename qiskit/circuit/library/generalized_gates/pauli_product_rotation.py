@@ -147,7 +147,7 @@ class PauliProductRotationGate(Gate):
         )
         self.definition = circuit
 
-    def pauli(self) -> Pauli:
+    def pauli(self) -> qiskit.quantum_info.Pauli:
         """Return the Pauli rotation axis.
 
         Note that this does not include any potential sign in the :class:`~.quantum_info.Pauli`
