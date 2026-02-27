@@ -468,7 +468,7 @@ impl PackedOperation {
         control_flow.into()
     }
 
-    /// Construct a new `PackedOperation` from an owned heap-allocated `PauliRotation`.
+    /// Construct a new `PackedOperation` from an owned heap-allocated `PauliBased`.
     #[inline]
     pub fn from_pauli_based(pbc: Box<PauliBased>) -> Self {
         pbc.into()

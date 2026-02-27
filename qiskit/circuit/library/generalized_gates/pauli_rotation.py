@@ -19,6 +19,7 @@ import numpy as np
 import scipy as sc
 
 from qiskit.circuit import QuantumCircuit, CircuitError, Gate
+from qiskit.circuit.library import PauliEvolutionGate
 from qiskit._accelerate.circuit_library import pauli_evolution
 
 if typing.TYPE_CHECKING:
@@ -88,6 +89,38 @@ class PauliRotationGate(Gate):
     def inverse(self, annotated=False):
         """Return the inverse; a rotation about the negative angle."""
         return PauliRotationGate(self.pauli(), -self.params[0])
+
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
+        annotated: bool | None = None,
+    ):
+        r"""Return the controlled version of itself.
+
+        The returned gate represents :math:`e^{-i \theta / 2 P_C}`, where :math:`P_C` is the original
+        Pauli :math:`P`, tensored with :math:`|0\rangle\langle 0|` and :math:`|1\rangle\langle 1|`
+        projectors (depending on the control state).
+
+        Args:
+            num_ctrl_qubits: Number of controls to add. Defaults to ``1``.
+            label: Optional gate label. Defaults to ``None``.
+                Ignored if the controlled gate is implemented as an annotated operation.
+            ctrl_state: The control state of the gate, specified either as an integer or a bitstring
+                (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``.
+            annotated: Indicates whether the controlled gate should be implemented as a controlled gate
+                or as an annotated operation. If ``None``, treated as ``False``.
+
+        Returns:
+            A controlled version of this gate.
+
+        Raises:
+            QiskitError: invalid ``num_ctrl_qubits`` or ``ctrl_state``.
+        """
+        return PauliEvolutionGate(self.pauli()).control(
+            num_ctrl_qubits, label, ctrl_state, annotated
+        )
 
     def __eq__(self, other):
         if not isinstance(other, PauliRotationGate):
