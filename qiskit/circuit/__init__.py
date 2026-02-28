@@ -539,7 +539,7 @@ The available modifiers for :class:`AnnotatedOperation` are:
 .. autoclass:: PowerModifier
 
 For information on how to create custom gates and instructions, including how to build one-off
-objects, and re-usable parametric gates via subclassing, see :ref:`circuit-custom-gates` below.
+objects, and reusable parametric gates via subclassing, see :ref:`circuit-custom-gates` below.
 The Qiskit circuit library in :mod:`qiskit.circuit.library` contains many predefined gates and
 circuits for you to use.
 
