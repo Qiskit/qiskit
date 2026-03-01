@@ -38,6 +38,7 @@ from typing import (
     Literal,
     overload,
 )
+import os
 from math import pi
 import numpy as np
 from qiskit._accelerate.circuit import CircuitData
@@ -4204,14 +4205,18 @@ class QuantumCircuit:
         """
         return self._data.num_clbits
 
+<<<<<<< HEAD
     # The stringified return type is because OrderedDict can't be subscripted before Python 3.9, and
     # typing.OrderedDict wasn't added until 3.7.2.  It can be turned into a proper type once 3.6
     # support is dropped.
     def count_ops(self) -> "OrderedDict[Instruction, int]":
+=======
+    def count_ops(self) -> OrderedDict[str, int]:
+>>>>>>> 84179f09c (Docs: Fix typings in two `QuantumCircuit` methods (#15612))
         """Count each operation kind in the circuit.
 
         Returns:
-            OrderedDict: a breakdown of how many operations of each kind, sorted by amount.
+            A breakdown of how many operations of each kind, sorted by amount.
         """
         ops_dict = self._data.count_ops()
         return OrderedDict(ops_dict)
@@ -4722,12 +4727,12 @@ class QuantumCircuit:
             return None
 
     @staticmethod
-    def from_qasm_file(path: str) -> "QuantumCircuit":
+    def from_qasm_file(path: str | os.PathLike) -> "QuantumCircuit":
         """Read an OpenQASM 2.0 program from a file and convert to an instance of
         :class:`.QuantumCircuit`.
 
         Args:
-          path (str): Path to the file for an OpenQASM 2 program
+          path: Path to the file for an OpenQASM 2 program
 
         Return:
           QuantumCircuit: The QuantumCircuit object for the input OpenQASM 2.
