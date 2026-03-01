@@ -106,14 +106,12 @@ pub unsafe extern "C" fn qk_transpile_layout_initial_layout(
     if let Some(out_initial_layout) = out_initial_layout {
         // SAFETY: Per the documentation initial_layout must be a valid pointer with a sufficient
         // allocation for the output array
-        unsafe {
-            let out_slice =
-                std::slice::from_raw_parts_mut(initial_layout, out_initial_layout.len());
-            out_slice
-                .iter_mut()
-                .zip(out_initial_layout.iter())
-                .for_each(|(dest, src)| *dest = src.0);
-        };
+        // Write directly to avoid creating references to uninitialized memory.
+        for (i, src) in out_initial_layout.iter().enumerate() {
+            unsafe {
+                initial_layout.add(i).write(src.0);
+            }
+        }
         true
     } else {
         false
@@ -159,13 +157,12 @@ pub unsafe extern "C" fn qk_transpile_layout_output_permutation(
     if let Some(permutation) = permutation {
         // SAFETY: Per the documentation output_permutation must be a valid pointer with a sufficient
         // allocation for the output array
-        unsafe {
-            let out_slice = std::slice::from_raw_parts_mut(output_permutation, permutation.len());
-            out_slice
-                .iter_mut()
-                .zip(permutation.iter())
-                .for_each(|(dest, src)| *dest = src.0);
-        };
+        // Write directly to avoid creating references to uninitialized memory.
+        for (i, src) in permutation.iter().enumerate() {
+            unsafe {
+                output_permutation.add(i).write(src.0);
+            }
+        }
         true
     } else {
         false
@@ -212,12 +209,10 @@ pub unsafe extern "C" fn qk_transpile_layout_final_layout(
     let result = layout.final_index_layout(filter_ancillas);
     // SAFETY: Per the documentation final_layout must be a valid pointer with a sufficient
     // allocation for the output array
-    unsafe {
-        let out_slice = std::slice::from_raw_parts_mut(final_layout, result.len());
-        out_slice
-            .iter_mut()
-            .zip(result.iter())
-            .for_each(|(dest, src)| *dest = src.0);
+    for (i, src) in result.iter().enumerate() {
+        unsafe {
+            final_layout.add(i).write(src.0);
+        }
     }
 }
 
