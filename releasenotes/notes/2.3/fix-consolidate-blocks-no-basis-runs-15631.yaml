@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed :class:`.ConsolidateBlocks` so it consolidates multi-gate 2-qubit runs that contain
+    no selected KAK basis gate when run without explicit ``basis_gates`` or ``target``.
+    This improves early-stage merging for runs such as repeated 2-qubit ``unitary`` gates,
+    allowing routing and later synthesis to work on shorter equivalent blocks.

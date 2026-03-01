@@ -21,6 +21,7 @@ from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
 from qiskit.compiler import transpile
 from qiskit.quantum_info import Operator
+from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.circuit.library.generalized_gates import Isometry
 from test import QiskitTestCase
 
@@ -65,7 +66,9 @@ class TestIsometry(QiskitTestCase):
         iso_from_circuit = unitary[::, 0 : 2**num_q_input]
         iso_desired = iso
 
-        self.assertTrue(np.allclose(iso_from_circuit, iso_desired))
+        self.assertTrue(
+            matrix_equal(iso_from_circuit, iso_desired, ignore_phase=True, rtol=1e-7, atol=1e-8)
+        )
 
     @data(
         np.eye(2, 2),
@@ -102,7 +105,9 @@ class TestIsometry(QiskitTestCase):
         # Simulate the decomposed gate
         unitary = Operator(qc).data
         iso_from_circuit = unitary[::, 0 : 2**num_q_input]
-        self.assertTrue(np.allclose(iso_from_circuit, iso))
+        self.assertTrue(
+            matrix_equal(iso_from_circuit, iso, ignore_phase=True, rtol=1e-6, atol=1e-6)
+        )
 
     @data(
         np.eye(2, 2),

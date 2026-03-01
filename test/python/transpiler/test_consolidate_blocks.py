@@ -34,6 +34,7 @@ from qiskit.circuit.classical import expr
 from qiskit.converters import circuit_to_dag
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.operators.measures import process_fidelity
+from qiskit.quantum_info.random import random_unitary
 from qiskit.transpiler import PassManager, Target, generate_preset_pass_manager
 from qiskit.transpiler.passes import ConsolidateBlocks, Collect1qRuns, Collect2qBlocks
 from test import QiskitTestCase
@@ -567,6 +568,30 @@ class TestConsolidateBlocks(QiskitTestCase):
         res = pm.run(qc)
 
         self.assertEqual(res, qc)
+
+    def test_mixed_2q_run_consolidates_without_basis_or_target(self):
+        """Test mixed 2q runs are consolidated in default mode when beneficial."""
+        qc = QuantumCircuit(2)
+        qc.append(random_unitary(4, 0), [0, 1])
+        qc.cx(0, 1)
+        qc.append(random_unitary(4, 1), [0, 1])
+        qc.append(random_unitary(4, 2), [0, 1])
+
+        res = ConsolidateBlocks()(qc)
+
+        self.assertEqual({"unitary": 1}, res.count_ops())
+        self.assertEqual(Operator.from_circuit(qc), Operator(res.data[0].operation.params[0]))
+
+    def test_unitary_runs_consolidate_without_basis_or_target(self):
+        """Test long 2q unitary runs are consolidated in default mode."""
+        qc = QuantumCircuit(2)
+        for seed in range(6):
+            qc.append(random_unitary(4, seed), [0, 1])
+
+        res = ConsolidateBlocks()(qc)
+
+        self.assertEqual({"unitary": 1}, res.count_ops())
+        self.assertEqual(Operator.from_circuit(qc), Operator(res.data[0].operation.params[0]))
 
     @data(2, 3)
     def test_no_kak_gates_in_preset_pm(self, opt_level):
