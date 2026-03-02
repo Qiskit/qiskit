@@ -478,18 +478,22 @@ pub enum ForCollection {
     PyRange(PyRange),
     /// Some ordered collection of integers.
     List(Vec<usize>),
+    /// A Dynamic Range object from qiskit.circuit.classical.expr
+    Range(expr::Range),
 }
 impl ForCollection {
     pub fn is_empty(&self) -> bool {
         match self {
             Self::PyRange(xs) => xs.is_empty(),
             Self::List(xs) => xs.is_empty(),
+            Self::Range(xs) => xs.is_empty(),
         }
     }
     pub fn len(&self) -> usize {
         match self {
             Self::PyRange(xs) => xs.len(),
             Self::List(xs) => xs.len(),
+            Self::Range(xs) => xs.len(),
         }
     }
 }

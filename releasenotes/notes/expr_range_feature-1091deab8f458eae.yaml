@@ -1,0 +1,22 @@
+---
+features_circuits:
+  - |
+    Added a new :class:`qiskit.circuit.classical.expr.Range` class that enables the specification
+    of dynamic ranges in classical expressions. 
+    This class allows users to define ranges with start, stop and step parameters, allowing more flexible and dynamic for-loop statements.
+    At the moment, :class:`~qiskit.circuit.classical.expr.Range` class can only be used in for-loops,
+    The index set of the :class:`qiskit.circuit.ForLoop` can now be of type `qiskit.circuit.classical.expr.Range`,
+    on top of the existing `List[int]`.
+  
+features_qasm:
+  - |
+    The :class:`qiskit.qasm3.ast.ForLoopStatement` class now has a new parameter `type_` that is used to specify the type of the index set of the for-loop. 
+    If not specified the type, an error will be raised. 
+    This follows the latest standard OpenQASM 3 specification (https://openqasm.com/language/classical.html#for-loops).
+    The `qiskit.qasm3.exporter.QASM3Exporter` class has also been updated to export `qiskit.circuit.classical.expr.Range` objects to a format that is compatible with the latest standard OpenQASM 3 specification.
+    Furthermore, the type of the index set of the `qiskit.circuit.ForLoop` expression is now correctly exported to OpenQASM 3, as per the latest specification.
+
+upgrade_qasm:
+  - |
+    Creating a :class:`qiskit.qasm3.ast.ForLoopStatement` object without specifying the `type_` parameter will now raise an error.
+    This follows the latest standard OpenQASM 3 specification (https://openqasm.com/language/classical.html#for-loops).

@@ -204,6 +204,7 @@ __all__ = [
     "Expr",
     "ExprVisitor",
     "Index",
+    "Range",
     "Stretch",
     "Unary",
     "Value",
@@ -237,7 +238,7 @@ __all__ = [
     "sub",
 ]
 
-from .expr import Expr, Var, Value, Cast, Unary, Binary, Index, Stretch
+from .expr import Expr, Var, Value, Cast, Unary, Binary, Index, Stretch, Range
 from .visitors import ExprVisitor, iter_vars, iter_identifiers, structurally_equivalent, is_lvalue
 from .constructors import (
     lift,
