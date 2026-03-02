@@ -50,22 +50,46 @@ pub enum DecomposerType {
     TwoQubitBasis(TwoQubitBasisDecomposer),
     TwoQubitControlledU(TwoQubitControlledUDecomposer),
 }
-// TODO: we shouldn't need to clone a decomposer on entry from Python space, but should rely on a
-// reference type.  This implementation was added during the transition to PyO3 0.28, to avoid
-// proliferating the cloning derive of `FromPyObject` to `TwoQubitBasisDecomposer` and
-// `TwoQubitControlledUDecomposer`; that clone is usually a mistake.  Using a reference type within
-// this code would require a greater refactor so that the Python-space method
-// `py_run_consolidate_blocks` is not the actual worker function.
-impl<'a, 'py> pyo3::FromPyObject<'a, 'py> for DecomposerType {
+
+pub enum DecomposerRef<'a> {
+    FromPythonBasis(PyRef<'a, TwoQubitBasisDecomposer>),
+    FromPythonControlledU(PyRef<'a, TwoQubitControlledUDecomposer>),
+    FromRust(&'a DecomposerType),
+}
+
+impl<'a> DecomposerRef<'_> {
+    fn apply<F, G, H>(&self, basis_fn: F, controlledu_fn: G) -> H
+    where
+        F: Fn(&TwoQubitBasisDecomposer) -> H,
+        G: Fn(&TwoQubitControlledUDecomposer) -> H,
+    {
+        match self {
+            DecomposerRef::FromPythonBasis(decomp) => basis_fn(decomp),
+            DecomposerRef::FromPythonControlledU(decomp) => controlledu_fn(decomp),
+            DecomposerRef::FromRust(DecomposerType::TwoQubitBasis(decomp)) => basis_fn(decomp),
+            DecomposerRef::FromRust(DecomposerType::TwoQubitControlledU(decomp)) => {
+                controlledu_fn(decomp)
+            }
+        }
+    }
+}
+
+impl<'a, 'py> pyo3::FromPyObject<'a, 'py> for DecomposerRef<'py> {
     type Error = pyo3::CastError<'a, 'py>;
 
     fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         if let Ok(ob) = ob.cast::<TwoQubitBasisDecomposer>() {
-            Ok(Self::TwoQubitBasis(ob.borrow().clone()))
+            Ok(Self::FromPythonBasis(ob.borrow()))
         } else {
             ob.cast::<TwoQubitControlledUDecomposer>()
-                .map(|ob| Self::TwoQubitControlledU(ob.borrow().clone()))
+                .map(|ob| Self::FromPythonControlledU(ob.borrow()))
         }
+    }
+}
+
+impl<'a> DecomposerType {
+    fn as_decomposer_ref(&'a self) -> DecomposerRef<'a> {
+        DecomposerRef::FromRust(self)
     }
 }
 
@@ -193,12 +217,45 @@ impl PhysQargsMap {
     }
 }
 
+struct ConsolidateBlocksOptions {
+    basis_gates: Option<HashSet<String>>,
+    blocks: Option<Vec<Vec<usize>>>,
+    runs: Option<Vec<Vec<usize>>>,
+    // TODO: this doesn't handle the possibility of control-flow operations yet.
+    qubit_map: Option<Vec<PhysicalQubit>>,
+}
+
+impl ConsolidateBlocksOptions {
+    pub fn new(
+        basis_gates: Option<HashSet<String>>,
+        blocks: Option<Vec<Vec<usize>>>,
+        runs: Option<Vec<Vec<usize>>>,
+        qubit_map: Option<Vec<PhysicalQubit>>,
+    ) -> Self {
+        Self {
+            basis_gates,
+            blocks,
+            runs,
+            qubit_map,
+        }
+    }
+
+    pub fn empty() -> Self {
+        Self {
+            basis_gates: None,
+            blocks: None,
+            runs: None,
+            qubit_map: None,
+        }
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 #[pyfunction]
 #[pyo3(name = "consolidate_blocks", signature = (dag, decomposer, basis_gate_name, force_consolidate, target=None, basis_gates=None, blocks=None, runs=None, qubit_map=None))]
 fn py_run_consolidate_blocks(
     dag: &mut DAGCircuit,
-    decomposer: DecomposerType,
+    decomposer: DecomposerRef,
     basis_gate_name: &str,
     force_consolidate: bool,
     target: Option<&Target>,
@@ -206,6 +263,29 @@ fn py_run_consolidate_blocks(
     blocks: Option<Vec<Vec<usize>>>,
     runs: Option<Vec<Vec<usize>>>,
     qubit_map: Option<Vec<PhysicalQubit>>,
+) -> PyResult<()> {
+    internal_run_consolidate_blocks(
+        dag,
+        decomposer,
+        basis_gate_name,
+        force_consolidate,
+        target,
+        ConsolidateBlocksOptions::new(
+            basis_gates,
+            blocks,
+            runs,
+            qubit_map
+        ),
+    )
+}
+
+fn internal_run_consolidate_blocks(
+    dag: &mut DAGCircuit,
+    decomposer: DecomposerRef,
+    basis_gate_name: &str,
+    force_consolidate: bool,
+    target: Option<&Target>,
+    options: ConsolidateBlocksOptions,
 ) -> PyResult<()> {
     // The node indices that enter from `blocks` and `runs` come from Python space, and we can't
     // trust that they come from a correct analysis (or the block/run collection might have been
@@ -220,7 +300,7 @@ fn py_run_consolidate_blocks(
             )),
         }
     };
-    let blocks = match blocks {
+    let blocks = match options.blocks {
         Some(runs) => runs
             .into_iter()
             .map(|run| {
@@ -232,13 +312,13 @@ fn py_run_consolidate_blocks(
         // If runs are specified but blocks are none we're in a legacy configuration where external
         // collection passes are being used. In this case don't collect blocks because it's
         // unexpected.
-        None => match runs {
+        None => match options.runs {
             Some(_) => vec![],
             None => dag.collect_2q_runs().unwrap(),
         },
     };
 
-    let runs: Option<Vec<Vec<NodeIndex>>> = runs
+    let runs: Option<Vec<Vec<NodeIndex>>> = options.runs
         .map(|runs| {
             runs.into_iter()
                 .map(|run| {
@@ -253,7 +333,7 @@ fn py_run_consolidate_blocks(
         HashSet::with_capacity(blocks.iter().map(|x| x.len()).sum());
     // In most cases, the qargs in a block will not exceed 2 qubits.
     let mut block_qargs: HashSet<Qubit> = HashSet::with_capacity(2);
-    let mut phys_qargs = PhysQargsMap::new(qubit_map);
+    let mut phys_qargs = PhysQargsMap::new(options.qubit_map);
     for block in blocks {
         block_qargs.clear();
         if block.len() == 1 {
@@ -261,7 +341,7 @@ fn py_run_consolidate_blocks(
             let inst = dag[inst_node].unwrap_operation();
             if !is_supported(
                 target,
-                basis_gates.as_ref(),
+                options.basis_gates.as_ref(),
                 inst.op.name(),
                 phys_qargs.get(dag, inst.qubits),
             ) {
@@ -295,7 +375,7 @@ fn py_run_consolidate_blocks(
             }
             if !is_supported(
                 target,
-                basis_gates.as_ref(),
+                options.basis_gates.as_ref(),
                 inst.op.name(),
                 phys_qargs.get(dag, inst.qubits),
             ) {
@@ -366,19 +446,15 @@ fn py_run_consolidate_blocks(
             ];
             let matrix = blocks_to_matrix(dag, &block, block_index_map).ok();
             if let Some(matrix) = matrix {
-                let num_basis_gates = match decomposer {
-                    DecomposerType::TwoQubitBasis(ref decomp) => {
-                        decomp.num_basis_gates_inner(matrix.view())?
-                    }
-                    DecomposerType::TwoQubitControlledU(ref decomp) => {
-                        decomp.num_basis_gates_inner(matrix.view())?
-                    }
-                };
+                let num_basis_gates: usize = decomposer.apply(
+                    |d| d.num_basis_gates_inner(matrix.view()),
+                    |d| d.num_basis_gates_inner(matrix.view()),
+                )?;
 
                 if force_consolidate
                     || num_basis_gates < basis_count
                     || block.len() > MAX_2Q_DEPTH
-                    || (basis_gates.is_some() && outside_basis)
+                    || (options.basis_gates.is_some() && outside_basis)
                     || (target.is_some() && outside_basis)
                 {
                     if approx::abs_diff_eq!(aview2(&TWO_QUBIT_IDENTITY), matrix) {
@@ -423,7 +499,7 @@ fn py_run_consolidate_blocks(
             if run.len() == 1
                 && !is_supported(
                     target,
-                    basis_gates.as_ref(),
+                    options.basis_gates.as_ref(),
                     first_inst.op.name(),
                     first_qubits,
                 )
@@ -516,17 +592,13 @@ pub fn run_consolidate_blocks(
 ) -> PyResult<()> {
     let approximation_degree = approximation_degree.unwrap_or(1.0);
     let (decomposer, basis_gate) = get_decomposer_and_basis_gate(target, approximation_degree);
-    py_run_consolidate_blocks(
+    internal_run_consolidate_blocks(
         dag,
-        decomposer,
+        decomposer.as_decomposer_ref(),
         basis_gate.name(),
         force_consolidate,
         target,
-        None,
-        None,
-        None,
-        // TODO: this doesn't handle the possibility of control-flow operations yet.
-        None,
+        ConsolidateBlocksOptions::empty(),
     )
 }
 
