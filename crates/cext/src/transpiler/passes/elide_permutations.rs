@@ -99,7 +99,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_elide_permutations(
 ///     }
 /// }
 /// QkTranspileLayout *elide_result = qk_transpiler_pass_elide_permutations(dag);
-/// if (elide_result == NULL) {
+/// if (elide_result != NULL) {
 ///     qk_transpile_layout_free(elide_result);
 /// }
 /// qk_quantum_register_free(qr);
