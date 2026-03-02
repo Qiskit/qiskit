@@ -6923,6 +6923,41 @@ impl DAGCircuit {
             }
         };
 
+        // Transfer DAG-level variable declarations from the replacement DAG.
+        // This is similar to how compose() handles variables, but only transfer variables
+        // that are not already present in the target DAG.
+        for var in &other.vars_input {
+            let var_obj = other.vars.get(*var).unwrap();
+            if self.vars.find(var_obj).is_none() {
+                self.add_input_var(var_obj.clone())?;
+            }
+        }
+        for var in &other.vars_capture {
+            let var_obj = other.vars.get(*var).unwrap();
+            if self.vars.find(var_obj).is_none() {
+                self.add_captured_var(var_obj.clone())?;
+            }
+        }
+        for var in &other.vars_declare {
+            let var_obj = other.vars.get(*var).unwrap();
+            if self.vars.find(var_obj).is_none() {
+                self.add_declared_var(var_obj.clone())?;
+            }
+        }
+        // Also transfer stretches (captured/declared), but only if not already present
+        for stretch in &other.stretches_capture {
+            let stretch_obj = other.stretches.get(*stretch).unwrap();
+            if self.stretches.find(stretch_obj).is_none() {
+                self.add_captured_stretch(stretch_obj.clone())?;
+            }
+        }
+        for stretch in &other.stretches_declare {
+            let stretch_obj = other.stretches.get(*stretch).unwrap();
+            if self.stretches.find(stretch_obj).is_none() {
+                self.add_declared_stretch(stretch_obj.clone())?;
+            }
+        }
+
         let out_map = self.substitute_node_with_graph(
             node_index, other, qubit_map, clbit_map, var_map, block_map,
         )?;
