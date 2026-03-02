@@ -943,7 +943,7 @@ impl BinRead for QPYCircuitV17 {
         }
         let annotation_headers = AnnotationHeaderStaticPack::read_options(reader, endian, ())?;
         let custom_instructions = CustomCircuitInstructionsPack::read_options(reader, endian, ())?;
-        let mut instructions = Vec::with_capacity(header.num_vars as usize);
+        let mut instructions = Vec::with_capacity(header.num_instructions as usize);
         for _ in 0..header.num_instructions {
             // read instructions, including circuit bits (the `true` arg)
             instructions.push(CircuitInstructionV2Pack::read_options(
