@@ -122,6 +122,9 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_remove_identity_equivalen
 /// double rz_params[1] = {0.,};
 /// qk_dag_apply_gate(dag, QkGate_RZ, rz_qargs, rz_params, false);
 /// qk_transpiler_pass_remove_identity_equivalent(dag, target, 1.0);
+/// qk_quantum_register_free(qr);
+/// qk_dag_free(dag);
+/// qk_target_free(target);
 /// ```
 ///
 /// # Safety
