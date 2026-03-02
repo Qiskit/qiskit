@@ -27,7 +27,7 @@ use qiskit_transpiler::{passes::run_optimize_1q_gates_decomposition, target::Tar
 /// - If the original chain is an identity (chain gets removed).
 ///
 /// The error is the combined multiplication of the errors of individual gates on the
-/// qubit it operates on.
+
 ///
 /// \qk_deprecated{2.4.0|use :c:func:`qk_transpiler_pass_standalone_optimize_1q_sequences` instead.}
 /// @param circuit A pointer to the ``QkCircuit`` object to transform.
@@ -184,20 +184,18 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_optimize_1q_sequences(
 /// and will support all basis gates on its Euler basis set.
 ///
 /// # Example
-///
+/// ```c
 /// QkTarget *target = qk_target_new(1);
 /// double u_errors[3] = {0., 1e-4, 1e-4};
 /// for (int idx = 0; idx < 3; idx++) {
-/// QkTargetEntry *u_entry = qk_target_entry_new(QkGate_U);
-///     uint32_t qargs[1] = {
-///         0,
-///     };
+///     QkTargetEntry *u_entry = qk_target_entry_new(QkGate_U);
+///     uint32_t qargs[1] = {0};
 ///     qk_target_entry_add_property(u_entry, qargs, 1, NAN, u_errors[idx]);
 ///     qk_target_add_instruction(target, u_entry);
 /// }
 ///
 /// // Build circuit
-/// ```c
+///
 /// QkDag *dag = qk_dag_new();
 /// QkQuantumRegister *qr = qk_quantum_register_new(1, "qr");
 /// qk_dag_add_quantum_register(dag, qr);
