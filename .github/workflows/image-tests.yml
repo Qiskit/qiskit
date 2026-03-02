@@ -50,7 +50,7 @@ jobs:
           # This variable should become redundant on release of jupyter-core 6.
           JUPYTER_PLATFORM_DIRS: 1
       - name: Store image tests diff
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: ${{ failure() }}
         with:
           name: image-test-failure-img-diffs
