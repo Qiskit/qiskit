@@ -10,7 +10,11 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use pyo3::import_exception;
+// QPY involves deserializing untrusted user input, which means it's almost _never_ safe to make
+// assertions about it.  Better just to completely deny use of these panicking methods.  This is
+// done here rather than in `Cargo.toml` so we don't override the workspace inheritance of lints.
+#![deny(clippy::unwrap_used, clippy::expect_used)]
+
 use pyo3::prelude::*;
 use pyo3::types::PyModule;
 use pyo3::{Bound, PyResult, wrap_pyfunction};
@@ -20,6 +24,7 @@ mod bytes;
 mod circuit_reader;
 mod circuit_writer;
 mod consts;
+mod error;
 mod expr;
 mod formats;
 mod params;
@@ -33,6 +38,3 @@ pub fn qpy(module: &Bound<PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(circuit_reader::py_read_circuit, module)?)?;
     Ok(())
 }
-
-import_exception!(qiskit.qpy.exceptions, UnsupportedFeatureForVersion);
-import_exception!(qiskit.qpy.exceptions, QpyError);

@@ -14,7 +14,6 @@
 use binrw::Endian;
 use numpy::Complex64;
 use pyo3::IntoPyObjectExt;
-use pyo3::exceptions::{PyIOError, PyTypeError, PyValueError};
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::{
@@ -37,6 +36,7 @@ use uuid::Uuid;
 
 use crate::bytes::Bytes;
 use crate::circuit_writer::standard_instruction_class_name;
+use crate::error::QpyError;
 use crate::formats;
 use crate::value::{
     GenericValue, ModifierType, ParamRegisterValue, QPYWriteData, ValueType,
@@ -46,7 +46,11 @@ use crate::value::{
 pub const UNITARY_GATE_CLASS_NAME: &str = "UnitaryGate";
 pub const PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME: &str = "PauliProductMeasurement";
 
-fn is_python_gate(py: Python, op: &PackedOperation, python_gate: &Bound<PyAny>) -> PyResult<bool> {
+fn is_python_gate(
+    py: Python,
+    op: &PackedOperation,
+    python_gate: &Bound<PyAny>,
+) -> Result<bool, QpyError> {
     match op.view() {
         OperationRef::Gate(pygate) => {
             if pygate.instruction.bind(py).is_instance(python_gate)? {
@@ -65,7 +69,7 @@ fn is_python_gate(py: Python, op: &PackedOperation, python_gate: &Bound<PyAny>) 
 pub(crate) fn recognize_custom_operation(
     op: &PackedOperation,
     name: &String,
-) -> PyResult<Option<String>> {
+) -> Result<Option<String>, QpyError> {
     Python::attach(|py| {
         let library = py.import("qiskit.circuit.library")?;
         let circuit_mod = py.import("qiskit.circuit")?;
@@ -112,22 +116,24 @@ pub(crate) fn recognize_custom_operation(
 pub(crate) fn get_python_gate_class<'a>(
     py: Python<'a>,
     gate_class_name: &String,
-) -> PyResult<Bound<'a, PyAny>> {
+) -> Result<Bound<'a, PyAny>, QpyError> {
     let library = py.import("qiskit.circuit.library")?;
     let circuit_mod = py.import("qiskit.circuit")?;
     let control_flow = py.import("qiskit.circuit.controlflow")?;
     if library.hasattr(gate_class_name)? {
-        library.getattr(gate_class_name)
+        library.getattr(gate_class_name).map_err(QpyError::from)
     } else if circuit_mod.hasattr(gate_class_name)? {
-        circuit_mod.getattr(gate_class_name)
+        circuit_mod.getattr(gate_class_name).map_err(QpyError::from)
     } else if control_flow.hasattr(gate_class_name)? {
-        control_flow.getattr(gate_class_name)
+        control_flow
+            .getattr(gate_class_name)
+            .map_err(QpyError::from)
     } else if gate_class_name == "Clifford" {
         Ok(imports::CLIFFORD.get_bound(py).clone())
     } else if gate_class_name == "pauli_product_measurement" {
         Ok(imports::PAULI_PRODUCT_MEASUREMENT.get_bound(py).clone())
     } else {
-        Err(PyIOError::new_err(format!(
+        Err(QpyError::ConversionError(format!(
             "Gate class not found: {:?}",
             gate_class_name
         )))
@@ -138,7 +144,7 @@ pub(crate) fn get_python_gate_class<'a>(
 pub(crate) fn serialize_metadata(
     metadata_opt: &Option<Bound<PyAny>>,
     metadata_serializer: Option<&Bound<PyAny>>,
-) -> PyResult<Bytes> {
+) -> Result<Bytes, QpyError> {
     match metadata_opt {
         None => Ok(Bytes::new()),
         Some(metadata) => {
@@ -174,17 +180,17 @@ pub(crate) fn getattr_or_none<'py>(
     }
 }
 
-pub(crate) fn py_serialize_numpy_object(py_object: &Py<PyAny>) -> PyResult<Bytes> {
-    Python::attach(|py| {
+pub(crate) fn py_serialize_numpy_object(py_object: &Py<PyAny>) -> Result<Bytes, QpyError> {
+    Python::attach(|py| -> Result<Bytes, QpyError> {
         let np = py.import("numpy")?;
         let io = py.import("io")?;
         let buffer = io.call_method0("BytesIO")?;
         np.call_method1("save", (&buffer, py_object))?;
-        buffer.call_method0("getvalue")?.extract::<Bytes>()
+        Ok(buffer.call_method0("getvalue")?.extract::<Bytes>()?)
     })
 }
 
-pub(crate) fn py_deserialize_numpy_object(data: &Bytes) -> PyResult<Py<PyAny>> {
+pub(crate) fn py_deserialize_numpy_object(data: &Bytes) -> Result<Py<PyAny>, QpyError> {
     Python::attach(|py| {
         let np = py.import("numpy")?;
         let io = py.import("io")?;
@@ -198,13 +204,14 @@ pub(crate) fn py_deserialize_numpy_object(data: &Bytes) -> PyResult<Py<PyAny>> {
 fn pack_sparse_pauli_op(
     operator: &Bound<PyAny>,
     qpy_data: &QPYWriteData,
-) -> PyResult<formats::PauliDataPack> {
+) -> Result<formats::PauliDataPack, QpyError> {
     if operator.is_instance_of::<PySparseObservable>() {
-        let py_sparse_observable: PyRef<PySparseObservable> = operator.extract()?;
-        let sparse_observable = py_sparse_observable
-            .inner
-            .read()
-            .map_err(|_| PyValueError::new_err("Can't extract sparse observable data"))?;
+        let py_sparse_observable: PyRef<PySparseObservable> = operator
+            .extract()
+            .map_err(|e| QpyError::from(PyErr::from(e)))?;
+        let sparse_observable = py_sparse_observable.inner.read().map_err(|_| {
+            QpyError::ConversionError("Can't extract sparse observable data".to_string())
+        })?;
         let num_qubits = sparse_observable.num_qubits();
         let coeff_data = sparse_observable
             .coeffs()
@@ -245,7 +252,7 @@ fn pack_sparse_pauli_op(
 pub(crate) fn py_pack_pauli_evolution_gate(
     evolution_gate: &Bound<PyAny>,
     qpy_data: &QPYWriteData,
-) -> PyResult<formats::PauliEvolutionDefPack> {
+) -> Result<formats::PauliEvolutionDefPack, QpyError> {
     let py = evolution_gate.py();
     let operators = evolution_gate.getattr("operator")?;
     let mut standalone = false;
@@ -253,12 +260,15 @@ pub(crate) fn py_pack_pauli_evolution_gate(
         standalone = true;
         PyList::new(py, [operators])?
     } else {
-        operators.cast()?.clone()
+        operators
+            .cast()
+            .map_err(|e| QpyError::from(PyErr::from(e)))?
+            .clone()
     };
     let pauli_data = operator_list
         .iter()
         .map(|operator| pack_sparse_pauli_op(&operator, qpy_data))
-        .collect::<PyResult<_>>()?;
+        .collect::<Result<_, QpyError>>()?;
 
     let time_value = py_convert_to_generic_value(&evolution_gate.getattr("time")?)?;
     let (time_type, time_data) = serialize_generic_value(&time_value, qpy_data)?;
@@ -286,7 +296,7 @@ pub(crate) fn py_pack_pauli_evolution_gate(
     })
 }
 
-pub(crate) fn gate_class_name(op: &PackedOperation) -> PyResult<String> {
+pub(crate) fn gate_class_name(op: &PackedOperation) -> Result<String, QpyError> {
     Python::attach(|py| {
         let name = match op.view() {
             // getting __name__ for standard gates and instructions should
@@ -323,17 +333,11 @@ pub(crate) fn gate_class_name(op: &PackedOperation) -> PyResult<String> {
     })
 }
 
-pub(crate) fn py_get_type_key(py_object: &Bound<PyAny>) -> PyResult<ValueType> {
+pub(crate) fn py_get_type_key(py_object: &Bound<PyAny>) -> Result<ValueType, QpyError> {
     let py: Python<'_> = py_object.py();
-    if py_object
-        .is_instance(imports::PARAMETER_VECTOR_ELEMENT.get_bound(py))
-        .unwrap()
-    {
+    if py_object.is_instance(imports::PARAMETER_VECTOR_ELEMENT.get_bound(py))? {
         return Ok(ValueType::ParameterVector);
-    } else if py_object
-        .is_instance(imports::PARAMETER.get_bound(py))
-        .unwrap()
-    {
+    } else if py_object.is_instance(imports::PARAMETER.get_bound(py))? {
         return Ok(ValueType::Parameter);
     } else if py_object.is_instance(imports::PARAMETER_EXPRESSION.get_bound(py))? {
         return Ok(ValueType::ParameterExpression);
@@ -367,13 +371,15 @@ pub(crate) fn py_get_type_key(py_object: &Bound<PyAny>) -> PyResult<ValueType> {
         return Ok(ValueType::Null);
     }
 
-    Err(PyTypeError::new_err(format!(
+    Err(QpyError::ConversionError(format!(
         "Unidentified type_key for: {}",
         py_object
     )))
 }
 
-pub(crate) fn py_convert_to_generic_value(py_object: &Bound<PyAny>) -> PyResult<GenericValue> {
+pub(crate) fn py_convert_to_generic_value(
+    py_object: &Bound<PyAny>,
+) -> Result<GenericValue, QpyError> {
     let type_key = py_get_type_key(py_object)?;
     match type_key {
         ValueType::Bool => Ok(GenericValue::Bool(py_object.extract::<bool>()?)),
@@ -385,16 +391,24 @@ pub(crate) fn py_convert_to_generic_value(py_object: &Bound<PyAny>) -> PyResult<
         ValueType::CaseDefault => Ok(GenericValue::CaseDefault),
         ValueType::Null => Ok(GenericValue::Null),
         ValueType::Parameter => Ok(GenericValue::ParameterExpressionSymbol(
-            py_object.extract::<PyParameter>()?.symbol().clone(),
+            py_object
+                .extract::<PyParameter>()
+                .map_err(|e| QpyError::from(PyErr::from(e)))?
+                .symbol()
+                .clone(),
         )),
         ValueType::ParameterVector => Ok(GenericValue::ParameterExpressionVectorSymbol(
             py_object
-                .extract::<PyParameterVectorElement>()?
+                .extract::<PyParameterVectorElement>()
+                .map_err(|e| QpyError::from(PyErr::from(e)))?
                 .symbol()
                 .clone(),
         )),
         ValueType::ParameterExpression => Ok(GenericValue::ParameterExpression(Arc::new(
-            py_object.extract::<PyParameterExpression>()?.inner,
+            py_object
+                .extract::<PyParameterExpression>()
+                .map_err(|e| QpyError::from(PyErr::from(e)))?
+                .inner,
         ))),
         ValueType::Circuit => Ok(GenericValue::Circuit(py_object.clone().unbind())),
         ValueType::Tuple => {
@@ -404,14 +418,16 @@ pub(crate) fn py_convert_to_generic_value(py_object: &Bound<PyAny>) -> PyResult<
                     // let data_item = possible_data_item?;
                     py_convert_to_generic_value(&data_item?)
                 })
-                .collect::<PyResult<_>>()?;
+                .collect::<Result<_, QpyError>>()?;
             Ok(GenericValue::Tuple(elements))
         }
         ValueType::Range => {
             let start = py_object.getattr("start")?.extract::<isize>()?;
             let stop = py_object.getattr("stop")?.extract::<isize>()?;
             let step = py_object.getattr("step")?.extract::<isize>()?;
-            let step = NonZero::new(step).expect("Python does not allow zero steps");
+            let step = NonZero::new(step).ok_or_else(|| {
+                QpyError::InvalidParameter("range step cannot be zero".to_string())
+            })?;
             let range = PyRange { start, stop, step };
             Ok(GenericValue::Range(range))
         }
@@ -426,42 +442,50 @@ pub(crate) fn py_convert_to_generic_value(py_object: &Bound<PyAny>) -> PyResult<
             } else if let Ok(reg) = py_object.extract::<ClassicalRegister>() {
                 Ok(GenericValue::Register(ParamRegisterValue::Register(reg)))
             } else {
-                Err(PyValueError::new_err("Could not read python register"))
+                Err(QpyError::InvalidRegister(
+                    "Could not read python register".to_string(),
+                ))
             }
         }
     }
 }
 
-pub(crate) fn py_convert_from_generic_value(value: &GenericValue) -> PyResult<Py<PyAny>> {
-    Python::attach(|py| match value {
-        GenericValue::Bool(value) => value.into_py_any(py),
-        GenericValue::Int64(value) => value.into_py_any(py),
-        GenericValue::Float64(value) => value.into_py_any(py),
-        GenericValue::Complex64(value) => value.into_py_any(py),
-        GenericValue::String(value) => value.into_py_any(py),
-        GenericValue::Expression(exp) => exp.clone().into_py_any(py),
-        GenericValue::CaseDefault => Ok(imports::CASE_DEFAULT.get(py).clone()),
-        GenericValue::Null => Ok(py.None()),
-        GenericValue::ParameterExpressionSymbol(symbol) => symbol.clone().into_py_any(py),
-        GenericValue::ParameterExpressionVectorSymbol(symbol) => symbol.clone().into_py_any(py),
-        GenericValue::ParameterExpression(exp) => exp.as_ref().clone().into_py_any(py),
-        GenericValue::Circuit(py_object) => Ok(py_object.clone()),
-        GenericValue::Modifier(py_object) => Ok(py_object.clone()),
-        GenericValue::Range(py_range) => py_range.into_py_any(py),
-        GenericValue::NumpyObject(py_object) => Ok(py_object.clone()),
-        GenericValue::Tuple(values) => {
-            let elements: Vec<Py<PyAny>> = values
-                .iter()
-                .map(py_convert_from_generic_value)
-                .collect::<PyResult<_>>()?;
-            PyTuple::new(py, &elements)?.into_py_any(py)
+pub(crate) fn py_convert_from_generic_value(value: &GenericValue) -> Result<Py<PyAny>, QpyError> {
+    Python::attach(|py| -> Result<Py<PyAny>, QpyError> {
+        match value {
+            GenericValue::Bool(value) => Ok(value.into_py_any(py)?),
+            GenericValue::Int64(value) => Ok(value.into_py_any(py)?),
+            GenericValue::Float64(value) => Ok(value.into_py_any(py)?),
+            GenericValue::Complex64(value) => Ok(value.into_py_any(py)?),
+            GenericValue::String(value) => Ok(value.into_py_any(py)?),
+            GenericValue::Expression(exp) => Ok(exp.clone().into_py_any(py)?),
+            GenericValue::CaseDefault => Ok(imports::CASE_DEFAULT.get(py).clone()),
+            GenericValue::Null => Ok(py.None()),
+            GenericValue::ParameterExpressionSymbol(symbol) => {
+                Ok(symbol.clone().into_py_any(py)?)
+            }
+            GenericValue::ParameterExpressionVectorSymbol(symbol) => {
+                Ok(symbol.clone().into_py_any(py)?)
+            }
+            GenericValue::ParameterExpression(exp) => Ok(exp.as_ref().clone().into_py_any(py)?),
+            GenericValue::Circuit(py_object) => Ok(py_object.clone()),
+            GenericValue::Modifier(py_object) => Ok(py_object.clone()),
+            GenericValue::Range(py_range) => Ok(py_range.into_py_any(py)?),
+            GenericValue::NumpyObject(py_object) => Ok(py_object.clone()),
+            GenericValue::Tuple(values) => {
+                let elements: Vec<Py<PyAny>> = values
+                    .iter()
+                    .map(py_convert_from_generic_value)
+                    .collect::<Result<_, QpyError>>()?;
+                Ok(PyTuple::new(py, &elements)?.into_py_any(py)?)
+            }
+            GenericValue::Register(reg_value) => match reg_value {
+                ParamRegisterValue::Register(reg) => Ok(reg.clone().into_py_any(py)?),
+                ParamRegisterValue::ShareableClbit(clbit) => Ok(clbit.clone().into_py_any(py)?),
+            },
+            GenericValue::BigInt(bigint) => Ok(bigint.clone().into_py_any(py)?),
+            GenericValue::Duration(duration) => Ok((*duration).into_py_any(py)?),
         }
-        GenericValue::Register(reg_value) => match reg_value {
-            ParamRegisterValue::Register(reg) => reg.clone().into_py_any(py),
-            ParamRegisterValue::ShareableClbit(clbit) => clbit.clone().into_py_any(py),
-        },
-        GenericValue::BigInt(bigint) => bigint.clone().into_py_any(py),
-        GenericValue::Duration(duration) => (*duration).into_py_any(py),
     })
 }
 
@@ -471,7 +495,7 @@ pub(crate) fn py_pack_param(
     py_object: &Bound<PyAny>,
     qpy_data: &QPYWriteData,
     endian: Endian,
-) -> PyResult<formats::GenericDataPack> {
+) -> Result<formats::GenericDataPack, QpyError> {
     let value = py_convert_to_generic_value(py_object)?;
     let (type_key, data) = match endian {
         Endian::Big => serialize_generic_value(&value, qpy_data)?,
@@ -483,7 +507,7 @@ pub(crate) fn py_pack_param(
 pub(crate) fn py_get_instruction_annotations(
     instruction: &PackedInstruction,
     qpy_data: &mut QPYWriteData,
-) -> PyResult<Option<formats::InstructionsAnnotationPack>> {
+) -> Result<Option<formats::InstructionsAnnotationPack>, QpyError> {
     Python::attach(|py| {
         if let OperationRef::Instruction(inst) = instruction.op.view() {
             let op = inst.instruction.bind(py);
@@ -499,7 +523,7 @@ pub(crate) fn py_get_instruction_annotations(
                             payload,
                         })
                     })
-                    .collect::<PyResult<_>>()?;
+                    .collect::<Result<_, QpyError>>()?;
                 if !annotations.is_empty() {
                     return Ok(Some(formats::InstructionsAnnotationPack { annotations }));
                 }
@@ -509,7 +533,7 @@ pub(crate) fn py_get_instruction_annotations(
     })
 }
 
-pub(crate) fn py_pack_modifier(modifier: &Py<PyAny>) -> PyResult<formats::ModifierPack> {
+pub(crate) fn py_pack_modifier(modifier: &Py<PyAny>) -> Result<formats::ModifierPack, QpyError> {
     Python::attach(|py| {
         let modifier = modifier.bind(py);
         let module = py.import("qiskit.circuit.annotated_operation")?;
@@ -535,12 +559,16 @@ pub(crate) fn py_pack_modifier(modifier: &Py<PyAny>) -> PyResult<formats::Modifi
                 power: modifier.getattr("power")?.extract::<f64>()?,
             })
         } else {
-            Err(PyTypeError::new_err("Unsupported modifier."))
+            Err(QpyError::ConversionError(
+                "Unsupported modifier".to_string(),
+            ))
         }
     })
 }
 
-pub(crate) fn py_unpack_modifier(packed_modifier: &formats::ModifierPack) -> PyResult<Py<PyAny>> {
+pub(crate) fn py_unpack_modifier(
+    packed_modifier: &formats::ModifierPack,
+) -> Result<Py<PyAny>, QpyError> {
     Python::attach(|py| match packed_modifier.modifier_type {
         ModifierType::Inverse => Ok(imports::INVERSE_MODIFIER.get_bound(py).call0()?.unbind()),
         ModifierType::Control => {

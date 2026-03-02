@@ -10,7 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 use binrw::Endian;
-use pyo3::exceptions::{PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use qiskit_circuit::imports;
 use qiskit_circuit::operations::Param;
@@ -22,6 +21,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::bytes::Bytes;
+use crate::error::QpyError;
 use crate::formats;
 use crate::py_methods::{py_convert_from_generic_value, py_pack_param};
 use crate::value::{
@@ -72,7 +72,7 @@ impl std::fmt::Display for ParameterType {
 }
 
 impl TryFrom<ParameterType> for ValueType {
-    type Error = PyErr;
+    type Error = QpyError;
     fn try_from(value: ParameterType) -> Result<Self, Self::Error> {
         match value {
             ParameterType::Complex => Ok(ValueType::Complex),
@@ -81,9 +81,10 @@ impl TryFrom<ParameterType> for ValueType {
             ParameterType::Null => Ok(ValueType::Null),
             ParameterType::ParameterVector => Ok(ValueType::ParameterVector),
             ParameterType::Parameter => Ok(ValueType::Parameter),
-            _ => Err(PyValueError::new_err(
-                "Cannot convert to value type {value}",
-            )),
+            _ => Err(QpyError::ConversionError(format!(
+                "Cannot convert to value type {}",
+                value
+            ))),
         }
     }
 }
@@ -91,7 +92,7 @@ impl TryFrom<ParameterType> for ValueType {
 pub(crate) fn pack_parameter_expression_by_op(
     opcode: u8,
     data: formats::ParameterExpressionStandardOpPack,
-) -> PyResult<formats::ParameterExpressionElementPack> {
+) -> Result<formats::ParameterExpressionElementPack, QpyError> {
     match opcode {
         0 => Ok(formats::ParameterExpressionElementPack::Add(data)),
         1 => Ok(formats::ParameterExpressionElementPack::Sub(data)),
@@ -114,13 +115,16 @@ pub(crate) fn pack_parameter_expression_by_op(
         19 => Ok(formats::ParameterExpressionElementPack::Rdiv(data)),
         20 => Ok(formats::ParameterExpressionElementPack::Rpow(data)),
         255 => Ok(formats::ParameterExpressionElementPack::Expression(data)),
-        _ => Err(PyTypeError::new_err(format!("Invalid opcode: {}", opcode))),
+        _ => Err(QpyError::ConversionError(format!(
+            "Invalid opcode: {}",
+            opcode
+        ))),
     }
 }
 
 pub(crate) fn unpack_parameter_expression_standard_op(
     packed_parameter: formats::ParameterExpressionElementPack,
-) -> PyResult<(u8, formats::ParameterExpressionStandardOpPack)> {
+) -> Result<(u8, formats::ParameterExpressionStandardOpPack), QpyError> {
     match packed_parameter {
         formats::ParameterExpressionElementPack::Add(op) => Ok((0, op)),
         formats::ParameterExpressionElementPack::Sub(op) => Ok((1, op)),
@@ -143,14 +147,16 @@ pub(crate) fn unpack_parameter_expression_standard_op(
         formats::ParameterExpressionElementPack::Rdiv(op) => Ok((19, op)),
         formats::ParameterExpressionElementPack::Rpow(op) => Ok((20, op)),
         formats::ParameterExpressionElementPack::Expression(op) => Ok((255, op)),
-        _ => Err(PyTypeError::new_err(format!(
+        _ => Err(QpyError::ConversionError(format!(
             "Non standard operation {:?}",
             packed_parameter
         ))),
     }
 }
 
-fn parameter_value_type_from_generic_value(value: &GenericValue) -> PyResult<ParameterValueType> {
+fn parameter_value_type_from_generic_value(
+    value: &GenericValue,
+) -> Result<ParameterValueType, QpyError> {
     match value {
         GenericValue::Complex64(complex) => Ok(ParameterValueType::Complex(*complex)),
         GenericValue::Int64(int) => Ok(ParameterValueType::Int(*int)),
@@ -160,8 +166,8 @@ fn parameter_value_type_from_generic_value(value: &GenericValue) -> PyResult<Par
                 symbol: symbol.clone(),
             }))
         }
-        _ => Err(PyValueError::new_err(
-            "Data value that cannot be stored as a parameter value",
+        _ => Err(QpyError::ConversionError(
+            "Data value that cannot be stored as a parameter value".to_string(),
         )),
     }
 }
@@ -176,20 +182,22 @@ fn parameter_value_type_from_generic_value(value: &GenericValue) -> PyResult<Par
 // this is no longer used in the rust-based parameter expressions, so we do not fully utilize the formats
 pub(crate) fn pack_parameter_expression(
     exp: &ParameterExpression,
-) -> PyResult<formats::ParameterExpressionPack> {
+) -> Result<formats::ParameterExpressionPack, QpyError> {
     let packed_expression_data = pack_parameter_expression_elements(exp)?;
-    let expression_data = serialize(&packed_expression_data);
+    let expression_data = serialize(&packed_expression_data)?;
     let symbol_table_data: Vec<formats::ParameterExpressionSymbolPack> = exp
         .iter_symbols()
         .map(pack_symbol_table_element)
-        .collect::<PyResult<_>>()?;
+        .collect::<Result<_, QpyError>>()?;
     Ok(formats::ParameterExpressionPack {
         expression_data,
         symbol_table_data,
     })
 }
 
-fn pack_symbol_table_element(symbol: &Symbol) -> PyResult<formats::ParameterExpressionSymbolPack> {
+fn pack_symbol_table_element(
+    symbol: &Symbol,
+) -> Result<formats::ParameterExpressionSymbolPack, QpyError> {
     let value_data = Bytes::new(); // this was used only when packing symbol tables related to substitution commands and no longer relevant
     if symbol.is_vector_element() {
         let value_key = ValueType::ParameterVector;
@@ -218,7 +226,7 @@ fn pack_symbol_table_element(symbol: &Symbol) -> PyResult<formats::ParameterExpr
 
 fn pack_parameter_expression_elements(
     exp: &ParameterExpression,
-) -> PyResult<Vec<formats::ParameterExpressionElementPack>> {
+) -> Result<Vec<formats::ParameterExpressionElementPack>, QpyError> {
     let mut result = Vec::new();
     for replay_obj in exp.qpy_replay().iter() {
         let packed_parameter = pack_parameter_expression_element(replay_obj)?;
@@ -229,7 +237,7 @@ fn pack_parameter_expression_elements(
 
 fn pack_parameter_expression_element(
     replay_obj: &OPReplay,
-) -> PyResult<Vec<formats::ParameterExpressionElementPack>> {
+) -> Result<Vec<formats::ParameterExpressionElementPack>, QpyError> {
     let mut result = Vec::new();
     let (lhs_type, lhs) = pack_parameter_replay_entry(&replay_obj.lhs)?;
     let (rhs_type, rhs) = pack_parameter_replay_entry(&replay_obj.rhs)?;
@@ -251,7 +259,7 @@ fn pack_parameter_expression_element(
 // subexpressions are packed using the empty [0u8; 16], followed by "extra data" of the expression's encoding
 fn pack_parameter_replay_entry(
     inst: &Option<ParameterValueType>,
-) -> PyResult<(ParameterType, [u8; 16])> {
+) -> Result<(ParameterType, [u8; 16]), QpyError> {
     // This is different from `py_dumps_value` since we aim specifically for [u8; 16]
     // This means parameters are not fully stored, only their uuid
     // Also integers and floats are padded with 0
@@ -285,7 +293,7 @@ fn pack_parameter_replay_entry(
 pub(crate) fn unpack_parameter_expression(
     parameter_expression_pack: &formats::ParameterExpressionPack,
     qpy_data: &mut QPYReadData,
-) -> PyResult<ParameterExpression> {
+) -> Result<ParameterExpression, QpyError> {
     // we begin by loading the symbol table data and hashing it according to each symbol's uuid
     let mut param_uuid_map: HashMap<[u8; 16], GenericValue> = HashMap::new();
     for item in &parameter_expression_pack.symbol_table_data {
@@ -338,13 +346,13 @@ pub(crate) fn unpack_parameter_expression(
                 let key_uuid: [u8; 16] = (&item.key_bytes).try_into()?;
                 let value_generic_item = load_value(item.item_type, &item.item_bytes, qpy_data)?;
                 let key_generic_item = param_uuid_map.get(&key_uuid).ok_or_else(|| {
-                    PyValueError::new_err(format!("Parameter UUID not found: {:?}", &key_uuid))
+                    QpyError::ConversionError(format!("Parameter UUID not found: {:?}", &key_uuid))
                 })?;
                 let key = if let GenericValue::ParameterExpressionSymbol(symbol) = key_generic_item
                 {
                     symbol
                 } else {
-                    return Err(PyValueError::new_err(format!(
+                    return Err(QpyError::ConversionError(format!(
                         "Substitution command used left operand {:?} which is not a symbol",
                         &key_generic_item
                     )));
@@ -359,7 +367,7 @@ pub(crate) fn unpack_parameter_expression(
                     }
                     GenericValue::ParameterExpression(exp) => exp.as_ref().clone(),
                     _ => {
-                        return Err(PyValueError::new_err(format!(
+                        return Err(QpyError::ConversionError(format!(
                             "Substitution command used right operand {:?} which is not a parameter expression",
                             &value_generic_item
                         )));
@@ -378,7 +386,7 @@ pub(crate) fn unpack_parameter_expression(
                     if let Some(value) = param_uuid_map.get(&op.lhs) {
                         Some(parameter_value_type_from_generic_value(value)?)
                     } else {
-                        return Err(PyValueError::new_err(format!(
+                        return Err(QpyError::ConversionError(format!(
                             "Parameter UUID not found: {:?}",
                             op.lhs
                         )));
@@ -398,7 +406,7 @@ pub(crate) fn unpack_parameter_expression(
                     if let Some(value) = param_uuid_map.get(&op.rhs) {
                         Some(parameter_value_type_from_generic_value(value)?)
                     } else {
-                        return Err(PyValueError::new_err(format!(
+                        return Err(QpyError::ConversionError(format!(
                             "Parameter UUID not found: {:?}",
                             op.rhs
                         )));
@@ -416,8 +424,9 @@ pub(crate) fn unpack_parameter_expression(
             replay.push(OPReplay { op, lhs, rhs });
         };
     }
-    ParameterExpression::from_qpy(&replay, Some(sub_operations))
-        .map_err(|_| PyValueError::new_err("Failure while loading parameter expression"))
+    ParameterExpression::from_qpy(&replay, Some(sub_operations)).map_err(|_| {
+        QpyError::ConversionError("Failure while loading parameter expression".to_string())
+    })
 }
 
 pub(crate) fn pack_symbol(symbol: &Symbol) -> formats::ParameterSymbolPack {
@@ -441,19 +450,19 @@ pub(crate) fn unpack_symbol(parameter_pack: &formats::ParameterSymbolPack) -> Sy
 // is via python space since the vector is stored as a python reference in the symbol
 pub(crate) fn pack_parameter_vector(
     symbol: &Symbol,
-) -> PyResult<formats::ParameterVectorElementPack> {
-    let vector_size = Python::attach(|py| -> PyResult<_> {
+) -> Result<formats::ParameterVectorElementPack, QpyError> {
+    let vector_size = Python::attach(|py| -> Result<_, QpyError> {
         match &symbol.vector {
-            None => Err(PyValueError::new_err(
-                "No vector data for parameter vector element",
+            None => Err(QpyError::ConversionError(
+                "No vector data for parameter vector element".to_string(),
             )),
-            Some(vector) => vector.bind(py).call_method0("__len__")?.extract(),
+            Some(vector) => Ok(vector.bind(py).call_method0("__len__")?.extract()?),
         }
     })?;
     let index = match symbol.index {
         None => {
-            return Err(PyValueError::new_err(
-                "No index data for parameter vector element",
+            return Err(QpyError::ConversionError(
+                "No index data for parameter vector element".to_string(),
             ));
         }
         Some(index_value) => index_value as u64,
@@ -475,7 +484,7 @@ pub(crate) fn pack_parameter_vector(
 pub(crate) fn unpack_parameter_vector(
     parameter_vector_pack: &formats::ParameterVectorElementPack,
     qpy_data: &mut QPYReadData,
-) -> PyResult<Symbol> {
+) -> Result<Symbol, QpyError> {
     let name = parameter_vector_pack.name.clone();
     let uuid = Uuid::from_bytes(parameter_vector_pack.uuid);
     let index = parameter_vector_pack.index as u32; // sadly, the `Symbol` class does not conform to the qpy u64 format
@@ -486,18 +495,20 @@ pub(crate) fn unpack_parameter_vector(
     let root_uuid_int = uuid.as_u128() - (index as u128);
     let root_uuid = Uuid::from_bytes(root_uuid_int.to_be_bytes());
 
-    let vector = Python::attach(|py| -> PyResult<_> {
+    let vector = Python::attach(|py| -> Result<_, QpyError> {
         // we use python-space to interface with the ParameterVector data
         let vector_data = match qpy_data.vectors.get_mut(&root_uuid) {
             Some(value) => value,
-            None => Python::attach(|py| -> PyResult<_> {
+            None => Python::attach(|py| -> Result<_, QpyError> {
                 // we use python-space to create a new parameter vector
                 let vector = imports::PARAMETER_VECTOR
                     .get_bound(py)
                     .call1((name.clone(), parameter_vector_pack.vector_size))?
                     .unbind();
                 qpy_data.vectors.insert(root_uuid, (vector, Vec::new()));
-                Ok(qpy_data.vectors.get_mut(&root_uuid).unwrap())
+                qpy_data.vectors.get_mut(&root_uuid).ok_or_else(|| {
+                    QpyError::MissingData("Parameter vector creation failed".to_string())
+                })
             })?,
         };
         let vector = vector_data.0.bind(py);
@@ -531,7 +542,7 @@ pub(crate) fn unpack_parameter_vector(
 pub(crate) fn pack_param_expression(
     exp: &ParameterExpression,
     qpy_data: &QPYWriteData,
-) -> PyResult<formats::GenericDataPack> {
+) -> Result<formats::GenericDataPack, QpyError> {
     // if the parameter expression is a single symbol, we should treat it like a parameter
     // or a parameter vector, depending on whether the `vector` field exists
     if let Ok(symbol) = exp.try_to_symbol() {
@@ -554,7 +565,7 @@ pub(crate) fn pack_param_obj(
     param: &Param,
     qpy_data: &QPYWriteData,
     endian: Endian,
-) -> PyResult<formats::GenericDataPack> {
+) -> Result<formats::GenericDataPack, QpyError> {
     Ok(match param {
         Param::Float(val) => match endian {
             Endian::Little => formats::GenericDataPack {
@@ -573,7 +584,10 @@ pub(crate) fn pack_param_obj(
     })
 }
 
-pub(crate) fn generic_value_to_param(value: &GenericValue, endian: Endian) -> PyResult<Param> {
+pub(crate) fn generic_value_to_param(
+    value: &GenericValue,
+    endian: Endian,
+) -> Result<Param, QpyError> {
     let value = match endian {
         Endian::Big => value,
         Endian::Little => &value.as_le(),

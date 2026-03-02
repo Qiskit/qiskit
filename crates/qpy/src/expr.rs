@@ -11,17 +11,16 @@
 // that they have been altered from the originals.
 
 // methods for serialization/deserialization of Expression
-use crate::UnsupportedFeatureForVersion;
+use crate::error::{QpyError, to_binrw_error};
 use crate::formats::{
     ExpressionElementPack, ExpressionTypePack, ExpressionValueElementPack,
-    ExpressionVarElementPack, ExpressionVarRegisterPack, to_binrw_error,
+    ExpressionVarElementPack, ExpressionVarRegisterPack,
 };
 use crate::value::{
     QPYReadData, QPYWriteData, pack_biguint, pack_duration, unpack_biguint, unpack_duration,
 };
 use binrw::{BinRead, BinResult, BinWrite, Endian, Error};
 use num_bigint::BigUint;
-use pyo3::prelude::*;
 use qiskit_circuit::Clbit;
 use qiskit_circuit::classical::expr::{
     Binary, BinaryOp, Cast, Expr, Index, Unary, UnaryOp, Value, Var,
@@ -52,7 +51,7 @@ pub(crate) fn unpack_expression_type(type_pack: ExpressionTypePack) -> Type {
 pub(crate) fn pack_expression_value(
     value: &Value,
     qpy_data: &QPYWriteData,
-) -> PyResult<ExpressionElementPack> {
+) -> Result<ExpressionElementPack, QpyError> {
     let (ty, value_pack) = match value {
         Value::Uint { raw, ty } => {
             match ty {
@@ -64,11 +63,11 @@ pub(crate) fn pack_expression_value(
         Value::Float { raw, ty } => (ty, ExpressionValueElementPack::Float(*raw)),
         Value::Duration(duration) => {
             if qpy_data.version < 16 && matches!(duration, Duration::ps(_)) {
-                return Err(UnsupportedFeatureForVersion::new_err((
-                    "Duration variant 'Duration.ps'",
-                    16,
-                    qpy_data.version,
-                )));
+                return Err(QpyError::UnsupportedFeatureForVersion {
+                    feature: "Duration variant 'Duration.ps'".to_string(),
+                    version: 16,
+                    min_version: qpy_data.version,
+                });
             }
             (
                 &Type::Duration,
@@ -103,11 +102,23 @@ pub(crate) fn unpack_expression_value(
     }
 }
 
-pub(crate) fn pack_expression_var(var: &Var, qpy_data: &QPYWriteData) -> ExpressionElementPack {
+pub(crate) fn pack_expression_var(
+    var: &Var,
+    qpy_data: &QPYWriteData,
+) -> Result<ExpressionElementPack, QpyError> {
     let (ty, value_pack) = match var {
         Var::Bit { bit } => (
             &Type::Bool,
-            ExpressionVarElementPack::Clbit(qpy_data.circuit_data.clbits().find(bit).unwrap().0),
+            ExpressionVarElementPack::Clbit(
+                qpy_data
+                    .circuit_data
+                    .clbits()
+                    .find(bit)
+                    .ok_or_else(|| {
+                        QpyError::InvalidBit(format!("Could not find bit {:?} in circuit", bit))
+                    })?
+                    .0,
+            ),
         ),
         Var::Register { register, ty } => (
             ty,
@@ -117,39 +128,60 @@ pub(crate) fn pack_expression_var(var: &Var, qpy_data: &QPYWriteData) -> Express
         ),
         Var::Standalone { uuid, name: _, ty } => (
             ty,
-            ExpressionVarElementPack::Uuid(*qpy_data.standalone_var_indices.get(uuid).unwrap()),
+            ExpressionVarElementPack::Uuid(*qpy_data.standalone_var_indices.get(uuid).ok_or_else(
+                || {
+                    QpyError::InvalidParameter(
+                        "Could not find standalone variable {name} in the qpy data".to_string(),
+                    )
+                },
+            )?),
         ),
     };
-    ExpressionElementPack::Var(pack_expression_type(ty), value_pack)
+    Ok(ExpressionElementPack::Var(
+        pack_expression_type(ty),
+        value_pack,
+    ))
 }
 
 pub(crate) fn unpack_expression_var(
     var_type_pack: ExpressionTypePack,
     var_element_pack: ExpressionVarElementPack,
     qpy_data: &QPYReadData,
-) -> Var {
+) -> Result<Var, QpyError> {
     let ty = unpack_expression_type(var_type_pack);
     match var_element_pack {
-        ExpressionVarElementPack::Clbit(index) => Var::Bit {
+        ExpressionVarElementPack::Clbit(index) => Ok(Var::Bit {
             bit: qpy_data
                 .circuit_data
                 .clbits()
                 .get(Clbit(index))
-                .unwrap()
+                .ok_or_else(|| QpyError::InvalidBit("Clbit not found in circuit data".to_string()))?
                 .clone(),
-        }, // TODO: error handling?
-        ExpressionVarElementPack::Register(packed_register) => Var::Register {
+        }),
+        ExpressionVarElementPack::Register(packed_register) => Ok(Var::Register {
             register: qpy_data
                 .circuit_data
                 .cregs_data()
                 .get(packed_register.name.as_str())
-                .unwrap()
+                .ok_or_else(|| {
+                    QpyError::InvalidRegister("Register not found in circuit data".to_string())
+                })?
                 .clone(),
             ty,
-        }, // TODO: can we avoid cloning?
+        }), // TODO: can we avoid cloning?
         ExpressionVarElementPack::Uuid(key) => {
-            let var = qpy_data.standalone_vars.get(&key).unwrap(); // note: this is not an actual expr::Var; merely a key for this var inside the circuit data
-            qpy_data.circuit_data.get_var(*var).unwrap().clone() // TODO: can we avoid cloning?
+            let var = qpy_data.standalone_vars.get(&key).ok_or_else(|| {
+                QpyError::InvalidParameter("Standalone var not found in qpy data".to_string())
+            })?; // note: this is not an actual expr::Var; merely a key for this var inside the circuit data
+            Ok(qpy_data
+                .circuit_data
+                .get_var(*var)
+                .ok_or_else(|| {
+                    QpyError::InvalidParameter(
+                        "Standalone var not found in circuit data".to_string(),
+                    )
+                })?
+                .clone()) // TODO: can we avoid cloning?
         }
     }
 }
@@ -167,7 +199,9 @@ pub(crate) fn write_expression<W: Write + Seek>(
                 .write_options(writer, endian, ())?;
         }
         Expr::Var(var) => {
-            pack_expression_var(var, qpy_data).write_options(writer, endian, ())?;
+            pack_expression_var(var, qpy_data)
+                .map_err(|e| to_binrw_error(writer, e))?
+                .write_options(writer, endian, ())?;
         }
         Expr::Stretch(stretch) => {
             ExpressionElementPack::Stretch(
@@ -222,12 +256,32 @@ pub(crate) fn read_expression<R: Read + Seek>(
             unpack_expression_value(value_type_pack, value_element_pack),
         )),
         ExpressionElementPack::Var(var_type_pack, var_element_pack) => Ok(Expr::Var(
-            unpack_expression_var(var_type_pack, var_element_pack, qpy_data),
+            unpack_expression_var(var_type_pack, var_element_pack, qpy_data)
+                .map_err(|e| to_binrw_error(reader, e))?,
         )),
         ExpressionElementPack::Stretch(_stretch_type_pack, key) => {
-            let stretch = qpy_data.standalone_stretches.get(&key).unwrap();
+            let stretch = qpy_data.standalone_stretches.get(&key).ok_or_else(|| {
+                to_binrw_error(
+                    reader,
+                    QpyError::InvalidParameter(format!(
+                        "Standalone stretch with key {} not found in qpy data",
+                        key
+                    )),
+                )
+            })?;
             Ok(Expr::Stretch(
-                qpy_data.circuit_data.get_stretch(*stretch).unwrap().clone(),
+                qpy_data
+                    .circuit_data
+                    .get_stretch(*stretch)
+                    .ok_or_else(|| {
+                        to_binrw_error(
+                            reader,
+                            QpyError::InvalidParameter(
+                                "Stretch not found in circuit data".to_string(),
+                            ),
+                        )
+                    })?
+                    .clone(),
             )) // TODO: can we avoid cloning?
         }
         ExpressionElementPack::Index(index_type_pack) => {

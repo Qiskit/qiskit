@@ -11,8 +11,8 @@
 // that they have been altered from the originals.
 
 use binrw::{BinRead, BinResult, BinWrite, Endian, VecArgs};
-use pyo3::exceptions::PyValueError;
 
+use crate::error::QpyError;
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyBytes};
 
@@ -36,22 +36,22 @@ impl Bytes {
                 acc
             })
     }
-    pub fn try_to_f64(&self, endian: Endian) -> PyResult<f64> {
+    pub fn try_to_f64(&self, endian: Endian) -> Result<f64, QpyError> {
         let byte_array: [u8; 8] = self
             .0
             .as_slice()
             .try_into()
-            .map_err(|_| PyValueError::new_err("Expected exactly 8 bytes"))?;
+            .map_err(|_| QpyError::ConversionError("Expected exactly 8 bytes".to_string()))?;
         match endian {
             Endian::Big => Ok(f64::from_be_bytes(byte_array)),
             Endian::Little => Ok(f64::from_le_bytes(byte_array)),
         }
     }
     // pads with 0's in the front
-    pub fn try_to_16_byte_slice(&self) -> PyResult<[u8; 16]> {
+    pub fn try_to_16_byte_slice(&self) -> Result<[u8; 16], QpyError> {
         if self.0.len() > 16 {
-            Err(PyValueError::new_err(
-                "Cannot convert sequence of more than 16 bytes to slice of 16 bytes",
+            Err(QpyError::ConversionError(
+                "Cannot convert sequence of more than 16 bytes to slice of 16 bytes".to_string(),
             ))
         } else {
             let mut result = [0u8; 16];
@@ -74,7 +74,7 @@ impl Default for Bytes {
 // we also allow the case where Bytes has 16 bytes, the first 8 being 0
 // since this is how f64 are encoded inside ParameterExpressionStandardOpPack
 impl TryFrom<&Bytes> for f64 {
-    type Error = PyErr;
+    type Error = QpyError;
     fn try_from(bytes: &Bytes) -> Result<Self, Self::Error> {
         let data = &bytes.0;
         match data.len() {
@@ -82,33 +82,37 @@ impl TryFrom<&Bytes> for f64 {
                 let byte_array: [u8; 8] = data
                     .as_slice()
                     .try_into()
-                    .map_err(|_| PyValueError::new_err("Expected exactly 8 bytes"))?;
+                    .map_err(|_| QpyError::ConversionError("Expected exactly 8 bytes".to_string()))?;
                 Ok(f64::from_be_bytes(byte_array))
             }
             16 if data[..8].iter().all(|&byte| byte == 0) => {
                 let byte_array: [u8; 8] = data[8..].try_into().map_err(|_| {
-                    PyValueError::new_err("Expected exactly 16 bytes with the first 8 being 0")
+                    QpyError::ConversionError("Expected exactly 16 bytes with the first 8 being 0".to_string())
                 })?;
                 Ok(f64::from_be_bytes(byte_array))
             }
-            _ => Err(PyValueError::new_err(
-                "Decoding Bytes to f64: Expected exactly 8 bytes or 16 bytes with the first 8 being 0",
+            _ => Err(QpyError::ConversionError(
+                "Decoding Bytes to f64: Expected exactly 8 bytes or 16 bytes with the first 8 being 0".to_string(),
             )),
         }
     }
 }
 
 impl TryFrom<&Bytes> for (f64, f64) {
-    type Error = PyErr;
+    type Error = QpyError;
     fn try_from(bytes: &Bytes) -> Result<Self, Self::Error> {
         let byte_array: [u8; 16] = bytes
             .0
             .as_slice()
             .try_into()
-            .map_err(|_| PyValueError::new_err("Expected exactly 8 bytes"))?;
+            .map_err(|_| QpyError::ConversionError("Expected exactly 8 bytes".to_string()))?;
         Ok((
-            f64::from_be_bytes(byte_array[0..8].try_into()?),
-            f64::from_be_bytes(byte_array[8..16].try_into()?),
+            f64::from_be_bytes(byte_array[0..8].try_into().map_err(|_| {
+                QpyError::ConversionError("Failed to convert bytes to f64".to_string())
+            })?),
+            f64::from_be_bytes(byte_array[8..16].try_into().map_err(|_| {
+                QpyError::ConversionError("Failed to convert bytes to f64".to_string())
+            })?),
         ))
     }
 }
@@ -116,7 +120,7 @@ impl TryFrom<&Bytes> for (f64, f64) {
 // we also allow the case where Bytes has 16 bytes, the first 8 being 0
 // since this is how i64 are encoded inside ParameterExpressionStandardOpPack
 impl TryFrom<&Bytes> for i64 {
-    type Error = PyErr;
+    type Error = QpyError;
     fn try_from(bytes: &Bytes) -> Result<Self, Self::Error> {
         let data = &bytes.0;
         match data.len() {
@@ -124,70 +128,77 @@ impl TryFrom<&Bytes> for i64 {
                 let byte_array: [u8; 8] = data
                     .as_slice()
                     .try_into()
-                    .map_err(|_| PyValueError::new_err("Expected exactly 8 bytes"))?;
+                    .map_err(|_| QpyError::ConversionError("Expected exactly 8 bytes".to_string()))?;
                 Ok(i64::from_be_bytes(byte_array))
             }
             16 if data[..8].iter().all(|&byte| byte == 0) => {
                 let byte_array: [u8; 8] = data[8..].try_into().map_err(|_| {
-                    PyValueError::new_err("Expected exactly 16 bytes with the first 8 being 0")
+                    QpyError::ConversionError("Expected exactly 16 bytes with the first 8 being 0".to_string())
                 })?;
                 Ok(i64::from_be_bytes(byte_array))
             }
-            _ => Err(PyValueError::new_err(
-                "Decoding Bytes to i64: Expected exactly 8 bytes or 16 bytes with the first 8 being 0",
+            _ => Err(QpyError::ConversionError(
+                "Decoding Bytes to i64: Expected exactly 8 bytes or 16 bytes with the first 8 being 0".to_string(),
             )),
         }
     }
 }
 
 impl TryFrom<&Bytes> for [u8; 16] {
-    type Error = PyErr;
+    type Error = QpyError;
     fn try_from(bytes: &Bytes) -> Result<Self, Self::Error> {
         let byte_array: [u8; 16] = bytes
             .0
             .as_slice()
             .try_into()
-            .map_err(|_| PyValueError::new_err("Expected exactly 16 bytes"))?;
+            .map_err(|_| QpyError::ConversionError("Expected exactly 16 bytes".to_string()))?;
         Ok(byte_array)
     }
 }
 
 impl TryFrom<&Bytes> for Complex64 {
-    type Error = PyErr;
+    type Error = QpyError;
     fn try_from(bytes: &Bytes) -> Result<Self, Self::Error> {
         let byte_array: [u8; 16] = bytes
             .0
             .as_slice()
             .try_into()
-            .map_err(|_| PyValueError::new_err("Expected exactly 16 bytes"))?;
-        let real = f64::from_be_bytes(byte_array[0..8].try_into()?);
-        let imag = f64::from_be_bytes(byte_array[8..16].try_into()?);
+            .map_err(|_| QpyError::ConversionError("Expected exactly 16 bytes".to_string()))?;
+        let real = f64::from_be_bytes(byte_array[0..8].try_into().map_err(|_| {
+            QpyError::ConversionError("Failed to convert bytes to f64".to_string())
+        })?);
+        let imag = f64::from_be_bytes(byte_array[8..16].try_into().map_err(|_| {
+            QpyError::ConversionError("Failed to convert bytes to f64".to_string())
+        })?);
         Ok(Complex64::new(real, imag))
     }
 }
 
 impl TryFrom<&Bytes> for String {
-    type Error = PyErr;
+    type Error = QpyError;
     fn try_from(bytes: &Bytes) -> Result<Self, Self::Error> {
         String::from_utf8(bytes.0.clone())
-            .map_err(|_| PyValueError::new_err("Not a valid UTF-8 string"))
+            .map_err(|_| QpyError::ConversionError("Not a valid UTF-8 string".to_string()))
     }
 }
 
 impl<'a> TryFrom<&'a Bytes> for &'a str {
-    type Error = PyErr;
+    type Error = QpyError;
     fn try_from(bytes: &'a Bytes) -> Result<Self, Self::Error> {
-        std::str::from_utf8(&bytes.0).map_err(|_| PyValueError::new_err("Not a valid UTF-8 string"))
+        std::str::from_utf8(&bytes.0)
+            .map_err(|_| QpyError::ConversionError("Not a valid UTF-8 string".to_string()))
     }
 }
 
 impl TryFrom<&Bytes> for bool {
-    type Error = PyErr;
+    type Error = QpyError;
     fn try_from(bytes: &Bytes) -> Result<Self, Self::Error> {
         match bytes.0.as_slice() {
             [0] => Ok(false),
             [1] => Ok(true),
-            _ => Err(PyValueError::new_err("Not a boolean representation")),
+            _ => Err(QpyError::ConversionError(
+                "Not a boolean representation".to_string(),
+            )),
         }
     }
 }
