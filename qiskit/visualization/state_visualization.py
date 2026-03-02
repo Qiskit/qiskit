@@ -47,7 +47,9 @@ def plot_state_hinton(state, title="", figsize=None, ax_real=None, ax_imag=None,
         state (Statevector or DensityMatrix or ndarray): An N-qubit quantum state.
         title (str): a string that represents the plot title
         figsize (tuple): Figure size in inches.
-        filename (str): file path to save image to.
+        filename (str | None): The optional file path to save image to. If not specified
+            no file is created for the visualization. If this is not ``None`` the return
+            from this function will be ``None``.
         ax_real (matplotlib.axes.Axes): An optional Axes object to be used for
             the visualization output. If none is specified a new matplotlib
             Figure will be created and used. If this is specified without an
@@ -281,7 +283,9 @@ def plot_bloch_multivector(
         title_font_size (float): Font size for the title.
         title_pad (float): Padding for the title (suptitle ``y`` position is ``0.98``
         and the image height will be extended by ``1 + title_pad/100``).
-        filename (str): file path to save image to.
+        filename (str | None): The optional file path to save image to. If not specified
+            no file is created for the visualization. If this is not ``None`` the return
+            from this function will be ``None``.
 
     Returns:
         :class:`matplotlib:matplotlib.figure.Figure` :
@@ -404,7 +408,9 @@ def plot_state_city(
             ax_real only the imaginary component plot will be generated.
             Additionally, if specified there will be no returned Figure since
             it is redundant.
-        filename (str): file path to save image to.
+        filename (str | None): The optional file path to save image to. If not specified
+            no file is created for the visualization. If this is not ``None`` the return
+            from this function will be ``None``.
 
     Returns:
         :class:`matplotlib:matplotlib.figure.Figure` :
@@ -644,7 +650,9 @@ def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, f
             the visualization output. If none is specified a new matplotlib
             Figure will be created and used. Additionally, if specified there
             will be no returned Figure since it is redundant.
-        filename (str): file path to save image to.
+        filename (str | None): The optional file path to save image to. If not specified
+            no file is created for the visualization. If this is not ``None`` the return
+            from this function will be ``None``.
 
     Returns:
          :class:`matplotlib:matplotlib.figure.Figure` :
@@ -829,7 +837,10 @@ def plot_state_qsphere(
             show the phase for each basis state.
         use_degrees (bool): An optional boolean indicating whether to use
             radians or degrees for the phase values in the plot.
-        filename (str): file path to save image to.
+        filename (str | None): The optional file path to save image to. If not specified
+            no file is created for the visualization. If this is not ``None`` the return
+            from this function will be ``None``.
+
 
     Returns:
         :class:`matplotlib:matplotlib.figure.Figure` :
