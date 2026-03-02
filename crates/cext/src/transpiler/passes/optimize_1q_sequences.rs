@@ -36,34 +36,6 @@ use qiskit_transpiler::{passes::run_optimize_1q_gates_decomposition, target::Tar
 /// the pass will choose the sequence with the least amount of gates,
 /// and will support all basis gates on its Euler basis set.
 ///
-/// # Example
-///
-/// ```c
-/// QkTarget *target = qk_target_new(1);
-/// double u_errors[3] = {0., 1e-4, 1e-4};
-/// for (int idx = 0; idx < 3; idx++) {
-///     QkTargetEntry *u_entry = qk_target_entry_new(QkGate_U);
-///     uint32_t qargs[1] = {
-///         0,
-///     };
-///     qk_target_entry_add_property(u_entry, qargs, 1, NAN, u_errors[idx]);
-///     qk_target_add_instruction(target, u_entry);
-/// }
-///
-/// // Build circuit
-/// QkCircuit *circuit = qk_circuit_new(1, 0);
-/// uint32_t qubits[1] = {0};
-/// for (int iter = 0; iter < 3; iter++) {
-///     qk_circuit_gate(circuit, QkGate_H, qubits, NULL);
-/// }
-///
-/// // Run transpiler pass
-/// qk_transpiler_standalone_optimize_1q_sequences(circuit, target);
-///
-/// // Clean up
-/// qk_target_free(target);
-/// qk_circuit_free(circuit);
-/// ```
 ///
 /// # Safety
 ///
@@ -84,51 +56,13 @@ pub unsafe extern "C" fn qk_transpiler_standalone_optimize_1q_sequences(
 /// @ingroup QkTranspilerPasses
 /// Runs the Optimize1qGatesDecomposition pass in standalone mode on a circuit.
 ///
-/// Optimize1qGatesDecomposition optimizes single-qubit gate sequences by re-synthesizing
-/// the unitary under the constraints of the target's basis gates and error rates.
-///
-/// The decision of whether to replace the original chain depends on:
-/// - If the original chain was out of basis.
-/// - If the original chain was in basis but the replacement has lower error rates.
-/// - If the original chain is an identity (chain gets removed).
-///
-/// The error is the combined multiplication of the errors of individual gates on the
-/// qubit it operates on.
+/// Refer to the ``qk_transpiler_pass_optimize_1q_sequences`` function for more details about the pass.
 ///
 /// @param circuit A pointer to the ``QkCircuit`` object to transform.
 /// @param target A pointer to the ``QkTarget`` object or a null pointer.
 /// In the case a null pointer is provided and gate errors are unknown
 /// the pass will choose the sequence with the least amount of gates,
 /// and will support all basis gates on its Euler basis set.
-///
-/// # Example
-///
-/// ```c
-/// QkTarget *target = qk_target_new(1);
-/// double u_errors[3] = {0., 1e-4, 1e-4};
-/// for (int idx = 0; idx < 3; idx++) {
-///     QkTargetEntry *u_entry = qk_target_entry_new(QkGate_U);
-///     uint32_t qargs[1] = {
-///         0,
-///     };
-///     qk_target_entry_add_property(u_entry, qargs, 1, NAN, u_errors[idx]);
-///     qk_target_add_instruction(target, u_entry);
-/// }
-///
-/// // Build circuit
-/// QkCircuit *circuit = qk_circuit_new(1, 0);
-/// uint32_t qubits[1] = {0};
-/// for (int iter = 0; iter < 3; iter++) {
-///     qk_circuit_gate(circuit, QkGate_H, qubits, NULL);
-/// }
-///
-/// // Run transpiler pass
-/// qk_transpiler_pass_standalone_optimize_1q_sequences(circuit, target);
-///
-/// // Clean up
-/// qk_target_free(target);
-/// qk_circuit_free(circuit);
-/// ```
 ///
 /// # Safety
 ///
