@@ -113,7 +113,9 @@ class BackendSamplerV2(BaseSamplerV2):
 
     .. note::
 
-        This class requires a backend that supports ``memory`` option.
+        This class works with any :class:`~.BackendV2`. When the backend does
+        not support the ``memory`` run option, per-shot samples are derived
+        from the returned counts.
 
     """
 
@@ -185,15 +187,20 @@ class BackendSamplerV2(BaseSamplerV2):
         for circuits in bound_circuits:
             flatten_circuits.extend(np.ravel(circuits).tolist())
 
-        run_opts = self._options.run_options or {}
+        run_opts = dict(self._options.run_options or {})
+        # Do not pass memory so that any BackendV2 works (memory is not in the
+        # abstract interface). When the backend does not return memory, we
+        # derive per-shot samples from counts in _prepare_memory.
+        run_opts.pop("memory", None)
+        run_opts.pop("seed_simulator", None)
+        run_opts.setdefault("shots", shots)
+        if self._options.seed_simulator is not None:
+            run_opts["seed_simulator"] = self._options.seed_simulator
         # run circuits
         results, _ = _run_circuits(
             flatten_circuits,
             self._backend,
             clear_metadata=False,
-            memory=True,
-            shots=shots,
-            seed_simulator=self._options.seed_simulator,
             **run_opts,
         )
         result_memory = _prepare_memory(results)
@@ -293,25 +300,93 @@ def _analyze_circuit(circuit: QuantumCircuit) -> tuple[list[_MeasureInfo], int]:
 
 
 def _prepare_memory(results: list[Result]) -> list[ResultMemory]:
-    """Joins split results if exceeding max_experiments"""
+    """Joins split results if exceeding max_experiments.
+
+    When the backend does not support the ``memory`` run option (not part of
+    BackendV2 abstract interface), per-shot data is derived from counts so
+    that BackendSamplerV2 works with any BackendV2.
+    """
     lst = []
     for res in results:
         for exp in res.results:
             if hasattr(exp.data, "memory") and exp.data.memory:
                 lst.append(exp.data.memory)
+            elif hasattr(exp.data, "counts") and exp.data.counts:
+                # Backend did not return memory; expand counts to per-shot list
+                lst.append(_counts_to_memory(exp.data.counts, exp.shots))
             else:
                 # no measure in a circuit
                 lst.append(["0x0"] * exp.shots)
     return lst
 
 
+def _counts_to_memory(counts: dict, shots: int) -> list[str]:
+    """Expand a counts dict (outcome -> count) to a list of hex strings.
+
+    Keys may be hex strings (e.g. "0x0") or ints; they are normalized to hex
+    strings for downstream use. Produces a list of length shots with
+    deterministic ordering (sorted numerically) so that results are reproducible.
+    """
+
+    def _to_hex(outcome: str | int) -> str:
+        if isinstance(outcome, int):
+            return hex(outcome)
+        return outcome
+
+    def _sort_key(outcome: str | int) -> int:
+        if isinstance(outcome, int):
+            return outcome
+        return int(outcome, 16)
+
+    memory = []
+    for outcome in sorted(counts.keys(), key=_sort_key):
+        hex_outcome = _to_hex(outcome)
+        memory.extend([hex_outcome] * counts[outcome])
+    if len(memory) < shots:
+        memory.extend(["0x0"] * (shots - len(memory)))
+    return memory[:shots]
+
+
 def _memory_array(results: list[list[str]], num_bytes: int) -> NDArray[np.uint8]:
-    """Converts the memory data into an array in an unpacked way."""
+    """Converts the memory data into an array in an unpacked way.
+
+    The ``num_bytes`` argument is the *minimum* number of bytes required to
+    represent the classical bits in the circuit (derived from the cregs).
+    Some backends, however, may include additional classical memory slots in
+    their returned hex strings (for example, extra bits in ``memory_slots``),
+    which means the hex values can require more bytes than ``num_bytes``.
+
+    To avoid ``OverflowError`` when converting these hex strings to bytes, this
+    function computes the number of bytes actually required by the data and
+    uses ``max(num_bytes, required_bytes)`` as the byte width. Extra high-order
+    bits are ignored later when we slice out the bits corresponding to the
+    circuit's classical registers in :func:`_samples_to_packed_array`.
+    """
     lst = []
     for memory in results:
         if num_bytes > 0:
-            data = b"".join(int(i, 16).to_bytes(num_bytes, "big") for i in memory)
-            data = np.frombuffer(data, dtype=np.uint8).reshape(-1, num_bytes)
+            # Determine how many bytes are actually needed to represent the
+            # returned hex strings. This guards against backends that include
+            # more classical memory bits in the hex string than the circuit
+            # has creg bits (which would otherwise cause ``to_bytes`` to
+            # raise ``OverflowError``).
+            required_bytes = 0
+            for value in memory:
+                if not value:
+                    continue
+                # value is expected to be a hex string (e.g. "0x0"). We still
+                # go through ``int(..., 16)`` so that any non-standard prefix
+                # is handled consistently.
+                as_int = int(value, 16)
+                # ``bit_length`` is 0 for value == 0, in which case we still
+                # need at least 1 byte.
+                bits = max(1, as_int.bit_length())
+                needed = (bits + 7) // 8
+                required_bytes = max(required_bytes, needed)
+
+            width = max(num_bytes, required_bytes)
+            data = b"".join(int(i, 16).to_bytes(width, "big") for i in memory)
+            data = np.frombuffer(data, dtype=np.uint8).reshape(-1, width)
         else:
             # no measure in a circuit
             data = np.zeros((len(memory), num_bytes), dtype=np.uint8)
