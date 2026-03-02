@@ -49,7 +49,7 @@ class Commuting2qGateRouter(TransformationPass):
              |
              4
 
-    To do this we use a line swap strategy for qubits 0, 1, 3, and 4 defined it in terms
+    To do this we use a line swap strategy for qubits 0, 1, 3, and 4 defined in terms
     of virtual qubits 0, 1, 2, and 3.
 
     .. plot::
@@ -79,7 +79,7 @@ class Commuting2qGateRouter(TransformationPass):
         # Define the swap strategy on qubits before the initial_layout is applied.
         swap_strat = SwapStrategy.from_line([0, 1, 2, 3])
 
-        # Chose qubits 0, 1, 3, and 4 from the backend coupling map shown above.
+        # Choose qubits 0, 1, 3, and 4 from the backend coupling map shown above.
         backend_cmap = CouplingMap(couplinglist=[(0, 1), (1, 2), (1, 3), (3, 4)])
         initial_layout = Layout.from_intlist([0, 1, 3, 4], *circ.qregs)
 
