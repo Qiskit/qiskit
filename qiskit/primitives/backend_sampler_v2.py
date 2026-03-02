@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import re
 import warnings
 from collections import defaultdict
 from dataclasses import dataclass
@@ -323,24 +324,29 @@ def _prepare_memory(results: list[Result]) -> list[ResultMemory]:
 def _counts_to_memory(counts: dict, shots: int) -> list[str]:
     """Expand a counts dict (outcome -> count) to a list of hex strings.
 
-    Keys may be hex strings (e.g. "0x0") or ints; they are normalized to hex
-    strings for downstream use. Produces a list of length shots with
-    deterministic ordering (sorted numerically) so that results are reproducible.
+    Keys may be hex strings (e.g. "0x0"), binary (e.g. "0b011"), bit strings
+    (e.g. "011"), or ints. They are normalized to hex strings for downstream
+    use, following the same semantics as :class:`qiskit.result.Counts`.
+    Produces a list of length shots with deterministic ordering (sorted
+    numerically) so that results are reproducible.
     """
+    # Match Counts: bit strings are [01] plus optional spaces/underscores
+    _bitstring_re = re.compile(r"^[01\s_]+$")
 
-    def _to_hex(outcome: str | int) -> str:
-        if isinstance(outcome, int):
-            return hex(outcome)
-        return outcome
-
-    def _sort_key(outcome: str | int) -> int:
+    def _key_to_int(outcome: str | int) -> int:
         if isinstance(outcome, int):
             return outcome
+        if outcome.startswith("0x"):
+            return int(outcome, 0)
+        if outcome.startswith("0b"):
+            return int(outcome, 0)
+        if _bitstring_re.match(outcome):
+            return int(outcome.replace(" ", "").replace("_", ""), 2)
         return int(outcome, 16)
 
     memory = []
-    for outcome in sorted(counts.keys(), key=_sort_key):
-        hex_outcome = _to_hex(outcome)
+    for outcome in sorted(counts.keys(), key=_key_to_int):
+        hex_outcome = hex(_key_to_int(outcome))
         memory.extend([hex_outcome] * counts[outcome])
     if len(memory) < shots:
         memory.extend(["0x0"] * (shots - len(memory)))
