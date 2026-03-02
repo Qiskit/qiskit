@@ -1,0 +1,8 @@
+---
+features_transpiler:
+  - |
+    Added a new transpiler pass :class:`.PBCTransformation`,
+    that converts a quantum circuit containing single-qubit, two-qubit and three-qubit 
+    standard gates, barriers and measurements, into an equivalent list of Pauli product rotations,
+    implemented as :class:`.PauliEvolutionGate` and a global phase, as well as
+    :class:`.PauliProductMeasurement`.
