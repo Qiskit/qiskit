@@ -811,6 +811,7 @@ fn extract_definition(op: &PackedOperation, params: &[Param]) -> PyResult<Option
             | StandardInstruction::Delay(_) => Ok(None),
         },
         OperationRef::ControlFlow(_) | OperationRef::Operation(_) => Ok(None),
+        OperationRef::CustomOperation(custom_gate) => Ok(custom_gate.definition(params)),
     }
 }
 
@@ -958,6 +959,9 @@ fn synthesize_op_using_plugins(
         OperationRef::Operation(operation) => operation.instruction.clone_ref(py),
         OperationRef::Unitary(unitary) => unitary.create_py_op(py, label)?.into_any(),
         OperationRef::PauliProductMeasurement(ppm) => ppm.create_py_op(py, label)?.into_any(),
+        OperationRef::CustomOperation(custom_gate) => custom_gate
+            .create_py_op(py, Some(params.iter().cloned().collect()))?
+            .unbind(),
     };
 
     let res = HLS_SYNTHESIZE_OP_USING_PLUGINS
