@@ -12,8 +12,7 @@
 
 use pyo3::prelude::*;
 
-use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::circuit_data::CircuitError;
+use qiskit_circuit::circuit_data::{CircuitData, CircuitError, PyCircuitData};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::operations::OperationRef;
@@ -116,11 +115,11 @@ pub fn synthesize_ppm(ppm: &PauliProductMeasurement) -> PyResult<CircuitData> {
 }
 
 #[pyfunction]
-fn synth_pauli_product_measurement(operation: &Bound<PyAny>) -> PyResult<CircuitData> {
+fn synth_pauli_product_measurement(operation: &Bound<PyAny>) -> PyResult<PyCircuitData> {
     let op_from_python = operation.extract::<OperationFromPython<NoBlocks>>()?;
 
     if let OperationRef::PauliProductMeasurement(ppm) = op_from_python.operation.view() {
-        synthesize_ppm(ppm)
+        synthesize_ppm(ppm).map(Into::into)
     } else {
         Err(CircuitError::new_err(
             "Calling pauli product measurement synthesis on a non-pauli-product-measurement.",

@@ -106,5 +106,5 @@ pub extern "C" fn qk_circuit_library_random_iqp(num_qubits: u32, seed: i64) -> *
     let seed = if seed < 0 { None } else { Some(seed as u64) };
     let circuit_data = py_random_iqp(num_qubits, seed)
         .expect("qk_circuit_library_random_iqp: failed to build random IQP circuit");
-    Box::into_raw(Box::new(circuit_data))
+    Box::into_raw(Box::new(circuit_data.into()))
 }

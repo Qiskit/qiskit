@@ -21,7 +21,6 @@ use crate::standard_equivalence_library::generate_standard_equivalence_library;
 use crate::target::Target;
 use crate::transpile_layout::TranspileLayout;
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::nlayout::NLayout;
 use qiskit_circuit::{PhysicalQubit, Qubit, VirtualQubit};
@@ -460,7 +459,7 @@ pub fn transpile(
         &mut commutation_checker,
         &mut equivalence_library,
     )?;
-    Ok((dag_to_circuit(&dag, false)?, transpile_layout))
+    Ok((CircuitData::from_dag_ref(&dag)?, transpile_layout))
 }
 
 struct MinPointState {

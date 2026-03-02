@@ -116,7 +116,7 @@ mod tests {
             qk_transpiler_pass_standalone_commutative_cancellation(&mut qc, std::ptr::null(), 1.0)
         };
         assert_eq!(result, ExitCode::Success);
-        assert_eq!(qc.__len__(), 1);
+        assert_eq!(qc.len(), 1);
         let Some(gate) = qc.data()[0].op.try_standard_gate() else {
             panic!("Not a standard gate");
         };

@@ -22,7 +22,7 @@ use pyo3::IntoPyObjectExt;
 use pyo3::types::{PyBool, PyList, PyTuple, PyType};
 use pyo3::{PyResult, intern};
 
-use crate::circuit_data::CircuitData;
+use crate::circuit_data::{CircuitData, PyCircuitData};
 use crate::dag_circuit::DAGCircuit;
 use crate::duration::Duration;
 use crate::imports::{CONTROLLED_GATE, GATE, INSTRUCTION, OPERATION, WARNINGS_WARN};
@@ -572,31 +572,38 @@ impl<T: CircuitBlock> OperationFromPython<T> {
 /// the object contains circuit blocks.
 pub struct NoBlocks;
 
-/// Helper trait implemented by `CircuitData` and `DAGCircuit` to implement extraction from
+/// Helper trait implemented by `PyCircuitData` and `DAGCircuit` to implement extraction from
 /// a Python-owned control-flow block into a suitable Rust type.
 ///
 /// This shouldn't need to be imported anywhere nor implemented by anything else; it's only intended
 /// to let the `OperationFromPython` extraction be generic.
 pub trait CircuitBlock: Sized {
-    fn extract_py_block(ob: Bound<CircuitData>) -> PyResult<Self>;
+    fn extract_py_block(ob: Bound<PyCircuitData>) -> PyResult<Self>;
 }
-impl CircuitBlock for CircuitData {
-    fn extract_py_block(ob: Bound<CircuitData>) -> PyResult<Self> {
+impl CircuitBlock for PyCircuitData {
+    fn extract_py_block(ob: Bound<PyCircuitData>) -> PyResult<Self> {
         Ok(ob.borrow().clone())
     }
 }
+// TODO: in the long run we don't need to extract from python directly to CircuitData
+// But for now it's needed in assing_parameters_inner
+impl CircuitBlock for CircuitData {
+    fn extract_py_block(ob: Bound<PyCircuitData>) -> PyResult<Self> {
+        Ok(ob.borrow().clone().inner)
+    }
+}
 impl CircuitBlock for DAGCircuit {
-    fn extract_py_block(ob: Bound<CircuitData>) -> PyResult<Self> {
-        Self::from_circuit_data(&ob.borrow(), false, None, None, None, None)
+    fn extract_py_block(ob: Bound<PyCircuitData>) -> PyResult<Self> {
+        Self::from_circuit_data(&ob.borrow().inner, false, None, None, None, None)
     }
 }
 impl CircuitBlock for NoBlocks {
-    fn extract_py_block(_ob: Bound<CircuitData>) -> PyResult<Self> {
+    fn extract_py_block(_ob: Bound<PyCircuitData>) -> PyResult<Self> {
         Err(PyTypeError::new_err("control-flow ops are not valid here"))
     }
 }
 impl CircuitBlock for Py<PyAny> {
-    fn extract_py_block(ob: Bound<CircuitData>) -> PyResult<Self> {
+    fn extract_py_block(ob: Bound<PyCircuitData>) -> PyResult<Self> {
         Ok(ob.into_any().unbind())
     }
 }

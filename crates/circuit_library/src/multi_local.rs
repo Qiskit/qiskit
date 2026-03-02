@@ -18,7 +18,7 @@ use pyo3::types::PyString;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use smallvec::{SmallVec, smallvec};
 
-use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
+use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError, PyCircuitData};
 use qiskit_circuit::operations::{Param, StandardInstruction};
 use qiskit_circuit::{Clbit, Qubit};
 
@@ -167,7 +167,7 @@ pub fn n_local(
     parameter_prefix: &String,
     skip_final_rotation_layer: bool,
     skip_unentangled_qubits: bool,
-) -> PyResult<CircuitData> {
+) -> PyResult<PyCircuitData> {
     // Construct the parameter ledger, which will define all free parameters and provide
     // access to them, given an index for a layer and the current gate to implement.
     let ledger = ParameterLedger::from_nlocal(
@@ -220,19 +220,15 @@ pub fn n_local(
             ledger.get_parameters(LayerType::Rotation, reps),
             &skipped_qubits,
         ));
-        Ok(CircuitData::from_packed_operations(
-            num_qubits,
-            0,
-            packed_insts,
-            Param::Float(0.0),
-        )?)
+        Ok(
+            CircuitData::from_packed_operations(num_qubits, 0, packed_insts, Param::Float(0.0))?
+                .into(),
+        )
     } else {
-        Ok(CircuitData::from_packed_operations(
-            num_qubits,
-            0,
-            packed_insts,
-            Param::Float(0.0),
-        )?)
+        Ok(
+            CircuitData::from_packed_operations(num_qubits, 0, packed_insts, Param::Float(0.0))?
+                .into(),
+        )
     }
 }
 
@@ -250,7 +246,7 @@ pub fn py_n_local(
     parameter_prefix: &Bound<PyString>,
     skip_final_rotation_layer: bool,
     skip_unentangled_qubits: bool,
-) -> PyResult<CircuitData> {
+) -> PyResult<PyCircuitData> {
     // Normalize the Python data.
     let parameter_prefix = parameter_prefix.to_string();
     let rotation_blocks: Vec<&Block> = rotation_blocks
