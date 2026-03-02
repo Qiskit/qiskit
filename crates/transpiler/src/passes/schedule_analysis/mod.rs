@@ -80,7 +80,7 @@ impl Deref for PyNodeDurations {
 #[pymethods]
 impl PyNodeDurations {
     #[new]
-    fn new<'py>(mapping: &Bound<'py, PyDict>) -> PyResult<Self> {
+    fn new(mapping: &Bound<'_, PyDict>) -> PyResult<Self> {
         let mut idx_to_node = HashMap::default();
         if let Some((_, key)) = mapping.iter().next() {
             if key.extract::<u64>().is_ok() {
