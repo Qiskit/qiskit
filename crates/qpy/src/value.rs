@@ -18,7 +18,7 @@ use binrw::{BinRead, BinWrite, Endian, binrw};
 use hashbrown::HashMap;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::types::PyAny;
+use pyo3::types::{PyAny, PyBytes};
 
 use qiskit_circuit::bit::{ClassicalRegister, ShareableClbit};
 use qiskit_circuit::circuit_data::CircuitData;
@@ -26,7 +26,7 @@ use qiskit_circuit::classical::expr::{Expr, Stretch, Var};
 use qiskit_circuit::classical::types::Type;
 use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::duration::Duration;
-use qiskit_circuit::operations::{ForCollection, OperationRef, PyRange};
+use qiskit_circuit::operations::{ForCollection, OperationRef, Param, PyRange};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::parameter::symbol_expr::Symbol;
@@ -42,7 +42,8 @@ use crate::params::{
     unpack_parameter_vector, unpack_symbol,
 };
 use crate::py_methods::{
-    py_deserialize_numpy_object, py_pack_modifier, py_serialize_numpy_object, py_unpack_modifier,
+    py_convert_from_generic_value, py_convert_to_generic_value, py_deserialize_numpy_object,
+    py_pack_modifier, py_serialize_numpy_object, py_unpack_modifier,
 };
 use crate::{QpyError, UnsupportedFeatureForVersion};
 
@@ -112,6 +113,22 @@ pub struct QPYWriteData<'a> {
     pub annotation_handler: AnnotationHandler<'a>,
 }
 
+impl<'a> QPYWriteData<'a> {
+    /// Create a default `QPYWriteData` with the given circuit and annotation factories,
+    /// using the current QPY version and an empty standalone-var index map.
+    pub fn default(
+        circuit_data: &'a CircuitData,
+        annotation_factories: &'a Bound<'a, pyo3::types::PyDict>,
+    ) -> Self {
+        QPYWriteData {
+            circuit_data,
+            version: QPY_VERSION,
+            standalone_var_indices: HashMap::new(),
+            annotation_handler: AnnotationHandler::new(annotation_factories),
+        }
+    }
+}
+
 // Data that is needed globally while reading the circuit
 #[derive(Debug)]
 pub struct QPYReadData<'a> {
@@ -122,6 +139,25 @@ pub struct QPYReadData<'a> {
     pub standalone_stretches: HashMap<u16, qiskit_circuit::Stretch>,
     pub vectors: HashMap<Uuid, (Py<PyAny>, Vec<u32>)>, // Parameter expression vectors, which are a python-only elements for now
     pub annotation_handler: AnnotationHandler<'a>,
+}
+
+impl<'a> QPYReadData<'a> {
+    /// Create a default `QPYReadData` with the given circuit, annotation factories and symengine flag,
+    /// using the current QPY version and empty maps for vars, stretches and vectors.
+    pub fn default(
+        circuit_data: &'a mut CircuitData,
+        annotation_factories: &'a Bound<'a, pyo3::types::PyDict>,
+    ) -> Self {
+        QPYReadData {
+            circuit_data,
+            version: QPY_VERSION,
+            use_symengine: false,
+            standalone_vars: HashMap::new(),
+            standalone_stretches: HashMap::new(),
+            vectors: HashMap::new(),
+            annotation_handler: AnnotationHandler::new(annotation_factories),
+        }
+    }
 }
 
 // this is how tags for various value types are encoded in a QPY file
@@ -867,4 +903,74 @@ pub(crate) fn load_param_register_value(
             name
         )))
     }
+}
+
+/// Write a list of QPY-serializable values to a file object.
+///
+/// Args:
+///     file_obj: The file object to write to.
+///     values: The list of values to serialize and write.
+///
+#[pyfunction]
+#[pyo3(name = "write_values")]
+#[pyo3(signature = (file_obj, values))]
+pub(crate) fn py_write_values(
+    py: Python,
+    file_obj: &Bound<pyo3::types::PyAny>,
+    values: &Bound<pyo3::types::PyAny>,
+) -> PyResult<usize> {
+    let dummy_circuit = CircuitData::new(None, None, Param::Float(0.0))?;
+    let empty_dict = pyo3::types::PyDict::new(py);
+    let qpy_data = QPYWriteData::default(&dummy_circuit, &empty_dict);
+
+    let mut elements = Vec::new();
+    for item in values.try_iter()? {
+        let generic_value = py_convert_to_generic_value(&(item?))?;
+        let (type_key, data) = serialize_generic_value(&generic_value, &qpy_data)?;
+        elements.push(GenericDataPack { type_key, data });
+    }
+
+    let sequence_pack = GenericDataSequencePack { elements };
+    let serialized = serialize(&sequence_pack);
+    file_obj.call_method1("write", (PyBytes::new(py, &serialized),))?;
+    Ok(serialized.len())
+}
+
+/// Read a list of QPY-serializable values from a file object.
+///
+/// Args:
+///
+///    file_obj: The file object to read from. The file's cursor will be advanced by the number of bytes read.
+/// Returns:
+///    A list of deserialized values read from the file.
+#[pyfunction]
+#[pyo3(name = "read_values")]
+#[pyo3(signature = (file_obj))]
+pub(crate) fn py_read_values(
+    py: Python,
+    file_obj: &Bound<pyo3::types::PyAny>,
+) -> PyResult<Py<pyo3::types::PyAny>> {
+    use pyo3::types::{PyBytes, PyList};
+    use qiskit_circuit::circuit_data::CircuitData;
+    use qiskit_circuit::operations::Param;
+
+    let pos = file_obj.call_method0("tell")?.extract::<usize>()?;
+    let bytes_obj = file_obj.call_method0("read")?;
+    let raw_bytes: &[u8] = bytes_obj.cast::<PyBytes>()?.as_bytes();
+
+    let (sequence_pack, bytes_read) = deserialize::<GenericDataSequencePack>(raw_bytes)?;
+
+    let mut dummy_circuit = CircuitData::new(None, None, Param::Float(0.0))?;
+    let empty_dict = pyo3::types::PyDict::new(py);
+    let mut qpy_data = QPYReadData::default(&mut dummy_circuit, &empty_dict);
+
+    let mut result_list = Vec::with_capacity(sequence_pack.elements.len());
+    for data_pack in &sequence_pack.elements {
+        let generic_value = unpack_generic_value(data_pack, &mut qpy_data)?;
+        let py_obj = py_convert_from_generic_value(&generic_value)?;
+        result_list.push(py_obj);
+    }
+
+    file_obj.call_method1("seek", (pos + bytes_read,))?;
+    Ok(PyList::new(py, result_list)?.into_any().unbind())
 }
