@@ -16,7 +16,7 @@ use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::types::PyString;
 use pyo3::{prelude::*, types::PyList};
 use qiskit_circuit::NoBlocks;
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::instruction::Instruction;
 use qiskit_circuit::operations::{OperationRef, Param, StandardGate};
@@ -254,9 +254,10 @@ impl SolovayKitaevSynthesis {
         &self,
         gate_matrix: PyReadonlyArray2<Complex64>,
         recursion_degree: usize,
-    ) -> PyResult<CircuitData> {
+    ) -> PyResult<PyCircuitData> {
         let view = matrix2_from_pyreadonly(&gate_matrix);
         self.synthesize_matrix(&view, recursion_degree)
+            .map(Into::into)
             .map_err(|err| err.into())
     }
 
@@ -272,8 +273,9 @@ impl SolovayKitaevSynthesis {
         &self,
         gate: OperationFromPython<NoBlocks>,
         recursion_degree: usize,
-    ) -> PyResult<CircuitData> {
+    ) -> PyResult<PyCircuitData> {
         self.synthesize_operation(&gate.operation.view(), gate.params_view(), recursion_degree)
+            .map(Into::into)
             .map_err(|err| err.into())
     }
 
@@ -299,7 +301,7 @@ impl SolovayKitaevSynthesis {
     fn query_basic_approximation(
         &self,
         gate: OperationFromPython<NoBlocks>,
-    ) -> PyResult<CircuitData> {
+    ) -> PyResult<PyCircuitData> {
         let matrix_u2 = match gate.try_matrix() {
             Some(matrix) => Matrix2::new(
                 matrix[(0, 0)],
@@ -322,6 +324,7 @@ impl SolovayKitaevSynthesis {
 
         approximation
             .to_circuit(Some((&matrix_u2, phase)))
+            .map(Into::into)
             .map_err(|e| e.into())
     }
 
@@ -335,7 +338,7 @@ impl SolovayKitaevSynthesis {
     fn query_basic_approximation_matrix(
         &self,
         matrix: PyReadonlyArray2<Complex64>,
-    ) -> PyResult<CircuitData> {
+    ) -> PyResult<PyCircuitData> {
         let matrix_u2 = matrix2_from_pyreadonly(&matrix);
         let (matrix_so3, phase) = math::u2_to_so3(&matrix_u2);
 
@@ -346,6 +349,7 @@ impl SolovayKitaevSynthesis {
 
         approximation
             .to_circuit(Some((&matrix_u2, phase)))
+            .map(Into::into)
             .map_err(|e| e.into())
     }
 
