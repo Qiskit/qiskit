@@ -16,8 +16,8 @@ use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::imports::PAULI_EVOLUTION_GATE;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
-    Operation, OperationRef, Param, PauliProductMeasurement, PyInstruction, PyOperationTypes,
-    StandardGate, StandardInstruction, multiply_param,
+    Operation, OperationRef, Param, PauliBased, PauliProductMeasurement, PyInstruction,
+    PyOperationTypes, StandardGate, StandardInstruction, multiply_param,
 };
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
@@ -293,7 +293,7 @@ pub fn run_litinski_transformation(
                     let ppm_clbits = dag.get_cargs(inst.clbits);
 
                     new_dag.apply_operation_back(
-                        ppm.into(),
+                        PauliBased::PauliProductMeasurement(ppm).into(),
                         &indices,
                         ppm_clbits,
                         None,

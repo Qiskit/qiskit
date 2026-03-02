@@ -19,6 +19,7 @@
 // Ideally, serialization is done by packing in a binrw-enhanced struct and using the
 // `write` method into a `Cursor` buffer, but there might be exceptions.
 
+use binrw::Endian::Little;
 use hashbrown::HashMap;
 use num_bigint::BigUint;
 use num_complex::Complex64;
@@ -36,6 +37,8 @@ use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::interner::Interned;
 use qiskit_circuit::operations::ArrayType;
+use qiskit_circuit::operations::PauliBased;
+use qiskit_circuit::operations::PauliProductRotation;
 use qiskit_circuit::operations::UnitaryGate;
 use qiskit_circuit::operations::{
     BoxDuration, CaseSpecifier, Condition, StandardInstructionType, SwitchTarget,
@@ -65,7 +68,8 @@ use crate::formats::QPYCircuitV17;
 use crate::params::generic_value_to_param;
 use crate::py_methods::py_convert_from_generic_value;
 use crate::py_methods::{
-    PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME, UNITARY_GATE_CLASS_NAME, get_python_gate_class,
+    PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME, PAULI_ROTATION_GATE_CLASS_NAME,
+    UNITARY_GATE_CLASS_NAME, get_python_gate_class,
 };
 use crate::value::ParamRegisterValue;
 use crate::value::unpack_for_collection;
@@ -93,6 +97,7 @@ enum InstructionType {
     StandardGate,
     StandardInstruction,
     PauliProductMeasurement,
+    PauliProductRotation,
     Unitary,
     ControlFlow,
     // covers instruction types require resorting to python space
@@ -174,6 +179,8 @@ fn recognize_instruction_type(
     let name = instruction.gate_class_name.as_str();
     if name == PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME {
         InstructionType::PauliProductMeasurement
+    } else if name == PAULI_ROTATION_GATE_CLASS_NAME {
+        InstructionType::PauliProductRotation
     } else if name == UNITARY_GATE_CLASS_NAME {
         InstructionType::Unitary
     } else if ControlFlowType::from_str(name).is_ok() {
@@ -330,6 +337,7 @@ fn unpack_instruction(
         InstructionType::PauliProductMeasurement => {
             unpack_pauli_product_measurement(instruction, qpy_data)?
         }
+        InstructionType::PauliProductRotation => unpack_pauli_rotation(instruction, qpy_data)?,
         InstructionType::Unitary => unpack_unitary(instruction, qpy_data)?,
         InstructionType::ControlFlow => unpack_control_flow(instruction, qpy_data)?,
         InstructionType::Custom => {
@@ -403,9 +411,34 @@ fn unpack_pauli_product_measurement(
     let neg = unpack_generic_value(&instruction.params[2], qpy_data)?
         .as_typed::<bool>()
         .unwrap();
-    let ppm = Box::new(PauliProductMeasurement { z, x, neg });
-    let op = PackedOperation::from_ppm(ppm);
+    let ppm = PauliProductMeasurement { z, x, neg };
+    let pbc = Box::new(PauliBased::PauliProductMeasurement(ppm));
+    let op = PackedOperation::from_pauli_based(pbc);
     let param_values = Vec::new(); // ppm has no "regular" params; the instruction params were used to reconstruct it
+    Ok((op, param_values))
+}
+
+fn unpack_pauli_rotation(
+    instruction: &formats::CircuitInstructionV2Pack,
+    qpy_data: &mut QPYReadData,
+) -> PyResult<(PackedOperation, Vec<GenericValue>)> {
+    if instruction.params.len() != 3 {
+        return Err(PyValueError::new_err(
+            "PauliProductRotation should have exactly 3 parameters",
+        ));
+    }
+    let z = unpack_generic_value(&instruction.params[0], qpy_data)?
+        .as_typed::<Vec<bool>>()
+        .unwrap();
+    let x = unpack_generic_value(&instruction.params[1], qpy_data)?
+        .as_typed::<Vec<bool>>()
+        .unwrap();
+    let angle_value = unpack_generic_value(&instruction.params[2], qpy_data)?;
+    let angle = generic_value_to_param(&angle_value, Little)?;
+    let rotation = PauliProductRotation { z, x, angle };
+    let pbc = Box::new(PauliBased::PauliProductRotation(rotation));
+    let op = PackedOperation::from_pauli_based(pbc);
+    let param_values = vec![angle_value];
     Ok((op, param_values))
 }
 

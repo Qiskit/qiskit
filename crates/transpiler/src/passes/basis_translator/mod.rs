@@ -37,7 +37,7 @@ use qiskit_circuit::parameter::symbol_expr::Value;
 use qiskit_circuit::{BlocksMode, Clbit, PhysicalQubit, Qubit, VarsMode};
 use qiskit_circuit::{
     dag_circuit::DAGCircuit,
-    operations::{Operation, OperationRef, PyOperationTypes, PythonOperation},
+    operations::{Operation, OperationRef, PauliBased, PyOperationTypes, PythonOperation},
 };
 use smallvec::SmallVec;
 
@@ -539,7 +539,12 @@ fn replace_node(
                 OperationRef::StandardGate(gate) => gate.into(),
                 OperationRef::StandardInstruction(instruction) => instruction.into(),
                 OperationRef::Unitary(unitary) => unitary.clone().into(),
-                OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
+                OperationRef::PauliProductMeasurement(ppm) => {
+                    PauliBased::PauliProductMeasurement(ppm.clone()).into()
+                }
+                OperationRef::PauliProductRotation(rotation) => {
+                    PauliBased::PauliProductRotation(rotation.clone()).into()
+                }
             };
             let new_params: Option<Parameters<_>> = inner_node.params.as_deref().cloned();
             dag.apply_operation_back(
@@ -611,7 +616,12 @@ fn replace_node(
                 OperationRef::StandardGate(gate) => gate.into(),
                 OperationRef::StandardInstruction(instruction) => instruction.into(),
                 OperationRef::Unitary(unitary) => unitary.clone().into(),
-                OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
+                OperationRef::PauliProductMeasurement(ppm) => {
+                    PauliBased::PauliProductMeasurement(ppm.clone()).into()
+                }
+                OperationRef::PauliProductRotation(rotation) => {
+                    PauliBased::PauliProductRotation(rotation.clone()).into()
+                }
             };
 
             let mut new_params: Option<Parameters<_>> = inner_node.params.as_deref().cloned();

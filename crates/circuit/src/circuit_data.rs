@@ -29,7 +29,7 @@ use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
 use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::{ObjectRegistry, ObjectRegistryError};
 use crate::operations::{
-    ControlFlow, ControlFlowView, Operation, OperationRef, Param, PyOperationTypes,
+    ControlFlow, ControlFlowView, Operation, OperationRef, Param, PauliBased, PyOperationTypes,
     PythonOperation, StandardGate,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
@@ -810,7 +810,12 @@ impl CircuitData {
                     OperationRef::StandardGate(gate) => gate.into(),
                     OperationRef::StandardInstruction(instruction) => instruction.into(),
                     OperationRef::Unitary(unitary) => unitary.clone().into(),
-                    OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
+                    OperationRef::PauliProductMeasurement(ppm) => {
+                        PauliBased::PauliProductMeasurement(ppm.clone()).into()
+                    }
+                    OperationRef::PauliProductRotation(rotation) => {
+                        PauliBased::PauliProductRotation(rotation.clone()).into()
+                    }
                 };
                 res.data.push(PackedInstruction {
                     op: new_op,
@@ -836,7 +841,12 @@ impl CircuitData {
                     OperationRef::StandardGate(gate) => gate.into(),
                     OperationRef::StandardInstruction(instruction) => instruction.into(),
                     OperationRef::Unitary(unitary) => unitary.clone().into(),
-                    OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
+                    OperationRef::PauliProductMeasurement(ppm) => {
+                        PauliBased::PauliProductMeasurement(ppm.clone()).into()
+                    }
+                    OperationRef::PauliProductRotation(rotation) => {
+                        PauliBased::PauliProductRotation(rotation.clone()).into()
+                    }
                 };
                 res.data.push(PackedInstruction {
                     op: new_op,
@@ -2211,7 +2221,8 @@ impl CircuitData {
                 | OperationRef::StandardGate(_)
                 | OperationRef::StandardInstruction(_)
                 | OperationRef::Unitary(_)
-                | OperationRef::PauliProductMeasurement(_) => inst.op.clone(),
+                | OperationRef::PauliProductMeasurement(_)
+                | OperationRef::PauliProductRotation(_) => inst.op.clone(),
                 OperationRef::Gate(gate) => {
                     PyOperationTypes::Gate(gate.py_deepcopy(py, None)?).into()
                 }
@@ -3652,11 +3663,13 @@ mod test {
         // Python-space tests run with Rust in release mode) and Miri.
         let mut qc = CircuitData::from_packed_operations(4, 1, [], Param::Float(0.0))?;
         qc.push_packed_operation(
-            Box::new(PauliProductMeasurement {
-                z: vec![true, true, true],
-                x: vec![false, false, true],
-                neg: false,
-            })
+            Box::new(PauliBased::PauliProductMeasurement(
+                PauliProductMeasurement {
+                    z: vec![true, true, true],
+                    x: vec![false, false, true],
+                    neg: false,
+                },
+            ))
             .into(),
             None,
             &[Qubit(0), Qubit(1), Qubit(2)],

@@ -287,6 +287,7 @@ pub enum OperationRef<'a> {
     Operation(&'a PyInstruction),
     Unitary(&'a UnitaryGate),
     PauliProductMeasurement(&'a PauliProductMeasurement),
+    PauliProductRotation(&'a PauliProductRotation),
 }
 
 impl Operation for OperationRef<'_> {
@@ -301,6 +302,7 @@ impl Operation for OperationRef<'_> {
             Self::Operation(operation) => operation.name(),
             Self::Unitary(unitary) => unitary.name(),
             Self::PauliProductMeasurement(ppm) => ppm.name(),
+            Self::PauliProductRotation(rotation) => rotation.name(),
         }
     }
     #[inline]
@@ -314,6 +316,7 @@ impl Operation for OperationRef<'_> {
             Self::Operation(operation) => operation.num_qubits(),
             Self::Unitary(unitary) => unitary.num_qubits(),
             Self::PauliProductMeasurement(ppm) => ppm.num_qubits(),
+            Self::PauliProductRotation(rotation) => rotation.num_qubits(),
         }
     }
     #[inline]
@@ -327,6 +330,7 @@ impl Operation for OperationRef<'_> {
             Self::Operation(operation) => operation.num_clbits(),
             Self::Unitary(unitary) => unitary.num_clbits(),
             Self::PauliProductMeasurement(ppm) => ppm.num_clbits(),
+            Self::PauliProductRotation(rotation) => rotation.num_clbits(),
         }
     }
     #[inline]
@@ -340,6 +344,7 @@ impl Operation for OperationRef<'_> {
             Self::Operation(operation) => operation.num_params(),
             Self::Unitary(unitary) => unitary.num_params(),
             Self::PauliProductMeasurement(ppm) => ppm.num_params(),
+            Self::PauliProductRotation(rotation) => rotation.num_params(),
         }
     }
     #[inline]
@@ -353,6 +358,7 @@ impl Operation for OperationRef<'_> {
             Self::Operation(operation) => operation.directive(),
             Self::Unitary(unitary) => unitary.directive(),
             Self::PauliProductMeasurement(ppm) => ppm.directive(),
+            Self::PauliProductRotation(rotation) => rotation.directive(),
         }
     }
 }
@@ -3305,6 +3311,74 @@ impl UnitaryGate {
         }
     }
 }
+
+/// A Pauli-based gate model, consisting of PauliProductRotation and PauliProductMeasurement ops.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum PauliBased {
+    PauliProductRotation(PauliProductRotation),
+    PauliProductMeasurement(PauliProductMeasurement),
+}
+
+#[derive(Clone, Debug)]
+#[repr(align(8))]
+pub struct PauliProductRotation {
+    /// The z-component of the pauli.
+    pub z: Vec<bool>,
+    /// The x-component of the pauli.
+    pub x: Vec<bool>,
+    /// The rotation angle, exp(i theta / 2 P)
+    pub angle: Param,
+}
+
+impl Operation for PauliProductRotation {
+    fn name(&self) -> &str {
+        "pauli_product_rotation"
+    }
+    fn num_qubits(&self) -> u32 {
+        self.z.len() as u32
+    }
+    fn num_clbits(&self) -> u32 {
+        0
+    }
+    fn num_params(&self) -> u32 {
+        1
+    }
+    fn directive(&self) -> bool {
+        false
+    }
+}
+
+impl PauliProductRotation {
+    pub fn create_py_op(&self, py: Python, label: Option<&str>) -> PyResult<Py<PyAny>> {
+        let z = self.z.to_pyarray(py);
+        let x = self.x.to_pyarray(py);
+
+        let py_label = if let Some(label) = label {
+            label.into_py_any(py)?
+        } else {
+            py.None()
+        };
+
+        let gate = imports::PAULI_ROTATION_GATE.get_bound(py).call_method1(
+            intern!(py, "_from_pauli_data"),
+            (z, x, self.angle.clone(), py_label),
+        )?;
+        Ok(gate.unbind())
+    }
+}
+
+impl PartialEq for PauliProductRotation {
+    fn eq(&self, other: &Self) -> bool {
+        self.x == other.x
+            && self.z == other.z
+            && self
+                .angle
+                .eq(&other.angle)
+                .expect("Angles are float or symbol, for which eq is infallible")
+    }
+}
+
+impl Eq for PauliProductRotation {}
 
 /// This class represents a PauliProductMeasurement instruction.
 #[derive(Clone, Debug)]

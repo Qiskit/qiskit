@@ -108,7 +108,7 @@ class PauliProductMeasurement(Instruction):
     @classmethod
     def _from_pauli_data(cls, z, x, phase, label):
         """
-        Instantiates a PauliProductMeasurement isntruction from pauli data and label.
+        Instantiates a PauliProductMeasurement instruction from pauli data and label.
         This function is used internally from within the rust code and from QPY
         serialization.
         """

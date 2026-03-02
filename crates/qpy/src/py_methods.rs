@@ -45,6 +45,7 @@ use crate::value::{
 
 pub const UNITARY_GATE_CLASS_NAME: &str = "UnitaryGate";
 pub const PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME: &str = "PauliProductMeasurement";
+pub const PAULI_ROTATION_GATE_CLASS_NAME: &str = "PauliProductRotationGate";
 
 fn is_python_gate(py: Python, op: &PackedOperation, python_gate: &Bound<PyAny>) -> PyResult<bool> {
     match op.view() {
@@ -316,6 +317,9 @@ pub(crate) fn gate_class_name(op: &PackedOperation) -> PyResult<String> {
                 .extract::<String>(),
             OperationRef::PauliProductMeasurement(_) => {
                 Ok(String::from(PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME))
+            }
+            OperationRef::PauliProductRotation(_) => {
+                Ok(String::from(PAULI_ROTATION_GATE_CLASS_NAME))
             }
             OperationRef::ControlFlow(inst) => Ok(inst.name().to_string()),
         }?;
