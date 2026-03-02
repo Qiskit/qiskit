@@ -13,7 +13,9 @@
 use super::TimeOps;
 use crate::TranspilerError;
 use crate::passes::schedule_analysis::{NodeDurations, PyNodeDurations};
+use ahash::RandomState;
 use hashbrown::HashMap;
+use indexmap::IndexMap;
 use pyo3::prelude::*;
 use qiskit_circuit::dag_circuit::{DAGCircuit, Wire};
 use qiskit_circuit::operations::{OperationRef, StandardInstruction};
@@ -23,15 +25,15 @@ use rustworkx_core::petgraph::prelude::NodeIndex;
 pub fn run_alap_schedule_analysis<T: TimeOps>(
     dag: &DAGCircuit,
     clbit_write_latency: T,
-    node_durations: &HashMap<NodeIndex, T>,
-) -> PyResult<HashMap<NodeIndex, T>> {
+    node_durations: &IndexMap<NodeIndex, T, RandomState>,
+) -> PyResult<IndexMap<NodeIndex, T, RandomState>> {
     if dag.qregs().len() != 1 || !dag.qregs_data().contains_key("q") {
         return Err(TranspilerError::new_err(
             "ALAP schedule runs on physical circuits only",
         ));
     }
 
-    let mut node_start_time: HashMap<NodeIndex, T> = HashMap::new();
+    let mut node_start_time: IndexMap<NodeIndex, T, RandomState> = IndexMap::default();
     let mut idle_before: HashMap<Wire, T> = HashMap::new();
 
     let zero = T::zero();
@@ -130,7 +132,7 @@ pub fn run_alap_schedule_analysis<T: TimeOps>(
 
     // Note that ALAP pass is inversely scheduled, thus
     // t0 is computed by subtracting t1 from the entire circuit duration.
-    let mut result: HashMap<NodeIndex, T> = HashMap::new();
+    let mut result: IndexMap<NodeIndex, T, RandomState> = IndexMap::default();
     for (node_idx, t1) in node_start_time {
         let final_time = *circuit_duration - t1;
         result.insert(node_idx, final_time);
@@ -154,13 +156,13 @@ pub fn run_alap_schedule_analysis<T: TimeOps>(
 pub fn py_run_alap_schedule_analysis(
     dag: &DAGCircuit,
     clbit_write_latency: u64,
-    node_durations: &PyNodeDurations,
+    mut node_durations: PyNodeDurations,
 ) -> PyResult<PyNodeDurations> {
     // Extract indices and durations from PyDict
     // Get the first duration type
     // Extract indices and durations from PyDict
     // Get the first duration type
-    let new_durations: NodeDurations = match &**node_durations {
+    let new_durations: NodeDurations = match &*node_durations {
         NodeDurations::Dt(node_durations) => {
             run_alap_schedule_analysis(dag, clbit_write_latency, node_durations)?.into()
         }
@@ -169,7 +171,8 @@ pub fn py_run_alap_schedule_analysis(
                 .into()
         }
     };
-    Ok(PyNodeDurations::new(new_durations))
+    node_durations.update_durations(new_durations)?;
+    Ok(node_durations)
 }
 
 pub fn alap_schedule_analysis_mod(m: &Bound<PyModule>) -> PyResult<()> {

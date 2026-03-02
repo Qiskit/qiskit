@@ -255,15 +255,15 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
                 (
                     start_time
                     if event_type == EventType.BEGIN
-                    else start_time + self._duration(dag.node(node), qubit_map)
+                    else start_time + self._duration(node, qubit_map)
                 ),
-                dag.node(node),
+                node,
             )
             for node, start_time in self.property_set["node_start_time"].items()
             if (
-                dag.node(node).op.name == "delay"
-                and not is_after_reset(dag.node(node))
-                and self._duration(dag.node(node), qubit_map) > self._min_duration
+                node.op.name == "delay"
+                and not is_after_reset(node)
+                and self._duration(node, qubit_map) > self._min_duration
             )
             for event_type in (EventType.BEGIN, EventType.END)
         ]
