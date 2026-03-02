@@ -191,7 +191,6 @@ class BackendSamplerV2(BaseSamplerV2):
             flatten_circuits,
             self._backend,
             clear_metadata=False,
-            memory=True,
             shots=shots,
             seed_simulator=self._options.seed_simulator,
             **run_opts,
@@ -291,6 +290,24 @@ def _analyze_circuit(circuit: QuantumCircuit) -> tuple[list[_MeasureInfo], int]:
         max_num_bits = max(max_num_bits, start + num_bits)
     return meas_info, _min_num_bytes(max_num_bits)
 
+def _counts_to_memory(counts: dict, shots: int) -> list[str]:
+    """Expand a counts dict into a list of per-shot hex strings."""
+    int_counts: dict[int, int] = {}
+    for key, count in counts.items():
+        if isinstance(key, str):
+            int_key = int(key, 16) if key.startswith("0x") else int(key, 2)
+        else:
+            int_key = int(key)
+        int_counts[int_key] = int_counts.get(int_key, 0) + count
+
+    memory = []
+    for int_key in sorted(int_counts):
+        memory.extend([hex(int_key)] * int_counts[int_key])
+
+    if len(memory) < shots:
+        memory.extend([hex(0)] * (shots - len(memory)))
+    return memory[:shots]
+
 
 def _prepare_memory(results: list[Result]) -> list[ResultMemory]:
     """Joins split results if exceeding max_experiments"""
@@ -301,7 +318,11 @@ def _prepare_memory(results: list[Result]) -> list[ResultMemory]:
                 lst.append(exp.data.memory)
             else:
                 # no measure in a circuit
-                lst.append(["0x0"] * exp.shots)
+                if hasattr(exp.data, "counts") and exp.data.counts:
+                    lst.append(_counts_to_memory(exp.data.counts, exp.shots))
+                else:
+                    # Genuinely no measurements in this circuit
+                    lst.append(["0x0"] * exp.shots)
     return lst
 
 
