@@ -36,10 +36,10 @@ use qiskit_circuit::imports;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
     ArrayType, BoxDuration, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction,
-    Operation, OperationRef, Param, PauliProductMeasurement, PyInstruction, StandardGate,
-    StandardInstruction, SwitchTarget, UnitaryGate,
+    CustomOperation, Operation, OperationRef, Param, PauliProductMeasurement, PyInstruction,
+    StandardGate, StandardInstruction, SwitchTarget, UnitaryGate,
 };
-use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
+use qiskit_circuit::packed_instruction::PackedInstruction;
 
 use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
@@ -85,7 +85,7 @@ fn pack_instructions(
     qpy_data: &mut QPYWriteData,
 ) -> PyResult<(
     Vec<formats::CircuitInstructionV2Pack>,
-    HashMap<String, PackedOperation>,
+    HashMap<String, PackedInstruction>,
 )> {
     let mut custom_operations = HashMap::new();
     let mut custom_new_operations = Vec::new();
@@ -174,10 +174,10 @@ fn pack_condition(
 // straightforward packing of the instruction parameters for the general cases
 // where no additional handling is required
 fn pack_instruction_params(
-    inst: &PackedInstruction,
+    params: &[Param],
     qpy_data: &mut QPYWriteData,
 ) -> PyResult<Vec<formats::GenericDataPack>> {
-    inst.params_view()
+    params
         .iter()
         .map(|x| pack_param_obj(x, qpy_data, Endian::Little))
         .collect::<PyResult<_>>()
@@ -211,10 +211,34 @@ fn pack_instruction_blocks(
         }),
     }
 }
+
+/// For Custom Native Operations.
+fn pack_custom_operation(
+    op: &dyn CustomOperation,
+    params: &[Param],
+    qpy_data: &mut QPYWriteData,
+) -> PyResult<formats::CircuitInstructionV2Pack> {
+    let params = pack_instruction_params(params, qpy_data)?;
+    let num_ctrl_qubits: u32 = op.num_ctrl_qubits().map(Into::into).unwrap_or_default();
+    Ok(formats::CircuitInstructionV2Pack {
+        num_qargs: op.num_qubits(),
+        num_cargs: op.num_clbits(),
+        extras_key: 0,
+        num_ctrl_qubits,
+        ctrl_state: (1 << num_ctrl_qubits) - 1, // default control state: all 1s
+        gate_class_name: Default::default(),    // TODO: Use a class name.
+        label: op.label().unwrap_or_default().to_string(),
+        condition: Default::default(),
+        bit_data: Default::default(),
+        params,
+        annotations: None,
+    })
+}
+
 /// packs one specific instruction into CircuitInstructionV2Pack, creating a new custom operation if needed
 fn pack_instruction(
     instruction: &PackedInstruction,
-    custom_operations: &mut HashMap<String, PackedOperation>,
+    custom_operations: &mut HashMap<String, PackedInstruction>,
     new_custom_operations: &mut Vec<String>,
     qpy_data: &mut QPYWriteData,
 ) -> PyResult<formats::CircuitInstructionV2Pack> {
@@ -235,6 +259,9 @@ fn pack_instruction(
         OperationRef::ControlFlow(control_flow_inst) => {
             pack_control_flow_inst(control_flow_inst, instruction, qpy_data)?
         }
+        OperationRef::CustomOperation(op) => {
+            pack_custom_operation(op, instruction.params_view(), qpy_data)?
+        }
     };
 
     // common data extraction for all instruction types
@@ -248,7 +275,7 @@ fn pack_instruction(
     {
         instruction_pack.gate_class_name = new_name.clone();
         new_custom_operations.push(new_name.clone());
-        custom_operations.insert(new_name.clone(), instruction.op.clone());
+        custom_operations.insert(new_name.clone(), instruction.clone());
     };
     Ok(instruction_pack)
 }
@@ -258,7 +285,7 @@ fn pack_standard_gate(
     instruction: &PackedInstruction,
     qpy_data: &mut QPYWriteData,
 ) -> PyResult<formats::CircuitInstructionV2Pack> {
-    let params = pack_instruction_params(instruction, qpy_data)?;
+    let params = pack_instruction_params(instruction.params_view(), qpy_data)?;
     Ok(formats::CircuitInstructionV2Pack {
         num_qargs: gate.num_qubits(),
         num_cargs: gate.num_clbits(),
@@ -279,7 +306,7 @@ fn pack_standard_instruction(
     instruction: &PackedInstruction,
     qpy_data: &mut QPYWriteData,
 ) -> PyResult<formats::CircuitInstructionV2Pack> {
-    let params = pack_instruction_params(instruction, qpy_data)?;
+    let params = pack_instruction_params(instruction.params_view(), qpy_data)?;
     Ok(formats::CircuitInstructionV2Pack {
         num_qargs: inst.num_qubits(),
         num_cargs: inst.num_clbits(),
@@ -481,7 +508,7 @@ fn pack_py_gate(
     instruction: &PackedInstruction,
     qpy_data: &mut QPYWriteData,
 ) -> PyResult<formats::CircuitInstructionV2Pack> {
-    let params = pack_instruction_params(instruction, qpy_data)?;
+    let params = pack_instruction_params(instruction.params_view(), qpy_data)?;
     Ok(formats::CircuitInstructionV2Pack {
         num_qargs: py_gate.num_qubits(),
         num_cargs: py_gate.num_clbits(),
@@ -502,7 +529,7 @@ fn pack_py_instruction(
     instruction: &PackedInstruction,
     qpy_data: &mut QPYWriteData,
 ) -> PyResult<formats::CircuitInstructionV2Pack> {
-    let params = pack_instruction_params(instruction, qpy_data)?;
+    let params = pack_instruction_params(instruction.params_view(), qpy_data)?;
     Ok(formats::CircuitInstructionV2Pack {
         num_qargs: py_inst.num_qubits(),
         num_cargs: py_inst.num_clbits(),
@@ -535,7 +562,7 @@ fn pack_py_operation(
             .map(|modifier| py_pack_param(&modifier?, qpy_data, Endian::Little))
             .collect::<PyResult<_>>()
     } else {
-        pack_instruction_params(instruction, qpy_data)
+        pack_instruction_params(instruction.params_view(), qpy_data)
     }?;
     Ok(formats::CircuitInstructionV2Pack {
         num_qargs: py_op.num_qubits(),
@@ -850,7 +877,7 @@ fn pack_transpile_layout(
 }
 
 fn pack_custom_instructions(
-    custom_instructions_hash: &mut HashMap<String, PackedOperation>,
+    custom_instructions_hash: &mut HashMap<String, PackedInstruction>,
     qpy_data: &mut QPYWriteData,
 ) -> PyResult<formats::CustomCircuitInstructionsPack> {
     let mut custom_instructions: Vec<formats::CustomCircuitInstructionDefPack> = Vec::new();
@@ -898,14 +925,14 @@ fn pack_extra_registers(
 fn pack_custom_instruction(
     py: Python,
     name: &String,
-    custom_instructions_hash: &mut HashMap<String, PackedOperation>,
+    custom_instructions_hash: &mut HashMap<String, PackedInstruction>,
     new_instructions_list: &mut Vec<String>,
     qpy_data: &mut QPYWriteData,
 ) -> PyResult<formats::CustomCircuitInstructionDefPack> {
-    let operation = custom_instructions_hash.get(name).ok_or_else(|| {
+    let instruction = custom_instructions_hash.get(name).ok_or_else(|| {
         PyValueError::new_err(format!("Could not find operation data for {}", name))
     })?;
-    let gate_type = get_circuit_type_key(operation)?;
+    let gate_type = get_circuit_type_key(&instruction.op)?;
     let mut has_definition = false;
     let mut data: Bytes = Bytes::new();
     let mut num_ctrl_qubits = 0;
@@ -914,7 +941,7 @@ fn pack_custom_instruction(
     let mut base_gate_raw: Bytes = Bytes::new();
 
     if gate_type == CircuitInstructionType::PauliEvolutionGate {
-        if let OperationRef::Gate(gate) = operation.view() {
+        if let OperationRef::Gate(gate) = instruction.op.view() {
             has_definition = true;
             data = serialize(&py_pack_pauli_evolution_gate(
                 gate.instruction.bind(py),
@@ -926,7 +953,7 @@ fn pack_custom_instruction(
         // public one, because the public one is mutated to include additional logic if the control
         // state is open, and the definition setter (during a subsequent read) uses the "fully
         // excited" control definition only.
-        if let OperationRef::Gate(pygate) = operation.view() {
+        if let OperationRef::Gate(pygate) = instruction.op.view() {
             has_definition = true;
             // Build internal definition to support overloaded subclasses by
             // calling definition getter on object
@@ -944,12 +971,12 @@ fn pack_custom_instruction(
             base_gate = gate.getattr("base_gate")?.clone();
         }
     } else if gate_type == CircuitInstructionType::AnnotatedOperation {
-        if let OperationRef::Operation(operation) = operation.view() {
+        if let OperationRef::Operation(operation) = instruction.op.view() {
             has_definition = false; // just making sure
             base_gate = operation.instruction.bind(py).getattr("base_op")?.clone();
         }
     } else {
-        match operation.view() {
+        match instruction.op.view() {
             // all-around catch for "operation" field; should be easier once we switch from python to rust
             OperationRef::Gate(pygate) => {
                 let gate = pygate.instruction.bind(py);
@@ -999,11 +1026,36 @@ fn pack_custom_instruction(
                     }
                 }
             }
+            // TODO: Separate the handling of these two as gate also contains matrix definiton
+            // And we don't currently serialize gate matrices.
+            OperationRef::CustomOperation(gate) => {
+                if let Some(definition) = gate.definition(instruction.params_view()) {
+                    has_definition = true;
+                    let mut qc = QuantumCircuitData {
+                        data: definition,
+                        name: None,
+                        metadata: None,
+                        transpile_layout: None,
+                    };
+                    data = serialize(&pack_circuit(
+                        &mut qc,
+                        Some(py.None().bind(py)),
+                        false,
+                        qpy_data.version,
+                        qpy_data.annotation_handler.annotation_factories,
+                    )?);
+                    base_gate_raw = serialize(&pack_custom_operation(
+                        gate,
+                        instruction.params_view(),
+                        qpy_data,
+                    )?);
+                }
+            }
             _ => (),
         }
     }
-    let num_qubits = operation.num_qubits();
-    let num_clbits = operation.num_clbits();
+    let num_qubits = instruction.op.num_qubits();
+    let num_clbits = instruction.op.num_clbits();
     if !base_gate.is_none() {
         let op_parts = base_gate.extract::<OperationFromPython<CircuitData>>()?;
         let instruction = CircuitInstruction {
