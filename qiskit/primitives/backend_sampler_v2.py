@@ -331,14 +331,19 @@ def _memory_array(results: list[list[str]], num_bytes: int) -> NDArray[np.uint8]
     lst = []
     for memory in results:
         if num_bytes > 0:
-            data = b"".join(int(i, 16).to_bytes(num_bytes, "big") for i in memory)
-            data = np.frombuffer(data, dtype=np.uint8).reshape(-1, num_bytes)
+                safe_num_bytes = max(
+                    num_bytes,
+                    max(((int(i,16).bit_length() + 7 ) // 8 for i in memory), default=0),
+                )
+            data = b"".join(int(i, 16).to_bytes(safe_num_bytes, "big") for i in memory)
+            data = np.frombuffer(data, dtype=np.uint8).reshape(-1, safe_num_bytes)
         else:
             # no measure in a circuit
             data = np.zeros((len(memory), num_bytes), dtype=np.uint8)
         lst.append(data)
     ary = np.asarray(lst)
     return np.unpackbits(ary, axis=-1, bitorder="big")
+
 
 
 def _samples_to_packed_array(
