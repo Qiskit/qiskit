@@ -428,7 +428,7 @@ static int test_optimize_error_over_target_3(void) {
         result = EqualityError;
         goto cleanup;
     }
-    
+
     uint32_t *ops = malloc(num_ops * sizeof(uint32_t));
     qk_dag_topological_op_nodes(dag, ops);
     QkCircuitInstruction inst;
