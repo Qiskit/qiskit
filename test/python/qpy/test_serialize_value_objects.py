@@ -153,7 +153,7 @@ class TestWriteReadValueList(QiskitTestCase):
         """Multiple ParameterExpressions in one list all round-trip correctly."""
         a = Parameter("a")
         b = Parameter("b")
-        exprs = [a, b, a+b, a*b-1.5, b**a]
+        exprs = [a, b, a + b, a * b - 1.5, b**a]
 
         result = self._roundtrip(exprs)
         self.assertEqual(len(result), len(exprs))
