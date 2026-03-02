@@ -112,7 +112,9 @@ class TranslateParameterizedGates(TransformationPass):
 
         self._supported_gates = supported_gates
         self._target = target
-        self._translator = BasisTranslator(equivalence_library, supported_gates, target=target)
+        self._translator = BasisTranslator(
+            equivalence_library, supported_gates, target=target, propagate_labels=False
+        )
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the transpiler pass.

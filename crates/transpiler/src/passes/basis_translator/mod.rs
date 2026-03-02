@@ -52,18 +52,20 @@ type InstMap = AhashIndexMap<GateIdentifier, BasisTransformOut>;
 type ExtraInstructionMap<'a> = AhashIndexMap<&'a PhysicalQargs, InstMap>;
 type PhysicalQargs = SmallVec<[PhysicalQubit; 2]>;
 
-#[pyfunction(name = "base_run", signature = (dag, equiv_lib, min_qubits, target=None, target_basis=None))]
+#[pyfunction(name = "base_run", signature = (dag, equiv_lib, min_qubits, target=None, target_basis=None, propagate_labels=true))]
 fn py_run_basis_translator(
     dag: &DAGCircuit,
     equiv_lib: &mut EquivalenceLibrary,
     min_qubits: usize,
     target: Option<&Target>,
     target_basis: Option<HashSet<String>>,
+    propagate_labels: bool,
 ) -> PyResult<Option<DAGCircuit>> {
     let target_basis_ref: Option<HashSet<&str>> = target_basis
         .as_ref()
         .map(|set| set.iter().map(|obj| obj.as_str()).collect());
-    run_basis_translator(dag, equiv_lib, min_qubits, target, target_basis_ref).map_err(|e| e.into())
+    run_basis_translator(dag, equiv_lib, min_qubits, target, target_basis_ref, propagate_labels)
+        .map_err(|e| e.into())
 }
 
 pub fn run_basis_translator(
@@ -72,6 +74,7 @@ pub fn run_basis_translator(
     min_qubits: usize,
     target: Option<&Target>,
     target_basis: Option<HashSet<&str>>,
+    propagate_labels: bool,
 ) -> Result<Option<DAGCircuit>, BasisTranslatorError> {
     if target_basis.is_none() && target.is_none() {
         return Ok(None);
@@ -210,6 +213,7 @@ pub fn run_basis_translator(
         min_qubits,
         &qargs_with_non_global_operation,
         None,
+        propagate_labels,
     )?;
     Ok(Some(out_dag))
 }
@@ -334,6 +338,7 @@ fn apply_translation(
     min_qubits: usize,
     qargs_with_non_global_operation: &AhashIndexMap<Qargs, AhashIndexSet<&str>>,
     qarg_mapping: Option<&HashMap<Qubit, Qubit>>,
+    propagate_labels: bool,
 ) -> Result<(DAGCircuit, bool), BasisTranslatorError> {
     let mut is_updated = false;
     let out_dag = dag
@@ -380,6 +385,7 @@ fn apply_translation(
                         min_qubits,
                         qargs_with_non_global_operation,
                         Some(&qarg_mapping),
+                        propagate_labels,
                     )?;
                     let flow_block = if is_updated {
                         updated_dag
@@ -464,11 +470,12 @@ fn apply_translation(
                 &mut out_dag_builder,
                 node_obj.clone(),
                 &extra_inst_map[&unique_qargs],
+                propagate_labels,
             )?;
         } else if instr_map
             .contains_key(&(node_obj.op.name().to_string(), node_obj.op.num_qubits()))
         {
-            replace_node(&mut out_dag_builder, node_obj.clone(), instr_map)?;
+            replace_node(&mut out_dag_builder, node_obj.clone(), instr_map, propagate_labels)?;
         } else {
             return Err(BasisTranslatorError::ApplyTranslationMappingError(
                 node_obj.op.name().to_string(),
@@ -483,6 +490,7 @@ fn replace_node(
     dag: &mut DAGCircuitBuilder,
     node: PackedInstruction,
     instr_map: &AhashIndexMap<GateIdentifier, (SmallVec<[Param; 3]>, DAGCircuit)>,
+    propagate_labels: bool,
 ) -> Result<(), BasisTranslatorError> {
     // Method to check if the operation is Rust native.
     // Should be removed in the future.
@@ -542,12 +550,17 @@ fn replace_node(
                 OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
             };
             let new_params: Option<Parameters<_>> = inner_node.params.as_deref().cloned();
+            let label = if propagate_labels {
+                node.label.as_deref().cloned()
+            } else {
+                None
+            };
             dag.apply_operation_back(
                 new_op,
                 &new_qubits,
                 &new_clbits,
                 new_params,
-                node.label.as_deref().cloned(),
+                label,
                 #[cfg(feature = "cache_pygates")]
                 None,
             )
@@ -663,12 +676,17 @@ fn replace_node(
                     new_params = Some(Parameters::Params(new_params_inner));
                 }
             }
+            let label = if propagate_labels {
+                node.label.as_deref().cloned()
+            } else {
+                None
+            };
             dag.apply_operation_back(
                 new_op,
                 &new_qubits,
                 &new_clbits,
                 new_params,
-                inner_node.label.as_deref().cloned(),
+                label,
                 #[cfg(feature = "cache_pygates")]
                 None,
             )
