@@ -322,9 +322,9 @@ static int inner_optimize_h_gates(QkTarget *target, char **gates, uint32_t *freq
 
     // Compare ops via the DAG interface
     size_t num_ops = qk_dag_num_op_nodes(dag);
-    uint32_t ops[num_ops];
+    uint32_t *ops = malloc(num_ops * sizeof(uint32_t));
     qk_dag_topological_op_nodes(dag, ops);
-    uint32_t actual_freq[num_gates];
+    uint32_t *actual_freq = malloc(num_gates * sizeof(uint32_t));
     memset(actual_freq, 0, num_gates * sizeof(uint32_t));
     QkCircuitInstruction inst;
     for (size_t i = 0; i < num_ops; i++) {
@@ -340,6 +340,8 @@ static int inner_optimize_h_gates(QkTarget *target, char **gates, uint32_t *freq
         result = EqualityError;
     }
 
+    free(ops);
+    free(actual_freq);
     qk_dag_free(dag);
     qk_quantum_register_free(qr);
     qk_target_free(target);
@@ -422,11 +424,12 @@ static int test_optimize_error_over_target_3(void) {
     qk_transpiler_pass_optimize_1q_sequences(dag, target);
 
     size_t num_ops = qk_dag_num_op_nodes(dag);
-    uint32_t ops[num_ops];
     if (num_ops != 1) {
         result = EqualityError;
         goto cleanup;
     }
+    
+    uint32_t *ops = malloc(num_ops * sizeof(uint32_t));
     qk_dag_topological_op_nodes(dag, ops);
     QkCircuitInstruction inst;
     qk_dag_get_instruction(dag, ops[0], &inst);
@@ -434,6 +437,7 @@ static int test_optimize_error_over_target_3(void) {
         result = EqualityError;
     }
     qk_circuit_instruction_clear(&inst);
+    free(ops);
 
 cleanup:
     qk_target_free(target);
