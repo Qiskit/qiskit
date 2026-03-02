@@ -16,8 +16,9 @@ use ndarray::linalg::kron;
 use num_complex::Complex64;
 use num_complex::ComplexFloat;
 use qiskit_circuit::object_registry::PyObjectAsKey;
-use qiskit_quantum_info::sparse_observable::PySparseObservable;
-use qiskit_quantum_info::sparse_observable::SparseObservable;
+use qiskit_circuit::operations::StandardGate as SparseStandardGate;
+use qiskit_quantum_info::sparse_observable::standard_generators::generator_observable;
+use qiskit_quantum_info::sparse_observable::{PySparseObservable, SparseObservable};
 use smallvec::SmallVec;
 use std::fmt::Debug;
 
@@ -218,11 +219,25 @@ fn try_extract_op_from_ppm(
     Some(out.compose_map(&local, |i| qubits[i as usize].0))
 }
 
+fn map_standard_to_sparse(gate: StandardGate) -> Option<SparseStandardGate> {
+    Some(gate)
+}
+
 fn try_pauli_generator(
     operation: &OperationRef,
+    params: &[Param],
     qubits: &[Qubit],
     num_qubits: u32,
 ) -> Option<SparseObservable> {
+    if let OperationRef::StandardGate(gate) = operation {
+        if let Some(sparse_gate) = map_standard_to_sparse(*gate) {
+            if let Some(local) = generator_observable(sparse_gate, params) {
+                let out = SparseObservable::identity(num_qubits);
+                return Some(out.compose_map(&local, |i| qubits[i as usize].0));
+            }
+        }
+    }
+
     match operation.name() {
         "pauli" => try_extract_op_from_pauli_gate(operation, qubits, num_qubits),
         "PauliEvolution" => try_extract_op_from_pauli_evo(operation, qubits, num_qubits),
@@ -239,8 +254,7 @@ where
     T: From<u32> + Copy,
     u32: From<T>,
 {
-    // Using `PyObjectAsKey` here is a total hack, but this is a short-term workaround before a
-    // larger refactor of the commutation checker.
+    // Use `PyObjectAsKey` as a workaround before a larger refactor of the commutation checker.
     let mut registry: ObjectRegistry<T, PyObjectAsKey> = ObjectRegistry::new();
 
     for bit in py_bits1.iter().chain(py_bits2.iter()) {
@@ -261,6 +275,11 @@ where
 /// It handles the actual commutation checking, cache management, and library
 /// lookups. It's not meant to be a public facing Python object though and only used
 /// internally by the Python class.
+///
+/// This implementation now supports efficient commutation checks for complex gates
+/// (including multi-qubit gates like CCX, CSwap) by analyzing their generators using
+/// the `sparse_observable::standard_generators` module. For efficiency, generator data
+/// is stored and processed using a flattened Struct-of-Arrays (SoA) layout.
 #[pyclass(module = "qiskit._accelerate.commutation_checker")]
 pub struct CommutationChecker {
     library: CommutationLibrary,
@@ -506,9 +525,9 @@ impl CommutationChecker {
 
         // Handle commutations in between Pauli-based gates, like PauliGate or PauliEvolutionGate
         let size = qargs1.iter().chain(qargs2.iter()).max().unwrap().0 + 1;
-        if let Some(obs1) = try_pauli_generator(op1, qargs1, size) {
-            if let Some(obs2) = try_pauli_generator(op2, qargs2, size) {
-                return Ok(obs1.commutes(&obs2, tol));
+        if let Some(pauli1) = try_pauli_generator(op1, params1, qargs1, size) {
+            if let Some(pauli2) = try_pauli_generator(op2, params2, qargs2, size) {
+                return Ok(pauli1.commutes(&pauli2, tol));
             }
         }
 
