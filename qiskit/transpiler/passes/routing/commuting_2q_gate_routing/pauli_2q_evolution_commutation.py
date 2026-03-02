@@ -31,7 +31,7 @@ class FindCommutingPauliEvolutions(TransformationPass):
         """Check for :class:`.PauliEvolutionGate` objects where the summands all commute.
 
         Args:
-            The DAG circuit in which to look for the commuting evolutions.
+            dag: The DAG circuit in which to look for the commuting evolutions.
 
         Returns:
             The dag in which :class:`.PauliEvolutionGate` objects made of commuting two-qubit Paulis

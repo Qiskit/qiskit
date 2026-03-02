@@ -174,7 +174,7 @@ class BindingsArray(ShapedMixin):
 
         The parameters are indexed along the last dimension of the returned array.
 
-        Parameters:
+        Args:
             parameters: Optional parameters that determine the order of the output.
 
         Returns:

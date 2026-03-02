@@ -434,6 +434,8 @@ def _get_layered_instructions(
             default `left` will be used.
         idle_wires (bool): Include idle wires. Default is True.
         wire_order (list): A list of ints that modifies the order of the bits.
+        wire_map (dict): The wire map
+        measure_arrows (bool): whether do draw arrows from measurements
 
     Returns:
         Tuple(list,list,list): To be consumed by the visualizer directly.

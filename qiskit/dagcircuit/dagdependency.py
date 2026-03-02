@@ -128,7 +128,7 @@ class DAGDependency:
         """Set the global phase of the circuit.
 
         Args:
-            angle (float, ParameterExpression)
+            angle (float, ParameterExpression): The angle to set the global phase to.
         """
         from qiskit.circuit.parameterexpression import ParameterExpression  # needed?
 
