@@ -604,7 +604,6 @@ impl Debug for VisualizationMatrix<'_> {
     }
 }
 
-// TO DO: better name for the struct
 #[derive(Clone)]
 struct TextWireElement {
     top: String,
