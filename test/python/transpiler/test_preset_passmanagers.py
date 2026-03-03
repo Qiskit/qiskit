@@ -1752,6 +1752,55 @@ class TestIntegrationControlFlow(QiskitTestCase):
             transpile(qc, scheduling_method="alap", optimization_level=optimization_level)
 
     @data(0, 1, 2, 3)
+    def test_dcx_gate_in_nested_control_flow(self, optimization_level):
+        """Test that gates with definitions like DCX are properly decomposed inside nested
+        control flow structures. This is a regression test for issue #15734 where dcx gates
+        inside nested if_test blocks were not being decomposed at optimization levels 0 and 1,
+        causing execution failures on backends like AerSimulator.
+        """
+        from qiskit_aer import AerSimulator
+
+        qr = QuantumRegister(6, "q")
+        cr = ClassicalRegister(4, "c")
+        qc = QuantumCircuit(qr, cr)
+
+        # Create nested control flow with dcx gate
+        with qc.if_test((cr[0], 1)):
+            qc.dcx(0, 3)
+            # Add nested empty control flow to match original issue
+            with qc.if_test((cr[1], 0)):
+                pass
+
+        qc.measure_all()
+
+        backend = AerSimulator()
+
+        # Transpile at the specified optimization level
+        transpiled = transpile(qc, backend=backend, optimization_level=optimization_level)
+
+        # Verify the circuit can be executed without errors
+        result = backend.run(transpiled, shots=10).result()
+        self.assertTrue(result.success)
+
+        # Verify dcx was decomposed (should not appear in final circuit)
+        # At level 0-1, it should be decomposed to cx gates
+        # At level 2-3, it may be consolidated into a unitary
+        def check_no_dcx_in_blocks(circuit):
+            """Recursively check that no dcx gates remain in the circuit."""
+            for inst in circuit.data:
+                self.assertNotEqual(
+                    inst.operation.name,
+                    "dcx",
+                    "DCX gate found in transpiled circuit; it should have been decomposed",
+                )
+                if hasattr(inst.operation, "blocks"):
+                    for block in inst.operation.blocks:
+                        if block:
+                            check_no_dcx_in_blocks(block)
+
+        check_no_dcx_in_blocks(transpiled)
+
+    @data(0, 1, 2, 3)
     def test_unsupported_basis_gates_raise(self, optimization_level):
         """Test that trying to transpile a control-flow circuit for a backend that doesn't support
         the necessary operations in its `basis_gates` will raise a sensible error."""

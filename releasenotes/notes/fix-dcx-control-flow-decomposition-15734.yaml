@@ -1,0 +1,17 @@
+---
+fixes:
+  - |
+    Fixed an issue where gates with definitions (such as :class:`.DCXGate`) inside nested
+    control flow structures were not being properly decomposed at optimization levels 0 and 1
+    when transpiling for backends without a coupling map (like :class:`~qiskit_aer.AerSimulator`).
+    This could cause execution failures with errors like ``AerError: 'unknown instruction: dcx'``.
+    
+    The transpiler now ensures that all standard gates are properly decomposed to the target
+    basis before attempting basis translation, even when inside control flow blocks, by adding
+    a :class:`.Decompose` pass at the start of the translation stage.
+    
+    Additionally, the init stage at optimization levels 0 and 1 now runs when a target is
+    specified, even if no coupling map is provided. This ensures high-level synthesis passes
+    run consistently across different backend configurations.
+    
+    Fixes `#15734 <https://github.com/Qiskit/qiskit/issues/15734>`__.

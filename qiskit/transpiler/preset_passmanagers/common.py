@@ -23,6 +23,7 @@ from qiskit.passmanager.flow_controllers import ConditionalController
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passes import Error
 from qiskit.transpiler.passes import BasisTranslator
+from qiskit.transpiler.passes import Decompose
 from qiskit.transpiler.passes import Unroll3qOrMore
 from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.transpiler.passes import Collect1qRuns
@@ -470,6 +471,8 @@ def generate_translation_passmanager(
     if method == "translator":
         translator = BasisTranslator(sel, basis_gates, target)
         unroll = [
+            # Decompose custom gates to their definitions to ensure they can be translated
+            Decompose(),
             # Use unitary synthesis for basis aware decomposition of
             # UnitaryGates before custom unrolling
             UnitarySynthesis(
