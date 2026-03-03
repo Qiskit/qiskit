@@ -1265,6 +1265,7 @@ mod tests {
         circuit
     }
 
+    #[cfg(not(miri))]
     #[test]
     fn test_creg_bundle() {
         let circuit = basic_circuit();
@@ -1287,6 +1288,7 @@ c2: 2/══════════
         assert_eq!(result, expected.trim_start_matches("\n"));
     }
 
+    #[cfg(not(miri))]
     #[test]
     fn test_merge_wires() {
         let circuit = basic_circuit();
@@ -1386,7 +1388,7 @@ c2_1: ══════════»
         let mut inst_clone = circuit.data()[0].clone();
         inst_clone.label = Some(Box::new("my_ch".to_string()));
         circuit.push(inst_clone).unwrap();
-        let result = draw_circuit(&circuit, false, false, None).unwrap();
+        let result = draw_circuit(&circuit, false, false, Some(80)).unwrap();
         let expected = "
           ┌─────────────┐┌────────────────┐
 q_0: ──■──┤0  Rxx(1.23) ├┤0  my_rxx(1.23) ├────■────
@@ -1662,6 +1664,7 @@ q_3: ─────────────────────────
         assert_eq!(result, expected.trim_start_matches("\n"));
     }
 
+    #[cfg(not(miri))]
     #[test]
     fn test_global_phase() {
         let mut circuit = basic_circuit();
