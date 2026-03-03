@@ -55,8 +55,21 @@ pub fn draw_circuit(
             term_width as usize
         }
     };
-
-    Ok(text_drawer.draw(mergewires, fold))
+    // Strip trailing whitespace from lines.
+    // On the last line ensure we only a single newline ends the returned
+    // string (in case we ended up with a double newline after the stripping)
+    let mut output: String = text_drawer
+        .draw(mergewires, fold)
+        .lines()
+        .flat_map(|x| [x.trim_end(), "\n"])
+        .collect();
+    let mut chars = output.chars();
+    if let Some(last) = chars.next_back() {
+        if last == '\n' && chars.next_back() == Some('\n') {
+            output.pop();
+        }
+    }
+    Ok(output)
 }
 
 /// Return a list of layers such that each layer contains a list of op node indices, representing instructions
@@ -1231,8 +1244,7 @@ mod tests {
             .chain((0..creg_2.len()).map(|i| creg_2.get(i).expect("index in range")))
             .collect();
 
-        let mut circuit =
-            CircuitData::new(Some(qubits), Some(clbits), None, 0, Param::Float(0.0)).unwrap();
+        let mut circuit = CircuitData::new(Some(qubits), Some(clbits), Param::Float(0.0)).unwrap();
 
         _ = circuit.add_creg(creg_1, true);
         _ = circuit.add_creg(creg_2, true);
@@ -1255,9 +1267,20 @@ mod tests {
 
         let result = draw_circuit(&circuit, true, false, None).unwrap();
 
-        let expected = "      ┌───┐     \n q_0: ┤ H ├──■──\n      └───┘  │  \n           ┌─┴─┐\n q_1: ─────┤ X ├\n           └───┘\n                \nc1: 2/══════════\n                \n                \nc2: 2/══════════\n                \n";
+        let expected = "
+      ┌───┐
+ q_0: ┤ H ├──■──
+      └───┘  │
+           ┌─┴─┐
+ q_1: ─────┤ X ├
+           └───┘
 
-        assert_eq!(result, expected);
+c1: 2/══════════
+
+
+c2: 2/══════════
+";
+        assert_eq!(result, expected.trim_start_matches("\n"));
     }
 
     #[test]
@@ -1265,10 +1288,21 @@ mod tests {
         let circuit = basic_circuit();
 
         let result = draw_circuit(&circuit, false, true, None).unwrap();
+        let expected = "
+      ┌───┐
+ q_0: ┤ H ├──■──
+      └───┘┌─┴─┐
+ q_1: ─────┤ X ├
+           └───┘
+c1_0: ══════════
 
-        let expected = "      ┌───┐     \n q_0: ┤ H ├──■──\n      └───┘┌─┴─┐\n q_1: ─────┤ X ├\n           └───┘\nc1_0: ══════════\n                \nc1_1: ══════════\n                \nc2_0: ══════════\n                \nc2_1: ══════════\n                \n";
+c1_1: ══════════
 
-        assert_eq!(result, expected);
+c2_0: ══════════
+
+c2_1: ══════════
+";
+        assert_eq!(result, expected.trim_start_matches("\n"));
     }
 
     #[test]
@@ -1284,7 +1318,45 @@ mod tests {
             .unwrap();
 
         let result = draw_circuit(&circuit, false, false, Some(10)).unwrap();
-        let expected = "      ┌───┐     »\n q_0: ┤ H ├──■──»\n      └───┘  │  »\n           ┌─┴─┐»\n q_1: ─────┤ X ├»\n           └───┘»\n                »\nc1_0: ══════════»\n                »\n                »\nc1_1: ══════════»\n                »\n                »\nc2_0: ══════════»\n                »\n                »\nc2_1: ══════════»\n                »\n«                \n« q_0: ──■────■──\n«        │    │  \n«      ┌─┴─┐┌─┴─┐\n« q_1: ┤ Y ├┤ Z ├\n«      └───┘└───┘\n«                \n«c1_0: ══════════\n«                \n«                \n«c1_1: ══════════\n«                \n«                \n«c2_0: ══════════\n«                \n«                \n«c2_1: ══════════\n«                \n";
-        assert_eq!(result, expected);
+        let expected = "
+      ┌───┐     »
+ q_0: ┤ H ├──■──»
+      └───┘  │  »
+           ┌─┴─┐»
+ q_1: ─────┤ X ├»
+           └───┘»
+                »
+c1_0: ══════════»
+                »
+                »
+c1_1: ══════════»
+                »
+                »
+c2_0: ══════════»
+                »
+                »
+c2_1: ══════════»
+                »
+«
+« q_0: ──■────■──
+«        │    │
+«      ┌─┴─┐┌─┴─┐
+« q_1: ┤ Y ├┤ Z ├
+«      └───┘└───┘
+«
+«c1_0: ══════════
+«
+«
+«c1_1: ══════════
+«
+«
+«c2_0: ══════════
+«
+«
+«c2_1: ══════════
+«
+";
+        println!("{}", result);
+        assert_eq!(result, expected.trim_start_matches("\n"));
     }
 }
