@@ -17,6 +17,7 @@ use crate::dag_circuit::NodeType;
 use crate::operations::{Operation, OperationRef, Param, StandardGate, StandardInstruction};
 use crate::packed_instruction::PackedInstruction;
 use crate::{Clbit, Qubit};
+use approx;
 use crossterm::terminal;
 use hashbrown::{HashMap, HashSet};
 use itertools::{Itertools, MinMaxResult};
@@ -57,11 +58,23 @@ pub fn draw_circuit(
     // Strip trailing whitespace from lines.
     // On the last line ensure we only a single newline ends the returned
     // string (in case we ended up with a double newline after the stripping)
-    let mut output: String = text_drawer
-        .draw(mergewires, fold)
-        .lines()
-        .flat_map(|x| [x.trim_end(), "\n"])
-        .collect();
+    let phase = circuit.global_phase();
+    let mut output: String = match phase {
+        Param::Float(f) => {
+            if approx::abs_diff_eq!(*f, 0.) {
+                String::new()
+            } else {
+                format!("global phase: {}\n", f)
+            }
+        }
+        _ => format!("global phase: {:?}\n", phase),
+    };
+    output.extend(
+        text_drawer
+            .draw(mergewires, fold)
+            .lines()
+            .flat_map(|x| [x.trim_end(), "\n"]),
+    );
     let mut chars = output.chars();
     if let Some(last) = chars.next_back() {
         if last == '\n' && chars.next_back() == Some('\n') {
@@ -1102,16 +1115,6 @@ impl TextDrawer {
             .chain(std::iter::once((start, num_layers)))
             .collect();
 
-        // for (i, layer_width) in layer_widths.enumerate() {
-        //     current_fold += layer_width;
-        //     if current_fold > fold {
-        //         ranges.push((start, i + 1));
-        //         start = i + 1;
-        //         current_fold = layer_width;
-        //     }
-        // }
-        // ranges.push((start, num_layers));
-
         let mut output = String::new();
 
         let mut wire_strings: Vec<String> = Vec::new();
@@ -1219,8 +1222,15 @@ impl TextDrawer {
 
 #[cfg(test)]
 mod tests {
+    use ndarray::Array2;
+    use smallvec::smallvec;
+
     use super::*;
     use crate::bit::{ClassicalRegister, QuantumRegister, ShareableClbit, ShareableQubit};
+    use crate::instruction::Parameters;
+    use crate::operations::{
+        ArrayType, DelayUnit, STANDARD_GATE_SIZE, StandardInstruction, UnitaryGate,
+    };
 
     fn basic_circuit() -> CircuitData {
         let qreg = QuantumRegister::new_owning("q", 2);
@@ -1350,7 +1360,424 @@ c2_1: ══════════»
 «c2_1: ══════════
 «
 ";
-        println!("{}", result);
+        assert_eq!(result, expected.trim_start_matches("\n"));
+    }
+
+    #[test]
+    fn test_label() {
+        let qubits = vec![
+            ShareableQubit::new_anonymous(),
+            ShareableQubit::new_anonymous(),
+        ];
+        let mut circuit = CircuitData::new(Some(qubits), None, Param::Float(0.0)).unwrap();
+        circuit
+            .push_standard_gate(StandardGate::CH, &[], &[Qubit(0), Qubit(1)])
+            .unwrap();
+        circuit
+            .push_standard_gate(
+                StandardGate::RXX,
+                &[Param::Float(1.23)],
+                &[Qubit(0), Qubit(1)],
+            )
+            .unwrap();
+        let mut inst_clone = circuit.data()[1].clone();
+        inst_clone.label = Some(Box::new("my_rxx".to_string()));
+        circuit.push(inst_clone).unwrap();
+        let mut inst_clone = circuit.data()[0].clone();
+        inst_clone.label = Some(Box::new("my_ch".to_string()));
+        circuit.push(inst_clone).unwrap();
+        let result = draw_circuit(&circuit, false, false, None).unwrap();
+        let expected = "
+          ┌─────────────┐┌────────────────┐
+q_0: ──■──┤0  Rxx(1.23) ├┤0  my_rxx(1.23) ├────■────
+       │  │             ││                │    │
+     ┌─┴─┐│             ││                │┌───┴───┐
+q_1: ┤ H ├┤1            ├┤1               ├┤ my_ch ├
+     └───┘└─────────────┘└────────────────┘└───────┘
+";
+        assert_eq!(result, expected.trim_start_matches("\n"));
+    }
+
+    #[test]
+    fn test_unitary() {
+        let qubits = vec![
+            ShareableQubit::new_anonymous(),
+            ShareableQubit::new_anonymous(),
+            ShareableQubit::new_anonymous(),
+            ShareableQubit::new_anonymous(),
+        ];
+        let one_qubit_iden = Array2::eye(2);
+        let two_qubit_iden = Array2::eye(4);
+        let three_qubit_iden = Array2::eye(8);
+        let four_qubit_iden = Array2::eye(16);
+        let mut circuit = CircuitData::new(Some(qubits), None, Param::Float(0.0)).unwrap();
+        let inst = PackedInstruction {
+            op: Box::new(UnitaryGate {
+                array: ArrayType::NDArray(one_qubit_iden.clone()),
+            })
+            .into(),
+            qubits: circuit.add_qargs(&[Qubit(0)]),
+            clbits: circuit.cargs_interner().get_default(),
+            params: None,
+            label: None,
+        };
+        circuit.push(inst).unwrap();
+        let inst = PackedInstruction {
+            op: Box::new(UnitaryGate {
+                array: ArrayType::NDArray(one_qubit_iden),
+            })
+            .into(),
+            qubits: circuit.add_qargs(&[Qubit(2)]),
+            clbits: circuit.cargs_interner().get_default(),
+            params: None,
+            label: Some(Box::new("my little identity".to_string())),
+        };
+        circuit.push(inst).unwrap();
+        let inst = PackedInstruction {
+            op: Box::new(UnitaryGate {
+                array: ArrayType::NDArray(two_qubit_iden.clone()),
+            })
+            .into(),
+            qubits: circuit.add_qargs(&[Qubit(1), Qubit(3)]),
+            clbits: circuit.cargs_interner().get_default(),
+            params: None,
+            label: None,
+        };
+        circuit.push(inst).unwrap();
+        let inst = PackedInstruction {
+            op: Box::new(UnitaryGate {
+                array: ArrayType::NDArray(two_qubit_iden),
+            })
+            .into(),
+            qubits: circuit.add_qargs(&[Qubit(0), Qubit(2)]),
+            clbits: circuit.cargs_interner().get_default(),
+            params: None,
+            label: Some(Box::new("my small identity".to_string())),
+        };
+        circuit.push(inst).unwrap();
+        let inst = PackedInstruction {
+            op: Box::new(UnitaryGate {
+                array: ArrayType::NDArray(three_qubit_iden.clone()),
+            })
+            .into(),
+            qubits: circuit.add_qargs(&[Qubit(1), Qubit(3), Qubit(0)]),
+            clbits: circuit.cargs_interner().get_default(),
+            params: None,
+            label: None,
+        };
+        circuit.push(inst).unwrap();
+        let inst = PackedInstruction {
+            op: Box::new(UnitaryGate {
+                array: ArrayType::NDArray(three_qubit_iden),
+            })
+            .into(),
+            qubits: circuit.add_qargs(&[Qubit(0), Qubit(2), Qubit(3)]),
+            clbits: circuit.cargs_interner().get_default(),
+            params: None,
+            label: Some(Box::new("my medium identity".to_string())),
+        };
+        circuit.push(inst).unwrap();
+        let inst = PackedInstruction {
+            op: Box::new(UnitaryGate {
+                array: ArrayType::NDArray(four_qubit_iden.clone()),
+            })
+            .into(),
+            qubits: circuit.add_qargs(&[Qubit(1), Qubit(3), Qubit(0), Qubit(2)]),
+            clbits: circuit.cargs_interner().get_default(),
+            params: None,
+            label: None,
+        };
+        circuit.push(inst).unwrap();
+        let inst = PackedInstruction {
+            op: Box::new(UnitaryGate {
+                array: ArrayType::NDArray(four_qubit_iden),
+            })
+            .into(),
+            qubits: circuit.add_qargs(&[Qubit(0), Qubit(2), Qubit(3), Qubit(1)]),
+            clbits: circuit.cargs_interner().get_default(),
+            params: None,
+            label: Some(Box::new("my bigger identity".to_string())),
+        };
+        circuit.push(inst).unwrap();
+        let result = draw_circuit(&circuit, false, false, Some(80)).unwrap();
+        let expected = "
+         ┌───────────┐                    ┌─────────────────────┐┌──────────────┐»
+q_0: ────┤  Unitary  ├────────────────────┤0                    ├┤ 2            ├»
+         └───────────┘                    │                     ││              │»
+                           ┌─────────────┐│                     ││              │»
+q_1: ──────────────────────┤0            ├┤   my small identity ├┤ 0   Unitary  ├»
+                           │             ││                     ││              │»
+     ┌────────────────────┐│             ││                     ││              │»
+q_2: ┤ my little identity ├┤    Unitary  ├┤1                    ├┤              ├»
+     └────────────────────┘│             │└─────────────────────┘│              │»
+                           │             │                       │              │»
+q_3: ──────────────────────┤1            ├───────────────────────┤ 1            ├»
+                           └─────────────┘                       └──────────────┘»
+«     ┌───────────────────────┐┌───────────────┐┌────────────────────────┐
+«q_0: ┤ 0                     ├┤ 2             ├┤ 0                      ├
+«     │                       ││               ││                        │
+«     │                       ││               ││                        │
+«q_1: ┤    my medium identity ├┤ 0    Unitary  ├┤ 3   my bigger identity ├
+«     │                       ││               ││                        │
+«     │                       ││               ││                        │
+«q_2: ┤ 1                     ├┤ 3             ├┤ 1                      ├
+«     │                       ││               ││                        │
+«     │                       ││               ││                        │
+«q_3: ┤ 2                     ├┤ 1             ├┤ 2                      ├
+«     └───────────────────────┘└───────────────┘└────────────────────────┘
+";
+        assert_eq!(result, expected.trim_start_matches("\n"));
+    }
+
+    #[test]
+    fn test_all_standard_gates() {
+        let qubits = vec![
+            ShareableQubit::new_anonymous(),
+            ShareableQubit::new_anonymous(),
+            ShareableQubit::new_anonymous(),
+            ShareableQubit::new_anonymous(),
+        ];
+        let mut circuit = CircuitData::new(Some(qubits), None, Param::Float(0.0)).unwrap();
+        for i in 0..STANDARD_GATE_SIZE {
+            let op: StandardGate = unsafe { std::mem::transmute(i as u8) };
+            let num_qubits = op.num_qubits();
+            let num_params = op.num_params();
+            let qubits = (0..num_qubits).map(|x| Qubit(x)).collect::<Vec<_>>();
+            let params = (0..num_params)
+                .map(|_x| 3.141.into())
+                .collect::<Vec<Param>>();
+            circuit.push_standard_gate(op, &params, &qubits).unwrap();
+        }
+        let result = draw_circuit(&circuit, false, false, Some(80)).unwrap();
+        let expected = "
+     ┌───┐┌───┐┌───┐┌───┐┌───┐┌──────────┐┌────────────────┐┌───────────┐»
+q_0: ┤ H ├┤ I ├┤ X ├┤ Y ├┤ Z ├┤ P(3.141) ├┤ R(3.141,3.141) ├┤ Rx(3.141) ├»
+     └───┘└───┘└───┘└───┘└───┘└──────────┘└────────────────┘└───────────┘»
+                                                                         »
+q_1: ────────────────────────────────────────────────────────────────────»
+                                                                         »
+                                                                         »
+q_2: ────────────────────────────────────────────────────────────────────»
+                                                                         »
+                                                                         »
+q_3: ────────────────────────────────────────────────────────────────────»
+                                                                         »
+«     ┌───────────┐┌───────────┐┌───┐┌─────┐┌────┐┌──────┐┌───┐┌─────┐»
+«q_0: ┤ Ry(3.141) ├┤ Rz(3.141) ├┤ S ├┤ Sdg ├┤ √X ├┤ √Xdg ├┤ T ├┤ Tdg ├»
+«     └───────────┘└───────────┘└───┘└─────┘└────┘└──────┘└───┘└─────┘»
+«                                                                     »
+«q_1: ────────────────────────────────────────────────────────────────»
+«                                                                     »
+«                                                                     »
+«q_2: ────────────────────────────────────────────────────────────────»
+«                                                                     »
+«                                                                     »
+«q_3: ────────────────────────────────────────────────────────────────»
+«                                                                     »
+«     ┌──────────────────────┐┌───────────┐┌─────────────────┐»
+«q_0: ┤ U(3.141,3.141,3.141) ├┤ U1(3.141) ├┤ U2(3.141,3.141) ├»
+«     └──────────────────────┘└───────────┘└─────────────────┘»
+«                                                             »
+«q_1: ────────────────────────────────────────────────────────»
+«                                                             »
+«                                                             »
+«q_2: ────────────────────────────────────────────────────────»
+«                                                             »
+«                                                             »
+«q_3: ────────────────────────────────────────────────────────»
+«                                                             »
+«     ┌───────────────────────┐                    ┌───────┐┌───────┐   ┌─────────┐»
+«q_0: ┤ U3(3.141,3.141,3.141) ├──■────■────■────■──┤0  Dcx ├┤0  Ecr ├─X─┤0  Iswap ├»
+«     └───────────────────────┘  │    │    │    │  │       ││       │ │ │         │»
+«                              ┌─┴─┐┌─┴─┐┌─┴─┐┌─┴─┐│       ││       │ │ │         │»
+«q_1: ─────────────────────────┤ H ├┤ X ├┤ Y ├┤ Z ├┤1      ├┤1      ├─X─┤1        ├»
+«                              └───┘└───┘└───┘└───┘└───────┘└───────┘   └─────────┘»
+«                                                                                  »
+«q_2: ─────────────────────────────────────────────────────────────────────────────»
+«                                                                                  »
+«                                                                                  »
+«q_3: ─────────────────────────────────────────────────────────────────────────────»
+«                                                                                  »
+«                                                                          »
+«q_0: ─────■────────────■────────────■────────────■────────■─────■─────■───»
+«          │            │            │            │        │     │     │   »
+«     ┌────┴─────┐┌─────┴─────┐┌─────┴─────┐┌─────┴─────┐┌─┴─┐┌──┴──┐┌─┴──┐»
+«q_1: ┤ P(3.141) ├┤ Rx(3.141) ├┤ Ry(3.141) ├┤ Rz(3.141) ├┤ S ├┤ Sdg ├┤ Sx ├»
+«     └──────────┘└───────────┘└───────────┘└───────────┘└───┘└─────┘└────┘»
+«                                                                          »
+«q_2: ─────────────────────────────────────────────────────────────────────»
+«                                                                          »
+«                                                                          »
+«q_3: ─────────────────────────────────────────────────────────────────────»
+«                                                                          »
+«                                                                         »
+«q_0: ──────────────■─────────────────────■──────────────────■────────────»
+«                   │                     │                  │            »
+«     ┌─────────────┴──────────────┐┌─────┴─────┐┌───────────┴───────────┐»
+«q_1: ┤ U(3.141,3.141,3.141,3.141) ├┤ U1(3.141) ├┤ U3(3.141,3.141,3.141) ├»
+«     └────────────────────────────┘└───────────┘└───────────────────────┘»
+«                                                                         »
+«q_2: ────────────────────────────────────────────────────────────────────»
+«                                                                         »
+«                                                                         »
+«q_3: ────────────────────────────────────────────────────────────────────»
+«                                                                         »
+«     ┌──────────────┐┌──────────────┐┌──────────────┐┌──────────────┐»
+«q_0: ┤0  Rxx(3.141) ├┤0  Ryy(3.141) ├┤0  Rzz(3.141) ├┤0  Rzx(3.141) ├»
+«     │              ││              ││              ││              │»
+«     │              ││              ││              ││              │»
+«q_1: ┤1             ├┤1             ├┤1             ├┤1             ├»
+«     └──────────────┘└──────────────┘└──────────────┘└──────────────┘»
+«                                                                     »
+«q_2: ────────────────────────────────────────────────────────────────»
+«                                                                     »
+«                                                                     »
+«q_3: ────────────────────────────────────────────────────────────────»
+«                                                                     »
+«     ┌──────────────────────┐┌──────────────────────┐             ┌─────────┐     »
+«q_0: ┤0  XX-YY(3.141,3.141) ├┤0  XX+YY(3.141,3.141) ├──■────■───■─┤ 0       ├──■──»
+«     │                      ││                      │  │    │   │ │         │  │  »
+«     │                      ││                      │  │    │   │ │         │  │  »
+«q_1: ┤1                     ├┤1                     ├──■────■───X─┤ 1  Rccx ├──■──»
+«     └──────────────────────┘└──────────────────────┘  │    │   │ │         │  │  »
+«                                                     ┌─┴─┐┌─┴─┐ │ │         │  │  »
+«q_2: ────────────────────────────────────────────────┤ X ├┤ Z ├─X─┤ 2       ├──■──»
+«                                                     └───┘└───┘   └─────────┘  │  »
+«                                                                             ┌─┴─┐»
+«q_3: ────────────────────────────────────────────────────────────────────────┤ X ├»
+«                                                                             └───┘»
+«           ┌───────────┐
+«q_0: ──■───┤ 0         ├
+«       │   │           │
+«       │   │           │
+«q_1: ──■───┤ 1   Rcccx ├
+«       │   │           │
+«       │   │           │
+«q_2: ──■───┤ 2         ├
+«       │   │           │
+«     ┌─┴──┐│           │
+«q_3: ┤ Sx ├┤ 3         ├
+«     └────┘└───────────┘
+";
+        assert_eq!(result, expected.trim_start_matches("\n"));
+    }
+
+    #[test]
+    fn test_global_phase() {
+        let mut circuit = basic_circuit();
+        circuit.set_global_phase_param(3.14.into()).unwrap();
+        let result = draw_circuit(&circuit, true, false, None).unwrap();
+
+        let expected = "
+global phase: 3.14
+      ┌───┐
+ q_0: ┤ H ├──■──
+      └───┘  │
+           ┌─┴─┐
+ q_1: ─────┤ X ├
+           └───┘
+
+c1: 2/══════════
+
+
+c2: 2/══════════
+";
+        assert_eq!(result, expected.trim_start_matches("\n"));
+    }
+
+    #[test]
+    fn test_all_standard_instructions() {
+        let qubits = vec![
+            ShareableQubit::new_anonymous(),
+            ShareableQubit::new_anonymous(),
+            ShareableQubit::new_anonymous(),
+            ShareableQubit::new_anonymous(),
+        ];
+        let clbits = vec![
+            ShareableClbit::new_anonymous(),
+            ShareableClbit::new_anonymous(),
+            ShareableClbit::new_anonymous(),
+            ShareableClbit::new_anonymous(),
+        ];
+
+        let mut circuit = CircuitData::new(Some(qubits), Some(clbits), Param::Float(0.0)).unwrap();
+        for i in 0..circuit.num_qubits() {
+            let inst = PackedInstruction {
+                op: StandardInstruction::Reset.into(),
+                qubits: circuit.add_qargs(&[Qubit::new(i)]),
+                clbits: circuit.cargs_interner().get_default(),
+                params: None,
+                label: None,
+            };
+            circuit.push(inst).unwrap();
+        }
+        for i in 0..circuit.num_qubits() {
+            for unit in [
+                DelayUnit::NS,
+                DelayUnit::PS,
+                DelayUnit::US,
+                DelayUnit::MS,
+                DelayUnit::S,
+            ] {
+                let param = Param::Float(2.1);
+                let inst = PackedInstruction {
+                    op: StandardInstruction::Delay(unit).into(),
+                    qubits: circuit.add_qargs(&[Qubit::new(i)]),
+                    clbits: circuit.cargs_interner().get_default(),
+                    params: Some(Box::new(Parameters::Params(smallvec![param]))),
+                    label: None,
+                };
+                circuit.push(inst).unwrap();
+            }
+        }
+        for i in 1..circuit.num_qubits() {
+            let qubits = (1..i).map(|x| Qubit::new(x)).collect::<Vec<_>>();
+            let inst = PackedInstruction {
+                op: StandardInstruction::Barrier(i as u32).into(),
+                qubits: circuit.add_qargs(&qubits),
+                clbits: circuit.cargs_interner().get_default(),
+                params: None,
+                label: None,
+            };
+            circuit.push(inst).unwrap();
+        }
+        for i in 0..circuit.num_qubits() {
+            let inst = PackedInstruction {
+                op: StandardInstruction::Measure.into(),
+                qubits: circuit.add_qargs(&[Qubit::new(i)]),
+                clbits: circuit.add_cargs(&[Clbit::new(i)]),
+                params: None,
+                label: None,
+            };
+            circuit.push(inst).unwrap();
+        }
+
+        let result = draw_circuit(&circuit, false, false, Some(125)).unwrap();
+        let expected = "
+          ┌────────────────┐┌────────────────┐┌────────────────┐┌────────────────┐┌───────────────┐   ┌───┐
+q_0: ─|0>─┤ Delay(2.1[ns]) ├┤ Delay(2.1[ps]) ├┤ Delay(2.1[us]) ├┤ Delay(2.1[ms]) ├┤ Delay(2.1[s]) ├───┤ M ├───────────────
+          └────────────────┘└────────────────┘└────────────────┘└────────────────┘└───────────────┘   └─╥─┘
+          ┌────────────────┐┌────────────────┐┌────────────────┐┌────────────────┐┌───────────────┐ ░   ║    ░  ┌───┐
+q_1: ─|0>─┤ Delay(2.1[ns]) ├┤ Delay(2.1[ps]) ├┤ Delay(2.1[us]) ├┤ Delay(2.1[ms]) ├┤ Delay(2.1[s]) ├─░───╫────░──┤ M ├─────
+          └────────────────┘└────────────────┘└────────────────┘└────────────────┘└───────────────┘ ░   ║    ░  └─╥─┘
+          ┌────────────────┐┌────────────────┐┌────────────────┐┌────────────────┐┌───────────────┐     ║    ░    ║  ┌───┐
+q_2: ─|0>─┤ Delay(2.1[ns]) ├┤ Delay(2.1[ps]) ├┤ Delay(2.1[us]) ├┤ Delay(2.1[ms]) ├┤ Delay(2.1[s]) ├─────╫────░────╫──┤ M ├
+          └────────────────┘└────────────────┘└────────────────┘└────────────────┘└───────────────┘     ║    ░    ║  └─╥─┘
+          ┌────────────────┐┌────────────────┐┌────────────────┐┌────────────────┐┌───────────────┐     ║  ┌───┐  ║    ║
+q_3: ─|0>─┤ Delay(2.1[ns]) ├┤ Delay(2.1[ps]) ├┤ Delay(2.1[us]) ├┤ Delay(2.1[ms]) ├┤ Delay(2.1[s]) ├─────╫──┤ M ├──╫────╫──
+          └────────────────┘└────────────────┘└────────────────┘└────────────────┘└───────────────┘     ║  └─╥─┘  ║    ║
+                                                                                                        ║    ║    ║    ║
+c_0: ═══════════════════════════════════════════════════════════════════════════════════════════════════╩════╬════╬════╬══
+                                                                                                             ║    ║    ║
+                                                                                                             ║    ║    ║
+c_1: ════════════════════════════════════════════════════════════════════════════════════════════════════════╬════╩════╬══
+                                                                                                             ║         ║
+                                                                                                             ║         ║
+c_2: ════════════════════════════════════════════════════════════════════════════════════════════════════════╬═════════╩══
+                                                                                                             ║
+                                                                                                             ║
+c_3: ════════════════════════════════════════════════════════════════════════════════════════════════════════╩════════════
+";
         assert_eq!(result, expected.trim_start_matches("\n"));
     }
 }
