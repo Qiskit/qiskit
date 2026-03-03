@@ -471,8 +471,11 @@ def generate_translation_passmanager(
     if method == "translator":
         translator = BasisTranslator(sel, basis_gates, target)
         unroll = [
-            # Decompose custom gates to their definitions to ensure they can be translated
-            Decompose(),
+            # Decompose gates with definitions only when control flow is present.
+            # This avoids changing non-control-flow output while still ensuring
+            # gates in nested control-flow blocks are decomposed before translation.
+            ContainsInstruction(CONTROL_FLOW_OP_NAMES, recurse=False),
+            ConditionalController(Decompose(), condition=_has_control_flow),
             # Use unitary synthesis for basis aware decomposition of
             # UnitaryGates before custom unrolling
             UnitarySynthesis(
