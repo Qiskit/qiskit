@@ -18,7 +18,7 @@ import cmath
 import copy as _copy
 import math
 from cmath import exp
-from typing import Optional
+
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
@@ -85,11 +85,11 @@ class UGate(Gate):
         theta: ParameterValueType,
         phi: ParameterValueType,
         lam: ParameterValueType,
-        label: Optional[str] = None,
+        label: str | None = None,
     ):
         r"""
         Args:
-            theta: The angle :math:`\theta corresponding to the :math:`R_Y(\theta)` rotation.
+            theta: The angle :math:`\theta` corresponding to the :math:`R_Y(\theta)` rotation.
             phi: The angle :math:`\phi` corresponding to the :math:`R_Z(\phi)` rotation.
             lam: The angle :math:`\lambda` corresponding to the :math:`R_Z(\lambda)` rotation.
             label: An optional label for the gate.
@@ -132,7 +132,7 @@ class UGate(Gate):
         and as ``False`` otherwise.
 
         Args:
-            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            num_ctrl_qubits: Number of controls to add. Defaults to ``1``.
             label: Optional gate label. Ignored if the controlled gate is implemented as an
                 annotated operation.
             ctrl_state: The control state of the gate, specified either as an integer or a bitstring
@@ -312,7 +312,7 @@ class CUGate(ControlledGate):
 
     def _define(self):
         """Default definition"""
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         #          ┌──────┐    ┌──────────────┐

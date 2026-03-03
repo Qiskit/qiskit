@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Baseclasses for the Qiskit passmanager optimization tasks."""
+"""Base classes for the Qiskit passmanager optimization tasks."""
 from __future__ import annotations
 
 import logging
@@ -39,19 +39,18 @@ class Task(ABC):
         self,
         passmanager_ir: PassManagerIR,
         state: PassManagerState,
-        callback: Callable = None,
+        callback: Callable | None = None,
     ) -> tuple[PassManagerIR, PassManagerState]:
         """Execute optimization task for input Qiskit IR.
 
         Args:
             passmanager_ir: Qiskit IR to optimize.
             state: State associated with workflow execution by the pass manager itself.
-            callback: A callback function which is caller per execution of optimization task.
+            callback: A callback function which is called per execution of optimization task.
 
         Returns:
             Optimized Qiskit IR and state of the workflow.
         """
-        pass
 
 
 class GenericPass(Task, ABC):
@@ -73,7 +72,7 @@ class GenericPass(Task, ABC):
         self,
         passmanager_ir: PassManagerIR,
         state: PassManagerState,
-        callback: Callable = None,
+        callback: Callable | None = None,
     ) -> tuple[PassManagerIR, PassManagerState]:
         # Overriding this method is not safe.
         # Pass subclass must keep current implementation.
@@ -81,7 +80,7 @@ class GenericPass(Task, ABC):
         self.property_set = state.property_set
 
         if self.requires:
-            # pylint: disable=cyclic-import
+
             from .flow_controllers import FlowControllerLinear
 
             passmanager_ir, state = FlowControllerLinear(self.requires).execute(
@@ -150,7 +149,6 @@ class GenericPass(Task, ABC):
         Returns:
             Optimized Qiskit IR.
         """
-        pass
 
 
 class BaseController(Task, ABC):
@@ -197,13 +195,12 @@ class BaseController(Task, ABC):
         Yields:
             Task: Next task to run.
         """
-        pass
 
     def execute(
         self,
         passmanager_ir: PassManagerIR,
         state: PassManagerState,
-        callback: Callable = None,
+        callback: Callable | None = None,
     ) -> tuple[PassManagerIR, PassManagerState]:
         # Overriding this method is not safe.
         # Pass subclass must keep current implementation.

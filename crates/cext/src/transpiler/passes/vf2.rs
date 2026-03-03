@@ -304,7 +304,7 @@ pub unsafe extern "C" fn qk_vf2_layout_configuration_set_score_initial(
 ///     pointer is null, the pass defaults are used.
 /// @param strict_direction If ``true``, the pass will consider the edge direction in the
 ///     connectivity described in the ``target``. Typically, setting this to ``false``
-///     is desireable as the error heuristic is already very approximate, and two-qubit gates can
+///     is desirable as the error heuristic is already very approximate, and two-qubit gates can
 ///     almost invariably be synthesised to "flip" direction using only local one-qubit gates and
 ///     the native-direction two-qubit gate.
 ///

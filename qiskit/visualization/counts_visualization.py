@@ -428,7 +428,7 @@ def _unify_labels(data):
     """Make all dictionaries in data have the same set of keys, using 0 for missing values."""
     data = tuple(data)
     all_labels = set().union(*(execution.keys() for execution in data))
-    base = {label: 0 for label in all_labels}
+    base = dict.fromkeys(all_labels, 0)
     out = []
     for execution in data:
         new_execution = base.copy()

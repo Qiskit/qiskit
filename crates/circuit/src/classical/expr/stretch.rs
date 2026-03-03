@@ -48,7 +48,15 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Stretch {
 ///
 /// In general, construction of stretch variables for use in programs should use :meth:`Stretch.new`
 /// or :meth:`.QuantumCircuit.add_stretch`
-#[pyclass(eq, hash, frozen, extends = PyExpr, name = "Stretch", module = "qiskit._accelerate.circuit.classical.expr")]
+#[pyclass(
+    eq,
+    hash,
+    frozen,
+    extends = PyExpr,
+    name = "Stretch",
+    module = "qiskit._accelerate.circuit.classical.expr",
+    from_py_object
+)]
 #[derive(PartialEq, Clone, Debug, Hash)]
 pub struct PyStretch(Stretch);
 

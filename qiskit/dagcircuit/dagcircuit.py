@@ -21,4 +21,4 @@ composed, and modified. Some natural properties like depth can be computed
 directly from the graph.
 """
 
-from qiskit._accelerate.circuit import DAGCircuit  # pylint: disable=unused-import
+from qiskit._accelerate.circuit import DAGCircuit

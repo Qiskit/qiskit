@@ -15,7 +15,8 @@ Bindings array class
 """
 from __future__ import annotations
 
-from typing import Mapping, Union, Tuple
+
+from collections.abc import Mapping
 from collections.abc import Iterable, Mapping as _Mapping
 from itertools import chain, islice
 
@@ -27,13 +28,13 @@ from qiskit.circuit import Parameter, QuantumCircuit
 from .shape import ShapedMixin, ShapeInput, shape_tuple
 
 # Public API classes
-__all__ = ["ParameterLike", "BindingsArrayLike"]
+__all__ = ["BindingsArrayLike", "ParameterLike"]
 
 
-ParameterLike = Union[Parameter, str]
+ParameterLike = Parameter | str
 """A parameter or parameter name."""
 
-BindingsArrayLike = Mapping[Union[ParameterLike, Tuple[ParameterLike, ...]], ArrayLike]
+BindingsArrayLike = Mapping[ParameterLike | tuple[ParameterLike, ...], ArrayLike]
 """A mapping of numeric bindings for circuit parameters.
 
 This allows array values for single or multi-dimensional sweeps over parameter values.
@@ -219,7 +220,7 @@ class BindingsArray(ShapedMixin):
 
         Args:
             circuit: The circuit to bind.
-            loc: A tuple of indices, on for each dimension of this array.
+            loc: A tuple of indices, one for each dimension of this array.
 
         Returns:
             The bound circuit.

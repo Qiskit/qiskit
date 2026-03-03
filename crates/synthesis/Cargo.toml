@@ -31,16 +31,9 @@ rustworkx-core.workspace = true
 rustiq-core = "0.0.11"
 rsgridsynth =  "0.2.0"
 rstar = "0.12.2"
-serde = { version = "1.0", features = ["derive"] }
 thiserror.workspace = true
 fixedbitset.workspace = true
-
-# `bincode` is a dead project and needs replacement.  The development
-# process ended acrimoniously with the developer rewriting git history
-# and releasing poisoned versions to crates.io.  This is an increased
-# risk of further broken/malicious releases, so we hard-pin to a known
-# good version.
-bincode = "=1.3.3"
+binrw.workspace = true
 
 [dependencies.faer-ext]
 version = "0.7.1"

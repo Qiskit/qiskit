@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-docstring
+
 from pickle import loads, dumps
 
 import math
@@ -45,9 +45,9 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler import Target
 from qiskit.transpiler import InstructionProperties
 from qiskit.providers.fake_provider import GenericBackendV2
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 from qiskit.providers.backend import QubitProperties
-from test.python.providers.fake_mumbai_v2 import (  # pylint: disable=wrong-import-order
+from test.python.providers.fake_mumbai_v2 import (
     FakeMumbaiFractionalCX,
 )
 
@@ -1192,7 +1192,7 @@ Instructions:
         self.assertTrue(deserialized_target.instruction_supported("u_var", (0, 1)))
 
     def test_target_no_num_qubits_qubit_properties(self):
-        """Checks that a Target can be initialized with no qubits but a list of Qubit Properities"""
+        """Checks that a Target can be initialized with no qubits but a list of Qubit Properties"""
 
         # Initialize target qubit properties
         qubit_properties = [QubitProperties()]
