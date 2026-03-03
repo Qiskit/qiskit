@@ -19,11 +19,9 @@ from typing import Optional
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 
-from qiskit.passmanager.flow_controllers import ConditionalController
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passes import Error
 from qiskit.transpiler.passes import BasisTranslator
-from qiskit.transpiler.passes import Decompose
 from qiskit.transpiler.passes import Unroll3qOrMore
 from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.transpiler.passes import Collect1qRuns
@@ -45,7 +43,6 @@ from qiskit.transpiler.passes import FilterOpNodes
 from qiskit.transpiler.passes import PadDelay
 from qiskit.transpiler.passes import InstructionDurationCheck
 from qiskit.transpiler.passes import ConstrainedReschedule
-from qiskit.transpiler.passes import ContainsInstruction
 from qiskit.transpiler.passes import VF2PostLayout
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayoutStopReason
@@ -471,11 +468,6 @@ def generate_translation_passmanager(
     if method == "translator":
         translator = BasisTranslator(sel, basis_gates, target)
         unroll = [
-            # Decompose gates with definitions only when control flow is present.
-            # This avoids changing non-control-flow output while still ensuring
-            # gates in nested control-flow blocks are decomposed before translation.
-            ContainsInstruction(CONTROL_FLOW_OP_NAMES, recurse=False),
-            ConditionalController(Decompose(), condition=_has_control_flow),
             # Use unitary synthesis for basis aware decomposition of
             # UnitaryGates before custom unrolling
             UnitarySynthesis(
