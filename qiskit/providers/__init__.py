@@ -175,7 +175,7 @@ required). An example provider class looks like::
             return filter_backends(backends, filters=filters, **kwargs)
 
 Ensure that any necessary information for
-authentication (if required) is present in the class and that the backends
+authentication (if required) is present in the class and that the backend's
 method matches the required interface. The rest is up to the specific provider on how to implement.
 
 Backend
