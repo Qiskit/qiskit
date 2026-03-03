@@ -21,8 +21,8 @@ import numpy as np
 from qiskit import QuantumCircuit
 from qiskit.quantum_info.operators import Operator
 import qiskit.circuit.library.templates as templib
-from test import combine  # pylint: disable=wrong-import-order
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import combine
+from test import QiskitTestCase
 
 
 @ddt
@@ -33,7 +33,7 @@ class TestTemplates(QiskitTestCase):
 
     for circuit in circuits:
         if isinstance(circuit, QuantumCircuit):
-            circuit.assign_parameters({param: 0.2 for param in circuit.parameters}, inplace=True)
+            circuit.assign_parameters(dict.fromkeys(circuit.parameters, 0.2), inplace=True)
 
     @combine(template_circuit=circuits)
     def test_template(self, template_circuit):

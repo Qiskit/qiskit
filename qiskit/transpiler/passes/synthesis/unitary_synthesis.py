@@ -56,7 +56,7 @@ class UnitarySynthesis(TransformationPass):
 
     def __init__(
         self,
-        basis_gates: list[str] = None,
+        basis_gates: list[str] | None = None,
         approximation_degree: float | None = 1.0,
         coupling_map: CouplingMap = None,
         pulse_optimize: bool | None = None,
@@ -64,7 +64,7 @@ class UnitarySynthesis(TransformationPass):
         synth_gates: list[str] | None = None,
         method: str = "default",
         min_qubits: int = 0,
-        plugin_config: dict = None,
+        plugin_config: dict | None = None,
         target: Target = None,
         fallback_on_default: bool = False,
     ):
@@ -152,11 +152,10 @@ class UnitarySynthesis(TransformationPass):
             self._basis_gates = set(target.operation_names)
         if synth_gates:
             self._synth_gates = synth_gates
+        elif pulse_optimize:
+            self._synth_gates = ["unitary", "swap"]
         else:
-            if pulse_optimize:
-                self._synth_gates = ["unitary", "swap"]
-            else:
-                self._synth_gates = ["unitary"]
+            self._synth_gates = ["unitary"]
 
         self._synth_gates = set(self._synth_gates) - self._basis_gates
 
@@ -219,7 +218,7 @@ class UnitarySynthesis(TransformationPass):
         # Handle approximation degree as a special case for backwards compatibility, it's
         # not part of the plugin interface and only something needed for the default
         # pass.
-        # pylint: disable=attribute-defined-outside-init
+
         default_method._approximation_degree = self._approximation_degree
 
         qubit_indices = (
@@ -319,7 +318,7 @@ class UnitarySynthesis(TransformationPass):
                 )
 
                 # In the case that a non-default method was used and the option fallback_on_default
-                # is set, check whether the unitary was successfull synthesized: the returned
+                # is set, check whether the unitary was successfully synthesized: the returned
                 # circuit is not ``None``. If not, we fall back on running the default plugin.
                 if (not use_default_method) and self._fallback_on_default and (synth_dag is None):
                     synth_dag = self._run_plugin_synthesis(

@@ -12,7 +12,7 @@
 
 """Common utility function."""
 
-from typing import Iterable
+from collections.abc import Iterable
 from qiskit.circuit import QuantumCircuit, Parameter
 
 import qiskit.qasm2

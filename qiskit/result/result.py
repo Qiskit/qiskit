@@ -173,7 +173,7 @@ class Result:
         try:
             return self._get_experiment(experiment).data.to_dict()
         except (KeyError, TypeError) as ex:
-            raise QiskitError(f'No data for experiment "{repr(experiment)}"') from ex
+            raise QiskitError(f'No data for experiment "{experiment!r}"') from ex
 
     def get_memory(self, experiment=None):
         """Get the sequence of memory states (readouts) for each shot
@@ -223,7 +223,7 @@ class Result:
 
         except KeyError as ex:
             raise QiskitError(
-                f'No memory for experiment "{repr(experiment)}". '
+                f'No memory for experiment "{experiment!r}". '
                 "Please verify that you either ran a measurement level 2 job "
                 'with the memory flag set, eg., "memory=True", '
                 "or a measurement level 0/1 job."
@@ -273,7 +273,7 @@ class Result:
                 vec = postprocess.format_statevector(self.data(key)["statevector"])
                 dict_list.append(statevector.Statevector(vec).probabilities_dict(decimals=15))
             else:
-                raise QiskitError(f'No counts for experiment "{repr(key)}"')
+                raise QiskitError(f'No counts for experiment "{key!r}"')
 
         # Return first item of dict_list if size is 1
         if len(dict_list) == 1:
@@ -301,7 +301,7 @@ class Result:
                 self.data(experiment)["statevector"], decimals=decimals
             )
         except KeyError as ex:
-            raise QiskitError(f'No statevector for experiment "{repr(experiment)}"') from ex
+            raise QiskitError(f'No statevector for experiment "{experiment!r}"') from ex
 
     def get_unitary(self, experiment=None, decimals=None):
         """Get the final unitary of an experiment.
@@ -322,7 +322,7 @@ class Result:
         try:
             return postprocess.format_unitary(self.data(experiment)["unitary"], decimals=decimals)
         except KeyError as ex:
-            raise QiskitError(f'No unitary for experiment "{repr(experiment)}"') from ex
+            raise QiskitError(f'No unitary for experiment "{experiment!r}"') from ex
 
     def _get_experiment(self, key=None):
         """Return a single experiment result from a given key.

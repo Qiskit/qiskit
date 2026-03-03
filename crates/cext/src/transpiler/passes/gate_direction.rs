@@ -13,7 +13,6 @@
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_transpiler::passes::{check_direction_target, fix_direction_target};
 use qiskit_transpiler::target::Target;
@@ -105,7 +104,5 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_gate_direction(
 
     fix_direction_target(&mut dag, target).expect("Unexpected error occurred in GateDirection");
 
-    let out_circuit = dag_to_circuit(&dag, false).expect("DAG to circuit conversion failed");
-
-    *circuit = out_circuit;
+    *circuit = CircuitData::from_dag_ref(&dag).expect("DAG to circuit conversion failed");
 }

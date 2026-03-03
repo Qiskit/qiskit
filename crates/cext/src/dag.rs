@@ -17,7 +17,6 @@ use smallvec::smallvec;
 use crate::exit_codes::ExitCode;
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeIndex, NodeType};
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
@@ -1399,7 +1398,7 @@ pub unsafe extern "C" fn qk_dag_free(dag: *mut DAGCircuit) {
 pub unsafe extern "C" fn qk_dag_to_circuit(dag: *const DAGCircuit) -> *mut CircuitData {
     // SAFETY: Per documentation, the pointer is to valid data.
     let dag = unsafe { const_ptr_as_ref(dag) };
-    let circuit = dag_to_circuit(dag, true)
+    let circuit = CircuitData::from_dag_ref(dag)
         .expect("Error occurred while converting DAGCircuit to CircuitData");
 
     Box::into_raw(Box::new(circuit))
@@ -1463,7 +1462,7 @@ pub unsafe extern "C" fn qk_dag_topological_op_nodes(dag: *const DAGCircuit, out
 }
 
 /// @ingroup QkDag
-/// Replace a node in a `QkDag` with a subcircuit specfied by another `QkDag`
+/// Replace a node in a `QkDag` with a subcircuit specified by another `QkDag`
 ///
 /// @param dag A pointer to the DAG.
 /// @param node The node index of the operation to replace with the other `QkDag`. This

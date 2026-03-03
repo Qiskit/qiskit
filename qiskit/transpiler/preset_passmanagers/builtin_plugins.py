@@ -624,7 +624,7 @@ class AlapSchedulingPassManager(PassManagerStagePlugin):
 
 
 class AsapSchedulingPassManager(PassManagerStagePlugin):
-    """Plugin class for alap scheduling stage."""
+    """Plugin class for asap scheduling stage."""
 
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
         """Build scheduling stage PassManager"""
@@ -640,7 +640,7 @@ class AsapSchedulingPassManager(PassManagerStagePlugin):
 
 
 class DefaultSchedulingPassManager(PassManagerStagePlugin):
-    """Plugin class for alap scheduling stage."""
+    """Plugin class for default scheduling stage."""
 
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
         """Build scheduling stage PassManager"""

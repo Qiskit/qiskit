@@ -115,7 +115,7 @@ impl VersorSU2 {
 /// A versor-based (unit-quaternion) representation of a single-qubit gate.
 ///
 /// In general, a single-qubit gate is a member of the group $U(2)$, and the group $SU(2)$ is
-/// isomoprhic to the versors.  We can keep track of the complex phase separately to the rotation
+/// isomorphic to the versors.  We can keep track of the complex phase separately to the rotation
 /// action, to fully describe a member of $U(2)$.
 ///
 /// See [VersorSU2] for the underlying quaternion representation.

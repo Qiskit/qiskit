@@ -174,7 +174,7 @@ def concurrence(state: Statevector | DensityMatrix) -> float:
         C(|\psi\rangle) = \sqrt{2(1 - Tr[\rho_0^2])}
 
     where :math:`\rho_0 = Tr_1[|\psi\rangle\!\langle\psi|]` is the
-    reduced state from by taking the
+    reduced state by taking the
     :func:`~qiskit.quantum_info.partial_trace` of the input state.
 
     For density matrices the concurrence is only defined for

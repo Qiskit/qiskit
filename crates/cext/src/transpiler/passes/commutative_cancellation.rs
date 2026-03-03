@@ -14,7 +14,6 @@ use crate::exit_codes::ExitCode;
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_transpiler::commutation_checker::get_standard_commutation_checker;
 use qiskit_transpiler::passes::cancel_commutations;
@@ -87,11 +86,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_commutative_cancellation(
     {
         return ExitCode::TranspilerError;
     }
-    let out_circuit = match dag_to_circuit(&dag, false) {
-        Ok(qc) => qc,
-        Err(_) => panic!("Internal DAG -> circuit conversion failed"),
-    };
-    *circuit = out_circuit;
+    *circuit = CircuitData::from_dag_ref(&dag).expect("Internal DAG -> circuit conversion failed");
     ExitCode::Success
 }
 
@@ -121,7 +116,7 @@ mod tests {
             qk_transpiler_pass_standalone_commutative_cancellation(&mut qc, std::ptr::null(), 1.0)
         };
         assert_eq!(result, ExitCode::Success);
-        assert_eq!(qc.__len__(), 1);
+        assert_eq!(qc.len(), 1);
         let Some(gate) = qc.data()[0].op.try_standard_gate() else {
             panic!("Not a standard gate");
         };

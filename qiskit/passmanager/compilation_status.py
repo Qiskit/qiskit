@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""A property set dictionary that shared among optimization passes."""
+"""A property set dictionary that is shared among optimization passes."""
 
 
 from dataclasses import dataclass, field

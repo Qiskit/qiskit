@@ -841,11 +841,11 @@ impl PackedInstruction {
         }
     }
 
-    /// Extract an `ndarray` matrix from this instruciton, if available.
+    /// Extract an `ndarray` matrix from this instruction, if available.
     ///
     /// The returned value will preferentially be a view, if the matrix already exists (e.g. for
     /// `Unitary`).
-    pub fn try_cow_array(&self) -> Option<CowArray<Complex64, Ix2>> {
+    pub fn try_cow_array(&self) -> Option<CowArray<'_, Complex64, Ix2>> {
         match self.op.view() {
             OperationRef::StandardGate(g) => g.matrix(self.params_view()).map(CowArray::from),
             OperationRef::Gate(g) => g.matrix().map(CowArray::from),

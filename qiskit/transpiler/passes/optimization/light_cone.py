@@ -113,8 +113,8 @@ class LightCone(TransformationPass):
                     max_num_qubits = max(len(op[1]), len(node.qargs))
                     if max_num_qubits > 10:
                         warnings.warn(
-                            "LightCone pass is checking commutation of"
-                            f"operators of size {max_num_qubits}."
+                            "LightCone pass is checking commutation of "
+                            f"operators of size {max_num_qubits}. "
                             "This operation can be slow.",
                             category=RuntimeWarning,
                         )

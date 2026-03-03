@@ -11,10 +11,75 @@
 // that they have been altered from the originals.
 
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
-use qiskit_circuit::{
-    circuit_data::CircuitData, converters::dag_to_circuit, dag_circuit::DAGCircuit,
-};
+use qiskit_circuit::{circuit_data::CircuitData, dag_circuit::DAGCircuit};
 use qiskit_transpiler::{passes::run_optimize_1q_gates_decomposition, target::Target};
+
+/// @ingroup QkTranspilerPasses
+/// Runs the Optimize1qGatesDecomposition pass in standalone mode on a circuit.
+///
+/// Optimize1qGatesDecomposition optimizes single-qubit gate sequences by re-synthesizing
+/// the unitary under the constraints of the target's basis gates and error rates.
+///
+///
+/// The decision of whether to replace the original chain depends on:
+/// - If the original chain was out of basis.
+/// - If the original chain was in basis but the replacement has lower error rates.
+/// - If the original chain is an identity (chain gets removed).
+///
+/// The error is the combined multiplication of the errors of individual gates on the
+/// qubit it operates on.
+///
+/// \qk_deprecated{2.4.0|use :c:func:`qk_transpiler_pass_standalone_optimize_1q_sequences` instead.}
+/// @param circuit A pointer to the ``QkCircuit`` object to transform.
+/// @param target A pointer to the ``QkTarget`` object or a null pointer.
+/// In the case a null pointer is provided and gate errors are unknown
+/// the pass will choose the sequence with the least amount of gates,
+/// and will support all basis gates on its Euler basis set.
+///
+/// # Example
+///
+/// ```c
+/// QkTarget *target = qk_target_new(1);
+/// double u_errors[3] = {0., 1e-4, 1e-4};
+/// for (int idx = 0; idx < 3; idx++) {
+///     QkTargetEntry *u_entry = qk_target_entry_new(QkGate_U);
+///     uint32_t qargs[1] = {
+///         0,
+///     };
+///     qk_target_entry_add_property(u_entry, qargs, 1, NAN, u_errors[idx]);
+///     qk_target_add_instruction(target, u_entry);
+/// }
+///
+/// // Build circuit
+/// QkCircuit *circuit = qk_circuit_new(1, 0);
+/// uint32_t qubits[1] = {0};
+/// for (int iter = 0; iter < 3; iter++) {
+///     qk_circuit_gate(circuit, QkGate_H, qubits, NULL);
+/// }
+///
+/// // Run transpiler pass
+/// qk_transpiler_standalone_optimize_1q_sequences(circuit, target);
+///
+/// // Clean up
+/// qk_target_free(target);
+/// qk_circuit_free(circuit);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit`` and
+/// if ``target`` is not a valid pointer to a ``QkTarget``.
+#[deprecated(
+    since = "2.4.0",
+    note = "use `qk_transpiler_pass_standalone_optimize_1q_sequences` instead"
+)]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_transpiler_standalone_optimize_1q_sequences(
+    circuit: *mut CircuitData,
+    target: *const Target,
+) {
+    unsafe { qk_transpiler_pass_standalone_optimize_1q_sequences(circuit, target) };
+}
 
 /// @ingroup QkTranspilerPasses
 /// Runs the Optimize1qGatesDecomposition pass in standalone mode on a circuit.
@@ -38,37 +103,39 @@ use qiskit_transpiler::{passes::run_optimize_1q_gates_decomposition, target::Tar
 ///
 /// # Example
 ///
-///     QkTarget *target = qk_target_new(1);
-///     double u_errors[3] = {0., 1e-4, 1e-4};
-///     for (int idx = 0; idx < 3; idx++) {
-///         QkTargetEntry *u_entry = qk_target_entry_new(QkGate_U);
-///         uint32_t qargs[1] = {
-///             0,
-///         };
-///         qk_target_entry_add_property(u_entry, qargs, 1, NAN, u_errors[idx]);
-///         qk_target_add_instruction(target, u_entry);
-///     }
+/// ```c
+/// QkTarget *target = qk_target_new(1);
+/// double u_errors[3] = {0., 1e-4, 1e-4};
+/// for (int idx = 0; idx < 3; idx++) {
+///     QkTargetEntry *u_entry = qk_target_entry_new(QkGate_U);
+///     uint32_t qargs[1] = {
+///         0,
+///     };
+///     qk_target_entry_add_property(u_entry, qargs, 1, NAN, u_errors[idx]);
+///     qk_target_add_instruction(target, u_entry);
+/// }
 ///
-///     // Build circuit
-///     QkCircuit *circuit = qk_circuit_new(1, 0);
-///     uint32_t qubits[1] = {0};
-///     for (int iter = 0; iter < 3; iter++) {
-///         qk_circuit_gate(circuit, QkGate_H, qubits, NULL);
-///     }
+/// // Build circuit
+/// QkCircuit *circuit = qk_circuit_new(1, 0);
+/// uint32_t qubits[1] = {0};
+/// for (int iter = 0; iter < 3; iter++) {
+///     qk_circuit_gate(circuit, QkGate_H, qubits, NULL);
+/// }
 ///
-///     // Run transpiler pass
-///     qk_transpiler_standalone_optimize_1q_sequences(circuit, target);
+/// // Run transpiler pass
+/// qk_transpiler_pass_standalone_optimize_1q_sequences(circuit, target);
 ///
-///     // Clean up
-///     qk_target_free(target);
-///     qk_circuit_free(circuit);
+/// // Clean up
+/// qk_target_free(target);
+/// qk_circuit_free(circuit);
+/// ```
 ///
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit`` and
 /// if ``target`` is not a valid pointer to a ``QkTarget``.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_transpiler_standalone_optimize_1q_sequences(
+pub unsafe extern "C" fn qk_transpiler_pass_standalone_optimize_1q_sequences(
     circuit: *mut CircuitData,
     target: *const Target,
 ) {
@@ -92,9 +159,6 @@ pub unsafe extern "C" fn qk_transpiler_standalone_optimize_1q_sequences(
         .expect("Error while running the pass.");
 
     // Convert the DAGCircuit back to an instance of CircuitData
-    let dag_to_circuit = dag_to_circuit(&circuit_as_dag, false)
+    *circuit = CircuitData::from_dag_ref(&circuit_as_dag)
         .expect("Error while converting the dag to a circuit.");
-
-    // Convert to pointer.
-    *circuit = dag_to_circuit;
 }

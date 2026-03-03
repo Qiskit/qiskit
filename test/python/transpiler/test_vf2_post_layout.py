@@ -22,7 +22,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.compiler.transpiler import transpile
 from qiskit.transpiler.target import Target, InstructionProperties
-from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
+from test import QiskitTestCase, combine
 
 from ..legacy_cmaps import LIMA_CMAP, YORKTOWN_CMAP, BOGOTA_CMAP
 
