@@ -13,7 +13,7 @@
 use pyo3::prelude::*;
 use pyo3::types::PyAnyMethods;
 use pyo3::{PyResult, Python};
-use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
+use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError, PyCircuitData};
 use qiskit_circuit::operations::{
     Operation, OperationRef, Param, PyInstruction, PyOperationTypes, StandardGate, multiply_param,
 };
@@ -34,8 +34,8 @@ pub fn ccx() -> CircuitData {
 
 /// Definition circuit for C3X.
 #[pyfunction]
-pub fn c3x() -> CircuitData {
-    StandardGate::C3X.definition(&[]).unwrap()
+pub fn c3x() -> PyCircuitData {
+    StandardGate::C3X.definition(&[]).unwrap().into()
 }
 
 /// Definition circuit for RCCX.
@@ -253,7 +253,7 @@ impl CircuitDataForSynthesis for CircuitData {
 
 /// Efficient synthesis for 4-controlled X-gate.
 #[pyfunction]
-pub fn c4x() -> Result<CircuitData, CircuitDataError> {
+pub fn c4x() -> Result<PyCircuitData, CircuitDataError> {
     let mut circuit = CircuitData::with_capacity(5, 0, 0, Param::Float(0.0))?;
     circuit.h(4)?;
     circuit.cp(PI2, 3, 4)?;
@@ -268,7 +268,7 @@ pub fn c4x() -> Result<CircuitData, CircuitDataError> {
         &[],
     )?;
     circuit.compose(&c3sx(), &[Qubit(0), Qubit(1), Qubit(2), Qubit(4)], &[])?;
-    Ok(circuit)
+    Ok(circuit.into())
 }
 
 /// Adds gates of the "action gadget" to the circuit
@@ -322,14 +322,18 @@ pub fn synth_mcx_n_dirty_i15(
     relative_phase: bool,
     action_only: bool,
 ) -> Result<CircuitData, CircuitDataError> {
-    if num_controls == 1 {
+    if num_controls == 0 {
+        let mut circuit = CircuitData::with_capacity(1, 0, 1, Param::Float(0.0))?;
+        circuit.x(0)?;
+        Ok(circuit)
+    } else if num_controls == 1 {
         let mut circuit = CircuitData::with_capacity(2, 0, 1, Param::Float(0.0))?;
         circuit.cx(0, 1)?;
         Ok(circuit)
     } else if num_controls == 2 {
         Ok(ccx())
     } else if num_controls == 3 && !relative_phase {
-        Ok(c3x())
+        Ok(c3x().into())
     } else {
         let num_ancillas = num_controls - 2;
         let num_qubits = num_controls + 1 + num_ancillas;
@@ -410,10 +414,20 @@ pub fn synth_mcx_noaux_v24(
     py: Python,
     num_controls: usize,
 ) -> Result<CircuitData, CircuitDataError> {
-    if num_controls == 3 {
-        Ok(c3x())
+    if num_controls == 0 {
+        let mut circuit = CircuitData::with_capacity(1, 0, 1, Param::Float(0.0))?;
+        circuit.x(0)?;
+        Ok(circuit)
+    } else if num_controls == 1 {
+        let mut circuit = CircuitData::with_capacity(2, 0, 1, Param::Float(0.0))?;
+        circuit.cx(0, 1)?;
+        Ok(circuit)
+    } else if num_controls == 2 {
+        Ok(ccx())
+    } else if num_controls == 3 {
+        Ok(c3x().into())
     } else if num_controls == 4 {
-        c4x()
+        c4x().map(Into::into)
     } else {
         let num_qubits = (num_controls + 1) as u32;
         let target = num_controls as u32;
@@ -648,8 +662,8 @@ fn synth_relative_mcx(num_controls: usize) -> Result<CircuitData, CircuitDataErr
 fn synth_relative_mcx_n_dirty(num_controls: usize) -> Result<CircuitData, CircuitDataError> {
     // For small values of num_controls, it is more efficient to use a relative MCX
     // gate that does not require any auxiliary qubits, while for large values it is
-    // mot efficient to construct the true MCX gate that uses num_controls ancillas.
-    // An interesting question is whether there are relative-MCX implmentations that
+    // not efficient to construct the true MCX gate that uses num_controls ancillas.
+    // An interesting question is whether there are relative-MCX implementations that
     // use ancilla qubits.
     if num_controls < 11 {
         synth_relative_mcx(num_controls)
@@ -880,7 +894,9 @@ pub fn synth_mcx_noaux_hp24(num_controls: usize) -> PyResult<CircuitData> {
     let mut circuit = CircuitData::with_capacity(n as u32, 0, 0, Param::Float(0.0))?;
 
     // Handle small cases explicitly
-    if n == 2 {
+    if n == 1 {
+        circuit.x(0)?;
+    } else if n == 2 {
         circuit.cx(0, 1)?;
     } else {
         circuit.h(num_controls as u32)?;

@@ -25,7 +25,7 @@ from qiskit.circuit.classical import expr
 from qiskit.synthesis import LieTrotter
 from qiskit.qpy.common import QPY_RUST_READ_MIN_VERSION, QPY_VERSION
 from qiskit.qpy.binary_io import write_circuit, read_circuit
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt

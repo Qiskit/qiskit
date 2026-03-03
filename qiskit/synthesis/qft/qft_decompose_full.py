@@ -77,7 +77,7 @@ def synth_qft_full(
     if inverse:
         circuit = circuit.inverse()
 
-    # It is important to set the name afte the circuit's generic "inverse" is called,
+    # It is important to set the name after the circuit's generic "inverse" is called,
     # since that will add ``_dg`` to the name.
     if name is not None:
         circuit.name = name

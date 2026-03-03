@@ -39,7 +39,7 @@ def pauli_two_design(
     The circuit consists of alternating rotation and entanglement layers with
     an initial layer of :math:`\sqrt{H} = RY(\pi/4)` gates.
     The rotation layers contain single qubit Pauli rotations, where the axis is chosen uniformly
-    at random to be X, Y or Z. The entanglement layers is compromised of pairwise CZ gates
+    at random to be X, Y or Z. The entanglement layers are comprised of pairwise CZ gates
     with a total depth of 2.
 
     For instance, the circuit could look like this:
@@ -122,13 +122,13 @@ class PauliTwoDesign(TwoLocal):
     r"""The Pauli Two-Design ansatz.
 
     This class implements a particular form of a 2-design circuit [1], which is frequently studied
-    in quantum machine learning literature, such as e.g. the investigating of Barren plateaus in
+    in quantum machine learning literature, such as the investigation of barren plateaus in
     variational algorithms [2].
 
     The circuit consists of alternating rotation and entanglement layers with
     an initial layer of :math:`\sqrt{H} = RY(\pi/4)` gates.
     The rotation layers contain single qubit Pauli rotations, where the axis is chosen uniformly
-    at random to be X, Y or Z. The entanglement layers is compromised of pairwise CZ gates
+    at random to be X, Y or Z. The entanglement layers are comprised of pairwise CZ gates
     with a total depth of 2.
 
     For instance, the circuit could look like this (but note that choosing a different seed
@@ -190,6 +190,7 @@ class PauliTwoDesign(TwoLocal):
             seed: The seed for randomly choosing the axes of the Pauli rotations.
             insert_barriers: If ``True``, barriers are inserted in between each layer. If ``False``,
                 no barriers are inserted. Defaults to ``False``.
+            name: The name to use for the generated circuit.
 
         """
         # store a random number generator

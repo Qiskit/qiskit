@@ -43,7 +43,7 @@ use crate::slice::PySequenceIndex;
 use crate::variable_mapper::VariableMapper;
 use crate::{
     Block, BlockMapper, BlocksMode, Clbit, ControlFlowBlocks, Qubit, Stretch, TupleLikeArg, Var,
-    VarsMode, converters, imports, instruction, vf2,
+    VarsMode, imports, instruction, vf2,
 };
 
 use hashbrown::{HashMap, HashSet};
@@ -188,7 +188,7 @@ impl Wire {
 /// There are 3 types of nodes in the graph: inputs, outputs, and operations.
 /// The nodes are connected by directed edges that correspond to qubits and
 /// bits.
-#[pyclass(module = "qiskit._accelerate.circuit")]
+#[pyclass(module = "qiskit._accelerate.circuit", from_py_object)]
 #[derive(Clone, Debug)]
 pub struct DAGCircuit {
     /// Circuit name.  Generally, this corresponds to the name
@@ -280,7 +280,12 @@ fn reject_new_register(reg: &ClassicalRegister) -> PyResult<()> {
     )))
 }
 
-#[pyclass(name = "BitLocations", module = "qiskit._accelerate.circuit", sequence)]
+#[pyclass(
+    name = "BitLocations",
+    module = "qiskit._accelerate.circuit",
+    sequence,
+    skip_from_py_object
+)]
 #[derive(Clone, Debug)]
 pub struct PyBitLocations {
     #[pyo3(get)]
@@ -2340,7 +2345,7 @@ impl DAGCircuit {
                                                 .get_bound(py)
                                                 .call1((Uuid::new_v4().to_string(),))?;
                                             let mut body_a_circuit =
-                                                converters::dag_to_circuit(body_a, false)?;
+                                                CircuitData::from_dag_ref(body_a)?;
                                             if body_a_circuit.uses_parameter(loop_param_a) {
                                                 body_a_circuit.assign_parameters_from_mapping([
                                                     (
@@ -2369,7 +2374,7 @@ impl DAGCircuit {
                                             )?;
 
                                             let mut body_b_circuit =
-                                                converters::dag_to_circuit(body_b, false)?;
+                                                CircuitData::from_dag_ref(body_b)?;
                                             if body_b_circuit.uses_parameter(loop_param_b) {
                                                 body_b_circuit.assign_parameters_from_mapping([
                                                     (
@@ -3990,7 +3995,7 @@ impl DAGCircuit {
     ///
     /// The descendants are the set of all nodes that can be reached from the target node. In
     /// comparison, :meth:`.DAGCircuit.successors` is an iterator over the immediate successors,
-    /// whereas this method contains all the successors' succesors.
+    /// whereas this method contains all the successors' successors.
     #[pyo3(name = "descendants")]
     fn py_descendants(&self, py: Python, node: &DAGNode) -> PyResult<Py<PySet>> {
         let descendants: PyResult<Vec<Py<PyAny>>> = self
@@ -5061,9 +5066,7 @@ impl DAGCircuit {
     ) -> PyResult<Option<Parameters<CircuitData>>> {
         Ok(params
             .map(|params| {
-                params.try_map_blocks_ref(|block| {
-                    converters::dag_to_circuit(&self.blocks[*block], false)
-                })
+                params.try_map_blocks_ref(|block| CircuitData::from_dag_ref(&self.blocks[*block]))
             })
             .transpose()?)
     }
@@ -5640,7 +5643,7 @@ impl DAGCircuit {
         Ok(())
     }
 
-    /// Remove the given clbits in the cirucit
+    /// Remove the given clbits in the circuit
     ///
     /// This will reorder all the bits in the circuit.
     pub fn remove_clbits<T: IntoIterator<Item = Clbit>>(&mut self, clbits: T) -> PyResult<()> {
@@ -7718,7 +7721,7 @@ impl DAGCircuit {
     ) -> PyResult<Self> {
         let num_qubits = qc_data.num_qubits();
         let num_clbits = qc_data.num_clbits();
-        let num_ops = qc_data.__len__();
+        let num_ops = qc_data.len();
         let num_vars =
             qc_data.num_declared_vars() + qc_data.num_input_vars() + qc_data.num_captured_vars();
         let num_stretches = qc_data.num_declared_stretches() + qc_data.num_captured_stretches();
@@ -8517,7 +8520,7 @@ impl DAGCircuitBuilder {
         self.push_back(instruction)
     }
 
-    /// Pushes a valid [PackedInstruction] to the back ot the circuit.
+    /// Pushes a valid [PackedInstruction] to the back of the circuit.
     pub fn push_back(&mut self, instr: PackedInstruction) -> PyResult<NodeIndex> {
         self.dag.track_instruction(&instr);
         let (all_cbits, vars) = self.dag.get_classical_resources(&instr)?;

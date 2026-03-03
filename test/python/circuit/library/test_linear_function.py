@@ -23,7 +23,7 @@ from qiskit.circuit.library.generalized_gates import LinearFunction, Permutation
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.synthesis.linear import random_invertible_binary_matrix
 from qiskit.quantum_info.operators import Operator
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 def random_linear_circuit(

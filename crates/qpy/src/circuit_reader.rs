@@ -31,7 +31,9 @@ use pyo3::types::{IntoPyDict, PyAny, PyBytes, PyDict, PyList, PyString, PyTuple,
 use qiskit_circuit::bit::{
     ClassicalRegister, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
-use qiskit_circuit::circuit_data::{CircuitData, CircuitStretchType, CircuitVarType};
+use qiskit_circuit::circuit_data::{
+    CircuitData, CircuitStretchType, CircuitVarType, PyCircuitData,
+};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::interner::Interned;
@@ -686,7 +688,7 @@ fn unpack_py_instruction(
                 for param in py_params {
                     args.push(param.unbind());
                 }
-                // in the case if IfElseOp with Null else body, retaining it would confuse the heuristic detemining
+                // in the case if IfElseOp with Null else body, retaining it would confuse the heuristic determining
                 // whether parameter are blocks or true params; we can simply dump it.
                 instruction_values.retain(|value| !matches!(value, GenericValue::Null));
                 gate_class.call1(PyTuple::new(py, args)?)?
@@ -926,7 +928,7 @@ fn deserialize_metadata(
 fn unpack_layout<'py>(
     py: Python<'py>,
     layout: &formats::LayoutV2Pack,
-    circuit_data: &CircuitData,
+    circuit_data: &PyCircuitData,
 ) -> PyResult<Option<Bound<'py, PyAny>>> {
     match layout.exists {
         0 => Ok(None),
@@ -937,7 +939,7 @@ fn unpack_layout<'py>(
 fn unpack_transpile_layout<'py>(
     py: Python<'py>,
     layout: &formats::LayoutV2Pack,
-    circuit_data: &CircuitData,
+    circuit_data: &PyCircuitData,
 ) -> PyResult<Bound<'py, PyAny>> {
     let mut initial_layout = py.None();
     let mut input_qubit_mapping = py.None();
@@ -1335,7 +1337,7 @@ fn add_registers_and_bits(
             }
         }
     }
-    // now add the bits to the ciruit, and then add the registers
+    // now add the bits to the circuit, and then add the registers
     for qubit in final_qubit_list {
         qpy_data.circuit_data.add_qubit(qubit, true)?;
     }
@@ -1363,10 +1365,10 @@ pub(crate) fn unpack_circuit(
 ) -> PyResult<Py<PyAny>> {
     let instruction_capacity = packed_circuit.instructions.len();
     // create an empty circuit; we'll fill data as we go along
-    let mut circuit_data =
-        CircuitData::with_capacity(0, 0, instruction_capacity, Param::Float(0.0))?;
+    let mut circuit_data: PyCircuitData =
+        CircuitData::with_capacity(0, 0, instruction_capacity, Param::Float(0.0))?.into();
     let mut qpy_data = QPYReadData {
-        circuit_data: &mut circuit_data,
+        circuit_data: &mut circuit_data.inner,
         version,
         use_symengine,
         standalone_vars: HashMap::new(),

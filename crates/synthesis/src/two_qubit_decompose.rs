@@ -53,7 +53,7 @@ use rand_distr::StandardNormal;
 use rand_pcg::Pcg64Mcg;
 
 use qiskit_circuit::bit::ShareableQubit;
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::{CX_GATE, H_GATE, ONE_QUBIT_IDENTITY, S_GATE, SDG_GATE};
@@ -197,7 +197,7 @@ fn decompose_two_qubit_product_gate(
 ///     QiskitError: if decomposition isn't possible.
 fn py_decompose_two_qubit_product_gate(
     py: Python,
-    special_unitary: PyArrayLike2<Complex64>,
+    special_unitary: PyArrayLike2<Complex64, numpy::AllowTypeChange>,
 ) -> PyResult<(Py<PyAny>, Py<PyAny>, f64)> {
     let view = special_unitary.as_array();
     let (l, r, phase) = decompose_two_qubit_product_gate(view)?;
@@ -417,7 +417,7 @@ fn compute_unitary(sequence: &TwoQubitSequenceVec, global_phase: f64) -> Array2<
 const DEFAULT_FIDELITY: f64 = 1.0 - 1.0e-9;
 
 #[derive(Clone, Debug, Copy, PartialEq, Eq)]
-#[pyclass(module = "qiskit._accelerate.two_qubit_decompose", eq)]
+#[pyclass(module = "qiskit._accelerate.two_qubit_decompose", eq, from_py_object)]
 pub enum Specialization {
     General,
     IdEquiv,
@@ -479,7 +479,11 @@ impl Specialization {
 
 #[derive(Clone, Debug)]
 #[allow(non_snake_case)]
-#[pyclass(module = "qiskit._accelerate.two_qubit_decompose", subclass)]
+#[pyclass(
+    module = "qiskit._accelerate.two_qubit_decompose",
+    subclass,
+    skip_from_py_object
+)]
 pub struct TwoQubitWeylDecomposition {
     #[pyo3(get)]
     a: f64,
@@ -1158,7 +1162,7 @@ impl TwoQubitWeylDecomposition {
         euler_basis: Option<PyBackedStr>,
         simplify: bool,
         atol: Option<f64>,
-    ) -> PyResult<CircuitData> {
+    ) -> PyResult<PyCircuitData> {
         let euler_basis: EulerBasis = match euler_basis {
             Some(basis) => EulerBasis::__new__(basis.deref())?,
             None => self.default_euler_basis,
@@ -1243,7 +1247,7 @@ impl TwoQubitWeylDecomposition {
             )?;
         }
         gate_sequence.set_global_phase_f64(global_phase);
-        Ok(gate_sequence)
+        Ok(gate_sequence.into())
     }
 }
 
@@ -1279,7 +1283,7 @@ impl TwoQubitGateSequence {
             global_phase: 0.,
         }
     }
-    /// Create this sequence from the consituent parts.
+    /// Create this sequence from the constituent parts.
     pub fn from_sequence(gates: TwoQubitSequenceVec, global_phase: f64) -> Self {
         Self {
             gates,
@@ -1296,7 +1300,11 @@ impl Default for TwoQubitGateSequence {
 
 #[derive(Clone, Debug)]
 #[allow(non_snake_case)]
-#[pyclass(module = "qiskit._accelerate.two_qubit_decompose", subclass)]
+#[pyclass(
+    module = "qiskit._accelerate.two_qubit_decompose",
+    subclass,
+    skip_from_py_object
+)]
 pub struct TwoQubitBasisDecomposer {
     gate: PackedOperation,
     gate_params: SmallVec<[f64; 3]>,
@@ -2269,7 +2277,7 @@ impl TwoQubitBasisDecomposer {
         basis_fidelity: Option<f64>,
         approximate: bool,
         _num_basis_uses: Option<u8>,
-    ) -> PyResult<CircuitData> {
+    ) -> PyResult<PyCircuitData> {
         let sequence =
             self.generate_sequence(unitary, basis_fidelity, approximate, _num_basis_uses)?;
         Ok(CircuitData::from_packed_operations(
@@ -2284,7 +2292,8 @@ impl TwoQubitBasisDecomposer {
                 ))
             }),
             Param::Float(sequence.global_phase),
-        )?)
+        )?
+        .into())
     }
 
     fn num_basis_gates(&self, unitary: PyReadonlyArray2<Complex64>) -> PyResult<usize> {
@@ -2322,10 +2331,10 @@ fn real_trace_transform(mat: ArrayView2<Complex64>) -> Array2<Complex64> {
 fn py_two_qubit_decompose_up_to_diagonal(
     py: Python,
     mat: PyReadonlyArray2<Complex64>,
-) -> PyResult<(Py<PyAny>, CircuitData)> {
+) -> PyResult<(Py<PyAny>, PyCircuitData)> {
     let mat_arr: ArrayView2<Complex64> = mat.as_array();
     let (real_map, circ) = two_qubit_decompose_up_to_diagonal(mat_arr)?;
-    Ok((real_map.into_pyarray(py).into_any().unbind(), circ))
+    Ok((real_map.into_pyarray(py).into_any().unbind(), circ.into()))
 }
 
 pub fn two_qubit_decompose_up_to_diagonal(
@@ -2521,7 +2530,11 @@ impl<'py> IntoPyObject<'py> for RXXEquivalent {
 }
 
 #[derive(Clone, Debug)]
-#[pyclass(module = "qiskit._accelerate.two_qubit_decompose", subclass)]
+#[pyclass(
+    module = "qiskit._accelerate.two_qubit_decompose",
+    subclass,
+    skip_from_py_object
+)]
 pub struct TwoQubitControlledUDecomposer {
     rxx_equivalent_gate: RXXEquivalent,
     euler_basis: EulerBasis,
@@ -2966,7 +2979,7 @@ impl TwoQubitControlledUDecomposer {
         &self,
         unitary: PyReadonlyArray2<Complex64>,
         atol: Option<f64>,
-    ) -> PyResult<CircuitData> {
+    ) -> PyResult<PyCircuitData> {
         let sequence = self.call_inner(unitary.as_array(), atol)?;
         Ok(CircuitData::from_packed_operations(
             2,
@@ -2980,7 +2993,8 @@ impl TwoQubitControlledUDecomposer {
                 ))
             }),
             Param::Float(sequence.global_phase),
-        )?)
+        )?
+        .into())
     }
 }
 
