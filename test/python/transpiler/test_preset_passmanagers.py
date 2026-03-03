@@ -1756,7 +1756,7 @@ class TestIntegrationControlFlow(QiskitTestCase):
         control flow structures. This is a regression test for issue #15734 where dcx gates
         inside nested if_test blocks were not being decomposed at optimization levels 0 and 1,
         causing execution failures on backends like AerSimulator.
-        
+
         When transpiling a circuit with DCX inside nested if_test with optimization levels 0-1,
         the DCX should be decomposed to CX gates before being passed to basis translation.
         """
@@ -1789,7 +1789,7 @@ class TestIntegrationControlFlow(QiskitTestCase):
             for inst in circuit.data:
                 if inst.operation.name == "dcx":
                     # For optimization level 0-1, DCX should be decomposed to CX+X gates
-                    # For higher levels, it may be part of a unitary or consolidated differently  
+                    # For higher levels, it may be part of a unitary or consolidated differently
                     if optimization_level < 2:
                         self.fail(
                             f"DCX gate found at level {level} in transpiled circuit at "
