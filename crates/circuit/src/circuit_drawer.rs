@@ -768,10 +768,11 @@ impl TextDrawer {
                 }
                 label
             }
-            OperationRef::Unitary(_) => *instruction
+            OperationRef::Unitary(_) => instruction
                 .label
-                .clone()
-                .unwrap_or(Box::new(" Unitary ".to_string())),
+                .as_ref()
+                .map(|x| x.as_str().to_string())
+                .unwrap_or(" Unitary ".to_string()),
             // Fallback for non-standard operations
             _ => format!(" {} ", instruction.op.name()),
         }
