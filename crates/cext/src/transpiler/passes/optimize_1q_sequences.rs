@@ -17,19 +17,8 @@ use qiskit_transpiler::{passes::run_optimize_1q_gates_decomposition, target::Tar
 /// @ingroup QkTranspilerPasses
 /// Runs the Optimize1qGatesDecomposition pass in standalone mode on a circuit.
 ///
-/// Optimize1qGatesDecomposition optimizes single-qubit gate sequences by re-synthesizing
-/// the unitary under the constraints of the target's basis gates and error rates.
-///
-///
-/// The decision of whether to replace the original chain depends on:
-/// - If the original chain was out of basis.
-/// - If the original chain was in basis but the replacement has lower error rates.
-/// - If the original chain is an identity (chain gets removed).
-///
-/// The error is the combined multiplication of the errors of individual gates on the
-
-///
 /// \qk_deprecated{2.4.0|use :c:func:`qk_transpiler_pass_standalone_optimize_1q_sequences` instead.}
+///
 /// @param circuit A pointer to the ``QkCircuit`` object to transform.
 /// @param target A pointer to the ``QkTarget`` object or a null pointer.
 /// In the case a null pointer is provided and gate errors are unknown
@@ -129,7 +118,6 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_optimize_1q_sequences(
 /// }
 ///
 /// // Build circuit
-///
 /// QkDag *dag = qk_dag_new();
 /// QkQuantumRegister *qr = qk_quantum_register_new(1, "qr");
 /// qk_dag_add_quantum_register(dag, qr);
