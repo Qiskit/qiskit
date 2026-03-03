@@ -771,10 +771,16 @@ impl TextDrawer {
             OperationRef::Unitary(_) => instruction
                 .label
                 .as_ref()
-                .map(|x| x.as_str().to_string())
+                .map(|x| x.to_string())
                 .unwrap_or(" Unitary ".to_string()),
             // Fallback for non-standard operations
-            _ => format!(" {} ", instruction.op.name()),
+            _ => {
+                if let Some(ref label) = instruction.label {
+                    label.to_string()
+                } else {
+                    instruction.op.name().to_string()
+                }
+            }
         }
     }
 
