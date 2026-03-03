@@ -64,7 +64,7 @@ pub use commutation_analysis::{analyze_commutations, commutation_analysis_mod};
 pub use commutation_cancellation::{cancel_commutations, commutation_cancellation_mod};
 pub use commutative_optimization::{commutative_optimization_mod, run_commutative_optimization};
 pub use consolidate_blocks::{DecomposerType, consolidate_blocks_mod, run_consolidate_blocks};
-pub use constrained_reschedule::{constrained_reschedule_mod, run_constrained_reschedule};
+pub use constrained_reschedule::{constrained_reschedule_mod, py_run_constrained_reschedule};
 pub use convert_to_pauli_rotations::{
     convert_to_pauli_rotations_mod, py_convert_to_pauli_rotations,
 };

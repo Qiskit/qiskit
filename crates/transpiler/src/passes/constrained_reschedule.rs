@@ -11,11 +11,13 @@
 // that they have been altered from the originals.
 
 use crate::TranspilerError;
+use crate::passes::schedule_analysis::{NodeDurations, PyNodeDurations};
 use crate::target::Target;
 use ::hashbrown::HashSet;
+use ahash::RandomState;
+use indexmap::IndexMap;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::types::PyDict;
 use pyo3::{Bound, PyResult, pyfunction, wrap_pyfunction};
 use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
@@ -61,7 +63,7 @@ fn get_next_gate(dag: &DAGCircuit, node_index: NodeIndex) -> impl Iterator<Item 
 fn push_node_back(
     dag: &DAGCircuit,
     node_index: NodeIndex,
-    node_start_time: &Bound<PyDict>,
+    node_start_time: &mut IndexMap<NodeIndex<u32>, u64, RandomState>,
     clbit_write_latency: u32,
     pulse_align: u32,
     acquire_align: u32,
@@ -79,23 +81,22 @@ fn push_node_back(
         _ => None,
     };
 
-    let obj = node_start_time.get_item(node_index.index())?;
-    let mut this_t0: u32 = obj
-        .as_ref()
-        .ok_or_else(|| PyValueError::new_err("Missing value in node_start_time"))?
-        .extract()?;
+    let mut this_t0: u64 = *node_start_time
+        .get(&node_index)
+        .ok_or_else(|| PyValueError::new_err("Missing value in node_start_time"))?;
 
     if let Some(alignment) = alignment {
-        let misalignment = this_t0 % alignment;
+        let misalignment = this_t0 % alignment as u64;
         let shift = if misalignment != 0 {
-            alignment - misalignment
+            alignment as u64 - misalignment
         } else {
             0
         };
-        this_t0 += shift;
+        this_t0 += shift as u64;
         node_start_time
-            .set_item(node_index.index(), this_t0)
-            .unwrap();
+            .entry(node_index)
+            .and_modify(|old_t0| *old_t0 = this_t0)
+            .or_insert(this_t0);
     }
 
     let new_t1q = if let Some(target) = target {
@@ -106,7 +107,7 @@ fn push_node_back(
             .map(|q| PhysicalQubit(q.index() as u32))
             .collect();
         let duration = target.get_duration(op.op.name(), &qargs).unwrap_or(0.0);
-        this_t0 + duration as u32
+        this_t0 + duration as u64
     } else if matches!(
         op_view,
         OperationRef::StandardInstruction(StandardInstruction::Delay(_))
@@ -118,9 +119,9 @@ fn push_node_back(
         let duration = match param {
             Param::Obj(val) => {
                 // Try to extract as different numeric types
-                val.bind(node_start_time.py()).extract::<u32>()
+                Python::attach(|py| val.bind(py).extract::<u64>())
             }
-            Param::Float(f) => Ok(*f as u32),
+            Param::Float(f) => Ok(*f as u64),
             _ => Err(TranspilerError::new_err(
                 "The provided Delay duration is not in terms of dt.",
             )),
@@ -164,11 +165,10 @@ fn push_node_back(
         };
 
         // Compute next node start time separately for qreg and creg
-        let next_t0q_obj = node_start_time.get_item(next_node_index.index())?;
-        let next_t0q: u32 = next_t0q_obj
-            .as_ref()
-            .expect("Expected value in node_start_time for next_node_index")
-            .extract()?;
+        let next_t0q: u64 = node_start_time
+            .get(&next_node_index)
+            .copied()
+            .expect("Expected value in node_start_time for next_node_index");
 
         let next_qubits: HashSet<_> = dag
             .qargs_interner()
@@ -184,7 +184,7 @@ fn push_node_back(
                 | OperationRef::StandardInstruction(StandardInstruction::Reset)
         ) {
             // creg access starts after write latency
-            let next_t0c = Some(next_t0q + clbit_write_latency);
+            let next_t0c = Some(next_t0q + clbit_write_latency as u64);
             let next_clbits: HashSet<_> = dag
                 .cargs_interner()
                 .get(next_node.clbits)
@@ -221,7 +221,10 @@ fn push_node_back(
         let overlap = qreg_overlap.max(creg_overlap);
         if overlap > 0 {
             let new_start_time = next_t0q + overlap;
-            node_start_time.set_item(next_node_index.index(), new_start_time)?;
+            node_start_time
+                .entry(next_node_index)
+                .and_modify(|old_start| *old_start = new_start_time)
+                .or_insert(new_start_time);
         }
     }
     Ok(())
@@ -229,38 +232,46 @@ fn push_node_back(
 
 #[pyfunction]
 #[pyo3(name="constrained_reschedule", signature=(dag, node_start_time, clbit_write_latency, acquire_align, pulse_align, target))]
-pub fn run_constrained_reschedule(
+pub fn py_run_constrained_reschedule(
     dag: &DAGCircuit,
-    node_start_time: &Bound<PyDict>,
+    mut node_start_time: PyNodeDurations,
     clbit_write_latency: u32,
     acquire_align: u32,
     pulse_align: u32,
     target: Option<&Target>,
-) -> PyResult<Py<PyDict>> {
+) -> PyResult<PyNodeDurations> {
+    let NodeDurations::Dt(durations) = &mut *node_start_time else {
+        return Err(TranspilerError::new_err(
+            "The durations provided have not been properly converted to 'dt' units.",
+        ));
+    };
+    run_constrained_reschedule(
+        dag,
+        durations,
+        clbit_write_latency,
+        acquire_align,
+        pulse_align,
+        target,
+    )?;
+    Ok(node_start_time)
+}
+
+pub fn run_constrained_reschedule(
+    dag: &DAGCircuit,
+    node_start_time: &mut IndexMap<NodeIndex<u32>, u64, RandomState>,
+    clbit_write_latency: u32,
+    acquire_align: u32,
+    pulse_align: u32,
+    target: Option<&Target>,
+) -> PyResult<()> {
     for node_index in dag.topological_op_nodes(false) {
-        let start_time = node_start_time.get_item(node_index.index());
-        let val = start_time
-            .map_err(|e| {
-                TranspilerError::new_err(format!(
-                    "PyDict error for node {}: {}",
-                    node_index.index(),
-                    e
-                ))
-            })?
-            .ok_or_else(|| {
-                TranspilerError::new_err(format!(
-                    "Missing start time for node {}. Run scheduler again.",
-                    node_index.index()
-                ))
-            })?
-            .extract::<u32>()
-            .map_err(|e| {
-                TranspilerError::new_err(format!(
-                    "Extract error for node {}: {}",
-                    node_index.index(),
-                    e
-                ))
-            })?;
+        let start_time = node_start_time.get(&node_index);
+        let val = *start_time.ok_or_else(|| {
+            TranspilerError::new_err(format!(
+                "Missing start time for node {}. Run scheduler again.",
+                node_index.index()
+            ))
+        })?;
 
         if val == 0 {
             continue;
@@ -277,10 +288,10 @@ pub fn run_constrained_reschedule(
         )?;
     }
 
-    Ok(node_start_time.clone().into())
+    Ok(())
 }
 
 pub fn constrained_reschedule_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(run_constrained_reschedule))?;
+    m.add_wrapped(wrap_pyfunction!(py_run_constrained_reschedule))?;
     Ok(())
 }
