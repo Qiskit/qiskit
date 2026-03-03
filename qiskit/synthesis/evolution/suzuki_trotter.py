@@ -132,7 +132,7 @@ class SuzukiTrotter(ProductFormula):
 
             ("X", [0], t), ("ZZ", [0, 1], 2t), ("X", [0], t)
 
-        Note that the rotation angle contains a factor of 2, such that that evolution
+        Note that the rotation angle contains a factor of 2, such that the evolution
         of a Pauli :math:`P` over time :math:`t`, which is :math:`e^{itP}`, is represented
         by ``(P, indices, 2 * t)``.
 
@@ -149,11 +149,7 @@ class SuzukiTrotter(ProductFormula):
         time = evolution.time
 
         def to_sparse_list(operator):
-            sparse_list = (
-                operator.to_sparse_list()
-                if isinstance(operator, SparsePauliOp)
-                else operator.to_sparse_list()
-            )
+            sparse_list = operator.to_sparse_list()
             paulis = [
                 (pauli, indices, real_or_fail(coeff) * time * 2 / self.reps)
                 for pauli, indices, coeff in sparse_list

@@ -12,3 +12,4 @@
 
 pub mod iqp;
 pub mod quantum_volume;
+pub mod suzuki_trotter;

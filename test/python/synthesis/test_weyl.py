@@ -9,7 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-# pylint: disable=invalid-name
+
 
 """Tests for Weyl coordinate routines."""
 
@@ -23,7 +23,7 @@ from qiskit.synthesis.two_qubit.local_invariance import (
     two_qubit_local_invariants,
     local_equivalence,
 )
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestWeyl(QiskitTestCase):

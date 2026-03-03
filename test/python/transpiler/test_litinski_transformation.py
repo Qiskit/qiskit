@@ -23,7 +23,7 @@ from qiskit.compiler import transpile
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import LitinskiTransformation
 from qiskit.quantum_info import Operator, Pauli, SparseObservable
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt
@@ -458,3 +458,22 @@ class TestLitinskiTransformation(QiskitTestCase):
         expected.append(PauliProductMeasurement(Pauli("XX")), [0, 3], [3])
 
         self.assertEqual(qct, expected)
+
+    @data(True, False)
+    def test_barrier(self, fix_clifford):
+        """Test adding a barrier."""
+        circuit = QuantumCircuit(1, 1)
+        circuit.h(0)
+        circuit.rz(1.0, 0)
+        circuit.measure(0, 0)
+
+        transform = LitinskiTransformation(fix_clifford=fix_clifford, insert_barrier=True)
+        out = transform(circuit)
+
+        if fix_clifford:
+            expected_ops = ["PauliEvolution", "pauli_product_measurement", "barrier", "h"]
+        else:
+            expected_ops = ["PauliEvolution", "pauli_product_measurement"]
+
+        ops = [op.name for op in out.data]
+        self.assertListEqual(expected_ops, ops)

@@ -21,7 +21,7 @@ from qiskit.circuit.library import CXGate, CZGate, ECRGate
 from qiskit.transpiler.passes import CheckGateDirection
 from qiskit.transpiler import CouplingMap, Target
 from qiskit.converters import circuit_to_dag
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt.ddt
@@ -257,7 +257,7 @@ class TestCheckGateDirection(QiskitTestCase):
         """Test recursing into control-flow operations with a coupling map."""
         swapped = Target(num_qubits=5)
         for gate in (CXGate(), CZGate(), ECRGate()):
-            swapped.add_instruction(gate, {qargs: None for qargs in zip(range(4), range(1, 5))})
+            swapped.add_instruction(gate, dict.fromkeys(zip(range(4), range(1, 5))))
 
         matching = Target(num_qubits=5)
         for gate in (CXGate(), CZGate(), ECRGate()):

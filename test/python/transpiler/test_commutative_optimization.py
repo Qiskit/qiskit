@@ -45,7 +45,7 @@ from qiskit.circuit.parameter import Parameter
 from qiskit.transpiler.passes import CommutativeOptimization
 from qiskit.quantum_info import Operator, SparsePauliOp, Clifford
 
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt

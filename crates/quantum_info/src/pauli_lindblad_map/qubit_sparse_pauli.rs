@@ -1166,7 +1166,12 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Pauli {
 ///     :param int|None num_qubits: Optional number of qubits for the operator.  For most data
 ///         inputs, this can be inferred and need not be passed.  It is only necessary for the
 ///         sparse-label format.  If given unnecessarily, it must match the data input.
-#[pyclass(name = "QubitSparsePauli", frozen, module = "qiskit.quantum_info")]
+#[pyclass(
+    name = "QubitSparsePauli",
+    frozen,
+    module = "qiskit.quantum_info",
+    skip_from_py_object
+)]
 #[derive(Clone, Debug)]
 pub struct PyQubitSparsePauli {
     inner: QubitSparsePauli,
@@ -1450,13 +1455,13 @@ impl PyQubitSparsePauli {
     ///
     /// Args:
     ///     other (QubitSparsePauli): the qubit sparse Pauli to compose with.
-    fn compose(&self, other: PyQubitSparsePauli) -> PyResult<Self> {
+    fn compose(&self, other: &PyQubitSparsePauli) -> PyResult<Self> {
         Ok(PyQubitSparsePauli {
             inner: self.inner.compose(&other.inner)?,
         })
     }
 
-    fn __matmul__(&self, other: PyQubitSparsePauli) -> PyResult<Self> {
+    fn __matmul__(&self, other: &PyQubitSparsePauli) -> PyResult<Self> {
         self.compose(other)
     }
 
@@ -1464,7 +1469,7 @@ impl PyQubitSparsePauli {
     ///
     /// Args:
     ///     other (QubitSparsePauli): the qubit sparse Pauli to check for commutation with.
-    fn commutes(&self, other: PyQubitSparsePauli) -> PyResult<bool> {
+    fn commutes(&self, other: &PyQubitSparsePauli) -> PyResult<bool> {
         Ok(self.inner.commutes(&other.inner)?)
     }
 

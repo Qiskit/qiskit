@@ -37,7 +37,7 @@ if typing.TYPE_CHECKING:
 
 
 class UnitaryGate(Gate):
-    """Class quantum gates specified by a unitary matrix.
+    """Class for quantum gates specified by a unitary matrix.
 
     Example:
 
@@ -149,20 +149,20 @@ class UnitaryGate(Gate):
             qc.global_phase = global_phase
             self.definition = qc
         elif self.num_qubits == 2:
-            from qiskit.synthesis.two_qubit.two_qubit_decompose import (  # pylint: disable=cyclic-import
+            from qiskit.synthesis.two_qubit.two_qubit_decompose import (
                 two_qubit_cnot_decompose,
             )
 
             self.definition = two_qubit_cnot_decompose(self.to_matrix())
         else:
-            from qiskit.synthesis.unitary.qsd import (  # pylint: disable=cyclic-import
+            from qiskit.synthesis.unitary.qsd import (
                 qs_decomposition,
             )
 
             self.definition = qs_decomposition(self.to_matrix())
             # Since iterative Quantum Shannon Decomposition may provide imprecise matrices,
             # we use the Isometry decomposition in this case
-            # pylint: disable=cyclic-import
+
             from qiskit.quantum_info.operators import Operator
 
             if not (
@@ -202,7 +202,7 @@ class UnitaryGate(Gate):
             cmat_def = qs_decomposition(cmat, opt_a1=True, opt_a2=False)
             # Since iterative cosine-sine decomposition may provide imprecise matrices,
             # we use the Isometry decomposition in this case
-            # pylint: disable=cyclic-import
+
             from qiskit.quantum_info.operators import Operator
 
             if not matrix_equal(Operator(cmat_def).to_matrix(), cmat, atol=1e-7):

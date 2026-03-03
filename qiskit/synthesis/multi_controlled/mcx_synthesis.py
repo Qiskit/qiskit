@@ -331,7 +331,7 @@ def synth_mcx_noaux_hp24(num_ctrl_qubits: int) -> QuantumCircuit:
 
 def _n_parallel_ccx_x(n: int, apply_x: bool = True) -> QuantumCircuit:
     r"""
-    Construct a quantum circuit for creating n-condionally clean ancillae using 3n qubits. This
+    Construct a quantum circuit for creating n-conditionally clean ancillae using 3n qubits. This
     implements Fig. 4a of [1]. The circuit applies n relative CCX (RCCX) gates . If apply_x is True,
     each RCCX gate is preceded by an X gate on the target qubit. The order of returned qubits is
     qr_a, qr_b, qr_target.
@@ -537,7 +537,7 @@ def _build_logn_depth_ccx_ladder(
     ancilla_idx: int, ctrls: list[int], skip_cond_clean: bool = False
 ) -> tuple[QuantumCircuit, list[int]]:
     r"""
-    Helper function to build a log-depth ladder compose of CCX and X gates as shown in Fig. 4b of [1].
+    Helper function to build a log-depth ladder composed of CCX and X gates as shown in Fig. 4b of [1].
 
     Args:
         ancilla_idx: Index of the ancillary qubit.
@@ -579,9 +579,8 @@ def _build_logn_depth_ccx_ladder(
                 )
             if ccx_t != [ancilla_idx]:
                 qc.compose(_n_parallel_ccx_x(ccx_n), ccx_x + ccx_y + ccx_t, inplace=True)
-            else:
-                if not skip_cond_clean:
-                    qc.rccx(ccx_x[0], ccx_y[0], ccx_t[0])  # # create conditionally clean ancilla
+            elif not skip_cond_clean:
+                qc.rccx(ccx_x[0], ccx_y[0], ccx_t[0])  # # create conditionally clean ancilla
 
             new_anc += nxt_batch[st:]  #                     # newly created cond. clean ancilla
             nxt_batch = ccx_t + nxt_batch[:st]

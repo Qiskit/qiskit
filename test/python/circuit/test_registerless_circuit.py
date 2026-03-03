@@ -17,7 +17,7 @@ import numpy
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Qubit, Clbit, AncillaQubit
 from qiskit.circuit.exceptions import CircuitError
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestRegisterlessCircuit(QiskitTestCase):
@@ -254,7 +254,7 @@ class TestGatesOnWireRange(QiskitTestCase):
         """Test gate wire range"""
         qreg = QuantumRegister(4)
         circuit = QuantumCircuit(qreg)
-        circuit.h(range(0, 2))
+        circuit.h(range(2))
 
         expected = QuantumCircuit(qreg)
         expected.h(qreg[0:2])
@@ -266,7 +266,7 @@ class TestGatesOnWireRange(QiskitTestCase):
         qreg0 = QuantumRegister(2)
         qreg1 = QuantumRegister(2)
         circuit = QuantumCircuit(qreg0, qreg1)
-        circuit.h(range(0, 3))
+        circuit.h(range(3))
 
         expected = QuantumCircuit(qreg0, qreg1)
         expected.h(qreg0[0])
@@ -295,7 +295,7 @@ class TestGatesOnWireRange(QiskitTestCase):
         qreg01 = QuantumRegister(2)
         qreg23 = QuantumRegister(2)
         circuit = QuantumCircuit(qreg01, qreg23)
-        circuit.barrier(range(0, 3))
+        circuit.barrier(range(3))
 
         expected = QuantumCircuit(qreg01, qreg23)
         expected.barrier(qreg01[0], qreg01[1], qreg23[0])

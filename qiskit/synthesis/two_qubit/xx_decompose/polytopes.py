@@ -57,7 +57,7 @@ class PolytopeData:
 
 def polytope_has_element(polytope, point):
     """
-    Tests whether `polytope` contains `point.
+    Tests whether `polytope` contains `point`.
     """
     return all(
         -EPSILON <= inequality[0] + sum(x * y for x, y in zip(point, inequality[1:]))

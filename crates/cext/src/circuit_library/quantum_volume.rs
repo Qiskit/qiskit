@@ -48,5 +48,7 @@ pub extern "C" fn qk_circuit_library_quantum_volume(
     seed: i64,
 ) -> *mut CircuitData {
     let seed = if seed < 0 { None } else { Some(seed as u64) };
-    Box::into_raw(Box::new(quantum_volume(num_qubits, depth, seed).unwrap()))
+    Box::into_raw(Box::new(
+        quantum_volume(num_qubits, depth, seed).unwrap().into(),
+    ))
 }

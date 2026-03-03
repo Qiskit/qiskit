@@ -19,8 +19,3 @@ pydot>=4.0.0
 # Our Sphinx version is not compatible with snowballstemmer>=3.0.0 (and
 # neither is latest Sphinx at this time). See https://github.com/sphinx-doc/sphinx/issues/13533.
 snowballstemmer<3.0.0
-
-# testtools 2.8.3 broke compatibility with stestr. This pin is temporary
-# until stestr fixes compatibility with the latest "bugfix" release of
-# testtools.
-testtools==2.8.2
