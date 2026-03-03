@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -22,6 +22,7 @@ from ddt import ddt, data, unpack
 from qiskit import transpile
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library import PauliEvolutionGate, HamiltonianGate, PhaseGate, RZGate
+from qiskit.circuit.library.pauli_evolution import _merge_two_pauli_evolutions
 from qiskit.synthesis import LieTrotter, SuzukiTrotter, MatrixExponential, QDrift
 from qiskit.synthesis.evolution.product_formula import reorder_paulis
 from qiskit.converters import circuit_to_dag
@@ -29,12 +30,12 @@ from qiskit.quantum_info import Operator, SparsePauliOp, Pauli, Statevector, Spa
 from qiskit.transpiler.passes import HLSConfig, HighLevelSynthesis
 from qiskit.utils import optionals
 from qiskit.circuit._utils import _compute_control_matrix
-from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
+from test import QiskitTestCase, combine
 
 X = SparsePauliOp("X")
 Y = SparsePauliOp("Y")
 Z = SparsePauliOp("Z")
-I = SparsePauliOp("I")
+I = SparsePauliOp("I")  # noqa: E741
 
 
 @ddt
@@ -489,10 +490,10 @@ class TestEvolutionGate(QiskitTestCase):
         block_2q = (Z ^ Z) + (Y ^ Y) + (X ^ X)
 
         evo = PauliEvolutionGate([block_1q, block_2q], time=1, synthesis=LieTrotter())
-        controlled = evo.control(2, ctrl_state="01")
+        controlled = evo.control(2, ctrl_state="01", annotated=False)
 
         summed = PauliEvolutionGate(block_1q + block_2q, time=1, synthesis=LieTrotter())
-        reference = summed.control(2, ctrl_state="01")
+        reference = summed.control(2, ctrl_state="01", annotated=False)
 
         self.assertEqual(reference, controlled)
 
@@ -601,7 +602,7 @@ class TestEvolutionGate(QiskitTestCase):
         """Test converting the parameters to sympy is real.
 
         Regression test of #13642, where the parameters in the Pauli evolution had a spurious
-        zero complex part. Even though this is not noticable upon binding or printing the parameter,
+        zero complex part. Even though this is not noticeable upon binding or printing the parameter,
         it does affect the output of Parameter.sympify.
         """
         time = Parameter("t")
@@ -675,7 +676,9 @@ class TestEvolutionGate(QiskitTestCase):
         reference.h([4, 5])
 
         reference.x(0)
-        reference.append(PhaseGate(-1.0).control(5, ctrl_state="11001"), reference.qubits[::-1])
+        reference.append(
+            PhaseGate(-1.0).control(5, ctrl_state="11001", annotated=False), reference.qubits[::-1]
+        )
         reference.x(0)
 
         reference.sxdg([2, 3])
@@ -799,12 +802,12 @@ class TestEvolutionGate(QiskitTestCase):
         """Test controlled evolution gate with a control state."""
         obs = SparseObservable("ZZ")
         evo = PauliEvolutionGate(obs)
-        controlled = evo.control(num_ctrl_qubits=3, ctrl_state=ctrl_state)
+        controlled = evo.control(num_ctrl_qubits=3, ctrl_state=ctrl_state, annotated=False)
         qc = controlled.definition
 
         reference = QuantumCircuit(*qc.qregs)
         reference.cx(4, 3)
-        reference.append(RZGate(2).control(3, ctrl_state="011"), [2, 1, 0, 3])
+        reference.append(RZGate(2).control(3, ctrl_state="011", annotated=False), [2, 1, 0, 3])
         reference.cx(4, 3)
         with self.subTest("check decomp"):
             self.assertEqual(reference, qc)
@@ -829,6 +832,26 @@ class TestEvolutionGate(QiskitTestCase):
             pauli = Pauli("XYZ")  # 3 qubits
             op = SparsePauliOp(["XYIZ"], [1])  # 4 qubits
             PauliEvolutionGate([pauli, op], time=1)
+
+    @data(True, False)
+    def test_merge_two_pauli_evolutions(self, use_sparse_observable):
+        """Test merging two Pauli evolution gates."""
+        obs_cls = SparseObservable if use_sparse_observable else SparsePauliOp
+        with self.subTest("identical"):
+            gate1 = PauliEvolutionGate(obs_cls("XY"))
+            gate2 = PauliEvolutionGate(obs_cls("XY"))
+            merged = _merge_two_pauli_evolutions(gate1, gate2)
+            self.assertIsNotNone(merged)
+        with self.subTest("different"):
+            gate1 = PauliEvolutionGate(obs_cls("XY"))
+            gate2 = PauliEvolutionGate(obs_cls("YX"))
+            merged = _merge_two_pauli_evolutions(gate1, gate2)
+            self.assertIsNone(merged)
+        with self.subTest("identical after canonicalization"):
+            gate1 = PauliEvolutionGate(obs_cls("X") + obs_cls("Z"))
+            gate2 = PauliEvolutionGate(obs_cls("Z") + obs_cls("X"))
+            merged = _merge_two_pauli_evolutions(gate1, gate2)
+            self.assertIsNotNone(merged)
 
 
 def exact_atomic_evolution(circuit, pauli, time):

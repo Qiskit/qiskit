@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -35,7 +35,7 @@ use crate::target::{Qargs, QargsRef, Target, TargetOperation};
 
 create_exception!(qiskit, MultiQEncountered, pyo3::exceptions::PyException);
 
-#[pyclass(name = "VF2PassConfiguration")]
+#[pyclass(name = "VF2PassConfiguration", skip_from_py_object)]
 #[derive(Clone, Debug)]
 pub struct Vf2PassConfiguration {
     /// The maximum numbers of times VF2 is allowed to extend the mapping (before, after) the first
@@ -136,7 +136,7 @@ impl Vf2PassConfiguration {
             }
             None => (None, None),
         };
-        // In the leagcy API, negative `max_trials` means unbounded (which we represent as 0) and
+        // In the legacy API, negative `max_trials` means unbounded (which we represent as 0) and
         // `None` means "choose some values based on the size of the graph structures".
         let max_trials = max_trials.map(|value| value.try_into().unwrap_or(0));
         let shuffle_seed = match shuffle_seed {
@@ -351,8 +351,8 @@ impl<T: Default> VirtualInteractions<T> {
         for (_, inst) in dag.op_nodes(false) {
             let qubits = dag.get_qargs(inst.qubits);
             if let Some(control_flow) = dag.try_view_control_flow(inst) {
-                let repeats = if let ControlFlowView::ForLoop { indexset, .. } = control_flow {
-                    repeats * indexset.len()
+                let repeats = if let ControlFlowView::ForLoop { collection, .. } = control_flow {
+                    repeats * collection.len()
                 } else {
                     repeats
                 };
@@ -733,7 +733,7 @@ pub fn vf2_layout_pass_average(
     target: &Target,
     config: &Vf2PassConfiguration,
     strict_direction: bool,
-    avg_error_map: Option<ErrorMap>,
+    avg_error_map: Option<&ErrorMap>,
 ) -> PyResult<Vf2PassReturn> {
     let add_interaction = |count: &mut usize, _: &PackedInstruction, repeats: usize| {
         *count += repeats;
@@ -744,10 +744,14 @@ pub fn vf2_layout_pass_average(
 
     let score =
         |count: &usize, err: &f64| -> Result<f64, Infallible> { Ok(*err * (*count as f64)) };
-    let Some(avg_error_map) = avg_error_map.or_else(|| build_average_error_map(target)) else {
+    let target_error_map = avg_error_map
+        .is_none()
+        .then(|| build_average_error_map(target))
+        .flatten();
+    let Some(avg_error_map) = avg_error_map.or(target_error_map.as_ref()) else {
         return Ok(Vf2PassReturn::NoSolution);
     };
-    let Some(mut coupling_graph) = build_average_coupling_map(target, &avg_error_map) else {
+    let Some(mut coupling_graph) = build_average_coupling_map(target, avg_error_map) else {
         return Ok(Vf2PassReturn::NoSolution);
     };
     if !strict_direction {
@@ -787,7 +791,7 @@ pub fn vf2_layout_pass_average(
         .iter()
         .map(|(k, v)| (interactions.nodes[k.index()], coupling_qubits[v.index()]))
         .collect();
-    match map_free_qubits(num_physical_qubits, interactions, mapping, &avg_error_map) {
+    match map_free_qubits(num_physical_qubits, interactions, mapping, avg_error_map) {
         Some(mapping) => Ok(Vf2PassReturn::Solution(mapping)),
         None => Ok(Vf2PassReturn::NoSolution),
     }

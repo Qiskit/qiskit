@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -210,7 +210,7 @@ class Operator(LinearOp):
                 ``'latex_source'`` is selected for ``output``.
 
         """
-        # pylint: disable=cyclic-import
+
         from qiskit.visualization import array_to_latex
 
         default_output = "repr"
@@ -240,7 +240,7 @@ class Operator(LinearOp):
     def _ipython_display_(self):
         out = self.draw()
         if isinstance(out, str):
-            print(out)  # pylint: disable=bad-builtin
+            print(out)  # noqa: T201
         else:
             from IPython.display import display
 
@@ -425,7 +425,7 @@ class Operator(LinearOp):
             if not ignore_set_layout:
                 layout = getattr(circuit, "_layout", None)
         else:
-            from qiskit.transpiler.layout import TranspileLayout  # pylint: disable=cyclic-import
+            from qiskit.transpiler.layout import TranspileLayout
 
             layout = TranspileLayout(
                 initial_layout=layout,
@@ -477,7 +477,7 @@ class Operator(LinearOp):
 
     def to_instruction(self):
         """Convert to a UnitaryGate instruction."""
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit.library.generalized_gates.unitary import UnitaryGate
 
         return UnitaryGate(self.data)
@@ -655,7 +655,7 @@ class Operator(LinearOp):
             QiskitError: if other is not an operator, or has incompatible
                          dimensions.
         """
-        # pylint: disable=cyclic-import
+
         from qiskit.quantum_info.operators.scalar_op import ScalarOp
 
         if qargs is None:
@@ -797,7 +797,6 @@ class Operator(LinearOp):
         # However, for backward compatibility we need to support constructing matrices
         # for Cliffords, which happen to have a to_matrix() method.
 
-        # pylint: disable=cyclic-import
         from qiskit.quantum_info import Clifford
         from qiskit.circuit.annotated_operation import AnnotatedOperation
 

@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -14,7 +14,7 @@
 """Common preset passmanager generators."""
 
 import collections
-from typing import Optional
+
 
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
@@ -213,7 +213,7 @@ def generate_unroll_3q(
         qubits_initially_zero (bool): Indicates whether the input circuit is
             zero-initialized.
         optimization_metric (OptimizationMetric): the :class:`~.OptimizationMetric` object
-            that the metric used when optimizing the unrolling.
+            that defines the metric used when optimizing the unrolling.
 
     Returns:
         PassManager: The unroll 3q or more pass manager
@@ -258,7 +258,7 @@ def generate_embed_passmanager(coupling_map):
     that can be used to expand and apply an initial layout to a circuit
 
     Args:
-        coupling_map (Union[CouplingMap, Target): The coupling map for the backend to embed
+        coupling_map (Union[CouplingMap, Target]): The coupling map for the backend to embed
             the circuit to.
     Returns:
         PassManager: The embedding passmanager that assumes the layout property
@@ -529,7 +529,7 @@ def generate_translation_passmanager(
             # in basis_gates. The BasisTranslator will do the conversion if possible (and provide
             # a helpful error message otherwise).
             BasisTranslator(sel, extended_basis_gates, None),
-            # The next step is to resynthesize blocks of consecutive 1q-gates into ["h", "t", "tdg"].
+            # The next step is to resynthesize blocks of consecutive 1q-gates into Clifford+T.
             # Use Collect1qRuns and ConsolidateBlocks passes to replace such blocks by 1q "unitary"
             # gates.
             Collect1qRuns(),
@@ -542,18 +542,22 @@ def generate_translation_passmanager(
             # We use the "clifford" unitary synthesis plugin to replace single-qubit
             # unitary gates that can be represented as Cliffords by Clifford gates.
             UnitarySynthesis(method="clifford", plugin_config={"max_qubits": 1}),
-            # We use the Solovay-Kitaev decomposition via the plugin mechanism for "sk"
-            # UnitarySynthesisPlugin.
+            # We decompose single-qubit unitary gates using the UnitarySynthesisPlugin interface.
+            # By default it's the "default" method (which currently calls the Solovay-Kitaev
+            # decomposition). If a custom ``unitary_synthesis_method`` method is specified, it should
+            # either return the synthesized circuit in the Clifford+T basis set, or ``None``
+            # in which case the default method would be called as fallback.
             UnitarySynthesis(
-                basis_gates=["h", "t", "tdg"],
+                basis_gates=basis_gates,
                 approximation_degree=approximation_degree,
                 coupling_map=coupling_map,
                 plugin_config=unitary_synthesis_plugin_config,
-                method="sk",
+                method=unitary_synthesis_method,
                 min_qubits=1,
                 target=None,
+                fallback_on_default=True,
             ),
-            # Finally, we use BasisTranslator to translate ["h", "t", "tdg"] to the actually
+            # Finally, we use BasisTranslator to translate Clifford+T circuit to the actually
             # specified set of basis gates.
             BasisTranslator(sel, basis_gates, target),
         ]
@@ -726,14 +730,14 @@ VF2Limits = collections.namedtuple("VF2Limits", ("call_limit", "max_trials"))
 
 def get_vf2_limits(
     optimization_level: int,
-    layout_method: Optional[str] = None,
-    initial_layout: Optional[Layout] = None,
+    layout_method: str | None = None,
+    initial_layout: Layout | None = None,
     exact_match: bool = False,
 ) -> VF2Limits:
     """Get the VF2 limits for VF2-based layout passes.
 
     Returns:
-        VF2Limits: An namedtuple with optional elements
+        VF2Limits: A namedtuple with optional elements
         ``call_limit`` and ``max_trials``.
     """
     limits = VF2Limits(None, None)

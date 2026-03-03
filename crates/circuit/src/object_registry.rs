@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -18,6 +18,42 @@ use pyo3::types::PyList;
 use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
 use std::sync::OnceLock;
+use thiserror::Error;
+
+/// This struct models the error conditions that can be raised from the
+/// rust methods of the [ObjectRegistry] struct. The goal is to explicitly
+/// enumerate all the error types that are returned by these functions and
+/// make it clear that the return type is part of the interface.
+///
+/// In the the future it is expected this single enum will be replaced by per
+/// method error types to make it even more obvious, but this is a step
+/// towards that as we migrate from Python -> Rust.
+#[non_exhaustive]
+#[derive(Error, Debug)]
+pub enum ObjectRegistryError {
+    #[error("Object {0} has not been added to this circuit.")]
+    ObjectMissing(String),
+    #[error("Cannot add object {0}, which would exceed circuit capacity for its kind.")]
+    ExceedsCapacity(String),
+    #[error("Existing object {0} cannot be re-added in strict mode.")]
+    DuplicateObject(String),
+}
+
+impl From<ObjectRegistryError> for PyErr {
+    fn from(error: ObjectRegistryError) -> Self {
+        match error {
+            ObjectRegistryError::ObjectMissing(b) => {
+                PyKeyError::new_err(format!("Object {b} has not been added to this circuit."))
+            }
+            ObjectRegistryError::ExceedsCapacity(b) => PyRuntimeError::new_err(format!(
+                "Cannot add object {b}, which would exceed circuit capacity for its kind.",
+            )),
+            ObjectRegistryError::DuplicateObject(b) => PyValueError::new_err(format!(
+                "Existing object {b} cannot be re-added in strict mode."
+            )),
+        }
+    }
+}
 
 /// Wrapper for Python-side objects that implements [Hash] and [Eq], allowing them to be
 /// used in Rust hash-based sets and maps.
@@ -193,13 +229,14 @@ where
     pub fn map_objects<U: IntoIterator<Item = B>>(
         &self,
         objects: U,
-    ) -> PyResult<impl Iterator<Item = T> + use<T, B, U>> {
+    ) -> Result<impl Iterator<Item = T> + use<T, B, U>, ObjectRegistryError> {
         let v: Result<Vec<_>, _> = objects
             .into_iter()
             .map(|b| {
-                self.indices.get(&b).copied().ok_or_else(|| {
-                    PyKeyError::new_err(format!("Object {b:?} has not been added to this circuit."))
-                })
+                self.indices
+                    .get(&b)
+                    .copied()
+                    .ok_or_else(|| ObjectRegistryError::ObjectMissing(format!("{b:?}")))
             })
             .collect();
         v.map(|x| x.into_iter())
@@ -225,12 +262,12 @@ where
     }
 
     /// Registers a new object, automatically creating a unique index within the registry.
-    pub fn add(&mut self, object: B, strict: bool) -> PyResult<T> {
-        let idx: u32 = self.objects.len().try_into().map_err(|_| {
-            PyRuntimeError::new_err(format!(
-                "Cannot add object {object:?}, which would exceed circuit capacity for its kind.",
-            ))
-        })?;
+    pub fn add(&mut self, object: B, strict: bool) -> Result<T, ObjectRegistryError> {
+        let idx: u32 = self
+            .objects
+            .len()
+            .try_into()
+            .map_err(|_| ObjectRegistryError::ExceedsCapacity(format!("{object:?}")))?;
         // Dump the cache
         self.cached.take();
         match self.indices.try_insert(object.clone(), idx.into()) {
@@ -239,9 +276,7 @@ where
                 Ok(idx.into())
             }
             Err(OccupiedError { entry, .. }) if !strict => Ok(*entry.get()),
-            _ => Err(PyValueError::new_err(format!(
-                "Existing object {object:?} cannot be re-added in strict mode."
-            ))),
+            _ => Err(ObjectRegistryError::DuplicateObject(format!("{object:?}"))),
         }
     }
 
@@ -254,7 +289,7 @@ where
         Ok(())
     }
 
-    pub fn remove_indices<I>(&mut self, indices: I) -> PyResult<()>
+    pub fn remove_indices<I>(&mut self, indices: I)
     where
         I: IntoIterator<Item = T>,
     {
@@ -272,7 +307,6 @@ where
         for (i, object) in self.objects.iter().enumerate() {
             self.indices.insert(object.clone(), (i as u32).into());
         }
-        Ok(())
     }
 
     /// Called during Python garbage collection, only!.

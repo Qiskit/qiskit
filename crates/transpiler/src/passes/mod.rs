@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -29,6 +29,7 @@ mod basis_translator;
 mod check_map;
 mod commutation_analysis;
 mod commutation_cancellation;
+mod commutative_optimization;
 mod consolidate_blocks;
 mod dense_layout;
 mod disjoint_layout;
@@ -62,6 +63,7 @@ pub use basis_translator::{basis_translator_mod, run_basis_translator};
 pub use check_map::{check_map_mod, run_check_map};
 pub use commutation_analysis::{analyze_commutations, commutation_analysis_mod};
 pub use commutation_cancellation::{cancel_commutations, commutation_cancellation_mod};
+pub use commutative_optimization::{commutative_optimization_mod, run_commutative_optimization};
 pub use consolidate_blocks::{DecomposerType, consolidate_blocks_mod, run_consolidate_blocks};
 pub use dense_layout::{best_subset, dense_layout_mod};
 pub use disjoint_layout::{combine_barriers, disjoint_utils_mod, distribute_components};
@@ -90,7 +92,9 @@ pub use remove_diagonal_gates_before_measure::{
 pub use remove_identity_equiv::{remove_identity_equiv_mod, run_remove_identity_equiv};
 pub use split_2q_unitaries::{run_split_2q_unitaries, split_2q_unitaries_mod};
 pub use substitute_pi4_rotations::{py_run_substitute_pi4_rotations, substitute_pi4_rotations_mod};
-pub use unitary_synthesis::{run_unitary_synthesis, unitary_synthesis_mod};
+pub use unitary_synthesis::{
+    UnitarySynthesisConfig, UnitarySynthesisState, run_unitary_synthesis, unitary_synthesis_mod,
+};
 pub use unroll_3q_or_more::{run_unroll_3q_or_more, unroll_3q_or_more_mod};
 pub use vf2::{error_map_mod, vf2_layout_mod, vf2_layout_pass_average, vf2_layout_pass_exact};
 pub use wrap_angles::{run_wrap_angles, wrap_angles_mod};

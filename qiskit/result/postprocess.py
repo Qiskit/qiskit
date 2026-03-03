@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -182,7 +182,7 @@ def format_statevector(vec, decimals=None):
     Returns:
         list[complex]: a list of python complex numbers.
     """
-    # pylint: disable=cyclic-import
+
     from qiskit.quantum_info.states.statevector import Statevector
 
     if isinstance(vec, Statevector):
@@ -217,7 +217,7 @@ def format_unitary(mat, decimals=None):
     Returns:
         list[list[complex]]: a matrix of complex numbers
     """
-    # pylint: disable=cyclic-import
+
     from qiskit.quantum_info.operators.operator import Operator
 
     if isinstance(mat, Operator):

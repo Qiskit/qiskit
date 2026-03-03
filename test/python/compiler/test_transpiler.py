@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -92,8 +92,12 @@ from qiskit.quantum_info import Operator, random_unitary
 from qiskit.utils import should_run_in_parallel
 from qiskit.transpiler import CouplingMap, Layout, PassManager, passes
 from qiskit.transpiler.exceptions import TranspilerError, CircuitTooWideForTarget
-from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, GateDirection, VF2PostLayout
-from qiskit.transpiler.passes.utils.wrap_angles import WRAP_ANGLE_REGISTRY
+from qiskit.transpiler.passes import (
+    BarrierBeforeFinalMeasurements,
+    GateDirection,
+    VF2PostLayout,
+    WrapAngles,
+)
 
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager, level_0_pass_manager
@@ -101,7 +105,7 @@ from qiskit.transpiler.target import InstructionProperties, Target
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler import WrapAngleRegistry
 
-from test import QiskitTestCase, combine, slow_test  # pylint: disable=wrong-import-order
+from test import QiskitTestCase, combine, slow_test
 
 from ..legacy_cmaps import MELBOURNE_CMAP, RUESCHLIKON_CMAP, TOKYO_CMAP, MUMBAI_CMAP
 
@@ -2096,7 +2100,7 @@ class TestTranspile(QiskitTestCase):
         self.assertNotIn("barrier", tqc.count_ops())
 
     @data(0, 1, 2, 3)
-    def test_barrier_not_output_input_preservered(self, opt_level):
+    def test_barrier_not_output_input_preserved(self, opt_level):
         """Test that barriers added as part internal transpiler operations do not leak out."""
         qc = QuantumCircuit(2, 2)
         qc.cx(0, 1)
@@ -2178,7 +2182,7 @@ class TestTranspile(QiskitTestCase):
         target.add_instruction(XGate(), {(i,): None for i in range(5)})
         target.add_instruction(SXGate(), {(i,): None for i in range(5)})
         target.add_instruction(RZGate(Parameter("a")), {(i,): None for i in range(5)})
-        target.add_instruction(CZGate(), {pair: None for pair in CouplingMap.from_line(5)})
+        target.add_instruction(CZGate(), dict.fromkeys(CouplingMap.from_line(5)))
         target.add_instruction(IfElseOp, name="if_else")
 
         self.assertEqual(
@@ -2189,7 +2193,7 @@ class TestTranspile(QiskitTestCase):
     @data(0, 1, 2, 3)
     def test_no_cancelling_around_box(self, level):
         """Test that operations aren't cancelled through the walls of a 'box'."""
-        # In linear opeartion, we do cz(0,1) - cz(0,1) - cx(1,2) - cx(1,2), so without the `box`,
+        # In linear operation, we do cz(0,1) - cz(0,1) - cx(1,2) - cx(1,2), so without the `box`,
         # the circuit would optimise to the identity.  We want to be sure that the box itself is
         # treated as atomic, though.
         qc = QuantumCircuit(3)
@@ -2202,8 +2206,8 @@ class TestTranspile(QiskitTestCase):
         target = Target(3)
         target.add_instruction(SXGate(), {(i,): None for i in range(3)})
         target.add_instruction(RZGate(Parameter("a")), {(i,): None for i in range(3)})
-        target.add_instruction(CZGate(), {pair: None for pair in CouplingMap.from_line(3)})
-        target.add_instruction(CXGate(), {pair: None for pair in CouplingMap.from_line(3)})
+        target.add_instruction(CZGate(), dict.fromkeys(CouplingMap.from_line(3)))
+        target.add_instruction(CXGate(), dict.fromkeys(CouplingMap.from_line(3)))
         target.add_instruction(BoxOp, name="box")
 
         out = transpile(qc, target=target, optimization_level=level, initial_layout=[0, 1, 2])
@@ -2221,7 +2225,7 @@ class TestTranspile(QiskitTestCase):
         target = Target(3)
         target.add_instruction(SXGate(), {(i,): None for i in range(3)})
         target.add_instruction(RZGate(Parameter("a")), {(i,): None for i in range(3)})
-        target.add_instruction(CZGate(), {pair: None for pair in CouplingMap.from_line(3)})
+        target.add_instruction(CZGate(), dict.fromkeys(CouplingMap.from_line(3)))
         target.add_instruction(BoxOp, name="box")
 
         out = transpile(qc, target=target, optimization_level=level, initial_layout=[0, 1, 2])
@@ -2242,7 +2246,7 @@ class TestTranspile(QiskitTestCase):
         target = Target(num_qubits)
         target.add_instruction(SXGate(), {(i,): None for i in range(num_qubits)})
         target.add_instruction(RZGate(Parameter("a")), {(i,): None for i in range(num_qubits)})
-        target.add_instruction(CZGate(), {pair: None for pair in CouplingMap.from_line(num_qubits)})
+        target.add_instruction(CZGate(), dict.fromkeys(CouplingMap.from_line(num_qubits)))
         target.add_instruction(BoxOp, name="box")
 
         out = transpile(
@@ -2845,7 +2849,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
 
         # When the annotation framework expands to have more semantics, the test here might need to
         # expand to mark the custom annotations as being safe under any circuit transformation.
-        class Custom(Annotation):  # pylint: disable=missing-class-docstring
+        class Custom(Annotation):
             namespace = "custom"
 
             def __init__(self, value):
@@ -3201,7 +3205,7 @@ class TestTranspileParallel(QiskitTestCase):
                     check=False,
                 )
             else:
-                raise RuntimeError()
+                raise RuntimeError
 
             if pi < angle % (4 * pi) < 3 * pi:
                 new_dag.global_phase += pi
@@ -3234,18 +3238,12 @@ class TestTranspileParallel(QiskitTestCase):
             CZGate(),
             {(0, 1): InstructionProperties(error=5e-3), (1, 0): InstructionProperties(error=5e-3)},
         )
-        global WRAP_ANGLE_REGISTRY  # pylint: disable=global-statement
-        WRAP_ANGLE_REGISTRY.add_wrapper("rzz", fold_rzz)
-
-        def cleanup_wrap_registry():
-            global WRAP_ANGLE_REGISTRY  # pylint: disable=global-statement
-            WRAP_ANGLE_REGISTRY = WrapAngleRegistry()
-
-        self.addCleanup(cleanup_wrap_registry)
-
-        transpiled = transpile(
-            circs, target=target, optimization_level=opt_level, seed_transpiler=1234567890
-        )
+        registry = WrapAngleRegistry()
+        registry.add_wrapper("rzz", fold_rzz)
+        with patch.object(WrapAngles, "DEFAULT_REGISTRY", registry):
+            transpiled = transpile(
+                circs, target=target, optimization_level=opt_level, seed_transpiler=1234567890
+            )
 
         self.assertTrue(Operator.from_circuit(transpiled[0]).equiv(Operator.from_circuit(circs[0])))
         self.assertTrue(Operator.from_circuit(transpiled[1]).equiv(Operator.from_circuit(circs[1])))

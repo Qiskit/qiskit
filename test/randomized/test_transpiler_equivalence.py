@@ -4,12 +4,12 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-# pylint: disable=invalid-name
+
 
 """Randomized tests of transpiler circuit equivalence.
 
@@ -64,11 +64,35 @@ from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit import Measure, Reset, Barrier
 from qiskit.providers.fake_provider import GenericBackendV2
 
-# pylint: disable=wildcard-import,unused-wildcard-import
-from qiskit.circuit.library.standard_gates import *
+
+from qiskit.circuit.library.standard_gates import (
+    HGate,
+    IGate,
+    SGate,
+    SdgGate,
+    TGate,
+    TdgGate,
+    XGate,
+    YGate,
+    ZGate,
+    CXGate,
+    CYGate,
+    CZGate,
+    SwapGate,
+    CCXGate,
+    CSwapGate,
+    PhaseGate,
+    RXGate,
+    RYGate,
+    RZGate,
+    UGate,
+    RZZGate,
+    CPhaseGate,
+    CUGate,
+)
 from ..python.legacy_cmaps import ALMADEN_CMAP, KYOTO_CMAP
 
-from qiskit_aer import AerSimulator  # pylint: disable=wrong-import-order
+from qiskit_aer import AerSimulator
 
 default_profile = "transpiler_equivalence"
 settings.register_profile(
@@ -261,7 +285,7 @@ class QCircuitMachine(RuleBasedStateMachine):
             + ", ".join(f"{key:s}={value!r}" for key, value in kwargs.items() if value is not None)
             + ")"
         )
-        print(f"Evaluating {call} for:\n{qasm2.dumps(self.qc)}")  # pylint: disable=bad-builtin
+        print(f"Evaluating {call} for:\n{qasm2.dumps(self.qc)}")  # noqa: T201
 
         shots = 4096
 

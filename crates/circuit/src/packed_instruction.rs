@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -20,12 +20,12 @@ use crate::instruction::Parameters;
 use crate::interner::Interned;
 use crate::operations::{
     ControlFlow, ControlFlowInstruction, Operation, OperationRef, Param, PauliProductMeasurement,
-    PyGate, PyInstruction, PyOperation, PythonOperation, StandardGate, StandardInstruction,
-    UnitaryGate,
+    PyOperationTypes, PythonOperation, StandardGate, StandardInstruction, UnitaryGate,
 };
 use crate::{Block, Clbit, Qubit};
+use hashbrown::HashMap;
 use nalgebra::Matrix2;
-use ndarray::Array2;
+use ndarray::{Array2, CowArray, Ix2};
 use num_complex::Complex64;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyType};
@@ -42,19 +42,17 @@ enum PackedOperationType {
     // dereferencing.
     StandardGate = 0,
     StandardInstruction = 1,
-    PyGate = 2,
-    PyInstruction = 3,
-    PyOperation = 4,
-    UnitaryGate = 5,
-    PauliProductMeasurement = 6,
-    ControlFlow = 7,
+    PyOperationTypes = 2,
+    UnitaryGate = 3,
+    PauliProductMeasurement = 4,
+    ControlFlow = 5,
 }
 
 unsafe impl ::bytemuck::CheckedBitPattern for PackedOperationType {
     type Bits = u8;
 
     fn is_valid_bit_pattern(bits: &Self::Bits) -> bool {
-        *bits < 8
+        *bits < 6
     }
 }
 unsafe impl ::bytemuck::NoUninit for PackedOperationType {}
@@ -67,9 +65,7 @@ unsafe impl ::bytemuck::NoUninit for PackedOperationType {}
 /// enum Operation {
 ///     StandardGate(StandardGate),
 ///     StandardInstruction(StandardInstruction),
-///     Gate(Box<PyGate>),
-///     Instruction(Box<PyInstruction>),
-///     Operation(Box<PyOperation>),
+///     PyOperation(Box<PyOperationTypes>),
 ///     UnitaryGate(Box<UnitaryGate>),
 ///     PauliProductMeasurement(Box<PauliProductMeasurement>),
 ///     ControlFlow(Box<ControlFlowInstruction>),
@@ -260,8 +256,7 @@ mod standard_instruction {
 /// A private module to encapsulate the encoding of pointer types.
 mod pointer {
     use crate::operations::{
-        ControlFlowInstruction, PauliProductMeasurement, PyGate, PyInstruction, PyOperation,
-        UnitaryGate,
+        ControlFlowInstruction, PauliProductMeasurement, PyOperationTypes, UnitaryGate,
     };
     use crate::packed_instruction::{PackedOperation, PackedOperationType};
     use std::ptr::NonNull;
@@ -341,9 +336,7 @@ mod pointer {
         };
     }
 
-    impl_packable_pointer!(PyGate, PackedOperationType::PyGate);
-    impl_packable_pointer!(PyInstruction, PackedOperationType::PyInstruction);
-    impl_packable_pointer!(PyOperation, PackedOperationType::PyOperation);
+    impl_packable_pointer!(PyOperationTypes, PackedOperationType::PyOperationTypes);
     impl_packable_pointer!(UnitaryGate, PackedOperationType::UnitaryGate);
     impl_packable_pointer!(
         PauliProductMeasurement,
@@ -415,15 +408,33 @@ impl PackedOperation {
             PackedOperationType::StandardInstruction => {
                 OperationRef::StandardInstruction(self.standard_instruction())
             }
-            PackedOperationType::PyGate => OperationRef::Gate(self.try_into().unwrap()),
-            PackedOperationType::PyInstruction => {
-                OperationRef::Instruction(self.try_into().unwrap())
+            PackedOperationType::PyOperationTypes => {
+                let op: &PyOperationTypes = self.try_into().unwrap();
+                match op {
+                    PyOperationTypes::Gate(gate) => OperationRef::Gate(gate),
+                    PyOperationTypes::Instruction(inst) => OperationRef::Instruction(inst),
+                    PyOperationTypes::Operation(op) => OperationRef::Operation(op),
+                }
             }
-            PackedOperationType::PyOperation => OperationRef::Operation(self.try_into().unwrap()),
             PackedOperationType::UnitaryGate => OperationRef::Unitary(self.try_into().unwrap()),
             PackedOperationType::PauliProductMeasurement => {
                 OperationRef::PauliProductMeasurement(self.try_into().unwrap())
             }
+        }
+    }
+
+    /// Does this [PackedOperation] represent an explicit gate?
+    ///
+    /// This can be either a [StandardGate] or a [PyGate].
+    #[inline]
+    pub fn is_gate(&self) -> bool {
+        if matches!(self.discriminant(), PackedOperationType::StandardGate) {
+            true
+        } else if matches!(self.discriminant(), PackedOperationType::PyOperationTypes) {
+            let op: &PyOperationTypes = self.try_into().unwrap();
+            matches!(op, PyOperationTypes::Gate(_))
+        } else {
+            false
         }
     }
 
@@ -441,20 +452,8 @@ impl PackedOperation {
 
     /// Construct a new `PackedOperation` from an owned heap-allocated `PyGate`.
     #[inline]
-    pub fn from_gate(gate: Box<PyGate>) -> Self {
-        gate.into()
-    }
-
-    /// Construct a new `PackedOperation` from an owned heap-allocated `PyInstruction`.
-    #[inline]
-    pub fn from_instruction(instruction: Box<PyInstruction>) -> Self {
-        instruction.into()
-    }
-
-    /// Construct a new `PackedOperation` from an owned heap-allocated `PyOperation`.
-    #[inline]
-    pub fn from_operation(operation: Box<PyOperation>) -> Self {
-        operation.into()
+    pub fn from_py_operation(op: Box<PyOperationTypes>) -> Self {
+        op.into()
     }
 
     /// Construct a new `PackedOperation` from an owned heap-allocated `UnitaryGate`.
@@ -487,13 +486,13 @@ impl PackedOperation {
                 Ok(left == right)
             }
             (OperationRef::Gate(left), OperationRef::Gate(right)) => {
-                left.gate.bind(py).eq(&right.gate)
+                left.instruction.bind(py).eq(&right.instruction)
             }
             (OperationRef::Instruction(left), OperationRef::Instruction(right)) => {
                 left.instruction.bind(py).eq(&right.instruction)
             }
             (OperationRef::Operation(left), OperationRef::Operation(right)) => {
-                left.operation.bind(py).eq(&right.operation)
+                left.instruction.bind(py).eq(&right.instruction)
             }
             (OperationRef::Unitary(left), OperationRef::Unitary(right)) => Ok(left == right),
             (
@@ -563,9 +562,9 @@ impl PackedOperation {
                     }
                 };
             }
-            OperationRef::Gate(gate) => gate.gate.bind(py),
+            OperationRef::Gate(gate) => gate.instruction.bind(py),
             OperationRef::Instruction(instruction) => instruction.instruction.bind(py),
-            OperationRef::Operation(operation) => operation.operation.bind(py),
+            OperationRef::Operation(operation) => operation.instruction.bind(py),
             OperationRef::Unitary(_) => {
                 return UNITARY_GATE
                     .get_bound(py)
@@ -634,12 +633,14 @@ impl Clone for PackedOperation {
             OperationRef::StandardInstruction(instruction) => {
                 Self::from_standard_instruction(instruction)
             }
-            OperationRef::Gate(gate) => Self::from_gate(Box::new(gate.to_owned())),
-            OperationRef::Instruction(instruction) => {
-                Self::from_instruction(Box::new(instruction.to_owned()))
+            OperationRef::Gate(gate) => {
+                Self::from_py_operation(Box::new(PyOperationTypes::Gate(gate.to_owned())))
             }
+            OperationRef::Instruction(instruction) => Self::from_py_operation(Box::new(
+                PyOperationTypes::Instruction(instruction.to_owned()),
+            )),
             OperationRef::Operation(operation) => {
-                Self::from_operation(Box::new(operation.to_owned()))
+                Self::from_py_operation(Box::new(PyOperationTypes::Operation(operation.to_owned())))
             }
             OperationRef::Unitary(unitary) => Self::from_unitary(Box::new(unitary.clone())),
             OperationRef::PauliProductMeasurement(ppm) => Self::from_ppm(Box::new(ppm.clone())),
@@ -652,9 +653,7 @@ impl Drop for PackedOperation {
         use crate::packed_instruction::pointer::PackablePointer;
         match self.discriminant() {
             PackedOperationType::StandardGate | PackedOperationType::StandardInstruction => (),
-            PackedOperationType::PyGate => PyGate::drop_packed(self),
-            PackedOperationType::PyInstruction => PyInstruction::drop_packed(self),
-            PackedOperationType::PyOperation => PyOperation::drop_packed(self),
+            PackedOperationType::PyOperationTypes => PyOperationTypes::drop_packed(self),
             PackedOperationType::UnitaryGate => UnitaryGate::drop_packed(self),
             PackedOperationType::PauliProductMeasurement => {
                 PauliProductMeasurement::drop_packed(self)
@@ -771,6 +770,28 @@ impl PackedInstruction {
             .unwrap_or_default()
     }
 
+    /// Get a clone of this instruction with the blocks (if any) remapped to new indices.
+    ///
+    /// You probably don't want to use this directly; use `BlockMapper::map_instruction` instead,
+    /// which remembers the blocks it's already encountered.
+    pub fn map_blocks(&self, mut map: impl FnMut(Block) -> Block) -> Self {
+        let params = match self.params.as_deref() {
+            Some(Parameters::Params(_)) | None => self.params.clone(),
+            Some(Parameters::Blocks(blocks)) => Some(Box::new(Parameters::Blocks(
+                blocks.iter().map(|b| map(*b)).collect(),
+            ))),
+        };
+        Self {
+            op: self.op.clone(),
+            qubits: self.qubits,
+            clbits: self.clbits,
+            params,
+            label: self.label.clone(),
+            #[cfg(feature = "cache_pygates")]
+            py_op: self.py_op.clone(),
+        }
+    }
+
     /// Does this instruction contain any compile-time symbolic `ParameterExpression`s?
     pub fn is_parameterized(&self) -> bool {
         self.params.as_deref().is_some_and(|p| match p {
@@ -785,9 +806,15 @@ impl PackedInstruction {
         memo: Option<&Bound<'py, PyDict>>,
     ) -> PyResult<()> {
         match self.op.view() {
-            OperationRef::Gate(gate) => self.op = gate.py_deepcopy(py, memo)?.into(),
-            OperationRef::Instruction(inst) => self.op = inst.py_deepcopy(py, memo)?.into(),
-            OperationRef::Operation(op) => self.op = op.py_deepcopy(py, memo)?.into(),
+            OperationRef::Gate(gate) => {
+                self.op = PyOperationTypes::Gate(gate.py_deepcopy(py, memo)?).into()
+            }
+            OperationRef::Instruction(inst) => {
+                self.op = PyOperationTypes::Instruction(inst.py_deepcopy(py, memo)?).into()
+            }
+            OperationRef::Operation(op) => {
+                self.op = PyOperationTypes::Operation(op.py_deepcopy(py, memo)?).into()
+            }
             _ => (),
         };
         if let Some(Parameters::Params(params)) = self.params.as_deref_mut() {
@@ -801,11 +828,28 @@ impl PackedInstruction {
         Ok(())
     }
 
+    /// Extract an owned `ndarray` matrix from this instruction, if available.
+    ///
+    /// The returned value is always owned.  If you may be able to handle a read-only reference, see
+    /// [try_cow_array] instead.
     pub fn try_matrix(&self) -> Option<Array2<Complex64>> {
         match self.op.view() {
             OperationRef::StandardGate(g) => g.matrix(self.params_view()),
             OperationRef::Gate(g) => g.matrix(),
             OperationRef::Unitary(u) => u.matrix(),
+            _ => None,
+        }
+    }
+
+    /// Extract an `ndarray` matrix from this instruction, if available.
+    ///
+    /// The returned value will preferentially be a view, if the matrix already exists (e.g. for
+    /// `Unitary`).
+    pub fn try_cow_array(&self) -> Option<CowArray<'_, Complex64, Ix2>> {
+        match self.op.view() {
+            OperationRef::StandardGate(g) => g.matrix(self.params_view()).map(CowArray::from),
+            OperationRef::Gate(g) => g.matrix().map(CowArray::from),
+            OperationRef::Unitary(u) => Some(CowArray::from(u.matrix_view())),
             _ => None,
         }
     }
@@ -839,6 +883,51 @@ impl PackedInstruction {
             OperationRef::Gate(g) => g.definition(),
             OperationRef::Instruction(i) => i.definition(),
             _ => None,
+        }
+    }
+}
+
+/// Helper "memory" struct for mapping `PackedInstruction`s to have different blocks in another
+/// circuit.
+///
+/// Typically you construct this, then repeatedly call `map_instruction`.
+#[derive(Clone, Debug, Default)]
+pub struct BlockMapper(HashMap<Block, Block>);
+impl BlockMapper {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Get a clone of a `PackedInstruction`, remapping the blocks inside to new values.
+    ///
+    /// This remembers any `Block`s previously seen by this struct, and only calls `add_block` the
+    /// first time each block is encountered.
+    pub fn map_instruction(
+        &mut self,
+        inst: &PackedInstruction,
+        mut add_block: impl FnMut(Block) -> Block,
+    ) -> PackedInstruction {
+        inst.map_blocks(|b| *self.0.entry(b).or_insert_with(|| add_block(b)))
+    }
+
+    /// Get a clone of a `Parameters<Block>`, remapping the blocks inside to new values.
+    ///
+    /// This remembers any `Block`s previously seen by this struct, and only calls `add_block` the
+    /// first time each block is encountered.
+    pub fn map_params(
+        &mut self,
+        params: &Parameters<Block>,
+        mut add_block: impl FnMut(Block) -> Block,
+    ) -> Parameters<Block> {
+        match params {
+            Parameters::Params(_) => params.clone(),
+            Parameters::Blocks(blocks) => Parameters::Blocks(
+                blocks
+                    .iter()
+                    .cloned()
+                    .map(|b| *self.0.entry(b).or_insert_with(|| add_block(b)))
+                    .collect(),
+            ),
         }
     }
 }
