@@ -17,7 +17,8 @@ from __future__ import annotations
 import warnings
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Any, Iterable, Union
+from typing import Any
+from collections.abc import Iterable
 
 import numpy as np
 from numpy.typing import NDArray
@@ -68,7 +69,7 @@ class _MeasureInfo:
     start: int
 
 
-ResultMemory = Union[list[str], list[list[float]], list[list[list[float]]]]
+ResultMemory = list[str] | list[list[float]] | list[list[list[float]]]
 """Type alias for possible level 2 and level 1 result memory formats. For level
 2, the format is a list of bit strings. For level 1, format can be either a
 list of I/Q pairs (list with two floats) for each memory slot if using

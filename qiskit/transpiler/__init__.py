@@ -145,7 +145,7 @@ this can be overridden by passing explicit ``<stage>_method="<choice>"`` argumen
 Reproducibility of the preset pipelines
 ---------------------------------------
 
-Quantum compilation often involves solving problems that are knownn to be non-polynomial in
+Quantum compilation often involves solving problems that are known to be non-polynomial in
 complexity, and so are intractable to globally optimize.  In these cases, stochastic and heuristic
 algorithms are often more appropriate.  This leads to problems of reproducibility, however.
 
@@ -154,7 +154,7 @@ to ensure reproducibility of a compilation, pass a known integer to the ``seed_t
 argument of the generator functions.
 
 All built-in plugins to Qiskit are required to produce their analyses and modify the
-:class:`.DAGCircuit` in deterministic ways if they randomization (if any) is seeded, so that a
+:class:`.DAGCircuit` in deterministic ways if their randomization (if any) is seeded, so that a
 compilation can be repeated later.  There are limits on this:
 
 * All built-in passes with stochastic components must provide a way to seed the randomization, and
@@ -1038,7 +1038,7 @@ Some tips for ensuring this include:
   ``HashMap`` and ``HashSet``, respectively; they have similar deterministic-iteration properties to
   Python's :class:`dict`.
 
-* If your pass as stochastic components, ensure that you accept a ``seed`` input, and make your
+* If your pass has stochastic components, ensure that you accept a ``seed`` input, and make your
   output pure if this is supplied as an integer.  Typically this means storing the seed, and
   instantiating a new pRNG from this seed at the start of each call to :meth:`.BasePass.run`.
 

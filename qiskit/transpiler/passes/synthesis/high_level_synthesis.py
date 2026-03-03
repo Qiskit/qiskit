@@ -205,18 +205,18 @@ class HighLevelSynthesis(TransformationPass):
         HighLevelSynthesis initializer.
 
         Args:
-            hls_config: Optional, the high-level-synthesis config that specifies synthesis methods
+            hls_config:  the high-level-synthesis config that specifies synthesis methods
                 and parameters for various high-level-objects in the circuit. If it is not specified,
                 the default synthesis methods and parameters will be used.
-            coupling_map: Optional, directed graph represented as a coupling map.
-            target: Optional, the backend target to use for this pass. If it is specified,
+            coupling_map:  directed graph represented as a coupling map.
+            target:  the backend target to use for this pass. If it is specified,
                 it will be used instead of the coupling map.
             use_qubit_indices: a flag indicating whether this synthesis pass is running before or after
                 the layout is set, that is, whether the qubit indices of higher-level-objects correspond
                 to qubit indices on the target backend.
             equivalence_library: The equivalence library used (instructions in this library will not
                 be unrolled by this pass).
-            basis_gates: Optional, target basis names to unroll to, e.g. `['u3', 'cx']`.
+            basis_gates:  target basis names to unroll to, e.g. `['u3', 'cx']`.
                 Ignored if ``target`` is also specified.
             min_qubits: The minimum number of qubits for operations in the input
                 dag to translate.

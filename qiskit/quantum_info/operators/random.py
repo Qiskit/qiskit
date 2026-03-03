@@ -22,7 +22,7 @@ from numpy.random import default_rng
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators import Operator, Stinespring
 
-# pylint: disable=unused-import
+
 from .dihedral.random import random_cnotdihedral
 from .symplectic.random import random_clifford, random_pauli, random_pauli_list
 

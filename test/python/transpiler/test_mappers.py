@@ -66,7 +66,6 @@ For example::
 ```
 """
 
-# pylint: disable=attribute-defined-outside-init
 
 import unittest
 import os
@@ -79,7 +78,7 @@ from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import BasicSwap, LookaheadSwap, SabreSwap
 from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler import CouplingMap, Layout
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class CommonUtilitiesMixin:
@@ -104,7 +103,6 @@ class CommonUtilitiesMixin:
         if initial_layout:
             passmanager.append(SetLayout(Layout(initial_layout)))
 
-        # pylint: disable=not-callable
         passmanager.append(self.pass_class(CouplingMap(coupling_map), **self.additional_args))
         return passmanager
 

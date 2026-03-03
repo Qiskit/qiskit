@@ -26,7 +26,7 @@ from qiskit.circuit import (
 from qiskit.circuit.library import HGate, Measure
 from qiskit.circuit.classical import expr, types
 from qiskit.converters import dag_to_circuit, circuit_to_dag
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestCircuitToDag(QiskitTestCase):

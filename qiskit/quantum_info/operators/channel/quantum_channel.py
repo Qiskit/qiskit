@@ -320,7 +320,6 @@ class QuantumChannel(LinearOp):
             QiskitError: if the quantum channel dimension does not match the
                          specified quantum state subsystem dimensions.
         """
-        pass
 
     @classmethod
     def _init_transformer(cls, data):

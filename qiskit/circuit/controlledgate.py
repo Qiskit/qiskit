@@ -14,14 +14,18 @@
 
 from __future__ import annotations
 import copy
-
+from typing import TYPE_CHECKING
 from qiskit.circuit.exceptions import CircuitError
 
-# pylint: disable=cyclic-import
+
 from . import QuantumRegister
 from .quantumcircuit import QuantumCircuit
 from .gate import Gate
 from ._utils import _ctrl_state_to_int
+
+
+if TYPE_CHECKING:
+    from qiskit.circuit.annotated_operation import AnnotatedOperation
 
 
 class ControlledGate(Gate):
@@ -34,7 +38,7 @@ class ControlledGate(Gate):
         params: list,
         label: str | None = None,
         num_ctrl_qubits: int | None = 1,
-        definition: "QuantumCircuit" | None = None,
+        definition: QuantumCircuit | None = None,
         ctrl_state: int | str | None = None,
         base_gate: Gate | None = None,
         *,
@@ -132,7 +136,7 @@ class ControlledGate(Gate):
             return super().definition
 
     @definition.setter
-    def definition(self, excited_def: "QuantumCircuit"):
+    def definition(self, excited_def: QuantumCircuit):
         """Set controlled gate definition with closed controls.
 
         Args:
@@ -264,7 +268,7 @@ class ControlledGate(Gate):
             and self.definition == other.definition
         )
 
-    def inverse(self, annotated: bool = False) -> "ControlledGate" | "AnnotatedOperation":
+    def inverse(self, annotated: bool = False) -> ControlledGate | AnnotatedOperation:
         """Invert this gate by calling inverse on the base gate."""
         if not annotated:
             inverse_gate = self.base_gate.inverse().control(

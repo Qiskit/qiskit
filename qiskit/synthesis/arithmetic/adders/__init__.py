@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Module containing multi-controlled circuits synthesis"""
+"""Module containing adder circuits synthesis"""
 
 from .cdkm_ripple_carry_adder import adder_ripple_c04
 from .vbe_ripple_carry_adder import adder_ripple_v95

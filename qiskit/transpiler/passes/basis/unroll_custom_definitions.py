@@ -98,7 +98,7 @@ class UnrollCustomDefinitions(TransformationPass):
             if unrolled is None:
                 # opaque node
                 raise QiskitError(
-                    f"Cannot unroll the circuit to the given basis, {str(self._basis_gates)}. "
+                    f"Cannot unroll the circuit to the given basis, {self._basis_gates!s}. "
                     f"Instruction {node.op.name} not found in equivalence library "
                     "and no rule found to expand."
                 )

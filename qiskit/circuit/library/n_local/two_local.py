@@ -24,7 +24,7 @@ from .n_local import NLocal
 from ..standard_gates import get_standard_gate_name_mapping
 
 if typing.TYPE_CHECKING:
-    import qiskit  # pylint: disable=cyclic-import
+    import qiskit
 
 
 class TwoLocal(NLocal):
@@ -204,6 +204,7 @@ class TwoLocal(NLocal):
             insert_barriers: If ``True``, barriers are inserted in between each layer. If ``False``,
                 no barriers are inserted. Defaults to ``False``.
             initial_state: A :class:`.QuantumCircuit` object to prepend to the circuit.
+            name: The name to use for the generated circuit.
             flatten: Set this to ``True`` to output a flat circuit instead of nesting it inside multiple
                 layers of gate objects. By default currently the contents of
                 the output circuit will be wrapped in nested objects for

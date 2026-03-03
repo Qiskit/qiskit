@@ -190,6 +190,7 @@ class PauliTwoDesign(TwoLocal):
             seed: The seed for randomly choosing the axes of the Pauli rotations.
             insert_barriers: If ``True``, barriers are inserted in between each layer. If ``False``,
                 no barriers are inserted. Defaults to ``False``.
+            name: The name to use for the generated circuit.
 
         """
         # store a random number generator

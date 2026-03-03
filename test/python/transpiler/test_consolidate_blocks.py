@@ -37,7 +37,7 @@ from qiskit.quantum_info.operators.measures import process_fidelity
 from qiskit.quantum_info.random import random_unitary
 from qiskit.transpiler import PassManager, Target, generate_preset_pass_manager
 from qiskit.transpiler.passes import ConsolidateBlocks, Collect1qRuns, Collect2qBlocks
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt

@@ -478,7 +478,7 @@ class DAGDependency:
         'predecessors' attribute. It has to be used when the DAGDependency() object
         is complete (i.e. converters).
         """
-        for node_id in range(0, len(self._multi_graph)):
+        for node_id in range(len(self._multi_graph)):
             self._multi_graph.get_node_data(node_id).predecessors = list(
                 rx.ancestors(self._multi_graph, node_id)
             )
@@ -505,8 +505,8 @@ class DAGDependency:
         """
         Draws the DAGDependency graph.
 
-        This function needs `pydot <https://github.com/erocarrera/pydot>`, which in turn needs
-        Graphviz <https://www.graphviz.org/>` to be installed.
+        This function needs `pydot <https://github.com/erocarrera/pydot>`_, which in turn needs
+        `Graphviz <https://www.graphviz.org/>`_ to be installed.
 
         Args:
             scale (float): scaling factor
@@ -515,7 +515,7 @@ class DAGDependency:
                          'color' (default): color input/output/op nodes
 
         Returns:
-            Ipython.display.Image: if in Jupyter notebook and not saving to file, otherwise None.
+            IPython.display.Image: if in Jupyter notebook and not saving to file, otherwise None.
         """
         from qiskit.visualization.dag_visualization import dag_drawer
 

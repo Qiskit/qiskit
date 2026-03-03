@@ -10,7 +10,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-# pylint: disable=bad-builtin
+
 
 """Utility to check that slow imports are not used in the default path."""
 
@@ -18,7 +18,7 @@ import subprocess
 import sys
 
 # This is not unused: importing it sets up sys.modules
-import qiskit  # pylint: disable=unused-import
+import qiskit
 
 
 def _main():

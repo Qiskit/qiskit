@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring
 
 import itertools
 import math
@@ -19,7 +18,7 @@ import sys
 import ddt
 
 import qiskit.qasm2
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt.ddt
@@ -188,7 +187,6 @@ class TestCustomClassical(QiskitTestCase):
     def test_evaluation_order(self):
         """We should be evaluating all functions, including custom user ones the exact number of
         times we expect, and left-to-right in parameter lists."""
-        # pylint: disable=invalid-name
 
         order = itertools.count()
 
