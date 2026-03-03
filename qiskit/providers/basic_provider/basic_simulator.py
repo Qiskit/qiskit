@@ -240,7 +240,7 @@ class BasicSimulator(BackendV2):
         Args:
             qubit: index indicating the qubit to measure
 
-        Return:
+        Returns:
             pair (outcome, probability) where outcome is '0' or '1' and
             probability is the probability of the returned outcome.
         """
@@ -325,9 +325,9 @@ class BasicSimulator(BackendV2):
         """Apply a reset instruction to a qubit.
 
         Args:
-            qubit: the qubit being rest
+            qubit: the qubit being reset
 
-        This is done by doing a simulating a measurement
+        This is done by simulating a measurement
         outcome and projecting onto the outcome state while
         renormalizing.
         """
