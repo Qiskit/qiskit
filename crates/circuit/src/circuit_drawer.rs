@@ -67,7 +67,11 @@ pub fn draw_circuit(
                 format!("global phase: {}\n", f)
             }
         }
-        _ => format!("global phase: {:?}\n", phase),
+        Param::ParameterExpression(expr) => {
+            let phase = expr.to_string();
+            format!("global phase: {}\n", phase)
+        }
+        _ => unreachable!("Global phase must be a ParameterExpression or float"),
     };
     output.extend(
         text_drawer
@@ -774,6 +778,7 @@ impl TextDrawer {
                         .iter()
                         .map(|param| match param {
                             Param::Float(f) => f.to_string(),
+                            Param::ParameterExpression(expr) => expr.to_string(),
                             _ => format!("{:?}", param),
                         })
                         .join(",");
@@ -894,14 +899,12 @@ impl TextDrawer {
                         let qargs = circuit.get_qargs(inst.qubits);
                         let (minima, maxima) = get_instruction_range(qargs, &[], 0);
                         let mid_idx = (minima + maxima) / 2;
-
                         let num_affected =
                             if let Some(idx) = qargs.iter().position(|&x| x.index() == ind) {
                                 format!("{:^width$}", idx, width = qargs.len())
                             } else {
                                 " ".to_string()
                             };
-
                         let mid_section = if ind == mid_idx {
                             format!(
                                 "{:^total_q$}{:^label_len$}",
@@ -919,7 +922,6 @@ impl TextDrawer {
                                 label_len = label_len
                             )
                         };
-
                         let left_len = (mid_section.len() - 1) / 2;
                         let right_len = mid_section.len() - left_len - 1;
                         top = if ind == minima {
@@ -1221,6 +1223,7 @@ impl TextDrawer {
 mod tests {
     use ndarray::Array2;
     use smallvec::smallvec;
+    use std::sync::Arc;
 
     use super::*;
     use crate::bit::{ClassicalRegister, QuantumRegister, ShareableClbit, ShareableQubit};
@@ -1228,6 +1231,8 @@ mod tests {
     use crate::operations::{
         ArrayType, DelayUnit, STANDARD_GATE_SIZE, StandardInstruction, UnitaryGate,
     };
+    use crate::parameter::parameter_expression::ParameterExpression;
+    use crate::parameter::symbol_expr::Symbol;
 
     fn basic_circuit() -> CircuitData {
         let qreg = QuantumRegister::new_owning("q", 2);
@@ -1681,6 +1686,68 @@ c1: 2/══════════
 
 
 c2: 2/══════════
+";
+        assert_eq!(result, expected.trim_start_matches("\n"));
+    }
+
+    #[test]
+    fn test_global_phase_parameterized() {
+        let mut circuit = basic_circuit();
+        circuit
+            .set_global_phase_param(Param::ParameterExpression(Arc::new(
+                ParameterExpression::from_symbol(Symbol::new("ϕ", None, None)),
+            )))
+            .unwrap();
+        let result = draw_circuit(&circuit, true, false, Some(80)).unwrap();
+
+        let expected = "
+global phase: ϕ
+      ┌───┐
+ q_0: ┤ H ├──■──
+      └───┘  │
+           ┌─┴─┐
+ q_1: ─────┤ X ├
+           └───┘
+
+c1: 2/══════════
+
+
+c2: 2/══════════
+";
+        assert_eq!(result, expected.trim_start_matches("\n"));
+    }
+
+    #[test]
+    fn test_parameterized_standard_gate() {
+        let qubits = vec![
+            ShareableQubit::new_anonymous(),
+            ShareableQubit::new_anonymous(),
+        ];
+        let mut circuit = CircuitData::new(Some(qubits), None, Param::Float(0.0)).unwrap();
+        let param = Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(
+            Symbol::new("a", None, None),
+        )));
+        circuit
+            .push_standard_gate(StandardGate::RXX, &[param], &[Qubit(0), Qubit(1)])
+            .unwrap();
+        let mut inst_clone = circuit.data()[0].clone();
+        inst_clone.label = Some(Box::new("my_rxx".to_string()));
+        circuit.push(inst_clone).unwrap();
+        circuit
+            .push_standard_gate(
+                StandardGate::RZX,
+                &[Param::Float(2.)],
+                &[Qubit(0), Qubit(1)],
+            )
+            .unwrap();
+        let result = draw_circuit(&circuit, false, false, Some(100)).unwrap();
+        let expected = "
+     ┌──────────┐┌─────────────┐┌──────────┐
+q_0: ┤0  Rxx(a) ├┤0  my_rxx(a) ├┤0  Rzx(2) ├
+     │          ││             ││          │
+     │          ││             ││          │
+q_1: ┤1         ├┤1            ├┤1         ├
+     └──────────┘└─────────────┘└──────────┘
 ";
         assert_eq!(result, expected.trim_start_matches("\n"));
     }
