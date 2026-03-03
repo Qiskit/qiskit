@@ -6,12 +6,19 @@ fixes:
     when transpiling for backends without a coupling map (like :class:`~qiskit_aer.AerSimulator`).
     This could cause execution failures with errors like ``AerError: 'unknown instruction: dcx'``.
     
-    The transpiler now ensures that all standard gates are properly decomposed to the target
-    basis before attempting basis translation, even when inside control flow blocks, by adding
-    a :class:`.Decompose` pass at the start of the translation stage.
+    The root cause was that the :class:`.Decompose` pass was checking if a gate should be
+    decomposed BEFORE checking if it was a control flow operation. This meant that when
+    decomposing specific gates (e.g., ``Decompose(['dcx'])``), the pass would skip control flow
+    blocks entirely because the block itself wasn't in the decomposition list. The fix reorders
+    the logic to always recurse into control flow blocks first, then check if individual
+    operations should be decomposed.
     
     Additionally, the init stage at optimization levels 0 and 1 now runs when a target is
     specified, even if no coupling map is provided. This ensures high-level synthesis passes
     run consistently across different backend configurations.
+    
+    The translation stage now includes a targeted :class:`.Decompose` pass that decomposes
+    gates with definitions (like DCX) before basis translation, ensuring gates inside
+    control flow blocks are properly handled.
     
     Fixes `#15734 <https://github.com/Qiskit/qiskit/issues/15734>`__.
