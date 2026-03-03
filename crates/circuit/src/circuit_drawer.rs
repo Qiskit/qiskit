@@ -12,7 +12,6 @@
 
 use crate::bit::{ClassicalRegister, ShareableClbit, ShareableQubit};
 use crate::circuit_data::CircuitData;
-use crate::converters::QuantumCircuitData;
 use crate::dag_circuit::DAGCircuit;
 use crate::dag_circuit::NodeType;
 use crate::operations::{Operation, OperationRef, Param, StandardGate, StandardInstruction};
@@ -1210,17 +1209,6 @@ impl TextDrawer {
 
         ret
     }
-}
-
-#[pyfunction(name = "draw")]
-#[pyo3(signature = (circuit, cregbundle=true, mergewires=true, fold=None))]
-pub fn py_drawer(
-    circuit: QuantumCircuitData,
-    cregbundle: bool,
-    mergewires: bool,
-    fold: Option<usize>,
-) -> PyResult<String> {
-    draw_circuit(&circuit.data, cregbundle, mergewires, fold)
 }
 
 #[cfg(test)]
