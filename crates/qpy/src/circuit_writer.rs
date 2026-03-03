@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -29,15 +29,17 @@ use pyo3::types::{PyAny, PyDict, PyTuple};
 use qiskit_circuit::bit::{
     ClassicalRegister, PyClbit, PyQubit, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
-use qiskit_circuit::circuit_data::{CircuitData, CircuitStretchType, CircuitVarType};
+use qiskit_circuit::circuit_data::{
+    CircuitData, CircuitStretchType, CircuitVarType, PyCircuitData,
+};
 use qiskit_circuit::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::imports;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
     ArrayType, BoxDuration, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction,
-    Operation, OperationRef, Param, PauliProductMeasurement, PyGate, PyInstruction, PyOperation,
-    StandardGate, StandardInstruction, SwitchTarget, UnitaryGate,
+    Operation, OperationRef, Param, PauliProductMeasurement, PyInstruction, StandardGate,
+    StandardInstruction, SwitchTarget, UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 
@@ -201,10 +203,9 @@ fn pack_instruction_blocks(
                 .iter()
                 .map(|block| -> PyResult<_> {
                     // we explicitly name the block "unnamed" because otherwise it will be assigned a serial number name (e.g. "circuit-45")
-                    // which would result in inconsistant results, e.g. when packing the same circuit twice on the same run
-                    let circuit = imports::QUANTUM_CIRCUIT
-                        .get_bound(py)
-                        .call_method1("_from_circuit_data", (block.clone(), false, "unnamed"))?;
+                    // which would result in inconsistent results, e.g. when packing the same circuit twice on the same run
+                    let py_block: PyCircuitData = block.clone().into();
+                    let circuit = py_block.into_py_quantum_circuit(py)?;
                     py_pack_param(&circuit, qpy_data, Endian::Little)
                 })
                 .collect::<PyResult<_>>()
@@ -477,7 +478,7 @@ fn pack_unitary_gate(
 }
 
 fn pack_py_gate(
-    py_gate: &PyGate,
+    py_gate: &PyInstruction,
     instruction: &PackedInstruction,
     qpy_data: &mut QPYWriteData,
 ) -> PyResult<formats::CircuitInstructionV2Pack> {
@@ -520,11 +521,11 @@ fn pack_py_instruction(
 
 fn pack_py_operation(
     py: Python,
-    py_op: &PyOperation,
+    py_op: &PyInstruction,
     instruction: &PackedInstruction,
     qpy_data: &mut QPYWriteData,
 ) -> PyResult<formats::CircuitInstructionV2Pack> {
-    let py_op_object = py_op.operation.bind(py);
+    let py_op_object = py_op.instruction.bind(py);
     let params = if py_op_object.is_instance(imports::CLIFFORD.get_bound(py))? {
         let tableau = py_op_object.getattr("tableau")?;
         Ok(vec![py_pack_param(&tableau, qpy_data, Endian::Little)?])
@@ -684,7 +685,7 @@ fn pack_circuit_header(
     let header = formats::CircuitHeaderV12Pack {
         num_qubits: qpy_data.circuit_data.num_qubits() as u32,
         num_clbits: qpy_data.circuit_data.num_clbits() as u32,
-        num_instructions: qpy_data.circuit_data.__len__() as u64,
+        num_instructions: qpy_data.circuit_data.len() as u64,
         num_vars: qpy_data.circuit_data.num_identifiers() as u32,
         circuit_name: circuit_name.unwrap_or_default(),
         global_phase_data: global_phase_data.data,
@@ -916,7 +917,10 @@ fn pack_custom_instruction(
     if gate_type == CircuitInstructionType::PauliEvolutionGate {
         if let OperationRef::Gate(gate) = operation.view() {
             has_definition = true;
-            data = serialize(&py_pack_pauli_evolution_gate(gate.gate.bind(py), qpy_data)?);
+            data = serialize(&py_pack_pauli_evolution_gate(
+                gate.instruction.bind(py),
+                qpy_data,
+            )?);
         }
     } else if gate_type == CircuitInstructionType::ControlledGate {
         // For ControlledGate, we have to access and store the private `_definition` rather than the
@@ -927,7 +931,7 @@ fn pack_custom_instruction(
             has_definition = true;
             // Build internal definition to support overloaded subclasses by
             // calling definition getter on object
-            let gate = pygate.gate.bind(py);
+            let gate = pygate.instruction.bind(py);
             gate.getattr("definition")?; // this creates the _definition field
             data = serialize(&pack_circuit(
                 &mut gate.getattr("_definition")?.extract()?,
@@ -943,13 +947,13 @@ fn pack_custom_instruction(
     } else if gate_type == CircuitInstructionType::AnnotatedOperation {
         if let OperationRef::Operation(operation) = operation.view() {
             has_definition = false; // just making sure
-            base_gate = operation.operation.bind(py).getattr("base_op")?.clone();
+            base_gate = operation.instruction.bind(py).getattr("base_op")?.clone();
         }
     } else {
         match operation.view() {
             // all-around catch for "operation" field; should be easier once we switch from python to rust
             OperationRef::Gate(pygate) => {
-                let gate = pygate.gate.bind(py);
+                let gate = pygate.instruction.bind(py);
                 match getattr_or_none(gate, "definition") {
                     None => (),
                     Some(definition) => {
@@ -981,7 +985,7 @@ fn pack_custom_instruction(
                 }
             }
             OperationRef::Operation(pyoperation) => {
-                let operation = pyoperation.operation.bind(py);
+                let operation = pyoperation.instruction.bind(py);
                 match getattr_or_none(operation, "definition") {
                     None => (),
                     Some(definition) => {

@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -49,7 +49,7 @@ pub const PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME: &str = "PauliProductMeasure
 fn is_python_gate(py: Python, op: &PackedOperation, python_gate: &Bound<PyAny>) -> PyResult<bool> {
     match op.view() {
         OperationRef::Gate(pygate) => {
-            if pygate.gate.bind(py).is_instance(python_gate)? {
+            if pygate.instruction.bind(py).is_instance(python_gate)? {
                 Ok(true)
             } else {
                 Ok(false)
@@ -296,7 +296,7 @@ pub(crate) fn gate_class_name(op: &PackedOperation) -> PyResult<String> {
                 Ok(standard_instruction_class_name(&inst).to_string())
             }
             OperationRef::Gate(pygate) => pygate
-                .gate
+                .instruction
                 .bind(py)
                 .getattr(intern!(py, "__class__"))?
                 .getattr(intern!(py, "__name__"))?
@@ -309,7 +309,7 @@ pub(crate) fn gate_class_name(op: &PackedOperation) -> PyResult<String> {
                 .extract::<String>(),
             OperationRef::Unitary(_) => Ok(UNITARY_GATE_CLASS_NAME.to_string()),
             OperationRef::Operation(py_op) => py_op
-                .operation
+                .instruction
                 .bind(py)
                 .getattr(intern!(py, "__class__"))?
                 .getattr(intern!(py, "__name__"))?

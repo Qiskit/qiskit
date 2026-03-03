@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -129,12 +129,12 @@ pub fn adjust_final_pauli_gates(
 
     // compute the phase difference
     let target_phase = target_tableau.column(2 * num_qubits);
-    let sim_phase = simulated_clifford.tableau.column(2 * num_qubits);
+    let sim_phase = simulated_clifford.get_phase();
 
     let delta_phase: Vec<bool> = target_phase
         .iter()
-        .zip(sim_phase.iter())
-        .map(|(&a, &b)| a ^ b)
+        .zip((0..sim_phase.len()).map(|i| sim_phase[i]))
+        .map(|(&a, b)| a ^ b)
         .collect();
 
     // compute inverse of the symplectic matrix
@@ -169,10 +169,7 @@ pub fn clifford_from_gate_sequence(
     num_qubits: usize,
 ) -> Result<Clifford, String> {
     // create the identity
-    let mut clifford = Clifford {
-        num_qubits,
-        tableau: Array2::from_shape_fn((2 * num_qubits, 2 * num_qubits + 1), |(i, j)| i == j),
-    };
+    let mut clifford = Clifford::identity(num_qubits);
 
     gate_seq
         .iter()

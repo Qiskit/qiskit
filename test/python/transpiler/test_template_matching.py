@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -37,10 +37,10 @@ from qiskit.transpiler.passes import TemplateOptimization
 from qiskit.circuit.library.templates import rzx
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.utils import optionals
-from test.python.quantum_info.operators.symplectic.test_clifford import (  # pylint: disable=wrong-import-order
+from test.python.quantum_info.operators.symplectic.test_clifford import (
     random_clifford_circuit,
 )
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 def _ry_to_rz_template_pass(parameter: Parameter = None, extra_costs=None):
@@ -53,7 +53,7 @@ def _ry_to_rz_template_pass(parameter: Parameter = None, extra_costs=None):
     template.rx(-np.pi / 2, 0)
     template.ry(parameter, 0)
     template.rx(np.pi / 2, 0)
-    template.rz(-parameter, 0)  # pylint: disable=invalid-unary-operand-type
+    template.rz(-parameter, 0)
 
     costs = {"rx": 16, "ry": 16, "rz": 0}
     if extra_costs is not None:

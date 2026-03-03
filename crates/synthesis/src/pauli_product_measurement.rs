@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -12,8 +12,7 @@
 
 use pyo3::prelude::*;
 
-use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::circuit_data::CircuitError;
+use qiskit_circuit::circuit_data::{CircuitData, CircuitError, PyCircuitData};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::operations::OperationRef;
@@ -116,11 +115,11 @@ pub fn synthesize_ppm(ppm: &PauliProductMeasurement) -> PyResult<CircuitData> {
 }
 
 #[pyfunction]
-fn synth_pauli_product_measurement(operation: &Bound<PyAny>) -> PyResult<CircuitData> {
+fn synth_pauli_product_measurement(operation: &Bound<PyAny>) -> PyResult<PyCircuitData> {
     let op_from_python = operation.extract::<OperationFromPython<NoBlocks>>()?;
 
     if let OperationRef::PauliProductMeasurement(ppm) = op_from_python.operation.view() {
-        synthesize_ppm(ppm)
+        synthesize_ppm(ppm).map(Into::into)
     } else {
         Err(CircuitError::new_err(
             "Calling pauli product measurement synthesis on a non-pauli-product-measurement.",

@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -33,8 +33,8 @@ use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::ObjectRegistry;
 use crate::operations::{
     ArrayType, BoxDuration, Condition, ControlFlow, ControlFlowInstruction, ControlFlowView,
-    Operation, OperationRef, Param, PythonOperation, StandardGate, StandardInstruction,
-    SwitchTarget,
+    Operation, OperationRef, Param, PyOperationTypes, PythonOperation, StandardGate,
+    StandardInstruction, SwitchTarget,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::ParameterExpression;
@@ -43,7 +43,7 @@ use crate::slice::PySequenceIndex;
 use crate::variable_mapper::VariableMapper;
 use crate::{
     Block, BlockMapper, BlocksMode, Clbit, ControlFlowBlocks, Qubit, Stretch, TupleLikeArg, Var,
-    VarsMode, converters, imports, instruction, vf2,
+    VarsMode, imports, instruction, vf2,
 };
 
 use hashbrown::{HashMap, HashSet};
@@ -188,7 +188,7 @@ impl Wire {
 /// There are 3 types of nodes in the graph: inputs, outputs, and operations.
 /// The nodes are connected by directed edges that correspond to qubits and
 /// bits.
-#[pyclass(module = "qiskit._accelerate.circuit")]
+#[pyclass(module = "qiskit._accelerate.circuit", from_py_object)]
 #[derive(Clone, Debug)]
 pub struct DAGCircuit {
     /// Circuit name.  Generally, this corresponds to the name
@@ -280,7 +280,12 @@ fn reject_new_register(reg: &ClassicalRegister) -> PyResult<()> {
     )))
 }
 
-#[pyclass(name = "BitLocations", module = "qiskit._accelerate.circuit", sequence)]
+#[pyclass(
+    name = "BitLocations",
+    module = "qiskit._accelerate.circuit",
+    sequence,
+    skip_from_py_object
+)]
 #[derive(Clone, Debug)]
 pub struct PyBitLocations {
     #[pyo3(get)]
@@ -2340,7 +2345,7 @@ impl DAGCircuit {
                                                 .get_bound(py)
                                                 .call1((Uuid::new_v4().to_string(),))?;
                                             let mut body_a_circuit =
-                                                converters::dag_to_circuit(body_a, false)?;
+                                                CircuitData::from_dag_ref(body_a)?;
                                             if body_a_circuit.uses_parameter(loop_param_a) {
                                                 body_a_circuit.assign_parameters_from_mapping([
                                                     (
@@ -2369,7 +2374,7 @@ impl DAGCircuit {
                                             )?;
 
                                             let mut body_b_circuit =
-                                                converters::dag_to_circuit(body_b, false)?;
+                                                CircuitData::from_dag_ref(body_b)?;
                                             if body_b_circuit.uses_parameter(loop_param_b) {
                                                 body_b_circuit.assign_parameters_from_mapping([
                                                     (
@@ -2545,21 +2550,26 @@ impl DAGCircuit {
                                         && check_args())
                                 }
                                 [OperationRef::Gate(op1), OperationRef::Gate(op2)] => {
-                                    Ok(op1.gate.bind(py).eq(&op2.gate)? && check_args())
+                                    Ok(op1.instruction.bind(py).eq(&op2.instruction)?
+                                        && check_args())
                                 }
                                 [OperationRef::Operation(op1), OperationRef::Operation(op2)] => {
-                                    Ok(op1.operation.bind(py).eq(&op2.operation)? && check_args())
+                                    Ok(op1.instruction.bind(py).eq(&op2.instruction)?
+                                        && check_args())
                                 }
                                 // Handle the edge case where we end up with a Python object and a standard
                                 // gate/instruction.
                                 // This typically only happens if we have a ControlledGate in Python
                                 // and we have mutable state set.
                                 [OperationRef::StandardGate(_), OperationRef::Gate(op2)] => {
-                                    Ok(slf.unpack_py_op(py, inst1)?.bind(py).eq(&op2.gate)?
+                                    Ok(slf.unpack_py_op(py, inst1)?.bind(py).eq(&op2.instruction)?
                                         && check_args())
                                 }
                                 [OperationRef::Gate(op1), OperationRef::StandardGate(_)] => {
-                                    Ok(other.unpack_py_op(py, inst2)?.bind(py).eq(&op1.gate)?
+                                    Ok(other
+                                        .unpack_py_op(py, inst2)?
+                                        .bind(py)
+                                        .eq(&op1.instruction)?
                                         && check_args())
                                 }
                                 [
@@ -2815,13 +2825,13 @@ impl DAGCircuit {
                 ) => Ok(left == right),
                 (OperationRef::Unitary(left), OperationRef::Unitary(right)) => Ok(left == right),
                 (OperationRef::Gate(left), OperationRef::Gate(right)) => {
-                    Python::attach(|py| left.gate.bind(py).eq(&right.gate))
+                    Python::attach(|py| left.instruction.bind(py).eq(&right.instruction))
                 }
                 (OperationRef::Instruction(left), OperationRef::Instruction(right)) => {
                     Python::attach(|py| left.instruction.bind(py).eq(&right.instruction))
                 }
                 (OperationRef::Operation(left), OperationRef::Operation(right)) => {
-                    Python::attach(|py| left.operation.bind(py).eq(&right.operation))
+                    Python::attach(|py| left.instruction.bind(py).eq(&right.instruction))
                 }
                 _ => Ok(false),
             }
@@ -3749,7 +3759,12 @@ impl DAGCircuit {
             .node_references()
             .filter_map(|(node_index, node_type)| match node_type {
                 NodeType::Operation(node) => {
-                    if node.op.try_control_flow().is_some() {
+                    if node.op.try_control_flow().is_some_and(|control_flow| {
+                        !matches!(
+                            control_flow.control_flow,
+                            ControlFlow::BreakLoop | ControlFlow::ContinueLoop
+                        )
+                    }) {
                         Some(self.unpack_into(py, node_index, node_type))
                     } else {
                         None
@@ -3980,7 +3995,7 @@ impl DAGCircuit {
     ///
     /// The descendants are the set of all nodes that can be reached from the target node. In
     /// comparison, :meth:`.DAGCircuit.successors` is an iterator over the immediate successors,
-    /// whereas this method contains all the successors' succesors.
+    /// whereas this method contains all the successors' successors.
     #[pyo3(name = "descendants")]
     fn py_descendants(&self, py: Python, node: &DAGNode) -> PyResult<Py<PySet>> {
         let descendants: PyResult<Vec<Py<PyAny>>> = self
@@ -5051,9 +5066,7 @@ impl DAGCircuit {
     ) -> PyResult<Option<Parameters<CircuitData>>> {
         Ok(params
             .map(|params| {
-                params.try_map_blocks_ref(|block| {
-                    converters::dag_to_circuit(&self.blocks[*block], false)
-                })
+                params.try_map_blocks_ref(|block| CircuitData::from_dag_ref(&self.blocks[*block]))
             })
             .transpose()?)
     }
@@ -5630,7 +5643,7 @@ impl DAGCircuit {
         Ok(())
     }
 
-    /// Remove the given clbits in the cirucit
+    /// Remove the given clbits in the circuit
     ///
     /// This will reorder all the bits in the circuit.
     pub fn remove_clbits<T: IntoIterator<Item = Clbit>>(&mut self, clbits: T) -> PyResult<()> {
@@ -7708,7 +7721,7 @@ impl DAGCircuit {
     ) -> PyResult<Self> {
         let num_qubits = qc_data.num_qubits();
         let num_clbits = qc_data.num_clbits();
-        let num_ops = qc_data.__len__();
+        let num_ops = qc_data.len();
         let num_vars =
             qc_data.num_declared_vars() + qc_data.num_input_vars() + qc_data.num_captured_vars();
         let num_stretches = qc_data.num_declared_stretches() + qc_data.num_captured_stretches();
@@ -7858,13 +7871,20 @@ impl DAGCircuit {
                     match instr.op.view() {
                         OperationRef::ControlFlow(cf) => cf.clone().into(),
                         OperationRef::Gate(gate) => {
-                            Python::attach(|py| gate.py_deepcopy(py, None))?.into()
+                            PyOperationTypes::Gate(Python::attach(|py| gate.py_deepcopy(py, None))?)
+                                .into()
                         }
                         OperationRef::Instruction(instruction) => {
-                            Python::attach(|py| instruction.py_deepcopy(py, None))?.into()
+                            PyOperationTypes::Instruction(Python::attach(|py| {
+                                instruction.py_deepcopy(py, None)
+                            })?)
+                            .into()
                         }
                         OperationRef::Operation(operation) => {
-                            Python::attach(|py| operation.py_deepcopy(py, None))?.into()
+                            PyOperationTypes::Operation(Python::attach(|py| {
+                                operation.py_deepcopy(py, None)
+                            })?)
+                            .into()
                         }
                         OperationRef::StandardGate(gate) => gate.into(),
                         OperationRef::StandardInstruction(instruction) => instruction.into(),
@@ -8500,7 +8520,7 @@ impl DAGCircuitBuilder {
         self.push_back(instruction)
     }
 
-    /// Pushes a valid [PackedInstruction] to the back ot the circuit.
+    /// Pushes a valid [PackedInstruction] to the back of the circuit.
     pub fn push_back(&mut self, instr: PackedInstruction) -> PyResult<NodeIndex> {
         self.dag.track_instruction(&instr);
         let (all_cbits, vars) = self.dag.get_classical_resources(&instr)?;

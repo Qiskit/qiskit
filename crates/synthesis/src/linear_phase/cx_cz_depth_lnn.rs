@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -21,7 +21,7 @@ use std::cmp::{max, min};
 
 use pyo3::prelude::*;
 use qiskit_circuit::Qubit;
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::operations::{Param, StandardGate};
 
 enum CircuitInstructions {
@@ -174,7 +174,7 @@ fn _update_phase_schedule(
 /// - Width of the circuit (int `n`)
 /// - A CZ circuit, represented by the `n*n` phase schedule phase_schedule
 /// - A CX circuit, represented by box-labels (seq) and whether the box is SWAP+ (swap_plus)
-///   - This circuit corresponds to the CX tranformation that tranforms a matrix to
+///   - This circuit corresponds to the CX transformation that transforms a matrix to
 ///     a NW matrix (c.f. Prop.7.4, [1])
 ///   - SWAP+ is defined in section 3.A. of [2].
 ///   - As previously noted, the northwest diagonalization procedure of [1] consists
@@ -249,7 +249,7 @@ fn _apply_phase_to_nw_circuit(
 pub fn py_synth_cx_cz_depth_line_my(
     mat_x: PyReadonlyArray2<bool>,
     mat_z: PyReadonlyArray2<bool>,
-) -> PyResult<CircuitData> {
+) -> PyResult<PyCircuitData> {
     // First, find circuits implementing mat_x by Proposition 7.3 and Proposition 7.4 of [1]
     let n = mat_x.as_array().nrows(); // is a quadratic matrix
     let mat_x = calc_inverse_matrix_inner(mat_x.as_array(), false).unwrap();
@@ -281,9 +281,5 @@ pub fn py_synth_cx_cz_depth_line_my(
         }
         CircuitInstructions::Z(qubit) => (StandardGate::Z, smallvec![], smallvec![Qubit(qubit)]),
     });
-    Ok(CircuitData::from_standard_gates(
-        n as u32,
-        instructions,
-        Param::Float(0.0),
-    )?)
+    Ok(CircuitData::from_standard_gates(n as u32, instructions, Param::Float(0.0))?.into())
 }

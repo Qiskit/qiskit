@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -14,7 +14,7 @@ use ndarray::Array2;
 use num_complex::Complex64;
 use numpy::IntoPyArray;
 use pyo3::prelude::*;
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardInstruction};
 
 use crate::{QiskitError, unitary_compose};
@@ -75,7 +75,7 @@ pub fn sim_unitary_circuit(circuit: &CircuitData) -> Result<Array2<Complex64>, S
 /// Create a unitary matrix for a circuit.
 #[pyfunction]
 #[pyo3(name = "sim_unitary_circuit")]
-pub fn py_sim_unitary_circuit(py: Python, circuit: &CircuitData) -> PyResult<Py<PyAny>> {
+pub fn py_sim_unitary_circuit(py: Python, circuit: &PyCircuitData) -> PyResult<Py<PyAny>> {
     let product_mat = sim_unitary_circuit(circuit).map_err(QiskitError::new_err)?;
     Ok(product_mat.into_pyarray(py).into_any().unbind())
 }

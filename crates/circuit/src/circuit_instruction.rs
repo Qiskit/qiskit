@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -22,14 +22,14 @@ use pyo3::IntoPyObjectExt;
 use pyo3::types::{PyBool, PyList, PyTuple, PyType};
 use pyo3::{PyResult, intern};
 
-use crate::circuit_data::CircuitData;
+use crate::circuit_data::{CircuitData, PyCircuitData};
 use crate::dag_circuit::DAGCircuit;
 use crate::duration::Duration;
 use crate::imports::{CONTROLLED_GATE, GATE, INSTRUCTION, OPERATION, WARNINGS_WARN};
 use crate::instruction::{Instruction, Parameters, create_py_op};
 use crate::operations::{
     ArrayType, BoxDuration, ControlFlow, ControlFlowInstruction, ControlFlowType, Operation,
-    OperationRef, Param, PauliProductMeasurement, PyGate, PyInstruction, PyOperation, StandardGate,
+    OperationRef, Param, PauliProductMeasurement, PyInstruction, PyOperationTypes, StandardGate,
     StandardInstruction, StandardInstructionType, UnitaryGate,
 };
 use crate::packed_instruction::PackedOperation;
@@ -70,7 +70,12 @@ use smallvec::SmallVec;
 ///     mutations of the object do not invalidate the types, nor the restrictions placed on it by
 ///     its context.  Typically this will mean, for example, that :attr:`qubits` must be a sequence
 ///     of distinct items, with no duplicates.
-#[pyclass(freelist = 20, sequence, module = "qiskit._accelerate.circuit")]
+#[pyclass(
+    freelist = 20,
+    sequence,
+    module = "qiskit._accelerate.circuit",
+    from_py_object
+)]
 #[derive(Clone, Debug)]
 pub struct CircuitInstruction {
     pub operation: PackedOperation,
@@ -177,7 +182,7 @@ impl CircuitInstruction {
     pub fn get_operation(&self, py: Python) -> PyResult<Py<PyAny>> {
         // This doesn't use `get_or_init` because a) the initialiser is fallible and
         // `get_or_try_init` isn't stable, and b) the initialiser can yield to the Python
-        // interpreter, which might suspend the thread and allow another to inadvertantly attempt to
+        // interpreter, which might suspend the thread and allow another to inadvertently attempt to
         // re-enter the cache setter, which isn't safe.
 
         #[cfg(feature = "cache_pygates")]
@@ -256,7 +261,7 @@ impl CircuitInstruction {
         match self.operation.view() {
             OperationRef::StandardGate(standard) => Ok(standard.num_ctrl_qubits() != 0),
             OperationRef::Gate(gate) => gate
-                .gate
+                .instruction
                 .bind(py)
                 .is_instance(CONTROLLED_GATE.get_bound(py)),
             _ => Ok(false),
@@ -567,31 +572,38 @@ impl<T: CircuitBlock> OperationFromPython<T> {
 /// the object contains circuit blocks.
 pub struct NoBlocks;
 
-/// Helper trait implemented by `CircuitData` and `DAGCircuit` to implement extraction from
+/// Helper trait implemented by `PyCircuitData` and `DAGCircuit` to implement extraction from
 /// a Python-owned control-flow block into a suitable Rust type.
 ///
 /// This shouldn't need to be imported anywhere nor implemented by anything else; it's only intended
 /// to let the `OperationFromPython` extraction be generic.
 pub trait CircuitBlock: Sized {
-    fn extract_py_block(ob: Bound<CircuitData>) -> PyResult<Self>;
+    fn extract_py_block(ob: Bound<PyCircuitData>) -> PyResult<Self>;
 }
-impl CircuitBlock for CircuitData {
-    fn extract_py_block(ob: Bound<CircuitData>) -> PyResult<Self> {
+impl CircuitBlock for PyCircuitData {
+    fn extract_py_block(ob: Bound<PyCircuitData>) -> PyResult<Self> {
         Ok(ob.borrow().clone())
     }
 }
+// TODO: in the long run we don't need to extract from python directly to CircuitData
+// But for now it's needed in assing_parameters_inner
+impl CircuitBlock for CircuitData {
+    fn extract_py_block(ob: Bound<PyCircuitData>) -> PyResult<Self> {
+        Ok(ob.borrow().clone().inner)
+    }
+}
 impl CircuitBlock for DAGCircuit {
-    fn extract_py_block(ob: Bound<CircuitData>) -> PyResult<Self> {
-        Self::from_circuit_data(&ob.borrow(), false, None, None, None, None)
+    fn extract_py_block(ob: Bound<PyCircuitData>) -> PyResult<Self> {
+        Self::from_circuit_data(&ob.borrow().inner, false, None, None, None, None)
     }
 }
 impl CircuitBlock for NoBlocks {
-    fn extract_py_block(_ob: Bound<CircuitData>) -> PyResult<Self> {
+    fn extract_py_block(_ob: Bound<PyCircuitData>) -> PyResult<Self> {
         Err(PyTypeError::new_err("control-flow ops are not valid here"))
     }
 }
 impl CircuitBlock for Py<PyAny> {
-    fn extract_py_block(ob: Bound<CircuitData>) -> PyResult<Self> {
+    fn extract_py_block(ob: Bound<PyCircuitData>) -> PyResult<Self> {
         Ok(ob.into_any().unbind())
     }
 }
@@ -868,13 +880,15 @@ impl<'a, 'py, T: CircuitBlock> FromPyObject<'a, 'py> for OperationFromPython<T> 
 
         if ob_type.is_subclass(GATE.get_bound(py))? {
             let params = get_params()?;
-            let operation = PackedOperation::from_gate(Box::new(PyGate {
-                qubits: ob.getattr(intern!(py, "num_qubits"))?.extract()?,
-                clbits: 0,
-                params: params.len()? as u32,
-                op_name: ob.getattr(intern!(py, "name"))?.extract()?,
-                gate: ob.to_owned().unbind(),
-            }));
+            let operation = PackedOperation::from_py_operation(Box::new(PyOperationTypes::Gate(
+                PyInstruction {
+                    qubits: ob.getattr(intern!(py, "num_qubits"))?.extract()?,
+                    clbits: 0,
+                    params: params.len()? as u32,
+                    op_name: ob.getattr(intern!(py, "name"))?.extract()?,
+                    instruction: ob.to_owned().unbind(),
+                },
+            )));
             let params = extract_params(operation.view(), &params)?;
             return Ok(OperationFromPython {
                 operation,
@@ -884,13 +898,15 @@ impl<'a, 'py, T: CircuitBlock> FromPyObject<'a, 'py> for OperationFromPython<T> 
         }
         if ob_type.is_subclass(INSTRUCTION.get_bound(py))? {
             let params = get_params()?;
-            let operation = PackedOperation::from_instruction(Box::new(PyInstruction {
-                qubits: ob.getattr(intern!(py, "num_qubits"))?.extract()?,
-                clbits: ob.getattr(intern!(py, "num_clbits"))?.extract()?,
-                params: params.len()? as u32,
-                op_name: ob.getattr(intern!(py, "name"))?.extract()?,
-                instruction: ob.to_owned().unbind(),
-            }));
+            let operation = PackedOperation::from_py_operation(Box::new(
+                PyOperationTypes::Instruction(PyInstruction {
+                    qubits: ob.getattr(intern!(py, "num_qubits"))?.extract()?,
+                    clbits: ob.getattr(intern!(py, "num_clbits"))?.extract()?,
+                    params: params.len()? as u32,
+                    op_name: ob.getattr(intern!(py, "name"))?.extract()?,
+                    instruction: ob.to_owned().unbind(),
+                }),
+            ));
             let params = extract_params(operation.view(), &params)?;
             return Ok(OperationFromPython {
                 operation,
@@ -900,13 +916,15 @@ impl<'a, 'py, T: CircuitBlock> FromPyObject<'a, 'py> for OperationFromPython<T> 
         }
         if ob_type.is_subclass(OPERATION.get_bound(py))? {
             let params = get_params()?;
-            let operation = PackedOperation::from_operation(Box::new(PyOperation {
-                qubits: ob.getattr(intern!(py, "num_qubits"))?.extract()?,
-                clbits: ob.getattr(intern!(py, "num_clbits"))?.extract()?,
-                params: params.len()? as u32,
-                op_name: ob.getattr(intern!(py, "name"))?.extract()?,
-                operation: ob.to_owned().unbind(),
-            }));
+            let operation = PackedOperation::from_py_operation(Box::new(
+                PyOperationTypes::Operation(PyInstruction {
+                    qubits: ob.getattr(intern!(py, "num_qubits"))?.extract()?,
+                    clbits: ob.getattr(intern!(py, "num_clbits"))?.extract()?,
+                    params: params.len()? as u32,
+                    op_name: ob.getattr(intern!(py, "name"))?.extract()?,
+                    instruction: ob.to_owned().unbind(),
+                }),
+            ));
             let params = extract_params(operation.view(), &params)?;
             return Ok(OperationFromPython {
                 operation,
@@ -1030,7 +1048,7 @@ fn warn_on_legacy_circuit_instruction_iteration(py: Python) -> PyResult<()> {
             ),
             py.get_type::<PyDeprecationWarning>(),
             // Stack level.  Compared to Python-space calls to `warn`, this is unusually low
-            // beacuse all our internal call structure is now Rust-space and invisible to Python.
+            // because all our internal call structure is now Rust-space and invisible to Python.
             1,
         ))
         .map(|_| ())

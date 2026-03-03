@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -19,10 +19,9 @@ use pyo3::IntoPyObjectExt;
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
 use qiskit_circuit::bit::ShareableQubit;
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::converters::QuantumCircuitData;
-use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::CX_GATE;
 use qiskit_circuit::imports::HLS_SYNTHESIZE_OP_USING_PLUGINS;
@@ -51,7 +50,7 @@ use qiskit_circuit::instruction::{Instruction, Parameters};
 /// The global qubits are numbered by consecutive integers starting at `0`,
 /// and the states are distinguished into clean (:math:`|0\rangle`)
 /// and dirty (unknown).
-#[pyclass]
+#[pyclass(skip_from_py_object)]
 #[derive(Clone, Debug)]
 struct QubitTracker {
     /// The total number of global qubits
@@ -160,6 +159,11 @@ impl QubitTracker {
             self.state[q.index()] = other.state[q.index()]
         }
     }
+
+    /// Returns whether `qubit` is clean
+    fn is_qubit_clean(&self, qubit: Qubit) -> bool {
+        self.state[qubit.index()]
+    }
 }
 
 #[pymethods]
@@ -230,6 +234,12 @@ impl QubitTracker {
         self.num_qubits
     }
 
+    /// Returns whether qubit is clean
+    #[pyo3(name = "is_qubit_clean")]
+    fn py_is_qubit_clean(&self, qubit: Qubit) -> bool {
+        self.is_qubit_clean(qubit)
+    }
+
     /// Copies the contents
     fn copy(&self) -> Self {
         QubitTracker {
@@ -266,7 +276,10 @@ impl QubitTracker {
 }
 
 /// Internal class that encapsulates immutable data required by the HighLevelSynthesis transpiler pass.
-#[pyclass(module = "qiskit._accelerate.high_level_synthesis")]
+#[pyclass(
+    module = "qiskit._accelerate.high_level_synthesis",
+    skip_from_py_object
+)]
 #[derive(Clone, Debug)]
 pub struct HighLevelSynthesisData {
     // The high-level-synthesis config that specifies the synthesis methods
@@ -898,7 +911,7 @@ fn synthesize_operation(
         if synthesized_qubits.len() > input_qubits.len() {
             tracker.replace_state(
                 &saved_tracker,
-                (input_qubits.len()..synthesized_qubits.len()).map(Qubit::new),
+                synthesized_qubits[input_qubits.len()..].iter().cloned(),
             );
         }
 
@@ -939,9 +952,9 @@ fn synthesize_op_using_plugins(
         OperationRef::StandardInstruction(instruction) => instruction
             .create_py_op(py, Some(params.iter().cloned().collect()), label)?
             .into_any(),
-        OperationRef::Gate(gate) => gate.gate.clone_ref(py),
+        OperationRef::Gate(gate) => gate.instruction.clone_ref(py),
         OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
-        OperationRef::Operation(operation) => operation.operation.clone_ref(py),
+        OperationRef::Operation(operation) => operation.instruction.clone_ref(py),
         OperationRef::Unitary(unitary) => unitary.create_py_op(py, label)?.into_any(),
         OperationRef::PauliProductMeasurement(ppm) => ppm.create_py_op(py, label)?.into_any(),
     };
@@ -976,7 +989,7 @@ fn py_synthesize_operation(
     input_qubits: Vec<Qubit>,
     data: &Bound<HighLevelSynthesisData>,
     tracker: &mut QubitTracker,
-) -> PyResult<Option<(CircuitData, Vec<usize>)>> {
+) -> PyResult<Option<(PyCircuitData, Vec<usize>)>> {
     let op: OperationFromPython<Py<PyAny>> = py_op.extract()?;
 
     // Check if the operation can be skipped.
@@ -994,7 +1007,26 @@ fn py_synthesize_operation(
         op.label.as_deref().map(|l| l.as_str()),
     )?;
 
-    Ok(result.map(|res| (res.0, res.1.iter().map(|x| x.index()).collect())))
+    Ok(result.map(|res: (CircuitData, Vec<Qubit>)| {
+        (res.0.into(), res.1.iter().map(|x| x.index()).collect())
+    }))
+}
+
+/// Synthesizes a circuit.
+///
+/// This function is only used in the Python testing of the HighLevelSynthesis qubit tracking mechanism.
+#[pyfunction]
+#[pyo3(name = "synthesize_circuit", signature = (circuit, input_qubits, data, tracker))]
+fn py_synthesize_circuit(
+    py: Python,
+    circuit: &PyCircuitData,
+    input_qubits: Vec<Qubit>,
+    data: &Bound<HighLevelSynthesisData>,
+    tracker: &mut QubitTracker,
+) -> PyResult<(PyCircuitData, Vec<usize>)> {
+    let res = run_on_circuitdata(py, circuit, &input_qubits, data, tracker)?;
+
+    Ok((res.0.into(), res.1.iter().map(|x| x.index()).collect()))
 }
 
 /// Runs HighLevelSynthesis transpiler pass.
@@ -1014,7 +1046,7 @@ pub fn run_high_level_synthesis(
     // done at the top-level since this does not track the qubit states.
 
     // First, we apply a super-fast (but incomplete) check to see if all the operations
-    // present in the circuit are suported by the target / are in the basis.
+    // present in the circuit are supported by the target / are in the basis.
     if all_instructions_supported(py, data, dag)? {
         return Ok(None);
     }
@@ -1037,7 +1069,7 @@ pub fn run_high_level_synthesis(
         // Regular-path: we synthesize the circuit recursively. Except for
         // this conversion from DAGCircuit to CircuitData and back, all
         // the recursive functions work with CircuitData objects only.
-        let circuit = dag_to_circuit(dag, false)?;
+        let circuit = CircuitData::from_dag_ref(dag)?;
 
         let num_qubits = circuit.num_qubits();
         let input_qubits: Vec<Qubit> = (0..num_qubits).map(Qubit::new).collect();
@@ -1066,6 +1098,7 @@ pub fn run_high_level_synthesis(
 pub fn high_level_synthesis_mod(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(run_high_level_synthesis))?;
     m.add_wrapped(wrap_pyfunction!(py_synthesize_operation))?;
+    m.add_wrapped(wrap_pyfunction!(py_synthesize_circuit))?;
 
     m.add_class::<QubitTracker>()?;
     m.add_class::<HighLevelSynthesisData>()?;

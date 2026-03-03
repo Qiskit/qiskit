@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -13,7 +13,7 @@
 use pyo3::prelude::*;
 use pyo3::types::PySequence;
 use pyo3::types::PyString;
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::operations::{
     Param, StandardGate, StandardInstruction, add_param, multiply_param, multiply_params,
 };
@@ -62,7 +62,7 @@ pub fn pauli_feature_map(
     alpha: f64,
     insert_barriers: bool,
     data_map_func: Option<&Bound<PyAny>>,
-) -> PyResult<CircuitData> {
+) -> PyResult<PyCircuitData> {
     // normalize the Pauli strings
     let pauli_strings = _get_paulis(feature_dimension, paulis)?;
 
@@ -126,7 +126,8 @@ pub fn pauli_feature_map(
         0,
         packed_insts.into_iter().map(Ok),
         Param::Float(0.0),
-    )?)
+    )?
+    .into())
 }
 
 fn _get_h_layer(feature_dimension: u32) -> impl Iterator<Item = Instruction> {
