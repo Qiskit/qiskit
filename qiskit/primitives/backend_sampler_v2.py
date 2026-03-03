@@ -359,10 +359,10 @@ def _memory_array(results: list[list[str]], num_bytes: int) -> NDArray[np.uint8]
     The ``num_bytes`` argument is the *minimum* number of bytes required to
     represent the classical bits in the circuit (derived from the cregs).
     Some backends, however, may include additional classical memory slots in
-    their returned hex strings (for example, extra bits in ``memory_slots``),
-    which means the hex values can require more bytes than ``num_bytes``.
+    their returned memory values (for example, extra bits in ``memory_slots``),
+    which means the values can require more bytes than ``num_bytes``.
 
-    To avoid ``OverflowError`` when converting these hex strings to bytes, this
+    To avoid ``OverflowError`` when converting these values to bytes, this
     function computes the number of bytes actually required by the data and
     uses ``max(num_bytes, required_bytes)`` as the byte width. Extra high-order
     bits are ignored later when we slice out the bits corresponding to the
@@ -371,27 +371,32 @@ def _memory_array(results: list[list[str]], num_bytes: int) -> NDArray[np.uint8]
     lst = []
     for memory in results:
         if num_bytes > 0:
-            # Determine how many bytes are actually needed to represent the
-            # returned hex strings. This guards against backends that include
-            # more classical memory bits in the hex string than the circuit
-            # has creg bits (which would otherwise cause ``to_bytes`` to
-            # raise ``OverflowError``).
+            parsed_values: list[int] = []
             required_bytes = 0
+
             for value in memory:
-                if not value:
-                    continue
-                # value is expected to be a hex string (e.g. "0x0"). We still
-                # go through ``int(..., 16)`` so that any non-standard prefix
-                # is handled consistently.
-                as_int = int(value, 16)
-                # ``bit_length`` is 0 for value == 0, in which case we still
-                # need at least 1 byte.
+                if isinstance(value, int):
+                    as_int = value
+                else:
+                    v = str(value).strip().replace(" ", "").replace("_", "")
+                    if not v:
+                        as_int = 0
+                    elif v.startswith(("0x", "0X", "0b", "0B")):
+                        as_int = int(v, 0)
+                    elif re.fullmatch(r"[01]+", v):
+                        as_int = int(v, 2)
+                    elif re.fullmatch(r"[0-9]+", v):
+                        as_int = int(v, 10)
+                    else:
+                        as_int = int(v, 16)
+
+                parsed_values.append(as_int)
                 bits = max(1, as_int.bit_length())
                 needed = (bits + 7) // 8
                 required_bytes = max(required_bytes, needed)
 
             width = max(num_bytes, required_bytes)
-            data = b"".join(int(i, 16).to_bytes(width, "big") for i in memory)
+            data = b"".join(v.to_bytes(width, "big") for v in parsed_values)
             data = np.frombuffer(data, dtype=np.uint8).reshape(-1, width)
         else:
             # no measure in a circuit
