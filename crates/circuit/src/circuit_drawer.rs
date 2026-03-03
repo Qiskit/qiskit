@@ -778,7 +778,7 @@ impl TextDrawer {
                 if let Some(ref label) = instruction.label {
                     label.to_string()
                 } else {
-                    instruction.op.name().to_string()
+                    format!(" {} ", instruction.op.name())
                 }
             }
         }
