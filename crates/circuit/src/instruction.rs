@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -64,7 +64,7 @@ impl<T> Parameters<T> {
 
     /// Get a cloned version of these parameters, using a fallible mapping function to map any
     /// contained blocks into a new type.
-    pub fn try_map_blocks<S, E>(
+    pub fn try_map_blocks_ref<S, E>(
         &self,
         block_map_fn: impl FnMut(&T) -> Result<S, E>,
     ) -> Result<Parameters<S>, E> {
@@ -78,10 +78,36 @@ impl<T> Parameters<T> {
         }
     }
 
+    /// Get a mapped version of these parameters, using a fallible mapping function to map any
+    /// contained blocks into a new type.
+    pub fn try_map_blocks<S, E>(
+        self,
+        block_map_fn: impl FnMut(T) -> Result<S, E>,
+    ) -> Result<Parameters<S>, E> {
+        match self {
+            Self::Params(params) => Ok(Parameters::Params(params)),
+            Self::Blocks(blocks) => blocks
+                .into_iter()
+                .map(block_map_fn)
+                .collect::<Result<_, _>>()
+                .map(Parameters::Blocks),
+        }
+    }
+
     /// Get a cloned version of these parameters, using an infallible mapping function to map any
     /// contained blocks into a new type.
     #[inline]
-    pub fn map_blocks<S>(&self, mut block_map_fn: impl FnMut(&T) -> S) -> Parameters<S> {
+    pub fn map_blocks_ref<S>(&self, mut block_map_fn: impl FnMut(&T) -> S) -> Parameters<S> {
+        let Ok(out) = self.try_map_blocks_ref(|block| -> Result<S, ::std::convert::Infallible> {
+            Ok(block_map_fn(block))
+        });
+        out
+    }
+
+    /// Get a mapped version of these parameters, using an infallible mapping function to map any
+    /// contained blocks into a new type.
+    #[inline]
+    pub fn map_blocks<S>(self, mut block_map_fn: impl FnMut(T) -> S) -> Parameters<S> {
         let Ok(out) = self.try_map_blocks(|block| -> Result<S, ::std::convert::Infallible> {
             Ok(block_map_fn(block))
         });
@@ -96,6 +122,8 @@ impl<T> Parameters<T> {
 /// [CircuitInstruction] and [OperationFromPython] which own all the data they
 /// need to be converted back to a Python instance.
 pub trait Instruction {
+    type Block;
+
     /// Gets a reference to this instruction's operation.
     fn op(&self) -> OperationRef<'_>;
 
@@ -103,7 +131,7 @@ pub trait Instruction {
     ///
     /// For standard gates without parameters this may be [None] or a
     /// `Some(Parameters::Param(smallvec![]))`.
-    fn parameters(&self) -> Option<&Parameters<CircuitData>>;
+    fn parameters(&self) -> Option<&Parameters<Self::Block>>;
 
     /// Get the label for this instruction.
     fn label(&self) -> Option<&str>;
@@ -121,7 +149,7 @@ pub trait Instruction {
 
     /// Get a slice view onto the contained blocks.
     #[inline]
-    fn blocks_view(&self) -> &[CircuitData] {
+    fn blocks_view(&self) -> &[Self::Block] {
         self.parameters()
             .and_then(|p| match p {
                 Parameters::Blocks(b) => Some(b.as_slice()),
@@ -148,36 +176,19 @@ pub fn create_py_op(
     label: Option<&str>,
 ) -> PyResult<Py<PyAny>> {
     match op {
-        OperationRef::ControlFlow(cf) => cf.create_py_op(
-            py,
-            params.map(|p| match p {
-                Parameters::Blocks(blocks) => blocks,
-                Parameters::Params(_) => {
-                    panic!("control flow operation should not have params")
-                }
-            }),
-            label,
-        ),
+        OperationRef::ControlFlow(cf) => {
+            cf.create_py_op(py, params.map(|p| p.unwrap_blocks()), label)
+        }
         OperationRef::PauliProductMeasurement(ppm) => ppm.create_py_op(py, label),
-        OperationRef::StandardGate(gate) => gate.create_py_op(
-            py,
-            params.map(|p| match p {
-                Parameters::Params(params) => params,
-                Parameters::Blocks(_) => panic!("standard gate should not have blocks"),
-            }),
-            label,
-        ),
-        OperationRef::StandardInstruction(instruction) => instruction.create_py_op(
-            py,
-            params.map(|p| match p {
-                Parameters::Params(params) => params,
-                Parameters::Blocks(_) => panic!("standard instruction should not have blocks"),
-            }),
-            label,
-        ),
-        OperationRef::Gate(gate) => Ok(gate.gate.clone_ref(py)),
+        OperationRef::StandardGate(gate) => {
+            gate.create_py_op(py, params.map(|p| p.unwrap_params()), label)
+        }
+        OperationRef::StandardInstruction(instruction) => {
+            instruction.create_py_op(py, params.map(|p| p.unwrap_params()), label)
+        }
+        OperationRef::Gate(gate) => Ok(gate.instruction.clone_ref(py)),
         OperationRef::Instruction(instruction) => Ok(instruction.instruction.clone_ref(py)),
-        OperationRef::Operation(operation) => Ok(operation.operation.clone_ref(py)),
+        OperationRef::Operation(operation) => Ok(operation.instruction.clone_ref(py)),
         OperationRef::Unitary(unitary) => unitary.create_py_op(py, label),
     }
 }

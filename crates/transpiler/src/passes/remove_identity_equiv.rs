@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -59,7 +59,7 @@ pub fn average_gate_fidelity_below_tol(tr_over_dim: Complex64, dim: f64, tol: f6
 /// * `matrix_from_definition`: if `true`, can call the Python-space `Operator` class to
 ///   construct the matrix.
 /// * `matrix_from_definition_max_qubits`: maximum number of qubits allowed for matrix-based
-///    checks.
+///   checks.
 /// * `error_cutoff_fn`: function to compute the allowed error tolerance.
 ///
 /// # Returns
@@ -176,7 +176,7 @@ where
             let result = Python::attach(|py| -> PyResult<Option<(Complex64, usize)>> {
                 let result = imports::PAULI_ROTATION_TRACE_AND_DIM
                     .get_bound(py)
-                    .call1((py_gate.gate.clone_ref(py),))?
+                    .call1((py_gate.instruction.clone_ref(py),))?
                     .extract()?;
                 Ok(result)
             })?;

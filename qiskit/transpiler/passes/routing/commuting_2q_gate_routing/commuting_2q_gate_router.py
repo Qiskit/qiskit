@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -49,7 +49,7 @@ class Commuting2qGateRouter(TransformationPass):
              |
              4
 
-    To do this we use a line swap strategy for qubits 0, 1, 3, and 4 defined it in terms
+    To do this we use a line swap strategy for qubits 0, 1, 3, and 4 defined in terms
     of virtual qubits 0, 1, 2, and 3.
 
     .. plot::
@@ -79,7 +79,7 @@ class Commuting2qGateRouter(TransformationPass):
         # Define the swap strategy on qubits before the initial_layout is applied.
         swap_strat = SwapStrategy.from_line([0, 1, 2, 3])
 
-        # Chose qubits 0, 1, 3, and 4 from the backend coupling map shown above.
+        # Choose qubits 0, 1, 3, and 4 from the backend coupling map shown above.
         backend_cmap = CouplingMap(couplinglist=[(0, 1), (1, 2), (1, 3), (3, 4)])
         initial_layout = Layout.from_intlist([0, 1, 3, 4], *circ.qregs)
 

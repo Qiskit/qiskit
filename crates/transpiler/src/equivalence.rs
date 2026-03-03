@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -37,7 +37,8 @@ use rustworkx_core::petgraph::{
     visit::EdgeRef,
 };
 
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::NoBlocks;
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::imports::{ImportOnceCell, QUANTUM_CIRCUIT};
 use qiskit_circuit::instruction::Parameters;
@@ -55,7 +56,12 @@ pub static PYDIGRAPH: ImportOnceCell = ImportOnceCell::new("rustworkx", "PyDiGra
 
 // Custom Structs
 
-#[pyclass(frozen, sequence, module = "qiskit._accelerate.equivalence")]
+#[pyclass(
+    frozen,
+    sequence,
+    module = "qiskit._accelerate.equivalence",
+    from_py_object
+)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Key {
     #[pyo3(get)]
@@ -126,7 +132,12 @@ impl Display for Key {
     }
 }
 
-#[pyclass(frozen, sequence, module = "qiskit._accelerate.equivalence")]
+#[pyclass(
+    frozen,
+    sequence,
+    module = "qiskit._accelerate.equivalence",
+    from_py_object
+)]
 #[derive(Debug, Clone)]
 pub struct Equivalence {
     #[pyo3(get)]
@@ -182,7 +193,12 @@ impl Display for Equivalence {
     }
 }
 
-#[pyclass(frozen, sequence, module = "qiskit._accelerate.equivalence")]
+#[pyclass(
+    frozen,
+    sequence,
+    module = "qiskit._accelerate.equivalence",
+    from_py_object
+)]
 #[derive(Debug, Clone)]
 pub struct NodeData {
     #[pyo3(get)]
@@ -226,7 +242,12 @@ impl Display for NodeData {
     }
 }
 
-#[pyclass(frozen, sequence, module = "qiskit._accelerate.equivalence")]
+#[pyclass(
+    frozen,
+    sequence,
+    module = "qiskit._accelerate.equivalence",
+    from_py_object
+)]
 #[derive(Debug, Clone)]
 pub struct EdgeData {
     #[pyo3(get)]
@@ -298,7 +319,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for GateOper {
     type Error = PyErr;
 
     fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
-        let op_struct: OperationFromPython = ob.extract()?;
+        let op_struct: OperationFromPython<NoBlocks> = ob.extract()?;
         Ok(Self {
             operation: op_struct.operation,
             params: match op_struct.params {
@@ -338,9 +359,9 @@ impl<'a, 'py> FromPyObject<'a, 'py> for CircuitFromPython {
     fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         if ob.is_instance(QUANTUM_CIRCUIT.get_bound(ob.py()))? {
             let data: Bound<PyAny> = ob.getattr("_data")?;
-            let data_downcast: Bound<CircuitData> = data.cast_into()?;
-            let data_extract: CircuitData = data_downcast.extract()?;
-            Ok(Self(data_extract))
+            let data_downcast: Bound<PyCircuitData> = data.cast_into()?;
+            let data_extract: PyCircuitData = data_downcast.extract()?;
+            Ok(Self(data_extract.into()))
         } else {
             Err(PyTypeError::new_err(
                 "Provided object was not an instance of QuantumCircuit",
@@ -358,7 +379,8 @@ type KTIType = IndexMap<Key, NodeIndex, RandomState>;
 #[pyclass(
     subclass,
     name = "BaseEquivalenceLibrary",
-    module = "qiskit._accelerate.equivalence"
+    module = "qiskit._accelerate.equivalence",
+    skip_from_py_object
 )]
 #[derive(Debug, Clone)]
 pub struct EquivalenceLibrary {

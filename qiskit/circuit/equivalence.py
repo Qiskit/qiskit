@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -17,7 +17,7 @@ import rustworkx as rx
 
 
 from qiskit.exceptions import InvalidFileError
-from qiskit._accelerate.equivalence import (  # pylint: disable=unused-import
+from qiskit._accelerate.equivalence import (
     BaseEquivalenceLibrary,
     Key,
     Equivalence,
@@ -84,7 +84,7 @@ class EquivalenceLibrary(BaseEquivalenceLibrary):
                     )
                     node_map[decomp_basis] = decomp_basis_node
 
-                label = f"{str(params)}\n{str(decomp) if num_qubits <= 5 else '...'}"
+                label = f"{params!s}\n{str(decomp) if num_qubits <= 5 else '...'}"
                 graph.add_edge(
                     node_map[basis],
                     node_map[decomp_basis],

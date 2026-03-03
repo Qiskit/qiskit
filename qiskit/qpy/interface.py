@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -18,7 +18,8 @@ import gzip
 import io
 import shutil
 from json import JSONEncoder, JSONDecoder
-from typing import Union, List, BinaryIO, Type, Optional, Callable, TYPE_CHECKING
+from typing import BinaryIO, TYPE_CHECKING
+from collections.abc import Callable
 from collections.abc import Iterable, Mapping
 import struct
 import warnings
@@ -35,7 +36,6 @@ if TYPE_CHECKING:
     from qiskit.circuit import annotation
 
 
-# pylint: disable=invalid-name
 QPY_SUPPORTED_TYPES = QuantumCircuit
 
 # Some standard-library types claim to be `IOBase.seekable`, but don't actually support arbitrary
@@ -87,12 +87,12 @@ VERSION_PATTERN_REGEX = re.compile(VERSION_PATTERN, re.VERBOSE | re.IGNORECASE)
 
 
 def dump(
-    programs: Union[List[QPY_SUPPORTED_TYPES], QPY_SUPPORTED_TYPES],
+    programs: list[QPY_SUPPORTED_TYPES] | QPY_SUPPORTED_TYPES,
     file_obj: BinaryIO,
-    metadata_serializer: Optional[Type[JSONEncoder]] = None,
+    metadata_serializer: type[JSONEncoder] | None = None,
     use_symengine: bool = False,
     version: int = common.QPY_VERSION,
-    annotation_factories: Optional[Mapping[str, Callable[[], annotation.QPYSerializer]]] = None,
+    annotation_factories: Mapping[str, Callable[[], annotation.QPYSerializer]] | None = None,
 ):
     """Write QPY binary data to a file
 
@@ -195,6 +195,8 @@ def dump(
             f"{common.QPY_COMPATIBILITY_VERSION} and {common.QPY_VERSION} for `qpy.dump`."
         )
 
+    use_rust = version >= common.QPY_RUST_MIN_VERSION
+
     version_match = VERSION_PATTERN_REGEX.search(__version__)
     version_parts = [int(x) for x in version_match.group("release").split(".")]
     encoding = type_keys.SymExprEncoding.assign(use_symengine)
@@ -217,9 +219,10 @@ def dump(
             out_stream,
             circuit,
             metadata_serializer=metadata_serializer,
-            use_symengine=use_symengine,
+            use_symengine=bool(use_symengine),
             version=version,
             annotation_factories=annotation_factories,
+            use_rust=use_rust,
         )
 
     if version >= 16:
@@ -273,9 +276,9 @@ def dump(
 
 def load(
     file_obj: BinaryIO,
-    metadata_deserializer: Optional[Type[JSONDecoder]] = None,
-    annotation_factories: Optional[Mapping[str, Callable[[], annotation.QPYSerializer]]] = None,
-) -> List[QPY_SUPPORTED_TYPES]:
+    metadata_deserializer: type[JSONDecoder] | None = None,
+    annotation_factories: Mapping[str, Callable[[], annotation.QPYSerializer]] | None = None,
+) -> list[QPY_SUPPORTED_TYPES]:
     """Load a QPY binary file
 
     This function is used to load a serialized QPY Qiskit program file and create
@@ -355,6 +358,8 @@ def load(
             )
         )
 
+    use_rust = version >= common.QPY_RUST_MIN_VERSION
+
     config = user_config.get_config()
     min_qpy_version = config.get("min_qpy_version")
     if min_qpy_version is not None and data.qpy_version < min_qpy_version:
@@ -369,7 +374,7 @@ def load(
     env_qiskit_version = [int(x) for x in version_match.group("release").split(".")]
 
     qiskit_version = (data.major_version, data.minor_version, data.patch_version)
-    # pylint: disable=too-many-boolean-expressions
+
     if (
         env_qiskit_version[0] < qiskit_version[0]
         or (
@@ -431,8 +436,9 @@ def load(
                 file_obj,
                 data.qpy_version,
                 metadata_deserializer=metadata_deserializer,
-                use_symengine=use_symengine,
+                use_symengine=bool(use_symengine),
                 annotation_factories=annotation_factories,
+                use_rust=use_rust,
             )
         )
     return programs

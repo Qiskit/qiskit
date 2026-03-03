@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -33,8 +33,8 @@ from qiskit.transpiler.passes.routing.sabre_swap import Heuristic, SetScaling
 from qiskit.transpiler import CouplingMap, Layout, PassManager, Target, TranspilerError
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.utils import optionals
-from test.utils._canonical import canonicalize_control_flow  # pylint: disable=wrong-import-order
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test.utils._canonical import canonicalize_control_flow
+from test import QiskitTestCase
 
 from ..legacy_cmaps import MUMBAI_CMAP
 
@@ -222,7 +222,7 @@ class TestSabreSwap(QiskitTestCase):
         """Test that an already mapped circuit is unchanged with target."""
         coupling = CouplingMap.from_ring(5)
         target = Target(num_qubits=5)
-        target.add_instruction(SwapGate(), {edge: None for edge in coupling.get_edges()})
+        target.add_instruction(SwapGate(), dict.fromkeys(coupling.get_edges()))
 
         qr = QuantumRegister(5, "q")
         qc = QuantumCircuit(qr)

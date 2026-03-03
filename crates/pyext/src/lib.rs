@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -84,6 +84,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_circuit::converters::converters, "converters")?;
     add_submodule(m, ::qiskit_qasm2::qasm2, "qasm2")?;
     add_submodule(m, ::qiskit_qasm3::qasm3, "qasm3")?;
+    add_submodule(m, ::qiskit_qpy::qpy, "qpy")?;
     add_submodule(m, ::qiskit_synthesis::qsd::qsd_mod, "qsd")?;
     add_submodule(m, ::qiskit_synthesis::ross_selinger::ross_selinger_mod, "ross_selinger")?;
     add_submodule(m, ::qiskit_transpiler::angle_bound_registry::angle_bound_mod, "angle_bound_registry")?;
