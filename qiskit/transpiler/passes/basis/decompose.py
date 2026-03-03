@@ -63,14 +63,15 @@ class Decompose(TransformationPass):
 
         # Walk through the DAG and expand each non-basis node
         for node in dag.op_nodes():
-            # Check in self.gates_to_decompose if the operation should be decomposed
-            if not self._should_decompose(node):
-                continue
-
+            # First, always recurse into control flow blocks to decompose gates inside them.
+            # This must be checked before _should_decompose() to handle gates nested inside
+            # control flow structures (issue #15734).
             if node.is_control_flow():
                 decomposition = control_flow.map_blocks(self.run, node.op)
                 dag.substitute_node(node, decomposition, inplace=True)
-
+            # Then check if the operation itself should be decomposed
+            elif not self._should_decompose(node):
+                continue
             elif getattr(node.op, "definition", None) is None:
                 # if we try to synthesize, turn the node into a DAGCircuit and run HLS
                 if self.apply_synthesis:
