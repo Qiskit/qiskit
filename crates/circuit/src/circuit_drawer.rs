@@ -1095,9 +1095,8 @@ impl TextDrawer {
         // of screen width limit
         let layer_widths = (1..num_layers).map(|layer| self.get_layer_width(layer));
         let (mut start, mut current_fold) = (1usize, 0usize);
-        // let mut ranges: Vec<(usize, usize)> = Vec::new();
 
-        let ranges: Vec<(usize, usize)> = layer_widths
+        let mut ranges: Vec<(usize, usize)> = layer_widths
             .enumerate()
             .filter_map(|(i, layer_width)| {
                 current_fold += layer_width;
@@ -1110,10 +1109,8 @@ impl TextDrawer {
                     None
                 }
             })
-            .collect::<Vec<(usize, usize)>>()
-            .into_iter()
-            .chain(std::iter::once((start, num_layers)))
             .collect();
+        ranges.push((start, num_layers));
 
         let mut output = String::new();
 
