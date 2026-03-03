@@ -269,6 +269,7 @@ fn py_run_consolidate_blocks(
         let mut basis_count: usize = 0;
         let mut has_unitary = false;
         let mut outside_basis = false;
+        let mut num_2q_gates: usize = 0;
         for node in &block {
             let inst = dag[*node].unwrap_operation();
             block_qargs.extend(dag.get_qargs(inst.qubits));
@@ -276,10 +277,17 @@ fn py_run_consolidate_blocks(
             if inst.op.name() == basis_gate_name {
                 basis_count += 1;
             }
+            let qarg_count = dag.get_qargs(inst.qubits).len();
+            if qarg_count == 2 {
+                num_2q_gates += 1;
+            }
+            // Only set has_unitary for 2-qubit Unitary gates to ensure we don't
+            // inadvertently consolidate mixed 1q/2q blocks if custom blocks are passed.
             if matches!(
                 inst.op.view(),
                 qiskit_circuit::operations::OperationRef::Unitary(_)
-            ) {
+            ) && qarg_count == 2
+            {
                 has_unitary = true;
             }
             if !is_supported(
@@ -369,7 +377,9 @@ fn py_run_consolidate_blocks(
                     || block.len() > MAX_2Q_DEPTH
                     || (basis_gates.is_some() && outside_basis)
                     || (target.is_some() && outside_basis)
-                    || (basis_gates.is_none() && target.is_none() && has_unitary && block.len() > 1)
+                    || (basis_gates.is_none()
+                        && target.is_none()
+                        && ((has_unitary && block.len() > 1) || num_2q_gates > 3))
                 {
                     if approx::abs_diff_eq!(aview2(&TWO_QUBIT_IDENTITY), matrix) {
                         for node in block {
