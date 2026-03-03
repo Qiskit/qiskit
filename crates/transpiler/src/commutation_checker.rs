@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -642,7 +642,7 @@ impl CommutationChecker {
         tol: f64,
     ) -> Result<bool, CommutationError> {
         // Compute relative positioning of qargs of the second gate to the first gate.
-        // Since the qargs come out the same BitData, we already know there are no accidential
+        // Since the qargs come out the same BitData, we already know there are no accidental
         // bit-duplications, but this code additionally maps first_qargs to [0..n] and then
         // computes second_qargs relative to that. For example, it performs the mappings
         //  (first_qargs, second_qargs) = ( [1, 2], [0, 2] ) --> ( [0, 1], [2, 1] )
@@ -926,7 +926,7 @@ fn get_relative_placement(
 }
 
 #[derive(Clone, Debug)]
-#[pyclass]
+#[pyclass(skip_from_py_object)]
 pub struct CommutationLibrary {
     pub library: Option<HashMap<(String, String), CommutationLibraryEntry>>,
 }

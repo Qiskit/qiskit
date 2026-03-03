@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -306,7 +306,11 @@ fn optimize_clifford_t_1q(
     }
     global_phase += phase_update;
 
-    is_reduced.then_some((optimized_sequence, global_phase))
+    // Either we have fewer T-gates, or the number of T-gates remains the same
+    // but we have fewer Clifford gates (as the total number of gates is the number
+    // of T-gates + the number of Clifford gates).
+    (is_reduced || optimized_sequence.len() < raw_run.len())
+        .then_some((optimized_sequence, global_phase))
 }
 
 #[pyfunction]

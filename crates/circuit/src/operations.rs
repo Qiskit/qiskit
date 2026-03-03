@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -19,7 +19,7 @@ use std::sync::Arc;
 use std::{fmt, vec};
 
 use crate::bit::{ClassicalRegister, ShareableClbit};
-use crate::circuit_data::CircuitData;
+use crate::circuit_data::{CircuitData, PyCircuitData};
 use crate::classical::expr;
 use crate::duration::Duration;
 use crate::packed_instruction::PackedInstruction;
@@ -360,7 +360,7 @@ impl Operation for OperationRef<'_> {
 /// Used to tag control flow instructions via the `_control_flow_type` class
 /// attribute in the corresponding Python class.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int)]
+#[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int, from_py_object)]
 #[repr(u8)]
 pub enum ControlFlowType {
     Box = 0,
@@ -1077,7 +1077,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for DelayUnit {
 /// This is also used to tag standard instructions via the `_standard_instruction_type` class
 /// attribute in the corresponding Python class.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int)]
+#[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int, from_py_object)]
 #[repr(u8)]
 pub enum StandardInstructionType {
     Barrier = 0,
@@ -1210,7 +1210,7 @@ impl StandardInstruction {
 
 #[derive(Clone, Debug, Copy, Eq, PartialEq, Hash)]
 #[repr(u8)]
-#[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int)]
+#[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int, from_py_object)]
 pub enum StandardGate {
     GlobalPhase = 0,
     H = 1,
@@ -1488,7 +1488,7 @@ impl StandardGate {
             Self::CCX => Some((Self::CCX, smallvec![])),
             Self::CCZ => Some((Self::CCZ, smallvec![])),
             Self::CSwap => Some((Self::CSwap, smallvec![])),
-            Self::RCCX => None, // the inverse in not a StandardGate
+            Self::RCCX => Some((Self::RCCX, smallvec![])),
             Self::C3X => Some((Self::C3X, smallvec![])),
             Self::C3SX => None, // the inverse in not a StandardGate
             Self::RC3X => None, // the inverse in not a StandardGate
@@ -2907,8 +2907,8 @@ impl StandardGate {
         self.num_params()
     }
 
-    pub fn _get_definition(&self, params: Vec<Param>) -> Option<CircuitData> {
-        self.definition(&params)
+    pub fn _get_definition(&self, params: Vec<Param>) -> Option<PyCircuitData> {
+        self.definition(&params).map(Into::into)
     }
 
     pub fn _inverse(&self, params: Vec<Param>) -> Option<(StandardGate, SmallVec<[Param; 3]>)> {
@@ -3194,7 +3194,8 @@ impl PyInstruction {
                 Ok(definition) => definition
                     .getattr(py, intern!(py, "_data"))
                     .ok()?
-                    .extract::<CircuitData>(py)
+                    .extract::<PyCircuitData>(py)
+                    .map(Into::into)
                     .ok(),
                 Err(_) => None,
             }

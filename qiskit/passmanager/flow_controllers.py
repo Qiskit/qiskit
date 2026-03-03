@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -45,8 +45,8 @@ class FlowControllerLinear(BaseController):
         return list(self.tasks)
 
     def iter_tasks(self, state: PassManagerState) -> Generator[Task, PassManagerState, None]:
-        for task in self.tasks:
-            state = yield task
+        for task in self.tasks:  # noqa: UP028
+            yield task
 
 
 class DoWhileController(BaseController):
@@ -59,7 +59,7 @@ class DoWhileController(BaseController):
     def __init__(
         self,
         tasks: Task | Iterable[Task] = (),
-        do_while: Callable[[PropertySet], bool] = None,
+        do_while: Callable[[PropertySet], bool] | None = None,
         *,
         options: dict[str, Any] | None = None,
     ):
@@ -94,7 +94,7 @@ class ConditionalController(BaseController):
     def __init__(
         self,
         tasks: Task | Iterable[Task] = (),
-        condition: Callable[[PropertySet], bool] = None,
+        condition: Callable[[PropertySet], bool] | None = None,
         *,
         options: dict[str, Any] | None = None,
     ):
