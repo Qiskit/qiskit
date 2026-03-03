@@ -92,7 +92,7 @@ fn push_node_back(
         } else {
             0
         };
-        this_t0 += shift as u64;
+        this_t0 += shift;
         node_start_time
             .entry(node_index)
             .and_modify(|old_t0| *old_t0 = this_t0)
