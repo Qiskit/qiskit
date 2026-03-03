@@ -18,7 +18,7 @@ use crate::dag_circuit::NodeType;
 use crate::operations::{Operation, OperationRef, Param, StandardGate, StandardInstruction};
 use crate::packed_instruction::PackedInstruction;
 use crate::{Clbit, Qubit};
-use crossterm::terminal::size;
+use crossterm::terminal;
 use hashbrown::{HashMap, HashSet};
 use itertools::{Itertools, MinMaxResult};
 use pyo3::prelude::*;
@@ -51,7 +51,7 @@ pub fn draw_circuit(
     let fold = match fold {
         Some(f) => f,
         None => {
-            let (term_width, _) = size().unwrap_or((80, 24));
+            let (term_width, _) = terminal::size().unwrap_or((80, 24));
             term_width as usize
         }
     };
