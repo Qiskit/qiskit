@@ -43,7 +43,7 @@ use crate::slice::PySequenceIndex;
 use crate::variable_mapper::VariableMapper;
 use crate::{
     Block, BlockMapper, BlocksMode, Clbit, ControlFlowBlocks, Qubit, Stretch, TupleLikeArg, Var,
-    VarsMode, converters, imports, instruction, vf2,
+    VarsMode, imports, instruction, vf2,
 };
 
 use hashbrown::{HashMap, HashSet};
@@ -2345,7 +2345,7 @@ impl DAGCircuit {
                                                 .get_bound(py)
                                                 .call1((Uuid::new_v4().to_string(),))?;
                                             let mut body_a_circuit =
-                                                converters::dag_to_circuit(body_a, false)?;
+                                                CircuitData::from_dag_ref(body_a)?;
                                             if body_a_circuit.uses_parameter(loop_param_a) {
                                                 body_a_circuit.assign_parameters_from_mapping([
                                                     (
@@ -2374,7 +2374,7 @@ impl DAGCircuit {
                                             )?;
 
                                             let mut body_b_circuit =
-                                                converters::dag_to_circuit(body_b, false)?;
+                                                CircuitData::from_dag_ref(body_b)?;
                                             if body_b_circuit.uses_parameter(loop_param_b) {
                                                 body_b_circuit.assign_parameters_from_mapping([
                                                     (
@@ -5066,9 +5066,7 @@ impl DAGCircuit {
     ) -> PyResult<Option<Parameters<CircuitData>>> {
         Ok(params
             .map(|params| {
-                params.try_map_blocks_ref(|block| {
-                    converters::dag_to_circuit(&self.blocks[*block], false)
-                })
+                params.try_map_blocks_ref(|block| CircuitData::from_dag_ref(&self.blocks[*block]))
             })
             .transpose()?)
     }
@@ -7723,7 +7721,7 @@ impl DAGCircuit {
     ) -> PyResult<Self> {
         let num_qubits = qc_data.num_qubits();
         let num_clbits = qc_data.num_clbits();
-        let num_ops = qc_data.__len__();
+        let num_ops = qc_data.len();
         let num_vars =
             qc_data.num_declared_vars() + qc_data.num_input_vars() + qc_data.num_captured_vars();
         let num_stretches = qc_data.num_declared_stretches() + qc_data.num_captured_stretches();
@@ -8787,6 +8785,7 @@ mod test {
     use hashbrown::HashSet;
     use pyo3::prelude::*;
     use rustworkx_core::petgraph::prelude::*;
+    use rustworkx_core::petgraph::stable_graph::DefaultIx;
     use rustworkx_core::petgraph::visit::IntoEdgeReferences;
 
     fn new_dag(qubits: u32, clbits: u32) -> DAGCircuit {
@@ -9005,5 +9004,14 @@ mod test {
         assert_eq!(empty.cregs(), &[cr]);
         assert_eq!(empty.num_ops(), 0);
         Ok(())
+    }
+
+    #[test]
+    fn verify_default_ix_type() {
+        // This test will prevent Qiskit from compiling in the unlikely scenario
+        // that petgraph's NodeIndex type will change from u32 to something else.
+        // If this does happen, pointer conversions to `*const NodeIndex` in `dag.rs`
+        // will need to be updated as well.
+        let _: DefaultIx = 0u32;
     }
 }
