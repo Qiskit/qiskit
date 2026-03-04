@@ -49,7 +49,7 @@ from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
 )
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class OneQubitZeroParamGate(Gate):
@@ -533,7 +533,7 @@ class TestBasisTranslator(QiskitTestCase):
 
 
 class TestUnrollerCompatability(QiskitTestCase):
-    """Tests backward compatability with the Unroller pass.
+    """Tests backward compatibility with the Unroller pass.
 
     Duplicate of TestUnroller from test.python.transpiler.test_unroller with
     Unroller replaced by UnrollCustomDefinitions -> BasisTranslator.

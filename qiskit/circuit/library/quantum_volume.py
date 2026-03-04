@@ -14,7 +14,6 @@
 
 from __future__ import annotations
 
-from typing import Optional, Union
 
 import numpy as np
 from qiskit.circuit import QuantumCircuit, CircuitInstruction
@@ -67,8 +66,8 @@ class QuantumVolume(QuantumCircuit):
     def __init__(
         self,
         num_qubits: int,
-        depth: Optional[int] = None,
-        seed: Optional[Union[int, np.random.Generator]] = None,
+        depth: int | None = None,
+        seed: int | np.random.Generator | None = None,
         classical_permutation: bool = True,
         *,
         flatten: bool = False,
@@ -83,6 +82,7 @@ class QuantumVolume(QuantumCircuit):
             flatten: If ``False`` (the default), construct a circuit that contains a single
                 instruction, which in turn has the actual volume structure.  If ``True``, construct
                 the volume structure directly.
+
         """
         import scipy.stats
 
@@ -160,7 +160,7 @@ def quantum_volume(
             is not specified it will default to ``num_qubits`` layers.
         seed: An optional RNG seed used for generating the random SU(4)
             matrices used in the output circuit. This can be either an
-            integer or a numpy generator. If an integer is specfied it must
+            integer or a numpy generator. If an integer is specified it must
             be an value between 0 and 2**64 - 1.
 
     Reference Circuit:

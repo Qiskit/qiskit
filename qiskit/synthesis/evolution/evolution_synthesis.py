@@ -23,7 +23,7 @@ class EvolutionSynthesis(ABC):
 
     @abstractmethod
     def synthesize(self, evolution):
-        """Synthesize an ``qiskit.circuit.library.PauliEvolutionGate``.
+        """Synthesize a ``qiskit.circuit.library.PauliEvolutionGate``.
 
         Args:
             evolution (PauliEvolutionGate): The evolution gate to synthesize.

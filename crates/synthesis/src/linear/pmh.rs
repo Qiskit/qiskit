@@ -17,7 +17,7 @@ use smallvec::smallvec;
 use std::cmp;
 
 use qiskit_circuit::Qubit;
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::operations::{Param, StandardGate};
 
 use pyo3::prelude::*;
@@ -152,7 +152,7 @@ fn lower_cnot_synth(
 pub fn synth_cnot_count_full_pmh(
     matrix: PyReadonlyArray2<bool>,
     section_size: Option<i64>,
-) -> PyResult<CircuitData> {
+) -> PyResult<PyCircuitData> {
     let arrayview = matrix.as_array();
     let mut mat: Array2<bool> = arrayview.to_owned();
     let num_qubits = mat.nrows(); // is a quadratic matrix
@@ -186,9 +186,8 @@ pub fn synth_cnot_count_full_pmh(
             )
         });
 
-    Ok(CircuitData::from_standard_gates(
-        num_qubits as u32,
-        instructions,
-        Param::Float(0.0),
-    )?)
+    Ok(
+        CircuitData::from_standard_gates(num_qubits as u32, instructions, Param::Float(0.0))?
+            .into(),
+    )
 }

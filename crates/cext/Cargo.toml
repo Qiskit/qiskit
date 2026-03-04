@@ -4,7 +4,6 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
-build = "build.rs"
 
 [lib]
 name = "qiskit_cext"
@@ -31,9 +30,6 @@ hashbrown.workspace = true
 rand.workspace = true
 rand_pcg.workspace = true
 anyhow.workspace = true
-
-[build-dependencies]
-cbindgen = "0.29"
 
 [features]
 python_binding = ["dep:pyo3"]

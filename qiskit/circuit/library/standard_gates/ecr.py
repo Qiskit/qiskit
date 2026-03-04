@@ -99,7 +99,7 @@ class ECRGate(SingletonGate):
 
     def _define(self):
         """Default definition (in terms of simpler Clifford gates)"""
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         # global phase: 7π/4

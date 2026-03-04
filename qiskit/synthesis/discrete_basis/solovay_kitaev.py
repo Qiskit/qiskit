@@ -55,7 +55,7 @@ class SolovayKitaevDecomposition:
 
         Args:
             basic_approximations: A specification of the basic SO(3) approximations in terms
-                of discrete gates. At each iteration this algorithm, the remaining error is
+                of discrete gates. At each iteration of this algorithm, the remaining error is
                 approximated with the closest sequence of gates in this set.
                 If a ``str``, this specifies a filename from which to load the
                 approximation. If a ``dict``, then this contains
@@ -83,15 +83,14 @@ class SolovayKitaevDecomposition:
                 "Either basic_approximations or basis_gates + depth can be specified, not both."
             )
 
+        # Fast Rust path to load the file
+        elif isinstance(basic_approximations, str) and basic_approximations[~3:] != ".npy":
+            self._sk = RustSolovayKitaevSynthesis.from_basic_approximations(
+                basic_approximations, True
+            )
         else:
-            # Fast Rust path to load the file
-            if isinstance(basic_approximations, str) and basic_approximations[~3:] != ".npy":
-                self._sk = RustSolovayKitaevSynthesis.from_basic_approximations(
-                    basic_approximations, True
-                )
-            else:
-                sequences = self.load_basic_approximations(basic_approximations)
-                self._sk = RustSolovayKitaevSynthesis.from_sequences(sequences, True)
+            sequences = self.load_basic_approximations(basic_approximations)
+            self._sk = RustSolovayKitaevSynthesis.from_sequences(sequences, True)
 
         self._depth = depth
         self._check_input = check_input
@@ -195,7 +194,7 @@ class SolovayKitaevDecomposition:
                 and storing as such can cause errors when loading the file again.
         """
         # Safety guard: previously, we serialized via npy, but this format is incompatible
-        # with the current serialization, using Rust's serde + bincode. While we can still load
+        # with the current serialization, using Rust's binrw. While we can still load
         # .npy files in legacy format, the new format should not be stored as .npy.
         if filename[~3:] == ".npy":
             raise ValueError(
@@ -241,7 +240,7 @@ class SolovayKitaevDecomposition:
         circuit = QuantumCircuit._from_circuit_data(data, legacy_qubits=True)
 
         if return_dag:
-            from qiskit.converters import circuit_to_dag  # pylint: disable=cyclic-import
+            from qiskit.converters import circuit_to_dag
 
             return circuit_to_dag(circuit)
 

@@ -100,7 +100,7 @@ fn parse_unary(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
         .parse(s)
 }
 
-// sign is separetely parsed in this function
+// sign is separately parsed in this function
 fn parse_sign(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
     (
         delimited(multispace0, alt((char('-'), char('+'))), multispace0),

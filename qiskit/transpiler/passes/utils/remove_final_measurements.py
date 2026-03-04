@@ -23,7 +23,7 @@ def calc_final_ops(dag: DAGCircuit, final_op_names: set[str]) -> list[DAGOpNode]
         final_op_names: names of the operations to find at the end of the circuit.
 
     Returns:
-    List of nodes corresponding the the relevant operations at the end of the circuit.
+    List of nodes corresponding to the relevant operations at the end of the circuit.
     """
     final_ops = []
 
