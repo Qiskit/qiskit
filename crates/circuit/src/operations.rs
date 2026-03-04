@@ -3359,10 +3359,12 @@ impl PauliProductRotation {
             py.None()
         };
 
-        let gate = imports::PAULI_ROTATION_GATE.get_bound(py).call_method1(
-            intern!(py, "_from_pauli_data"),
-            (z, x, self.angle.clone(), py_label),
-        )?;
+        let gate = imports::PAULI_PRODUCT_ROTATION_GATE
+            .get_bound(py)
+            .call_method1(
+                intern!(py, "_from_pauli_data"),
+                (z, x, self.angle.clone(), py_label),
+            )?;
         Ok(gate.unbind())
     }
 }

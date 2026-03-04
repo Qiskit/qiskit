@@ -20,7 +20,7 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit, CircuitError, Instruction
 from qiskit.quantum_info import Pauli
 
-from qiskit._accelerate.synthesis.pauli_product_measurement import synth_pauli_product_measurement
+from qiskit._accelerate.synthesis.pauli_products import synth_pauli_product_measurement
 
 if typing.TYPE_CHECKING:
     import qiskit

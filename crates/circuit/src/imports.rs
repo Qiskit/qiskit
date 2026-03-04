@@ -135,7 +135,7 @@ pub static UNITARY_GATE: ImportOnceCell = ImportOnceCell::new(
     "qiskit.circuit.library.generalized_gates.unitary",
     "UnitaryGate",
 );
-pub static PAULI_ROTATION_GATE: ImportOnceCell = ImportOnceCell::new(
+pub static PAULI_PRODUCT_ROTATION_GATE: ImportOnceCell = ImportOnceCell::new(
     "qiskit.circuit.library.generalized_gates.pauli_product_rotation",
     "PauliProductRotationGate",
 );

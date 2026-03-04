@@ -14,6 +14,7 @@ workspace = true
 
 [dependencies]
 qiskit-circuit.workspace = true
+qiskit-circuit-library.workspace = true
 qiskit-quantum-info.workspace = true
 bytemuck.workspace = true
 num-complex.workspace = true
@@ -29,7 +30,7 @@ rand_distr.workspace = true
 faer = "0.23.2"
 rustworkx-core.workspace = true
 rustiq-core = "0.0.11"
-rsgridsynth =  "0.2.0"
+rsgridsynth = "0.2.0"
 rstar = "0.12.2"
 thiserror.workspace = true
 fixedbitset.workspace = true

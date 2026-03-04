@@ -3661,7 +3661,20 @@ mod test {
     fn packed_pointer_types_behave() -> PyResult<()> {
         // This is largely to exercise the packed-pointer logic under debug builds (since the
         // Python-space tests run with Rust in release mode) and Miri.
+
+        use crate::operations::PauliProductRotation;
         let mut qc = CircuitData::from_packed_operations(4, 1, [], Param::Float(0.0))?;
+        qc.push_packed_operation(
+            Box::new(PauliBased::PauliProductRotation(PauliProductRotation {
+                z: vec![false, false, true, true],
+                x: vec![false, true, true, false],
+                angle: Param::Float(1.0),
+            }))
+            .into(),
+            None,
+            &[Qubit(0), Qubit(1), Qubit(2), Qubit(3)],
+            &[],
+        )?;
         qc.push_packed_operation(
             Box::new(PauliBased::PauliProductMeasurement(
                 PauliProductMeasurement {
@@ -3700,6 +3713,10 @@ mod test {
                     (
                         OperationRef::PauliProductMeasurement(a),
                         OperationRef::PauliProductMeasurement(b),
+                    ) => assert_eq!(a, b),
+                    (
+                        OperationRef::PauliProductRotation(a),
+                        OperationRef::PauliProductRotation(b),
                     ) => assert_eq!(a, b),
                     (a, b) => panic!("unexpected types in iterator:\n{a:?}\n{b:?}"),
                 }

@@ -68,7 +68,7 @@ use crate::formats::QPYCircuitV17;
 use crate::params::generic_value_to_param;
 use crate::py_methods::py_convert_from_generic_value;
 use crate::py_methods::{
-    PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME, PAULI_ROTATION_GATE_CLASS_NAME,
+    PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME, PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME,
     UNITARY_GATE_CLASS_NAME, get_python_gate_class,
 };
 use crate::value::ParamRegisterValue;
@@ -179,7 +179,7 @@ fn recognize_instruction_type(
     let name = instruction.gate_class_name.as_str();
     if name == PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME {
         InstructionType::PauliProductMeasurement
-    } else if name == PAULI_ROTATION_GATE_CLASS_NAME {
+    } else if name == PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME {
         InstructionType::PauliProductRotation
     } else if name == UNITARY_GATE_CLASS_NAME {
         InstructionType::Unitary
@@ -337,7 +337,9 @@ fn unpack_instruction(
         InstructionType::PauliProductMeasurement => {
             unpack_pauli_product_measurement(instruction, qpy_data)?
         }
-        InstructionType::PauliProductRotation => unpack_pauli_rotation(instruction, qpy_data)?,
+        InstructionType::PauliProductRotation => {
+            unpack_pauli_product_rotation(instruction, qpy_data)?
+        }
         InstructionType::Unitary => unpack_unitary(instruction, qpy_data)?,
         InstructionType::ControlFlow => unpack_control_flow(instruction, qpy_data)?,
         InstructionType::Custom => {
@@ -418,7 +420,7 @@ fn unpack_pauli_product_measurement(
     Ok((op, param_values))
 }
 
-fn unpack_pauli_rotation(
+fn unpack_pauli_product_rotation(
     instruction: &formats::CircuitInstructionV2Pack,
     qpy_data: &mut QPYReadData,
 ) -> PyResult<(PackedOperation, Vec<GenericValue>)> {

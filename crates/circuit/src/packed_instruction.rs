@@ -13,7 +13,7 @@
 use crate::circuit_data::CircuitData;
 use crate::imports::{
     BARRIER, BOX_OP, BREAK_LOOP_OP, CONTINUE_LOOP_OP, DELAY, FOR_LOOP_OP, IF_ELSE_OP, MEASURE,
-    PAULI_PRODUCT_MEASUREMENT, PAULI_ROTATION_GATE, RESET, SWITCH_CASE_OP, UNITARY_GATE,
+    PAULI_PRODUCT_MEASUREMENT, PAULI_PRODUCT_ROTATION_GATE, RESET, SWITCH_CASE_OP, UNITARY_GATE,
     WHILE_LOOP_OP, get_std_gate_class,
 };
 use crate::instruction::Parameters;
@@ -67,7 +67,7 @@ unsafe impl ::bytemuck::NoUninit for PackedOperationType {}
 ///     StandardInstruction(StandardInstruction),
 ///     PyOperation(Box<PyOperationTypes>),
 ///     UnitaryGate(Box<UnitaryGate>),
-///     PauliProductMeasurement(Box<PauliProductMeasurement>),
+///     PauliBased(Box<PauliBased>),
 ///     ControlFlow(Box<ControlFlowInstruction>),
 /// }
 /// ```
@@ -585,7 +585,7 @@ impl PackedOperation {
                     .is_subclass(py_type);
             }
             OperationRef::PauliProductRotation(_) => {
-                return PAULI_ROTATION_GATE
+                return PAULI_PRODUCT_ROTATION_GATE
                     .get_bound(py)
                     .cast::<PyType>()?
                     .is_subclass(py_type);

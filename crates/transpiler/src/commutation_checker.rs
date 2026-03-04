@@ -220,7 +220,7 @@ fn try_extract_op_from_ppm(
     Some(out.compose_map(&local, |i| qubits[i as usize].0))
 }
 
-fn try_extract_op_from_pauli_rotation(
+fn try_extract_op_from_ppr(
     operation: &OperationRef,
     qubits: &[Qubit],
     num_qubits: u32,
@@ -243,9 +243,7 @@ fn try_pauli_generator(
         "pauli" => try_extract_op_from_pauli_gate(operation, qubits, num_qubits),
         "PauliEvolution" => try_extract_op_from_pauli_evo(operation, qubits, num_qubits),
         "pauli_product_measurement" => try_extract_op_from_ppm(operation, qubits, num_qubits),
-        "pauli_product_rotation" => {
-            try_extract_op_from_pauli_rotation(operation, qubits, num_qubits)
-        }
+        "pauli_product_rotation" => try_extract_op_from_ppr(operation, qubits, num_qubits),
         _ => None,
     }
 }

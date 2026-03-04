@@ -46,7 +46,7 @@ use crate::bytes::Bytes;
 use crate::formats::{self, ConditionPack};
 use crate::params::pack_param_obj;
 use crate::py_methods::{
-    PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME, PAULI_ROTATION_GATE_CLASS_NAME,
+    PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME, PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME,
     UNITARY_GATE_CLASS_NAME, gate_class_name, getattr_or_none, py_get_instruction_annotations,
     py_pack_param, py_pack_pauli_evolution_gate, recognize_custom_operation, serialize_metadata,
 };
@@ -227,7 +227,7 @@ fn pack_instruction(
             pack_pauli_product_measurement(ppm, instruction, qpy_data)?
         }
         OperationRef::PauliProductRotation(rotation) => {
-            pack_pauli_rotation(rotation, instruction, qpy_data)?
+            pack_pauli_product_rotation(rotation, instruction, qpy_data)?
         }
         OperationRef::Unitary(unitary_gate) => pack_unitary_gate(unitary_gate, qpy_data)?,
         OperationRef::Gate(py_gate) => pack_py_gate(py_gate, instruction, qpy_data)?,
@@ -338,14 +338,14 @@ fn pack_pauli_product_measurement(
     })
 }
 
-fn pack_pauli_rotation(
+fn pack_pauli_product_rotation(
     rotation: &PauliProductRotation,
     instruction: &PackedInstruction,
     qpy_data: &QPYWriteData,
 ) -> PyResult<formats::CircuitInstructionV2Pack> {
     // since we won't recreate this gate via python, it's not important to verify the python name is identical to the one we use here
     // so we simply hard-code it instead of going through python
-    let gate_class_name = String::from(PAULI_ROTATION_GATE_CLASS_NAME);
+    let gate_class_name = String::from(PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME);
     let z_values =
         GenericValue::Tuple(rotation.z.iter().cloned().map(GenericValue::Bool).collect());
     let x_values =

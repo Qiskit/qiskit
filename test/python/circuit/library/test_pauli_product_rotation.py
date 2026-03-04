@@ -10,14 +10,16 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""A Test for Pauli Product Measurement instruction."""
+"""A Test for the Pauli product rotation gate."""
 
 import io
 import numpy as np
+import scipy as sc
 
 from ddt import ddt, data
 from qiskit.circuit import QuantumCircuit, Parameter, CircuitError, CommutationChecker
 from qiskit.circuit.library import (
+    RXGate,
     PauliProductRotationGate,
     PauliEvolutionGate,
     PauliProductMeasurement,
@@ -77,6 +79,17 @@ class TestPauliProductRotationGate(QiskitTestCase):
             PauliProductRotationGate(Pauli("Y"), 0.1), PauliProductRotationGate(Pauli("X"), 0.1)
         )
 
+        qc1 = QuantumCircuit(2)
+        qc1.append(PauliProductRotationGate(Pauli("XX"), angle=1.2), [0, 1])
+
+        qc2 = QuantumCircuit(2)
+        qc2.append(PauliProductRotationGate(Pauli("XX"), angle=1.2), [1, 0])
+        self.assertEqual(qc1, qc2)
+
+        qc3 = QuantumCircuit(2)
+        qc3.append(PauliProductRotationGate(Pauli("XZ"), angle=1.2), [0, 1])
+        self.assertNotEqual(qc1, qc3)
+
     @data("iX", "-iX")
     def test_invalid_phase(self, pauli):
         """Test invalid Pauli phases raises an error."""
@@ -128,10 +141,9 @@ class TestPauliProductRotationGate(QiskitTestCase):
         self.assertEqual(rust_path, python_path)
 
     def test_qpy(self):
-        """Test qpy for circuits with PauliProductMeasurement instructions."""
+        """Test qpy for circuits with PauliProductRotationGates."""
         qc = QuantumCircuit(6, 2)
         x = Parameter("x")
-        # qc.append(PauliProductMeasurement(Pauli("XZ")), [4, 1], [0])
         qc.append(PauliProductRotationGate(Pauli("XZ"), 0.2), [4, 1])
         qc.append(PauliProductRotationGate(Pauli("Z"), -12, label="wohooo rotation"), [2])
         qc.append(PauliProductRotationGate(Pauli("ZZ"), x), [3, 2])
@@ -167,3 +179,60 @@ class TestPauliProductRotationGate(QiskitTestCase):
             ]
         )
         self.assertEqual(expected, out)
+
+    def test_inverse(self):
+        """Test the inverse is correct."""
+        ppr = PauliProductRotationGate(Pauli("XIYZ"), 1.2345)
+        ppr_dg = ppr.inverse()
+
+        with self.subTest(msg="inverse type"):
+            self.assertIsInstance(ppr_dg, PauliProductRotationGate)
+
+        with self.subTest(msg="inverse"):
+            iden = Operator(ppr).data.dot(Operator(ppr_dg))
+            self.assertTrue(np.allclose(iden, np.eye(16)))
+
+    @data(True, False)
+    def test_to_matrix(self, neg):
+        """Check conversion to matrix."""
+        angle = -2.13
+        pauli = Pauli("-X") if neg else Pauli("XIYZ")
+        ppr = PauliProductRotationGate(pauli, angle)
+        expected = sc.linalg.expm(-0.5j * angle * pauli.to_matrix())
+        self.assertTrue(np.allclose(expected, ppr.to_matrix()))
+
+    def test_matrix_conventions(self):
+        """Check the matrix conventions."""
+        angle = -2.13
+        pauli = Pauli("X")
+        ppr = PauliProductRotationGate(pauli, angle)
+
+        with self.subTest(msg="PPR and standard gates"):
+            rx = RXGate(angle)
+            self.assertTrue(np.allclose(rx.to_matrix(), ppr.to_matrix()))
+
+        with self.subTest(msg="PPR and Pauli evolution"):
+            evo = PauliEvolutionGate(pauli, time=angle / 2)
+            self.assertTrue(np.allclose(evo.to_matrix(), ppr.to_matrix()))
+
+    @data(0, 1, 2)
+    def test_control(self, num_ctrl_qubits):
+        """Check calling the control method."""
+        angle = 5.4321
+        pauli = Pauli("XYZ")
+        ppr = PauliProductRotationGate(pauli, angle)
+
+        ctrl = ppr.control(num_ctrl_qubits)
+
+        if num_ctrl_qubits == 0:
+            expected = ppr.copy()
+            self.assertEqual(expected, ctrl)
+
+        else:
+            expected = PauliEvolutionGate(pauli, time=angle / 2).control(num_ctrl_qubits)
+            # We don't want to hardcode a check that PPR.control returns a PauliEvolutionGate,
+            # we want to ensure that the output is an efficient controlled version.
+            self.assertTrue(np.allclose(Operator(expected).data, Operator(ctrl).data))
+
+            counts = {"sx": 1, "sxdg": 1, "h": 2, "cx": 4, num_ctrl_qubits * "c" + "rz": 1}
+            self.assertDictEqual(counts, ctrl.definition.count_ops())

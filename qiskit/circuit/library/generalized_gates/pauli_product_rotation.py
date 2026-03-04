@@ -19,7 +19,7 @@ import numpy as np
 import scipy as sc
 
 from qiskit.circuit import QuantumCircuit, CircuitError, Gate
-from qiskit._accelerate.circuit_library import pauli_evolution
+from qiskit._accelerate.synthesis.pauli_products import synth_pauli_product_rotation
 
 if typing.TYPE_CHECKING:
     import qiskit
@@ -36,7 +36,23 @@ class PauliProductRotationGate(Gate):
         R_P(\theta) = e^{-i \theta / 2 P}
 
     for a Pauli :math:`P \in \{I, X, Y, Z\}^{\otimes n}` and a rotation angle
-    :math:`\theta \in \mathbb R`, which could be represented by a unbound parameter.
+    :math:`\theta \in \mathbb R`, which could be represented by an unbound parameter.
+
+    Example:
+
+    .. plot::
+       :include-source:
+       :nofigs:
+
+        from qiskit.circuit import QuantumCircuit
+        from qiskit.circuit.library import PauliProductRotationGate
+        from qiskit.quantum_info import Pauli
+
+        pauli = Pauli("XYZ")
+        ppr = PauliProductRotationGate(pauli, angle=0.2)
+        circuit = QuantumCircuit(10)
+        circuit.append(ppr, [1, 2, 6])
+
     """
 
     def __init__(
@@ -81,7 +97,7 @@ class PauliProductRotationGate(Gate):
         This function is used internally from within the rust code and from QPY
         serialization.
         """
-        from qiskit.quantum_info import Pauli  # pylint: disable=cyclic-import
+        from qiskit.quantum_info import Pauli
 
         return cls(Pauli((z, x, 0)), angle, label)
 
@@ -117,9 +133,12 @@ class PauliProductRotationGate(Gate):
         Raises:
             QiskitError: invalid ``num_ctrl_qubits`` or ``ctrl_state``.
         """
-        from qiskit.circuit.library import PauliEvolutionGate  # pylint: disable=cyclic-import
+        if num_ctrl_qubits == 0:
+            return PauliProductRotationGate(self.pauli(), self.params[0], label=label)
 
-        return PauliEvolutionGate(self.pauli()).control(
+        from qiskit.circuit.library import PauliEvolutionGate
+
+        return PauliEvolutionGate(self.pauli(), time=self.params[0] / 2).control(
             num_ctrl_qubits, label, ctrl_state, annotated
         )
 
@@ -136,14 +155,10 @@ class PauliProductRotationGate(Gate):
     def _define(self):
         # In the Pauli tensor order, the label i corresponds to qubit n-(i+1), so we
         # revert the labels. The code below is consistent with PauliEvolutionGate.
-        label = self.pauli().to_label()[::-1]
-        angle = self.params[0]
-        qubits = list(range(self.num_qubits))
-        evo = pauli_evolution(self.num_qubits, [(label, qubits, angle)])
         circuit = QuantumCircuit._from_circuit_data(
-            evo,
+            synth_pauli_product_rotation(self),
             legacy_qubits=True,
-            name="def_pauli_rotation",
+            name="def_pauli_product_rotation",
         )
         self.definition = circuit
 
@@ -157,11 +172,11 @@ class PauliProductRotationGate(Gate):
         Returns:
             The Pauli rotation axis.
         """
-        from qiskit.quantum_info import Pauli  # pylint: disable=cyclic-import
+        from qiskit.quantum_info import Pauli
 
         return Pauli((self._pauli_z, self._pauli_x, 0))
 
     def to_matrix(self):
         pauli_matrix = self.pauli().to_matrix(sparse=False)
         angle = self.params[0]
-        return sc.linalg.expm(-1j * angle / 2 * pauli_matrix)
+        return sc.linalg.expm(-0.5j * angle * pauli_matrix)

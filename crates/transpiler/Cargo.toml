@@ -24,7 +24,6 @@ rand_pcg.workspace = true
 num-complex.workspace = true
 rustworkx-core.workspace = true
 qiskit-circuit.workspace = true
-qiskit-circuit-library.workspace = true
 qiskit-synthesis.workspace = true
 qiskit-quantum-info.workspace = true
 thiserror.workspace = true
