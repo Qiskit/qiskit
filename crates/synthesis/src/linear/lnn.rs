@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -17,7 +17,7 @@ use smallvec::smallvec;
 
 use pyo3::prelude::*;
 use qiskit_circuit::Qubit;
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::operations::{Param, StandardGate};
 
 // Optimize the synthesis of an n-qubit circuit contains only CX gates for
@@ -305,7 +305,7 @@ pub fn py_synth_cnot_lnn_instructions(
 /// Returns: The CircuitData of the synthesized circuit.
 #[pyfunction]
 #[pyo3(signature = (mat))]
-pub fn py_synth_cnot_depth_line_kms(mat: PyReadonlyArray2<bool>) -> PyResult<CircuitData> {
+pub fn py_synth_cnot_depth_line_kms(mat: PyReadonlyArray2<bool>) -> PyResult<PyCircuitData> {
     let num_qubits = mat.as_array().nrows(); // is a quadratic matrix
     let (cx_instructions_rows_m2nw, cx_instructions_rows_nw2id) =
         synth_cnot_lnn_instructions(mat.as_array());
@@ -320,9 +320,8 @@ pub fn py_synth_cnot_depth_line_kms(mat: PyReadonlyArray2<bool>) -> PyResult<Cir
                 smallvec![Qubit(ctrl as u32), Qubit(target as u32)],
             )
         });
-    Ok(CircuitData::from_standard_gates(
-        num_qubits as u32,
-        instructions,
-        Param::Float(0.0),
-    )?)
+    Ok(
+        CircuitData::from_standard_gates(num_qubits as u32, instructions, Param::Float(0.0))?
+            .into(),
+    )
 }

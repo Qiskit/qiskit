@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -20,13 +20,13 @@ use qiskit_circuit::operations::{
     StandardGate, StandardInstruction, multiply_param,
 };
 use qiskit_circuit::packed_instruction::PackedInstruction;
-use qiskit_circuit::{BlocksMode, VarsMode};
-
-use qiskit_quantum_info::clifford::Clifford;
-use qiskit_quantum_info::sparse_observable::SparseObservable;
+use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
 
 use crate::TranspilerError;
 use num_complex::Complex64;
+use qiskit_quantum_info::clifford::Clifford;
+use qiskit_quantum_info::sparse_observable::SparseObservable;
+
 use smallvec::smallvec;
 use std::f64::consts::PI;
 
@@ -42,11 +42,12 @@ static SUPPORTED_INSTRUCTION_NAMES: [&str; 20] = [
 static HANDLED_INSTRUCTION_NAMES: [&str; 4] = ["t", "tdg", "rz", "measure"];
 
 #[pyfunction]
-#[pyo3(signature = (dag, fix_clifford=true))]
+#[pyo3(signature = (dag, fix_clifford=true, insert_barrier=false))]
 pub fn run_litinski_transformation(
     py: Python,
     dag: &DAGCircuit,
     fix_clifford: bool,
+    insert_barrier: bool,
 ) -> PyResult<Option<DAGCircuit>> {
     let op_counts = dag.get_op_counts();
 
@@ -69,19 +70,13 @@ pub fn run_litinski_transformation(
             .collect();
 
         return Err(TranspilerError::new_err(format!(
-            "Unable to run Litinski tranformation as the circuit contains instructions not supported by the pass: {:?}",
+            "Unable to run Litinski transformation as the circuit contains instructions not supported by the pass: {:?}",
             unsupported
         )));
     }
-    let non_clifford_handled_count: usize = op_counts
+    let non_clifford_handled_count: usize = HANDLED_INSTRUCTION_NAMES
         .iter()
-        .filter_map(|(k, v)| {
-            if HANDLED_INSTRUCTION_NAMES.contains(&k.as_str()) {
-                Some(v)
-            } else {
-                None
-            }
-        })
+        .filter_map(|name| op_counts.get(*name))
         .sum();
     let clifford_count = dag.size(false)? - non_clifford_handled_count;
 
@@ -321,6 +316,20 @@ pub fn run_litinski_transformation(
     // Since we aim to preserve the global phase of the circuit, we add the Clifford operations from
     // the original circuit (and not the final Clifford operator).
     if fix_clifford {
+        // If specified, insert barriers between the Clifford and the rest of the circuit.
+        if insert_barrier {
+            let barrier = StandardInstruction::Barrier(dag.num_qubits() as u32).into();
+            let qubits = (0..dag.num_qubits() as u32).map(Qubit).collect::<Vec<_>>();
+            new_dag.apply_operation_back(
+                barrier,
+                &qubits,
+                &[],
+                None,
+                None,
+                #[cfg(feature = "cache_pygates")]
+                None,
+            )?;
+        }
         for inst in clifford_ops.into_iter() {
             new_dag.push_back(inst.clone())?;
         }

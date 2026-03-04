@@ -300,6 +300,5 @@ As an example:
 /// \qk_deprecated{2.3.0|use :c:func:`qk_ty_new_function` instead.}
 #[deprecated = "use `qk_ty_new_function` instead"]
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub extern "C" fn qk_ty_old_function() {}
 ```

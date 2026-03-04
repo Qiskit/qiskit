@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -841,11 +841,11 @@ impl PackedInstruction {
         }
     }
 
-    /// Extract an `ndarray` matrix from this instruciton, if available.
+    /// Extract an `ndarray` matrix from this instruction, if available.
     ///
     /// The returned value will preferentially be a view, if the matrix already exists (e.g. for
     /// `Unitary`).
-    pub fn try_cow_array(&self) -> Option<CowArray<Complex64, Ix2>> {
+    pub fn try_cow_array(&self) -> Option<CowArray<'_, Complex64, Ix2>> {
         match self.op.view() {
             OperationRef::StandardGate(g) => g.matrix(self.params_view()).map(CowArray::from),
             OperationRef::Gate(g) => g.matrix().map(CowArray::from),
