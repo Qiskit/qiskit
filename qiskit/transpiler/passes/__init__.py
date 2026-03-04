@@ -78,6 +78,7 @@ Optimizations
    CommutativeOptimization
    ConsolidateBlocks
    ContractIdleWiresInControlFlow
+   ConvertToPauliRotations
    ElidePermutations
    HoareOptimizer
    InverseCancellation
@@ -90,7 +91,6 @@ Optimizations
    OptimizeCliffordT
    OptimizeCliffords
    OptimizeSwapBeforeMeasure
-   PBCTransformation
    RemoveDiagonalGatesBeforeMeasure
    RemoveFinalReset
    RemoveIdentityEquivalent
@@ -230,6 +230,7 @@ from .optimization import CommutativeOptimization
 from .optimization import CommutativeInverseCancellation
 from .optimization import ConsolidateBlocks
 from .optimization import ContractIdleWiresInControlFlow
+from .optimization import ConvertToPauliRotations
 from .optimization import ElidePermutations
 from .optimization import HoareOptimizer
 from .optimization import InverseCancellation
@@ -242,7 +243,6 @@ from .optimization import OptimizeAnnotated
 from .optimization import OptimizeCliffordT
 from .optimization import OptimizeCliffords
 from .optimization import OptimizeSwapBeforeMeasure
-from .optimization import PBCTransformation
 from .optimization import RemoveDiagonalGatesBeforeMeasure
 from .optimization import RemoveFinalReset
 from .optimization import RemoveIdentityEquivalent

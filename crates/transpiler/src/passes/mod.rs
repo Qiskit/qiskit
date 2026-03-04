@@ -31,6 +31,7 @@ mod commutation_analysis;
 mod commutation_cancellation;
 mod commutative_optimization;
 mod consolidate_blocks;
+mod convert_to_pauli_rotations;
 mod dense_layout;
 mod disjoint_layout;
 mod elide_permutations;
@@ -43,7 +44,6 @@ mod inverse_cancellation;
 mod litinski_transformation;
 mod optimize_1q_gates_decomposition;
 mod optimize_clifford_t;
-mod pbc_transformation;
 mod remove_diagonal_gates_before_measure;
 mod remove_identity_equiv;
 pub mod sabre;
@@ -66,6 +66,9 @@ pub use commutation_analysis::{analyze_commutations, commutation_analysis_mod};
 pub use commutation_cancellation::{cancel_commutations, commutation_cancellation_mod};
 pub use commutative_optimization::{commutative_optimization_mod, run_commutative_optimization};
 pub use consolidate_blocks::{DecomposerType, consolidate_blocks_mod, run_consolidate_blocks};
+pub use convert_to_pauli_rotations::{
+    convert_to_pauli_rotations_mod, py_convert_to_pauli_rotations,
+};
 pub use dense_layout::{best_subset, dense_layout_mod};
 pub use disjoint_layout::{combine_barriers, disjoint_utils_mod, distribute_components};
 pub use elide_permutations::{elide_permutations_mod, run_elide_permutations};
@@ -87,7 +90,6 @@ pub use optimize_1q_gates_decomposition::{
     optimize_1q_gates_decomposition_mod, run_optimize_1q_gates_decomposition,
 };
 pub use optimize_clifford_t::{optimize_clifford_t_mod, run_optimize_clifford_t};
-pub use pbc_transformation::{pbc_transformation_mod, py_pbc_transformation};
 pub use remove_diagonal_gates_before_measure::{
     remove_diagonal_gates_before_measure_mod, run_remove_diagonal_before_measure,
 };
