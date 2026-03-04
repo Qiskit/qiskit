@@ -19,7 +19,7 @@ from qiskit._accelerate.convert_to_pauli_rotations import convert_to_pauli_rotat
 
 class ConvertToPauliRotations(TransformationPass):
     r"""
-    Convert a quanutm circuit containing single-qubit, two-qubit and three-qubit
+    Convert a quantum circuit containing single-qubit, two-qubit and three-qubit
     standard gates, barriers and measurements, into an equivalent list of
     Pauli product rotations, implemented as :class:`.PauliEvolutionGate` and a global phase,
     as well as :class:`.PauliProductMeasurement`.
