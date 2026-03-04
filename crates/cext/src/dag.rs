@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 use anyhow::Error;
+use hashbrown::HashMap;
 use num_complex::Complex64;
 use smallvec::smallvec;
 
@@ -1585,4 +1586,124 @@ pub unsafe extern "C" fn qk_dag_copy_empty_like(
         .copy_empty_like_with_capacity(0, 0, vars_mode, blocks_mode)
         .expect("Failed to copy the DAG.");
     Box::into_raw(Box::new(copied_dag))
+}
+
+/// @ingroup QkDag
+/// Replace a non-empty contiguous block of nodes in a ``QkDag`` with a
+/// single unitary gate corresponding to the specified unitary matrix.
+///
+/// Upon replacement, the nodes in the block are removed and substituted by
+/// a new node acting on the given qubits.
+///
+/// @param dag Pointer to the DAG.
+/// @param num_block_ids Number of entries in ``block_ids``. This number must
+///     be nonzero.
+/// @param block_ids Pointer to a non-empty array of nodes to replace.
+/// @param matrix Pointer to an initialized row-major unitary matrix of size
+///     ``4**num_qubits``.
+/// @param num_qubits The number of qubits the resulting unitary gate acts on.
+/// @param qubits Pointer to an array of distinct ``uint32_t`` qubit indices.
+///     Each entry specifies the index of the DAG qubit that corresponds to
+///     the respective argument position in the unitary gate.
+/// @param cycle_check If ``true``, the function checks whether replacing the
+///     provided ``block_ids`` with a single node would introduce a cycle in
+///     the DAG (which would invalidate the DAG). If a cycle would be
+///     created, the DAG is left unchanged and ``UINT32_MAX`` is returned.
+///     This checking comes with a run time penalty. If you can guarantee that
+///     the provided ``block_ids`` is a contiguous block and won't introduce a
+///     cycle when contracted to a single node, this can be set to ``false``.
+///
+/// @return The index of the newly added operation node, or ``UINT32_MAX`` if
+///     ``cycle_check`` is ``true`` and the replacement would introduce a cycle.
+///
+/// # Example
+///
+/// ```c
+/// // Create a DAG with H, T, S, T, H gates on the second qubit
+/// QkDag *dag = qk_dag_new();
+/// QkQuantumRegister *qr = qk_quantum_register_new(2, "qr");
+/// qk_dag_add_quantum_register(dag, qr);
+/// uint32_t qubit[1] = {1};
+/// qk_dag_apply_gate(dag, QkGate_H, qubit, NULL, false);
+/// uint32_t idx1 = qk_dag_apply_gate(dag, QkGate_T, qubit, NULL, false);
+/// uint32_t idx2 = qk_dag_apply_gate(dag, QkGate_S, qubit, NULL, false);
+/// uint32_t idx3 = qk_dag_apply_gate(dag, QkGate_T, qubit, NULL, false);
+/// qk_dag_apply_gate(dag, QkGate_H, qubit, NULL, false);
+///
+/// // Replace the inner T, S, T gates by a unitary gate (representing Z)
+/// uint32_t replaced_ids[3] = {idx1, idx2, idx3};
+/// static const QkComplex64 mat_z[4] = {{1, 0}, {0, 0}, {0, 0}, {-1, 0}};
+/// uint32_t new_node_idx =
+///     qk_dag_replace_block_with_unitary(dag, 3, replaced_ids, mat_z, 1, qubit, false);
+///
+/// // free the register and dag pointer when done
+/// qk_quantum_register_free(qr);
+/// qk_dag_free(dag);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if any of:
+/// * `dag` is not an aligned, non-null pointer to a valid ``QkDag``,
+/// * `qubits` is not an aligned pointer to `num_qubits` initialized values.
+/// * `matrix` is not an aligned pointer to `4**num_qubits` initialized values,
+/// * `block_ids` is not an aligned pointer to `num_block_ids` initialized values.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_dag_replace_block_with_unitary(
+    dag: *mut DAGCircuit,
+    num_block_ids: u32,
+    block_ids: *const u32,
+    matrix: *const Complex64,
+    num_qubits: u32,
+    qubits: *const u32,
+    cycle_check: bool,
+) -> u32 {
+    // SAFETY: per documentation, `dag` points to valid data.
+    let dag = unsafe { mut_ptr_as_ref(dag) };
+
+    // SAFETY: per documentation, `matrix` is aligned and valid for `4**num_qubits` reads of
+    // initialized data.
+    let array = unsafe { unitary_from_pointer(matrix, num_qubits, None) }
+        .expect("infallible without tolerance checking");
+
+    // SAFETY: per documentation, `block_ids` is aligned and valid for `num_block_ids` reads. Per
+    // documentation, `num_block_ids` is nonzero so `block_ids` cannot be null.
+    // In addition, it is unlikely that petgraph's `NodeIndex` will ever change from `u32`, but
+    // to be fully on the safe side the rust test `verify_default_ix_type` will prevent Qiskit
+    // from compiling if this ever happens.
+    let block = unsafe {
+        ::std::slice::from_raw_parts(block_ids as *const NodeIndex, num_block_ids as usize)
+    };
+
+    let qubits = if num_qubits == 0 {
+        // This handles the case of C passing us a null pointer for a scalar matrix; Rust slices
+        // can't be backed by the null pointer.
+        &[]
+    } else {
+        // SAFETY: per documentation, `qubits` is aligned and valid for `num_qubits` reads.  Per
+        // previous check, `num_qubits` is nonzero so `qubits` cannot be null.
+        unsafe { ::std::slice::from_raw_parts(qubits as *const Qubit, num_qubits as usize) }
+    };
+
+    let qubit_pos_map = qubits
+        .iter()
+        .enumerate()
+        .map(|(i, q)| (*q, i))
+        .collect::<HashMap<_, _>>();
+    let clbit_pos_map = HashMap::new();
+
+    let res = dag.replace_block(
+        block,
+        Box::new(UnitaryGate { array }).into(),
+        None,
+        None,
+        cycle_check,
+        &qubit_pos_map,
+        &clbit_pos_map,
+    );
+
+    match res {
+        Ok(new_index) => new_index.index() as u32,
+        Err(_) => u32::MAX,
+    }
 }
