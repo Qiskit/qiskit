@@ -2704,9 +2704,7 @@ mod test_custom_operations {
         circuit
             .push_packed_operation(
                 PackedOperation::from_custom_operation(gate),
-                Some(crate::instruction::Parameters::Params(smallvec![
-                    3.14.into()
-                ])),
+                Some(crate::instruction::Parameters::Params(smallvec![PI.into()])),
                 &[Qubit(0)],
                 &[],
             )
