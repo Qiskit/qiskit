@@ -25,6 +25,8 @@ use pyo3::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use std::fmt::Debug;
 use std::ops::Index;
+use unicode_segmentation::UnicodeSegmentation;
+use unicode_width::UnicodeWidthStr;
 
 /// Draw the [CircuitData] object as string.
 ///
@@ -636,15 +638,11 @@ impl Debug for TextWireElement {
 
 impl TextWireElement {
     fn width(&self) -> usize {
-        self.top
-            .chars()
-            .count()
-            .max(self.mid.chars().count())
-            .max(self.bot.chars().count())
+        self.top.width().max(self.mid.width()).max(self.bot.width())
     }
 
     fn left_pad_string(s: &mut String, pad_char: char, width: usize) {
-        let current_width = s.len();
+        let current_width = s.width();
         if current_width < width {
             let pad_size = width - current_width;
             s.reserve(pad_size);
@@ -653,7 +651,7 @@ impl TextWireElement {
     }
 
     fn pad_string(s: &mut String, pad_char: char, width: usize) {
-        let current_width = s.chars().count();
+        let current_width = s.width();
         if current_width < width {
             let pad_size = width - current_width;
             let left_pad = pad_size / 2;
@@ -872,7 +870,7 @@ impl TextDrawer {
                             }
                         }
                         let label = format!(" {} ", Self::get_label(inst));
-                        let label_len = label.chars().count(); // To count unicode chars properly (e.g. in √X)
+                        let label_len = label.width();
                         let left_len = (label_len - 1) / 2;
                         let right_len = label_len - left_len - 1;
                         top = format!(
@@ -895,7 +893,7 @@ impl TextDrawer {
                     }
                     BoxedElement::Multi(inst) => {
                         let label = format!(" {} ", Self::get_label(inst));
-                        let label_len = label.chars().count(); // To count unicode chars properly (e.g. in √X)
+                        let label_len = label.width();
                         let qargs = circuit.get_qargs(inst.qubits);
                         let (minima, maxima) = get_instruction_range(qargs, &[], 0);
                         let mid_idx = (minima + maxima) / 2;
@@ -906,13 +904,7 @@ impl TextDrawer {
                                 " ".to_string()
                             };
                         let mid_section = if ind == mid_idx {
-                            format!(
-                                "{:^total_q$}{:^label_len$}",
-                                num_affected,
-                                label,
-                                total_q = qargs.len(),
-                                label_len = label_len
-                            )
+                            format!("{:^total_q$}{}", num_affected, label, total_q = qargs.len(),)
                         } else {
                             format!(
                                 "{:^total_q$}{:^label_len$}",
@@ -922,8 +914,8 @@ impl TextDrawer {
                                 label_len = label_len
                             )
                         };
-                        let left_len = (mid_section.len() - 1) / 2;
-                        let right_len = mid_section.len() - left_len - 1;
+                        let left_len = (mid_section.width() - 1) / 2;
+                        let right_len = mid_section.width() - left_len - 1;
                         top = if ind == minima {
                             format!(
                                 "{}{}{}{}{}",
@@ -937,7 +929,7 @@ impl TextDrawer {
                             format!(
                                 "{}{}{}",
                                 CONNECTING_WIRE,
-                                " ".repeat(mid_section.len()),
+                                " ".repeat(mid_section.width()),
                                 CONNECTING_WIRE
                             )
                         };
@@ -955,7 +947,7 @@ impl TextDrawer {
                             format!(
                                 "{}{}{}",
                                 CONNECTING_WIRE,
-                                " ".repeat(mid_section.len()),
+                                " ".repeat(mid_section.width()),
                                 CONNECTING_WIRE
                             )
                         };
@@ -1018,8 +1010,8 @@ impl TextDrawer {
                     WireInputElement::Clbit(_) => format!("c_{}: ", ind - circuit.num_qubits()),
                     WireInputElement::Creg(_) => unreachable!(),
                 });
-                top = " ".repeat(input_name.len());
-                bot = " ".repeat(input_name.len());
+                top = " ".repeat(input_name.width());
+                bot = " ".repeat(input_name.width());
                 mid = input_name;
             }
             VisualizationElement::VerticalLine(inst) => {
@@ -1177,41 +1169,41 @@ impl TextDrawer {
     pub fn merge_lines(top: &str, bot: &str) -> String {
         let mut ret = String::new();
 
-        for (topc, botc) in top.chars().zip(bot.chars()) {
+        for (topc, botc) in top.graphemes(true).zip(bot.graphemes(true)) {
             if topc == botc {
-                ret.push(topc);
-            } else if "┼╪".contains(topc) && botc == ' ' {
+                ret.push_str(topc);
+            } else if "┼╪".contains(topc) && botc == " " {
                 ret.push('│');
-            } else if topc == ' ' {
-                ret.push(botc);
+            } else if topc == " " {
+                ret.push_str(botc);
             } else if "┬╥".contains(topc) && " ║│".contains(botc) {
-                ret.push(topc);
-            } else if "┬│".contains(topc) && botc == '═' {
+                ret.push_str(topc);
+            } else if "┬│".contains(topc) && botc == "═" {
                 ret.push('╪');
-            } else if "┬│".contains(topc) && botc == '─' {
+            } else if "┬│".contains(topc) && botc == "─" {
                 ret.push('┼');
-            } else if "└┘║│░─═".contains(topc) && botc == ' ' {
-                ret.push(topc);
-            } else if "║╥".contains(topc) && botc == '═' {
+            } else if "└┘║│░─═".contains(topc) && botc == " " {
+                ret.push_str(topc);
+            } else if "║╥".contains(topc) && botc == "═" {
                 ret.push('╬');
-            } else if "║╥".contains(topc) && botc == '─' {
+            } else if "║╥".contains(topc) && botc == "─" {
                 ret.push('╫');
-            } else if "║╫╬".contains(topc) && botc == ' ' {
+            } else if "║╫╬".contains(topc) && botc == " " {
                 ret.push('║');
-            } else if "│┼╪".contains(topc) && botc == ' ' {
+            } else if "│┼╪".contains(topc) && botc == " " {
                 ret.push('│');
-            } else if topc == '└' && botc == '┌' {
+            } else if topc == "└" && botc == "┌" {
                 ret.push('├');
-            } else if topc == '┘' && botc == '┐' {
+            } else if topc == "┘" && botc == "┐" {
                 ret.push('┤');
             } else if "┐┌".contains(botc) {
                 ret.push('┬');
-            } else if "┘└".contains(topc) && botc == '─' {
+            } else if "┘└".contains(topc) && botc == "─" {
                 ret.push('┴');
-            } else if botc == ' ' {
-                ret.push(topc);
+            } else if botc == " " {
+                ret.push_str(topc);
             } else {
-                ret.push(botc);
+                ret.push_str(botc);
             }
         }
 
@@ -1869,6 +1861,82 @@ c_3: ═════════════════════════
 «                            ║
 «c_3: ═══════════════════════╩══
 «
+";
+        assert_eq!(result, expected.trim_start_matches("\n"));
+    }
+
+    #[test]
+    fn test_unicode() {
+        let qubits = vec![
+            ShareableQubit::new_anonymous(),
+            ShareableQubit::new_anonymous(),
+        ];
+        let mut circuit = CircuitData::new(Some(qubits), None, Param::Float(0.0)).unwrap();
+        let param = Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(
+            Symbol::new("ϕ", None, None),
+        )));
+        circuit
+            .push_standard_gate(StandardGate::RXX, &[param], &[Qubit(0), Qubit(1)])
+            .unwrap();
+        let mut inst_clone = circuit.data()[0].clone();
+        inst_clone.label = Some(Box::new("μου_rxx".to_string()));
+        circuit.push(inst_clone).unwrap();
+        circuit
+            .push_standard_gate(
+                StandardGate::RZX,
+                &[Param::Float(2.)],
+                &[Qubit(0), Qubit(1)],
+            )
+            .unwrap();
+        let result = draw_circuit(&circuit, false, false, Some(100)).unwrap();
+        let expected = "
+     ┌──────────┐┌──────────────┐┌──────────┐
+q_0: ┤0  Rxx(ϕ) ├┤0  μου_rxx(ϕ) ├┤0  Rzx(2) ├
+     │          ││              ││          │
+     │          ││              ││          │
+q_1: ┤1         ├┤1             ├┤1         ├
+     └──────────┘└──────────────┘└──────────┘
+";
+        assert_eq!(result, expected.trim_start_matches("\n"));
+    }
+
+    #[test]
+    fn test_unicode_emoji() {
+        let qubits = vec![
+            ShareableQubit::new_anonymous(),
+            ShareableQubit::new_anonymous(),
+        ];
+        let mut circuit = CircuitData::new(Some(qubits), None, Param::Float(0.0)).unwrap();
+        let param = Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(
+            Symbol::new("🎩", None, None),
+        )));
+        circuit
+            .push_standard_gate(StandardGate::RY, &[param.clone()], &[Qubit(1)])
+            .unwrap();
+        circuit
+            .push_standard_gate(StandardGate::RXX, &[param], &[Qubit(0), Qubit(1)])
+            .unwrap();
+        let mut inst_clone = circuit.data()[0].clone();
+        inst_clone.label = Some(Box::new("💶🔉".to_string()));
+        circuit.push(inst_clone).unwrap();
+        let mut inst_clone = circuit.data()[1].clone();
+        inst_clone.label = Some(Box::new("💶🔉".to_string()));
+        circuit.push(inst_clone).unwrap();
+        circuit
+            .push_standard_gate(
+                StandardGate::RZX,
+                &[Param::Float(2.)],
+                &[Qubit(0), Qubit(1)],
+            )
+            .unwrap();
+        let result = draw_circuit(&circuit, false, false, Some(100)).unwrap();
+        let expected = "
+               ┌───────────┐            ┌────────────┐┌──────────┐
+q_0: ──────────┤0  Rxx(🎩) ├────────────┤0  💶🔉(🎩) ├┤0  Rzx(2) ├
+               │           │            │            ││          │
+     ┌────────┐│           │┌──────────┐│            ││          │
+q_1: ┤ Ry(🎩) ├┤1          ├┤ 💶🔉(🎩) ├┤1           ├┤1         ├
+     └────────┘└───────────┘└──────────┘└────────────┘└──────────┘
 ";
         assert_eq!(result, expected.trim_start_matches("\n"));
     }
