@@ -13,18 +13,18 @@
 use pyo3::prelude::*;
 use pyo3::types::PySequence;
 use pyo3::types::PyString;
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::operations::{
     Param, StandardGate, StandardInstruction, add_param, multiply_param, multiply_params,
 };
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
+use qiskit_synthesis::pauli_evolution::sparse_term_evolution;
 use smallvec::{SmallVec, smallvec};
 use std::f64::consts::PI;
 
 use crate::QiskitError;
 use crate::entanglement;
-use crate::pauli_evolution;
 
 type Instruction = (
     PackedOperation,
@@ -62,7 +62,7 @@ pub fn pauli_feature_map(
     alpha: f64,
     insert_barriers: bool,
     data_map_func: Option<&Bound<PyAny>>,
-) -> PyResult<CircuitData> {
+) -> PyResult<PyCircuitData> {
     // normalize the Pauli strings
     let pauli_strings = _get_paulis(feature_dimension, paulis)?;
 
@@ -126,7 +126,8 @@ pub fn pauli_feature_map(
         0,
         packed_insts.into_iter().map(Ok),
         Param::Float(0.0),
-    )?)
+    )?
+    .into())
 }
 
 fn _get_h_layer(feature_dimension: u32) -> impl Iterator<Item = Instruction> {
@@ -175,7 +176,7 @@ fn _get_evolution_layer<'a>(
             // to call CircuitData::from_packed_operations. This is needed since we might
             // have to interject barriers, which are not a standard gate and prevents us
             // from using CircuitData::from_standard_gates.
-            let evo = pauli_evolution::sparse_term_evolution(
+            let evo = sparse_term_evolution(
                 pauli,
                 indices.into_iter().rev().collect(),
                 multiply_param(&angle, alpha),

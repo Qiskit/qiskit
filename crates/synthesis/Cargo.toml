@@ -14,7 +14,6 @@ workspace = true
 
 [dependencies]
 qiskit-circuit.workspace = true
-qiskit-circuit-library.workspace = true
 qiskit-quantum-info.workspace = true
 bytemuck.workspace = true
 num-complex.workspace = true

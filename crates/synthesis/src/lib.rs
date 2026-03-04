@@ -13,11 +13,12 @@
 pub mod clifford;
 pub mod discrete_basis;
 pub mod euler_one_qubit_decomposer;
-mod evolution;
+pub mod evolution;
 pub mod linalg;
 pub mod linear;
 pub mod linear_phase;
 mod multi_controlled;
+pub mod pauli_evolution;
 pub mod pauli_products;
 mod permutation;
 mod qft;

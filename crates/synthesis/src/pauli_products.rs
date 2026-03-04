@@ -12,9 +12,7 @@
 
 use pyo3::prelude::*;
 
-use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::circuit_data::CircuitDataError;
-use qiskit_circuit::circuit_data::CircuitError;
+use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError, CircuitError, PyCircuitData};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::operations::OperationRef;
@@ -25,7 +23,8 @@ use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::operations::StandardInstruction;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, NoBlocks, Qubit};
-use qiskit_circuit_library::pauli_evolution::sparse_term_evolution;
+
+use crate::pauli_evolution::sparse_term_evolution;
 
 /// Synthesizes a PauliProductMeasurement instruction.
 /// This function is used in HighLevelSynthesis and is exposed to Python's class definition method.
@@ -138,11 +137,11 @@ pub fn synthesize_ppr(ppr: &PauliProductRotation) -> Result<CircuitData, Circuit
 }
 
 #[pyfunction]
-fn synth_pauli_product_measurement(operation: &Bound<PyAny>) -> PyResult<CircuitData> {
+fn synth_pauli_product_measurement(operation: &Bound<PyAny>) -> PyResult<PyCircuitData> {
     let op_from_python = operation.extract::<OperationFromPython<NoBlocks>>()?;
 
     if let OperationRef::PauliProductMeasurement(ppm) = op_from_python.operation.view() {
-        synthesize_ppm(ppm)
+        synthesize_ppm(ppm).map(Into::into)
     } else {
         Err(CircuitError::new_err(
             "Calling pauli product measurement synthesis on a non-pauli-product-measurement.",
@@ -151,11 +150,14 @@ fn synth_pauli_product_measurement(operation: &Bound<PyAny>) -> PyResult<Circuit
 }
 
 #[pyfunction]
-fn synth_pauli_product_rotation(operation: &Bound<PyAny>) -> PyResult<CircuitData> {
+fn synth_pauli_product_rotation(operation: &Bound<PyAny>) -> PyResult<PyCircuitData> {
     let op_from_python = operation.extract::<OperationFromPython<NoBlocks>>()?;
 
     if let OperationRef::PauliProductRotation(ppr) = op_from_python.operation.view() {
-        synthesize_ppr(ppr).map_err(|e| e.into())
+        match synthesize_ppr(ppr) {
+            Ok(circuit) => Ok(circuit.into()),
+            Err(error) => Err(error.into()),
+        }
     } else {
         Err(CircuitError::new_err(
             "A Pauli product rotation synthesis can only be called on PauliProductRotationGate objects.",
