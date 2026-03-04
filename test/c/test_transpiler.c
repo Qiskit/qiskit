@@ -434,6 +434,7 @@ int test_optimization_stage_empty(void) {
         printf("Number of dag qubits %u does not match expected result 2048", num_dag_qubits);
     }
 cleanup:
+    free(layout_mapping);
     qk_transpile_layout_free(layout);
     qk_target_free(target);
     qk_dag_free(dag);
