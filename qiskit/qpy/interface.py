@@ -199,7 +199,12 @@ def dump(
     use_rust = version >= common.QPY_RUST_MIN_VERSION
     if use_rust:
         _qpy.dump(
-            programs, file_obj, metadata_serializer, use_symengine, version, annotation_factories
+            programs,
+            file_obj,
+            metadata_serializer,
+            bool(use_symengine),
+            version,
+            annotation_factories,
         )
         return
 

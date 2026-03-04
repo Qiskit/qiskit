@@ -55,12 +55,15 @@ pub fn dump_qpy(
             )
         })
         .collect::<PyResult<Vec<_>>>()?;
-
+    let symbolic_encoding = match use_symengine {
+        true => SymbolicEncoding::Symengine,
+        false => SymbolicEncoding::Sympy,
+    };
     let qpy_file = formats::QPYFile {
         qpy_version,
         qiskit_version: QISKIT_VERSION,
-        symbolic_encoding: SymbolicEncoding::Sympy, // using symengine is obsolete
-        type_key: ValueType::Circuit,               //for now, no other value type is used
+        symbolic_encoding,
+        type_key: ValueType::Circuit, //for now, no other value type is used
         circuits: packed_circuits,
     };
     let qpy_file_v17: QPY17File = qpy_file.try_into()?;
