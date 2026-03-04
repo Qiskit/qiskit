@@ -19,7 +19,7 @@ from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library.generalized_gates.permutation import PermutationGate
 from qiskit.utils.deprecation import deprecate_func
 
-# pylint: disable=cyclic-import
+
 from qiskit.quantum_info import Clifford
 
 

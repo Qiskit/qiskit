@@ -79,7 +79,7 @@ pub mod alias {
     }
 
     /// This is _intended_ to be a metatrait that just defines a bunch of bounds on references to
-    /// implementors of [Vf2Graph].  Unfortunately, I couldn't get a `where &'a Self` bound on
+    /// implementers of [Vf2Graph].  Unfortunately, I couldn't get a `where &'a Self` bound on
     /// [Vf2Graph] itself to work correctly with the blanket implementation, so I got stuck writing
     /// this boilerplate that duplicates the trait into a lifetime-bound one that we can then use in
     /// higher-ranked trait bounds.

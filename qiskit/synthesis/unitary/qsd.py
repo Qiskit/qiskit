@@ -15,7 +15,7 @@ Quantum Shannon Decomposition.
 Method is described in arXiv:quant-ph/0406176.
 """
 from __future__ import annotations
-from typing import Callable
+from collections.abc import Callable
 import scipy
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit, QuantumRegister
@@ -32,8 +32,6 @@ from qiskit._accelerate.two_qubit_decompose import two_qubit_decompose_up_to_dia
 from qiskit._accelerate import qsd
 
 
-# pylint: disable=invalid-name
-# pylint: disable=too-many-return-statements
 def qs_decomposition(
     mat: np.ndarray,
     opt_a1: bool | None = None,
@@ -142,7 +140,7 @@ def qs_decomposition(
             if opt_a2 and _depth > 0:
                 from qiskit.circuit.library.generalized_gates.unitary import (
                     UnitaryGate,
-                )  # pylint: disable=cyclic-import
+                )
 
                 def decomp_2q(mat):
                     ugate = UnitaryGate(mat)
@@ -304,7 +302,7 @@ def _demultiplex(
     nqubits = dim.bit_length() - 1
     if _ctrl_index is None:
         _ctrl_index = nqubits - 1
-    layout = list(range(0, _ctrl_index)) + list(range(_ctrl_index + 1, nqubits)) + [_ctrl_index]
+    layout = list(range(_ctrl_index)) + list(range(_ctrl_index + 1, nqubits)) + [_ctrl_index]
 
     um0um1 = um0 @ um1.T.conjugate()
     if is_hermitian_matrix(um0um1):
@@ -378,7 +376,6 @@ def _apply_a2(circ):
     from qiskit.quantum_info import Operator
     from qiskit.circuit.library.generalized_gates.unitary import UnitaryGate
 
-    # pylint: disable=cyclic-import
     from qiskit.transpiler.passes.synthesis import HighLevelSynthesis
 
     decomposer = two_qubit_decompose_up_to_diagonal

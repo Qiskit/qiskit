@@ -42,7 +42,7 @@ file (
 
 # The following creates a test driver program which gathers all discovered test
 # files into a single executable. This has the benefit that a single test
-# executable is built and run rather than invididual ones for every individual
+# executable is built and run rather than individual ones for every individual
 # test file.
 create_test_sourcelist (source_files test_driver.c ${discovered_tests})
 

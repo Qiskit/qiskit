@@ -122,7 +122,7 @@ impl PhasedQubitSparsePauliList {
     /// Clear all the elements of the list.
     ///
     /// This does not change the capacity of the internal allocations, so subsequent addition or
-    /// substraction of elements in the list may not need to reallocate.
+    /// subtraction of elements in the list may not need to reallocate.
     pub fn clear(&mut self) {
         self.qubit_sparse_pauli_list.clear();
         self.phases.clear();
@@ -456,7 +456,8 @@ impl PhasedQubitSparsePauli {
 #[pyclass(
     name = "PhasedQubitSparsePauli",
     frozen,
-    module = "qiskit.quantum_info"
+    module = "qiskit.quantum_info",
+    skip_from_py_object
 )]
 #[derive(Clone, Debug)]
 pub struct PyPhasedQubitSparsePauli {
@@ -777,13 +778,13 @@ impl PyPhasedQubitSparsePauli {
     ///
     /// Args:
     ///     other (PhasedQubitSparsePauli): the qubit sparse Pauli to compose with.
-    fn compose(&self, other: PyPhasedQubitSparsePauli) -> PyResult<Self> {
+    fn compose(&self, other: &PyPhasedQubitSparsePauli) -> PyResult<Self> {
         Ok(PyPhasedQubitSparsePauli {
             inner: self.inner.compose(&other.inner)?,
         })
     }
 
-    fn __matmul__(&self, other: PyPhasedQubitSparsePauli) -> PyResult<Self> {
+    fn __matmul__(&self, other: &PyPhasedQubitSparsePauli) -> PyResult<Self> {
         self.compose(other)
     }
 
@@ -792,7 +793,7 @@ impl PyPhasedQubitSparsePauli {
     /// Args:
     ///     other (PhasedQubitSparsePauli): the phased qubit sparse Pauli to check for commutation
     ///         with.
-    fn commutes(&self, other: PyPhasedQubitSparsePauli) -> PyResult<bool> {
+    fn commutes(&self, other: &PyPhasedQubitSparsePauli) -> PyResult<bool> {
         Ok(self.inner.commutes(&other.inner)?)
     }
 
@@ -1288,7 +1289,7 @@ impl PyPhasedQubitSparsePauliList {
     /// Clear all the elements from the list, making it equal to the empty list again.
     ///
     /// This does not change the capacity of the internal allocations, so subsequent addition or
-    /// substraction operations resulting from composition may not need to reallocate.
+    /// subtraction operations resulting from composition may not need to reallocate.
     ///
     /// Examples:
     ///

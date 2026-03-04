@@ -1462,7 +1462,7 @@ pub unsafe extern "C" fn qk_dag_topological_op_nodes(dag: *const DAGCircuit, out
 }
 
 /// @ingroup QkDag
-/// Replace a node in a `QkDag` with a subcircuit specfied by another `QkDag`
+/// Replace a node in a `QkDag` with a subcircuit specified by another `QkDag`
 ///
 /// @param dag A pointer to the DAG.
 /// @param node The node index of the operation to replace with the other `QkDag`. This
