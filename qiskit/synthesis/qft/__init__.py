@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Module containing stabilizer QFT circuit synthesis."""
+"""Module containing QFT circuit synthesis."""
 
 from .qft_decompose_lnn import synth_qft_line
 from .qft_decompose_full import synth_qft_full

@@ -32,7 +32,7 @@ def synth_cnot_phase_aam(
 
     GraySynth is a heuristic algorithm from [1] for synthesizing small parity networks.
     It is inspired by Gray codes. Given a set of binary strings :math:`S`
-    (called ``cnots`` bellow), the algorithm synthesizes a parity network for :math:`S` by
+    (called ``cnots`` below), the algorithm synthesizes a parity network for :math:`S` by
     repeatedly choosing an index :math:`i` to expand and then effectively recursing on
     the co-factors :math:`S_0` and :math:`S_1`, consisting of the strings :math:`y \in S`,
     with :math:`y_i = 0` or :math:`1` respectively. As a subset :math:`S` is recursively expanded,

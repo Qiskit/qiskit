@@ -29,7 +29,8 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from typing import TypeVar, MutableMapping
+from typing import TypeVar
+from collections.abc import MutableMapping
 
 from qiskit.circuit import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit

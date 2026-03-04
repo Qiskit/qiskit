@@ -50,7 +50,7 @@ class QCircuitImage:
     Thanks to Eric Sabo for the initial implementation for Qiskit.
     """
 
-    def __init__(  # pylint: disable=bad-docstring-quotes
+    def __init__(
         self,
         qubits,
         clbits,
@@ -184,8 +184,7 @@ class QCircuitImage:
         output.write(header_scale)
         if self._global_phase:
             output.write(
-                r"""{$\mathrm{%s} \mathrm{%s}$}"""
-                % ("global\\,phase:\\,", pi_check(self._global_phase, output="latex"))
+                f"{{$\\mathrm{{global\\,phase:\\,}} \\mathrm{{{pi_check(self._global_phase, output='latex')}}}$}}"
             )
         output.write(qcircuit_line % (self._column_separation, self._wire_separation))
         for i in range(self._img_width):
@@ -492,22 +491,21 @@ class QCircuitImage:
                 num_cols_op = self._build_symmetric_gate(op, gate_text, wire_list, col)
             else:
                 self._latex[wireqargs[0]][col] = f"\\gate{{{gate_text}}}"
+        # Treat special cases of swap and rzz gates
+        elif isinstance(op.base_gate, (SwapGate, RZZGate)):
+            self._add_controls(wire_list, ctrlqargs, ctrl_state, col)
+            num_cols_op = self._build_symmetric_gate(op, gate_text, wire_list, col)
         else:
-            # Treat special cases of swap and rzz gates
-            if isinstance(op.base_gate, (SwapGate, RZZGate)):
-                self._add_controls(wire_list, ctrlqargs, ctrl_state, col)
-                num_cols_op = self._build_symmetric_gate(op, gate_text, wire_list, col)
+            # If any controls appear in the span of the multiqubit
+            # gate just treat the whole thing as a big gate
+            for ctrl in ctrlqargs:
+                if ctrl in range(wire_min, wire_max):
+                    wireqargs = wire_list
+                    break
             else:
-                # If any controls appear in the span of the multiqubit
-                # gate just treat the whole thing as a big gate
-                for ctrl in ctrlqargs:
-                    if ctrl in range(wire_min, wire_max):
-                        wireqargs = wire_list
-                        break
-                else:
-                    self._add_controls(wire_list, ctrlqargs, ctrl_state, col)
+                self._add_controls(wire_list, ctrlqargs, ctrl_state, col)
 
-                self._build_multi_gate(op, gate_text, wireqargs, [], col)
+            self._build_multi_gate(op, gate_text, wireqargs, [], col)
         return num_cols_op
 
     def _build_symmetric_gate(self, op, gate_text, wire_list, col):
@@ -553,7 +551,7 @@ class QCircuitImage:
                 wire2 = self._wire_map[node.cargs[0]]
             self._latex[wire2][col] = (
                 f"\\dstick{{_{{_{{\\hspace{{{cond_offset}em}}{idx_str}}}}}}} "
-                f"\\cw \\ar @{{<=}} [-{str(wire2 - wire1)},0]"
+                f"\\cw \\ar @{{<=}} [-{wire2 - wire1!s},0]"
             )
         else:
             wire2 = self._wire_map[node.cargs[0]]
@@ -622,7 +620,7 @@ class QCircuitImage:
             control = "\\control" if op.condition[1] else "\\controlo"
             self._latex[cwire][
                 col
-            ] = f"{control} \\cw^({meas_offset}){{^{{\\mathtt{{{label}}}}}}} \\cwx[-{str(gap)}]"
+            ] = f"{control} \\cw^({meas_offset}){{^{{\\mathtt{{{label}}}}}}} \\cwx[-{gap!s}]"
 
         # If condition is a register and cregbundle is false
         else:

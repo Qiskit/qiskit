@@ -14,7 +14,7 @@
 """Common preset passmanager generators."""
 
 import collections
-from typing import Optional
+
 
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
@@ -213,7 +213,7 @@ def generate_unroll_3q(
         qubits_initially_zero (bool): Indicates whether the input circuit is
             zero-initialized.
         optimization_metric (OptimizationMetric): the :class:`~.OptimizationMetric` object
-            that the metric used when optimizing the unrolling.
+            that defines the metric used when optimizing the unrolling.
 
     Returns:
         PassManager: The unroll 3q or more pass manager
@@ -258,7 +258,7 @@ def generate_embed_passmanager(coupling_map):
     that can be used to expand and apply an initial layout to a circuit
 
     Args:
-        coupling_map (Union[CouplingMap, Target): The coupling map for the backend to embed
+        coupling_map (Union[CouplingMap, Target]): The coupling map for the backend to embed
             the circuit to.
     Returns:
         PassManager: The embedding passmanager that assumes the layout property
@@ -730,14 +730,14 @@ VF2Limits = collections.namedtuple("VF2Limits", ("call_limit", "max_trials"))
 
 def get_vf2_limits(
     optimization_level: int,
-    layout_method: Optional[str] = None,
-    initial_layout: Optional[Layout] = None,
+    layout_method: str | None = None,
+    initial_layout: Layout | None = None,
     exact_match: bool = False,
 ) -> VF2Limits:
     """Get the VF2 limits for VF2-based layout passes.
 
     Returns:
-        VF2Limits: An namedtuple with optional elements
+        VF2Limits: A namedtuple with optional elements
         ``call_limit`` and ``max_trials``.
     """
     limits = VF2Limits(None, None)

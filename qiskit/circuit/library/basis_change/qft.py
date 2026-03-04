@@ -100,6 +100,7 @@ class QFT(BlueprintCircuit):
             inverse: If True, the inverse Fourier transform is constructed.
             insert_barriers: If True, barriers are inserted as visualization improvement.
             name: The name of the circuit.
+
         """
         if name is None:
             name = "IQFT" if inverse else "QFT"
@@ -212,7 +213,7 @@ class QFT(BlueprintCircuit):
         """
         return self._inverse
 
-    def inverse(self, annotated: bool = False) -> "QFT":
+    def inverse(self, annotated: bool = False) -> QFT:
         """Invert this circuit.
 
         Args:

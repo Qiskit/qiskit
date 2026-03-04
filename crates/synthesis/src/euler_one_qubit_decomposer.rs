@@ -31,7 +31,7 @@ use ndarray::prelude::*;
 use numpy::PyReadonlyArray2;
 use pyo3::pybacked::PyBackedStr;
 
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::dag_node::DAGOpNode;
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
@@ -687,7 +687,12 @@ impl Default for EulerBasisSet {
 }
 
 #[derive(Clone, Debug, Copy, Eq, Hash, PartialEq)]
-#[pyclass(module = "qiskit._accelerate.euler_one_qubit_decomposer", eq, eq_int)]
+#[pyclass(
+    module = "qiskit._accelerate.euler_one_qubit_decomposer",
+    eq,
+    eq_int,
+    from_py_object
+)]
 pub enum EulerBasis {
     U3 = 0,
     U321 = 1,
@@ -895,7 +900,7 @@ pub fn unitary_to_circuit(
     error_map: Option<&OneQubitGateErrorMap>,
     simplify: bool,
     atol: Option<f64>,
-) -> PyResult<Option<CircuitData>> {
+) -> PyResult<Option<PyCircuitData>> {
     let mut target_basis_set = EulerBasisSet::new();
     for basis in target_basis_list
         .iter()
@@ -923,6 +928,7 @@ pub fn unitary_to_circuit(
             }),
             Param::Float(seq.global_phase),
         )
+        .map(Into::into)
         .expect("Unexpected Qiskit python bug")
     }))
 }

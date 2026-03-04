@@ -84,7 +84,7 @@ class TranslateParameterizedGates(TransformationPass):
     ) -> None:
         """
         Args:
-            supported_gates: A list of suppported basis gates specified as string. If ``None``,
+            supported_gates: A list of supported basis gates specified as string. If ``None``,
                 a ``target`` must be provided.
             equivalence_library: The equivalence library to translate the gates. Defaults
                 to the equivalence library of all Qiskit standard gates.

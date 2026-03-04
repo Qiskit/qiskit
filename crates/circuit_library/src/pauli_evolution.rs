@@ -12,7 +12,7 @@
 
 use pyo3::types::{PyList, PyNone, PyString, PyTuple};
 use pyo3::{intern, prelude::*};
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::operations;
 use qiskit_circuit::operations::{Param, StandardGate, multiply_param, radd_param};
@@ -21,7 +21,7 @@ use qiskit_circuit::{Clbit, NoBlocks, Qubit};
 use smallvec::{SmallVec, smallvec};
 
 // custom type for a more readable code
-type Instruction = (
+pub type Instruction = (
     PackedOperation,
     SmallVec<[Param; 3]>,
     Vec<Qubit>,
@@ -85,7 +85,7 @@ fn single_qubit_evolution(
 ) -> Box<dyn Iterator<Item = Instruction>> {
     let qubit = vec![Qubit(index)];
 
-    // We don't need to explictly cover the |1><1| projector case (which is the Phase gate),
+    // We don't need to explicitly cover the |1><1| projector case (which is the Phase gate),
     // which will be handled by the multi-qubit evolution.
     match pauli {
         'x' => Box::new(std::iter::once((
@@ -130,7 +130,7 @@ fn two_qubit_evolution<'a>(
     let qubits = vec![Qubit(indices[0]), Qubit(indices[1])];
     let paulistring: String = pauli.iter().collect();
 
-    // We don't need to explictly cover the |11><11| projector case (which is the CPhase gate),
+    // We don't need to explicitly cover the |11><11| projector case (which is the CPhase gate),
     // which will be handled by the multi-qubit evolution. The Paulis need special treatment here
     // since the generic code would use CX-RZ-CX instead of the two-qubit Pauli standard gates.
     match paulistring.as_str() {
@@ -349,7 +349,7 @@ pub fn py_pauli_evolution(
     sparse_paulis: &Bound<PyList>,
     insert_barriers: bool,
     do_fountain: bool,
-) -> PyResult<CircuitData> {
+) -> PyResult<PyCircuitData> {
     let num_paulis = sparse_paulis.len();
     let mut paulis: Vec<String> = Vec::with_capacity(num_paulis);
     let mut indices: Vec<Vec<u32>> = Vec::with_capacity(num_paulis);
@@ -401,12 +401,7 @@ pub fn py_pauli_evolution(
         global_phase = multiply_param(&global_phase, -0.5);
     }
 
-    Ok(CircuitData::from_packed_operations(
-        num_qubits as u32,
-        0,
-        evos,
-        global_phase,
-    )?)
+    Ok(CircuitData::from_packed_operations(num_qubits as u32, 0, evos, global_phase)?.into())
 }
 
 /// Build a CX chain over the active qubits. E.g. with q_1 inactive, this would return

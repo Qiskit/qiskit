@@ -600,7 +600,7 @@ impl SparseObservable {
     /// Clear all the terms from this operator, making it equal to the zero operator again.
     ///
     /// This does not change the capacity of the internal allocations, so subsequent addition or
-    /// substraction operations may not need to reallocate.
+    /// subtraction operations may not need to reallocate.
     pub fn clear(&mut self) {
         self.coeffs.clear();
         self.bit_terms.clear();
@@ -694,7 +694,7 @@ impl SparseObservable {
 
     /// Calculate the transpose.
     ///
-    /// This operation transposes the individual bit terms but does directly act
+    /// This operation transposes the individual bit terms but does not directly act
     /// on the coefficients.
     pub fn transpose(&self) -> SparseObservable {
         let mut out = self.clone();
@@ -847,6 +847,44 @@ impl SparseObservable {
                 }
             }
         }
+        out
+    }
+
+    /// Add another [SparseObservable] onto this one, while scaling its coefficients.
+    ///
+    /// # Panics
+    ///
+    /// If the number of qubits of `rhs` and `self` differ.
+    pub fn scaled_add_inplace(&mut self, rhs: &SparseObservable, factor: Complex64) {
+        if rhs.num_qubits != self.num_qubits {
+            panic!(
+                "operand ({}) has a different number of qubits to the base ({})",
+                rhs.num_qubits, self.num_qubits
+            );
+        }
+        self.coeffs.extend(rhs.coeffs.iter().map(|c| c * factor));
+        self.bit_terms.extend_from_slice(&rhs.bit_terms);
+        self.indices.extend_from_slice(&rhs.indices);
+        // We only need to write out the new endpoints, not the initial zero.
+        let offset = self.boundaries[self.boundaries.len() - 1];
+        self.boundaries
+            .extend(rhs.boundaries[1..].iter().map(|boundary| offset + boundary));
+    }
+
+    /// Add two [SparseObservable] instances while scaling the coefficients of `rhs`
+    /// with `factor`.
+    ///
+    /// # Panics
+    ///
+    /// If the number of qubits of `other` and `self` differ.
+    pub fn scaled_add(&self, rhs: &SparseObservable, factor: Complex64) -> SparseObservable {
+        let mut out = SparseObservable::with_capacity(
+            self.num_qubits,
+            self.coeffs.len() + rhs.coeffs.len(),
+            self.bit_terms.len() + rhs.bit_terms.len(),
+        );
+        out += self;
+        out.scaled_add_inplace(rhs, factor);
         out
     }
 
@@ -1284,7 +1322,7 @@ mod compose {
         /// Stack of the coefficients to this point.  We could recalculate by a full
         /// multiplication on each go, but most steps will be in the low indices, where we can
         /// re-use all the multiplications that came before.  This is one longer than the length
-        /// of `multliples`, because it starts off populated with the product of the
+        /// of `multiples`, because it starts off populated with the product of the
         /// non-multiple coefficients (or 1).
         coeffs: Vec<Complex64>,
         /// The full set of indices (including ones that don't correspond to multiples).  Within
@@ -1791,7 +1829,12 @@ impl<'a, 'py> FromPyObject<'a, 'py> for BitTerm {
 /// A single term from a complete :class:`SparseObservable`.
 ///
 /// These are typically created by indexing into or iterating through a :class:`SparseObservable`.
-#[pyclass(name = "Term", frozen, module = "qiskit.quantum_info")]
+#[pyclass(
+    name = "Term",
+    frozen,
+    module = "qiskit.quantum_info",
+    skip_from_py_object
+)]
 #[derive(Clone, Debug)]
 struct PySparseTerm {
     inner: SparseTerm,
@@ -2249,7 +2292,7 @@ impl PySparseTerm {
 /// associative, :class:`SparseObservable` makes no guarantees about the summation order).
 ///
 /// These two categories of representation degeneracy can cause the ``==`` operator to claim that
-/// two observables are not equal, despite representating the same object.  In these cases, it can
+/// two observables are not equal, despite representing the same object.  In these cases, it can
 /// be convenient to define some *canonical form*, which allows observables to be compared
 /// structurally.
 ///
@@ -3134,10 +3177,10 @@ impl PySparseObservable {
     )]
     unsafe fn from_raw_parts<'py>(
         num_qubits: u32,
-        coeffs: PyArrayLike1<'py, Complex64>,
-        bit_terms: PyArrayLike1<'py, u8>,
-        indices: PyArrayLike1<'py, u32>,
-        boundaries: PyArrayLike1<'py, usize>,
+        coeffs: PyArrayLike1<'py, Complex64, numpy::AllowTypeChange>,
+        bit_terms: PyArrayLike1<'py, u8, numpy::AllowTypeChange>,
+        indices: PyArrayLike1<'py, u32, numpy::AllowTypeChange>,
+        boundaries: PyArrayLike1<'py, usize, numpy::AllowTypeChange>,
         check: bool,
     ) -> PyResult<Self> {
         let coeffs = coeffs.as_array().to_vec();
@@ -3172,7 +3215,7 @@ impl PySparseObservable {
     /// Clear all the terms from this operator, making it equal to the zero operator again.
     ///
     /// This does not change the capacity of the internal allocations, so subsequent addition or
-    /// substraction operations may not need to reallocate.
+    /// subtraction operations may not need to reallocate.
     ///
     /// Examples:
     ///
@@ -3196,7 +3239,7 @@ impl PySparseObservable {
     /// .. note::
     ///
     ///     When using this for equality comparisons, note that floating-point rounding and the
-    ///     non-associativity fo floating-point addition may cause non-zero coefficients of summed
+    ///     non-associativity of floating-point addition may cause non-zero coefficients of summed
     ///     terms to compare unequal.  To compare two observables up to a tolerance, it is safest to
     ///     compare the canonicalized difference of the two observables to zero.
     ///
@@ -4162,7 +4205,7 @@ impl ArrayView {
 
 /// Use the Numpy Python API to convert a `PyArray` into a dynamically chosen `dtype`, copying only
 /// if required.
-fn cast_array_type<'py, T>(
+fn cast_array_type<'py, T: numpy::Element>(
     py: Python<'py>,
     array: Bound<'py, PyArray1<T>>,
     dtype: Option<&Bound<'py, PyAny>>,

@@ -48,7 +48,7 @@ class Kraus(QuantumChannel):
 
     A general operator map :math:`\mathcal{G}` can also be written using the
     generalized Kraus representation which is given by two sets of matrices
-    :math:`[A_0,...,A_{K-1}]`, :math:`[B_0,...,A_{B-1}]` such that
+    :math:`[A_0,...,A_{K-1}]`, :math:`[B_0,...,B_{K-1}]` such that
 
     .. math::
 

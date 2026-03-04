@@ -25,7 +25,7 @@ class DraperQFTAdder(Adder):
     r"""A circuit that uses QFT to perform in-place addition on two qubit registers.
 
     For registers with :math:`n` qubits, the QFT adder can perform addition modulo
-    :math:`2^n` (with ``kind="fixed"``) or ordinary addition by adding a carry qubits (with
+    :math:`2^n` (with ``kind="fixed"``) or ordinary addition by adding a carry qubit (with
     ``kind="half"``).
 
     As an example, a non-fixed_point QFT adder circuit that performs addition on two 2-qubit sized

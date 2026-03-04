@@ -521,7 +521,7 @@ impl ParameterExpression {
     /// # Returns
     ///
     /// * `Ok(Self)` - A parameter expression with the substituted expressions.
-    /// * `Err(ParameterError)` - An error if the subtitution failed.
+    /// * `Err(ParameterError)` - An error if the substitution failed.
     pub fn subs(
         &self,
         map: &HashMap<Symbol, Self>,
@@ -704,7 +704,8 @@ impl ParameterExpression {
 #[pyclass(
     subclass,
     module = "qiskit._accelerate.circuit",
-    name = "ParameterExpression"
+    name = "ParameterExpression",
+    from_py_object
 )]
 #[derive(Clone, Debug)]
 pub struct PyParameterExpression {
@@ -1448,7 +1449,14 @@ impl PyParameterExpression {
 ///         bc = qc.assign_parameters({phi: 3.14})
 ///         bc.measure_all()
 ///         bc.draw("mpl")
-#[pyclass(sequence, subclass, module="qiskit._accelerate.circuit", extends=PyParameterExpression, name="Parameter")]
+#[pyclass(
+    sequence,
+    subclass,
+    module="qiskit._accelerate.circuit",
+    extends=PyParameterExpression,
+    name="Parameter",
+    from_py_object
+)]
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd)]
 pub struct PyParameter {
     pub symbol: Symbol,
@@ -1675,7 +1683,14 @@ impl PyParameter {
 /// .. note::
 ///     There is very little reason to ever construct this class directly.  Objects of this type are
 ///     automatically constructed efficiently as part of creating a :class:`.ParameterVector`.
-#[pyclass(sequence, subclass, module="qiskit._accelerate.circuit", extends=PyParameter, name="ParameterVectorElement")]
+#[pyclass(
+    sequence,
+    subclass,
+    module="qiskit._accelerate.circuit",
+    extends=PyParameter,
+    name="ParameterVectorElement",
+    from_py_object
+)]
 #[derive(Clone, Debug, Eq, PartialEq, PartialOrd)]
 pub struct PyParameterVectorElement {
     pub symbol: Symbol,
@@ -1913,7 +1928,7 @@ impl From<ParameterValueType> for ParameterExpression {
     }
 }
 
-#[pyclass(module = "qiskit._accelerate.circuit")]
+#[pyclass(module = "qiskit._accelerate.circuit", from_py_object)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, PartialOrd, Ord)]
 #[repr(u8)]
 pub enum OpCode {
@@ -1990,7 +2005,7 @@ impl OpCode {
 }
 
 // enum for QPY replay
-#[pyclass(sequence, module = "qiskit._accelerate.circuit")]
+#[pyclass(sequence, module = "qiskit._accelerate.circuit", from_py_object)]
 #[derive(Clone, Debug)]
 pub struct OPReplay {
     pub op: OpCode,
@@ -2119,9 +2134,55 @@ pub fn qpy_replay(
 
             // add the expression to the replay
             match lhs_value {
-                None
-                | Some(ParameterValueType::Parameter(_))
+                Some(ParameterValueType::Parameter(_))
                 | Some(ParameterValueType::VectorElement(_)) => {
+                    // For non-commutative operations (SUB, DIV, POW): if LHS is a Parameter and RHS is
+                    // an expression (None), we need to use reverse operations (RSUB, RDIV, RPOW)
+                    let op = match op {
+                        symbol_expr::BinaryOp::Add => OpCode::ADD,
+                        symbol_expr::BinaryOp::Sub => {
+                            // If RHS is None (an expression), use RSUB
+                            if rhs_value.is_none() {
+                                OpCode::RSUB
+                            } else {
+                                OpCode::SUB
+                            }
+                        }
+                        symbol_expr::BinaryOp::Mul => OpCode::MUL,
+                        symbol_expr::BinaryOp::Div => {
+                            // If RHS is None (an expression), use RDIV
+                            if rhs_value.is_none() {
+                                OpCode::RDIV
+                            } else {
+                                OpCode::DIV
+                            }
+                        }
+                        symbol_expr::BinaryOp::Pow => {
+                            // If RHS is None (an expression), use RPOW
+                            if rhs_value.is_none() {
+                                OpCode::RPOW
+                            } else {
+                                OpCode::POW
+                            }
+                        }
+                    };
+                    if op == OpCode::RPOW || op == OpCode::RDIV || op == OpCode::RSUB {
+                        // For reverse operations, swap lhs and rhs (Python's sympify will swap again to get correct order)
+                        replay.push(OPReplay {
+                            op,
+                            lhs: rhs_value,
+                            rhs: lhs_value,
+                        });
+                    } else {
+                        replay.push(OPReplay {
+                            op,
+                            lhs: lhs_value,
+                            rhs: rhs_value,
+                        });
+                    }
+                }
+                None => {
+                    // When LHS is an expression (None), use normal operations
                     let op = match op {
                         symbol_expr::BinaryOp::Add => OpCode::ADD,
                         symbol_expr::BinaryOp::Sub => OpCode::SUB,

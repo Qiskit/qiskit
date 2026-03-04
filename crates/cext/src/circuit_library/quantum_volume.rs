@@ -42,12 +42,13 @@ use qiskit_circuit_library::quantum_volume::quantum_volume;
 /// QkCircuit *qc = qk_circuit_library_quantum_volume(10, 10, -1)
 /// ```
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub extern "C" fn qk_circuit_library_quantum_volume(
     num_qubits: u32,
     depth: usize,
     seed: i64,
 ) -> *mut CircuitData {
     let seed = if seed < 0 { None } else { Some(seed as u64) };
-    Box::into_raw(Box::new(quantum_volume(num_qubits, depth, seed).unwrap()))
+    Box::into_raw(Box::new(
+        quantum_volume(num_qubits, depth, seed).unwrap().into(),
+    ))
 }

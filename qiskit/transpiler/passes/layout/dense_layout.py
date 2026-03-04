@@ -169,7 +169,7 @@ def _build_error_matrix(num_qubits, qubit_map, target=None):
     use_error = False
     if target is not None and target.qargs is not None:
         for qargs in target.qargs:
-            # Ignore gates over 2q DenseLayout only works with 2q
+            # Ignore gates over 2q. DenseLayout only works with 2q
             if len(qargs) > 2:
                 continue
             error = 0.0

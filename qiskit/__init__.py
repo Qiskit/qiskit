@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=wrong-import-position,wrong-import-order
 
 # The documentation of the root namespace is manual in `docs/apidoc/root.rst`, so that the
 # :mod:`qiskit` Sphinx cross-reference can more easily point to the top-level API table in our
@@ -34,7 +33,7 @@ else:
     # `qiskit/tools` folder in their path, which will appear as a "namespace package" with no valid
     # location.  We catch that case as "not actually having Qiskit 0.x" as a convenience to devs.
     _has_tools = getattr(importlib.util.find_spec("qiskit.tools"), "has_location", False)
-    _suppress_error = os.environ.get("QISKIT_SUPPRESS_1_0_IMPORT_ERROR", False) == "1"
+    _suppress_error = os.environ.get("QISKIT_SUPPRESS_1_0_IMPORT_ERROR", "") == "1"
     if not _suppress_error and _has_tools:
         raise ImportError(
             "Qiskit is installed in an invalid environment that has both Qiskit >=1.0"
@@ -172,6 +171,6 @@ __all__ = [
     "QiskitError",
     "QuantumCircuit",
     "QuantumRegister",
-    "transpile",
     "generate_preset_pass_manager",
+    "transpile",
 ]
