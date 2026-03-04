@@ -3672,9 +3672,11 @@ impl PyCustomOp {
     fn definition<'py>(&'py self, py: Python<'py>) -> Option<Bound<'py, PyAny>> {
         let params = self.parameters.as_deref().unwrap_or_default();
         let circ_class = QUANTUM_CIRCUIT.get_bound(py);
-        self.inner
-            .definition(params)
-            .map(|circ| circ_class.call_method1("_from_circuit_data", (circ,)).ok())?
+        self.inner.definition(params).map(|circ| {
+            circ_class
+                .call_method1("_from_circuit_data", (PyCircuitData { inner: circ },))
+                .ok()
+        })?
     }
 
     fn __array__<'py>(&'py self, dtype: Bound<'py, PyAny>) -> Option<Bound<'py, PyAny>> {
@@ -3930,7 +3932,7 @@ mod test_custom_gates {
 
         // Try downcasting
         circuit
-            .push_custom_operation(CustomRX, &[3.14.into()], &[Qubit(0)], &[])
+            .push_custom_operation(CustomRX, &[PI.into()], &[Qubit(0)], &[])
             .expect("Instruction should be added to the circuit.");
         circuit
             .push_custom_operation(CustomH, &[], &[Qubit(0)], &[])
