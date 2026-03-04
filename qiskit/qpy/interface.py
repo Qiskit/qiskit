@@ -31,6 +31,7 @@ from qiskit.qpy import formats, common, binary_io, type_keys
 from qiskit.qpy.exceptions import QpyError
 from qiskit import user_config
 from qiskit.version import __version__
+from qiskit._accelerate import qpy as _qpy
 
 if TYPE_CHECKING:
     from qiskit.circuit import annotation
@@ -196,6 +197,11 @@ def dump(
         )
 
     use_rust = version >= common.QPY_RUST_MIN_VERSION
+    if use_rust:
+        _qpy.dump(
+            programs, file_obj, metadata_serializer, use_symengine, version, annotation_factories
+        )
+        return
 
     version_match = VERSION_PATTERN_REGEX.search(__version__)
     version_parts = [int(x) for x in version_match.group("release").split(".")]

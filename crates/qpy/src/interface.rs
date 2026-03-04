@@ -26,22 +26,21 @@ use crate::bytes::Bytes;
 use crate::circuit_writer::pack_circuit;
 use crate::formats;
 use crate::formats::{QPY17File, QPYFile};
-use crate::value::ValueType;
-use crate::value::serialize;
+use crate::value::{SymbolicEncoding, ValueType, serialize};
 
 // TODO: use env!("CARGO_PKG_VERSION")
 const QISKIT_VERSION: (u8, u8, u8) = (2, 4, 0); // TODO: placeholder; should be replaced with rust code reading VERSION.txt
 
 pub fn dump_qpy(
     mut circuits: Vec<QuantumCircuitData>,
-    metadata_serializer: Option<&Bound<PyAny>>,
+    metadata_serializer: Option<Bound<PyAny>>,
     use_symengine: bool,
     qpy_version: u8,
-    annotation_factories: &Bound<PyDict>,
+    annotation_factories: Bound<PyDict>,
 ) -> PyResult<Bytes> {
     if qpy_version < 17 {
         return Err(PyValueError::new_err(
-            "dump_qpy only supports QPY version 17 and above",
+            "Rust QPY only supports QPY version 17 and above",
         ));
     }
     let packed_circuits: Vec<formats::QPYCircuitV17> = circuits
@@ -49,10 +48,10 @@ pub fn dump_qpy(
         .map(|circuit| {
             pack_circuit(
                 circuit,
-                metadata_serializer,
+                metadata_serializer.as_ref(),
                 use_symengine,
                 qpy_version as u32,
-                annotation_factories,
+                &annotation_factories,
             )
         })
         .collect::<PyResult<Vec<_>>>()?;
@@ -60,8 +59,8 @@ pub fn dump_qpy(
     let qpy_file = formats::QPYFile {
         qpy_version,
         qiskit_version: QISKIT_VERSION,
-        symbolic_encoding: b'p',      // using symengine is obsolete
-        type_key: ValueType::Circuit, //for now, no other value type is used
+        symbolic_encoding: SymbolicEncoding::Sympy, // using symengine is obsolete
+        type_key: ValueType::Circuit,               //for now, no other value type is used
         circuits: packed_circuits,
     };
     let qpy_file_v17: QPY17File = qpy_file.try_into()?;
@@ -69,20 +68,23 @@ pub fn dump_qpy(
 }
 
 #[pyfunction]
+#[pyo3(name = "dump")]
+#[pyo3(signature = (programs, file_obj, metadata_serializer, use_symengine, version, annotation_factories))]
 pub fn py_dump_qpy(
     py: Python,
+    programs: &Bound<PyAny>,
     file_obj: &Bound<PyAny>,
-    circuits: &Bound<PyAny>,
-    metadata_serializer: Option<&Bound<PyAny>>,
-    use_symengine: bool,
-    qpy_version: u8,
-    annotation_factories: &Bound<PyDict>,
+    metadata_serializer: Option<Bound<PyAny>>,
+    use_symengine: Option<bool>,
+    version: u8,
+    annotation_factories: Option<Bound<PyDict>>,
 ) -> PyResult<()> {
+    let annotation_factories = annotation_factories.unwrap_or(PyDict::new(py));
     let serialized_qpy = dump_qpy(
-        circuits.extract()?,
+        programs.extract()?,
         metadata_serializer,
-        use_symengine,
-        qpy_version,
+        use_symengine.unwrap_or(false),
+        version,
         annotation_factories,
     )?;
     file_obj.call_method1("write", (pyo3::types::PyBytes::new(py, &serialized_qpy),))?;
@@ -93,14 +95,11 @@ impl TryFrom<QPYFile> for QPY17File {
     type Error = PyErr;
     fn try_from(qpy_file: QPYFile) -> PyResult<QPY17File> {
         // We should serialize the circuits and compute the offset table based on their lengths
-        let circuits = qpy_file
-            .circuits
-            .iter()
-            .map(serialize)
-            .collect::<Vec<_>>();
+        let circuits = qpy_file.circuits.iter().map(serialize).collect::<Vec<_>>();
         // the initial offset is the size of all the fields in QPY17File up to and not including circuits.
-        // The fields up to circuit_table take QPY17_HEADER_SIZE bytes, and circuit_table take 64*circuits.len() bytes.
-        let initial_offset = formats::QPY17_HEADER_SIZE + 64 * qpy_file.circuits.len();
+        // The fields up to circuit_table take QPY17_HEADER_SIZE bytes, and circuit_table take 8*circuits.len() bytes.
+        let initial_offset =
+            formats::QPY17_HEADER_SIZE + size_of::<u64>() * qpy_file.circuits.len();
         let mut circuit_table: Vec<u64> = Vec::with_capacity(qpy_file.circuits.len());
         let mut current_offset = initial_offset;
         for circuit in &circuits {

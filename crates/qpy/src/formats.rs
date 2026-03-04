@@ -15,7 +15,7 @@ use crate::expr::{read_expression, write_expression};
 use crate::params::ParameterType;
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionType, ExpressionVarDeclaration, ModifierType,
-    QPYReadData, QPYWriteData, RegisterType, ValueType,
+    QPYReadData, QPYWriteData, RegisterType, SymbolicEncoding, ValueType,
 };
 use binrw::{BinRead, BinResult, BinWrite, Endian, binread, binrw, binwrite};
 use pyo3::PyErr;
@@ -40,7 +40,7 @@ pub struct QPYFile {
     #[bw(calc = circuits.len() as u64)]
     pub num_programs: u64,
     /// Symbolic encoding type (for parameter expressions)
-    pub symbolic_encoding: u8,
+    pub symbolic_encoding: SymbolicEncoding,
     pub type_key: ValueType,
     #[br(count = num_programs)]
     pub circuits: Vec<QPYCircuitV17>,
@@ -62,7 +62,7 @@ pub struct QPY17File {
     #[bw(calc = circuits.len() as u64)]
     pub num_programs: u64,
     /// Symbolic encoding type (for parameter expressions)
-    pub symbolic_encoding: u8,
+    pub symbolic_encoding: SymbolicEncoding,
     pub type_key: ValueType,
     // each entry in the circuit table should encode the exact offset
     // of the circuit in the binary file. This should be computed
