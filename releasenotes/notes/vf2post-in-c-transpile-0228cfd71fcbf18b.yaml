@@ -4,7 +4,7 @@ features_c:
     The :c:func:`qk_transpile` function now will run the :class:`.VF2PostLayout` transpiler pass as part
     of optimization levels 1, 2, and 3. The pass is configured to run in the same way as the Python
     preset pass managers run in :py:func:`.generate_preset_pass_manager`. You can refer to the Python
-    :mod`~.transpiler` documentation for more details on the configuration.
+    :mod:`~.transpiler` documentation for more details on the configuration.
 upgrade_c:
   - |
     The :c:func:`qk_transpile_stage_optimization` function has a new required argument, ``layout`` which
