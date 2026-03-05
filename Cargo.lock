@@ -2000,6 +2000,8 @@ name = "qiskit-pyext"
 version = "2.4.0-dev"
 dependencies = [
  "anyhow",
+ "cbindgen",
+ "hashbrown 0.15.5",
  "pyo3",
  "qiskit-accelerate",
  "qiskit-bindgen",

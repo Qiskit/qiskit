@@ -49,6 +49,7 @@ cbindgen = "0.29.2"
 # it disabled for Rust-only tests to avoid linker errors with it not being loaded.  See
 # https://pyo3.rs/main/features#extension-module for more.
 pyo3 = { version = "0.28.1", features = ["abi3-py310"] }
+pyo3-build-config.version = "0.28.1"
 
 # These are our own crates.
 qiskit-accelerate = { path = "crates/accelerate" }
