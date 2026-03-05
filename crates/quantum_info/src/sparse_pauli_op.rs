@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -357,7 +357,7 @@ impl From<DecomposeError> for PyErr {
 /// Implementation
 /// --------------
 ///
-/// The original algorithm was described recurisvely, allocating new matrices for each of the
+/// The original algorithm was described recursively, allocating new matrices for each of the
 /// block-wise sums (e.g. `op[top_left] + op[bottom_right]`).  This implementation differs in two
 /// major ways:
 ///
@@ -1236,7 +1236,7 @@ macro_rules! impl_to_matrix_sparse {
                 .for_each(|(indptr_chunk, start_nnz)| {
                     indptr_chunk.iter_mut().for_each(|nnz| *nnz += start_nnz);
                 });
-            // Concatenate the chunkwise values and indices togther.
+            // Concatenate the chunkwise values and indices together.
             let values = copy_flat_parallel(&values_chunks);
             let indices = copy_flat_parallel(&indices_chunks);
             (values, indices, indptr)

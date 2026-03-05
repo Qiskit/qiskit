@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -77,7 +77,7 @@ def synth_qft_full(
     if inverse:
         circuit = circuit.inverse()
 
-    # It is important to set the name afte the circuit's generic "inverse" is called,
+    # It is important to set the name after the circuit's generic "inverse" is called,
     # since that will add ``_dg`` to the name.
     if name is not None:
         circuit.name = name

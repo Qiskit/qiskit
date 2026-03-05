@@ -41,8 +41,8 @@ jobs:
       - name: Ensure basic build requirements
         run: python -m pip install -c constraints.txt --upgrade pip setuptools wheel
 
-      - name: Build and install qiskit-terra
-        run: python -m pip install -c constraints.txt -e .
+      - name: Build and install Qiskit and requirements
+        run: python -m pip install -c constraints.txt --group test --group optionals-all -e .
         env:
           CARGO_INCREMENTAL: 0
           RUSTFLAGS: "-Cinstrument-coverage"
@@ -51,7 +51,6 @@ jobs:
       - name: Generate unittest coverage report
         run: |
           set -e
-          python -m pip install -c constraints.txt -r requirements-dev.txt -r requirements-optional.txt
           python tools/report_numpy_state.py
           stestr run
         env:
@@ -61,14 +60,7 @@ jobs:
           PYTHON: "coverage run --source qiskit --parallel-mode"
 
       - name: Generate ctest coverage report
-        run: |
-          cargo rustc --crate-type cdylib -p qiskit-cext -- -Cinstrument-coverage -Cincremental=false
-          mkdir -p dist/c/include/qiskit
-          cp target/qiskit.h dist/c/include/.
-          cp -r crates/cext/include/qiskit dist/c/include/
-          cmake -S. -Btest/c/build
-          cmake --build test/c/build
-          ctest -V --test-dir test/c/build
+        run: make ccoverage
         env:
           LLVM_PROFILE_FILE: "qiskit-%p-%m.profraw"
 
@@ -82,7 +74,7 @@ jobs:
       - name: Generate lcov with grcov
         run: |
           # Copy ctest coverage to cwd
-          cp test/c/build/test/c/*profraw .
+          cp test/c/build/*profraw .
           # We set the --source-dir to '.' because we want all paths to appear relative to the repo
           # root (we need to combine them with the Python ones), but we only care about `grcov`
           # keeping the `crates/*` files; we don't care about coverage in dependencies.
