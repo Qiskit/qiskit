@@ -19,7 +19,7 @@ notifications:
     "visualization":
         - "@enavarro51"
     "^docs/":
-        - "@abbycross"
+        - "`@abbycross`"
         - "@beckykd"
 always_notify: true
 
