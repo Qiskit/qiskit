@@ -13,14 +13,14 @@
 use crate::circuit_data::CircuitData;
 use crate::imports::{
     BARRIER, BOX_OP, BREAK_LOOP_OP, CONTINUE_LOOP_OP, DELAY, FOR_LOOP_OP, IF_ELSE_OP, MEASURE,
-    PAULI_PRODUCT_MEASUREMENT, RESET, SWITCH_CASE_OP, UNITARY_GATE, WHILE_LOOP_OP,
-    get_std_gate_class,
+    PAULI_PRODUCT_MEASUREMENT, PAULI_PRODUCT_ROTATION_GATE, RESET, SWITCH_CASE_OP, UNITARY_GATE,
+    WHILE_LOOP_OP, get_std_gate_class,
 };
 use crate::instruction::Parameters;
 use crate::interner::Interned;
 use crate::operations::{
     ControlFlow, ControlFlowInstruction, CustomOp, CustomOperation, CustomOperationKind, Operation,
-    OperationRef, Param, PauliProductMeasurement, PyOperationTypes, PythonOperation, StandardGate,
+    OperationRef, Param, PauliBased, PyOperationTypes, PythonOperation, StandardGate,
     StandardInstruction, UnitaryGate,
 };
 use crate::{Block, Clbit, Qubit};
@@ -46,7 +46,7 @@ enum PackedOperationType {
     StandardInstruction = 1,
     PyOperationTypes = 2,
     UnitaryGate = 3,
-    PauliProductMeasurement = 4,
+    PauliBased = 4,
     ControlFlow = 5,
     Native = 6,
 }
@@ -70,7 +70,7 @@ unsafe impl ::bytemuck::NoUninit for PackedOperationType {}
 ///     StandardInstruction(StandardInstruction),
 ///     PyOperation(Box<PyOperationTypes>),
 ///     UnitaryGate(Box<UnitaryGate>),
-///     PauliProductMeasurement(Box<PauliProductMeasurement>),
+///     PauliBased(Box<PauliBased>),
 ///     ControlFlow(Box<ControlFlowInstruction>),
 ///     Native(Box<dyn CustomOperation>),
 /// }
@@ -259,10 +259,8 @@ mod standard_instruction {
 
 /// A private module to encapsulate the encoding of pointer types.
 mod pointer {
-    use crate::operations::{
-        ControlFlowInstruction, CustomOp, PauliProductMeasurement, PyOperationTypes, UnitaryGate,
-    };
-    use crate::packed_instruction::{PackedOperation, PackedOperationType};
+    use crate::operations::{ControlFlowInstruction, CustomOp, PyOperationTypes, UnitaryGate};
+    use crate::packed_instruction::{PackedOperation, PackedOperationType, PauliBased};
     use std::ptr::NonNull;
 
     const POINTER_MASK: u64 = !PackedOperation::DISCRIMINANT_MASK;
@@ -342,10 +340,7 @@ mod pointer {
 
     impl_packable_pointer!(PyOperationTypes, PackedOperationType::PyOperationTypes);
     impl_packable_pointer!(UnitaryGate, PackedOperationType::UnitaryGate);
-    impl_packable_pointer!(
-        PauliProductMeasurement,
-        PackedOperationType::PauliProductMeasurement
-    );
+    impl_packable_pointer!(PauliBased, PackedOperationType::PauliBased);
     impl_packable_pointer!(ControlFlowInstruction, PackedOperationType::ControlFlow);
     impl_packable_pointer!(CustomOp, PackedOperationType::Native);
 }
@@ -422,8 +417,16 @@ impl PackedOperation {
                 }
             }
             PackedOperationType::UnitaryGate => OperationRef::Unitary(self.try_into().unwrap()),
-            PackedOperationType::PauliProductMeasurement => {
-                OperationRef::PauliProductMeasurement(self.try_into().unwrap())
+            PackedOperationType::PauliBased => {
+                let op: &PauliBased = self.try_into().unwrap();
+                match op {
+                    PauliBased::PauliProductMeasurement(measurement) => {
+                        OperationRef::PauliProductMeasurement(measurement)
+                    }
+                    PauliBased::PauliProductRotation(rotation) => {
+                        OperationRef::PauliProductRotation(rotation)
+                    }
+                }
             }
             PackedOperationType::Native => {
                 let native: &CustomOp = self.try_into().unwrap();
@@ -480,10 +483,10 @@ impl PackedOperation {
         control_flow.into()
     }
 
-    /// Construct a new `PackedOperation` from an owned heap-allocated `PauliProductMeasurement`.
+    /// Construct a new `PackedOperation` from an owned heap-allocated `PauliBased`.
     #[inline]
-    pub fn from_ppm(ppm: Box<PauliProductMeasurement>) -> Self {
-        ppm.into()
+    pub fn from_pauli_based(pbc: Box<PauliBased>) -> Self {
+        pbc.into()
     }
 
     /// Check equality of the operation, including Python-space checks, if appropriate.
@@ -511,6 +514,10 @@ impl PackedOperation {
             (
                 OperationRef::PauliProductMeasurement(left),
                 OperationRef::PauliProductMeasurement(right),
+            ) => Ok(left == right),
+            (
+                OperationRef::PauliProductRotation(left),
+                OperationRef::PauliProductRotation(right),
             ) => Ok(left == right),
             _ => Ok(false),
         }
@@ -596,6 +603,12 @@ impl PackedOperation {
                     "Native gates cannot be exposed to Python yet.",
                 ));
             }
+            OperationRef::PauliProductRotation(_) => {
+                return PAULI_PRODUCT_ROTATION_GATE
+                    .get_bound(py)
+                    .cast::<PyType>()?
+                    .is_subclass(py_type);
+            }
         };
         py_op.is_instance(py_type)
     }
@@ -653,7 +666,12 @@ impl Clone for PackedOperation {
                 Self::from_py_operation(Box::new(PyOperationTypes::Operation(operation.to_owned())))
             }
             OperationRef::Unitary(unitary) => Self::from_unitary(Box::new(unitary.clone())),
-            OperationRef::PauliProductMeasurement(ppm) => Self::from_ppm(Box::new(ppm.clone())),
+            OperationRef::PauliProductMeasurement(ppm) => {
+                Self::from_pauli_based(Box::new(PauliBased::PauliProductMeasurement(ppm.clone())))
+            }
+            OperationRef::PauliProductRotation(rotation) => {
+                Self::from_pauli_based(Box::new(PauliBased::PauliProductRotation(rotation.clone())))
+            }
             OperationRef::CustomOperation(custom_gate) => {
                 Self::from(CustomOp::from(custom_gate.clone_dyn()))
             }
@@ -668,9 +686,7 @@ impl Drop for PackedOperation {
             PackedOperationType::StandardGate | PackedOperationType::StandardInstruction => (),
             PackedOperationType::PyOperationTypes => PyOperationTypes::drop_packed(self),
             PackedOperationType::UnitaryGate => UnitaryGate::drop_packed(self),
-            PackedOperationType::PauliProductMeasurement => {
-                PauliProductMeasurement::drop_packed(self)
-            }
+            PackedOperationType::PauliBased => PauliBased::drop_packed(self),
             PackedOperationType::ControlFlow => ControlFlowInstruction::drop_packed(self),
             PackedOperationType::Native => CustomOp::drop_packed(self),
         }

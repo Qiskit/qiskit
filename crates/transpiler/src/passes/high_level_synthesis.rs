@@ -31,7 +31,8 @@ use qiskit_circuit::operations::{
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{BlocksMode, Clbit, Qubit, VarsMode};
-use qiskit_synthesis::pauli_product_measurement::synthesize_ppm;
+use qiskit_synthesis::pauli_products::synthesize_ppm;
+use qiskit_synthesis::pauli_products::synthesize_ppr;
 use smallvec::SmallVec;
 
 use crate::TranspilerError;
@@ -803,6 +804,7 @@ fn extract_definition(op: &PackedOperation, params: &[Param]) -> PyResult<Option
         OperationRef::Gate(g) => Ok(g.definition()),
         OperationRef::Instruction(i) => Ok(i.definition()),
         OperationRef::PauliProductMeasurement(ppm) => Ok(Some(synthesize_ppm(ppm)?)),
+        OperationRef::PauliProductRotation(rotation) => Ok(Some(synthesize_ppr(rotation)?)),
         OperationRef::StandardInstruction(i) => match i {
             StandardInstruction::Measure
             | StandardInstruction::Reset
@@ -958,6 +960,9 @@ fn synthesize_op_using_plugins(
         OperationRef::Operation(operation) => operation.instruction.clone_ref(py),
         OperationRef::Unitary(unitary) => unitary.create_py_op(py, label)?.into_any(),
         OperationRef::PauliProductMeasurement(ppm) => ppm.create_py_op(py, label)?.into_any(),
+        OperationRef::PauliProductRotation(rotation) => {
+            rotation.create_py_op(py, label)?.into_any()
+        }
         OperationRef::CustomOperation(custom_gate) => custom_gate
             .create_py_op(py, Some(params.iter().cloned().collect()))?
             .unbind(),
