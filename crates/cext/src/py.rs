@@ -111,6 +111,40 @@ where
     })
 }
 
+/// Extract a pointer to a Rust-native object from a `PyObject`, storing the result in `address`.
+///
+/// The exact object stored can be extracted from a `PyClass` by projecting a reference out of some
+/// outer Python-exposed type using `map_fn`.  For example, the `object` might be a
+/// `PySparseObservable`, but the `map_fn` extracts a reference to the inne
+///
+/// This is used to define Python-space "converter" functions for use with the `PyArg_Parse*` family
+/// of functions.
+///
+/// On success, returns 1 and writes out the pointer in `address`.  On failure, returns 0, sets the
+/// Python exception state and leaves `address` untouched.
+///
+/// # Safety
+///
+/// `object` must point to a valid PyObject.  `address` must point to enough space to write a
+/// pointer to.
+pub unsafe fn convert_map<'py, T, S>(
+    py: Python<'py>,
+    object: *mut ::pyo3::ffi::PyObject,
+    address: *mut ::std::ffi::c_void,
+    map_fn: impl for<'a> FnOnce(Python<'py>, &'a T) -> PyResult<&'a S>,
+) -> ::std::ffi::c_int
+where
+    T: PyClass,
+{
+    let native = unsafe { borrow_map(py, object, map_fn) };
+    if native.is_null() {
+        0
+    } else {
+        unsafe { address.cast::<*const S>().write(native) };
+        1
+    }
+}
+
 /// Extract a pointer to a Rust-native object from a PyObject representing a PyClass, storing the
 /// result in `address`.
 ///
