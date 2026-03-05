@@ -19,8 +19,9 @@ use nalgebra::{DMatrix, DMatrixView, DVector, Matrix4, QR, stack};
 use ndarray::prelude::*;
 use num_complex::Complex64;
 use numpy::PyReadonlyArray2;
-use pyo3::exceptions::{PyRuntimeError, PyValueError};
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
+use qiskit_quantum_info::QiskitError;
 use smallvec::smallvec;
 use thiserror::Error;
 
@@ -58,10 +59,10 @@ impl From<QSDError> for PyErr {
     fn from(error: QSDError) -> Self {
         match error {
             QSDError::SchurDecompositionFailed => {
-                PyRuntimeError::new_err("Schur decomposition failed")
+                QiskitError::new_err("Schur decomposition failed")
             }
             QSDError::ErrorFromCircuitData(_) => {
-                PyRuntimeError::new_err("circuit construction failed")
+                QiskitError::new_err("circuit construction failed")
             }
 
             QSDError::ErrorFromPython(err) => err,
