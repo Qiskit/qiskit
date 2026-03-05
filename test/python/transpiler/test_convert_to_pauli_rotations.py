@@ -26,7 +26,7 @@ from qiskit.circuit.library import (
     C4XGate,
     MCXGate,
 )
-from test import combine, QiskitTestCase  # pylint: disable=wrong-import-order
+from test import combine, QiskitTestCase
 
 
 @ddt
@@ -53,7 +53,7 @@ class TestConvertToPauliRotations(QiskitTestCase):
                 qct = ConvertToPauliRotations()(qc)
                 ops_names = set(qct.count_ops().keys())
                 if ops_names:
-                    self.assertEqual(ops_names, {"PauliEvolution"})
+                    self.assertEqual(ops_names, {"pauli_product_rotation"})
                 self.assertEqual(Operator(qct), Operator(qc))
 
     def test_random_circuit(self):
@@ -65,7 +65,7 @@ class TestConvertToPauliRotations(QiskitTestCase):
         qc = random_circuit(num_qubits=num_qubits, depth=depth, max_operands=3, seed=seed)
         qct = ConvertToPauliRotations()(qc)
         ops_names = set(qct.count_ops().keys())
-        self.assertEqual(ops_names, {"PauliEvolution"})
+        self.assertEqual(ops_names, {"pauli_product_rotation"})
         self.assertEqual(Operator(qct), Operator(qc))
 
     def test_random_circuit_measure_barrier_delay_reset(self):
@@ -86,7 +86,8 @@ class TestConvertToPauliRotations(QiskitTestCase):
         qct = ConvertToPauliRotations()(qc)
         ops_names = set(qct.count_ops().keys())
         self.assertEqual(
-            ops_names, {"PauliEvolution", "pauli_product_measurement", "delay", "reset", "barrier"}
+            ops_names,
+            {"pauli_product_rotation", "pauli_product_measurement", "delay", "reset", "barrier"},
         )
 
     def test_parametrized_gates(self):
@@ -105,7 +106,7 @@ class TestConvertToPauliRotations(QiskitTestCase):
                 qct = ConvertToPauliRotations()(qc)
                 ops_names = set(qct.count_ops().keys())
                 if ops_names:
-                    self.assertEqual(ops_names, {"PauliEvolution"})
+                    self.assertEqual(ops_names, {"pauli_product_rotation"})
                 qc_bound = qc.assign_parameters([0.123] * num_params)
                 qct_bound = qct.assign_parameters([0.123] * num_params)
                 self.assertEqual(Operator(qct_bound), Operator(qc_bound))
