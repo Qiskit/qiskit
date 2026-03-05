@@ -15,16 +15,20 @@ use qiskit_circuit::operations::Param;
 
 #[repr(C)]
 pub struct CPauliProductRotation {
-    pub x: *mut bool,      // pointer to an length-`len` array of X components
-    pub z: *mut bool,      // pointer to an length-`len` array of Z components
-    pub len: usize,        // the number of Pauli terms
-    pub angle: *mut Param, // the rotation angle
+    /// Pointer to an length-`len` array of Z components.
+    pub z: *mut bool,
+    /// Pointer to an length-`len` array of X components.
+    pub x: *mut bool,
+    /// The number of Pauli terms.
+    pub len: usize,
+    /// The rotation angle.
+    pub angle: *mut Param,
 }
 
 /// @ingroup QkPauliProductRotation
 /// Clear the internal data of Rust-allocated ``QkPauliProductRotation``.
 ///
-/// This frees the memory of the ``x`` and ``z`` arrays and frees the ``angle``. This function
+/// This frees the memory of the ``z`` and ``x`` arrays and frees the ``angle``. This function
 /// should only be called for ``QkPauliProductRotation`` objects whose data has been populated by Rust.
 ///
 /// # Example
@@ -43,10 +47,10 @@ pub struct CPauliProductRotation {
 ///
 /// In contrast, this function should not be called if C already takes care of clearing the data.
 /// ```c
-/// bool x[4] = {false, true, true, false};
 /// bool z[4] = {false, false, true, true};
+/// bool x[4] = {false, true, true, false};
 /// QkParam *angle = qk_param_from_double(1.0);
-/// QkPauliProductRotation rotation = {x, z, 4, angle};
+/// QkPauliProductRotation rotation = {z, x, 4, angle};
 ///
 /// // since this data is allocated by C, we do not call `qk_pauli_product_rotation_clear(&rotation)`!
 /// ```
@@ -82,16 +86,20 @@ pub unsafe extern "C" fn qk_pauli_product_rotation_clear(inst: *mut CPauliProduc
 
 #[repr(C)]
 pub struct CPauliProductMeasurement {
-    pub x: *mut bool,       // pointer to an length-`len` array of X components
-    pub z: *mut bool,       // pointer to an length-`len` array of Z components
-    pub len: usize,         // the number of Pauli terms
-    pub flip_outcome: bool, // whether the outcome has a minus sign
+    /// Pointer to an length-`len` array of Z components.
+    pub z: *mut bool,
+    /// Pointer to an length-`len` array of X components.
+    pub x: *mut bool,
+    /// The number of Pauli terms.
+    pub len: usize,
+    /// Whether the measurement outcome has a minus sign.
+    pub flip_outcome: bool,
 }
 
 /// @ingroup QkPauliProductMeasurement
 /// Clear the internal data of Rust-allocated ``QkPauliProductMeasurement``.
 ///
-/// This frees the memory of the ``x`` and ``z`` arrays. This function should only be called for
+/// This frees the memory of the ``z`` and ``x`` arrays. This function should only be called for
 /// ``QkPauliProductMeasurement`` objects whose data has been populated by Rust.
 ///
 /// # Example
@@ -111,9 +119,9 @@ pub struct CPauliProductMeasurement {
 ///
 /// In contrast, this function should not be called if C already takes care of clearing the data.
 /// ```c
-/// bool x[4] = {false, true, true, false};
 /// bool z[4] = {false, false, true, true};
-/// QkPauliProductMeasurement inst = {x, z, 4, true};
+/// bool x[4] = {false, true, true, false};
+/// QkPauliProductMeasurement inst = {z, x, 4, true};
 ///
 /// // since this data is allocated by C, we do not call `qk_pauli_product_rotation_clear(&rotation)`!
 /// ```

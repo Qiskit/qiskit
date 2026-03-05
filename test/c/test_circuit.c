@@ -1026,15 +1026,15 @@ static int test_circuit_to_dag(void) {
  */
 static int test_pbc(void) {
     // build a IXYZ Pauli rotation
-    bool x[4] = {false, true, true, false};
     bool z[4] = {false, false, true, true};
+    bool x[4] = {false, true, true, false};
     QkParam *angle = qk_param_from_double(1.0);
-    QkPauliProductRotation rotation = {x, z, 4, angle};
+    QkPauliProductRotation rotation = {z, x, 4, angle};
 
     // .. and some ZY measurement
-    bool xm[2] = {false, true};
     bool zm[2] = {true, true};
-    QkPauliProductMeasurement measure = {xm, zm, 2, true};
+    bool xm[2] = {false, true};
+    QkPauliProductMeasurement measure = {zm, xm, 2, true};
 
     // append them to a circuit
     QkCircuit *circuit = qk_circuit_new(10, 1);
@@ -1081,8 +1081,8 @@ static int test_pbc(void) {
     }
     for (size_t i = 0; i < rotation.len; ++i) {
         if (out_rot.x[i] != x[i] || out_rot.z[i] != z[i]) {
-            printf("(x, z) term at %zu does not match. Expected (%d, %d), got (%d, %d)\n", i, x[i],
-                   z[i], out_rot.x[i], out_rot.z[i]);
+            printf("(z, x) term at %zu does not match. Expected (%d, %d), got (%d, %d)\n", i, z[i],
+                   x[i], out_rot.z[i], out_rot.x[i]);
             result = EqualityError;
             goto cleanup_out_rot;
         }
@@ -1112,8 +1112,8 @@ static int test_pbc(void) {
     }
     for (size_t i = 0; i < measure.len; ++i) {
         if (out_meas->x[i] != xm[i] || out_meas->z[i] != zm[i]) {
-            printf("(x, z) term at %zu does not match. Expected (%d, %d), got (%d, %d)\n", i, xm[i],
-                   zm[i], out_meas->x[i], out_meas->z[i]);
+            printf("(z, x) term at %zu does not match. Expected (%d, %d), got (%d, %d)\n", i, zm[i],
+                   xm[i], out_meas->z[i], out_meas->x[i]);
             result = EqualityError;
             goto cleanup_out_meas;
         }
