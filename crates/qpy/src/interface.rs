@@ -29,8 +29,39 @@ use crate::formats;
 use crate::formats::{QPY17File, QPYFile};
 use crate::value::{SymbolicEncoding, ValueType, deserialize, serialize};
 
-// TODO: use env!("CARGO_PKG_VERSION")
-const QISKIT_VERSION: (u8, u8, u8) = (2, 4, 0); // TODO: placeholder; should be replaced with rust code reading VERSION.txt
+// parse the qiskit version
+const fn parse_version() -> (u8, u8, u8) {
+    let version_str = env!("CARGO_PKG_VERSION");
+    let bytes = version_str.as_bytes();
+    let mut major = 0u8;
+    let mut minor = 0u8;
+    let mut patch = 0u8;
+    let mut i = 0;
+    let mut part = 0; // 0=major, 1=minor, 2=patch
+
+    while i < bytes.len() {
+        let b = bytes[i];
+        if b >= b'0' && b <= b'9' {
+            let digit = b - b'0';
+            match part {
+                0 => major = major * 10 + digit,
+                1 => minor = minor * 10 + digit,
+                2 => patch = patch * 10 + digit,
+                _ => {}
+            }
+        } else if b == b'.' {
+            part += 1;
+        } else {
+            // Stop at any non-digit, non-dot character (e.g., '-' in "2.4.0-dev")
+            break;
+        }
+        i += 1;
+    }
+
+    (major, minor, patch)
+}
+
+const QISKIT_VERSION: (u8, u8, u8) = parse_version();
 
 pub fn dump_qpy(
     mut circuits: Vec<QuantumCircuitData>,
