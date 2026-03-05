@@ -23,7 +23,7 @@ use rsgridsynth::gridsynth::gridsynth_gates;
 use crate::QiskitError;
 use crate::euler_one_qubit_decomposer::params_zxz_inner;
 use qiskit_circuit::Qubit;
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::operations::{Param, StandardGate};
 
 use std::f64::consts::{FRAC_PI_4, FRAC_PI_8};
@@ -68,14 +68,14 @@ where
 
 #[pyfunction]
 #[pyo3(name = "gridsynth_rz")]
-pub fn py_gridsynth_rz(theta: f64, epsilon: f64) -> PyResult<CircuitData> {
+pub fn py_gridsynth_rz(theta: f64, epsilon: f64) -> PyResult<PyCircuitData> {
     let res = gridsynth_gates(&mut config_from_theta_epsilon(
         theta, epsilon, 0u64, false, true,
     ));
     let gates_iter = res.gates.chars();
     let phase = if res.global_phase { FRAC_PI_8 } else { 0. };
     let instruction_capacity = res.gates.len();
-    circuit_from_string(gates_iter, phase, instruction_capacity)
+    circuit_from_string(gates_iter, phase, instruction_capacity).map(Into::into)
 }
 
 /// Approximates 1q unitary matrix using Ross-Selinger algorithm
@@ -130,8 +130,8 @@ pub fn gridsynth_unitary(mat: ArrayView2<Complex64>, epsilon: f64) -> PyResult<C
 pub fn py_gridsynth_unitary(
     unitary: PyReadonlyArray2<Complex64>,
     epsilon: f64,
-) -> PyResult<CircuitData> {
-    gridsynth_unitary(unitary.as_array(), epsilon)
+) -> PyResult<PyCircuitData> {
+    gridsynth_unitary(unitary.as_array(), epsilon).map(Into::into)
 }
 
 pub fn ross_selinger_mod(m: &Bound<PyModule>) -> PyResult<()> {

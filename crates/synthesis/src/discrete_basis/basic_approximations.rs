@@ -49,7 +49,7 @@ impl From<DiscreteBasisError> for PyErr {
 /// Gates are stored in **circuit order**, not in matrix multiplication order. That means that
 /// e.g. [H, T] corresponds to the matrix U = T @ H. The matrix is not stored as U(2), but in
 /// a SO(3) representation, which discards the global phase.
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone, Debug)]
 pub struct GateSequence {
     // The sequence of standard gates.

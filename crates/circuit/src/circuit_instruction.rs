@@ -22,15 +22,15 @@ use pyo3::IntoPyObjectExt;
 use pyo3::types::{PyBool, PyList, PyTuple, PyType};
 use pyo3::{PyResult, intern};
 
-use crate::circuit_data::CircuitData;
+use crate::circuit_data::{CircuitData, PyCircuitData};
 use crate::dag_circuit::DAGCircuit;
 use crate::duration::Duration;
 use crate::imports::{CONTROLLED_GATE, GATE, INSTRUCTION, OPERATION, WARNINGS_WARN};
 use crate::instruction::{Instruction, Parameters, create_py_op};
 use crate::operations::{
     ArrayType, BoxDuration, ControlFlow, ControlFlowInstruction, ControlFlowType, Operation,
-    OperationRef, Param, PauliProductMeasurement, PyInstruction, PyOperationTypes, StandardGate,
-    StandardInstruction, StandardInstructionType, UnitaryGate,
+    OperationRef, Param, PauliBased, PauliProductMeasurement, PauliProductRotation, PyInstruction,
+    PyOperationTypes, StandardGate, StandardInstruction, StandardInstructionType, UnitaryGate,
 };
 use crate::packed_instruction::PackedOperation;
 use crate::parameter::parameter_expression::ParameterExpression;
@@ -70,7 +70,12 @@ use smallvec::SmallVec;
 ///     mutations of the object do not invalidate the types, nor the restrictions placed on it by
 ///     its context.  Typically this will mean, for example, that :attr:`qubits` must be a sequence
 ///     of distinct items, with no duplicates.
-#[pyclass(freelist = 20, sequence, module = "qiskit._accelerate.circuit")]
+#[pyclass(
+    freelist = 20,
+    sequence,
+    module = "qiskit._accelerate.circuit",
+    from_py_object
+)]
 #[derive(Clone, Debug)]
 pub struct CircuitInstruction {
     pub operation: PackedOperation,
@@ -567,31 +572,38 @@ impl<T: CircuitBlock> OperationFromPython<T> {
 /// the object contains circuit blocks.
 pub struct NoBlocks;
 
-/// Helper trait implemented by `CircuitData` and `DAGCircuit` to implement extraction from
+/// Helper trait implemented by `PyCircuitData` and `DAGCircuit` to implement extraction from
 /// a Python-owned control-flow block into a suitable Rust type.
 ///
 /// This shouldn't need to be imported anywhere nor implemented by anything else; it's only intended
 /// to let the `OperationFromPython` extraction be generic.
 pub trait CircuitBlock: Sized {
-    fn extract_py_block(ob: Bound<CircuitData>) -> PyResult<Self>;
+    fn extract_py_block(ob: Bound<PyCircuitData>) -> PyResult<Self>;
 }
-impl CircuitBlock for CircuitData {
-    fn extract_py_block(ob: Bound<CircuitData>) -> PyResult<Self> {
+impl CircuitBlock for PyCircuitData {
+    fn extract_py_block(ob: Bound<PyCircuitData>) -> PyResult<Self> {
         Ok(ob.borrow().clone())
     }
 }
+// TODO: in the long run we don't need to extract from python directly to CircuitData
+// But for now it's needed in assing_parameters_inner
+impl CircuitBlock for CircuitData {
+    fn extract_py_block(ob: Bound<PyCircuitData>) -> PyResult<Self> {
+        Ok(ob.borrow().clone().inner)
+    }
+}
 impl CircuitBlock for DAGCircuit {
-    fn extract_py_block(ob: Bound<CircuitData>) -> PyResult<Self> {
-        Self::from_circuit_data(&ob.borrow(), false, None, None, None, None)
+    fn extract_py_block(ob: Bound<PyCircuitData>) -> PyResult<Self> {
+        Self::from_circuit_data(&ob.borrow().inner, false, None, None, None, None)
     }
 }
 impl CircuitBlock for NoBlocks {
-    fn extract_py_block(_ob: Bound<CircuitData>) -> PyResult<Self> {
+    fn extract_py_block(_ob: Bound<PyCircuitData>) -> PyResult<Self> {
         Err(PyTypeError::new_err("control-flow ops are not valid here"))
     }
 }
 impl CircuitBlock for Py<PyAny> {
-    fn extract_py_block(ob: Bound<CircuitData>) -> PyResult<Self> {
+    fn extract_py_block(ob: Bound<PyCircuitData>) -> PyResult<Self> {
         Ok(ob.into_any().unbind())
     }
 }
@@ -853,14 +865,45 @@ impl<'a, 'py, T: CircuitBlock> FromPyObject<'a, 'py> for OperationFromPython<T> 
 
             let phase = ob.getattr(intern!(py, "_pauli_phase"))?.extract::<u8>()?;
 
-            let pauli_product_measurement = Box::new(PauliProductMeasurement {
+            let pauli_product_measurement = PauliProductMeasurement {
                 z: z.to_owned(),
                 x: x.to_owned(),
                 neg: phase == 2, // phase is only 0 (represents 1) or 2 (represents -1)
-            });
+            };
+            let pbc = Box::new(PauliBased::PauliProductMeasurement(
+                pauli_product_measurement,
+            ));
 
             return Ok(OperationFromPython {
-                operation: PackedOperation::from_ppm(pauli_product_measurement),
+                operation: PackedOperation::from_pauli_based(pbc),
+                params: None,
+                label: extract_label()?,
+            });
+        } else if ob_name == "pauli_product_rotation" {
+            let z = ob
+                .getattr(intern!(py, "_pauli_z"))?
+                .extract::<PyReadonlyArray1<bool>>()?
+                .as_slice()?
+                .to_vec();
+
+            let x = ob
+                .getattr(intern!(py, "_pauli_x"))?
+                .extract::<PyReadonlyArray1<bool>>()?
+                .as_slice()?
+                .to_vec();
+
+            let py_angle = get_params()?.get_item(0)?;
+            let angle = Param::extract_no_coerce(py_angle.as_borrowed())?;
+
+            let pauli_rotation = PauliProductRotation {
+                z: z.to_owned(),
+                x: x.to_owned(),
+                angle,
+            };
+            let pbc = Box::new(PauliBased::PauliProductRotation(pauli_rotation));
+
+            return Ok(OperationFromPython {
+                operation: PackedOperation::from_pauli_based(pbc),
                 params: None,
                 label: extract_label()?,
             });
@@ -992,6 +1035,10 @@ pub fn extract_params<T: CircuitBlock>(
         OperationRef::Gate(_) | OperationRef::Instruction(_) | OperationRef::Operation(_) => {
             let params: SmallVec<[Param; 3]> = params.extract()?;
             (!params.is_empty()).then(|| Parameters::Params(params))
+        }
+        OperationRef::PauliProductRotation(_) => {
+            let params: SmallVec<[Param; 3]> = params.extract()?;
+            Some(Parameters::Params(params))
         }
     })
 }
