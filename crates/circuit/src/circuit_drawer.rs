@@ -12,17 +12,14 @@
 
 use crate::bit::{ClassicalRegister, ShareableClbit, ShareableQubit};
 use crate::circuit_data::CircuitData;
-use crate::dag_circuit::DAGCircuit;
-use crate::dag_circuit::NodeType;
 use crate::operations::{Operation, OperationRef, Param, StandardGate, StandardInstruction};
 use crate::packed_instruction::PackedInstruction;
 use crate::{Clbit, Qubit};
 use approx;
 use crossterm::terminal;
-use hashbrown::{HashMap, HashSet};
+use hashbrown::HashSet;
 use itertools::{Itertools, MinMaxResult};
 use pyo3::prelude::*;
-use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use std::fmt::Debug;
 use std::ops::Index;
 use unicode_segmentation::UnicodeSegmentation;
@@ -93,39 +90,39 @@ pub fn draw_circuit(
 /// Return a list of layers such that each layer contains a list of op node indices, representing instructions
 /// whose qubits/clbits indices do not overlap. The instruction are packed into each layer as long as there
 /// is no qubit/clbit overlap.
-fn build_layers(dag: &DAGCircuit) -> Vec<Vec<NodeIndex>> {
-    let mut layers: Vec<Vec<NodeIndex>> = Vec::new();
-    let mut current_layer: Option<&mut Vec<NodeIndex>> = None;
-    let mut used_wires = HashSet::<usize>::new();
+fn build_layers(circ: &CircuitData) -> Vec<Vec<&PackedInstruction>> {
+    let mut layers: Vec<Vec<&PackedInstruction>> = Vec::new();
+    let num_qubits = circ.num_qubits();
+    let num_clbits = circ.num_clbits();
+    let mut bits: Vec<bool> = vec![false; num_qubits + num_clbits];
+    let mut layer = Vec::new();
 
-    for layer in dag.multigraph_layers() {
-        for node_index in layer.into_iter().sorted() {
-            let NodeType::Operation(instruction_to_insert) = &dag.dag()[node_index] else {
-                continue;
-            };
-
-            let (node_min, node_max) = get_instruction_range(
-                dag.get_qargs(instruction_to_insert.qubits),
-                dag.get_cargs(instruction_to_insert.clbits),
-                dag.num_qubits(),
-            );
-
-            // Check for instruction range overlap
-            if (node_min..=node_max).any(|idx| used_wires.contains(&idx)) {
-                current_layer = None; // Indication for starting a new layer
-                used_wires.clear();
-            }
-            used_wires.extend(node_min..=node_max);
-
-            if current_layer.is_none() {
-                layers.push(Vec::new());
-                current_layer = layers.last_mut();
-            }
-
-            current_layer.as_mut().unwrap().push(node_index);
+    for inst in circ.data() {
+        if matches!(
+            inst.op.view(),
+            OperationRef::StandardGate(StandardGate::GlobalPhase)
+        ) {
+            layer.push(inst);
+            continue;
         }
+        let (node_min, node_max) = get_instruction_range(
+            circ.get_qargs(inst.qubits),
+            circ.get_cargs(inst.clbits),
+            num_qubits,
+        );
+        if (node_min..=node_max).any(|idx| bits[idx]) {
+            let mut new_layer = vec![inst];
+            std::mem::swap(&mut layer, &mut new_layer);
+            layers.push(new_layer);
+            bits.iter_mut().enumerate().for_each(|(idx, x)| {
+                *x = idx >= node_min || idx <= node_max;
+            });
+            continue;
+        }
+        (node_min..=node_max).for_each(|idx| bits[idx] = true);
+        layer.push(inst);
     }
-
+    layers.push(layer);
     layers
 }
 
@@ -307,6 +304,10 @@ impl<'a> VisualizationLayer<'a> {
         inst: &'a PackedInstruction,
         circuit: &CircuitData,
     ) {
+        if gate == StandardGate::GlobalPhase {
+            return;
+        }
+
         let qargs = circuit.get_qargs(inst.qubits);
         let (minima, maxima) = get_instruction_range(qargs, &[], 0);
 
@@ -483,15 +484,7 @@ struct VisualizationMatrix<'a> {
 
 impl<'a> VisualizationMatrix<'a> {
     fn from_circuit(circuit: &'a CircuitData, bundle_cregs: bool) -> PyResult<Self> {
-        let dag = DAGCircuit::from_circuit_data(circuit, false, None, None, None, None)?;
-
-        let mut node_index_to_inst: HashMap<NodeIndex, &PackedInstruction> =
-            HashMap::with_capacity(circuit.data().len());
-        for (idx, node_index) in dag.op_node_indices(true).enumerate() {
-            node_index_to_inst.insert(node_index, &circuit.data()[idx]);
-        }
-
-        let inst_layers = build_layers(&dag);
+        let inst_layers = build_layers(circuit);
 
         let num_wires = circuit.num_qubits()
             + if !bundle_cregs {
@@ -552,13 +545,8 @@ impl<'a> VisualizationMatrix<'a> {
         }
 
         for (i, layer) in inst_layers.iter().enumerate() {
-            for node_index in layer {
-                layers[i + 1].add_instruction(
-                    bundle_cregs,
-                    node_index_to_inst.get(node_index).unwrap(),
-                    circuit,
-                    &clbit_map,
-                );
+            for inst in layer {
+                layers[i + 1].add_instruction(bundle_cregs, inst, circuit, &clbit_map);
             }
         }
 
@@ -1813,53 +1801,125 @@ q_1: ┤1         ├┤1            ├┤1         ├
 
         let result = draw_circuit(&circuit, false, false, Some(100)).unwrap();
         let expected = "
-          ┌────────────────┐┌────────────────┐┌────────────────┐┌────────────────┐┌───────────────┐ ░  ░ »
-q_0: ─|0>─┤ Delay(2.1[ns]) ├┤ Delay(2.1[ps]) ├┤ Delay(2.1[us]) ├┤ Delay(2.1[ms]) ├┤ Delay(2.1[s]) ├─░──░─»
-          └────────────────┘└────────────────┘└────────────────┘└────────────────┘└───────────────┘ ░  ░ »
-          ┌────────────────┐┌────────────────┐┌────────────────┐┌────────────────┐┌───────────────┐    ░ »
-q_1: ─|0>─┤ Delay(2.1[ns]) ├┤ Delay(2.1[ps]) ├┤ Delay(2.1[us]) ├┤ Delay(2.1[ms]) ├┤ Delay(2.1[s]) ├────░─»
-          └────────────────┘└────────────────┘└────────────────┘└────────────────┘└───────────────┘    ░ »
-          ┌────────────────┐┌────────────────┐┌────────────────┐┌────────────────┐┌───────────────┐      »
-q_2: ─|0>─┤ Delay(2.1[ns]) ├┤ Delay(2.1[ps]) ├┤ Delay(2.1[us]) ├┤ Delay(2.1[ms]) ├┤ Delay(2.1[s]) ├──────»
-          └────────────────┘└────────────────┘└────────────────┘└────────────────┘└───────────────┘      »
-          ┌────────────────┐┌────────────────┐┌────────────────┐┌────────────────┐┌───────────────┐      »
-q_3: ─|0>─┤ Delay(2.1[ns]) ├┤ Delay(2.1[ps]) ├┤ Delay(2.1[us]) ├┤ Delay(2.1[ms]) ├┤ Delay(2.1[s]) ├──────»
-          └────────────────┘└────────────────┘└────────────────┘└────────────────┘└───────────────┘      »
-                                                                                                         »
-c_0: ════════════════════════════════════════════════════════════════════════════════════════════════════»
-                                                                                                         »
-                                                                                                         »
-c_1: ════════════════════════════════════════════════════════════════════════════════════════════════════»
-                                                                                                         »
-                                                                                                         »
-c_2: ════════════════════════════════════════════════════════════════════════════════════════════════════»
-                                                                                                         »
-                                                                                                         »
-c_3: ════════════════════════════════════════════════════════════════════════════════════════════════════»
-                                                                                                         »
-«      ░  ░ ┌───┐
-«q_0: ─░──░─┤ M ├───────────────
-«      ░  ░ └─╥─┘
-«      ░  ░   ║  ┌───┐
-«q_1: ─░──░───╫──┤ M ├──────────
-«      ░  ░   ║  └─╥─┘
-«      ░  ░   ║    ║  ┌───┐
-«q_2: ─░──░───╫────╫──┤ M ├─────
-«      ░  ░   ║    ║  └─╥─┘
-«         ░   ║    ║    ║  ┌───┐
-«q_3: ────░───╫────╫────╫──┤ M ├
-«         ░   ║    ║    ║  └─╥─┘
-«             ║    ║    ║    ║
-«c_0: ════════╩════╬════╬════╬══
-«                  ║    ║    ║
-«                  ║    ║    ║
-«c_1: ═════════════╩════╬════╬══
-«                       ║    ║
-«                       ║    ║
-«c_2: ══════════════════╩════╬══
-«                            ║
-«                            ║
-«c_3: ═══════════════════════╩══
+          ┌────────────────┐┌────────────────┐┌────────────────┐┌────────────────┐┌───────────────┐»
+q_0: ─|0>─┤ Delay(2.1[ns]) ├┤ Delay(2.1[ps]) ├┤ Delay(2.1[us]) ├┤ Delay(2.1[ms]) ├┤ Delay(2.1[s]) ├»
+          └────────────────┘└────────────────┘└────────────────┘└────────────────┘└───────────────┘»
+                                                                                                   »
+q_1: ─|0>──────────────────────────────────────────────────────────────────────────────────────────»
+                                                                                                   »
+                                                                                                   »
+q_2: ─|0>──────────────────────────────────────────────────────────────────────────────────────────»
+                                                                                                   »
+                                                                                                   »
+q_3: ─|0>──────────────────────────────────────────────────────────────────────────────────────────»
+                                                                                                   »
+                                                                                                   »
+c_0: ══════════════════════════════════════════════════════════════════════════════════════════════»
+                                                                                                   »
+                                                                                                   »
+c_1: ══════════════════════════════════════════════════════════════════════════════════════════════»
+                                                                                                   »
+                                                                                                   »
+c_2: ══════════════════════════════════════════════════════════════════════════════════════════════»
+                                                                                                   »
+                                                                                                   »
+c_3: ══════════════════════════════════════════════════════════════════════════════════════════════»
+                                                                                                   »
+«                                                                                              »
+«q_0: ─────────────────────────────────────────────────────────────────────────────────────────»
+«                                                                                              »
+«     ┌────────────────┐┌────────────────┐┌────────────────┐┌────────────────┐┌───────────────┐»
+«q_1: ┤ Delay(2.1[ns]) ├┤ Delay(2.1[ps]) ├┤ Delay(2.1[us]) ├┤ Delay(2.1[ms]) ├┤ Delay(2.1[s]) ├»
+«     └────────────────┘└────────────────┘└────────────────┘└────────────────┘└───────────────┘»
+«                                                                                              »
+«q_2: ─────────────────────────────────────────────────────────────────────────────────────────»
+«                                                                                              »
+«                                                                                              »
+«q_3: ─────────────────────────────────────────────────────────────────────────────────────────»
+«                                                                                              »
+«                                                                                              »
+«c_0: ═════════════════════════════════════════════════════════════════════════════════════════»
+«                                                                                              »
+«                                                                                              »
+«c_1: ═════════════════════════════════════════════════════════════════════════════════════════»
+«                                                                                              »
+«                                                                                              »
+«c_2: ═════════════════════════════════════════════════════════════════════════════════════════»
+«                                                                                              »
+«                                                                                              »
+«c_3: ═════════════════════════════════════════════════════════════════════════════════════════»
+«                                                                                              »
+«                                                                                              »
+«q_0: ─────────────────────────────────────────────────────────────────────────────────────────»
+«                                                                                              »
+«                                                                                              »
+«q_1: ─────────────────────────────────────────────────────────────────────────────────────────»
+«                                                                                              »
+«     ┌────────────────┐┌────────────────┐┌────────────────┐┌────────────────┐┌───────────────┐»
+«q_2: ┤ Delay(2.1[ns]) ├┤ Delay(2.1[ps]) ├┤ Delay(2.1[us]) ├┤ Delay(2.1[ms]) ├┤ Delay(2.1[s]) ├»
+«     └────────────────┘└────────────────┘└────────────────┘└────────────────┘└───────────────┘»
+«                                                                                              »
+«q_3: ─────────────────────────────────────────────────────────────────────────────────────────»
+«                                                                                              »
+«                                                                                              »
+«c_0: ═════════════════════════════════════════════════════════════════════════════════════════»
+«                                                                                              »
+«                                                                                              »
+«c_1: ═════════════════════════════════════════════════════════════════════════════════════════»
+«                                                                                              »
+«                                                                                              »
+«c_2: ═════════════════════════════════════════════════════════════════════════════════════════»
+«                                                                                              »
+«                                                                                              »
+«c_3: ═════════════════════════════════════════════════════════════════════════════════════════»
+«                                                                                              »
+«                                                                                               ░  ░  ░ »
+«q_0: ──────────────────────────────────────────────────────────────────────────────────────────░──░──░─»
+«                                                                                               ░  ░  ░ »
+«                                                                                                  ░  ░ »
+«q_1: ─────────────────────────────────────────────────────────────────────────────────────────────░──░─»
+«                                                                                                  ░  ░ »
+«                                                                                                     ░ »
+«q_2: ────────────────────────────────────────────────────────────────────────────────────────────────░─»
+«                                                                                                     ░ »
+«     ┌────────────────┐┌────────────────┐┌────────────────┐┌────────────────┐┌───────────────┐         »
+«q_3: ┤ Delay(2.1[ns]) ├┤ Delay(2.1[ps]) ├┤ Delay(2.1[us]) ├┤ Delay(2.1[ms]) ├┤ Delay(2.1[s]) ├─────────»
+«     └────────────────┘└────────────────┘└────────────────┘└────────────────┘└───────────────┘         »
+«                                                                                                       »
+«c_0: ══════════════════════════════════════════════════════════════════════════════════════════════════»
+«                                                                                                       »
+«                                                                                                       »
+«c_1: ══════════════════════════════════════════════════════════════════════════════════════════════════»
+«                                                                                                       »
+«                                                                                                       »
+«c_2: ══════════════════════════════════════════════════════════════════════════════════════════════════»
+«                                                                                                       »
+«                                                                                                       »
+«c_3: ══════════════════════════════════════════════════════════════════════════════════════════════════»
+«                                                                                                       »
+«      ░ ┌───┐
+«q_0: ─░─┤ M ├───────────────
+«      ░ └─╥─┘
+«      ░   ║  ┌───┐
+«q_1: ─░───╫──┤ M ├──────────
+«      ░   ║  └─╥─┘
+«      ░   ║    ║  ┌───┐
+«q_2: ─░───╫────╫──┤ M ├─────
+«      ░   ║    ║  └─╥─┘
+«      ░   ║    ║    ║  ┌───┐
+«q_3: ─░───╫────╫────╫──┤ M ├
+«      ░   ║    ║    ║  └─╥─┘
+«          ║    ║    ║    ║
+«c_0: ═════╩════╬════╬════╬══
+«               ║    ║    ║
+«               ║    ║    ║
+«c_1: ══════════╩════╬════╬══
+«                    ║    ║
+«                    ║    ║
+«c_2: ═══════════════╩════╬══
+«                         ║
+«                         ║
+«c_3: ════════════════════╩══
 «
 ";
         assert_eq!(result, expected.trim_start_matches("\n"));
