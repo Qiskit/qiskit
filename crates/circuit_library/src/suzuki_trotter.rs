@@ -10,15 +10,23 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::pauli_evolution::{Instruction, sparse_term_evolution};
-use qiskit_circuit::Qubit;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{Param, StandardInstruction, multiply_param, radd_param};
 use qiskit_circuit::packed_instruction::PackedOperation;
+use qiskit_circuit::{Clbit, Qubit};
 use qiskit_quantum_info::sparse_observable::SparseObservable;
 use qiskit_synthesis::evolution::suzuki_trotter::{evolution, reorder_terms};
-use smallvec::smallvec;
+use qiskit_synthesis::pauli_evolution::sparse_term_evolution;
+use smallvec::{SmallVec, smallvec};
 use thiserror::Error;
+
+// custom type for a more readable code
+pub type Instruction = (
+    PackedOperation,
+    SmallVec<[Param; 3]>,
+    Vec<Qubit>,
+    Vec<Clbit>,
+);
 
 pub fn suzuki_trotter_evolution(
     observable: &SparseObservable,
