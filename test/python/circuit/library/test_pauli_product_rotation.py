@@ -236,3 +236,21 @@ class TestPauliProductRotationGate(QiskitTestCase):
 
             counts = {"sx": 1, "sxdg": 1, "h": 2, "cx": 4, num_ctrl_qubits * "c" + "rz": 1}
             self.assertDictEqual(counts, ctrl.definition.count_ops())
+
+    def test_parameter_assignment(self):
+        """Test parameter assignment."""
+        angle = Parameter("x")
+        pauli = Pauli("XYZ")
+        ppr = PauliProductRotationGate(pauli, angle)
+
+        value = 5.4321
+        circuit = QuantumCircuit(pauli.num_qubits)
+        circuit.append(ppr, circuit.qubits)
+        self.assertEqual(circuit.num_parameters, 1)
+
+        bound = circuit.assign_parameters({angle: value})
+        self.assertEqual(bound.num_parameters, 0)
+
+        expected = QuantumCircuit(pauli.num_qubits)
+        expected.append(PauliProductRotationGate(pauli, value), expected.qubits)
+        self.assertEqual(expected, bound)
