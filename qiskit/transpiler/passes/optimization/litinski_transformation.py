@@ -73,7 +73,7 @@ class LitinskiTransformation(TransformationPass):
         self,
         fix_clifford: bool = True,
         insert_barrier: bool = False,
-        use_ppr: bool = False,
+        use_ppr: bool | None = None,
     ):
         """
         Args:
@@ -86,11 +86,17 @@ class LitinskiTransformation(TransformationPass):
                 ``fix_clifford=False``.
             use_ppr: If ``True``, use :class:`.PauliProductRotationGate` to represent
                 the Pauli rotation gates. This is encouraged to improve performance using a fully
-                Rust-backed path. If ``False``, use :class:`.PauliEvolutionGate`.
+                Rust-backed path. If ``False`` or unset, use :class:`.PauliEvolutionGate`.
         """
         super().__init__()
         self.fix_clifford = fix_clifford
         self.insert_barrier = insert_barrier
+
+        # In Qiskit v2.4 the default is to keep using PauliEvolutionGate as rotation gates, but
+        # come v2.5 we can start to warn that in v3.0 the default will be changed to PPR gates
+        # (i.e. we will set ``use_ppr=True`` per default).
+        if use_ppr is None:
+            use_ppr = False
         self.use_ppr = use_ppr
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
