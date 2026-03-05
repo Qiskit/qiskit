@@ -1117,7 +1117,10 @@ impl Operation for StandardInstruction {
     }
 
     fn num_params(&self) -> u32 {
-        0
+        match self {
+            StandardInstruction::Delay(_) => 1,
+            _ => 0,
+        }
     }
 
     fn directive(&self) -> bool {
