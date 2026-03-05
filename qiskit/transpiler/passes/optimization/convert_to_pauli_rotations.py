@@ -21,7 +21,7 @@ class ConvertToPauliRotations(TransformationPass):
     r"""
     Convert a quantum circuit containing single-qubit, two-qubit and three-qubit
     standard gates, barriers and measurements, into an equivalent list of
-    Pauli product rotations, implemented as :class:`.PauliEvolutionGate` and a global phase,
+    :class:`.PauliProductRotationGate` and a global phase,
     as well as :class:`.PauliProductMeasurement`.
 
     For example::
@@ -37,10 +37,10 @@ class ConvertToPauliRotations(TransformationPass):
       qc.t(2)
       qc.rzz(pi/4, 0, 2)
 
-      # The transformed circuit consists of PauliEvolution gates
+      # The transformed circuit consists of PauliProductRotationGate gates
       qct = ConvertToPauliRotations()(qc)
       ops_names = set(qct.count_ops().keys())
-      self.assertEqual(ops_names, {"PauliEvolution"})
+      self.assertEqual(ops_names, {"pauli_product_rotation"})
 
       # The circuits before and after the transformation are equivalent
       assert Operator(qc) == Operator(qct)
