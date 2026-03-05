@@ -14,6 +14,17 @@ Data types
 .. doxygenstruct:: QkPauliProductMeasurement
    :members:
 
+Data types
+==========
+
+.. doxygengroup:: QkPauliProductRotation
+   :members:
+   :content-only:
+
+.. doxygengroup:: QkPauliProductMeasurement
+   :members:
+   :content-only:
+
 Functions
 =========
 
