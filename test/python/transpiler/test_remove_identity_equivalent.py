@@ -33,7 +33,7 @@ from qiskit.quantum_info import Operator
 from qiskit.transpiler.passes import RemoveIdentityEquivalent
 from qiskit.transpiler.target import Target, InstructionProperties
 
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt.ddt

@@ -173,7 +173,7 @@ fn parameter_value_type_from_generic_value(value: &GenericValue) -> PyResult<Par
 // 2) The **symbol_table_data** where the symbols appearing anywhere in the expression are stored; only their uuid values
 // are referred to in the expression data
 // in older QPY versions, parameter expressions could have substitute commands, which made packing more complex
-// this is no longer used in the rust-based paramter expressions, so we do not fully utilize the formats
+// this is no longer used in the rust-based parameter expressions, so we do not fully utilize the formats
 pub(crate) fn pack_parameter_expression(
     exp: &ParameterExpression,
 ) -> PyResult<formats::ParameterExpressionPack> {

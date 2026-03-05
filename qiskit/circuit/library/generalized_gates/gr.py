@@ -88,7 +88,7 @@ class GRX(GR):
     The global RX gate is native to atomic systems (ion traps, cold neutrals). The global RX
     can be applied to multiple qubits simultaneously.
 
-    In the one-qubit case, this is equivalent to an RX(theta) operations,
+    In the one-qubit case, this is equivalent to an RX(theta) operation,
     and is thus reduced to the RXGate. The global RX gate is a direct sum of RX
     operations on all individual qubits.
 

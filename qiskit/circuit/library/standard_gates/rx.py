@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 import math
-from typing import Optional
+
 import numpy
 
 from qiskit.circuit.controlledgate import ControlledGate
@@ -53,7 +53,7 @@ class RXGate(Gate):
 
     _standard_gate = StandardGate.RX
 
-    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
+    def __init__(self, theta: ParameterValueType, label: str | None = None):
         """
         Args:
             theta: The rotation angle.
@@ -63,7 +63,7 @@ class RXGate(Gate):
 
     def _define(self):
         """Default definition"""
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         #    ┌────────┐
@@ -94,7 +94,7 @@ class RXGate(Gate):
         and as ``False`` otherwise.
 
         Args:
-            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            num_ctrl_qubits: Number of controls to add. Defaults to ``1``.
             label: Optional gate label. Defaults to ``None``.
             ctrl_state: The control state of the gate, specified either as an integer or a bitstring
                 (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``
@@ -233,7 +233,7 @@ class CRXGate(ControlledGate):
 
     def _define(self):
         """Default definition"""
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         # q_0: ───────■────────────────────■──────────────────────

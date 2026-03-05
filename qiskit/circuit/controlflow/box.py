@@ -57,7 +57,7 @@ class BoxOp(ControlFlowOp):
         Args:
             body: the circuit to use as the body of the box.  This should explicitly close over any
                 :class:`.expr.Var` variables that must be incident from the outer circuit.  The
-                required number of qubit and clbits for the resulting instruction are inferred from
+                required number of qubits and clbits for the resulting instruction are inferred from
                 the number in the circuit, even if they are idle.
             duration: an optional duration for the box as a whole.
             unit: the unit of the ``duration``.
@@ -76,7 +76,7 @@ class BoxOp(ControlFlowOp):
 
     @params.setter
     def params(self, parameters):
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         (body,) = parameters
@@ -137,7 +137,7 @@ class BoxContext:
     This is not part of the public interface, and should not be instantiated by users.
     """
 
-    __slots__ = ("_circuit", "_duration", "_unit", "_label", "_annotations")
+    __slots__ = ("_annotations", "_circuit", "_duration", "_label", "_unit")
 
     def __init__(
         self,

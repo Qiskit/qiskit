@@ -30,7 +30,7 @@ use crate::euler_one_qubit_decomposer::{
 use crate::linalg::{closest_unitary, is_hermitian_matrix, svd_decomposition, verify_unitary};
 use crate::two_qubit_decompose::{TwoQubitBasisDecomposer, two_qubit_decompose_up_to_diagonal};
 use qiskit_circuit::bit::ShareableQubit;
-use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
+use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError, PyCircuitData};
 use qiskit_circuit::interner::Interned;
 use qiskit_circuit::operations::{ArrayType, OperationRef, Param, StandardGate, UnitaryGate};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
@@ -42,35 +42,30 @@ const EPS: f64 = 1e-10;
 /// Errors that might occur during QSD synthesis algorithm
 #[derive(Error, Debug)]
 pub enum QSDError {
-    #[error("2-qubit decomposition failed")]
-    TwoQubitDecompositionFailed,
-
     #[error("Schur decomposition failed")]
     SchurDecompositionFailed,
 
-    #[error("From standard gates failed")]
-    CircuitConstructionFailed,
+    // wraps CircuitDataError, e.g. produced by demultiplex
+    #[error(transparent)]
+    ErrorFromCircuitData(#[from] CircuitDataError),
+
+    // wraps PyErr, e.g. produced by 2q decomposer
+    #[error(transparent)]
+    ErrorFromPython(#[from] PyErr),
 }
 
 impl From<QSDError> for PyErr {
     fn from(error: QSDError) -> Self {
         match error {
-            QSDError::TwoQubitDecompositionFailed => {
-                PyRuntimeError::new_err("two-qubit decomposition failed")
-            }
             QSDError::SchurDecompositionFailed => {
                 PyRuntimeError::new_err("Schur decomposition failed")
             }
-            QSDError::CircuitConstructionFailed => {
+            QSDError::ErrorFromCircuitData(_) => {
                 PyRuntimeError::new_err("circuit construction failed")
             }
-        }
-    }
-}
 
-impl From<CircuitDataError> for QSDError {
-    fn from(_error: CircuitDataError) -> Self {
-        QSDError::CircuitConstructionFailed
+            QSDError::ErrorFromPython(err) => err,
+        }
     }
 }
 
@@ -112,8 +107,7 @@ pub fn quantum_shannon_decomposition(
         1.0,
         "U",
         None,
-    )
-    .map_err(|_| QSDError::TwoQubitDecompositionFailed)?;
+    )?;
     let one_qubit_decomposer = one_qubit_decomposer_basis_set.unwrap_or(&default_1q_basis);
     let two_qubit_decomposer = two_qubit_decomposer.unwrap_or(&default_2q_decomposer);
 
@@ -326,7 +320,7 @@ fn qsd_inner(
     out.push_standard_gate(StandardGate::H, &[], &[Qubit((num_qubits - 1) as u32)])?;
     append(&mut out, right_circuit, &qr)?;
     if opt_a2_val && depth == 0 && dim > 4 {
-        apply_a2(&out, two_qubit_decomposer)
+        Ok(apply_a2(&out, two_qubit_decomposer)?)
     } else {
         Ok(out)
     }
@@ -548,7 +542,7 @@ fn get_ucrz(
     num_qubits: usize,
     angles: &mut [f64],
     vw_type_all: bool,
-) -> Result<CircuitData, QSDError> {
+) -> Result<CircuitData, CircuitDataError> {
     let out_qubits = (0..num_qubits)
         .map(|_| ShareableQubit::new_anonymous())
         .collect::<Vec<_>>();
@@ -612,7 +606,11 @@ fn update_angle(angle_1: f64, angle_2: f64) -> [f64; 2] {
     [(angle_1 + angle_2) / 2., (angle_1 - angle_2) / 2.]
 }
 
-fn append(circ: &mut CircuitData, new: CircuitData, qubit_map: &[Qubit]) -> Result<(), QSDError> {
+fn append(
+    circ: &mut CircuitData,
+    new: CircuitData,
+    qubit_map: &[Qubit],
+) -> Result<(), CircuitDataError> {
     let new_qubits_map = circ.merge_qargs(new.qargs_interner(), |x| Some(qubit_map[x.index()]));
     circ.add_global_phase(new.global_phase())?;
     for inst in new.into_data_iter() {
@@ -669,7 +667,7 @@ fn extract_multiplex_blocks(umat: &DMatrix<Complex64>, k: usize) -> [DMatrix<Com
         DMatrix::from_fn(um00.shape()[0], um00.shape()[1], |i, j| um00[[i, j]]),
         DMatrix::from_fn(um11.shape()[0], um11.shape()[1], |i, j| um11[[i, j]]),
         DMatrix::from_fn(um01.shape()[0], um01.shape()[1], |i, j| um01[[i, j]]),
-        DMatrix::from_fn(um10.shape()[0], um10.shape()[1], |i, j| um01[[i, j]]),
+        DMatrix::from_fn(um10.shape()[0], um10.shape()[1], |i, j| um10[[i, j]]),
     ]
 }
 
@@ -685,7 +683,7 @@ fn is_zero_matrix(mat: &DMatrix<Complex64>, atol: Option<f64>) -> bool {
 fn apply_a2(
     circ: &CircuitData,
     two_qubit_decomposer: &TwoQubitBasisDecomposer,
-) -> Result<CircuitData, QSDError> {
+) -> Result<CircuitData, CircuitDataError> {
     let ind2q: Vec<usize> = circ
         .data()
         .iter()
@@ -723,8 +721,7 @@ fn apply_a2(
                 circ.data().iter(),
                 [Qubit(0), Qubit(1)],
                 circ.qargs_interner(),
-            )
-            .map_err(|_| QSDError::CircuitConstructionFailed)?,
+            )?,
             None => new_matrices[&ind[0]].to_owned(),
         };
         let mat2 = match diagonal_rollover.get(&ind[1]) {
@@ -732,8 +729,7 @@ fn apply_a2(
                 circ.data().iter(),
                 [Qubit(0), Qubit(1)],
                 circ.qargs_interner(),
-            )
-            .map_err(|_| QSDError::CircuitConstructionFailed)?,
+            )?,
             None => new_matrices[&ind[1]].to_owned(),
         };
         let (diagonal_mat, qc2cx) = two_qubit_decompose_up_to_diagonal(mat1.view()).unwrap();
@@ -896,7 +892,7 @@ pub fn qs_decomposition(
     opt_a2: Option<bool>,
     one_qubit_decomposer_basis_string: Option<String>,
     two_qubit_decomposer: Option<&TwoQubitBasisDecomposer>,
-) -> PyResult<CircuitData> {
+) -> PyResult<PyCircuitData> {
     let array: ArrayView2<Complex64> = mat.as_array();
     let mat = DMatrix::from_fn(array.shape()[0], array.shape()[1], |i, j| array[[i, j]]);
     let mut one_qubit_decomposer_basis_set = EulerBasisSet::new();
@@ -909,15 +905,14 @@ pub fn qs_decomposition(
     } else {
         None
     };
-
-    quantum_shannon_decomposition(
+    let res = quantum_shannon_decomposition(
         &mat,
         opt_a1,
         opt_a2,
         one_qubit_decomposer,
         two_qubit_decomposer,
-    )
-    .map_err(PyErr::from)
+    )?;
+    Ok(res.into())
 }
 
 pub fn qsd_mod(m: &Bound<PyModule>) -> PyResult<()> {

@@ -19,6 +19,7 @@
 // Ideally, serialization is done by packing in a binrw-enhanced struct and using the
 // `write` method into a `Cursor` buffer, but there might be exceptions.
 
+use binrw::Endian::Little;
 use hashbrown::HashMap;
 use num_bigint::BigUint;
 use num_complex::Complex64;
@@ -31,11 +32,15 @@ use pyo3::types::{IntoPyDict, PyAny, PyBytes, PyDict, PyList, PyString, PyTuple,
 use qiskit_circuit::bit::{
     ClassicalRegister, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
-use qiskit_circuit::circuit_data::{CircuitData, CircuitStretchType, CircuitVarType};
+use qiskit_circuit::circuit_data::{
+    CircuitData, CircuitStretchType, CircuitVarType, PyCircuitData,
+};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::interner::Interned;
 use qiskit_circuit::operations::ArrayType;
+use qiskit_circuit::operations::PauliBased;
+use qiskit_circuit::operations::PauliProductRotation;
 use qiskit_circuit::operations::UnitaryGate;
 use qiskit_circuit::operations::{
     BoxDuration, CaseSpecifier, Condition, StandardInstructionType, SwitchTarget,
@@ -65,7 +70,8 @@ use crate::formats::QPYCircuitV17;
 use crate::params::generic_value_to_param;
 use crate::py_methods::py_convert_from_generic_value;
 use crate::py_methods::{
-    PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME, UNITARY_GATE_CLASS_NAME, get_python_gate_class,
+    PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME, PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME,
+    UNITARY_GATE_CLASS_NAME, get_python_gate_class,
 };
 use crate::value::ParamRegisterValue;
 use crate::value::unpack_for_collection;
@@ -93,6 +99,7 @@ enum InstructionType {
     StandardGate,
     StandardInstruction,
     PauliProductMeasurement,
+    PauliProductRotation,
     Unitary,
     ControlFlow,
     // covers instruction types require resorting to python space
@@ -174,6 +181,8 @@ fn recognize_instruction_type(
     let name = instruction.gate_class_name.as_str();
     if name == PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME {
         InstructionType::PauliProductMeasurement
+    } else if name == PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME {
+        InstructionType::PauliProductRotation
     } else if name == UNITARY_GATE_CLASS_NAME {
         InstructionType::Unitary
     } else if ControlFlowType::from_str(name).is_ok() {
@@ -330,6 +339,9 @@ fn unpack_instruction(
         InstructionType::PauliProductMeasurement => {
             unpack_pauli_product_measurement(instruction, qpy_data)?
         }
+        InstructionType::PauliProductRotation => {
+            unpack_pauli_product_rotation(instruction, qpy_data)?
+        }
         InstructionType::Unitary => unpack_unitary(instruction, qpy_data)?,
         InstructionType::ControlFlow => unpack_control_flow(instruction, qpy_data)?,
         InstructionType::Custom => {
@@ -403,9 +415,34 @@ fn unpack_pauli_product_measurement(
     let neg = unpack_generic_value(&instruction.params[2], qpy_data)?
         .as_typed::<bool>()
         .unwrap();
-    let ppm = Box::new(PauliProductMeasurement { z, x, neg });
-    let op = PackedOperation::from_ppm(ppm);
+    let ppm = PauliProductMeasurement { z, x, neg };
+    let pbc = Box::new(PauliBased::PauliProductMeasurement(ppm));
+    let op = PackedOperation::from_pauli_based(pbc);
     let param_values = Vec::new(); // ppm has no "regular" params; the instruction params were used to reconstruct it
+    Ok((op, param_values))
+}
+
+fn unpack_pauli_product_rotation(
+    instruction: &formats::CircuitInstructionV2Pack,
+    qpy_data: &mut QPYReadData,
+) -> PyResult<(PackedOperation, Vec<GenericValue>)> {
+    if instruction.params.len() != 3 {
+        return Err(PyValueError::new_err(
+            "PauliProductRotation should have exactly 3 parameters",
+        ));
+    }
+    let z = unpack_generic_value(&instruction.params[0], qpy_data)?
+        .as_typed::<Vec<bool>>()
+        .unwrap();
+    let x = unpack_generic_value(&instruction.params[1], qpy_data)?
+        .as_typed::<Vec<bool>>()
+        .unwrap();
+    let angle_value = unpack_generic_value(&instruction.params[2], qpy_data)?;
+    let angle = generic_value_to_param(&angle_value, Little)?;
+    let rotation = PauliProductRotation { z, x, angle };
+    let pbc = Box::new(PauliBased::PauliProductRotation(rotation));
+    let op = PackedOperation::from_pauli_based(pbc);
+    let param_values = vec![angle_value];
     Ok((op, param_values))
 }
 
@@ -637,7 +674,7 @@ fn unpack_py_instruction(
                 for param in py_params {
                     args.push(param.unbind());
                 }
-                // in the case if IfElseOp with Null else body, retaining it would confuse the heuristic detemining
+                // in the case if IfElseOp with Null else body, retaining it would confuse the heuristic determining
                 // whether parameter are blocks or true params; we can simply dump it.
                 instruction_values.retain(|value| !matches!(value, GenericValue::Null));
                 gate_class.call1(PyTuple::new(py, args)?)?
@@ -877,7 +914,7 @@ fn deserialize_metadata(
 fn unpack_layout<'py>(
     py: Python<'py>,
     layout: &formats::LayoutV2Pack,
-    circuit_data: &CircuitData,
+    circuit_data: &PyCircuitData,
 ) -> PyResult<Option<Bound<'py, PyAny>>> {
     match layout.exists {
         0 => Ok(None),
@@ -888,7 +925,7 @@ fn unpack_layout<'py>(
 fn unpack_transpile_layout<'py>(
     py: Python<'py>,
     layout: &formats::LayoutV2Pack,
-    circuit_data: &CircuitData,
+    circuit_data: &PyCircuitData,
 ) -> PyResult<Bound<'py, PyAny>> {
     let mut initial_layout = py.None();
     let mut input_qubit_mapping = py.None();
@@ -1273,7 +1310,7 @@ fn add_registers_and_bits(
             }
         }
     }
-    // now add the bits to the ciruit, and then add the registers
+    // now add the bits to the circuit, and then add the registers
     for qubit in final_qubit_list {
         qpy_data.circuit_data.add_qubit(qubit, true)?;
     }
@@ -1301,10 +1338,10 @@ pub(crate) fn unpack_circuit(
 ) -> PyResult<Py<PyAny>> {
     let instruction_capacity = packed_circuit.instructions.len();
     // create an empty circuit; we'll fill data as we go along
-    let mut circuit_data =
-        CircuitData::with_capacity(0, 0, instruction_capacity, Param::Float(0.0))?;
+    let mut circuit_data: PyCircuitData =
+        CircuitData::with_capacity(0, 0, instruction_capacity, Param::Float(0.0))?.into();
     let mut qpy_data = QPYReadData {
-        circuit_data: &mut circuit_data,
+        circuit_data: &mut circuit_data.inner,
         version,
         use_symengine,
         standalone_vars: HashMap::new(),

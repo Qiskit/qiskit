@@ -10,11 +10,10 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=unused-variable
 
 """Multi controlled single-qubit unitary up to diagonal."""
 
-# ToDo: This code should be merged wth the implementation of MCGs
+# ToDo: This code should be merged with the implementation of MCGs
 # ToDo: (introducing a decomposition mode "up_to_diagonal").
 
 import numpy as np
@@ -110,7 +109,7 @@ class MCGupDiag(Gate):
         diag = np.ones(2 ** (self.num_controls + 1)).tolist()
         q = QuantumRegister(self.num_qubits, "q")
         circuit = QuantumCircuit(q, name="mcg_up_to_diagonal")
-        (q_target, q_controls, q_ancillas_zero, q_ancillas_dirty) = self._define_qubit_role(q)
+        (q_target, q_controls, _q_ancillas_zero, _q_ancillas_dirty) = self._define_qubit_role(q)
         # ToDo: Keep this threshold updated such that the lowest gate count is achieved:
         # ToDo: we implement the MCG with a UCGate up to diagonal if the number of controls is
         # ToDo: smaller than the threshold.

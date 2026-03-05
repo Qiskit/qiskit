@@ -118,7 +118,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding H gate equivalence");
+    .expect("Error while adding H gate equivalence");
 
     // HGate
     //
@@ -132,7 +132,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding H gate equivalence");
+    .expect("Error while adding H gate equivalence");
 
     // CHGate
     // q_0: ──■──     q_0: ─────────────────■─────────────────────
@@ -154,7 +154,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding CH gate equivalence");
+    .expect("Error while adding CH gate equivalence");
 
     // PhaseGate
     //
@@ -175,7 +175,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding Phase gate equivalence");
+    .expect("Error while adding Phase gate equivalence");
 
     // PhaseGate
     //
@@ -197,7 +197,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding Phase gate equivalence");
+    .expect("Error while adding Phase gate equivalence");
 
     // CPhaseGate
     //                      ┌────────┐
@@ -236,7 +236,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding CPhase gate equivalence");
+    .expect("Error while adding CPhase gate equivalence");
 
     // CPhaseGate
     //
@@ -254,7 +254,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding CPhase gate equivalence");
+    .expect("Error while adding CPhase gate equivalence");
 
     // CPhaseGate
     //
@@ -288,7 +288,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         Param::ParameterExpression(theta_div_4.clone()),
         &mut equiv,
     )
-    .expect("Error while addding CPhase gate equivalence");
+    .expect("Error while adding CPhase gate equivalence");
 
     // RGate
     //
@@ -322,7 +322,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding R gate equivalence");
+    .expect("Error while adding R gate equivalence");
 
     // IGate
     //    ┌───┐        ┌──────────┐
@@ -339,7 +339,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding I gate equivalence");
+    .expect("Error while adding I gate equivalence");
 
     // IGate
     //    ┌───┐        ┌───────┐
@@ -352,7 +352,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding I gate equivalence");
+    .expect("Error while adding I gate equivalence");
 
     // IGate
     //    ┌───┐        ┌───────┐
@@ -365,7 +365,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding I gate equivalence");
+    .expect("Error while adding I gate equivalence");
 
     // IGate
     //    ┌───┐        ┌───────┐
@@ -378,7 +378,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding I gate equivalence");
+    .expect("Error while adding I gate equivalence");
 
     // RCCXGate
     //
@@ -406,7 +406,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding RCCX gate equivalence");
+    .expect("Error while adding RCCX gate equivalence");
 
     // RXGate
     //
@@ -424,7 +424,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding RX gate equivalence");
+    .expect("Error while adding RX gate equivalence");
 
     // CRXGate
     //
@@ -461,7 +461,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding CRX gate equivalence");
+    .expect("Error while adding CRX gate equivalence");
 
     // CRXGate
     //
@@ -491,7 +491,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding CRX gate equivalence");
+    .expect("Error while adding CRX gate equivalence");
 
     // CRX in terms of one RXX
     //                          ┌───┐   ┌────────────┐┌───┐
@@ -519,7 +519,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding CRX gate equivalence");
+    .expect("Error while adding CRX gate equivalence");
 
     // CRX to CRZ
     //
@@ -542,7 +542,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding CRX gate equivalence");
+    .expect("Error while adding CRX gate equivalence");
 
     // RXXGate
     //
@@ -570,7 +570,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding RXX gate equivalence");
+    .expect("Error while adding RXX gate equivalence");
 
     // RXX to RZX
     //      ┌─────────┐        ┌───┐┌─────────┐┌───┐
@@ -593,7 +593,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding RXX gate equivalence");
+    .expect("Error while adding RXX gate equivalence");
 
     // RXX to RZX
     //      ┌─────────┐        ┌───┐            ┌───┐
@@ -618,7 +618,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding RXX gate equivalence");
+    .expect("Error while adding RXX gate equivalence");
 
     // RZXGate
     //
@@ -644,7 +644,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding RZX gate equivalence");
+    .expect("Error while adding RZX gate equivalence");
 
     // RZXGate to RZZGate
     //      ┌─────────┐
@@ -667,7 +667,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding RZX gate equivalence");
+    .expect("Error while adding RZX gate equivalence");
 
     // RYGate
     //
@@ -685,7 +685,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding RY gate equivalence");
+    .expect("Error while adding RY gate equivalence");
 
     // RYGate
     //
@@ -707,7 +707,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding RY gate equivalence");
+    .expect("Error while adding RY gate equivalence");
 
     // CRYGate
     //
@@ -735,7 +735,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding CRY gate equivalence");
+    .expect("Error while adding CRY gate equivalence");
 
     // CRY to CRZ
     //
@@ -758,7 +758,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding CRY gate equivalence");
+    .expect("Error while adding CRY gate equivalence");
 
     // CRY to CRZ
     //
@@ -783,7 +783,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding CRY gate equivalence");
+    .expect("Error while adding CRY gate equivalence");
 
     // CRY to RZZ
     //
@@ -813,7 +813,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding CRY gate equivalence");
+    .expect("Error while adding CRY gate equivalence");
 
     // RYYGate
     //
@@ -841,7 +841,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding RYY gate equivalence");
+    .expect("Error while adding RYY gate equivalence");
 
     // RYYGate
     //
@@ -869,7 +869,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding RYY gate equivalence");
+    .expect("Error while adding RYY gate equivalence");
 
     // RYY to RZZ
     //
@@ -895,7 +895,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding RYY gate equivalence");
+    .expect("Error while adding RYY gate equivalence");
 
     // RYY to RXX
     //
@@ -921,7 +921,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding RYY gate equivalence");
+    .expect("Error while adding RYY gate equivalence");
 
     // RZGate
     //                  global phase: -ϴ/2
@@ -939,7 +939,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         Param::ParameterExpression(neg_theta_div_2.clone()),
         &mut equiv,
     )
-    .expect("Error while addding RZ gate equivalence");
+    .expect("Error while adding RZ gate equivalence");
 
     // RZGate to RY
     //
@@ -962,7 +962,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding RZ gate equivalence");
+    .expect("Error while adding RZ gate equivalence");
 
     // RZGate to RX
     //
@@ -984,7 +984,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding RZ gate equivalence");
+    .expect("Error while adding RZ gate equivalence");
 
     // CRZGate
     //
@@ -1012,7 +1012,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding CRZ gate equivalence");
+    .expect("Error while adding CRZ gate equivalence");
 
     // CRZ to CRY
     //
@@ -1035,7 +1035,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding CRZ gate equivalence");
+    .expect("Error while adding CRZ gate equivalence");
 
     // CRZ to CRX
     //
@@ -1058,7 +1058,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding CRZ gate equivalence");
+    .expect("Error while adding CRZ gate equivalence");
 
     // CRZ to RZZ
     //
@@ -1084,7 +1084,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding CRZ gate equivalence");
+    .expect("Error while adding CRZ gate equivalence");
 
     // RZZGate
     //
@@ -1107,7 +1107,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding RZZ gate equivalence");
+    .expect("Error while adding RZZ gate equivalence");
 
     // RZZ to RXX
     //                      ┌───┐┌─────────────┐┌───┐
@@ -1132,7 +1132,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding RZZ gate equivalence");
+    .expect("Error while adding RZZ gate equivalence");
 
     // RZZ to RZX
     //                          ┌─────────┐
@@ -1155,7 +1155,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding RZZ gate equivalence");
+    .expect("Error while adding RZZ gate equivalence");
 
     // RZZ to CPhase
     //
@@ -1189,7 +1189,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         Param::ParameterExpression(theta_div_2.clone()),
         &mut equiv,
     )
-    .expect("Error while addding RZZ gate equivalence");
+    .expect("Error while adding RZZ gate equivalence");
 
     // RZZ to RYY
     //
@@ -1215,7 +1215,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding RZZ gate equivalence");
+    .expect("Error while adding RZZ gate equivalence");
 
     // RZXGate
     //
@@ -1241,7 +1241,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding RZX gate equivalence");
+    .expect("Error while adding RZX gate equivalence");
 
     // ECRGate
     //
@@ -1269,7 +1269,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding ECR gate equivalence");
+    .expect("Error while adding ECR gate equivalence");
 
     // ECRGate decomposed to Clifford gates (up to a global phase)
     //
@@ -1291,7 +1291,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         -PI / 4.0,
         &mut equiv,
     )
-    .expect("Error while addding ECR gate equivalence");
+    .expect("Error while adding ECR gate equivalence");
 
     // CXGate decomposed using an ECRGate and Clifford 1-qubit gates
     //                global phase: π/4
@@ -1312,7 +1312,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         PI / 4.0,
         &mut equiv,
     )
-    .expect("Error while addding CX gate equivalence");
+    .expect("Error while adding CX gate equivalence");
 
     // SGate
     //
@@ -1326,7 +1326,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding S gate equivalence");
+    .expect("Error while adding S gate equivalence");
 
     // SGate
     //
@@ -1343,7 +1343,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding S gate equivalence");
+    .expect("Error while adding S gate equivalence");
 
     // SdgGate
     //
@@ -1357,7 +1357,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding Sdg gate equivalence");
+    .expect("Error while adding Sdg gate equivalence");
 
     // SdgGate
     //
@@ -1374,7 +1374,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding Sdg gate equivalence");
+    .expect("Error while adding Sdg gate equivalence");
 
     // SdgGate
     //
@@ -1391,7 +1391,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding Sdg gate equivalence");
+    .expect("Error while adding Sdg gate equivalence");
 
     // SdgGate
     //
@@ -1409,7 +1409,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding Sdg gate equivalence");
+    .expect("Error while adding Sdg gate equivalence");
 
     // SdgGate
     //
@@ -1426,7 +1426,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding SDG gate equivalence");
+    .expect("Error while adding SDG gate equivalence");
 
     // CSGate
     //
@@ -1448,7 +1448,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding CS gate equivalence");
+    .expect("Error while adding CS gate equivalence");
 
     // CSGate
     //
@@ -1467,7 +1467,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding CS gate equivalence");
+    .expect("Error while adding CS gate equivalence");
 
     // CSdgGate
     //
@@ -1489,7 +1489,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding CSDG gate equivalence");
+    .expect("Error while adding CSDG gate equivalence");
 
     // CSdgGate
     //
@@ -1509,7 +1509,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding CSDG gate equivalence");
+    .expect("Error while adding CSDG gate equivalence");
 
     // SwapGate
     //                        ┌───┐
@@ -1528,7 +1528,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding SWAP gate equivalence");
+    .expect("Error while adding SWAP gate equivalence");
 
     // SwapGate
     //
@@ -1559,7 +1559,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding SWAP gate equivalence");
+    .expect("Error while adding SWAP gate equivalence");
 
     // SwapGate
     //
@@ -1590,7 +1590,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         -PI / 2.0,
         &mut equiv,
     )
-    .expect("Error while addding Swap gate equivalence");
+    .expect("Error while adding Swap gate equivalence");
 
     // iSwapGate
     //
@@ -1613,7 +1613,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding ISWAP gate equivalence");
+    .expect("Error while adding ISWAP gate equivalence");
 
     // SXGate
     //               global phase: π/4
@@ -1631,7 +1631,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         PI / 4.0,
         &mut equiv,
     )
-    .expect("Error while addding SX gate equivalence");
+    .expect("Error while adding SX gate equivalence");
 
     // HGate decomposed into SXGate and SGate
     //              global phase: -π/4
@@ -1649,7 +1649,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         -PI / 4.0,
         &mut equiv,
     )
-    .expect("Error while addding H gate equivalence");
+    .expect("Error while adding H gate equivalence");
 
     // SXGate
     //               global phase: π/4
@@ -1663,7 +1663,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         PI / 4.0,
         &mut equiv,
     )
-    .expect("Error while addding SX gate equivalence");
+    .expect("Error while adding SX gate equivalence");
 
     // SXdgGate
     //                 global phase: 7π/4
@@ -1681,7 +1681,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         -PI / 4.0,
         &mut equiv,
     )
-    .expect("Error while addding SXDG gate equivalence");
+    .expect("Error while adding SXDG gate equivalence");
 
     // HGate decomposed into SXdgGate and SdgGate
     //              global phase: π/4
@@ -1699,7 +1699,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         PI / 4.0,
         &mut equiv,
     )
-    .expect("Error while addding H gate equivalence");
+    .expect("Error while adding H gate equivalence");
 
     // SXdgGate
     //                 global phase: 7π/4
@@ -1713,7 +1713,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         -PI / 4.0,
         &mut equiv,
     )
-    .expect("Error while addding SXDG gate equivalence");
+    .expect("Error while adding SXDG gate equivalence");
 
     // CSXGate
     //
@@ -1732,7 +1732,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding CSX gate equivalence");
+    .expect("Error while adding CSX gate equivalence");
 
     // CSXGate
     //                 global phase: π/4
@@ -1758,7 +1758,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         PI / 4.0,
         &mut equiv,
     )
-    .expect("Error while addding CSX gate equivalence");
+    .expect("Error while adding CSX gate equivalence");
 
     // DCXGate
     //
@@ -1777,7 +1777,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding DCX gate equivalence");
+    .expect("Error while adding DCX gate equivalence");
 
     // DCXGate
     //
@@ -1799,7 +1799,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding DCX gate equivalence");
+    .expect("Error while adding DCX gate equivalence");
 
     // CSwapGate
     //
@@ -1820,7 +1820,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding CSWAP gate equivalence");
+    .expect("Error while adding CSWAP gate equivalence");
 
     // TGate
     //
@@ -1834,7 +1834,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding T gate equivalence");
+    .expect("Error while adding T gate equivalence");
 
     // TGate
     //
@@ -1856,7 +1856,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding T gate equivalence");
+    .expect("Error while adding T gate equivalence");
 
     // TdgGate
     //
@@ -1870,7 +1870,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding TDG gate equivalence");
+    .expect("Error while adding TDG gate equivalence");
 
     // TdgGate
     //
@@ -1892,7 +1892,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding TDG gate equivalence");
+    .expect("Error while adding TDG gate equivalence");
 
     // UGate
     //
@@ -1921,7 +1921,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding U gate equivalence");
+    .expect("Error while adding U gate equivalence");
 
     // CUGate
     //                                  ┌──────┐    ┌──────────────┐     »
@@ -2003,7 +2003,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding CU gate equivalence");
+    .expect("Error while adding CU gate equivalence");
 
     // CUGate
     //                              ┌──────┐
@@ -2038,7 +2038,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding CU gate equivalence");
+    .expect("Error while adding CU gate equivalence");
 
     // U1Gate
     //
@@ -2060,7 +2060,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding U1 gate equivalence");
+    .expect("Error while adding U1 gate equivalence");
 
     // U1Gate
     //
@@ -2078,7 +2078,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding U1 gate equivalence");
+    .expect("Error while adding U1 gate equivalence");
 
     // U1Gate
     //                  global phase: θ/2
@@ -2096,7 +2096,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         Param::ParameterExpression(theta_div_2.clone()),
         &mut equiv,
     )
-    .expect("Error while addding U1 gate equivalence");
+    .expect("Error while adding U1 gate equivalence");
 
     // CU1Gate
     //                       ┌────────┐
@@ -2129,7 +2129,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding CU1 gate equivalence");
+    .expect("Error while adding CU1 gate equivalence");
 
     // U2Gate
     //
@@ -2154,7 +2154,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding U2 gate equivalence");
+    .expect("Error while adding U2 gate equivalence");
 
     // U2Gate
     //                    global phase: 7π/4
@@ -2185,7 +2185,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         7.0 * PI / 4.0,
         &mut equiv,
     )
-    .expect("Error while addding U2 gate equivalence");
+    .expect("Error while adding U2 gate equivalence");
 
     // U3Gate
     //                         global phase: λ/2 + ϕ/2 - π/2
@@ -2233,7 +2233,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         Param::ParameterExpression(lam_plus_phi_minus_pi_div_2.clone()),
         &mut equiv,
     )
-    .expect("Error while addding U3 gate equivalence");
+    .expect("Error while adding U3 gate equivalence");
 
     // U3Gate
     //
@@ -2259,7 +2259,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding U3 gate equivalence");
+    .expect("Error while adding U3 gate equivalence");
 
     // CU3Gate
     //                             ┌──────────────┐                                  »
@@ -2319,7 +2319,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding CU3 gate equivalence");
+    .expect("Error while adding CU3 gate equivalence");
 
     // CU3Gate
     //
@@ -2347,7 +2347,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding CU3 gate equivalence");
+    .expect("Error while adding CU3 gate equivalence");
 
     // XGate
     //
@@ -2365,7 +2365,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding X gate equivalence");
+    .expect("Error while adding X gate equivalence");
 
     // XGate
     //
@@ -2384,7 +2384,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding X gate equivalence");
+    .expect("Error while adding X gate equivalence");
 
     // XGate
     //                 global phase: π/2
@@ -2401,7 +2401,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         PI / 2.0,
         &mut equiv,
     )
-    .expect("Error while addding X gate equivalence");
+    .expect("Error while adding X gate equivalence");
 
     // CXGate
     //
@@ -2442,7 +2442,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
             let cx_to_rxx = cnot_rxx_decompose(pos_ry, pos_rxx).unwrap();
             equiv
                 .add_equivalence(&StandardGate::CX.into(), &[], cx_to_rxx)
-                .expect("Error while addding CX gate equivalence")
+                .expect("Error while adding CX gate equivalence")
         }
     }
 
@@ -2463,7 +2463,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding CX gate equivalence");
+    .expect("Error while adding CX gate equivalence");
 
     // CXGate
     //                global phase: 3π/4
@@ -2493,7 +2493,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         3.0 * PI / 4.0,
         &mut equiv,
     )
-    .expect("Error while addding CX gate equivalence");
+    .expect("Error while adding CX gate equivalence");
 
     // CXGate
     //                global phase: 7π/4
@@ -2514,7 +2514,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         -PI / 4.0,
         &mut equiv,
     )
-    .expect("Error while addding CX gate equivalence");
+    .expect("Error while adding CX gate equivalence");
 
     // CXGate
     // q_0: ──■──     q_0: ───────────────■───────────────────
@@ -2540,7 +2540,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding CX gate equivalence");
+    .expect("Error while adding CX gate equivalence");
 
     // CXGate
     //                     ┌────────────┐
@@ -2572,7 +2572,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding CX gate equivalence");
+    .expect("Error while adding CX gate equivalence");
 
     // CXGate
     //                global phase: π/4
@@ -2596,7 +2596,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         PI / 4.0,
         &mut equiv,
     )
-    .expect("Error while addding CX gate equivalence");
+    .expect("Error while adding CX gate equivalence");
 
     // CCXGate
     //                                                                       ┌───┐
@@ -2629,7 +2629,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding CCX gate equivalence");
+    .expect("Error while adding CCX gate equivalence");
 
     // CCXGate
     //
@@ -2655,7 +2655,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding CCX gate equivalence");
+    .expect("Error while adding CCX gate equivalence");
 
     // YGate
     //
@@ -2673,7 +2673,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding Y gate equivalence");
+    .expect("Error while adding Y gate equivalence");
 
     // YGate
     //              global phase: 3π/2
@@ -2694,7 +2694,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         3.0 * PI / 2.0,
         &mut equiv,
     )
-    .expect("Error while addding Y gate equivalence");
+    .expect("Error while adding Y gate equivalence");
 
     // YGate
     //              global phase: π/2
@@ -2715,7 +2715,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         PI / 2.0,
         &mut equiv,
     )
-    .expect("Error while addding Y gate equivalence");
+    .expect("Error while adding Y gate equivalence");
 
     // YGate
     //                 global phase: π/2
@@ -2732,7 +2732,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         PI / 2.0,
         &mut equiv,
     )
-    .expect("Error while addding Y gate equivalence");
+    .expect("Error while adding Y gate equivalence");
 
     // CYGate
     //
@@ -2751,7 +2751,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding CY gate equivalence");
+    .expect("Error while adding CY gate equivalence");
 
     // ZGate
     //
@@ -2765,7 +2765,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding Z gate equivalence");
+    .expect("Error while adding Z gate equivalence");
 
     // ZGate
     //
@@ -2782,7 +2782,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding Z gate equivalence");
+    .expect("Error while adding Z gate equivalence");
 
     // ZGate
     //                 global phase: π/2
@@ -2799,7 +2799,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         PI / 2.0,
         &mut equiv,
     )
-    .expect("Error while addding Z gate equivalence");
+    .expect("Error while adding Z gate equivalence");
 
     // CZGate
     //
@@ -2818,7 +2818,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding CZ gate equivalence");
+    .expect("Error while adding CZ gate equivalence");
 
     // CCZGate
     //
@@ -2839,7 +2839,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding CCZ gate equivalence");
+    .expect("Error while adding CCZ gate equivalence");
 
     // XGate
     //              global phase: π/2
@@ -2853,7 +2853,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         PI / 2.0,
         &mut equiv,
     )
-    .expect("Error while addding X gate equivalence");
+    .expect("Error while adding X gate equivalence");
 
     // YGate
     //              global phase: π/2
@@ -2867,7 +2867,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         PI / 2.0,
         &mut equiv,
     )
-    .expect("Error while addding Y gate equivalence");
+    .expect("Error while adding Y gate equivalence");
 
     // HGate
     //              global phase: π/2
@@ -2884,7 +2884,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         PI / 2.0,
         &mut equiv,
     )
-    .expect("Error while addding H gate equivalence");
+    .expect("Error while adding H gate equivalence");
 
     // HGate
     //              global phase: π/2
@@ -2905,7 +2905,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         PI / 2.0,
         &mut equiv,
     )
-    .expect("Error while addding H gate equivalence");
+    .expect("Error while adding H gate equivalence");
 
     // XXPlusYYGate
     // ┌───────────────┐
@@ -2963,7 +2963,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding XX_PLUS_YY gate equivalence");
+    .expect("Error while adding XX_PLUS_YY gate equivalence");
 
     // XXPlusYYGate
     // ┌───────────────┐
@@ -3007,7 +3007,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding XX_PLUS_YY gate equivalence");
+    .expect("Error while adding XX_PLUS_YY gate equivalence");
 
     // XXMinusYYGate
     // ┌───────────────┐
@@ -3061,7 +3061,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding XX_MINUS_YY gate equivalence");
+    .expect("Error while adding XX_MINUS_YY gate equivalence");
 
     // XXMinusYYGate
     // ┌───────────────┐
@@ -3105,7 +3105,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while addding XX_MINUS_YY gate equivalence");
+    .expect("Error while adding XX_MINUS_YY gate equivalence");
 
     equiv
 }

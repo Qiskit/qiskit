@@ -99,11 +99,10 @@ def pauli_twirl_2q_gates(
 
                 if twirling_gate is None:
                     custom_gates.append(gate)
+                elif twirling_gate in NAME_TO_CLASS.values():
+                    twirling_std_gate.append(twirling_gate)
                 else:
-                    if twirling_gate in NAME_TO_CLASS.values():
-                        twirling_std_gate.append(twirling_gate)
-                    else:
-                        custom_gates.append(gate)
+                    custom_gates.append(gate)
         if not custom_gates:
             custom_gates = None
         if not twirling_std_gate:
@@ -113,12 +112,11 @@ def pauli_twirl_2q_gates(
         if std_gate is None:
             twirling_std_gate = None
             custom_gates = [twirling_gate]
+        elif std_gate in NAME_TO_CLASS.values():
+            twirling_std_gate = [std_gate]
         else:
-            if std_gate in NAME_TO_CLASS.values():
-                twirling_std_gate = [std_gate]
-            else:
-                twirling_std_gate = None
-                custom_gates = [twirling_gate]
+            twirling_std_gate = None
+            custom_gates = [twirling_gate]
     else:
         twirling_std_gate = twirling_gate
     out_twirls = num_twirls
