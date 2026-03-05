@@ -21,10 +21,6 @@ notifications:
         - "`@levbishop`"
     "visualization":
         - "@enavarro51"
-    "^docs/":
-        - "@Eric-Arellano"
-        - "@abbycross"
-        - "@beckykd"
 always_notify: true
 
 # Set the headings in the GitHub Releases release notes.
