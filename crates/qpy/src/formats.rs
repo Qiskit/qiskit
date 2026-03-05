@@ -400,7 +400,7 @@ pub struct GenericDataPack {
     pub data: Bytes,
 }
 
-// A simple contained for a sequence of generic data items, containing its length.
+// A simple container for a sequence of generic data items, containing its length.
 #[binrw]
 #[derive(Debug)]
 #[brw(big)]

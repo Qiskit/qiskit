@@ -288,7 +288,12 @@ pub(crate) fn unpack_parameter_expression(
 ) -> PyResult<ParameterExpression> {
     // we begin by loading the symbol table data and hashing it according to each symbol's uuid
     let mut param_uuid_map: HashMap<[u8; 16], GenericValue> = HashMap::new(); // For QPY version >= 15
-    let mut param_name_map: HashMap<String, GenericValue> = HashMap::new(); // For QPY version <= 14
+    let mut param_name_map: HashMap<String, GenericValue> = if qpy_data.version < 15 {
+        HashMap::with_capacity(parameter_expression_pack.symbol_table_data.len())
+    } else {
+        HashMap::with_capacity(0)
+    };
+
     for item in &parameter_expression_pack.symbol_table_data {
         let (symbol_uuid, value, symbol_name) = match item {
             formats::ParameterExpressionSymbolPack::ParameterExpression(_) => {
@@ -323,7 +328,9 @@ pub(crate) fn unpack_parameter_expression(
             }
         };
         param_uuid_map.insert(symbol_uuid, value.clone());
-        param_name_map.insert(symbol_name, value.clone());
+        if qpy_data.version < 15 {
+            param_name_map.insert(symbol_name, value.clone());
+        }
     }
     let parameter_expression_data = deserialize_vec::<formats::ParameterExpressionElementPack>(
         &parameter_expression_pack.expression_data,

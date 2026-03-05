@@ -93,6 +93,7 @@ pub struct ScheduleBlockPack {
 }
 
 // The same an generic data pack, but without strict type keys, since calibrations had many more now obsolete
+// data fields which are never used we can just treat it as a fixed sized block of binary data.
 #[binread]
 #[binwrite]
 #[brw(big)]
@@ -105,11 +106,11 @@ pub struct GenericCalibrationDataPack {
     pub data: Bytes,
 }
 
-// A simple contained for a sequence of generic data items, containing its length.
+// A simple container for a sequence of generic data items, containing its length.
 #[binrw]
 #[derive(Debug)]
 #[brw(big)]
-pub struct GenericCalibratinoDataSequencePack {
+pub struct GenericCalibrationDataSequencePack {
     #[bw(calc = elements.len() as u64)]
     pub num_elements: u64,
     #[br(count = num_elements)]
@@ -122,7 +123,7 @@ pub struct GenericCalibratinoDataSequencePack {
 #[derive(Debug)]
 pub struct AlignmentContextPack {
     pub type_key: u8,
-    pub sequence: GenericCalibratinoDataSequencePack,
+    pub sequence: GenericCalibrationDataSequencePack,
 }
 
 // A single element in a schedule block
@@ -137,9 +138,9 @@ pub struct ScheduleBlockElementPack {
     #[br(if(element_type == b's'), args(version,))]
     pub nested_schedule: Option<ScheduleBlockPack>,
     #[br(if(element_type != b's'))]
-    pub operands: Option<GenericCalibratinoDataSequencePack>,
+    pub operands: Option<GenericCalibrationDataSequencePack>,
     #[br(if(element_type != b's'))]
-    pub name: Option<GenericCalibrationDataPack>,
+    pub name: Option<formats::GenericDataPack>,
 }
 
 // References in schedule blocks (version 7+)
@@ -171,7 +172,6 @@ pub struct ScheduleReferenceMapItem {
 }
 
 // handling for non control flow gates with conditionals
-
 pub fn wrap_conditional_gate(
     instruction: &formats::CircuitInstructionV2Pack,
     op: PackedOperation,
