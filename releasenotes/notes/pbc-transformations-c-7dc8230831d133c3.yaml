@@ -1,0 +1,5 @@
+---
+features_c:
+  - Added :c:func:`qk_transpiler_pass_standalone_litinski_transformation` to apply a Litinski
+    transformation to a ``QkCircuit`` in the C API. This is the equivalent of Python's
+    :class:`.LitinskiTransformation` pass.
