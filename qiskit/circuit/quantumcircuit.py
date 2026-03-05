@@ -172,6 +172,7 @@ class QuantumCircuit:
     :attr:`clbits`                 List of :class:`Clbit`\\ s tracked by the circuit.
     :attr:`data`                   List of individual :class:`CircuitInstruction`\\ s that make up
                                    the circuit.
+    :attr:`_data`                  Python-space handle to the C API :c:struct:`QkCircuit` object.
     :attr:`duration`               Total duration of the circuit, added by scheduling transpiler
                                    passes.
                                    This attribute is deprecated and :meth:`.estimate_duration`
@@ -208,9 +209,22 @@ class QuantumCircuit:
     :class:`CircuitInstruction`\\ s contained in an ordered form.  You generally should not mutate
     this object directly; :class:`QuantumCircuit` is only designed for append-only operations (which
     should use :meth:`append`).  Most operations that mutate circuits in place should be written as
-    transpiler passes (:mod:`qiskit.transpiler`).
+    transpiler passes (:mod:`qiskit.transpiler`).  The C API interacts with an internal object,
+    called :attr:`_data`, which is not part of the public Python API, other than as a handle to pass
+    to C-API calls.
 
     .. autoattribute:: data
+
+    .. py::attribute:: _data
+        An opaque handle to the C API object ``QkCircuit``.
+
+        .. warning::
+            No part of this object other than its existence is part of the public API.
+
+        The only valid use of this object from within the public Python API is as part of the
+        extraction of a :c:struct:`QkCircuit` using :c:func:`qk_circuit_borrow_from_python` or
+        similar methods.  The Python-space type of the object is not specified in the public API,
+        and none of its methods, regardless of name, should be considered public.
 
     Alongside the :attr:`data`, the :attr:`global_phase` of a circuit can have some impact on its
     output, if the circuit is used to describe a :class:`.Gate` that may be controlled.  This is
