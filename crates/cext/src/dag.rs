@@ -1830,7 +1830,7 @@ pub unsafe extern "C" fn qk_dag_borrow_from_python(
 ) -> *mut DAGCircuit {
     // SAFETY: per documentation, we are attached to a Python interpreter, and `ob` points to a
     // valid PyObject.
-    unsafe { crate::py::borrow(::pyo3::Python::assume_attached(), ob) }
+    unsafe { crate::py::borrow_mut(::pyo3::Python::assume_attached(), ob) }
 }
 
 /// @ingroup QkDag
@@ -1863,5 +1863,7 @@ pub unsafe extern "C" fn qk_dag_convert_from_python(
 ) -> ::std::ffi::c_int {
     // SAFETY: per documentation, we are attached to a Python interpreter, `object` is a valid
     // pointer to a PyObject, and `address` points to enough space to write a pointer.
-    unsafe { crate::py::convert::<DAGCircuit>(::pyo3::Python::assume_attached(), object, address) }
+    unsafe {
+        crate::py::convert_mut::<DAGCircuit>(::pyo3::Python::assume_attached(), object, address)
+    }
 }

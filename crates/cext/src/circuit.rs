@@ -1374,6 +1374,9 @@ pub unsafe extern "C" fn qk_opcounts_clear(op_counts: *mut OpCounts) {
 mod py {
     use crate::circuit::mut_ptr_as_ref;
     use pyo3::prelude::*;
+    use qiskit_circuit::bit::{
+        ClassicalRegister, PyClassicalRegister, PyQuantumRegister, QuantumRegister,
+    };
     use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 
     /// @ingroup QkCircuit
@@ -1479,7 +1482,7 @@ mod py {
         // SAFETY: per documentation, we are attached to a Python interpreter, and `ob` points to a
         // valid PyObject.
         unsafe {
-            crate::py::borrow_map::<PyCircuitData, CircuitData>(
+            crate::py::borrow_map_mut::<PyCircuitData, CircuitData>(
                 Python::assume_attached(),
                 ob,
                 // If in the future we change `PyCircuitData` to store an `Arc<RwLock>`, look at
@@ -1508,7 +1511,7 @@ mod py {
     ///
     /// @param object A borrowed Python object.
     /// @param address The location to write the output to.
-    /// @return 0 on success, 1 on failure.
+    /// @return 1 on success, 0 on failure.
     ///
     /// # Safety
     ///
@@ -1524,11 +1527,235 @@ mod py {
         // SAFETY: per documentation, we are attached to a Python interpreter, `object` is a valid
         // pointer to a PyObject, and `address` points to enough space to write a pointer.
         unsafe {
-            crate::py::convert_map::<PyCircuitData, CircuitData>(
+            crate::py::convert_map_mut::<PyCircuitData, CircuitData>(
                 Python::assume_attached(),
                 object,
                 address,
                 |_py, qc| Ok(&mut qc.inner),
+            )
+        }
+    }
+
+    /// @ingroup QkCircuit
+    /// Pass ownership of a `QkQuantumRegister` object to Python.
+    ///
+    /// It is not safe to use the `QkQuantumRegister` pointer after calling this function.  In
+    /// particular, you should not attempt to clear or free it.  The caller must own the
+    /// `QkQuantumRegister`, not hold a borrowed reference (for example, a `QkQuantumRegister *`
+    /// retrieved from `qk_quantum_register_borrow_from_python` is not owned).
+    ///
+    /// @param qr The owned object.
+    /// @return An owned Python reference to the object.
+    ///
+    /// # Safety
+    ///
+    /// The caller must be attached to a Python interpreter.  Behavior is undefined if `circuit` is not
+    /// a valid non-null pointer to an initialized and owned `QkQuantumRegister`.
+    #[unsafe(no_mangle)]
+    pub unsafe extern "C" fn qk_quantum_register_to_python(
+        qr: *mut QuantumRegister,
+    ) -> *mut ::pyo3::ffi::PyObject {
+        // SAFETY: per documentation, we are attached to a Python interpreter.
+        let py = unsafe { Python::assume_attached() };
+        // SAFETY: per documentation, `dag` points to owned and valid data.
+        let qreg = unsafe { Box::from_raw(mut_ptr_as_ref(qr)) };
+        match qreg.into_pyobject(py) {
+            Ok(ob) => ob.into_ptr(),
+            Err(e) => {
+                e.restore(py);
+                ::std::ptr::null_mut()
+            }
+        }
+    }
+
+    /// @ingroup QkCircuit
+    /// Retrieve a `QkQuantumRegister` pointer from a Python object.
+    ///
+    /// This borrows a Python reference and extracts the `QkQuantumRegister` pointer for it, if it
+    /// is of the correct type.  The returned pointer is borrowed from the `ob` pointer.  If the
+    /// ``PyObject`` is not the correct type, the return value is ``NULL`` and the exception
+    /// state of the Python interpreter is set.
+    ///
+    /// You must be attached to a Python interpreter to call this function.
+    ///
+    /// You can also use `qk_quantum_register_convert_from_python`, which is logically the exact
+    /// same as this function, but can be directly used as a "converter" function for the
+    /// `PyArg_Parse*` family of Python converter functions.
+    ///
+    /// @param ob A borrowed Python object.
+    /// @return A pointer to the native object, or `NULL` if the Python object is the wrong type.
+    ///
+    /// # Safety
+    ///
+    /// The caller must be attached to a Python interpreter.  Behavior is undefined if `ob` is
+    /// not a valid non-null pointer to a Python object.
+    #[unsafe(no_mangle)]
+    #[cfg(feature = "python_binding")]
+    pub unsafe extern "C" fn qk_quantum_register_borrow_from_python(
+        ob: *mut pyo3::ffi::PyObject,
+    ) -> *const QuantumRegister {
+        // SAFETY: per documentation, we are attached to a Python interpreter, and `ob` points to a
+        // valid PyObject.
+        unsafe {
+            crate::py::borrow_map::<PyQuantumRegister, QuantumRegister>(
+                Python::assume_attached(),
+                ob,
+                |_py, qr| Ok(qr),
+            )
+        }
+    }
+
+    /// @ingroup QkDag
+    /// Retrieve a `QkCircuit` pointer from a Python object.
+    ///
+    /// Note that the input to this function should _not_ be `QuantumCircuit`, but the output of
+    /// `QuantumCircuit._data`.  This is necessary to enforce correct reference-counting semantics.
+    ///
+    /// This borrows a Python reference and extracts the `QkCircuit` pointer for it into
+    /// ``address``, if it is of the correct type.  The returned pointer is borrowed from the
+    /// `object` pointer.  If the ``PyObject`` is not the correct type, the return value is 1, the
+    /// exception state of the Python interpreter is set, and ``address`` is unchanged.
+    ///
+    /// You must be attached to a Python interpreter to call this function.
+    ///
+    /// You can also use `qk_circuit_borrow_from_python`, which is logically the exact same as this,
+    /// but with a more natural signature for direct usage.
+    ///
+    /// @param object A borrowed Python object.
+    /// @param address The location to write the output to.
+    /// @return 1 on success, 0 on failure.
+    ///
+    /// # Safety
+    ///
+    /// The caller must be attached to a Python interpreter.  Behavior is undefined if `object`
+    /// is not a valid non-null pointer to a Python object, or if `address` is not a pointer to
+    /// writeable data of the correct type.
+    #[unsafe(no_mangle)]
+    #[cfg(feature = "python_binding")]
+    pub unsafe extern "C" fn qk_quantum_register_convert_from_python(
+        object: *mut ::pyo3::ffi::PyObject,
+        address: *mut ::std::ffi::c_void,
+    ) -> ::std::ffi::c_int {
+        // SAFETY: per documentation, we are attached to a Python interpreter, `object` is a valid
+        // pointer to a PyObject, and `address` points to enough space to write a pointer.
+        unsafe {
+            crate::py::convert_map::<PyQuantumRegister, QuantumRegister>(
+                Python::assume_attached(),
+                object,
+                address,
+                |_py, qr| Ok(qr),
+            )
+        }
+    }
+
+    /// @ingroup QkCircuit
+    /// Pass ownership of a `QkClassicalRegister` object to Python.
+    ///
+    /// It is not safe to use the `QkClassicalRegister` pointer after calling this function.  In
+    /// particular, you should not attempt to clear or free it.  The caller must own the
+    /// `QkClassicalRegister`, not hold a borrowed reference (for example, a `QkClassicalRegister *`
+    /// retrieved from `qk_classical_register_borrow_from_python` is not owned).
+    ///
+    /// @param cr The owned object.
+    /// @return An owned Python reference to the object.
+    ///
+    /// # Safety
+    ///
+    /// The caller must be attached to a Python interpreter.  Behavior is undefined if `circuit` is not
+    /// a valid non-null pointer to an initialized and owned `QkClassicalRegister`.
+    #[unsafe(no_mangle)]
+    pub unsafe extern "C" fn qk_classical_register_to_python(
+        cr: *mut ClassicalRegister,
+    ) -> *mut ::pyo3::ffi::PyObject {
+        // SAFETY: per documentation, we are attached to a Python interpreter.
+        let py = unsafe { Python::assume_attached() };
+        // SAFETY: per documentation, `dag` points to owned and valid data.
+        let cr = unsafe { Box::from_raw(mut_ptr_as_ref(cr)) };
+        match cr.into_pyobject(py) {
+            Ok(ob) => ob.into_ptr(),
+            Err(e) => {
+                e.restore(py);
+                ::std::ptr::null_mut()
+            }
+        }
+    }
+
+    /// @ingroup QkCircuit
+    /// Retrieve a `QkClassicalRegister` pointer from a Python object.
+    ///
+    /// This borrows a Python reference and extracts the `QkClassicalRegister` pointer for it, if it
+    /// is of the correct type.  The returned pointer is borrowed from the `ob` pointer.  If the
+    /// ``PyObject`` is not the correct type, the return value is ``NULL`` and the exception
+    /// state of the Python interpreter is set.
+    ///
+    /// You must be attached to a Python interpreter to call this function.
+    ///
+    /// You can also use `qk_classical_register_convert_from_python`, which is logically the exact
+    /// same as this function, but can be directly used as a "converter" function for the
+    /// `PyArg_Parse*` family of Python converter functions.
+    ///
+    /// @param ob A borrowed Python object.
+    /// @return A pointer to the native object, or `NULL` if the Python object is the wrong type.
+    ///
+    /// # Safety
+    ///
+    /// The caller must be attached to a Python interpreter.  Behavior is undefined if `ob` is
+    /// not a valid non-null pointer to a Python object.
+    #[unsafe(no_mangle)]
+    #[cfg(feature = "python_binding")]
+    pub unsafe extern "C" fn qk_classical_register_borrow_from_python(
+        ob: *mut pyo3::ffi::PyObject,
+    ) -> *const ClassicalRegister {
+        // SAFETY: per documentation, we are attached to a Python interpreter, and `ob` points to a
+        // valid PyObject.
+        unsafe {
+            crate::py::borrow_map::<PyClassicalRegister, ClassicalRegister>(
+                Python::assume_attached(),
+                ob,
+                |_py, cr| Ok(cr),
+            )
+        }
+    }
+
+    /// @ingroup QkDag
+    /// Retrieve a `QkCircuit` pointer from a Python object.
+    ///
+    /// Note that the input to this function should _not_ be `QuantumCircuit`, but the output of
+    /// `QuantumCircuit._data`.  This is necessary to enforce correct reference-counting semantics.
+    ///
+    /// This borrows a Python reference and extracts the `QkCircuit` pointer for it into
+    /// ``address``, if it is of the correct type.  The returned pointer is borrowed from the
+    /// `object` pointer.  If the ``PyObject`` is not the correct type, the return value is 1, the
+    /// exception state of the Python interpreter is set, and ``address`` is unchanged.
+    ///
+    /// You must be attached to a Python interpreter to call this function.
+    ///
+    /// You can also use `qk_circuit_borrow_from_python`, which is logically the exact same as this,
+    /// but with a more natural signature for direct usage.
+    ///
+    /// @param object A borrowed Python object.
+    /// @param address The location to write the output to.
+    /// @return 1 on success, 0 on failure.
+    ///
+    /// # Safety
+    ///
+    /// The caller must be attached to a Python interpreter.  Behavior is undefined if `object`
+    /// is not a valid non-null pointer to a Python object, or if `address` is not a pointer to
+    /// writeable data of the correct type.
+    #[unsafe(no_mangle)]
+    #[cfg(feature = "python_binding")]
+    pub unsafe extern "C" fn qk_classical_register_convert_from_python(
+        object: *mut ::pyo3::ffi::PyObject,
+        address: *mut ::std::ffi::c_void,
+    ) -> ::std::ffi::c_int {
+        // SAFETY: per documentation, we are attached to a Python interpreter, `object` is a valid
+        // pointer to a PyObject, and `address` points to enough space to write a pointer.
+        unsafe {
+            crate::py::convert_map::<PyClassicalRegister, ClassicalRegister>(
+                Python::assume_attached(),
+                object,
+                address,
+                |_py, cr| Ok(cr),
             )
         }
     }
