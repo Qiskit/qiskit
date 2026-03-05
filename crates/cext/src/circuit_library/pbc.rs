@@ -1,0 +1,146 @@
+// This code is part of Qiskit.
+//
+// (C) Copyright IBM 2026
+//
+// This code is licensed under the Apache License, Version 2.0. You may
+// obtain a copy of this license in the LICENSE.txt file in the root directory
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
+//
+// Any modifications or derivative works of this code must retain this
+// copyright notice, and modified files need to carry a notice indicating
+// that they have been altered from the originals.
+
+use crate::pointers::mut_ptr_as_ref;
+use qiskit_circuit::operations::Param;
+
+#[repr(C)]
+pub struct CPauliProductRotation {
+    pub x: *mut bool,      // pointer to an length-`len` array of X components
+    pub z: *mut bool,      // pointer to an length-`len` array of Z components
+    pub len: usize,        // the number of Pauli terms
+    pub angle: *mut Param, // the rotation angle
+}
+
+/// @ingroup QkPauliProductRotation
+/// Clear the internal data of Rust-allocated ``QkPauliProductRotation``.
+///
+/// This frees the memory of the ``x`` and ``z`` arrays and frees the ``angle``. This function
+/// should only be called for ``QkPauliProductRotation`` objects whose data has been populated by Rust.
+///
+/// # Example
+///
+/// ```c
+/// // let `circuit` be a QkCircuit* and `index` a size_t at the position of a QkPauliProductRotation
+/// QkPauliProductRotation inst;
+///
+/// // query the QkPauliProductRotation data
+/// assert(qk_circuit_operation_kind(circuit, index) == QkOperationKind_PauliRotation);
+/// qk_circuit_get_pauli_rotation(circuit, index, &inst);
+///
+/// // do something with `inst`, and then clear the Rust-allocated data
+/// qk_pauli_product_rotation_clear(&inst);
+/// ```
+///
+/// In contrast, this function should not be called if C already takes care of clearing the data.
+/// ```c
+/// bool x[4] = {false, true, true, false};
+/// bool z[4] = {false, false, true, true};
+/// QkParam *angle = qk_param_from_double(1.0);
+/// QkPauliProductRotation rotation = {x, z, 4, angle};
+///
+/// // since this data is allocated by C, we do not call `qk_pauli_product_rotation_clear(&rotation)`!
+/// ```
+///
+/// @param inst A pointer to the ``QkPauliProductRotation`` to clear.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``inst`` is not a valid, non-null pointer to a ``QkPauliProductRotation``,
+/// or if the internal data of ``QkPauliProductRotation`` is incoherent.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_pauli_product_rotation_clear(inst: *mut CPauliProductRotation) {
+    // SAFETY: The user guarantees `inst` is a valid, non-null pointer to a [CPauliProductRotation].
+    let inst = unsafe { mut_ptr_as_ref(inst) };
+
+    // SAFETY: The user guarantees the instruction is coherent, i.e. the Z and X arrays are
+    // readable for the correct length and `angle` is a valid, non-null Param pointer.
+    unsafe {
+        let x = ::std::slice::from_raw_parts_mut(inst.x, inst.len);
+        let _: Box<[bool]> = Box::from_raw(x as *mut [bool]);
+
+        let z = ::std::slice::from_raw_parts_mut(inst.z, inst.len);
+        let _: Box<[bool]> = Box::from_raw(z as *mut [bool]);
+
+        let _ = Box::from_raw(inst.angle);
+    }
+
+    inst.x = ::std::ptr::null_mut();
+    inst.z = ::std::ptr::null_mut();
+    inst.len = 0;
+    inst.angle = ::std::ptr::null_mut();
+}
+
+#[repr(C)]
+pub struct CPauliProductMeasurement {
+    pub x: *mut bool,       // pointer to an length-`len` array of X components
+    pub z: *mut bool,       // pointer to an length-`len` array of Z components
+    pub len: usize,         // the number of Pauli terms
+    pub flip_outcome: bool, // whether the outcome has a minus sign
+}
+
+/// @ingroup QkPauliProductMeasurement
+/// Clear the internal data of Rust-allocated ``QkPauliProductMeasurement``.
+///
+/// This frees the memory of the ``x`` and ``z`` arrays. This function should only be called for
+/// ``QkPauliProductMeasurement`` objects whose data has been populated by Rust.
+///
+/// # Example
+///
+/// ```c
+/// // let `circuit` be a QkCircuit* and `index` a size_t at the position
+/// // of a QkPauliProductMeasurement
+/// QkPauliProductMeasurement inst;
+///
+/// // query the QkPauliProductMeasurement data
+/// assert(qk_circuit_operation_kind(circuit, index) == QkOperationKind_PauliRotation);
+/// qk_circuit_get_pauli_rotation(circuit, index, &inst);
+///
+/// // do something with `inst`, and then clear the Rust-allocated data
+/// qk_pauli_product_rotation_clear(&inst);
+/// ```
+///
+/// In contrast, this function should not be called if C already takes care of clearing the data.
+/// ```c
+/// bool x[4] = {false, true, true, false};
+/// bool z[4] = {false, false, true, true};
+/// QkPauliProductMeasurement inst = {x, z, 4, true};
+///
+/// // since this data is allocated by C, we do not call `qk_pauli_product_rotation_clear(&rotation)`!
+/// ```
+///
+/// @param inst A pointer to the ``QkPauliProductMeasurement`` to clear.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``inst`` is not a valid, non-null pointer to a ``QkPauliProductMeasurement``,
+/// or if the internal data of ``QkPauliProductMeasurement`` is incoherent.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_pauli_product_measurement_clear(inst: *mut CPauliProductMeasurement) {
+    // SAFETY: The user guarantees `inst` is a valid, non-null pointer to a [CPauliProductMeasurement].
+    let inst = unsafe { mut_ptr_as_ref(inst) };
+
+    // SAFETY: The user guarantees the instruction is coherent, i.e. the Z and X arrays are
+    // readable for the correct length and `angle` is a valid, non-null Param pointer.
+    unsafe {
+        let x = ::std::slice::from_raw_parts_mut(inst.x, inst.len);
+        let _: Box<[bool]> = Box::from_raw(x as *mut [bool]);
+
+        let z = ::std::slice::from_raw_parts_mut(inst.z, inst.len);
+        let _: Box<[bool]> = Box::from_raw(z as *mut [bool]);
+    }
+
+    inst.x = ::std::ptr::null_mut();
+    inst.z = ::std::ptr::null_mut();
+    inst.len = 0;
+    inst.flip_outcome = false;
+}

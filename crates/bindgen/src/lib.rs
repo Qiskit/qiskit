@@ -34,6 +34,8 @@ pub static EXPORT_RENAME: &[(&str, &str)] = &[
     ("CInstructionProperties", "InstructionProperties"),
     ("CNeighbors", "Neighbors"),
     ("COperationKind", "OperationKind"),
+    ("CPauliProductRotation", "PauliProductRotation"),
+    ("CPauliProductMeasurement", "PauliProductMeasurement"),
     ("CSparseTerm", "ObsTerm"),
     ("CTargetOp", "TargetOp"),
     ("CVarsMode", "VarsMode"),
