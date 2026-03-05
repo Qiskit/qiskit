@@ -44,7 +44,6 @@ static HANDLED_INSTRUCTION_NAMES: [&str; 4] = ["t", "tdg", "rz", "measure"];
 #[pyfunction]
 #[pyo3(signature = (dag, fix_clifford=true, insert_barrier=false, legacy_pauli_evolution=false))]
 pub fn run_litinski_transformation(
-    py: Python,
     dag: &DAGCircuit,
     fix_clifford: bool,
     insert_barrier: bool,
@@ -83,12 +82,6 @@ pub fn run_litinski_transformation(
 
     let new_dag = dag.copy_empty_like_with_same_capacity(VarsMode::Alike, BlocksMode::Keep)?;
     let mut new_dag = new_dag.into_builder();
-
-    let py_evo_cls = if legacy_pauli_evolution {
-        Some(PAULI_EVOLUTION_GATE.get_bound(py))
-    } else {
-        None
-    };
 
     let num_qubits = dag.num_qubits();
     let mut clifford = Clifford::identity(num_qubits);
@@ -260,16 +253,18 @@ pub fn run_litinski_transformation(
                             multiply_param(&angle, 0.5)
                         };
                         let obs = sparse_obs_from_zx(&z, &x);
-                        let py_evo = py_evo_cls
-                            .expect("py_evo_cls is defined in this path")
-                            .call1((obs, time.clone()))?;
-                        let py_gate = PyOperationTypes::Gate(PyInstruction {
-                            qubits: indices.len() as u32,
-                            clbits: 0,
-                            params: 1,
-                            op_name: "PauliEvolution".to_string(),
-                            instruction: py_evo.into(),
-                        });
+                        let py_gate = Python::attach(|py| -> PyResult<_> {
+                            let py_evo = PAULI_EVOLUTION_GATE
+                                .get_bound(py)
+                                .call1((obs, time.clone()))?;
+                            Ok(PyOperationTypes::Gate(PyInstruction {
+                                qubits: indices.len() as u32,
+                                clbits: 0,
+                                params: 1,
+                                op_name: "PauliEvolution".to_string(),
+                                instruction: py_evo.into(),
+                            }))
+                        })?;
                         (py_gate.into(), time)
                     } else {
                         let angle = if sign {
