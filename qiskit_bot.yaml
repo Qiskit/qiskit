@@ -21,13 +21,6 @@ notifications:
         - "`@levbishop`"
     "visualization":
         - "@enavarro51"
-<<<<<<< HEAD
-    "^docs/":
-        - "@Eric-Arellano"
-        - "@abbycross"
-        - "@beckykd"
-=======
->>>>>>> f30e93cd7 (Remove Abby and Becky from `/docs` qiskit-bot configuration (#15766))
 always_notify: true
 
 # Set the headings in the GitHub Releases release notes.
