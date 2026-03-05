@@ -23,10 +23,11 @@ use pyo3::types::{PyAny, PyDict};
 use qiskit_circuit::converters::QuantumCircuitData;
 
 use crate::bytes::Bytes;
+use crate::circuit_reader::unpack_circuit;
 use crate::circuit_writer::pack_circuit;
 use crate::formats;
 use crate::formats::{QPY17File, QPYFile};
-use crate::value::{SymbolicEncoding, ValueType, serialize};
+use crate::value::{SymbolicEncoding, ValueType, deserialize, serialize};
 
 // TODO: use env!("CARGO_PKG_VERSION")
 const QISKIT_VERSION: (u8, u8, u8) = (2, 4, 0); // TODO: placeholder; should be replaced with rust code reading VERSION.txt
@@ -92,6 +93,61 @@ pub fn py_dump_qpy(
     )?;
     file_obj.call_method1("write", (pyo3::types::PyBytes::new(py, &serialized_qpy),))?;
     Ok(())
+}
+
+pub fn load_qpy(
+    py: Python,
+    data: &Bytes,
+    metadata_deserializer: Option<&Bound<PyAny>>,
+    annotation_factories: &Bound<PyDict>,
+) -> PyResult<Vec<Py<PyAny>>> {
+    // Deserialize the QPY17File structure using BinRead
+    let (qpy_file, _) = deserialize::<QPYFile>(data)?;
+
+    // Verify the type key is for circuits
+    if qpy_file.type_key != ValueType::Circuit {
+        return Err(PyValueError::new_err(format!(
+            "Invalid payload format data kind '{}'",
+            qpy_file.type_key
+        )));
+    }
+    let use_symengine = matches!(qpy_file.symbolic_encoding, SymbolicEncoding::Symengine);
+    let mut circuits = Vec::with_capacity(qpy_file.circuits.len());
+    for packed_circuit in &qpy_file.circuits {
+        let circuit = unpack_circuit(
+            py,
+            packed_circuit,
+            qpy_file.qpy_version as u32,
+            metadata_deserializer,
+            use_symengine,
+            annotation_factories,
+        )?;
+        circuits.push(circuit);
+    }
+
+    Ok(circuits)
+}
+
+#[pyfunction]
+#[pyo3(name = "load")]
+#[pyo3(signature = (file_obj, metadata_deserializer, annotation_factories))]
+pub fn py_load_qpy(
+    py: Python,
+    file_obj: &Bound<PyAny>,
+    metadata_deserializer: Option<Bound<PyAny>>,
+    annotation_factories: Option<Bound<PyDict>>,
+) -> PyResult<Vec<Py<PyAny>>> {
+    let annotation_factories = annotation_factories.unwrap_or(PyDict::new(py));
+
+    // Read all data from file object
+    let data: Bytes = file_obj.call_method0("read")?.extract()?;
+
+    load_qpy(
+        py,
+        &data,
+        metadata_deserializer.as_ref(),
+        &annotation_factories,
+    )
 }
 
 impl TryFrom<QPYFile> for QPY17File {

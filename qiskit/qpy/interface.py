@@ -353,6 +353,9 @@ def load(
             f"The QPY format version being read, {version}, isn't supported by "
             "this Qiskit version. Please upgrade your version of Qiskit to load this QPY payload"
         )
+    use_rust = version >= common.QPY_RUST_MIN_VERSION
+    if use_rust:
+        return _qpy.load(file_obj, metadata_deserializer, annotation_factories)
 
     if version < 10:
         data = formats.FILE_HEADER._make(
@@ -368,8 +371,6 @@ def load(
                 file_obj.read(formats.FILE_HEADER_V10_SIZE),
             )
         )
-
-    use_rust = version >= common.QPY_RUST_MIN_VERSION
 
     config = user_config.get_config()
     min_qpy_version = config.get("min_qpy_version")

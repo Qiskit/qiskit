@@ -27,14 +27,11 @@ use std::marker::PhantomData;
 // Only QPY version 17 is currently supported
 
 /// The entire serialized QPY file with all its components
-#[binwrite]
+#[binrw]
 #[brw(big)]
 #[derive(Debug)]
 pub struct QPYFile {
-    #[br(magic = b"QISKIT")]
-    #[bw(calc = *b"QISKIT")]
-    #[br(temp)]
-    preface: [u8; 6],
+    #[brw(magic = b"QISKIT")]
     pub qpy_version: u8,
     pub qiskit_version: (u8, u8, u8),
     #[bw(calc = circuits.len() as u64)]
@@ -42,6 +39,11 @@ pub struct QPYFile {
     /// Symbolic encoding type (for parameter expressions)
     pub symbolic_encoding: SymbolicEncoding,
     pub type_key: ValueType,
+    #[br(temp)]
+    #[br(if(qpy_version <= 17))]
+    #[br(count = num_programs)]
+    #[bw(calc = Vec::new())]
+    _circuit_table: Vec<u64>,
     #[br(count = num_programs)]
     pub circuits: Vec<QPYCircuitV17>,
 }
@@ -54,9 +56,7 @@ pub struct QPYFile {
 #[derive(Debug)]
 pub struct QPY17File {
     #[br(magic = b"QISKIT")]
-    #[bw(calc = *b"QISKIT")]
-    #[br(temp)]
-    preface: [u8; 6],
+    #[bw(magic = b"QISKIT")]
     pub qpy_version: u8,
     pub qiskit_version: (u8, u8, u8),
     #[bw(calc = circuits.len() as u64)]
