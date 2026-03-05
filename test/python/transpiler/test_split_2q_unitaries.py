@@ -341,6 +341,10 @@ class TestSplit2QUnitaries(QiskitTestCase):
         res_op = Operator.from_circuit(res)
         expected_op = Operator(qc_split)
 
+        self.assertEqual(
+            res.count_ops()["unitary"], 2
+        )  # the original 2-qubit unitary should be split into 2 1-qubit unitaries.
+
         self.assertTrue(expected_op.equiv(res_op))
         self.assertTrue(matrix_equal(expected_op.data, res_op.data, ignore_phase=False))
 
