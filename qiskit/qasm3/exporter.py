@@ -848,7 +848,7 @@ class QASM3Builder:
             if defn.num_parameters > 0:
                 if defn.num_parameters != len(gate.params):
                     raise QASM3ExporterError(
-                        "parameter mismatch in definition of '{gate}':"
+                        f"parameter mismatch in definition of '{gate.name}':"
                         f" call has {len(gate.params)}, definition has {defn.num_parameters}"
                     )
                 params = [

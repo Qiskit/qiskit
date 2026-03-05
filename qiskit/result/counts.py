@@ -100,7 +100,7 @@ class Counts(dict):
                         self.int_raw = int_dict
             else:
                 raise TypeError(
-                    "Invalid input key type %s, must be either an int "
+                    f"Invalid input key type {type(first_key)}, must be either an int "
                     "key or string key with hexadecimal value or bit string"
                 )
         header = {}

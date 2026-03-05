@@ -627,7 +627,7 @@ def load(
     should be ASCII or UTF-8 encoded, and contain the OpenQASM 2 program.
 
     Args:
-        filename: The OpenQASM 2 program in a string.
+        filename: The path to the OpenQASM 2 file.
         include_path: order of directories to search when evaluating ``include`` statements.
         include_input_directory: Whether to add the directory of the input file to the
             ``include_path``, and if so, whether to *append* it to search last, or *prepend* it to

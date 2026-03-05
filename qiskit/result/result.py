@@ -108,7 +108,7 @@ class Result:
 
     @classmethod
     def from_dict(cls, data):
-        """Create a new ExperimentResultData object from a dictionary.
+        """Create a new :class:`~.Result` object from a dictionary.
 
         Args:
             data (dict): A dictionary representing the Result to create. It
