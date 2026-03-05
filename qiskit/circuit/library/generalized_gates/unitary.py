@@ -173,6 +173,8 @@ class UnitaryGate(Gate):
                 ):
                     self.definition = Isometry(self.to_matrix(), 0, 0).definition
 
+            # qs_decomposition may return a QiskitError when for example a rust algebra
+            # method fails (e.g., Schur decomposition)
             except QiskitError:
                 self.definition = Isometry(self.to_matrix(), 0, 0).definition
 
@@ -216,6 +218,8 @@ class UnitaryGate(Gate):
                 if not matrix_equal(Operator(cmat_def).to_matrix(), cmat, atol=1e-7):
                     self.definition = Isometry(cmat, 0, 0).definition
 
+            # qs_decomposition may return a QiskitError when for example a rust algebra
+            # method fails (e.g., Schur decomposition)
             except QiskitError:
                 self.definition = Isometry(cmat, 0, 0).definition
 
