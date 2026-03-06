@@ -26,7 +26,9 @@ use qiskit_transpiler::transpiler::{
     translation_stage,
 };
 
+use crate::exit_codes::CInputError;
 use crate::exit_codes::ExitCode;
+use crate::pointers::check_ptr;
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 
 /// The container result object from ``qk_transpile``
@@ -51,9 +53,36 @@ pub struct TranspileResult {
 /// When transpiling correctly, each individual stage writes specific attributes
 /// to this container that will be needed by other stages in sequence. If the container
 /// is not initialized, each stage will initialize a new object when necessary.
+#[derive(Default)]
 pub struct TranspileState {
     /// Metadata about the initial and final virtual-to-physical layouts.
     pub layout: Option<TranspileLayout>,
+}
+
+/// @ingroup QkTranspileState
+/// Create a pointer to an empty ``QkTranspileState`` object
+///
+/// @param state a pointer to the allocated memory space to store the
+///     pointer in.
+///
+///
+/// # Safety
+///
+/// Behavior is undefined if ``state`` is not a valid pointer allocated.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_transpile_state_new(state: *mut *mut TranspileState) {
+    match check_ptr(state) {
+        Ok(_) => (),
+        Err(CInputError::AlignmentError) => {
+            panic!("Tried referring to a QkTranspileState in an unaligned pointer.")
+        }
+        _ => unreachable!(),
+    }
+    let transpile_state = TranspileState::default();
+    unsafe {
+        // SAFETY: We have verified
+        state.write(Box::into_raw(Box::new(transpile_state)));
+    };
 }
 
 /// @ingroup QkTranspileState
@@ -126,7 +155,7 @@ pub unsafe extern "C" fn qk_transpile_state_layout_set(
 ) {
     // SAFETY: As per documentation, the pointer should be non-null and aligned.
     let borrowed_state = unsafe { mut_ptr_as_ref(state) };
-    if layout.is_null() {
+    if !layout.is_null() {
         // SAFETY: As per documentation, the pointer should be aligned.
         unsafe {
             borrowed_state.layout.replace(*Box::from_raw(layout));
@@ -464,7 +493,7 @@ pub unsafe extern "C" fn qk_transpile_stage_routing(
 ///   If the transpiler fails a pointer to the string with the error description will be written
 ///   to this pointer. That pointer needs to be freed with ``qk_str_free``. This can be a null
 ///   pointer in which case the error will not be written out.
-/// @param layout A pointer to a ``QkTranspileLayout`` object. Typically you will need
+/// @param state A pointer to a ``QkTranspileState`` object contiaining the layout. Typically you will need
 ///   to run the `qk_transpile_stage_layout` prior to this function and that will provide a
 ///   `QkTranspileLayout` object with the initial layout set you want to take that output layout from
 ///   that function and use this as the input for this. If you don't have a layout object (e.g. you ran
@@ -488,12 +517,16 @@ pub unsafe extern "C" fn qk_transpile_stage_optimization(
     target: *const Target,
     options: *const TranspileOptions,
     error: *mut *mut c_char,
-    layout: *mut TranspileLayout,
+    state: *mut TranspileState,
 ) -> ExitCode {
     // SAFETY: Per documentation, the pointers are non-null and aligned.
     let dag = unsafe { mut_ptr_as_ref(dag) };
     let target = unsafe { const_ptr_as_ref(target) };
-    let layout = unsafe { mut_ptr_as_ref(layout) };
+    let state = unsafe { mut_ptr_as_ref(state) };
+    let layout = state
+        .layout
+        .as_mut()
+        .expect("A layout must exist if running optimization stage.");
     let options = if options.is_null() {
         &TranspileOptions::default()
     } else {

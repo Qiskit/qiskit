@@ -424,9 +424,13 @@ int test_optimization_stage_empty(void) {
     for (uint32_t i = 0; i < 2048; i++) {
         layout_mapping[2047 - i] = i;
     };
+    // Do not free the layout, State will gain ownership of it.
     QkTranspileLayout *layout =
         qk_transpile_layout_generate_from_mapping(dag, target, layout_mapping);
-    int compile_result = qk_transpile_stage_optimization(dag, target, NULL, NULL, layout);
+    QkTranspileState **state = malloc(sizeof(QkTranspileState *));
+    qk_transpile_state_new(state);
+    qk_transpile_state_layout_set(*state, layout);
+    int compile_result = qk_transpile_stage_optimization(dag, target, NULL, NULL, *state);
     if (compile_result != 0) {
         result = EqualityError;
         printf("Running the optimization stage failed\n");
@@ -439,7 +443,8 @@ int test_optimization_stage_empty(void) {
     }
 cleanup:
     free(layout_mapping);
-    qk_transpile_layout_free(layout);
+    qk_transpile_state_free(*state);
+    free(state);
     qk_target_free(target);
     qk_dag_free(dag);
     return result;
