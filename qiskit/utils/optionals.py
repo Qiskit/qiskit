@@ -58,12 +58,8 @@ External Python Libraries
 
     The `IBM CPLEX Optimizer <https://www.ibm.com/analytics/cplex-optimizer>`__ is a
     high-performance mathematical programming solver for linear, mixed-integer and quadratic
-<<<<<<< HEAD
-    programming. This is no longer by Qiskit, but it weas historically and the optional
-=======
     programming. This is no longer used by Qiskit, but it was historically and the optional
->>>>>>> 019a0a6bf (Fix typos in `qiskit.utils`, `qiskit.synth`, and `qiskit.visualization` (#15771))
-    remains for backwards compatibility.
+   remains for backwards compatibility.
 
 .. py:data:: HAS_CVXPY
 
@@ -74,13 +70,8 @@ External Python Libraries
 .. py:data:: HAS_DOCPLEX
 
     `IBM Decision Optimization CPLEX Modelling
-<<<<<<< HEAD
-    <http://ibmdecisionoptimization.github.io/docplex-doc/>`__ is a library for prescriptive
-    analysis.  Like CPLEX, this is no longer by Qiskit, but it weas historically and the
-=======
     <https://ibmdecisionoptimization.github.io/docplex-doc/>`__ is a library for prescriptive
     analysis.  Like CPLEX, this is no longer used by Qiskit, but it was historically and the
->>>>>>> 019a0a6bf (Fix typos in `qiskit.utils`, `qiskit.synth`, and `qiskit.visualization` (#15771))
     optional remains for backwards compatibility.
 
 .. py:data:: HAS_FIXTURES
