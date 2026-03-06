@@ -61,9 +61,7 @@ impl From<QSDError> for PyErr {
             QSDError::SchurDecompositionFailed => {
                 QiskitError::new_err("Schur decomposition failed")
             }
-            QSDError::ErrorFromCircuitData(_) => {
-                QiskitError::new_err("circuit construction failed")
-            }
+            QSDError::ErrorFromCircuitData(err) => err.into(),
 
             QSDError::ErrorFromPython(err) => err,
         }
