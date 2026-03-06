@@ -430,7 +430,7 @@ impl PackedOperation {
             }
             PackedOperationType::Native => {
                 let native: &CustomOp = self.try_into().unwrap();
-                OperationRef::CustomOperation(native.view())
+                OperationRef::CustomOperation(&**native)
             }
         }
     }
@@ -775,7 +775,7 @@ impl PackedInstruction {
         O: CustomOperation,
     {
         let operation = CustomOp::from(operation);
-        let label = operation.view().label().map(ToString::to_string);
+        let label = operation.label().map(ToString::to_string);
         Self {
             op: operation.into(),
             qubits,

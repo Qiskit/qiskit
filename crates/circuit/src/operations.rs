@@ -15,6 +15,7 @@ use std::any::{Any, TypeId};
 use std::f64::consts::PI;
 use std::fmt::Debug;
 use std::num::NonZero;
+use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
 use std::sync::Arc;
 use std::{fmt, vec};
@@ -3556,68 +3557,38 @@ impl dyn CustomOperation + 'static {
 /// Internal representation of a custom operation within a Circuit.
 #[derive(Debug)]
 #[repr(align(8))]
-pub struct CustomOp {
-    op: Box<dyn CustomOperation>,
-}
+pub struct CustomOp(Box<dyn CustomOperation>);
 
-impl CustomOp {
-    /// Returns an immutable view referencing the type of Operation this type is.
-    pub fn view(&self) -> &dyn CustomOperation {
-        self.op.as_ref()
-    }
+impl Deref for CustomOp {
+    type Target = dyn CustomOperation;
 
-    /// Returns the kind of Operation associated with this type.
-    pub fn kind(&self) -> CustomOperationKind {
-        self.op.kind()
-    }
-
-    /// Casts a NativeOperation to its original type if the correct
-    /// type is specified.
-    pub fn downcast_ref<T: CustomOperation>(&self) -> Option<&T> {
-        self.op.downcast_ref()
+    fn deref(&self) -> &Self::Target {
+        self.0.as_ref()
     }
 }
 
-impl Operation for CustomOp {
-    fn name(&self) -> &str {
-        self.op.name()
-    }
-
-    fn num_qubits(&self) -> u32 {
-        self.op.num_qubits()
-    }
-
-    fn num_clbits(&self) -> u32 {
-        self.op.num_clbits()
-    }
-
-    fn num_params(&self) -> u32 {
-        self.op.num_params()
-    }
-
-    fn directive(&self) -> bool {
-        self.op.directive()
+impl DerefMut for CustomOp {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.0.as_mut()
     }
 }
 
 impl Clone for CustomOp {
     fn clone(&self) -> Self {
-        Self {
-            op: self.op.clone_dyn(),
-        }
+        Self(self.0.clone_dyn())
     }
 }
 
 impl<T: CustomOperation> From<T> for CustomOp {
     fn from(value: T) -> Self {
         let op = Box::new(value);
-        Self { op }
+        Self(op)
     }
 }
 
 impl From<Box<dyn CustomOperation>> for CustomOp {
     fn from(value: Box<dyn CustomOperation>) -> Self {
-        Self { op: value }
+        Self(value)
     }
 }
 
