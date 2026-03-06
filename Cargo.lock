@@ -2056,8 +2056,11 @@ name = "qiskit-bindgen-c"
 version = "2.4.0-dev"
 dependencies = [
  "anyhow",
+ "cbindgen",
  "clap",
+ "indexmap",
  "qiskit-bindgen",
+ "qiskit-cext-vtable",
 ]
 
 [[package]]

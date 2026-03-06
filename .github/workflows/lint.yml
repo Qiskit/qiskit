@@ -32,4 +32,5 @@ jobs:
         run: |
           set -e
           make cformat
+          tools/check_slots.bash
           tox -e lint
