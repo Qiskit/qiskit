@@ -74,7 +74,7 @@ def circuit_drawer(
     cregbundle: bool | None = None,
     wire_order: list[int] | None = None,
     expr_len: int = 30,
-    barrier_label_len: int = 30,
+    barrier_label_len: int = 16,
     measure_arrows: bool | None = None,
 ):
     r"""Draw the quantum circuit. Use the output parameter to choose the drawing format:
@@ -403,7 +403,7 @@ def _text_circuit_drawer(
     encoding=None,
     wire_order=None,
     expr_len=30,
-    barrier_label_len=30,
+    barrier_label_len=16,
     measure_arrows=True,
 ):
     """Draws a circuit using ascii art.
@@ -501,7 +501,7 @@ def _latex_circuit_drawer(
     initial_state=False,
     cregbundle=None,
     wire_order=None,
-    barrier_label_len=30,
+    barrier_label_len=16,
 ):
     """Draw a quantum circuit based on latex (Qcircuit package)
 
@@ -625,7 +625,7 @@ def _generate_latex_source(
     initial_state=False,
     cregbundle=None,
     wire_order=None,
-    barrier_label_len=30,
+    barrier_label_len=16,
 ):
     """Convert QuantumCircuit to LaTeX string.
 
@@ -705,7 +705,7 @@ def _matplotlib_circuit_drawer(
     cregbundle=None,
     wire_order=None,
     expr_len=30,
-    barrier_label_len=30,
+    barrier_label_len=16,
     measure_arrows=None,
 ):
     """Draw a quantum circuit based on matplotlib.

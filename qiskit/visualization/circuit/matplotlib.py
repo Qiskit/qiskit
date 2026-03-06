@@ -109,7 +109,7 @@ class MatplotlibDrawer:
         cregbundle=None,
         with_layout=False,
         expr_len=30,
-        barrier_label_len=30,
+        barrier_label_len=16,
         measure_arrows=None,
     ):
         self._circuit = circuit

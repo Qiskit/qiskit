@@ -3859,7 +3859,7 @@ class QuantumCircuit:
         cregbundle: bool | None = None,
         wire_order: list[int] | None = None,
         expr_len: int = 30,
-        barrier_label_len: int = 30,
+        barrier_label_len: int = 16,
         measure_arrows: bool | None = None,
     ):
         r"""Draw the quantum circuit. Use the output parameter to choose the drawing format:

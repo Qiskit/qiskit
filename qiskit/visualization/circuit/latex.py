@@ -63,7 +63,7 @@ class QCircuitImage:
         cregbundle=None,
         with_layout=False,
         circuit=None,
-        barrier_label_len=30,
+        barrier_label_len=16,
     ):
         """QCircuitImage initializer.
 
