@@ -240,7 +240,7 @@ class MultiBox(DrawElement):
         """In multi-bit elements, the label is centered vertically.
 
         Args:
-            input_length (int): Rhe amount of wires affected.
+            input_length (int): The amount of wires affected.
             order (int): Which middle element is this one?
         """
         if input_length == order == 0:

@@ -28,7 +28,7 @@ from .classtools import wrap_method
 
 class _RequireNow:
     """Helper callable that accepts all function signatures and simply calls
-    :meth:`.LazyDependencyManager.require_now`.  This helpful when used with :func:`.wrap_method`,
+    :meth:`.LazyDependencyManager.require_now`.  This is helpful when used with :func:`.wrap_method`,
     as the callable needs to be compatible with all signatures and be picklable."""
 
     __slots__ = ("_tester", "_feature")
