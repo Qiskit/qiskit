@@ -14,6 +14,30 @@ use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
+pub const CBINDGEN_ATTRIBUTE_NAME: &str = "qk-vtable-rules";
+pub const CBINDGEN_SKIP: &str = "no-export";
+pub const CBINDGEN_DUPLICATE: &str = "allow-duplicate";
+
+/// Structured set of attributes that can be set on functions in `cbindgen`.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct FnAttributes {
+    /// The function should be skipped and not present in any vtable slots list.
+    pub skipped: bool,
+    /// The function is permitted to be exported in more than one slot.
+    pub allow_duplicates: bool,
+}
+impl FnAttributes {
+    /// Set the field corresponding to a given attribute.
+    pub fn set(&mut self, attr: &str) -> anyhow::Result<()> {
+        match attr {
+            CBINDGEN_SKIP => self.skipped = true,
+            CBINDGEN_DUPLICATE => self.allow_duplicates = true,
+            _ => anyhow::bail!("unknown attribute: {attr}"),
+        }
+        Ok(())
+    }
+}
+
 pub static SCOPED_INCLUDE_DIR: &str = "qiskit";
 pub static GENERATED_FILE_TYPES: &str = "types.h";
 pub static GENERATED_FILE_FUNCS: &str = "funcs.h";
@@ -185,6 +209,21 @@ fn get_config() -> anyhow::Result<cbindgen::Config> {
         parse,
         ..Default::default()
     })
+}
+
+/// Is a given function marked with our custom "skip" attribute?
+///
+/// Returns an error if there are unknown attributes used in the list.
+pub fn fn_attrs(func: &cbindgen::ir::Function) -> anyhow::Result<FnAttributes> {
+    func.annotations
+        .list(CBINDGEN_ATTRIBUTE_NAME)
+        .map_or(Ok(FnAttributes::default()), |attrs| {
+            let mut out = FnAttributes::default();
+            for attr in attrs {
+                out.set(&attr)?;
+            }
+            Ok(out)
+        })
 }
 
 /// Generate the cbindgen bindings object for the C-extensions crate.

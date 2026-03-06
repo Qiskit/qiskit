@@ -59,4 +59,5 @@ jobs:
       - name: Run lint
         run: |
           make cformat
+          tools/check_slots.bash
           tox -e lint
