@@ -59,7 +59,7 @@ External Python Libraries
     The `IBM CPLEX Optimizer <https://www.ibm.com/analytics/cplex-optimizer>`__ is a
     high-performance mathematical programming solver for linear, mixed-integer and quadratic
     programming. This is no longer used by Qiskit, but it was historically and the optional
-   remains for backwards compatibility.
+    remains for backwards compatibility.
 
 .. py:data:: HAS_CVXPY
 
