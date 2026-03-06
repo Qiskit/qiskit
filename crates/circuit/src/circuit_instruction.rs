@@ -36,7 +36,7 @@ use crate::packed_instruction::PackedOperation;
 use crate::parameter::parameter_expression::ParameterExpression;
 use nalgebra::{Dyn, MatrixView2, MatrixView4};
 use num_complex::Complex64;
-use smallvec::SmallVec;
+use smallvec::{SmallVec, smallvec};
 
 /// A single instruction in a :class:`.QuantumCircuit`, comprised of the :attr:`operation` and
 /// various operands.
@@ -898,13 +898,13 @@ impl<'a, 'py, T: CircuitBlock> FromPyObject<'a, 'py> for OperationFromPython<T> 
             let pauli_rotation = PauliProductRotation {
                 z: z.to_owned(),
                 x: x.to_owned(),
-                angle,
+                angle: angle.clone(),
             };
             let pbc = Box::new(PauliBased::PauliProductRotation(pauli_rotation));
 
             return Ok(OperationFromPython {
                 operation: PackedOperation::from_pauli_based(pbc),
-                params: None,
+                params: Some(Parameters::Params(smallvec![angle])),
                 label: extract_label()?,
             });
         }
