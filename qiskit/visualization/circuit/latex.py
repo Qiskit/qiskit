@@ -582,7 +582,7 @@ class QCircuitImage:
                 label = node.op.label
                 if len(label) > self._barrier_label_len:
                     label = label[: self._barrier_label_len] + "..."
-                label = label.replace(" ", "\\,")
+                label = label.replace(" ", "\\,")  # \' is a LaTeX thin space
                 self._latex[pos][col] = f"\\cds{{0}}{{^{{\\mathrm{{{label}}}}}}}"
 
     def _add_controls(self, wire_list, ctrlqargs, ctrl_state, col):
