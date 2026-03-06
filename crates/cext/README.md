@@ -4,6 +4,9 @@ This crate contains the bindings for Qiskit's C API.
 This crate is responsible for the C API symbols only; the header files needed to access it are
 created by `qiskit-bindgen` by parsing the source of this crate.
 
+If you add a new `pub extern "C" fn` in this crate, you will also need to give it a slot
+in `qiskit-cext-vtable`.
+
 ## Building the library
 
 The default build mode of `qiskit-cext` is as an `rlib` so that it can be included in `qiskit-pyext`
