@@ -1040,7 +1040,7 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
 /// Apply a ``QkPauliProductRotation`` to a circuit.
 ///
 /// @param circuit The circuit to apply the operation to.
-/// @param measurement A pointer to the ``QkPauliProductRotation`` to apply.
+/// @param rotation A pointer to the ``QkPauliProductRotation`` to apply.
 /// @param qubits A pointer to the qubit array.
 ///
 /// # Example

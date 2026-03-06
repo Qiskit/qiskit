@@ -25,7 +25,7 @@ pub struct CPauliProductRotation {
     pub angle: *mut Param,
 }
 
-/// @ingroup QkPauliProductRotation
+/// @ingroup QkCircuitLibrary
 /// Clear the internal data of Rust-allocated ``QkPauliProductRotation``.
 ///
 /// This frees the memory of the ``z`` and ``x`` arrays and frees the ``angle``. This function
@@ -96,7 +96,7 @@ pub struct CPauliProductMeasurement {
     pub flip_outcome: bool,
 }
 
-/// @ingroup QkPauliProductMeasurement
+/// @ingroup QkCircuitLibrary
 /// Clear the internal data of Rust-allocated ``QkPauliProductMeasurement``.
 ///
 /// This frees the memory of the ``z`` and ``x`` arrays. This function should only be called for
