@@ -29,15 +29,17 @@ use pyo3::types::{PyAny, PyDict, PyTuple};
 use qiskit_circuit::bit::{
     ClassicalRegister, PyClbit, PyQubit, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
-use qiskit_circuit::circuit_data::{CircuitData, CircuitStretchType, CircuitVarType};
+use qiskit_circuit::circuit_data::{
+    CircuitData, CircuitStretchType, CircuitVarType, PyCircuitData,
+};
 use qiskit_circuit::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::imports;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
     ArrayType, BoxDuration, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction,
-    Operation, OperationRef, Param, PauliProductMeasurement, PyInstruction, StandardGate,
-    StandardInstruction, SwitchTarget, UnitaryGate,
+    Operation, OperationRef, Param, PauliProductMeasurement, PauliProductRotation, PyInstruction,
+    StandardGate, StandardInstruction, SwitchTarget, UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 
@@ -46,9 +48,9 @@ use crate::bytes::Bytes;
 use crate::formats::{self, ConditionPack};
 use crate::params::pack_param_obj;
 use crate::py_methods::{
-    PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME, UNITARY_GATE_CLASS_NAME, gate_class_name,
-    getattr_or_none, py_get_instruction_annotations, py_pack_param, py_pack_pauli_evolution_gate,
-    recognize_custom_operation, serialize_metadata,
+    PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME, PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME,
+    UNITARY_GATE_CLASS_NAME, gate_class_name, getattr_or_none, py_get_instruction_annotations,
+    py_pack_param, py_pack_pauli_evolution_gate, recognize_custom_operation, serialize_metadata,
 };
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionVarDeclaration, GenericValue, ParamRegisterValue,
@@ -201,10 +203,9 @@ fn pack_instruction_blocks(
                 .iter()
                 .map(|block| -> PyResult<_> {
                     // we explicitly name the block "unnamed" because otherwise it will be assigned a serial number name (e.g. "circuit-45")
-                    // which would result in inconsistant results, e.g. when packing the same circuit twice on the same run
-                    let circuit = imports::QUANTUM_CIRCUIT
-                        .get_bound(py)
-                        .call_method1("_from_circuit_data", (block.clone(), false, "unnamed"))?;
+                    // which would result in inconsistent results, e.g. when packing the same circuit twice on the same run
+                    let py_block: PyCircuitData = block.clone().into();
+                    let circuit = py_block.into_py_quantum_circuit(py)?;
                     py_pack_param(&circuit, qpy_data, Endian::Little)
                 })
                 .collect::<PyResult<_>>()
@@ -225,6 +226,9 @@ fn pack_instruction(
         }
         OperationRef::PauliProductMeasurement(ppm) => {
             pack_pauli_product_measurement(ppm, instruction, qpy_data)?
+        }
+        OperationRef::PauliProductRotation(rotation) => {
+            pack_pauli_product_rotation(rotation, instruction, qpy_data)?
         }
         OperationRef::Unitary(unitary_gate) => pack_unitary_gate(unitary_gate, qpy_data)?,
         OperationRef::Gate(py_gate) => pack_py_gate(py_gate, instruction, qpy_data)?,
@@ -325,6 +329,38 @@ fn pack_pauli_product_measurement(
         num_cargs: instruction.op.num_clbits(),
         extras_key: 0,
         num_ctrl_qubits: 0, // standard instructions have no control qubits
+        ctrl_state: 0,
+        gate_class_name,
+        label: Default::default(),
+        condition: Default::default(),
+        bit_data: Default::default(),
+        params,
+        annotations: None,
+    })
+}
+
+fn pack_pauli_product_rotation(
+    rotation: &PauliProductRotation,
+    instruction: &PackedInstruction,
+    qpy_data: &QPYWriteData,
+) -> PyResult<formats::CircuitInstructionV2Pack> {
+    // since we won't recreate this gate via python, it's not important to verify the python name is identical to the one we use here
+    // so we simply hard-code it instead of going through python
+    let gate_class_name = String::from(PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME);
+    let z_values =
+        GenericValue::Tuple(rotation.z.iter().cloned().map(GenericValue::Bool).collect());
+    let x_values =
+        GenericValue::Tuple(rotation.x.iter().cloned().map(GenericValue::Bool).collect());
+    let params = vec![
+        pack_generic_value(&z_values, qpy_data)?,
+        pack_generic_value(&x_values, qpy_data)?,
+        pack_param_obj(&rotation.angle, qpy_data, Endian::Little)?,
+    ];
+    Ok(formats::CircuitInstructionV2Pack {
+        num_qargs: instruction.op.num_qubits(),
+        num_cargs: 0,
+        extras_key: 0,
+        num_ctrl_qubits: 0,
         ctrl_state: 0,
         gate_class_name,
         label: Default::default(),
@@ -684,7 +720,7 @@ fn pack_circuit_header(
     let header = formats::CircuitHeaderV12Pack {
         num_qubits: qpy_data.circuit_data.num_qubits() as u32,
         num_clbits: qpy_data.circuit_data.num_clbits() as u32,
-        num_instructions: qpy_data.circuit_data.__len__() as u64,
+        num_instructions: qpy_data.circuit_data.len() as u64,
         num_vars: qpy_data.circuit_data.num_identifiers() as u32,
         circuit_name: circuit_name.unwrap_or_default(),
         global_phase_data: global_phase_data.data,

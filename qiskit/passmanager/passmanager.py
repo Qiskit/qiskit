@@ -91,7 +91,7 @@ class BasePassManager(ABC):
         try:
             self._tasks[index] = tasks
         except IndexError as ex:
-            raise PassManagerError(f"Index to replace {index} does not exists") from ex
+            raise PassManagerError(f"Index to replace {index} does not exist") from ex
 
     def remove(self, index: int) -> None:
         """Removes a particular pass in the scheduler.
@@ -105,7 +105,7 @@ class BasePassManager(ABC):
         try:
             del self._tasks[index]
         except IndexError as ex:
-            raise PassManagerError(f"Index to replace {index} does not exists") from ex
+            raise PassManagerError(f"Index to remove {index} does not exist") from ex
 
     def __setitem__(self, index, item):
         self.replace(index, item)
@@ -142,12 +142,11 @@ class BasePassManager(ABC):
         """Convert input program into pass manager IR.
 
         Args:
-            in_program: Input program.
+            input_program: Input program.
 
         Returns:
             Pass manager IR.
         """
-        pass
 
     @abstractmethod
     def _passmanager_backend(
@@ -167,13 +166,12 @@ class BasePassManager(ABC):
         Returns:
             Output program.
         """
-        pass
 
     def run(
         self,
         in_programs: Any | list[Any],
-        callback: Callable = None,
-        num_processes: int = None,
+        callback: Callable | None = None,
+        num_processes: int | None = None,
         *,
         property_set: dict[str, object] | None = None,
         **kwargs,
@@ -185,7 +183,7 @@ class BasePassManager(ABC):
                 A single input object cannot be a Python builtin list object.
                 A list object is considered as multiple input objects to optimize.
             callback: A callback function that will be called after each pass execution. The
-                function will be called with 4 keyword arguments::
+                function will be called with 5 keyword arguments::
 
                     task (GenericPass): the pass being run
                     passmanager_ir (Any): depending on pass manager subclass
@@ -193,7 +191,7 @@ class BasePassManager(ABC):
                     running_time (float): the time to execute the pass
                     count (int): the index for the pass execution
 
-                The exact arguments pass expose the internals of the pass
+                The exact arguments passed expose the internals of the pass
                 manager and are subject to change as the pass manager internals
                 change. If you intend to reuse a callback function over
                 multiple releases be sure to check that the arguments being
@@ -350,7 +348,7 @@ def _run_workflow_in_new_process(
     """
     return _run_workflow(
         program=program,
-        pass_manager=dill.loads(pass_manager_bin),
+        pass_manager=dill.loads(pass_manager_bin),  # noqa: S301 Only used for IPC
         initial_property_set=initial_property_set,
-        callback=dill.loads(callback),
+        callback=dill.loads(callback),  # noqa: S301 Only used for IPC
     )

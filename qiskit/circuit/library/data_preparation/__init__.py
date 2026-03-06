@@ -45,13 +45,13 @@ from .state_preparation import StatePreparation, UniformSuperpositionGate
 from .initializer import Initialize
 
 __all__ = [
-    "pauli_feature_map",
+    "Initialize",
     "PauliFeatureMap",
-    "z_feature_map",
-    "ZFeatureMap",
-    "zz_feature_map",
-    "ZZFeatureMap",
     "StatePreparation",
     "UniformSuperpositionGate",
-    "Initialize",
+    "ZFeatureMap",
+    "ZZFeatureMap",
+    "pauli_feature_map",
+    "z_feature_map",
+    "zz_feature_map",
 ]

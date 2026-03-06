@@ -59,7 +59,7 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
             circ.rz(0.5, q[1])
             circuit_to_instruction(circ)
     """
-    # pylint: disable=cyclic-import
+
     from qiskit.circuit.quantumcircuit import QuantumCircuit
 
     if circuit.num_input_vars:

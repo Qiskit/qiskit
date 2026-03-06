@@ -17,7 +17,7 @@ Return a depth-5n circuit implementation of the -CZ-CX- transformation over LNN.
 
 Args:
     mat_z: n*n symmetric binary matrix representing a -CZ- circuit
-    mat_x: n*n invertable binary matrix representing a -CX- transformation
+    mat_x: n*n invertible binary matrix representing a -CX- transformation
 
 Output:
     QuantumCircuit: :class:`.QuantumCircuit` object containing a depth-5n circuit to implement -CZ-CX-

@@ -175,7 +175,7 @@ required). An example provider class looks like::
             return filter_backends(backends, filters=filters, **kwargs)
 
 Ensure that any necessary information for
-authentication (if required) are present in the class and that the backends
+authentication (if required) is present in the class and that the backend's
 method matches the required interface. The rest is up to the specific provider on how to implement.
 
 Backend
@@ -244,20 +244,20 @@ example would be something like::
         def _default_options(cls):
             return Options(shots=1024, memory=False)
 
-        def run(circuits, **kwargs):
+        def run(self, circuits, **kwargs):
             # serialize circuits submit to backend and create a job
             for kwarg in kwargs:
-                if not hasattr(kwarg, self.options):
+                if not hasattr(self.options, kwarg):
                     warnings.warn(
                         "Option %s is not used by this backend" % kwarg,
                         UserWarning, stacklevel=2)
             options = {
                 'shots': kwargs.get('shots', self.options.shots),
-                'memory': kwargs.get('memory', self.options.shots),
+                'memory': kwargs.get('memory', self.options.memory),
             }
             job_json = convert_to_wire_format(circuit, options)
-            job_handle = submit_to_backend(job_jsonb)
-            return MyJob(self. job_handle, job_json, circuit)
+            job_handle = submit_to_backend(job_json)
+            return MyJob(self.job_handle, job_json, circuit)
 
 
 Backend's Transpiler Interface
@@ -311,10 +311,10 @@ Custom Basis Gates
        from qiskit.transpiler import InstructionProperties
 
        sy_props = {
-           (0,): InstructionProperties(duration=2.3e-6, error=0.0002)
-           (1,): InstructionProperties(duration=2.1e-6, error=0.0001)
-           (2,): InstructionProperties(duration=2.5e-6, error=0.0003)
-           (3,): InstructionProperties(duration=2.2e-6, error=0.0004)
+           (0,): InstructionProperties(duration=2.3e-6, error=0.0002),
+           (1,): InstructionProperties(duration=2.1e-6, error=0.0001),
+           (2,): InstructionProperties(duration=2.5e-6, error=0.0003),
+           (3,): InstructionProperties(duration=2.2e-6, error=0.0004),
        }
        self.target.add_instruction(SYGate(), sy_props)
 
@@ -533,19 +533,19 @@ simulators, serialization may not even be needed), it is expected that the backe
 
 An example run method would be something like::
 
-    def run(self, circuits. **kwargs):
+    def run(self, circuits, **kwargs):
         for kwarg in kwargs:
-            if not hasattr(kwarg, self.options):
+            if not hasattr(self.options, kwarg):
                 warnings.warn(
                     "Option %s is not used by this backend" % kwarg,
                     UserWarning, stacklevel=2)
         options = {
-            'shots': kwargs.get('shots', self.options.shots)
-            'memory': kwargs.get('memory', self.options.shots),
+            'shots': kwargs.get('shots', self.options.shots),
+            'memory': kwargs.get('memory', self.options.memory),
         }
         job_json = convert_to_wire_format(circuit, options)
-        job_handle = submit_to_backend(job_jsonb)
-        return MyJob(self. job_handle, job_json, circuit)
+        job_handle = submit_to_backend(job_json)
+        return MyJob(self.job_handle, job_json, circuit)
 
 Backend Options
 ---------------
@@ -558,7 +558,7 @@ object is initially created by the
 :obj:`~qiskit.providers.BackendV2._default_options` method of a Backend class.
 The default options returns an initialized :class:`~qiskit.providers.Options`
 object with all the default values for all the options a backend supports. For
-example, if the backend supports only supports ``shots`` the
+example, if the backend only supports ``shots`` the
 :obj:`~qiskit.providers.BackendV2._default_options` method would look like::
 
     @classmethod
@@ -652,8 +652,8 @@ An example job class for an async API based backend would look something like::
                 status = JobStatus.ERROR
             return status
 
-    def submit(self):
-        raise NotImplementedError
+        def submit(self):
+            raise NotImplementedError
 
 and for a sync job::
 

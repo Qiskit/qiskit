@@ -13,7 +13,7 @@
 """circuit_drawer with output="text" draws a circuit in ascii art"""
 
 # Sometimes we want to test long-lined output.
-# pylint: disable=line-too-long
+
 
 import pathlib
 import os
@@ -64,7 +64,7 @@ from qiskit.circuit.library import (
     UCGate,
 )
 from qiskit.transpiler.passes import ApplyLayout
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 from .visualization import path_to_diagram_reference, QiskitVisualizationTestCase
 from ..legacy_cmaps import YORKTOWN_CMAP
@@ -181,7 +181,6 @@ class TestTextDrawerElement(QiskitTestCase):
 
 
 class TestTextDrawerGatesInCircuit(QiskitTestCase):
-    # pylint: disable=possibly-used-before-assignment
     """Gate by gate checks in different settings."""
 
     def test_text_measure_cregbundle(self):

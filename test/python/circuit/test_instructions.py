@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=unsubscriptable-object
 
 """Test Qiskit's Instruction class."""
 
@@ -29,7 +28,7 @@ from qiskit.circuit.library import HGate, RZGate, CXGate, SGate, SdgGate, TGate
 from qiskit.circuit.annotated_operation import AnnotatedOperation
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.random import random_circuit
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestInstructions(QiskitTestCase):

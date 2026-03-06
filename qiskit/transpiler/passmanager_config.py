@@ -43,7 +43,7 @@ class PassManagerConfig:
             initial_layout (Layout): Initial position of virtual qubits on
                 physical qubits.
             basis_gates (list): List of basis gate names to unroll to.
-            coupling_map (CouplingMap): Directed graph represented a coupling
+            coupling_map (CouplingMap): Directed graph representing a coupling
                 map.
             layout_method (str): the pass to use for choosing initial qubit
                 placement. This will be the plugin name if an external layout stage

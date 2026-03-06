@@ -91,8 +91,8 @@ from qiskit.synthesis.multi_controlled.multi_control_rotation_gates import _mcsu
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
 )
-from test import combine  # pylint: disable=wrong-import-order
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import combine
+from test import QiskitTestCase
 
 from .gate_utils import _get_free_params
 
@@ -1606,7 +1606,7 @@ class TestOpenControlledToMatrix(QiskitTestCase):
     def test_open_controlled_to_matrix(self, gate_class, ctrl_state):
         """Test open controlled to_matrix."""
         if gate_class in {SingletonControlledGate, _SingletonControlledGateOverrides}:
-            self.skipTest("SingletonGateClass isn't intended for direct initalization")
+            self.skipTest("SingletonGateClass isn't intended for direct initialization")
 
         if gate_class is MCMTGate:
             # parameters are (base_gate, num_controls, num_targets)
