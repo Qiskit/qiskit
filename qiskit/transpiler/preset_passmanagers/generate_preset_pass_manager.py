@@ -308,17 +308,16 @@ def generate_preset_pass_manager(
     if is_clifford_t_basis(basis_gates=pm_config.basis_gates, target=pm_config.target):
         pm = generate_clifford_t_pass_manager(pm_config, optimization_level=optimization_level)
 
+    elif optimization_level == 0:
+        pm = level_0_pass_manager(pm_config)
+    elif optimization_level == 1:
+        pm = level_1_pass_manager(pm_config)
+    elif optimization_level == 2:
+        pm = level_2_pass_manager(pm_config)
+    elif optimization_level == 3:
+        pm = level_3_pass_manager(pm_config)
     else:
-        if optimization_level == 0:
-            pm = level_0_pass_manager(pm_config)
-        elif optimization_level == 1:
-            pm = level_1_pass_manager(pm_config)
-        elif optimization_level == 2:
-            pm = level_2_pass_manager(pm_config)
-        elif optimization_level == 3:
-            pm = level_3_pass_manager(pm_config)
-        else:
-            raise ValueError(f"Invalid optimization level {optimization_level}")
+        raise ValueError(f"Invalid optimization level {optimization_level}")
 
     return pm
 

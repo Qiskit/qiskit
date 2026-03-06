@@ -1232,9 +1232,10 @@ class OptimizeCliffordTPassManager(PassManagerStagePlugin):
                 loop = [
                     OptimizeCliffordT(),
                     CommutativeOptimization(),
+                    SubstitutePi4Rotations(),
                     ContractIdleWiresInControlFlow(),
                 ]
-                post_loop = [SubstitutePi4Rotations()] + fix_direction + fix_1q
+                post_loop = fix_direction + fix_1q
                 loop_check, continue_loop = _optimization_check_fixed_point()
             case bad:
                 raise TranspilerError(f"Invalid optimization_level: {bad}")
