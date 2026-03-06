@@ -33,7 +33,7 @@ use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::ObjectRegistry;
 use crate::operations::{
     ArrayType, BoxDuration, Condition, ControlFlow, ControlFlowInstruction, ControlFlowView,
-    Operation, OperationRef, Param, PyOperationTypes, PythonOperation, StandardGate,
+    Operation, OperationRef, Param, PauliBased, PyOperationTypes, PythonOperation, StandardGate,
     StandardInstruction, SwitchTarget,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
@@ -2644,6 +2644,10 @@ impl DAGCircuit {
                                 [
                                     OperationRef::PauliProductMeasurement(op_a),
                                     OperationRef::PauliProductMeasurement(op_b),
+                                ] => Ok(op_a == op_b),
+                                [
+                                    OperationRef::PauliProductRotation(op_a),
+                                    OperationRef::PauliProductRotation(op_b),
                                 ] => Ok(op_a == op_b),
                                 _ => Ok(false),
                             }
@@ -7889,7 +7893,12 @@ impl DAGCircuit {
                         OperationRef::StandardGate(gate) => gate.into(),
                         OperationRef::StandardInstruction(instruction) => instruction.into(),
                         OperationRef::Unitary(unitary) => unitary.clone().into(),
-                        OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
+                        OperationRef::PauliProductMeasurement(ppm) => {
+                            PauliBased::PauliProductMeasurement(ppm.clone()).into()
+                        }
+                        OperationRef::PauliProductRotation(rotation) => {
+                            PauliBased::PauliProductRotation(rotation.clone()).into()
+                        }
                     }
                 } else {
                     instr.op.clone()
@@ -8785,6 +8794,7 @@ mod test {
     use hashbrown::HashSet;
     use pyo3::prelude::*;
     use rustworkx_core::petgraph::prelude::*;
+    use rustworkx_core::petgraph::stable_graph::DefaultIx;
     use rustworkx_core::petgraph::visit::IntoEdgeReferences;
 
     fn new_dag(qubits: u32, clbits: u32) -> DAGCircuit {
@@ -9003,5 +9013,14 @@ mod test {
         assert_eq!(empty.cregs(), &[cr]);
         assert_eq!(empty.num_ops(), 0);
         Ok(())
+    }
+
+    #[test]
+    fn verify_default_ix_type() {
+        // This test will prevent Qiskit from compiling in the unlikely scenario
+        // that petgraph's NodeIndex type will change from u32 to something else.
+        // If this does happen, pointer conversions to `*const NodeIndex` in `dag.rs`
+        // will need to be updated as well.
+        let _: DefaultIx = 0u32;
     }
 }
