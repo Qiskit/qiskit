@@ -15,7 +15,7 @@ use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, PI};
 
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::operations::{OperationRef, Param, StandardGate};
-use qiskit_synthesis::ross_selinger::py_gridsynth_rz;
+use qiskit_synthesis::ross_selinger::gridsynth_rz;
 
 const MINIMUM_EPSILON: f64 = 1e-2; // minimum epsilon for synthesis
 const MAXIMUM_EPSILON: f64 = 1e-12; // maximum epsilon for synthesis
@@ -73,7 +73,7 @@ fn synthesize_rz_gate_via_gridsynth(
     angle: f64,
     epsilon: f64,
 ) -> PyResult<(Vec<StandardGate>, Param)> {
-    let circ_data = py_gridsynth_rz(angle, epsilon)?;
+    let circ_data = gridsynth_rz(angle, epsilon)?;
 
     // obtain phase from circuit data
     let phase = circ_data.global_phase().clone();
