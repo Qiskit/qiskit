@@ -529,8 +529,7 @@ def _latex_circuit_drawer(
             of the bits. The list must have an entry for every bit with the bits
             in the range 0 to (num_qubits + num_clbits).
         barrier_label_len (int): Optional. The number of characters to display for
-            :class:`.Barrier` labels. If this number is exceeded, the string will be
-            truncated at that number and '...' added to the end.
+            :class:`.Barrier` labels. If this number is exceeded, the string will be truncated.
 
     Returns:
         PIL.Image: an in-memory representation of the circuit diagram
