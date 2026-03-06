@@ -37,7 +37,7 @@ class LitinskiTransformation(TransformationPass):
 
     The list of supported RZ-rotations is:
 
-    ``["t", "tdg", "rz"]``
+    ``["t", "tdg", "rz", "p", "u1"]``
 
     References:
 
