@@ -53,7 +53,7 @@ use std::fmt::Debug;
 use std::io::Cursor;
 use uuid::Uuid;
 
-pub const QPY_VERSION: u32 = 15;
+pub const QPY_VERSION: u32 = 17;
 
 // Standard char representation of register types: 'q' qreg, 'c' for creg
 #[binrw]
@@ -118,11 +118,12 @@ impl<'a> QPYWriteData<'a> {
     /// using the current QPY version and an empty standalone-var index map.
     pub fn default(
         circuit_data: &'a CircuitData,
+        version: u32,
         annotation_factories: &'a Bound<'a, pyo3::types::PyDict>,
     ) -> Self {
         QPYWriteData {
             circuit_data,
-            version: QPY_VERSION,
+            version,
             standalone_var_indices: HashMap::new(),
             annotation_handler: AnnotationHandler::new(annotation_factories),
         }
@@ -913,15 +914,17 @@ pub(crate) fn load_param_register_value(
 ///
 #[pyfunction]
 #[pyo3(name = "write_values")]
-#[pyo3(signature = (file_obj, values))]
+#[pyo3(signature = (file_obj, values, version))]
 pub(crate) fn py_write_values(
     py: Python,
     file_obj: &Bound<pyo3::types::PyAny>,
     values: &Bound<pyo3::types::PyAny>,
+    version: Option<u32>,
 ) -> PyResult<usize> {
+    let version = version.unwrap_or(QPY_VERSION);
     let dummy_circuit = CircuitData::new(None, None, Param::Float(0.0))?;
     let empty_dict = pyo3::types::PyDict::new(py);
-    let qpy_data = QPYWriteData::default(&dummy_circuit, &empty_dict);
+    let qpy_data = QPYWriteData::default(&dummy_circuit, version, &empty_dict);
 
     let mut elements = Vec::new();
     for item in values.try_iter()? {
