@@ -138,6 +138,7 @@ fn determine_common_max_type(types: &[Type]) -> Type {
 ///     type: The resolved type of the result.
 #[pyclass(
     eq,
+    from_py_object,
     subclass,
     frozen,
     extends = PyExpr,
