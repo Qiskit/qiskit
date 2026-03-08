@@ -248,6 +248,46 @@ You can:
   ``qk_obs_scaled_add`` and ``qk_obs_scaled_add_inplace``
 
 
+.. _qkobs-python:
+
+Python interaction
+==================
+
+The Python-space ``SparseObservable`` corresponds to ``QkObs``, and internally keeps a reference to
+one.  However, the Python-space version permits shared ownership of the inner Rust object, mediated
+by runtime locking implemented in Rust.  When using functions that view ``QkObs`` data from a Python
+object, you must be aware of this, and the various drawbacks of the viewing functions.
+
+If you can be sure that the incoming Python object contains the only reference to the data you care
+about, you can use the regular :func:`qk_obs_borrow_from_python` and
+:func:`qk_obs_convert_from_python` as normal.  These will set the error status to a
+:exc:`RuntimeError` if the uniqueness concerns are violated.  You must not call these methods while
+still a pointer to the return value is still live, or otherwise attempt to access the data through
+the ``PyObject``.
+
+If you wish to handle the locks completely from C, you can use the lock-aware variants of the
+methods.  These are named:
+
+* :c:func:`qk_obs_lock_read_from_python`
+* :c:func:`qk_obs_try_lock_read_from_python`
+* :c:func:`qk_obs_lock_write_from_python`
+* :c:func:`qk_obs_try_lock_write_from_python`
+
+The ``read`` variants acquire a partial lock on the object; multiple read locks can exist
+simultaneously (including across threads), but no write lock can exist at the same time as any other
+lock.  A write lock is always exclusive, and all other attempts to take out a lock concurrently will
+either block or fail (depending on the variant used).
+
+The ``lock`` variants (without ``try``) block until the lock can be acquired.  The ``try_lock``
+variants will return immediately, and the return value will indicate whether the lock was
+successfully acquired or not.
+
+In all cases, the written-out lock is an opaque object.  The only valid operation, which *must* be
+performed, is to release it by a call to :c:func:`qk_obs_release_lock`, at which point the pointer
+to the observable becomes invalidate for either reading or writing.  Failure to do this may result
+in memory leaks and deadlocks.
+
+
 Functions
 =========
 
