@@ -26,8 +26,6 @@ from qiskit.transpiler.passes.synthesis import SynthesizeRZRotations
 
 from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
 
-# pylint: disable=expression-not-assigned
-
 # Set of single-qubit Clifford gates
 CLIFFORD_GATES_1Q_SET = {"id", "x", "y", "z", "h", "s", "sdg", "sx", "sxdg"}
 
@@ -135,7 +133,7 @@ class TestSynthesizeRzRotations(QiskitTestCase):
         phase, gate updates in synthesize_rz_rotations works correctly."""
         qcs = [QuantumCircuit(1) for _ in range(num_qubits)]
         angle = 1.23579
-        [qcs[_].rz(_ * np.pi / 2 + angle, 0) for _ in range(num_qubits)]
+        _ = [qcs[_].rz(_ * np.pi / 2 + angle, 0) for _ in range(num_qubits)]
         synthesized_circs = [SynthesizeRZRotations()(qcs[_]) for _ in range(num_qubits)]
         qc_big = qcs[0].copy()
         for _ in range(1, num_qubits):
@@ -152,7 +150,7 @@ class TestSynthesizeRzRotations(QiskitTestCase):
     def test_dag_traversal_logic(self, num_qubits, depth):
         """Test that synthesize_rz_rotations works correctly for larger circuits."""
         qc = QuantumCircuit(num_qubits)
-        [[qc.rz(3.57921, _) for _ in range(num_qubits)] for _ in range(depth)]
+        _ = [[qc.rz(3.57921, _) for _ in range(num_qubits)] for _ in range(depth)]
         synthesized_circ = SynthesizeRZRotations()(qc)
         # Check the operators are (almost) equal
         self.assertEqual(Operator(synthesized_circ), Operator(qc))
