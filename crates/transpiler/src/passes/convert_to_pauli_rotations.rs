@@ -30,8 +30,11 @@ use crate::TranspilerError;
 type GateToPauliRotType = (&'static [(&'static [BitTerm], f64, &'static [u32])], f64);
 type GateToPauliRotVec = (Vec<(&'static [BitTerm], Param, &'static [u32])>, Param);
 
-/// Map gates to a list of equivalent Pauli product rotations and a global phase.
+/// Map standard gates to a list of equivalent Pauli product rotations and a global phase.
 /// Each element of the list is of the form ((pauli, phase, [qubit indices]), global_phase).
+/// Namely, each standard gate S is written as a product of evolutions:
+/// S = exp(-i*phase_1*pauli_1) * ... * exp(-i*phase_k*pauli_k) * exp(i*global_phase)
+/// but for Pauli rotation gates the convention is to divide the phase by 2.
 static STANDARD_GATE_SUBSTITUTIONS: [Option<GateToPauliRotType>; 52] = [
     None, // GlobalPhase
     Some((
@@ -274,8 +277,12 @@ static STANDARD_GATE_SUBSTITUTIONS: [Option<GateToPauliRotType>; 52] = [
     None, // RC3X
 ];
 
-/// Map gates with more than one parameter to a list of equivalent Pauli product rotations and a global phase.
+/// Map standard gates with more than one parameter to a list of equivalent
+/// Pauli product rotations and a global phase.
 /// Each element of the list is of the form ((pauli, phase, [qubit indices]), global_phase).
+/// Namely, each standard gate S is written as a product of evolutions:
+/// S = exp(-i*phase_1*pauli_1) * ... * exp(-i*phase_k*pauli_k) * exp(i*global_phase)
+/// but for Pauli rotation gates the convention is to divide the phase by 2.
 fn replace_gate_by_pauli_vec(gate: StandardGate, angles: &[Param]) -> GateToPauliRotVec {
     match gate {
         StandardGate::U | StandardGate::U3 => (
@@ -449,8 +456,7 @@ fn bitterm_to_zx(pauli: BitTerm) -> (bool, bool) {
 }
 
 /// Takes an input of the form (pauli, time, [qubit indices]),
-/// and outputs a corresponding PauliProductRotationGate(z, x, angle) gate
-/// on the qubit indices.
+/// and outputs a corresponding PauliProductRotationGate(z, x, angle) gate.
 fn generate_pauli_product_rotation_gate(paulis: &[BitTerm], angle: Param) -> PauliProductRotation {
     let mut x = Vec::with_capacity(paulis.len());
     let mut z = Vec::with_capacity(paulis.len());
@@ -526,7 +532,7 @@ pub fn py_convert_to_pauli_rotations(dag: &mut DAGCircuit) -> PyResult<DAGCircui
                             .iter()
                             .map(|q| original_qubits[*q as usize])
                             .collect();
-                        // factor 2.0 is needed since it's PualiProductRotationGate and not PauliEvolutionGate
+                        // factor 2.0 is needed since it's PauliProductRotationGate and not PauliEvolutionGate
                         let time = multiply_param(&angle, 2.0 * *phase_rescale);
                         let ppr = generate_pauli_product_rotation_gate(paulis, time.clone());
 
