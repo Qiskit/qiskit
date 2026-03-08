@@ -44,7 +44,6 @@ use qiskit_circuit::operations::{
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 
 use crate::annotations::AnnotationHandler;
-use crate::backwards_comp::CalibrationsPack;
 use crate::bytes::Bytes;
 use crate::formats;
 use crate::params::pack_param_obj;
@@ -1143,7 +1142,7 @@ pub(crate) fn pack_circuit(
     )?;
     // Pulse has been removed in Qiskit 2.0. As long as we keep QPY at version 13,
     // we need to write an empty calibrations header since read_circuit expects it
-    let calibrations = CalibrationsPack {
+    let calibrations = formats::CalibrationsPack {
         calibrations: vec![],
     };
     let (instructions, mut custom_instructions_hash) = pack_instructions(&mut qpy_data)?;

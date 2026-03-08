@@ -10,7 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::backwards_comp::CalibrationsPack;
 use crate::bytes::Bytes;
 use crate::expr::{read_expression, write_expression};
 use crate::params::ParameterType;
@@ -965,4 +964,196 @@ pub fn from_binrw_error(err: binrw::Error) -> PyErr {
         }
         _ => PyRuntimeError::new_err("unknown error"),
     }
+}
+
+// calibration data formats
+// calibrations were removed in Qiskit 2.0, but we keep the qpy format for reference and older qpy files
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+#[brw(import(version: u32))]
+pub struct CalibrationsPack {
+    #[bw(calc = calibrations.len() as u16)]
+    pub num_cals: u16,
+    #[br(count = num_cals, args { inner: (version,) })]
+    pub calibrations: Vec<CalibrationDefPack>,
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+#[brw(import(version: u32))]
+pub struct CalibrationDefPack {
+    #[bw(calc = name.len() as u16)]
+    pub name_size: u16,
+    #[bw(calc = qubits.len() as u16)]
+    pub num_qubits: u16,
+    #[bw(calc = params.len() as u16)]
+    pub num_params: u16,
+    pub cal_type: ValueType,
+    #[br(count = name_size as usize, try_map = String::from_utf8)]
+    #[bw(map = |s| s.as_bytes())]
+    pub name: String, // might want to emit a warning here?
+    #[br(count = num_qubits)]
+    pub qubits: Vec<i64>,
+    #[br(count = num_params)]
+    pub params: Vec<GenericDataPack>,
+    #[br(args(version,))]
+    pub schedule: ScheduleBlockPack,
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+#[brw(import(version: u32))] // should not work for version < 5 but we do not support it yet
+pub struct ScheduleBlockPack {
+    #[bw(calc = name.len() as u16)]
+    pub name_size: u16,
+    #[bw(calc = metadata.len() as u64)]
+    pub metadata_size: u64,
+    #[bw(calc = elements.len() as u16)]
+    pub num_elements: u16,
+    #[br(count = name_size as usize, try_map = String::from_utf8)]
+    #[bw(map = |s| s.as_bytes())]
+    pub name: String,
+    #[br(count = metadata_size)]
+    // originally to be handled with metadata deserializer
+    pub metadata: Bytes,
+    pub alignment_context: AlignmentContextPack,
+    #[br(count = num_elements, args { inner: (version,) })]
+    pub elements: Vec<ScheduleBlockElementPack>,
+    #[br(if(version >= 7))]
+    // originially a reference is either null or ScheduleBlockPack
+    pub references: Option<MappingPack>,
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct AlignmentContextPack {
+    pub type_key: u8,
+    pub sequence: GenericDataSequencePack,
+}
+
+// A single element in a schedule block
+// If element_type is 's' (SCHEDULE_BLOCK), it contains a nested ScheduleBlockPack
+// Otherwise, it contains operands sequence and a name value
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+#[brw(import(version: u32))]
+pub struct ScheduleBlockElementPack {
+    pub element_type: u8,
+    #[br(if(element_type == b's'), args(version,))]
+    pub nested_schedule: Option<ScheduleBlockPack>,
+    #[br(if(element_type != b's'))]
+    pub non_nested_data: Option<ScheduleBlockElementNonNestedDataPack>,
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct ScheduleBlockElementNonNestedDataPack {
+    #[bw(calc = operands.len() as u64)]
+    pub operands_size: u64,
+    #[br(count = operands_size)]
+    pub operands: Vec<ScheduleOperandPack>, // _loads_operand
+    pub name: GenericDataPack,
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub enum ScheduleOperandPack {
+    #[brw(magic = b'w')]
+    Waveform(ScheduleOperandWaveformPack),
+    #[brw(magic = b's')]
+    SymbolicPulse(ScheduleOperandSymbolicPulsePack),
+    #[brw(magic = b'c')]
+    Channel(ScheduleOperandChannelPack),
+    #[brw(magic = b'o')]
+    OperandStr(ScheduleOperandOperandStrPack),
+    #[brw(magic = b'k')]
+    Kernel(ScheduleOperandKernelPack),
+    #[brw(magic = b'd')]
+    Discriminator(ScheduleOperandDiscriminatorPack),
+    // There was originally a final catch-all with GenericValuePack read
+    // but we can't implement it easily with magic
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct ScheduleOperandWaveformPack {
+    pub operand_data_size: u64,
+    pub epsilon: f32,
+    pub data_size: u32,
+    pub amp_limited: u8,
+}
+
+// this one had a different structure for qpy_version < 6, not supported yet
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct ScheduleOperandSymbolicPulsePack {
+    pub operand_data_size: u64,
+    #[bw(calc = class_name.len() as u16)]
+    pub class_name_size: u16,
+    #[bw(calc = type_name.len() as u16)]
+    pub type_size: u16,
+    pub envelope_size: u16,
+    pub constraints_size: u16,
+    pub valid_amp_conditions_size: u16,
+    pub amp_limited: u8,
+    #[br(count = class_name_size as usize, try_map = String::from_utf8)]
+    #[bw(map = |s| s.as_bytes())]
+    pub class_name: String,
+    #[br(count = type_size as usize, try_map = String::from_utf8)]
+    #[bw(map = |s| s.as_bytes())]
+    pub type_name: String,
+    #[br(count = envelope_size as usize)]
+    pub envelope: Bytes, // seems to be ignored even if the original code
+    #[br(count = constraints_size as usize)]
+    pub constraints: Bytes, // seems to be ignored even if the original code
+    #[br(count = valid_amp_conditions_size as usize)]
+    pub valid_amp_conditions: Bytes, // seems to be ignored even if the original code
+    pub parameters: MappingPack,
+    pub duration: GenericDataPack,
+    pub name: GenericDataPack,
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct ScheduleOperandChannelPack {
+    pub operand_data_size: u64,
+    pub type_key: u8,
+    pub index: GenericDataPack,
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct ScheduleOperandOperandStrPack {
+    #[bw(calc = string.len() as u64)]
+    pub operand_data_size: u64,
+    #[br(count = operand_data_size as usize, try_map = String::from_utf8)]
+    #[bw(map = |s| s.as_bytes())]
+    pub string: String,
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct ScheduleOperandKernelPack {
+    pub data: MappingPack,
+    pub name: GenericDataPack,
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct ScheduleOperandDiscriminatorPack {
+    pub data: MappingPack,
+    pub name: GenericDataPack,
 }

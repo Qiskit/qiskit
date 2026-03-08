@@ -59,7 +59,6 @@ use std::sync::Arc;
 use smallvec::SmallVec;
 
 use crate::annotations::AnnotationHandler;
-use crate::backwards_comp::wrap_conditional_gate;
 use crate::bytes::Bytes;
 use crate::consts::standard_gate_from_gate_class_name;
 use crate::formats;
@@ -1474,4 +1473,68 @@ pub(crate) fn py_read_circuit(
     )?;
     file_obj.call_method1("seek", (pos + bytes_read,))?;
     Ok(unpacked_circuit)
+}
+
+// handling for non control flow gates with conditionals, for backwards compatability
+pub fn wrap_conditional_gate(
+    instruction: &formats::CircuitInstructionV2Pack,
+    op: PackedOperation,
+    cond: Condition,
+    qubits: Interned<[Qubit]>,
+    clbits: Interned<[Clbit]>,
+    params: Option<Box<Parameters<Block>>>,
+    qpy_data: &mut QPYReadData,
+) -> PyResult<(PackedOperation, Option<Box<Parameters<Block>>>)> {
+    use qiskit_circuit::circuit_data::CircuitData;
+    use qiskit_circuit::operations::Param;
+    use smallvec::SmallVec;
+
+    // Create an IfElseOp wrapping this instruction
+    let control_flow = ControlFlow::IfElse { condition: cond };
+    let control_flow_instruction = ControlFlowInstruction {
+        control_flow,
+        num_qubits: instruction.num_qargs,
+        num_clbits: instruction.num_cargs,
+    };
+    let if_else_op = PackedOperation::from_control_flow(Box::new(control_flow_instruction));
+
+    // Get the actual qubit and clbit indices from the interned values
+    let qubit_indices = qpy_data.circuit_data.get_qargs(qubits);
+    let clbit_indices = qpy_data.circuit_data.get_cargs(clbits);
+
+    // Convert params from Parameters<Block> to SmallVec<[Param; 3]>
+    let param_vec: SmallVec<[Param; 3]> = if let Some(params_box) = params {
+        match params_box.as_ref() {
+            qiskit_circuit::instruction::Parameters::Params(p) => p.clone(),
+            qiskit_circuit::instruction::Parameters::Blocks(_) => {
+                // If we have blocks, we can't easily convert them to params
+                // This shouldn't happen for simple gates with conditions
+                SmallVec::new()
+            }
+        }
+    } else {
+        SmallVec::new()
+    };
+
+    // Create the body circuit using from_packed_operations
+    // This avoids manually creating PackedInstruction and pushing it
+    let body_data = CircuitData::from_packed_operations(
+        instruction.num_qargs,
+        instruction.num_cargs,
+        std::iter::once(Ok((
+            op,
+            param_vec,
+            qubit_indices.to_vec(),
+            clbit_indices.to_vec(),
+        ))),
+        Param::Float(0.0),
+    )
+    .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("{:?}", e)))?;
+
+    // Create GenericValue::CircuitData from the CircuitData
+    // The instruction_values_to_params function will handle converting this to a Block
+    let if_params = vec![GenericValue::CircuitData(body_data)];
+    let if_params_converted = instruction_values_to_params(if_params, qpy_data)?;
+
+    Ok((if_else_op, if_params_converted))
 }
