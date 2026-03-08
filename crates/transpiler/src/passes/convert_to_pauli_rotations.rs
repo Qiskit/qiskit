@@ -468,7 +468,7 @@ fn generate_pauli_product_rotation_gate(paulis: &[BitTerm], angle: Param) -> Pau
 }
 
 /// Convert a quantum circuit containing single-qubit, two-qubit and three-qubit standard gates,
-/// barriers and measurements, into an equivalent list of PauliProductRotationGate
+/// barriers and measurements, into an equivalent list of `PauliProductRotation` gates
 /// and a global phase, as well as PauliProductMeasurement.
 /// Raises a TranspilerError: if the circuit contains instructions not supported by
 /// the covert to Pauli rotations transformation pass.
