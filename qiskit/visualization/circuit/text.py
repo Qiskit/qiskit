@@ -712,8 +712,8 @@ class TextDrawing:
         encoding=None,
         with_layout=False,
         expr_len=30,
-        barrier_label_len=16,
         measure_arrows=None,
+        barrier_label_len=16,
     ):
         self.qubits = qubits
         self.clbits = clbits

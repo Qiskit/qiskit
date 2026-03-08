@@ -109,8 +109,8 @@ class MatplotlibDrawer:
         cregbundle=None,
         with_layout=False,
         expr_len=30,
-        barrier_label_len=16,
         measure_arrows=None,
+        barrier_label_len=16,
     ):
         self._circuit = circuit
         self._qubits = qubits
