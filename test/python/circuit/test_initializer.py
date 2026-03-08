@@ -30,6 +30,7 @@ from qiskit.quantum_info import state_fidelity, Statevector, Operator
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.library import Initialize
 from test import QiskitTestCase
+from qiskit.circuit.exceptions import CircuitError
 
 
 @ddt
@@ -516,7 +517,6 @@ class TestInitialize(QiskitTestCase):
 
     def test_irreversible_initialize(self):
         """Test failure of the initialize.inverse() method"""
-        from qiskit.circuit.exceptions import CircuitError
         circuit = QuantumCircuit(4, 0)
         circuit.initialize(0, circuit.qubits)
         with self.assertRaises(CircuitError):
