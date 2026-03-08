@@ -82,6 +82,8 @@ class SynthesizeRZRotations(TransformationPass):
         """
         Args:
             approximation_degree: float = 0.9999999999
+            This gives the threshold for the average gate fidelity.
+
         """
         super().__init__()
         self.approximation_degree = approximation_degree
