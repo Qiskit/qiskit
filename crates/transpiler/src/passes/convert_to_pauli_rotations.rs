@@ -470,8 +470,8 @@ fn generate_pauli_product_rotation_gate(paulis: &[BitTerm], angle: Param) -> Pau
 /// Convert a quantum circuit containing single-qubit, two-qubit and three-qubit standard gates,
 /// barriers and measurements, into an equivalent list of `PauliProductRotation` gates
 /// and a global phase, as well as `PauliProductMeasurement` instructions.
-/// Raises a TranspilerError: if the circuit contains instructions not supported by
-/// the covert to Pauli rotations transformation pass.
+/// Raises a `TranspilerError`: if the circuit contains instructions not supported by
+/// the pass.
 #[pyfunction]
 #[pyo3(name = "convert_to_pauli_rotations")]
 pub fn py_convert_to_pauli_rotations(dag: &mut DAGCircuit) -> PyResult<DAGCircuit> {
