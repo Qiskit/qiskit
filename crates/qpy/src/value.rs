@@ -914,7 +914,7 @@ pub(crate) fn load_param_register_value(
 ///
 #[pyfunction]
 #[pyo3(name = "write_values")]
-#[pyo3(signature = (file_obj, values, version))]
+#[pyo3(signature = (file_obj, values, version=None))]
 pub(crate) fn py_write_values(
     py: Python,
     file_obj: &Bound<pyo3::types::PyAny>,
