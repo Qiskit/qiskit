@@ -106,3 +106,9 @@ class Initialize(Instruction):
 
     def broadcast_arguments(self, qargs, cargs):
         return self._stateprep.broadcast_arguments(qargs, cargs)
+
+    def inverse(self, annotated: bool = False):
+        """Overrides initialize.inverse() and raise a circuit error"""
+        from qiskit.circuit.exceptions import CircuitError
+        raise CircuitError ("Initialize is not unitary thus can not be inverted." 
+        "If you want an invertible state preparation, use StatePreparation instead.")
