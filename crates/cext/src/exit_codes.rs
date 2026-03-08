@@ -42,6 +42,10 @@ pub enum ExitCode {
     IndexError = 103,
     /// Duplicate index.
     DuplicateIndexError = 104,
+    /// Failed to acquire a lock.
+    WouldBlock = 105,
+    /// The code failed in Python-space calls, and the Python error state is set.
+    PythonError = 106,
     /// Error related to arithmetic operations or similar.
     ArithmeticError = 200,
     /// Mismatching number of qubits.

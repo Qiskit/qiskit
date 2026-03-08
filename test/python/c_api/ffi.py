@@ -68,10 +68,10 @@ LIB.qk_circuit_gate.argtypes = [
 ]
 LIB.qk_circuit_gate.restype = ctypes.c_uint32
 LIB.qk_circuit_measure.argtypes = [ctypes.POINTER(QkCircuit), ctypes.c_uint32, ctypes.c_uint32]
-LIB.qk_circuit_to_python.argtypes = [
+LIB.qk_circuit_to_python_full.argtypes = [
     ctypes.POINTER(QkCircuit),
 ]
-LIB.qk_circuit_to_python.restype = ctypes.py_object
+LIB.qk_circuit_to_python_full.restype = ctypes.py_object
 LIB.qk_circuit_barrier.argtypes = [
     ctypes.POINTER(QkCircuit),
     ctypes.POINTER(ctypes.c_uint32),
@@ -252,6 +252,6 @@ def transpile_from_c(
         )
     layout = LIB.qk_transpile_layout_to_python(result.layout, result.circuit)
     LIB.qk_transpile_layout_free(result.layout)
-    out = LIB.qk_circuit_to_python(result.circuit)
+    out = LIB.qk_circuit_to_python_full(result.circuit)
     out._layout = layout
     return out
