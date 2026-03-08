@@ -42,11 +42,9 @@ class TestSynthesizeRzRotations(QiskitTestCase):
         num_trials = 40
         for angle in np.linspace(-2 * np.pi, 2 * np.pi, num_trials):
             with self.subTest(angle=angle):
-                # Approximate RZ-rotation
                 qc = QuantumCircuit(1)
                 qc.rz(angle, 0)
                 synthesized_circ = SynthesizeRZRotations()(qc)
-                # Check the operators are (almost) equal
                 self.assertEqual(Operator(synthesized_circ), Operator(RZGate(angle)))
 
     @data(10, -10)
@@ -56,19 +54,16 @@ class TestSynthesizeRzRotations(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.rz(angle, 0)
         synthesized_circ = SynthesizeRZRotations()(qc)
-        # Check the operators are (almost) equal
         self.assertEqual(Operator(synthesized_circ), Operator(RZGate(angle)))
 
     @data(1e-9, 1e-10, 1e-11)
     def test_synthesize_rz_with_approximation_degree(self, epsilon):
         """Test that synthesize_rz_rotations works correctly."""
         approximation_degree = 1 - epsilon
-        # Approximate RZ-rotation
         qc = QuantumCircuit(1)
         angle = 2.3579
         qc.rz(angle, 0)
         synthesized_circ = SynthesizeRZRotations(approximation_degree=approximation_degree)(qc)
-        # Check the operators are (almost) equal
         self.assertEqual(Operator(synthesized_circ), Operator(RZGate(angle)))
 
     @data(
@@ -139,7 +134,6 @@ class TestSynthesizeRzRotations(QiskitTestCase):
         for _ in range(1, num_qubits):
             qc_big = qc_big.tensor(qcs[_])
         qc_big_synth = SynthesizeRZRotations()(qc_big)
-        # Check the operators are (almost) equal
         [
             self.assertEqual(Operator(synthesized_circs[_]), Operator(qcs[_]))
             for _ in range(num_qubits)
@@ -152,5 +146,4 @@ class TestSynthesizeRzRotations(QiskitTestCase):
         qc = QuantumCircuit(num_qubits)
         _ = [[qc.rz(3.57921, _) for _ in range(num_qubits)] for _ in range(depth)]
         synthesized_circ = SynthesizeRZRotations()(qc)
-        # Check the operators are (almost) equal
         self.assertEqual(Operator(synthesized_circ), Operator(qc))
