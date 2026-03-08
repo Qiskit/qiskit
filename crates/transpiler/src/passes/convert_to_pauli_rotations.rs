@@ -573,7 +573,7 @@ pub fn py_convert_to_pauli_rotations(dag: &mut DAGCircuit) -> PyResult<DAGCircui
                         .iter()
                         .map(|q| original_qubits[*q as usize])
                         .collect();
-                    // factor 2.0 is needed since it's PualiProductRotationGate and not PauliEvolutionGate
+                    // factor 2.0 is needed since it's PauliProductRotation and not PauliEvolutionGate
                     let time = multiply_param(&phase_rescale, 2.0);
                     let ppr = generate_pauli_product_rotation_gate(paulis, time.clone());
 
