@@ -20,9 +20,9 @@ from qiskit._accelerate.convert_to_pauli_rotations import convert_to_pauli_rotat
 class ConvertToPauliRotations(TransformationPass):
     r"""
     Convert a quantum circuit containing single-qubit, two-qubit and three-qubit
-    standard gates, barriers and measurements, into an equivalent list of
-    :class:`.PauliProductRotationGate` and a global phase,
-    as well as :class:`.PauliProductMeasurement`.
+    standard gates, barriers and measurements, into an equivalent circuit containing
+    :class:`.PauliProductRotationGate` gates
+    and :class:`.PauliProductMeasurement` instructions.
 
     For example::
 
