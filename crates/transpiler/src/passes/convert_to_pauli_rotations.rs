@@ -548,7 +548,7 @@ pub fn py_convert_to_pauli_rotations(dag: &mut DAGCircuit) -> PyResult<DAGCircui
                 } else if matches!(gate, StandardGate::I) {
                 } else {
                     return Err(TranspilerError::new_err(format!(
-                        "Unable to run convert to pauli rotations as the circuit contains instructions not supported by the pass: {:?}",
+                        "Unable to convert to pauli rotations as the circuit contains instructions not supported by the pass: {:?}",
                         inst.op.name()
                     )));
                 }
