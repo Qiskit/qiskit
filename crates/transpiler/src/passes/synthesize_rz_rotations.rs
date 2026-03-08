@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use anyhow::Context;
 use pyo3::prelude::*;
 use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, PI};
 
@@ -70,8 +71,9 @@ fn canonicalize_angle(angle: f64) -> (u8, f64) {
 fn synthesize_rz_gate_via_gridsynth(
     angle: f64,
     epsilon: f64,
-) -> PyResult<(Vec<StandardGate>, Param)> {
-    let circ_data = py_gridsynth_rz(angle, epsilon)?;
+) -> Result<(Vec<StandardGate>, Param), anyhow::Error> {
+    let circ_data = py_gridsynth_rz(angle, epsilon)
+        .context("Gridsynth failed")?;
 
     // obtain phase from circuit data
     let phase = circ_data.global_phase().clone();
@@ -84,7 +86,7 @@ fn synthesize_rz_gate_via_gridsynth(
             if let OperationRef::StandardGate(gate) = inst.op.view() {
                 gate
             } else {
-                panic!("Non-standard gate found in synthesized circuit");
+                unreachable!("Gridsynth should never return a non-standard gate");
             }
         })
         .collect();
