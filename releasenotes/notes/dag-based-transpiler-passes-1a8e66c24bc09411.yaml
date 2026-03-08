@@ -7,6 +7,7 @@ features_c:
     multiple passes together. The new functions follow the naming convention
     ``qk_transpiler_pass_*`` and include:
 
+    * :c:func:`qk_transpiler_pass_basis_translator`
     * :c:func:`qk_transpiler_pass_elide_permutations`
     * :c:func:`qk_transpiler_pass_check_gate_direction`
     * :c:func:`qk_transpiler_pass_gate_direction`
