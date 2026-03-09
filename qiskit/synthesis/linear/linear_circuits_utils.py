@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -13,7 +13,7 @@
 """Utility functions for handling linear reversible circuits."""
 
 import copy
-from typing import Callable
+from collections.abc import Callable
 import numpy as np
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
@@ -50,7 +50,7 @@ def optimize_cx_4_options(function: Callable, mat: np.ndarray, optimize_count: b
     Args:
         function: the synthesis function.
         mat: a binary invertible matrix.
-        optimize_count: True if the number of CX gates in optimize, False if the depth is optimized.
+        optimize_count: True if the number of CX gates is optimized, False if the depth is optimized.
 
     Returns:
         QuantumCircuit: an optimized :class:`.QuantumCircuit`, has the best depth or CX count of

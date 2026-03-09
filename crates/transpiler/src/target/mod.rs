@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -197,7 +197,8 @@ memory.
     mapping,
     subclass,
     name = "BaseTarget",
-    module = "qiskit._accelerate.target"
+    module = "qiskit._accelerate.target",
+    skip_from_py_object
 )]
 #[derive(Clone, Debug)]
 pub struct Target {
@@ -1500,7 +1501,7 @@ impl Target {
 
     // IndexMap methods
 
-    /// Retreive all the gate names in the Target
+    /// Retrieve all the gate names in the Target
     // TODO: Remove once `Target` is being consumed.
     #[allow(dead_code)]
     pub fn keys(&self) -> impl Iterator<Item = &str> {

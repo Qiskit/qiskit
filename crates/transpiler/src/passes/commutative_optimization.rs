@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -283,7 +283,7 @@ fn try_merge(
     if let (OperationRef::StandardGate(gate1), OperationRef::StandardGate(gate2)) =
         (inst1.op.view(), inst2.op.view())
     {
-        // Check wether the two gates are self-inverse.
+        // Check whether the two gates are self-inverse.
         if let Some((gate1inv, params1inv)) = gate1.inverse(params1) {
             if (gate1inv == gate2) && compare_params(&params1inv, params2)? {
                 return Ok((true, None, 0.));
@@ -315,9 +315,10 @@ fn try_merge(
             (inst1.op.view(), inst2.op.view())
         {
             let merged_instruction = Python::attach(|py| -> PyResult<Option<PackedInstruction>> {
-                let merge_result = imports::MERGE_TWO_PAULI_EVOLUTIONS
-                    .get_bound(py)
-                    .call1((py_gate1.gate.clone_ref(py), py_gate2.gate.clone_ref(py)))?;
+                let merge_result = imports::MERGE_TWO_PAULI_EVOLUTIONS.get_bound(py).call1((
+                    py_gate1.instruction.clone_ref(py),
+                    py_gate2.instruction.clone_ref(py),
+                ))?;
 
                 if merge_result.is_none() {
                     Ok(None)

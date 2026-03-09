@@ -4,13 +4,12 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
 
 """Test Qiskit's QuantumCircuit class."""
 import copy
@@ -39,7 +38,7 @@ from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.quantum_info import Operator
 from qiskit.transpiler import Layout, CouplingMap
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt
@@ -461,7 +460,6 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual({a, c}, set(qc.iter_declared_vars()))
         self.assertEqual(set(), set(qc.iter_declared_stretches()))
 
-    # pylint: disable=invalid-name
     def test_copy_empty_variables(self):
         """Test that an empty copy of circuits including variables copies them across, but does not
         initialise them."""
@@ -501,7 +499,6 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual({b}, set(qc.iter_captured_vars()))
         self.assertEqual(set(), set(qc.iter_captured_stretches()))
 
-    # pylint: disable=invalid-name
     def test_copy_empty_variables_alike(self):
         """Test that an empty copy of circuits including variables copies them across, but does not
         initialise them.  This is the same as the default, just spelled explicitly."""
@@ -541,7 +538,6 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual({e}, set(copied.iter_captured_stretches()))
         self.assertEqual({b}, set(qc.iter_captured_vars()))
 
-    # pylint: disable=invalid-name
     def test_copy_empty_variables_to_captures(self):
         """``vars_mode="captures"`` should convert all variables to captures."""
         a = expr.Var.new("a", types.Bool())

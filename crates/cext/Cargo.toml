@@ -4,7 +4,6 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
-build = "build.rs"
 
 [lib]
 name = "qiskit_cext"
@@ -32,11 +31,6 @@ rand.workspace = true
 rand_pcg.workspace = true
 anyhow.workspace = true
 
-[build-dependencies]
-cbindgen = "0.29"
-
 [features]
-default = ["cbinding"]
 python_binding = ["dep:pyo3"]
-cbinding = []
 cache_pygates = ["qiskit-circuit/cache_pygates", "qiskit-transpiler/cache_pygates"]

@@ -77,4 +77,5 @@ Other:
 
    compiler
    exceptions
+   root
    utils

@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -656,14 +656,15 @@ pub(crate) fn unpack_generic_value_sequence(
 /// Each instruction type has a char representation in qpy
 pub(crate) fn get_circuit_type_key(op: &PackedOperation) -> PyResult<CircuitInstructionType> {
     match op.view() {
-        OperationRef::StandardGate(_) => Ok(CircuitInstructionType::Gate),
+        OperationRef::StandardGate(_)
+        | OperationRef::PauliProductRotation(_)
+        | OperationRef::Unitary(_) => Ok(CircuitInstructionType::Gate),
         OperationRef::StandardInstruction(_)
         | OperationRef::Instruction(_)
         | OperationRef::ControlFlow(_)
         | OperationRef::PauliProductMeasurement(_) => Ok(CircuitInstructionType::Instruction),
-        OperationRef::Unitary(_) => Ok(CircuitInstructionType::Gate),
         OperationRef::Gate(pygate) => Python::attach(|py| {
-            let gate = pygate.gate.bind(py);
+            let gate = pygate.instruction.bind(py);
             if gate.is_instance(imports::PAULI_EVOLUTION_GATE.get_bound(py))? {
                 Ok(CircuitInstructionType::PauliEvolutionGate)
             } else if gate.is_instance(imports::CONTROLLED_GATE.get_bound(py))? {
@@ -674,7 +675,7 @@ pub(crate) fn get_circuit_type_key(op: &PackedOperation) -> PyResult<CircuitInst
         }),
         OperationRef::Operation(operation) => Python::attach(|py| {
             if operation
-                .operation
+                .instruction
                 .bind(py)
                 .is_instance(imports::ANNOTATED_OPERATION.get_bound(py))?
             {

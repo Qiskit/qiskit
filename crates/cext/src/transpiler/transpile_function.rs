@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -21,7 +21,7 @@ use qiskit_transpiler::target::Target;
 use qiskit_transpiler::transpile;
 use qiskit_transpiler::transpile_layout::TranspileLayout;
 use qiskit_transpiler::transpiler::{
-    get_sabre_heuristic, init_stage, layout_stage, optimization_stage, routing_stage,
+    LayoutSource, get_sabre_heuristic, init_stage, layout_stage, optimization_stage, routing_stage,
     translation_stage,
 };
 
@@ -78,7 +78,6 @@ impl Default for TranspileOptions {
 ///
 /// @return A ``QkTranspileOptions`` object with default settings.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub extern "C" fn qk_transpiler_default_options() -> TranspileOptions {
     TranspileOptions::default()
 }
@@ -129,7 +128,6 @@ pub extern "C" fn qk_transpiler_default_options() -> TranspileOptions {
 /// pointer for ``layout`` will be overwritten by this function. If the value pointed to needs to
 /// be freed this must be done outside of this function as it will not be freed by this function.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_stage_init(
     dag: *mut DAGCircuit,
     target: *const Target,
@@ -242,10 +240,7 @@ pub unsafe extern "C" fn qk_transpile_stage_init(
 ///   your own layout pass). You can run ``qk_transpile_layout_generate_from_mapping`` to generate a trivial
 ///   layout (where virtual qubit 0 in the circuit is mapped to physical qubit 0 in the target,
 ///   1->1, 2->2, etc) for the dag at it's current state. This will enable you to generate a layout
-///   object for the routing stage if you generate your own layout. Note that while this makes a
-///   valid layout object to track the permutation caused by routing it does not correctly reflect
-///   the initial layout if your custom layout pass is not a trivial layout. You will need to track
-///   the initial layout independently in this case.
+///   object for the routing stage if you generate your own layout.
 /// @param error A pointer to a pointer with an nul terminated string with an error description.
 ///   If the transpiler fails a pointer to the string with the error description will be written
 ///   to this pointer. That pointer needs to be freed with ``qk_str_free``. This can be a null
@@ -261,7 +256,6 @@ pub unsafe extern "C" fn qk_transpile_stage_init(
 /// respectively. ``options`` must be a valid pointer a to a ``QkTranspileOptions`` or ``NULL``.
 /// ``error`` must be a valid pointer to a ``char`` pointer or ``NULL``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_stage_routing(
     dag: *mut DAGCircuit,
     target: *const Target,
@@ -313,6 +307,8 @@ pub unsafe extern "C" fn qk_transpile_stage_routing(
         seed,
         &sabre_heuristic,
         out_layout,
+        // Use Sabre here to ensure we run VF2PostLayout
+        LayoutSource::Sabre,
     ) {
         Err(e) => {
             if !error.is_null() {
@@ -367,6 +363,14 @@ pub unsafe extern "C" fn qk_transpile_stage_routing(
 ///   If the transpiler fails a pointer to the string with the error description will be written
 ///   to this pointer. That pointer needs to be freed with ``qk_str_free``. This can be a null
 ///   pointer in which case the error will not be written out.
+/// @param layout A pointer to a ``QkTranspileLayout`` object. Typically you will need
+///   to run the `qk_transpile_stage_layout` prior to this function and that will provide a
+///   `QkTranspileLayout` object with the initial layout set you want to take that output layout from
+///   that function and use this as the input for this. If you don't have a layout object (e.g. you ran
+///   your own layout pass). You can run ``qk_transpile_layout_generate_from_mapping`` to generate a trivial
+///   layout (where virtual qubit 0 in the circuit is mapped to physical qubit 0 in the target,
+///   1->1, 2->2, etc) for the dag at it's current state. This will enable you to generate a layout
+///   object for the optimization stage if you generate your own layout.
 ///
 /// @returns The return code for the transpiler, ``QkExitCode_Success`` means success and all
 ///   other values indicate an error.
@@ -378,16 +382,17 @@ pub unsafe extern "C" fn qk_transpile_stage_routing(
 /// be a valid pointer a to a ``QkTranspileOptions`` or ``NULL``. ``error`` must
 /// be a valid pointer to a ``char`` pointer or ``NULL``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_stage_optimization(
     dag: *mut DAGCircuit,
     target: *const Target,
     options: *const TranspileOptions,
     error: *mut *mut c_char,
+    layout: *mut TranspileLayout,
 ) -> ExitCode {
     // SAFETY: Per documentation, the pointers are non-null and aligned.
     let dag = unsafe { mut_ptr_as_ref(dag) };
     let target = unsafe { const_ptr_as_ref(target) };
+    let layout = unsafe { mut_ptr_as_ref(layout) };
     let options = if options.is_null() {
         &TranspileOptions::default()
     } else {
@@ -395,7 +400,6 @@ pub unsafe extern "C" fn qk_transpile_stage_optimization(
         // and aligned pointer.
         unsafe { const_ptr_as_ref(options) }
     };
-
     let approximation_degree = if options.approximation_degree.is_nan() {
         None
     } else {
@@ -422,6 +426,7 @@ pub unsafe extern "C" fn qk_transpile_stage_optimization(
         &mut synthesis_state,
         &mut commutation_checker,
         &mut equiv_lib,
+        layout,
     ) {
         Ok(_) => ExitCode::Success,
         Err(e) => {
@@ -485,7 +490,6 @@ pub unsafe extern "C" fn qk_transpile_stage_optimization(
 /// a ``QkTranspileOptions`` or ``NULL``. ``error`` must be a valid pointer to a ``char`` pointer
 /// or ``NULL``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_stage_translation(
     dag: *mut DAGCircuit,
     target: *const Target,
@@ -592,7 +596,6 @@ pub unsafe extern "C" fn qk_transpile_stage_translation(
 /// ``NULL`` pointer. ``options`` must be a valid pointer a to a ``QkTranspileOptions`` or ``NULL``.
 /// ``error`` must be a valid pointer to a ``char`` pointer or ``NULL``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile_stage_layout(
     dag: *mut DAGCircuit,
     target: *const Target,
@@ -755,7 +758,6 @@ pub unsafe extern "C" fn qk_transpile_stage_layout(
 /// ``options`` must be a valid pointer a to a ``QkTranspileOptions`` or ``NULL``.
 /// ``error`` must be a valid pointer to a ``char`` pointer or ``NULL``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_transpile(
     qc: *const CircuitData,
     target: *const Target,

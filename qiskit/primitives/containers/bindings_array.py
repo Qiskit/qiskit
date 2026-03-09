@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -15,7 +15,8 @@ Bindings array class
 """
 from __future__ import annotations
 
-from typing import Mapping, Union, Tuple
+
+from collections.abc import Mapping
 from collections.abc import Iterable, Mapping as _Mapping
 from itertools import chain, islice
 
@@ -27,13 +28,13 @@ from qiskit.circuit import Parameter, QuantumCircuit
 from .shape import ShapedMixin, ShapeInput, shape_tuple
 
 # Public API classes
-__all__ = ["ParameterLike", "BindingsArrayLike"]
+__all__ = ["BindingsArrayLike", "ParameterLike"]
 
 
-ParameterLike = Union[Parameter, str]
+ParameterLike = Parameter | str
 """A parameter or parameter name."""
 
-BindingsArrayLike = Mapping[Union[ParameterLike, Tuple[ParameterLike, ...]], ArrayLike]
+BindingsArrayLike = Mapping[ParameterLike | tuple[ParameterLike, ...], ArrayLike]
 """A mapping of numeric bindings for circuit parameters.
 
 This allows array values for single or multi-dimensional sweeps over parameter values.
@@ -219,7 +220,7 @@ class BindingsArray(ShapedMixin):
 
         Args:
             circuit: The circuit to bind.
-            loc: A tuple of indices, on for each dimension of this array.
+            loc: A tuple of indices, one for each dimension of this array.
 
         Returns:
             The bound circuit.
