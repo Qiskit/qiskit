@@ -93,6 +93,5 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_transpiler::passes::substitute_pi4_rotations_mod, "substitute_pi4_rotations")?;
     add_submodule(m, ::qiskit_transpiler::passes::synthesize_rz_rotations_mod, "synthesize_rz_rotations")?;
 
-    add_submodule(m, ::qiskit_transpiler::passes::convert_to_pauli_rotations_mod, "convert_to_pauli_rotations")?;
     Ok(())
 }
