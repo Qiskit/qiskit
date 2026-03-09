@@ -289,6 +289,10 @@ pub fn synth_clifford_bm_inner(
     let tableau_shape = tableau.shape();
     let num_qubits = tableau_shape[0] / 2;
 
+    if num_qubits == 0 {
+        return Ok((0, CliffordGatesVec::new()));
+    }
+
     if num_qubits > 3 {
         return Err("Can only decompose Cliffords up to 3-qubits.".to_string());
     }
