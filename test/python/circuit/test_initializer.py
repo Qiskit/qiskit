@@ -520,7 +520,7 @@ class TestInitialize(QiskitTestCase):
         circuit = QuantumCircuit(4, 0)
         circuit.initialize(0, circuit.qubits)
         with self.assertRaises(CircuitError):
-            circuit.inverse()
+            _ = circuit.inverse()
 
 
 class TestInstructionParam(QiskitTestCase):

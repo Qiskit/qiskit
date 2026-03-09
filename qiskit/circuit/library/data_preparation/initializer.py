@@ -109,7 +109,7 @@ class Initialize(Instruction):
         return self._stateprep.broadcast_arguments(qargs, cargs)
 
     def inverse(self, annotated: bool = False):
-        """Overrides initialize.inverse() and raise a circuit error"""
+        """Raises an error as Initialize cannot be inverted."""
         raise CircuitError(
             "Initialize is not unitary thus can not be inverted. "
             "If you want an invertible state preparation, use StatePreparation instead."
