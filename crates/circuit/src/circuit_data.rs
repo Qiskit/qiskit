@@ -286,10 +286,9 @@ pub struct CircuitData {
 ///         in ``qubits`` or ``clbits``.
 #[pyclass(
     name = "CircuitData",
-    freelist = 20,
     sequence,
     module = "qiskit._accelerate.circuit",
-    from_py_object
+    skip_from_py_object
 )]
 #[derive(Clone, Debug)]
 pub struct PyCircuitData {
