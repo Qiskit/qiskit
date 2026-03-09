@@ -14,10 +14,10 @@ use anyhow::Context;
 use pyo3::prelude::*;
 use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, PI};
 
+use crate::QiskitError;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::operations::{OperationRef, Param, StandardGate};
 use qiskit_synthesis::ross_selinger::py_gridsynth_rz;
-use crate::QiskitError;
 
 const MINIMUM_EPSILON: f64 = 1e-2; // minimum epsilon for synthesis
 const MAXIMUM_EPSILON: f64 = 1e-12; // maximum epsilon for synthesis
@@ -73,8 +73,7 @@ fn synthesize_rz_gate_via_gridsynth(
     angle: f64,
     epsilon: f64,
 ) -> Result<(Vec<StandardGate>, Param), anyhow::Error> {
-    let circ_data = py_gridsynth_rz(angle, epsilon)
-        .context("Gridsynth failed")?;
+    let circ_data = py_gridsynth_rz(angle, epsilon).context("Gridsynth failed")?;
 
     // obtain phase from circuit data
     let phase = circ_data.global_phase().clone();
@@ -140,7 +139,7 @@ pub fn py_run_synthesize_rz_rotations(
 
         if should_recompute {
             let (sequence, phase_update) = synthesize_rz_gate_via_gridsynth(angle, epsilon / 2.)
-            .map_err(|e| QiskitError::new_err(e.to_string()))?;
+                .map_err(|e| QiskitError::new_err(e.to_string()))?;
 
             prev_result = Some((angle, (sequence, phase_update)));
         }
