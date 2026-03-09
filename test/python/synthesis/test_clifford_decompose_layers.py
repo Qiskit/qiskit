@@ -30,7 +30,7 @@ from test import QiskitTestCase
 class TestCliffordDecomposeLayers(QiskitTestCase):
     """Tests for clifford advanced decomposition functions."""
 
-    @combine(num_qubits=[4, 5, 6, 7])
+    @combine(num_qubits=[0, 1, 2, 3, 4, 5, 6, 7])
     def test_decompose_clifford(self, num_qubits):
         """Create layer decomposition for a Clifford U, and check that it
         results in an equivalent Clifford."""

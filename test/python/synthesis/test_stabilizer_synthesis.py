@@ -30,7 +30,7 @@ from test import QiskitTestCase
 class TestStabDecomposeLayers(QiskitTestCase):
     """Tests for stabilizer state decomposition functions."""
 
-    @combine(num_qubits=[4, 5, 6, 7])
+    @combine(num_qubits=[0, 1, 2, 3, 4, 5, 6, 7])
     def test_decompose_stab(self, num_qubits):
         """Create layer decomposition for a stabilizer state, and check that it
         results in an equivalent stabilizer state."""
@@ -74,7 +74,7 @@ class TestStabDecomposeLayers(QiskitTestCase):
             # Verify that the two stabilizers produce the same probabilities
             self.assertEqual(stab.probabilities_dict(), stab_target.probabilities_dict())
 
-    @combine(num_qubits=[4, 5], method_lnn=[True, False])
+    @combine(num_qubits=[0, 1, 2, 3, 4, 5], method_lnn=[True, False])
     def test_reduced_inverse_clifford(self, num_qubits, method_lnn):
         """Test that one can use this stabilizer state synthesis method to calculate an inverse Clifford
         that preserves the ground state |0...0>, with a reduced circuit depth.

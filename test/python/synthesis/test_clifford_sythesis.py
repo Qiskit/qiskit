@@ -77,7 +77,7 @@ class TestCliffordSynthesis(QiskitTestCase):
             value = Clifford(synth_circ)
             self.assertEqual(value, target)
 
-    @combine(num_qubits=[1, 2, 3, 4, 5])
+    @combine(num_qubits=[0, 1, 2, 3, 4, 5])
     def test_synth_ag(self, num_qubits):
         """Test A&G synthesis for set of {num_qubits}-qubit Cliffords"""
         samples = 50
@@ -87,7 +87,7 @@ class TestCliffordSynthesis(QiskitTestCase):
             value = Clifford(synth_circ)
             self.assertEqual(value, target)
 
-    @combine(num_qubits=[1, 2, 3, 4, 5])
+    @combine(num_qubits=[0, 1, 2, 3, 4, 5])
     def test_synth_greedy(self, num_qubits):
         """Test greedy synthesis for set of {num_qubits}-qubit Cliffords"""
         samples = 50
@@ -97,7 +97,7 @@ class TestCliffordSynthesis(QiskitTestCase):
             value = Clifford(synth_circ)
             self.assertEqual(value, target)
 
-    @combine(num_qubits=[1, 2, 3, 4, 5])
+    @combine(num_qubits=[0, 1, 2, 3, 4, 5])
     def test_synth_full(self, num_qubits):
         """Test synthesis for set of {num_qubits}-qubit Cliffords"""
         samples = 50
