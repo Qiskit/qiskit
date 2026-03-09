@@ -208,7 +208,9 @@ class PassManager(BasePassManager):
         `Graphviz <https://www.graphviz.org/>`__ to be installed.
 
         .. warning::
-            This deliberately involves calling the system Graphviz binary on untrusted user data.
+            This function will call the system Graphviz tool on a file involving user-controllable
+            strings (such as pass names).  It is recommended to only call this function on trusted
+            input.
 
         Args:
             filename (str): file path to save image to.
@@ -424,7 +426,9 @@ class StagedPassManager(PassManager):
         """Draw the staged pass manager.
 
         .. warning::
-            This deliberately involves calling the system Graphviz binary on untrusted user data.
+            This function will call the system Graphviz tool on a file involving user-controllable
+            strings (such as pass names).  It is recommended to only call this function on trusted
+            input.
 
         Args:
             filename (str): file path to save image to.

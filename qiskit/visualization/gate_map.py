@@ -958,7 +958,9 @@ def plot_coupling_map(
     """Plots an arbitrary coupling map of qubits (embedded in a plane).
 
     .. warning::
-        This deliberately involves calling the system Graphviz binary on untrusted user data.
+        This function will call the system Graphviz tool on a file involving user-controllable
+        strings (such as qubit labels).  It is recommended to only call this function on trusted
+        input.
 
     Args:
         num_qubits (int): The number of qubits defined and plotted.

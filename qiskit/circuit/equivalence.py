@@ -34,7 +34,9 @@ class EquivalenceLibrary(BaseEquivalenceLibrary):
         """Draws the equivalence relations available in the library.
 
         .. warning::
-            This deliberately involves calling the system Graphviz binary on untrusted user data.
+            This function will call the system Graphviz tool on a file involving user-controllable
+            strings (such as gate names).  It is recommended to only call this function on trusted
+            input.
 
         Args:
             filename (str): An optional path to write the output image to.  If unspecified, the

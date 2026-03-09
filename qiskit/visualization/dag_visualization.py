@@ -88,7 +88,9 @@ def dag_drawer(
     ``rustworkx`` package to draw the DAG.
 
     .. warning::
-        This deliberately involves calling the system Graphviz binary on untrusted user data.
+        This function will call the system Graphviz tool on a file involving user-controllable
+        strings (such as operation labels).  It is recommended to only call this function on trusted
+        input.
 
     Args:
         dag (DAGCircuit or DAGDependency): The dag to draw.

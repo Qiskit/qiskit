@@ -492,7 +492,9 @@ class CouplingMap:
         ``rustworkx`` package to draw the :class:`CouplingMap` object.
 
         .. warning::
-            This deliberately involves calling the system Graphviz binary on untrusted user data.
+            This function will call the system Graphviz tool on a file involving user-controllable
+            strings (such as qubit objects).  It is recommended to only call this function on
+            trusted input.
 
         Args:
             method (str): The layout method to use. See the documentation for

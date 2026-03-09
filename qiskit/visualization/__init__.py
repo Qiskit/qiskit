@@ -30,9 +30,11 @@ development environment:
 .. warning::
 
     In general, the visualization tooling in Qiskit may call system programs on arbitrary user
-    input, and should not be used in secure settings.  The visualization tooling provided in Qiskit
-    is mostly intended for local visualization, and deliberately allows user injection of their own
-    custom code inside attributes, such as :attr:`.Instruction.label` in the circuit drawers.
+    input, and should only be used on trusted inputs.  The visualization tooling provided in Qiskit
+    is mostly intended for local visualization, and deliberately allows user code injection in
+    several places, such as Graphviz node labels like register names in :meth:`.DAGCircuit.draw`, or
+    LaTeX instruction labels from :attr:`.Instruction.label` in the ``latex`` mode of
+    :meth:`.QuantumCircuit.draw`.
 
 Common Keyword Arguments
 ========================

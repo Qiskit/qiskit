@@ -3874,8 +3874,8 @@ class QuantumCircuit:
 
             .. warning::
                 This will call an installed system version of ``pdflatex`` on arbitrary user input
-                by design (such as to render custom code in :attr:`.Instruction.label`), and should
-                not be used in a secure setting.
+                by design (such as to render custom code in :attr:`.Instruction.label`), so should
+                only be used on trusted input.
 
         ``latex_source``
             Raw uncompiled LaTeX output.  This is the source of what would be rendered by the
