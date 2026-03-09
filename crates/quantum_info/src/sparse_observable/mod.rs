@@ -893,8 +893,8 @@ impl SparseObservable {
             }
             // Handling the zero-qubit scalar edge case (Identity Operator evolution).
             if op.num_qubits == 0 {
-                let scalar = op.iter().next().unwrap().coeff;
-                return Ok(self * scalar);
+                let scalar = op.coeffs()[0];
+                return Ok(self * (scalar.conj() * scalar));
             }
             if qargs.len() != op.num_qubits as usize {
                 return Err(ArithmeticError::InvalidOperation(format!(
@@ -997,7 +997,7 @@ impl SparseObservable {
                 if coeff == Complex64::new(0.0, 0.0) {
                     continue;
                 }
-                out.coeffs.push(coeff * op_coeff);
+                out.coeffs.push(op_coeff.conj() * coeff * op_coeff);
                 out.indices.extend(indices);
                 out.bit_terms.extend(bit_terms);
                 out.boundaries.push(out.indices.len());
