@@ -17,7 +17,7 @@ use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, PI};
 use crate::QiskitError;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::operations::{OperationRef, Param, StandardGate};
-use qiskit_synthesis::ross_selinger::py_gridsynth_rz;
+use qiskit_synthesis::ross_selinger::gridsynth_rz;
 
 const MINIMUM_EPSILON: f64 = 1e-2; // minimum epsilon for synthesis
 const MAXIMUM_EPSILON: f64 = 1e-12; // maximum epsilon for synthesis
@@ -48,7 +48,7 @@ static PHASE_GATE_LUT: [(f64, Option<StandardGate>); 8] = [
 // where interval is the floor of theta/(pi/2) and is a u8 bit that functions
 // as an index to the static table that uniquely determines the combination of
 // phase_update and angle to be added to the DAG after synthesis using the
-// canonical_angle. 
+// canonical_angle.
 
 /// Finds a canonical representation of an angle.
 ///
@@ -73,7 +73,7 @@ fn synthesize_rz_gate_via_gridsynth(
     angle: f64,
     epsilon: f64,
 ) -> Result<(Vec<StandardGate>, Param), anyhow::Error> {
-    let circ_data = py_gridsynth_rz(angle, epsilon).context("Gridsynth failed")?;
+    let circ_data = gridsynth_rz(angle, epsilon).context("gridsynth failed")?;
 
     // obtain phase from circuit data
     let phase = circ_data.global_phase().clone();
