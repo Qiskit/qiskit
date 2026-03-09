@@ -3627,16 +3627,6 @@ impl PyCircuitData {
         )
     }
 
-    /// Raise exception if list of qubits contains duplicates.
-    #[staticmethod]
-    fn _check_dups(qubits: Vec<ShareableQubit>) -> PyResult<()> {
-        let qubit_set: HashSet<&ShareableQubit> = qubits.iter().collect();
-        if qubits.len() != qubit_set.len() {
-            return Err(CircuitError::new_err("duplicate qubit arguments"));
-        }
-        Ok(())
-    }
-
     /// Add an input variable to the circuit.
     ///
     /// Args:
