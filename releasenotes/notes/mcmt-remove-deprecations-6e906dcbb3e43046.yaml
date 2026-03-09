@@ -1,0 +1,6 @@
+upgrade_circuits:
+  - Removed ``MCMT`` and ``MCMTVChain``, which have been deprecated since Qiskit v1.3.
+    The :class:`.MCMTGate` can be used instead.
+  - Removed support for passing single-qubit single-controlled gates to :class:`.MCMTGate`,
+    which has been deprecated since Qiskit v1.3. Instead, pass the single-qubit gate without
+    control. For example, instead of ``MCMTGate(CXGate())`` use ``MCMTGate(XGate())``.

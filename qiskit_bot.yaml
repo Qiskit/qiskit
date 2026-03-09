@@ -5,11 +5,8 @@
 notifications:
     ".*":
         - "`@Qiskit/terra-core`"
-    "visualization/timeline":
-        - "`@nkanazawa1989`"
     "qpy":
         - "`@mtreinish`"
-        - "`@nkanazawa1989`"
     "two_qubit_decompose":
         - "`@levbishop`"
     "circuit/library":

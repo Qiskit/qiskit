@@ -29,7 +29,7 @@ _SDG_ARRAY = numpy.array([[1, 0], [0, -1j]])
 
 @with_gate_array(_S_ARRAY)
 class SGate(SingletonGate):
-    r"""Single qubit S gate (Z**0.5).
+    r"""Single qubit S gate (:math:`\sqrt{Z}`).
 
     It induces a :math:`\pi/2` phase, and is sometimes called the P gate (phase).
 
@@ -123,7 +123,7 @@ class SGate(SingletonGate):
         return gate
 
     def inverse(self, annotated: bool = False):
-        """Return inverse of S (SdgGate).
+        """Return inverse of S (:class:`.SdgGate`).
 
         Args:
             annotated: when set to ``True``, this is typically used to return an
@@ -147,7 +147,7 @@ class SGate(SingletonGate):
 
 @with_gate_array(_SDG_ARRAY)
 class SdgGate(SingletonGate):
-    r"""Single qubit S-adjoint gate (~Z**0.5).
+    r"""Single qubit S-adjoint gate (:math:`S^\dagger`).
 
     It induces a :math:`-\pi/2` phase.
 
@@ -179,7 +179,10 @@ class SdgGate(SingletonGate):
     _standard_gate = StandardGate.Sdg
 
     def __init__(self, label: Optional[str] = None):
-        """Create new Sdg gate."""
+        """
+        Args:
+            label: An optional label for the gate.
+        """
         super().__init__("sdg", 1, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
@@ -352,7 +355,7 @@ class CSGate(SingletonControlledGate):
 
 @with_controlled_gate_array(_SDG_ARRAY, num_ctrl_qubits=1)
 class CSdgGate(SingletonControlledGate):
-    r"""Controlled-S^\dagger gate.
+    r"""Controlled-:math:`S^\dagger` gate.
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.csdg` method.
