@@ -17,7 +17,7 @@ from __future__ import annotations
 import heapq
 import math
 from operator import itemgetter
-from typing import Callable
+from collections.abc import Callable
 
 import numpy as np
 
@@ -55,7 +55,7 @@ def _average_infidelity(p, q):
 class XXDecomposer:
     r"""
     A class for optimal decomposition of 2-qubit unitaries into 2-qubit basis gates of ``XX`` type
-    (i.e., each locally equivalent to :math:`CAN(\alpha, 0, 0)` for a possibly varying :math:`alpha`).
+    (i.e., each locally equivalent to :math:`CAN(\alpha, 0, 0)` for a possibly varying :math:`\alpha`).
 
     Args:
         basis_fidelity: available strengths and fidelity of each.
@@ -86,7 +86,7 @@ class XXDecomposer:
         backup_optimizer: Callable[..., QuantumCircuit] | None = None,
     ):
         from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import (
-            Optimize1qGatesDecomposition,  # pylint: disable=cyclic-import
+            Optimize1qGatesDecomposition,
         )
 
         self._decomposer1q = Optimize1qGatesDecomposition(ONE_QUBIT_EULER_BASIS_GATES[euler_basis])
@@ -126,7 +126,7 @@ class XXDecomposer:
         Checks that `self.embodiments` is populated with legal circuit embodiments: the key-value
         pair (angle, circuit) satisfies Operator(circuit) approx RXX(angle).to_matrix().
         """
-        # pylint: disable=cyclic-import
+
         from qiskit.quantum_info.operators.measures import average_gate_fidelity
 
         for angle, embodiment in self.embodiments.items():
@@ -258,7 +258,7 @@ class XXDecomposer:
             basis_fidelity, approximate=approximate
         )
 
-        from qiskit.circuit.library import UnitaryGate  # pylint: disable=cyclic-import
+        from qiskit.circuit.library import UnitaryGate
 
         # get the associated _positive_ canonical coordinate
         weyl_decomposition = TwoQubitWeylDecomposition(unitary)

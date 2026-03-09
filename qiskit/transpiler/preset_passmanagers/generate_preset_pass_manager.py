@@ -239,27 +239,26 @@ def generate_preset_pass_manager(
             # If a backend is specified with loose dt, use its target and adjust the dt value.
             target = copy.deepcopy(backend.target)
             target.dt = dt
+        elif basis_gates is not None:
+            # Build target from constraints.
+            target = Target.from_configuration(
+                basis_gates=basis_gates,
+                num_qubits=backend.num_qubits if backend is not None else None,
+                coupling_map=coupling_map,
+                instruction_durations=instruction_durations,
+                concurrent_measurements=(
+                    backend.target.concurrent_measurements if backend is not None else None
+                ),
+                dt=dt,
+                timing_constraints=timing_constraints,
+                custom_name_mapping=name_mapping,
+            )
         else:
-            if basis_gates is not None:
-                # Build target from constraints.
-                target = Target.from_configuration(
-                    basis_gates=basis_gates,
-                    num_qubits=backend.num_qubits if backend is not None else None,
-                    coupling_map=coupling_map,
-                    instruction_durations=instruction_durations,
-                    concurrent_measurements=(
-                        backend.target.concurrent_measurements if backend is not None else None
-                    ),
-                    dt=dt,
-                    timing_constraints=timing_constraints,
-                    custom_name_mapping=name_mapping,
-                )
-            else:
-                target = _FakeTarget.from_configuration(
-                    num_qubits=backend.num_qubits if backend is not None else None,
-                    coupling_map=coupling_map,
-                    dt=dt,
-                )
+            target = _FakeTarget.from_configuration(
+                num_qubits=backend.num_qubits if backend is not None else None,
+                coupling_map=coupling_map,
+                dt=dt,
+            )
 
     # Update loose constraints to populate pm options
     if coupling_map is None:

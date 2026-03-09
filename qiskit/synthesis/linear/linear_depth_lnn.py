@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-Optimize the synthesis of an n-qubit circuit contains only CX gates for
+Optimize the synthesis of an n-qubit circuit containing only CX gates for
 linear nearest neighbor (LNN) connectivity.
 The depth of the circuit is bounded by 5*n, while the gate count is approximately 2.5*n^2
 

@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from numbers import Integral
-from typing import Tuple, Union
+
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import CircuitInstruction
@@ -76,7 +76,7 @@ class SamplerPub(ShapedMixin):
 
     @property
     def shots(self) -> int | None:
-        """An specific number of shots to run with (optional).
+        """A specific number of shots to run with (optional).
 
         This value takes precedence over any value owed by or supplied to a sampler.
         """
@@ -169,13 +169,13 @@ class SamplerPub(ShapedMixin):
             raise ValueError(message)
 
 
-SamplerPubLike = Union[
-    SamplerPub,
-    QuantumCircuit,
-    Tuple[QuantumCircuit],
-    Tuple[QuantumCircuit, BindingsArrayLike],
-    Tuple[QuantumCircuit, BindingsArrayLike, Union[Integral, None]],
-]
+SamplerPubLike = (
+    SamplerPub
+    | QuantumCircuit
+    | tuple[QuantumCircuit]
+    | tuple[QuantumCircuit, BindingsArrayLike]
+    | tuple[QuantumCircuit, BindingsArrayLike, Integral | None]
+)
 """A Pub (Primitive Unified Bloc) for a Sampler.
 
 A fully specified sample Pub is a tuple ``(circuit, parameter_values, shots)``.

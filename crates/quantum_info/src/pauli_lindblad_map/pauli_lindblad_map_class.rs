@@ -192,7 +192,7 @@ impl PauliLindbladMap {
     /// Clear all the generator terms from this map, making it equal to the identity map again.
     ///
     /// This does not change the capacity of the internal allocations, so subsequent addition or
-    /// substraction of generator terms may not need to reallocate.
+    /// subtraction of generator terms may not need to reallocate.
     pub fn clear(&mut self) {
         self.rates.clear();
         self.gamma = 1.0;
@@ -590,7 +590,12 @@ impl GeneratorTerm {
 /// A single term from a complete :class:`PauliLindbladMap`.
 ///
 /// These are typically created by indexing into or iterating through a :class:`PauliLindbladMap`.
-#[pyclass(name = "GeneratorTerm", frozen, module = "qiskit.quantum_info")]
+#[pyclass(
+    name = "GeneratorTerm",
+    frozen,
+    module = "qiskit.quantum_info",
+    skip_from_py_object
+)]
 #[derive(Clone, Debug)]
 struct PyGeneratorTerm {
     inner: GeneratorTerm,
@@ -752,7 +757,7 @@ impl PyGeneratorTerm {
 /// :math:`\lambda_P` are real numbers. When all the rates :math:`\lambda_P` are non-negative, this
 /// corresponds to a completely positive and trace preserving map. The sum in the exponential is
 /// called the generator, and each individual term the generators. To simplify notation in the rest
-/// of the documention, we denote :math:`L(P)\bigl[\circ\bigr] = P \circ P - \circ`.
+/// of the documentation, we denote :math:`L(P)\bigl[\circ\bigr] = P \circ P - \circ`.
 ///
 /// Quasi-probability representation
 /// ================================
@@ -1089,7 +1094,7 @@ impl PyPauliLindbladMap {
     /// Clear all the generator terms from this map, making it equal to the identity map again.
     ///
     /// This does not change the capacity of the internal allocations, so subsequent addition or
-    /// substraction operations resulting from composition may not need to reallocate.
+    /// subtraction operations resulting from composition may not need to reallocate.
     ///
     /// Examples:
     ///
@@ -1684,14 +1689,14 @@ impl PyPauliLindbladMap {
 
     /// Sum any like terms in the generator, removing them if the resulting rate has an absolute
     /// value within tolerance of zero. This also removes terms whose Pauli operator is proportional
-    /// to the identity, as the correponding generator is actually the zero map.
+    /// to the identity, as the corresponding generator is actually the zero map.
     ///
     /// As a side effect, this sorts the generators into a fixed canonical order.
     ///
     /// .. note::
     ///
     ///     When using this for equality comparisons, note that floating-point rounding and the
-    ///     non-associativity fo floating-point addition may cause non-zero coefficients of summed
+    ///     non-associativity of floating-point addition may cause non-zero coefficients of summed
     ///     terms to compare unequal.  To compare two observables up to a tolerance, it is safest to
     ///     compare the canonicalized difference of the two observables to zero.
     ///
@@ -1783,7 +1788,7 @@ impl PyPauliLindbladMap {
     ///
     /// Args: qubit_sparse_pauli (QubitSparsePauli): the qubit sparse Pauli to compute the Pauli
     ///     fidelity of.
-    fn pauli_fidelity(&self, qubit_sparse_pauli: PyQubitSparsePauli) -> PyResult<f64> {
+    fn pauli_fidelity(&self, qubit_sparse_pauli: &PyQubitSparsePauli) -> PyResult<f64> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
         let result = inner.pauli_fidelity(qubit_sparse_pauli.inner())?;
         Ok(result)

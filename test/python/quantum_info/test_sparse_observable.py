@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring
 
 import copy
 import itertools
@@ -27,7 +26,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import SparseObservable, SparsePauliOp, Pauli, PauliList
 from qiskit.transpiler import Target
 
-from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
+from test import QiskitTestCase, combine
 
 
 def single_cases():
@@ -62,7 +61,7 @@ def lnn_target(num_qubits):
 
 
 class AllowRightArithmetic:
-    """Some type that implements only the right-hand-sided arithmatic operations, and allows
+    """Some type that implements only the right-hand-sided arithmetic operations, and allows
     `SparseObservable` to pass through them.
 
     The purpose of this is to detect that `SparseObservable` is correctly delegating binary
@@ -1331,7 +1330,6 @@ class TestSparseObservable(QiskitTestCase):
             )
 
         # We deliberately have the arguments flipped when appropriate, here.
-        # pylint: disable=arguments-out-of-order
 
         left_initial = left.copy()
         right_initial = right.copy()

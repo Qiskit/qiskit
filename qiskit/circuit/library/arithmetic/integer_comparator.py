@@ -187,7 +187,7 @@ class IntegerComparatorGate(Gate):
         r"""
         Args:
             num_state_qubits: The number of qubits in the registers.
-            value: The value :math:`L` to compre to.
+            value: The value :math:`L` to compare to.
             geq: If ``True`` compute :math:`i \geq L`, otherwise compute :math:`i < L`.
             label: An optional label for the gate.
         """

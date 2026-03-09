@@ -19,7 +19,7 @@ from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.converters.dag_to_dagdependency_v2 import _dag_to_dagdependency_v2
 from qiskit.converters.dagdependency_to_dag import dagdependency_to_dag
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestCircuitToDagDependencyV2(QiskitTestCase):
@@ -45,7 +45,7 @@ class TestCircuitToDagDependencyV2(QiskitTestCase):
         self.assertEqual(dag_out, dag_in)
 
     def test_metadata(self):
-        """Test circuit metadata is preservered through conversion."""
+        """Test circuit metadata is preserved through conversion."""
         meta_dict = {"experiment_id": "1234", "execution_number": 4}
         qr = QuantumRegister(2)
         circuit_in = QuantumCircuit(qr, metadata=meta_dict)

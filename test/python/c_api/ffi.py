@@ -25,25 +25,17 @@ LIB = ctypes.PyDLL(LIB_PATH)
 class QkCircuit(ctypes.Structure):
     """QkCircuit Opaque Type"""
 
-    pass
-
 
 class QkTarget(ctypes.Structure):
     """QkTarget Opaque Type"""
-
-    pass
 
 
 class QkTargetEntry(ctypes.Structure):
     """QkTargetEntry Opaque Type"""
 
-    pass
-
 
 class QkTranspileLayout(ctypes.Structure):
     """QkTranspileLayout Opaque Type"""
-
-    pass
 
 
 class QkTranspileOptions(ctypes.Structure):

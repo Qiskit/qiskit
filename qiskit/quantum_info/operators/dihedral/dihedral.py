@@ -85,7 +85,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
      :class:`~qiskit.circuit.library.SwapGate`, :class:`~qiskit.circuit.library.CCZGate`.
      They can be converted back into a :class:`~qiskit.circuit.QuantumCircuit`,
      or :class:`~qiskit.circuit.Gate` object using the :meth:`~CNOTDihedral.to_circuit`
-     or :meth:`~CNOTDihderal.to_instruction` methods respectively. Note that this
+     or :meth:`~CNOTDihedral.to_instruction` methods respectively. Note that this
      decomposition is not necessarily optimal in terms of number of gates
      if the number of qubits is more than two.
 
@@ -113,8 +113,8 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
 
         Args:
             data (CNOTDihedral or QuantumCircuit or ~qiskit.circuit.Instruction):
-                Optional, operator to initialize.
-            num_qubits (int): Optional, initialize an empty CNOTDihedral operator.
+                 operator to initialize.
+            num_qubits (int):  initialize an empty CNOTDihedral operator.
             validate (bool): if True, validates the CNOTDihedral element.
 
         Raises:
@@ -330,7 +330,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
                *Scalable randomized benchmarking of non-Clifford gates*,
                npj Quantum Inf 2, 16012 (2016).
         """
-        # pylint: disable=cyclic-import
+
         from qiskit.synthesis.cnotdihedral import synth_cnotdihedral_full
 
         return synth_cnotdihedral_full(self)

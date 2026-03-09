@@ -16,17 +16,17 @@ use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::imports::PAULI_EVOLUTION_GATE;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
-    Operation, OperationRef, Param, PauliProductMeasurement, PyInstruction, PyOperationTypes,
-    StandardGate, StandardInstruction, multiply_param,
+    Operation, OperationRef, Param, PauliBased, PauliProductMeasurement, PauliProductRotation,
+    PyInstruction, PyOperationTypes, StandardGate, StandardInstruction, multiply_param,
 };
 use qiskit_circuit::packed_instruction::PackedInstruction;
-use qiskit_circuit::{BlocksMode, VarsMode};
-
-use qiskit_quantum_info::clifford::Clifford;
-use qiskit_quantum_info::sparse_observable::SparseObservable;
+use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
 
 use crate::TranspilerError;
 use num_complex::Complex64;
+use qiskit_quantum_info::clifford::Clifford;
+use qiskit_quantum_info::sparse_observable::{BitTerm, SparseObservable};
+
 use smallvec::smallvec;
 use std::f64::consts::PI;
 
@@ -42,11 +42,12 @@ static SUPPORTED_INSTRUCTION_NAMES: [&str; 20] = [
 static HANDLED_INSTRUCTION_NAMES: [&str; 4] = ["t", "tdg", "rz", "measure"];
 
 #[pyfunction]
-#[pyo3(signature = (dag, fix_clifford=true))]
+#[pyo3(signature = (dag, fix_clifford=true, insert_barrier=false, legacy_pauli_evolution=false))]
 pub fn run_litinski_transformation(
-    py: Python,
     dag: &DAGCircuit,
     fix_clifford: bool,
+    insert_barrier: bool,
+    legacy_pauli_evolution: bool,
 ) -> PyResult<Option<DAGCircuit>> {
     let op_counts = dag.get_op_counts();
 
@@ -69,26 +70,18 @@ pub fn run_litinski_transformation(
             .collect();
 
         return Err(TranspilerError::new_err(format!(
-            "Unable to run Litinski tranformation as the circuit contains instructions not supported by the pass: {:?}",
+            "Unable to run Litinski transformation as the circuit contains instructions not supported by the pass: {:?}",
             unsupported
         )));
     }
-    let non_clifford_handled_count: usize = op_counts
+    let non_clifford_handled_count: usize = HANDLED_INSTRUCTION_NAMES
         .iter()
-        .filter_map(|(k, v)| {
-            if HANDLED_INSTRUCTION_NAMES.contains(&k.as_str()) {
-                Some(v)
-            } else {
-                None
-            }
-        })
+        .filter_map(|name| op_counts.get(*name))
         .sum();
     let clifford_count = dag.size(false)? - non_clifford_handled_count;
 
     let new_dag = dag.copy_empty_like_with_same_capacity(VarsMode::Alike, BlocksMode::Keep)?;
     let mut new_dag = new_dag.into_builder();
-
-    let py_evo_cls = PAULI_EVOLUTION_GATE.get_bound(py);
 
     let num_qubits = dag.num_qubits();
     let mut clifford = Clifford::identity(num_qubits);
@@ -247,42 +240,51 @@ pub fn run_litinski_transformation(
                     // Evolve the single-qubit Pauli-Z with Z on the given qubit.
                     // Returns the evolved Pauli in the sparse format: (sign, pauli z, pauli x, indices),
                     // where signs `true` and `false` correspond to coefficients `-1` and `+1` respectively.
-                    let (sign, terms, indices) =
+                    let (sign, z, x, indices) =
                         clifford.get_inverse_z(dag.get_qargs(inst.qubits)[0].index());
-                    let coeffs = vec![Complex64::new(1., 0.)];
-                    let terms_len = terms.len() as u32;
-                    let boundaries = vec![0, terms_len as usize];
-                    // SAFETY: This is computed from the clifford and has a known size based on
-                    // the returned terms that is always valid.
-                    let obs = unsafe {
-                        SparseObservable::new_unchecked(
-                            terms_len,
-                            coeffs,
-                            terms,
-                            (0..terms_len).collect(),
-                            boundaries,
-                        )
-                    };
 
-                    let time = if sign {
-                        multiply_param(&angle, -0.5)
+                    // In the legacy path, we add PauliEvolutionGate as rotation gates, otherwise
+                    // we add PauliProductRotation. The new path should not call Python at any
+                    // point.
+                    let (packed_op, param) = if legacy_pauli_evolution {
+                        let time = if sign {
+                            multiply_param(&angle, -0.5)
+                        } else {
+                            multiply_param(&angle, 0.5)
+                        };
+                        let obs = sparse_obs_from_zx(&z, &x);
+                        let py_gate = Python::attach(|py| -> PyResult<_> {
+                            let py_evo = PAULI_EVOLUTION_GATE
+                                .get_bound(py)
+                                .call1((obs, time.clone()))?;
+                            Ok(PyOperationTypes::Gate(PyInstruction {
+                                qubits: indices.len() as u32,
+                                clbits: 0,
+                                params: 1,
+                                op_name: "PauliEvolution".to_string(),
+                                instruction: py_evo.into(),
+                            }))
+                        })?;
+                        (py_gate.into(), time)
                     } else {
-                        multiply_param(&angle, 0.5)
+                        let angle = if sign {
+                            multiply_param(&angle, -1.0)
+                        } else {
+                            angle
+                        };
+                        let ppr = PauliProductRotation {
+                            z,
+                            x,
+                            angle: angle.clone(),
+                        };
+                        (PauliBased::PauliProductRotation(ppr).into(), angle)
                     };
-                    let py_evo = py_evo_cls.call1((obs, time.clone()))?;
-                    let py_gate = PyOperationTypes::Gate(PyInstruction {
-                        qubits: indices.len() as u32,
-                        clbits: 0,
-                        params: 1,
-                        op_name: "PauliEvolution".to_string(),
-                        instruction: py_evo.into(),
-                    });
 
                     new_dag.apply_operation_back(
-                        py_gate.into(),
+                        packed_op,
                         &indices,
                         &[],
-                        Some(Parameters::Params(smallvec![time])),
+                        Some(Parameters::Params(smallvec![param])),
                         None,
                         #[cfg(feature = "cache_pygates")]
                         None,
@@ -291,14 +293,14 @@ pub fn run_litinski_transformation(
                 OperationRef::StandardInstruction(StandardInstruction::Measure) => {
                     // Returns the evolved Pauli in the sparse format: (sign, pauli z, pauli x, indices),
                     // where signs `true` and `false` correspond to coefficients `-1` and `+1` respectively.
-                    let (sign, z, x, indices) = clifford
-                        .get_inverse_z_for_measurement(dag.get_qargs(inst.qubits)[0].index());
+                    let (sign, z, x, indices) =
+                        clifford.get_inverse_z(dag.get_qargs(inst.qubits)[0].index());
                     let ppm = PauliProductMeasurement { z, x, neg: sign };
 
                     let ppm_clbits = dag.get_cargs(inst.clbits);
 
                     new_dag.apply_operation_back(
-                        ppm.into(),
+                        PauliBased::PauliProductMeasurement(ppm).into(),
                         &indices,
                         ppm_clbits,
                         None,
@@ -321,12 +323,57 @@ pub fn run_litinski_transformation(
     // Since we aim to preserve the global phase of the circuit, we add the Clifford operations from
     // the original circuit (and not the final Clifford operator).
     if fix_clifford {
+        // If specified, insert barriers between the Clifford and the rest of the circuit.
+        if insert_barrier {
+            let barrier = StandardInstruction::Barrier(dag.num_qubits() as u32).into();
+            let qubits = (0..dag.num_qubits() as u32).map(Qubit).collect::<Vec<_>>();
+            new_dag.apply_operation_back(
+                barrier,
+                &qubits,
+                &[],
+                None,
+                None,
+                #[cfg(feature = "cache_pygates")]
+                None,
+            )?;
+        }
         for inst in clifford_ops.into_iter() {
             new_dag.push_back(inst.clone())?;
         }
     }
 
     Ok(Some(new_dag.build()))
+}
+
+fn sparse_obs_from_zx(z: &[bool], x: &[bool]) -> SparseObservable {
+    let bit_terms: Vec<BitTerm> = z
+        .iter()
+        .zip(x)
+        .filter_map(|(&zi, &xi)| {
+            if zi || xi {
+                Some(non_identity_zx_to_bitterm(zi, xi))
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    let boundaries = vec![0, bit_terms.len()];
+    let coeffs = vec![Complex64::new(1.0, 0.0)];
+    let num_qubits = bit_terms.len() as u32;
+    let indices = (0..num_qubits).collect();
+
+    // SAFETY: We manually built the internal data checking it is consistent.
+    unsafe { SparseObservable::new_unchecked(num_qubits, coeffs, bit_terms, indices, boundaries) }
+}
+
+fn non_identity_zx_to_bitterm(z: bool, x: bool) -> BitTerm {
+    match (z, x) {
+        (false, false) => panic!("Identity terms not allowed."),
+        (false, true) => BitTerm::X,
+        (true, true) => BitTerm::Y,
+        (true, false) => BitTerm::Z,
+    }
 }
 
 pub fn litinski_transformation_mod(m: &Bound<PyModule>) -> PyResult<()> {

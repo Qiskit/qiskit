@@ -123,7 +123,7 @@ def _matrix_to_latex(matrix, decimals=10, prefix="", max_size=(8, 8)):
 
     elif len(matrix) > max_height:
         # We need to truncate vertically, so we process the rows at the beginning
-        # and end, and add a line of vertical elipse (dots) characters between them
+        # and end, and add a line of vertical ellipse (dots) characters between them
         out_string += _rows_to_latex(matrix[: max_height // 2], max_width)
 
         if max_width >= matrix.shape[1]:

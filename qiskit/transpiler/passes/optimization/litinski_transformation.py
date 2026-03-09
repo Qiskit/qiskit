@@ -41,37 +41,51 @@ class LitinskiTransformation(TransformationPass):
 
     References:
 
-        [1]: Litinski. A Game of Surface Codes.
-             `Quantum 3, 128 (2019) <https://quantum-journal.org/papers/q-2019-03-05-128>`_
+    [1] Litinski. A Game of Surface Codes.
+    `Quantum 3, 128 (2019) <https://quantum-journal.org/papers/q-2019-03-05-128>`_
 
     """
 
-    def __init__(self, fix_clifford: bool = True):
+    def __init__(
+        self,
+        fix_clifford: bool = True,
+        insert_barrier: bool = False,
+        legacy_pauli_evolution: bool = False,
+    ):
         """
 
         Args:
-            fix_clifford: if ``False`` (non-default), the returned circuit contains
-                only PauliEvolution gates, with the final Clifford gates omitted.
+            fix_clifford: If ``False`` (non-default), the returned circuit contains
+                only :class:`.PauliEvolution` gates, with the final Clifford gates omitted.
                 Note that in this case the operators of the original and synthesized
                 circuits will generally not be equivalent.
+            insert_barrier: If ``True`` and ``fix_clifford=True``, insert a barrier between the
+                circuit and the final cliffords. This argument has no effect if
+                ``fix_clifford=False``.
+            legacy_pauli_evolution: If ``True``, use :class:`.PauliEvolutionGate` to represent
+                the Pauli rotation gates. Otherwise, use :class:`.PauliProductRotationGate`
+                (the default), which uses a more efficient, fully Rust-backed path.
         """
         super().__init__()
         self.fix_clifford = fix_clifford
+        self.insert_barrier = insert_barrier
+        self.legacy_pauli_evolution = legacy_pauli_evolution
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
-        """Run the LitiskiTransformation pass on ``dag``.
+        """Run the LitinskiTransformation pass on ``dag``.
 
         Args:
-            dag: the input DAG.
+            dag: The input DAG.
 
         Returns:
             The output DAG.
 
         Raises:
-            TranspilerError: if the circuit contains gates
-                not supported by the pass.
+            TranspilerError: If the circuit contains gates not supported by the pass.
         """
-        new_dag = run_litinski_transformation(dag, self.fix_clifford)
+        new_dag = run_litinski_transformation(
+            dag, self.fix_clifford, self.insert_barrier, self.legacy_pauli_evolution
+        )
 
         # If the pass did not do anything, the result is None
         if new_dag is None:

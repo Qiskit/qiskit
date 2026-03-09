@@ -15,13 +15,13 @@
 from __future__ import annotations
 
 __all__ = [
+    "CastKind",
     "Ordering",
+    "cast_kind",
+    "greater",
     "is_subtype",
     "is_supertype",
     "order",
-    "greater",
-    "CastKind",
-    "cast_kind",
 ]
 
 import enum
@@ -173,7 +173,7 @@ class CastKind(enum.Enum):
     ``implicit==True`` is the minimum required to specify this."""
     LOSSLESS = enum.auto()
     """The 'from' type can be cast to the 'to' type explicitly, and the cast will be lossless.  This
-    requires a :class:`~.expr.Cast`` node with ``implicit=False``, but there's no danger from
+    requires a :class:`~.expr.Cast` node with ``implicit=False``, but there's no danger from
     inserting one."""
     DANGEROUS = enum.auto()
     """The 'from' type has a defined cast to the 'to' type, but depending on the value, it may lose

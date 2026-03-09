@@ -21,7 +21,7 @@ use std::cmp::{max, min};
 
 use pyo3::prelude::*;
 use qiskit_circuit::Qubit;
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::operations::{Param, StandardGate};
 
 enum CircuitInstructions {
@@ -118,6 +118,9 @@ fn _update_phase_schedule(
     phase_schedule: &mut Array2<usize>,
     swap_plus: &HashSet<(usize, usize)>,
 ) {
+    if n <= 1 {
+        return;
+    }
     let mut layer_order: Vec<usize> = ((1 - (n % 2))..n - 2).step_by(2).rev().collect();
     layer_order.extend((n % 2..n - 2).step_by(2));
     if n > 1 {
@@ -174,7 +177,7 @@ fn _update_phase_schedule(
 /// - Width of the circuit (int `n`)
 /// - A CZ circuit, represented by the `n*n` phase schedule phase_schedule
 /// - A CX circuit, represented by box-labels (seq) and whether the box is SWAP+ (swap_plus)
-///   - This circuit corresponds to the CX tranformation that tranforms a matrix to
+///   - This circuit corresponds to the CX transformation that transforms a matrix to
 ///     a NW matrix (c.f. Prop.7.4, [1])
 ///   - SWAP+ is defined in section 3.A. of [2].
 ///   - As previously noted, the northwest diagonalization procedure of [1] consists
@@ -187,15 +190,15 @@ fn _apply_phase_to_nw_circuit(
     seq: &[(usize, usize)],
     swap_plus: &HashSet<(usize, usize)>,
 ) -> Vec<CircuitInstructions> {
-    let wires: Vec<_> = (0..n - 1)
+    let wires: Vec<_> = (0..n.saturating_sub(1))
         .step_by(2)
         .zip((1..n).step_by(2))
-        .chain((1..n - 1).step_by(2).zip((2..n).step_by(2)))
+        .chain((1..n.saturating_sub(1)).step_by(2).zip((2..n).step_by(2)))
         .collect();
 
     let mut cir: Vec<CircuitInstructions> = Vec::new();
     for (i, &(j, k)) in (0..seq.len()).rev().zip(seq.iter().rev()) {
-        let (w1, w2) = wires[i % (n - 1)];
+        let (w1, w2) = wires[i % (n.saturating_sub(1))];
         if !swap_plus.contains(&(j, k)) {
             cir.push(CircuitInstructions::CX(w1 as u32, w2 as u32));
         }
@@ -249,7 +252,7 @@ fn _apply_phase_to_nw_circuit(
 pub fn py_synth_cx_cz_depth_line_my(
     mat_x: PyReadonlyArray2<bool>,
     mat_z: PyReadonlyArray2<bool>,
-) -> PyResult<CircuitData> {
+) -> PyResult<PyCircuitData> {
     // First, find circuits implementing mat_x by Proposition 7.3 and Proposition 7.4 of [1]
     let n = mat_x.as_array().nrows(); // is a quadratic matrix
     let mat_x = calc_inverse_matrix_inner(mat_x.as_array(), false).unwrap();
@@ -281,9 +284,5 @@ pub fn py_synth_cx_cz_depth_line_my(
         }
         CircuitInstructions::Z(qubit) => (StandardGate::Z, smallvec![], smallvec![Qubit(qubit)]),
     });
-    Ok(CircuitData::from_standard_gates(
-        n as u32,
-        instructions,
-        Param::Float(0.0),
-    )?)
+    Ok(CircuitData::from_standard_gates(n as u32, instructions, Param::Float(0.0))?.into())
 }

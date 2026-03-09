@@ -75,7 +75,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_transpiler::target::target, "target")?;
     add_submodule(m, ::qiskit_accelerate::twirling::twirling, "twirling")?;
     add_submodule(m, ::qiskit_synthesis::two_qubit_decompose::two_qubit_decompose, "two_qubit_decompose")?;
-    add_submodule(m, ::qiskit_synthesis::pauli_product_measurement::pauli_product_measurement_mod, "pauli_product_measurement")?;
+    add_submodule(m, ::qiskit_synthesis::pauli_products::pauli_products_mod, "pauli_products")?;
     add_submodule(m, ::qiskit_transpiler::passes::unitary_synthesis_mod, "unitary_synthesis")?;
     add_submodule(m, ::qiskit_accelerate::uc_gate::uc_gate, "uc_gate")?;
     add_submodule(m, ::qiskit_transpiler::passes::unroll_3q_or_more_mod, "unroll_3q_or_more")?;
@@ -91,5 +91,6 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_transpiler::passes::wrap_angles_mod, "wrap_angles")?;
     add_submodule(m, ::qiskit_transpiler::passes::optimize_clifford_t_mod, "optimize_clifford_t")?;
     add_submodule(m, ::qiskit_transpiler::passes::substitute_pi4_rotations_mod, "substitute_pi4_rotations")?;
+    add_submodule(m, ::qiskit_transpiler::passes::convert_to_pauli_rotations_mod, "convert_to_pauli_rotations")?;
     Ok(())
 }

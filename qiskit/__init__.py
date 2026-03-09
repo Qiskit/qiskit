@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=wrong-import-position,wrong-import-order
 
 # The documentation of the root namespace is manual in `docs/apidoc/root.rst`, so that the
 # :mod:`qiskit` Sphinx cross-reference can more easily point to the top-level API table in our
@@ -34,7 +33,7 @@ else:
     # `qiskit/tools` folder in their path, which will appear as a "namespace package" with no valid
     # location.  We catch that case as "not actually having Qiskit 0.x" as a convenience to devs.
     _has_tools = getattr(importlib.util.find_spec("qiskit.tools"), "has_location", False)
-    _suppress_error = os.environ.get("QISKIT_SUPPRESS_1_0_IMPORT_ERROR", False) == "1"
+    _suppress_error = os.environ.get("QISKIT_SUPPRESS_1_0_IMPORT_ERROR", "") == "1"
     if not _suppress_error and _has_tools:
         raise ImportError(
             "Qiskit is installed in an invalid environment that has both Qiskit >=1.0"
@@ -115,9 +114,7 @@ sys.modules["qiskit._accelerate.synthesis.discrete_basis"] = _accelerate.synthes
 sys.modules["qiskit._accelerate.synthesis.multi_controlled"] = (
     _accelerate.synthesis.multi_controlled
 )
-sys.modules["qiskit._accelerate.synthesis.pauli_product_measurement"] = (
-    _accelerate.synthesis.pauli_product_measurement
-)
+sys.modules["qiskit._accelerate.synthesis.pauli_products"] = _accelerate.synthesis.pauli_products
 sys.modules["qiskit._accelerate.synthesis.qft"] = _accelerate.synthesis.qft
 sys.modules["qiskit._accelerate.split_2q_unitaries"] = _accelerate.split_2q_unitaries
 sys.modules["qiskit._accelerate.gate_direction"] = _accelerate.gate_direction
@@ -139,6 +136,9 @@ sys.modules["qiskit._accelerate.angle_bound_registry"] = _accelerate.angle_bound
 sys.modules["qiskit._accelerate.litinski_transformation"] = _accelerate.litinski_transformation
 sys.modules["qiskit._accelerate.unroll_3q_or_more"] = _accelerate.unroll_3q_or_more
 sys.modules["qiskit._accelerate.substitute_pi4_rotations"] = _accelerate.substitute_pi4_rotations
+sys.modules["qiskit._accelerate.convert_to_pauli_rotations"] = (
+    _accelerate.convert_to_pauli_rotations
+)
 
 
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
@@ -172,6 +172,6 @@ __all__ = [
     "QiskitError",
     "QuantumCircuit",
     "QuantumRegister",
-    "transpile",
     "generate_preset_pass_manager",
+    "transpile",
 ]
