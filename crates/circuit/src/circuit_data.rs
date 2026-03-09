@@ -125,9 +125,9 @@ impl From<CircuitDataError> for PyErr {
 type CircuitDataState<'py> = (
     Vec<QuantumRegister>,
     Vec<ClassicalRegister>,
-    Bound<'py, PyDict>,
-    Bound<'py, PyDict>,
-    Vec<(String, Py<PyAny>)>,
+    Bound<'py, PyDict>,       // qubit location data
+    Bound<'py, PyDict>,       // clbit location data
+    Vec<(String, Py<PyAny>)>, // vector of (variable name, var_stretch_container::IdentifierInfo object) pairs
     Vec<expr::Var>,
     Vec<expr::Stretch>,
 );
