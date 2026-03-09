@@ -46,11 +46,8 @@ class CommutativeCancellation(TransformationPass):
             target (Target): The :class:`~.Target` representing the target backend, if both
                 ``basis_gates`` and ``target`` are specified then this argument will take
                 precedence and ``basis_gates`` will be ignored.
-            approximation_degree (float): a float between 0 and 1, sets the threshold for
-                considering two rotation angles equivalent when cancelling adjacent rotations.
-                A value of 1.0 (default) means only exact cancellations are performed.
-                Values less than 1.0 allow approximate cancellation, useful when
-                small numerical errors prevent exact cancellation.
+            approximation_degree (float): The approximation degree used when analyzing
+                commutations. Must be within ``(0, 1]``.
         """
         super().__init__()
         if basis_gates:
