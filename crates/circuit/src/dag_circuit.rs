@@ -4577,6 +4577,9 @@ impl DAGCircuit {
     /// `the Graphviz documentation <https://www.graphviz.org/download/>`__ on
     /// how to install it.
     ///
+    /// .. warning::
+    ///     This deliberately involves calling the system Graphviz binary on untrusted user data.
+    ///
     /// Args:
     ///     scale (float): scaling factor
     ///     filename (str): file path to save image to (format inferred from name)

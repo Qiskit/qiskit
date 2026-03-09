@@ -38,6 +38,9 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
     This function needs `pydot <https://github.com/pydot/pydot>`__, which in turn needs
     `Graphviz <https://www.graphviz.org/>`__ to be installed.
 
+    .. warning::
+        This function involves calling the system Graphviz binary on untrusted user data.
+
     Args:
         pass_manager (PassManager): the pass manager to be drawn
         filename (str): file path to save image to
@@ -114,6 +117,9 @@ def staged_pass_manager_drawer(pass_manager, filename=None, style=None, raw=Fals
 
         This function needs `pydot <https://github.com/erocarrera/pydot>`__, which in turn needs
     `Graphviz <https://www.graphviz.org/>`__ to be installed.
+
+    .. warning::
+        This function involves calling the system Graphviz binary on untrusted user data.
 
     Args:
         pass_manager (StagedPassManager): the staged pass manager to be drawn

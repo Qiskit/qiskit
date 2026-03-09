@@ -508,6 +508,9 @@ class DAGDependency:
         This function needs `pydot <https://github.com/erocarrera/pydot>`_, which in turn needs
         `Graphviz <https://www.graphviz.org/>`_ to be installed.
 
+        .. warning::
+            This deliberately involves calling the system Graphviz binary on untrusted user data.
+
         Args:
             scale (float): scaling factor
             filename (str): file path to save image to (format inferred from name)

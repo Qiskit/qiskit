@@ -27,6 +27,13 @@ development environment:
 
    pip install 'qiskit[visualization]'
 
+.. warning::
+
+    In general, the visualization tooling in Qiskit may call system programs on arbitrary user
+    input, and should not be used in secure settings.  The visualization tooling provided in Qiskit
+    is mostly intended for local visualization, and deliberately allows user injection of their own
+    custom code inside attributes, such as :attr:`.Instruction.label` in the circuit drawers.
+
 Common Keyword Arguments
 ========================
 
