@@ -1280,7 +1280,7 @@ cleanup:
     return result;
 }
 
-static int test_dag_substitute_op_with_unitary(void) {
+static int test_dag_substitute_node_with_unitary(void) {
     int result = Ok;
 
     // Create a DAG with H, CX, Z, S gates
@@ -1296,7 +1296,7 @@ static int test_dag_substitute_op_with_unitary(void) {
     static const QkComplex64 mat[4] = {{1, 0}, {0, 0}, {0, 0}, {-1, 0}};
 
     // Replace the Z-gate by a unitary matrix
-    qk_dag_substitute_op_with_unitary(dag, idx_z, mat, 1);
+    qk_dag_substitute_node_with_unitary(dag, idx_z, mat, 1);
 
     // The resulting DAG should still have 4 operations
     size_t num_ops_z = qk_dag_num_op_nodes(dag);
@@ -1342,7 +1342,7 @@ int test_dag(void) {
     num_failed += RUN_TEST(test_dag_replace_block_with_unitary);
     num_failed += RUN_TEST(test_dag_replace_qubitless_block_with_unitary);
     num_failed += RUN_TEST(test_dag_replace_illegal_block_with_unitary);
-    num_failed += RUN_TEST(test_dag_substitute_op_with_unitary);
+    num_failed += RUN_TEST(test_dag_substitute_node_with_unitary);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);

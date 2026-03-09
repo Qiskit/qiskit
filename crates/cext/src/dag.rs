@@ -1026,6 +1026,7 @@ pub unsafe extern "C" fn qk_dag_op_node_kind(dag: *const DAGCircuit, node: u32) 
         }
     }
 }
+
 /// A struct for storing successors and predecessors information
 /// retrieved from `qk_dag_successors` and `qk_dag_predecessors`, respectively.
 ///
@@ -1722,23 +1723,20 @@ pub unsafe extern "C" fn qk_dag_replace_block_with_unitary(
 ///     number of clbits should be ``0``.
 /// @param matrix Pointer to an initialized row-major unitary matrix of size
 ///     ``4**num_qubits``.
-/// @param num_qubits The number of qubits the resulting unitary gate acts on.
+/// @param num_qubits The number of qubits the unitary acts on.
 ///
 /// # Example
 /// ```c
-/// // Create a DAG with H, CX, Z, S gates
+/// // Create a DAG with a Z-gate
 /// QkDag *dag = qk_dag_new();
 /// QkQuantumRegister *qr = qk_quantum_register_new(2, "qr");
 /// qk_dag_add_quantum_register(dag, qr);
-/// qk_dag_apply_gate(dag, QkGate_H, (uint32_t[]){0}, NULL, false);
-/// qk_dag_apply_gate(dag, QkGate_CX, (uint32_t[]){0, 1}, NULL, false);
 /// uint32_t idx_z = qk_dag_apply_gate(dag, QkGate_Z, (uint32_t[]){1}, NULL, false);
-/// qk_dag_apply_gate(dag, QkGate_S, (uint32_t[]){1}, NULL, false);
 ///
 /// static const QkComplex64 mat[4] = {{1, 0}, {0, 0}, {0, 0}, {-1, 0}};
 ///
 /// // Replace the Z-gate by a unitary matrix
-/// qk_dag_substitute_op_with_unitary(dag, idx_z, mat, 1);
+/// qk_dag_substitute_node_with_unitary(dag, idx_z, mat, 1);
 ///
 /// // free the register and dag pointer when done
 /// qk_quantum_register_free(qr);
@@ -1751,7 +1749,7 @@ pub unsafe extern "C" fn qk_dag_replace_block_with_unitary(
 /// * `dag` is not an aligned, non-null pointer to a valid ``QkDag``,
 /// * `matrix` is not an aligned pointer to `4**num_qubits` initialized values,
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_dag_substitute_op_with_unitary(
+pub unsafe extern "C" fn qk_dag_substitute_node_with_unitary(
     dag: *mut DAGCircuit,
     node: u32,
     matrix: *const Complex64,
@@ -1767,7 +1765,7 @@ pub unsafe extern "C" fn qk_dag_substitute_op_with_unitary(
 
     dag.substitute_op(
         NodeIndex::new(node as usize),
-        Box::new(UnitaryGate { array }).into(),
+        UnitaryGate { array }.into(),
         None,
         None,
     )

@@ -1,5 +1,5 @@
 ---
 features_c:
   - |
-    Added the C API function :c:func:`qk_dag_substitute_op_with_unitary`, which
+    Added the C API function :c:func:`qk_dag_substitute_node_with_unitary`, which
     substitutes an operation in a node in a DAG circuit by a unitary gate.
