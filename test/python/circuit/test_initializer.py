@@ -521,7 +521,7 @@ class TestInitialize(QiskitTestCase):
         circuit.initialize(0, circuit.qubits)
         with self.assertRaises(CircuitError):
             circuit.inverse()
-        
+
 
 class TestInstructionParam(QiskitTestCase):
     """Test conversion of numpy type parameters."""

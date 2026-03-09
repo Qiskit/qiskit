@@ -110,5 +110,7 @@ class Initialize(Instruction):
 
     def inverse(self, annotated: bool = False):
         """Overrides initialize.inverse() and raise a circuit error"""
-        raise CircuitError ("Initialize is not unitary thus can not be inverted." 
-        "If you want an invertible state preparation, use StatePreparation instead.")
+        raise CircuitError(
+            "Initialize is not unitary thus can not be inverted. "
+            "If you want an invertible state preparation, use StatePreparation instead."
+        )
