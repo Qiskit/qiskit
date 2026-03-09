@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -42,7 +42,6 @@ pub mod vf2;
 
 mod variable_mapper;
 
-use pyo3::PyTypeInfo;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{PySequence, PyString, PyTuple};
@@ -230,35 +229,7 @@ pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<bit::PyQuantumRegister>()?;
     m.add_class::<bit::PyAncillaRegister>()?;
 
-    // We need to explicitly add the auto-generated Python subclasses of Duration
-    // to the module so that pickle can find them during deserialization.
-    m.add_class::<duration::Duration>()?;
-    m.add(
-        "Duration_ps",
-        duration::Duration::type_object(m.py()).getattr("ps")?,
-    )?;
-    m.add(
-        "Duration_ns",
-        duration::Duration::type_object(m.py()).getattr("ns")?,
-    )?;
-    m.add(
-        "Duration_us",
-        duration::Duration::type_object(m.py()).getattr("us")?,
-    )?;
-    m.add(
-        "Duration_ms",
-        duration::Duration::type_object(m.py()).getattr("ms")?,
-    )?;
-    m.add(
-        "Duration_s",
-        duration::Duration::type_object(m.py()).getattr("s")?,
-    )?;
-    m.add(
-        "Duration_dt",
-        duration::Duration::type_object(m.py()).getattr("dt")?,
-    )?;
-
-    m.add_class::<circuit_data::CircuitData>()?;
+    m.add_class::<circuit_data::PyCircuitData>()?;
     m.add_class::<circuit_instruction::CircuitInstruction>()?;
     m.add_class::<dag_circuit::DAGCircuit>()?;
     m.add_class::<dag_node::DAGNode>()?;
@@ -266,6 +237,7 @@ pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<dag_node::DAGOutNode>()?;
     m.add_class::<dag_node::DAGOpNode>()?;
     m.add_class::<dag_circuit::PyBitLocations>()?;
+    m.add_class::<duration::Duration>()?;
     m.add_class::<operations::ControlFlowType>()?;
     m.add_class::<operations::StandardGate>()?;
     m.add_class::<operations::StandardInstructionType>()?;
