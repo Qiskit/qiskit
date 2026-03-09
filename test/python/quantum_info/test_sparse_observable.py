@@ -2417,7 +2417,7 @@ class TestSparseObservable(QiskitTestCase):
         # branch when encountered with a 0 qubit Scalar works.
         obs = SparseObservable.from_list([("XYZ", 1.0), ("ZXY", 0.5)])
         # Identity Pauli (0-qubit) with coefficient 1j
-        pauli = 1j * Pauli('')
+        pauli = 1j * Pauli("")
         result = obs.evolve(pauli, qargs=[])
         # With coefficient 1j: (-1j) * O * (1j) = 1 × O = O
         expected = obs
