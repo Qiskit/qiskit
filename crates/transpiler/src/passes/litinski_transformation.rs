@@ -28,7 +28,7 @@ use qiskit_quantum_info::clifford::Clifford;
 use qiskit_quantum_info::sparse_observable::{BitTerm, SparseObservable};
 
 use smallvec::smallvec;
-use std::f64::consts::PI;
+use std::f64::consts::{FRAC_PI_4, FRAC_PI_8};
 
 // List of gate/instruction names supported by the pass: the pass raises an error if the circuit
 // contains instruction with names outside of this list.
@@ -224,10 +224,10 @@ pub fn run_litinski_transformation(
                     // Convert T and Tdg gates to RZ rotations
                     let (angle, phase_update) = match inst.op.view() {
                         OperationRef::StandardGate(StandardGate::T) => {
-                            (Param::Float(PI / 4.), Param::Float(PI / 8.))
+                            (Param::Float(FRAC_PI_4), Param::Float(FRAC_PI_8))
                         }
                         OperationRef::StandardGate(StandardGate::Tdg) => {
-                            (Param::Float(-PI / 4.0), Param::Float(-PI / 8.))
+                            (Param::Float(-FRAC_PI_4), Param::Float(-FRAC_PI_8))
                         }
                         OperationRef::StandardGate(StandardGate::RZ) => {
                             let param = &inst.params_view()[0];
@@ -236,7 +236,7 @@ pub fn run_litinski_transformation(
                         OperationRef::StandardGate(StandardGate::Phase)
                         | OperationRef::StandardGate(StandardGate::U1) => {
                             let param = &inst.params_view()[0];
-                            (param.clone(), multiply_param(&param, 0.5))
+                            (param.clone(), multiply_param(param, 0.5))
                         }
                         _ => {
                             unreachable!(
