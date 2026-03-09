@@ -67,7 +67,7 @@ class TestCliffordSynthesis(QiskitTestCase):
                 value = Clifford(cliff.to_circuit())
                 self.assertEqual(target, value)
 
-    @combine(num_qubits=[1, 2, 3])
+    @combine(num_qubits=[0, 1, 2, 3])
     def test_synth_bm(self, num_qubits):
         """Test B&M synthesis for set of {num_qubits}-qubit Cliffords"""
         samples = 50
