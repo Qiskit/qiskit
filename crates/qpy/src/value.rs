@@ -18,7 +18,7 @@ use binrw::{BinRead, BinWrite, Endian, binrw};
 use hashbrown::HashMap;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::types::{PyAny, PyBytes};
+use pyo3::types::{PyAny, PyBytes, PyList};
 
 use qiskit_circuit::bit::{ClassicalRegister, ShareableClbit};
 use qiskit_circuit::circuit_data::CircuitData;
@@ -147,11 +147,12 @@ impl<'a> QPYReadData<'a> {
     /// using the current QPY version and empty maps for vars, stretches and vectors.
     pub fn default(
         circuit_data: &'a mut CircuitData,
+        version: u32,
         annotation_factories: &'a Bound<'a, pyo3::types::PyDict>,
     ) -> Self {
         QPYReadData {
             circuit_data,
-            version: QPY_VERSION,
+            version,
             use_symengine: false,
             standalone_vars: HashMap::new(),
             standalone_stretches: HashMap::new(),
@@ -948,15 +949,13 @@ pub(crate) fn py_write_values(
 ///    A list of deserialized values read from the file.
 #[pyfunction]
 #[pyo3(name = "read_values")]
-#[pyo3(signature = (file_obj))]
+#[pyo3(signature = (file_obj, version = None))]
 pub(crate) fn py_read_values(
     py: Python,
     file_obj: &Bound<pyo3::types::PyAny>,
+    version: Option<u32>,
 ) -> PyResult<Py<pyo3::types::PyAny>> {
-    use pyo3::types::{PyBytes, PyList};
-    use qiskit_circuit::circuit_data::CircuitData;
-    use qiskit_circuit::operations::Param;
-
+    let version = version.unwrap_or(QPY_VERSION);
     let pos = file_obj.call_method0("tell")?.extract::<usize>()?;
     let bytes_obj = file_obj.call_method0("read")?;
     let raw_bytes: &[u8] = bytes_obj.cast::<PyBytes>()?.as_bytes();
@@ -965,7 +964,7 @@ pub(crate) fn py_read_values(
 
     let mut dummy_circuit = CircuitData::new(None, None, Param::Float(0.0))?;
     let empty_dict = pyo3::types::PyDict::new(py);
-    let mut qpy_data = QPYReadData::default(&mut dummy_circuit, &empty_dict);
+    let mut qpy_data = QPYReadData::default(&mut dummy_circuit, version, &empty_dict);
 
     let mut result_list = Vec::with_capacity(sequence_pack.elements.len());
     for data_pack in &sequence_pack.elements {
