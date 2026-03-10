@@ -27,10 +27,11 @@ use crate::dag_circuit::{
     DAGCircuit, DAGIdentifierInfo, DAGStretchType, DAGVarType, add_global_phase,
 };
 use crate::imports::{ANNOTATED_OPERATION, QUANTUM_CIRCUIT};
+use crate::instruction::Parameters;
 use crate::interner::{Interned, InternedMap, Interner};
-use crate::object_registry::{ObjectRegistry, ObjectRegistryError};
+use crate::object_registry::{self, ObjectRegistry};
 use crate::operations::{
-    ControlFlow, ControlFlowView, Operation, OperationRef, Param, PyOperationTypes,
+    ControlFlow, ControlFlowView, Operation, OperationRef, Param, PauliBased, PyOperationTypes,
     PythonOperation, StandardGate,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
@@ -40,7 +41,8 @@ use crate::parameter_table::{ParameterTable, ParameterTableError, ParameterUse, 
 use crate::register_data::RegisterData;
 use crate::slice::{PySequenceIndex, SequenceIndex};
 use crate::{
-    Block, BlocksMode, Clbit, ControlFlowBlocks, Qubit, Stretch, Var, VarsMode, instruction,
+    Block, BlocksMode, CapacityError, Clbit, ControlFlowBlocks, Qubit, Stretch, Var, VarsMode,
+    instruction,
 };
 
 use ndarray::ArrayView1;
@@ -52,7 +54,6 @@ use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyList, PySet, PyTuple, PyType};
 use pyo3::{PyTraverseError, PyVisit, import_exception, intern};
 
-use crate::instruction::Parameters;
 use hashbrown::{HashMap, HashSet};
 use indexmap::IndexMap;
 use smallvec::SmallVec;
@@ -71,10 +72,14 @@ import_exception!(qiskit.circuit.exceptions, CircuitError);
 #[non_exhaustive]
 #[derive(Error, Debug)]
 pub enum CircuitDataError {
+    #[error(transparent)]
+    Capacity(#[from] CapacityError),
     #[error("invalid type for global phase")]
     InvalidGlobalPhaseType,
     #[error(transparent)]
-    ObjectRegistryError(#[from] ObjectRegistryError),
+    AbsentObject(object_registry::AbsentObject),
+    #[error(transparent)]
+    AddObjectRegistry(object_registry::AddError),
     // Explicitly an error returned from calling Python
     #[error(transparent)]
     ErrorFromPython(#[from] PyErr),
@@ -105,14 +110,26 @@ pub enum CircuitDataError {
     #[error("bad type after binding for gate '{0}': '{1}'")]
     StandardGateParameterIsComplex(String, String),
 }
+impl<T: Debug> From<object_registry::AbsentObject<T>> for CircuitDataError {
+    fn from(val: object_registry::AbsentObject<T>) -> Self {
+        Self::AbsentObject(val.erase_type())
+    }
+}
+impl<T: Debug, B: Debug> From<object_registry::AddError<T, B>> for CircuitDataError {
+    fn from(val: object_registry::AddError<T, B>) -> Self {
+        Self::AddObjectRegistry(val.erase_type())
+    }
+}
 
 impl From<CircuitDataError> for PyErr {
     fn from(error: CircuitDataError) -> Self {
         match error {
+            CircuitDataError::Capacity(c) => c.into(),
             CircuitDataError::InvalidGlobalPhaseType => {
                 PyTypeError::new_err("invalid type for global phase")
             }
-            CircuitDataError::ObjectRegistryError(e) => e.into(),
+            CircuitDataError::AbsentObject(e) => e.into(),
+            CircuitDataError::AddObjectRegistry(e) => e.into(),
             CircuitDataError::ErrorFromPython(e) => e,
             CircuitDataError::ParameterTableError(e) => e.into(),
             CircuitDataError::DuplicateStretch => {
@@ -286,10 +303,9 @@ pub struct CircuitData {
 ///         in ``qubits`` or ``clbits``.
 #[pyclass(
     name = "CircuitData",
-    freelist = 20,
     sequence,
     module = "qiskit._accelerate.circuit",
-    from_py_object
+    skip_from_py_object
 )]
 #[derive(Clone, Debug)]
 pub struct PyCircuitData {
@@ -501,7 +517,11 @@ impl CircuitData {
         bit: ShareableQubit,
         strict: bool,
     ) -> Result<Qubit, CircuitDataError> {
-        let index = self.qubits.add(bit.clone(), strict)?;
+        let index = if strict {
+            self.qubits.add(bit.clone())?
+        } else {
+            self.qubits.add_allow_existing(bit.clone())?
+        };
         self.qubit_indices
             .insert(bit, BitLocations::new(index.0, []));
         Ok(index)
@@ -512,7 +532,11 @@ impl CircuitData {
         bit: ShareableClbit,
         strict: bool,
     ) -> Result<Clbit, CircuitDataError> {
-        let index = self.clbits.add(bit.clone(), strict)?;
+        let index = if strict {
+            self.clbits.add(bit.clone())?
+        } else {
+            self.clbits.add_allow_existing(bit.clone())?
+        };
         self.clbit_indices
             .insert(bit, BitLocations::new(index.0, []));
         Ok(index)
@@ -1000,9 +1024,7 @@ impl CircuitData {
         let mut registry = ObjectRegistry::with_capacity(num_qubits as usize);
         let mut locator = BitLocator::with_capacity(num_qubits as usize);
         for (index, bit) in register.iter().enumerate() {
-            registry
-                .add(bit.clone(), false)
-                .expect("no duplicates, and in-bounds check already performed");
+            registry.add_unique_within_capacity(bit.clone());
             locator.insert(
                 bit,
                 BitLocations::new(index as u32, [(register.clone(), index)]),
@@ -1902,7 +1924,7 @@ impl CircuitData {
             _ => {}
         }
 
-        let var_idx = self.vars.add(var, true)?;
+        let var_idx = self.vars.add(var)?;
         match var_type {
             CircuitVarType::Input => &mut self.vars_input,
             CircuitVarType::Capture => &mut self.vars_capture,
@@ -1976,7 +1998,7 @@ impl CircuitData {
             }
         }
 
-        let stretch_idx = self.stretches.add(stretch, true)?;
+        let stretch_idx = self.stretches.add(stretch)?;
         match stretch_type {
             CircuitStretchType::Capture => &mut self.stretches_capture,
             CircuitStretchType::Declare => &mut self.stretches_declare,
@@ -2623,13 +2645,13 @@ impl PyCircuitData {
 
         borrowed_mut.inner.vars = ObjectRegistry::<Var, expr::Var>::with_capacity(state.5.len());
         for var in state.5 {
-            borrowed_mut.inner.vars.add(var, false)?;
+            borrowed_mut.inner.vars.add(var)?;
         }
 
         borrowed_mut.inner.stretches =
             ObjectRegistry::<Stretch, expr::Stretch>::with_capacity(state.6.len());
         for stretch in state.6 {
-            borrowed_mut.inner.stretches.add(stretch, false)?;
+            borrowed_mut.inner.stretches.add(stretch)?;
         }
 
         Ok(())
@@ -3050,7 +3072,12 @@ impl PyCircuitData {
                     OperationRef::StandardGate(gate) => gate.into(),
                     OperationRef::StandardInstruction(instruction) => instruction.into(),
                     OperationRef::Unitary(unitary) => unitary.clone().into(),
-                    OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
+                    OperationRef::PauliProductMeasurement(ppm) => {
+                        PauliBased::PauliProductMeasurement(ppm.clone()).into()
+                    }
+                    OperationRef::PauliProductRotation(ppr) => {
+                        PauliBased::PauliProductRotation(ppr.clone()).into()
+                    }
                 };
                 res.data.push(PackedInstruction {
                     op: new_op,
@@ -3076,7 +3103,12 @@ impl PyCircuitData {
                     OperationRef::StandardGate(gate) => gate.into(),
                     OperationRef::StandardInstruction(instruction) => instruction.into(),
                     OperationRef::Unitary(unitary) => unitary.clone().into(),
-                    OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
+                    OperationRef::PauliProductMeasurement(ppm) => {
+                        PauliBased::PauliProductMeasurement(ppm.clone()).into()
+                    }
+                    OperationRef::PauliProductRotation(ppr) => {
+                        PauliBased::PauliProductRotation(ppr.clone()).into()
+                    }
                 };
                 res.data.push(PackedInstruction {
                     op: new_op,
@@ -3617,16 +3649,6 @@ impl PyCircuitData {
         )
     }
 
-    /// Raise exception if list of qubits contains duplicates.
-    #[staticmethod]
-    fn _check_dups(qubits: Vec<ShareableQubit>) -> PyResult<()> {
-        let qubit_set: HashSet<&ShareableQubit> = qubits.iter().collect();
-        if qubits.len() != qubit_set.len() {
-            return Err(CircuitError::new_err("duplicate qubit arguments"));
-        }
-        Ok(())
-    }
-
     /// Add an input variable to the circuit.
     ///
     /// Args:
@@ -3967,7 +3989,8 @@ impl PyCircuitData {
                 | OperationRef::StandardGate(_)
                 | OperationRef::StandardInstruction(_)
                 | OperationRef::Unitary(_)
-                | OperationRef::PauliProductMeasurement(_) => inst.op.clone(),
+                | OperationRef::PauliProductMeasurement(_)
+                | OperationRef::PauliProductRotation(_) => inst.op.clone(),
                 OperationRef::Gate(gate) => {
                     PyOperationTypes::Gate(gate.py_deepcopy(py, None)?).into()
                 }
@@ -4030,18 +4053,32 @@ mod test {
     use crate::operations::{ArrayType, PauliProductMeasurement, UnitaryGate};
     use nalgebra::{Matrix2, Matrix4};
 
-    #[cfg(not(miri))]
     #[test]
     fn packed_pointer_types_behave() -> PyResult<()> {
         // This is largely to exercise the packed-pointer logic under debug builds (since the
         // Python-space tests run with Rust in release mode) and Miri.
+
+        use crate::operations::PauliProductRotation;
         let mut qc = CircuitData::from_packed_operations(4, 1, [], Param::Float(0.0))?;
         qc.push_packed_operation(
-            Box::new(PauliProductMeasurement {
-                z: vec![true, true, true],
-                x: vec![false, false, true],
-                neg: false,
-            })
+            Box::new(PauliBased::PauliProductRotation(PauliProductRotation {
+                z: vec![false, false, true, true],
+                x: vec![false, true, true, false],
+                angle: Param::Float(1.0),
+            }))
+            .into(),
+            None,
+            &[Qubit(0), Qubit(1), Qubit(2), Qubit(3)],
+            &[],
+        )?;
+        qc.push_packed_operation(
+            Box::new(PauliBased::PauliProductMeasurement(
+                PauliProductMeasurement {
+                    z: vec![true, true, true],
+                    x: vec![false, false, true],
+                    neg: false,
+                },
+            ))
             .into(),
             None,
             &[Qubit(0), Qubit(1), Qubit(2)],
@@ -4072,6 +4109,10 @@ mod test {
                     (
                         OperationRef::PauliProductMeasurement(a),
                         OperationRef::PauliProductMeasurement(b),
+                    ) => assert_eq!(a, b),
+                    (
+                        OperationRef::PauliProductRotation(a),
+                        OperationRef::PauliProductRotation(b),
                     ) => assert_eq!(a, b),
                     (a, b) => panic!("unexpected types in iterator:\n{a:?}\n{b:?}"),
                 }

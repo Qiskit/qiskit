@@ -239,7 +239,7 @@ class Options(Mapping):
                 if field > field_validator[1] or field < field_validator[0]:
                     raise ValueError(
                         f"Specified value for '{field_name}' is not a valid value, "
-                        f"must be >={field_validator[0]} or <={field_validator[1]}"
+                        f"must be >={field_validator[0]} and <={field_validator[1]}"
                     )
             elif isinstance(field_validator, list):
                 if field not in field_validator:
