@@ -1838,20 +1838,16 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
 
     // TGate
     //
-    //    ┌─────┐┌─────┐┌─────┐┌─────┐┌─────┐┌─────┐┌─────┐
-    // q: ┤ Tdg ├┤ Tdg ├┤ Tdg ├┤ Tdg ├┤ Tdg ├┤ Tdg ├┤ Tdg ├
-    //    └─────┘└─────┘└─────┘└─────┘└─────┘└─────┘└─────┘
+    //    ┌─────┐┌─────┐┌───┐
+    // q: ┤ Tdg ├┤ Sdg ├┤ Z ├
+    //    └─────┘└─────┘└───┘
     create_standard_equivalence(
         StandardGate::T,
         &[],
         &[
             (StandardGate::Tdg, &[Qubit(0)], &[]),
-            (StandardGate::Tdg, &[Qubit(0)], &[]),
-            (StandardGate::Tdg, &[Qubit(0)], &[]),
-            (StandardGate::Tdg, &[Qubit(0)], &[]),
-            (StandardGate::Tdg, &[Qubit(0)], &[]),
-            (StandardGate::Tdg, &[Qubit(0)], &[]),
-            (StandardGate::Tdg, &[Qubit(0)], &[]),
+            (StandardGate::Sdg, &[Qubit(0)], &[]),
+            (StandardGate::Z, &[Qubit(0)], &[]),
         ],
         0.0,
         &mut equiv,
@@ -1874,20 +1870,16 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
 
     // TdgGate
     //
-    //    ┌───┐┌───┐┌───┐┌───┐┌───┐┌───┐┌───┐
-    // q: ┤ T ├┤ T ├┤ T ├┤ T ├┤ T ├┤ T ├┤ T ├
-    //    └───┘└───┘└───┘└───┘└───┘└───┘└───┘
+    //    ┌───┐┌───┐┌───┐
+    // q: ┤ T ├┤ S ├┤ Z ├
+    //    └───┘└───┘└───┘
     create_standard_equivalence(
         StandardGate::Tdg,
         &[],
         &[
             (StandardGate::T, &[Qubit(0)], &[]),
-            (StandardGate::T, &[Qubit(0)], &[]),
-            (StandardGate::T, &[Qubit(0)], &[]),
-            (StandardGate::T, &[Qubit(0)], &[]),
-            (StandardGate::T, &[Qubit(0)], &[]),
-            (StandardGate::T, &[Qubit(0)], &[]),
-            (StandardGate::T, &[Qubit(0)], &[]),
+            (StandardGate::S, &[Qubit(0)], &[]),
+            (StandardGate::Z, &[Qubit(0)], &[]),
         ],
         0.0,
         &mut equiv,
@@ -2778,6 +2770,23 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         &[
             (StandardGate::S, &[Qubit(0)], &[]),
             (StandardGate::S, &[Qubit(0)], &[]),
+        ],
+        0.0,
+        &mut equiv,
+    )
+    .expect("Error while adding Z gate equivalence");
+
+    // ZGate
+    //
+    //    ┌───┐        ┌─────┐┌─────┐
+    // q: ┤ Z ├  ≡  q: ┤ Sdg ├┤ Sdg ├
+    //    └───┘        └─────┘└─────┘
+    create_standard_equivalence(
+        StandardGate::Z,
+        &[],
+        &[
+            (StandardGate::Sdg, &[Qubit(0)], &[]),
+            (StandardGate::Sdg, &[Qubit(0)], &[]),
         ],
         0.0,
         &mut equiv,
