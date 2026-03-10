@@ -2,6 +2,9 @@
 # This is duplicated as `dependency-groups.build` for convenience.
 requires = [
     "setuptools>=77.0",
+    # This is hard-pinned to permit the awful monkeypatching in `setup.py`.
+    # It should be removed when we can use a released version of
+    # https://github.com/PyO3/setuptools-rust/pull/574
     "setuptools-rust==1.12.0",
 ]
 build-backend = "setuptools.build_meta"
