@@ -1710,3 +1710,65 @@ pub unsafe extern "C" fn qk_dag_replace_block_with_unitary(
         Err(_) => u32::MAX,
     }
 }
+
+/// @ingroup QkDag
+/// Substitute an operation in a node in a ``QkDag`` with a unitary gate
+/// corresponding to the specified unitary matrix.
+///
+/// The new operation should match the shape of the replaced operation.
+/// The qargs and cargs for the node will remain the same.
+///
+/// @param dag Pointer to the DAG.
+/// @param node The node whose operation is substituted. The number of qubits
+///     in the substituted operation should equal to ``num_qubits`` and the
+///     number of clbits should be ``0``.
+/// @param matrix Pointer to an initialized row-major unitary matrix of size
+///     ``4**num_qubits``.
+/// @param num_qubits The number of qubits the unitary acts on.
+///
+/// # Example
+/// ```c
+/// // Create a DAG with a Z-gate
+/// QkDag *dag = qk_dag_new();
+/// QkQuantumRegister *qr = qk_quantum_register_new(2, "qr");
+/// qk_dag_add_quantum_register(dag, qr);
+/// uint32_t idx_z = qk_dag_apply_gate(dag, QkGate_Z, (uint32_t[]){1}, NULL, false);
+///
+/// static const QkComplex64 mat[4] = {{1, 0}, {0, 0}, {0, 0}, {-1, 0}};
+///
+/// // Replace the Z-gate by a unitary matrix
+/// qk_dag_substitute_node_with_unitary(dag, idx_z, mat, 1);
+///
+/// // free the register and dag pointer when done
+/// qk_quantum_register_free(qr);
+/// qk_dag_free(dag);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if any of:
+/// * `dag` is not an aligned, non-null pointer to a valid ``QkDag``,
+/// * `matrix` is not an aligned pointer to `4**num_qubits` initialized values,
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_dag_substitute_node_with_unitary(
+    dag: *mut DAGCircuit,
+    node: u32,
+    matrix: *const Complex64,
+    num_qubits: u32,
+) {
+    // SAFETY: per documentation, `dag` points to valid data.
+    let dag = unsafe { mut_ptr_as_ref(dag) };
+
+    // SAFETY: per documentation, `matrix` is aligned and valid for `4**num_qubits` reads of
+    // initialized data.
+    let array = unsafe { unitary_from_pointer(matrix, num_qubits, None) }
+        .expect("infallible without tolerance checking");
+
+    dag.substitute_op(
+        NodeIndex::new(node as usize),
+        UnitaryGate { array }.into(),
+        None,
+        None,
+    )
+    .expect("Failed to substitute op.")
+}

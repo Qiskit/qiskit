@@ -1037,6 +1037,25 @@ class QuantumCircuit:
 
     instances = 0
     prefix = "circuit"
+    name: str
+    """A human-readable name for the circuit.
+
+    Example:
+
+        .. plot::
+            :include-source:
+            :nofigs:
+            :context: reset
+
+            from qiskit import QuantumCircuit
+
+            qc = QuantumCircuit(2, 2, name="my_circuit")
+            print(qc.name)
+
+        .. code-block:: text
+
+            my_circuit
+    """
 
     def __init__(
         self,
@@ -1128,25 +1147,6 @@ class QuantumCircuit:
 
             regs = tuple(int(reg) for reg in regs)  # cast to int
         self._base_name = None
-        self.name: str
-        """A human-readable name for the circuit.
-
-        Example:
-
-            .. plot::
-                :include-source:
-                :nofigs:
-                :context: reset
-
-                from qiskit import QuantumCircuit
-
-                qc = QuantumCircuit(2, 2, name="my_circuit")
-                print(qc.name)
-
-            .. code-block:: text
-
-                my_circuit
-        """
         if name is None:
             self._base_name = self._cls_prefix()
             self._name_update()
@@ -2903,6 +2903,7 @@ class QuantumCircuit:
         base_instruction = CircuitInstruction(operation, (), ())
         for qarg, carg in broadcast_iter:
             self._check_dups(qarg)
+            self._check_dups(carg)
             instruction = base_instruction.replace(qubits=qarg, clbits=carg)
             circuit_scope.append(instruction)
             instructions._add_ref(circuit_scope.instructions, len(circuit_scope.instructions) - 1)
@@ -3728,9 +3729,17 @@ class QuantumCircuit:
                 f"Could not locate provided bit: {bit}. Has it been added to the QuantumCircuit?"
             ) from err
 
-    def _check_dups(self, qubits: Sequence[Qubit]) -> None:
-        """Raise exception if list of qubits contains duplicates."""
-        CircuitData._check_dups(qubits)
+    def _check_dups(self, bits: Sequence[Bit]) -> None:
+        """Raise exception if list of bits contains duplicates."""
+        match bits:
+            case () | (_,):
+                pass
+            case (a, b):
+                if a == b:
+                    raise CircuitError("duplicate bit arguments")
+            case bits:
+                if len(bits) != len(set(bits)):
+                    raise CircuitError("duplicate bit arguments")
 
     def to_instruction(
         self,
