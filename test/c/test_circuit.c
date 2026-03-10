@@ -1068,7 +1068,7 @@ static int test_pbc(void) {
 
     // retrieve the instructions and verify their are correct
     QkPauliProductRotation out_rot;
-    QkExitCode exit = qk_circuit_get_pauli_rotation(circuit, 0, &out_rot);
+    QkExitCode exit = qk_circuit_get_pauli_product_rotation(circuit, 0, &out_rot);
     if (exit != QkExitCode_Success) {
         result = RuntimeError;
         goto cleanup;

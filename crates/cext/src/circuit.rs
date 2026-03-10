@@ -1126,7 +1126,7 @@ pub unsafe extern "C" fn qk_circuit_pauli_product_rotation(
 /// otherwise this function will panic. Behavior is undefined if ``instruction`` is not a valid,
 /// non-null pointer to a memory allocation with sufficient space for a ``QkPauliProductRotation``.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_circuit_get_pauli_rotation(
+pub unsafe extern "C" fn qk_circuit_get_pauli_product_rotation(
     circuit: *const CircuitData,
     index: usize,
     instruction: *mut CPauliProductRotation,

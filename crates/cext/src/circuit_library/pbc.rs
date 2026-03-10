@@ -39,7 +39,7 @@ pub struct CPauliProductRotation {
 ///
 /// // query the QkPauliProductRotation data
 /// assert(qk_circuit_operation_kind(circuit, index) == QkOperationKind_PauliRotation);
-/// qk_circuit_get_pauli_rotation(circuit, index, &inst);
+/// qk_circuit_get_pauli_product_rotation(circuit, index, &inst);
 ///
 /// // do something with `inst`, and then clear the Rust-allocated data
 /// qk_pauli_product_rotation_clear(&inst);
@@ -110,11 +110,11 @@ pub struct CPauliProductMeasurement {
 /// QkPauliProductMeasurement inst;
 ///
 /// // query the QkPauliProductMeasurement data
-/// assert(qk_circuit_operation_kind(circuit, index) == QkOperationKind_PauliRotation);
-/// qk_circuit_get_pauli_rotation(circuit, index, &inst);
+/// assert(qk_circuit_operation_kind(circuit, index) == QkOperationKind_PauliProductMeasurement);
+/// qk_circuit_get_pauli_measurement(circuit, index, &inst);
 ///
 /// // do something with `inst`, and then clear the Rust-allocated data
-/// qk_pauli_product_rotation_clear(&inst);
+/// qk_pauli_product_measurement_clear(&inst);
 /// ```
 ///
 /// In contrast, this function should not be called if C already takes care of clearing the data.
@@ -123,15 +123,16 @@ pub struct CPauliProductMeasurement {
 /// bool x[4] = {false, true, true, false};
 /// QkPauliProductMeasurement inst = {z, x, 4, true};
 ///
-/// // since this data is allocated by C, we do not call `qk_pauli_product_rotation_clear(&rotation)`!
+/// // since this data is allocated by C, we do not call `qk_pauli_product_measurement_clear(&inst)`
 /// ```
 ///
 /// @param inst A pointer to the ``QkPauliProductMeasurement`` to clear.
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``inst`` is not a valid, non-null pointer to a ``QkPauliProductMeasurement``,
-/// or if the internal data of ``QkPauliProductMeasurement`` is incoherent.
+/// Behavior is undefined if ``inst`` is not a valid, non-null pointer to a
+/// ``QkPauliProductMeasurement``, or if the internal data of ``QkPauliProductMeasurement`` is
+/// incoherent.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_pauli_product_measurement_clear(inst: *mut CPauliProductMeasurement) {
     // SAFETY: The user guarantees `inst` is a valid, non-null pointer to a [CPauliProductMeasurement].

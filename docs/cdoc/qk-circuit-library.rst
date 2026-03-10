@@ -8,13 +8,11 @@ building commonly used quantum circuits.
 Data types
 ==========
 
-.. doxygengroup:: QkPauliProductRotation
+.. doxygenstruct:: QkPauliProductRotation
    :members:
-   :content-only:
 
-.. doxygengroup:: QkPauliProductMeasurement
+.. doxygenstruct:: QkPauliProductMeasurement
    :members:
-   :content-only:
 
 Functions
 =========
