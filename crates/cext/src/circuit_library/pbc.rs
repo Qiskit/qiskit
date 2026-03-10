@@ -13,6 +13,11 @@
 use crate::pointers::mut_ptr_as_ref;
 use qiskit_circuit::operations::Param;
 
+/// A representation of Pauli product rotation data.
+///
+/// A Pauli product rotation implements a rotation of an ``angle`` about an axis defined
+/// by a Pauli product on ``len`` qubits. The Pauli here is represented in ZX format with
+/// two Boolean arrays representing the Z and X components.
 #[repr(C)]
 pub struct CPauliProductRotation {
     /// Pointer to an length-`len` array of Z components.
@@ -38,7 +43,7 @@ pub struct CPauliProductRotation {
 /// QkPauliProductRotation inst;
 ///
 /// // query the QkPauliProductRotation data
-/// assert(qk_circuit_operation_kind(circuit, index) == QkOperationKind_PauliRotation);
+/// assert(qk_circuit_operation_kind(circuit, index) == QkOperationKind_PauliProductRotation);
 /// qk_circuit_get_pauli_product_rotation(circuit, index, &inst);
 ///
 /// // do something with `inst`, and then clear the Rust-allocated data
@@ -84,6 +89,12 @@ pub unsafe extern "C" fn qk_pauli_product_rotation_clear(inst: *mut CPauliProduc
     inst.angle = ::std::ptr::null_mut();
 }
 
+/// A representation of Pauli product measurement data.
+///
+/// A Pauli product measurement implements a projection onto the eigenspace of the defined
+/// Pauli product on ``len`` qubits. The Pauli here is represented in ZX format with
+/// two Boolean arrays representing the Z and X components and can include a minus sign, indicated
+/// by ``flip_outcome``.
 #[repr(C)]
 pub struct CPauliProductMeasurement {
     /// Pointer to an length-`len` array of Z components.
