@@ -16,6 +16,9 @@
 #include <qiskit.h>
 #include <string.h>
 
+/**
+ * Test gate counts after Litinski transformation.
+ */
 static int test_counts(void) {
     QkCircuit *circuit = qk_circuit_new(4, 0);
     qk_circuit_gate(circuit, QkGate_H, (uint32_t[1]){0}, NULL);
@@ -41,6 +44,57 @@ static int test_counts(void) {
                 result = EqualityError;
                 break;
             }
+        }
+    }
+cleanup:
+    qk_circuit_free(circuit);
+    return result;
+}
+
+/**
+ * Test gate counts after converting to Pauli rotations.
+ */
+static int test_counts_pauli_rotations(void) {
+    QkCircuit *circuit = qk_circuit_new(4, 2);
+    qk_circuit_gate(circuit, QkGate_H, (uint32_t[1]){0}, NULL);     // 2 PPR gates
+    qk_circuit_gate(circuit, QkGate_CX, (uint32_t[2]){0, 1}, NULL); // 3 PPR gates
+    qk_circuit_gate(circuit, QkGate_T, (uint32_t[1]){1}, NULL);     // 1 PPR gate
+    qk_circuit_gate(circuit, QkGate_CX, (uint32_t[2]){0, 2}, NULL);
+    qk_circuit_measure(circuit, 0, 0);
+    qk_circuit_gate(circuit, QkGate_T, (uint32_t[1]){1}, NULL);
+    qk_circuit_gate(circuit, QkGate_Tdg, (uint32_t[1]){0}, NULL);
+    qk_circuit_gate(circuit, QkGate_S, (uint32_t[1]){2}, NULL); // 1 PPR gate
+    qk_circuit_gate(circuit, QkGate_T, (uint32_t[1]){2}, NULL);
+    qk_circuit_measure(circuit, 0, 1);
+
+    qk_transpiler_pass_standalone_convert_to_pauli_rotations(circuit);
+    int result = Ok;
+    if (qk_circuit_num_instructions(circuit) != 15) {
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    QkOpCounts op_counts = qk_circuit_count_ops(circuit);
+    const size_t expected_ppr = 13;
+    const size_t expected_ppm = 2;
+    for (size_t i = 0; i < op_counts.len; i++) {
+        if (strcmp(op_counts.data[i].name, "pauli_product_rotation") == 0) {
+            if (op_counts.data[i].count != expected_ppr) {
+                printf("Expected %zu PPR but found %zu\n", expected_ppr, op_counts.data[i].count);
+                result = EqualityError;
+                break;
+            }
+        } else if (strcmp(op_counts.data[i].name, "pauli_product_measurement") == 0) {
+            if (op_counts.data[i].count != 2) {
+                printf("Expected %zu PPM but found %zu\n", expected_ppm, op_counts.data[i].count);
+                result = EqualityError;
+                break;
+            }
+        } else {
+            // unexpected gate name!
+            printf("Unexpected gate: %s\n", op_counts.data[i].name);
+            result = EqualityError;
+            break;
         }
     }
 cleanup:
@@ -182,6 +236,9 @@ cleanup:
     return result;
 }
 
+/**
+ * Test concrete circuit after running the Litinski transformation.
+ */
 static int test_concrete(void) {
     QkCircuit *circuit = qk_circuit_new(4, 4);
     qk_circuit_gate(circuit, QkGate_T, (uint32_t[1]){0}, NULL);
@@ -240,14 +297,56 @@ cleanup:
     return result;
 }
 
-int test_litinski_transformation(void) {
+/**
+ * Test concrete circuit after running conversion to Pauli rotations.
+ */
+static int test_concrete_pauli_rotations(void) {
+    QkCircuit *circuit = qk_circuit_new(4, 1);
+    qk_circuit_gate(circuit, QkGate_T, (uint32_t[1]){0}, NULL);
+    qk_circuit_gate(circuit, QkGate_H, (uint32_t[2]){1}, NULL);
+    qk_circuit_gate(circuit, QkGate_RXX, (uint32_t[2]){2, 3}, (double[1]){1.0});
+    qk_circuit_gate(circuit, QkGate_SXdg, (uint32_t[1]){3}, NULL);
+    qk_circuit_measure(circuit, 0, 0);
+
+    for (uint32_t i = 0; i < 4; i++) {
+    }
+
+    qk_transpiler_pass_standalone_convert_to_pauli_rotations(circuit);
+
+    int result = Ok;
+    result = check_pauli_rotation(circuit, 0, (enum Pauli[1]){PZ}, (uint32_t[1]){0}, 1, M_PI_4);
+    if (result != Ok)
+        goto cleanup;
+    result = check_pauli_rotation(circuit, 1, (enum Pauli[1]){PY}, (uint32_t[1]){1}, 1, M_PI_2);
+    if (result != Ok)
+        goto cleanup;
+    result = check_pauli_rotation(circuit, 2, (enum Pauli[1]){PX}, (uint32_t[1]){1}, 1, M_PI);
+    if (result != Ok)
+        goto cleanup;
+    result = check_pauli_rotation(circuit, 3, (enum Pauli[2]){PX, PX}, (uint32_t[2]){2, 3}, 2, 1.0);
+    if (result != Ok)
+        goto cleanup;
+    result = check_pauli_rotation(circuit, 4, (enum Pauli[1]){PX}, (uint32_t[1]){3}, 1, -M_PI_2);
+    if (result != Ok)
+        goto cleanup;
+
+    result =
+        check_pauli_measurement(circuit, 5, (enum Pauli[1]){PZ}, (uint32_t[1]){0}, 1, 0, false);
+
+cleanup:
+    qk_circuit_free(circuit);
+    return result;
+}
+int test_pbc(void) {
     int num_failed = 0;
 
     num_failed += RUN_TEST(test_counts);
+    num_failed += RUN_TEST(test_counts_pauli_rotations);
     num_failed += RUN_TEST(test_concrete);
+    num_failed += RUN_TEST(test_concrete_pauli_rotations);
 
     fflush(stderr);
-    fprintf(stderr, "=== Number of failed subtests (Litinski transformation): %i\n", num_failed);
+    fprintf(stderr, "=== Number of failed subtests (PBC transformations): %i\n", num_failed);
 
     return num_failed;
 }

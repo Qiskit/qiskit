@@ -11,30 +11,27 @@
 // that they have been altered from the originals.
 
 use qiskit_circuit::{circuit_data::CircuitData, dag_circuit::DAGCircuit};
-use qiskit_transpiler::passes::run_litinski_transformation;
+use qiskit_transpiler::passes::py_convert_to_pauli_rotations;
 
 use crate::pointers::mut_ptr_as_ref;
 
 /// @ingroup QkTranspilerPasses
-/// Run the ``LitinskiTransformation`` pass in-place on a circuit.
+/// Run the ``ConvertToPauliRotations`` pass in-place on a circuit.
 ///
-/// This pass commutes all Clifford gates to the end of the circuit, converting Pauli rotation
-/// gates into ``QkPauliProductRotation`` gates and measurements into ``QkPauliProductMeasurement``
-/// instructions. Note that this pass currently only supports circuits that have ``QkGate_T``,
-/// ``QkGate_Tdg`` or ``QkGate_RZ`` gates as non-Cliffords and panics otherwise.  The suggested
-/// workflow is to first transpile into a Clifford+RZ basis and then call this pass.
+/// This pass converts all standard gates in the circuit into a sequence of
+/// ``QkPauliProductRotation`` gates and measurements into ``QkPauliProductMeasurement``
+/// instructions. Note that this pass panics if the circuit contains non-standard gates.
+/// The suggested workflow is to first transpile into a standard basis, keeping rotation gates
+/// (such as ``QkGate_RXX`` and others) intact where possible, and then call this pass.
 ///
 /// @param circuit A pointer to the circuit on which to run the pass.
-/// @param fix_clifford If ``true``, leave the Clifford gates at the end of the circuit. If
-///   ``false`` they are omitted.
 ///
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` is not valid, non-null pointers to a ``QkCircuit``.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_transpiler_pass_standalone_litinski_transformation(
+pub unsafe extern "C" fn qk_transpiler_pass_standalone_convert_to_pauli_rotations(
     circuit: *mut CircuitData,
-    fix_clifford: bool,
 ) {
     // SAFETY: The user guarantees the pointer is safe to read.
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
@@ -42,12 +39,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_litinski_transformation(
         Ok(dag) => dag,
         Err(_) => panic!("Internal Circuit -> DAG conversion failed"),
     };
-    // TODO: Potentially propagate exit code to the user
-    let maybe_out = run_litinski_transformation(&dag, fix_clifford, false, false)
-        .expect("Failed running Litinski transformation");
+    let out = py_convert_to_pauli_rotations(&dag).expect("Failed running PBC conversion.");
     // If a DAG is returned, the circuit has been modified. Else just leave it as is.
-    if let Some(out) = maybe_out {
-        *circuit =
-            CircuitData::from_dag_ref(&out).expect("Internal DAG -> Circuit conversion failed")
-    };
+    *circuit = CircuitData::from_dag_ref(&out).expect("Internal DAG -> Circuit conversion failed");
 }
