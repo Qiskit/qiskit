@@ -1176,14 +1176,10 @@ class TranslateToCliffordTPassManager(PassManagerStagePlugin):
     """
 
     def pass_manager(self, pass_manager_config, optimization_level=None):
-        basis_gates = pass_manager_config.basis_gates
-        target = pass_manager_config.target
-
         rz_to_t_translation = PassManager(
             [
                 SubstitutePi4Rotations(),
                 SynthesizeRZRotations(),
-                BasisTranslator(sel, basis_gates, target),
             ]
         )
         return rz_to_t_translation
@@ -1202,23 +1198,26 @@ class OptimizeCliffordTPassManager(PassManagerStagePlugin):
             res = not property_set["all_gates_in_basis"]
             return res
 
-        fix_direction = [
+        # The final stage consists of translating gates to target basis and adhering to
+        # the directionality of the coupling map.
+        translate_to_target = [
+            BasisTranslator(sel, basis_gates, target),
             GatesInBasis(pass_manager_config.basis_gates, target=pass_manager_config.target),
             ConditionalController(
-                GateDirection(
-                    coupling_map=pass_manager_config.coupling_map, target=pass_manager_config.target
-                ),
+                [
+                    GateDirection(
+                        coupling_map=pass_manager_config.coupling_map,
+                        target=pass_manager_config.target,
+                    ),
+                    BasisTranslator(sel, basis_gates, target),
+                ],
                 condition=should_fix_direction,
             ),
         ]
 
-        fix_1q = [BasisTranslator(sel, basis_gates, target)]
-
-        optimization = PassManager()
-
         match optimization_level:
             case 0:
-                return PassManager(fix_direction + fix_1q)
+                return PassManager(translate_to_target)
 
             case 1:
                 loop = [
@@ -1226,8 +1225,8 @@ class OptimizeCliffordTPassManager(PassManagerStagePlugin):
                     OptimizeCliffordT(),
                     ContractIdleWiresInControlFlow(),
                 ]
-                post_loop = fix_direction + fix_1q
                 loop_check, continue_loop = _optimization_check_fixed_point()
+                post_loop = translate_to_target
             case 2 | 3:
                 loop = [
                     OptimizeCliffordT(),
@@ -1235,8 +1234,8 @@ class OptimizeCliffordTPassManager(PassManagerStagePlugin):
                     SubstitutePi4Rotations(),
                     ContractIdleWiresInControlFlow(),
                 ]
-                post_loop = fix_direction + fix_1q
                 loop_check, continue_loop = _optimization_check_fixed_point()
+                post_loop = translate_to_target
             case bad:
                 raise TranspilerError(f"Invalid optimization_level: {bad}")
 
