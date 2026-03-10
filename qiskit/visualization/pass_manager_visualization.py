@@ -121,7 +121,9 @@ def staged_pass_manager_drawer(pass_manager, filename=None, style=None, raw=Fals
     `Graphviz <https://www.graphviz.org/>`__ to be installed.
 
     .. warning::
-        This function involves calling the system Graphviz binary on untrusted user data.
+        This function will call the system Graphviz tool on a file involving user-controllable
+        strings (such as pass names).  It is recommended to only call this function on trusted
+        input.
 
     Args:
         pass_manager (StagedPassManager): the staged pass manager to be drawn
