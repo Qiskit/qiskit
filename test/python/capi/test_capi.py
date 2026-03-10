@@ -10,12 +10,10 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-function-docstring,missing-class-docstring,missing-module-docstring
-
 from pathlib import Path
 
 from qiskit import capi
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestCAPI(QiskitTestCase):
