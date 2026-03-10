@@ -126,13 +126,14 @@ pub(crate) fn pack_expression_var(
                 name: register.name().to_string(),
             }),
         ),
-        Var::Standalone { uuid, name: _, ty } => (
+        Var::Standalone { uuid, name, ty } => (
             ty,
             ExpressionVarElementPack::Uuid(*qpy_data.standalone_var_indices.get(uuid).ok_or_else(
                 || {
-                    QpyError::InvalidParameter(
-                        "Could not find standalone variable {name} in the qpy data".to_string(),
-                    )
+                    QpyError::InvalidParameter(format!(
+                        "Could not find standalone variable {:?} in the qpy data",
+                        &name
+                    ))
                 },
             )?),
         ),
