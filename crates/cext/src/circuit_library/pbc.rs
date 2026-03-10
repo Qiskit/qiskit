@@ -122,7 +122,7 @@ pub struct CPauliProductMeasurement {
 ///
 /// // query the QkPauliProductMeasurement data
 /// assert(qk_circuit_operation_kind(circuit, index) == QkOperationKind_PauliProductMeasurement);
-/// qk_circuit_get_pauli_measurement(circuit, index, &inst);
+/// qk_circuit_get_pauli_product_measurement(circuit, index, &inst);
 ///
 /// // do something with `inst`, and then clear the Rust-allocated data
 /// qk_pauli_product_measurement_clear(&inst);
