@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -40,7 +40,7 @@ from qiskit.dagcircuit.dagcircuit import DAGCircuit
 
 logger = logging.getLogger(__name__)
 
-# When expanding the list of supported gates this needs to updated in
+# When expanding the list of supported gates this needs to be updated in
 # lockstep with the VALID_BASES constant in src/euler_one_qubit_decomposer.rs
 # and the global variables in one_qubit_decompose.py
 NAME_MAP = {
@@ -226,7 +226,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
     def _error(self, circuit, qubit):
         """
         Calculate a rough error for a `circuit` that runs on a specific
-        `qubit` of `target` (`circuit` is a list of DAGOPNodes).
+        `qubit` of `target` (`circuit` is a list of DAGOpNodes).
 
         Use basis errors from target if available, otherwise use length
         of circuit as a weak proxy for error.

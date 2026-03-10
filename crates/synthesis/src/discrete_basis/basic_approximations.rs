@@ -4,12 +4,13 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use binrw::{BinRead, BinWrite, binrw};
 use hashbrown::HashMap;
 use nalgebra::{Matrix2, Matrix3};
 use num_complex::{Complex, ComplexFloat};
@@ -23,7 +24,6 @@ use qiskit_circuit::{
     operations::{Operation, OperationRef, Param, StandardGate},
 };
 use rstar::{Point, RTree};
-use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use thiserror::Error;
 
@@ -49,7 +49,7 @@ impl From<DiscreteBasisError> for PyErr {
 /// Gates are stored in **circuit order**, not in matrix multiplication order. That means that
 /// e.g. [H, T] corresponds to the matrix U = T @ H. The matrix is not stored as U(2), but in
 /// a SO(3) representation, which discards the global phase.
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone, Debug)]
 pub struct GateSequence {
     // The sequence of standard gates.
@@ -61,11 +61,49 @@ pub struct GateSequence {
 }
 
 /// A serializable version of the [GateSequence] used to store and retrieve [BasicApproximations].
-#[derive(Serialize, Deserialize)]
+#[binrw]
+#[brw(big)]
+#[derive(Clone, Debug)]
 struct SerializableGateSequence {
+    #[bw(calc = gates.len() as u64)]
+    #[br(temp)]
+    gates_len: u64,
+    #[br(count = gates_len)]
     gates: Vec<u8>,
+    #[bw(calc = matrix_so3.len() as u64)]
+    #[br(temp)]
+    matrix_so3_len: u64,
+    #[br(count = matrix_so3_len)]
     matrix_so3: Vec<f64>,
     phase: f64,
+}
+
+/// A serializable version of the [HashMap] used to store and retrieve [BasicApproximations].
+#[binrw]
+#[brw(big)]
+struct SerializableHashMap {
+    #[br(temp)]
+    #[bw(calc = data.len() as u64)]
+    len: u64,
+
+    #[br(count = len)]
+    data: Vec<(u64, SerializableGateSequence)>,
+}
+
+impl SerializableHashMap {
+    fn into_hashmap(self) -> HashMap<usize, SerializableGateSequence> {
+        self.data
+            .into_iter()
+            .map(|(key, value)| (key as usize, value))
+            .collect()
+    }
+    fn from_hashmap(map: HashMap<usize, SerializableGateSequence>) -> Self {
+        let data = map
+            .iter()
+            .map(|(key, value)| (*key as u64, value.clone()))
+            .collect::<Vec<_>>();
+        SerializableHashMap { data }
+    }
 }
 
 impl From<&GateSequence> for SerializableGateSequence {
@@ -355,7 +393,7 @@ impl Point for BasicPoint {
 ///
 /// This struct allows to construct a tree of basic approximations and to query the closest
 /// sequence given an target sequence (or SO(3) matrix).
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct BasicApproximations {
     /// All points as flattened SO(3) matrix stored in a R* tree. This does not include the
     /// sequence of gates, see ``approximations``.
@@ -467,20 +505,21 @@ impl BasicApproximations {
             .map(|(key, value)| (*key, SerializableGateSequence::from(value)))
             .collect::<HashMap<usize, SerializableGateSequence>>();
 
-        // store the now serializable HashMap
-        let file = ::std::fs::File::create(filename)?;
-        bincode::serialize_into(file, &serializable_approx).map_err(::std::io::Error::other)?;
-        Ok(())
+        // Write the HashMap to file using binrw
+        let mut file = ::std::fs::File::create(filename)?;
+        SerializableHashMap::from_hashmap(serializable_approx)
+            .write(&mut file)
+            .map_err(::std::io::Error::other)
     }
 
     /// Load the basic approximations from a file. See [Self::save] for saving the object.
     pub fn load(filename: &str) -> ::std::io::Result<Self> {
-        // store the now serializable HashMap
-        let file = ::std::fs::File::open(filename)?;
-        let serializable_approx: HashMap<usize, SerializableGateSequence> =
-            bincode::deserialize_from(file).map_err(::std::io::Error::other)?;
+        let mut file = ::std::fs::File::open(filename)?;
+        let serializable_approx = SerializableHashMap::read(&mut file)
+            .map_err(::std::io::Error::other)?
+            .into_hashmap();
 
-        // construct the GateSequence from it's serializable version
+        // construct the GateSequence from its serializable version
         let approximations = serializable_approx
             .iter()
             .map(|(key, value)| (*key, GateSequence::from(value)))

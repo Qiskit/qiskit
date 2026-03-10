@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -12,7 +12,6 @@
 
 use std::f64::consts::PI;
 
-use crate::QiskitError;
 use hashbrown::HashMap;
 use ndarray::ArrayView2;
 use ndarray::linalg::kron;
@@ -20,15 +19,17 @@ use ndarray::prelude::*;
 use num_complex::Complex64;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::ONE_QUBIT_IDENTITY;
 use qiskit_circuit::instruction::Instruction;
 use qiskit_circuit::operations::StandardGate::{I, X, Y, Z};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedInstruction;
+
+use crate::QiskitError;
+
 use qiskit_circuit::{BlocksMode, NoBlocks, VarsMode};
 use qiskit_transpiler::passes::{
     Optimize1qGatesDecompositionState, run_optimize_1q_gates_decomposition,
@@ -302,7 +303,7 @@ fn generate_twirled_circuit(
             optimizer_target.num_qubits.unwrap_or(0) as usize,
         );
         run_optimize_1q_gates_decomposition(&mut dag, &state, Some(optimizer_target), None, None)?;
-        Ok(dag_to_circuit(&dag, false)?)
+        Ok(CircuitData::from_dag_ref(&dag)?)
     } else {
         Ok(out_circ)
     }
@@ -311,13 +312,13 @@ fn generate_twirled_circuit(
 #[pyfunction]
 #[pyo3(signature=(circ, twirled_gate=None, custom_twirled_gates=None, seed=None, num_twirls=1, optimizer_target=None))]
 pub(crate) fn twirl_circuit(
-    circ: &CircuitData,
+    circ: &PyCircuitData,
     twirled_gate: Option<Vec<StandardGate>>,
     custom_twirled_gates: Option<Vec<OperationFromPython<NoBlocks>>>,
     seed: Option<u64>,
     num_twirls: usize,
     optimizer_target: Option<&Target>,
-) -> PyResult<Vec<CircuitData>> {
+) -> PyResult<Vec<PyCircuitData>> {
     let mut rng = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
         None => Pcg64Mcg::from_os_rng(),
@@ -397,6 +398,7 @@ pub(crate) fn twirl_circuit(
                 custom_gate_twirling_sets.as_ref(),
                 optimizer_target,
             )
+            .map(Into::into)
         })
         .collect()
 }

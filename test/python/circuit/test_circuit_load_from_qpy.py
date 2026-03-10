@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -76,7 +76,7 @@ from qiskit.quantum_info import Pauli, SparsePauliOp, Clifford
 from qiskit.quantum_info.random import random_unitary
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.utils import optionals
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt.ddt
@@ -1234,7 +1234,7 @@ class TestLoadFromQPY(QiskitTestCase):
         class CustomDeserializer(json.JSONDecoder):
             """Custom json decoder to handle CustomObject."""
 
-            def object_hook(self, o):  # pylint: disable=invalid-name,method-hidden
+            def object_hook(self, o):
                 """Hook to override default decoder.
 
                 Normally specified as a kwarg on load() that overloads the
@@ -1508,11 +1508,11 @@ class TestLoadFromQPY(QiskitTestCase):
             mcx_vchain_gate = MCXVChain(3)
         mcmt_gate = MCMTGate(ZGate(), 2, 1)
         qc.append(mcu1_gate, [0, 2, 1])
-        qc.append(mcx_gate, list(range(0, 6)))
-        qc.append(mcx_gray_gate, list(range(0, 6)))
-        qc.append(mcx_recursive_gate, list(range(0, 5)))
-        qc.append(mcx_vchain_gate, list(range(0, 5)))
-        qc.append(mcmt_gate, list(range(0, 3)))
+        qc.append(mcx_gate, list(range(6)))
+        qc.append(mcx_gray_gate, list(range(6)))
+        qc.append(mcx_recursive_gate, list(range(5)))
+        qc.append(mcx_vchain_gate, list(range(5)))
+        qc.append(mcmt_gate, list(range(3)))
         qc.mcp(np.pi, [0, 2], 1)
         qc.mcx([0, 2], 1)
         qc.measure_all()
@@ -1715,6 +1715,7 @@ class TestLoadFromQPY(QiskitTestCase):
         """Test that `IfElseOp` and `WhileLoopOp` can have an `Expr` node as their `condition`, and
         that this round-trips through QPY."""
         inner = QuantumCircuit(1)
+        inner.x(0)
         outer = QuantumCircuit(1, 1)
         control_flow(outer, expr.lift(outer.clbits[0]), inner.copy(), [0], [])
 
