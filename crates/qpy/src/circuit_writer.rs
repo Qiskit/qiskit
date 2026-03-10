@@ -213,7 +213,7 @@ fn pack_instruction_blocks(
     }
 }
 
-/// For Custom Native Operations.
+/// For Custom Rust-Native Operations.
 fn pack_custom_operation(
     op: &dyn CustomOperation,
     params: &[Param],

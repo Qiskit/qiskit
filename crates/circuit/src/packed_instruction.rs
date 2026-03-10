@@ -48,7 +48,7 @@ enum PackedOperationType {
     UnitaryGate = 3,
     PauliBased = 4,
     ControlFlow = 5,
-    Native = 6,
+    Custom = 6,
 }
 impl PackedOperationType {
     /// Get `self` as a mask that can be used as a discriminant for `PackedOperation` pointers.
@@ -158,7 +158,7 @@ impl From<*mut ()> for PackedOperationInner {
 ///     UnitaryGate(Box<UnitaryGate>),
 ///     PauliBased(Box<PauliBased>),
 ///     ControlFlow(Box<ControlFlowInstruction>),
-///     Native(Box<dyn CustomOperation>),
+///     Custom(Box<dyn CustomOperation>),
 /// }
 /// ```
 ///
@@ -442,7 +442,7 @@ mod pointer {
     impl_packable_pointer!(UnitaryGate, PackedOperationType::UnitaryGate);
     impl_packable_pointer!(PauliBased, PackedOperationType::PauliBased);
     impl_packable_pointer!(ControlFlowInstruction, PackedOperationType::ControlFlow);
-    impl_packable_pointer!(CustomOp, PackedOperationType::Native);
+    impl_packable_pointer!(CustomOp, PackedOperationType::Custom);
 }
 
 impl PackedOperation {
@@ -528,7 +528,7 @@ impl PackedOperation {
                     }
                 }
             }
-            PackedOperationType::Native => {
+            PackedOperationType::Custom => {
                 let native: &CustomOp = self.try_into().unwrap();
                 OperationRef::CustomOperation(&**native)
             }
@@ -542,7 +542,7 @@ impl PackedOperation {
     pub fn is_gate(&self) -> bool {
         match self.discriminant() {
             PackedOperationType::StandardGate => true,
-            PackedOperationType::Native => {
+            PackedOperationType::Custom => {
                 let opaque: &CustomOp = self.try_into().unwrap();
                 matches!(opaque.kind(), CustomOperationKind::Gate)
             }
@@ -700,7 +700,7 @@ impl PackedOperation {
             // TODO: Implement Python exposure for Custom Operations.
             OperationRef::CustomOperation(_) => {
                 return Err(PyNotImplementedError::new_err(
-                    "Native gates cannot be exposed to Python yet.",
+                    "Custom gates cannot be exposed to Python yet.",
                 ));
             }
             OperationRef::PauliProductRotation(_) => {
@@ -788,7 +788,7 @@ impl Drop for PackedOperation {
             PackedOperationType::UnitaryGate => UnitaryGate::drop_packed(self),
             PackedOperationType::PauliBased => PauliBased::drop_packed(self),
             PackedOperationType::ControlFlow => ControlFlowInstruction::drop_packed(self),
-            PackedOperationType::Native => CustomOp::drop_packed(self),
+            PackedOperationType::Custom => CustomOp::drop_packed(self),
         }
     }
 }
