@@ -31,7 +31,7 @@ these two objects with the functions :func:`get_include` and :func:`get_lib` res
 
 .. warning::
     You typically *should not* link directly against the output of :func:`get_lib`, unless you know
-    what you are doing.  In particular, directly linking against this objcet is not a safe way to
+    what you are doing.  In particular, directly linking against this object is not a safe way to
     build a distributable Python extension module that uses Qiskit's C API.
 
     However, if you understand all the caveats of direct linking, you can use the function to get

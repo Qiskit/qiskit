@@ -44,10 +44,10 @@ def find_cargo_artifacts_patch(cargo_messages, *, package_id, kinds):
     # Chances are that the line we're looking for will be the third laste line in the
     # messages.  The last is the completion report, the penultimate is generally the
     # build of the final artifact.
-    for messsage in reversed(cargo_messages):
-        if "build-script-executed" not in messsage or package_id not in messsage:
+    for message in reversed(cargo_messages):
+        if "build-script-executed" not in message or package_id not in message:
             continue
-        parsed = json.loads(messsage)
+        parsed = json.loads(message)
         if parsed.get("package_id") == package_id:
             out_dir = parsed.get("out_dir")
             break
@@ -84,10 +84,8 @@ def install_extension_patch(self, ext, dylib_paths):
             source_full = artifact_dir / source
             dest_full = dest / source_full.name
             if source_full.is_file():
-                # logger.info("Copying data file from %s to %s", source_full, dest_full)
                 shutil.copy2(source_full, dest_full)
             elif source_full.is_dir():
-                # logger.info("Copying data directory from %s to %s", source_full, dest_full)
                 shutil.copytree(source_full, dest_full, dirs_exist_ok=True)
             # This tacitly makes "no match" a silent non-error.
 
