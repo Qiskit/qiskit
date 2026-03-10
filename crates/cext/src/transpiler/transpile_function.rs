@@ -21,7 +21,7 @@ use qiskit_transpiler::target::Target;
 use qiskit_transpiler::transpile;
 use qiskit_transpiler::transpile_layout::TranspileLayout;
 use qiskit_transpiler::transpiler::{
-    get_sabre_heuristic, init_stage, layout_stage, optimization_stage, routing_stage,
+    LayoutSource, get_sabre_heuristic, init_stage, layout_stage, optimization_stage, routing_stage,
     translation_stage,
 };
 
@@ -240,10 +240,7 @@ pub unsafe extern "C" fn qk_transpile_stage_init(
 ///   your own layout pass). You can run ``qk_transpile_layout_generate_from_mapping`` to generate a trivial
 ///   layout (where virtual qubit 0 in the circuit is mapped to physical qubit 0 in the target,
 ///   1->1, 2->2, etc) for the dag at it's current state. This will enable you to generate a layout
-///   object for the routing stage if you generate your own layout. Note that while this makes a
-///   valid layout object to track the permutation caused by routing it does not correctly reflect
-///   the initial layout if your custom layout pass is not a trivial layout. You will need to track
-///   the initial layout independently in this case.
+///   object for the routing stage if you generate your own layout.
 /// @param error A pointer to a pointer with an nul terminated string with an error description.
 ///   If the transpiler fails a pointer to the string with the error description will be written
 ///   to this pointer. That pointer needs to be freed with ``qk_str_free``. This can be a null
@@ -310,6 +307,8 @@ pub unsafe extern "C" fn qk_transpile_stage_routing(
         seed,
         &sabre_heuristic,
         out_layout,
+        // Use Sabre here to ensure we run VF2PostLayout
+        LayoutSource::Sabre,
     ) {
         Err(e) => {
             if !error.is_null() {
@@ -364,6 +363,14 @@ pub unsafe extern "C" fn qk_transpile_stage_routing(
 ///   If the transpiler fails a pointer to the string with the error description will be written
 ///   to this pointer. That pointer needs to be freed with ``qk_str_free``. This can be a null
 ///   pointer in which case the error will not be written out.
+/// @param layout A pointer to a ``QkTranspileLayout`` object. Typically you will need
+///   to run the `qk_transpile_stage_layout` prior to this function and that will provide a
+///   `QkTranspileLayout` object with the initial layout set you want to take that output layout from
+///   that function and use this as the input for this. If you don't have a layout object (e.g. you ran
+///   your own layout pass). You can run ``qk_transpile_layout_generate_from_mapping`` to generate a trivial
+///   layout (where virtual qubit 0 in the circuit is mapped to physical qubit 0 in the target,
+///   1->1, 2->2, etc) for the dag at it's current state. This will enable you to generate a layout
+///   object for the optimization stage if you generate your own layout.
 ///
 /// @returns The return code for the transpiler, ``QkExitCode_Success`` means success and all
 ///   other values indicate an error.
@@ -380,10 +387,12 @@ pub unsafe extern "C" fn qk_transpile_stage_optimization(
     target: *const Target,
     options: *const TranspileOptions,
     error: *mut *mut c_char,
+    layout: *mut TranspileLayout,
 ) -> ExitCode {
     // SAFETY: Per documentation, the pointers are non-null and aligned.
     let dag = unsafe { mut_ptr_as_ref(dag) };
     let target = unsafe { const_ptr_as_ref(target) };
+    let layout = unsafe { mut_ptr_as_ref(layout) };
     let options = if options.is_null() {
         &TranspileOptions::default()
     } else {
@@ -391,7 +400,6 @@ pub unsafe extern "C" fn qk_transpile_stage_optimization(
         // and aligned pointer.
         unsafe { const_ptr_as_ref(options) }
     };
-
     let approximation_degree = if options.approximation_degree.is_nan() {
         None
     } else {
@@ -418,6 +426,7 @@ pub unsafe extern "C" fn qk_transpile_stage_optimization(
         &mut synthesis_state,
         &mut commutation_checker,
         &mut equiv_lib,
+        layout,
     ) {
         Ok(_) => ExitCode::Success,
         Err(e) => {

@@ -674,12 +674,13 @@ pub(crate) fn get_circuit_type_key(
     op: &PackedOperation,
 ) -> Result<CircuitInstructionType, QpyError> {
     match op.view() {
-        OperationRef::StandardGate(_) => Ok(CircuitInstructionType::Gate),
+        OperationRef::StandardGate(_)
+        | OperationRef::PauliProductRotation(_)
+        | OperationRef::Unitary(_) => Ok(CircuitInstructionType::Gate),
         OperationRef::StandardInstruction(_)
         | OperationRef::Instruction(_)
         | OperationRef::ControlFlow(_)
         | OperationRef::PauliProductMeasurement(_) => Ok(CircuitInstructionType::Instruction),
-        OperationRef::Unitary(_) => Ok(CircuitInstructionType::Gate),
         OperationRef::Gate(pygate) => Python::attach(|py| {
             let gate = pygate.instruction.bind(py);
             if gate.is_instance(imports::PAULI_EVOLUTION_GATE.get_bound(py))? {
