@@ -410,6 +410,28 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
 
     // RXGate
     //
+    //    ┌───────┐        ┌───┐┌───────┐┌───┐
+    // q: ┤ Rx(ϴ) ├  ≡  q: ┤ H ├┤ Rz(ϴ) ├┤ H ├
+    //    └───────┘        └───┘└───────┘└───┘
+    create_standard_equivalence(
+        StandardGate::RX,
+        &[Param::ParameterExpression(theta.clone())],
+        &[
+            (StandardGate::H, &[Qubit(0)], &[]),
+            (
+                StandardGate::RZ,
+                &[Qubit(0)],
+                &[Param::ParameterExpression(theta.clone())],
+            ),
+            (StandardGate::H, &[Qubit(0)], &[]),
+        ],
+        0.0,
+        &mut equiv,
+    )
+    .expect("Error while adding RX gate equivalence");
+
+    // RXGate
+    //
     //    ┌───────┐        ┌────────┐
     // q: ┤ Rx(ϴ) ├  ≡  q: ┤ R(ϴ,0) ├
     //    └───────┘        └────────┘

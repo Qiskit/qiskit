@@ -147,6 +147,7 @@ class TestCliffordTPassManager(QiskitTestCase):
 
         # All the gates should be within the specified basis set.
         self.assertLessEqual(set(transpiled_ops), set(basis_gates))
+        self.assertEqual(transpiled_ops, {"h": 2, "t": 1})
 
     @data(0, 1, 2, 3)
     def test_qft(self, optimization_level):
