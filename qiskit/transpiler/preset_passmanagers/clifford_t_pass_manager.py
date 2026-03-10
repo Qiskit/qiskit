@@ -32,7 +32,7 @@ from qiskit.transpiler.preset_passmanagers.builtin_plugins import (
 def generate_clifford_t_pass_manager(
     pass_manager_config: PassManagerConfig, optimization_level: int
 ) -> StagedPassManager:
-    """Generate Clifford+T stage pass manager.
+    """Generate Clifford+T staged pass manager.
 
     Args:
         pass_manager_config: configuration of the pass manager.
@@ -41,7 +41,7 @@ def generate_clifford_t_pass_manager(
             levels generate potentially more optimized circuits, at the expense
             of longer transpilation time.
     Returns:
-        Stage pass manager.
+        Staged pass manager.
 
     Raises:
         TranspilerError: if the passmanager config is invalid.
