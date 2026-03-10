@@ -144,9 +144,10 @@ pub fn py_run_synthesize_rz_rotations(
             prev_result = Some((angle, (sequence, phase_update)));
         }
 
-        let (sequence, phase_update) 
-            = &prev_result.as_ref().expect("is_none_or ensures prev_result is never None").1; 
-        
+        let (sequence, phase_update) = &prev_result
+            .as_ref()
+            .expect("is_none_or ensures prev_result is never None")
+            .1;
 
         // Add the gates and phase update to DAG, remove old node
 
