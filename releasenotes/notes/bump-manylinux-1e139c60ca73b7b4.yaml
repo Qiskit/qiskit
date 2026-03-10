@@ -1,5 +1,5 @@
 ---
-upgrade_build:
+upgrade_misc:
   - |
     Qiskit now builds on the `manylinux_2_28 image <https://github.com/pypa/manylinux?tab=readme-ov-file#manylinux_2_28-almalinux-8-based>`__,
     which effectively increases the required version of ``glibc`` on Linux hosts to 2.28, up from 2.17.
