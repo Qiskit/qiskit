@@ -702,23 +702,62 @@ class TestGeneratorObservableCommutation(QiskitTestCase):
                     msg=f"{std_gate.name} coefficient should be angle/2",
                 )
 
-    def test_rotation_gates_operator_equivalence(self):
-        """Verify that gate ≈ exp(-i * H) for rotation gates."""
+    def test_all_gates_operator_equivalence(self):
+        """Verify that gate ≈ exp(-i * H) for all supported gates (Clifford + Rotation)."""
         from qiskit._accelerate.circuit import StandardGate
         from qiskit._accelerate.sparse_observable import _generator_observable
         from qiskit.circuit.library import (
+            XGate,
+            YGate,
+            ZGate,
+            HGate,
+            SGate,
+            SdgGate,
+            TGate,
+            TdgGate,
+            SXGate,
+            SXdgGate,
+            CXGate,
+            CYGate,
+            CZGate,
+            CSGate,
+            CSdgGate,
+            CSXGate,
+            SwapGate,
+            CCXGate,
+            CCZGate,
+            CSwapGate,
             RXGate,
             RYGate,
             RZGate,
             PhaseGate,
             RXXGate,
-            RYYGate,
-            RZZGate,
             RZXGate,
+            iSwapGate,
         )
 
         theta = 0.5
         cases = [
+            (StandardGate.X, XGate()),
+            (StandardGate.Y, YGate()),
+            (StandardGate.Z, ZGate()),
+            (StandardGate.H, HGate()),
+            (StandardGate.S, SGate()),
+            (StandardGate.Sdg, SdgGate()),
+            (StandardGate.T, TGate()),
+            (StandardGate.Tdg, TdgGate()),
+            (StandardGate.SX, SXGate()),
+            (StandardGate.SXdg, SXdgGate()),
+            (StandardGate.CX, CXGate()),
+            (StandardGate.CY, CYGate()),
+            (StandardGate.CZ, CZGate()),
+            (StandardGate.CS, CSGate()),
+            (StandardGate.CSdg, CSdgGate()),
+            (StandardGate.CSX, CSXGate()),
+            (StandardGate.Swap, SwapGate()),
+            (StandardGate.CCX, CCXGate()),
+            (StandardGate.CCZ, CCZGate()),
+            (StandardGate.CSwap, CSwapGate()),
             (StandardGate.RX, RXGate(theta)),
             (StandardGate.RY, RYGate(theta)),
             (StandardGate.RZ, RZGate(theta)),
@@ -727,21 +766,25 @@ class TestGeneratorObservableCommutation(QiskitTestCase):
             (StandardGate.RYY, RYYGate(theta)),
             (StandardGate.RZZ, RZZGate(theta)),
             (StandardGate.RZX, RZXGate(theta)),
+            (StandardGate.ISwap, iSwapGate()),
         ]
 
         for std_gate, gate_obj in cases:
             with self.subTest(gate=std_gate.name):
                 obs = _generator_observable(std_gate, gate_obj.params)
-                self.assertIsNotNone(obs)
+                self.assertIsNotNone(obs, f"{std_gate.name} should have a generator")
 
                 # Convert generator SparseObservable to Operator via PauliEvolutionGate
+                # Convention: gate = exp(-i * H). So time=1.0.
                 evo = PauliEvolutionGate(obs, time=1.0)
                 gen_op = Operator(evo)
                 target_op = Operator(gate_obj)
 
+                # Operator.equiv() checks for equivalence up to global phase
                 self.assertTrue(
                     gen_op.equiv(target_op),
-                    f"Generator for {std_gate.name} is not equivalent to the gate unitary",
+                    f"Generator for {std_gate.name} is not equivalent to the gate unitary. "
+                    f"Dist: {np.linalg.norm(gen_op.data - target_op.data)}",
                 )
 
 
