@@ -112,6 +112,29 @@ class TestCircuitOperations(QiskitTestCase):
             opaque = Instruction("opaque", 1, len(specifier), [])
             test.append(opaque, [0], specifier)
 
+    def test_append_rejects_duplicates(self):
+        test = QuantumCircuit(3, 3)
+
+        qargs = Instruction("qargs", 2, 0, [])
+        with self.subTest("qubit-int"), self.assertRaisesRegex(CircuitError, "duplicate"):
+            test.append(qargs, [0, 0], [])
+        with self.subTest("qubit-bit"), self.assertRaisesRegex(CircuitError, "duplicate"):
+            test.append(qargs, [test.qubits[0]] * 2, [])
+        with self.subTest("qubit-mixed"), self.assertRaisesRegex(CircuitError, "duplicate"):
+            test.append(qargs, [0, test.qubits[0]], [])
+        with self.subTest("qubit-many"), self.assertRaisesRegex(CircuitError, "duplicate"):
+            test.append(Instruction("many", 3, 0, []), [0, 1, 0], [])
+
+        cargs = Instruction("cargs", 0, 2, [])
+        with self.subTest("clbit-int"), self.assertRaisesRegex(CircuitError, "duplicate"):
+            test.append(cargs, [], [0, 0])
+        with self.subTest("clbit-bit"), self.assertRaisesRegex(CircuitError, "duplicate"):
+            test.append(cargs, [], [test.clbits[0]] * 2)
+        with self.subTest("clbit-mixed"), self.assertRaisesRegex(CircuitError, "duplicate"):
+            test.append(cargs, [], [0, test.clbits[0]])
+        with self.subTest("clbit-many"), self.assertRaisesRegex(CircuitError, "duplicate"):
+            test.append(Instruction("many", 0, 3, []), [], [0, 1, -2])
+
     def test_append_rejects_bits_not_in_circuit(self):
         """Test that append rejects bits that are not in the circuit."""
         test = QuantumCircuit(2, 2)

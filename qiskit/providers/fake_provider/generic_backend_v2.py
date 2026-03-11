@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Generic BackendV2 class that with a simulated ``run``."""
+"""Generic BackendV2 class with a simulated ``run``."""
 
 from __future__ import annotations
 import warnings
