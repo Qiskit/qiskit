@@ -1772,6 +1772,7 @@ pub unsafe extern "C" fn qk_dag_substitute_node_with_unitary(
     .expect("Failed to substitute op.")
 }
 
+/// @ingroup QkDag
 /// Pass ownership of a `QkDag` object to Python.
 ///
 /// It is not safe to use the `QkDag` pointer after calling this function.  In particular, you
