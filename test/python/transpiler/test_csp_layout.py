@@ -316,6 +316,43 @@ class TestCSPLayout(QiskitTestCase):
 
         self.assertNotEqual(layout_1, layout_2)
 
+    def test_multi_qubit_gate_requires_complete_connectivity(self):
+        """CSPLayout should not find a solution for a 3-qubit gate on a
+        linear coupling map (0 - 1 - 2), since qubits 0 and 2 are not
+        directly connected. This is the exact scenario from issue #7155.
+        """
+        qr = QuantumRegister(3, "q")
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[0], qr[1])
+        circuit.ccx(qr[2], qr[0], qr[1])
+
+        dag = circuit_to_dag(circuit)
+        pass_ = CSPLayout(CouplingMap([(0, 1), (1, 2)]), seed=self.seed)
+        pass_.run(dag)
+
+        self.assertEqual(
+            pass_.property_set["CSPLayout_stop_reason"], "nonexistent solution"
+        )
+
+    def test_multi_qubit_gate_with_complete_connectivity(self):
+        """CSPLayout should find a solution for a 3-qubit gate when all
+        involved physical qubits have pairwise connectivity.
+        """
+        qr = QuantumRegister(3, "q")
+        circuit = QuantumCircuit(qr)
+        circuit.ccx(qr[0], qr[1], qr[2])
+
+        # Triangle coupling: 0-1, 1-2, 0-2 (complete connectivity)
+        dag = circuit_to_dag(circuit)
+        pass_ = CSPLayout(
+            CouplingMap([(0, 1), (1, 2), (0, 2)]), seed=self.seed
+        )
+        pass_.run(dag)
+
+        self.assertEqual(
+            pass_.property_set["CSPLayout_stop_reason"], "solution found"
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
