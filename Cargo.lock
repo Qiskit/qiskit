@@ -1959,6 +1959,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "qiskit-cext-vtable"
+version = "2.4.0-dev"
+dependencies = [
+ "qiskit-cext",
+]
+
+[[package]]
 name = "qiskit-circuit"
 version = "2.4.0-dev"
 dependencies = [
@@ -2013,9 +2020,12 @@ dependencies = [
 name = "qiskit-pyext"
 version = "2.4.0-dev"
 dependencies = [
+ "anyhow",
  "pyo3",
  "qiskit-accelerate",
+ "qiskit-bindgen",
  "qiskit-cext",
+ "qiskit-cext-vtable",
  "qiskit-circuit",
  "qiskit-circuit-library",
  "qiskit-qasm2",

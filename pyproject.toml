@@ -2,7 +2,7 @@
 # This is duplicated as `dependency-groups.build` for convenience.
 requires = [
     "setuptools>=77.0",
-    "setuptools-rust",
+    "setuptools-rust @ git+https://github.com/jakelishman/setuptools-rust.git@data-files",
 ]
 build-backend = "setuptools.build_meta"
 
@@ -184,7 +184,10 @@ default = "qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultScheduli
 # process.  If you intended that, use `project.optional-dependencies` instead.
 [dependency-groups]
 # Sync with `build-system.requires`.
-build = ["setuptools>=77.0", "setuptools-rust"]
+build = [
+    "setuptools>=77.0",
+    "setuptools-rust @ git+https://github.com/jakelishman/setuptools-rust.git@data-files",
+]
 # We use quite tight pins on pylint and astroid because they have a habit of adding new
 # on-by-default lints that are harder to deal with.
 lint = [
