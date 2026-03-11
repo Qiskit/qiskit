@@ -1792,7 +1792,7 @@ pub unsafe extern "C" fn qk_dag_to_python(dag: *mut DAGCircuit) -> *mut ::pyo3::
     // SAFETY: per documentation, we are attached to a Python interpreter.
     let py = unsafe { ::pyo3::Python::assume_attached() };
     // SAFETY: per documentation, `dag` points to owned and valid data.
-    let dag = unsafe { Box::from_raw(mut_ptr_as_ref(dag)) };
+    let dag = unsafe { Box::from_raw(dag) };
     match ::pyo3::Bound::new(py, *dag) {
         Ok(ob) => ob.into_ptr(),
         Err(e) => {
