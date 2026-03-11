@@ -102,7 +102,7 @@ impl PyNodeDurations {
                     nodes_mapping: idx_to_node,
                 })
             } else if key.extract::<f64>().is_ok() {
-                // All durations are of type u64
+                // All durations are of type f64
                 let mut op_durations = IndexMap::default();
                 for (py_node, py_duration) in mapping.iter() {
                     let node = py_node.cast_into::<DAGOpNode>()?;
@@ -326,7 +326,7 @@ impl PyNodeDurations {
 
 /// A mapping between a DAG's [NodeIndex] and its duration values.
 ///
-/// A duration may be in units of Dt, represented by a `u32`, or Seconds,
+/// A duration may be in units of Dt, represented by a `u64`, or Seconds,
 /// representing by an `f64`.
 #[derive(Debug, Clone, PartialEq)]
 pub enum NodeDurations {
