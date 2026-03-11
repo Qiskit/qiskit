@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -13,11 +13,12 @@
 """Unitary gate."""
 
 from __future__ import annotations
-from typing import Iterator, Iterable
+from collections.abc import Iterator, Iterable
 import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.utils.deprecation import deprecate_arg
 from .annotated_operation import AnnotatedOperation, ControlModifier, PowerModifier
 from .instruction import Instruction
 
@@ -81,7 +82,7 @@ class Gate(Instruction):
         Raises:
             CircuitError: If gate is not unitary
         """
-        # pylint: disable=cyclic-import
+
         from qiskit.quantum_info.operators import Operator
         from qiskit.circuit.library.generalized_gates.unitary import UnitaryGate
 
@@ -92,15 +93,30 @@ class Gate(Instruction):
         else:
             return AnnotatedOperation(self, PowerModifier(exponent))
 
-    def __pow__(self, exponent: float) -> "Gate":
+    def __pow__(self, exponent: float) -> Gate:
         return self.power(exponent)
 
-    def _return_repeat(self, exponent: float) -> "Gate":
+    def _return_repeat(self, exponent: float) -> Gate:
         gate = Gate(name=f"{self.name}*{exponent}", num_qubits=self.num_qubits, params=[])
         gate.validate_parameter = self.validate_parameter
         gate.params = self.params
         return gate
 
+    @deprecate_arg(
+        name="annotated",
+        since="2.3",
+        additional_msg=(
+            "The method Gate.control() no longer accepts `annotated=None`. The new default is "
+            "`annotated=True`, which represents the controlled gate as an `AnnotatedOperation` "
+            "(unless a dedicated controlled-gate class already exists). You can explicitly set "
+            "`annotated=False` to preserve the previous behavior. However, using `annotated=True` "
+            "is recommended, as it defers construction of the controlled circuit to transpiler, "
+            "and furthermore enables additional controlled-gate optimizations (typically leading "
+            "to higher-quality circuits)."
+        ),
+        predicate=lambda my_arg: my_arg is None,
+        removal_timeline="in Qiskit 3.0",
+    )
     def control(
         self,
         num_ctrl_qubits: int = 1,
@@ -114,7 +130,7 @@ class Gate(Instruction):
         is ``False``, and as :class:`.AnnotatedOperation` when ``annotated`` is ``True``.
 
         Args:
-            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            num_ctrl_qubits: Number of controls to add. Defaults to ``1``.
             label: Optional gate label. Defaults to ``None``.
                 Ignored if the controlled gate is implemented as an annotated operation.
             ctrl_state: The control state of the gate, specified either as an integer or a bitstring
@@ -126,10 +142,17 @@ class Gate(Instruction):
             A controlled version of this gate.
 
         Raises:
-            QiskitError: invalid ``ctrl_state``.
+            QiskitError: invalid ``num_ctrl_qubits`` or ``ctrl_state``.
         """
+        if num_ctrl_qubits < 0:
+            raise CircuitError("The number of control qubits must be non-negative.")
+
+        # In the special case that we have 0 control qubits, we return the copy of the gate itself.
+        if num_ctrl_qubits == 0:
+            return self.copy()
+
         if not annotated:  # captures both None and False
-            # pylint: disable=cyclic-import
+
             from ._add_control import add_control
 
             return add_control(self, num_ctrl_qubits, label, ctrl_state)

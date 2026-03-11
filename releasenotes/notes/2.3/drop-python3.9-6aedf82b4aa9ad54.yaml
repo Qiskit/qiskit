@@ -1,0 +1,5 @@
+---
+upgrade_misc:
+  - |
+    The minimum supported version of Python is now 3.10, following the end of life of Python 3.9
+    and deprecation warnings in Qiskit since version 2.1.
