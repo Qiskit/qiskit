@@ -54,6 +54,7 @@ from qiskit.circuit.library import (
     RZXGate,
     RZZGate,
     SGate,
+    SdgGate,
     XGate,
     YGate,
     ZGate,
@@ -64,6 +65,14 @@ from qiskit.circuit.library import (
     CZGate,
     CYGate,
     CSXGate,
+    SwapGate,
+    CCZGate,
+    CSwapGate,
+    SXGate,
+    SXdgGate,
+    TGate,
+    TdgGate,
+    iSwapGate,
     UGate,
     PauliEvolutionGate,
     PauliProductMeasurement,
@@ -695,6 +704,8 @@ class TestGeneratorObservableCommutation(QiskitTestCase):
         ]
         for std_gate, angle in cases:
             with self.subTest(gate=std_gate.name):
+                obs = _generator_observable(std_gate, [angle])
+                self.assertIsNotNone(obs)
                 self.assertAlmostEqual(
                     abs(obs.coeffs[0]),
                     abs(angle / 2.0),
@@ -706,35 +717,6 @@ class TestGeneratorObservableCommutation(QiskitTestCase):
         """Verify that gate ≈ exp(-i * H) for all supported gates (Clifford + Rotation)."""
         from qiskit._accelerate.circuit import StandardGate
         from qiskit._accelerate.sparse_observable import _generator_observable
-        from qiskit.circuit.library import (
-            XGate,
-            YGate,
-            ZGate,
-            HGate,
-            SGate,
-            SdgGate,
-            TGate,
-            TdgGate,
-            SXGate,
-            SXdgGate,
-            CXGate,
-            CYGate,
-            CZGate,
-            CSGate,
-            CSdgGate,
-            CSXGate,
-            SwapGate,
-            CCXGate,
-            CCZGate,
-            CSwapGate,
-            RXGate,
-            RYGate,
-            RZGate,
-            PhaseGate,
-            RXXGate,
-            RZXGate,
-            iSwapGate,
-        )
 
         theta = 0.5
         cases = [
