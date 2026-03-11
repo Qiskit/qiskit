@@ -43,7 +43,7 @@ class Job:
 class JobV1(Job, ABC):
     """Class to handle jobs
 
-    This first version of the Backend abstract class is written to be mostly
+    This first version of the Job abstract class is written to be mostly
     backwards compatible with the legacy providers interface. This was done to ease
     the transition for users and provider maintainers to the new versioned providers. Expect,
     future versions of this abstract class to change the data model and
@@ -105,7 +105,7 @@ class JobV1(Job, ABC):
 
                 * job_id: Job ID
                 * job_status: Status of the job from the last query
-                * job: This BaseJob instance
+                * job: This JobV1 instance
 
                 Note: different subclass might provide different arguments to
                 the callback function.

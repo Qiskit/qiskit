@@ -114,9 +114,7 @@ sys.modules["qiskit._accelerate.synthesis.discrete_basis"] = _accelerate.synthes
 sys.modules["qiskit._accelerate.synthesis.multi_controlled"] = (
     _accelerate.synthesis.multi_controlled
 )
-sys.modules["qiskit._accelerate.synthesis.pauli_product_measurement"] = (
-    _accelerate.synthesis.pauli_product_measurement
-)
+sys.modules["qiskit._accelerate.synthesis.pauli_products"] = _accelerate.synthesis.pauli_products
 sys.modules["qiskit._accelerate.synthesis.qft"] = _accelerate.synthesis.qft
 sys.modules["qiskit._accelerate.split_2q_unitaries"] = _accelerate.split_2q_unitaries
 sys.modules["qiskit._accelerate.gate_direction"] = _accelerate.gate_direction
@@ -138,9 +136,13 @@ sys.modules["qiskit._accelerate.angle_bound_registry"] = _accelerate.angle_bound
 sys.modules["qiskit._accelerate.litinski_transformation"] = _accelerate.litinski_transformation
 sys.modules["qiskit._accelerate.unroll_3q_or_more"] = _accelerate.unroll_3q_or_more
 sys.modules["qiskit._accelerate.substitute_pi4_rotations"] = _accelerate.substitute_pi4_rotations
+sys.modules["qiskit._accelerate.convert_to_pauli_rotations"] = (
+    _accelerate.convert_to_pauli_rotations
+)
 
 
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
+import qiskit.capi
 
 # The main qiskit operators
 from qiskit.circuit import ClassicalRegister

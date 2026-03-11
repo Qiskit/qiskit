@@ -18,8 +18,7 @@ import numpy
 
 import qiskit
 
-LIB_PATH = qiskit._accelerate.__file__
-LIB = ctypes.PyDLL(LIB_PATH)
+LIB = ctypes.PyDLL(qiskit.capi.get_lib())
 
 
 class QkCircuit(ctypes.Structure):
