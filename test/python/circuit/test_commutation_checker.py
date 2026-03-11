@@ -17,6 +17,7 @@ from test import QiskitTestCase
 
 import numpy as np
 from ddt import idata, ddt, data, unpack
+from qiskit.quantum_info import Operator
 
 from qiskit.circuit import (
     AnnotatedOperation,
@@ -694,14 +695,53 @@ class TestGeneratorObservableCommutation(QiskitTestCase):
         ]
         for std_gate, angle in cases:
             with self.subTest(gate=std_gate.name):
-                obs = _generator_observable(std_gate, [angle])
-                self.assertIsNotNone(obs, f"{std_gate.name} should have a generator")
-                # The single non-identity coefficient should be proportional to angle/2
                 self.assertAlmostEqual(
                     abs(obs.coeffs[0]),
                     abs(angle / 2.0),
                     places=10,
                     msg=f"{std_gate.name} coefficient should be angle/2",
+                )
+
+    def test_rotation_gates_operator_equivalence(self):
+        """Verify that gate ≈ exp(-i * H) for rotation gates."""
+        from qiskit._accelerate.circuit import StandardGate
+        from qiskit._accelerate.sparse_observable import _generator_observable
+        from qiskit.circuit.library import (
+            RXGate,
+            RYGate,
+            RZGate,
+            PhaseGate,
+            RXXGate,
+            RYYGate,
+            RZZGate,
+            RZXGate,
+        )
+
+        theta = 0.5
+        cases = [
+            (StandardGate.RX, RXGate(theta)),
+            (StandardGate.RY, RYGate(theta)),
+            (StandardGate.RZ, RZGate(theta)),
+            (StandardGate.Phase, PhaseGate(theta)),
+            (StandardGate.RXX, RXXGate(theta)),
+            (StandardGate.RYY, RYYGate(theta)),
+            (StandardGate.RZZ, RZZGate(theta)),
+            (StandardGate.RZX, RZXGate(theta)),
+        ]
+
+        for std_gate, gate_obj in cases:
+            with self.subTest(gate=std_gate.name):
+                obs = _generator_observable(std_gate, gate_obj.params)
+                self.assertIsNotNone(obs)
+
+                # Convert generator SparseObservable to Operator via PauliEvolutionGate
+                evo = PauliEvolutionGate(obs, time=1.0)
+                gen_op = Operator(evo)
+                target_op = Operator(gate_obj)
+
+                self.assertTrue(
+                    gen_op.equiv(target_op),
+                    f"Generator for {std_gate.name} is not equivalent to the gate unitary",
                 )
 
 

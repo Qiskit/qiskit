@@ -42,7 +42,7 @@ pub fn generator_observable(
 
     use BitTerm::*;
 
-    // ─── Single-qubit gates ───────────────────────────────────────────────────
+    // Single-qubit gates
     if num_qubits == 1 {
         let (coeffs, terms, indices) = match gate {
             // H = exp(-i*(pi/2)*(X + Z)/sqrt(2))
@@ -138,7 +138,7 @@ pub fn generator_observable(
         );
     }
 
-    // ─── Multi-qubit gates ────────────────────────────────────────────────────
+    // Multi-qubit gates
     // Returns (coeffs, bit_terms, indices, boundaries) in SoA layout.
     // Qubit ordering convention: index 0 = qubit 0 = LEAST significant (rightmost in Qiskit strings).
     // For a 2q gate: control = qubit 0, target = qubit 1.
