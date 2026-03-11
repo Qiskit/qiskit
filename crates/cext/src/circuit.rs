@@ -1063,7 +1063,7 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
 ///
 /// Behavior is undefined if any of the following is violated:
 /// * ``circuit`` is a valid, non-null pointer to a ``QkCircuit``
-/// * ``rotation`` is an valid, non-null pointer to a coherent ``QkPauliProductRotation``.
+/// * ``rotation`` is a valid, non-null pointer to a coherent ``QkPauliProductRotation``.
 ///   Specifically, the ``rotation->z`` and ``rotation->x`` data arrays must be readable for
 ///   ``rotation->len`` elements.
 /// * ``qubits`` is an aligned pointer to ``rotation->len`` initialized ``uint32_t`` values.
@@ -1104,11 +1104,11 @@ pub unsafe extern "C" fn qk_circuit_pauli_product_rotation(
 ///
 /// For a circuit with a ``QkPauliProductRotation`` instruction at index ``index``, this function
 /// will populate the ``instruction`` pointer with a copy of ``QkPauliProductRotation`` data. Note that
-/// this data lives independently of the circuit must be freed manually with
+/// this data lives independently of the circuit and must be freed manually with
 /// ``qk_pauli_product_rotation_clear``.
 ///
 /// If the instruction at the provided ``index`` **is not** a ``QkPauliProductRotation``, this function
-/// will return ``QkExitCode_InvalidOperationKind`` error. Verify that the instruction has the
+/// will return ``QkExitCode_InvalidOperationKind`` error. You can verify that the instruction has the
 /// right kind using ``qk_circuit_instruction_kind``.
 ///
 /// @param circuit A pointer to the circuit to retrieve the instruction details from.
