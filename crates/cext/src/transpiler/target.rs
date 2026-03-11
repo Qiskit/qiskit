@@ -4,13 +4,12 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-#[cfg(feature = "cbinding")]
 use std::ffi::{CStr, CString, c_char};
 use std::ptr::null_mut;
 use std::sync::Arc;
@@ -45,10 +44,71 @@ use smallvec::{SmallVec, smallvec};
 /// ```
 ///
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub extern "C" fn qk_target_new(num_qubits: u32) -> *mut Target {
     let target = Target::new().with_num_qubits(num_qubits);
     Box::into_raw(Box::new(target))
+}
+
+/// @ingroup QkTarget
+/// Retrieve a `QkTarget` pointer from a Python object.
+///
+/// This borrows a Python reference and extracts the `QkTarget` pointer for it, if it is of
+/// the correct type.  The returned pointer is borrowed from the `ob` pointer.  If the
+/// ``PyObject`` is not the correct type, the return value is ``NULL`` and the exception
+/// state of the Python interpreter is set.
+///
+/// You must be attached to a Python interpreter to call this function.
+///
+/// You can also use `qk_target_convert_from_python`, which is logically the exact same as this
+/// function, but can be directly used as a "converter" function for the `PyArg_Parse*`
+/// family of Python converter functions.
+///
+/// @param ob A borrowed Python object.
+/// @return A pointer to the native object, or `NULL` if the Python object is the wrong type.
+///
+/// # Safety
+///
+/// The caller must be attached to a Python interpreter.  Behavior is undefined if `ob` is
+/// not a valid non-null pointer to a Python object.
+#[unsafe(no_mangle)]
+#[cfg(feature = "python_binding")]
+pub unsafe extern "C" fn qk_target_borrow_from_python(ob: *mut pyo3::ffi::PyObject) -> *mut Target {
+    // SAFETY: per documentation, we are attached to a Python interpreter and `ob` points to a valid
+    // Python object.
+    unsafe { crate::py::borrow(::pyo3::Python::assume_attached(), ob) }
+}
+
+/// @ingroup QkTarget
+/// Retrieve a Target pointer from a Python object.
+///
+/// This borrows a Python reference and extracts the `QkTarget` pointer for it into ``address``, if
+/// it is of the correct type.  The returned pointer is borrowed from the `object` pointer.  If the
+/// ``PyObject`` is not the correct type, the return value is 1, the exception state of the Python
+/// interpreter is set, and ``address`` is unchanged.
+///
+/// You must be attached to a Python interpreter to call this function.
+///
+/// You can also use `qk_target_borrow_from_python`, which is logically the exact same as this, but
+/// with a more natural signature for direct usage.
+///
+/// @param object A borrowed Python object.
+/// @param address The location to write the output to.
+/// @return 1 on success, 0 on failure.
+///
+/// # Safety
+///
+/// The caller must be attached to a Python interpreter.  Behavior is undefined if `object`
+/// is not a valid non-null pointer to a Python object, or if `address` is not a pointer to
+/// writeable data of the correct type.
+#[unsafe(no_mangle)]
+#[cfg(feature = "python_binding")]
+pub unsafe extern "C" fn qk_target_convert_from_python(
+    object: *mut ::pyo3::ffi::PyObject,
+    address: *mut ::std::ffi::c_void,
+) -> ::std::ffi::c_int {
+    // SAFETY: per documentation, we are attached to a Python interpreter, `ob` points to a valid
+    // Python object and `address` points to anough space to write a pointer.
+    unsafe { crate::py::convert::<Target>(::pyo3::Python::assume_attached(), object, address) }
 }
 
 /// @ingroup QkTarget
@@ -68,7 +128,6 @@ pub extern "C" fn qk_target_new(num_qubits: u32) -> *mut Target {
 ///
 /// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_num_qubits(target: *const Target) -> u32 {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { const_ptr_as_ref(target) };
@@ -93,7 +152,6 @@ pub unsafe extern "C" fn qk_target_num_qubits(target: *const Target) -> u32 {
 ///
 /// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_dt(target: *const Target) -> f64 {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { const_ptr_as_ref(target) };
@@ -118,7 +176,6 @@ pub unsafe extern "C" fn qk_target_dt(target: *const Target) -> f64 {
 ///
 /// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_granularity(target: *const Target) -> u32 {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { const_ptr_as_ref(target) };
@@ -143,7 +200,6 @@ pub unsafe extern "C" fn qk_target_granularity(target: *const Target) -> u32 {
 ///
 /// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_min_length(target: *const Target) -> u32 {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { const_ptr_as_ref(target) };
@@ -168,7 +224,6 @@ pub unsafe extern "C" fn qk_target_min_length(target: *const Target) -> u32 {
 ///
 /// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_pulse_alignment(target: *const Target) -> u32 {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { const_ptr_as_ref(target) };
@@ -193,7 +248,6 @@ pub unsafe extern "C" fn qk_target_pulse_alignment(target: *const Target) -> u32
 ///
 /// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_acquire_alignment(target: *const Target) -> u32 {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { const_ptr_as_ref(target) };
@@ -219,7 +273,6 @@ pub unsafe extern "C" fn qk_target_acquire_alignment(target: *const Target) -> u
 ///
 /// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_set_dt(target: *mut Target, dt: f64) -> ExitCode {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { mut_ptr_as_ref(target) };
@@ -247,7 +300,6 @@ pub unsafe extern "C" fn qk_target_set_dt(target: *mut Target, dt: f64) -> ExitC
 ///
 /// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_set_granularity(
     target: *mut Target,
     granularity: u32,
@@ -278,7 +330,6 @@ pub unsafe extern "C" fn qk_target_set_granularity(
 ///
 /// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_set_min_length(
     target: *mut Target,
     min_length: u32,
@@ -308,7 +359,6 @@ pub unsafe extern "C" fn qk_target_set_min_length(
 ///
 /// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_set_pulse_alignment(
     target: *mut Target,
     pulse_alignment: u32,
@@ -339,7 +389,6 @@ pub unsafe extern "C" fn qk_target_set_pulse_alignment(
 ///
 /// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_set_acquire_alignment(
     target: *mut Target,
     acquire_alignment: u32,
@@ -372,7 +421,6 @@ pub unsafe extern "C" fn qk_target_set_acquire_alignment(
 ///
 /// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_copy(target: *mut Target) -> *mut Target {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { const_ptr_as_ref(target) };
@@ -395,7 +443,6 @@ pub unsafe extern "C" fn qk_target_copy(target: *mut Target) -> *mut Target {
 ///
 /// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_free(target: *mut Target) {
     if !target.is_null() {
         if !target.is_aligned() {
@@ -505,7 +552,6 @@ impl TargetEntry {
 ///     QkTargetEntry *had_entry = qk_target_entry_new(QkGate_H);
 /// ```
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub extern "C" fn qk_target_entry_new(operation: StandardGate) -> *mut TargetEntry {
     Box::into_raw(Box::new(TargetEntry::new(operation)))
 }
@@ -530,7 +576,6 @@ pub extern "C" fn qk_target_entry_new(operation: StandardGate) -> *mut TargetEnt
 ///     qk_target_add_instruction(measure_target, entry);
 /// ```
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub extern "C" fn qk_target_entry_new_measure() -> *mut TargetEntry {
     Box::into_raw(Box::new(TargetEntry::new_instruction(
         StandardInstruction::Measure,
@@ -557,7 +602,6 @@ pub extern "C" fn qk_target_entry_new_measure() -> *mut TargetEntry {
 ///     qk_target_add_instruction(reset_target, entry);
 /// ```
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub extern "C" fn qk_target_entry_new_reset() -> *mut TargetEntry {
     Box::into_raw(Box::new(TargetEntry::new_instruction(
         StandardInstruction::Reset,
@@ -594,7 +638,6 @@ pub extern "C" fn qk_target_entry_new_reset() -> *mut TargetEntry {
 /// The ``name`` pointer is expected to be either a C string comprising of valid UTF-8 characters
 /// or a null pointer.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_entry_new_fixed(
     operation: StandardGate,
     params: *mut f64,
@@ -639,7 +682,6 @@ pub unsafe extern "C" fn qk_target_entry_new_fixed(
 /// The behavior is undefined if ``entry`` is not a valid,
 /// non-null pointer to a ``QkTargetEntry`` object.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_entry_num_properties(entry: *const TargetEntry) -> usize {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let prop_map = unsafe { const_ptr_as_ref(entry) };
@@ -666,7 +708,6 @@ pub unsafe extern "C" fn qk_target_entry_num_properties(entry: *const TargetEntr
 /// The behavior is undefined if ``entry`` is not a valid,
 /// non-null pointer to a ``QkTargetEntry`` object.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_entry_free(entry: *mut TargetEntry) {
     if !entry.is_null() {
         if !entry.is_aligned() {
@@ -706,7 +747,6 @@ pub unsafe extern "C" fn qk_target_entry_free(entry: *mut TargetEntry) {
 /// The behavior is undefined if ``entry`` is not a valid, non-null pointer
 /// to a ``QkTargetEntry`` object.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_entry_add_property(
     entry: *mut TargetEntry,
     qargs: *mut u32,
@@ -755,7 +795,6 @@ pub unsafe extern "C" fn qk_target_entry_add_property(
 /// The ``name`` pointer is expected to be either a C string comprising
 /// of valid UTF-8 characters or a null pointer.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_entry_set_name(
     entry: *mut TargetEntry,
     name: *const c_char,
@@ -801,7 +840,6 @@ pub unsafe extern "C" fn qk_target_entry_set_name(
 ///
 /// Behavior is undefined if ``entry`` is not a valid, non-null pointer to a ``QkTargetEntry``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_add_instruction(
     target: *mut Target,
     target_entry: *mut TargetEntry,
@@ -875,7 +913,6 @@ pub unsafe extern "C" fn qk_target_add_instruction(
 /// a given gate. You can check ``qk_gate_num_qubits`` to determine how many qubits are required
 /// for a given gate.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_update_property(
     target: *mut Target,
     instruction: StandardGate,
@@ -926,7 +963,6 @@ pub unsafe extern "C" fn qk_target_update_property(
 ///
 /// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_num_instructions(target: *const Target) -> usize {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { const_ptr_as_ref(target) };
@@ -981,7 +1017,6 @@ pub unsafe extern "C" fn qk_target_num_instructions(target: *const Target) -> us
 /// be undefined just as mentioned above for the ``qargs`` argument. You can always check ``qk_gate_num_params``
 /// in the case of a ``QkGate``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_instruction_supported(
     target: *const Target,
     operation_name: *const c_char,
@@ -1044,7 +1079,6 @@ pub unsafe extern "C" fn qk_target_instruction_supported(
 /// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
 /// Behavior is undefined if ``name`` is not a pointer to a valid null-terminated string.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_op_index(target: *const Target, name: *const c_char) -> usize {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
 
@@ -1082,7 +1116,6 @@ pub unsafe extern "C" fn qk_target_op_index(target: *const Target, name: *const 
 ///
 /// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_op_name(target: *const Target, index: usize) -> *mut c_char {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target_borrowed = unsafe { const_ptr_as_ref(target) };
@@ -1118,7 +1151,6 @@ pub unsafe extern "C" fn qk_target_op_name(target: *const Target, index: usize) 
 ///
 /// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_op_num_properties(target: *const Target, index: usize) -> usize {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target_borrowed = unsafe { const_ptr_as_ref(target) };
@@ -1156,7 +1188,6 @@ pub unsafe extern "C" fn qk_target_op_num_properties(target: *const Target, inde
 ///
 /// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_op_qargs_index(
     target: *const Target,
     op_idx: usize,
@@ -1215,7 +1246,6 @@ pub unsafe extern "C" fn qk_target_op_qargs_index(
 /// Behavior is undefined if each `qargs_out` or `qargs_len` are not aligned and writeable for a
 /// single value of the correct type.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_op_qargs(
     target: *const Target,
     op_idx: usize,
@@ -1270,7 +1300,6 @@ pub unsafe extern "C" fn qk_target_op_qargs(
 /// Behavior is undefined if ``inst_props`` does not point to an address of the correct size to
 /// store ``QkInstructionProperties`` in.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_op_props(
     target: *const Target,
     op_idx: usize,
@@ -1331,11 +1360,10 @@ pub struct CTargetOp {
     /// The number of qubits this operation supports. Will default to
     /// `(uint32_t)-1` in the case of a variadic.
     pub num_qubits: u32,
-    /// The parameters tied to this operation if fixed, as an array
-    /// of `double`. If any of the parameters represented are not fixed angles
-    /// it will be represented as with the `NaN` value. If there are no parameters
-    /// then this value will be represented with a `NULL` pointer.
-    pub params: *mut f64,
+    /// The parameters tied to this operation, as `QkParam`.
+    /// If there are no parameters then this value will be represented
+    /// with a `NULL` pointer.
+    pub params: *mut *const Param,
     /// The number of parameters supported by this operation. Will default to
     /// `(uint32_t)-1` in the case of a variadic.
     pub num_params: u32,
@@ -1373,7 +1401,6 @@ pub struct CTargetOp {
 /// Behavior is undefined if ``out_op`` does not point to an address of the correct size to
 /// store ``QkTargetOp`` in.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_op_get(
     target: *const Target,
     index: usize,
@@ -1412,13 +1439,15 @@ pub unsafe extern "C" fn qk_target_op_get(
             .expect("The string should be UTF-8 encoded.")
             .into_raw();
             let num_params = operation.operation.num_params();
-            let mut params: Option<Box<[f64]>> = (num_params > 0).then_some(
+            let mut params: Option<Box<[*const Param]>> = (num_params > 0).then_some(
                 operation
                     .params_view()
                     .iter()
                     .map(|param| match param {
-                        Param::Float(number) => *number,
-                        _ => f64::NAN,
+                        Param::Float(_) | Param::ParameterExpression(_) => {
+                            std::ptr::from_ref(param)
+                        }
+                        Param::Obj(_) => panic!("Objects are not supported in the C API."),
                     })
                     .collect(),
             );
@@ -1497,7 +1526,6 @@ pub unsafe extern "C" fn qk_target_op_get(
 ///
 /// Behavior is undefined if the ``target`` pointer is null or not aligned.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_op_gate(target: *const Target, index: usize) -> StandardGate {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target_borrowed = unsafe { const_ptr_as_ref(target) };
@@ -1525,7 +1553,6 @@ pub unsafe extern "C" fn qk_target_op_gate(target: *const Target, index: usize) 
 /// The data belonging to a ``QkTargetOp`` originates in Rust and
 /// can only be freed using this function.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_target_op_clear(op: *mut CTargetOp) {
     // We need to consume both the name and the parameters
 
@@ -1543,7 +1570,9 @@ pub unsafe extern "C" fn qk_target_op_clear(op: *mut CTargetOp) {
                 op_borrowed.params,
                 op_borrowed.num_params.try_into().unwrap(),
             );
-            let _ = Box::from_raw(params as *mut [f64]);
+            // Parameters don't need to be freed as they're owned by the
+            // Target.
+            let _ = Box::from_raw(params as *mut [*const Param]);
             op_borrowed.params = std::ptr::null_mut();
         }
         op_borrowed.num_params = 0;

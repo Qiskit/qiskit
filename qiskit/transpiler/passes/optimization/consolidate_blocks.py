@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -114,14 +114,15 @@ class ConsolidateBlocks(TransformationPass):
             kak_param_gates = KAK_GATE_PARAM_NAMES.keys() & (basis_gates or [])
             if kak_param_gates:
                 self.decomposer = TwoQubitControlledUDecomposer(
-                    KAK_GATE_PARAM_NAMES[list(kak_param_gates)[0]]
+                    KAK_GATE_PARAM_NAMES[next(iter(kak_param_gates))]
                 )
-                self.basis_gate_name = list(kak_param_gates)[0]
+                self.basis_gate_name = next(iter(kak_param_gates))
             elif kak_gates:
                 self.decomposer = TwoQubitBasisDecomposer(
-                    KAK_GATE_NAMES[list(kak_gates)[0]], basis_fidelity=approximation_degree or 1.0
+                    KAK_GATE_NAMES[next(iter(kak_gates))],
+                    basis_fidelity=approximation_degree or 1.0,
                 )
-                self.basis_gate_name = list(kak_gates)[0]
+                self.basis_gate_name = next(iter(kak_gates))
             else:
                 self.decomposer = None
         else:

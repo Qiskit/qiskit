@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -197,7 +197,8 @@ memory.
     mapping,
     subclass,
     name = "BaseTarget",
-    module = "qiskit._accelerate.target"
+    module = "qiskit._accelerate.target",
+    skip_from_py_object
 )]
 #[derive(Clone, Debug)]
 pub struct Target {
@@ -1476,30 +1477,41 @@ impl Target {
         })
     }
 
+    /// Get the complete [InstructionProperties] from the [Target] for the given instruction key and
+    /// qargs.
+    pub fn get_instruction_properties<'a, T>(
+        &self,
+        name: &str,
+        qargs: T,
+    ) -> Option<&InstructionProperties>
+    where
+        T: Into<QargsRef<'a>>,
+    {
+        self.gate_map.get(name).and_then(|gate_props| {
+            gate_props
+                .get(&qargs.into())
+                .and_then(|props| props.as_ref())
+        })
+    }
+
     /// Get the error rate of a given instruction in the target
+    #[inline]
     pub fn get_error<'a, T>(&self, name: &str, qargs: T) -> Option<f64>
     where
         T: Into<QargsRef<'a>>,
     {
-        self.gate_map
-            .get(name)
-            .and_then(|gate_props| match gate_props.get(&qargs.into()) {
-                Some(props) => props.as_ref().and_then(|inst_props| inst_props.error),
-                None => None,
-            })
+        self.get_instruction_properties(name, qargs)
+            .and_then(|props| props.error)
     }
 
     /// Get the duration of a given instruction in the target
+    #[inline]
     pub fn get_duration<'a, T>(&self, name: &str, qargs: T) -> Option<f64>
     where
         T: Into<QargsRef<'a>>,
     {
-        self.gate_map
-            .get(name)
-            .and_then(|gate_props| match gate_props.get(&qargs.into()) {
-                Some(props) => props.as_ref().and_then(|inst_props| inst_props.duration),
-                None => None,
-            })
+        self.get_instruction_properties(name, qargs)
+            .and_then(|props| props.duration)
     }
 
     /// Get an iterator over the indices of all physical qubits of the target
@@ -1836,7 +1848,7 @@ impl Target {
 
     // IndexMap methods
 
-    /// Retreive all the gate names in the Target
+    /// Retrieve all the gate names in the Target
     // TODO: Remove once `Target` is being consumed.
     #[allow(dead_code)]
     pub fn keys(&self) -> impl Iterator<Item = &str> {

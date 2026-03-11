@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -216,7 +216,7 @@ using the :class:`CustomGate` object:
 .. autoclass:: CustomGate
     :members:
 
-In ``custom_gates`` is not given, Qiskit will attempt to use its standard-library gate objects for
+If ``custom_gates`` is not given, Qiskit will attempt to use its standard-library gate objects for
 the gates defined in OpenQASM 3 standard library file ``stdgates.inc``.  This sequence of gates is
 available on this module, if you wish to build on top of it:
 
@@ -321,7 +321,7 @@ def load(
         filename: the filename to load the program from.
         num_qubits: keyword argument which provides number of physical/virtual qubits.
         annotation_handlers: a mapping whose keys are (parent) namespaces and values are serializers
-            that can handle children of those namesapces.  Requires ``qiskit_qasm3_import>=0.6.0``.
+            that can handle children of those namespaces.  Requires ``qiskit_qasm3_import>=0.6.0``.
     Returns:
         QuantumCircuit: a circuit representation of the OpenQASM 3 program.
 
@@ -333,7 +333,7 @@ def load(
         The ``annotation_handlers`` argument.  This requires ``qiskit_qasm3_import>=0.6.0``.
     """
 
-    with open(filename, "r") as fptr:
+    with open(filename) as fptr:
         program = fptr.read()
     return loads(program, num_qubits=num_qubits, annotation_handlers=annotation_handlers)
 
@@ -373,7 +373,7 @@ def loads(
         program: the OpenQASM 3 program.
         num_qubits: provides number of physical/virtual qubits.
         annotation_handlers: a mapping whose keys are (parent) namespaces and values are serializers
-            that can handle children of those namesapces.  Requires ``qiskit_qasm3_import>=0.6.0``.
+            that can handle children of those namespaces.  Requires ``qiskit_qasm3_import>=0.6.0``.
     Returns:
         QuantumCircuit: a circuit representation of the OpenQASM 3 program.
 

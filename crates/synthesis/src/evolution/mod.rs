@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -15,7 +15,7 @@ mod pauli_network;
 use pyo3::prelude::*;
 use pyo3::types::PyList;
 
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::PyCircuitData;
 
 use crate::evolution::pauli_network::pauli_network_synthesis_inner;
 
@@ -59,7 +59,7 @@ pub fn pauli_network_synthesis(
     upto_clifford: bool,
     upto_phase: bool,
     resynth_clifford_method: usize,
-) -> PyResult<CircuitData> {
+) -> PyResult<PyCircuitData> {
     pauli_network_synthesis_inner(
         num_qubits,
         pauli_network,
@@ -69,9 +69,12 @@ pub fn pauli_network_synthesis(
         upto_phase,
         resynth_clifford_method,
     )
+    .map(Into::into)
 }
 
 pub fn evolution(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(pauli_network_synthesis, m)?)?;
     Ok(())
 }
+
+pub mod suzuki_trotter;

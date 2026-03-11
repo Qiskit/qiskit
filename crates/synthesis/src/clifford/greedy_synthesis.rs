@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -12,7 +12,7 @@
 
 use ahash::RandomState;
 use indexmap::IndexSet;
-use ndarray::{ArrayView2, s};
+use ndarray::{Array2, ArrayView2, s};
 use smallvec::smallvec;
 
 use crate::clifford::utils::{
@@ -408,7 +408,10 @@ pub fn resynthesize_clifford_circuit(
     gates: &CliffordGatesVec,
 ) -> Result<CliffordGatesVec, String> {
     let sim_clifford = clifford_from_gate_sequence(gates, num_qubits)?;
-    let mut synthesis = GreedyCliffordSynthesis::new(sim_clifford.tableau.view())?;
+    let tableau = Array2::from_shape_fn((2 * num_qubits, 2 * num_qubits + 1), |(i, j)| {
+        sim_clifford.tableau[j][i]
+    });
+    let mut synthesis = GreedyCliffordSynthesis::new(tableau.view())?;
     let (_, new_gates) = synthesis.run()?;
     Ok(new_gates)
 }
