@@ -149,7 +149,7 @@ jobs:
         with:
           python-version: ${{ inputs.python-version }}
       - uses: dtolnay/rust-toolchain@stable
-      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-qemu-action@v4
         with:
           platforms: all
       - uses: pypa/cibuildwheel@v3.4.0
@@ -172,7 +172,7 @@ jobs:
         with:
           python-version: ${{ inputs.python-version }}
       - uses: dtolnay/rust-toolchain@stable
-      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-qemu-action@v4
         with:
           platforms: all
       - uses: pypa/cibuildwheel@v3.4.0
