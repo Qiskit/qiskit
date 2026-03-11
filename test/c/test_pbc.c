@@ -12,9 +12,13 @@
 
 #include "common.h"
 #include <complex.h>
-#include <math.h>
 #include <qiskit.h>
 #include <string.h>
+
+#ifdef _MSC_VER
+#define _USE_MATH_DEFINES
+#endif
+#include <math.h> // for M_PI and friends
 
 /**
  * Test gate counts after Litinski transformation.
