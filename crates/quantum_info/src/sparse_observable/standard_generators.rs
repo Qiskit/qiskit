@@ -188,46 +188,47 @@ pub fn generator_observable(
                 vec![0usize, 2usize, 3usize, 4usize],
             )
         }
-        // CS (sqrt(CZ)): CS = exp(-i*(pi/8)*(Z0*Z1 - Z0 - Z1))
+        // CS (sqrt(CZ)): CS = exp(-i*(pi/8)*(Z0 + Z1 - Z0*Z1))
+        // Generator H = (pi/8)*(Z0 + Z1 - Z0*Z1)
         StandardGate::CS => {
             let s = std::f64::consts::PI / 8.0;
             (
                 vec![
                     Complex64::new(s, 0.0),
-                    Complex64::new(-s, 0.0),
+                    Complex64::new(s, 0.0),
                     Complex64::new(-s, 0.0),
                 ],
                 vec![Z, Z, Z, Z],
                 vec![0u32, 1u32, 0u32, 1u32],
-                vec![0usize, 2usize, 3usize, 4usize],
+                vec![0usize, 1usize, 2usize, 4usize],
             )
         }
-        // CSdg (inv sqrt(CZ)): CSdg = exp(-i*(-pi/8)*(Z0*Z1 - Z0 - Z1))
+        // CSdg (inv sqrt(CZ)): CSdg = exp(-i*(-pi/8)*(Z0 + Z1 - Z0*Z1))
         StandardGate::CSdg => {
             let s = std::f64::consts::PI / 8.0;
             (
                 vec![
                     Complex64::new(-s, 0.0),
-                    Complex64::new(s, 0.0),
+                    Complex64::new(-s, 0.0),
                     Complex64::new(s, 0.0),
                 ],
                 vec![Z, Z, Z, Z],
                 vec![0u32, 1u32, 0u32, 1u32],
-                vec![0usize, 2usize, 3usize, 4usize],
+                vec![0usize, 1usize, 2usize, 4usize],
             )
         }
-        // CSX (sqrt(CX)/controlled-SX): CSX = exp(-i*(pi/8)*(Z0*X1 - Z0 - X1))
+        // CSX (sqrt(CX)/controlled-SX): CSX = exp(-i*(pi/8)*(Z0 + X1 - Z0*X1))
         StandardGate::CSX => {
             let s = std::f64::consts::PI / 8.0;
             (
                 vec![
                     Complex64::new(s, 0.0),
-                    Complex64::new(-s, 0.0),
+                    Complex64::new(s, 0.0),
                     Complex64::new(-s, 0.0),
                 ],
                 vec![Z, X, Z, X],
                 vec![0u32, 1u32, 0u32, 1u32],
-                vec![0usize, 2usize, 3usize, 4usize],
+                vec![0usize, 1usize, 2usize, 4usize],
             )
         }
         // CRX(t): CRX(t) = exp(-i*(t/4)*(-Z0*X1 + X1))
@@ -292,20 +293,6 @@ pub fn generator_observable(
                 vec![0usize, 2usize, 3usize, 4usize],
             )
         }
-        // ECR = (1/sqrt(2)) * [[0,0,1,i],[0,0,i,1],[1,-i,0,0],[-i,1,0,0]]
-        // ECR = exp(i*pi/4) * RZX(pi/2) -- no clean Pauli generator like CX
-        // Generator: ECR = exp(-i * (-pi/4) * (X0 - X0*Y1))
-        // i.e. H_ECR = (-pi/4) * (X0 - X0*Y1) = (-pi/4)*X0 + (pi/4)*X0*Y1
-        StandardGate::ECR => (
-            vec![
-                Complex64::new(-std::f64::consts::PI / 4.0, 0.0),
-                Complex64::new(std::f64::consts::PI / 4.0, 0.0),
-            ],
-            // Term 0: X(q0);  Term 1: X(q0) Y(q1)
-            vec![X, X, Y],
-            vec![0u32, 0u32, 1u32],
-            vec![0usize, 1usize, 3usize],
-        ),
         // Swap: Swap = exp(-i*(pi/4)*(X0*X1 + Y0*Y1 + Z0*Z1))
         // (note: Swap = exp(-i*pi/4*(XX+YY+ZZ)) treats Swap as "swap up to phase for each sector")
         StandardGate::Swap => {
@@ -321,11 +308,11 @@ pub fn generator_observable(
                 vec![0usize, 2usize, 4usize, 6usize],
             )
         }
-        // ISwap: ISwap = exp(-i*(pi/4)*(X0*X1 + Y0*Y1))  (missing ZZ part vs Swap)
+        // ISwap: ISwap = exp(-i*(-pi/4)*(X0*X1 + Y0*Y1))
         StandardGate::ISwap => (
             vec![
-                Complex64::new(std::f64::consts::PI / 4.0, 0.0),
-                Complex64::new(std::f64::consts::PI / 4.0, 0.0),
+                Complex64::new(-std::f64::consts::PI / 4.0, 0.0),
+                Complex64::new(-std::f64::consts::PI / 4.0, 0.0),
             ],
             vec![X, X, Y, Y],
             vec![0u32, 1u32, 0u32, 1u32],
@@ -418,29 +405,18 @@ pub fn generator_observable(
             let s = std::f64::consts::PI / 8.0;
             (
                 vec![
-                    Complex64::new(s, 0.0),  // Z0 Z1 X2
-                    Complex64::new(-s, 0.0), // Z0 X2
-                    Complex64::new(-s, 0.0), // Z1 X2
-                    Complex64::new(-s, 0.0), // Z0 Z1
-                    Complex64::new(s, 0.0),  // Z0
-                    Complex64::new(s, 0.0),  // Z1
-                    Complex64::new(s, 0.0),  // X2
+                    Complex64::new(-s, 0.0), // Z0 Z1 X2
+                    Complex64::new(s, 0.0),  // Z0 X2
+                    Complex64::new(s, 0.0),  // Z1 X2
+                    Complex64::new(s, 0.0),  // Z0 Z1
+                    Complex64::new(-s, 0.0), // Z0
+                    Complex64::new(-s, 0.0), // Z1
+                    Complex64::new(-s, 0.0), // X2
                 ],
-                // Term 0: Z(q0) Z(q1) X(q2)  — 3 items
-                // Term 1: Z(q0) X(q2)          — 2 items
-                // Term 2: Z(q1) X(q2)          — 2 items
-                // Term 3: Z(q0) Z(q1)          — 2 items
-                // Term 4: Z(q0)                 — 1 item
-                // Term 5: Z(q1)                 — 1 item
-                // Term 6: X(q2)                 — 1 item
-                // Total: 3+2+2+2+1+1+1 = 12 items
-                vec![Z, Z, X, Z, X, Z, X, Z, Z, Z, X, X],
-                vec![
-                    0u32, 1u32, 2u32, 0u32, 2u32, 1u32, 2u32, 0u32, 1u32, 0u32, 1u32, 2u32,
-                ],
-                vec![
-                    0usize, 3usize, 5usize, 7usize, 9usize, 10usize, 11usize, 12usize,
-                ],
+                // Index 10 in bit_terms must be Z.
+                vec![Z, Z, X, Z, X, Z, X, Z, Z, Z, Z, X],
+                vec![0u32, 1u32, 2u32, 0u32, 2u32, 1u32, 2u32, 0u32, 1u32, 0u32, 1u32, 2u32],
+                vec![0usize, 3usize, 5usize, 7usize, 9usize, 10usize, 11usize, 12usize],
             )
         }
         // CCZ: CCZ = exp(-i*(pi/8)*(Z0*Z1*Z2 - Z0*Z2 - Z1*Z2 - Z0*Z1 + Z0 + Z1 + Z2))
@@ -448,22 +424,14 @@ pub fn generator_observable(
             let s = std::f64::consts::PI / 8.0;
             (
                 vec![
-                    Complex64::new(s, 0.0),  // Z0 Z1 Z2
-                    Complex64::new(-s, 0.0), // Z0 Z2
-                    Complex64::new(-s, 0.0), // Z1 Z2
-                    Complex64::new(-s, 0.0), // Z0 Z1
-                    Complex64::new(s, 0.0),  // Z0
-                    Complex64::new(s, 0.0),  // Z1
-                    Complex64::new(s, 0.0),  // Z2
+                    Complex64::new(-s, 0.0), // Z0 Z1 Z2
+                    Complex64::new(s, 0.0),  // Z0 Z2
+                    Complex64::new(s, 0.0),  // Z1 Z2
+                    Complex64::new(s, 0.0),  // Z0 Z1
+                    Complex64::new(-s, 0.0), // Z0
+                    Complex64::new(-s, 0.0), // Z1
+                    Complex64::new(-s, 0.0), // Z2
                 ],
-                // Term 0: Z(q0) Z(q1) Z(q2)  — 3 items
-                // Term 1: Z(q0) Z(q2)          — 2 items
-                // Term 2: Z(q1) Z(q2)          — 2 items
-                // Term 3: Z(q0) Z(q1)          — 2 items
-                // Term 4: Z(q0)                 — 1 item
-                // Term 5: Z(q1)                 — 1 item
-                // Term 6: Z(q2)                 — 1 item
-                // Total: 3+2+2+2+1+1+1 = 12 items
                 vec![Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z],
                 vec![
                     0u32, 1u32, 2u32, 0u32, 2u32, 1u32, 2u32, 0u32, 1u32, 0u32, 1u32, 2u32,
