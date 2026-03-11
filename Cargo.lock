@@ -2013,8 +2013,10 @@ dependencies = [
 name = "qiskit-pyext"
 version = "2.4.0-dev"
 dependencies = [
+ "anyhow",
  "pyo3",
  "qiskit-accelerate",
+ "qiskit-bindgen",
  "qiskit-cext",
  "qiskit-circuit",
  "qiskit-circuit-library",

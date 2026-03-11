@@ -2,7 +2,10 @@
 # This is duplicated as `dependency-groups.build` for convenience.
 requires = [
     "setuptools>=77.0",
-    "setuptools-rust",
+    # This is hard-pinned to permit the awful monkeypatching in `setup.py`.
+    # It should be removed when we can use a released version of
+    # https://github.com/PyO3/setuptools-rust/pull/574
+    "setuptools-rust==1.12.0",
 ]
 build-backend = "setuptools.build_meta"
 
@@ -184,7 +187,7 @@ default = "qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultScheduli
 # process.  If you intended that, use `project.optional-dependencies` instead.
 [dependency-groups]
 # Sync with `build-system.requires`.
-build = ["setuptools>=77.0", "setuptools-rust"]
+build = ["setuptools>=77.0", "setuptools-rust==1.12.0"]
 # We use quite tight pins on pylint and astroid because they have a habit of adding new
 # on-by-default lints that are harder to deal with.
 lint = [
