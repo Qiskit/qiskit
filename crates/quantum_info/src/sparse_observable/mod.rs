@@ -4220,8 +4220,19 @@ fn coerce_to_observable<'py>(
         }
     }
 }
+#[pyfunction(name = "_generator_observable")]
+#[pyo3(signature = (gate, params = None))]
+pub fn generator_observable_py(
+    gate: qiskit_circuit::operations::StandardGate,
+    params: Option<Vec<qiskit_circuit::operations::Param>>,
+) -> Option<SparseObservable> {
+    let params = params.unwrap_or_default();
+    standard_generators::generator_observable(gate, &params)
+}
+
 pub fn sparse_observable(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<PySparseObservable>()?;
+    m.add_function(wrap_pyfunction!(generator_observable_py, m)?)?;
     Ok(())
 }
 
