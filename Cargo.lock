@@ -1932,8 +1932,11 @@ name = "qiskit-bindgen-c"
 version = "2.4.0-dev"
 dependencies = [
  "anyhow",
+ "cbindgen",
  "clap",
+ "indexmap",
  "qiskit-bindgen",
+ "qiskit-cext-vtable",
 ]
 
 [[package]]
@@ -1956,6 +1959,13 @@ dependencies = [
  "rand_pcg",
  "smallvec",
  "thiserror 2.0.18",
+]
+
+[[package]]
+name = "qiskit-cext-vtable"
+version = "2.4.0-dev"
+dependencies = [
+ "qiskit-cext",
 ]
 
 [[package]]
@@ -2013,9 +2023,12 @@ dependencies = [
 name = "qiskit-pyext"
 version = "2.4.0-dev"
 dependencies = [
+ "anyhow",
  "pyo3",
  "qiskit-accelerate",
+ "qiskit-bindgen",
  "qiskit-cext",
+ "qiskit-cext-vtable",
  "qiskit-circuit",
  "qiskit-circuit-library",
  "qiskit-qasm2",

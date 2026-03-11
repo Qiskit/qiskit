@@ -30,6 +30,8 @@ use qiskit_transpiler::{passes::run_optimize_1q_gates_decomposition, target::Tar
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit`` and
 /// if ``target`` is not a valid pointer to a ``QkTarget``.
+///
+/// cbindgen:qk-vtable-rules=[no-export]
 #[deprecated(
     since = "2.4.0",
     note = "use `qk_transpiler_pass_standalone_optimize_1q_sequences` instead"

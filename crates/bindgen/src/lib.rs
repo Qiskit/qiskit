@@ -10,16 +10,55 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use anyhow::{Context, anyhow};
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
-pub static GENERATED_FILE: &str = "qiskit.h";
+pub const CBINDGEN_ATTRIBUTE_NAME: &str = "qk-vtable-rules";
+pub const CBINDGEN_SKIP: &str = "no-export";
+pub const CBINDGEN_DUPLICATE: &str = "allow-duplicate";
+
+/// Structured set of attributes that can be set on functions in `cbindgen`.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct FnAttributes {
+    /// The function should be skipped and not present in any vtable slots list.
+    pub skipped: bool,
+    /// The function is permitted to be exported in more than one slot.
+    pub allow_duplicates: bool,
+}
+impl FnAttributes {
+    /// Set the field corresponding to a given attribute.
+    pub fn set(&mut self, attr: &str) -> anyhow::Result<()> {
+        match attr {
+            CBINDGEN_SKIP => self.skipped = true,
+            CBINDGEN_DUPLICATE => self.allow_duplicates = true,
+            _ => anyhow::bail!("unknown attribute: {attr}"),
+        }
+        Ok(())
+    }
+}
+
+pub static SCOPED_INCLUDE_DIR: &str = "qiskit";
+pub static GENERATED_FILE_TYPES: &str = "types.h";
+pub static GENERATED_FILE_FUNCS: &str = "funcs.h";
+
 pub static PYTHON_BINDING_FEATURE: &str = "python_binding";
 pub static PYTHON_BINDING_DEFINE: &str = "QISKIT_C_PYTHON_INTERFACE";
 
-pub static INCLUDE_GUARD: &str = "QISKIT_H";
+pub static COPYRIGHT: &str = "\
+// This code is part of Qiskit.
+//
+// (C) Copyright IBM 2026
+//
+// This code is licensed under the Apache License, Version 2.0. You may
+// obtain a copy of this license in the LICENSE.txt file in the root directory
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
+//
+// Any modifications or derivative works of this code must retain this
+// copyright notice, and modified files need to carry a notice indicating
+// that they have been altered from the originals.
+";
+
 /// Crates that contain definitions of objects that are exposed through the C API.
 pub static QISKIT_PUBLIC_API_CRATES: &[&str] =
     &["qiskit-quantum-info", "qiskit-circuit", "qiskit-transpiler"];
@@ -100,6 +139,23 @@ fn manual_include_files() -> anyhow::Result<Vec<PathBuf>> {
 
 /// Get the Qiskit configuration
 fn get_config() -> anyhow::Result<cbindgen::Config> {
+    // `Python.h` is required to be the first file included because it reserves the right to define
+    // preprocessor macros that affect standard-library includes.  This causes it to be ahead of our
+    // include guard, but `Python.h` has its own, so we should be fine.
+    let header = Some(format!(
+        "{}\n{}",
+        COPYRIGHT,
+        guarded_python_import(PYTHON_BINDING_DEFINE)
+    ));
+    // We need to include the `attributes.h` file in all generated files to make sure Doxygen can
+    // understand the deprecated attributes (even though `qiskit.h` is organised to include it).
+    let includes = vec![
+        Path::new(SCOPED_INCLUDE_DIR)
+            .join("attributes.h")
+            .to_str()
+            .expect("our paths should always be valid utf-8")
+            .to_owned(),
+    ];
     let enumeration = cbindgen::EnumConfig {
         prefix_with_name: true,
         ..Default::default()
@@ -138,34 +194,11 @@ fn get_config() -> anyhow::Result<cbindgen::Config> {
         .iter()
         .map(|&(cfg, def)| (format!("feature = {cfg}"), String::from(def)))
         .collect();
-    // We always use `/` as the path separator to be portable.
-    let includes = manual_include_files()?
-        .into_iter()
-        .map(|buf| {
-            buf.iter()
-                .try_fold(String::new(), |mut acc, part| -> anyhow::Result<_> {
-                    let part = part
-                        .to_os_string()
-                        .into_string()
-                        .map_err(|e| anyhow!(e.to_string_lossy().into_owned()))
-                        .context("path could not be converted to UTF-8")?;
-                    if !acc.is_empty() {
-                        acc.push('/');
-                    }
-                    acc.push_str(&part);
-                    Ok(acc)
-                })
-        })
-        .collect::<Result<Vec<_>, _>>()?;
     Ok(cbindgen::Config {
-        // `Python.h` is required to be the first file included because it reserves the right to
-        // define preprocessor macros that affect standard-library includes.  This causes it to be
-        // ahead of our include guard, but `Python.h` has its own, so we should be fine.
-        header: Some(guarded_python_import(PYTHON_BINDING_DEFINE)),
+        header,
         language: cbindgen::Language::C,
-        include_version: true,
-        include_guard: Some(INCLUDE_GUARD.into()),
         includes,
+        include_version: true,
         style: cbindgen::Style::Type,
         cpp_compat: true,
         usize_is_size_t: true,
@@ -176,6 +209,21 @@ fn get_config() -> anyhow::Result<cbindgen::Config> {
         parse,
         ..Default::default()
     })
+}
+
+/// Is a given function marked with our custom "skip" attribute?
+///
+/// Returns an error if there are unknown attributes used in the list.
+pub fn fn_attrs(func: &cbindgen::ir::Function) -> anyhow::Result<FnAttributes> {
+    func.annotations
+        .list(CBINDGEN_ATTRIBUTE_NAME)
+        .map_or(Ok(FnAttributes::default()), |attrs| {
+            let mut out = FnAttributes::default();
+            for attr in attrs {
+                out.set(&attr)?;
+            }
+            Ok(out)
+        })
 }
 
 /// Generate the cbindgen bindings object for the C-extensions crate.
@@ -189,14 +237,36 @@ pub fn generate_bindings(cext_path: impl AsRef<Path>) -> anyhow::Result<cbindgen
 
 /// Install the complete stand-alone C include path into the given directory.
 pub fn install_c_headers(
-    bindings: &cbindgen::Bindings,
+    bindings: &mut cbindgen::Bindings,
     install_path: impl AsRef<Path>,
 ) -> anyhow::Result<()> {
     let install_path = install_path.as_ref();
-    fs::create_dir_all(install_path)?;
+    let scoped_install_path = install_path.join(SCOPED_INCLUDE_DIR);
+    fs::create_dir_all(&scoped_install_path)?;
+    // _Probably_ globals and constants can be handled just by putting them in the types file
+    // (because they're likely shared between all access modes to the hedaer file), but since we
+    // haven't got any yet, we just stay safe and check when some appear.
+    assert!(bindings.globals.is_empty(), "globals not handled yet");
     let mut buf = Vec::<u8>::new();
-    bindings.write(&mut buf);
-    fs::File::create(install_path.join(GENERATED_FILE))?.write_all(&buf)?;
+    {
+        // First, write out only the types and constants into one file.
+        let functions = ::std::mem::take(&mut bindings.functions);
+        bindings.write(&mut buf);
+        bindings.functions = functions;
+        fs::File::create(scoped_install_path.join(GENERATED_FILE_TYPES))?.write_all(&buf)?;
+        buf.clear();
+    }
+    {
+        // Now, write out the functions into the part of the generated file that's only read when
+        // we're not in Python-extension mode.
+        let items = ::std::mem::take(&mut bindings.items);
+        let constants = ::std::mem::take(&mut bindings.constants);
+        bindings.write(&mut buf);
+        bindings.items = items;
+        bindings.constants = constants;
+        fs::File::create(scoped_install_path.join(GENERATED_FILE_FUNCS))?.write_all(&buf)?;
+        buf.clear();
+    }
     let manual_path = manual_include_dir();
     for file in manual_include_files()? {
         if let Some(parent) = file.parent() {

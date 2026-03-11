@@ -1,6 +1,6 @@
 // This code is part of Qiskit.
 //
-// (C) Copyright IBM 2024
+// (C) Copyright IBM 2026
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,15 +10,9 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-mod extras;
-mod pointers;
-#[cfg(feature = "python_binding")]
-mod py;
+// This is a stub error file for distributions of the C API libraries that do not include the
+// generated access to Python extension modules.  It is overwritten by build scripts of the full
+// Python package.
 
-pub mod circuit;
-pub mod circuit_library;
-pub mod dag;
-pub mod exit_codes;
-pub mod param;
-pub mod sparse_observable;
-pub mod transpiler;
+#error This Qiskit distribution does not include the ability to define Python extension modules. \
+    Use `qiskit` as a Python-package build dependency.
