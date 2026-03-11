@@ -1056,6 +1056,7 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
 /// uint32_t qubits[4] = {0, 1, 2, 3};
 /// qk_circuit_pauli_product_rotation(circuit, &rotation, qubits);
 /// // do something with the circuit... and then free it
+/// qk_param_free(angle);
 /// qk_circuit_free(circuit);
 /// ```
 ///
@@ -1125,7 +1126,7 @@ pub unsafe extern "C" fn qk_circuit_pauli_product_rotation(
 /// otherwise this function will panic. Behavior is undefined if ``instruction`` is not a valid,
 /// non-null pointer to a memory allocation with sufficient space for a ``QkPauliProductRotation``.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_circuit_get_pauli_product_rotation(
+pub unsafe extern "C" fn qk_circuit_inst_pauli_product_rotation(
     circuit: *const CircuitData,
     index: usize,
     instruction: *mut CPauliProductRotation,
@@ -1145,8 +1146,8 @@ pub unsafe extern "C" fn qk_circuit_get_pauli_product_rotation(
     let z = rotation.z.clone().into_boxed_slice();
     let angle = Box::into_raw(Box::new(rotation.angle.clone()));
     let out = CPauliProductRotation {
-        x: Box::leak(x).as_mut_ptr(),
-        z: Box::leak(z).as_mut_ptr(),
+        x: Box::into_raw(x) as *mut bool,
+        z: Box::into_raw(z) as *mut bool,
         len,
         angle,
     };
@@ -1248,7 +1249,7 @@ pub unsafe extern "C" fn qk_circuit_pauli_product_measurement(
 /// otherwise this function will panic. Behavior is undefined if ``instruction`` is not a valid,
 /// non-null pointer to a memory allocation with sufficient space for a ``QkPauliProductMeasurement``.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_circuit_get_pauli_product_measurement(
+pub unsafe extern "C" fn qk_circuit_inst_pauli_product_measurement(
     circuit: *const CircuitData,
     index: usize,
     instruction: *mut CPauliProductMeasurement,
@@ -1267,8 +1268,8 @@ pub unsafe extern "C" fn qk_circuit_get_pauli_product_measurement(
     let x = measure.x.clone().into_boxed_slice();
     let z = measure.z.clone().into_boxed_slice();
     let out = CPauliProductMeasurement {
-        x: Box::leak(x).as_mut_ptr(),
-        z: Box::leak(z).as_mut_ptr(),
+        x: Box::into_raw(x) as *mut bool,
+        z: Box::into_raw(z) as *mut bool,
         len,
         flip_outcome: measure.neg,
     };

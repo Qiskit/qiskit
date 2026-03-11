@@ -8,9 +8,9 @@ features_c:
     respectively.
 
     To retrieve Pauli rotation data from a circuit, you can use
-    :c:func:`qk_circuit_get_pauli_product_rotation`, given that the instruction kind returned by
+    :c:func:`qk_circuit_inst_pauli_product_rotation`, given that the instruction kind returned by
     :c:func:`qk_circuit_instruction_kind` is ``QkOperationKind_PauliProductRotation``.
     Equivalently, Pauli measurements can be retrieved via
-    :c:func:`qk_circuit_get_pauli_product_measurement` if the kind if
+    :c:func:`qk_circuit_inst_pauli_product_measurement` if the kind if
     ``QkOperationKind_PauliProductMeasurement``.
 

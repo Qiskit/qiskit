@@ -44,7 +44,7 @@ pub struct CPauliProductRotation {
 ///
 /// // query the QkPauliProductRotation data
 /// assert(qk_circuit_operation_kind(circuit, index) == QkOperationKind_PauliProductRotation);
-/// qk_circuit_get_pauli_product_rotation(circuit, index, &inst);
+/// qk_circuit_inst_pauli_product_rotation(circuit, index, &inst);
 ///
 /// // do something with `inst`, and then clear the Rust-allocated data
 /// qk_pauli_product_rotation_clear(&inst);
@@ -58,6 +58,7 @@ pub struct CPauliProductRotation {
 /// QkPauliProductRotation rotation = {z, x, 4, angle};
 ///
 /// // since this data is allocated by C, we do not call `qk_pauli_product_rotation_clear(&rotation)`!
+/// qk_param_free(angle);
 /// ```
 ///
 /// @param inst A pointer to the ``QkPauliProductRotation`` to clear.
@@ -75,10 +76,10 @@ pub unsafe extern "C" fn qk_pauli_product_rotation_clear(inst: *mut CPauliProduc
     // readable for the correct length and `angle` is a valid, non-null Param pointer.
     unsafe {
         let x = ::std::slice::from_raw_parts_mut(inst.x, inst.len);
-        let _: Box<[bool]> = Box::from_raw(x as *mut [bool]);
+        let _: Box<[bool]> = Box::from_raw(x);
 
         let z = ::std::slice::from_raw_parts_mut(inst.z, inst.len);
-        let _: Box<[bool]> = Box::from_raw(z as *mut [bool]);
+        let _: Box<[bool]> = Box::from_raw(z);
 
         let _ = Box::from_raw(inst.angle);
     }
@@ -122,7 +123,7 @@ pub struct CPauliProductMeasurement {
 ///
 /// // query the QkPauliProductMeasurement data
 /// assert(qk_circuit_operation_kind(circuit, index) == QkOperationKind_PauliProductMeasurement);
-/// qk_circuit_get_pauli_product_measurement(circuit, index, &inst);
+/// qk_circuit_inst_pauli_product_measurement(circuit, index, &inst);
 ///
 /// // do something with `inst`, and then clear the Rust-allocated data
 /// qk_pauli_product_measurement_clear(&inst);
@@ -153,10 +154,10 @@ pub unsafe extern "C" fn qk_pauli_product_measurement_clear(inst: *mut CPauliPro
     // readable for the correct length and `angle` is a valid, non-null Param pointer.
     unsafe {
         let x = ::std::slice::from_raw_parts_mut(inst.x, inst.len);
-        let _: Box<[bool]> = Box::from_raw(x as *mut [bool]);
+        let _: Box<[bool]> = Box::from_raw(x);
 
         let z = ::std::slice::from_raw_parts_mut(inst.z, inst.len);
-        let _: Box<[bool]> = Box::from_raw(z as *mut [bool]);
+        let _: Box<[bool]> = Box::from_raw(z);
     }
 
     inst.x = ::std::ptr::null_mut();
