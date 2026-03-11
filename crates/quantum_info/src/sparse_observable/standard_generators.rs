@@ -3,7 +3,7 @@
 use super::BitTerm;
 use super::SparseObservable;
 use num_complex::Complex64;
-use pyo3::prelude::*;
+
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::operations::StandardGate;
 
@@ -290,22 +290,6 @@ pub fn generator_observable(
     )
 }
 
-#[pyfunction(name = "generator_observable")]
-#[pyo3(signature = (gate, params = None))]
-pub fn generator_observable_py(
-    gate: StandardGate,
-    params: Option<Vec<qiskit_circuit::operations::Param>>,
-) -> Option<SparseObservable> {
-    let params = params.unwrap_or_default();
-    generator_observable(gate, &params)
-}
-
-pub fn standard_generators(m: &Bound<PyModule>) -> PyResult<()> {
-    // Re-export StandardGate to ensure it is available and recognized
-    m.add_class::<StandardGate>()?;
-    m.add_function(wrap_pyfunction!(generator_observable_py, m)?)?;
-    Ok(())
-}
 
 #[cfg(test)]
 mod tests {
