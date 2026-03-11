@@ -58,6 +58,11 @@ from qiskit.circuit.library import (
     ZGate,
     HGate,
     UnitaryGate,
+    CSGate,
+    CSdgGate,
+    CZGate,
+    CYGate,
+    CSXGate,
     UGate,
     PauliEvolutionGate,
     PauliProductMeasurement,
@@ -610,14 +615,10 @@ class TestGeneratorObservableCommutation(QiskitTestCase):
 
     def _commute_via_matrix(self, gate_a, gate_b, qargs_a, qargs_b):
         """Compute commutation via the full CommutationChecker."""
-        from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
-
         return scc.commute(gate_a, qargs_a, [], gate_b, qargs_b, [])
 
     def test_cs_commutation(self):
         """CS and CZ share the same Z0 Z1 generator subspace, so they commute."""
-        from qiskit.circuit.library import CSGate, CZGate
-
         self.assertTrue(
             self._commute_via_matrix(CSGate(), CZGate(), [0, 1], [0, 1]),
             "CS and CZ should commute (both are ZZ-type generators)",
@@ -625,8 +626,6 @@ class TestGeneratorObservableCommutation(QiskitTestCase):
 
     def test_cx_cy_noncommute(self):
         """CX and CY do not commute on overlapping qubits (different generators)."""
-        from qiskit.circuit.library import CXGate, CYGate
-
         self.assertFalse(
             self._commute_via_matrix(CXGate(), CYGate(), [0, 1], [0, 1]),
             "CX and CY should not commute on the same qubits",
@@ -634,8 +633,6 @@ class TestGeneratorObservableCommutation(QiskitTestCase):
 
     def test_csx_commutes_with_cx(self):
         """CSX and CX share the ZX generator subspace (same up to scale), so they commute."""
-        from qiskit.circuit.library import CSXGate, CXGate
-
         self.assertTrue(
             self._commute_via_matrix(CSXGate(), CXGate(), [0, 1], [0, 1]),
             "CSX and CX should commute (both ZX-type generators)",
@@ -683,18 +680,17 @@ class TestGeneratorObservableCommutation(QiskitTestCase):
         """Parametric rotation gates should return generators proportional to the angle."""
         from qiskit._accelerate.circuit import StandardGate
         from qiskit._accelerate.sparse_observable import _generator_observable
-        import numpy as np
 
-        t = 0.7
+        theta = 0.7
         cases = [
-            (StandardGate.RX, t),
-            (StandardGate.RY, t),
-            (StandardGate.RZ, t),
-            (StandardGate.Phase, t),
-            (StandardGate.RXX, t),
-            (StandardGate.RYY, t),
-            (StandardGate.RZZ, t),
-            (StandardGate.RZX, t),
+            (StandardGate.RX, theta),
+            (StandardGate.RY, theta),
+            (StandardGate.RZ, theta),
+            (StandardGate.Phase, theta),
+            (StandardGate.RXX, theta),
+            (StandardGate.RYY, theta),
+            (StandardGate.RZZ, theta),
+            (StandardGate.RZX, theta),
         ]
         for std_gate, angle in cases:
             with self.subTest(gate=std_gate.name):
