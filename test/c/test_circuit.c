@@ -1101,6 +1101,9 @@ static int test_pbc_instructions(void) {
     exit = qk_circuit_inst_pauli_product_measurement(circuit, 1, out_meas);
     if (exit != QkExitCode_Success) {
         result = RuntimeError;
+        // free the memory, but there's no content to be cleared, so we do not have to
+        // call qk_pauli_product_measurement_clear
+        free(out_meas);
         goto cleanup_out_rot;
     }
 
