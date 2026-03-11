@@ -386,19 +386,13 @@ pub fn generator_observable(
             };
             match gate {
                 StandardGate::XXPlusYY => (
-                    vec![
-                        Complex64::new(t / 4.0, 0.0),
-                        Complex64::new(t / 4.0, 0.0),
-                    ],
+                    vec![Complex64::new(t / 4.0, 0.0), Complex64::new(t / 4.0, 0.0)],
                     vec![X, X, Y, Y],
                     vec![0u32, 1u32, 0u32, 1u32],
                     vec![0usize, 2usize, 4usize],
                 ),
                 StandardGate::XXMinusYY => (
-                    vec![
-                        Complex64::new(t / 4.0, 0.0),
-                        Complex64::new(-t / 4.0, 0.0),
-                    ],
+                    vec![Complex64::new(t / 4.0, 0.0), Complex64::new(-t / 4.0, 0.0)],
                     vec![X, X, Y, Y],
                     vec![0u32, 1u32, 0u32, 1u32],
                     vec![0usize, 2usize, 4usize],
@@ -413,13 +407,13 @@ pub fn generator_observable(
             let s = std::f64::consts::PI / 8.0;
             (
                 vec![
-                    Complex64::new(s, 0.0),   // Z0 Z1 X2
-                    Complex64::new(-s, 0.0),  // Z0 X2
-                    Complex64::new(-s, 0.0),  // Z1 X2
-                    Complex64::new(-s, 0.0),  // Z0 Z1
-                    Complex64::new(s, 0.0),   // Z0
-                    Complex64::new(s, 0.0),   // Z1
-                    Complex64::new(s, 0.0),   // X2
+                    Complex64::new(s, 0.0),  // Z0 Z1 X2
+                    Complex64::new(-s, 0.0), // Z0 X2
+                    Complex64::new(-s, 0.0), // Z1 X2
+                    Complex64::new(-s, 0.0), // Z0 Z1
+                    Complex64::new(s, 0.0),  // Z0
+                    Complex64::new(s, 0.0),  // Z1
+                    Complex64::new(s, 0.0),  // X2
                 ],
                 // Term 0: Z(q0) Z(q1) X(q2)  — 3 items
                 // Term 1: Z(q0) X(q2)          — 2 items
@@ -430,8 +424,12 @@ pub fn generator_observable(
                 // Term 6: X(q2)                 — 1 item
                 // Total: 3+2+2+2+1+1+1 = 12 items
                 vec![Z, Z, X, Z, X, Z, X, Z, Z, Z, X, X],
-                vec![0u32, 1u32, 2u32, 0u32, 2u32, 1u32, 2u32, 0u32, 1u32, 0u32, 1u32, 2u32],
-                vec![0usize, 3usize, 5usize, 7usize, 9usize, 10usize, 11usize, 12usize],
+                vec![
+                    0u32, 1u32, 2u32, 0u32, 2u32, 1u32, 2u32, 0u32, 1u32, 0u32, 1u32, 2u32,
+                ],
+                vec![
+                    0usize, 3usize, 5usize, 7usize, 9usize, 10usize, 11usize, 12usize,
+                ],
             )
         }
         // CCZ: CCZ = exp(-i*(pi/8)*(Z0*Z1*Z2 - Z0*Z2 - Z1*Z2 - Z0*Z1 + Z0 + Z1 + Z2))
@@ -439,13 +437,13 @@ pub fn generator_observable(
             let s = std::f64::consts::PI / 8.0;
             (
                 vec![
-                    Complex64::new(s, 0.0),   // Z0 Z1 Z2
-                    Complex64::new(-s, 0.0),  // Z0 Z2
-                    Complex64::new(-s, 0.0),  // Z1 Z2
-                    Complex64::new(-s, 0.0),  // Z0 Z1
-                    Complex64::new(s, 0.0),   // Z0
-                    Complex64::new(s, 0.0),   // Z1
-                    Complex64::new(s, 0.0),   // Z2
+                    Complex64::new(s, 0.0),  // Z0 Z1 Z2
+                    Complex64::new(-s, 0.0), // Z0 Z2
+                    Complex64::new(-s, 0.0), // Z1 Z2
+                    Complex64::new(-s, 0.0), // Z0 Z1
+                    Complex64::new(s, 0.0),  // Z0
+                    Complex64::new(s, 0.0),  // Z1
+                    Complex64::new(s, 0.0),  // Z2
                 ],
                 // Term 0: Z(q0) Z(q1) Z(q2)  — 3 items
                 // Term 1: Z(q0) Z(q2)          — 2 items
@@ -456,8 +454,12 @@ pub fn generator_observable(
                 // Term 6: Z(q2)                 — 1 item
                 // Total: 3+2+2+2+1+1+1 = 12 items
                 vec![Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z],
-                vec![0u32, 1u32, 2u32, 0u32, 2u32, 1u32, 2u32, 0u32, 1u32, 0u32, 1u32, 2u32],
-                vec![0usize, 3usize, 5usize, 7usize, 9usize, 10usize, 11usize, 12usize],
+                vec![
+                    0u32, 1u32, 2u32, 0u32, 2u32, 1u32, 2u32, 0u32, 1u32, 0u32, 1u32, 2u32,
+                ],
+                vec![
+                    0usize, 3usize, 5usize, 7usize, 9usize, 10usize, 11usize, 12usize,
+                ],
             )
         }
         // CSwap (Fredkin): CSwap = exp(-i*(pi/8)*(Z0 - Z0*X1*X2 - Z0*Y1*Y2 - Z0*Z1*Z2 + X1*X2 + Y1*Y2 + Z1*Z2))
@@ -466,13 +468,13 @@ pub fn generator_observable(
             let s = std::f64::consts::PI / 8.0;
             (
                 vec![
-                    Complex64::new(s, 0.0),   // Z0
-                    Complex64::new(-s, 0.0),  // Z0 X1 X2
-                    Complex64::new(-s, 0.0),  // Z0 Y1 Y2
-                    Complex64::new(-s, 0.0),  // Z0 Z1 Z2
-                    Complex64::new(s, 0.0),   // X1 X2
-                    Complex64::new(s, 0.0),   // Y1 Y2
-                    Complex64::new(s, 0.0),   // Z1 Z2
+                    Complex64::new(s, 0.0),  // Z0
+                    Complex64::new(-s, 0.0), // Z0 X1 X2
+                    Complex64::new(-s, 0.0), // Z0 Y1 Y2
+                    Complex64::new(-s, 0.0), // Z0 Z1 Z2
+                    Complex64::new(s, 0.0),  // X1 X2
+                    Complex64::new(s, 0.0),  // Y1 Y2
+                    Complex64::new(s, 0.0),  // Z1 Z2
                 ],
                 // Term 0: Z(q0)
                 // Term 1: Z(q0) X(q1) X(q2)
@@ -482,8 +484,13 @@ pub fn generator_observable(
                 // Term 5: Y(q1) Y(q2)
                 // Term 6: Z(q1) Z(q2)
                 vec![Z, Z, X, X, Z, Y, Y, Z, Z, Z, X, X, Y, Y, Z, Z],
-                vec![0u32, 0u32, 1u32, 2u32, 0u32, 1u32, 2u32, 0u32, 1u32, 2u32, 1u32, 2u32, 1u32, 2u32, 1u32, 2u32],
-                vec![0usize, 1usize, 4usize, 7usize, 10usize, 12usize, 14usize, 16usize],
+                vec![
+                    0u32, 0u32, 1u32, 2u32, 0u32, 1u32, 2u32, 0u32, 1u32, 2u32, 1u32, 2u32, 1u32,
+                    2u32, 1u32, 2u32,
+                ],
+                vec![
+                    0usize, 1usize, 4usize, 7usize, 10usize, 12usize, 14usize, 16usize,
+                ],
             )
         }
         _ => return None,
@@ -494,7 +501,6 @@ pub fn generator_observable(
             .expect("invalid multi-qubit generator layout"),
     )
 }
-
 
 #[cfg(test)]
 mod tests {
