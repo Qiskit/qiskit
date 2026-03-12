@@ -4025,7 +4025,9 @@ impl PyCircuitData {
                 OperationRef::Operation(op) => {
                     PyOperationTypes::Operation(op.py_deepcopy(py, None)?).into()
                 }
-                OperationRef::CustomOperation(custom) => CustomOp::from(custom.clone_dyn()).into(),
+                OperationRef::CustomOperation(custom) => {
+                    PackedOperation::from_boxed_custom_operation(custom.clone_dyn())
+                }
             };
             out.push(PackedInstruction { op, ..inst.clone() })?;
         }

@@ -3558,7 +3558,7 @@ impl dyn CustomOperation + 'static {
 /// Internal representation of a custom operation within a Circuit.
 #[derive(Debug)]
 #[repr(align(8))]
-pub struct CustomOp(Box<dyn CustomOperation>);
+pub(crate) struct CustomOp(Box<dyn CustomOperation>);
 
 impl Deref for CustomOp {
     type Target = dyn CustomOperation;

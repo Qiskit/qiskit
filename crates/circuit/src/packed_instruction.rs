@@ -28,7 +28,6 @@ use hashbrown::HashMap;
 use nalgebra::Matrix2;
 use ndarray::{Array2, CowArray, Ix2};
 use num_complex::Complex64;
-use pyo3::exceptions::PyNotImplementedError;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyType};
 use smallvec::SmallVec;
@@ -529,8 +528,8 @@ impl PackedOperation {
                 }
             }
             PackedOperationType::Custom => {
-                let native: &CustomOp = self.try_into().unwrap();
-                OperationRef::CustomOperation(&**native)
+                let custom_op: &CustomOp = self.try_into().unwrap();
+                OperationRef::CustomOperation(&**custom_op)
             }
         }
     }
@@ -587,6 +586,19 @@ impl PackedOperation {
     #[inline]
     pub fn from_pauli_based(pbc: Box<PauliBased>) -> Self {
         pbc.into()
+    }
+
+    /// Construct a new `PackedOperation` from an owned heap-allocated `CustomOperation`.
+    #[inline]
+    pub fn from_boxed_custom_operation(custom: Box<dyn CustomOperation>) -> Self {
+        CustomOp::from(custom).into()
+    }
+
+    /// Construct a new `PackedOperation` from an owned `CustomOperation`.
+    #[inline]
+    pub fn from_custom_operation<T: CustomOperation>(custom: T) -> Self {
+        let boxed: Box<dyn CustomOperation> = Box::new(custom);
+        CustomOp::from(boxed).into()
     }
 
     /// Check equality of the operation, including Python-space checks, if appropriate.
@@ -697,11 +709,8 @@ impl PackedOperation {
                     .cast::<PyType>()?
                     .is_subclass(py_type);
             }
-            // TODO: Implement Python exposure for Custom Operations.
-            OperationRef::CustomOperation(_) => {
-                return Err(PyNotImplementedError::new_err(
-                    "Custom gates cannot be exposed to Python yet.",
-                ));
+            OperationRef::CustomOperation(custom) => {
+                return custom.py_type(py)?.is_subclass(py_type);
             }
             OperationRef::PauliProductRotation(_) => {
                 return PAULI_PRODUCT_ROTATION_GATE
