@@ -132,7 +132,7 @@ impl PyNodeDurations {
         }
     }
 
-    fn __getitem__<'py>(&'py self, node: Bound<'py, DAGOpNode>) -> PyResult<Bound<'py, PyAny>> {
+    fn __getitem__<'py>(&'py self, node: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyAny>> {
         let node_as_base: &Bound<DAGNode> = node.cast()?;
         let py = node.py();
         match &self.inner {
@@ -181,6 +181,29 @@ impl PyNodeDurations {
         Ok(())
     }
 
+    fn __delitem__<'py>(&'py mut self, object: &Bound<'py, PyAny>) -> PyResult<()> {
+        let node_as_base: &Bound<DAGNode> = object.cast()?;
+        let idx = node_as_base.borrow().node.expect("Node index not found.");
+        if self.nodes_mapping.remove(&idx).is_some() {
+            match &mut self.inner {
+                NodeDurations::Dt(hash_map) => {hash_map.swap_remove(&idx);}
+                NodeDurations::Seconds(hash_map) => {
+                    hash_map.swap_remove(&idx);
+                }
+            }
+            Ok(())
+        } else {
+            Err(PyKeyError::new_err(format!(
+                "key '{}' not present in mapping",
+                object.repr()?
+            )))
+        }
+    }
+
+    fn __len__(&self) -> usize {
+        self.len()
+    }
+
     fn items<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyList>> {
         match &self.inner {
             NodeDurations::Dt(map) => {
@@ -192,25 +215,14 @@ impl PyNodeDurations {
         }
     }
 
-    fn get<'py>(
-        &'py self,
-        node: Bound<'py, DAGOpNode>,
-        default: Bound<'py, PyAny>,
-    ) -> Bound<'py, PyAny> {
-        match self.__getitem__(node) {
-            Ok(res) => res,
-            Err(_) => default,
-        }
-    }
-
-    fn __contains__<'py>(&'py self, node: Bound<'py, PyAny>) -> bool {
-        node.cast_into()
-            .map(|node| self.__getitem__(node).is_ok())
+    fn __contains__<'py>(&'py self, object: Bound<'py, PyAny>) -> bool {
+        object
+            .cast_into()
+            .map(|node| self.__getitem__(&node).is_ok())
             .is_ok_and(|val| val)
     }
 
-    #[pyo3(name = "clear")]
-    fn py_clear(&mut self) {
+    fn clear(&mut self) {
         self.inner.clear();
         self.nodes_mapping.clear();
     }
@@ -240,15 +252,15 @@ impl PyNodeDurations {
         self.clone()
     }
 
-    fn pop<'py>(&'py mut self, node: Bound<'py, DAGOpNode>) -> PyResult<Bound<'py, PyAny>> {
+    fn pop<'py>(&'py mut self, node: Bound<'py, PyAny>) -> PyResult<Bound<'py, PyAny>> {
         let node_as_base: &Bound<DAGNode> = node.cast()?;
         let idx = node_as_base.borrow().node.expect("Node index not found.");
         let py = node.py();
         self.nodes_mapping.remove(&idx);
 
         match &mut self.inner {
-            NodeDurations::Dt(hash_map) => hash_map.shift_remove(&idx).into_bound_py_any(py),
-            NodeDurations::Seconds(hash_map) => hash_map.shift_remove(&idx).into_bound_py_any(py),
+            NodeDurations::Dt(hash_map) => hash_map.swap_remove(&idx).into_bound_py_any(py),
+            NodeDurations::Seconds(hash_map) => hash_map.swap_remove(&idx).into_bound_py_any(py),
         }
     }
 }
