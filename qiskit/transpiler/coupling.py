@@ -491,6 +491,11 @@ class CouplingMap:
         This function calls the :func:`~rustworkx.visualization.graphviz_draw` function from the
         ``rustworkx`` package to draw the :class:`CouplingMap` object.
 
+        .. warning::
+            This function will call the system Graphviz tool on a file involving user-controllable
+            strings (such as qubit objects).  It is recommended to only call this function on
+            trusted input.
+
         Args:
             method (str): The layout method to use. See the documentation for
                 :func:`~rustworkx.visualization.graphviz_draw` for the list of supported methods
