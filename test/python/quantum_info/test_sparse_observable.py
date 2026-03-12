@@ -2451,7 +2451,6 @@ class TestSparseObservable(QiskitTestCase):
         with self.assertRaisesRegex(ValueError, "duplicate indices in qargs"):
             obs.evolve(pauli, qargs=[0, 0])
 
-    # Error cases
     def test_evolve_type_error(self):
         """Test that non-Pauli types raise TypeError."""
         obs = SparseObservable("XYZ")
