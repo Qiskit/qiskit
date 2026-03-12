@@ -31,6 +31,8 @@ mod value;
 pub fn qpy(module: &Bound<PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(circuit_writer::py_write_circuit, module)?)?;
     module.add_function(wrap_pyfunction!(circuit_reader::py_read_circuit, module)?)?;
+    module.add_function(wrap_pyfunction!(value::py_write_values, module)?)?;
+    module.add_function(wrap_pyfunction!(value::py_read_values, module)?)?;
     Ok(())
 }
 
