@@ -21,7 +21,9 @@ use num_complex::Complex64;
 use numpy::PyReadonlyArray2;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
+use qiskit_quantum_info::QiskitError;
 use smallvec::smallvec;
+use thiserror::Error;
 
 use crate::euler_one_qubit_decomposer::{
     EulerBasis, EulerBasisSet, unitary_to_gate_sequence_inner,
@@ -37,6 +39,28 @@ use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
 use qiskit_quantum_info::convert_2q_block_matrix::instructions_to_matrix;
 
 const EPS: f64 = 1e-10;
+
+/// Errors that might occur during QSD synthesis algorithm
+#[derive(Error, Debug)]
+pub enum QSDError {
+    #[error("Schur decomposition failed")]
+    SchurDecompositionFailed,
+
+    // wraps PyErr, e.g. produced by 2q decomposer
+    #[error(transparent)]
+    ErrorFromPython(#[from] PyErr),
+}
+
+impl From<QSDError> for PyErr {
+    fn from(error: QSDError) -> Self {
+        match error {
+            QSDError::SchurDecompositionFailed => {
+                QiskitError::new_err("Schur decomposition failed")
+            }
+            QSDError::ErrorFromPython(err) => err,
+        }
+    }
+}
 
 // when performing demultiplaxing, this enum is used to specify the actions that needs to be done
 enum VWType {
@@ -118,7 +142,7 @@ fn qsd_inner(
             unitary_to_gate_sequence_inner(array, one_qubit_decomposer, 0, None, true, None);
 
         return match sequence {
-            Some(seq) => CircuitData::from_standard_gates(
+            Some(seq) => Ok(CircuitData::from_standard_gates(
                 1,
                 seq.gates.into_iter().map(|(gate, params)| {
                     (
@@ -128,7 +152,7 @@ fn qsd_inner(
                     )
                 }),
                 Param::Float(seq.global_phase),
-            ),
+            )?),
             None => {
                 let out_qubits = (0..num_qubits)
                     .map(|_| ShareableQubit::new_anonymous())
@@ -289,7 +313,7 @@ fn qsd_inner(
     out.push_standard_gate(StandardGate::H, &[], &[Qubit((num_qubits - 1) as u32)])?;
     append(&mut out, right_circuit, &qr)?;
     if opt_a2_val && depth == 0 && dim > 4 {
-        apply_a2(&out, two_qubit_decomposer)
+        Ok(apply_a2(&out, two_qubit_decomposer)?)
     } else {
         Ok(out)
     }
@@ -413,7 +437,8 @@ fn demultiplex(
         let orthonormal_eigenvectors = QR::new(eigh.eigenvectors).q();
         (eigvals, orthonormal_eigenvectors)
     } else {
-        let schur = nalgebra::linalg::Schur::try_new(um0um1, 1e-12, 100000).unwrap();
+        let schur = nalgebra::linalg::Schur::try_new(um0um1, 1e-12, 100000)
+            .ok_or(QSDError::SchurDecompositionFailed)?;
         let (vmat, evals) = schur.unpack();
         let eigvals = evals.diagonal();
         (eigvals, vmat)
