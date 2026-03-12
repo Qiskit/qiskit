@@ -407,9 +407,12 @@ pub struct SparseObservable {
 //  Local 2x2 operator tables for BitTerms (Paulis + projectors)
 // ---------------------------------------------------------------------------
 
+/// Single-qubit operator action; maps input bit to (output_bit, amplitude).
 #[derive(Clone, Copy, Debug)]
-struct LocalEntry(u8, Complex64); // (output_bit, amplitude)
+struct LocalEntry(u8, Complex64);
 
+/// Lookup table for a single-qubit operator's action on basis states |0⟩ and |1⟩.
+/// Stores possible (output_bit, amplitude) pairs for each input.
 #[derive(Clone, Copy, Debug)]
 struct Local2x2 {
     out0: &'static [LocalEntry], // transitions when input bit = 0
@@ -529,7 +532,7 @@ static L2LEFT: Local2x2 = Local2x2 {
 
 // ---------------------------------------------------------------------------
 
-//  BitTerm to Local2x2 table mapper
+/// Mapper for each BitTerm to its corresponding Local2x2 lookup table.
 fn local_for_bitterm(bt: BitTerm) -> Option<&'static Local2x2> {
     match bt {
         BitTerm::X => Some(&L2X),
@@ -547,18 +550,20 @@ fn local_for_bitterm(bt: BitTerm) -> Option<&'static Local2x2> {
     }
 }
 
-// Compact compiled form of a SparseObservable term
+/// Precompiled representation of a single observable term.
+/// Stores active qubit positions, their Local2x2 tables, and precomputed column offsets
+/// to avoid recomputing tensor products during row iteration.
 #[derive(Clone, Debug)]
 struct TermDecomp {
-    qubits: Vec<u32>,
-    mask: u64,
-    dest_offsets: Vec<u64>,
-    locals: Vec<&'static Local2x2>,
-    coeff: Complex64,
+    qubits: Vec<u32>,              // active qubit indices
+    mask: u64,                     // bitmask with 1s at active qubit positions
+    dest_offsets: Vec<u64>,        // precomputed column contributions for each output pattern
+    locals: Vec<&'static Local2x2>, // Local2x2 table for each active qubit
+    coeff: Complex64,              // overall coefficient
 }
 
 impl TermDecomp {
-    ///from raw byte-coded bit terms
+    /// Constructs TermDecomp from raw bit terms and qubit indices.
     fn from_term_bits(
         bit_terms: &[BitTerm],
         indices: &[u32],
@@ -611,6 +616,8 @@ impl TermDecomp {
         })
     }
 
+    /// Computes all nonzero matrix entries for a given row by iterating over output patterns
+    /// and checking Local2x2 tables. Pushes (column, amplitude) pairs to `out`.
     #[inline]
     fn apply_to_row(&self, r: u64, out: &mut Vec<(usize, Complex64)>) {
         let base = r & !self.mask;
@@ -659,44 +666,21 @@ impl TermDecomp {
     }
 }
 
+/// Intermediate data structure for matrix construction.
+/// For pure Pauli observables, stores X/Z bitmasks for legacy XOR-based computation.
+/// For observables with projectors, stores precompiled TermDecomp structures.
 #[derive(Debug)]
 struct MatrixComputationData {
-    x_like: Vec<u64>,
-    z_like: Vec<u64>,
-    coeffs: Vec<Complex64>,
+    x_like: Vec<u64>,              // X bitmasks (Pauli path only)
+    z_like: Vec<u64>,              // Z bitmasks (Pauli path only)
+    coeffs: Vec<Complex64>,        // term coefficients (Pauli path only)
     num_qubits: u32,
-    pub ops: Option<Vec<TermDecomp>>,
+    pub ops: Option<Vec<TermDecomp>>, // precompiled terms (projector path only)
 }
 
 impl MatrixComputationData {
-    /// Combine duplicate (x_like, z_like) term pairs by summing their complex coefficients.
-    /// Done for runtime optimization before matrix construction.
-    /// This deduplicates equivalent Pauli terms within the SparseObservable,
-    /// ensuring each unique (X, Z) mask pair appears only once.
-    fn combine_duplicates(&mut self) {
-        let mut map: btree_map::BTreeMap<(u64, u64), Complex64> = btree_map::BTreeMap::new();
-
-        for (&x, &z, &c) in itertools::izip!(&self.x_like, &self.z_like, &self.coeffs) {
-            *map.entry((x, z)).or_insert(Complex64::new(0.0, 0.0)) += c;
-        }
-
-        self.x_like.clear();
-        self.z_like.clear();
-        self.coeffs.clear();
-
-        self.x_like.reserve(map.len());
-        self.z_like.reserve(map.len());
-        self.coeffs.reserve(map.len());
-
-        for ((x, z), c) in map {
-            if c != Complex64::new(0.0, 0.0) {
-                self.x_like.push(x);
-                self.z_like.push(z);
-                self.coeffs.push(c);
-            }
-        }
-    }
-    /// optimized matrix computation data from projector sparse observable
+    /// Constructs MatrixComputationData for observables containing projectors.
+    /// Builds TermDecomp for each term to handle general single-qubit operators.
     fn from_sparse_observable_general(
         obs: &SparseObservable,
     ) -> Result<Self, MatrixComputationError> {
@@ -730,8 +714,8 @@ impl MatrixComputationData {
 
         if obs.is_pure_pauli() {
             // Direct precomputation for pure Pauli, no expansion needed
-            let mut data = Self::from_pauli_like(obs)?;
-            data.combine_duplicates();
+            let cleaned = obs.canonicalize(0.0);
+            let data = Self::from_pauli_like(&cleaned)?;
             Ok(data)
         } else {
             // branch logic for projectors
