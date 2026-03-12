@@ -156,24 +156,29 @@ class UnitaryGate(Gate):
 
             self.definition = two_qubit_cnot_decompose(self.to_matrix())
         else:
+
+            mat = self.to_matrix()
+
             from qiskit.synthesis.unitary.qsd import qs_decomposition
 
             try:
                 # The Rust code for Quantum Shannon Decomposition may return QiskitError
                 # when linear algebra methods (e.g. Schur decomposition) fail.
-                self.definition = qs_decomposition(self.to_matrix())
+                mat_def = qs_decomposition(mat)
             except QiskitError:
-                self.definition = None
+                mat_def = None
 
             # If QSD fails or provides numerically imprecise matrices, fallback on the
             # Isometry decomposition (which produces more gates but is more numerically
             # stable)
             from qiskit.quantum_info.operators import Operator
 
-            if (self.definition is None) or not (
-                matrix_equal(Operator(self.definition).to_matrix(), self.to_matrix(), atol=1e-7)
+            if (mat_def is None) or not (
+                matrix_equal(Operator(mat_def).to_matrix(), mat, atol=1e-7)
             ):
-                self.definition = Isometry(self.to_matrix(), 0, 0).definition
+                mat_def = Isometry(self.to_matrix(), 0, 0).definition
+
+            self.definition = mat_def
 
     def control(
         self,
