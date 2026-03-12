@@ -3737,7 +3737,7 @@ impl PySparseObservable {
     ///      A new evolved :class:`SparseObservable` with applied conjugations.
     ///
     /// Raises:
-    ///     TypeError : if ``other `` is not of Type ``Pauli``.
+    ///     TypeError : if ``other `` is not of Type :class:`~.quantum_info.Pauli`.
     ///     ValueError: if ``self`` and ``other`` have different numbers of qubits (and ``qargs`` is not given).
     ///     ValueError: if ``qargs`` length doesn't match ``other`` number of qubits.
     ///     ValueError: if ``qargs`` contains duplicates or out-of-range indices.
