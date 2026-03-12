@@ -3872,13 +3872,23 @@ class QuantumCircuit:
     ):
         r"""Draw the quantum circuit. Use the output parameter to choose the drawing format:
 
-        **text**: ASCII art TextDrawing that can be printed in the console.
+        ``text``
+            ASCII art TextDrawing that can be printed in the console.
 
-        **mpl**: images with color rendered purely in Python using matplotlib.
+        ``mpl``
+            Images with color rendered purely in Python using matplotlib.
 
-        **latex**: high-quality images compiled via latex.
+        ``latex``
+            High-quality images compiled via LaTeX.
 
-        **latex_source**: raw uncompiled latex output.
+            .. warning::
+                This will call an installed system version of ``pdflatex`` on arbitrary user input
+                by design (such as to render custom code in :attr:`.Instruction.label`), so should
+                only be used on trusted input.
+
+        ``latex_source``
+            Raw uncompiled LaTeX output.  This is the source of what would be rendered by the
+            ``latex`` drawer.
 
         .. warning::
 
