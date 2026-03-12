@@ -30,6 +30,8 @@ int run(const char *name, int (*test_function)(void)) {
         msg = "Ok";
     } else if (result == EqualityError) {
         msg = "FAILED with an EqualityError";
+    } else if (result == RuntimeError) {
+        msg = "FAILED with a RuntimeError";
     } else {
         msg = "FAILED with unknown error";
     }

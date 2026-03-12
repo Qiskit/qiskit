@@ -18,32 +18,23 @@ import numpy
 
 import qiskit
 
-LIB_PATH = qiskit._accelerate.__file__
-LIB = ctypes.PyDLL(LIB_PATH)
+LIB = ctypes.PyDLL(qiskit.capi.get_lib())
 
 
 class QkCircuit(ctypes.Structure):
     """QkCircuit Opaque Type"""
 
-    pass
-
 
 class QkTarget(ctypes.Structure):
     """QkTarget Opaque Type"""
-
-    pass
 
 
 class QkTargetEntry(ctypes.Structure):
     """QkTargetEntry Opaque Type"""
 
-    pass
-
 
 class QkTranspileLayout(ctypes.Structure):
     """QkTranspileLayout Opaque Type"""
-
-    pass
 
 
 class QkTranspileOptions(ctypes.Structure):

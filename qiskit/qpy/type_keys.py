@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=too-many-return-statements
 
 """
 QPY Type keys for several namespace.
@@ -55,7 +54,6 @@ class TypeKeyBase(bytes, Enum):
         Returns:
             TypeKey: Corresponding key object.
         """
-        pass
 
     @classmethod
     @abstractmethod
@@ -68,7 +66,6 @@ class TypeKeyBase(bytes, Enum):
         Returns:
             any: Corresponding class.
         """
-        pass
 
 
 class Value(TypeKeyBase):

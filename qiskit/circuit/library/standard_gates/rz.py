@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 from cmath import exp
-from typing import Optional
+
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.parameterexpression import ParameterValueType
@@ -64,17 +64,17 @@ class RZGate(Gate):
 
     _standard_gate = StandardGate.RZ
 
-    def __init__(self, phi: ParameterValueType, label: Optional[str] = None):
+    def __init__(self, phi: ParameterValueType, label: str | None = None):
         """
         Args:
-            theta: The rotation angle.
+            phi: The rotation angle.
             label: An optional label for the gate.
         """
         super().__init__("rz", 1, [phi], label=label)
 
     def _define(self):
         """Default definition"""
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         # global phase: -0.5*φ
@@ -252,7 +252,7 @@ class CRZGate(ControlledGate):
 
     def _define(self):
         """Default definition"""
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         # q_0: ─────────────■────────────────■──

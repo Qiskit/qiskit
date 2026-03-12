@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-class-docstring,missing-function-docstring
-# pylint: disable=missing-module-docstring
 
 import math
 
@@ -30,7 +28,7 @@ from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.quantum_info import Operator
 from qiskit.transpiler import InstructionProperties
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 from ..legacy_cmaps import TENERIFE_CMAP
 from .fake_mumbai_v2 import FakeMumbaiFractionalCX
@@ -101,7 +99,7 @@ class TestBackendV2(QiskitTestCase):
             self.backend.set_options(shots=8192)
         self.assertEqual(
             str(cm.exception),
-            "Specified value for 'shots' is not a valid value, must be >=1 or <=4096",
+            "Specified value for 'shots' is not a valid value, must be >=1 and <=4096",
         )
 
     @data(0, 1, 2, 3)

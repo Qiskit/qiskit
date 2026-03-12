@@ -91,8 +91,8 @@ from qiskit.synthesis.multi_controlled.multi_control_rotation_gates import _mcsu
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
 )
-from test import combine  # pylint: disable=wrong-import-order
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import combine
+from test import QiskitTestCase
 
 from .gate_utils import _get_free_params
 

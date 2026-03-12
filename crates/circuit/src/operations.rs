@@ -19,7 +19,7 @@ use std::sync::Arc;
 use std::{fmt, vec};
 
 use crate::bit::{ClassicalRegister, ShareableClbit};
-use crate::circuit_data::CircuitData;
+use crate::circuit_data::{CircuitData, PyCircuitData};
 use crate::classical::expr;
 use crate::duration::Duration;
 use crate::packed_instruction::PackedInstruction;
@@ -287,6 +287,7 @@ pub enum OperationRef<'a> {
     Operation(&'a PyInstruction),
     Unitary(&'a UnitaryGate),
     PauliProductMeasurement(&'a PauliProductMeasurement),
+    PauliProductRotation(&'a PauliProductRotation),
 }
 
 impl Operation for OperationRef<'_> {
@@ -301,6 +302,7 @@ impl Operation for OperationRef<'_> {
             Self::Operation(operation) => operation.name(),
             Self::Unitary(unitary) => unitary.name(),
             Self::PauliProductMeasurement(ppm) => ppm.name(),
+            Self::PauliProductRotation(rotation) => rotation.name(),
         }
     }
     #[inline]
@@ -314,6 +316,7 @@ impl Operation for OperationRef<'_> {
             Self::Operation(operation) => operation.num_qubits(),
             Self::Unitary(unitary) => unitary.num_qubits(),
             Self::PauliProductMeasurement(ppm) => ppm.num_qubits(),
+            Self::PauliProductRotation(rotation) => rotation.num_qubits(),
         }
     }
     #[inline]
@@ -327,6 +330,7 @@ impl Operation for OperationRef<'_> {
             Self::Operation(operation) => operation.num_clbits(),
             Self::Unitary(unitary) => unitary.num_clbits(),
             Self::PauliProductMeasurement(ppm) => ppm.num_clbits(),
+            Self::PauliProductRotation(rotation) => rotation.num_clbits(),
         }
     }
     #[inline]
@@ -340,6 +344,7 @@ impl Operation for OperationRef<'_> {
             Self::Operation(operation) => operation.num_params(),
             Self::Unitary(unitary) => unitary.num_params(),
             Self::PauliProductMeasurement(ppm) => ppm.num_params(),
+            Self::PauliProductRotation(rotation) => rotation.num_params(),
         }
     }
     #[inline]
@@ -353,6 +358,7 @@ impl Operation for OperationRef<'_> {
             Self::Operation(operation) => operation.directive(),
             Self::Unitary(unitary) => unitary.directive(),
             Self::PauliProductMeasurement(ppm) => ppm.directive(),
+            Self::PauliProductRotation(rotation) => rotation.directive(),
         }
     }
 }
@@ -360,7 +366,7 @@ impl Operation for OperationRef<'_> {
 /// Used to tag control flow instructions via the `_control_flow_type` class
 /// attribute in the corresponding Python class.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int)]
+#[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int, from_py_object)]
 #[repr(u8)]
 pub enum ControlFlowType {
     Box = 0,
@@ -628,10 +634,10 @@ impl ControlFlowInstruction {
                 let (duration, unit) = match duration {
                     Some(duration) => match duration {
                         BoxDuration::Duration(duration) => {
-                            (Some(duration.py_value(py)?), Some(duration.unit()))
+                            (Some(duration.py_value(py)), Some(duration.unit()))
                         }
                         BoxDuration::Expr(expr) => {
-                            (Some(expr.clone().into_py_any(py)?), Some("expr"))
+                            (Some(expr.clone().into_bound_py_any(py)?), Some("expr"))
                         }
                     },
                     None => (None, None),
@@ -1020,7 +1026,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for DelayUnit {
 /// This is also used to tag standard instructions via the `_standard_instruction_type` class
 /// attribute in the corresponding Python class.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int)]
+#[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int, from_py_object)]
 #[repr(u8)]
 pub enum StandardInstructionType {
     Barrier = 0,
@@ -1107,7 +1113,10 @@ impl Operation for StandardInstruction {
     }
 
     fn num_params(&self) -> u32 {
-        0
+        match self {
+            StandardInstruction::Delay(_) => 1,
+            _ => 0,
+        }
     }
 
     fn directive(&self) -> bool {
@@ -1153,7 +1162,7 @@ impl StandardInstruction {
 
 #[derive(Clone, Debug, Copy, Eq, PartialEq, Hash)]
 #[repr(u8)]
-#[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int)]
+#[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int, from_py_object)]
 pub enum StandardGate {
     GlobalPhase = 0,
     H = 1,
@@ -2850,8 +2859,8 @@ impl StandardGate {
         self.num_params()
     }
 
-    pub fn _get_definition(&self, params: Vec<Param>) -> Option<CircuitData> {
-        self.definition(&params)
+    pub fn _get_definition(&self, params: Vec<Param>) -> Option<PyCircuitData> {
+        self.definition(&params).map(Into::into)
     }
 
     pub fn _inverse(&self, params: Vec<Param>) -> Option<(StandardGate, SmallVec<[Param; 3]>)> {
@@ -3135,9 +3144,11 @@ impl PyInstruction {
         Python::attach(|py| -> Option<CircuitData> {
             match self.instruction.getattr(py, intern!(py, "definition")) {
                 Ok(definition) => definition
-                    .getattr(py, intern!(py, "_data"))
+                    .bind(py)
+                    .getattr(intern!(py, "_data"))
                     .ok()?
-                    .extract::<CircuitData>(py)
+                    .cast::<PyCircuitData>()
+                    .map(|data| data.borrow().inner.clone())
                     .ok(),
                 Err(_) => None,
             }
@@ -3305,6 +3316,76 @@ impl UnitaryGate {
         }
     }
 }
+
+/// A Pauli-based gate model, consisting of PauliProductRotation and PauliProductMeasurement ops.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum PauliBased {
+    PauliProductRotation(PauliProductRotation),
+    PauliProductMeasurement(PauliProductMeasurement),
+}
+
+#[derive(Clone, Debug)]
+#[repr(align(8))]
+pub struct PauliProductRotation {
+    /// The z-component of the pauli.
+    pub z: Vec<bool>,
+    /// The x-component of the pauli.
+    pub x: Vec<bool>,
+    /// The rotation angle, exp(i theta / 2 P)
+    pub angle: Param,
+}
+
+impl Operation for PauliProductRotation {
+    fn name(&self) -> &str {
+        "pauli_product_rotation"
+    }
+    fn num_qubits(&self) -> u32 {
+        self.z.len() as u32
+    }
+    fn num_clbits(&self) -> u32 {
+        0
+    }
+    fn num_params(&self) -> u32 {
+        1
+    }
+    fn directive(&self) -> bool {
+        false
+    }
+}
+
+impl PauliProductRotation {
+    pub fn create_py_op(&self, py: Python, label: Option<&str>) -> PyResult<Py<PyAny>> {
+        let z = self.z.to_pyarray(py);
+        let x = self.x.to_pyarray(py);
+
+        let py_label = if let Some(label) = label {
+            label.into_py_any(py)?
+        } else {
+            py.None()
+        };
+
+        let gate = imports::PAULI_PRODUCT_ROTATION_GATE
+            .get_bound(py)
+            .call_method1(
+                intern!(py, "_from_pauli_data"),
+                (z, x, self.angle.clone(), py_label),
+            )?;
+        Ok(gate.unbind())
+    }
+}
+
+impl PartialEq for PauliProductRotation {
+    fn eq(&self, other: &Self) -> bool {
+        self.x == other.x
+            && self.z == other.z
+            && self
+                .angle
+                .eq(&other.angle)
+                .expect("Angles are float or symbol, for which eq is infallible")
+    }
+}
+
+impl Eq for PauliProductRotation {}
 
 /// This class represents a PauliProductMeasurement instruction.
 #[derive(Clone, Debug)]

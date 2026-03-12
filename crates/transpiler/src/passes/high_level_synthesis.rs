@@ -19,10 +19,9 @@ use pyo3::IntoPyObjectExt;
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
 use qiskit_circuit::bit::ShareableQubit;
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::converters::QuantumCircuitData;
-use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::CX_GATE;
 use qiskit_circuit::imports::HLS_SYNTHESIZE_OP_USING_PLUGINS;
@@ -32,7 +31,8 @@ use qiskit_circuit::operations::{
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{BlocksMode, Clbit, Qubit, VarsMode};
-use qiskit_synthesis::pauli_product_measurement::synthesize_ppm;
+use qiskit_synthesis::pauli_products::synthesize_ppm;
+use qiskit_synthesis::pauli_products::synthesize_ppr;
 use smallvec::SmallVec;
 
 use crate::TranspilerError;
@@ -51,7 +51,7 @@ use qiskit_circuit::instruction::{Instruction, Parameters};
 /// The global qubits are numbered by consecutive integers starting at `0`,
 /// and the states are distinguished into clean (:math:`|0\rangle`)
 /// and dirty (unknown).
-#[pyclass]
+#[pyclass(skip_from_py_object)]
 #[derive(Clone, Debug)]
 struct QubitTracker {
     /// The total number of global qubits
@@ -277,7 +277,10 @@ impl QubitTracker {
 }
 
 /// Internal class that encapsulates immutable data required by the HighLevelSynthesis transpiler pass.
-#[pyclass(module = "qiskit._accelerate.high_level_synthesis")]
+#[pyclass(
+    module = "qiskit._accelerate.high_level_synthesis",
+    skip_from_py_object
+)]
 #[derive(Clone, Debug)]
 pub struct HighLevelSynthesisData {
     // The high-level-synthesis config that specifies the synthesis methods
@@ -801,6 +804,7 @@ fn extract_definition(op: &PackedOperation, params: &[Param]) -> PyResult<Option
         OperationRef::Gate(g) => Ok(g.definition()),
         OperationRef::Instruction(i) => Ok(i.definition()),
         OperationRef::PauliProductMeasurement(ppm) => Ok(Some(synthesize_ppm(ppm)?)),
+        OperationRef::PauliProductRotation(rotation) => Ok(Some(synthesize_ppr(rotation)?)),
         OperationRef::StandardInstruction(i) => match i {
             StandardInstruction::Measure
             | StandardInstruction::Reset
@@ -955,6 +959,9 @@ fn synthesize_op_using_plugins(
         OperationRef::Operation(operation) => operation.instruction.clone_ref(py),
         OperationRef::Unitary(unitary) => unitary.create_py_op(py, label)?.into_any(),
         OperationRef::PauliProductMeasurement(ppm) => ppm.create_py_op(py, label)?.into_any(),
+        OperationRef::PauliProductRotation(rotation) => {
+            rotation.create_py_op(py, label)?.into_any()
+        }
     };
 
     let res = HLS_SYNTHESIZE_OP_USING_PLUGINS
@@ -987,7 +994,7 @@ fn py_synthesize_operation(
     input_qubits: Vec<Qubit>,
     data: &Bound<HighLevelSynthesisData>,
     tracker: &mut QubitTracker,
-) -> PyResult<Option<(CircuitData, Vec<usize>)>> {
+) -> PyResult<Option<(PyCircuitData, Vec<usize>)>> {
     let op: OperationFromPython<Py<PyAny>> = py_op.extract()?;
 
     // Check if the operation can be skipped.
@@ -1005,8 +1012,9 @@ fn py_synthesize_operation(
         op.label.as_deref().map(|l| l.as_str()),
     )?;
 
-    Ok(result
-        .map(|res: (CircuitData, Vec<Qubit>)| (res.0, res.1.iter().map(|x| x.index()).collect())))
+    Ok(result.map(|res: (CircuitData, Vec<Qubit>)| {
+        (res.0.into(), res.1.iter().map(|x| x.index()).collect())
+    }))
 }
 
 /// Synthesizes a circuit.
@@ -1016,14 +1024,14 @@ fn py_synthesize_operation(
 #[pyo3(name = "synthesize_circuit", signature = (circuit, input_qubits, data, tracker))]
 fn py_synthesize_circuit(
     py: Python,
-    circuit: &CircuitData,
+    circuit: &PyCircuitData,
     input_qubits: Vec<Qubit>,
     data: &Bound<HighLevelSynthesisData>,
     tracker: &mut QubitTracker,
-) -> PyResult<(CircuitData, Vec<usize>)> {
+) -> PyResult<(PyCircuitData, Vec<usize>)> {
     let res = run_on_circuitdata(py, circuit, &input_qubits, data, tracker)?;
 
-    Ok((res.0, res.1.iter().map(|x| x.index()).collect()))
+    Ok((res.0.into(), res.1.iter().map(|x| x.index()).collect()))
 }
 
 /// Runs HighLevelSynthesis transpiler pass.
@@ -1066,7 +1074,7 @@ pub fn run_high_level_synthesis(
         // Regular-path: we synthesize the circuit recursively. Except for
         // this conversion from DAGCircuit to CircuitData and back, all
         // the recursive functions work with CircuitData objects only.
-        let circuit = dag_to_circuit(dag, false)?;
+        let circuit = CircuitData::from_dag_ref(dag)?;
 
         let num_qubits = circuit.num_qubits();
         let input_qubits: Vec<Qubit> = (0..num_qubits).map(Qubit::new).collect();

@@ -16,7 +16,7 @@
 import numpy as np
 
 from qiskit.primitives.containers import DataBin, PrimitiveResult, PubResult
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class PrimitiveResultCase(QiskitTestCase):

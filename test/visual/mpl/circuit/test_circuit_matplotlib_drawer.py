@@ -49,9 +49,9 @@ from qiskit.circuit.classical import expr, types
 from qiskit.quantum_info import random_clifford
 from qiskit.quantum_info.random import random_unitary
 from qiskit.utils import optionals
-from test.visual import VisualTestUtilities  # pylint: disable=wrong-import-order
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
-from test.python.legacy_cmaps import (  # pylint: disable=wrong-import-order
+from test.visual import VisualTestUtilities
+from test import QiskitTestCase
+from test.python.legacy_cmaps import (
     TENERIFE_CMAP,
     YORKTOWN_CMAP,
 )

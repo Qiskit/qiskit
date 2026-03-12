@@ -590,7 +590,12 @@ impl GeneratorTerm {
 /// A single term from a complete :class:`PauliLindbladMap`.
 ///
 /// These are typically created by indexing into or iterating through a :class:`PauliLindbladMap`.
-#[pyclass(name = "GeneratorTerm", frozen, module = "qiskit.quantum_info")]
+#[pyclass(
+    name = "GeneratorTerm",
+    frozen,
+    module = "qiskit.quantum_info",
+    skip_from_py_object
+)]
 #[derive(Clone, Debug)]
 struct PyGeneratorTerm {
     inner: GeneratorTerm,
@@ -1783,7 +1788,7 @@ impl PyPauliLindbladMap {
     ///
     /// Args: qubit_sparse_pauli (QubitSparsePauli): the qubit sparse Pauli to compute the Pauli
     ///     fidelity of.
-    fn pauli_fidelity(&self, qubit_sparse_pauli: PyQubitSparsePauli) -> PyResult<f64> {
+    fn pauli_fidelity(&self, qubit_sparse_pauli: &PyQubitSparsePauli) -> PyResult<f64> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
         let result = inner.pauli_fidelity(qubit_sparse_pauli.inner())?;
         Ok(result)

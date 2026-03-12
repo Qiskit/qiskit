@@ -10,10 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-# pylint: disable=unused-variable
-# pylint: disable=missing-param-doc
-# pylint: disable=missing-type-doc
 
 """
 Generic isometries from m to n qubits.
@@ -144,9 +140,9 @@ class Isometry(Instruction):
         circuit = QuantumCircuit(q, name="isometry_to_uncompute")
         (
             q_input,
-            q_ancillas_for_output,
-            q_ancillas_zero,
-            q_ancillas_dirty,
+            _q_ancillas_for_output,
+            _q_ancillas_zero,
+            _q_ancillas_dirty,
         ) = self._define_qubit_role(q)
         # Copy the isometry (this is computationally expensive for large isometries but guarantees
         # to keep a copyof the input isometry)
@@ -268,8 +264,8 @@ class Isometry(Instruction):
         (
             q_input,
             q_ancillas_for_output,
-            q_ancillas_zero,
-            q_ancillas_dirty,
+            _q_ancillas_zero,
+            _q_ancillas_dirty,
         ) = self._define_qubit_role(q)
         n = int(math.log2(self.iso_data.shape[0]))
         qubits = q_input + q_ancillas_for_output

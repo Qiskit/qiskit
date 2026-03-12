@@ -129,7 +129,13 @@ impl PyBinaryOp {
 ///     left: The left-hand operand.
 ///     right: The right-hand operand.
 ///     type: The resolved type of the result.
-#[pyclass(eq, extends = PyExpr, name = "Binary", module = "qiskit._accelerate.circuit.classical.expr")]
+#[pyclass(
+    eq,
+    extends = PyExpr,
+    name = "Binary",
+    module = "qiskit._accelerate.circuit.classical.expr",
+    from_py_object
+)]
 #[derive(PartialEq, Clone, Debug)]
 pub struct PyBinary(Binary);
 

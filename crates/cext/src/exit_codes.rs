@@ -42,6 +42,8 @@ pub enum ExitCode {
     IndexError = 103,
     /// Duplicate index.
     DuplicateIndexError = 104,
+    /// Invalid ``QkOperationKind``.
+    InvalidOperationKind = 105,
     /// Error related to arithmetic operations or similar.
     ArithmeticError = 200,
     /// Mismatching number of qubits.
