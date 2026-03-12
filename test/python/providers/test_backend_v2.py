@@ -101,7 +101,7 @@ class TestBackendV2(QiskitTestCase):
             self.backend.set_options(shots=8192)
         self.assertEqual(
             str(cm.exception),
-            "Specified value for 'shots' is not a valid value, must be >=1 or <=4096",
+            "Specified value for 'shots' is not a valid value, must be >=1 and <=4096",
         )
 
     @data(0, 1, 2, 3)
