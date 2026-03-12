@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::classical::expr::{Binary, Cast, Index, Stretch, Unary, Value, Var};
+use crate::classical::expr::{Binary, Cast, Index, Range, Stretch, Unary, Value, Var};
 use crate::classical::types::Type;
 use pyo3::prelude::*;
 use pyo3::{IntoPyObjectExt, intern};
@@ -30,6 +30,7 @@ pub enum Expr {
     Var(Var),
     Stretch(Stretch),
     Index(Box<Index>),
+    Range(Box<Range>),
 }
 
 #[derive(Debug, PartialEq)]
@@ -41,6 +42,7 @@ pub enum ExprRef<'a> {
     Var(&'a Var),
     Stretch(&'a Stretch),
     Index(&'a Index),
+    Range(&'a Range),
 }
 
 #[derive(Debug, PartialEq)]
@@ -52,6 +54,7 @@ pub enum ExprRefMut<'a> {
     Var(&'a mut Var),
     Stretch(&'a mut Stretch),
     Index(&'a mut Index),
+    Range(&'a mut Range),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -71,6 +74,7 @@ impl Expr {
             Expr::Var(v) => ExprRef::Var(v),
             Expr::Stretch(s) => ExprRef::Stretch(s),
             Expr::Index(i) => ExprRef::Index(i.as_ref()),
+            Expr::Range(r) => ExprRef::Range(r.as_ref()),
         }
     }
 
@@ -84,6 +88,7 @@ impl Expr {
             Expr::Var(v) => ExprRefMut::Var(v),
             Expr::Stretch(s) => ExprRefMut::Stretch(s),
             Expr::Index(i) => ExprRefMut::Index(i.as_mut()),
+            Expr::Range(r) => ExprRefMut::Range(r.as_mut()),
         }
     }
 
@@ -97,6 +102,7 @@ impl Expr {
             Expr::Var(_) => false,
             Expr::Stretch(_) => true,
             Expr::Index(i) => i.constant,
+            Expr::Range(r) => r.constant,
         }
     }
 
@@ -118,6 +124,7 @@ impl Expr {
             },
             Expr::Stretch(_) => Type::Duration,
             Expr::Index(i) => i.ty,
+            Expr::Range(r) => r.ty,
         }
     }
 
@@ -164,6 +171,11 @@ impl Expr {
             Expr::Index(i) => {
                 i.target.visit_mut_impl(visitor)?;
                 i.index.visit_mut_impl(visitor)?;
+            }
+            Expr::Range(r) => {
+                r.start.visit_mut_impl(visitor)?;
+                r.stop.visit_mut_impl(visitor)?;
+                r.step.visit_mut_impl(visitor)?;
             }
         }
         visitor(self.as_mut())
@@ -237,6 +249,18 @@ impl Expr {
                             return false;
                         }
                     }
+                    (ExprRef::Range(a), ExprRef::Range(b)) => {
+                        if a.ty != b.ty || a.constant != b.constant {
+                            return false;
+                        }
+                        // Compare the actual values of start, stop, and step expressions
+                        if !a.start.structurally_equivalent(&b.start)
+                            || !a.stop.structurally_equivalent(&b.stop)
+                            || !a.step.structurally_equivalent(&b.step)
+                        {
+                            return false;
+                        }
+                    }
                     _ => return false,
                 },
                 (None, None) => return true,
@@ -274,6 +298,11 @@ impl<'a> Iterator for ExprIterator<'a> {
             Expr::Index(i) => {
                 self.stack.push(&i.index);
                 self.stack.push(&i.target);
+            }
+            Expr::Range(r) => {
+                self.stack.push(&r.stop);
+                self.stack.push(&r.start);
+                self.stack.push(&r.step);
             }
         }
         Some(expr.as_ref())
@@ -381,6 +410,18 @@ impl From<Box<Index>> for Expr {
     }
 }
 
+impl From<Range> for Expr {
+    fn from(value: Range) -> Self {
+        Expr::Range(Box::new(value))
+    }
+}
+
+impl From<Box<Range>> for Expr {
+    fn from(value: Box<Range>) -> Self {
+        Expr::Range(value)
+    }
+}
+
 /// Root base class of all nodes in the expression tree.  The base case should never be
 /// instantiated directly.
 ///
@@ -434,6 +475,7 @@ pub enum ExprKind {
     Cast,
     Stretch,
     Index,
+    Range,
 }
 
 impl<'py> IntoPyObject<'py> for Expr {
@@ -450,6 +492,7 @@ impl<'py> IntoPyObject<'py> for Expr {
             Expr::Var(v) => v.into_bound_py_any(py),
             Expr::Stretch(s) => s.into_bound_py_any(py),
             Expr::Index(i) => i.into_bound_py_any(py),
+            Expr::Range(r) => r.into_bound_py_any(py),
         }
     }
 }
@@ -467,6 +510,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Expr {
             ExprKind::Cast => Ok(Expr::Cast(Box::new(ob.extract()?))),
             ExprKind::Stretch => Ok(Expr::Stretch(ob.extract()?)),
             ExprKind::Index => Ok(Expr::Index(Box::new(ob.extract()?))),
+            ExprKind::Range => Ok(Expr::Range(Box::new(ob.extract()?))),
         }
     }
 }
