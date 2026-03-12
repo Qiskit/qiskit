@@ -12,6 +12,7 @@
 
 use std::ffi::{CStr, CString, c_char};
 
+use crate::circuit_library::pbc::{CPauliProductMeasurement, CPauliProductRotation};
 use crate::dag::COperationKind;
 use crate::exit_codes::ExitCode;
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
@@ -27,8 +28,8 @@ use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::interner::Interner;
 use qiskit_circuit::operations::{
-    ArrayType, DelayUnit, Operation, OperationRef, Param, StandardGate, StandardInstruction,
-    UnitaryGate,
+    ArrayType, DelayUnit, Operation, OperationRef, Param, PauliBased, PauliProductMeasurement,
+    PauliProductRotation, StandardGate, StandardInstruction, UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::{BlocksMode, Clbit, Qubit, VarsMode};
@@ -1033,6 +1034,250 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
     );
     // SAFETY: per documentation, `instruction` is a pointer to a sufficient allocation.
     unsafe { instruction.write(inst) };
+}
+
+/// @ingroup QkCircuit
+/// Apply a ``QkPauliProductRotation`` to a circuit.
+///
+/// @param circuit The circuit to apply the operation to.
+/// @param rotation A pointer to the ``QkPauliProductRotation`` to apply.
+/// @param qubits A pointer to the qubit array.
+///
+/// # Example
+///
+/// ```c
+/// // build a IXYZ Pauli rotation
+/// bool x[4] = {false, true, true, false};
+/// bool z[4] = {false, false, true, true};
+/// QkParam *angle = qk_param_from_double(1.0);
+/// QkPauliProductRotation rotation = {x, z, 4, angle};
+/// // append it to a circuit
+/// QkCircuit *circuit = qk_circuit_new(10, 1);
+/// uint32_t qubits[4] = {0, 1, 2, 3};
+/// qk_circuit_pauli_product_rotation(circuit, &rotation, qubits);
+/// // do something with the circuit... and then free it
+/// qk_param_free(angle);
+/// qk_circuit_free(circuit);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if any of the following is violated:
+/// * ``circuit`` is a valid, non-null pointer to a ``QkCircuit``
+/// * ``rotation`` is a valid, non-null pointer to a coherent ``QkPauliProductRotation``.
+///   Specifically, the ``rotation->z`` and ``rotation->x`` data arrays must be readable for
+///   ``rotation->len`` elements.
+/// * ``qubits`` is an aligned pointer to ``rotation->len`` initialized ``uint32_t`` values.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_pauli_product_rotation(
+    circuit: *mut CircuitData,
+    rotation: *const CPauliProductRotation,
+    qubits: *const u32,
+) {
+    // SAFETY: The user guarantees the circuit pointer is valid.
+    let circuit = unsafe { mut_ptr_as_ref(circuit) };
+
+    // SAFETY: The user guarantees the rotation pointer is valid and the data
+    // is coherent. This allows us reading the Z and X arrays.
+    let c_data = unsafe { const_ptr_as_ref(rotation) };
+    let angle = unsafe { const_ptr_as_ref(c_data.angle) };
+    let pbc_rotation = PauliProductRotation {
+        z: unsafe { ::std::slice::from_raw_parts(c_data.z, c_data.len) }.to_vec(),
+        x: unsafe { ::std::slice::from_raw_parts(c_data.x, c_data.len) }.to_vec(),
+        angle: angle.clone(),
+    };
+
+    // SAFETY: The user guarantees the qubit
+    let qubits = unsafe {
+        ::std::slice::from_raw_parts(qubits as *const Qubit, pbc_rotation.num_qubits() as usize)
+    };
+    let params = Some(Parameters::Params(smallvec![angle.clone()]));
+
+    let pbc = PauliBased::PauliProductRotation(pbc_rotation);
+    let packed = PackedOperation::from_pauli_based(Box::new(pbc));
+    circuit
+        .push_packed_operation(packed, params, qubits, &[])
+        .expect("Failed pushing packed QkPauliProductRotation");
+}
+
+/// @ingroup QkCircuit
+/// Get the ``QkPauliProductRotation`` data from a circuit instruction.
+///
+/// For a circuit with a ``QkPauliProductRotation`` instruction at index ``index``, this function
+/// will populate the ``instruction`` pointer with a copy of ``QkPauliProductRotation`` data. Note that
+/// this data lives independently of the circuit and must be freed manually with
+/// ``qk_pauli_product_rotation_clear``.
+///
+/// If the instruction at the provided ``index`` **is not** a ``QkPauliProductRotation``, this function
+/// will return ``QkExitCode_InvalidOperationKind`` error. You can verify that the instruction has the
+/// right kind using ``qk_circuit_instruction_kind``.
+///
+/// @param circuit A pointer to the circuit to retrieve the instruction details from.
+/// @param index The circuit instruction index.
+/// @param instruction A pointer to an allocated ``QkPauliProductRotation`` to store the data.
+///
+/// @return ``QkExitCode_Success`` if the data was written into the instruction, or
+///    ``QkExitCode_InvalidOperationKind`` if the index did not point to a ``QkPauliProductRotation``.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``. The
+/// value for ``index`` must be less than the value returned by ``qk_circuit_num_instructions``
+/// otherwise this function will panic. Behavior is undefined if ``instruction`` is not a valid,
+/// non-null pointer to a memory allocation with sufficient space for a ``QkPauliProductRotation``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_inst_pauli_product_rotation(
+    circuit: *const CircuitData,
+    index: usize,
+    instruction: *mut CPauliProductRotation,
+) -> ExitCode {
+    // SAFETY: The user guarantees the circuit pointer is valid to read.
+    let circuit = unsafe { const_ptr_as_ref(circuit) };
+
+    // Ensure the operation has the correct type, otherwise return early
+    let OperationRef::PauliProductRotation(rotation) = circuit.data()[index].op.view() else {
+        return ExitCode::InvalidOperationKind;
+    };
+
+    // We clone the internal data and then leak the box to give C access to the memory.
+    // This means the user has to manually free the allocated memory in the Pauli rotation.
+    let len = rotation.x.len();
+    let x = rotation.x.clone().into_boxed_slice();
+    let z = rotation.z.clone().into_boxed_slice();
+    let angle = Box::into_raw(Box::new(rotation.angle.clone()));
+    let out = CPauliProductRotation {
+        x: Box::into_raw(x) as *mut bool,
+        z: Box::into_raw(z) as *mut bool,
+        len,
+        angle,
+    };
+
+    // SAFETY: The user guarantees `instruction` points to sufficiently allocated memory.
+    unsafe { instruction.write(out) };
+
+    ExitCode::Success
+}
+
+/// @ingroup QkCircuit
+/// Apply a ``QkPauliProductMeasurement`` to a circuit.
+///
+/// @param circuit The circuit to apply the operation to.
+/// @param measurement A pointer to the ``QkPauliProductMeasurement`` to apply.
+/// @param qubits A pointer to the qubit array.
+/// @param clbit A single ``uint32_t`` specifying the measurement qubit.
+///
+/// # Example
+///
+/// ```c
+/// // build a XZ Pauli measurement
+/// bool x[2] = {true, false};
+/// bool z[2] = {false, true};
+/// QkPauliProductMeasurement measure = {x, z, 2, false};
+/// // append it to a circuit
+/// QkCircuit *circuit = qk_circuit_new(10, 1);
+/// uint32_t qubits[2] = {0, 2};
+/// uint32_t clbit = 0;
+/// qk_circuit_pauli_product_measurement(circuit, &measure, qubits, clbit);
+/// // do something with the circuit... and then free it
+/// qk_circuit_free(circuit);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if any of the following is violated:
+/// * ``circuit`` is a valid, non-null pointer to a ``QkCircuit``
+/// * ``measurement`` is a valid, non-null pointer to a coherent ``QkPauliProductMeasurement``.
+///   Specifically, the ``measurement->z`` and ``measurement->x`` data arrays must be readable for
+///   ``measurement->len`` elements.
+/// * ``qubits`` is an aligned pointer to ``rotation->len`` initialized ``uint32_t`` values.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_pauli_product_measurement(
+    circuit: *mut CircuitData,
+    measurement: *const CPauliProductMeasurement,
+    qubits: *const u32,
+    clbit: u32,
+) {
+    // SAFETY: The user guarantees the circuit pointer is valid.
+    let circuit = unsafe { mut_ptr_as_ref(circuit) };
+
+    // SAFETY: The user guarantees the rotation pointer is valid and the data
+    // is coherent. This allows us reading the Z and X arrays.
+    let c_data = unsafe { const_ptr_as_ref(measurement) };
+    let pbc_measure = PauliProductMeasurement {
+        z: unsafe { ::std::slice::from_raw_parts(c_data.z, c_data.len) }.to_vec(),
+        x: unsafe { ::std::slice::from_raw_parts(c_data.x, c_data.len) }.to_vec(),
+        neg: c_data.flip_outcome,
+    };
+
+    // SAFETY: The user guarantees the qubit
+    let qubits = unsafe {
+        ::std::slice::from_raw_parts(qubits as *const Qubit, pbc_measure.num_qubits() as usize)
+    };
+    let clbits = &[Clbit(clbit)];
+
+    let pbc = PauliBased::PauliProductMeasurement(pbc_measure);
+    let packed = PackedOperation::from_pauli_based(Box::new(pbc));
+    circuit
+        .push_packed_operation(packed, None, qubits, clbits)
+        .expect("Failed pushing packed QkPauliProductMeasurement");
+}
+
+/// @ingroup QkCircuit
+/// Get the ``QkPauliProductMeasurement`` data from a circuit instruction.
+///
+/// For a circuit with a ``QkPauliProductMeasurement`` instruction at index ``index``, this function
+/// will populate the ``instruction`` pointer with a copy of ``QkPauliProductMeasurement`` data.
+/// Note that this data lives independently of the circuit must be freed manually with
+/// ``qk_pauli_product_measurement_clear``.
+///
+/// If the instruction at the provided ``index`` **is not** a ``QkPauliProductMeasurement``, this
+/// function will return ``QkExitCode_InvalidOperationKind`` error. Verify that the instruction is
+/// of the correct kind using ``qk_circuit_instruction_kind``.
+///
+/// @param circuit A pointer to the circuit to retrieve the instruction details from.
+/// @param index The circuit instruction index.
+/// @param instruction A pointer to an allocated ``QkPauliProductMeasurement`` to store the data.
+///
+/// @return ``QkExitCode_Success`` if the data was written into the instruction, or
+///     ``QkExitCode_InvalidOperationKind`` if the index did not point to a
+///     ``QkPauliProductMeasurement``.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``. The
+/// value for ``index`` must be less than the value returned by ``qk_circuit_num_instructions``
+/// otherwise this function will panic. Behavior is undefined if ``instruction`` is not a valid,
+/// non-null pointer to a memory allocation with sufficient space for a ``QkPauliProductMeasurement``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_inst_pauli_product_measurement(
+    circuit: *const CircuitData,
+    index: usize,
+    instruction: *mut CPauliProductMeasurement,
+) -> ExitCode {
+    // SAFETY: The user guarantees the circuit pointer is valid to read.
+    let circuit = unsafe { const_ptr_as_ref(circuit) };
+
+    // Ensure the operation has the correct type, otherwise return early
+    let OperationRef::PauliProductMeasurement(measure) = circuit.data()[index].op.view() else {
+        return ExitCode::InvalidOperationKind;
+    };
+
+    // We clone the internal data and then leak the box to give C access to the memory.
+    // This means the user has to manually free the allocated memory in the Pauli rotation.
+    let len = measure.x.len();
+    let x = measure.x.clone().into_boxed_slice();
+    let z = measure.z.clone().into_boxed_slice();
+    let out = CPauliProductMeasurement {
+        x: Box::into_raw(x) as *mut bool,
+        z: Box::into_raw(z) as *mut bool,
+        len,
+        flip_outcome: measure.neg,
+    };
+
+    // SAFETY: The user guarantees `instruction` points to sufficiently allocated memory.
+    unsafe { instruction.write(out) };
+
+    ExitCode::Success
 }
 
 /// @ingroup QkCircuit
