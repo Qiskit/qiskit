@@ -358,10 +358,8 @@ impl<'a, 'py> FromPyObject<'a, 'py> for CircuitFromPython {
 
     fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         if ob.is_instance(QUANTUM_CIRCUIT.get_bound(ob.py()))? {
-            let data: Bound<PyAny> = ob.getattr("_data")?;
-            let data_downcast: Bound<PyCircuitData> = data.cast_into()?;
-            let data_extract: PyCircuitData = data_downcast.extract()?;
-            Ok(Self(data_extract.into()))
+            let data = ob.getattr("_data")?.cast_into::<PyCircuitData>()?;
+            Ok(Self(data.borrow().inner.clone()))
         } else {
             Err(PyTypeError::new_err(
                 "Provided object was not an instance of QuantumCircuit",
