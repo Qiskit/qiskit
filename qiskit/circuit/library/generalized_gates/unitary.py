@@ -156,26 +156,23 @@ class UnitaryGate(Gate):
 
             self.definition = two_qubit_cnot_decompose(self.to_matrix())
         else:
-            from qiskit.synthesis.unitary.qsd import (
-                qs_decomposition,
-            )
+            from qiskit.synthesis.unitary.qsd import qs_decomposition
 
             try:
-                # Since iterative Quantum Shannon Decomposition may provide imprecise matrices,
-                # and the rust code may panic,
-                # we use the Isometry decomposition in this case
+                # The Rust code for Quantum Shannon Decomposition may return QiskitError
+                # when linear algebra methods (e.g. Schur decomposition) fail.
                 self.definition = qs_decomposition(self.to_matrix())
-                # pylint: disable=cyclic-import
-                from qiskit.quantum_info.operators import Operator
-
-                if not (
-                    matrix_equal(Operator(self.definition).to_matrix(), self.to_matrix(), atol=1e-7)
-                ):
-                    self.definition = Isometry(self.to_matrix(), 0, 0).definition
-
-            # qs_decomposition may return a QiskitError when for example a rust algebra
-            # method fails (e.g., Schur decomposition)
             except QiskitError:
+                self.definition = None
+
+            # If QSD fails or provides numerically imprecise matrices, fallback on the
+            # Isometry decomposition (which produces more gates but is more numerically
+            # stable)
+            from qiskit.quantum_info.operators import Operator
+
+            if (self.definition is None) or not (
+                matrix_equal(Operator(self.definition).to_matrix(), self.to_matrix(), atol=1e-7)
+            ):
                 self.definition = Isometry(self.to_matrix(), 0, 0).definition
 
     def control(
@@ -208,20 +205,21 @@ class UnitaryGate(Gate):
             from qiskit.synthesis.unitary.qsd import qs_decomposition
 
             try:
-                # Since iterative Quantum Shannon Decomposition may provide imprecise matrices,
-                # and the rust code may panic,
-                # we use the Isometry decomposition in this case
+                # The Rust code for Quantum Shannon Decomposition may return QiskitError
+                # when linear algebra methods (e.g. Schur decomposition) fail.
                 cmat_def = qs_decomposition(cmat, opt_a1=True, opt_a2=False)
-                # pylint: disable=cyclic-import
-                from qiskit.quantum_info.operators import Operator
-
-                if not matrix_equal(Operator(cmat_def).to_matrix(), cmat, atol=1e-7):
-                    self.definition = Isometry(cmat, 0, 0).definition
-
-            # qs_decomposition may return a QiskitError when for example a rust algebra
-            # method fails (e.g., Schur decomposition)
             except QiskitError:
-                self.definition = Isometry(cmat, 0, 0).definition
+                cmat_def = None
+
+            # If QSD fails or provides numerically imprecise matrices, fallback on the
+            # Isometry decomposition (which produces more gates but is more numerically
+            # stable)
+            from qiskit.quantum_info.operators import Operator
+
+            if (cmat_def is None) or not (
+                matrix_equal(Operator(cmat_def).to_matrix(), cmat, atol=1e-7)
+            ):
+                cmat_def = Isometry(cmat, 0, 0).definition
 
             gate = ControlledGate(
                 "c-unitary",
