@@ -221,7 +221,7 @@ pub fn py_remove_identity_equiv(
     dag: &mut DAGCircuit,
     approx_degree: Option<f64>,
     target: Option<&Target>,
-) {
+) -> PyResult<()> {
     // Explicitly release GIL because threads may call Python to get
     // the matrix for a PyGate
     py.detach(|| run_remove_identity_equiv(dag, approx_degree, target))
@@ -231,7 +231,7 @@ pub fn run_remove_identity_equiv(
     dag: &mut DAGCircuit,
     approx_degree: Option<f64>,
     target: Option<&Target>,
-) {
+) -> PyResult<()> {
     // Minimum threshold to compare average gate fidelity to 1. This is chosen to account
     // for roundoff errors and to be consistent with other places.
     let get_error_cutoff = |inst: &PackedInstruction| -> f64 {
@@ -276,67 +276,8 @@ pub fn run_remove_identity_equiv(
     };
 
     let process_node = |op_node: NodeIndex, inst: &PackedInstruction| {
-        if inst.is_parameterized() {
-            // Skip parameterized gates
-            return None;
-        }
-        let view = inst.op.view();
-        match view {
-            OperationRef::StandardGate(gate) => {
-                let (tr_over_dim, dim) = match gate {
-                    StandardGate::RX
-                    | StandardGate::RY
-                    | StandardGate::RZ
-                    | StandardGate::Phase
-                    | StandardGate::RXX
-                    | StandardGate::RYY
-                    | StandardGate::RZX
-                    | StandardGate::RZZ
-                    | StandardGate::CRX
-                    | StandardGate::CRY
-                    | StandardGate::CRZ
-                    | StandardGate::CPhase => {
-                        if let Param::Float(angle) = inst.params_view()[0] {
-                            let (tr_over_dim, dim) =
-                                rotation_trace_and_dim(gate, angle).expect("Since only supported rotation gates are given, the result is not None");
-                            (tr_over_dim, dim)
-                        } else {
-                            return None;
-                        }
-                    }
-                    _ => {
-                        if let Some(matrix) = gate.matrix(inst.params_view()) {
-                            let dim = matrix.shape()[0] as f64;
-                            let tr_over_dim = matrix.diag().iter().sum::<Complex64>() / dim;
-                            (tr_over_dim, dim)
-                        } else {
-                            return None;
-                        }
-                    }
-                };
-                let error = get_error_cutoff(inst);
-                let f_pro = tr_over_dim.abs().powi(2);
-                let gate_fidelity = (dim * f_pro + 1.) / (dim + 1.);
-                if (1. - gate_fidelity).abs() < error {
-                    return Some((op_node, tr_over_dim.arg()));
-                }
-            }
-            _ => {
-                let matrix = inst.try_matrix();
-                // If view.matrix() returns None, then there is no matrix and we skip the operation.
-                if let Some(matrix) = matrix {
-                    let error = get_error_cutoff(inst);
-                    let dim = matrix.shape()[0] as f64;
-                    let tr_over_dim = matrix.diag().iter().sum::<Complex64>() / dim;
-                    let f_pro = tr_over_dim.abs().powi(2);
-                    let gate_fidelity = (dim * f_pro + 1.) / (dim + 1.);
-                    if (1. - gate_fidelity).abs() < error {
-                        return Some((op_node, tr_over_dim.arg()));
-                    }
-                }
-            }
-        }
-        None
+        is_identity_equiv(inst, false, None, get_error_cutoff)
+            .map(|result| result.map(|x| (op_node, x)))
     };
     let run_in_parallel = getenv_use_multiple_threads();
     let remove_list: Vec<(NodeIndex, f64)> = if dag.num_ops() >= 5e4 as usize && run_in_parallel {
@@ -345,16 +286,16 @@ pub fn run_remove_identity_equiv(
             .filter_map(|index_val| {
                 let index = NodeIndex::new(index_val);
                 if let Some(NodeType::Operation(inst)) = dag.dag().node_weight(index) {
-                    process_node(index, inst)
+                    process_node(index, inst).transpose()
                 } else {
                     None
                 }
             })
-            .collect()
+            .collect::<PyResult<Vec<(NodeIndex, f64)>>>()?
     } else {
         dag.op_nodes(false)
-            .filter_map(|x| process_node(x.0, x.1))
-            .collect()
+            .filter_map(|x| process_node(x.0, x.1).transpose())
+            .collect::<PyResult<Vec<(NodeIndex, f64)>>>()?
     };
 
     for (node, phase_update) in remove_list {
@@ -362,6 +303,7 @@ pub fn run_remove_identity_equiv(
         dag.add_global_phase(&Param::Float(phase_update))
             .expect("The global phase is guaranteed to be a float");
     }
+    Ok(())
 }
 
 pub fn remove_identity_equiv_mod(m: &Bound<PyModule>) -> PyResult<()> {

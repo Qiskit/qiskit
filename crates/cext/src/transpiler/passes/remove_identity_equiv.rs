@@ -61,7 +61,8 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_remove_identity_equivalen
         Some(approximation_degree)
     };
 
-    run_remove_identity_equiv(&mut dag, approximation_degree, Some(target));
+    run_remove_identity_equiv(&mut dag, approximation_degree, Some(target))
+        .unwrap_or_else(|_| panic!("Remove identity equiv failed."));
     *circuit = CircuitData::from_dag_ref(&dag).unwrap();
 }
 
@@ -149,5 +150,6 @@ pub unsafe extern "C" fn qk_transpiler_pass_remove_identity_equivalent(
         Some(approximation_degree)
     };
 
-    run_remove_identity_equiv(dag, approximation_degree, Some(target));
+    run_remove_identity_equiv(dag, approximation_degree, Some(target))
+        .unwrap_or_else(|_| panic!("Remove identity equiv failed."));
 }
