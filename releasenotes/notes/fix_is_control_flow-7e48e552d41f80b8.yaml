@@ -1,5 +1,6 @@
 ---
 fixes:
   - |
-    The rust ``is_control_flow`` method now returns ``false`` on :class:`.ContinueLoopOp` and :class:`.BreakLoopOp` constructs
-    as is expected by the parts of the code that use it. Fixed `#15579 <https://github.com/Qiskit/qiskit/issues/15579>`__.
+    Fixed :class:`.BreakLoopOp` and :class:`.ContinueLoopOp` being falsely considered control-flow
+    operations in certain transpiler passes, which could manifest as an :exc:`AttributeError` being raised.
+    See `#15579 <https://github.com/Qiskit/qiskit/issues/15579>`__.
