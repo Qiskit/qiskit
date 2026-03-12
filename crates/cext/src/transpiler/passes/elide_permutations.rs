@@ -18,7 +18,7 @@ use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_transpiler::passes::run_elide_permutations;
 use qiskit_transpiler::transpile_layout::TranspileLayout;
 
-/// @ingroup QkTranspilerPasses
+/// @ingroup QkTranspilerPassesStandalone
 /// Run the ElidePermutations transpiler pass on a circuit.
 ///
 /// Refer to the ``qk_transpiler_pass_elide_permutations`` function for more details about the pass.

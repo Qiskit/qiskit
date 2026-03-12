@@ -4577,6 +4577,11 @@ impl DAGCircuit {
     /// `the Graphviz documentation <https://www.graphviz.org/download/>`__ on
     /// how to install it.
     ///
+    /// .. warning::
+    ///     This function will call the system Graphviz tool on a file involving user-controllable
+    ///     strings (such as gate labels or register names).  It is recommended to only call this
+    ///     function on trusted input.
+    ///
     /// Args:
     ///     scale (float): scaling factor
     ///     filename (str): file path to save image to (format inferred from name)

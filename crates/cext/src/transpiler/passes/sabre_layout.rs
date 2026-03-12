@@ -56,7 +56,7 @@ pub extern "C" fn qk_sabre_layout_options_default() -> SabreLayoutOptions {
     }
 }
 
-/// @ingroup QkTranspilerPasses
+/// @ingroup QkTranspilerPassesStandalone
 /// Run the SabreLayout transpiler pass on a circuit.
 ///
 /// The SabreLayout pass chooses a layout via an iterative bidirectional routing of the input
