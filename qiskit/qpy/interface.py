@@ -31,6 +31,7 @@ from qiskit.qpy import formats, common, binary_io, type_keys
 from qiskit.qpy.exceptions import QpyError
 from qiskit import user_config
 from qiskit.version import __version__
+from qiskit._accelerate import qpy as _qpy
 
 if TYPE_CHECKING:
     from qiskit.circuit import annotation
@@ -196,6 +197,16 @@ def dump(
         )
 
     use_rust = version >= common.QPY_RUST_MIN_VERSION
+    if use_rust:
+        _qpy.dump(
+            programs,
+            file_obj,
+            metadata_serializer,
+            bool(use_symengine),
+            version,
+            annotation_factories,
+        )
+        return
 
     version_match = VERSION_PATTERN_REGEX.search(__version__)
     version_parts = [int(x) for x in version_match.group("release").split(".")]
@@ -342,6 +353,9 @@ def load(
             f"The QPY format version being read, {version}, isn't supported by "
             "this Qiskit version. Please upgrade your version of Qiskit to load this QPY payload"
         )
+    use_rust = version >= common.QPY_RUST_MIN_VERSION
+    if use_rust:
+        return _qpy.load(file_obj, metadata_deserializer, annotation_factories)
 
     if version < 10:
         data = formats.FILE_HEADER._make(
@@ -357,8 +371,6 @@ def load(
                 file_obj.read(formats.FILE_HEADER_V10_SIZE),
             )
         )
-
-    use_rust = version >= common.QPY_RUST_MIN_VERSION
 
     config = user_config.get_config()
     min_qpy_version = config.get("min_qpy_version")
