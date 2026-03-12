@@ -28,7 +28,7 @@ jobs:
       - run: ':'
     outputs:
       python-old: '3.10'
-      python-new: '3.13'
+      python-new: '3.14'
       runner-linux-x86_64: 'ubuntu-latest'
       runner-linux-arm64: 'ubuntu-24.04-arm'
       runner-macos-arm64: 'macos-15'
