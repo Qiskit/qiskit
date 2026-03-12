@@ -15,11 +15,11 @@ use qiskit_transpiler::passes::py_convert_to_pauli_rotations;
 
 use crate::pointers::mut_ptr_as_ref;
 
-/// @ingroup QkTranspilerPasses
+/// @ingroup QkTranspilerPassesStandalone
 /// Run the ``ConvertToPauliRotations`` pass in-place on a circuit.
 ///
-/// This pass converts all standard gates in the circuit into a sequence of
-/// ``QkPauliProductRotation`` gates and measurements into ``QkPauliProductMeasurement``
+/// This pass converts all standard gates (with less than 4 qubits) in the circuit into a sequence
+/// of ``QkPauliProductRotation`` gates and measurements into ``QkPauliProductMeasurement``
 /// instructions. Note that this pass panics if the circuit contains non-standard gates.
 /// The suggested workflow is to first transpile into a standard basis, keeping rotation gates
 /// (such as ``QkGate_RXX`` and others) intact where possible, and then call this pass.

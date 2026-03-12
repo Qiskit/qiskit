@@ -13,7 +13,7 @@
 pub mod basis_translator;
 pub mod commutative_cancellation;
 pub mod consolidate_blocks;
-pub mod convert_to_pbc;
+pub mod convert_to_pauli_rotations;
 pub mod elide_permutations;
 pub mod gate_direction;
 pub mod inverse_cancellation;

@@ -15,7 +15,7 @@ use qiskit_transpiler::passes::run_litinski_transformation;
 
 use crate::pointers::mut_ptr_as_ref;
 
-/// @ingroup QkTranspilerPasses
+/// @ingroup QkTranspilerPassesStandalone
 /// Run the ``LitinskiTransformation`` pass in-place on a circuit.
 ///
 /// This pass commutes all Clifford gates to the end of the circuit, converting Pauli rotation
