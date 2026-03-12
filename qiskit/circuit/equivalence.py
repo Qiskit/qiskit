@@ -33,13 +33,17 @@ class EquivalenceLibrary(BaseEquivalenceLibrary):
     def draw(self, filename=None):
         """Draws the equivalence relations available in the library.
 
+        .. warning::
+            This function will call the system Graphviz tool on a file involving user-controllable
+            strings (such as gate names).  It is recommended to only call this function on trusted
+            input.
+
         Args:
-            filename (str): An optional path to write the output image to
-                if specified this method will return None.
+            filename (str): An optional path to write the output image to.  If unspecified, the
+                image will instead be returned.
 
         Returns:
-            PIL.Image or IPython.display.SVG: Drawn equivalence library as an
-                IPython SVG if in a jupyter notebook, or as a PIL.Image otherwise.
+            PIL.Image: If ``filename`` is ``None``, then the rendered image.
 
         Raises:
             InvalidFileError: if filename is not valid.
