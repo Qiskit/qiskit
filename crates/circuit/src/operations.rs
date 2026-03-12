@@ -1113,7 +1113,10 @@ impl Operation for StandardInstruction {
     }
 
     fn num_params(&self) -> u32 {
-        0
+        match self {
+            StandardInstruction::Delay(_) => 1,
+            _ => 0,
+        }
     }
 
     fn directive(&self) -> bool {
@@ -3141,10 +3144,11 @@ impl PyInstruction {
         Python::attach(|py| -> Option<CircuitData> {
             match self.instruction.getattr(py, intern!(py, "definition")) {
                 Ok(definition) => definition
-                    .getattr(py, intern!(py, "_data"))
+                    .bind(py)
+                    .getattr(intern!(py, "_data"))
                     .ok()?
-                    .extract::<PyCircuitData>(py)
-                    .map(Into::into)
+                    .cast::<PyCircuitData>()
+                    .map(|data| data.borrow().inner.clone())
                     .ok(),
                 Err(_) => None,
             }
