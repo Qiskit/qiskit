@@ -12,7 +12,6 @@
 
 mod lookup;
 
-use core::panic;
 use hashbrown::HashSet;
 use indexmap::IndexSet;
 use itertools::Itertools;
