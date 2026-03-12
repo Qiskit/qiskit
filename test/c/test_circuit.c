@@ -1021,6 +1021,121 @@ static int test_circuit_to_dag(void) {
     return result;
 }
 
+/**
+ * Test a circuit with Pauli-based computation instructions.
+ */
+static int test_pbc_instructions(void) {
+    // build a IXYZ Pauli rotation
+    bool z[4] = {false, false, true, true};
+    bool x[4] = {false, true, true, false};
+    QkParam *angle = qk_param_from_double(1.0);
+    QkPauliProductRotation rotation = {z, x, 4, angle};
+
+    // .. and some ZY measurement
+    bool zm[2] = {true, true};
+    bool xm[2] = {false, true};
+    QkPauliProductMeasurement measure = {zm, xm, 2, true};
+
+    // append them to a circuit
+    QkCircuit *circuit = qk_circuit_new(10, 1);
+    uint32_t qubits[4] = {0, 1, 2, 3};
+    qk_circuit_pauli_product_rotation(circuit, &rotation, qubits);
+
+    uint32_t measure_qubits[2] = {1, 2};
+    uint32_t measure_clbit = 0;
+    qk_circuit_pauli_product_measurement(circuit, &measure, measure_qubits, measure_clbit);
+
+    size_t num_inst = qk_circuit_num_instructions(circuit);
+    int result = Ok;
+    if (num_inst != 2) {
+        printf("Expected 2 instructions but found %zu\n", num_inst);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    QkOperationKind op_kind = qk_circuit_instruction_kind(circuit, 0);
+    if (op_kind != QkOperationKind_PauliProductRotation) {
+        printf("Operation kind of instruction 0 is not QkOperationKind_PauliProductRotation.\n");
+        result = EqualityError;
+        goto cleanup;
+    }
+    op_kind = qk_circuit_instruction_kind(circuit, 1);
+    if (op_kind != QkOperationKind_PauliProductMeasurement) {
+        printf("Operation kind of instruction 1 is not QkOperationKind_PauliProductMeasurement.\n");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    // retrieve the instructions and verify their are correct
+    QkPauliProductRotation out_rot;
+    QkExitCode exit = qk_circuit_inst_pauli_product_rotation(circuit, 0, &out_rot);
+    if (exit != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+
+    if (out_rot.len != 4) {
+        printf("Pauli length is not 4, but %zu\n", out_rot.len);
+        result = EqualityError;
+        goto cleanup_out_rot;
+    }
+    for (size_t i = 0; i < rotation.len; ++i) {
+        if (out_rot.x[i] != x[i] || out_rot.z[i] != z[i]) {
+            printf("(z, x) term at %zu does not match. Expected (%d, %d), got (%d, %d)\n", i, z[i],
+                   x[i], out_rot.z[i], out_rot.x[i]);
+            result = EqualityError;
+            goto cleanup_out_rot;
+        }
+    }
+    if (!qk_param_equal(out_rot.angle, angle)) {
+        char *out_str = qk_param_str(out_rot.angle);
+        char *expected_str = qk_param_str(angle);
+        printf("Angle (%s) does not match the original angle (%s).\n", out_str, expected_str);
+        qk_str_free(out_str);
+        qk_str_free(expected_str);
+        result = EqualityError;
+        goto cleanup_out_rot;
+    }
+
+    QkPauliProductMeasurement *out_meas = malloc(sizeof(QkPauliProductMeasurement));
+    exit = qk_circuit_inst_pauli_product_measurement(circuit, 1, out_meas);
+    if (exit != QkExitCode_Success) {
+        result = RuntimeError;
+        // free the memory, but there's no content to be cleared, so we do not have to
+        // call qk_pauli_product_measurement_clear
+        free(out_meas);
+        goto cleanup_out_rot;
+    }
+
+    if (out_meas->len != 2) {
+        printf("Pauli length is not 2, but %zu\n", out_meas->len);
+        result = EqualityError;
+        goto cleanup_out_meas;
+    }
+    for (size_t i = 0; i < measure.len; ++i) {
+        if (out_meas->x[i] != xm[i] || out_meas->z[i] != zm[i]) {
+            printf("(z, x) term at %zu does not match. Expected (%d, %d), got (%d, %d)\n", i, zm[i],
+                   xm[i], out_meas->z[i], out_meas->x[i]);
+            result = EqualityError;
+            goto cleanup_out_meas;
+        }
+    }
+    if (out_meas->flip_outcome != measure.flip_outcome) {
+        printf("Flip (%i) does not match the original flip (%i).\n", out_meas->flip_outcome,
+               measure.flip_outcome);
+        result = EqualityError;
+    }
+
+cleanup_out_meas:
+    qk_pauli_product_measurement_clear(out_meas);
+    free(out_meas);
+cleanup_out_rot:
+    qk_pauli_product_rotation_clear(&out_rot);
+cleanup:
+    qk_circuit_free(circuit);
+    return result;
+}
+
 int test_circuit(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_empty);
@@ -1043,6 +1158,7 @@ int test_circuit(void) {
     num_failed += RUN_TEST(test_unitary_gate_1q);
     num_failed += RUN_TEST(test_unitary_gate_3q);
     num_failed += RUN_TEST(test_circuit_to_dag);
+    num_failed += RUN_TEST(test_pbc_instructions);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
