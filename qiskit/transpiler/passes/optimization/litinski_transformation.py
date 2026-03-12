@@ -19,7 +19,7 @@ from qiskit._accelerate.litinski_transformation import run_litinski_transformati
 
 
 class LitinskiTransformation(TransformationPass):
-    """Applies Litinski transform to a circuit.
+    r"""Applies Litinski transform to a circuit.
 
     The transform applies to a circuit containing Clifford, single-qubit :math:`R_Z`-rotation gates
     (including :math:`T` and :math:`T^\dagger`), and standard :math:`Z`-measurements, and moves
@@ -86,7 +86,7 @@ class LitinskiTransformation(TransformationPass):
                 ``fix_clifford=False``.
             use_ppr: If ``True``, use :class:`.PauliProductRotationGate` to represent
                 the Pauli rotation gates. This is encouraged to improve performance using a fully
-                Rust-backed path. If ``False`` or unset, use :class:`.PauliEvolutionGate`.
+                Rust-backed path. If ``False`` or ``None``, use :class:`.PauliEvolutionGate`.
         """
         super().__init__()
         self.fix_clifford = fix_clifford
