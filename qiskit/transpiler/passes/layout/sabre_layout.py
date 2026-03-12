@@ -302,7 +302,13 @@ class SabreLayout(TransformationPass):
             }
             return dag
 
-        ancillas = QuantumRegister(self.target.num_qubits - dag.num_qubits(), "ancilla")
+        ancilla_register_name = "ancilla"
+        ancilla_suffix = 0
+        while ancilla_register_name in dag.qregs:
+            ancilla_register_name = f"{ancilla_register_name}{ancilla_suffix}"
+            ancilla_suffix += 1
+
+        ancillas = QuantumRegister(self.target.num_qubits - dag.num_qubits(), ancilla_register_name)
         virtuals = list(dag.qubits) + list(ancillas)
         initial_layout = Layout({p: virtuals[v] for v, p in initial.layout_mapping()})
         for register in dag.qregs.values():
