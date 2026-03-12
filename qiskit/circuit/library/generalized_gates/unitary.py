@@ -159,9 +159,9 @@ class UnitaryGate(Gate):
 
             mat = self.to_matrix()
 
-            from qiskit.synthesis.unitary.qsd import (  # pylint: disable=cyclic-import
-                qs_decomposition,
-            )
+            # pylint: disable=cyclic-import
+            from qiskit.synthesis.unitary.qsd import qs_decomposition
+            from qiskit.quantum_info.operators import Operator
 
             try:
                 # The Rust code for Quantum Shannon Decomposition may return QiskitError
@@ -173,8 +173,6 @@ class UnitaryGate(Gate):
             # If QSD fails or provides numerically imprecise matrices, fallback on the
             # Isometry decomposition (which produces more gates but is more numerically
             # stable)
-            from qiskit.quantum_info.operators import Operator
-
             if (mat_def is None) or not (
                 matrix_equal(Operator(mat_def).to_matrix(), mat, atol=1e-7)
             ):
@@ -209,9 +207,10 @@ class UnitaryGate(Gate):
         if not annotated:
             mat = self.to_matrix()
             cmat = _compute_control_matrix(mat, num_ctrl_qubits, ctrl_state=None)
-            from qiskit.synthesis.unitary.qsd import (  # pylint: disable=cyclic-import
-                qs_decomposition,
-            )
+
+            # pylint: disable=cyclic-import
+            from qiskit.synthesis.unitary.qsd import qs_decomposition
+            from qiskit.quantum_info.operators import Operator
 
             try:
                 # The Rust code for Quantum Shannon Decomposition may return QiskitError
@@ -223,7 +222,6 @@ class UnitaryGate(Gate):
             # If QSD fails or provides numerically imprecise matrices, fallback on the
             # Isometry decomposition (which produces more gates but is more numerically
             # stable)
-            from qiskit.quantum_info.operators import Operator
 
             if (cmat_def is None) or not (
                 matrix_equal(Operator(cmat_def).to_matrix(), cmat, atol=1e-7)
