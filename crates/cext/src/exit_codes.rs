@@ -68,6 +68,8 @@ pub enum ExitCode {
     DagComposeMissingBit = 502,
     /// Errors concerning parameter handling.
     ParameterError = 600,
+    /// Parameter name conflict.
+    ParameterNameConflict = 601,
 }
 
 impl From<ArithmeticError> for ExitCode {

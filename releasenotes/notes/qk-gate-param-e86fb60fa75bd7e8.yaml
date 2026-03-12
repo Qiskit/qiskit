@@ -14,7 +14,7 @@ features_c:
       qk_circuit_gate_param(qc, QkGate_RX, qubit, params); // add RX(theta) to the circuit
 
   - |
-    Added ``qk_circuit_num_symbols`` to query the number of unbound symbols present
+    Added ``qk_circuit_num_param_symbols`` to query the number of unbound symbols present
     in the circuit.
 upgrade_c:
   - |

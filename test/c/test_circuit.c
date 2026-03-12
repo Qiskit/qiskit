@@ -1131,7 +1131,7 @@ static int test_instruction_params_ownership(void) {
     if (!qk_param_equal(angle, theta)) {
         result = EqualityError;
     }
-    qk_param_free(angle);
+    qk_circuit_instruction_clear(&inst);
 
 cleanup:
     qk_param_free(theta);
@@ -1184,7 +1184,7 @@ static int test_parameterized_circuit(void) {
     }
 
     // check the number of parameters
-    size_t num_symbols = qk_circuit_num_symbols(qc);
+    size_t num_symbols = qk_circuit_num_param_symbols(qc);
     if (num_symbols != 2) {
         result = EqualityError;
         printf("Expected 2 symbols, found %zu\n", num_symbols);

@@ -22,7 +22,7 @@ use num_complex::{Complex64, ComplexFloat};
 
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
 use qiskit_circuit::bit::{ShareableClbit, ShareableQubit};
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::interner::Interner;
@@ -31,6 +31,7 @@ use qiskit_circuit::operations::{
     UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
+use qiskit_circuit::parameter_table::ParameterTableError;
 use qiskit_circuit::{BlocksMode, Clbit, Qubit, VarsMode};
 use smallvec::smallvec;
 
@@ -339,11 +340,11 @@ pub unsafe extern "C" fn qk_circuit_num_clbits(circuit: *const CircuitData) -> u
 }
 
 /// @ingroup QkCircuit
-/// Get the number of unbound symbols in the circuit.
+/// Get the number of unbound symbols in ``QkParam`` objects in the circuit.
 ///
 /// @param circuit A pointer to the circuit.
 ///
-/// @return The number of unbound symbols in the circuit.
+/// @return The number of unbound ``QkParam`` symbols in the circuit.
 ///
 /// # Example
 ///
@@ -359,8 +360,8 @@ pub unsafe extern "C" fn qk_circuit_num_clbits(circuit: *const CircuitData) -> u
 /// qk_circuit_parameterized_gate(qc, QkGate_RX, q0, rx_param);
 /// qk_circuit_parameterized_gate(qc, QkGate_RY, q0, ry_param);
 ///
-/// // check the number of symbols
-/// size_t num_symbols = qk_circuit_num_symbols(qc); // == 2
+/// // check the number of QkParam symbols
+/// size_t num_symbols = qk_circuit_num_param_symbols(qc); // == 2
 ///
 /// qk_param_free(x);
 /// qk_param_free(y);
@@ -371,7 +372,7 @@ pub unsafe extern "C" fn qk_circuit_num_clbits(circuit: *const CircuitData) -> u
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_circuit_num_symbols(circuit: *const CircuitData) -> usize {
+pub unsafe extern "C" fn qk_circuit_num_param_symbols(circuit: *const CircuitData) -> usize {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
 
@@ -506,7 +507,10 @@ pub unsafe extern "C" fn qk_circuit_gate(
 /// @param params The pointer to the array of ``QkParam*`` parameters to use for the gate parameters.
 /// This can be a null pointer if there are no parameters for ``gate`` (e.g. ``QkGate_H``).
 ///
-/// @return An exit code.
+/// @return ``QkExitCode_Success`` upon successful append. Upon failure,
+///     ``QkExitCode_ParameterNameConflict`` indicates that a new parameter symbol has a name
+///     conflict with an existing one. ``QkExitCode_ParameterError`` describes other generic
+///     failures when attempting to track the parameter symbols.
 ///
 /// # Example
 ///
@@ -574,8 +578,18 @@ pub unsafe extern "C" fn qk_circuit_parameterized_gate(
             .collect();
 
     match circuit.push_standard_gate(gate, &params, qargs) {
-        Ok(_) => ExitCode::Success,
-        Err(_) => ExitCode::ParameterError,
+        Ok(()) => ExitCode::Success,
+        Err(circuit_error) => {
+            // The only error we can give actionable user information on here is a name
+            // conflict, so we match on that (until a more generic CircuitDataError -> QkExitCode
+            // is implemented)
+            if let CircuitDataError::ParameterTableError(ParameterTableError::NameConflict(_)) =
+                circuit_error
+            {
+                return ExitCode::ParameterNameConflict;
+            }
+            ExitCode::ParameterError
+        }
     }
 }
 
