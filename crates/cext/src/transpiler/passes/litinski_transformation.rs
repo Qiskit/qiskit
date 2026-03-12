@@ -43,7 +43,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_litinski_transformation(
         Err(_) => panic!("Internal Circuit -> DAG conversion failed"),
     };
     // TODO: Potentially propagate exit code to the user
-    let maybe_out = run_litinski_transformation(&dag, fix_clifford, false, false)
+    let maybe_out = run_litinski_transformation(&dag, fix_clifford, false, true)
         .expect("Failed running Litinski transformation");
     // If a DAG is returned, the circuit has been modified. Else just leave it as is.
     if let Some(out) = maybe_out {

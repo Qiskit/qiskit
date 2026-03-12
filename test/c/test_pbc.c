@@ -153,7 +153,7 @@ int check_paulis(enum Pauli *expected_paulis, bool *x, bool *z, size_t len) {
 int check_pauli_rotation(QkCircuit *circuit, size_t index, enum Pauli *paulis, uint32_t *qubits,
                          const size_t len, double expected_angle) {
     QkPauliProductRotation ppr;
-    if (qk_circuit_get_pauli_rotation(circuit, index, &ppr) != QkExitCode_Success) {
+    if (qk_circuit_inst_pauli_product_rotation(circuit, index, &ppr) != QkExitCode_Success) {
         return RuntimeError;
     }
 
@@ -197,7 +197,7 @@ cleanup:
 int check_pauli_measurement(QkCircuit *circuit, size_t index, enum Pauli *paulis, uint32_t *qubits,
                             const size_t len, uint32_t clbit, bool flip_outcome) {
     QkPauliProductMeasurement ppm;
-    if (qk_circuit_get_pauli_product_measurement(circuit, index, &ppm) != QkExitCode_Success) {
+    if (qk_circuit_inst_pauli_product_measurement(circuit, index, &ppm) != QkExitCode_Success) {
         return RuntimeError;
     }
 
