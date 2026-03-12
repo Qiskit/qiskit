@@ -126,7 +126,7 @@ bool compare_circuits(const QkCircuit *res, const QkCircuit *expected) {
             return false;
         }
         for (uint32_t j = 0; j < res_inst.num_params; j++) {
-            if (qk_param_equal(res_inst.params[j], expected_inst.params[j])) {
+            if (!qk_param_equal(res_inst.params[j], expected_inst.params[j])) {
                 char *res_str = qk_param_str(res_inst.params[j]);
                 char *expected_str = qk_param_str(expected_inst.params[j]);
 
