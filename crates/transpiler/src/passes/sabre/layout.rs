@@ -34,7 +34,10 @@ use crate::target::{Target, TargetCouplingError};
 
 use super::dag::SabreDAG;
 use super::heuristic::Heuristic;
-use super::route::{RoutingProblem, RoutingResult, RoutingTarget, swap_map, swap_map_trial};
+use super::route::{
+    Analysis, FullRouting, RoutingProblem, RoutingResult, RoutingTarget, SwapCount, swap_map,
+    swap_map_trial,
+};
 
 #[allow(clippy::too_many_arguments)]
 #[pyfunction]
@@ -155,7 +158,7 @@ pub fn sabre_layout_and_routing(
             .map(|(index, seed)| {
                 (
                     index,
-                    layout_trial(
+                    layout_trial::<FullRouting>(
                         problem,
                         seed,
                         max_iterations,
@@ -165,9 +168,9 @@ pub fn sabre_layout_and_routing(
                     ),
                 )
             })
-            .min_by_key(|(index, result)| (result.swap_count(), *index))
+            .min_by_key(|(index, result)| (result.analysis.swap_count(), *index))
             .expect("should have at least one layout trial");
-            let num_swaps = result.swap_count();
+            let num_swaps = result.analysis.swap_count();
             let out = dag.physical_empty_like_with_capacity(
                 num_physical_qubits,
                 dag.num_ops() + num_swaps,
@@ -182,11 +185,15 @@ pub fn sabre_layout_and_routing(
             let out = if skip_routing {
                 out
             } else {
-                result.rebuild_onto(out, qubit_fn)?
+                result.analysis.rebuild_onto(out, qubit_fn)?
             };
             Ok((
                 out,
-                expand_layout(num_physical_qubits as u32, &result.initial_layout, qubit_fn),
+                expand_layout(
+                    num_physical_qubits as u32,
+                    &result.analysis.initial_layout,
+                    qubit_fn,
+                ),
                 expand_layout(num_physical_qubits as u32, &result.final_layout, qubit_fn),
             ))
         }
@@ -261,7 +268,7 @@ pub fn sabre_layout_and_routing(
                 .map(|(index, seed)| {
                     (
                         index,
-                        layout_trial(
+                        layout_trial::<FullRouting>(
                             sub_problem,
                             seed,
                             max_iterations,
@@ -271,9 +278,10 @@ pub fn sabre_layout_and_routing(
                         ),
                     )
                 })
-                .min_by_key(|(index, result)| (result.swap_count(), *index))
+                .min_by_key(|(index, result)| (result.analysis.swap_count(), *index))
                 .expect("should have at least one layout trial");
                 for ((_, sub_phys), virt) in result
+                    .analysis
                     .initial_layout
                     .iter_virtual()
                     // This zip might be shorter than `initial_layout`, but we _want_ the
@@ -325,7 +333,7 @@ pub fn sabre_layout_and_routing(
                     initial_layout,
                 ))
             } else {
-                let result = swap_map(
+                let result = swap_map::<FullRouting>(
                     problem,
                     &initial_layout,
                     seed,
@@ -333,8 +341,8 @@ pub fn sabre_layout_and_routing(
                     Some(allow_parallel),
                 );
                 Ok((
-                    result.rebuild()?,
-                    result.initial_layout,
+                    result.analysis.rebuild()?,
+                    result.analysis.initial_layout,
                     result.final_layout,
                 ))
             }
@@ -342,14 +350,14 @@ pub fn sabre_layout_and_routing(
     }
 }
 
-fn layout_trial<'a>(
+fn layout_trial<'a, A: Analysis<'a> + Send>(
     problem: RoutingProblem<'a>,
     seed: u64,
     max_iterations: usize,
     num_swap_trials: usize,
     run_swap_in_parallel: bool,
     starting_layout: &'_ [Option<PhysicalQubit>],
-) -> RoutingResult<'a> {
+) -> RoutingResult<A> {
     let num_physical_qubits: u32 = problem.target.neighbors.num_qubits().try_into().unwrap();
     let mut rng = Pcg64Mcg::seed_from_u64(seed);
 
@@ -391,7 +399,8 @@ fn layout_trial<'a>(
     let initial_layout = (0..max_iterations)
         .flat_map(|_| [&sabre_forwards, &sabre_backwards])
         .fold(initial_layout, |initial, sabre| {
-            swap_map_trial(problem.with_sabre(sabre), &initial, routing_seed).final_layout
+            swap_map_trial::<SwapCount>(problem.with_sabre(sabre), &initial, routing_seed)
+                .final_layout
         });
     // Remap implicit ancillas to be assigned in numerical order.  This is pretty meaningless, but
     // ensures we have exact RNG compatibility with previous versions of Sabre.
