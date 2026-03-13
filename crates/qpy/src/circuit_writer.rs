@@ -45,7 +45,7 @@ use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
 use crate::error::QpyError;
-use crate::formats::{self, ConditionPack};
+use crate::formats;
 use crate::params::pack_param_obj;
 use crate::py_methods::{
     PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME, PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME,
@@ -382,7 +382,7 @@ fn pack_control_flow_inst(
     qpy_data: &mut QPYWriteData,
 ) -> Result<formats::CircuitInstructionV2Pack, QpyError> {
     let mut packed_annotations = None;
-    let mut packed_condition: ConditionPack = Default::default();
+    let mut packed_condition: formats::ConditionPack = Default::default();
     let mut extras_key = 0; // should contain a combination of condition key and annotations key, if present
 
     let params = match control_flow_inst.control_flow.clone() {
@@ -1181,7 +1181,7 @@ pub(crate) fn pack_circuit(
     _use_symengine: bool,
     version: u32,
     annotation_factories: &Bound<PyDict>,
-) -> Result<formats::QPYCircuitV17, QpyError> {
+) -> Result<formats::QPYCircuit, QpyError> {
     let annotation_handler = AnnotationHandler::new(annotation_factories);
     let mut qpy_data = QPYWriteData {
         circuit_data: &mut circuit.data,
@@ -1198,7 +1198,9 @@ pub(crate) fn pack_circuit(
     )?;
     // Pulse has been removed in Qiskit 2.0. As long as we keep QPY at version 13,
     // we need to write an empty calibrations header since read_circuit expects it
-    let calibrations = formats::CalibrationsPack { num_cals: 0 };
+    let calibrations = formats::CalibrationsPack {
+        calibrations: vec![],
+    };
     let (instructions, mut custom_instructions_hash) = pack_instructions(&mut qpy_data)?;
     let custom_instructions =
         pack_custom_instructions(&mut custom_instructions_hash, &mut qpy_data)?;
@@ -1209,8 +1211,8 @@ pub(crate) fn pack_circuit(
         .into_iter()
         .map(|(namespace, state)| formats::AnnotationStateHeaderPack { namespace, state })
         .collect();
-    let annotation_headers = formats::AnnotationHeaderStaticPack { state_headers };
-    Ok(formats::QPYCircuitV17 {
+    let annotation_headers = Some(formats::AnnotationHeaderStaticPack { state_headers });
+    Ok(formats::QPYCircuit {
         header,
         standalone_vars,
         annotation_headers,

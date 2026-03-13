@@ -174,9 +174,9 @@ impl TryFrom<&Bytes> for Complex64 {
     }
 }
 
-impl TryFrom<&Bytes> for String {
+impl TryFrom<Bytes> for String {
     type Error = QpyError;
-    fn try_from(bytes: &Bytes) -> Result<Self, Self::Error> {
+    fn try_from(bytes: Bytes) -> Result<Self, Self::Error> {
         String::from_utf8(bytes.0.clone())
             .map_err(|_| QpyError::ConversionError("Not a valid UTF-8 string".to_string()))
     }
