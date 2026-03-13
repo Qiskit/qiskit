@@ -269,6 +269,7 @@ impl DAGOpNode {
                 OperationRef::StandardGate(gate) => gate.into(),
                 OperationRef::StandardInstruction(instruction) => instruction.into(),
                 OperationRef::Unitary(unitary) => unitary.clone().into(),
+                OperationRef::CustomOperation(_) => instruction.operation.clone(),
                 OperationRef::PauliProductMeasurement(ppm) => {
                     PauliBased::PauliProductMeasurement(ppm.clone()).into()
                 }
@@ -327,6 +328,7 @@ impl DAGOpNode {
                     OperationRef::StandardGate(gate) => gate.into(),
                     OperationRef::StandardInstruction(instruction) => instruction.into(),
                     OperationRef::Unitary(unitary) => unitary.clone().into(),
+                    OperationRef::CustomOperation(_) => self.instruction.operation.clone(),
                     OperationRef::PauliProductMeasurement(ppm) => {
                         PauliBased::PauliProductMeasurement(ppm.clone()).into()
                     }
