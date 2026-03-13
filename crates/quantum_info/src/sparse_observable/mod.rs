@@ -716,7 +716,7 @@ impl MatrixComputationData {
     /// Staging area for matrix construction, supporting two paths selected by :meth:`.is_pure_pauli`:
     ///
     /// - Pauli path: fills `x_like`/`z_like`/`coeffs` bitmasks for
-    ///   XOR/popcount-based construction via legacy :meth:`.impl_sparse_observable_to_matrix`.
+    ///   XOR/popcount-based construction via legacy :meth:`.impl_*_to_matrix` logic.
     ///
     /// - General path: fills precompiled `TermDecomp` structures
     ///   with `Local2x2` lookup tables for projector-containing observables,
