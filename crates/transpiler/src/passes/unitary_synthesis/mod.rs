@@ -17,6 +17,7 @@ use indexmap::IndexSet;
 use nalgebra::{DMatrix, Matrix2};
 use ndarray::prelude::*;
 use num_complex::Complex64;
+use std::hash;
 
 use numpy::PyReadonlyArray2;
 use pyo3::prelude::*;
@@ -40,7 +41,69 @@ use qiskit_synthesis::two_qubit_decompose::TwoQubitGateSequence;
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
-/// A borrowed view onto the hardawre constraint.
+/// The fidelity of the 2q basis gate used in a decomposer.
+///
+/// This is necessarily between 0.0 and 1.0 and we normalise away negative zero, which together are
+/// why it's safe to use with total equality and hashing.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct NormalizedFidelity(f64);
+impl NormalizedFidelity {
+    #[inline]
+    pub fn new(val: f64) -> Option<Self> {
+        // The `abs` is normalising signed zero.
+        (0.0..=1.0).contains(&val).then(|| Self(val.abs()))
+    }
+    /// Get the value.  This is guaranteed to be finite, sign positive and in `[0.0, 1.0]`.
+    #[inline]
+    pub fn get(&self) -> f64 {
+        self.0
+    }
+}
+// `impl Eq` is safe for this float-derived quantity because we only permit the range `[0.0, 1.0]`
+// and forbid negative zero.
+impl Eq for NormalizedFidelity {}
+impl hash::Hash for NormalizedFidelity {
+    fn hash<H: hash::Hasher>(&self, state: &mut H) {
+        // This is safe because we're in the range `[0.0, 1.0]` and normalised out negative zero.
+        self.0.to_le_bytes().hash(state)
+    }
+}
+
+/// Whether to do approximate synthesis.
+#[derive(Clone, Copy, Debug, PartialEq, Default)]
+pub enum Approximation {
+    /// Do perfect synthesis, regardless of reported gate errors.
+    #[default]
+    Exact,
+    /// Scale the reported gate fidelity by the given amount.
+    ScaleFidelity(f64),
+}
+impl Approximation {
+    /// Convert from the Python-space representation of `approximation_degree`.
+    pub fn from_py_approximation_degree(val: Option<f64>) -> Self {
+        match val {
+            // ... yeah, I don't know why we've historically done this either.
+            None => Self::ScaleFidelity(1.0),
+            Some(1.0) => Self::Exact,
+            Some(val) => Self::ScaleFidelity(val),
+        }
+    }
+
+    /// Get the fidelity target that should be used for a given gate error.
+    ///
+    /// Returns `Err` with the value of an out-of-bounds requested fidelity.
+    pub fn synthesis_fidelity(&self, gate_error: f64) -> Result<NormalizedFidelity, f64> {
+        match self {
+            Self::Exact => Ok(NormalizedFidelity::new(1.0).expect("1.0 should be in bounds")),
+            Self::ScaleFidelity(scale) => {
+                let fidelity = scale * (1.0 - gate_error);
+                NormalizedFidelity::new(fidelity).ok_or(fidelity)
+            }
+        }
+    }
+}
+
+/// A borrowed view onto the hardware constraint.
 #[derive(Clone, Copy, Debug)]
 pub enum QpuConstraint<'a> {
     Target(&'a Target),
@@ -132,12 +195,8 @@ impl DecompositionDirection2q {
 /// This implements `Default`, which is a convenient constructor.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct UnitarySynthesisConfig {
-    /// Whether to allow approximations (`Some`) or not (`None`).
-    ///
-    /// If `Some`, the weight is a multiplicative multiplier on fidelity, such that `1.0` means "use
-    /// the gate fidelity exactly" and `0.5` would mean "treat the gate as having half its natural
-    /// fidelity", etc.
-    pub approximation_degree: Option<f64>,
+    /// Whether to do approximate synthesis.
+    pub approximation: Approximation,
     pub use_pulse_optimizer: UsePulseOptimizer,
     pub decomposition_direction_2q: DecompositionDirection2q,
     /// Whether to allow use of Python-space decomposers.
@@ -146,7 +205,7 @@ pub struct UnitarySynthesisConfig {
 impl Default for UnitarySynthesisConfig {
     fn default() -> Self {
         Self {
-            approximation_degree: None,
+            approximation: Approximation::Exact,
             use_pulse_optimizer: UsePulseOptimizer::IfBetter,
             decomposition_direction_2q: DecompositionDirection2q::BestValid,
             run_python_decomposers: false,
@@ -603,7 +662,7 @@ pub fn py_unitary_synthesis(
     pulse_optimize: Option<bool>,
 ) -> PyResult<DAGCircuit> {
     let config = UnitarySynthesisConfig {
-        approximation_degree,
+        approximation: Approximation::from_py_approximation_degree(approximation_degree),
         use_pulse_optimizer: UsePulseOptimizer::from_py_pulse_optimize(pulse_optimize),
         decomposition_direction_2q: DecompositionDirection2q::from_py_natural_direction(
             natural_direction,
@@ -647,7 +706,7 @@ pub fn py_synthesize_unitary_matrix(
     pulse_optimize: Option<bool>,
 ) -> PyResult<DAGCircuit> {
     let config = UnitarySynthesisConfig {
-        approximation_degree,
+        approximation: Approximation::from_py_approximation_degree(approximation_degree),
         use_pulse_optimizer: UsePulseOptimizer::from_py_pulse_optimize(pulse_optimize),
         decomposition_direction_2q: DecompositionDirection2q::from_py_natural_direction(
             natural_direction,
