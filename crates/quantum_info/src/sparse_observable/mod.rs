@@ -408,11 +408,20 @@ pub struct SparseObservable {
 // ---------------------------------------------------------------------------
 
 /// Single-qubit operator action; maps input bit to (output_bit, amplitude).
+/// For example, `LocalEntry(1, i)` means: transform to |1⟩ with amplitude i.
 #[derive(Clone, Copy, Debug)]
 struct LocalEntry(u8, Complex64);
-
-/// Lookup table for a single-qubit operator's action on basis states |0⟩ and |1⟩.
-/// Stores possible (output_bit, amplitude) pairs for each input.
+/// A precomputed transition table for a single-qubit operator's action on basis states |0⟩ and |1⟩.
+///
+/// Pauli operators (X, Y, Z) map every basis state to exactly one other basis state with a fixed
+/// phase, a property that allows the fast XOR/popcount shortcut for pure-Pauli observables, migrated
+/// as-is from the legacy :meth:`SparsePauliOp.to_matrix()`, to retain the efficiency.
+/// Projectors (|0⟩⟨0|, |+⟩⟨+|, etc.) break this: they can annihilate a state entirely (|0⟩⟨0||1⟩ = 0)
+/// or fan it out to multiple outputs (|+⟩⟨+||0⟩ = 0.5|0⟩ + 0.5|1⟩), making algebraic shortcuts
+/// impossible. So we precompute each operator's transitions as a small static table:
+/// given input bit 0 or 1, return the list of (output bit, amplitude) pairs, with an empty
+/// list representing annihilation. Matrix construction then reduces to iterating these tables across
+/// active qubits and combining results, without ever materializing the Pauli expansion.
 #[derive(Clone, Copy, Debug)]
 struct Local2x2 {
     out0: &'static [LocalEntry], // transitions when input bit = 0
@@ -531,7 +540,6 @@ static L2LEFT: Local2x2 = Local2x2 {
 };
 
 // ---------------------------------------------------------------------------
-
 /// Mapper for each BitTerm to its corresponding Local2x2 lookup table.
 fn local_for_bitterm(bt: BitTerm) -> Option<&'static Local2x2> {
     match bt {
@@ -555,11 +563,11 @@ fn local_for_bitterm(bt: BitTerm) -> Option<&'static Local2x2> {
 /// to avoid recomputing tensor products during row iteration.
 #[derive(Clone, Debug)]
 struct TermDecomp {
-    qubits: Vec<u32>,              // active qubit indices
-    mask: u64,                     // bitmask with 1s at active qubit positions
-    dest_offsets: Vec<u64>,        // precomputed column contributions for each output pattern
+    qubits: Vec<u32>,               // active qubit indices
+    mask: u64,                      // bitmask with 1s at active qubit positions
+    dest_offsets: Vec<u64>,         // precomputed column contributions for each output pattern
     locals: Vec<&'static Local2x2>, // Local2x2 table for each active qubit
-    coeff: Complex64,              // overall coefficient
+    coeff: Complex64,               // overall coefficient
 }
 
 impl TermDecomp {
@@ -671,9 +679,9 @@ impl TermDecomp {
 /// For observables with projectors, stores precompiled TermDecomp structures.
 #[derive(Debug)]
 struct MatrixComputationData {
-    x_like: Vec<u64>,              // X bitmasks (Pauli path only)
-    z_like: Vec<u64>,              // Z bitmasks (Pauli path only)
-    coeffs: Vec<Complex64>,        // term coefficients (Pauli path only)
+    x_like: Vec<u64>,       // X bitmasks (Pauli path only)
+    z_like: Vec<u64>,       // Z bitmasks (Pauli path only)
+    coeffs: Vec<Complex64>, // term coefficients (Pauli path only)
     num_qubits: u32,
     pub ops: Option<Vec<TermDecomp>>, // precompiled terms (projector path only)
 }
@@ -705,6 +713,14 @@ impl MatrixComputationData {
     }
 
     /// Create optimized matrix computation data from SparseObservable
+    /// Staging area for matrix construction, supporting two paths selected by :meth:`.is_pure_pauli`:
+    ///
+    /// - Pauli path: fills `x_like`/`z_like`/`coeffs` bitmasks for
+    ///   XOR/popcount-based construction via legacy :meth:`.impl_sparse_observable_to_matrix`.
+    ///
+    /// - General path: fills precompiled `TermDecomp` structures
+    ///   with `Local2x2` lookup tables for projector-containing observables,
+    ///   via :meth:`.impl_general_to_matrix`.
     fn from_sparse_observable(obs: &SparseObservable) -> Result<Self, MatrixComputationError> {
         if obs.num_terms() == 0 {
             return Err(MatrixComputationError::InvalidObservable(
@@ -718,7 +734,7 @@ impl MatrixComputationData {
             let data = Self::from_pauli_like(&cleaned)?;
             Ok(data)
         } else {
-            // branch logic for projectors
+            // Branch to general path for projectors - uses Local2x2 tables
             let data = Self::from_sparse_observable_general(obs)?;
             Ok(data)
         }
