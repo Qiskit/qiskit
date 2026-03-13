@@ -5177,6 +5177,36 @@ class QuantumCircuit:
             copy=False,
         )
 
+    def ach(
+        self,
+        control_qubit: QubitSpecifier,
+        target_qubit: QubitSpecifier,
+        label: str | None = None,
+    ) -> InstructionSet:
+        r"""Apply :class:`~qiskit.circuit.library.ACHGate`.
+
+        For the full matrix form of this gate, see the underlying gate documentation.
+
+        Applies a Hadamard on the target qubit when the control qubit is in the
+        :math:`|0\rangle` state (anti-controlled).
+
+        Args:
+            control_qubit: The qubit(s) used as the control.
+            target_qubit: The qubit(s) targeted by the gate.
+            label: The string label of the gate in the circuit.
+
+        Returns:
+            A handle to the instructions created.
+        """
+        from .library.standard_gates.anti_controlled import ACHGate
+
+        return self.append(
+            ACHGate(label=label),
+            [control_qubit, target_qubit],
+            [],
+            copy=False,
+        )
+
     def id(self, qubit: QubitSpecifier) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.IGate`.
 

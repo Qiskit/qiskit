@@ -14,6 +14,7 @@
 Standard gates
 """
 
+from .anti_controlled import ACHGate
 from .h import HGate, CHGate
 from .i import IGate
 from .p import PhaseGate, CPhaseGate, MCPhaseGate

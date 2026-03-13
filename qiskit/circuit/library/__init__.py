@@ -200,6 +200,7 @@ and operations.
 .. autosummary::
    :toctree: ../stubs/
 
+   ACHGate
    CHGate
    CPhaseGate
    CRXGate
