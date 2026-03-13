@@ -1,3 +1,4 @@
+
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2020.
@@ -49,6 +50,7 @@ from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
 )
+from qiskit_aer import AerSimulator
 from test import QiskitTestCase
 
 
@@ -1231,3 +1233,20 @@ class TestBasisTranslatorWithTarget(QiskitTestCase):
         pm = generate_preset_pass_manager(optimization_level=1, target=target, seed_transpiler=134)
         cqc = pm.run(qc)
         self.assertEqual(Operator(qc), Operator.from_circuit(cqc))
+        
+    def test_dcx_decomposition_inside_if(self):
+        qr = QuantumRegister(2, "q")
+        cr = ClassicalRegister(1, "c")
+        qc = QuantumCircuit(qr, cr)
+
+        with qc.if_test((cr[0], 1)):
+            qc.dcx(0, 1)
+
+        backend = AerSimulator()
+ 
+        tqc = transpile(qc, backend, optimization_level=0)
+
+        block = tqc.data[0].operation.blocks[0]
+
+        self.assertNotIn("dcx", block.count_ops())       
+    
