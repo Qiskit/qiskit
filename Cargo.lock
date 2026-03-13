@@ -2079,6 +2079,7 @@ dependencies = [
  "qiskit-circuit",
  "qiskit-quantum-info",
  "smallvec",
+ "thiserror 2.0.18",
  "uuid",
 ]
 
