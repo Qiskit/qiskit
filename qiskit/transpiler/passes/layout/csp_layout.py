@@ -15,6 +15,8 @@ Constraint Satisfaction Problem. It tries to find a solution that fully
 satisfies the circuit, i.e. no further swap is needed. If no solution is
 found, no ``property_set['layout']`` is set.
 """
+import itertools
+
 import numpy as np
 
 from qiskit.transpiler.layout import Layout
@@ -87,6 +89,10 @@ class CSPLayout(AnalysisPass):
 
         for gate in dag.two_qubit_ops():
             cxs.add((qubits.index(gate.qargs[0]), qubits.index(gate.qargs[1])))
+        for gate in dag.multi_qubit_ops():
+            argindices = [qubits.index(q) for q in gate.qargs]
+            for i, j in itertools.combinations(argindices, 2):
+                cxs.add((i, j))
         edges = set(self.coupling_map.get_edges())
 
         if self.time_limit is None and self.call_limit is None:
