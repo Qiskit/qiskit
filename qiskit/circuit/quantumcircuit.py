@@ -6262,6 +6262,37 @@ class QuantumCircuit:
             copy=False,
         )
 
+    def acx(
+        self,
+        control_qubit: QubitSpecifier,
+        target_qubit: QubitSpecifier,
+        label: str | None = None,
+    ) -> InstructionSet:
+        r"""Apply :class:`~qiskit.circuit.library.ACXGate`.
+
+        For the full matrix form of this gate, see the underlying gate documentation.
+
+        Applies a NOT/PauliX on the target qubit when the control qubit is in the
+        :math:`|0\rangle` state (anti-controlled).
+
+        Args:
+            control_qubit: The qubit(s) used as the control.
+            target_qubit: The qubit(s) targeted by the gate.
+            label: The string label of the gate in the circuit.
+
+        Returns:
+            A handle to the instructions created.
+        """
+        from .library.standard_gates.anti_controlled import ACXGate
+
+        return self.append(
+            ACXGate(label=label),
+            [control_qubit, target_qubit],
+            [],
+            copy=False,
+        )
+
+
     def dcx(self, qubit1: QubitSpecifier, qubit2: QubitSpecifier) -> InstructionSet:
         r"""Apply :class:`~qiskit.circuit.library.DCXGate`.
 
@@ -6477,6 +6508,33 @@ class QuantumCircuit:
             copy=False,
         )
 
+    def acy(
+        self,
+        control_qubit: QubitSpecifier,
+        target_qubit: QubitSpecifier,
+        label: str | None = None,
+    ) -> InstructionSet:
+        r"""Apply :class:`~qiskit.circuit.library.ACYGate`.
+
+        For the full matrix form of this gate, see the underlying gate documentation.
+
+        Applies a Pauli-Y on the target qubit when the control qubit is in the
+        :math:`|0\rangle` state (anti-controlled).
+
+        Args:
+            control_qubit: The qubit(s) used as the control.
+            target_qubit: The qubit(s) targeted by the gate.
+            label: The string label of the gate in the circuit.
+
+        Returns:
+            A handle to the instructions created.
+        """
+        from .library.standard_gates.anti_controlled import ACYGate
+
+        return self.append(
+            ACYGate(label=label), [control_qubit, target_qubit], [], copy=False
+        )
+
     def z(self, qubit: QubitSpecifier) -> InstructionSet:
         r"""Apply :class:`~qiskit.circuit.library.ZGate`.
 
@@ -6525,6 +6583,33 @@ class QuantumCircuit:
             [control_qubit, target_qubit],
             [],
             copy=False,
+        )
+
+    def acz(
+        self,
+        control_qubit: QubitSpecifier,
+        target_qubit: QubitSpecifier,
+        label: str | None = None,
+    ) -> InstructionSet:
+        r"""Apply :class:`~qiskit.circuit.library.ACZGate`.
+
+        For the full matrix form of this gate, see the underlying gate documentation.
+
+        Applies a Pauli-Z on the target qubit when the control qubit is in the
+        :math:`|0\rangle` state (anti-controlled).
+
+        Args:
+            control_qubit: The qubit(s) used as the control.
+            target_qubit: The qubit(s) targeted by the gate.
+            label: The string label of the gate in the circuit.
+
+        Returns:
+            A handle to the instructions created.
+        """
+        from .library.standard_gates.anti_controlled import ACZGate
+
+        return self.append(
+            ACZGate(label=label), [control_qubit, target_qubit], [], copy=False
         )
 
     def ccz(

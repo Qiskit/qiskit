@@ -14,7 +14,7 @@
 Standard gates
 """
 
-from .anti_controlled import ACHGate
+from .anti_controlled import ACHGate, ACXGate, ACYGate, ACZGate
 from .h import HGate, CHGate
 from .i import IGate
 from .p import PhaseGate, CPhaseGate, MCPhaseGate
@@ -83,6 +83,10 @@ def get_standard_gate_name_mapping():
     # Standard gates library mapping, multicontrolled gates not included since they're
     # variable width
     gates = [
+        ACXGate(),
+        ACYGate(),
+        ACZGate(),
+        ACHGate(),
         IGate(),
         SXGate(),
         XGate(),

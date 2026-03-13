@@ -201,6 +201,7 @@ and operations.
    :toctree: ../stubs/
 
    ACHGate
+   ACXGate
    CHGate
    CPhaseGate
    CRXGate
