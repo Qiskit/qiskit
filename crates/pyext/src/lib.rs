@@ -42,6 +42,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_transpiler::commutation_checker::commutation_checker, "commutation_checker")?;
     add_submodule(m, ::qiskit_transpiler::passes::commutative_optimization_mod, "commutative_optimization")?;
     add_submodule(m, ::qiskit_transpiler::passes::consolidate_blocks_mod, "consolidate_blocks")?;
+    add_submodule(m, ::qiskit_transpiler::passes::constrained_reschedule_mod, "constrained_reschedule")?;
     add_submodule(m, ::qiskit_synthesis::linalg::cos_sin_decomp::cos_sin_decomp, "cos_sin_decomp")?;
     add_submodule(m, ::qiskit_transpiler::passes::dense_layout_mod, "dense_layout")?;
     add_submodule(m, ::qiskit_transpiler::equivalence::equivalence, "equivalence")?;
@@ -69,6 +70,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_accelerate::sampled_exp_val::sampled_exp_val, "sampled_exp_val")?;
     add_submodule(m, ::qiskit_quantum_info::sparse_observable::sparse_observable, "sparse_observable")?;
     add_submodule(m, ::qiskit_quantum_info::sparse_pauli_op::sparse_pauli_op, "sparse_pauli_op")?;
+    add_submodule(m, ::qiskit_transpiler::passes::scheduling_mod, "scheduling")?;
     add_submodule(m, ::qiskit_quantum_info::unitary_sim::unitary_sim, "unitary_sim")?;
     add_submodule(m, ::qiskit_transpiler::passes::split_2q_unitaries_mod, "split_2q_unitaries")?;
     add_submodule(m, ::qiskit_synthesis::synthesis, "synthesis")?;
