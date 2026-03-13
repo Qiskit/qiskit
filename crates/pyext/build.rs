@@ -33,9 +33,9 @@ fn main() -> anyhow::Result<()> {
         path.push("include");
         path
     };
-    let bindings = qiskit_bindgen::generate_bindings(&cext_path)?;
+    let mut bindings = qiskit_bindgen::generate_bindings(&cext_path)?;
     // We install the headers into our `OUT_DIR`, then we configure `setuptools-rust` to pick them
     // up from there and put them into the Python package.
-    qiskit_bindgen::install_c_headers(&bindings, &out_path)?;
+    qiskit_bindgen::install_c_headers(&mut bindings, &out_path)?;
     Ok(())
 }
