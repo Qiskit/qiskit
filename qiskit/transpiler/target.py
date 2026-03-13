@@ -41,6 +41,7 @@ from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.timing_constraints import TimingConstraints
+from qiskit.quantum_info import get_clifford_gate_names
 
 # import QubitProperties here to provide convenience alias for building a
 # full target
@@ -951,6 +952,42 @@ class Target(BaseTarget):
             for gate in global_ideal_variable_width_gates:
                 target.add_instruction(name_mapping[gate], name=gate)
         return target
+
+    @classmethod
+    def build_clifford_t(
+        cls, num_qubits: int | None, coupling_map: CouplingMap | None = None
+    ) -> Target:
+        """Build a :class:`.Target` with a Clifford+T basis.
+
+        This will contain all Clifford standard gates, the :class:`.TGate`, and the
+        :class:`.TdgGate`. If only the number of qubits is provided, an all-to-all
+        connectivity is assumed.
+
+        This can be used to compile to Clifford+T targets, for example::
+
+            from qiskit.circuit import QuantumCircuit, transpile
+            from qiskit.transpiler import Target
+
+            circuit = QuantumCircuit(2)
+            circuit.rx(0.2, 0)
+            circuit.rzz(1.3, 0, 1)
+
+            target = Target.build_clifford_t(num_qubits=2)
+            cliff_t = transpile(circuit, target=target)
+
+        More specific :class:`.Target` objects can also be build with
+        :meth:`.Target.from_configuration` or manually via :meth:`.Target.add_instruction`.
+
+        Args:
+            num_qubits: The number of qubits. Ignored if the ``coupling_map`` is provided.
+            coupling_map: The :class:`.CouplingMap` for the 2-qubit Cliffords. Takes precedence
+                over ``num_qubits``. If ``None``, an all-to-all connectivity is assumed.
+
+        Returns:
+            A Clifford+T target.
+        """
+        basis_gates = get_clifford_gate_names() + ["t", "tdg"]
+        return Target.from_configuration(basis_gates, num_qubits, coupling_map)
 
 
 Mapping.register(Target)
