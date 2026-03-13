@@ -2429,10 +2429,14 @@ class TestSparseObservable(QiskitTestCase):
         obs = SparseObservable("XYZI")
         pauli = Pauli("XX")
 
-        with self.assertRaisesRegex(ValueError, "qargs has length"):
+        with self.assertRaisesRegex(
+            ValueError, r"qargs has length 3, but operator has 2 qubit\(s\)"
+        ):
             obs.evolve(pauli, qargs=[0, 1, 2])
 
-        with self.assertRaisesRegex(ValueError, "qargs has length"):
+        with self.assertRaisesRegex(
+            ValueError, r"qargs has length 1, but operator has 2 qubit\(s\)"
+        ):
             obs.evolve(pauli, qargs=[0])
 
     def test_evolve_qargs_out_of_range(self):
@@ -2472,7 +2476,7 @@ class TestSparseObservable(QiskitTestCase):
         """Test mismatched qubits fails without qargs."""
         obs = SparseObservable.identity(3)
         pauli = Pauli("IIIII")
-        with self.assertRaisesRegex(ValueError, "mismatched numbers of qubits"):
+        with self.assertRaisesRegex(ValueError, r"mismatched numbers of qubits: 3, 5"):
             obs.evolve(pauli)
 
     # Complex scenarios
@@ -2515,8 +2519,8 @@ class TestSparseObservable(QiskitTestCase):
         result = obs.evolve(pauli, qargs=[1, 2])
 
         # Pauli "YX" has Y on qubit 1, X on qubit 0
-        # Z conjugated by X = -Z
-        # Y conjugated by Y = Y
+        # Y conjugated by X = -Y
+        # Z conjugated by Y = -Z
         expected = SparseObservable.from_sparse_list(
             [("XYZI", (0, 1, 2, 3), 1.0), ("01rl", (4, 5, 6, 7), 0.5)], num_qubits=8
         )

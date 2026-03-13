@@ -284,6 +284,12 @@ pub enum ArithmeticError {
 
     #[error("invalid operation: {0}")]
     InvalidOperation(String),
+
+    #[error("duplicate indices in qargs")]
+    DuplicatedIndex,
+
+    #[error("{0}")]
+    OutOfBounds(String),
 }
 
 /// One part of the type of the iteration value from [PairwiseOrdered].
@@ -885,7 +891,7 @@ impl SparseObservable {
 
         if let Some(qargs) = qargs {
             if op.num_qubits > self.num_qubits {
-                return Err(ArithmeticError::InvalidOperation(format!(
+                return Err(ArithmeticError::OutOfBounds(format!(
                     "operator has more qubits ({}) than the base ({})",
                     op.num_qubits, self.num_qubits
                 )));
@@ -896,7 +902,7 @@ impl SparseObservable {
                 return Ok(self * (scalar.conj() * scalar));
             }
             if qargs.len() != op.num_qubits as usize {
-                return Err(ArithmeticError::InvalidOperation(format!(
+                return Err(ArithmeticError::OutOfBounds(format!(
                     "qargs has length {}, but operator has {} qubit(s)",
                     qargs.len(),
                     op.num_qubits
@@ -908,15 +914,13 @@ impl SparseObservable {
 
             for pair in qargs_sorted.windows(2) {
                 if pair[0] == pair[1] {
-                    return Err(ArithmeticError::InvalidOperation(
-                        "duplicate indices in qargs".to_string(),
-                    ));
+                    return Err(ArithmeticError::DuplicatedIndex);
                 }
             }
 
             if let Some(&max_q) = qargs.iter().max() {
                 if max_q >= self.num_qubits {
-                    return Err(ArithmeticError::InvalidOperation(
+                    return Err(ArithmeticError::OutOfBounds(
                         "qargs contains out-of-range qubits".to_string(),
                     ));
                 }
