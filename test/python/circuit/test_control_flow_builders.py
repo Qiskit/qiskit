@@ -4,13 +4,12 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-function-docstring,invalid-name
 
 """Test operations on the builder interfaces for control flow in dynamic QuantumCircuits."""
 
@@ -32,8 +31,8 @@ from qiskit.circuit import (
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.controlflow import ForLoopOp, IfElseOp, WhileLoopOp, SwitchCaseOp, CASE_DEFAULT
 from qiskit.circuit.exceptions import CircuitError
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
-from test.utils._canonical import canonicalize_control_flow  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
+from test.utils._canonical import canonicalize_control_flow
 
 
 class SentinelException(Exception):
@@ -2107,7 +2106,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             instruction = circuit.data[-1].operation
             self.assertIsInstance(instruction, ForLoopOp)
             _, bound_parameter, _ = instruction.params
-            self.assertIs(bound_parameter, parameter)
+            self.assertEqual(bound_parameter, parameter)
 
         with self.subTest("passed and unused"):
             circuit = QuantumCircuit(1, 1)
@@ -2117,7 +2116,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             instruction = circuit.data[-1].operation
             self.assertIsInstance(instruction, ForLoopOp)
             _, bound_parameter, _ = instruction.params
-            self.assertIs(parameter, received_parameter)
+            self.assertEqual(parameter, received_parameter)
 
         with self.subTest("generated and used"):
             circuit = QuantumCircuit(1, 1)
@@ -2127,7 +2126,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             instruction = circuit.data[-1].operation
             self.assertIsInstance(instruction, ForLoopOp)
             _, bound_parameter, _ = instruction.params
-            self.assertIs(bound_parameter, received_parameter)
+            self.assertEqual(bound_parameter, received_parameter)
 
         with self.subTest("generated and used in deferred-build if"):
             circuit = QuantumCircuit(1, 1)
@@ -2139,7 +2138,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             instruction = circuit.data[-1].operation
             self.assertIsInstance(instruction, ForLoopOp)
             _, bound_parameter, _ = instruction.params
-            self.assertIs(bound_parameter, received_parameter)
+            self.assertEqual(bound_parameter, received_parameter)
 
         with self.subTest("generated and used in deferred-build else"):
             circuit = QuantumCircuit(1, 1)
@@ -2153,7 +2152,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             instruction = circuit.data[-1].operation
             self.assertIsInstance(instruction, ForLoopOp)
             _, bound_parameter, _ = instruction.params
-            self.assertIs(bound_parameter, received_parameter)
+            self.assertEqual(bound_parameter, received_parameter)
 
     def test_for_does_not_bind_generated_parameter_if_unused(self):
         """Test that the ``for`` manager does not bind a generated parameter into the resulting

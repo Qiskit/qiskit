@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -21,7 +21,9 @@ use num_complex::Complex64;
 use numpy::PyReadonlyArray2;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
+use qiskit_quantum_info::QiskitError;
 use smallvec::smallvec;
+use thiserror::Error;
 
 use crate::euler_one_qubit_decomposer::{
     EulerBasis, EulerBasisSet, unitary_to_gate_sequence_inner,
@@ -29,7 +31,7 @@ use crate::euler_one_qubit_decomposer::{
 use crate::linalg::{closest_unitary, is_hermitian_matrix, svd_decomposition, verify_unitary};
 use crate::two_qubit_decompose::{TwoQubitBasisDecomposer, two_qubit_decompose_up_to_diagonal};
 use qiskit_circuit::bit::ShareableQubit;
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError, PyCircuitData};
 use qiskit_circuit::interner::Interned;
 use qiskit_circuit::operations::{ArrayType, OperationRef, Param, StandardGate, UnitaryGate};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
@@ -37,6 +39,34 @@ use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
 use qiskit_quantum_info::convert_2q_block_matrix::instructions_to_matrix;
 
 const EPS: f64 = 1e-10;
+
+/// Errors that might occur during QSD synthesis algorithm
+#[derive(Error, Debug)]
+pub enum QSDError {
+    #[error("Schur decomposition failed")]
+    SchurDecompositionFailed,
+
+    // wraps CircuitDataError, e.g. produced by demultiplex
+    #[error(transparent)]
+    ErrorFromCircuitData(#[from] CircuitDataError),
+
+    // wraps PyErr, e.g. produced by 2q decomposer
+    #[error(transparent)]
+    ErrorFromPython(#[from] PyErr),
+}
+
+impl From<QSDError> for PyErr {
+    fn from(error: QSDError) -> Self {
+        match error {
+            QSDError::SchurDecompositionFailed => {
+                QiskitError::new_err("Schur decomposition failed")
+            }
+            QSDError::ErrorFromCircuitData(err) => err.into(),
+
+            QSDError::ErrorFromPython(err) => err,
+        }
+    }
+}
 
 // when performing demultiplaxing, this enum is used to specify the actions that needs to be done
 enum VWType {
@@ -64,7 +94,7 @@ pub fn quantum_shannon_decomposition(
     opt_a2: Option<bool>,
     one_qubit_decomposer_basis_set: Option<&EulerBasisSet>,
     two_qubit_decomposer: Option<&TwoQubitBasisDecomposer>,
-) -> PyResult<CircuitData> {
+) -> Result<CircuitData, QSDError> {
     let dim = mat.shape().0;
     let num_qubits = dim.ilog2() as usize;
     let mut default_1q_basis = EulerBasisSet::new();
@@ -84,7 +114,7 @@ pub fn quantum_shannon_decomposition(
         let out_qubits = (0..num_qubits)
             .map(|_| ShareableQubit::new_anonymous())
             .collect::<Vec<_>>();
-        return CircuitData::new(Some(out_qubits), None, None, 0, Param::Float(0.));
+        return Ok(CircuitData::new(Some(out_qubits), None, Param::Float(0.))?);
     }
     qsd_inner(
         mat,
@@ -103,7 +133,7 @@ fn qsd_inner(
     two_qubit_decomposer: &TwoQubitBasisDecomposer,
     one_qubit_decomposer: &EulerBasisSet,
     depth: usize,
-) -> PyResult<CircuitData> {
+) -> Result<CircuitData, QSDError> {
     let dim = mat.shape().0;
     let num_qubits = dim.ilog2() as usize;
     let opt_a1_val = opt_a1.unwrap_or(true);
@@ -118,7 +148,7 @@ fn qsd_inner(
             unitary_to_gate_sequence_inner(array, one_qubit_decomposer, 0, None, true, None);
 
         return match sequence {
-            Some(seq) => CircuitData::from_standard_gates(
+            Some(seq) => Ok(CircuitData::from_standard_gates(
                 1,
                 seq.gates.into_iter().map(|(gate, params)| {
                     (
@@ -128,12 +158,12 @@ fn qsd_inner(
                     )
                 }),
                 Param::Float(seq.global_phase),
-            ),
+            )?),
             None => {
                 let out_qubits = (0..num_qubits)
                     .map(|_| ShareableQubit::new_anonymous())
                     .collect::<Vec<_>>();
-                CircuitData::new(Some(out_qubits), None, None, 0, Param::Float(0.))
+                Ok(CircuitData::new(Some(out_qubits), None, Param::Float(0.))?)
             }
         };
     } else if dim == 4 {
@@ -141,7 +171,7 @@ fn qsd_inner(
             let out_qubits = (0..num_qubits)
                 .map(|_| ShareableQubit::new_anonymous())
                 .collect::<Vec<_>>();
-            let mut out = CircuitData::new(Some(out_qubits), None, None, 0, Param::Float(0.))?;
+            let mut out = CircuitData::new(Some(out_qubits), None, Param::Float(0.))?;
             let two_q_mat: Matrix4<Complex64> = Matrix4::from_fn(|i, j| mat[(i, j)]);
             let packed_inst = PackedInstruction {
                 op: PackedOperation::from_unitary(Box::new(UnitaryGate {
@@ -171,7 +201,7 @@ fn qsd_inner(
                     .unwrap()
             });
         let global_phase = sequence.global_phase();
-        return CircuitData::from_packed_operations(
+        return Ok(CircuitData::from_packed_operations(
             num_qubits as u32,
             0,
             sequence
@@ -186,7 +216,7 @@ fn qsd_inner(
                     ))
                 }),
             Param::Float(global_phase),
-        );
+        )?);
     }
     // Check whether the matrix is equivalent to a block diagonal w.r.t ctrl_index
     if opt_a2 != Some(true) {
@@ -289,7 +319,7 @@ fn qsd_inner(
     out.push_standard_gate(StandardGate::H, &[], &[Qubit((num_qubits - 1) as u32)])?;
     append(&mut out, right_circuit, &qr)?;
     if opt_a2_val && depth == 0 && dim > 4 {
-        apply_a2(&out, two_qubit_decomposer)
+        Ok(apply_a2(&out, two_qubit_decomposer)?)
     } else {
         Ok(out)
     }
@@ -393,7 +423,7 @@ fn demultiplex(
     vw_type: VWType,
     two_qubit_decomposer: &TwoQubitBasisDecomposer,
     one_qubit_decomposer: &EulerBasisSet,
-) -> PyResult<(CircuitData, DMatrix<Complex64>, DMatrix<Complex64>)> {
+) -> Result<(CircuitData, DMatrix<Complex64>, DMatrix<Complex64>), QSDError> {
     let um0 = closest_unitary(um0.as_view());
     let um1 = closest_unitary(um1.as_view());
 
@@ -413,7 +443,8 @@ fn demultiplex(
         let orthonormal_eigenvectors = QR::new(eigh.eigenvectors).q();
         (eigvals, orthonormal_eigenvectors)
     } else {
-        let schur = nalgebra::linalg::Schur::try_new(um0um1, 1e-12, 100000).unwrap();
+        let schur = nalgebra::linalg::Schur::try_new(um0um1, 1e-12, 100000)
+            .ok_or(QSDError::SchurDecompositionFailed)?;
         let (vmat, evals) = schur.unpack();
         let eigvals = evals.diagonal();
         (eigvals, vmat)
@@ -427,7 +458,7 @@ fn demultiplex(
     let out_qubits = (0..num_qubits)
         .map(|_| ShareableQubit::new_anonymous())
         .collect::<Vec<_>>();
-    let mut out = CircuitData::new(Some(out_qubits), None, None, 0, Param::Float(0.))?;
+    let mut out = CircuitData::new(Some(out_qubits), None, Param::Float(0.))?;
 
     // left gate. In this case we decompose wmat.
     // Otherwise, it is combined with the B matrix.
@@ -506,11 +537,15 @@ fn demultiplex_verify(
 
 /// This function synthesizes UCRZ without the final CX gate,
 /// unless _vw_type = ``all``.
-fn get_ucrz(num_qubits: usize, angles: &mut [f64], vw_type_all: bool) -> PyResult<CircuitData> {
+fn get_ucrz(
+    num_qubits: usize,
+    angles: &mut [f64],
+    vw_type_all: bool,
+) -> Result<CircuitData, CircuitDataError> {
     let out_qubits = (0..num_qubits)
         .map(|_| ShareableQubit::new_anonymous())
         .collect::<Vec<_>>();
-    let mut out = CircuitData::new(Some(out_qubits), None, None, 0, Param::Float(0.))?;
+    let mut out = CircuitData::new(Some(out_qubits), None, Param::Float(0.))?;
     let q_target = Qubit(0);
     let q_controls: Vec<Qubit> = (1..num_qubits).map(|i| Qubit(i as u32)).collect();
     decompose_uc_rotations(angles, 0, angles.len(), false);
@@ -570,7 +605,11 @@ fn update_angle(angle_1: f64, angle_2: f64) -> [f64; 2] {
     [(angle_1 + angle_2) / 2., (angle_1 - angle_2) / 2.]
 }
 
-fn append(circ: &mut CircuitData, new: CircuitData, qubit_map: &[Qubit]) -> PyResult<()> {
+fn append(
+    circ: &mut CircuitData,
+    new: CircuitData,
+    qubit_map: &[Qubit],
+) -> Result<(), CircuitDataError> {
     let new_qubits_map = circ.merge_qargs(new.qargs_interner(), |x| Some(qubit_map[x.index()]));
     circ.add_global_phase(new.global_phase())?;
     for inst in new.into_data_iter() {
@@ -627,7 +666,7 @@ fn extract_multiplex_blocks(umat: &DMatrix<Complex64>, k: usize) -> [DMatrix<Com
         DMatrix::from_fn(um00.shape()[0], um00.shape()[1], |i, j| um00[[i, j]]),
         DMatrix::from_fn(um11.shape()[0], um11.shape()[1], |i, j| um11[[i, j]]),
         DMatrix::from_fn(um01.shape()[0], um01.shape()[1], |i, j| um01[[i, j]]),
-        DMatrix::from_fn(um10.shape()[0], um10.shape()[1], |i, j| um01[[i, j]]),
+        DMatrix::from_fn(um10.shape()[0], um10.shape()[1], |i, j| um10[[i, j]]),
     ]
 }
 
@@ -643,7 +682,7 @@ fn is_zero_matrix(mat: &DMatrix<Complex64>, atol: Option<f64>) -> bool {
 fn apply_a2(
     circ: &CircuitData,
     two_qubit_decomposer: &TwoQubitBasisDecomposer,
-) -> PyResult<CircuitData> {
+) -> Result<CircuitData, CircuitDataError> {
     let ind2q: Vec<usize> = circ
         .data()
         .iter()
@@ -852,7 +891,7 @@ pub fn qs_decomposition(
     opt_a2: Option<bool>,
     one_qubit_decomposer_basis_string: Option<String>,
     two_qubit_decomposer: Option<&TwoQubitBasisDecomposer>,
-) -> PyResult<CircuitData> {
+) -> PyResult<PyCircuitData> {
     let array: ArrayView2<Complex64> = mat.as_array();
     let mat = DMatrix::from_fn(array.shape()[0], array.shape()[1], |i, j| array[[i, j]]);
     let mut one_qubit_decomposer_basis_set = EulerBasisSet::new();
@@ -872,7 +911,7 @@ pub fn qs_decomposition(
         one_qubit_decomposer,
         two_qubit_decomposer,
     )?;
-    Ok(res)
+    Ok(res.into())
 }
 
 pub fn qsd_mod(m: &Bound<PyModule>) -> PyResult<()> {

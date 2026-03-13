@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -58,7 +58,7 @@ const SWAP_EPILOGUE_TRIALS: usize = 4;
 /// At the time of writing (2025-06-11), Qiskit's Python-space model doesn't allow constructing any
 /// control-flow operations with zero blocks, so we could use `NonZero<u32>` directly.  Technically,
 /// though, a `switch` on a zero-bit register _could_ be valid and have zero blocks, so doing this
-/// little trick makes us safe against that long-range assumption changing, for zero measureable
+/// little trick makes us safe against that long-range assumption changing, for zero measurable
 /// runtime cost.
 #[repr(transparent)]
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]

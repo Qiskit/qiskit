@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -29,10 +29,10 @@ use crate::target::{Qargs, Target};
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::imports::ImportOnceCell;
-use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardInstruction};
+use qiskit_circuit::operations::{Operation, OperationRef, StandardInstruction};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{
-    Block, BlockMapper, BlocksMode, Clbit, PhysicalQubit, Qubit, VarsMode, VirtualQubit,
+    BlockMapper, BlocksMode, Clbit, PhysicalQubit, Qubit, VarsMode, VirtualQubit,
 };
 
 create_exception!(qiskit, MultiQEncountered, pyo3::exceptions::PyException);
@@ -211,15 +211,39 @@ pub fn distribute_components(dag: &mut DAGCircuit, target: &Target) -> PyResult<
                 for creg in dag.cregs() {
                     out_dag.add_creg(creg.clone())?;
                 }
+
+                let qubits_indices: Vec<Qubit> = dag
+                    .qubits()
+                    .objects()
+                    .iter()
+                    .map(|qubit| {
+                        out_dag
+                            .qubits()
+                            .find(qubit)
+                            .expect("Qubit from dag not found in out_dag")
+                    })
+                    .collect();
+                let clbits_indices: Vec<Clbit> = dag
+                    .clbits()
+                    .objects()
+                    .iter()
+                    .map(|clbit| {
+                        out_dag
+                            .clbits()
+                            .find(clbit)
+                            .expect("Clbit from dag not found in out_dag")
+                    })
+                    .collect();
+
                 let block_map = dag
-                    .iter_blocks()
-                    .enumerate()
-                    .map(|(index, block)| (Block::new(index), out_dag.add_block(block.clone())))
+                    .blocks()
+                    .items()
+                    .map(|(index, block)| (index, out_dag.add_block(block.clone())))
                     .collect();
                 out_dag.compose(
                     dag,
-                    Some(dag.qubits().objects()),
-                    Some(dag.clbits().objects()),
+                    Some(&qubits_indices),
+                    Some(&clbits_indices),
                     block_map,
                     false,
                 )?;
@@ -447,10 +471,10 @@ fn separate_dag(dag: &mut DAGCircuit) -> PyResult<Vec<DAGCircuit>> {
             let qubits_to_revmove: Vec<Qubit> = qubits.difference(&dag_qubits).copied().collect();
 
             new_dag.remove_qubits(qubits_to_revmove)?;
-            new_dag.set_global_phase(Param::Float(0.))?;
+            new_dag.set_global_phase_f64(0.);
             let old_qubits = dag.qubits();
             let mut block_map = BlockMapper::new();
-            for index in dag.topological_op_nodes()? {
+            for index in dag.topological_op_nodes(false) {
                 let node = dag[index].unwrap_operation();
                 let qargs: HashSet<Qubit> = dag.get_qargs(node.qubits).iter().copied().collect();
                 if dag_qubits.is_superset(&qargs) {
@@ -461,7 +485,7 @@ fn separate_dag(dag: &mut DAGCircuit) -> PyResult<Vec<DAGCircuit>> {
                     let mapped_clbits: Vec<Clbit> =
                         new_dag.cargs_interner().get(node.clbits).to_vec();
                     let mapped_params = node.params.as_deref().map(|p| {
-                        block_map.map_params(p, |b| new_dag.add_block(dag.view_block(b).clone()))
+                        block_map.map_params(p, |b| new_dag.add_block(dag.blocks()[b].clone()))
                     });
                     new_dag.apply_operation_back(
                         node.op.clone(),

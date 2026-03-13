@@ -6,7 +6,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -295,7 +295,7 @@ def generate_param_phase():
     return output_circuits
 
 
-def generate_single_clbit_condition_teleportation(version):  # pylint: disable=invalid-name
+def generate_single_clbit_condition_teleportation(version):
     """Generate single clbit condition teleportation circuit."""
     qr = QuantumRegister(1)
     cr = ClassicalRegister(2, name="name")
@@ -325,7 +325,7 @@ def generate_parameter_vector():
     return qc
 
 
-def generate_parameter_vector_expression():  # pylint: disable=invalid-name
+def generate_parameter_vector_expression():
     """Generate tests for parameter vector element ordering."""
     qc = QuantumCircuit(7, name="vector_expansion")
     entanglement = [[i, i + 1] for i in range(7 - 1)]
@@ -448,7 +448,7 @@ def generate_control_flow_switch_circuits():
 
 def generate_schedule_blocks(current_version):
     """Standard QPY testcase for schedule blocks."""
-    # pylint: disable=no-name-in-module
+
     from qiskit.pulse import builder, channels, library
 
     # Parameterized schedule test is avoided.
@@ -487,7 +487,7 @@ def generate_schedule_blocks(current_version):
     # Raw symbolic pulse
     import symengine as sym
 
-    duration, amp, t = sym.symbols("duration amp t")  # pylint: disable=invalid-name
+    duration, amp, t = sym.symbols("duration amp t")
     expr = amp * sym.sin(2 * sym.pi * t / duration)
     my_pulse = library.SymbolicPulse(
         pulse_type="Sinusoidal",
@@ -510,7 +510,7 @@ def generate_schedule_blocks(current_version):
 
 def generate_referenced_schedule():
     """Test for QPY serialization of unassigned reference schedules."""
-    # pylint: disable=no-name-in-module
+
     from qiskit.pulse import builder, channels, library
 
     schedule_blocks = []
@@ -536,7 +536,7 @@ def generate_referenced_schedule():
 
 def generate_calibrated_circuits():
     """Test for QPY serialization with calibrations."""
-    # pylint: disable=no-name-in-module
+
     from qiskit.pulse import builder, Constant, DriveChannel
 
     circuits = []
@@ -619,7 +619,7 @@ def generate_open_controlled_gates(version):
 
 def generate_acquire_instruction_with_kernel_and_discriminator():
     """Test QPY serialization with Acquire instruction with kernel and discriminator."""
-    # pylint: disable=no-name-in-module
+
     from qiskit.pulse import builder, AcquireChannel, MemorySlot, Discriminator, Kernel
 
     schedule_blocks = []
@@ -1014,7 +1014,9 @@ def generate_circuits(version_parts, current_version, load_context=False):
     return output_circuits
 
 
-def assert_equal(reference, qpy, count, version_parts, bind=None, equivalent=False):
+def assert_equal(
+    reference, qpy, count, version_parts, bind=None, equivalent=False, context="Unknown context"
+):
     """Compare two circuits."""
     if bind is not None:
         reference_parameter_names = [x.name for x in reference.parameters]
@@ -1032,19 +1034,19 @@ def assert_equal(reference, qpy, count, version_parts, bind=None, equivalent=Fal
     if equivalent:
         if not Operator.from_circuit(reference).equiv(Operator.from_circuit(qpy)):
             msg = (
+                f"For {context}:\n"
                 f"Reference Circuit {count}:\n{reference}\nis not equivalent to "
                 f"qpy loaded circuit {count}:\n{qpy}\n"
             )
             sys.stderr.write(msg)
             sys.exit(1)
-    else:
-        if reference != qpy:
-            msg = (
-                f"Reference Circuit {count}:\n{reference}\nis not equivalent to "
-                f"qpy loaded circuit {count}:\n{qpy}\n"
-            )
-            sys.stderr.write(msg)
-            sys.exit(1)
+    elif reference != qpy:
+        msg = (
+            f"Reference Circuit {count}:\n{reference}\nis not equivalent to "
+            f"qpy loaded circuit {count}:\n{qpy}\n"
+        )
+        sys.stderr.write(msg)
+        sys.exit(1)
     # Check deprecated bit properties, if set.  The QPY dumping code before Terra 0.23.2 didn't
     # include enough information for us to fully reconstruct this, so we only test if newer.
     if version_parts >= (0, 23, 2) and isinstance(reference, QuantumCircuit):
@@ -1053,6 +1055,7 @@ def assert_equal(reference, qpy, count, version_parts, bind=None, equivalent=Fal
         ):
             if ref_bit._register is not None and ref_bit != qpy_bit:
                 msg = (
+                    f"For {context}:\n"
                     f"Reference Circuit {count}:\n"
                     "deprecated bit-level register information mismatch\n"
                     f"reference bit: {ref_bit}\n"
@@ -1066,17 +1069,19 @@ def assert_equal(reference, qpy, count, version_parts, bind=None, equivalent=Fal
         and isinstance(reference, QuantumCircuit)
         and reference.layout != qpy.layout
     ):
-        msg = f"Circuit {count} layout mismatch {reference.layout} != {qpy.layout}\n"
+        msg = (
+            f"For {context}:\nCircuit {count} layout mismatch {reference.layout} != {qpy.layout}\n"
+        )
         sys.stderr.write(msg)
         sys.exit(4)
 
     # Don't compare name on bound circuits
     if bind is None and reference.name != qpy.name:
-        msg = f"Circuit {count} name mismatch {reference.name} != {qpy.name}\n{reference}\n{qpy}"
+        msg = f"For {context}:\nCircuit {count} name mismatch {reference.name} != {qpy.name}\n{reference}\n{qpy}"
         sys.stderr.write(msg)
         sys.exit(2)
     if reference.metadata != qpy.metadata:
-        msg = f"Circuit {count} metadata mismatch: {reference.metadata} != {qpy.metadata}"
+        msg = f"For {context}:\nCircuit {count} metadata mismatch: {reference.metadata} != {qpy.metadata}"
         sys.stderr.write(msg)
         sys.exit(3)
 
@@ -1103,7 +1108,7 @@ def load_qpy(qpy_files, version_parts):
             # so not loading and comparing these payloads.
             # See https://github.com/Qiskit/qiskit/pull/13814
             continue
-        print(f"Loading qpy file: {path}")
+        print(f"Loading qpy file: {path}")  # noqa: T201
         with open(path, "rb") as fd:
             qpy_circuits = load(fd)
         equivalent = path in {"open_controlled_gates.qpy", "controlled_gates.qpy"}
@@ -1123,8 +1128,15 @@ def load_qpy(qpy_files, version_parts):
             elif path == "replay_with_expressions.qpy":
                 bind = [2.0]
 
+            context = f"Version {version_parts}, QPY file {path}, Circuit number {i}"
             assert_equal(
-                circuit, qpy_circuits[i], i, version_parts, bind=bind, equivalent=equivalent
+                circuit,
+                qpy_circuits[i],
+                i,
+                version_parts,
+                bind=bind,
+                equivalent=equivalent,
+                context=context,
             )
 
     from qiskit.qpy.exceptions import QpyError
@@ -1140,8 +1152,8 @@ def load_qpy(qpy_files, version_parts):
             try:
                 with open(path, "rb") as fd:
                     load(fd)
-            except:
-                msg = f"Loading circuit with pulse gates should not raise"
+            except Exception:
+                msg = "Loading circuit with pulse gates should not raise"
                 sys.stderr.write(msg)
                 sys.exit(1)
         else:

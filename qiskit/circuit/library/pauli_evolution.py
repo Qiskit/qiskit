@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -56,6 +56,15 @@ class PauliEvolutionGate(Gate):
 
     Note that the order in which the approximation and methods like :meth:`control` and
     :meth:`power` are called matters. Changing the order can lead to different unitaries.
+
+    Commutation checks:
+
+    Qiskit supports efficient commutation checks of :class:`PauliEvolutionGate` instances
+    with other Pauli-based gates, such as :class:`.PauliGate` or :class:`.PauliProductMeasurement`.
+    However, these checks require conversion of the operator into :class:`.SparseObservable` format,
+    hence we strongly suggest to build operators using this operator class if a large number
+    of commutation checks are expected (e.g. if you have a circuit with a large number of
+    sequential :class:`PauliEvolutionGate`\ s).
 
     Examples:
 
@@ -148,7 +157,7 @@ class PauliEvolutionGate(Gate):
         self.operator = operator
 
         if synthesis is None:
-            # pylint: disable=cyclic-import
+
             from qiskit.synthesis.evolution import LieTrotter
 
             synthesis = LieTrotter()
@@ -212,12 +221,10 @@ class PauliEvolutionGate(Gate):
         # return as dense matrix, since that's what the interface dictates
         return exp.toarray()
 
-    # pylint: disable=unused-argument
     def inverse(self, annotated: bool = False):
         """Return the inverse, which is obtained by flipping the sign of the evolution time."""
         return PauliEvolutionGate(self.operator, -self.time, synthesis=self.synthesis)
 
-    # pylint: disable=unused-argument
     def power(self, exponent: float, annotated: bool = False) -> Gate:
         """Raise this gate to the power of ``exponent``.
 
@@ -238,7 +245,6 @@ class PauliEvolutionGate(Gate):
     def _return_repeat(self, exponent: float) -> PauliEvolutionGate:
         return self.power(exponent)  # same implementation
 
-    # pylint: disable=unused-argument
     def control(
         self,
         num_ctrl_qubits: int = 1,
@@ -257,7 +263,7 @@ class PauliEvolutionGate(Gate):
         regardless of the value of ``annotated``.
 
         Args:
-            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            num_ctrl_qubits: Number of controls to add. Defaults to ``1``.
             label: A label for the resulting Pauli evolution gate, to display in visualizations.
                 Per default, the label is set to ``exp(-it <operators>)`` where ``<operators>``
                 is the sum of the Paulis. Note that the label does not include any coefficients
@@ -273,12 +279,11 @@ class PauliEvolutionGate(Gate):
             ctrl_state = "1" * num_ctrl_qubits
         elif isinstance(ctrl_state, int):
             ctrl_state = bin(ctrl_state)[2:].zfill(num_ctrl_qubits)
-        else:
-            if len(ctrl_state) != num_ctrl_qubits:
-                raise ValueError(
-                    f"Length of ctrl_state ({len(ctrl_state)}) must match "
-                    f"num_ctrl_qubits ({num_ctrl_qubits})"
-                )
+        elif len(ctrl_state) != num_ctrl_qubits:
+            raise ValueError(
+                f"Length of ctrl_state ({len(ctrl_state)}) must match "
+                f"num_ctrl_qubits ({num_ctrl_qubits})"
+            )
 
         # Implementing the controlled version of an evolution,
         #   |0><0| \otimes 1 + |1><1| \otimes exp(it H),
@@ -314,11 +319,23 @@ class PauliEvolutionGate(Gate):
 
         return super().validate_parameter(parameter)
 
+    def _extract_sparse_observable(self) -> SparseObservable:
+        """Return the internal operator as single SparseObservable.
+
+        This will sum all operators if given as list of commuting operators.
+        """
+        if isinstance(self.operator, list):
+            return sum(
+                map(_to_sparse_observable, self.operator[1:]),
+                _to_sparse_observable(self.operator[0]),
+            )
+        return _to_sparse_observable(self.operator)
+
 
 def _to_sparse_op(
     operator: Pauli | SparsePauliOp | SparseObservable,
 ) -> SparsePauliOp | SparseObservable:
-    """Cast the operator to a SparsePauliOp."""
+    """Cast the operator to a sparse format; either SparseObservable or SparsePauliOp."""
 
     if isinstance(operator, Pauli):
         sparse = SparsePauliOp(operator)
@@ -333,6 +350,13 @@ def _to_sparse_op(
         raise ValueError("Operator contains ParameterExpression, which are not supported.")
 
     return sparse
+
+
+def _to_sparse_observable(operator: SparseObservable | SparsePauliOp) -> SparseObservable:
+    """Coerce SparsePauliOp or SparseObservable into a SparseObservable."""
+    if isinstance(operator, SparsePauliOp):
+        return SparseObservable.from_sparse_pauli_op(operator)
+    return operator
 
 
 def _operator_label(operator):
@@ -393,7 +417,6 @@ def _merge_two_pauli_evolutions(
     return None
 
 
-# pylint: disable=too-many-return-statements
 def _pauli_rotation_trace_and_dim(gate: PauliEvolutionGate) -> tuple[complex, int] | None:
     """
     For a multi-qubit Pauli rotation, return a tuple ``(Tr(gate) / dim, dim)``.
@@ -429,14 +452,13 @@ def _pauli_rotation_trace_and_dim(gate: PauliEvolutionGate) -> tuple[complex, in
         else:
             return None
     # If the operator is a SparsePauliOp, it should have a single term.
+    elif len(operator.paulis) == 1:
+        label = operator.paulis.to_labels()[0]
+        label = label.replace("I", "")
+        dim = len(label)
+        angle = operator.coeffs[0].real * gate.time
     else:
-        if len(operator.paulis) == 1:
-            label = operator.paulis.to_labels()[0]
-            label = label.replace("I", "")
-            dim = len(label)
-            angle = operator.coeffs[0].real * gate.time
-        else:
-            return None
+        return None
 
     if dim == 0:
         # This is an identity Pauli rotation.

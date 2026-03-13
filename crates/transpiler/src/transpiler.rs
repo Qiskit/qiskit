@@ -4,13 +4,11 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
-
-use hashbrown::HashSet;
 
 use anyhow::Result;
 
@@ -23,7 +21,6 @@ use crate::standard_equivalence_library::generate_standard_equivalence_library;
 use crate::target::Target;
 use crate::transpile_layout::TranspileLayout;
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::nlayout::NLayout;
 use qiskit_circuit::{PhysicalQubit, Qubit, VirtualQubit};
@@ -35,6 +32,15 @@ pub enum OptimizationLevel {
     Level1 = 1,
     Level2 = 2,
     Level3 = 3,
+}
+
+/// The source of the initial layout found when running [`layout_stage`].
+/// This is typically used to control whether `VF2PostLayout` is run during
+/// the [`routing_stage`]
+pub enum LayoutSource {
+    Trivial,
+    VF2,
+    Sabre,
 }
 
 impl From<u8> for OptimizationLevel {
@@ -52,25 +58,20 @@ impl From<u8> for OptimizationLevel {
 fn unroll_3q_or_more(
     dag: &mut DAGCircuit,
     target: &Target,
-    approximation_degree: Option<f64>,
+    synthesis_state: &mut UnitarySynthesisState,
 ) -> Result<()> {
-    let mut out_dag = run_unitary_synthesis(
+    let physical_qubits = (0..target.num_qubits.unwrap_or(0))
+        .map(PhysicalQubit::new)
+        .collect::<Vec<_>>();
+    *dag = run_unitary_synthesis(
         dag,
-        (0..dag.num_qubits()).collect(),
+        &["unitary", "swap"].map(String::from).into_iter().collect(),
         3,
-        Some(target),
-        HashSet::new(),
-        ["unitary".to_string(), "swap".to_string()]
-            .into_iter()
-            .collect(),
-        HashSet::new(),
-        approximation_degree,
-        None,
-        None,
-        false,
+        &physical_qubits,
+        synthesis_state,
+        target.into(),
     )?;
-    run_unroll_3q_or_more(&mut out_dag, Some(target))?;
-    *dag = out_dag;
+    run_unroll_3q_or_more(dag, Some(target))?;
     Ok(())
 }
 
@@ -80,11 +81,12 @@ pub fn init_stage(
     target: &Target,
     optimization_level: OptimizationLevel,
     approximation_degree: Option<f64>,
+    synthesis_state: &mut UnitarySynthesisState,
     transpile_layout: &mut TranspileLayout,
     commutation_checker: &mut CommutationChecker,
 ) -> Result<()> {
     // Init stage
-    unroll_3q_or_more(dag, target, approximation_degree)?;
+    unroll_3q_or_more(dag, target, synthesis_state)?;
     if optimization_level == OptimizationLevel::Level1 {
         run_inverse_cancellation_standard_gates(dag);
     } else if matches!(
@@ -124,7 +126,8 @@ pub fn layout_stage(
     seed: Option<u64>,
     sabre_heuristic: &sabre::Heuristic,
     transpile_layout: &mut TranspileLayout,
-) -> Result<()> {
+) -> Result<LayoutSource> {
+    let mut layout_source = LayoutSource::Sabre;
     let vf2_config = match optimization_level {
         OptimizationLevel::Level0 => vf2::Vf2PassConfiguration::default_abstract(), // Not used.
         OptimizationLevel::Level1 | OptimizationLevel::Level2 => vf2::Vf2PassConfiguration {
@@ -153,12 +156,14 @@ pub fn layout_stage(
         // constraints in the target and returns None if the circuit conforms to the undirected
         // connectivity constraints
         if run_check_map(dag, target).is_none() {
+            layout_source = LayoutSource::Trivial;
             apply_layout(dag, transpile_layout, target.num_qubits.unwrap(), |x| {
                 PhysicalQubit(x.0)
             });
         } else if let vf2::Vf2PassReturn::Solution(layout) =
             vf2_layout_pass_average(dag, target, &vf2_config, false, None)?
         {
+            layout_source = LayoutSource::VF2;
             apply_layout(dag, transpile_layout, target.num_qubits.unwrap(), |x| {
                 layout[&x]
             });
@@ -182,6 +187,7 @@ pub fn layout_stage(
         if let vf2::Vf2PassReturn::Solution(layout) =
             vf2_layout_pass_average(dag, target, &vf2_config, false, None)?
         {
+            layout_source = LayoutSource::VF2;
             apply_layout(dag, transpile_layout, target.num_qubits.unwrap(), |x| {
                 layout[&x]
             });
@@ -204,6 +210,7 @@ pub fn layout_stage(
     } else if let vf2::Vf2PassReturn::Solution(layout) =
         vf2_layout_pass_average(dag, target, &vf2_config, false, None)?
     {
+        layout_source = LayoutSource::VF2;
         apply_layout(dag, transpile_layout, target.num_qubits.unwrap(), |x| {
             layout[&x]
         });
@@ -223,7 +230,7 @@ pub fn layout_stage(
         *transpile_layout =
             layout_from_sabre_result(dag, initial_layout, &final_layout, transpile_layout);
     }
-    Ok(())
+    Ok(layout_source)
 }
 
 #[inline]
@@ -234,6 +241,7 @@ pub fn routing_stage(
     seed: Option<u64>,
     sabre_heuristic: &sabre::Heuristic,
     transpile_layout: &mut TranspileLayout,
+    layout_source: LayoutSource,
 ) -> Result<()> {
     if optimization_level == OptimizationLevel::Level0 {
         let routing_target = PyRoutingTarget::from_target(target)?;
@@ -258,6 +266,32 @@ pub fn routing_stage(
                 TranspileLayout::permutation_from_layouts(initial_layout, &final_layout);
             transpile_layout.add_permutation_inside(|q| routing_permutation[q.index()]);
         }
+    } else if !matches!(layout_source, LayoutSource::VF2 | LayoutSource::Trivial) {
+        let vf2_config = match optimization_level {
+            OptimizationLevel::Level0 => vf2::Vf2PassConfiguration::default_abstract(), // Not used.
+            OptimizationLevel::Level1 | OptimizationLevel::Level2 => vf2::Vf2PassConfiguration {
+                call_limit: (Some(5_000_000), Some(10_000)),
+                time_limit: None,
+                max_trials: None,
+                shuffle_seed: None,
+                score_initial_layout: true,
+            },
+            OptimizationLevel::Level3 => vf2::Vf2PassConfiguration {
+                call_limit: (Some(30_000_000), Some(100_000)),
+                time_limit: None,
+                max_trials: None,
+                shuffle_seed: None,
+                score_initial_layout: true,
+            },
+        };
+
+        if let vf2::Vf2PassReturn::Solution(layout) =
+            vf2_layout_pass_average(dag, target, &vf2_config, false, None)?
+        {
+            update_layout(dag, transpile_layout, |x| {
+                Qubit(layout[&VirtualQubit(x.0)].0)
+            });
+        }
     }
     Ok(())
 }
@@ -266,22 +300,19 @@ pub fn routing_stage(
 pub fn translation_stage(
     dag: &mut DAGCircuit,
     target: &Target,
-    approximation_degree: Option<f64>,
+    synthesis_state: &mut UnitarySynthesisState,
     equiv_lib: &mut EquivalenceLibrary,
 ) -> Result<()> {
-    let num_qubits = dag.num_qubits();
+    let physical_qubits = (0..target.num_qubits.unwrap_or(0))
+        .map(PhysicalQubit::new)
+        .collect::<Vec<_>>();
     *dag = run_unitary_synthesis(
         dag,
-        (0..num_qubits).collect(),
+        &["unitary".to_string()].into_iter().collect(),
         0,
-        Some(target),
-        HashSet::new(),
-        ["unitary".to_string()].into_iter().collect(),
-        HashSet::new(),
-        approximation_degree,
-        None,
-        None,
-        false,
+        &physical_qubits,
+        synthesis_state,
+        target.into(),
     )?;
     if let Some(out_dag) = run_basis_translator(dag, equiv_lib, 0, Some(target), None)? {
         *dag = out_dag;
@@ -299,19 +330,25 @@ pub fn translation_stage(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 #[inline]
 pub fn optimization_stage(
     dag: &mut DAGCircuit,
     target: &Target,
     optimization_level: OptimizationLevel,
     approximation_degree: Option<f64>,
+    synthesis_state: &mut UnitarySynthesisState,
     commutation_checker: &mut CommutationChecker,
     equivalence_library: &mut EquivalenceLibrary,
+    transpile_layout: &mut TranspileLayout,
 ) -> Result<()> {
     let mut depth: Option<usize> = None;
     let mut size: Option<usize> = None;
     let mut new_depth;
     let mut new_size;
+    let physical_qubits = (0..target.num_qubits.unwrap_or(0))
+        .map(PhysicalQubit::new)
+        .collect::<Vec<_>>();
     if optimization_level == OptimizationLevel::Level1 {
         new_depth = Some(dag.depth(false)?);
         new_size = Some(dag.size(false)?);
@@ -321,26 +358,20 @@ pub fn optimization_stage(
             run_optimize_1q_gates_decomposition(dag, Some(target), None, None)?;
             run_inverse_cancellation_standard_gates(dag);
             if gates_missing_from_target(dag, target)? {
-                translation_stage(dag, target, approximation_degree, equivalence_library)?;
+                translation_stage(dag, target, synthesis_state, equivalence_library)?;
             }
             new_depth = Some(dag.depth(false)?);
             new_size = Some(dag.size(false)?);
         }
     } else if optimization_level == OptimizationLevel::Level2 {
         run_consolidate_blocks(dag, false, approximation_degree, Some(target))?;
-        let num_qubits = dag.num_qubits();
         *dag = run_unitary_synthesis(
             dag,
-            (0..num_qubits).collect(),
+            &["unitary".to_string()].into_iter().collect(),
             0,
-            Some(target),
-            HashSet::new(),
-            ["unitary".to_string()].into_iter().collect(),
-            HashSet::new(),
-            approximation_degree,
-            None,
-            None,
-            false,
+            &physical_qubits,
+            synthesis_state,
+            target.into(),
         )?;
         new_depth = Some(dag.depth(false)?);
         new_size = Some(dag.size(false)?);
@@ -351,7 +382,7 @@ pub fn optimization_stage(
             run_optimize_1q_gates_decomposition(dag, Some(target), None, None)?;
             cancel_commutations(dag, commutation_checker, None, 1.0)?;
             if gates_missing_from_target(dag, target)? {
-                translation_stage(dag, target, approximation_degree, equivalence_library)?;
+                translation_stage(dag, target, synthesis_state, equivalence_library)?;
             }
             new_depth = Some(dag.depth(false)?);
             new_size = Some(dag.size(false)?);
@@ -362,29 +393,48 @@ pub fn optimization_stage(
 
         while continue_loop {
             run_consolidate_blocks(dag, false, approximation_degree, Some(target))?;
-            let num_qubits = dag.num_qubits();
             *dag = run_unitary_synthesis(
                 dag,
-                (0..num_qubits).collect(),
+                &["unitary"].into_iter().map(|x| x.to_string()).collect(),
                 0,
-                Some(target),
-                HashSet::new(),
-                ["unitary"].into_iter().map(|x| x.to_string()).collect(),
-                HashSet::new(),
-                approximation_degree,
-                None,
-                None,
-                false,
+                &physical_qubits,
+                synthesis_state,
+                target.into(),
             )?;
             run_remove_identity_equiv(dag, approximation_degree, Some(target))?;
             run_optimize_1q_gates_decomposition(dag, Some(target), None, None)?;
             cancel_commutations(dag, commutation_checker, None, 1.0)?;
             if gates_missing_from_target(dag, target)? {
-                translation_stage(dag, target, approximation_degree, equivalence_library)?;
+                translation_stage(dag, target, synthesis_state, equivalence_library)?;
             }
             continue_loop = min_state.update_with(dag);
         }
         *dag = min_state.best_dag;
+        let vf2_config = match optimization_level {
+            OptimizationLevel::Level0 => vf2::Vf2PassConfiguration::default_concrete(), // Not used.
+            OptimizationLevel::Level1 | OptimizationLevel::Level2 => vf2::Vf2PassConfiguration {
+                call_limit: (Some(5_000_000), Some(10_000)),
+                time_limit: None,
+                max_trials: None,
+                shuffle_seed: None,
+                score_initial_layout: true,
+            },
+            OptimizationLevel::Level3 => vf2::Vf2PassConfiguration {
+                call_limit: (Some(30_000_000), Some(100_000)),
+                time_limit: None,
+                max_trials: None,
+                shuffle_seed: None,
+                score_initial_layout: true,
+            },
+        };
+
+        if let vf2::Vf2PassReturn::Solution(layout) =
+            vf2_layout_pass_exact(dag, target, &vf2_config)?
+        {
+            update_layout(dag, transpile_layout, |x| {
+                Qubit(layout[&VirtualQubit(x.0)].0)
+            });
+        }
     }
     Ok(())
 }
@@ -418,6 +468,11 @@ pub fn transpile(
     let mut commutation_checker = get_standard_commutation_checker();
     let mut equivalence_library = generate_standard_equivalence_library();
     let sabre_heuristic = get_sabre_heuristic(target)?;
+    let mut synthesis_state = UnitarySynthesisState::new(UnitarySynthesisConfig {
+        approximation_degree,
+        run_python_decomposers: false,
+        ..Default::default()
+    });
 
     let mut transpile_layout: TranspileLayout = TranspileLayout::new(
         None,
@@ -433,11 +488,12 @@ pub fn transpile(
         target,
         optimization_level,
         approximation_degree,
+        &mut synthesis_state,
         &mut transpile_layout,
         &mut commutation_checker,
     )?;
     // layout stage
-    layout_stage(
+    let layout_source = layout_stage(
         &mut dag,
         target,
         optimization_level,
@@ -453,12 +509,13 @@ pub fn transpile(
         seed,
         &sabre_heuristic,
         &mut transpile_layout,
+        layout_source,
     )?;
     // Translation Stage
     translation_stage(
         &mut dag,
         target,
-        approximation_degree,
+        &mut synthesis_state,
         &mut equivalence_library,
     )?;
     // optimization stage
@@ -467,10 +524,12 @@ pub fn transpile(
         target,
         optimization_level,
         approximation_degree,
+        &mut synthesis_state,
         &mut commutation_checker,
         &mut equivalence_library,
+        &mut transpile_layout,
     )?;
-    Ok((dag_to_circuit(&dag, false)?, transpile_layout))
+    Ok((CircuitData::from_dag_ref(&dag)?, transpile_layout))
 }
 
 struct MinPointState {
@@ -537,7 +596,6 @@ mod tests {
     use super::*;
     use crate::target::InstructionProperties;
     use crate::target::Target;
-    use pyo3::prelude::*;
     use qiskit_circuit::circuit_data::CircuitData;
     use qiskit_circuit::instruction::Parameters;
     use qiskit_circuit::operations::{Operation, Param, StandardGate, StandardInstruction};
@@ -549,7 +607,7 @@ mod tests {
 
     fn build_universal_star_target() -> Target {
         let mut target = Target::default();
-        let u_params: Option<Parameters<Py<PyAny>>> = Some(Parameters::Params(smallvec![
+        let u_params = Some(Parameters::Params(smallvec![
             Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
                 "a", None, None,
             )))),
@@ -753,7 +811,13 @@ mod tests {
         )
         .unwrap();
         for opt_level in 0..=3 {
-            let result = match transpile(&qc, &target, opt_level.into(), Some(1.0), Some(42)) {
+            let result = match transpile(
+                &qc,
+                &target,
+                opt_level.into(),
+                Some(1.0),
+                Some(2_025_120_142),
+            ) {
                 Ok(res) => res,
                 Err(e) => panic!("Error: {}", e.backtrace()),
             };

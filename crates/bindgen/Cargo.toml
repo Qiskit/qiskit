@@ -1,0 +1,17 @@
+[package]
+name = "qiskit-bindgen"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+include = ["/include"]
+
+[lints]
+workspace = true
+
+[lib]
+name = "qiskit_bindgen"
+
+[dependencies]
+anyhow.workspace = true
+cbindgen = "0.29.2"

@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -27,7 +27,7 @@ use qiskit_circuit::gate_matrix::{
     CH_GATE, CX_GATE, CY_GATE, CZ_GATE, DCX_GATE, ECR_GATE, ISWAP_GATE, ONE_QUBIT_IDENTITY,
     TWO_QUBIT_IDENTITY,
 };
-use qiskit_circuit::imports::{QI_OPERATOR, QUANTUM_CIRCUIT};
+use qiskit_circuit::imports::QI_OPERATOR;
 use qiskit_circuit::interner::Interned;
 use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::operations::{ArrayType, Operation, Param, UnitaryGate};
@@ -45,10 +45,28 @@ use crate::target::{Qargs, Target};
 use qiskit_circuit::PhysicalQubit;
 
 #[allow(clippy::large_enum_variant)]
-#[derive(Clone, Debug, FromPyObject)]
+#[derive(Clone, Debug)]
 pub enum DecomposerType {
     TwoQubitBasis(TwoQubitBasisDecomposer),
     TwoQubitControlledU(TwoQubitControlledUDecomposer),
+}
+// TODO: we shouldn't need to clone a decomposer on entry from Python space, but should rely on a
+// reference type.  This implementation was added during the transition to PyO3 0.28, to avoid
+// proliferating the cloning derive of `FromPyObject` to `TwoQubitBasisDecomposer` and
+// `TwoQubitControlledUDecomposer`; that clone is usually a mistake.  Using a reference type within
+// this code would require a greater refactor so that the Python-space method
+// `py_run_consolidate_blocks` is not the actual worker function.
+impl<'a, 'py> pyo3::FromPyObject<'a, 'py> for DecomposerType {
+    type Error = pyo3::CastError<'a, 'py>;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
+        if let Ok(ob) = ob.cast::<TwoQubitBasisDecomposer>() {
+            Ok(Self::TwoQubitBasis(ob.borrow().clone()))
+        } else {
+            ob.cast::<TwoQubitControlledUDecomposer>()
+                .map(|ob| Self::TwoQubitControlledU(ob.borrow().clone()))
+        }
+    }
 }
 
 fn get_matrix(gate: &StandardGate) -> ArrayView2<'_, Complex64> {
@@ -311,9 +329,7 @@ fn py_run_consolidate_blocks(
                 Param::Float(0.),
             )?;
             let matrix = Python::attach(|py| -> PyResult<_> {
-                let circuit = QUANTUM_CIRCUIT
-                    .get_bound(py)
-                    .call_method1(intern!(py, "_from_circuit_data"), (circuit_data,))?;
+                let circuit = circuit_data.into_py_quantum_circuit(py)?;
                 let matrix = QI_OPERATOR
                     .get_bound(py)
                     .call1((circuit,))?
@@ -525,8 +541,8 @@ mod test_consolidate_blocks {
     use indexmap::IndexMap;
 
     use qiskit_circuit::{
-        PhysicalQubit, Qubit, circuit_data::CircuitData, converters::dag_to_circuit,
-        dag_circuit::DAGCircuit, operations::StandardGate,
+        PhysicalQubit, Qubit, circuit_data::CircuitData, dag_circuit::DAGCircuit,
+        operations::StandardGate,
     };
     use smallvec::smallvec;
 
@@ -592,7 +608,7 @@ mod test_consolidate_blocks {
         run_consolidate_blocks(&mut circ_as_dag, false, None, Some(&target))
             .expect("Error while running the consolidate blocks pass.");
 
-        let circ_result = dag_to_circuit(&circ_as_dag, false)
+        let circ_result = CircuitData::from_dag_ref(&circ_as_dag)
             .expect("Error while converting the DAG to a circuit.");
 
         let data = circ_result.data();
