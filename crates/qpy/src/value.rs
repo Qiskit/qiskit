@@ -307,7 +307,7 @@ pub enum GenericValue {
     Expression(Expr),
     Modifier(Py<PyAny>),
     Circuit(Py<PyAny>), // currently we have no rust class corresponding to a circuit, only to the inner CircuitData
-    CircuitData(CircuitData),
+    CircuitData(Box<CircuitData>),
 }
 
 // we want to be able to extract the value relatively painlessly;
@@ -341,7 +341,7 @@ impl GenericValue {
                 Ok(py_circuit.extract::<QuantumCircuitData>(py)?.data)
             })
             .ok(),
-            GenericValue::CircuitData(circuit_data) => Some(circuit_data.clone()),
+            GenericValue::CircuitData(circuit_data) => Some(circuit_data.as_ref().clone()),
             _ => None,
         }
     }

@@ -1568,7 +1568,7 @@ pub fn wrap_conditional_gate(
 
     // Create GenericValue::CircuitData from the CircuitData
     // The instruction_values_to_params function will handle converting this to a Block
-    let if_params = vec![GenericValue::CircuitData(body_data)];
+    let if_params = vec![GenericValue::CircuitData(Box::new(body_data))];
     let if_params_converted = instruction_values_to_params(if_params, qpy_data)?;
 
     Ok((if_else_op, if_params_converted))
