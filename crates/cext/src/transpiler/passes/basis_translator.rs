@@ -74,7 +74,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_basis_translator(
     let mut equiv_lib = generate_standard_equivalence_library();
 
     let result_dag =
-        match run_basis_translator(&dag, &mut equiv_lib, min_qubits, Some(target), None) {
+        match run_basis_translator(&dag, &mut equiv_lib, min_qubits, Some(target), None, false) {
             Ok(Some(dag)) => dag,
             Ok(None) => return,
             Err(e) => panic!("{}", e),

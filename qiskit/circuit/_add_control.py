@@ -328,7 +328,7 @@ def _unroll_gate(operation, basis_gates):
     pm = PassManager(
         [
             UnrollCustomDefinitions(sel, basis_gates=basis_gates),
-            BasisTranslator(sel, target_basis=basis_gates),
+            BasisTranslator(sel, target_basis=basis_gates, propagate_labels=False),
         ]
     )
     opqc = pm.run(circ)

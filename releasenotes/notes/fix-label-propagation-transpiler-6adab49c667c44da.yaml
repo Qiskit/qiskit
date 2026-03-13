@@ -1,0 +1,18 @@
+---
+fixes:
+  - |
+    Fixed an issue where gate labels were inconsistently propagated to
+    decomposed sub-gates during basis translation in the built-in transpiler
+    pipeline. For example, a :class:`.CXGate` with label ``'hello'`` transpiled
+    to a ``{cz, rx, rz}`` basis would produce some output gates carrying the
+    ``'hello'`` label due to downstream optimization passes rewriting parts of
+    the output. The built-in translation plugins now set
+    ``propagate_labels=False`` on :class:`.BasisTranslator` so that labels are
+    dropped when gates are decomposed during :func:`.transpile`.
+    See `#15168 <https://github.com/Qiskit/qiskit/issues/15168>`__.
+features:
+  - |
+    Added a ``propagate_labels`` keyword argument to
+    :class:`.BasisTranslator`. When ``True`` (the default), gate labels from
+    the original gate are copied to each gate in the decomposed replacement
+    circuit. When ``False``, labels are dropped during decomposition.
