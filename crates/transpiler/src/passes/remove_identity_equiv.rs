@@ -28,6 +28,12 @@ use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::operations::{Operation, OperationRef};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 
+// The point at which to start running the analysis in parallel.
+// This value was found experimentally during the development of
+// https://github.com/Qiskit/qiskit/pull/14719 it can be tweaked
+// if the performance of this pass changes over time.
+const PARALLEL_THRESHOLD: usize = 50_000;
+
 const MINIMUM_TOL: f64 = 1e-12;
 
 /// Fidelity-based computation to check whether an operation `G` is equivalent
@@ -280,23 +286,24 @@ pub fn run_remove_identity_equiv(
             .map(|result| result.map(|x| (op_node, x)))
     };
     let run_in_parallel = getenv_use_multiple_threads();
-    let remove_list: Vec<(NodeIndex, f64)> = if dag.num_ops() >= 5e4 as usize && run_in_parallel {
-        (0..dag.dag().node_bound())
-            .into_par_iter()
-            .filter_map(|index_val| {
-                let index = NodeIndex::new(index_val);
-                if let Some(NodeType::Operation(inst)) = dag.dag().node_weight(index) {
-                    process_node(index, inst).transpose()
-                } else {
-                    None
-                }
-            })
-            .collect::<PyResult<Vec<(NodeIndex, f64)>>>()?
-    } else {
-        dag.op_nodes(false)
-            .filter_map(|x| process_node(x.0, x.1).transpose())
-            .collect::<PyResult<Vec<(NodeIndex, f64)>>>()?
-    };
+    let remove_list: Vec<(NodeIndex, f64)> =
+        if dag.num_ops() >= PARALLEL_THRESHOLD && run_in_parallel {
+            (0..dag.dag().node_bound())
+                .into_par_iter()
+                .filter_map(|index_val| {
+                    let index = NodeIndex::new(index_val);
+                    if let Some(NodeType::Operation(inst)) = dag.dag().node_weight(index) {
+                        process_node(index, inst).transpose()
+                    } else {
+                        None
+                    }
+                })
+                .collect::<PyResult<Vec<(NodeIndex, f64)>>>()?
+        } else {
+            dag.op_nodes(false)
+                .filter_map(|x| process_node(x.0, x.1).transpose())
+                .collect::<PyResult<Vec<(NodeIndex, f64)>>>()?
+        };
 
     for (node, phase_update) in remove_list {
         dag.remove_op_node(node);
