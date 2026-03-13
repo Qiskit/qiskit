@@ -2341,7 +2341,7 @@ class TestSparseObservable(QiskitTestCase):
         """
         p = Pauli(pauli_label)
 
-        for q_label in ["+", "-", "r", "l", "0", "1", "X", "Y", "Z"]:
+        for q_label in ["+", "-", "r", "l", "0", "1", "I", "X", "Y", "Z"]:
             q = SparseObservable.from_label(q_label)
 
             # Convert Pauli to SparseObservable for composition
@@ -2455,7 +2455,6 @@ class TestSparseObservable(QiskitTestCase):
         with self.assertRaisesRegex(ValueError, "duplicate indices in qargs"):
             obs.evolve(pauli, qargs=[0, 0])
 
-    # Error cases
     def test_evolve_type_error(self):
         """Test that non-Pauli types raise TypeError."""
         obs = SparseObservable("XYZ")

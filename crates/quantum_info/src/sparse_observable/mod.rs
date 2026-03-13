@@ -3724,8 +3724,8 @@ impl PySparseObservable {
     /// :class:`SparseObservable` and computes the evolved observable in a single
     /// pass over the terms.
     /// ``self`` and ``other`` must have the same number of qubits, unless ``qargs`` is given,
-    /// in which case ```other``` can be smaller than ``self``, provided the number of qubits
-    /// in ```other``` and the length of ``qargs`` match. ``qargs`` specifies which qubits of
+    /// in which case ``other`` can be smaller than ``self``, provided the number of qubits
+    /// in ``other`` and the length of ``qargs`` match. ``qargs`` specifies which qubits of
     /// ``self`` are evolved by ``other``.
     ///
     /// Currently, this method supports evolution only by a *single-term* operator.
@@ -3741,7 +3741,7 @@ impl PySparseObservable {
     ///      A new evolved :class:`SparseObservable` with applied conjugations.
     ///
     /// Raises:
-    ///     TypeError : if ``other `` is not of Type ``Pauli``.
+    ///     TypeError : if ``other `` is not of Type :class:`~.quantum_info.Pauli`.
     ///     ValueError: if ``self`` and ``other`` have different numbers of qubits (and ``qargs`` is not given).
     ///     ValueError: if ``qargs`` length doesn't match ``other`` number of qubits.
     ///     ValueError: if ``qargs`` contains duplicates or out-of-range indices.
