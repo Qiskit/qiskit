@@ -135,20 +135,15 @@ impl PyNodeDurations {
     fn __getitem__<'py>(&'py self, node: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyAny>> {
         let node_as_base: &Bound<DAGNode> = node.cast()?;
         let py = node.py();
+        let idx = node_as_base.borrow().node.expect("Node index not found.");
         match &self.inner {
             NodeDurations::Dt(map) => map
-                .get(&node_as_base.borrow().node.expect("Node index not found."))
-                .ok_or(PyKeyError::new_err(format!(
-                    "key '{}' not in mapping",
-                    node.repr()?
-                )))?
+                .get(&idx)
+                .ok_or_else(|| PyKeyError::new_err(format!("key {} not in mapping", node)))?
                 .into_bound_py_any(py),
             NodeDurations::Seconds(map) => map
-                .get(&node_as_base.borrow().node.expect("Node index not found."))
-                .ok_or(PyKeyError::new_err(format!(
-                    "key '{}' not in mapping",
-                    node.repr()?
-                )))?
+                .get(&idx)
+                .ok_or_else(|| PyKeyError::new_err(format!("key {} not in mapping", node)))?
                 .into_bound_py_any(py),
         }
     }
@@ -186,7 +181,9 @@ impl PyNodeDurations {
         let idx = node_as_base.borrow().node.expect("Node index not found.");
         if self.nodes_mapping.remove(&idx).is_some() {
             match &mut self.inner {
-                NodeDurations::Dt(hash_map) => {hash_map.swap_remove(&idx);}
+                NodeDurations::Dt(hash_map) => {
+                    hash_map.swap_remove(&idx);
+                }
                 NodeDurations::Seconds(hash_map) => {
                     hash_map.swap_remove(&idx);
                 }
@@ -215,11 +212,14 @@ impl PyNodeDurations {
         }
     }
 
-    fn __contains__<'py>(&'py self, object: Bound<'py, PyAny>) -> bool {
-        object
-            .cast_into()
-            .map(|node| self.__getitem__(&node).is_ok())
-            .is_ok_and(|val| val)
+    fn __contains__<'py>(&'py self, object: Bound<'py, PyAny>) -> PyResult<bool> {
+        Ok(object
+            .cast_into::<DAGOpNode>()? // Extra check to make sure we are retrieving an op node.
+            .cast::<DAGNode>()
+            .map(|node| {
+                let node_index = node.borrow().node.expect("Node index not found.");
+                self.nodes_mapping.contains_key(&node_index)
+            })?)
     }
 
     fn clear(&mut self) {
