@@ -33,7 +33,7 @@ use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::ObjectRegistry;
 use crate::operations::{
     ArrayType, BoxDuration, Condition, ControlFlow, ControlFlowInstruction, ControlFlowView,
-    Operation, OperationRef, Param, PyOperationTypes, PythonOperation, StandardGate,
+    Operation, OperationRef, Param, PauliBased, PyOperationTypes, PythonOperation, StandardGate,
     StandardInstruction, SwitchTarget,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
@@ -680,12 +680,12 @@ impl DAGCircuit {
         let binding = dict_state.get_item("qubits")?.unwrap();
         let qubits_raw = binding.extract::<Vec<ShareableQubit>>()?;
         for bit in qubits_raw.into_iter() {
-            self.qubits.add(bit, false)?;
+            self.qubits.add(bit)?;
         }
         let binding = dict_state.get_item("clbits")?.unwrap();
         let clbits_raw = binding.extract::<Vec<ShareableClbit>>()?;
         for bit in clbits_raw.into_iter() {
-            self.clbits.add(bit, false)?;
+            self.clbits.add(bit)?;
         }
 
         let binding = dict_state.get_item("identifier_info")?.unwrap();
@@ -2428,6 +2428,10 @@ impl DAGCircuit {
                                 [
                                     OperationRef::PauliProductMeasurement(op_a),
                                     OperationRef::PauliProductMeasurement(op_b),
+                                ] => Ok(op_a == op_b),
+                                [
+                                    OperationRef::PauliProductRotation(op_a),
+                                    OperationRef::PauliProductRotation(op_b),
                                 ] => Ok(op_a == op_b),
                                 _ => Ok(false),
                             }
@@ -4348,6 +4352,11 @@ impl DAGCircuit {
     /// `the Graphviz documentation <https://www.graphviz.org/download/>`__ on
     /// how to install it.
     ///
+    /// .. warning::
+    ///     This function will call the system Graphviz tool on a file involving user-controllable
+    ///     strings (such as gate labels or register names).  It is recommended to only call this
+    ///     function on trusted input.
+    ///
     /// Args:
     ///     scale (float): scaling factor
     ///     filename (str): file path to save image to (format inferred from name)
@@ -5101,9 +5110,7 @@ impl DAGCircuit {
         let mut registry = ObjectRegistry::with_capacity(num_qubits as usize);
         let mut locator = BitLocator::with_capacity(num_qubits as usize);
         for (index, bit) in register.iter().enumerate() {
-            registry
-                .add(bit.clone(), false)
-                .expect("no duplicates, and in-bounds check already performed");
+            registry.add_unique_within_capacity(bit.clone());
             locator.insert(
                 bit,
                 BitLocations::new(index as u32, [(register.clone(), index)]),
@@ -6272,7 +6279,7 @@ impl DAGCircuit {
     }
 
     pub fn add_qubit_unchecked(&mut self, bit: ShareableQubit) -> PyResult<Qubit> {
-        let qubit = self.qubits.add(bit.clone(), false)?;
+        let qubit = self.qubits.add_unique_within_capacity(bit.clone());
         self.qubit_locations
             .insert(bit, BitLocations::new((self.qubits.len() - 1) as u32, []));
         self.add_wire(Wire::Qubit(qubit))?;
@@ -6280,7 +6287,7 @@ impl DAGCircuit {
     }
 
     pub fn add_clbit_unchecked(&mut self, bit: ShareableClbit) -> PyResult<Clbit> {
-        let clbit = self.clbits.add(bit.clone(), false)?;
+        let clbit = self.clbits.add_unique_within_capacity(bit.clone());
         self.clbit_locations
             .insert(bit, BitLocations::new((self.clbits.len() - 1) as u32, []));
         self.add_wire(Wire::Clbit(clbit))?;
@@ -7555,7 +7562,12 @@ impl DAGCircuit {
                         OperationRef::StandardGate(gate) => gate.into(),
                         OperationRef::StandardInstruction(instruction) => instruction.into(),
                         OperationRef::Unitary(unitary) => unitary.clone().into(),
-                        OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
+                        OperationRef::PauliProductMeasurement(ppm) => {
+                            PauliBased::PauliProductMeasurement(ppm.clone()).into()
+                        }
+                        OperationRef::PauliProductRotation(rotation) => {
+                            PauliBased::PauliProductRotation(rotation.clone()).into()
+                        }
                     }
                 } else {
                     instr.op.clone()
@@ -8441,7 +8453,7 @@ fn untrack_instruction(
 
 type SortKeyType<'a> = (&'a [Qubit], &'a [Clbit]);
 
-#[cfg(all(test, not(miri)))]
+#[cfg(test)]
 mod test {
     use crate::bit::{ClassicalRegister, QuantumRegister};
     use crate::dag_circuit::{BlocksMode, DAGCircuit, Wire};
@@ -8451,6 +8463,7 @@ mod test {
     use hashbrown::HashSet;
     use pyo3::prelude::*;
     use rustworkx_core::petgraph::prelude::*;
+    use rustworkx_core::petgraph::stable_graph::DefaultIx;
     use rustworkx_core::petgraph::visit::IntoEdgeReferences;
 
     fn new_dag(qubits: u32, clbits: u32) -> DAGCircuit {
@@ -8669,5 +8682,14 @@ mod test {
         assert_eq!(empty.cregs(), &[cr]);
         assert_eq!(empty.num_ops(), 0);
         Ok(())
+    }
+
+    #[test]
+    fn verify_default_ix_type() {
+        // This test will prevent Qiskit from compiling in the unlikely scenario
+        // that petgraph's NodeIndex type will change from u32 to something else.
+        // If this does happen, pointer conversions to `*const NodeIndex` in `dag.rs`
+        // will need to be updated as well.
+        let _: DefaultIx = 0u32;
     }
 }
