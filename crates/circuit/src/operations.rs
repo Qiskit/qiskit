@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -19,7 +19,7 @@ use std::sync::Arc;
 use std::{fmt, vec};
 
 use crate::bit::{ClassicalRegister, ShareableClbit};
-use crate::circuit_data::CircuitData;
+use crate::circuit_data::{CircuitData, PyCircuitData};
 use crate::classical::expr;
 use crate::duration::Duration;
 use crate::packed_instruction::PackedInstruction;
@@ -282,11 +282,12 @@ pub enum OperationRef<'a> {
     ControlFlow(&'a ControlFlowInstruction),
     StandardGate(StandardGate),
     StandardInstruction(StandardInstruction),
-    Gate(&'a PyGate),
+    Gate(&'a PyInstruction),
     Instruction(&'a PyInstruction),
-    Operation(&'a PyOperation),
+    Operation(&'a PyInstruction),
     Unitary(&'a UnitaryGate),
     PauliProductMeasurement(&'a PauliProductMeasurement),
+    PauliProductRotation(&'a PauliProductRotation),
 }
 
 impl Operation for OperationRef<'_> {
@@ -301,6 +302,7 @@ impl Operation for OperationRef<'_> {
             Self::Operation(operation) => operation.name(),
             Self::Unitary(unitary) => unitary.name(),
             Self::PauliProductMeasurement(ppm) => ppm.name(),
+            Self::PauliProductRotation(rotation) => rotation.name(),
         }
     }
     #[inline]
@@ -314,6 +316,7 @@ impl Operation for OperationRef<'_> {
             Self::Operation(operation) => operation.num_qubits(),
             Self::Unitary(unitary) => unitary.num_qubits(),
             Self::PauliProductMeasurement(ppm) => ppm.num_qubits(),
+            Self::PauliProductRotation(rotation) => rotation.num_qubits(),
         }
     }
     #[inline]
@@ -327,6 +330,7 @@ impl Operation for OperationRef<'_> {
             Self::Operation(operation) => operation.num_clbits(),
             Self::Unitary(unitary) => unitary.num_clbits(),
             Self::PauliProductMeasurement(ppm) => ppm.num_clbits(),
+            Self::PauliProductRotation(rotation) => rotation.num_clbits(),
         }
     }
     #[inline]
@@ -340,6 +344,7 @@ impl Operation for OperationRef<'_> {
             Self::Operation(operation) => operation.num_params(),
             Self::Unitary(unitary) => unitary.num_params(),
             Self::PauliProductMeasurement(ppm) => ppm.num_params(),
+            Self::PauliProductRotation(rotation) => rotation.num_params(),
         }
     }
     #[inline]
@@ -353,6 +358,7 @@ impl Operation for OperationRef<'_> {
             Self::Operation(operation) => operation.directive(),
             Self::Unitary(unitary) => unitary.directive(),
             Self::PauliProductMeasurement(ppm) => ppm.directive(),
+            Self::PauliProductRotation(rotation) => rotation.directive(),
         }
     }
 }
@@ -360,7 +366,7 @@ impl Operation for OperationRef<'_> {
 /// Used to tag control flow instructions via the `_control_flow_type` class
 /// attribute in the corresponding Python class.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int)]
+#[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int, from_py_object)]
 #[repr(u8)]
 pub enum ControlFlowType {
     Box = 0,
@@ -628,10 +634,10 @@ impl ControlFlowInstruction {
                 let (duration, unit) = match duration {
                     Some(duration) => match duration {
                         BoxDuration::Duration(duration) => {
-                            (Some(duration.py_value(py)?), Some(duration.unit()))
+                            (Some(duration.py_value(py)), Some(duration.unit()))
                         }
                         BoxDuration::Expr(expr) => {
-                            (Some(expr.clone().into_py_any(py)?), Some("expr"))
+                            (Some(expr.clone().into_bound_py_any(py)?), Some("expr"))
                         }
                     },
                     None => (None, None),
@@ -1020,7 +1026,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for DelayUnit {
 /// This is also used to tag standard instructions via the `_standard_instruction_type` class
 /// attribute in the corresponding Python class.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int)]
+#[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int, from_py_object)]
 #[repr(u8)]
 pub enum StandardInstructionType {
     Barrier = 0,
@@ -1107,7 +1113,10 @@ impl Operation for StandardInstruction {
     }
 
     fn num_params(&self) -> u32 {
-        0
+        match self {
+            StandardInstruction::Delay(_) => 1,
+            _ => 0,
+        }
     }
 
     fn directive(&self) -> bool {
@@ -1153,7 +1162,7 @@ impl StandardInstruction {
 
 #[derive(Clone, Debug, Copy, Eq, PartialEq, Hash)]
 #[repr(u8)]
-#[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int)]
+#[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int, from_py_object)]
 pub enum StandardGate {
     GlobalPhase = 0,
     H = 1,
@@ -1431,7 +1440,7 @@ impl StandardGate {
             Self::CCX => Some((Self::CCX, smallvec![])),
             Self::CCZ => Some((Self::CCZ, smallvec![])),
             Self::CSwap => Some((Self::CSwap, smallvec![])),
-            Self::RCCX => None, // the inverse in not a StandardGate
+            Self::RCCX => Some((Self::RCCX, smallvec![])),
             Self::C3X => Some((Self::C3X, smallvec![])),
             Self::C3SX => None, // the inverse in not a StandardGate
             Self::RC3X => None, // the inverse in not a StandardGate
@@ -2850,8 +2859,8 @@ impl StandardGate {
         self.num_params()
     }
 
-    pub fn _get_definition(&self, params: Vec<Param>) -> Option<CircuitData> {
-        self.definition(&params)
+    pub fn _get_definition(&self, params: Vec<Param>) -> Option<PyCircuitData> {
+        self.definition(&params).map(Into::into)
     }
 
     pub fn _inverse(&self, params: Vec<Param>) -> Option<(StandardGate, SmallVec<[Param; 3]>)> {
@@ -3010,6 +3019,14 @@ pub trait PythonOperation: Sized {
     fn py_copy(&self, py: Python) -> PyResult<Self>;
 }
 
+#[derive(Clone, Debug)]
+#[repr(align(8))]
+pub enum PyOperationTypes {
+    Operation(PyInstruction),
+    Instruction(PyInstruction),
+    Gate(PyInstruction),
+}
+
 /// This class is used to wrap a Python side Instruction that is not in the standard library
 #[derive(Clone, Debug)]
 // We bit-pack pointers to this, so having a known alignment even on 32-bit systems is good.
@@ -3073,33 +3090,6 @@ impl Operation for PyInstruction {
     }
 }
 
-impl PyOperation {
-    /// returns the class name of the python gate
-    pub fn class_name(&self) -> PyResult<String> {
-        Python::attach(|py| -> PyResult<String> {
-            self.operation
-                .getattr(py, intern!(py, "__class__"))?
-                .getattr(py, intern!(py, "__name__"))?
-                .extract::<String>(py)
-        })
-    }
-}
-
-impl PyInstruction {
-    pub fn definition(&self) -> Option<CircuitData> {
-        Python::attach(|py| -> Option<CircuitData> {
-            match self.instruction.getattr(py, intern!(py, "definition")) {
-                Ok(definition) => definition
-                    .getattr(py, intern!(py, "_data"))
-                    .ok()?
-                    .extract::<CircuitData>(py)
-                    .ok(),
-                Err(_) => None,
-            }
-        })
-    }
-}
-
 impl PyInstruction {
     /// returns the number of control qubits in the instruction
     /// returns 0 if the instruction is not controlled
@@ -3131,65 +3121,10 @@ impl PyInstruction {
                 .extract::<String>(py)
         })
     }
-}
-/// This class is used to wrap a Python side Gate that is not in the standard library
-#[derive(Clone, Debug)]
-// We bit-pack pointers to this, so having a known alignment even on 32-bit systems is good.
-#[repr(align(8))]
-pub struct PyGate {
-    pub qubits: u32,
-    pub clbits: u32,
-    pub params: u32,
-    pub op_name: String,
-    pub gate: Py<PyAny>,
-}
 
-impl PythonOperation for PyGate {
-    fn py_deepcopy(&self, py: Python, memo: Option<&Bound<'_, PyDict>>) -> PyResult<Self> {
-        let deepcopy = imports::DEEPCOPY.get_bound(py);
-        Ok(PyGate {
-            gate: deepcopy.call1((&self.gate, memo))?.unbind(),
-            qubits: self.qubits,
-            clbits: self.clbits,
-            params: self.params,
-            op_name: self.op_name.clone(),
-        })
-    }
-
-    fn py_copy(&self, py: Python) -> PyResult<Self> {
-        let copy_attr = intern!(py, "copy");
-        Ok(PyGate {
-            gate: self.gate.call_method0(py, copy_attr)?,
-            qubits: self.qubits,
-            clbits: self.clbits,
-            params: self.params,
-            op_name: self.op_name.clone(),
-        })
-    }
-}
-
-impl Operation for PyGate {
-    fn name(&self) -> &str {
-        self.op_name.as_str()
-    }
-    fn num_qubits(&self) -> u32 {
-        self.qubits
-    }
-    fn num_clbits(&self) -> u32 {
-        self.clbits
-    }
-    fn num_params(&self) -> u32 {
-        self.params
-    }
-    fn directive(&self) -> bool {
-        false
-    }
-}
-
-impl PyGate {
     pub fn matrix(&self) -> Option<Array2<Complex64>> {
         Python::attach(|py| -> Option<Array2<Complex64>> {
-            match self.gate.getattr(py, intern!(py, "to_matrix")) {
+            match self.instruction.getattr(py, intern!(py, "to_matrix")) {
                 Ok(to_matrix) => {
                     let res: Option<Py<PyAny>> = to_matrix.call0(py).ok()?.extract(py).ok();
                     match res {
@@ -3207,11 +3142,13 @@ impl PyGate {
 
     pub fn definition(&self) -> Option<CircuitData> {
         Python::attach(|py| -> Option<CircuitData> {
-            match self.gate.getattr(py, intern!(py, "definition")) {
+            match self.instruction.getattr(py, intern!(py, "definition")) {
                 Ok(definition) => definition
-                    .getattr(py, intern!(py, "_data"))
+                    .bind(py)
+                    .getattr(intern!(py, "_data"))
                     .ok()?
-                    .extract::<CircuitData>(py)
+                    .cast::<PyCircuitData>()
+                    .map(|data| data.borrow().inner.clone())
                     .ok(),
                 Err(_) => None,
             }
@@ -3224,109 +3161,13 @@ impl PyGate {
         }
         Python::attach(|py| -> Option<[[Complex64; 2]; 2]> {
             let array = self
-                .gate
+                .instruction
                 .call_method0(py, intern!(py, "to_matrix"))
                 .ok()?
                 .extract::<PyReadonlyArray2<Complex64>>(py)
                 .ok()?;
             let arr = array.as_array();
             Some([[arr[[0, 0]], arr[[0, 1]]], [arr[[1, 0]], arr[[1, 1]]]])
-        })
-    }
-}
-
-impl PyGate {
-    /// returns the number of control qubits in the gate
-    /// returns 0 if the gate is not controlled
-    pub fn num_ctrl_qubits(&self) -> u32 {
-        Python::attach(|py| {
-            self.gate
-                .getattr(py, "num_ctrl_qubits")
-                .and_then(|py_num_ctrl_qubits| py_num_ctrl_qubits.extract::<u32>(py))
-                .unwrap_or(0)
-        })
-    }
-
-    /// returns the control state of the gate as a decimal number
-    /// returns 2^num_ctrl_bits-1 (the '11...1' state) if the gate has not control state data
-    pub fn ctrl_state(&self) -> u32 {
-        Python::attach(|py| {
-            self.gate
-                .getattr(py, "ctrl_state")
-                .and_then(|py_ctrl_state| py_ctrl_state.extract::<u32>(py))
-                .unwrap_or((1 << self.num_ctrl_qubits()) - 1)
-        })
-    }
-
-    /// returns the class name of the python gate
-    pub fn class_name(&self) -> PyResult<String> {
-        Python::attach(|py| -> PyResult<String> {
-            self.gate
-                .getattr(py, intern!(py, "__class__"))?
-                .getattr(py, intern!(py, "__name__"))?
-                .extract::<String>(py)
-        })
-    }
-}
-
-/// This class is used to wrap a Python side Operation that is not in the standard library
-#[derive(Clone, Debug)]
-// We bit-pack pointers to this, so having a known alignment even on 32-bit systems is good.
-#[repr(align(8))]
-pub struct PyOperation {
-    pub qubits: u32,
-    pub clbits: u32,
-    pub params: u32,
-    pub op_name: String,
-    pub operation: Py<PyAny>,
-}
-
-impl PythonOperation for PyOperation {
-    fn py_deepcopy(&self, py: Python, memo: Option<&Bound<'_, PyDict>>) -> PyResult<Self> {
-        let deepcopy = imports::DEEPCOPY.get_bound(py);
-        Ok(PyOperation {
-            operation: deepcopy.call1((&self.operation, memo))?.unbind(),
-            qubits: self.qubits,
-            clbits: self.clbits,
-            params: self.params,
-            op_name: self.op_name.clone(),
-        })
-    }
-
-    fn py_copy(&self, py: Python) -> PyResult<Self> {
-        let copy_attr = intern!(py, "copy");
-        Ok(PyOperation {
-            operation: self.operation.call_method0(py, copy_attr)?,
-            qubits: self.qubits,
-            clbits: self.clbits,
-            params: self.params,
-            op_name: self.op_name.clone(),
-        })
-    }
-}
-
-impl Operation for PyOperation {
-    fn name(&self) -> &str {
-        self.op_name.as_str()
-    }
-    fn num_qubits(&self) -> u32 {
-        self.qubits
-    }
-    fn num_clbits(&self) -> u32 {
-        self.clbits
-    }
-    fn num_params(&self) -> u32 {
-        self.params
-    }
-    fn directive(&self) -> bool {
-        Python::attach(|py| -> bool {
-            match self.operation.getattr(py, intern!(py, "_directive")) {
-                Ok(directive) => {
-                    let res: bool = directive.extract(py).unwrap();
-                    res
-                }
-                Err(_) => false,
-            }
         })
     }
 }
@@ -3475,6 +3316,76 @@ impl UnitaryGate {
         }
     }
 }
+
+/// A Pauli-based gate model, consisting of PauliProductRotation and PauliProductMeasurement ops.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum PauliBased {
+    PauliProductRotation(PauliProductRotation),
+    PauliProductMeasurement(PauliProductMeasurement),
+}
+
+#[derive(Clone, Debug)]
+#[repr(align(8))]
+pub struct PauliProductRotation {
+    /// The z-component of the pauli.
+    pub z: Vec<bool>,
+    /// The x-component of the pauli.
+    pub x: Vec<bool>,
+    /// The rotation angle, exp(i theta / 2 P)
+    pub angle: Param,
+}
+
+impl Operation for PauliProductRotation {
+    fn name(&self) -> &str {
+        "pauli_product_rotation"
+    }
+    fn num_qubits(&self) -> u32 {
+        self.z.len() as u32
+    }
+    fn num_clbits(&self) -> u32 {
+        0
+    }
+    fn num_params(&self) -> u32 {
+        1
+    }
+    fn directive(&self) -> bool {
+        false
+    }
+}
+
+impl PauliProductRotation {
+    pub fn create_py_op(&self, py: Python, label: Option<&str>) -> PyResult<Py<PyAny>> {
+        let z = self.z.to_pyarray(py);
+        let x = self.x.to_pyarray(py);
+
+        let py_label = if let Some(label) = label {
+            label.into_py_any(py)?
+        } else {
+            py.None()
+        };
+
+        let gate = imports::PAULI_PRODUCT_ROTATION_GATE
+            .get_bound(py)
+            .call_method1(
+                intern!(py, "_from_pauli_data"),
+                (z, x, self.angle.clone(), py_label),
+            )?;
+        Ok(gate.unbind())
+    }
+}
+
+impl PartialEq for PauliProductRotation {
+    fn eq(&self, other: &Self) -> bool {
+        self.x == other.x
+            && self.z == other.z
+            && self
+                .angle
+                .eq(&other.angle)
+                .expect("Angles are float or symbol, for which eq is infallible")
+    }
+}
+
+impl Eq for PauliProductRotation {}
 
 /// This class represents a PauliProductMeasurement instruction.
 #[derive(Clone, Debug)]

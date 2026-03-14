@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -25,11 +25,11 @@ import re
 import ddt
 import numpy as np
 
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.circuit import CASE_DEFAULT, IfElseOp, WhileLoopOp, SwitchCaseOp
 from qiskit.circuit.classical import expr, types
-from qiskit.circuit import Clbit
-from qiskit.circuit import Qubit
+from qiskit.circuit import Clbit, Qubit
+from qiskit.transpiler import Target, CouplingMap
 from qiskit.circuit.random import random_circuit
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.library import (
@@ -71,12 +71,18 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parametervector import ParameterVector
 from qiskit.synthesis import LieTrotter, SuzukiTrotter
-from qiskit.qpy import dump, load, UnsupportedFeatureForVersion, QPY_COMPATIBILITY_VERSION
+from qiskit.qpy import (
+    dump,
+    load,
+    UnsupportedFeatureForVersion,
+    QPY_COMPATIBILITY_VERSION,
+    QPY_VERSION,
+)
 from qiskit.quantum_info import Pauli, SparsePauliOp, Clifford
 from qiskit.quantum_info.random import random_unitary
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.utils import optionals
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt.ddt
@@ -1234,7 +1240,7 @@ class TestLoadFromQPY(QiskitTestCase):
         class CustomDeserializer(json.JSONDecoder):
             """Custom json decoder to handle CustomObject."""
 
-            def object_hook(self, o):  # pylint: disable=invalid-name,method-hidden
+            def object_hook(self, o):
                 """Hook to override default decoder.
 
                 Normally specified as a kwarg on load() that overloads the
@@ -1508,11 +1514,11 @@ class TestLoadFromQPY(QiskitTestCase):
             mcx_vchain_gate = MCXVChain(3)
         mcmt_gate = MCMTGate(ZGate(), 2, 1)
         qc.append(mcu1_gate, [0, 2, 1])
-        qc.append(mcx_gate, list(range(0, 6)))
-        qc.append(mcx_gray_gate, list(range(0, 6)))
-        qc.append(mcx_recursive_gate, list(range(0, 5)))
-        qc.append(mcx_vchain_gate, list(range(0, 5)))
-        qc.append(mcmt_gate, list(range(0, 3)))
+        qc.append(mcx_gate, list(range(6)))
+        qc.append(mcx_gray_gate, list(range(6)))
+        qc.append(mcx_recursive_gate, list(range(5)))
+        qc.append(mcx_vchain_gate, list(range(5)))
+        qc.append(mcmt_gate, list(range(3)))
         qc.mcp(np.pi, [0, 2], 1)
         qc.mcx([0, 2], 1)
         qc.measure_all()
@@ -2286,6 +2292,37 @@ class TestLoadFromQPY(QiskitTestCase):
                 out_circuits = load(fptr)
         self.assertEqual(circuits, out_circuits)
         self.assertEqual([qc.name for qc in circuits], [qc.name for qc in out_circuits])
+
+    @ddt.idata(range(max(QPY_COMPATIBILITY_VERSION, 13), QPY_VERSION + 1))
+    def test_ancilla_register_with_physical(self, version):
+        """Test for possible conflicts when naming a register 'ancilla'"""
+        qc = QuantumCircuit(QuantumRegister(2, "qr"), QuantumRegister(2, "ancilla"))
+        qc.ensure_physical(qc.num_qubits + 1)
+
+        with io.BytesIO() as fptr:
+            dump(qc, fptr, version=version)
+            fptr.seek(0)
+            out_circuit = load(fptr)[0]
+
+        self.assertEqual(qc, out_circuit)
+
+        qc = QuantumCircuit(QuantumRegister(2, "qr"), QuantumRegister(2, "ancilla"))
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(1, 2)
+        qc = transpile(
+            qc,
+            target=Target.from_configuration(
+                basis_gates=["sx", "rz", "cz"], coupling_map=CouplingMap.from_line(5)
+            ),
+            optimization_level=1,
+        )
+
+        with io.BytesIO() as fptr:
+            dump(qc, fptr, version=17)
+            fptr.seek(0)
+            out_circuit = load(fptr)[0]
+        self.assertEqual(qc, out_circuit)
 
 
 class TestSymengineLoadFromQPY(QiskitTestCase):

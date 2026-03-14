@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -12,7 +12,7 @@
 
 //! Internals of the decomposer creation and caching for unitary synthesis.
 //!
-//! The decomposer cache logic makes very specifc assumptions about how the cache objects and keys
+//! The decomposer cache logic makes very specific assumptions about how the cache objects and keys
 //! are constructed, so we use this module to localise where all these assumptions are being made,
 //! and to enforce a safe API within the rest of the unitary synthesis logic.
 
@@ -41,7 +41,7 @@ use super::{
 use crate::QiskitError;
 use crate::passes::optimize_clifford_t::CLIFFORD_T_GATE_NAMES;
 use crate::target::{NormalOperation, Target, TargetOperation};
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::instruction::Instruction;
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
@@ -326,7 +326,7 @@ impl Decomposer2q {
                     .bind(py)
                     .call((matrix.to_pyarray(py),), Some(kwargs.bind(py)))?
                     .getattr(intern!(py, "_data"))?
-                    .cast_into::<CircuitData>()?;
+                    .cast_into::<PyCircuitData>()?;
                 circuit_to_2q_sequence(&circuit.borrow())
             }),
             Self::StaticKak {
@@ -676,7 +676,7 @@ fn get_2q_decomposers(
                         RXXEquivalent::Standard(standard)
                     }
                     OperationRef::Gate(gate) => Python::attach(|py| {
-                        RXXEquivalent::CustomPython(gate.gate.bind(py).get_type().unbind())
+                        RXXEquivalent::CustomPython(gate.instruction.bind(py).get_type().unbind())
                     }),
                     _ => continue,
                 };

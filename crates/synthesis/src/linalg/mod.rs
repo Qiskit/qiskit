@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -12,7 +12,6 @@
 
 use approx::{abs_diff_eq, relative_ne};
 use faer::MatRef;
-use faer_ext::IntoFaer;
 use nalgebra::{DMatrix, DMatrixView, Dim, Dyn, MatrixView, ViewStorage};
 use ndarray::ArrayView2;
 use ndarray::ShapeBuilder;
@@ -22,6 +21,36 @@ pub mod cos_sin_decomp;
 
 const ATOL_DEFAULT: f64 = 1e-8;
 const RTOL_DEFAULT: f64 = 1e-5;
+
+#[inline]
+pub fn ndarray_to_faer<T>(array: ArrayView2<'_, T>) -> MatRef<'_, T> {
+    // This function's code is based on faer-ext's IntoFaer::into_faer implementation for ArrayView2:
+    // https://codeberg.org/sarah-quinones/faer-ext/src/commit/0f055b39529c94d1a000982df745cb9ce170f994/src/lib.rs#L108-L114
+    let nrows = array.nrows();
+    let ncols = array.ncols();
+    let strides: [isize; 2] = array.strides().try_into().unwrap();
+    let ptr = array.as_ptr();
+    // SAFETY: We know the array is a 2d array from ndarray and we get the pointer and memory layout
+    // description from ndarray and can be assumed to be valid.
+    unsafe { faer::MatRef::from_raw_parts(ptr, nrows, ncols, strides[0], strides[1]) }
+}
+
+#[inline]
+pub fn faer_to_ndarray<T>(mat: MatRef<'_, T>) -> ArrayView2<'_, T> {
+    // This function's code is based on faer-ext's IntoNdarray::into_ndarray implementation at:
+    // https://codeberg.org/sarah-quinones/faer-ext/src/commit/0f055b39529c94d1a000982df745cb9ce170f994/src/lib.rs#L134-L141
+    let nrows = mat.nrows();
+    let ncols = mat.ncols();
+    let row_stride: usize = mat.row_stride().try_into().unwrap();
+    let col_stride: usize = mat.col_stride().try_into().unwrap();
+    let ptr = mat.as_ptr();
+    // SAFETY: We know the array is a 2d array from nalgebra and we get the pointer and memory layout
+    // description from faer and can be assumed to be valid since the constraints on
+    // `ArrayView2::from_shape_ptr()`
+    // (https://docs.rs/ndarray/latest/ndarray/type.ArrayView.html#method.from_shape_ptr)
+    // should be be met for a faer Mat.
+    unsafe { ArrayView2::from_shape_ptr((nrows, ncols).strides((row_stride, col_stride)), ptr) }
+}
 
 fn nalgebra_to_faer<R: Dim, C: Dim, RStride: Dim, CStride: Dim>(
     mat: MatrixView<'_, Complex64, R, C, RStride, CStride>,
@@ -35,7 +64,7 @@ fn nalgebra_to_faer<R: Dim, C: Dim, RStride: Dim, CStride: Dim>(
     // (https://docs.rs/ndarray/latest/ndarray/type.ArrayView.html#method.from_shape_ptr)
     // should be be met for a valid nalgebra matrix.
     let array = unsafe { ArrayView2::from_shape_ptr(dim.strides(strides), mat.get_unchecked(0)) };
-    array.into_faer()
+    ndarray_to_faer(array)
 }
 
 /// Convert a faer MatRef into a nalgebra MatrixView without copying

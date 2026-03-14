@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -12,6 +12,8 @@
 
 use std::ffi::{CStr, CString, c_char};
 
+use crate::circuit_library::pbc::{CPauliProductMeasurement, CPauliProductRotation};
+use crate::dag::COperationKind;
 use crate::exit_codes::ExitCode;
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 
@@ -26,11 +28,11 @@ use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::interner::Interner;
 use qiskit_circuit::operations::{
-    ArrayType, DelayUnit, Operation, Param, StandardGate, StandardInstruction, UnitaryGate,
+    ArrayType, DelayUnit, Operation, OperationRef, Param, PauliBased, PauliProductMeasurement,
+    PauliProductRotation, StandardGate, StandardInstruction, UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::{BlocksMode, Clbit, Qubit, VarsMode};
-
 use smallvec::smallvec;
 
 /// @ingroup QkCircuit
@@ -46,7 +48,6 @@ use smallvec::smallvec;
 ///     QkCircuit *empty = qk_circuit_new(100, 100);
 ///
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub extern "C" fn qk_circuit_new(num_qubits: u32, num_clbits: u32) -> *mut CircuitData {
     let qubits = if num_qubits > 0 {
         Some(
@@ -91,7 +92,6 @@ pub extern "C" fn qk_circuit_new(num_qubits: u32, num_clbits: u32) -> *mut Circu
 /// nul terminator at the end of the string. It also must be valid for reads of
 /// bytes up to and including the nul terminator.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_quantum_register_new(
     num_qubits: u32,
     name: *const c_char,
@@ -123,7 +123,6 @@ pub unsafe extern "C" fn qk_quantum_register_new(
 /// Behavior is undefined if ``reg`` is not either null or a valid pointer to a
 /// ``QkQuantumRegister``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_quantum_register_free(reg: *mut QuantumRegister) {
     if !reg.is_null() {
         if !reg.is_aligned() {
@@ -154,7 +153,6 @@ pub unsafe extern "C" fn qk_quantum_register_free(reg: *mut QuantumRegister) {
 /// Behavior is undefined if ``reg`` is not either null or a valid pointer to a
 /// ``QkClassicalRegister``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_classical_register_free(reg: *mut ClassicalRegister) {
     if !reg.is_null() {
         if !reg.is_aligned() {
@@ -189,7 +187,6 @@ pub unsafe extern "C" fn qk_classical_register_free(reg: *mut ClassicalRegister)
 /// nul terminator at the end of the string. It also must be valid for reads of
 /// bytes up to and including the nul terminator.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_classical_register_new(
     num_clbits: u32,
     name: *const c_char,
@@ -225,7 +222,6 @@ pub unsafe extern "C" fn qk_classical_register_new(
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit`` and
 /// if ``reg`` is not a valid, non-null pointer to a ``QkQuantumRegister``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_add_quantum_register(
     circuit: *mut CircuitData,
     reg: *const QuantumRegister,
@@ -259,7 +255,6 @@ pub unsafe extern "C" fn qk_circuit_add_quantum_register(
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit`` and
 /// if ``reg`` is not a valid, non-null pointer to a ``QkClassicalRegister``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_add_classical_register(
     circuit: *mut CircuitData,
     reg: *const ClassicalRegister,
@@ -290,7 +285,6 @@ pub unsafe extern "C" fn qk_circuit_add_classical_register(
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_copy(circuit: *const CircuitData) -> *mut CircuitData {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
@@ -314,7 +308,6 @@ pub unsafe extern "C" fn qk_circuit_copy(circuit: *const CircuitData) -> *mut Ci
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_num_qubits(circuit: *const CircuitData) -> u32 {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
@@ -339,7 +332,6 @@ pub unsafe extern "C" fn qk_circuit_num_qubits(circuit: *const CircuitData) -> u
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_num_clbits(circuit: *const CircuitData) -> u32 {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
@@ -363,7 +355,6 @@ pub unsafe extern "C" fn qk_circuit_num_clbits(circuit: *const CircuitData) -> u
 /// Behavior is undefined if ``circuit`` is not either null or a valid pointer to a
 /// ``QkCircuit``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_free(circuit: *mut CircuitData) {
     if !circuit.is_null() {
         if !circuit.is_aligned() {
@@ -408,7 +399,6 @@ pub unsafe extern "C" fn qk_circuit_free(circuit: *mut CircuitData) {
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_gate(
     circuit: *mut CircuitData,
     gate: StandardGate,
@@ -480,7 +470,6 @@ pub unsafe extern "C" fn qk_circuit_gate(
 /// ```
 ///
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub extern "C" fn qk_gate_num_qubits(gate: StandardGate) -> u32 {
     gate.num_qubits()
 }
@@ -498,7 +487,6 @@ pub extern "C" fn qk_gate_num_qubits(gate: StandardGate) -> u32 {
 /// ```
 ///
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub extern "C" fn qk_gate_num_params(gate: StandardGate) -> u32 {
     gate.num_params()
 }
@@ -522,7 +510,6 @@ pub extern "C" fn qk_gate_num_params(gate: StandardGate) -> u32 {
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_measure(
     circuit: *mut CircuitData,
     qubit: u32,
@@ -559,7 +546,6 @@ pub unsafe extern "C" fn qk_circuit_measure(
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_reset(circuit: *mut CircuitData, qubit: u32) -> ExitCode {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
@@ -597,7 +583,6 @@ pub unsafe extern "C" fn qk_circuit_reset(circuit: *mut CircuitData, qubit: u32)
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_barrier(
     circuit: *mut CircuitData,
     qubits: *const u32,
@@ -746,7 +731,6 @@ pub(crate) unsafe fn unitary_from_pointer(
 /// * ``matrix`` is an aligned pointer to ``4**num_qubits`` initialized ``QkComplex64`` values
 /// * ``qubits`` is an aligned pointer to ``num_qubits`` initialized ``uint32_t`` values
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_unitary(
     circuit: *mut CircuitData,
     matrix: *const Complex64,
@@ -754,7 +738,7 @@ pub unsafe extern "C" fn qk_circuit_unitary(
     num_qubits: u32,
     check_input: bool,
 ) -> ExitCode {
-    // SAFETY: Caller quarantees pointer validation, alignment
+    // SAFETY: Caller guarantees pointer validation, alignment
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
     let mat = unsafe { unitary_from_pointer(matrix, num_qubits, check_input.then_some(1e-12)) };
     let Some(mat) = mat else {
@@ -778,6 +762,100 @@ pub unsafe extern "C" fn qk_circuit_unitary(
         .unwrap();
     // Return success
     ExitCode::Success
+}
+
+/// @ingroup QkCircuit
+/// Copy out the unitary matrix for a given instruction in the circuit.
+///
+/// Panics if the instruction at the given index is not a unitary.
+///
+/// @param circuit A pointer to the circuit to get the unitary from.
+/// @param index The index of the instruction to get the unitary for.
+/// @param out Allocated and aligned pointer to write the unitary matrix to.
+///
+/// # Safety
+///
+/// Behavior is undefined if any of the following is violated:
+/// if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``,
+/// if ``index`` is out of bounds for the number of instructions in the circuit,
+/// if `out` is not valid for `4**num_qubits` writes of `QkComplex64`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_inst_unitary(
+    circuit: *mut CircuitData,
+    index: usize,
+    out: *mut Complex64,
+) {
+    // SAFETY: Per documentation the pointer is to a valid, non-null QkCircuit.
+    let circuit = unsafe { const_ptr_as_ref(circuit) };
+    let instr: &PackedInstruction = &circuit.data()[index];
+    let OperationRef::Unitary(unitary) = instr.op.view() else {
+        panic!("Instruction at index {index} is not a unitary");
+    };
+    match &unitary.array {
+        ArrayType::OneQ(array) => {
+            let dim = 2;
+            for row in 0..dim {
+                for col in 0..dim {
+                    // SAFETY: per documentation, `out` is aligned and valid for 4 writes.
+                    unsafe { out.add(dim * row + col).write(array[(row, col)]) };
+                }
+            }
+        }
+        ArrayType::TwoQ(array) => {
+            let dim = 4;
+            for row in 0..dim {
+                for col in 0..dim {
+                    // SAFETY: per documentation, `out` is aligned and valid for 16 writes.
+                    unsafe { out.add(dim * row + col).write(array[(row, col)]) };
+                }
+            }
+        }
+        ArrayType::NDArray(array) => {
+            for (i, val) in array.iter().enumerate() {
+                // SAFETY: per documentation, `out` is aligned and valid for `array.size()` writes.
+                unsafe { out.add(i).write(*val) };
+            }
+        }
+    }
+}
+
+/// @ingroup QkCircuit
+/// Get the "kind" of circuit instruction.
+///
+/// @param circuit A pointer to the circuit to get the instruction kind from.
+/// @param index The index of the instruction to get the kind for.
+///
+/// @return A ``QkOperationKind`` enum value representing the kind of instruction at the given
+/// index.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``
+/// and if ``index`` is out of bounds for the number of instructions in the circuit.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_instruction_kind(
+    circuit: *const CircuitData,
+    index: usize,
+) -> COperationKind {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let circuit = unsafe { const_ptr_as_ref(circuit) };
+    let instr: &PackedInstruction = &circuit.data()[index];
+    match instr.op.view() {
+        OperationRef::StandardGate(_) => COperationKind::Gate,
+        OperationRef::StandardInstruction(instr) => match instr {
+            StandardInstruction::Barrier(_) => COperationKind::Barrier,
+            StandardInstruction::Delay(_) => COperationKind::Delay,
+            StandardInstruction::Measure => COperationKind::Measure,
+            StandardInstruction::Reset => COperationKind::Reset,
+        },
+        OperationRef::Unitary(_) => COperationKind::Unitary,
+        OperationRef::PauliProductMeasurement(_) => COperationKind::PauliProductMeasurement,
+        OperationRef::PauliProductRotation(_) => COperationKind::PauliProductRotation,
+        OperationRef::ControlFlow(_) => COperationKind::ControlFlow,
+        OperationRef::Gate(_) | OperationRef::Instruction(_) | OperationRef::Operation(_) => {
+            COperationKind::Unknown
+        }
+    }
 }
 
 /// @ingroup QkCircuit
@@ -805,7 +883,6 @@ pub unsafe extern "C" fn qk_circuit_unitary(
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_count_ops(circuit: *const CircuitData) -> OpCounts {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
@@ -844,11 +921,10 @@ pub unsafe extern "C" fn qk_circuit_count_ops(circuit: *const CircuitData) -> Op
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_num_instructions(circuit: *const CircuitData) -> usize {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
-    circuit.__len__()
+    circuit.len()
 }
 
 /// A circuit instruction representation.
@@ -944,7 +1020,6 @@ impl CInstruction {
 /// otherwise this function will panic. Behavior is undefined if ``instruction`` is not a valid,
 /// non-null pointer to a memory allocation with sufficient space for a ``QkCircuitInstruction``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_get_instruction(
     circuit: *const CircuitData,
     index: usize,
@@ -959,6 +1034,250 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
     );
     // SAFETY: per documentation, `instruction` is a pointer to a sufficient allocation.
     unsafe { instruction.write(inst) };
+}
+
+/// @ingroup QkCircuit
+/// Apply a ``QkPauliProductRotation`` to a circuit.
+///
+/// @param circuit The circuit to apply the operation to.
+/// @param rotation A pointer to the ``QkPauliProductRotation`` to apply.
+/// @param qubits A pointer to the qubit array.
+///
+/// # Example
+///
+/// ```c
+/// // build a IXYZ Pauli rotation
+/// bool x[4] = {false, true, true, false};
+/// bool z[4] = {false, false, true, true};
+/// QkParam *angle = qk_param_from_double(1.0);
+/// QkPauliProductRotation rotation = {x, z, 4, angle};
+/// // append it to a circuit
+/// QkCircuit *circuit = qk_circuit_new(10, 1);
+/// uint32_t qubits[4] = {0, 1, 2, 3};
+/// qk_circuit_pauli_product_rotation(circuit, &rotation, qubits);
+/// // do something with the circuit... and then free it
+/// qk_param_free(angle);
+/// qk_circuit_free(circuit);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if any of the following is violated:
+/// * ``circuit`` is a valid, non-null pointer to a ``QkCircuit``
+/// * ``rotation`` is a valid, non-null pointer to a coherent ``QkPauliProductRotation``.
+///   Specifically, the ``rotation->z`` and ``rotation->x`` data arrays must be readable for
+///   ``rotation->len`` elements.
+/// * ``qubits`` is an aligned pointer to ``rotation->len`` initialized ``uint32_t`` values.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_pauli_product_rotation(
+    circuit: *mut CircuitData,
+    rotation: *const CPauliProductRotation,
+    qubits: *const u32,
+) {
+    // SAFETY: The user guarantees the circuit pointer is valid.
+    let circuit = unsafe { mut_ptr_as_ref(circuit) };
+
+    // SAFETY: The user guarantees the rotation pointer is valid and the data
+    // is coherent. This allows us reading the Z and X arrays.
+    let c_data = unsafe { const_ptr_as_ref(rotation) };
+    let angle = unsafe { const_ptr_as_ref(c_data.angle) };
+    let pbc_rotation = PauliProductRotation {
+        z: unsafe { ::std::slice::from_raw_parts(c_data.z, c_data.len) }.to_vec(),
+        x: unsafe { ::std::slice::from_raw_parts(c_data.x, c_data.len) }.to_vec(),
+        angle: angle.clone(),
+    };
+
+    // SAFETY: The user guarantees the qubit
+    let qubits = unsafe {
+        ::std::slice::from_raw_parts(qubits as *const Qubit, pbc_rotation.num_qubits() as usize)
+    };
+    let params = Some(Parameters::Params(smallvec![angle.clone()]));
+
+    let pbc = PauliBased::PauliProductRotation(pbc_rotation);
+    let packed = PackedOperation::from_pauli_based(Box::new(pbc));
+    circuit
+        .push_packed_operation(packed, params, qubits, &[])
+        .expect("Failed pushing packed QkPauliProductRotation");
+}
+
+/// @ingroup QkCircuit
+/// Get the ``QkPauliProductRotation`` data from a circuit instruction.
+///
+/// For a circuit with a ``QkPauliProductRotation`` instruction at index ``index``, this function
+/// will populate the ``instruction`` pointer with a copy of ``QkPauliProductRotation`` data. Note that
+/// this data lives independently of the circuit and must be freed manually with
+/// ``qk_pauli_product_rotation_clear``.
+///
+/// If the instruction at the provided ``index`` **is not** a ``QkPauliProductRotation``, this function
+/// will return ``QkExitCode_InvalidOperationKind`` error. You can verify that the instruction has the
+/// right kind using ``qk_circuit_instruction_kind``.
+///
+/// @param circuit A pointer to the circuit to retrieve the instruction details from.
+/// @param index The circuit instruction index.
+/// @param instruction A pointer to an allocated ``QkPauliProductRotation`` to store the data.
+///
+/// @return ``QkExitCode_Success`` if the data was written into the instruction, or
+///    ``QkExitCode_InvalidOperationKind`` if the index did not point to a ``QkPauliProductRotation``.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``. The
+/// value for ``index`` must be less than the value returned by ``qk_circuit_num_instructions``
+/// otherwise this function will panic. Behavior is undefined if ``instruction`` is not a valid,
+/// non-null pointer to a memory allocation with sufficient space for a ``QkPauliProductRotation``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_inst_pauli_product_rotation(
+    circuit: *const CircuitData,
+    index: usize,
+    instruction: *mut CPauliProductRotation,
+) -> ExitCode {
+    // SAFETY: The user guarantees the circuit pointer is valid to read.
+    let circuit = unsafe { const_ptr_as_ref(circuit) };
+
+    // Ensure the operation has the correct type, otherwise return early
+    let OperationRef::PauliProductRotation(rotation) = circuit.data()[index].op.view() else {
+        return ExitCode::InvalidOperationKind;
+    };
+
+    // We clone the internal data and then leak the box to give C access to the memory.
+    // This means the user has to manually free the allocated memory in the Pauli rotation.
+    let len = rotation.x.len();
+    let x = rotation.x.clone().into_boxed_slice();
+    let z = rotation.z.clone().into_boxed_slice();
+    let angle = Box::into_raw(Box::new(rotation.angle.clone()));
+    let out = CPauliProductRotation {
+        x: Box::into_raw(x) as *mut bool,
+        z: Box::into_raw(z) as *mut bool,
+        len,
+        angle,
+    };
+
+    // SAFETY: The user guarantees `instruction` points to sufficiently allocated memory.
+    unsafe { instruction.write(out) };
+
+    ExitCode::Success
+}
+
+/// @ingroup QkCircuit
+/// Apply a ``QkPauliProductMeasurement`` to a circuit.
+///
+/// @param circuit The circuit to apply the operation to.
+/// @param measurement A pointer to the ``QkPauliProductMeasurement`` to apply.
+/// @param qubits A pointer to the qubit array.
+/// @param clbit A single ``uint32_t`` specifying the measurement qubit.
+///
+/// # Example
+///
+/// ```c
+/// // build a XZ Pauli measurement
+/// bool x[2] = {true, false};
+/// bool z[2] = {false, true};
+/// QkPauliProductMeasurement measure = {x, z, 2, false};
+/// // append it to a circuit
+/// QkCircuit *circuit = qk_circuit_new(10, 1);
+/// uint32_t qubits[2] = {0, 2};
+/// uint32_t clbit = 0;
+/// qk_circuit_pauli_product_measurement(circuit, &measure, qubits, clbit);
+/// // do something with the circuit... and then free it
+/// qk_circuit_free(circuit);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if any of the following is violated:
+/// * ``circuit`` is a valid, non-null pointer to a ``QkCircuit``
+/// * ``measurement`` is a valid, non-null pointer to a coherent ``QkPauliProductMeasurement``.
+///   Specifically, the ``measurement->z`` and ``measurement->x`` data arrays must be readable for
+///   ``measurement->len`` elements.
+/// * ``qubits`` is an aligned pointer to ``rotation->len`` initialized ``uint32_t`` values.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_pauli_product_measurement(
+    circuit: *mut CircuitData,
+    measurement: *const CPauliProductMeasurement,
+    qubits: *const u32,
+    clbit: u32,
+) {
+    // SAFETY: The user guarantees the circuit pointer is valid.
+    let circuit = unsafe { mut_ptr_as_ref(circuit) };
+
+    // SAFETY: The user guarantees the rotation pointer is valid and the data
+    // is coherent. This allows us reading the Z and X arrays.
+    let c_data = unsafe { const_ptr_as_ref(measurement) };
+    let pbc_measure = PauliProductMeasurement {
+        z: unsafe { ::std::slice::from_raw_parts(c_data.z, c_data.len) }.to_vec(),
+        x: unsafe { ::std::slice::from_raw_parts(c_data.x, c_data.len) }.to_vec(),
+        neg: c_data.flip_outcome,
+    };
+
+    // SAFETY: The user guarantees the qubit
+    let qubits = unsafe {
+        ::std::slice::from_raw_parts(qubits as *const Qubit, pbc_measure.num_qubits() as usize)
+    };
+    let clbits = &[Clbit(clbit)];
+
+    let pbc = PauliBased::PauliProductMeasurement(pbc_measure);
+    let packed = PackedOperation::from_pauli_based(Box::new(pbc));
+    circuit
+        .push_packed_operation(packed, None, qubits, clbits)
+        .expect("Failed pushing packed QkPauliProductMeasurement");
+}
+
+/// @ingroup QkCircuit
+/// Get the ``QkPauliProductMeasurement`` data from a circuit instruction.
+///
+/// For a circuit with a ``QkPauliProductMeasurement`` instruction at index ``index``, this function
+/// will populate the ``instruction`` pointer with a copy of ``QkPauliProductMeasurement`` data.
+/// Note that this data lives independently of the circuit must be freed manually with
+/// ``qk_pauli_product_measurement_clear``.
+///
+/// If the instruction at the provided ``index`` **is not** a ``QkPauliProductMeasurement``, this
+/// function will return ``QkExitCode_InvalidOperationKind`` error. Verify that the instruction is
+/// of the correct kind using ``qk_circuit_instruction_kind``.
+///
+/// @param circuit A pointer to the circuit to retrieve the instruction details from.
+/// @param index The circuit instruction index.
+/// @param instruction A pointer to an allocated ``QkPauliProductMeasurement`` to store the data.
+///
+/// @return ``QkExitCode_Success`` if the data was written into the instruction, or
+///     ``QkExitCode_InvalidOperationKind`` if the index did not point to a
+///     ``QkPauliProductMeasurement``.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``. The
+/// value for ``index`` must be less than the value returned by ``qk_circuit_num_instructions``
+/// otherwise this function will panic. Behavior is undefined if ``instruction`` is not a valid,
+/// non-null pointer to a memory allocation with sufficient space for a ``QkPauliProductMeasurement``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_inst_pauli_product_measurement(
+    circuit: *const CircuitData,
+    index: usize,
+    instruction: *mut CPauliProductMeasurement,
+) -> ExitCode {
+    // SAFETY: The user guarantees the circuit pointer is valid to read.
+    let circuit = unsafe { const_ptr_as_ref(circuit) };
+
+    // Ensure the operation has the correct type, otherwise return early
+    let OperationRef::PauliProductMeasurement(measure) = circuit.data()[index].op.view() else {
+        return ExitCode::InvalidOperationKind;
+    };
+
+    // We clone the internal data and then leak the box to give C access to the memory.
+    // This means the user has to manually free the allocated memory in the Pauli rotation.
+    let len = measure.x.len();
+    let x = measure.x.clone().into_boxed_slice();
+    let z = measure.z.clone().into_boxed_slice();
+    let out = CPauliProductMeasurement {
+        x: Box::into_raw(x) as *mut bool,
+        z: Box::into_raw(z) as *mut bool,
+        len,
+        flip_outcome: measure.neg,
+    };
+
+    // SAFETY: The user guarantees `instruction` points to sufficiently allocated memory.
+    unsafe { instruction.write(out) };
+
+    ExitCode::Success
 }
 
 /// @ingroup QkCircuit
@@ -987,7 +1306,6 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
 ///
 /// Behavior is undefined if ``inst`` is not a valid, non-null pointer to a ``QkCircuitInstruction``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_instruction_clear(inst: *mut CInstruction) {
     // SAFETY: Loading the data from pointers contained in a CInstruction. These should only be
     // created by rust code and are constructed from Vecs internally or CStrings.
@@ -1027,7 +1345,6 @@ pub unsafe extern "C" fn qk_circuit_instruction_clear(inst: *mut CInstruction) {
 ///
 /// Behavior is undefined if ``op_counts`` is not the object returned by ``qk_circuit_count_ops``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_opcounts_clear(op_counts: *mut OpCounts) {
     // SAFETY: The user guarantees the input is a valid OpCounts pointer.
     let op_counts = unsafe { mut_ptr_as_ref(op_counts) };
@@ -1075,7 +1392,6 @@ pub unsafe extern "C" fn qk_opcounts_clear(op_counts: *mut OpCounts) {
 /// function.
 #[unsafe(no_mangle)]
 #[cfg(feature = "python_binding")]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_to_python(
     circuit: *mut CircuitData,
 ) -> *mut ::pyo3::ffi::PyObject {
@@ -1138,7 +1454,6 @@ impl From<CDelayUnit> for DelayUnit {
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_delay(
     circuit: *mut CircuitData,
     qubit: u32,
@@ -1183,18 +1498,17 @@ pub unsafe extern "C" fn qk_circuit_delay(
 ///     QkQuantumRegister *qr = qk_quantum_register_new(3, "qr");
 ///     qk_circuit_add_quantum_register(qc, qr);
 ///     qk_quantum_register_free(qr);
-///     
+///
 ///     QkDag *dag = qk_circuit_to_dag(qc);
-///     
+///
 ///     qk_dag_free(dag);
 ///     qk_circuit_free(qc);
 /// ```
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.  
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_to_dag(circuit: *const CircuitData) -> *mut DAGCircuit {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
@@ -1288,7 +1602,6 @@ impl From<CBlocksMode> for BlocksMode {
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_copy_empty_like(
     circuit: *const CircuitData,
     vars_mode: CVarsMode,

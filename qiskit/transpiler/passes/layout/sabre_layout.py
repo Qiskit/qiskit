@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -180,7 +180,7 @@ class SabreLayout(TransformationPass):
         self.skip_routing = skip_routing
 
     @property
-    def coupling_map(self):  # pylint: disable=missing-function-docstring
+    def coupling_map(self):
         # This property is not intended to be public API, it just keeps backwards compatibility.
         if self._coupling_map is None:
             self._coupling_map = self.target.build_coupling_map()
@@ -302,7 +302,13 @@ class SabreLayout(TransformationPass):
             }
             return dag
 
-        ancillas = QuantumRegister(self.target.num_qubits - dag.num_qubits(), "ancilla")
+        ancilla_register_name = "ancilla"
+        ancilla_suffix = 0
+        while ancilla_register_name in dag.qregs:
+            ancilla_register_name = f"{ancilla_register_name}{ancilla_suffix}"
+            ancilla_suffix += 1
+
+        ancillas = QuantumRegister(self.target.num_qubits - dag.num_qubits(), ancilla_register_name)
         virtuals = list(dag.qubits) + list(ancillas)
         initial_layout = Layout({p: virtuals[v] for v, p in initial.layout_mapping()})
         for register in dag.qregs.values():

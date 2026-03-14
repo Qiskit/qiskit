@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -47,7 +47,7 @@ from . import text as _text
 
 if typing.TYPE_CHECKING:
     from typing import Any
-    from qiskit.circuit import QuantumCircuit  # pylint: disable=cyclic-import
+    from qiskit.circuit import QuantumCircuit
 
 
 logger = logging.getLogger(__name__)
@@ -78,13 +78,23 @@ def circuit_drawer(
 ):
     r"""Draw the quantum circuit. Use the output parameter to choose the drawing format:
 
-    **text**: ASCII art TextDrawing that can be printed in the console.
+    ``text``
+        ASCII art TextDrawing that can be printed in the console.
 
-    **mpl**: images with color rendered purely in Python using matplotlib.
+    ``mpl``
+        Images with color rendered purely in Python using matplotlib.
 
-    **latex**: high-quality images compiled via latex.
+    ``latex``
+        High-quality images compiled via LaTeX.
 
-    **latex_source**: raw uncompiled latex output.
+        .. warning::
+            This will call an installed system version of ``pdflatex`` on arbitrary user input by
+            design (such as to render custom code in :attr:`.Instruction.label`), so should only be
+            used on trusted data.
+
+    ``latex_source``
+        Raw uncompiled LaTeX output.  This is the source of what would be rendered by the
+        ``latex`` drawer.
 
     .. warning::
 
@@ -110,7 +120,7 @@ def circuit_drawer(
                 the location specified in ``~/.qiskit/settings.conf``.
             * If a dictionary, every entry overrides the default configuration. If the
                 ``"name"`` key is given, the default configuration is given by that style.
-                For example, ``{"name": "textbook", "subfontsize": 5}`` loads the ``"texbook"``
+                For example, ``{"name": "textbook", "subfontsize": 5}`` loads the ``"textbook"``
                 style and sets the subfontsize (e.g. the gate angles) to ``5``.
             * If ``None`` the default style ``"iqp"`` is used or, if given, the default style
                 specified in ``~/.qiskit/settings.conf``.
@@ -172,7 +182,7 @@ def circuit_drawer(
         expr_len: The number of characters to display if an :class:`~.expr.Expr`
             is used for the condition in a :class:`.ControlFlowOp`. If this number is exceeded,
             the string will be truncated at that number and '...' added to the end.
-        measure_arrows: If True, draw an arrow from each measure box down the the classical bit
+        measure_arrows: If True, draw an arrow from each measure box down to the classical bit
             or register where the measure value is placed. If False, do not draw arrow, but
             instead place the name of the bit or register in the measure box.
             Default is ``True`` unless the user config file (usually ``~/.qiskit/settings.conf``)
@@ -428,7 +438,7 @@ def _text_circuit_drawer(
         expr_len (int): Optional. The number of characters to display if an :class:`~.expr.Expr`
             is used for the condition in a :class:`.ControlFlowOp`. If this number is exceeded,
             the string will be truncated at that number and '...' added to the end.
-        measure_arrows: If True, draw an arrow from each measure box down the the classical bit
+        measure_arrows: If True, draw an arrow from each measure box down to the classical bit
             or register where the measure value is placed. If False, do not draw arrow, but
             instead place the name of the bit or register in the measure box.
 
@@ -719,7 +729,7 @@ def _matplotlib_circuit_drawer(
         expr_len (int): Optional. The number of characters to display if an :class:`~.expr.Expr`
             is used for the condition in a :class:`.ControlFlowOp`. If this number is exceeded,
             the string will be truncated at that number and '...' added to the end.
-        measure_arrows: If True, draw an arrow from each measure box down the the classical bit
+        measure_arrows: If True, draw an arrow from each measure box down to the classical bit
             or register where the measure value is placed. If False, do not draw arrow, but
             instead place the name of the bit or register in the measure box.
 

@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -3335,7 +3335,7 @@ impl Value {
     // convert sympy compatible format
     pub fn sympify(&self) -> SymbolExpr {
         match self {
-            // imaginary number is comverted to value * symbol 'I'
+            // imaginary number is converted to value * symbol 'I'
             Value::Complex(c) => _add(
                 SymbolExpr::Value(Value::Real(c.re)),
                 _mul(

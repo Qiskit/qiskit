@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -428,7 +428,7 @@ def _unify_labels(data):
     """Make all dictionaries in data have the same set of keys, using 0 for missing values."""
     data = tuple(data)
     all_labels = set().union(*(execution.keys() for execution in data))
-    base = {label: 0 for label in all_labels}
+    base = dict.fromkeys(all_labels, 0)
     out = []
     for execution in data:
         new_execution = base.copy()
