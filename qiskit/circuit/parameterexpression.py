@@ -46,6 +46,7 @@ _OP_CODE_MAP = (
     "__rsub__",
     "__rtruediv__",
     "__rpow__",
+    "__pos__",
 )
 
 
