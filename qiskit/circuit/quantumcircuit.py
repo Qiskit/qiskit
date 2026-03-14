@@ -536,7 +536,7 @@ class QuantumCircuit:
     A :class:`QuantumCircuit` alone is not a single :class:`~.circuit.Instruction`; it is rather
     more complicated, since it can, in general, represent a complete program with typed classical
     memory inputs and outputs, and control flow.  Qiskit's (and most hardware's) data model does not
-    yet have the concept of re-usable callable subroutines with virtual quantum operands.  You can
+    yet have the concept of reusable callable subroutines with virtual quantum operands.  You can
     convert simple circuits that act only on qubits with unitary operations into a :class:`.Gate`
     using :meth:`to_gate`, and simple circuits acting only on qubits and clbits into a
     :class:`~.circuit.Instruction` with :meth:`to_instruction`.
