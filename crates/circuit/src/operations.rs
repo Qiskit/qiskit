@@ -3372,6 +3372,44 @@ impl PauliProductRotation {
             )?;
         Ok(gate.unbind())
     }
+
+    /// Attempts to merge `self` and `other`.
+    /// If successful, returns the merged `PauliProductRotation.
+    /// If not successful, returns `None`.
+    pub fn merge_with(&self, other: &Self) -> Option<Self> {
+        if self.x == other.x && self.z == other.z {
+            Some(PauliProductRotation {
+                z: self.z.clone(),
+                x: self.x.clone(),
+                angle: radd_param(self.angle.clone(), other.angle.clone()),
+            })
+        } else {
+            None
+        }
+    }
+
+    /// For a `PauliProductRotation`` gate with a floating-point angle return a tuple ``(Tr(gate) / dim, dim)``.
+    /// Return `None` if the angle is parameterized.
+    pub fn rotation_trace_and_dim(&self) -> Option<(Complex64, f64)> {
+        let Param::Float(angle) = self.angle else {
+            return None;
+        };
+
+        let dim = self
+            .z
+            .iter()
+            .zip(self.x.iter())
+            .filter(|(z, x)| **z || **x)
+            .count();
+        let tr_over_dim = if dim == 0 {
+            // This is an identity Pauli rotation.
+            (Complex64::new(0.0, -angle)).exp()
+        } else {
+            Complex64::new((angle / 2.).cos(), 0.)
+        };
+
+        Some((tr_over_dim, dim as f64))
+    }
 }
 
 impl PartialEq for PauliProductRotation {
