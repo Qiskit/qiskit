@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -14,8 +14,6 @@
 """Translates gates to a target basis using a given equivalence library."""
 
 import logging
-
-from collections import defaultdict
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit._accelerate.basis_translator import base_run
@@ -40,7 +38,7 @@ class BasisTranslator(TransformationPass):
       is not already in the target_basis.
 
     If the target keyword argument is specified and that
-    :class:`~qiskit.transpiler.Target` objects contains operations
+    :class:`~qiskit.transpiler.Target` object contains operations
     which are non-global (i.e. they are defined only for a subset of qubits),
     as calculated by :meth:`~qiskit.transpiler.Target.get_non_global_operation_names`,
     this pass will attempt to match the output translation to those constraints.
@@ -104,15 +102,7 @@ class BasisTranslator(TransformationPass):
         # Bypass target if it doesn't contain any basis gates (i.e. it's a _FakeTarget), as this
         # not part of the official target model.
         self._target = target if target is not None and len(target.operation_names) > 0 else None
-        self._non_global_operations = None
-        self._qargs_with_non_global_operation = {}
         self._min_qubits = min_qubits
-        if self._target is not None:
-            self._non_global_operations = self._target.get_non_global_operation_names()
-            self._qargs_with_non_global_operation = defaultdict(set)
-            for gate in self._non_global_operations:
-                for qarg in self._target[gate]:
-                    self._qargs_with_non_global_operation[qarg].add(gate)
 
     def run(self, dag):
         """Translate an input DAGCircuit to the target basis.
@@ -127,12 +117,13 @@ class BasisTranslator(TransformationPass):
             DAGCircuit: translated circuit.
         """
 
-        return base_run(
+        out = base_run(
             dag,
             self._equiv_lib,
-            self._qargs_with_non_global_operation,
             self._min_qubits,
-            None if self._target_basis is None else set(self._target_basis),
             self._target,
-            None if self._non_global_operations is None else set(self._non_global_operations),
+            None if self._target_basis is None else set(self._target_basis),
         )
+        # If Rust-space basis translation returns `None`, it's because the input DAG is already
+        # suitable and it didn't need to modify anything.
+        return dag if out is None else out

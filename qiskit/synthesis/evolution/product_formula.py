@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -33,7 +33,7 @@ from .evolution_synthesis import EvolutionSynthesis
 if typing.TYPE_CHECKING:
     from qiskit.circuit.library import PauliEvolutionGate
 
-SparsePauliLabel = typing.Tuple[str, list[int], ParameterValueType]
+SparsePauliLabel = tuple[str, list[int], ParameterValueType]
 
 
 class ProductFormula(EvolutionSynthesis):
@@ -145,7 +145,7 @@ class ProductFormula(EvolutionSynthesis):
             # this is the fast path, where the whole evolution is constructed Rust-side
             cx_fountain = self._cx_structure == "fountain"
             data = pauli_evolution(num_qubits, pauli_rotations, self.insert_barriers, cx_fountain)
-            circuit = QuantumCircuit._from_circuit_data(data, add_regs=True)
+            circuit = QuantumCircuit._from_circuit_data(data, legacy_qubits=True)
 
         return circuit
 

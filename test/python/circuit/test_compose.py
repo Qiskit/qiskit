@@ -4,13 +4,12 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
 
 """Test QuantumCircuit.compose()."""
 
@@ -33,7 +32,7 @@ from qiskit.circuit import (
 )
 from qiskit.circuit.library import HGate, RZGate, CXGate, CCXGate, n_local
 from qiskit.circuit.classical import expr, types
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestCircuitCompose(QiskitTestCase):
@@ -868,6 +867,19 @@ class TestCircuitCompose(QiskitTestCase):
         self.assertEqual(c.name, "c")
         self.assertEqual([a1, c], list(out.iter_captured_stretches()))
         self.assertEqual([a1, c], list(out.iter_stretches()))
+
+    def test_remap_stretch_inside_var(self):
+        """Test that the variable remapper checks inside `Delay` nodes."""
+        qc = QuantumCircuit(1)
+        a = qc.add_stretch("a")
+        qc.delay(expr.mul(2, a), 0)
+
+        other = QuantumCircuit(1)
+        b = other.add_stretch("b")
+        other.delay(expr.mul(2, b), 0)
+
+        actual = QuantumCircuit(1).compose(other, var_remap={b: a})
+        self.assertEqual(qc, actual)
 
     def test_simple_inline_captures(self):
         """We should be able to inline captures onto other variables."""

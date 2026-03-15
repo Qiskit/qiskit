@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -27,7 +27,6 @@ from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.preset_passmanagers.common import is_clifford_t_basis
 from qiskit.transpiler.target import Target, _FakeTarget
-from qiskit.transpiler.timing_constraints import TimingConstraints
 
 from .level0 import level_0_pass_manager
 from .level1 import level_1_pass_manager
@@ -240,27 +239,26 @@ def generate_preset_pass_manager(
             # If a backend is specified with loose dt, use its target and adjust the dt value.
             target = copy.deepcopy(backend.target)
             target.dt = dt
+        elif basis_gates is not None:
+            # Build target from constraints.
+            target = Target.from_configuration(
+                basis_gates=basis_gates,
+                num_qubits=backend.num_qubits if backend is not None else None,
+                coupling_map=coupling_map,
+                instruction_durations=instruction_durations,
+                concurrent_measurements=(
+                    backend.target.concurrent_measurements if backend is not None else None
+                ),
+                dt=dt,
+                timing_constraints=timing_constraints,
+                custom_name_mapping=name_mapping,
+            )
         else:
-            if basis_gates is not None:
-                # Build target from constraints.
-                target = Target.from_configuration(
-                    basis_gates=basis_gates,
-                    num_qubits=backend.num_qubits if backend is not None else None,
-                    coupling_map=coupling_map,
-                    instruction_durations=instruction_durations,
-                    concurrent_measurements=(
-                        backend.target.concurrent_measurements if backend is not None else None
-                    ),
-                    dt=dt,
-                    timing_constraints=timing_constraints,
-                    custom_name_mapping=name_mapping,
-                )
-            else:
-                target = _FakeTarget.from_configuration(
-                    num_qubits=backend.num_qubits if backend is not None else None,
-                    coupling_map=coupling_map,
-                    dt=dt,
-                )
+            target = _FakeTarget.from_configuration(
+                num_qubits=backend.num_qubits if backend is not None else None,
+                coupling_map=coupling_map,
+                dt=dt,
+            )
 
     # Update loose constraints to populate pm options
     if coupling_map is None:
@@ -407,11 +405,11 @@ def _parse_instruction_durations(backend, dt):
 
 
 def _parse_timing_constraints(backend):
+    # If backend is None, we get timing constraints from Target later
     if backend is None:
-        timing_constraints = TimingConstraints()
+        return None
     else:
-        timing_constraints = backend.target.timing_constraints()
-    return timing_constraints
+        return backend.target.timing_constraints()
 
 
 def _parse_initial_layout(initial_layout):

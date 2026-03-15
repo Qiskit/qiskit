@@ -6,7 +6,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -23,6 +23,7 @@ import sys
 
 import numpy as np
 
+import qiskit
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit import Clbit
 from qiskit.circuit import Qubit
@@ -32,7 +33,6 @@ from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info import Operator
 from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, QFT, DCXGate, PauliGate
 from qiskit.circuit.gate import Gate
-from qiskit.version import VERSION as current_version_str
 
 try:
     from qiskit.qpy import dump, load
@@ -78,6 +78,12 @@ VERSION_PATTERN = (
 """
     + "$"
 )
+
+
+def version_release_parts(version: str):
+    """The "release" component of a valid Python version string, as a tuple of integers."""
+    version_match = re.search(VERSION_PATTERN, version, re.VERBOSE | re.IGNORECASE)
+    return tuple(int(x) for x in version_match.group("release").split("."))
 
 
 def generate_full_circuit():
@@ -289,7 +295,7 @@ def generate_param_phase():
     return output_circuits
 
 
-def generate_single_clbit_condition_teleportation(version):  # pylint: disable=invalid-name
+def generate_single_clbit_condition_teleportation(version):
     """Generate single clbit condition teleportation circuit."""
     qr = QuantumRegister(1)
     cr = ClassicalRegister(2, name="name")
@@ -319,12 +325,12 @@ def generate_parameter_vector():
     return qc
 
 
-def generate_parameter_vector_expression():  # pylint: disable=invalid-name
+def generate_parameter_vector_expression():
     """Generate tests for parameter vector element ordering."""
     qc = QuantumCircuit(7, name="vector_expansion")
     entanglement = [[i, i + 1] for i in range(7 - 1)]
     input_params = ParameterVector("x_par", 14)
-    user_params = ParameterVector("\u03B8_par", 1)
+    user_params = ParameterVector("\u03b8_par", 1)
 
     for i in range(qc.num_qubits):
         qc.ry(user_params[0], qc.qubits[i])
@@ -442,7 +448,7 @@ def generate_control_flow_switch_circuits():
 
 def generate_schedule_blocks(current_version):
     """Standard QPY testcase for schedule blocks."""
-    # pylint: disable=no-name-in-module
+
     from qiskit.pulse import builder, channels, library
 
     # Parameterized schedule test is avoided.
@@ -481,7 +487,7 @@ def generate_schedule_blocks(current_version):
     # Raw symbolic pulse
     import symengine as sym
 
-    duration, amp, t = sym.symbols("duration amp t")  # pylint: disable=invalid-name
+    duration, amp, t = sym.symbols("duration amp t")
     expr = amp * sym.sin(2 * sym.pi * t / duration)
     my_pulse = library.SymbolicPulse(
         pulse_type="Sinusoidal",
@@ -504,7 +510,7 @@ def generate_schedule_blocks(current_version):
 
 def generate_referenced_schedule():
     """Test for QPY serialization of unassigned reference schedules."""
-    # pylint: disable=no-name-in-module
+
     from qiskit.pulse import builder, channels, library
 
     schedule_blocks = []
@@ -530,7 +536,7 @@ def generate_referenced_schedule():
 
 def generate_calibrated_circuits():
     """Test for QPY serialization with calibrations."""
-    # pylint: disable=no-name-in-module
+
     from qiskit.pulse import builder, Constant, DriveChannel
 
     circuits = []
@@ -554,11 +560,14 @@ def generate_calibrated_circuits():
     return circuits
 
 
-def generate_controlled_gates():
+def generate_controlled_gates(version):
     """Test QPY serialization with custom ControlledGates."""
     circuits = []
     qc = QuantumCircuit(3, name="custom_controlled_gates")
-    controlled_gate = DCXGate().control(1)
+    if version >= (2, 3, 0):
+        controlled_gate = DCXGate().control(1, annotated=False)
+    else:
+        controlled_gate = DCXGate().control(1)
     qc.append(controlled_gate, [0, 1, 2])
     circuits.append(qc)
     custom_gate = Gate("black_box", 1, [])
@@ -568,7 +577,10 @@ def generate_controlled_gates():
     custom_gate.definition = custom_definition
     nested_qc = QuantumCircuit(3, name="nested_qc")
     qc.append(custom_gate, [0])
-    controlled_gate = custom_gate.control(2)
+    if version >= (2, 3, 0):
+        controlled_gate = custom_gate.control(2, annotated=False)
+    else:
+        controlled_gate = custom_gate.control(2)
     nested_qc.append(controlled_gate, [0, 1, 2])
     circuits.append(nested_qc)
     qc_open = QuantumCircuit(2, name="open_cx")
@@ -577,11 +589,14 @@ def generate_controlled_gates():
     return circuits
 
 
-def generate_open_controlled_gates():
+def generate_open_controlled_gates(version):
     """Test QPY serialization with custom ControlledGates with open controls."""
     circuits = []
     qc = QuantumCircuit(3, name="open_controls_simple")
-    controlled_gate = DCXGate().control(1, ctrl_state=0)
+    if version >= (2, 3, 0):
+        controlled_gate = DCXGate().control(1, ctrl_state=0, annotated=False)
+    else:
+        controlled_gate = DCXGate().control(1, ctrl_state=0)
     qc.append(controlled_gate, [0, 1, 2])
     circuits.append(qc)
 
@@ -592,7 +607,10 @@ def generate_open_controlled_gates():
     custom_gate.definition = custom_definition
     nested_qc = QuantumCircuit(3, name="open_controls_nested")
     nested_qc.append(custom_gate, [0])
-    controlled_gate = custom_gate.control(2, ctrl_state=1)
+    if version >= (2, 3, 0):
+        controlled_gate = custom_gate.control(2, ctrl_state=1, annotated=False)
+    else:
+        controlled_gate = custom_gate.control(2, ctrl_state=1)
     nested_qc.append(controlled_gate, [0, 1, 2])
     circuits.append(nested_qc)
 
@@ -601,7 +619,7 @@ def generate_open_controlled_gates():
 
 def generate_acquire_instruction_with_kernel_and_discriminator():
     """Test QPY serialization with Acquire instruction with kernel and discriminator."""
-    # pylint: disable=no-name-in-module
+
     from qiskit.pulse import builder, AcquireChannel, MemorySlot, Discriminator, Kernel
 
     schedule_blocks = []
@@ -967,8 +985,10 @@ def generate_circuits(version_parts, current_version, load_context=False):
     if version_parts >= (0, 24, 0):
         output_circuits["control_flow_switch.qpy"] = generate_control_flow_switch_circuits()
     if version_parts >= (0, 24, 1):
-        output_circuits["open_controlled_gates.qpy"] = generate_open_controlled_gates()
-        output_circuits["controlled_gates.qpy"] = generate_controlled_gates()
+        output_circuits["open_controlled_gates.qpy"] = generate_open_controlled_gates(
+            current_version
+        )
+        output_circuits["controlled_gates.qpy"] = generate_controlled_gates(current_version)
     if version_parts >= (0, 24, 2):
         output_circuits["layout.qpy"] = generate_layout_circuits()
     if version_parts >= (0, 25, 0) and version_parts < (2, 0):
@@ -994,7 +1014,9 @@ def generate_circuits(version_parts, current_version, load_context=False):
     return output_circuits
 
 
-def assert_equal(reference, qpy, count, version_parts, bind=None, equivalent=False):
+def assert_equal(
+    reference, qpy, count, version_parts, bind=None, equivalent=False, context="Unknown context"
+):
     """Compare two circuits."""
     if bind is not None:
         reference_parameter_names = [x.name for x in reference.parameters]
@@ -1012,19 +1034,19 @@ def assert_equal(reference, qpy, count, version_parts, bind=None, equivalent=Fal
     if equivalent:
         if not Operator.from_circuit(reference).equiv(Operator.from_circuit(qpy)):
             msg = (
+                f"For {context}:\n"
                 f"Reference Circuit {count}:\n{reference}\nis not equivalent to "
                 f"qpy loaded circuit {count}:\n{qpy}\n"
             )
             sys.stderr.write(msg)
             sys.exit(1)
-    else:
-        if reference != qpy:
-            msg = (
-                f"Reference Circuit {count}:\n{reference}\nis not equivalent to "
-                f"qpy loaded circuit {count}:\n{qpy}\n"
-            )
-            sys.stderr.write(msg)
-            sys.exit(1)
+    elif reference != qpy:
+        msg = (
+            f"Reference Circuit {count}:\n{reference}\nis not equivalent to "
+            f"qpy loaded circuit {count}:\n{qpy}\n"
+        )
+        sys.stderr.write(msg)
+        sys.exit(1)
     # Check deprecated bit properties, if set.  The QPY dumping code before Terra 0.23.2 didn't
     # include enough information for us to fully reconstruct this, so we only test if newer.
     if version_parts >= (0, 23, 2) and isinstance(reference, QuantumCircuit):
@@ -1033,6 +1055,7 @@ def assert_equal(reference, qpy, count, version_parts, bind=None, equivalent=Fal
         ):
             if ref_bit._register is not None and ref_bit != qpy_bit:
                 msg = (
+                    f"For {context}:\n"
                     f"Reference Circuit {count}:\n"
                     "deprecated bit-level register information mismatch\n"
                     f"reference bit: {ref_bit}\n"
@@ -1046,17 +1069,19 @@ def assert_equal(reference, qpy, count, version_parts, bind=None, equivalent=Fal
         and isinstance(reference, QuantumCircuit)
         and reference.layout != qpy.layout
     ):
-        msg = f"Circuit {count} layout mismatch {reference.layout} != {qpy.layout}\n"
+        msg = (
+            f"For {context}:\nCircuit {count} layout mismatch {reference.layout} != {qpy.layout}\n"
+        )
         sys.stderr.write(msg)
         sys.exit(4)
 
     # Don't compare name on bound circuits
     if bind is None and reference.name != qpy.name:
-        msg = f"Circuit {count} name mismatch {reference.name} != {qpy.name}\n{reference}\n{qpy}"
+        msg = f"For {context}:\nCircuit {count} name mismatch {reference.name} != {qpy.name}\n{reference}\n{qpy}"
         sys.stderr.write(msg)
         sys.exit(2)
     if reference.metadata != qpy.metadata:
-        msg = f"Circuit {count} metadata mismatch: {reference.metadata} != {qpy.metadata}"
+        msg = f"For {context}:\nCircuit {count} metadata mismatch: {reference.metadata} != {qpy.metadata}"
         sys.stderr.write(msg)
         sys.exit(3)
 
@@ -1083,7 +1108,7 @@ def load_qpy(qpy_files, version_parts):
             # so not loading and comparing these payloads.
             # See https://github.com/Qiskit/qiskit/pull/13814
             continue
-        print(f"Loading qpy file: {path}")
+        print(f"Loading qpy file: {path}")  # noqa: T201
         with open(path, "rb") as fd:
             qpy_circuits = load(fd)
         equivalent = path in {"open_controlled_gates.qpy", "controlled_gates.qpy"}
@@ -1103,8 +1128,15 @@ def load_qpy(qpy_files, version_parts):
             elif path == "replay_with_expressions.qpy":
                 bind = [2.0]
 
+            context = f"Version {version_parts}, QPY file {path}, Circuit number {i}"
             assert_equal(
-                circuit, qpy_circuits[i], i, version_parts, bind=bind, equivalent=equivalent
+                circuit,
+                qpy_circuits[i],
+                i,
+                version_parts,
+                bind=bind,
+                equivalent=equivalent,
+                context=context,
             )
 
     from qiskit.qpy.exceptions import QpyError
@@ -1120,8 +1152,8 @@ def load_qpy(qpy_files, version_parts):
             try:
                 with open(path, "rb") as fd:
                     load(fd)
-            except:
-                msg = f"Loading circuit with pulse gates should not raise"
+            except Exception:
+                msg = "Loading circuit with pulse gates should not raise"
                 sys.stderr.write(msg)
                 sys.exit(1)
         else:
@@ -1151,18 +1183,12 @@ def _main():
     )
     args = parser.parse_args()
 
-    current_version = current_version_str.split(".")
-    for i in range(len(current_version[2])):
-        if current_version[2][i].isalpha():
-            current_version[2] = current_version[2][:i]
-            break
-    current_version = tuple(int(x) for x in current_version)
+    current_version = version_release_parts(qiskit.__version__)
 
     # Terra 0.18.0 was the first release with QPY, so that's the default.
     version_parts = (0, 18, 0)
     if args.version:
-        version_match = re.search(VERSION_PATTERN, args.version, re.VERBOSE | re.IGNORECASE)
-        version_parts = tuple(int(x) for x in version_match.group("release").split("."))
+        version_parts = version_release_parts(args.version)
 
     if args.command == "generate":
         qpy_files = generate_circuits(version_parts, current_version)

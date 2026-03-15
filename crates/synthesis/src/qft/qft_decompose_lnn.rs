@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -13,9 +13,9 @@
 use crate::linear_phase::cz_depth_lnn::LnnGatesVec;
 use crate::permutation::_append_reverse_permutation_lnn_kms;
 use pyo3::prelude::*;
-use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::operations::{Param, StandardGate};
 use qiskit_circuit::Qubit;
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
+use qiskit_circuit::operations::{Param, StandardGate};
 use smallvec::smallvec;
 use std::f64::consts::PI;
 
@@ -51,11 +51,10 @@ use std::f64::consts::PI;
 #[pyfunction]
 #[pyo3(signature=(num_qubits, do_swaps=true, approximation_degree=0))]
 pub fn synth_qft_line(
-    py: Python,
     num_qubits: usize,
     do_swaps: bool,
     approximation_degree: usize,
-) -> PyResult<CircuitData> {
+) -> PyResult<PyCircuitData> {
     // Total number of compound gates required = L(L-1)/2
     // Compound gate: H + 3CX + 3P or 3CX + 3P
     // For approximation degree D, D(D+1)/2 * 3 gates will be reduced
@@ -98,7 +97,10 @@ pub fn synth_qft_line(
         _append_reverse_permutation_lnn_kms(&mut instructions, num_qubits);
     }
 
-    CircuitData::from_standard_gates(py, num_qubits as u32, instructions, Param::Float(0.0))
+    Ok(
+        CircuitData::from_standard_gates(num_qubits as u32, instructions, Param::Float(0.0))?
+            .into(),
+    )
 }
 
 #[inline]

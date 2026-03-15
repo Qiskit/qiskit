@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -14,8 +14,12 @@
 
 from __future__ import annotations
 
+import gzip
+import io
+import shutil
 from json import JSONEncoder, JSONDecoder
-from typing import Union, List, BinaryIO, Type, Optional, Callable, TYPE_CHECKING
+from typing import BinaryIO, TYPE_CHECKING
+from collections.abc import Callable
 from collections.abc import Iterable, Mapping
 import struct
 import warnings
@@ -32,8 +36,14 @@ if TYPE_CHECKING:
     from qiskit.circuit import annotation
 
 
-# pylint: disable=invalid-name
 QPY_SUPPORTED_TYPES = QuantumCircuit
+
+# Some standard-library types claim to be `IOBase.seekable`, but don't actually support arbitrary
+# seeking in write mode.  We won't expand this list for incorrect third-party types, but
+# pragmatically, we can workaround trouble in the stdlib.
+#
+# See https://github.com/Qiskit/qiskit/issues/15157#issuecomment-3389209015 for more detail.
+KNOWN_BAD_SEEKERS = (gzip.GzipFile,)
 
 # This version pattern is taken from the pypa packaging project:
 # https://github.com/pypa/packaging/blob/21.3/packaging/version.py#L223-L254
@@ -77,12 +87,12 @@ VERSION_PATTERN_REGEX = re.compile(VERSION_PATTERN, re.VERBOSE | re.IGNORECASE)
 
 
 def dump(
-    programs: Union[List[QPY_SUPPORTED_TYPES], QPY_SUPPORTED_TYPES],
+    programs: list[QPY_SUPPORTED_TYPES] | QPY_SUPPORTED_TYPES,
     file_obj: BinaryIO,
-    metadata_serializer: Optional[Type[JSONEncoder]] = None,
+    metadata_serializer: type[JSONEncoder] | None = None,
     use_symengine: bool = False,
     version: int = common.QPY_VERSION,
-    annotation_factories: Optional[Mapping[str, Callable[[], annotation.QPYSerializer]]] = None,
+    annotation_factories: Mapping[str, Callable[[], annotation.QPYSerializer]] | None = None,
 ):
     """Write QPY binary data to a file
 
@@ -180,10 +190,12 @@ def dump(
         version = common.QPY_VERSION
     elif common.QPY_COMPATIBILITY_VERSION > version or version > common.QPY_VERSION:
         raise ValueError(
-            f"The specified QPY version {version} is not support for dumping with this version, "
-            f"of Qiskit. The only supported versions between {common.QPY_COMPATIBILITY_VERSION} and "
-            f"{common.QPY_VERSION}"
+            f"Dumping payloads with the specified QPY version ({version}) is not supported by "
+            f"this version of Qiskit. Try selecting a version between "
+            f"{common.QPY_COMPATIBILITY_VERSION} and {common.QPY_VERSION} for `qpy.dump`."
         )
+
+    use_rust = version >= common.QPY_RUST_WRITE_MIN_VERSION
 
     version_match = VERSION_PATTERN_REGEX.search(__version__)
     version_parts = [int(x) for x in version_match.group("release").split(".")]
@@ -200,45 +212,73 @@ def dump(
     )
     file_obj.write(header)
     common.write_type_key(file_obj, type_keys.Program.CIRCUIT)
+    header_bytes_written = formats.FILE_HEADER_V10_SIZE + formats.TYPE_KEY_SIZE
 
-    # Table of byte offsets for each program (supported in QPY v16+)
-    byte_offsets = []
-    table_start = None
-    if version >= 16:
-        table_start = file_obj.tell()
-        # Skip the file position to write the byte offsets later
-        file_obj.seek(len(programs) * formats.CIRCUIT_TABLE_ENTRY_SIZE, 1)
-
-    # Serialize each program and write it to the file
-    for program in programs:
-        if version >= 16:
-            # Determine the byte offset before writing each program
-            byte_offsets.append(file_obj.tell())
+    def _write_circuit(out_stream, circuit):
         binary_io.write_circuit(
-            file_obj,
-            program,
+            out_stream,
+            circuit,
             metadata_serializer=metadata_serializer,
-            use_symengine=use_symengine,
+            use_symengine=bool(use_symengine),
             version=version,
             annotation_factories=annotation_factories,
+            use_rust=use_rust,
         )
 
     if version >= 16:
-        # Write the byte offsets for each program
-        file_obj.seek(table_start)
-        for offset in byte_offsets:
-            file_obj.write(
-                struct.pack(formats.CIRCUIT_TABLE_ENTRY_PACK, *formats.CIRCUIT_TABLE_ENTRY(offset))
-            )
-        # Seek to the end of the file
-        file_obj.seek(0, 2)
+        # We need a circuit table.
+        if file_obj.seekable() and not isinstance(file_obj, KNOWN_BAD_SEEKERS):
+            # Fast path for properly seekable streams
+            file_offsets = []
+            table_start = file_obj.tell()
+            # Skip past the circuit table to write circuit contents first.
+            file_obj.seek(len(programs) * formats.CIRCUIT_TABLE_ENTRY_SIZE, 1)
+            for program in programs:
+                file_offsets.append(file_obj.tell())
+                _write_circuit(file_obj, program)
+            # Seek back to the table start and write it out.
+            file_obj.seek(table_start)
+            for offset in file_offsets:
+                file_obj.write(
+                    struct.pack(
+                        formats.CIRCUIT_TABLE_ENTRY_PACK, *formats.CIRCUIT_TABLE_ENTRY(offset)
+                    )
+                )
+            # Seek to the end of the stream.
+            file_obj.seek(0, 2)
+        else:
+            # We need to create a temporary BytesIO buffer since the input
+            # stream isn't seekable.
+            buffer_offsets = []
+            offset_table_size = len(programs) * formats.CIRCUIT_TABLE_ENTRY_SIZE
+            with io.BytesIO() as circuits_buffer:
+                for program in programs:
+                    buffer_offsets.append(circuits_buffer.tell())
+                    _write_circuit(circuits_buffer, program)
+                # Write circuit table to input stream, adjusting offsets.
+                for offset in buffer_offsets:
+                    file_obj.write(
+                        struct.pack(
+                            formats.CIRCUIT_TABLE_ENTRY_PACK,
+                            *formats.CIRCUIT_TABLE_ENTRY(
+                                header_bytes_written + offset_table_size + offset
+                            ),
+                        )
+                    )
+                # Write circuits to the input stream.
+                circuits_buffer.seek(0)
+                shutil.copyfileobj(circuits_buffer, file_obj)
+    else:
+        # No circuit table needed, just write the circuits sequentially.
+        for program in programs:
+            _write_circuit(file_obj, program)
 
 
 def load(
     file_obj: BinaryIO,
-    metadata_deserializer: Optional[Type[JSONDecoder]] = None,
-    annotation_factories: Optional[Mapping[str, Callable[[], annotation.QPYSerializer]]] = None,
-) -> List[QPY_SUPPORTED_TYPES]:
+    metadata_deserializer: type[JSONDecoder] | None = None,
+    annotation_factories: Mapping[str, Callable[[], annotation.QPYSerializer]] | None = None,
+) -> list[QPY_SUPPORTED_TYPES]:
     """Load a QPY binary file
 
     This function is used to load a serialized QPY Qiskit program file and create
@@ -317,6 +357,7 @@ def load(
                 file_obj.read(formats.FILE_HEADER_V10_SIZE),
             )
         )
+    use_rust = version >= common.QPY_RUST_READ_MIN_VERSION
 
     config = user_config.get_config()
     min_qpy_version = config.get("min_qpy_version")
@@ -332,7 +373,7 @@ def load(
     env_qiskit_version = [int(x) for x in version_match.group("release").split(".")]
 
     qiskit_version = (data.major_version, data.minor_version, data.patch_version)
-    # pylint: disable=too-many-boolean-expressions
+
     if (
         env_qiskit_version[0] < qiskit_version[0]
         or (
@@ -394,8 +435,9 @@ def load(
                 file_obj,
                 data.qpy_version,
                 metadata_deserializer=metadata_deserializer,
-                use_symengine=use_symengine,
+                use_symengine=bool(use_symengine),
                 annotation_factories=annotation_factories,
+                use_rust=use_rust,
             )
         )
     return programs

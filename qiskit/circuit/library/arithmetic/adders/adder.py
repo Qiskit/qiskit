@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -173,12 +173,12 @@ class ModularAdderGate(Gate):
 
     def _define(self):
         """Populates self.definition with some decomposition of this gate."""
-        from qiskit.synthesis.arithmetic import adder_qft_d00
+        from qiskit.synthesis.arithmetic import adder_modular_v17
 
         # This particular decomposition does not use any ancilla qubits.
         # Note that the transpiler may choose a different decomposition
         # based on the number of ancilla qubits available.
-        self.definition = adder_qft_d00(self.num_state_qubits, kind="fixed")
+        self.definition = adder_modular_v17(self.num_state_qubits)
 
 
 class FullAdderGate(Gate):

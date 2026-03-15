@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed a bug in the :class:`.DAGOpNode` equality check, where comparing two :class:`.DAGOpNode`
+    objects that contain a :class:`.BoxOp` instruction. Previously, the :attr:`.BoxOp.unit` attribute was not
+    considered as part of the equality check which could lead to a two unequal nodes be evaluated as
+    equal.

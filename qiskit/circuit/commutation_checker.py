@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -13,9 +13,11 @@
 """Code from commutative_analysis pass that checks commutation relations between DAG nodes."""
 
 from __future__ import annotations
-from typing import List, Union, Set, Optional
+
+from collections.abc import Sequence
 
 from qiskit.circuit.operation import Operation
+from qiskit.circuit import Qubit
 from qiskit._accelerate.commutation_checker import CommutationChecker as RustChecker
 
 
@@ -49,10 +51,10 @@ class CommutationChecker:
 
     def __init__(
         self,
-        standard_gate_commutations: dict = None,
+        standard_gate_commutations: dict | None = None,
         cache_max_entries: int = 10**6,
         *,
-        gates: Optional[Set[str]] = None,
+        gates: set[str] | None = None,
     ):
         self.cc = RustChecker(standard_gate_commutations, cache_max_entries, gates)
 
@@ -64,22 +66,23 @@ class CommutationChecker:
         approximation_degree: float = 1.0,
     ) -> bool:
         """Checks if two DAGOpNodes commute."""
-        return self.cc.commute_nodes(op1, op2, max_num_qubits, approximation_degree)
+        return self.cc.commute_nodes(op1, op2, max_num_qubits, approximation_degree, max_num_qubits)
 
     def commute(
         self,
         op1: Operation,
-        qargs1: List,
-        cargs1: List,
+        qargs1: Sequence[Qubit | int],
+        cargs1: Sequence[Qubit | int],
         op2: Operation,
-        qargs2: List,
-        cargs2: List,
-        max_num_qubits: int = 3,
+        qargs2: Sequence[Qubit | int],
+        cargs2: Sequence[Qubit | int],
+        max_num_qubits: int | None = None,
         approximation_degree: float = 1.0,
+        matrix_max_num_qubits: int = 3,
     ) -> bool:
         """
-        Checks if two Operations commute. The return value of `True` means that the operations
-        truly commute, and the return value of `False` means that either the operations do not
+        Checks if two Operations commute. The return value of ``True`` means that the operations
+        truly commute, and the return value of ``False`` means that either the operations do not
         commute or that the commutation check was skipped (for example, when the operations
         have conditions or have too many qubits).
 
@@ -91,15 +94,28 @@ class CommutationChecker:
             qargs2: second operation's qubits.
             cargs2: second operation's clbits.
             max_num_qubits: the maximum number of qubits to consider, the check may be skipped if
-                the number of qubits for either operation exceeds this amount.
+                the number of qubits for either operation exceeds this amount. Defaults to ``None``,
+                which means no limit. See also ``matrix_max_num_qubits`` to limit the dimension
+                of matrices computed.
             approximation_degree: If the average gate fidelity in between the two operations
                 is above this number (up to ``1e-12``) they are assumed to commute.
+            matrix_max_num_qubits: the maximum number of qubits for which it is allowed to compute
+                the matrix representation. This is needed if there is no efficient check readily
+                available, e.g. for custom gates.
 
         Returns:
-            bool: whether two operations commute.
+            Whether two operations commute.
         """
         return self.cc.commute(
-            op1, qargs1, cargs1, op2, qargs2, cargs2, max_num_qubits, approximation_degree
+            op1,
+            tuple(qargs1),
+            tuple(cargs1),
+            op2,
+            tuple(qargs2),
+            tuple(cargs2),
+            max_num_qubits,
+            approximation_degree,
+            matrix_max_num_qubits,
         )
 
     def num_cached_entries(self):
@@ -113,10 +129,10 @@ class CommutationChecker:
     def check_commutation_entries(
         self,
         first_op: Operation,
-        first_qargs: List,
+        first_qargs: list,
         second_op: Operation,
-        second_qargs: List,
-    ) -> Union[bool, None]:
+        second_qargs: list,
+    ) -> bool | None:
         """Returns stored commutation relation if any
 
         Args:

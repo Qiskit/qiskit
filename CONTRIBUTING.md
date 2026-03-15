@@ -82,14 +82,27 @@ source ~/.venvs/qiskit-dev/bin/activate
 ```
 
 Upgrade pip within the environment to ensure Qiskit dependencies installed in the subsequent sections
-can be located for your system.
+can be located for your system.  You need `pip>=25.1` to use the `--group` feature used to manage
+developer dependency groups.
 
 ```
 pip install -U pip
 ```
 
+You then install Qiskit in editable mode using:
+
 ```
 pip install -e .
+```
+
+Changes to Python packages will need be picked up automatically.
+Changes to Rust files will require a recompilation; see "Installing Qiskit from source" below.
+
+You can easily install all the standard developer dependencies for in-place testing, documentation-building,
+and linting using the `dev` dependency group:
+
+```
+pip install --group dev
 ```
 
 ### Set up a Conda environment
@@ -117,7 +130,7 @@ building and installing from source you will need a Rust compiler installed. You
 using rustup: https://rustup.rs/ which provides a single tool to install and
 configure the latest version of the rust compiler.
 [Other installation methods](https://forge.rust-lang.org/infra/other-installation-methods.html)
-exist too. For Windows users, besides rustup, you will also need install
+exist too. For Windows users, besides rustup, you will also need to install
 the Visual C++ build tools so that Rust can link against the system c/c++
 libraries. You can see more details on this in the
 [rustup documentation](https://rust-lang.github.io/rustup/installation/windows-msvc.html).
@@ -126,18 +139,29 @@ If you use Rustup, it will automatically install the correct Rust version
 currently used by the project.
 
 Once you have a Rust compiler installed, you can rely on the normal Python
-build/install steps to install Qiskit. This means you just run
-`pip install .` in your local git clone to build and install Qiskit.
+build/install steps to install Qiskit. This means you run `pip install .` or
+`pip install -e .` in your local git clone to build and install Qiskit.
+Note that changes to Rust files will not be reflected in an editable install
+until you recompile.
 
-Do note that if you do use develop mode/editable install (via `python setup.py develop` or `pip install -e .`) the Rust extension will be built in debug mode
-without any optimizations enabled. This will result in poor runtime performance.
-If you'd like to use an editable install with an optimized binary you can
-run `python setup.py build_rust --release --inplace` after you install in
-editable mode to recompile the rust extensions in release mode.
+You can recompile the Rust components of an editable
+install by running
+```
+python setup.py build_rust --inplace [--release | --debug]
+```
+Modifications to Rust files will not take effect until the Rust extension module
+is recompiled with the above command.  You must have the "build" dependencies
+installed in your environment for this command to work.  Do this by running
+```
+pip install --group build
+```
 
-Note that in order to run `python setup.py ...` commands you need have build
-dependency packages installed in your environment, which are listed in the
-`pyproject.toml` file under the `[build-system]` section.
+By default, `pip install .` will build the Rust components in "release" mode
+and `pip install -e .` (or `python setup.py build_rust --inplace`) will build
+them in "debug" mode, without optimizations.  Debug mode will have poor
+runtime performance.  You can set the environment variable `QISKIT_BUILD_PROFILE`
+to `release` or `debug` to control the default.  The `--release`/`--debug` flag
+to `build_rust` overrides this default.
 
 ### Compile time options
 
@@ -227,6 +251,25 @@ are easier for maintainers to review and more likely to get merged in a timely m
 sure to always be kind and respectful in your interactions with maintainers and other contributors, you can read
 [the Qiskit Code of Conduct](https://github.com/Qiskit/qiskit/blob/main/CODE_OF_CONDUCT.md).
 
+### Use of AI tools
+
+> [!WARNING]
+> If you use any AI tool while preparing your code contribution, you **must** disclose the name of the tool and its version in the PR description.
+
+When using AI tools for code generation, your submission must still be your own original work of authorship, as required by the [Contributor License Agreement (CLA)](https://qisk.it/cla). It is your responsibility to make sure that:
+
+- You review and fully understand the generated code, and you can explain the reasoning behind it during review.
+- The usage of the AI tool does not violate any third-party license obligations.
+- The AI tool's terms and conditions allow its output to be used in open source projects and are compatible with the [Qiskit license](LICENSE.txt), the [Qiskit CLA](https://qisk.it/cla), and [these Contributor Guidelines](CONTRIBUTING.md).
+- You only use AI tools that have features to:
+  * filter out generated code substantially similar to training data, or
+  * identify similar training code so you can comply with the original license obligations (notice, attribution, etc.) and only contribute if it's compatible with the [Qiskit license](LICENSE.txt).
+- You disclose the name and version of the AI tool in your PR description.
+
+Submissions that appear unreviewed or copied directly from an AI tool without proper understanding may be requested to be revised or declined.
+
+Remember that spamming issues or pull requests with AI-generated comments is prohibited under the [Qiskit Code of Conduct](https://qisk.it/coc).
+
 
 ## Contributor Licensing Agreement
 
@@ -238,12 +281,12 @@ contributing it under the terms of the Apache-2.0 license.
 When you contribute to the Qiskit project with a new pull request,
 a bot will evaluate whether you have signed the CLA. If required, the
 bot will comment on the pull request, including a link to accept the
-agreement. The [individual CLA](https://qiskit.org/license/qiskit-cla.pdf)
+agreement. The [individual CLA](https://qisk.it/cla)
 document is available for review as a PDF.
 
 Note: If your contribution is part of your employment or your contribution
 is the property of your employer, then you will more than likely need to sign a
-[corporate CLA](https://qiskit.org/license/qiskit-corporate-cla.pdf) too and
+[corporate CLA](https://qisk.it/corporate-cla) too and
 email it to us at <qiskit@us.ibm.com>.
 
 ## Changelog generation
@@ -259,15 +302,8 @@ message summary line from the git log for the release to the changelog.
 If there are multiple `Changelog:` tags on a PR the git commit message summary
 line from the git log will be used for each changelog category tagged.
 
-The current categories for each label are as follows:
-
-| PR Label               | Changelog Category |
-| -----------------------|--------------------|
-| Changelog: Deprecation | Deprecated         |
-| Changelog: New Feature | Added              |
-| Changelog: API Change  | Changed            |
-| Changelog: Removal     | Removed            |
-| Changelog: Bugfix      | Fixed              |
+The current categories for each label are configured in `qiskit_bot.yaml` in
+the repository root.
 
 ## Release notes
 
@@ -328,9 +364,9 @@ features:
       foo(QuantumCircuit())
 
   - |
-    The :class:`.QuantumCircuit` class has a new method :meth:`~.QuantumCircuit.foo`. 
+    The :class:`.QuantumCircuit` class has a new method :meth:`~.QuantumCircuit.foo`.
     This is the equivalent of calling the :func:`~qiskit.foo` to do something to your
-    :class:`.QuantumCircuit`. This is the equivalent of running :func:`~qiskit.foo` 
+    :class:`.QuantumCircuit`. This is the equivalent of running :func:`~qiskit.foo`
     on your circuit, but provides the convenience of running it natively on
     an object. For example::
 
@@ -408,6 +444,7 @@ build all the documentation into `docs/_build/html` and the release notes in
 particular will be located at `docs/_build/html/release_notes.html`
 
 ## Testing
+
 Once you've made a code change, it is important to verify that your change
 does not break any existing tests and that any new tests that you've added
 also run successfully. Before you open a new pull request for your change,
@@ -425,8 +462,7 @@ environment that tox sets up matches the CI environment more closely and it
 runs the tests in parallel (resulting in much faster execution). To run tests
 on all installed supported python versions and lint/style checks you can simply
 run `tox`. Or if you just want to run the tests once run for a specific python
-version: `tox -epy310` (or replace py310 with the python version you want to use,
-py39 or py311).
+version: `tox -epy313` (or replace py313 with the python version you want to use).
 
 If you just want to run a subset of tests you can pass a selection regex to
 the test runner. For example, if you want to run all tests that have "dag" in
@@ -455,6 +491,13 @@ tox -epy310 -- -n test.python.compiler.test_transpiler.TestTranspile
 to run a method:
 ```
 tox -epy310 -- -n test.python.compiler.test_transpiler.TestTranspile.test_transpile_non_adjacent_layout
+```
+
+If you want to run the test suite in your local environment without using `tox` as a runner, you can
+either use the `tox devenv -e py310` command to have `tox` construct you a new development environment,
+or you can install the `test` dependency group using your package manager, such as
+```
+pip install --group test
 ```
 
 Alternatively there is a makefile provided to run tests, however this
@@ -538,7 +581,7 @@ you will need to check that your changes don't break any snapshot tests, and add
 new tests where necessary. You can do this as follows:
 
 1. Make sure you have pushed your latest changes to your remote branch.
-2. Go to link: `https://mybinder.org/v2/gh/<github_user>/<repo>/<branch>?urlpath=apps/test/ipynb/mpl_tester.ipynb`. For example, if your GitHub username is `username`, your forked repo has the same name the original, and your branch is `my_awesome_new_feature`, you should visit https://mybinder.org/v2/gh/username/qiskit/my_awesome_new_feature?urlpath=apps/test/ipynb/mpl_tester.ipynb.
+2. Go to link: `https://mybinder.org/v2/gh/<github_user>/<repo>/<branch>?urlpath=apps/test/ipynb/mpl_tester.ipynb`. For example, if your GitHub username is `username`, your forked repo has the same name as the original, and your branch is `my_awesome_new_feature`, you should visit https://mybinder.org/v2/gh/username/qiskit/my_awesome_new_feature?urlpath=apps/test/ipynb/mpl_tester.ipynb.
 This opens a Jupyter Notebook application running in the cloud that automatically runs
 the snapshot tests (note this may take some time to finish loading).
 3. Each test result provides a set of 3 images (left: reference image, middle: your test result, right: differences). In the list of tests the passed tests are collapsed and failed tests are expanded. If a test fails, you will see a situation like this:
@@ -615,6 +658,12 @@ If you're not using `tox`, you can also execute Cargo tests directly in your own
 If you haven't done so already, [create a Python virtual environment](#set-up-a-python-venv) and
 **_activate it_**.
 
+You will need to install (at least) the `build` and `test` dependency groups, such as
+```
+pip install --group build --group test
+```
+You can alternatively install the `dev` group, which encompasses both of these.
+
 Then, run the following commands:
 
 ```bash
@@ -686,8 +735,10 @@ well.
 
 ### Testing the C API
 
-The C API test suite is located at `test/c/`. It is built and run using `cmake`
-and `ctest` which can be triggered simply via:
+The C API test suite is located at `test/c/`.  This is a CMake project and uses
+CMake's `ctest` runner.  To build and run the tests, use the `ctest` recipe in
+the top-level `Makefile`, which you can run with
+
 ```bash
 make ctest
 ```
@@ -703,7 +754,10 @@ to the following.
 // Individual tests may be implemented by custom functions. The return value
 // should be `Ok` (from `test/c/common.h`) when the test was successful or one
 // of the other error codes (`>0`) indicating the error type.
-int test_something()
+//
+// Individual test functions should be marked static; this is a double line of
+// defence so the compiler will error if you forget to add it to the runner.
+static int test_something()
 {
     return Ok;
 }
@@ -733,45 +787,41 @@ int test_FILE_NAME()
 Qiskit uses three tools for Python code formatting and lint checking. The
 first tool is [black](https://github.com/psf/black) which is a code formatting
 tool that will automatically update the code formatting to a consistent style.
-The second tool is [pylint](https://www.pylint.org/) which is a code linter
+The second tool is [ruff](https://docs.astral.sh/ruff/) which is a code linter
 which does a deeper analysis of the Python code to find both style issues and
-potential bugs and other common issues in Python. The third tool is the linter
-[ruff](https://github.com/charliermarsh/ruff), which has been recently
-introduced into Qiskit on an experimental basis. Only a very small number
-of rules are enabled.
+potential bugs and other common issues in Python.
 
 You can check that your local modifications conform to the style rules by
-running `tox -elint` which will run `black`, `ruff`, and `pylint` to check the
+running `tox -elint` which will run `black` and  `ruff` to check the
 local code formatting and lint. If black returns a code formatting error you can
 run `tox -eblack` to automatically update the code formatting to conform to the
-style. However, if `ruff` or `pylint` return any error you will have to fix
-these issues by manually updating your code.
-
-Because `pylint` analysis can be slow, there is also a `tox -elint-incr` target,
-which runs `black` and `ruff` just as `tox -elint` does, but only applies
-`pylint` to files which have changed from the source github. On rare occasions
-this will miss some issues that would have been caught by checking the complete
-source tree, but makes up for this by being much faster (and those rare
-oversights will still be caught by the CI after you open a pull request).
+style. However, if `ruff`  return any error you will have to fix these issues by
+manually updating your code. Sometimes `ruff` will be able to fix failures with
+the `--fix` flag. In these cases the output will tell you how many errors can be
+automatically fixed
 
 Because they are so fast, it is sometimes convenient to run the tools `black` and `ruff` separately
-rather than via `tox`. If you have installed the development packages in your python environment via
-`pip install -r requirements-dev.txt`, then `ruff` and `black` will be available and can be run from
-the command line. See [`tox.ini`](tox.ini) for how `tox` invokes them.
+rather than via `tox`.  You can install all the lint dependencies using the `lint` or `dev`
+dependency groups, such as by
+```
+pip install --group lint
+```
+After this, `ruff` and `black` will be available and can be run from the command line. See
+[`tox.ini`](tox.ini) for how `tox` invokes them.
 
 ### Rust style and lint
 
 For formatting and lint checking Rust code, you'll need to use different tools than you would for Python. Qiskit uses [rustfmt](https://github.com/rust-lang/rustfmt) for
 code formatting. You can simply run `cargo fmt` (if you installed Rust with the
 default settings using `rustup`), and it will update the code formatting automatically to
-conform to the style guidelines. This is very similar to running `tox -eblack` for Python code. For lint checking, Qiskit uses [clippy](https://github.com/rust-lang/rust-clippy) which can be invoked via `cargo clippy`. 
+conform to the style guidelines. This is very similar to running `tox -eblack` for Python code. For lint checking, Qiskit uses [clippy](https://github.com/rust-lang/rust-clippy) which can be invoked via `cargo clippy`.
 
-Rust lint and formatting checks are included in the the `tox -elint` command. For CI to pass you will need both checks to pass without any warnings or errors. Note that this command checks the code but won't apply any modifications, if you need to update formatting, you'll need to run `cargo fmt`.
+Rust lint and formatting checks are included in the `tox -elint` command. For CI to pass you will need both checks to pass without any warnings or errors. Note that this command checks the code but won't apply any modifications, if you need to update formatting, you'll need to run `cargo fmt`.
 
 ### C style and lint
 
 Qiskit uses [clang-format](https://clang.llvm.org/docs/ClangFormat.html) to format C code.
-The style is based on LLVM, with some few Qiskit-specific adjustments. 
+The style is based on LLVM, with a few Qiskit-specific adjustments.
 To check whether the C code conforms to the style guide, you can run `make cformat`. This check
 will need to execute without any warnings or errors for CI to pass.
 Automatic formatting can be applied by `make fix_cformat`.
@@ -865,7 +915,7 @@ is a need additional release candidates can be published from `stable/*` and whe
 release is ready a full release will be tagged and published from `stable/*`.
 
 ## Adding deprecation warnings
-The qiskit code is part of Qiskit and, therefore, the [Qiskit Deprecation Policy](./DEPRECATION.md) fully applies here. Additionally, qiskit does not allow `DeprecationWarning`s in its testsuite. If you are deprecating code, you should add a test to use the new/non-deprecated method (most of the time based on the existing test of the deprecated method) and alter the existing test to check that the deprecated method still works as expected, [using `assertWarns`](https://docs.python.org/3/library/unittest.html#unittest.TestCase.assertWarns). The `assertWarns` context will silence the deprecation warning while checking that it raises.
+The Qiskit code is part of Qiskit and, therefore, the [Qiskit Deprecation Policy](./DEPRECATION.md) fully applies here. Additionally, Qiskit's testsuite breaks if a `DeprecationWarning` is emitted. If you are deprecating code, you should add a test to use the new/non-deprecated method (most of the time based on the existing test of the deprecated method) and alter the existing test to check that the deprecated method still works as expected, [using `assertWarns`](https://docs.python.org/3/library/unittest.html#unittest.TestCase.assertWarns). The `assertWarns` context will silence the deprecation warning while checking that it raises.
 
 For example, if `Obj.method1` is being deprecated in favour of `Obj.method2`, the existing test (or tests) for `method1` might look like this:
 

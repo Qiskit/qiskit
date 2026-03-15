@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -14,7 +14,7 @@ N-Qubit Sparse Pauli Operator class.
 """
 
 from __future__ import annotations
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from collections.abc import Mapping, Sequence, Iterable
 from numbers import Number
@@ -433,10 +433,14 @@ class SparsePauliOp(LinearOp):
     def is_unitary(self, atol: float | None = None, rtol: float | None = None) -> bool:
         """Return True if operator is a unitary matrix.
 
+        This method checks whether the operator composed with its adjoint equals
+        the identity, up to the provided tolerance. The tolerance is used when
+        simplifying the composed operator and checking if the result is the identity.
+
         Args:
             atol (float): Optional. Absolute tolerance for checking if
                           coefficients are zero (Default: 1e-8).
-            rtol (float): Optional. relative tolerance for checking if
+            rtol (float): Optional. Relative tolerance for checking if
                           coefficients are zero (Default: 1e-5).
 
         Returns:
@@ -449,7 +453,7 @@ class SparsePauliOp(LinearOp):
             rtol = self.rtol
 
         # Compose with adjoint
-        val = self.compose(self.adjoint()).simplify()
+        val = self.compose(self.adjoint()).simplify(atol=atol, rtol=rtol)
         # See if the result is an identity
         return (
             val.size == 1
@@ -476,6 +480,18 @@ class SparsePauliOp(LinearOp):
         if rtol is None:
             rtol = self.rtol
 
+        paulis_x = self.paulis.x
+        paulis_z = self.paulis.z
+        nz_coeffs = self.coeffs
+
+        array = np.packbits(paulis_x, axis=1).astype(np.uint16) * 256 + np.packbits(
+            paulis_z, axis=1
+        )
+        indexes, inverses = unordered_unique(array)
+
+        coeffs = np.zeros(indexes.shape[0], dtype=self.coeffs.dtype)
+        np.add.at(coeffs, inverses, nz_coeffs)
+
         # Filter non-zero coefficients
         if self.coeffs.dtype == object:
 
@@ -490,21 +506,7 @@ class SparsePauliOp(LinearOp):
             )
         else:
             non_zero = np.logical_not(np.isclose(self.coeffs, 0, atol=atol, rtol=rtol))
-        paulis_x = self.paulis.x[non_zero]
-        paulis_z = self.paulis.z[non_zero]
-        nz_coeffs = self.coeffs[non_zero]
 
-        array = np.packbits(paulis_x, axis=1).astype(np.uint16) * 256 + np.packbits(
-            paulis_z, axis=1
-        )
-        indexes, inverses = unordered_unique(array)
-
-        if np.all(non_zero) and indexes.shape[0] == array.shape[0]:
-            # No zero operator or duplicate operator
-            return self.copy()
-
-        coeffs = np.zeros(indexes.shape[0], dtype=self.coeffs.dtype)
-        np.add.at(coeffs, inverses, nz_coeffs)
         # Delete zero coefficient rows
         if self.coeffs.dtype == object:
             is_zero = np.array(
@@ -678,7 +680,7 @@ class SparsePauliOp(LinearOp):
         than ``1e-17`` will be reduced to ``1 X`` whereas :meth:`.SparsePauliOp.simplify` would
         return ``1+1e-17j X``.
 
-        If a both the real and imaginary part of a coefficient is 0 after chopping, the
+        If both the real and imaginary part of a coefficient is 0 after chopping, the
         corresponding Pauli is removed from the operator.
 
         Args:
@@ -751,7 +753,7 @@ class SparsePauliOp(LinearOp):
     def from_operator(
         obj: Operator, atol: float | None = None, rtol: float | None = None
     ) -> SparsePauliOp:
-        """Construct from an Operator objector.
+        """Construct from an Operator object.
 
         Note that the cost of this construction is exponential in general because the number of
         possible Pauli terms in the decomposition is exponential in the number of qubits.
@@ -796,7 +798,10 @@ class SparsePauliOp(LinearOp):
 
     @staticmethod
     def from_list(
-        obj: Iterable[tuple[str, complex]], dtype: type = complex, *, num_qubits: int = None
+        obj: Iterable[tuple[str, complex]],
+        dtype: type | None = None,
+        *,
+        num_qubits: int | None = None,
     ) -> SparsePauliOp:
         """Construct from a list of Pauli strings and coefficients.
 
@@ -819,7 +824,8 @@ class SparsePauliOp(LinearOp):
 
         Args:
             obj (Iterable[Tuple[str, complex]]): The list of 2-tuples specifying the Pauli terms.
-            dtype (type): The dtype of coeffs (Default: complex).
+            dtype (type | None): Data type for the coefficients. If ``None`` (default), the dtype is
+                automatically inferred.
             num_qubits (int): The number of qubits of the operator (Default: None).
 
         Returns:
@@ -847,6 +853,12 @@ class SparsePauliOp(LinearOp):
             obj = [("I" * num_qubits, 0)]
             size = len(obj)
 
+        if dtype is None:
+            if any(isinstance(coeff, ParameterExpression) for (_, coeff) in obj):
+                dtype = object
+            else:
+                dtype = complex
+
         coeffs = np.zeros(size, dtype=dtype)
         labels = np.zeros(size, dtype=f"<U{num_qubits}")
         for i, item in enumerate(obj):
@@ -861,7 +873,7 @@ class SparsePauliOp(LinearOp):
         obj: Iterable[tuple[str, list[int], complex]],
         num_qubits: int,
         do_checks: bool = True,
-        dtype: type = complex,
+        dtype: type | None = None,
     ) -> SparsePauliOp:
         """Construct from a list of local Pauli strings and coefficients.
 
@@ -891,9 +903,10 @@ class SparsePauliOp(LinearOp):
         Args:
             obj (Iterable[tuple[str, list[int], complex]]): The list 3-tuples specifying the Paulis.
             num_qubits (int): The number of qubits of the operator.
-            do_checks (bool): The flag of checking if the input indices are not duplicated
-            (Default: True).
-            dtype (type): The dtype of coeffs (Default: complex).
+            do_checks (bool): Whether to perform validity checks on the input indices.
+            dtype (type | None): Data type for the coefficients. If ``None`` (default), the dtype is
+                automatically inferred.
+
 
         Returns:
             SparsePauliOp: The SparsePauliOp representation of the Pauli terms.
@@ -908,6 +921,12 @@ class SparsePauliOp(LinearOp):
         if size == 0:
             obj = [("I" * num_qubits, range(num_qubits), 0)]
             size = len(obj)
+
+        if dtype is None:
+            if any(isinstance(coeff, ParameterExpression) for (_, _, coeff) in obj):
+                dtype = object
+            else:
+                dtype = complex
 
         coeffs = np.zeros(size, dtype=dtype)
         labels = np.zeros(size, dtype=f"<U{num_qubits}")
@@ -1144,6 +1163,10 @@ class SparsePauliOp(LinearOp):
     ) -> SparsePauliOp | None:
         r"""Bind the free ``Parameter``\s in the coefficients to provided values.
 
+        .. note::
+            If all the parameters in the circuit are bound to numeric values, the coefficients array
+            will be returned with a :class:`complex` dtype.
+
         Args:
             parameters: The values to bind the parameters to.
             inplace: If ``False``, a copy of the operator with the bound parameters is returned.
@@ -1177,10 +1200,15 @@ class SparsePauliOp(LinearOp):
                     coeff = complex(coeff)
                 bound.coeffs[i] = coeff
 
+        if bound.coeffs.dtype == object and not any(
+            isinstance(c, ParameterExpression) for c in bound.coeffs
+        ):
+            bound._coeffs = bound.coeffs.astype(complex)
+
         return None if inplace else bound
 
     def apply_layout(
-        self, layout: TranspileLayout | List[int] | None, num_qubits: int | None = None
+        self, layout: TranspileLayout | list[int] | None, num_qubits: int | None = None
     ) -> SparsePauliOp:
         """Apply a transpiler layout to this :class:`~.SparsePauliOp`
 

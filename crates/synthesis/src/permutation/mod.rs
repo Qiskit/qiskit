@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -16,9 +16,9 @@ use smallvec::smallvec;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
-use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::operations::{Param, StandardGate};
 use qiskit_circuit::Qubit;
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
+use qiskit_circuit::operations::{Param, StandardGate};
 
 use super::linear_phase::cz_depth_lnn::LnnGatesVec;
 
@@ -27,7 +27,10 @@ mod utils;
 /// Checks whether an array of size N is a permutation of 0, 1, ..., N - 1.
 #[pyfunction]
 #[pyo3(signature = (pattern))]
-pub fn _validate_permutation(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<PyObject> {
+pub fn _validate_permutation(
+    py: Python,
+    pattern: PyArrayLike1<i64, numpy::AllowTypeChange>,
+) -> PyResult<Py<PyAny>> {
     let view = pattern.as_array();
     utils::validate_permutation(&view)?;
     Ok(py.None())
@@ -36,7 +39,10 @@ pub fn _validate_permutation(py: Python, pattern: PyArrayLike1<i64>) -> PyResult
 /// Finds inverse of a permutation pattern.
 #[pyfunction]
 #[pyo3(signature = (pattern))]
-pub fn _inverse_pattern(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<PyObject> {
+pub fn _inverse_pattern(
+    py: Python,
+    pattern: PyArrayLike1<i64, numpy::AllowTypeChange>,
+) -> PyResult<Py<PyAny>> {
     let view = pattern.as_array();
     let inverse_i64: Vec<i64> = utils::invert(&view).iter().map(|&x| x as i64).collect();
     Ok(inverse_i64.into_pyobject(py)?.unbind())
@@ -44,11 +50,12 @@ pub fn _inverse_pattern(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<PyOb
 
 #[pyfunction]
 #[pyo3(signature = (pattern))]
-pub fn _synth_permutation_basic(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<CircuitData> {
+pub fn _synth_permutation_basic(
+    pattern: PyArrayLike1<i64, numpy::AllowTypeChange>,
+) -> PyResult<PyCircuitData> {
     let view = pattern.as_array();
     let num_qubits = view.len();
-    CircuitData::from_standard_gates(
-        py,
+    Ok(CircuitData::from_standard_gates(
         num_qubits as u32,
         utils::get_ordered_swap(&view).iter().map(|(i, j)| {
             (
@@ -58,20 +65,22 @@ pub fn _synth_permutation_basic(py: Python, pattern: PyArrayLike1<i64>) -> PyRes
             )
         }),
         Param::Float(0.0),
-    )
+    )?
+    .into())
 }
 
 #[pyfunction]
 #[pyo3(signature = (pattern))]
-fn _synth_permutation_acg(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<CircuitData> {
+fn _synth_permutation_acg(
+    pattern: PyArrayLike1<i64, numpy::AllowTypeChange>,
+) -> PyResult<PyCircuitData> {
     let inverted = utils::invert(&pattern.as_array());
     let view = inverted.view();
     let num_qubits = view.len();
     let cycles = utils::pattern_to_cycles(&view);
     let swaps = utils::decompose_cycles(&cycles);
 
-    CircuitData::from_standard_gates(
-        py,
+    Ok(CircuitData::from_standard_gates(
         num_qubits as u32,
         swaps.iter().map(|(i, j)| {
             (
@@ -81,7 +90,8 @@ fn _synth_permutation_acg(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<Ci
             )
         }),
         Param::Float(0.0),
-    )
+    )?
+    .into())
 }
 
 /// Synthesize a permutation circuit for a linear nearest-neighbor
@@ -89,9 +99,8 @@ fn _synth_permutation_acg(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<Ci
 #[pyfunction]
 #[pyo3(signature = (pattern))]
 pub fn _synth_permutation_depth_lnn_kms(
-    py: Python,
-    pattern: PyArrayLike1<i64>,
-) -> PyResult<CircuitData> {
+    pattern: PyArrayLike1<i64, numpy::AllowTypeChange>,
+) -> PyResult<PyCircuitData> {
     let mut inverted = utils::invert(&pattern.as_array());
     let mut view = inverted.view_mut();
     let num_qubits = view.len();
@@ -102,8 +111,7 @@ pub fn _synth_permutation_depth_lnn_kms(
         swap_layers.extend(swap_layer);
     }
 
-    CircuitData::from_standard_gates(
-        py,
+    Ok(CircuitData::from_standard_gates(
         num_qubits as u32,
         swap_layers.iter().map(|(i, j)| {
             (
@@ -113,7 +121,8 @@ pub fn _synth_permutation_depth_lnn_kms(
             )
         }),
         Param::Float(0.0),
-    )
+    )?
+    .into())
 }
 
 /// A single layer of CX gates.
@@ -126,7 +135,7 @@ pub(crate) fn _append_cx_stage1(gates: &mut LnnGatesVec, n: usize) {
         ))
     }
 
-    for i in 0..(n.div_ceil(2) - 1) {
+    for i in 0..(n.div_ceil(2).saturating_sub(1)) {
         gates.push((
             StandardGate::CX,
             smallvec![],
@@ -180,10 +189,10 @@ pub(crate) fn _append_reverse_permutation_lnn_kms(gates: &mut LnnGatesVec, num_q
 ///        `arXiv:quant-ph/0701194 <https://arxiv.org/abs/quant-ph/0701194>`_
 #[pyfunction]
 #[pyo3(signature = (num_qubits))]
-fn synth_permutation_reverse_lnn_kms(py: Python, num_qubits: usize) -> PyResult<CircuitData> {
+fn synth_permutation_reverse_lnn_kms(num_qubits: usize) -> PyResult<PyCircuitData> {
     let mut gates = LnnGatesVec::new();
     _append_reverse_permutation_lnn_kms(&mut gates, num_qubits);
-    CircuitData::from_standard_gates(py, num_qubits as u32, gates, Param::Float(0.0))
+    Ok(CircuitData::from_standard_gates(num_qubits as u32, gates, Param::Float(0.0))?.into())
 }
 
 pub fn permutation(m: &Bound<PyModule>) -> PyResult<()> {

@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -45,8 +45,8 @@ operands = [
     complex(0, 1),
     complex(-1, 0),
     2.3,
-    int(5),
-    int(-5),
+    5,
+    (-5),
     1.0,
     -1.0,
     0,
@@ -71,6 +71,11 @@ real_values = [0.41, 0.9, -0.83, math.pi, -math.pi / 124, -42.42]
 class TestParameterExpression(QiskitTestCase):
     """Test parameter expression."""
 
+    @ddt.data(param_x, param_x + param_y, (param_x + 1.0).bind({param_x: 1.0}))
+    def test_num_parameters(self, expr):
+        """Do the two ways of getting the number of unbound parameters agree?"""
+        self.assertEqual(len(expr.parameters), expr.num_parameters)
+
     @combine(
         left=operands,
         right=operands,
@@ -81,7 +86,7 @@ class TestParameterExpression(QiskitTestCase):
         """Test expression addition."""
         if isinstance(left, ParameterExpression) or isinstance(right, ParameterExpression):
             expr = left + right
-            res = expr.bind({x: bind_value for x in expr.parameters})
+            res = expr.bind(dict.fromkeys(expr.parameters, bind_value))
             self.assertIsInstance(res, ParameterExpression)
             if isinstance(left, ParameterExpression) and isinstance(right, ParameterExpression):
                 self.assertAlmostEqual(res.numeric(), 2.0 * bind_value)
@@ -100,7 +105,7 @@ class TestParameterExpression(QiskitTestCase):
         """Test expression subtraction."""
         if isinstance(left, ParameterExpression) or isinstance(right, ParameterExpression):
             expr = left - right
-            res = expr.bind({x: bind_value for x in expr.parameters})
+            res = expr.bind(dict.fromkeys(expr.parameters, bind_value))
             self.assertIsInstance(res, ParameterExpression)
             if isinstance(left, ParameterExpression) and isinstance(right, ParameterExpression):
                 self.assertAlmostEqual(res.numeric(), 0.0)
@@ -119,7 +124,7 @@ class TestParameterExpression(QiskitTestCase):
         """Test expression multiplication."""
         if isinstance(left, ParameterExpression) or isinstance(right, ParameterExpression):
             expr = left * right
-            res = expr.bind({x: bind_value for x in expr.parameters})
+            res = expr.bind(dict.fromkeys(expr.parameters, bind_value))
             self.assertIsInstance(res, ParameterExpression)
             if isinstance(left, ParameterExpression) and isinstance(right, ParameterExpression):
                 self.assertAlmostEqual(res.numeric(), bind_value * bind_value)
@@ -143,7 +148,7 @@ class TestParameterExpression(QiskitTestCase):
                 return
             expr = left / right
             try:
-                res = expr.bind({x: bind_value for x in expr.parameters})
+                res = expr.bind(dict.fromkeys(expr.parameters, bind_value))
             except ZeroDivisionError:
                 self.assertIsInstance(right, ParameterExpression)
                 self.assertAlmostEqual(bind_value, 0)
@@ -165,7 +170,7 @@ class TestParameterExpression(QiskitTestCase):
         """Test expression pow."""
         if isinstance(left, ParameterExpression) or isinstance(right, ParameterExpression):
             expr = left**right
-            res = expr.bind({x: 1.0 for x in expr.parameters})
+            res = expr.bind(dict.fromkeys(expr.parameters, 1.0))
             self.assertIsInstance(res, ParameterExpression)
             if isinstance(left, ParameterExpression) and isinstance(right, ParameterExpression):
                 self.assertAlmostEqual(res.numeric(), 1.0)
@@ -218,7 +223,7 @@ class TestParameterExpression(QiskitTestCase):
         """Test expression abs."""
         if isinstance(expression, ParameterExpression):
             expr = abs(expression)
-            res = expr.bind({x: bind_value for x in expr.parameters})
+            res = expr.bind(dict.fromkeys(expr.parameters, bind_value))
             self.assertIsInstance(res, ParameterExpression)
             self.assertEqual(res, abs(bind_value))
 
@@ -227,12 +232,12 @@ class TestParameterExpression(QiskitTestCase):
         """Test expression arccos."""
         if isinstance(expression, ParameterExpression):
             expr = expression.arccos()
-            res = expr.bind({x: 0.2 for x in expr.parameters})
+            res = expr.bind(dict.fromkeys(expr.parameters, 0.2))
             self.assertIsInstance(res, ParameterExpression)
             self.assertEqual(res, math.acos(0.2))
             # Test negative
             expr = expression.arccos()
-            res = expr.bind({x: -0.3 for x in expr.parameters})
+            res = expr.bind(dict.fromkeys(expr.parameters, -0.3))
             self.assertIsInstance(res, ParameterExpression)
             self.assertEqual(res, math.acos(-0.3))
 
@@ -241,12 +246,12 @@ class TestParameterExpression(QiskitTestCase):
         """Test expression arcsin."""
         if isinstance(expression, ParameterExpression):
             expr = expression.arcsin()
-            res = expr.bind({x: 0.2 for x in expr.parameters})
+            res = expr.bind(dict.fromkeys(expr.parameters, 0.2))
             self.assertIsInstance(res, ParameterExpression)
             self.assertEqual(res, math.asin(0.2))
             # Test negative
             expr = expression.arcsin()
-            res = expr.bind({x: -0.3 for x in expr.parameters})
+            res = expr.bind(dict.fromkeys(expr.parameters, -0.3))
             self.assertIsInstance(res, ParameterExpression)
             self.assertEqual(res, math.asin(-0.3))
 
@@ -255,12 +260,12 @@ class TestParameterExpression(QiskitTestCase):
         """Test expression arctan."""
         if isinstance(expression, ParameterExpression):
             expr = expression.arctan()
-            res = expr.bind({x: 0.2 for x in expr.parameters})
+            res = expr.bind(dict.fromkeys(expr.parameters, 0.2))
             self.assertIsInstance(res, ParameterExpression)
             self.assertEqual(res, math.atan(0.2))
             # Test negative
             expr = expression.arctan()
-            res = expr.bind({x: -0.3 for x in expr.parameters})
+            res = expr.bind(dict.fromkeys(expr.parameters, -0.3))
             self.assertIsInstance(res, ParameterExpression)
             self.assertEqual(res, math.atan(-0.3))
 
@@ -269,7 +274,7 @@ class TestParameterExpression(QiskitTestCase):
         """Test expression conjugate."""
         if isinstance(expression, ParameterExpression):
             expr = expression.conjugate()
-            res = expr.bind({x: bind_value for x in expr.parameters})
+            res = expr.bind(dict.fromkeys(expr.parameters, bind_value))
             self.assertIsInstance(res, ParameterExpression)
             numeric = res.numeric()
             if isinstance(numeric, complex):
@@ -282,7 +287,7 @@ class TestParameterExpression(QiskitTestCase):
         """Test expression cos."""
         if isinstance(expression, ParameterExpression):
             expr = expression.cos()
-            res = expr.bind({x: bind_value for x in expr.parameters})
+            res = expr.bind(dict.fromkeys(expr.parameters, bind_value))
             self.assertIsInstance(res, ParameterExpression)
             if isinstance(bind_value, complex):
                 self.assertAlmostEqual(res.numeric(), cmath.cos(bind_value))
@@ -294,7 +299,7 @@ class TestParameterExpression(QiskitTestCase):
         """Test expression sin."""
         if isinstance(expression, ParameterExpression):
             expr = expression.sin()
-            res = expr.bind({x: bind_value for x in expr.parameters})
+            res = expr.bind(dict.fromkeys(expr.parameters, bind_value))
             self.assertIsInstance(res, ParameterExpression)
             if isinstance(bind_value, complex):
                 self.assertAlmostEqual(res.numeric(), cmath.sin(bind_value))
@@ -306,7 +311,7 @@ class TestParameterExpression(QiskitTestCase):
         """Test expression tan."""
         if isinstance(expression, ParameterExpression):
             expr = expression.tan()
-            res = expr.bind({x: bind_value for x in expr.parameters})
+            res = expr.bind(dict.fromkeys(expr.parameters, bind_value))
             self.assertIsInstance(res, ParameterExpression)
             if isinstance(bind_value, complex):
                 self.assertAlmostEqual(res.numeric(), cmath.tan(bind_value))
@@ -318,7 +323,7 @@ class TestParameterExpression(QiskitTestCase):
         """Test expression exp."""
         if isinstance(expression, ParameterExpression):
             expr = expression.exp()
-            res = expr.bind({x: bind_value for x in expr.parameters})
+            res = expr.bind(dict.fromkeys(expr.parameters, bind_value))
             self.assertIsInstance(res, ParameterExpression)
             if isinstance(bind_value, complex):
                 self.assertAlmostEqual(res.numeric(), cmath.exp(bind_value))
@@ -330,39 +335,38 @@ class TestParameterExpression(QiskitTestCase):
         """Test expression log."""
         if isinstance(expression, ParameterExpression) and bind_value != 0:
             expr = expression.log()
-            res = expr.bind({x: bind_value for x in expr.parameters})
+            res = expr.bind(dict.fromkeys(expr.parameters, bind_value))
             self.assertIsInstance(res, ParameterExpression)
             if isinstance(bind_value, complex):
                 self.assertAlmostEqual(res.numeric(), cmath.log(bind_value))
+            elif bind_value > 0:
+                self.assertAlmostEqual(res.numeric(), math.log(bind_value))
             else:
-                if bind_value > 0:
-                    self.assertAlmostEqual(res.numeric(), math.log(bind_value))
-                else:
-                    self.assertAlmostEqual(res.numeric(), cmath.log(bind_value))
+                self.assertAlmostEqual(res.numeric(), cmath.log(bind_value))
 
     @combine(expression=operands)
     def test_sign_simple(self, expression):
         """Test expression sign."""
         if isinstance(expression, ParameterExpression) and expression.is_real():
             expr = expression.sign()
-            res = expr.bind({x: -0.1 for x in expr.parameters})
+            res = expr.bind(dict.fromkeys(expr.parameters, -0.1))
             self.assertIsInstance(res, ParameterExpression)
             self.assertEqual(res, -1)
             expr = expression.sign()
-            res = expr.bind({x: 0.1 for x in expr.parameters})
+            res = expr.bind(dict.fromkeys(expr.parameters, 0.1))
             self.assertEqual(res, 1)
             expr = expression.sign()
-            res = expr.bind({x: 0.0 for x in expr.parameters})
+            res = expr.bind(dict.fromkeys(expr.parameters, 0.0))
             self.assertEqual(res, 0)
             expr = expression.sign()
-            res = expr.bind({x: -2 for x in expr.parameters})
+            res = expr.bind(dict.fromkeys(expr.parameters, -2))
             self.assertIsInstance(res, ParameterExpression)
             self.assertEqual(res, -1)
             expr = expression.sign()
-            res = expr.bind({x: 5 for x in expr.parameters})
+            res = expr.bind(dict.fromkeys(expr.parameters, 5))
             self.assertEqual(res, 1)
             expr = expression.sign()
-            res = expr.bind({x: 0 for x in expr.parameters})
+            res = expr.bind(dict.fromkeys(expr.parameters, 0))
             self.assertEqual(res, 0)
 
     @combine(expression=operands)
@@ -373,9 +377,9 @@ class TestParameterExpression(QiskitTestCase):
             self.assertTrue(res.is_real())
             res = expression.bind({x: complex(1.0, 1.0) for x in expression.parameters})
             self.assertFalse(res.is_real())
-            res = expression.bind({x: 1.0 for x in expression.parameters})
+            res = expression.bind(dict.fromkeys(expression.parameters, 1.0))
             self.assertTrue(res.is_real())
-            res = expression.bind({x: 5 for x in expression.parameters})
+            res = expression.bind(dict.fromkeys(expression.parameters, 5))
             self.assertTrue(res.is_real())
             self.assertFalse(expression.is_real())
 
@@ -395,12 +399,12 @@ class TestParameterExpression(QiskitTestCase):
             with self.assertRaises(TypeError):
                 int(res)
             self.assertAlmostEqual(complex(res), complex(1.0, 1.0))
-            res = expression.bind({x: 1.0 for x in expression.parameters})
+            res = expression.bind(dict.fromkeys(expression.parameters, 1.0))
             self.assertIsInstance(complex(res), complex)
             self.assertIsInstance(float(res), float)
             self.assertIsInstance(int(res), int)
             self.assertEqual(res, 1.0)
-            res = expression.bind({x: 5 for x in expression.parameters})
+            res = expression.bind(dict.fromkeys(expression.parameters, 5))
             self.assertIsInstance(complex(res), complex)
             self.assertIsInstance(float(res), float)
             self.assertIsInstance(int(res), int)
@@ -416,10 +420,10 @@ class TestParameterExpression(QiskitTestCase):
             res = expression.bind({x: complex(1.0, 1.0) for x in expression.parameters}).numeric()
             self.assertIsInstance(res, complex)
             self.assertAlmostEqual(complex(res), complex(1.0, 1.0))
-            res = expression.bind({x: 1.0 for x in expression.parameters}).numeric()
+            res = expression.bind(dict.fromkeys(expression.parameters, 1.0)).numeric()
             self.assertIsInstance(float(res), float)
             self.assertEqual(res, 1.0)
-            res = expression.bind({x: 5 for x in expression.parameters}).numeric()
+            res = expression.bind(dict.fromkeys(expression.parameters, 5)).numeric()
             self.assertIsInstance(int(res), int)
             self.assertEqual(res, 5)
 
@@ -452,7 +456,8 @@ class TestParameterExpression(QiskitTestCase):
                 with self.subTest(method=method, value=value):
                     ref = reference(value)
                     if isinstance(d_expr, ParameterExpression):
-                        val = d_expr.bind({x: value}).numeric()
+                        # allow unknown parameters since the derivative could evaluate to a const
+                        val = d_expr.bind({x: value}, allow_unknown_parameters=True).numeric()
                     else:
                         val = d_expr  # d/dx conj(x) == 1
 
@@ -466,6 +471,27 @@ class TestParameterExpression(QiskitTestCase):
         with self.assertRaises(RuntimeError):
             _ = expr.gradient(x)
 
+    def test_gradient_constant_derivatives(self):
+        """Test gradient method returns numeric values for constant derivatives."""
+        x = Parameter("x")
+        y = Parameter("y")
+
+        test_cases = [
+            (x, x, 1.0),
+            (x + 0, x, 1.0),
+            (0 * x, x, 0.0),
+            (x / 2, x, 0.5),
+            (x - x, x, 0.0),
+            (5 + x - x, x, 0.0),
+            (2 * x + y - x, x, 1.0),
+        ]
+
+        for expr, param, expected in test_cases:
+            with self.subTest(expr=str(expr), param=str(param)):
+                result = expr.gradient(param)
+                self.assertIsInstance(result, (int, float, complex))
+                self.assertEqual(result, expected)
+
     @unittest.skipUnless(HAS_SYMPY, "Sympy is required for this test")
     def test_sympify_all_ops(self):
         """Test the sympify function works for all the supported operations."""
@@ -477,7 +503,7 @@ class TestParameterExpression(QiskitTestCase):
         c = Parameter("c")
         d = Parameter("d")
 
-        expression = (a + b.sin() / 4) * c**2
+        expression = (a + b.sin() * 0.25) * c**2
         final_expr = (
             (expression.cos() + d.arccos() - d.arcsin() + d.arctan() + d.tan()) / d.exp()
             + expression.gradient(a)
@@ -493,7 +519,7 @@ class TestParameterExpression(QiskitTestCase):
         b = sympy.Symbol("b")
         c = sympy.Symbol("c")
         d = sympy.Symbol("d")
-        expression = (a + sympy.sin(b) / 4) * c**2
+        expression = (a + sympy.sin(b) * 0.25) * c**2
         expected = (
             (sympy.cos(expression) + sympy.acos(d) - sympy.asin(d) + sympy.atan(d) + sympy.tan(d))
             / sympy.exp(d)
@@ -504,6 +530,7 @@ class TestParameterExpression(QiskitTestCase):
         )
         expected = sympy.Abs(expected)
         expected = expected.subs({c: a})
+
         self.assertEqual(result, expected)
 
     @unittest.skipUnless(HAS_SYMPY, "Sympy is required for this test")
@@ -519,3 +546,64 @@ class TestParameterExpression(QiskitTestCase):
         result = expression.sympify()
         expected = sympy.Symbol("p[0]") + 1
         self.assertEqual(expected, result)
+
+    @unittest.skipUnless(HAS_SYMPY, "Sympy is required for this test")
+    def test_sympify_rpow_operand_order(self):
+        """Test that sympify correctly handles RPOW operations with swapped operands.
+
+        This test verifies the fix for issue #15583, where ParameterExpression.sympify()
+        was incorrectly swapping operands for reverse power operations (RPOW).
+        """
+        import sympy
+
+        a, b = Parameter("a"), Parameter("b")
+        # This creates a ** (b - 2), which uses RPOW internally
+        res = a ** (b - 2)
+
+        # The string representation should be correct
+        self.assertEqual(str(res), "a**(-2 + b)")
+
+        # The sympify result should match the correct order: a ** (b - 2)
+        sympy_result = res.sympify()
+        expected = sympy.Symbol("a") ** (sympy.Symbol("b") - 2)
+
+        self.assertEqual(sympy_result, expected)
+
+        # Test with a product expression as exponent (as mentioned in the issue)
+        res2 = a ** (2 * b)
+        sympy_result2 = res2.sympify()
+        expected2 = sympy.Symbol("a") ** (2 * sympy.Symbol("b"))
+        self.assertEqual(sympy_result2, expected2)
+
+    @unittest.skipUnless(HAS_SYMPY, "Sympy is required for this test")
+    def test_sympify_reverse_operations(self):
+        """Test that sympify correctly handles all reverse operations (RPOW, RDIV, RSUB).
+
+        This test ensures that reverse operations correctly swap operands when converting
+        to sympy expressions. Reverse operations are used when the left operand is numeric
+        and the right operand is a ParameterExpression.
+        """
+        import sympy
+
+        a, b = Parameter("a"), Parameter("b")
+
+        # Test RPOW: a ** (b - 2) should convert to a ** (b - 2)
+        # This uses RPOW internally when the exponent is a ParameterExpression
+        res_pow = a ** (b - 2)
+        sympy_pow = res_pow.sympify()
+        expected_pow = sympy.Symbol("a") ** (sympy.Symbol("b") - 2)
+        self.assertEqual(sympy_pow, expected_pow)
+
+        # Test RDIV: 2 / a should convert to 2 / a
+        # RDIV is used when left operand is numeric and right is ParameterExpression
+        res_div = 2 / a
+        sympy_div = res_div.sympify()
+        expected_div = 2 / sympy.Symbol("a")
+        self.assertEqual(sympy_div, expected_div)
+
+        # Test RSUB: 2 - a should convert to 2 - a
+        # RSUB is used when left operand is numeric and right is ParameterExpression
+        res_sub = 2 - a
+        sympy_sub = res_sub.sympify()
+        expected_sub = 2 - sympy.Symbol("a")
+        self.assertEqual(sympy_sub, expected_sub)

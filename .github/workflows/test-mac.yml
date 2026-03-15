@@ -22,22 +22,19 @@ on:
         required: true
 jobs:
   tests-mac:
-    if: github.repository_owner == 'Qiskit'
-    name: ${{ inputs.runner }}-tests-Python-${{ inputs.python-version }}
+    name: ${{ inputs.runner }} - Python ${{ inputs.python-version }}
     runs-on: ${{ inputs.runner }}
     timeout-minutes: 60
     env:
       QISKIT_TEST_CAPTURE_STREAMS: 1
-    strategy:
-      fail-fast: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Set up Python ${{ inputs.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ inputs.python-version }}
       - name: Cache stestr
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           key: 'stestr | "${{ runner.os }}" | "${{ inputs.python-version }}" | "${{ github.run_id }}"'
           restore-keys: |
@@ -48,21 +45,18 @@ jobs:
       - name: "Install dependencies"
         run: |
           set -e
-          python -m pip install --upgrade pip setuptools wheel
           python -m venv test-job
           source test-job/bin/activate
-          python -m pip install -U pip setuptools wheel
+          python -m pip install -U pip
           python -m pip install -U \
             -c constraints.txt \
-            -r requirements.txt \
-            -r requirements-dev.txt \
+            --group test \
             -e .
-          pip check
       - name: "Install optionals"
         run: |
           set -e
           source test-job/bin/activate
-          pip install -r requirements-optional.txt -c constraints.txt
+          pip install --group optionals-all -c constraints.txt
           pip check
         if: ${{ inputs.install-optionals }}
       - name: "Run tests"
@@ -84,7 +78,7 @@ jobs:
           ls | grep -e '^[[:digit:]]' | xargs -n1 rm -f
           popd
       - name: Copy and Publish images
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: ${{ failure() }}
         with:
           name: copied-images-${{ runner.name }}-tests-Python-${{ inputs.python-version }}

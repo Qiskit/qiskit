@@ -24,6 +24,7 @@ num-bigint.workspace = true
 itertools.workspace = true
 qiskit-circuit.workspace = true
 qiskit-transpiler.workspace = true
+qiskit-quantum-info.workspace = true
 nalgebra.workspace = true
 
 [dependencies.smallvec]
@@ -47,7 +48,7 @@ workspace = true
 features = ["rayon", "serde"]
 
 [dependencies.pulp]
-version = "0.21.5"
+version = "0.22.2"
 features = ["macro"]
 
 [dev-dependencies]

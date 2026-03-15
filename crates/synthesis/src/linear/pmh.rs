@@ -4,21 +4,21 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
 use hashbrown::HashMap;
-use ndarray::{s, Array1, Array2, ArrayViewMut2, Axis};
+use ndarray::{Array1, Array2, ArrayViewMut2, Axis, s};
 use numpy::PyReadonlyArray2;
 use smallvec::smallvec;
 use std::cmp;
 
-use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::operations::{Param, StandardGate};
 use qiskit_circuit::Qubit;
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
+use qiskit_circuit::operations::{Param, StandardGate};
 
 use pyo3::prelude::*;
 
@@ -26,11 +26,7 @@ use super::utils::_add_row_or_col;
 
 /// This helper function allows transposed access to a matrix.
 fn _index(transpose: bool, i: usize, j: usize) -> (usize, usize) {
-    if transpose {
-        (j, i)
-    } else {
-        (i, j)
-    }
+    if transpose { (j, i) } else { (i, j) }
 }
 
 fn _ceil_fraction(numerator: usize, denominator: usize) -> usize {
@@ -154,10 +150,9 @@ fn lower_cnot_synth(
 #[pyfunction]
 #[pyo3(signature = (matrix, section_size=None))]
 pub fn synth_cnot_count_full_pmh(
-    py: Python,
     matrix: PyReadonlyArray2<bool>,
     section_size: Option<i64>,
-) -> PyResult<CircuitData> {
+) -> PyResult<PyCircuitData> {
     let arrayview = matrix.as_array();
     let mut mat: Array2<bool> = arrayview.to_owned();
     let num_qubits = mat.nrows(); // is a quadratic matrix
@@ -191,5 +186,8 @@ pub fn synth_cnot_count_full_pmh(
             )
         });
 
-    CircuitData::from_standard_gates(py, num_qubits as u32, instructions, Param::Float(0.0))
+    Ok(
+        CircuitData::from_standard_gates(num_qubits as u32, instructions, Param::Float(0.0))?
+            .into(),
+    )
 }

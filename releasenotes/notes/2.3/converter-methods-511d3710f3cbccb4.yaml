@@ -1,0 +1,9 @@
+---
+features_circuits:
+  - |
+    A new :meth:`.QuantumCircuit.to_dag` method now provides a convenient
+    wrapper around :func:`.circuit_to_dag`.
+features_transpiler:
+  - |
+    A new :meth:`.DAGCircuit.to_circuit` method now provides a convenient
+    wrapper around :func:`.dag_to_circuit`.

@@ -4,13 +4,12 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
 
 """
 Expand 2-qubit Unitary operators into an equivalent
@@ -27,13 +26,13 @@ from __future__ import annotations
 import io
 import base64
 import warnings
-from typing import Optional, Type, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 import logging
 
 import numpy as np
 
-from qiskit.circuit import QuantumRegister, QuantumCircuit, Gate, CircuitInstruction
+from qiskit.circuit import QuantumCircuit, Gate
 from qiskit.circuit.library.standard_gates import (
     CXGate,
     U3Gate,
@@ -126,7 +125,7 @@ class TwoQubitWeylDecomposition:
 
     This class avoids some problems of numerical instability near high-symmetry loci within the Weyl
     chamber. If there is a high-symmetry gate "nearby" (in terms of the requested average gate fidelity),
-    then it return a canonicalized decomposition of that high-symmetry gate.
+    then it returns a canonicalized decomposition of that high-symmetry gate.
 
     References:
         1. Cross, A. W., Bishop, L. S., Sheldon, S., Nation, P. D. & Gambetta, J. M.,
@@ -150,7 +149,7 @@ class TwoQubitWeylDecomposition:
     K2r: np.ndarray
 
     unitary_matrix: np.ndarray  # The unitary that was input
-    requested_fidelity: Optional[float]  # None means no automatic specialization
+    requested_fidelity: float | None  # None means no automatic specialization
     calculated_fidelity: float  # Fidelity after specialization
 
     _specializations = two_qubit_decompose.Specialization
@@ -207,7 +206,7 @@ class TwoQubitWeylDecomposition:
         circuit_data = self._inner_decomposition.circuit(
             euler_basis=euler_basis, simplify=simplify, atol=atol
         )
-        return QuantumCircuit._from_circuit_data(circuit_data, add_regs=True)
+        return QuantumCircuit._from_circuit_data(circuit_data, legacy_qubits=True)
 
     def actual_fidelity(self, **kwargs) -> float:
         """Calculates the actual fidelity of the decomposed circuit to the input unitary."""
@@ -249,7 +248,7 @@ class TwoQubitWeylDecomposition:
         requested_fidelity: float,
         _specialization: two_qubit_decompose.Specialization | None = None,
         **kwargs,
-    ) -> "TwoQubitWeylDecomposition":
+    ) -> TwoQubitWeylDecomposition:
         """Decode bytes into :class:`.TwoQubitWeylDecomposition`."""
         # Used by __repr__
         del kwargs  # Unused (just for display)
@@ -270,7 +269,7 @@ class TwoQubitControlledUDecomposer:
     :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}`
     gate that is locally equivalent to an :class:`.RXXGate`."""
 
-    def __init__(self, rxx_equivalent_gate: Type[Gate], euler_basis: str = "ZXZ"):
+    def __init__(self, rxx_equivalent_gate: type[Gate], euler_basis: str = "ZXZ"):
         r"""Initialize the KAK decomposition.
 
         Args:
@@ -314,7 +313,7 @@ class TwoQubitControlledUDecomposer:
         Note: atol is passed to OneQubitEulerDecomposer.
         """
         circ_data = self._inner_decomposer(np.asarray(unitary, dtype=complex), atol)
-        return QuantumCircuit._from_circuit_data(circ_data, add_regs=True)
+        return QuantumCircuit._from_circuit_data(circ_data, legacy_qubits=True)
 
 
 class TwoQubitBasisDecomposer:
@@ -347,17 +346,10 @@ class TwoQubitBasisDecomposer:
         self.gate = gate
         self.basis_fidelity = basis_fidelity
         self.pulse_optimize = pulse_optimize
-        # Use cx as gate name for pulse optimal decomposition detection
-        # otherwise use USER_GATE as a unique key to support custom gates
-        # including parameterized gates like UnitaryGate.
-        if isinstance(gate, CXGate):
-            gate_name = "cx"
-        else:
-            gate_name = "USER_GATE"
-        self.gate_name = gate_name
+        self.gate_name = gate.name
 
         self._inner_decomposer = two_qubit_decompose.TwoQubitBasisDecomposer(
-            gate_name,
+            gate,
             Operator(gate).data,
             basis_fidelity=basis_fidelity,
             euler_basis=euler_basis,
@@ -462,59 +454,19 @@ class TwoQubitBasisDecomposer:
             QiskitError: if ``pulse_optimize`` is True but we don't know how to do it.
         """
 
+        unitary = np.asarray(unitary, dtype=complex)
         if use_dag:
-            from qiskit.dagcircuit.dagcircuit import DAGCircuit
-            from qiskit.dagcircuit.dagnode import DAGOpNode
-
-            sequence = self._inner_decomposer(
-                np.asarray(unitary, dtype=complex),
+            return self._inner_decomposer.to_dag(
+                unitary, basis_fidelity, approximate, _num_basis_uses
+            )
+        else:
+            circ_data = self._inner_decomposer.to_circuit(
+                unitary,
                 basis_fidelity,
                 approximate,
                 _num_basis_uses=_num_basis_uses,
             )
-            q = QuantumRegister(2)
-
-            dag = DAGCircuit()
-            dag.global_phase = sequence.global_phase
-            dag.add_qreg(q)
-            for gate, params, qubits in sequence:
-                if gate is None:
-                    dag.apply_operation_back(self.gate, tuple(q[x] for x in qubits), check=False)
-                else:
-                    op = CircuitInstruction.from_standard(
-                        gate, qubits=tuple(q[x] for x in qubits), params=params
-                    )
-                    node = DAGOpNode.from_instruction(op)
-                    dag._apply_op_node_back(node)
-            return dag
-        else:
-            if getattr(self.gate, "_standard_gate", None):
-                circ_data = self._inner_decomposer.to_circuit(
-                    np.asarray(unitary, dtype=complex),
-                    self.gate,
-                    basis_fidelity,
-                    approximate,
-                    _num_basis_uses=_num_basis_uses,
-                )
-                return QuantumCircuit._from_circuit_data(circ_data, add_regs=True)
-            else:
-                sequence = self._inner_decomposer(
-                    np.asarray(unitary, dtype=complex),
-                    basis_fidelity,
-                    approximate,
-                    _num_basis_uses=_num_basis_uses,
-                )
-                q = QuantumRegister(2)
-                circ = QuantumCircuit(q, global_phase=sequence.global_phase)
-                for gate, params, qubits in sequence:
-                    if gate is None:
-                        circ._append(self.gate, qargs=tuple(q[x] for x in qubits))
-                    else:
-                        inst = CircuitInstruction.from_standard(
-                            gate, qubits=tuple(q[x] for x in qubits), params=params
-                        )
-                        circ._append(inst)
-                return circ
+            return QuantumCircuit._from_circuit_data(circ_data, legacy_qubits=True)
 
     def traces(self, target):
         r"""
@@ -535,7 +487,7 @@ class TwoQubitBasisDecomposer:
 class _LazyTwoQubitCXDecomposer(TwoQubitBasisDecomposer):
     __slots__ = ("_inner",)
 
-    def __init__(self):  # pylint: disable=super-init-not-called
+    def __init__(self):
         self._inner = None
 
     def _load(self):

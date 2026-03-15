@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -18,10 +18,10 @@ use crate::ast::{
     Alias, Assignment, Barrier, Binary, BinaryOp, BitArray, BooleanLiteral, Cast,
     ClassicalDeclaration, ClassicalType, Constant, Delay, DurationLiteral, Expression, Float,
     GateCall, Header, Identifier, IdentifierOrSubscripted, Include, Index, IndexSet, Int,
-    IntegerLiteral, Node, Parameter, Program, ProgramBlock, QuantumBlock, QuantumDeclaration,
+    IntegerLiteral, Node, OP, Parameter, Program, ProgramBlock, QuantumBlock, QuantumDeclaration,
     QuantumGateDefinition, QuantumGateModifier, QuantumGateModifierName, QuantumGateSignature,
     QuantumInstruction, QuantumMeasurement, QuantumMeasurementAssignment, Range, Reset, Statement,
-    SubscriptedIdentifier, Uint, Unary, UnaryOp, Version, OP,
+    SubscriptedIdentifier, Uint, Unary, UnaryOp, Version,
 };
 
 #[derive(Debug)]

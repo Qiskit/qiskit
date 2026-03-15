@@ -1,0 +1,4 @@
+features_quantum_info:
+  - |
+    Added the method :meth:`.QubitSparsePauliList.to_dense_array`. This
+    returns the list as an array of integers with the values of :class:`~.QubitSparsePauli.Pauli`.

@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -14,7 +14,7 @@
 
 import math
 from cmath import exp
-from typing import Optional
+
 import numpy
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
@@ -22,21 +22,21 @@ from qiskit._accelerate.circuit import StandardGate
 
 
 class RGate(Gate):
-    r"""Rotation θ around the cos(φ)x + sin(φ)y axis.
+    r"""Rotation :math:`\theta` around the :math:`\cos(\phi)x + \sin(\phi)y` axis.
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.r` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
-               ┌─────────┐
-        q_0:   ┤ R(θ,ϕ)  ├ 
-               └─────────┘
+               ┌────────┐
+        q_0:   ┤ R(θ,ϕ) ├ 
+               └────────┘
 
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -55,14 +55,19 @@ class RGate(Gate):
         self,
         theta: ParameterValueType,
         phi: ParameterValueType,
-        label: Optional[str] = None,
+        label: str | None = None,
     ):
-        """Create new r single-qubit gate."""
+        r"""
+        Args:
+            theta: The rotation angle :math:`\theta`.
+            phi: The angle specifying the rotation axis, given by :math:`\cos(\phi) x + \sin(\phi)y`.
+            label: An optional label for the gate.
+        """
         super().__init__("r", 1, [theta, phi], label=label)
 
     def _define(self):
         """Default definition"""
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         #    ┌───────────────────────┐
@@ -70,7 +75,7 @@ class RGate(Gate):
         #    └───────────────────────┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.R._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.R._get_definition(self.params), legacy_qubits=True
         )
 
     def inverse(self, annotated: bool = False):

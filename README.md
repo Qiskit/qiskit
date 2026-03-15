@@ -6,7 +6,7 @@
 [![Downloads](https://img.shields.io/pypi/dm/qiskit.svg)](https://pypi.org/project/qiskit/)
 [![Coverage Status](https://coveralls.io/repos/github/Qiskit/qiskit/badge.svg?branch=main)](https://coveralls.io/github/Qiskit/qiskit?branch=main)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/qiskit)
-[![Minimum rustc 1.79](https://img.shields.io/badge/rustc-1.79+-blue.svg)](https://rust-lang.github.io/rfcs/2495-min-rust-version.html)
+[![Minimum rustc 1.85](https://img.shields.io/badge/rustc-1.85+-blue.svg)](https://rust-lang.github.io/rfcs/2495-min-rust-version.html)
 [![Downloads](https://static.pepy.tech/badge/qiskit)](https://pepy.tech/project/qiskit)<!--- long-description-skip-end -->
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2583252.svg)](https://doi.org/10.5281/zenodo.2583252)
 
@@ -93,11 +93,18 @@ The power of quantum computing cannot be simulated on classical computers and yo
 However, running a quantum circuit on hardware requires rewriting to the basis gates and connectivity of the quantum hardware.
 The tool that does this is the [transpiler](https://quantum.cloud.ibm.com/docs/api/qiskit/transpiler), and Qiskit includes transpiler passes for synthesis, optimization, mapping, and scheduling.
 However, it also includes a default compiler, which works very well in most examples.
-The following code will map the example circuit to the `basis_gates = ["cz", "sx", "rz"]` and a linear chain of qubits $0 \rightarrow 1 \rightarrow 2$ with the `coupling_map = [[0, 1], [1, 2]]`.
+The following code will map the example circuit to the `basis_gates = ["cz", "sx", "rz"]` and a
+bidirectional linear chain of qubits $0 \leftrightarrow 1 \leftrightarrow 2$ with the
+`coupling_map = [[0, 1], [1, 0], [1, 2], [2, 1]]`.
 
 ```python
 from qiskit import transpile
-qc_transpiled = transpile(qc, basis_gates=["cz", "sx", "rz"], coupling_map=[[0, 1], [1, 2]], optimization_level=3)
+from qiskit.transpiler import Target, CouplingMap
+target = Target.from_configuration(
+    basis_gates=["cz", "sx", "rz"],
+    coupling_map=CouplingMap.from_line(3),
+)
+qc_transpiled = transpile(qc, target=target)
 ```
 
 ### Executing your code on real quantum hardware

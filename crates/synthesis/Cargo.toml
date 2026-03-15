@@ -15,7 +15,6 @@ workspace = true
 [dependencies]
 qiskit-circuit.workspace = true
 qiskit-quantum-info.workspace = true
-bincode = "1.3"
 bytemuck.workspace = true
 num-complex.workspace = true
 nalgebra.workspace = true
@@ -27,16 +26,14 @@ num-traits.workspace = true
 rand.workspace = true
 rand_pcg.workspace = true
 rand_distr.workspace = true
-faer = "0.19.4"
+faer = "0.24"
 rustworkx-core.workspace = true
 rustiq-core = "0.0.11"
+rsgridsynth = "0.2.0"
 rstar = "0.12.2"
-serde = "1.0.219"
 thiserror.workspace = true
-
-[dependencies.faer-ext]
-version = "0.3.0"
-features = ["ndarray"]
+fixedbitset.workspace = true
+binrw.workspace = true
 
 [dependencies.smallvec]
 workspace = true
@@ -64,3 +61,6 @@ features = ["rayon"]
 
 [dev-dependencies]
 pyo3 = { workspace = true, features = ["auto-initialize"] }
+
+[features]
+cache_pygates = ["qiskit-circuit/cache_pygates"]

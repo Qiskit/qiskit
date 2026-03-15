@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -20,8 +20,11 @@ import qiskit.quantum_info as qi
 from qiskit import QuantumCircuit
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.primitives import BackendEstimatorV2
-from qiskit.primitives.containers.observables_array import ObservablesArray, object_array
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.primitives.containers.observables_array import (
+    ObservablesArray,
+    object_array,
+)
+from test import QiskitTestCase
 
 
 @ddt.ddt
@@ -622,3 +625,20 @@ class ObservablesArrayTestCase(QiskitTestCase):
         arr2 = obsarray.sparse_observables_array(copy=False)
         self.assertEqual(arr2, arr)
         self.assertEqual(id(arr2), id(arr))
+
+    def test_empty_observable(self):
+        """Verify that empty observables are not allowed"""
+        with self.assertRaisesRegex(ValueError, "Empty observable"):
+            ObservablesArray([{"Z": 0}])
+
+    def test_hermitian_after_simplification(self):
+        """Verify that no error is raised if observables contain complex coefficients
+        that get cancelled during simplification"""
+        obs = qi.SparseObservable.from_list([("Z", 1j), ("Z", -1j), ("X", 1)])
+        ObservablesArray(obs)
+
+    def test_invalid_basis_type_raises_type_error(self):
+        """Test that invalid basis type raises TypeError"""
+        invalid_basis = {1: "value", 2: "another_value"}  # Invalid keys (integers)
+        with self.assertRaises(TypeError):
+            ObservablesArray.coerce_observable(invalid_basis)

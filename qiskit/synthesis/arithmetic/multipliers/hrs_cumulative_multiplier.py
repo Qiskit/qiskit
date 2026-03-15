@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -54,7 +54,7 @@ def multiplier_cumulative_h18(
         ValueError: If ``num_result_qubits`` is given and not valid, meaning not
             in ``[num_state_qubits, 2 * num_state_qubits]``.
 
-    **References:**
+    References:
 
     [1] Häner et al., Optimizing Quantum Circuits for Arithmetic, 2018.
     `arXiv:1805.12445 <https://arxiv.org/pdf/1805.12445.pdf>`_
@@ -76,7 +76,7 @@ def multiplier_cumulative_h18(
     circuit = QuantumCircuit(qr_a, qr_b, qr_out)
 
     # prepare adder as controlled gate
-    # pylint: disable=cyclic-import
+
     from qiskit.circuit.library.arithmetic import HalfAdderGate, ModularAdderGate
 
     adder = HalfAdderGate(num_state_qubits)

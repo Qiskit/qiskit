@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -29,7 +29,7 @@ use pyo3::types::{PyAny, PyDict, PyModule};
 
 use oq3_semantics::syntax_to_semantics::parse_source_string;
 use pyo3::pybacked::PyBackedStr;
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::PyCircuitData;
 
 use crate::error::QASM3ImporterError;
 
@@ -67,11 +67,13 @@ pub fn loads(
 ) -> PyResult<circuit::PyCircuit> {
     let default_include_path = || -> PyResult<Vec<OsString>> {
         let filename: PyBackedStr = py.import("qiskit")?.filename()?.try_into()?;
-        Ok(vec![Path::new(filename.deref())
-            .parent()
-            .unwrap()
-            .join(["qasm", "libs", "dummy"].iter().collect::<PathBuf>())
-            .into_os_string()])
+        Ok(vec![
+            Path::new(filename.deref())
+                .parent()
+                .unwrap()
+                .join(["qasm", "libs", "dummy"].iter().collect::<PathBuf>())
+                .into_os_string(),
+        ])
     };
     let include_path = include_path.map(Ok).unwrap_or_else(default_include_path)?;
     let result = parse_source_string(source, None, Some(&include_path));
@@ -201,10 +203,7 @@ pub fn dumps(
             options.indent = val.extract::<String>()?;
         }
     }
-    let circuit_data = circuit
-        .getattr("_data")?
-        .downcast::<CircuitData>()?
-        .borrow();
+    let circuit_data = circuit.getattr("_data")?.cast::<PyCircuitData>()?.borrow();
 
     let islayout = !circuit.getattr("layout")?.is_none();
 
@@ -252,10 +251,7 @@ pub fn dump(
             options.indent = val.extract::<String>()?;
         }
     }
-    let circuit_data = circuit
-        .getattr("_data")?
-        .downcast::<CircuitData>()?
-        .borrow();
+    let circuit_data = circuit.getattr("_data")?.cast::<PyCircuitData>()?.borrow();
 
     let islayout = !circuit.getattr("layout")?.is_none();
 

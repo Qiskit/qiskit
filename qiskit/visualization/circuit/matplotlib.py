@@ -4,13 +4,12 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name,inconsistent-return-statements
 
 """mpl circuit visualization backend."""
 
@@ -110,6 +109,7 @@ class MatplotlibDrawer:
         cregbundle=None,
         with_layout=False,
         expr_len=30,
+        measure_arrows=None,
     ):
         self._circuit = circuit
         self._qubits = qubits
@@ -139,6 +139,7 @@ class MatplotlibDrawer:
         self._global_phase = self._circuit.global_phase
         self._expr_len = expr_len
         self._cregbundle = cregbundle
+        self._measure_arrows = measure_arrows
 
         self._lwidth1 = 1.0
         self._lwidth15 = 1.5
@@ -251,7 +252,7 @@ class MatplotlibDrawer:
             "}": (0.1896, 0.1188),
         }
 
-    def draw(self, filename=None, verbose=False):
+    def draw(self, filename=None):
         """Main entry point to 'matplotlib' ('mpl') drawer. Called from
         ``visualization.circuit_drawer`` and from ``QuantumCircuit.draw`` through circuit_drawer.
         """
@@ -389,7 +390,6 @@ class MatplotlibDrawer:
             qubits_dict,
             clbits_dict,
             glob_data,
-            verbose,
         )
         if filename:
             mpl_figure.savefig(
@@ -421,7 +421,7 @@ class MatplotlibDrawer:
                 num_ctrl_qubits = getattr(op, "num_ctrl_qubits", 0)
                 if (
                     getattr(op, "_directive", False) and (not op.label or not self._plot_barriers)
-                ) or isinstance(op, Measure):
+                ) or (self._measure_arrows and isinstance(op, Measure)):
                     node_data[node].raw_gate_text = op.name
                     continue
 
@@ -431,7 +431,9 @@ class MatplotlibDrawer:
                 )
                 node_data[node].gate_text = gate_text
                 node_data[node].ctrl_text = ctrl_text
-                node_data[node].raw_gate_text = raw_gate_text
+                # Measure doesn't use raw_gate_text since it displays a dial
+                if not isinstance(op, Measure):
+                    node_data[node].raw_gate_text = raw_gate_text
                 node_data[node].param_text = ""
 
                 # if single qubit, no params, and no labels, layer_width is 1
@@ -582,7 +584,7 @@ class MatplotlibDrawer:
                         # Get the layered node lists and instantiate a new drawer class for
                         # the circuit inside the ControlFlowOp.
                         qubits, clbits, flow_nodes = _get_layered_instructions(
-                            circuit, wire_map=flow_wire_map
+                            circuit, wire_map=flow_wire_map, measure_arrows=self._measure_arrows
                         )
                         flow_drawer = MatplotlibDrawer(
                             qubits,
@@ -633,6 +635,21 @@ class MatplotlibDrawer:
                         else:
                             node_data[node].width.append(raw_gate_width)
 
+                # If measure_arrows is False, this section gets the layer width for a measure
+                # based on the width of register_bit and puts it into the param_width. If the
+                # register_bit is small enough, the gate will just use the WID width.
+                elif not self._measure_arrows and isinstance(op, Measure):
+                    register, _, reg_index = get_bit_reg_index(outer_circuit, node.cargs[0])
+                    if register is not None:
+                        param_text = f"{register.name}_{reg_index}"
+                    else:
+                        param_text = f"{reg_index}"
+                    raw_param_width = self._get_text_width(
+                        param_text, glob_data, fontsize=self._style["sfs"], param=True
+                    )
+                    param_width = raw_param_width
+                    raw_gate_width = gate_width = ctrl_width = 0.0
+
                 # Otherwise, standard gate or multiqubit gate
                 else:
                     raw_gate_width = self._get_text_width(
@@ -644,8 +661,7 @@ class MatplotlibDrawer:
                         gate_width += 0.21
 
                 box_width = max(gate_width, ctrl_width, param_width, WID)
-                if box_width > widest_box:
-                    widest_box = box_width
+                widest_box = max(widest_box, box_width)
                 if not isinstance(node.op, ControlFlowOp):
                     node_data[node].width = max(raw_gate_width, raw_param_width)
             for node in layer:
@@ -702,8 +718,7 @@ class MatplotlibDrawer:
                 )
                 * 1.15
             )
-            if text_width > longest_wire_label_width:
-                longest_wire_label_width = text_width
+            longest_wire_label_width = max(longest_wire_label_width, text_width)
 
             if isinstance(wire, Qubit):
                 pos = -ii
@@ -1064,7 +1079,6 @@ class MatplotlibDrawer:
         qubits_dict,
         clbits_dict,
         glob_data,
-        verbose=False,
     ):
         """Draw the gates in the circuit"""
 
@@ -1089,9 +1103,6 @@ class MatplotlibDrawer:
                 op = node.op
 
                 self._get_colors(node, node_data)
-
-                if verbose:
-                    print(op)  # pylint: disable=bad-builtin
 
                 # add conditional
                 if getattr(op, "condition", None) or isinstance(op, SwitchCaseOp):
@@ -1325,8 +1336,9 @@ class MatplotlibDrawer:
         self._gate(node, node_data, glob_data)
 
         # add measure symbol
+        qy_adj1 = 0.15 if self._measure_arrows else 0.05
         arc = glob_data["patches_mod"].Arc(
-            xy=(qx, qy - 0.15 * HIG),
+            xy=(qx, qy - qy_adj1 * HIG),
             width=WID * 0.7,
             height=HIG * 0.7,
             theta1=0,
@@ -1337,39 +1349,58 @@ class MatplotlibDrawer:
             zorder=PORDER_GATE,
         )
         self._ax.add_patch(arc)
+        qy_adj2 = 0.2 if self._measure_arrows else 0.3
         self._ax.plot(
             [qx, qx + 0.35 * WID],
-            [qy - 0.15 * HIG, qy + 0.20 * HIG],
+            [qy - qy_adj1 * HIG, qy + qy_adj2 * HIG],
             color=node_data[node].gt,
             linewidth=self._lwidth2,
             zorder=PORDER_GATE,
         )
-        # arrow
-        self._line(
-            node_data[node].q_xy[0],
-            [cx, cy + 0.35 * WID],
-            lc=self._style["cc"],
-            ls=self._style["cline"],
-        )
-        arrowhead = glob_data["patches_mod"].Polygon(
-            (
-                (cx - 0.20 * WID, cy + 0.35 * WID),
-                (cx + 0.20 * WID, cy + 0.35 * WID),
-                (cx, cy + 0.04),
-            ),
-            fc=self._style["cc"],
-            ec=None,
-        )
-        self._ax.add_artist(arrowhead)
-        # target
-        if self._cregbundle and register is not None:
+        # If measure_arrows, draw the down arrow to the clbit
+        if self._measure_arrows:
+            self._line(
+                node_data[node].q_xy[0],
+                [cx, cy + 0.35 * WID],
+                lc=self._style["cc"],
+                ls=self._style["cline"],
+            )
+            arrowhead = glob_data["patches_mod"].Polygon(
+                (
+                    (cx - 0.20 * WID, cy + 0.35 * WID),
+                    (cx + 0.20 * WID, cy + 0.35 * WID),
+                    (cx, cy + 0.04),
+                ),
+                fc=self._style["cc"],
+                ec=None,
+            )
+            self._ax.add_artist(arrowhead)
+            # target
+            if self._cregbundle and register is not None:
+                self._ax.text(
+                    cx + 0.25,
+                    cy + 0.1,
+                    str(reg_index),
+                    ha="left",
+                    va="bottom",
+                    fontsize=0.8 * self._style["fs"],
+                    color=self._style["tc"],
+                    clip_on=True,
+                    zorder=PORDER_TEXT,
+                )
+        else:
+            # If not measure_arrows, write the reg_bit into the measure box
+            if register is not None:
+                label = f"{register.name}_{reg_index}"
+            else:
+                label = f"{reg_index}"
             self._ax.text(
-                cx + 0.25,
-                cy + 0.1,
-                str(reg_index),
-                ha="left",
+                qx,
+                qy - 0.42 * HIG,
+                label,
+                ha="center",
                 va="bottom",
-                fontsize=0.8 * self._style["fs"],
+                fontsize=self._style["sfs"],
                 color=self._style["tc"],
                 clip_on=True,
                 zorder=PORDER_TEXT,

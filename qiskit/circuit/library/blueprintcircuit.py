@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -295,7 +295,8 @@ class BlueprintCircuit(QuantumCircuit, ABC):
         """
 
         cpy = QuantumCircuit(*self.qregs, *self.cregs, name=name, global_phase=self.global_phase)
-        _copy_metadata(self, cpy, vars_mode)
+        _copy_metadata(self, cpy)
+        cpy._data = self._data.copy_empty_like(vars_mode=vars_mode)
         return cpy
 
     def copy(self, name: str | None = None) -> BlueprintCircuit:
@@ -311,7 +312,7 @@ class BlueprintCircuit(QuantumCircuit, ABC):
             self._build()
 
         cpy = _copy.copy(self)
-        _copy_metadata(self, cpy, "alike")
+        _copy_metadata(self, cpy)
 
         cpy._is_built = self._is_built
         cpy._data = self._data.copy()

@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -102,8 +102,13 @@ where
 
 impl<B, R> BitLocator<B, R>
 where
-    B: Debug + Clone + Hash + Eq + for<'py> IntoPyObject<'py> + for<'py> FromPyObject<'py>,
-    R: Register + Debug + Clone + for<'py> IntoPyObject<'py> + for<'py> FromPyObject<'py>,
+    B: Debug
+        + Clone
+        + Hash
+        + Eq
+        + for<'py> IntoPyObject<'py>
+        + for<'a, 'py> FromPyObject<'a, 'py, Error: Into<PyErr>>,
+    R: Register + Debug + Clone + for<'py> IntoPyObject<'py> + for<'a, 'py> FromPyObject<'a, 'py>,
 {
     /// Get or create the cached Python dictionary that represents this.
     pub fn cached(&self, py: Python) -> &Py<PyDict> {
@@ -121,7 +126,10 @@ where
     pub fn from_py_dict(dict: &Bound<PyDict>) -> PyResult<Self> {
         let mut locator = Self::new();
         for (key, value) in dict {
-            locator.insert(key.extract()?, value.extract()?);
+            locator.insert(
+                key.extract().map_err(Into::<PyErr>::into)?,
+                value.extract()?,
+            );
         }
         Ok(locator)
     }

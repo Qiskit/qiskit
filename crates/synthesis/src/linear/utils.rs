@@ -4,14 +4,14 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
 use ndarray::{
-    azip, concatenate, s, Array1, Array2, ArrayView1, ArrayView2, ArrayViewMut2, Axis, Zip,
+    Array1, Array2, ArrayView1, ArrayView2, ArrayViewMut2, Axis, Zip, azip, concatenate, s,
 };
 use rand::{Rng, SeedableRng};
 use rand_pcg::Pcg64Mcg;
@@ -142,8 +142,7 @@ pub fn compute_rank_after_gauss_elim_inner(mat: ArrayView2<bool>) -> usize {
 pub fn compute_rank_inner(mat: ArrayView2<bool>) -> usize {
     let mut temp_mat = mat.to_owned();
     gauss_elimination_with_perm_inner(temp_mat.view_mut(), None, Some(false));
-    let rank = compute_rank_after_gauss_elim_inner(temp_mat.view());
-    rank
+    compute_rank_after_gauss_elim_inner(temp_mat.view())
 }
 
 /// Given a square boolean matrix mat, tries to compute its inverse.

@@ -4,23 +4,20 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-#[cfg(feature = "cache_pygates")]
-use std::sync::OnceLock;
-
+use pyo3::exceptions::PyValueError;
 use pyo3::intern;
 use pyo3::prelude::*;
 
-use crate::circuit_data::CircuitData;
-use crate::classical::expr;
-use crate::dag_circuit::{DAGCircuit, NodeType};
-use crate::operations::{OperationRef, PythonOperation};
-use crate::packed_instruction::PackedInstruction;
+use crate::bit::{ShareableClbit, ShareableQubit};
+use crate::circuit_data::{CircuitData, CircuitDataError, PyCircuitData};
+use crate::dag_circuit::DAGCircuit;
+use crate::{Clbit, Qubit};
 
 /// An extractable representation of a QuantumCircuit reserved only for
 /// conversion purposes.
@@ -29,47 +26,22 @@ pub struct QuantumCircuitData<'py> {
     pub data: CircuitData,
     pub name: Option<String>,
     pub metadata: Option<Bound<'py, PyAny>>,
-    pub input_vars: Vec<expr::Var>,
-    pub captured_vars: Vec<expr::Var>,
-    pub declared_vars: Vec<expr::Var>,
-    pub captured_stretches: Vec<expr::Stretch>,
-    pub declared_stretches: Vec<expr::Stretch>,
+    pub transpile_layout: Option<Bound<'py, PyAny>>,
 }
 
-impl<'py> FromPyObject<'py> for QuantumCircuitData<'py> {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for QuantumCircuitData<'py> {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> PyResult<Self> {
         let py = ob.py();
+        ob.getattr("data")?; // in case _data is lazily generated in python
         let circuit_data = ob.getattr("_data")?;
-        let data_borrowed = circuit_data.extract::<CircuitData>()?;
+        let data_borrowed = circuit_data.cast::<PyCircuitData>()?;
         Ok(QuantumCircuitData {
-            data: data_borrowed,
+            data: data_borrowed.borrow().inner.clone(),
             name: ob.getattr(intern!(py, "name"))?.extract()?,
             metadata: ob.getattr(intern!(py, "metadata")).ok(),
-            input_vars: ob
-                .call_method0(intern!(py, "iter_input_vars"))?
-                .try_iter()?
-                .map(|x| x?.extract())
-                .collect::<PyResult<Vec<_>>>()?,
-            captured_vars: ob
-                .call_method0(intern!(py, "iter_captured_vars"))?
-                .try_iter()?
-                .map(|x| x?.extract())
-                .collect::<PyResult<Vec<_>>>()?,
-            declared_vars: ob
-                .call_method0(intern!(py, "iter_declared_vars"))?
-                .try_iter()?
-                .map(|x| x?.extract())
-                .collect::<PyResult<Vec<_>>>()?,
-            captured_stretches: ob
-                .call_method0(intern!(py, "iter_captured_stretches"))?
-                .try_iter()?
-                .map(|x| x?.extract())
-                .collect::<PyResult<Vec<_>>>()?,
-            declared_stretches: ob
-                .call_method0(intern!(py, "iter_declared_stretches"))?
-                .try_iter()?
-                .map(|x| x?.extract())
-                .collect::<PyResult<Vec<_>>>()?,
+            transpile_layout: ob.getattr(intern!(py, "layout")).ok(),
         })
     }
 }
@@ -78,70 +50,79 @@ impl<'py> FromPyObject<'py> for QuantumCircuitData<'py> {
 pub fn circuit_to_dag(
     quantum_circuit: QuantumCircuitData,
     copy_operations: bool,
-    qubit_order: Option<Vec<Bound<PyAny>>>,
-    clbit_order: Option<Vec<Bound<PyAny>>>,
+    qubit_order: Option<Vec<ShareableQubit>>,
+    clbit_order: Option<Vec<ShareableClbit>>,
 ) -> PyResult<DAGCircuit> {
-    DAGCircuit::from_circuit(quantum_circuit, copy_operations, qubit_order, clbit_order)
+    // Convert ShareableQubit/ShareableClbit to internal indices
+    let qubit_indices = qubit_order
+        .as_ref()
+        .map(|qubits| {
+            qubits
+                .iter()
+                .map(|shareable_qubit| {
+                    quantum_circuit
+                        .data
+                        .qubits()
+                        .find(shareable_qubit)
+                        .ok_or_else(|| {
+                            PyValueError::new_err(format!(
+                                "Qubit {:?} not found in circuit",
+                                shareable_qubit
+                            ))
+                        })
+                })
+                .collect::<PyResult<Vec<Qubit>>>()
+        })
+        .transpose()?;
+
+    let clbit_indices = clbit_order
+        .as_ref()
+        .map(|clbits| {
+            clbits
+                .iter()
+                .map(|shareable_clbit| {
+                    quantum_circuit
+                        .data
+                        .clbits()
+                        .find(shareable_clbit)
+                        .ok_or_else(|| {
+                            PyValueError::new_err(format!(
+                                "Clbit {:?} not found in circuit",
+                                shareable_clbit
+                            ))
+                        })
+                })
+                .collect::<PyResult<Vec<Clbit>>>()
+        })
+        .transpose()?;
+
+    DAGCircuit::from_circuit(
+        quantum_circuit,
+        copy_operations,
+        qubit_indices,
+        clbit_indices,
+    )
 }
 
-#[pyfunction(signature = (dag, copy_operations = true))]
-pub fn dag_to_circuit(
-    py: Python,
+/// Convert a :class:`.DAGCircuit` to a :class:`.PyCircuitData`.
+///
+/// `copy_operations` refers to Python-space operations; if set true, we'll attach to a Python
+/// interpreter to ensure we can copy any objects.  If we're not running in a Python context, pass
+/// `false` to that argument (or better, in Rust space, use `CircuitData::from_dag_ref`).
+#[pyfunction(name = "dag_to_circuit", signature = (dag, copy_operations = true))]
+pub fn py_dag_to_circuit(
     dag: &DAGCircuit,
     copy_operations: bool,
-) -> PyResult<CircuitData> {
-    CircuitData::from_packed_instructions(
-        py,
-        dag.qubits().clone(),
-        dag.clbits().clone(),
-        dag.qargs_interner().clone(),
-        dag.cargs_interner().clone(),
-        dag.qregs_data().clone(),
-        dag.cregs_data().clone(),
-        dag.qubit_locations().clone(),
-        dag.clbit_locations().clone(),
-        dag.topological_op_nodes()?.map(|node_index| {
-            let NodeType::Operation(ref instr) = dag[node_index] else {
-                unreachable!(
-                    "The received node from topological_op_nodes() is not an Operation node."
-                )
-            };
-            if copy_operations {
-                let op = match instr.op.view() {
-                    OperationRef::Gate(gate) => gate.py_deepcopy(py, None)?.into(),
-                    OperationRef::Instruction(instruction) => {
-                        instruction.py_deepcopy(py, None)?.into()
-                    }
-                    OperationRef::Operation(operation) => operation.py_deepcopy(py, None)?.into(),
-                    OperationRef::StandardGate(gate) => gate.into(),
-                    OperationRef::StandardInstruction(instruction) => instruction.into(),
-                    OperationRef::Unitary(unitary) => unitary.clone().into(),
-                };
-                Ok(PackedInstruction {
-                    op,
-                    qubits: instr.qubits,
-                    clbits: instr.clbits,
-                    params: Some(Box::new(
-                        instr
-                            .params_view()
-                            .iter()
-                            .map(|param| param.clone_ref(py))
-                            .collect(),
-                    )),
-                    label: instr.label.clone(),
-                    #[cfg(feature = "cache_pygates")]
-                    py_op: OnceLock::new(),
-                })
-            } else {
-                Ok(instr.clone())
-            }
-        }),
-        dag.get_global_phase(),
-    )
+) -> Result<PyCircuitData, CircuitDataError> {
+    if copy_operations {
+        Python::attach(|py| PyCircuitData::from_dag_ref_deepcopy(py, dag))
+    } else {
+        CircuitData::from_dag_ref(dag).map(Into::into)
+    }
 }
 
 pub fn converters(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(circuit_to_dag, m)?)?;
-    m.add_function(wrap_pyfunction!(dag_to_circuit, m)?)?;
+    m.add_function(wrap_pyfunction!(py_dag_to_circuit, m)?)?;
     Ok(())
 }

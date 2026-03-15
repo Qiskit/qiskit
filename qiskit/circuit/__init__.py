@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -42,7 +42,7 @@ quantum computation <qiskit-primitives>`, which accumulate data from many shots 
 execution, along with advanced error-mitigation techniques and measurement optimizations, into
 well-typed classical data and error statistics.
 
-In Qiskit, circuits can be defined in one of two regimes:
+In Qiskit, circuits can be :ref:`defined in one of two regimes <circuit-abstract-physical>`:
 
 * an *abstract* circuit, which is defined in terms of *virtual qubits* and arbitrary high-level
   operations, like encapsulated algorithms and user-defined gates.
@@ -52,7 +52,11 @@ In Qiskit, circuits can be defined in one of two regimes:
   this concept referred to as an *ISA circuit*.
 
 You convert from an abstract circuit to a physical circuit by using :ref:`Qiskit's transpilation
-package <qiskit-transpiler>`, of which the top-level access point is :func:`.transpile`.
+package <qiskit-transpiler>`, of which the top-level access point is :func:`.transpile`.  If you
+define a circuit, where you intend the qubit indices to refer to physical qubits, you can use
+:meth:`.QuantumCircuit.ensure_physical` to rewrite the circuit's metadata to ensure that Qiskit
+recognizes the circuit as a physical circuit, though unlike transpilation, this does not enforce
+that the basis-gates and hardware-coupling constraints will be respected.
 
 In Qiskit, a quantum circuit is represented by the :class:`QuantumCircuit` class.  Below is an
 example of a quantum circuit that makes a three-qubit Greenberger–Horne–Zeilinger (GHZ) state
@@ -720,7 +724,7 @@ classes associated to each name.
 .. autofunction:: get_control_flow_name_mapping
 
 These control-flow operations (:class:`IfElseOp`, :class:`WhileLoopOp`,
-:class:`SwitchCaseOp`, :class:`ForLoopOp` and :class:`.BoxOp`) all have specific state that defines
+:class:`SwitchCaseOp`, :class:`ForLoopOp`, and :class:`BoxOp`) all have specific state that defines
 the branching conditions and strategies, but contain all the different subcircuit blocks that might
 be entered in their :attr:`~ControlFlowOp.blocks` property.
 
@@ -1370,7 +1374,7 @@ In both these cases, the matrix form of :class:`.CCXGate` in ``ctrl_state = 1`` 
         \end{pmatrix}
 """
 
-from qiskit._accelerate.circuit import (  # pylint: disable=unused-import
+from qiskit._accelerate.circuit import (
     Bit,
     Qubit,
     AncillaQubit,
@@ -1387,7 +1391,7 @@ from . import _utils
 from .quantumcircuit import QuantumCircuit
 from .gate import Gate
 
-# pylint: disable=cyclic-import
+
 from . import annotation
 from .annotation import Annotation
 from .controlledgate import ControlledGate

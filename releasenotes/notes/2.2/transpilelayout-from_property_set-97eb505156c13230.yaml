@@ -1,0 +1,14 @@
+---
+features_transpiler:
+  - |
+    :class:`.TranspileLayout` has two new methods: :meth:`~.TranspileLayout.from_property_set` and
+    :meth:`~.TranspileLayout.write_into_property_set`, which formalize the current ad-hoc structure
+    of transpilation properties, and how they are converted into a :class:`.TranspileLayout`.  This
+    makes it possible for passes _during_ a transpiler pipeline to access what the
+    :class:`.TranspileLayout` will be, modify it in the fully structured form, and then write it
+    back out in canonical form.
+
+    It is expected that in the future version 3.0 of Qiskit, the :class:`.TranspileLayout`
+    (or something akin to it) will be a direct attribute of the :class:`.DAGCircuit` transpiler
+    intermediate representation, and required by passes to be kept in sync with the rest of the
+    :class:`.DAGCircuit`.

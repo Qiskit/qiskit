@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -14,10 +14,10 @@ use pyo3::prelude::*;
 use rayon::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
+use qiskit_circuit::Qubit;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::operations::{OperationRef, StandardInstruction};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
-use qiskit_circuit::Qubit;
 
 const PARALLEL_THRESHOLD: usize = 150;
 

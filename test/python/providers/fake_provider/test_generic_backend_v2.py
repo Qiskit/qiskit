@@ -4,13 +4,13 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Test of GenericBackendV2 backend"""
+"""Test of GenericBackendV2 backend"""
 
 import math
 import operator
@@ -24,7 +24,7 @@ from qiskit.transpiler import CouplingMap
 from qiskit.utils import optionals
 from qiskit.exceptions import QiskitError
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
-from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
+from test import QiskitTestCase, combine
 
 
 BACKENDS = []

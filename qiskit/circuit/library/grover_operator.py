@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -13,7 +13,7 @@
 """The Grover operator."""
 
 from __future__ import annotations
-from typing import List, Optional, Union
+
 import numpy
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister, AncillaQubit
@@ -56,7 +56,7 @@ def grover_operator(
 
     This class allows setting a different state preparation, as in quantum amplitude
     amplification (a generalization of Grover's algorithm), :math:`\mathcal{A}` might not be
-    a layer of Hardamard gates [3].
+    a layer of Hadamard gates [3].
 
     The action of the phase oracle :math:`\mathcal{S}_f` is defined as
 
@@ -100,93 +100,93 @@ def grover_operator(
 
     Examples:
 
-        We can construct a Grover operator just from the phase oracle:
+    We can construct a Grover operator just from the phase oracle:
 
-        .. plot::
-            :alt: Circuit diagram output by the previous code.
-            :include-source:
-            :context:
+    .. plot::
+        :alt: Circuit diagram output by the previous code.
+        :include-source:
+        :context:
 
-            from qiskit.circuit import QuantumCircuit
-            from qiskit.circuit.library import grover_operator
+        from qiskit.circuit import QuantumCircuit
+        from qiskit.circuit.library import grover_operator
 
-            oracle = QuantumCircuit(2)
-            oracle.z(0)  # good state = first qubit is |1>
-            grover_op = grover_operator(oracle, insert_barriers=True)
-            grover_op.draw("mpl")
+        oracle = QuantumCircuit(2)
+        oracle.z(0)  # good state = first qubit is |1>
+        grover_op = grover_operator(oracle, insert_barriers=True)
+        grover_op.draw("mpl")
 
-        We can also modify the state preparation:
+    We can also modify the state preparation:
 
-        .. plot::
-            :alt: Circuit diagram output by the previous code.
-            :include-source:
-            :context: close-figs
+    .. plot::
+        :alt: Circuit diagram output by the previous code.
+        :include-source:
+        :context: close-figs
 
-            oracle = QuantumCircuit(1)
-            oracle.z(0)  # the qubit state |1> is the good state
-            state_preparation = QuantumCircuit(1)
-            state_preparation.ry(0.2, 0)  # non-uniform state preparation
-            grover_op = grover_operator(oracle, state_preparation)
-            grover_op.draw("mpl")
+        oracle = QuantumCircuit(1)
+        oracle.z(0)  # the qubit state |1> is the good state
+        state_preparation = QuantumCircuit(1)
+        state_preparation.ry(0.2, 0)  # non-uniform state preparation
+        grover_op = grover_operator(oracle, state_preparation)
+        grover_op.draw("mpl")
 
-        In addition, we can also mark which qubits the zero reflection should act on. This
-        is useful in case that some qubits are just used as scratch space but should not affect
-        the oracle:
+    In addition, we can also mark which qubits the zero reflection should act on. This
+    is useful in case that some qubits are just used as scratch space but should not affect
+    the oracle:
 
-        .. plot::
-            :alt: Circuit diagram output by the previous code.
-            :include-source:
-            :context: close-figs
+    .. plot::
+        :alt: Circuit diagram output by the previous code.
+        :include-source:
+        :context: close-figs
 
-            oracle = QuantumCircuit(4)
-            oracle.z(3)
-            reflection_qubits = [0, 3]
-            state_preparation = QuantumCircuit(4)
-            state_preparation.cry(0.1, 0, 3)
-            state_preparation.ry(0.5, 3)
-            grover_op = grover_operator(oracle, state_preparation, reflection_qubits=reflection_qubits)
-            grover_op.draw("mpl")
+        oracle = QuantumCircuit(4)
+        oracle.z(3)
+        reflection_qubits = [0, 3]
+        state_preparation = QuantumCircuit(4)
+        state_preparation.cry(0.1, 0, 3)
+        state_preparation.ry(0.5, 3)
+        grover_op = grover_operator(oracle, state_preparation, reflection_qubits=reflection_qubits)
+        grover_op.draw("mpl")
 
 
-        The oracle and the zero reflection can also be passed as :mod:`qiskit.quantum_info`
-        objects:
+    The oracle and the zero reflection can also be passed as :mod:`qiskit.quantum_info`
+    objects:
 
-        .. plot::
-            :alt: Circuit diagram output by the previous code.
-            :include-source:
-            :context: close-figs
+    .. plot::
+        :alt: Circuit diagram output by the previous code.
+        :include-source:
+        :context: close-figs
 
-            from qiskit.quantum_info import Statevector, DensityMatrix, Operator
+        from qiskit.quantum_info import Statevector, DensityMatrix, Operator
 
-            mark_state = Statevector.from_label("011")
-            reflection = 2 * DensityMatrix.from_label("000") - Operator.from_label("III")
-            grover_op = grover_operator(oracle=mark_state, zero_reflection=reflection)
-            grover_op.draw("mpl")
+        mark_state = Statevector.from_label("011")
+        reflection = 2 * DensityMatrix.from_label("000") - Operator.from_label("III")
+        grover_op = grover_operator(oracle=mark_state, zero_reflection=reflection)
+        grover_op.draw("mpl")
 
-        For a large number of qubits, the multi-controlled X gate used for the zero-reflection
-        can be synthesized in different fashions. Depending on the number of available qubits,
-        the compiler will choose a different implementation:
+    For a large number of qubits, the multi-controlled X gate used for the zero-reflection
+    can be synthesized in different fashions. Depending on the number of available qubits,
+    the compiler will choose a different implementation:
 
-        .. code-block:: python
+    .. code-block:: python
 
-            from qiskit import transpile, Qubit
-            from qiskit.circuit import QuantumCircuit
-            from qiskit.circuit.library import grover_operator
+        from qiskit import transpile, Qubit
+        from qiskit.circuit import QuantumCircuit
+        from qiskit.circuit.library import grover_operator
 
-            oracle = QuantumCircuit(10)
-            oracle.z(oracle.qubits)
-            grover_op = grover_operator(oracle)
+        oracle = QuantumCircuit(10)
+        oracle.z(oracle.qubits)
+        grover_op = grover_operator(oracle)
 
-            # without extra qubit space, the MCX synthesis is expensive
-            basis_gates = ["u", "cx"]
-            tqc = transpile(grover_op, basis_gates=basis_gates)
-            is_2q = lambda inst: len(inst.qubits) == 2
-            print("2q depth w/o scratch qubits:", tqc.depth(filter_function=is_2q))  # > 350
+        # without extra qubit space, the MCX synthesis is expensive
+        basis_gates = ["u", "cx"]
+        tqc = transpile(grover_op, basis_gates=basis_gates)
+        is_2q = lambda inst: len(inst.qubits) == 2
+        print("2q depth w/o scratch qubits:", tqc.depth(filter_function=is_2q))  # > 350
 
-            # add extra bits that can be used as scratch space
-            grover_op.add_bits([Qubit() for _ in range(num_qubits)])
-            tqc = transpile(grover_op, basis_gates=basis_gates)
-            print("2q depth w/ scratch qubits:", tqc.depth(filter_function=is_2q)) # < 100
+        # add extra bits that can be used as scratch space
+        grover_op.add_bits([Qubit() for _ in range(num_qubits)])
+        tqc = transpile(grover_op, basis_gates=basis_gates)
+        print("2q depth w/ scratch qubits:", tqc.depth(filter_function=is_2q)) # < 100
 
     Args:
         oracle: The phase oracle implementing a reflection about the bad state. Note that this
@@ -200,13 +200,16 @@ def grover_operator(
         name: The name of the circuit.
 
     References:
-        [1]: L. K. Grover (1996), A fast quantum mechanical algorithm for database search,
-            `arXiv:quant-ph/9605043 <https://arxiv.org/abs/quant-ph/9605043>`_.
-        [2]: I. Chuang & M. Nielsen, Quantum Computation and Quantum Information,
-            Cambridge: Cambridge University Press, 2000. Chapter 6.1.2.
-        [3]: Brassard, G., Hoyer, P., Mosca, M., & Tapp, A. (2000).
-            Quantum Amplitude Amplification and Estimation.
-            `arXiv:quant-ph/0005055 <http://arxiv.org/abs/quant-ph/0005055>`_.
+
+    [1] L. K. Grover (1996), A fast quantum mechanical algorithm for database search,
+    `arXiv:quant-ph/9605043 <https://arxiv.org/abs/quant-ph/9605043>`_.
+
+    [2] I. Chuang & M. Nielsen, Quantum Computation and Quantum Information,
+    Cambridge: Cambridge University Press, 2000. Chapter 6.1.2.
+
+    [3] Brassard, G., Hoyer, P., Mosca, M., & Tapp, A. (2000).
+    Quantum Amplitude Amplification and Estimation.
+    `arXiv:quant-ph/0005055 <https://arxiv.org/abs/quant-ph/0005055>`_.
     """
     # We inherit the ancillas/qubits structure from the oracle, if it is given as circuit.
     if isinstance(oracle, QuantumCircuit):
@@ -307,7 +310,7 @@ class GroverOperator(QuantumCircuit):
 
     This class allows setting a different state preparation, as in quantum amplitude
     amplification (a generalization of Grover's algorithm), :math:`\mathcal{A}` might not be
-    a layer of Hardamard gates [3].
+    a layer of Hadamard gates [3].
 
     The action of the phase oracle :math:`\mathcal{S}_f` is defined as
 
@@ -418,13 +421,16 @@ class GroverOperator(QuantumCircuit):
         wrap the circuit into an opaque gate.
 
     References:
-        [1]: L. K. Grover (1996), A fast quantum mechanical algorithm for database search,
-            `arXiv:quant-ph/9605043 <https://arxiv.org/abs/quant-ph/9605043>`_.
-        [2]: I. Chuang & M. Nielsen, Quantum Computation and Quantum Information,
-            Cambridge: Cambridge University Press, 2000. Chapter 6.1.2.
-        [3]: Brassard, G., Hoyer, P., Mosca, M., & Tapp, A. (2000).
-            Quantum Amplitude Amplification and Estimation.
-            `arXiv:quant-ph/0005055 <http://arxiv.org/abs/quant-ph/0005055>`_.
+
+    [1] L. K. Grover (1996), A fast quantum mechanical algorithm for database search,
+    `arXiv:quant-ph/9605043 <https://arxiv.org/abs/quant-ph/9605043>`_.
+
+    [2] I. Chuang & M. Nielsen, Quantum Computation and Quantum Information,
+    Cambridge: Cambridge University Press, 2000. Chapter 6.1.2.
+
+    [3] Brassard, G., Hoyer, P., Mosca, M., & Tapp, A. (2000).
+    Quantum Amplitude Amplification and Estimation.
+    `arXiv:quant-ph/0005055 <https://arxiv.org/abs/quant-ph/0005055>`_.
     """
 
     @deprecate_func(
@@ -434,10 +440,10 @@ class GroverOperator(QuantumCircuit):
     )
     def __init__(
         self,
-        oracle: Union[QuantumCircuit, Statevector],
-        state_preparation: Optional[QuantumCircuit] = None,
-        zero_reflection: Optional[Union[QuantumCircuit, DensityMatrix, Operator]] = None,
-        reflection_qubits: Optional[List[int]] = None,
+        oracle: QuantumCircuit | Statevector,
+        state_preparation: QuantumCircuit | None = None,
+        zero_reflection: QuantumCircuit | DensityMatrix | Operator | None = None,
+        reflection_qubits: list[int] | None = None,
         insert_barriers: bool = False,
         mcx_mode: str = "noancilla",
         name: str = "Q",
@@ -454,18 +460,19 @@ class GroverOperator(QuantumCircuit):
             insert_barriers: Whether barriers should be inserted between the reflections and A.
             mcx_mode: The mode to use for building the default zero reflection.
             name: The name of the circuit.
+
         """
         super().__init__(name=name)
 
         # store inputs
         if isinstance(oracle, Statevector):
-            from qiskit.circuit.library import Diagonal  # pylint: disable=cyclic-import
+            from qiskit.circuit.library import Diagonal
 
             oracle = Diagonal((-1) ** oracle.data)
         self._oracle = oracle
 
         if isinstance(zero_reflection, (Operator, DensityMatrix)):
-            from qiskit.circuit.library import Diagonal  # pylint: disable=cyclic-import
+            from qiskit.circuit.library import Diagonal
 
             zero_reflection = Diagonal(zero_reflection.data.diagonal())
         self._zero_reflection = zero_reflection
@@ -559,7 +566,7 @@ class GroverOperator(QuantumCircuit):
 
 # TODO use the oracle compiler or the bit string oracle
 def _zero_reflection(
-    num_state_qubits: int, qubits: List[int], mcx_mode: Optional[str] = None
+    num_state_qubits: int, qubits: list[int], mcx_mode: str | None = None
 ) -> QuantumCircuit:
     qr_state = QuantumRegister(num_state_qubits, "state")
     reflection = QuantumCircuit(qr_state, name="S_0")
