@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 use crate::classical::expr;
-use crate::object_registry::{ObjectRegistry, ObjectRegistryError};
+use crate::object_registry::ObjectRegistry;
 use crate::{Stretch, Var};
 use indexmap::IndexMap;
 use thiserror::Error;
@@ -55,8 +55,6 @@ pub enum VarStretchContainerError {
     InputWithCaptureVars,
     #[error("cannot add stretch as its name shadows an existing identifier")]
     StretchShadowing,
-    #[error(transparent)]
-    ObjectRegistryError(#[from] ObjectRegistryError),
 }
 
 /// A container for variables and stretches used by [`crate::circuit_data::CircuitData`]
@@ -158,14 +156,11 @@ impl VarStretchContainer {
         var: expr::Var,
         var_type: VarType,
     ) -> Result<Var, VarStretchContainerError> {
-        let name = {
-            let expr::Var::Standalone { name, .. } = &var else {
-                return Err(VarStretchContainerError::VarWrappingClbit);
-            };
-            name.clone()
+        let expr::Var::Standalone { name, .. } = &var else {
+            return Err(VarStretchContainerError::VarWrappingClbit);
         };
 
-        match self.identifier_info.get(&name) {
+        match self.identifier_info.get(name) {
             Some(IdentifierInfo::Var(info)) if Some(&var) == self.vars.get(info.var) => {
                 return Err(VarStretchContainerError::DuplicateVar);
             }
@@ -188,7 +183,11 @@ impl VarStretchContainer {
             _ => {}
         }
 
-        let idx = self.vars.add(var, true)?;
+        let name = name.clone();
+        let idx = self
+            .vars
+            .add(var)
+            .expect("Var should not exist in the registry");
         self.var_indices[var_type as usize].push(idx);
 
         self.identifier_info.insert(
@@ -217,9 +216,7 @@ impl VarStretchContainer {
         stretch: expr::Stretch,
         stretch_type: StretchType,
     ) -> Result<Stretch, VarStretchContainerError> {
-        let name = stretch.name.clone();
-
-        match self.identifier_info.get(&name) {
+        match self.identifier_info.get(&stretch.name) {
             Some(IdentifierInfo::Stretch(info))
                 if Some(&stretch) == self.stretches.get(info.stretch) =>
             {
@@ -237,7 +234,11 @@ impl VarStretchContainer {
             }
         }
 
-        let idx = self.stretches.add(stretch, true)?;
+        let name = stretch.name.clone();
+        let idx = self
+            .stretches
+            .add(stretch)
+            .expect("Stretch should not exist in the registry");
         self.stretch_indices[stretch_type as usize].push(idx);
 
         self.identifier_info.insert(
@@ -399,11 +400,11 @@ impl VarStretchContainer {
         }
 
         for var in state.1 {
-            res.vars.add(var, false)?;
+            res.vars.add(var)?;
         }
 
         for stretch in state.2 {
-            res.stretches.add(stretch, false)?;
+            res.stretches.add(stretch)?;
         }
 
         Ok(res)
