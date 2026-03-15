@@ -708,8 +708,10 @@ def _evolve_cy(base_pauli, qctrl, qtrgt):
 
 def _evolve_dcx(base_pauli, qctrl, qtrgt):
     """Update P -> DCX.P.DCX"""
-    base_pauli = _evolve_cx(base_pauli, qctrl, qtrgt)
-    base_pauli = _evolve_cx(base_pauli, qtrgt, qctrl)
+    base_pauli._x[:, qtrgt] ^= base_pauli._x[:, qctrl]
+    base_pauli._z[:, qctrl] ^= base_pauli._z[:, qtrgt]
+    base_pauli._x[:, qctrl] ^= base_pauli._x[:, qtrgt]
+    base_pauli._z[:, qtrgt] ^= base_pauli._z[:, qctrl]
     return base_pauli
 
 
