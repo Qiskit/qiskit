@@ -29,9 +29,7 @@ use pyo3::types::{PyAny, PyDict, PyTuple};
 use qiskit_circuit::bit::{
     ClassicalRegister, PyClbit, PyQubit, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
-use qiskit_circuit::circuit_data::{
-    CircuitData, CircuitStretchType, CircuitVarType, PyCircuitData,
-};
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::imports;
@@ -57,6 +55,7 @@ use crate::value::{
     QPYWriteData, RegisterType, get_circuit_type_key, pack_for_collection, pack_generic_value,
     pack_standalone_var, pack_stretch, serialize, serialize_param_register_value,
 };
+use qiskit_circuit::var_stretch_container::{StretchType, VarType};
 
 use crate::UnsupportedFeatureForVersion;
 
@@ -721,7 +720,10 @@ fn pack_circuit_header(
         num_qubits: qpy_data.circuit_data.num_qubits() as u32,
         num_clbits: qpy_data.circuit_data.num_clbits() as u32,
         num_instructions: qpy_data.circuit_data.len() as u64,
-        num_vars: qpy_data.circuit_data.num_identifiers() as u32,
+        num_vars: qpy_data
+            .circuit_data
+            .vars_stretches_view()
+            .num_identifiers() as u32,
         circuit_name: circuit_name.unwrap_or_default(),
         global_phase_data: global_phase_data.data,
         global_phase_type: global_phase_data.type_key,
@@ -1084,7 +1086,11 @@ fn pack_standalone_vars(
     let mut index: u16 = 0;
     let mut uuid: u128 = 0;
     // input vars
-    for var in qpy_data.circuit_data.get_vars(CircuitVarType::Input) {
+    for var in qpy_data
+        .circuit_data
+        .vars_stretches_view()
+        .iter_vars(VarType::Input)
+    {
         let var_pack = pack_standalone_var(
             var,
             ExpressionVarDeclaration::Input,
@@ -1097,7 +1103,11 @@ fn pack_standalone_vars(
     }
 
     // captured vars
-    for var in qpy_data.circuit_data.get_vars(CircuitVarType::Capture) {
+    for var in qpy_data
+        .circuit_data
+        .vars_stretches_view()
+        .iter_vars(VarType::Capture)
+    {
         result.push(pack_standalone_var(
             var,
             ExpressionVarDeclaration::Capture,
@@ -1109,7 +1119,11 @@ fn pack_standalone_vars(
     }
 
     // declared vars
-    for var in qpy_data.circuit_data.get_vars(CircuitVarType::Declare) {
+    for var in qpy_data
+        .circuit_data
+        .vars_stretches_view()
+        .iter_vars(VarType::Declare)
+    {
         result.push(pack_standalone_var(
             var,
             ExpressionVarDeclaration::Local,
@@ -1120,8 +1134,16 @@ fn pack_standalone_vars(
         index += 1;
     }
     if qpy_data.version < 14
-        && (qpy_data.circuit_data.num_captured_stretches() > 0
-            || qpy_data.circuit_data.num_declared_stretches() > 0)
+        && (qpy_data
+            .circuit_data
+            .vars_stretches_view()
+            .num_stretches(StretchType::Capture)
+            > 0
+            || qpy_data
+                .circuit_data
+                .vars_stretches_view()
+                .num_stretches(StretchType::Declare)
+                > 0)
     {
         return Err(UnsupportedFeatureForVersion::new_err((
             "circuits containing stretch variables",
@@ -1131,7 +1153,8 @@ fn pack_standalone_vars(
     }
     for stretch in qpy_data
         .circuit_data
-        .get_stretches(CircuitStretchType::Capture)
+        .vars_stretches_view()
+        .iter_stretches(StretchType::Capture)
     {
         result.push(pack_stretch(
             stretch,
@@ -1142,7 +1165,8 @@ fn pack_standalone_vars(
     }
     for stretch in qpy_data
         .circuit_data
-        .get_stretches(CircuitStretchType::Declare)
+        .vars_stretches_view()
+        .iter_stretches(StretchType::Declare)
     {
         result.push(pack_stretch(
             stretch,
