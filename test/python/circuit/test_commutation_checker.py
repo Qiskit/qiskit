@@ -638,28 +638,28 @@ class TestGeneratorObservableCommutation(QiskitTestCase):
     representative set of gate pairs.
     """
 
-    def _commute_via_matrix(self, gate_a, gate_b, qargs_a, qargs_b):
+    def _commute(self, gate_a, gate_b, qargs_a, qargs_b):
         """Compute commutation via the full CommutationChecker."""
         return scc.commute(gate_a, qargs_a, [], gate_b, qargs_b, [])
 
     def test_cs_commutation(self):
         """CS and CZ share the same Z0 Z1 generator subspace, so they commute."""
         self.assertTrue(
-            self._commute_via_matrix(CSGate(), CZGate(), [0, 1], [0, 1]),
+            self._commute(CSGate(), CZGate(), [0, 1], [0, 1]),
             "CS and CZ should commute (both are ZZ-type generators)",
         )
 
     def test_cx_cy_noncommute(self):
         """CX and CY do not commute on overlapping qubits (different generators)."""
         self.assertFalse(
-            self._commute_via_matrix(CXGate(), CYGate(), [0, 1], [0, 1]),
+            self._commute(CXGate(), CYGate(), [0, 1], [0, 1]),
             "CX and CY should not commute on the same qubits",
         )
 
     def test_csx_commutes_with_cx(self):
         """CSX and CX share the ZX generator subspace (same up to scale), so they commute."""
         self.assertTrue(
-            self._commute_via_matrix(CSXGate(), CXGate(), [0, 1], [0, 1]),
+            self._commute(CSXGate(), CXGate(), [0, 1], [0, 1]),
             "CSX and CX should commute (both ZX-type generators)",
         )
 
