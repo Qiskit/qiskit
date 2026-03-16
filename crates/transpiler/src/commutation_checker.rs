@@ -16,7 +16,6 @@ use ndarray::linalg::kron;
 use num_complex::Complex64;
 use num_complex::ComplexFloat;
 use qiskit_circuit::object_registry::PyObjectAsKey;
-use qiskit_circuit::operations::StandardGate as SparseStandardGate;
 use qiskit_quantum_info::sparse_observable::standard_generators::generator_observable;
 use qiskit_quantum_info::sparse_observable::{PySparseObservable, SparseObservable};
 use smallvec::SmallVec;
@@ -235,10 +234,6 @@ fn try_extract_op_from_ppr(
     Some(out.compose_map(&local, |i| qubits[i as usize].0))
 }
 
-fn map_standard_to_sparse(gate: StandardGate) -> Option<SparseStandardGate> {
-    Some(gate)
-}
-
 fn try_pauli_generator(
     operation: &OperationRef,
     params: &[Param],
@@ -246,11 +241,9 @@ fn try_pauli_generator(
     num_qubits: u32,
 ) -> Option<SparseObservable> {
     if let OperationRef::StandardGate(gate) = operation {
-        if let Some(sparse_gate) = map_standard_to_sparse(*gate) {
-            if let Some(local) = generator_observable(sparse_gate, params) {
-                let out = SparseObservable::identity(num_qubits);
-                return Some(out.compose_map(&local, |i| qubits[i as usize].0));
-            }
+        if let Some(local) = generator_observable(*gate, params) {
+            let out = SparseObservable::identity(num_qubits);
+            return Some(out.compose_map(&local, |i| qubits[i as usize].0));
         }
     }
 
