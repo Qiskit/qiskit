@@ -73,6 +73,8 @@ from qiskit.circuit.library import (
     TGate,
     TdgGate,
     iSwapGate,
+    GlobalPhaseGate,
+    ECRGate,
     UGate,
     PauliEvolutionGate,
     PauliProductMeasurement,
@@ -749,6 +751,8 @@ class TestGeneratorObservableCommutation(QiskitTestCase):
             (StandardGate.RZZ, RZZGate(theta)),
             (StandardGate.RZX, RZXGate(theta)),
             (StandardGate.ISwap, iSwapGate()),
+            (StandardGate.ECR, ECRGate()),
+            (StandardGate.GlobalPhase, GlobalPhaseGate(theta)),
         ]
 
         for std_gate, gate_obj in cases:
@@ -768,6 +772,44 @@ class TestGeneratorObservableCommutation(QiskitTestCase):
                     f"Generator for {std_gate.name} is not equivalent to the gate unitary. "
                     f"Dist: {np.linalg.norm(gen_op.data - target_op.data)}",
                 )
+
+    def test_large_pauli_evolution_commutation(self):
+        """Test that a large PauliEvolutionGate correctly commutes with standard gates.
+        This verifies that matrix-based fallback is avoided for large commutative Pauli strings."""
+        pauli_op = SparsePauliOp.from_list([("X" * 50, 1.0)])
+        evo_gate = PauliEvolutionGate(pauli_op)
+
+        # Create a circuit with the evolution gate and a standard gate
+        qr = QuantumRegister(51)
+        qc = QuantumCircuit(qr)
+        qc.append(evo_gate, range(50))
+        qc.x(50)
+
+        evo_op = qc.data[0]
+        x_op = qc.data[1]
+
+        cc = scc
+        
+        # They act on disjoint qubits, so they should commute
+        commutes = cc.commute(evo_op.operation, evo_op.qubits, evo_op.clbits, 
+                              x_op.operation, x_op.qubits, x_op.clbits)
+        self.assertTrue(commutes)
+        
+        # Test commuting with an X gate that overlaps (on qubit 0). 
+        # "X...X" and X commute!
+        qc.x(0)
+        x_op2 = qc.data[2]
+        commutes_overlap = cc.commute(evo_op.operation, evo_op.qubits, evo_op.clbits,
+                                      x_op2.operation, x_op2.qubits, x_op2.clbits)
+        self.assertTrue(commutes_overlap)
+
+        # Test non-commuting with Y gate on qubit 0
+        qc.y(0)
+        y_op = qc.data[3]
+        commutes_y = cc.commute(evo_op.operation, evo_op.qubits, evo_op.clbits,
+                                y_op.operation, y_op.qubits, y_op.clbits)
+        self.assertFalse(commutes_y)
+
 
 
 if __name__ == "__main__":

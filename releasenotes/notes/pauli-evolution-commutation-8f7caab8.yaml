@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    The ``CommutationChecker`` can now efficiently evaluate commutativity between explicitly defined ``Pauli``, ``SparsePauliOp``, and ``PauliEvolutionGate`` operations with many other standard gates (including multi-qubit gates like ``CCXGate``). This avoids converting operators to their full matrix representation when finding commutation relations, making commutation checking significantly faster and avoiding out-of-memory errors for operations spanning large numbers of qubits.
