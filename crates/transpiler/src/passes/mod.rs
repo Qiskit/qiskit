@@ -51,7 +51,7 @@ mod split_2q_unitaries;
 mod two_qubit_peephole;
 mod two_qubit_unitary_synthesis_utils;
 mod substitute_pi4_rotations;
-mod unitary_synthesis;
+pub mod unitary_synthesis;
 mod unroll_3q_or_more;
 pub mod vf2;
 mod wrap_angles;
