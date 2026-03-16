@@ -738,14 +738,7 @@ def _evolve_iswap(base_pauli, q1, q2):
     base_pauli._z[:, q1] = x1 ^ x2 ^ z2
     base_pauli._z[:, q2] = x1 ^ x2 ^ z1
 
-    base_pauli._phase += np.logical_xor(x1, x2) + np.logical_xor(
-        np.logical_and(z1, np.logical_xor(x1, x2).T.astype(base_pauli._phase.dtype)).T.astype(
-            base_pauli._phase.dtype
-        ),
-        np.logical_and(z2, np.logical_xor(x1, x2).T.astype(base_pauli._phase.dtype)).T.astype(
-            base_pauli._phase.dtype
-        ),
-    )
+    base_pauli._phase += np.logical_xor(x1, x2).T.astype(base_pauli._phase.dtype)
     return base_pauli
 
 
