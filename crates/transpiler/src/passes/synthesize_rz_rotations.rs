@@ -19,8 +19,7 @@ use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::operations::{OperationRef, Param, StandardGate};
 use qiskit_synthesis::ross_selinger::gridsynth_rz;
 
-const MINIMUM_EPSILON: f64 = 1e-2; // minimum epsilon for synthesis
-const MAXIMUM_EPSILON: f64 = 1e-12; // maximum epsilon for synthesis
+const MINIMUM_EPSILON: f64 = 1e-12; // minimum epsilon for synthesis
 
 /// look up table for phase update and gates added during
 /// canonicalization of angles
@@ -93,18 +92,51 @@ fn synthesize_rz_gate_via_gridsynth(
     Ok((sequence, phase))
 }
 
+/// Synthesize RZ gates in the circuit, modifying the circuit in-place.
+///
+/// # Arguments
+///
+/// - `dag`: The circuit in which the RZ gates will be synthesized.
+/// - `approximation_degree`: Controls the overall degree of approximation.
+/// - `synthesis_error`: Maximum allowed error for the approximate synthesis of
+///   :math:`RZ(\theta)`.
+/// - `cache_error`: Maximum allowed error when reusing a cached synthesis
+///   result for angles close to :math:`\theta`.
+///
+/// If both `synthesis_error` and `cache_error` are provided, they specify the error budget
+/// due to approximate synthesis and due to caching respectively. If either value is not
+/// specified, the total allowed error is derived from `approximation_degree`, and
+/// suitable values for `synthesis_error` and `cache_error` are computed automatically.
 #[pyfunction]
 #[pyo3(name = "synthesize_rz_rotations")]
+#[pyo3(signature = (dag, approximation_degree=1., synthesis_error=None, cache_error=None))]
 pub fn py_run_synthesize_rz_rotations(
     dag: &mut DAGCircuit,
     approximation_degree: f64,
+    synthesis_error: Option<f64>,
+    cache_error: Option<f64>,
 ) -> PyResult<()> {
     // Skip the pass if there are no RZ rotation gates.
     if dag.get_op_counts().keys().all(|k| k != "rz") {
         return Ok(());
     }
-    // bound epsilon between minimum and max values to ensure fidelity of synthesis
-    let epsilon = MAXIMUM_EPSILON.max(MINIMUM_EPSILON.min(1. - approximation_degree));
+
+    // Compute error budgets. When approximation degree is used, the total error is
+    // computed as 1 - approximation_degree, and the error budget for synthesis and for
+    // caching are distributed equally.
+    let (synthesis_error, cache_error) = match (synthesis_error, cache_error) {
+        (Some(synthesis_error), Some(cache_error)) => (synthesis_error, cache_error),
+        _ => {
+            let total_error = MINIMUM_EPSILON.max(1. - approximation_degree);
+            (total_error / 2., total_error / 2.)
+        }
+    };
+
+    // By an explicit computation one can show that if the current angle is within
+    // 2 * cache_error from the previous angle, the error due to reusing the synthesis
+    // result for the previous angle is precisely cache_error.
+    let bin_width = 2. * cache_error;
+
     // Iterate over nodes in the DAG and collect nodes that have RZ gates.
     // Canonicalize angles already at this stage, so that we can use them for sorting.
     let mut candidates: Vec<_> = dag
@@ -123,22 +155,19 @@ pub fn py_run_synthesize_rz_rotations(
         })
         .collect();
 
-    // Sort candidates based on the \(canonicalized) angles
+    // Sort candidates based on the canonicalized angles
     candidates.sort_unstable_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
 
     let mut prev_result: Option<(f64, (Vec<StandardGate>, Param))> = None;
 
     for (node_index, angle, interval_index) in candidates {
         // Get or compute the sequence and phase update.
-        // Using triangle inequality it can be shown that if the current angle is within epsilon/2
-        // of the previous angle, we can reuse the synthesis of previous angle by calling gridsynth
-        // with epsilon/2
         let should_recompute = prev_result
             .as_ref()
-            .is_none_or(|(prev_angle, _)| *prev_angle + epsilon / 2. < angle);
+            .is_none_or(|(prev_angle, _)| *prev_angle + bin_width < angle);
 
         if should_recompute {
-            let (sequence, phase_update) = synthesize_rz_gate_via_gridsynth(angle, epsilon / 2.)
+            let (sequence, phase_update) = synthesize_rz_gate_via_gridsynth(angle, synthesis_error)
                 .map_err(|e| QiskitError::new_err(e.to_string()))?;
 
             prev_result = Some((angle, (sequence, phase_update)));
@@ -150,7 +179,6 @@ pub fn py_run_synthesize_rz_rotations(
             .1;
 
         // Add the gates and phase update to DAG, remove old node
-
         for new_gate in sequence {
             dag.insert_1q_on_incoming_qubit((*new_gate, &[]), node_index);
         }

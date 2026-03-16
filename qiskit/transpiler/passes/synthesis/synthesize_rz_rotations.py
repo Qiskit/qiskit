@@ -78,24 +78,33 @@ class SynthesizeRZRotations(TransformationPass):
 
     """
 
-    def __init__(self, approximation_degree: float = 0.9999999999):
-        """
-        Args:
-            approximation_degree: float = 0.9999999999
-            This gives the threshold for the average gate fidelity.
+    def __init__(
+        self,
+        approximation_degree: float = 1 - 1e-10,
+        synthesis_error: float | None = None,
+        cache_error: float | None = None,
+    ):
+        r"""
+        If both `synthesis_error` and `cache_error` are provided, they specify the error budget
+        due to approximate synthesis and due to caching respectively. If either value is not
+        specified, the total allowed error is derived from `approximation_degree`, and
+        suitable values for `synthesis_error` and `cache_error` are computed automatically.
 
+        Args:
+            approximation_degree: Controls the overall degree of approximation.
+            synthesis_error: Maximum allowed error for the approximate synthesis of
+                :math:`RZ(\theta)`.
+            cache_error`: Maximum allowed error when reusing a cached synthesis
+                result for angles close to :math:`\theta`.
         """
         super().__init__()
         self.approximation_degree = approximation_degree
+        self.synthesis_error = synthesis_error
+        self.cache_error = cache_error
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
-        """Run the pass on a DAG.
-        Args:
-            dag: the input DAG.
-        Returns:
-            The output DAG.
-        """
-        new_dag = synthesize_rz_rotations(dag, self.approximation_degree)
-        if new_dag is None:
-            return dag
+        """Run the SynthesizeRZRotations pass on `dag`."""
+        new_dag = synthesize_rz_rotations(
+            dag, self.approximation_degree, self.synthesis_error, self.cache_error
+        )
         return new_dag
