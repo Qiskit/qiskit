@@ -13,7 +13,8 @@
 """Test commutation checker class ."""
 
 import unittest
-from test import QiskitTestCase
+import pickle
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 import numpy as np
 from ddt import idata, ddt, data, unpack
@@ -38,6 +39,7 @@ from qiskit.circuit.library import (
     CRYGate,
     CRZGate,
     CXGate,
+    DCXGate,
     CUGate,
     LinearFunction,
     MCXGate,
@@ -398,7 +400,6 @@ class TestCommutationChecker(QiskitTestCase):
 
     def test_serialization(self):
         """Test that the commutation checker is correctly serialized"""
-        import pickle
 
         cx_like = CUGate(np.pi, 0, np.pi, 0)
 
@@ -418,8 +419,6 @@ class TestCommutationChecker(QiskitTestCase):
     def test_cutoff_angles(self, gate_cls):
         """Check rotations with a small enough angle are cut off."""
         max_power = 30
-        from qiskit.circuit.library import DCXGate
-
         generic_gate = DCXGate()  # gate that does not commute with any rotation gate
 
         # the cutoff angle depends on the average gate fidelity; i.e. it is the angle
