@@ -35,6 +35,12 @@ use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, FRAC_PI_8, SQRT_2};
 
 /// Return a `SparseObservable` H such that `gate ≈ exp(-i * H)` (up to global phase),
 /// or `None` if no generator is known for this gate.
+///
+/// For parametric gates (e.g., `RX(theta)`), the generator $H$ typically depends on the
+/// gate parameters (e.g., $H = (\theta/2)X$). This function extracts parameter values
+/// from the `params` slice to compute the concrete coefficients for the returned
+/// `SparseObservable`. If parameters are missing or symbolic (non-`Float`), it defaults
+/// to a coefficient of 1.0.
 pub fn generator_observable(
     gate: StandardGate,
     params: &[qiskit_circuit::operations::Param],
