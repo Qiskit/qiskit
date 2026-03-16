@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import cmath
 from cmath import exp
 
 from qiskit.circuit.gate import Gate
@@ -299,4 +300,119 @@ class CRZGate(ControlledGate):
     def __eq__(self, other):
         if isinstance(other, CRZGate):
             return self._compare_parameters(other) and self.ctrl_state == other.ctrl_state
+        return False
+
+
+class ACRZGate(Gate):
+    r"""Anti-controlled RZ gate.
+
+    Applies an RZ rotation on the target qubit if the control is
+    in the :math:`|0\rangle` state.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.acrz` method.
+
+    Circuit symbol:
+
+    .. code-block:: text
+
+             ┌───┐         ┌───┐
+        q_0: ┤ X ├────■────┤ X ├
+             └───┘┌───┴───┐└───┘
+        q_1: ─────┤ Rz(θ) ├─────
+                  └───────┘
+
+    This is equivalent to a controlled-RZ gate with the control state
+    set to :math:`|0\rangle`.
+
+    Matrix representation:
+
+    .. math::
+
+        ACRZ(\theta)\ q_0, q_1 =
+            RZ(\theta) \otimes |0\rangle\langle 0| + I \otimes |1\rangle\langle 1| =
+            \begin{pmatrix}
+                e^{-i\frac{\theta}{2}} & 0 & 0 & 0 \\
+                0 & 1 & 0 & 0 \\
+                0 & 0 & e^{i\frac{\theta}{2}} & 0 \\
+                0 & 0 & 0 & 1
+            \end{pmatrix}
+
+    .. note::
+
+        In Qiskit's convention, higher qubit indices are more significant
+        (little endian convention). In many textbooks, controlled gates are
+        presented with the assumption of more significant qubits as control,
+        which in our case would be q_1. Thus a textbook matrix for this
+        gate will be:
+
+        .. code-block:: text
+
+                      ┌───────┐
+            q_0: ─────┤ Rz(θ) ├─────
+                 ┌───┐└───┬───┘┌───┐
+            q_1: ┤ X ├────■────┤ X ├
+                 └───┘         └───┘
+
+        .. math::
+
+            ACRZ(\theta)\ q_1, q_0 =
+                |0\rangle\langle 0| \otimes RZ(\theta) +
+                |1\rangle\langle 1| \otimes I =
+                \begin{pmatrix}
+                    e^{-i\frac{\theta}{2}} & 0 & 0 & 0 \\
+                    0 & e^{i\frac{\theta}{2}} & 0 & 0 \\
+                    0 & 0 & 1 & 0 \\
+                    0 & 0 & 0 & 1
+                \end{pmatrix}
+    """
+
+    def __init__(self, theta: ParameterValueType, label: str | None = None):
+        """Create new ACRZ gate.
+
+        Args:
+            theta: The rotation angle of the gate.
+            label: An optional label for the gate.
+        """
+        super().__init__("acrz", 2, [theta], label=label)
+
+    def _define(self):
+        """Decomposition: X on control, CRZ, X on control."""
+        from qiskit.circuit import QuantumCircuit
+
+        q = QuantumCircuit(2, name=self.name)
+        q.x(0)
+        q.crz(self.params[0], 0, 1)
+        q.x(0)
+        self.definition = q
+
+    def inverse(self, annotated: bool = False):
+        r"""Return inverse ACRZ gate (i.e. with the negative rotation angle).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.ACRZGate` with an inverted parameter value.
+
+        Returns:
+            ACRZGate: inverse gate.
+        """
+        return ACRZGate(-self.params[0])
+
+    def __array__(self, dtype=None, copy=None):
+        """Return a numpy.array for the ACRZ gate."""
+        import numpy
+
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
+        arg = 1j * float(self.params[0]) / 2
+        return numpy.array(
+            [[cmath.exp(-arg), 0, 0, 0], [0, 1, 0, 0], [0, 0, cmath.exp(arg), 0], [0, 0, 0, 1]],
+            dtype=dtype,
+        )
+
+    def __eq__(self, other):
+        if isinstance(other, ACRZGate):
+            return self._compare_parameters(other)
         return False

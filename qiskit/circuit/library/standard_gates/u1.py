@@ -12,6 +12,7 @@
 
 """U1 Gate."""
 from __future__ import annotations
+import cmath
 from cmath import exp
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
@@ -462,3 +463,65 @@ class MCU1Gate(ControlledGate):
             and self.ctrl_state == other.ctrl_state
             and self._compare_parameters(other)
         )
+
+
+class ACU1Gate(Gate):
+    r"""Anti-controlled U1 gate.
+
+    Applies a U1 rotation on the target qubit if the control is
+    in the :math:`|0\rangle` state.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.acu1` method.
+
+    Circuit symbol:
+
+    .. code-block:: text
+
+             ┌───┐         ┌───┐
+        q_0: ┤ X ├────■────┤ X ├
+             └───┘┌───┴───┐└───┘
+        q_1: ─────┤ U1(λ) ├─────
+                  └───────┘
+
+    This is equivalent to a controlled-U1 gate with the control state
+    set to :math:`|0\rangle`.
+    """
+
+    def __init__(self, lam: ParameterValueType, label: str | None = None):
+        """Create new ACU1 gate.
+
+        Args:
+            lam: The rotation angle lambda.
+            label: An optional label for the gate.
+        """
+        super().__init__("acu1", 2, [lam], label=label)
+
+    def _define(self):
+        """Decomposition: X on control, CU1, X on control."""
+        from qiskit.circuit import QuantumCircuit
+
+        q = QuantumCircuit(2, name=self.name)
+        q.x(0)
+        q.append(CU1Gate(self.params[0]), [0, 1])
+        q.x(0)
+        self.definition = q
+
+    def inverse(self, annotated: bool = False):
+        r"""Return inverted ACU1 gate (:math:`ACU1(\lambda)^{\dagger} = ACU1(-\lambda)`)."""
+        return ACU1Gate(-self.params[0])
+
+    def __array__(self, dtype=None, copy=None):
+        """Return a numpy.array for the ACU1 gate."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
+        lam = float(self.params[0])
+        return numpy.array(
+            [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, cmath.exp(1j * lam), 0], [0, 0, 0, 1]],
+            dtype=dtype,
+        )
+
+    def __eq__(self, other):
+        if isinstance(other, ACU1Gate):
+            return self._compare_parameters(other)
+        return False

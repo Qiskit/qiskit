@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import numpy
 
+from qiskit.circuit.gate import Gate
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 from qiskit._accelerate.circuit import StandardGate
@@ -440,3 +441,115 @@ class CSdgGate(SingletonControlledGate):
 
     def __eq__(self, other):
         return isinstance(other, CSdgGate) and self.ctrl_state == other.ctrl_state
+
+
+_ACS_ARRAY = numpy.array(
+    [
+        [1, 0, 0, 0],
+        [0, 1, 0, 0],
+        [0, 0, 1j, 0],
+        [0, 0, 0, 1],
+    ],
+    dtype=numpy.complex128,
+)
+_ACSdg_ARRAY = numpy.array(
+    [
+        [1, 0, 0, 0],
+        [0, 1, 0, 0],
+        [0, 0, -1j, 0],
+        [0, 0, 0, 1],
+    ],
+    dtype=numpy.complex128,
+)
+
+
+@with_gate_array(_ACS_ARRAY)
+class ACSGate(Gate):
+    r"""Anti-controlled S gate.
+
+    Applies an S gate on the target qubit if the control is
+    in the :math:`|0\rangle` state.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.acs` method.
+
+    Circuit symbol:
+
+    .. code-block:: text
+
+             ┌───┐     ┌───┐
+        q_0: ┤ X ├──■──┤ X ├
+             └───┘┌─┴─┐└───┘
+        q_1: ─────┤ S ├─────
+                  └───┘
+
+    This is equivalent to a controlled-S gate with the control state
+    set to :math:`|0\rangle`.
+    """
+
+    def __init__(self, label: str | None = None):
+        """Create new ACS gate."""
+        super().__init__("acs", 2, [], label=label)
+
+    def _define(self):
+        """Decomposition: X on control, CS, X on control."""
+        from qiskit.circuit import QuantumCircuit
+
+        q = QuantumCircuit(2, name=self.name)
+        q.x(0)
+        q.cs(0, 1)
+        q.x(0)
+        self.definition = q
+
+    def inverse(self, annotated: bool = False):
+        r"""Return inverse ACS gate (ACSdgGate)."""
+        return ACSdgGate()
+
+    def __eq__(self, other):
+        return isinstance(other, ACSGate)
+
+
+@with_gate_array(_ACSdg_ARRAY)
+class ACSdgGate(Gate):
+    r"""Anti-controlled :math:`S^{\dagger}` gate.
+
+    Applies an :math:`S^{\dagger}` gate on the target qubit if the control is
+    in the :math:`|0\rangle` state.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.acsdg` method.
+
+    Circuit symbol:
+
+    .. code-block:: text
+
+             ┌───┐       ┌───┐
+        q_0: ┤ X ├───■───┤ X ├
+             └───┘┌──┴──┐└───┘
+        q_1: ─────┤ Sdg ├─────
+                  └─────┘
+
+    This is equivalent to a controlled-:math:`S^{\dagger}` gate with the
+    control state set to :math:`|0\rangle`.
+    """
+
+    def __init__(self, label: str | None = None):
+        """Create new ACSdg gate."""
+        super().__init__("acsdg", 2, [], label=label)
+
+    def _define(self):
+        """Decomposition: X on control, CSdg, X on control."""
+        from qiskit.circuit import QuantumCircuit
+
+        q = QuantumCircuit(2, name=self.name)
+        q.x(0)
+        q.csdg(0, 1)
+        q.x(0)
+        self.definition = q
+
+    def inverse(self, annotated: bool = False):
+        r"""Return inverse ACSdg gate (ACSGate)."""
+        return ACSGate()
+
+    def __eq__(self, other):
+        return isinstance(other, ACSdgGate)

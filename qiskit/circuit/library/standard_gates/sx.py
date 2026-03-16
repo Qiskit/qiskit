@@ -15,6 +15,8 @@
 from __future__ import annotations
 
 
+import numpy
+from qiskit.circuit.gate import Gate
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 from qiskit._accelerate.circuit import StandardGate
@@ -311,3 +313,198 @@ class CSXGate(SingletonControlledGate):
 
     def __eq__(self, other):
         return isinstance(other, CSXGate) and self.ctrl_state == other.ctrl_state
+
+
+_ACSX_ARRAY = numpy.array(
+    [
+        [0.5 + 0.5j, 0, 0.5 - 0.5j, 0],
+        [0, 1, 0, 0],
+        [0.5 - 0.5j, 0, 0.5 + 0.5j, 0],
+        [0, 0, 0, 1],
+    ],
+    dtype=numpy.complex128,
+)
+_ACSXdg_ARRAY = numpy.array(
+    [
+        [0.5 - 0.5j, 0, 0.5 + 0.5j, 0],
+        [0, 1, 0, 0],
+        [0.5 + 0.5j, 0, 0.5 - 0.5j, 0],
+        [0, 0, 0, 1],
+    ],
+    dtype=numpy.complex128,
+)
+
+
+@with_gate_array(_ACSX_ARRAY)
+class ACSXGate(Gate):
+    r"""Anti-controlled :math:`\sqrt{X}` gate.
+
+    Applies a :math:`\sqrt{X}` gate on the target qubit if the control is
+    in the :math:`|0\rangle` state.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.acsx` method.
+
+    Circuit symbol:
+
+    .. code-block:: text
+
+             ┌───┐      ┌───┐
+        q_0: ┤ X ├──■───┤ X ├
+             └───┘┌─┴──┐└───┘
+        q_1: ─────┤ √X ├─────
+                  └────┘
+
+    This is equivalent to a controlled-:math:`\sqrt{X}` gate with the control
+    state set to :math:`|0\rangle`.
+
+    Matrix representation:
+
+    .. math::
+
+        AC\sqrt{X}\ q_0, q_1 =
+            \sqrt{X} \otimes |0\rangle\langle 0| + I \otimes |1\rangle\langle 1| =
+            \begin{pmatrix}
+                \frac{1+i}{2} & 0 & \frac{1-i}{2} & 0 \\
+                0 & 1 & 0 & 0 \\
+                \frac{1-i}{2} & 0 & \frac{1+i}{2} & 0 \\
+                0 & 0 & 0 & 1
+            \end{pmatrix}
+
+    .. note::
+
+        In Qiskit's convention, higher qubit indices are more significant
+        (little endian convention). In many textbooks, controlled gates are
+        presented with the assumption of more significant qubits as control,
+        which in our case would be q_1. Thus a textbook matrix for this
+        gate will be:
+
+        .. code-block:: text
+
+                      ┌────┐
+            q_0: ─────┤ √X ├─────
+                 ┌───┐└─┬──┘┌───┐
+            q_1: ┤ X ├──■───┤ X ├
+                 └───┘      └───┘
+
+        .. math::
+
+            AC\sqrt{X}\ q_1, q_0 =
+                |0\rangle\langle 0| \otimes \sqrt{X} +
+                |1\rangle\langle 1| \otimes I =
+                \begin{pmatrix}
+                    \frac{1+i}{2} & \frac{1-i}{2} & 0 & 0 \\
+                    \frac{1-i}{2} & \frac{1+i}{2} & 0 & 0 \\
+                    0 & 0 & 1 & 0 \\
+                    0 & 0 & 0 & 1
+                \end{pmatrix}
+    """
+
+    def __init__(self, label: str | None = None):
+        """Create new ACSX gate."""
+        super().__init__("acsx", 2, [], label=label)
+
+    def _define(self):
+        """Decomposition: X on control, CSX, X on control."""
+        from qiskit.circuit import QuantumCircuit
+
+        q = QuantumCircuit(2, name=self.name)
+        q.x(0)
+        q.csx(0, 1)
+        q.x(0)
+        self.definition = q
+
+    def inverse(self, annotated: bool = False):
+        r"""Return inverse ACSX gate (ACSXdgGate)."""
+        return ACSXdgGate()
+
+    def __eq__(self, other):
+        return isinstance(other, ACSXGate)
+
+
+@with_gate_array(_ACSXdg_ARRAY)
+class ACSXdgGate(Gate):
+    r"""Anti-controlled :math:`\sqrt{X}^{\dagger}` gate.
+
+    Applies a :math:`\sqrt{X}^{\dagger}` gate on the target qubit if the
+    control is in the :math:`|0\rangle` state.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.acsxdg` method.
+
+    Circuit symbol:
+
+    .. code-block:: text
+
+             ┌───┐        ┌───┐
+        q_0: ┤ X ├───■────┤ X ├
+             └───┘┌──┴───┐└───┘
+        q_1: ─────┤ √Xdg ├─────
+                  └──────┘
+
+    This is equivalent to a controlled-:math:`\sqrt{X}^{\dagger}` gate with
+    the control state set to :math:`|0\rangle`.
+
+    Matrix representation:
+
+    .. math::
+
+        AC\sqrt{X}^{\dagger}\ q_0, q_1 =
+            \sqrt{X}^{\dagger} \otimes |0\rangle\langle 0| +
+            I \otimes |1\rangle\langle 1| =
+            \begin{pmatrix}
+                \frac{1-i}{2} & 0 & \frac{1+i}{2} & 0 \\
+                0 & 1 & 0 & 0 \\
+                \frac{1+i}{2} & 0 & \frac{1-i}{2} & 0 \\
+                0 & 0 & 0 & 1
+            \end{pmatrix}
+
+    .. note::
+
+        In Qiskit's convention, higher qubit indices are more significant
+        (little endian convention). In many textbooks, controlled gates are
+        presented with the assumption of more significant qubits as control,
+        which in our case would be q_1. Thus a textbook matrix for this
+        gate will be:
+
+        .. code-block:: text
+
+                      ┌──────┐
+            q_0: ─────┤ √Xdg ├─────
+                 ┌───┐└──┬───┘┌───┐
+            q_1: ┤ X ├───■────┤ X ├
+                 └───┘        └───┘
+
+        .. math::
+
+            AC\sqrt{X}^{\dagger}\ q_1, q_0 =
+                |0\rangle\langle 0| \otimes \sqrt{X}^{\dagger} +
+                |1\rangle\langle 1| \otimes I =
+                \begin{pmatrix}
+                    \frac{1-i}{2} & \frac{1+i}{2} & 0 & 0 \\
+                    \frac{1+i}{2} & \frac{1-i}{2} & 0 & 0 \\
+                    0 & 0 & 1 & 0 \\
+                    0 & 0 & 0 & 1
+                \end{pmatrix}
+    """
+
+    def __init__(self, label: str | None = None):
+        """Create new ACSXdg gate."""
+        super().__init__("acsxdg", 2, [], label=label)
+
+    def _define(self):
+        """Decomposition: X on control, SXdg controlled, X on control."""
+        from qiskit.circuit import QuantumCircuit
+
+        q = QuantumCircuit(2, name=self.name)
+        q.x(0)
+        q.append(SXdgGate().control(1), [0, 1])
+        q.x(0)
+        self.definition = q
+
+    def inverse(self, annotated: bool = False):
+        r"""Return inverse ACSXdg gate (ACSXGate)."""
+        return ACSXGate()
+
+    def __eq__(self, other):
+        return isinstance(other, ACSXdgGate)

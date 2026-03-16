@@ -5198,7 +5198,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        from .library.standard_gates.anti_controlled import ACHGate
+        from .library.standard_gates.h import ACHGate
 
         return self.append(
             ACHGate(label=label),
@@ -5288,6 +5288,35 @@ class QuantumCircuit:
             [control_qubit, target_qubit],
             [],
             copy=False,
+        )
+
+    def acp(
+        self,
+        theta: ParameterValueType,
+        control_qubit: QubitSpecifier,
+        target_qubit: QubitSpecifier,
+        label: str | None = None,
+    ) -> InstructionSet:
+        r"""Apply :class:`~qiskit.circuit.library.ACPhaseGate`.
+
+        For the full matrix form of this gate, see the underlying gate documentation.
+
+        Applies a phase rotation on the target qubit when the control qubit is in the
+        :math:`|0\rangle` state (anti-controlled).
+
+        Args:
+            theta: The angle of the rotation.
+            control_qubit: The qubit(s) used as the control.
+            target_qubit: The qubit(s) targeted by the gate.
+            label: The string label of the gate in the circuit.
+
+        Returns:
+            A handle to the instructions created.
+        """
+        from .library.standard_gates.p import ACPhaseGate
+
+        return self.append(
+            ACPhaseGate(theta, label=label), [control_qubit, target_qubit], [], copy=False
         )
 
     def mcp(
@@ -5687,6 +5716,35 @@ class QuantumCircuit:
             copy=False,
         )
 
+    def acrx(
+        self,
+        theta: ParameterValueType,
+        control_qubit: QubitSpecifier,
+        target_qubit: QubitSpecifier,
+        label: str | None = None,
+    ) -> InstructionSet:
+        r"""Apply :class:`~qiskit.circuit.library.ACRXGate`.
+
+        For the full matrix form of this gate, see the underlying gate documentation.
+
+        Applies an RX rotation on the target qubit when the control qubit is in the
+        :math:`|0\rangle` state (anti-controlled).
+
+        Args:
+            theta: The angle of the rotation.
+            control_qubit: The qubit(s) used as the control.
+            target_qubit: The qubit(s) targeted by the gate.
+            label: The string label of the gate in the circuit.
+
+        Returns:
+            A handle to the instructions created.
+        """
+        from .library.standard_gates.rx import ACRXGate
+
+        return self.append(
+            ACRXGate(theta, label=label), [control_qubit, target_qubit], [], copy=False
+        )
+
     def rxx(
         self, theta: ParameterValueType, qubit1: QubitSpecifier, qubit2: QubitSpecifier
     ) -> InstructionSet:
@@ -5760,6 +5818,35 @@ class QuantumCircuit:
             copy=False,
         )
 
+    def acry(
+        self,
+        theta: ParameterValueType,
+        control_qubit: QubitSpecifier,
+        target_qubit: QubitSpecifier,
+        label: str | None = None,
+    ) -> InstructionSet:
+        r"""Apply :class:`~qiskit.circuit.library.ACRYGate`.
+
+        For the full matrix form of this gate, see the underlying gate documentation.
+
+        Applies an RY rotation on the target qubit when the control qubit is in the
+        :math:`|0\rangle` state (anti-controlled).
+
+        Args:
+            theta: The angle of the rotation.
+            control_qubit: The qubit(s) used as the control.
+            target_qubit: The qubit(s) targeted by the gate.
+            label: The string label of the gate in the circuit.
+
+        Returns:
+            A handle to the instructions created.
+        """
+        from .library.standard_gates.ry import ACRYGate
+
+        return self.append(
+            ACRYGate(theta, label=label), [control_qubit, target_qubit], [], copy=False
+        )
+
     def ryy(
         self, theta: ParameterValueType, qubit1: QubitSpecifier, qubit2: QubitSpecifier
     ) -> InstructionSet:
@@ -5828,6 +5915,35 @@ class QuantumCircuit:
             [control_qubit, target_qubit],
             [],
             copy=False,
+        )
+
+    def acrz(
+        self,
+        theta: ParameterValueType,
+        control_qubit: QubitSpecifier,
+        target_qubit: QubitSpecifier,
+        label: str | None = None,
+    ) -> InstructionSet:
+        r"""Apply :class:`~qiskit.circuit.library.ACRZGate`.
+
+        For the full matrix form of this gate, see the underlying gate documentation.
+
+        Applies an RZ rotation on the target qubit when the control qubit is in the
+        :math:`|0\rangle` state (anti-controlled).
+
+        Args:
+            theta: The angle of the rotation.
+            control_qubit: The qubit(s) used as the control.
+            target_qubit: The qubit(s) targeted by the gate.
+            label: The string label of the gate in the circuit.
+
+        Returns:
+            A handle to the instructions created.
+        """
+        from .library.standard_gates.rz import ACRZGate
+
+        return self.append(
+            ACRZGate(theta, label=label), [control_qubit, target_qubit], [], copy=False
         )
 
     def rzx(
@@ -5977,6 +6093,54 @@ class QuantumCircuit:
             copy=False,
         )
 
+    def acs(
+        self,
+        control_qubit: QubitSpecifier,
+        target_qubit: QubitSpecifier,
+        label: str | None = None,
+    ) -> InstructionSet:
+        """Apply :class:`~qiskit.circuit.library.ACSGate`.
+
+        For the full matrix form of this gate, see the underlying gate documentation.
+
+        Args:
+            control_qubit: The qubit(s) used as the control.
+            target_qubit: The qubit(s) targeted by the gate.
+            label: The string label of the gate in the circuit.
+
+        Returns:
+            A handle to the instructions created.
+        """
+        from .library.standard_gates.s import ACSGate
+
+        return self.append(
+            ACSGate(label=label), [control_qubit, target_qubit], [], copy=False
+        )
+
+    def acsdg(
+        self,
+        control_qubit: QubitSpecifier,
+        target_qubit: QubitSpecifier,
+        label: str | None = None,
+    ) -> InstructionSet:
+        """Apply :class:`~qiskit.circuit.library.ACSdgGate`.
+
+        For the full matrix form of this gate, see the underlying gate documentation.
+
+        Args:
+            control_qubit: The qubit(s) used as the control.
+            target_qubit: The qubit(s) targeted by the gate.
+            label: The string label of the gate in the circuit.
+
+        Returns:
+            A handle to the instructions created.
+        """
+        from .library.standard_gates.s import ACSdgGate
+
+        return self.append(
+            ACSdgGate(label=label), [control_qubit, target_qubit], [], copy=False
+        )
+
     def swap(self, qubit1: QubitSpecifier, qubit2: QubitSpecifier) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.SwapGate`.
 
@@ -6112,6 +6276,54 @@ class QuantumCircuit:
             copy=False,
         )
 
+    def acsx(
+        self,
+        control_qubit: QubitSpecifier,
+        target_qubit: QubitSpecifier,
+        label: str | None = None,
+    ) -> InstructionSet:
+        """Apply :class:`~qiskit.circuit.library.ACSXGate`.
+
+        For the full matrix form of this gate, see the underlying gate documentation.
+
+        Args:
+            control_qubit: The qubit(s) used as the control.
+            target_qubit: The qubit(s) targeted by the gate.
+            label: The string label of the gate in the circuit.
+
+        Returns:
+            A handle to the instructions created.
+        """
+        from .library.standard_gates.sx import ACSXGate
+
+        return self.append(
+            ACSXGate(label=label), [control_qubit, target_qubit], [], copy=False
+        )
+
+    def acsxdg(
+        self,
+        control_qubit: QubitSpecifier,
+        target_qubit: QubitSpecifier,
+        label: str | None = None,
+    ) -> InstructionSet:
+        """Apply :class:`~qiskit.circuit.library.ACSXdgGate`.
+
+        For the full matrix form of this gate, see the underlying gate documentation.
+
+        Args:
+            control_qubit: The qubit(s) used as the control.
+            target_qubit: The qubit(s) targeted by the gate.
+            label: The string label of the gate in the circuit.
+
+        Returns:
+            A handle to the instructions created.
+        """
+        from .library.standard_gates.sx import ACSXdgGate
+
+        return self.append(
+            ACSXdgGate(label=label), [control_qubit, target_qubit], [], copy=False
+        )
+
     def t(self, qubit: QubitSpecifier) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.TGate`.
 
@@ -6208,6 +6420,210 @@ class QuantumCircuit:
             copy=False,
         )
 
+    def acu(
+        self,
+        theta: ParameterValueType,
+        phi: ParameterValueType,
+        lam: ParameterValueType,
+        gamma: ParameterValueType,
+        control_qubit: QubitSpecifier,
+        target_qubit: QubitSpecifier,
+        label: str | None = None,
+    ) -> InstructionSet:
+        r"""Apply :class:`~qiskit.circuit.library.ACUGate`.
+
+        For the full matrix form of this gate, see the underlying gate documentation.
+
+        Applies a U rotation (with global phase) on the target qubit when the control
+        qubit is in the :math:`|0\rangle` state (anti-controlled).
+
+        Args:
+            theta: The rotation angle theta.
+            phi: The rotation angle phi.
+            lam: The rotation angle lambda.
+            gamma: The global phase applied to the U gate.
+            control_qubit: The qubit(s) used as the control.
+            target_qubit: The qubit(s) targeted by the gate.
+            label: The string label of the gate in the circuit.
+
+        Returns:
+            A handle to the instructions created.
+        """
+        from .library.standard_gates.u import ACUGate
+
+        return self.append(
+            ACUGate(theta, phi, lam, gamma, label=label),
+            [control_qubit, target_qubit],
+            [],
+            copy=False,
+        )
+
+    def acu1(
+        self,
+        lam: ParameterValueType,
+        control_qubit: QubitSpecifier,
+        target_qubit: QubitSpecifier,
+        label: str | None = None,
+    ) -> InstructionSet:
+        r"""Apply :class:`~qiskit.circuit.library.ACU1Gate`.
+
+        For the full matrix form of this gate, see the underlying gate documentation.
+
+        Applies a U1 (phase) rotation on the target qubit when the control
+        qubit is in the :math:`|0\rangle` state (anti-controlled).
+
+        Args:
+            lam: The rotation angle lambda.
+            control_qubit: The qubit(s) used as the control.
+            target_qubit: The qubit(s) targeted by the gate.
+            label: The string label of the gate in the circuit.
+
+        Returns:
+            A handle to the instructions created.
+        """
+        from .library.standard_gates.u1 import ACU1Gate
+
+        return self.append(
+            ACU1Gate(lam, label=label),
+            [control_qubit, target_qubit],
+            [],
+            copy=False,
+        )
+
+    def acu3(
+        self,
+        theta: ParameterValueType,
+        phi: ParameterValueType,
+        lam: ParameterValueType,
+        control_qubit: QubitSpecifier,
+        target_qubit: QubitSpecifier,
+        label: str | None = None,
+    ) -> InstructionSet:
+        r"""Apply :class:`~qiskit.circuit.library.ACU3Gate`.
+
+        For the full matrix form of this gate, see the underlying gate documentation.
+
+        Applies a U3 rotation (generic single qubit rotation) on the target qubit
+        when the control qubit is in the :math:`|0\rangle` state (anti-controlled).
+
+        Args:
+            theta: The rotation angle theta.
+            phi: The rotation angle phi.
+            lam: The rotation angle lambda.
+            control_qubit: The qubit(s) used as the control.
+            target_qubit: The qubit(s) targeted by the gate.
+            label: The string label of the gate in the circuit.
+
+        Returns:
+            A handle to the instructions created.
+        """
+        from .library.standard_gates.u3 import ACU3Gate
+
+        return self.append(
+            ACU3Gate(theta, phi, lam, label=label),
+            [control_qubit, target_qubit],
+            [],
+            copy=False,
+        )
+
+    def accx(
+        self,
+        control_qubit1: QubitSpecifier,
+        control_qubit2: QubitSpecifier,
+        target_qubit: QubitSpecifier,
+        label: str | None = None,
+    ) -> InstructionSet:
+        r"""Apply :class:`~qiskit.circuit.library.ACCXGate` (anti-controlled Toffoli).
+
+        Applies an X gate on the target qubit when both control qubits are
+        in the :math:`|0\rangle` state.
+
+        Args:
+            control_qubit1: The first anti-control qubit.
+            control_qubit2: The second anti-control qubit.
+            target_qubit: The qubit targeted by the gate.
+            label: The string label of the gate in the circuit.
+
+        Returns:
+            A handle to the instructions created.
+        """
+        from .library.standard_gates.x import ACCXGate
+
+        return self.append(
+            ACCXGate(label=label),
+            [control_qubit1, control_qubit2, target_qubit],
+            [],
+            copy=False,
+        )
+
+    def amcx(
+        self,
+        anti_control_qubits: Sequence[QubitSpecifier],
+        control_qubits: Sequence[QubitSpecifier],
+        target_qubit: QubitSpecifier,
+        label: str | None = None,
+    ) -> InstructionSet:
+        r"""Apply :class:`~qiskit.circuit.library.AMCXGate`.
+
+        Multi-controlled X gate with both anti-controls (activate on :math:`|0\rangle`)
+        and regular controls (activate on :math:`|1\rangle`).
+
+        Args:
+            anti_control_qubits: The qubits used as anti-controls.
+            control_qubits: The qubits used as regular controls.
+            target_qubit: The qubit targeted by the gate.
+            label: The string label of the gate in the circuit.
+
+        Returns:
+            A handle to the instructions created.
+        """
+        from .library.standard_gates.x import AMCXGate
+
+        num_anti_ctrl = len(anti_control_qubits)
+        num_ctrl = len(control_qubits)
+        gate = AMCXGate(num_anti_ctrl, num_ctrl, label=label)
+        return self.append(
+            gate,
+            list(anti_control_qubits) + list(control_qubits) + [target_qubit],
+            [],
+            copy=False,
+        )
+
+    def amcp(
+        self,
+        lam: ParameterValueType,
+        anti_control_qubits: Sequence[QubitSpecifier],
+        control_qubits: Sequence[QubitSpecifier],
+        target_qubit: QubitSpecifier,
+        label: str | None = None,
+    ) -> InstructionSet:
+        r"""Apply :class:`~qiskit.circuit.library.AMCPhaseGate`.
+
+        Multi-controlled Phase gate with both anti-controls (activate on :math:`|0\rangle`)
+        and regular controls (activate on :math:`|1\rangle`).
+
+        Args:
+            lam: The phase angle of the gate.
+            anti_control_qubits: The qubits used as anti-controls.
+            control_qubits: The qubits used as regular controls.
+            target_qubit: The qubit targeted by the gate.
+            label: The string label of the gate in the circuit.
+
+        Returns:
+            A handle to the instructions created.
+        """
+        from .library.standard_gates.p import AMCPhaseGate
+
+        num_anti_ctrl = len(anti_control_qubits)
+        num_ctrl = len(control_qubits)
+        gate = AMCPhaseGate(lam, num_anti_ctrl, num_ctrl, label=label)
+        return self.append(
+            gate,
+            list(anti_control_qubits) + list(control_qubits) + [target_qubit],
+            [],
+            copy=False,
+        )
+
     def x(self, qubit: QubitSpecifier, label: str | None = None) -> InstructionSet:
         r"""Apply :class:`~qiskit.circuit.library.XGate`.
 
@@ -6283,7 +6699,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        from .library.standard_gates.anti_controlled import ACXGate
+        from .library.standard_gates.x import ACXGate
 
         return self.append(
             ACXGate(label=label),
@@ -6529,7 +6945,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        from .library.standard_gates.anti_controlled import ACYGate
+        from .library.standard_gates.y import ACYGate
 
         return self.append(
             ACYGate(label=label), [control_qubit, target_qubit], [], copy=False
@@ -6606,7 +7022,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        from .library.standard_gates.anti_controlled import ACZGate
+        from .library.standard_gates.z import ACZGate
 
         return self.append(
             ACZGate(label=label), [control_qubit, target_qubit], [], copy=False

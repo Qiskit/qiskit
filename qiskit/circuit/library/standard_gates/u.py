@@ -394,3 +394,89 @@ class CUGate(ControlledGate):
             and self.ctrl_state == other.ctrl_state
             and self._compare_parameters(other)
         )
+
+
+class ACUGate(Gate):
+    r"""Anti-controlled U gate (4-parameter two-qubit gate).
+
+    Applies a U gate on the target qubit if the control is
+    in the :math:`|0\rangle` state.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.acu` method.
+
+    Circuit symbol:
+
+    .. code-block:: text
+
+             ┌───┐        ┌───┐
+        q_0: ┤ X ├───■────┤ X ├
+             └───┘┌──┴───┐└───┘
+        q_1: ─────┤ U(…) ├─────
+                  └──────┘
+
+    This is equivalent to a controlled-U gate with the control state
+    set to :math:`|0\rangle`.
+    """
+
+    def __init__(
+        self,
+        theta: ParameterValueType,
+        phi: ParameterValueType,
+        lam: ParameterValueType,
+        gamma: ParameterValueType,
+        label: str | None = None,
+    ):
+        """Create new ACU gate.
+
+        Args:
+            theta: The rotation angle theta.
+            phi: The rotation angle phi.
+            lam: The rotation angle lambda.
+            gamma: The global phase applied to the U gate.
+            label: An optional label for the gate.
+        """
+        super().__init__("acu", 2, [theta, phi, lam, gamma], label=label)
+
+    def _define(self):
+        """Decomposition: X on control, CU, X on control."""
+        from qiskit.circuit import QuantumCircuit
+
+        q = QuantumCircuit(2, name=self.name)
+        q.x(0)
+        q.cu(*self.params, 0, 1)
+        q.x(0)
+        self.definition = q
+
+    def inverse(self, annotated: bool = False):
+        r"""Return inverted ACU gate.
+
+        :math:`ACU(\theta,\phi,\lambda,\gamma)^{\dagger} =
+        ACU(-\theta,-\phi,-\lambda,-\gamma)`
+        """
+        return ACUGate(
+            -self.params[0],
+            -self.params[2],
+            -self.params[1],
+            -self.params[3],
+        )
+
+    def __array__(self, dtype=None, copy=None):
+        """Return a numpy.array for the ACU gate."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
+        theta, phi, lam, gamma = (float(param) for param in self.params)
+        cos = math.cos(theta / 2)
+        sin = math.sin(theta / 2)
+        a = cmath.exp(1j * gamma) * cos
+        b = -cmath.exp(1j * (gamma + lam)) * sin
+        c = cmath.exp(1j * (gamma + phi)) * sin
+        d = cmath.exp(1j * (gamma + phi + lam)) * cos
+        return numpy.array(
+            [[a, 0, b, 0], [0, 1, 0, 0], [c, 0, d, 0], [0, 0, 0, 1]], dtype=dtype
+        )
+
+    def __eq__(self, other):
+        if isinstance(other, ACUGate):
+            return self._compare_parameters(other)
+        return False

@@ -15,6 +15,7 @@ from __future__ import annotations
 import warnings
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
+from qiskit.circuit.gate import Gate
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
 from qiskit.circuit._utils import _ctrl_state_to_int, with_gate_array, with_controlled_gate_array
 from qiskit._accelerate.circuit import StandardGate
@@ -1320,3 +1321,401 @@ class MCXVChain(MCXGate):
             qc = synth_mcx_n_clean_m15(self.num_ctrl_qubits)
 
         self.definition = qc
+
+
+_ACX_ARRAY = numpy.array(
+    [
+        [0, 0, 1, 0],
+        [0, 1, 0, 0],
+        [1, 0, 0, 0],
+        [0, 0, 0, 1],
+    ],
+    dtype=numpy.complex128,
+)
+
+
+@with_gate_array(_ACX_ARRAY)
+class ACXGate(Gate):
+    r"""Anti-controlled X gate.
+
+    Applies an X (NOT) gate on the target qubit if the control is
+    in the :math:`|0\rangle` state.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.acx` method.
+
+    Circuit symbol:
+
+    .. code-block:: text
+
+             ┌───┐     ┌───┐
+        q_0: ┤ X ├──■──┤ X ├
+             └───┘┌─┴─┐└───┘
+        q_1: ─────┤ X ├─────
+                  └───┘
+
+    This is equivalent to a controlled-X gate with the control state
+    set to :math:`|0\rangle`.
+
+    Matrix representation:
+
+    .. math::
+
+        ACX\ q_0, q_1 =
+            X \otimes |0\rangle\langle 0| + I \otimes |1\rangle\langle 1| =
+            \begin{pmatrix}
+                0 & 0 & 1 & 0 \\
+                0 & 1 & 0 & 0 \\
+                1 & 0 & 0 & 0 \\
+                0 & 0 & 0 & 1
+            \end{pmatrix}
+
+    .. note::
+
+        In Qiskit's convention, higher qubit indices are more significant
+        (little endian convention). In many textbooks, controlled gates are
+        presented with the assumption of more significant qubits as control,
+        which in our case would be q_1. Thus a textbook matrix for this
+        gate will be:
+
+        .. code-block:: text
+
+                      ┌───┐
+            q_0: ─────┤ X ├─────
+                 ┌───┐└─┬─┘┌───┐
+            q_1: ┤ X ├──■──┤ X ├
+                 └───┘     └───┘
+
+        .. math::
+
+            ACX\ q_1, q_0 =
+                |0\rangle\langle 0| \otimes X + |1\rangle\langle 1| \otimes I =
+                \begin{pmatrix}
+                    0 & 1 & 0 & 0 \\
+                    1 & 0 & 0 & 0 \\
+                    0 & 0 & 1 & 0 \\
+                    0 & 0 & 0 & 1
+                \end{pmatrix}
+    """
+
+    def __init__(self, label: str | None = None):
+        """Create new ACX gate.
+
+        Args:
+            label: An optional label for the gate.
+        """
+        super().__init__("acx", 2, [], label=label)
+
+    def _define(self):
+        """Decomposition: X on control, CX, X on control."""
+        from qiskit.circuit import QuantumCircuit
+
+        q = QuantumCircuit(2, name=self.name)
+        q.x(0)
+        q.cx(0, 1)
+        q.x(0)
+        self.definition = q
+
+    def inverse(self, annotated: bool = False):
+        r"""Return inverted ACX gate (itself, since it is self-inverse).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as this gate
+                is self-inverse.
+
+        Returns:
+            ACXGate: inverse gate (self-inverse).
+        """
+        return ACXGate()  # self-inverse
+
+    def __eq__(self, other):
+        return isinstance(other, ACXGate)
+
+
+# ACCX matrix: 8x8 identity with swap at rows/cols 0 and 4
+_ACCX_ARRAY = numpy.array(
+    [
+        [0, 0, 0, 0, 1, 0, 0, 0],
+        [0, 1, 0, 0, 0, 0, 0, 0],
+        [0, 0, 1, 0, 0, 0, 0, 0],
+        [0, 0, 0, 1, 0, 0, 0, 0],
+        [1, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 1, 0, 0],
+        [0, 0, 0, 0, 0, 0, 1, 0],
+        [0, 0, 0, 0, 0, 0, 0, 1],
+    ],
+    dtype=numpy.complex128,
+)
+
+
+@with_gate_array(_ACCX_ARRAY)
+class ACCXGate(Gate):
+    r"""Anti-controlled Toffoli gate (double anti-controlled X gate).
+
+    Applies an X gate on the target qubit when both control qubits are
+    in the :math:`|0\rangle` state.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.accx` method.
+
+    Circuit symbol:
+
+    .. code-block:: text
+
+             ┌───┐     ┌───┐
+        q_0: ┤ X ├──■──┤ X ├
+             ├───┤  │  ├───┤
+        q_1: ┤ X ├──■──┤ X ├
+             └───┘┌─┴─┐└───┘
+        q_2: ─────┤ X ├─────
+                  └───┘
+
+    This is equivalent to a CCX (Toffoli) gate with both control states
+    set to :math:`|0\rangle`.
+
+    Matrix representation:
+
+    .. math::
+
+        ACCX\ q_0, q_1, q_2 =
+            X \otimes |00\rangle\langle 00| + I \otimes (I - |00\rangle\langle 00|) =
+            \begin{pmatrix}
+                0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\
+                0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\
+                0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\
+                0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\
+                1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
+                0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\
+                0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 \\
+                0 & 0 & 0 & 0 & 0 & 0 & 0 & 1
+            \end{pmatrix}
+
+    .. note::
+
+        In Qiskit's convention, higher qubit indices are more significant
+        (little endian convention). In many textbooks, controlled gates are
+        presented with the assumption of more significant qubits as control,
+        which in our case would be q_1, q_2. Thus a textbook matrix for this
+        gate will be:
+
+        .. code-block:: text
+
+                      ┌───┐
+            q_0: ─────┤ X ├─────
+                 ┌───┐└─┬─┘┌───┐
+            q_1: ┤ X ├──■──┤ X ├
+                 ├───┤  │  ├───┤
+            q_2: ┤ X ├──■──┤ X ├
+                 └───┘     └───┘
+
+        .. math::
+
+            ACCX\ q_2, q_1, q_0 =
+                |00\rangle\langle 00| \otimes X +
+                (I - |00\rangle\langle 00|) \otimes I =
+                \begin{pmatrix}
+                    0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\
+                    1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
+                    0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\
+                    0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\
+                    0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\
+                    0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\
+                    0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 \\
+                    0 & 0 & 0 & 0 & 0 & 0 & 0 & 1
+                \end{pmatrix}
+    """
+
+    def __init__(self, label: str | None = None):
+        """Create new ACCX gate.
+
+        Args:
+            label: An optional label for the gate.
+        """
+        super().__init__("accx", 3, [], label=label)
+
+    def _define(self):
+        """Decomposition: X on both controls, CCX, X on both controls."""
+        from qiskit.circuit import QuantumCircuit
+
+        q = QuantumCircuit(3, name=self.name)
+        q.x(0)
+        q.x(1)
+        q.ccx(0, 1, 2)
+        q.x(0)
+        q.x(1)
+        self.definition = q
+
+    def inverse(self, annotated: bool = False):
+        r"""Return inverted ACCX gate (itself, since it is self-inverse).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as this gate
+                is self-inverse.
+
+        Returns:
+            ACCXGate: inverse gate (self-inverse).
+        """
+        return ACCXGate()
+
+    def __eq__(self, other):
+        return isinstance(other, ACCXGate)
+
+
+class AMCXGate(Gate):
+    r"""Anti-controlled/controlled multi-qubit X gate.
+
+    A multi-controlled X gate where some control qubits are anti-controls
+    (activate on :math:`|0\rangle`) and others are regular controls
+    (activate on :math:`|1\rangle`).
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.amcx` method.
+
+    Circuit symbol (example with 2 anti-controls and 2 controls):
+
+    .. code-block:: text
+
+             ┌───┐     ┌───┐
+        q_0: ┤ X ├──■──┤ X ├
+             ├───┤  │  ├───┤
+        q_1: ┤ X ├──■──┤ X ├
+             └───┘  │  └───┘
+        q_2: ───────■───────
+                    │
+        q_3: ───────■───────
+                  ┌─┴─┐
+        q_4: ────┤ X ├──────
+                  └───┘
+
+    The decomposition applies X gates on the anti-control qubits, then an MCX
+    gate on all control qubits (both anti-controls and regular controls),
+    and finally X gates on the anti-control qubits again.
+
+    Args:
+        num_anti_ctrl_qubits: The number of anti-control qubits.
+        num_ctrl_qubits: The number of regular control qubits.
+        label: An optional label for the gate.
+
+    Raises:
+        ValueError: If the total number of control qubits is less than 1.
+    """
+
+    def __init__(
+        self,
+        num_anti_ctrl_qubits: int,
+        num_ctrl_qubits: int,
+        label: str | None = None,
+    ):
+        """Create new AMCX gate.
+
+        Args:
+            num_anti_ctrl_qubits: The number of anti-control qubits.
+            num_ctrl_qubits: The number of regular control qubits.
+            label: An optional label for the gate.
+
+        Raises:
+            ValueError: If the total number of control qubits is less than 1.
+        """
+        total_ctrl = num_anti_ctrl_qubits + num_ctrl_qubits
+        if total_ctrl < 1:
+            raise ValueError(
+                "AMCXGate requires at least 1 control qubit "
+                f"(got {num_anti_ctrl_qubits} anti-controls + {num_ctrl_qubits} controls = 0)."
+            )
+        if num_anti_ctrl_qubits < 0 or num_ctrl_qubits < 0:
+            raise ValueError(
+                "Number of anti-control and control qubits must be non-negative, "
+                f"got num_anti_ctrl_qubits={num_anti_ctrl_qubits}, "
+                f"num_ctrl_qubits={num_ctrl_qubits}."
+            )
+        self._num_anti_ctrl_qubits = num_anti_ctrl_qubits
+        self._num_ctrl_qubits = num_ctrl_qubits
+        num_qubits = total_ctrl + 1  # controls + target
+        super().__init__("amcx", num_qubits, [], label=label)
+
+    @property
+    def num_anti_ctrl_qubits(self):
+        """Return the number of anti-control qubits."""
+        return self._num_anti_ctrl_qubits
+
+    @property
+    def num_ctrl_qubits(self):
+        """Return the number of regular control qubits."""
+        return self._num_ctrl_qubits
+
+    def _define(self):
+        """Decomposition: X on anti-controls, MCX on all controls, X on anti-controls."""
+        from qiskit.circuit import QuantumCircuit
+
+        n = self.num_qubits
+        q = QuantumCircuit(n, name=self.name)
+
+        # Apply X on all anti-control qubits
+        for i in range(self._num_anti_ctrl_qubits):
+            q.x(i)
+
+        # Apply MCX with all control qubits controlling the target
+        total_ctrl = self._num_anti_ctrl_qubits + self._num_ctrl_qubits
+        all_qubits = list(range(n))
+        q.append(MCXGate(total_ctrl), all_qubits)
+
+        # Undo X on all anti-control qubits
+        for i in range(self._num_anti_ctrl_qubits):
+            q.x(i)
+
+        self.definition = q
+
+    def inverse(self, annotated: bool = False):
+        """Return inverse AMCX gate (self-inverse since X is self-inverse).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the
+                AMCX gate is self-inverse.
+
+        Returns:
+            AMCXGate: inverse gate (self).
+        """
+        return AMCXGate(self._num_anti_ctrl_qubits, self._num_ctrl_qubits)
+
+    def __array__(self, dtype=None, copy=None):
+        """Return a numpy.array for the AMCX gate."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
+        n = self.num_qubits
+        dim = 2**n
+        mat = numpy.eye(dim, dtype=dtype or complex)
+
+        na = self._num_anti_ctrl_qubits
+        nc = self._num_ctrl_qubits
+        target_bit = na + nc  # index of the target qubit
+
+        # The control pattern: bits 0..na-1 are 0, bits na..na+nc-1 are 1
+        ctrl_pattern = 0
+        for i in range(na, na + nc):
+            ctrl_pattern |= (1 << i)
+
+        # The two states differ only in the target bit
+        state_0 = ctrl_pattern  # target = 0
+        state_1 = ctrl_pattern | (1 << target_bit)  # target = 1
+
+        # Swap these two rows/columns
+        mat[state_0, state_0] = 0
+        mat[state_1, state_1] = 0
+        mat[state_0, state_1] = 1
+        mat[state_1, state_0] = 1
+
+        return mat
+
+    def __eq__(self, other):
+        if isinstance(other, AMCXGate):
+            return (
+                self._num_anti_ctrl_qubits == other._num_anti_ctrl_qubits
+                and self._num_ctrl_qubits == other._num_ctrl_qubits
+            )
+        return False

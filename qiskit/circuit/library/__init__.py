@@ -201,7 +201,20 @@ and operations.
    :toctree: ../stubs/
 
    ACHGate
+   ACPhaseGate
+   ACRXGate
+   ACRYGate
+   ACRZGate
+   ACSGate
+   ACSdgGate
+   ACSXGate
+   ACSXdgGate
+   ACUGate
+   ACU1Gate
+   ACU3Gate
    ACXGate
+   ACYGate
+   ACZGate
    CHGate
    CPhaseGate
    CRXGate
@@ -233,6 +246,9 @@ and operations.
 .. autosummary::
    :toctree: ../stubs/
 
+   ACCXGate
+   AMCPhaseGate
+   AMCXGate
    C3SXGate
    C3XGate
    C4XGate
@@ -311,6 +327,8 @@ which prints:
 .. autosummary::
    :toctree: ../stubs/
 
+   AMCXGate
+   AMCPhaseGate
    DiagonalGate
    PermutationGate
    MCMTGate

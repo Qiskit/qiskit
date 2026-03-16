@@ -14,35 +14,35 @@
 Standard gates
 """
 
-from .anti_controlled import ACHGate, ACXGate, ACYGate, ACZGate
-from .h import HGate, CHGate
+from .h import HGate, CHGate, ACHGate
 from .i import IGate
-from .p import PhaseGate, CPhaseGate, MCPhaseGate
+from .p import PhaseGate, CPhaseGate, MCPhaseGate, ACPhaseGate, AMCPhaseGate
 from .r import RGate
-from .rx import RXGate, CRXGate
+from .rx import RXGate, CRXGate, ACRXGate
 from .rxx import RXXGate
-from .ry import RYGate, CRYGate
+from .ry import RYGate, CRYGate, ACRYGate
 from .ryy import RYYGate
-from .rz import RZGate, CRZGate
+from .rz import RZGate, CRZGate, ACRZGate
 from .rzz import RZZGate
 from .rzx import RZXGate
 from .xx_minus_yy import XXMinusYYGate
 from .xx_plus_yy import XXPlusYYGate
 from .ecr import ECRGate
-from .s import SGate, SdgGate, CSGate, CSdgGate
+from .s import SGate, SdgGate, CSGate, CSdgGate, ACSGate, ACSdgGate
 from .swap import SwapGate, CSwapGate
 from .iswap import iSwapGate
-from .sx import SXGate, SXdgGate, CSXGate
+from .sx import SXGate, SXdgGate, CSXGate, ACSXGate, ACSXdgGate
 from .dcx import DCXGate
 from .t import TGate, TdgGate
-from .u import UGate, CUGate
-from .u1 import U1Gate, CU1Gate, MCU1Gate
+from .u import UGate, CUGate, ACUGate
+from .u1 import U1Gate, CU1Gate, MCU1Gate, ACU1Gate
 from .u2 import U2Gate
-from .u3 import U3Gate, CU3Gate
+from .u3 import U3Gate, CU3Gate, ACU3Gate
 from .x import XGate, CXGate, CCXGate, C3XGate, C3SXGate, C4XGate, RCCXGate, RC3XGate
 from .x import MCXGate, MCXGrayCode, MCXRecursive, MCXVChain
-from .y import YGate, CYGate
-from .z import ZGate, CZGate, CCZGate
+from .x import ACXGate, ACCXGate, AMCXGate
+from .y import YGate, CYGate, ACYGate
+from .z import ZGate, CZGate, CCZGate, ACZGate
 from .global_phase import GlobalPhaseGate
 
 
@@ -87,6 +87,18 @@ def get_standard_gate_name_mapping():
         ACYGate(),
         ACZGate(),
         ACHGate(),
+        ACRXGate(theta),
+        ACRYGate(theta),
+        ACRZGate(theta),
+        ACPhaseGate(theta),
+        ACUGate(theta, phi, lambda_, gamma),
+        ACSXGate(),
+        ACSXdgGate(),
+        ACSGate(),
+        ACSdgGate(),
+        ACU1Gate(lambda_),
+        ACU3Gate(theta, phi, lambda_),
+        ACCXGate(),
         IGate(),
         SXGate(),
         XGate(),

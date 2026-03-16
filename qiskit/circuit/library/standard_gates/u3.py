@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import cmath
 import math
 from cmath import exp
 
@@ -420,3 +421,142 @@ def _gray_code_chain(q, num_ctrl_qubits, gate):
         last_pattern = pattern
 
     return rule
+
+
+class ACU3Gate(Gate):
+    r"""Anti-controlled U3 gate (3-parameter two-qubit gate).
+
+    Applies a U3 rotation (generic single qubit rotation with 3 Euler angles)
+    on the target qubit if the control is in the :math:`|0\rangle` state.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.acu3` method.
+
+    Circuit symbol:
+
+    .. code-block:: text
+
+             ┌───┐            ┌───┐
+        q_0: ┤ X ├──────■─────┤ X ├
+             └───┘┌─────┴────┐└───┘
+        q_1: ─────┤ U3(ϴ,φ,λ) ├─────
+                  └──────────┘
+
+    This is equivalent to a controlled-U3 gate with the control state
+    set to :math:`|0\rangle`.
+
+    Matrix representation:
+
+    .. math::
+
+        \newcommand{\rotationangle}{\frac{\theta}{2}}
+
+        ACU3(\theta, \phi, \lambda)\ q_0, q_1 =
+            U3(\theta,\phi,\lambda) \otimes |0\rangle\langle 0| +
+            I \otimes |1\rangle\langle 1| =
+            \begin{pmatrix}
+                \cos(\rotationangle) & 0
+                    & -e^{i\lambda}\sin(\rotationangle) & 0 \\
+                0 & 1 & 0 & 0 \\
+                e^{i\phi}\sin(\rotationangle) & 0
+                    & e^{i(\phi+\lambda)}\cos(\rotationangle) & 0 \\
+                0 & 0 & 0 & 1
+            \end{pmatrix}
+
+    .. note::
+
+        In Qiskit's convention, higher qubit indices are more significant
+        (little endian convention). In many textbooks, controlled gates are
+        presented with the assumption of more significant qubits as control,
+        which in our case would be q_1. Thus a textbook matrix for this
+        gate will be:
+
+        .. code-block:: text
+
+                      ┌──────────┐
+            q_0: ─────┤ U3(ϴ,φ,λ) ├─────
+                 ┌───┐└────┬─────┘┌───┐
+            q_1: ┤ X ├─────■──────┤ X ├
+                 └───┘            └───┘
+
+        .. math::
+
+            \newcommand{\rotationangle}{\frac{\theta}{2}}
+
+            ACU3(\theta, \phi, \lambda)\ q_1, q_0 =
+                |0\rangle\langle 0| \otimes U3(\theta,\phi,\lambda) +
+                |1\rangle\langle 1| \otimes I =
+                \begin{pmatrix}
+                    \cos(\rotationangle) &
+                        -e^{i\lambda}\sin(\rotationangle) & 0 & 0 \\
+                    e^{i\phi}\sin(\rotationangle) &
+                        e^{i(\phi+\lambda)}\cos(\rotationangle) & 0 & 0 \\
+                    0 & 0 & 1 & 0 \\
+                    0 & 0 & 0 & 1
+                \end{pmatrix}
+    """
+
+    def __init__(
+        self,
+        theta: ParameterValueType,
+        phi: ParameterValueType,
+        lam: ParameterValueType,
+        label: str | None = None,
+    ):
+        """Create new ACU3 gate.
+
+        Args:
+            theta: The rotation angle theta.
+            phi: The rotation angle phi.
+            lam: The rotation angle lambda.
+            label: An optional label for the gate.
+        """
+        super().__init__("acu3", 2, [theta, phi, lam], label=label)
+
+    def _define(self):
+        """Decomposition: X on control, CU3, X on control."""
+        from qiskit.circuit import QuantumCircuit
+
+        q = QuantumCircuit(2, name=self.name)
+        q.x(0)
+        q.append(CU3Gate(*self.params), [0, 1])
+        q.x(0)
+        self.definition = q
+
+    def inverse(self, annotated: bool = False):
+        r"""Return inverted ACU3 gate.
+
+        :math:`ACU3(\theta,\phi,\lambda)^{\dagger} = ACU3(-\theta,-\lambda,-\phi)`
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.ACU3Gate` with inverse parameter values.
+
+        Returns:
+            ACU3Gate: inverse gate.
+        """
+        return ACU3Gate(-self.params[0], -self.params[2], -self.params[1])
+
+    def __array__(self, dtype=None, copy=None):
+        """Return a numpy.array for the ACU3 gate."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
+        theta, phi, lam = (float(param) for param in self.params)
+        cos = math.cos(theta / 2)
+        sin = math.sin(theta / 2)
+        return numpy.array(
+            [
+                [cos, 0, -cmath.exp(1j * lam) * sin, 0],
+                [0, 1, 0, 0],
+                [cmath.exp(1j * phi) * sin, 0, cmath.exp(1j * (phi + lam)) * cos, 0],
+                [0, 0, 0, 1],
+            ],
+            dtype=dtype,
+        )
+
+    def __eq__(self, other):
+        if isinstance(other, ACU3Gate):
+            return self._compare_parameters(other)
+        return False
