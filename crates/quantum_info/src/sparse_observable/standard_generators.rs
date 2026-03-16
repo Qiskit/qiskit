@@ -340,6 +340,19 @@ pub fn generator_observable(
             } else {
                 1.0
             };
+
+            // The beta angle rotates the YY axis. Ensure beta=0 (or assert it) so commutation
+            // is strictly XX +/- YY. Otherwise, fallback to matrix checking.
+            let beta = if let [_, qiskit_circuit::operations::Param::Float(b)] = _params {
+                *b
+            } else {
+                return None;
+            };
+
+            if beta.abs() > 1e-10 {
+                return None;
+            }
+
             match gate {
                 StandardGate::XXPlusYY => (
                     vec![c64(t / 4.0, 0.0), c64(t / 4.0, 0.0)],
