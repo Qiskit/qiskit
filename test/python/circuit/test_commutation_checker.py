@@ -828,6 +828,33 @@ class TestGeneratorObservableCommutation(QiskitTestCase):
         )
         self.assertFalse(commutes_y)
 
+    @data(
+        StandardGate.CH,
+        StandardGate.R,
+        StandardGate.U,
+        StandardGate.U1,
+        StandardGate.U2,
+        StandardGate.U3,
+        StandardGate.CU,
+        StandardGate.CU3,
+    )
+    def test_unsupported_gates_return_none(self, std_gate):
+        """Standard gates not yet implemented in Rust should return None."""
+        obs = _generator_observable(std_gate, [0.1] * std_gate.num_params)
+        self.assertIsNone(obs, f"{std_gate.name} should not have a generator implementation yet")
+
+    @data(
+        (StandardGate.XXPlusYY, [0.5, 0.1]),
+        (StandardGate.XXMinusYY, [0.5, 0.1]),
+    )
+    @unpack
+    def test_unsupported_params_return_none(self, std_gate, params):
+        """Standard gates with unsupported parameter values should return None."""
+        obs = _generator_observable(std_gate, params)
+        self.assertIsNone(
+            obs, f"{std_gate.name} with beta={params[1]} should not have a generator implementation"
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
