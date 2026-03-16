@@ -83,6 +83,8 @@ from qiskit.circuit.library import (
 )
 from qiskit.dagcircuit import DAGOpNode
 from qiskit.quantum_info import SparseObservable, SparsePauliOp, Pauli
+from qiskit._accelerate.circuit import StandardGate
+from qiskit._accelerate.sparse_observable import _generator_observable
 
 ROTATION_GATES = [
     RXGate,
@@ -719,8 +721,6 @@ class TestGeneratorObservableCommutation(QiskitTestCase):
 
     def test_all_gates_operator_equivalence(self):
         """Verify that gate ≈ exp(-i * H) for all supported gates (Clifford + Rotation)."""
-        from qiskit._accelerate.circuit import StandardGate
-        from qiskit._accelerate.sparse_observable import _generator_observable
 
         theta = 0.5
         cases = [
