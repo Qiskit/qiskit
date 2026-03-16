@@ -197,6 +197,10 @@ pub fn generate_bindings(cext_path: impl AsRef<Path>) -> anyhow::Result<cbindgen
 }
 
 /// Install the complete stand-alone C include path into the given directory.
+///
+/// This takes `&mut Bindings` only as an internal implementation detail of how separated-out
+/// include files are written; the bindings will always be returned to their original state when
+/// the function returns.
 pub fn install_c_headers(
     bindings: &mut cbindgen::Bindings,
     install_path: impl AsRef<Path>,
