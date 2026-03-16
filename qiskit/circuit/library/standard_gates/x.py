@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """X, CX, CCX and multi-controlled X gates."""
+
 from __future__ import annotations
 import warnings
 import numpy
@@ -1698,7 +1699,7 @@ class AMCXGate(Gate):
         # The control pattern: bits 0..na-1 are 0, bits na..na+nc-1 are 1
         ctrl_pattern = 0
         for i in range(na, na + nc):
-            ctrl_pattern |= (1 << i)
+            ctrl_pattern |= 1 << i
 
         # The two states differ only in the target bit
         state_0 = ctrl_pattern  # target = 0

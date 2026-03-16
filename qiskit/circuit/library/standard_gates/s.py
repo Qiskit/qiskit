@@ -22,7 +22,6 @@ from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, std
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 from qiskit._accelerate.circuit import StandardGate
 
-
 _S_ARRAY = numpy.array([[1, 0], [0, 1j]])
 _SDG_ARRAY = numpy.array([[1, 0], [0, -1j]])
 

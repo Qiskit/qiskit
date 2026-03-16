@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """U1 Gate."""
+
 from __future__ import annotations
 import cmath
 from cmath import exp

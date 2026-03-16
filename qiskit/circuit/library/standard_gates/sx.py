@@ -21,7 +21,6 @@ from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, std
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 from qiskit._accelerate.circuit import StandardGate
 
-
 _SX_ARRAY = [[0.5 + 0.5j, 0.5 - 0.5j], [0.5 - 0.5j, 0.5 + 0.5j]]
 _SXDG_ARRAY = [[0.5 - 0.5j, 0.5 + 0.5j], [0.5 + 0.5j, 0.5 - 0.5j]]
 

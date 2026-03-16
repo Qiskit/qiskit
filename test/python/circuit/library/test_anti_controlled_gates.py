@@ -21,8 +21,23 @@ import numpy as np
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library import (
-    ACHGate, ACXGate, ACYGate, ACZGate, ACRXGate, ACRYGate, ACRZGate, ACPhaseGate, ACUGate,
-    ACSXGate, ACSXdgGate, ACSGate, ACSdgGate, ACU1Gate, ACU3Gate, AMCXGate, AMCPhaseGate,
+    ACHGate,
+    ACXGate,
+    ACYGate,
+    ACZGate,
+    ACRXGate,
+    ACRYGate,
+    ACRZGate,
+    ACPhaseGate,
+    ACUGate,
+    ACSXGate,
+    ACSXdgGate,
+    ACSGate,
+    ACSdgGate,
+    ACU1Gate,
+    ACU3Gate,
+    AMCXGate,
+    AMCPhaseGate,
     ACCXGate,
 )
 from qiskit.quantum_info import Operator
@@ -114,7 +129,7 @@ class TestACHGate(QiskitTestCase):
         qr1 = QuantumRegister(3, "q1")
         qr2 = QuantumRegister(3, "q2")
         circuit = QuantumCircuit(qr1, qr2)
-        instruction_set = circuit.ach(qr1, qr2)
+        circuit.ach(qr1, qr2)
         self.assertEqual(len(circuit), 3)
 
 
@@ -1484,7 +1499,6 @@ class TestAMCXGate(QiskitTestCase):
         """Test AMCX(2, 1) matrix: flips target when anti-ctrls=|00⟩, ctrl=|1⟩."""
         gate = AMCXGate(2, 1)
         mat = gate.to_matrix()
-        dim = 8
         # The activation pattern: qubits 0,1 = 0 (anti), qubit 2 = 1 (ctrl)
         # In little-endian: binary = target(q3) ctrl(q2) anti1(q1) anti0(q0)
         # ctrl_pattern = bit 2 set = 0b100 = 4
@@ -1525,7 +1539,8 @@ class TestAMCXGate(QiskitTestCase):
             mat = gate.to_matrix()
             decomp_op = Operator(gate.definition)
             np.testing.assert_array_almost_equal(
-                decomp_op.data, mat,
+                decomp_op.data,
+                mat,
                 err_msg=f"AMCX({na},{nc}) decomposition doesn't match matrix",
             )
 
@@ -1550,9 +1565,10 @@ class TestAMCXGate(QiskitTestCase):
         for na, nc in [(1, 0), (0, 1), (1, 1), (2, 1), (1, 2)]:
             gate = AMCXGate(na, nc)
             mat = gate.to_matrix()
-            dim = 2 ** gate.num_qubits
+            dim = 2**gate.num_qubits
             np.testing.assert_array_almost_equal(
-                mat @ mat.conj().T, np.eye(dim),
+                mat @ mat.conj().T,
+                np.eye(dim),
                 err_msg=f"AMCX({na},{nc}) is not unitary",
             )
 
@@ -1677,7 +1693,8 @@ class TestAMCPhaseGate(QiskitTestCase):
             mat = gate.to_matrix()
             decomp_op = Operator(gate.definition)
             np.testing.assert_array_almost_equal(
-                decomp_op.data, mat,
+                decomp_op.data,
+                mat,
                 err_msg=f"AMCPhase({na},{nc}) decomposition doesn't match matrix",
             )
 
@@ -1709,9 +1726,10 @@ class TestAMCPhaseGate(QiskitTestCase):
         for na, nc in [(1, 0), (0, 1), (1, 1), (2, 1), (1, 2)]:
             gate = AMCPhaseGate(lam, na, nc)
             mat = gate.to_matrix()
-            dim = 2 ** gate.num_qubits
+            dim = 2**gate.num_qubits
             np.testing.assert_array_almost_equal(
-                mat @ mat.conj().T, np.eye(dim),
+                mat @ mat.conj().T,
+                np.eye(dim),
                 err_msg=f"AMCPhase({na},{nc}) is not unitary",
             )
 

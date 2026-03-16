@@ -73,7 +73,6 @@ from .quantumcircuitdata import QuantumCircuitData, CircuitInstruction
 from .delay import Delay
 from .store import Store
 
-
 if typing.TYPE_CHECKING:
     import types as builtin_types
     import qiskit
@@ -6113,9 +6112,7 @@ class QuantumCircuit:
         """
         from .library.standard_gates.s import ACSGate
 
-        return self.append(
-            ACSGate(label=label), [control_qubit, target_qubit], [], copy=False
-        )
+        return self.append(ACSGate(label=label), [control_qubit, target_qubit], [], copy=False)
 
     def acsdg(
         self,
@@ -6137,9 +6134,7 @@ class QuantumCircuit:
         """
         from .library.standard_gates.s import ACSdgGate
 
-        return self.append(
-            ACSdgGate(label=label), [control_qubit, target_qubit], [], copy=False
-        )
+        return self.append(ACSdgGate(label=label), [control_qubit, target_qubit], [], copy=False)
 
     def swap(self, qubit1: QubitSpecifier, qubit2: QubitSpecifier) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.SwapGate`.
@@ -6296,9 +6291,7 @@ class QuantumCircuit:
         """
         from .library.standard_gates.sx import ACSXGate
 
-        return self.append(
-            ACSXGate(label=label), [control_qubit, target_qubit], [], copy=False
-        )
+        return self.append(ACSXGate(label=label), [control_qubit, target_qubit], [], copy=False)
 
     def acsxdg(
         self,
@@ -6320,9 +6313,7 @@ class QuantumCircuit:
         """
         from .library.standard_gates.sx import ACSXdgGate
 
-        return self.append(
-            ACSXdgGate(label=label), [control_qubit, target_qubit], [], copy=False
-        )
+        return self.append(ACSXdgGate(label=label), [control_qubit, target_qubit], [], copy=False)
 
     def t(self, qubit: QubitSpecifier) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.TGate`.
@@ -6708,7 +6699,6 @@ class QuantumCircuit:
             copy=False,
         )
 
-
     def dcx(self, qubit1: QubitSpecifier, qubit2: QubitSpecifier) -> InstructionSet:
         r"""Apply :class:`~qiskit.circuit.library.DCXGate`.
 
@@ -6947,9 +6937,7 @@ class QuantumCircuit:
         """
         from .library.standard_gates.y import ACYGate
 
-        return self.append(
-            ACYGate(label=label), [control_qubit, target_qubit], [], copy=False
-        )
+        return self.append(ACYGate(label=label), [control_qubit, target_qubit], [], copy=False)
 
     def z(self, qubit: QubitSpecifier) -> InstructionSet:
         r"""Apply :class:`~qiskit.circuit.library.ZGate`.
@@ -7024,9 +7012,7 @@ class QuantumCircuit:
         """
         from .library.standard_gates.z import ACZGate
 
-        return self.append(
-            ACZGate(label=label), [control_qubit, target_qubit], [], copy=False
-        )
+        return self.append(ACZGate(label=label), [control_qubit, target_qubit], [], copy=False)
 
     def ccz(
         self,

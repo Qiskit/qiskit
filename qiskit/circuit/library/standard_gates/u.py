@@ -472,9 +472,7 @@ class ACUGate(Gate):
         b = -cmath.exp(1j * (gamma + lam)) * sin
         c = cmath.exp(1j * (gamma + phi)) * sin
         d = cmath.exp(1j * (gamma + phi + lam)) * cos
-        return numpy.array(
-            [[a, 0, b, 0], [0, 1, 0, 0], [c, 0, d, 0], [0, 0, 0, 1]], dtype=dtype
-        )
+        return numpy.array([[a, 0, b, 0], [0, 1, 0, 0], [c, 0, d, 0], [0, 0, 0, 1]], dtype=dtype)
 
     def __eq__(self, other):
         if isinstance(other, ACUGate):

@@ -531,9 +531,7 @@ class ACPhaseGate(Gate):
         if copy is False:
             raise ValueError("unable to avoid copy while creating an array as requested")
         eith = cmath.exp(1j * float(self.params[0]))
-        return numpy.array(
-            [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, eith, 0], [0, 0, 0, 1]], dtype=dtype
-        )
+        return numpy.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, eith, 0], [0, 0, 0, 1]], dtype=dtype)
 
     def __eq__(self, other):
         if isinstance(other, ACPhaseGate):
@@ -662,9 +660,7 @@ class AMCPhaseGate(Gate):
         Returns:
             AMCPhaseGate: inverse gate.
         """
-        return AMCPhaseGate(
-            -self.params[0], self._num_anti_ctrl_qubits, self._num_ctrl_qubits
-        )
+        return AMCPhaseGate(-self.params[0], self._num_anti_ctrl_qubits, self._num_ctrl_qubits)
 
     def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the AMCPhase gate."""
@@ -680,7 +676,7 @@ class AMCPhaseGate(Gate):
 
         ctrl_pattern = 0
         for i in range(na, na + nc):
-            ctrl_pattern |= (1 << i)
+            ctrl_pattern |= 1 << i
 
         state = ctrl_pattern | (1 << target_bit)
 
