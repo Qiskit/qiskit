@@ -678,6 +678,10 @@ class TestGeneratorObservableCommutation(QiskitTestCase):
         StandardGate.SXdg,
         StandardGate.ISwap,
         StandardGate.ECR,
+        StandardGate.CPhase,
+        StandardGate.CRX,
+        StandardGate.CRY,
+        StandardGate.CRZ,
     )
     def test_clifford_gates_have_generators(self, std_gate):
         """
@@ -700,17 +704,26 @@ class TestGeneratorObservableCommutation(QiskitTestCase):
         (StandardGate.RYY, 0.7),
         (StandardGate.RZZ, 0.7),
         (StandardGate.RZX, 0.7),
+        (StandardGate.CPhase, 0.7),
+        (StandardGate.CRX, 0.7),
+        (StandardGate.CRY, 0.7),
+        (StandardGate.CRZ, 0.7),
     )
     @unpack
     def test_rotation_gates_have_generators(self, std_gate, angle):
         """Parametric rotation gates should return generators proportional to the angle."""
         obs = _generator_observable(std_gate, [angle])
         self.assertIsNotNone(obs)
+
+        # Controlled rotations typically use angle/4 in their generator expansion
+        # (e.g. CRX(t) ~ exp(-i * t/4 * (X - ZX)))
+        expected_scale = 4.0 if std_gate.name in ("cp", "crx", "cry", "crz") else 2.0
+
         self.assertAlmostEqual(
             abs(obs.coeffs[0]),
-            abs(angle / 2.0),
+            abs(angle / expected_scale),
             places=10,
-            msg=f"{std_gate.name} coefficient should be angle/2",
+            msg=f"{std_gate.name} coefficient should be angle/{expected_scale}",
         )
 
     @data(
@@ -747,6 +760,10 @@ class TestGeneratorObservableCommutation(QiskitTestCase):
         (StandardGate.GlobalPhase, GlobalPhaseGate(0.5)),
         (StandardGate.XXPlusYY, XXPlusYYGate(0.5, 0.0)),
         (StandardGate.XXMinusYY, XXMinusYYGate(0.5, 0.0)),
+        (StandardGate.CPhase, CPhaseGate(0.5)),
+        (StandardGate.CRX, CRXGate(0.5)),
+        (StandardGate.CRY, CRYGate(0.5)),
+        (StandardGate.CRZ, CRZGate(0.5)),
     )
     @unpack
     def test_all_gates_operator_equivalence_ddt(self, std_gate, gate_obj):
