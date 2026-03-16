@@ -209,7 +209,7 @@ pub fn install_c_headers(
     let scoped_install_path = install_path.join(SCOPED_INCLUDE_DIR);
     fs::create_dir_all(&scoped_install_path)?;
     // _Probably_ globals and constants can be handled just by putting them in the types file
-    // (because they're likely shared between all access modes to the hedaer file), but since we
+    // (because they're likely shared between all access modes to the header file), but since we
     // haven't got any yet, we just stay safe and check when some appear.
     assert!(bindings.globals.is_empty(), "globals not handled yet");
     let mut buf = Vec::<u8>::new();
