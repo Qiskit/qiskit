@@ -752,6 +752,8 @@ class TestGeneratorObservableCommutation(QiskitTestCase):
         (StandardGate.CSdg, CSdgGate()),
         (StandardGate.CSX, CSXGate()),
         (StandardGate.Swap, SwapGate()),
+        (StandardGate.ISwap, iSwapGate()),
+        (StandardGate.ECR, ECRGate()),
         (StandardGate.CCX, CCXGate()),
         (StandardGate.CCZ, CCZGate()),
         (StandardGate.CSwap, CSwapGate()),
@@ -763,15 +765,13 @@ class TestGeneratorObservableCommutation(QiskitTestCase):
         (StandardGate.RYY, RYYGate(0.5)),
         (StandardGate.RZZ, RZZGate(0.5)),
         (StandardGate.RZX, RZXGate(0.5)),
-        (StandardGate.ISwap, iSwapGate()),
-        (StandardGate.ECR, ECRGate()),
-        (StandardGate.GlobalPhase, GlobalPhaseGate(0.5)),
-        (StandardGate.XXPlusYY, XXPlusYYGate(0.5, 0.0)),
-        (StandardGate.XXMinusYY, XXMinusYYGate(0.5, 0.0)),
         (StandardGate.CPhase, CPhaseGate(0.5)),
         (StandardGate.CRX, CRXGate(0.5)),
         (StandardGate.CRY, CRYGate(0.5)),
         (StandardGate.CRZ, CRZGate(0.5)),
+        (StandardGate.XXPlusYY, XXPlusYYGate(0.5, 0.0)),
+        (StandardGate.XXMinusYY, XXMinusYYGate(0.5, 0.0)),
+        (StandardGate.GlobalPhase, GlobalPhaseGate(0.5)),
     )
     @unpack
     def test_all_gates_operator_equivalence_ddt(self, std_gate, gate_obj):
