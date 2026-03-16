@@ -2290,25 +2290,25 @@ class TestDagEquivalence(DAGTest):
         dag = DAGCircuit()
         dag.add_input_var(a)
         with self.assertRaisesRegex(
-            DAGCircuitError, "cannot add captures to a circuit with inputs"
+            DAGCircuitError, "circuits with input variables cannot be enclosed"
         ):
             dag.add_captured_var(b)
         with self.assertRaisesRegex(
-            DAGCircuitError, "cannot add captures to a circuit with inputs"
+            DAGCircuitError, "circuits with input variables cannot be enclosed"
         ):
             dag.add_captured_stretch(c)
 
         dag = DAGCircuit()
         dag.add_captured_var(a)
         with self.assertRaisesRegex(
-            DAGCircuitError, "cannot add inputs to a circuit with captures"
+            DAGCircuitError, "circuits to be enclosed with captures cannot have input variables"
         ):
             dag.add_input_var(b)
 
         dag = DAGCircuit()
         dag.add_captured_stretch(c)
         with self.assertRaisesRegex(
-            DAGCircuitError, "cannot add inputs to a circuit with captures"
+            DAGCircuitError, "circuits to be enclosed with captures cannot have input variables"
         ):
             dag.add_input_var(a)
 

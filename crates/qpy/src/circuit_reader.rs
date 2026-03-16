@@ -32,9 +32,7 @@ use pyo3::types::{IntoPyDict, PyAny, PyBytes, PyDict, PyList, PyString, PyTuple,
 use qiskit_circuit::bit::{
     ClassicalRegister, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
-use qiskit_circuit::circuit_data::{
-    CircuitData, CircuitStretchType, CircuitVarType, PyCircuitData,
-};
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::interner::Interned;
@@ -52,6 +50,7 @@ use qiskit_circuit::operations::{
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::parameter::symbol_expr;
+use qiskit_circuit::var_stretch_container::{StretchType, VarType};
 use qiskit_circuit::{Block, classical, imports};
 use qiskit_circuit::{Clbit, Qubit};
 use qiskit_quantum_info::sparse_observable::BitTerm;
@@ -1227,7 +1226,7 @@ fn add_standalone_vars(
             ExpressionVarDeclaration::Local => {
                 let var = qpy_data.circuit_data.add_var(
                     classical::expr::Var::Standalone { uuid, name, ty },
-                    CircuitVarType::Declare,
+                    VarType::Declare,
                 )?;
                 qpy_data.standalone_vars.insert(index, var);
                 index += 1;
@@ -1235,7 +1234,7 @@ fn add_standalone_vars(
             ExpressionVarDeclaration::Input => {
                 let var = qpy_data.circuit_data.add_var(
                     classical::expr::Var::Standalone { uuid, name, ty },
-                    CircuitVarType::Input,
+                    VarType::Input,
                 )?;
                 qpy_data.standalone_vars.insert(index, var);
                 index += 1;
@@ -1243,7 +1242,7 @@ fn add_standalone_vars(
             ExpressionVarDeclaration::Capture => {
                 let var = qpy_data.circuit_data.add_var(
                     classical::expr::Var::Standalone { uuid, name, ty },
-                    CircuitVarType::Capture,
+                    VarType::Capture,
                 )?;
                 qpy_data.standalone_vars.insert(index, var);
                 index += 1;
@@ -1251,7 +1250,7 @@ fn add_standalone_vars(
             ExpressionVarDeclaration::StretchLocal => {
                 let stretch = qpy_data.circuit_data.add_stretch(
                     classical::expr::Stretch { uuid, name },
-                    CircuitStretchType::Declare,
+                    StretchType::Declare,
                 )?;
                 qpy_data.standalone_stretches.insert(index, stretch);
                 index += 1;
@@ -1259,7 +1258,7 @@ fn add_standalone_vars(
             ExpressionVarDeclaration::StretchCapture => {
                 let stretch = qpy_data.circuit_data.add_stretch(
                     classical::expr::Stretch { uuid, name },
-                    CircuitStretchType::Capture,
+                    StretchType::Capture,
                 )?;
                 qpy_data.standalone_stretches.insert(index, stretch);
                 index += 1;
