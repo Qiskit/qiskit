@@ -18,7 +18,7 @@
 // The generator is returned as a SparseObservable (a sum of Pauli tensor products).
 //
 // For single-qubit gates: X = exp(-i*(pi/2)*X), H = exp(-i*(pi/2)*(X+Z)/sqrt(2)), etc.
-// For multi-qubit controlled gates: CX = exp(-i*(pi/4)*(ZX - Z - X)), etc.
+// For multi-qubit controlled gates: CX = exp(-i*(pi/4)*(ZX - ZI - IX)), etc.
 // For rotation gates: RX(t) = exp(-i*(t/2)*X), RY(t) = exp(-i*(t/2)*Y), etc.
 //
 // The SoA (Struct-of-Arrays) layout is used: `bit_terms`, `indices`, and `boundaries` are
