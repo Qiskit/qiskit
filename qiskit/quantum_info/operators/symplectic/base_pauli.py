@@ -707,7 +707,7 @@ def _evolve_cy(base_pauli, qctrl, qtrgt):
 
 
 def _evolve_dcx(base_pauli, qctrl, qtrgt):
-    """Update P -> DCX.P.DCX"""
+    """Update P -> DCX.P.DCXdg"""
     base_pauli._x[:, qtrgt] ^= base_pauli._x[:, qctrl]
     base_pauli._z[:, qctrl] ^= base_pauli._z[:, qtrgt]
     base_pauli._x[:, qctrl] ^= base_pauli._x[:, qtrgt]
@@ -728,12 +728,24 @@ def _evolve_swap(base_pauli, q1, q2):
 
 def _evolve_iswap(base_pauli, q1, q2):
     """Update P -> iSWAP.P.iSWAP"""
-    base_pauli = _evolve_s(base_pauli, q1)
-    base_pauli = _evolve_h(base_pauli, q1)
-    base_pauli = _evolve_s(base_pauli, q2)
-    base_pauli = _evolve_cx(base_pauli, q1, q2)
-    base_pauli = _evolve_cx(base_pauli, q2, q1)
-    base_pauli = _evolve_h(base_pauli, q2)
+    x1 = base_pauli._x[:, q1].copy()
+    z1 = base_pauli._z[:, q1].copy()
+    x2 = base_pauli._x[:, q2].copy()
+    z2 = base_pauli._z[:, q2].copy()
+
+    base_pauli._x[:, q1] = x2
+    base_pauli._x[:, q2] = x1
+    base_pauli._z[:, q1] = x1 ^ x2 ^ z2
+    base_pauli._z[:, q2] = x1 ^ x2 ^ z1
+
+    base_pauli._phase += np.logical_xor(x1, x2) + np.logical_xor(
+        np.logical_and(z1, np.logical_xor(x1, x2).T.astype(base_pauli._phase.dtype)).T.astype(
+            base_pauli._phase.dtype
+        ),
+        np.logical_and(z2, np.logical_xor(x1, x2).T.astype(base_pauli._phase.dtype)).T.astype(
+            base_pauli._phase.dtype
+        ),
+    )
     return base_pauli
 
 
