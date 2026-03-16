@@ -619,6 +619,7 @@ def build_pauli_gate(pauli_string: str, gate_type: str) -> Gate:
     raise ValueError(f"Invalid gate type: {gate_type}")
 
 
+@ddt
 class TestGeneratorObservableCommutation(QiskitTestCase):
     """Test that `_generator_observable` produces correct Pauli generators
     for use in commutation checking.
@@ -719,63 +720,59 @@ class TestGeneratorObservableCommutation(QiskitTestCase):
                     msg=f"{std_gate.name} coefficient should be angle/2",
                 )
 
-    def test_all_gates_operator_equivalence(self):
+    @data(
+        (StandardGate.X, XGate()),
+        (StandardGate.Y, YGate()),
+        (StandardGate.Z, ZGate()),
+        (StandardGate.H, HGate()),
+        (StandardGate.S, SGate()),
+        (StandardGate.Sdg, SdgGate()),
+        (StandardGate.T, TGate()),
+        (StandardGate.Tdg, TdgGate()),
+        (StandardGate.SX, SXGate()),
+        (StandardGate.SXdg, SXdgGate()),
+        (StandardGate.CX, CXGate()),
+        (StandardGate.CY, CYGate()),
+        (StandardGate.CZ, CZGate()),
+        (StandardGate.CS, CSGate()),
+        (StandardGate.CSdg, CSdgGate()),
+        (StandardGate.CSX, CSXGate()),
+        (StandardGate.Swap, SwapGate()),
+        (StandardGate.CCX, CCXGate()),
+        (StandardGate.CCZ, CCZGate()),
+        (StandardGate.CSwap, CSwapGate()),
+        (StandardGate.RX, RXGate(0.5)),
+        (StandardGate.RY, RYGate(0.5)),
+        (StandardGate.RZ, RZGate(0.5)),
+        (StandardGate.Phase, PhaseGate(0.5)),
+        (StandardGate.RXX, RXXGate(0.5)),
+        (StandardGate.RYY, RYYGate(0.5)),
+        (StandardGate.RZZ, RZZGate(0.5)),
+        (StandardGate.RZX, RZXGate(0.5)),
+        (StandardGate.ISwap, iSwapGate()),
+        (StandardGate.ECR, ECRGate()),
+        (StandardGate.GlobalPhase, GlobalPhaseGate(0.5)),
+        (StandardGate.XXPlusYY, XXPlusYYGate(0.5, 0.0)),
+        (StandardGate.XXMinusYY, XXMinusYYGate(0.5, 0.0)),
+    )
+    @unpack
+    def test_all_gates_operator_equivalence_ddt(self, std_gate, gate_obj):
         """Verify that gate ≈ exp(-i * H) for all supported gates (Clifford + Rotation)."""
+        obs = _generator_observable(std_gate, gate_obj.params)
+        self.assertIsNotNone(obs, f"{std_gate.name} should have a generator")
 
-        theta = 0.5
-        cases = [
-            (StandardGate.X, XGate()),
-            (StandardGate.Y, YGate()),
-            (StandardGate.Z, ZGate()),
-            (StandardGate.H, HGate()),
-            (StandardGate.S, SGate()),
-            (StandardGate.Sdg, SdgGate()),
-            (StandardGate.T, TGate()),
-            (StandardGate.Tdg, TdgGate()),
-            (StandardGate.SX, SXGate()),
-            (StandardGate.SXdg, SXdgGate()),
-            (StandardGate.CX, CXGate()),
-            (StandardGate.CY, CYGate()),
-            (StandardGate.CZ, CZGate()),
-            (StandardGate.CS, CSGate()),
-            (StandardGate.CSdg, CSdgGate()),
-            (StandardGate.CSX, CSXGate()),
-            (StandardGate.Swap, SwapGate()),
-            (StandardGate.CCX, CCXGate()),
-            (StandardGate.CCZ, CCZGate()),
-            (StandardGate.CSwap, CSwapGate()),
-            (StandardGate.RX, RXGate(theta)),
-            (StandardGate.RY, RYGate(theta)),
-            (StandardGate.RZ, RZGate(theta)),
-            (StandardGate.Phase, PhaseGate(theta)),
-            (StandardGate.RXX, RXXGate(theta)),
-            (StandardGate.RYY, RYYGate(theta)),
-            (StandardGate.RZZ, RZZGate(theta)),
-            (StandardGate.RZX, RZXGate(theta)),
-            (StandardGate.ISwap, iSwapGate()),
-            (StandardGate.ECR, ECRGate()),
-            (StandardGate.GlobalPhase, GlobalPhaseGate(theta)),
-            (StandardGate.XXPlusYY, XXPlusYYGate(theta, 0.0)),
-            (StandardGate.XXMinusYY, XXMinusYYGate(theta, 0.0)),
-        ]
+        # Convert generator SparseObservable to Operator via PauliEvolutionGate
+        # Convention: gate = exp(-i * H). So time=1.0.
+        evo = PauliEvolutionGate(obs, time=1.0)
+        gen_op = Operator(evo)
+        target_op = Operator(gate_obj)
 
-        for std_gate, gate_obj in cases:
-            with self.subTest(gate=std_gate.name):
-                obs = _generator_observable(std_gate, gate_obj.params)
-                self.assertIsNotNone(obs, f"{std_gate.name} should have a generator")
-
-                # Convert generator SparseObservable to Operator via PauliEvolutionGate
-                # Convention: gate = exp(-i * H). So time=1.0.
-                evo = PauliEvolutionGate(obs, time=1.0)
-                gen_op = Operator(evo)
-                target_op = Operator(gate_obj)
-
-                # Operator.equiv() checks for equivalence up to global phase
-                self.assertTrue(
-                    gen_op.equiv(target_op),
-                    f"Generator for {std_gate.name} is not equivalent to the gate unitary. "
-                    f"Dist: {np.linalg.norm(gen_op.data - target_op.data)}",
-                )
+        # Operator.equiv() checks for equivalence up to global phase
+        self.assertTrue(
+            gen_op.equiv(target_op),
+            f"Generator for {std_gate.name} is not equivalent to the gate unitary. "
+            f"Dist: {np.linalg.norm(gen_op.data - target_op.data)}",
+        )
 
     def test_large_pauli_evolution_commutation(self):
         """Test that a large PauliEvolutionGate correctly commutes with standard gates.
