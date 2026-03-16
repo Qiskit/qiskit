@@ -29,12 +29,27 @@ class TwoQubitPeepholeOptimization(TransformationPass):
     If the synthesized two qubit unitary is "better" than the original
     subcircuit that subcircuit is used to replace the original. The heuristic
     used to determine if it's better first looks at the two qubit gate count
-    in the circuit, and prefers the synthesis with fewer two qubit gates.
+    in the circuit, and prefers the synthesis with fewer two qubit gates, if
+    the two qubit gate counts are the same then it looks at the estimated
+    fidelity of the circuit and picks the subcircuit with higher estimated
+    fidelity, and finally if needed it picks the subcircuit with the fewest
+    total gates.
 
     In case the target is overcomplete the pass will try all the
     decomposers supported for all the gates supported on a given qubit.
-    The decomposition that has the best expected performance will be selected
-    and used to replace the block.
+    The decomposition that has the best expected performance using the above
+    heuristic will be selected and used to replace the block.
+
+    This pass is designed to be run on a physical circuit and the details of
+    operations on a given qubit is assumed to be the hardware qubit from the
+    target. However, the output of the pass might not use hardware operations,
+    specifically single qubit gates might be emitted outside the target's supported
+    operations, typically only if a parameterized gate supported by the
+    :class:`.TwoQubitControlledUDecomposer` is used for synthesis. As such if running
+    this pass in a physical optimization stage (such as :ref:`transpiler-preset-stage-optimization`)
+    this should be paired with passes such as :class:`.BasisTranslator` and/or
+    :class:`.Optimize1qGatesDecomposition` to ensure that these errant single qubit
+    gates are replaced with hardware supported operations prior to exiting the stage.
 
     This pass is multithreaded, and will perform the analysis in parallel
     and use all the cores available on your local system. You can refer to
@@ -72,4 +87,7 @@ class TwoQubitPeepholeOptimization(TransformationPass):
         self._approximation_degree = approximation_degree
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
-        return two_qubit_unitary_peephole_optimize(dag, self._target, self._approximation_degree)
+        result = two_qubit_unitary_peephole_optimize(dag, self._target, self._approximation_degree)
+        if result is None:
+            return dag
+        return result

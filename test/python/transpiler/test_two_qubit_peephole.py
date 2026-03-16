@@ -23,6 +23,7 @@ import ddt
 from qiskit import generate_preset_pass_manager, transpile
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit.random import random_circuit
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.quantum_info.operators import Operator
@@ -170,13 +171,7 @@ class TestTwoQubitPeepholeOptimization(QiskitTestCase):
         backend = FakeMumbaiFractionalCX()
         synth_pass = TwoQubitPeepholeOptimization(target=backend.target)
         tqc = synth_pass(circ)
-        tqc_index = {qubit: index for index, qubit in enumerate(tqc.qubits)}
-        # RZX with discrete angles would be lower error but because XX Decomposer is not
-        # supported/availble in rust we can't synthesize to it so CX ends up being used
-        self.assertGreaterEqual(len(tqc.get_instructions("rzx")), 0)
-        self.assertEqual(len(tqc.get_instructions("cx")), 3)
-        for instr in tqc.get_instructions("cx"):
-            self.assertEqual((0, 1), (tqc_index[instr.qubits[0]], tqc_index[instr.qubits[1]]))
+        np.testing.assert_allclose(Operator.from_circuit(tqc), Operator.from_circuit(circ))
 
     def test_reverse_direction(self):
         target = Target(2)
@@ -486,7 +481,7 @@ class TestTwoQubitPeepholeOptimization(QiskitTestCase):
         qc.swap(0, 1)
         qc = transpile(qc, target=target, seed_transpiler=1234, optimization_level=0)
         res = peephole(qc)
-        self.assertEqual(res, qc)
+        np.testing.assert_allclose(Operator(qc), Operator(res))
         # Check run of swaps
         qc_duplicated = QuantumCircuit(2)
         for _ in range(100):
@@ -564,14 +559,24 @@ class TestTwoQubitPeepholeOptimization(QiskitTestCase):
         self.assertTrue(self.all_inst_in_target(res, target))
         self.assertEqual(Operator(res), Operator(qc_duplicated))
 
-    def all_inst_in_target(self, circuit: QuantumCircuit, target: Target):
+    def all_inst_in_target(self, circuit: QuantumCircuit, target: Target, allow_inverse=False):
         for inst in circuit.data:
             if not target.instruction_supported(
                 inst.name, tuple(circuit.find_bit(x).index for x in inst.qubits)
             ):
-                raise self.fail(
-                    f"{inst.name} {tuple(circuit.find_bit(x).index for x in inst.qubits)} not supported"
-                )
+                if allow_inverse:
+                    if not target.instruction_supported(
+                        inst.operation.inverse().name,
+                        tuple(circuit.find_bit(x).index for x in inst.qubits),
+                    ):
+                        raise self.fail(
+                            f"{inst.name} {tuple(circuit.find_bit(x).index for x in inst.qubits)} not supported"
+                        )
+
+                else:
+                    raise self.fail(
+                        f"{inst.name} {tuple(circuit.find_bit(x).index for x in inst.qubits)} not supported"
+                    )
         return True
 
     @combine(
@@ -626,10 +631,9 @@ class TestTwoQubitPeepholeOptimization(QiskitTestCase):
                 ),
             ]
         )
-
         legacy = legacy_path.run(qc)
         self.all_inst_in_target(transpiled_circuit, target)
-        self.assertEqual(Operator(transpiled_circuit), Operator(qc))
+        np.testing.assert_allclose(Operator(transpiled_circuit), Operator(qc), atol=1e-12, rtol=0)
         self.assertDictEqual(
             dict(sorted(transpiled_circuit.count_ops().items())),
             dict(sorted(legacy.count_ops().items())),
@@ -724,3 +728,47 @@ class TestTwoQubitPeepholeOptimization(QiskitTestCase):
         self.assertEqual(Operator(transpiled_circuit), Operator(qc))
         self.assertTrue(set(transpiled_circuit.count_ops()).issubset({"rz", "rx", "rzz"}))
         self.assertEqual(transpiled_circuit.count_ops()["rzz"], 1)
+
+    @combine(
+        target_2q_gates=[
+            ["cx"],
+            ["cz"],
+            ["ecr"],
+            ["cx", "cz", "ecr"],
+            ["rxx", "cx"],
+            ["rzz", "cz"],
+            ["rzx", "ecr"],
+            ["rzz", "rzx", "rxx", "ecr", "cx", "cz"],
+        ],
+        target_1q_gates=[
+            ["rz", "sx"],
+            ["rz", "sx", "x"],
+            ["rz", "rx", "sx", "x"],
+            ["ry", "rx"],
+            ["ry", "rx", "rz"],
+            ["rz", "rx"],
+            ["u"],
+            ["p", "sx"],
+            ["u", "u1", "u2", "u3", "rz", "sx", "x", "ry", "rx", "r", "p"],
+        ],
+        name="{target_2q_gates}_{target_1q_gates}",
+    )
+    def test_random_circuit(self, target_2q_gates, target_1q_gates):
+        cmap = CouplingMap.from_grid(2, 3)
+        basis_gates = target_1q_gates + target_2q_gates
+        backend = GenericBackendV2(
+            cmap.size(), basis_gates=basis_gates, seed=2024, coupling_map=cmap
+        )
+        peephole = TwoQubitPeepholeOptimization(backend.target)
+        qc = random_circuit(cmap.size(), 2, max_operands=2, seed=12345_42)
+        qc = transpile(qc, target=backend.target, optimization_level=0, seed_transpiler=2025)
+        result = peephole(qc)
+        if "rzx" in target_2q_gates or "rzz" in target_2q_gates or "rxx" in target_2q_gates:
+            self.all_inst_in_target(result, backend.target, allow_inverse=True)
+        else:
+            self.all_inst_in_target(result, backend.target)
+        print("Source")
+        print(qc)
+        print("Result")
+        print(result)
+        np.testing.assert_allclose(Operator(result), Operator(qc), atol=1e-12, rtol=0)

@@ -203,7 +203,7 @@ impl StaticKakConstructor {
             self.source.params.clone(),
             matrix.view(),
             self.fidelity.get(),
-            self.euler.as_str(),
+            self.euler,
             self.use_pulse_optimizer.to_py_pulse_optimize(),
         )
     }

@@ -32,7 +32,6 @@ use crate::versor_u2::{VersorSU2, VersorU2, VersorU2Error};
 
 #[inline]
 pub fn get_matrix_from_inst(inst: &PackedInstruction) -> PyResult<Array2<Complex64>> {
-
     if let Some(mat) = inst.try_matrix() {
         return Ok(mat);
     }
