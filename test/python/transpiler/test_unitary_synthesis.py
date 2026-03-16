@@ -1084,7 +1084,7 @@ class TestUnitarySynthesisTarget(QiskitTestCase):
         qc.unitary(near_2cx, [0, 1])
 
         # First, a sanity check: the pass defaults should produce an exact synthesis, and it should
-        # have taken 3 cx since it
+        # have taken 3 cx since we know the permutation needs that.
         from_default = UnitarySynthesis(target=target)(qc)
         self.assertLess(
             1 - average_gate_fidelity(Operator(near_2cx), Operator(from_default)), 1e-15

@@ -43,8 +43,10 @@ use std::sync::OnceLock;
 
 /// The fidelity of the 2q basis gate used in a decomposer.
 ///
-/// This is necessarily between 0.0 and 1.0 and we normalise away negative zero, which together are
-/// why it's safe to use with total equality and hashing.
+/// This is "normalised" in the sense that the value is guaranteed (when constructed safely) to be
+/// between 0.0 and 1.0 inclusive, and the allowed floating-point values are standardised so we only
+/// use one canonical representation of each (i.e. no negative zero).  These conditions make it safe
+/// to use with total equality and hashing, which lets it be put in a hashmap.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct NormalizedFidelity(f64);
 impl NormalizedFidelity {
@@ -69,7 +71,11 @@ impl hash::Hash for NormalizedFidelity {
     }
 }
 
-/// Whether to do approximate synthesis.
+/// The strategy to use for approximate synthesis (or `Exact` for exact synthesis).
+///
+/// This is used internally in the Rust code, because the Python form `float | None` has been
+/// frequently accidentally misinterpreted (there, `None` does not mean exact, and `1.0` has a
+/// very different meaning to `1.0 - 1ULP`).
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub enum Approximation {
     /// Do perfect synthesis, regardless of reported gate errors.
