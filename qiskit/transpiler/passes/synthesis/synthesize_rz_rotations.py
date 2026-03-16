@@ -21,7 +21,7 @@ class SynthesizeRZRotations(TransformationPass):
     r"""Replace RZ gates with Clifford+T decompositions.
 
     This pass replaces all single-qubit RZ rotation gates with floating-point
-    angles by sequences of Clifford+T gates.
+    angles by equivalent Clifford+T sequences.
 
     Internally, the pass synthesizes `RZ(\theta)` for a general `\theta` by
     reducing the angle modulo `\pi/2`: the circuit for `RZ(\theta)` can be
