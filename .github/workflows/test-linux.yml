@@ -129,6 +129,7 @@ jobs:
           echo "PYTHONHASHSEED=$PYTHONHASHSEED"
           stestr run --slowest
           popd
+          exit 1
         env:
           QISKIT_PARALLEL: FALSE
           QISKIT_IGNORE_USER_SETTINGS: TRUE
