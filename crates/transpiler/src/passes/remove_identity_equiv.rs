@@ -193,7 +193,7 @@ where
         }
     }
 
-    // Special handling for large pauli product rotation gates represented as pauli evolution gates.
+    // Special handling for large pauli evolution gates.
     if view.name() == "PauliEvolution" {
         if let OperationRef::Gate(py_gate) = view {
             let result = Python::attach(|py| -> PyResult<Option<(Complex64, usize)>> {
