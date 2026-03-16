@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 mod extras;
+pub mod lock;
 mod pointers;
 #[cfg(feature = "python_binding")]
 mod py;

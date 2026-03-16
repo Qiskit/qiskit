@@ -16,6 +16,44 @@ use pyo3::PyClass;
 use pyo3::prelude::*;
 use pyo3::pyclass::boolean_struct::False;
 
+/// Borrow a pointer to a Rust-native object extracted from a Python object.
+///
+/// The `map_fn` projects the desired reference from a temporary one.  This is useful in cases where
+/// the object exposed to Python contains the raw Rust type (for example, `PySparseObservable`
+/// contains `SparseObservable`).  We do this with a `map_fn` so we can control the safety of the
+/// lifetime of the temporary reference.
+///
+/// The returned pointer derives its lifetime from the lifetime of `ob`.  The reference `ob` is only
+/// borrowed by the function.
+///
+/// If the `PyObject` is not of the correct type or the `map_fn` returns an error variant, the null
+/// pointer is returned and the Python exception state is set.
+///
+/// # Safety
+///
+/// `ob` must point to a valid `PyObject`.
+pub unsafe fn borrow_map<'py, T, S>(
+    py: Python<'py>,
+    ob: *mut ::pyo3::ffi::PyObject,
+    map_fn: impl for<'a> FnOnce(Python<'py>, &'a T) -> PyResult<&'a S>,
+) -> *const S
+where
+    T: PyClass,
+{
+    let borrow_map = || -> PyResult<*const S> {
+        // SAFETY: per documentation, `ob` points to a valid PyObject.  The lifetime of the
+        // `Borrowed` is valid because we either drop it or consume it back into a pointer before
+        // the function returns.
+        let ob = unsafe { Borrowed::from_ptr(py, ob) }.cast::<T>()?;
+        let handle = &*ob.borrow();
+        map_fn(py, handle).map(::std::ptr::from_ref)
+    };
+    borrow_map().unwrap_or_else(|e| {
+        e.restore(py);
+        ::std::ptr::null()
+    })
+}
+
 /// Borrow a pointer to a Rust-native object from a Python object.
 ///
 /// The returned pointer derives its lifetime from the lifetime of `ob`.  The reference `ob` is only
@@ -27,12 +65,12 @@ use pyo3::pyclass::boolean_struct::False;
 /// # Safety
 ///
 /// `ob` must point to a valid `PyObject`.
-pub unsafe fn borrow<T>(py: Python, ob: *mut ::pyo3::ffi::PyObject) -> *mut T
+pub unsafe fn borrow_mut<T>(py: Python, ob: *mut ::pyo3::ffi::PyObject) -> *mut T
 where
     T: PyClass<Frozen = False>,
 {
     // SAFETY: per documentation, `ob` satisfies the same requirements as it does in `borrow_map_mut`.
-    unsafe { borrow_map::<T, T>(py, ob, |_py, x| Ok(x)) }
+    unsafe { borrow_map_mut::<T, T>(py, ob, |_py, x| Ok(x)) }
 }
 
 /// Borrow a pointer to a Rust-native object extracted from a Python object.
@@ -51,7 +89,7 @@ where
 /// # Safety
 ///
 /// `ob` must point to a valid `PyObject`.
-pub unsafe fn borrow_map<'py, T, S>(
+pub unsafe fn borrow_map_mut<'py, T, S>(
     py: Python<'py>,
     ob: *mut ::pyo3::ffi::PyObject,
     map_fn: impl for<'a> FnOnce(Python<'py>, &'a mut T) -> PyResult<&'a mut S>,
@@ -86,7 +124,7 @@ where
 ///
 /// `object` must point to a valid PyObject.  `address` must point to enough space to write a
 /// pointer to.
-pub unsafe fn convert<T>(
+pub unsafe fn convert_mut<T>(
     py: Python,
     object: *mut ::pyo3::ffi::PyObject,
     address: *mut ::std::ffi::c_void,
@@ -96,7 +134,7 @@ where
 {
     // SAFETY: per documentation, `object` and `address` satisfy the same requirements as
     // `convert_map`.
-    unsafe { convert_map::<T, T>(py, object, address, |_py, x| Ok(x)) }
+    unsafe { convert_map_mut::<T, T>(py, object, address, |_py, x| Ok(x)) }
 }
 
 /// Extract a pointer to a Rust-native object from a `PyObject`, storing the result in `address`.
@@ -115,7 +153,7 @@ where
 ///
 /// `object` must point to a valid PyObject.  `address` must point to enough space to write a
 /// pointer to.
-pub unsafe fn convert_map<'py, T, S>(
+pub unsafe fn convert_map_mut<'py, T, S>(
     py: Python<'py>,
     object: *mut ::pyo3::ffi::PyObject,
     address: *mut ::std::ffi::c_void,
@@ -124,7 +162,7 @@ pub unsafe fn convert_map<'py, T, S>(
 where
     T: PyClass<Frozen = False>,
 {
-    let native = unsafe { borrow_map(py, object, map_fn) };
+    let native = unsafe { borrow_map_mut(py, object, map_fn) };
     if native.is_null() {
         0
     } else {

@@ -13,6 +13,7 @@
 use std::ffi::{CString, c_char};
 
 use crate::exit_codes::{CInputError, ExitCode};
+use crate::lock;
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref, slice_from_ptr, try_slice_from_ptr};
 use num_complex::Complex64;
 
@@ -1107,8 +1108,34 @@ pub extern "C" fn qk_bitterm_label(bit_term: BitTerm) -> u8 {
         .expect("Label has exactly one character") as u8
 }
 
+/// @ingroup QkObs
+/// A lock returned by one of the Python-space borrowing functions.
+///
+/// This lock must be released with `qk_obs_release_lock` to avoid memory leaks and deadlocks.
+pub type ObsGuard = lock::CGuard<SparseObservable>;
+
+/// @ingroup QkObs
+/// Release a lock returned by one of the Python-borrowing functions.
+///
+/// The lock and the value of the pointer are invalidated after this function returns.
+///
+/// @param lock The lock guarding a particular `QkObs`.
+///
+/// # Safety
+///
+/// `lock` must be exactly the return value of one of the `QkObs` Python-space locking functions,
+/// and must not have been released before.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_obs_release_lock(lock: *mut ObsGuard) {
+    // SAFETY: per doecumentation, `lock` points to valid owned data returned by a locking function.
+    unsafe { ObsGuard::release(lock) }
+}
+
 #[cfg(feature = "python_binding")]
 mod py {
+    use super::ObsGuard;
+    use crate::ExitCode;
+    use crate::lock;
     use crate::pointers::mut_ptr_as_ref;
     use pyo3::exceptions::PyRuntimeError;
     use pyo3::prelude::*;
@@ -1185,7 +1212,7 @@ mod py {
         // SAFETY: per documentation, we are attached to a Python interpreter, and `ob` is a valid
         // pointer to a PyObject.
         unsafe {
-            crate::py::borrow_map(Python::assume_attached(), ob, try_project_inner_observable)
+            crate::py::borrow_map_mut(Python::assume_attached(), ob, try_project_inner_observable)
         }
     }
 
@@ -1219,12 +1246,172 @@ mod py {
         // SAFETY: per documentation, we are attached to a Python interpreter, `object` is a valid
         // pointer to a PyObject, and `address` points to enough space to write a pointer.
         unsafe {
-            crate::py::convert_map(
+            crate::py::convert_map_mut(
                 Python::assume_attached(),
                 object,
                 address,
                 try_project_inner_observable,
             )
+        }
+    }
+
+    /// @ingroup QkObs
+    /// Acquire a read lock on the underlying `QkObs` from a Python object.
+    ///
+    /// This function blocks until the lock is acquired.
+    ///
+    /// You may only read from the resulting pointer, and not perform any mutations. The return
+    /// value is borrowed and must not be manually freed.  Its lifetime is guaranteed to last at
+    /// least until `qk_obs_release_lock` is called on `lock`.
+    ///
+    /// @param      ob   The Python object.
+    /// @param[out] lock A location to write the opaque owned lock to.
+    ///
+    /// @return An immutable handle to the observable.
+    ///
+    /// # Safety
+    ///
+    /// `ob` must point to a valid `PyObject`.  `lock` must be aligned and valid for writing a
+    /// single pointer to.
+    #[unsafe(no_mangle)]
+    pub unsafe extern "C" fn qk_obs_lock_read_from_python(
+        ob: *mut ::pyo3::ffi::PyObject,
+        lock: *mut *mut ObsGuard,
+    ) -> *const SparseObservable {
+        // SAFETY: per documentation, we are attached to an interpreter.
+        let py = unsafe { Python::assume_attached() };
+        let project = |py_obs: &PySparseObservable| {
+            let guard = lock::ReadGuard::blocking(&py_obs.inner);
+            // SAFETY: per documentation, `lock` is safe to write aligned data to.
+            unsafe { guard.leak_to_c(lock) }
+        };
+        // SAFETY: per documentation, `ob` points to a valid `PyObject`.
+        unsafe { crate::py::borrow_map(py, ob, |_, py_obs| Ok(project(py_obs))) }
+    }
+
+    /// @ingroup QkObs
+    /// Attempt to acquire a read lock on the underlying `QkObs` from a Python object.
+    ///
+    /// This function returns immediately, but may fail to acquire the lock if there is an active
+    /// write lock.  If the lock is not acquired, neither `obs` nor `lock` are written to.
+    ///
+    /// You may only read from the resulting pointer, and not perform any mutations. The return
+    /// value is borrowed and must not be manually freed.  Its lifetime is guaranteed to last at
+    /// least until `qk_obs_release_lock` is called on `lock`.
+    ///
+    /// @param      ob   The Python object.
+    /// @param[out] obs  A location to write the pointer to a borrowed observable to.
+    /// @param[out] lock A location to write the opaque owned lock to.
+    ///
+    /// @return `QkExitCode_Success` on success, or `QkExitCode_WouldBlock` if the lock is not
+    ///     immediately available.
+    ///
+    /// # Safety
+    ///
+    /// `ob` must point to a valid `PyObject`.  `obs` and `lock` must each be aligned and valid for
+    /// writing a single pointer to.
+    #[unsafe(no_mangle)]
+    pub unsafe extern "C" fn qk_obs_try_lock_read_from_python(
+        ob: *mut ::pyo3::ffi::PyObject,
+        obs: *mut *const SparseObservable,
+        lock: *mut *mut ObsGuard,
+    ) -> ExitCode {
+        // SAFETY: per documentation, we are attached to an interpreter.
+        let py = unsafe { Python::assume_attached() };
+        // SAFETY: per documentation, `ob` points to a valid `PyObject`.
+        match unsafe { Borrowed::from_ptr(py, ob) }.cast::<PySparseObservable>() {
+            Ok(py_obs) => {
+                if let Some(guard) = lock::ReadGuard::nonblocking(&py_obs.borrow().inner) {
+                    // SAFETY: per documentation `obs` and `lock` are valid for one pointer write.
+                    unsafe { obs.write(guard.leak_to_c(lock)) };
+                    ExitCode::Success
+                } else {
+                    ExitCode::WouldBlock
+                }
+            }
+            Err(e) => {
+                PyErr::from(e).restore(py);
+                ExitCode::PythonError
+            }
+        }
+    }
+
+    /// @ingroup QkObs
+    /// Acquire a write lock on the underlying `QkObs` from a Python object.
+    ///
+    /// This function blocks until the lock is acquired.
+    ///
+    /// The return value is borrowed and must not be manually freed.  Its lifetime is guaranteed to
+    /// last at least until `qk_obs_release_lock` is called on `lock`.
+    ///
+    /// @param      ob   The Python object.
+    /// @param[out] lock A location to write the opaque owned lock to.
+    ///
+    /// @return A mutable handle to the observable.
+    ///
+    /// # Safety
+    ///
+    /// `ob` must point to a valid `PyObject`.  `lock` must be aligned and valid for writing a
+    /// single pointer to.
+    #[unsafe(no_mangle)]
+    pub unsafe extern "C" fn qk_obs_lock_write_from_python(
+        ob: *mut ::pyo3::ffi::PyObject,
+        lock: *mut *mut ObsGuard,
+    ) -> *mut SparseObservable {
+        // SAFETY: per documentation, we are attached to an interpreter.
+        let py = unsafe { Python::assume_attached() };
+        let project = |py_obs: &mut PySparseObservable| {
+            let guard = lock::WriteGuard::blocking(&py_obs.inner);
+            // SAFETY: per documentation, `lock` is safe to write aligned data to.
+            unsafe { guard.leak_to_c(lock) }
+        };
+        // SAFETY: per documentation, `ob` points to a valid `PyObject`.
+        unsafe { crate::py::borrow_map_mut(py, ob, |_, py_obs| Ok(project(py_obs))) }
+    }
+
+    /// @ingroup QkObs
+    /// Attempt to acquire a write lock on the underlying `QkObs` from a Python object.
+    ///
+    /// This function returns immediately, but may fail to acquire the lock if there is any other
+    /// active lock.  If the lock is not acquired, neither `obs` nor `lock` are written to.
+    ///
+    /// The return value is borrowed and must not be manually freed.  Its lifetime is guaranteed to
+    /// last at least until `qk_obs_release_lock` is called on `lock`.
+    ///
+    /// @param      ob   The Python object.
+    /// @param[out] obs  A location to write the pointer to a borrowed observable to.
+    /// @param[out] lock A location to write the opaque owned lock to.
+    ///
+    /// @return `QkExitCode_Success` on success, or `QkExitCode_WouldBlock` if the lock is not
+    ///     immediately available.
+    ///
+    /// # Safety
+    ///
+    /// `ob` must point to a valid `PyObject`.  `obs` and `lock` must each be aligned and valid for
+    /// writing a single pointer to.
+    #[unsafe(no_mangle)]
+    pub unsafe extern "C" fn qk_obs_try_lock_write_from_python(
+        ob: *mut ::pyo3::ffi::PyObject,
+        obs: *mut *mut SparseObservable,
+        lock: *mut *mut ObsGuard,
+    ) -> ExitCode {
+        // SAFETY: per documentation, we are attached to an interpreter.
+        let py = unsafe { Python::assume_attached() };
+        // SAFETY: per documentation, `ob` points to a valid `PyObject`.
+        match unsafe { Borrowed::from_ptr(py, ob) }.cast::<PySparseObservable>() {
+            Ok(py_obs) => {
+                if let Some(guard) = lock::WriteGuard::nonblocking(&py_obs.borrow().inner) {
+                    // SAFETY: per documentation `obs` and `lock` are valid for one pointer write.
+                    unsafe { obs.write(guard.leak_to_c(lock)) };
+                    ExitCode::Success
+                } else {
+                    ExitCode::WouldBlock
+                }
+            }
+            Err(e) => {
+                PyErr::from(e).restore(py);
+                ExitCode::PythonError
+            }
         }
     }
 }
