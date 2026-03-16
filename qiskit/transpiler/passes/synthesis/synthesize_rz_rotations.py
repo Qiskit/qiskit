@@ -27,7 +27,7 @@ class SynthesizeRZRotations(TransformationPass):
     reducing the angle modulo `\pi/2`: the circuit for `RZ(\theta)` can be
     constructed from a circuit for `RZ(\theta mod pi/2)` by appending appropriate
     Clifford gates. Importantly, the pass also caches synthesis results and reuses
-    them for angles that are within a a given tolerance of each other.
+    them for angles that are within a given tolerance of each other.
 
     For example::
 
@@ -68,7 +68,7 @@ class SynthesizeRZRotations(TransformationPass):
     ):
         r"""
         If both `synthesis_error` and `cache_error` are provided, they specify the error budget
-        due to approximate synthesis and due to caching respectively. If either value is not
+        for approximate synthesis and for caching respectively. If either value is not
         specified, the total allowed error is derived from `approximation_degree`, and
         suitable values for `synthesis_error` and `cache_error` are computed automatically.
 
