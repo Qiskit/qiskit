@@ -10,6 +10,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+
+"""
+AI attribution:
+Portions of the `test_clifford_gates_have_generators` are developed with assistance from
+ GitHub Copilot integrated in VS Code. The underlying model : Claude Haiku 4.5.
+"""
+
+
 """Test commutation checker class ."""
 
 import unittest
@@ -82,6 +90,7 @@ from qiskit.circuit.library import (
     PauliProductMeasurement,
 )
 from qiskit.dagcircuit import DAGOpNode
+
 from qiskit.quantum_info import SparseObservable, SparsePauliOp, Pauli
 from qiskit._accelerate.circuit import StandardGate
 from qiskit._accelerate.sparse_observable import _generator_observable
@@ -655,70 +664,63 @@ class TestGeneratorObservableCommutation(QiskitTestCase):
             "CSX and CX should commute (both ZX-type generators)",
         )
 
-    def test_generator_observable_is_not_none_for_known_gates(self):
+    @data(
+        StandardGate.CX,
+        StandardGate.CY,
+        StandardGate.CZ,
+        StandardGate.CS,
+        StandardGate.CSdg,
+        StandardGate.CSX,
+        StandardGate.Swap,
+        StandardGate.CCX,
+        StandardGate.CCZ,
+        StandardGate.CSwap,
+        StandardGate.X,
+        StandardGate.Y,
+        StandardGate.Z,
+        StandardGate.S,
+        StandardGate.Sdg,
+        StandardGate.T,
+        StandardGate.Tdg,
+        StandardGate.H,
+        StandardGate.SX,
+        StandardGate.SXdg,
+        StandardGate.ISwap,
+        StandardGate.ECR,
+    )
+    def test_clifford_gates_have_generators(self, std_gate):
         """
-        `_generator_observable` should return a SparseObservable for all
-        the standard gates that PR #15488 adds commutation support for.
+        Ensures `_generator_observable` returns a valid SparseObservable for all
+        standard gates that support Pauli-based commutation.
         """
-        from qiskit._accelerate.circuit import StandardGate
-        from qiskit._accelerate.sparse_observable import _generator_observable
+        # Clifford / fixed gates don't need params
+        obs = _generator_observable(std_gate, [])
+        self.assertIsNotNone(
+            obs,
+            f"{std_gate.name} should have a generator",
+        )
 
-        expected_supported = [
-            StandardGate.CX,
-            StandardGate.CY,
-            StandardGate.CZ,
-            StandardGate.CS,
-            StandardGate.CSdg,
-            StandardGate.CSX,
-            StandardGate.Swap,
-            StandardGate.CCX,
-            StandardGate.CCZ,
-            StandardGate.CSwap,
-            StandardGate.X,
-            StandardGate.Y,
-            StandardGate.Z,
-            StandardGate.S,
-            StandardGate.Sdg,
-            StandardGate.T,
-            StandardGate.Tdg,
-            StandardGate.H,
-            StandardGate.SX,
-            StandardGate.SXdg,
-        ]
-        for std_gate in expected_supported:
-            with self.subTest(gate=std_gate.name):
-                obs = _generator_observable(std_gate, [])
-                self.assertIsNotNone(
-                    obs,
-                    f"{std_gate.name} should have a generator",
-                )
-
-    def test_rotation_gates_have_generators(self):
+    @data(
+        (StandardGate.RX, 0.7),
+        (StandardGate.RY, 0.7),
+        (StandardGate.RZ, 0.7),
+        (StandardGate.Phase, 0.7),
+        (StandardGate.RXX, 0.7),
+        (StandardGate.RYY, 0.7),
+        (StandardGate.RZZ, 0.7),
+        (StandardGate.RZX, 0.7),
+    )
+    @unpack
+    def test_rotation_gates_have_generators(self, std_gate, angle):
         """Parametric rotation gates should return generators proportional to the angle."""
-        from qiskit._accelerate.circuit import StandardGate
-        from qiskit._accelerate.sparse_observable import _generator_observable
-
-        theta = 0.7
-        cases = [
-            (StandardGate.RX, theta),
-            (StandardGate.RY, theta),
-            (StandardGate.RZ, theta),
-            (StandardGate.Phase, theta),
-            (StandardGate.RXX, theta),
-            (StandardGate.RYY, theta),
-            (StandardGate.RZZ, theta),
-            (StandardGate.RZX, theta),
-        ]
-        for std_gate, angle in cases:
-            with self.subTest(gate=std_gate.name):
-                obs = _generator_observable(std_gate, [angle])
-                self.assertIsNotNone(obs)
-                self.assertAlmostEqual(
-                    abs(obs.coeffs[0]),
-                    abs(angle / 2.0),
-                    places=10,
-                    msg=f"{std_gate.name} coefficient should be angle/2",
-                )
+        obs = _generator_observable(std_gate, [angle])
+        self.assertIsNotNone(obs)
+        self.assertAlmostEqual(
+            abs(obs.coeffs[0]),
+            abs(angle / 2.0),
+            places=10,
+            msg=f"{std_gate.name} coefficient should be angle/2",
+        )
 
     @data(
         (StandardGate.X, XGate()),
