@@ -13,9 +13,9 @@
 #if !defined(QISKIT_H)
 #define QISKIT_H
 
-#if defined(QISKIT_C_PYTHON_INTERFACE)
+#if defined(QISKIT_C_PYTHON_INTERFACE) || defined(QISKIT_PYTHON_EXTENSION)
 #include <Python.h>
-#endif
+#endif // defined(QISKIT_C_PYTHON_INTERFACE) || defined(QISKIT_PYTHON_EXTENSION)
 
 #include "qiskit/attributes.h"
 #include "qiskit/complex.h"
