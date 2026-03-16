@@ -776,7 +776,7 @@ class TestGeneratorObservableCommutation(QiskitTestCase):
     )
     @unpack
     def test_all_gates_operator_equivalence_ddt(self, std_gate, gate_obj):
-        """Verify that gate ≈ exp(-i * H) for all supported gates (Clifford + Rotation)."""
+        """Verify that gate ≈ exp(-i * H) for all supported standard gates."""
         obs = _generator_observable(std_gate, gate_obj.params)
         self.assertIsNotNone(obs, f"{std_gate.name} should have a generator")
 
