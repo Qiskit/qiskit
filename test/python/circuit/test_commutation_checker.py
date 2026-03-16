@@ -77,6 +77,8 @@ from qiskit.circuit.library import (
     ECRGate,
     UGate,
     PauliEvolutionGate,
+    XXPlusYYGate,
+    XXMinusYYGate,
     PauliProductMeasurement,
 )
 from qiskit.dagcircuit import DAGOpNode
@@ -753,6 +755,8 @@ class TestGeneratorObservableCommutation(QiskitTestCase):
             (StandardGate.ISwap, iSwapGate()),
             (StandardGate.ECR, ECRGate()),
             (StandardGate.GlobalPhase, GlobalPhaseGate(theta)),
+            (StandardGate.XXPlusYY, XXPlusYYGate(theta, 0.0)),
+            (StandardGate.XXMinusYY, XXMinusYYGate(theta, 0.0)),
         ]
 
         for std_gate, gate_obj in cases:
