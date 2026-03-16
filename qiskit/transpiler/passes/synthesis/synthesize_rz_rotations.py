@@ -18,33 +18,16 @@ from qiskit._accelerate.synthesize_rz_rotations import synthesize_rz_rotations
 
 
 class SynthesizeRZRotations(TransformationPass):
-    """Replace RZ gates with Clifford+T decompositions in an efficient manner.
+    r"""Replace RZ gates with Clifford+T decompositions.
 
-    This pass replaces all single-qubit RZ rotation gates with sequences
-    of Clifford+T gates. We first canonicalize angles based on the 4π cyclicity
-    of RZ gates, and further utilize properties of RZ(θ) to limit the number of
-    distinct angles synthesized to [0, π/2) and a u8 bit.
+    This pass replaces all single-qubit RZ rotation gates with floating-point
+    angles by sequences of Clifford+T gates.
 
-    This pass performs a two-fold optimization for implementing RZ synthesis.
-    For QFT-like circuits with repeating angles, we want to avoid doing redundant
-    syntheses of the same angle multiple times. The mechanism for this is to first
-    collect all the angles of RZ gates from the DAG and sort them. If we implement
-    a cache-like mechanism where if the synthesis angle already exists, we reuse it,
-    if it does not, then we synthesize them. We further extend this by allowing
-    approximations of angles and doing the synthesis with a lower epsilon.
-    Because RZ is  4π-cyclic, we can come up with canonical representations of angles
-    from  (−∞, ∞) → [0, 4π) . Further, we can exploit properties of  RZ  such as:
-    RZ(θ+π/2) = RZ(θ)⋅S , RZ(θ+π) = RZ(θ)⋅Z, RZ(θ+2π) = −RZ(θ) to partition the [0, 4π)
-    domain as ∪ [nπ/2, π(n+1)/2] , n ∈ Z + : [0, 7]. The canonical angle representation
-    reduces to range [0 ,π/2) for RZ synthesis, but we make updates to the global phase
-    and gates to add to the synthesised  RZ sequence.
-    .
-    Hence, this mapping further reduces as:
-    [0, 4π) → {{r : r ∈ Z + , [0, 7]} , (0, π/2]}, where r corresponds to a specific
-    phase and gate update (from a static look-up table) to be made to the DAG.
-
-    We then iterate over the dag to identify RZ gates and replace them with their
-    Clifford+T approximations.
+    Internally, the pass synthesizes `RZ(\theta)` for a general `\theta` by
+    reducing the angle modulo `\pi/2`: the circuit for `RZ(\theta)` can be
+    constructed from a circuit for `RZ(\theta mod pi/2)` by appending appropriate
+    Clifford gates. Importantly, the pass also caches synthesis results and reuses
+    them for angles that are within a a given tolerance of each other.
 
     For example::
 
@@ -75,7 +58,6 @@ class SynthesizeRZRotations(TransformationPass):
 
       # The circuits before and after the transformation are equivalent
       assert Operator(qc) == Operator(qct)
-
     """
 
     def __init__(

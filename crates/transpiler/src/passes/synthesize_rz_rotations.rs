@@ -21,8 +21,30 @@ use qiskit_synthesis::ross_selinger::gridsynth_rz;
 
 const MINIMUM_EPSILON: f64 = 1e-12; // minimum epsilon for synthesis
 
-/// look up table for phase update and gates added during
-/// canonicalization of angles
+/// Finds a canonical representation of an angle.
+///
+/// Given `angle`, this returns `(interval, angle_normalized)` such that
+/// angle_normalized = angle (mod pi/2)
+/// (angle - angle_normalized - interval * pi/2) = 0 (mod 4pi)
+///
+/// The canonical representation is limited by the f64 representation.
+/// Any angle that differs in decimal places beyond f64 will be non-unique.
+fn canonicalize_angle(angle: f64) -> (u8, f64) {
+    let angle_normalized = angle.rem_euclid(FRAC_PI_2);
+    let interval = ((angle - angle_normalized) / FRAC_PI_2)
+        .round()
+        .rem_euclid(8.) as u8;
+    (interval, angle_normalized)
+}
+
+/// Lookup table for fixing the circuit based on interval computed during
+/// canonicalization.
+///
+/// The table is based on the following properties of `Rz(theta)``:
+/// * `Rz(theta + pi/2) = Rz(theta).S`, up to a global phase of `-pi/4`,
+/// * `Rz(theta + pi) = Rz(theta).Z`, up to a global pahse of `-pi/2`,
+/// * `Rz(theta + 2*pi) = -Rz(theta)`, up to a global phase of `-pi`,
+/// etc.
 static PHASE_GATE_LUT: [(f64, Option<StandardGate>); 8] = [
     (0.0, None),
     (-FRAC_PI_4, Some(StandardGate::S)),
@@ -33,36 +55,6 @@ static PHASE_GATE_LUT: [(f64, Option<StandardGate>); 8] = [
     (-6. * FRAC_PI_4, Some(StandardGate::Z)),
     (-7. * FRAC_PI_4, Some(StandardGate::Sdg)),
 ];
-
-// Takes angle as f64 and returns \(interval,canonical_angle)
-// as \(u8,f64).
-// We want to use the following properties of Rz(theta)
-// Rz(theta + pi/2) = Rz(theta).S
-// Rz(theta + pi) = Rz(theta).Z
-// Rz(theta + 2*pi) = -Rz(theta)
-// Divide the domain [0, 4*pi) into eight intervals of length
-// pi/2 and define the angle mapping, gate sequence, and phase update, accordingly.
-// Any angle theta canonicalized as theta_prime from [0,4*pi) -> [0,pi/2)
-// can be uniquely represented by the combination of (theta_prime, interval)
-// where interval is the floor of theta/(pi/2) and is a u8 bit that functions
-// as an index to the static table that uniquely determines the combination of
-// phase_update and angle to be added to the DAG after synthesis using the
-// canonical_angle.
-
-/// Finds a canonical representation of an angle.
-///
-/// Given `angle`, this returns `(interval, angle_normalized)` such that
-/// angle_normalized = angle (mod pi/2)
-/// (angle - angle_normalized - interval * pi/2) = 0 (mod 4pi)
-/// The canonical representation is limited by the f64 representation.
-/// Any angle that differs in decimal places beyond f64 will be non-unique.
-fn canonicalize_angle(angle: f64) -> (u8, f64) {
-    let angle_normalized = angle.rem_euclid(FRAC_PI_2);
-    let interval = ((angle - angle_normalized) / FRAC_PI_2)
-        .round()
-        .rem_euclid(8.) as u8;
-    (interval, angle_normalized)
-}
 
 /// Approximates RZ-rotation using gridsynth.
 ///
