@@ -14,4 +14,4 @@ name = "qiskit-bindgen-c"
 [dependencies]
 qiskit-bindgen.workspace = true
 anyhow.workspace = true
-clap = { version = "4.5", features = ["derive"] }
+clap = { version = "4.6", features = ["derive"] }

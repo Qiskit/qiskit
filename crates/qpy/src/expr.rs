@@ -176,7 +176,9 @@ pub(crate) fn unpack_expression_var(
             })?; // note: this is not an actual expr::Var; merely a key for this var inside the circuit data
             Ok(qpy_data
                 .circuit_data
-                .get_var(*var)
+                .vars_stretches_view()
+                .vars()
+                .get(*var)
                 .ok_or_else(|| {
                     QpyError::InvalidParameter(
                         "Standalone var not found in circuit data".to_string(),
@@ -273,7 +275,9 @@ pub(crate) fn read_expression<R: Read + Seek>(
             Ok(Expr::Stretch(
                 qpy_data
                     .circuit_data
-                    .get_stretch(*stretch)
+                    .vars_stretches_view()
+                    .stretches()
+                    .get(*stretch)
                     .ok_or_else(|| {
                         to_binrw_error(
                             reader,
