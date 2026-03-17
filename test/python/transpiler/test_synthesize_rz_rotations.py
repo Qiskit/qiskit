@@ -56,16 +56,6 @@ class TestSynthesizeRzRotations(QiskitTestCase):
         synthesized_circ = SynthesizeRZRotations()(qc)
         self.assertEqual(Operator(synthesized_circ), Operator(RZGate(angle)))
 
-    @data(1e-9, 1e-10, 1e-11)
-    def test_synthesize_rz_with_approximation_degree(self, epsilon):
-        """Test that synthesize_rz_rotations works correctly."""
-        approximation_degree = 1 - epsilon
-        qc = QuantumCircuit(1)
-        angle = 2.3579
-        qc.rz(angle, 0)
-        synthesized_circ = SynthesizeRZRotations(approximation_degree=approximation_degree)(qc)
-        self.assertEqual(Operator(synthesized_circ), Operator(RZGate(angle)))
-
     @data(
         1 - 1e-2,
         1 - 1e-3,
@@ -89,20 +79,77 @@ class TestSynthesizeRzRotations(QiskitTestCase):
         spectral_norm = np.linalg.norm(error_matrix, 2)
         self.assertLessEqual(spectral_norm, 1 - approximation_degree)
 
-    def test_t_counts(self):
-        """Test if the expected t-counts are accurate."""
+    @data(
+        1 - 1e-2,
+        1 - 1e-3,
+        1 - 1e-4,
+        1 - 1e-5,
+        1 - 1e-6,
+        1 - 1e-7,
+        1 - 1e-8,
+        1 - 1e-9,
+        1 - 1e-10,
+        1 - 1e-11,
+        1 - 1e-12,
+    )
+    def test_t_counts_given_approximation_degree(self, approximation_degree):
+        """Test if the expected t-counts provided by the pass are consistent with
+        the underlying synthesis method.
+        """
         qc = QuantumCircuit(1)
         qc.rz(1.0, 0)
-        approximation_degrees = [0.999999, 0.99999999, 0.9999999999]
-        t_expected_circs = [gridsynth_rz(1.0, (1 - aps) / 2) for aps in approximation_degrees]
-        t_expected = [
-            t_expected_circs[i].count_ops().get("t", 0) for i in range(len(approximation_degrees))
-        ]
-        for ads, t_expect in zip(approximation_degrees, t_expected):
-            with self.subTest(eps=ads, t_expect=t_expect):
-                qct = SynthesizeRZRotations(ads)(qc)
-                t_count = qct.count_ops().get("t", 0)
-                self.assertLessEqual(t_count, t_expect)
+
+        qct = SynthesizeRZRotations(approximation_degree=approximation_degree)(qc)
+        t_count = qct.count_ops().get("t", 0)
+
+        # Dividing by 2 because this is how SynthesizeRZRotations splits total error budget
+        expected_circ = gridsynth_rz(1.0, (1 - approximation_degree) / 2)
+        t_expect = expected_circ.count_ops().get("t", 0)
+
+        self.assertEqual(t_count, t_expect)
+
+    def test_cache_error(self):
+        """Test that the cache_error argument works as expected
+        when both synthesis_error and cache_error are given.
+        """
+        qc = QuantumCircuit(1)
+        qc.rz(0.0, 0)
+        qc.rz(0.1, 0)
+        qc.rz(0.2, 0)
+        qc.rz(0.3, 0)
+
+        # Sets a very high cache_error. Because both synthesis_error and
+        # cache_error are given, we expect them to be used instead of the
+        # approximation degree.
+        # Exploiting our knowledge of the inner workings
+        # of the SynthesizeRZRotations pass, the RZ(0.0, 0) gate will get synthesized
+        # first (requiring no T-gates), while the other gates should reuse its synthesis
+        # result (hence also requiring no T-gates).
+        qct = SynthesizeRZRotations(synthesis_error=1e-10, cache_error=0.5)(qc)
+        t_count = qct.count_ops().get("t", 0)
+        self.assertEqual(t_count, 0)
+
+    def test_synthesis_error(self):
+        """Test that the synthesis_error argument works as expected
+        when both synthesis_error and cache_error are given.
+        """
+        angle = 1.2345
+
+        qc = QuantumCircuit(1)
+        qc.rz(angle, 0)
+
+        # Sets a low synthesis error. Because both synthesis_error and
+        # cache_error are given, we expect them to be used instead of the
+        # approximation degree.
+        qct = SynthesizeRZRotations(
+            approximation_degree=1e-10, synthesis_error=1e-2, cache_error=0.0
+        )(qc)
+        t_count = qct.count_ops().get("t", 0)
+
+        expected_circ = gridsynth_rz(angle, 1e-2)
+        t_expect = expected_circ.count_ops().get("t", 0)
+
+        self.assertEqual(t_count, t_expect)
 
     def test_param_angle(self):
         """Test to see if parametrized angles remain unaffected"""
