@@ -1204,7 +1204,7 @@ mod py {
     ///
     /// @param object A borrowed Python object.
     /// @param address The location to write the output to.
-    /// @return 0 on success, 1 on failure.
+    /// @return 1 on success, 0 on failure.
     ///
     /// # Safety
     ///
