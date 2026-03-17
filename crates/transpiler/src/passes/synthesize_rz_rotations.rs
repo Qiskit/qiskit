@@ -40,11 +40,10 @@ fn canonicalize_angle(angle: f64) -> (u8, f64) {
 /// Lookup table for fixing the circuit based on interval computed during
 /// canonicalization.
 ///
-/// The table is based on the following properties of `Rz(theta)``:
+/// The table is based on the properties of `Rz(theta)` such as:
 /// * `Rz(theta + pi/2) = Rz(theta).S`, up to a global phase of `-pi/4`,
 /// * `Rz(theta + pi) = Rz(theta).Z`, up to a global pahse of `-pi/2`,
-/// * `Rz(theta + 2*pi) = -Rz(theta)`, up to a global phase of `-pi`,
-/// etc.
+/// * `Rz(theta + 2*pi) = -Rz(theta)`, up to a global phase of `-pi`.
 static PHASE_GATE_LUT: [(f64, Option<StandardGate>); 8] = [
     (0.0, None),
     (-FRAC_PI_4, Some(StandardGate::S)),
