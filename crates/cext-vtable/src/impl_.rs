@@ -164,7 +164,7 @@ impl ExportedFunctions {
     /// Requiring a `'static` lifetime on `self` is mostly just laziness in defining this (it lets
     /// us safely do it with iterator combinators rather than producing a custom "walker" class
     /// while avoiding recursive types), but one that shouldn't actually affect use of this, since
-    /// all `ExportedFunctions` objects are expected to be defined as `static`s.
+    /// all [`ExportedFunctions`] objects are expected to be defined as `static`s.
     pub fn exports(&'static self, offset: usize) -> Box<dyn Iterator<Item = ExportedFunction>> {
         Box::new(
             self.get_leaves()
