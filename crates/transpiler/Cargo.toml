@@ -30,6 +30,7 @@ thiserror.workspace = true
 bytemuck.workspace = true
 fixedbitset.workspace = true
 anyhow.workspace = true
+dashmap = "6.1.0"
 
 [dependencies.uuid]
 workspace = true

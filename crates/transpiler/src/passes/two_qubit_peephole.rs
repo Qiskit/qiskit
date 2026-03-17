@@ -10,11 +10,11 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::sync::Mutex;
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
-use hashbrown::{HashMap, HashSet};
+use dashmap::DashMap;
+use hashbrown::HashSet;
 use pyo3::Python;
 use pyo3::intern;
 use pyo3::prelude::*;
@@ -65,13 +65,19 @@ pub fn two_qubit_unitary_peephole_optimize(
     if runs.is_empty() {
         return Ok(None);
     }
-    let node_mapping: HashMap<NodeIndex, usize> =
-        HashMap::with_capacity(runs.iter().map(|run| run.len()).sum());
-    let locked_node_mapping = Mutex::new(node_mapping);
+    let node_mapping: DashMap<NodeIndex, usize, ahash::RandomState> =
+        DashMap::with_capacity_and_hasher(
+            runs.iter().map(|run| run.len()).sum(),
+            ahash::RandomState::default(),
+        );
     let physical_qubits = (0..dag.num_qubits() as u32)
         .map(PhysicalQubit::new)
         .collect::<Vec<_>>();
     let approximation = Approximation::from_py_approximation_degree(approximation_degree);
+    let unitary_synthesis_config = UnitarySynthesisConfig {
+        approximation,
+        ..Default::default()
+    };
 
     let find_best_sequence =
         |run_index: usize, node_indices: &[NodeIndex]| -> PyResult<MappingIterItem> {
@@ -89,10 +95,6 @@ pub fn two_qubit_unitary_peephole_optimize(
                 .unwrap();
             let q_phys = q_virt.map(|q| physical_qubits[q.index()]);
             let matrix = blocks_to_matrix(dag, node_indices, q_virt)?;
-            let unitary_synthesis_config = UnitarySynthesisConfig {
-                approximation,
-                ..Default::default()
-            };
             let mut synthesis_state = UnitarySynthesisState::new(unitary_synthesis_config);
 
             let result = synthesize_2q_matrix(
@@ -163,7 +165,6 @@ pub fn two_qubit_unitary_peephole_optimize(
             // This is done at the end of the map in some attempt to minimize
             // lock contention. If this were serial code it'd make more sense
             // to do this as part of the iteration building the
-            let mut node_mapping = locked_node_mapping.lock().unwrap();
             for node in node_indices {
                 node_mapping.insert(*node, run_index);
             }
@@ -188,14 +189,13 @@ pub fn two_qubit_unitary_peephole_optimize(
     let mut processed_runs: HashSet<usize> = HashSet::with_capacity(run_mapping.len());
     let out_dag = dag.copy_empty_like_with_same_capacity(VarsMode::Alike, BlocksMode::Keep)?;
     let mut out_dag_builder = out_dag.into_builder();
-    let node_mapping = locked_node_mapping.into_inner().unwrap();
     if node_mapping.is_empty() {
         return Ok(None);
     }
     for node in dag.topological_op_nodes(false) {
         match node_mapping.get(&node) {
             Some(run_index) => {
-                if processed_runs.contains(run_index) {
+                if processed_runs.contains(run_index.value()) {
                     continue;
                 }
                 // If this is not a two qubit gate then there is a chance this will cause the
