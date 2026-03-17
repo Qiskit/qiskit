@@ -23,7 +23,7 @@
 /**
  * Test gate counts after Litinski transformation.
  */
-static int test_counts(void) {
+static int test_counts_litinski(void) {
     QkCircuit *circuit = qk_circuit_new(4, 0);
     qk_circuit_gate(circuit, QkGate_H, (uint32_t[1]){0}, NULL);
     qk_circuit_gate(circuit, QkGate_CX, (uint32_t[2]){0, 1}, NULL);
@@ -50,6 +50,7 @@ static int test_counts(void) {
             }
         }
     }
+    qk_opcounts_clear(&op_counts);
 cleanup:
     qk_circuit_free(circuit);
     return result;
@@ -58,7 +59,7 @@ cleanup:
 /**
  * Test gate counts after converting to Pauli rotations.
  */
-static int test_counts_pauli_rotations(void) {
+static int test_counts_convert_to_pauli_rotations(void) {
     QkCircuit *circuit = qk_circuit_new(4, 2);
     qk_circuit_gate(circuit, QkGate_H, (uint32_t[1]){0}, NULL);     // 2 PPR gates
     qk_circuit_gate(circuit, QkGate_CX, (uint32_t[2]){0, 1}, NULL); // 3 PPR gates
@@ -194,6 +195,9 @@ cleanup:
     return result;
 }
 
+/**
+ * A helper to check a PPM matches the expectation.
+ */
 int check_pauli_measurement(QkCircuit *circuit, size_t index, enum Pauli *paulis, uint32_t *qubits,
                             const size_t len, uint32_t clbit, bool flip_outcome) {
     QkPauliProductMeasurement ppm;
@@ -243,7 +247,7 @@ cleanup:
 /**
  * Test concrete circuit after running the Litinski transformation.
  */
-static int test_concrete(void) {
+static int test_concrete_litinski(void) {
     QkCircuit *circuit = qk_circuit_new(4, 4);
     qk_circuit_gate(circuit, QkGate_T, (uint32_t[1]){0}, NULL);
     qk_circuit_gate(circuit, QkGate_CX, (uint32_t[2]){2, 1}, NULL);
@@ -304,16 +308,13 @@ cleanup:
 /**
  * Test concrete circuit after running conversion to Pauli rotations.
  */
-static int test_concrete_pauli_rotations(void) {
+static int test_concrete_convert_to_pauli_rotations(void) {
     QkCircuit *circuit = qk_circuit_new(4, 1);
     qk_circuit_gate(circuit, QkGate_T, (uint32_t[1]){0}, NULL);
     qk_circuit_gate(circuit, QkGate_H, (uint32_t[2]){1}, NULL);
     qk_circuit_gate(circuit, QkGate_RXX, (uint32_t[2]){2, 3}, (double[1]){1.0});
     qk_circuit_gate(circuit, QkGate_SXdg, (uint32_t[1]){3}, NULL);
     qk_circuit_measure(circuit, 0, 0);
-
-    for (uint32_t i = 0; i < 4; i++) {
-    }
 
     qk_transpiler_pass_standalone_convert_to_pauli_rotations(circuit);
 
@@ -341,13 +342,44 @@ cleanup:
     qk_circuit_free(circuit);
     return result;
 }
+
+/**
+ * Test Litinski not doing anything.
+ */
+static int test_litinski_noop(void) {
+    QkCircuit *circuit = qk_circuit_new(1, 0);
+    qk_circuit_gate(circuit, QkGate_H, (uint32_t[1]){0}, NULL);
+
+    qk_transpiler_pass_standalone_litinski_transformation(circuit, true);
+
+    int result = Ok;
+    if (qk_circuit_num_instructions(circuit) != 1) {
+        printf("Expected 1 instructions, but found %zu", qk_circuit_num_instructions(circuit));
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    QkCircuitInstruction inst;
+    qk_circuit_get_instruction(circuit, 0, &inst);
+    if (strcmp(inst.name, "h") != 0) {
+        printf("Instruction at index 0 should be 'h' but is '%s'", inst.name);
+        result = EqualityError;
+    }
+    qk_circuit_instruction_clear(&inst);
+
+cleanup:
+    qk_circuit_free(circuit);
+    return result;
+}
+
 int test_pbc(void) {
     int num_failed = 0;
 
-    num_failed += RUN_TEST(test_counts);
-    num_failed += RUN_TEST(test_counts_pauli_rotations);
-    num_failed += RUN_TEST(test_concrete);
-    num_failed += RUN_TEST(test_concrete_pauli_rotations);
+    num_failed += RUN_TEST(test_counts_litinski);
+    num_failed += RUN_TEST(test_counts_convert_to_pauli_rotations);
+    num_failed += RUN_TEST(test_concrete_litinski);
+    num_failed += RUN_TEST(test_concrete_convert_to_pauli_rotations);
+    num_failed += RUN_TEST(test_litinski_noop);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests (PBC transformations): %i\n", num_failed);
