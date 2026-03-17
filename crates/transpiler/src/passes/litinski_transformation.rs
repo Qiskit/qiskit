@@ -42,12 +42,12 @@ static SUPPORTED_INSTRUCTION_NAMES: [&str; 20] = [
 static HANDLED_INSTRUCTION_NAMES: [&str; 4] = ["t", "tdg", "rz", "measure"];
 
 #[pyfunction]
-#[pyo3(signature = (dag, fix_clifford=true, insert_barrier=false, legacy_pauli_evolution=false))]
+#[pyo3(signature = (dag, fix_clifford=true, insert_barrier=false, use_ppr=false))]
 pub fn run_litinski_transformation(
     dag: &DAGCircuit,
     fix_clifford: bool,
     insert_barrier: bool,
-    legacy_pauli_evolution: bool,
+    use_ppr: bool,
 ) -> PyResult<Option<DAGCircuit>> {
     let op_counts = dag.get_op_counts();
 
@@ -246,7 +246,19 @@ pub fn run_litinski_transformation(
                     // In the legacy path, we add PauliEvolutionGate as rotation gates, otherwise
                     // we add PauliProductRotation. The new path should not call Python at any
                     // point.
-                    let (packed_op, param) = if legacy_pauli_evolution {
+                    let (packed_op, param) = if use_ppr {
+                        let angle = if sign {
+                            multiply_param(&angle, -1.0)
+                        } else {
+                            angle
+                        };
+                        let ppr = PauliProductRotation {
+                            z,
+                            x,
+                            angle: angle.clone(),
+                        };
+                        (PauliBased::PauliProductRotation(ppr).into(), angle)
+                    } else {
                         let time = if sign {
                             multiply_param(&angle, -0.5)
                         } else {
@@ -266,18 +278,6 @@ pub fn run_litinski_transformation(
                             }))
                         })?;
                         (py_gate.into(), time)
-                    } else {
-                        let angle = if sign {
-                            multiply_param(&angle, -1.0)
-                        } else {
-                            angle
-                        };
-                        let ppr = PauliProductRotation {
-                            z,
-                            x,
-                            angle: angle.clone(),
-                        };
-                        (PauliBased::PauliProductRotation(ppr).into(), angle)
                     };
 
                     new_dag.apply_operation_back(

@@ -49,8 +49,12 @@ mod remove_identity_equiv;
 pub mod sabre;
 mod split_2q_unitaries;
 mod substitute_pi4_rotations;
+<<<<<<< jan_synthesize_rz
 mod synthesize_rz_rotations;
 mod unitary_synthesis;
+=======
+pub mod unitary_synthesis;
+>>>>>>> main
 mod unroll_3q_or_more;
 pub mod vf2;
 mod wrap_angles;
