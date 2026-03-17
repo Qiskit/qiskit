@@ -16,3 +16,4 @@ name = "qiskit_bindgen"
 anyhow.workspace = true
 cbindgen  = { workspace = true, features = ["unstable_ir"] }
 hashbrown.workspace = true
+regex.version = "1.12"
