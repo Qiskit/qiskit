@@ -452,11 +452,19 @@ def _pauli_rotation_trace_and_dim(gate: PauliEvolutionGate) -> tuple[complex, in
             label = operator[0].bit_labels()
             if any(c in label for c in ["+", "-", "0", "1", "l", "r"]):
                 return None
-            dim = len(label)
+            num_qubits = len(label)
             angle = operator.coeffs[0].real * gate.time
         else:
             return None
     # If the operator is a SparsePauliOp, it should have a single term.
+<<<<<<< HEAD
+=======
+    elif len(operator.paulis) == 1:
+        label = operator.paulis.to_labels()[0]
+        label = label.replace("I", "")
+        num_qubits = len(label)
+        angle = operator.coeffs[0].real * gate.time
+>>>>>>> 6d0f976c6 (Fix `PauliEvolutionGate` trace and dim calculation (#15816))
     else:
         if len(operator.paulis) == 1:
             label = operator.paulis.to_labels()[0]
@@ -466,8 +474,8 @@ def _pauli_rotation_trace_and_dim(gate: PauliEvolutionGate) -> tuple[complex, in
         else:
             return None
 
-    if dim == 0:
+    if num_qubits == 0:
         # This is an identity Pauli rotation.
-        return (np.exp(-1j * angle), dim)
+        return (np.exp(-1j * angle), 1)
 
-    return (np.cos(angle), dim)
+    return (np.cos(angle), 2**num_qubits)
