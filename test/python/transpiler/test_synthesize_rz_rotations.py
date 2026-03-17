@@ -25,12 +25,6 @@ from qiskit.transpiler.passes.synthesis import SynthesizeRZRotations
 
 from test import QiskitTestCase, combine
 
-# Set of single-qubit Clifford gates
-CLIFFORD_GATES_1Q_SET = set(get_clifford_gate_names())
-
-# Set of Clifford+T gates
-CLIFFORD_T_GATES_SET = CLIFFORD_GATES_1Q_SET | {"t", "tdg"}
-
 
 @ddt
 class TestSynthesizeRzRotations(QiskitTestCase):

@@ -63,21 +63,22 @@ class SynthesizeRZRotations(TransformationPass):
 
     def __init__(
         self,
-        approximation_degree: float = 1 - 1e-10,
+        approximation_degree: float | None = None,
         synthesis_error: float | None = None,
         cache_error: float | None = None,
     ):
         r"""
-        If both `synthesis_error` and `cache_error` are provided, they specify the error budget
+        If both ``synthesis_error`` and ``cache_error`` are provided, they specify the error budget
         for approximate synthesis and for caching respectively. If either value is not
-        specified, the total allowed error is derived from `approximation_degree`, and
-        suitable values for `synthesis_error` and `cache_error` are computed automatically.
+        specified, the total allowed error is derived from ``approximation_degree``, and
+        suitable values for ``synthesis_error`` and ``cache_error`` are computed automatically.
 
         Args:
-            approximation_degree: Controls the overall degree of approximation.
+            approximation_degree: Controls the overall degree of approximation. Defaults
+                to ``1 - 1e-10``.
             synthesis_error: Maximum allowed error for the approximate synthesis of
                 :math:`RZ(\theta)`.
-            cache_error`: Maximum allowed error when reusing a cached synthesis
+            cache_error: Maximum allowed error when reusing a cached synthesis
                 result for angles close to :math:`\theta`.
         """
         super().__init__()

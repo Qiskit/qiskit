@@ -19,6 +19,7 @@ use qiskit_circuit::operations::{OperationRef, Param, StandardGate, add_param};
 use qiskit_synthesis::ross_selinger::gridsynth_rz;
 
 const MINIMUM_EPSILON: f64 = 1e-12; // minimum epsilon for synthesis
+const DEFAULT_ACCURACY: f64 = 1e-10; // default synthesis accuracy
 
 /// Finds a canonical representation of an angle.
 ///
@@ -120,16 +121,16 @@ pub fn py_run_synthesize_rz_rotations(
             let total_error = if let Some(approximation_degree) = approximation_degree {
                 MINIMUM_EPSILON.max(1. - approximation_degree)
             } else {
-                1e-10
+                DEFAULT_ACCURACY
             };
             (total_error / 2., total_error / 2.)
         }
     };
 
     // By an explicit computation one can show that if the current angle is within
-    // 2 * cache_error from the previous angle, the error due to reusing the synthesis
-    // result for the previous angle is precisely cache_error.
-    // TODO In theory, this is actually  4. * (cache_error / 2).arcsin();
+    // 4.0 * arcsin(cache_error / 2) from the previous angle, the error due to reusing the synthesis
+    // result for the previous angle is precisely cache_error. Contact a Qiskit synthesis developer
+    // for more details!
     let bin_width = 4. * (cache_error / 2.).asin();
 
     // Iterate over nodes in the DAG and collect nodes that have RZ gates.
