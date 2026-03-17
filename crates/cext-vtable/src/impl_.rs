@@ -48,11 +48,11 @@ pub struct ExportedFunction {
     pub addr: usize,
 }
 
-/// Maximum number of children of any single `ExportedFunctions` object.
+/// Maximum number of children of any single [`ExportedFunctions`] object.
 ///
 /// Upping this causes more static memory use, but it shouldn't be too onerous.  You can nest
-/// `ExportedFunctions` objects at any depth without trouble.
-const MAX_CHILDREN: usize = 8;
+/// [`ExportedFunctions`] objects at any depth without trouble.
+pub const MAX_CHILDREN: usize = 8;
 
 /// A compile-time list of exported functions, including potential subgroups of functions.
 ///
@@ -61,19 +61,19 @@ const MAX_CHILDREN: usize = 8;
 pub struct ExportedFunctions {
     /// The amount of space reserved for the leaves.  It is a panic to reserve less space than
     /// required, but it's fine (and encouraged) to reserve as much space as you think you'll expand
-    /// to, in any given set of `ExportedFunctions`.
+    /// to, in any given set of [ExportedFunctions].
     leaves_reserve: usize,
     /// The calculated total length of reserved space (though there may be internal gaps that aren't
     /// technically reserved within it).  This is calculated at compile time, mostly for the
     /// purposes of causing compile-time errors of this crate if the requested reservations don't
     /// fit together properly.
     len: usize,
-    /// The leaf functions owned by this set of `ExportedFunctions`.  This has to constructed lazily
-    /// because the function-pointer values can't (in general) be calculated until the compiled
-    /// artifact is loaded into a process's memory space.
+    /// The leaf functions owned by this set of [ExportedFunctions].  This has to be constructed
+    /// lazily because the function-pointer values can't (in general) be calculated until the
+    /// compiled artifact is loaded into a process's memory space.
     ///
-    /// This shouldn't be used directly; use [`get_leaves`] to build it to ensure the `assert` code
-    /// is called too.
+    /// This shouldn't be used directly; use [Self::get_leaves] to build it to ensure the `assert`
+    /// code is called too.
     leaves: LazyLock<Vec<Option<inner::ExportedFunctionPartial>>>,
     /// The offsets and references to each child owned by this object.  The funky static-sized array
     /// of maybe-uninitialized references is to make this all work at compile time.  The array is
@@ -85,15 +85,15 @@ impl ExportedFunctions {
     ///
     /// The first argument is how much space to reserve for the leaf nodes.  It must be at least as
     /// large as the vector of leaves, or this will panic when trying to access the functions.  The
-    /// second is a non-capturing closure that produces a vector of items defined by [`export_fn`}
+    /// second is a non-capturing closure that produces a vector of items defined by `export_fn`
     /// (or `None`).
     ///
     /// The second argument has to be a lazy closure because the addresses of functions generally
     /// aren't set until the fully compiled binary has been loaded up into a process; they can't be
     /// set at compile time.
     ///
-    /// You can then append children with [`add_child`].  If you don't need any leaf functions, use
-    /// [`empty`].
+    /// You can then append children with [`add_child`][Self::add_child].  If you don't need any
+    /// leaf functions, use [`empty`][Self::empty].
     pub const fn leaves(
         reserve: usize,
         slots: fn() -> Vec<Option<inner::ExportedFunctionPartial>>,
@@ -107,7 +107,7 @@ impl ExportedFunctions {
     }
     /// Create a new empty list of exported functions.
     ///
-    /// You can then append children with [`add_child`].
+    /// You can then append children with [`add_child`][Self::add_child].
     pub const fn empty() -> Self {
         Self::leaves(0, Vec::new)
     }
@@ -118,7 +118,7 @@ impl ExportedFunctions {
     ///
     /// # Panics
     ///
-    /// If there are already `MAX_CHILDREN` children attached to this set of functions, or if the
+    /// If there are already [`MAX_CHILDREN`] children attached to this set of functions, or if the
     /// base `offset` is less than the maximum current reservation.
     pub const fn add_child(mut self, offset: usize, fns: &'static ExportedFunctions) -> Self {
         if offset < self.len {
