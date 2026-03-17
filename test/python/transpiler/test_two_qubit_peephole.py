@@ -481,7 +481,7 @@ class TestTwoQubitPeepholeOptimization(QiskitTestCase):
         qc.swap(0, 1)
         qc = transpile(qc, target=target, seed_transpiler=1234, optimization_level=0)
         res = peephole(qc)
-        np.testing.assert_allclose(Operator(qc), Operator(res))
+        np.testing.assert_allclose(Operator(qc), Operator(res), atol=1e-12, rtol=0)
         # Check run of swaps
         qc_duplicated = QuantumCircuit(2)
         for _ in range(100):
@@ -689,13 +689,10 @@ class TestTwoQubitPeepholeOptimization(QiskitTestCase):
             target.add_instruction(RXGate(lam))
             target.add_instruction(RZGate(theta))
             target.add_instruction(target_gate)
-
         qc = QuantumCircuit(2)
         qc.append(gate, [0, 1])
-
         peephole = TwoQubitPeepholeOptimization(target)
         transpiled_circuit = peephole(qc)
-
         legacy_path = PassManager(
             [
                 ConsolidateBlocks(target=target),

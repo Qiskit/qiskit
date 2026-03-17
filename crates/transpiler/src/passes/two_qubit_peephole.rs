@@ -138,7 +138,11 @@ pub fn two_qubit_unitary_peephole_optimize(
                 };
                 original_fidelity *= gate_fidelity;
             }
-            let original_score = (original_2q_count, original_fidelity, original_total_count);
+            let original_score = (
+                original_2q_count,
+                1. - original_fidelity,
+                original_total_count,
+            );
             let new_2q_count = result
                 .sequence
                 .gates
@@ -146,7 +150,11 @@ pub fn two_qubit_unitary_peephole_optimize(
                 .filter(|x| x.0.num_qubits() == 2)
                 .count();
             let new_gate_count = result.sequence.gates.len();
-            let new_score = (new_2q_count, result.fidelity.unwrap_or(1.), new_gate_count);
+            let new_score = (
+                new_2q_count,
+                1. - result.fidelity.unwrap_or(1.),
+                new_gate_count,
+            );
             // If the we are not outside the target and the new score isn't any better just use the
             // original (this includes a tie).
             if !outside_target && new_score >= original_score {
