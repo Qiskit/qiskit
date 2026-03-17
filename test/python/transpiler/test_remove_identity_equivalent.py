@@ -227,8 +227,10 @@ class TestRemoveIdentityEquivalent(QiskitTestCase):
 
         pass_ = RemoveIdentityEquivalent()
 
-        # it is important to cover a small enough grid around the threshold where we
-        # start removing gates, to ensure all cases are handled consistently
+        # It is important to cover a small enough grid around the threshold where we
+        # start removing gates, to ensure all cases are handled consistently. That
+        # threshold can be calculated by inverting the avg. gate fidelity with the
+        # default tol of 1e-12, coming out at an angle of roughly 3.5e-06.
         for angle in np.linspace(1e-5, 1e-6, num=25):
             # number of expected instructions
             rz = get_rz(angle)
