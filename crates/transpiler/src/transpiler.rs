@@ -16,6 +16,7 @@ use crate::commutation_checker::CommutationChecker;
 use crate::commutation_checker::get_standard_commutation_checker;
 use crate::equivalence::EquivalenceLibrary;
 use crate::passes::sabre::route::PyRoutingTarget;
+use crate::passes::unitary_synthesis;
 use crate::passes::*;
 use crate::standard_equivalence_library::generate_standard_equivalence_library;
 use crate::target::Target;
@@ -469,7 +470,9 @@ pub fn transpile(
     let mut equivalence_library = generate_standard_equivalence_library();
     let sabre_heuristic = get_sabre_heuristic(target)?;
     let mut synthesis_state = UnitarySynthesisState::new(UnitarySynthesisConfig {
-        approximation_degree,
+        approximation: unitary_synthesis::Approximation::from_py_approximation_degree(
+            approximation_degree,
+        ),
         run_python_decomposers: false,
         ..Default::default()
     });

@@ -40,8 +40,6 @@ jobs:
   finalize:
     name: Finalize
     runs-on: 'ubuntu-latest'
-    steps:
-      - run: ':'
     # This list should contain every other job in this file.
     needs:
       - docs
@@ -55,6 +53,19 @@ jobs:
       - miri
       - qpy
       - neko
+    # This job needs to trigger even if its predecessors failed and return the same status.  By
+    # default, GitHub Actions will "skip" the job if a requirement failed, but that counts as a
+    # "success" state, which is not acceptable for a branch-protection rule.  We don't use `always`
+    # because we don't want `cancelled` to trigger this.
+    if: success() || failure()
+    steps:
+      - run: |
+          echo "Successful run."
+        if: ${{ !contains(needs.*.result, 'failure') }}
+      - run: |
+          echo "Predecessor jobs failed.  See GitHub Actions logs." >&2
+          exit 1
+        if: ${{ contains(needs.*.result, 'failure') }}
 
   docs:
     name: Documentation
