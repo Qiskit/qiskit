@@ -508,6 +508,7 @@ class TestTwoQubitPeepholeOptimization(QiskitTestCase):
             CXGate(),
             {
                 (1, 0): InstructionProperties(error=3.058e-3, duration=6.8e-8),
+                (0, 1): InstructionProperties(error=.99999),
             },
         )
         target.add_instruction(
@@ -534,10 +535,12 @@ class TestTwoQubitPeepholeOptimization(QiskitTestCase):
         peephole = TwoQubitPeepholeOptimization(target)
         qc = QuantumCircuit(2)
         qc.swap(0, 1)
-        qc = transpile(qc, target=target, seed_transpiler=1234, optimization_level=2)
         res = peephole(qc)
         self.assertTrue(self.all_inst_in_target(res, target))
-        self.assertEqual(res, qc)
+        self.assertEqual(Operator(res), Operator(qc))
+        for inst in res.data:
+            if len(inst.qubits) == 2:
+                self.assertEqual(inst.qubits, (res.qubits[1], res.qubits[0]))
         # Check run of swaps
         qc_duplicated = QuantumCircuit(2)
         for _ in range(100):
@@ -546,8 +549,9 @@ class TestTwoQubitPeepholeOptimization(QiskitTestCase):
             qc_duplicated, target=target, seed_transpiler=1234, optimization_level=0
         )
         res = peephole(qc_duplicated)
+        self.assertEqual(Operator(res), Operator(qc_duplicated))
+        self.assertEqual(Operator(res), Operator(np.eye(4, dtype=complex)))
         self.assertTrue(self.all_inst_in_target(res, target))
-        self.assertEqual(Operator(res), Operator(QuantumCircuit(2)))
 
         qc_duplicated = QuantumCircuit(2)
         for _ in range(101):
@@ -558,6 +562,9 @@ class TestTwoQubitPeepholeOptimization(QiskitTestCase):
         res = peephole(qc_duplicated)
         self.assertTrue(self.all_inst_in_target(res, target))
         self.assertEqual(Operator(res), Operator(qc_duplicated))
+        for inst in res.data:
+            if len(inst.qubits) == 2:
+                self.assertEqual(inst.qubits, (res.qubits[1], res.qubits[0]))
 
     def all_inst_in_target(self, circuit: QuantumCircuit, target: Target, allow_inverse=False):
         for inst in circuit.data:
