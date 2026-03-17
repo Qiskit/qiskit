@@ -118,6 +118,9 @@ fn _update_phase_schedule(
     phase_schedule: &mut Array2<usize>,
     swap_plus: &HashSet<(usize, usize)>,
 ) {
+    if n <= 1 {
+        return;
+    }
     let mut layer_order: Vec<usize> = ((1 - (n % 2))..n - 2).step_by(2).rev().collect();
     layer_order.extend((n % 2..n - 2).step_by(2));
     if n > 1 {
@@ -187,15 +190,15 @@ fn _apply_phase_to_nw_circuit(
     seq: &[(usize, usize)],
     swap_plus: &HashSet<(usize, usize)>,
 ) -> Vec<CircuitInstructions> {
-    let wires: Vec<_> = (0..n - 1)
+    let wires: Vec<_> = (0..n.saturating_sub(1))
         .step_by(2)
         .zip((1..n).step_by(2))
-        .chain((1..n - 1).step_by(2).zip((2..n).step_by(2)))
+        .chain((1..n.saturating_sub(1)).step_by(2).zip((2..n).step_by(2)))
         .collect();
 
     let mut cir: Vec<CircuitInstructions> = Vec::new();
     for (i, &(j, k)) in (0..seq.len()).rev().zip(seq.iter().rev()) {
-        let (w1, w2) = wires[i % (n - 1)];
+        let (w1, w2) = wires[i % (n.saturating_sub(1))];
         if !swap_plus.contains(&(j, k)) {
             cir.push(CircuitInstructions::CX(w1 as u32, w2 as u32));
         }
