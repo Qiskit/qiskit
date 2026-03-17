@@ -508,7 +508,7 @@ class TestTwoQubitPeepholeOptimization(QiskitTestCase):
             CXGate(),
             {
                 (1, 0): InstructionProperties(error=3.058e-3, duration=6.8e-8),
-                (0, 1): InstructionProperties(error=.99999),
+                (0, 1): InstructionProperties(error=0.99999),
             },
         )
         target.add_instruction(
@@ -767,15 +767,11 @@ class TestTwoQubitPeepholeOptimization(QiskitTestCase):
             cmap.size(), basis_gates=basis_gates, seed=2024, coupling_map=cmap
         )
         peephole = TwoQubitPeepholeOptimization(backend.target)
-        qc = random_circuit(cmap.size(), 2, max_operands=2, seed=12345_42)
+        qc = random_circuit(cmap.size(), 79, max_operands=2, seed=12345_42)
         qc = transpile(qc, target=backend.target, optimization_level=0, seed_transpiler=2025)
         result = peephole(qc)
         if "rzx" in target_2q_gates or "rzz" in target_2q_gates or "rxx" in target_2q_gates:
             self.all_inst_in_target(result, backend.target, allow_inverse=True)
         else:
             self.all_inst_in_target(result, backend.target)
-        print("Source")
-        print(qc)
-        print("Result")
-        print(result)
         np.testing.assert_allclose(Operator(result), Operator(qc), atol=1e-12, rtol=0)

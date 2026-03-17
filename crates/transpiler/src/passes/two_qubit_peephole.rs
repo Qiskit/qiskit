@@ -82,11 +82,7 @@ pub fn two_qubit_unitary_peephole_optimize(
                     let inst = dag.dag()[*node_index].unwrap_operation();
                     let qubits = dag.get_qargs(inst.qubits);
                     if qubits.len() == 2 {
-                        if qubits[0] > qubits[1] {
-                            Some([qubits[1], qubits[0]])
-                        } else {
-                            Some([qubits[0], qubits[1]])
-                        }
+                        Some([qubits[0], qubits[1]])
                     } else {
                         None
                     }
@@ -199,15 +195,21 @@ pub fn two_qubit_unitary_peephole_optimize(
                 if processed_runs.contains(run_index) {
                     continue;
                 }
-                // A None is inserted into the node_mapping as the value for a run that we don't
-                // substitute but was identified so we added an explicit None to preserve the
-                // indexing with the vec.
-                let Some((result, qargs_virt)) = run_mapping[*run_index].as_ref() else {
-                    let NodeType::Operation(ref instr) = dag.dag()[node] else {
-                        unreachable!("Must be an op node")
-                    };
-                    out_dag_builder.push_back(instr.clone())?;
+                // If this is not a two qubit gate then there is a chance this will cause the
+                // insertion to happen too early. We skip the nodes in a run until we encounter
+                // a 2q gate which ensure the block is inserted into the correct location in the
+                // circuit.
+                if dag.dag()[node].unwrap_operation().op.num_qubits() != 2 {
                     continue;
+                }
+                // A None is inserted into the run_mapping as the value for a run that we don't
+                // substitute but was identified so we added an explicit None to preserve the
+                // indexing with the vec. This shouldn't be possible to hit the else condition, but
+                // it's left in
+                let Some((result, qargs_virt)) = run_mapping[*run_index].as_ref() else {
+                    unreachable!(
+                        "node_mapping can't contain a value pointing to an unpoluated run in run_mapping"
+                    );
                 };
                 let order = result.dir.as_indices();
                 let out_qargs = [qargs_virt[order[0] as usize], qargs_virt[order[1] as usize]];
@@ -217,7 +219,6 @@ pub fn two_qubit_unitary_peephole_optimize(
                     out_dag_builder.insert_qargs(&[out_qargs[0], out_qargs[1]]),
                     out_dag_builder.insert_qargs(&[out_qargs[1], out_qargs[0]]),
                 ];
-
                 for (gate, params, local_qubits) in &result.sequence.gates {
                     let qubits = match local_qubits.as_slice() {
                         [0] => qubit_keys[0],

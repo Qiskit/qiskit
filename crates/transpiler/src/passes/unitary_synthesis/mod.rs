@@ -488,6 +488,7 @@ fn synthesize_1q_matrix_onto(
     Ok(true)
 }
 
+#[derive(Debug)]
 pub struct TwoQSynthesisResult {
     pub sequence: TwoQubitGateSequence,
     pub dir: Direction2q,
