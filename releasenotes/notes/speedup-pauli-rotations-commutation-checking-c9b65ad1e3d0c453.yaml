@@ -1,0 +1,4 @@
+---
+features_transpiler:
+  - Improved the performance of commutation checking for :class:`.PauliProductRotationGate` and
+    :class:`.PauliProductMeasurement`.

@@ -234,7 +234,7 @@ fn try_extract_op_from_ppr(
     Some(out.compose_map(&local, |i| qubits[i as usize].0))
 }
 
-fn try_pauli_generator(
+fn try_sparse_observable_generator(
     operation: &OperationRef,
     qubits: &[Qubit],
     num_qubits: u32,
@@ -244,6 +244,16 @@ fn try_pauli_generator(
         "PauliEvolution" => try_extract_op_from_pauli_evo(operation, qubits, num_qubits),
         "pauli_product_measurement" => try_extract_op_from_ppm(operation, qubits, num_qubits),
         "pauli_product_rotation" => try_extract_op_from_ppr(operation, qubits, num_qubits),
+        _ => None,
+    }
+}
+
+/// Checks if the generator can be represented as a single Pauli term.
+/// If so, returns the generator in the (Z, X) form.
+fn try_pauli_generator<'a>(operation: &'a OperationRef) -> Option<(&'a Vec<bool>, &'a Vec<bool>)> {
+    match operation {
+        OperationRef::PauliProductRotation(ppr) => Some((&ppr.z, &ppr.x)),
+        OperationRef::PauliProductMeasurement(ppm) => Some((&ppm.z, &ppm.x)),
         _ => None,
     }
 }
@@ -521,10 +531,27 @@ impl CommutationChecker {
             _ => (),
         };
 
+        if let (Some((z1, x1)), Some((z2, x2))) =
+            (try_pauli_generator(op1), try_pauli_generator(op2))
+        {
+            let max_q1 = qargs1.iter().map(|q| q.index()).max().unwrap_or(0);
+            let mut in_q1 = vec![usize::MAX; max_q1 + 1];
+            for (i, &q) in qargs1.iter().enumerate() {
+                in_q1[q.index()] = i;
+            }
+            let mut parity = false;
+            for (j, &q) in qargs2.iter().enumerate() {
+                if let Some(&i) = in_q1.get(q.index()).filter(|&&i| i != usize::MAX) {
+                    parity ^= (x1[i] && z2[j]) ^ (z1[i] && x2[j]);
+                }
+            }
+            return Ok(!parity);
+        }
+
         // Handle commutations in between Pauli-based gates, like PauliGate or PauliEvolutionGate
         let size = qargs1.iter().chain(qargs2.iter()).max().unwrap().0 + 1;
-        if let Some(obs1) = try_pauli_generator(op1, qargs1, size) {
-            if let Some(obs2) = try_pauli_generator(op2, qargs2, size) {
+        if let Some(obs1) = try_sparse_observable_generator(op1, qargs1, size) {
+            if let Some(obs2) = try_sparse_observable_generator(op2, qargs2, size) {
                 return Ok(obs1.commutes(&obs2, tol));
             }
         }
