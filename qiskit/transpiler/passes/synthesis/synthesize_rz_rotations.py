@@ -57,6 +57,7 @@ class SynthesizeRZRotations(TransformationPass):
       assert(set(qct.count_ops().keys()).issubset(set(clifford_t_names)))
 
       # The circuits before and after the transformation are equivalent
+      # (with the default value of approximation_degree used by SynthesizeRZRotations)
       assert Operator(qc) == Operator(qct)
     """
 

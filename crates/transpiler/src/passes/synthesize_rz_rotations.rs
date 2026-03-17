@@ -42,7 +42,7 @@ fn canonicalize_angle(angle: f64) -> (u8, f64) {
 ///
 /// The table is based on the properties of `Rz(theta)` such as:
 /// * `Rz(theta + pi/2) = Rz(theta).S`, up to a global phase of `-pi/4`,
-/// * `Rz(theta + pi) = Rz(theta).Z`, up to a global pahse of `-pi/2`,
+/// * `Rz(theta + pi) = Rz(theta).Z`, up to a global phase of `-pi/2`,
 /// * `Rz(theta + 2*pi) = -Rz(theta)`, up to a global phase of `-pi`.
 static PHASE_GATE_LUT: [(f64, Option<StandardGate>); 8] = [
     (0.0, None),
@@ -57,7 +57,7 @@ static PHASE_GATE_LUT: [(f64, Option<StandardGate>); 8] = [
 
 /// Approximates RZ-rotation using gridsynth.
 ///
-/// Returns the sequence of gates in the  synthesized circuit and
+/// Returns the sequence of gates in the synthesized circuit and
 /// an update to the global phase.
 fn synthesize_rz_gate_via_gridsynth(
     angle: f64,
@@ -87,7 +87,7 @@ fn synthesize_rz_gate_via_gridsynth(
 ///
 /// # Arguments
 ///
-/// - `dag`: The circuit in which the RZ gates will be synthesized.
+/// - `dag`: The DAG circuit in which the RZ gates will be synthesized.
 /// - `approximation_degree`: Controls the overall degree of approximation.
 /// - `synthesis_error`: Maximum allowed error for the approximate synthesis of
 ///   :math:`RZ(\theta)`.
@@ -100,7 +100,7 @@ fn synthesize_rz_gate_via_gridsynth(
 /// suitable values for `synthesis_error` and `cache_error` are computed automatically.
 #[pyfunction]
 #[pyo3(name = "synthesize_rz_rotations")]
-#[pyo3(signature = (dag, approximation_degree=1., synthesis_error=None, cache_error=None))]
+#[pyo3(signature = (dag, approximation_degree=1.0 - 1e-10, synthesis_error=None, cache_error=None))]
 pub fn py_run_synthesize_rz_rotations(
     dag: &mut DAGCircuit,
     approximation_degree: f64,
