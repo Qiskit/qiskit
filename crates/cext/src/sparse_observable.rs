@@ -1162,7 +1162,7 @@ mod py {
     ///
     /// This borrows a Python reference and extracts the `QkObs` pointer for it, if it is of
     /// the correct type.  The returned pointer is borrowed from the `ob` pointer.  If the
-    /// ``PyObject`` is not the correct type, the return value is ``NULL`` and the exception
+    /// `PyObject` is not the correct type, the return value is `NULL` and the exception
     /// state of the Python interpreter is set.
     ///
     /// You must be attached to a Python interpreter to call this function.
@@ -1192,10 +1192,10 @@ mod py {
     /// @ingroup QkObs
     /// Retrieve a `QkObs` pointer from a Python object.
     ///
-    /// This borrows a Python reference and extracts the `QkObs` pointer for it into ``address``, if
+    /// This borrows a Python reference and extracts the `QkObs` pointer for it into `address`, if
     /// it is of the correct type.  The returned pointer is borrowed from the `object` pointer.  If
-    /// the ``PyObject`` is not the correct type, the return value is 1, the exception state of the
-    /// Python interpreter is set, and ``address`` is unchanged.
+    /// the `PyObject` is not the correct type, the return value is 1, the exception state of the
+    /// Python interpreter is set, and `address` is unchanged.
     ///
     /// You must be attached to a Python interpreter to call this function.
     ///

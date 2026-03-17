@@ -103,7 +103,7 @@ where
 ///
 /// The exact object stored can be extracted from a `PyClass` by projecting a reference out of some
 /// outer Python-exposed type using `map_fn`.  For example, the `object` might be a
-/// `PySparseObservable`, but the `map_fn` extracts a reference to the inne
+/// `PySparseObservable`, but the `map_fn` extracts a reference to the inner `SparseObservable`.
 ///
 /// This is used to define Python-space "converter" functions for use with the `PyArg_Parse*` family
 /// of functions.
@@ -113,7 +113,7 @@ where
 ///
 /// # Safety
 ///
-/// `object` must point to a valid PyObject.  `address` must point to enough space to write a
+/// `object` must point to a valid `PyObject`.  `address` must point to enough space to write a
 /// pointer to.
 pub unsafe fn convert_map<'py, T, S>(
     py: Python<'py>,
