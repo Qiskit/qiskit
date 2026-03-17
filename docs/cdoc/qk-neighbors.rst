@@ -6,7 +6,7 @@ QkNeighbors
    :members:
 
 Functions
-=========
+---------
 
 .. doxygengroup:: QkNeighbors
    :members:
