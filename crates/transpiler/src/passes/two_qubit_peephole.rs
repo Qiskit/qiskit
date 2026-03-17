@@ -20,7 +20,6 @@ use pyo3::intern;
 use pyo3::prelude::*;
 use rayon::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
-use smallvec::SmallVec;
 
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::instruction::Parameters;
@@ -114,23 +113,23 @@ pub fn two_qubit_unitary_peephole_optimize(
                 let NodeType::Operation(ref inst) = dag.dag()[*node_index] else {
                     unreachable!("All run nodes will be ops")
                 };
-                let qubits: SmallVec<[PhysicalQubit; 2]> = dag
-                    .get_qargs(inst.qubits)
-                    .iter()
-                    .map(|qubit| PhysicalQubit(qubit.0))
-                    .collect();
+                let qubits: &[_] = match dag.get_qargs(inst.qubits) {
+                    [q] => &[PhysicalQubit(q.0)],
+                    [q0, q1] => &[PhysicalQubit(q0.0), PhysicalQubit(q1.0)],
+                    _ => panic!("Runs should only contain 1q and 2q gates"),
+                };
                 if qubits.len() == 2 {
                     original_2q_count += 1;
                 }
                 let name = inst.op.name();
-                let gate_fidelity = match target.get_error(name, qubits.as_slice()) {
+                let gate_fidelity = match target.get_error(name, qubits) {
                     Some(err) => 1. - err,
                     None => {
                         // If error rate is None this can mean either the gate is not supported
                         // in the target or the gate is ideal. We need to do a second lookup
                         // to determine if the gate is supported, and if it isn't we don't need
                         // to finish scoring because we know we'll use the synthesis output
-                        if !target.instruction_supported(name, &qubits, inst.params_view(), true) {
+                        if !target.instruction_supported(name, qubits, inst.params_view(), true) {
                             outside_target = true;
                             break;
                         }
@@ -204,8 +203,9 @@ pub fn two_qubit_unitary_peephole_optimize(
                 }
                 // A None is inserted into the run_mapping as the value for a run that we don't
                 // substitute but was identified so we added an explicit None to preserve the
-                // indexing with the vec. This shouldn't be possible to hit the else condition, but
-                // it's left in
+                // indexing with the vec. This shouldn't be possible to hit the else condition
+                // since node mapping will never contain a value for a run_mapping index that
+                // is set to None.
                 let Some((result, qargs_virt)) = run_mapping[*run_index].as_ref() else {
                     unreachable!(
                         "node_mapping can't contain a value pointing to an unpoluated run in run_mapping"
