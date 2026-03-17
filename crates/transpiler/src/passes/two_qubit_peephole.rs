@@ -140,7 +140,7 @@ pub fn two_qubit_unitary_peephole_optimize(
             }
             let original_score = (
                 original_2q_count,
-                1. - original_fidelity,
+                original_fidelity,
                 original_total_count,
             );
             let new_2q_count = result
