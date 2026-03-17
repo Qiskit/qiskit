@@ -44,6 +44,10 @@ pub enum ExitCode {
     DuplicateIndexError = 104,
     /// Invalid ``QkOperationKind``.
     InvalidOperationKind = 105,
+    /// Failed to acquire a lock.
+    WouldBlock = 106,
+    /// The code failed in Python-space calls, and the Python error state is set.
+    PythonError = 107,
     /// Error related to arithmetic operations or similar.
     ArithmeticError = 200,
     /// Mismatching number of qubits.
