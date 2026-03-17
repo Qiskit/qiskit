@@ -3558,9 +3558,9 @@ impl dyn CustomOperation + 'static {
 /// Internal representation of a custom operation within a Circuit.
 #[derive(Debug)]
 #[repr(align(8))]
-pub(crate) struct CustomOp(Box<dyn CustomOperation>);
+pub(crate) struct BoxedCustomOperation(Box<dyn CustomOperation>);
 
-impl Deref for CustomOp {
+impl Deref for BoxedCustomOperation {
     type Target = dyn CustomOperation;
 
     fn deref(&self) -> &Self::Target {
@@ -3568,26 +3568,26 @@ impl Deref for CustomOp {
     }
 }
 
-impl DerefMut for CustomOp {
+impl DerefMut for BoxedCustomOperation {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.0.as_mut()
     }
 }
 
-impl Clone for CustomOp {
+impl Clone for BoxedCustomOperation {
     fn clone(&self) -> Self {
         Self(self.0.clone_dyn())
     }
 }
 
-impl<T: CustomOperation> From<T> for CustomOp {
+impl<T: CustomOperation> From<T> for BoxedCustomOperation {
     fn from(value: T) -> Self {
         let op = Box::new(value);
         Self(op)
     }
 }
 
-impl From<Box<dyn CustomOperation>> for CustomOp {
+impl From<Box<dyn CustomOperation>> for BoxedCustomOperation {
     fn from(value: Box<dyn CustomOperation>) -> Self {
         Self(value)
     }

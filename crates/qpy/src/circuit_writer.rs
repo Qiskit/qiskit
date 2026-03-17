@@ -224,7 +224,7 @@ fn pack_custom_operation(
     Ok(formats::CircuitInstructionV2Pack {
         num_qargs: op.num_qubits(),
         num_cargs: op.num_clbits(),
-        extras_key: 0,
+        extras_key: 0, // Using default value of zero since no annotations/conditions are available.
         num_ctrl_qubits,
         ctrl_state: (1 << num_ctrl_qubits) - 1, // default control state: all 1s
         gate_class_name: Default::default(),    // TODO: Use a class name.

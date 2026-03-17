@@ -19,9 +19,9 @@ use crate::imports::{
 use crate::instruction::Parameters;
 use crate::interner::Interned;
 use crate::operations::{
-    ControlFlow, ControlFlowInstruction, CustomOp, CustomOperation, CustomOperationKind, Operation,
-    OperationRef, Param, PauliBased, PyOperationTypes, PythonOperation, StandardGate,
-    StandardInstruction, UnitaryGate,
+    BoxedCustomOperation, ControlFlow, ControlFlowInstruction, CustomOperation,
+    CustomOperationKind, Operation, OperationRef, Param, PauliBased, PyOperationTypes,
+    PythonOperation, StandardGate, StandardInstruction, UnitaryGate,
 };
 use crate::{Block, Clbit, Qubit};
 use hashbrown::HashMap;
@@ -357,7 +357,9 @@ mod standard_instruction {
 
 /// A private module to encapsulate the encoding of pointer types.
 mod pointer {
-    use crate::operations::{ControlFlowInstruction, CustomOp, PyOperationTypes, UnitaryGate};
+    use crate::operations::{
+        BoxedCustomOperation, ControlFlowInstruction, PyOperationTypes, UnitaryGate,
+    };
     use crate::packed_instruction::{PackedOperation, PackedOperationType, PauliBased};
     use std::ptr::NonNull;
 
@@ -441,7 +443,7 @@ mod pointer {
     impl_packable_pointer!(UnitaryGate, PackedOperationType::UnitaryGate);
     impl_packable_pointer!(PauliBased, PackedOperationType::PauliBased);
     impl_packable_pointer!(ControlFlowInstruction, PackedOperationType::ControlFlow);
-    impl_packable_pointer!(CustomOp, PackedOperationType::Custom);
+    impl_packable_pointer!(BoxedCustomOperation, PackedOperationType::Custom);
 }
 
 impl PackedOperation {
@@ -528,7 +530,7 @@ impl PackedOperation {
                 }
             }
             PackedOperationType::Custom => {
-                let custom_op: &CustomOp = self.try_into().unwrap();
+                let custom_op: &BoxedCustomOperation = self.try_into().unwrap();
                 OperationRef::CustomOperation(&**custom_op)
             }
         }
@@ -542,7 +544,7 @@ impl PackedOperation {
         match self.discriminant() {
             PackedOperationType::StandardGate => true,
             PackedOperationType::Custom => {
-                let opaque: &CustomOp = self.try_into().unwrap();
+                let opaque: &BoxedCustomOperation = self.try_into().unwrap();
                 matches!(opaque.kind(), CustomOperationKind::Gate)
             }
             PackedOperationType::PyOperationTypes => {
@@ -590,15 +592,8 @@ impl PackedOperation {
 
     /// Construct a new `PackedOperation` from an owned heap-allocated `CustomOperation`.
     #[inline]
-    pub fn from_boxed_custom_operation(custom: Box<dyn CustomOperation>) -> Self {
-        CustomOp::from(custom).into()
-    }
-
-    /// Construct a new `PackedOperation` from an owned `CustomOperation`.
-    #[inline]
-    pub fn from_custom_operation<T: CustomOperation>(custom: T) -> Self {
-        let boxed: Box<dyn CustomOperation> = Box::new(custom);
-        CustomOp::from(boxed).into()
+    pub fn from_custom_operation(custom: Box<dyn CustomOperation>) -> Self {
+        BoxedCustomOperation::from(custom).into()
     }
 
     /// Check equality of the operation, including Python-space checks, if appropriate.
@@ -782,7 +777,7 @@ impl Clone for PackedOperation {
                 Self::from_pauli_based(Box::new(PauliBased::PauliProductRotation(rotation.clone())))
             }
             OperationRef::CustomOperation(custom_gate) => {
-                Self::from(CustomOp::from(custom_gate.clone_dyn()))
+                Self::from(BoxedCustomOperation::from(custom_gate.clone_dyn()))
             }
         }
     }
@@ -797,7 +792,7 @@ impl Drop for PackedOperation {
             PackedOperationType::UnitaryGate => UnitaryGate::drop_packed(self),
             PackedOperationType::PauliBased => PauliBased::drop_packed(self),
             PackedOperationType::ControlFlow => ControlFlowInstruction::drop_packed(self),
-            PackedOperationType::Custom => CustomOp::drop_packed(self),
+            PackedOperationType::Custom => BoxedCustomOperation::drop_packed(self),
         }
     }
 }
@@ -883,7 +878,7 @@ impl PackedInstruction {
     where
         O: CustomOperation,
     {
-        let operation = CustomOp::from(operation);
+        let operation = BoxedCustomOperation::from(operation);
         let label = operation.label().map(ToString::to_string);
         Self {
             op: operation.into(),

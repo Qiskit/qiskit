@@ -31,8 +31,8 @@ use crate::instruction::Parameters;
 use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::{self, ObjectRegistry};
 use crate::operations::{
-    ControlFlow, ControlFlowView, CustomOp, CustomOperation, Operation, OperationRef, Param,
-    PauliBased, PyOperationTypes, PythonOperation, StandardGate,
+    BoxedCustomOperation, ControlFlow, ControlFlowView, CustomOperation, Operation, OperationRef,
+    Param, PauliBased, PyOperationTypes, PythonOperation, StandardGate,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::{ParameterError, ParameterExpression};
@@ -3098,7 +3098,7 @@ impl PyCircuitData {
                         PauliBased::PauliProductRotation(ppr.clone()).into()
                     }
                     OperationRef::CustomOperation(custom_operation) => {
-                        CustomOp::from(custom_operation.clone_dyn()).into()
+                        BoxedCustomOperation::from(custom_operation.clone_dyn()).into()
                     }
                 };
                 res.data.push(PackedInstruction {
@@ -3132,7 +3132,7 @@ impl PyCircuitData {
                         PauliBased::PauliProductRotation(ppr.clone()).into()
                     }
                     OperationRef::CustomOperation(custom_operation) => {
-                        CustomOp::from(custom_operation.clone_dyn()).into()
+                        BoxedCustomOperation::from(custom_operation.clone_dyn()).into()
                     }
                 };
                 res.data.push(PackedInstruction {
@@ -4026,7 +4026,7 @@ impl PyCircuitData {
                     PyOperationTypes::Operation(op.py_deepcopy(py, None)?).into()
                 }
                 OperationRef::CustomOperation(custom) => {
-                    PackedOperation::from_boxed_custom_operation(custom.clone_dyn())
+                    PackedOperation::from_custom_operation(custom.clone_dyn())
                 }
             };
             out.push(PackedInstruction { op, ..inst.clone() })?;

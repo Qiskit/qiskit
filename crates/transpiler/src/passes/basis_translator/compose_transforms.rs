@@ -62,11 +62,11 @@ pub(super) fn compose_transforms<'a>(
                 "Error while adding register to the circuit".to_string(),
             )
         })?;
-        let gate = PackedOperation::from_custom_operation(CustomDummy {
+        let gate = PackedOperation::from_custom_operation(Box::new(CustomDummy {
             name: gate_name.clone(),
             num_qubits: gate_num_qubits,
             num_params: placeholder_params.len() as u32,
-        });
+        }));
         let qubits: Vec<Qubit> = (0..dag.num_qubits() as u32).map(Qubit).collect();
         dag.apply_operation_back(
             gate,
