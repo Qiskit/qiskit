@@ -1280,6 +1280,47 @@ cleanup:
     return result;
 }
 
+static int test_dag_substitute_node_with_unitary(void) {
+    int result = Ok;
+
+    // Create a DAG with H, CX, Z, S gates
+    QkDag *dag = qk_dag_new();
+    QkQuantumRegister *qr = qk_quantum_register_new(2, "qr");
+    qk_dag_add_quantum_register(dag, qr);
+
+    qk_dag_apply_gate(dag, QkGate_H, (uint32_t[]){0}, NULL, false);
+    qk_dag_apply_gate(dag, QkGate_CX, (uint32_t[]){0, 1}, NULL, false);
+    uint32_t idx_z = qk_dag_apply_gate(dag, QkGate_Z, (uint32_t[]){1}, NULL, false);
+    qk_dag_apply_gate(dag, QkGate_S, (uint32_t[]){1}, NULL, false);
+
+    static const QkComplex64 mat[4] = {{1, 0}, {0, 0}, {0, 0}, {-1, 0}};
+
+    // Replace the Z-gate by a unitary matrix
+    qk_dag_substitute_node_with_unitary(dag, idx_z, mat, 1);
+
+    // The resulting DAG should still have 4 operations
+    size_t num_ops_z = qk_dag_num_op_nodes(dag);
+    if (num_ops_z != 4) {
+        result = EqualityError;
+        printf("Number of instructions is %zu but expected 4\n", num_ops_z);
+        goto cleanup;
+    }
+
+    // And the new operation must be unitary
+    QkOperationKind new_node_kind_z = qk_dag_op_node_kind(dag, idx_z);
+    if (new_node_kind_z != QkOperationKind_Unitary) {
+        result = EqualityError;
+        printf("The node with index %u has incorrect operation type: expected: %d but got %d.\n",
+               idx_z, QkOperationKind_Unitary, new_node_kind_z);
+    }
+
+cleanup:
+    qk_quantum_register_free(qr);
+    qk_dag_free(dag);
+
+    return result;
+}
+
 int test_dag(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_empty);
@@ -1301,6 +1342,7 @@ int test_dag(void) {
     num_failed += RUN_TEST(test_dag_replace_block_with_unitary);
     num_failed += RUN_TEST(test_dag_replace_qubitless_block_with_unitary);
     num_failed += RUN_TEST(test_dag_replace_illegal_block_with_unitary);
+    num_failed += RUN_TEST(test_dag_substitute_node_with_unitary);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);

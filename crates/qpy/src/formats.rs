@@ -37,14 +37,20 @@ use std::marker::PhantomData;
 // 5) Instruction: The sequential list of gates in the circuit.
 // 6) Calibrations: Obsolete; this was pulse-related data. Here for backwards compatibility.
 // 7) Layout: The transpilation layout, if one exists (otherwise a dummy is used).
-#[derive(BinWrite, Debug)]
+#[binrw]
 #[brw(big)]
-pub struct QPYCircuitV17 {
+#[derive(Debug)]
+#[brw(import (version: u32))]
+pub struct QPYCircuit {
     pub header: CircuitHeaderV12Pack,
+    #[br(count = header.num_vars)]
     pub standalone_vars: Vec<ExpressionVarDeclarationPack>,
-    pub annotation_headers: AnnotationHeaderStaticPack,
+    #[br(if(version >= 15))]
+    pub annotation_headers: Option<AnnotationHeaderStaticPack>,
     pub custom_instructions: CustomCircuitInstructionsPack,
+    #[br(count = header.num_instructions, args { inner: (true,) })]
     pub instructions: Vec<CircuitInstructionV2Pack>,
+    #[br(args(version,))]
     pub calibrations: CalibrationsPack,
     pub layout: LayoutV2Pack,
 }
@@ -393,7 +399,7 @@ pub struct GenericDataPack {
     pub data: Bytes,
 }
 
-// A simple contained for a sequence of generic data items, containing its length.
+// A simple container for a sequence of generic data items, containing its length.
 #[binrw]
 #[derive(Debug)]
 #[brw(big)]
@@ -409,6 +415,7 @@ pub struct GenericDataSequencePack {
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
+#[br(import (version: u32))]
 pub struct PauliEvolutionDefPack {
     #[bw(calc = pauli_data.len() as u64)]
     pub operator_size: u64,
@@ -418,7 +425,7 @@ pub struct PauliEvolutionDefPack {
     pub time_size: u64,
     #[bw(calc = synth_data.len() as u64)]
     pub synth_method_size: u64,
-    #[br(count = operator_size)]
+    #[br(count = operator_size, args { inner: (version,) })]
     pub pauli_data: Vec<PauliDataPack>,
     #[br(count = time_size)]
     pub time_data: Bytes,
@@ -428,14 +435,34 @@ pub struct PauliEvolutionDefPack {
 
 // A pauli operator data for pauli evolution gates
 // The operator is given either as a SparesePauliOp list or as a SparasePauliObservable
+// SparsePauliObservable was added in V17
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
-pub enum PauliDataPack {
+pub enum PauliDataPackV17 {
     #[brw(magic = 0u8)] // old style: sparse pauli op list
     SparsePauliOp(SparsePauliOpListElemPack),
     #[brw(magic = 1u8)] // new style added in v17: sparse observable
     SparseObservable(SparsePauliObservableElemPack),
+}
+
+// The V16 version of the Pauli data pack only allows SparsePauliOp and doesn't use a distinguishing first byte
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub enum PauliDataPackV16 {
+    SparsePauliOp(SparsePauliOpListElemPack),
+}
+
+#[binrw]
+#[derive(Debug)]
+#[br(import(version: u32))]
+pub enum PauliDataPack {
+    #[br(pre_assert(version <= 16))]
+    V16(PauliDataPackV16),
+
+    #[br(pre_assert(version >= 17))]
+    V17(PauliDataPackV17),
 }
 
 // SparsePauliOpList is a serialized python numpy array
@@ -864,15 +891,6 @@ pub struct ExpressionVarDeclarationPack {
     pub name: String,
 }
 
-// Calibrations are obsolete and won't be used in Qiskit 2.0 and beyond, but we still need to consume that part of the qpy file
-#[binrw]
-#[brw(big)]
-#[derive(Debug)]
-pub struct CalibrationsPack {
-    pub num_cals: u16,
-    // TODO: incomplete; will be needed for previous versions support
-}
-
 // *****Annotation-related data types*****
 
 // The index of the annotation's namespace, and its serialized payload
@@ -925,49 +943,6 @@ pub struct AnnotationHeaderStaticPack {
     pub state_headers: Vec<AnnotationStateHeaderPack>,
 }
 
-// implementations of custom read/write for the more complex data types
-impl BinRead for QPYCircuitV17 {
-    type Args<'a> = ();
-
-    fn read_options<R: Read + Seek>(
-        reader: &mut R,
-        endian: Endian,
-        _: Self::Args<'_>,
-    ) -> BinResult<Self> {
-        let header = CircuitHeaderV12Pack::read_options(reader, endian, ())?;
-        let mut standalone_vars = Vec::with_capacity(header.num_vars as usize);
-        for _ in 0..header.num_vars {
-            standalone_vars.push(ExpressionVarDeclarationPack::read_options(
-                reader,
-                endian,
-                (),
-            )?);
-        }
-        let annotation_headers = AnnotationHeaderStaticPack::read_options(reader, endian, ())?;
-        let custom_instructions = CustomCircuitInstructionsPack::read_options(reader, endian, ())?;
-        let mut instructions = Vec::with_capacity(header.num_vars as usize);
-        for _ in 0..header.num_instructions {
-            // read instructions, including circuit bits (the `true` arg)
-            instructions.push(CircuitInstructionV2Pack::read_options(
-                reader,
-                endian,
-                (true,),
-            )?);
-        }
-        let calibrations = CalibrationsPack::read_options(reader, endian, ())?;
-        let layout = LayoutV2Pack::read_options(reader, endian, ())?;
-        Ok(Self {
-            header,
-            standalone_vars,
-            annotation_headers,
-            custom_instructions,
-            instructions,
-            calibrations,
-            layout,
-        })
-    }
-}
-
 /// helper for passing PyResult errors that arise during binrw parsing
 pub fn to_binrw_error<W: Seek, E: std::error::Error + Send + Sync + 'static>(
     writer: &mut W,
@@ -991,4 +966,196 @@ pub fn from_binrw_error(err: binrw::Error) -> PyErr {
         }
         _ => PyRuntimeError::new_err("unknown error"),
     }
+}
+
+// calibration data formats
+// calibrations were removed in Qiskit 2.0, but we keep the qpy format for reference and older qpy files
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+#[brw(import(version: u32))]
+pub struct CalibrationsPack {
+    #[bw(calc = calibrations.len() as u16)]
+    pub num_cals: u16,
+    #[br(count = num_cals, args { inner: (version,) })]
+    pub calibrations: Vec<CalibrationDefPack>,
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+#[brw(import(version: u32))]
+pub struct CalibrationDefPack {
+    #[bw(calc = name.len() as u16)]
+    pub name_size: u16,
+    #[bw(calc = qubits.len() as u16)]
+    pub num_qubits: u16,
+    #[bw(calc = params.len() as u16)]
+    pub num_params: u16,
+    pub cal_type: ValueType,
+    #[br(count = name_size as usize, try_map = String::from_utf8)]
+    #[bw(map = |s| s.as_bytes())]
+    pub name: String, // might want to emit a warning here?
+    #[br(count = num_qubits)]
+    pub qubits: Vec<i64>,
+    #[br(count = num_params)]
+    pub params: Vec<GenericDataPack>,
+    #[br(args(version,))]
+    pub schedule: ScheduleBlockPack,
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+#[brw(import(version: u32))] // should not work for version < 5 but we do not support it yet
+pub struct ScheduleBlockPack {
+    #[bw(calc = name.len() as u16)]
+    pub name_size: u16,
+    #[bw(calc = metadata.len() as u64)]
+    pub metadata_size: u64,
+    #[bw(calc = elements.len() as u16)]
+    pub num_elements: u16,
+    #[br(count = name_size as usize, try_map = String::from_utf8)]
+    #[bw(map = |s| s.as_bytes())]
+    pub name: String,
+    #[br(count = metadata_size)]
+    // originally to be handled with metadata deserializer
+    pub metadata: Bytes,
+    pub alignment_context: AlignmentContextPack,
+    #[br(count = num_elements, args { inner: (version,) })]
+    pub elements: Vec<ScheduleBlockElementPack>,
+    #[br(if(version >= 7))]
+    // originially a reference is either null or ScheduleBlockPack
+    pub references: Option<MappingPack>,
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct AlignmentContextPack {
+    pub type_key: u8,
+    pub sequence: GenericDataSequencePack,
+}
+
+// A single element in a schedule block
+// If element_type is 's' (SCHEDULE_BLOCK), it contains a nested ScheduleBlockPack
+// Otherwise, it contains operands sequence and a name value
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+#[brw(import(version: u32))]
+pub struct ScheduleBlockElementPack {
+    pub element_type: u8,
+    #[br(if(element_type == b's'), args(version,))]
+    pub nested_schedule: Option<ScheduleBlockPack>,
+    #[br(if(element_type != b's'))]
+    pub non_nested_data: Option<ScheduleBlockElementNonNestedDataPack>,
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct ScheduleBlockElementNonNestedDataPack {
+    #[bw(calc = operands.len() as u64)]
+    pub operands_size: u64,
+    #[br(count = operands_size)]
+    pub operands: Vec<ScheduleOperandPack>, // _loads_operand
+    pub name: GenericDataPack,
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub enum ScheduleOperandPack {
+    #[brw(magic = b'w')]
+    Waveform(ScheduleOperandWaveformPack),
+    #[brw(magic = b's')]
+    SymbolicPulse(ScheduleOperandSymbolicPulsePack),
+    #[brw(magic = b'c')]
+    Channel(ScheduleOperandChannelPack),
+    #[brw(magic = b'o')]
+    OperandStr(ScheduleOperandOperandStrPack),
+    #[brw(magic = b'k')]
+    Kernel(ScheduleOperandKernelPack),
+    #[brw(magic = b'd')]
+    Discriminator(ScheduleOperandDiscriminatorPack),
+    // There was originally a final catch-all with GenericValuePack read
+    // but we can't implement it easily with magic
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct ScheduleOperandWaveformPack {
+    pub operand_data_size: u64,
+    pub epsilon: f32,
+    pub data_size: u32,
+    pub amp_limited: u8,
+}
+
+// this one had a different structure for qpy_version < 6, not supported yet
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct ScheduleOperandSymbolicPulsePack {
+    pub operand_data_size: u64,
+    #[bw(calc = class_name.len() as u16)]
+    pub class_name_size: u16,
+    #[bw(calc = type_name.len() as u16)]
+    pub type_size: u16,
+    pub envelope_size: u16,
+    pub constraints_size: u16,
+    pub valid_amp_conditions_size: u16,
+    pub amp_limited: u8,
+    #[br(count = class_name_size as usize, try_map = String::from_utf8)]
+    #[bw(map = |s| s.as_bytes())]
+    pub class_name: String,
+    #[br(count = type_size as usize, try_map = String::from_utf8)]
+    #[bw(map = |s| s.as_bytes())]
+    pub type_name: String,
+    #[br(count = envelope_size as usize)]
+    pub envelope: Bytes, // seems to be ignored even if the original code
+    #[br(count = constraints_size as usize)]
+    pub constraints: Bytes, // seems to be ignored even if the original code
+    #[br(count = valid_amp_conditions_size as usize)]
+    pub valid_amp_conditions: Bytes, // seems to be ignored even if the original code
+    pub parameters: MappingPack,
+    pub duration: GenericDataPack,
+    pub name: GenericDataPack,
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct ScheduleOperandChannelPack {
+    pub operand_data_size: u64,
+    pub type_key: u8,
+    pub index: GenericDataPack,
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct ScheduleOperandOperandStrPack {
+    #[bw(calc = string.len() as u64)]
+    pub operand_data_size: u64,
+    #[br(count = operand_data_size as usize, try_map = String::from_utf8)]
+    #[bw(map = |s| s.as_bytes())]
+    pub string: String,
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct ScheduleOperandKernelPack {
+    pub data: MappingPack,
+    pub name: GenericDataPack,
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct ScheduleOperandDiscriminatorPack {
+    pub data: MappingPack,
+    pub name: GenericDataPack,
 }

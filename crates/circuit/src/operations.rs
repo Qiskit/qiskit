@@ -3148,10 +3148,11 @@ impl PyInstruction {
         Python::attach(|py| -> Option<CircuitData> {
             match self.instruction.getattr(py, intern!(py, "definition")) {
                 Ok(definition) => definition
-                    .getattr(py, intern!(py, "_data"))
+                    .bind(py)
+                    .getattr(intern!(py, "_data"))
                     .ok()?
-                    .extract::<PyCircuitData>(py)
-                    .map(Into::into)
+                    .cast::<PyCircuitData>()
+                    .map(|data| data.borrow().inner.clone())
                     .ok(),
                 Err(_) => None,
             }

@@ -133,7 +133,7 @@ fn _matrix_to_north_west(
     while !done {
         // At each iteration the values of i switch between even and odd
         let mut at_least_one_needed = false;
-        for i in (first_qubit..n - 1).step_by(2) {
+        for i in (first_qubit..n.saturating_sub(1)).step_by(2) {
             // "If j < k, we do nothing" (see [1])
             // "If j > k, we swap the two labels, and we also perform a box" (see [1])
             if label_arr[i] > label_arr[i + 1] {
@@ -208,7 +208,7 @@ fn _north_west_to_identity(n: usize, mut mat: ArrayViewMut2<bool>) -> Instructio
     let mut cx_instructions_rows: InstructionList = Vec::new();
     while !done {
         let mut at_least_one_needed = false;
-        for i in (first_qubit..n - 1).step_by(2) {
+        for i in (first_qubit..n.saturating_sub(1)).step_by(2) {
             // Exchange the labels if needed
             if label_arr[i] > label_arr[i + 1] {
                 at_least_one_needed = true;
