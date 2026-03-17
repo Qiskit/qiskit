@@ -10,13 +10,12 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use anyhow::Context;
 use pyo3::prelude::*;
 use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, PI};
 
 use crate::QiskitError;
 use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_circuit::operations::{OperationRef, Param, StandardGate};
+use qiskit_circuit::operations::{OperationRef, Param, StandardGate, add_param};
 use qiskit_synthesis::ross_selinger::gridsynth_rz;
 
 const MINIMUM_EPSILON: f64 = 1e-12; // minimum epsilon for synthesis
@@ -62,8 +61,8 @@ static PHASE_GATE_LUT: [(f64, Option<StandardGate>); 8] = [
 fn synthesize_rz_gate_via_gridsynth(
     angle: f64,
     epsilon: f64,
-) -> Result<(Vec<StandardGate>, Param), anyhow::Error> {
-    let circ_data = gridsynth_rz(angle, epsilon).context("gridsynth failed")?;
+) -> PyResult<(Vec<StandardGate>, Param)> {
+    let circ_data = gridsynth_rz(angle, epsilon)?;
 
     // obtain phase from circuit data
     let phase = circ_data.global_phase().clone();
@@ -76,7 +75,7 @@ fn synthesize_rz_gate_via_gridsynth(
             if let OperationRef::StandardGate(gate) = inst.op.view() {
                 gate
             } else {
-                panic!("Non-standard gate found in synthesized circuit");
+                unreachable!("gridsynth only produces standard gates");
             }
         })
         .collect();
@@ -100,10 +99,10 @@ fn synthesize_rz_gate_via_gridsynth(
 /// suitable values for `synthesis_error` and `cache_error` are computed automatically.
 #[pyfunction]
 #[pyo3(name = "synthesize_rz_rotations")]
-#[pyo3(signature = (dag, approximation_degree=1.0 - 1e-10, synthesis_error=None, cache_error=None))]
+#[pyo3(signature = (dag, approximation_degree=None, synthesis_error=None, cache_error=None))]
 pub fn py_run_synthesize_rz_rotations(
     dag: &mut DAGCircuit,
-    approximation_degree: f64,
+    approximation_degree: Option<f64>,
     synthesis_error: Option<f64>,
     cache_error: Option<f64>,
 ) -> PyResult<()> {
@@ -118,7 +117,11 @@ pub fn py_run_synthesize_rz_rotations(
     let (synthesis_error, cache_error) = match (synthesis_error, cache_error) {
         (Some(synthesis_error), Some(cache_error)) => (synthesis_error, cache_error),
         _ => {
-            let total_error = MINIMUM_EPSILON.max(1. - approximation_degree);
+            let total_error = if let Some(approximation_degree) = approximation_degree {
+                MINIMUM_EPSILON.max(1. - approximation_degree)
+            } else {
+                1e-10
+            };
             (total_error / 2., total_error / 2.)
         }
     };
@@ -126,7 +129,8 @@ pub fn py_run_synthesize_rz_rotations(
     // By an explicit computation one can show that if the current angle is within
     // 2 * cache_error from the previous angle, the error due to reusing the synthesis
     // result for the previous angle is precisely cache_error.
-    let bin_width = 2. * cache_error;
+    // TODO In theory, this is actually  4. * (cache_error / 2).arcsin();
+    let bin_width = 4. * (cache_error / 2.).asin();
 
     // Iterate over nodes in the DAG and collect nodes that have RZ gates.
     // Canonicalize angles already at this stage, so that we can use them for sorting.
@@ -147,7 +151,10 @@ pub fn py_run_synthesize_rz_rotations(
         .collect();
 
     // Sort candidates based on the canonicalized angles
-    candidates.sort_unstable_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
+    candidates.sort_unstable_by(|a, b| {
+        a.1.partial_cmp(&b.1)
+            .expect("Angles are never NaN here, so we can compare f64.")
+    });
 
     let mut prev_result: Option<(f64, (Vec<StandardGate>, Param))> = None;
 
@@ -178,8 +185,9 @@ pub fn py_run_synthesize_rz_rotations(
         }
         dag.remove_1q_sequence(&[node_index]);
 
-        dag.add_global_phase(phase_update)?;
-        dag.add_global_phase(&Param::Float(PHASE_GATE_LUT[interval_index as usize].0))?;
+        let phase_update_with_shift =
+            add_param(phase_update, PHASE_GATE_LUT[interval_index as usize].0);
+        dag.add_global_phase(&phase_update_with_shift)?;
     }
 
     Ok(())
