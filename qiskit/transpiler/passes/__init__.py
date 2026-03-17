@@ -145,6 +145,7 @@ The synthesis transpiler plugin documentation can be found in the
    HighLevelSynthesis
    LinearFunctionsToPermutations
    SolovayKitaev
+   SynthesizeRZRotations
    UnitarySynthesis
 
 Post Layout
@@ -272,6 +273,7 @@ from .synthesis import HighLevelSynthesis
 from .synthesis import LinearFunctionsToPermutations
 from .synthesis import SolovayKitaev
 from .synthesis import SolovayKitaevSynthesis
+from .synthesis import SynthesizeRZRotations
 from .synthesis import RossSelingerSynthesis
 from .synthesis import UnitarySynthesis
 from .synthesis import unitary_synthesis_plugin_names
