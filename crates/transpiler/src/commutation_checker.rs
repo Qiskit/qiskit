@@ -1,6 +1,6 @@
 // This code is part of Qiskit.
 //
-// (C) Copyright IBM 2024
+// (C) Copyright IBM 2026
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -91,6 +91,14 @@ const fn build_supported_ops() -> [bool; STANDARD_GATE_SIZE] {
     lut[StandardGate::ISwap as usize] = true;
     lut[StandardGate::ECR as usize] = true;
     lut[StandardGate::CCX as usize] = true;
+    lut[StandardGate::CCZ as usize] = true;
+    lut[StandardGate::CS as usize] = true;
+    lut[StandardGate::CSdg as usize] = true;
+    lut[StandardGate::CSX as usize] = true;
+    lut[StandardGate::I as usize] = true;
+    lut[StandardGate::GlobalPhase as usize] = true;
+    lut[StandardGate::XXPlusYY as usize] = true;
+    lut[StandardGate::XXMinusYY as usize] = true;
     lut[StandardGate::CSwap as usize] = true;
     lut
 }
