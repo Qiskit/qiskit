@@ -4,14 +4,16 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=wrong-import-position,wrong-import-order
 
+# The documentation of the root namespace is manual in `docs/apidoc/root.rst`, so that the
+# :mod:`qiskit` Sphinx cross-reference can more easily point to the top-level API table in our
+# documentation build.
 """Main Qiskit public functionality."""
 
 import importlib.metadata
@@ -31,7 +33,7 @@ else:
     # `qiskit/tools` folder in their path, which will appear as a "namespace package" with no valid
     # location.  We catch that case as "not actually having Qiskit 0.x" as a convenience to devs.
     _has_tools = getattr(importlib.util.find_spec("qiskit.tools"), "has_location", False)
-    _suppress_error = os.environ.get("QISKIT_SUPPRESS_1_0_IMPORT_ERROR", False) == "1"
+    _suppress_error = os.environ.get("QISKIT_SUPPRESS_1_0_IMPORT_ERROR", "") == "1"
     if not _suppress_error and _has_tools:
         raise ImportError(
             "Qiskit is installed in an invalid environment that has both Qiskit >=1.0"
@@ -55,6 +57,7 @@ import qiskit._numpy_compat
 sys.modules["qiskit._accelerate.alap_schedule_analysis"] = _accelerate.alap_schedule_analysis
 sys.modules["qiskit._accelerate.asap_schedule_analysis"] = _accelerate.asap_schedule_analysis
 sys.modules["qiskit._accelerate.apply_layout"] = _accelerate.apply_layout
+sys.modules["qiskit._accelerate.capi"] = _accelerate.capi
 sys.modules["qiskit._accelerate.circuit"] = _accelerate.circuit
 sys.modules["qiskit._accelerate.circuit.classical"] = _accelerate.circuit.classical
 sys.modules["qiskit._accelerate.circuit.classical.expr"] = _accelerate.circuit.classical.expr
@@ -112,9 +115,7 @@ sys.modules["qiskit._accelerate.synthesis.discrete_basis"] = _accelerate.synthes
 sys.modules["qiskit._accelerate.synthesis.multi_controlled"] = (
     _accelerate.synthesis.multi_controlled
 )
-sys.modules["qiskit._accelerate.synthesis.pauli_product_measurement"] = (
-    _accelerate.synthesis.pauli_product_measurement
-)
+sys.modules["qiskit._accelerate.synthesis.pauli_products"] = _accelerate.synthesis.pauli_products
 sys.modules["qiskit._accelerate.synthesis.qft"] = _accelerate.synthesis.qft
 sys.modules["qiskit._accelerate.split_2q_unitaries"] = _accelerate.split_2q_unitaries
 sys.modules["qiskit._accelerate.gate_direction"] = _accelerate.gate_direction
@@ -136,8 +137,14 @@ sys.modules["qiskit._accelerate.angle_bound_registry"] = _accelerate.angle_bound
 sys.modules["qiskit._accelerate.litinski_transformation"] = _accelerate.litinski_transformation
 sys.modules["qiskit._accelerate.unroll_3q_or_more"] = _accelerate.unroll_3q_or_more
 sys.modules["qiskit._accelerate.substitute_pi4_rotations"] = _accelerate.substitute_pi4_rotations
+sys.modules["qiskit._accelerate.synthesize_rz_rotations"] = _accelerate.synthesize_rz_rotations
+sys.modules["qiskit._accelerate.convert_to_pauli_rotations"] = (
+    _accelerate.convert_to_pauli_rotations
+)
+
 
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
+import qiskit.capi
 
 # The main qiskit operators
 from qiskit.circuit import ClassicalRegister
@@ -158,6 +165,9 @@ from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from .version import __version__
 
 
+# The Qiskit repo root is documented manually in `docs/apidoc/root.rst`.  Make sure that all
+# re-exports in `__all__` and any functions/objects defined in-line in this file and intended to be
+# exported to users at the `qiskit.` root are documented in that file.
 __all__ = [
     "AncillaRegister",
     "ClassicalRegister",
@@ -165,6 +175,6 @@ __all__ = [
     "QiskitError",
     "QuantumCircuit",
     "QuantumRegister",
-    "transpile",
     "generate_preset_pass_manager",
+    "transpile",
 ]

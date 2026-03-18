@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -79,7 +79,7 @@ pub mod alias {
     }
 
     /// This is _intended_ to be a metatrait that just defines a bunch of bounds on references to
-    /// implementors of [Vf2Graph].  Unfortunately, I couldn't get a `where &'a Self` bound on
+    /// implementers of [Vf2Graph].  Unfortunately, I couldn't get a `where &'a Self` bound on
     /// [Vf2Graph] itself to work correctly with the blanket implementation, so I got stuck writing
     /// this boilerplate that duplicates the trait into a lifetime-bound one that we can then use in
     /// higher-ranked trait bounds.

@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -57,7 +57,7 @@ impl<T> Parameters<T> {
     #[inline]
     pub fn unwrap_blocks(self) -> Vec<T> {
         match self {
-            Parameters::Params(_) => panic!("expected params, got blocks"),
+            Parameters::Params(_) => panic!("expected blocks, got params"),
             Parameters::Blocks(blocks) => blocks,
         }
     }
@@ -180,15 +180,16 @@ pub fn create_py_op(
             cf.create_py_op(py, params.map(|p| p.unwrap_blocks()), label)
         }
         OperationRef::PauliProductMeasurement(ppm) => ppm.create_py_op(py, label),
+        OperationRef::PauliProductRotation(rotation) => rotation.create_py_op(py, label),
         OperationRef::StandardGate(gate) => {
             gate.create_py_op(py, params.map(|p| p.unwrap_params()), label)
         }
         OperationRef::StandardInstruction(instruction) => {
             instruction.create_py_op(py, params.map(|p| p.unwrap_params()), label)
         }
-        OperationRef::Gate(gate) => Ok(gate.gate.clone_ref(py)),
+        OperationRef::Gate(gate) => Ok(gate.instruction.clone_ref(py)),
         OperationRef::Instruction(instruction) => Ok(instruction.instruction.clone_ref(py)),
-        OperationRef::Operation(operation) => Ok(operation.operation.clone_ref(py)),
+        OperationRef::Operation(operation) => Ok(operation.instruction.clone_ref(py)),
         OperationRef::Unitary(unitary) => unitary.create_py_op(py, label),
     }
 }

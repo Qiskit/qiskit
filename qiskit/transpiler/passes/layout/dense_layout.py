@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -169,7 +169,7 @@ def _build_error_matrix(num_qubits, qubit_map, target=None):
     use_error = False
     if target is not None and target.qargs is not None:
         for qargs in target.qargs:
-            # Ignore gates over 2q DenseLayout only works with 2q
+            # Ignore gates over 2q. DenseLayout only works with 2q
             if len(qargs) > 2:
                 continue
             error = 0.0

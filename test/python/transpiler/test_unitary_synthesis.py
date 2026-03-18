@@ -4,13 +4,12 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-function-docstring
 
 """
 Tests for the default UnitarySynthesis transpiler pass.
@@ -63,15 +62,15 @@ from qiskit.circuit.library import (
     PauliEvolutionGate,
     CPhaseGate,
 )
-from qiskit.quantum_info import SparsePauliOp
+from qiskit.quantum_info import SparsePauliOp, average_gate_fidelity
 from qiskit.circuit import Measure
 from qiskit.circuit.controlflow import IfElseOp
 from qiskit.circuit import Parameter, Gate
 from qiskit.synthesis.unitary.qsd import qs_decomposition
 
-from test import combine  # pylint: disable=wrong-import-order
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
-from test.python.providers.fake_mumbai_v2 import (  # pylint: disable=wrong-import-order
+from test import combine
+from test import QiskitTestCase
+from test.python.providers.fake_mumbai_v2 import (
     FakeMumbaiFractionalCX,
 )
 from ..legacy_cmaps import YORKTOWN_CMAP
@@ -173,13 +172,13 @@ class TestUnitarySynthesisBasisGates(QiskitTestCase):
 
         if natural_direction is False:
             self.assertTrue(
-                all(((qr[1], qr[0]) == instr.qubits for instr in qc_out.get_instructions("cx")))
+                all((qr[1], qr[0]) == instr.qubits for instr in qc_out.get_instructions("cx"))
             )
         else:
             # the decomposer defaults to the [1, 0] direction but the coupling
             # map specifies a [0, 1] direction. Check that this is respected.
             self.assertTrue(
-                all(((qr[0], qr[1]) == instr.qubits for instr in qc_out.get_instructions("cx")))
+                all((qr[0], qr[1]) == instr.qubits for instr in qc_out.get_instructions("cx"))
             )
         self.assertEqual(Operator(qc), Operator(qc_out))
 
@@ -238,7 +237,7 @@ class TestUnitarySynthesisBasisGates(QiskitTestCase):
 
     def test_two_qubit_natural_direction_true_gate_length_raises(self):
         """Verify that error is raised if preferred direction cannot be inferred
-        from gate lenghts/errors.
+        from gate lengths/errors.
         """
         qr = QuantumRegister(2)
         coupling_map = CouplingMap([[0, 1], [1, 0], [1, 2], [1, 3], [3, 4]])
@@ -357,12 +356,12 @@ class TestUnitarySynthesisBasisGates(QiskitTestCase):
 
         qv64_1 = pm1.run(qv64.decompose())
         qv64_2 = pm2.run(qv64.decompose())
-        edges = [list(edge) for edge in coupling_map.get_edges()]
-        self.assertTrue(
-            all(
-                [qv64_1.qubits.index(qubit) for qubit in instr.qubits] in edges
+        self.assertLessEqual(
+            {
+                tuple(qv64_1.qubits.index(qubit) for qubit in instr.qubits)
                 for instr in qv64_1.get_instructions("cx")
-            )
+            },
+            {tuple(edge) for edge in coupling_map.get_edges()},
         )
         self.assertEqual(Operator(qv64_1), Operator(qv64_2))
 
@@ -383,18 +382,14 @@ class TestUnitarySynthesisBasisGates(QiskitTestCase):
 
         self.assertTrue(
             all(
-                (
-                    (1, 0) == (circ_10_index[instr.qubits[0]], circ_10_index[instr.qubits[1]])
-                    for instr in circ_10.get_instructions("cx")
-                )
+                (1, 0) == (circ_10_index[instr.qubits[0]], circ_10_index[instr.qubits[1]])
+                for instr in circ_10.get_instructions("cx")
             )
         )
         self.assertTrue(
             all(
-                (
-                    (0, 1) == (circ_01_index[instr.qubits[0]], circ_01_index[instr.qubits[1]])
-                    for instr in circ_01.get_instructions("cx")
-                )
+                (0, 1) == (circ_01_index[instr.qubits[0]], circ_01_index[instr.qubits[1]])
+                for instr in circ_01.get_instructions("cx")
             )
         )
 
@@ -1039,13 +1034,11 @@ class TestUnitarySynthesisTarget(QiskitTestCase):
     def test_two_qubit_natural_direction_true_duration_fallback_target(self):
         """Verify fallback path when pulse_optimize==True."""
         basis_gates = ["id", "rz", "sx", "x", "cx", "reset"]
-        qr = QuantumRegister(2)
+        qr = QuantumRegister(5)
         coupling_map = CouplingMap([[0, 1], [1, 0], [1, 2], [1, 3], [3, 4]])
         backend = GenericBackendV2(
             num_qubits=5, basis_gates=basis_gates, coupling_map=coupling_map, seed=1
         )
-
-        triv_layout_pass = TrivialLayout(coupling_map)
         qc = QuantumCircuit(qr)
         qc.unitary(random_unitary(4, seed=12), [0, 1])
         unisynth_pass = UnitarySynthesis(
@@ -1053,11 +1046,77 @@ class TestUnitarySynthesisTarget(QiskitTestCase):
             pulse_optimize=True,
             natural_direction=True,
         )
-        pm = PassManager([triv_layout_pass, unisynth_pass])
-        qc_out = pm.run(qc)
-        self.assertTrue(
-            all(((qr[0], qr[1]) == instr.qubits for instr in qc_out.get_instructions("cx")))
+        qc_out = unisynth_pass(qc)
+        self.assertEqual(
+            {
+                tuple(qc_out.find_bit(q).index for q in instr.qubits)
+                for instr in qc_out.get_instructions("cx")
+            },
+            {(0, 1)},
         )
+
+    def test_approximate_synthesis(self):
+        # Arbitrary Hermitian matrix with a norm known to be sensibly sized (it's about 2.8).
+        herm = np.array(
+            [
+                [-0.742, 0.643 + 0.341j, 0.166 - 0.432j, 0.803 + 0.285j],
+                [0.643 - 0.341j, 1.462, -0.477 + 0.0674j, 0.216 + 0.653j],
+                [0.166 + 0.432j, -0.477 - 0.0674j, 0.007, -0.231 - 0.226j],
+                [0.803 - 0.285j, 0.216 - 0.653j, -0.231 + 0.226j, -0.743],
+            ]
+        )
+        # A unitary perturbation that is a small distance from the identity.  It needs 3 cx to
+        # synthesise.
+        perturbation = scipy.linalg.expm(-1j * herm * 1e-3)
+
+        target = Target(2)
+        target.add_instruction(CXGate(), {(0, 1): InstructionProperties(error=1e-4)})
+        target.add_instruction(RZGate(Parameter("a")))
+        target.add_instruction(SXGate())
+
+        pass_exact = UnitarySynthesis(target=target, approximation_degree=1.0)
+        pass_approximate = UnitarySynthesis(target=target, approximation_degree=None)
+
+        # iSwap can be synthesised with 2 CX.
+        near_2cx = iSwapGate().to_matrix() @ perturbation
+        qc = QuantumCircuit(2)
+        qc.ensure_physical()
+        qc.unitary(near_2cx, [0, 1])
+
+        # First, a sanity check: the pass defaults should produce an exact synthesis, and it should
+        # have taken 3 cx since we know the perturbation needs that.
+        from_default = UnitarySynthesis(target=target)(qc)
+        self.assertLess(
+            1 - average_gate_fidelity(Operator(near_2cx), Operator(from_default)), 1e-15
+        )
+        self.assertEqual(from_default.count_ops()["cx"], 3)
+        # These two circuits should be exactly identical, since it's the same decomposition.
+        self.assertEqual(from_default, pass_exact(qc))
+        # ... but now if we allow approximation up to the gate error, we should be able to find the
+        # 2-cx synthesis of iSwap (or something else that's nearby).
+        self.assertEqual(pass_approximate(qc).count_ops()["cx"], 2)
+
+        # The same applies for gates that are near a 1-cx decomposition...
+        near_1cx = CXGate().to_matrix() @ perturbation
+        qc = QuantumCircuit(2)
+        qc.ensure_physical()
+        qc.unitary(near_1cx, [0, 1])
+        from_exact = pass_exact(qc)
+        self.assertLess(1 - average_gate_fidelity(Operator(near_1cx), Operator(from_exact)), 1e-15)
+        self.assertEqual(from_exact.count_ops()["cx"], 3)
+        self.assertEqual(pass_approximate(qc).count_ops()["cx"], 1)
+
+        # ... and near a 0q decomposition.
+        near_separable = np.kron(XGate().to_matrix(), ZGate().to_matrix()) @ perturbation
+        qc = QuantumCircuit(2)
+        qc.ensure_physical()
+        qc.unitary(near_separable, [0, 1])
+        from_exact = pass_exact(qc)
+        self.assertLess(
+            1 - average_gate_fidelity(Operator(near_separable), Operator(from_exact)), 1e-15
+        )
+        self.assertEqual(from_exact.count_ops()["cx"], 3)
+        self.assertNotIn("cx", pass_approximate(qc).count_ops())
 
 
 if __name__ == "__main__":
