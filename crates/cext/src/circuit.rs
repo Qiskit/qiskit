@@ -16,6 +16,7 @@ use crate::circuit_library::pbc::{CPauliProductMeasurement, CPauliProductRotatio
 use crate::dag::COperationKind;
 use crate::exit_codes::ExitCode;
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
+use crate::transpiler::target::parse_params;
 
 use nalgebra::{Matrix2, Matrix4};
 use ndarray::{Array2, ArrayView2};
@@ -407,53 +408,14 @@ pub unsafe extern "C" fn qk_circuit_gate(
 ) -> ExitCode {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
-    // SAFETY: Per the documentation the qubits and params pointers are arrays of num_qubits()
-    // and num_params() elements respectively.
-    unsafe {
-        let qargs: &[Qubit] = match gate.num_qubits() {
-            0 => &[],
-            1 => &[Qubit(*qubits.wrapping_add(0))],
-            2 => &[
-                Qubit(*qubits.wrapping_add(0)),
-                Qubit(*qubits.wrapping_add(1)),
-            ],
-            3 => &[
-                Qubit(*qubits.wrapping_add(0)),
-                Qubit(*qubits.wrapping_add(1)),
-                Qubit(*qubits.wrapping_add(2)),
-            ],
-            4 => &[
-                Qubit(*qubits.wrapping_add(0)),
-                Qubit(*qubits.wrapping_add(1)),
-                Qubit(*qubits.wrapping_add(2)),
-                Qubit(*qubits.wrapping_add(3)),
-            ],
-            // There are no ``QkGate``s > 4 qubits
-            _ => unreachable!(),
-        };
-        let params: &[Param] = match gate.num_params() {
-            0 => &[],
-            1 => &[(*params.wrapping_add(0)).into()],
-            2 => &[
-                (*params.wrapping_add(0)).into(),
-                (*params.wrapping_add(1)).into(),
-            ],
-            3 => &[
-                (*params.wrapping_add(0)).into(),
-                (*params.wrapping_add(1)).into(),
-                (*params.wrapping_add(2)).into(),
-            ],
-            4 => &[
-                (*params.wrapping_add(0)).into(),
-                (*params.wrapping_add(1)).into(),
-                (*params.wrapping_add(2)).into(),
-                (*params.wrapping_add(3)).into(),
-            ],
-            // There are no ``QkGate``s that take > 4 params
-            _ => unreachable!(),
-        };
-        circuit.push_standard_gate(gate, params, qargs).unwrap()
-    }
+    // SAFETY: Per documentation, qubits is readable for num_qubits elements of type u32
+    let qargs: &[Qubit] =
+        unsafe { ::std::slice::from_raw_parts(qubits as *const Qubit, gate.num_qubits() as usize) };
+
+    // SAFETY: Per documentation, the params points is compatible with the gate and safe to read.
+    let params = unsafe { parse_params(gate, params) };
+
+    circuit.push_standard_gate(gate, &params, qargs).unwrap();
     ExitCode::Success
 }
 
@@ -1308,31 +1270,33 @@ pub unsafe extern "C" fn qk_circuit_inst_pauli_product_measurement(
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_circuit_instruction_clear(inst: *mut CInstruction) {
     // SAFETY: Loading the data from pointers contained in a CInstruction. These should only be
-    // created by rust code and are constructed from Vecs internally or CStrings.
-    unsafe {
-        let inst = mut_ptr_as_ref(inst);
-        if inst.num_qubits > 0 && !inst.qubits.is_null() {
-            let qubits = std::slice::from_raw_parts_mut(inst.qubits, inst.num_qubits as usize);
-            let _: Box<[u32]> = Box::from_raw(qubits as *mut [u32]);
-            inst.qubits = std::ptr::null_mut();
-        }
-        inst.num_qubits = 0;
-        if inst.num_clbits > 0 && !inst.clbits.is_null() {
-            let clbits = std::slice::from_raw_parts_mut(inst.clbits, inst.num_clbits as usize);
-            let _: Box<[u32]> = Box::from_raw(clbits as *mut [u32]);
-            inst.clbits = std::ptr::null_mut();
-        }
-        inst.num_clbits = 0;
-        if inst.num_params > 0 && !inst.params.is_null() {
-            let params = std::slice::from_raw_parts_mut(inst.params, inst.num_params as usize);
-            let _ = Box::from_raw(params as *mut [f64]);
-            inst.params = std::ptr::null_mut();
-        }
-        inst.num_params = 0;
-        if !inst.name.is_null() {
-            let _ = CString::from_raw(inst.name);
-            inst.name = std::ptr::null_mut();
-        }
+    // created by Rust code and are constructed from Vecs internally or CStrings.
+    // This safety comment holds for all unsafe instructions in this function.
+    let inst = unsafe { mut_ptr_as_ref(inst) };
+    if inst.num_qubits > 0 && !inst.qubits.is_null() {
+        let qubits =
+            unsafe { std::slice::from_raw_parts_mut(inst.qubits, inst.num_qubits as usize) };
+        let _: Box<[u32]> = unsafe { Box::from_raw(qubits as *mut [u32]) };
+        inst.qubits = std::ptr::null_mut();
+    }
+    inst.num_qubits = 0;
+    if inst.num_clbits > 0 && !inst.clbits.is_null() {
+        let clbits =
+            unsafe { std::slice::from_raw_parts_mut(inst.clbits, inst.num_clbits as usize) };
+        let _: Box<[u32]> = unsafe { Box::from_raw(clbits as *mut [u32]) };
+        inst.clbits = std::ptr::null_mut();
+    }
+    inst.num_clbits = 0;
+    if inst.num_params > 0 && !inst.params.is_null() {
+        let params =
+            unsafe { std::slice::from_raw_parts_mut(inst.params, inst.num_params as usize) };
+        let _ = unsafe { Box::from_raw(params as *mut [f64]) };
+        inst.params = std::ptr::null_mut();
+    }
+    inst.num_params = 0;
+    if !inst.name.is_null() {
+        let _ = unsafe { CString::from_raw(inst.name) };
+        inst.name = std::ptr::null_mut();
     }
 }
 
@@ -1352,19 +1316,20 @@ pub unsafe extern "C" fn qk_opcounts_clear(op_counts: *mut OpCounts) {
     if op_counts.len > 0 && !op_counts.data.is_null() {
         // SAFETY: We load the box from a slice pointer created from
         // the raw parts from the OpCounts::data attribute.
-        unsafe {
-            let slice: Box<[OpCount]> = Box::from_raw(std::ptr::slice_from_raw_parts_mut(
+        let slice: Box<[OpCount]> = unsafe {
+            Box::from_raw(std::ptr::slice_from_raw_parts_mut(
                 op_counts.data,
                 op_counts.len,
-            ));
-            // free the allocated strings in each OpCount
-            for count in slice.iter() {
-                if !count.name.is_null() {
-                    let _ = CString::from_raw(count.name as *mut c_char);
-                }
+            ))
+        };
+        // free the allocated strings in each OpCount
+        for count in slice.iter() {
+            if !count.name.is_null() {
+                // SAFETY: Rust constructed this string, so we are fine to free it here
+                let _ = unsafe { CString::from_raw(count.name as *mut c_char) };
             }
-            // the variable vec goes out of bounds and is freed too
         }
+        // the variable vec goes out of bounds and is freed too
     }
     op_counts.len = 0;
     op_counts.data = std::ptr::null_mut();

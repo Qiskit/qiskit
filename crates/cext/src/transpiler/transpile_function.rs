@@ -191,18 +191,18 @@ pub unsafe extern "C" fn qk_transpile_stage_init(
         }
         Err(e) => {
             if !error.is_null() {
-                unsafe {
-                    // Right now we return a backtrace of the error. This at least gives a hint as to
-                    // which pass failed when we have rust errors normalized we can actually have error
-                    // messages which are user facing. But most likely this will be a PyErr and panic
-                    // when trying to extract the string.
-                    *error = CString::new(format!(
-                        "Transpilation failed with this backtrace: {}",
-                        e.backtrace()
-                    ))
-                    .unwrap()
-                    .into_raw();
-                }
+                // Right now we return a backtrace of the error. This at least gives a hint as to
+                // which pass failed when we have rust errors normalized we can actually have error
+                // messages which are user facing. But most likely this will be a PyErr and panic
+                // when trying to extract the string.
+                let out_string = CString::new(format!(
+                    "Transpilation failed with this backtrace: {}",
+                    e.backtrace()
+                ))
+                .unwrap()
+                .into_raw();
+                // SAFETY: Per documentation, error is a char* (and we checked it's not NULL)
+                unsafe { *error = out_string };
             }
             ExitCode::TranspilerError
         }
@@ -284,18 +284,18 @@ pub unsafe extern "C" fn qk_transpile_stage_routing(
         Ok(val) => val,
         Err(e) => {
             if !error.is_null() {
-                unsafe {
-                    // Right now we return a backtrace of the error. This at least gives a hint as to
-                    // which pass failed when we have rust errors normalized we can actually have error
-                    // messages which are user facing. But most likely this will be a PyErr and panic
-                    // when trying to extract the string.
-                    *error = CString::new(format!(
-                        "Transpilation failed with this backtrace: {}",
-                        e.backtrace()
-                    ))
-                    .unwrap()
-                    .into_raw();
-                }
+                // Right now we return a backtrace of the error. This at least gives a hint as to
+                // which pass failed when we have rust errors normalized we can actually have error
+                // messages which are user facing. But most likely this will be a PyErr and panic
+                // when trying to extract the string.
+                let out_string = CString::new(format!(
+                    "Transpilation failed with this backtrace: {}",
+                    e.backtrace()
+                ))
+                .unwrap()
+                .into_raw();
+                // SAFETY: Per documentation, error is a char* (and we checked it's not NULL)
+                unsafe { *error = out_string };
             }
             return ExitCode::TranspilerError;
         }
