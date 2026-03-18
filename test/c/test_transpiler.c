@@ -262,7 +262,7 @@ int test_init_stage_empty(void) {
     QkDag *dag = qk_dag_new();
     QkQuantumRegister *qr = qk_quantum_register_new(1024, "qr");
     qk_dag_add_quantum_register(dag, qr);
-    QkTranspileState **state = malloc(sizeof(QkTranspileState *));
+    QkTranspilerStageState **state = malloc(sizeof(QkTranspilerStageState *));
     *state = NULL;
     int compile_result = qk_transpile_stage_init(dag, target, NULL, state, NULL);
     if (compile_result != 0) {
@@ -297,7 +297,7 @@ int test_layout_stage_empty(void) {
     QkDag *dag = qk_dag_new();
     QkQuantumRegister *qr = qk_quantum_register_new(1024, "qr");
     qk_dag_add_quantum_register(dag, qr);
-    QkTranspileState **state = malloc(sizeof(QkTranspileState *));
+    QkTranspilerStageState **state = malloc(sizeof(QkTranspilerStageState *));
     *state = NULL;
     int compile_result = qk_transpile_stage_layout(dag, target, NULL, state, NULL);
     if (compile_result != 0) {
@@ -339,7 +339,7 @@ int test_routing_stage_empty(void) {
     QkDag *dag = qk_dag_new();
     QkQuantumRegister *qr = qk_quantum_register_new(1024, "qr");
     qk_dag_add_quantum_register(dag, qr);
-    QkTranspileState **state = malloc(sizeof(QkTranspileState *));
+    QkTranspilerStageState **state = malloc(sizeof(QkTranspilerStageState *));
     *state = NULL;
     // Run layout stage to populate the QkTranspileLayout
     int compile_result = qk_transpile_stage_layout(dag, target, NULL, state, NULL);
@@ -427,7 +427,7 @@ int test_optimization_stage_empty(void) {
     // Do not free the layout, State will gain ownership of it.
     QkTranspileLayout *layout =
         qk_transpile_layout_generate_from_mapping(dag, target, layout_mapping);
-    QkTranspileState **state = malloc(sizeof(QkTranspileState *));
+    QkTranspilerStageState **state = malloc(sizeof(QkTranspilerStageState *));
     qk_transpile_state_new(state);
     qk_transpile_state_layout_set(*state, layout);
     int compile_result = qk_transpile_stage_optimization(dag, target, NULL, NULL, *state);

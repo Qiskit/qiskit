@@ -20,14 +20,14 @@ Data Types
 .. doxygenstruct:: QkTranspileOptions
    :members:
 
-.. c:struct:: QkTranspileState
+.. c:struct:: QkTranspilerStageState
 
 A container collecting individual attributes shared by the transpiler stages.
 When transpiling correctly, each individual stage writes specific attributes
 to this container that will be needed by other stages in sequence. If the container
 is not initialized, each stage will initialize a new object when necessary.
 
-   .. doxygengroup:: QkTranspileState
+   .. doxygengroup:: QkTranspilerStageState
       :members:
       :content-only:
 

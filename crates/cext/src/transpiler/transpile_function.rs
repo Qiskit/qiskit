@@ -54,13 +54,13 @@ pub struct TranspileResult {
 /// to this container that will be needed by other stages in sequence. If the container
 /// is not initialized, each stage will initialize a new object when necessary.
 #[derive(Default)]
-pub struct TranspileState {
+pub struct TranspilerStageState {
     /// Metadata about the initial and final virtual-to-physical layouts.
     pub layout: Option<TranspileLayout>,
 }
 
-/// @ingroup QkTranspileState
-/// Create a pointer to an empty ``QkTranspileState`` object
+/// @ingroup QkTranspilerStageState
+/// Create a pointer to an empty ``QkTranspilerStageState`` object
 ///
 /// @param state a pointer to the allocated memory space to store the
 ///     pointer in.
@@ -70,31 +70,31 @@ pub struct TranspileState {
 ///
 /// Behavior is undefined if ``state`` is not a valid pointer allocated.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_transpile_state_new(state: *mut *mut TranspileState) {
+pub unsafe extern "C" fn qk_transpile_state_new(state: *mut *mut TranspilerStageState) {
     match check_ptr(state) {
         Ok(_) => (),
         Err(CInputError::AlignmentError) => {
-            panic!("Tried referring to a QkTranspileState in an unaligned pointer.")
+            panic!("Tried referring to a QkTranspilerStageState in an unaligned pointer.")
         }
         _ => unreachable!(),
     }
-    let transpile_state = TranspileState::default();
+    let transpile_state = TranspilerStageState::default();
     unsafe {
         // SAFETY: We have verified
         state.write(Box::into_raw(Box::new(transpile_state)));
     };
 }
 
-/// @ingroup QkTranspileState
-/// Free a ``QkTranspileState`` object
+/// @ingroup QkTranspilerStageState
+/// Free a ``QkTranspilerStageState`` object
 ///
 /// @param state a pointer to the state to free
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``state`` is not a valid, non-null pointer to a ``QkTranspileState``.
+/// Behavior is undefined if ``state`` is not a valid, non-null pointer to a ``QkTranspilerStageState``.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_transpile_state_free(state: *mut TranspileState) {
+pub unsafe extern "C" fn qk_transpile_state_free(state: *mut TranspilerStageState) {
     if !state.is_null() {
         if !state.is_aligned() {
             panic!("Attempted to free a non-aligned pointer.")
@@ -107,8 +107,8 @@ pub unsafe extern "C" fn qk_transpile_state_free(state: *mut TranspileState) {
     }
 }
 
-/// @ingroup QkTranspileState
-/// Obtains a ``QkTranspileLayout`` object from a ``QkTranspileState`` object.
+/// @ingroup QkTranspilerStageState
+/// Obtains a ``QkTranspileLayout`` object from a ``QkTranspilerStageState`` object.
 ///
 /// This pointer is owned by the ``state`` object and should not be freed using
 /// ``qk_transpile_layout_free``. Instead, free the original ``state`` object using
@@ -120,10 +120,10 @@ pub unsafe extern "C" fn qk_transpile_state_free(state: *mut TranspileState) {
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``state`` is not a valid, non-null pointer to a ``QkTranspileState``.
+/// Behavior is undefined if ``state`` is not a valid, non-null pointer to a ``QkTranspilerStageState``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_transpile_state_layout(
-    state: *mut TranspileState,
+    state: *mut TranspilerStageState,
 ) -> *mut TranspileLayout {
     let borrowed_state = unsafe { mut_ptr_as_ref(state) };
 
@@ -133,8 +133,8 @@ pub unsafe extern "C" fn qk_transpile_state_layout(
     }
 }
 
-/// @ingroup QkTranspileState
-/// Sets a ``QkTranspileLayout`` object as the layout for a ``QkTranspileState`` object.
+/// @ingroup QkTranspilerStageState
+/// Sets a ``QkTranspileLayout`` object as the layout for a ``QkTranspilerStageState`` object.
 ///
 /// Calling this method consumes the ``QkTranspileLayout`` object which means the user will
 /// not need to call ``qk_transpile_layout_free``. The user should still de-allocate the
@@ -146,11 +146,11 @@ pub unsafe extern "C" fn qk_transpile_state_layout(
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``state`` is not a valid, non-null pointer to a ``QkTranspileState``.
+/// Behavior is undefined if ``state`` is not a valid, non-null pointer to a ``QkTranspilerStageState``.
 /// Behavior is undefined if ``state`` is not a valid pointer to a ``QkTranspileLayout``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_transpile_state_layout_set(
-    state: *mut TranspileState,
+    state: *mut TranspilerStageState,
     layout: *mut TranspileLayout,
 ) {
     // SAFETY: As per documentation, the pointer should be non-null and aligned.
@@ -226,7 +226,7 @@ pub extern "C" fn qk_transpiler_default_options() -> TranspileOptions {
 /// @param options A pointer to an options object that defines user options. If this is a null
 ///   pointer the default values will be used. See ``qk_transpile_default_options``
 ///   for more details on the default values.
-/// @param state A pointer to a pointer to a ``QkTranspileState`` object. On a successful
+/// @param state A pointer to a pointer to a ``QkTranspilerStageState`` object. On a successful
 ///   execution (return code 0) a pointer to the state object created transpiler will be written
 ///   to this pointer.
 /// @param error A pointer to a pointer with an nul terminated string with an error description.
@@ -250,7 +250,7 @@ pub unsafe extern "C" fn qk_transpile_stage_init(
     dag: *mut DAGCircuit,
     target: *const Target,
     options: *const TranspileOptions,
-    state: *mut *mut TranspileState,
+    state: *mut *mut TranspilerStageState,
     error: *mut *mut c_char,
 ) -> ExitCode {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
@@ -305,7 +305,7 @@ pub unsafe extern "C" fn qk_transpile_stage_init(
             let deref_state = unsafe { *state };
             if deref_state.is_null() {
                 unsafe {
-                    *state = Box::into_raw(Box::new(TranspileState {
+                    *state = Box::into_raw(Box::new(TranspilerStageState {
                         layout: Some(out_layout),
                     }))
                 }
@@ -361,9 +361,9 @@ pub unsafe extern "C" fn qk_transpile_stage_init(
 /// @param options A pointer to an options object that defines user options. If this is a null
 ///   pointer the default values will be used. See ``qk_transpile_default_options``
 ///   for more details on the default values.
-/// @param state A pointer to a pointer to a ``QkTranspileState`` object containing the layout.
+/// @param state A pointer to a pointer to a ``QkTranspilerStageState`` object containing the layout.
 ///   Typically you will need to run the `qk_transpile_stage_layout` prior to this function and that
-///   will provide a `QkTranspileState` object with the initial layout set. You want to take that output state from
+///   will provide a `QkTranspilerStageState` object with the initial layout set. You want to take that output state from
 ///   that function and use it as the input for this. If you don't have a layout object (e.g. you ran
 ///   your own layout pass). You can run ``qk_transpile_layout_generate_from_mapping`` to generate a trivial
 ///   layout (where virtual qubit 0 in the circuit is mapped to physical qubit 0 in the target,
@@ -388,7 +388,7 @@ pub unsafe extern "C" fn qk_transpile_stage_routing(
     dag: *mut DAGCircuit,
     target: *const Target,
     options: *const TranspileOptions,
-    state: *mut TranspileState,
+    state: *mut TranspilerStageState,
     error: *mut *mut c_char,
 ) -> ExitCode {
     // SAFETY: Per documentation, the pointers is non-null and aligned.
@@ -495,7 +495,7 @@ pub unsafe extern "C" fn qk_transpile_stage_routing(
 ///   If the transpiler fails a pointer to the string with the error description will be written
 ///   to this pointer. That pointer needs to be freed with ``qk_str_free``. This can be a null
 ///   pointer in which case the error will not be written out.
-/// @param state A pointer to a ``QkTranspileState`` object contiaining the layout. Typically you will need
+/// @param state A pointer to a ``QkTranspilerStageState`` object contiaining the layout. Typically you will need
 ///   to run the `qk_transpile_stage_layout` prior to this function and that will provide a
 ///   `QkTranspileLayout` object with the initial layout set you want to take that output layout from
 ///   that function and use this as the input for this. If you don't have a layout object (e.g. you ran
@@ -519,7 +519,7 @@ pub unsafe extern "C" fn qk_transpile_stage_optimization(
     target: *const Target,
     options: *const TranspileOptions,
     error: *mut *mut c_char,
-    state: *mut TranspileState,
+    state: *mut TranspilerStageState,
 ) -> ExitCode {
     // SAFETY: Per documentation, the pointers are non-null and aligned.
     let dag = unsafe { mut_ptr_as_ref(dag) };
@@ -713,12 +713,12 @@ pub unsafe extern "C" fn qk_transpile_stage_translation(
 /// @param options A pointer to an options object that defines user options. If this is a null
 ///   pointer the default values will be used. See ``qk_transpile_default_options``
 ///   for more details on the default values.
-/// @param state A pointer to a pointer to a ``QkTranspileState`` object. On a successful
+/// @param state A pointer to a pointer to a ``QkTranspilerStageState`` object. On a successful
 ///   execution (return code 0) the layout object created by the transpiler will be written to the
 ///   state object in this pointer. The inner pointer for this can be null if there is no existing state
 ///   or layout object. Typically if you run `qk_transpile_stage_init` you would take the output state
 ///   from that function and use its layout as the input for this. But if you don't have a layout, the
-///   inner pointer can be null and a new `QkTranspileState`, with a layout, will be allocated and
+///   inner pointer can be null and a new `QkTranspilerStageState`, with a layout, will be allocated and
 ///   that pointer will be set for the inner value of the layout here.
 /// @param error A pointer to a pointer with an nul terminated string with an error description.
 ///   If the transpiler fails a pointer to the string with the error description will be written
@@ -740,7 +740,7 @@ pub unsafe extern "C" fn qk_transpile_stage_layout(
     dag: *mut DAGCircuit,
     target: *const Target,
     options: *const TranspileOptions,
-    state: *mut *mut TranspileState,
+    state: *mut *mut TranspilerStageState,
     error: *mut *mut c_char,
 ) -> ExitCode {
     // SAFETY: Per documentation, the pointers are non-null and aligned.
@@ -826,7 +826,7 @@ pub unsafe extern "C" fn qk_transpile_stage_layout(
         match new_layout() {
             Ok(new_layout) => {
                 unsafe {
-                    *state = Box::into_raw(Box::new(TranspileState {
+                    *state = Box::into_raw(Box::new(TranspilerStageState {
                         layout: Some(new_layout),
                     }))
                 }
