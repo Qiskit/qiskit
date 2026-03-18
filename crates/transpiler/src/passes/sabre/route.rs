@@ -496,7 +496,8 @@ impl<'a> RoutingState<'a> {
                         let actual = VirtualQubit::new(outer.index() as u32).to_phys(&self.layout);
                         layout.swap_physical(dummy, actual);
                     }
-                    for (sabre, dag) in blocks.iter() {
+                    for (sabre, block_id) in blocks.iter() {
+                        let dag = &self.dag.blocks()[*block_id];
                         let block_result = self.route_control_flow_block(&layout, sabre, dag);
                         self.control_flow.push(block_result);
                     }
