@@ -2418,7 +2418,7 @@ class TestSparseObservable(QiskitTestCase):
         # Identity Pauli (0-qubit) with coefficient 1j
         pauli = 1j * Pauli("")
         result = obs.evolve(pauli, qargs=[])
-        # With coefficient 1j: (-1j) * O * (1j) = 4 × O = O
+        # With coefficient 1j: (-1j) * O * (1j) = 1 × O = O
         expected = obs
         self.assertEqual(result, expected)
 
