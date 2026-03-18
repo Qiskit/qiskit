@@ -1157,7 +1157,8 @@ class OptimizeCliffordRZPassManager(PassManagerStagePlugin):
                     ContractIdleWiresInControlFlow(),
                 ]
 
-                # MAYBE WE WANT THIS FOR TRANSLATING RX -> RZ, if CommutativeOptimization is applied?
+                # CommutativeOptimization may produce RX gates, so we need BasisTranslator
+                # to convert them back to RZ-gates.
                 post_loop = [BasisTranslator(sel, clifford_rz_gates, None)]
                 loop_check, continue_loop = _optimization_check_fixed_point()
             case bad:
