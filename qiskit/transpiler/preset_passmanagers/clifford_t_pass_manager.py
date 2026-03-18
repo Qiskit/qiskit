@@ -48,6 +48,11 @@ def clifford_t_pass_manager(
     * T optimization: Optimizes the circuit within Clifford+T basis.
     * Scheduling: Apply the default scheduling strategy used for continuous basis sets.
 
+    For best results, consider including both T and Tdg into the specified Clifford+T
+    basis and as many Clifford gates as possible. For example::
+
+        basis_gates = get_clifford_gate_names() + ["t", "tdg"]
+
     .. note::
 
         These stages are still experimental and subject to change. In particular,
