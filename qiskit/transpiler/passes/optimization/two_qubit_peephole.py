@@ -75,7 +75,7 @@ class TwoQubitPeepholeOptimization(TransformationPass):
 
         Args:
             target: The target to run the pass for
-                approximation_degree: heuristic dial used for circuit approximation (1.0=no
+            approximation_degree: heuristic dial used for circuit approximation (1.0=no
                 approximation, 0.0=maximal approximation). Approximation can decrease the number
                 of gates used in the synthesized unitaries smaller at the cost of straying from the
                 original unitary. If ``None``, approximation is done based on gate fidelities
