@@ -1185,7 +1185,7 @@ mod py {
         // SAFETY: per documentation, we are attached to a Python interpreter, and `ob` is a valid
         // pointer to a PyObject.
         unsafe {
-            crate::py::borrow_map(Python::assume_attached(), ob, try_project_inner_observable)
+            crate::py::borrow_map_mut(Python::assume_attached(), ob, try_project_inner_observable)
         }
     }
 
@@ -1219,7 +1219,7 @@ mod py {
         // SAFETY: per documentation, we are attached to a Python interpreter, `object` is a valid
         // pointer to a PyObject, and `address` points to enough space to write a pointer.
         unsafe {
-            crate::py::convert_map(
+            crate::py::convert_map_mut(
                 Python::assume_attached(),
                 object,
                 address,

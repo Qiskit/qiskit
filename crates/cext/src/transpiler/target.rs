@@ -86,7 +86,7 @@ pub extern "C" fn qk_target_new(num_qubits: u32) -> *mut Target {
 pub unsafe extern "C" fn qk_target_borrow_from_python(ob: *mut pyo3::ffi::PyObject) -> *mut Target {
     // SAFETY: per documentation, we are attached to a Python interpreter and `ob` points to a valid
     // Python object.
-    unsafe { crate::py::borrow(::pyo3::Python::assume_attached(), ob) }
+    unsafe { crate::py::borrow_mut(::pyo3::Python::assume_attached(), ob) }
 }
 
 /// @ingroup QkTarget
@@ -119,7 +119,7 @@ pub unsafe extern "C" fn qk_target_convert_from_python(
 ) -> ::std::ffi::c_int {
     // SAFETY: per documentation, we are attached to a Python interpreter, `ob` points to a valid
     // Python object and `address` points to anough space to write a pointer.
-    unsafe { crate::py::convert::<Target>(::pyo3::Python::assume_attached(), object, address) }
+    unsafe { crate::py::convert_mut::<Target>(::pyo3::Python::assume_attached(), object, address) }
 }
 
 /// @ingroup QkTarget
