@@ -17,10 +17,11 @@ use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_transpiler::passes::{
     UnitarySynthesisConfig, UnitarySynthesisState, run_unitary_synthesis,
+    unitary_synthesis::Approximation,
 };
 use qiskit_transpiler::target::Target;
 
-/// @ingroup QkTranspilerPasses
+/// @ingroup QkTranspilerPassesStandalone
 /// Run the UnitarySynthesis transpiler pass.
 ///
 /// The UnitarySynthesis transpiler pass will synthesize any UnitaryGates in the circuit into gates
@@ -78,16 +79,17 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_unitary_synthesis(
         Ok(dag) => dag,
         Err(e) => panic!("{}", e),
     };
-    let approximation_degree = if approximation_degree.is_nan() {
-        None
-    } else {
-        Some(approximation_degree)
-    };
+    let approximation =
+        Approximation::from_py_approximation_degree(if approximation_degree.is_nan() {
+            None
+        } else {
+            Some(approximation_degree)
+        });
     let physical_qubits = (0..dag.num_qubits() as u32)
         .map(PhysicalQubit::new)
         .collect::<Vec<_>>();
     let mut synthesis_state = UnitarySynthesisState::new(UnitarySynthesisConfig {
-        approximation_degree,
+        approximation,
         run_python_decomposers: false,
         ..Default::default()
     });

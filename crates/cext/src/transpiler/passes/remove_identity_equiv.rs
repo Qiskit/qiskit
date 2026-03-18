@@ -17,7 +17,7 @@ use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_transpiler::passes::run_remove_identity_equiv;
 use qiskit_transpiler::target::Target;
 
-/// @ingroup QkTranspilerPasses
+/// @ingroup QkTranspilerPassesStandalone
 /// Run the RemoveIdentityEquivalent transpiler pass on a circuit.
 ///
 /// Refer to the ``qk_transpiler_pass_remove_identity_equivalent`` function for more details about the pass.
@@ -33,6 +33,11 @@ use qiskit_transpiler::target::Target;
 /// approximate above the floating point precision. For a value < 1 this is used as a
 /// scaling factor for the cutoff fidelity. If the value is ``NAN`` this approximates up
 /// to the fidelity for the gate specified in ``target``.
+///
+/// This function is multithreaded and will potentially launch a thread pool with threads equal to
+/// the number of CPUs by default. You can tune the number of threads with the
+/// RAYON_NUM_THREADS environment variable. For example, setting RAYON_NUM_THREADS=4 would
+/// limit the thread pool to 4 threads.
 ///
 /// # Safety
 ///
@@ -95,6 +100,11 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_remove_identity_equivalen
 /// approximate above the floating point precision. For a value < 1 this is used as a
 /// scaling factor for the cutoff fidelity. If the value is ``NAN`` this approximates up
 /// to the fidelity for the gate specified in ``target``.
+///
+/// This function is multithreaded and will potentially launch a thread pool with threads equal to
+/// the number of CPUs by default. You can tune the number of threads with the
+/// RAYON_NUM_THREADS environment variable. For example, setting RAYON_NUM_THREADS=4 would
+/// limit the thread pool to 4 threads.
 ///
 /// # Example
 ///
