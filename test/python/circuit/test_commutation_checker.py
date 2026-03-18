@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2026.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -34,6 +34,7 @@ from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
 from qiskit.circuit.library import (
     Barrier,
     CCXGate,
+    CHGate,
     CPhaseGate,
     CRXGate,
     CRYGate,
@@ -61,6 +62,7 @@ from qiskit.circuit.library import (
     YGate,
     ZGate,
     HGate,
+    IGate,
     UnitaryGate,
     CSGate,
     CSdgGate,
@@ -324,6 +326,16 @@ class TestCommutationChecker(QiskitTestCase):
         # Does it even make sense to have a barrier over a subset of qubits?
         # Though in this case, it probably makes sense to say that barrier and gate can be swapped.
         self.assertTrue(scc.commute(Barrier(4), [0, 1, 2, 3], [], CXGate(), [5, 6], []))
+
+    @data(
+        (CHGate(), [0, 1], HGate(), [1], True),
+        (UGate(np.pi, 0, np.pi), [0], XGate(), [0], True),
+        (RGate(np.pi, 0), [0], XGate(), [0], True),
+    )
+    @unpack
+    def test_unsupported_gates_commute_fallback(self, gate1, q1, gate2, q2, expected):
+        """Verify that gates without Rust generators still commute correctly via matrix fallback."""
+        self.assertEqual(expected, scc.commute(gate1, q1, [], gate2, q2, []))
 
     def test_reset(self):
         """Check commutativity involving resets."""
@@ -677,6 +689,8 @@ class TestGeneratorObservableCommutation(QiskitTestCase):
         StandardGate.SXdg,
         StandardGate.ISwap,
         StandardGate.ECR,
+        StandardGate.CCZ,
+        StandardGate.I,
         StandardGate.CPhase,
         StandardGate.CRX,
         StandardGate.CRY,
@@ -729,6 +743,7 @@ class TestGeneratorObservableCommutation(QiskitTestCase):
         (StandardGate.X, XGate()),
         (StandardGate.Y, YGate()),
         (StandardGate.Z, ZGate()),
+        (StandardGate.I, IGate()),
         (StandardGate.H, HGate()),
         (StandardGate.S, SGate()),
         (StandardGate.Sdg, SdgGate()),
