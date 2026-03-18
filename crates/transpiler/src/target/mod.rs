@@ -20,10 +20,12 @@ mod qubit_properties;
 
 pub use errors::TargetError;
 pub use instruction_properties::InstructionProperties;
+use pyo3::exceptions::PyValueError;
 use pyo3::types::IntoPyDict;
 pub use qargs::{Qargs, QargsRef};
 pub use qubit_properties::QubitProperties;
 
+use std::ops::{Deref, DerefMut};
 use std::{ops::Index, sync::OnceLock};
 
 use ahash::RandomState;
@@ -32,7 +34,7 @@ use hashbrown::HashSet;
 use indexmap::IndexMap;
 use pyo3::{
     IntoPyObjectExt,
-    exceptions::{PyAttributeError, PyIndexError, PyKeyError, PyValueError},
+    exceptions::{PyAttributeError, PyIndexError, PyKeyError},
     prelude::*,
     pyclass,
     types::{PyDict, PyList, PySet},
@@ -208,738 +210,21 @@ This structure contains duplicates of every element in the Python counterpart of
 `gate_map`. Which improves access for Python while sacrificing a small amount of
 memory.
  */
-#[pyclass(
-    mapping,
-    subclass,
-    name = "BaseTarget",
-    module = "qiskit._accelerate.target",
-    skip_from_py_object
-)]
 #[derive(Clone, Debug)]
 pub struct Target {
-    #[pyo3(get, set)]
     pub description: Option<String>,
-    #[pyo3(get)]
     pub num_qubits: Option<u32>,
     pub dt: Option<f64>,
-    #[pyo3(get, set)]
     pub granularity: u32,
-    #[pyo3(get, set)]
     pub min_length: u32,
-    #[pyo3(get, set)]
     pub pulse_alignment: u32,
-    #[pyo3(get, set)]
     pub acquire_alignment: u32,
-    #[pyo3(get, set)]
     pub qubit_properties: Option<Vec<QubitProperties>>,
-    #[pyo3(get, set)]
     pub concurrent_measurements: Option<Vec<Vec<PhysicalQubit>>>,
     gate_map: IndexMap<String, TargetProperties, RandomState>,
     global_operations: HashMap<u32, HashSet<String>>,
     qarg_gate_map: HashMap<Qargs, HashSet<String>>,
     has_angle_bounds: bool,
-}
-
-#[pymethods]
-impl Target {
-    /// Create a new ``Target`` object
-    ///
-    /// Args:
-    ///    description (str): An optional string to describe the Target.
-    ///    num_qubits (int): An optional int to specify the number of qubits
-    ///        the backend target has. If not set it will be implicitly set
-    ///        based on the qargs when :meth:`~qiskit.Target.add_instruction`
-    ///        is called. Note this must be set if the backend target is for a
-    ///        noiseless simulator that doesn't have constraints on the
-    ///        instructions so the transpiler knows how many qubits are
-    ///        available.
-    ///    dt (float): The system time resolution of input signals in seconds
-    ///    granularity (int): An integer value representing minimum pulse gate
-    ///        resolution in units of ``dt``. A user-defined pulse gate should
-    ///        have duration of a multiple of this granularity value.
-    ///    min_length (int): An integer value representing minimum pulse gate
-    ///        length in units of ``dt``. A user-defined pulse gate should be
-    ///        longer than this length.
-    ///    pulse_alignment (int): An integer value representing a time
-    ///        resolution of gate instruction starting time. Gate instruction
-    ///        should start at time which is a multiple of the alignment
-    ///        value.
-    ///    acquire_alignment (int): An integer value representing a time
-    ///        resolution of measure instruction starting time. Measure
-    ///        instruction should start at time which is a multiple of the
-    ///        alignment value.
-    ///    qubit_properties (list): A list of :class:`~.QubitProperties`
-    ///        objects defining the characteristics of each qubit on the
-    ///        target device. If specified the length of this list must match
-    ///        the number of qubits in the target, where the index in the list
-    ///        matches the qubit number the properties are defined for. If some
-    ///        qubits don't have properties available you can set that entry to
-    ///        ``None``
-    ///    concurrent_measurements(list): A list of sets of qubits that must be
-    ///        measured together. This must be provided
-    ///        as a nested list like ``[[0, 1], [2, 3, 4]]``.
-    /// Raises:
-    ///    ValueError: If both ``num_qubits`` and ``qubit_properties`` are both
-    ///        defined and the value of ``num_qubits`` differs from the length of
-    ///        ``qubit_properties``.
-    #[new]
-    #[pyo3(
-        signature = (
-        description = None,
-        num_qubits = 0,
-        dt = None,
-        granularity = 1,
-        min_length = 1,
-        pulse_alignment = 1,
-        acquire_alignment = 1,
-        qubit_properties = None,
-        concurrent_measurements = None,
-    ))]
-    fn py_new(
-        description: Option<String>,
-        num_qubits: Option<u32>,
-        dt: Option<f64>,
-        granularity: Option<u32>,
-        min_length: Option<u32>,
-        pulse_alignment: Option<u32>,
-        acquire_alignment: Option<u32>,
-        qubit_properties: Option<Vec<QubitProperties>>,
-        concurrent_measurements: Option<Vec<Vec<PhysicalQubit>>>,
-    ) -> PyResult<Self> {
-        let mut target_build = Target::new();
-        if let Some(description) = description {
-            target_build = target_build.with_description(description);
-        }
-        if let Some(qubit_properties) = qubit_properties {
-            target_build = target_build
-                .try_with_qubit_properties(qubit_properties)
-                .map_err(|err| PyValueError::new_err(err.to_string()))?;
-        } else if let Some(num_qubits) = num_qubits {
-            target_build = target_build
-                .try_with_num_qubits(num_qubits)
-                .map_err(|err| PyValueError::new_err(err.to_string()))?;
-        }
-        if let Some(dt) = dt {
-            target_build = target_build.with_dt(dt);
-        }
-        if let Some(granularity) = granularity {
-            target_build = target_build.with_granularity(granularity);
-        }
-        if let Some(min_length) = min_length {
-            target_build = target_build.with_min_length(min_length);
-        }
-        if let Some(pulse_alignment) = pulse_alignment {
-            target_build = target_build.with_pulse_alignment(pulse_alignment);
-        }
-        if let Some(acquire_alignment) = acquire_alignment {
-            target_build = target_build.with_acquire_alignment(acquire_alignment)
-        }
-        if let Some(concurrent_measurements) = concurrent_measurements {
-            target_build = target_build.with_concurrent_measurements(concurrent_measurements)
-        }
-        Ok(target_build)
-    }
-
-    /// Add a new instruction to the `Target` after it has been processed in python.
-    ///
-    /// Args:
-    ///     instruction: An instance of `Instruction` or the class representing said instructionm
-    ///         if representing a variadic.
-    ///     properties: A mapping of qargs and ``InstructionProperties``.
-    ///     name: A name assigned to the provided gate.
-    ///     bound_list: The bounds on the parameters for a given gate. This is specified by a list
-    ///         of tuples (low, high) which represent the low and high bound (inclusively) on what
-    ///         float values are allowed for the parameter in that position. If a parameter
-    ///         doesn't have an angle bound you can use ``None`` to represent that. For example if
-    ///         a 3 parameter gate only had a bound on the second parameter you would represent
-    ///         that with: ``[None, [0, 3.14], None]`` which means the first and third parameter
-    ///         allow any value but the second parameter only accepts values between 0 and 3.14.
-    /// Raises:
-    ///     AttributeError: If gate is already in map
-    ///     TranspilerError: If an operation class is passed in for ``instruction`` and no name
-    ///         is specified or ``properties`` is set.
-    #[pyo3(name="add_instruction", signature = (instruction, name, properties=None, *, angle_bounds=None))]
-    fn py_add_instruction(
-        &mut self,
-        instruction: TargetOperation,
-        name: &str,
-        properties: Option<PropsMap>,
-        angle_bounds: Option<SmallVec<[Option<[f64; 2]>; 3]>>,
-    ) -> PyResult<()> {
-        if self.gate_map.contains_key(name) {
-            return Err(PyAttributeError::new_err(format!(
-                "Instruction {name} is already in the target"
-            )));
-        }
-        let props_map = properties.unwrap_or_else(|| IndexMap::from_iter([(Qargs::Global, None)]));
-
-        self.inner_add_instruction(name, instruction, props_map, angle_bounds)
-            .map_err(|err| TranspilerError::new_err(err.to_string()))?;
-        Ok(())
-    }
-
-    /// Update the property object for an instruction qarg pair already in the `Target`
-    ///
-    /// Args:
-    ///     instruction (str): The instruction name to update
-    ///     qargs (tuple): The qargs to update the properties of
-    ///     properties (InstructionProperties): The properties to set for this instruction
-    /// Raises:
-    ///     KeyError: If ``instruction`` or ``qarg`` are not in the target
-    #[pyo3(name = "update_instruction_properties", signature = (instruction, qargs, properties))]
-    fn py_update_instruction_properties(
-        &mut self,
-        instruction: String,
-        qargs: Qargs,
-        properties: Option<InstructionProperties>,
-    ) -> PyResult<()> {
-        self.update_instruction_properties(&instruction, &qargs, properties)
-            .map_err(|err| PyKeyError::new_err(err.to_string()))
-    }
-
-    /// Get the qargs for a given operation name
-    ///
-    /// Args:
-    ///     operation (str): The operation name to get qargs for
-    /// Returns:
-    ///     list: The list of qargs the gate instance applies to.
-    #[pyo3(name = "qargs_for_operation_name")]
-    pub fn py_qargs_for_operation_name(&self, operation: &str) -> PyResult<Option<Vec<&Qargs>>> {
-        match self.qargs_for_operation_name(operation) {
-            Ok(option_set) => Ok(option_set.map(|qargs| qargs.collect())),
-            Err(e) => Err(PyKeyError::new_err(e.to_string())),
-        }
-    }
-
-    /// Get the operation class object for a given name
-    ///
-    /// Args:
-    ///     instruction (str): The instruction name to get the
-    ///         :class:`~qiskit.circuit.Instruction` instance for
-    /// Returns:
-    ///     qiskit.circuit.Instruction: The Instruction instance corresponding to the
-    ///     name. This also can also be the class for globally defined variable with
-    ///     operations.
-    #[pyo3(name = "operation_from_name")]
-    pub fn py_operation_from_name<'py>(
-        &'py self,
-        py: Python<'py>,
-        instruction: &str,
-    ) -> PyResult<Bound<'py, PyAny>> {
-        match self.operation_from_name(instruction) {
-            Some(op) => op.into_bound_py_any(py),
-            None => Err(PyKeyError::new_err(format!(
-                "Instruction {instruction} not in target"
-            ))),
-        }
-    }
-
-    /// Get the operation class object for a specified qargs tuple
-    ///
-    /// Args:
-    ///     qargs (tuple): A qargs tuple of the qubits to get the gates that apply
-    ///         to it. For example, ``(0,)`` will return the set of all
-    ///         instructions that apply to qubit 0. If set to ``None`` this will
-    ///         return any globally defined operations in the target.
-    /// Returns:
-    ///     list: The list of :class:`~qiskit.circuit.Instruction` instances
-    ///     that apply to the specified qarg. This may also be a class if
-    ///     a variable width operation is globally defined.
-    ///
-    /// Raises:
-    ///     KeyError: If qargs is not in target
-    #[pyo3(name = "operations_for_qargs", signature=(qargs, /))]
-    pub fn py_operations_for_qargs(&self, py: Python, qargs: Qargs) -> PyResult<Vec<Py<PyAny>>> {
-        // Move to rust native once Gates are in rust
-        Ok(self
-            .py_operation_names_for_qargs(qargs)?
-            .into_iter()
-            .map(|x| {
-                self.gate_map[x]
-                    .instruction
-                    .into_pyobject(py)
-                    .as_ref()
-                    .unwrap()
-                    .clone()
-                    .unbind()
-            })
-            .collect())
-    }
-
-    /// Get the operation names for a specified qargs tuple
-    ///
-    /// Args:
-    ///     qargs (tuple): A ``qargs`` tuple of the qubits to get the gates that apply
-    ///         to it. For example, ``(0,)`` will return the set of all
-    ///         instructions that apply to qubit 0. If set to ``None`` this will
-    ///         return the names for any globally defined operations in the target.
-    /// Returns:
-    ///     set: The set of operation names that apply to the specified ``qargs``.
-    ///
-    /// Raises:
-    ///     KeyError: If ``qargs`` is not in target
-    #[pyo3(name = "operation_names_for_qargs", signature=(qargs, /))]
-    pub fn py_operation_names_for_qargs(&self, qargs: Qargs) -> PyResult<HashSet<&str>> {
-        match self.operation_names_for_qargs(&qargs) {
-            Ok(set) => Ok(set),
-            Err(e) => Err(PyKeyError::new_err(e.to_string())),
-        }
-    }
-
-    /// Return whether the instruction (operation + qubits) is supported by the target
-    ///
-    /// Args:
-    ///     operation_name (str): The name of the operation for the instruction. Either
-    ///         this or ``operation_class`` must be specified, if both are specified
-    ///         ``operation_class`` will take priority and this argument will be ignored.
-    ///     qargs (tuple): The tuple of qubit indices for the instruction. If this is
-    ///         not specified then this method will return ``True`` if the specified
-    ///         operation is supported on any qubits. The typical application will
-    ///         always have this set (otherwise it's the same as just checking if the
-    ///         target contains the operation). Normally you would not set this argument
-    ///         if you wanted to check more generally that the target supports an operation
-    ///         with the ``parameters`` on any qubits.
-    ///     operation_class (Type[qiskit.circuit.Instruction]): The operation class to check whether
-    ///         the target supports a particular operation by class rather
-    ///         than by name. This lookup is more expensive as it needs to
-    ///         iterate over all operations in the target instead of just a
-    ///         single lookup. If this is specified it will supersede the
-    ///         ``operation_name`` argument. The typical use case for this
-    ///         operation is to check whether a specific variant of an operation
-    ///         is supported on the backend. For example, if you wanted to
-    ///         check whether a :class:`~.RXGate` was supported on a specific
-    ///         qubit with a fixed angle. That fixed angle variant will
-    ///         typically have a name different from the object's
-    ///         :attr:`~.Instruction.name` attribute (``"rx"``) in the target.
-    ///         This can be used to check if any instances of the class are
-    ///         available in such a case.
-    ///     parameters (list): A list of parameters to check if the target
-    ///         supports them on the specified qubits. If the instruction
-    ///         supports the parameter values specified in the list on the
-    ///         operation and qargs specified this will return ``True`` but
-    ///         if the parameters are not supported on the specified
-    ///         instruction it will return ``False``. If this argument is not
-    ///         specified this method will return ``True`` if the instruction
-    ///         is supported independent of the instruction parameters. If
-    ///         specified with any :class:`~.Parameter` objects in the list,
-    ///         that entry will be treated as supporting any value, however parameter names
-    ///         will not be checked (for example if an operation in the target
-    ///         is listed as parameterized with ``"theta"`` and ``"phi"`` is
-    ///         passed into this function that will return ``True``). For
-    ///         example, if called with::
-    ///
-    ///             parameters = [Parameter("theta")]
-    ///             target.instruction_supported("rx", (0,), parameters=parameters)
-    ///
-    ///         will return ``True`` if an :class:`~.RXGate` is supported on qubit 0
-    ///         that will accept any parameter. If you need to check for a fixed numeric
-    ///         value parameter this argument is typically paired with the ``operation_class``
-    ///         argument. For example::
-    ///
-    ///             target.instruction_supported("rx", (0,), RXGate, parameters=[pi / 4])
-    ///
-    ///         will return ``True`` if an RXGate(pi/4) exists on qubit 0.
-    ///     check_angle_bounds (bool): If set to True (the default) the value of ``parameters`` will
-    ///         be validated against any angle bounds set in the target.
-    ///         If any of the values in ``parameters`` are set to be :class:`.ParameterExpression`
-    ///         instances this flag will have no effect as angle bounds only impact
-    ///         non-parameterized operations in the circuit.
-    ///
-    /// Returns:
-    ///     bool: Returns ``True`` if the instruction is supported and ``False`` if it isn't.
-    #[pyo3(
-        name = "instruction_supported",
-        signature = (operation_name=None, qargs=Qargs::Global, operation_class=None, parameters=None, check_angle_bounds=true)
-    )]
-    pub fn py_instruction_supported(
-        &self,
-        operation_name: Option<String>,
-        qargs: Qargs,
-        operation_class: Option<&Bound<PyAny>>,
-        parameters: Option<Vec<Param>>,
-        check_angle_bounds: bool,
-    ) -> PyResult<bool> {
-        let mut qargs = qargs;
-        let num_qubits = if let Some(num_qubits) = self.num_qubits {
-            num_qubits
-        } else {
-            qargs = Qargs::Global;
-            0
-        };
-        if let Some(operation_class) = operation_class {
-            for (_, obj) in self.gate_map.iter() {
-                match &obj.instruction {
-                    TargetOperation::Variadic(variable) => {
-                        if !operation_class.eq(variable)? {
-                            continue;
-                        }
-                        // If no qargs operation class is supported
-                        if let Qargs::Concrete(qargs) = &qargs {
-                            return Ok(qargs.iter().all(|qarg| qarg.0 <= num_qubits));
-                        } else {
-                            return Ok(true);
-                        }
-                    }
-                    TargetOperation::Normal(normal) => {
-                        let py = operation_class.py();
-                        if normal.into_pyobject(py)?.is_instance(operation_class)? {
-                            if let Some(parameters) = &parameters {
-                                if parameters.len() != normal.params_view().len() {
-                                    continue;
-                                }
-                                if !check_obj_params(parameters, normal) {
-                                    continue;
-                                }
-                            }
-                            if let Qargs::Concrete(qargs_as_vec) = &qargs {
-                                let gate_map_name = &obj.properties;
-                                if gate_map_name.contains_key(&qargs.as_ref()) {
-                                    return Ok(true);
-                                }
-                                if gate_map_name.contains_key(&Qargs::Global) {
-                                    let qubit_comparison = obj.instruction.num_qubits();
-                                    return Ok(qubit_comparison == qargs_as_vec.len() as u32
-                                        && qargs_as_vec.iter().all(|x| x.0 < num_qubits));
-                                }
-                            } else {
-                                return Ok(true);
-                            }
-                        }
-                    }
-                }
-            }
-            Ok(false)
-        } else if let Some(operation_name) = operation_name {
-            Ok(self.instruction_supported(
-                &operation_name,
-                &qargs,
-                parameters.as_deref().unwrap_or_default(),
-                check_angle_bounds,
-            ))
-        } else {
-            Ok(false)
-        }
-    }
-
-    /// Get the instruction properties for a specific instruction tuple
-    ///
-    /// This method is to be used in conjunction with the
-    /// :attr:`~qiskit.transpiler.Target.instructions` attribute of a
-    /// :class:`~qiskit.transpiler.Target` object. You can use this method to quickly
-    /// get the instruction properties for an element of
-    /// :attr:`~qiskit.transpiler.Target.instructions` by using the index in that list.
-    /// However, if you're not working with :attr:`~qiskit.transpiler.Target.instructions`
-    /// directly it is likely more efficient to access the target directly via the name
-    /// and qubits to get the instruction properties. For example, if
-    /// :attr:`~qiskit.transpiler.Target.instructions` returned::
-    ///
-    ///     [(XGate(), (0,)), (XGate(), (1,))]
-    ///
-    /// you could get the properties of the ``XGate`` on qubit 1 with::
-    ///
-    ///     props = target.instruction_properties(1)
-    ///
-    /// but just accessing it directly via the name would be more efficient::
-    ///
-    ///     props = target['x'][(1,)]
-    ///
-    /// (assuming the ``XGate``'s canonical name in the target is ``'x'``)
-    /// This is especially true for larger targets as this will scale worse with the number
-    /// of instruction tuples in a target.
-    ///
-    /// Args:
-    ///     index (int): The index of the instruction tuple from the
-    ///         :attr:`~qiskit.transpiler.Target.instructions` attribute. For, example
-    ///         if you want the properties from the third element in
-    ///         :attr:`~qiskit.transpiler.Target.instructions` you would set this to be ``2``.
-    /// Returns:
-    ///     InstructionProperties: The instruction properties for the specified instruction tuple
-    pub fn instruction_properties(&self, index: usize) -> PyResult<Option<InstructionProperties>> {
-        let mut index_counter = 0;
-        for (_, props_map) in self.gate_map.iter() {
-            let gate_map_oper = props_map.properties.values();
-            for inst_props in gate_map_oper {
-                if index_counter == index {
-                    return Ok(inst_props.clone());
-                }
-                index_counter += 1;
-            }
-        }
-        Err(PyIndexError::new_err(format!(
-            "Index: {index:?} is out of range."
-        )))
-    }
-
-    /// Return the non-global operation names for the target
-    ///
-    /// The non-global operations are those in the target which don't apply
-    /// on all qubits (for single qubit operations) or all multi-qubit qargs
-    /// (for multi-qubit operations).
-    ///
-    /// Args:
-    ///     strict_direction (bool): If set to ``True`` the multi-qubit
-    ///         operations considered as non-global respect the strict
-    ///         direction (or order of qubits in the qargs is significant). For
-    ///         example, if ``cx`` is defined on ``(0, 1)`` and ``ecr`` is
-    ///         defined over ``(1, 0)`` by default neither would be considered
-    ///         non-global, but if ``strict_direction`` is set ``True`` both
-    ///         ``cx`` and ``ecr`` would be returned.
-    ///
-    /// Returns:
-    ///     List[str]: A list of operation names for operations that aren't global in this target
-    #[pyo3(name = "_get_non_global_operation_names", signature = (/, strict_direction=false,))]
-    fn py_get_non_global_operation_names(&self, strict_direction: bool) -> Vec<&str> {
-        self.get_non_global_operation_names(strict_direction)
-    }
-
-    // TODO: Add flag for custom tests
-    /// Private method for development purposes only
-    fn _raw_operation_from_name(&self, py: Python, name: &str) -> PyResult<Py<PyAny>> {
-        if let Some(gate) = self.gate_map.get(name) {
-            match &gate.instruction {
-                TargetOperation::Normal(normal_operation) => create_py_op(
-                    py,
-                    normal_operation.op(),
-                    normal_operation.parameters().cloned(),
-                    normal_operation.label(),
-                ),
-                TargetOperation::Variadic(py_op) => Ok(py_op.clone_ref(py)),
-            }
-        } else {
-            Ok(py.None())
-        }
-    }
-
-    // Instance attributes
-
-    /// The dt attribute.
-    #[getter(_dt)]
-    fn get_dt(&self) -> Option<f64> {
-        self.dt
-    }
-
-    #[setter(_dt)]
-    fn set_dt(&mut self, dt: Option<f64>) {
-        self.dt = dt
-    }
-
-    /// The set of qargs in the target.
-    #[getter]
-    #[pyo3(name = "qargs")]
-    fn py_qargs(&self, py: Python) -> PyResult<Py<PyAny>> {
-        if let Some(qargs) = self.qargs() {
-            let set = PySet::new(py, qargs)?;
-            Ok(set.into_any().unbind())
-        } else {
-            Ok(py.None())
-        }
-    }
-
-    /// Get the list of tuples ``(:class:`~qiskit.circuit.Instruction`, (qargs))``
-    /// for the target
-    ///
-    /// For globally defined variable width operations the tuple will be of the form
-    /// ``(class, None)`` where class is the actual operation class that
-    /// is globally defined.
-    #[getter]
-    #[pyo3(name = "instructions")]
-    pub fn py_instructions(&self, py: Python<'_>) -> PyResult<Py<PyList>> {
-        let list = PyList::empty(py);
-        for (inst, qargs) in self._instructions() {
-            let out_inst = match inst {
-                TargetOperation::Normal(op) => {
-                    create_py_op(py, op.op(), op.parameters().cloned(), op.label())?
-                }
-                TargetOperation::Variadic(op_cls) => op_cls.clone_ref(py),
-            };
-            list.append((out_inst, qargs))?;
-        }
-        Ok(list.unbind())
-    }
-    /// Get the operation names in the target.
-    #[getter]
-    #[pyo3(name = "operation_names")]
-    fn py_operation_names(&self, py: Python<'_>) -> PyResult<Py<PyList>> {
-        Ok(PyList::new(py, self.operation_names())?.unbind())
-    }
-
-    /// Get the operation objects in the target.
-    #[getter]
-    #[pyo3(name = "operations")]
-    fn py_operations(&self, py: Python<'_>) -> PyResult<Py<PyList>> {
-        Ok(PyList::new(py, self.gate_map.values().map(|op| &op.instruction))?.unbind())
-    }
-
-    /// Returns a sorted list of physical qubits.
-    #[getter]
-    #[pyo3(name = "physical_qubits")]
-    fn py_physical_qubits(&self, py: Python<'_>) -> PyResult<Py<PyList>> {
-        Ok(PyList::new(py, self.physical_qubits())?.unbind())
-    }
-
-    // Magic methods:
-
-    fn __len__(&self) -> PyResult<usize> {
-        Ok(self.gate_map.len())
-    }
-
-    fn __getstate__(&self, py: Python<'_>) -> PyResult<Py<PyDict>> {
-        let result_list = PyDict::new(py);
-        result_list.set_item("description", self.description.clone())?;
-        result_list.set_item("num_qubits", self.num_qubits)?;
-        result_list.set_item("dt", self.dt)?;
-        result_list.set_item("granularity", self.granularity)?;
-        result_list.set_item("min_length", self.min_length)?;
-        result_list.set_item("pulse_alignment", self.pulse_alignment)?;
-        result_list.set_item("acquire_alignment", self.acquire_alignment)?;
-        result_list.set_item("qubit_properties", self.qubit_properties.clone())?;
-        result_list.set_item(
-            "concurrent_measurements",
-            self.concurrent_measurements.clone(),
-        )?;
-        let gate_map: Vec<(String, Bound<PyDict>)> = self
-            .gate_map
-            .iter()
-            .map(|entry| -> PyResult<_> {
-                let entry_dict = PyDict::new(py);
-                entry_dict.set_item("properties", entry.1.properties.clone())?;
-                entry_dict.set_item("instruction", &entry.1.instruction)?;
-                entry
-                    .1
-                    .angle_bounds
-                    .as_ref()
-                    .map(|bounds| -> PyResult<_> {
-                        entry_dict.set_item("angle_bounds", bounds.bounds().to_vec())
-                    })
-                    .transpose()?;
-                Ok((entry.0.clone(), entry_dict))
-            })
-            .collect::<PyResult<_>>()?;
-        result_list.set_item("gate_map", gate_map.into_py_dict(py)?)?;
-        result_list.set_item("global_operations", self.global_operations.clone())?;
-        result_list.set_item("qarg_gate_map", self.qarg_gate_map.clone())?;
-        Ok(result_list.unbind())
-    }
-
-    fn __setstate__(&mut self, state: Bound<PyDict>) -> PyResult<()> {
-        self.description = state
-            .get_item("description")?
-            .unwrap()
-            .extract::<Option<String>>()?;
-        self.num_qubits = state
-            .get_item("num_qubits")?
-            .unwrap()
-            .extract::<Option<u32>>()?;
-        self.dt = state.get_item("dt")?.unwrap().extract::<Option<f64>>()?;
-        self.granularity = state.get_item("granularity")?.unwrap().extract::<u32>()?;
-        self.min_length = state.get_item("min_length")?.unwrap().extract::<u32>()?;
-        self.pulse_alignment = state
-            .get_item("pulse_alignment")?
-            .unwrap()
-            .extract::<u32>()?;
-        self.acquire_alignment = state
-            .get_item("acquire_alignment")?
-            .unwrap()
-            .extract::<u32>()?;
-        self.qubit_properties = state
-            .get_item("qubit_properties")?
-            .unwrap()
-            .extract::<Option<Vec<QubitProperties>>>()?;
-        self.concurrent_measurements = state
-            .get_item("concurrent_measurements")?
-            .unwrap()
-            .extract::<Option<Vec<Vec<PhysicalQubit>>>>()?;
-        let mut gate_map = IndexMap::default();
-        type Bounds = SmallVec<[Option<[f64; 2]>; 3]>;
-        let mut bounds_map: Vec<(String, Bounds)> = Vec::new();
-        let source_map = state.get_item("gate_map")?.unwrap().cast_into::<PyDict>()?;
-        for (key, value) in source_map.iter() {
-            let value = value.cast::<PyDict>()?;
-            let angle_bound = value
-                .get_item("angle_bounds")?
-                .map(|out| -> PyResult<_> { out.extract::<SmallVec<[Option<[f64; 2]>; 3]>>() })
-                .transpose()?;
-            let key: String = key.extract()?;
-            if let Some(angle_bound) = angle_bound {
-                bounds_map.push((key.clone(), angle_bound));
-            }
-            gate_map.insert(
-                key,
-                TargetProperties {
-                    properties: value.get_item("properties")?.unwrap().extract()?,
-                    instruction: value.get_item("instruction")?.unwrap().extract()?,
-                    angle_bounds: None,
-                },
-            );
-        }
-        self.gate_map = gate_map;
-        self.qarg_gate_map = state
-            .get_item("qarg_gate_map")?
-            .unwrap()
-            .extract::<HashMap<Qargs, HashSet<String>>>()?;
-        self.global_operations = state
-            .get_item("global_operations")?
-            .unwrap()
-            .extract::<HashMap<u32, HashSet<String>>>()?;
-        for (gate, bounds) in bounds_map {
-            self.add_owned_angle_bound(gate.as_str(), bounds)
-                .map_err(|err| TranspilerError::new_err(err.to_string()))?;
-        }
-        Ok(())
-    }
-
-    /// Check if there are any angle bounds set in the target
-    ///
-    /// Returns:
-    ///     bool: This will return ``True`` if there are angle bounds set on any instructions in
-    ///     the circuit
-    pub fn has_angle_bounds(&self) -> bool {
-        self.has_angle_bounds
-    }
-
-    /// Check if a specific gate gate has an angle bound set
-    ///
-    /// Args:
-    ///     name (str): The instruction name to check if it has an angle bound set
-    ///
-    /// Returns:
-    ///     bool: This will return ``True`` if the gate is in the target and has angle bounds
-    ///     defined. It will return ``False`` if the gate does not have angle bounds defined
-    ///     or is not in the target.
-    pub fn gate_has_angle_bounds(&self, name: &str) -> bool {
-        self.gate_map
-            .get(name)
-            .is_some_and(|props| props.angle_bounds.is_some())
-    }
-
-    /// Check that parameters on a specific gate conform to the angle bounds
-    ///
-    /// Args:
-    ///     name (str): The instruction name to check the angle bounds of
-    ///     angles (list): A list of float parameter values for ``name``
-    ///         to see if they conform to the defined angle bounds.
-    ///
-    /// Returns:
-    ///     bool: Returns ``True`` if the parameter values specified are compatible with the
-    ///     angle bounds. ``False`` is returned if the any of the parameters
-    ///     are outside the defined bounds.
-    ///
-    /// Raises:
-    ///     TranspilerError: If ``name`` is not in the target or does not
-    ///     have angle bounds defined.
-    ///
-    pub fn supported_angle_bound(&self, name: &str, angles: Vec<f64>) -> PyResult<bool> {
-        if !self.gate_has_angle_bounds(name) {
-            Err(TranspilerError::new_err(format!(
-                "The specified gate {name} does not have angle bounds defined or is not in the Target"
-            )))
-        } else {
-            Ok(self.gate_map[name]
-                .angle_bounds
-                .as_ref()
-                .is_some_and(|bound| bound.angles_supported(&angles)))
-        }
-    }
 }
 
 // Rust native methods
@@ -1982,6 +1267,59 @@ impl Target {
             .is_some_and(|bound| bound.angles_supported(angles))
     }
 
+    /// Check if there are any angle bounds set in the target
+    ///
+    /// Returns:
+    ///     bool: This will return ``True`` if there are angle bounds set on any instructions in
+    ///     the circuit
+    pub fn has_angle_bounds(&self) -> bool {
+        self.has_angle_bounds
+    }
+
+    /// Check if a specific gate gate has an angle bound set
+    ///
+    /// Args:
+    ///     name (str): The instruction name to check if it has an angle bound set
+    ///
+    /// Returns:
+    ///     bool: This will return ``True`` if the gate is in the target and has angle bounds
+    ///     defined. It will return ``False`` if the gate does not have angle bounds defined
+    ///     or is not in the target.
+    pub fn gate_has_angle_bounds(&self, name: &str) -> bool {
+        self.gate_map
+            .get(name)
+            .is_some_and(|props| props.angle_bounds.is_some())
+    }
+
+    /// Check that parameters on a specific gate conform to the angle bounds
+    ///
+    /// Args:
+    ///     name (str): The instruction name to check the angle bounds of
+    ///     angles (list): A list of float parameter values for ``name``
+    ///         to see if they conform to the defined angle bounds.
+    ///
+    /// Returns:
+    ///     bool: Returns ``True`` if the parameter values specified are compatible with the
+    ///     angle bounds. ``False`` is returned if the any of the parameters
+    ///     are outside the defined bounds.
+    ///
+    /// Raises:
+    ///     TranspilerError: If ``name`` is not in the target or does not
+    ///     have angle bounds defined.
+    ///
+    pub fn supported_angle_bound(&self, name: &str, angles: Vec<f64>) -> Result<bool, TargetError> {
+        if !self.gate_has_angle_bounds(name) {
+            Err(TargetError::GateNoBounds {
+                name: name.to_string(),
+            })
+        } else {
+            Ok(self.gate_map[name]
+                .angle_bounds
+                .as_ref()
+                .is_some_and(|bound| bound.angles_supported(&angles)))
+        }
+    }
+
     /// Check that a given qargs is present in the target
     pub fn contains_qargs<'a, T: Into<QargsRef<'a>>>(&self, qargs: T) -> bool {
         self.qarg_gate_map.contains_key(&qargs.into())
@@ -2069,9 +1407,836 @@ where
     obj.eq(other.into_bound_py_any(py)?)
 }
 
+#[pyclass(
+    mapping,
+    subclass,
+    name = "BaseTarget",
+    module = "qiskit._accelerate.target",
+    skip_from_py_object
+)]
+#[derive(Debug, Clone)]
+pub struct PyTarget {
+    pub inner: Target,
+    gate_map: Py<PyDict>,
+    non_global_basis: OnceLock<Py<PyList>>,
+    non_global_basis_strict: OnceLock<Py<PyList>>,
+}
+
+impl Deref for PyTarget {
+    type Target = Target;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl DerefMut for PyTarget {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
+
+#[pymethods]
+impl PyTarget {
+    /// Create a new ``Target`` object
+    ///
+    ///Args:
+    ///    description (str): An optional string to describe the Target.
+    ///    num_qubits (int): An optional int to specify the number of qubits
+    ///        the backend target has. If not set it will be implicitly set
+    ///        based on the qargs when :meth:`~qiskit.Target.add_instruction`
+    ///        is called. Note this must be set if the backend target is for a
+    ///        noiseless simulator that doesn't have constraints on the
+    ///        instructions so the transpiler knows how many qubits are
+    ///        available.
+    ///    dt (float): The system time resolution of input signals in seconds
+    ///    granularity (int): An integer value representing minimum pulse gate
+    ///        resolution in units of ``dt``. A user-defined pulse gate should
+    ///        have duration of a multiple of this granularity value.
+    ///    min_length (int): An integer value representing minimum pulse gate
+    ///        length in units of ``dt``. A user-defined pulse gate should be
+    ///        longer than this length.
+    ///    pulse_alignment (int): An integer value representing a time
+    ///        resolution of gate instruction starting time. Gate instruction
+    ///        should start at time which is a multiple of the alignment
+    ///        value.
+    ///    acquire_alignment (int): An integer value representing a time
+    ///        resolution of measure instruction starting time. Measure
+    ///        instruction should start at time which is a multiple of the
+    ///        alignment value.
+    ///    qubit_properties (list): A list of :class:`~.QubitProperties`
+    ///        objects defining the characteristics of each qubit on the
+    ///        target device. If specified the length of this list must match
+    ///        the number of qubits in the target, where the index in the list
+    ///        matches the qubit number the properties are defined for. If some
+    ///        qubits don't have properties available you can set that entry to
+    ///        ``None``
+    ///    concurrent_measurements(list): A list of sets of qubits that must be
+    ///        measured together. This must be provided
+    ///        as a nested list like ``[[0, 1], [2, 3, 4]]``.
+    ///Raises:
+    ///    ValueError: If both ``num_qubits`` and ``qubit_properties`` are both
+    ///        defined and the value of ``num_qubits`` differs from the length of
+    ///        ``qubit_properties``.
+    #[new]
+    #[pyo3(signature = (
+        description = None,
+        num_qubits = 0,
+        dt = None,
+        granularity = 1,
+        min_length = 1,
+        pulse_alignment = 1,
+        acquire_alignment = 1,
+        qubit_properties = None,
+        concurrent_measurements = None,
+    ))]
+    fn new(
+        py: Python,
+        description: Option<String>,
+        num_qubits: Option<u32>,
+        dt: Option<f64>,
+        granularity: Option<u32>,
+        min_length: Option<u32>,
+        pulse_alignment: Option<u32>,
+        acquire_alignment: Option<u32>,
+        qubit_properties: Option<Vec<QubitProperties>>,
+        concurrent_measurements: Option<Vec<Vec<PhysicalQubit>>>,
+    ) -> PyResult<Self> {
+        let mut target_build = Target::new();
+        if let Some(description) = description {
+            target_build = target_build.with_description(description);
+        }
+        if let Some(qubit_properties) = qubit_properties {
+            target_build = target_build
+                .try_with_qubit_properties(qubit_properties)
+                .map_err(|err| PyValueError::new_err(err.to_string()))?;
+        } else if let Some(num_qubits) = num_qubits {
+            target_build = target_build
+                .try_with_num_qubits(num_qubits)
+                .map_err(|err| PyValueError::new_err(err.to_string()))?;
+        }
+        if let Some(dt) = dt {
+            target_build = target_build.with_dt(dt);
+        }
+        if let Some(granularity) = granularity {
+            target_build = target_build.with_granularity(granularity);
+        }
+        if let Some(min_length) = min_length {
+            target_build = target_build.with_min_length(min_length);
+        }
+        if let Some(pulse_alignment) = pulse_alignment {
+            target_build = target_build.with_pulse_alignment(pulse_alignment);
+        }
+        if let Some(acquire_alignment) = acquire_alignment {
+            target_build = target_build.with_acquire_alignment(acquire_alignment)
+        }
+        if let Some(concurrent_measurements) = concurrent_measurements {
+            target_build = target_build.with_concurrent_measurements(concurrent_measurements)
+        }
+        Ok(Self {
+            gate_map: PyDict::new(py).unbind(),
+            inner: target_build,
+            non_global_basis: Default::default(),
+            non_global_basis_strict: Default::default(),
+        })
+    }
+
+    #[getter]
+    fn get_description(&self) -> Option<&str> {
+        self.inner.description.as_deref()
+    }
+    #[getter]
+    fn get_num_qubits(&self) -> Option<u32> {
+        self.inner.num_qubits
+    }
+
+    #[getter]
+    fn get_granularity(&self) -> u32 {
+        self.inner.granularity
+    }
+    #[getter]
+    fn get_min_length(&self) -> u32 {
+        self.inner.min_length
+    }
+    #[getter]
+    fn get_pulse_alignment(&self) -> u32 {
+        self.inner.pulse_alignment
+    }
+    #[getter]
+    fn get_acquire_alignment(&self) -> u32 {
+        self.inner.acquire_alignment
+    }
+    #[getter]
+    fn get_qubit_properties(&self) -> Option<Vec<QubitProperties>> {
+        self.inner.qubit_properties.clone()
+    }
+    #[getter]
+    fn get_concurrent_measurements(&self) -> Option<Vec<Vec<PhysicalQubit>>> {
+        self.inner.concurrent_measurements.clone()
+    }
+
+    /// Add a new instruction to the `Target` after it has been processed in python.
+    ///
+    /// Args:
+    ///     instruction: An instance of `Instruction` or the class representing said instructionm
+    ///         if representing a variadic.
+    ///     properties: A mapping of qargs and ``InstructionProperties``.
+    ///     name: A name assigned to the provided gate.
+    ///     bound_list: The bounds on the parameters for a given gate. This is specified by a list
+    ///         of tuples (low, high) which represent the low and high bound (inclusively) on what
+    ///         float values are allowed for the parameter in that position. If a parameter
+    ///         doesn't have an angle bound you can use ``None`` to represent that. For example if
+    ///         a 3 parameter gate only had a bound on the second parameter you would represent
+    ///         that with: ``[None, [0, 3.14], None]`` which means the first and third parameter
+    ///         allow any value but the second parameter only accepts values between 0 and 3.14.
+    /// Raises:
+    ///     AttributeError: If gate is already in map
+    ///     TranspilerError: If an operation class is passed in for ``instruction`` and no name
+    ///         is specified or ``properties`` is set.
+    #[pyo3(name="add_instruction", signature = (instruction, name=None, properties=None, *, angle_bounds=None))]
+    fn add_instruction(
+        &mut self,
+        py: Python,
+        instruction: TargetOperation,
+        name: Option<&str>,
+        properties: Option<Py<PyDict>>,
+        angle_bounds: Option<SmallVec<[Option<[f64; 2]>; 3]>>,
+    ) -> PyResult<()> {
+        let new_name: String = match &instruction {
+            TargetOperation::Normal(normal_operation) => {
+                if let Some(name) = name {
+                    name.to_string()
+                } else {
+                    normal_operation.operation.name().to_string()
+                }
+            }
+            TargetOperation::Variadic(_) => {
+                if name.is_none() {
+                    return Err(TranspilerError::new_err(
+                        "A name must be specified when defining a supported global operation by class.",
+                    ));
+                }
+                if properties.is_some() {
+                    return Err(TranspilerError::new_err(
+                        "An instruction added globally by class can't have properties set.",
+                    ));
+                }
+                name.unwrap().to_string()
+            }
+        };
+        let properties = if properties.is_none() || instruction.is_variadic() {
+            [(None::<String>, None::<InstructionProperties>)]
+                .into_py_dict(py)?
+                .unbind()
+        } else {
+            properties.unwrap()
+        };
+        if self.inner.contains_key(&new_name) {
+            return Err(PyAttributeError::new_err(format!(
+                "Instruction {new_name} is already in the target"
+            )));
+        }
+        self.inner.inner_add_instruction(
+            &new_name,
+            instruction,
+            properties.extract(py)?,
+            angle_bounds,
+        )?;
+        self.gate_map.bind(py).set_item(new_name, properties);
+        Ok(())
+    }
+
+    /// Update the property object for an instruction qarg pair already in the `Target`
+    ///
+    /// Args:
+    ///     instruction (str): The instruction name to update
+    ///     qargs (tuple): The qargs to update the properties of
+    ///     properties (InstructionProperties): The properties to set for this instruction
+    /// Raises:
+    ///     KeyError: If ``instruction`` or ``qarg`` are not in the target
+    #[pyo3(name = "update_instruction_properties", signature = (instruction, qargs, properties))]
+    fn update_instruction_properties(
+        &mut self,
+        py: Python,
+        instruction: String,
+        qargs: Qargs,
+        properties: Option<InstructionProperties>,
+    ) -> PyResult<()> {
+        self.inner
+            .update_instruction_properties(&instruction, &qargs, properties.clone())
+            .map_err(|err| PyKeyError::new_err(err.to_string()))?;
+        self.gate_map
+            .bind(py)
+            .get_item(&instruction)?
+            .unwrap()
+            .set_item(&qargs, properties)
+    }
+
+    /// Get the qargs for a given operation name
+    ///
+    /// Args:
+    ///     operation (str): The operation name to get qargs for
+    /// Returns:
+    ///     list: The list of qargs the gate instance applies to.
+    #[pyo3(name = "qargs_for_operation_name")]
+    fn qargs_for_operation_name(&self, operation: &str) -> PyResult<Option<Vec<&Qargs>>> {
+        match self.inner.qargs_for_operation_name(operation) {
+            Ok(option_set) => Ok(option_set.map(|qargs| qargs.collect())),
+            Err(e) => Err(PyKeyError::new_err(e.to_string())),
+        }
+    }
+
+    /// Get the operation class object for a given name
+    ///
+    /// Args:
+    ///     instruction (str): The instruction name to get the
+    ///         :class:`~qiskit.circuit.Instruction` instance for
+    /// Returns:
+    ///     qiskit.circuit.Instruction: The Instruction instance corresponding to the
+    ///     name. This also can also be the class for globally defined variable with
+    ///     operations.
+    #[pyo3(name = "operation_from_name")]
+    fn operation_from_name<'py>(
+        &'py self,
+        py: Python<'py>,
+        instruction: &str,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        match self.inner.operation_from_name(instruction) {
+            Some(op) => op.into_bound_py_any(py),
+            None => Err(PyKeyError::new_err(format!(
+                "Instruction {instruction} not in target"
+            ))),
+        }
+    }
+
+    /// Get the operation class object for a specified qargs tuple
+    ///
+    /// Args:
+    ///     qargs (tuple): A qargs tuple of the qubits to get the gates that apply
+    ///         to it. For example, ``(0,)`` will return the set of all
+    ///         instructions that apply to qubit 0. If set to ``None`` this will
+    ///         return any globally defined operations in the target.
+    /// Returns:
+    ///     list: The list of :class:`~qiskit.circuit.Instruction` instances
+    ///     that apply to the specified qarg. This may also be a class if
+    ///     a variable width operation is globally defined.
+    ///
+    /// Raises:
+    ///     KeyError: If qargs is not in target
+    #[pyo3(name = "operations_for_qargs", signature=(qargs, /))]
+    fn operations_for_qargs(&self, py: Python, qargs: Qargs) -> PyResult<Vec<Py<PyAny>>> {
+        // Move to rust native once Gates are in rust
+        Ok(self
+            .operation_names_for_qargs(qargs)?
+            .into_iter()
+            .map(|x| {
+                self.inner.gate_map[x]
+                    .instruction
+                    .into_pyobject(py)
+                    .as_ref()
+                    .unwrap()
+                    .clone()
+                    .unbind()
+            })
+            .collect())
+    }
+
+    /// Get the operation names for a specified qargs tuple
+    ///
+    /// Args:
+    ///     qargs (tuple): A ``qargs`` tuple of the qubits to get the gates that apply
+    ///         to it. For example, ``(0,)`` will return the set of all
+    ///         instructions that apply to qubit 0. If set to ``None`` this will
+    ///         return the names for any globally defined operations in the target.
+    /// Returns:
+    ///     set: The set of operation names that apply to the specified ``qargs``.
+    ///
+    /// Raises:
+    ///     KeyError: If ``qargs`` is not in target
+    #[pyo3(name = "operation_names_for_qargs", signature=(qargs, /))]
+    fn operation_names_for_qargs(&self, qargs: Qargs) -> PyResult<HashSet<&str>> {
+        match self.inner.operation_names_for_qargs(&qargs) {
+            Ok(set) => Ok(set),
+            Err(e) => Err(PyKeyError::new_err(e.to_string())),
+        }
+    }
+
+    /// Return the non-global operation names for the target
+    ///
+    /// The non-global operations are those in the target which don't apply
+    /// on all qubits (for single qubit operations) or all multi-qubit qargs
+    /// (for multi-qubit operations).
+    ///
+    /// Args:
+    ///     strict_direction (bool): If set to ``True`` the multi-qubit
+    ///         operations considered as non-global respect the strict
+    ///         direction (or order of qubits in the qargs is significant). For
+    ///         example, if ``cx`` is defined on ``(0, 1)`` and ``ecr`` is
+    ///         defined over ``(1, 0)`` by default neither would be considered
+    ///         non-global, but if ``strict_direction`` is set ``True`` both
+    ///         ``cx`` and ``ecr`` would be returned.
+    ///
+    /// Returns:
+    ///     List[str]: A list of operation names for operations that aren't global in this target
+    fn get_non_global_operation_names<'py>(
+        &self,
+        py: Python<'py>,
+        strict_direction: bool,
+    ) -> PyResult<&Py<PyList>> {
+        if strict_direction {
+            if let Some(list) = self.non_global_basis_strict.get() {
+                Ok(list)
+            } else {
+                let list = PyList::new(
+                    py,
+                    self.inner.get_non_global_operation_names(strict_direction),
+                )?;
+                Ok(self.non_global_basis_strict.get_or_init(|| list.unbind()))
+            }
+        } else {
+            if let Some(list) = self.non_global_basis.get() {
+                Ok(list)
+            } else {
+                let list = PyList::new(
+                    py,
+                    self.inner.get_non_global_operation_names(strict_direction),
+                )?;
+                Ok(self.non_global_basis.get_or_init(|| list.unbind()))
+            }
+        }
+    }
+
+    /// Return whether the instruction (operation + qubits) is supported by the target
+    ///
+    /// Args:
+    ///     operation_name (str): The name of the operation for the instruction. Either
+    ///         this or ``operation_class`` must be specified, if both are specified
+    ///         ``operation_class`` will take priority and this argument will be ignored.
+    ///     qargs (tuple): The tuple of qubit indices for the instruction. If this is
+    ///         not specified then this method will return ``True`` if the specified
+    ///         operation is supported on any qubits. The typical application will
+    ///         always have this set (otherwise it's the same as just checking if the
+    ///         target contains the operation). Normally you would not set this argument
+    ///         if you wanted to check more generally that the target supports an operation
+    ///         with the ``parameters`` on any qubits.
+    ///     operation_class (Type[qiskit.circuit.Instruction]): The operation class to check whether
+    ///         the target supports a particular operation by class rather
+    ///         than by name. This lookup is more expensive as it needs to
+    ///         iterate over all operations in the target instead of just a
+    ///         single lookup. If this is specified it will supersede the
+    ///         ``operation_name`` argument. The typical use case for this
+    ///         operation is to check whether a specific variant of an operation
+    ///         is supported on the backend. For example, if you wanted to
+    ///         check whether a :class:`~.RXGate` was supported on a specific
+    ///         qubit with a fixed angle. That fixed angle variant will
+    ///         typically have a name different from the object's
+    ///         :attr:`~.Instruction.name` attribute (``"rx"``) in the target.
+    ///         This can be used to check if any instances of the class are
+    ///         available in such a case.
+    ///     parameters (list): A list of parameters to check if the target
+    ///         supports them on the specified qubits. If the instruction
+    ///         supports the parameter values specified in the list on the
+    ///         operation and qargs specified this will return ``True`` but
+    ///         if the parameters are not supported on the specified
+    ///         instruction it will return ``False``. If this argument is not
+    ///         specified this method will return ``True`` if the instruction
+    ///         is supported independent of the instruction parameters. If
+    ///         specified with any :class:`~.Parameter` objects in the list,
+    ///         that entry will be treated as supporting any value, however parameter names
+    ///         will not be checked (for example if an operation in the target
+    ///         is listed as parameterized with ``"theta"`` and ``"phi"`` is
+    ///         passed into this function that will return ``True``). For
+    ///         example, if called with::
+    ///
+    ///             parameters = [Parameter("theta")]
+    ///             target.instruction_supported("rx", (0,), parameters=parameters)
+    ///
+    ///         will return ``True`` if an :class:`~.RXGate` is supported on qubit 0
+    ///         that will accept any parameter. If you need to check for a fixed numeric
+    ///         value parameter this argument is typically paired with the ``operation_class``
+    ///         argument. For example::
+    ///
+    ///             target.instruction_supported("rx", (0,), RXGate, parameters=[pi / 4])
+    ///
+    ///         will return ``True`` if an RXGate(pi/4) exists on qubit 0.
+    ///     check_angle_bounds (bool): If set to True (the default) the value of ``parameters`` will
+    ///         be validated against any angle bounds set in the target.
+    ///         If any of the values in ``parameters`` are set to be :class:`.ParameterExpression`
+    ///         instances this flag will have no effect as angle bounds only impact
+    ///         non-parameterized operations in the circuit.
+    ///
+    /// Returns:
+    ///     bool: Returns ``True`` if the instruction is supported and ``False`` if it isn't.
+    #[pyo3(
+        name = "instruction_supported",
+        signature = (operation_name=None, qargs=Qargs::Global, operation_class=None, parameters=None, check_angle_bounds=true)
+    )]
+    fn instruction_supported(
+        &self,
+        operation_name: Option<String>,
+        qargs: Qargs,
+        operation_class: Option<&Bound<PyAny>>,
+        parameters: Option<Vec<Param>>,
+        check_angle_bounds: bool,
+    ) -> PyResult<bool> {
+        let mut qargs = qargs;
+        let num_qubits = if let Some(num_qubits) = self.inner.num_qubits {
+            num_qubits
+        } else {
+            qargs = Qargs::Global;
+            0
+        };
+        if let Some(operation_class) = operation_class {
+            for (_, obj) in self.inner.gate_map.iter() {
+                match &obj.instruction {
+                    TargetOperation::Variadic(variable) => {
+                        if !operation_class.eq(variable)? {
+                            continue;
+                        }
+                        // If no qargs operation class is supported
+                        if let Qargs::Concrete(qargs) = &qargs {
+                            return Ok(qargs.iter().all(|qarg| qarg.0 <= num_qubits));
+                        } else {
+                            return Ok(true);
+                        }
+                    }
+                    TargetOperation::Normal(normal) => {
+                        let py = operation_class.py();
+                        if normal.into_pyobject(py)?.is_instance(operation_class)? {
+                            if let Some(parameters) = &parameters {
+                                if parameters.len() != normal.params_view().len() {
+                                    continue;
+                                }
+                                if !check_obj_params(parameters, normal) {
+                                    continue;
+                                }
+                            }
+                            if let Qargs::Concrete(qargs_as_vec) = &qargs {
+                                let gate_map_name = &obj.properties;
+                                if gate_map_name.contains_key(&qargs.as_ref()) {
+                                    return Ok(true);
+                                }
+                                if gate_map_name.contains_key(&Qargs::Global) {
+                                    let qubit_comparison = obj.instruction.num_qubits();
+                                    return Ok(qubit_comparison == qargs_as_vec.len() as u32
+                                        && qargs_as_vec.iter().all(|x| x.0 < num_qubits));
+                                }
+                            } else {
+                                return Ok(true);
+                            }
+                        }
+                    }
+                }
+            }
+            Ok(false)
+        } else if let Some(operation_name) = operation_name {
+            Ok(self.inner.instruction_supported(
+                &operation_name,
+                &qargs,
+                parameters.as_deref().unwrap_or_default(),
+                check_angle_bounds,
+            ))
+        } else {
+            Ok(false)
+        }
+    }
+
+    /// Get the instruction properties for a specific instruction tuple
+    ///
+    /// This method is to be used in conjunction with the
+    /// :attr:`~qiskit.transpiler.Target.instructions` attribute of a
+    /// :class:`~qiskit.transpiler.Target` object. You can use this method to quickly
+    /// get the instruction properties for an element of
+    /// :attr:`~qiskit.transpiler.Target.instructions` by using the index in that list.
+    /// However, if you're not working with :attr:`~qiskit.transpiler.Target.instructions`
+    /// directly it is likely more efficient to access the target directly via the name
+    /// and qubits to get the instruction properties. For example, if
+    /// :attr:`~qiskit.transpiler.Target.instructions` returned::
+    ///
+    ///     [(XGate(), (0,)), (XGate(), (1,))]
+    ///
+    /// you could get the properties of the ``XGate`` on qubit 1 with::
+    ///
+    ///     props = target.instruction_properties(1)
+    ///
+    /// but just accessing it directly via the name would be more efficient::
+    ///
+    ///     props = target['x'][(1,)]
+    ///
+    /// (assuming the ``XGate``'s canonical name in the target is ``'x'``)
+    /// This is especially true for larger targets as this will scale worse with the number
+    /// of instruction tuples in a target.
+    ///
+    /// Args:
+    ///     index (int): The index of the instruction tuple from the
+    ///         :attr:`~qiskit.transpiler.Target.instructions` attribute. For, example
+    ///         if you want the properties from the third element in
+    ///         :attr:`~qiskit.transpiler.Target.instructions` you would set this to be ``2``.
+    /// Returns:
+    ///     InstructionProperties: The instruction properties for the specified instruction tuple
+    fn instruction_properties(&self, index: usize) -> PyResult<Option<InstructionProperties>> {
+        let mut index_counter = 0;
+        for (_, props_map) in self.inner.gate_map.iter() {
+            let gate_map_oper = props_map.properties.values();
+            for inst_props in gate_map_oper {
+                if index_counter == index {
+                    return Ok(inst_props.clone());
+                }
+                index_counter += 1;
+            }
+        }
+        Err(PyIndexError::new_err(format!(
+            "Index: {index:?} is out of range."
+        )))
+    }
+
+    // TODO: Add flag for custom tests
+    /// Private method for development purposes only
+    fn _raw_operation_from_name(&self, py: Python, name: &str) -> PyResult<Py<PyAny>> {
+        if let Some(gate) = self.inner.gate_map.get(name) {
+            match &gate.instruction {
+                TargetOperation::Normal(normal_operation) => create_py_op(
+                    py,
+                    normal_operation.op(),
+                    normal_operation.parameters().cloned(),
+                    normal_operation.label(),
+                ),
+                TargetOperation::Variadic(py_op) => Ok(py_op.clone_ref(py)),
+            }
+        } else {
+            Ok(py.None())
+        }
+    }
+
+    // Instance attributes
+
+    /// The dt attribute.
+    #[getter(_dt)]
+    fn get_dt(&self) -> Option<f64> {
+        self.inner.dt
+    }
+
+    #[setter(_dt)]
+    fn set_dt(&mut self, dt: Option<f64>) {
+        self.inner.dt = dt
+    }
+
+    /// The set of qargs in the target.
+    #[getter]
+    fn qargs(&self, py: Python) -> PyResult<Py<PyAny>> {
+        if let Some(qargs) = self.inner.qargs() {
+            let set = PySet::new(py, qargs)?;
+            Ok(set.into_any().unbind())
+        } else {
+            Ok(py.None())
+        }
+    }
+
+    /// Get the list of tuples ``(:class:`~qiskit.circuit.Instruction`, (qargs))``
+    /// for the target
+    ///
+    /// For globally defined variable width operations the tuple will be of the form
+    /// ``(class, None)`` where class is the actual operation class that
+    /// is globally defined.
+    #[getter]
+    #[pyo3(name = "instructions")]
+    fn instructions(&self, py: Python<'_>) -> PyResult<Py<PyList>> {
+        let list = PyList::empty(py);
+        for (inst, qargs) in self.inner._instructions() {
+            let out_inst = match inst {
+                TargetOperation::Normal(op) => {
+                    create_py_op(py, op.op(), op.parameters().cloned(), op.label())?
+                }
+                TargetOperation::Variadic(op_cls) => op_cls.clone_ref(py),
+            };
+            list.append((out_inst, qargs))?;
+        }
+        Ok(list.unbind())
+    }
+    /// Get the operation names in the target.
+    #[getter]
+    #[pyo3(name = "operation_names")]
+    fn operation_names<'py>(&'py self, py: Python<'py>) -> Bound<'py, PyList> {
+        self.gate_map.bind(py).keys()
+    }
+
+    /// Get the operation objects in the target.
+    #[getter]
+    #[pyo3(name = "operations")]
+    fn operations(&self, py: Python<'_>) -> PyResult<Py<PyList>> {
+        Ok(PyList::new(py, self.inner.gate_map.values().map(|op| &op.instruction))?.unbind())
+    }
+
+    /// Returns a sorted list of physical qubits.
+    #[getter]
+    #[pyo3(name = "physical_qubits")]
+    fn physical_qubits(&self, py: Python<'_>) -> PyResult<Py<PyList>> {
+        Ok(PyList::new(py, self.inner.physical_qubits())?.unbind())
+    }
+
+    // Magic methods:
+
+    fn __len__(&self, py: Python<'_>) -> PyResult<usize> {
+        Ok(self.gate_map.bind(py).len())
+    }
+
+    fn __getstate__(&self, py: Python<'_>) -> PyResult<Py<PyDict>> {
+        let result_list = PyDict::new(py);
+        result_list.set_item("description", self.inner.description.clone())?;
+        result_list.set_item("num_qubits", self.inner.num_qubits)?;
+        result_list.set_item("dt", self.inner.dt)?;
+        result_list.set_item("granularity", self.inner.granularity)?;
+        result_list.set_item("min_length", self.inner.min_length)?;
+        result_list.set_item("pulse_alignment", self.inner.pulse_alignment)?;
+        result_list.set_item("acquire_alignment", self.inner.acquire_alignment)?;
+        result_list.set_item("qubit_properties", self.inner.qubit_properties.clone())?;
+        result_list.set_item(
+            "concurrent_measurements",
+            self.inner.concurrent_measurements.clone(),
+        )?;
+        let bound_map = self.gate_map.bind(py);
+        let gate_map: Vec<(String, Bound<PyDict>)> = self
+            .inner
+            .gate_map
+            .iter()
+            .map(|entry| -> PyResult<_> {
+                let entry_dict = PyDict::new(py);
+                entry_dict.set_item("properties", bound_map.get_item(&entry.0)?)?;
+                entry_dict.set_item("instruction", &entry.1.instruction)?;
+                entry
+                    .1
+                    .angle_bounds
+                    .as_ref()
+                    .map(|bounds| -> PyResult<_> {
+                        entry_dict.set_item("angle_bounds", bounds.bounds().to_vec())
+                    })
+                    .transpose()?;
+                Ok((entry.0.clone(), entry_dict))
+            })
+            .collect::<PyResult<_>>()?;
+        result_list.set_item("gate_map", gate_map.into_py_dict(py)?)?;
+        result_list.set_item("global_operations", self.inner.global_operations.clone())?;
+        result_list.set_item("qarg_gate_map", self.inner.qarg_gate_map.clone())?;
+        Ok(result_list.unbind())
+    }
+
+    fn __setstate__(&mut self, state: Bound<PyDict>) -> PyResult<()> {
+        self.inner.description = state
+            .get_item("description")?
+            .unwrap()
+            .extract::<Option<String>>()?;
+        self.inner.num_qubits = state
+            .get_item("num_qubits")?
+            .unwrap()
+            .extract::<Option<u32>>()?;
+        self.inner.dt = state.get_item("dt")?.unwrap().extract::<Option<f64>>()?;
+        self.inner.granularity = state.get_item("granularity")?.unwrap().extract::<u32>()?;
+        self.inner.min_length = state.get_item("min_length")?.unwrap().extract::<u32>()?;
+        self.inner.pulse_alignment = state
+            .get_item("pulse_alignment")?
+            .unwrap()
+            .extract::<u32>()?;
+        self.inner.acquire_alignment = state
+            .get_item("acquire_alignment")?
+            .unwrap()
+            .extract::<u32>()?;
+        self.inner.qubit_properties = state
+            .get_item("qubit_properties")?
+            .unwrap()
+            .extract::<Option<Vec<QubitProperties>>>()?;
+        self.inner.concurrent_measurements = state
+            .get_item("concurrent_measurements")?
+            .unwrap()
+            .extract::<Option<Vec<Vec<PhysicalQubit>>>>()?;
+        let raw_gate_map = PyDict::new(state.py());
+        let mut gate_map: IndexMap<String, TargetProperties, RandomState> = IndexMap::default();
+        type Bounds = SmallVec<[Option<[f64; 2]>; 3]>;
+        let mut bounds_map: Vec<(String, Bounds)> = Vec::new();
+        let source_map = state.get_item("gate_map")?.unwrap().cast_into::<PyDict>()?;
+        for (key, value) in source_map.iter() {
+            let value = value.cast::<PyDict>()?;
+            let angle_bound = value
+                .get_item("angle_bounds")?
+                .map(|out| -> PyResult<_> { out.extract::<SmallVec<[Option<[f64; 2]>; 3]>>() })
+                .transpose()?;
+            let key: String = key.extract()?;
+            if let Some(angle_bound) = angle_bound {
+                bounds_map.push((key.clone(), angle_bound));
+            }
+            let properties = value.get_item("properties")?.unwrap();
+            gate_map.insert(
+                key.clone(),
+                TargetProperties {
+                    properties: properties.extract()?,
+                    instruction: value.get_item("instruction")?.unwrap().extract()?,
+                    angle_bounds: None,
+                },
+            );
+            raw_gate_map.set_item(key, properties)?;
+        }
+        self.gate_map = raw_gate_map.unbind();
+        self.inner.qarg_gate_map = state
+            .get_item("qarg_gate_map")?
+            .unwrap()
+            .extract::<HashMap<Qargs, HashSet<String>>>()?;
+        self.inner.global_operations = state
+            .get_item("global_operations")?
+            .unwrap()
+            .extract::<HashMap<u32, HashSet<String>>>()?;
+        for (gate, bounds) in bounds_map {
+            self.inner
+                .add_owned_angle_bound(gate.as_str(), bounds)
+                .map_err(|err| TranspilerError::new_err(err.to_string()))?;
+        }
+        Ok(())
+    }
+
+    /// Check if there are any angle bounds set in the target
+    ///
+    /// Returns:
+    ///     bool: This will return ``True`` if there are angle bounds set on any instructions in
+    ///     the circuit
+    fn has_angle_bounds(&self) -> bool {
+        self.inner.has_angle_bounds()
+    }
+
+    /// Check if a specific gate gate has an angle bound set
+    ///
+    /// Args:
+    ///     name (str): The instruction name to check if it has an angle bound set
+    ///
+    /// Returns:
+    ///     bool: This will return ``True`` if the gate is in the target and has angle bounds
+    ///     defined. It will return ``False`` if the gate does not have angle bounds defined
+    ///     or is not in the target.
+    fn gate_has_angle_bounds(&self, name: &str) -> bool {
+        self.inner.gate_has_angle_bounds(name)
+    }
+
+    /// Check that parameters on a specific gate conform to the angle bounds
+    ///
+    /// Args:
+    ///     name (str): The instruction name to check the angle bounds of
+    ///     angles (list): A list of float parameter values for ``name``
+    ///         to see if they conform to the defined angle bounds.
+    ///
+    /// Returns:
+    ///     bool: Returns ``True`` if the parameter values specified are compatible with the
+    ///     angle bounds. ``False`` is returned if the any of the parameters
+    ///     are outside the defined bounds.
+    ///
+    /// Raises:
+    ///     TranspilerError: If ``name`` is not in the target or does not
+    ///     have angle bounds defined.
+    ///
+    fn supported_angle_bound(&self, name: &str, angles: Vec<f64>) -> PyResult<bool> {
+        Ok(self.inner.supported_angle_bound(name, angles)?)
+    }
+}
+
 pub fn target(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<InstructionProperties>()?;
-    m.add_class::<Target>()?;
+    m.add_class::<PyTarget>()?;
     m.add_class::<QubitProperties>()?;
     Ok(())
 }
