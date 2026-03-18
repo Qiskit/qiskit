@@ -39,6 +39,7 @@ pub mod parameter_table;
 pub mod register_data;
 pub mod slice;
 pub mod util;
+pub mod var_stretch_container;
 mod variable_mapper;
 pub mod vf2;
 

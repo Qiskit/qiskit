@@ -18,7 +18,7 @@ use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_transpiler::passes::run_split_2q_unitaries;
 use qiskit_transpiler::transpile_layout::TranspileLayout;
 
-/// @ingroup QkTranspilerPasses
+/// @ingroup QkTranspilerPassesStandalone
 /// Run the Split2QUnitaries transpiler pass on a circuit.
 ///
 /// Refer to the ``qk_transpiler_pass_split_2q_unitaries`` function for more details about the pass.

@@ -13,6 +13,8 @@
 use pyo3::prelude::*;
 pub use qiskit_cext::*;
 
+mod capi;
+
 #[inline(always)]
 #[doc(hidden)]
 fn add_submodule<F>(m: &Bound<PyModule>, constructor: F, name: &str) -> PyResult<()>
@@ -29,6 +31,7 @@ where
 #[rustfmt::skip]
 #[pymodule]
 fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
+    add_submodule(m, capi::capi_mod, "capi")?;
     add_submodule(m, ::qiskit_transpiler::passes::alap_schedule_analysis_mod, "alap_schedule_analysis")?;
     add_submodule(m, ::qiskit_transpiler::passes::asap_schedule_analysis_mod, "asap_schedule_analysis")?;
     add_submodule(m, ::qiskit_transpiler::passes::apply_layout_mod, "apply_layout")?;
@@ -91,6 +94,8 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_transpiler::passes::wrap_angles_mod, "wrap_angles")?;
     add_submodule(m, ::qiskit_transpiler::passes::optimize_clifford_t_mod, "optimize_clifford_t")?;
     add_submodule(m, ::qiskit_transpiler::passes::substitute_pi4_rotations_mod, "substitute_pi4_rotations")?;
+    add_submodule(m, ::qiskit_transpiler::passes::synthesize_rz_rotations_mod, "synthesize_rz_rotations")?;
+
     add_submodule(m, ::qiskit_transpiler::passes::convert_to_pauli_rotations_mod, "convert_to_pauli_rotations")?;
     Ok(())
 }

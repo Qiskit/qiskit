@@ -28,8 +28,9 @@ from qiskit.circuit.library import (
     XXPlusYYGate,
     GlobalPhaseGate,
     UnitaryGate,
+    PauliEvolutionGate,
 )
-from qiskit.quantum_info import Operator
+from qiskit.quantum_info import Operator, Pauli
 from qiskit.transpiler.passes import RemoveIdentityEquivalent
 from qiskit.transpiler.target import Target, InstructionProperties
 
@@ -209,3 +210,35 @@ class TestRemoveIdentityEquivalent(QiskitTestCase):
         qc.append(GlobalPhaseGate(theta), [])
         transpiled = RemoveIdentityEquivalent()(qc)
         self.assertEqual(qc, transpiled)
+
+    def test_pauli_evo_equals_stdgate(self):
+        """Test the Pauli evolution gate is consistent with std gates."""
+
+        def get_rz(angle):
+            qc = QuantumCircuit(1)
+            qc.rz(angle, 0)
+            return qc
+
+        def get_paulievo(angle, n):
+            evo = PauliEvolutionGate(Pauli("Z" + (n - 1) * "I"), time=angle / 2)
+            qc = QuantumCircuit(evo.num_qubits)
+            qc.append(evo, qc.qubits)
+            return qc
+
+        pass_ = RemoveIdentityEquivalent()
+
+        # It is important to cover a small enough grid around the threshold where we
+        # start removing gates, to ensure all cases are handled consistently. That
+        # threshold can be calculated by inverting the avg. gate fidelity with the
+        # default tol of 1e-12, coming out at an angle of roughly 3.5e-06.
+        for angle in np.linspace(1e-5, 1e-6, num=25):
+            # number of expected instructions
+            rz = get_rz(angle)
+            expected = pass_(rz).count_ops().get("rz", 0)
+
+            # check the number matches for different `n`
+            for n in [1, 10]:
+                with self.subTest(n=n):
+                    evo = get_paulievo(angle, n)
+                    num_inst = pass_(evo).count_ops().get("PauliEvolution", 0)
+                    self.assertEqual(expected, num_inst)
