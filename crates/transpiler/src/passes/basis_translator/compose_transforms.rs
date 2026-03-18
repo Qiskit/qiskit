@@ -11,34 +11,25 @@
 // that they have been altered from the originals.
 
 use super::errors::BasisTranslatorError;
-use hashbrown::HashMap;
 use indexmap::{IndexMap, IndexSet};
-use pyo3::prelude::*;
+use qiskit_circuit::Qubit;
 use qiskit_circuit::bit::QuantumRegister;
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::imports::GATE;
-use qiskit_circuit::instruction::{Instruction, Parameters};
-use qiskit_circuit::operations::{StandardGate, StandardInstruction, get_standard_gate_names};
-use qiskit_circuit::packed_instruction::PackedOperation;
+use qiskit_circuit::instruction::Parameters;
+use qiskit_circuit::operations::{CustomOp, CustomOperation};
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::parameter::symbol_expr::Symbol;
 use qiskit_circuit::parameter_table::ParameterUuid;
-use qiskit_circuit::{NoBlocks, Qubit};
 use qiskit_circuit::{
     dag_circuit::DAGCircuit,
     operations::{Operation, Param},
 };
 use smallvec::SmallVec;
-use std::sync::OnceLock;
 
 // Custom types
 pub type GateIdentifier = (String, u32);
 pub type BasisTransformIn = (SmallVec<[Param; 3]>, CircuitData);
 pub type BasisTransformOut = (SmallVec<[Param; 3]>, DAGCircuit);
-
-static STD_GATE_MAPPING: OnceLock<HashMap<&str, StandardGate>> = OnceLock::new();
-static STD_INST_SET: [&str; 4] = ["barrier", "delay", "measure", "reset"];
 
 pub(super) fn compose_transforms<'a>(
     basis_transforms: &'a [(GateIdentifier, BasisTransformIn)],
@@ -53,7 +44,7 @@ pub(super) fn compose_transforms<'a>(
 
     for (gate_name, gate_num_qubits) in source_basis.iter().cloned() {
         let num_params = gate_param_counts[&(gate_name.clone(), gate_num_qubits)];
-        let mut placeholder_params: SmallVec<[Param; 3]> = (0..num_params as u32)
+        let placeholder_params: SmallVec<[Param; 3]> = (0..num_params as u32)
             .map(|idx| {
                 Param::ParameterExpression(
                     ParameterExpression::from_symbol(Symbol::new(&gate_name, None, Some(idx)))
@@ -70,18 +61,12 @@ pub(super) fn compose_transforms<'a>(
                 "Error while adding register to the circuit".to_string(),
             )
         })?;
-        let gate = if let Some(op) = name_to_packed_operation(&gate_name, gate_num_qubits) {
-            op
-        } else {
-            let extract_py = Python::attach(|py| -> PyResult<OperationFromPython<NoBlocks>> {
-                GATE.get_bound(py)
-                    .call1((&gate_name, gate_num_qubits, placeholder_params.as_ref()))?
-                    .extract()
-            })
-            .unwrap_or_else(|_| panic!("Error creating custom gate for entry {}", gate_name));
-            placeholder_params = extract_py.params_view().iter().cloned().collect();
-            extract_py.operation
-        };
+        let gate = CustomOp::from(CustomDummy {
+            name: gate_name.clone(),
+            num_qubits: gate_num_qubits,
+            num_params: placeholder_params.len() as u32,
+        })
+        .into();
         let qubits: Vec<Qubit> = (0..dag.num_qubits() as u32).map(Qubit).collect();
         dag.apply_operation_back(
             gate,
@@ -157,33 +142,6 @@ pub(super) fn compose_transforms<'a>(
     Ok(mapped_instructions)
 }
 
-/// Creates the placeholder gate as [PackedOperation].
-fn name_to_packed_operation(name: &str, num_qubits: u32) -> Option<PackedOperation> {
-    let std_gate_mapping = STD_GATE_MAPPING.get_or_init(|| {
-        get_standard_gate_names()
-            .iter()
-            .enumerate()
-            .map(|(k, v)| (*v, bytemuck::checked::cast(k as u8)))
-            .collect()
-    });
-    if let Some(operation) = std_gate_mapping.get(name) {
-        Some((*operation).into())
-    } else if STD_INST_SET.contains(&name) {
-        let inst = match name {
-            "barrier" => StandardInstruction::Barrier(num_qubits),
-            "delay" => StandardInstruction::Delay(qiskit_circuit::operations::DelayUnit::DT),
-            "measure" => StandardInstruction::Measure,
-            "reset" => StandardInstruction::Reset,
-            _ => unreachable!(),
-        };
-        Some(inst.into())
-    } else if name == "unitary" {
-        unreachable!("Having a unitary result from an `EquivalenceLibrary is not possible")
-    } else {
-        None
-    }
-}
-
 /// `DAGCircuit` variant.
 ///
 /// Gets the identifier of a gate instance (name, number of qubits) mapped to the
@@ -207,5 +165,45 @@ fn get_gates_num_params(
                 inst.params_view().len(),
             );
         }
+    }
+}
+
+/// Dummy gate used exclusively for the Basis Translator as a placeholder.
+#[derive(Debug, Clone)]
+struct CustomDummy {
+    name: String,
+    num_qubits: u32,
+    num_params: u32,
+}
+
+impl Operation for CustomDummy {
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    fn num_qubits(&self) -> u32 {
+        self.num_qubits
+    }
+
+    fn num_clbits(&self) -> u32 {
+        0
+    }
+
+    fn num_params(&self) -> u32 {
+        self.num_params
+    }
+
+    fn directive(&self) -> bool {
+        false
+    }
+}
+
+impl CustomOperation for CustomDummy {
+    fn clone_dyn(&self) -> Box<dyn CustomOperation> {
+        Box::new(self.clone())
+    }
+
+    fn kind(&self) -> qiskit_circuit::operations::CustomOperationKind {
+        qiskit_circuit::operations::CustomOperationKind::Gate
     }
 }

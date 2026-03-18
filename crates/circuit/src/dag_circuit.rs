@@ -7562,6 +7562,7 @@ impl DAGCircuit {
                         OperationRef::StandardGate(gate) => gate.into(),
                         OperationRef::StandardInstruction(instruction) => instruction.into(),
                         OperationRef::Unitary(unitary) => unitary.clone().into(),
+                        OperationRef::CustomOperation(_) => instr.op.clone(),
                         OperationRef::PauliProductMeasurement(ppm) => {
                             PauliBased::PauliProductMeasurement(ppm.clone()).into()
                         }
