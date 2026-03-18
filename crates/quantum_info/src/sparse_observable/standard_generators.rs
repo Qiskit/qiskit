@@ -400,7 +400,7 @@ pub fn generator_observable(
         StandardGate::ECR => (
             vec![C_ECR_FACTOR, C_M_ECR_FACTOR],
             vec![X, Y, X],
-            vec![1, 0, 1],
+            vec![0, 0, 1],
             vec![0, 1, 3],
         ),
         _ => return None,
