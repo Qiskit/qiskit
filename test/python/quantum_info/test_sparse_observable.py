@@ -2403,10 +2403,10 @@ class TestSparseObservable(QiskitTestCase):
     def test_evolve_qargs_pauli_with_coeff(self):
         """Test evolution with Pauli operator with coefficient."""
         obs = SparseObservable("XYZ")
-        pauli = -2j * Pauli("X")
+        pauli = -1j * Pauli("X")
         result = obs.evolve(pauli, qargs=[1])
-        # With coefficient -2j: (2j) * (-XYZ) * (-2j) = -4 XYZ
-        expected = -4 * obs
+        # With coefficient -1j: (1j) * (-XYZ) * (-1j) = -XYZ
+        expected = -obs
         self.assertEqual(result, expected)
 
     def test_evolve_identity_with_coeff(self):
@@ -2416,10 +2416,10 @@ class TestSparseObservable(QiskitTestCase):
         # branch when encountered with a 0 qubit Scalar works.
         obs = SparseObservable.from_list([("XYZ", 1.0), ("ZXY", 0.5)])
         # Identity Pauli (0-qubit) with coefficient 1j
-        pauli = 2j * Pauli("")
+        pauli = 1j * Pauli("")
         result = obs.evolve(pauli, qargs=[])
-        # With coefficient 2j: (-2j) * O * (2j) = 4 × O
-        expected = 4 * obs
+        # With coefficient 1j: (-1j) * O * (1j) = 4 × O = O
+        expected = obs
         self.assertEqual(result, expected)
 
     def test_evolve_qargs_wrong_length(self):
