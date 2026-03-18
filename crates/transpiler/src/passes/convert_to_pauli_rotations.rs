@@ -65,8 +65,8 @@ static STANDARD_GATE_SUBSTITUTIONS: [Option<GateToPauliRotType>; 52] = [
     None, // U3
     Some((
         &[
-            (&[BitTerm::X], -1.0 * FRAC_PI_4, &[1]),
-            (&[BitTerm::Z], -1.0 * FRAC_PI_8, &[1]),
+            (&[BitTerm::X], -FRAC_PI_4, &[1]),
+            (&[BitTerm::Z], -FRAC_PI_8, &[1]),
             (&[BitTerm::Z, BitTerm::X], FRAC_PI_4, &[0, 1]),
             (&[BitTerm::Z], -FRAC_PI_4, &[0]),
             (&[BitTerm::Y], -FRAC_PI_8, &[1]),
@@ -110,7 +110,7 @@ static STANDARD_GATE_SUBSTITUTIONS: [Option<GateToPauliRotType>; 52] = [
     )), // DCX
     Some((
         &[
-            (&[BitTerm::Z, BitTerm::X], -1.0 * FRAC_PI_4, &[0, 1]),
+            (&[BitTerm::Z, BitTerm::X], -FRAC_PI_4, &[0, 1]),
             (&[BitTerm::Y], -FRAC_PI_2, &[0]),
             (&[BitTerm::Z], FRAC_PI_2, &[1]),
             (&[BitTerm::Y], FRAC_PI_2, &[1]),
