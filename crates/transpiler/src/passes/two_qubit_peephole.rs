@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use std::cell::RefCell;
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
@@ -37,6 +38,7 @@ use crate::target::Target;
 use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::getenv_use_multiple_threads;
 use qiskit_quantum_info::convert_2q_block_matrix::blocks_to_matrix;
+use thread_local::ThreadLocal;
 
 type MappingIterItem = Option<(TwoQSynthesisResult, [Qubit; 2])>;
 
@@ -78,7 +80,7 @@ pub fn two_qubit_unitary_peephole_optimize(
         approximation,
         ..Default::default()
     };
-
+    let thread_local_states = ThreadLocal::new();
     let find_best_sequence =
         |run_index: usize, node_indices: &[NodeIndex]| -> PyResult<MappingIterItem> {
             let q_virt = node_indices
@@ -95,12 +97,13 @@ pub fn two_qubit_unitary_peephole_optimize(
                 .unwrap();
             let q_phys = q_virt.map(|q| physical_qubits[q.index()]);
             let matrix = blocks_to_matrix(dag, node_indices, q_virt)?;
-            let mut synthesis_state = UnitarySynthesisState::new(unitary_synthesis_config);
+            let synthesis_state: &RefCell<UnitarySynthesisState> = thread_local_states
+                .get_or(|| RefCell::new(UnitarySynthesisState::new(unitary_synthesis_config)));
 
             let result = synthesize_2q_matrix(
                 matrix.into(),
                 q_phys,
-                &mut synthesis_state,
+                &mut synthesis_state.borrow_mut(),
                 QpuConstraint::Target(target),
             )?;
             if result.is_none() {

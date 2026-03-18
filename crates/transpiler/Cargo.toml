@@ -31,6 +31,7 @@ bytemuck.workspace = true
 fixedbitset.workspace = true
 anyhow.workspace = true
 dashmap = "6.1.0"
+thread_local = "1.1"
 
 [dependencies.uuid]
 workspace = true
