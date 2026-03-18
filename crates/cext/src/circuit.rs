@@ -1493,7 +1493,7 @@ mod py {
         }
     }
 
-    /// @ingroup QkDag
+    /// @ingroup QkCircuit
     /// Retrieve a `QkCircuit` pointer from a Python object.
     ///
     /// Note that the input to this function should _not_ be `QuantumCircuit`, but the output of
@@ -1501,8 +1501,8 @@ mod py {
     ///
     /// This borrows a Python reference and extracts the `QkCircuit` pointer for it into
     /// ``address``, if it is of the correct type.  The returned pointer is borrowed from the
-    /// `object` pointer.  If the ``PyObject`` is not the correct type, the return value is 1, the
-    /// exception state of the Python interpreter is set, and ``address`` is unchanged.
+    /// `object` pointer.  If the `PyObject` is not the correct type, the return value is 0, the
+    /// exception state of the Python interpreter is set, and `address` is unchanged.
     ///
     /// You must be attached to a Python interpreter to call this function.
     ///
@@ -1549,7 +1549,7 @@ mod py {
     ///
     /// # Safety
     ///
-    /// The caller must be attached to a Python interpreter.  Behavior is undefined if `circuit` is not
+    /// The caller must be attached to a Python interpreter.  Behavior is undefined if `qr` is not
     /// a valid non-null pointer to an initialized and owned `QkQuantumRegister`.
     #[unsafe(no_mangle)]
     pub unsafe extern "C" fn qk_quantum_register_to_python(
@@ -1573,8 +1573,8 @@ mod py {
     ///
     /// This borrows a Python reference and extracts the `QkQuantumRegister` pointer for it, if it
     /// is of the correct type.  The returned pointer is borrowed from the `ob` pointer.  If the
-    /// ``PyObject`` is not the correct type, the return value is ``NULL`` and the exception
-    /// state of the Python interpreter is set.
+    /// `PyObject` is not the correct type, the return value is `NULL` and the exception state of
+    /// the Python interpreter is set.
     ///
     /// You must be attached to a Python interpreter to call this function.
     ///
@@ -1605,21 +1605,18 @@ mod py {
         }
     }
 
-    /// @ingroup QkDag
-    /// Retrieve a `QkCircuit` pointer from a Python object.
+    /// @ingroup QkCircuit
+    /// Retrieve a `QkQuantumRegister` pointer from a Python object.
     ///
-    /// Note that the input to this function should _not_ be `QuantumCircuit`, but the output of
-    /// `QuantumCircuit._data`.  This is necessary to enforce correct reference-counting semantics.
-    ///
-    /// This borrows a Python reference and extracts the `QkCircuit` pointer for it into
-    /// ``address``, if it is of the correct type.  The returned pointer is borrowed from the
-    /// `object` pointer.  If the ``PyObject`` is not the correct type, the return value is 1, the
-    /// exception state of the Python interpreter is set, and ``address`` is unchanged.
+    /// This borrows a Python reference and extracts the `QkQuantumRegister` pointer for it into
+    /// `address`, if it is of the correct type.  The returned pointer is borrowed from the
+    /// `object` pointer.  If the `PyObject` is not the correct type, the return value is 0, the
+    /// exception state of the Python interpreter is set, and `address` is unchanged.
     ///
     /// You must be attached to a Python interpreter to call this function.
     ///
-    /// You can also use `qk_circuit_borrow_from_python`, which is logically the exact same as this,
-    /// but with a more natural signature for direct usage.
+    /// You can also use `qk_quantum_register_borrow_from_python`, which is logically the exact same
+    /// as this, but with a more natural signature for direct usage.
     ///
     /// @param object A borrowed Python object.
     /// @param address The location to write the output to.
@@ -1661,7 +1658,7 @@ mod py {
     ///
     /// # Safety
     ///
-    /// The caller must be attached to a Python interpreter.  Behavior is undefined if `circuit` is not
+    /// The caller must be attached to a Python interpreter.  Behavior is undefined if `cr` is not
     /// a valid non-null pointer to an initialized and owned `QkClassicalRegister`.
     #[unsafe(no_mangle)]
     pub unsafe extern "C" fn qk_classical_register_to_python(
@@ -1717,20 +1714,17 @@ mod py {
         }
     }
 
-    /// @ingroup QkDag
-    /// Retrieve a `QkCircuit` pointer from a Python object.
+    /// @ingroup QkCircuit
+    /// Retrieve a `QkClassicalRegister` pointer from a Python object.
     ///
-    /// Note that the input to this function should _not_ be `QuantumCircuit`, but the output of
-    /// `QuantumCircuit._data`.  This is necessary to enforce correct reference-counting semantics.
-    ///
-    /// This borrows a Python reference and extracts the `QkCircuit` pointer for it into
-    /// ``address``, if it is of the correct type.  The returned pointer is borrowed from the
-    /// `object` pointer.  If the ``PyObject`` is not the correct type, the return value is 1, the
-    /// exception state of the Python interpreter is set, and ``address`` is unchanged.
+    /// This borrows a Python reference and extracts the `QkClassicalRegister` pointer for it into
+    /// `address`, if it is of the correct type.  The returned pointer is borrowed from the
+    /// `object` pointer.  If the `PyObject` is not the correct type, the return value is 0, the
+    /// exception state of the Python interpreter is set, and `address` is unchanged.
     ///
     /// You must be attached to a Python interpreter to call this function.
     ///
-    /// You can also use `qk_circuit_borrow_from_python`, which is logically the exact same as this,
+    /// You can also use `qk_classical_register_borrow_from_python`, which is logically the exact same as this,
     /// but with a more natural signature for direct usage.
     ///
     /// @param object A borrowed Python object.

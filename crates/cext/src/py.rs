@@ -23,6 +23,8 @@ use pyo3::pyclass::boolean_struct::False;
 /// contains `SparseObservable`).  We do this with a `map_fn` so we can control the safety of the
 /// lifetime of the temporary reference.
 ///
+/// You can use [`borrow_map_mut`] if you need mutable access to the underlying Rust struct.
+///
 /// The returned pointer derives its lifetime from the lifetime of `ob`.  The reference `ob` is only
 /// borrowed by the function.
 ///
@@ -79,6 +81,9 @@ where
 /// the object exposed to Python contains the raw Rust type (for example, `PySparseObservable`
 /// contains `SparseObservable`).  We do this with a `map_fn` so we can control the safety of the
 /// lifetime of the temporary reference.
+///
+/// You can use [`borrow_map`] if you don't need mutable access, which makes it possible to use this
+/// with structs marked `pyclass(frozen)`.
 ///
 /// The returned pointer derives its lifetime from the lifetime of `ob`.  The reference `ob` is only
 /// borrowed by the function.
