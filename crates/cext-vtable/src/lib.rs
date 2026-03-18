@@ -21,11 +21,12 @@ pub use crate::impl_::ExportedFunctions;
 // =================================================================================================
 
 // We use a (small) number of different tables here so there's more breaks and places to expand.
-pub static FUNCTIONS_CIRCUIT: ExportedFunctions = ExportedFunctions::empty()
-    .add_child(0, &circuit::FUNCTIONS)
-    .add_child(100, &dag::FUNCTIONS)
-    .add_child(200, &param::FUNCTIONS)
-    .add_child(250, &circuit_library::FUNCTIONS);
+pub static FUNCTIONS_CIRCUIT: ExportedFunctions =
+    ExportedFunctions::leaves(5, || vec![impl_::export_fn!(qiskit_cext::qk_api_version)])
+        .add_child(5, &circuit::FUNCTIONS)
+        .add_child(105, &dag::FUNCTIONS)
+        .add_child(205, &param::FUNCTIONS)
+        .add_child(255, &circuit_library::FUNCTIONS);
 pub static FUNCTIONS_QI: ExportedFunctions =
     ExportedFunctions::empty().add_child(0, &sparse_observable::FUNCTIONS);
 pub use transpiler::FUNCTIONS as FUNCTIONS_TRANSPILE;
