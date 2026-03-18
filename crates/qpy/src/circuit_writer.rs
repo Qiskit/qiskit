@@ -29,9 +29,7 @@ use pyo3::types::{PyAny, PyDict, PyTuple};
 use qiskit_circuit::bit::{
     ClassicalRegister, PyClbit, PyQubit, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
-use qiskit_circuit::circuit_data::{
-    CircuitData, CircuitStretchType, CircuitVarType, PyCircuitData,
-};
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::imports;
@@ -45,7 +43,7 @@ use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 
 use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
-use crate::formats::{self, ConditionPack};
+use crate::formats;
 use crate::params::pack_param_obj;
 use crate::py_methods::{
     PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME, PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME,
@@ -57,6 +55,7 @@ use crate::value::{
     QPYWriteData, RegisterType, get_circuit_type_key, pack_for_collection, pack_generic_value,
     pack_standalone_var, pack_stretch, serialize, serialize_param_register_value,
 };
+use qiskit_circuit::var_stretch_container::{StretchType, VarType};
 
 use crate::UnsupportedFeatureForVersion;
 
@@ -377,7 +376,7 @@ fn pack_control_flow_inst(
     qpy_data: &mut QPYWriteData,
 ) -> PyResult<formats::CircuitInstructionV2Pack> {
     let mut packed_annotations = None;
-    let mut packed_condition: ConditionPack = Default::default();
+    let mut packed_condition: formats::ConditionPack = Default::default();
     let mut extras_key = 0; // should contain a combination of condition key and annotations key, if present
 
     let params = match control_flow_inst.control_flow.clone() {
@@ -721,7 +720,10 @@ fn pack_circuit_header(
         num_qubits: qpy_data.circuit_data.num_qubits() as u32,
         num_clbits: qpy_data.circuit_data.num_clbits() as u32,
         num_instructions: qpy_data.circuit_data.len() as u64,
-        num_vars: qpy_data.circuit_data.num_identifiers() as u32,
+        num_vars: qpy_data
+            .circuit_data
+            .vars_stretches_view()
+            .num_identifiers() as u32,
         circuit_name: circuit_name.unwrap_or_default(),
         global_phase_data: global_phase_data.data,
         global_phase_type: global_phase_data.type_key,
@@ -1084,7 +1086,11 @@ fn pack_standalone_vars(
     let mut index: u16 = 0;
     let mut uuid: u128 = 0;
     // input vars
-    for var in qpy_data.circuit_data.get_vars(CircuitVarType::Input) {
+    for var in qpy_data
+        .circuit_data
+        .vars_stretches_view()
+        .iter_vars(VarType::Input)
+    {
         let var_pack = pack_standalone_var(
             var,
             ExpressionVarDeclaration::Input,
@@ -1097,7 +1103,11 @@ fn pack_standalone_vars(
     }
 
     // captured vars
-    for var in qpy_data.circuit_data.get_vars(CircuitVarType::Capture) {
+    for var in qpy_data
+        .circuit_data
+        .vars_stretches_view()
+        .iter_vars(VarType::Capture)
+    {
         result.push(pack_standalone_var(
             var,
             ExpressionVarDeclaration::Capture,
@@ -1109,7 +1119,11 @@ fn pack_standalone_vars(
     }
 
     // declared vars
-    for var in qpy_data.circuit_data.get_vars(CircuitVarType::Declare) {
+    for var in qpy_data
+        .circuit_data
+        .vars_stretches_view()
+        .iter_vars(VarType::Declare)
+    {
         result.push(pack_standalone_var(
             var,
             ExpressionVarDeclaration::Local,
@@ -1120,8 +1134,16 @@ fn pack_standalone_vars(
         index += 1;
     }
     if qpy_data.version < 14
-        && (qpy_data.circuit_data.num_captured_stretches() > 0
-            || qpy_data.circuit_data.num_declared_stretches() > 0)
+        && (qpy_data
+            .circuit_data
+            .vars_stretches_view()
+            .num_stretches(StretchType::Capture)
+            > 0
+            || qpy_data
+                .circuit_data
+                .vars_stretches_view()
+                .num_stretches(StretchType::Declare)
+                > 0)
     {
         return Err(UnsupportedFeatureForVersion::new_err((
             "circuits containing stretch variables",
@@ -1131,7 +1153,8 @@ fn pack_standalone_vars(
     }
     for stretch in qpy_data
         .circuit_data
-        .get_stretches(CircuitStretchType::Capture)
+        .vars_stretches_view()
+        .iter_stretches(StretchType::Capture)
     {
         result.push(pack_stretch(
             stretch,
@@ -1142,7 +1165,8 @@ fn pack_standalone_vars(
     }
     for stretch in qpy_data
         .circuit_data
-        .get_stretches(CircuitStretchType::Declare)
+        .vars_stretches_view()
+        .iter_stretches(StretchType::Declare)
     {
         result.push(pack_stretch(
             stretch,
@@ -1160,7 +1184,7 @@ pub(crate) fn pack_circuit(
     _use_symengine: bool,
     version: u32,
     annotation_factories: &Bound<PyDict>,
-) -> PyResult<formats::QPYCircuitV17> {
+) -> PyResult<formats::QPYCircuit> {
     let annotation_handler = AnnotationHandler::new(annotation_factories);
     let mut qpy_data = QPYWriteData {
         circuit_data: &mut circuit.data,
@@ -1177,7 +1201,9 @@ pub(crate) fn pack_circuit(
     )?;
     // Pulse has been removed in Qiskit 2.0. As long as we keep QPY at version 13,
     // we need to write an empty calibrations header since read_circuit expects it
-    let calibrations = formats::CalibrationsPack { num_cals: 0 };
+    let calibrations = formats::CalibrationsPack {
+        calibrations: vec![],
+    };
     let (instructions, mut custom_instructions_hash) = pack_instructions(&mut qpy_data)?;
     let custom_instructions =
         pack_custom_instructions(&mut custom_instructions_hash, &mut qpy_data)?;
@@ -1188,8 +1214,8 @@ pub(crate) fn pack_circuit(
         .into_iter()
         .map(|(namespace, state)| formats::AnnotationStateHeaderPack { namespace, state })
         .collect();
-    let annotation_headers = formats::AnnotationHeaderStaticPack { state_headers };
-    Ok(formats::QPYCircuitV17 {
+    let annotation_headers = Some(formats::AnnotationHeaderStaticPack { state_headers });
+    Ok(formats::QPYCircuit {
         header,
         standalone_vars,
         annotation_headers,
