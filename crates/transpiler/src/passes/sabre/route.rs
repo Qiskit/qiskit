@@ -41,7 +41,7 @@ use super::layer::Layer;
 use super::vec_map::VecMap;
 use crate::TranspilerError;
 use crate::neighbors::Neighbors;
-use crate::target::{Target, TargetCouplingError};
+use crate::target::{PyTarget, Target, TargetCouplingError};
 use qiskit_circuit::dag_circuit::{DAGCircuit, DAGCircuitBuilder, NodeType, Wire};
 use qiskit_circuit::nlayout::NLayout;
 use qiskit_circuit::operations::{ControlFlow, StandardGate};
@@ -395,17 +395,9 @@ impl PyRoutingTarget {
     }
 
     #[staticmethod]
-    pub(crate) fn from_target(target: &Target) -> PyResult<Self> {
-        let coupling = match target.coupling_graph() {
-            Ok(coupling) => coupling,
-            Err(TargetCouplingError::AllToAll) => return Ok(Self(None)),
-            Err(e @ TargetCouplingError::MultiQ(_)) => {
-                return Err(TranspilerError::new_err(e.to_string()));
-            }
-        };
-        Ok(Self(Some(RoutingTarget::from_neighbors(
-            Neighbors::from_coupling(&coupling),
-        ))))
+    #[pyo3(name = "from_target")]
+    pub(crate) fn from_py_target(target: &PyTarget) -> PyResult<Self> {
+        Self::from_target(target)
     }
 
     fn coupling_list(&self) -> Option<Vec<[PhysicalQubit; 2]>> {
@@ -421,6 +413,21 @@ impl PyRoutingTarget {
 
     fn distance_matrix<'py>(&self, py: Python<'py>) -> Option<Bound<'py, PyArray2<f64>>> {
         self.0.as_ref().map(|target| target.distance.to_pyarray(py))
+    }
+}
+
+impl PyRoutingTarget {
+    pub(crate) fn from_target(target: &Target) -> PyResult<Self> {
+        let coupling = match target.coupling_graph() {
+            Ok(coupling) => coupling,
+            Err(TargetCouplingError::AllToAll) => return Ok(Self(None)),
+            Err(e @ TargetCouplingError::MultiQ(_)) => {
+                return Err(TranspilerError::new_err(e.to_string()));
+            }
+        };
+        Ok(Self(Some(RoutingTarget::from_neighbors(
+            Neighbors::from_coupling(&coupling),
+        ))))
     }
 }
 

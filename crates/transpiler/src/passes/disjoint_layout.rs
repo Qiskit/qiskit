@@ -25,6 +25,7 @@ use rustworkx_core::petgraph::visit::{IntoEdgeReferences, IntoNodeReferences, No
 use uuid::Uuid;
 
 use crate::TranspilerError;
+use crate::target::PyTarget;
 use crate::target::{Qargs, Target};
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
@@ -88,7 +89,7 @@ fn subgraph(graph: &CouplingMap, node_set: &HashSet<NodeIndex>) -> CouplingMap {
 #[pyfunction(name = "run_pass_over_connected_components")]
 pub fn py_run_pass_over_connected_components(
     dag: Bound<DAGCircuit>,
-    target: &Target,
+    target: &PyTarget,
     run_func: Bound<PyAny>,
 ) -> PyResult<Option<Vec<Py<PyAny>>>> {
     let py = dag.py();

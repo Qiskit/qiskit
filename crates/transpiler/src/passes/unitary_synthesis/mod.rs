@@ -25,7 +25,7 @@ use pyo3::{intern, wrap_pyfunction};
 
 use self::decomposers::{Decomposer2q, DecomposerCache, Direction2q, FlipDirection};
 use crate::QiskitError;
-use crate::target::Target;
+use crate::target::{PyTarget, Target};
 use qiskit_circuit::bit::QuantumRegister;
 use qiskit_circuit::dag_circuit::{DAGCircuit, DAGCircuitBuilder};
 use qiskit_circuit::instruction::Parameters;
@@ -657,7 +657,7 @@ pub fn py_unitary_synthesis(
     dag: &DAGCircuit,
     qubit_indices: Vec<PhysicalQubit>,
     min_qubits: usize,
-    target: Option<&Target>,
+    target: Option<&PyTarget>,
     basis_gates: HashSet<String>,
     synth_gates: HashSet<String>,
     coupling_edges: HashSet<[PhysicalQubit; 2]>,
@@ -702,7 +702,7 @@ pub fn py_unitary_synthesis(
 pub fn py_synthesize_unitary_matrix(
     unitary: PyReadonlyArray2<Complex64>,
     qubit_indices: Vec<PhysicalQubit>,
-    target: Option<&Target>,
+    target: Option<&PyTarget>,
     basis_gates: HashSet<String>,
     coupling_edges: HashSet<[PhysicalQubit; 2]>,
     approximation_degree: Option<f64>,
