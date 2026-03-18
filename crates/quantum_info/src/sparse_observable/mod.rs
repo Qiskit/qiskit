@@ -863,17 +863,15 @@ impl SparseObservable {
     /// Evolve this [SparseObservable] by another one.
     ///
     /// In terms of operator algebra, evolution corresponds to conjugation:
-    /// ``let b = a.evolve(op);`` corresponds to $B = U^\dagger A U$.
+    /// ``let out = q.evolve(p);`` corresponds to $P^\dagger Q P$.
     ///
     /// This implements Heisenberg-picture evolution of the observable.  Unlike a
     /// literal implementation via two full compositions, this method performs the
     /// conjugation directly at the single-qubit level using a fixed lookup table
-    /// for $P^\dagger Q P$.  This avoids materialising any intermediate
+    /// for $P^\dagger Q P$.  This avoids materializing any intermediate
     /// [SparseObservable] and computes the evolved observable in a single pass.
     ///
-    /// Currently, this method supports evolution only by a *single-term* operator,
-    /// where each local factor is a Pauli or projector [BitTerm]. Currently, if `op` contains
-    /// more than one term, this function will return an Error.
+    /// Currently, this method supports evolution only by a *single-term* [SparseObservable].
     pub fn evolve(
         &self,
         op: &SparseObservable,
@@ -901,6 +899,7 @@ impl SparseObservable {
                 let scalar = op.coeffs()[0];
                 return Ok(self * (scalar.conj() * scalar));
             }
+
             if qargs.len() != op.num_qubits as usize {
                 return Err(ArithmeticError::OutOfBounds(format!(
                     "qargs has length {}, but operator has {} qubit(s)",
@@ -909,13 +908,9 @@ impl SparseObservable {
                 )));
             }
 
-            let mut qargs_sorted = qargs.to_vec();
-            qargs_sorted.sort_unstable();
-
-            for pair in qargs_sorted.windows(2) {
-                if pair[0] == pair[1] {
-                    return Err(ArithmeticError::DuplicatedIndex);
-                }
+            let qargs_set = HashSet::<&u32>::from_iter(qargs.iter());
+            if qargs_set.len() != qargs.len() {
+                return Err(ArithmeticError::DuplicatedIndex);
             }
 
             if let Some(&max_q) = qargs.iter().max() {
@@ -3714,9 +3709,8 @@ impl PySparseObservable {
 
     /// Evolve this observable by a Pauli term.
     ///
-    /// In terms of operator algebra, evolution corresponds to conjugation:
-    /// ``b = a.evolve(u)`` corresponds to :math:`B = U^\dag A U`.  This implements
-    /// Heisenberg-picture evolution of the observable.
+    /// An evolution of the observable :math:`O` by a Pauli :math:`P` corresponds to
+    /// :math:`P^\dagger O P`.
     ///
     /// Unlike a literal implementation via two full compositions, this method
     /// performs the conjugation directly at the single-qubit level using a fixed
@@ -3728,9 +3722,8 @@ impl PySparseObservable {
     /// in ``other`` and the length of ``qargs`` match. ``qargs`` specifies which qubits of
     /// ``self`` are evolved by ``other``.
     ///
-    /// Currently, this method supports evolution only by a *single-term* operator.
-    /// Each local factor of ``other`` must be a Pauli or projector term.  Multi-term
-    /// evolution operators are not supported.
+    /// Currently, this method supports evolution only by a *single-term* operator, meaning
+    /// that ``other`` must be a Pauli represented by :class:`~.quantum_info.Pauli`.
     ///
     /// Args:
     ///     other: the Pauli Operator used to conjugate ``self``.
@@ -3741,7 +3734,7 @@ impl PySparseObservable {
     ///      A new evolved :class:`SparseObservable` with applied conjugations.
     ///
     /// Raises:
-    ///     TypeError : if ``other `` is not of Type :class:`~.quantum_info.Pauli`.
+    ///     TypeError : if ``other`` is not of Type :class:`~.quantum_info.Pauli`.
     ///     ValueError: if ``self`` and ``other`` have different numbers of qubits (and ``qargs`` is not given).
     ///     ValueError: if ``qargs`` length doesn't match ``other`` number of qubits.
     ///     ValueError: if ``qargs`` contains duplicates or out-of-range indices.
