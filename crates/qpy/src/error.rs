@@ -22,6 +22,8 @@ mod py_exceptions {
 use py_exceptions::QpyError as PyQpyError;
 use py_exceptions::UnsupportedFeatureForVersion as PyUnsupportedFeatureForVersion;
 
+// The initial version of the QpyError enum and its helper functions were created with Bob 0.14 (probably using Claude Sonnet 3.5)
+
 /// Errors that can occur during QPY serialization and deserialization operations.
 ///
 /// This error type is used internally within the QPY module. It is converted to
@@ -170,5 +172,3 @@ pub fn to_binrw_error<W: std::io::Seek, E: std::error::Error + Send + Sync + 'st
 pub fn from_binrw_error(err: binrw::Error) -> QpyError {
     QpyError::BinRwError(err.to_string())
 }
-
-// Made with Bob
