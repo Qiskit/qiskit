@@ -26,7 +26,7 @@ from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.preset_passmanagers.clifford_t_pass_manager import (
-    generate_clifford_t_pass_manager,
+    clifford_t_pass_manager,
 )
 from qiskit.transpiler.preset_passmanagers.common import is_clifford_t_basis
 from qiskit.transpiler.target import Target, _FakeTarget
@@ -90,6 +90,13 @@ def generate_preset_pass_manager(
     **coupling_map**             target    coupling_map
     **dt**                       target    dt
     ============================ ========= ========================
+
+    .. note::
+
+        When the target basis constists of Clifford+T gates, this function constructs
+        a specialized Clifford+T transpiler pipeline, see :func:`.clifford_t_pass_manager`
+        for documentation. The arguments that apply to transpiling into continuous basis sets
+        are ignored in this flow.
 
     Args:
         optimization_level (int): The optimization level to generate a
@@ -306,7 +313,7 @@ def generate_preset_pass_manager(
         pm_config = PassManagerConfig(**pm_options)
 
     if is_clifford_t_basis(basis_gates=pm_config.basis_gates, target=pm_config.target):
-        pm = generate_clifford_t_pass_manager(pm_config, optimization_level=optimization_level)
+        pm = clifford_t_pass_manager(pm_config, optimization_level=optimization_level)
 
     elif optimization_level == 0:
         pm = level_0_pass_manager(pm_config)

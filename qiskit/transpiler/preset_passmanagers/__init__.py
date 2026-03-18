@@ -40,6 +40,11 @@ Low-level preset pass manager generation
 .. autofunction:: level_2_pass_manager
 .. autofunction:: level_3_pass_manager
 
+Low-level preset pass manager generation for Clifford+T
+-------------------------------------------------------
+
+.. autofunction:: clifford_t_pass_manager
+
 ..
     `generate_preset_pass_manager` is not documented here because it's documented to be at the root
     of `qiskit.transpiler`.
@@ -74,9 +79,11 @@ from .level0 import level_0_pass_manager
 from .level1 import level_1_pass_manager
 from .level2 import level_2_pass_manager
 from .level3 import level_3_pass_manager
+from .clifford_t_pass_manager import clifford_t_pass_manager
 
 
 __all__ = [
+    "clifford_t_pass_manager",
     "generate_control_flow_options_check",
     "generate_embed_passmanager",
     "generate_error_on_control_flow",

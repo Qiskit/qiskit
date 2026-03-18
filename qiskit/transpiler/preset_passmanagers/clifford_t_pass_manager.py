@@ -29,13 +29,35 @@ from qiskit.transpiler.preset_passmanagers.builtin_plugins import (
 )
 
 
-def generate_clifford_t_pass_manager(
+def clifford_t_pass_manager(
     pass_manager_config: PassManagerConfig, optimization_level: int
 ) -> StagedPassManager:
-    """Generate Clifford+T staged pass manager.
+    """Generate a staged pass manager for transpiling into Clifford+T basis.
+
+    This function is invoked by :func:`.generate_preset_pass_manager` when
+    the target basis consists of Clifford+T gates. It generates a specialized
+    transpilation pipeline consisting of the following stages:
+
+    * Initialization: Decompose larger gates into 1-qubit and 2-qubits gates and perform
+      logical optimizations.
+    * Layout: Apply the default layout strategy used for continuous basis sets.
+    * Routing: Apply the default routing strategy used for continuous basis sets.
+    * RZ translation: Translate the circuit into Clifford+RZ basis.
+    * RZ optimization: Optimize the circuit within Clifford+RZ basis.
+    * T translation: Translate the circuit into Clifford+T basis.
+    * T optimization: Optimizes the circuit within Clifford+T basis.
+    * Scheduling: Apply the default scheduling strategy used for continuous basis sets.
+
+    .. note::
+
+        These stages are still experimental and subject to change. In particular,
+        they are not yet exposed as transpiler stage plugins (unlike the stages
+        for continuous basis sets). In addition, the fields of ``pass_manager_config``
+        that apply for transpiling into continuous basis set are ignored by this
+        pass manager.
 
     Args:
-        pass_manager_config: configuration of the pass manager.
+        pass_manager_config: Configuration of the pass manager.
         optimization_level: The optimization level. By default optimization level 2
             is used if this is not specified. This can be 0, 1, 2, or 3. Higher
             levels generate potentially more optimized circuits, at the expense

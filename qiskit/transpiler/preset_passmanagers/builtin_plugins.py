@@ -1094,7 +1094,8 @@ class TranslateToCliffordRZPassManager(PassManagerStagePlugin):
                     qubits_initially_zero=pass_manager_config.qubits_initially_zero,
                     optimization_metric=OptimizationMetric.COUNT_T,
                 ),
-                # Check: HLS does not translate gates in the equivalence library, so we need BT for this.
+                # Note that HighLevelSynthesis does not translate gates in the equivalence
+                # library, which is BasisTranslator is used as well.
                 BasisTranslator(sel, clifford_rz_gates, None),
             ]
         )
