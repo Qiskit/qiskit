@@ -347,6 +347,7 @@ pub enum GenericValue {
     Expression(Expr),
     Modifier(Py<PyAny>),
     Circuit(Py<PyAny>), // currently we have no rust class corresponding to a circuit, only to the inner CircuitData
+    CircuitData(Box<CircuitData>),
 }
 
 // we want to be able to extract the value relatively painlessly;
@@ -380,6 +381,7 @@ impl GenericValue {
                 Ok(py_circuit.extract::<QuantumCircuitData>(py)?.data)
             })
             .ok(),
+            GenericValue::CircuitData(circuit_data) => Some(circuit_data.as_ref().clone()),
             _ => None,
         }
     }
@@ -448,7 +450,7 @@ pub(crate) fn load_value(
             Ok(GenericValue::Complex64(value))
         }
         ValueType::String => {
-            let value: String = bytes.try_into()?;
+            let value: String = bytes.clone().try_into()?;
             Ok(GenericValue::String(value))
         }
         ValueType::Range => {
@@ -502,7 +504,8 @@ pub(crate) fn load_value(
             Ok(GenericValue::Register(register_value))
         }
         ValueType::Circuit => {
-            let (packed_circuit, _) = deserialize::<formats::QPYCircuitV17>(bytes)?;
+            let (packed_circuit, _) =
+                deserialize_with_args::<formats::QPYCircuit, (u32,)>(bytes, (qpy_data.version,))?;
             Python::attach(|py| {
                 let circuit = unpack_circuit(
                     py,
@@ -576,7 +579,22 @@ pub(crate) fn serialize_generic_value(
                 &mut circuit.extract(py)?, // TODO: can we avoid cloning here?
                 None,
                 false,
-                QPY_VERSION,
+                qpy_data.version,
+                qpy_data.annotation_handler.annotation_factories,
+            )?;
+            let serialized_circuit = serialize(&packed_circuit);
+            Ok((ValueType::Circuit, serialized_circuit))
+        })?,
+        GenericValue::CircuitData(circuit_data) => Python::attach(|py| -> PyResult<_> {
+            let mut quantum_circuit_data = circuit_data
+                .clone()
+                .into_py_quantum_circuit(py)?
+                .extract()?;
+            let packed_circuit = pack_circuit(
+                &mut quantum_circuit_data,
+                None,
+                false,
+                qpy_data.version,
                 qpy_data.annotation_handler.annotation_factories,
             )?;
             let serialized_circuit = serialize(&packed_circuit);
@@ -694,12 +712,13 @@ pub(crate) fn unpack_generic_value_sequence(
 /// Each instruction type has a char representation in qpy
 pub(crate) fn get_circuit_type_key(op: &PackedOperation) -> PyResult<CircuitInstructionType> {
     match op.view() {
-        OperationRef::StandardGate(_) => Ok(CircuitInstructionType::Gate),
+        OperationRef::StandardGate(_)
+        | OperationRef::PauliProductRotation(_)
+        | OperationRef::Unitary(_) => Ok(CircuitInstructionType::Gate),
         OperationRef::StandardInstruction(_)
         | OperationRef::Instruction(_)
         | OperationRef::ControlFlow(_)
         | OperationRef::PauliProductMeasurement(_) => Ok(CircuitInstructionType::Instruction),
-        OperationRef::Unitary(_) => Ok(CircuitInstructionType::Gate),
         OperationRef::Gate(pygate) => Python::attach(|py| {
             let gate = pygate.instruction.bind(py);
             if gate.is_instance(imports::PAULI_EVOLUTION_GATE.get_bound(py))? {

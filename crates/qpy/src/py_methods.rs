@@ -45,6 +45,7 @@ use crate::value::{
 
 pub const UNITARY_GATE_CLASS_NAME: &str = "UnitaryGate";
 pub const PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME: &str = "PauliProductMeasurement";
+pub const PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME: &str = "PauliProductRotationGate";
 
 fn is_python_gate(py: Python, op: &PackedOperation, python_gate: &Bound<PyAny>) -> PyResult<bool> {
     match op.view() {
@@ -229,8 +230,8 @@ fn pack_sparse_pauli_op(
             inds_data,
             bounds_data,
         };
-        Ok(formats::PauliDataPack::SparseObservable(
-            sparse_observable_pack,
+        Ok(formats::PauliDataPack::V17(
+            formats::PauliDataPackV17::SparseObservable(sparse_observable_pack),
         ))
     } else {
         // this is the case of SparsePauliOp, which we convert to a numpy list
@@ -238,7 +239,9 @@ fn pack_sparse_pauli_op(
         let value = py_convert_to_generic_value(&op_as_np_list)?;
         let (_, data) = serialize_generic_value(&value, qpy_data)?;
         let pack = formats::SparsePauliOpListElemPack { data };
-        Ok(formats::PauliDataPack::SparsePauliOp(pack))
+        Ok(formats::PauliDataPack::V17(
+            formats::PauliDataPackV17::SparsePauliOp(pack),
+        ))
     }
 }
 
@@ -316,6 +319,9 @@ pub(crate) fn gate_class_name(op: &PackedOperation) -> PyResult<String> {
                 .extract::<String>(),
             OperationRef::PauliProductMeasurement(_) => {
                 Ok(String::from(PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME))
+            }
+            OperationRef::PauliProductRotation(_) => {
+                Ok(String::from(PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME))
             }
             OperationRef::ControlFlow(inst) => Ok(inst.name().to_string()),
         }?;
@@ -446,6 +452,9 @@ pub(crate) fn py_convert_from_generic_value(value: &GenericValue) -> PyResult<Py
         GenericValue::ParameterExpressionVectorSymbol(symbol) => symbol.clone().into_py_any(py),
         GenericValue::ParameterExpression(exp) => exp.as_ref().clone().into_py_any(py),
         GenericValue::Circuit(py_object) => Ok(py_object.clone()),
+        GenericValue::CircuitData(circuit_data) => {
+            Ok(circuit_data.clone().into_py_quantum_circuit(py)?.unbind())
+        }
         GenericValue::Modifier(py_object) => Ok(py_object.clone()),
         GenericValue::Range(py_range) => py_range.into_py_any(py),
         GenericValue::NumpyObject(py_object) => Ok(py_object.clone()),

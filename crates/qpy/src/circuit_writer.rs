@@ -29,32 +29,33 @@ use pyo3::types::{PyAny, PyDict, PyTuple};
 use qiskit_circuit::bit::{
     ClassicalRegister, PyClbit, PyQubit, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
-use qiskit_circuit::circuit_data::{CircuitData, CircuitStretchType, CircuitVarType};
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::imports;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
     ArrayType, BoxDuration, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction,
-    Operation, OperationRef, Param, PauliProductMeasurement, PyInstruction, StandardGate,
-    StandardInstruction, SwitchTarget, UnitaryGate,
+    Operation, OperationRef, Param, PauliProductMeasurement, PauliProductRotation, PyInstruction,
+    StandardGate, StandardInstruction, SwitchTarget, UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 
 use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
-use crate::formats::{self, ConditionPack};
+use crate::formats;
 use crate::params::pack_param_obj;
 use crate::py_methods::{
-    PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME, UNITARY_GATE_CLASS_NAME, gate_class_name,
-    getattr_or_none, py_get_instruction_annotations, py_pack_param, py_pack_pauli_evolution_gate,
-    recognize_custom_operation, serialize_metadata,
+    PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME, PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME,
+    UNITARY_GATE_CLASS_NAME, gate_class_name, getattr_or_none, py_get_instruction_annotations,
+    py_pack_param, py_pack_pauli_evolution_gate, recognize_custom_operation, serialize_metadata,
 };
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionVarDeclaration, GenericValue, ParamRegisterValue,
     QPYWriteData, RegisterType, get_circuit_type_key, pack_for_collection, pack_generic_value,
     pack_standalone_var, pack_stretch, serialize, serialize_param_register_value,
 };
+use qiskit_circuit::var_stretch_container::{StretchType, VarType};
 
 use crate::UnsupportedFeatureForVersion;
 
@@ -202,9 +203,8 @@ fn pack_instruction_blocks(
                 .map(|block| -> PyResult<_> {
                     // we explicitly name the block "unnamed" because otherwise it will be assigned a serial number name (e.g. "circuit-45")
                     // which would result in inconsistent results, e.g. when packing the same circuit twice on the same run
-                    let circuit = imports::QUANTUM_CIRCUIT
-                        .get_bound(py)
-                        .call_method1("_from_circuit_data", (block.clone(), false, "unnamed"))?;
+                    let py_block: PyCircuitData = block.clone().into();
+                    let circuit = py_block.into_py_quantum_circuit(py)?;
                     py_pack_param(&circuit, qpy_data, Endian::Little)
                 })
                 .collect::<PyResult<_>>()
@@ -225,6 +225,9 @@ fn pack_instruction(
         }
         OperationRef::PauliProductMeasurement(ppm) => {
             pack_pauli_product_measurement(ppm, instruction, qpy_data)?
+        }
+        OperationRef::PauliProductRotation(rotation) => {
+            pack_pauli_product_rotation(rotation, instruction, qpy_data)?
         }
         OperationRef::Unitary(unitary_gate) => pack_unitary_gate(unitary_gate, qpy_data)?,
         OperationRef::Gate(py_gate) => pack_py_gate(py_gate, instruction, qpy_data)?,
@@ -335,13 +338,45 @@ fn pack_pauli_product_measurement(
     })
 }
 
+fn pack_pauli_product_rotation(
+    rotation: &PauliProductRotation,
+    instruction: &PackedInstruction,
+    qpy_data: &QPYWriteData,
+) -> PyResult<formats::CircuitInstructionV2Pack> {
+    // since we won't recreate this gate via python, it's not important to verify the python name is identical to the one we use here
+    // so we simply hard-code it instead of going through python
+    let gate_class_name = String::from(PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME);
+    let z_values =
+        GenericValue::Tuple(rotation.z.iter().cloned().map(GenericValue::Bool).collect());
+    let x_values =
+        GenericValue::Tuple(rotation.x.iter().cloned().map(GenericValue::Bool).collect());
+    let params = vec![
+        pack_generic_value(&z_values, qpy_data)?,
+        pack_generic_value(&x_values, qpy_data)?,
+        pack_param_obj(&rotation.angle, qpy_data, Endian::Little)?,
+    ];
+    Ok(formats::CircuitInstructionV2Pack {
+        num_qargs: instruction.op.num_qubits(),
+        num_cargs: 0,
+        extras_key: 0,
+        num_ctrl_qubits: 0,
+        ctrl_state: 0,
+        gate_class_name,
+        label: Default::default(),
+        condition: Default::default(),
+        bit_data: Default::default(),
+        params,
+        annotations: None,
+    })
+}
+
 fn pack_control_flow_inst(
     control_flow_inst: &ControlFlowInstruction,
     instruction: &PackedInstruction,
     qpy_data: &mut QPYWriteData,
 ) -> PyResult<formats::CircuitInstructionV2Pack> {
     let mut packed_annotations = None;
-    let mut packed_condition: ConditionPack = Default::default();
+    let mut packed_condition: formats::ConditionPack = Default::default();
     let mut extras_key = 0; // should contain a combination of condition key and annotations key, if present
 
     let params = match control_flow_inst.control_flow.clone() {
@@ -684,8 +719,11 @@ fn pack_circuit_header(
     let header = formats::CircuitHeaderV12Pack {
         num_qubits: qpy_data.circuit_data.num_qubits() as u32,
         num_clbits: qpy_data.circuit_data.num_clbits() as u32,
-        num_instructions: qpy_data.circuit_data.__len__() as u64,
-        num_vars: qpy_data.circuit_data.num_identifiers() as u32,
+        num_instructions: qpy_data.circuit_data.len() as u64,
+        num_vars: qpy_data
+            .circuit_data
+            .vars_stretches_view()
+            .num_identifiers() as u32,
         circuit_name: circuit_name.unwrap_or_default(),
         global_phase_data: global_phase_data.data,
         global_phase_type: global_phase_data.type_key,
@@ -1048,7 +1086,11 @@ fn pack_standalone_vars(
     let mut index: u16 = 0;
     let mut uuid: u128 = 0;
     // input vars
-    for var in qpy_data.circuit_data.get_vars(CircuitVarType::Input) {
+    for var in qpy_data
+        .circuit_data
+        .vars_stretches_view()
+        .iter_vars(VarType::Input)
+    {
         let var_pack = pack_standalone_var(
             var,
             ExpressionVarDeclaration::Input,
@@ -1061,7 +1103,11 @@ fn pack_standalone_vars(
     }
 
     // captured vars
-    for var in qpy_data.circuit_data.get_vars(CircuitVarType::Capture) {
+    for var in qpy_data
+        .circuit_data
+        .vars_stretches_view()
+        .iter_vars(VarType::Capture)
+    {
         result.push(pack_standalone_var(
             var,
             ExpressionVarDeclaration::Capture,
@@ -1073,7 +1119,11 @@ fn pack_standalone_vars(
     }
 
     // declared vars
-    for var in qpy_data.circuit_data.get_vars(CircuitVarType::Declare) {
+    for var in qpy_data
+        .circuit_data
+        .vars_stretches_view()
+        .iter_vars(VarType::Declare)
+    {
         result.push(pack_standalone_var(
             var,
             ExpressionVarDeclaration::Local,
@@ -1084,8 +1134,16 @@ fn pack_standalone_vars(
         index += 1;
     }
     if qpy_data.version < 14
-        && (qpy_data.circuit_data.num_captured_stretches() > 0
-            || qpy_data.circuit_data.num_declared_stretches() > 0)
+        && (qpy_data
+            .circuit_data
+            .vars_stretches_view()
+            .num_stretches(StretchType::Capture)
+            > 0
+            || qpy_data
+                .circuit_data
+                .vars_stretches_view()
+                .num_stretches(StretchType::Declare)
+                > 0)
     {
         return Err(UnsupportedFeatureForVersion::new_err((
             "circuits containing stretch variables",
@@ -1095,7 +1153,8 @@ fn pack_standalone_vars(
     }
     for stretch in qpy_data
         .circuit_data
-        .get_stretches(CircuitStretchType::Capture)
+        .vars_stretches_view()
+        .iter_stretches(StretchType::Capture)
     {
         result.push(pack_stretch(
             stretch,
@@ -1106,7 +1165,8 @@ fn pack_standalone_vars(
     }
     for stretch in qpy_data
         .circuit_data
-        .get_stretches(CircuitStretchType::Declare)
+        .vars_stretches_view()
+        .iter_stretches(StretchType::Declare)
     {
         result.push(pack_stretch(
             stretch,
@@ -1124,7 +1184,7 @@ pub(crate) fn pack_circuit(
     _use_symengine: bool,
     version: u32,
     annotation_factories: &Bound<PyDict>,
-) -> PyResult<formats::QPYCircuitV17> {
+) -> PyResult<formats::QPYCircuit> {
     let annotation_handler = AnnotationHandler::new(annotation_factories);
     let mut qpy_data = QPYWriteData {
         circuit_data: &mut circuit.data,
@@ -1141,7 +1201,9 @@ pub(crate) fn pack_circuit(
     )?;
     // Pulse has been removed in Qiskit 2.0. As long as we keep QPY at version 13,
     // we need to write an empty calibrations header since read_circuit expects it
-    let calibrations = formats::CalibrationsPack { num_cals: 0 };
+    let calibrations = formats::CalibrationsPack {
+        calibrations: vec![],
+    };
     let (instructions, mut custom_instructions_hash) = pack_instructions(&mut qpy_data)?;
     let custom_instructions =
         pack_custom_instructions(&mut custom_instructions_hash, &mut qpy_data)?;
@@ -1152,8 +1214,8 @@ pub(crate) fn pack_circuit(
         .into_iter()
         .map(|(namespace, state)| formats::AnnotationStateHeaderPack { namespace, state })
         .collect();
-    let annotation_headers = formats::AnnotationHeaderStaticPack { state_headers };
-    Ok(formats::QPYCircuitV17 {
+    let annotation_headers = Some(formats::AnnotationHeaderStaticPack { state_headers });
+    Ok(formats::QPYCircuit {
         header,
         standalone_vars,
         annotation_headers,

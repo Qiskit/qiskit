@@ -27,7 +27,6 @@ use std::ops::Deref;
 
 use faer::Side::Lower;
 use faer::{Mat, MatRef, Scale, prelude::*};
-use faer_ext::{IntoFaer, IntoNdarray};
 use ndarray::Zip;
 use ndarray::linalg::kron;
 use ndarray::prelude::*;
@@ -46,6 +45,7 @@ use crate::euler_one_qubit_decomposer::{
     ANGLE_ZERO_EPSILON, EulerBasis, EulerBasisSet, OneQubitGateSequence, angles_from_unitary,
     det_one_qubit, unitary_to_gate_sequence_inner,
 };
+use crate::linalg::{faer_to_ndarray, ndarray_to_faer};
 use qiskit_quantum_info::convert_2q_block_matrix::change_basis;
 
 use rand::prelude::*;
@@ -53,7 +53,7 @@ use rand_distr::StandardNormal;
 use rand_pcg::Pcg64Mcg;
 
 use qiskit_circuit::bit::ShareableQubit;
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::gate_matrix::{CX_GATE, H_GATE, ONE_QUBIT_IDENTITY, S_GATE, SDG_GATE};
@@ -108,11 +108,8 @@ fn magic_basis_transform(
 }
 
 fn transform_from_magic_basis(u: Mat<c64>) -> Mat<c64> {
-    let unitary: ArrayView2<Complex64> = u.as_ref().into_ndarray();
-    magic_basis_transform(unitary, MagicBasisTransform::OutOf)
-        .view()
-        .into_faer()
-        .to_owned()
+    let unitary: ArrayView2<Complex64> = faer_to_ndarray(u.as_ref());
+    ndarray_to_faer(magic_basis_transform(unitary, MagicBasisTransform::OutOf).view()).to_owned()
 }
 
 // faer::c64 and num_complex::Complex<f64> are both structs
@@ -218,7 +215,7 @@ fn py_decompose_two_qubit_product_gate(
 #[pyfunction]
 fn weyl_coordinates(py: Python, unitary: PyReadonlyArray2<Complex64>) -> PyResult<Py<PyAny>> {
     let array = unitary.as_array();
-    Ok(__weyl_coordinates(array.into_faer())?
+    Ok(__weyl_coordinates(ndarray_to_faer(array))?
         .to_vec()
         .into_pyarray(py)
         .into_any()
@@ -282,7 +279,7 @@ pub fn _num_basis_gates(
     basis_fidelity: f64,
     unitary: PyReadonlyArray2<Complex<f64>>,
 ) -> PyResult<usize> {
-    let u = unitary.as_array().into_faer();
+    let u = ndarray_to_faer(unitary.as_array());
     __num_basis_gates(basis_b, basis_fidelity, u)
 }
 
@@ -596,7 +593,7 @@ impl TwoQubitWeylDecomposition {
 
         let mut u = unitary_matrix.to_owned();
         let unitary_matrix = unitary_matrix.to_owned();
-        let det_u = u.view().into_faer().determinant();
+        let det_u = ndarray_to_faer(u.view()).determinant();
         let det_pow = det_u.powf(-0.25);
         u.mapv_inplace(|x| x * det_pow);
         let mut global_phase = det_u.arg() / 4.;
@@ -636,14 +633,13 @@ impl TwoQubitWeylDecomposition {
                 rand_b = state.sample(StandardNormal);
             }
             let m2_real = m2.mapv(|val| rand_a * val.re + rand_b * val.im);
-            let p_inner = m2_real
-                .view()
-                .into_faer()
-                .self_adjoint_eigen(Lower)
-                .map_err(|e| QiskitError::new_err(format!("{e:?}")))?
-                .U()
-                .into_ndarray()
-                .mapv(Complex64::from);
+            let p_inner = faer_to_ndarray(
+                ndarray_to_faer(m2_real.view())
+                    .self_adjoint_eigen(Lower)
+                    .map_err(|e| QiskitError::new_err(format!("{e:?}")))?
+                    .U(),
+            )
+            .mapv(Complex64::from);
             let d_inner = p_inner.t().dot(&m2).dot(&p_inner).diag().to_owned();
             let mut diag_d: Array2<Complex64> = Array2::zeros((4, 4));
             diag_d
@@ -685,7 +681,7 @@ impl TwoQubitWeylDecomposition {
             let slice_b = p_orig.slice_mut(s![.., *item]);
             Zip::from(slice_a).and(slice_b).for_each(::std::mem::swap);
         }
-        if p.view().into_faer().determinant().re < 0. {
+        if ndarray_to_faer(p.view()).determinant().re < 0. {
             p.slice_mut(s![.., -1]).mapv_inplace(|x| -x);
         }
         let mut temp: Array2<Complex64> = Array2::zeros((4, 4));
@@ -1162,7 +1158,7 @@ impl TwoQubitWeylDecomposition {
         euler_basis: Option<PyBackedStr>,
         simplify: bool,
         atol: Option<f64>,
-    ) -> PyResult<CircuitData> {
+    ) -> PyResult<PyCircuitData> {
         let euler_basis: EulerBasis = match euler_basis {
             Some(basis) => EulerBasis::__new__(basis.deref())?,
             None => self.default_euler_basis,
@@ -1247,7 +1243,7 @@ impl TwoQubitWeylDecomposition {
             )?;
         }
         gate_sequence.set_global_phase_f64(global_phase);
-        Ok(gate_sequence)
+        Ok(gate_sequence.into())
     }
 }
 
@@ -1342,7 +1338,7 @@ impl TwoQubitBasisDecomposer {
 
     /// Compute the number of basis gates needed for a given unitary
     pub fn num_basis_gates_inner(&self, unitary: ArrayView2<Complex64>) -> PyResult<usize> {
-        let u = unitary.into_faer();
+        let u = ndarray_to_faer(unitary);
         __num_basis_gates(self.basis_decomposer.b, self.basis_fidelity, u)
     }
 
@@ -2277,7 +2273,7 @@ impl TwoQubitBasisDecomposer {
         basis_fidelity: Option<f64>,
         approximate: bool,
         _num_basis_uses: Option<u8>,
-    ) -> PyResult<CircuitData> {
+    ) -> PyResult<PyCircuitData> {
         let sequence =
             self.generate_sequence(unitary, basis_fidelity, approximate, _num_basis_uses)?;
         Ok(CircuitData::from_packed_operations(
@@ -2292,7 +2288,8 @@ impl TwoQubitBasisDecomposer {
                 ))
             }),
             Param::Float(sequence.global_phase),
-        )?)
+        )?
+        .into())
     }
 
     fn num_basis_gates(&self, unitary: PyReadonlyArray2<Complex64>) -> PyResult<usize> {
@@ -2301,7 +2298,7 @@ impl TwoQubitBasisDecomposer {
 }
 
 fn u4_to_su4(u4: ArrayView2<Complex64>) -> (Array2<Complex64>, f64) {
-    let det_u = u4.into_faer().determinant();
+    let det_u = ndarray_to_faer(u4).determinant();
     let phase_factor = det_u.powf(-0.25).conj();
     let su4 = u4.mapv(|x| x / phase_factor);
     (su4, phase_factor.arg())
@@ -2330,10 +2327,10 @@ fn real_trace_transform(mat: ArrayView2<Complex64>) -> Array2<Complex64> {
 fn py_two_qubit_decompose_up_to_diagonal(
     py: Python,
     mat: PyReadonlyArray2<Complex64>,
-) -> PyResult<(Py<PyAny>, CircuitData)> {
+) -> PyResult<(Py<PyAny>, PyCircuitData)> {
     let mat_arr: ArrayView2<Complex64> = mat.as_array();
     let (real_map, circ) = two_qubit_decompose_up_to_diagonal(mat_arr)?;
-    Ok((real_map.into_pyarray(py).into_any().unbind(), circ))
+    Ok((real_map.into_pyarray(py).into_any().unbind(), circ.into()))
 }
 
 pub fn two_qubit_decompose_up_to_diagonal(
@@ -2437,7 +2434,7 @@ pub fn two_qubit_local_invariants(unitary: PyReadonlyArray2<Complex64>) -> [f64;
     // Transform to bell basis
     let bell_basis_unitary = aview2(&MAGIC_DAGGER).dot(&mat.dot(&aview2(&MAGIC)));
     // Get determinate since +- one is allowed.
-    let det_bell_basis = bell_basis_unitary.view().into_faer().determinant();
+    let det_bell_basis = ndarray_to_faer(bell_basis_unitary.view()).determinant();
     let m = bell_basis_unitary.t().dot(&bell_basis_unitary);
     let mut m_tr2 = m.diag().sum();
     m_tr2 *= m_tr2;
@@ -2978,7 +2975,7 @@ impl TwoQubitControlledUDecomposer {
         &self,
         unitary: PyReadonlyArray2<Complex64>,
         atol: Option<f64>,
-    ) -> PyResult<CircuitData> {
+    ) -> PyResult<PyCircuitData> {
         let sequence = self.call_inner(unitary.as_array(), atol)?;
         Ok(CircuitData::from_packed_operations(
             2,
@@ -2992,7 +2989,8 @@ impl TwoQubitControlledUDecomposer {
                 ))
             }),
             Param::Float(sequence.global_phase),
-        )?)
+        )?
+        .into())
     }
 }
 

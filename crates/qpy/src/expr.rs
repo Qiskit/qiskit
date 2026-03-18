@@ -149,7 +149,13 @@ pub(crate) fn unpack_expression_var(
         }, // TODO: can we avoid cloning?
         ExpressionVarElementPack::Uuid(key) => {
             let var = qpy_data.standalone_vars.get(&key).unwrap(); // note: this is not an actual expr::Var; merely a key for this var inside the circuit data
-            qpy_data.circuit_data.get_var(*var).unwrap().clone() // TODO: can we avoid cloning?
+            qpy_data
+                .circuit_data
+                .vars_stretches_view()
+                .vars()
+                .get(*var)
+                .unwrap()
+                .clone() // TODO: can we avoid cloning?
         }
     }
 }
@@ -227,7 +233,13 @@ pub(crate) fn read_expression<R: Read + Seek>(
         ExpressionElementPack::Stretch(_stretch_type_pack, key) => {
             let stretch = qpy_data.standalone_stretches.get(&key).unwrap();
             Ok(Expr::Stretch(
-                qpy_data.circuit_data.get_stretch(*stretch).unwrap().clone(),
+                qpy_data
+                    .circuit_data
+                    .vars_stretches_view()
+                    .stretches()
+                    .get(*stretch)
+                    .unwrap()
+                    .clone(),
             )) // TODO: can we avoid cloning?
         }
         ExpressionElementPack::Index(index_type_pack) => {
