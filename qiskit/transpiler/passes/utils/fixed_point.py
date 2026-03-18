@@ -12,8 +12,11 @@
 
 """Check if a property reached a fixed point."""
 
+from __future__ import annotations
+
 from copy import deepcopy
 
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import AnalysisPass
 
 
@@ -25,17 +28,17 @@ class FixedPoint(AnalysisPass):
     as a boolean.
     """
 
-    def __init__(self, property_to_check):
-        """FixedPoint initializer.
+    def __init__(self, property_to_check: str) -> None:
+        """Initialize a ``FixedPoint`` pass.
 
         Args:
-            property_to_check (str): The property to check if a fixed point was reached.
+            property_to_check: The property to check if a fixed point was reached.
         """
         super().__init__()
         self._property = property_to_check
 
-    def run(self, dag):
-        """Run the FixedPoint pass on `dag`."""
+    def run(self, dag: DAGCircuit) -> None:
+        """Run the FixedPoint pass on *dag*."""
         current_value = self.property_set[self._property]
         fixed_point_previous_property = f"_fixed_point_previous_{self._property}"
 

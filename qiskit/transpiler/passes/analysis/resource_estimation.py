@@ -12,6 +12,9 @@
 
 """Automatically require analysis passes for resource estimation."""
 
+from __future__ import annotations
+
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.passes.analysis.depth import Depth
 from qiskit.transpiler.passes.analysis.width import Width
@@ -30,11 +33,16 @@ class ResourceEstimation(AnalysisPass):
     * Size()
     * CountOps()
     * NumTensorFactors()
+    * NumQubits()
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.requires += [Depth(), Width(), Size(), CountOps(), NumTensorFactors(), NumQubits()]
 
-    def run(self, _):
-        """Run the ResourceEstimation pass on `dag`."""
+    def run(self, dag: DAGCircuit) -> None:
+        """Run the ResourceEstimation pass on *dag*.
+
+        This is a no-op: the actual analysis is performed by the required
+        sub-passes listed in :attr:`requires`.
+        """
