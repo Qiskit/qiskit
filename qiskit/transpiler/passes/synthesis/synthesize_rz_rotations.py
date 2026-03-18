@@ -18,33 +18,16 @@ from qiskit._accelerate.synthesize_rz_rotations import synthesize_rz_rotations
 
 
 class SynthesizeRZRotations(TransformationPass):
-    """Replace RZ gates with Clifford+T decompositions in an efficient manner.
+    r"""Replace RZ gates with Clifford+T decompositions.
 
-    This pass replaces all single-qubit RZ rotation gates with sequences
-    of Clifford+T gates. We first canonicalize angles based on the 4π cyclicity
-    of RZ gates, and further utilize properties of RZ(θ) to limit the number of
-    distinct angles synthesized to [0, π/2) and a u8 bit.
+    This pass replaces all single-qubit RZ rotation gates with floating-point
+    angles by equivalent Clifford+T sequences.
 
-    This pass performs a two-fold optimization for implementing RZ synthesis.
-    For QFT-like circuits with repeating angles, we want to avoid doing redundant
-    syntheses of the same angle multiple times. The mechanism for this is to first
-    collect all the angles of RZ gates from the DAG and sort them. If we implement
-    a cache-like mechanism where if the synthesis angle already exists, we reuse it,
-    if it does not, then we synthesize them. We further extend this by allowing
-    approximations of angles and doing the synthesis with a lower epsilon.
-    Because RZ is  4π-cyclic, we can come up with canonical representations of angles
-    from  (−∞, ∞) → [0, 4π) . Further, we can exploit properties of  RZ  such as:
-    RZ(θ+π/2) = RZ(θ)⋅S , RZ(θ+π) = RZ(θ)⋅Z, RZ(θ+2π) = −RZ(θ) to partition the [0, 4π)
-    domain as ∪ [nπ/2, π(n+1)/2] , n ∈ Z + : [0, 7]. The canonical angle representation
-    reduces to range [0 ,π/2) for RZ synthesis, but we make updates to the global phase
-    and gates to add to the synthesised  RZ sequence.
-    .
-    Hence, this mapping further reduces as:
-    [0, 4π) → {{r : r ∈ Z + , [0, 7]} , (0, π/2]}, where r corresponds to a specific
-    phase and gate update (from a static look-up table) to be made to the DAG.
-
-    We then iterate over the dag to identify RZ gates and replace them with their
-    Clifford+T approximations.
+    Internally, the pass synthesizes `RZ(\theta)` for a general `\theta` by
+    reducing the angle modulo `\pi/2`: the circuit for `RZ(\theta)` can be
+    constructed from a circuit for `RZ(\theta mod pi/2)` by appending appropriate
+    Clifford gates. Importantly, the pass also caches synthesis results and reuses
+    them for angles that are within a given tolerance of each other.
 
     For example::
 
@@ -74,26 +57,38 @@ class SynthesizeRZRotations(TransformationPass):
       assert(set(qct.count_ops().keys()).issubset(set(clifford_t_names)))
 
       # The circuits before and after the transformation are equivalent
+      # (with the default value of approximation_degree used by SynthesizeRZRotations)
       assert Operator(qc) == Operator(qct)
-
     """
 
-    def __init__(self, approximation_degree: float = 0.9999999999):
-        """
+    def __init__(
+        self,
+        approximation_degree: float | None = None,
+        synthesis_error: float | None = None,
+        cache_error: float | None = None,
+    ):
+        r"""
+        If both ``synthesis_error`` and ``cache_error`` are provided, they specify the error budget
+        for approximate synthesis and for caching respectively. If either value is not
+        specified, the total allowed error is derived from ``approximation_degree``, and
+        suitable values for ``synthesis_error`` and ``cache_error`` are computed automatically.
+
         Args:
-            approximation_degree: float = 0.9999999999
+            approximation_degree: Controls the overall degree of approximation. Defaults
+                to ``1 - 1e-10``.
+            synthesis_error: Maximum allowed error for the approximate synthesis of
+                :math:`RZ(\theta)`.
+            cache_error: Maximum allowed error when reusing a cached synthesis
+                result for angles close to :math:`\theta`.
         """
         super().__init__()
         self.approximation_degree = approximation_degree
+        self.synthesis_error = synthesis_error
+        self.cache_error = cache_error
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
-        """Run the pass on a DAG.
-        Args:
-            dag: the input DAG.
-        Returns:
-            The output DAG.
-        """
-        new_dag = synthesize_rz_rotations(dag, self.approximation_degree)
-        if new_dag is None:
-            return dag
+        """Run the SynthesizeRZRotations pass on `dag`."""
+        new_dag = synthesize_rz_rotations(
+            dag, self.approximation_degree, self.synthesis_error, self.cache_error
+        )
         return new_dag

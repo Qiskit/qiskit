@@ -143,6 +143,7 @@ sys.modules["qiskit._accelerate.convert_to_pauli_rotations"] = (
 
 
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
+import qiskit.capi
 
 # The main qiskit operators
 from qiskit.circuit import ClassicalRegister

@@ -23,7 +23,7 @@ struct Args {
 
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
-    let bindings = qiskit_bindgen::generate_bindings(&args.cext_path)?;
-    qiskit_bindgen::install_c_headers(&bindings, &args.install_path)?;
+    let mut bindings = qiskit_bindgen::generate_bindings(&args.cext_path)?;
+    qiskit_bindgen::install_c_headers(&mut bindings, &args.install_path)?;
     Ok(())
 }
