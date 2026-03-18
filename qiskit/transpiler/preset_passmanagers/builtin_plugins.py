@@ -1179,7 +1179,9 @@ class TranslateToCliffordTPassManager(PassManagerStagePlugin):
         rz_to_t_translation = PassManager(
             [
                 SubstitutePi4Rotations(),
-                SynthesizeRZRotations(),
+                SynthesizeRZRotations(
+                    approximation_degree=pass_manager_config.approximation_degree
+                ),
             ]
         )
         return rz_to_t_translation

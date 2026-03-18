@@ -553,7 +553,6 @@ def generate_translation_passmanager(
         ]
     else:
         raise TranspilerError(f"Invalid translation method {method}.")
-
     # Our built-ins don't 100% guarantee that 2q gate direction is respected, so we might need to
     # run a little bit of fix up on them.  `GateDirection` doesn't guarantee that 1q gates are
     # ISA safe after it runs, so we need another run too.
@@ -573,7 +572,6 @@ def generate_translation_passmanager(
         )
     if target is not None and target.has_angle_bounds():
         unroll.append(WrapAngles(target))
-
     return PassManager(unroll)
 
 
