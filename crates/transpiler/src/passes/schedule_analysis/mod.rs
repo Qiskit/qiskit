@@ -22,7 +22,7 @@ use pyo3::{
     IntoPyObjectExt,
     exceptions::{PyKeyError, PyTypeError},
     prelude::*,
-    types::{PyDict, PyList},
+    types::{PyDict, PyIterator, PyList},
 };
 use qiskit_circuit::{
     dag_circuit::DAGCircuit,
@@ -199,6 +199,28 @@ impl PyNodeDurations {
 
     fn __len__(&self) -> usize {
         self.len()
+    }
+
+    fn __iter__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyIterator>> {
+        self.keys(py)?.as_any().try_iter()
+    }
+
+    fn keys<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyList>> {
+        match &self.inner {
+            NodeDurations::Dt(index_map) => {
+                PyList::new(py, index_map.keys().map(|key| &self.nodes_mapping[key]))
+            }
+            NodeDurations::Seconds(index_map) => {
+                PyList::new(py, index_map.keys().map(|key| &self.nodes_mapping[key]))
+            }
+        }
+    }
+
+    fn values<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyList>> {
+        match &self.inner {
+            NodeDurations::Dt(index_map) => PyList::new(py, index_map.values()),
+            NodeDurations::Seconds(index_map) => PyList::new(py, index_map.values()),
+        }
     }
 
     fn items<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyList>> {
