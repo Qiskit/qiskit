@@ -29,8 +29,8 @@ use crate::instruction::Parameters;
 use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::{self, ObjectRegistry};
 use crate::operations::{
-    ControlFlow, ControlFlowView, Operation, OperationRef, Param, PauliBased, PyOperationTypes,
-    PythonOperation, StandardGate,
+    BoxedCustomOperation, ControlFlow, ControlFlowView, CustomOperation, Operation, OperationRef,
+    Param, PauliBased, PyOperationTypes, PythonOperation, StandardGate,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::{ParameterError, ParameterExpression};
@@ -805,6 +805,25 @@ impl CircuitData {
         let qubits = self.qargs_interner.insert(qargs);
         self.push(PackedInstruction::from_standard_gate(
             operation, params, qubits,
+        ))
+    }
+
+    /// Appends a custom operation to this instance of [CircuitData].
+    pub fn push_custom_operation<O>(
+        &mut self,
+        operation: O,
+        params: &[Param],
+        qargs: &[Qubit],
+        cargs: &[Clbit],
+    ) -> Result<(), CircuitDataError>
+    where
+        O: CustomOperation,
+    {
+        let params = (!params.is_empty()).then(|| Box::new(params.iter().cloned().collect()));
+        let qubits = self.qargs_interner.insert(qargs);
+        let clbits = self.cargs_interner.insert(cargs);
+        self.push(PackedInstruction::from_custom_operation(
+            operation, qubits, clbits, params,
         ))
     }
 
@@ -2525,6 +2544,9 @@ impl PyCircuitData {
                     OperationRef::PauliProductRotation(ppr) => {
                         PauliBased::PauliProductRotation(ppr.clone()).into()
                     }
+                    OperationRef::CustomOperation(custom_operation) => {
+                        BoxedCustomOperation::from(custom_operation.clone_dyn()).into()
+                    }
                 };
                 res.data.push(PackedInstruction {
                     op: new_op,
@@ -2555,6 +2577,9 @@ impl PyCircuitData {
                     }
                     OperationRef::PauliProductRotation(ppr) => {
                         PauliBased::PauliProductRotation(ppr.clone()).into()
+                    }
+                    OperationRef::CustomOperation(custom_operation) => {
+                        BoxedCustomOperation::from(custom_operation.clone_dyn()).into()
                     }
                 };
                 res.data.push(PackedInstruction {
@@ -3353,6 +3378,9 @@ impl PyCircuitData {
                 }
                 OperationRef::Operation(op) => {
                     PyOperationTypes::Operation(op.py_deepcopy(py, None)?).into()
+                }
+                OperationRef::CustomOperation(custom) => {
+                    PackedOperation::from_custom_operation(custom.clone_dyn())
                 }
             };
             out.push(PackedInstruction { op, ..inst.clone() })?;
