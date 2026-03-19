@@ -58,7 +58,7 @@ pub extern "C" fn qk_api_version() -> u32 {
         let pre = pre.as_bytes();
         if let Some((b"dev", serial)) = pre.split_at_checked(3) {
             v |= 0xa0 | parse_int(serial);
-        } else if let Some((b"b", serial)) = pre.split_at_checked(1) {
+        } else if let Some((b"beta", serial)) = pre.split_at_checked(4) {
             v |= 0xb0 | parse_int(serial);
         } else if let Some((b"rc", serial)) = pre.split_at_checked(2) {
             v |= 0xc0 | parse_int(serial);

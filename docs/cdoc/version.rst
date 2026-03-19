@@ -32,13 +32,17 @@ Qiskit's version can be queried using a set of compiler macros.
 
 .. c:macro:: QISKIT_RELEASE_LEVEL
 
-    The release level: ``0xA`` for the unreleased dev (or alpha) version, ``0xC`` for the
-    release candidate, and ``0xF`` for the stable (or final) version.
+    The release level:
+
+    * ``0xA`` for an unreleased dev (or alpha) version
+    * ``0xB`` for a beta version
+    * ``0xC`` for a release candidate
+    * ``0xF`` for a stable (or final) version.
 
 .. c:macro:: QISKIT_RELEASE_SERIAL
 
     This can be used to indicate the pre-release number in a pre-release series.
-    For example, this would be set to ``1`` for ``2.1.0rc1``. This is ``0`` for the final version.
+    For example, this would be set to ``4`` for ``2.1.0-rc4``. This is ``0`` for the final version.
 
 .. c:macro:: QISKIT_GET_VERSION_HEX(major, minor, patch, level, serial)
 
