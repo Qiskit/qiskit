@@ -23,7 +23,7 @@ for the transpiler. The preset pass managers are instances of
 transformations as part of Qiskit's compiler inside the
 :func:`~.transpile` function at the different optimization levels, but
 can also be used in a standalone manner.
-The functionality here is divided into three parts. The first includes the
+The functionality here is divided into two parts. The first includes the
 functions used to generate the entire pass manager, which is used by
 :func:`~.transpile` (:ref:`preset_pass_manager_generators`), and the
 second includes functions that are used to build (either entirely or in

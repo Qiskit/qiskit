@@ -80,7 +80,23 @@ sample transpilation looks like::
 
 For early experiments towards fault tolerance, the function :func:`.generate_preset_pass_manager`
 invokes a specialized transpilation pipeline when the target basis consists of Clifford+T gates,
-see :func:`.clifford_t_pass_manager` for documentation.
+see :func:`.clifford_t_pass_manager` for documentation. For example::
+
+    from qiskit.circuit import QuantumCircuit
+    from qiskit.circuit.library import QFTGate
+    from qiskit.transpiler import generate_preset_pass_manager
+    from qiskit.quantum_info import get_clifford_gate_names
+
+    # Any abstract circuit you want:
+    abstract = QuantumCircuit(4)
+    abstract.append(QFTGate(4), [0, 1, 2, 3])
+
+    # Use all Clifford+T basis gates
+    basis_gates = get_clifford_gate_names() + ["t", "tdg"]
+
+    # Create and run the pass manager
+    pm = generate_preset_pass_manager(basis_gates=basis_gates)
+    physical = pm.run(abstract)
 
 For most use cases, this is all you need.
 All of Qiskit's transpiler infrastructure is highly extensible and configurable, however.
