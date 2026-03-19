@@ -35,5 +35,6 @@ features_transpiler:
     * Simplified decompositions for :class:`.TGate` and :class:`.TdgGate` to use a single
       corresponding dagger gate plus Clifford gates
 
-
-
+  - |
+    The :class:`.OptimizeCliffordT` transpiler optimization pass now accepts a ``basis_gates``
+    argument, preferring decompositions that use Clifford gates from the target basis.
