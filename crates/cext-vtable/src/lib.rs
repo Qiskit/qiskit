@@ -47,6 +47,7 @@ mod circuit {
     #[cfg(feature = "addr")]
     use qiskit_cext::circuit::*;
 
+    #[rustfmt::skip]  // Don't wrap long lines so everything stays on one line for counting.
     pub static FUNCTIONS: ExportedFunctions = ExportedFunctions::leaves(100, || {
         vec![
             export_fn!(qk_circuit_new),
@@ -78,10 +79,21 @@ mod circuit {
             export_fn!(qk_circuit_get_instruction),
             export_fn!(qk_circuit_instruction_clear),
             export_fn!(qk_opcounts_clear),
-            export_fn!(qk_circuit_to_python, feature = "python_binding"),
             export_fn!(qk_circuit_delay),
             export_fn!(qk_circuit_to_dag),
             export_fn!(qk_circuit_copy_empty_like),
+            export_fn!(qk_circuit_num_param_symbols),
+            export_fn!(qk_circuit_parameterized_gate),
+            export_fn!(qk_circuit_to_python, feature = "python_binding"),
+            export_fn!(qk_circuit_to_python_full, feature = "python_binding"),
+            export_fn!(qk_circuit_borrow_from_python, feature = "python_binding"),
+            export_fn!(qk_circuit_convert_from_python, feature = "python_binding"),
+            export_fn!(qk_quantum_register_to_python, feature = "python_binding"),
+            export_fn!(qk_quantum_register_borrow_from_python, feature = "python_binding"),
+            export_fn!(qk_quantum_register_convert_from_python, feature = "python_binding"),
+            export_fn!(qk_classical_register_to_python, feature = "python_binding"),
+            export_fn!(qk_classical_register_borrow_from_python, feature = "python_binding"),
+            export_fn!(qk_classical_register_convert_from_python, feature = "python_binding"),
         ]
     });
 }
@@ -228,6 +240,8 @@ mod sparse_observable {
             export_fn!(qk_obsterm_str),
             export_fn!(qk_bitterm_label),
             export_fn!(qk_obs_to_python, feature = "python_binding"),
+            export_fn!(qk_obs_borrow_from_python, feature = "python_binding"),
+            export_fn!(qk_obs_convert_from_python, feature = "python_binding"),
         ]
     });
 }
@@ -265,6 +279,14 @@ mod transpiler {
             export_fn!(qk_transpile_layout_generate_from_mapping),
             export_fn!(qk_transpile_layout_free),
             export_fn!(qk_transpile_layout_to_python, feature = "python_binding"),
+        ]
+    });
+    pub static TRANSPILE_STATE: ExportedFunctions = ExportedFunctions::leaves(15, || {
+        vec![
+            export_fn!(qk_transpile_state_new),
+            export_fn!(qk_transpile_state_free),
+            export_fn!(qk_transpile_state_layout),
+            export_fn!(qk_transpile_state_layout_set),
         ]
     });
 
@@ -356,6 +378,8 @@ mod transpiler {
                 export_fn!(unitary_synthesis::qk_transpiler_pass_standalone_unitary_synthesis),
                 export_fn!(vf2::qk_transpiler_pass_standalone_vf2_layout_average),
                 export_fn!(vf2::qk_transpiler_pass_standalone_vf2_layout_exact),
+                export_fn!(convert_to_pauli_rotations::qk_transpiler_pass_standalone_convert_to_pauli_rotations),
+                export_fn!(litinski_transformation::qk_transpiler_pass_standalone_litinski_transformation),
             ]
         });
         static FUNCTIONS_SABRE: ExportedFunctions = ExportedFunctions::leaves(5, || {
@@ -388,6 +412,7 @@ mod transpiler {
         .add_child(0, &TRANSPILE_FUNCTION)
         .add_child(20, &NEIGHBORS)
         .add_child(35, &TRANSPILE_LAYOUT)
-        .add_child(50, &target::FUNCTIONS)
-        .add_child(150, &passes::FUNCTIONS);
+        .add_child(50, &TRANSPILE_STATE)
+        .add_child(150, &target::FUNCTIONS)
+        .add_child(250, &passes::FUNCTIONS);
 }
