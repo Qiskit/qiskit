@@ -82,6 +82,7 @@ mod circuit {
             export_fn!(qk_circuit_delay),
             export_fn!(qk_circuit_to_dag),
             export_fn!(qk_circuit_copy_empty_like),
+            export_fn!(qk_circuit_draw),
         ]
     });
 }
