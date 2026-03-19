@@ -580,18 +580,12 @@ pub unsafe extern "C" fn qk_circuit_parameterized_gate(
 
     match circuit.push_standard_gate(gate, &params, qargs) {
         Ok(()) => ExitCode::Success,
-        Err(circuit_error) => {
-            // The only error we can give actionable user information on here is a name
-            // conflict, so we match on that (until a more generic CircuitDataError -> QkExitCode
-            // is implemented)
-            if let CircuitDataError::ParameterTableError(ParameterTableError::NameConflict(_)) =
-                circuit_error
-            {
-                return ExitCode::ParameterNameConflict;
-            }
-            ExitCode::ParameterError
+        Err(CircuitDataError::ParameterTableError(ParameterTableError::NameConflict(_))) => {
+            ExitCode::ParameterNameConflict
         }
+        Err(_) => ExitCode::ParameterError,
     }
+
 }
 
 /// @ingroup QkCircuit

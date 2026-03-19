@@ -11,7 +11,7 @@ features_c:
       QkParam *theta = qk_param_new_symbol("theta");
       uint32_t qubit[1] = {0};
       const QkParam* params[1] = {theta};
-      qk_circuit_gate_param(qc, QkGate_RX, qubit, params); // add RX(theta) to the circuit
+      qk_circuit_parameterized_gate(qc, QkGate_RX, qubit, params); // add RX(theta) to the circuit
 
   - |
     Added :c:func:`qk_circuit_num_param_symbols` to query the number of unbound symbols present
