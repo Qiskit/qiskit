@@ -23,7 +23,6 @@ static GENERATED_FUNCS: &str = "funcs_py_generated.h";
 /// Render a given type object into a string representing it in C.
 fn render_type_as_c(ty: &ir::Type, config: &cbindgen::Config) -> String {
     fn render(ty: &ir::Type, config: &cbindgen::Config, acc: &mut String) {
-        dbg!(ty);
         match ty {
             ir::Type::Ptr {
                 ty,
