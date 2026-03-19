@@ -2032,7 +2032,7 @@ impl TwoQubitBasisDecomposer {
             gate_params?,
             gate_matrix.as_array(),
             basis_fidelity,
-            EulerBasis::from_str(euler_basis).unwrap(),
+            EulerBasis::from_str(euler_basis).map_err(|err| PyValueError::new_err(err))?,
             pulse_optimize,
         )
     }
