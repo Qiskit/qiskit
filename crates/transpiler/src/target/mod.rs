@@ -32,7 +32,7 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use pyo3::{
     IntoPyObjectExt,
-    exceptions::{PyAttributeError, PyIndexError, PyKeyError, PyValueError},
+    exceptions::{PyAttributeError, PyIndexError, PyKeyError},
     prelude::*,
     pyclass,
     types::{PyDict, PyList, PySet},
@@ -231,7 +231,7 @@ pub struct Target {
 impl Target {
     /// Create a new ``Target`` object
     ///
-    ///Args:
+    /// Args:
     ///    description (str): An optional string to describe the Target.
     ///    num_qubits (int): An optional int to specify the number of qubits
     ///        the backend target has. If not set it will be implicitly set
@@ -240,7 +240,7 @@ impl Target {
     ///        noiseless simulator that doesn't have constraints on the
     ///        instructions so the transpiler knows how many qubits are
     ///        available.
-    ///    dt (float): The system time resolution of input signals in seconds
+    ///    dt (float): The system time resolution of input signals in seconds.
     ///    granularity (int): An integer value representing minimum pulse gate
     ///        resolution in units of ``dt``. A user-defined pulse gate should
     ///        have duration of a multiple of this granularity value.
@@ -281,9 +281,9 @@ impl Target {
         qubit_properties = None,
         concurrent_measurements = None,
     ))]
-    pub fn new(
+    pub fn py_new(
         description: Option<String>,
-        mut num_qubits: Option<u32>,
+        num_qubits: Option<u32>,
         dt: Option<f64>,
         granularity: Option<u32>,
         min_length: Option<u32>,
@@ -292,34 +292,18 @@ impl Target {
         qubit_properties: Option<Vec<QubitProperties>>,
         concurrent_measurements: Option<Vec<Vec<PhysicalQubit>>>,
     ) -> PyResult<Self> {
-        if let Some(qubit_properties) = qubit_properties.as_ref() {
-            if num_qubits.is_some_and(|num_qubits| num_qubits > 0) {
-                if num_qubits.unwrap() as usize != qubit_properties.len() {
-                    return Err(PyValueError::new_err(
-                        "The value of num_qubits specified does not match the \
-                            length of the input qubit_properties list",
-                    ));
-                }
-            } else {
-                num_qubits = Some(qubit_properties.len() as u32)
-            }
-        }
-        Ok(Target {
+        Target::new(
             description,
             num_qubits,
             dt,
-            granularity: granularity.unwrap_or(1),
-            min_length: min_length.unwrap_or(1),
-            pulse_alignment: pulse_alignment.unwrap_or(1),
-            acquire_alignment: acquire_alignment.unwrap_or(1),
+            granularity,
+            min_length,
+            pulse_alignment,
+            acquire_alignment,
             qubit_properties,
             concurrent_measurements,
-            gate_map: GateMap::default(),
-            _gate_name_map: IndexMap::default(),
-            global_operations: IndexMap::default(),
-            qarg_gate_map: IndexMap::default(),
-            angle_bounds: HashMap::new(),
-        })
+        )
+        .map_err(|e| e.into())
     }
 
     /// Add a new instruction to the `Target` after it has been processed in python.
@@ -910,6 +894,82 @@ impl Target {
 
 // Rust native methods
 impl Target {
+    /// Create a new ``Target`` object
+    ///
+    /// # Arguments
+    ///
+    /// * `description` - An optional string to describe the [Target].
+    /// * `num_qubits` - An optional integer to specify the number of qubits the backend target has.
+    ///     If this is not set, or has a value of 0, it will be implicitly set based on the qargs
+    ///     of the added instructions.
+    /// * `dt` - The system time resolution of input signals in seconds.
+    /// * `granularity` - An integer value representing minimum pulse gate resolution in units of
+    ///     `dt`. A user-defined pulse gate should have duration of a multiple of this granularity
+    ///     value.
+    /// * `min_length` - An integer value representing minimum pulse gate length in units of `dt`. A
+    ///     user-defined pulse gate should be longer than this length.
+    /// * `pulse_alignment` - An integer value representing a time resolution of gate instruction
+    ///     starting time. Gate instruction should start at time which is a multiple of the
+    ///     alignment value.
+    /// * `acquire_alignment` - An integer value representing a time resolution of measure
+    ///     instruction starting time. Measure instruction should start at time which is a multiple
+    ///     of the alignment value.
+    /// * `qubit_properties` - A vector of [QubitProperties] objects defining the characteristics of
+    ///     each qubit on the target device. If specified the length of this list must match the
+    ///     number of qubits in the target, where the index in the list matches the qubit number the
+    ///     properties are defined for. If some qubits don't have properties available you can set
+    ///     that entry to `None`
+    /// * `concurrent_measurements` - A list of sets of qubits that must be measured together.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Target)` - The new [Target].
+    /// * `Err(TargetError)` - An error if the number of qubits and qubit properties do not match.
+    pub fn new(
+        description: Option<String>,
+        num_qubits: Option<u32>,
+        dt: Option<f64>,
+        granularity: Option<u32>,
+        min_length: Option<u32>,
+        pulse_alignment: Option<u32>,
+        acquire_alignment: Option<u32>,
+        qubit_properties: Option<Vec<QubitProperties>>,
+        concurrent_measurements: Option<Vec<Vec<PhysicalQubit>>>,
+    ) -> Result<Self, TargetError> {
+        // If num_qubits and qubit_properties are given, check they are consistent
+        let mut num_qubits_checked = num_qubits;
+        if let Some(qubit_properties) = qubit_properties.as_ref() {
+            if num_qubits.is_some_and(|num_qubits| num_qubits > 0) {
+                if num_qubits.unwrap() as usize != qubit_properties.len() {
+                    return Err(TargetError::NumQubitsMismatch {
+                        num_qubits: num_qubits.unwrap(),
+                        num_props: qubit_properties.len(),
+                    });
+                }
+            } else {
+                // Set the number of qubits to the properties map length, if it is given
+                num_qubits_checked = Some(qubit_properties.len() as u32)
+            }
+        };
+
+        Ok(Target {
+            description,
+            num_qubits: num_qubits_checked,
+            dt,
+            granularity: granularity.unwrap_or(1),
+            min_length: min_length.unwrap_or(1),
+            pulse_alignment: pulse_alignment.unwrap_or(1),
+            acquire_alignment: acquire_alignment.unwrap_or(1),
+            qubit_properties,
+            concurrent_measurements,
+            gate_map: GateMap::default(),
+            _gate_name_map: IndexMap::default(),
+            global_operations: IndexMap::default(),
+            qarg_gate_map: IndexMap::default(),
+            angle_bounds: HashMap::new(),
+        })
+    }
+
     /// Adds a [PackedOperation] to the [Target].
     ///
     /// Said addition results in a [NormalOperation] in the [Target] as variadics
