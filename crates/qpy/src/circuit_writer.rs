@@ -47,8 +47,8 @@ use crate::formats;
 use crate::params::pack_param_obj;
 use crate::py_methods::{
     PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME, PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME,
-    UNITARY_GATE_CLASS_NAME, gate_class_name, getattr_or_none, py_get_instruction_annotations,
-    py_pack_param, py_pack_pauli_evolution_gate, recognize_custom_operation, serialize_metadata,
+    UNITARY_GATE_CLASS_NAME, gate_class_name, getattr_or_none, py_pack_param,
+    py_pack_pauli_evolution_gate, recognize_custom_operation, serialize_metadata,
 };
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionVarDeclaration, GenericValue, ParamRegisterValue,
@@ -250,7 +250,6 @@ fn pack_instruction(
         instruction_pack.label = label.clone();
     }
     instruction_pack.bit_data = get_packed_bit_list(instruction, qpy_data.circuit_data);
-    instruction_pack.annotations = py_get_instruction_annotations(instruction, qpy_data)?;
     if let Some(new_name) =
         recognize_custom_operation(&instruction.op, &gate_class_name(&instruction.op)?)?
     {
@@ -382,8 +381,6 @@ fn pack_control_flow_inst(
 ) -> Result<formats::CircuitInstructionV2Pack, QpyError> {
     let mut packed_annotations = None;
     let mut packed_condition: formats::ConditionPack = Default::default();
-    let mut extras_key = 0; // should contain a combination of condition key and annotations key, if present
-
     let params = match control_flow_inst.control_flow.clone() {
         ControlFlow::Box {
             duration,
@@ -420,12 +417,10 @@ fn pack_control_flow_inst(
         }
         ControlFlow::IfElse { condition } => {
             packed_condition = pack_condition(condition, qpy_data)?;
-            extras_key = packed_condition.key() as u8;
             pack_instruction_blocks(instruction, qpy_data)?
         }
         ControlFlow::While { condition } => {
             packed_condition = pack_condition(condition, qpy_data)?;
-            extras_key = packed_condition.key() as u8;
             pack_instruction_blocks(instruction, qpy_data)?
         }
         ControlFlow::Switch {
@@ -467,10 +462,16 @@ fn pack_control_flow_inst(
             params
         }
     };
+    let annotations_key = if packed_annotations.is_some() {
+        formats::extras_key_parts::ANNOTATIONS
+    } else {
+        0
+    };
+    let condition_key = packed_condition.key() as u8;
     Ok(formats::CircuitInstructionV2Pack {
         num_qargs: control_flow_inst.num_qubits,
         num_cargs: control_flow_inst.num_clbits,
-        extras_key,
+        extras_key: condition_key | annotations_key,
         num_ctrl_qubits: 0, // standard instructions have no control qubits
         ctrl_state: 0,
         gate_class_name: control_flow_inst.name().to_string(), // this name is NOT a proper python class name, but we don't instantiate from the python class anymore

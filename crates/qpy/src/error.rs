@@ -132,6 +132,10 @@ pub enum QpyError {
     #[error("binary parsing error: {0}")]
     BinRwError(String),
 
+    /// Something went wrong in annotation handling.
+    #[error("annotation-handling error: {0}")]
+    AnnotationError(String),
+
     /// Python error that occurred during a Python call
     #[error("Python error: {0}")]
     PythonError(#[from] PyErr),

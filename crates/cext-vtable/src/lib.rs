@@ -94,6 +94,7 @@ mod circuit {
             export_fn!(qk_classical_register_to_python, feature = "python_binding"),
             export_fn!(qk_classical_register_borrow_from_python, feature = "python_binding"),
             export_fn!(qk_classical_register_convert_from_python, feature = "python_binding"),
+            export_fn!(qk_circuit_draw),
         ]
     });
 }

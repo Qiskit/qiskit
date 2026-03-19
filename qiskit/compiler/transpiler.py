@@ -83,6 +83,13 @@ def transpile(
     **dt**                       target    dt
     ============================ ========= ========================
 
+    .. note::
+
+        When the target basis consists of Clifford+T gates, this function constructs
+        a specialized Clifford+T transpiler pipeline, see :func:`.clifford_t_pass_manager`
+        for documentation. The arguments that apply to transpiling into continuous basis sets
+        are ignored in this flow.
+
     Args:
         circuits: Circuit(s) to transpile
         backend: If set, the transpiler will compile the input circuit to this target
