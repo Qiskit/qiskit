@@ -3892,6 +3892,7 @@ class QuantumCircuit:
         wire_order: list[int] | None = None,
         expr_len: int = 30,
         measure_arrows: bool | None = None,
+        barrier_label_len: int = 16,
     ):
         r"""Draw the quantum circuit. Use the output parameter to choose the drawing format:
 
@@ -4003,6 +4004,9 @@ class QuantumCircuit:
                 instead place the name of the bit or register in the measure box.
                 Default is ``True`` unless the user config file (usually ``~/.qiskit/settings.conf``)
                 has an alternative value set. For example, ``circuit_measure_arrows = False``.
+            barrier_label_len: The number of characters to display for
+                :class:`.Barrier` labels in the output circuit. If this number is exceeded,
+                the string will be truncated at that number and '...' added to the end.
 
         Returns:
             :class:`.TextDrawing` or :class:`matplotlib.figure` or :class:`PIL.Image` or
@@ -4054,6 +4058,7 @@ class QuantumCircuit:
             cregbundle=cregbundle,
             wire_order=wire_order,
             expr_len=expr_len,
+            barrier_label_len=barrier_label_len,
             measure_arrows=measure_arrows,
         )
 
