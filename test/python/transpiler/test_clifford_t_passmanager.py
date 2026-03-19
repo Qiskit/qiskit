@@ -82,7 +82,7 @@ class TestCliffordTPassManager(QiskitTestCase):
     @data(0, 1, 2, 3)
     def test_rx(self, optimization_level):
         """Clifford+T transpilation of a circuit with a single-qubit rotation gate,
-        requiring the usage of the Solovay-Kitaev decomposition.
+        requiring approximate synthesis of RZ rotations.
         """
         qc = QuantumCircuit(1)
         qc.rx(0.8, 0)
@@ -151,8 +151,8 @@ class TestCliffordTPassManager(QiskitTestCase):
 
     @data(0, 1, 2, 3)
     def test_qft(self, optimization_level):
-        """Clifford+T transpilation of a more complex circuit, requiring the usage of the
-        Solovay-Kitaev decomposition.
+        """Clifford+T transpilation of a more complex circuit, requiring approximate
+        synthesis of RZ rotations.
         """
         qc = QuantumCircuit(4)
         qc.append(QFTGate(4), [0, 1, 2, 3])

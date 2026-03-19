@@ -23,7 +23,7 @@ for the transpiler. The preset pass managers are instances of
 transformations as part of Qiskit's compiler inside the
 :func:`~.transpile` function at the different optimization levels, but
 can also be used in a standalone manner.
-The functionality here is divided into two parts. The first includes the
+The functionality here is divided into three parts. The first includes the
 functions used to generate the entire pass manager, which is used by
 :func:`~.transpile` (:ref:`preset_pass_manager_generators`), and the
 second includes functions that are used to build (either entirely or in
@@ -35,13 +35,14 @@ part) the stages that comprise the preset pass managers
 Low-level preset pass manager generation
 ----------------------------------------
 
+.. rubric:: Continuous basis sets
+
 .. autofunction:: level_0_pass_manager
 .. autofunction:: level_1_pass_manager
 .. autofunction:: level_2_pass_manager
 .. autofunction:: level_3_pass_manager
 
-Low-level preset pass manager generation for Clifford+T
--------------------------------------------------------
+.. rubric:: Clifford+T basis sets
 
 .. autofunction:: clifford_t_pass_manager
 

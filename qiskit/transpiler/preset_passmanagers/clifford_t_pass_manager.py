@@ -32,7 +32,7 @@ from qiskit.transpiler.preset_passmanagers.builtin_plugins import (
 def clifford_t_pass_manager(
     pass_manager_config: PassManagerConfig, optimization_level: int
 ) -> StagedPassManager:
-    """Generate a staged pass manager for transpiling into Clifford+T basis.
+    r"""Generate a staged pass manager for transpiling into Clifford+T basis.
 
     This function is invoked by :func:`.generate_preset_pass_manager` when
     the target basis consists of Clifford+T gates. It generates a specialized
@@ -48,8 +48,8 @@ def clifford_t_pass_manager(
     * T optimization: Optimizes the circuit within Clifford+T basis.
     * Scheduling: Apply the default scheduling strategy used for continuous basis sets.
 
-    For best results, consider including both T and Tdg into the specified Clifford+T
-    basis and as many Clifford gates as possible. For example::
+    For best results, consider including both :math:`T` and :math:`T^\dagger` into the specified
+    Clifford+T basis and as many Clifford gates as possible. For example::
 
         basis_gates = get_clifford_gate_names() + ["t", "tdg"]
 

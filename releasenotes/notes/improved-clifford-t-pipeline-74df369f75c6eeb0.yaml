@@ -22,8 +22,8 @@ features_transpiler:
     they are not yet exposed as transpiler stage plugins (unlike the stages
     for continuous basis sets).
 
-    For best results, consider including both T and Tdg into the specified Clifford+T
-    basis and as many Clifford gates as possible. For example::
+    For best results, consider including both :math:`T` and :math:`T^\dagger` into the
+    specified Clifford+T basis and as many Clifford gates as possible. For example::
 
         basis_gates = get_clifford_gate_names() + ["t", "tdg"]
 
