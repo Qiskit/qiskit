@@ -15,7 +15,7 @@ features_c:
       TODO: before the final release of 2.4, insert links to documentation/guides about this.
 
 
-    We intend to make it possible to have mulitple compilation units using the Qiskit C API in an
+    We intend to make it possible to have multiple compilation units using the Qiskit C API in an
     extension module in a later release of Qiskit.
 
     Beware that Qiskit's C API is still unstable; extension modules compiled against Qiskit 2.4 are

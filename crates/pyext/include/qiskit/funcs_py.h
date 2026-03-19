@@ -15,7 +15,7 @@
 
 // We rely on `qiskit.h` to `#include <Python.h>` on our behalf, since it needs to be included
 // before all other includes. (Though really, a user should also have included it themselves,
-// surely, if they're delcaring a Python extension module.)
+// surely, if they're declaring a Python extension module.)
 
 // Declaring these as `static` in the header file means that there is a separate copy per
 // compilation unit.  This means that compiled extension modules written in C and using this need

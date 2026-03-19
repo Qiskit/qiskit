@@ -8,7 +8,7 @@ The Qiskit C API has minimal configuration.
 
    If defined before including ``qiskit.h``, the header files will define all of symbols in a mode
    safe for use with Python extension modules.  This means that all API functions will evaluate to
-   function-pointer derefences into a lookup table
+   function-pointer dereferences from a lookup table.
 
    This is a user-defined macro and not defined by Qiskit itself.
 
@@ -16,10 +16,10 @@ The Qiskit C API has minimal configuration.
 
    Import the Qiskit C API from the Python-space :py:mod:`qiskit` package.
 
-   You must call this once per copmilation unit, before attempting to call any C API functions.
+   You must call this once per compilation unit, before attempting to call any C API functions.
    Failure to do so will typically result in null-pointer dereferences at runtime.
 
-   You typically will want to do this inside you ``PyInit_*`` module initialization function.  For
+   You typically will want to do this inside your ``PyInit_*`` module initialization function.  For
    example, in ``my_extension.c``:
 
    .. code-block:: c
