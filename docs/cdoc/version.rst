@@ -14,7 +14,7 @@ Qiskit's version can be queried using a set of compiler macros.
     ``M`` is the major, ``m`` is the minor, ``p`` is the patch, ``l`` is the release level
     and ``s`` is the serial. For example, 2.1.0-rc1 is ``0x020100C1``.
 
-    Note that final versions, such as ``2.1.0``, will always end with ``0xf0`` in the last byte.
+    Note that final versions, such as ``2.1.0``, will always end with ``0xF0`` in the last byte.
 
     See :c:func:`qk_api_version` for the runtime version of this.
 
