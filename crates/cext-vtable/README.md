@@ -12,4 +12,7 @@ This exists as a separate module to `cext` because language-bindings generators 
 want to, or _cannot_ compile against `cext` fully.  For example, the build script of `pyext` cannot
 depend on `cext` itself, because that would trigger a complete second compilation of Qiskit and
 require the build script to link against `libpython` simply to run, both of which are highly
-problematic for the build proces.
+problematic for the build process.
+
+If you add a new `pub extern "C" fn` in `qiskit-cext`, you will also need to give it a slot
+in this crate.

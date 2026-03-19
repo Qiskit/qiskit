@@ -17,7 +17,7 @@ pub struct SlotsLists {
     pub slots: IndexMap<String, SlotsList>,
 }
 impl SlotsLists {
-    /// The slots lists that are defined in the dependend-on `qiskit_cext_vtable`.
+    /// The slots lists that are defined in the depended-on `qiskit_cext_vtable`.
     pub fn ours() -> Self {
         let names = |funcs: Vec<Option<ExportedFunction>>| {
             SlotsList(

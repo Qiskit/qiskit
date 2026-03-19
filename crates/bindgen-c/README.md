@@ -15,7 +15,7 @@ This is in a separate crate to avoid pulling in unnecessary dependencies to `bin
 
 ## Installing the standalone header files
 
-Use the `install` subocommand, such as
+Use the `install` subcommand, such as
 
 ```bash
 cargo run -p qiskit-bindgen-c -- install -c crates/cext -o dist/c/include
@@ -36,7 +36,7 @@ cargo run -p qiskit-bindgen-c -- lint-slots -c crates/cext
 This checks various coherence properties between the declared `extern "C"` functions in
 `qiskit-cext` and the vtable slots layout specified in `qiskit-cext-vtable`, such as checking that
 all functions have a slot and there are no duplicates; in other words, that each exported function
-is referenced exactly onces.
+is referenced exactly once.
 
 Note that this command does not test for ABI compatibility between different Qiskit versions.
 
@@ -53,7 +53,7 @@ pub extern "C" fn qk_circuit_empty() -> *mut QkCircuit { /* ... */ }
 ```
 
 The magic is in the `/// cbindgen:qk-vtable-rules` line.  `cbindgen` will strip this line out of the
-generated documentation.The available "rules" within the list are:
+generated documentation. The available "rules" within the list are:
 
 - `no-export`: assert that the function will not be in the slots list (such as for functions
   deprecated before the introduction of the vtables).
