@@ -1127,7 +1127,15 @@ class OptimizeCliffordRZPassManager(PassManagerStagePlugin):
                 clifford_t_gates = get_clifford_gate_names() + ["t", "tdg"]
 
                 def consolidate_run_fn(_dag, run):
-                    return any(node.op.name not in clifford_t_gates for node in run)
+                    # we keep the run intact if it is only diagonals or only cliffords,
+                    # meaning we collect if it's non-diag and non-clifford
+                    contains_non_diag = any(
+                        node.op.name not in {"rz", "t", "tdg", "s", "sdg", "z"} for node in run
+                    )
+                    contains_non_clifford = any(
+                        node.op.name not in clifford_t_gates for node in run
+                    )
+                    return contains_non_clifford and contains_non_diag
 
                 pre_loop = [
                     Collect1qRuns(consolidate_run_fn),
@@ -1226,14 +1234,14 @@ class OptimizeCliffordTPassManager(PassManagerStagePlugin):
             case 1:
                 loop = [
                     InverseCancellation(),
-                    OptimizeCliffordT(),
+                    OptimizeCliffordT(basis_gates=basis_gates),
                     ContractIdleWiresInControlFlow(),
                 ]
                 loop_check, continue_loop = _optimization_check_fixed_point()
                 post_loop = translate_to_target
             case 2 | 3:
                 loop = [
-                    OptimizeCliffordT(),
+                    OptimizeCliffordT(basis_gates=basis_gates),
                     CommutativeOptimization(),
                     SubstitutePi4Rotations(),
                     ContractIdleWiresInControlFlow(),
