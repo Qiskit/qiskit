@@ -1159,13 +1159,13 @@ cleanup:
 }
 
 /**
- *  A sanity check to ensure the circuit drawer handles all the supported instructions.
+ *  A sanity check to ensure the circuit drawer handles all the supported operations.
  */
 static int test_circuit_draw(void) {
     QkCircuit *circuit = qk_circuit_new(10, 2);
 
     uint32_t qubits[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-    double params[3] = {1.41, 2.71, 3.14};
+    double params[4] = {1.41, 2.71, 3.14, 1.5};
     for (uint8_t gate = 0; gate <= QkGate_RC3X; ++gate) {
         qk_circuit_gate(circuit, gate, &qubits[gate % 8], params);
     }
@@ -1176,6 +1176,7 @@ static int test_circuit_draw(void) {
     QkComplex64 c1 = {1, 0};
     QkComplex64 unitary[2 * 2] = {c0, c1, c1, c0};
     qk_circuit_unitary(circuit, unitary, (uint32_t[]){5}, 1, true);
+    qk_circuit_reset(circuit, 0);
 
     QkCircuitDrawerConfig config = {false, true, 80};
 
