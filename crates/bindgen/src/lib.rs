@@ -196,7 +196,7 @@ fn get_config() -> anyhow::Result<cbindgen::Config> {
     })
 }
 
-/// Is a given function marked with our custom "skip" attribute?
+/// Is a given function marked with one of our special attributes?
 ///
 /// Returns an error if there are unknown attributes used in the list.
 pub fn fn_attrs(func: &cbindgen::ir::Function) -> anyhow::Result<FnAttributes> {
