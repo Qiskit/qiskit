@@ -30,8 +30,8 @@ struct Args {
 enum Command {
     /// Install the header files into a given directory.
     Install {
-        #[arg(short, long)]
         /// Path to the `cext` sources to generate headers for.
+        #[arg(short, long)]
         cext_path: PathBuf,
         /// Where to install the header files to.
         #[arg(short, long)]
@@ -40,8 +40,8 @@ enum Command {
     /// Check for correctness between the slots tables and the list of exported functions for the
     /// current version of Qiskit.
     LintSlots {
-        #[arg(short, long)]
         /// Path to the `cext` sources to generate headers for.
+        #[arg(short, long)]
         cext_path: PathBuf,
     },
 }
