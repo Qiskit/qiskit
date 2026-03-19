@@ -17,6 +17,7 @@ pub mod bit;
 pub mod bit_locator;
 mod blocks;
 pub mod circuit_data;
+pub mod circuit_drawer;
 pub mod circuit_instruction;
 pub mod classical;
 pub mod converters;
