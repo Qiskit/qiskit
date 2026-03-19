@@ -13,7 +13,9 @@
 pub mod alap_schedule_analysis;
 pub mod asap_schedule_analysis;
 
-use std::ops::{Add, Deref, Sub};
+use std::ops::{
+    Add, AddAssign, Deref, DerefMut, Div, DivAssign, Mul, MulAssign, Rem, RemAssign, Sub, SubAssign,
+};
 
 use ahash::RandomState;
 use hashbrown::HashMap;
@@ -32,7 +34,38 @@ use rustworkx_core::petgraph::graph::NodeIndex;
 
 use crate::TranspilerError;
 
-pub trait TimeOps: Copy + PartialOrd + Add<Output = Self> + Sub<Output = Self> {
+pub trait Number:
+    Copy
+    + Add<Output = Self>
+    + Sub<Output = Self>
+    + Mul<Output = Self>
+    + Div<Output = Self>
+    + Rem<Output = Self>
+    + AddAssign
+    + SubAssign
+    + MulAssign
+    + DivAssign
+    + RemAssign
+{
+}
+
+impl<
+    T: Copy
+        + Add<Output = Self>
+        + Sub<Output = Self>
+        + Mul<Output = Self>
+        + Div<Output = Self>
+        + Rem<Output = Self>
+        + AddAssign
+        + SubAssign
+        + MulAssign
+        + DivAssign
+        + RemAssign,
+> Number for T
+{
+}
+
+pub trait TimeOps: Copy + PartialOrd + Number {
     fn zero() -> Self;
     fn max<'a>(a: &'a Self, b: &'a Self) -> &'a Self;
 }
@@ -74,6 +107,12 @@ impl Deref for PyNodeDurations {
 
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+
+impl DerefMut for PyNodeDurations {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 
