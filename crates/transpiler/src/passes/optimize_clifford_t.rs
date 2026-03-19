@@ -362,8 +362,7 @@ pub fn run_optimize_clifford_t(
     let runs: Vec<Vec<NodeIndex>> = dag.collect_runs_by(filter).collect();
 
     for raw_run in runs {
-        let optimized_sequence =
-            optimize_clifford_t_1q(dag, &raw_run, basis_gates.as_ref().map(|b| b.as_slice()));
+        let optimized_sequence = optimize_clifford_t_1q(dag, &raw_run, basis_gates.as_deref());
         match optimized_sequence {
             Some((optimized_sequence, global_phase_update)) => {
                 for gate in optimized_sequence {

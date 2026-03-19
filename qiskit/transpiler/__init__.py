@@ -96,7 +96,7 @@ see :func:`.clifford_t_pass_manager` for documentation. For example::
 
     # Create and run the pass manager
     pm = generate_preset_pass_manager(basis_gates=basis_gates)
-    physical = pm.run(abstract)
+    transpiled = pm.run(abstract)
 
 For most use cases, this is all you need.
 All of Qiskit's transpiler infrastructure is highly extensible and configurable, however.

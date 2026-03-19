@@ -385,7 +385,7 @@ class TestCliffordTPassManager(QiskitTestCase):
         # The resulting decomposition should be efficient in terms of T-count,
         # except surprisingly for the case n=1 (which is why it is not used in this test)
         t_count = _get_t_count(transpiled)
-        expected_t_count = {2: 153, 3: 505, 4: 1114, 5: 2005, 6: 2596, 7: 3850}
+        expected_t_count = {2: 153, 3: 501, 4: 1114, 5: 2005, 6: 2596, 7: 3850}
         self.assertLessEqual(t_count, expected_t_count[n])
 
     @data(1, 2, 3, 4, 5, 6, 7)
