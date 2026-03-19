@@ -78,6 +78,10 @@ sample transpilation looks like::
     # ... and use it (as many times as you like).
     physical = pm.run(abstract)
 
+For early experiments towards fault tolerance, the function :func:`.generate_preset_pass_manager`
+invokes a specialized transpilation pipeline when the target basis consists of Clifford+T gates,
+see :func:`.clifford_t_pass_manager`for documentation.
+
 For most use cases, this is all you need.
 All of Qiskit's transpiler infrastructure is highly extensible and configurable, however.
 The rest of this page details how to harness the low-level capabilities of the transpiler stack.

@@ -28,10 +28,12 @@ features_transpiler:
         basis_gates = get_clifford_gate_names() + ["t", "tdg"]
 
   - |
-    The standard equivalence library now includes additional equivalences
-    for :class:`.RXGate` and :class:`.ZGate`, and improved equivalences
-    for :class:`.TGate` and :class:`.TdgGate`.
+    The standard equivalence library has been expanded and refined:
 
+    * Added decompositions for :class:`.RXGate` (in terms of :class:`.HGate` and :class:`.RZGate`)
+      and :class:`.ZGate` (in terms of :class:`.SdgGate`)
+    * Simplified decompositions for :class:`.TGate` and :class:`.TdgGate` to use a single
+      corresponding dagger gate plus Clifford gates
 
 
 
