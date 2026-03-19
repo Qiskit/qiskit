@@ -29,9 +29,10 @@ const MINIMUM_EPSILON: f64 = 1e-12; // minimum epsilon for synthesis
 /// The canonical representation is limited by the f64 representation.
 /// Any angle that differs in decimal places beyond f64 will be non-unique.
 fn canonicalize_angle(angle: f64) -> (u8, f64) {
-    if 0. <= angle && angle < FRAC_PI_2 {
+    if (0. ..FRAC_PI_2).contains(&angle) {
         return (0, angle);
     }
+
     let angle_normalized = angle.rem_euclid(FRAC_PI_2);
     let interval = ((angle - angle_normalized) / FRAC_PI_2)
         .round()
