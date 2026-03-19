@@ -54,9 +54,6 @@ pub fn draw_circuit(
             term_width as usize
         }
     };
-    // Strip trailing whitespace from lines.
-    // On the last line ensure we only a single newline ends the returned
-    // string (in case we ended up with a double newline after the stripping)
     let phase = circuit.global_phase();
     let mut output: String = match phase {
         Param::Float(f) => {
@@ -72,6 +69,9 @@ pub fn draw_circuit(
         }
         _ => unreachable!("Global phase must be a ParameterExpression or float"),
     };
+    // Strip trailing whitespace from lines.
+    // On the last line ensure only a single newline ends the returned
+    // string (in case we ended up with a double newline after the stripping)
     output.extend(
         text_drawer
             .draw(mergewires, fold)
@@ -277,7 +277,7 @@ impl<'a> VisualizationLayer<'a> {
                 "{}",
                 format!(
                     "Visualization is not implemented for instruction of type {:?}",
-                    inst.op
+                    inst.op.name()
                 )
             ),
         }
@@ -853,7 +853,7 @@ impl TextDrawer {
                                     bot_con = BOT_CON;
                                 }
                                 // This ensures the top_con/bot_con connectors are properly aligned with the control
-                                // lines regardless of whether the text element padding size is odd or even. 
+                                // lines regardless of whether the text element padding size is odd or even.
                                 (label.len() % 2 == 0).then(|| label.push(' '));
                             }
                         } else if let Some(std_inst) = inst.op.try_standard_instruction() {
