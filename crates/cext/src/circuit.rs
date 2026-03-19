@@ -1972,7 +1972,7 @@ pub unsafe extern "C" fn qk_circuit_delay(
 
 /// The configuration options for the ``qk_circuit_draw`` function.
 #[repr(C)]
-pub struct CCircuitDrawerConfig {
+pub struct CircuitDrawerConfig {
     /// If `true`, bundles classical registers into single wires.
     bundle_cregs: bool,
     /// If `true`, merges the bottom and top lines of adjacent wires.
@@ -2021,7 +2021,7 @@ pub struct CCircuitDrawerConfig {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_circuit_draw(
     circuit: *const CircuitData,
-    config: *const CCircuitDrawerConfig,
+    config: *const CircuitDrawerConfig,
 ) -> *mut c_char {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
