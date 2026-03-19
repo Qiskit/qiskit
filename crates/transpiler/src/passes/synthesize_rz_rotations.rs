@@ -19,7 +19,6 @@ use qiskit_circuit::operations::{OperationRef, Param, StandardGate, add_param};
 use qiskit_synthesis::ross_selinger::gridsynth_rz;
 
 const MINIMUM_EPSILON: f64 = 1e-12; // minimum epsilon for synthesis
-const DEFAULT_ACCURACY: f64 = 1e-10; // default synthesis accuracy
 
 /// Finds a canonical representation of an angle.
 ///
@@ -30,6 +29,9 @@ const DEFAULT_ACCURACY: f64 = 1e-10; // default synthesis accuracy
 /// The canonical representation is limited by the f64 representation.
 /// Any angle that differs in decimal places beyond f64 will be non-unique.
 fn canonicalize_angle(angle: f64) -> (u8, f64) {
+    if 0. <= angle && angle < FRAC_PI_2 {
+        return (0, angle);
+    }
     let angle_normalized = angle.rem_euclid(FRAC_PI_2);
     let interval = ((angle - angle_normalized) / FRAC_PI_2)
         .round()
@@ -80,6 +82,7 @@ fn synthesize_rz_gate_via_gridsynth(
             }
         })
         .collect();
+
     Ok((sequence, phase))
 }
 
@@ -121,7 +124,7 @@ pub fn py_run_synthesize_rz_rotations(
             let total_error = if let Some(approximation_degree) = approximation_degree {
                 MINIMUM_EPSILON.max(1. - approximation_degree)
             } else {
-                DEFAULT_ACCURACY
+                MINIMUM_EPSILON // use minimum epsilon per default 
             };
             (total_error / 2., total_error / 2.)
         }
@@ -138,9 +141,11 @@ pub fn py_run_synthesize_rz_rotations(
     let mut candidates: Vec<_> = dag
         .op_nodes(false)
         .filter_map(|(node_index, inst)| {
+            println!("{:?}", inst.params);
             if let OperationRef::StandardGate(StandardGate::RZ) = inst.op.view() {
                 if let Param::Float(angle) = inst.params_view()[0] {
                     let (interval_index, canonical_angle) = canonicalize_angle(angle);
+                    println!("pre canon: {angle} post: {canonical_angle}");
                     Some((node_index, canonical_angle, interval_index))
                 } else {
                     None

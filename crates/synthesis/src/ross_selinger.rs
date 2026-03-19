@@ -67,13 +67,16 @@ where
 }
 
 pub fn gridsynth_rz(theta: f64, epsilon: f64) -> PyResult<CircuitData> {
+    println!("Called with {theta} and {epsilon}");
     let res = gridsynth_gates(&mut config_from_theta_epsilon(
         theta, epsilon, 0u64, false, true,
     ));
     let gates_iter = res.gates.chars();
     let phase = if res.global_phase { FRAC_PI_8 } else { 0. };
     let instruction_capacity = res.gates.len();
-    circuit_from_string(gates_iter, phase, instruction_capacity)
+    let out = circuit_from_string(gates_iter, phase, instruction_capacity)?;
+    println!("T count: {:?}", out.count_ops().get("t"));
+    Ok(out)
 }
 
 #[pyfunction]

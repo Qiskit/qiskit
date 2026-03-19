@@ -1226,14 +1226,14 @@ class OptimizeCliffordTPassManager(PassManagerStagePlugin):
             case 1:
                 loop = [
                     InverseCancellation(),
-                    OptimizeCliffordT(),
+                    OptimizeCliffordT(basis_gates=basis_gates),
                     ContractIdleWiresInControlFlow(),
                 ]
                 loop_check, continue_loop = _optimization_check_fixed_point()
                 post_loop = translate_to_target
             case 2 | 3:
                 loop = [
-                    OptimizeCliffordT(),
+                    OptimizeCliffordT(basis_gates=basis_gates),
                     CommutativeOptimization(),
                     SubstitutePi4Rotations(),
                     ContractIdleWiresInControlFlow(),

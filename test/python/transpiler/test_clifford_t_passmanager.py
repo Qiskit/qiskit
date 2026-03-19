@@ -30,6 +30,7 @@ from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.transpiler import CouplingMap
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.quantum_info import get_clifford_gate_names
+from qiskit.synthesis import gridsynth_rz
 
 from test import QiskitTestCase
 
@@ -404,6 +405,38 @@ class TestCliffordTPassManager(QiskitTestCase):
         t_count = _get_t_count(transpiled)
         expected_t_count = {1: 0, 2: 8, 3: 16, 4: 24, 5: 32, 6: 40, 7: 48}
         self.assertLessEqual(t_count, expected_t_count[n])
+
+    def test_single_z_rotation(self):
+        """Test a single RZ rotation is transpiled with expected overhead."""
+        angle = 1.5
+        circuit = QuantumCircuit(1)
+        circuit.rz(angle, 0)
+
+        # get the expected reference count
+        reference = gridsynth_rz(angle, epsilon=0.5e-12)
+        t_threshold = _get_t_count(reference)
+
+        basis_gates = get_clifford_gate_names() + ["t", "tdg"]
+        with self.subTest(basis_gates=basis_gates):
+            pm = generate_preset_pass_manager(basis_gates=basis_gates)
+            disc = pm.run(circuit)
+            self.assertLessEqual(_get_t_count(disc), t_threshold)
+
+        basis_gates = ["t", "h", "s", "cx"]
+        with self.subTest(basis_gates=basis_gates):
+            pm = generate_preset_pass_manager(basis_gates=basis_gates)
+            disc = pm.run(circuit)
+            self.assertLessEqual(_get_t_count(disc), t_threshold)
+
+        basis_gates = ["t", "h", "cx"]
+        with self.subTest(basis_gates=basis_gates):
+            # gridsynth produces only S, X, T, H (and global phase)
+            s_overhead = 2 * reference.count_ops().get("s", 0)
+            x_overhead = 4 * reference.count_ops().get("x", 0)
+
+            pm = generate_preset_pass_manager(basis_gates=basis_gates)
+            disc = pm.run(circuit)
+            self.assertLessEqual(_get_t_count(disc), t_threshold + s_overhead + x_overhead)
 
 
 def _get_t_count(qc):

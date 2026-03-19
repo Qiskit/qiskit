@@ -12,9 +12,22 @@
 
 """Optimize sequences of single-qubit Clifford+T gates."""
 
+from collections.abc import Sequence
 from qiskit.dagcircuit import DAGCircuit
+from qiskit.circuit.library import get_standard_gate_name_mapping
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit._accelerate.optimize_clifford_t import optimize_clifford_t
+
+SKIPPED_NAMES = {
+    "measure",
+    "box",
+    "reset",
+    "delay",
+    "if_else",
+    "switch_case",
+    "while_loop",
+    "for_loop",
+}
 
 
 class OptimizeCliffordT(TransformationPass):
@@ -29,6 +42,26 @@ class OptimizeCliffordT(TransformationPass):
     :math:`O(m)`.
     """
 
+    def __init__(self, basis_gates: Sequence[str] | None = None):
+        if basis_gates is not None:
+            name_map = get_standard_gate_name_mapping()
+            std_gates = []
+            for name in basis_gates:
+                if name in SKIPPED_NAMES:
+                    continue
+                if (gate := name_map.get(name, None)) is None:
+                    raise ValueError("Invalid basis gate: %s", name)
+                if (std_gate := gate._standard_gate) is None:
+                    raise ValueError("Non-standard gate passed: %s", name)
+
+                std_gates.append(std_gate)
+
+            self.basis_gates = std_gates
+        else:
+            self.basis_gates = None
+
+        super().__init__()
+
     def run(self, dag: DAGCircuit):
         """
         Run the OptimizeCliffordT pass on `dag`.
@@ -40,5 +73,5 @@ class OptimizeCliffordT(TransformationPass):
             DAGCircuit: Transformed DAG.
         """
 
-        optimize_clifford_t(dag)
+        optimize_clifford_t(dag, self.basis_gates)
         return dag
