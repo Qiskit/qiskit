@@ -110,6 +110,7 @@ class MatplotlibDrawer:
         with_layout=False,
         expr_len=30,
         measure_arrows=None,
+        barrier_label_len=16,
     ):
         self._circuit = circuit
         self._qubits = qubits
@@ -138,6 +139,7 @@ class MatplotlibDrawer:
         self._initial_state = initial_state
         self._global_phase = self._circuit.global_phase
         self._expr_len = expr_len
+        self._barrier_label_len = barrier_label_len
         self._cregbundle = cregbundle
         self._measure_arrows = measure_arrows
 
@@ -1437,11 +1439,14 @@ class MatplotlibDrawer:
 
             # display the barrier label at the top if there is one
             if i == 0 and node.op.label is not None:
+                label = node.op.label
+                if len(label) > self._barrier_label_len:
+                    label = label[: self._barrier_label_len] + "..."
                 dir_ypos = ypos + 0.65 * HIG
                 self._ax.text(
                     xpos,
                     dir_ypos,
-                    node.op.label,
+                    label,
                     ha="center",
                     va="top",
                     fontsize=self._style["fs"],
