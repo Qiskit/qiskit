@@ -994,7 +994,10 @@ class CliffordTOptimizationPassManager(PassManagerStagePlugin):
                 # We need to run BasisTranslator because OptimizeCliffordT does not consider the basis.
                 post_loop = [
                     BasisTranslator(
-                        sel, pass_manager_config.basis_gates, pass_manager_config.target
+                        sel,
+                        pass_manager_config.basis_gates,
+                        pass_manager_config.target,
+                        propagate_labels=False,
                     )
                 ]
                 loop_check, continue_loop = _optimization_check_fixed_point()

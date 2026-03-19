@@ -1067,6 +1067,41 @@ class TestBasisExamples(QiskitTestCase):
         )
         self.assertEqual(circ_transpiled.count_ops(), {"cx": 91, "rz": 66, "sx": 22})
 
+    def test_labels_not_propagated_to_decomposed_gates(self):
+        """Test that gate labels are dropped during basis translation via transpile. See #15168."""
+        circuit = QuantumCircuit(2)
+        circuit.cx(0, 1, label="hello")
+        transpiled = transpile(circuit, basis_gates=["cz", "rx", "rz"])
+        for instruction in transpiled.data:
+            self.assertIsNone(
+                instruction.operation.label,
+                f"Label was incorrectly propagated to {instruction.operation.name}",
+            )
+
+    def test_labels_not_propagated_parameterized_gates(self):
+        """Test that labels are dropped for parameterized gate decomposition. See #15168."""
+        circuit = QuantumCircuit(1)
+        circuit.rx(0.5, 0, label="my_rx")
+        transpiled = transpile(circuit, basis_gates=["u3"])
+        for instruction in transpiled.data:
+            self.assertIsNone(
+                instruction.operation.label,
+                f"Label was incorrectly propagated to {instruction.operation.name}",
+            )
+
+    def test_labels_propagated_when_enabled(self):
+        """Test that propagate_labels=True (default) copies labels to decomposed gates."""
+        circuit = QuantumCircuit(2)
+        circuit.cx(0, 1, label="hello")
+        dag = circuit_to_dag(circuit)
+        translator = BasisTranslator(std_eq_lib, ["cz", "rx", "rz"])
+        result = translator.run(dag)
+        labels = [node.op.label for node in result.op_nodes()]
+        self.assertTrue(
+            any(label == "hello" for label in labels),
+            "Labels should propagate to decomposed gates when propagate_labels=True",
+        )
+
 
 class TestBasisTranslatorWithTarget(QiskitTestCase):
     """Test the basis translator when running with a Target."""
