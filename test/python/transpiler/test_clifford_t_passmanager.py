@@ -187,7 +187,7 @@ class TestCliffordTPassManager(QiskitTestCase):
         # We should not expect to see more T-gates with higher optimization levels
         # (while this is technically possible, it means that Clifford+T transpiler
         # pipeline is not setup correctly).
-        expected_t_count = 1091
+        expected_t_count = 1085
         self.assertLessEqual(t_count, expected_t_count)
 
     @data(0, 1, 2, 3)
