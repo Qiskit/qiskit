@@ -853,7 +853,7 @@ impl TextDrawer {
                                     bot_con = BOT_CON;
                                 }
                                 // This ensures the top_con/bot_con connectors are properly aligned with the control
-                                // lines regardless of whether the text element padding size.
+                                // lines regardless of whether the text element padding size is odd or even. 
                                 (label.len() % 2 == 0).then(|| label.push(' '));
                             }
                         } else if let Some(std_inst) = inst.op.try_standard_instruction() {
