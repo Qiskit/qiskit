@@ -78,7 +78,17 @@ fn push_node_back(
         OperationRef::Gate(_) | OperationRef::StandardGate(_) => Some(pulse_align),
         OperationRef::StandardInstruction(StandardInstruction::Reset)
         | OperationRef::StandardInstruction(StandardInstruction::Measure) => Some(acquire_align),
-        _ => None,
+        OperationRef::StandardInstruction(StandardInstruction::Delay(_)) => None,
+        _ => {
+            if !op_view.directive() {
+                None
+            } else {
+                return Err(TranspilerError::new_err(format!(
+                    "Unknown operation type for '{}'.",
+                    op_view.name()
+                )));
+            }
+        }
     };
 
     let mut this_t0: u64 = *node_start_time
@@ -88,7 +98,7 @@ fn push_node_back(
     if let Some(alignment) = alignment {
         let misalignment = this_t0 % alignment as u64;
         let shift = if misalignment != 0 {
-            alignment as u64 - misalignment
+            (alignment as u64).saturating_sub(misalignment)
         } else {
             0
         };
