@@ -5,6 +5,7 @@ features_circuits:
     the correct type.
 
     Example usage::
+    
         from qiskit.circuit import ClassicalRegister
         from qiskit.circuit.classical import expr, types
 
