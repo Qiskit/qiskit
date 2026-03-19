@@ -585,7 +585,6 @@ pub unsafe extern "C" fn qk_circuit_parameterized_gate(
         }
         Err(_) => ExitCode::ParameterError,
     }
-
 }
 
 /// @ingroup QkCircuit
