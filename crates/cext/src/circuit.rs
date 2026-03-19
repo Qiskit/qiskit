@@ -24,10 +24,10 @@ use num_complex::{Complex64, ComplexFloat};
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
 use qiskit_circuit::bit::{ShareableClbit, ShareableQubit};
 use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
+use qiskit_circuit::circuit_drawer::draw_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::interner::Interner;
-use qiskit_circuit::circuit_drawer::draw_circuit;
 use qiskit_circuit::operations::{
     ArrayType, DelayUnit, Operation, OperationRef, Param, PauliBased, PauliProductMeasurement,
     PauliProductRotation, StandardGate, StandardInstruction, UnitaryGate,
@@ -2019,7 +2019,6 @@ pub struct CCircuitDrawerConfig {
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``, or
 /// if ``config`` is not NULL and a non-valid pointer to a ``QkCircuitDrawerConfig`` struct.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_draw(
     circuit: *const CircuitData,
     config: *const CCircuitDrawerConfig,
