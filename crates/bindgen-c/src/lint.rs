@@ -73,6 +73,8 @@ pub fn lint(
     for (api_name, list) in slots.slots.iter() {
         for (slot, export) in list.iter_names() {
             if let Some((prev_api, prev_slot)) = seen.insert(export, (api_name, slot)) {
+                // We put everything into `duplicates` here, then take it out again later if we
+                // discover post cbindgen-parsing that that's allowed.
                 duplicates
                     .entry(export.to_owned())
                     .or_insert_with(|| vec![(String::from(prev_api), prev_slot)])
@@ -84,12 +86,16 @@ pub fn lint(
     let mut missing = Vec::new();
     for func in bindings.functions.iter() {
         let fname = func.path.name();
-        match (seen.get(fname), fn_attrs(func)?.skipped) {
+        let attrs = fn_attrs(func)?;
+        match (seen.get(fname), attrs.skipped) {
             (Some((api, slot)), true) => {
                 skipped_but_exported.insert(String::from(fname), (String::from(*api), *slot));
             }
             (None, false) => missing.push(String::from(fname)),
             (Some(_), false) | (None, true) => (),
+        }
+        if attrs.allow_duplicates {
+            duplicates.swap_remove(fname);
         }
     }
     let failures = Failures {

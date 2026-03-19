@@ -57,7 +57,7 @@ generated documentation. The available "rules" within the list are:
 
 - `no-export`: assert that the function will not be in the slots list (such as for functions
   deprecated before the introduction of the vtables).
-- `allow-duplicates`: allow functions to be in more than one slot (if, for example, we want to
+- `allow-duplicate`: allow functions to be in more than one slot (if, for example, we want to
   export a function in more than one vtable).
 
 You can specify more than one attribute by separating them with commas.
