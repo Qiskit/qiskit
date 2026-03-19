@@ -15,6 +15,7 @@
 import numpy as np
 from ddt import ddt, data
 
+from qiskit import transpile
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import (
@@ -408,7 +409,7 @@ class TestCliffordTPassManager(QiskitTestCase):
 
     def test_single_z_rotation(self):
         """Test a single RZ rotation is transpiled with expected overhead."""
-        angle = 1.5
+        angle = 0.1
         circuit = QuantumCircuit(1)
         circuit.rz(angle, 0)
 
@@ -437,6 +438,38 @@ class TestCliffordTPassManager(QiskitTestCase):
             pm = generate_preset_pass_manager(basis_gates=basis_gates)
             disc = pm.run(circuit)
             self.assertLessEqual(_get_t_count(disc), t_threshold + s_overhead + x_overhead)
+
+    @data("diag", "cliff", "collect")
+    def test_sequence_collection(self, sequence_kind):
+        """Test Clifford+T friendly sequences are not collected into unitaries."""
+        qc = QuantumCircuit(2)
+        qc.t(1)
+
+        if sequence_kind == "cliff":
+            qc.h(1)
+            qc.y(1)
+            qc.sx(1)
+        elif sequence_kind == "diag":
+            qc.rz(0.1, 1)
+            qc.z(1)
+            qc.sdg(1)
+            qc.tdg(1)
+        else:
+            qc.ry(0.4, 1)
+
+        has_unitary = [False]
+
+        def check_for_unitary(**kwargs):
+            name = kwargs["pass_"].__class__.__name__
+            if name == "ConsolidateBlocks":
+                ops = kwargs["dag"].count_ops()
+                has_unitary[0] = "unitary" in ops.keys()
+
+        basis_gates = get_clifford_gate_names() + ["t", "tdg"]
+        _ = transpile(qc, basis_gates=basis_gates, callback=check_for_unitary)
+
+        expect_unitary = sequence_kind == "collect"
+        self.assertEqual(expect_unitary, has_unitary[0])
 
 
 def _get_t_count(qc):

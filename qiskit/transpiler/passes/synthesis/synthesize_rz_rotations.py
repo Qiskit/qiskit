@@ -82,7 +82,6 @@ class SynthesizeRZRotations(TransformationPass):
                 result for angles close to :math:`\theta`.
         """
         super().__init__()
-        print("approx", approximation_degree)
         self.approximation_degree = approximation_degree
         self.synthesis_error = synthesis_error
         self.cache_error = cache_error

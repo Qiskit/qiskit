@@ -141,11 +141,9 @@ pub fn py_run_synthesize_rz_rotations(
     let mut candidates: Vec<_> = dag
         .op_nodes(false)
         .filter_map(|(node_index, inst)| {
-            println!("{:?}", inst.params);
             if let OperationRef::StandardGate(StandardGate::RZ) = inst.op.view() {
                 if let Param::Float(angle) = inst.params_view()[0] {
                     let (interval_index, canonical_angle) = canonicalize_angle(angle);
-                    println!("pre canon: {angle} post: {canonical_angle}");
                     Some((node_index, canonical_angle, interval_index))
                 } else {
                     None
