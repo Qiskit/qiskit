@@ -40,4 +40,4 @@ jobs:
         run: |
           set -e
           python tools/report_numpy_state.py
-          python tools/run_cargo_test.py
+          cargo test --no-default-features
