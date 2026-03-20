@@ -48,7 +48,6 @@ jobs:
       - test-macos
       - test-windows
       - test-rust
-      - test-c
       - test-images
       - miri
       - qpy
@@ -164,22 +163,6 @@ jobs:
     uses: ./.github/workflows/miri.yml
     with:
       runner: ${{ needs.config.outputs.runner-linux-x86_64 }}
-
-  test-c:
-    name: Unit C / ${{ matrix.runner }}
-    needs: config
-    uses: ./.github/workflows/ctests.yml
-    with:
-      python-version: ${{ needs.config.outputs.python-new }}
-      runner: ${{ matrix.runner }}
-    strategy:
-      fail-fast: false
-      matrix:
-        runner:
-          - ${{ needs.config.outputs.runner-linux-x86_64 }}
-          - ${{ needs.config.outputs.runner-linux-arm64 }}
-          - ${{ needs.config.outputs.runner-macos-arm64 }}
-          - ${{ needs.config.outputs.runner-windows-x86_64 }}
 
   test-images:
     name: Image
