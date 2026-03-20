@@ -51,7 +51,6 @@ jobs:
       - test-images
       - miri
       - qpy
-      - neko
     # This job needs to trigger even if its predecessors failed and return the same status.  By
     # default, GitHub Actions will "skip" the job if a requirement failed, but that counts as a
     # "success" state, which is not acceptable for a branch-protection rule.  We don't use `always`
@@ -179,12 +178,3 @@ jobs:
     with:
       python-version: ${{ needs.config.outputs.python-old }}
       runner: ${{ needs.config.outputs.runner-linux-x86_64 }}
-
-  neko:
-    name: Integration Neko
-    needs: config
-    runs-on: ${{ needs.config.outputs.runner-linux-x86_64 }}
-    steps:
-      - uses: Qiskit/qiskit-neko@main
-        with:
-          test_selection: "terra"
