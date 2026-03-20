@@ -134,6 +134,28 @@ class TestSimple(QiskitTestCase):
         parameters = list(parsed.data[0].operation.params)
         self.assertEqual([bigint, -bigint, 2 * bigint], parameters)
 
+    def test_excessive_depth_unary(self):
+        """We should either succeed in the evaluation or raise a Python-space error. We should _not_
+        segfault."""
+        expr = "-" * 100_000 + "2.0"
+        program = f"qreg q[1]; U({expr}, 0.0, 0.0) q[0];"
+        # This can be changed to an assertion that the expression evaluates to precisely `2.0` if we
+        # modify the parser to be non-recursive.
+        with self.assertRaises(RecursionError):
+            qiskit.qasm2.loads(program)
+
+    def test_excessive_depth_binary(self):
+        """We should either succeed in the evaluation or raise a Python-space error. We should _not_
+        segfault."""
+        # We have to include the parentheses or the operator-precedence parser will just decay to
+        # iterative anyway.
+        expr = "1.0+(" * 100_000 + "1.0" + ")" * 100_000
+        program = f"qreg q[1]; U({expr}, 0.0, 0.0) q[0];"
+        # This can be changed to an assertion that the expression evaluates to precisely `100001.0`
+        # if we modify the parser to be non-recursive.
+        with self.assertRaises(RecursionError):
+            qiskit.qasm2.loads(program)
+
 
 class TestPrecedenceAssociativity(QiskitTestCase):
     def test_precedence(self):
