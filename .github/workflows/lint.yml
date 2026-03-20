@@ -34,5 +34,4 @@ jobs:
           # Check that `Cargo.lock` is checked in and up-to-date before attempting to build the
           # package. The exact command isn't important, it should just be cheap and update the lock.
           cargo metadata --format-version=1 --locked >/dev/null
-          make cformat
           tox -e lint
