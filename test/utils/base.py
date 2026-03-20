@@ -181,6 +181,13 @@ class QiskitTestCase(BaseTestCase):
             module="qiskit",
         )
 
+        # From internal matplotlib use of `pyparsing`.
+        warnings.filterwarnings(
+            "default",
+            category=DeprecationWarning,
+            module="matplotlib.*",
+        )
+
         allow_DeprecationWarning_message = [
             r"The property ``qiskit\.circuit\.bit\.Bit\.(register|index)`` is deprecated.*",
         ]
