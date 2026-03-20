@@ -538,6 +538,7 @@ __all__ = [
 ]
 
 import os
+import sys
 from pathlib import Path
 from typing import Literal
 from collections.abc import Iterable
@@ -586,6 +587,11 @@ def loads(
 ) -> QuantumCircuit:
     """Parse an OpenQASM 2 program from a string into a :class:`.QuantumCircuit`.
 
+    .. note::
+        The internal classical-expression parser is recursive, and will raise a
+        :exc:`RecursionError` if any expression requires excessive depth to evaluate.  This maxmimum
+        depth can be adjusted using :func:`sys.setrecursionlimit`.
+
     Args:
         string: The OpenQASM 2 program in a string.
         include_path: order of directories to search when evaluating ``include`` statements.
@@ -610,6 +616,7 @@ def loads(
             ],
             tuple(custom_classical),
             strict,
+            max_depth=sys.getrecursionlimit(),
         ),
         custom_instructions,
     )
@@ -626,6 +633,11 @@ def load(
 ) -> QuantumCircuit:
     """Parse an OpenQASM 2 program from a file into a :class:`.QuantumCircuit`.  The given path
     should be ASCII or UTF-8 encoded, and contain the OpenQASM 2 program.
+
+    .. note::
+        The internal classical-expression parser is recursive, and will raise a
+        :exc:`RecursionError` if any expression requires excessive depth to evaluate.  This maxmimum
+        depth can be adjusted using :func:`sys.setrecursionlimit`.
 
     Args:
         filename: The path to the OpenQASM 2 file.
@@ -665,6 +677,7 @@ def load(
             ],
             tuple(custom_classical),
             strict,
+            max_depth=sys.getrecursionlimit(),
         ),
         custom_instructions,
     )
