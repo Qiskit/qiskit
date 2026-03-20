@@ -307,6 +307,7 @@ impl ParameterExpression {
                 OpCode::LOG => lhs.log(),
                 OpCode::EXP => lhs.exp(),
                 OpCode::SIGN => lhs.sign(),
+                OpCode::POS => lhs,
                 OpCode::GRAD | OpCode::SUBSTITUTE => {
                     panic!("GRAD and SUBSTITUTE are not supported.")
                 }
@@ -1953,6 +1954,7 @@ pub enum OpCode {
     RSUB = 18,
     RDIV = 19,
     RPOW = 20,
+    POS = 21,
 }
 
 impl From<OpCode> for u8 {
@@ -2082,6 +2084,25 @@ pub fn qpy_replay(
 ) {
     match &expr.expr {
         SymbolExpr::Value(_) | SymbolExpr::Symbol(_) => {
+            // We generate a POS (identity) operation for Values and Symbols for expressions with all cancelled-out variables
+            let lhs_value = ParameterValueType::extract_from_expr(&expr.expr);
+            replay.push(OPReplay {
+                op: OpCode::POS,
+                lhs: lhs_value,
+                rhs: None,
+            });
+        }
+        _ => qpy_replay_helper(expr, name_map, replay),
+    }
+}
+
+fn qpy_replay_helper(
+    expr: &ParameterExpression,
+    name_map: &HashMap<String, Symbol>,
+    replay: &mut Vec<OPReplay>,
+) {
+    match &expr.expr {
+        SymbolExpr::Value(_) | SymbolExpr::Symbol(_) => {
             // nothing to do here, we only need to traverse instructions
         }
         SymbolExpr::Unary { op, expr } => {
@@ -2103,7 +2124,7 @@ pub fn qpy_replay(
             let lhs = filter_name_map(expr, name_map);
 
             // recurse on the instruction
-            qpy_replay(&lhs, name_map, replay);
+            qpy_replay_helper(&lhs, name_map, replay);
 
             let lhs_value = ParameterValueType::extract_from_expr(expr);
 
@@ -2129,8 +2150,8 @@ pub fn qpy_replay(
             // recurse on the parameter expressions
             let lhs = filter_name_map(lhs, name_map);
             let rhs = filter_name_map(rhs, name_map);
-            qpy_replay(&lhs, name_map, replay);
-            qpy_replay(&rhs, name_map, replay);
+            qpy_replay_helper(&lhs, name_map, replay);
+            qpy_replay_helper(&rhs, name_map, replay);
 
             // add the expression to the replay
             match lhs_value {
