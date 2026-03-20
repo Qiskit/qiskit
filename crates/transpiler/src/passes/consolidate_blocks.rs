@@ -49,7 +49,7 @@ use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use smallvec::SmallVec;
 
 use crate::passes::unitary_synthesis::{PARAM_SET, TWO_QUBIT_BASIS_SET};
-use crate::target::{Qargs, Target};
+use crate::target::{PyTarget, Qargs, Target};
 use qiskit_circuit::PhysicalQubit;
 use qiskit_util::getenv_use_multiple_threads;
 
@@ -480,6 +480,33 @@ fn apply_consolidation(
 #[pyfunction]
 #[pyo3(name = "consolidate_blocks", signature = (dag, decomposer, basis_gate_name, force_consolidate, target=None, basis_gates=None, blocks=None, runs=None, qubit_map=None))]
 fn py_run_consolidate_blocks(
+    py: Python,
+    dag: &mut DAGCircuit,
+    decomposer: Option<DecomposerType>,
+    basis_gate_name: &str,
+    force_consolidate: bool,
+    target: Option<&PyTarget>,
+    basis_gates: Option<HashSet<String>>,
+    blocks: Option<Vec<Vec<usize>>>,
+    runs: Option<Vec<Vec<usize>>>,
+    qubit_map: Option<Vec<PhysicalQubit>>,
+) -> PyResult<()> {
+    inner_run_consolidate_blocks(
+        py,
+        dag,
+        decomposer,
+        basis_gate_name,
+        force_consolidate,
+        target.map(|v| &**v),
+        basis_gates,
+        blocks,
+        runs,
+        qubit_map,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn inner_run_consolidate_blocks(
     py: Python,
     dag: &mut DAGCircuit,
     decomposer: Option<DecomposerType>,
