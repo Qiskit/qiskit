@@ -94,7 +94,7 @@ pub fn lint(
             (None, false) => missing.push(String::from(fname)),
             (Some(_), false) | (None, true) => (),
         }
-        if attrs.allow_duplicates {
+        if attrs.allow_duplicate {
             duplicates.swap_remove(fname);
         }
     }

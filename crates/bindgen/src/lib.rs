@@ -24,14 +24,14 @@ pub struct FnAttributes {
     /// The function should be skipped and not present in any vtable slots list.
     pub skipped: bool,
     /// The function is permitted to be exported in more than one slot.
-    pub allow_duplicates: bool,
+    pub allow_duplicate: bool,
 }
 impl FnAttributes {
     /// Set the field corresponding to a given attribute.
     pub fn set(&mut self, attr: &str) -> anyhow::Result<()> {
         match attr {
             CBINDGEN_SKIP => self.skipped = true,
-            CBINDGEN_DUPLICATE => self.allow_duplicates = true,
+            CBINDGEN_DUPLICATE => self.allow_duplicate = true,
             _ => anyhow::bail!("unknown attribute: {attr}"),
         }
         Ok(())
