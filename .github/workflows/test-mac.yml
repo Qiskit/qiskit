@@ -50,13 +50,13 @@ jobs:
           python -m pip install -U pip
           python -m pip install -U \
             -c constraints.txt \
-            --group test \
+            -r requirements-dev.txt \
             -e .
       - name: "Install optionals"
         run: |
           set -e
           source test-job/bin/activate
-          pip install --group optionals-all -c constraints.txt
+          pip install -r requirements-optional.txt -c constraints.txt
           pip check
         if: ${{ inputs.install-optionals }}
       - name: "Run tests"

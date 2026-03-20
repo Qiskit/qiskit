@@ -19,7 +19,7 @@ jobs:
           python -m pip install -U pip
           python -m pip install -U \
             -c constraints.txt \
-            --group test-random \
+            -r requirements-dev.txt \
             -e .
       - name: Run randomized tests
         run: make test_randomized
