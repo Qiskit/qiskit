@@ -144,10 +144,6 @@ jobs:
     runs-on: ubuntu-24.04-s390x
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
-        name: Install Python
-        with:
-          python-version: ${{ inputs.python-version }}
       - uses: dtolnay/rust-toolchain@stable
       - uses: pypa/cibuildwheel@v3.4.0
       - uses: actions/upload-artifact@v7
@@ -161,10 +157,6 @@ jobs:
     runs-on: ubuntu-24.04-ppc64le
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
-        name: Install Python
-        with:
-          python-version: ${{ inputs.python-version }}
       - uses: dtolnay/rust-toolchain@stable
       - uses: pypa/cibuildwheel@v3.4.0
       - uses: actions/upload-artifact@v7
