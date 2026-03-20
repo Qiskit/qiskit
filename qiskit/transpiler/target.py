@@ -87,7 +87,7 @@ class InstructionProperties(BaseInstructionProperties):
         return f"InstructionProperties(duration={self.duration}, error={self.error})"
 
 
-class Target(BaseTarget):
+class Target(Mapping):
     """
     The intent of the ``Target`` object is to inform Qiskit's compiler about
     the constraints of a particular backend so the compiler can compile an
@@ -243,8 +243,8 @@ class Target(BaseTarget):
         "_non_global_basis_strict",
     )
 
-    def __new__(
-        cls,
+    def __init__(
+        self,
         description: str | None = None,
         num_qubits: int | None = 0,
         dt: float | None = None,
@@ -254,7 +254,6 @@ class Target(BaseTarget):
         acquire_alignment: int = 1,
         qubit_properties: list | None = None,
         concurrent_measurements: list | None = None,
-        **_subclass_kwargs,
     ):
         """
         Create a new :class:`Target` object.
@@ -302,8 +301,7 @@ class Target(BaseTarget):
         """
         if description is not None:
             description = str(description)
-        out = super().__new__(
-            cls,
+        self._inner = BaseTarget.__new__(
             description,
             num_qubits,
             dt,
@@ -314,14 +312,9 @@ class Target(BaseTarget):
             qubit_properties,
             concurrent_measurements,
         )
-        # A nested mapping of gate name -> qargs -> properties
-        out._gate_map = {}
-        out._coupling_graph = None
-        out._instruction_durations = None
-        out._instruction_schedule_map = None
-        out._non_global_basis = None
-        out._non_global_basis_strict = None
-        return out
+        self._coupling_graph = None
+        self._instruction_durations = None
+        self._instruction_schedule_map = None
 
     def get_non_global_operation_names(self, strict_direction=False):
         """Return the non-global operation names for the target
@@ -342,15 +335,7 @@ class Target(BaseTarget):
         Returns:
             List[str]: A list of operation names for operations that aren't global in this target
         """
-        if strict_direction:
-            if self._non_global_basis_strict is None:
-                self._non_global_basis_strict = super()._get_non_global_operation_names(
-                    strict_direction
-                )
-            return self._non_global_basis_strict
-        if self._non_global_basis is None:
-            self._non_global_basis = super()._get_non_global_operation_names(strict_direction)
-        return self._non_global_basis
+        return self._inner.get_non_global_operation_names(strict_direction)
 
     @property
     def dt(self):
@@ -362,6 +347,66 @@ class Target(BaseTarget):
         """Set dt and invalidate instruction duration cache"""
         self._dt = dt
         self._instruction_durations = None
+
+    @property
+    def granularity(self):
+        """Return granularity."""
+        return self._inner._granularity
+
+    @granularity.setter
+    def granularity(self, granularity):
+        """Set granularity"""
+        self._inner.granularity = granularity
+
+    @property
+    def min_length(self):
+        """Return min_length."""
+        return self._inner.min_length
+
+    @min_length.setter
+    def min_length(self, min_length):
+        """Set min_length"""
+        self._inner.min_length = min_length
+
+    @property
+    def pulse_alignment(self):
+        """Return pulse_alignment."""
+        return self._inner.pulse_alignment
+
+    @pulse_alignment.setter
+    def pulse_alignment(self, pulse_alignment):
+        """Set pulse_alignment"""
+        self._inner.pulse_alignment = pulse_alignment
+
+    @property
+    def acquire_alignment(self):
+        """Return acquire_alignment."""
+        return self._inner.acquire_alignment
+
+    @acquire_alignment.setter
+    def acquire_alignment(self, acquire_alignment):
+        """Set acquire_alignment"""
+        self._inner.acquire_alignment = acquire_alignment
+
+    @property
+    def qubit_properties(self):
+        """Return qubit properties."""
+        return self._inner.qubit_properties
+
+    @qubit_properties.setter
+    def qubit_properties(self, qubit_properties):
+        """Set qubit properties"""
+        self._inner.qubit_properties = qubit_properties
+
+    @property
+    def concurrent_measurements(self):
+        """Return concurrent measurements."""
+        return self._inner.concurrent_measurements
+
+    @concurrent_measurements.setter
+    def concurrent_measurements(self, concurrent_measurements):
+        """Set concurrent measurements"""
+        self._inner.concurrent_measurements = concurrent_measurements
 
     def add_instruction(self, instruction, properties=None, name=None, *, angle_bounds=None):
         """Add a new instruction to the :class:`~qiskit.transpiler.Target`
@@ -437,33 +482,10 @@ class Target(BaseTarget):
             TranspilerError: If an operation class is passed in for ``instruction`` and no name
                 is specified or ``properties`` is set.
         """
-        is_class = inspect.isclass(instruction)
-        if not is_class:
-            instruction_name = name or instruction.name
-        else:
-            # Invalid to have class input without a name with characters set "" is not a valid name
-            if not name:
-                raise TranspilerError(
-                    "A name must be specified when defining a supported global operation by class"
-                )
-            if properties is not None:
-                raise TranspilerError(
-                    "An instruction added globally by class can't have properties set."
-                )
-            instruction_name = name
-        if properties is None or is_class:
-            properties = {None: None}
-        if instruction_name in self._gate_map:
-            raise AttributeError(f"Instruction {instruction_name} is already in the target")
-        super().add_instruction(
-            instruction, instruction_name, properties, angle_bounds=angle_bounds
-        )
-        self._gate_map[instruction_name] = properties
+        self._inner.add_instruction(instruction, properties, name, angle_bounds)
         self._coupling_graph = None
         self._instruction_durations = None
         self._instruction_schedule_map = None
-        self._non_global_basis_strict = None
-        self._non_global_basis = None
 
     def update_instruction_properties(self, instruction, qargs, properties):
         """Update the property object for an instruction qarg pair already in the Target.
@@ -481,8 +503,7 @@ class Target(BaseTarget):
         Raises:
             KeyError: If ``instruction`` or ``qarg`` are not in the target
         """
-        super().update_instruction_properties(instruction, qargs, properties)
-        self._gate_map[instruction][qargs] = properties
+        self._inner.update_instruction_properties(instruction, qargs, properties)
         self._instruction_durations = None
         self._instruction_schedule_map = None
 
@@ -494,9 +515,7 @@ class Target(BaseTarget):
         Returns:
             set: The set of qargs the gate instance applies to.
         """
-        if None in self._gate_map[operation]:
-            return None
-        return self._gate_map[operation].keys()
+        self._inner.qargs_for_operation_name(operation)
 
     def durations(self):
         """Get an InstructionDurations object from the target
@@ -540,7 +559,7 @@ class Target(BaseTarget):
         is globally defined.
         """
         return [
-            (self.operation_from_name(op), qarg)
+            (self._inneroperation_from_name(op), qarg)
             for op, qargs in self._gate_map.items()
             for qarg in qargs
         ]

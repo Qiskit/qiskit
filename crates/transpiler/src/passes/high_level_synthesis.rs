@@ -36,8 +36,8 @@ use smallvec::SmallVec;
 
 use crate::TranspilerError;
 use crate::equivalence::EquivalenceLibrary;
+use crate::target::PyTarget;
 use crate::target::Qargs;
-use crate::target::Target;
 use qiskit_circuit::PhysicalQubit;
 use qiskit_synthesis::euler_one_qubit_decomposer::EulerBasis;
 use qiskit_synthesis::euler_one_qubit_decomposer::angles_from_unitary;
@@ -311,7 +311,7 @@ pub struct HighLevelSynthesisData {
     // It needs to be used both from python and rust, and hence is represented
     // as Py<Target> to avoid cloning.
     #[pyo3(get)]
-    target: Option<Py<Target>>,
+    target: Option<Py<PyTarget>>,
 
     // The equivalence library used (instructions in this library will not
     // be unrolled by this pass).
@@ -350,7 +350,7 @@ impl HighLevelSynthesisData {
         hls_plugin_manager: Py<PyAny>,
         hls_op_names: HashSet<String>,
         coupling_map: Py<PyAny>,
-        target: Option<Py<Target>>,
+        target: Option<Py<PyTarget>>,
         equivalence_library: Option<Py<EquivalenceLibrary>>,
         device_insts: HashSet<String>,
         use_physical_indices: bool,

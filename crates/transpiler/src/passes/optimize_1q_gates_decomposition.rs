@@ -22,6 +22,7 @@ use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::operations::{Operation, OperationRef, Param};
 
+use crate::target::PyTarget;
 use crate::target::{Target, TargetOperation};
 use qiskit_circuit::instruction::Instruction;
 use qiskit_circuit::{PhysicalQubit, gate_matrix};
@@ -55,6 +56,15 @@ fn compute_error_from_target_one_qubit_sequence(
 
 #[pyfunction]
 #[pyo3(name = "optimize_1q_gates_decomposition", signature = (dag, *, target=None, basis_gates=None, global_decomposers=None))]
+pub fn py_run_optimize_1q_gates_decomposition(
+    dag: &mut DAGCircuit,
+    target: Option<&PyTarget>,
+    basis_gates: Option<HashSet<String>>,
+    global_decomposers: Option<Vec<String>>,
+) -> PyResult<()> {
+    run_optimize_1q_gates_decomposition(dag, target.map(|v| &**v), basis_gates, global_decomposers)
+}
+
 pub fn run_optimize_1q_gates_decomposition(
     dag: &mut DAGCircuit,
     target: Option<&Target>,
@@ -257,6 +267,6 @@ pub fn matmul_1q_with_slice(operator: &mut [[Complex64; 2]; 2], other: &[[Comple
 }
 
 pub fn optimize_1q_gates_decomposition_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(run_optimize_1q_gates_decomposition))?;
+    m.add_wrapped(wrap_pyfunction!(py_run_optimize_1q_gates_decomposition))?;
     Ok(())
 }

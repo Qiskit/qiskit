@@ -42,6 +42,7 @@ use qiskit_circuit::{
 use smallvec::SmallVec;
 
 use crate::equivalence::EquivalenceLibrary;
+use crate::target::PyTarget;
 use crate::target::Qargs;
 use crate::target::QargsRef;
 use crate::target::Target;
@@ -57,13 +58,20 @@ fn py_run_basis_translator(
     dag: &DAGCircuit,
     equiv_lib: &mut EquivalenceLibrary,
     min_qubits: usize,
-    target: Option<&Target>,
+    target: Option<&PyTarget>,
     target_basis: Option<HashSet<String>>,
 ) -> PyResult<Option<DAGCircuit>> {
     let target_basis_ref: Option<HashSet<&str>> = target_basis
         .as_ref()
         .map(|set| set.iter().map(|obj| obj.as_str()).collect());
-    run_basis_translator(dag, equiv_lib, min_qubits, target, target_basis_ref).map_err(|e| e.into())
+    run_basis_translator(
+        dag,
+        equiv_lib,
+        min_qubits,
+        target.map(|v| &**v),
+        target_basis_ref,
+    )
+    .map_err(|e| e.into())
 }
 
 pub fn run_basis_translator(
