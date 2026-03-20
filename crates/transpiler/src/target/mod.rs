@@ -468,7 +468,7 @@ impl Target {
     ) -> Result<Self, TargetError> {
         if self.num_qubits.is_some_and(|num_qubits| num_qubits > 0) {
             if self.num_qubits.unwrap() as usize != qubit_properties.len() {
-                return Err(TargetError::NumQubitsMismatch{
+                return Err(TargetError::NumQubitsMismatch {
                     num_qubits: self.num_qubits.unwrap(),
                     num_props: qubit_properties.len(),
                 });
@@ -1413,12 +1413,12 @@ pub fn estimate_fidelity(circuit: &CircuitData, target: &Target) -> Option<f64> 
             }
         })
         .product()
-    }
+}
 #[pyclass(
     mapping,
     subclass,
     name = "BaseTarget",
-    module = "qiskit._accelerate.target",
+    module = "qiskit._accelerate.target"
 )]
 #[derive(Debug, Clone)]
 pub struct PyTarget {
@@ -1439,6 +1439,22 @@ impl Deref for PyTarget {
 impl DerefMut for PyTarget {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
+    }
+}
+
+impl PyTarget {
+    pub fn from_target(target: Target, py: Python<'_>) -> PyResult<Self> {
+        let gate_map = target
+            .gate_map
+            .iter()
+            .map(|(name, props)| (name.clone(), props.properties.clone()))
+            .into_py_dict(py)?;
+        Ok(Self {
+            inner: target,
+            gate_map: gate_map.unbind(),
+            non_global_basis: Default::default(),
+            non_global_basis_strict: Default::default(),
+        })
     }
 }
 
@@ -1630,13 +1646,20 @@ impl PyTarget {
                 name.unwrap().to_string()
             }
         };
-        let properties = if properties.is_none() || instruction.is_variadic() {
+
+        let generate_default_props = || -> PyResult<_> {
             [(None::<String>, None::<InstructionProperties>)]
-                .into_py_dict(py)?
-                .unbind()
-        } else {
-            properties.unwrap()
+                .into_py_dict(py)
+                .map(|obj| obj.unbind())
         };
+        let properties = if instruction.is_variadic() {
+            generate_default_props()?
+        } else if let Some(properties) = properties {
+            properties
+        } else {
+            generate_default_props()?
+        };
+
         if self.inner.contains_key(&new_name) {
             return Err(PyAttributeError::new_err(format!(
                 "Instruction {new_name} is already in the target"
@@ -1648,7 +1671,7 @@ impl PyTarget {
             properties.extract(py)?,
             angle_bounds,
         )?;
-        self.gate_map.bind(py).set_item(new_name, properties);
+        self.gate_map.bind(py).set_item(new_name, properties)?;
         Ok(())
     }
 
@@ -1782,9 +1805,9 @@ impl PyTarget {
     ///
     /// Returns:
     ///     List[str]: A list of operation names for operations that aren't global in this target
-    fn get_non_global_operation_names<'py>(
+    fn get_non_global_operation_names(
         &self,
-        py: Python<'py>,
+        py: Python<'_>,
         strict_direction: bool,
     ) -> PyResult<&Py<PyList>> {
         if strict_direction {
@@ -1797,16 +1820,14 @@ impl PyTarget {
                 )?;
                 Ok(self.non_global_basis_strict.get_or_init(|| list.unbind()))
             }
+        } else if let Some(list) = self.non_global_basis.get() {
+            Ok(list)
         } else {
-            if let Some(list) = self.non_global_basis.get() {
-                Ok(list)
-            } else {
-                let list = PyList::new(
-                    py,
-                    self.inner.get_non_global_operation_names(strict_direction),
-                )?;
-                Ok(self.non_global_basis.get_or_init(|| list.unbind()))
-            }
+            let list = PyList::new(
+                py,
+                self.inner.get_non_global_operation_names(strict_direction),
+            )?;
+            Ok(self.non_global_basis.get_or_init(|| list.unbind()))
         }
     }
 
@@ -2100,7 +2121,7 @@ impl PyTarget {
             .iter()
             .map(|entry| -> PyResult<_> {
                 let entry_dict = PyDict::new(py);
-                entry_dict.set_item("properties", bound_map.get_item(&entry.0)?)?;
+                entry_dict.set_item("properties", bound_map.get_item(entry.0)?)?;
                 entry_dict.set_item("instruction", &entry.1.instruction)?;
                 entry
                     .1

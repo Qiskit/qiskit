@@ -17,6 +17,7 @@ use qiskit_circuit::dag_circuit::{DAGCircuit, PyDAGCircuit};
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::{PhysicalQubit, Qubit};
 
+use crate::target::PyTarget;
 use crate::target::Target;
 
 fn recurse(
@@ -75,7 +76,7 @@ fn recurse(
 #[pyo3(name = "check_map")]
 pub fn py_run_check_map(
     py_dag: &PyDAGCircuit,
-    target: &Target,
+    target: &PyTarget,
 ) -> PyResult<Option<(String, [u32; 2])>> {
     let dag = py_dag.try_read()?;
     if dag.has_control_flow() {

@@ -29,6 +29,7 @@ use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, PyDAGCircuit};
 use qiskit_circuit::operations::{Operation, OperationRef, Param};
 use qiskit_util::getenv_use_multiple_threads;
 
+use crate::target::PyTarget;
 use crate::target::{Target, TargetOperation};
 use qiskit_circuit::instruction::Instruction;
 use qiskit_circuit::{PhysicalQubit, gate_matrix};
@@ -471,14 +472,20 @@ pub fn py_run_optimize_1q_gates_decomposition(
     py: Python,
     dag: &mut PyDAGCircuit,
     state: &Optimize1qGatesDecompositionState,
-    target: Option<&Target>,
+    target: Option<&PyTarget>,
     basis_gates: Option<HashSet<String>>,
     global_decomposers: Option<Vec<String>>,
 ) -> PyResult<()> {
     if getenv_use_multiple_threads() {
         let results = py.detach(|| {
             let dag_mut = dag.try_write()?;
-            parallel_analyze_runs(dag_mut, state, target, basis_gates, global_decomposers)
+            parallel_analyze_runs(
+                dag_mut,
+                state,
+                target.map(|target| &**target),
+                basis_gates,
+                global_decomposers,
+            )
         })?;
         let dag_mut = dag.try_write()?;
         apply_sequences(dag_mut, results.runs, results.sequences)?;
@@ -490,7 +497,7 @@ pub fn py_run_optimize_1q_gates_decomposition(
                 &raw_run,
                 dag_mut,
                 state,
-                target,
+                target.map(|target| &**target),
                 basis_gates.as_ref(),
                 global_decomposers.as_ref(),
             )?;

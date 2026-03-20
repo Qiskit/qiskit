@@ -32,7 +32,7 @@ use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::{PhysicalQubit, VirtualQubit, vf2};
 
 use super::error_map::ErrorMap;
-use crate::target::{Qargs, QargsRef, Target, TargetOperation};
+use crate::target::{PyTarget, Qargs, QargsRef, Target, TargetOperation};
 
 create_exception!(qiskit, MultiQEncountered, pyo3::exceptions::PyException);
 
@@ -750,7 +750,7 @@ where
 #[pyo3(signature = (dag, target, config, *, strict_direction=false, avg_error_map=None))]
 pub fn py_vf2_layout_pass_average(
     dag: &PyDAGCircuit,
-    target: &Target,
+    target: &PyTarget,
     config: &Vf2PassConfiguration,
     strict_direction: bool,
     avg_error_map: Option<&ErrorMap>,
@@ -834,7 +834,7 @@ pub fn vf2_layout_pass_average(
 #[pyo3(signature = (dag, target, config))]
 pub fn py_vf2_layout_pass_exact(
     dag: &PyDAGCircuit,
-    target: &Target,
+    target: &PyTarget,
     config: &Vf2PassConfiguration,
 ) -> PyResult<Vf2PassReturn> {
     vf2_layout_pass_exact(dag.try_read()?, target, config)
