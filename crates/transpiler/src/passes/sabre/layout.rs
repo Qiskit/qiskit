@@ -12,6 +12,8 @@
 
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
+use std::panic::{AssertUnwindSafe, catch_unwind};
+use std::sync::{Mutex, OnceLock};
 
 use hashbrown::HashSet;
 use ndarray::aview2;
@@ -35,6 +37,8 @@ use crate::target::{Target, TargetCouplingError};
 use super::dag::SabreDAG;
 use super::heuristic::Heuristic;
 use super::route::{RoutingProblem, RoutingResult, RoutingTarget, swap_map, swap_map_trial};
+
+static SABRE_PANIC_HOOK_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
 
 #[allow(clippy::too_many_arguments)]
 #[pyfunction]
@@ -118,140 +122,35 @@ pub fn sabre_layout_and_routing(
         DisjointSplit::TargetSubset(subset) => TargetSplit::Single(Some(subset)),
         DisjointSplit::Arbitrary(components) => TargetSplit::Multiple(components),
     };
-    let sabre_full = SabreDAG::from_dag(dag)?;
-    match components {
-        TargetSplit::Single(mut subset) => {
-            // All the DAG fits into a single component of a disjoint `Target`, so we can safely
-            // continue with the entire layout and routing, providing we stay within the subset of
-            // the `Target` (if any).
-            let neighbors = match subset.as_deref_mut() {
-                Some(subset) => {
-                    // TODO: currently, the `subset` we get from `disjoint_layout` has a
-                    // non-deterministic order.  Sorting it is a canonicalisation step, but the
-                    // exact order doesn't matter.  Sorted order happens to cause us to be RNG
-                    // compatible with the prior Sabre disjoint handling.
-                    subset.sort_unstable();
-                    Neighbors::from_coupling_subset_with_map(&coupling, subset, |q| {
-                        NodeIndex::new(q.index())
-                    })
-                }
-                None => Neighbors::from_coupling(&coupling),
-            };
-            let target = RoutingTarget::from_neighbors(neighbors);
-            let problem = RoutingProblem {
-                target: &target,
-                sabre: &sabre_full,
-                dag,
-                heuristic,
-            };
-            starting_layouts.extend(partial_layouts);
-            add_heuristic_layouts(&mut starting_layouts, problem, allow_parallel);
-            let num_layout_trials = starting_layouts.len();
-            let (_, result) = CondIterator::new(
-                seeds(num_layout_trials),
-                allow_parallel && num_layout_trials > 1,
-            )
-            .enumerate()
-            .map(|(index, seed)| {
-                (
-                    index,
-                    layout_trial(
-                        problem,
-                        seed,
-                        max_iterations,
-                        num_swap_trials,
-                        allow_parallel && num_swap_trials > 1,
-                        &starting_layouts[index],
-                    ),
-                )
-            })
-            .min_by_key(|(index, result)| (result.swap_count(), *index))
-            .expect("should have at least one layout trial");
-            let num_swaps = result.swap_count();
-            let out = dag.physical_empty_like_with_capacity(
-                num_physical_qubits,
-                dag.num_ops() + num_swaps,
-                dag.dag().edge_count() + 2 * num_swaps,
-                BlocksMode::Drop,
-            )?;
-            let qubit_fn = |q: PhysicalQubit| {
-                subset
-                    .as_deref()
-                    .map_or(q, |subset: &[PhysicalQubit]| subset[q.index()])
-            };
-            let out = if skip_routing {
-                out
-            } else {
-                result.rebuild_onto(out, qubit_fn)?
-            };
-            Ok((
-                out,
-                expand_layout(num_physical_qubits as u32, &result.initial_layout, qubit_fn),
-                expand_layout(num_physical_qubits as u32, &result.final_layout, qubit_fn),
-            ))
-        }
-        TargetSplit::Multiple(components) => {
-            // The DAG needs splitting across multiple chips.  We can build an initial layout
-            // safely, but the final routing needs to be done altogether, with cross-chip
-            // synchronisation points (e.g. barriers, classical communication, etc) fully in place.
-            let mut full_layout = vec![PhysicalQubit::new(u32::MAX); dag.num_qubits()];
-            // Mapping of the "proper" (full-target) physical qubits to the "fake" restricted
-            // physical qubit index used in the disjoint handling.  At the end of the loop, there
-            // will be duplicates in the list, and there may still be un-set entries, but that
-            // doesn't matter, because we only access physical qubits that come up.
-            let mut sub_from_full = vec![PhysicalQubit::new(u32::MAX); num_physical_qubits];
-            for component in &components {
-                let sabre = SabreDAG::from_dag(&component.sub_dag)?;
-                let target =
-                    RoutingTarget::from_neighbors(Neighbors::from_coupling_subset_with_map(
-                        &coupling,
-                        &component.physical_qubits,
-                        |q| NodeIndex::new(q.index()),
-                    ));
-                let sub_problem = RoutingProblem {
+    let run_layout_and_routing = || -> PyResult<(DAGCircuit, NLayout, NLayout)> {
+        let sabre_full = SabreDAG::from_dag(dag)?;
+        match components {
+            TargetSplit::Single(mut subset) => {
+                // All the DAG fits into a single component of a disjoint `Target`, so we can safely
+                // continue with the entire layout and routing, providing we stay within the subset of
+                // the `Target` (if any).
+                let neighbors = match subset.as_deref_mut() {
+                    Some(subset) => {
+                        // TODO: currently, the `subset` we get from `disjoint_layout` has a
+                        // non-deterministic order.  Sorting it is a canonicalisation step, but the
+                        // exact order doesn't matter.  Sorted order happens to cause us to be RNG
+                        // compatible with the prior Sabre disjoint handling.
+                        subset.sort_unstable();
+                        Neighbors::from_coupling_subset_with_map(&coupling, subset, |q| {
+                            NodeIndex::new(q.index())
+                        })
+                    }
+                    None => Neighbors::from_coupling(&coupling),
+                };
+                let target = RoutingTarget::from_neighbors(neighbors);
+                let problem = RoutingProblem {
                     target: &target,
-                    sabre: &sabre,
-                    dag: &component.sub_dag,
+                    sabre: &sabre_full,
+                    dag,
                     heuristic,
                 };
-                for (sub, full) in component.physical_qubits.iter().enumerate() {
-                    sub_from_full[full.index()] = PhysicalQubit::new(sub as u32);
-                }
-                let mut starting_layouts = starting_layouts.clone();
-                for partial in partial_layouts.iter() {
-                    let assigned_physical = |v: &VirtualQubit| {
-                        partial
-                            .get(v.index())
-                            .copied()
-                            .flatten()
-                            .map(|p| {
-                                let sub = sub_from_full[p.index()];
-                                if component.physical_qubits[sub.index()] == p {
-                                    Ok(sub)
-                                } else {
-                                    // TODO: this handling sucks, but it's better than panicking
-                                    // later in Sabre routing when nothing makes any sense.
-                                    Err(PyValueError::new_err(format!(
-                                        "A custom starting layout assigned virtual qubit {} \
-                                        to physical qubit {}, which could not be satisfied on \
-                                        this disjoint QPU.  This might be a bug in Qiskit, or \
-                                        a bug in a custom transpiler pass that set the partial \
-                                        layout trials for SabreLayout.",
-                                        v.index(),
-                                        p.index(),
-                                    )))
-                                }
-                            })
-                            .transpose()
-                    };
-                    let mapped_partial = component
-                        .virtual_qubits
-                        .iter()
-                        .map(assigned_physical)
-                        .collect::<PyResult<Vec<_>>>()?;
-                    starting_layouts.push(mapped_partial);
-                }
-                add_heuristic_layouts(&mut starting_layouts, sub_problem, allow_parallel);
+                starting_layouts.extend(partial_layouts);
+                add_heuristic_layouts(&mut starting_layouts, problem, allow_parallel);
                 let num_layout_trials = starting_layouts.len();
                 let (_, result) = CondIterator::new(
                     seeds(num_layout_trials),
@@ -262,82 +161,224 @@ pub fn sabre_layout_and_routing(
                     (
                         index,
                         layout_trial(
-                            sub_problem,
+                            problem,
                             seed,
                             max_iterations,
                             num_swap_trials,
-                            allow_parallel && num_layout_trials == 1,
+                            allow_parallel && num_swap_trials > 1,
                             &starting_layouts[index],
                         ),
                     )
                 })
                 .min_by_key(|(index, result)| (result.swap_count(), *index))
                 .expect("should have at least one layout trial");
-                for ((_, sub_phys), virt) in result
-                    .initial_layout
-                    .iter_virtual()
-                    // This zip might be shorter than `initial_layout`, but we _want_ the
-                    // side-effect of truncating to the non-ancillas.
-                    .zip(&component.virtual_qubits)
-                {
-                    full_layout[virt.index()] = component.physical_qubits[sub_phys.index()];
-                }
-            }
-            let max_virt = VirtualQubit::new(u32::MAX);
-            let max_phys = PhysicalQubit::new(u32::MAX);
-            let mut initial_physical = vec![max_virt; num_physical_qubits];
-            for (virt, phys) in full_layout.iter().enumerate() {
-                // It's possible that not `virt` has been assigned a physical qubit; this can happen
-                // if the input DAG contained qubits that weren't used at all.  In this case, we can
-                // treat this as if they're ancillas.
-                if *phys == max_phys {
-                    continue;
-                }
-                initial_physical[phys.index()] = VirtualQubit::new(virt as u32);
-            }
-            full_layout
-                .iter()
-                .enumerate()
-                // Loop through unassigned virtual qubits and ancillas to make us full width...
-                .filter_map(|(i, p)| (*p == max_phys).then_some(VirtualQubit::new(i as u32)))
-                .chain((dag.num_qubits()..num_physical_qubits).map(|i| VirtualQubit::new(i as u32)))
-                // ...and assign them to the unassigned physical qubits in increasing order of both.
-                .zip(initial_physical.iter_mut().filter(|v| **v == max_virt))
-                .for_each(|(v, slot)| *slot = v);
-            let target = RoutingTarget::from_neighbors(Neighbors::from_coupling(&coupling));
-            let problem = RoutingProblem {
-                target: &target,
-                sabre: &sabre_full,
-                dag,
-                heuristic,
-            };
-            let initial_layout =
-                NLayout::from_physical_to_virtual(initial_physical).expect("all indices are valid");
-            if skip_routing {
+                let num_swaps = result.swap_count();
+                let out = dag.physical_empty_like_with_capacity(
+                    num_physical_qubits,
+                    dag.num_ops() + num_swaps,
+                    dag.dag().edge_count() + 2 * num_swaps,
+                    BlocksMode::Drop,
+                )?;
+                let qubit_fn = |q: PhysicalQubit| {
+                    subset
+                        .as_deref()
+                        .map_or(q, |subset: &[PhysicalQubit]| subset[q.index()])
+                };
+                let out = if skip_routing {
+                    out
+                } else {
+                    result.rebuild_onto(out, qubit_fn)?
+                };
                 Ok((
-                    dag.physical_empty_like_with_capacity(
-                        num_physical_qubits,
-                        0,
-                        0,
-                        BlocksMode::Drop,
-                    )?,
-                    initial_layout.clone(),
-                    initial_layout,
+                    out,
+                    expand_layout(num_physical_qubits as u32, &result.initial_layout, qubit_fn),
+                    expand_layout(num_physical_qubits as u32, &result.final_layout, qubit_fn),
                 ))
+            }
+            TargetSplit::Multiple(components) => {
+                // The DAG needs splitting across multiple chips.  We can build an initial layout
+                // safely, but the final routing needs to be done altogether, with cross-chip
+                // synchronisation points (e.g. barriers, classical communication, etc) fully in place.
+                let mut full_layout = vec![PhysicalQubit::new(u32::MAX); dag.num_qubits()];
+                // Mapping of the "proper" (full-target) physical qubits to the "fake" restricted
+                // physical qubit index used in the disjoint handling.  At the end of the loop, there
+                // will be duplicates in the list, and there may still be un-set entries, but that
+                // doesn't matter, because we only access physical qubits that come up.
+                let mut sub_from_full = vec![PhysicalQubit::new(u32::MAX); num_physical_qubits];
+                for component in &components {
+                    let sabre = SabreDAG::from_dag(&component.sub_dag)?;
+                    let target =
+                        RoutingTarget::from_neighbors(Neighbors::from_coupling_subset_with_map(
+                            &coupling,
+                            &component.physical_qubits,
+                            |q| NodeIndex::new(q.index()),
+                        ));
+                    let sub_problem = RoutingProblem {
+                        target: &target,
+                        sabre: &sabre,
+                        dag: &component.sub_dag,
+                        heuristic,
+                    };
+                    for (sub, full) in component.physical_qubits.iter().enumerate() {
+                        sub_from_full[full.index()] = PhysicalQubit::new(sub as u32);
+                    }
+                    let mut starting_layouts = starting_layouts.clone();
+                    for partial in partial_layouts.iter() {
+                        let assigned_physical = |v: &VirtualQubit| {
+                            partial
+                                .get(v.index())
+                                .copied()
+                                .flatten()
+                                .map(|p| {
+                                    let sub = sub_from_full[p.index()];
+                                    if component.physical_qubits[sub.index()] == p {
+                                        Ok(sub)
+                                    } else {
+                                        // TODO: this handling sucks, but it's better than panicking
+                                        // later in Sabre routing when nothing makes any sense.
+                                        Err(PyValueError::new_err(format!(
+                                            "A custom starting layout assigned virtual qubit {} \
+                                        to physical qubit {}, which could not be satisfied on \
+                                        this disjoint QPU.  This might be a bug in Qiskit, or \
+                                        a bug in a custom transpiler pass that set the partial \
+                                        layout trials for SabreLayout.",
+                                            v.index(),
+                                            p.index(),
+                                        )))
+                                    }
+                                })
+                                .transpose()
+                        };
+                        let mapped_partial = component
+                            .virtual_qubits
+                            .iter()
+                            .map(assigned_physical)
+                            .collect::<PyResult<Vec<_>>>()?;
+                        starting_layouts.push(mapped_partial);
+                    }
+                    add_heuristic_layouts(&mut starting_layouts, sub_problem, allow_parallel);
+                    let num_layout_trials = starting_layouts.len();
+                    let (_, result) = CondIterator::new(
+                        seeds(num_layout_trials),
+                        allow_parallel && num_layout_trials > 1,
+                    )
+                    .enumerate()
+                    .map(|(index, seed)| {
+                        (
+                            index,
+                            layout_trial(
+                                sub_problem,
+                                seed,
+                                max_iterations,
+                                num_swap_trials,
+                                allow_parallel && num_layout_trials == 1,
+                                &starting_layouts[index],
+                            ),
+                        )
+                    })
+                    .min_by_key(|(index, result)| (result.swap_count(), *index))
+                    .expect("should have at least one layout trial");
+                    for ((_, sub_phys), virt) in result
+                        .initial_layout
+                        .iter_virtual()
+                        // This zip might be shorter than `initial_layout`, but we _want_ the
+                        // side-effect of truncating to the non-ancillas.
+                        .zip(&component.virtual_qubits)
+                    {
+                        full_layout[virt.index()] = component.physical_qubits[sub_phys.index()];
+                    }
+                }
+                let max_virt = VirtualQubit::new(u32::MAX);
+                let max_phys = PhysicalQubit::new(u32::MAX);
+                let mut initial_physical = vec![max_virt; num_physical_qubits];
+                for (virt, phys) in full_layout.iter().enumerate() {
+                    // It's possible that not `virt` has been assigned a physical qubit; this can happen
+                    // if the input DAG contained qubits that weren't used at all.  In this case, we can
+                    // treat this as if they're ancillas.
+                    if *phys == max_phys {
+                        continue;
+                    }
+                    initial_physical[phys.index()] = VirtualQubit::new(virt as u32);
+                }
+                full_layout
+                    .iter()
+                    .enumerate()
+                    // Loop through unassigned virtual qubits and ancillas to make us full width...
+                    .filter_map(|(i, p)| (*p == max_phys).then_some(VirtualQubit::new(i as u32)))
+                    .chain(
+                        (dag.num_qubits()..num_physical_qubits)
+                            .map(|i| VirtualQubit::new(i as u32)),
+                    )
+                    // ...and assign them to the unassigned physical qubits in increasing order of both.
+                    .zip(initial_physical.iter_mut().filter(|v| **v == max_virt))
+                    .for_each(|(v, slot)| *slot = v);
+                let target = RoutingTarget::from_neighbors(Neighbors::from_coupling(&coupling));
+                let problem = RoutingProblem {
+                    target: &target,
+                    sabre: &sabre_full,
+                    dag,
+                    heuristic,
+                };
+                let initial_layout = NLayout::from_physical_to_virtual(initial_physical)
+                    .expect("all indices are valid");
+                if skip_routing {
+                    Ok((
+                        dag.physical_empty_like_with_capacity(
+                            num_physical_qubits,
+                            0,
+                            0,
+                            BlocksMode::Drop,
+                        )?,
+                        initial_layout.clone(),
+                        initial_layout,
+                    ))
+                } else {
+                    let result = swap_map(
+                        problem,
+                        &initial_layout,
+                        seed,
+                        num_swap_trials,
+                        Some(allow_parallel),
+                    );
+                    Ok((
+                        result.rebuild()?,
+                        result.initial_layout,
+                        result.final_layout,
+                    ))
+                }
+            }
+        }
+    };
+
+    // Panics raised inside worker threads are caught and converted to `TranspilerError` below,
+    // but by default Rust still prints panic diagnostics to stderr.  Temporarily suppress this
+    // hook so users receive only the typed Python exception.
+    let hook_lock = SABRE_PANIC_HOOK_LOCK
+        .get_or_init(|| Mutex::new(()))
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let previous_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(|_| {}));
+    let unwind_result = catch_unwind(AssertUnwindSafe(run_layout_and_routing));
+    std::panic::set_hook(previous_hook);
+    drop(hook_lock);
+
+    match unwind_result {
+        Ok(result) => result,
+        Err(payload) => {
+            let message = if let Some(msg) = payload.as_ref().downcast_ref::<&str>() {
+                msg.to_string()
+            } else if let Some(msg) = payload.as_ref().downcast_ref::<String>() {
+                msg.clone()
             } else {
-                let result = swap_map(
-                    problem,
-                    &initial_layout,
-                    seed,
-                    num_swap_trials,
-                    Some(allow_parallel),
-                );
-                Ok((
-                    result.rebuild()?,
-                    result.initial_layout,
-                    result.final_layout,
-                ))
-            }
+                "unknown internal panic".to_string()
+            };
+            let error_message = if message.contains("index out of bounds") {
+                "Cannot route circuit with Sabre: encountered an internal layout-index mismatch. This can happen with disconnected coupling maps and sparse active qubit indices.".to_string()
+            } else {
+                format!("Cannot route circuit with Sabre due to an internal error: {message}")
+            };
+            Err(TranspilerError::new_err(error_message))
         }
     }
 }

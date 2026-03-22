@@ -539,6 +539,25 @@ class TestDisjointDeviceSabreLayout(QiskitTestCase):
         self.assertEqual(out.layout.routing_permutation(), [0, 1, 2])
         self.assertEqual(out.layout.final_index_layout(filter_ancillas=False), [2, 0, 1])
 
+    def test_gate_spanning_disjoint_components_raises(self):
+        """Test that a gate spanning disjoint components raises a TranspilerError.
+
+        This is a regression test for https://github.com/Qiskit/qiskit/issues/XXXXX
+        where a cx gate between qubits in different connected components of the
+        coupling map would cause an index-out-of-bounds panic in SABRE layout.
+        """
+        # Coupling map with two disjoint islands: {0,1} and {2,3}
+        cmap = CouplingMap([[0, 1], [2, 3]])
+        qc = QuantumCircuit(4)
+        # Gate spanning different islands should raise an error
+        qc.cx(0, 2)
+
+        layout_routing_pass = SabreLayout(cmap, seed=123456, swap_trials=1, layout_trials=1)
+        with self.assertRaises(TranspilerError) as context:
+            layout_routing_pass(qc)
+        # Verify the error message is descriptive
+        self.assertIn("Cannot route circuit", str(context.exception))
+
 
 class TestSabrePreLayout(QiskitTestCase):
     """Tests the SabreLayout pass with starting layout created by SabrePreLayout."""
