@@ -373,12 +373,9 @@ fn pack_pauli_product_rotation(
     })
 }
 
-/// Convert snake_case name (e.g., "if_else") to Python class names (e.g., "IfElseOp") 
+/// Convert snake_case name (e.g., "if_else") to Python class names (e.g., "IfElseOp")
 /// for backwards compatibility with old QPY versions
-
-fn control_flow_class_name(
-    name: &str,
-) -> Result<String, QpyError> {
+fn control_flow_class_name(name: &str) -> Result<String, QpyError> {
     match name {
         "if_else" => Ok("IfElseOp".to_string()),
         "while_loop" => Ok("WhileLoopOp".to_string()),
@@ -411,8 +408,26 @@ fn pack_control_flow_inst(
                 },
             };
             let mut params = Vec::new();
-            params.push(pack_generic_value(&duration_param, qpy_data)?);
+            // ideally, we'd do params.push(pack_generic_value(&duration_param, qpy_data)?);
+            // however, Python expects the BoxOp params to be handled differentely, so this is code for backwards compatibility:
             params.extend(pack_instruction_blocks(instruction, qpy_data)?);
+            match duration_param {
+                GenericValue::Duration(duration) => {
+                    let duration_value_pack = Python::attach(|py| {
+                        py_pack_param(&duration.py_value(py), qpy_data, Endian::Little)
+                    })?;
+                    let duration_unit_string = GenericValue::String(duration.unit().to_string());
+                    params.push(duration_value_pack);
+                    params.push(pack_generic_value(&duration_unit_string, qpy_data)?);
+                }
+                GenericValue::Expression(_) => {
+                    let duration_value_pack = pack_generic_value(&duration_param, qpy_data)?;
+                    let duration_unit_string = GenericValue::String("expr".to_string());
+                    params.push(duration_value_pack);
+                    params.push(pack_generic_value(&duration_unit_string, qpy_data)?);
+                }
+                _ => (),
+            }
             params
         }
         ControlFlow::BreakLoop | ControlFlow::ContinueLoop => Vec::new(),
@@ -1290,4 +1305,3 @@ pub(crate) fn py_write_circuit(
     )?;
     Ok(serialized_circuit.len())
 }
-

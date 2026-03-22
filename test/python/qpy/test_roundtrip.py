@@ -96,6 +96,15 @@ class TestQPYRoundtrip(QiskitTestCase):
         if version >= QPY_RUST_WRITE_MIN_VERSION:
             self.assert_roundtrip_equal(qc, version=version, read_with="Python", write_with="Rust")
 
+        # test with Expression duration
+        qc = QuantumCircuit(2)
+        a = qc.add_stretch("a")
+        with qc.box(duration=expr.mul(2, a)):
+            qc.cx(0, 1)
+            # self.assert_roundtrip_equal(qc, version=version)
+        if version >= QPY_RUST_WRITE_MIN_VERSION:
+            self.assert_roundtrip_equal(qc, version=version, read_with="Python", write_with="Rust")
+
     @idata(range(QPY_RUST_READ_MIN_VERSION, QPY_VERSION + 1))
     def test_forloop(self, version):
         """Check the ForLoop control flow gate passes roundtrip"""
