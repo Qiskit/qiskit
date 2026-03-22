@@ -163,9 +163,8 @@ fn pack_condition(
             let register_size = bytes.len() as u16;
             let data = formats::ConditionData::Register(bytes);
             // TODO: this may cause loss of data, but we are constrained by the current qpy format
-            let low_digits = target_value.iter_u64_digits().next().ok_or_else(|| {
-                QpyError::MissingData("Register condition value is missing".to_string())
-            })? as i64;
+            // Handle zero case: iter_u64_digits() returns empty iterator for 0
+            let low_digits = target_value.iter_u64_digits().next().unwrap_or(0) as i64;
             Ok(formats::ConditionPack {
                 register_size,
                 value: low_digits,
@@ -374,6 +373,23 @@ fn pack_pauli_product_rotation(
     })
 }
 
+/// Convert snake_case name (e.g., "if_else") to Python class names (e.g., "IfElseOp") 
+/// for backwards compatibility with old QPY versions
+
+fn control_flow_class_name(
+    name: &str,
+) -> Result<String, QpyError> {
+    match name {
+        "if_else" => Ok("IfElseOp".to_string()),
+        "while_loop" => Ok("WhileLoopOp".to_string()),
+        "for_loop" => Ok("ForLoopOp".to_string()),
+        "switch_case" => Ok("SwitchCaseOp".to_string()),
+        "break_loop" => Ok("BreakLoopOp".to_string()),
+        "continue_loop" => Ok("ContinueLoopOp".to_string()),
+        "box" => Ok("BoxOp".to_string()),
+        _ => Err(QpyError::InvalidInstruction(name.to_string())),
+    }
+}
 fn pack_control_flow_inst(
     control_flow_inst: &ControlFlowInstruction,
     instruction: &PackedInstruction,
@@ -474,7 +490,7 @@ fn pack_control_flow_inst(
         extras_key: condition_key | annotations_key,
         num_ctrl_qubits: 0, // standard instructions have no control qubits
         ctrl_state: 0,
-        gate_class_name: control_flow_inst.name().to_string(), // this name is NOT a proper python class name, but we don't instantiate from the python class anymore
+        gate_class_name: control_flow_class_name(control_flow_inst.name())?, // need to use the Python class names for backward compatability
         label: Default::default(),
         condition: packed_condition,
         bit_data: Default::default(),
@@ -1274,3 +1290,4 @@ pub(crate) fn py_write_circuit(
     )?;
     Ok(serialized_circuit.len())
 }
+

@@ -160,7 +160,7 @@ class TestQPYRoundtrip(QiskitTestCase):
         self.assert_roundtrip_equal(qc, version=version)
         if version >= QPY_RUST_WRITE_MIN_VERSION:
             self.assert_roundtrip_equal(qc, version=version, read_with="Python", write_with="Rust")
-    
+
     @idata(range(QPY_RUST_READ_MIN_VERSION, QPY_VERSION + 1))
     def test_parameter_expression_with_vectors(self, version):
         """Test loading a circuit with parameter expression works"""
@@ -168,7 +168,7 @@ class TestQPYRoundtrip(QiskitTestCase):
         beta = Parameter("β")
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
-        qc.rx(beta+theta[1], qr)
+        qc.rx(beta + theta[1], qr)
         self.assert_roundtrip_equal(qc, version=version)
         if version >= QPY_RUST_WRITE_MIN_VERSION:
             self.assert_roundtrip_equal(qc, version=version, read_with="Python", write_with="Rust")
