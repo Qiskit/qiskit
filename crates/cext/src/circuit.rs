@@ -1978,7 +1978,8 @@ pub struct CircuitDrawerConfig {
     /// If `true`, merges the bottom and top lines of adjacent wires.
     merge_wires: bool,
     /// Sets the line length for wrapping the rendered text. Use 0
-    /// to auto-detect console width.
+    /// to auto-detect console width. Use `SIZE_MAX` to effectively skip
+    /// wrapping altogether.
     fold: usize,
 }
 
