@@ -1274,6 +1274,42 @@ q_4: ───────────────────────┤   
         circuit.barrier(label="End Y/X")
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
+    def test_text_barrier_label_truncation(self):
+        """Barrier labels longer than barrier_label_len are truncated"""
+        expected_truncated = "\n".join(
+            [
+                "      ░  aaaaaaaaa... ",
+                "q_0: ─░───────░───────",
+                "      ░       ░       ",
+                "q_1: ─░───────░───────",
+                "      ░       ░       ",
+            ]
+        )
+        circuit = QuantumCircuit(2)
+        circuit.barrier()
+        circuit.barrier(label="a" * 20)
+        self.assertEqual(
+            str(circuit_drawer(circuit, output="text", barrier_label_len=9)), expected_truncated
+        )
+
+    def test_text_barrier_label_no_truncation(self):
+        """Barrier labels shorter than barrier_label_len are unchanged"""
+        expected = "\n".join(
+            [
+                "      ░  short ",
+                "q_0: ─░────░───",
+                "      ░    ░   ",
+                "q_1: ─░────░───",
+                "      ░    ░   ",
+            ]
+        )
+        circuit = QuantumCircuit(2)
+        circuit.barrier()
+        circuit.barrier(label="short")
+        self.assertEqual(
+            str(circuit_drawer(circuit, output="text", barrier_label_len=30)), expected
+        )
+
     def test_text_barrier_label_reversed_bits(self):
         """Show barrier label with reversed bits"""
         expected = "\n".join(

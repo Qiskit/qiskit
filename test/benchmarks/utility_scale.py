@@ -29,6 +29,7 @@ from .utils import (
 class UtilityScaleBenchmarks:
     params = ["cx", "cz", "ecr"]
     param_names = ["2q gate"]
+    timeout = 120
 
     def setup(self, basis_gate):
         SEED = 12345
@@ -50,6 +51,8 @@ class UtilityScaleBenchmarks:
         self.circSU2_89 = efficient_su2(89, reps=3, entanglement="circular")
         self.bv_100 = bv_all_ones(100)
         self.bv_like_100 = trivial_bvlike_circuit(100)
+        self.hwb_qasm = os.path.join(qasm_dir, "hwb12.qasm")
+        self.hwb_qc = QuantumCircuit.from_qasm_file(self.hwb_qasm)
 
     def time_parse_qft_n100(self, _):
         qasm2.load(
@@ -72,6 +75,15 @@ class UtilityScaleBenchmarks:
     def time_parse_qaoa_n100(self, _):
         qasm2.load(
             self.qaoa_qasm,
+            include_path=qasm2.LEGACY_INCLUDE_PATH,
+            custom_instructions=qasm2.LEGACY_CUSTOM_INSTRUCTIONS,
+            custom_classical=qasm2.LEGACY_CUSTOM_CLASSICAL,
+            strict=False,
+        )
+
+    def time_parse_hwb12(self, _):
+        qasm2.load(
+            self.hwb_qasm,
             include_path=qasm2.LEGACY_INCLUDE_PATH,
             custom_instructions=qasm2.LEGACY_CUSTOM_INSTRUCTIONS,
             custom_classical=qasm2.LEGACY_CUSTOM_CLASSICAL,
@@ -132,4 +144,11 @@ class UtilityScaleBenchmarks:
 
     def track_bvlike_depth(self, basis_gate):
         res = self.pm.run(self.bv_like_100)
+        return res.depth(filter_function=lambda x: x.operation.name == basis_gate)
+
+    def time_hwb12(self, _):
+        self.pm.run(self.hwb_qc)
+
+    def track_hwb12_depth(self, basis_gate):
+        res = self.pm.run(self.hwb_qc)
         return res.depth(filter_function=lambda x: x.operation.name == basis_gate)

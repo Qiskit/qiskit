@@ -867,6 +867,13 @@ macro_rules! create_bit_object {
                 $reg_struct::anonymous_instance_count().load(Ordering::Relaxed)
             }
         }
+
+        impl ::std::ops::Deref for $pyreg_struct {
+            type Target = $reg_struct;
+            fn deref(&self) -> &Self::Target {
+                &self.0
+            }
+        }
     };
 }
 

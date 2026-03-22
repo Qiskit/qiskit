@@ -17,6 +17,7 @@ pub mod bit;
 pub mod bit_locator;
 mod blocks;
 pub mod circuit_data;
+pub mod circuit_drawer;
 pub mod circuit_instruction;
 pub mod classical;
 pub mod converters;
@@ -38,11 +39,11 @@ pub mod parameter_table;
 pub mod register_data;
 pub mod slice;
 pub mod util;
+pub mod var_stretch_container;
+mod variable_mapper;
 pub mod vf2;
 
-mod variable_mapper;
-
-use pyo3::exceptions::PyValueError;
+use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PySequence, PyString, PyTuple};
 
@@ -203,6 +204,16 @@ impl<'a, 'py> FromPyObject<'a, 'py> for VarsMode {
 pub enum BlocksMode {
     Drop,
     Keep,
+}
+
+/// Simple error type for objects with built-in hard-coded capacity limits.
+#[derive(Clone, Copy, Debug, thiserror::Error)]
+#[error("exceeded allowed runtime capacity")]
+pub struct CapacityError;
+impl From<CapacityError> for PyErr {
+    fn from(val: CapacityError) -> PyErr {
+        PyRuntimeError::new_err(val.to_string())
+    }
 }
 
 #[inline]

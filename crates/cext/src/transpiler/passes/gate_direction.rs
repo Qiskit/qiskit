@@ -17,7 +17,7 @@ use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_transpiler::passes::{check_direction_target, fix_direction_target};
 use qiskit_transpiler::target::Target;
 
-/// @ingroup QkTranspilerPasses
+/// @ingroup QkTranspilerPassesStandalone
 /// Run the ``CheckGateDirection`` pass on a circuit.
 ///
 /// Refer to the ``qk_transpiler_pass_check_gate_direction`` function for more details about the pass.
@@ -44,7 +44,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_check_gate_direction(
     check_direction_target(&dag, target).expect("Unexpected error occurred in CheckGateDirection")
 }
 
-/// @ingroup QkTranspilerPasses
+/// @ingroup QkTranspilerPassesStandalone
 /// Run the ``GateDirection`` pass on a circuit.
 ///
 /// Refer to the ``qk_transpiler_pass_gate_direction`` function for more details about the pass.
