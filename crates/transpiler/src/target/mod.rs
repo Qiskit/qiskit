@@ -265,12 +265,13 @@ impl Target {
     /// # Arguments
     ///
     /// * `num_qubits` - An optional int to specify the number of qubits
-    ///        the backend target has. If not set it will be implicitly set
-    ///        based on the qargs when :meth:`~qiskit.Target.add_instruction`
-    ///        is called. Note this must be set if the backend target is for a
-    ///        noiseless simulator that doesn't have constraints on the
-    ///        instructions so the transpiler knows how many qubits are
-    ///        available.
+    ///   the backend target has. If not set it will be implicitly set
+    ///   based on the qargs when :meth:`~qiskit.Target.add_instruction`
+    ///   is called. Note this must be set if the backend target is for a
+    ///   noiseless simulator that doesn't have constraints on the
+    ///   instructions so the transpiler knows how many qubits are
+    ///   available.
+    ///
     /// # Returns:
     ///
     /// Initialized [Target] with a defined number of qubits.
@@ -298,18 +299,18 @@ impl Target {
     /// # Arguments
     ///
     /// * `num_qubits` - An optional int to specify the number of qubits
-    ///        the backend target has. If not set it will be implicitly set
-    ///        based on the qargs when :meth:`~qiskit.Target.add_instruction`
-    ///        is called. Note this must be set if the backend target is for a
-    ///        noiseless simulator that doesn't have constraints on the
-    ///        instructions so the transpiler knows how many qubits are
-    ///        available.
+    ///   the backend target has. If not set it will be implicitly set
+    ///   based on the qargs when :meth:`~qiskit.Target.add_instruction`
+    ///   is called. Note this must be set if the backend target is for a
+    ///   noiseless simulator that doesn't have constraints on the
+    ///   instructions so the transpiler knows how many qubits are
+    ///   available.
     ///
     /// # Returns:
     ///
     /// * `Ok`: (if the number of qubits was successfully set.) [Target]
     /// * `Err`: (if there was a specified [Target::qubit_properties] attribute and the
-    ///     lengths did not match) [TargetError].
+    ///   lengths did not match) [TargetError].
     ///
     /// # Examples
     ///
@@ -365,8 +366,8 @@ impl Target {
     /// # Arguments
     ///
     /// * `granularity` - An integer value representing minimum pulse gate
-    ///        resolution in units of ``dt``. A user-defined pulse gate should
-    ///        have duration of a multiple of this granularity value.
+    ///   resolution in units of ``dt``. A user-defined pulse gate should
+    ///   have duration of a multiple of this granularity value.
     ///
     /// # Returns:
     ///
@@ -390,8 +391,8 @@ impl Target {
     /// # Arguments
     ///
     /// * `min_length` - An integer value representing minimum pulse gate
-    ///        length in units of ``dt``. A user-defined pulse gate should be
-    ///        longer than this length.
+    ///   length in units of ``dt``. A user-defined pulse gate should be
+    ///   longer than this length.
     ///  
     /// # Returns:
     ///
@@ -416,9 +417,9 @@ impl Target {
     /// # Arguments
     ///
     /// * `pulse_alignment` - An integer value representing a time
-    ///        resolution of gate instruction starting time. Gate instruction
-    ///        should start at time which is a multiple of the alignment
-    ///        value.
+    ///   resolution of gate instruction starting time. Gate instruction
+    ///   should start at time which is a multiple of the alignment
+    ///   value.
     ///  
     /// # Returns:
     ///
@@ -443,10 +444,10 @@ impl Target {
     /// # Arguments
     ///
     /// * `acquire_alignment` - An integer value representing a time
-    ///        resolution of measure instruction starting time. Measure
-    ///        instruction should start at time which is a multiple of the
-    ///        alignment value.
-    ///  
+    ///   resolution of measure instruction starting time. Measure
+    ///   instruction should start at time which is a multiple of the
+    ///   alignment value.
+    ///   
     /// # Returns:
     ///
     /// Initialized [Target] with a defined ``acquire_alignment`` attribute.
@@ -469,11 +470,11 @@ impl Target {
     /// # Arguments
     ///
     /// * `qubit_properties` - A list of python `QubitProperties` objects defining
-    ///        the characteristics of each qubit on the target device. If specified
-    ///        the length of this list must match the number of qubits in the target,
-    ///        where the index in the list matches the qubit number the properties
-    ///        are defined for. If some qubits don't have properties available you
-    ///        can set that entry to ``py.None()``.
+    ///   the characteristics of each qubit on the target device. If specified
+    ///   the length of this list must match the number of qubits in the target,
+    ///   where the index in the list matches the qubit number the properties
+    ///   are defined for. If some qubits don't have properties available you
+    ///   can set that entry to ``py.None()``.
     ///
     /// # Returns:
     ///
@@ -502,17 +503,17 @@ impl Target {
     /// # Arguments
     ///
     /// * `qubit_properties` - A list of python `QubitProperties` objects defining
-    ///        the characteristics of each qubit on the target device. If specified
-    ///        the length of this list must match the number of qubits in the target,
-    ///        where the index in the list matches the qubit number the properties
-    ///        are defined for. If some qubits don't have properties available you
-    ///        can set that entry to ``py.None()``.
+    ///   the characteristics of each qubit on the target device. If specified
+    ///   the length of this list must match the number of qubits in the target,
+    ///   where the index in the list matches the qubit number the properties
+    ///   are defined for. If some qubits don't have properties available you
+    ///   can set that entry to ``py.None()``.
     ///
     /// # Returns:
     ///
     /// * `Ok`: (if the`qubit_properties` were successfully set.) [Target]
     /// * `Err`: (if there was a specified [Target::num_qubits] attribute and the
-    ///     lengths did not match) [TargetError].
+    ///   lengths did not match) [TargetError].
     ///
     /// # Examples
     ///
@@ -547,8 +548,8 @@ impl Target {
     /// # Arguments
     ///
     /// * `concurrent_measurements` - A list of sets of qubits that must be
-    ///        measured together. This must be provided
-    ///        as a nested list like ``[[0, 1], [2, 3, 4]]``.
+    ///   measured together. This must be provided
+    ///   as a nested list like ``[[0, 1], [2, 3, 4]]``.
     ///  
     /// # Returns:
     ///
