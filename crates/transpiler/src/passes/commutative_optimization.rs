@@ -23,7 +23,7 @@ use crate::passes::remove_identity_equiv::{average_gate_fidelity_below_tol, is_i
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::operations::{
-    Operation, OperationRef, Param, StandardGate, multiply_param, radd_param,
+    Operation, OperationRef, Param, PauliBased, StandardGate, multiply_param, radd_param,
 };
 use qiskit_circuit::{BlocksMode, Clbit, NoBlocks, Qubit, imports};
 
@@ -305,6 +305,34 @@ fn try_merge(
                 return Ok((true, None, phase_update));
             } else {
                 return Ok((true, Some(merged_instruction), 0.));
+            }
+        }
+    }
+
+    // Special handling for PauliProductRotations.
+    if let (OperationRef::PauliProductRotation(ppr1), OperationRef::PauliProductRotation(ppr2)) =
+        (inst1.op.view(), inst2.op.view())
+    {
+        let merge_result = ppr1.merge_with(ppr2);
+
+        if let Some(merged_ppr) = merge_result {
+            let angle = merged_ppr.angle.clone();
+            let merged_params = Some(Box::new(Parameters::Params(smallvec![angle])));
+
+            let packed = PackedInstruction {
+                op: PauliBased::PauliProductRotation(merged_ppr).into(),
+                qubits: inst1.qubits,
+                clbits: inst1.clbits,
+                params: merged_params,
+                label: None,
+                #[cfg(feature = "cache_pygates")]
+                py_op: std::sync::OnceLock::new(),
+            };
+
+            if let Some(phase_update) = is_identity_equiv(&packed, false, None, error_cutoff_fn)? {
+                return Ok((true, None, phase_update));
+            } else {
+                return Ok((true, Some(packed), 0.));
             }
         }
     }
