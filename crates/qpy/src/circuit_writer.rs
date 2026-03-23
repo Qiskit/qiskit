@@ -22,6 +22,7 @@ use binrw::Endian;
 use hashbrown::{HashMap, HashSet};
 use indexmap::IndexSet;
 use numpy::ToPyArray;
+use num_traits::ToPrimitive;
 
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyDict, PyTuple};
@@ -215,6 +216,31 @@ fn pack_instruction_blocks(
         }),
     }
 }
+
+/// extracts instruction blocks from an instruction into a vector of GenericValues
+fn extract_instruction_blocks(
+    inst: &PackedInstruction,
+    qpy_data: &mut QPYWriteData,
+) -> Result<Vec<GenericValue>, QpyError> {
+    let blocks = qpy_data
+        .circuit_data
+        .unpack_blocks_to_circuit_parameters(inst.params.as_deref())
+        .ok_or_else(|| {
+            QpyError::ConversionError("Could not extract blocks from instruction".to_string())
+        })?;
+    match blocks {
+        Parameters::Params(_) => Err(QpyError::ConversionError(
+            "Instruction has params but expected blocks".to_string(),
+        )),
+        Parameters::Blocks(blocks) => {
+            Ok(blocks
+                .iter()
+                .map(|block: &CircuitData| GenericValue::CircuitData(Box::new(block.clone())))
+                .collect())
+        }
+    }
+}
+
 /// packs one specific instruction into CircuitInstructionV2Pack, creating a new custom operation if needed
 fn pack_instruction(
     instruction: &PackedInstruction,
@@ -457,8 +483,14 @@ fn pack_control_flow_inst(
         ControlFlow::Switch {
             target,
             label_spec,
-            cases,
+            ..
         } => {
+            // we follor the python way of storing switch params
+            // the first param is the target, the next param is the cases specificer
+            // the cases specifier is a list of pairs (tuples)
+            // the second element in each pair is the subcircuit for this case
+            // the first element is the list of the case labels, or a single case label 
+            // or the special default case label
             let target_value = match target {
                 SwitchTarget::Bit(clbit) => {
                     GenericValue::Register(ParamRegisterValue::ShareableClbit(clbit))
@@ -468,28 +500,34 @@ fn pack_control_flow_inst(
                     GenericValue::Register(ParamRegisterValue::Register(reg))
                 }
             };
-            let label_spec_value = GenericValue::Tuple(
+            let case_circuits = extract_instruction_blocks(instruction, qpy_data)?;
+            let case_labels = 
                 label_spec
                     .iter()
-                    .map(|label_vec| {
-                        GenericValue::Tuple(
+                    .map(|label_vec| -> Result<GenericValue, QpyError> {
+                        Ok(GenericValue::Tuple(
                             label_vec
                                 .iter()
-                                .map(|label_element| match label_element {
-                                    CaseSpecifier::Default => GenericValue::CaseDefault,
-                                    CaseSpecifier::Uint(val) => GenericValue::BigInt(val.clone()),
+                                .map(|label_element| -> Result<GenericValue, QpyError> {
+                                    match label_element {
+                                        CaseSpecifier::Default => Ok(GenericValue::CaseDefault),
+                                        CaseSpecifier::Uint(val) => Ok(GenericValue::Int64(val.to_i64().ok_or_else(|| QpyError::ConversionError("Case specifier too large".to_string()))?).as_le()),
+                                    }
                                 })
-                                .collect(),
-                        )
+                                .collect::<Result<Vec<GenericValue>, _>>()?
+                        ))
                     })
-                    .collect::<Vec<_>>(),
-            );
-            let cases_value = GenericValue::Int64(cases as i64);
+                    .collect::<Result<Vec<GenericValue>, _>>()?;
+            let cases = GenericValue::Tuple(case_labels
+            .into_iter()
+            .zip(case_circuits)
+            .map(|(label, circuit)| {
+                GenericValue::Tuple(vec![label, circuit])
+            })
+            .collect());
             let mut params = Vec::new();
             params.push(pack_generic_value(&target_value, qpy_data)?);
-            params.push(pack_generic_value(&label_spec_value, qpy_data)?);
-            params.push(pack_generic_value(&cases_value, qpy_data)?);
-            params.extend(pack_instruction_blocks(instruction, qpy_data)?);
+            params.push(pack_generic_value(&cases, qpy_data)?);            
             params
         }
     };

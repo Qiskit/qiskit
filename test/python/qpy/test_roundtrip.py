@@ -126,7 +126,7 @@ class TestQPYRoundtrip(QiskitTestCase):
         qr = QuantumRegister(2, "q1")
         cr = ClassicalRegister(2, "c1")
         qc = QuantumCircuit(qr, cr)
-        qc.switch(expr.bit_and(cr, 3), [(1, body.copy())], [0], [])
+        qc.switch(expr.bit_and(cr, 3), [(1, body.copy()), (2, body.copy())], [0], [])
         qc.switch(expr.logic_not(qc.clbits[0]), [(False, body.copy())], [0], [])
         self.assert_roundtrip_equal(qc, version=version)
         if version >= QPY_RUST_WRITE_MIN_VERSION:
