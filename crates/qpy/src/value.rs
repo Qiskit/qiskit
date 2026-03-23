@@ -362,6 +362,12 @@ impl GenericValue {
             _ => None,
         }
     }
+    pub(crate) fn to_vec(&self) -> Option<Vec<GenericValue>> {
+        match self {
+            GenericValue::Tuple(elements) => Some(elements.clone()),
+            _ => None,
+        }
+    }
 }
 
 macro_rules! impl_from_generic {

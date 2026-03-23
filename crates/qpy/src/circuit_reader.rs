@@ -600,19 +600,52 @@ fn unpack_control_flow(
             ControlFlow::While { condition }
         }
         ControlFlowType::SwitchCase => {
-            // we follow the python way of storing switch params
-            // the first param is the target, the next param is the cases specificer
-            // the cases specifier is a list of pairs (tuples)
-            // the second element in each pair is the subcircuit for this case
-            // the first element is the list of the case labels, or a single case label
-            // or the special default case label
-            let instruction_values = get_instruction_values(instruction, qpy_data)?;
-            let [target_value, cases, ..] = &instruction_values[..] else {
-                return Err(QpyError::MissingData(
-                    "Switch case requires at least 2 parameters".to_string(),
-                ));
+            let mut instruction_values = get_instruction_values(instruction, qpy_data)?;
+            let (target_value, case_label_list) = if instruction_values.len() < 3 {
+                // we follow the python way of storing switch params
+                // the first param is the target, the next param is the cases specificer
+                // the cases specifier is a list of pairs (tuples)
+                // the second element in each pair is the subcircuit for this case
+                // the first element is the list of the case labels, or a single case label
+                // or the special default case label
+                let [target_value, cases, ..] = &instruction_values[..] else {
+                    return Err(QpyError::MissingData(
+                        "Switch case requires at least 2 parameters".to_string(),
+                    ));
+                };
+                let mut case_label_list = Vec::new();
+                for case in cases.as_vec().ok_or(QpyError::InvalidInstruction(
+                    "bad parameters for switch statement".to_string(),
+                ))? {
+                    let [case_labels, case_circuit, ..] =
+                        &case.as_vec().ok_or(QpyError::InvalidInstruction(
+                            "bad parameters for switch statement".to_string(),
+                        ))?[..]
+                    else {
+                        return Err(QpyError::InvalidInstruction(
+                            "bad parameters for switch statement".to_string(),
+                        ));
+                    };
+                    param_values.push(case_circuit.clone());
+                    case_label_list.push(case_labels.clone());
+                }
+                (target_value, case_label_list)
+            } else {
+                param_values = instruction_values.split_off(3);
+                let [target_value, label_spec_value, ..] = &instruction_values[..] else {
+                    return Err(QpyError::MissingData(
+                        "Switch case requires at least 3 parameters".to_string(),
+                    ));
+                };
+                (
+                    target_value,
+                    label_spec_value.to_vec().ok_or_else(|| {
+                        QpyError::InvalidInstruction(
+                            "bad parameters for switch statement".to_string(),
+                        )
+                    })?,
+                )
             };
-
             let target = match target_value.clone() {
                 GenericValue::Expression(exp) => Ok(SwitchTarget::Expr(exp)),
                 GenericValue::Register(ParamRegisterValue::Register(reg)) => {
@@ -628,17 +661,7 @@ fn unpack_control_flow(
 
             // now split the zipped cases: move the circuits to params, keep the labels for further processing
             let mut label_spec = Vec::new();
-            for case in cases.as_vec().ok_or(QpyError::InvalidInstruction(
-                "bad parameters for switch statement".to_string(),
-            ))? {
-                let [case_labels, case_circuit, ..] = &case.as_vec().ok_or(
-                    QpyError::InvalidInstruction("bad parameters for switch statement".to_string()),
-                )?[..] else {
-                    return Err(QpyError::InvalidInstruction(
-                        "bad parameters for switch statement".to_string(),
-                    ));
-                };
-                param_values.push(case_circuit.clone());
+            for case_labels in case_label_list {
                 // label spec handling
                 let GenericValue::Tuple(label_spec_element_tuple) = case_labels else {
                     return Err(QpyError::InvalidInstruction(
