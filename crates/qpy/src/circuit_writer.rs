@@ -450,7 +450,18 @@ fn pack_control_flow_inst(
                     params.push(duration_value_pack);
                     params.push(pack_generic_value(&duration_unit_string, qpy_data)?);
                 }
-                _ => (),
+                GenericValue::Null => {
+                    // we follow the python default
+                    let duration_value_pack = pack_generic_value(&GenericValue::Null, qpy_data)?;
+                    let duration_unit_string = GenericValue::String("dt".to_string());
+                    params.push(duration_value_pack);
+                    params.push(pack_generic_value(&duration_unit_string, qpy_data)?);
+                }
+                _ => {
+                    return Err(QpyError::InvalidInstruction(
+                        "Box instruction with unknown duration data".to_string(),
+                    ));
+                }
             }
             params
         }
