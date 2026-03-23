@@ -104,7 +104,7 @@ pub fn quantum_shannon_decomposition(
         smallvec![],
         aview2(&qiskit_circuit::gate_matrix::CX_GATE),
         1.0,
-        "U",
+        EulerBasis::U,
         None,
     )?;
     let one_qubit_decomposer = one_qubit_decomposer_basis_set.unwrap_or(&default_1q_basis);

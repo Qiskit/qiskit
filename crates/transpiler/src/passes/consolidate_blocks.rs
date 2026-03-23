@@ -33,6 +33,7 @@ use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::operations::{ArrayType, Operation, Param, UnitaryGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_quantum_info::convert_2q_block_matrix::{blocks_to_matrix, get_matrix_from_inst};
+use qiskit_synthesis::euler_one_qubit_decomposer::EulerBasis;
 use qiskit_synthesis::two_qubit_decompose::RXXEquivalent;
 use qiskit_synthesis::two_qubit_decompose::{
     TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer,
@@ -120,7 +121,7 @@ fn get_decomposer_and_basis_gate(
                         SmallVec::default(),
                         get_matrix(&gate),
                         approximation_degree,
-                        "U",
+                        EulerBasis::U,
                         None,
                     )
                     .unwrap_or_else(|_| {
@@ -142,7 +143,7 @@ fn get_decomposer_and_basis_gate(
                 SmallVec::default(),
                 aview2(&CX_GATE),
                 1.0,
-                "U",
+                EulerBasis::U,
                 None,
             )
             .expect("Error while creating TwoQubitBasisDecomposer using a 'cx' gate."),
