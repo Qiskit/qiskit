@@ -18,6 +18,7 @@ from test import QiskitTestCase, combine
 import ddt
 import rustworkx as rx
 
+from qiskit import capi
 from qiskit.circuit import QuantumCircuit, Clbit, QuantumRegister, ClassicalRegister
 from qiskit.circuit.library import CXGate
 from qiskit.transpiler import CouplingMap
@@ -33,16 +34,15 @@ class TestTranspile(QiskitTestCase):
     def test_empty_transpilation(self, opt_level):
         """Test transpilation of empty circuit."""
         target = ffi.build_homogenous_target(CouplingMap.from_ring(10), ["cx", "u"], 42)
-        self.addCleanup(ffi.LIB.qk_target_free, target)
+        self.addCleanup(capi.qk_target_free, target)
         circuit = QuantumCircuit(5, 5)
-        c_qc = ffi.build_circuit_from_python(circuit)
-        self.addCleanup(ffi.LIB.qk_circuit_free, c_qc)
-        res = ffi.transpile_from_c(c_qc, target, opt_level, 1.0, 42)
+        res = ffi.transpile_from_c(circuit, target, opt_level, 1.0, 42)
         # Remove layout since it's not valid for this comparison it just says a layout of empty
         # qubits was selected with no permutation
         res._layout = None
         expected = QuantumCircuit(10)
-        expected.add_bits([Clbit() for _ in range(5)])
+        for creg in circuit.cregs:
+            expected.add_register(creg)
         self.assertEqual(expected, res)
 
     @ddt.data(0, 1, 2, 3)
@@ -57,11 +57,9 @@ class TestTranspile(QiskitTestCase):
             for j in range(i):
                 circuit.cp(math.pi / float(2 ** (i - j)), q, qr[j])
             circuit.h(q)
-        c_qc = ffi.build_circuit_from_python(circuit)
-        self.addCleanup(ffi.LIB.qk_circuit_free, c_qc)
         target = ffi.build_homogenous_target(CouplingMap(MELBOURNE_CMAP), basis_gates, seed=42)
-        self.addCleanup(ffi.LIB.qk_target_free, target)
-        new_circuit = ffi.transpile_from_c(c_qc, target, opt_level, 1.0, 42)
+        self.addCleanup(capi.qk_target_free, target)
+        new_circuit = ffi.transpile_from_c(circuit, target, opt_level, 1.0, 42)
 
         qubit_indices = {bit: idx for idx, bit in enumerate(new_circuit.qubits)}
         for instruction in new_circuit.data:
@@ -76,11 +74,9 @@ class TestTranspile(QiskitTestCase):
         circuit.cx(0, 1)
         circuit.swap(0, 1)
         circuit.iswap(0, 1)
-        c_qc = ffi.build_circuit_from_python(circuit)
-        self.addCleanup(ffi.LIB.qk_circuit_free, c_qc)
         target = ffi.build_homogenous_target(CouplingMap.from_full(2), ["u", "ecr"], 42)
-        self.addCleanup(ffi.LIB.qk_target_free, target)
-        res = ffi.transpile_from_c(c_qc, target, optimization_level, 1.0, 42)
+        self.addCleanup(capi.qk_target_free, target)
+        res = ffi.transpile_from_c(circuit, target, optimization_level, 1.0, 42)
         # Swap gates get optimized away in opt. level 2, 3
         expected_num_ecr_gates = 2 if optimization_level in (2, 3) else 8
         self.assertEqual(res.count_ops()["ecr"], expected_num_ecr_gates)
@@ -91,11 +87,9 @@ class TestTranspile(QiskitTestCase):
         circuit = QuantumCircuit(2)
         circuit.swap(1, 0)
         circuit.iswap(0, 1)
-        c_qc = ffi.build_circuit_from_python(circuit)
-        self.addCleanup(ffi.LIB.qk_circuit_free, c_qc)
         target = ffi.build_homogenous_target(CouplingMap.from_full(2), ["u", "ecr"], 42)
-        self.addCleanup(ffi.LIB.qk_target_free, target)
-        res = ffi.transpile_from_c(c_qc, target, 3, 1.0, 42)
+        self.addCleanup(capi.qk_target_free, target)
+        res = ffi.transpile_from_c(circuit, target, 3, 1.0, 42)
         # an iswap gate is equivalent to (swap, CZ) up to single-qubit rotations. Normally, the swap gate
         # in the circuit would cancel with the swap gate of the (swap, CZ), leaving a single CZ gate that
         # can be realized via one ECR gate. However, with the introduction of ElideSwap, the swap gate
@@ -111,11 +105,10 @@ class TestTranspile(QiskitTestCase):
         qc = QuantumCircuit(qubit_reg, clbit_reg, name="bell")
         qc.h(qubit_reg[0])
         qc.cx(qubit_reg[0], qubit_reg[1])
-        c_qc = ffi.build_circuit_from_python(qc)
         target = ffi.build_homogenous_target(
             CouplingMap.from_full(2), ["u", "cx"], 42, ideal_gates=True
         )
-        result = ffi.transpile_from_c(c_qc, target, opt_level, 1.0, 42)
+        result = ffi.transpile_from_c(qc, target, opt_level, 1.0, 42)
 
         self.assertEqual(Operator.from_circuit(result), Operator.from_circuit(qc))
 
@@ -130,10 +123,8 @@ class TestTranspile(QiskitTestCase):
         qc.barrier()
         qc.z(0)
         target = ffi.build_homogenous_target(CouplingMap.from_line(1), basis, 42, True)
-        self.addCleanup(ffi.LIB.qk_target_free, target)
-        c_qc = ffi.build_circuit_from_python(qc)
-        self.addCleanup(ffi.LIB.qk_circuit_free, c_qc)
-        transpiled = ffi.transpile_from_c(c_qc, target, opt_level, 1.0, 42)
+        self.addCleanup(capi.qk_target_free, target)
+        transpiled = ffi.transpile_from_c(qc, target, opt_level, 1.0, 42)
         self.assertGreaterEqual(set(basis) | {"barrier"}, transpiled.count_ops().keys())
         self.assertEqual(Operator(qc), Operator(transpiled))
 
@@ -151,12 +142,10 @@ class TestTranspile(QiskitTestCase):
         target = ffi.build_homogenous_target(
             CouplingMap.from_full(10), ["cx", "rz", "sx", "x"], 123
         )
-        self.addCleanup(ffi.LIB.qk_target_free, target)
-        c_circ = ffi.build_circuit_from_python(circ)
-        self.addCleanup(ffi.LIB.qk_circuit_free, c_circ)
+        self.addCleanup(capi.qk_target_free, target)
         isa_circs = []
         for _ in range(10):
-            isa_circs.append(ffi.transpile_from_c(c_circ, target, optimization_level, 1.0, 123))
+            isa_circs.append(ffi.transpile_from_c(circ, target, optimization_level, 1.0, 123))
         for i in range(10):
             self.assertEqual(isa_circs[0], isa_circs[i])
 
@@ -164,7 +153,7 @@ class TestTranspile(QiskitTestCase):
     def test_size_optimization(self, level):
         """Test the levels for optimization based on size of circuit"""
         target = ffi.build_homogenous_target(CouplingMap.from_full(8), ["u3", "cx"], 42, True)
-        self.addCleanup(ffi.LIB.qk_target_free, target)
+        self.addCleanup(capi.qk_target_free, target)
         qc = QuantumCircuit(8)
         qc.cx(1, 2)
         qc.cx(2, 3)
@@ -182,9 +171,7 @@ class TestTranspile(QiskitTestCase):
         qc.cx(5, 4)
         qc.cx(7, 6)
         qc.cx(6, 7)
-        c_circ = ffi.build_circuit_from_python(qc)
-        self.addCleanup(ffi.LIB.qk_circuit_free, c_circ)
-        circ = ffi.transpile_from_c(c_circ, target, level, 1.0, 123)
+        circ = ffi.transpile_from_c(qc, target, level, 1.0, 123)
 
         circ_data = circ.data
         free_qubits = {0, 1, 2, 3}
@@ -207,12 +194,10 @@ class TestTranspile(QiskitTestCase):
         coupling_map = CouplingMap([(0, 1), (1, 2), (2, 3), (3, 4)])
         circuit = QuantumCircuit(5)
         circuit.cx(2, 4)
-        c_circ = ffi.build_circuit_from_python(circuit)
-        self.addCleanup(ffi.LIB.qk_circuit_free, c_circ)
 
         target = ffi.build_homogenous_target(coupling_map, basis, seed=24)
-        self.addCleanup(ffi.LIB.qk_target_free, target)
-        result = ffi.transpile_from_c(c_circ, target, level, 1.0, 123)
+        self.addCleanup(capi.qk_target_free, target)
+        result = ffi.transpile_from_c(circuit, target, level, 1.0, 123)
 
         self.assertIsInstance(result, QuantumCircuit)
         self.assertEqual(Operator.from_circuit(result), Operator(circuit))
@@ -227,11 +212,9 @@ class TestTranspile(QiskitTestCase):
         circuit.cx(2, 4)
         circuit.cx(3, 4)
         coupling_map = CouplingMap([(0, 1), (1, 2), (2, 3), (3, 4)])
-        c_circ = ffi.build_circuit_from_python(circuit)
-        self.addCleanup(ffi.LIB.qk_circuit_free, c_circ)
         target = ffi.build_homogenous_target(coupling_map, basis, seed=24)
-        self.addCleanup(ffi.LIB.qk_target_free, target)
-        result = ffi.transpile_from_c(c_circ, target, level, 1.0, 123)
+        self.addCleanup(capi.qk_target_free, target)
+        result = ffi.transpile_from_c(circuit, target, level, 1.0, 123)
         self.assertIsInstance(result, QuantumCircuit)
         self.assertEqual(Operator.from_circuit(result), Operator(circuit))
 
@@ -253,7 +236,7 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         self.edge_set = set(edges)
         cmap = CouplingMap(edges)
         self.target = ffi.build_homogenous_target(cmap, ["rz", "x", "sx", "cz"], seed=12345678942)
-        self.addCleanup(ffi.LIB.qk_target_free, self.target)
+        self.addCleanup(capi.qk_target_free, self.target)
 
     @ddt.data(0, 1, 2, 3)
     def test_basic_connected_circuit(self, opt_level):
@@ -265,9 +248,7 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         qc.cx(0, 3)
         qc.cx(0, 4)
         qc.measure_all()
-        c_circ = ffi.build_circuit_from_python(qc)
-        self.addCleanup(ffi.LIB.qk_circuit_free, c_circ)
-        tqc = ffi.transpile_from_c(c_circ, self.target, opt_level, 1.0, 123)
+        tqc = ffi.transpile_from_c(qc, self.target, opt_level, 1.0, 123)
         for inst in tqc.data:
             qubits = tuple(tqc.find_bit(x).index for x in inst.qubits)
             op_name = inst.operation.name
@@ -311,12 +292,10 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         qc.cy(20, 28)
         qc.cy(20, 29)
         qc.measure_all()
-        c_circ = ffi.build_circuit_from_python(qc)
-        self.addCleanup(ffi.LIB.qk_circuit_free, c_circ)
 
         if opt_level == 0:
             self.skipTest("Invalid layout for this backend causes a panic in sabre")
-        tqc = ffi.transpile_from_c(c_circ, self.target, opt_level, 1.0, 123)
+        tqc = ffi.transpile_from_c(qc, self.target, opt_level, 1.0, 123)
         for inst in tqc.data:
             qubits = tuple(tqc.find_bit(x).index for x in inst.qubits)
             op_name = inst.operation.name
