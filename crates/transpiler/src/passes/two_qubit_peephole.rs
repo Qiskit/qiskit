@@ -265,7 +265,7 @@ pub fn two_qubit_unitary_peephole_optimize(
                       py_op: OnceLock::new(),
                     })?;
                 }
-                out_dag_builder.add_global_phase(&Param::Float(result.sequence.global_phase))?;
+                out_dag_builder.add_global_phase(&Param::Float(result.sequence.global_phase()))?;
                 processed_runs.insert(*run_index);
             }
             None => {
