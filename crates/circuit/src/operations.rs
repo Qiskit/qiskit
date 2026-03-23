@@ -3395,15 +3395,16 @@ impl PauliProductRotation {
             return None;
         };
 
-        let dim = self
+        let num_qubits = self
             .z
             .iter()
             .zip(self.x.iter())
             .filter(|(z, x)| **z || **x)
             .count();
-        let tr_over_dim = if dim == 0 {
+        let dim = 2u32.pow(num_qubits as u32);
+        let tr_over_dim = if num_qubits == 0 {
             // This is an identity Pauli rotation.
-            (Complex64::new(0.0, -angle)).exp()
+            (Complex64::new(0.0, -angle / 2.)).exp()
         } else {
             Complex64::new((angle / 2.).cos(), 0.)
         };

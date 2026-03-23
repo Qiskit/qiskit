@@ -179,7 +179,7 @@ where
         ));
     }
 
-    // Special handling for large pauli product rotation gates.
+    // Special handling for pauli product rotation gates.
     if let OperationRef::PauliProductRotation(ppr) = view {
         if let Some((tr_over_dim, dim)) = ppr.rotation_trace_and_dim() {
             return Ok(average_gate_fidelity_below_tol(
@@ -193,7 +193,7 @@ where
         }
     }
 
-    // Special handling for large pauli evolution gates.
+    // Special handling for pauli evolution gates.
     if view.name() == "PauliEvolution" {
         if let OperationRef::Gate(py_gate) = view {
             let result = Python::attach(|py| -> PyResult<Option<(Complex64, usize)>> {
