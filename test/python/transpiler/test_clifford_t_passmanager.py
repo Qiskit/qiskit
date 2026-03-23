@@ -26,6 +26,7 @@ from qiskit.circuit.library import (
     MultiplierGate,
     ModularAdderGate,
 )
+from qiskit.transpiler import Target
 from qiskit.transpiler.passes.utils import CheckGateDirection
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.transpiler import CouplingMap
@@ -174,13 +175,13 @@ class TestCliffordTPassManager(QiskitTestCase):
         qc.append(gate, qc.qubits)
 
         # Transpile to a Clifford+T basis set
-        basis_gates = get_clifford_gate_names() + ["t", "tdg"]
+        target = Target.build_clifford_t(qc.num_qubits)
         pm = generate_preset_pass_manager(
-            basis_gates=basis_gates, optimization_level=optimization_level, seed_transpiler=0
+            target=target, optimization_level=optimization_level, seed_transpiler=0
         )
         transpiled = pm.run(qc)
 
-        self.assertLessEqual(set(transpiled.count_ops()), set(basis_gates))
+        self.assertLessEqual(set(transpiled.count_ops()), set(target.operation_names))
         t_count = _get_t_count(transpiled)
 
         # This is the T-count with optimization level 0.
@@ -333,10 +334,10 @@ class TestCliffordTPassManager(QiskitTestCase):
         qc.append(gate, qc.qubits[0:nq])
 
         # Transpile to a Clifford+T basis set
-        basis_gates = get_clifford_gate_names() + ["t", "tdg"]
-        pm = generate_preset_pass_manager(basis_gates=basis_gates, optimization_level=0)
+        target = Target.build_clifford_t(qc.num_qubits)
+        pm = generate_preset_pass_manager(target=target, optimization_level=0)
         transpiled = pm.run(qc)
-        self.assertLessEqual(set(transpiled.count_ops()), set(basis_gates))
+        self.assertLessEqual(set(transpiled.count_ops()), set(target.operation_names))
 
         # The resulting decomposition should be efficient in terms of T-count
         # provided 1 ancilla qubit is available
@@ -357,10 +358,10 @@ class TestCliffordTPassManager(QiskitTestCase):
         qc.append(gate, qc.qubits[0:nq])
 
         # Transpile to a Clifford+T basis set
-        basis_gates = get_clifford_gate_names() + ["t", "tdg"]
-        pm = generate_preset_pass_manager(basis_gates=basis_gates, optimization_level=0)
+        target = Target.build_clifford_t(qc.num_qubits)
+        pm = generate_preset_pass_manager(target=target, optimization_level=0)
         transpiled = pm.run(qc)
-        self.assertLessEqual(set(transpiled.count_ops()), set(basis_gates))
+        self.assertLessEqual(set(transpiled.count_ops()), set(target.operation_names))
 
         # The resulting decomposition should be efficient in terms of T-count
         # provided 1 ancilla qubit is available
@@ -377,10 +378,10 @@ class TestCliffordTPassManager(QiskitTestCase):
         qc.append(gate, qc.qubits)
 
         # Transpile to a Clifford+T basis set
-        basis_gates = get_clifford_gate_names() + ["t", "tdg"]
-        pm = generate_preset_pass_manager(basis_gates=basis_gates, optimization_level=0)
+        target = Target.build_clifford_t(qc.num_qubits)
+        pm = generate_preset_pass_manager(target=target, optimization_level=0)
         transpiled = pm.run(qc)
-        self.assertLessEqual(set(transpiled.count_ops()), set(basis_gates))
+        self.assertLessEqual(set(transpiled.count_ops()), set(target.operation_names))
 
         # The resulting decomposition should be efficient in terms of T-count,
         # except surprisingly for the case n=1 (which is why it is not used in this test)
@@ -397,10 +398,10 @@ class TestCliffordTPassManager(QiskitTestCase):
         qc.append(gate, qc.qubits)
 
         # Transpile to a Clifford+T basis set
-        basis_gates = get_clifford_gate_names() + ["t", "tdg"]
-        pm = generate_preset_pass_manager(basis_gates=basis_gates, optimization_level=0)
+        target = Target.build_clifford_t(qc.num_qubits)
+        pm = generate_preset_pass_manager(target=target, optimization_level=0)
         transpiled = pm.run(qc)
-        self.assertLessEqual(set(transpiled.count_ops()), set(basis_gates))
+        self.assertLessEqual(set(transpiled.count_ops()), set(target.operation_names))
 
         # The resulting decomposition should be efficient in terms of T-count,
         t_count = _get_t_count(transpiled)
@@ -470,6 +471,37 @@ class TestCliffordTPassManager(QiskitTestCase):
 
         expect_unitary = sequence_kind == "collect"
         self.assertEqual(expect_unitary, has_unitary[0])
+
+
+class TestCliffordTTarget(QiskitTestCase):
+    """Tests for the Clifford+T target."""
+
+    def test_default(self):
+        """Test the default setup."""
+
+        num_qubits = 3
+        target = Target.build_clifford_t(num_qubits)
+
+        with self.subTest(msg="all-to-all connectivity"):
+            # ``None`` means no coupling map constraints
+            cmap = target.build_coupling_map()
+            self.assertIsNone(cmap)
+
+        with self.subTest(msg="check gates"):
+            expected_basis = set(get_clifford_gate_names()) | {"t", "tdg"}
+            basis = set(target.operation_names)
+
+            self.assertEqual(expected_basis, basis)
+
+    def test_coupling_map(self):
+        """Test the coupling map is respected."""
+
+        num_qubits = 3
+        target_cmap = CouplingMap([(0, 1), (1, 2), (2, 0)])
+        target = Target.build_clifford_t(num_qubits, target_cmap)
+
+        cmap = target.build_coupling_map()
+        self.assertEqual(target_cmap, cmap)
 
 
 def _get_t_count(qc):
