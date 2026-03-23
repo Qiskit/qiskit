@@ -17,6 +17,7 @@ import logging
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit._accelerate.basis_translator import base_run
+from qiskit.transpiler.passes.utils.control_flow import map_blocks
 
 logger = logging.getLogger(__name__)
 
@@ -103,6 +104,8 @@ class BasisTranslator(TransformationPass):
         # not part of the official target model.
         self._target = target if target is not None and len(target.operation_names) > 0 else None
         self._min_qubits = min_qubits
+        
+        
 
     def run(self, dag):
         """Translate an input DAGCircuit to the target basis.
@@ -116,6 +119,8 @@ class BasisTranslator(TransformationPass):
         Returns:
             DAGCircuit: translated circuit.
         """
+        for node in list(dag.control_flow_op_nodes()):
+            dag.substitute_node(node, map_blocks(self.run, node.op))
 
         out = base_run(
             dag,
