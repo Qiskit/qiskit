@@ -187,8 +187,12 @@ fn recognize_instruction_type(
     } else if ControlFlowType::from_str(name).is_ok()
         || matches!(
             name,
-            // We don't handle old style SwitchCaseOp in rust yet
-            "IfElseOp" | "WhileLoopOp" | "ForLoopOp" | "BreakLoopOp" | "ContinueLoopOp"
+            "IfElseOp"
+                | "WhileLoopOp"
+                | "ForLoopOp"
+                | "BreakLoopOp"
+                | "ContinueLoopOp"
+                | "SwitchCaseOp"
         )
     {
         InstructionType::ControlFlow
@@ -596,25 +600,20 @@ fn unpack_control_flow(
             ControlFlow::While { condition }
         }
         ControlFlowType::SwitchCase => {
-            let mut instruction_values = get_instruction_values(instruction, qpy_data)?;
-            if instruction_values.len() < 3 {
-                return Err(QpyError::MissingData(format!(
-                    "Switch case instruction has {} parameters, expected at least 3 (target, label_spec, cases)",
-                    instruction_values.len()
-                )));
-            }
-            param_values = instruction_values.split_off(3);
-            let mut iter = instruction_values.into_iter();
-            let ((target_value, label_spec_value), cases_value) = iter
-                .next()
-                .zip(iter.next())
-                .zip(iter.next())
-                .ok_or_else(|| {
-                    QpyError::MissingData(
-                        "Switch case instruction missing some of its parameters".to_string(),
-                    )
-                })?;
-            let target = match target_value {
+            // we follow the python way of storing switch params
+            // the first param is the target, the next param is the cases specificer
+            // the cases specifier is a list of pairs (tuples)
+            // the second element in each pair is the subcircuit for this case
+            // the first element is the list of the case labels, or a single case label
+            // or the special default case label
+            let instruction_values = get_instruction_values(instruction, qpy_data)?;
+            let [target_value, cases, ..] = &instruction_values[..] else {
+                return Err(QpyError::MissingData(
+                    "Switch case requires at least 2 parameters".to_string(),
+                ));
+            };
+
+            let target = match target_value.clone() {
                 GenericValue::Expression(exp) => Ok(SwitchTarget::Expr(exp)),
                 GenericValue::Register(ParamRegisterValue::Register(reg)) => {
                     Ok(SwitchTarget::Register(reg))
@@ -627,45 +626,44 @@ fn unpack_control_flow(
                 )),
             }?;
 
-            let GenericValue::Tuple(label_spec_tuple_tuple) = label_spec_value else {
-                return Err(QpyError::InvalidInstruction(
-                    "could not identify switch case label spec".to_string(),
-                ));
-            };
-            let label_spec = label_spec_tuple_tuple
-                .iter()
-                .map(|label_spec_tuple_tuple_element| -> Result<_, QpyError> {
-                    let GenericValue::Tuple(label_spec_tuple) = label_spec_tuple_tuple_element
-                    else {
-                        return Err(QpyError::InvalidInstruction(
+            // now split the zipped cases: move the circuits to params, keep the labels for further processing
+            let mut label_spec = Vec::new();
+            for case in cases.as_vec().ok_or(QpyError::InvalidInstruction(
+                "bad parameters for switch statement".to_string(),
+            ))? {
+                let [case_labels, case_circuit, ..] = &case.as_vec().ok_or(
+                    QpyError::InvalidInstruction("bad parameters for switch statement".to_string()),
+                )?[..] else {
+                    return Err(QpyError::InvalidInstruction(
+                        "bad parameters for switch statement".to_string(),
+                    ));
+                };
+                param_values.push(case_circuit.clone());
+                // label spec handling
+                let GenericValue::Tuple(label_spec_element_tuple) = case_labels else {
+                    return Err(QpyError::InvalidInstruction(
+                        "could not identify switch case label spec".to_string(),
+                    ));
+                };
+                let label_spec_element = label_spec_element_tuple
+                    .iter()
+                    .map(|label_spec_element| match label_spec_element.as_le() {
+                        GenericValue::CaseDefault => Ok(CaseSpecifier::Default),
+                        GenericValue::BigInt(value) => Ok(CaseSpecifier::Uint(value.clone())),
+                        GenericValue::Int64(value) => {
+                            Ok(CaseSpecifier::Uint(BigUint::from(value as u64)))
+                        }
+                        _ => Err(QpyError::InvalidInstruction(
                             "could not identify switch case label spec".to_string(),
-                        ));
-                    };
-                    label_spec_tuple
-                        .iter()
-                        .map(|label_spec_element| match label_spec_element {
-                            GenericValue::CaseDefault => Ok(CaseSpecifier::Default),
-                            GenericValue::BigInt(value) => Ok(CaseSpecifier::Uint(value.clone())),
-                            GenericValue::Int64(value) => {
-                                Ok(CaseSpecifier::Uint(BigUint::from(*value as u64)))
-                            }
-                            _ => Err(QpyError::InvalidInstruction(
-                                "could not identify switch case label spec".to_string(),
-                            )),
-                        })
-                        .collect::<Result<_, QpyError>>()
-                })
-                .collect::<Result<_, QpyError>>()?;
-            let cases = match cases_value {
-                GenericValue::Int64(value) => Ok(value as u32),
-                _ => Err(QpyError::InvalidInstruction(
-                    "could not identify switch cases".to_string(),
-                )),
-            }?;
+                        )),
+                    })
+                    .collect::<Result<_, QpyError>>()?;
+                label_spec.push(label_spec_element);
+            }
             ControlFlow::Switch {
                 target,
                 label_spec,
-                cases,
+                cases: param_values.len() as u32,
             }
         }
     };
@@ -811,24 +809,6 @@ fn unpack_py_instruction(
                 if name.as_str() == "ForLoopOp" {
                     // we used the params to construct the loop; they should not be retained as params except the subcircuit
                     instruction_values.retain(|value| matches!(value, GenericValue::Circuit(_)));
-                }
-                if name.as_str() == "SwitchCaseOp" {
-                    // switch cases are as the second component of the second parameter
-                    // we keep only the circuits and remove everything else from the params
-                    if let GenericValue::Tuple(cases) = &instruction_values[1] {
-                        instruction_values = cases
-                            .iter()
-                            .map(|case| -> Result<_, QpyError> {
-                                if let GenericValue::Tuple(case_elements) = case {
-                                    Ok(case_elements[1].clone())
-                                } else {
-                                    Err(QpyError::InvalidInstruction(
-                                        "Unable to read switch case op".to_string(),
-                                    ))
-                                }
-                            })
-                            .collect::<Result<_, QpyError>>()?;
-                    }
                 }
                 gate_class.call1(args)?
             }

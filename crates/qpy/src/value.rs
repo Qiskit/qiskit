@@ -355,6 +355,13 @@ impl GenericValue {
             _ => None,
         }
     }
+    // return the inner Vec when the GenericData is a Tuple
+    pub(crate) fn as_vec(&self) -> Option<&Vec<GenericValue>> {
+        match self {
+            GenericValue::Tuple(elements) => Some(elements),
+            _ => None,
+        }
+    }
 }
 
 macro_rules! impl_from_generic {
