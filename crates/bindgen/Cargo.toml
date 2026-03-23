@@ -14,4 +14,4 @@ name = "qiskit_bindgen"
 
 [dependencies]
 anyhow.workspace = true
-cbindgen.workspace = true
+cbindgen = { workspace = true, features = ["unstable_ir"] }
