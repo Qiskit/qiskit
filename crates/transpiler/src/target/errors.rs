@@ -55,7 +55,7 @@ pub enum TargetError {
     GateNoBounds { name: String },
     /// The specified number of qubits does not match the input of qubit properties.
     #[error["The value of num_qubits: {num_qubits} does not match the length of the input qubit_properties list {num_props}"]]
-    NumQubitMisMatch { num_qubits: u32, num_props: usize },
+    NumQubitMismatch { num_qubits: u32, num_props: usize },
 }
 
 impl From<TargetError> for ::pyo3::PyErr {
