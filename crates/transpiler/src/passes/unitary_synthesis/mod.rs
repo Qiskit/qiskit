@@ -497,14 +497,14 @@ pub struct TwoQSynthesisResult {
 
 #[inline]
 pub fn fidelity_2q_sequence(
-    pair: &(Direction2q, TwoQubitGateSequence),
+    dir: &Direction2q,
+    sequence: &TwoQubitGateSequence,
     constraint: &QpuConstraint,
     qargs_phys: [PhysicalQubit; 2],
 ) -> f64 {
     let QpuConstraint::Target(target) = &constraint else {
         return 1.;
     };
-    let (dir, sequence) = pair;
     let order = dir.as_indices();
     let phys = [qargs_phys[order[0] as usize], qargs_phys[order[1] as usize]];
     sequence
@@ -590,9 +590,10 @@ pub fn synthesize_2q_matrix(
     let mut best_pair = first;
     for sequence in sequences {
         let sequence = sequence?;
-        let prev_fidelity = best_fidelity
-            .unwrap_or_else(|| fidelity_2q_sequence(&best_pair, &constraint, qargs_phys));
-        let this_fidelity = fidelity_2q_sequence(&sequence, &constraint, qargs_phys);
+        let prev_fidelity = best_fidelity.unwrap_or_else(|| {
+            fidelity_2q_sequence(&best_pair.0, &best_pair.1, &constraint, qargs_phys)
+        });
+        let this_fidelity = fidelity_2q_sequence(&sequence.0, &sequence.1, &constraint, qargs_phys);
         if this_fidelity > prev_fidelity {
             best_fidelity = Some(this_fidelity);
             best_pair = sequence;

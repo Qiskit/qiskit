@@ -31,7 +31,7 @@ use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
 
 use crate::passes::unitary_synthesis::{
-    Approximation, QpuConstraint, TwoQSynthesisResult, synthesize_2q_matrix,
+    Approximation, QpuConstraint, TwoQSynthesisResult, fidelity_2q_sequence, synthesize_2q_matrix,
 };
 use crate::passes::{UnitarySynthesisConfig, UnitarySynthesisState};
 use crate::target::Target;
@@ -157,7 +157,14 @@ pub fn two_qubit_unitary_peephole_optimize(
             let new_gate_count = result.sequence.gates.len();
             let new_score = (
                 new_2q_count,
-                1. - result.fidelity.unwrap_or(1.),
+                1. - result.fidelity.unwrap_or_else(|| {
+                    fidelity_2q_sequence(
+                        &result.dir,
+                        &result.sequence,
+                        &QpuConstraint::Target(target),
+                        q_phys,
+                    )
+                }),
                 new_gate_count,
             );
             // If the we are not outside the target and the new score isn't any better just use the
