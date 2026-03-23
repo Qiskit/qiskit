@@ -13,7 +13,8 @@
 /*
  * AI ATTRIBUTION:
  * Portions of the `to_matrix_sparse` and `decompose_dense` enhancements in this
- * module were developed with assistance from Google's Gemini 2.0 (Antigravity)
+ * module were developed with assistance from from GitHub Copilot integrated in VS Code.
+ * The underlying model : Claude Haiku 4.5.
  * to improve performance and reliability (specifically addressing issue #15021).
  */
 
@@ -1041,7 +1042,9 @@ pub fn to_matrix_sparse(
     }
 
     // Pessimistic estimation of whether we can fit in `i32`.  If there's any risk of overflowing
-    let max_entries_per_row = (paulis.num_ops() as u64).min(1u64 << paulis.num_qubits());
+    // `i32`, we use `i64`, but Scipy will always try to downcast to `i32`, so we try to match it.
+    let max_entries_per_row =
+        (paulis.num_ops() as u64).min(1u64 << paulis.num_qubits().saturating_sub(1));
     let use_32_bit =
         max_entries_per_row.saturating_mul(1u64 << paulis.num_qubits()) <= (i32::MAX as u64);
     if use_32_bit {

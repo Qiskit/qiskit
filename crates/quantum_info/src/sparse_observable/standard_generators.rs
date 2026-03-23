@@ -9,8 +9,12 @@
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
-// src/sparse_observable/standard_generators.rs
-//
+
+// AI Attribution:
+// This module was developed with assistance from GitHub Copilot integrated in VS Code. The underlying model : Claude Haiku 4.5.
+// Portions of the Pauli generator mapping logic and SoA layout were generated
+// and then manually verified for mathematical correctness against the commutation logic.
+
 // This module maps standard quantum gates to their Hamiltonian generators H_gate such that:
 //
 //   gate = exp(-i * H_gate)   (up to global phase)
@@ -20,7 +24,6 @@
 // For single-qubit gates: X = exp(-i*(pi/2)*X), H = exp(-i*(pi/2)*(X+Z)/sqrt(2)), etc.
 // For multi-qubit controlled gates: CX = exp(-i*(pi/4)*(ZX - ZI - IX)), etc.
 // For rotation gates: RX(t) = exp(-i*(t/2)*X), RY(t) = exp(-i*(t/2)*Y), etc.
-//
 // The SoA (Struct-of-Arrays) layout is used: `bit_terms`, `indices`, and `boundaries` are
 // flattened arrays. Term `i` uses bit_terms[boundaries[i]..boundaries[i+1]] and
 // indices[boundaries[i]..boundaries[i+1]] for its Pauli operators and qubit targets.
@@ -28,19 +31,16 @@
 use super::BitTerm;
 use super::SparseObservable;
 use num_complex::Complex64;
-use qiskit_circuit::operations::Operation;
-use qiskit_circuit::operations::StandardGate;
-use qiskit_circuit::util::c64;
-use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, FRAC_PI_8, SQRT_2};
+use pyo3::prelude::*;
+use pyo3::wrap_pyfunction;
+use qiskit_circuit::operations::{Operation, Param, StandardGate};
+use qiskit_util::util::{C_ECR_FACTOR, C_FRAC_PI_2, C_FRAC_PI_4, C_FRAC_PI_8, C_ZERO, c64};
 
-const C_ZERO: Complex64 = c64(0.0, 0.0);
-const C_FRAC_PI_2: Complex64 = c64(FRAC_PI_2, 0.0);
-const C_FRAC_PI_4: Complex64 = c64(FRAC_PI_4, 0.0);
-const C_FRAC_PI_8: Complex64 = c64(FRAC_PI_8, 0.0);
-const C_M_FRAC_PI_4: Complex64 = c64(-FRAC_PI_4, 0.0);
-const C_M_FRAC_PI_8: Complex64 = c64(-FRAC_PI_8, 0.0);
-const C_ECR_FACTOR: Complex64 = c64(FRAC_PI_2 / SQRT_2, 0.0);
-const C_M_ECR_FACTOR: Complex64 = c64(-FRAC_PI_2 / SQRT_2, 0.0);
+const C_M_FRAC_PI_4: Complex64 = c64(-C_FRAC_PI_4.re, 0.0);
+const C_M_FRAC_PI_8: Complex64 = c64(-C_FRAC_PI_8.re, 0.0);
+const C_M_ECR_FACTOR: Complex64 = c64(-C_ECR_FACTOR.re, 0.0);
+
+const BETA_TOLERANCE: f64 = 1e-10;
 
 /// For parametric gates (e.g., `RX(theta)`), the generator $H$ depends on the
 /// gate parameters (e.g., $H = (\theta/2)X$). This function extracts parameter values
@@ -52,10 +52,7 @@ const C_M_ECR_FACTOR: Complex64 = c64(-FRAC_PI_2 / SQRT_2, 0.0);
 /// where the generator's Pauli structure alone is sufficient (e.g., `[theta*X, X] = 0`
 /// for any `theta`), but it avoids attempting to store parametric expressions, which
 /// `SparseObservable` does not currently support.
-pub fn generator_observable(
-    gate: StandardGate,
-    params: &[qiskit_circuit::operations::Param],
-) -> Option<SparseObservable> {
+pub fn generator_observable(gate: StandardGate, params: &[Param]) -> Option<SparseObservable> {
     let _params = params;
     let num_qubits = gate.num_qubits();
 
@@ -64,12 +61,10 @@ pub fn generator_observable(
     // Global phase gate
     if num_qubits == 0 {
         if let StandardGate::GlobalPhase = gate {
-            // Global Phase is exp(-i * theta * I) wait...
-            // Qiskit GlobalPhaseGate(theta) matrix is exp(i * theta).
+            // Global Phase is exp(i * theta).
             // Generator H such that exp(-i * H) = exp(i * theta) -> H = -theta.
-            // A 0-qubit Identity operator has 1 term (the empty string).
             let mut theta = 1.0;
-            if let [qiskit_circuit::operations::Param::Float(t)] = _params {
+            if let [Param::Float(t)] = _params {
                 theta = *t;
             }
             return Some(
@@ -94,7 +89,7 @@ pub fn generator_observable(
             // Numerically: pi / (2*sqrt(2)) ≈ 1.1107...
             // Note: the sign must be negative so H_gate uses coefficients +1/sqrt(2) each.
             StandardGate::H => {
-                let c = FRAC_PI_2 / SQRT_2;
+                let c = C_ECR_FACTOR.re;
                 (vec![c64(c, 0.0), c64(c, 0.0)], vec![X, Z], vec![0, 0])
             }
             // X = exp(-i*(pi/2)*X), Y = exp(-i*(pi/2)*Y), Z = exp(-i*(pi/2)*Z)
@@ -118,7 +113,7 @@ pub fn generator_observable(
                 // Qiskit's `_generator_observable` falls back to `1.0` if no parameters are available or the parameter is an unbound expression.
                 // This corresponds effectively to returning the base operator for the Pauli (e.g. `X.generator() == X`).
                 // In normal workflows the `params` tuple is fully concrete during commutation logic (i.e., `Float`).
-                let theta = if let [qiskit_circuit::operations::Param::Float(t)] = _params {
+                let theta = if let [Param::Float(t)] = _params {
                     *t
                 } else {
                     1.0
@@ -179,8 +174,6 @@ pub fn generator_observable(
         ),
         // CS (sqrt(CZ)): CS = exp(-i*(pi/8)*(Z0 + Z1 - Z0*Z1))
         // Generator H = (pi/8)*(Z0 + Z1 - Z0*Z1)
-        // Wait, Shelly prefers factor -pi/8, so H = -pi/8 * (ZZ - ZI - IZ) = -pi/8*ZZ + pi/8*ZI + pi/8*IZ
-        // That matches exp(-i * (-pi/8) * (Z0 + Z1 - Z0*Z1)).
         StandardGate::CS => (
             vec![C_FRAC_PI_8, C_FRAC_PI_8, C_M_FRAC_PI_8],
             vec![Z, Z, Z, Z],
@@ -204,7 +197,7 @@ pub fn generator_observable(
         // CRX(t): CRX(t) = exp(-i*(t/4)*(-Z0*X1 + X1))
         // Generator = -t/4 * Z0*X1 + t/4 * X1
         StandardGate::CRX => {
-            let t = if let [qiskit_circuit::operations::Param::Float(theta)] = _params {
+            let t = if let [Param::Float(theta)] = _params {
                 *theta
             } else {
                 1.0
@@ -218,7 +211,7 @@ pub fn generator_observable(
         }
         // CRY(t): Generator = -t/4 * Z0*Y1 + t/4 * Y1
         StandardGate::CRY => {
-            let t = if let [qiskit_circuit::operations::Param::Float(theta)] = _params {
+            let t = if let [Param::Float(theta)] = _params {
                 *theta
             } else {
                 1.0
@@ -232,7 +225,7 @@ pub fn generator_observable(
         }
         // CRZ(t): Generator = -t/4 * Z0*Z1 + t/4 * Z1
         StandardGate::CRZ => {
-            let t = if let [qiskit_circuit::operations::Param::Float(theta)] = _params {
+            let t = if let [Param::Float(theta)] = _params {
                 *theta
             } else {
                 1.0
@@ -247,7 +240,7 @@ pub fn generator_observable(
         // CPhase(t): Generator = -t/4 * Z0*Z1 + t/4 * Z0 + t/4 * Z1
         // (same as CRZ but shifts both Z0 and Z1, not just Z1)
         StandardGate::CPhase => {
-            let t = if let [qiskit_circuit::operations::Param::Float(theta)] = _params {
+            let t = if let [Param::Float(theta)] = _params {
                 *theta
             } else {
                 1.0
@@ -276,7 +269,7 @@ pub fn generator_observable(
         ),
         // RXX(t) = exp(-i*(t/2)*X0*X1)
         StandardGate::RXX => {
-            let t = if let [qiskit_circuit::operations::Param::Float(theta)] = _params {
+            let t = if let [Param::Float(theta)] = _params {
                 *theta
             } else {
                 1.0
@@ -285,7 +278,7 @@ pub fn generator_observable(
         }
         // RYY(t) = exp(-i*(t/2)*Y0*Y1)
         StandardGate::RYY => {
-            let t = if let [qiskit_circuit::operations::Param::Float(theta)] = _params {
+            let t = if let [Param::Float(theta)] = _params {
                 *theta
             } else {
                 1.0
@@ -294,7 +287,7 @@ pub fn generator_observable(
         }
         // RZZ(t) = exp(-i*(t/2)*Z0*Z1)
         StandardGate::RZZ => {
-            let t = if let [qiskit_circuit::operations::Param::Float(theta)] = _params {
+            let t = if let [Param::Float(theta)] = _params {
                 *theta
             } else {
                 1.0
@@ -303,7 +296,7 @@ pub fn generator_observable(
         }
         // RZX(t) = exp(-i*(t/2)*Z0*X1)
         StandardGate::RZX => {
-            let t = if let [qiskit_circuit::operations::Param::Float(theta)] = _params {
+            let t = if let [Param::Float(theta)] = _params {
                 *theta
             } else {
                 1.0
@@ -313,7 +306,7 @@ pub fn generator_observable(
         // XXPlusYY(theta, beta): Generator = (theta/4)*(X0*X1 + Y0*Y1)
         // (the beta angle just rotates the YY axis; for the commutation check only XX+YY matters)
         StandardGate::XXPlusYY | StandardGate::XXMinusYY => {
-            let t = if let [qiskit_circuit::operations::Param::Float(theta), ..] = _params {
+            let t = if let [Param::Float(theta), ..] = _params {
                 *theta
             } else {
                 1.0
@@ -321,13 +314,13 @@ pub fn generator_observable(
 
             // The beta angle rotates the YY axis. Ensure beta=0 (or assert it) so commutation
             // is strictly XX +/- YY. Otherwise, fallback to matrix checking.
-            let beta = if let [_, qiskit_circuit::operations::Param::Float(b)] = _params {
+            let beta = if let [_, Param::Float(b)] = _params {
                 *b
             } else {
                 return None;
             };
 
-            if beta.abs() > 1e-10 {
+            if beta.abs() > BETA_TOLERANCE {
                 return None;
             }
 
@@ -449,3 +442,4 @@ mod tests {
         assert_eq!(obs.num_terms(), 2);
     }
 }
+

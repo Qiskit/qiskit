@@ -21,7 +21,7 @@ from qiskit.circuit import (
     Parameter,
     QuantumCircuit,
 )
-from qiskit.circuit.library import real_amplitudes
+from qiskit.circuit.library import RXXGate, real_amplitudes
 from qiskit.circuit.library.n_local.efficient_su2 import efficient_su2
 from qiskit.converters import circuit_to_dag
 from qiskit.quantum_info import SparsePauliOp, SparseObservable
@@ -358,6 +358,23 @@ class TestLightConePass(QiskitTestCase):
             ValueError, msg="The circuit contains measurements and an observable has been given"
         ):
             light_cone.run(dag)
+
+    def test_rxx_commuting(self):
+        """Test for a commuting RXX gate in the LightCone pass."""
+        # Simple test: X commutes with RXX(0, 1), so it should be dropped
+        qc_simple = QuantumCircuit(2)
+        qc_simple.append(RXXGate(0.5), [0, 1])
+
+        light_cone = LightCone(bit_terms="X", indices=[0])
+        pm = PassManager([light_cone])
+        new_circuit = pm.run(qc_simple)
+        self.assertEqual(len(new_circuit), 0)
+
+        # Non-commuting test: Z does not commute with RXX(0, 1)
+        lc_z = LightCone(bit_terms="Z", indices=[0])
+        pm_z = PassManager([lc_z])
+        new_z = pm_z.run(qc_simple)
+        self.assertEqual(len(new_z), 1)
 
 
 if __name__ == "__main__":
