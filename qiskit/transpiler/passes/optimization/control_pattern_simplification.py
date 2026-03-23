@@ -366,7 +366,7 @@ class ControlPatternSimplification(TransformationPass):
                 ):
                     group.append(gates[j])
                     used.add(j)
-            if len(group) >= 2 and len(set(len(g[2]) for g in group)) > 1:
+            if len(group) >= 2 and len({len(g[2]) for g in group}) > 1:
                 groups.append(group)
                 used.add(i)
         return groups
