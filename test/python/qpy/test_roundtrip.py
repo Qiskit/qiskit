@@ -20,10 +20,11 @@ from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.circuit.random import random_circuit
 from qiskit.circuit.parameter import Parameter
+from qiskit.circuit.parametervector import ParameterVector
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.circuit.classical import expr
 from qiskit.synthesis import LieTrotter
-from qiskit.qpy.common import QPY_RUST_READ_MIN_VERSION, QPY_VERSION
+from qiskit.qpy.common import QPY_RUST_READ_MIN_VERSION, QPY_RUST_WRITE_MIN_VERSION, QPY_VERSION
 from qiskit.qpy.binary_io import write_circuit, read_circuit
 from test import QiskitTestCase
 
@@ -70,16 +71,22 @@ class TestQPYRoundtrip(QiskitTestCase):
         qc.cx(1, 2)
         qc.measure_all()
         self.assert_roundtrip_equal(qc, version=version)
+        if version >= QPY_RUST_WRITE_MIN_VERSION:
+            self.assert_roundtrip_equal(qc, version=version, read_with="Python", write_with="Rust")
 
     @idata(range(QPY_RUST_READ_MIN_VERSION, QPY_VERSION + 1))
     def test_ifelse(self, version):
         """Check the IfElse control flow gate passes roundtrip"""
-        qc = QuantumCircuit(1, 1)
+        qc = QuantumCircuit(2, 1)
         condition = (qc.cregs[0], 0)
         body = QuantumCircuit([qc.qubits[0]])
         body.x(0)
-        qc.if_else(condition, body, None, [qc.qubits[0]], [])
+        false_body = QuantumCircuit([qc.qubits[1]])
+        false_body.y(0)
+        qc.if_else(condition, body, false_body, [qc.qubits[0]], [])
         self.assert_roundtrip_equal(qc, version=version)
+        if version >= QPY_RUST_WRITE_MIN_VERSION:
+            self.assert_roundtrip_equal(qc, version=version, read_with="Python", write_with="Rust")
 
     @idata(range(QPY_RUST_READ_MIN_VERSION, QPY_VERSION + 1))
     def test_box(self, version):
@@ -88,6 +95,17 @@ class TestQPYRoundtrip(QiskitTestCase):
         with qc.box(duration=13):
             qc.cx(0, 1)
         self.assert_roundtrip_equal(qc, version=version)
+        if version >= QPY_RUST_WRITE_MIN_VERSION:
+            self.assert_roundtrip_equal(qc, version=version, read_with="Python", write_with="Rust")
+
+        # test with Expression duration
+        qc = QuantumCircuit(2)
+        a = qc.add_stretch("a")
+        with qc.box(duration=expr.mul(2, a)):
+            qc.cx(0, 1)
+            # self.assert_roundtrip_equal(qc, version=version)
+        if version >= QPY_RUST_WRITE_MIN_VERSION:
+            self.assert_roundtrip_equal(qc, version=version, read_with="Python", write_with="Rust")
 
     @idata(range(QPY_RUST_READ_MIN_VERSION, QPY_VERSION + 1))
     def test_forloop(self, version):
@@ -100,6 +118,36 @@ class TestQPYRoundtrip(QiskitTestCase):
             with qc.if_test((0, True)):
                 qc.break_loop()
         self.assert_roundtrip_equal(qc, version=version)
+        if version >= QPY_RUST_WRITE_MIN_VERSION:
+            self.assert_roundtrip_equal(qc, version=version, read_with="Python", write_with="Rust")
+
+        qc = QuantumCircuit(2, 1)
+        with qc.for_loop((1, 4)):
+            qc.h(0)
+            qc.cx(0, 1)
+            qc.measure(0, 0)
+            with qc.if_test((0, True)):
+                qc.break_loop()
+        self.assert_roundtrip_equal(qc, version=version)
+        if version >= QPY_RUST_WRITE_MIN_VERSION:
+            self.assert_roundtrip_equal(qc, version=version, read_with="Python", write_with="Rust")
+            self.assert_roundtrip_equal(qc, version=version, read_with="Rust", write_with="Rust")
+
+    @idata(range(QPY_RUST_READ_MIN_VERSION, QPY_VERSION + 1))
+    def test_nested_for_loop(self, version):
+        """Check the nested ForLoop control flow gate passes roundtrip"""
+        qc = QuantumCircuit(6, 6)
+        with qc.if_test(expr.equal(qc.cregs[0], 1)) as else_:
+            qc.cx(0, 1)
+            qc.cz(0, 2)
+            qc.cz(0, 3)
+        with else_:
+            qc.cz(1, 4)
+            with qc.for_loop((1, 2)):
+                qc.cx(1, 5)
+        self.assert_roundtrip_equal(qc, version=version)
+        if version >= QPY_RUST_WRITE_MIN_VERSION:
+            self.assert_roundtrip_equal(qc, version=version, read_with="Python", write_with="Rust")
 
     @idata(range(QPY_RUST_READ_MIN_VERSION, QPY_VERSION + 1))
     def test_switch(self, version):
@@ -108,9 +156,11 @@ class TestQPYRoundtrip(QiskitTestCase):
         qr = QuantumRegister(2, "q1")
         cr = ClassicalRegister(2, "c1")
         qc = QuantumCircuit(qr, cr)
-        qc.switch(expr.bit_and(cr, 3), [(1, body.copy())], [0], [])
+        qc.switch(expr.bit_and(cr, 3), [(1, body.copy()), (2, body.copy())], [0], [])
         qc.switch(expr.logic_not(qc.clbits[0]), [(False, body.copy())], [0], [])
         self.assert_roundtrip_equal(qc, version=version)
+        if version >= QPY_RUST_WRITE_MIN_VERSION:
+            self.assert_roundtrip_equal(qc, version=version, read_with="Python", write_with="Rust")
 
     @idata(range(QPY_RUST_READ_MIN_VERSION, QPY_VERSION + 1))
     def test_evolutiongate(self, version):
@@ -123,6 +173,8 @@ class TestQPYRoundtrip(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.append(evo, range(2))
         self.assert_roundtrip_equal(qc, version=version)
+        if version >= QPY_RUST_WRITE_MIN_VERSION:
+            self.assert_roundtrip_equal(qc, version=version, read_with="Python", write_with="Rust")
 
     @idata(range(QPY_RUST_READ_MIN_VERSION, QPY_VERSION + 1))
     def test_parameter_expression(self, version):
@@ -145,6 +197,20 @@ class TestQPYRoundtrip(QiskitTestCase):
         qc.h(0)
         qc.measure(0, 0)
         self.assert_roundtrip_equal(qc, version=version)
+        if version >= QPY_RUST_WRITE_MIN_VERSION:
+            self.assert_roundtrip_equal(qc, version=version, read_with="Python", write_with="Rust")
+
+    @idata(range(QPY_RUST_READ_MIN_VERSION, QPY_VERSION + 1))
+    def test_parameter_expression_with_vectors(self, version):
+        """Test loading a circuit with parameter expression works"""
+        theta = ParameterVector("θ", 3)
+        beta = Parameter("β")
+        qr = QuantumRegister(1)
+        qc = QuantumCircuit(qr)
+        qc.rx(beta + theta[1], qr)
+        self.assert_roundtrip_equal(qc, version=version)
+        if version >= QPY_RUST_WRITE_MIN_VERSION:
+            self.assert_roundtrip_equal(qc, version=version, read_with="Python", write_with="Rust")
 
     @idata(range(QPY_RUST_READ_MIN_VERSION, QPY_VERSION + 1))
     def test_parameter_expression_subs(self, version):
@@ -156,6 +222,8 @@ class TestQPYRoundtrip(QiskitTestCase):
         exp = exp.subs({b: a})
         qc.ry(exp, 0)
         self.assert_roundtrip_equal(qc, version=version)
+        if version >= QPY_RUST_WRITE_MIN_VERSION:
+            self.assert_roundtrip_equal(qc, version=version, read_with="Python", write_with="Rust")
 
     @idata(range(QPY_RUST_READ_MIN_VERSION, QPY_VERSION + 1))
     def test_random_circuits(self, version):

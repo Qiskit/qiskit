@@ -284,7 +284,7 @@ fn pack_parameter_replay_entry(
             (ParameterType::Parameter, *parameter.symbol.uuid.as_bytes())
         }
         ParameterValueType::VectorElement(element) => (
-            ParameterType::ParameterVector,
+            ParameterType::Parameter, // Python QPY expects Parameter, not ParameterVector
             *element.symbol.uuid.as_bytes(),
         ),
     })
