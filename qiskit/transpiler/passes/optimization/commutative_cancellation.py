@@ -34,7 +34,7 @@ class CommutativeCancellation(TransformationPass):
         H, X, Y, Z, CX, CY, CZ
     """
 
-    def __init__(self, basis_gates=None, target=None):
+    def __init__(self, basis_gates=None, target=None, approximation_degree=1.0):
         """
         CommutativeCancellation initializer.
 
@@ -46,6 +46,8 @@ class CommutativeCancellation(TransformationPass):
             target (Target): The :class:`~.Target` representing the target backend, if both
                 ``basis_gates`` and ``target`` are specified then this argument will take
                 precedence and ``basis_gates`` will be ignored.
+            approximation_degree (float): The approximation degree used when analyzing
+                commutations. Must be within ``(0, 1]``.
         """
         super().__init__()
         if basis_gates:
@@ -55,6 +57,8 @@ class CommutativeCancellation(TransformationPass):
         self.target = target
         if target is not None:
             self.basis = set(target.operation_names)
+
+        self.approximation_degree = approximation_degree
 
         self._var_z_map = {"rz": RZGate, "p": PhaseGate, "u1": U1Gate}
 
@@ -79,6 +83,9 @@ class CommutativeCancellation(TransformationPass):
             DAGCircuit: the optimized DAG.
         """
         commutation_cancellation.cancel_commutations(
-            dag, self._commutation_checker, sorted(self.basis)
+            dag,
+            self._commutation_checker,
+            self.basis,
+            self.approximation_degree,
         )
         return dag
