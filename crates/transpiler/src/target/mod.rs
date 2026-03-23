@@ -21,7 +21,7 @@ mod qubit_properties;
 pub use errors::TargetError;
 pub use instruction_properties::InstructionProperties;
 use pyo3::exceptions::PyValueError;
-use pyo3::types::IntoPyDict;
+use pyo3::types::{IntoPyDict, PyIterator};
 pub use qargs::{Qargs, QargsRef};
 pub use qubit_properties::QubitProperties;
 
@@ -1422,8 +1422,8 @@ pub fn estimate_fidelity(circuit: &CircuitData, target: &Target) -> Option<f64> 
 )]
 #[derive(Debug, Clone)]
 pub struct PyTarget {
-    pub inner: Target,
-    gate_map: Py<PyDict>,
+    inner: Target,
+    gate_map: OnceLock<Py<PyDict>>,
     non_global_basis: OnceLock<Py<PyList>>,
     non_global_basis_strict: OnceLock<Py<PyList>>,
 }
@@ -1438,6 +1438,9 @@ impl Deref for PyTarget {
 
 impl DerefMut for PyTarget {
     fn deref_mut(&mut self) -> &mut Self::Target {
+        self.gate_map.take();
+        self.non_global_basis.take();
+        self.non_global_basis_strict.take();
         &mut self.inner
     }
 }
@@ -1451,10 +1454,25 @@ impl PyTarget {
             .into_py_dict(py)?;
         Ok(Self {
             inner: target,
-            gate_map: gate_map.unbind(),
+            gate_map: gate_map.unbind().into(),
             non_global_basis: Default::default(),
             non_global_basis_strict: Default::default(),
         })
+    }
+
+    /// Safer way of initializing gate_map.
+    fn get_py_gate_map_bound<'py>(&self, py: Python<'py>) -> PyResult<&Bound<'py, PyDict>> {
+        if let Some(map) = self.gate_map.get() {
+            Ok(map.bind(py))
+        } else {
+            let gate_map = self
+                .inner
+                .gate_map
+                .iter()
+                .map(|(name, props)| (name.clone(), props.properties.clone()))
+                .into_py_dict(py)?;
+            Ok(self.gate_map.get_or_init(|| gate_map.unbind()).bind(py))
+        }
     }
 }
 
@@ -1556,7 +1574,7 @@ impl PyTarget {
             target_build = target_build.with_concurrent_measurements(concurrent_measurements)
         }
         Ok(Self {
-            gate_map: PyDict::new(py).unbind(),
+            gate_map: PyDict::new(py).unbind().into(),
             inner: target_build,
             non_global_basis: Default::default(),
             non_global_basis_strict: Default::default(),
@@ -1615,13 +1633,13 @@ impl PyTarget {
     ///     AttributeError: If gate is already in map
     ///     TranspilerError: If an operation class is passed in for ``instruction`` and no name
     ///         is specified or ``properties`` is set.
-    #[pyo3(signature = (instruction, name=None, properties=None, *, angle_bounds=None))]
+    #[pyo3(signature = (instruction, properties=None, name=None, angle_bounds=None))]
     fn add_instruction(
         &mut self,
         py: Python,
         instruction: TargetOperation,
-        name: Option<&str>,
         properties: Option<Py<PyDict>>,
+        name: Option<&str>,
         angle_bounds: Option<SmallVec<[Option<[f64; 2]>; 3]>>,
     ) -> PyResult<()> {
         let new_name: String = match &instruction {
@@ -1647,18 +1665,15 @@ impl PyTarget {
             }
         };
 
-        let generate_default_props = || -> PyResult<_> {
-            [(None::<String>, None::<InstructionProperties>)]
-                .into_py_dict(py)
-                .map(|obj| obj.unbind())
-        };
-        let properties = if instruction.is_variadic() {
-            generate_default_props()?
-        } else if let Some(properties) = properties {
-            properties
-        } else {
-            generate_default_props()?
-        };
+        let generate_default_props = || IndexMap::from_iter([(Qargs::Global, None)]);
+        let properties_extract: IndexMap<Qargs, Option<InstructionProperties>> =
+            if instruction.is_variadic() {
+                generate_default_props()
+            } else if let Some(properties) = &properties {
+                properties.extract(py)?
+            } else {
+                generate_default_props()
+            };
 
         if self.inner.contains_key(&new_name) {
             return Err(PyAttributeError::new_err(format!(
@@ -1668,10 +1683,18 @@ impl PyTarget {
         self.inner.inner_add_instruction(
             new_name.clone(),
             instruction,
-            properties.extract(py)?,
+            properties_extract,
             angle_bounds,
         )?;
-        self.gate_map.bind(py).set_item(new_name, properties)?;
+        let properties = if let Some(properties) = properties {
+            properties
+        } else {
+            [(Qargs::Global, None::<InstructionProperties>)]
+                .into_py_dict(py)?
+                .unbind()
+        };
+        self.get_py_gate_map_bound(py)?
+            .set_item(new_name, properties)?;
         Ok(())
     }
 
@@ -1694,8 +1717,7 @@ impl PyTarget {
         self.inner
             .update_instruction_properties(&instruction, &qargs, properties.clone())
             .map_err(|err| PyKeyError::new_err(err.to_string()))?;
-        self.gate_map
-            .bind(py)
+        self.get_py_gate_map_bound(py)?
             .get_item(&instruction)?
             .unwrap()
             .set_item(&qargs, properties)
@@ -1707,10 +1729,17 @@ impl PyTarget {
     ///     operation (str): The operation name to get qargs for
     /// Returns:
     ///     list: The list of qargs the gate instance applies to.
-    fn qargs_for_operation_name(&self, operation: &str) -> PyResult<Option<Vec<&Qargs>>> {
-        match self.inner.qargs_for_operation_name(operation) {
-            Ok(option_set) => Ok(option_set.map(|qargs| qargs.collect())),
-            Err(e) => Err(PyKeyError::new_err(e.to_string())),
+    fn qargs_for_operation_name<'py>(
+        &self,
+        py: Python<'py>,
+        operation: &str,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let gate_map = self.get_py_gate_map_bound(py)?;
+        let gate_result = gate_map.as_any().get_item(operation)?;
+        if gate_result.contains(py.None())? {
+            Ok(py.None().into_bound(py))
+        } else {
+            gate_result.call_method0("keys")
         }
     }
 
@@ -1788,6 +1817,7 @@ impl PyTarget {
         }
     }
 
+    #[pyo3(signature=(strict_direction = false))]
     /// Return the non-global operation names for the target
     ///
     /// The non-global operations are those in the target which don't apply
@@ -2078,8 +2108,8 @@ impl PyTarget {
     }
     /// Get the operation names in the target.
     #[getter]
-    fn operation_names<'py>(&'py self, py: Python<'py>) -> Bound<'py, PyList> {
-        self.gate_map.bind(py).keys()
+    fn operation_names<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        self.get_py_gate_map_bound(py)?.call_method0("keys")
     }
 
     /// Get the operation objects in the target.
@@ -2096,8 +2126,8 @@ impl PyTarget {
 
     // Magic methods:
 
-    fn __len__(&self, py: Python<'_>) -> PyResult<usize> {
-        Ok(self.gate_map.bind(py).len())
+    fn __len__(&self) -> PyResult<usize> {
+        Ok(self.inner.len())
     }
 
     fn __getstate__(&self, py: Python<'_>) -> PyResult<Py<PyDict>> {
@@ -2114,7 +2144,7 @@ impl PyTarget {
             "concurrent_measurements",
             self.inner.concurrent_measurements.clone(),
         )?;
-        let bound_map = self.gate_map.bind(py);
+        let bound_map = self.get_py_gate_map_bound(py)?;
         let gate_map: Vec<(String, Bound<PyDict>)> = self
             .inner
             .gate_map
@@ -2168,7 +2198,6 @@ impl PyTarget {
             .get_item("concurrent_measurements")?
             .unwrap()
             .extract::<Option<Vec<Vec<PhysicalQubit>>>>()?;
-        let raw_gate_map = PyDict::new(state.py());
         let mut gate_map: IndexMap<String, TargetProperties> = IndexMap::default();
         type Bounds = SmallVec<[Option<[f64; 2]>; 3]>;
         let mut bounds_map: Vec<(String, Bounds)> = Vec::new();
@@ -2192,9 +2221,8 @@ impl PyTarget {
                     angle_bounds: None,
                 },
             );
-            raw_gate_map.set_item(key, properties)?;
         }
-        self.gate_map = raw_gate_map.unbind();
+        self.inner.gate_map = gate_map;
         self.inner.qarg_gate_map = state
             .get_item("qarg_gate_map")?
             .unwrap()
@@ -2208,6 +2236,8 @@ impl PyTarget {
                 .add_owned_angle_bound(gate, bounds)
                 .map_err(|err| TranspilerError::new_err(err.to_string()))?;
         }
+        // Allow gate map to re-initialize itself during call
+        self.gate_map.take();
         Ok(())
     }
 
@@ -2248,9 +2278,42 @@ impl PyTarget {
     /// Raises:
     ///     TranspilerError: If ``name`` is not in the target or does not
     ///     have angle bounds defined.
-    ///
     fn supported_angle_bound(&self, name: &str, angles: Vec<f64>) -> PyResult<bool> {
         Ok(self.inner.supported_angle_bound(name, angles)?)
+    }
+
+    fn __iter__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyIterator>> {
+        self.get_py_gate_map_bound(py)?.as_any().try_iter()
+    }
+
+    fn __getitem__<'py>(
+        &self,
+        py: Python<'py>,
+        key: Bound<'py, PyAny>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        self.get_py_gate_map_bound(py)?.as_any().get_item(key)
+    }
+
+    fn __contains__<'py>(&self, py: Python<'py>, key: Bound<'py, PyAny>) -> PyResult<bool> {
+        self.get_py_gate_map_bound(py)?.contains(key)
+    }
+
+    fn keys<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        self.get_py_gate_map_bound(py)?
+            .as_any()
+            .call_method0("keys")
+    }
+
+    fn values<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        self.get_py_gate_map_bound(py)?
+            .as_any()
+            .call_method0("values")
+    }
+
+    fn items<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        self.get_py_gate_map_bound(py)?
+            .as_any()
+            .call_method0("items")
     }
 }
 
