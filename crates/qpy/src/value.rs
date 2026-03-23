@@ -638,7 +638,7 @@ pub(crate) fn pack_for_collection(value: &ForCollection) -> GenericValue {
     match value {
         ForCollection::List(vec) => GenericValue::Tuple(
             vec.iter()
-                .map(|&val| GenericValue::Int64(val as i64))
+                .map(|&val| GenericValue::Int64(val as i64).as_le())
                 .collect(),
         ),
         ForCollection::PyRange(py_range) => GenericValue::Range(*py_range),

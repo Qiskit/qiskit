@@ -77,11 +77,13 @@ class TestQPYRoundtrip(QiskitTestCase):
     @idata(range(QPY_RUST_READ_MIN_VERSION, QPY_VERSION + 1))
     def test_ifelse(self, version):
         """Check the IfElse control flow gate passes roundtrip"""
-        qc = QuantumCircuit(1, 1)
+        qc = QuantumCircuit(2, 1)
         condition = (qc.cregs[0], 0)
         body = QuantumCircuit([qc.qubits[0]])
         body.x(0)
-        qc.if_else(condition, body, None, [qc.qubits[0]], [])
+        false_body = QuantumCircuit([qc.qubits[1]])
+        false_body.y(0)
+        qc.if_else(condition, body, false_body, [qc.qubits[0]], [])
         self.assert_roundtrip_equal(qc, version=version)
         if version >= QPY_RUST_WRITE_MIN_VERSION:
             self.assert_roundtrip_equal(qc, version=version, read_with="Python", write_with="Rust")
@@ -115,6 +117,34 @@ class TestQPYRoundtrip(QiskitTestCase):
             qc.measure(0, 0)
             with qc.if_test((0, True)):
                 qc.break_loop()
+        self.assert_roundtrip_equal(qc, version=version)
+        if version >= QPY_RUST_WRITE_MIN_VERSION:
+            self.assert_roundtrip_equal(qc, version=version, read_with="Python", write_with="Rust")
+
+        qc = QuantumCircuit(2, 1)
+        with qc.for_loop((1, 4)):
+            qc.h(0)
+            qc.cx(0, 1)
+            qc.measure(0, 0)
+            with qc.if_test((0, True)):
+                qc.break_loop()
+        self.assert_roundtrip_equal(qc, version=version)
+        if version >= QPY_RUST_WRITE_MIN_VERSION:
+            self.assert_roundtrip_equal(qc, version=version, read_with="Python", write_with="Rust")
+            self.assert_roundtrip_equal(qc, version=version, read_with="Rust", write_with="Rust")
+
+    @idata(range(QPY_RUST_READ_MIN_VERSION, QPY_VERSION + 1))
+    def test_nested_for_loop(self, version):
+        """Check the nested ForLoop control flow gate passes roundtrip"""
+        qc = QuantumCircuit(6, 6)
+        with qc.if_test(expr.equal(qc.cregs[0], 1)) as else_:
+            qc.cx(0, 1)
+            qc.cz(0, 2)
+            qc.cz(0, 3)
+        with else_:
+            qc.cz(1, 4)
+            with qc.for_loop((1, 2)):
+                qc.cx(1, 5)
         self.assert_roundtrip_equal(qc, version=version)
         if version >= QPY_RUST_WRITE_MIN_VERSION:
             self.assert_roundtrip_equal(qc, version=version, read_with="Python", write_with="Rust")
