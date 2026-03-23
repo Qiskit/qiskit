@@ -319,8 +319,8 @@ class TestCommutativeOptimization(QiskitTestCase):
 
         qc = QuantumCircuit(4)
         qc.append(PauliProductRotationGate(Pauli("XXII"), -1), [0, 1, 2, 3])
-        qc.append(PauliProductRotationGate(Pauli("ZZIY"), 1), [0, 1, 2, 3])
-        qc.append(PauliProductRotationGate(Pauli("ZZIY"), 1), [0, 1, 2, 3])
+        qc.append(PauliProductRotationGate(Pauli("ZZIY"), 1), [0, 1, 3, 2])
+        qc.append(PauliProductRotationGate(Pauli("ZZIY"), 1), [0, 1, 3, 2])
         qc.append(PauliProductRotationGate(Pauli("YYXX"), 1), [0, 1, 2, 3])
         qc.append(PauliProductRotationGate(Pauli("XXII"), 1), [0, 1, 2, 3])
 

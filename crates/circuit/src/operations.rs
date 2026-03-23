@@ -3317,7 +3317,7 @@ impl UnitaryGate {
     }
 }
 
-/// A Pauli-based gate model, consisting of PauliProductRotation and PauliProductMeasurement ops.
+/// A Pauli-based gate model, consisting of [PauliProductRotation] and [PauliProductMeasurement] ops.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PauliBased {
     PauliProductRotation(PauliProductRotation),
@@ -3374,7 +3374,7 @@ impl PauliProductRotation {
     }
 
     /// Attempts to merge `self` and `other`.
-    /// If successful, returns the merged `PauliProductRotation.
+    /// If successful, returns the merged [PauliProductRotation].
     /// If not successful, returns `None`.
     pub fn merge_with(&self, other: &Self) -> Option<Self> {
         if self.x == other.x && self.z == other.z {
@@ -3388,7 +3388,7 @@ impl PauliProductRotation {
         }
     }
 
-    /// For a `PauliProductRotation`` gate with a floating-point angle return a tuple ``(Tr(gate) / dim, dim)``.
+    /// For a [PauliProductRotation] gate with a floating-point angle return a tuple `(Tr(gate) / dim, dim)`.
     /// Return `None` if the angle is parameterized.
     pub fn rotation_trace_and_dim(&self) -> Option<(Complex64, f64)> {
         let Param::Float(angle) = self.angle else {
