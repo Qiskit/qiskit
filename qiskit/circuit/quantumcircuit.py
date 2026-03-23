@@ -81,7 +81,9 @@ if typing.TYPE_CHECKING:
     from qiskit.transpiler.layout import TranspileLayout
     from qiskit.quantum_info.operators.base_operator import BaseOperator
     from qiskit.quantum_info.states.statevector import Statevector
-
+    from typing import Protocol
+    class _ToInstruction(Protocol):
+        def to_instruction(self) -> Operation: ...
 
 # The following types are not marked private to avoid leaking this "private/public" abstraction out
 # into the documentation.  They are not imported by circuit.__init__, nor are they meant to be.
@@ -2826,7 +2828,7 @@ class QuantumCircuit:
 
     def append(
         self,
-        instruction: Operation | CircuitInstruction,
+        instruction: Operation | CircuitInstruction | _ToInstruction,
         qargs: Sequence[QubitSpecifier] | None = None,
         cargs: Sequence[ClbitSpecifier] | None = None,
         *,
