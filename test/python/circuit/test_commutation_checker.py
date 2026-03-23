@@ -89,6 +89,7 @@ from qiskit.dagcircuit import DAGOpNode
 from qiskit.quantum_info import SparseObservable, SparsePauliOp, Pauli
 from qiskit._accelerate.circuit import StandardGate
 from qiskit._accelerate.sparse_observable import _generator_observable
+from qiskit._accelerate import standard_generators
 
 ROTATION_GATES = [
     RXGate,
@@ -869,6 +870,56 @@ class TestGeneratorObservableCommutation(QiskitTestCase):
         self.assertIsNone(
             obs, f"{std_gate.name} with beta={params[1]} should not have a generator implementation"
         )
+
+    def test_pauli_product_rotation_commutation(self):
+        """Test commutation between standard gates and PauliProductRotationGate."""
+        from qiskit.circuit.library import PauliProductRotationGate
+
+        # CX(0,1) commutes with exp(-i*theta*XI) and exp(-i*theta*IZ)
+        # but not exp(-i*theta*IX)
+        ppr_xi = PauliProductRotationGate(Pauli("XI"), 0.5)
+        ppr_iz = PauliProductRotationGate(Pauli("IZ"), 0.5)
+        ppr_ix = PauliProductRotationGate(Pauli("IX"), 0.5)
+
+        self.assertTrue(scc.commute(CXGate(), [0, 1], [], ppr_xi, [0, 1], []))
+        self.assertTrue(scc.commute(CXGate(), [0, 1], [], ppr_iz, [0, 1], []))
+        self.assertFalse(scc.commute(CXGate(), [0, 1], [], ppr_ix, [0, 1], []))
+
+    def test_large_qubit_scaling(self):
+        """Test commutation with a very large Number of qubits."""
+        num_qubits = 100
+        # PauliEvolutionGate on qubits 0 and 99
+        op = SparsePauliOp.from_list([("Z" + "I" * (num_qubits - 2) + "Z", 1.0)])
+        evo = PauliEvolutionGate(op, time=0.5)
+
+        # X gate on qubit 50 should commute
+        self.assertTrue(scc.commute(XGate(), [50], [], evo, list(range(num_qubits)), []))
+
+        # X gate on qubit 0 should not commute
+        self.assertFalse(scc.commute(XGate(), [0], [], evo, list(range(num_qubits)), []))
+
+    def test_exposed_generator_observable(self):
+        """Test the exposed Python binding for generator_observable."""
+        # CCXGate generator should be exposed
+        obs = standard_generators.generator_observable(StandardGate.CCX)
+        self.assertIsInstance(obs, SparseObservable)
+        self.assertEqual(obs.num_terms, 7)
+
+    @data(
+        (RXXGate(0.5), [0, 1], XGate(), [0], True),
+        (RXXGate(0.5), [0, 1], ZGate(), [0], False),
+        (RYYGate(0.5), [0, 1], YGate(), [1], True),
+        (RZZGate(0.5), [0, 1], ZGate(), [1], True),
+        (RZXGate(0.5), [0, 1], ZGate(), [0], True),
+        (RZXGate(0.5), [0, 1], XGate(), [1], True),
+        (XXPlusYYGate(0.5), [0, 1], ZGate(), [0], False),
+        (GlobalPhaseGate(0.5), [], XGate(), [0], True),
+    )
+    @unpack
+    def test_more_standard_gates_commutation(self, gate1, q1, gate2, q2, expected):
+        """Test more standard gates requested by reviewers."""
+        res = scc.commute(gate1, q1, [], gate2, q2, [])
+        self.assertEqual(res, expected, f"Commutation of {gate1.name} and {gate2.name} failed")
 
 
 if __name__ == "__main__":

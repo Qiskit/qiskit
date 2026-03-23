@@ -1,4 +1,15 @@
 ---
-features:
+features_transpiler:
   - |
-    The ``CommutationChecker`` can now efficiently evaluate commutativity between explicitly defined ``Pauli``, ``SparsePauliOp``, and ``PauliEvolutionGate`` operations with many other standard gates (including multi-qubit gates like ``CCXGate``). This avoids converting operators to their full matrix representation when finding commutation relations, making commutation checking significantly faster and avoiding out-of-memory errors for operations spanning large numbers of qubits.
+    The :class:`~qiskit.transpiler.passes.CommutationChecker` can now efficiently evaluate commutativity
+    between explicitly defined :class:`~qiskit.quantum_info.Pauli`, :class:`~qiskit.quantum_info.SparsePauliOp`, and
+    :class:`~qiskit.circuit.library.PauliEvolutionGate` operations with many other standard gates
+    (including multi-qubit gates like :class:`~qiskit.circuit.library.CCXGate`). This avoids converting
+    operators to their full matrix representation when finding commutation
+    relations, making commutation checking significantly faster and avoiding
+    out-of-memory errors for operations spanning large numbers of qubits.
+fixes:
+  - |
+    Fixes an issue where the ``LightCone`` pass would fail with index errors or
+    out-of-memory panics when encountering large or complex operations.
+    See `#15021 <https://github.com/Qiskit/qiskit/issues/15021>`__ for context.

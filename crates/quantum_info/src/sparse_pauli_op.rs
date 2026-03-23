@@ -1034,7 +1034,9 @@ pub fn to_matrix_sparse(
     }
 
     // Pessimistic estimation of whether we can fit in `i32`.  If there's any risk of overflowing
-    let max_entries_per_row = (paulis.num_ops() as u64).min(1u64 << paulis.num_qubits());
+    // `i32`, we use `i64`, but Scipy will always try to downcast to `i32`, so we try to match it.
+    let max_entries_per_row =
+        (paulis.num_ops() as u64).min(1u64 << paulis.num_qubits().saturating_sub(1));
     let use_32_bit =
         max_entries_per_row.saturating_mul(1u64 << paulis.num_qubits()) <= (i32::MAX as u64);
     if use_32_bit {
