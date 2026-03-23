@@ -302,7 +302,7 @@ before-test = "pip install --only-binary=numpy,scipy numpy scipy -c constraints.
 environment = 'RUSTUP_TOOLCHAIN="stable"'
 
 [tool.cibuildwheel.linux]
-before-all = "yum install -y wget && {package}/tools/install_rust.sh"
+before-all = "dnf install -y wget && {package}/tools/install_rust.sh"
 environment = 'PATH="$PATH:$HOME/.cargo/bin" CARGO_NET_GIT_FETCH_WITH_CLI="true" RUSTUP_TOOLCHAIN="stable"'
 repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel} && pipx run abi3audit --strict --report {wheel}"
 
