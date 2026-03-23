@@ -262,7 +262,7 @@ class TestLitinskiTransformation(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.p(angle, 0)
 
-        qct = LitinskiTransformation()(qc)
+        qct = LitinskiTransformation(use_ppr=True)(qc)
         self.assertTrue(np.allclose(Operator(qc).data, Operator(qct).data))
 
         expected = QuantumCircuit(1, global_phase=angle / 2)
