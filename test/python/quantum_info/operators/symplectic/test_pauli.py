@@ -24,6 +24,7 @@ from ddt import data, ddt, unpack
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Qubit
+from qiskit.circuit.random import random_clifford_circuit
 from qiskit.circuit.library import (
     CXGate,
     CYGate,
@@ -36,6 +37,7 @@ from qiskit.circuit.library import (
     SGate,
     SwapGate,
     iSwapGate,
+    DCXGate,
     XGate,
     YGate,
     ZGate,
@@ -440,6 +442,30 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(value, value_h)
         self.assertEqual(value_inv, value_s)
 
+    @combine(
+        gate=[
+            IGate(),
+            XGate(),
+            YGate(),
+            ZGate(),
+            HGate(),
+            SGate(),
+            SdgGate(),
+            SXGate(),
+            SXdgGate(),
+        ],
+        label=pauli_group_labels(1, False),
+    )
+    def test_append_circuit_1_qubit(self, gate, label):
+        """Test _append_circuit method for 1-qubit clifford gates"""
+        qc = QuantumCircuit(1)
+        qc.append(gate, [0])
+        op = Operator(gate)
+        pauli = Pauli(label)
+        target = op.dot(pauli).dot(op.adjoint())
+        value = Operator(pauli._append_circuit(qc))
+        self.assertEqual(value, target)
+
     @data(
         *it.product(
             (
@@ -449,6 +475,7 @@ class TestPauli(QiskitTestCase):
                 SwapGate(),
                 iSwapGate(),
                 ECRGate(),
+                DCXGate(),
                 CPhaseGate(theta=np.pi),
                 CRXGate(theta=np.pi),
                 CRYGate(theta=np.pi),
@@ -479,6 +506,28 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(value, value_h)
         self.assertEqual(value_inv, value_s)
 
+    @combine(
+        gate=[
+            CXGate(),
+            CYGate(),
+            CZGate(),
+            SwapGate(),
+            iSwapGate(),
+            ECRGate(),
+            DCXGate(),
+        ],
+        label=pauli_group_labels(2, False),
+    )
+    def test_append_circuit_2_qubit(self, gate, label):
+        """Test _append_circuit method for 2-qubit clifford gates"""
+        qc = QuantumCircuit(2)
+        qc.append(gate, [0, 1])
+        op = Operator(gate)
+        pauli = Pauli(label)
+        target = op.dot(pauli).dot(op.adjoint())
+        value = Operator(pauli._append_circuit(qc))
+        self.assertEqual(value, target)
+
     @data(
         *it.product(
             (
@@ -489,11 +538,15 @@ class TestPauli(QiskitTestCase):
                 HGate(),
                 SGate(),
                 SdgGate(),
+                SXGate(),
+                SXdgGate(),
                 CXGate(),
                 CYGate(),
                 CZGate(),
                 SwapGate(),
+                iSwapGate(),
                 ECRGate(),
+                DCXGate(),
             ),
             [int, np.int8, np.uint8, np.int16, np.uint16, np.int32, np.uint32, np.int64, np.uint64],
         )
@@ -522,6 +575,16 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(value, target)
         self.assertEqual(value, value_h)
         self.assertEqual(value_inv, value_s)
+
+    def test_evolve_clifford_circuit(self):
+        """Test evolve method for random Clifford circuit"""
+        num_qubits = 5
+        qc = random_clifford_circuit(num_qubits, 20, seed=1234)
+        op = Operator(qc)
+        pauli = random_pauli(num_qubits, seed=5678)
+        target = Operator(pauli).compose(op).dot(op.adjoint())
+        value = Operator(pauli._append_circuit(qc))
+        self.assertEqual(value, target)
 
     @data("s", "h")
     def test_evolve_with_misleading_name(self, frame):
