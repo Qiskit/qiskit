@@ -17,6 +17,7 @@ pub mod bit;
 pub mod bit_locator;
 mod blocks;
 pub mod circuit_data;
+pub mod circuit_drawer;
 pub mod circuit_instruction;
 pub mod classical;
 pub mod converters;
@@ -38,9 +39,9 @@ pub mod parameter_table;
 pub mod register_data;
 pub mod slice;
 pub mod util;
-pub mod vf2;
-
+pub mod var_stretch_container;
 mod variable_mapper;
+pub mod vf2;
 
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
