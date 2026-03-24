@@ -144,7 +144,18 @@ jobs:
     runs-on: ubuntu-24.04-s390x
     steps:
       - uses: actions/checkout@v6
-      - run: sudo ln -s $(which python3) /usr/bin/python 
+      - run: |
+          set -e
+          BASE_PREFIX="$(python -c 'import sys; print(sys.base_prefix)')"
+
+          cat >>"$GITHUB_ENV" <<EOF
+          pythonVersion="$(python --version | cut -d' ' -f2)"
+          PKG_CONFIG_PATH="$(pkg-config --path python3 | xargs dirname)"
+          Python_ROOT_DIR="$BASE_PREFIX"
+          Python2_ROOT_DIR="$BASE_PREFIX"
+          Python3_ROOT_DIR="$BASE_PREFIX"
+          LD_LIBRARY_PATH="$BASE_PREFIX/lib:$LD_LIBRARY_PATH"
+          EOF
       - uses: dtolnay/rust-toolchain@stable
       - uses: pypa/cibuildwheel@v3.4.0
       - uses: actions/upload-artifact@v7
@@ -158,7 +169,18 @@ jobs:
     runs-on: ubuntu-24.04-ppc64le
     steps:
       - uses: actions/checkout@v6
-      - run: sudo ln -s $(which python3) /usr/bin/python 
+      - run: |
+          set -e
+          BASE_PREFIX="$(python -c 'import sys; print(sys.base_prefix)')"
+
+          cat >>"$GITHUB_ENV" <<EOF
+          pythonVersion="$(python --version | cut -d' ' -f2)"
+          PKG_CONFIG_PATH="$(pkg-config --path python3 | xargs dirname)"
+          Python_ROOT_DIR="$BASE_PREFIX"
+          Python2_ROOT_DIR="$BASE_PREFIX"
+          Python3_ROOT_DIR="$BASE_PREFIX"
+          LD_LIBRARY_PATH="$BASE_PREFIX/lib:$LD_LIBRARY_PATH"
+          EOF
       - uses: dtolnay/rust-toolchain@stable
       - uses: pypa/cibuildwheel@v3.4.0
         env:
