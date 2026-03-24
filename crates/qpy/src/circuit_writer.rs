@@ -399,16 +399,15 @@ fn pack_pauli_product_rotation(
 
 /// Convert snake_case name (e.g., "if_else") to Python class names (e.g., "IfElseOp")
 /// for backwards compatibility with old QPY versions
-fn control_flow_class_name(name: &str) -> Result<String, QpyError> {
-    match name {
-        "if_else" => Ok("IfElseOp".to_string()),
-        "while_loop" => Ok("WhileLoopOp".to_string()),
-        "for_loop" => Ok("ForLoopOp".to_string()),
-        "switch_case" => Ok("SwitchCaseOp".to_string()),
-        "break_loop" => Ok("BreakLoopOp".to_string()),
-        "continue_loop" => Ok("ContinueLoopOp".to_string()),
-        "box" => Ok("BoxOp".to_string()),
-        _ => Err(QpyError::InvalidInstruction(name.to_string())),
+fn control_flow_class_name(control_flow: &ControlFlow) -> String {
+    match control_flow {
+        ControlFlow::Box { .. } => "BoxOp".to_string(),
+        ControlFlow::BreakLoop => "BreakLoopOp".to_string(),
+        ControlFlow::ContinueLoop => "ContinueLoopOp".to_string(),
+        ControlFlow::IfElse { .. } => "IfElseOp".to_string(),
+        ControlFlow::While { .. } => "WhileLoopOp".to_string(),
+        ControlFlow::ForLoop { .. } => "ForLoopOp".to_string(),
+        ControlFlow::Switch { .. } => "SwitchCaseOp".to_string(),
     }
 }
 fn pack_control_flow_inst(
@@ -556,7 +555,7 @@ fn pack_control_flow_inst(
         extras_key: condition_key | annotations_key,
         num_ctrl_qubits: 0, // standard instructions have no control qubits
         ctrl_state: 0,
-        gate_class_name: control_flow_class_name(control_flow_inst.name())?, // need to use the Python class names for backward compatability
+        gate_class_name: control_flow_class_name(&control_flow_inst.control_flow), // need to use the Python class names for backward compatibility
         label: Default::default(),
         condition: packed_condition,
         bit_data: Default::default(),
