@@ -114,9 +114,10 @@ class BackendSamplerV2(BaseSamplerV2):
 
     .. note::
 
-        This class works with any :class:`~.BackendV2`. When the backend does
-        not support the ``memory`` run option, per-shot samples are derived
-        from the returned counts.
+        When the backend does not support the ``memory`` run option, per-shot
+        samples are derived from the returned counts. This preserves outcome
+        frequencies, but the order of samples does not reflect backend shot
+        order.
 
     """
 
@@ -189,10 +190,13 @@ class BackendSamplerV2(BaseSamplerV2):
             flatten_circuits.extend(np.ravel(circuits).tolist())
 
         run_opts = dict(self._options.run_options or {})
-        # Do not pass memory so that any BackendV2 works (memory is not in the
-        # abstract interface). When the backend does not return memory, we
-        # derive per-shot samples from counts in _prepare_memory.
-        run_opts.pop("memory", None)
+        # Keep the existing memory=True path for backends that support it,
+        # but avoid passing it to minimal BackendV2 implementations that do
+        # not advertise a memory run option.
+        if "memory" in self._backend.options:
+            run_opts.setdefault("memory", True)
+        else:
+            run_opts.pop("memory", None)
         run_opts.pop("seed_simulator", None)
         run_opts.setdefault("shots", shots)
         if self._options.seed_simulator is not None:
