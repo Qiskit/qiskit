@@ -144,20 +144,14 @@ jobs:
     runs-on: ubuntu-24.04-s390x
     steps:
       - uses: actions/checkout@v6
-      - run: |
-          set -e
-          BASE_PREFIX="$(python -c 'import sys; print(sys.base_prefix)')"
-
-          cat >>"$GITHUB_ENV" <<EOF
-          pythonLocation=$BASE_PREFIX
-          PKG_CONFIG_PATH=$(pkg-config --path python3 | xargs dirname):$PKG_CONFIG_PATH
-          Python_ROOT_DIR=$BASE_PREFIX
-          Python2_ROOT_DIR=$BASE_PREFIX
-          Python3_ROOT_DIR=$BASE_PREFIX
-          LD_LIBRARY_PATH=$BASE_PREFIX/lib:$LD_LIBRARY_PATH
-          EOF
       - uses: dtolnay/rust-toolchain@stable
-      - uses: pypa/cibuildwheel@v3.4.0
+      - name: Prepare cibuildwheel
+        run: |
+          set -e
+          python3 -m venv venv
+          source venv/bin/activate
+          pip install cibuildwheel==3.4.0
+      - run: venv/bin/cibuildwheel
       - uses: actions/upload-artifact@v7
         with:
           path: ./wheelhouse/*.whl
@@ -169,23 +163,14 @@ jobs:
     runs-on: ubuntu-24.04-ppc64le
     steps:
       - uses: actions/checkout@v6
-      - run: |
-          set -e
-          BASE_PREFIX="$(python -c 'import sys; print(sys.base_prefix)')"
-
-          cat >>"$GITHUB_ENV" <<EOF
-          pythonLocation=$BASE_PREFIX
-          PKG_CONFIG_PATH=$(pkg-config --path python3 | xargs dirname):$PKG_CONFIG_PATH
-          Python_ROOT_DIR=$BASE_PREFIX
-          Python2_ROOT_DIR=$BASE_PREFIX
-          Python3_ROOT_DIR=$BASE_PREFIX
-          LD_LIBRARY_PATH=$BASE_PREFIX/lib:$LD_LIBRARY_PATH
-          EOF
       - uses: dtolnay/rust-toolchain@stable
-      - uses: pypa/cibuildwheel@v3.4.0
-        env:
-          CIBW_BUILD: "3.10"
-          CIBW_TEST: "3.10"
+      - name: Prepare cibuildwheel
+        run: |
+          set -e
+          python3 -m venv venv
+          source venv/bin/activate
+          pip install cibuildwheel==3.4.0
+      - run: venv/bin/cibuildwheel
       - uses: actions/upload-artifact@v7
         with:
           path: ./wheelhouse/*.whl
