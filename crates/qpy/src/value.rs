@@ -659,7 +659,9 @@ pub(crate) fn unpack_for_collection(value: &GenericValue) -> Result<ForCollectio
             if let Expr::Range(range) = expr {
                 Ok(ForCollection::Range((**range).clone()))
             } else {
-                Err(PyValueError::new_err("Could not unpack ForCollection"))
+                Err(QpyError::ConversionError(
+                    "Could not unpack ForCollection".to_string(),
+                ))
             }
         }
         GenericValue::Tuple(vec) => {
