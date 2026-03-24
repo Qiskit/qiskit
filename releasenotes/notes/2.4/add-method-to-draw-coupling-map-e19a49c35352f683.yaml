@@ -1,4 +1,5 @@
 ---
 features_transpiler:
   - |
-    The :func:`~qiskit.transpiler.CouplingMap.draw` function now supports passing layout methods to be used in :func:`~rustworkx.visualization.graphviz_draw`
+    The :func:`~qiskit.transpiler.CouplingMap.draw` function now supports passing
+    layout methods to be used in :func:`~rustworkx.visualization.graphviz_draw`.

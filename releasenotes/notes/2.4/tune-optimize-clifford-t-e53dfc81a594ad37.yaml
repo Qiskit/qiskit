@@ -1,3 +1,4 @@
+---
 features_transpiler:
   - |
     The :class:`.OptimizeCliffordT` transpiler optimization pass now also

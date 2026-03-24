@@ -1,5 +1,4 @@
 ---
-
 features_providers:
   - |
     The :class:`~qiskit.providers.basic_provider.BasicSimulator` now
