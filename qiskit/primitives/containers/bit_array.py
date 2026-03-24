@@ -35,6 +35,7 @@ from .shape import ShapedMixin, ShapeInput, shape_tuple
 # this lookup table tells you how many bits are 1 in each uint8 value
 _WEIGHT_LOOKUP = np.unpackbits(np.arange(256, dtype=np.uint8).reshape(-1, 1), axis=1).sum(axis=1)
 
+
 def _min_num_bytes(num_bits: int) -> int:
     """Return the minimum number of bytes needed to store ``num_bits``."""
     return num_bits // 8 + (num_bits % 8 > 0)
