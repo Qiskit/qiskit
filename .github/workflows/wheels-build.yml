@@ -160,9 +160,7 @@ jobs:
     runs-on: ubuntu-24.04-ppc64le
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
-        with:
-          python-version: 3.12
+      - run: sudo apt-get install --yes python3.12
       - uses: dtolnay/rust-toolchain@stable
       - uses: pypa/cibuildwheel@v3.4.0
         env:
@@ -179,9 +177,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
-        with:
-          python-version: ${{ inputs.python-version }}
+      - run: sudo apt-get install --yes python3.12
       - name: Build sdist
         run: |
           set -e
