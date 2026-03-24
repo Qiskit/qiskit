@@ -149,12 +149,12 @@ jobs:
           BASE_PREFIX="$(python -c 'import sys; print(sys.base_prefix)')"
 
           cat >>"$GITHUB_ENV" <<EOF
-          pythonVersion="$(python --version | cut -d' ' -f2)"
-          PKG_CONFIG_PATH="$(pkg-config --path python3 | xargs dirname)"
-          Python_ROOT_DIR="$BASE_PREFIX"
-          Python2_ROOT_DIR="$BASE_PREFIX"
-          Python3_ROOT_DIR="$BASE_PREFIX"
-          LD_LIBRARY_PATH="$BASE_PREFIX/lib:$LD_LIBRARY_PATH"
+          pythonLocation=$BASE_PREFIX
+          PKG_CONFIG_PATH=$(pkg-config --path python3 | xargs dirname):$PKG_CONFIG_PATH
+          Python_ROOT_DIR=$BASE_PREFIX
+          Python2_ROOT_DIR=$BASE_PREFIX
+          Python3_ROOT_DIR=$BASE_PREFIX
+          LD_LIBRARY_PATH=$BASE_PREFIX/lib:$LD_LIBRARY_PATH
           EOF
       - uses: dtolnay/rust-toolchain@stable
       - uses: pypa/cibuildwheel@v3.4.0
@@ -174,12 +174,12 @@ jobs:
           BASE_PREFIX="$(python -c 'import sys; print(sys.base_prefix)')"
 
           cat >>"$GITHUB_ENV" <<EOF
-          pythonVersion="$(python --version | cut -d' ' -f2)"
-          PKG_CONFIG_PATH="$(pkg-config --path python3 | xargs dirname)"
-          Python_ROOT_DIR="$BASE_PREFIX"
-          Python2_ROOT_DIR="$BASE_PREFIX"
-          Python3_ROOT_DIR="$BASE_PREFIX"
-          LD_LIBRARY_PATH="$BASE_PREFIX/lib:$LD_LIBRARY_PATH"
+          pythonLocation=$BASE_PREFIX
+          PKG_CONFIG_PATH=$(pkg-config --path python3 | xargs dirname):$PKG_CONFIG_PATH
+          Python_ROOT_DIR=$BASE_PREFIX
+          Python2_ROOT_DIR=$BASE_PREFIX
+          Python3_ROOT_DIR=$BASE_PREFIX
+          LD_LIBRARY_PATH=$BASE_PREFIX/lib:$LD_LIBRARY_PATH
           EOF
       - uses: dtolnay/rust-toolchain@stable
       - uses: pypa/cibuildwheel@v3.4.0
