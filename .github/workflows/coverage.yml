@@ -2,7 +2,7 @@ name: Coverage report
 on:
   push:
   pull_request:
-    branches: ['main']
+    branches: ['main', 'stable/1.4']
 concurrency:
   group: ${{ github.repository }}-${{ github.ref }}-${{ github.head_ref }}-${{ github.workflow }}
   # Only cancel in PR mode.  In push mode, don't cancel so we don't see spurious test "failures",
@@ -18,8 +18,8 @@ jobs:
       RUSTUP_TOOLCHAIN: stable
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         name: Install Python
         with:
           python-version: '3.11'
@@ -41,8 +41,8 @@ jobs:
       - name: Ensure basic build requirements
         run: python -m pip install -c constraints.txt --upgrade pip setuptools wheel
 
-      - name: Build and install qiskit-terra
-        run: python -m pip install -c constraints.txt -e .
+      - name: Build and install Qiskit and requirements
+        run: python -m pip install -c constraints.txt -r requirements-dev.txt -r requirements-optional.txt -e .
         env:
           CARGO_INCREMENTAL: 0
           RUSTFLAGS: "-Cinstrument-coverage"
@@ -51,18 +51,29 @@ jobs:
       - name: Generate unittest coverage report
         run: |
           set -e
-          python -m pip install -c constraints.txt -r requirements-dev.txt -r requirements-optional.txt
           python tools/report_numpy_state.py
           stestr run
+        env:
+          QISKIT_TEST_CAPTURE_STREAMS: 1
+          QISKIT_PARALLEL: FALSE
+          QISKIT_IGNORE_USER_SETTINGS: TRUE
+          PYTHON: "coverage run --source qiskit --parallel-mode"
+
+      - name: Generate rust test coverage report
+        run: |
+          cargo test --no-default-features
+        env:
+          RUSTFLAGS: "-Cinstrument-coverage -Cincremental=false"
+          LLVM_PROFILE_FILE: "qiskit-%p-%m.profraw"
+
+      - name: Generate lcov with grcov
+        run: |
+          # Copy ctest coverage to cwd
+          cp test/c/build/*profraw .
           # We set the --source-dir to '.' because we want all paths to appear relative to the repo
           # root (we need to combine them with the Python ones), but we only care about `grcov`
           # keeping the `crates/*` files; we don't care about coverage in dependencies.
           grcov . --binary-path target/debug/ --source-dir . --output-type lcov --output-path rust.info --llvm --branch --parallel --keep-only 'crates/*'
-        env:
-          QISKIT_TEST_CAPTURE_STREAMS: 1
-          QISKIT_PARALLEL: FALSE
-          PYTHON: "coverage run --source qiskit --parallel-mode"
-
       - name: Convert to lcov and combine data
         run: |
           set -e
@@ -71,7 +82,7 @@ jobs:
           lcov --add-tracefile python.info --add-tracefile rust.info --output-file coveralls.info
 
       - name: Coveralls
-        uses: coverallsapp/github-action@v2.3.4
+        uses: coverallsapp/github-action@v2.3.7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path-to-lcov: coveralls.info
