@@ -253,13 +253,6 @@ impl Expr {
                         if a.ty != b.ty || a.constant != b.constant {
                             return false;
                         }
-                        // Compare the actual values of start, stop, and step expressions
-                        if !a.start.structurally_equivalent(&b.start)
-                            || !a.stop.structurally_equivalent(&b.stop)
-                            || !a.step.structurally_equivalent(&b.step)
-                        {
-                            return false;
-                        }
                     }
                     _ => return false,
                 },
