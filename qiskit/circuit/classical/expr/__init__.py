@@ -123,6 +123,7 @@ There are helper constructor functions for each of the unary operations.
 
 .. autofunction:: bit_not
 .. autofunction:: logic_not
+.. autofunction:: negate
 
 Similarly, the binary operations and relations have helper functions defined.
 
@@ -231,6 +232,7 @@ __all__ = [
     "logic_not",
     "logic_or",
     "mul",
+    "negate",
     "not_equal",
     "shift_left",
     "shift_right",
@@ -264,4 +266,5 @@ from .constructors import (
     mul,
     div,
     lift_legacy_condition,
+    negate,
 )

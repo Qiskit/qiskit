@@ -2001,22 +2001,16 @@ fn for_each_symbol_use_in_control_flow(
             body,
             collection: _,
         } => {
-            // The loop param is technically a parameter in Python land at `params[1]`.
-            if let Some(symbol) = loop_param {
-                action(
-                    symbol,
-                    ParameterUse::Index {
-                        instruction: instruction_index,
-                        parameter: 1,
-                    },
-                )?;
-            }
             // The body is at `params[2]`.
             let usage = ParameterUse::Index {
                 instruction: instruction_index,
                 parameter: 2,
             };
             for symbol in body.parameters() {
+                // Skip the loop variable itself — it is runtime-bound.
+                if loop_param.as_ref() == Some(&symbol) {
+                    continue;
+                }
                 action(symbol, usage)?;
             }
         }

@@ -306,6 +306,7 @@ class Unary(Expression):
     class Op(enum.Enum):
         LOGIC_NOT = "!"
         BIT_NOT = "~"
+        NEGATE = "-"
 
     def __init__(self, op: Op, operand: Expression):
         self.op = op
