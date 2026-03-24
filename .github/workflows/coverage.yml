@@ -2,7 +2,7 @@ name: Coverage report
 on:
   push:
   pull_request:
-    branches: ['main']
+    branches: ['main', 'stable/1.4']
 concurrency:
   group: ${{ github.repository }}-${{ github.ref }}-${{ github.head_ref }}-${{ github.workflow }}
   # Only cancel in PR mode.  In push mode, don't cancel so we don't see spurious test "failures",
@@ -59,14 +59,9 @@ jobs:
           QISKIT_IGNORE_USER_SETTINGS: TRUE
           PYTHON: "coverage run --source qiskit --parallel-mode"
 
-      - name: Generate ctest coverage report
-        run: make ccoverage
-        env:
-          LLVM_PROFILE_FILE: "qiskit-%p-%m.profraw"
-
       - name: Generate rust test coverage report
         run: |
-          python tools/run_cargo_test.py
+          cargo test --no-default-features
         env:
           RUSTFLAGS: "-Cinstrument-coverage -Cincremental=false"
           LLVM_PROFILE_FILE: "qiskit-%p-%m.profraw"
