@@ -22,14 +22,11 @@ on:
         required: true
 jobs:
   tests-mac:
-    if: github.repository_owner == 'Qiskit'
-    name: ${{ inputs.runner }}-tests-Python-${{ inputs.python-version }}
+    name: ${{ inputs.runner }} - Python ${{ inputs.python-version }}
     runs-on: ${{ inputs.runner }}
     timeout-minutes: 60
     env:
       QISKIT_TEST_CAPTURE_STREAMS: 1
-    strategy:
-      fail-fast: false
     steps:
       - uses: actions/checkout@v6
       - name: Set up Python ${{ inputs.python-version }}
@@ -69,7 +66,7 @@ jobs:
           python tools/report_numpy_state.py
           export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
           echo "PYTHONHASHSEED=$PYTHONHASHSEED"
-          stestr run --slowest
+          stestr run --slowest --abbreviate
         env:
           QISKIT_PARALLEL: FALSE
           QISKIT_IGNORE_USER_SETTINGS: TRUE
@@ -81,7 +78,7 @@ jobs:
           ls | grep -e '^[[:digit:]]' | xargs -n1 rm -f
           popd
       - name: Copy and Publish images
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: ${{ failure() }}
         with:
           name: copied-images-${{ runner.name }}-tests-Python-${{ inputs.python-version }}

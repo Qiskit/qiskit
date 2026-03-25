@@ -43,7 +43,7 @@ class PassManagerConfig:
             initial_layout (Layout): Initial position of virtual qubits on
                 physical qubits.
             basis_gates (list): List of basis gate names to unroll to.
-            coupling_map (CouplingMap): Directed graph represented a coupling
+            coupling_map (CouplingMap): Directed graph representing a coupling
                 map.
             layout_method (str): the pass to use for choosing initial qubit
                 placement. This will be the plugin name if an external layout stage
@@ -95,9 +95,6 @@ class PassManagerConfig:
         self.target = target
         self.hls_config = hls_config
         self.qubits_initially_zero = qubits_initially_zero
-        # Stores whether the basis gates are Clifford+T,
-        # in which case we use stage manager plugins adapted to Clifford+T.
-        self._is_clifford_t = False
 
     @classmethod
     def from_backend(cls, backend, _skip_target=False, **pass_manager_options):

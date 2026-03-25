@@ -13,34 +13,33 @@
 """User-space constructor functions for the expression tree, which do some of the inference and
 lifting boilerplate work."""
 
-# pylint: disable=redefined-builtin,redefined-outer-name
 
 from __future__ import annotations
 
 __all__ = [
-    "lift",
-    "cast",
-    "bit_not",
-    "logic_not",
+    "add",
     "bit_and",
+    "bit_not",
     "bit_or",
     "bit_xor",
-    "logic_and",
-    "logic_or",
+    "cast",
+    "div",
     "equal",
-    "not_equal",
-    "less",
-    "less_equal",
     "greater",
     "greater_equal",
+    "index",
+    "less",
+    "less_equal",
+    "lift",
+    "lift_legacy_condition",
+    "logic_and",
+    "logic_not",
+    "logic_or",
+    "mul",
+    "not_equal",
     "shift_left",
     "shift_right",
-    "index",
-    "add",
     "sub",
-    "mul",
-    "div",
-    "lift_legacy_condition",
 ]
 
 import typing
@@ -70,7 +69,7 @@ def lift_legacy_condition(
     condition: tuple[qiskit.circuit.Clbit | qiskit.circuit.ClassicalRegister, int], /
 ) -> Expr:
     """Lift a legacy two-tuple equality condition into a new-style :class:`Expr`."""
-    from qiskit.circuit import Clbit  # pylint: disable=cyclic-import
+    from qiskit.circuit import Clbit
 
     target, value = condition
     if isinstance(target, Clbit):
@@ -113,7 +112,7 @@ def lift(value: typing.Any, /, type: types.Type | None = None) -> Expr:
         if type is not None:
             raise ValueError("use 'cast' to cast existing expressions, not 'lift'")
         return value
-    from qiskit.circuit import Clbit, ClassicalRegister, Duration  # pylint: disable=cyclic-import
+    from qiskit.circuit import Clbit, ClassicalRegister, Duration
 
     inferred: types.Type
     if value is True or value is False or isinstance(value, Clbit):
@@ -762,3 +761,33 @@ Duration())
         right,
         type,
     )
+
+
+def negate(operand: typing.Any, /) -> Expr:
+    """Negate an expression node from the given value, resolving any implicit casts and
+    lifting the value into a :class:`Value` node if required.
+    
+    Examples:
+        Negation of a floating point number::
+
+            >>> from qiskit.circuit.classical import expr
+            >>> expr.negate(5.0)
+            Unary(\
+Unary.Op.NEGATE, \
+Value(5.0, Float()), \
+Float())
+
+        Negation of a duration::
+
+            >>> from qiskit.circuit import Duration
+            >>> from qiskit.circuit.classical import expr
+            >>> expr.negate(Duration.dt(1000))
+            Unary(\
+Unary.Op.NEGATE, \
+Value(Duration.dt(1000), Duration()), \
+Duration())
+    """
+    operand = lift(operand)
+    if operand.type.kind not in (types.Float, types.Duration):
+        raise TypeError(f"cannot apply '{Unary.Op.NEGATE}' to type '{operand.type}'")
+    return Unary(Unary.Op.NEGATE, operand, operand.type)

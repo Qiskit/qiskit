@@ -49,9 +49,9 @@ from qiskit.circuit.classical import expr, types
 from qiskit.quantum_info import random_clifford
 from qiskit.quantum_info.random import random_unitary
 from qiskit.utils import optionals
-from test.visual import VisualTestUtilities  # pylint: disable=wrong-import-order
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
-from test.python.legacy_cmaps import (  # pylint: disable=wrong-import-order
+from test.visual import VisualTestUtilities
+from test import QiskitTestCase
+from test.python.legacy_cmaps import (
     TENERIFE_CMAP,
     YORKTOWN_CMAP,
 )
@@ -1232,6 +1232,24 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
 
         fname = "barrier_label.png"
         self.circuit_drawer(circuit, output="mpl", filename=fname)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, self.threshold)
+
+    def test_barrier_label_truncation(self):
+        """Test that long barrier labels are truncated"""
+        circuit = QuantumCircuit(2)
+        circuit.barrier()
+        circuit.barrier(label="a" * 20)
+
+        fname = "barrier_label_truncation.png"
+        self.circuit_drawer(circuit, output="mpl", filename=fname, barrier_label_len=9)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),

@@ -41,7 +41,7 @@ def average_data(counts: dict, observable: dict | np.ndarray | list) -> float:
         observable = make_dict_observable(observable)
     temp = 0
     tot = sum(counts.values())
-    for key in counts:
+    for key, count in counts.items():
         if key in observable:
-            temp += counts[key] * observable[key] / tot
+            temp += count * observable[key] / tot
     return temp

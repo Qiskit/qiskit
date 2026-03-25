@@ -25,7 +25,7 @@ from .n_local import n_local, BlockEntanglement
 from .two_local import TwoLocal
 
 if typing.TYPE_CHECKING:
-    import qiskit  # pylint: disable=cyclic-import
+    import qiskit
 
 
 def efficient_su2(
@@ -254,6 +254,8 @@ class EfficientSU2(TwoLocal):
                 for anything besides visualization its **strongly** recommended
                 to set this flag to ``True`` to avoid a large performance
                 overhead for parameter binding.
+            name: Name of the circuit.
+
         """
         if su2_gates is None:
             su2_gates = [RYGate, RZGate]

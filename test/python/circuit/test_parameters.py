@@ -32,7 +32,7 @@ from qiskit.quantum_info import Operator, Pauli
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.utils import parallel_map
-from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
+from test import QiskitTestCase, combine
 from ..legacy_cmaps import BOGOTA_CMAP
 
 
@@ -968,7 +968,7 @@ class TestParameters(QiskitTestCase):
         for qc in results:
             circuit.compose(qc, inplace=True)
 
-        parameter_values = {x: 1.0 for x in parameters}
+        parameter_values = dict.fromkeys(parameters, 1.0)
 
         bind_circuit = circuit.assign_parameters(parameter_values)
 
@@ -1447,7 +1447,6 @@ def _paramvec_names(prefix, length):
 
 @ddt
 class TestParameterExpressions(QiskitTestCase):
-    # pylint: disable=possibly-used-before-assignment
     """Test expressions of Parameters."""
 
     # supported operations dictionary operation : accuracy (0=exact match)

@@ -19,7 +19,7 @@ use std::sync::Arc;
 use std::{fmt, vec};
 
 use crate::bit::{ClassicalRegister, ShareableClbit};
-use crate::circuit_data::CircuitData;
+use crate::circuit_data::{CircuitData, PyCircuitData};
 use crate::classical::expr;
 use crate::duration::Duration;
 use crate::packed_instruction::PackedInstruction;
@@ -287,6 +287,7 @@ pub enum OperationRef<'a> {
     Operation(&'a PyInstruction),
     Unitary(&'a UnitaryGate),
     PauliProductMeasurement(&'a PauliProductMeasurement),
+    PauliProductRotation(&'a PauliProductRotation),
 }
 
 impl Operation for OperationRef<'_> {
@@ -301,6 +302,7 @@ impl Operation for OperationRef<'_> {
             Self::Operation(operation) => operation.name(),
             Self::Unitary(unitary) => unitary.name(),
             Self::PauliProductMeasurement(ppm) => ppm.name(),
+            Self::PauliProductRotation(rotation) => rotation.name(),
         }
     }
     #[inline]
@@ -314,6 +316,7 @@ impl Operation for OperationRef<'_> {
             Self::Operation(operation) => operation.num_qubits(),
             Self::Unitary(unitary) => unitary.num_qubits(),
             Self::PauliProductMeasurement(ppm) => ppm.num_qubits(),
+            Self::PauliProductRotation(rotation) => rotation.num_qubits(),
         }
     }
     #[inline]
@@ -327,6 +330,7 @@ impl Operation for OperationRef<'_> {
             Self::Operation(operation) => operation.num_clbits(),
             Self::Unitary(unitary) => unitary.num_clbits(),
             Self::PauliProductMeasurement(ppm) => ppm.num_clbits(),
+            Self::PauliProductRotation(rotation) => rotation.num_clbits(),
         }
     }
     #[inline]
@@ -340,6 +344,7 @@ impl Operation for OperationRef<'_> {
             Self::Operation(operation) => operation.num_params(),
             Self::Unitary(unitary) => unitary.num_params(),
             Self::PauliProductMeasurement(ppm) => ppm.num_params(),
+            Self::PauliProductRotation(rotation) => rotation.num_params(),
         }
     }
     #[inline]
@@ -353,6 +358,7 @@ impl Operation for OperationRef<'_> {
             Self::Operation(operation) => operation.directive(),
             Self::Unitary(unitary) => unitary.directive(),
             Self::PauliProductMeasurement(ppm) => ppm.directive(),
+            Self::PauliProductRotation(rotation) => rotation.directive(),
         }
     }
 }
@@ -360,7 +366,7 @@ impl Operation for OperationRef<'_> {
 /// Used to tag control flow instructions via the `_control_flow_type` class
 /// attribute in the corresponding Python class.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int)]
+#[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int, from_py_object)]
 #[repr(u8)]
 pub enum ControlFlowType {
     Box = 0,
@@ -628,10 +634,10 @@ impl ControlFlowInstruction {
                 let (duration, unit) = match duration {
                     Some(duration) => match duration {
                         BoxDuration::Duration(duration) => {
-                            (Some(duration.py_value(py)?), Some(duration.unit()))
+                            (Some(duration.py_value(py)), Some(duration.unit()))
                         }
                         BoxDuration::Expr(expr) => {
-                            (Some(expr.clone().into_py_any(py)?), Some("expr"))
+                            (Some(expr.clone().into_bound_py_any(py)?), Some("expr"))
                         }
                     },
                     None => (None, None),
@@ -1020,7 +1026,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for DelayUnit {
 /// This is also used to tag standard instructions via the `_standard_instruction_type` class
 /// attribute in the corresponding Python class.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int)]
+#[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int, from_py_object)]
 #[repr(u8)]
 pub enum StandardInstructionType {
     Barrier = 0,
@@ -1107,7 +1113,10 @@ impl Operation for StandardInstruction {
     }
 
     fn num_params(&self) -> u32 {
-        0
+        match self {
+            StandardInstruction::Delay(_) => 1,
+            _ => 0,
+        }
     }
 
     fn directive(&self) -> bool {
@@ -1153,7 +1162,7 @@ impl StandardInstruction {
 
 #[derive(Clone, Debug, Copy, Eq, PartialEq, Hash)]
 #[repr(u8)]
-#[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int)]
+#[pyclass(module = "qiskit._accelerate.circuit", eq, eq_int, from_py_object)]
 pub enum StandardGate {
     GlobalPhase = 0,
     H = 1,
@@ -2829,6 +2838,146 @@ impl StandardGate {
             Self::RC3X => None,
         }
     }
+
+    pub fn matrix_as_static_2q(&self, params: &[Param]) -> Option<[[Complex64; 4]; 4]> {
+        match self {
+            Self::GlobalPhase => None,
+            Self::H => None,
+            Self::I => None,
+            Self::X => None,
+            Self::Y => None,
+            Self::Z => None,
+            Self::Phase => None,
+            Self::R => None,
+            Self::RX => None,
+            Self::RY => None,
+            Self::RZ => None,
+            Self::S => None,
+            Self::Sdg => None,
+            Self::SX => None,
+            Self::SXdg => None,
+            Self::T => None,
+            Self::Tdg => None,
+            Self::U => None,
+            Self::U1 => None,
+            Self::U2 => None,
+            Self::U3 => None,
+            Self::CH => match params {
+                [] => Some(gate_matrix::CH_GATE),
+                _ => None,
+            },
+            Self::CX => match params {
+                [] => Some(gate_matrix::CX_GATE),
+                _ => None,
+            },
+            Self::CY => match params {
+                [] => Some(gate_matrix::CY_GATE),
+                _ => None,
+            },
+            Self::CZ => match params {
+                [] => Some(gate_matrix::CZ_GATE),
+                _ => None,
+            },
+            Self::DCX => match params {
+                [] => Some(gate_matrix::DCX_GATE),
+                _ => None,
+            },
+            Self::ECR => match params {
+                [] => Some(gate_matrix::ECR_GATE),
+                _ => None,
+            },
+            Self::Swap => match params {
+                [] => Some(gate_matrix::SWAP_GATE),
+                _ => None,
+            },
+            Self::ISwap => match params {
+                [] => Some(gate_matrix::ISWAP_GATE),
+                _ => None,
+            },
+            Self::CPhase => match params {
+                [Param::Float(lam)] => Some(gate_matrix::cp_gate(*lam)),
+                _ => None,
+            },
+            Self::CRX => match params {
+                [Param::Float(theta)] => Some(gate_matrix::crx_gate(*theta)),
+                _ => None,
+            },
+            Self::CRY => match params {
+                [Param::Float(theta)] => Some(gate_matrix::cry_gate(*theta)),
+                _ => None,
+            },
+            Self::CRZ => match params {
+                [Param::Float(theta)] => Some(gate_matrix::crz_gate(*theta)),
+                _ => None,
+            },
+            Self::CS => match params {
+                [] => Some(gate_matrix::CS_GATE),
+                _ => None,
+            },
+            Self::CSdg => match params {
+                [] => Some(gate_matrix::CSDG_GATE),
+                _ => None,
+            },
+            Self::CSX => match params {
+                [] => Some(gate_matrix::CSX_GATE),
+                _ => None,
+            },
+            Self::CU => match params {
+                [
+                    Param::Float(theta),
+                    Param::Float(phi),
+                    Param::Float(lam),
+                    Param::Float(gamma),
+                ] => Some(gate_matrix::cu_gate(*theta, *phi, *lam, *gamma)),
+                _ => None,
+            },
+            Self::CU1 => match params[0] {
+                Param::Float(lam) => Some(gate_matrix::cu1_gate(lam)),
+                _ => None,
+            },
+            Self::CU3 => match params {
+                [Param::Float(theta), Param::Float(phi), Param::Float(lam)] => {
+                    Some(gate_matrix::cu3_gate(*theta, *phi, *lam))
+                }
+                _ => None,
+            },
+            Self::RXX => match params[0] {
+                Param::Float(theta) => Some(gate_matrix::rxx_gate(theta)),
+                _ => None,
+            },
+            Self::RYY => match params[0] {
+                Param::Float(theta) => Some(gate_matrix::ryy_gate(theta)),
+                _ => None,
+            },
+            Self::RZZ => match params[0] {
+                Param::Float(theta) => Some(gate_matrix::rzz_gate(theta)),
+                _ => None,
+            },
+            Self::RZX => match params[0] {
+                Param::Float(theta) => Some(gate_matrix::rzx_gate(theta)),
+                _ => None,
+            },
+            Self::XXMinusYY => match params {
+                [Param::Float(theta), Param::Float(beta)] => {
+                    Some(gate_matrix::xx_minus_yy_gate(*theta, *beta))
+                }
+                _ => None,
+            },
+            Self::XXPlusYY => match params {
+                [Param::Float(theta), Param::Float(beta)] => {
+                    Some(gate_matrix::xx_plus_yy_gate(*theta, *beta))
+                }
+                _ => None,
+            },
+            Self::CCX => None,
+            Self::CCZ => None,
+            Self::CSwap => None,
+            Self::RCCX => None,
+            Self::C3X => None,
+            Self::C3SX => None,
+            Self::RC3X => None,
+        }
+    }
 }
 
 #[pymethods]
@@ -2850,8 +2999,8 @@ impl StandardGate {
         self.num_params()
     }
 
-    pub fn _get_definition(&self, params: Vec<Param>) -> Option<CircuitData> {
-        self.definition(&params)
+    pub fn _get_definition(&self, params: Vec<Param>) -> Option<PyCircuitData> {
+        self.definition(&params).map(Into::into)
     }
 
     pub fn _inverse(&self, params: Vec<Param>) -> Option<(StandardGate, SmallVec<[Param; 3]>)> {
@@ -3135,9 +3284,11 @@ impl PyInstruction {
         Python::attach(|py| -> Option<CircuitData> {
             match self.instruction.getattr(py, intern!(py, "definition")) {
                 Ok(definition) => definition
-                    .getattr(py, intern!(py, "_data"))
+                    .bind(py)
+                    .getattr(intern!(py, "_data"))
                     .ok()?
-                    .extract::<CircuitData>(py)
+                    .cast::<PyCircuitData>()
+                    .map(|data| data.borrow().inner.clone())
                     .ok(),
                 Err(_) => None,
             }
@@ -3157,6 +3308,27 @@ impl PyInstruction {
                 .ok()?;
             let arr = array.as_array();
             Some([[arr[[0, 0]], arr[[0, 1]]], [arr[[1, 0]], arr[[1, 1]]]])
+        })
+    }
+
+    pub fn matrix_as_static_2q(&self) -> Option<[[Complex64; 4]; 4]> {
+        if self.num_qubits() != 2 {
+            return None;
+        }
+        Python::attach(|py| -> Option<[[Complex64; 4]; 4]> {
+            let array = self
+                .instruction
+                .call_method0(py, intern!(py, "to_matrix"))
+                .ok()?
+                .extract::<PyReadonlyArray2<Complex64>>(py)
+                .ok()?;
+            let arr = array.as_array();
+            Some([
+                [arr[[0, 0]], arr[[0, 1]], arr[[0, 2]], arr[[0, 3]]],
+                [arr[[1, 0]], arr[[1, 1]], arr[[1, 2]], arr[[1, 3]]],
+                [arr[[2, 0]], arr[[2, 1]], arr[[2, 2]], arr[[2, 3]]],
+                [arr[[3, 0]], arr[[3, 1]], arr[[3, 2]], arr[[3, 3]]],
+            ])
         })
     }
 }
@@ -3241,6 +3413,30 @@ impl UnitaryGate {
         }
     }
 
+    pub fn matrix_as_static_2q(&self) -> Option<[[Complex64; 4]; 4]> {
+        match &self.array {
+            ArrayType::OneQ(_mat) => None,
+            ArrayType::NDArray(arr) => {
+                if self.num_qubits() == 2 {
+                    Some([
+                        [arr[[0, 0]], arr[[0, 1]], arr[[0, 2]], arr[[0, 3]]],
+                        [arr[[1, 0]], arr[[1, 1]], arr[[1, 2]], arr[[1, 3]]],
+                        [arr[[2, 0]], arr[[2, 1]], arr[[2, 2]], arr[[2, 3]]],
+                        [arr[[3, 0]], arr[[3, 1]], arr[[3, 2]], arr[[3, 3]]],
+                    ])
+                } else {
+                    None
+                }
+            }
+            ArrayType::TwoQ(mat) => Some([
+                [mat[(0, 0)], mat[(0, 1)], mat[(0, 2)], mat[(0, 3)]],
+                [mat[(1, 0)], mat[(1, 1)], mat[(1, 2)], mat[(1, 3)]],
+                [mat[(2, 0)], mat[(2, 1)], mat[(2, 2)], mat[(2, 3)]],
+                [mat[(3, 0)], mat[(3, 1)], mat[(3, 2)], mat[(3, 3)]],
+            ]),
+        }
+    }
+
     pub fn matrix_as_nalgebra_1q(&self) -> Option<Matrix2<Complex64>> {
         match &self.array {
             ArrayType::OneQ(mat) => Some(*mat),
@@ -3257,6 +3453,36 @@ impl UnitaryGate {
                 }
             }
             ArrayType::TwoQ(_) => None,
+        }
+    }
+    pub fn matrix_as_nalgebra_2q(&self) -> Option<Matrix4<Complex64>> {
+        match &self.array {
+            ArrayType::OneQ(_mat) => None,
+            ArrayType::NDArray(arr) => {
+                if self.num_qubits() == 2 {
+                    Some(Matrix4::new(
+                        arr[[0, 0]],
+                        arr[[0, 1]],
+                        arr[[0, 2]],
+                        arr[[0, 3]],
+                        arr[[1, 0]],
+                        arr[[1, 1]],
+                        arr[[1, 2]],
+                        arr[[1, 3]],
+                        arr[[2, 0]],
+                        arr[[2, 1]],
+                        arr[[2, 2]],
+                        arr[[2, 3]],
+                        arr[[3, 0]],
+                        arr[[3, 1]],
+                        arr[[3, 2]],
+                        arr[[3, 3]],
+                    ))
+                } else {
+                    None
+                }
+            }
+            ArrayType::TwoQ(mat) => Some(*mat),
         }
     }
 }
@@ -3305,6 +3531,76 @@ impl UnitaryGate {
         }
     }
 }
+
+/// A Pauli-based gate model, consisting of PauliProductRotation and PauliProductMeasurement ops.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum PauliBased {
+    PauliProductRotation(PauliProductRotation),
+    PauliProductMeasurement(PauliProductMeasurement),
+}
+
+#[derive(Clone, Debug)]
+#[repr(align(8))]
+pub struct PauliProductRotation {
+    /// The z-component of the pauli.
+    pub z: Vec<bool>,
+    /// The x-component of the pauli.
+    pub x: Vec<bool>,
+    /// The rotation angle, exp(i theta / 2 P)
+    pub angle: Param,
+}
+
+impl Operation for PauliProductRotation {
+    fn name(&self) -> &str {
+        "pauli_product_rotation"
+    }
+    fn num_qubits(&self) -> u32 {
+        self.z.len() as u32
+    }
+    fn num_clbits(&self) -> u32 {
+        0
+    }
+    fn num_params(&self) -> u32 {
+        1
+    }
+    fn directive(&self) -> bool {
+        false
+    }
+}
+
+impl PauliProductRotation {
+    pub fn create_py_op(&self, py: Python, label: Option<&str>) -> PyResult<Py<PyAny>> {
+        let z = self.z.to_pyarray(py);
+        let x = self.x.to_pyarray(py);
+
+        let py_label = if let Some(label) = label {
+            label.into_py_any(py)?
+        } else {
+            py.None()
+        };
+
+        let gate = imports::PAULI_PRODUCT_ROTATION_GATE
+            .get_bound(py)
+            .call_method1(
+                intern!(py, "_from_pauli_data"),
+                (z, x, self.angle.clone(), py_label),
+            )?;
+        Ok(gate.unbind())
+    }
+}
+
+impl PartialEq for PauliProductRotation {
+    fn eq(&self, other: &Self) -> bool {
+        self.x == other.x
+            && self.z == other.z
+            && self
+                .angle
+                .eq(&other.angle)
+                .expect("Angles are float or symbol, for which eq is infallible")
+    }
+}
+
+impl Eq for PauliProductRotation {}
 
 /// This class represents a PauliProductMeasurement instruction.
 #[derive(Clone, Debug)]

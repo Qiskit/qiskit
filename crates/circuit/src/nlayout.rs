@@ -134,7 +134,7 @@ impl VirtualQubit {
 ///         physical qubit index on the coupling graph.
 ///     logical_qubits (int): The number of logical qubits in the layout
 ///     physical_qubits (int): The number of physical qubits in the layout
-#[pyclass(module = "qiskit._accelerate.nlayout")]
+#[pyclass(module = "qiskit._accelerate.nlayout", skip_from_py_object)]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NLayout {
     virt_to_phys: Vec<PhysicalQubit>,
@@ -289,6 +289,18 @@ impl NLayout {
             virt_to_phys,
             phys_to_virt,
         }
+    }
+}
+impl ::std::ops::Index<VirtualQubit> for NLayout {
+    type Output = PhysicalQubit;
+    fn index(&self, index: VirtualQubit) -> &PhysicalQubit {
+        &self.virt_to_phys[index.index()]
+    }
+}
+impl ::std::ops::Index<PhysicalQubit> for NLayout {
+    type Output = VirtualQubit;
+    fn index(&self, index: PhysicalQubit) -> &VirtualQubit {
+        &self.phys_to_virt[index.index()]
     }
 }
 

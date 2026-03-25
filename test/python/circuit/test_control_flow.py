@@ -34,7 +34,7 @@ from qiskit.circuit.controlflow import (
     SwitchCaseOp,
     BoxOp,
 )
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 CONDITION_PARAMETRISATION = (
@@ -812,6 +812,19 @@ class TestAddingControlFlowOperations(QiskitTestCase):
         self.assertEqual(qc.data[0].operation.params, [indexset, loop_parameter, body])
         self.assertEqual(qc.data[0].qubits, tuple(qc.qubits[1:4]))
         self.assertEqual(qc.data[0].clbits, (qc.clbits[1],))
+
+    def test_for_loop_loop_parameter_not_in_outer_parameters(self):
+        """A ForLoopOp's loop_parameter must NOT appear in the outer circuit's parameters."""
+        theta = Parameter("θ")
+        body = QuantumCircuit(1)
+        body.rx(theta, 0)
+
+        qc = QuantumCircuit(1)
+        qc.append(ForLoopOp(range(3), theta, body), [0])
+
+        self.assertNotIn(theta, qc.parameters)
+        with self.assertRaisesRegex(CircuitError, r"not present in the circuit"):
+            qc.assign_parameters({theta: math.pi / 2}, inplace=False)
 
     @idata(CONDITION_PARAMETRISATION)
     def test_appending_if_else_op(self, condition):

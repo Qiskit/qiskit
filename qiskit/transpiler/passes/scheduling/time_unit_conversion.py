@@ -11,7 +11,6 @@
 # that they have been altered from the originals.
 
 """Unify time unit in circuit for scheduling and following passes."""
-from typing import Set
 
 from qiskit.circuit import Delay, Duration
 from qiskit.circuit.classical import expr
@@ -111,11 +110,10 @@ class TimeUnitConversion(TransformationPass):
                         f"Expression '{node.op.duration}' resolves to a negative duration!"
                     )
                 expression_durations[node._node_id] = duration
+            elif node.op.unit == "dt":
+                has_dt = True
             else:
-                if node.op.unit == "dt":
-                    has_dt = True
-                else:
-                    has_si = True
+                has_si = True
             if inst_durations.dt is None and has_dt and has_si:
                 raise TranspilerError(
                     "Fail to unify time units in delays. SI units "
@@ -156,7 +154,7 @@ class TimeUnitConversion(TransformationPass):
         return dag
 
     @staticmethod
-    def _unified(unit_set: Set[str]) -> str:
+    def _unified(unit_set: set[str]) -> str:
         if not unit_set:
             return "none"
 

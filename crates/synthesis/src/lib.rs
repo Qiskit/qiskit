@@ -13,12 +13,13 @@
 pub mod clifford;
 pub mod discrete_basis;
 pub mod euler_one_qubit_decomposer;
-mod evolution;
+pub mod evolution;
 pub mod linalg;
 pub mod linear;
 pub mod linear_phase;
 mod multi_controlled;
-pub mod pauli_product_measurement;
+pub mod pauli_evolution;
+pub mod pauli_products;
 mod permutation;
 mod qft;
 pub mod qsd;
@@ -51,9 +52,9 @@ pub fn synthesis(m: &Bound<PyModule>) -> PyResult<()> {
     multi_controlled::multi_controlled(&mc_mod)?;
     m.add_submodule(&mc_mod)?;
 
-    let ppm_mod = PyModule::new(m.py(), "pauli_product_measurement")?;
-    pauli_product_measurement::pauli_product_measurement_mod(&ppm_mod)?;
-    m.add_submodule(&ppm_mod)?;
+    let pbc_mod = PyModule::new(m.py(), "pauli_products")?;
+    pauli_products::pauli_products_mod(&pbc_mod)?;
+    m.add_submodule(&pbc_mod)?;
 
     let evolution_mod = PyModule::new(m.py(), "evolution")?;
     evolution::evolution(&evolution_mod)?;

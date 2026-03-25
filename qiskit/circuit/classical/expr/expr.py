@@ -14,14 +14,14 @@
 
 
 __all__ = [
-    "Expr",
-    "Var",
-    "Stretch",
-    "Value",
-    "Cast",
-    "Unary",
     "Binary",
+    "Cast",
+    "Expr",
     "Index",
+    "Stretch",
+    "Unary",
+    "Value",
+    "Var",
 ]
 
 import enum
@@ -35,7 +35,7 @@ from qiskit._accelerate.circuit.classical.expr import (
     Unary,
     Binary,
     Index,
-)  # pylint: disable=unused-import
+)
 
 
 class _UnaryOp(enum.Enum):
@@ -46,6 +46,9 @@ class _UnaryOp(enum.Enum):
 
     The logical negation :data:`LOGIC_NOT` takes an input that is implicitly coerced to a
     Boolean, and returns a Boolean.
+
+    The arithmetic negation :data:`NEGATE` takes an input that is either float or duration and
+    returns a value of the same type.
     """
 
     # If adding opcodes, remember to add helper constructor functions in `constructors.py`.
@@ -57,6 +60,8 @@ class _UnaryOp(enum.Enum):
     """Bitwise negation. ``~operand``."""
     LOGIC_NOT = 2
     """Logical negation. ``!operand``."""
+    NEGATE = 3
+    """Arithmetic negation. ``-operand``."""
 
     def __str__(self):
         return f"Unary.{super().__str__()}"

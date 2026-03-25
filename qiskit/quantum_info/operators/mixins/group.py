@@ -109,7 +109,7 @@ class GroupMixin(ABC):
 
         Args:
             other (CLASS): a CLASS object.
-            qargs (list or None): Optional, a list of subsystem positions to
+            qargs (list or None):  a list of subsystem positions to
                                   apply other on. If None apply on all
                                   subsystems (default: None).
             front (bool): If True compose using right operator multiplication,
@@ -138,7 +138,7 @@ class GroupMixin(ABC):
 
         Args:
             other (CLASS): an operator object.
-            qargs (list or None): Optional, a list of subsystem positions to
+            qargs (list or None):  a list of subsystem positions to
                                   apply other on. If None apply on all
                                   subsystems (default: None).
 

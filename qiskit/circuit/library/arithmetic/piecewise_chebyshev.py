@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 import warnings
-from typing import Callable
+from collections.abc import Callable
 import numpy as np
 from numpy.polynomial.chebyshev import Chebyshev
 
@@ -247,7 +247,7 @@ class PiecewiseChebyshev(BlueprintCircuit):
 
         # Calculate the polynomials
         polynomials = []
-        for i in range(0, num_intervals - 1):
+        for i in range(num_intervals - 1):
             # Calculate the polynomial approximating the function on the current interval
             try:
                 # If the function is constant don't call Chebyshev (not necessary and gives errors)
@@ -466,7 +466,7 @@ class PiecewiseChebyshevGate(Gate):
 
         # Calculate the polynomials
         polynomials = []
-        for i in range(0, num_intervals - 1):
+        for i in range(num_intervals - 1):
             # Calculate the polynomial approximating the function on the current interval
             try:
                 # If the function is constant don't call Chebyshev (not necessary and gives errors)

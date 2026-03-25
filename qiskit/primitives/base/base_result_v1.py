@@ -18,11 +18,11 @@ from __future__ import annotations
 from abc import ABC
 from collections.abc import Sequence
 from dataclasses import fields
-from typing import Any, Dict
+from typing import Any
 
 from numpy import ndarray
 
-ExperimentData = Dict[str, Any]
+ExperimentData = dict[str, Any]
 
 
 class _BasePrimitiveResultV1(ABC):
