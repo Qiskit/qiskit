@@ -160,7 +160,10 @@ pub fn synth_cnot_count_full_pmh(
         section_size.and_then(|num| if num >= 0 { Some(num as usize) } else { None });
 
     let instructions = synth_pmh(mat, section_size);
-    CircuitData::from_standard_gates(num_qubits as u32, instructions, Param::Float(0.0))
+    Ok(
+        CircuitData::from_standard_gates(num_qubits as u32, instructions, Param::Float(0.0))?
+            .into(),
+    )
 }
 
 type Instruction = (StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>);
@@ -197,10 +200,5 @@ pub fn synth_pmh(
                 smallvec![],
                 smallvec![Qubit(ctrl as u32), Qubit(target as u32)],
             )
-        });
-
-    Ok(
-        CircuitData::from_standard_gates(num_qubits as u32, instructions, Param::Float(0.0))?
-            .into(),
-    )
+        })
 }

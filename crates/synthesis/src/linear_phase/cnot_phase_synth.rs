@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -15,7 +15,7 @@ use ndarray::Array2;
 use numpy::PyReadonlyArray2;
 use pyo3::{prelude::*, types::PyList};
 use qiskit_circuit::Qubit;
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::operations::{Param, StandardGate};
 use smallvec::{SmallVec, smallvec};
 use std::f64::consts::PI;
@@ -82,7 +82,7 @@ pub fn synth_cnot_phase_aam(
     binary_string: PyReadonlyArray2<bool>,
     angles: &Bound<PyList>,
     section_size: Option<i64>,
-) -> PyResult<CircuitData> {
+) -> PyResult<PyCircuitData> {
     // converting to Option<usize>
     let section_size: Option<usize> =
         section_size.and_then(|num| if num >= 0 { Some(num as usize) } else { None });
@@ -402,5 +402,8 @@ pub fn synth_cnot_phase_aam(
         gate_instr
     });
 
-    CircuitData::from_standard_gates(num_qubits as u32, cx_phase_iter, Param::Float(0.0))
+    Ok(
+        CircuitData::from_standard_gates(num_qubits as u32, cx_phase_iter, Param::Float(0.0))?
+            .into(),
+    )
 }

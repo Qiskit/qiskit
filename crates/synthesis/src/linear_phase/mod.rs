@@ -17,6 +17,7 @@ use pyo3::{
     wrap_pyfunction,
 };
 use qiskit_circuit::{circuit_data::CircuitData, circuit_data::PyCircuitData, operations::Param};
+mod cnot_phase_synth;
 mod cx_cz_depth_lnn;
 
 pub(crate) mod cz_depth_lnn;
