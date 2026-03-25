@@ -33,6 +33,7 @@ use qiskit_circuit::bit::{
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use qiskit_circuit::converters::QuantumCircuitData;
+use qiskit_circuit::duration::Duration;
 use qiskit_circuit::imports;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
@@ -227,22 +228,12 @@ fn pack_instruction_blocks(
 fn extract_instruction_blocks(
     inst: &PackedInstruction,
     qpy_data: &mut QPYWriteData,
-) -> Result<Vec<GenericValue>, QpyError> {
-    let blocks = qpy_data
-        .circuit_data
-        .unpack_blocks_to_circuit_parameters(inst.params.as_deref())
-        .ok_or_else(|| {
-            QpyError::ConversionError("Could not extract blocks from instruction".to_string())
-        })?;
-    match blocks {
-        Parameters::Params(_) => Err(QpyError::ConversionError(
-            "Instruction has params but expected blocks".to_string(),
-        )),
-        Parameters::Blocks(blocks) => Ok(blocks
-            .iter()
-            .map(|block: &CircuitData| GenericValue::CircuitData(Box::new(block.clone())))
-            .collect()),
-    }
+) -> Vec<GenericValue> {
+    inst.blocks_view()
+        .iter()
+        .filter_map(|&block_id| qpy_data.circuit_data.blocks().get(block_id))
+        .map(|block| GenericValue::CircuitData(Box::new(block.clone())))
+        .collect()
 }
 
 /// packs one specific instruction into CircuitInstructionV2Pack, creating a new custom operation if needed
@@ -406,15 +397,15 @@ fn pack_pauli_product_rotation(
 /// Convert snake_case name (e.g., "if_else") to Python class names (e.g., "IfElseOp")
 /// for backwards compatibility with old QPY versions
 fn control_flow_class_name(control_flow: &ControlFlow) -> String {
-    match control_flow {
-        ControlFlow::Box { .. } => "BoxOp".to_string(),
-        ControlFlow::BreakLoop => "BreakLoopOp".to_string(),
-        ControlFlow::ContinueLoop => "ContinueLoopOp".to_string(),
-        ControlFlow::IfElse { .. } => "IfElseOp".to_string(),
-        ControlFlow::While { .. } => "WhileLoopOp".to_string(),
-        ControlFlow::ForLoop { .. } => "ForLoopOp".to_string(),
-        ControlFlow::Switch { .. } => "SwitchCaseOp".to_string(),
-    }
+    String::from(match control_flow {
+        ControlFlow::Box { .. } => "BoxOp",
+        ControlFlow::BreakLoop => "BreakLoopOp",
+        ControlFlow::ContinueLoop => "ContinueLoopOp",
+        ControlFlow::IfElse { .. } => "IfElseOp",
+        ControlFlow::While { .. } => "WhileLoopOp",
+        ControlFlow::ForLoop { .. } => "ForLoopOp",
+        ControlFlow::Switch { .. } => "SwitchCaseOp",
+    })
 }
 fn pack_control_flow_inst(
     control_flow_inst: &ControlFlowInstruction,
@@ -429,44 +420,39 @@ fn pack_control_flow_inst(
             annotations,
         } => {
             packed_annotations = pack_annotations(&annotations, qpy_data)?;
-            let duration_param = match duration {
-                None => GenericValue::Null,
-                Some(box_duration) => match box_duration {
-                    BoxDuration::Duration(duration) => GenericValue::Duration(duration),
-                    BoxDuration::Expr(exp) => GenericValue::Expression(exp),
-                },
-            };
             let mut params = Vec::new();
-            // ideally, we'd do params.push(pack_generic_value(&duration_param, qpy_data)?);
-            // however, Python expects the BoxOp params to be handled differentely, so this is code for backwards compatibility:
             params.extend(pack_instruction_blocks(instruction, qpy_data)?);
-            match duration_param {
-                GenericValue::Duration(duration) => {
-                    let duration_value_pack = Python::attach(|py| {
-                        py_pack_param(&duration.py_value(py), qpy_data, Endian::Little)
-                    })?;
-                    let duration_unit_string = GenericValue::String(duration.unit().to_string());
-                    params.push(duration_value_pack);
-                    params.push(pack_generic_value(&duration_unit_string, qpy_data)?);
-                }
-                GenericValue::Expression(_) => {
-                    let duration_value_pack = pack_generic_value(&duration_param, qpy_data)?;
-                    let duration_unit_string = GenericValue::String("expr".to_string());
-                    params.push(duration_value_pack);
-                    params.push(pack_generic_value(&duration_unit_string, qpy_data)?);
-                }
-                GenericValue::Null => {
+            match duration {
+                None => {
                     // we follow the python default
                     let duration_value_pack = pack_generic_value(&GenericValue::Null, qpy_data)?;
                     let duration_unit_string = GenericValue::String("dt".to_string());
                     params.push(duration_value_pack);
                     params.push(pack_generic_value(&duration_unit_string, qpy_data)?);
                 }
-                _ => {
-                    return Err(QpyError::InvalidInstruction(
-                        "Box instruction with unknown duration data".to_string(),
-                    ));
-                }
+                Some(box_duration) => match box_duration {
+                    BoxDuration::Duration(duration) => {
+                        let duration_value = match duration {
+                            Duration::dt(v) => GenericValue::Int64(v),
+                            Duration::ps(v)
+                            | Duration::us(v)
+                            | Duration::ns(v)
+                            | Duration::ms(v)
+                            | Duration::s(v) => GenericValue::Float64(v),
+                        };
+                        let duration_unit_string =
+                            GenericValue::String(duration.unit().to_string());
+                        params.push(pack_generic_value(&duration_value, qpy_data)?);
+                        params.push(pack_generic_value(&duration_unit_string, qpy_data)?);
+                    }
+                    BoxDuration::Expr(exp) => {
+                        let duration_value_pack =
+                            pack_generic_value(&GenericValue::Expression(exp), qpy_data)?;
+                        let duration_unit_string = GenericValue::String("expr".to_string());
+                        params.push(duration_value_pack);
+                        params.push(pack_generic_value(&duration_unit_string, qpy_data)?);
+                    }
+                },
             }
             params
         }
@@ -512,7 +498,7 @@ fn pack_control_flow_inst(
                     GenericValue::Register(ParamRegisterValue::Register(reg))
                 }
             };
-            let case_circuits = extract_instruction_blocks(instruction, qpy_data)?;
+            let case_circuits = extract_instruction_blocks(instruction, qpy_data);
             let case_labels = label_spec
                 .iter()
                 .map(|label_vec| -> Result<GenericValue, QpyError> {
