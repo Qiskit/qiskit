@@ -365,6 +365,21 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertEqual(qc, new_circuit)
         self.assertDeprecatedBitProperties(qc, new_circuit)
 
+    def test_degenerate_parameter_expression(self):
+        """Test a circuit with a parameter expression that simplifies to 0."""
+        x = Parameter("x")
+        cases = [0 * x, x - x]
+        for case in cases:
+            qc = QuantumCircuit(1)
+            qc.rz(case, 0)
+            qpy_file = io.BytesIO()
+            dump(qc, qpy_file)
+            qpy_file.seek(0)
+            new_circuit = load(qpy_file)[0]
+            self.assertEqual(qc, new_circuit)
+            # should still have the same parameters even if they are not used
+            self.assertEqual(qc.parameters, new_circuit.parameters)
+
     def test_string_parameter(self):
         """Test a PauliGate instruction that has string parameters."""
 

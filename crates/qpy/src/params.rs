@@ -16,7 +16,7 @@ use qiskit_circuit::operations::Param;
 use qiskit_circuit::parameter::parameter_expression::{
     OPReplay, OpCode, ParameterExpression, ParameterValueType, PyParameter,
 };
-use qiskit_circuit::parameter::symbol_expr::Symbol;
+use qiskit_circuit::parameter::symbol_expr::{Symbol, SymbolExpr, Value};
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -343,6 +343,18 @@ pub(crate) fn unpack_parameter_expression(
     let parameter_expression_data = deserialize_vec::<formats::ParameterExpressionElementPack>(
         &parameter_expression_pack.expression_data,
     )?;
+    if parameter_expression_data.is_empty() {
+        // special case: we can't reconstruct the expression from replay, we'll instantiate it directly
+        // empty expressions are basically Value(0), but we also need to preserve the symbol table
+        let expr = SymbolExpr::Value(Value::Int(0));
+        let mut name_map = HashMap::new();
+        for value in param_uuid_map.values() {
+            if let GenericValue::ParameterExpressionSymbol(symbol) = &value {
+                name_map.insert(symbol.repr(false), symbol.clone());
+            }
+        }
+        return Ok(ParameterExpression::new(expr, name_map));
+    }
 
     // we now convert the parameter_expression_data into Vec<OPReplay> that can be used via ParameterExpression::from_qpy
     let mut replay: Vec<OPReplay> = Vec::new();
