@@ -3335,22 +3335,18 @@ pub struct PauliProductRotation {
     pub angle: Param,
 }
 
-impl Operation for PauliProductRotation {
-    fn name(&self) -> &str {
-        "pauli_product_rotation"
-    }
-    fn num_qubits(&self) -> u32 {
-        self.z.len() as u32
-    }
-    fn num_clbits(&self) -> u32 {
-        0
-    }
-    fn num_params(&self) -> u32 {
-        1
-    }
-    fn directive(&self) -> bool {
-        false
-    }
+
+// Helper function to convert x/z bool vectors into a Pauli string in "IXYZ" notation.
+fn pauli_product_to_string(zs: &[bool], xs: &[bool]) -> String {
+    zs.iter()
+        .zip(xs.iter())
+        .map(|(&z, &x)| match (z, x) {
+            (false, false) => 'I',
+            (false, true) => 'X',
+            (true, false) => 'Z',
+            (true, true) => 'Y',
+        })
+        .collect()
 }
 
 impl PauliProductRotation {
@@ -3372,7 +3368,42 @@ impl PauliProductRotation {
             )?;
         Ok(gate.unbind())
     }
+
+    pub fn matrix(&self) -> Option<Array2<Complex64>> {
+        let angle = match self.angle {
+            Param::Float(f) => f,
+            _ => return None,
+        };
+        Some(gate_matrix::pauli_product_rotation_matrix(
+            angle,
+            &self.z,
+            &self.x,
+        ))
+    }
 }
+
+impl Operation for PauliProductRotation {
+    fn name(&self) -> &str {
+        "pauli_product_rotation"
+    }
+
+    fn num_qubits(&self) -> u32 {
+        self.z.len() as u32
+    }
+
+    fn num_clbits(&self) -> u32 {
+        0
+    }
+
+    fn num_params(&self) -> u32 {
+        1
+    }
+
+    fn directive(&self) -> bool {
+        false
+    }
+}
+
 
 impl PartialEq for PauliProductRotation {
     fn eq(&self, other: &Self) -> bool {

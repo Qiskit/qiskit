@@ -23,6 +23,7 @@ use crate::operations::{
     PyOperationTypes, PythonOperation, StandardGate, StandardInstruction, UnitaryGate,
 };
 use crate::{Block, Clbit, Qubit};
+
 use hashbrown::HashMap;
 use nalgebra::Matrix2;
 use ndarray::{Array2, CowArray, Ix2};
