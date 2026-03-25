@@ -17,7 +17,7 @@ fixes:
     Fixed `#15664 <https://github.com/Qiskit/qiskit-terra/issues/15664>`__.
 
   - |
-    Fixed the definition of :class:`MCPhaseGate` for the case of 0 controls
+    Fixed the definition of :class:`.MCPhaseGate` for the case of 0 controls
     qubits. 
 
 

@@ -8,15 +8,15 @@ features_transpiler:
     
     The generated transpilation pipeline consisting of the following stages:
 
-    * Initialization: Decompose larger gates into 1-qubit and 2-qubits gates and perform
+    * **Initialization**: Decomposes larger gates into 1-qubit and 2-qubits gates and perform
       logical optimizations.
-    * Layout: Apply the default layout strategy used for continuous basis sets.
-    * Routing: Apply the default routing strategy used for continuous basis sets.
-    * RZ translation: Translate the circuit into Clifford+RZ basis.
-    * RZ optimization: Optimize the circuit within Clifford+RZ basis.
-    * T translation: Translate the circuit into Clifford+T basis.
-    * T optimization: Optimizes the circuit within Clifford+T basis.
-    * Scheduling: Apply the default scheduling strategy used for continuous basis sets.
+    * **Layout**: Applies the default layout strategy used for continuous basis sets.
+    * **Routing**: Applies the default routing strategy used for continuous basis sets.
+    * **RZ translation**: Translates the circuit into Clifford+RZ basis.
+    * **RZ optimization**: Optimizes the circuit within Clifford+RZ basis.
+    * **T translation**: Translates the circuit into Clifford+T basis.
+    * **T optimization**: Optimizes the circuit within Clifford+T basis.
+    * **Scheduling**: Applies the default scheduling strategy used for continuous basis sets.
 
     These stages are still experimental and subject to change. In particular,
     they are not yet exposed as transpiler stage plugins (unlike the stages

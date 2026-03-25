@@ -6,7 +6,7 @@ features:
     :class:`~.quantum_info.SparseObservable.BitTerm` conjugation.
 
     This table encodes the full :math:`P^\dagger Q P` conjugation rules for all
-    supported BitTerms,
+    supported :class:`~.BitTerm`'s,
     These include ``X``, ``Y``, ``Z``;
     ``+`` and ``-``; ``l`` and ``r``;
     and the computational-basis projectors ``0`` and ``1``
