@@ -288,7 +288,7 @@ class TestGenericBackendV2(QiskitTestCase):
                 qargs_checked = set()
                 for qargs in instr_props:
                     qargs_rev = qargs[::-1]
-                    if qargs_rev in instr_props and not qargs_rev in qargs_checked:
+                    if qargs_rev in instr_props and qargs_rev not in qargs_checked:
                         self.assertEqual(
                             instr_props[qargs].duration, instr_props[qargs_rev].duration
                         )
