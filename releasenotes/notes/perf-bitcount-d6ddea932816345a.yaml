@@ -1,3 +1,3 @@
 ---
 features_primitives:
-  - :meth:`.BitArray.bitcount` is faster (one test indicated 2x at 100 bits, 5x at 1000 bits).
+  - If the installed version of numpy is >= 2, :meth:`.BitArray.bitcount` will now run faster (one test indicated 2x at 100 bits, 5x at 1000 bits).
