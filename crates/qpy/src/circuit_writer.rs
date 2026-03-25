@@ -442,7 +442,7 @@ fn pack_control_flow_inst(
                         };
                         let duration_unit_string =
                             GenericValue::String(duration.unit().to_string());
-                        params.push(pack_generic_value(&duration_value, qpy_data)?);
+                        params.push(pack_generic_value(&duration_value.as_le(), qpy_data)?);
                         params.push(pack_generic_value(&duration_unit_string, qpy_data)?);
                     }
                     BoxDuration::Expr(exp) => {
