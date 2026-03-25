@@ -167,7 +167,11 @@ class StatevectorEstimator(BaseEstimatorV2):
             if precision != 0:
                 if not np.isreal(expectation_value):
                     raise ValueError("Given operator is not Hermitian and noise cannot be added.")
-                expectation_value = rng.normal(expectation_value, precision)
+                mu = (expectation_value + 1) / 2
+                s2 = min(mu * (1 - mu), precision**2)
+                alpha = 4 * mu**2 * (1 - mu) / s2 - mu
+                beta = 4 * mu * (1 - mu) ** 2 / s2 - (1 - mu)
+                expectation_value = 2 * rng.beta(alpha, beta) - 1
             evs[index] = expectation_value
 
         data = DataBin(evs=evs, stds=stds, shape=evs.shape)
