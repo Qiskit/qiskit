@@ -30,7 +30,7 @@ nom-unicode.workspace = true
 nom-language.workspace = true
 crossterm = "0.29.0"
 unicode-width = "0.2"
-unicode-segmentation = "1.12"
+unicode-segmentation = "1.13"
 
 [dependencies.pyo3]
 workspace = true
