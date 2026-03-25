@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -19,7 +19,7 @@ use rand_distr::StandardNormal;
 use rand_pcg::Pcg64Mcg;
 use rayon::prelude::*;
 
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError, PyCircuitData};
 use qiskit_circuit::getenv_use_multiple_threads;
 use qiskit_circuit::operations::{ArrayType, Param, UnitaryGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
@@ -85,14 +85,14 @@ const UNITARY_PER_SEED: usize = 50;
 
 #[pyfunction]
 #[pyo3(signature=(num_qubits, depth, seed=None))]
-pub fn quantum_volume(num_qubits: u32, depth: usize, seed: Option<u64>) -> PyResult<CircuitData> {
+pub fn quantum_volume(num_qubits: u32, depth: usize, seed: Option<u64>) -> PyResult<PyCircuitData> {
     let width = num_qubits as usize / 2;
     let num_unitaries = width * depth;
     let mut permutation: Vec<Qubit> = (0..num_qubits).map(Qubit).collect();
 
     let mut build_instruction = |(unitary_index, unitary_array): (usize, Matrix4<Complex64>),
                                  rng: &mut Pcg64Mcg|
-     -> PyResult<Instruction> {
+     -> Result<Instruction, CircuitDataError> {
         let layer_index = unitary_index % width;
         if layer_index == 0 {
             permutation.shuffle(rng);
@@ -135,7 +135,7 @@ pub fn quantum_volume(num_qubits: u32, depth: usize, seed: Option<u64>) -> PyRes
             .flat_map(|seeds| random_unitaries(seeds[0], seeds.len()))
             .collect()
     };
-    CircuitData::from_packed_operations(
+    Ok(CircuitData::from_packed_operations(
         num_qubits,
         0,
         unitaries
@@ -143,5 +143,6 @@ pub fn quantum_volume(num_qubits: u32, depth: usize, seed: Option<u64>) -> PyRes
             .enumerate()
             .map(|x| build_instruction(x, &mut outer_rng)),
         Param::Float(0.),
-    )
+    )?
+    .into())
 }

@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -106,7 +106,7 @@ impl ParameterLedger {
             .get_bound(py)
             .call1((parameter_prefix, num_parameters))? // get the Python ParameterVector
             .try_iter()? // iterate over the elements and cast them to Rust Params
-            .map(|ob| Param::extract_no_coerce(&ob?))
+            .map(|ob| Param::extract_no_coerce(ob?.as_borrowed()))
             .collect::<PyResult<_>>()?;
 
         // finally, distribute the parameters onto the repetitions and blocks for each

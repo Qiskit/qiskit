@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -12,6 +12,7 @@
 
 #include "common.h"
 #include <complex.h>
+#include <math.h>
 #include <qiskit.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -170,6 +171,34 @@ static int test_circuit_copy_with_instructions(void) {
     return Ok;
 }
 
+static int test_circuit_copy_empty_like(void) {
+    QkCircuit *qc = qk_circuit_new(10, 10);
+    for (int i = 0; i < 10; i++) {
+        qk_circuit_measure(qc, i, i);
+        uint32_t qubits[1] = {i};
+        qk_circuit_gate(qc, QkGate_H, qubits, NULL);
+    }
+    QkCircuit *copy = qk_circuit_copy_empty_like(qc, QkVarsMode_Alike, QkBlocksMode_Drop);
+
+    size_t num_instructions = qk_circuit_num_instructions(qc);        // not 0
+    size_t num_copy_instructions = qk_circuit_num_instructions(copy); // 0
+
+    qk_circuit_free(qc);
+    qk_circuit_free(copy);
+
+    if (num_instructions == 0) {
+        printf("Expected the original circuit to remain unchanged, but it is now empty\n");
+        return EqualityError;
+    }
+
+    if (num_copy_instructions != 0) {
+        printf("Expected no operations in the copied-empty-like circuit, but got %zu\n",
+               num_copy_instructions);
+        return EqualityError;
+    }
+    return Ok;
+}
+
 static int test_no_gate_1000_bits(void) {
     QkCircuit *qc = qk_circuit_new(1000, 1000);
     uint32_t num_qubits = qk_circuit_num_qubits(qc);
@@ -287,7 +316,7 @@ static int test_get_gate_counts(void) {
 
     if (c2.len != 1) {
         result = EqualityError;
-        qk_opcounts_clear(&c1);
+        qk_opcounts_clear(&c2);
         goto circuit_cleanup;
     }
     qk_opcounts_clear(&c2);
@@ -730,7 +759,7 @@ cleanup:
 }
 
 /**
- * Test appending a unitary gate.
+ * Test appending a 2q unitary gate.
  */
 static int test_unitary_gate(void) {
     QkCircuit *qc = qk_circuit_new(2, 0);
@@ -780,7 +809,7 @@ cleanup:
 }
 
 /**
- * Test appending a unitary gate.
+ * Test appending a 1q unitary gate.
  */
 static int test_unitary_gate_1q(void) {
     QkCircuit *qc = qk_circuit_new(2, 0);
@@ -790,6 +819,7 @@ static int test_unitary_gate_1q(void) {
     QkComplex64 c1 = {1.0, 0.0};
     QkComplex64 matrix[4] = {c1, c0,  // this
                              c0, c1}; // is
+    QkComplex64 *out = malloc(sizeof(QkComplex64) * 4);
 
     int ec = qk_circuit_unitary(qc, matrix, qubits, 1, false);
     if (ec != QkExitCode_Success) {
@@ -802,6 +832,21 @@ static int test_unitary_gate_1q(void) {
     size_t num_inst = qk_circuit_num_instructions(qc);
     if (num_inst != 1) {
         result = EqualityError;
+        goto cleanup;
+    }
+
+    // Check the instruction's kind
+    QkOperationKind kind = qk_circuit_instruction_kind(qc, num_inst - 1);
+    if (kind != QkOperationKind_Unitary) {
+        result = EqualityError;
+        printf("Expected instruction kind %d but got %d\n", QkOperationKind_Unitary, kind);
+        goto cleanup;
+    }
+    memset(out, 0, sizeof(QkComplex64) * 4);
+    qk_circuit_inst_unitary(qc, num_inst - 1, out);
+    if (memcmp(out, matrix, sizeof(QkComplex64) * 4) != 0) {
+        result = EqualityError;
+        printf("Unitary matrix does not match expected\n");
         goto cleanup;
     }
 
@@ -824,11 +869,12 @@ static int test_unitary_gate_1q(void) {
 
 cleanup:
     qk_circuit_free(qc);
+    free(out);
     return result;
 }
 
 /**
- * Test appending a unitary gate.
+ * Test appending a 3q unitary gate.
  */
 static int test_unitary_gate_3q(void) {
     QkCircuit *qc = qk_circuit_new(3, 0);
@@ -845,6 +891,8 @@ static int test_unitary_gate_3q(void) {
                               c0, c0, c0, c0, c0, c0, c1, c0,  // look
                               c0, c0, c0, c0, c0, c0, c0, c1}; // like a matrix
 
+    size_t dim = 1LLU << 3;
+    QkComplex64 *out = malloc(sizeof(QkComplex64) * dim * dim);
     int ec = qk_circuit_unitary(qc, matrix, qubits, 3, false);
     if (ec != QkExitCode_Success) {
         qk_circuit_free(qc);
@@ -856,6 +904,22 @@ static int test_unitary_gate_3q(void) {
     size_t num_inst = qk_circuit_num_instructions(qc);
     if (num_inst != 1) {
         result = EqualityError;
+        goto cleanup;
+    }
+
+    // Check the instruction's kind
+    QkOperationKind kind = qk_circuit_instruction_kind(qc, num_inst - 1);
+    if (kind != QkOperationKind_Unitary) {
+        result = EqualityError;
+        printf("Expected instruction kind %d but got %d\n", QkOperationKind_Unitary, kind);
+        goto cleanup;
+    }
+
+    memset(out, 0, sizeof(QkComplex64) * dim * dim);
+    qk_circuit_inst_unitary(qc, num_inst - 1, out);
+    if (memcmp(out, matrix, sizeof(QkComplex64) * dim * dim) != 0) {
+        result = EqualityError;
+        printf("Unitary matrix does not match expected\n");
         goto cleanup;
     }
 
@@ -877,6 +941,7 @@ static int test_unitary_gate_3q(void) {
 
 cleanup:
     qk_circuit_free(qc);
+    free(out);
     return result;
 }
 
@@ -898,14 +963,14 @@ static int test_not_unitary_gate(void) {
 
     int result = Ok;
     if (exit_code != QkExitCode_ExpectedUnitary) {
-        printf("Got exit code %i but expected %i", exit_code, QkExitCode_ExpectedUnitary);
+        printf("Got exit code %i but expected %i\n", exit_code, QkExitCode_ExpectedUnitary);
         result = EqualityError;
         goto cleanup;
     }
 
     size_t num_inst = qk_circuit_num_instructions(qc);
     if (num_inst != 0) { // we expect no gate was added
-        printf("Found gate when none should be added");
+        printf("Found gate when none should be added\n");
         result = EqualityError;
         goto cleanup;
     }
@@ -915,6 +980,167 @@ cleanup:
     return result;
 }
 
+/**
+ * Test getting instruction parameters.
+ */
+static int test_get_instruction_params(void) {
+    QkCircuit *qc = qk_circuit_new(1, 0);
+    uint32_t q0[1] = {0};
+    double angle[1] = {0.23};
+
+    QkParam *theta = qk_param_new_symbol("theta");
+    double r_angle = 0.2345;
+    QkParam *val = qk_param_from_double(r_angle);
+    const QkParam *angles[2] = {theta, val};
+
+    QkComplex64 c0 = {0.0, 0.0};
+    QkComplex64 c1 = {1.0, 0.0};
+    // clang-format off
+    QkComplex64 matrix[16] = {c1, c1, c0, c0, 
+                              c1, c1, c0, c0, 
+                              c0, c0, c1, c0, 
+                              c0, c0, c0, c1};
+    // clang-format on
+
+    int result = Ok;
+
+    if (qk_circuit_gate(qc, QkGate_SX, q0, NULL) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+    if (qk_circuit_gate(qc, QkGate_RX, q0, angle) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+    if (qk_circuit_parameterized_gate(qc, QkGate_R, q0, angles) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+    if (qk_circuit_unitary(qc, matrix, q0, 1, false) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+
+    // SX has no parameters
+    QkCircuitInstruction inst;
+    qk_circuit_get_instruction(qc, 0, &inst);
+    if (inst.num_params != 0) {
+        printf("Expected 0 parameters in SX, got %u\n", inst.num_params);
+        result = EqualityError;
+        goto cleanup_inst;
+    }
+    qk_circuit_instruction_clear(&inst);
+
+    // RX has one parameter
+    qk_circuit_get_instruction(qc, 1, &inst);
+    if (inst.num_params != 1) {
+        printf("Expected 1 parameter in RX, got %u\n", inst.num_params);
+        result = EqualityError;
+        goto cleanup_inst;
+    }
+
+    double rx_angle = qk_param_as_real(inst.params[0]);
+    if (isnan(rx_angle)) {
+        printf("Unexpected free symbol in RX gate\n");
+        result = EqualityError;
+        goto cleanup_inst;
+    }
+    if (fabs(rx_angle - angle[0]) > 1e-10) {
+        printf("Unexpected parameter value in RX gate\n");
+        result = EqualityError;
+        goto cleanup_inst;
+    }
+
+    // R has two parameters, one of which is free
+    qk_circuit_instruction_clear(&inst);
+    qk_circuit_get_instruction(qc, 2, &inst);
+    if (inst.num_params != 2) {
+        printf("Expected 2 parameters in R, got %u\n", inst.num_params);
+        result = EqualityError;
+        goto cleanup_inst;
+    }
+
+    double r_fixed = qk_param_as_real(inst.params[1]);
+    if (fabs(r_fixed - r_angle) > 1e-10) {
+        printf("Unexpected parameter value in R gate\n");
+        result = EqualityError;
+        goto cleanup_inst;
+    }
+    const QkParam *r_free = inst.params[0];
+    if (!qk_param_equal(r_free, theta)) {
+        printf("Unexpected free parameter in R gate\n");
+        result = EqualityError;
+        goto cleanup_inst;
+    }
+
+    // unitary gate does not store the matrix in the params, hence 0 params
+    qk_circuit_instruction_clear(&inst);
+    qk_circuit_get_instruction(qc, 3, &inst);
+    if (inst.num_params != 0) {
+        printf("Expected 0 parameters in unitary gate, got %u\n", inst.num_params);
+        result = EqualityError;
+        goto cleanup_inst;
+    }
+
+cleanup_inst:
+    qk_circuit_instruction_clear(&inst);
+cleanup:
+    qk_param_free(theta);
+    qk_param_free(val);
+    qk_circuit_free(qc);
+    return result;
+}
+
+/**
+ * Test circuit instruction parameter ownership.
+ *
+ * Even if the original circuit is freed, the parameters should be accessible from
+ * the QkCircuitInstruction object, which stores pointers to copies of the parameters.
+ */
+static int test_instruction_params_ownership(void) {
+    QkCircuit *qc = qk_circuit_new(1, 0);
+    uint32_t q0[1] = {0};
+    QkParam *theta = qk_param_new_symbol("theta");
+    const QkParam *angles[1] = {theta};
+
+    // Add a single RX gate with the angle "theta"
+    int result = Ok;
+    if (qk_circuit_parameterized_gate(qc, QkGate_RX, q0, angles) != QkExitCode_Success) {
+        result = RuntimeError;
+        qk_circuit_free(qc);
+        goto cleanup;
+    }
+
+    // Retrieve the circuit instruction, which contains pointers to copies of the parameters
+    QkCircuitInstruction inst;
+    qk_circuit_get_instruction(qc, 0, &inst);
+    if (inst.num_params != 1) {
+        printf("Expected 1 parameter in RX, got %u\n", inst.num_params);
+        result = EqualityError;
+
+        qk_circuit_instruction_clear(&inst);
+        qk_circuit_free(qc);
+        goto cleanup;
+    }
+
+    // Free the circuit and check the parameter is still correctly accessible
+    // from the instruction itself
+    qk_circuit_free(qc);
+
+    QkParam *angle = inst.params[0];
+    if (!qk_param_equal(angle, theta)) {
+        result = EqualityError;
+    }
+    qk_circuit_instruction_clear(&inst);
+
+cleanup:
+    qk_param_free(theta);
+    return result;
+}
+
+/**
+ * Test adding delay instruction to a circuit.
+ */
 static int test_delay_instruction(void) {
     QkCircuit *qc = qk_circuit_new(2, 0);
     int result = Ok;
@@ -932,6 +1158,220 @@ cleanup:
     return result;
 }
 
+/**
+ *  A sanity check to ensure the circuit drawer handles all the supported operations.
+ */
+static int test_circuit_draw(void) {
+    QkCircuit *circuit = qk_circuit_new(10, 2);
+
+    uint32_t qubits[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+    double params[4] = {1.41, 2.71, 3.14, 1.5};
+    for (uint8_t gate = 0; gate <= QkGate_RC3X; ++gate) {
+        qk_circuit_gate(circuit, gate, &qubits[gate % 8], params);
+    }
+    qk_circuit_barrier(circuit, qubits, 10);
+    qk_circuit_delay(circuit, 3, 100.0, QkDelayUnit_NS);
+    qk_circuit_measure(circuit, 0, 0);
+    QkComplex64 c0 = {0, 0};
+    QkComplex64 c1 = {1, 0};
+    QkComplex64 unitary[2 * 2] = {c0, c1, c1, c0};
+    qk_circuit_unitary(circuit, unitary, (uint32_t[]){5}, 1, true);
+    qk_circuit_reset(circuit, 0);
+
+    QkCircuitDrawerConfig config = {false, true, 80};
+
+    char *circ_str = qk_circuit_draw(circuit, &config);
+
+    qk_str_free(circ_str);
+    qk_circuit_free(circuit);
+
+    return Ok;
+}
+
+static int test_parameterized_circuit(void) {
+    QkCircuit *qc = qk_circuit_new(2, 0);
+    QkParam *x = qk_param_new_symbol("x");
+    QkParam *y = qk_param_new_symbol("somey longery namey");
+
+    uint32_t q0[1] = {0};
+    uint32_t q1[1] = {1};
+    uint32_t q01[2] = {0, 1};
+    const QkParam *rx_param[1] = {x};
+    const QkParam *rzz_param[1] = {y};
+
+    int result = Ok;
+    if (qk_circuit_parameterized_gate(qc, QkGate_RX, q0, rx_param) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+    if (qk_circuit_parameterized_gate(qc, QkGate_RX, q1, rx_param) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+    if (qk_circuit_parameterized_gate(qc, QkGate_RZZ, q01, rzz_param) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+
+    // check the number of parameters
+    size_t num_symbols = qk_circuit_num_param_symbols(qc);
+    if (num_symbols != 2) {
+        result = EqualityError;
+        printf("Expected 2 symbols, found %zu\n", num_symbols);
+        goto cleanup;
+    }
+
+    // check number of gates
+    size_t num_gates = qk_circuit_num_instructions(qc);
+    if (num_gates != 3) {
+        result = EqualityError;
+        printf("Expected 3 instructions, found %zu\n", num_gates);
+        goto cleanup;
+    }
+
+cleanup:
+    qk_param_free(x);
+    qk_param_free(y);
+    qk_circuit_free(qc);
+    return result;
+}
+/**
+ * Test circuit to dag conversion.
+ */
+static int test_circuit_to_dag(void) {
+    QkCircuit *circuit = qk_circuit_new(2, 1);
+    qk_circuit_gate(circuit, QkGate_H, (uint32_t[]){0}, NULL);
+    qk_circuit_gate(circuit, QkGate_CX, (uint32_t[]){0, 1}, NULL);
+
+    QkDag *dag = qk_circuit_to_dag(circuit);
+    qk_circuit_free(circuit);
+
+    int result = Ok;
+    if (qk_dag_num_qubits(dag) != 2 || qk_dag_num_clbits(dag) != 1 ||
+        qk_dag_num_op_nodes(dag) != 2) {
+        printf("Circuit to DAG conversion encountered an issue\n");
+        result = EqualityError;
+    }
+
+    qk_dag_free(dag);
+    return result;
+}
+
+/**
+ * Test a circuit with Pauli-based computation instructions.
+ */
+static int test_pbc_instructions(void) {
+    // build a IXYZ Pauli rotation
+    bool z[4] = {false, false, true, true};
+    bool x[4] = {false, true, true, false};
+    QkParam *angle = qk_param_from_double(1.0);
+    QkPauliProductRotation rotation = {z, x, 4, angle};
+
+    // .. and some ZY measurement
+    bool zm[2] = {true, true};
+    bool xm[2] = {false, true};
+    QkPauliProductMeasurement measure = {zm, xm, 2, true};
+
+    // append them to a circuit
+    QkCircuit *circuit = qk_circuit_new(10, 1);
+    uint32_t qubits[4] = {0, 1, 2, 3};
+    qk_circuit_pauli_product_rotation(circuit, &rotation, qubits);
+
+    uint32_t measure_qubits[2] = {1, 2};
+    uint32_t measure_clbit = 0;
+    qk_circuit_pauli_product_measurement(circuit, &measure, measure_qubits, measure_clbit);
+
+    size_t num_inst = qk_circuit_num_instructions(circuit);
+    int result = Ok;
+    if (num_inst != 2) {
+        printf("Expected 2 instructions but found %zu\n", num_inst);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    QkOperationKind op_kind = qk_circuit_instruction_kind(circuit, 0);
+    if (op_kind != QkOperationKind_PauliProductRotation) {
+        printf("Operation kind of instruction 0 is not QkOperationKind_PauliProductRotation.\n");
+        result = EqualityError;
+        goto cleanup;
+    }
+    op_kind = qk_circuit_instruction_kind(circuit, 1);
+    if (op_kind != QkOperationKind_PauliProductMeasurement) {
+        printf("Operation kind of instruction 1 is not QkOperationKind_PauliProductMeasurement.\n");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    // retrieve the instructions and verify their are correct
+    QkPauliProductRotation out_rot;
+    QkExitCode exit = qk_circuit_inst_pauli_product_rotation(circuit, 0, &out_rot);
+    if (exit != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+
+    if (out_rot.len != 4) {
+        printf("Pauli length is not 4, but %zu\n", out_rot.len);
+        result = EqualityError;
+        goto cleanup_out_rot;
+    }
+    for (size_t i = 0; i < rotation.len; ++i) {
+        if (out_rot.x[i] != x[i] || out_rot.z[i] != z[i]) {
+            printf("(z, x) term at %zu does not match. Expected (%d, %d), got (%d, %d)\n", i, z[i],
+                   x[i], out_rot.z[i], out_rot.x[i]);
+            result = EqualityError;
+            goto cleanup_out_rot;
+        }
+    }
+    if (!qk_param_equal(out_rot.angle, angle)) {
+        char *out_str = qk_param_str(out_rot.angle);
+        char *expected_str = qk_param_str(angle);
+        printf("Angle (%s) does not match the original angle (%s).\n", out_str, expected_str);
+        qk_str_free(out_str);
+        qk_str_free(expected_str);
+        result = EqualityError;
+        goto cleanup_out_rot;
+    }
+
+    QkPauliProductMeasurement *out_meas = malloc(sizeof(QkPauliProductMeasurement));
+    exit = qk_circuit_inst_pauli_product_measurement(circuit, 1, out_meas);
+    if (exit != QkExitCode_Success) {
+        result = RuntimeError;
+        // free the memory, but there's no content to be cleared, so we do not have to
+        // call qk_pauli_product_measurement_clear
+        free(out_meas);
+        goto cleanup_out_rot;
+    }
+
+    if (out_meas->len != 2) {
+        printf("Pauli length is not 2, but %zu\n", out_meas->len);
+        result = EqualityError;
+        goto cleanup_out_meas;
+    }
+    for (size_t i = 0; i < measure.len; ++i) {
+        if (out_meas->x[i] != xm[i] || out_meas->z[i] != zm[i]) {
+            printf("(z, x) term at %zu does not match. Expected (%d, %d), got (%d, %d)\n", i, zm[i],
+                   xm[i], out_meas->z[i], out_meas->x[i]);
+            result = EqualityError;
+            goto cleanup_out_meas;
+        }
+    }
+    if (out_meas->flip_outcome != measure.flip_outcome) {
+        printf("Flip (%i) does not match the original flip (%i).\n", out_meas->flip_outcome,
+               measure.flip_outcome);
+        result = EqualityError;
+    }
+
+cleanup_out_meas:
+    qk_pauli_product_measurement_clear(out_meas);
+    free(out_meas);
+cleanup_out_rot:
+    qk_pauli_product_rotation_clear(&out_rot);
+cleanup:
+    qk_circuit_free(circuit);
+    return result;
+}
+
 int test_circuit(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_empty);
@@ -939,6 +1379,7 @@ int test_circuit(void) {
     num_failed += RUN_TEST(test_circuit_with_classical_reg);
     num_failed += RUN_TEST(test_circuit_copy);
     num_failed += RUN_TEST(test_circuit_copy_with_instructions);
+    num_failed += RUN_TEST(test_circuit_copy_empty_like);
     num_failed += RUN_TEST(test_no_gate_1000_bits);
     num_failed += RUN_TEST(test_get_gate_counts);
     num_failed += RUN_TEST(test_get_gate_counts_bv_no_measure);
@@ -952,6 +1393,12 @@ int test_circuit(void) {
     num_failed += RUN_TEST(test_not_unitary_gate);
     num_failed += RUN_TEST(test_unitary_gate_1q);
     num_failed += RUN_TEST(test_unitary_gate_3q);
+    num_failed += RUN_TEST(test_circuit_draw);
+    num_failed += RUN_TEST(test_get_instruction_params);
+    num_failed += RUN_TEST(test_instruction_params_ownership);
+    num_failed += RUN_TEST(test_parameterized_circuit);
+    num_failed += RUN_TEST(test_circuit_to_dag);
+    num_failed += RUN_TEST(test_pbc_instructions);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);

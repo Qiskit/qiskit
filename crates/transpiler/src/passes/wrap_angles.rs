@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -69,7 +69,7 @@ pub fn run_wrap_angles(
             let new_dag =
                 bounds_registry.substitute_angle_bounds(inst.op.name(), &params, &qargs)?;
             if let Some(new_dag) = new_dag {
-                dag.substitute_node_with_dag(node, &new_dag, None, None, None)?;
+                dag.substitute_node_with_dag(node, &new_dag, None, None, None, None)?;
             }
         }
     }

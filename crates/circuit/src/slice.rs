@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -28,16 +28,18 @@ pub enum PySequenceIndex<'py> {
     Slice(Bound<'py, PySlice>),
 }
 
-impl<'py> FromPyObject<'py> for PySequenceIndex<'py> {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for PySequenceIndex<'py> {
+    type Error = <isize as FromPyObject<'a, 'py>>::Error;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         // `slice` can't be subclassed in Python, so it's safe (and faster) to check for it exactly.
-        // The `downcast_exact` check is just a pointer comparison, so while `slice` is the less
+        // The `cast_exact` check is just a pointer comparison, so while `slice` is the less
         // common input, doing that first has little-to-no impact on the speed of the `isize` path,
         // while the reverse makes `slice` inputs significantly slower.
-        if let Ok(slice) = ob.downcast_exact::<PySlice>() {
-            return Ok(Self::Slice(slice.clone()));
+        if let Ok(slice) = ob.cast_exact::<PySlice>() {
+            return Ok(Self::Slice(slice.to_owned()));
         }
-        Ok(Self::Int(ob.extract()?))
+        ob.extract().map(Self::Int)
     }
 }
 

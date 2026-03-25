@@ -2,7 +2,7 @@
 features_c:
   - |
     Add support for the :class:`.ConsolidateBlocks` transpiler pass to the C
-    API via the method :cpp:func:`qk_transpiler_pass_standalone_consolidate_blocks`.
+    API via the method :c:func:`qk_transpiler_pass_standalone_consolidate_blocks`.
 
     Here's an example:
 

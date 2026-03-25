@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -84,8 +84,14 @@ pub fn analyze_commutations(
                     {
                         let op1 = packed_inst0.op.view();
                         let op2 = packed_inst1.op.view();
-                        let params1 = packed_inst0.params_view();
-                        let params2 = packed_inst1.params_view();
+
+                        if packed_inst0.op.try_control_flow().is_some()
+                            || packed_inst1.op.try_control_flow().is_some()
+                        {
+                            all_commute = false;
+                            break;
+                        }
+
                         let qargs1 = dag.get_qargs(packed_inst0.qubits);
                         let qargs2 = dag.get_qargs(packed_inst1.qubits);
                         let cargs1 = dag.get_cargs(packed_inst0.clbits);
@@ -93,13 +99,14 @@ pub fn analyze_commutations(
 
                         all_commute = commutation_checker.commute(
                             &op1,
-                            params1,
+                            packed_inst0.params.as_deref(),
                             qargs1,
                             cargs1,
                             &op2,
-                            params2,
+                            packed_inst1.params.as_deref(),
                             qargs2,
                             cargs2,
+                            None,
                             MAX_NUM_QUBITS,
                             approximation_degree,
                         )?;
@@ -148,7 +155,7 @@ pub fn py_analyze_commutations(
     // First set the {wire: [commuting_nodes_1, ...]} bit
     for (wire, commutations) in commutation_set {
         // we know all wires are of type Wire::Qubit, since in analyze_commutations_inner
-        // we only iterater over the qubits
+        // we only iterate over the qubits
         let py_wire = match wire {
             Wire::Qubit(q) => dag.qubits().get(q).unwrap().into_pyobject(py),
             _ => return Err(PyValueError::new_err("Unexpected wire type.")),

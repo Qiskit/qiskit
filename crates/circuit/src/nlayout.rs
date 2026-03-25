@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -72,9 +72,11 @@ macro_rules! qubit_newtype {
             }
         }
 
-        impl pyo3::FromPyObject<'_> for $id {
-            fn extract_bound(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
-                Ok(Self(ob.extract()?))
+        impl<'a, 'py> ::pyo3::FromPyObject<'a, 'py> for $id {
+            type Error = <u32 as FromPyObject<'a, 'py>>::Error;
+
+            fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
+                ob.extract().map(Self)
             }
         }
 
@@ -132,7 +134,7 @@ impl VirtualQubit {
 ///         physical qubit index on the coupling graph.
 ///     logical_qubits (int): The number of logical qubits in the layout
 ///     physical_qubits (int): The number of physical qubits in the layout
-#[pyclass(module = "qiskit._accelerate.nlayout")]
+#[pyclass(module = "qiskit._accelerate.nlayout", skip_from_py_object)]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NLayout {
     virt_to_phys: Vec<PhysicalQubit>,
@@ -287,6 +289,18 @@ impl NLayout {
             virt_to_phys,
             phys_to_virt,
         }
+    }
+}
+impl ::std::ops::Index<VirtualQubit> for NLayout {
+    type Output = PhysicalQubit;
+    fn index(&self, index: VirtualQubit) -> &PhysicalQubit {
+        &self.virt_to_phys[index.index()]
+    }
+}
+impl ::std::ops::Index<PhysicalQubit> for NLayout {
+    type Output = VirtualQubit;
+    fn index(&self, index: PhysicalQubit) -> &VirtualQubit {
+        &self.phys_to_virt[index.index()]
     }
 }
 

@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -15,7 +15,7 @@ use pyo3::prelude::*;
 
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
-use qiskit_circuit::{Qubit, VarsMode};
+use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
 
 /// Run the ElidePermutations pass on `dag`.
 ///
@@ -39,8 +39,8 @@ pub fn run_elide_permutations(dag: &DAGCircuit) -> PyResult<Option<(DAGCircuit, 
     let mut mapping: Vec<usize> = (0..dag.num_qubits()).collect();
 
     // note that DAGCircuit::copy_empty_like clones the interners
-    let mut new_dag = dag.copy_empty_like(VarsMode::Alike)?;
-    for node_index in dag.topological_op_nodes()? {
+    let mut new_dag = dag.copy_empty_like_with_capacity(0, 0, VarsMode::Alike, BlocksMode::Keep)?;
+    for node_index in dag.topological_op_nodes(false) {
         if let NodeType::Operation(inst) = &dag[node_index] {
             match inst.op.view() {
                 OperationRef::StandardGate(StandardGate::Swap) => {
@@ -51,9 +51,11 @@ pub fn run_elide_permutations(dag: &DAGCircuit) -> PyResult<Option<(DAGCircuit, 
                 }
                 OperationRef::Gate(gate) if gate.name() == "permutation" => {
                     Python::attach(|py| -> PyResult<()> {
-                        if let Param::Obj(ref pyobj) = inst.params.as_ref().unwrap()[0] {
+                        let params = inst.params_view();
+                        if let Param::Obj(ref pyobj) = params[0] {
                             let pyarray: PyReadonlyArray1<i32> = pyobj.extract(py)?;
                             let pattern = pyarray.as_array();
+
                             let qindices: Vec<usize> = dag
                                 .get_qargs(inst.qubits)
                                 .iter()

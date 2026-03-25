@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -25,6 +25,9 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.passmanager_config import PassManagerConfig
+from qiskit.transpiler.preset_passmanagers.clifford_t_pass_manager import (
+    clifford_t_pass_manager,
+)
 from qiskit.transpiler.preset_passmanagers.common import is_clifford_t_basis
 from qiskit.transpiler.target import Target, _FakeTarget
 
@@ -87,6 +90,13 @@ def generate_preset_pass_manager(
     **coupling_map**             target    coupling_map
     **dt**                       target    dt
     ============================ ========= ========================
+
+    .. note::
+
+        When the target basis consists of Clifford+T gates, this function constructs
+        a specialized Clifford+T transpiler pipeline, see :func:`.clifford_t_pass_manager`
+        for documentation. The arguments that apply to transpiling into continuous basis sets
+        are ignored in this flow.
 
     Args:
         optimization_level (int): The optimization level to generate a
@@ -239,27 +249,26 @@ def generate_preset_pass_manager(
             # If a backend is specified with loose dt, use its target and adjust the dt value.
             target = copy.deepcopy(backend.target)
             target.dt = dt
+        elif basis_gates is not None:
+            # Build target from constraints.
+            target = Target.from_configuration(
+                basis_gates=basis_gates,
+                num_qubits=backend.num_qubits if backend is not None else None,
+                coupling_map=coupling_map,
+                instruction_durations=instruction_durations,
+                concurrent_measurements=(
+                    backend.target.concurrent_measurements if backend is not None else None
+                ),
+                dt=dt,
+                timing_constraints=timing_constraints,
+                custom_name_mapping=name_mapping,
+            )
         else:
-            if basis_gates is not None:
-                # Build target from constraints.
-                target = Target.from_configuration(
-                    basis_gates=basis_gates,
-                    num_qubits=backend.num_qubits if backend is not None else None,
-                    coupling_map=coupling_map,
-                    instruction_durations=instruction_durations,
-                    concurrent_measurements=(
-                        backend.target.concurrent_measurements if backend is not None else None
-                    ),
-                    dt=dt,
-                    timing_constraints=timing_constraints,
-                    custom_name_mapping=name_mapping,
-                )
-            else:
-                target = _FakeTarget.from_configuration(
-                    num_qubits=backend.num_qubits if backend is not None else None,
-                    coupling_map=coupling_map,
-                    dt=dt,
-                )
+            target = _FakeTarget.from_configuration(
+                num_qubits=backend.num_qubits if backend is not None else None,
+                coupling_map=coupling_map,
+                dt=dt,
+            )
 
     # Update loose constraints to populate pm options
     if coupling_map is None:
@@ -303,11 +312,10 @@ def generate_preset_pass_manager(
     else:
         pm_config = PassManagerConfig(**pm_options)
 
-    pm_config._is_clifford_t = is_clifford_t_basis(
-        basis_gates=pm_config.basis_gates, target=pm_config.target
-    )
+    if is_clifford_t_basis(basis_gates=pm_config.basis_gates, target=pm_config.target):
+        pm = clifford_t_pass_manager(pm_config, optimization_level=optimization_level)
 
-    if optimization_level == 0:
+    elif optimization_level == 0:
         pm = level_0_pass_manager(pm_config)
     elif optimization_level == 1:
         pm = level_1_pass_manager(pm_config)
@@ -317,6 +325,7 @@ def generate_preset_pass_manager(
         pm = level_3_pass_manager(pm_config)
     else:
         raise ValueError(f"Invalid optimization level {optimization_level}")
+
     return pm
 
 

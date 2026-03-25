@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -13,7 +13,7 @@
 """Test QASM3 exporter."""
 
 # We can't really help how long the lines output by the exporter are in some cases.
-# pylint: disable=line-too-long,invalid-name
+
 
 from io import StringIO
 from math import pi
@@ -51,7 +51,7 @@ from qiskit.qasm3.exporter import QASM3Builder
 from qiskit.qasm3.printer import BasicPrinter
 from qiskit.qasm3.exceptions import QASM3ImporterError
 from qiskit.quantum_info import Pauli
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 # Custom instruction for defcal testing
@@ -113,8 +113,11 @@ class TestCircuitQASM3(QiskitTestCase):
         # be useful for the tests must _never_ have false positive matches.  We use an explicit
         # space (`\s`) or semicolon rather than the end-of-word `\b` because we want to ensure that
         # the exporter isn't putting out invalid characters as part of the identifiers.
+        alpha = r"a-zA-Z\u0370-\u03ff"
+        id_first = rf"[{alpha}_]"
+        id_cont = rf"[{alpha}_0-9]"
         cls.register_regex = re.compile(
-            r"^\s*(let|(qu)?bit(\[\d+\])?)\s+(?P<name>\w+)[\s;]", re.U | re.M
+            rf"^\s*(let|(qu)?bit(\[\d+\])?)\s+(?P<name>{id_first}{id_cont}*)[\s;]", re.U | re.M
         )
         scalar_type_names = {
             "angle",
@@ -127,7 +130,7 @@ class TestCircuitQASM3(QiskitTestCase):
         cls.scalar_parameter_regex = re.compile(
             r"^\s*((input|output|const)\s+)?"  # Modifier
             rf"({'|'.join(scalar_type_names)})\s*(\[[^\]]+\])?\s+"  # Type name and designator
-            r"(?P<name>\w+)[\s;]",  # Parameter name
+            rf"(?P<name>{id_first}{id_cont}*)[\s;]",  # Parameter name
             re.U | re.M,
         )
         super().setUpClass()
@@ -958,7 +961,7 @@ c[1] = measure q[1];
                 "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 f"qubit[2] {qr_name};",
-                f"for {parameter.name} in {{0, 3, 4}} {{",
+                f"for int {parameter.name} in {{0, 3, 4}} {{",
                 f"  rx({parameter.name}) {qr_name}[1];",
                 "  break;",
                 "  continue;",
@@ -997,10 +1000,10 @@ c[1] = measure q[1];
                 "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 f"qubit[2] {qr_name};",
-                f"for {outer_parameter.name} in [0:3] {{",
+                f"for int {outer_parameter.name} in [0:3] {{",
                 f"  h {qr_name}[0];",
                 f"  rz({outer_parameter.name}) {qr_name}[1];",
-                f"  for {inner_parameter.name} in [1:2:4] {{",
+                f"  for int {inner_parameter.name} in [1:2:4] {{",
                 # Note the reversed bit order.
                 f"    rz({inner_parameter.name}) {qr_name}[1];",
                 f"    rz({outer_parameter.name}) {qr_name}[0];",
@@ -1046,10 +1049,10 @@ c[1] = measure q[1];
                 # This next line will be missing until gh-7280 is fixed.
                 f"input float[64] {regular_parameter.name};",
                 f"qubit[2] {qr_name};",
-                f"for {outer_parameter.name} in [0:3] {{",
+                f"for int {outer_parameter.name} in [0:3] {{",
                 f"  h {qr_name}[0];",
                 f"  h {qr_name}[1];",
-                f"  for {inner_parameter.name} in [1:2:4] {{",
+                f"  for int {inner_parameter.name} in [1:2:4] {{",
                 # Note the reversed bit order.
                 f"    h {qr_name}[1];",
                 f"    rx({regular_parameter.name}) {qr_name}[0];",
@@ -1077,7 +1080,7 @@ c[1] = measure q[1];
                 "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 f"qubit[2] {qr_name};",
-                "for _ in {0, 3, 4} {",
+                "for int _ in {0, 3, 4} {",
                 f"  h {qr_name}[1];",
                 "}",
                 "",
@@ -1443,7 +1446,7 @@ box[a] {
                 "  rx(0.5) _gate_q_0;",
                 "}",
                 "qubit[1] q;",
-                "for b in [0:1] {",
+                "for int b in [0:1] {",
                 "  custom q[0];",
                 "}",
                 "",
@@ -1452,7 +1455,7 @@ box[a] {
         self.assertEqual(dumps(qc), expected_qasm)
 
     def test_custom_gate_with_hw_qubit_name(self):
-        """Test that the name of a custom gate that is an OQ3 hardware qubit identifer is properly
+        """Test that the name of a custom gate that is an OQ3 hardware qubit identifier is properly
         escaped when translated to OQ3."""
         mygate_circ = QuantumCircuit(1, name="$1")
         mygate_circ.x(0)
@@ -1477,21 +1480,27 @@ box[a] {
         """Test that both types of register are emitted with safely escaped names if they begin with
         invalid names. Regression test of gh-9658."""
         qc = QuantumCircuit(
-            QuantumRegister(2, name="q_{reg}"), ClassicalRegister(2, name="c_{reg}")
+            QuantumRegister(2, name="q_{reg}"),
+            ClassicalRegister(2, name="c_{reg}"),
+            QuantumRegister(2, name="²"),
+            ClassicalRegister(2, name="2c"),
+            QuantumRegister(2, name="abc?!abc$%^&"),
+            ClassicalRegister(2, name="?!abc$%^&"),
         )
-        qc.measure([0, 1], [0, 1])
+        qc.measure(qc.qubits, qc.clbits)
         out_qasm = dumps(qc)
         matches = {match_["name"] for match_ in self.register_regex.finditer(out_qasm)}
-        self.assertEqual(len(matches), 2, msg=f"Observed OQ3 output:\n{out_qasm}")
+        self.assertEqual(len(matches), 6, msg=f"Observed OQ3 output:\n{out_qasm}")
 
     def test_parameters_have_escaped_names(self):
         """Test that parameters are emitted with safely escaped names if they begin with invalid
         names. Regression test of gh-9658."""
         qc = QuantumCircuit(1)
-        qc.u(Parameter("p_{0}"), 2 * Parameter("p_?0!"), 0, 0)
+        qc.u(Parameter("p_{0}"), 2 * Parameter("2p"), Parameter("a²"), 0)
+        qc.rz(Parameter("!$abc%$&"), 0)
         out_qasm = dumps(qc)
         matches = {match_["name"] for match_ in self.scalar_parameter_regex.finditer(out_qasm)}
-        self.assertEqual(len(matches), 2, msg=f"Observed OQ3 output:\n{out_qasm}")
+        self.assertEqual(len(matches), 4, msg=f"Observed OQ3 output:\n{out_qasm}")
 
     def test_parameter_expression_after_naming_escape(self):
         """Test that :class:`.Parameter` instances are correctly renamed when they are used with
@@ -2773,19 +2782,6 @@ class TestQASM3ExporterFailurePaths(QiskitTestCase):
         with self.assertRaisesRegex(QASM3ExporterError, r"classical registers .* overlap"):
             exporter.dumps(qc)
 
-    @data([1, 2, 1.1], [1j, 2])
-    def test_disallow_for_loops_with_non_integers(self, indices):
-        """Test that the exporter rejects ``for`` loops that include non-integer values in their
-        index sets."""
-        loop_body = QuantumCircuit()
-        qc = QuantumCircuit(2, 2)
-        qc.for_loop(indices, None, loop_body, [], [])
-        exporter = Exporter()
-        with self.assertRaisesRegex(
-            QASM3ExporterError, r"The values in OpenQASM 3 'for' loops must all be integers.*"
-        ):
-            exporter.dumps(qc)
-
     def test_disallow_custom_subroutine_with_parameters(self):
         """Test that the exporter throws an error instead of trying to export a subroutine with
         parameters, while this is not supported."""
@@ -3398,7 +3394,6 @@ class TestQASM3ExporterRust(QiskitTestCase):
 
     def test_annotations(self):
         """Test that the annotation-serialisation framework works."""
-        # pylint: disable=missing-class-docstring,missing-function-docstring
         assert_in = self.assertIn
         assert_equal = self.assertEqual
 
@@ -3436,7 +3431,7 @@ class TestQASM3ExporterRust(QiskitTestCase):
             def load(self, namespace, payload):
                 raise NotImplementedError("unused in test")
 
-            def dump(self, annotation):  # pylint: disable=redefined-outer-name
+            def dump(self, annotation):
                 base, sub = annotation.namespace.split(".", 1)
                 assert_equal(base, "my")
                 assert_in(sub, ("int", "str"))
@@ -3450,7 +3445,7 @@ class TestQASM3ExporterRust(QiskitTestCase):
             def load(self, namespace, payload):
                 raise NotImplementedError("unused in test")
 
-            def dump(self, annotation):  # pylint: disable=redefined-outer-name
+            def dump(self, annotation):
                 if annotation.namespace == "static.global":
                     nonlocal skip_triggered
                     skip_triggered = True
@@ -3462,7 +3457,7 @@ class TestQASM3ExporterRust(QiskitTestCase):
             def load(self, namespace, payload):
                 raise NotImplementedError("unused in test")
 
-            def dump(self, annotation):  # pylint: disable=redefined-outer-name
+            def dump(self, annotation):
                 # This is registered as the global handler, but should only be called when handling
                 # `static.global`.
                 assert_equal(annotation.namespace, "static.global")

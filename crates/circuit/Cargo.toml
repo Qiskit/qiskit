@@ -19,6 +19,8 @@ rustworkx-core.workspace = true
 bytemuck.workspace = true
 bitfield-struct.workspace = true
 num-complex.workspace = true
+num-bigint.workspace = true
+num-traits.workspace = true
 thiserror.workspace = true
 itertools.workspace = true
 nalgebra.workspace = true
@@ -26,6 +28,9 @@ uuid.workspace = true
 nom.workspace = true
 nom-unicode.workspace = true
 nom-language.workspace = true
+crossterm = "0.29.0"
+unicode-width = "0.2"
+unicode-segmentation = "1.12"
 
 [dependencies.pyo3]
 workspace = true

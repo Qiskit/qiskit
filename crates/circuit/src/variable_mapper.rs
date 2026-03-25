@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -12,54 +12,13 @@
 
 use crate::bit::{ClassicalRegister, Register, ShareableClbit};
 use crate::classical::expr;
+use crate::operations::{Condition, SwitchTarget};
 use hashbrown::{HashMap, HashSet};
+use num_bigint::BigUint;
+use num_traits::Num;
+use pyo3::PyResult;
 use pyo3::prelude::*;
-use pyo3::{Bound, FromPyObject, PyAny, PyResult};
 use std::cell::RefCell;
-
-/// A control flow operation's condition.
-///
-/// TODO: move this to control flow mod once that's in Rust.
-#[derive(IntoPyObject)]
-pub(crate) enum Condition {
-    Bit(ShareableClbit, usize),
-    Register(ClassicalRegister, usize),
-    Expr(expr::Expr),
-}
-
-impl<'py> FromPyObject<'py> for Condition {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        if let Ok((bit, value)) = ob.extract::<(ShareableClbit, usize)>() {
-            Ok(Condition::Bit(bit, value))
-        } else if let Ok((register, value)) = ob.extract::<(ClassicalRegister, usize)>() {
-            Ok(Condition::Register(register, value))
-        } else {
-            Ok(Condition::Expr(ob.extract()?))
-        }
-    }
-}
-
-/// A control flow operation's target.
-///
-/// TODO: move this to control flow mod once that's in Rust.
-#[derive(IntoPyObject)]
-pub(crate) enum SwitchTarget {
-    Bit(ShareableClbit),
-    Register(ClassicalRegister),
-    Expr(expr::Expr),
-}
-
-impl<'py> FromPyObject<'py> for SwitchTarget {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        if let Ok(bit) = ob.extract::<ShareableClbit>() {
-            Ok(SwitchTarget::Bit(bit))
-        } else if let Ok(register) = ob.extract::<ClassicalRegister>() {
-            Ok(SwitchTarget::Register(register))
-        } else {
-            Ok(SwitchTarget::Expr(ob.extract()?))
-        }
-    }
-}
 
 pub(crate) struct VariableMapper {
     target_cregs: Vec<ClassicalRegister>,
@@ -118,7 +77,7 @@ impl VariableMapper {
                 if !allow_reorder {
                     return Ok(Condition::Register(
                         self.map_register(target, &mut add_register)?,
-                        *value,
+                        value.clone(),
                     ));
                 }
                 // This is maintaining the legacy behavior of `DAGCircuit.compose`.  We don't
@@ -171,7 +130,7 @@ impl VariableMapper {
 
                 Condition::Register(
                     mapped_theirs,
-                    usize::from_str_radix(&mapped_str, 2).unwrap(),
+                    BigUint::from_str_radix(&mapped_str, 2).unwrap(),
                 )
             }
         })

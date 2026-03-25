@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -18,6 +18,7 @@ import typing
 
 from qiskit.circuit.delay import Delay
 from qiskit.circuit.exceptions import CircuitError
+from qiskit._accelerate.circuit import ControlFlowType
 from .control_flow import ControlFlowOp
 
 if typing.TYPE_CHECKING:
@@ -40,6 +41,8 @@ class BoxOp(ControlFlowOp):
     Typically you create this by using the builder-interface form of :meth:`.QuantumCircuit.box`.
     """
 
+    _control_flow_type = ControlFlowType.Box
+
     def __init__(
         self,
         body: QuantumCircuit,
@@ -54,7 +57,7 @@ class BoxOp(ControlFlowOp):
         Args:
             body: the circuit to use as the body of the box.  This should explicitly close over any
                 :class:`.expr.Var` variables that must be incident from the outer circuit.  The
-                required number of qubit and clbits for the resulting instruction are inferred from
+                required number of qubits and clbits for the resulting instruction are inferred from
                 the number in the circuit, even if they are idle.
             duration: an optional duration for the box as a whole.
             unit: the unit of the ``duration``.
@@ -73,7 +76,7 @@ class BoxOp(ControlFlowOp):
 
     @params.setter
     def params(self, parameters):
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         (body,) = parameters
@@ -134,7 +137,7 @@ class BoxContext:
     This is not part of the public interface, and should not be instantiated by users.
     """
 
-    __slots__ = ("_circuit", "_duration", "_unit", "_label", "_annotations")
+    __slots__ = ("_annotations", "_circuit", "_duration", "_label", "_unit")
 
     def __init__(
         self,

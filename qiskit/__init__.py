@@ -4,14 +4,16 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=wrong-import-position,wrong-import-order
 
+# The documentation of the root namespace is manual in `docs/apidoc/root.rst`, so that the
+# :mod:`qiskit` Sphinx cross-reference can more easily point to the top-level API table in our
+# documentation build.
 """Main Qiskit public functionality."""
 
 import importlib.metadata
@@ -31,7 +33,7 @@ else:
     # `qiskit/tools` folder in their path, which will appear as a "namespace package" with no valid
     # location.  We catch that case as "not actually having Qiskit 0.x" as a convenience to devs.
     _has_tools = getattr(importlib.util.find_spec("qiskit.tools"), "has_location", False)
-    _suppress_error = os.environ.get("QISKIT_SUPPRESS_1_0_IMPORT_ERROR", False) == "1"
+    _suppress_error = os.environ.get("QISKIT_SUPPRESS_1_0_IMPORT_ERROR", "") == "1"
     if not _suppress_error and _has_tools:
         raise ImportError(
             "Qiskit is installed in an invalid environment that has both Qiskit >=1.0"
@@ -44,15 +46,6 @@ else:
             " See https://qisk.it/packaging-1-0 for more detail."
         )
 
-if sys.version_info < (3, 10):
-    warnings.warn(
-        "Using Qiskit with Python 3.9 is deprecated as of the 2.1.0 release. "
-        "Support for running Qiskit with Python 3.9 will be removed in the "
-        "2.3.0 release, which coincides with when Python 3.9 goes end of life.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-
 from . import _accelerate
 import qiskit._numpy_compat
 
@@ -64,6 +57,7 @@ import qiskit._numpy_compat
 sys.modules["qiskit._accelerate.alap_schedule_analysis"] = _accelerate.alap_schedule_analysis
 sys.modules["qiskit._accelerate.asap_schedule_analysis"] = _accelerate.asap_schedule_analysis
 sys.modules["qiskit._accelerate.apply_layout"] = _accelerate.apply_layout
+sys.modules["qiskit._accelerate.capi"] = _accelerate.capi
 sys.modules["qiskit._accelerate.circuit"] = _accelerate.circuit
 sys.modules["qiskit._accelerate.circuit.classical"] = _accelerate.circuit.classical
 sys.modules["qiskit._accelerate.circuit.classical.expr"] = _accelerate.circuit.classical.expr
@@ -84,6 +78,7 @@ sys.modules["qiskit._accelerate.euler_one_qubit_decomposer"] = (
 sys.modules["qiskit._accelerate.optimize_1q_gates_decomposition"] = (
     _accelerate.optimize_1q_gates_decomposition
 )
+sys.modules["qiskit._accelerate.optimize_clifford_t"] = _accelerate.optimize_clifford_t
 sys.modules["qiskit._accelerate.nlayout"] = _accelerate.nlayout
 sys.modules["qiskit._accelerate.optimize_1q_gates"] = _accelerate.optimize_1q_gates
 sys.modules["qiskit._accelerate.pauli_expval"] = _accelerate.pauli_expval
@@ -97,6 +92,7 @@ sys.modules["qiskit._accelerate.results"] = _accelerate.results
 sys.modules["qiskit._accelerate.sabre"] = _accelerate.sabre
 sys.modules["qiskit._accelerate.sampled_exp_val"] = _accelerate.sampled_exp_val
 sys.modules["qiskit._accelerate.sparse_observable"] = _accelerate.sparse_observable
+sys.modules["qiskit._accelerate.scheduling"] = _accelerate.scheduling
 sys.modules["qiskit._accelerate.sparse_pauli_op"] = _accelerate.sparse_pauli_op
 sys.modules["qiskit._accelerate.elide_permutations"] = _accelerate.elide_permutations
 sys.modules["qiskit._accelerate.target"] = _accelerate.target
@@ -112,13 +108,16 @@ sys.modules["qiskit._accelerate.barrier_before_final_measurement"] = (
 sys.modules["qiskit._accelerate.commutation_checker"] = _accelerate.commutation_checker
 sys.modules["qiskit._accelerate.commutation_analysis"] = _accelerate.commutation_analysis
 sys.modules["qiskit._accelerate.commutation_cancellation"] = _accelerate.commutation_cancellation
+sys.modules["qiskit._accelerate.commutative_optimization"] = _accelerate.commutative_optimization
 sys.modules["qiskit._accelerate.consolidate_blocks"] = _accelerate.consolidate_blocks
+sys.modules["qiskit._accelerate.constrained_reschedule"] = _accelerate.constrained_reschedule
 sys.modules["qiskit._accelerate.synthesis.linear_phase"] = _accelerate.synthesis.linear_phase
 sys.modules["qiskit._accelerate.synthesis.evolution"] = _accelerate.synthesis.evolution
 sys.modules["qiskit._accelerate.synthesis.discrete_basis"] = _accelerate.synthesis.discrete_basis
 sys.modules["qiskit._accelerate.synthesis.multi_controlled"] = (
     _accelerate.synthesis.multi_controlled
 )
+sys.modules["qiskit._accelerate.synthesis.pauli_products"] = _accelerate.synthesis.pauli_products
 sys.modules["qiskit._accelerate.synthesis.qft"] = _accelerate.synthesis.qft
 sys.modules["qiskit._accelerate.split_2q_unitaries"] = _accelerate.split_2q_unitaries
 sys.modules["qiskit._accelerate.gate_direction"] = _accelerate.gate_direction
@@ -134,12 +133,20 @@ sys.modules["qiskit._accelerate.remove_identity_equiv"] = _accelerate.remove_ide
 sys.modules["qiskit._accelerate.circuit_duration"] = _accelerate.circuit_duration
 sys.modules["qiskit._accelerate.cos_sin_decomp"] = _accelerate.cos_sin_decomp
 sys.modules["qiskit._accelerate.qsd"] = _accelerate.qsd
+sys.modules["qiskit._accelerate.ross_selinger"] = _accelerate.ross_selinger
 sys.modules["qiskit._accelerate.wrap_angles"] = _accelerate.wrap_angles
 sys.modules["qiskit._accelerate.angle_bound_registry"] = _accelerate.angle_bound_registry
 sys.modules["qiskit._accelerate.litinski_transformation"] = _accelerate.litinski_transformation
 sys.modules["qiskit._accelerate.unroll_3q_or_more"] = _accelerate.unroll_3q_or_more
+sys.modules["qiskit._accelerate.substitute_pi4_rotations"] = _accelerate.substitute_pi4_rotations
+sys.modules["qiskit._accelerate.synthesize_rz_rotations"] = _accelerate.synthesize_rz_rotations
+sys.modules["qiskit._accelerate.convert_to_pauli_rotations"] = (
+    _accelerate.convert_to_pauli_rotations
+)
+
 
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
+import qiskit.capi
 
 # The main qiskit operators
 from qiskit.circuit import ClassicalRegister
@@ -160,6 +167,9 @@ from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from .version import __version__
 
 
+# The Qiskit repo root is documented manually in `docs/apidoc/root.rst`.  Make sure that all
+# re-exports in `__all__` and any functions/objects defined in-line in this file and intended to be
+# exported to users at the `qiskit.` root are documented in that file.
 __all__ = [
     "AncillaRegister",
     "ClassicalRegister",
@@ -167,6 +177,6 @@ __all__ = [
     "QiskitError",
     "QuantumCircuit",
     "QuantumRegister",
-    "transpile",
     "generate_preset_pass_manager",
+    "transpile",
 ]

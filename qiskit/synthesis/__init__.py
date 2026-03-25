@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -85,6 +85,8 @@ Discrete Basis Synthesis
 
    SolovayKitaevDecomposition
 
+.. autofunction:: gridsynth_rz
+.. autofunction:: gridsynth_unitary
 .. autofunction:: generate_basic_approximations
 
 Basis Change Synthesis
@@ -214,7 +216,12 @@ from .stabilizer import (
     synth_stabilizer_depth_lnn,
     synth_circuit_from_stabilizers,
 )
-from .discrete_basis import SolovayKitaevDecomposition, generate_basic_approximations
+from .discrete_basis import (
+    SolovayKitaevDecomposition,
+    generate_basic_approximations,
+    gridsynth_rz,
+    gridsynth_unitary,
+)
 from .qft import synth_qft_line, synth_qft_full
 from .unitary.qsd import qs_decomposition
 from .unitary import aqc

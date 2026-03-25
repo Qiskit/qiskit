@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -166,19 +166,19 @@ pub fn get_entanglement<'a>(
         entanglement.to_owned()
     };
 
-    if let Ok(strategy) = entanglement.downcast::<PyString>() {
+    if let Ok(strategy) = entanglement.cast::<PyString>() {
         let as_str = strategy.to_string();
         return Ok(Box::new(
             get_entanglement_from_str(num_qubits, block_size, as_str.as_str(), offset)?.map(Ok),
         ));
-    } else if let Ok(dict) = entanglement.downcast::<PyDict>() {
+    } else if let Ok(dict) = entanglement.cast::<PyDict>() {
         if let Some(value) = dict.get_item(block_size)? {
-            let list = value.downcast::<PyList>()?;
+            let list = value.cast::<PyList>()?;
             return _check_entanglement_list(list.to_owned(), block_size);
         } else {
             return Ok(Box::new(std::iter::empty()));
         }
-    } else if let Ok(list) = entanglement.downcast::<PyList>() {
+    } else if let Ok(list) = entanglement.cast::<PyList>() {
         return _check_entanglement_list(list.to_owned(), block_size);
     }
     Err(QiskitError::new_err(

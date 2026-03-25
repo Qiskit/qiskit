@@ -4,12 +4,13 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use super::optimize_1q_gates_decomposition::matmul_1q;
 use hashbrown::{HashMap, HashSet};
 use nalgebra::Matrix2;
 use ndarray::ArrayView2;
@@ -26,31 +27,46 @@ use qiskit_circuit::gate_matrix::{
     CH_GATE, CX_GATE, CY_GATE, CZ_GATE, DCX_GATE, ECR_GATE, ISWAP_GATE, ONE_QUBIT_IDENTITY,
     TWO_QUBIT_IDENTITY,
 };
-use qiskit_circuit::imports::{QI_OPERATOR, QUANTUM_CIRCUIT};
+use qiskit_circuit::imports::QI_OPERATOR;
 use qiskit_circuit::interner::Interned;
 use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::operations::{ArrayType, Operation, Param, UnitaryGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_synthesis::two_qubit_decompose::RXXEquivalent;
-use rustworkx_core::petgraph::stable_graph::NodeIndex;
-use smallvec::SmallVec;
-use smallvec::smallvec;
-
-use super::optimize_1q_gates_decomposition::matmul_1q;
 use qiskit_quantum_info::convert_2q_block_matrix::{blocks_to_matrix, get_matrix_from_inst};
+use qiskit_synthesis::two_qubit_decompose::RXXEquivalent;
 use qiskit_synthesis::two_qubit_decompose::{
     TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer,
 };
+use rustworkx_core::petgraph::stable_graph::NodeIndex;
+use smallvec::SmallVec;
 
 use crate::passes::unitary_synthesis::{PARAM_SET, TWO_QUBIT_BASIS_SET};
-use crate::target::Target;
+use crate::target::{Qargs, Target};
 use qiskit_circuit::PhysicalQubit;
 
 #[allow(clippy::large_enum_variant)]
-#[derive(Clone, Debug, FromPyObject)]
+#[derive(Clone, Debug)]
 pub enum DecomposerType {
     TwoQubitBasis(TwoQubitBasisDecomposer),
     TwoQubitControlledU(TwoQubitControlledUDecomposer),
+}
+// TODO: we shouldn't need to clone a decomposer on entry from Python space, but should rely on a
+// reference type.  This implementation was added during the transition to PyO3 0.28, to avoid
+// proliferating the cloning derive of `FromPyObject` to `TwoQubitBasisDecomposer` and
+// `TwoQubitControlledUDecomposer`; that clone is usually a mistake.  Using a reference type within
+// this code would require a greater refactor so that the Python-space method
+// `py_run_consolidate_blocks` is not the actual worker function.
+impl<'a, 'py> pyo3::FromPyObject<'a, 'py> for DecomposerType {
+    type Error = pyo3::CastError<'a, 'py>;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
+        if let Ok(ob) = ob.cast::<TwoQubitBasisDecomposer>() {
+            Ok(Self::TwoQubitBasis(ob.borrow().clone()))
+        } else {
+            ob.cast::<TwoQubitControlledUDecomposer>()
+                .map(|ob| Self::TwoQubitControlledU(ob.borrow().clone()))
+        }
+    }
 }
 
 fn get_matrix(gate: &StandardGate) -> ArrayView2<'_, Complex64> {
@@ -142,7 +158,10 @@ fn is_supported(
     qargs: &[PhysicalQubit],
 ) -> bool {
     match target {
-        Some(target) => target.instruction_supported(name, qargs),
+        Some(target) => {
+            let physical_qargs: Qargs = qargs.iter().map(|bit| PhysicalQubit(bit.0)).collect();
+            target.instruction_supported(name, &physical_qargs, &[], false)
+        }
         None => match basis_gates {
             Some(basis_gates) => basis_gates.contains(name),
             None => true,
@@ -259,7 +278,7 @@ fn py_run_consolidate_blocks(
                 dag.substitute_op(
                     inst_node,
                     PackedOperation::from_unitary(Box::new(unitary_gate)),
-                    smallvec![],
+                    None,
                     None,
                 )?;
                 continue;
@@ -310,9 +329,7 @@ fn py_run_consolidate_blocks(
                 Param::Float(0.),
             )?;
             let matrix = Python::attach(|py| -> PyResult<_> {
-                let circuit = QUANTUM_CIRCUIT
-                    .get_bound(py)
-                    .call_method1(intern!(py, "_from_circuit_data"), (circuit_data,))?;
+                let circuit = circuit_data.into_py_quantum_circuit(py)?;
                 let matrix = QI_OPERATOR
                     .get_bound(py)
                     .call1((circuit,))?
@@ -335,7 +352,7 @@ fn py_run_consolidate_blocks(
                 dag.replace_block(
                     &block,
                     PackedOperation::from_unitary(Box::new(unitary_gate)),
-                    smallvec![],
+                    None,
                     None,
                     false,
                     &block_index_map,
@@ -383,7 +400,7 @@ fn py_run_consolidate_blocks(
                         dag.replace_block(
                             &block,
                             PackedOperation::from_unitary(Box::new(unitary_gate)),
-                            smallvec![],
+                            None,
                             None,
                             false,
                             &qubit_pos_map,
@@ -421,7 +438,7 @@ fn py_run_consolidate_blocks(
                 dag.substitute_op(
                     first_inst_node,
                     PackedOperation::from_unitary(Box::new(unitary_gate)),
-                    smallvec![],
+                    None,
                     None,
                 )?;
                 continue;
@@ -465,7 +482,7 @@ fn py_run_consolidate_blocks(
                 dag.replace_block(
                     &run,
                     PackedOperation::from_unitary(Box::new(unitary_gate)),
-                    smallvec![],
+                    None,
                     None,
                     false,
                     &block_index_map,
@@ -524,8 +541,8 @@ mod test_consolidate_blocks {
     use indexmap::IndexMap;
 
     use qiskit_circuit::{
-        PhysicalQubit, Qubit, circuit_data::CircuitData, converters::dag_to_circuit,
-        dag_circuit::DAGCircuit, operations::StandardGate,
+        PhysicalQubit, Qubit, circuit_data::CircuitData, dag_circuit::DAGCircuit,
+        operations::StandardGate,
     };
     use smallvec::smallvec;
 
@@ -551,7 +568,7 @@ mod test_consolidate_blocks {
         target
             .add_instruction(
                 StandardGate::H.into(),
-                &[],
+                None,
                 None,
                 Some(IndexMap::from_iter([
                     (
@@ -568,7 +585,7 @@ mod test_consolidate_blocks {
         target
             .add_instruction(
                 StandardGate::CX.into(),
-                &[],
+                None,
                 None,
                 Some(IndexMap::from_iter([
                     (
@@ -591,7 +608,7 @@ mod test_consolidate_blocks {
         run_consolidate_blocks(&mut circ_as_dag, false, None, Some(&target))
             .expect("Error while running the consolidate blocks pass.");
 
-        let circ_result = dag_to_circuit(&circ_as_dag, false)
+        let circ_result = CircuitData::from_dag_ref(&circ_as_dag)
             .expect("Error while converting the DAG to a circuit.");
 
         let data = circ_result.data();
