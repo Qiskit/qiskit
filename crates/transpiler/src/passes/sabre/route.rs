@@ -75,13 +75,18 @@ impl From<u32> for ControlFlowBlockCount {
 }
 
 enum RoutedItemKind {
+    /// A regular [`SabreDAG`] node.
     Simple,
-    /// How many blocks out of [RoutingResult::control_flow] we need to take.  This is stored
-    /// out-of-band of the item kind because control-flow is expected to be very uncommon, and we
-    /// don't want to needless increase the size of the enum.
+    /// How many blocks out of [`Order::control_flow`] we need to take.  This is stored out-of-band
+    /// of the item kind because control-flow is expected to be very uncommon, and we don't want to
+    /// needless increase the size of the enum.
     ControlFlow(ControlFlowBlockCount),
 }
+/// A node in the routing order.
 struct RoutedItem {
+    /// The swaps (if any) to insert before the node.  It is usually `Some` for two-qubit run nodes,
+    /// but can be `None` at the start of a circuit (if the `initial_layout` permits some gates to
+    /// be immediately routed) or for `Synchronize` or `ControlFlow` nodes.
     initial_swaps: Option<Box<[[PhysicalQubit; 2]]>>,
     /// The corresponding node in the Sabre graph.
     node: NodeIndex,
@@ -103,8 +108,14 @@ impl RoutedItem {
 /// at the start of the circuit.  The [RoutingResult] object wraps up this object with the other
 /// necessary components.
 struct Order<'a> {
+    /// The order the Sabre nodes get routed in.
     order: Vec<RoutedItem>,
+    /// The swaps to apply after the last item of [`order`].  This generally happens within
+    /// control-flow blocks.
     final_swaps: Vec<[PhysicalQubit; 2]>,
+    /// Flattened list of control-flow node results.  A given [`RoutedItem`] might require some
+    /// blocks to produce its complete node.  We store them here, rather than in the [`RoutedItem`],
+    /// because control flow is rare, and this way we can keep the struct size of items smaller.
     control_flow: Vec<RoutingResult<'a>>,
 }
 impl<'a> Order<'a> {
@@ -132,9 +143,9 @@ impl<'a> Order<'a> {
 /// A complete result from the Sabre routing algorithm, including the initial problem and layout
 /// that it searched from.
 ///
-/// The [Order] is the calculated result from the analysis (and the [final_layout] field is a
+/// The [`Order`] is the calculated result from the analysis (and the [`final_layout`] field is a
 /// derived quantity that we simply get for free at the end of the algorithm, so store here), and
-/// this struct wraps it up with the problem description and initial layout necessary to fully
+/// this struct wraps it up with the problem description and [`initial_layout`] necessary to fully
 /// interpret it.
 pub struct RoutingResult<'a> {
     problem: RoutingProblem<'a>,
