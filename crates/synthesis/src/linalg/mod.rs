@@ -17,12 +17,16 @@ use nalgebra::{DMatrix, DMatrixView, Dim, Dyn, MatrixView, ViewStorage};
 use ndarray::ArrayView2;
 use ndarray::ShapeBuilder;
 use num_complex::Complex64;
-use qiskit_circuit::util::C_ZERO;
+
+use crate::qsd::QSDError;
 
 pub mod cos_sin_decomp;
 
 const ATOL_DEFAULT: f64 = 1e-8;
 const RTOL_DEFAULT: f64 = 1e-5;
+
+/// Tolerance used for debug checking
+pub const VERIFY_TOL: f64 = 1e-7;
 
 #[inline]
 pub fn ndarray_to_faer<T>(array: ArrayView2<'_, T>) -> MatRef<'_, T> {
@@ -143,7 +147,7 @@ fn verify_svd_decomp(
     w: DMatrixView<Complex64>,
 ) -> bool {
     let mat_check = v * s * w;
-    abs_diff_eq!(mat, mat_check.as_view(), epsilon = 1e-7)
+    abs_diff_eq!(mat, mat_check.as_view(), epsilon = VERIFY_TOL)
 }
 
 /// Verifies the given matrix U is unitary by comparing U*U to the identity matrix
@@ -153,7 +157,7 @@ pub fn verify_unitary(u: &DMatrix<Complex64>) -> bool {
     let id_mat = DMatrix::identity(n, n);
     let uu = u.adjoint() * u;
 
-    abs_diff_eq!(uu, id_mat, epsilon = 1e-7)
+    abs_diff_eq!(uu, id_mat, epsilon = VERIFY_TOL)
 }
 
 /// Given a matrix that is "close" to unitary, returns the closest
@@ -225,40 +229,53 @@ pub fn svd_decomposition(
     (u_na.into(), s_na, v_na)
 }
 
-pub fn svd_decomposition_faer(
-    mat: MatRef<Complex64>,
-) -> (Mat<Complex64>, Mat<Complex64>, Mat<Complex64>) {
-    let svd = mat.svd().expect("Call to faer SVD failed");
+/// Result for the SVD decomposition: a triple of matries (U, S, V) such that A = U * S * V
+type SVDResult = (Mat<Complex64>, Mat<Complex64>, Mat<Complex64>);
+
+pub fn svd_decomposition_faer(mat: MatRef<Complex64>) -> Result<SVDResult, QSDError> {
+    let svd = mat.svd().map_err(|_| QSDError::SVDDecompositionFailed)?;
 
     let u = svd.U().to_owned();
     let s = svd.S();
     let v = svd.V().adjoint().to_owned();
 
-    let sigma = Mat::from_fn(
-        u.ncols(),
-        v.nrows(),
-        |i, j| {
-            if i == j { s[i] } else { C_ZERO }
-        },
-    );
+    let sigma = Mat::from_fn(u.ncols(), v.nrows(), |i, j| {
+        if i == j { s[i] } else { Complex64::ZERO }
+    });
 
-    (u, sigma, v)
+    debug_assert!(verify_svd_decomposition_faer(
+        mat.as_ref(),
+        u.as_ref(),
+        sigma.as_ref(),
+        v.as_ref()
+    ));
+
+    Ok((u, sigma, v))
 }
 
-pub fn closest_unitary_faer(mat: MatRef<Complex64>) -> Mat<Complex64> {
-    let (u, _sigma, v_t) = svd_decomposition_faer(mat);
-    u.as_ref() * v_t.as_ref()
+/// Computes the eigenvalues and the eigenvectors of a square matrix
+pub fn eigendecomposition_faer(
+    mat: MatRef<Complex64>,
+) -> Result<(Vec<Complex64>, Mat<Complex64>), QSDError> {
+    let eigh = mat
+        .eigen()
+        .map_err(|_| QSDError::EigenDecompositionFailed)?;
+
+    let vmat = eigh.U().to_owned();
+    // unfortunately, we need to call closest_unitary_faer here
+    let vmat = closest_unitary_faer(vmat.as_ref())?;
+    let eigvals: Vec<Complex64> = eigh.S().column_vector().iter().cloned().collect();
+    Ok((eigvals, vmat))
+}
+
+pub fn closest_unitary_faer(mat: MatRef<Complex64>) -> Result<Mat<Complex64>, QSDError> {
+    let svd = mat.svd().map_err(|_| QSDError::SVDDecompositionFailed)?;
+    Ok(svd.U() * svd.V().adjoint())
 }
 
 pub fn from_diagonal_faer(diag: &[Complex64]) -> Mat<Complex64> {
     let n = diag.len();
-    Mat::from_fn(n, n, |i, j| {
-        if i == j {
-            diag[i]
-        } else {
-            Complex64::new(0., 0.)
-        }
-    })
+    Mat::from_fn(n, n, |i, j| if i == j { diag[i] } else { Complex64::ZERO })
 }
 
 /// Returns a block matrix `[a, b; c, d]`.
@@ -271,27 +288,22 @@ pub fn block_matrix_faer(
 ) -> Mat<Complex64> {
     let n = a.nrows();
     let mut block_matrix = Mat::<Complex64>::zeros(2 * n, 2 * n);
-    for i in 0..n {
-        for j in 0..n {
-            block_matrix[(i, j)] = a[(i, j)];
-        }
-    }
-    for i in 0..n {
-        for j in 0..n {
-            block_matrix[(i, j + n)] = b[(i, j)];
-        }
-    }
-    for i in 0..n {
-        for j in 0..n {
-            block_matrix[(i + n, j)] = c[(i, j)];
-        }
-    }
-    for i in 0..n {
-        for j in 0..n {
-            block_matrix[(i + n, j + n)] = d[(i, j)];
-        }
-    }
+    block_matrix.as_mut().submatrix_mut(0, 0, n, n).copy_from(a);
+    block_matrix.as_mut().submatrix_mut(0, n, n, n).copy_from(b);
+    block_matrix.as_mut().submatrix_mut(n, 0, n, n).copy_from(c);
+    block_matrix.as_mut().submatrix_mut(n, n, n, n).copy_from(d);
     block_matrix
+}
+
+/// Verify SVD decomposition gives the same unitary
+fn verify_svd_decomposition_faer(
+    mat: MatRef<Complex64>,
+    v: MatRef<Complex64>,
+    s: MatRef<Complex64>,
+    w: MatRef<Complex64>,
+) -> bool {
+    let mat_check = v * s * w;
+    (mat - mat_check).norm_max() < VERIFY_TOL
 }
 
 /// Verifies the given matrix U is unitary by comparing U*U to the identity matrix
@@ -301,7 +313,7 @@ pub fn verify_unitary_faer(u: MatRef<Complex64>) -> bool {
     let id_mat = Mat::<Complex64>::identity(n, n);
     let uu = u.adjoint() * u;
 
-    (uu.as_ref() - id_mat.as_ref()).norm_max() < 1e-7
+    (uu.as_ref() - id_mat.as_ref()).norm_max() < VERIFY_TOL
 }
 
 // check whether a matrix is zero (up to tolerance)

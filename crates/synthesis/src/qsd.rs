@@ -29,8 +29,8 @@ use crate::euler_one_qubit_decomposer::{
     EulerBasis, EulerBasisSet, unitary_to_gate_sequence_inner,
 };
 use crate::linalg::{
-    block_matrix_faer, closest_unitary_faer, faer_to_ndarray, from_diagonal_faer,
-    is_zero_matrix_faer, svd_decomposition_faer, verify_unitary_faer,
+    VERIFY_TOL, block_matrix_faer, closest_unitary_faer, eigendecomposition_faer, faer_to_ndarray,
+    from_diagonal_faer, is_zero_matrix_faer, svd_decomposition_faer, verify_unitary_faer,
 };
 use crate::two_qubit_decompose::{TwoQubitBasisDecomposer, two_qubit_decompose_up_to_diagonal};
 use qiskit_circuit::bit::ShareableQubit;
@@ -42,12 +42,16 @@ use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
 use qiskit_quantum_info::convert_2q_block_matrix::instructions_to_matrix;
 
 const EPS: f64 = 1e-10;
+const MINIMUM_TOL: f64 = 1e-8;
 
 /// Errors that might occur during QSD synthesis algorithm
 #[derive(Error, Debug)]
 pub enum QSDError {
-    #[error("Schur decomposition failed")]
-    SchurDecompositionFailed,
+    #[error("Eigen decomposition failed")]
+    EigenDecompositionFailed,
+
+    #[error("SVD decomposition failed")]
+    SVDDecompositionFailed,
 
     // wraps CircuitDataError, e.g. produced by demultiplex
     #[error(transparent)]
@@ -61,9 +65,12 @@ pub enum QSDError {
 impl From<QSDError> for PyErr {
     fn from(error: QSDError) -> Self {
         match error {
-            QSDError::SchurDecompositionFailed => {
-                QiskitError::new_err("Schur decomposition failed")
+            QSDError::EigenDecompositionFailed => {
+                QiskitError::new_err("Eigen decomposition failed")
             }
+
+            QSDError::SVDDecompositionFailed => QiskitError::new_err("SVD decomposition failed"),
+
             QSDError::ErrorFromCircuitData(err) => err.into(),
 
             QSDError::ErrorFromPython(err) => err,
@@ -113,7 +120,7 @@ pub fn quantum_shannon_decomposition(
     let one_qubit_decomposer = one_qubit_decomposer_basis_set.unwrap_or(&default_1q_basis);
     let two_qubit_decomposer = two_qubit_decomposer.unwrap_or(&default_2q_decomposer);
 
-    if (Mat::<Complex64>::identity(dim, dim).as_ref() - mat).norm_max() < 1e-8 {
+    if (Mat::<Complex64>::identity(dim, dim).as_ref() - mat).norm_max() < MINIMUM_TOL {
         let out_qubits = (0..num_qubits)
             .map(|_| ShareableQubit::new_anonymous())
             .collect::<Vec<_>>();
@@ -245,7 +252,7 @@ fn qsd_inner(
 
     let mut out = CircuitData::with_capacity(num_qubits as u32, 0, gates_bound, Param::Float(0.))?;
     // perform block ZXZ decomposition from [2]
-    let (a1, a2, b, c) = block_zxz_decomp(mat.as_ref());
+    let (a1, a2, b, c) = block_zxz_decomp(mat.as_ref())?;
     debug_assert!(zxz_decomp_verify(
         mat,
         a1.as_ref(),
@@ -323,24 +330,25 @@ fn qsd_inner(
     }
 }
 
-fn zxz_decomp_svd(a: MatRef<Complex64>) -> (Mat<Complex64>, Mat<Complex64>) {
-    let (v, sigma, w_dg) = svd_decomposition_faer(a);
+fn zxz_decomp_svd(a: MatRef<Complex64>) -> Result<(Mat<Complex64>, Mat<Complex64>), QSDError> {
+    let (v, sigma, w_dg) = svd_decomposition_faer(a)?;
 
     let s = v.as_ref() * sigma * v.adjoint();
     let u = v * w_dg;
 
-    (s, u)
+    Ok((s, u))
 }
 
+/// ZXZ decomposition result
+type ZXZResult = (
+    Mat<Complex64>,
+    Mat<Complex64>,
+    Mat<Complex64>,
+    Mat<Complex64>,
+);
+
 /// Block ZXZ decomposition method, by Krol and Al-Ars [2]
-fn block_zxz_decomp(
-    mat: MatRef<Complex64>,
-) -> (
-    Mat<Complex64>,
-    Mat<Complex64>,
-    Mat<Complex64>,
-    Mat<Complex64>,
-) {
+fn block_zxz_decomp(mat: MatRef<Complex64>) -> Result<ZXZResult, QSDError> {
     debug_assert!(verify_unitary_faer(mat));
 
     let i = Complex64::new(0.0, 1.0);
@@ -349,13 +357,13 @@ fn block_zxz_decomp(
     let y = mat.submatrix(0, n, n, n);
     let u21 = mat.submatrix(n, 0, n, n);
     let u22 = mat.submatrix(n, n, n, n);
-    let (sx, ux) = zxz_decomp_svd(x);
-    let (sy, uy) = zxz_decomp_svd(y);
+    let (sx, ux) = zxz_decomp_svd(x)?;
+    let (sy, uy) = zxz_decomp_svd(y)?;
     let c = ((uy.adjoint() * &ux) * Scale(i)).adjoint().to_owned();
     let a1 = (sx + sy * Scale(i)) * &ux;
     let a2 = u21 + (u22 * (uy.adjoint() * ux) * Scale(i));
     let b = (a1.adjoint() * x) * Scale(Complex64::from(2.0)) - Mat::<Complex64>::identity(n, n);
-    (a1, a2, b, c)
+    Ok((a1, a2, b, c))
 }
 
 /// Verify ZXZ decomposition gives the same unitary
@@ -380,24 +388,7 @@ fn zxz_decomp_verify(
 
     let mat_check = &a_block * &b_block * &c_block * Scale(Complex64::from(0.5));
 
-    (mat - mat_check).norm_max() < 1e-7
-}
-
-fn eigendecomposition(
-    mat: MatRef<Complex64>,
-) -> Result<(Vec<Complex64>, Mat<Complex64>), QSDError> {
-    let eigh = mat.eigen();
-
-    match eigh {
-        Ok(eigh) => {
-            let vmat = eigh.U().to_owned();
-            // ToDo: check if I can remove this?
-            let vmat = closest_unitary_faer(vmat.as_ref());
-            let eigvals: Vec<Complex64> = eigh.S().column_vector().iter().cloned().collect();
-            Ok((eigvals, vmat))
-        }
-        Err(_) => Err(QSDError::SchurDecompositionFailed),
-    }
+    (mat - mat_check).norm_max() < VERIFY_TOL
 }
 
 ///  Decompose a generic multiplexer.
@@ -439,8 +430,8 @@ fn demultiplex(
     two_qubit_decomposer: &TwoQubitBasisDecomposer,
     one_qubit_decomposer: &EulerBasisSet,
 ) -> Result<(CircuitData, Mat<Complex64>, Mat<Complex64>), QSDError> {
-    let um0 = closest_unitary_faer(um0.as_ref());
-    let um1 = closest_unitary_faer(um1.as_ref());
+    let um0 = closest_unitary_faer(um0.as_ref())?;
+    let um1 = closest_unitary_faer(um1.as_ref())?;
 
     let dim = um0.shape().0 + um1.shape().0;
     let num_qubits = dim.ilog2() as usize;
@@ -451,7 +442,8 @@ fn demultiplex(
         .map(Qubit::new)
         .collect();
     let um0um1 = um0.as_ref() * um1.adjoint();
-    let (eigvals, vmat): (Vec<Complex64>, Mat<Complex64>) = eigendecomposition(um0um1.as_ref())?;
+    let (eigvals, vmat): (Vec<Complex64>, Mat<Complex64>) =
+        eigendecomposition_faer(um0um1.as_ref())?;
     let d_values: Vec<Complex64> = eigvals.iter().map(|x| x.sqrt()).collect();
     let d_mat: Mat<Complex64> = from_diagonal_faer(&d_values);
     let wmat = d_mat.as_ref() * vmat.adjoint() * um1.as_ref();
@@ -541,7 +533,7 @@ fn demultiplex_verify(
     let d_block = block_matrix_faer(dmat, zero.as_ref(), zero.as_ref(), d_inv.as_ref());
     let u_check = &v_block * &d_block * &w_block;
 
-    (u_block.as_ref() - u_check.as_ref()).norm_max() < 1e-7
+    (u_block.as_ref() - u_check.as_ref()).norm_max() < VERIFY_TOL
 }
 
 /// This function synthesizes UCRZ without the final CX gate,
@@ -675,7 +667,7 @@ fn extract_multiplex_blocks(umat: MatRef<Complex64>, k: usize) -> [Mat<Complex64
         Mat::from_fn(um00.shape()[0], um00.shape()[1], |i, j| um00[[i, j]]),
         Mat::from_fn(um11.shape()[0], um11.shape()[1], |i, j| um11[[i, j]]),
         Mat::from_fn(um01.shape()[0], um01.shape()[1], |i, j| um01[[i, j]]),
-        Mat::from_fn(um10.shape()[0], um10.shape()[1], |i, j| um01[[i, j]]),
+        Mat::from_fn(um10.shape()[0], um10.shape()[1], |i, j| um10[[i, j]]),
     ]
 }
 

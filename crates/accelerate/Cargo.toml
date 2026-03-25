@@ -26,7 +26,6 @@ qiskit-circuit.workspace = true
 qiskit-transpiler.workspace = true
 qiskit-quantum-info.workspace = true
 nalgebra.workspace = true
-faer.workspace = true
 
 [dependencies.smallvec]
 workspace = true
