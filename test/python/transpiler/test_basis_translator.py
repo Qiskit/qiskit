@@ -37,7 +37,10 @@ from qiskit.circuit.library import (
     CXGate,
     RXGate,
     RZZGate,
+    TGate,
+    TdgGate,
 )
+from qiskit.circuit.controlflow import IfElseOp
 from qiskit.converters import circuit_to_dag, dag_to_circuit, circuit_to_instruction
 from qiskit.exceptions import QiskitError
 from qiskit.providers.fake_provider import GenericBackendV2
@@ -1231,3 +1234,46 @@ class TestBasisTranslatorWithTarget(QiskitTestCase):
         pm = generate_preset_pass_manager(optimization_level=1, target=target, seed_transpiler=134)
         cqc = pm.run(qc)
         self.assertEqual(Operator(qc), Operator.from_circuit(cqc))
+
+    def test_basis_nested_control_flow_op(self):
+        """Test nested handling of nested control flow operations under the basis translator"""
+        phi = Parameter("φ")
+        lam = Parameter("λ")
+
+        target = Target(num_qubits=3)
+        target.add_instruction(U2Gate(phi, lam))
+        target.add_instruction(IfElseOp, name="if_else")
+        target.add_instruction(TGate())
+        target.add_instruction(TdgGate())
+        target.add_instruction(CXGate())
+
+        qc = QuantumCircuit(3, 1)
+
+        with qc.if_test((0, False)) as else_:
+            pass
+        with else_:
+            with qc.if_test((0, False)) as else2:
+                qc.rccx(0, 1, 2)
+            with else2:
+                pass
+
+        transpiled = BasisTranslator(std_eqlib, target_basis=None, target=target)(qc)
+
+        expected_qc = QuantumCircuit(3, 1)
+        with expected_qc.if_test((0, False)) as else_:
+            pass
+        with else_:
+            with expected_qc.if_test((0, False)) as else2:
+                expected_qc.append(U2Gate(0, pi), [2])
+                expected_qc.t(2)
+                expected_qc.cx(1, 2)
+                expected_qc.tdg(2)
+                expected_qc.cx(0, 2)
+                expected_qc.t(2)
+                expected_qc.cx(1, 2)
+                expected_qc.tdg(2)
+                expected_qc.append(U2Gate(0, pi), [2])
+            with else2:
+                pass
+
+        self.assertEqual(transpiled, expected_qc)
