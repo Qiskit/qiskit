@@ -13,7 +13,7 @@
 use approx::{abs_diff_eq, relative_ne};
 use faer::Mat;
 use faer::MatRef;
-use nalgebra::{DMatrix, DMatrixView, Dim, Dyn, MatrixView, ViewStorage};
+use nalgebra::{DMatrix, DMatrixView, Dim, Dyn, MatrixView, Scalar, ViewStorage};
 use ndarray::ArrayView2;
 use ndarray::ShapeBuilder;
 use num_complex::Complex64;
@@ -27,6 +27,16 @@ const RTOL_DEFAULT: f64 = 1e-5;
 
 /// Tolerance used for debug checking
 pub const VERIFY_TOL: f64 = 1e-7;
+
+#[inline]
+pub fn nalgebra_array_view<T: Scalar, R: Dim, C: Dim>(mat: MatrixView<T, R, C>) -> ArrayView2<T> {
+    let dim = ndarray::Dim(mat.shape());
+    let strides = ndarray::Dim(mat.strides());
+    // SAFETY: We know the array is a 2d array from nalgebra and we get the pointer and memory
+    // layout description from nalgebra so we don't need to check for invalid format as nalgebra
+    // has already validated this
+    unsafe { ArrayView2::from_shape_ptr(dim.strides(strides), mat.get_unchecked(0)) }
+}
 
 #[inline]
 pub fn ndarray_to_faer<T>(array: ArrayView2<'_, T>) -> MatRef<'_, T> {
