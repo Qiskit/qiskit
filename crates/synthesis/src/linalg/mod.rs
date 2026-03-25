@@ -26,8 +26,9 @@ const RTOL_DEFAULT: f64 = 1e-5;
 pub fn nalgebra_array_view<T: Scalar, R: Dim, C: Dim>(mat: MatrixView<T, R, C>) -> ArrayView2<T> {
     let dim = ndarray::Dim(mat.shape());
     let strides = ndarray::Dim(mat.strides());
-    // SAFETY: We know the array is a 4x4 and contiguous block so   we don't need to
-    // check for invalid format
+    // SAFETY: We know the array is a 2d array from nalgebra and we get the pointer and memory
+    // layout description from nalgebra so we don't need to check for invalid format as nalgebra
+    // has already validated this
     unsafe { ArrayView2::from_shape_ptr(dim.strides(strides), mat.get_unchecked(0)) }
 }
 
