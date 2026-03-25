@@ -368,7 +368,8 @@ class TestLoadFromQPY(QiskitTestCase):
     def test_degenerate_parameter_expression(self):
         """Test a circuit with a parameter expression that simplifies to 0."""
         x = Parameter("x")
-        cases = [0 * x, x - x]
+        y_vec = ParameterVector("y", 2)
+        cases = [0 * x, x - x, 0 * y_vec[0], 0 * (x + y_vec[1])]
         for case in cases:
             qc = QuantumCircuit(1)
             qc.rz(case, 0)
