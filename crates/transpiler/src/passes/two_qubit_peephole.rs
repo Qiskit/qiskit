@@ -21,6 +21,8 @@ use pyo3::intern;
 use pyo3::prelude::*;
 use rayon::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
+use nalgebra::U4;
+use num_complex::Complex64;
 
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::instruction::Parameters;
@@ -38,6 +40,7 @@ use crate::target::Target;
 use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::getenv_use_multiple_threads;
 use qiskit_quantum_info::convert_2q_block_matrix::blocks_to_matrix;
+use qiskit_synthesis::linalg::nalgebra_array_view;
 use thread_local::ThreadLocal;
 
 type MappingIterItem = Option<(TwoQSynthesisResult, [Qubit; 2])>;
@@ -101,7 +104,7 @@ pub fn two_qubit_unitary_peephole_optimize(
                 .get_or(|| RefCell::new(UnitarySynthesisState::new(unitary_synthesis_config)));
 
             let result = synthesize_2q_matrix(
-                matrix.into(),
+                nalgebra_array_view::<Complex64, U4, U4>(matrix.as_view()).into(),
                 q_phys,
                 &mut synthesis_state.borrow_mut(),
                 QpuConstraint::Target(target),

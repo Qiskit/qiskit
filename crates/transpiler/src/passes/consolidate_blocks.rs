@@ -12,7 +12,7 @@
 
 use super::optimize_1q_gates_decomposition::matmul_1q;
 use hashbrown::{HashMap, HashSet};
-use nalgebra::Matrix2;
+use nalgebra::{Matrix2, Matrix4, U4};
 use ndarray::ArrayView2;
 use ndarray::{Array2, aview2};
 use num_complex::Complex64;
@@ -25,7 +25,6 @@ use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::gate_matrix::{
     CH_GATE, CX_GATE, CY_GATE, CZ_GATE, DCX_GATE, ECR_GATE, ISWAP_GATE, ONE_QUBIT_IDENTITY,
-    TWO_QUBIT_IDENTITY,
 };
 use qiskit_circuit::imports::QI_OPERATOR;
 use qiskit_circuit::interner::Interned;
@@ -34,6 +33,7 @@ use qiskit_circuit::operations::{ArrayType, Operation, Param, UnitaryGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_quantum_info::convert_2q_block_matrix::{blocks_to_matrix, get_matrix_from_inst};
 use qiskit_synthesis::euler_one_qubit_decomposer::EulerBasis;
+use qiskit_synthesis::linalg::nalgebra_array_view;
 use qiskit_synthesis::two_qubit_decompose::RXXEquivalent;
 use qiskit_synthesis::two_qubit_decompose::{
     TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer,
@@ -44,6 +44,29 @@ use smallvec::SmallVec;
 use crate::passes::unitary_synthesis::{PARAM_SET, TWO_QUBIT_BASIS_SET};
 use crate::target::{Qargs, Target};
 use qiskit_circuit::PhysicalQubit;
+
+static IDENTITY_2Q: Matrix4<Complex64> = Matrix4::new(
+    // Row 1
+    Complex64::ONE,
+    Complex64::ZERO,
+    Complex64::ZERO,
+    Complex64::ZERO,
+    // Row 2
+    Complex64::ZERO,
+    Complex64::ONE,
+    Complex64::ZERO,
+    Complex64::ZERO,
+    // Row 3
+    Complex64::ZERO,
+    Complex64::ZERO,
+    Complex64::ONE,
+    Complex64::ZERO,
+    // Row 4
+    Complex64::ZERO,
+    Complex64::ZERO,
+    Complex64::ZERO,
+    Complex64::ONE,
+);
 
 #[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug)]
@@ -368,12 +391,13 @@ fn py_run_consolidate_blocks(
             let matrix = blocks_to_matrix(dag, &block, block_index_map).ok();
             if let Some(matrix) = matrix {
                 let num_basis_gates = match decomposer {
-                    DecomposerType::TwoQubitBasis(ref decomp) => {
-                        decomp.num_basis_gates_inner(matrix.view())?
-                    }
-                    DecomposerType::TwoQubitControlledU(ref decomp) => {
-                        decomp.num_basis_gates_inner(matrix.view())?
-                    }
+                    DecomposerType::TwoQubitBasis(ref decomp) => decomp.num_basis_gates_inner(
+                        nalgebra_array_view::<Complex64, U4, U4>(matrix.as_view()),
+                    )?,
+                    DecomposerType::TwoQubitControlledU(ref decomp) => decomp
+                        .num_basis_gates_inner(nalgebra_array_view::<Complex64, U4, U4>(
+                            matrix.as_view(),
+                        ))?,
                 };
 
                 if force_consolidate
@@ -382,15 +406,13 @@ fn py_run_consolidate_blocks(
                     || (basis_gates.is_some() && outside_basis)
                     || (target.is_some() && outside_basis)
                 {
-                    if approx::abs_diff_eq!(aview2(&TWO_QUBIT_IDENTITY), matrix) {
+                    if approx::abs_diff_eq!(IDENTITY_2Q, matrix) {
                         for node in block {
                             dag.remove_op_node(node);
                         }
                     } else {
-                        // TODO: Use Matrix4/ArrayType::TwoQ when we're using nalgebra
-                        // for consolidation
                         let unitary_gate = UnitaryGate {
-                            array: ArrayType::NDArray(matrix),
+                            array: ArrayType::TwoQ(matrix),
                         };
                         let qubit_pos_map = block_index_map
                             .into_iter()
