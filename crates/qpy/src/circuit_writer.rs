@@ -21,6 +21,7 @@
 use binrw::Endian;
 use hashbrown::{HashMap, HashSet};
 use indexmap::IndexSet;
+use num_bigint::BigUint;
 use num_traits::ToPrimitive;
 use numpy::ToPyArray;
 
@@ -163,7 +164,12 @@ fn pack_condition(
                 serialize_param_register_value(&ParamRegisterValue::Register(reg), qpy_data)?;
             let register_size = bytes.len() as u16;
             let data = formats::ConditionData::Register(bytes);
-            // TODO: this may cause loss of data, but we are constrained by the current qpy format
+            if target_value > BigUint::from(i64::MAX as u64) {
+                return Err(QpyError::InvalidInstruction(format!(
+                    "Register condition value {} exceeds i64::MAX and cannot be serialized in QPY format",
+                    target_value
+                )));
+            }
             // Handle zero case: iter_u64_digits() returns empty iterator for 0
             let low_digits = target_value.iter_u64_digits().next().unwrap_or(0) as i64;
             Ok(formats::ConditionPack {
