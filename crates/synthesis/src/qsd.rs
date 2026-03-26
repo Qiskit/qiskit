@@ -332,10 +332,10 @@ fn qsd_inner(
 }
 
 fn zxz_decomp_svd(a: MatRef<Complex64>) -> Result<(Mat<Complex64>, Mat<Complex64>), QSDError> {
-    let (v, sigma, w_dg) = svd_decomposition_faer(a)?;
+    let svd = svd_decomposition_faer(a)?;
 
-    let s = v.as_ref() * sigma * v.adjoint();
-    let u = v * w_dg;
+    let s = svd.u.as_ref() * svd.s * svd.u.adjoint();
+    let u = svd.u * svd.v;
 
     Ok((s, u))
 }

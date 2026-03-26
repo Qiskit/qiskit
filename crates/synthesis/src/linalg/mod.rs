@@ -239,9 +239,16 @@ pub fn svd_decomposition(
     (u_na.into(), s_na, v_na)
 }
 
-/// Result for the SVD decomposition: a triple of matries (U, S, V) such that A = U * S * V
-type SVDResult = (Mat<Complex64>, Mat<Complex64>, Mat<Complex64>);
+/// Result for the singular value decomposition (SVD) of a matrix `A`.
+///
+/// The decomposition is given by three matrices `(U, S, V)` such that `A = U * S * V`.
+pub struct SVDResult {
+    pub u: Mat<Complex64>,
+    pub s: Mat<Complex64>,
+    pub v: Mat<Complex64>,
+}
 
+/// Runs singular valued decomposition on `mat`.
 pub fn svd_decomposition_faer(mat: MatRef<Complex64>) -> Result<SVDResult, QSDError> {
     let svd = mat.svd().map_err(|_| QSDError::SVDDecompositionFailed)?;
 
@@ -253,14 +260,10 @@ pub fn svd_decomposition_faer(mat: MatRef<Complex64>) -> Result<SVDResult, QSDEr
         if i == j { s[i] } else { Complex64::ZERO }
     });
 
-    debug_assert!(verify_svd_decomposition_faer(
-        mat.as_ref(),
-        u.as_ref(),
-        sigma.as_ref(),
-        v.as_ref()
-    ));
+    let svd_result = SVDResult { u, s: sigma, v };
+    debug_assert!(verify_svd_decomposition_faer(mat.as_ref(), &svd_result));
 
-    Ok((u, sigma, v))
+    Ok(svd_result)
 }
 
 /// Computes the eigenvalues and the eigenvectors of a square matrix
@@ -306,13 +309,8 @@ pub fn block_matrix_faer(
 }
 
 /// Verify SVD decomposition gives the same unitary
-fn verify_svd_decomposition_faer(
-    mat: MatRef<Complex64>,
-    v: MatRef<Complex64>,
-    s: MatRef<Complex64>,
-    w: MatRef<Complex64>,
-) -> bool {
-    let mat_check = v * s * w;
+fn verify_svd_decomposition_faer(mat: MatRef<Complex64>, svd: &SVDResult) -> bool {
+    let mat_check = svd.u.as_ref() * svd.s.as_ref() * svd.v.as_ref();
     (mat - mat_check).norm_max() < VERIFY_TOL
 }
 
