@@ -1277,3 +1277,33 @@ class TestBasisTranslatorWithTarget(QiskitTestCase):
                 pass
 
         self.assertEqual(transpiled, expected_qc)
+
+    def test_basis_nested_control_flow_op_backend(self):
+        """Test nested handling of nested control flow operations under the basis translator
+        using a generic backend"""
+        backend = GenericBackendV2(3, ["u", "t", "tdg", "cx"], control_flow=True)
+
+        qc = QuantumCircuit(3, 1)
+
+        with qc.if_test((0, False)) as else_:
+            pass
+        with else_:
+            with qc.if_test((0, False)) as else2:
+                qc.dcx(0, 2)
+            with else2:
+                pass
+
+        pm = generate_preset_pass_manager(optimization_level=1, backend=backend, seed_transpiler=134)
+        transpiled = pm.run(qc)
+
+        expected = QuantumCircuit(3, 1)
+        with expected.if_test((0, False)) as else_:
+            pass
+        with else_:
+            with expected.if_test((0, False)) as else2:
+                expected.cx(0,2)
+                expected.cx(2,0)
+            with else2:
+                pass
+        
+        self.assertEqual(transpiled, expected)
