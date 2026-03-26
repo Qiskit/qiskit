@@ -9,12 +9,12 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
 """Calculate the depth of a DAG circuit."""
+from typing import TYPE_CHECKING
 
-from __future__ import annotations
+if TYPE_CHECKING:
+    from qiskit.dagcircuit import DAGCircuit
 
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import AnalysisPass
 
 
@@ -32,5 +32,5 @@ class Depth(AnalysisPass):
         self.recurse = recurse
 
     def run(self, dag: DAGCircuit) -> None:
-        """Run the Depth pass on *dag*."""
+        """Run the Depth pass on ``dag``."""
         self.property_set["depth"] = dag.depth(recurse=self.recurse)
