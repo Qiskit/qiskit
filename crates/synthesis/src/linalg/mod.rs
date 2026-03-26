@@ -288,7 +288,13 @@ pub fn closest_unitary_faer(mat: MatRef<Complex64>) -> Result<Mat<Complex64>, QS
 
 pub fn from_diagonal_faer(diag: &[Complex64]) -> Mat<Complex64> {
     let n = diag.len();
-    Mat::from_fn(n, n, |i, j| if i == j { diag[i] } else { Complex64::ZERO })
+    let mut mat = Mat::zeros(n, n);
+    mat.diagonal_mut()
+        .column_vector_mut()
+        .iter_mut()
+        .zip(diag)
+        .for_each(|(x, y)| *x = *y);
+    mat
 }
 
 /// Returns a block matrix `[a, b; c, d]`.
