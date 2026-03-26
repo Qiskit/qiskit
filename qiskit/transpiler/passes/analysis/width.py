@@ -9,7 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
 """Calculate the width of a DAG circuit."""
+
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
