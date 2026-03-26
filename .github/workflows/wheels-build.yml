@@ -146,12 +146,11 @@ jobs:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - name: Prepare cibuildwheel
-        run: |
-          set -e
-          python3 -m venv venv
-          source venv/bin/activate
-          pip install cibuildwheel==3.4.0
-      - run: venv/bin/cibuildwheel
+        run: pip3 install cibuildwheel==3.4.0
+      - name: Run cibuildwheel
+        run: python3 -m cibuildwheel
+        env:
+          CIBW_BEFORE_TEST: ""
       - uses: actions/upload-artifact@v7
         with:
           path: ./wheelhouse/*.whl
@@ -165,12 +164,11 @@ jobs:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - name: Prepare cibuildwheel
-        run: |
-          set -e
-          python3 -m venv venv
-          source venv/bin/activate
-          pip install cibuildwheel==3.4.0
-      - run: venv/bin/cibuildwheel
+        run: pip3 install cibuildwheel==3.4.0
+      - name: Run cibuildwheel
+        run: python3 -m cibuildwheel
+        env:
+          CIBW_BEFORE_TEST: ""
       - uses: actions/upload-artifact@v7
         with:
           path: ./wheelhouse/*.whl
