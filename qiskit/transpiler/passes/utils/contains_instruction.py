@@ -9,7 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
 """Check if a property reached a fixed point."""
+
 from collections.abc import Iterable
 from typing import TYPE_CHECKING
 
