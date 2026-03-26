@@ -150,7 +150,7 @@ jobs:
       - name: Run cibuildwheel
         run: python3 -m cibuildwheel
         env:
-          CIBW_BEFORE_TEST: ""
+          CIBW_BEFORE_TEST: "dnf builddep scipy"
       - uses: actions/upload-artifact@v7
         with:
           path: ./wheelhouse/*.whl
@@ -168,7 +168,7 @@ jobs:
       - name: Run cibuildwheel
         run: python3 -m cibuildwheel
         env:
-          CIBW_BEFORE_TEST: ""
+          CIBW_BEFORE_TEST: "dnf builddep scipy"
       - uses: actions/upload-artifact@v7
         with:
           path: ./wheelhouse/*.whl
