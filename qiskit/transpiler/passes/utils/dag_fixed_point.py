@@ -9,7 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
 """Check if the DAG has reached a fixed point."""
+
 from copy import deepcopy
 from typing import TYPE_CHECKING
 
