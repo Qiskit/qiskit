@@ -9,12 +9,12 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
 """Calculate the size of a DAG circuit."""
+from typing import TYPE_CHECKING
 
-from __future__ import annotations
+if TYPE_CHECKING:
+    from qiskit.dagcircuit import DAGCircuit
 
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import AnalysisPass
 
 
@@ -35,5 +35,5 @@ class Size(AnalysisPass):
         self.recurse = recurse
 
     def run(self, dag: DAGCircuit) -> None:
-        """Run the Size pass on *dag*."""
+        """Run the Size pass on ``dag``."""
         self.property_set["size"] = dag.size(recurse=self.recurse)
