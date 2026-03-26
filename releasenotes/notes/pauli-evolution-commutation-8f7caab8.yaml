@@ -1,7 +1,7 @@
 ---
 features_transpiler:
   - |
-    The :class:`~qiskit.transpiler.passes.CommutationChecker` can now efficiently evaluate commutativity
+    The :class:`.CommutationChecker` can now efficiently evaluate commutativity
     between explicitly defined :class:`~qiskit.quantum_info.Pauli`, :class:`~qiskit.quantum_info.SparsePauliOp`, and
     :class:`~qiskit.circuit.library.PauliEvolutionGate` operations with many other standard gates
     (including multi-qubit gates like :class:`~qiskit.circuit.library.CCXGate`). This avoids converting
