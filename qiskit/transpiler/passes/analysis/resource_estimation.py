@@ -42,7 +42,4 @@ class ResourceEstimation(AnalysisPass):
 
     def run(self, dag: DAGCircuit) -> None:
         """Run the ResourceEstimation pass on *dag*.
-
-        This is a no-op: the actual analysis is performed by the required
-        sub-passes listed in :attr:`requires`.
         """
