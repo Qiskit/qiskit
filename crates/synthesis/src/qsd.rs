@@ -253,15 +253,10 @@ fn qsd_inner(
 
     let mut out = CircuitData::with_capacity(num_qubits as u32, 0, gates_bound, Param::Float(0.))?;
     // perform block ZXZ decomposition from [2]
-    let (a1, a2, b, c) = block_zxz_decomp(mat.as_ref())?;
-    debug_assert!(zxz_decomp_verify(
-        mat,
-        a1.as_ref(),
-        a2.as_ref(),
-        b.as_ref(),
-        c.as_ref()
-    ));
+    let zxz_result = block_zxz_decomp(mat.as_ref())?;
+    debug_assert!(zxz_decomp_verify(mat, &zxz_result,));
 
+    let ZXZResult { a1, a2, b, c } = zxz_result;
     let iden = Mat::<Complex64>::identity(dim / 2, dim / 2);
     let (left_circuit, vmat_c, _) = demultiplex(
         iden.as_ref(),
@@ -340,15 +335,17 @@ fn zxz_decomp_svd(a: MatRef<Complex64>) -> Result<(Mat<Complex64>, Mat<Complex64
     Ok((s, u))
 }
 
-/// ZXZ decomposition result
-type ZXZResult = (
-    Mat<Complex64>,
-    Mat<Complex64>,
-    Mat<Complex64>,
-    Mat<Complex64>,
-);
+/// Result for the block-ZXZ decomposition of a matrix `A`.
+///
+/// See [2] equation (5) for details.
+pub struct ZXZResult {
+    pub a1: Mat<Complex64>,
+    pub a2: Mat<Complex64>,
+    pub b: Mat<Complex64>,
+    pub c: Mat<Complex64>,
+}
 
-/// Block ZXZ decomposition method, by Krol and Al-Ars [2]
+/// Run the Block-ZXZ decomposition, by Krol and Al-Ars [2].
 fn block_zxz_decomp(mat: MatRef<Complex64>) -> Result<ZXZResult, QSDError> {
     debug_assert!(verify_unitary_faer(mat));
 
@@ -364,28 +361,24 @@ fn block_zxz_decomp(mat: MatRef<Complex64>) -> Result<ZXZResult, QSDError> {
     let a1 = (sx + sy * Scale(i)) * &ux;
     let a2 = u21 + (u22 * (uy.adjoint() * ux) * Scale(i));
     let b = (a1.adjoint() * x) * Scale(Complex64::from(2.0)) - Mat::<Complex64>::identity(n, n);
-    Ok((a1, a2, b, c))
+    Ok(ZXZResult { a1, a2, b, c })
 }
 
 /// Verify ZXZ decomposition gives the same unitary
-fn zxz_decomp_verify(
-    mat: MatRef<Complex64>,
-    a1: MatRef<Complex64>,
-    a2: MatRef<Complex64>,
-    b: MatRef<Complex64>,
-    c: MatRef<Complex64>,
-) -> bool {
+fn zxz_decomp_verify(mat: MatRef<Complex64>, zxz_result: &ZXZResult) -> bool {
+    let ZXZResult { a1, a2, b, c } = zxz_result;
+
     let n = mat.shape().0 / 2;
     let zero = Mat::<Complex64>::zeros(n, n);
     let iden = Mat::<Complex64>::identity(n, n);
 
-    let a_block = block_matrix_faer(a1, zero.as_ref(), zero.as_ref(), a2);
+    let a_block = block_matrix_faer(a1.as_ref(), zero.as_ref(), zero.as_ref(), a2.as_ref());
 
-    let b1 = &iden + b;
-    let b2 = &iden - b;
+    let b1 = &iden + b.as_ref();
+    let b2 = &iden - b.as_ref();
     let b_block = block_matrix_faer(b1.as_ref(), b2.as_ref(), b2.as_ref(), b1.as_ref());
 
-    let c_block = block_matrix_faer(iden.as_ref(), zero.as_ref(), zero.as_ref(), c);
+    let c_block = block_matrix_faer(iden.as_ref(), zero.as_ref(), zero.as_ref(), c.as_ref());
 
     let mat_check = &a_block * &b_block * &c_block * Scale(Complex64::from(0.5));
 
