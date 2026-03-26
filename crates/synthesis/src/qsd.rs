@@ -335,7 +335,7 @@ fn zxz_decomp_svd(a: MatRef<Complex64>) -> Result<(Mat<Complex64>, Mat<Complex64
     let svd = svd_decomposition_faer(a)?;
 
     let s = svd.u.as_ref() * svd.s * svd.u.adjoint();
-    let u = svd.u * svd.v;
+    let u = svd.u * svd.v.adjoint();
 
     Ok((s, u))
 }

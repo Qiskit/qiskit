@@ -241,7 +241,7 @@ pub fn svd_decomposition(
 
 /// Result for the singular value decomposition (SVD) of a matrix `A`.
 ///
-/// The decomposition is given by three matrices `(U, S, V)` such that `A = U * S * V`.
+/// The decomposition is given by three matrices `(U, S, V)` such that `A = U * S * V^\dagger`.
 pub struct SVDResult {
     pub u: Mat<Complex64>,
     pub s: Mat<Complex64>,
@@ -254,7 +254,7 @@ pub fn svd_decomposition_faer(mat: MatRef<Complex64>) -> Result<SVDResult, QSDEr
 
     let u = svd.U().to_owned();
     let s = svd.S();
-    let v = svd.V().adjoint().to_owned();
+    let v = svd.V().to_owned();
 
     let sigma = Mat::from_fn(u.ncols(), v.nrows(), |i, j| {
         if i == j { s[i] } else { Complex64::ZERO }
@@ -310,7 +310,7 @@ pub fn block_matrix_faer(
 
 /// Verify SVD decomposition gives the same unitary
 fn verify_svd_decomposition_faer(mat: MatRef<Complex64>, svd: &SVDResult) -> bool {
-    let mat_check = svd.u.as_ref() * svd.s.as_ref() * svd.v.as_ref();
+    let mat_check = svd.u.as_ref() * svd.s.as_ref() * svd.v.as_ref().adjoint();
     (mat - mat_check).norm_max() < VERIFY_TOL
 }
 
