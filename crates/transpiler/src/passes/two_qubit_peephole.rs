@@ -11,18 +11,20 @@
 // that they have been altered from the originals.
 
 use std::cell::RefCell;
+use std::sync::Mutex;
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
-use dashmap::DashMap;
 use hashbrown::HashSet;
+use nalgebra::U4;
+use num_complex::Complex64;
 use pyo3::Python;
 use pyo3::intern;
 use pyo3::prelude::*;
 use rayon::prelude::*;
+use rustworkx_core::petgraph::algo::toposort;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
-use nalgebra::U4;
-use num_complex::Complex64;
+use rustworkx_core::petgraph::visit::NodeIndexable;
 
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::instruction::Parameters;
@@ -70,11 +72,8 @@ pub fn two_qubit_unitary_peephole_optimize(
     if runs.is_empty() {
         return Ok(None);
     }
-    let node_mapping: DashMap<NodeIndex, usize, ahash::RandomState> =
-        DashMap::with_capacity_and_hasher(
-            runs.iter().map(|run| run.len()).sum(),
-            ahash::RandomState::default(),
-        );
+    let node_mapping: Vec<usize> = vec![usize::MAX; dag.dag().node_bound()];
+    let locked_node_mapping = Mutex::new(node_mapping);
     let physical_qubits = (0..dag.num_qubits() as u32)
         .map(PhysicalQubit::new)
         .collect::<Vec<_>>();
@@ -178,8 +177,9 @@ pub fn two_qubit_unitary_peephole_optimize(
             // This is done at the end of the map in some attempt to minimize
             // lock contention. If this were serial code it'd make more sense
             // to do this as part of the iteration building the
+            let mut node_mapping = locked_node_mapping.lock().unwrap();
             for node in node_indices {
-                node_mapping.insert(*node, run_index);
+                node_mapping[node.index()] = run_index;
             }
             Ok(Some((result, q_virt)))
         };
@@ -202,88 +202,90 @@ pub fn two_qubit_unitary_peephole_optimize(
     let mut processed_runs: HashSet<usize> = HashSet::with_capacity(run_mapping.len());
     let out_dag = dag.copy_empty_like_with_same_capacity(VarsMode::Alike, BlocksMode::Keep)?;
     let mut out_dag_builder = out_dag.into_builder();
+    let node_mapping = locked_node_mapping.lock().unwrap();
     if node_mapping.is_empty() {
         return Ok(None);
     }
-    for node in dag.topological_op_nodes(false) {
-        match node_mapping.get(&node) {
-            Some(run_index) => {
-                if processed_runs.contains(run_index.value()) {
-                    continue;
-                }
-                // If this is not a two qubit gate then there is a chance this will cause the
-                // insertion to happen too early. We skip the nodes in a run until we encounter
-                // a 2q gate which ensure the block is inserted into the correct location in the
-                // circuit.
-                if dag.dag()[node].unwrap_operation().op.num_qubits() != 2 {
-                    continue;
-                }
-                // A None is inserted into the run_mapping as the value for a run that we don't
-                // substitute but was identified so we added an explicit None to preserve the
-                // indexing with the vec. This shouldn't be possible to hit the else condition
-                // since node mapping will never contain a value for a run_mapping index that
-                // is set to None.
-                let Some((result, qargs_virt)) = run_mapping[*run_index].as_ref() else {
-                    unreachable!(
-                        "node_mapping can't contain a value pointing to an unpoluated run in run_mapping"
-                    );
-                };
-                let order = result.dir.as_indices();
-                let out_qargs = [qargs_virt[order[0] as usize], qargs_virt[order[1] as usize]];
-                let qubit_keys = [
-                    out_dag_builder.insert_qargs(&[out_qargs[0]]),
-                    out_dag_builder.insert_qargs(&[out_qargs[1]]),
-                    out_dag_builder.insert_qargs(&[out_qargs[0], out_qargs[1]]),
-                    out_dag_builder.insert_qargs(&[out_qargs[1], out_qargs[0]]),
-                ];
-                for (gate, params, local_qubits) in &result.sequence.gates {
-                    let qubits = match local_qubits.as_slice() {
-                        [0] => qubit_keys[0],
-                        [1] => qubit_keys[1],
-                        [0, 1] => qubit_keys[2],
-                        [1, 0] => qubit_keys[3],
-                        _ => panic!(
-                            "internal logic error: decomposed sequence contained unexpected qargs"
-                        ),
-                    };
-                    let op = match gate.view() {
-                        OperationRef::StandardGate(gate) => PackedOperation::from(gate),
-                        OperationRef::Gate(py_gate) => Python::attach(|py| -> PyResult<_> {
-                            let gate = py_gate.py_copy(py)?;
-                            gate.instruction
-                                .setattr(py, intern!(py, "params"), params)?;
-                            Ok(PackedOperation::from(Box::new(PyOperationTypes::Gate(
-                                gate,
-                            ))))
-                        })?,
-                        _ => {
-                            panic!("internal logic error: decomposed sequence contains a non-gate")
-                        }
-                    };
-                    let params = (!params.is_empty()).then(|| {
-                        Box::new(Parameters::Params(
-                            params.iter().copied().map(Param::Float).collect(),
-                        ))
-                    });
-                    out_dag_builder.push_back(PackedInstruction {
-                      op,
-                      qubits,
-                      clbits: Default::default(),
-                      params,
-                      label: None,
-                      #[cfg(feature = "cache_pygates")] // W: code is inactive due to #[cfg] directives: feature …
-                      py_op: OnceLock::new(),
-                    })?;
-                }
-                out_dag_builder.add_global_phase(&Param::Float(result.sequence.global_phase()))?;
-                processed_runs.insert(*run_index);
+    for node in toposort(dag.dag(), None).unwrap() {
+        if !matches!(dag.dag()[node], NodeType::Operation(_)) {
+            continue;
+        }
+        let run_index = node_mapping[node.index()];
+        if run_index != usize::MAX {
+            if processed_runs.contains(&run_index) {
+                continue;
             }
-            None => {
-                let NodeType::Operation(ref instr) = dag.dag()[node] else {
-                    unreachable!("Must be an op node")
-                };
-                out_dag_builder.push_back(instr.clone())?;
+            // If this is not a two qubit gate then there is a chance this will cause the
+            // insertion to happen too early. We skip the nodes in a run until we encounter
+            // a 2q gate which ensure the block is inserted into the correct location in the
+            // circuit.
+            if dag.dag()[node].unwrap_operation().op.num_qubits() != 2 {
+                continue;
             }
+            // A None is inserted into the run_mapping as the value for a run that we don't
+            // substitute but was identified so we added an explicit None to preserve the
+            // indexing with the vec. This shouldn't be possible to hit the else condition
+            // since node mapping will never contain a value for a run_mapping index that
+            // is set to None.
+            let Some((result, qargs_virt)) = run_mapping[run_index].as_ref() else {
+                unreachable!(
+                    "node_mapping can't contain a value pointing to an unpoluated run in run_mapping"
+                );
+            };
+            let order = result.dir.as_indices();
+            let out_qargs = [qargs_virt[order[0] as usize], qargs_virt[order[1] as usize]];
+            let qubit_keys = [
+                out_dag_builder.insert_qargs(&[out_qargs[0]]),
+                out_dag_builder.insert_qargs(&[out_qargs[1]]),
+                out_dag_builder.insert_qargs(&[out_qargs[0], out_qargs[1]]),
+                out_dag_builder.insert_qargs(&[out_qargs[1], out_qargs[0]]),
+            ];
+            for (gate, params, local_qubits) in &result.sequence.gates {
+                let qubits = match local_qubits.as_slice() {
+                    [0] => qubit_keys[0],
+                    [1] => qubit_keys[1],
+                    [0, 1] => qubit_keys[2],
+                    [1, 0] => qubit_keys[3],
+                    _ => panic!(
+                        "internal logic error: decomposed sequence contained unexpected qargs"
+                    ),
+                };
+                let op = match gate.view() {
+                    OperationRef::StandardGate(gate) => PackedOperation::from(gate),
+                    OperationRef::Gate(py_gate) => Python::attach(|py| -> PyResult<_> {
+                        let gate = py_gate.py_copy(py)?;
+                        gate.instruction
+                            .setattr(py, intern!(py, "params"), params)?;
+                        Ok(PackedOperation::from(Box::new(PyOperationTypes::Gate(
+                            gate,
+                        ))))
+                    })?,
+                    _ => {
+                        panic!("internal logic error: decomposed sequence contains a non-gate")
+                    }
+                };
+                let params = (!params.is_empty()).then(|| {
+                    Box::new(Parameters::Params(
+                        params.iter().copied().map(Param::Float).collect(),
+                    ))
+                });
+                out_dag_builder.push_back(PackedInstruction {
+                  op,
+                  qubits,
+                  clbits: Default::default(),
+                  params,
+                  label: None,
+                  #[cfg(feature = "cache_pygates")] // W: code is inactive due to #[cfg] directives: feature …
+                  py_op: OnceLock::new(),
+                })?;
+            }
+            out_dag_builder.add_global_phase(&Param::Float(result.sequence.global_phase()))?;
+            processed_runs.insert(run_index);
+        } else {
+            let NodeType::Operation(ref instr) = dag.dag()[node] else {
+                unreachable!("Must be an op node")
+            };
+            out_dag_builder.push_back(instr.clone())?;
         }
     }
     Ok(Some(out_dag_builder.build()))
