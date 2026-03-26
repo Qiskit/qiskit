@@ -9,12 +9,13 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+"""Check if a property reached a fixed point."""
+from collections.abc import Iterable
+from typing import TYPE_CHECKING
 
-"""Check if the DAG contains a specific instruction."""
+if TYPE_CHECKING:
+    from qiskit.dagcircuit import DAGCircuit
 
-from __future__ import annotations
-
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import AnalysisPass
 
 
@@ -26,9 +27,8 @@ class ContainsInstruction(AnalysisPass):
     that instruction and ``False`` if it does not.
     """
 
-    def __init__(self, instruction_name: str | set[str], recurse: bool = True) -> None:
-        """Initialize a ``ContainsInstruction`` pass.
-
+    def __init__(self, instruction_name: str | Iterable[str], recurse: bool = True) -> None:
+        """
         Args:
             instruction_name: The instruction or instructions to check are in
                 the DAG. The output in the property set is set to ``contains_`` prefixed on each
@@ -42,7 +42,7 @@ class ContainsInstruction(AnalysisPass):
         self._recurse = recurse
 
     def run(self, dag: DAGCircuit) -> None:
-        """Run the ContainsInstruction pass on *dag*."""
+        """Run the ContainsInstruction pass on ``dag``."""
         names = dag.count_ops(recurse=self._recurse)
         for name in self._instruction_names:
             self.property_set[f"contains_{name}"] = name in names
