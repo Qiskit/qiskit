@@ -1293,7 +1293,9 @@ class TestBasisTranslatorWithTarget(QiskitTestCase):
             with else2:
                 pass
 
-        pm = generate_preset_pass_manager(optimization_level=1, backend=backend, seed_transpiler=134)
+        pm = generate_preset_pass_manager(
+            optimization_level=1, backend=backend, seed_transpiler=134
+        )
         transpiled = pm.run(qc)
 
         expected = QuantumCircuit(3, 1)
@@ -1301,9 +1303,9 @@ class TestBasisTranslatorWithTarget(QiskitTestCase):
             pass
         with else_:
             with expected.if_test((0, False)) as else2:
-                expected.cx(0,2)
-                expected.cx(2,0)
+                expected.cx(0, 2)
+                expected.cx(2, 0)
             with else2:
                 pass
-        
+
         self.assertEqual(transpiled, expected)
