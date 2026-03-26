@@ -9,12 +9,12 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
 """Automatically require analysis passes for resource estimation."""
+from typing import TYPE_CHECKING
 
-from __future__ import annotations
+if TYPE_CHECKING:
+    from qiskit.dagcircuit import DAGCircuit
 
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.passes.analysis.depth import Depth
 from qiskit.transpiler.passes.analysis.width import Width
@@ -28,6 +28,7 @@ class ResourceEstimation(AnalysisPass):
     """Automatically require analysis passes for resource estimation.
 
     An analysis pass for automatically running:
+
     * Depth()
     * Width()
     * Size()
@@ -41,5 +42,4 @@ class ResourceEstimation(AnalysisPass):
         self.requires += [Depth(), Width(), Size(), CountOps(), NumTensorFactors(), NumQubits()]
 
     def run(self, dag: DAGCircuit) -> None:
-        """Run the ResourceEstimation pass on *dag*.
-        """
+        """Run the ResourceEstimation pass on ``dag``."""
