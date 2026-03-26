@@ -9,12 +9,12 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
 """Return the longest path in a :class:`.DAGCircuit` as a list of DAGNodes."""
+from typing import TYPE_CHECKING
 
-from __future__ import annotations
+if TYPE_CHECKING:
+    from qiskit.dagcircuit import DAGCircuit
 
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import AnalysisPass
 
 
@@ -23,5 +23,5 @@ class DAGLongestPath(AnalysisPass):
     :class:`.DAGOpNode`\\ s, :class:`.DAGInNode`\\ s, and :class:`.DAGOutNode`\\ s."""
 
     def run(self, dag: DAGCircuit) -> None:
-        """Run the DAGLongestPath pass on *dag*."""
+        """Run the DAGLongestPath pass on ``dag``."""
         self.property_set["dag_longest_path"] = dag.longest_path()
