@@ -46,4 +46,5 @@ class FixedPoint(AnalysisPass):
         else:
             fixed_point_reached = self.property_set[fixed_point_previous_property] == current_value
             self.property_set[f"{self._property}_fixed_point"] = fixed_point_reached
+            
         self.property_set[fixed_point_previous_property] = deepcopy(current_value)
