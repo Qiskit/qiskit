@@ -9,7 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
 """Return the longest path in a :class:`.DAGCircuit` as a list of DAGNodes."""
+
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
