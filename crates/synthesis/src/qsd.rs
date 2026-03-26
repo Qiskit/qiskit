@@ -327,15 +327,6 @@ fn qsd_inner(
     }
 }
 
-fn zxz_decomp_svd(a: MatRef<Complex64>) -> Result<(Mat<Complex64>, Mat<Complex64>), QSDError> {
-    let svd = svd_decomposition_faer(a)?;
-
-    let s = svd.u.as_ref() * svd.s * svd.u.adjoint();
-    let u = svd.u * svd.v.adjoint();
-
-    Ok((s, u))
-}
-
 /// Result for the block-ZXZ decomposition of a matrix `A`.
 ///
 /// See [2] equation (5) for details.
@@ -356,8 +347,15 @@ fn block_zxz_decomp(mat: MatRef<Complex64>) -> Result<ZXZResult, QSDError> {
     let y = mat.submatrix(0, n, n, n);
     let u21 = mat.submatrix(n, 0, n, n);
     let u22 = mat.submatrix(n, n, n, n);
-    let (sx, ux) = zxz_decomp_svd(x)?;
-    let (sy, uy) = zxz_decomp_svd(y)?;
+
+    let svdx = svd_decomposition_faer(x)?;
+    let sx = svdx.u.as_ref() * svdx.s * svdx.u.adjoint();
+    let ux = svdx.u * svdx.v.adjoint();
+
+    let svdy = svd_decomposition_faer(y)?;
+    let sy = svdy.u.as_ref() * svdy.s * svdy.u.adjoint();
+    let uy = svdy.u * svdy.v.adjoint();
+
     let c = ((uy.adjoint() * &ux) * Scale(i)).adjoint().to_owned();
     let a1 = (sx + sy * Scale(i)) * &ux;
     let a2 = u21 + (u22 * (uy.adjoint() * ux) * Scale(i));

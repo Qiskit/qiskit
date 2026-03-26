@@ -252,15 +252,13 @@ pub struct SVDResult {
 pub fn svd_decomposition_faer(mat: MatRef<Complex64>) -> Result<SVDResult, QSDError> {
     let svd = mat.svd().map_err(|_| QSDError::SVDDecompositionFailed)?;
 
+    let n = mat.nrows();
     let u = svd.U().to_owned();
-    let s = svd.S();
     let v = svd.V().to_owned();
+    let mut s = Mat::zeros(n, n);
+    s.diagonal_mut().copy_from(svd.S());
 
-    let sigma = Mat::from_fn(u.ncols(), v.nrows(), |i, j| {
-        if i == j { s[i] } else { Complex64::ZERO }
-    });
-
-    let svd_result = SVDResult { u, s: sigma, v };
+    let svd_result = SVDResult { u, s, v };
     debug_assert!(verify_svd_decomposition_faer(mat.as_ref(), &svd_result));
 
     Ok(svd_result)
