@@ -9,12 +9,12 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
 """Count the operations on the longest path in a DAGCircuit."""
+from typing import TYPE_CHECKING
 
-from __future__ import annotations
+if TYPE_CHECKING:
+    from qiskit.dagcircuit import DAGCircuit
 
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import AnalysisPass
 
 
@@ -25,5 +25,5 @@ class CountOpsLongestPath(AnalysisPass):
     """
 
     def run(self, dag: DAGCircuit) -> None:
-        """Run the CountOpsLongestPath pass on *dag*."""
+        """Run the CountOpsLongestPath pass on ``dag``."""
         self.property_set["count_ops_longest_path"] = dag.count_ops_longest_path()
