@@ -614,13 +614,13 @@ fn unpack_control_flow(
                     ));
                 };
                 let mut case_label_list = Vec::new();
-                for case in cases.as_vec().ok_or(QpyError::InvalidInstruction(
+                for case in cases.as_slice().ok_or(QpyError::InvalidInstruction(
                     "bad parameters for switch statement".to_string(),
                 ))? {
                     let [case_labels, case_circuit, ..] =
-                        &case.as_vec().ok_or(QpyError::InvalidInstruction(
+                        &case.as_slice().ok_or(QpyError::InvalidInstruction(
                             "bad parameters for switch statement".to_string(),
-                        ))?[..]
+                        ))?
                     else {
                         return Err(QpyError::InvalidInstruction(
                             "bad parameters for switch statement".to_string(),

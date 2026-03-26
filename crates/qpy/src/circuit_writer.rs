@@ -394,8 +394,9 @@ fn pack_pauli_product_rotation(
     })
 }
 
-/// Convert snake_case name (e.g., "if_else") to Python class names (e.g., "IfElseOp")
-/// for backwards compatibility with old QPY versions
+/// Get Python class names (e.g., "IfElseOp") for a control flow op.
+/// This is for backwards compatibility with old QPY versions, since the
+/// Rust name uses snake_case.
 fn control_flow_class_name(control_flow: &ControlFlow) -> String {
     String::from(match control_flow {
         ControlFlow::Box { .. } => "BoxOp",
@@ -499,35 +500,34 @@ fn pack_control_flow_inst(
                 }
             };
             let case_circuits = extract_instruction_blocks(instruction, qpy_data);
-            let case_labels = label_spec
-                .iter()
-                .map(|label_vec| -> Result<GenericValue, QpyError> {
-                    Ok(GenericValue::Tuple(
-                        label_vec
-                            .iter()
-                            .map(|label_element| -> Result<GenericValue, QpyError> {
-                                match label_element {
-                                    CaseSpecifier::Default => Ok(GenericValue::CaseDefault),
-                                    CaseSpecifier::Uint(val) => {
-                                        Ok(GenericValue::Int64(val.to_i64().ok_or_else(|| {
-                                            QpyError::ConversionError(
-                                                "Case specifier too large".to_string(),
-                                            )
-                                        })?)
-                                        .as_le())
-                                    }
-                                }
-                            })
-                            .collect::<Result<Vec<GenericValue>, _>>()?,
-                    ))
-                })
-                .collect::<Result<Vec<GenericValue>, _>>()?;
             let cases = GenericValue::Tuple(
-                case_labels
-                    .into_iter()
+                label_spec
+                    .iter()
+                    .map(|label_vec| -> Result<GenericValue, QpyError> {
+                        Ok(GenericValue::Tuple(
+                            label_vec
+                                .iter()
+                                .map(|label_element| -> Result<GenericValue, QpyError> {
+                                    match label_element {
+                                        CaseSpecifier::Default => Ok(GenericValue::CaseDefault),
+                                        CaseSpecifier::Uint(val) => Ok(GenericValue::Int64(
+                                            val.to_i64().ok_or_else(|| {
+                                                QpyError::ConversionError(
+                                                    "Case specifier too large".to_string(),
+                                                )
+                                            })?,
+                                        )
+                                        .as_le()),
+                                    }
+                                })
+                                .collect::<Result<Vec<GenericValue>, _>>()?,
+                        ))
+                    })
                     .zip(case_circuits)
-                    .map(|(label, circuit)| GenericValue::Tuple(vec![label, circuit]))
-                    .collect(),
+                    .map(|(label, circuit)| -> Result<GenericValue, QpyError> {
+                        Ok(GenericValue::Tuple(vec![label?, circuit]))
+                    })
+                    .collect::<Result<Vec<GenericValue>, _>>()?,
             );
             vec![
                 pack_generic_value(&target_value, qpy_data)?,

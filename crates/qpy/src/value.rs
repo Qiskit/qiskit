@@ -355,8 +355,8 @@ impl GenericValue {
             _ => None,
         }
     }
-    // return the inner Vec when the GenericData is a Tuple
-    pub(crate) fn as_vec(&self) -> Option<&Vec<GenericValue>> {
+    // return the inner GenericValue slice when the GenericData is a Tuple
+    pub(crate) fn as_slice(&self) -> Option<&[GenericValue]> {
         match self {
             GenericValue::Tuple(elements) => Some(elements),
             _ => None,
