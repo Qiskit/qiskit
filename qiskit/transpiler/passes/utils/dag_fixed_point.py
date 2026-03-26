@@ -9,14 +9,13 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
 """Check if the DAG has reached a fixed point."""
-
-from __future__ import annotations
-
 from copy import deepcopy
+from typing import TYPE_CHECKING
 
-from qiskit.dagcircuit import DAGCircuit
+if TYPE_CHECKING:
+    from qiskit.dagcircuit import DAGCircuit
+
 from qiskit.transpiler.basepasses import AnalysisPass
 
 
@@ -29,11 +28,10 @@ class DAGFixedPoint(AnalysisPass):
     """
 
     def run(self, dag: DAGCircuit) -> None:
-        """Run the DAGFixedPoint pass on *dag*."""
+        """Run the DAGFixedPoint pass on ``dag``."""
         if self.property_set["_dag_fixed_point_previous_dag"] is None:
             self.property_set["dag_fixed_point"] = False
         else:
             fixed_point_reached = self.property_set["_dag_fixed_point_previous_dag"] == dag
             self.property_set["dag_fixed_point"] = fixed_point_reached
-
         self.property_set["_dag_fixed_point_previous_dag"] = deepcopy(dag)
