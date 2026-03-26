@@ -30,7 +30,7 @@
 
 use super::BitTerm;
 use super::SparseObservable;
-use num_complex::Complex64;
+
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
@@ -89,7 +89,7 @@ pub fn generator_observable(gate: StandardGate, params: &[Param]) -> Option<Spar
             // Numerically: pi / (2*sqrt(2)) ≈ 1.1107...
             // Note: the sign must be negative so H_gate uses coefficients +1/sqrt(2) each.
             StandardGate::H => {
-                let c = C_ECR_FACTOR.re;
+                let c = C_FRAC_PI_2_SQRT_2.re;
                 (vec![c64(c, 0.0), c64(c, 0.0)], vec![X, Z], vec![0, 0])
             }
             // X = exp(-i*(pi/2)*X), Y = exp(-i*(pi/2)*Y), Z = exp(-i*(pi/2)*Z)
@@ -391,7 +391,7 @@ pub fn generator_observable(gate: StandardGate, params: &[Param]) -> Option<Spar
         // ECR: ECR = exp(-i * (pi/2/sqrt(2)) * (IX - XY))
         // Terms: X1 with coeff +pi/(2*sqrt(2)), X1Y0 with coeff -pi/(2*sqrt(2))
         StandardGate::ECR => (
-            vec![C_ECR_FACTOR, C_M_ECR_FACTOR],
+            vec![C_FRAC_PI_2_SQRT_2, C_M_FRAC_PI_2_SQRT_2],
             vec![X, Y, X],
             vec![0, 0, 1],
             vec![0, 1, 3],
