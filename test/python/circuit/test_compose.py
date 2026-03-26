@@ -550,6 +550,23 @@ class TestCircuitCompose(QiskitTestCase):
 
         self.assertEqual(output, expected)
 
+    def test_compose_front_smaller_circuit(self):
+        """Test composing a smaller circuit at the front with explicit qubits mapping."""
+
+        qc_base = QuantumCircuit(2)
+        qc_base.h(0)
+
+        qc_x = QuantumCircuit(1)
+        qc_x.x(0)
+
+        output = qc_base.compose(qc_x, qubits=[0], front=True)
+
+        expected = QuantumCircuit(2)
+        expected.x(0)
+        expected.h(0)
+
+        self.assertEqual(output, expected)
+
     def test_compose_adds_parameters(self):
         """Test the composed circuit contains all parameters."""
         a, b = Parameter("a"), Parameter("b")
