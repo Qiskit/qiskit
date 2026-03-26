@@ -696,14 +696,23 @@ class TestGeneratorObservableCommutation(QiskitTestCase):
         StandardGate.CRX,
         StandardGate.CRY,
         StandardGate.CRZ,
+        StandardGate.GlobalPhase,
+        StandardGate.RXX,
+        StandardGate.RYY,
+        StandardGate.RZZ,
+        StandardGate.RZX,
+        StandardGate.XXPlusYY,
+        StandardGate.XXMinusYY,
     )
     def test_clifford_gates_have_generators(self, std_gate):
         """
         `_generator_observable` should return a SparseObservable for all
         the standard gates that PR #15488 adds commutation support for.
         """
-        # Clifford / fixed gates don't need params
-        obs = _generator_observable(std_gate, [])
+        # If a gate requires parameters (like XXPlusYY), provide defaults.
+        # Otherwise, fall back to empty params.
+        params = [0.1, 0.0] if std_gate.name in ("xx_plus_yy", "xx_minus_yy") else []
+        obs = _generator_observable(std_gate, params)
         self.assertIsNotNone(
             obs,
             f"{std_gate.name} should have a generator",
