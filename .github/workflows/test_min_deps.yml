@@ -25,7 +25,7 @@ jobs:
           #needed to ensure dependency versions aren't updated when qiskit is installed
           pip install --no-deps -e .
 
-          pip install --group test
+          pip install --group test --no-deps
 
       - run: |
           source venv/bin/activate
