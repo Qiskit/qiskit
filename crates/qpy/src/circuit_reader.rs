@@ -603,7 +603,7 @@ fn unpack_control_flow(
             let mut instruction_values = get_instruction_values(instruction, qpy_data)?;
             let (target_value, case_label_list) = if instruction_values.len() < 3 {
                 // we follow the python way of storing switch params
-                // the first param is the target, the next param is the cases specificer
+                // the first param is the target, the next param is the cases specifier
                 // the cases specifier is a list of pairs (tuples)
                 // the second element in each pair is the subcircuit for this case
                 // the first element is the list of the case labels, or a single case label
