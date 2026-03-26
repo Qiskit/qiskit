@@ -43,7 +43,7 @@ use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
 use qiskit_quantum_info::convert_2q_block_matrix::instructions_to_matrix;
 
 const EPS: f64 = 1e-10;
-const MINIMUM_TOL: f64 = 1e-8;
+const MINIMUM_TOL: f64 = 1e-12;
 
 /// Errors that might occur during QSD synthesis algorithm
 #[derive(Error, Debug)]
