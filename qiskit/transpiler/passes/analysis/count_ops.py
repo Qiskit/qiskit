@@ -9,12 +9,12 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
 """Count the operations in a DAG circuit."""
+from typing import TYPE_CHECKING
 
-from __future__ import annotations
+if TYPE_CHECKING:
+    from qiskit.dagcircuit import DAGCircuit
 
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import AnalysisPass
 
 
@@ -25,8 +25,7 @@ class CountOps(AnalysisPass):
     """
 
     def __init__(self, *, recurse: bool = True) -> None:
-        """Initialize a ``CountOps`` pass.
-
+        """
         Args:
             recurse: If ``True`` (default), recursively count operations
                 inside control-flow blocks.
@@ -35,5 +34,5 @@ class CountOps(AnalysisPass):
         self.recurse = recurse
 
     def run(self, dag: DAGCircuit) -> None:
-        """Run the CountOps pass on *dag*."""
+        """Run the CountOps pass on ``dag``."""
         self.property_set["count_ops"] = dag.count_ops(recurse=self.recurse)
