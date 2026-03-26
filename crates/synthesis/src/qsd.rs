@@ -90,7 +90,7 @@ enum VWType {
 /// based on the Block ZXZ-Decomposition.
 ///
 /// # Arguments
-/// * `mat`: unitary matrix to decompose
+/// * `array`: unitary matrix to decompose
 /// * `opt_a1`: whether to try optimization A.1 (if `None`, decide automatically)
 /// * `opt_a2`: whether to try optimization A.2 (if `None`, decide automatically)
 /// * `two_qubit_decomposer`: Optional alternative two qubit decomposer, if not specified a decomposer using CX and U is used.
@@ -100,12 +100,14 @@ enum VWType {
 ///
 /// Decomposed quantum circuit.
 pub fn quantum_shannon_decomposition(
-    mat: MatRef<Complex64>,
+    array: ArrayView2<Complex64>,
     opt_a1: Option<bool>,
     opt_a2: Option<bool>,
     one_qubit_decomposer_basis_set: Option<&EulerBasisSet>,
     two_qubit_decomposer: Option<&TwoQubitBasisDecomposer>,
 ) -> Result<CircuitData, QSDError> {
+    let mat = Mat::from_fn(array.shape()[0], array.shape()[1], |i, j| array[[i, j]]);
+
     let dim = mat.shape().0;
     let num_qubits = dim.ilog2() as usize;
     let mut default_1q_basis = EulerBasisSet::new();
@@ -121,14 +123,14 @@ pub fn quantum_shannon_decomposition(
     let one_qubit_decomposer = one_qubit_decomposer_basis_set.unwrap_or(&default_1q_basis);
     let two_qubit_decomposer = two_qubit_decomposer.unwrap_or(&default_2q_decomposer);
 
-    if (Mat::<Complex64>::identity(dim, dim).as_ref() - mat).norm_max() < MINIMUM_TOL {
+    if (Mat::<Complex64>::identity(dim, dim).as_ref() - mat.as_ref()).norm_max() < MINIMUM_TOL {
         let out_qubits = (0..num_qubits)
             .map(|_| ShareableQubit::new_anonymous())
             .collect::<Vec<_>>();
         return Ok(CircuitData::new(Some(out_qubits), None, Param::Float(0.))?);
     }
     qsd_inner(
-        mat,
+        mat.as_ref(),
         opt_a1,
         opt_a2,
         two_qubit_decomposer,
@@ -889,7 +891,6 @@ pub fn qs_decomposition(
     two_qubit_decomposer: Option<&TwoQubitBasisDecomposer>,
 ) -> PyResult<PyCircuitData> {
     let array: ArrayView2<Complex64> = mat.as_array();
-    let mat = Mat::from_fn(array.shape()[0], array.shape()[1], |i, j| array[[i, j]]);
     let mut one_qubit_decomposer_basis_set = EulerBasisSet::new();
     let one_qubit_decomposer = if let Some(basis_string) = one_qubit_decomposer_basis_string {
         let basis = basis_string
@@ -901,7 +902,7 @@ pub fn qs_decomposition(
         None
     };
     let res = quantum_shannon_decomposition(
-        mat.as_ref(),
+        array,
         opt_a1,
         opt_a2,
         one_qubit_decomposer,

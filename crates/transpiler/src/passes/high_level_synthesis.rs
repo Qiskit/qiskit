@@ -10,7 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use faer::Mat;
 use hashbrown::HashMap;
 use hashbrown::HashSet;
 use ndarray::prelude::*;
@@ -793,9 +792,8 @@ fn extract_definition(op: &PackedOperation, params: &[Param]) -> PyResult<Option
                 }
                 // Run 3q+ synthesis
                 _ => {
-                    let mat = Mat::from_fn(shape[0], shape[1], |i, j| unitary[[i, j]]);
                     let synth_circ =
-                        quantum_shannon_decomposition(mat.as_ref(), None, None, None, None)?;
+                        quantum_shannon_decomposition(unitary.view(), None, None, None, None)?;
                     Ok(Some(synth_circ))
                 }
             }
