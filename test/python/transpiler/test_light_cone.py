@@ -13,6 +13,7 @@
 """Test the LightCone pass"""
 
 import unittest
+import numpy as np
 from test import QiskitTestCase
 
 import ddt
@@ -378,21 +379,21 @@ class TestLightConePass(QiskitTestCase):
 
     def test_original_bug_15021(self):
         """Test based on the original bug report in issue #15021."""
-        import numpy as np
         qc = QuantumCircuit(18)
-        qc.rx(np.pi / 3, range(0, qc.num_qubits))
+        qc.rx(np.pi / 3, range(qc.num_qubits))
         bit_terms = "ZZZZZZZZZ"
         indices = [0, 1, 2, 3, 4, 9, 10, 12, 13]
-        pm = PassManager([
-            LightCone(
-                bit_terms=bit_terms,
-                indices=indices,
-            )
-        ])
+        pm = PassManager(
+            [
+                LightCone(
+                    bit_terms=bit_terms,
+                    indices=indices,
+                )
+            ]
+        )
         # This used to fail with Index results / UnsortedIndices
-        reduced_circ = pm.run(qc)
-        # The reduced circuit should only contain gates on the 9 qubits in the light cone
-        self.assertEqual(len(reduced_circ), 9)
+        # Verify the reduced circuit contains exactly 9 gates on the expected light cone
+        self.assertEqual(len(pm.run(qc)), 9)
 
 
 if __name__ == "__main__":
