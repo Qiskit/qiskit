@@ -30,8 +30,8 @@ use crate::euler_one_qubit_decomposer::{
 };
 use crate::linalg::{
     VERIFY_TOL, block_matrix_faer, closest_unitary_faer, eigendecomposition_faer, faer_to_ndarray,
-    from_diagonal_faer, is_zero_matrix_faer, nalgebra_array_view, svd_decomposition_faer,
-    verify_unitary_faer,
+    from_diagonal_faer, is_zero_matrix_faer, nalgebra_array_view, ndarray_to_faer,
+    svd_decomposition_faer, verify_unitary_faer,
 };
 use crate::two_qubit_decompose::{TwoQubitBasisDecomposer, two_qubit_decompose_up_to_diagonal};
 use qiskit_circuit::bit::ShareableQubit;
@@ -106,8 +106,7 @@ pub fn quantum_shannon_decomposition(
     one_qubit_decomposer_basis_set: Option<&EulerBasisSet>,
     two_qubit_decomposer: Option<&TwoQubitBasisDecomposer>,
 ) -> Result<CircuitData, QSDError> {
-    let mat = Mat::from_fn(array.shape()[0], array.shape()[1], |i, j| array[[i, j]]);
-
+    let mat = ndarray_to_faer(array);
     let dim = mat.shape().0;
     let num_qubits = dim.ilog2() as usize;
     let mut default_1q_basis = EulerBasisSet::new();
@@ -123,14 +122,14 @@ pub fn quantum_shannon_decomposition(
     let one_qubit_decomposer = one_qubit_decomposer_basis_set.unwrap_or(&default_1q_basis);
     let two_qubit_decomposer = two_qubit_decomposer.unwrap_or(&default_2q_decomposer);
 
-    if (Mat::<Complex64>::identity(dim, dim).as_ref() - mat.as_ref()).norm_max() < MINIMUM_TOL {
+    if (Mat::<Complex64>::identity(dim, dim).as_ref() - mat).norm_max() < MINIMUM_TOL {
         let out_qubits = (0..num_qubits)
             .map(|_| ShareableQubit::new_anonymous())
             .collect::<Vec<_>>();
         return Ok(CircuitData::new(Some(out_qubits), None, Param::Float(0.))?);
     }
     qsd_inner(
-        mat.as_ref(),
+        mat,
         opt_a1,
         opt_a2,
         two_qubit_decomposer,
