@@ -14,6 +14,7 @@
 """Test the BasisTranslator pass"""
 
 import os
+import unittest
 
 from numpy import pi
 import scipy
@@ -52,6 +53,7 @@ from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
 )
+from qiskit.utils.optionals import HAS_AER
 from test import QiskitTestCase
 
 
@@ -1278,10 +1280,13 @@ class TestBasisTranslatorWithTarget(QiskitTestCase):
 
         self.assertEqual(transpiled, expected_qc)
 
-    def test_basis_nested_control_flow_op_backend(self):
+    @unittest.skipUnless(HAS_AER, "Aer backend required for simulation")
+    def test_basis_nested_control_flow_op_aer(self):
         """Test nested handling of nested control flow operations under the basis translator
-        using a generic backend"""
-        backend = GenericBackendV2(3, ["u", "t", "tdg", "cx"], control_flow=True)
+        using an Aer Simulator backend"""
+        from qiskit_aer import AerSimulator
+
+        backend = AerSimulator()
 
         qc = QuantumCircuit(3, 1)
 
