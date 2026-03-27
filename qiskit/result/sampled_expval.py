@@ -42,7 +42,7 @@ def sampled_expectation_value(
 
     Note that passing a raw dict requires bit-string keys.
 
-    Parameters:
+    Args:
         dist: Input sampled distribution.
         oper: The operator for the observable.
 
