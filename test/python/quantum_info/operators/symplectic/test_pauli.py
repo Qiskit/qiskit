@@ -431,9 +431,13 @@ class TestPauli(QiskitTestCase):
     @unpack
     def test_evolve_clifford1(self, gate, label):
         """Test evolve method for 1-qubit Clifford gates."""
+        qc = QuantumCircuit(1)
+        qc.append(gate, [0])
         op = Operator(gate)
         pauli = Pauli(label)
+        pauli_cpy = pauli.copy()
         value = Operator(pauli.evolve(gate))
+        value_qc = Operator(pauli_cpy._append_circuit(qc))
         value_h = Operator(pauli.evolve(gate, frame="h"))
         value_s = Operator(pauli.evolve(gate, frame="s"))
         value_inv = Operator(pauli.evolve(gate.inverse()))
@@ -441,30 +445,7 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(value, target)
         self.assertEqual(value, value_h)
         self.assertEqual(value_inv, value_s)
-
-    @combine(
-        gate=[
-            IGate(),
-            XGate(),
-            YGate(),
-            ZGate(),
-            HGate(),
-            SGate(),
-            SdgGate(),
-            SXGate(),
-            SXdgGate(),
-        ],
-        label=pauli_group_labels(1, False),
-    )
-    def test_append_circuit_1_qubit(self, gate, label):
-        """Test _append_circuit method for 1-qubit clifford gates"""
-        qc = QuantumCircuit(1)
-        qc.append(gate, [0])
-        op = Operator(gate)
-        pauli = Pauli(label)
-        target = op.dot(pauli).dot(op.adjoint())
-        value = Operator(pauli._append_circuit(qc))
-        self.assertEqual(value, target)
+        self.assertEqual(value_s, value_qc)
 
     @data(
         *it.product(
@@ -495,9 +476,13 @@ class TestPauli(QiskitTestCase):
     @unpack
     def test_evolve_clifford2(self, gate, label):
         """Test evolve method for 2-qubit Clifford gates."""
+        qc = QuantumCircuit(2)
+        qc.append(gate, [0, 1])
         op = Operator(gate)
         pauli = Pauli(label)
+        pauli_cpy = pauli.copy()
         value = Operator(pauli.evolve(gate))
+        value_qc = Operator(pauli_cpy._append_circuit(qc))
         value_h = Operator(pauli.evolve(gate, frame="h"))
         value_s = Operator(pauli.evolve(gate, frame="s"))
         value_inv = Operator(pauli.evolve(gate.inverse()))
@@ -505,28 +490,7 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(value, target)
         self.assertEqual(value, value_h)
         self.assertEqual(value_inv, value_s)
-
-    @combine(
-        gate=[
-            CXGate(),
-            CYGate(),
-            CZGate(),
-            SwapGate(),
-            iSwapGate(),
-            ECRGate(),
-            DCXGate(),
-        ],
-        label=pauli_group_labels(2, False),
-    )
-    def test_append_circuit_2_qubit(self, gate, label):
-        """Test _append_circuit method for 2-qubit clifford gates"""
-        qc = QuantumCircuit(2)
-        qc.append(gate, [0, 1])
-        op = Operator(gate)
-        pauli = Pauli(label)
-        target = op.dot(pauli).dot(op.adjoint())
-        value = Operator(pauli._append_circuit(qc))
-        self.assertEqual(value, target)
+        self.assertEqual(value_qc, value_s)
 
     @data(
         *it.product(
