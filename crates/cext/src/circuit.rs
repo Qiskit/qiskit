@@ -12,6 +12,7 @@
 
 use std::ffi::{CStr, CString, c_char};
 
+use crate::circuit_library::pbc::{CPauliProductMeasurement, CPauliProductRotation};
 use crate::dag::COperationKind;
 use crate::exit_codes::ExitCode;
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
@@ -22,15 +23,17 @@ use num_complex::{Complex64, ComplexFloat};
 
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
 use qiskit_circuit::bit::{ShareableClbit, ShareableQubit};
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
+use qiskit_circuit::circuit_drawer::draw_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::interner::Interner;
 use qiskit_circuit::operations::{
-    ArrayType, DelayUnit, Operation, OperationRef, Param, StandardGate, StandardInstruction,
-    UnitaryGate,
+    ArrayType, DelayUnit, Operation, OperationRef, Param, PauliBased, PauliProductMeasurement,
+    PauliProductRotation, StandardGate, StandardInstruction, UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
+use qiskit_circuit::parameter_table::ParameterTableError;
 use qiskit_circuit::{BlocksMode, Clbit, Qubit, VarsMode};
 use smallvec::smallvec;
 
@@ -339,6 +342,46 @@ pub unsafe extern "C" fn qk_circuit_num_clbits(circuit: *const CircuitData) -> u
 }
 
 /// @ingroup QkCircuit
+/// Get the number of unbound symbols in ``QkParam`` objects in the circuit.
+///
+/// @param circuit A pointer to the circuit.
+///
+/// @return The number of unbound ``QkParam`` symbols in the circuit.
+///
+/// # Example
+///
+/// ```c
+/// QkCircuit *qc = qk_circuit_new(2, 0);
+/// QkParam *x = qk_param_new_symbol("x");
+/// QkParam *y = qk_param_new_symbol("y");
+///
+/// uint32_t q0[1] = {0};
+/// const QkParam *rx_param[1] = {x};
+/// const QkParam *ry_param[1] = {y};
+///
+/// qk_circuit_parameterized_gate(qc, QkGate_RX, q0, rx_param);
+/// qk_circuit_parameterized_gate(qc, QkGate_RY, q0, ry_param);
+///
+/// // check the number of QkParam symbols
+/// size_t num_symbols = qk_circuit_num_param_symbols(qc); // == 2
+///
+/// qk_param_free(x);
+/// qk_param_free(y);
+/// qk_circuit_free(qc);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_num_param_symbols(circuit: *const CircuitData) -> usize {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let circuit = unsafe { const_ptr_as_ref(circuit) };
+
+    circuit.num_parameters()
+}
+
+/// @ingroup QkCircuit
 /// Free the circuit.
 ///
 /// @param circuit A pointer to the circuit to free.
@@ -454,6 +497,95 @@ pub unsafe extern "C" fn qk_circuit_gate(
         circuit.push_standard_gate(gate, params, qargs).unwrap()
     }
     ExitCode::Success
+}
+
+/// @ingroup QkCircuit
+/// Append a ``QkGate`` with ``QkParam*`` parameters to the circuit.
+///
+/// @param circuit A pointer to the circuit to add the gate to.
+/// @param gate The ``QkGate`` to add to the circuit.
+/// @param qubits The pointer to the array of ``uint32_t`` qubit indices to add the gate on. This
+/// can be a null pointer if there are no qubits for ``gate`` (e.g. ``QkGate_GlobalPhase``).
+/// @param params The pointer to the array of ``QkParam*`` parameters to use for the gate parameters.
+/// This can be a null pointer if there are no parameters for ``gate`` (e.g. ``QkGate_H``).
+///
+/// @return ``QkExitCode_Success`` upon successful append. Upon failure,
+///     ``QkExitCode_ParameterNameConflict`` indicates that a new parameter symbol has a name
+///     conflict with an existing one. ``QkExitCode_ParameterError`` describes other generic
+///     failures when attempting to track the parameter symbols.
+///
+/// # Example
+///
+/// ```c
+/// QkCircuit *qc = qk_circuit_new(100, 0);
+/// QkParam *theta = qk_param_new_symbol("theta");
+/// uint32_t qubit[1] = {0};
+/// const QkParam* params[1] = {theta};
+/// qk_circuit_parameterized_gate(qc, QkGate_RX, qubit, params); // add RX(theta) to the circuit
+/// ```
+///
+/// # Safety
+///
+/// The ``qubits`` and ``params`` types are expected to be a pointer to an array of ``uint32_t``
+/// and ``QkParam*`` respectively where the length is matching the expectations for the standard
+/// gate. If the array is insufficiently long the behavior of this function is undefined as this
+/// will read outside the bounds of the array. It can be a null pointer if there are no qubits
+/// or params for a given gate. You can check ``qk_gate_num_qubits`` and ``qk_gate_num_params`` to
+/// determine how many qubits and params are required for a given gate.
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``,
+/// or if any of the elements in the ``params`` array is not a valid, non-null pointer to a
+/// ``QkParam``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_parameterized_gate(
+    circuit: *mut CircuitData,
+    gate: StandardGate,
+    qubits: *const u32,
+    params: *const *const Param,
+) -> ExitCode {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let circuit = unsafe { mut_ptr_as_ref(circuit) };
+
+    // SAFETY: Per the documentation the qubits pointer is an array of num_qubits() elements.
+    let qargs: &[Qubit] = unsafe {
+        match gate.num_qubits() {
+            0 => &[],
+            1 => &[Qubit(*qubits.wrapping_add(0))],
+            2 => &[
+                Qubit(*qubits.wrapping_add(0)),
+                Qubit(*qubits.wrapping_add(1)),
+            ],
+            3 => &[
+                Qubit(*qubits.wrapping_add(0)),
+                Qubit(*qubits.wrapping_add(1)),
+                Qubit(*qubits.wrapping_add(2)),
+            ],
+            4 => &[
+                Qubit(*qubits.wrapping_add(0)),
+                Qubit(*qubits.wrapping_add(1)),
+                Qubit(*qubits.wrapping_add(2)),
+                Qubit(*qubits.wrapping_add(3)),
+            ],
+            // There are no ``QkGate``s > 4 qubits
+            _ => unreachable!(),
+        }
+    };
+
+    // SAFETY: Per documentation, the params pointer is an array of num_params() elements, and
+    // each element is a valid, non-null pointer to a Param.
+    let params: Vec<Param> =
+        unsafe { ::std::slice::from_raw_parts(params, gate.num_params() as usize) }
+            .iter()
+            .map(|&ptr| unsafe { const_ptr_as_ref(ptr) }.clone())
+            .collect();
+
+    match circuit.push_standard_gate(gate, &params, qargs) {
+        Ok(()) => ExitCode::Success,
+        Err(CircuitDataError::ParameterTableError(ParameterTableError::NameConflict(_))) => {
+            ExitCode::ParameterNameConflict
+        }
+        Err(_) => ExitCode::ParameterError,
+    }
 }
 
 /// @ingroup QkCircuit
@@ -940,7 +1072,7 @@ pub struct CInstruction {
     /// A pointer to an array of clbit indices this instruction operates on.
     clbits: *mut u32,
     /// A pointer to an array of parameter values for this instruction.
-    params: *mut f64,
+    params: *mut *mut Param,
     /// The number of qubits for this instruction.
     num_qubits: u32,
     /// The number of clbits for this instruction.
@@ -955,8 +1087,9 @@ impl CInstruction {
     /// This must be cleared by a call to `qk_circuit_instruction_clear` to avoid leaking its
     /// allocations.
     ///
-    /// Panics if the operation name contains a nul, or if the instruction has non-float parameters.
-    pub(crate) fn from_packed_instruction_with_floats(
+    /// Panics if the operation name contains a nul, or if the instruction has non-numeric
+    /// parameters (not [Param::Float] or [Param::ParameterExpression]).
+    pub(crate) fn from_packed_instruction_with_numeric(
         packed: &PackedInstruction,
         qargs_interner: &Interner<[Qubit]>,
         cargs_interner: &Interner<[Clbit]>,
@@ -970,11 +1103,13 @@ impl CInstruction {
             .params_view()
             .iter()
             .map(|p| match p {
-                Param::Float(p) => Some(*p),
+                Param::Float(_) | Param::ParameterExpression(_) => {
+                    Some(Box::into_raw(Box::new(p.clone())))
+                }
                 _ => None,
             })
-            .collect::<Option<Box<[f64]>>>()
-            .expect("caller is responsible for ensuring all parameters are floats");
+            .collect::<Option<Box<[*mut Param]>>>()
+            .expect("caller is responsible for ensuring all parameters are numeric");
         Self {
             name,
             num_qubits: qargs.len() as u32,
@@ -1026,13 +1161,257 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
 ) {
     // SAFETY: Per documentation, `circuit` is a pointer to valid data.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
-    let inst = CInstruction::from_packed_instruction_with_floats(
+    let inst = CInstruction::from_packed_instruction_with_numeric(
         &circuit.data()[index],
         circuit.qargs_interner(),
         circuit.cargs_interner(),
     );
     // SAFETY: per documentation, `instruction` is a pointer to a sufficient allocation.
     unsafe { instruction.write(inst) };
+}
+
+/// @ingroup QkCircuit
+/// Apply a ``QkPauliProductRotation`` to a circuit.
+///
+/// @param circuit The circuit to apply the operation to.
+/// @param rotation A pointer to the ``QkPauliProductRotation`` to apply.
+/// @param qubits A pointer to the qubit array.
+///
+/// # Example
+///
+/// ```c
+/// // build a IXYZ Pauli rotation
+/// bool x[4] = {false, true, true, false};
+/// bool z[4] = {false, false, true, true};
+/// QkParam *angle = qk_param_from_double(1.0);
+/// QkPauliProductRotation rotation = {x, z, 4, angle};
+/// // append it to a circuit
+/// QkCircuit *circuit = qk_circuit_new(10, 1);
+/// uint32_t qubits[4] = {0, 1, 2, 3};
+/// qk_circuit_pauli_product_rotation(circuit, &rotation, qubits);
+/// // do something with the circuit... and then free it
+/// qk_param_free(angle);
+/// qk_circuit_free(circuit);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if any of the following is violated:
+/// * ``circuit`` is a valid, non-null pointer to a ``QkCircuit``
+/// * ``rotation`` is a valid, non-null pointer to a coherent ``QkPauliProductRotation``.
+///   Specifically, the ``rotation->z`` and ``rotation->x`` data arrays must be readable for
+///   ``rotation->len`` elements.
+/// * ``qubits`` is an aligned pointer to ``rotation->len`` initialized ``uint32_t`` values.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_pauli_product_rotation(
+    circuit: *mut CircuitData,
+    rotation: *const CPauliProductRotation,
+    qubits: *const u32,
+) {
+    // SAFETY: The user guarantees the circuit pointer is valid.
+    let circuit = unsafe { mut_ptr_as_ref(circuit) };
+
+    // SAFETY: The user guarantees the rotation pointer is valid and the data
+    // is coherent. This allows us reading the Z and X arrays.
+    let c_data = unsafe { const_ptr_as_ref(rotation) };
+    let angle = unsafe { const_ptr_as_ref(c_data.angle) };
+    let pbc_rotation = PauliProductRotation {
+        z: unsafe { ::std::slice::from_raw_parts(c_data.z, c_data.len) }.to_vec(),
+        x: unsafe { ::std::slice::from_raw_parts(c_data.x, c_data.len) }.to_vec(),
+        angle: angle.clone(),
+    };
+
+    // SAFETY: The user guarantees the qubit
+    let qubits = unsafe {
+        ::std::slice::from_raw_parts(qubits as *const Qubit, pbc_rotation.num_qubits() as usize)
+    };
+    let params = Some(Parameters::Params(smallvec![angle.clone()]));
+
+    let pbc = PauliBased::PauliProductRotation(pbc_rotation);
+    let packed = PackedOperation::from_pauli_based(Box::new(pbc));
+    circuit
+        .push_packed_operation(packed, params, qubits, &[])
+        .expect("Failed pushing packed QkPauliProductRotation");
+}
+
+/// @ingroup QkCircuit
+/// Get the ``QkPauliProductRotation`` data from a circuit instruction.
+///
+/// For a circuit with a ``QkPauliProductRotation`` instruction at index ``index``, this function
+/// will populate the ``instruction`` pointer with a copy of ``QkPauliProductRotation`` data. Note that
+/// this data lives independently of the circuit and must be freed manually with
+/// ``qk_pauli_product_rotation_clear``.
+///
+/// If the instruction at the provided ``index`` **is not** a ``QkPauliProductRotation``, this function
+/// will return ``QkExitCode_InvalidOperationKind`` error. You can verify that the instruction has the
+/// right kind using ``qk_circuit_instruction_kind``.
+///
+/// @param circuit A pointer to the circuit to retrieve the instruction details from.
+/// @param index The circuit instruction index.
+/// @param instruction A pointer to an allocated ``QkPauliProductRotation`` to store the data.
+///
+/// @return ``QkExitCode_Success`` if the data was written into the instruction, or
+///    ``QkExitCode_InvalidOperationKind`` if the index did not point to a ``QkPauliProductRotation``.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``. The
+/// value for ``index`` must be less than the value returned by ``qk_circuit_num_instructions``
+/// otherwise this function will panic. Behavior is undefined if ``instruction`` is not a valid,
+/// non-null pointer to a memory allocation with sufficient space for a ``QkPauliProductRotation``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_inst_pauli_product_rotation(
+    circuit: *const CircuitData,
+    index: usize,
+    instruction: *mut CPauliProductRotation,
+) -> ExitCode {
+    // SAFETY: The user guarantees the circuit pointer is valid to read.
+    let circuit = unsafe { const_ptr_as_ref(circuit) };
+
+    // Ensure the operation has the correct type, otherwise return early
+    let OperationRef::PauliProductRotation(rotation) = circuit.data()[index].op.view() else {
+        return ExitCode::InvalidOperationKind;
+    };
+
+    // We clone the internal data and then leak the box to give C access to the memory.
+    // This means the user has to manually free the allocated memory in the Pauli rotation.
+    let len = rotation.x.len();
+    let x = rotation.x.clone().into_boxed_slice();
+    let z = rotation.z.clone().into_boxed_slice();
+    let angle = Box::into_raw(Box::new(rotation.angle.clone()));
+    let out = CPauliProductRotation {
+        x: Box::into_raw(x) as *mut bool,
+        z: Box::into_raw(z) as *mut bool,
+        len,
+        angle,
+    };
+
+    // SAFETY: The user guarantees `instruction` points to sufficiently allocated memory.
+    unsafe { instruction.write(out) };
+
+    ExitCode::Success
+}
+
+/// @ingroup QkCircuit
+/// Apply a ``QkPauliProductMeasurement`` to a circuit.
+///
+/// @param circuit The circuit to apply the operation to.
+/// @param measurement A pointer to the ``QkPauliProductMeasurement`` to apply.
+/// @param qubits A pointer to the qubit array.
+/// @param clbit A single ``uint32_t`` specifying the measurement qubit.
+///
+/// # Example
+///
+/// ```c
+/// // build a XZ Pauli measurement
+/// bool x[2] = {true, false};
+/// bool z[2] = {false, true};
+/// QkPauliProductMeasurement measure = {x, z, 2, false};
+/// // append it to a circuit
+/// QkCircuit *circuit = qk_circuit_new(10, 1);
+/// uint32_t qubits[2] = {0, 2};
+/// uint32_t clbit = 0;
+/// qk_circuit_pauli_product_measurement(circuit, &measure, qubits, clbit);
+/// // do something with the circuit... and then free it
+/// qk_circuit_free(circuit);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if any of the following is violated:
+/// * ``circuit`` is a valid, non-null pointer to a ``QkCircuit``
+/// * ``measurement`` is a valid, non-null pointer to a coherent ``QkPauliProductMeasurement``.
+///   Specifically, the ``measurement->z`` and ``measurement->x`` data arrays must be readable for
+///   ``measurement->len`` elements.
+/// * ``qubits`` is an aligned pointer to ``rotation->len`` initialized ``uint32_t`` values.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_pauli_product_measurement(
+    circuit: *mut CircuitData,
+    measurement: *const CPauliProductMeasurement,
+    qubits: *const u32,
+    clbit: u32,
+) {
+    // SAFETY: The user guarantees the circuit pointer is valid.
+    let circuit = unsafe { mut_ptr_as_ref(circuit) };
+
+    // SAFETY: The user guarantees the rotation pointer is valid and the data
+    // is coherent. This allows us reading the Z and X arrays.
+    let c_data = unsafe { const_ptr_as_ref(measurement) };
+    let pbc_measure = PauliProductMeasurement {
+        z: unsafe { ::std::slice::from_raw_parts(c_data.z, c_data.len) }.to_vec(),
+        x: unsafe { ::std::slice::from_raw_parts(c_data.x, c_data.len) }.to_vec(),
+        neg: c_data.flip_outcome,
+    };
+
+    // SAFETY: The user guarantees the qubit
+    let qubits = unsafe {
+        ::std::slice::from_raw_parts(qubits as *const Qubit, pbc_measure.num_qubits() as usize)
+    };
+    let clbits = &[Clbit(clbit)];
+
+    let pbc = PauliBased::PauliProductMeasurement(pbc_measure);
+    let packed = PackedOperation::from_pauli_based(Box::new(pbc));
+    circuit
+        .push_packed_operation(packed, None, qubits, clbits)
+        .expect("Failed pushing packed QkPauliProductMeasurement");
+}
+
+/// @ingroup QkCircuit
+/// Get the ``QkPauliProductMeasurement`` data from a circuit instruction.
+///
+/// For a circuit with a ``QkPauliProductMeasurement`` instruction at index ``index``, this function
+/// will populate the ``instruction`` pointer with a copy of ``QkPauliProductMeasurement`` data.
+/// Note that this data lives independently of the circuit must be freed manually with
+/// ``qk_pauli_product_measurement_clear``.
+///
+/// If the instruction at the provided ``index`` **is not** a ``QkPauliProductMeasurement``, this
+/// function will return ``QkExitCode_InvalidOperationKind`` error. Verify that the instruction is
+/// of the correct kind using ``qk_circuit_instruction_kind``.
+///
+/// @param circuit A pointer to the circuit to retrieve the instruction details from.
+/// @param index The circuit instruction index.
+/// @param instruction A pointer to an allocated ``QkPauliProductMeasurement`` to store the data.
+///
+/// @return ``QkExitCode_Success`` if the data was written into the instruction, or
+///     ``QkExitCode_InvalidOperationKind`` if the index did not point to a
+///     ``QkPauliProductMeasurement``.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``. The
+/// value for ``index`` must be less than the value returned by ``qk_circuit_num_instructions``
+/// otherwise this function will panic. Behavior is undefined if ``instruction`` is not a valid,
+/// non-null pointer to a memory allocation with sufficient space for a ``QkPauliProductMeasurement``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_inst_pauli_product_measurement(
+    circuit: *const CircuitData,
+    index: usize,
+    instruction: *mut CPauliProductMeasurement,
+) -> ExitCode {
+    // SAFETY: The user guarantees the circuit pointer is valid to read.
+    let circuit = unsafe { const_ptr_as_ref(circuit) };
+
+    // Ensure the operation has the correct type, otherwise return early
+    let OperationRef::PauliProductMeasurement(measure) = circuit.data()[index].op.view() else {
+        return ExitCode::InvalidOperationKind;
+    };
+
+    // We clone the internal data and then leak the box to give C access to the memory.
+    // This means the user has to manually free the allocated memory in the Pauli rotation.
+    let len = measure.x.len();
+    let x = measure.x.clone().into_boxed_slice();
+    let z = measure.z.clone().into_boxed_slice();
+    let out = CPauliProductMeasurement {
+        x: Box::into_raw(x) as *mut bool,
+        z: Box::into_raw(z) as *mut bool,
+        len,
+        flip_outcome: measure.neg,
+    };
+
+    // SAFETY: The user guarantees `instruction` points to sufficiently allocated memory.
+    unsafe { instruction.write(out) };
+
+    ExitCode::Success
 }
 
 /// @ingroup QkCircuit
@@ -1080,7 +1459,10 @@ pub unsafe extern "C" fn qk_circuit_instruction_clear(inst: *mut CInstruction) {
         inst.num_clbits = 0;
         if inst.num_params > 0 && !inst.params.is_null() {
             let params = std::slice::from_raw_parts_mut(inst.params, inst.num_params as usize);
-            let _ = Box::from_raw(params as *mut [f64]);
+            for param in params.iter() {
+                let _ = Box::from_raw(*param);
+            }
+            let _ = Box::from_raw(params);
             inst.params = std::ptr::null_mut();
         }
         inst.num_params = 0;
@@ -1125,40 +1507,392 @@ pub unsafe extern "C" fn qk_opcounts_clear(op_counts: *mut OpCounts) {
     op_counts.data = std::ptr::null_mut();
 }
 
-/// @ingroup QkCircuit
-/// Convert to a Python-space ``QuantumCircuit``.
-///
-/// This function takes ownership of the pointer and gives it to Python. Using
-/// the input ``circuit`` pointer after it's passed to this function is
-/// undefined behavior. In particular, ``qk_circuit_free`` should not be called
-/// on this pointer anymore.
-///
-/// @param circuit The C-space ``QkCircuit`` pointer.
-///
-/// @return A Python ``QuantumCircuit`` object.
-///
-/// # Safety
-///
-/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to
-/// a ``QkCircuit``
-///
-/// It is assumed that the thread currently executing this function holds the
-/// Python GIL. This is required to create the Python object returned by this
-/// function.
-#[unsafe(no_mangle)]
 #[cfg(feature = "python_binding")]
-pub unsafe extern "C" fn qk_circuit_to_python(
-    circuit: *mut CircuitData,
-) -> *mut ::pyo3::ffi::PyObject {
-    // SAFETY: per documentation, `circuit` is a valid and owned `CircuitData`.
-    let circuit = unsafe { Box::from_raw(mut_ptr_as_ref(circuit)) };
-    // SAFETY: per documentation, we are attached to an interpreter.
-    let py = unsafe { ::pyo3::Python::assume_attached() };
-    circuit
-        .into_py_quantum_circuit(py)
-        .expect("Unable to create a Python circuit")
-        .into_ptr()
+mod py {
+    use crate::circuit::mut_ptr_as_ref;
+    use pyo3::prelude::*;
+    use qiskit_circuit::bit::{
+        ClassicalRegister, PyClassicalRegister, PyQuantumRegister, QuantumRegister,
+    };
+    use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
+
+    /// @ingroup QkCircuit
+    /// Pass ownership of a `QkCircuit` object to Python.
+    ///
+    /// The resulting Python object is *not* `QuantumCircuit`, it is the inner `CircuitData`, which
+    /// is typically accessed as `QuantumCircuit._data`.  You can use `qk_circuit_to_python_full` to
+    /// produce a complete `QuantumCircuit` object.
+    ///
+    /// It is not safe to use the `QkCircuit` pointer after calling this function.  In particular,
+    /// you should not attempt to clear or free it.  The caller must own the `QkCircuit`, not hold a
+    /// borrowed reference (for example, a `QkCircuit *` retrieved from
+    /// `qk_circuit_borrow_from_python` is not owned).
+    ///
+    /// @param qc The owned object.
+    /// @return An owned Python reference to the object.
+    ///
+    /// # Safety
+    ///
+    /// The caller must be attached to a Python interpreter.  Behavior is undefined if `circuit` is not
+    /// a valid non-null pointer to an initialized and owned `QkCircuit`.
+    #[unsafe(no_mangle)]
+    pub unsafe extern "C" fn qk_circuit_to_python(
+        qc: *mut CircuitData,
+    ) -> *mut ::pyo3::ffi::PyObject {
+        // SAFETY: per documentation, we are attached to a Python interpreter.
+        let py = unsafe { Python::assume_attached() };
+        // SAFETY: per documentation, `dag` points to owned and valid data.
+        let qc = unsafe { Box::from_raw(mut_ptr_as_ref(qc)) };
+        match Bound::new(py, PyCircuitData::from(*qc)) {
+            Ok(ob) => ob.into_ptr(),
+            Err(e) => {
+                e.restore(py);
+                ::std::ptr::null_mut()
+            }
+        }
+    }
+
+    /// @ingroup QkCircuit
+    /// Pass ownership of a `QkCircuit` object to Python and create a complete `QuantumCircuit`.
+    ///
+    /// This includes additional Python-space logic to produce the complete `QuantumCircuit`, since
+    /// `QkCircuit` corresponds only to the internal `QuantumCircuit._data` field.
+    ///
+    /// It is not safe to use the `QkCircuit` pointer after calling this function.  In particular,
+    /// you should not attempt to clear or free it.  The caller must own the `QkCircuit`, not hold a
+    /// borrowed reference (for example, a `QkCircuit *` retrieved from
+    /// `qk_circuit_borrow_from_python` is not owned).
+    ///
+    /// @param qc The owned object.
+    /// @return An owned Python reference to the object.
+    ///
+    /// # Safety
+    ///
+    /// The caller must be attached to a Python interpreter.  Behavior is undefined if `circuit` is not
+    /// a valid non-null pointer to an initialized and owned `QkCircuit`.
+    #[unsafe(no_mangle)]
+    pub unsafe extern "C" fn qk_circuit_to_python_full(
+        qc: *mut CircuitData,
+    ) -> *mut ::pyo3::ffi::PyObject {
+        // SAFETY: per documentation, we are attached to a Python interpreter.
+        let py = unsafe { Python::assume_attached() };
+        // SAFETY: per documentation, `dag` points to owned and valid data.
+        let qc = unsafe { Box::from_raw(mut_ptr_as_ref(qc)) };
+        match PyCircuitData::from(*qc).into_py_quantum_circuit(py) {
+            Ok(ob) => ob.into_ptr(),
+            Err(e) => {
+                e.restore(py);
+                ::std::ptr::null_mut()
+            }
+        }
+    }
+
+    /// @ingroup QkCircuit
+    /// Retrieve a `QkCircuit` pointer from a Python object.
+    ///
+    /// Note that the input to this function should _not_ be `QuantumCircuit`, but the output of
+    /// `QuantumCircuit._data`.  This is necessary to enforce correct reference-counting semantics.
+    ///
+    /// This borrows a Python reference and extracts the `QkCircuit` pointer for it, if it is of
+    /// the correct type.  The returned pointer is borrowed from the `ob` pointer.  If the
+    /// ``PyObject`` is not the correct type, the return value is ``NULL`` and the exception
+    /// state of the Python interpreter is set.
+    ///
+    /// You must be attached to a Python interpreter to call this function.
+    ///
+    /// You can also use `qk_circuit_convert_from_python`, which is logically the exact same as this
+    /// function, but can be directly used as a "converter" function for the `PyArg_Parse*`
+    /// family of Python converter functions.
+    ///
+    /// @param ob A borrowed Python object.
+    /// @return A pointer to the native object, or `NULL` if the Python object is the wrong type.
+    ///
+    /// # Safety
+    ///
+    /// The caller must be attached to a Python interpreter.  Behavior is undefined if `ob` is
+    /// not a valid non-null pointer to a Python object.
+    #[unsafe(no_mangle)]
+    #[cfg(feature = "python_binding")]
+    pub unsafe extern "C" fn qk_circuit_borrow_from_python(
+        ob: *mut pyo3::ffi::PyObject,
+    ) -> *mut CircuitData {
+        // SAFETY: per documentation, we are attached to a Python interpreter, and `ob` points to a
+        // valid PyObject.
+        unsafe {
+            crate::py::borrow_map_mut::<PyCircuitData, CircuitData>(
+                Python::assume_attached(),
+                ob,
+                // If in the future we change `PyCircuitData` to store an `Arc<RwLock>`, look at
+                // `QkObs`/`SparseObservable` for how to change this Python-space function and the
+                // new ones to be added.
+                |_py, qc| Ok(&mut qc.inner),
+            )
+        }
+    }
+
+    /// @ingroup QkCircuit
+    /// Retrieve a `QkCircuit` pointer from a Python object.
+    ///
+    /// Note that the input to this function should _not_ be `QuantumCircuit`, but the output of
+    /// `QuantumCircuit._data`.  This is necessary to enforce correct reference-counting semantics.
+    ///
+    /// This borrows a Python reference and extracts the `QkCircuit` pointer for it into
+    /// ``address``, if it is of the correct type.  The returned pointer is borrowed from the
+    /// `object` pointer.  If the `PyObject` is not the correct type, the return value is 0, the
+    /// exception state of the Python interpreter is set, and `address` is unchanged.
+    ///
+    /// You must be attached to a Python interpreter to call this function.
+    ///
+    /// You can also use `qk_circuit_borrow_from_python`, which is logically the exact same as this,
+    /// but with a more natural signature for direct usage.
+    ///
+    /// @param object A borrowed Python object.
+    /// @param address The location to write the output to.
+    /// @return 1 on success, 0 on failure.
+    ///
+    /// # Safety
+    ///
+    /// The caller must be attached to a Python interpreter.  Behavior is undefined if `object`
+    /// is not a valid non-null pointer to a Python object, or if `address` is not a pointer to
+    /// writeable data of the correct type.
+    #[unsafe(no_mangle)]
+    #[cfg(feature = "python_binding")]
+    pub unsafe extern "C" fn qk_circuit_convert_from_python(
+        object: *mut ::pyo3::ffi::PyObject,
+        address: *mut ::std::ffi::c_void,
+    ) -> ::std::ffi::c_int {
+        // SAFETY: per documentation, we are attached to a Python interpreter, `object` is a valid
+        // pointer to a PyObject, and `address` points to enough space to write a pointer.
+        unsafe {
+            crate::py::convert_map_mut::<PyCircuitData, CircuitData>(
+                Python::assume_attached(),
+                object,
+                address,
+                |_py, qc| Ok(&mut qc.inner),
+            )
+        }
+    }
+
+    /// @ingroup QkCircuit
+    /// Pass ownership of a `QkQuantumRegister` object to Python.
+    ///
+    /// It is not safe to use the `QkQuantumRegister` pointer after calling this function.  In
+    /// particular, you should not attempt to clear or free it.  The caller must own the
+    /// `QkQuantumRegister`, not hold a borrowed reference (for example, a `QkQuantumRegister *`
+    /// retrieved from `qk_quantum_register_borrow_from_python` is not owned).
+    ///
+    /// @param qr The owned object.
+    /// @return An owned Python reference to the object.
+    ///
+    /// # Safety
+    ///
+    /// The caller must be attached to a Python interpreter.  Behavior is undefined if `qr` is not
+    /// a valid non-null pointer to an initialized and owned `QkQuantumRegister`.
+    #[unsafe(no_mangle)]
+    pub unsafe extern "C" fn qk_quantum_register_to_python(
+        qr: *mut QuantumRegister,
+    ) -> *mut ::pyo3::ffi::PyObject {
+        // SAFETY: per documentation, we are attached to a Python interpreter.
+        let py = unsafe { Python::assume_attached() };
+        // SAFETY: per documentation, `dag` points to owned and valid data.
+        let qreg = unsafe { Box::from_raw(mut_ptr_as_ref(qr)) };
+        match qreg.into_pyobject(py) {
+            Ok(ob) => ob.into_ptr(),
+            Err(e) => {
+                e.restore(py);
+                ::std::ptr::null_mut()
+            }
+        }
+    }
+
+    /// @ingroup QkCircuit
+    /// Retrieve a `QkQuantumRegister` pointer from a Python object.
+    ///
+    /// This borrows a Python reference and extracts the `QkQuantumRegister` pointer for it, if it
+    /// is of the correct type.  The returned pointer is borrowed from the `ob` pointer.  If the
+    /// `PyObject` is not the correct type, the return value is `NULL` and the exception state of
+    /// the Python interpreter is set.
+    ///
+    /// You must be attached to a Python interpreter to call this function.
+    ///
+    /// You can also use `qk_quantum_register_convert_from_python`, which is logically the exact
+    /// same as this function, but can be directly used as a "converter" function for the
+    /// `PyArg_Parse*` family of Python converter functions.
+    ///
+    /// @param ob A borrowed Python object.
+    /// @return A pointer to the native object, or `NULL` if the Python object is the wrong type.
+    ///
+    /// # Safety
+    ///
+    /// The caller must be attached to a Python interpreter.  Behavior is undefined if `ob` is
+    /// not a valid non-null pointer to a Python object.
+    #[unsafe(no_mangle)]
+    #[cfg(feature = "python_binding")]
+    pub unsafe extern "C" fn qk_quantum_register_borrow_from_python(
+        ob: *mut pyo3::ffi::PyObject,
+    ) -> *const QuantumRegister {
+        // SAFETY: per documentation, we are attached to a Python interpreter, and `ob` points to a
+        // valid PyObject.
+        unsafe {
+            crate::py::borrow_map::<PyQuantumRegister, QuantumRegister>(
+                Python::assume_attached(),
+                ob,
+                |_py, qr| Ok(qr),
+            )
+        }
+    }
+
+    /// @ingroup QkCircuit
+    /// Retrieve a `QkQuantumRegister` pointer from a Python object.
+    ///
+    /// This borrows a Python reference and extracts the `QkQuantumRegister` pointer for it into
+    /// `address`, if it is of the correct type.  The returned pointer is borrowed from the
+    /// `object` pointer.  If the `PyObject` is not the correct type, the return value is 0, the
+    /// exception state of the Python interpreter is set, and `address` is unchanged.
+    ///
+    /// You must be attached to a Python interpreter to call this function.
+    ///
+    /// You can also use `qk_quantum_register_borrow_from_python`, which is logically the exact same
+    /// as this, but with a more natural signature for direct usage.
+    ///
+    /// @param object A borrowed Python object.
+    /// @param address The location to write the output to.
+    /// @return 1 on success, 0 on failure.
+    ///
+    /// # Safety
+    ///
+    /// The caller must be attached to a Python interpreter.  Behavior is undefined if `object`
+    /// is not a valid non-null pointer to a Python object, or if `address` is not a pointer to
+    /// writeable data of the correct type.
+    #[unsafe(no_mangle)]
+    #[cfg(feature = "python_binding")]
+    pub unsafe extern "C" fn qk_quantum_register_convert_from_python(
+        object: *mut ::pyo3::ffi::PyObject,
+        address: *mut ::std::ffi::c_void,
+    ) -> ::std::ffi::c_int {
+        // SAFETY: per documentation, we are attached to a Python interpreter, `object` is a valid
+        // pointer to a PyObject, and `address` points to enough space to write a pointer.
+        unsafe {
+            crate::py::convert_map::<PyQuantumRegister, QuantumRegister>(
+                Python::assume_attached(),
+                object,
+                address,
+                |_py, qr| Ok(qr),
+            )
+        }
+    }
+
+    /// @ingroup QkCircuit
+    /// Pass ownership of a `QkClassicalRegister` object to Python.
+    ///
+    /// It is not safe to use the `QkClassicalRegister` pointer after calling this function.  In
+    /// particular, you should not attempt to clear or free it.  The caller must own the
+    /// `QkClassicalRegister`, not hold a borrowed reference (for example, a `QkClassicalRegister *`
+    /// retrieved from `qk_classical_register_borrow_from_python` is not owned).
+    ///
+    /// @param cr The owned object.
+    /// @return An owned Python reference to the object.
+    ///
+    /// # Safety
+    ///
+    /// The caller must be attached to a Python interpreter.  Behavior is undefined if `cr` is not
+    /// a valid non-null pointer to an initialized and owned `QkClassicalRegister`.
+    #[unsafe(no_mangle)]
+    pub unsafe extern "C" fn qk_classical_register_to_python(
+        cr: *mut ClassicalRegister,
+    ) -> *mut ::pyo3::ffi::PyObject {
+        // SAFETY: per documentation, we are attached to a Python interpreter.
+        let py = unsafe { Python::assume_attached() };
+        // SAFETY: per documentation, `dag` points to owned and valid data.
+        let cr = unsafe { Box::from_raw(mut_ptr_as_ref(cr)) };
+        match cr.into_pyobject(py) {
+            Ok(ob) => ob.into_ptr(),
+            Err(e) => {
+                e.restore(py);
+                ::std::ptr::null_mut()
+            }
+        }
+    }
+
+    /// @ingroup QkCircuit
+    /// Retrieve a `QkClassicalRegister` pointer from a Python object.
+    ///
+    /// This borrows a Python reference and extracts the `QkClassicalRegister` pointer for it, if it
+    /// is of the correct type.  The returned pointer is borrowed from the `ob` pointer.  If the
+    /// `PyObject` is not the correct type, the return value is `NULL` and the exception
+    /// state of the Python interpreter is set.
+    ///
+    /// You must be attached to a Python interpreter to call this function.
+    ///
+    /// You can also use `qk_classical_register_convert_from_python`, which is logically the exact
+    /// same as this function, but can be directly used as a "converter" function for the
+    /// `PyArg_Parse*` family of Python converter functions.
+    ///
+    /// @param ob A borrowed Python object.
+    /// @return A pointer to the native object, or `NULL` if the Python object is the wrong type.
+    ///
+    /// # Safety
+    ///
+    /// The caller must be attached to a Python interpreter.  Behavior is undefined if `ob` is
+    /// not a valid non-null pointer to a Python object.
+    #[unsafe(no_mangle)]
+    #[cfg(feature = "python_binding")]
+    pub unsafe extern "C" fn qk_classical_register_borrow_from_python(
+        ob: *mut pyo3::ffi::PyObject,
+    ) -> *const ClassicalRegister {
+        // SAFETY: per documentation, we are attached to a Python interpreter, and `ob` points to a
+        // valid PyObject.
+        unsafe {
+            crate::py::borrow_map::<PyClassicalRegister, ClassicalRegister>(
+                Python::assume_attached(),
+                ob,
+                |_py, cr| Ok(cr),
+            )
+        }
+    }
+
+    /// @ingroup QkCircuit
+    /// Retrieve a `QkClassicalRegister` pointer from a Python object.
+    ///
+    /// This borrows a Python reference and extracts the `QkClassicalRegister` pointer for it into
+    /// `address`, if it is of the correct type.  The returned pointer is borrowed from the
+    /// `object` pointer.  If the `PyObject` is not the correct type, the return value is 0, the
+    /// exception state of the Python interpreter is set, and `address` is unchanged.
+    ///
+    /// You must be attached to a Python interpreter to call this function.
+    ///
+    /// You can also use `qk_classical_register_borrow_from_python`, which is logically the exact same as this,
+    /// but with a more natural signature for direct usage.
+    ///
+    /// @param object A borrowed Python object.
+    /// @param address The location to write the output to.
+    /// @return 1 on success, 0 on failure.
+    ///
+    /// # Safety
+    ///
+    /// The caller must be attached to a Python interpreter.  Behavior is undefined if `object`
+    /// is not a valid non-null pointer to a Python object, or if `address` is not a pointer to
+    /// writeable data of the correct type.
+    #[unsafe(no_mangle)]
+    #[cfg(feature = "python_binding")]
+    pub unsafe extern "C" fn qk_classical_register_convert_from_python(
+        object: *mut ::pyo3::ffi::PyObject,
+        address: *mut ::std::ffi::c_void,
+    ) -> ::std::ffi::c_int {
+        // SAFETY: per documentation, we are attached to a Python interpreter, `object` is a valid
+        // pointer to a PyObject, and `address` points to enough space to write a pointer.
+        unsafe {
+            crate::py::convert_map::<PyClassicalRegister, ClassicalRegister>(
+                Python::assume_attached(),
+                object,
+                address,
+                |_py, cr| Ok(cr),
+            )
+        }
+    }
 }
+#[cfg(feature = "python_binding")]
+pub use py::*;
 
 /// @ingroup QkCircuit
 ///
@@ -1234,6 +1968,84 @@ pub unsafe extern "C" fn qk_circuit_delay(
         .unwrap();
 
     ExitCode::Success
+}
+
+/// The configuration options for the ``qk_circuit_draw`` function.
+#[repr(C)]
+pub struct CircuitDrawerConfig {
+    /// If `true`, bundles classical registers into single wires.
+    bundle_cregs: bool,
+    /// If `true`, merges the bottom and top lines of adjacent wires.
+    merge_wires: bool,
+    /// Sets the line length for wrapping the rendered text. Use 0
+    /// to auto-detect console width. Use `SIZE_MAX` to effectively skip
+    /// wrapping altogether.
+    fold: usize,
+}
+
+/// @ingroup QkCircuit
+/// Draw the circuit as text.
+///
+/// @param circuit A pointer to the circuit to draw.
+/// @param config A pointer to the ``QkCircuitDrawerConfig`` structure or NULL. If NULL,
+///     the drawer will use these defaults:
+///     * ``bundle_cregs = true``
+///     * ``merge_wires = true``
+///     * ``fold = 0``
+///
+/// @return A pointer to a null-terminated string containing the circuit representation.
+///     You must use ``qk_str_free`` to release the allocated memory when done.
+///
+/// # Example
+/// ```c
+///     QkCircuit *circuit = qk_circuit_new(2, 1);
+///
+///     qk_circuit_gate(circuit, QkGate_H, (uint32_t[]){0}, NULL);
+///     qk_circuit_gate(circuit, QkGate_CX, (uint32_t[]){0, 1}, NULL);
+///     qk_circuit_measure(circuit, 0, 0);
+///     qk_circuit_measure(circuit, 1, 0);
+///
+///     QkCircuitDrawerConfig config = {false, true, 0};
+///
+///     char *circ_str = qk_circuit_draw(circuit, &config);
+///
+///     printf("%s", circ_str);
+///    
+///     qk_str_free(circ_str);
+///     qk_circuit_free(circuit);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``, or
+/// if ``config`` is not NULL and a non-valid pointer to a ``QkCircuitDrawerConfig`` struct.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_draw(
+    circuit: *const CircuitData,
+    config: *const CircuitDrawerConfig,
+) -> *mut c_char {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let circuit = unsafe { const_ptr_as_ref(circuit) };
+
+    let (bundle_cregs, merge_wires, fold) = if !config.is_null() {
+        // SAFETY: Per documentation, the pointer is to a valid QkCircuitDrawerConfig struct.
+        let config = unsafe { const_ptr_as_ref(config) };
+        (
+            config.bundle_cregs,
+            config.merge_wires,
+            if config.fold != 0 {
+                Some(config.fold)
+            } else {
+                None
+            },
+        )
+    } else {
+        (true, true, None)
+    };
+
+    let circuit_str = draw_circuit(circuit, bundle_cregs, merge_wires, fold).unwrap();
+
+    CString::new(circuit_str).unwrap().into_raw()
 }
 
 /// @ingroup QkCircuit

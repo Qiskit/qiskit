@@ -19,7 +19,7 @@ use qiskit_transpiler::{
     target::Target,
 };
 
-/// @ingroup QkTranspilerPasses
+/// @ingroup QkTranspilerPassesStandalone
 /// Runs the Optimize1qGatesDecomposition pass in standalone mode on a circuit.
 ///
 /// \qk_deprecated{2.4.0|use :c:func:`qk_transpiler_pass_standalone_optimize_1q_sequences` instead.}
@@ -29,7 +29,6 @@ use qiskit_transpiler::{
 /// In the case a null pointer is provided and gate errors are unknown
 /// the pass will choose the sequence with the least amount of gates,
 /// and will support all basis gates on its Euler basis set.
-///
 ///
 /// # Safety
 ///
@@ -47,7 +46,7 @@ pub unsafe extern "C" fn qk_transpiler_standalone_optimize_1q_sequences(
     unsafe { qk_transpiler_pass_standalone_optimize_1q_sequences(circuit, target) };
 }
 
-/// @ingroup QkTranspilerPasses
+/// @ingroup QkTranspilerPassesStandalone
 /// Runs the Optimize1qGatesDecomposition pass in standalone mode on a circuit.
 ///
 /// Refer to the ``qk_transpiler_pass_optimize_1q_sequences`` function for more details about the pass.
