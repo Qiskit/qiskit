@@ -59,19 +59,31 @@ class ConsolidateBlocks(TransformationPass):
     """Replace each block of consecutive gates by a single Unitary node.
 
     Pass to consolidate sequences of uninterrupted gates acting on
-    the same qubits into a Unitary node, to be resynthesized later,
-    to a potentially more optimal subcircuit.
+    the same qubits into a :class:`.UnitaryGate` node, to be resynthesized later,
+    to a potentially more optimal subcircuit. The typical mode of operation of this pass is to run
+    the analysis of the input :class:`.DAGCircuit` to find all the two qubit blocks in the circuit
+    and then determine based on an internal heuristic whether that block should be consolidated to
+    a :class:`.UnitaryGate` or not. However if either ``block_list`` or ``run_list`` are set in the
+    property set than this pass will not do it's own analysis of the dag.
+
+    There are two legacy modes of operation for this pass based on whether either ``block_list`` or
+    ``run_list`` is set in the property set when this pass is run. ``block_list`` should contain a
+    a list of lists of node indices where each inner list represents a collection of blocks to be
+    potentially consolidated into a :class:`.UnitaryGate`. These blocks can be any number of qubits
+    but in previous Qiskit releases' preset pass managers it was typically two and set by the
+    :class:`.Collect2qBlocks` pass. There is a also the :class:`.CollectMultiQBlocks` transpiler pass
+    which will set ``blocks_list`` with blocks found for an arbitrary number of qubits. The other property
+    set key ``run_list`` is a list of lists of "runs" which are single qubit blocks to consolidate. This
+    was potentially set by the :class:`.Collect1qRuns` transpiler pass.
+    This functionality for "runs" has been mostly superseded by the :class:`.Optimize1qGatesDecomposition`
+    transpiler pass and that should typically be used instead for a more thorough and performant
+    method of simplifying single qubit runs..
 
     This pass reads the :class:`.PropertySet` key ``ConsolidateBlocks_qubit_map`` which it uses to
     communicate with recursive worker instances of itself for control-flow operations.  The key
     should never be observable in a user-facing :class:`.PassManager` pipeline (it is only set in
     internal :class:`.PassManager` instances), but the pass may return incorrect results or error if
     another pass sets this key.
-
-    Notes:
-        This pass assumes that the 'blocks_list' property that it reads is
-        given such that blocks are in topological order. The blocks are
-        collected by a previous pass, such as `Collect2qBlocks`.
     """
 
     _QUBIT_MAP_KEY = "ConsolidateBlocks_qubit_map"
