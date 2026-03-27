@@ -582,9 +582,12 @@ class TestPauli(QiskitTestCase):
         qc = random_clifford_circuit(num_qubits, 20, seed=1234)
         op = Operator(qc)
         pauli = random_pauli(num_qubits, seed=5678)
+        pauli_cpy = pauli.copy()
         target = Operator(pauli).compose(op).dot(op.adjoint())
         value = Operator(pauli._append_circuit(qc))
+        value_evolve = Operator(pauli_cpy.evolve(qc, frame="s"))
         self.assertEqual(value, target)
+        self.assertEqual(value_evolve, target)
 
     @data("s", "h")
     def test_evolve_with_misleading_name(self, frame):
