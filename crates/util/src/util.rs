@@ -56,4 +56,3 @@ pub const C_FRAC_PI_2_SQRT_2: Complex64 = c64(FRAC_PI_2 / SQRT_2, 0.0);
 pub const C_M_FRAC_PI_4: Complex64 = c64(-FRAC_PI_4, 0.0);
 pub const C_M_FRAC_PI_8: Complex64 = c64(-FRAC_PI_8, 0.0);
 pub const C_M_FRAC_PI_2_SQRT_2: Complex64 = c64(-FRAC_PI_2 / SQRT_2, 0.0);
-
