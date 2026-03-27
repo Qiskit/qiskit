@@ -16,7 +16,7 @@ use pyo3::{
     types::{PyModule, PyModuleMethods},
     wrap_pyfunction,
 };
-use qiskit_circuit::{circuit_data::CircuitData, operations::Param};
+use qiskit_circuit::{circuit_data::CircuitData, circuit_data::PyCircuitData, operations::Param};
 mod cx_cz_depth_lnn;
 
 pub(crate) mod cz_depth_lnn;
@@ -34,14 +34,10 @@ pub(crate) mod cz_depth_lnn;
 ///        `arXiv:1705.09176 <https://arxiv.org/abs/1705.09176>`_.
 #[pyfunction]
 #[pyo3(signature = (mat))]
-fn synth_cz_depth_line_mr(mat: PyReadonlyArray2<bool>) -> PyResult<CircuitData> {
+fn synth_cz_depth_line_mr(mat: PyReadonlyArray2<bool>) -> PyResult<PyCircuitData> {
     let view = mat.as_array();
     let (num_qubits, lnn_gates) = cz_depth_lnn::synth_cz_depth_line_mr_inner(view);
-    Ok(CircuitData::from_standard_gates(
-        num_qubits as u32,
-        lnn_gates,
-        Param::Float(0.0),
-    )?)
+    Ok(CircuitData::from_standard_gates(num_qubits as u32, lnn_gates, Param::Float(0.0))?.into())
 }
 
 pub fn linear_phase(m: &Bound<PyModule>) -> PyResult<()> {

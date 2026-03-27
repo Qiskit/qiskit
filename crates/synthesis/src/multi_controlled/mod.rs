@@ -12,7 +12,7 @@
 
 use mcx::{c3x, c4x, synth_mcx_n_dirty_i15, synth_mcx_noaux_hp24, synth_mcx_noaux_v24};
 use pyo3::prelude::*;
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::PyCircuitData;
 
 mod mcmt;
 mod mcx;
@@ -23,24 +23,20 @@ fn py_synth_mcx_n_dirty_i15(
     num_controls: usize,
     relative_phase: bool,
     action_only: bool,
-) -> PyResult<CircuitData> {
-    Ok(synth_mcx_n_dirty_i15(
-        num_controls,
-        relative_phase,
-        action_only,
-    )?)
+) -> PyResult<PyCircuitData> {
+    Ok(synth_mcx_n_dirty_i15(num_controls, relative_phase, action_only)?.into())
 }
 
 #[pyfunction]
 #[pyo3(name="synth_mcx_noaux_v24", signature = (num_controls))]
-fn py_synth_mcx_noaux_v24(py: Python, num_controls: usize) -> PyResult<CircuitData> {
-    Ok(synth_mcx_noaux_v24(py, num_controls)?)
+fn py_synth_mcx_noaux_v24(py: Python, num_controls: usize) -> PyResult<PyCircuitData> {
+    Ok(synth_mcx_noaux_v24(py, num_controls)?.into())
 }
 
 #[pyfunction]
 #[pyo3(name="synth_mcx_noaux_hp24", signature = (num_controls))]
-fn py_synth_mcx_noaux_hp24(num_controls: usize) -> PyResult<CircuitData> {
-    synth_mcx_noaux_hp24(num_controls)
+fn py_synth_mcx_noaux_hp24(num_controls: usize) -> PyResult<PyCircuitData> {
+    synth_mcx_noaux_hp24(num_controls).map(Into::into)
 }
 
 pub fn multi_controlled(m: &Bound<PyModule>) -> PyResult<()> {

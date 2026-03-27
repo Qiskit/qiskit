@@ -25,11 +25,11 @@ import re
 import ddt
 import numpy as np
 
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.circuit import CASE_DEFAULT, IfElseOp, WhileLoopOp, SwitchCaseOp
 from qiskit.circuit.classical import expr, types
-from qiskit.circuit import Clbit
-from qiskit.circuit import Qubit
+from qiskit.circuit import Clbit, Qubit
+from qiskit.transpiler import Target, CouplingMap
 from qiskit.circuit.random import random_circuit
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.library import (
@@ -71,7 +71,14 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parametervector import ParameterVector
 from qiskit.synthesis import LieTrotter, SuzukiTrotter
-from qiskit.qpy import dump, load, UnsupportedFeatureForVersion, QPY_COMPATIBILITY_VERSION
+from qiskit.qpy import (
+    dump,
+    load,
+    UnsupportedFeatureForVersion,
+    QPY_COMPATIBILITY_VERSION,
+    QPY_VERSION,
+    QpyError,
+)
 from qiskit.quantum_info import Pauli, SparsePauliOp, Clifford
 from qiskit.quantum_info.random import random_unitary
 from qiskit.circuit.controlledgate import ControlledGate
@@ -1768,7 +1775,7 @@ class TestLoadFromQPY(QiskitTestCase):
                         ),
                     ),
                 ),
-                expr.logic_not(loose),
+                expr.greater(expr.negate(expr.cast(loose, types.Float())), 1.5),
             ),
             outer.copy(),
             [1],
@@ -1858,7 +1865,7 @@ class TestLoadFromQPY(QiskitTestCase):
                         ),
                     ),
                 ),
-                expr.logic_not(loose),
+                expr.greater(expr.negate(expr.cast(loose, types.Float())), 1.5),
             ),
             [(False, outer.copy())],
             [1],
@@ -2095,6 +2102,34 @@ class TestLoadFromQPY(QiskitTestCase):
             self.assertMinimalVarEqual(old, new)
             self.assertDeprecatedBitProperties(old, new)
 
+    def test_register_condition(self):
+        """Test that using register condition passes as long as the register index is not too large"""
+        n_qubits = 2
+        cr0 = ClassicalRegister(n_qubits)
+        cr1 = ClassicalRegister(n_qubits)
+        qr = QuantumRegister(n_qubits)
+        qc = QuantumCircuit(qr, cr0, cr1)
+        qc.x(qr)
+        qc.measure(qr, cr0)
+        with qc.if_test((cr0, 0)):
+            qc.x(qr)
+        qc.measure(qr, cr1)
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            new_qc = load(fptr)[0]
+            self.assertEqual(qc, new_qc)
+
+        qc = QuantumCircuit(qr, cr0, cr1)
+        qc.x(qr)
+        qc.measure(qr, cr0)
+        with qc.if_test((cr0, 7342574385754343653453453453533935345)):
+            qc.x(qr)
+        qc.measure(qr, cr1)
+        with self.assertRaisesRegex(QpyError, "exceeds i64::MAX"):
+            with io.BytesIO() as fptr:
+                dump(qc, fptr)
+
     def test_load_empty_vars_while(self):
         """Test loading circuit with vars in while closures."""
         a = expr.Var.new("a", types.Bool())
@@ -2286,6 +2321,37 @@ class TestLoadFromQPY(QiskitTestCase):
                 out_circuits = load(fptr)
         self.assertEqual(circuits, out_circuits)
         self.assertEqual([qc.name for qc in circuits], [qc.name for qc in out_circuits])
+
+    @ddt.idata(range(max(QPY_COMPATIBILITY_VERSION, 13), QPY_VERSION + 1))
+    def test_ancilla_register_with_physical(self, version):
+        """Test for possible conflicts when naming a register 'ancilla'"""
+        qc = QuantumCircuit(QuantumRegister(2, "qr"), QuantumRegister(2, "ancilla"))
+        qc.ensure_physical(qc.num_qubits + 1)
+
+        with io.BytesIO() as fptr:
+            dump(qc, fptr, version=version)
+            fptr.seek(0)
+            out_circuit = load(fptr)[0]
+
+        self.assertEqual(qc, out_circuit)
+
+        qc = QuantumCircuit(QuantumRegister(2, "qr"), QuantumRegister(2, "ancilla"))
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(1, 2)
+        qc = transpile(
+            qc,
+            target=Target.from_configuration(
+                basis_gates=["sx", "rz", "cz"], coupling_map=CouplingMap.from_line(5)
+            ),
+            optimization_level=1,
+        )
+
+        with io.BytesIO() as fptr:
+            dump(qc, fptr, version=17)
+            fptr.seek(0)
+            out_circuit = load(fptr)[0]
+        self.assertEqual(qc, out_circuit)
 
 
 class TestSymengineLoadFromQPY(QiskitTestCase):

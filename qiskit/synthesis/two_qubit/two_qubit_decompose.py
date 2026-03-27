@@ -125,7 +125,7 @@ class TwoQubitWeylDecomposition:
 
     This class avoids some problems of numerical instability near high-symmetry loci within the Weyl
     chamber. If there is a high-symmetry gate "nearby" (in terms of the requested average gate fidelity),
-    then it return a canonicalized decomposition of that high-symmetry gate.
+    then it returns a canonicalized decomposition of that high-symmetry gate.
 
     References:
         1. Cross, A. W., Bishop, L. S., Sheldon, S., Nation, P. D. & Gambetta, J. M.,

@@ -38,6 +38,7 @@ _BINDING_POWER = {
     #
     ast.Unary.Op.LOGIC_NOT: _BindingPower(right=22),
     ast.Unary.Op.BIT_NOT: _BindingPower(right=22),
+    ast.Unary.Op.NEGATE: _BindingPower(right=22),
     #
     # Modulo: (19, 20)
     ast.Binary.Op.MUL: _BindingPower(19, 20),

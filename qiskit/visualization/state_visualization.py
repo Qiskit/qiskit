@@ -797,7 +797,7 @@ def bit_string_index(s):
 
 
 def phase_to_rgb(complex_number):
-    """Map a phase of a complexnumber to a color in (r,g,b).
+    """Map a phase of a complex number to a color in (r,g,b).
 
     complex_number is phase is first mapped to angle in the range
     [0, 2pi] and then to the HSL color wheel
