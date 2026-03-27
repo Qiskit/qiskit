@@ -3122,23 +3122,6 @@ impl PyInstruction {
         })
     }
 
-    pub fn matrix(&self) -> Option<Array2<Complex64>> {
-        Python::attach(|py| -> Option<Array2<Complex64>> {
-            match self.instruction.getattr(py, intern!(py, "to_matrix")) {
-                Ok(to_matrix) => {
-                    let res: Option<Py<PyAny>> = to_matrix.call0(py).ok()?.extract(py).ok();
-                    match res {
-                        Some(x) => {
-                            let array: PyReadonlyArray2<Complex64> = x.extract(py).ok()?;
-                            Some(array.as_array().to_owned())
-                        }
-                        None => None,
-                    }
-                }
-                Err(_) => None,
-            }
-        })
-    }
 
     pub fn definition(&self) -> Option<CircuitData> {
         Python::attach(|py| -> Option<CircuitData> {
@@ -3170,6 +3153,25 @@ impl PyInstruction {
             Some([[arr[[0, 0]], arr[[0, 1]]], [arr[[1, 0]], arr[[1, 1]]]])
         })
     }
+
+    pub fn matrix(&self) -> Option<Array2<Complex64>> {
+        Python::attach(|py| -> Option<Array2<Complex64>> {
+            match self.instruction.getattr(py, intern!(py, "to_matrix")) {
+                Ok(to_matrix) => {
+                    let res: Option<Py<PyAny>> = to_matrix.call0(py).ok()?.extract(py).ok();
+                    match res {
+                        Some(x) => {
+                            let array: PyReadonlyArray2<Complex64> = x.extract(py).ok()?;
+                            Some(array.as_array().to_owned())
+                        }
+                        None => None,
+                    }
+                }
+                Err(_) => None,
+            }
+        })
+    }
+
 }
 
 #[derive(Clone, Debug)]
@@ -3336,19 +3338,6 @@ pub struct PauliProductRotation {
 }
 
 
-// Helper function to convert x/z bool vectors into a Pauli string in "IXYZ" notation.
-fn pauli_product_to_string(zs: &[bool], xs: &[bool]) -> String {
-    zs.iter()
-        .zip(xs.iter())
-        .map(|(&z, &x)| match (z, x) {
-            (false, false) => 'I',
-            (false, true) => 'X',
-            (true, false) => 'Z',
-            (true, true) => 'Y',
-        })
-        .collect()
-}
-
 impl PauliProductRotation {
     pub fn create_py_op(&self, py: Python, label: Option<&str>) -> PyResult<Py<PyAny>> {
         let z = self.z.to_pyarray(py);
@@ -3368,18 +3357,25 @@ impl PauliProductRotation {
             )?;
         Ok(gate.unbind())
     }
-
     pub fn matrix(&self) -> Option<Array2<Complex64>> {
         let angle = match self.angle {
             Param::Float(f) => f,
             _ => return None,
         };
-        Some(gate_matrix::pauli_product_rotation_matrix(
-            angle,
+        let pauli_mat = gate_matrix::pauli_zx_to_dense_matrix(
             &self.z,
             &self.x,
-        ))
+        );
+        let cos_val = (angle / 2.0).cos();
+        let sin_val = (angle / 2.0).sin();
+        let dim = pauli_mat.shape()[0];
+        let identity = Array2::<Complex64>::eye(dim);
+        Some(
+            identity.mapv(|v| Complex64::new(v.re * cos_val, 0.))
+                + pauli_mat.mapv(|v| Complex64::new(0., -sin_val) * v)
+        )
     }
+
 }
 
 impl Operation for PauliProductRotation {

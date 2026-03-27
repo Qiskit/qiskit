@@ -992,6 +992,62 @@ fn to_matrix_dense_inner(paulis: &MatrixCompressedPaulis, parallel: bool) -> Vec
     out
 }
 
+
+pub fn pauli_zx_to_matrix(
+    z: &[bool],
+    x: &[bool],
+) -> ndarray::Array2<num_complex::Complex64> {
+    use ndarray::Array2;
+    use num_complex::Complex64;
+
+    assert_eq!(z.len(), x.len());
+
+    let n = z.len();
+    let dim = 1usize << n;
+    let mut out = Array2::<Complex64>::zeros((dim, dim));
+
+    for col in 0..dim {
+        let mut row = col;
+        let mut phase = Complex64::new(1.0, 0.0);
+
+        for i in 0..n {
+            let bit_index = n - 1 - i;
+            let bit = (col >> bit_index) & 1;
+
+            match (z[i], x[i]) {
+                (false, false) => {
+                    // I
+                }
+                (false, true) => {
+                    // X
+                    row ^= 1 << bit_index;
+                }
+                (true, false) => {
+                    // Z
+                    if bit == 1 {
+                        phase = -phase;
+                    }
+                }
+                (true, true) => {
+                    // Y = iXZ
+                    row ^= 1 << bit_index;
+                    phase *= if bit == 0 {
+                        Complex64::new(0.0, 1.0)
+                    } else {
+                        Complex64::new(0.0, -1.0)
+                    };
+                }
+            }
+        }
+
+        out[(row, col)] = phase;
+    }
+
+    out
+}
+
+
+
 type CSRData<T> = (Vec<Complex64>, Vec<T>, Vec<T>);
 type ToCSRData<T> = fn(&MatrixCompressedPaulis) -> CSRData<T>;
 
