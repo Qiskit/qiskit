@@ -369,7 +369,8 @@ class TestLoadFromQPY(QiskitTestCase):
         """Test a circuit with a parameter expression that simplifies to 0."""
         x = Parameter("x")
         y_vec = ParameterVector("y", 2)
-        cases = [0 * x, x - x, 0 * y_vec[0], 0 * (x + y_vec[1])]
+        z = Parameter("z")
+        cases = [0 * x, 0 * x + 2, 0 * x + z, x - x, 0 * y_vec[0], 0 * (x + y_vec[1])]
         for case in cases:
             qc = QuantumCircuit(1)
             qc.rz(case, 0)

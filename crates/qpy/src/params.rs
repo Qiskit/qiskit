@@ -15,6 +15,7 @@ use qiskit_circuit::imports;
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::parameter::parameter_expression::{
     OPReplay, OpCode, ParameterExpression, ParameterValueType, PyParameter,
+    PyParameterVectorElement,
 };
 use qiskit_circuit::parameter::symbol_expr::{Symbol, SymbolExpr, Value};
 use std::sync::Arc;
@@ -224,10 +225,61 @@ fn pack_symbol_table_element(
     }
 }
 
+// In case the parameter expression reduces to a constant value/symbol
+// we still want to pack it as an expression to save the symbol table data,
+// even though the symbols are not used. So we turn the constant to an equivalent expression.
+fn pack_parameter_expression_with_empty_replay(
+    exp: &ParameterExpression,
+) -> Result<Vec<formats::ParameterExpressionElementPack>, QpyError> {
+    // Try constant value first
+    if let Ok(value) = exp.try_to_value(false) {
+        let synthetic_op = OPReplay {
+            op: OpCode::ADD,
+            lhs: Some(value.into()),
+            rhs: Some(ParameterValueType::Int(0)),
+        };
+        return pack_parameter_expression_element(&synthetic_op);
+    }
+
+    // Check if it's a bare parameter or parameter vector element
+    if let Ok(symbol) = exp.try_to_symbol_ref() {
+        let param_value = match symbol.index {
+            None => ParameterValueType::Parameter(PyParameter {
+                symbol: symbol.clone(),
+            }),
+            Some(_) => ParameterValueType::VectorElement(PyParameterVectorElement {
+                symbol: symbol.clone(),
+            }),
+        };
+        let synthetic_op = OPReplay {
+            op: OpCode::ADD,
+            lhs: Some(param_value),
+            rhs: Some(ParameterValueType::Int(0)),
+        };
+        return pack_parameter_expression_element(&synthetic_op);
+    }
+    Err(QpyError::InvalidParameter(format!(
+        "Cannot encode parameter expression {:?}",
+        exp
+    )))
+}
+
+// fn pack_parameter_expression_with_empty_replay(exp: &ParameterExpression) -> Result<Vec<formats::ParameterExpressionElementPack>, QpyError> {
+//     if let Ok(value) = exp.try_to_value(false) {
+//         return Ok(pack_parameter_expression_element(&constant_value_op_replay(value))?;);
+//     } else {
+//         return Err(QpyError::InvalidParameter(format!("Cannot encode parameter expression {:?}", exp)));
+//     }
+// }
+
 fn pack_parameter_expression_elements(
     exp: &ParameterExpression,
 ) -> Result<Vec<formats::ParameterExpressionElementPack>, QpyError> {
-    let mut result = Vec::new();
+    let replay = exp.qpy_replay();
+    if replay.is_empty() {
+        return pack_parameter_expression_with_empty_replay(exp);
+    }
+    let mut result: Vec<formats::ParameterExpressionElementPack> = Vec::new();
     for replay_obj in exp.qpy_replay().iter() {
         let packed_parameter = pack_parameter_expression_element(replay_obj)?;
         result.extend(packed_parameter);
@@ -470,9 +522,15 @@ pub(crate) fn unpack_parameter_expression(
             replay.push(OPReplay { op, lhs, rhs });
         };
     }
-    ParameterExpression::from_qpy(&replay, Some(sub_operations)).map_err(|_| {
+    let mut exp = ParameterExpression::from_qpy(&replay, Some(sub_operations)).map_err(|_| {
         QpyError::ConversionError("Failure while loading parameter expression".to_string())
-    })
+    })?;
+    // add parameters not present in the replay but part of the original expression (in case they were optimized away)
+    exp.extend_symbols(param_uuid_map.values().filter_map(|v| match v {
+        GenericValue::ParameterExpressionSymbol(s) => Some(s.clone()),
+        _ => None,
+    }));
+    Ok(exp)
 }
 
 pub(crate) fn pack_symbol(symbol: &Symbol) -> formats::ParameterSymbolPack {
@@ -585,13 +643,29 @@ pub(crate) fn unpack_parameter_vector(
     })
 }
 
+// exp should be a symbol (for parameter/parameter vector element)
+// but more than that: it should no contain other symbols in its symbol table
+// since if, e.g. exp was `0*x+y` and got simplified to `y` we still need
+// to store `x`, so we must treat exp as an expression
+fn expression_as_single_symbol(exp: &ParameterExpression) -> Option<Symbol> {
+    if let Ok(symbol) = exp.try_to_symbol() {
+        if exp.num_of_symbols() == 1 {
+            Some(symbol)
+        } else {
+            None
+        }
+    } else {
+        None
+    }
+}
+
 pub(crate) fn pack_param_expression(
     exp: &ParameterExpression,
     qpy_data: &QPYWriteData,
 ) -> Result<formats::GenericDataPack, QpyError> {
     // if the parameter expression is a single symbol, we should treat it like a parameter
     // or a parameter vector, depending on whether the `vector` field exists
-    if let Ok(symbol) = exp.try_to_symbol() {
+    if let Some(symbol) = expression_as_single_symbol(exp) {
         match symbol.vector {
             None => pack_generic_value(&GenericValue::ParameterExpressionSymbol(symbol), qpy_data),
             Some(_) => pack_generic_value(
