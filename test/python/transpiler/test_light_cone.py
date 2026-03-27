@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2017, 2026.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -378,7 +378,7 @@ class TestLightConePass(QiskitTestCase):
         self.assertEqual(len(new_z), 1)
 
     def test_original_bug_15021(self):
-        """Test based on the original bug report in issue #15021."""
+        """Test for the scattered-qubit bug reported in issue #15021."""
         qc = QuantumCircuit(18)
         qc.rx(np.pi / 3, range(qc.num_qubits))
         bit_terms = "ZZZZZZZZZ"

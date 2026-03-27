@@ -36,8 +36,6 @@ use qiskit_circuit::util::{
     C_M_FRAC_PI_8, C_ZERO, c64,
 };
 
-
-
 const BETA_TOLERANCE: f64 = 1e-10;
 
 /// For parametric gates (e.g., `RX(theta)`), the generator $H$ depends on the
