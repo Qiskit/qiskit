@@ -77,6 +77,7 @@ from qiskit.qpy import (
     UnsupportedFeatureForVersion,
     QPY_COMPATIBILITY_VERSION,
     QPY_VERSION,
+    QpyError,
 )
 from qiskit.quantum_info import Pauli, SparsePauliOp, Clifford
 from qiskit.quantum_info.random import random_unitary
@@ -2117,6 +2118,34 @@ class TestLoadFromQPY(QiskitTestCase):
         for old, new in zip(old_if_else.blocks, new_if_else.blocks):
             self.assertMinimalVarEqual(old, new)
             self.assertDeprecatedBitProperties(old, new)
+
+    def test_register_condition(self):
+        """Test that using register condition passes as long as the register index is not too large"""
+        n_qubits = 2
+        cr0 = ClassicalRegister(n_qubits)
+        cr1 = ClassicalRegister(n_qubits)
+        qr = QuantumRegister(n_qubits)
+        qc = QuantumCircuit(qr, cr0, cr1)
+        qc.x(qr)
+        qc.measure(qr, cr0)
+        with qc.if_test((cr0, 0)):
+            qc.x(qr)
+        qc.measure(qr, cr1)
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            new_qc = load(fptr)[0]
+            self.assertEqual(qc, new_qc)
+
+        qc = QuantumCircuit(qr, cr0, cr1)
+        qc.x(qr)
+        qc.measure(qr, cr0)
+        with qc.if_test((cr0, 7342574385754343653453453453533935345)):
+            qc.x(qr)
+        qc.measure(qr, cr1)
+        with self.assertRaisesRegex(QpyError, "exceeds i64::MAX"):
+            with io.BytesIO() as fptr:
+                dump(qc, fptr)
 
     def test_load_empty_vars_while(self):
         """Test loading circuit with vars in while closures."""
