@@ -9,7 +9,6 @@
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
-
 use approx::relative_eq;
 use std::f64::consts::PI;
 use std::fmt::Debug;
@@ -3262,7 +3261,6 @@ impl PyInstruction {
         })
     }
 
-
     pub fn definition(&self) -> Option<CircuitData> {
         Python::attach(|py| -> Option<CircuitData> {
             match self.instruction.getattr(py, intern!(py, "definition")) {
@@ -3551,7 +3549,6 @@ pub struct PauliProductRotation {
     pub angle: Param,
 }
 
-
 impl PauliProductRotation {
     pub fn create_py_op(&self, py: Python, label: Option<&str>) -> PyResult<Py<PyAny>> {
         let z = self.z.to_pyarray(py);
@@ -3576,20 +3573,16 @@ impl PauliProductRotation {
             Param::Float(f) => f,
             _ => return None,
         };
-        let pauli_mat = gate_matrix::pauli_zx_to_dense_matrix(
-            &self.z,
-            &self.x,
-        );
+        let pauli_mat = gate_matrix::pauli_zx_to_dense_matrix(&self.z, &self.x);
         let cos_val = (angle / 2.0).cos();
         let sin_val = (angle / 2.0).sin();
         let dim = pauli_mat.shape()[0];
         let identity = Array2::<Complex64>::eye(dim);
         Some(
             identity.mapv(|v| Complex64::new(v.re * cos_val, 0.))
-                + pauli_mat.mapv(|v| Complex64::new(0., -sin_val) * v)
+                + pauli_mat.mapv(|v| Complex64::new(0., -sin_val) * v),
         )
     }
-
 }
 
 impl Operation for PauliProductRotation {
@@ -3613,7 +3606,6 @@ impl Operation for PauliProductRotation {
         false
     }
 }
-
 
 impl PartialEq for PauliProductRotation {
     fn eq(&self, other: &Self) -> bool {

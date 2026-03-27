@@ -16,7 +16,6 @@ use std::f64::consts::FRAC_1_SQRT_2;
 // Ensure necessary imports are present
 use ndarray::Array2;
 
-
 use crate::util::{
     C_M_ONE, C_ONE, C_ZERO, GateArray0Q, GateArray1Q, GateArray2Q, GateArray3Q, GateArray4Q, IM,
     M_IM, c64,
@@ -531,63 +530,55 @@ pub fn xx_plus_yy_gate(theta: f64, beta: f64) -> GateArray2Q {
 ///
 /// # Returns
 /// Dense 2^n × 2^n complex unitary matrix as `Array2<Complex64>`
-pub fn pauli_product_rotation_matrix(
-    angle: f64,
-    z: &[bool],
-    x: &[bool],
-) -> Array2<Complex64> {
 
-    let n = z.len();
-    let dim = 1usize << n;
+pub fn pauli_zx_to_dense_matrix(z: &[bool], x: &[bool]) -> Array2<Complex64> {
+    assert_eq!(z.len(), x.len());
 
     let pauli_i = Array2::from_shape_vec(
         (2, 2),
-        vec![c64(1.,0.), c64(0.,0.), c64(0.,0.), c64(1.,0.)],
-    ).unwrap();
+        vec![c64(1., 0.), c64(0., 0.), c64(0., 0.), c64(1., 0.)],
+    )
+    .unwrap();
     let pauli_x = Array2::from_shape_vec(
         (2, 2),
-        vec![c64(0.,0.), c64(1.,0.), c64(1.,0.), c64(0.,0.)],
-    ).unwrap();
+        vec![c64(0., 0.), c64(1., 0.), c64(1., 0.), c64(0., 0.)],
+    )
+    .unwrap();
     let pauli_y = Array2::from_shape_vec(
         (2, 2),
-        vec![c64(0.,0.), c64(0.,-1.), c64(0.,1.), c64(0.,0.)],
-    ).unwrap();
+        vec![c64(0., 0.), c64(0., -1.), c64(0., 1.), c64(0., 0.)],
+    )
+    .unwrap();
     let pauli_z = Array2::from_shape_vec(
         (2, 2),
-        vec![c64(1.,0.), c64(0.,0.), c64(0.,0.), c64(-1.,0.)],
-    ).unwrap();
+        vec![c64(1., 0.), c64(0., 0.), c64(0., 0.), c64(-1., 0.)],
+    )
+    .unwrap();
 
-    // Build full tensor product using z/x symplectic representation:
-    // z=false x=false → I
-    // z=false x=true  → X
-    // z=true  x=true  → Y
-    // z=true  x=false → Z
-    let first = match (z[0], x[0]) {
+    let single_pauli = |z_bit: bool, x_bit: bool| match (z_bit, x_bit) {
         (false, false) => pauli_i.clone(),
-        (false, true)  => pauli_x.clone(),
-        (true,  true)  => pauli_y.clone(),
-        (true,  false) => pauli_z.clone(),
+        (false, true) => pauli_x.clone(),
+        (true, true) => pauli_y.clone(),
+        (true, false) => pauli_z.clone(),
     };
 
-    let full_pauli = (1..n).fold(first, |acc, i| {
-        let single = match (z[i], x[i]) {
-            (false, false) => pauli_i.clone(),
-            (false, true)  => pauli_x.clone(),
-            (true,  true)  => pauli_y.clone(),
-            (true,  false) => pauli_z.clone(),
-        };
-        kron(&single, &acc)
-    });
+    let first = single_pauli(z[0], x[0]);
+
+    (1..z.len()).fold(first, |acc, i| {
+        let next = single_pauli(z[i], x[i]);
+        kron(&next, &acc)
+    })
+}
+
+pub fn pauli_product_rotation_matrix(angle: f64, z: &[bool], x: &[bool]) -> Array2<Complex64> {
+    let pauli_mat = pauli_zx_to_dense_matrix(z, x);
+    let dim = pauli_mat.shape()[0];
+    let identity: Array2<Complex64> = Array2::eye(dim).mapv(|v: f64| c64(v, 0.));
 
     let cos_val = (angle / 2.0).cos();
     let sin_val = (angle / 2.0).sin();
 
-    let identity: Array2<Complex64> = Array2::eye(dim)
-        .mapv(|x: f64| c64(x, 0.));
-
-    identity.mapv(|v| v * c64(cos_val, 0.))
-        + full_pauli.mapv(|v| v * c64(0., -sin_val))
-
+    identity.mapv(|v| v * c64(cos_val, 0.)) + pauli_mat.mapv(|v| v * c64(0., -sin_val))
 }
 
 /// Kronecker (tensor) product of two complex matrices.
@@ -607,4 +598,3 @@ fn kron(a: &Array2<Complex64>, b: &Array2<Complex64>) -> Array2<Complex64> {
     }
     out
 }
-
