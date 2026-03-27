@@ -547,11 +547,14 @@ class TestPauli(QiskitTestCase):
         op = Operator(qc)
         pauli = random_pauli(5, seed=5678)
         pauli_cpy = pauli.copy()
-        target = Operator(pauli).compose(op, qargs=qargs).dot(op.adjoint(), qargs=qargs)
+        target_s = Operator(pauli).compose(op, qargs=qargs).dot(op.adjoint(), qargs=qargs)
+        target_h = Operator(pauli).compose(op.adjoint(), qargs=qargs).dot(op, qargs=qargs)
         value = Operator(pauli._append_circuit(qc, qargs=qargs))
-        value_evolve = Operator(pauli_cpy.evolve(qc, frame="s", qargs=qargs))
-        self.assertEqual(value, target)
-        self.assertEqual(value_evolve, target)
+        value_evolve_s = Operator(pauli_cpy.evolve(qc, frame="s", qargs=qargs))
+        value_evolve_h = Operator(pauli_cpy.evolve(qc, frame="h", qargs=qargs))
+        self.assertEqual(value, target_s)
+        self.assertEqual(value_evolve_s, target_s)
+        self.assertEqual(value_evolve_h, target_h)
 
     @data("s", "h")
     def test_evolve_with_misleading_name(self, frame):
