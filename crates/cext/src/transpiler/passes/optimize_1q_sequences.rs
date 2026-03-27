@@ -11,9 +11,7 @@
 // that they have been altered from the originals.
 
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
-use qiskit_circuit::{
-    circuit_data::CircuitData, dag_circuit::DAGCircuit,
-};
+use qiskit_circuit::{circuit_data::CircuitData, dag_circuit::DAGCircuit};
 use qiskit_transpiler::{
     passes::{Optimize1qGatesDecompositionState, run_optimize_1q_gates_decomposition},
     target::Target,
@@ -162,7 +160,15 @@ pub unsafe extern "C" fn qk_transpiler_pass_optimize_1q_sequences(
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let dag = unsafe { mut_ptr_as_ref(dag) };
 
-    let state = Optimize1qGatesDecompositionState::new(target.map(|x| x.num_qubits.map(|num_qubits| num_qubits as usize).unwrap_or(0)).unwrap_or(0));
+    let state = Optimize1qGatesDecompositionState::new(
+        target
+            .map(|x| {
+                x.num_qubits
+                    .map(|num_qubits| num_qubits as usize)
+                    .unwrap_or(0)
+            })
+            .unwrap_or(0),
+    );
     // Run the pass
     run_optimize_1q_gates_decomposition(dag, &state, target, None, None)
         .expect("Error while running the pass.");
