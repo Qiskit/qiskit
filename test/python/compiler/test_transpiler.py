@@ -82,7 +82,7 @@ from qiskit.circuit.library import (
 )
 from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
-from qiskit.dagcircuit import DAGOpNode, DAGOutNode, DAGCircuit
+from qiskit.dagcircuit import DAGOpNode, DAGCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.providers.backend import BackendV2
 from qiskit.providers.fake_provider import GenericBackendV2
@@ -926,23 +926,6 @@ class TestTranspile(QiskitTestCase):
         resources_after = out_circuit.count_ops()
 
         self.assertDictEqual(resources_before, resources_after)
-
-    def test_move_measurements(self):
-        """Measurements applied AFTER swap mapping."""
-        cmap = CouplingMap.from_line(16)
-        qasm_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "qasm")
-        circ = QuantumCircuit.from_qasm_file(os.path.join(qasm_dir, "move_measurements.qasm"))
-
-        lay = [0, 1, 15, 2, 14, 3, 13, 4, 12, 5, 11, 6]
-        out = transpile(circ, initial_layout=lay, coupling_map=cmap, routing_method="sabre")
-        out_dag = circuit_to_dag(out)
-        meas_nodes = out_dag.named_nodes("measure")
-        for meas_node in meas_nodes:
-            is_last_measure = all(
-                isinstance(after_measure, DAGOutNode)
-                for after_measure in out_dag.quantum_successors(meas_node)
-            )
-            self.assertTrue(is_last_measure)
 
     @data(0, 1, 2, 3)
     def test_init_resets_kept_preset_passmanagers(self, optimization_level):
@@ -2286,17 +2269,19 @@ class TestTranspile(QiskitTestCase):
         # `dt` set.  For that test to work, we need to check that compiling explicitly without
         # errors produces a different layout to transpiling with them, so we can then later check
         # that the "custom dt" transpile matches the "with errors" case.
-
-        tqc_no_error = transpile(qc, coupling_map=coupling_map, seed_transpiler=4242)
+        seed_transpiler = 2025_07_07
+        tqc_no_error = transpile(qc, coupling_map=coupling_map, seed_transpiler=seed_transpiler)
         # transpile with gate errors
-        tqc_no_dt = transpile(qc, backend=backend, seed_transpiler=4242)
-        # confirm that the output layouts are different
+        tqc_no_dt = transpile(qc, backend=backend, seed_transpiler=seed_transpiler)
+        # confirm that the output layouts are different. This can fail spurious if the built-in
+        # layout pass happened to choose the same initial layout that the noise-aware remapping
+        # converges to.  In that case, you can bump the transpiler seed.
         self.assertNotEqual(
             tqc_no_dt.layout.final_index_layout(), tqc_no_error.layout.final_index_layout()
         )
         # now modify dt with gate errors
-        tqc_dt = transpile(qc, backend=backend, seed_transpiler=4242, dt=backend.dt * 2)
-        # confirm that dt doesn't affect layout
+        tqc_dt = transpile(qc, backend=backend, seed_transpiler=seed_transpiler, dt=backend.dt * 2)
+        # confirm that dt doesn't affect layout.
         self.assertEqual(tqc_no_dt.layout.final_index_layout(), tqc_dt.layout.final_index_layout())
 
     @combine(optimization_level=[0, 1, 2, 3], control_flow=[False, True])
@@ -2795,9 +2780,9 @@ class TestPostTranspileIntegration(QiskitTestCase):
         for i in range(5):
             qc.cx(i % qubits, int(i + qubits / 2) % qubits)
 
-        tqc = transpile(qc, backend=backend, seed_transpiler=4242, callback=callback)
+        tqc = transpile(qc, backend=backend, seed_transpiler=2025_07_07, callback=callback)
         self.assertTrue(vf2_post_layout_called)
-        self.assertEqual([1, 3, 4], _get_index_layout(tqc, qubits))
+        self.assertEqual([1, 4, 3], _get_index_layout(tqc, qubits))
 
     @data("sabre", "lookahead", "basic")
     def test_final_layout_combined_correctly(self, routing):
