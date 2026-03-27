@@ -73,10 +73,10 @@ class StatevectorEstimator(BaseEstimatorV2):
 
         .. math::
 
-            \mu &= \frac{a + b}{2b} \\
-            \sigma^2 &= \frac{\mathrm{min}(\mu(1-\mu), \mathrm{precision}^2)}{4b^2} \\
-            \alpha &= \frac{\mu^2(1-\mu)}{\sigma^2} - \mu \\
-            \beta &= \frac{\mu(1-\mu)^2}{\sigma^2} - (1-\mu)
+            \mu = \frac{a + b}{2b} \\
+            \sigma^2 = \frac{\mathrm{min}(\mu(1-\mu), \mathrm{precision}^2)}{4b^2} \\
+            \alpha = \frac{\mu^2(1-\mu)}{\sigma^2} - \mu \\
+            \beta = \frac{\mu(1-\mu)^2}{\sigma^2} - (1-\mu)
 
         and drawing :math:`\hat{a} \sim \mathrm{Beta}(\alpha, \beta)` leads to 
         :math:`\mathbb{E}[\hat{a}]=a`, :math:`\mathbb{V}[\hat{a}]=\mathrm{precision}^2`, and 
