@@ -27,6 +27,8 @@ The intention is that (much) longer term, we might be wanting to expose more of 
 * `qiskit-synthesis` is the crate for synthesis functionality.
 * `qiskit-circuit-library` is the crate for circuit library functions. It contains constructors or other
   circuit functionality that builds on the core circuit data model defined in `qiskit-circuit`.
+* `qiskit-providers` is the crate that defines the providers interface for Qiskit. The providers interface is what defines the concept of a Backend.
+  The backend models a quantum computer, which is the QPU and the infrastructure around it required to execute circuits on the quantum computer.
 
 We use a structure with several crates in it for a couple of reasons:
 

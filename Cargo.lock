@@ -2145,6 +2145,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "qiskit-providers"
+version = "2.5.0-dev"
+
+[[package]]
 name = "qiskit-pyext"
 version = "2.5.0-dev"
 dependencies = [

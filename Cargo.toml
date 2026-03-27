@@ -57,6 +57,7 @@ qiskit-cext = { path = "crates/cext" }
 qiskit-cext-vtable = { path = "crates/cext-vtable" }
 qiskit-circuit = { path = "crates/circuit" }
 qiskit-circuit-library = { path = "crates/circuit_library" }
+qiskit-providers = { path = "crates/providers" }
 qiskit-qasm2 = { path = "crates/qasm2" }
 qiskit-qasm3 = { path = "crates/qasm3" }
 qiskit-qpy = { path = "crates/qpy" }
