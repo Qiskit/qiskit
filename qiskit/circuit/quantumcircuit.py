@@ -2412,9 +2412,7 @@ class QuantumCircuit:
             new_clbits=mapped_clbits,
         )
         if append_existing:
-            dest._current_scope().extend(
-                append_existing, qubits=mapped_qubits, clbits=mapped_clbits
-            )
+            dest._current_scope().extend(append_existing)
 
         return None if inplace else dest
 
