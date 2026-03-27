@@ -540,16 +540,16 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(value, value_h)
         self.assertEqual(value_inv, value_s)
 
-    def test_evolve_clifford_circuit(self):
+    def test_evolve_clifford_circuit_qargs(self):
         """Test evolve method for random Clifford circuit"""
-        num_qubits = 5
-        qc = random_clifford_circuit(num_qubits, 20, seed=1234)
+        qargs = [2, 4, 1]
+        qc = random_clifford_circuit(3, 20, seed=123)
         op = Operator(qc)
-        pauli = random_pauli(num_qubits, seed=5678)
+        pauli = random_pauli(5, seed=5678)
         pauli_cpy = pauli.copy()
-        target = Operator(pauli).compose(op).dot(op.adjoint())
-        value = Operator(pauli._append_circuit(qc))
-        value_evolve = Operator(pauli_cpy.evolve(qc, frame="s"))
+        target = Operator(pauli).compose(op, qargs=qargs).dot(op.adjoint(), qargs=qargs)
+        value = Operator(pauli._append_circuit(qc, qargs=qargs))
+        value_evolve = Operator(pauli_cpy.evolve(qc, frame="s", qargs=qargs))
         self.assertEqual(value, target)
         self.assertEqual(value_evolve, target)
 
