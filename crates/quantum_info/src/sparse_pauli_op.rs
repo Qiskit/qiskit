@@ -992,11 +992,7 @@ fn to_matrix_dense_inner(paulis: &MatrixCompressedPaulis, parallel: bool) -> Vec
     out
 }
 
-
-pub fn pauli_zx_to_matrix(
-    z: &[bool],
-    x: &[bool],
-) -> ndarray::Array2<num_complex::Complex64> {
+pub fn pauli_zx_to_matrix(z: &[bool], x: &[bool]) -> ndarray::Array2<num_complex::Complex64> {
     use ndarray::Array2;
     use num_complex::Complex64;
 
@@ -1045,8 +1041,6 @@ pub fn pauli_zx_to_matrix(
 
     out
 }
-
-
 
 type CSRData<T> = (Vec<Complex64>, Vec<T>, Vec<T>);
 type ToCSRData<T> = fn(&MatrixCompressedPaulis) -> CSRData<T>;

@@ -13,9 +13,6 @@
 use num_complex::Complex64;
 use std::f64::consts::FRAC_1_SQRT_2;
 
-// Ensure necessary imports are present
-use ndarray::Array2;
-
 use crate::util::{
     C_M_ONE, C_ONE, C_ZERO, GateArray0Q, GateArray1Q, GateArray2Q, GateArray3Q, GateArray4Q, IM,
     M_IM, c64,
@@ -518,83 +515,4 @@ pub fn xx_plus_yy_gate(theta: f64, beta: f64) -> GateArray2Q {
         ],
         [C_ZERO, C_ZERO, C_ZERO, C_ONE],
     ]
-}
-/// Compute the unitary matrix for a PauliProductRotation gate.
-///
-/// The gate implements: exp(-i * theta/2 * P) = cos(theta/2)*I - i*sin(theta/2)*P
-/// where P is the tensor product of Pauli operators given by `pauli_str`.
-///
-/// # Arguments
-/// * `theta`     - Rotation angle in radians (f64)
-/// * `pauli_str` - Pauli string label e.g. "XYZ", "ZZ", "X" (rightmost = qubit 0)
-///
-/// # Returns
-/// Dense 2^n × 2^n complex unitary matrix as `Array2<Complex64>`
-
-pub fn pauli_zx_to_dense_matrix(z: &[bool], x: &[bool]) -> Array2<Complex64> {
-    assert_eq!(z.len(), x.len());
-
-    let pauli_i = Array2::from_shape_vec(
-        (2, 2),
-        vec![c64(1., 0.), c64(0., 0.), c64(0., 0.), c64(1., 0.)],
-    )
-    .unwrap();
-    let pauli_x = Array2::from_shape_vec(
-        (2, 2),
-        vec![c64(0., 0.), c64(1., 0.), c64(1., 0.), c64(0., 0.)],
-    )
-    .unwrap();
-    let pauli_y = Array2::from_shape_vec(
-        (2, 2),
-        vec![c64(0., 0.), c64(0., -1.), c64(0., 1.), c64(0., 0.)],
-    )
-    .unwrap();
-    let pauli_z = Array2::from_shape_vec(
-        (2, 2),
-        vec![c64(1., 0.), c64(0., 0.), c64(0., 0.), c64(-1., 0.)],
-    )
-    .unwrap();
-
-    let single_pauli = |z_bit: bool, x_bit: bool| match (z_bit, x_bit) {
-        (false, false) => pauli_i.clone(),
-        (false, true) => pauli_x.clone(),
-        (true, true) => pauli_y.clone(),
-        (true, false) => pauli_z.clone(),
-    };
-
-    let first = single_pauli(z[0], x[0]);
-
-    (1..z.len()).fold(first, |acc, i| {
-        let next = single_pauli(z[i], x[i]);
-        kron(&next, &acc)
-    })
-}
-
-pub fn pauli_product_rotation_matrix(angle: f64, z: &[bool], x: &[bool]) -> Array2<Complex64> {
-    let pauli_mat = pauli_zx_to_dense_matrix(z, x);
-    let dim = pauli_mat.shape()[0];
-    let identity: Array2<Complex64> = Array2::eye(dim).mapv(|v: f64| c64(v, 0.));
-
-    let cos_val = (angle / 2.0).cos();
-    let sin_val = (angle / 2.0).sin();
-
-    identity.mapv(|v| v * c64(cos_val, 0.)) + pauli_mat.mapv(|v| v * c64(0., -sin_val))
-}
-
-/// Kronecker (tensor) product of two complex matrices.
-fn kron(a: &Array2<Complex64>, b: &Array2<Complex64>) -> Array2<Complex64> {
-    let (ra, ca) = a.dim();
-    let (rb, cb) = b.dim();
-    let mut out = Array2::zeros((ra * rb, ca * cb));
-    for i in 0..ra {
-        for j in 0..ca {
-            let aij = a[[i, j]];
-            for p in 0..rb {
-                for q in 0..cb {
-                    out[[i * rb + p, j * cb + q]] = aij * b[[p, q]];
-                }
-            }
-        }
-    }
-    out
 }
