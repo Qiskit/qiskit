@@ -703,12 +703,27 @@ impl State {
         // If we apply a single swap it could be that we route 2 nodes; that is a setup like
         //  A - B - A - B
         // and we swap the middle two qubits. This cannot happen if we apply 2 or more swaps.
-        match current_swaps.as_slice() {
-            [swap] => swap
+        if current_swaps.len() > 1 {
+            smallvec![closest_node]
+        } else {
+            // check if the closest node has neighbors that are now routable -- for that we get
+            // the other physical qubit that was swapped and check whether the node on it
+            // is now routable
+            let mut possible_other_qubit = current_swaps[0]
                 .iter()
-                .filter_map(|q| self.routable_node_on_qubit(problem, *q))
-                .collect(),
-            _ => smallvec![closest_node],
+                // check if other nodes are in the front layer that are connected by this swap
+                .filter_map(|&swap_qubit| self.front_layer.qubits()[swap_qubit.index()])
+                // remove the closest_node, which we know we already routed
+                .filter(|(node_index, _other_qubit)| *node_index != closest_node)
+                .map(|(_node_index, other_qubit)| other_qubit);
+
+            // if there is indeed another candidate, check if that gate is routable
+            if let Some(other_qubit) = possible_other_qubit.next() {
+                if let Some(also_routed) = self.routable_node_on_qubit(problem, other_qubit) {
+                    return smallvec![closest_node, also_routed];
+                }
+            }
+            smallvec![closest_node]
         }
     }
 
