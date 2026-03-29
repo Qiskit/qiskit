@@ -316,7 +316,7 @@ impl ParameterExpression {
             while current_sub_operation > 0 && subs_operations[current_sub_operation - 1].0 == i + 1
             {
                 if let Some(exp) = stack.pop() {
-                    let sub_exp = exp.subs(&subs_operations[current_sub_operation - 1].1, false)?;
+                    let sub_exp = exp.subs(&subs_operations[current_sub_operation - 1].1, true)?;
                     stack.push(sub_exp);
                 }
                 current_sub_operation -= 1;
