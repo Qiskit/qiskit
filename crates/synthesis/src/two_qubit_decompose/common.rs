@@ -12,7 +12,7 @@
 
 use std::f64::consts::FRAC_1_SQRT_2;
 
-use ndarray::{Array2, ArrayView2, arr1, array, aview2};
+use ndarray::{Array2, ArrayView2, array, aview2};
 use num_complex::{Complex64, ComplexFloat};
 use numpy::{IntoPyArray, PyArray2, PyReadonlyArray1, PyReadonlyArray2};
 use pyo3::prelude::*;
@@ -95,30 +95,6 @@ static MAGIC_DAGGER: GateArray2Q = [
         C_ZERO,
         c64(0., FRAC_1_SQRT_2),
     ],
-];
-
-pub static K12R_ARR: GateArray1Q = [
-    [c64(0., FRAC_1_SQRT_2), c64(FRAC_1_SQRT_2, 0.)],
-    [c64(-FRAC_1_SQRT_2, 0.), c64(0., -FRAC_1_SQRT_2)],
-];
-
-pub static K12L_ARR: GateArray1Q = [
-    [c64(0.5, 0.5), c64(0.5, 0.5)],
-    [c64(-0.5, 0.5), c64(0.5, -0.5)],
-];
-
-pub static B_NON_NORMALIZED: GateArray2Q = [
-    [C_ONE, IM, C_ZERO, C_ZERO],
-    [C_ZERO, C_ZERO, IM, C_ONE],
-    [C_ZERO, C_ZERO, IM, C_M_ONE],
-    [C_ONE, M_IM, C_ZERO, C_ZERO],
-];
-
-pub static B_NON_NORMALIZED_DAGGER: GateArray2Q = [
-    [c64(0.5, 0.), C_ZERO, C_ZERO, c64(0.5, 0.)],
-    [c64(0., -0.5), C_ZERO, C_ZERO, c64(0., 0.5)],
-    [C_ZERO, c64(0., -0.5), c64(0., -0.5), C_ZERO],
-    [C_ZERO, c64(0.5, 0.), c64(-0.5, 0.), C_ZERO],
 ];
 
 pub static IPZ: GateArray1Q = [[IM, C_ZERO], [C_ZERO, M_IM]];
@@ -234,30 +210,4 @@ pub fn local_equivalence(weyl: PyReadonlyArray1<f64>) -> PyResult<[f64; 3]> {
         - 4. * weyl_2_sin_squared_product
         - weyl.iter().map(|x| (4. * x).cos()).product::<f64>();
     Ok([g0_equiv + 0., g1_equiv + 0., g2_equiv + 0.])
-}
-
-/// Convert a 4x4 unitary matrix into a unitary matrix with determinant 1
-pub fn u4_to_su4(u4: ArrayView2<Complex64>) -> (Array2<Complex64>, f64) {
-    let det_u = ndarray_to_faer(u4).determinant();
-    let phase_factor = det_u.powf(-0.25).conj();
-    let su4 = u4.mapv(|x| x / phase_factor);
-    (su4, phase_factor.arg())
-}
-
-pub fn real_trace_transform(mat: ArrayView2<Complex64>) -> Array2<Complex64> {
-    let a1 = -mat[[1, 3]] * mat[[2, 0]] + mat[[1, 2]] * mat[[2, 1]] + mat[[1, 1]] * mat[[2, 2]]
-        - mat[[1, 0]] * mat[[2, 3]];
-    let a2 = mat[[0, 3]] * mat[[3, 0]] - mat[[0, 2]] * mat[[3, 1]] - mat[[0, 1]] * mat[[3, 2]]
-        + mat[[0, 0]] * mat[[3, 3]];
-    let theta = 0.; // Arbitrary!
-    let phi = 0.; // This is extra arbitrary!
-    let psi = f64::atan2(a1.im + a2.im, a1.re - a2.re) - phi;
-    let im = Complex64::new(0., -1.);
-    let temp = [
-        (theta * im).exp(),
-        (phi * im).exp(),
-        (psi * im).exp(),
-        (-(theta + phi + psi) * im).exp(),
-    ];
-    Array2::from_diag(&arr1(&temp))
 }

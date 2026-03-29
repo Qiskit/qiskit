@@ -14,7 +14,7 @@ use approx::{abs_diff_eq, relative_eq};
 use num_complex::{Complex64, ComplexFloat};
 use num_traits::Zero;
 use smallvec::{SmallVec, smallvec};
-use std::f64::consts::{FRAC_1_SQRT_2, FRAC_PI_2, FRAC_PI_4, PI, TAU}; // TAU=2*PI
+use std::f64::consts::{FRAC_1_SQRT_2, FRAC_PI_2, FRAC_PI_4, PI, TAU};
 
 use ndarray::linalg::kron;
 use ndarray::prelude::*;
@@ -25,8 +25,7 @@ use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 
 use super::common::{
-    DEFAULT_FIDELITY, IPZ, K12L_ARR, K12R_ARR, TraceToFidelity, real_trace_transform, rx_matrix,
-    rz_matrix, transpose_conjugate, u4_to_su4,
+    DEFAULT_FIDELITY, IPZ, TraceToFidelity, rx_matrix, rz_matrix, transpose_conjugate,
 };
 use super::gate_sequence::{TwoQubitGateSequence, TwoQubitSequenceVec};
 use super::weyl_decomposition::{__num_basis_gates, _num_basis_gates, TwoQubitWeylDecomposition};
@@ -57,6 +56,17 @@ use qiskit_circuit::{NoBlocks, Qubit};
 // and are just used to create a QuantumCircuit or DAGCircuit when we return to
 // Python space.
 const TWO_QUBIT_SEQUENCE_DEFAULT_CAPACITY: usize = 21;
+
+// constant matrices
+static K12R_ARR: GateArray1Q = [
+    [c64(0., FRAC_1_SQRT_2), c64(FRAC_1_SQRT_2, 0.)],
+    [c64(-FRAC_1_SQRT_2, 0.), c64(0., -FRAC_1_SQRT_2)],
+];
+
+static K12L_ARR: GateArray1Q = [
+    [c64(0.5, 0.5), c64(0.5, 0.5)],
+    [c64(-0.5, 0.5), c64(0.5, -0.5)],
+];
 
 #[derive(Clone, Debug)]
 #[allow(non_snake_case)]
@@ -965,6 +975,33 @@ pub fn py_two_qubit_decompose_up_to_diagonal(
     Ok((real_map.into_pyarray(py).into_any().unbind(), circ.into()))
 }
 
+/// Helper functions for two_qubit_decompose_up_to_diagonal
+/// Convert a 4x4 unitary matrix into a unitary matrix with determinant 1
+fn u4_to_su4(u4: ArrayView2<Complex64>) -> (Array2<Complex64>, f64) {
+    let det_u = ndarray_to_faer(u4).determinant();
+    let phase_factor = det_u.powf(-0.25).conj();
+    let su4 = u4.mapv(|x| x / phase_factor);
+    (su4, phase_factor.arg())
+}
+
+fn real_trace_transform(mat: ArrayView2<Complex64>) -> Array2<Complex64> {
+    let a1 = -mat[[1, 3]] * mat[[2, 0]] + mat[[1, 2]] * mat[[2, 1]] + mat[[1, 1]] * mat[[2, 2]]
+        - mat[[1, 0]] * mat[[2, 3]];
+    let a2 = mat[[0, 3]] * mat[[3, 0]] - mat[[0, 2]] * mat[[3, 1]] - mat[[0, 1]] * mat[[3, 2]]
+        + mat[[0, 0]] * mat[[3, 3]];
+    let theta = 0.; // Arbitrary!
+    let phi = 0.; // This is extra arbitrary!
+    let psi = f64::atan2(a1.im + a2.im, a1.re - a2.re) - phi;
+    let im = Complex64::new(0., -1.);
+    let temp = [
+        (theta * im).exp(),
+        (phi * im).exp(),
+        (psi * im).exp(),
+        (-(theta + phi + psi) * im).exp(),
+    ];
+    Array2::from_diag(&arr1(&temp))
+}
+
 pub fn two_qubit_decompose_up_to_diagonal(
     mat: ArrayView2<Complex64>,
 ) -> PyResult<(Array2<Complex64>, CircuitData)> {
@@ -999,6 +1036,7 @@ pub fn two_qubit_decompose_up_to_diagonal(
     Ok((real_map, circ))
 }
 
+/// Helper function for TwoQubitBasisDecomposer with rz, sx, cx gates
 fn compute_unitary(sequence: &TwoQubitSequenceVec, global_phase: f64) -> Array2<Complex64> {
     let identity = aview2(&ONE_QUBIT_IDENTITY);
     let phase = c64(0., global_phase).exp();

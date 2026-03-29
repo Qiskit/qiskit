@@ -12,7 +12,7 @@
 use approx::abs_diff_eq;
 use num_complex::{Complex, Complex64, ComplexFloat};
 use smallvec::SmallVec;
-use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, PI, TAU}; // TAU=2*PI
+use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, PI, TAU};
 use std::ops::Deref;
 
 use faer::Side::Lower;
@@ -41,16 +41,31 @@ use rand_pcg::Pcg64Mcg;
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::gate_matrix::ONE_QUBIT_IDENTITY;
 use qiskit_circuit::operations::{Param, StandardGate};
-use qiskit_circuit::util::{IM, c64};
+use qiskit_circuit::util::{C_M_ONE, C_ONE, C_ZERO, GateArray2Q, IM, M_IM, c64};
 use qiskit_circuit::{Qubit, impl_intopyobject_for_copy_pyclass};
 
 use super::common::{
-    B_NON_NORMALIZED, B_NON_NORMALIZED_DAGGER, DEFAULT_FIDELITY, IPX, IPY, IPZ, TraceToFidelity,
-    closest_partial_swap, rx_matrix, ry_matrix, rz_matrix, transpose_conjugate,
+    DEFAULT_FIDELITY, IPX, IPY, IPZ, TraceToFidelity, closest_partial_swap, rx_matrix, ry_matrix,
+    rz_matrix, transpose_conjugate,
 };
 
 const PI32: f64 = 3.0 * FRAC_PI_2;
 const C1: c64 = c64 { re: 1.0, im: 0.0 };
+
+// constant matrices
+static B_NON_NORMALIZED: GateArray2Q = [
+    [C_ONE, IM, C_ZERO, C_ZERO],
+    [C_ZERO, C_ZERO, IM, C_ONE],
+    [C_ZERO, C_ZERO, IM, C_M_ONE],
+    [C_ONE, M_IM, C_ZERO, C_ZERO],
+];
+
+static B_NON_NORMALIZED_DAGGER: GateArray2Q = [
+    [c64(0.5, 0.), C_ZERO, C_ZERO, c64(0.5, 0.)],
+    [c64(0., -0.5), C_ZERO, C_ZERO, c64(0., 0.5)],
+    [C_ZERO, c64(0., -0.5), c64(0., -0.5), C_ZERO],
+    [C_ZERO, c64(0.5, 0.), c64(-0.5, 0.), C_ZERO],
+];
 
 enum MagicBasisTransform {
     Into,
