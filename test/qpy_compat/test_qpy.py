@@ -1109,8 +1109,13 @@ def load_qpy(qpy_files, version_parts):
             # See https://github.com/Qiskit/qiskit/pull/13814
             continue
         print(f"Loading qpy file: {path}")  # noqa: T201
-        with open(path, "rb") as fd:
-            qpy_circuits = load(fd)
+        try:
+            with open(path, "rb") as fd:
+                qpy_circuits = load(fd)
+        except Exception as ex:
+            msg = f"****QPY Load error****: Failed to load {path} with the exception: {ex}"
+            sys.stderr.write(msg)
+            sys.exit(1)
         equivalent = path in {"open_controlled_gates.qpy", "controlled_gates.qpy"}
         for i, circuit in enumerate(circuits):
             bind = None
