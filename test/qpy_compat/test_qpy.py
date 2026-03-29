@@ -926,7 +926,7 @@ def generate_real_amplitude_circuits():
     circuit = RealAmplitudes(num_qubits=2, reps=2)
     isa_circuit = transpile(circuit.decompose(), optimization_level=0)
 
-    return [circuit, isa_circuit]
+    return [isa_circuit, circuit]
 
 
 def generate_box():
