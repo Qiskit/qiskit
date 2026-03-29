@@ -964,17 +964,6 @@ impl TwoQubitBasisDecomposer {
     }
 }
 
-#[pyfunction]
-#[pyo3(name = "two_qubit_decompose_up_to_diagonal")]
-pub fn py_two_qubit_decompose_up_to_diagonal(
-    py: Python,
-    mat: PyReadonlyArray2<Complex64>,
-) -> PyResult<(Py<PyAny>, PyCircuitData)> {
-    let mat_arr: ArrayView2<Complex64> = mat.as_array();
-    let (real_map, circ) = two_qubit_decompose_up_to_diagonal(mat_arr)?;
-    Ok((real_map.into_pyarray(py).into_any().unbind(), circ.into()))
-}
-
 /// Helper functions for two_qubit_decompose_up_to_diagonal
 /// Convert a 4x4 unitary matrix into a unitary matrix with determinant 1
 fn u4_to_su4(u4: ArrayView2<Complex64>) -> (Array2<Complex64>, f64) {
@@ -1000,6 +989,17 @@ fn real_trace_transform(mat: ArrayView2<Complex64>) -> Array2<Complex64> {
         (-(theta + phi + psi) * im).exp(),
     ];
     Array2::from_diag(&arr1(&temp))
+}
+
+#[pyfunction]
+#[pyo3(name = "two_qubit_decompose_up_to_diagonal")]
+pub fn py_two_qubit_decompose_up_to_diagonal(
+    py: Python,
+    mat: PyReadonlyArray2<Complex64>,
+) -> PyResult<(Py<PyAny>, PyCircuitData)> {
+    let mat_arr: ArrayView2<Complex64> = mat.as_array();
+    let (real_map, circ) = two_qubit_decompose_up_to_diagonal(mat_arr)?;
+    Ok((real_map.into_pyarray(py).into_any().unbind(), circ.into()))
 }
 
 pub fn two_qubit_decompose_up_to_diagonal(
