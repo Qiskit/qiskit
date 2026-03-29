@@ -19,6 +19,8 @@ use approx;
 use crossterm::terminal;
 use hashbrown::HashSet;
 use itertools::{Itertools, MinMaxResult};
+use lexical_core::ToLexicalWithOptions;
+use lexical_write_float::{self, format::STANDARD};
 use pyo3::prelude::*;
 use std::f64::consts::PI;
 use std::fmt::Debug;
@@ -61,10 +63,7 @@ pub fn draw_circuit(
             if approx::abs_diff_eq!(*f, 0.) {
                 String::new()
             } else {
-                format!(
-                    "global phase: {}\n",
-                    format_float_pi(*f).unwrap_or_else(|| f.to_string())
-                )
+                format!("global phase: {}\n", F64UiFormatter::new(5).format(*f))
             }
         }
         Param::ParameterExpression(expr) => {
@@ -673,6 +672,43 @@ impl TextWireElement {
     }
 }
 
+/// A simple formatter for rendering nicely-truncated floating-point numbers,
+/// in a way similar to Python's g or printf's %g format specifiers.
+/// Example outputs:
+/// F64UiFormatter::new(4).format(1.23456) --> 1.235
+/// F64UiFormatter::new(4).format(123.456) --> 123.5
+/// F64UiFormatter::new(5).format(12345678f64) --> 1.2346e7
+/// F64UiFormatter::new(5).format(-0.00001234) --> -1.234e-5
+struct F64UiFormatter {
+    buffer: Vec<u8>,
+    options: lexical_write_float::Options,
+}
+
+impl F64UiFormatter {
+    fn new(num_significant_digits: i32) -> Self {
+        let options = lexical_write_float::Options::builder()
+            .max_significant_digits(core::num::NonZeroUsize::new(
+                num_significant_digits as usize,
+            ))
+            .positive_exponent_break(core::num::NonZeroI32::new(num_significant_digits))
+            .negative_exponent_break(core::num::NonZeroI32::new(-num_significant_digits + 1))
+            .trim_floats(true)
+            .build_strict();
+
+        F64UiFormatter {
+            buffer: vec![0u8; options.buffer_size_const::<f64, STANDARD>()],
+            options,
+        }
+    }
+
+    /// Formats the input number based on the formatting options.
+    /// This Can be called multiple times, but the internal buffer is overwritten on each call.
+    fn format(&mut self, num: f64) -> &str {
+        let buf = num.to_lexical_with_options::<STANDARD>(&mut self.buffer, &self.options);
+        std::str::from_utf8_mut(buf).expect("Byte representation should be valid")
+    }
+}
+
 pub const Q_WIRE: char = '─';
 pub const C_WIRE: char = '═';
 pub const TOP_CON: char = '┴';
@@ -735,7 +771,11 @@ impl TextDrawer {
                     StandardInstruction::Delay(delay_unit) => {
                         match instruction.params_view().first().unwrap() {
                             Param::Float(duration) => {
-                                format!("Delay({}[{}])", duration, delay_unit)
+                                format!(
+                                    "Delay({}[{}])",
+                                    F64UiFormatter::new(5).format(*duration),
+                                    delay_unit
+                                )
                             }
                             Param::ParameterExpression(expr) => {
                                 format!("Delay({}[{}])", expr, delay_unit)
@@ -767,7 +807,7 @@ impl TextDrawer {
                         .params_view()
                         .iter()
                         .map(|param| match param {
-                            Param::Float(f) => format_float_pi(*f).unwrap_or_else(|| f.to_string()),
+                            Param::Float(f) => F64UiFormatter::new(5).format(*f).to_string(),
                             Param::ParameterExpression(expr) => expr.to_string(),
                             _ => format!("{:?}", param),
                         })
@@ -2089,6 +2129,53 @@ q_0: ──────────┤0  Rxx(🎩) ├────────�
 q_1: ┤ Ry(🎩) ├┤1          ├┤ 💶🔉(🎩) ├┤1           ├┤1         ├
      └────────┘└───────────┘└──────────┘└────────────┘└──────────┘
 ";
+        assert_eq!(result, expected.trim_start_matches("\n"));
+    }
+
+    #[cfg(not(miri))]
+    #[test]
+    fn test_f64_formatting() {
+        let qubits = vec![
+            ShareableQubit::new_anonymous(),
+            ShareableQubit::new_anonymous(),
+        ];
+        let mut circuit = CircuitData::new(Some(qubits), None, Param::Float(12.3)).unwrap();
+
+        circuit
+            .push_standard_gate(StandardGate::RX, &[Param::Float(1.234567)], &[Qubit(0)])
+            .unwrap();
+        circuit
+            .push_standard_gate(StandardGate::RX, &[Param::Float(123.4567)], &[Qubit(0)])
+            .unwrap();
+
+        let expr = ParameterExpression::from_symbol(Symbol::new("ϕ", None, None))
+            .mul(&ParameterExpression::from_f64(1.23456))
+            .unwrap();
+        let param = Param::ParameterExpression(Arc::new(expr));
+        circuit
+            .push_standard_gate(StandardGate::RY, &[param], &[Qubit(0)])
+            .unwrap();
+        circuit
+            .push_standard_gate(StandardGate::RZ, &[Param::Float(123456789f64)], &[Qubit(1)])
+            .unwrap();
+
+        circuit
+            .push_standard_gate(StandardGate::RX, &[Param::Float(0.1234567)], &[Qubit(1)])
+            .unwrap();
+        circuit
+            .push_standard_gate(StandardGate::RX, &[Param::Float(0.0000123456)], &[Qubit(1)])
+            .unwrap();
+
+        let result = draw_circuit(&circuit, true, true, None).unwrap();
+        let expected = "
+global phase: 6.0168
+      ┌────────────┐ ┌────────────┐ ┌───────────────┐
+q_0: ─┤ Rx(1.2346) ├─┤ Rx(123.46) ├─┤ Ry(1.23456*ϕ) ├
+     ┌┴────────────┴┐├────────────┴┐├───────────────┤
+q_1: ┤ Rz(1.2346e8) ├┤ Rx(0.12346) ├┤ Rx(1.2346e-5) ├
+     └──────────────┘└─────────────┘└───────────────┘
+";
+
         assert_eq!(result, expected.trim_start_matches("\n"));
     }
 
