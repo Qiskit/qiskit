@@ -435,9 +435,8 @@ class TestPauli(QiskitTestCase):
         qc.append(gate, [0])
         op = Operator(gate)
         pauli = Pauli(label)
-        pauli_cpy = pauli.copy()
         value = Operator(pauli.evolve(gate))
-        value_qc = Operator(pauli_cpy._append_circuit(qc))
+        value_qc = Operator(pauli.evolve(qc))
         value_h = Operator(pauli.evolve(gate, frame="h"))
         value_s = Operator(pauli.evolve(gate, frame="s"))
         value_inv = Operator(pauli.evolve(gate.inverse()))
@@ -445,7 +444,7 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(value, target)
         self.assertEqual(value, value_h)
         self.assertEqual(value_inv, value_s)
-        self.assertEqual(value_s, value_qc)
+        self.assertEqual(value, value_qc)
 
     @data(
         *it.product(
@@ -480,9 +479,8 @@ class TestPauli(QiskitTestCase):
         qc.append(gate, [0, 1])
         op = Operator(gate)
         pauli = Pauli(label)
-        pauli_cpy = pauli.copy()
         value = Operator(pauli.evolve(gate))
-        value_qc = Operator(pauli_cpy._append_circuit(qc))
+        value_qc = Operator(pauli.evolve(qc))
         value_h = Operator(pauli.evolve(gate, frame="h"))
         value_s = Operator(pauli.evolve(gate, frame="s"))
         value_inv = Operator(pauli.evolve(gate.inverse()))
@@ -490,7 +488,7 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(value, target)
         self.assertEqual(value, value_h)
         self.assertEqual(value_inv, value_s)
-        self.assertEqual(value_qc, value_s)
+        self.assertEqual(value, value_qc)
 
     @data(
         *it.product(
@@ -542,17 +540,14 @@ class TestPauli(QiskitTestCase):
 
     def test_evolve_clifford_circuit_qargs(self):
         """Test evolve method for random Clifford circuit"""
-        qargs = [2, 4, 1]
-        qc = random_clifford_circuit(3, 20, seed=123)
+        qargs = [2, 4, 1, 0]
+        qc = random_clifford_circuit(4, 100, seed=123)
         op = Operator(qc)
         pauli = random_pauli(5, seed=5678)
-        pauli_cpy = pauli.copy()
         target_s = Operator(pauli).compose(op, qargs=qargs).dot(op.adjoint(), qargs=qargs)
         target_h = Operator(pauli).compose(op.adjoint(), qargs=qargs).dot(op, qargs=qargs)
-        value = Operator(pauli._append_circuit(qc, qargs=qargs))
-        value_evolve_s = Operator(pauli_cpy.evolve(qc, frame="s", qargs=qargs))
-        value_evolve_h = Operator(pauli_cpy.evolve(qc, frame="h", qargs=qargs))
-        self.assertEqual(value, target_s)
+        value_evolve_s = Operator(pauli.evolve(qc, frame="s", qargs=qargs))
+        value_evolve_h = Operator(pauli.evolve(qc, frame="h", qargs=qargs))
         self.assertEqual(value_evolve_s, target_s)
         self.assertEqual(value_evolve_h, target_h)
 
