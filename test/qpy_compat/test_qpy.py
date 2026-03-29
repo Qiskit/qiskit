@@ -861,7 +861,15 @@ def generate_replay_with_expression_substitutions():
     qc = QuantumCircuit(1)
     qc.rz(a2, 0)
 
-    return [qc]
+    qc2 = QuantumCircuit(1)
+    theta = Parameter("θ")
+    rz = Parameter("rz")
+    exp = theta + np.pi
+    exp = exp.subs({theta: rz})
+    exp = exp.subs({rz: theta})
+    qc2.rz(exp, 0)
+
+    return [qc, qc2]
 
 
 def generate_v14_expr():
@@ -918,17 +926,6 @@ def generate_v14_expr():
     ]
 
 
-def generate_real_amplitude_circuits():
-    """Real-amplitudes 2-local circuit`."""
-    from qiskit.circuit.library import RealAmplitudes
-    from qiskit import transpile
-
-    circuit = RealAmplitudes(num_qubits=2, reps=2)
-    isa_circuit = transpile(circuit.decompose(), optimization_level=0)
-
-    return [isa_circuit, circuit]
-
-
 def generate_box():
     """Circuits that contain `Box`.  Only added in Qiskit 2.0."""
     bare = QuantumCircuit(2, name="box-bare")
@@ -970,8 +967,6 @@ def generate_circuits(version_parts, current_version, load_context=False):
         output_circuits["teleport.qpy"] = [
             generate_single_clbit_condition_teleportation(current_version)
         ]
-
-        output_circuits["real_amplitude.qpy"] = generate_real_amplitude_circuits()
 
     if version_parts >= (0, 19, 0):
         output_circuits["param_phase.qpy"] = generate_param_phase()
