@@ -24,7 +24,7 @@ from qiskit.circuit.library import (
     PauliEvolutionGate,
     PauliProductMeasurement,
 )
-from qiskit.quantum_info import Pauli, Operator, SparsePauliOp
+from qiskit.quantum_info import Pauli, Operator, SparsePauliOp, Statevector
 from qiskit.qpy import dump, load
 from qiskit.compiler import transpile
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -222,6 +222,119 @@ class TestPauliProductRotationGate(QiskitTestCase):
         with self.subTest(msg="PPR and Pauli evolution"):
             evo = PauliEvolutionGate(pauli, time=angle / 2)
             self.assertTrue(np.allclose(evo.to_matrix(), ppr.to_matrix()))
+
+    def test_single_qubit_x_rotation_matrix(self):
+        """Test matrix support for a single-qubit X rotation."""
+        theta = np.pi / 3
+        gate = PauliProductRotationGate(Pauli("X"), theta)
+        mat = np.asarray(Operator(gate).data)
+
+        expected = np.array(
+            [
+                [np.cos(theta / 2), -1j * np.sin(theta / 2)],
+                [-1j * np.sin(theta / 2), np.cos(theta / 2)],
+            ],
+            dtype=complex,
+        )
+
+        self.assertEqual(mat.shape, (2, 2))
+        self.assertTrue(np.allclose(mat, expected))
+
+    def test_single_qubit_z_rotation_matrix(self):
+        """Test matrix support for a single-qubit Z rotation."""
+        theta = np.pi / 4
+        gate = PauliProductRotationGate(Pauli("Z"), theta)
+        mat = np.asarray(Operator(gate).data)
+
+        expected = np.array(
+            [
+                [np.exp(-1j * theta / 2), 0],
+                [0, np.exp(1j * theta / 2)],
+            ],
+            dtype=complex,
+        )
+
+        self.assertEqual(mat.shape, (2, 2))
+        self.assertTrue(np.allclose(mat, expected))
+
+    def test_two_qubit_zz_matrix(self):
+        """Test matrix support for a two-qubit ZZ rotation."""
+        theta = np.pi / 5
+        gate = PauliProductRotationGate(Pauli("ZZ"), theta)
+        mat = np.asarray(Operator(gate).data)
+
+        self.assertEqual(mat.shape, (4, 4))
+        self.assertTrue(np.allclose(mat.conj().T @ mat, np.eye(4)))
+
+    def test_three_qubit_xyz_matrix(self):
+        """Test matrix support for a three-qubit XYZ rotation."""
+        theta = 0.7
+        gate = PauliProductRotationGate(Pauli("XYZ"), theta)
+        mat = np.asarray(Operator(gate).data)
+
+        self.assertEqual(mat.shape, (8, 8))
+        self.assertTrue(np.allclose(mat.conj().T @ mat, np.eye(8)))
+
+    def test_identity_pauli_is_global_phase(self):
+        """Test that an all-identity Pauli only contributes a global phase."""
+        theta = np.pi / 6
+        gate = PauliProductRotationGate(Pauli("II"), theta)
+        mat = np.asarray(Operator(gate).data)
+        expected = np.exp(-1j * theta / 2) * np.eye(4)
+
+        self.assertTrue(np.allclose(mat, expected))
+
+    def test_theta_zero_is_identity(self):
+        """Test that zero angle gives the identity."""
+        gate = PauliProductRotationGate(Pauli("XZ"), 0.0)
+        mat = np.asarray(Operator(gate).data)
+
+        self.assertTrue(np.allclose(mat, np.eye(4)))
+
+    def test_theta_2pi_is_negative_identity(self):
+        """Test that a 2π rotation gives -I up to global phase."""
+        gate = PauliProductRotationGate(Pauli("Z"), 2 * np.pi)
+        mat = np.asarray(Operator(gate).data)
+
+        self.assertTrue(np.allclose(mat, -np.eye(2)))
+
+    def test_matrix_consistent_with_simulation(self):
+        """Test matrix action is consistent with statevector simulation."""
+        theta = np.pi / 3
+        gate = PauliProductRotationGate(Pauli("ZZ"), theta)
+
+        qc = QuantumCircuit(2)
+        qc.append(gate, [0, 1])
+
+        psi0 = Statevector.from_label("00")
+        evolved = psi0.evolve(qc)
+        mat = np.asarray(Operator(gate).data)
+        expected = Statevector(mat @ psi0.data)
+
+        self.assertTrue(np.allclose(evolved.data, expected.data))
+
+    @data(
+        ("X", 1),
+        ("Y", 1),
+        ("Z", 1),
+        ("XX", 2),
+        ("YY", 2),
+        ("ZZ", 2),
+        ("XY", 2),
+        ("YZ", 2),
+        ("XXX", 3),
+        ("ZZZ", 3),
+    )
+    def test_matrix_unitary_for_common_paulis(self, case):
+        """Test matrix support for common Pauli strings."""
+        pauli, n_qubits = case
+        theta = 1.23
+
+        gate = PauliProductRotationGate(Pauli(pauli), theta)
+        mat = np.asarray(Operator(gate).data)
+
+        self.assertEqual(mat.shape, (2**n_qubits, 2**n_qubits))
+        self.assertTrue(np.allclose(mat.conj().T @ mat, np.eye(2**n_qubits)))
 
     @data(0, 1, 2)
     def test_control(self, num_ctrl_qubits):
