@@ -625,8 +625,8 @@ impl State {
                 return;
             };
         let mut to_visit = self.front_layer.iter_nodes().copied().collect::<Vec<_>>();
-        let mut decremented: IndexMap<usize, u32, ahash::RandomState> =
-            IndexMap::with_hasher(ahash::RandomState::default());
+        let mut decremented: IndexMap<usize, u32, foldhash::fast::RandomState> =
+            IndexMap::with_hasher(foldhash::fast::RandomState::default());
         let mut i = 0;
         while i < to_visit.len() && self.extended_set.len() < extended_set_size {
             let node = to_visit[i];

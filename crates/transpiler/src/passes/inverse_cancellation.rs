@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use ahash::RandomState;
+use foldhash::fast::RandomState;
 use hashbrown::HashSet;
 use indexmap::IndexMap;
 use pyo3::prelude::*;

@@ -46,8 +46,8 @@ use crate::target::Qargs;
 use crate::target::QargsRef;
 use crate::target::Target;
 
-type AhashIndexMap<K, V> = IndexMap<K, V, ahash::RandomState>;
-type AhashIndexSet<O> = IndexSet<O, ahash::RandomState>;
+type AhashIndexMap<K, V> = IndexMap<K, V, foldhash::fast::RandomState>;
+type AhashIndexSet<O> = IndexSet<O, foldhash::fast::RandomState>;
 type InstMap = AhashIndexMap<GateIdentifier, BasisTransformOut>;
 type ExtraInstructionMap<'a> = AhashIndexMap<&'a PhysicalQargs, InstMap>;
 type PhysicalQargs = SmallVec<[PhysicalQubit; 2]>;

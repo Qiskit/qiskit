@@ -25,8 +25,8 @@ use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
 
 // Custom types to store the commutation sets and node indices,
 // see the docstring below for more information.
-type CommutationSet = IndexMap<Wire, Vec<Vec<NodeIndex>>, ::ahash::RandomState>;
-type NodeIndices = IndexMap<(NodeIndex, Wire), usize, ::ahash::RandomState>;
+type CommutationSet = IndexMap<Wire, Vec<Vec<NodeIndex>>, ::foldhash::fast::RandomState>;
+type NodeIndices = IndexMap<(NodeIndex, Wire), usize, ::foldhash::fast::RandomState>;
 
 // the maximum number of qubits we check commutativity for
 const MAX_NUM_QUBITS: u32 = 3;

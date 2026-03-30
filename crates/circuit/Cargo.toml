@@ -14,7 +14,7 @@ workspace = true
 
 [dependencies]
 rayon.workspace = true
-ahash.workspace = true
+foldhash.workspace = true
 rustworkx-core.workspace = true
 bytemuck.workspace = true
 bitfield-struct.workspace = true
@@ -31,6 +31,7 @@ nom-language.workspace = true
 crossterm = "0.29.0"
 unicode-width = "0.2"
 unicode-segmentation = "1.12"
+ahash = "0.8.12"
 
 [dependencies.pyo3]
 workspace = true

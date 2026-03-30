@@ -21,7 +21,7 @@ use pyo3::types::{IntoPyDict, PyDict};
 /// the circuit.
 #[derive(Debug)]
 pub struct BitLocator<B, R: Register> {
-    bit_locations: IndexMap<B, BitLocations<R>, ::ahash::RandomState>,
+    bit_locations: IndexMap<B, BitLocations<R>, ::foldhash::fast::RandomState>,
     cached: OnceLock<Py<PyDict>>,
 }
 
