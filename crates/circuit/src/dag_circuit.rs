@@ -1436,10 +1436,19 @@ impl DAGCircuit {
             ));
         }
 
-        if other.qubits.len() > self.qubits.len() || other.clbits.len() > self.clbits.len() {
-            return Err(DAGCircuitError::new_err(
-                "Trying to compose with another DAGCircuit which has more 'in' edges.",
-            ));
+        if other.qubits.len() > self.qubits.len() {
+            return Err(DAGCircuitError::new_err(format!(
+                "The circuit being composed ({} qubits) is larger than the destination circuit ({} qubits).",
+                other.qubits.len(),
+                self.qubits.len()
+            )));
+        }
+        if other.clbits.len() > self.clbits.len() {
+            return Err(DAGCircuitError::new_err(format!(
+                "The circuit being composed ({} clbits) is larger than the destination circuit ({} clbits).",
+                other.clbits.len(),
+                self.clbits.len()
+            )));
         }
 
         let qubits = qubits
@@ -7695,10 +7704,19 @@ impl DAGCircuit {
         block_map: HashMap<Block, Block>,
         inline_captures: bool,
     ) -> PyResult<()> {
-        if other.qubits.len() > self.qubits.len() || other.clbits.len() > self.clbits.len() {
-            return Err(DAGCircuitError::new_err(
-                "Trying to compose with another DAGCircuit which has more 'in' edges.",
-            ));
+        if other.qubits.len() > self.qubits.len() {
+            return Err(DAGCircuitError::new_err(format!(
+                "The circuit being composed ({} qubits) is larger than the destination circuit ({} qubits).",
+                other.qubits.len(),
+                self.qubits.len()
+            )));
+        }
+        if other.clbits.len() > self.clbits.len() {
+            return Err(DAGCircuitError::new_err(format!(
+                "The circuit being composed ({} clbits) is larger than the destination circuit ({} clbits).",
+                other.clbits.len(),
+                self.clbits.len()
+            )));
         }
 
         let qubit_map = match qubits {
