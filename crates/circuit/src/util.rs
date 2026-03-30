@@ -47,12 +47,3 @@ pub const C_ONE: Complex64 = c64(1., 0.);
 pub const C_M_ONE: Complex64 = c64(-1., 0.);
 pub const IM: Complex64 = c64(0., 1.);
 pub const M_IM: Complex64 = c64(0., -1.);
-
-use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, FRAC_PI_8, SQRT_2};
-pub const C_FRAC_PI_2: Complex64 = c64(FRAC_PI_2, 0.0);
-pub const C_FRAC_PI_4: Complex64 = c64(FRAC_PI_4, 0.0);
-pub const C_FRAC_PI_8: Complex64 = c64(FRAC_PI_8, 0.0);
-pub const C_FRAC_PI_2_SQRT_2: Complex64 = c64(FRAC_PI_2 / SQRT_2, 0.0);
-pub const C_M_FRAC_PI_4: Complex64 = c64(-FRAC_PI_4, 0.0);
-pub const C_M_FRAC_PI_8: Complex64 = c64(-FRAC_PI_8, 0.0);
-pub const C_M_FRAC_PI_2_SQRT_2: Complex64 = c64(-FRAC_PI_2 / SQRT_2, 0.0);
