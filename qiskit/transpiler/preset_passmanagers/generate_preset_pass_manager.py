@@ -278,7 +278,7 @@ def generate_clifford_t_pass_manager(
 
     This function provides a fast and convenient way to construct a preset pass manager for
     Clifford+T compilation. We recommend using this function instead of :func:`~.transpile` or
-    :func:.`generate_preset_pass_manager` with a Clifford+T basis, as it exposes
+    :func:`~.generate_preset_pass_manager` with a Clifford+T basis, as it exposes
     arguments specifically tailored for Clifford+T compilations.
     Note, however, that it will raise an error if a basis other than Clifford+T is specified.
 
