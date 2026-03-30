@@ -16,7 +16,7 @@ Preset pass manager generation function for compiling into Clifford+T.
 
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passmanager import StagedPassManager
-from qiskit.transpiler.passmanager_config import PassManagerConfig
+from qiskit.transpiler.passmanager_config import PassManagerCliffordTConfig
 from qiskit.transpiler.preset_passmanagers.builtin_plugins import (
     CliffordTInitPassManager,
     DefaultLayoutPassManager,
@@ -30,7 +30,7 @@ from qiskit.transpiler.preset_passmanagers.builtin_plugins import (
 
 
 def clifford_t_pass_manager(
-    pass_manager_config: PassManagerConfig, optimization_level: int
+    pass_manager_config: PassManagerCliffordTConfig, optimization_level: int
 ) -> StagedPassManager:
     r"""Generate a staged pass manager for transpiling into Clifford+T basis.
 
