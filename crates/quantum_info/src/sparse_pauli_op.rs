@@ -322,6 +322,48 @@ impl MatrixCompressedPaulis {
             self.coeffs.push(coeff);
         }
     }
+
+    /// Returns a C-ordered [Vec] of the 2D matrix.
+    fn to_matrix_dense_inner(&self, parallel: bool) -> Vec<Complex64> {
+        let side = 1usize << self.num_qubits();
+        #[allow(clippy::uninit_vec)]
+        let mut out = {
+            let mut out = Vec::with_capacity(side * side);
+            // SAFETY: we iterate through the vec in chunks of `side`, and start each row by filling it
+            // with zeros before ever reading from it.  It's fine to overwrite the uninitialised memory
+            // because `Complex64: !Drop`.
+            unsafe { out.set_len(side * side) };
+            out
+        };
+        let write_row = |(i_row, row): (usize, &mut [Complex64])| {
+            // Doing the initialization here means that when we're in parallel contexts, we do the
+            // zeroing across the whole threadpool.  This also seems to give a speed-up in serial
+            // contexts, but I don't understand that. ---Jake
+            row.fill(C_ZERO);
+            for ((&x_like, &z_like), &coeff) in self
+                .x_like
+                .iter()
+                .zip(self.z_like.iter())
+                .zip(self.coeffs.iter())
+            {
+                // Technically this discards part of the storable data, but in practice, a dense
+                // operator with more than 32 qubits needs in the region of 1 ZiB memory.  We still use
+                // `u64` to help sparse-matrix construction, though.
+                let coeff = if (i_row as u32 & z_like as u32).count_ones() % 2 == 0 {
+                    coeff
+                } else {
+                    -coeff
+                };
+                row[i_row ^ (x_like as usize)] += coeff;
+            }
+        };
+        if parallel {
+            out.par_chunks_mut(side).enumerate().for_each(write_row);
+        } else {
+            out.chunks_mut(side).enumerate().for_each(write_row);
+        }
+        out
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -944,52 +986,8 @@ pub fn to_matrix_dense<'py>(
     paulis.combine();
     let side = 1usize << paulis.num_qubits();
     let parallel = !force_serial && qiskit_circuit::getenv_use_multiple_threads();
-    let out = to_matrix_dense_inner(&paulis, parallel);
+    let out = paulis.to_matrix_dense_inner(parallel);
     PyArray1::from_vec(py, out).reshape([side, side])
-}
-
-/// Inner worker of the Python-exposed [to_matrix_dense].  This is separate primarily to allow
-/// Rust-space unit testing even if Python isn't available for execution.  This returns a C-ordered
-/// [Vec] of the 2D matrix.
-fn to_matrix_dense_inner(paulis: &MatrixCompressedPaulis, parallel: bool) -> Vec<Complex64> {
-    let side = 1usize << paulis.num_qubits();
-    #[allow(clippy::uninit_vec)]
-    let mut out = {
-        let mut out = Vec::with_capacity(side * side);
-        // SAFETY: we iterate through the vec in chunks of `side`, and start each row by filling it
-        // with zeros before ever reading from it.  It's fine to overwrite the uninitialised memory
-        // because `Complex64: !Drop`.
-        unsafe { out.set_len(side * side) };
-        out
-    };
-    let write_row = |(i_row, row): (usize, &mut [Complex64])| {
-        // Doing the initialization here means that when we're in parallel contexts, we do the
-        // zeroing across the whole threadpool.  This also seems to give a speed-up in serial
-        // contexts, but I don't understand that. ---Jake
-        row.fill(C_ZERO);
-        for ((&x_like, &z_like), &coeff) in paulis
-            .x_like
-            .iter()
-            .zip(paulis.z_like.iter())
-            .zip(paulis.coeffs.iter())
-        {
-            // Technically this discards part of the storable data, but in practice, a dense
-            // operator with more than 32 qubits needs in the region of 1 ZiB memory.  We still use
-            // `u64` to help sparse-matrix construction, though.
-            let coeff = if (i_row as u32 & z_like as u32).count_ones() % 2 == 0 {
-                coeff
-            } else {
-                -coeff
-            };
-            row[i_row ^ (x_like as usize)] += coeff;
-        }
-    };
-    if parallel {
-        out.par_chunks_mut(side).enumerate().for_each(write_row);
-    } else {
-        out.chunks_mut(side).enumerate().for_each(write_row);
-    }
-    out
 }
 
 type CSRData<T> = (Vec<Complex64>, Vec<T>, Vec<T>);
@@ -1412,7 +1410,7 @@ mod tests {
                 x_like,
                 z_like,
             };
-            let arr = Array1::from_vec(to_matrix_dense_inner(&paulis, false))
+            let arr = Array1::from_vec(paulis.to_matrix_dense_inner(false))
                 .into_shape_with_order((2, 2))
                 .unwrap();
             let expected: DecomposeMinimal = paulis.into();
@@ -1456,7 +1454,7 @@ mod tests {
                 x_like,
                 z_like,
             };
-            let arr = Array1::from_vec(to_matrix_dense_inner(&paulis, false))
+            let arr = Array1::from_vec(paulis.to_matrix_dense_inner(false))
                 .into_shape_with_order((8, 8))
                 .unwrap();
             let expected: DecomposeMinimal = paulis.into();
@@ -1477,8 +1475,8 @@ mod tests {
     #[test]
     fn dense_threaded_and_serial_equal() {
         let paulis = example_paulis();
-        let parallel = in_scoped_thread_pool(|| to_matrix_dense_inner(&paulis, true)).unwrap();
-        let serial = to_matrix_dense_inner(&paulis, false);
+        let parallel = in_scoped_thread_pool(|| paulis.to_matrix_dense_inner(true)).unwrap();
+        let serial = paulis.to_matrix_dense_inner(false);
         assert_eq!(parallel, serial);
     }
 
