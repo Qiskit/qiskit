@@ -137,6 +137,9 @@ impl ParameterExpression {
         qpy_replay(self, &self.name_map, &mut replay);
         replay
     }
+    pub fn num_of_symbols(&self) -> usize {
+        self.name_map.len()
+    }
 }
 // This needs to be implemented manually, because PyO3 does not provide built-in
 // conversions for the subclasses of ParameterExpression in Python. Specifically
@@ -701,6 +704,17 @@ impl ParameterExpression {
             }
         }
         Ok(merged)
+    }
+
+    /// Extend the symbol table with additional symbols
+    pub fn extend_symbols<I>(&mut self, symbols: I)
+    where
+        I: IntoIterator<Item = Symbol>,
+    {
+        for symbol in symbols {
+            let name = symbol.repr(false);
+            self.name_map.entry(name).or_insert(symbol);
+        }
     }
 }
 
@@ -1878,14 +1892,20 @@ pub enum ParameterValueType {
     VectorElement(PyParameterVectorElement),
 }
 
+impl From<Value> for ParameterValueType {
+    fn from(value: Value) -> Self {
+        match value {
+            Value::Int(i) => ParameterValueType::Int(i),
+            Value::Real(r) => ParameterValueType::Float(r),
+            Value::Complex(c) => ParameterValueType::Complex(c),
+        }
+    }
+}
+
 impl ParameterValueType {
     fn extract_from_expr(expr: &SymbolExpr) -> Option<ParameterValueType> {
         if let Some(value) = expr.eval(true) {
-            match value {
-                Value::Int(i) => Some(ParameterValueType::Int(i)),
-                Value::Real(r) => Some(ParameterValueType::Float(r)),
-                Value::Complex(c) => Some(ParameterValueType::Complex(c)),
-            }
+            Some(value.into())
         } else if let SymbolExpr::Symbol(symbol) = expr {
             match symbol.index {
                 None => {
