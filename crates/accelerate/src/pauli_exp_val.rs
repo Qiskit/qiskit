@@ -19,7 +19,7 @@ use pyo3::wrap_pyfunction;
 use rayon::prelude::*;
 
 use qiskit_circuit::getenv_use_multiple_threads;
-use qiskit_circuit::util::c64;
+use qiskit_util::complex::c64;
 
 const PARALLEL_THRESHOLD: usize = 19;
 

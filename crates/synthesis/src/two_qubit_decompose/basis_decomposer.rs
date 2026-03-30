@@ -44,8 +44,9 @@ use qiskit_circuit::gate_matrix::{CX_GATE, H_GATE, ONE_QUBIT_IDENTITY};
 use qiskit_circuit::instruction::{Instruction, Parameters};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::util::{C_M_ONE, C_ONE, C_ZERO, GateArray1Q, IM, M_IM, c64};
 use qiskit_circuit::{NoBlocks, Qubit};
+use qiskit_util::alias::GateArray1Q;
+use qiskit_util::complex::{C_M_ONE, C_ONE, C_ZERO, IM, M_IM, c64};
 
 const PI2: f64 = PI / 2.;
 const PI4: f64 = PI / 4.;

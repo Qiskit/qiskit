@@ -41,7 +41,9 @@ use rand_pcg::Pcg64Mcg;
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::gate_matrix::ONE_QUBIT_IDENTITY;
 use qiskit_circuit::operations::{Param, StandardGate};
-use qiskit_circuit::util::{C_M_ONE, C_ONE, C_ZERO, GateArray1Q, GateArray2Q, IM, M_IM, c64};
+use qiskit_util::alias::{GateArray1Q, GateArray2Q};
+use qiskit_util::complex::{C_M_ONE, C_ONE, C_ZERO, IM, M_IM, c64};
+
 use qiskit_circuit::{Qubit, impl_intopyobject_for_copy_pyclass};
 
 use super::common::{

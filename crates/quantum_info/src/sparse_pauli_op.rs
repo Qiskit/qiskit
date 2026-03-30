@@ -28,7 +28,7 @@ use num_traits::Zero;
 use rayon::prelude::*;
 use thiserror::Error;
 
-use qiskit_circuit::util::{C_ZERO, c64};
+use qiskit_util::complex::{C_ZERO, c64};
 
 use crate::rayon_ext::*;
 
