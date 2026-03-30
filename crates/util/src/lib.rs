@@ -10,6 +10,9 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+#[cfg(feature = "py")]
+pub mod py;
+
 pub mod complex {
     use num_complex::Complex64;
 
