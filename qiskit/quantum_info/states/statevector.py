@@ -1027,7 +1027,8 @@ class Statevector(QuantumState, TolerancesMixin):
             )
 
         if obj.definition.global_phase:
-            statevec._data *= np.exp(1j * float(obj.definition.global_phase))
+            # We do not apply this in-place, just in-case we have a shallow copy of _data.
+            statevec._data = statevec._data * np.exp(1j * float(obj.definition.global_phase))
         qubits = {qubit: i for i, qubit in enumerate(obj.definition.qubits)}
         for instruction in obj.definition:
             if instruction.clbits:
