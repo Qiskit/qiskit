@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 use binrw::Endian;
+use hashbrown::HashSet;
 use pyo3::prelude::*;
 use qiskit_circuit::imports;
 use qiskit_circuit::operations::Param;
@@ -497,15 +498,14 @@ pub(crate) fn unpack_parameter_expression(
             replay.push(OPReplay { op, lhs, rhs });
         };
     }
-    let mut exp = ParameterExpression::from_qpy(&replay, Some(sub_operations)).map_err(|_| {
-        QpyError::ConversionError("Failure while loading parameter expression".to_string())
-    })?;
-    // add parameters not present in the replay but part of the original expression (in case they were optimized away)
-    exp.extend_symbols(param_uuid_map.values().filter_map(|v| match v {
+    // let additional_symbols = HashSet::new();
+    let additional_symbols = HashSet::from_iter(param_uuid_map.values().filter_map(|v| match v {
         GenericValue::ParameterExpressionSymbol(s) => Some(s.clone()),
         _ => None,
     }));
-    Ok(exp)
+    ParameterExpression::from_qpy(&replay, Some(sub_operations), Some(&additional_symbols)).map_err(
+        |_| QpyError::ConversionError("Failure while loading parameter expression".to_string()),
+    )
 }
 
 pub(crate) fn pack_symbol(symbol: &Symbol) -> formats::ParameterSymbolPack {

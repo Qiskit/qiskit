@@ -263,7 +263,12 @@ impl ParameterExpression {
     pub fn from_qpy(
         replay: &[OPReplay],
         subs_operations: Option<Vec<(usize, HashMap<Symbol, ParameterExpression>)>>,
+        additional_symbols: Option<&HashSet<Symbol>>,
     ) -> Result<Self, ParameterError> {
+        let mut symbols = match additional_symbols {
+            None => HashSet::new(),
+            Some(symbol_map) => symbol_map.clone(),
+        };
         // the stack contains the latest lhs and rhs values
         let mut stack: Vec<ParameterExpression> = Vec::new();
         let subs_operations = subs_operations.unwrap_or_default();
@@ -329,14 +334,21 @@ impl ParameterExpression {
                 if let Some(exp) = stack.pop() {
                     let sub_exp = exp.subs(sub_operation, true)?;
                     stack.push(sub_exp);
+                    for key in sub_operation.keys() {
+                        symbols.remove(key); // remove the symbols that were substituted away
+                    }
                 }
             }
         }
 
         // once we're done, just return the last element in the stack
-        Ok(stack
+        let mut result = stack
             .pop()
-            .expect("Invalid QPY replay encountered during deserialization: empty OPReplay."))
+            .expect("Invalid QPY replay encountered during deserialization: empty OPReplay.");
+
+        // need to account
+        result.extend_symbols(symbols);
+        Ok(result)
     }
 
     pub fn iter_symbols(&self) -> impl Iterator<Item = &Symbol> + '_ {
@@ -1415,7 +1427,7 @@ impl PyParameterExpression {
     fn __setstate__(&mut self, state: (Vec<OPReplay>, Option<ParameterValueType>)) -> PyResult<()> {
         // if there a replay, load from the replay
         if !state.0.is_empty() {
-            let from_qpy = ParameterExpression::from_qpy(&state.0, None)?;
+            let from_qpy = ParameterExpression::from_qpy(&state.0, None, None)?;
             self.inner = from_qpy;
         // otherwise, load from the ParameterValueType
         } else if let Some(value) = state.1 {
