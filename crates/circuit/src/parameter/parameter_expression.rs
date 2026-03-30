@@ -313,13 +313,20 @@ impl ParameterExpression {
             };
             stack.push(result);
             //now check whether any substitutions need to be applied at this stage
+            let mut sub_operations_to_perform = Vec::new();
+            // since we go over the operations from last to first, we need to collect all the subs
+            // for this stage and go over them in reverse order (from first to last, for this stage)
             while current_sub_operation > 0 && subs_operations[current_sub_operation - 1].0 == i + 1
             {
+                sub_operations_to_perform
+                    .push(subs_operations[current_sub_operation - 1].1.clone());
+                current_sub_operation -= 1;
+            }
+            for sub_operation in sub_operations_to_perform.iter().rev() {
                 if let Some(exp) = stack.pop() {
-                    let sub_exp = exp.subs(&subs_operations[current_sub_operation - 1].1, true)?;
+                    let sub_exp = exp.subs(sub_operation, true)?;
                     stack.push(sub_exp);
                 }
-                current_sub_operation -= 1;
             }
         }
 
