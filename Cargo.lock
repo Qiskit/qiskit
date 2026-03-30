@@ -2137,6 +2137,7 @@ dependencies = [
  "qiskit-circuit",
  "qiskit-quantum-info",
  "qiskit-synthesis",
+ "qiskit-util",
  "rand 0.9.2",
  "rand_distr",
  "rand_pcg",

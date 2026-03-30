@@ -44,7 +44,8 @@ use qiskit_circuit::dag_circuit::{DAGCircuit, DAGCircuitBuilder, NodeType, Wire}
 use qiskit_circuit::nlayout::NLayout;
 use qiskit_circuit::operations::{ControlFlow, StandardGate};
 use qiskit_circuit::packed_instruction::PackedInstruction;
-use qiskit_circuit::{BlocksMode, PhysicalQubit, Qubit, VirtualQubit, getenv_use_multiple_threads};
+use qiskit_circuit::{BlocksMode, PhysicalQubit, Qubit, VirtualQubit};
+use qiskit_util::getenv_use_multiple_threads;
 
 /// Number of trials for control flow block swap epilogues.
 const SWAP_EPILOGUE_TRIALS: usize = 4;

@@ -10,6 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use std::env;
+
 #[cfg(feature = "py")]
 pub mod py;
 
@@ -55,4 +57,17 @@ pub mod alias {
     pub type GateArray2Q = [[Complex64; 4]; 4];
     pub type GateArray3Q = [[Complex64; 8]; 8];
     pub type GateArray4Q = [[Complex64; 16]; 16];
+}
+
+#[inline]
+pub fn getenv_use_multiple_threads() -> bool {
+    let parallel_context = env::var("QISKIT_IN_PARALLEL")
+        .unwrap_or_else(|_| "FALSE".to_string())
+        .to_uppercase()
+        == "TRUE";
+    let force_threads = env::var("QISKIT_FORCE_THREADS")
+        .unwrap_or_else(|_| "FALSE".to_string())
+        .to_uppercase()
+        == "TRUE";
+    !parallel_context || force_threads
 }
