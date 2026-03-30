@@ -36,9 +36,9 @@ impl<'a, 'py> FromPyObject<'a, 'py> for QuantumCircuitData<'py> {
         let py = ob.py();
         ob.getattr("data")?; // in case _data is lazily generated in python
         let circuit_data = ob.getattr("_data")?;
-        let data_borrowed = circuit_data.extract::<PyCircuitData>()?.into();
+        let data_borrowed = circuit_data.cast::<PyCircuitData>()?;
         Ok(QuantumCircuitData {
-            data: data_borrowed,
+            data: data_borrowed.borrow().inner.clone(),
             name: ob.getattr(intern!(py, "name"))?.extract()?,
             metadata: ob.getattr(intern!(py, "metadata")).ok(),
             transpile_layout: ob.getattr(intern!(py, "layout")).ok(),

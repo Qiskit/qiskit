@@ -317,6 +317,7 @@ which prints:
    MSGate
    RVGate
    PauliGate
+   PauliProductRotationGate
    LinearFunction
    Isometry
    UnitaryGate
@@ -896,6 +897,7 @@ from .generalized_gates import (
     GRZ,
     RVGate,
     PauliGate,
+    PauliProductRotationGate,
     LinearFunction,
     Isometry,
     UnitaryGate,

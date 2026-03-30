@@ -37,7 +37,7 @@ use qiskit_circuit::parameter::symbol_expr::Value;
 use qiskit_circuit::{BlocksMode, Clbit, PhysicalQubit, Qubit, VarsMode};
 use qiskit_circuit::{
     dag_circuit::DAGCircuit,
-    operations::{Operation, OperationRef, PyOperationTypes, PythonOperation},
+    operations::{Operation, OperationRef, PauliBased, PyOperationTypes, PythonOperation},
 };
 use smallvec::SmallVec;
 
@@ -202,7 +202,7 @@ pub fn run_basis_translator(
         })
         .collect::<Result<_, BasisTranslatorError>>()?;
 
-    let (out_dag, _) = apply_translation(
+    let out_dag = apply_translation(
         dag,
         &new_target_basis,
         &instr_map,
@@ -334,8 +334,7 @@ fn apply_translation(
     min_qubits: usize,
     qargs_with_non_global_operation: &AhashIndexMap<Qargs, AhashIndexSet<&str>>,
     qarg_mapping: Option<&HashMap<Qubit, Qubit>>,
-) -> Result<(DAGCircuit, bool), BasisTranslatorError> {
-    let mut is_updated = false;
+) -> Result<DAGCircuit, BasisTranslatorError> {
     let out_dag = dag
         .copy_empty_like(VarsMode::Alike, BlocksMode::Keep)
         .map_err(|_| {
@@ -372,7 +371,7 @@ fn apply_translation(
                                 .map(|(k, v)| (v, *k))
                                 .collect()
                         };
-                    (updated_dag, is_updated) = apply_translation(
+                    updated_dag = apply_translation(
                         dag_block,
                         target_basis,
                         instr_map,
@@ -381,12 +380,7 @@ fn apply_translation(
                         qargs_with_non_global_operation,
                         Some(&qarg_mapping),
                     )?;
-                    let flow_block = if is_updated {
-                        updated_dag
-                    } else {
-                        dag_block.clone()
-                    };
-                    flow_blocks.push(out_dag_builder.add_block(flow_block));
+                    flow_blocks.push(out_dag_builder.add_block(updated_dag));
                 }
                 let new_instr = PackedInstruction::from_control_flow(
                     node_obj.op.control_flow().clone(),
@@ -474,9 +468,8 @@ fn apply_translation(
                 node_obj.op.name().to_string(),
             ));
         }
-        is_updated = true;
     }
-    Ok((out_dag_builder.build(), is_updated))
+    Ok(out_dag_builder.build())
 }
 
 fn replace_node(
@@ -539,7 +532,12 @@ fn replace_node(
                 OperationRef::StandardGate(gate) => gate.into(),
                 OperationRef::StandardInstruction(instruction) => instruction.into(),
                 OperationRef::Unitary(unitary) => unitary.clone().into(),
-                OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
+                OperationRef::PauliProductMeasurement(ppm) => {
+                    PauliBased::PauliProductMeasurement(ppm.clone()).into()
+                }
+                OperationRef::PauliProductRotation(rotation) => {
+                    PauliBased::PauliProductRotation(rotation.clone()).into()
+                }
             };
             let new_params: Option<Parameters<_>> = inner_node.params.as_deref().cloned();
             dag.apply_operation_back(
@@ -611,7 +609,12 @@ fn replace_node(
                 OperationRef::StandardGate(gate) => gate.into(),
                 OperationRef::StandardInstruction(instruction) => instruction.into(),
                 OperationRef::Unitary(unitary) => unitary.clone().into(),
-                OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
+                OperationRef::PauliProductMeasurement(ppm) => {
+                    PauliBased::PauliProductMeasurement(ppm.clone()).into()
+                }
+                OperationRef::PauliProductRotation(rotation) => {
+                    PauliBased::PauliProductRotation(rotation.clone()).into()
+                }
             };
 
             let mut new_params: Option<Parameters<_>> = inner_node.params.as_deref().cloned();

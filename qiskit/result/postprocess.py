@@ -56,11 +56,11 @@ def format_counts_memory(shot_memory, header=None):
         header (dict): the experiment header dictionary containing
             useful information for postprocessing. creg_sizes
             are a nested list where the inner element is a list
-            of creg name, creg size pairs. memory_slots is an integers
+            of creg name, creg size pairs. memory_slots is an integer
             specifying the number of total memory_slots in the experiment.
 
     Returns:
-        dict: a formatted memory
+        str: a formatted memory
     """
     if shot_memory.startswith("0x"):
         shot_memory = _hex_to_bin(shot_memory)
@@ -97,7 +97,7 @@ def format_level_0_memory(memory):
     """Format an experiment result memory object for measurement level 0.
 
     Args:
-        memory (list): Memory from experiment with `meas_level==1`. `avg` or
+        memory (list): Memory from experiment with `meas_level==0`. `avg` or
             `single` will be inferred from shape of result memory.
 
     Returns:

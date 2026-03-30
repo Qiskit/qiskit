@@ -128,6 +128,10 @@ class DenseLayout(AnalysisPass):
 
         Args:
             num_qubits (int): Number of subset qubits to consider.
+            num_meas (int): The number of measure measurement operations in the circuit.
+            num_cx (int): The number of CXGates that are in the circuit
+            coupling_map (CouplingMap): The coupling map representing the connectivity of
+                the QPU.
 
         Returns:
             ndarray: Array of qubits to use for best connectivity mapping.
