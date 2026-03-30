@@ -1152,6 +1152,7 @@ def load_qpy(qpy_files, version_parts):
                 equivalent=equivalent,
                 context=context,
             )
+            print(f"Terminated successfully with qpy file: {path}")
 
     from qiskit.qpy.exceptions import QpyError
 
