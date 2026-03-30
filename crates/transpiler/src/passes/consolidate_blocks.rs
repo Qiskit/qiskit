@@ -31,7 +31,9 @@ use qiskit_circuit::interner::Interned;
 use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::operations::{ArrayType, Operation, Param, UnitaryGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_quantum_info::convert_2q_block_matrix::{blocks_to_matrix, get_matrix_from_inst};
+use qiskit_quantum_info::convert_2q_block_matrix::{
+    blocks_to_matrix, get_1q_matrix_from_inst, get_2q_matrix_from_inst, get_matrix_from_inst,
+};
 use qiskit_synthesis::linalg::nalgebra_array_view;
 use qiskit_synthesis::two_qubit_decompose::RXXEquivalent;
 use qiskit_synthesis::two_qubit_decompose::{
@@ -289,14 +291,31 @@ fn py_run_consolidate_blocks(
                 phys_qargs.get(dag, inst.qubits),
             ) {
                 all_block_gates.insert(inst_node);
-                let matrix = match get_matrix_from_inst(inst) {
-                    Ok(mat) => mat,
-                    Err(_) => continue,
-                };
-                // TODO: Use Matrix2/ArrayType::OneQ when we're using nalgebra
-                // for consolidation
-                let unitary_gate = UnitaryGate {
-                    array: ArrayType::NDArray(matrix),
+                let num_qubits = inst.op.num_qubits();
+                let unitary_gate = if num_qubits == 1 {
+                    let matrix = match get_1q_matrix_from_inst(inst) {
+                        Ok(mat) => mat,
+                        Err(_) => continue,
+                    };
+                    UnitaryGate {
+                        array: ArrayType::OneQ(matrix),
+                    }
+                } else if num_qubits == 2 {
+                    let matrix = match get_2q_matrix_from_inst(inst) {
+                        Ok(mat) => mat,
+                        Err(_) => continue,
+                    };
+                    UnitaryGate {
+                        array: ArrayType::TwoQ(matrix),
+                    }
+                } else {
+                    let matrix = match get_matrix_from_inst(inst) {
+                        Ok(mat) => mat,
+                        Err(_) => continue,
+                    };
+                    UnitaryGate {
+                        array: ArrayType::NDArray(matrix),
+                    }
                 };
                 dag.substitute_op(
                     inst_node,
@@ -450,12 +469,15 @@ fn py_run_consolidate_blocks(
                     first_qubits,
                 )
             {
-                let matrix = match get_matrix_from_inst(first_inst) {
+                // Runs are necessarily single qubit gates so if it has a matrix then it
+                // must have a single qubit matrix or it's not a run and the blocks handling above
+                // would have covered it
+                let matrix = match get_1q_matrix_from_inst(first_inst) {
                     Ok(mat) => mat,
                     Err(_) => continue,
                 };
                 let unitary_gate = UnitaryGate {
-                    array: ArrayType::NDArray(matrix),
+                    array: ArrayType::OneQ(matrix),
                 };
                 dag.substitute_op(
                     first_inst_node,

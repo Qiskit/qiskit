@@ -77,8 +77,8 @@ mod tests {
     #[test]
     fn test_name_coverage() {
         for gate in 1..STANDARD_GATE_SIZE as u8 {
-            let gate: StandardGate =
-                ::bytemuck::checked::try_cast::<_, StandardGate>(gate).unwrap();
+            let gate: StandardGate = ::bytemuck::checked::try_cast::<_, StandardGate>(gate)
+                .unwrap_or_else(|_| panic!("invalid StandardGate in test"));
             let gate_name = get_std_gate_class_name(&gate).clone();
             assert!(
                 standard_gate_from_gate_class_name(gate_name.as_str()).is_some(),

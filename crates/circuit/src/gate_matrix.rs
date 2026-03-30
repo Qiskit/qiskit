@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use ndarray::{Array2, array};
 use num_complex::Complex64;
 use std::f64::consts::FRAC_1_SQRT_2;
 
@@ -515,4 +516,57 @@ pub fn xx_plus_yy_gate(theta: f64, beta: f64) -> GateArray2Q {
         ],
         [C_ZERO, C_ZERO, C_ZERO, C_ONE],
     ]
+}
+
+pub fn pauli_zx_to_matrix(z: &[bool], x: &[bool]) -> Array2<Complex64> {
+    debug_assert_eq!(z.len(), x.len());
+
+    let i = array![
+        [Complex64::new(1.0, 0.0), Complex64::new(0.0, 0.0)],
+        [Complex64::new(0.0, 0.0), Complex64::new(1.0, 0.0)],
+    ];
+    let x_mat = array![
+        [Complex64::new(0.0, 0.0), Complex64::new(1.0, 0.0)],
+        [Complex64::new(1.0, 0.0), Complex64::new(0.0, 0.0)],
+    ];
+    let z_mat = array![
+        [Complex64::new(1.0, 0.0), Complex64::new(0.0, 0.0)],
+        [Complex64::new(0.0, 0.0), Complex64::new(-1.0, 0.0)],
+    ];
+    let y_mat = array![
+        [Complex64::new(0.0, 0.0), Complex64::new(0.0, -1.0)],
+        [Complex64::new(0.0, 1.0), Complex64::new(0.0, 0.0)],
+    ];
+
+    fn kron(a: &Array2<Complex64>, b: &Array2<Complex64>) -> Array2<Complex64> {
+        let (ar, ac) = a.dim();
+        let (br, bc) = b.dim();
+        let mut out = Array2::<Complex64>::zeros((ar * br, ac * bc));
+
+        for i in 0..ar {
+            for j in 0..ac {
+                let coeff = a[(i, j)];
+                for k in 0..br {
+                    for l in 0..bc {
+                        out[(i * br + k, j * bc + l)] = coeff * b[(k, l)];
+                    }
+                }
+            }
+        }
+        out
+    }
+
+    let mut result = array![[Complex64::new(1.0, 0.0)]];
+
+    for (&z_bit, &x_bit) in z.iter().zip(x.iter()) {
+        let factor = match (z_bit, x_bit) {
+            (false, false) => &i,
+            (false, true) => &x_mat,
+            (true, false) => &z_mat,
+            (true, true) => &y_mat,
+        };
+        result = kron(&result, factor);
+    }
+
+    result
 }

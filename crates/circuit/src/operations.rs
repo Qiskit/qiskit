@@ -3531,7 +3531,7 @@ impl UnitaryGate {
     }
 }
 
-/// A Pauli-based gate model, consisting of PauliProductRotation and PauliProductMeasurement ops.
+/// A Pauli-based gate model, consisting of [PauliProductRotation] and [PauliProductMeasurement] ops.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PauliBased {
     PauliProductRotation(PauliProductRotation),
@@ -3568,20 +3568,63 @@ impl PauliProductRotation {
             )?;
         Ok(gate.unbind())
     }
+
     pub fn matrix(&self) -> Option<Array2<Complex64>> {
         let angle = match self.angle {
             Param::Float(f) => f,
             _ => return None,
         };
-        let pauli_mat = gate_matrix::pauli_zx_to_dense_matrix(&self.z, &self.x);
+
+        let pauli_mat = gate_matrix::pauli_zx_to_matrix(&self.z, &self.x);
         let cos_val = (angle / 2.0).cos();
         let sin_val = (angle / 2.0).sin();
+
         let dim = pauli_mat.shape()[0];
-        let identity = Array2::<Complex64>::eye(dim);
-        Some(
-            identity.mapv(|v| Complex64::new(v.re * cos_val, 0.))
-                + pauli_mat.mapv(|v| Complex64::new(0., -sin_val) * v),
-        )
+        let mut result = pauli_mat.mapv(|v| Complex64::new(0.0, -sin_val) * v);
+
+        for i in 0..dim {
+            result[[i, i]] += Complex64::new(cos_val, 0.0);
+        }
+
+        Some(result)
+    }
+
+    /// Attempts to merge `self` and `other`.
+    /// If successful, returns the merged [PauliProductRotation].
+    /// If not successful, returns `None`.
+    pub fn merge_with(&self, other: &Self) -> Option<Self> {
+        if self.x == other.x && self.z == other.z {
+            Some(PauliProductRotation {
+                z: self.z.clone(),
+                x: self.x.clone(),
+                angle: radd_param(self.angle.clone(), other.angle.clone()),
+            })
+        } else {
+            None
+        }
+    }
+
+    /// For a [PauliProductRotation] gate with a floating-point angle return a tuple `(Tr(gate) / dim, dim)`.
+    /// Return `None` if the angle is parameterized.
+    pub fn rotation_trace_and_dim(&self) -> Option<(Complex64, f64)> {
+        let Param::Float(angle) = self.angle else {
+            return None;
+        };
+
+        let num_qubits = self
+            .z
+            .iter()
+            .zip(self.x.iter())
+            .filter(|(z, x)| **z || **x)
+            .count();
+        let dim = 2u32.pow(num_qubits as u32);
+        let tr_over_dim = if num_qubits == 0 {
+            (Complex64::new(0.0, -angle / 2.)).exp()
+        } else {
+            Complex64::new((angle / 2.).cos(), 0.)
+        };
+
+        Some((tr_over_dim, dim as f64))
     }
 }
 
