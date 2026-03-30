@@ -870,7 +870,6 @@ def generate_replay_with_expression_substitutions():
     qc2.rz(exp, 0)
 
     return [qc, qc2]
-    
 
 
 def generate_v14_expr():
@@ -1032,8 +1031,9 @@ def assert_equal(
         qpy_parameter_names = [x.name for x in qpy.parameters]
         if reference_parameter_names != qpy_parameter_names:
             msg = (
+                f"QPY ERROR: "
                 f"Circuit {count} parameter mismatch:"
-                f" {reference_parameter_names} != {qpy_parameter_names}"
+                f" {reference_parameter_names} != {qpy_parameter_names}\n"
             )
             sys.stderr.write(msg)
             sys.exit(4)
@@ -1043,6 +1043,7 @@ def assert_equal(
     if equivalent:
         if not Operator.from_circuit(reference).equiv(Operator.from_circuit(qpy)):
             msg = (
+                f"QPY ERROR: "
                 f"For {context}:\n"
                 f"Reference Circuit {count}:\n{reference}\nis not equivalent to "
                 f"qpy loaded circuit {count}:\n{qpy}\n"
@@ -1051,6 +1052,7 @@ def assert_equal(
             sys.exit(1)
     elif reference != qpy:
         msg = (
+            f"QPY ERROR: "
             f"Reference Circuit {count}:\n{reference}\nis not equivalent to "
             f"qpy loaded circuit {count}:\n{qpy}\n"
         )
@@ -1064,6 +1066,7 @@ def assert_equal(
         ):
             if ref_bit._register is not None and ref_bit != qpy_bit:
                 msg = (
+                    f"QPY ERROR: "
                     f"For {context}:\n"
                     f"Reference Circuit {count}:\n"
                     "deprecated bit-level register information mismatch\n"
@@ -1078,19 +1081,17 @@ def assert_equal(
         and isinstance(reference, QuantumCircuit)
         and reference.layout != qpy.layout
     ):
-        msg = (
-            f"For {context}:\nCircuit {count} layout mismatch {reference.layout} != {qpy.layout}\n"
-        )
+        msg = f"QPY ERROR:\nFor {context}:\nCircuit {count} layout mismatch {reference.layout} != {qpy.layout}\n"
         sys.stderr.write(msg)
         sys.exit(4)
 
     # Don't compare name on bound circuits
     if bind is None and reference.name != qpy.name:
-        msg = f"For {context}:\nCircuit {count} name mismatch {reference.name} != {qpy.name}\n{reference}\n{qpy}"
+        msg = f"QPY ERROR:\nFor {context}:\nCircuit {count} name mismatch {reference.name} != {qpy.name}\n{reference}\n{qpy}"
         sys.stderr.write(msg)
         sys.exit(2)
     if reference.metadata != qpy.metadata:
-        msg = f"For {context}:\nCircuit {count} metadata mismatch: {reference.metadata} != {qpy.metadata}"
+        msg = f"QPY ERROR:\nFor {context}:\nCircuit {count} metadata mismatch: {reference.metadata} != {qpy.metadata}"
         sys.stderr.write(msg)
         sys.exit(3)
 
@@ -1118,8 +1119,13 @@ def load_qpy(qpy_files, version_parts):
             # See https://github.com/Qiskit/qiskit/pull/13814
             continue
         print(f"Loading qpy file: {path}")  # noqa: T201
-        with open(path, "rb") as fd:
-            qpy_circuits = load(fd)
+        try:
+            with open(path, "rb") as fd:
+                qpy_circuits = load(fd)
+        except Exception as ex:
+            msg = f"QPY Error: Failed to load {path} with the exception: {ex}\n"
+            sys.stderr.write(msg)
+            sys.exit(1)
         equivalent = path in {"open_controlled_gates.qpy", "controlled_gates.qpy"}
         for i, circuit in enumerate(circuits):
             bind = None
@@ -1162,7 +1168,7 @@ def load_qpy(qpy_files, version_parts):
                 with open(path, "rb") as fd:
                     load(fd)
             except Exception:
-                msg = "Loading circuit with pulse gates should not raise"
+                msg = "QPY ERROR:\nLoading circuit with pulse gates should not raise\n"
                 sys.stderr.write(msg)
                 sys.exit(1)
         else:
@@ -1173,7 +1179,7 @@ def load_qpy(qpy_files, version_parts):
             except QpyError:
                 continue
 
-            msg = f"Loading payload {path} didn't raise QpyError"
+            msg = f"QPY ERROR:\nLoading payload {path} didn't raise QpyError\n"
             sys.stderr.write(msg)
             sys.exit(1)
 
