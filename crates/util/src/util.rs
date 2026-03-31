@@ -12,24 +12,7 @@
 
 use num_complex::Complex64;
 
-// This is a very conservative version of an abbreviation for constructing new Complex64.
-// A couple of alternatives to this function are
-// `c64<T: Into<f64>, V: Into<f64>>(re: T, im: V) -> Complex64`
-// Disadvantages are:
-//  1. Some people don't like that this allows things like `c64(1, 0)`. Presumably,
-//     they prefer a more explicit construction.
-//  2. This will not work in `const` and `static` constructs.
-// Another alternative is
-//   macro_rules! c64 {
-//       ($re: expr, $im: expr $(,)*) => {
-//           Complex64::new($re as f64, $im as f64)
-//       };
-// Advantages: This allows things like `c64!(1, 2.0)`, including in
-// `static` and `const` constructs.
-//  Disadvantages:
-//  1. Three characters `c64!` rather than two `c64`.
-//  2. Some people prefer the opposite of the advantages, i.e. more explicitness.
-/// Create a new [`Complex<f64>`]
+/// A short-hand constructor for Complex64 used in constant and static definitions.
 #[inline(always)]
 pub const fn c64(re: f64, im: f64) -> Complex64 {
     Complex64::new(re, im)
