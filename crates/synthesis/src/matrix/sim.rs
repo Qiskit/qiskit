@@ -16,8 +16,9 @@ use numpy::IntoPyArray;
 use pyo3::prelude::*;
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardInstruction};
+use qiskit_quantum_info::unitary_compose;
 
-use crate::{QiskitError, unitary_compose};
+use crate::QiskitError;
 
 // The code is based on top of unitary_compose. For circuits with 13 or more qubits, einsum
 // throws an "index out of bounds" error.
