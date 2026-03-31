@@ -15,7 +15,6 @@ use std::sync::Mutex;
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
-use hashbrown::HashSet;
 use nalgebra::U4;
 use num_complex::Complex64;
 use pyo3::Python;
@@ -40,9 +39,9 @@ use crate::passes::unitary_synthesis::{
 use crate::passes::{UnitarySynthesisConfig, UnitarySynthesisState};
 use crate::target::Target;
 use qiskit_circuit::PhysicalQubit;
+use qiskit_synthesis::linalg::nalgebra_array_view;
 use qiskit_synthesis::matrix::two_qubit::blocks_to_matrix;
 use qiskit_util::getenv_use_multiple_threads;
-use qiskit_synthesis::linalg::nalgebra_array_view;
 use thread_local::ThreadLocal;
 
 type MappingIterItem = Option<(TwoQSynthesisResult, [Qubit; 2])>;
@@ -199,7 +198,7 @@ pub fn two_qubit_unitary_peephole_optimize(
     };
     let run_mapping = run_mapping?;
     // After we've computed all the sequences to execute now serially build up a new dag.
-    let mut processed_runs: HashSet<usize> = HashSet::with_capacity(run_mapping.len());
+    let mut processed_runs: Vec<bool> = vec![false; run_mapping.len()];
     let out_dag = dag.copy_empty_like_with_same_capacity(VarsMode::Alike, BlocksMode::Keep)?;
     let mut out_dag_builder = out_dag.into_builder();
     let node_mapping = locked_node_mapping.lock().unwrap();
@@ -212,7 +211,7 @@ pub fn two_qubit_unitary_peephole_optimize(
         }
         let run_index = node_mapping[node.index()];
         if run_index != usize::MAX {
-            if processed_runs.contains(&run_index) {
+            if processed_runs[run_index] {
                 continue;
             }
             // If this is not a two qubit gate then there is a chance this will cause the
@@ -280,7 +279,7 @@ pub fn two_qubit_unitary_peephole_optimize(
                 })?;
             }
             out_dag_builder.add_global_phase(&Param::Float(result.sequence.global_phase()))?;
-            processed_runs.insert(run_index);
+            processed_runs[run_index] = true;
         } else {
             let NodeType::Operation(ref instr) = dag.dag()[node] else {
                 unreachable!("Must be an op node")
