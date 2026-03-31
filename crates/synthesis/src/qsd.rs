@@ -15,7 +15,7 @@ use std::sync::OnceLock;
 
 use approx::abs_diff_eq;
 use hashbrown::HashMap;
-use nalgebra::{DMatrix, DMatrixView, DVector, Matrix4, QR, stack};
+use nalgebra::{DMatrix, DMatrixView, DVector, Matrix4, QR, U4, stack};
 use ndarray::prelude::*;
 use num_complex::Complex64;
 use numpy::PyReadonlyArray2;
@@ -28,7 +28,10 @@ use thiserror::Error;
 use crate::euler_one_qubit_decomposer::{
     EulerBasis, EulerBasisSet, unitary_to_gate_sequence_inner,
 };
-use crate::linalg::{closest_unitary, is_hermitian_matrix, svd_decomposition, verify_unitary};
+use crate::linalg::{
+    closest_unitary, is_hermitian_matrix, nalgebra_array_view, svd_decomposition, verify_unitary,
+};
+use crate::matrix::two_qubit;
 use crate::two_qubit_decompose::{TwoQubitBasisDecomposer, two_qubit_decompose_up_to_diagonal};
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError, PyCircuitData};
@@ -36,7 +39,6 @@ use qiskit_circuit::interner::Interned;
 use qiskit_circuit::operations::{ArrayType, OperationRef, Param, StandardGate, UnitaryGate};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
-use qiskit_quantum_info::convert_2q_block_matrix::instructions_to_matrix;
 
 const EPS: f64 = 1e-10;
 
@@ -716,19 +718,26 @@ fn apply_a2(
         .collect();
     for ind in ind2q.windows(2) {
         let mat1 = match diagonal_rollover.get(&ind[0]) {
-            Some(circ) => instructions_to_matrix(
-                circ.data().iter(),
-                [Qubit(0), Qubit(1)],
-                circ.qargs_interner(),
-            )?,
+            Some(circ) => {
+                let mat: Matrix4<Complex64> = two_qubit::instructions_to_matrix(
+                    circ.data().iter(),
+                    [Qubit(0), Qubit(1)],
+                    circ.qargs_interner(),
+                )?;
+                nalgebra_array_view::<Complex64, U4, U4>(mat.as_view()).to_owned()
+            }
             None => new_matrices[&ind[0]].to_owned(),
         };
         let mat2 = match diagonal_rollover.get(&ind[1]) {
-            Some(circ) => instructions_to_matrix(
-                circ.data().iter(),
-                [Qubit(0), Qubit(1)],
-                circ.qargs_interner(),
-            )?,
+            Some(circ) => nalgebra_array_view::<Complex64, U4, U4>(
+                two_qubit::instructions_to_matrix(
+                    circ.data().iter(),
+                    [Qubit(0), Qubit(1)],
+                    circ.qargs_interner(),
+                )?
+                .as_view(),
+            )
+            .to_owned(),
             None => new_matrices[&ind[1]].to_owned(),
         };
         let (diagonal_mat, qc2cx) = two_qubit_decompose_up_to_diagonal(mat1.view()).unwrap();

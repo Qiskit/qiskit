@@ -10,6 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use itertools::Itertools;
+
 use std::f64::consts::PI;
 
 use num_complex::Complex64;
@@ -23,7 +25,8 @@ use crate::passes::remove_identity_equiv::{average_gate_fidelity_below_tol, is_i
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::operations::{
-    Operation, OperationRef, Param, PauliBased, StandardGate, multiply_param, radd_param,
+    Operation, OperationRef, Param, PauliBased, PauliProductRotation, StandardGate, multiply_param,
+    radd_param,
 };
 use qiskit_circuit::{BlocksMode, Clbit, NoBlocks, Qubit, imports};
 
@@ -192,6 +195,40 @@ fn canonicalize(
             }
         }
     }
+
+    if let OperationRef::PauliProductRotation(ppr) = inst.op.view() {
+        let qargs = dag.get_qargs(inst.qubits);
+        let mut paired = qargs
+            .iter()
+            .zip(ppr.z.iter())
+            .zip(ppr.x.iter())
+            .map(|((q, z), x)| (q, z, x))
+            .collect::<Vec<_>>();
+        paired.sort_by_key(|(q, _, _)| **q);
+        let (sorted_qargs, sorted_z, sorted_x) =
+            paired
+                .into_iter()
+                .multiunzip::<(Vec<Qubit>, Vec<bool>, Vec<bool>)>();
+        let sorted_ppr = PauliProductRotation {
+            z: sorted_z,
+            x: sorted_x,
+            angle: ppr.angle.clone(),
+        };
+
+        let sorted_qubits = dag.add_qargs(&sorted_qargs);
+
+        let canonical_instruction = PackedInstruction {
+            op: PauliBased::PauliProductRotation(sorted_ppr).into(),
+            qubits: sorted_qubits,
+            clbits: Default::default(),
+            params: inst.params.clone(),
+            label: None,
+            #[cfg(feature = "cache_pygates")]
+            py_op: std::sync::OnceLock::new(),
+        };
+        return Some((canonical_instruction, Param::Float(0.)));
+    }
+
     None
 }
 

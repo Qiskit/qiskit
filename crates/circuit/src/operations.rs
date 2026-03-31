@@ -2838,6 +2838,146 @@ impl StandardGate {
             Self::RC3X => None,
         }
     }
+
+    pub fn matrix_as_static_2q(&self, params: &[Param]) -> Option<[[Complex64; 4]; 4]> {
+        match self {
+            Self::GlobalPhase => None,
+            Self::H => None,
+            Self::I => None,
+            Self::X => None,
+            Self::Y => None,
+            Self::Z => None,
+            Self::Phase => None,
+            Self::R => None,
+            Self::RX => None,
+            Self::RY => None,
+            Self::RZ => None,
+            Self::S => None,
+            Self::Sdg => None,
+            Self::SX => None,
+            Self::SXdg => None,
+            Self::T => None,
+            Self::Tdg => None,
+            Self::U => None,
+            Self::U1 => None,
+            Self::U2 => None,
+            Self::U3 => None,
+            Self::CH => match params {
+                [] => Some(gate_matrix::CH_GATE),
+                _ => None,
+            },
+            Self::CX => match params {
+                [] => Some(gate_matrix::CX_GATE),
+                _ => None,
+            },
+            Self::CY => match params {
+                [] => Some(gate_matrix::CY_GATE),
+                _ => None,
+            },
+            Self::CZ => match params {
+                [] => Some(gate_matrix::CZ_GATE),
+                _ => None,
+            },
+            Self::DCX => match params {
+                [] => Some(gate_matrix::DCX_GATE),
+                _ => None,
+            },
+            Self::ECR => match params {
+                [] => Some(gate_matrix::ECR_GATE),
+                _ => None,
+            },
+            Self::Swap => match params {
+                [] => Some(gate_matrix::SWAP_GATE),
+                _ => None,
+            },
+            Self::ISwap => match params {
+                [] => Some(gate_matrix::ISWAP_GATE),
+                _ => None,
+            },
+            Self::CPhase => match params {
+                [Param::Float(lam)] => Some(gate_matrix::cp_gate(*lam)),
+                _ => None,
+            },
+            Self::CRX => match params {
+                [Param::Float(theta)] => Some(gate_matrix::crx_gate(*theta)),
+                _ => None,
+            },
+            Self::CRY => match params {
+                [Param::Float(theta)] => Some(gate_matrix::cry_gate(*theta)),
+                _ => None,
+            },
+            Self::CRZ => match params {
+                [Param::Float(theta)] => Some(gate_matrix::crz_gate(*theta)),
+                _ => None,
+            },
+            Self::CS => match params {
+                [] => Some(gate_matrix::CS_GATE),
+                _ => None,
+            },
+            Self::CSdg => match params {
+                [] => Some(gate_matrix::CSDG_GATE),
+                _ => None,
+            },
+            Self::CSX => match params {
+                [] => Some(gate_matrix::CSX_GATE),
+                _ => None,
+            },
+            Self::CU => match params {
+                [
+                    Param::Float(theta),
+                    Param::Float(phi),
+                    Param::Float(lam),
+                    Param::Float(gamma),
+                ] => Some(gate_matrix::cu_gate(*theta, *phi, *lam, *gamma)),
+                _ => None,
+            },
+            Self::CU1 => match params[0] {
+                Param::Float(lam) => Some(gate_matrix::cu1_gate(lam)),
+                _ => None,
+            },
+            Self::CU3 => match params {
+                [Param::Float(theta), Param::Float(phi), Param::Float(lam)] => {
+                    Some(gate_matrix::cu3_gate(*theta, *phi, *lam))
+                }
+                _ => None,
+            },
+            Self::RXX => match params[0] {
+                Param::Float(theta) => Some(gate_matrix::rxx_gate(theta)),
+                _ => None,
+            },
+            Self::RYY => match params[0] {
+                Param::Float(theta) => Some(gate_matrix::ryy_gate(theta)),
+                _ => None,
+            },
+            Self::RZZ => match params[0] {
+                Param::Float(theta) => Some(gate_matrix::rzz_gate(theta)),
+                _ => None,
+            },
+            Self::RZX => match params[0] {
+                Param::Float(theta) => Some(gate_matrix::rzx_gate(theta)),
+                _ => None,
+            },
+            Self::XXMinusYY => match params {
+                [Param::Float(theta), Param::Float(beta)] => {
+                    Some(gate_matrix::xx_minus_yy_gate(*theta, *beta))
+                }
+                _ => None,
+            },
+            Self::XXPlusYY => match params {
+                [Param::Float(theta), Param::Float(beta)] => {
+                    Some(gate_matrix::xx_plus_yy_gate(*theta, *beta))
+                }
+                _ => None,
+            },
+            Self::CCX => None,
+            Self::CCZ => None,
+            Self::CSwap => None,
+            Self::RCCX => None,
+            Self::C3X => None,
+            Self::C3SX => None,
+            Self::RC3X => None,
+        }
+    }
 }
 
 #[pymethods]
@@ -3170,6 +3310,27 @@ impl PyInstruction {
             Some([[arr[[0, 0]], arr[[0, 1]]], [arr[[1, 0]], arr[[1, 1]]]])
         })
     }
+
+    pub fn matrix_as_static_2q(&self) -> Option<[[Complex64; 4]; 4]> {
+        if self.num_qubits() != 2 {
+            return None;
+        }
+        Python::attach(|py| -> Option<[[Complex64; 4]; 4]> {
+            let array = self
+                .instruction
+                .call_method0(py, intern!(py, "to_matrix"))
+                .ok()?
+                .extract::<PyReadonlyArray2<Complex64>>(py)
+                .ok()?;
+            let arr = array.as_array();
+            Some([
+                [arr[[0, 0]], arr[[0, 1]], arr[[0, 2]], arr[[0, 3]]],
+                [arr[[1, 0]], arr[[1, 1]], arr[[1, 2]], arr[[1, 3]]],
+                [arr[[2, 0]], arr[[2, 1]], arr[[2, 2]], arr[[2, 3]]],
+                [arr[[3, 0]], arr[[3, 1]], arr[[3, 2]], arr[[3, 3]]],
+            ])
+        })
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -3252,6 +3413,30 @@ impl UnitaryGate {
         }
     }
 
+    pub fn matrix_as_static_2q(&self) -> Option<[[Complex64; 4]; 4]> {
+        match &self.array {
+            ArrayType::OneQ(_mat) => None,
+            ArrayType::NDArray(arr) => {
+                if self.num_qubits() == 2 {
+                    Some([
+                        [arr[[0, 0]], arr[[0, 1]], arr[[0, 2]], arr[[0, 3]]],
+                        [arr[[1, 0]], arr[[1, 1]], arr[[1, 2]], arr[[1, 3]]],
+                        [arr[[2, 0]], arr[[2, 1]], arr[[2, 2]], arr[[2, 3]]],
+                        [arr[[3, 0]], arr[[3, 1]], arr[[3, 2]], arr[[3, 3]]],
+                    ])
+                } else {
+                    None
+                }
+            }
+            ArrayType::TwoQ(mat) => Some([
+                [mat[(0, 0)], mat[(0, 1)], mat[(0, 2)], mat[(0, 3)]],
+                [mat[(1, 0)], mat[(1, 1)], mat[(1, 2)], mat[(1, 3)]],
+                [mat[(2, 0)], mat[(2, 1)], mat[(2, 2)], mat[(2, 3)]],
+                [mat[(3, 0)], mat[(3, 1)], mat[(3, 2)], mat[(3, 3)]],
+            ]),
+        }
+    }
+
     pub fn matrix_as_nalgebra_1q(&self) -> Option<Matrix2<Complex64>> {
         match &self.array {
             ArrayType::OneQ(mat) => Some(*mat),
@@ -3268,6 +3453,36 @@ impl UnitaryGate {
                 }
             }
             ArrayType::TwoQ(_) => None,
+        }
+    }
+    pub fn matrix_as_nalgebra_2q(&self) -> Option<Matrix4<Complex64>> {
+        match &self.array {
+            ArrayType::OneQ(_mat) => None,
+            ArrayType::NDArray(arr) => {
+                if self.num_qubits() == 2 {
+                    Some(Matrix4::new(
+                        arr[[0, 0]],
+                        arr[[0, 1]],
+                        arr[[0, 2]],
+                        arr[[0, 3]],
+                        arr[[1, 0]],
+                        arr[[1, 1]],
+                        arr[[1, 2]],
+                        arr[[1, 3]],
+                        arr[[2, 0]],
+                        arr[[2, 1]],
+                        arr[[2, 2]],
+                        arr[[2, 3]],
+                        arr[[3, 0]],
+                        arr[[3, 1]],
+                        arr[[3, 2]],
+                        arr[[3, 3]],
+                    ))
+                } else {
+                    None
+                }
+            }
+            ArrayType::TwoQ(mat) => Some(*mat),
         }
     }
 }
@@ -3317,7 +3532,7 @@ impl UnitaryGate {
     }
 }
 
-/// A Pauli-based gate model, consisting of PauliProductRotation and PauliProductMeasurement ops.
+/// A Pauli-based gate model, consisting of [PauliProductRotation] and [PauliProductMeasurement] ops.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PauliBased {
     PauliProductRotation(PauliProductRotation),
@@ -3374,7 +3589,7 @@ impl PauliProductRotation {
     }
 
     /// Attempts to merge `self` and `other`.
-    /// If successful, returns the merged `PauliProductRotation.
+    /// If successful, returns the merged [PauliProductRotation].
     /// If not successful, returns `None`.
     pub fn merge_with(&self, other: &Self) -> Option<Self> {
         if self.x == other.x && self.z == other.z {
@@ -3388,22 +3603,23 @@ impl PauliProductRotation {
         }
     }
 
-    /// For a `PauliProductRotation`` gate with a floating-point angle return a tuple ``(Tr(gate) / dim, dim)``.
+    /// For a [PauliProductRotation] gate with a floating-point angle return a tuple `(Tr(gate) / dim, dim)`.
     /// Return `None` if the angle is parameterized.
     pub fn rotation_trace_and_dim(&self) -> Option<(Complex64, f64)> {
         let Param::Float(angle) = self.angle else {
             return None;
         };
 
-        let dim = self
+        let num_qubits = self
             .z
             .iter()
             .zip(self.x.iter())
             .filter(|(z, x)| **z || **x)
             .count();
-        let tr_over_dim = if dim == 0 {
+        let dim = 2u32.pow(num_qubits as u32);
+        let tr_over_dim = if num_qubits == 0 {
             // This is an identity Pauli rotation.
-            (Complex64::new(0.0, -angle)).exp()
+            (Complex64::new(0.0, -angle / 2.)).exp()
         } else {
             Complex64::new((angle / 2.).cos(), 0.)
         };

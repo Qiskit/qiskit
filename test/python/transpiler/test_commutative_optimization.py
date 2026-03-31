@@ -319,13 +319,13 @@ class TestCommutativeOptimization(QiskitTestCase):
 
         qc = QuantumCircuit(4)
         qc.append(PauliProductRotationGate(Pauli("XXII"), -1), [0, 1, 2, 3])
-        qc.append(PauliProductRotationGate(Pauli("ZZIY"), 1), [0, 1, 2, 3])
-        qc.append(PauliProductRotationGate(Pauli("ZZIY"), 1), [0, 1, 2, 3])
+        qc.append(PauliProductRotationGate(Pauli("ZZIY"), 1), [0, 1, 3, 2])
+        qc.append(PauliProductRotationGate(Pauli("ZZYI"), 1), [1, 0, 2, 3])
         qc.append(PauliProductRotationGate(Pauli("YYXX"), 1), [0, 1, 2, 3])
         qc.append(PauliProductRotationGate(Pauli("XXII"), 1), [0, 1, 2, 3])
 
         # The two "XXII" rotations should cancel.
-        # The two "ZZIY" rotations should get combined.
+        # The two "ZZIY" rotations (after canonicalizing) should get combined.
         qct = CommutativeOptimization()(qc)
 
         expected = QuantumCircuit(4)
