@@ -34,11 +34,15 @@ use super::SparseObservable;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
-use qiskit_util::util::{C_ECR_FACTOR, C_FRAC_PI_2, C_FRAC_PI_4, C_FRAC_PI_8, C_ZERO, c64};
+use qiskit_util::util::{
+    C_FRAC_PI_2, C_FRAC_PI_2_SQRT_2, C_FRAC_PI_4, C_FRAC_PI_8, C_M_FRAC_PI_2_SQRT_2, C_ZERO, c64,
+};
+
+type Complex64 = num_complex::Complex64;
 
 const C_M_FRAC_PI_4: Complex64 = c64(-C_FRAC_PI_4.re, 0.0);
 const C_M_FRAC_PI_8: Complex64 = c64(-C_FRAC_PI_8.re, 0.0);
-const C_M_ECR_FACTOR: Complex64 = c64(-C_ECR_FACTOR.re, 0.0);
+const C_M_ECR_FACTOR: Complex64 = C_M_FRAC_PI_2_SQRT_2;
 
 const BETA_TOLERANCE: f64 = 1e-10;
 
@@ -442,4 +446,3 @@ mod tests {
         assert_eq!(obs.num_terms(), 2);
     }
 }
-

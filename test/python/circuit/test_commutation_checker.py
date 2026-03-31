@@ -98,7 +98,6 @@ from qiskit.dagcircuit import DAGOpNode
 from qiskit.quantum_info import SparseObservable, SparsePauliOp, Pauli
 from qiskit._accelerate.circuit import StandardGate
 from qiskit._accelerate.sparse_observable import _generator_observable
-from qiskit._accelerate import standard_generators
 
 ROTATION_GATES = [
     RXGate,
@@ -917,9 +916,9 @@ class TestGeneratorObservableCommutation(QiskitTestCase):
         self.assertFalse(scc.commute(XGate(), [0], [], evo, list(range(num_qubits)), []))
 
     def test_exposed_generator_observable(self):
-        """Test the exposed Python binding for generator_observable."""
+        """Test the exposed Python binding for _generator_observable."""
         # CCXGate generator should be exposed
-        obs = standard_generators.generator_observable(StandardGate.CCX)
+        obs = _generator_observable(StandardGate.CCX)
         self.assertIsInstance(obs, SparseObservable)
         self.assertEqual(obs.num_terms, 7)
 

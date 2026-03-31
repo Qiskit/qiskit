@@ -32,8 +32,9 @@ os.environ["PYTHONPATH"] = os.pathsep.join([os.getcwd()] + site.getsitepackages(
 # Uncomment to debug PyO3's build / link against Python.
 # os.environ["PYO3_PRINT_CONFIG"] = "1"
 
-# On Linux, the test executable's RPATH doesn't contain libpython, so we add it
-# to the dlopen search path here.
+os.environ["DYLD_LIBRARY_PATH"] = os.pathsep.join(
+    filter(None, [sysconfig.get_config_var("LIBDIR"), os.getenv("DYLD_LIBRARY_PATH")])
+)
 os.environ["LD_LIBRARY_PATH"] = os.pathsep.join(
     filter(None, [sysconfig.get_config_var("LIBDIR"), os.getenv("LD_LIBRARY_PATH")])
 )
