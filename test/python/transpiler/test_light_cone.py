@@ -13,7 +13,7 @@
 """
 AI ATTRIBUTION:
 The regression test `test_original_bug_15021` and associated Pauli-gate
-commutation test cases were developed with assistance 
+commutation test cases were developed with assistance
 from GitHub Copilot integrated in VS Code. The underlying model : Claude Haiku 4.5.
 """
 

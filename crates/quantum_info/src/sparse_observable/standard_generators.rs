@@ -31,7 +31,6 @@
 use super::BitTerm;
 use super::SparseObservable;
 
-
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_util::util::{
     C_FRAC_PI_2, C_FRAC_PI_2_SQRT_2, C_FRAC_PI_4, C_FRAC_PI_8, C_M_FRAC_PI_2_SQRT_2, C_ZERO, c64,
