@@ -12,6 +12,7 @@
 
 
 import random
+import unittest.mock
 
 import numpy as np
 
@@ -205,3 +206,42 @@ class SparsePauliOpBench:
         self.p1.to_matrix()
 
     time_to_matrix.params = [[2, 4, 6, 8, 10], [50]]
+
+
+class SparsePauliOpGPUComposeBench:
+    """Benchmark SparsePauliOp.compose on the GPU path (requires CuPy).
+
+    Sizes are chosen so that ``self.size * other.size * num_qubits`` exceeds
+    ``_GPU_COMPOSE_THRESHOLD`` (5 000 000), ensuring the CuPy branch is taken.
+    """
+
+    # (num_qubits, num_terms): product num_terms^2 * num_qubits must be > 5_000_000
+    params = [[10, 800], [20, 520], [30, 420]]
+    param_names = ["num_qubits,num_terms"]
+
+    def setup(self, num_qubits_num_terms):
+        try:
+            import cupy  # noqa: F401  pylint: disable=import-outside-toplevel
+        except ImportError as exc:
+            raise NotImplementedError("CuPy not installed") from exc
+
+        num_qubits, num_terms = num_qubits_num_terms
+        self.p1 = SparsePauliOp(
+            random_pauli_list(num_qubits=num_qubits, size=num_terms, phase=True)
+        )
+        self.p2 = SparsePauliOp(
+            random_pauli_list(num_qubits=num_qubits, size=num_terms, phase=True)
+        )
+
+    def time_compose_gpu(self, _):
+        """Force GPU path by using operators already above the threshold."""
+        self.p1.compose(self.p2)
+
+    def time_compose_cpu(self, _):
+        """Force CPU path on the same operator sizes for a direct comparison."""
+        from qiskit.quantum_info.operators.symplectic import (  # pylint: disable=import-outside-toplevel
+            sparse_pauli_op as _spo,
+        )
+
+        with unittest.mock.patch.object(_spo, "_GPU_COMPOSE_THRESHOLD", 10**18):
+            self.p1.compose(self.p2)

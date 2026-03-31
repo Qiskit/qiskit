@@ -1448,5 +1448,92 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         )
 
 
+@unittest.skipUnless(optionals.HAS_CUPY, "CuPy required")
+class TestSparsePauliOpGPU(QiskitTestCase):
+    """Tests for GPU-accelerated SparsePauliOp operations (requires CuPy)."""
+
+    RNG = np.random.default_rng(2024)
+
+    def _random_op(self, num_qubits, num_terms):
+        labels = [
+            "".join(self.RNG.choice(["I", "X", "Y", "Z"], size=num_qubits))
+            for _ in range(num_terms)
+        ]
+        coeffs = self.RNG.uniform(-1, 1, num_terms) + 1j * self.RNG.uniform(-1, 1, num_terms)
+        return SparsePauliOp(labels, coeffs)
+
+    def test_compose_gpu_matches_cpu(self):
+        """GPU compose path returns the same result as the CPU path."""
+        import unittest.mock
+
+        from qiskit.quantum_info.operators.symplectic import sparse_pauli_op as _spo_module
+
+        op1 = self._random_op(4, 8)
+        op2 = self._random_op(4, 8)
+        cpu_result = op1.compose(op2)
+
+        # Force the GPU path by temporarily lowering the threshold below the tensor size.
+        with unittest.mock.patch.object(_spo_module, "_GPU_COMPOSE_THRESHOLD", 0):
+            gpu_result = op1.compose(op2)
+
+        np.testing.assert_allclose(
+            cpu_result.to_matrix(), gpu_result.to_matrix(), atol=1e-8
+        )
+
+    def test_compose_gpu_front_matches_cpu(self):
+        """GPU compose with front=True returns the same result as the CPU path."""
+        import unittest.mock
+
+        from qiskit.quantum_info.operators.symplectic import sparse_pauli_op as _spo_module
+
+        op1 = self._random_op(3, 6)
+        op2 = self._random_op(3, 6)
+        cpu_result = op1.compose(op2, front=True)
+
+        with unittest.mock.patch.object(_spo_module, "_GPU_COMPOSE_THRESHOLD", 0):
+            gpu_result = op1.compose(op2, front=True)
+
+        np.testing.assert_allclose(
+            cpu_result.to_matrix(), gpu_result.to_matrix(), atol=1e-8
+        )
+
+    def test_compose_gpu_qargs_matches_cpu(self):
+        """GPU compose with qargs returns the same result as the CPU path."""
+        import unittest.mock
+
+        from qiskit.quantum_info.operators.symplectic import sparse_pauli_op as _spo_module
+
+        op1 = self._random_op(3, 8)
+        op2 = self._random_op(2, 4)
+        qargs = [0, 2]
+        cpu_result = op1.compose(op2, qargs=qargs)
+
+        with unittest.mock.patch.object(_spo_module, "_GPU_COMPOSE_THRESHOLD", 0):
+            gpu_result = op1.compose(op2, qargs=qargs)
+
+        np.testing.assert_allclose(
+            cpu_result.to_matrix(), gpu_result.to_matrix(), atol=1e-8
+        )
+
+    def test_compose_cpu_fallback_matches_gpu(self):
+        """CPU path (above threshold) gives same result as GPU path (threshold=0)."""
+        import unittest.mock
+
+        from qiskit.quantum_info.operators.symplectic import sparse_pauli_op as _spo_module
+
+        op1 = self._random_op(2, 2)
+        op2 = self._random_op(2, 2)
+
+        # Default threshold is well above 2*2*2=8 → CPU path.
+        cpu_result = op1.compose(op2)
+        # Force GPU path.
+        with unittest.mock.patch.object(_spo_module, "_GPU_COMPOSE_THRESHOLD", 0):
+            gpu_result = op1.compose(op2)
+
+        np.testing.assert_allclose(
+            cpu_result.to_matrix(), gpu_result.to_matrix(), atol=1e-8
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

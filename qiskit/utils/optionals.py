@@ -61,6 +61,12 @@ External Python Libraries
     programming. This is no longer used by Qiskit, but it was historically and the optional
     remains for backwards compatibility.
 
+.. py:data:: HAS_CUPY
+
+    `CuPy <https://cupy.dev/>`__ is a NumPy-compatible array library that runs on NVIDIA GPUs.
+    When available, certain hot-path operations in :class:`.SparsePauliOp` (such as
+    :meth:`~.SparsePauliOp.compose`) will offload large intermediate tensors to the GPU.
+
 .. py:data:: HAS_CVXPY
 
     `CVXPY <https://www.cvxpy.org/>`__ is a Python package for solving convex optimization
@@ -281,6 +287,7 @@ HAS_CPLEX = _LazyImportTester(
     install="pip install cplex",
     msg="This may not be possible for all Python versions and OSes",
 )
+HAS_CUPY = _LazyImportTester("cupy", install="pip install cupy-cuda12x")
 HAS_CVXPY = _LazyImportTester("cvxpy", install="pip install cvxpy")
 HAS_DOCPLEX = _LazyImportTester(
     {"docplex": (), "docplex.mp.model": ("Model",)},

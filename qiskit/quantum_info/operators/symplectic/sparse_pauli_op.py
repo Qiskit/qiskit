@@ -42,7 +42,12 @@ from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic.pauli import BasePauli
 from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
 from qiskit.quantum_info.operators.symplectic.pauli import Pauli
+from qiskit.utils import optionals as _optionals
 
+# Minimum number of elements (self.size * other.size * num_qubits) in the compose()
+# intermediate tensor before the GPU path is used.  Below this threshold the PCIe
+# transfer overhead exceeds the compute saving.
+_GPU_COMPOSE_THRESHOLD = 5_000_000
 
 if TYPE_CHECKING:
     from qiskit.transpiler.layout import TranspileLayout
@@ -349,21 +354,46 @@ class SparsePauliOp(LinearOp):
         # This method is the outer version of `BasePauli.compose`.
         # `x1` and `z1` have shape `(self.size, num_qubits)`.
         # `x2` and `z2` have shape `(other.size, num_qubits)`.
-        # `x1[:, no.newaxis]` results in shape `(self.size, 1, num_qubits)`.
-        # `ar = ufunc(x1[:, np.newaxis], x2)` will be in shape `(self.size, other.size, num_qubits)`.
+        # `x1[:, None]` results in shape `(self.size, 1, num_qubits)`.
+        # `ar = ufunc(x1[:, None], x2)` will be in shape `(self.size, other.size, num_qubits)`.
         # So, `ar.reshape((-1, num_qubits))` will be in shape `(self.size * other.size, num_qubits)`.
         # Ref: https://numpy.org/doc/stable/user/theory.broadcasting.html
 
-        phase = np.add.outer(self.paulis._phase, other.paulis._phase).reshape(-1)
-        if front:
-            q = np.logical_and(x1[:, np.newaxis], z2).reshape((-1, num_qubits))
+        # Use GPU (CuPy) when the intermediate tensor is large enough to amortise PCIe
+        # transfer overhead.  Falls back silently to NumPy when CuPy is not installed.
+        _use_gpu = (
+            bool(_optionals.HAS_CUPY)
+            and self.size * other.size * num_qubits > _GPU_COMPOSE_THRESHOLD
+        )
+        if _use_gpu:
+            import cupy as cp  # pylint: disable=import-outside-toplevel
+
+            xp = cp
         else:
-            q = np.logical_and(z1[:, np.newaxis], x2).reshape((-1, num_qubits))
+            xp = np
+
+        _x1 = xp.asarray(x1)
+        _z1 = xp.asarray(z1)
+        _x2 = xp.asarray(x2)
+        _z2 = xp.asarray(z2)
+
+        phase = xp.add.outer(
+            xp.asarray(self.paulis._phase), xp.asarray(other.paulis._phase)
+        ).reshape(-1)
+        if front:
+            q = xp.logical_and(_x1[:, None], _z2).reshape((-1, num_qubits))
+        else:
+            q = xp.logical_and(_z1[:, None], _x2).reshape((-1, num_qubits))
         # `np.mod` will be applied to `phase` in `SparsePauliOp.__init__`
         phase = phase + 2 * q.sum(axis=1, dtype=np.uint8)
 
-        x3 = np.logical_xor(x1[:, np.newaxis], x2).reshape((-1, num_qubits))
-        z3 = np.logical_xor(z1[:, np.newaxis], z2).reshape((-1, num_qubits))
+        x3 = xp.logical_xor(_x1[:, None], _x2).reshape((-1, num_qubits))
+        z3 = xp.logical_xor(_z1[:, None], _z2).reshape((-1, num_qubits))
+
+        if _use_gpu:
+            x3 = cp.asnumpy(x3)
+            z3 = cp.asnumpy(z3)
+            phase = cp.asnumpy(phase)
 
         if qargs is None:
             pauli_list = PauliList(BasePauli(z3, x3, phase))
@@ -377,7 +407,11 @@ class SparsePauliOp(LinearOp):
         # note: the following is a faster code equivalent to
         # `coeffs = np.kron(self.coeffs, other.coeffs)`
         # since `self.coeffs` and `other.coeffs` are both 1d arrays.
-        coeffs = np.multiply.outer(self.coeffs, other.coeffs).ravel()
+        _c1 = xp.asarray(self.coeffs)
+        _c2 = xp.asarray(other.coeffs)
+        coeffs = xp.multiply.outer(_c1, _c2).ravel()
+        if _use_gpu:
+            coeffs = cp.asnumpy(coeffs)
         return SparsePauliOp(pauli_list, coeffs, copy=False)
 
     def tensor(self, other: SparsePauliOp) -> SparsePauliOp:
