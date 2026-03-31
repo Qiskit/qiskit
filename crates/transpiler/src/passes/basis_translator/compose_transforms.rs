@@ -44,12 +44,18 @@ pub(super) fn compose_transforms<'a>(
     basis_transforms: &'a [(GateIdentifier, BasisTransformIn)],
     source_basis: &'a IndexSet<GateIdentifier, foldhash::fast::RandomState>,
     source_dag: &'a DAGCircuit,
-) -> Result<IndexMap<GateIdentifier, BasisTransformOut, foldhash::fast::RandomState>, BasisTranslatorError> {
+) -> Result<
+    IndexMap<GateIdentifier, BasisTransformOut, foldhash::fast::RandomState>,
+    BasisTranslatorError,
+> {
     let mut gate_param_counts: IndexMap<GateIdentifier, usize, foldhash::fast::RandomState> =
         IndexMap::default();
     get_gates_num_params(source_dag, &mut gate_param_counts);
-    let mut mapped_instructions: IndexMap<GateIdentifier, BasisTransformOut, foldhash::fast::RandomState> =
-        IndexMap::with_hasher(foldhash::fast::RandomState::default());
+    let mut mapped_instructions: IndexMap<
+        GateIdentifier,
+        BasisTransformOut,
+        foldhash::fast::RandomState,
+    > = IndexMap::with_hasher(foldhash::fast::RandomState::default());
 
     for (gate_name, gate_num_qubits) in source_basis.iter().cloned() {
         let num_params = gate_param_counts[&(gate_name.clone(), gate_num_qubits)];

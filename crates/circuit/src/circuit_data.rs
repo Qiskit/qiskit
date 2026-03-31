@@ -1752,7 +1752,8 @@ impl CircuitData {
     /// # Returns
     /// An IndexMap containing the operation names as keys and their respective counts as values.
     pub fn count_ops(&self) -> IndexMap<&str, usize, ::foldhash::fast::RandomState> {
-        let mut ops_count: IndexMap<&str, usize, ::foldhash::fast::RandomState> = IndexMap::default();
+        let mut ops_count: IndexMap<&str, usize, ::foldhash::fast::RandomState> =
+            IndexMap::default();
         for instruction in &self.data {
             *ops_count.entry(instruction.op.name()).or_insert(0) += 1;
         }
