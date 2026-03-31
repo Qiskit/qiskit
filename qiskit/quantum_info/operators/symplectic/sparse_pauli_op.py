@@ -390,18 +390,21 @@ class SparsePauliOp(LinearOp):
         x3 = xp.logical_xor(_x1[:, None], _x2).reshape((-1, num_qubits))
         z3 = xp.logical_xor(_z1[:, None], _z2).reshape((-1, num_qubits))
 
-        if _use_gpu:
-            x3 = cp.asnumpy(x3)
-            z3 = cp.asnumpy(z3)
-            phase = cp.asnumpy(phase)
-
         if qargs is None:
+            if _use_gpu:
+                x3 = cp.asnumpy(x3)
+                z3 = cp.asnumpy(z3)
+                phase = cp.asnumpy(phase)
             pauli_list = PauliList(BasePauli(z3, x3, phase))
         else:
-            x4 = np.repeat(self.paulis.x, other.size, axis=0)
-            z4 = np.repeat(self.paulis.z, other.size, axis=0)
+            x4 = xp.repeat(xp.asarray(self.paulis.x), other.size, axis=0)
+            z4 = xp.repeat(xp.asarray(self.paulis.z), other.size, axis=0)
             x4[:, qargs] = x3
             z4[:, qargs] = z3
+            if _use_gpu:
+                x4 = cp.asnumpy(x4)
+                z4 = cp.asnumpy(z4)
+                phase = cp.asnumpy(phase)
             pauli_list = PauliList(BasePauli(z4, x4, phase))
 
         # note: the following is a faster code equivalent to

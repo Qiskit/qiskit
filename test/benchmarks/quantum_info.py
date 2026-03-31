@@ -215,8 +215,17 @@ class SparsePauliOpGPUComposeBench:
     ``_GPU_COMPOSE_THRESHOLD`` (5 000 000), ensuring the CuPy branch is taken.
     """
 
-    # (num_qubits, num_terms): product num_terms^2 * num_qubits must be > 5_000_000
-    params = [[10, 800], [20, 520], [30, 420]]
+    # "num_qubits,num_terms": product num_terms^2 * num_qubits must be > 5_000_000
+    # Rows span just-above-threshold (~6M) up to large tensors (~50M) at varying
+    # qubit counts, so we can see how GPU speedup scales with both tensor size and shape.
+    params = [
+        # ~6M elements (just above threshold)
+        "10,800", "20,520", "30,420",
+        # ~20M elements
+        "10,1500", "20,1000", "30,820", "50,640",
+        # ~50M elements
+        "10,2300", "20,1600", "50,1000",
+    ]
     param_names = ["num_qubits,num_terms"]
 
     def setup(self, num_qubits_num_terms):
@@ -225,7 +234,7 @@ class SparsePauliOpGPUComposeBench:
         except ImportError as exc:
             raise NotImplementedError("CuPy not installed") from exc
 
-        num_qubits, num_terms = num_qubits_num_terms
+        num_qubits, num_terms = map(int, num_qubits_num_terms.split(","))
         self.p1 = SparsePauliOp(
             random_pauli_list(num_qubits=num_qubits, size=num_terms, phase=True)
         )
@@ -245,3 +254,48 @@ class SparsePauliOpGPUComposeBench:
 
         with unittest.mock.patch.object(_spo, "_GPU_COMPOSE_THRESHOLD", 10**18):
             self.p1.compose(self.p2)
+
+
+class SparsePauliOpGPUComposeQargsBench:
+    """Benchmark SparsePauliOp.compose with qargs on GPU vs CPU.
+
+    Uses a larger operator composed onto a subset of qubits, exercising the
+    cp.repeat + scatter path added alongside the qargs=None GPU path.
+    """
+
+    # "total_qubits,sub_qubits,num_terms": compose a sub_qubits operator onto
+    # a subset of a total_qubits operator.  num_terms^2 * sub_qubits > 5_000_000.
+    params = [
+        "20,10,800", "30,10,800", "50,10,800",
+        "30,20,520", "50,20,520",
+        "50,30,420",
+    ]
+    param_names = ["total_qubits,sub_qubits,num_terms"]
+
+    def setup(self, params):
+        try:
+            import cupy  # noqa: F401  pylint: disable=import-outside-toplevel
+        except ImportError as exc:
+            raise NotImplementedError("CuPy not installed") from exc
+
+        total_qubits, sub_qubits, num_terms = map(int, params.split(","))
+        self.p1 = SparsePauliOp(
+            random_pauli_list(num_qubits=total_qubits, size=num_terms, phase=True)
+        )
+        self.p2 = SparsePauliOp(
+            random_pauli_list(num_qubits=sub_qubits, size=num_terms, phase=True)
+        )
+        self.qargs = list(range(sub_qubits))
+
+    def time_compose_qargs_gpu(self, _):
+        """GPU path: compose smaller op onto subset of qubits."""
+        self.p1.compose(self.p2, qargs=self.qargs)
+
+    def time_compose_qargs_cpu(self, _):
+        """CPU path on same inputs for direct comparison."""
+        from qiskit.quantum_info.operators.symplectic import (  # pylint: disable=import-outside-toplevel
+            sparse_pauli_op as _spo,
+        )
+
+        with unittest.mock.patch.object(_spo, "_GPU_COMPOSE_THRESHOLD", 10**18):
+            self.p1.compose(self.p2, qargs=self.qargs)
