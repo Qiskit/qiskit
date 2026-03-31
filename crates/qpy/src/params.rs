@@ -498,7 +498,6 @@ pub(crate) fn unpack_parameter_expression(
             replay.push(OPReplay { op, lhs, rhs });
         };
     }
-    // let additional_symbols = HashSet::new();
     let additional_symbols = HashSet::from_iter(param_uuid_map.values().filter_map(|v| match v {
         GenericValue::ParameterExpressionSymbol(s) => Some(s.clone()),
         _ => None,
@@ -619,7 +618,7 @@ pub(crate) fn unpack_parameter_vector(
 }
 
 // exp should be a symbol (for parameter/parameter vector element)
-// but more than that: it should no contain other symbols in its symbol table
+// but more than that: it should not contain other symbols in its symbol table
 // since if, e.g. exp was `0*x+y` and got simplified to `y` we still need
 // to store `x`, so we must treat exp as an expression
 fn expression_as_single_symbol(exp: &ParameterExpression) -> Option<Symbol> {
