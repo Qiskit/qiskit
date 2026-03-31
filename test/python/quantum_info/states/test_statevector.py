@@ -336,7 +336,7 @@ class TestStatevector(QiskitTestCase):
             evolved = Statevector(vec).evolve(op)
             self.assertEqual(target, evolved)
 
-    def test_evolve_no_modification_with_XGate(self):
+    def test_evolve_no_modification_with_xgate(self):
         """Test evolve by XGate doesn't modify original vector"""
 
         # |00> is sensitive to IX
@@ -356,7 +356,7 @@ class TestStatevector(QiskitTestCase):
         )
         self.assertEqual(original_vec, new_vec, "Evolving by XGate modified original Statevector")
 
-    def test_evolve_no_modification_with_CXGate(self):
+    def test_evolve_no_modification_with_cxgate(self):
         """Test evolve by CXGate doesn't modify original vector"""
 
         # |01> is sensitive to CX
@@ -376,7 +376,7 @@ class TestStatevector(QiskitTestCase):
         )
         self.assertEqual(original_vec, new_vec, "Evolving by CXGate modified original Statevector")
 
-    def test_evolve_no_modification_with_DiagonalGate(self):
+    def test_evolve_no_modification_with_diagonalgate(self):
         """Test evolve by DiagonalGate doesn't modify original vector"""
 
         # All superposition is sensitive to the given DiagonalGate
@@ -396,7 +396,7 @@ class TestStatevector(QiskitTestCase):
         )
         self.assertEqual(original_vec, new_vec, "Evolving by DiagonalGate modified original Statevector")
 
-    def test_evolve_no_modification_with_Operator(self):
+    def test_evolve_no_modification_with_operator(self):
         """Test evolve by Operator doesn't modify original vector"""
 
         # |0> is sensitive to X
