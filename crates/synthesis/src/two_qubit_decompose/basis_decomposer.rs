@@ -16,15 +16,16 @@ use num_traits::Zero;
 use smallvec::{SmallVec, smallvec};
 use std::f64::consts::{FRAC_1_SQRT_2, PI};
 
+use nalgebra::{Matrix2, MatrixView2, U2};
 use ndarray::linalg::kron;
 use ndarray::prelude::*;
-use numpy::IntoPyArray;
 use numpy::PyReadonlyArray2;
+use numpy::{IntoPyArray, ToPyArray};
 
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 
-use super::common::{DEFAULT_FIDELITY, TraceToFidelity, rx_matrix, rz_matrix, transpose_conjugate};
+use super::common::{DEFAULT_FIDELITY, TraceToFidelity, rx_matrix_nalgebra, rz_matrix_nalgebra};
 use super::gate_sequence::{TwoQubitGateSequence, TwoQubitSequenceVec};
 use super::weyl_decomposition::{__num_basis_gates, _num_basis_gates, TwoQubitWeylDecomposition};
 
@@ -33,7 +34,7 @@ use crate::euler_one_qubit_decomposer::{
     ANGLE_ZERO_EPSILON, EulerBasis, EulerBasisSet, OneQubitGateSequence, angles_from_unitary,
     unitary_to_gate_sequence_inner,
 };
-use crate::linalg::ndarray_to_faer;
+use crate::linalg::{nalgebra_array_view, ndarray_to_faer};
 use crate::matrix::two_qubit;
 
 use qiskit_circuit::bit::ShareableQubit;
@@ -45,7 +46,6 @@ use qiskit_circuit::instruction::{Instruction, Parameters};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{NoBlocks, Qubit};
-use qiskit_util::alias::GateArray1Q;
 use qiskit_util::complex::{C_M_ONE, C_ONE, C_ZERO, IM, M_IM, c64};
 
 const PI2: f64 = PI / 2.;
@@ -59,7 +59,15 @@ const TWO_PI: f64 = 2.0 * PI;
 // Python space.
 const TWO_QUBIT_SEQUENCE_DEFAULT_CAPACITY: usize = 21;
 
-static IPZ: GateArray1Q = [[IM, C_ZERO], [C_ZERO, M_IM]];
+static IPZ: Matrix2<Complex64> = Matrix2::new(IM, C_ZERO, C_ZERO, M_IM);
+
+static HGATE: Matrix2<Complex64> =
+    Matrix2::new(H_GATE[0][0], H_GATE[0][1], H_GATE[1][0], H_GATE[1][1]);
+
+#[inline]
+pub fn ndarray_to_matrix2<T: Copy>(view: ArrayView2<T>) -> Matrix2<T> {
+    Matrix2::new(view[[0, 0]], view[(0, 1)], view[(1, 0)], view[(1, 1)])
+}
 
 #[derive(Clone, Debug)]
 #[allow(non_snake_case)]
@@ -77,25 +85,25 @@ pub struct TwoQubitBasisDecomposer {
     basis_decomposer: TwoQubitWeylDecomposition,
     #[pyo3(get)]
     super_controlled: bool,
-    u0l: Array2<Complex64>,
-    u0r: Array2<Complex64>,
-    u1l: Array2<Complex64>,
-    u1ra: Array2<Complex64>,
-    u1rb: Array2<Complex64>,
-    u2la: Array2<Complex64>,
-    u2lb: Array2<Complex64>,
-    u2ra: Array2<Complex64>,
-    u2rb: Array2<Complex64>,
-    u3l: Array2<Complex64>,
-    u3r: Array2<Complex64>,
-    q0l: Array2<Complex64>,
-    q0r: Array2<Complex64>,
-    q1la: Array2<Complex64>,
-    q1lb: Array2<Complex64>,
-    q1ra: Array2<Complex64>,
-    q1rb: Array2<Complex64>,
-    q2l: Array2<Complex64>,
-    q2r: Array2<Complex64>,
+    u0l: Matrix2<Complex64>,
+    u0r: Matrix2<Complex64>,
+    u1l: Matrix2<Complex64>,
+    u1ra: Matrix2<Complex64>,
+    u1rb: Matrix2<Complex64>,
+    u2la: Matrix2<Complex64>,
+    u2lb: Matrix2<Complex64>,
+    u2ra: Matrix2<Complex64>,
+    u2rb: Matrix2<Complex64>,
+    u3l: Matrix2<Complex64>,
+    u3r: Matrix2<Complex64>,
+    q0l: Matrix2<Complex64>,
+    q0r: Matrix2<Complex64>,
+    q1la: Matrix2<Complex64>,
+    q1lb: Matrix2<Complex64>,
+    q1ra: Matrix2<Complex64>,
+    q1rb: Matrix2<Complex64>,
+    q2l: Matrix2<Complex64>,
+    q2r: Matrix2<Complex64>,
 }
 impl TwoQubitBasisDecomposer {
     /// Return the KAK gate name
@@ -112,47 +120,47 @@ impl TwoQubitBasisDecomposer {
     fn decomp1_inner(
         &self,
         target: &TwoQubitWeylDecomposition,
-    ) -> SmallVec<[Array2<Complex64>; 8]> {
+    ) -> SmallVec<[Matrix2<Complex64>; 8]> {
         // FIXME: fix for z!=0 and c!=0 using closest reflection (not always in the Weyl chamber)
         smallvec![
-            transpose_conjugate(self.basis_decomposer.K2r.view()).dot(&target.K2r),
-            transpose_conjugate(self.basis_decomposer.K2l.view()).dot(&target.K2l),
-            target
-                .K1r
-                .dot(&transpose_conjugate(self.basis_decomposer.K1r.view())),
-            target
-                .K1l
-                .dot(&transpose_conjugate(self.basis_decomposer.K1l.view())),
+            ndarray_to_matrix2(self.basis_decomposer.K2r.view()).adjoint()
+                * ndarray_to_matrix2(target.K2r.view()),
+            ndarray_to_matrix2(self.basis_decomposer.K2l.view()).adjoint()
+                * ndarray_to_matrix2(target.K2l.view()),
+            ndarray_to_matrix2(target.K1r.view())
+                * ndarray_to_matrix2(self.basis_decomposer.K1r.view()).adjoint(),
+            ndarray_to_matrix2(target.K1l.view())
+                * ndarray_to_matrix2(self.basis_decomposer.K1l.view()).adjoint(),
         ]
     }
 
     fn decomp2_supercontrolled_inner(
         &self,
         target: &TwoQubitWeylDecomposition,
-    ) -> SmallVec<[Array2<Complex64>; 8]> {
+    ) -> SmallVec<[Matrix2<Complex64>; 8]> {
         smallvec![
-            self.q2r.dot(&target.K2r),
-            self.q2l.dot(&target.K2l),
-            self.q1ra.dot(&rz_matrix(2. * target.b)).dot(&self.q1rb),
-            self.q1la.dot(&rz_matrix(-2. * target.a)).dot(&self.q1lb),
-            target.K1r.dot(&self.q0r),
-            target.K1l.dot(&self.q0l),
+            self.q2r * ndarray_to_matrix2(target.K2r.view()),
+            self.q2l * ndarray_to_matrix2(target.K2l.view()),
+            self.q1ra * rz_matrix_nalgebra(2. * target.b) * self.q1rb,
+            self.q1la * rz_matrix_nalgebra(-2. * target.a) * self.q1lb,
+            ndarray_to_matrix2(target.K1r.view()) * self.q0r,
+            ndarray_to_matrix2(target.K1l.view()) * self.q0l,
         ]
     }
 
     fn decomp3_supercontrolled_inner(
         &self,
         target: &TwoQubitWeylDecomposition,
-    ) -> SmallVec<[Array2<Complex64>; 8]> {
+    ) -> SmallVec<[Matrix2<Complex64>; 8]> {
         smallvec![
-            self.u3r.dot(&target.K2r),
-            self.u3l.dot(&target.K2l),
-            self.u2ra.dot(&rz_matrix(2. * target.b)).dot(&self.u2rb),
-            self.u2la.dot(&rz_matrix(-2. * target.a)).dot(&self.u2lb),
-            self.u1ra.dot(&rz_matrix(-2. * target.c)).dot(&self.u1rb),
-            self.u1l.clone(),
-            target.K1r.dot(&self.u0r),
-            target.K1l.dot(&self.u0l),
+            self.u3r * ndarray_to_matrix2(target.K2r.view()),
+            self.u3l * ndarray_to_matrix2(target.K2l.view()),
+            self.u2ra * rz_matrix_nalgebra(2. * target.b) * self.u2rb,
+            self.u2la * rz_matrix_nalgebra(-2. * target.a) * self.u2lb,
+            self.u1ra * rz_matrix_nalgebra(-2. * target.c) * self.u1rb,
+            self.u1l,
+            ndarray_to_matrix2(target.K1r.view()) * self.u0r,
+            ndarray_to_matrix2(target.K1l.view()) * self.u0l,
         ]
     }
 
@@ -166,7 +174,7 @@ impl TwoQubitBasisDecomposer {
     /// if performance is a concern.
     fn get_sx_vz_2cx_efficient_euler(
         &self,
-        decomposition: &SmallVec<[Array2<Complex64>; 8]>,
+        decomposition: &SmallVec<[Matrix2<Complex64>; 8]>,
         target_decomposed: &TwoQubitWeylDecomposition,
         use_xgate: bool,
     ) -> Option<TwoQubitGateSequence> {
@@ -177,7 +185,10 @@ impl TwoQubitBasisDecomposer {
             .iter()
             .step_by(2)
             .map(|decomp| {
-                let euler_angles = angles_from_unitary(decomp.view(), EulerBasis::ZXZ);
+                let euler_angles = angles_from_unitary(
+                    nalgebra_array_view::<Complex64, U2, U2>(decomp.as_view()),
+                    EulerBasis::ZXZ,
+                );
                 global_phase += euler_angles[3];
                 [euler_angles[2], euler_angles[0], euler_angles[1]]
             })
@@ -187,17 +198,23 @@ impl TwoQubitBasisDecomposer {
             .skip(1)
             .step_by(2)
             .map(|decomp| {
-                let euler_angles = angles_from_unitary(decomp.view(), EulerBasis::XZX);
+                let euler_angles = angles_from_unitary(
+                    nalgebra_array_view::<Complex64, U2, U2>(decomp.as_view()),
+                    EulerBasis::XZX,
+                );
                 global_phase += euler_angles[3];
                 [euler_angles[2], euler_angles[0], euler_angles[1]]
             })
             .collect();
-        let mut euler_matrix_q0 = rx_matrix(euler_q0[0][1]).dot(&rz_matrix(euler_q0[0][0]));
-        euler_matrix_q0 = rz_matrix(euler_q0[0][2] + euler_q0[1][0] + PI2).dot(&euler_matrix_q0);
-        self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix_q0.view(), 0);
-        let mut euler_matrix_q1 = rz_matrix(euler_q1[0][1]).dot(&rx_matrix(euler_q1[0][0]));
-        euler_matrix_q1 = rx_matrix(euler_q1[0][2] + euler_q1[1][0]).dot(&euler_matrix_q1);
-        self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix_q1.view(), 1);
+        let mut euler_matrix_q0 =
+            rx_matrix_nalgebra(euler_q0[0][1]) * rz_matrix_nalgebra(euler_q0[0][0]);
+        euler_matrix_q0 =
+            rz_matrix_nalgebra(euler_q0[0][2] + euler_q0[1][0] + PI2) * euler_matrix_q0;
+        self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix_q0.as_view(), 0);
+        let mut euler_matrix_q1 =
+            rz_matrix_nalgebra(euler_q1[0][1]) * rx_matrix_nalgebra(euler_q1[0][0]);
+        euler_matrix_q1 = rx_matrix_nalgebra(euler_q1[0][2] + euler_q1[1][0]) * euler_matrix_q1;
+        self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix_q1.as_view(), 1);
         gates.push((StandardGate::CX.into(), smallvec![], smallvec![0, 1]));
         if (euler_q0[1][1] - PI).abs() < ANGLE_ZERO_EPSILON {
             if use_xgate {
@@ -222,14 +239,14 @@ impl TwoQubitBasisDecomposer {
         ));
         global_phase += PI2;
         gates.push((StandardGate::CX.into(), smallvec![], smallvec![0, 1]));
-        let mut euler_matrix_q0 =
-            rx_matrix(euler_q0[2][1]).dot(&rz_matrix(euler_q0[1][2] + euler_q0[2][0] + PI2));
-        euler_matrix_q0 = rz_matrix(euler_q0[2][2]).dot(&euler_matrix_q0);
-        self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix_q0.view(), 0);
-        let mut euler_matrix_q1 =
-            rz_matrix(euler_q1[2][1]).dot(&rx_matrix(euler_q1[1][2] + euler_q1[2][0]));
-        euler_matrix_q1 = rx_matrix(euler_q1[2][2]).dot(&euler_matrix_q1);
-        self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix_q1.view(), 1);
+        let mut euler_matrix_q0 = rx_matrix_nalgebra(euler_q0[2][1])
+            * rz_matrix_nalgebra(euler_q0[1][2] + euler_q0[2][0] + PI2);
+        euler_matrix_q0 = rz_matrix_nalgebra(euler_q0[2][2]) * euler_matrix_q0;
+        self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix_q0.as_view(), 0);
+        let mut euler_matrix_q1 = rz_matrix_nalgebra(euler_q1[2][1])
+            * rx_matrix_nalgebra(euler_q1[1][2] + euler_q1[2][0]);
+        euler_matrix_q1 = rx_matrix_nalgebra(euler_q1[2][2]) * euler_matrix_q1;
+        self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix_q1.as_view(), 1);
         Some(TwoQubitGateSequence {
             gates,
             global_phase,
@@ -247,7 +264,7 @@ impl TwoQubitBasisDecomposer {
     /// if performance is a concern.
     fn get_sx_vz_3cx_efficient_euler(
         &self,
-        decomposition: &SmallVec<[Array2<Complex64>; 8]>,
+        decomposition: &SmallVec<[Matrix2<Complex64>; 8]>,
         target_decomposed: &TwoQubitWeylDecomposition,
     ) -> Option<TwoQubitGateSequence> {
         let mut gates = Vec::new();
@@ -260,7 +277,10 @@ impl TwoQubitBasisDecomposer {
             .iter()
             .step_by(2)
             .map(|decomp| {
-                let euler_angles = angles_from_unitary(decomp.view(), EulerBasis::ZXZ);
+                let euler_angles = angles_from_unitary(
+                    nalgebra_array_view::<Complex64, U2, U2>(decomp.as_view()),
+                    EulerBasis::ZXZ,
+                );
                 global_phase += euler_angles[3];
                 [euler_angles[2], euler_angles[0], euler_angles[1]]
             })
@@ -271,7 +291,10 @@ impl TwoQubitBasisDecomposer {
             .skip(1)
             .step_by(2)
             .map(|decomp| {
-                let euler_angles = angles_from_unitary(decomp.view(), EulerBasis::XZX);
+                let euler_angles = angles_from_unitary(
+                    nalgebra_array_view::<Complex64, U2, U2>(decomp.as_view()),
+                    EulerBasis::XZX,
+                );
                 global_phase += euler_angles[3];
                 [euler_angles[2], euler_angles[0], euler_angles[1]]
             })
@@ -289,22 +312,23 @@ impl TwoQubitBasisDecomposer {
         let x02_add = x12 - euler_q0[1][0];
         let x12_is_half_pi = abs_diff_eq!(x12, PI2, epsilon = atol);
 
-        let mut euler_matrix_q0 = rx_matrix(euler_q0[0][1]).dot(&rz_matrix(euler_q0[0][0]));
+        let mut euler_matrix_q0 =
+            rx_matrix_nalgebra(euler_q0[0][1]) * rz_matrix_nalgebra(euler_q0[0][0]);
         if x12_is_non_zero && x12_is_pi_mult {
-            euler_matrix_q0 = rz_matrix(euler_q0[0][2] - x02_add).dot(&euler_matrix_q0);
+            euler_matrix_q0 = rz_matrix_nalgebra(euler_q0[0][2] - x02_add) * euler_matrix_q0;
         } else {
-            euler_matrix_q0 = rz_matrix(euler_q0[0][2] + euler_q0[1][0]).dot(&euler_matrix_q0);
+            euler_matrix_q0 = rz_matrix_nalgebra(euler_q0[0][2] + euler_q0[1][0]) * euler_matrix_q0;
         }
-        euler_matrix_q0 = aview2(&H_GATE).dot(&euler_matrix_q0);
-        self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix_q0.view(), 0);
+        euler_matrix_q0 = HGATE * euler_matrix_q0;
+        self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix_q0.as_view(), 0);
 
-        let rx_0 = rx_matrix(euler_q1[0][0]);
-        let rz = rz_matrix(euler_q1[0][1]);
-        let rx_1 = rx_matrix(euler_q1[0][2] + euler_q1[1][0]);
-        let mut euler_matrix_q1 = rz.dot(&rx_0);
-        euler_matrix_q1 = rx_1.dot(&euler_matrix_q1);
-        euler_matrix_q1 = aview2(&H_GATE).dot(&euler_matrix_q1);
-        self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix_q1.view(), 1);
+        let rx_0 = rx_matrix_nalgebra(euler_q1[0][0]);
+        let rz = rz_matrix_nalgebra(euler_q1[0][1]);
+        let rx_1 = rx_matrix_nalgebra(euler_q1[0][2] + euler_q1[1][0]);
+        let mut euler_matrix_q1 = rz * rx_0;
+        euler_matrix_q1 = rx_1 * euler_matrix_q1;
+        euler_matrix_q1 = HGATE * euler_matrix_q1;
+        self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix_q1.as_view(), 1);
 
         gates.push((StandardGate::CX.into(), smallvec![], smallvec![1, 0]));
 
@@ -333,7 +357,12 @@ impl TwoQubitBasisDecomposer {
             global_phase -= PI4;
         } else if x12_is_non_zero && !x12_is_pi_mult {
             if self.pulse_optimize.is_none() {
-                self.append_1q_sequence(&mut gates, &mut global_phase, rx_matrix(x12).view(), 0);
+                self.append_1q_sequence(
+                    &mut gates,
+                    &mut global_phase,
+                    rx_matrix_nalgebra(x12).as_view(),
+                    0,
+                );
             } else {
                 return None;
             }
@@ -345,7 +374,7 @@ impl TwoQubitBasisDecomposer {
             self.append_1q_sequence(
                 &mut gates,
                 &mut global_phase,
-                rx_matrix(euler_q1[1][1]).view(),
+                rx_matrix_nalgebra(euler_q1[1][1]).as_view(),
                 1,
             );
         } else {
@@ -369,22 +398,22 @@ impl TwoQubitBasisDecomposer {
             self.append_1q_sequence(
                 &mut gates,
                 &mut global_phase,
-                rx_matrix(euler_q1[2][1]).view(),
+                rx_matrix_nalgebra(euler_q1[2][1]).as_view(),
                 1,
             );
         } else {
             return None;
         }
         gates.push((StandardGate::CX.into(), smallvec![], smallvec![1, 0]));
-        let mut euler_matrix = rz_matrix(euler_q0[2][2] + euler_q0[3][0]).dot(&aview2(&H_GATE));
-        euler_matrix = rx_matrix(euler_q0[3][1]).dot(&euler_matrix);
-        euler_matrix = rz_matrix(euler_q0[3][2]).dot(&euler_matrix);
-        self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix.view(), 0);
+        let mut euler_matrix = rz_matrix_nalgebra(euler_q0[2][2] + euler_q0[3][0]) * HGATE;
+        euler_matrix = rx_matrix_nalgebra(euler_q0[3][1]) * euler_matrix;
+        euler_matrix = rz_matrix_nalgebra(euler_q0[3][2]) * euler_matrix;
+        self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix.as_view(), 0);
 
-        let mut euler_matrix = rx_matrix(euler_q1[2][2] + euler_q1[3][0]).dot(&aview2(&H_GATE));
-        euler_matrix = rz_matrix(euler_q1[3][1]).dot(&euler_matrix);
-        euler_matrix = rx_matrix(euler_q1[3][2]).dot(&euler_matrix);
-        self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix.view(), 1);
+        let mut euler_matrix = rx_matrix_nalgebra(euler_q1[2][2] + euler_q1[3][0]) * HGATE;
+        euler_matrix = rz_matrix_nalgebra(euler_q1[3][1]) * euler_matrix;
+        euler_matrix = rx_matrix_nalgebra(euler_q1[3][2]) * euler_matrix;
+        self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix.as_view(), 1);
 
         let out_unitary = compute_unitary(&gates, global_phase);
         // TODO: fix the sign problem to avoid correction here
@@ -405,13 +434,13 @@ impl TwoQubitBasisDecomposer {
         &self,
         gates: &mut TwoQubitSequenceVec,
         global_phase: &mut f64,
-        unitary: ArrayView2<Complex64>,
+        unitary: MatrixView2<Complex64>,
         qubit: u8,
     ) {
         let mut target_1q_basis_list = EulerBasisSet::new();
         target_1q_basis_list.add_basis(self.euler_basis);
         let sequence = unitary_to_gate_sequence_inner(
-            unitary,
+            nalgebra_array_view::<Complex64, U2, U2>(unitary),
             &target_1q_basis_list,
             qubit as usize,
             None,
@@ -429,7 +458,7 @@ impl TwoQubitBasisDecomposer {
     fn pulse_optimal_chooser(
         &self,
         best_nbasis: u8,
-        decomposition: &SmallVec<[Array2<Complex64>; 8]>,
+        decomposition: &SmallVec<[Matrix2<Complex64>; 8]>,
         target_decomposed: &TwoQubitWeylDecomposition,
     ) -> PyResult<Option<TwoQubitGateSequence>> {
         if self.pulse_optimize.is_some()
@@ -489,7 +518,6 @@ impl TwoQubitBasisDecomposer {
         euler_basis: &str,
         pulse_optimize: Option<bool>,
     ) -> PyResult<Self> {
-        let ipz: ArrayView2<Complex64> = aview2(&IPZ);
         let basis_decomposer =
             TwoQubitWeylDecomposition::new_inner(gate_matrix, Some(DEFAULT_FIDELITY), None)?;
         let super_controlled = relative_eq!(basis_decomposer.a, PI4, max_relative = 1e-09)
@@ -499,97 +527,75 @@ impl TwoQubitBasisDecomposer {
         // expand as Ui = Ki1.Ubasis.Ki2
         let b = basis_decomposer.b;
         let temp = c64(0.5, -0.5);
-        let k11l = array![
-            [temp * (M_IM * c64(0., -b).exp()), temp * c64(0., -b).exp()],
-            [temp * (M_IM * c64(0., b).exp()), temp * -(c64(0., b).exp())],
-        ];
-        let k11r = array![
-            [
-                FRAC_1_SQRT_2 * (IM * c64(0., -b).exp()),
-                FRAC_1_SQRT_2 * -c64(0., -b).exp()
-            ],
-            [
-                FRAC_1_SQRT_2 * c64(0., b).exp(),
-                FRAC_1_SQRT_2 * (M_IM * c64(0., b).exp())
-            ],
-        ];
-        let k12l = aview2(&K12L_ARR);
-        let k12r = aview2(&K12R_ARR);
-        let k32l_k21l = array![
-            [
-                FRAC_1_SQRT_2 * c64(1., (2. * b).cos()),
-                FRAC_1_SQRT_2 * (IM * (2. * b).sin())
-            ],
-            [
-                FRAC_1_SQRT_2 * (IM * (2. * b).sin()),
-                FRAC_1_SQRT_2 * c64(1., -(2. * b).cos())
-            ],
-        ];
+        let k11l = Matrix2::new(
+            temp * (M_IM * c64(0., -b).exp()),
+            temp * c64(0., -b).exp(),
+            temp * (M_IM * c64(0., b).exp()),
+            temp * -(c64(0., b).exp()),
+        );
+        let k11r = Matrix2::new(
+            FRAC_1_SQRT_2 * (IM * c64(0., -b).exp()),
+            FRAC_1_SQRT_2 * -c64(0., -b).exp(),
+            FRAC_1_SQRT_2 * c64(0., b).exp(),
+            FRAC_1_SQRT_2 * (M_IM * c64(0., b).exp()),
+        );
+        let k32l_k21l = Matrix2::new(
+            FRAC_1_SQRT_2 * c64(1., (2. * b).cos()),
+            FRAC_1_SQRT_2 * (IM * (2. * b).sin()),
+            FRAC_1_SQRT_2 * (IM * (2. * b).sin()),
+            FRAC_1_SQRT_2 * c64(1., -(2. * b).cos()),
+        );
         let temp = c64(0.5, 0.5);
-        let k21r = array![
-            [
-                temp * (M_IM * c64(0., -2. * b).exp()),
-                temp * c64(0., -2. * b).exp()
-            ],
-            [
-                temp * (IM * c64(0., 2. * b).exp()),
-                temp * c64(0., 2. * b).exp()
-            ],
-        ];
-        const K22L_ARR: GateArray1Q = [
-            [c64(FRAC_1_SQRT_2, 0.), c64(-FRAC_1_SQRT_2, 0.)],
-            [c64(FRAC_1_SQRT_2, 0.), c64(FRAC_1_SQRT_2, 0.)],
-        ];
-        let k22l = aview2(&K22L_ARR);
-        let k22r_arr: GateArray1Q = [[Complex64::zero(), C_ONE], [C_M_ONE, Complex64::zero()]];
-        let k22r = aview2(&k22r_arr);
-        let k31l = array![
-            [
-                FRAC_1_SQRT_2 * c64(0., -b).exp(),
-                FRAC_1_SQRT_2 * c64(0., -b).exp()
-            ],
-            [
-                FRAC_1_SQRT_2 * -c64(0., b).exp(),
-                FRAC_1_SQRT_2 * c64(0., b).exp()
-            ],
-        ];
-        let k31r = array![
-            [IM * c64(0., b).exp(), Complex64::zero()],
-            [Complex64::zero(), M_IM * c64(0., -b).exp()],
-        ];
+        let k21r = Matrix2::new(
+            temp * (M_IM * c64(0., -2. * b).exp()),
+            temp * c64(0., -2. * b).exp(),
+            temp * (IM * c64(0., 2. * b).exp()),
+            temp * c64(0., 2. * b).exp(),
+        );
+        let k31l = Matrix2::new(
+            FRAC_1_SQRT_2 * c64(0., -b).exp(),
+            FRAC_1_SQRT_2 * c64(0., -b).exp(),
+            FRAC_1_SQRT_2 * -c64(0., b).exp(),
+            FRAC_1_SQRT_2 * c64(0., b).exp(),
+        );
+        let k31r = Matrix2::new(
+            IM * c64(0., b).exp(),
+            Complex64::zero(),
+            Complex64::zero(),
+            M_IM * c64(0., -b).exp(),
+        );
         let temp = c64(0.5, 0.5);
-        let k32r = array![
-            [temp * c64(0., b).exp(), temp * -c64(0., -b).exp()],
-            [
-                temp * (M_IM * c64(0., b).exp()),
-                temp * (M_IM * c64(0., -b).exp())
-            ],
-        ];
-        let k1ld = transpose_conjugate(basis_decomposer.K1l.view());
-        let k1rd = transpose_conjugate(basis_decomposer.K1r.view());
-        let k2ld = transpose_conjugate(basis_decomposer.K2l.view());
-        let k2rd = transpose_conjugate(basis_decomposer.K2r.view());
+        let k32r = Matrix2::new(
+            temp * c64(0., b).exp(),
+            temp * -c64(0., -b).exp(),
+            temp * (M_IM * c64(0., b).exp()),
+            temp * (M_IM * c64(0., -b).exp()),
+        );
+        let k1ld = ndarray_to_matrix2(basis_decomposer.K1l.view()).adjoint();
+        let k1rd = ndarray_to_matrix2(basis_decomposer.K1r.view()).adjoint();
+        let k2ld = ndarray_to_matrix2(basis_decomposer.K2l.view()).adjoint();
+        let k2rd = ndarray_to_matrix2(basis_decomposer.K2r.view()).adjoint();
         // Pre-build the fixed parts of the matrices used in 3-part decomposition
-        let u0l = k31l.dot(&k1ld);
-        let u0r = k31r.dot(&k1rd);
-        let u1l = k2ld.dot(&k32l_k21l).dot(&k1ld);
-        let u1ra = k2rd.dot(&k32r);
-        let u1rb = k21r.dot(&k1rd);
-        let u2la = k2ld.dot(&k22l);
-        let u2lb = k11l.dot(&k1ld);
-        let u2ra = k2rd.dot(&k22r);
-        let u2rb = k11r.dot(&k1rd);
-        let u3l = k2ld.dot(&k12l);
-        let u3r = k2rd.dot(&k12r);
+        let u0l = k31l * k1ld;
+        let u0r = k31r * k1rd;
+        let u1l = k2ld * k32l_k21l * k1ld;
+        let u1ra = k2rd * k32r;
+        let u1rb = k21r * k1rd;
+        let u2la = k2ld * K22L;
+        let u2lb = k11l * k1ld;
+        let u2ra = k2rd * K22R;
+        let u2rb = k11r * k1rd;
+        let u3l = k2ld * K12L;
+        let u3r = k2rd * K12R;
         // Pre-build the fixed parts of the matrices used in the 2-part decomposition
-        let q0l = transpose_conjugate(k12l.view()).dot(&k1ld);
-        let q0r = transpose_conjugate(k12r.view()).dot(&ipz).dot(&k1rd);
-        let q1la = k2ld.dot(&transpose_conjugate(k11l.view()));
-        let q1lb = k11l.dot(&k1ld);
-        let q1ra = k2rd.dot(&ipz).dot(&transpose_conjugate(k11r.view()));
-        let q1rb = k11r.dot(&k1rd);
-        let q2l = k2ld.dot(&k12l);
-        let q2r = k2rd.dot(&k12r);
+        let q0l = K12L_DG * k1ld;
+        let q0r = K12R_DG * IPZ * k1rd;
+        let q1la = k2ld * k11l.adjoint();
+        let q1lb = k11l * k1ld;
+        let q1ra = k2rd * IPZ * k11r.adjoint();
+        let q1rb = k11r * k1rd;
+        let q2l = k2ld * K12L;
+        let q2r = k2rd * K12R;
 
         Ok(TwoQubitBasisDecomposer {
             gate,
@@ -667,7 +673,7 @@ impl TwoQubitBasisDecomposer {
             .iter()
             .map(|decomp| {
                 unitary_to_gate_sequence_inner(
-                    decomp.view(),
+                    nalgebra_array_view::<Complex64, U2, U2>(decomp.as_view()),
                     &target_1q_basis_list,
                     0,
                     None,
@@ -716,18 +722,43 @@ impl TwoQubitBasisDecomposer {
     }
 }
 
-static K12R_ARR: GateArray1Q = [
-    [c64(0., FRAC_1_SQRT_2), c64(FRAC_1_SQRT_2, 0.)],
-    [c64(-FRAC_1_SQRT_2, 0.), c64(0., -FRAC_1_SQRT_2)],
-];
+static K12R: Matrix2<Complex64> = Matrix2::new(
+    c64(0., FRAC_1_SQRT_2),
+    c64(FRAC_1_SQRT_2, 0.),
+    c64(-FRAC_1_SQRT_2, 0.),
+    c64(0., -FRAC_1_SQRT_2),
+);
 
-static K12L_ARR: GateArray1Q = [
-    [c64(0.5, 0.5), c64(0.5, 0.5)],
-    [c64(-0.5, 0.5), c64(0.5, -0.5)],
-];
+static K12R_DG: Matrix2<Complex64> = Matrix2::new(
+    c64(0., -FRAC_1_SQRT_2),
+    c64(-FRAC_1_SQRT_2, 0.),
+    c64(FRAC_1_SQRT_2, 0.),
+    c64(0., FRAC_1_SQRT_2),
+);
 
-fn decomp0_inner(target: &TwoQubitWeylDecomposition) -> SmallVec<[Array2<Complex64>; 8]> {
-    smallvec![target.K1r.dot(&target.K2r), target.K1l.dot(&target.K2l),]
+static K12L: Matrix2<Complex64> =
+    Matrix2::new(c64(0.5, 0.5), c64(0.5, 0.5), c64(-0.5, 0.5), c64(0.5, -0.5));
+
+static K12L_DG: Matrix2<Complex64> = Matrix2::new(
+    c64(0.5, -0.5),
+    c64(-0.5, -0.5),
+    c64(0.5, -0.5),
+    c64(0.5, 0.5),
+);
+
+static K22L: Matrix2<Complex64> = Matrix2::new(
+    c64(FRAC_1_SQRT_2, 0.),
+    c64(-FRAC_1_SQRT_2, 0.),
+    c64(FRAC_1_SQRT_2, 0.),
+    c64(FRAC_1_SQRT_2, 0.),
+);
+static K22R: Matrix2<Complex64> = Matrix2::new(Complex64::ZERO, C_ONE, C_M_ONE, Complex64::ZERO);
+
+fn decomp0_inner(target: &TwoQubitWeylDecomposition) -> SmallVec<[Matrix2<Complex64>; 8]> {
+    smallvec![
+        ndarray_to_matrix2(target.K1r.view()) * ndarray_to_matrix2(target.K2r.view()),
+        ndarray_to_matrix2(target.K1l.view()) * ndarray_to_matrix2(target.K2l.view()),
+    ]
 }
 
 type PickleNewArgs<'a> = (Py<PyAny>, Py<PyAny>, f64, &'a str, Option<bool>);
@@ -819,7 +850,7 @@ impl TwoQubitBasisDecomposer {
     fn decomp0(py: Python, target: &TwoQubitWeylDecomposition) -> SmallVec<[Py<PyAny>; 2]> {
         decomp0_inner(target)
             .into_iter()
-            .map(|x| x.into_pyarray(py).into_any().unbind())
+            .map(|x| x.to_pyarray(py).into_any().unbind())
             .collect()
     }
 
@@ -836,7 +867,7 @@ impl TwoQubitBasisDecomposer {
     fn decomp1(&self, py: Python, target: &TwoQubitWeylDecomposition) -> SmallVec<[Py<PyAny>; 4]> {
         self.decomp1_inner(target)
             .into_iter()
-            .map(|x| x.into_pyarray(py).into_any().unbind())
+            .map(|x| x.to_pyarray(py).into_any().unbind())
             .collect()
     }
 
@@ -861,7 +892,7 @@ impl TwoQubitBasisDecomposer {
     ) -> SmallVec<[Py<PyAny>; 6]> {
         self.decomp2_supercontrolled_inner(target)
             .into_iter()
-            .map(|x| x.into_pyarray(py).into_any().unbind())
+            .map(|x| x.to_pyarray(py).into_any().unbind())
             .collect()
     }
 
@@ -876,7 +907,7 @@ impl TwoQubitBasisDecomposer {
     ) -> SmallVec<[Py<PyAny>; 8]> {
         self.decomp3_supercontrolled_inner(target)
             .into_iter()
-            .map(|x| x.into_pyarray(py).into_any().unbind())
+            .map(|x| x.to_pyarray(py).into_any().unbind())
             .collect()
     }
 
