@@ -12,7 +12,7 @@
 
 use num_complex::Complex64;
 
-/// A short-hand constructor for Complex64 used in constant and static definitions.
+// A short-hand constructor for Complex64 used in constant and static definitions.
 #[inline(always)]
 pub const fn c64(re: f64, im: f64) -> Complex64 {
     Complex64::new(re, im)
