@@ -216,6 +216,7 @@ please ensure that:
    If your code fails the local style checks (specifically the black
    or Rust code formatting check) you can use `tox -eblack` and
    `cargo fmt` to automatically fix the code formatting.
+
 2. The documentation has been updated accordingly. In particular, if a
    function or class has been modified during the PR, please update the
    *docstring* accordingly.
@@ -223,16 +224,24 @@ please ensure that:
    If your pull request is adding a new class, function, or module that is
    intended to be user facing ensure that you've also added those to a
    documentation `autosummary` index to include it in the api documentation.
+
 3. If you are of the opinion that the modifications you made warrant additional tests,
    feel free to include them
+
 4. Ensure that if your change has an end user facing impact (new feature,
    deprecation, removal etc) that you have added a reno release note for that
    change and that the PR is tagged for the changelog.
+
 5. All contributors have signed the CLA.
+
 6. The PR has a concise and explanatory title (e.g. `Fixes Issue1234` is a bad title!).
+
 7. If the PR addresses an open issue the PR description includes the `fixes #issue-number`
-  syntax to link the PR to that issue (**you must use the exact phrasing in order for GitHub
-  to automatically close the issue when the PR merges**)
+   syntax to link the PR to that issue (**you must use the exact phrasing in order for GitHub
+   to automatically close the issue when the PR merges**)
+
+8. You have disclosed any use of AI tooling, including large language models (LLMs).
+   See [Use of AI tools](#use-of-ai-tools) for your responsibilities.
 
 ### Code Review
 
@@ -253,23 +262,89 @@ sure to always be kind and respectful in your interactions with maintainers and 
 
 ### Use of AI tools
 
-> [!WARNING]
-> If you use any AI tool while preparing your code contribution, you **must** disclose the name of the tool and its version in the PR description.
+> [!NOTE]
+> By "AI tools", we mean generative langauge tools like large language models (LLMs).
 
-When using AI tools for code generation, your submission must still be your own original work of authorship, as required by the [Contributor License Agreement (CLA)](https://qisk.it/cla). It is your responsibility to make sure that:
+*You are responsible for any code you submit to Qiskit, no matter how it was generated.*
 
-- You review and fully understand the generated code, and you can explain the reasoning behind it during review.
-- The usage of the AI tool does not violate any third-party license obligations.
-- The AI tool's terms and conditions allow its output to be used in open source projects and are compatible with the [Qiskit license](LICENSE.txt), the [Qiskit CLA](https://qisk.it/cla), and [these Contributor Guidelines](CONTRIBUTING.md).
-- You only use AI tools that have features to:
-  * filter out generated code substantially similar to training data, or
-  * identify similar training code so you can comply with the original license obligations (notice, attribution, etc.) and only contribute if it's compatible with the [Qiskit license](LICENSE.txt).
-- You disclose the name and version of the AI tool in your PR description.
+We discourage the use of LLM code generation, but do not forbid it in high-quality pull requests.
 
-Submissions that appear unreviewed or copied directly from an AI tool without proper understanding may be requested to be revised or declined.
+Qiskit maintainers are not obliged to accept any pull request, even if it follows these guidelines.
+Pull requests that require excessive maintainer time may be closed, even with no proposed
+alternative.
 
-Remember that spamming issues or pull requests with AI-generated comments is prohibited under the [Qiskit Code of Conduct](https://qisk.it/coc).
+#### Your responsibilities
 
+Your responsibilities for your code are not changed by using generative AI tooling.  Some of these
+(this is not an exhaustive list) are:
+
+- You have reviewed and fully understand all code you submit, and explain the reasoning for it.
+  Asking an LLM to explain the reasoning for you is not acceptable.
+
+- Your use of the AI tool, or the use of the output in Qiskit, does not violate any third-party
+  license obligations of source code used during the generation.  This may mean including license
+  notices or source attribution with the generated code.
+
+- The AI tool's terms and conditions must allow its output to be used in open-source projects, and
+  they are compatible with submitting code under the [Qiskit license](LICENSE.txt), and abiding by
+  the [Qiskit CLA](https://qisk.it/cla) and these contribution guidelines.
+
+By submitting code to Qiskit, you are asserting that your submission is your own original work of
+authorship, as required by the [Contributor License Agreement (CLA)](https://qisk.it/cla) that you
+signed (or will sign) on your first contribution to Qiskit.
+
+All non-trivial generated code must be clearly marked with code comments that:
+
+- include the name and version of the model and tool used;
+- indicate the start and end of the generated code.
+
+For example, you might write:
+
+```python
+class SomeTranspilerPass:
+    # This `run` method was originally generated using Claude Opus 4.6, then tidied up by hand.
+    def run(self, dag):
+        # [ ... generated code ... ]
+```
+
+It is never appropriate to allow an unsupervised agent to interact publicly with the Qiskit
+repository.
+
+#### Appropriate use of AI tools
+
+We understand that using AI tooling is fun, and feels very productive.  However, AI tooling is just
+a tool, and is not always appropriate.
+
+It is generally fine to use AI tooling privately in chat mode to ask about the existing code,
+prototype solutions, and debug issues.  Private use, where no LLM output becomes submitted code or
+public communications, does not need disclosure.  Be aware that writing code that is based on other
+code (such as re-implementing LLM-output code yourself) may still be subject to licensing
+restrictions from the source.
+
+It is generally not ok to use AI tooling to produce code that you could not subsequently reproduce
+yourself later without tooling, including if the AI tooling only provided explanations.  This would
+indicate that you do not sufficiently understand the code produced.
+
+Some questions to ask yourself:
+
+- *Have I reviewed and thought about the code in as much depth as I would have without the tool?*
+
+  The hardest part of producing high-quality software is not writing lines of code.  It is far
+  harder to review code for correctness and for whole-project architectural fit, and to make sure
+  that code is solving problems in the right way.
+
+- *Have I been respectful of the time the code review will take?*
+
+  By submitting code to Qiskit, you are asking a maintainer to review it.  It is very easy to
+  quickly generate large quantities of code with an LLM, yet all code must be reviewed.  Qiskit
+  maintainers will close PRs that indicate the submitter is not respecting the time of the humans
+  on the maintenance side.
+
+- *What am I, the person, bringing to this process?*
+
+  Remember that Qiskit maintainers have access to AI tools too.  If the majority of your involvement
+  was to point an AI tool at an open issue and ask it to fix it, consider that we could have done
+  that too and there was a reason we didn't.
 
 ## Contributor Licensing Agreement
 
