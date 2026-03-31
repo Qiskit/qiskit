@@ -137,7 +137,7 @@ impl ParameterExpression {
         qpy_replay(self, &self.name_map, &mut replay);
         replay
     }
-   #[inline]
+    #[inline]
     pub fn num_of_symbols(&self) -> usize {
         self.name_map.len()
     }
@@ -266,7 +266,10 @@ impl ParameterExpression {
         subs_operations: Option<Vec<(usize, HashMap<Symbol, ParameterExpression>)>>,
         additional_symbols: Option<&HashSet<Symbol>>,
     ) -> Result<Self, ParameterError> {
-        let mut symbols = additional_symbols.unwrap_or_default();
+        let mut symbols = match additional_symbols {
+            None => HashSet::new(),
+            Some(symbol_map) => symbol_map.clone(),
+        };
         // the stack contains the latest lhs and rhs values
         let mut stack: Vec<ParameterExpression> = Vec::new();
         let subs_operations = subs_operations.unwrap_or_default();
