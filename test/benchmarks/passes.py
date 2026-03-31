@@ -253,5 +253,5 @@ class LitinskiTransformationPassBenchmarks:
         self.dag = circuit_to_dag(transpiled)
 
     def time_litinski_transformation(self, _, __):
-        _pass = LitinskiTransformation()
+        _pass = LitinskiTransformation(use_ppr=True)
         _pass.run(self.dag)
