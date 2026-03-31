@@ -224,11 +224,8 @@ class LitinskiTransformationPassBenchmarks:
     params = (circuit_names, num_qubits)
     param_names = ["circuit_name", "n_qubits"]
     slow_tests = {
-        ("qft", 512),
-        ("qaoa", 256),
         ("qaoa", 512),
         ("grover", 512),
-        ("multiplier", 256),
         ("multiplier", 512),
     }
     timeout = 300
