@@ -394,7 +394,9 @@ class TestStatevector(QiskitTestCase):
             original_vec,
             "The evolved state is unchanged. Either the state is an eigenvector or evolve() is broken.",
         )
-        self.assertEqual(original_vec, new_vec, "Evolving by DiagonalGate modified original Statevector")
+        self.assertEqual(
+            original_vec, new_vec, "Evolving by DiagonalGate modified original Statevector"
+        )
 
     def test_evolve_no_modification_with_operator(self):
         """Test evolve by Operator doesn't modify original vector"""
@@ -413,7 +415,9 @@ class TestStatevector(QiskitTestCase):
             original_vec,
             "The evolved state is unchanged. Either the state is an eigenvector or evolve() is broken.",
         )
-        self.assertEqual(original_vec, new_vec, "Evolving by Operator modified original Statevector")
+        self.assertEqual(
+            original_vec, new_vec, "Evolving by Operator modified original Statevector"
+        )
 
     def test_evolve_no_modification_with_quantumcircuit(self):
         """Test by QuantumCircuit method doesn't modify original vector"""
@@ -437,7 +441,9 @@ class TestStatevector(QiskitTestCase):
             original_vec,
             "The evolved state is unchanged. Either the state is an eigenvector or evolve() is broken.",
         )
-        self.assertEqual(original_vec, new_vec, "Evolving by QuantumCircuit modified original Statevector")
+        self.assertEqual(
+            original_vec, new_vec, "Evolving by QuantumCircuit modified original Statevector"
+        )
 
     def test_evolve_operator_overload_dimensions(self):
         """Test that the @ operator returns a Statevector of correct dimension, type and value."""
