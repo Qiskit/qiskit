@@ -13,6 +13,7 @@ doctest = false
 workspace = true
 
 [dependencies]
+qiskit-util.workspace = true
 rayon.workspace = true
 ahash.workspace = true
 rustworkx-core.workspace = true

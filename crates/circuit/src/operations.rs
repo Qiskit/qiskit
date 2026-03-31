@@ -3532,7 +3532,7 @@ impl UnitaryGate {
     }
 }
 
-/// A Pauli-based gate model, consisting of PauliProductRotation and PauliProductMeasurement ops.
+/// A Pauli-based gate model, consisting of [PauliProductRotation] and [PauliProductMeasurement] ops.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PauliBased {
     PauliProductRotation(PauliProductRotation),
@@ -3586,6 +3586,45 @@ impl PauliProductRotation {
                 (z, x, self.angle.clone(), py_label),
             )?;
         Ok(gate.unbind())
+    }
+
+    /// Attempts to merge `self` and `other`.
+    /// If successful, returns the merged [PauliProductRotation].
+    /// If not successful, returns `None`.
+    pub fn merge_with(&self, other: &Self) -> Option<Self> {
+        if self.x == other.x && self.z == other.z {
+            Some(PauliProductRotation {
+                z: self.z.clone(),
+                x: self.x.clone(),
+                angle: radd_param(self.angle.clone(), other.angle.clone()),
+            })
+        } else {
+            None
+        }
+    }
+
+    /// For a [PauliProductRotation] gate with a floating-point angle return a tuple `(Tr(gate) / dim, dim)`.
+    /// Return `None` if the angle is parameterized.
+    pub fn rotation_trace_and_dim(&self) -> Option<(Complex64, f64)> {
+        let Param::Float(angle) = self.angle else {
+            return None;
+        };
+
+        let num_qubits = self
+            .z
+            .iter()
+            .zip(self.x.iter())
+            .filter(|(z, x)| **z || **x)
+            .count();
+        let dim = 2u32.pow(num_qubits as u32);
+        let tr_over_dim = if num_qubits == 0 {
+            // This is an identity Pauli rotation.
+            (Complex64::new(0.0, -angle / 2.)).exp()
+        } else {
+            Complex64::new((angle / 2.).cos(), 0.)
+        };
+
+        Some((tr_over_dim, dim as f64))
     }
 }
 

@@ -31,6 +31,7 @@ use crate::euler_one_qubit_decomposer::{
 use crate::linalg::{
     closest_unitary, is_hermitian_matrix, nalgebra_array_view, svd_decomposition, verify_unitary,
 };
+use crate::matrix::two_qubit;
 use crate::two_qubit_decompose::{TwoQubitBasisDecomposer, two_qubit_decompose_up_to_diagonal};
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError, PyCircuitData};
@@ -38,7 +39,6 @@ use qiskit_circuit::interner::Interned;
 use qiskit_circuit::operations::{ArrayType, OperationRef, Param, StandardGate, UnitaryGate};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
-use qiskit_quantum_info::convert_2q_block_matrix::instructions_to_matrix;
 
 const EPS: f64 = 1e-10;
 
@@ -719,7 +719,7 @@ fn apply_a2(
     for ind in ind2q.windows(2) {
         let mat1 = match diagonal_rollover.get(&ind[0]) {
             Some(circ) => {
-                let mat: Matrix4<Complex64> = instructions_to_matrix(
+                let mat: Matrix4<Complex64> = two_qubit::instructions_to_matrix(
                     circ.data().iter(),
                     [Qubit(0), Qubit(1)],
                     circ.qargs_interner(),
@@ -730,7 +730,7 @@ fn apply_a2(
         };
         let mat2 = match diagonal_rollover.get(&ind[1]) {
             Some(circ) => nalgebra_array_view::<Complex64, U4, U4>(
-                instructions_to_matrix(
+                two_qubit::instructions_to_matrix(
                     circ.data().iter(),
                     [Qubit(0), Qubit(1)],
                     circ.qargs_interner(),

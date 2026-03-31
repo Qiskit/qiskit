@@ -40,8 +40,8 @@ use crate::passes::unitary_synthesis::{
 use crate::passes::{UnitarySynthesisConfig, UnitarySynthesisState};
 use crate::target::Target;
 use qiskit_circuit::PhysicalQubit;
-use qiskit_circuit::getenv_use_multiple_threads;
-use qiskit_quantum_info::convert_2q_block_matrix::blocks_to_matrix;
+use qiskit_synthesis::matrix::two_qubit::blocks_to_matrix;
+use qiskit_util::getenv_use_multiple_threads;
 use qiskit_synthesis::linalg::nalgebra_array_view;
 use thread_local::ThreadLocal;
 

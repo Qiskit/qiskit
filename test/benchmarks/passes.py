@@ -224,11 +224,8 @@ class LitinskiTransformationPassBenchmarks:
     params = (circuit_names, num_qubits)
     param_names = ["circuit_name", "n_qubits"]
     slow_tests = {
-        ("qft", 512),
-        ("qaoa", 256),
         ("qaoa", 512),
         ("grover", 512),
-        ("multiplier", 256),
         ("multiplier", 512),
     }
     timeout = 300
@@ -253,5 +250,5 @@ class LitinskiTransformationPassBenchmarks:
         self.dag = circuit_to_dag(transpiled)
 
     def time_litinski_transformation(self, _, __):
-        _pass = LitinskiTransformation()
+        _pass = LitinskiTransformation(use_ppr=True)
         _pass.run(self.dag)
