@@ -240,7 +240,7 @@ please ensure that:
    syntax to link the PR to that issue (**you must use the exact phrasing in order for GitHub
    to automatically close the issue when the PR merges**)
 
-8. You have disclosed any use of AI tooling, including large language models (LLMs).
+8. You have disclosed all substantial use of AI tooling, including large language models (LLMs).
    See [Use of AI tools](#use-of-ai-tools) for your responsibilities.
 
 ### Code Review
@@ -293,7 +293,16 @@ By submitting code to Qiskit, you are asserting that your submission is your own
 authorship, as required by the [Contributor License Agreement (CLA)](https://qisk.it/cla) that you
 signed (or will sign) on your first contribution to Qiskit.
 
-All non-trivial generated code must be clearly marked with code comments that:
+Any use of generative tooling to produce code or public communications (for example, comments or
+pull-request descriptions) must be disclosed in the pull-request description.  You can say:
+
+> LLM disclosure: ChatGPT with GPT-5.4 was used to help write the pull request description.
+
+or
+
+> LLM disclosure: Claude Opus 4.6 was used to generate initial prototypes, which I then modified.
+
+All non-trivial generated code must be clearly marked inline with code comments that:
 
 - include the name and version of the model and tool used;
 - indicate the start and end of the generated code.
@@ -312,8 +321,9 @@ repository.
 
 #### Appropriate use of AI tools
 
-We understand that using AI tooling is fun, and feels very productive.  However, AI tooling is just
-a tool, and is not always appropriate.
+We understand that using AI tooling is fun, feels productive, and can help communicate, particularly
+for people whose primary language is not English.  However, AI tooling is just a tool, and is not
+always appropriate.
 
 It is generally fine to use AI tooling privately in chat mode to ask about the existing code,
 prototype solutions, and debug issues.  Private use, where no LLM output becomes submitted code or
