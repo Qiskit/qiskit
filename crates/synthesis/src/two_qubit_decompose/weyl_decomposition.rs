@@ -38,16 +38,16 @@ use rand::prelude::*;
 use rand_distr::StandardNormal;
 use rand_pcg::Pcg64Mcg;
 
-use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
-use qiskit_circuit::gate_matrix::ONE_QUBIT_IDENTITY;
-use qiskit_circuit::operations::{Param, StandardGate};
-use qiskit_circuit::util::{C_M_ONE, C_ONE, C_ZERO, GateArray2Q, IM, M_IM, c64};
-use qiskit_circuit::{Qubit, impl_intopyobject_for_copy_pyclass};
-
 use super::common::{
     DEFAULT_FIDELITY, IPX, IPY, IPZ, TraceToFidelity, closest_partial_swap, rx_matrix, ry_matrix,
     rz_matrix, transpose_conjugate,
 };
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
+use qiskit_circuit::gate_matrix::ONE_QUBIT_IDENTITY;
+use qiskit_circuit::operations::{Param, StandardGate};
+use qiskit_circuit::{Qubit, impl_intopyobject_for_copy_pyclass};
+use qiskit_util::alias::GateArray2Q;
+use qiskit_util::complex::{C_M_ONE, C_ONE, C_ZERO, IM, M_IM, c64};
 
 const PI32: f64 = 3.0 * FRAC_PI_2;
 const C1: c64 = c64 { re: 1.0, im: 0.0 };

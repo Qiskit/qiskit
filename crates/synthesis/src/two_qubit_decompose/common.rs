@@ -18,8 +18,8 @@ use numpy::{IntoPyArray, PyArray2, PyReadonlyArray1, PyReadonlyArray2};
 use pyo3::prelude::*;
 
 use crate::linalg::ndarray_to_faer;
-use qiskit_circuit::util::{C_M_ONE, C_ONE, C_ZERO, GateArray1Q, GateArray2Q, IM, M_IM, c64};
-
+use qiskit_util::alias::{GateArray1Q, GateArray2Q};
+use qiskit_util::complex::{C_M_ONE, C_ONE, C_ZERO, IM, M_IM, c64};
 pub(super) const DEFAULT_FIDELITY: f64 = 1.0 - 1.0e-9;
 
 pub trait TraceToFidelity {

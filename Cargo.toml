@@ -63,6 +63,7 @@ qiskit-qpy = { path = "crates/qpy" }
 qiskit-transpiler = { path = "crates/transpiler" }
 qiskit-quantum-info = { path = "crates/quantum_info" }
 qiskit-synthesis = {path = "crates/synthesis" }
+qiskit-util = { path = "crates/util" }
 
 [workspace.lints.clippy]
 # The lint forbids things like `if a < b {} else if a == b {}`, and suggests matching on `a.cmp(&b)`

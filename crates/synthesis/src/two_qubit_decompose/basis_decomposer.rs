@@ -36,7 +36,7 @@ use crate::euler_one_qubit_decomposer::{
     unitary_to_gate_sequence_inner,
 };
 use crate::linalg::ndarray_to_faer;
-use qiskit_quantum_info::convert_2q_block_matrix::change_basis;
+use crate::matrix::two_qubit;
 
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
@@ -46,8 +46,9 @@ use qiskit_circuit::gate_matrix::{CX_GATE, H_GATE, ONE_QUBIT_IDENTITY};
 use qiskit_circuit::instruction::{Instruction, Parameters};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::util::{C_M_ONE, C_ONE, GateArray1Q, IM, M_IM, c64};
 use qiskit_circuit::{NoBlocks, Qubit};
+use qiskit_util::alias::GateArray1Q;
+use qiskit_util::complex::{C_M_ONE, C_ONE, IM, M_IM, c64};
 
 // Worst case length is 5x 1q gates for each 1q decomposition + 1x 2q gate
 // We might overallocate a bit if the euler basis is different but
@@ -1060,7 +1061,7 @@ fn compute_unitary(sequence: &TwoQubitSequenceVec, global_phase: f64) -> Array2<
             let result = match q_list.as_slice() {
                 [0] => Some(kron(&identity, &op_matrix)),
                 [1] => Some(kron(&op_matrix, &identity)),
-                [1, 0] => Some(change_basis(op_matrix.view())),
+                [1, 0] => Some(two_qubit::change_basis(op_matrix.view())),
                 [] => Some(Array2::eye(4)),
                 _ => None,
             };

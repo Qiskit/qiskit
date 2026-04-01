@@ -355,6 +355,19 @@ impl GenericValue {
             _ => None,
         }
     }
+    // return the inner GenericValue slice when the GenericData is a Tuple
+    pub(crate) fn as_slice(&self) -> Option<&[GenericValue]> {
+        match self {
+            GenericValue::Tuple(elements) => Some(elements),
+            _ => None,
+        }
+    }
+    pub(crate) fn to_vec(&self) -> Option<Vec<GenericValue>> {
+        match self {
+            GenericValue::Tuple(elements) => Some(elements.clone()),
+            _ => None,
+        }
+    }
 }
 
 macro_rules! impl_from_generic {
@@ -631,7 +644,7 @@ pub(crate) fn pack_for_collection(value: &ForCollection) -> GenericValue {
     match value {
         ForCollection::List(vec) => GenericValue::Tuple(
             vec.iter()
-                .map(|&val| GenericValue::Int64(val as i64))
+                .map(|&val| GenericValue::Int64(val as i64).as_le())
                 .collect(),
         ),
         ForCollection::PyRange(py_range) => GenericValue::Range(*py_range),

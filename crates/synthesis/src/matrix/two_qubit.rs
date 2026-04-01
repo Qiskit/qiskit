@@ -10,13 +10,12 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use pyo3::Python;
 use pyo3::intern;
 use pyo3::prelude::*;
 
 use num_complex::Complex64;
 use numpy::PyReadonlyArray2;
-use numpy::nalgebra::{Matrix4, MatrixViewMut4};
+use numpy::nalgebra::{Matrix2, Matrix4, MatrixViewMut4};
 use numpy::ndarray::{Array2, ArrayView2};
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
@@ -26,9 +25,9 @@ use qiskit_circuit::imports::QI_OPERATOR;
 use qiskit_circuit::interner::Interner;
 use qiskit_circuit::operations::{ArrayType, OperationRef};
 use qiskit_circuit::packed_instruction::PackedInstruction;
+use qiskit_quantum_info::versor_u2::{VersorSU2, VersorU2, VersorU2Error};
 
 use crate::QiskitError;
-use crate::versor_u2::{VersorSU2, VersorU2, VersorU2Error};
 
 #[inline]
 fn matrix4_from_pyreadonly(array: &PyReadonlyArray2<Complex64>) -> Matrix4<Complex64> {
@@ -49,6 +48,16 @@ fn matrix4_from_pyreadonly(array: &PyReadonlyArray2<Complex64>) -> Matrix4<Compl
         *array.get((3, 1)).unwrap(),
         *array.get((3, 2)).unwrap(),
         *array.get((3, 3)).unwrap(),
+    )
+}
+
+#[inline]
+fn matrix2_from_pyreadonly(array: &PyReadonlyArray2<Complex64>) -> Matrix2<Complex64> {
+    Matrix2::new(
+        *array.get((0, 0)).unwrap(),
+        *array.get((0, 1)).unwrap(),
+        *array.get((1, 0)).unwrap(),
+        *array.get((1, 1)).unwrap(),
     )
 }
 
@@ -106,6 +115,34 @@ pub fn get_2q_matrix_from_inst(inst: &PackedInstruction) -> PyResult<Matrix4<Com
             .getattr(intern!(py, "data"))?
             .extract()?;
         Ok(matrix4_from_pyreadonly(&res))
+    })
+}
+
+#[inline]
+pub fn get_1q_matrix_from_inst(inst: &PackedInstruction) -> PyResult<Matrix2<Complex64>> {
+    if let Some(mat) = inst.try_matrix_as_nalgebra_1q() {
+        return Ok(mat);
+    }
+    if inst.op.try_standard_gate().is_some() {
+        return Err(QiskitError::new_err(
+            "Parameterized gates can't be consolidated",
+        ));
+    }
+    let OperationRef::Gate(gate) = inst.op.view() else {
+        return Err(QiskitError::new_err(
+            "Can't compute matrix of non-unitary op",
+        ));
+    };
+    // If the operation is a custom python gate, we will acquire the gil and use an
+    // Operator. Otherwise, using op.matrix() should work.  A user should not be
+    // able to reach this condition in Rust standalone mode.
+    Python::attach(|py| {
+        let res = QI_OPERATOR
+            .get_bound(py)
+            .call1((gate.instruction.clone_ref(py),))?
+            .getattr(intern!(py, "data"))?
+            .extract()?;
+        Ok(matrix2_from_pyreadonly(&res))
     })
 }
 
