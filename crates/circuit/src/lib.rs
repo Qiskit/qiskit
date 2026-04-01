@@ -35,7 +35,6 @@ pub mod packed_instruction;
 pub mod parameter;
 pub mod parameter_table;
 pub mod register_data;
-pub mod slice;
 pub mod standard_gate;
 pub mod var_stretch_container;
 mod variable_mapper;
