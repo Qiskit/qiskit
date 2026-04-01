@@ -12,8 +12,6 @@
 
 use std::env;
 
-pub mod util;
-
 pub mod complex {
     use num_complex::Complex64;
 

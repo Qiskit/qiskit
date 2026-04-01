@@ -10,20 +10,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-
-"""
-AI attribution:
-Portions of the `test_clifford_gates_have_generators` are developed with assistance from
- GitHub Copilot integrated in VS Code. The underlying model : Claude Haiku 4.5.
-"""
-
-
 """Test commutation checker class ."""
 
 import unittest
 import pickle
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
+import scipy
 import numpy as np
 from ddt import idata, ddt, data, unpack
 from qiskit.quantum_info import Operator
@@ -65,39 +58,24 @@ from qiskit.circuit.library import (
     RZXGate,
     RZZGate,
     SGate,
-    SdgGate,
     XGate,
     YGate,
     ZGate,
     HGate,
-    IGate,
     UnitaryGate,
-    CSGate,
-    CSdgGate,
-    CZGate,
-    CYGate,
-    CSXGate,
-    SwapGate,
-    CCZGate,
-    CSwapGate,
-    SXGate,
-    SXdgGate,
-    TGate,
-    TdgGate,
-    iSwapGate,
-    GlobalPhaseGate,
-    ECRGate,
     UGate,
-    PauliEvolutionGate,
     XXPlusYYGate,
-    XXMinusYYGate,
+    PauliEvolutionGate,
     PauliProductMeasurement,
+    PauliProductRotationGate,
+    get_standard_gate_name_mapping,
 )
 from qiskit.dagcircuit import DAGOpNode
 
 from qiskit.quantum_info import SparseObservable, SparsePauliOp, Pauli
 from qiskit._accelerate.circuit import StandardGate
-from qiskit._accelerate.sparse_observable import _generator_observable
+from qiskit._accelerate.standard_generators import _standard_gate_exponent
+from qiskit._accelerate import standard_generators
 
 ROTATION_GATES = [
     RXGate,
@@ -612,6 +590,37 @@ class TestCommutationChecker(QiskitTestCase):
         with self.subTest(left=z, right=x):
             self.assertFalse(scc.commute(z, qargs, [], x, qargs, []))
 
+    @data("evolution", "pauli", "measure", "rotation")
+    def test_pauli_and_standard_gate(self, pauli_type):
+        """Test Pauli-based gates and standard gate commutations are efficiently supported."""
+        # 40-qubit Pauli gate with following terms: X: 0-9, Y: 10-19, Z: 20-29, I: 30-39
+        pauli = 10 * "I" + 10 * "Z" + 10 * "Y" + 10 * "X"
+        pauli_indices = list(range(len(pauli)))
+        pauli_gate = build_pauli_gate(pauli, pauli_type)
+
+        # Test cases in the format: (gate, indices, commutes)
+        x = Parameter("x")
+        cases = [
+            (CXGate(), [30, 0], True),  # CX vs. IX
+            (CXGate(), [29, 0], True),  # CX vs. ZX
+            (CXGate(), [29, 10], False),  # CX vs. ZY
+            (RXXGate(x), [0, 1], True),
+            (RXXGate(1.2), [11, 15], True),
+            (RXXGate(x), [0, 15], False),
+            (HGate(), [33], True),
+            (HGate(), [2], False),
+            (CPhaseGate(0.1), [30, 31], True),
+            (CPhaseGate(0.1), [2, 3], False),
+            (XXPlusYYGate(1, 1), [0, 1], False),
+            (XXPlusYYGate(1, 0), [0, 1], True),
+            # TODO In future, trivial commutations with the identity Pauli should be supported
+            # (XXPlusYYGate(1, 1), [32, 33], False),
+        ]
+
+        for std_gate, indices, expected in cases:
+            commutes = scc.commute(pauli_gate, pauli_indices, [], std_gate, indices, [])
+            self.assertEqual(expected, commutes)
+
 
 def build_pauli_gate(pauli_string: str, gate_type: str) -> Gate:
     """Build a Pauli-based gate off a Pauli string.
@@ -620,6 +629,7 @@ def build_pauli_gate(pauli_string: str, gate_type: str) -> Gate:
 
         * ``"pauli"`` for ``PauliGate``
         * ``"measure"`` for ``PauliProductMeasurement``
+        * ``"rotation"`` for ``PauliProductRotationGate``
         * ``"evolution"`` for ``PauliEvolutionGate``
 
     Args:
@@ -633,6 +643,8 @@ def build_pauli_gate(pauli_string: str, gate_type: str) -> Gate:
         return PauliGate(pauli_string)
     if gate_type == "measure":
         return PauliProductMeasurement(Pauli(pauli_string))
+    if gate_type == "rotation":
+        return PauliProductRotationGate(Pauli(pauli_string), angle=1.0)
     if gate_type == "evolution":
         return PauliEvolutionGate(SparseObservable(pauli_string))
 
@@ -640,9 +652,12 @@ def build_pauli_gate(pauli_string: str, gate_type: str) -> Gate:
 
 
 @ddt
-class TestGeneratorObservableCommutation(QiskitTestCase):
-    """Test that `_generator_observable` produces correct Pauli generators
-    for use in commutation checking.
+class TestInternalStandardGateExponent(QiskitTestCase):
+    """Test that `_standard_gate_exponent` produces correct Pauli generators.
+
+    This is testing internal Rust functionality since we do not yet have sufficient
+    matrix construction features in Rust to test it there. Once we do, these test should
+    move to Rust.
 
     The function returns H such that gate ≈ exp(-i H) (up to global phase).
     Two gates A and B commute iff [H_A, H_B] = 0.  We verify here that the
@@ -650,231 +665,25 @@ class TestGeneratorObservableCommutation(QiskitTestCase):
     representative set of gate pairs.
     """
 
-    def _commute(self, gate_a, gate_b, qargs_a, qargs_b):
-        """Compute commutation via the full CommutationChecker."""
-        return scc.commute(gate_a, qargs_a, [], gate_b, qargs_b, [])
+    def test_gate_exponents(self):
+        """Test the matrix representations are correct, if they are provided."""
+        for name, gate in get_standard_gate_name_mapping().items():
+            with self.subTest(name=name):
+                if (std_gate := gate._standard_gate) is None:
+                    continue  # not a _standard_gate
 
-    def test_cs_commutation(self):
-        """CS and CZ share the same Z0 Z1 generator subspace, so they commute."""
-        self.assertTrue(
-            self._commute(CSGate(), CZGate(), [0, 1], [0, 1]),
-            "CS and CZ should commute (both are ZZ-type generators)",
-        )
+                gate = gate.to_mutable()
+                gate.params = [0.1, 0.2, 0.3, 0.4][: len(gate.params)]
 
-    def test_cx_cy_noncommute(self):
-        """CX and CY do not commute on overlapping qubits (different generators)."""
-        self.assertFalse(
-            self._commute(CXGate(), CYGate(), [0, 1], [0, 1]),
-            "CX and CY should not commute on the same qubits",
-        )
+                if (exponent := _standard_gate_exponent(std_gate, gate.params)) is None:
+                    continue  # no standard exponent registered
 
-    def test_csx_commutes_with_cx(self):
-        """CSX and CX share the ZX generator subspace (same up to scale), so they commute."""
-        self.assertTrue(
-            self._commute(CSXGate(), CXGate(), [0, 1], [0, 1]),
-            "CSX and CX should commute (both ZX-type generators)",
-        )
+                expected = gate.to_matrix()
+                exponent_matrix = SparsePauliOp.from_sparse_observable(exponent).to_matrix()
+                constructed = scipy.linalg.expm(-1j * exponent_matrix)
 
-    @data(
-        StandardGate.CX,
-        StandardGate.CY,
-        StandardGate.CZ,
-        StandardGate.CS,
-        StandardGate.CSdg,
-        StandardGate.CSX,
-        StandardGate.Swap,
-        StandardGate.CCX,
-        StandardGate.CCZ,
-        StandardGate.CSwap,
-        StandardGate.X,
-        StandardGate.Y,
-        StandardGate.Z,
-        StandardGate.S,
-        StandardGate.Sdg,
-        StandardGate.T,
-        StandardGate.Tdg,
-        StandardGate.H,
-        StandardGate.SX,
-        StandardGate.SXdg,
-        StandardGate.ISwap,
-        StandardGate.ECR,
-        StandardGate.CCZ,
-        StandardGate.I,
-        StandardGate.CPhase,
-        StandardGate.CRX,
-        StandardGate.CRY,
-        StandardGate.CRZ,
-        StandardGate.GlobalPhase,
-        StandardGate.RXX,
-        StandardGate.RYY,
-        StandardGate.RZZ,
-        StandardGate.RZX,
-        StandardGate.XXPlusYY,
-        StandardGate.XXMinusYY,
-    )
-    def test_clifford_gates_have_generators(self, std_gate):
-        """
-        Ensures `_generator_observable` returns a valid SparseObservable for all
-        standard gates that support Pauli-based commutation.
-        """
-        # If a gate requires parameters (like XXPlusYY), provide defaults.
-        # Otherwise, fall back to empty params.
-        params = [0.1, 0.0] if std_gate.name in ("xx_plus_yy", "xx_minus_yy") else []
-        obs = _generator_observable(std_gate, params)
-        self.assertIsNotNone(
-            obs,
-            f"{std_gate.name} should have a generator",
-        )
-
-    @data(
-        (StandardGate.RX, 0.7),
-        (StandardGate.RY, 0.7),
-        (StandardGate.RZ, 0.7),
-        (StandardGate.Phase, 0.7),
-        (StandardGate.RXX, 0.7),
-        (StandardGate.RYY, 0.7),
-        (StandardGate.RZZ, 0.7),
-        (StandardGate.RZX, 0.7),
-        (StandardGate.CPhase, 0.7),
-        (StandardGate.CRX, 0.7),
-        (StandardGate.CRY, 0.7),
-        (StandardGate.CRZ, 0.7),
-    )
-    @unpack
-    def test_rotation_gates_have_generators(self, std_gate, angle):
-        """Parametric rotation gates should return generators proportional to the angle."""
-        obs = _generator_observable(std_gate, [angle])
-        self.assertIsNotNone(obs)
-
-        # Controlled rotations typically use angle/4 in their generator expansion
-        # (e.g. CRX(t) ~ exp(-i * t/4 * (X - ZX)))
-        expected_scale = 4.0 if std_gate.name in ("cp", "crx", "cry", "crz") else 2.0
-
-        self.assertAlmostEqual(
-            abs(obs.coeffs[0]),
-            abs(angle / expected_scale),
-            places=10,
-            msg=f"{std_gate.name} coefficient should be angle/{expected_scale}",
-        )
-
-    @data(
-        (StandardGate.X, XGate()),
-        (StandardGate.Y, YGate()),
-        (StandardGate.Z, ZGate()),
-        (StandardGate.I, IGate()),
-        (StandardGate.H, HGate()),
-        (StandardGate.S, SGate()),
-        (StandardGate.Sdg, SdgGate()),
-        (StandardGate.T, TGate()),
-        (StandardGate.Tdg, TdgGate()),
-        (StandardGate.SX, SXGate()),
-        (StandardGate.SXdg, SXdgGate()),
-        (StandardGate.CX, CXGate()),
-        (StandardGate.CY, CYGate()),
-        (StandardGate.CZ, CZGate()),
-        (StandardGate.CS, CSGate()),
-        (StandardGate.CSdg, CSdgGate()),
-        (StandardGate.CSX, CSXGate()),
-        (StandardGate.Swap, SwapGate()),
-        (StandardGate.ISwap, iSwapGate()),
-        (StandardGate.ECR, ECRGate()),
-        (StandardGate.CCX, CCXGate()),
-        (StandardGate.CCZ, CCZGate()),
-        (StandardGate.CSwap, CSwapGate()),
-        (StandardGate.RX, RXGate(0.5)),
-        (StandardGate.RY, RYGate(0.5)),
-        (StandardGate.RZ, RZGate(0.5)),
-        (StandardGate.Phase, PhaseGate(0.5)),
-        (StandardGate.RXX, RXXGate(0.5)),
-        (StandardGate.RYY, RYYGate(0.5)),
-        (StandardGate.RZZ, RZZGate(0.5)),
-        (StandardGate.RZX, RZXGate(0.5)),
-        (StandardGate.CPhase, CPhaseGate(0.5)),
-        (StandardGate.CRX, CRXGate(0.5)),
-        (StandardGate.CRY, CRYGate(0.5)),
-        (StandardGate.CRZ, CRZGate(0.5)),
-        (StandardGate.XXPlusYY, XXPlusYYGate(0.5, 0.0)),
-        (StandardGate.XXMinusYY, XXMinusYYGate(0.5, 0.0)),
-        (StandardGate.GlobalPhase, GlobalPhaseGate(0.5)),
-    )
-    @unpack
-    def test_all_gates_operator_equivalence_ddt(self, std_gate, gate_obj):
-        """Verify that gate ≈ exp(-i * H) for all supported standard gates."""
-        obs = _generator_observable(std_gate, gate_obj.params)
-        self.assertIsNotNone(obs, f"{std_gate.name} should have a generator")
-
-        # Convert generator SparseObservable to Operator via PauliEvolutionGate
-        # Convention: gate = exp(-i * H). So time=1.0.
-        evo = PauliEvolutionGate(obs, time=1.0)
-        gen_op = Operator(evo)
-        target_op = Operator(gate_obj)
-
-        # Operator.equiv() checks for equivalence up to global phase
-        self.assertTrue(
-            gen_op.equiv(target_op),
-            f"Generator for {std_gate.name} is not equivalent to the gate unitary. "
-            f"Dist: {np.linalg.norm(gen_op.data - target_op.data)}",
-        )
-
-    def test_large_pauli_evolution_commutation(self):
-        """Test that a large PauliEvolutionGate correctly commutes with standard gates.
-        This verifies that matrix-based fallback is avoided for large commutative Pauli strings."""
-        pauli_op = SparsePauliOp.from_list([("X" * 50, 1.0)])
-        evo_gate = PauliEvolutionGate(pauli_op)
-
-        # Create a circuit with the evolution gate and a standard gate
-        qr = QuantumRegister(51)
-        qc = QuantumCircuit(qr)
-        qc.append(evo_gate, range(50))
-        qc.x(50)
-
-        evo_op = qc.data[0]
-        x_op = qc.data[1]
-
-        cc = scc
-
-        # They act on disjoint qubits, so they should commute
-        commutes = cc.commute(
-            evo_op.operation, evo_op.qubits, evo_op.clbits, x_op.operation, x_op.qubits, x_op.clbits
-        )
-        self.assertTrue(commutes)
-
-        # Test commuting with an X gate that overlaps (on qubit 0).
-        # "X...X" and X commute!
-        qc.x(0)
-        x_op2 = qc.data[2]
-        commutes_overlap = cc.commute(
-            evo_op.operation,
-            evo_op.qubits,
-            evo_op.clbits,
-            x_op2.operation,
-            x_op2.qubits,
-            x_op2.clbits,
-        )
-        self.assertTrue(commutes_overlap)
-
-        # Test non-commuting with Y gate on qubit 0
-        qc.y(0)
-        y_op = qc.data[3]
-        commutes_y = cc.commute(
-            evo_op.operation, evo_op.qubits, evo_op.clbits, y_op.operation, y_op.qubits, y_op.clbits
-        )
-        self.assertFalse(commutes_y)
-
-    @data(
-        StandardGate.CH,
-        StandardGate.R,
-        StandardGate.U,
-        StandardGate.U1,
-        StandardGate.U2,
-        StandardGate.U3,
-        StandardGate.CU,
-        StandardGate.CU3,
-    )
-    def test_unsupported_gates_return_none(self, std_gate):
-        """Standard gates not yet implemented in Rust should return None."""
-        obs = _generator_observable(std_gate, [0.1] * std_gate.num_params)
-        self.assertIsNone(obs, f"{std_gate.name} should not have a generator implementation yet")
+                # we ignore global phase here, so use Operator.equiv
+                self.assertTrue(Operator(expected).equiv(constructed))
 
     @data(
         (StandardGate.XXPlusYY, [0.5, 0.1]),
@@ -883,60 +692,10 @@ class TestGeneratorObservableCommutation(QiskitTestCase):
     @unpack
     def test_unsupported_params_return_none(self, std_gate, params):
         """Standard gates with unsupported parameter values should return None."""
-        obs = _generator_observable(std_gate, params)
+        obs = _standard_gate_exponent(std_gate, params)
         self.assertIsNone(
             obs, f"{std_gate.name} with beta={params[1]} should not have a generator implementation"
         )
-
-    def test_pauli_product_rotation_commutation(self):
-        """Test commutation between standard gates and PauliProductRotationGate."""
-        from qiskit.circuit.library import PauliProductRotationGate
-
-        # CX(0,1) commutes with exp(-i*theta*XI) and exp(-i*theta*IZ)
-        # but not exp(-i*theta*IX)
-        ppr_xi = PauliProductRotationGate(Pauli("XI"), 0.5)
-        ppr_iz = PauliProductRotationGate(Pauli("IZ"), 0.5)
-        ppr_ix = PauliProductRotationGate(Pauli("IX"), 0.5)
-
-        self.assertTrue(scc.commute(CXGate(), [0, 1], [], ppr_xi, [0, 1], []))
-        self.assertTrue(scc.commute(CXGate(), [0, 1], [], ppr_iz, [0, 1], []))
-        self.assertFalse(scc.commute(CXGate(), [0, 1], [], ppr_ix, [0, 1], []))
-
-    def test_large_qubit_scaling(self):
-        """Test commutation with a very large Number of qubits."""
-        num_qubits = 100
-        # PauliEvolutionGate on qubits 0 and 99
-        op = SparsePauliOp.from_list([("Z" + "I" * (num_qubits - 2) + "Z", 1.0)])
-        evo = PauliEvolutionGate(op, time=0.5)
-
-        # X gate on qubit 50 should commute
-        self.assertTrue(scc.commute(XGate(), [50], [], evo, list(range(num_qubits)), []))
-
-        # X gate on qubit 0 should not commute
-        self.assertFalse(scc.commute(XGate(), [0], [], evo, list(range(num_qubits)), []))
-
-    def test_exposed_generator_observable(self):
-        """Test the exposed Python binding for _generator_observable."""
-        # CCXGate generator should be exposed
-        obs = _generator_observable(StandardGate.CCX)
-        self.assertIsInstance(obs, SparseObservable)
-        self.assertEqual(obs.num_terms, 7)
-
-    @data(
-        (RXXGate(0.5), [0, 1], XGate(), [0], True),
-        (RXXGate(0.5), [0, 1], ZGate(), [0], False),
-        (RYYGate(0.5), [0, 1], YGate(), [1], True),
-        (RZZGate(0.5), [0, 1], ZGate(), [1], True),
-        (RZXGate(0.5), [0, 1], ZGate(), [0], True),
-        (RZXGate(0.5), [0, 1], XGate(), [1], True),
-        (XXPlusYYGate(0.5), [0, 1], ZGate(), [0], False),
-        (GlobalPhaseGate(0.5), [], XGate(), [0], True),
-    )
-    @unpack
-    def test_more_standard_gates_commutation(self, gate1, q1, gate2, q2, expected):
-        """Test more standard gates requested by reviewers."""
-        res = scc.commute(gate1, q1, [], gate2, q2, [])
-        self.assertEqual(res, expected, f"Commutation of {gate1.name} and {gate2.name} failed")
 
 
 if __name__ == "__main__":

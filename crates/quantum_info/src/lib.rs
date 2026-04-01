@@ -14,6 +14,7 @@ pub mod clifford;
 pub mod pauli_lindblad_map;
 pub mod sparse_observable;
 pub mod sparse_pauli_op;
+pub mod standard_generators;
 pub mod unitary_compose;
 pub mod versor_u2;
 
