@@ -501,6 +501,14 @@ class TestCommutationChecker(QiskitTestCase):
             scc.commute(almost_identity, [0], [], other, [0], [], approximation_degree=1 - 1e-4)
         )
 
+    def test_large_custom_gate(self):
+        """Test a large custom gate is caught by the qubit threshold."""
+        big = UnitaryGate(np.eye(2**12))
+        other = HGate()
+
+        self.assertFalse(scc.commute(big, list(range(big.num_qubits)), [], other, [0], []))
+        self.assertFalse(scc.commute(other, [0], [], big, list(range(big.num_qubits)), []))
+
     @data("pauli", "evolution", "measure")
     def test_pauli_based_gates(self, gate_type):
         """Test Pauli-based gates."""
