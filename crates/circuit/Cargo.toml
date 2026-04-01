@@ -14,6 +14,7 @@ workspace = true
 
 [dependencies]
 qiskit-util = { workspace = true, features = ["py"] }
+qiskit-quantum-info.workspace = true
 rayon.workspace = true
 ahash.workspace = true
 rustworkx-core.workspace = true
