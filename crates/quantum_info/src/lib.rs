@@ -15,7 +15,6 @@ pub mod pauli_lindblad_map;
 pub mod sparse_observable;
 pub mod sparse_pauli_op;
 pub mod unitary_compose;
-pub mod unitary_sim;
 pub mod versor_u2;
 
 mod rayon_ext;
