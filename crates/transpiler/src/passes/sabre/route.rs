@@ -858,7 +858,8 @@ pub fn swap_map_trial<'a>(
     let mut order = Order::for_problem(problem);
 
     let num_qubits: u32 = problem.target.num_qubits().try_into().unwrap();
-    let mut required_predecessors = VecMap::from(vec![0; problem.sabre.dag.node_count()]);
+    let mut required_predecessors =
+        VecMap::<NodeIndex, u32>::from(vec![0; problem.sabre.dag.node_count()]);
     for edge in problem.sabre.dag.edge_references() {
         required_predecessors[edge.target()] += 1;
     }
