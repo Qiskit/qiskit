@@ -250,7 +250,9 @@ fn try_sparse_observable_generator(
 
 /// Checks if the generator can be represented as a single Pauli term.
 /// If so, returns the generator in the (Z, X) form.
-fn try_pauli_generator<'a>(operation: &'a OperationRef) -> Option<(&'a Vec<bool>, &'a Vec<bool>)> {
+pub fn try_pauli_generator<'a>(
+    operation: &'a OperationRef,
+) -> Option<(&'a Vec<bool>, &'a Vec<bool>)> {
     match operation {
         OperationRef::PauliProductRotation(ppr) => Some((&ppr.z, &ppr.x)),
         OperationRef::PauliProductMeasurement(ppm) => Some((&ppm.z, &ppm.x)),
