@@ -861,7 +861,15 @@ def generate_replay_with_expression_substitutions():
     qc = QuantumCircuit(1)
     qc.rz(a2, 0)
 
-    return [qc]
+    qc2 = QuantumCircuit(1)
+    theta = Parameter("θ")
+    rz = Parameter("rz")
+    exp = theta + np.pi
+    exp = exp.subs({theta: rz})
+    exp = exp.subs({rz: theta})
+    qc2.rz(exp, 0)
+
+    return [qc, qc2]
 
 
 def generate_v14_expr():

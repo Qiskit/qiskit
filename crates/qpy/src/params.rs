@@ -10,11 +10,12 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 use binrw::Endian;
+use num_complex::Complex64;
 use pyo3::prelude::*;
 use qiskit_circuit::imports;
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::parameter::parameter_expression::{
-    OPReplay, OpCode, ParameterExpression, ParameterValueType, PyParameter,
+    OPReplay, ParameterExpression, ParameterValueType,
 };
 use qiskit_circuit::parameter::symbol_expr::Symbol;
 use std::sync::Arc;
@@ -43,13 +44,18 @@ use hashbrown::HashMap;
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum ParameterType {
     Integer = b'i',
+    /// The payload is an immediate-value float.
     Float = b'f',
+    /// The payload is an immediate-value complex number.
     Complex = b'c',
+    /// The payload is an immediate-value UUID corresponding to a `Symbol` in the expression's map.
     Parameter = b'p',
-    ParameterVector = b'v',
+    /// There is no immediate value; take an expression off the stack instead.
     Null = b'n',
-    LhsExpression = b's',
-    RhsExpression = b'e',
+    /// Should only occur when the "op code" type is "expression". Carries no data.
+    StartExpression = b's',
+    /// Should only occur when the "op code" type is "expression". Carries no data.
+    EndExpression = b'e',
 }
 
 fn parameter_type_name(type_key: &ParameterType) -> String {
@@ -58,10 +64,9 @@ fn parameter_type_name(type_key: &ParameterType) -> String {
         ParameterType::Float => "float",
         ParameterType::Complex => "complex",
         ParameterType::Parameter => "parameter",
-        ParameterType::ParameterVector => "parameter vector",
         ParameterType::Null => "null",
-        ParameterType::LhsExpression => "lhs expression",
-        ParameterType::RhsExpression => "rhs expression",
+        ParameterType::StartExpression => "start expression",
+        ParameterType::EndExpression => "end expression",
     })
 }
 
@@ -79,7 +84,6 @@ impl TryFrom<ParameterType> for ValueType {
             ParameterType::Float => Ok(ValueType::Float),
             ParameterType::Integer => Ok(ValueType::Integer),
             ParameterType::Null => Ok(ValueType::Null),
-            ParameterType::ParameterVector => Ok(ValueType::ParameterVector),
             ParameterType::Parameter => Ok(ValueType::Parameter),
             _ => Err(QpyError::ConversionError(format!(
                 "Cannot convert to value type {}",
@@ -119,56 +123,6 @@ pub(crate) fn pack_parameter_expression_by_op(
             "Invalid opcode: {}",
             opcode
         ))),
-    }
-}
-
-pub(crate) fn unpack_parameter_expression_standard_op(
-    packed_parameter: formats::ParameterExpressionElementPack,
-) -> Result<(u8, formats::ParameterExpressionStandardOpPack), QpyError> {
-    match packed_parameter {
-        formats::ParameterExpressionElementPack::Add(op) => Ok((0, op)),
-        formats::ParameterExpressionElementPack::Sub(op) => Ok((1, op)),
-        formats::ParameterExpressionElementPack::Mul(op) => Ok((2, op)),
-        formats::ParameterExpressionElementPack::Div(op) => Ok((3, op)),
-        formats::ParameterExpressionElementPack::Pow(op) => Ok((4, op)),
-        formats::ParameterExpressionElementPack::Sin(op) => Ok((5, op)),
-        formats::ParameterExpressionElementPack::Cos(op) => Ok((6, op)),
-        formats::ParameterExpressionElementPack::Tan(op) => Ok((7, op)),
-        formats::ParameterExpressionElementPack::Asin(op) => Ok((8, op)),
-        formats::ParameterExpressionElementPack::Acos(op) => Ok((9, op)),
-        formats::ParameterExpressionElementPack::Exp(op) => Ok((10, op)),
-        formats::ParameterExpressionElementPack::Log(op) => Ok((11, op)),
-        formats::ParameterExpressionElementPack::Sign(op) => Ok((12, op)),
-        formats::ParameterExpressionElementPack::Grad(op) => Ok((13, op)),
-        formats::ParameterExpressionElementPack::Conj(op) => Ok((14, op)),
-        formats::ParameterExpressionElementPack::Abs(op) => Ok((16, op)),
-        formats::ParameterExpressionElementPack::Atan(op) => Ok((17, op)),
-        formats::ParameterExpressionElementPack::Rsub(op) => Ok((18, op)),
-        formats::ParameterExpressionElementPack::Rdiv(op) => Ok((19, op)),
-        formats::ParameterExpressionElementPack::Rpow(op) => Ok((20, op)),
-        formats::ParameterExpressionElementPack::Expression(op) => Ok((255, op)),
-        _ => Err(QpyError::ConversionError(format!(
-            "Non standard operation {:?}",
-            packed_parameter
-        ))),
-    }
-}
-
-fn parameter_value_type_from_generic_value(
-    value: &GenericValue,
-) -> Result<ParameterValueType, QpyError> {
-    match value {
-        GenericValue::Complex64(complex) => Ok(ParameterValueType::Complex(*complex)),
-        GenericValue::Int64(int) => Ok(ParameterValueType::Int(*int)),
-        GenericValue::Float64(float) => Ok(ParameterValueType::Float(*float)),
-        GenericValue::ParameterExpressionSymbol(symbol) => {
-            Ok(ParameterValueType::Parameter(PyParameter {
-                symbol: symbol.clone(),
-            }))
-        }
-        _ => Err(QpyError::ConversionError(
-            "Data value that cannot be stored as a parameter value".to_string(),
-        )),
     }
 }
 
@@ -227,18 +181,15 @@ fn pack_symbol_table_element(
 fn pack_parameter_expression_elements(
     exp: &ParameterExpression,
 ) -> Result<Vec<formats::ParameterExpressionElementPack>, QpyError> {
-    let mut result = Vec::new();
-    for replay_obj in exp.qpy_replay().iter() {
-        let packed_parameter = pack_parameter_expression_element(replay_obj)?;
-        result.extend(packed_parameter);
-    }
-    Ok(result)
+    exp.qpy_replay()
+        .iter()
+        .map(pack_parameter_expression_element)
+        .collect()
 }
 
 fn pack_parameter_expression_element(
     replay_obj: &OPReplay,
-) -> Result<Vec<formats::ParameterExpressionElementPack>, QpyError> {
-    let mut result = Vec::new();
+) -> Result<formats::ParameterExpressionElementPack, QpyError> {
     let (lhs_type, lhs) = pack_parameter_replay_entry(&replay_obj.lhs)?;
     let (rhs_type, rhs) = pack_parameter_replay_entry(&replay_obj.rhs)?;
     let op_code = replay_obj.op as u8;
@@ -248,9 +199,7 @@ fn pack_parameter_expression_element(
         rhs_type,
         rhs,
     };
-    let packed_parameter = vec![pack_parameter_expression_by_op(op_code, entry)?];
-    result.extend(packed_parameter);
-    Ok(result)
+    pack_parameter_expression_by_op(op_code, entry)
 }
 
 // this function identifies the data type of the parameter replay entry
@@ -291,171 +240,227 @@ fn pack_parameter_replay_entry(
 }
 
 pub(crate) fn unpack_parameter_expression(
-    parameter_expression_pack: &formats::ParameterExpressionPack,
+    pack: &formats::ParameterExpressionPack,
     qpy_data: &mut QPYReadData,
 ) -> Result<ParameterExpression, QpyError> {
-    // we begin by loading the symbol table data and hashing it according to each symbol's uuid
-    let mut param_uuid_map: HashMap<[u8; 16], GenericValue> = HashMap::new(); // For QPY version >= 15
-    let mut param_name_map: HashMap<String, GenericValue> = if qpy_data.version < 15 {
-        HashMap::with_capacity(parameter_expression_pack.symbol_table_data.len())
-    } else {
-        HashMap::with_capacity(0)
-    };
-    for item in &parameter_expression_pack.symbol_table_data {
-        let (symbol_uuid, value, symbol_name) = match item {
-            formats::ParameterExpressionSymbolPack::ParameterExpression(_) => {
-                continue;
-            }
-            formats::ParameterExpressionSymbolPack::Parameter(symbol_pack) => {
-                let symbol = unpack_symbol(&symbol_pack.symbol_data);
-                let value = match symbol_pack.value_key {
-                    ValueType::Parameter => GenericValue::ParameterExpressionSymbol(symbol.clone()),
-                    _ => load_value(symbol_pack.value_key, &symbol_pack.value_data, qpy_data)?,
-                };
-                (
-                    symbol_pack.symbol_data.uuid,
-                    value,
-                    symbol_pack.symbol_data.name.clone(),
-                )
-            }
-            formats::ParameterExpressionSymbolPack::ParameterVector(symbol_pack) => {
-                // this call will also create the corresponding vector and update qpy_data if needed
-                let symbol = unpack_parameter_vector(&symbol_pack.symbol_data, qpy_data)?;
-                let value = match symbol_pack.value_key {
-                    ValueType::ParameterVector => {
-                        GenericValue::ParameterExpressionSymbol(symbol.clone())
+    let uuid_map = pack.symbol_table_data.iter().try_fold(
+        HashMap::new(),
+        |mut map, item| -> Result<_, QpyError> {
+            let symbol = match item {
+                // The QPY format (ever since V1) says that this mapping can have a value type after
+                // it.  Actually, anything other than a "value" that's the zero-data case (meaning
+                // it's just a `Parameter`/`ParameterVectorElement` definition) is completely
+                // meaningless; all versions of Python-space Qiskit QPY loads would immediately
+                // violate their own data models by constructing a `ParameterExpression` with an
+                // invalid `symbol_map`. No version of Qiskit has ever _written_ a QPY file with
+                // such a mapping, which is likely how it went unnoticed for so long.
+                //
+                // We simply treat a value mapping as an error; the semantics aren't defined.
+                formats::ParameterExpressionSymbolPack::Parameter(p) => {
+                    if p.value_key != ValueType::Parameter {
+                        return Err(QpyError::InvalidValueType {
+                            expected: "parameter".to_owned(),
+                            actual: p.value_key.to_string(),
+                        });
                     }
-                    _ => load_value(symbol_pack.value_key, &symbol_pack.value_data, qpy_data)?,
-                };
-                (symbol_pack.symbol_data.uuid, value, symbol.repr(false))
-            }
-        };
-        param_uuid_map.insert(symbol_uuid, value.clone());
-        if qpy_data.version < 15 {
-            param_name_map.insert(symbol_name, value.clone());
-        }
-    }
-    let parameter_expression_data = deserialize_vec::<formats::ParameterExpressionElementPack>(
-        &parameter_expression_pack.expression_data,
+                    unpack_symbol(&p.symbol_data)
+                }
+                formats::ParameterExpressionSymbolPack::ParameterVector(v) => {
+                    if v.value_key != ValueType::ParameterVector {
+                        return Err(QpyError::InvalidValueType {
+                            expected: "parameter vector element".to_owned(),
+                            actual: v.value_key.to_string(),
+                        });
+                    }
+                    unpack_parameter_vector(&v.symbol_data, qpy_data)?
+                }
+                // This variant should not exist; see its documentation comment.  We have to
+                // silently skip it to handle loading incorrect QPY files from Qiskit 2.0 with
+                // substitutions involving expressions.
+                formats::ParameterExpressionSymbolPack::ParameterExpression(_) => {
+                    return Ok(map);
+                }
+            };
+            map.insert(symbol.uuid, symbol);
+            Ok(map)
+        },
     )?;
+    let name_map = if qpy_data.version < 15 {
+        uuid_map
+            .values()
+            .map(|sym| (sym.name().to_owned(), sym.clone()))
+            .collect::<HashMap<_, _>>()
+    } else {
+        // Not used for QPY >= 15, so no need to bother calculating it.
+        Default::default()
+    };
 
-    // we now convert the parameter_expression_data into Vec<OPReplay> that can be used via ParameterExpression::from_qpy
-    let mut replay: Vec<OPReplay> = Vec::new();
-    // Due to sub operations being different than the other elements of the replay, we store them separately, with an index
-    // indicating when to perform them
-    let mut sub_operations: Vec<(usize, HashMap<Symbol, ParameterExpression>)> = Vec::new();
-    for element in parameter_expression_data {
-        if let formats::ParameterExpressionElementPack::Substitute(subs) = element {
-            let mapping_pack = deserialize::<formats::MappingPack>(&subs.mapping_data)?.0;
-            let mut subs_mapping: HashMap<Symbol, ParameterExpression> = HashMap::new();
-
-            for item in mapping_pack.items {
-                let (value_generic_item, key_generic_item) = if qpy_data.version >= 15 {
-                    // UUID based element hashing used in QPY >= 15
-                    let key_uuid: [u8; 16] = (&item.key_bytes).try_into()?;
-                    let value_generic_item =
-                        load_value(item.item_type, &item.item_bytes, qpy_data)?;
-                    let key_generic_item = param_uuid_map.get(&key_uuid).ok_or_else(|| {
-                        QpyError::ConversionError(format!(
-                            "Parameter UUID not found: {:?}",
-                            &key_uuid
-                        ))
-                    })?;
-                    (value_generic_item, key_generic_item)
-                } else {
-                    // Name based element hashing used in QPY <= 14
-                    let key_name: String = item.key_bytes.try_into()?;
-                    // This line could lead to clashes in the case of duplicate parameter names
-                    // This is indeed the reason QPY15 moved to UUID based hashing
-                    let value_generic_item =
-                        load_value(item.item_type, &item.item_bytes, qpy_data)?;
-                    let key_generic_item = param_name_map.get(&key_name).ok_or_else(|| {
-                        QpyError::ConversionError(format!(
-                            "Parameter name not found: {:?}",
-                            &key_name
-                        ))
-                    })?;
-                    (value_generic_item, key_generic_item)
-                };
-                let key = if let GenericValue::ParameterExpressionSymbol(symbol) = key_generic_item
-                {
-                    symbol
-                } else {
-                    return Err(QpyError::ConversionError(format!(
-                        "Substitution command used left operand {:?} which is not a symbol",
-                        &key_generic_item
-                    )));
-                };
-
-                let value = match value_generic_item {
-                    GenericValue::ParameterExpressionSymbol(symbol) => {
-                        ParameterExpression::from_symbol(symbol)
-                    }
-                    GenericValue::ParameterExpressionVectorSymbol(symbol) => {
-                        ParameterExpression::from_symbol(symbol)
-                    }
-                    GenericValue::ParameterExpression(exp) => exp.as_ref().clone(),
-                    _ => {
-                        return Err(QpyError::ConversionError(format!(
-                            "Substitution command used right operand {:?} which is not a parameter expression",
-                            &value_generic_item
-                        )));
-                    }
-                };
-                subs_mapping.insert(key.clone(), value);
+    let empty_stack = || {
+        QpyError::DeserializationError(
+            "malformed expression: stack was empty before expression completed".to_string(),
+        )
+    };
+    let unknown_parameter = || {
+        QpyError::InvalidParameter(
+            "malformed expression: reference to unknown parameter".to_string(),
+        )
+    };
+    let unexpected_recursion = || {
+        QpyError::DeserializationError(
+            "malformed expression: encountered recursive marker in unexpected location".to_string(),
+        )
+    };
+    let mut stack = Vec::<ParameterExpression>::new();
+    let operand = |stack: &mut Vec<ParameterExpression>, ty, data: [u8; 16]| {
+        let upper = |data: [u8; 16]| bytemuck::cast::<[u8; 16], [[u8; 8]; 2]>(data)[1];
+        let lower = |data: [u8; 16]| bytemuck::cast::<[u8; 16], [[u8; 8]; 2]>(data)[0];
+        match ty {
+            ParameterType::Integer => {
+                let i = i64::from_be_bytes(upper(data));
+                Ok(ParameterValueType::Int(i).into())
             }
-            let _opcode = OpCode::SUBSTITUTE;
-            sub_operations.push((replay.len(), subs_mapping));
-        } else {
-            let (opcode, op) = unpack_parameter_expression_standard_op(element)?;
-            // loading values from replay pack is tricky, since everything is stored using 16-bytes, even 8-byte ints and floats
-            // LHS
-            let lhs: Option<ParameterValueType> = match op.lhs_type {
-                ParameterType::Parameter | ParameterType::ParameterVector => {
-                    if let Some(value) = param_uuid_map.get(&op.lhs) {
-                        Some(parameter_value_type_from_generic_value(value)?)
-                    } else {
-                        return Err(QpyError::ConversionError(format!(
-                            "Parameter UUID not found: {:?}",
-                            op.lhs
-                        )));
-                    }
-                }
-                ParameterType::Float | ParameterType::Integer | ParameterType::Complex => {
-                    let value =
-                        load_value(ValueType::try_from(op.lhs_type)?, &op.lhs.into(), qpy_data)?;
-                    Some(parameter_value_type_from_generic_value(&value)?)
-                }
-                ParameterType::Null => None, // pass
-                ParameterType::LhsExpression | ParameterType::RhsExpression => continue,
-            };
-            // RHS
-            let rhs: Option<ParameterValueType> = match op.rhs_type {
-                ParameterType::Parameter | ParameterType::ParameterVector => {
-                    if let Some(value) = param_uuid_map.get(&op.rhs) {
-                        Some(parameter_value_type_from_generic_value(value)?)
-                    } else {
-                        return Err(QpyError::ConversionError(format!(
-                            "Parameter UUID not found: {:?}",
-                            op.rhs
-                        )));
-                    }
-                }
-                ParameterType::Float | ParameterType::Integer | ParameterType::Complex => {
-                    let value =
-                        load_value(ValueType::try_from(op.rhs_type)?, &op.rhs.into(), qpy_data)?;
-                    Some(parameter_value_type_from_generic_value(&value)?)
-                }
-                ParameterType::Null => None, // pass
-                ParameterType::LhsExpression | ParameterType::RhsExpression => continue,
-            };
-            let op = OpCode::from_u8(opcode)?;
-            replay.push(OPReplay { op, lhs, rhs });
+            ParameterType::Float => {
+                let f = f64::from_be_bytes(upper(data));
+                Ok(ParameterValueType::Float(f).into())
+            }
+            ParameterType::Complex => {
+                let re = f64::from_be_bytes(upper(data));
+                let im = f64::from_be_bytes(lower(data));
+                Ok(ParameterValueType::Complex(Complex64 { re, im }).into())
+            }
+            ParameterType::Parameter => uuid_map
+                .get(&Uuid::from_bytes(data))
+                .map(|sym| ParameterExpression::from_symbol(sym.clone()))
+                .ok_or_else(unknown_parameter),
+            ParameterType::Null => stack.pop().ok_or_else(empty_stack),
+            ParameterType::StartExpression | ParameterType::EndExpression => {
+                Err(unexpected_recursion())
+            }
+        }
+    };
+    let lhs_rhs = |stack: &mut Vec<ParameterExpression>,
+                   pack: &formats::ParameterExpressionStandardOpPack|
+     -> Result<[ParameterExpression; 2], QpyError> {
+        let rhs = operand(stack, pack.rhs_type, pack.rhs)?;
+        let lhs = operand(stack, pack.lhs_type, pack.lhs)?;
+        Ok([lhs, rhs])
+    };
+    let expr_from_value = |value| -> Result<ParameterExpression, QpyError> {
+        match value {
+            GenericValue::ParameterExpressionSymbol(sym)
+            | GenericValue::ParameterExpressionVectorSymbol(sym) => {
+                Ok(ParameterExpression::from_symbol(sym))
+            }
+            GenericValue::ParameterExpression(expr) => Ok((*expr).clone()),
+            GenericValue::Int64(_) | GenericValue::Float64(_) | GenericValue::Complex64(_) => {
+                // These could/should be handled, but Python-space `ParameterExpression` had a split
+                // between `subs`/`bind` (where `bind` was only for numeric values) that
+                // Python-space QPY replays have never correctly generated or handled, so for now we
+                // skip.  The intended semantics from the QPY specification are clear.
+                Err(QpyError::DeserializationError(
+                    "internal error: unhandled numeric value in substitution".to_string(),
+                ))
+            }
+            _ => Err(QpyError::InvalidValueType {
+                expected: "a parameter expression".to_string(),
+                actual: "arbitrary value".to_string(),
+            }),
+        }
+    };
+    let elements =
+        deserialize_vec::<formats::ParameterExpressionElementPack>(&pack.expression_data)?;
+    for element in elements {
+        use formats::ParameterExpressionElementPack::*;
+        let out = match element {
+            Add(vals) => {
+                let [lhs, rhs] = lhs_rhs(&mut stack, &vals)?;
+                lhs.add(&rhs)?
+            }
+            Sub(vals) => {
+                let [lhs, rhs] = lhs_rhs(&mut stack, &vals)?;
+                lhs.sub(&rhs)?
+            }
+            Mul(vals) => {
+                let [lhs, rhs] = lhs_rhs(&mut stack, &vals)?;
+                lhs.mul(&rhs)?
+            }
+            Div(vals) => {
+                let [lhs, rhs] = lhs_rhs(&mut stack, &vals)?;
+                lhs.div(&rhs)?
+            }
+            Pow(vals) => {
+                let [lhs, rhs] = lhs_rhs(&mut stack, &vals)?;
+                lhs.pow(&rhs)?
+            }
+            Sin(vals) => operand(&mut stack, vals.lhs_type, vals.lhs)?.sin(),
+            Cos(vals) => operand(&mut stack, vals.lhs_type, vals.lhs)?.cos(),
+            Tan(vals) => operand(&mut stack, vals.lhs_type, vals.lhs)?.tan(),
+            Asin(vals) => operand(&mut stack, vals.lhs_type, vals.lhs)?.asin(),
+            Acos(vals) => operand(&mut stack, vals.lhs_type, vals.lhs)?.acos(),
+            Exp(vals) => operand(&mut stack, vals.lhs_type, vals.lhs)?.exp(),
+            Log(vals) => operand(&mut stack, vals.lhs_type, vals.lhs)?.log(),
+            Sign(vals) => operand(&mut stack, vals.lhs_type, vals.lhs)?.sign(),
+            Grad(vals) => {
+                let [lhs, rhs] = lhs_rhs(&mut stack, &vals)?;
+                lhs.derivative(&rhs.try_to_symbol()?)?
+            }
+            Conj(vals) => operand(&mut stack, vals.lhs_type, vals.lhs)?.conjugate(),
+            Abs(vals) => operand(&mut stack, vals.lhs_type, vals.lhs)?.abs(),
+            Atan(vals) => operand(&mut stack, vals.lhs_type, vals.lhs)?.atan(),
+            Rsub(vals) => {
+                let [lhs, rhs] = lhs_rhs(&mut stack, &vals)?;
+                rhs.sub(&lhs)?
+            }
+            Rdiv(vals) => {
+                let [lhs, rhs] = lhs_rhs(&mut stack, &vals)?;
+                rhs.div(&lhs)?
+            }
+            Rpow(vals) => {
+                let [lhs, rhs] = lhs_rhs(&mut stack, &vals)?;
+                rhs.pow(&lhs)?
+            }
+            Substitute(payload) => {
+                let pack = deserialize::<formats::MappingPack>(&payload.mapping_data)?.0;
+                let version = qpy_data.version;
+                let mapping = pack
+                    .items
+                    .iter()
+                    .map(|item| -> Result<_, QpyError> {
+                        let sym = if version >= 15 {
+                            let key = Uuid::from_slice(&item.key_bytes).map_err(|_| {
+                                QpyError::DeserializationError(
+                                    "invalid mapping: uuid incorrect length".to_string(),
+                                )
+                            })?;
+                            uuid_map.get(&key).ok_or_else(unknown_parameter)?.clone()
+                        } else {
+                            let key = std::str::from_utf8(&item.key_bytes)?;
+                            name_map.get(key).ok_or_else(unknown_parameter)?.clone()
+                        };
+                        let replacement = expr_from_value(load_value(
+                            item.item_type,
+                            &item.item_bytes,
+                            qpy_data,
+                        )?)?;
+                        Ok((sym, replacement))
+                    })
+                    .collect::<Result<HashMap<_, _>, QpyError>>()?;
+                stack.pop().ok_or_else(empty_stack)?.subs(&mapping, false)?
+            }
+            // The "expression" payload (marking the start or end of a recursive definition) doesn't
+            // actually carry any payload or have any meaning.  If we do nothing in its loop
+            // iteration, we still manipulate the stack in the same way we're supposed to.
+            Expression(_) => continue,
         };
+        stack.push(out);
     }
-    ParameterExpression::from_qpy(&replay, Some(sub_operations)).map_err(|_| {
-        QpyError::ConversionError("Failure while loading parameter expression".to_string())
-    })
+    if stack.len() > 1 {
+        return Err(QpyError::DeserializationError(format!(
+            "malformed expression stack: {} remaining items",
+            stack.len()
+        )));
+    }
+    stack.pop().ok_or_else(empty_stack)
 }
 
 pub(crate) fn pack_symbol(symbol: &Symbol) -> formats::ParameterSymbolPack {

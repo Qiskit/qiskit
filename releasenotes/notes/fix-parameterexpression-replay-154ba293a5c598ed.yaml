@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    :class:`.ParameterExpression` instances with cancelled-out variables (like ``x - x``) will now
+    retain the reference to ``x`` after a round-trip through QPY and pickle.
+  - |
+    :class:`.ParameterExpression` instances that evaluated to a bare value (like ``0*x + 2``) will
+    now successfully round-trip through QPY and pickle.
