@@ -12,7 +12,7 @@
 
 """
 AI ATTRIBUTION:
-The regression test `test_original_bug_15021` and associated Pauli-gate
+The regression test `test_light_cone_pass_many_qubits` and associated Pauli-gate
 commutation test cases were developed with assistance
 from GitHub Copilot integrated in VS Code. The underlying model : Claude Haiku 4.5.
 """
@@ -384,7 +384,7 @@ class TestLightConePass(QiskitTestCase):
         new_z = pm_z.run(qc_simple)
         self.assertEqual(len(new_z), 1)
 
-    def test_original_bug_15021(self):
+    def test_light_cone_pass_many_qubits(self):
         """Test for the scattered-qubit bug reported in issue #15021."""
         qc = QuantumCircuit(18)
         qc.rx(np.pi / 3, range(qc.num_qubits))
