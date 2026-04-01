@@ -2315,6 +2315,8 @@ name = "qiskit-util"
 version = "2.5.0-dev"
 dependencies = [
  "num-complex",
+ "pyo3",
+ "thiserror 2.0.18",
 ]
 
 [[package]]

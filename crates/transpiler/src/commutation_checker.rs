@@ -715,10 +715,13 @@ impl CommutationChecker {
             }
         }
 
-        let first_qarg: Vec<Qubit> = Vec::from_iter((0..first_qargs.len() as u32).map(Qubit));
-        let second_qarg: Vec<Qubit> = second_qargs.iter().map(|q| qarg[q]).collect();
+        let first_indices = Vec::from_iter(0..first_qargs.len());
+        let second_indices = second_qargs
+            .iter()
+            .map(|q| qarg[q].index())
+            .collect::<Vec<_>>();
 
-        if first_qarg.len() > second_qarg.len() {
+        if first_indices.len() > second_indices.len() {
             return Err(CommutationError::FirstInstructionTooLarge);
         };
         let first_mat = match try_matrix_with_definition(first_op, first_params, None) {
@@ -737,7 +740,7 @@ impl CommutationChecker {
         //  2. This code here expands the first op to match the second -- hence we always
         //     match the operator sizes.
         // This whole extension logic could be avoided since we know the second one is larger.
-        let extra_qarg2 = num_qubits - first_qarg.len() as u32;
+        let extra_qarg2 = num_qubits - first_indices.len() as u32;
         let first_mat = if extra_qarg2 > 0 {
             let id_op = Array2::<Complex64>::eye(usize::pow(2, extra_qarg2));
             kron(&id_op, &first_mat)
@@ -751,7 +754,7 @@ impl CommutationChecker {
         let op12 = match unitary_compose::compose(
             &first_mat.view(),
             &second_mat.view(),
-            &second_qarg,
+            &second_indices,
             false,
         ) {
             Ok(matrix) => matrix,
@@ -760,13 +763,13 @@ impl CommutationChecker {
         let op21 = match unitary_compose::compose(
             &first_mat.view(),
             &second_mat.view(),
-            &second_qarg,
+            &second_indices,
             true,
         ) {
             Ok(matrix) => matrix,
             Err(e) => return Err(CommutationError::EinsumError(e)),
         };
-        let (fid, phase) = gate_metrics::gate_fidelity(&op12.view(), &op21.view(), None);
+        let (fid, phase) = gate_metrics::gate_fidelity(&op12.view(), &op21.view());
 
         // we consider the gates as commuting if the process fidelity of
         // AB (BA)^\dagger is approximately the identity and there is no global phase difference
