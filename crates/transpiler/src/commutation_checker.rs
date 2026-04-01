@@ -342,7 +342,6 @@ impl CommutationChecker {
             max_num_qubits,
             matrix_max_num_qubits,
             approximation_degree,
-            false,
         )?)
     }
 
@@ -375,7 +374,6 @@ impl CommutationChecker {
             max_num_qubits,
             matrix_max_num_qubits,
             approximation_degree,
-            false,
         )?)
     }
 
@@ -468,7 +466,6 @@ impl CommutationChecker {
         max_num_qubits: Option<u32>,
         matrix_max_num_qubits: u32,
         approximation_degree: f64,
-        assume_sorted_pp: bool, // true if qubits in PPRs and PPMs cab be assumed to be sorted
     ) -> Result<bool, CommutationError> {
         // If the average gate infidelity is below this tolerance, they commute. The tolerance
         // is set to max(1e-12, 1 - approximation_degree), to account for roundoffs and for
@@ -537,38 +534,15 @@ impl CommutationChecker {
         if let (Some((z1, x1)), Some((z2, x2))) =
             (try_pauli_generator(op1), try_pauli_generator(op2))
         {
+            let max_q1 = qargs1.iter().map(|q| q.index()).max().unwrap_or(0);
+            let mut in_q1 = vec![usize::MAX; max_q1 + 1];
+            for (i, &q) in qargs1.iter().enumerate() {
+                in_q1[q.index()] = i;
+            }
             let mut parity = false;
-            let mut adjust_parity = |i1: usize, i2: usize| {
-                parity ^= (x1[i1] && z2[i2]) ^ (z1[i1] && x2[i2]);
-            };
-
-            if assume_sorted_pp {
-                // The qubits in PPRs and PPMs are known to be sorted by qubit index.
-                let (n1, n2) = (qargs1.len(), qargs2.len());
-                let (mut i1, mut i2) = (0, 0);
-
-                while i1 < n1 && i2 < n2 {
-                    match qargs1[i1].cmp(&qargs2[i2]) {
-                        std::cmp::Ordering::Less => i1 += 1,
-                        std::cmp::Ordering::Greater => i2 += 1,
-                        std::cmp::Ordering::Equal => {
-                            adjust_parity(i1, i2);
-                            i1 += 1;
-                            i2 += 1;
-                        }
-                    }
-                }
-            } else {
-                // The qubits in PPRs and PPMs are not known to be sorted by qubit index.
-                let max_q1 = qargs1.iter().map(|q| q.index()).max().unwrap_or(0);
-                let mut in_q1 = vec![usize::MAX; max_q1 + 1];
-                for (i, &q) in qargs1.iter().enumerate() {
-                    in_q1[q.index()] = i;
-                }
-                for (i2, &q) in qargs2.iter().enumerate() {
-                    if let Some(&i1) = in_q1.get(q.index()).filter(|&&i1| i1 != usize::MAX) {
-                        adjust_parity(i1, i2);
-                    }
+            for (j, &q) in qargs2.iter().enumerate() {
+                if let Some(&i) = in_q1.get(q.index()).filter(|&&i| i != usize::MAX) {
+                    parity ^= (x1[i] && z2[j]) ^ (z1[i] && x2[j]);
                 }
             }
             return Ok(!parity);

@@ -301,7 +301,6 @@ fn commute(
         None,
         matrix_max_num_qubits,
         approximation_degree,
-        true, // PPRs and PPMs are sorted in canonicalize
     )?)
 }
 

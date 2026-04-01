@@ -109,7 +109,6 @@ pub fn analyze_commutations(
                             None,
                             MAX_NUM_QUBITS,
                             approximation_degree,
-                            false,
                         )?;
                         if !all_commute {
                             break;
