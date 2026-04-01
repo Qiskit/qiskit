@@ -12,6 +12,9 @@
 
 use std::env;
 
+#[cfg(feature = "py")]
+pub mod py;
+
 pub mod complex {
     use num_complex::Complex64;
 
