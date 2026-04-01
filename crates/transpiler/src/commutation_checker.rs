@@ -562,12 +562,6 @@ impl CommutationChecker {
             (Some(pauli1), Some(pauli2)) => return Ok(pauli1.commutes(&pauli2, tol)),
         };
 
-        if let Some(pauli1) = try_pauli_generator(op1, qargs1, size) {
-            if let Some(pauli2) = try_pauli_generator(op2, qargs2, size) {
-                return Ok(pauli1.commutes(&pauli2, tol));
-            }
-        }
-
         // Now there are no more parameterized gates that are allowed
         if matches!(precheck_status, PrecheckStatus::Parameterized) {
             return Ok(false);
