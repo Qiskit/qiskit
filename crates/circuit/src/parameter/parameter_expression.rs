@@ -57,6 +57,8 @@ pub enum ParameterError {
     NotASymbol,
     #[error("Derivative not supported on expression: {0}")]
     DerivativeNotSupported(String),
+    #[error("QPY replay parsing error: {0}")]
+    QpyReplayParsingError(String),
 }
 
 impl From<ParameterError> for PyErr {
@@ -136,10 +138,6 @@ impl ParameterExpression {
         let mut replay = Vec::new();
         qpy_replay(self, &self.name_map, &mut replay);
         replay
-    }
-    #[inline]
-    pub fn num_of_symbols(&self) -> usize {
-        self.name_map.len()
     }
 }
 // This needs to be implemented manually, because PyO3 does not provide built-in
@@ -287,24 +285,50 @@ impl ParameterExpression {
 
             // if we need two operands, pop rhs from the stack
             let rhs = if BINARY_OPS.contains(op) {
-                Some(stack.pop().expect("Pop from empty stack"))
+                Some(stack.pop().ok_or(ParameterError::QpyReplayParsingError(
+                    "Tried to pop RHS value from empty stack".to_string(),
+                ))?)
             } else {
                 None
             };
 
             // pop lhs from the stack, this we always need
-            let lhs = stack.pop().expect("Pop from empty stack");
+            let lhs = stack.pop().ok_or(ParameterError::QpyReplayParsingError(
+                "Tried to pop LHS value from empty stack".to_string(),
+            ))?;
 
             // apply the operation and put the result onto the stack for the next replay
             let result: ParameterExpression = match op {
-                OpCode::ADD => lhs.add(&rhs.unwrap())?,
-                OpCode::MUL => lhs.mul(&rhs.unwrap())?,
-                OpCode::SUB => lhs.sub(&rhs.unwrap())?,
-                OpCode::RSUB => rhs.unwrap().sub(&lhs)?,
-                OpCode::POW => lhs.pow(&rhs.unwrap())?,
-                OpCode::RPOW => rhs.unwrap().pow(&lhs)?,
-                OpCode::DIV => lhs.div(&rhs.unwrap())?,
-                OpCode::RDIV => rhs.unwrap().div(&lhs)?,
+                OpCode::ADD => lhs.add(&rhs.ok_or(ParameterError::QpyReplayParsingError(
+                    "Missing RHS value".to_string(),
+                ))?)?,
+                OpCode::MUL => lhs.mul(&rhs.ok_or(ParameterError::QpyReplayParsingError(
+                    "Missing RHS value".to_string(),
+                ))?)?,
+                OpCode::SUB => lhs.sub(&rhs.ok_or(ParameterError::QpyReplayParsingError(
+                    "Missing RHS value".to_string(),
+                ))?)?,
+                OpCode::RSUB => rhs
+                    .ok_or(ParameterError::QpyReplayParsingError(
+                        "Missing RHS value".to_string(),
+                    ))?
+                    .sub(&lhs)?,
+                OpCode::POW => lhs.pow(&rhs.ok_or(ParameterError::QpyReplayParsingError(
+                    "Missing RHS value".to_string(),
+                ))?)?,
+                OpCode::RPOW => rhs
+                    .ok_or(ParameterError::QpyReplayParsingError(
+                        "Missing RHS value".to_string(),
+                    ))?
+                    .pow(&lhs)?,
+                OpCode::DIV => lhs.div(&rhs.ok_or(ParameterError::QpyReplayParsingError(
+                    "Missing RHS value".to_string(),
+                ))?)?,
+                OpCode::RDIV => rhs
+                    .ok_or(ParameterError::QpyReplayParsingError(
+                        "Missing RHS value".to_string(),
+                    ))?
+                    .div(&lhs)?,
                 OpCode::ABS => lhs.abs(),
                 OpCode::SIN => lhs.sin(),
                 OpCode::ASIN => lhs.asin(),
@@ -317,7 +341,9 @@ impl ParameterExpression {
                 OpCode::EXP => lhs.exp(),
                 OpCode::SIGN => lhs.sign(),
                 OpCode::GRAD | OpCode::SUBSTITUTE => {
-                    panic!("GRAD and SUBSTITUTE are not supported.")
+                    return Err(ParameterError::QpyReplayParsingError(
+                        "GRAD and SUBSTITUTE are not supported.".to_string(),
+                    ));
                 }
             };
             stack.push(result);
@@ -345,7 +371,7 @@ impl ParameterExpression {
         // once we're done, just return the last element in the stack
         let mut result = stack
             .pop()
-            .expect("Invalid QPY replay encountered during deserialization: empty OPReplay.");
+            .ok_or(ParameterError::QpyReplayParsingError("Invalid QPY replay encountered during deserialization: empty OPReplay at the end of parsing.".to_string()))?;
 
         // need to account
         result.extend_symbols(symbols);

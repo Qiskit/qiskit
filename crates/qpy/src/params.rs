@@ -617,29 +617,17 @@ pub(crate) fn unpack_parameter_vector(
     })
 }
 
-// exp should be a symbol (for parameter/parameter vector element)
-// but more than that: it should not contain other symbols in its symbol table
-// since if, e.g. exp was `0*x+y` and got simplified to `y` we still need
-// to store `x`, so we must treat exp as an expression
-fn expression_as_single_symbol(exp: &ParameterExpression) -> Option<Symbol> {
-    if let Ok(symbol) = exp.try_to_symbol() {
-        if exp.num_of_symbols() == 1 {
-            Some(symbol)
-        } else {
-            None
-        }
-    } else {
-        None
-    }
-}
-
 pub(crate) fn pack_param_expression(
     exp: &ParameterExpression,
     qpy_data: &QPYWriteData,
 ) -> Result<formats::GenericDataPack, QpyError> {
     // if the parameter expression is a single symbol, we should treat it like a parameter
     // or a parameter vector, depending on whether the `vector` field exists
-    if let Some(symbol) = expression_as_single_symbol(exp) {
+    // exp should be a symbol (for parameter/parameter vector element)
+    // but more than that: it should not contain other symbols in its symbol table
+    // since if, e.g. exp was `0*x+y` and got simplified to `y` we still need
+    // to store `x`, so we must treat exp as an expression
+    if let Some(symbol) = exp.try_to_symbol().ok().filter(|_| exp.num_symbols() == 1) {
         match symbol.vector {
             None => pack_generic_value(&GenericValue::ParameterExpressionSymbol(symbol), qpy_data),
             Some(_) => pack_generic_value(
