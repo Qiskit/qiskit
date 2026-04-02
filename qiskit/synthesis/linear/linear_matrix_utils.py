@@ -12,6 +12,8 @@
 
 """Utility functions for handling binary matrices."""
 
+# Allow re-exports
+# ruff: noqa: F401
 
 from qiskit._accelerate.synthesis.linear import (
     gauss_elimination,

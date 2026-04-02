@@ -12,6 +12,8 @@
 
 """Methods for generating random quantum information objects."""
 
+# Allow re-exports
+# ruff: noqa: F401
 
 from __future__ import annotations
 from qiskit.quantum_info.operators.random import (

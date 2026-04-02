@@ -12,5 +12,6 @@
 
 """Utility functions for handling permutations."""
 
-
+# Allow re-exports
+# ruff: noqa: F401
 from qiskit._accelerate.synthesis.permutation import _inverse_pattern, _validate_permutation
