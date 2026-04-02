@@ -61,6 +61,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_transpiler::passes::inverse_cancellation_mod, "inverse_cancellation")?;
     add_submodule(m, ::qiskit_accelerate::isometry::isometry, "isometry")?;
     add_submodule(m, ::qiskit_circuit::nlayout::nlayout, "nlayout")?;
+    add_submodule(m, ::qiskit_circuit::standard_gate::standard_generators::standard_generators, "standard_generators")?;
     add_submodule(m, ::qiskit_accelerate::optimize_1q_gates::optimize_1q_gates, "optimize_1q_gates")?;
     add_submodule(m, ::qiskit_transpiler::passes::optimize_1q_gates_decomposition_mod, "optimize_1q_gates_decomposition")?;
     add_submodule(m, ::qiskit_accelerate::pauli_exp_val::pauli_expval, "pauli_expval")?;
@@ -72,7 +73,6 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_transpiler::passes::sabre::sabre, "sabre")?;
     add_submodule(m, ::qiskit_accelerate::sampled_exp_val::sampled_exp_val, "sampled_exp_val")?;
     add_submodule(m, ::qiskit_quantum_info::sparse_observable::sparse_observable, "sparse_observable")?;
-    add_submodule(m, ::qiskit_quantum_info::standard_generators::standard_generators, "standard_generators")?;
     add_submodule(m, ::qiskit_quantum_info::sparse_pauli_op::sparse_pauli_op, "sparse_pauli_op")?;
     add_submodule(m, ::qiskit_transpiler::passes::scheduling_mod, "scheduling")?;
     add_submodule(m, ::qiskit_synthesis::matrix::sim::unitary_sim, "unitary_sim")?;

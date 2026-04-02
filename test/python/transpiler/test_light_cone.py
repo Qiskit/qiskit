@@ -301,7 +301,7 @@ class TestLightConePass(QiskitTestCase):
     @ddt.data("IIIIIZXIIIIIIII", "YYYYYZXYYYYYYYY")
     def test_large_observable(self, pauli_string):
         """Test for a large initial observable."""
-        op = SparsePauliOp(pauli_string)
+        op = SparsePauliOp([pauli_string])
         bit_terms, indices, _ = op.to_sparse_list()[0]
 
         light_cone = LightCone(bit_terms=bit_terms, indices=indices)

@@ -16,14 +16,15 @@
 // Portions of the Pauli generator mapping logic and SoA layout were generated
 // and then manually verified for mathematical correctness against the commutation logic.
 
-use crate::sparse_observable::SparseObservable;
+use num_complex::Complex64;
+use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, FRAC_PI_8, SQRT_2};
+
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
-use num_complex::Complex64;
-use qiskit_circuit::operations::{Operation, Param, StandardGate};
+use crate::operations::{Operation, Param, StandardGate};
+use qiskit_quantum_info::sparse_observable::SparseObservable;
 use qiskit_util::complex::{C_ZERO, c64};
-use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, FRAC_PI_8, SQRT_2};
 
 const C_FRAC_PI_2: Complex64 = c64(FRAC_PI_2, 0.0);
 const C_FRAC_PI_4: Complex64 = c64(FRAC_PI_4, 0.0);
@@ -65,7 +66,7 @@ pub fn standard_gate_exponent(gate: StandardGate, params: &[Param]) -> Option<Sp
 
     let num_qubits = gate.num_qubits();
 
-    use crate::sparse_observable::BitTerm::*;
+    use qiskit_quantum_info::sparse_observable::BitTerm::*;
 
     let (coeffs, bit_terms, indices, boundaries) = match gate {
         StandardGate::GlobalPhase => (vec![c64(-fixed_params[0], 0.)], vec![], vec![], vec![0, 0]),

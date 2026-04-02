@@ -16,8 +16,8 @@ use ndarray::linalg::kron;
 use num_complex::Complex64;
 use num_complex::ComplexFloat;
 use qiskit_circuit::object_registry::PyObjectAsKey;
+use qiskit_circuit::standard_gate::standard_generators::standard_gate_exponent;
 use qiskit_quantum_info::sparse_observable::{PySparseObservable, SparseObservable};
-use qiskit_quantum_info::standard_generators::standard_gate_exponent;
 use smallvec::SmallVec;
 use std::fmt::Debug;
 
