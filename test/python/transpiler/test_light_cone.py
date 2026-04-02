@@ -299,23 +299,21 @@ class TestLightConePass(QiskitTestCase):
 
         self.assertEqual(expected, new_circuit)
 
-    @ddt.data(
-        SparsePauliOp.from_sparse_list([("IIIXZIIIII", list(range(10)), 1)], 10),
-        SparsePauliOp.from_sparse_list([("YYYXZYYYYY", list(range(10)), 1)], 10),
-    )
-    def test_large_observable(self, sparse_object):
+    @ddt.data("IIIIIZXIIIIIIII", "YYYYYZXYYYYYYYY")
+    def test_large_observable(self, pauli_string):
         """Test for a large initial observable."""
+        op = SparsePauliOp(pauli_string)
+        bit_terms, indices, _ = op.to_sparse_list()[0]
 
-        bit_terms, indices, _ = sparse_object.to_sparse_list()[0]
         light_cone = LightCone(bit_terms=bit_terms, indices=indices)
         pm = PassManager([light_cone])
 
-        qc = QuantumCircuit(10)
+        qc = QuantumCircuit(15)
         qc.cx(5, 6)
 
         new_circuit = pm.run(qc)
 
-        expected = QuantumCircuit(10)
+        expected = QuantumCircuit(15)
 
         self.assertEqual(expected, new_circuit)
 

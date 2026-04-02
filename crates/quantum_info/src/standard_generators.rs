@@ -15,20 +15,6 @@
 // The underlying model : Claude Haiku 4.5.
 // Portions of the Pauli generator mapping logic and SoA layout were generated
 // and then manually verified for mathematical correctness against the commutation logic.
-//
-// This module maps standard quantum gates to their Hamiltonian generators H_gate such that:
-//
-//   gate = exp(-i * H_gate)   (up to global phase)
-//
-// The generator is returned as a SparseObservable (a sum of Pauli tensor products).
-//
-// For single-qubit gates: X = exp(-i*(pi/2)*X), H = exp(-i*(pi/2)*(X+Z)/sqrt(2)), etc.
-// For multi-qubit controlled gates: CX = exp(-i*(pi/4)*(ZX - ZI - IX)), etc.
-// For rotation gates: RX(t) = exp(-i*(t/2)*X), RY(t) = exp(-i*(t/2)*Y), etc.
-//
-// The SoA (Struct-of-Arrays) layout is used: `bit_terms`, `indices`, and `boundaries` are
-// flattened arrays. Term `i` uses bit_terms[boundaries[i]..boundaries[i+1]] and
-// indices[boundaries[i]..boundaries[i+1]] for its Pauli operators and qubit targets.
 
 use crate::sparse_observable::SparseObservable;
 use pyo3::prelude::*;
@@ -47,26 +33,33 @@ const C_M_FRAC_PI_4: Complex64 = c64(-FRAC_PI_4, 0.0);
 const C_M_FRAC_PI_8: Complex64 = c64(-FRAC_PI_8, 0.0);
 const C_M_FRAC_PI_2_SQRT_2: Complex64 = c64(-FRAC_PI_2 / SQRT_2, 0.0);
 
+// A constant cutoff below which we ignore the beta parameter of [StandardGate::XXPlusYY]
+// and [StandardGate::XXMinusYY]
 const BETA_TOLERANCE: f64 = 1e-10;
 
-/// For parametric gates (e.g., `RX(theta)`), the generator $H$ depends on the
-/// gate parameters (e.g., $H = (\theta/2)X$). This function extracts parameter values
-/// from the `params` slice to compute the concrete coefficients for the returned
-/// `SparseObservable`.
+/// Return the exponent representation of a [StandardGate], if it is available.
 ///
-/// If parameters are missing or symbolic (non-`Float`), it defaults to a coefficient
-/// of 1.0. This allows the commutation checker to still prove commutation in cases
-/// where the generator's Pauli structure alone is sufficient (e.g., `[theta*X, X] = 0`
-/// for any `theta`), but it avoids attempting to store parametric expressions, which
-/// `SparseObservable` does not currently support.
+/// We define the exponent $E$ of a gate $U$ as $U = \exp(-i E)$ up to a global phase.
+/// For example, the [StandardGate::RX] has $E = \theta/2 X$. Since the return type is
+/// [SparseObservable], which does not support parameterized coefficients, parameter values
+/// of type [Param::ParameterExpression] default to 1.0.
+///
+/// # Arguments
+///
+/// * gate - The standard gate whose exponent we return.
+/// * params - The gate's parameters. The length must equal the number of parameters the gate has.
+///
+/// # Returns
+///
+/// * Some(SparseObservable) - The exponent.
+/// * None - If the exponent is not supported.
 pub fn standard_gate_exponent(gate: StandardGate, params: &[Param]) -> Option<SparseObservable> {
-    // let _params = params;
     let fixed_params = params
         .iter()
         .map(|p| match p {
             Param::Float(f) => *f,
             Param::ParameterExpression(_) => 1.0,
-            Param::Obj(_) => panic!("StandardGate's don't have Param::Obj"),
+            Param::Obj(_) => panic!("StandardGate does not have Param::Obj parameters"),
         })
         .collect::<Vec<f64>>();
 

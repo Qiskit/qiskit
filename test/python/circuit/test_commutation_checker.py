@@ -65,6 +65,7 @@ from qiskit.circuit.library import (
     UnitaryGate,
     UGate,
     XXPlusYYGate,
+    XXMinusYYGate,
     PauliEvolutionGate,
     PauliProductMeasurement,
     PauliProductRotationGate,
@@ -313,16 +314,6 @@ class TestCommutationChecker(QiskitTestCase):
         # Does it even make sense to have a barrier over a subset of qubits?
         # Though in this case, it probably makes sense to say that barrier and gate can be swapped.
         self.assertTrue(scc.commute(Barrier(4), [0, 1, 2, 3], [], CXGate(), [5, 6], []))
-
-    @data(
-        (CHGate(), [0, 1], HGate(), [1], True),
-        (UGate(np.pi, 0, np.pi), [0], XGate(), [0], True),
-        (RGate(np.pi, 0), [0], XGate(), [0], True),
-    )
-    @unpack
-    def test_unsupported_gates_commute_fallback(self, gate1, q1, gate2, q2, expected):
-        """Verify that gates without Rust generators still commute correctly via matrix fallback."""
-        self.assertEqual(expected, scc.commute(gate1, q1, [], gate2, q2, []))
 
     def test_reset(self):
         """Check commutativity involving resets."""
@@ -613,13 +604,12 @@ class TestCommutationChecker(QiskitTestCase):
             (CPhaseGate(0.1), [2, 3], False),
             (XXPlusYYGate(1, 1), [0, 1], False),
             (XXPlusYYGate(1, 0), [0, 1], True),
-            # TODO In future, trivial commutations with the identity Pauli should be supported
-            # (XXPlusYYGate(1, 1), [32, 33], False),
         ]
 
         for std_gate, indices, expected in cases:
-            commutes = scc.commute(pauli_gate, pauli_indices, [], std_gate, indices, [])
-            self.assertEqual(expected, commutes)
+            with self.subTest(std_gate=std_gate, indices=indices):
+                commutes = scc.commute(pauli_gate, pauli_indices, [], std_gate, indices, [])
+                self.assertEqual(expected, commutes)
 
 
 def build_pauli_gate(pauli_string: str, gate_type: str) -> Gate:
@@ -686,16 +676,16 @@ class TestInternalStandardGateExponent(QiskitTestCase):
                 self.assertTrue(Operator(expected).equiv(constructed))
 
     @data(
-        (StandardGate.XXPlusYY, [0.5, 0.1]),
-        (StandardGate.XXMinusYY, [0.5, 0.1]),
+        (XXPlusYYGate(0, 1), [0, 1], ZGate(), [0], True),
+        (XXMinusYYGate(0, 1), [1, 0], RZGate(0.2), [1], True),
+        (CHGate(), [0, 1], HGate(), [1], True),
+        (UGate(np.pi, 0, np.pi), [0], XGate(), [0], True),
+        (RGate(np.pi, 0), [0], XGate(), [0], True),
     )
     @unpack
-    def test_unsupported_params_return_none(self, std_gate, params):
-        """Standard gates with unsupported parameter values should return None."""
-        obs = _standard_gate_exponent(std_gate, params)
-        self.assertIsNone(
-            obs, f"{std_gate.name} with beta={params[1]} should not have a generator implementation"
-        )
+    def test_unsupported_gates_commute_fallback(self, gate1, q1, gate2, q2, expected):
+        """Verify that gates without Rust generators still commute correctly via matrix fallback."""
+        self.assertEqual(expected, scc.commute(gate1, q1, [], gate2, q2, []))
 
 
 if __name__ == "__main__":

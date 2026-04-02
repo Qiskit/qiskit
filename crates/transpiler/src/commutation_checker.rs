@@ -542,7 +542,8 @@ impl CommutationChecker {
             _ => (),
         };
 
-        // Handle commutations in between Pauli-based gates, like PauliGate or PauliEvolutionGate
+        // Handle commutations between Pauli-based gates among themselves, and with standard gates
+        // TODO Support trivial commutations of standard gates with identities in the Paulis
         let size = qargs1.iter().chain(qargs2.iter()).max().unwrap().0 + 1;
         let maybe_pauli1 = try_pauli_generator(op1, qargs1, size);
         let maybe_pauli2 = try_pauli_generator(op2, qargs2, size);

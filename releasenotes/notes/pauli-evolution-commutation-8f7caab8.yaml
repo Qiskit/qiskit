@@ -3,7 +3,7 @@ features_transpiler:
   - |
     The :class:`.CommutationChecker` can now efficiently check commutations between
     standard gates and Pauli-based gates, like :class:`.PauliEvolutionGate`, 
-    :class:`.PauliProductRotationGate`, :class:`.PauliProductMeasurement` 
+    :class:`.PauliProductRotationGate`, :class:`.PauliProductMeasurement`,
     and :class:`~qiskit.quantum_info.Pauli`, without resorting to matrix-based checks.
 fixes:
   - |
