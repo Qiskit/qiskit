@@ -15,6 +15,7 @@ pub mod heuristic;
 mod layer;
 mod layout;
 pub(crate) mod route;
+mod vec_map;
 
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;

@@ -16,7 +16,7 @@ use approx::{abs_diff_eq, relative_eq};
 use num_complex::{Complex64, ComplexFloat};
 use num_traits::Zero;
 use smallvec::{SmallVec, smallvec};
-use std::f64::consts::{FRAC_1_SQRT_2, PI};
+use std::f64::consts::{FRAC_1_SQRT_2, FRAC_PI_2, FRAC_PI_4, PI, TAU};
 
 use ndarray::linalg::kron;
 use ndarray::prelude::*;
@@ -26,7 +26,9 @@ use numpy::PyReadonlyArray2;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 
-use super::common::{DEFAULT_FIDELITY, TraceToFidelity, rx_matrix, rz_matrix, transpose_conjugate};
+use super::common::{
+    DEFAULT_FIDELITY, IPZ, TraceToFidelity, rx_matrix, rz_matrix, transpose_conjugate,
+};
 use super::gate_sequence::{TwoQubitGateSequence, TwoQubitSequenceVec};
 use super::weyl_decomposition::{__num_basis_gates, _num_basis_gates, TwoQubitWeylDecomposition};
 
@@ -48,11 +50,8 @@ use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{NoBlocks, Qubit};
 use qiskit_util::alias::GateArray1Q;
-use qiskit_util::complex::{C_M_ONE, C_ONE, C_ZERO, IM, M_IM, c64};
+use qiskit_util::complex::{C_M_ONE, C_ONE, IM, M_IM, c64};
 
-const PI2: f64 = PI / 2.;
-const PI4: f64 = PI / 4.;
-const TWO_PI: f64 = 2.0 * PI;
 // Worst case length is 5x 1q gates for each 1q decomposition + 1x 2q gate
 // We might overallocate a bit if the euler basis is different but
 // the worst case is just 16 extra elements with just a String and 2 smallvecs
@@ -61,7 +60,16 @@ const TWO_PI: f64 = 2.0 * PI;
 // Python space.
 const TWO_QUBIT_SEQUENCE_DEFAULT_CAPACITY: usize = 21;
 
-static IPZ: GateArray1Q = [[IM, C_ZERO], [C_ZERO, M_IM]];
+// constant matrices
+static K12R_ARR: GateArray1Q = [
+    [c64(0., FRAC_1_SQRT_2), c64(FRAC_1_SQRT_2, 0.)],
+    [c64(-FRAC_1_SQRT_2, 0.), c64(0., -FRAC_1_SQRT_2)],
+];
+
+static K12L_ARR: GateArray1Q = [
+    [c64(0.5, 0.5), c64(0.5, 0.5)],
+    [c64(-0.5, 0.5), c64(0.5, -0.5)],
+];
 
 #[derive(Clone, Debug)]
 #[allow(non_snake_case)]
@@ -201,7 +209,8 @@ impl TwoQubitBasisDecomposer {
             })
             .collect();
         let mut euler_matrix_q0 = rx_matrix(euler_q0[0][1]).dot(&rz_matrix(euler_q0[0][0]));
-        euler_matrix_q0 = rz_matrix(euler_q0[0][2] + euler_q0[1][0] + PI2).dot(&euler_matrix_q0);
+        euler_matrix_q0 =
+            rz_matrix(euler_q0[0][2] + euler_q0[1][0] + FRAC_PI_2).dot(&euler_matrix_q0);
         self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix_q0.view(), 0);
         let mut euler_matrix_q1 = rz_matrix(euler_q1[0][1]).dot(&rx_matrix(euler_q1[0][0]));
         euler_matrix_q1 = rx_matrix(euler_q1[0][2] + euler_q1[1][0]).dot(&euler_matrix_q1);
@@ -228,10 +237,10 @@ impl TwoQubitBasisDecomposer {
             smallvec![euler_q1[1][1]],
             smallvec![1],
         ));
-        global_phase += PI2;
+        global_phase += FRAC_PI_2;
         gates.push((StandardGate::CX.into(), smallvec![], smallvec![0, 1]));
         let mut euler_matrix_q0 =
-            rx_matrix(euler_q0[2][1]).dot(&rz_matrix(euler_q0[1][2] + euler_q0[2][0] + PI2));
+            rx_matrix(euler_q0[2][1]).dot(&rz_matrix(euler_q0[1][2] + euler_q0[2][0] + FRAC_PI_2));
         euler_matrix_q0 = rz_matrix(euler_q0[2][2]).dot(&euler_matrix_q0);
         self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix_q0.view(), 0);
         let mut euler_matrix_q1 =
@@ -261,7 +270,7 @@ impl TwoQubitBasisDecomposer {
         let mut gates = Vec::new();
         let mut global_phase = target_decomposed.global_phase;
         global_phase -= 3. * self.basis_decomposer.global_phase;
-        global_phase = global_phase.rem_euclid(TWO_PI);
+        global_phase = global_phase.rem_euclid(TAU);
         let atol = 1e-10; // absolute tolerance for floats
         // Decompose source unitaries to zxz
         let euler_q0: Vec<[f64; 3]> = decomposition
@@ -295,7 +304,7 @@ impl TwoQubitBasisDecomposer {
             x12_phase = PI * x12.cos();
         }
         let x02_add = x12 - euler_q0[1][0];
-        let x12_is_half_pi = abs_diff_eq!(x12, PI2, epsilon = atol);
+        let x12_is_half_pi = abs_diff_eq!(x12, FRAC_PI_2, epsilon = atol);
 
         let mut euler_matrix_q0 = rx_matrix(euler_q0[0][1]).dot(&rz_matrix(euler_q0[0][0]));
         if x12_is_non_zero && x12_is_pi_mult {
@@ -338,7 +347,7 @@ impl TwoQubitBasisDecomposer {
         }
         if x12_is_half_pi {
             gates.push((StandardGate::SX.into(), smallvec![], smallvec![0]));
-            global_phase -= PI4;
+            global_phase -= FRAC_PI_4;
         } else if x12_is_non_zero && !x12_is_pi_mult {
             if self.pulse_optimize.is_none() {
                 self.append_1q_sequence(&mut gates, &mut global_phase, rx_matrix(x12).view(), 0);
@@ -346,9 +355,9 @@ impl TwoQubitBasisDecomposer {
                 return None;
             }
         }
-        if abs_diff_eq!(euler_q1[1][1], PI2, epsilon = atol) {
+        if abs_diff_eq!(euler_q1[1][1], FRAC_PI_2, epsilon = atol) {
             gates.push((StandardGate::SX.into(), smallvec![], smallvec![1]));
-            global_phase -= PI4
+            global_phase -= FRAC_PI_4
         } else if self.pulse_optimize.is_none() {
             self.append_1q_sequence(
                 &mut gates,
@@ -370,9 +379,9 @@ impl TwoQubitBasisDecomposer {
             smallvec![euler_q0[2][1]],
             smallvec![0],
         ));
-        if abs_diff_eq!(euler_q1[2][1], PI2, epsilon = atol) {
+        if abs_diff_eq!(euler_q1[2][1], FRAC_PI_2, epsilon = atol) {
             gates.push((StandardGate::SX.into(), smallvec![], smallvec![1]));
-            global_phase -= PI4;
+            global_phase -= FRAC_PI_4;
         } else if self.pulse_optimize.is_none() {
             self.append_1q_sequence(
                 &mut gates,
@@ -500,7 +509,7 @@ impl TwoQubitBasisDecomposer {
         let ipz: ArrayView2<Complex64> = aview2(&IPZ);
         let basis_decomposer =
             TwoQubitWeylDecomposition::new_inner(gate_matrix, Some(DEFAULT_FIDELITY), None)?;
-        let super_controlled = relative_eq!(basis_decomposer.a, PI4, max_relative = 1e-09)
+        let super_controlled = relative_eq!(basis_decomposer.a, FRAC_PI_4, max_relative = 1e-09)
             && relative_eq!(basis_decomposer.c, 0.0, max_relative = 1e-09);
 
         // Create some useful matrices U1, U2, U3 are equivalent to the basis,
@@ -724,16 +733,6 @@ impl TwoQubitBasisDecomposer {
     }
 }
 
-static K12R_ARR: GateArray1Q = [
-    [c64(0., FRAC_1_SQRT_2), c64(FRAC_1_SQRT_2, 0.)],
-    [c64(-FRAC_1_SQRT_2, 0.), c64(0., -FRAC_1_SQRT_2)],
-];
-
-static K12L_ARR: GateArray1Q = [
-    [c64(0.5, 0.5), c64(0.5, 0.5)],
-    [c64(-0.5, 0.5), c64(0.5, -0.5)],
-];
-
 fn decomp0_inner(target: &TwoQubitWeylDecomposition) -> SmallVec<[Array2<Complex64>; 8]> {
     smallvec![target.K1r.dot(&target.K2r), target.K1l.dot(&target.K2l),]
 }
@@ -802,10 +801,10 @@ impl TwoQubitBasisDecomposer {
                 target.a.sin() * target.b.sin() * target.c.sin(),
             ),
             4. * c64(
-                (PI4 - target.a).cos()
+                (FRAC_PI_4 - target.a).cos()
                     * (self.basis_decomposer.b - target.b).cos()
                     * target.c.cos(),
-                (PI4 - target.a).sin()
+                (FRAC_PI_4 - target.a).sin()
                     * (self.basis_decomposer.b - target.b).sin()
                     * target.c.sin(),
             ),
@@ -974,6 +973,8 @@ impl TwoQubitBasisDecomposer {
     }
 }
 
+/// Helper functions for two_qubit_decompose_up_to_diagonal
+/// Convert a 4x4 unitary matrix into a unitary matrix with determinant 1
 fn u4_to_su4(u4: ArrayView2<Complex64>) -> (Array2<Complex64>, f64) {
     let det_u = ndarray_to_faer(u4).determinant();
     let phase_factor = det_u.powf(-0.25).conj();
@@ -1044,6 +1045,7 @@ pub fn two_qubit_decompose_up_to_diagonal(
     Ok((real_map, circ))
 }
 
+/// Helper function for TwoQubitBasisDecomposer with rz, sx, cx gates
 fn compute_unitary(sequence: &TwoQubitSequenceVec, global_phase: f64) -> Array2<Complex64> {
     let identity = aview2(&ONE_QUBIT_IDENTITY);
     let phase = c64(0., global_phase).exp();

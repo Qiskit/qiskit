@@ -12,7 +12,7 @@
 use approx::abs_diff_eq;
 use num_complex::{Complex, Complex64, ComplexFloat};
 use smallvec::SmallVec;
-use std::f64::consts::PI;
+use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, PI, TAU};
 use std::ops::Deref;
 
 use faer::Side::Lower;
@@ -38,25 +38,21 @@ use rand::prelude::*;
 use rand_distr::StandardNormal;
 use rand_pcg::Pcg64Mcg;
 
+use super::common::{
+    DEFAULT_FIDELITY, IPX, IPY, IPZ, TraceToFidelity, closest_partial_swap, rx_matrix, ry_matrix,
+    rz_matrix, transpose_conjugate,
+};
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::gate_matrix::ONE_QUBIT_IDENTITY;
 use qiskit_circuit::operations::{Param, StandardGate};
-use qiskit_util::alias::{GateArray1Q, GateArray2Q};
+use qiskit_circuit::{Qubit, impl_intopyobject_for_copy_pyclass};
+use qiskit_util::alias::GateArray2Q;
 use qiskit_util::complex::{C_M_ONE, C_ONE, C_ZERO, IM, M_IM, c64};
 
-use qiskit_circuit::{Qubit, impl_intopyobject_for_copy_pyclass};
-
-use super::common::{
-    DEFAULT_FIDELITY, TraceToFidelity, closest_partial_swap, rx_matrix, ry_matrix, rz_matrix,
-    transpose_conjugate,
-};
-
-const PI2: f64 = PI / 2.;
-const PI4: f64 = PI / 4.;
-const PI32: f64 = 3.0 * PI2;
-const TWO_PI: f64 = 2.0 * PI;
+const PI32: f64 = 3.0 * FRAC_PI_2;
 const C1: c64 = c64 { re: 1.0, im: 0.0 };
 
+// constant matrices
 static B_NON_NORMALIZED: GateArray2Q = [
     [C_ONE, IM, C_ZERO, C_ZERO],
     [C_ZERO, C_ZERO, IM, C_ONE],
@@ -187,37 +183,37 @@ fn __weyl_coordinates(unitary: MatRef<c64>) -> PyResult<[f64; 3]> {
         .collect();
     let cstemp: Vec<f64> = cs
         .iter()
-        .map(|x| x.rem_euclid(PI2))
-        .map(|x| x.min(PI2 - x))
+        .map(|x| x.rem_euclid(FRAC_PI_2))
+        .map(|x| x.min(FRAC_PI_2 - x))
         .collect();
     let mut order = arg_sort(&cstemp);
     (order[0], order[1], order[2]) = (order[1], order[2], order[0]);
     (cs[0], cs[1], cs[2]) = (cs[order[0]], cs[order[1]], cs[order[2]]);
 
     // Flip into Weyl chamber
-    if cs[0] > PI2 {
+    if cs[0] > FRAC_PI_2 {
         cs[0] -= PI32;
     }
-    if cs[1] > PI2 {
+    if cs[1] > FRAC_PI_2 {
         cs[1] -= PI32;
     }
     let mut conjs = 0;
-    if cs[0] > PI4 {
-        cs[0] = PI2 - cs[0];
+    if cs[0] > FRAC_PI_4 {
+        cs[0] = FRAC_PI_2 - cs[0];
         conjs += 1;
     }
-    if cs[1] > PI4 {
-        cs[1] = PI2 - cs[1];
+    if cs[1] > FRAC_PI_4 {
+        cs[1] = FRAC_PI_2 - cs[1];
         conjs += 1;
     }
-    if cs[2] > PI2 {
+    if cs[2] > FRAC_PI_2 {
         cs[2] -= PI32;
     }
     if conjs == 1 {
-        cs[2] = PI2 - cs[2];
+        cs[2] = FRAC_PI_2 - cs[2];
     }
-    if cs[2] > PI4 {
-        cs[2] -= PI2;
+    if cs[2] > FRAC_PI_4 {
+        cs[2] -= FRAC_PI_2;
     }
     Ok([cs[1], cs[0], cs[2]])
 }
@@ -245,8 +241,8 @@ pub(super) fn __num_basis_gates(
             4.0 * (a.sin() * b.sin() * c.sin()),
         ),
         c64::new(
-            4.0 * (PI4 - a).cos() * (basis_b - b).cos() * c.cos(),
-            4.0 * (PI4 - a).sin() * (basis_b - b).sin() * c.sin(),
+            4.0 * (FRAC_PI_4 - a).cos() * (basis_b - b).cos() * c.cos(),
+            4.0 * (FRAC_PI_4 - a).sin() * (basis_b - b).sin() * c.sin(),
         ),
         c64::new(4.0 * c.cos(), 0.0),
         c64::new(4.0, 0.0),
@@ -395,10 +391,10 @@ impl TwoQubitWeylDecomposition {
                 sequence.push_standard_gate(StandardGate::Swap, &[], &[Qubit(0), Qubit(1)])?;
                 sequence.push_standard_gate(
                     StandardGate::RZZ,
-                    &[Param::Float((PI4 - self.c) * 2.)],
+                    &[Param::Float((FRAC_PI_4 - self.c) * 2.)],
                     &[Qubit(0), Qubit(1)],
                 )?;
-                *global_phase += PI4
+                *global_phase += FRAC_PI_4
             }
             Specialization::SWAPEquiv => {
                 sequence.push_standard_gate(StandardGate::Swap, &[], &[Qubit(0), Qubit(1)])?;
@@ -516,12 +512,12 @@ impl TwoQubitWeylDecomposition {
         let mut d = -d.map(|x| x.arg() / 2.);
         d[3] = -d[0] - d[1] - d[2];
         let mut cs: SmallVec<[f64; 3]> = (0..3)
-            .map(|i| ((d[i] + d[3]) / 2.0).rem_euclid(TWO_PI))
+            .map(|i| ((d[i] + d[3]) / 2.0).rem_euclid(TAU))
             .collect();
         let cstemp: SmallVec<[f64; 3]> = cs
             .iter()
-            .map(|x| x.rem_euclid(PI2))
-            .map(|x| x.min(PI2 - x))
+            .map(|x| x.rem_euclid(FRAC_PI_2))
+            .map(|x| x.min(FRAC_PI_2 - x))
             .collect();
         let mut order = arg_sort(&cstemp);
         (order[0], order[1], order[2]) = (order[1], order[2], order[0]);
@@ -551,56 +547,56 @@ impl TwoQubitWeylDecomposition {
         global_phase += phase_l + phase_r;
 
         // Flip into Weyl chamber
-        if cs[0] > PI2 {
+        if cs[0] > FRAC_PI_2 {
             cs[0] -= PI32;
             K1l = K1l.dot(&ipy);
             K1r = K1r.dot(&ipy);
-            global_phase += PI2;
+            global_phase += FRAC_PI_2;
         }
-        if cs[1] > PI2 {
+        if cs[1] > FRAC_PI_2 {
             cs[1] -= PI32;
             K1l = K1l.dot(&ipx);
             K1r = K1r.dot(&ipx);
-            global_phase += PI2;
+            global_phase += FRAC_PI_2;
         }
         let mut conjs = 0;
-        if cs[0] > PI4 {
-            cs[0] = PI2 - cs[0];
+        if cs[0] > FRAC_PI_4 {
+            cs[0] = FRAC_PI_2 - cs[0];
             K1l = K1l.dot(&ipy);
             K2r = ipy.dot(&K2r);
             conjs += 1;
-            global_phase -= PI2;
+            global_phase -= FRAC_PI_2;
         }
-        if cs[1] > PI4 {
-            cs[1] = PI2 - cs[1];
+        if cs[1] > FRAC_PI_4 {
+            cs[1] = FRAC_PI_2 - cs[1];
             K1l = K1l.dot(&ipx);
             K2r = ipx.dot(&K2r);
             conjs += 1;
-            global_phase += PI2;
+            global_phase += FRAC_PI_2;
             if conjs == 1 {
                 global_phase -= PI;
             }
         }
-        if cs[2] > PI2 {
+        if cs[2] > FRAC_PI_2 {
             cs[2] -= PI32;
             K1l = K1l.dot(&ipz);
             K1r = K1r.dot(&ipz);
-            global_phase += PI2;
+            global_phase += FRAC_PI_2;
             if conjs == 1 {
                 global_phase -= PI;
             }
         }
         if conjs == 1 {
-            cs[2] = PI2 - cs[2];
+            cs[2] = FRAC_PI_2 - cs[2];
             K1l = K1l.dot(&ipz);
             K2r = ipz.dot(&K2r);
-            global_phase += PI2;
+            global_phase += FRAC_PI_2;
         }
-        if cs[2] > PI4 {
-            cs[2] -= PI2;
+        if cs[2] > FRAC_PI_4 {
+            cs[2] -= FRAC_PI_2;
             K1l = K1l.dot(&ipz);
             K1r = K1r.dot(&ipz);
-            global_phase -= PI2;
+            global_phase -= FRAC_PI_2;
         }
         let [a, b, c] = [cs[1], cs[0], cs[2]];
         let is_close = |ap: f64, bp: f64, cp: f64| -> bool {
@@ -626,7 +622,9 @@ impl TwoQubitWeylDecomposition {
             None => {
                 if is_close(0., 0., 0.) {
                     Specialization::IdEquiv
-                } else if is_close(PI4, PI4, PI4) || is_close(PI4, PI4, -PI4) {
+                } else if is_close(FRAC_PI_4, FRAC_PI_4, FRAC_PI_4)
+                    || is_close(FRAC_PI_4, FRAC_PI_4, -FRAC_PI_4)
+                {
                     Specialization::SWAPEquiv
                 } else if is_close(closest_abc, closest_abc, closest_abc) {
                     Specialization::PartialSWAPEquiv
@@ -634,7 +632,7 @@ impl TwoQubitWeylDecomposition {
                     Specialization::PartialSWAPFlipEquiv
                 } else if is_close(a, 0., 0.) {
                     Specialization::ControlledEquiv
-                } else if is_close(PI4, PI4, c) {
+                } else if is_close(FRAC_PI_4, FRAC_PI_4, c) {
                     Specialization::MirrorControlledEquiv
                 } else if is_close((a + b) / 2., (a + b) / 2., c) {
                     Specialization::fSimaabEquiv
@@ -686,9 +684,9 @@ impl TwoQubitWeylDecomposition {
                 if c > 0. {
                     TwoQubitWeylDecomposition {
                         specialization,
-                        a: PI4,
-                        b: PI4,
-                        c: PI4,
+                        a: FRAC_PI_4,
+                        b: FRAC_PI_4,
+                        c: FRAC_PI_4,
                         K1l: general.K1l.dot(&general.K2r),
                         K1r: general.K1r.dot(&general.K2l),
                         K2l: Array2::eye(2),
@@ -699,10 +697,10 @@ impl TwoQubitWeylDecomposition {
                     flipped_from_original = true;
                     TwoQubitWeylDecomposition {
                         specialization,
-                        a: PI4,
-                        b: PI4,
-                        c: PI4,
-                        global_phase: global_phase + PI2,
+                        a: FRAC_PI_4,
+                        b: FRAC_PI_4,
+                        c: FRAC_PI_4,
+                        global_phase: global_phase + FRAC_PI_2,
                         K1l: general.K1l.dot(&ipz).dot(&general.K2r),
                         K1r: general.K1r.dot(&ipz).dot(&general.K2l),
                         K2l: Array2::eye(2),
@@ -794,8 +792,8 @@ impl TwoQubitWeylDecomposition {
                     angles_from_unitary(general.K2r.view(), EulerBasis::ZYZ);
                 TwoQubitWeylDecomposition {
                     specialization,
-                    a: PI4,
-                    b: PI4,
+                    a: FRAC_PI_4,
+                    b: FRAC_PI_4,
                     c,
                     global_phase: global_phase + k2lphase + k2rphase,
                     K1l: general.K1l.dot(&rz_matrix(k2rphi)),
@@ -881,7 +879,7 @@ impl TwoQubitWeylDecomposition {
 
         let tr = if flipped_from_original {
             let [da, db, dc] = [
-                PI2 - a - specialized.a,
+                FRAC_PI_2 - a - specialized.a,
                 b - specialized.b,
                 -c - specialized.c,
             ];
@@ -909,10 +907,6 @@ impl TwoQubitWeylDecomposition {
         Ok(specialized)
     }
 }
-
-static IPZ: GateArray1Q = [[IM, C_ZERO], [C_ZERO, M_IM]];
-static IPY: GateArray1Q = [[C_ZERO, C_ONE], [C_M_ONE, C_ZERO]];
-static IPX: GateArray1Q = [[C_ZERO, IM], [IM, C_ZERO]];
 
 #[pymethods]
 impl TwoQubitWeylDecomposition {

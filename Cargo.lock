@@ -2113,6 +2113,7 @@ dependencies = [
  "num-traits",
  "numpy",
  "pyo3",
+ "qiskit-quantum-info",
  "qiskit-util",
  "rayon",
  "rustworkx-core",
@@ -2316,6 +2317,8 @@ name = "qiskit-util"
 version = "2.5.0-dev"
 dependencies = [
  "num-complex",
+ "pyo3",
+ "thiserror 2.0.18",
 ]
 
 [[package]]
