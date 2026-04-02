@@ -478,12 +478,11 @@ pub fn py_convert_to_pauli_rotations(dag: &DAGCircuit) -> PyResult<DAGCircuit> {
         let NodeType::Operation(inst) = &dag[node_index] else {
             unreachable!("dag.topological_op_nodes only returns Operations");
         };
-        if ["barrier", "reset", "delay"].contains(&inst.op.name()) 
-        || matches!(inst.op.view(), OperationRef::ControlFlow(_)) 
+        if ["barrier", "reset", "delay"].contains(&inst.op.name())
+            || matches!(inst.op.view(), OperationRef::ControlFlow(_))
         {
             new_dag.push_back(inst.clone())?;
             continue;
-
         } else if inst.op.name() == "measure" {
             let z = vec![true];
             let x = vec![false];
