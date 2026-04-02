@@ -74,9 +74,7 @@ from qiskit.circuit.library import (
 from qiskit.dagcircuit import DAGOpNode
 
 from qiskit.quantum_info import SparseObservable, SparsePauliOp, Pauli
-from qiskit._accelerate.circuit import StandardGate
 from qiskit._accelerate.standard_generators import _standard_gate_exponent
-from qiskit._accelerate import standard_generators
 
 ROTATION_GATES = [
     RXGate,

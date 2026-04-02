@@ -13,7 +13,6 @@
 """Test the LightCone pass"""
 
 import unittest
-import numpy as np
 from test import QiskitTestCase
 
 import ddt
@@ -22,7 +21,7 @@ from qiskit.circuit import (
     Parameter,
     QuantumCircuit,
 )
-from qiskit.circuit.library import RXXGate, real_amplitudes
+from qiskit.circuit.library import real_amplitudes
 from qiskit.circuit.library.n_local.efficient_su2 import efficient_su2
 from qiskit.converters import circuit_to_dag
 from qiskit.quantum_info import SparsePauliOp, SparseObservable
