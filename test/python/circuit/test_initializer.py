@@ -438,7 +438,7 @@ class TestInitialize(QiskitTestCase):
 
     def test_global_phase_random(self):
         """Test global phase preservation with random state vectors"""
-        from qiskit.quantum_info.random import random_statevector
+        from qiskit.quantum_info import random_statevector
 
         repeats = 5
         for n_qubits in [1, 2, 4]:

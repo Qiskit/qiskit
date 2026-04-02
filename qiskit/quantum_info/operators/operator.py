@@ -435,7 +435,7 @@ class Operator(LinearOp):
             if not ignore_set_layout and layout is not None:
                 final_layout = getattr(layout, "final_layout", None)
 
-        from qiskit.synthesis.permutation.permutation_utils import _inverse_pattern
+        from qiskit.synthesis.permutation import _inverse_pattern
 
         op = Operator(circuit)
 

@@ -26,7 +26,7 @@ from qiskit import transpile
 from qiskit.circuit.library import HGate, QFTGate, GlobalPhaseGate
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.utils import optionals
-from qiskit.quantum_info.random import random_unitary, random_statevector, random_pauli
+from qiskit.quantum_info import random_unitary, random_statevector, random_pauli
 from qiskit.quantum_info.states import Statevector
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
