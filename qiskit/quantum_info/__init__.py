@@ -147,14 +147,17 @@ from .operators import (
 from .operators.channel import PTM, Chi, Choi, Kraus, Stinespring, SuperOp
 from .operators.dihedral import CNOTDihedral
 from .operators.measures import average_gate_fidelity, diamond_norm, gate_error, process_fidelity
-from .operators.random import (
+from .random import (
+    random_clifford,
+    random_cnotdihedral,
+    random_density_matrix,
     random_hermitian,
+    random_pauli,
+    random_pauli_list,
     random_quantum_channel,
+    random_statevector,
     random_unitary,
 )
-from .operators.dihedral.random import random_cnotdihedral
-from .operators.symplectic.random import random_clifford, random_pauli, random_pauli_list
-from .states.random import random_density_matrix, random_statevector
 from .states import (
     DensityMatrix,
     StabilizerState,
