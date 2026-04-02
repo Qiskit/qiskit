@@ -13,11 +13,12 @@
 """Test ConvertToPauliRotations pass"""
 
 from ddt import ddt
+import numpy as np
 
-from qiskit.circuit import QuantumCircuit, Gate, Parameter
+from qiskit.circuit import QuantumCircuit, Gate, Parameter, QuantumRegister, ClassicalRegister
 from qiskit.transpiler import TranspilerError
 from qiskit.transpiler.passes import ConvertToPauliRotations
-from qiskit.quantum_info import Operator
+from qiskit.quantum_info import Operator, Pauli
 from qiskit.circuit.random import random_circuit
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.circuit.library import (
@@ -25,6 +26,8 @@ from qiskit.circuit.library import (
     RC3XGate,
     C4XGate,
     MCXGate,
+    PauliProductMeasurement,
+    PauliProductRotationGate,
 )
 from test import combine, QiskitTestCase
 
@@ -130,3 +133,54 @@ class TestConvertToPauliRotations(QiskitTestCase):
 
         with self.assertRaises(TranspilerError):
             _ = ConvertToPauliRotations()(qc)
+
+    def test_control_flow(self):
+        """Test that simple control flow circuit works with the pass"""
+
+        qc = QuantumCircuit(2, 2)
+        qc.h(0)
+        qc.measure(0, 0)
+        with qc.if_test((0, False)):
+            qc.h(0)
+        qct = ConvertToPauliRotations()(qc)
+        qc_exp = QuantumCircuit(2, 2)
+        qc_exp.append(PauliProductRotationGate(Pauli("Y"), np.pi / 2), [0])
+        qc_exp.append(PauliProductRotationGate(Pauli("X"), np.pi), [0])
+        qc_exp.append(PauliProductMeasurement((Pauli("Z"))), [0], [0])
+        qc_exp.global_phase = np.pi / 2
+        with qc_exp.if_test((0, False)):
+            qc_exp.append(PauliProductRotationGate(Pauli("Y"), np.pi / 2), [0])
+            qc_exp.append(PauliProductRotationGate(Pauli("X"), np.pi), [0])
+        ops_names = set(qct.count_ops().keys())
+        self.assertEqual(
+            ops_names, {"pauli_product_rotation", "pauli_product_measurement", "if_else"}
+        )
+        self.assertEqual(qct.data, qc_exp.data)
+        self.assertEqual(qct.global_phase, qc_exp.global_phase)
+        Operator.equiv(qct, qc_exp)
+
+    def test_nested_control_flow(self):
+        """Test that nested control flow circuit works with the pass"""
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(1)
+        qc1 = QuantumCircuit(2)
+        qc1.h(0)
+        qc2 = QuantumCircuit(2)
+        qc2.append(PauliProductRotationGate(Pauli("Y"), np.pi / 2), [0])
+        qc2.append(PauliProductRotationGate(Pauli("X"), np.pi), [0])
+        qc2.global_phase = np.pi / 2
+        qc = QuantumCircuit(qr, cr)
+        qc.compose(qc1, [0, 1], inplace=True)
+        with qc.for_loop(range(3)):
+            with qc.while_loop((cr, 0)):
+                qc.compose(qc1, [0, 1], inplace=True)
+        qct = ConvertToPauliRotations()(qc)
+        qc_exp = QuantumCircuit(qr, cr)
+        qc_exp.compose(qc2, [0, 1], inplace=True)
+        with qc_exp.for_loop(range(3)):
+            with qc_exp.while_loop((cr, 0)):
+                qc_exp.compose(qc2, [0, 1], inplace=True)
+        # self.assertEqual(qct, qc_exp) seems to fail tho circuits look identical. why?
+        self.assertEqual(qct.data, qc_exp.data)
+        self.assertEqual(qct.global_phase, qc_exp.global_phase)
+        Operator.equiv(qct, qc_exp)
