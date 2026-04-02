@@ -1,0 +1,5 @@
+---
+features_transpiler:
+  - The :class:`.ConvertToPauliRotations` now supports circuits with
+    :class:`.ControlFlowOp`. Previously, it did not support transpilation
+    of circuits with control flow instructions.
