@@ -13,7 +13,6 @@
 """Test commutation checker class ."""
 
 import unittest
-import pickle
 from test import QiskitTestCase
 
 import scipy
@@ -388,6 +387,7 @@ class TestCommutationChecker(QiskitTestCase):
 
     def test_serialization(self):
         """Test that the commutation checker is correctly serialized"""
+        import pickle
 
         cx_like = CUGate(np.pi, 0, np.pi, 0)
 
