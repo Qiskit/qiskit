@@ -10,9 +10,12 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+mod convert;
+
 use crate::circuit_data::{CircuitData, PyCircuitData};
 use crate::operations::{Operation, Param, add_param, clone_param, multiply_param, radd_param};
 use crate::{Qubit, gate_matrix, impl_intopyobject_for_copy_pyclass, imports};
+use qiskit_quantum_info::versor_u2::{VersorU2, VersorU2Error};
 
 use ndarray::{Array2, aview2};
 use num_complex::Complex64;
@@ -1842,6 +1845,13 @@ impl StandardGate {
             Self::C3SX => None,
             Self::RC3X => None,
         }
+    }
+
+    /// Get the versor representation of a 1q [StandardGate] without constructing a matrix.
+    ///
+    /// Returns the error state if `gate` is not 1q, or if any of the parameters are symbolic.
+    pub fn versor_u2(&self, params: &[Param]) -> Result<VersorU2, VersorU2Error> {
+        convert::versor_u2(*self, params)
     }
 }
 
