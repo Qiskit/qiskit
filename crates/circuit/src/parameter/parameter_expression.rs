@@ -171,7 +171,7 @@ impl ParameterExpression {
                 });
             }
             SymbolExpr::Unary { .. } | SymbolExpr::Binary { .. } => {
-                qpy_replay(self, &self.name_map, &mut replay, &mut unused);
+                qpy_replay_inner(self, &self.name_map, &mut replay, &mut unused);
             }
         }
         // For any unused symbols, we'll add something like `(x * 0) + expr`.  This sort of
@@ -2071,7 +2071,7 @@ fn filter_name_map(
     }
 }
 
-fn qpy_replay(
+fn qpy_replay_inner(
     expr: &ParameterExpression,
     name_map: &HashMap<String, Symbol>,
     replay: &mut Vec<OPReplay>,
@@ -2103,7 +2103,7 @@ fn qpy_replay(
             let lhs = filter_name_map(expr, name_map);
 
             // recurse on the instruction
-            qpy_replay(&lhs, name_map, replay, unused);
+            qpy_replay_inner(&lhs, name_map, replay, unused);
 
             let lhs_value = ParameterValueType::extract_from_expr(expr);
 
@@ -2129,8 +2129,8 @@ fn qpy_replay(
             // recurse on the parameter expressions
             let lhs = filter_name_map(lhs, name_map);
             let rhs = filter_name_map(rhs, name_map);
-            qpy_replay(&lhs, name_map, replay, unused);
-            qpy_replay(&rhs, name_map, replay, unused);
+            qpy_replay_inner(&lhs, name_map, replay, unused);
+            qpy_replay_inner(&rhs, name_map, replay, unused);
 
             // add the expression to the replay
             match lhs_value {
