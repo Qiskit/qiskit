@@ -664,11 +664,6 @@ class TestInternalStandardGateExponent(QiskitTestCase):
     This is testing internal Rust functionality since we do not yet have sufficient
     matrix construction features in Rust to test it there. Once we do, these test should
     move to Rust.
-
-    The function returns H such that gate ≈ exp(-i H) (up to global phase).
-    Two gates A and B commute iff [H_A, H_B] = 0.  We verify here that the
-    generators correctly predict commutation vs. non-commutation for a
-    representative set of gate pairs.
     """
 
     def test_gate_exponents(self):
