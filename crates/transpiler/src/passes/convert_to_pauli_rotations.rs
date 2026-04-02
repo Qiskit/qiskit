@@ -469,7 +469,7 @@ fn generate_pauli_product_rotation_gate(paulis: &[BitTerm], angle: Param) -> Pau
 #[pyfunction]
 #[pyo3(name = "convert_to_pauli_rotations")]
 pub fn py_convert_to_pauli_rotations(dag: &DAGCircuit) -> PyResult<DAGCircuit> {
-    let mut new_dag = dag.copy_empty_like(VarsMode::Alike, BlocksMode::Drop)?;
+    let mut new_dag = dag.copy_empty_like(VarsMode::Alike, BlocksMode::Keep)?;
 
     // Iterate over nodes in the DAG and collect nodes
     let mut global_phase = Param::Float(0.0);
@@ -478,8 +478,12 @@ pub fn py_convert_to_pauli_rotations(dag: &DAGCircuit) -> PyResult<DAGCircuit> {
         let NodeType::Operation(inst) = &dag[node_index] else {
             unreachable!("dag.topological_op_nodes only returns Operations");
         };
-        if ["barrier", "reset", "delay"].contains(&inst.op.name()) {
+        if ["barrier", "reset", "delay"].contains(&inst.op.name()) 
+        || matches!(inst.op.view(), OperationRef::ControlFlow(_)) 
+        {
             new_dag.push_back(inst.clone())?;
+            continue;
+
         } else if inst.op.name() == "measure" {
             let z = vec![true];
             let x = vec![false];
