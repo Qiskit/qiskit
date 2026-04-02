@@ -146,7 +146,7 @@ class TestConvertToPauliRotations(QiskitTestCase):
         qc_exp = QuantumCircuit(2, 2)
         qc_exp.append(PauliProductRotationGate(Pauli("Y"), np.pi / 2), [0])
         qc_exp.append(PauliProductRotationGate(Pauli("X"), np.pi), [0])
-        qc_exp.append(PauliProductMeasurement((Pauli("Z"))), [0], [0])
+        qc_exp.append(PauliProductMeasurement(Pauli("Z")), [0], [0])
         qc_exp.global_phase = np.pi / 2
         with qc_exp.if_test((0, False)):
             qc_exp.append(PauliProductRotationGate(Pauli("Y"), np.pi / 2), [0])

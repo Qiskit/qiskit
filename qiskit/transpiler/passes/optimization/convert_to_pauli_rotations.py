@@ -46,7 +46,7 @@ class ConvertToPauliRotations(TransformationPass):
       # The circuits before and after the transformation are equivalent
       assert Operator(qc) == Operator(qct)
     """
-    
+
     @control_flow.trivial_recurse
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the ConvertToPauliRotations optimization pass on ``dag``.
