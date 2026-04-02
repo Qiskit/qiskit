@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 mod convert;
+pub mod standard_generators;
 
 use crate::circuit_data::{CircuitData, PyCircuitData};
 use crate::operations::{Operation, Param, add_param, clone_param, multiply_param, radd_param};
