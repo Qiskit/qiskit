@@ -14,6 +14,7 @@ use std::cell::RefCell;
 use std::sync::Mutex;
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
+use std::sync::atomic::AtomicBool;
 
 use nalgebra::U4;
 use num_complex::Complex64;
@@ -73,6 +74,7 @@ pub fn two_qubit_unitary_peephole_optimize(
     }
     let node_mapping: Vec<usize> = vec![usize::MAX; dag.dag().node_bound()];
     let locked_node_mapping = Mutex::new(node_mapping);
+    let substitution_made = AtomicBool::new(false);
     let physical_qubits = (0..dag.num_qubits() as u32)
         .map(PhysicalQubit::new)
         .collect::<Vec<_>>();
@@ -180,6 +182,7 @@ pub fn two_qubit_unitary_peephole_optimize(
             for node in node_indices {
                 node_mapping[node.index()] = run_index;
             }
+            substitution_made.store(true, std::sync::atomic::Ordering::Relaxed);
             Ok(Some((result, q_virt)))
         };
 
@@ -197,6 +200,9 @@ pub fn two_qubit_unitary_peephole_optimize(
             .collect()
     };
     let run_mapping = run_mapping?;
+    if !substitution_made.into_inner() {
+        return Ok(None);
+    }
     // After we've computed all the sequences to execute now serially build up a new dag.
     let mut processed_runs: Vec<bool> = vec![false; run_mapping.len()];
     let out_dag = dag.copy_empty_like_with_same_capacity(VarsMode::Alike, BlocksMode::Keep)?;
