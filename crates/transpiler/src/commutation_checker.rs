@@ -569,9 +569,9 @@ impl CommutationChecker {
             is_cachable(first_op, first_params) && is_cachable(second_op, second_params);
 
         if !check_cache {
-            // The arguments are sorted, so if qargs1.len() > matrix_max_num_qubits, then
-            // qargs1.len() > matrix_max_num_qubits as well.
-            if qargs2.len() > matrix_max_num_qubits as usize {
+            // The arguments are sorted, so if first_qargs.len() > matrix_max_num_qubits, then
+            // second_qargs.len() > matrix_max_num_qubits as well.
+            if second_qargs.len() > matrix_max_num_qubits as usize {
                 return Ok(false);
             }
 

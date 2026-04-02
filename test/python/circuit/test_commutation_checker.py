@@ -501,6 +501,24 @@ class TestCommutationChecker(QiskitTestCase):
             scc.commute(almost_identity, [0], [], other, [0], [], approximation_degree=1 - 1e-4)
         )
 
+    def test_matrix_threshold_noncachable(self):
+        """Test the matrix threshold is obeyed for non-cachable gates."""
+        num_qubits = 2
+        big = UnitaryGate(np.eye(2**num_qubits))
+        qubits = list(range(num_qubits))
+        other = HGate()
+
+        # We check passing args in both orders; [A, B] and [B, A] since the commutation
+        # checking does some sorting which we want to also test here.
+        # Since we should skip the test, the commutation should come out to ``False``,
+        # and only if the matrix check is run (which it shouldn't) this would be ``True``.
+        self.assertFalse(
+            scc.commute(big, qubits, [], other, [0], [], matrix_max_num_qubits=num_qubits - 1)
+        )
+        self.assertFalse(
+            scc.commute(other, [0], [], big, qubits, [], matrix_max_num_qubits=num_qubits - 1)
+        )
+
     @data("pauli", "evolution", "measure")
     def test_pauli_based_gates(self, gate_type):
         """Test Pauli-based gates."""
