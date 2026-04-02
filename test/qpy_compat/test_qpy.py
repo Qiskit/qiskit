@@ -869,7 +869,11 @@ def generate_replay_with_expression_substitutions():
     exp = exp.subs({rz: theta})
     qc2.rz(exp, 0)
 
-    return [qc, qc2]
+    pv = ParameterVector("rz", 2)
+    qc3 = QuantumCircuit(1, name="subs-vector")
+    qc3.rz((pv[0] + 0.5).subs({pv[0]: pv[1]}), 0)
+
+    return [qc, qc2, qc3]
 
 
 def generate_v14_expr():

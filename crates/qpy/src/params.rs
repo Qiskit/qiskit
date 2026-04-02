@@ -288,7 +288,7 @@ pub(crate) fn unpack_parameter_expression(
     let name_map = if qpy_data.version < 15 {
         uuid_map
             .values()
-            .map(|sym| (sym.name().to_owned(), sym.clone()))
+            .map(|sym| (sym.fullname().into_owned(), sym.clone()))
             .collect::<HashMap<_, _>>()
     } else {
         // Not used for QPY >= 15, so no need to bother calculating it.
@@ -300,10 +300,10 @@ pub(crate) fn unpack_parameter_expression(
             "malformed expression: stack was empty before expression completed".to_string(),
         )
     };
-    let unknown_parameter = || {
-        QpyError::InvalidParameter(
-            "malformed expression: reference to unknown parameter".to_string(),
-        )
+    let unknown_parameter = |repr: String| {
+        QpyError::InvalidParameter(format!(
+            "malformed expression: reference to unknown parameter: {repr}"
+        ))
     };
     let unexpected_recursion = || {
         QpyError::DeserializationError(
@@ -328,10 +328,13 @@ pub(crate) fn unpack_parameter_expression(
                 let im = f64::from_be_bytes(lower(data));
                 Ok(ParameterValueType::Complex(Complex64 { re, im }).into())
             }
-            ParameterType::Parameter => uuid_map
-                .get(&Uuid::from_bytes(data))
-                .map(|sym| ParameterExpression::from_symbol(sym.clone()))
-                .ok_or_else(unknown_parameter),
+            ParameterType::Parameter => {
+                let key = Uuid::from_bytes(data);
+                uuid_map
+                    .get(&key)
+                    .map(|sym| ParameterExpression::from_symbol(sym.clone()))
+                    .ok_or_else(|| unknown_parameter(format!("{key:?}")))
+            }
             ParameterType::Null => stack.pop().ok_or_else(empty_stack),
             ParameterType::StartExpression | ParameterType::EndExpression => {
                 Err(unexpected_recursion())
@@ -432,10 +435,16 @@ pub(crate) fn unpack_parameter_expression(
                                     "invalid mapping: uuid incorrect length".to_string(),
                                 )
                             })?;
-                            uuid_map.get(&key).ok_or_else(unknown_parameter)?.clone()
+                            uuid_map
+                                .get(&key)
+                                .ok_or_else(|| unknown_parameter(format!("{key:?}")))?
+                                .clone()
                         } else {
                             let key = std::str::from_utf8(&item.key_bytes)?;
-                            name_map.get(key).ok_or_else(unknown_parameter)?.clone()
+                            name_map
+                                .get(key)
+                                .ok_or_else(|| unknown_parameter(key.to_string()))?
+                                .clone()
                         };
                         let replacement = expr_from_value(load_value(
                             item.item_type,
