@@ -201,10 +201,7 @@ pub fn two_qubit_unitary_peephole_optimize(
     let mut processed_runs: Vec<bool> = vec![false; run_mapping.len()];
     let out_dag = dag.copy_empty_like_with_same_capacity(VarsMode::Alike, BlocksMode::Keep)?;
     let mut out_dag_builder = out_dag.into_builder();
-    let node_mapping = locked_node_mapping.lock().unwrap();
-    if node_mapping.is_empty() {
-        return Ok(None);
-    }
+    let node_mapping = locked_node_mapping.into_inner().unwrap();
     for node in toposort(dag.dag(), None).unwrap() {
         if !matches!(dag.dag()[node], NodeType::Operation(_)) {
             continue;
