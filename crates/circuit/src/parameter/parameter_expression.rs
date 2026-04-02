@@ -154,7 +154,10 @@ impl ParameterExpression {
                     Value::Complex(v) => OPReplay {
                         op: OpCode::ADD,
                         lhs: Some(ParameterValueType::Complex(v)),
-                        rhs: Some(ParameterValueType::Float(-0.0)),
+                        rhs: Some(ParameterValueType::Complex(Complex64 {
+                            re: -0.0,
+                            im: -0.0,
+                        })),
                     },
                 };
                 replay.push(item);
@@ -171,15 +174,14 @@ impl ParameterExpression {
                 qpy_replay(self, &self.name_map, &mut replay, &mut unused);
             }
         }
-        // For any unused symbols, we'll add something like `expr + x - x`.  This sort of
-        // cancellation is how unused symbols appear; it doesn't matter if the _actual_ cause was `0
-        // * x` or whatever, because the end observable effect is the same.
+        // For any unused symbols, we'll add something like `(x * 0) + expr`.  This sort of
+        // cancellation is how unused symbols appear; it doesn't matter if the _actual_ cause was
+        // `x - x` or whatever, because the end observable effect is the same.
         for symbol in unused {
-            let operand = ParameterValueType::from_symbol(symbol);
             replay.push(OPReplay {
-                op: OpCode::SUB,
-                lhs: Some(operand.clone()),
-                rhs: Some(operand),
+                op: OpCode::MUL,
+                lhs: Some(ParameterValueType::from_symbol(symbol)),
+                rhs: Some(ParameterValueType::Int(0)),
             });
             replay.push(OPReplay {
                 op: OpCode::ADD,
