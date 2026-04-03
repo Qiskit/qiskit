@@ -13,8 +13,9 @@ fixes:
     operator is exactly ``I``.
 
     This fix depends on the global-phase propagation fixes introduced for
-    :issue:`14537` (``circuit_to_dagdependency`` now copies ``global_phase``
+    `#14537 <https://github.com/Qiskit/qiskit/issues/14537>`__
+    (``circuit_to_dagdependency`` now copies ``global_phase``
     and ``TemplateSubstitution`` now adjusts the circuit's ``global_phase``
     for each template substitution applied).
 
-    Fixes :issue:`14538`.
+    Fixes `#14538 <https://github.com/Qiskit/qiskit/issues/14538>`__.
