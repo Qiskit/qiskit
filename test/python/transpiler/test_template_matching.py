@@ -762,7 +762,6 @@ class TestTemplateMatching(QiskitTestCase):
         # All of these gates are in the commutation library, i.e. the cache should not be used
         self.assertEqual(scc.num_cached_entries(), 0)
 
-
     def test_circuit_global_phase_preserved_after_template_match(self):
         """Regression test for #14537: circuit global_phase must survive template optimization.
 
