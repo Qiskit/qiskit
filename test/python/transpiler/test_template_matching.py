@@ -783,6 +783,44 @@ class TestTemplateMatching(QiskitTestCase):
 
         self.assertAlmostEqual(float(result.global_phase), np.pi / 4)
 
+    def test_template_nonzero_global_phase_applied_to_circuit(self):
+        """Regression test for #14537: template global_phase is subtracted per match.
+
+        When a template carries a nonzero global_phase phi_T, its gate content alone
+        implements e^{-i*phi_T} * I (the identity check asserts the full operator is I).
+        Each substitution must therefore decrease the circuit's global_phase by phi_T.
+
+        HSHSHS has gate unitary e^{i*pi/4} * I; with global_phase = -pi/4 the full
+        operator is I, so the template passes the identity check.  After the six gates
+        are cancelled the output circuit must carry global_phase = pi/4 so that
+        Operator(input) == Operator(output).
+        """
+        template = QuantumCircuit(1)
+        template.h(0)
+        template.s(0)
+        template.h(0)
+        template.s(0)
+        template.h(0)
+        template.s(0)
+        template.global_phase = -np.pi / 4
+
+        qr = QuantumRegister(1, "qr")
+        circuit_in = QuantumCircuit(qr)
+        circuit_in.h(qr[0])
+        circuit_in.s(qr[0])
+        circuit_in.h(qr[0])
+        circuit_in.s(qr[0])
+        circuit_in.h(qr[0])
+        circuit_in.s(qr[0])
+
+        result = PassManager(TemplateOptimization([template])).run(circuit_in)
+
+        # All gates cancelled; global_phase must be pi/4 to match the gate unitary.
+        self.assertAlmostEqual(float(result.global_phase) % (2 * np.pi), np.pi / 4)
+        self.assertEqual(result.count_ops(), {})
+        # Operator equivalence confirms the full unitary (including phase) is preserved.
+        self.assertTrue(Operator(circuit_in) == Operator(result))
+
     def test_circuit_global_phase_preserved_with_multiple_template_matches(self):
         """Regression test for #14537: circuit global_phase is preserved across multiple matches.
 

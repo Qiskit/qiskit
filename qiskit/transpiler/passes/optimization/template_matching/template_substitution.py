@@ -429,10 +429,12 @@ class TemplateSubstitution:
                     inst = node.op.copy()
                     dag_dep_opt.add_op_node(inst.inverse(), qargs, cargs)
 
-                # The template represents the identity up to a global phase φ_T,
-                # i.e. U(template) = e^{i*φ_T} * I.  Replacing the matched gates
-                # with template_inverse applies e^{-i*φ_T} to the circuit, so the
-                # circuit's global phase must decrease by φ_T for each match applied.
+                # The identity check asserts U(template) = I, so the gate content
+                # alone (ignoring the stored global_phase phi_T) implements
+                # e^{-i*phi_T} * I.  Substituting the matched gates with the
+                # template inverse therefore multiplies the circuit state by
+                # e^{-i*phi_T}, which must be recorded by decreasing the circuit's
+                # global_phase by phi_T for each match applied.
                 dag_dep_opt.global_phase -= group.template_dag_dep.global_phase
 
             # Add the unmatched gates.
