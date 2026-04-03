@@ -29,6 +29,7 @@ def circuit_to_dagdependency(circuit, create_preds_and_succs=True):
     dagdependency = DAGDependency()
     dagdependency.name = circuit.name
     dagdependency.metadata = circuit.metadata
+    dagdependency.global_phase = circuit.global_phase  # preserve phase for template matching
 
     dagdependency.add_qubits(circuit.qubits)
     dagdependency.add_clbits(circuit.clbits)

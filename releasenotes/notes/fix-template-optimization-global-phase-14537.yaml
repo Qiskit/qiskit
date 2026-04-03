@@ -1,0 +1,20 @@
+---
+fixes:
+  - |
+    Fixed :class:`.TemplateOptimization` silently dropping the ``global_phase`` of the circuit
+    being optimized when a template substitution is applied.
+
+    There were two independent bugs:
+
+    1. :func:`.circuit_to_dagdependency` did not copy ``global_phase`` when converting a template
+       :class:`.QuantumCircuit` to a :class:`.DAGDependency`, so any phase on the template was
+       lost before matching began.
+
+    2. :class:`.TemplateSubstitution` constructed a new :class:`.DAGDependency` for the optimized
+       circuit without copying the original circuit's ``global_phase``, causing it to be silently
+       reset to zero whenever at least one substitution was applied.
+
+    Circuits with a nonzero ``global_phase`` that are optimized via :class:`.TemplateOptimization`
+    now correctly retain their phase in the output.
+
+    Fixes :issue:`14537`.

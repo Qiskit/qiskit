@@ -372,6 +372,7 @@ class TemplateSubstitution:
         dag_dep_opt = DAGDependency()
 
         dag_dep_opt.name = self.circuit_dag_dep.name
+        dag_dep_opt.global_phase = self.circuit_dag_dep.global_phase
 
         qregs = list(self.circuit_dag_dep.qregs.values())
         cregs = list(self.circuit_dag_dep.cregs.values())
@@ -427,6 +428,12 @@ class TemplateSubstitution:
                     node = group.template_dag_dep.get_node(index)
                     inst = node.op.copy()
                     dag_dep_opt.add_op_node(inst.inverse(), qargs, cargs)
+
+                # The template represents the identity up to a global phase φ_T,
+                # i.e. U(template) = e^{i*φ_T} * I.  Replacing the matched gates
+                # with template_inverse applies e^{-i*φ_T} to the circuit, so the
+                # circuit's global phase must decrease by φ_T for each match applied.
+                dag_dep_opt.global_phase -= group.template_dag_dep.global_phase
 
             # Add the unmatched gates.
             for node_id in self.unmatched_list:

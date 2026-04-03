@@ -763,5 +763,52 @@ class TestTemplateMatching(QiskitTestCase):
         self.assertEqual(scc.num_cached_entries(), 0)
 
 
+    def test_circuit_global_phase_preserved_after_template_match(self):
+        """Regression test for #14537: circuit global_phase must survive template optimization.
+
+        When a template match is found and substitution occurs, the optimized circuit
+        must retain the original circuit's global_phase unchanged.
+        """
+        qr = QuantumRegister(2, "qr")
+        circuit_in = QuantumCircuit(qr)
+        circuit_in.cx(qr[0], qr[1])
+        circuit_in.cx(qr[0], qr[1])
+        circuit_in.global_phase = np.pi / 4
+
+        template = QuantumCircuit(QuantumRegister(2, "qrc"))
+        template.cx(0, 1)
+        template.cx(0, 1)
+
+        result = PassManager(TemplateOptimization([template])).run(circuit_in)
+
+        self.assertAlmostEqual(float(result.global_phase), np.pi / 4)
+
+    def test_circuit_global_phase_preserved_with_multiple_template_matches(self):
+        """Regression test for #14537: circuit global_phase is preserved across multiple matches.
+
+        When a template matches more than once in the circuit, the original circuit's
+        global_phase must appear exactly once in the output — not zeroed out and not
+        multiplied by the number of matches.
+        """
+        qr = QuantumRegister(2, "qr")
+        circuit_in = QuantumCircuit(qr)
+        # Two independent pairs of CX gates — the template will match twice.
+        circuit_in.cx(qr[0], qr[1])
+        circuit_in.cx(qr[0], qr[1])
+        circuit_in.cx(qr[0], qr[1])
+        circuit_in.cx(qr[0], qr[1])
+        circuit_in.global_phase = np.pi / 3
+
+        template = QuantumCircuit(QuantumRegister(2, "qrc"))
+        template.cx(0, 1)
+        template.cx(0, 1)
+
+        result = PassManager(TemplateOptimization([template])).run(circuit_in)
+
+        # All gates are cancelled; global_phase must be exactly pi/3.
+        self.assertAlmostEqual(float(result.global_phase), np.pi / 3)
+        self.assertEqual(result.count_ops(), {})
+
+
 if __name__ == "__main__":
     unittest.main()
