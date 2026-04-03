@@ -15,6 +15,8 @@
 import unittest
 from test import QiskitTestCase
 
+import itertools
+
 import scipy
 import numpy as np
 from ddt import idata, ddt, data, unpack
@@ -115,6 +117,9 @@ class MyEvilRXGate(Gate):
     def _define(self):
         self.definition = QuantumCircuit(1)
         self.definition.rx(self.value, 0)
+
+
+pauli_based_types = ["pauli", "measure", "evolution", "rotation"]
 
 
 @ddt
@@ -527,7 +532,7 @@ class TestCommutationChecker(QiskitTestCase):
             scc.commute(other, [0], [], big, qubits, [], matrix_max_num_qubits=num_qubits - 1)
         )
 
-    @data("pauli", "evolution", "measure")
+    @data(*pauli_based_types)
     def test_pauli_based_gates(self, gate_type):
         """Test Pauli-based gates."""
         cases = [
@@ -547,11 +552,7 @@ class TestCommutationChecker(QiskitTestCase):
             gate2 = build_pauli_gate(p2, gate_type)
             self.assertEqual(expected, scc.commute(gate1, q1, [], gate2, q2, []))
 
-    @data(
-        ("pauli", "measure"),
-        ("evolution", "measure"),
-        ("evolution", "pauli"),
-    )
+    @data(*list(itertools.product(pauli_based_types, repeat=2)))
     @unpack
     def test_mix_pauli_gates(self, gate_type1, gate_type2):
         """Test commutation relations across different Pauli-based gates."""
@@ -597,7 +598,7 @@ class TestCommutationChecker(QiskitTestCase):
         with self.subTest(left=z, right=x):
             self.assertFalse(scc.commute(z, qargs, [], x, qargs, []))
 
-    @data("evolution", "pauli", "measure", "rotation")
+    @data(*pauli_based_types)
     def test_pauli_and_standard_gate(self, pauli_type):
         """Test Pauli-based gates and standard gate commutations are efficiently supported."""
         # 40-qubit Pauli gate with following terms: X: 0-9, Y: 10-19, Z: 20-29, I: 30-39
@@ -626,6 +627,27 @@ class TestCommutationChecker(QiskitTestCase):
             with self.subTest(std_gate=std_gate, indices=indices):
                 commutes = scc.commute(pauli_gate, pauli_indices, [], std_gate, indices, [])
                 self.assertEqual(expected, commutes)
+
+    def test_pprs_with_unordered_indices(self):
+        """Test commutation relations between pauli product rotations,
+        with varying qubit indices.
+        """
+        cases = [
+            ("XXYY", [2, 1, 5, 3], "ZZ", [2, 0], False),
+            ("XXYY", [2, 1, 5, 3], "ZZ", [2, 3], True),
+            ("XXYY", [2, 1, 5, 3], "ZZZ", [2, 3, 1], False),
+            ("XXYY", [2, 1, 5, 3], "ZZZ", [3, 2, 6], True),
+            ("XXYY", [2, 1, 5, 3], "ZZ", [4, 7], True),
+            ("ZZZ", [4, 1, 7], "XXX", [1, 4, 7], False),
+            ("ZZZ", [2, 1, 7], "XXX", [1, 4, 7], True),
+            ("ZZZ", [4, 1, 7], "ZZZ", [1, 4, 7], True),
+            ("ZZZ", [2, 1, 7], "ZZZ", [1, 4, 7], True),
+        ]
+        for p1, q1, p2, q2, expected in cases:
+            gate1 = build_pauli_gate(p1, "rotation")
+            gate2 = build_pauli_gate(p2, "rotation")
+            with self.subTest(p1=p1, q1=q1, p2=p2, q2=q2):
+                self.assertEqual(expected, scc.commute(gate1, q1, [], gate2, q2, []))
 
 
 def build_pauli_gate(pauli_string: str, gate_type: str) -> Gate:
