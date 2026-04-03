@@ -1,0 +1,20 @@
+---
+fixes:
+  - |
+    Fixed :func:`.clifford_6_4` template so that :class:`.TemplateOptimization`
+    now accepts and applies it.
+
+    The ``clifford_6_4`` template (SHSHSH) has gate unitary ``e^{i*pi/4} * I``
+    but was missing the compensating ``global_phase = -pi/4``, so
+    ``Operator(clifford_6_4())`` was not the identity matrix and the template
+    was silently rejected by :class:`.TemplateOptimization`.
+
+    ``clifford_6_4`` now sets ``global_phase = -pi/4`` so that its full
+    operator is exactly ``I``.
+
+    This fix depends on the global-phase propagation fixes introduced for
+    :issue:`14537` (``circuit_to_dagdependency`` now copies ``global_phase``
+    and ``TemplateSubstitution`` now adjusts the circuit's ``global_phase``
+    for each template substitution applied).
+
+    Fixes :issue:`14538`.

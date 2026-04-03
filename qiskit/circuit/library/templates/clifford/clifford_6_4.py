@@ -11,6 +11,8 @@
 # that they have been altered from the originals.
 
 
+from math import pi
+
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 
 
@@ -34,4 +36,7 @@ def clifford_6_4():
     qc.h(0)
     qc.s(0)
     qc.h(0)
+    # SHSHSH has gate unitary e^{i*pi/4} * I; the global_phase corrects this
+    # so that Operator(clifford_6_4()) == I exactly, as required by TemplateOptimization.
+    qc.global_phase = -pi / 4
     return qc

@@ -29,6 +29,7 @@ from qiskit.circuit.library.templates.clifford import (
     clifford_3_1,
     clifford_4_1,
     clifford_4_2,
+    clifford_6_4,
 )
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.converters.circuit_to_dagdependency import circuit_to_dagdependency
@@ -761,6 +762,38 @@ class TestTemplateMatching(QiskitTestCase):
             self.assertEqual(Operator(qc), Operator(qc_opt))
         # All of these gates are in the commutation library, i.e. the cache should not be used
         self.assertEqual(scc.num_cached_entries(), 0)
+
+    def test_clifford_6_4_is_identity(self):
+        """Test that clifford_6_4 is exactly the identity (#14538).
+
+        SHSHSH has gate unitary e^{i*pi/4} * I; the template previously lacked the
+        compensating global_phase = -pi/4, so Operator(clifford_6_4()) was not I.
+        """
+        self.assertTrue(np.allclose(Operator(clifford_6_4()).data, np.identity(2, dtype=complex)))
+
+    def test_template_optimization_accepts_clifford_6_4(self):
+        """Test that TemplateOptimization accepts and applies clifford_6_4 (#14538).
+
+        Before the fix, clifford_6_4 was missing global_phase = -pi/4, so
+        Operator(clifford_6_4()) was e^{i*pi/4}*I rather than I and the identity check
+        in TemplateOptimization silently rejected the template.
+        """
+        qr = QuantumRegister(1, "qr")
+        circuit_in = QuantumCircuit(qr)
+        circuit_in.s(qr[0])
+        circuit_in.h(qr[0])
+        circuit_in.s(qr[0])
+        circuit_in.h(qr[0])
+        circuit_in.s(qr[0])
+        circuit_in.h(qr[0])
+
+        result = PassManager(TemplateOptimization([clifford_6_4()])).run(circuit_in)
+
+        # All six gates must be cancelled.
+        self.assertEqual(result.count_ops(), {})
+        # Full phase equality (not just equiv) is verified here because the
+        # per-match global_phase accumulation fix from #14537 is included in this branch.
+        self.assertTrue(Operator(circuit_in) == Operator(result))
 
     def test_circuit_global_phase_preserved_after_single_and_multiple_template_match(self):
         """Test that circuit global_phase survives template optimization (#14537)."""
