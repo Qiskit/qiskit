@@ -202,7 +202,7 @@ impl Separable1q {
 fn versor_from_1q_gate(inst: &PackedInstruction) -> PyResult<VersorU2> {
     let tol = 1e-12;
     match inst.op.view() {
-        OperationRef::StandardGate(gate) => VersorU2::from_standard(gate, inst.params_view()),
+        OperationRef::StandardGate(gate) => gate.versor_u2(inst.params_view()),
         OperationRef::Unitary(gate) => match &gate.array {
             ArrayType::NDArray(arr) => Ok(VersorU2::from_ndarray_unchecked(&arr.view())),
             ArrayType::OneQ(arr) => Ok(VersorU2::from_nalgebra_unchecked(arr)),

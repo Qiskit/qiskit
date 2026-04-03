@@ -21,7 +21,7 @@ use qiskit_circuit::instruction::Parameters;
 use smallvec::smallvec;
 
 use crate::commutation_checker::{
-    CommutationChecker, try_matrix_with_definition, try_pauli_generator,
+    CommutationChecker, try_matrix_with_definition, try_pauli_generator_for_pauli_based,
 };
 use crate::passes::remove_identity_equiv::{average_gate_fidelity_below_tol, is_identity_equiv};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
@@ -291,8 +291,10 @@ fn commute(
     let op1 = inst1.op.view();
     let op2 = inst2.op.view();
 
-    if let (Some((z1, x1)), Some((z2, x2))) = (try_pauli_generator(&op1), try_pauli_generator(&op2))
-    {
+    if let (Some((z1, x1)), Some((z2, x2))) = (
+        try_pauli_generator_for_pauli_based(&op1),
+        try_pauli_generator_for_pauli_based(&op2),
+    ) {
         let mut parity = false;
 
         // The qubits in PPRs and PPMs are known to be sorted by qubit index.
