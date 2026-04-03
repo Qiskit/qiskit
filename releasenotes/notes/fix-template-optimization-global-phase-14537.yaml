@@ -18,4 +18,4 @@ fixes:
        each substitution was not subtracting ``phi_T`` from the output circuit's
        ``global_phase``, producing a result that was not operator-equivalent to the input.
 
-    Fixes :issue:`14537`.
+    Fixes `#14537 <https://github.com/Qiskit/qiskit/issues/14537>`__.
