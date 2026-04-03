@@ -16,7 +16,7 @@ import unittest
 
 import numpy as np
 
-from ddt import ddt, data
+from ddt import ddt, data, unpack
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.converters import circuit_to_dag
@@ -27,6 +27,7 @@ from qiskit.circuit.library import (
     UnitaryGate,
     PauliEvolutionGate,
     PauliProductRotationGate,
+    PauliProductMeasurement,
     Initialize,
     U2Gate,
     CZGate,
@@ -1226,6 +1227,41 @@ measure q0[1] -> c0[1];
 
         self.assertEqual(Operator(expected), Operator(qc))
         self.assertEqual(qct, expected)
+
+    def test_merge_pprs_with_unordered_indices(self):
+        """Test merging PPRs with scrambled qubit indices."""
+        qc = QuantumCircuit(8)
+        qc.append(PauliProductRotationGate(Pauli("IXYZ"), 1), [3, 5, 0, 2])
+        qc.append(PauliProductRotationGate(Pauli("ZIXY"), 1), [5, 0, 2, 3])
+        qc.append(PauliProductRotationGate(Pauli("YZIX"), 1), [0, 2, 3, 5])
+        qc.append(PauliProductRotationGate(Pauli("XYZI"), 1), [2, 3, 5, 0])
+
+        # All of the product rotations gates above are the same (after sorting
+        # the indices), so all of these gates should get combined.
+        qct = CommutativeOptimization()(qc)
+        self.assertEqual(qct.size(), 1)
+
+    @data(
+        ("XXXX", [2, 3, 1, 0], "ZZ", [0, 1], True),
+        ("XXXX", [2, 3, 1, 0], "ZZ", [1, 5], False),
+        ("XXXX", [2, 3, 1, 0], "ZZZZ", [1, 0, 3, 2], True),
+        ("XXXX", [2, 3, 1, 0], "ZZZZ", [1, 0, 3, 5], False),
+        ("XXXX", [2, 3, 1, 0], "-ZZ", [0, 1], True),
+        ("XXXX", [2, 3, 1, 0], "-ZZ", [1, 5], False),
+        ("XXXX", [2, 3, 1, 0], "-ZZZZ", [1, 0, 3, 2], True),
+        ("XXXX", [2, 3, 1, 0], "-ZZZZ", [1, 0, 3, 5], False),
+    )
+    @unpack
+    def test_cancel_pprs_across_ppm(self, p1, q1, p2, q2, should_cancel):
+        """Test that two PPRs get canceled iff they commute with a PPM separating them."""
+        qc = QuantumCircuit(8, 1)
+        qc.append(PauliProductRotationGate(Pauli(p1), 1), q1)
+        qc.append(PauliProductMeasurement(Pauli(p2)), q2, [0])
+        qc.append(PauliProductRotationGate(Pauli(p1), -1), q1)
+
+        # The two PPR gates should get canceled iff they commute with PPM
+        qct = CommutativeOptimization()(qc)
+        self.assertEqual(qct.size() == 1, should_cancel)
 
 
 if __name__ == "__main__":
