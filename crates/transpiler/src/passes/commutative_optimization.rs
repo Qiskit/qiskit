@@ -291,27 +291,35 @@ fn commute(
     let op1 = inst1.op.view();
     let op2 = inst2.op.view();
 
-    if let (Some((z1, x1)), Some((z2, x2))) = (
-        try_pauli_generator_for_pauli_based(&op1),
-        try_pauli_generator_for_pauli_based(&op2),
+    if matches!(
+        op1,
+        OperationRef::PauliProductRotation(_) | OperationRef::PauliProductMeasurement(_)
+    ) && matches!(
+        op2,
+        OperationRef::PauliProductRotation(_) | OperationRef::PauliProductMeasurement(_)
     ) {
-        let mut parity = false;
+        if let (Some((z1, x1)), Some((z2, x2))) = (
+            try_pauli_generator_for_pauli_based(&op1),
+            try_pauli_generator_for_pauli_based(&op2),
+        ) {
+            let mut parity = false;
 
-        // The qubits in PPRs and PPMs are known to be sorted by qubit index.
-        let (n1, n2) = (qargs1.len(), qargs2.len());
-        let (mut i1, mut i2) = (0, 0);
-        while i1 < n1 && i2 < n2 {
-            match qargs1[i1].cmp(&qargs2[i2]) {
-                std::cmp::Ordering::Less => i1 += 1,
-                std::cmp::Ordering::Greater => i2 += 1,
-                std::cmp::Ordering::Equal => {
-                    parity ^= (x1[i1] && z2[i2]) ^ (z1[i1] && x2[i2]);
-                    i1 += 1;
-                    i2 += 1;
+            // The qubits in PPRs and PPMs are known to be sorted by qubit index.
+            let (n1, n2) = (qargs1.len(), qargs2.len());
+            let (mut i1, mut i2) = (0, 0);
+            while i1 < n1 && i2 < n2 {
+                match qargs1[i1].cmp(&qargs2[i2]) {
+                    std::cmp::Ordering::Less => i1 += 1,
+                    std::cmp::Ordering::Greater => i2 += 1,
+                    std::cmp::Ordering::Equal => {
+                        parity ^= (x1[i1] && z2[i2]) ^ (z1[i1] && x2[i2]);
+                        i1 += 1;
+                        i2 += 1;
+                    }
                 }
             }
+            return Ok(!parity);
         }
-        return Ok(!parity);
     }
 
     Ok(commutation_checker.commute(
