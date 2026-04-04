@@ -820,6 +820,40 @@ class TestTemplateMatching(QiskitTestCase):
         # Operator equivalence confirms the full unitary (including phase) is preserved.
         self.assertTrue(Operator(circuit_in) == Operator(result))
 
+    def test_circuit_and_template_both_have_nonzero_global_phase(self):
+        """Regression test for #14537: fixes #2 and #3 compose correctly.
+
+        When both the circuit and the template carry a nonzero global_phase, the
+        output must account for both: the circuit's phase is preserved (fix #2)
+        and the template's per-match phase is subtracted (fix #3).
+        """
+        template = QuantumCircuit(1)
+        template.h(0)
+        template.s(0)
+        template.h(0)
+        template.s(0)
+        template.h(0)
+        template.s(0)
+        template.global_phase = -np.pi / 4
+
+        qr = QuantumRegister(1, "qr")
+        circuit_in = QuantumCircuit(qr)
+        circuit_in.h(qr[0])
+        circuit_in.s(qr[0])
+        circuit_in.h(qr[0])
+        circuit_in.s(qr[0])
+        circuit_in.h(qr[0])
+        circuit_in.s(qr[0])
+        circuit_in.global_phase = np.pi / 3
+
+        result = PassManager(TemplateOptimization([template])).run(circuit_in)
+
+        # All gates cancelled; total phase = circuit phase + template compensation
+        # = pi/3 + pi/4 = 7*pi/12.
+        self.assertAlmostEqual(float(result.global_phase) % (2 * np.pi), 7 * np.pi / 12)
+        self.assertEqual(result.count_ops(), {})
+        self.assertTrue(Operator(circuit_in) == Operator(result))
+
     def test_circuit_global_phase_preserved_with_multiple_template_matches(self):
         """Regression test for #14537: circuit global_phase is preserved across multiple matches.
 
