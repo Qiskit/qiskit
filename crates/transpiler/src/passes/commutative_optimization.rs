@@ -296,6 +296,8 @@ fn commute(
     let op1 = inst1.op.view();
     let op2 = inst2.op.view();
 
+    // To check commutation of two Pauli-based gates, we extract their Pauli generators
+    // and check whether they commute.
     if matches!(
         op1,
         OperationRef::PauliProductRotation(_) | OperationRef::PauliProductMeasurement(_)
@@ -309,7 +311,8 @@ fn commute(
         ) {
             let mut parity = false;
 
-            // The qubits in PPRs and PPMs are known to be sorted by qubit index.
+            // Due to canonicalization, the qubits in PPRs and PPMs are known to be
+            // sorted by qubit index.
             let (n1, n2) = (qargs1.len(), qargs2.len());
             let (mut i1, mut i2) = (0, 0);
             while i1 < n1 && i2 < n2 {

@@ -240,6 +240,7 @@ fn try_extract_op_from_ppr(
     Some(out.compose_map(&local, |i| qubits[i as usize].0))
 }
 
+/// Attempt to extract generator of a Pauli-based gate in the form of a sparse observable.
 fn try_sparse_observable_generator_for_pauli_based(
     operation: &OperationRef,
     qubits: &[Qubit],
@@ -254,6 +255,7 @@ fn try_sparse_observable_generator_for_pauli_based(
     }
 }
 
+/// Attemp to extract generator of a standard gate in the form of a sparse observable.
 fn try_sparse_observable_generator_for_standard_gate(
     operation: &OperationRef,
     params: &[Param],
@@ -269,8 +271,8 @@ fn try_sparse_observable_generator_for_standard_gate(
     None
 }
 
-/// Checks if the generator can be represented as a single Pauli term.
-/// If so, returns the generator in the (Z, X) form.
+/// Attempt to extract generator of a Pauli-based gate in the form of a single Pauli.
+/// When successful, return the generator in the (Z, X) form.
 pub fn try_pauli_generator_for_pauli_based<'a>(
     operation: &'a OperationRef,
 ) -> Option<(&'a Vec<bool>, &'a Vec<bool>)> {
@@ -566,7 +568,7 @@ impl CommutationChecker {
             (op1, op2, params1, params2, qargs1, qargs2)
         };
 
-        // Handle commutations using Pauli-based generators (when available)
+        // Handle commutations using Pauli-based generators.
         if let (Some((z1, x1)), Some((z2, x2))) = (
             try_pauli_generator_for_pauli_based(op1),
             try_pauli_generator_for_pauli_based(op2),

@@ -628,24 +628,28 @@ class TestCommutationChecker(QiskitTestCase):
                 commutes = scc.commute(pauli_gate, pauli_indices, [], std_gate, indices, [])
                 self.assertEqual(expected, commutes)
 
-    def test_pprs_with_unordered_indices(self):
+    @data(*list(itertools.product(["rotation", "measure"], repeat=2)))
+    @unpack
+    def test_pauli_based_with_indices_and_phases(self, gate_type1, gate_type2):
         """Test commutation relations between pauli product rotations,
-        with varying qubit indices.
+        with varying Pauli phases and varying qubit indices.
         """
         cases = [
             ("XXYY", [2, 1, 5, 3], "ZZ", [2, 0], False),
             ("XXYY", [2, 1, 5, 3], "ZZ", [2, 3], True),
-            ("XXYY", [2, 1, 5, 3], "ZZZ", [2, 3, 1], False),
-            ("XXYY", [2, 1, 5, 3], "ZZZ", [3, 2, 6], True),
+            ("-XXYY", [2, 1, 5, 3], "ZZ", [2, 0], False),
+            ("-XXYY", [2, 1, 5, 3], "ZZ", [2, 3], True),
+            ("XXYY", [2, 1, 5, 3], "-ZZZ", [2, 3, 1], False),
+            ("XXYY", [2, 1, 5, 3], "-ZZZ", [3, 2, 6], True),
             ("XXYY", [2, 1, 5, 3], "ZZ", [4, 7], True),
             ("ZZZ", [4, 1, 7], "XXX", [1, 4, 7], False),
             ("ZZZ", [2, 1, 7], "XXX", [1, 4, 7], True),
-            ("ZZZ", [4, 1, 7], "ZZZ", [1, 4, 7], True),
-            ("ZZZ", [2, 1, 7], "ZZZ", [1, 4, 7], True),
+            ("-ZZZ", [4, 1, 7], "-ZZZ", [1, 4, 7], True),
+            ("-ZZZ", [2, 1, 7], "-ZZZ", [1, 4, 7], True),
         ]
         for p1, q1, p2, q2, expected in cases:
-            gate1 = build_pauli_gate(p1, "rotation")
-            gate2 = build_pauli_gate(p2, "rotation")
+            gate1 = build_pauli_gate(p1, gate_type1)
+            gate2 = build_pauli_gate(p2, gate_type2)
             with self.subTest(p1=p1, q1=q1, p2=p2, q2=q2):
                 self.assertEqual(expected, scc.commute(gate1, q1, [], gate2, q2, []))
 
