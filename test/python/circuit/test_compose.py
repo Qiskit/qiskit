@@ -972,6 +972,31 @@ class TestCircuitCompose(QiskitTestCase):
         with self.assertRaisesRegex(CircuitError, "Duplicate clbits"):
             base.compose(attempt, [0, 1], [1, 1])
 
+    def test_rejects_rhs_with_too_many_qubits(self):
+        """Test that compose rejects a circuit with too many qubits."""
+        base = QuantumCircuit(1)
+        attempt = QuantumCircuit(2)
+
+        with self.assertRaisesRegex(
+            CircuitError,
+            r"Cannot compose a circuit with 2 qubit\(s\) into a circuit with 1 qubit\(s\)\.",
+        ):
+            base.compose(attempt)
+
+    def test_rejects_rhs_with_too_many_clbits(self):
+        """Test that compose rejects a circuit with too many classical bits."""
+        base = QuantumCircuit(1, 1)
+        attempt = QuantumCircuit(1, 2)
+
+        with self.assertRaisesRegex(
+            CircuitError,
+            (
+                r"Cannot compose a circuit with 2 classical bit\(s\) "
+                r"into a circuit with 1 classical bit\(s\)\."
+            ),
+        ):
+            base.compose(attempt)
+
     def test_cannot_mix_inputs_and_captures(self):
         """The rules about mixing `input` and `capture` vars should still apply."""
         a = expr.Var.new("a", types.Bool())

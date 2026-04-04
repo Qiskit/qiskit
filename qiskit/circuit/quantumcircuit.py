@@ -2280,9 +2280,15 @@ class QuantumCircuit:
                 dest.append(other, qargs=qubits, cargs=clbits, copy=copy)
             return None if inplace else dest
 
-        if other.num_qubits > dest.num_qubits or other.num_clbits > dest.num_clbits:
+        if other.num_qubits > dest.num_qubits:
             raise CircuitError(
-                "Trying to compose with another QuantumCircuit which has more 'in' edges."
+                f"Cannot compose a circuit with {other.num_qubits} qubit(s) "
+                f"into a circuit with {dest.num_qubits} qubit(s)."
+            )
+        if other.num_clbits > dest.num_clbits:
+            raise CircuitError(
+                f"Cannot compose a circuit with {other.num_clbits} classical bit(s) "
+                f"into a circuit with {dest.num_clbits} classical bit(s)."
             )
 
         # Maps bits in 'other' to bits in 'dest'.
