@@ -556,6 +556,16 @@ impl CommutationChecker {
             _ => (),
         };
 
+        // Sort the arguments, such that `op2` always is the larger one.
+        let reversed = (op1.num_qubits(), op1.name().len(), op1.name())
+            > (op2.num_qubits(), op2.name().len(), op2.name());
+
+        let (op1, op2, params1, params2, qargs1, qargs2) = if reversed {
+            (op2, op1, params2, params1, qargs2, qargs1)
+        } else {
+            (op1, op2, params1, params2, qargs1, qargs2)
+        };
+
         // Handle commutations using Pauli-based generators (when available)
         if let (Some((z1, x1)), Some((z2, x2))) = (
             try_pauli_generator_for_pauli_based(op1),
@@ -604,24 +614,6 @@ impl CommutationChecker {
             return Ok(false);
         }
 
-        // Sort the arguments, such that `second_op` always is the larger one.
-        let reversed = if op1.num_qubits() != op2.num_qubits() {
-            op1.num_qubits() > op2.num_qubits()
-        } else {
-            (op1.name().len(), op1.name()) >= (op2.name().len(), op2.name())
-        };
-        let (first_params, second_params) = if reversed {
-            (params2, params1)
-        } else {
-            (params1, params2)
-        };
-        let (first_op, second_op) = if reversed { (op2, op1) } else { (op1, op2) };
-        let (first_qargs, second_qargs) = if reversed {
-            (qargs2, qargs1)
-        } else {
-            (qargs1, qargs2)
-        };
-
         // For our cache to work correctly, we require the gate's definition to only depend on the
         // ``params`` attribute. This cannot be guaranteed for custom gates, so we only check
         // the cache for
@@ -635,41 +627,32 @@ impl CommutationChecker {
                 false
             }
         };
-        let check_cache =
-            is_cachable(first_op, first_params) && is_cachable(second_op, second_params);
+        let check_cache = is_cachable(op1, params1) && is_cachable(op2, params2);
 
         if !check_cache {
-            // The arguments are sorted, so if first_qargs.len() > matrix_max_num_qubits, then
-            // second_qargs.len() > matrix_max_num_qubits as well.
-            if second_qargs.len() > matrix_max_num_qubits as usize {
+            // The arguments are sorted, so if qargs1.len() > matrix_max_num_qubits, then
+            // qargs2.len() > matrix_max_num_qubits as well.
+            if qargs2.len() > matrix_max_num_qubits as usize {
                 return Ok(false);
             }
-            return self.commute_matmul(
-                first_op,
-                first_params,
-                first_qargs,
-                second_op,
-                second_params,
-                second_qargs,
-                tol,
-            );
+            return self.commute_matmul(op1, params1, qargs1, op2, params2, qargs2, tol);
         }
 
         // Query commutation library
-        let relative_placement = get_relative_placement(first_qargs, second_qargs);
+        let relative_placement = get_relative_placement(qargs1, qargs2);
         if let Some(is_commuting) =
             self.library
-                .check_commutation_entries(first_op, second_op, &relative_placement)
+                .check_commutation_entries(op1, op2, &relative_placement)
         {
             return Ok(is_commuting);
         }
 
         // Query cache
-        let key1 = hashable_params(first_params)?;
-        let key2 = hashable_params(second_params)?;
+        let key1 = hashable_params(params1)?;
+        let key2 = hashable_params(params2)?;
         if let Some(commutation_dict) = self
             .cache
-            .get(&(first_op.name().to_string(), second_op.name().to_string()))
+            .get(&(op1.name().to_string(), op2.name().to_string()))
         {
             let hashes = (key1.clone(), key2.clone());
             if let Some(commutation) = commutation_dict.get(&(relative_placement.clone(), hashes)) {
@@ -677,20 +660,12 @@ impl CommutationChecker {
             }
         }
 
-        if second_qargs.len() > matrix_max_num_qubits as usize {
+        if qargs2.len() > matrix_max_num_qubits as usize {
             return Ok(false);
         }
 
         // Perform matrix multiplication to determine commutation
-        let is_commuting = self.commute_matmul(
-            first_op,
-            first_params,
-            first_qargs,
-            second_op,
-            second_params,
-            second_qargs,
-            tol,
-        )?;
+        let is_commuting = self.commute_matmul(op1, params1, qargs1, op2, params2, qargs2, tol)?;
 
         // TODO: implement a LRU cache for this
         if self.current_cache_entries >= self.cache_max_entries {
@@ -698,7 +673,7 @@ impl CommutationChecker {
         }
         // Cache results from is_commuting
         self.cache
-            .entry((first_op.name().to_string(), second_op.name().to_string()))
+            .entry((op1.name().to_string(), op2.name().to_string()))
             .and_modify(|entries| {
                 let key = (relative_placement.clone(), (key1.clone(), key2.clone()));
                 entries.insert(key, is_commuting);

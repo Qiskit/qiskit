@@ -106,7 +106,8 @@ static MERGEABLE_ROTATION_GATES: [StandardGate; 12] = [
 /// Computes the canonical representative of a packed instruction, and in particular:
 /// * replaces all types of Z-rotations by RZ-gates,
 /// * replaces all types of X-rotations by RX-gates,
-/// * sorts the qubits for symmetric gates.
+/// * sorts qubits for symmetric gates,
+/// * sorts qubits for [PauliProductRotation] and [PauliProductMeasurement].
 ///
 /// # Arguments:
 ///
@@ -198,6 +199,8 @@ fn canonicalize(
         }
     }
 
+    // Sort qubits for PauliProductRotations: this allows to merge scrambled pauli rotations
+    // and allows a faster commutativity check with other Pauli-based gates.
     if let OperationRef::PauliProductRotation(ppr) = inst.op.view() {
         let qargs = dag.get_qargs(inst.qubits);
         let mut paired = qargs
@@ -231,6 +234,8 @@ fn canonicalize(
         return Some((canonical_instruction, Param::Float(0.)));
     }
 
+    // Sort qubits for PauliProductMeasurements: this allows a faster commutativity check with
+    // other Pauli-based gates.
     if let OperationRef::PauliProductMeasurement(ppm) = inst.op.view() {
         let qargs = dag.get_qargs(inst.qubits);
         let mut paired = qargs
