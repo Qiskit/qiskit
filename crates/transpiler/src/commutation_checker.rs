@@ -319,6 +319,7 @@ pub struct CommutationChecker {
     current_cache_entries: usize,
     #[pyo3(get)]
     gates: Option<HashSet<String>>,
+    scratch_map: HashMap<usize, usize>,
 }
 
 #[pymethods]
@@ -472,6 +473,7 @@ impl CommutationChecker {
             cache_max_entries,
             current_cache_entries: 0,
             gates,
+            scratch_map: HashMap::new(),
         }
     }
 
@@ -559,14 +561,13 @@ impl CommutationChecker {
             try_pauli_generator_for_pauli_based(op1),
             try_pauli_generator_for_pauli_based(op2),
         ) {
-            let max_q1 = qargs1.iter().map(|q| q.index()).max().unwrap_or(0);
-            let mut in_q1 = vec![usize::MAX; max_q1 + 1];
+            self.scratch_map.clear();
             for (i, &q) in qargs1.iter().enumerate() {
-                in_q1[q.index()] = i;
+                self.scratch_map.insert(q.index(), i);
             }
             let mut parity = false;
             for (j, &q) in qargs2.iter().enumerate() {
-                if let Some(&i) = in_q1.get(q.index()).filter(|&&i| i != usize::MAX) {
+                if let Some(&i) = self.scratch_map.get(&q.index()) {
                     parity ^= (x1[i] && z2[j]) ^ (z1[i] && x2[j]);
                 }
             }
@@ -1219,6 +1220,7 @@ pub fn get_standard_commutation_checker() -> CommutationChecker {
         cache: HashMap::new(),
         current_cache_entries: 0,
         gates: None,
+        scratch_map: HashMap::new(),
     }
 }
 
