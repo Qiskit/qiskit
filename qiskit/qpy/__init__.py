@@ -65,15 +65,16 @@ For example:
     qc.h(0)
     qc.cx(0, 1)
     qc.measure_all()
-
     with open('bell.qpy', 'wb') as fd:
         qpy.dump(qc, fd)
 
     with open('bell.qpy', 'rb') as fd:
         new_qc = qpy.load(fd)[0]
 
-The :func:`qiskit.qpy.dump` function also lets you
-include multiple circuits in a single QPY file:
+.. warning::
+
+    Loading QPY files from untrusted sources can lead to arbitrary code execution.
+    Only load QPY files from trusted and verified sources.
 
 .. plot::
     :include-source:
