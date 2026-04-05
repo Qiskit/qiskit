@@ -29,7 +29,7 @@ use pyo3::{
 
 use crate::circuit_data::CircuitError;
 use crate::dag_circuit::PyBitLocations;
-use crate::slice::{PySequenceIndex, SequenceIndex};
+use qiskit_util::py::{PySequenceIndex, SequenceIndex};
 
 /// Describes a relationship between a bit and all the registers it belongs to
 #[derive(Debug, Clone)]
