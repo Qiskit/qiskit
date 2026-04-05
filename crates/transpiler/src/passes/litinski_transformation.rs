@@ -86,6 +86,8 @@ pub fn run_litinski_transformation(
     let num_qubits = dag.num_qubits();
     let mut clifford = Clifford::identity(num_qubits);
 
+    let mut qargs = Vec::new();
+
     // Keep track of the update to the global phase (produced when converting T/Tdg gates
     // to RZ-rotations).
     let mut global_phase_update = Param::Float(0.);
@@ -251,6 +253,8 @@ pub fn run_litinski_transformation(
                     // where signs `true` and `false` correspond to coefficients `-1` and `+1` respectively.
                     let (sign, z, x, indices) =
                         clifford.get_inverse_z(dag.get_qargs(inst.qubits)[0].index());
+                    qargs.clear();
+                    qargs.extend(indices.iter().map(|i| Qubit::new(*i)));
 
                     // In the legacy path, we add PauliEvolutionGate as rotation gates, otherwise
                     // we add PauliProductRotation. The new path should not call Python at any
@@ -279,7 +283,7 @@ pub fn run_litinski_transformation(
                                 .get_bound(py)
                                 .call1((obs, time.clone()))?;
                             Ok(PyOperationTypes::Gate(PyInstruction {
-                                qubits: indices.len() as u32,
+                                qubits: qargs.len() as u32,
                                 clbits: 0,
                                 params: 1,
                                 op_name: "PauliEvolution".to_string(),
@@ -291,7 +295,7 @@ pub fn run_litinski_transformation(
 
                     new_dag.apply_operation_back(
                         packed_op,
-                        &indices,
+                        &qargs,
                         &[],
                         Some(Parameters::Params(smallvec![param])),
                         None,
@@ -304,13 +308,16 @@ pub fn run_litinski_transformation(
                     // where signs `true` and `false` correspond to coefficients `-1` and `+1` respectively.
                     let (sign, z, x, indices) =
                         clifford.get_inverse_z(dag.get_qargs(inst.qubits)[0].index());
+                    qargs.clear();
+                    qargs.extend(indices.iter().map(|i| Qubit::new(*i)));
+
                     let ppm = PauliProductMeasurement { z, x, neg: sign };
 
                     let ppm_clbits = dag.get_cargs(inst.clbits);
 
                     new_dag.apply_operation_back(
                         PauliBased::PauliProductMeasurement(ppm).into(),
-                        &indices,
+                        &qargs,
                         ppm_clbits,
                         None,
                         None,

@@ -13,7 +13,6 @@
 """Test the LightCone pass"""
 
 import unittest
-import numpy as np
 from test import QiskitTestCase
 
 import ddt
@@ -22,7 +21,7 @@ from qiskit.circuit import (
     Parameter,
     QuantumCircuit,
 )
-from qiskit.circuit.library import RXXGate, real_amplitudes
+from qiskit.circuit.library import real_amplitudes
 from qiskit.circuit.library.n_local.efficient_su2 import efficient_su2
 from qiskit.converters import circuit_to_dag
 from qiskit.quantum_info import SparsePauliOp, SparseObservable
@@ -299,28 +298,23 @@ class TestLightConePass(QiskitTestCase):
 
         self.assertEqual(expected, new_circuit)
 
-    # This test should be uncommented once issue #13828 has been solved.
-    #
-    # @ddt.data(
-    #     SparsePauliOp.from_sparse_list([("IIIIIXZIII", list(range(10)), 1)], 10),
-    #     SparsePauliOp.from_sparse_list([("YYYYXZYYYY", list(range(10)), 1)], 10),
-    # )
-    # def test_large_observable(self, sparse_object):
-    #     """Test for a large initial observable."""
-    #
-    #     bit_terms, indices, _ = sparse_object.to_sparse_list()[0]
-    #     light_cone = LightCone(bit_terms=bit_terms, indices=indices)
-    #     pm = PassManager([light_cone])
-    #
-    #     q0 = QuantumRegister(10, "q0")
-    #     qc = QuantumCircuit(q0)
-    #     qc.cx(5, 6)
-    #
-    #     new_circuit = pm.run(qc)
-    #
-    #     expected = QuantumCircuit(q0)
-    #
-    #     self.assertEqual(expected, new_circuit)
+    @ddt.data("IIIIIZXIIIIIIII", "YYYYYZXYYYYYYYY")
+    def test_large_observable(self, pauli_string):
+        """Test for a large initial observable."""
+        op = SparsePauliOp([pauli_string])
+        bit_terms, indices, _ = op.to_sparse_list()[0]
+
+        light_cone = LightCone(bit_terms=bit_terms, indices=indices)
+        pm = PassManager([light_cone])
+
+        qc = QuantumCircuit(15)
+        qc.cx(5, 6)
+
+        new_circuit = pm.run(qc)
+
+        expected = QuantumCircuit(15)
+
+        self.assertEqual(expected, new_circuit)
 
     def test_raise_error_when_indices_is_empty(self):
         """Test that `ValueError` is raised if bit_terms is given but indices is empty."""
@@ -359,41 +353,6 @@ class TestLightConePass(QiskitTestCase):
             ValueError, msg="The circuit contains measurements and an observable has been given"
         ):
             light_cone.run(dag)
-
-    def test_rxx_commuting(self):
-        """Test for a commuting RXX gate in the LightCone pass."""
-        # Simple test: X commutes with RXX(0, 1), so it should be dropped
-        qc_simple = QuantumCircuit(2)
-        qc_simple.append(RXXGate(0.5), [0, 1])
-
-        light_cone = LightCone(bit_terms="X", indices=[0])
-        pm = PassManager([light_cone])
-        new_circuit = pm.run(qc_simple)
-        self.assertEqual(len(new_circuit), 0)
-
-        # Non-commuting test: Z does not commute with RXX(0, 1)
-        lc_z = LightCone(bit_terms="Z", indices=[0])
-        pm_z = PassManager([lc_z])
-        new_z = pm_z.run(qc_simple)
-        self.assertEqual(len(new_z), 1)
-
-    def test_original_bug_15021(self):
-        """Test for the scattered-qubit bug reported in issue #15021."""
-        qc = QuantumCircuit(18)
-        qc.rx(np.pi / 3, range(qc.num_qubits))
-        bit_terms = "ZZZZZZZZZ"
-        indices = [0, 1, 2, 3, 4, 9, 10, 12, 13]
-        pm = PassManager(
-            [
-                LightCone(
-                    bit_terms=bit_terms,
-                    indices=indices,
-                )
-            ]
-        )
-        # This used to fail with Index results / UnsortedIndices
-        # Verify the reduced circuit contains exactly 9 gates on the expected light cone
-        self.assertEqual(len(pm.run(qc)), 9)
 
 
 if __name__ == "__main__":

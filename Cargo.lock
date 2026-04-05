@@ -2036,6 +2036,7 @@ dependencies = [
  "qiskit-circuit",
  "qiskit-quantum-info",
  "qiskit-transpiler",
+ "qiskit-util",
  "rand 0.9.2",
  "rand_distr",
  "rand_pcg",
@@ -2112,6 +2113,8 @@ dependencies = [
  "num-traits",
  "numpy",
  "pyo3",
+ "qiskit-quantum-info",
+ "qiskit-util",
  "rayon",
  "rustworkx-core",
  "smallvec",
@@ -2135,6 +2138,7 @@ dependencies = [
  "qiskit-circuit",
  "qiskit-quantum-info",
  "qiskit-synthesis",
+ "qiskit-util",
  "rand 0.9.2",
  "rand_distr",
  "rand_pcg",
@@ -2233,6 +2237,7 @@ dependencies = [
  "numpy",
  "pyo3",
  "qiskit-circuit",
+ "qiskit-util",
  "rand 0.9.2",
  "rand_distr",
  "rand_pcg",
@@ -2262,6 +2267,7 @@ dependencies = [
  "pyo3",
  "qiskit-circuit",
  "qiskit-quantum-info",
+ "qiskit-util",
  "rand 0.9.2",
  "rand_distr",
  "rand_pcg",
@@ -2294,6 +2300,7 @@ dependencies = [
  "qiskit-circuit",
  "qiskit-quantum-info",
  "qiskit-synthesis",
+ "qiskit-util",
  "rand 0.9.2",
  "rand_pcg",
  "rayon",
@@ -2302,6 +2309,15 @@ dependencies = [
  "smallvec",
  "thiserror 2.0.18",
  "uuid",
+]
+
+[[package]]
+name = "qiskit-util"
+version = "2.5.0-dev"
+dependencies = [
+ "num-complex",
+ "pyo3",
+ "thiserror 2.0.18",
 ]
 
 [[package]]
