@@ -323,7 +323,7 @@ fn qsd_inner(
 /// Result for the block-ZXZ decomposition of a matrix `A`.
 ///
 /// See [2] equation (5) for details.
-pub struct ZXZResult {
+struct ZXZResult {
     pub a1: Mat<Complex64>,
     pub a2: Mat<Complex64>,
     pub b: Mat<Complex64>,
