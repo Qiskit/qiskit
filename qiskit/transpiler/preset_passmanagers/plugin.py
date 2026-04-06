@@ -204,7 +204,7 @@ class PassManagerStagePlugin(abc.ABC):
 
 class PassManagerCliffordTStagePlugin(abc.ABC):
     """A ``PassManagerCliffordTStagePlugin`` is a plugin interface object for using
-    custom stages in :func:`~.generate_clifford_t_pass_manager`.
+    custom stages in :func:`~.generate_preset_clifford_t_pass_manager`.
     """
 
     @abc.abstractmethod

@@ -31,7 +31,7 @@ from qiskit.transpiler.passes.utils import CheckGateDirection
 from qiskit.transpiler.passes import SynthesizeRZRotations
 from qiskit.transpiler.preset_passmanagers import (
     generate_preset_pass_manager,
-    generate_clifford_t_pass_manager,
+    generate_preset_clifford_t_pass_manager,
 )
 from qiskit.transpiler import CouplingMap
 from qiskit.providers.fake_provider import GenericBackendV2
@@ -57,7 +57,7 @@ class TestCliffordTPassManager(QiskitTestCase):
         qc.h(2)
 
         basis_gates = ["cx", "s", "sdg", "h", "t", "tdg"]
-        pm = generate_clifford_t_pass_manager(
+        pm = generate_preset_clifford_t_pass_manager(
             basis_gates=basis_gates, optimization_level=optimization_level
         )
         transpiled = pm.run(qc)
@@ -78,7 +78,7 @@ class TestCliffordTPassManager(QiskitTestCase):
         qc.cx(1, 0)
 
         basis_gates = ["cx", "s", "sdg", "h", "t", "tdg"]
-        pm = generate_clifford_t_pass_manager(
+        pm = generate_preset_clifford_t_pass_manager(
             basis_gates=basis_gates, optimization_level=optimization_level
         )
         transpiled = pm.run(qc)
@@ -95,7 +95,7 @@ class TestCliffordTPassManager(QiskitTestCase):
         qc.rx(0.8, 0)
 
         basis_gates = ["cx", "s", "sdg", "h", "t", "tdg"]
-        pm = generate_clifford_t_pass_manager(
+        pm = generate_preset_clifford_t_pass_manager(
             basis_gates=basis_gates, optimization_level=optimization_level
         )
         transpiled = pm.run(qc)
@@ -110,7 +110,7 @@ class TestCliffordTPassManager(QiskitTestCase):
         qc.rx(np.pi / 2, 0)
 
         basis_gates = get_clifford_gate_names() + ["t", "tdg"]
-        pm = generate_clifford_t_pass_manager(
+        pm = generate_preset_clifford_t_pass_manager(
             basis_gates=basis_gates, optimization_level=optimization_level
         )
         transpiled = pm.run(qc)
@@ -127,7 +127,7 @@ class TestCliffordTPassManager(QiskitTestCase):
         qc.rx(np.pi / 4, 0)
 
         basis_gates = get_clifford_gate_names() + ["t", "tdg"]
-        pm = generate_clifford_t_pass_manager(
+        pm = generate_preset_clifford_t_pass_manager(
             basis_gates=basis_gates, optimization_level=optimization_level
         )
         transpiled = pm.run(qc)
@@ -146,7 +146,7 @@ class TestCliffordTPassManager(QiskitTestCase):
         qc.rx(np.pi / 4, 0)
 
         basis_gates = ["cx", "h", "t", "tdg"]
-        pm = generate_clifford_t_pass_manager(
+        pm = generate_preset_clifford_t_pass_manager(
             basis_gates=basis_gates, optimization_level=optimization_level
         )
         transpiled = pm.run(qc)
@@ -165,7 +165,7 @@ class TestCliffordTPassManager(QiskitTestCase):
         qc.append(QFTGate(4), [0, 1, 2, 3])
 
         basis_gates = ["cx", "s", "sdg", "h", "t", "tdg"]
-        pm = generate_clifford_t_pass_manager(
+        pm = generate_preset_clifford_t_pass_manager(
             basis_gates=basis_gates, optimization_level=optimization_level
         )
         transpiled = pm.run(qc)
@@ -180,7 +180,7 @@ class TestCliffordTPassManager(QiskitTestCase):
 
         # Transpile to a Clifford+T basis set
         basis_gates = get_clifford_gate_names() + ["t", "tdg"]
-        pm = generate_clifford_t_pass_manager(
+        pm = generate_preset_clifford_t_pass_manager(
             basis_gates=basis_gates, optimization_level=optimization_level, seed_transpiler=0
         )
         transpiled = pm.run(qc)
@@ -202,7 +202,7 @@ class TestCliffordTPassManager(QiskitTestCase):
         qc = iqp(interactions)
 
         basis_gates = ["cx", "s", "sdg", "h", "t", "tdg"]
-        pm = generate_clifford_t_pass_manager(
+        pm = generate_preset_clifford_t_pass_manager(
             basis_gates=basis_gates, optimization_level=optimization_level
         )
         transpiled = pm.run(qc)
@@ -231,7 +231,7 @@ class TestCliffordTPassManager(QiskitTestCase):
         qc.append(graph_state_gate, [0, 1, 2, 3, 4])
 
         basis_gates = ["cx", "s", "sdg", "h", "t", "tdg"]
-        pm = generate_clifford_t_pass_manager(
+        pm = generate_preset_clifford_t_pass_manager(
             basis_gates=basis_gates, optimization_level=optimization_level
         )
         transpiled = pm.run(qc)
@@ -247,7 +247,7 @@ class TestCliffordTPassManager(QiskitTestCase):
         qc.ccx(0, 1, 2)
 
         basis_gates = ["cx", "h", "t", "tdg"]
-        pm = generate_clifford_t_pass_manager(
+        pm = generate_preset_clifford_t_pass_manager(
             basis_gates=basis_gates, optimization_level=optimization_level
         )
         transpiled = pm.run(qc)
@@ -264,7 +264,7 @@ class TestCliffordTPassManager(QiskitTestCase):
         qc.tdg(2)
 
         basis_gates = ["h", "t", "tdg"]
-        pm = generate_clifford_t_pass_manager(basis_gates=basis_gates)
+        pm = generate_preset_clifford_t_pass_manager(basis_gates=basis_gates)
         transpiled = pm.run(qc)
 
         # The single T/Tdg gates on qubits 0 and 1 should remain, the T/Tdg pair on qubit 2
@@ -284,7 +284,7 @@ class TestCliffordTPassManager(QiskitTestCase):
         basis_gates = ["cx", "h", "t", "tdg"]
         coupling_map = CouplingMap([[1, 0]])
 
-        pm = generate_clifford_t_pass_manager(
+        pm = generate_preset_clifford_t_pass_manager(
             basis_gates=basis_gates,
             coupling_map=coupling_map,
             optimization_level=optimization_level,
@@ -303,7 +303,7 @@ class TestCliffordTPassManager(QiskitTestCase):
         """Test transpiling into various Clifford+T basis sets."""
         qc = QuantumCircuit(2)
         qc.rz(0.8, 0)
-        pm = generate_clifford_t_pass_manager(basis_gates=basis_gates, optimization_level=0)
+        pm = generate_preset_clifford_t_pass_manager(basis_gates=basis_gates, optimization_level=0)
         transpiled = pm.run(qc)
         self.assertLessEqual(set(transpiled.count_ops()), set(basis_gates))
 
@@ -314,7 +314,7 @@ class TestCliffordTPassManager(QiskitTestCase):
 
         basis_gates = ["cx", "t", "tdg", "h"]
         backend = GenericBackendV2(5, basis_gates=basis_gates)
-        pm = generate_clifford_t_pass_manager(target=backend.target, optimization_level=0)
+        pm = generate_preset_clifford_t_pass_manager(target=backend.target, optimization_level=0)
         transpiled = pm.run(qc)
         self.assertLessEqual(set(transpiled.count_ops()), set(basis_gates))
 
@@ -324,7 +324,7 @@ class TestCliffordTPassManager(QiskitTestCase):
         qc.rx(0.8, 0)
 
         basis_gates = get_clifford_gate_names() + ["t", "tdg"]
-        pm = generate_clifford_t_pass_manager(basis_gates=basis_gates)
+        pm = generate_preset_clifford_t_pass_manager(basis_gates=basis_gates)
         transpiled = pm.run(qc)
         self.assertLessEqual(set(transpiled.count_ops()), set(basis_gates))
 
@@ -339,7 +339,7 @@ class TestCliffordTPassManager(QiskitTestCase):
 
         # Transpile to a Clifford+T basis set
         basis_gates = get_clifford_gate_names() + ["t", "tdg"]
-        pm = generate_clifford_t_pass_manager(basis_gates=basis_gates, optimization_level=0)
+        pm = generate_preset_clifford_t_pass_manager(basis_gates=basis_gates, optimization_level=0)
         transpiled = pm.run(qc)
         self.assertLessEqual(set(transpiled.count_ops()), set(basis_gates))
 
@@ -363,7 +363,7 @@ class TestCliffordTPassManager(QiskitTestCase):
 
         # Transpile to a Clifford+T basis set
         basis_gates = get_clifford_gate_names() + ["t", "tdg"]
-        pm = generate_clifford_t_pass_manager(basis_gates=basis_gates, optimization_level=0)
+        pm = generate_preset_clifford_t_pass_manager(basis_gates=basis_gates, optimization_level=0)
         transpiled = pm.run(qc)
         self.assertLessEqual(set(transpiled.count_ops()), set(basis_gates))
 
@@ -383,7 +383,7 @@ class TestCliffordTPassManager(QiskitTestCase):
 
         # Transpile to a Clifford+T basis set
         basis_gates = get_clifford_gate_names() + ["t", "tdg"]
-        pm = generate_clifford_t_pass_manager(basis_gates=basis_gates, optimization_level=0)
+        pm = generate_preset_clifford_t_pass_manager(basis_gates=basis_gates, optimization_level=0)
         transpiled = pm.run(qc)
         self.assertLessEqual(set(transpiled.count_ops()), set(basis_gates))
 
@@ -403,7 +403,7 @@ class TestCliffordTPassManager(QiskitTestCase):
 
         # Transpile to a Clifford+T basis set
         basis_gates = get_clifford_gate_names() + ["t", "tdg"]
-        pm = generate_clifford_t_pass_manager(basis_gates=basis_gates, optimization_level=0)
+        pm = generate_preset_clifford_t_pass_manager(basis_gates=basis_gates, optimization_level=0)
         transpiled = pm.run(qc)
         self.assertLessEqual(set(transpiled.count_ops()), set(basis_gates))
 
@@ -424,13 +424,13 @@ class TestCliffordTPassManager(QiskitTestCase):
 
         basis_gates = get_clifford_gate_names() + ["t", "tdg"]
         with self.subTest(basis_gates=basis_gates):
-            pm = generate_clifford_t_pass_manager(basis_gates=basis_gates)
+            pm = generate_preset_clifford_t_pass_manager(basis_gates=basis_gates)
             disc = pm.run(circuit)
             self.assertLessEqual(_get_t_count(disc), t_threshold)
 
         basis_gates = ["t", "h", "s", "cx"]
         with self.subTest(basis_gates=basis_gates):
-            pm = generate_clifford_t_pass_manager(basis_gates=basis_gates)
+            pm = generate_preset_clifford_t_pass_manager(basis_gates=basis_gates)
             disc = pm.run(circuit)
             self.assertLessEqual(_get_t_count(disc), t_threshold)
 
@@ -440,7 +440,7 @@ class TestCliffordTPassManager(QiskitTestCase):
             s_overhead = 2 * reference.count_ops().get("s", 0)
             x_overhead = 4 * reference.count_ops().get("x", 0)
 
-            pm = generate_clifford_t_pass_manager(basis_gates=basis_gates)
+            pm = generate_preset_clifford_t_pass_manager(basis_gates=basis_gates)
             disc = pm.run(circuit)
             self.assertLessEqual(_get_t_count(disc), t_threshold + s_overhead + x_overhead)
 
@@ -477,13 +477,13 @@ class TestCliffordTPassManager(QiskitTestCase):
         self.assertEqual(expect_unitary, has_unitary[0])
 
     def test_raises_on_non_clifford_t(self):
-        """Assert that calling generate_clifford_t_pass_manager raises when
+        """Assert that calling generate_preset_clifford_t_pass_manager raises when
         passed a non Clifford+T set.
         """
         # non-Clifford+T basis set
         basis_gates = get_clifford_gate_names() + ["t", "tdg", "rz"]
         with self.assertRaises(TranspilerError):
-            _ = generate_clifford_t_pass_manager(basis_gates=basis_gates, optimization_level=0)
+            _ = generate_preset_clifford_t_pass_manager(basis_gates=basis_gates, optimization_level=0)
 
     def test_preset_pass_manager_with_clifford_t(self):
         """Test that calling generate_preset_pass_manager with Clifford+T
@@ -520,7 +520,7 @@ class TestCliffordTPassManager(QiskitTestCase):
         for eps in 10.0 ** np.arange(-2, -13, -1):
             approximation_degree = 1 - eps
             with self.subTest(approximation_degree=approximation_degree):
-                pm = generate_clifford_t_pass_manager(
+                pm = generate_preset_clifford_t_pass_manager(
                     basis_gates=basis_gates,
                     optimization_level=0,
                     approximation_degree=approximation_degree,
@@ -532,7 +532,7 @@ class TestCliffordTPassManager(QiskitTestCase):
         # testing rz_synthesis_error & rz_cache_error
         for eps in 10.0 ** np.arange(-2, -13, -1):
             with self.subTest(synthesis_error=eps):
-                pm = generate_clifford_t_pass_manager(
+                pm = generate_preset_clifford_t_pass_manager(
                     basis_gates=basis_gates,
                     optimization_level=0,
                     rz_synthesis_error=eps,

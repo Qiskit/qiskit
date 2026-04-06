@@ -258,7 +258,7 @@ def generate_preset_pass_manager(
     return pm
 
 
-def generate_clifford_t_pass_manager(
+def generate_preset_clifford_t_pass_manager(
     optimization_level=2,
     target=None,
     basis_gates=None,
@@ -369,7 +369,7 @@ def generate_clifford_t_pass_manager(
 
     if not is_clifford_t_basis(basis_gates=pm_config.basis_gates, target=pm_config.target):
         raise TranspilerError(
-            "generate_clifford_t_pass_manager can only be used with Clifford+T basis"
+            "generate_preset_clifford_t_pass_manager can only be used with Clifford+T basis"
         )
 
     pm = clifford_t_pass_manager(pm_config, optimization_level=optimization_level)
