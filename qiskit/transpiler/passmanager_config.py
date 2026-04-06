@@ -177,7 +177,7 @@ class PassManagerCliffordTConfig(PassManagerConfig):
         rz_synthesis_error: float | None = None,
         rz_cache_error: float | None = None,
     ):
-        r"""Initialize a PassManagerCliffordTConfig object
+        r"""
 
         Args:
             initial_layout (Layout): Initial position of virtual qubits on
