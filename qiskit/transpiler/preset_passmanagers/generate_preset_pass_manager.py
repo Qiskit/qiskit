@@ -119,7 +119,7 @@ def generate_preset_pass_manager(
             target. The following attributes will be inferred from this
             argument if they are not set: ``coupling_map`` and ``basis_gates``.
         basis_gates (list): List of basis gate names to unroll to
-            (e.g: ``['u1', 'u2', 'u3', 'cx']``).
+            (e.g: ``['cx', 's', 'sx', 't', 'tdg']``).
         coupling_map (CouplingMap or list): Directed graph represented a coupling
             map. Multiple formats are supported:
 
