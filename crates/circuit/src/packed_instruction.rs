@@ -873,7 +873,7 @@ impl PackedInstruction {
         operation: O,
         qubits: Interned<[Qubit]>,
         clbits: Interned<[Clbit]>,
-        params: Option<Box<SmallVec<[Param; 3]>>>,
+        params: Option<SmallVec<[Param; 3]>>,
     ) -> Self
     where
         O: CustomOperation,
@@ -884,7 +884,7 @@ impl PackedInstruction {
             op: operation.into(),
             qubits,
             clbits,
-            params: params.map(|params| Box::new(Parameters::Params(*params))),
+            params: params.map(|params| Box::new(Parameters::Params(params))),
             label: label.map(Box::new),
             #[cfg(feature = "cache_pygates")]
             py_op: OnceLock::new(),

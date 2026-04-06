@@ -819,7 +819,7 @@ impl CircuitData {
     where
         O: CustomOperation,
     {
-        let params = (!params.is_empty()).then(|| Box::new(params.iter().cloned().collect()));
+        let params = (!params.is_empty()).then(|| params.iter().cloned().collect());
         let qubits = self.qargs_interner.insert(qargs);
         let clbits = self.cargs_interner.insert(cargs);
         self.push(PackedInstruction::from_custom_operation(

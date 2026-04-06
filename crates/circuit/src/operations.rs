@@ -2004,13 +2004,13 @@ mod test_custom_gates {
         assert_eq!(
             gate.num_qubits(),
             1,
-            "Gate num_qubits did not match, expected '1' obtained '{}'",
+            "The number of qubits of gate did not match, expected '1' obtained '{}'",
             gate.num_qubits()
         );
         assert_eq!(
             gate.num_params(),
             0,
-            "Gate num_qubits did not match, expected '0' obtained '{}'",
+            "The number of parameters of gate did not match, expected '0' obtained '{}'",
             gate.num_params()
         );
         assert_eq!(
