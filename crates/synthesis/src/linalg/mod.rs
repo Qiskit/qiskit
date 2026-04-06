@@ -275,7 +275,7 @@ pub fn eigendecomposition_faer(
     let vmat = eigh.U().to_owned();
     // unfortunately, we need to call closest_unitary_faer here
     let vmat = closest_unitary_faer(vmat.as_ref())?;
-    let eigvals: Vec<Complex64> = eigh.S().column_vector().iter().cloned().collect();
+    let eigvals: Vec<Complex64> = eigh.S().column_vector().iter().copied().collect();
     Ok((eigvals, vmat))
 }
 
