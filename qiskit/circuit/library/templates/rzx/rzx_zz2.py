@@ -13,6 +13,8 @@
 
 from __future__ import annotations
 
+from math import pi
+
 import numpy as np
 
 from qiskit.circuit import Parameter, QuantumCircuit
@@ -54,5 +56,8 @@ def rzx_zz2(theta: ParameterValueType | None = None):
     qc.rz(np.pi / 2, 1)
     qc.rx(np.pi / 2, 1)
     qc.rz(np.pi / 2, 1)
+    # The gate content has unitary e^{i*pi} * I == -I; global_phase = pi corrects this
+    # so that Operator(rzx_zz2()) == I exactly, as required by TemplateOptimization.
+    qc.global_phase = pi
 
     return qc

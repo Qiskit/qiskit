@@ -14,6 +14,7 @@
 """Test the TemplateOptimization pass."""
 
 import unittest
+from inspect import getmembers, isfunction
 
 import numpy as np
 from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
@@ -31,6 +32,7 @@ from qiskit.circuit.library.templates.clifford import (
     clifford_4_2,
     clifford_6_4,
 )
+import qiskit.circuit.library.templates as templib
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.converters.circuit_to_dagdependency import circuit_to_dagdependency
 from qiskit.transpiler import PassManager
@@ -763,37 +765,45 @@ class TestTemplateMatching(QiskitTestCase):
         # All of these gates are in the commutation library, i.e. the cache should not be used
         self.assertEqual(scc.num_cached_entries(), 0)
 
-    def test_clifford_6_4_is_identity(self):
-        """Test that clifford_6_4 is exactly the identity (#14538).
+    def test_template_optimization_accepts_all_templates(self):
+        """Test that TemplateOptimization accepts and applies every template (#14538).
 
-        SHSHSH has gate unitary e^{i*pi/4} * I; the template previously lacked the
-        compensating global_phase = -pi/4, so Operator(clifford_6_4()) was not I.
+        Uses each template as its own input circuit: since every template implements
+        the identity, running TemplateOptimization with the template against a copy of
+        itself must cancel all gates and produce an operator-equal output.  This catches
+        any template whose global_phase is not set correctly (causing silent rejection by
+        the identity check) as well as any per-match phase accumulation errors.
         """
-        self.assertTrue(np.allclose(Operator(clifford_6_4()).data, np.identity(2, dtype=complex)))
-
-    def test_template_optimization_accepts_clifford_6_4(self):
-        """Test that TemplateOptimization accepts and applies clifford_6_4 (#14538).
-
-        Before the fix, clifford_6_4 was missing global_phase = -pi/4, so
-        Operator(clifford_6_4()) was e^{i*pi/4}*I rather than I and the identity check
-        in TemplateOptimization silently rejected the template.
-        """
-        qr = QuantumRegister(1, "qr")
-        circuit_in = QuantumCircuit(qr)
-        circuit_in.s(qr[0])
-        circuit_in.h(qr[0])
-        circuit_in.s(qr[0])
-        circuit_in.h(qr[0])
-        circuit_in.s(qr[0])
-        circuit_in.h(qr[0])
-
-        result = PassManager(TemplateOptimization([clifford_6_4()])).run(circuit_in)
-
-        # All six gates must be cancelled.
-        self.assertEqual(result.count_ops(), {})
-        # Full phase equality (not just equiv) is verified here because the
-        # per-match global_phase accumulation fix from #14537 is included in this branch.
-        self.assertTrue(Operator(circuit_in) == Operator(result))
+        all_templates = []
+        for _, fn in getmembers(templib, isfunction):
+            result = fn()
+            if isinstance(result, QuantumCircuit):
+                all_templates.append(result)
+        # Build a cost dict covering every gate name that appears in any template,
+        # supplementing the default dict which is missing some gates (e.g. sx, p, cz).
+        all_gate_names = {
+            instr.operation.name for template in all_templates for instr in template.data
+        }
+        extra_costs = dict.fromkeys(all_gate_names, 1)
+        for template in all_templates:
+            # Bind any free parameters to an arbitrary value.
+            if template.parameters:
+                template = template.assign_parameters(dict.fromkeys(template.parameters, 0.2))
+            with self.subTest(template=template.name):
+                result = PassManager(
+                    TemplateOptimization([template], user_cost_dict=extra_costs)
+                ).run(template.copy())
+                # All gates must be cancelled — the template matched itself fully.
+                # Assumption: the matching algorithm finds a complete self-match for
+                # every template in the library.  This holds for all current templates
+                # (verified empirically) but if a future template is added for which
+                # TemplateOptimization cannot find a complete self-match, this assertion
+                # will fail spuriously and should be replaced with a weaker check such
+                # as asserting that result.num_operations < template.num_operations.
+                self.assertEqual(result.count_ops(), {})
+                # Full phase equality (not just equiv) confirms that global_phase is
+                # propagated correctly through the substitution pipeline.
+                self.assertTrue(Operator(template) == Operator(result))
 
     def test_circuit_global_phase_preserved_after_single_and_multiple_template_match(self):
         """Test that circuit global_phase survives template optimization (#14537)."""
