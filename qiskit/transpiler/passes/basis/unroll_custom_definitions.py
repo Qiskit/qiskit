@@ -33,8 +33,8 @@ class UnrollCustomDefinitions(TransformationPass):
                 Ignored if ``target`` is also specified.
             target (Optional[Target]): The :class:`~.Target` object corresponding to the compilation
                 target. When specified, any argument specified for ``basis_gates`` is ignored.
-             min_qubits (int): The minimum number of qubits for operations in the input
-                 dag to translate.
+            min_qubits (int): The minimum number of qubits for operations in the input
+                dag to translate.
         """
 
         super().__init__()

@@ -18,8 +18,8 @@ use numpy::{IntoPyArray, PyArray2, PyReadonlyArray1, PyReadonlyArray2};
 use pyo3::prelude::*;
 
 use crate::linalg::ndarray_to_faer;
-use qiskit_circuit::util::{C_ZERO, GateArray2Q, IM, M_IM, c64};
-
+use qiskit_util::alias::{GateArray1Q, GateArray2Q};
+use qiskit_util::complex::{C_M_ONE, C_ONE, C_ZERO, IM, M_IM, c64};
 pub(super) const DEFAULT_FIDELITY: f64 = 1.0 - 1.0e-9;
 
 pub trait TraceToFidelity {
@@ -96,6 +96,10 @@ static MAGIC_DAGGER: GateArray2Q = [
         c64(0., FRAC_1_SQRT_2),
     ],
 ];
+
+pub static IPZ: GateArray1Q = [[IM, C_ZERO], [C_ZERO, M_IM]];
+pub static IPY: GateArray1Q = [[C_ZERO, C_ONE], [C_M_ONE, C_ZERO]];
+pub static IPX: GateArray1Q = [[C_ZERO, IM], [IM, C_ZERO]];
 
 #[inline(always)]
 pub(crate) fn transpose_conjugate(mat: ArrayView2<Complex64>) -> Array2<Complex64> {
