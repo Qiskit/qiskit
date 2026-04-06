@@ -17,8 +17,10 @@ use nalgebra::{DMatrix, DMatrixView, Dim, Dyn, MatrixView, Scalar, ViewStorage};
 use ndarray::ArrayView2;
 use ndarray::ShapeBuilder;
 use num_complex::Complex64;
+use pyo3::PyErr;
+use thiserror::Error;
 
-use crate::qsd::QSDError;
+use crate::QiskitError;
 
 pub mod cos_sin_decomp;
 
@@ -27,6 +29,28 @@ const RTOL_DEFAULT: f64 = 1e-5;
 
 /// Tolerance used for debug checking
 pub const VERIFY_TOL: f64 = 1e-7;
+
+/// Errors that might occur in linear algebra computations
+#[derive(Error, Debug)]
+pub enum LinAlgError {
+    #[error("Eigen decomposition failed")]
+    EigenDecompositionFailed,
+
+    #[error("SVD decomposition failed")]
+    SVDDecompositionFailed,
+}
+
+impl From<LinAlgError> for PyErr {
+    fn from(error: LinAlgError) -> Self {
+        match error {
+            LinAlgError::EigenDecompositionFailed => {
+                QiskitError::new_err("Eigen decomposition failed")
+            }
+
+            LinAlgError::SVDDecompositionFailed => QiskitError::new_err("SVD decomposition failed"),
+        }
+    }
+}
 
 #[inline]
 pub fn nalgebra_array_view<T: Scalar, R: Dim, C: Dim>(mat: MatrixView<T, R, C>) -> ArrayView2<T> {
@@ -249,8 +273,8 @@ pub struct SVDResult {
 }
 
 /// Runs singular valued decomposition on `mat`.
-pub fn svd_decomposition_faer(mat: MatRef<Complex64>) -> Result<SVDResult, QSDError> {
-    let svd = mat.svd().map_err(|_| QSDError::SVDDecompositionFailed)?;
+pub fn svd_decomposition_faer(mat: MatRef<Complex64>) -> Result<SVDResult, LinAlgError> {
+    let svd = mat.svd().map_err(|_| LinAlgError::SVDDecompositionFailed)?;
 
     let n = mat.nrows();
     let u = svd.U().to_owned();
@@ -267,10 +291,10 @@ pub fn svd_decomposition_faer(mat: MatRef<Complex64>) -> Result<SVDResult, QSDEr
 /// Computes the eigenvalues and the eigenvectors of a square matrix
 pub fn eigendecomposition_faer(
     mat: MatRef<Complex64>,
-) -> Result<(Vec<Complex64>, Mat<Complex64>), QSDError> {
+) -> Result<(Vec<Complex64>, Mat<Complex64>), LinAlgError> {
     let eigh = mat
         .eigen()
-        .map_err(|_| QSDError::EigenDecompositionFailed)?;
+        .map_err(|_| LinAlgError::EigenDecompositionFailed)?;
 
     let vmat = eigh.U().to_owned();
     // unfortunately, we need to call closest_unitary_faer here
@@ -279,8 +303,8 @@ pub fn eigendecomposition_faer(
     Ok((eigvals, vmat))
 }
 
-pub fn closest_unitary_faer(mat: MatRef<Complex64>) -> Result<Mat<Complex64>, QSDError> {
-    let svd = mat.svd().map_err(|_| QSDError::SVDDecompositionFailed)?;
+pub fn closest_unitary_faer(mat: MatRef<Complex64>) -> Result<Mat<Complex64>, LinAlgError> {
+    let svd = mat.svd().map_err(|_| LinAlgError::SVDDecompositionFailed)?;
     Ok(svd.U() * svd.V().adjoint())
 }
 

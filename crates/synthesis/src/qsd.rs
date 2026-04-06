@@ -21,7 +21,6 @@ use num_complex::Complex64;
 use numpy::PyReadonlyArray2;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use qiskit_quantum_info::QiskitError;
 use smallvec::smallvec;
 use thiserror::Error;
 
@@ -29,8 +28,8 @@ use crate::euler_one_qubit_decomposer::{
     EulerBasis, EulerBasisSet, unitary_to_gate_sequence_inner,
 };
 use crate::linalg::{
-    VERIFY_TOL, block_matrix_faer, closest_unitary_faer, eigendecomposition_faer, faer_to_ndarray,
-    from_diagonal_faer, is_zero_matrix_faer, nalgebra_array_view, ndarray_to_faer,
+    LinAlgError, VERIFY_TOL, block_matrix_faer, closest_unitary_faer, eigendecomposition_faer,
+    faer_to_ndarray, from_diagonal_faer, is_zero_matrix_faer, nalgebra_array_view, ndarray_to_faer,
     svd_decomposition_faer, verify_unitary_faer,
 };
 use crate::matrix::two_qubit;
@@ -48,11 +47,9 @@ const MINIMUM_TOL: f64 = 1e-12;
 /// Errors that might occur during QSD synthesis algorithm
 #[derive(Error, Debug)]
 pub enum QSDError {
-    #[error("Eigen decomposition failed")]
-    EigenDecompositionFailed,
-
-    #[error("SVD decomposition failed")]
-    SVDDecompositionFailed,
+    // wraps LinAlgError, produced by linear algebra packages
+    #[error(transparent)]
+    ErrorFromLinAlg(#[from] LinAlgError),
 
     // wraps CircuitDataError, e.g. produced by demultiplex
     #[error(transparent)]
@@ -66,11 +63,7 @@ pub enum QSDError {
 impl From<QSDError> for PyErr {
     fn from(error: QSDError) -> Self {
         match error {
-            QSDError::EigenDecompositionFailed => {
-                QiskitError::new_err("Eigen decomposition failed")
-            }
-
-            QSDError::SVDDecompositionFailed => QiskitError::new_err("SVD decomposition failed"),
+            QSDError::ErrorFromLinAlg(err) => err.into(),
 
             QSDError::ErrorFromCircuitData(err) => err.into(),
 
