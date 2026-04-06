@@ -62,16 +62,26 @@ class ConsolidateBlocks(TransformationPass):
     the same qubits into a Unitary node, to be resynthesized later,
     to a potentially more optimal subcircuit.
 
-    This pass reads the :class:`.PropertySet` key ``ConsolidateBlocks_qubit_map`` which it uses to
+    This pass reads two :class:`.PropertySet` keys:
+
+    * ``block_list``: blocks of consecutive 2-qubit gates, collected by a pass such as
+      :class:`.Collect2qBlocks`.
+    * ``run_list``: runs of consecutive 1-qubit gates, collected by a pass such as
+      :class:`.Collect1qRuns`.
+
+    Both keys are expected to be in topological order. After consolidation the keys are
+    removed from the property set, as their results are no longer valid.
+
+    This pass also reads the :class:`.PropertySet` key ``ConsolidateBlocks_qubit_map`` which it uses to
     communicate with recursive worker instances of itself for control-flow operations.  The key
     should never be observable in a user-facing :class:`.PassManager` pipeline (it is only set in
     internal :class:`.PassManager` instances), but the pass may return incorrect results or error if
     another pass sets this key.
 
     Notes:
-        This pass assumes that the 'blocks_list' property that it reads is
+        This pass assumes that the 'block_list' property that it reads is
         given such that blocks are in topological order. The blocks are
-        collected by a previous pass, such as `Collect2qBlocks`.
+        collected by a previous pass, such as :class:`.Collect2qBlocks`.
     """
 
     _QUBIT_MAP_KEY = "ConsolidateBlocks_qubit_map"
