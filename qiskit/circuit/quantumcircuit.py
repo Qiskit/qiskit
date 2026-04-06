@@ -172,6 +172,7 @@ class QuantumCircuit:
     :attr:`clbits`                 List of :class:`Clbit`\\ s tracked by the circuit.
     :attr:`data`                   List of individual :class:`CircuitInstruction`\\ s that make up
                                    the circuit.
+    :attr:`_data`                  Python-space handle to the C API :c:struct:`QkCircuit` object.
     :attr:`duration`               Total duration of the circuit, added by scheduling transpiler
                                    passes.
                                    This attribute is deprecated and :meth:`.estimate_duration`
@@ -208,9 +209,22 @@ class QuantumCircuit:
     :class:`CircuitInstruction`\\ s contained in an ordered form.  You generally should not mutate
     this object directly; :class:`QuantumCircuit` is only designed for append-only operations (which
     should use :meth:`append`).  Most operations that mutate circuits in place should be written as
-    transpiler passes (:mod:`qiskit.transpiler`).
+    transpiler passes (:mod:`qiskit.transpiler`).  The C API interacts with an internal object,
+    called :attr:`_data`, which is not part of the public Python API, other than as a handle to pass
+    to C-API calls.
 
     .. autoattribute:: data
+
+    .. py::attribute:: _data
+        An opaque handle to the C API object ``QkCircuit``.
+
+        .. warning::
+            No part of this object other than its existence is part of the public API.
+
+        The only valid use of this object from within the public Python API is as part of the
+        extraction of a :c:struct:`QkCircuit` using :c:func:`qk_circuit_borrow_from_python` or
+        similar methods.  The Python-space type of the object is not specified in the public API,
+        and none of its methods, regardless of name, should be considered public.
 
     Alongside the :attr:`data`, the :attr:`global_phase` of a circuit can have some impact on its
     output, if the circuit is used to describe a :class:`.Gate` that may be controlled.  This is
@@ -1686,7 +1700,16 @@ class QuantumCircuit:
 
             virtuals = self.qubits.copy()
             if num_qubits is not None and num_qubits > original_num_qubits:
-                virtuals.extend(QuantumRegister(num_qubits - original_num_qubits, "ancilla"))
+
+                ancilla_register_name = "ancilla"
+                ancilla_suffix = 0
+                reg_names = {reg.name for reg in self.qregs}
+                while ancilla_register_name in reg_names:
+                    ancilla_register_name = f"ancilla{ancilla_suffix}"
+                    ancilla_suffix += 1
+                virtuals.extend(
+                    QuantumRegister(num_qubits - original_num_qubits, ancilla_register_name)
+                )
             initial_layout = Layout(dict(enumerate(virtuals)))
         else:
             initial_layout = None
@@ -2389,9 +2412,7 @@ class QuantumCircuit:
             new_clbits=mapped_clbits,
         )
         if append_existing:
-            dest._current_scope().extend(
-                append_existing, qubits=mapped_qubits, clbits=mapped_clbits
-            )
+            dest._current_scope().extend(append_existing)
 
         return None if inplace else dest
 
@@ -3869,16 +3890,27 @@ class QuantumCircuit:
         wire_order: list[int] | None = None,
         expr_len: int = 30,
         measure_arrows: bool | None = None,
+        barrier_label_len: int = 16,
     ):
         r"""Draw the quantum circuit. Use the output parameter to choose the drawing format:
 
-        **text**: ASCII art TextDrawing that can be printed in the console.
+        ``text``
+            ASCII art TextDrawing that can be printed in the console.
 
-        **mpl**: images with color rendered purely in Python using matplotlib.
+        ``mpl``
+            Images with color rendered purely in Python using matplotlib.
 
-        **latex**: high-quality images compiled via latex.
+        ``latex``
+            High-quality images compiled via LaTeX.
 
-        **latex_source**: raw uncompiled latex output.
+            .. warning::
+                This will call an installed system version of ``pdflatex`` on arbitrary user input
+                by design (such as to render custom code in :attr:`.Instruction.label`), so should
+                only be used on trusted input.
+
+        ``latex_source``
+            Raw uncompiled LaTeX output.  This is the source of what would be rendered by the
+            ``latex`` drawer.
 
         .. warning::
 
@@ -3970,6 +4002,9 @@ class QuantumCircuit:
                 instead place the name of the bit or register in the measure box.
                 Default is ``True`` unless the user config file (usually ``~/.qiskit/settings.conf``)
                 has an alternative value set. For example, ``circuit_measure_arrows = False``.
+            barrier_label_len: The number of characters to display for
+                :class:`.Barrier` labels in the output circuit. If this number is exceeded,
+                the string will be truncated at that number and '...' added to the end.
 
         Returns:
             :class:`.TextDrawing` or :class:`matplotlib.figure` or :class:`PIL.Image` or
@@ -4021,6 +4056,7 @@ class QuantumCircuit:
             cregbundle=cregbundle,
             wire_order=wire_order,
             expr_len=expr_len,
+            barrier_label_len=barrier_label_len,
             measure_arrows=measure_arrows,
         )
 
@@ -5821,7 +5857,8 @@ class QuantumCircuit:
         For the full matrix form of this gate, see the underlying gate documentation.
 
         Args:
-            qubit1, qubit2: The qubits to apply the gate to.
+            qubit1: The first qubit to apply the gate to.
+            qubit2: The second qubit to apply the gate to.
 
         Returns:
             A handle to the instructions created.
@@ -5934,7 +5971,8 @@ class QuantumCircuit:
         For the full matrix form of this gate, see the underlying gate documentation.
 
         Args:
-            qubit1, qubit2: The qubits to apply the gate to.
+            qubit1: The first qubit to apply the gate to.
+            qubit2: The second qubit to apply the gate to.
 
         Returns:
             A handle to the instructions created.
@@ -5951,7 +5989,8 @@ class QuantumCircuit:
         For the full matrix form of this gate, see the underlying gate documentation.
 
         Args:
-            qubit1, qubit2: The qubits to apply the gate to.
+            qubit1: The first qubit to apply the gate to.
+            qubit2: The second qubit to apply the gate to.
 
         Returns:
             A handle to the instructions created.
@@ -6878,6 +6917,7 @@ class QuantumCircuit:
         Args:
             qubits: Any qubits that this scope should automatically use.
             clbits: Any clbits that this scope should automatically use.
+            registers: Any registers that this scope should automatically use.
             allow_jumps: Whether this scope allows jumps to be used within it.
             forbidden_message: If given, all attempts to add instructions to this scope will raise a
                 :exc:`.CircuitError` with this message.
