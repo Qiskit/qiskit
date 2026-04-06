@@ -33,7 +33,7 @@ from qiskit.transpiler.preset_passmanagers import (
     generate_preset_pass_manager,
     generate_preset_clifford_t_pass_manager,
 )
-from qiskit.transpiler import CouplingMap
+from qiskit.transpiler import CouplingMap, Target
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.quantum_info import get_clifford_gate_names
 from qiskit.synthesis import gridsynth_rz
@@ -483,7 +483,9 @@ class TestCliffordTPassManager(QiskitTestCase):
         # non-Clifford+T basis set
         basis_gates = get_clifford_gate_names() + ["t", "tdg", "rz"]
         with self.assertRaises(TranspilerError):
-            _ = generate_preset_clifford_t_pass_manager(basis_gates=basis_gates, optimization_level=0)
+            _ = generate_preset_clifford_t_pass_manager(
+                basis_gates=basis_gates, optimization_level=0
+            )
 
     def test_preset_pass_manager_with_clifford_t(self):
         """Test that calling generate_preset_pass_manager with Clifford+T
@@ -503,6 +505,40 @@ class TestCliffordTPassManager(QiskitTestCase):
         t_count = _get_t_count(transpiled)
         expected_t_count = 48
         self.assertLessEqual(t_count, expected_t_count)
+
+    def test_target_and_basis_gates(self):
+        """Test calling generate_preset_clifford_t_pass_manager with various values
+        of the arguments ``target`` and ``basis_gates``.
+        """
+        gate = ModularAdderGate(7)
+        qc = QuantumCircuit(gate.num_qubits)
+        qc.append(gate, qc.qubits)
+
+        basis_gates = get_clifford_gate_names() + ["t", "tdg"]
+        target = Target.from_configuration(basis_gates=basis_gates)
+
+        # Transpile with explicitly setting ``basis_gates`` but not ``target``.
+        transpiled_basis_gates = generate_preset_clifford_t_pass_manager(
+            basis_gates=basis_gates, optimization_level=0
+        ).run(qc)
+
+        # Transpile with explicitly setting ``target`` but not ``basis_gates``.
+        transpiled_target = generate_preset_clifford_t_pass_manager(
+            target=target, optimization_level=0
+        ).run(qc)
+
+        # Transpile with setting neither ``basis_gates`` nor ``target``, in which case
+        # ``basis_gates`` should default to all of Clifford+T gates.
+        transpiled_neither = generate_preset_clifford_t_pass_manager(optimization_level=0).run(qc)
+
+        # Transpile setting both, to make sure target overrides basis_gates when both are
+        # specified.
+        transpiled_both = generate_preset_clifford_t_pass_manager(
+            target=target, basis_gates=["cx", "tdg", "h", "s"], optimization_level=0
+        ).run(qc)
+        self.assertEqual(transpiled_basis_gates, transpiled_target)
+        self.assertEqual(transpiled_basis_gates, transpiled_neither)
+        self.assertEqual(transpiled_basis_gates, transpiled_both)
 
     def test_arguments_passed_correctly(self):
         """Test that the arguments ``approximation_degree``, ``rz_cache_error``, and ``rz_synthesis_error``

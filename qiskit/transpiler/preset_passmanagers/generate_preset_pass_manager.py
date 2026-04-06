@@ -20,6 +20,7 @@ from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES, get_control_flow_n
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.circuit import Qubit
 from qiskit.providers.backend import Backend
+from qiskit.quantum_info import get_clifford_gate_names
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
@@ -119,7 +120,7 @@ def generate_preset_pass_manager(
             target. The following attributes will be inferred from this
             argument if they are not set: ``coupling_map`` and ``basis_gates``.
         basis_gates (list): List of basis gate names to unroll to
-            (e.g: ``['cx', 's', 'sx', 't', 'tdg']``).
+            (e.g: ``['u1', 'u2', 'u3', 'cx']``).
         coupling_map (CouplingMap or list): Directed graph represented a coupling
             map. Multiple formats are supported:
 
@@ -280,10 +281,13 @@ def generate_preset_clifford_t_pass_manager(
     Clifford+T compilation. We recommend using this function instead of :func:`~.transpile` or
     :func:`~.generate_preset_pass_manager` with a Clifford+T basis, as it exposes
     arguments specifically tailored for Clifford+T compilations.
-    Note, however, that it will raise an error if a basis other than Clifford+T is specified.
 
     The target constraints for the pass manager construction can be specified through a :class:`.Target`
     instance, or via loose constraints (``basis_gates``, ``coupling_map``, or ``dt``).
+
+    If basis gates are not specified (neither via ``target`` nor via ``basis_gates``), then basis gates
+    default to all of the Clifford+T gates in Qiskit. Note, however, that if basis gates are specified
+    but do not represent a Clifford+T basis, then an error will be raised.
 
     Args:
         optimization_level (int): The optimization level to generate a
@@ -301,7 +305,7 @@ def generate_preset_clifford_t_pass_manager(
             target. The following attributes will be inferred from this
             argument if they are not set: ``coupling_map`` and ``basis_gates``.
         basis_gates (list): List of basis gate names to unroll to
-            (e.g: ``['u1', 'u2', 'u3', 'cx']``).
+            (e.g: ``['cx', 's', 'sx', 't', 'tdg']``).
         coupling_map (CouplingMap or list): Directed graph represented a coupling
             map. Multiple formats are supported:
 
@@ -346,6 +350,9 @@ def generate_preset_clifford_t_pass_manager(
         TranspilerError: if a basis other than Clifford+T is specified.
         ValueError: if an invalid value for ``optimization_level`` is passed in.
     """
+    if target is None and basis_gates is None:
+        basis_gates = get_clifford_gate_names() + ["t", "tdg"]
+
     common_options = _parse_common_options(
         target=target,
         basis_gates=basis_gates,
