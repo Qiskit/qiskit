@@ -296,7 +296,7 @@ def circuit_drawer(
                     if check_clbit_in_inst(block, cregbundle) is False:
                         return False
             elif inst.clbits and not isinstance(inst.operation, Measure):
-                if cregbundle is not False:
+                if cregbundle is True:
                     warn(
                         "Cregbundle set to False since an instruction needs to refer"
                         " to individual classical wire",
