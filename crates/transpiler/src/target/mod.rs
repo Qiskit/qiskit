@@ -915,12 +915,12 @@ impl Target {
 
 // Rust native methods
 impl Target {
-    /// Creates a new [Target] with default values.
+    /// Creates a new [`Target`] with default values.
     pub fn new() -> Self {
         Target::default()
     }
 
-    /// Adds a description to a newly constructed [Target].
+    /// Adds a description to a newly constructed [`Target`].
     ///
     /// # Arguments
     ///
@@ -928,7 +928,7 @@ impl Target {
     ///
     /// # Returns:
     ///
-    /// Initialized [Target] with a defined description attribute.
+    /// Initialized [`Target`] with a defined description attribute.
     ///
     /// # Examples
     ///
@@ -946,20 +946,21 @@ impl Target {
         self
     }
 
-    /// Sets the num qubits attribute to a newly constructed [Target]
+    /// Sets the num qubits attribute to a newly constructed [`Target`]
     ///
     /// # Arguments
     ///
     /// * `num_qubits` - An optional int to specify the number of qubits
-    ///        the backend target has. If not set it will be implicitly set
-    ///        based on the qargs when :meth:`~qiskit.Target.add_instruction`
-    ///        is called. Note this must be set if the backend target is for a
-    ///        noiseless simulator that doesn't have constraints on the
-    ///        instructions so the transpiler knows how many qubits are
-    ///        available.
+    ///   the backend target has. If not set it will be implicitly set
+    ///   based on the qargs when :meth:`~qiskit.Target.add_instruction`
+    ///   is called. Note this must be set if the backend target is for a
+    ///   noiseless simulator that doesn't have constraints on the
+    ///   instructions so the transpiler knows how many qubits are
+    ///   available.
+    ///
     /// # Returns:
     ///
-    /// Initialized [Target] with a defined number of qubits.
+    /// Initialized [`Target`] with a defined number of qubits.
     ///
     /// # Panics
     ///
@@ -979,23 +980,23 @@ impl Target {
             .unwrap_or_else(|e| panic!("{}", e.to_string()))
     }
 
-    /// Sets the num qubits attribute to a newly constructed [Target]
+    /// Sets the num qubits attribute to a newly constructed [`Target`]
     ///
     /// # Arguments
     ///
     /// * `num_qubits` - An optional int to specify the number of qubits
-    ///        the backend target has. If not set it will be implicitly set
-    ///        based on the qargs when :meth:`~qiskit.Target.add_instruction`
-    ///        is called. Note this must be set if the backend target is for a
-    ///        noiseless simulator that doesn't have constraints on the
-    ///        instructions so the transpiler knows how many qubits are
-    ///        available.
+    ///   the backend target has. If not set it will be implicitly set
+    ///   based on the qargs when [`Target::add_instruction`]
+    ///   is called. Note this must be set if the backend target is for a
+    ///   noiseless simulator that doesn't have constraints on the
+    ///   instructions so the transpiler knows how many qubits are
+    ///   available.
     ///
     /// # Returns:
     ///
-    /// * `Ok`: (if the number of qubits was successfully set.) [Target]
-    /// * `Err`: (if there was a specified [Target::qubit_properties] attribute and the
-    ///     lengths did not match) [TargetError].
+    /// * `Ok`: (if the number of qubits was successfully set.) [`Target`]
+    /// * `Err`: (if there was a specified [`Target::qubit_properties`] attribute and the
+    ///   lengths did not match) [`TargetError`].
     ///
     /// # Examples
     ///
@@ -1021,7 +1022,7 @@ impl Target {
         }
         Ok(self)
     }
-    /// Adds a `dt` value for the system time resulution of input of the [Target],
+    /// Adds a `dt` value for the system time resulution of input of the [`Target`],
     /// in seconds.
     ///
     /// # Arguments
@@ -1030,7 +1031,7 @@ impl Target {
     ///
     /// # Returns:
     ///
-    /// Initialized [Target] with a defined ``dt`` value.
+    /// Initialized [`Target`] with a defined ``dt`` value.
     ///
     /// # Examples
     ///
@@ -1046,17 +1047,17 @@ impl Target {
     }
 
     /// Adds a `granularity` value for the minimum pulse gate resolution in units of ``dt``
-    /// of the [Target].
+    /// of the [`Target`].
     ///
     /// # Arguments
     ///
     /// * `granularity` - An integer value representing minimum pulse gate
-    ///        resolution in units of ``dt``. A user-defined pulse gate should
-    ///        have duration of a multiple of this granularity value.
+    ///   resolution in units of ``dt``. A user-defined pulse gate should
+    ///   have duration of a multiple of this granularity value.
     ///
     /// # Returns:
     ///
-    /// Initialized [Target] with a `granularity` value.
+    /// Initialized [`Target`] with a `granularity` value.
     ///
     /// # Examples
     ///
@@ -1071,17 +1072,17 @@ impl Target {
         self
     }
 
-    /// Adds a minimum pulse gate length value for the [Target] in units of ``dt``.
+    /// Adds a minimum pulse gate length value for the [`Target`] in units of ``dt``.
     ///
     /// # Arguments
     ///
     /// * `min_length` - An integer value representing minimum pulse gate
-    ///        length in units of ``dt``. A user-defined pulse gate should be
-    ///        longer than this length.
+    ///   length in units of ``dt``. A user-defined pulse gate should be
+    ///   longer than this length.
     ///  
     /// # Returns:
     ///
-    /// Initialized [Target] with a defined ``min_length`` attribute.
+    /// Initialized [`Target`] with a defined ``min_length`` attribute.
     ///
     /// # Examples
     ///
@@ -1097,18 +1098,18 @@ impl Target {
     }
 
     /// Adds a `pulse_alignment` value representing a time resolution of
-    /// gate instruction starting time for the [Target].
+    /// gate instruction starting time for the [`Target`].
     ///
     /// # Arguments
     ///
     /// * `pulse_alignment` - An integer value representing a time
-    ///        resolution of gate instruction starting time. Gate instruction
-    ///        should start at time which is a multiple of the alignment
-    ///        value.
+    ///   resolution of gate instruction starting time. Gate instruction
+    ///   should start at time which is a multiple of the alignment
+    ///   value.
     ///  
     /// # Returns:
     ///
-    /// Initialized [Target] with a defined ``pulse_alignment`` attribute.
+    /// Initialized [`Target`] with a defined ``pulse_alignment`` attribute.
     ///
     /// # Examples
     ///
@@ -1124,18 +1125,18 @@ impl Target {
     }
 
     /// Adds an `acquire_alignment` value representing a time resolution of
-    /// measure instruction starting time for the [Target].
+    /// measure instruction starting time for the [`Target`].
     ///
     /// # Arguments
     ///
     /// * `acquire_alignment` - An integer value representing a time
-    ///        resolution of measure instruction starting time. Measure
-    ///        instruction should start at time which is a multiple of the
-    ///        alignment value.
+    ///   resolution of measure instruction starting time. Measure
+    ///   instruction should start at time which is a multiple of the
+    ///   alignment value.
     ///  
     /// # Returns:
     ///
-    /// Initialized [Target] with a defined ``acquire_alignment`` attribute.
+    /// Initialized [`Target`] with a defined ``acquire_alignment`` attribute.
     ///
     /// # Examples
     ///
@@ -1150,25 +1151,25 @@ impl Target {
         self
     }
 
-    /// Sets a list of the characteristics of each qubit on the [Target] device.
+    /// Sets a list of the characteristics of each qubit on the [`Target`] device.
     ///
     /// # Arguments
     ///
     /// * `qubit_properties` - A list of python `QubitProperties` objects defining
-    ///        the characteristics of each qubit on the target device. If specified
-    ///        the length of this list must match the number of qubits in the target,
-    ///        where the index in the list matches the qubit number the properties
-    ///        are defined for. If some qubits don't have properties available you
-    ///        can set that entry to ``py.None()``.
+    ///   the characteristics of each qubit on the target device. If specified
+    ///   the length of this list must match the number of qubits in the target,
+    ///   where the index in the list matches the qubit number the properties
+    ///   are defined for. If some qubits don't have properties available you
+    ///   can set that entry to [`QubitProperties::default`].
     ///
     /// # Returns:
     ///
-    /// Initialized [Target] with a defined ``qubit_properties`` attribute.
+    /// Initialized [`Target`] with a defined ``qubit_properties`` attribute.
     ///
     /// # Panics
     ///
-    /// This function panics if there was a specified [Target::num_qubits] attribute and the
-    /// the length of the provided list is not equal to [Target::num_qubits].
+    /// This function panics if there was a specified [`Target::num_qubits`] attribute and the
+    /// the length of the provided list is not equal to [`Target::num_qubits`].
     ///
     /// # Examples
     ///
@@ -1183,22 +1184,22 @@ impl Target {
             .unwrap_or_else(|e| panic!("{}", e.to_string()))
     }
 
-    /// Sets a list of the characteristics of each qubit on the [Target] device.
+    /// Sets a list of the characteristics of each qubit on the [`Target`] device.
     ///
     /// # Arguments
     ///
-    /// * `qubit_properties` - A list of python `QubitProperties` objects defining
-    ///        the characteristics of each qubit on the target device. If specified
-    ///        the length of this list must match the number of qubits in the target,
-    ///        where the index in the list matches the qubit number the properties
-    ///        are defined for. If some qubits don't have properties available you
-    ///        can set that entry to ``py.None()``.
+    /// * `qubit_properties` - A list of [`QubitProperties`] objects defining
+    ///   the characteristics of each qubit on the target device. If specified
+    ///   the length of this list must match the number of qubits in the target,
+    ///   where the index in the list matches the qubit number the properties
+    ///   are defined for. If some qubits don't have properties available you
+    ///   can set that entry to [`QubitProperties::default`].
     ///
     /// # Returns:
     ///
-    /// * `Ok`: (if the`qubit_properties` were successfully set.) [Target]
-    /// * `Err`: (if there was a specified [Target::num_qubits] attribute and the
-    ///     lengths did not match) [TargetError].
+    /// * `Ok`: (if the`qubit_properties` were successfully set.) [`Target`]
+    /// * `Err`: (if there was a specified [`Target::num_qubits`] attribute and the
+    ///   lengths did not match) [`TargetError`].
     ///
     /// # Examples
     ///
@@ -1228,17 +1229,17 @@ impl Target {
         Ok(self)
     }
 
-    /// Specifies a list of qubits in the [Target] that need to be measure together.
+    /// Specifies a list of qubits in the [`Target`] that need to be measure together.
     ///
     /// # Arguments
     ///
     /// * `concurrent_measurements` - A list of sets of qubits that must be
-    ///        measured together. This must be provided
-    ///        as a nested list like ``[[0, 1], [2, 3, 4]]``.
+    ///   measured together. This must be provided
+    ///   as a nested list like ``[[0, 1], [2, 3, 4]]``.
     ///  
     /// # Returns:
     ///
-    /// Initialized [Target] with a defined ``concurrent_measurements`` attribute.
+    /// Initialized [`Target`] with a defined ``concurrent_measurements`` attribute.
     ///
     /// # Examples
     ///
@@ -1257,9 +1258,9 @@ impl Target {
         self
     }
 
-    /// Adds a [PackedOperation] to the [Target].
+    /// Adds a [PackedOperation] to the [`Target`].
     ///
-    /// Said addition results in a [NormalOperation] in the [Target] as variadics
+    /// Said addition results in a [NormalOperation] in the [`Target`] as variadics
     /// are not yet supported natively. If no properties are specified the operation
     /// is believed to be `Global` with properties `{Qargs::Global: None}`.
     ///
@@ -1379,7 +1380,7 @@ impl Target {
         Ok(())
     }
 
-    /// Update the property object for an instruction qarg pair already in the [Target].
+    /// Update the property object for an instruction qarg pair already in the [`Target`].
     ///
     /// # Arguments
     ///
@@ -1477,7 +1478,7 @@ impl Target {
         })
     }
 
-    /// Get the complete [InstructionProperties] from the [Target] for the given instruction key and
+    /// Get the complete [InstructionProperties] from the [`Target`] for the given instruction key and
     /// qargs.
     pub fn get_instruction_properties<'a, T>(
         &self,
