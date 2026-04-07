@@ -19,8 +19,8 @@ use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, FRAC_PI_8, PI};
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
-    Operation, OperationRef, Param, PauliProductMeasurement, PauliProductRotation,
-    StandardInstruction, StandardGate, add_param, multiply_param, radd_param, 
+    Operation, OperationRef, Param, PauliProductMeasurement, PauliProductRotation, StandardGate,
+    StandardInstruction, add_param, multiply_param, radd_param,
 };
 use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
 use qiskit_quantum_info::sparse_observable::BitTerm;
@@ -479,13 +479,12 @@ pub fn py_convert_to_pauli_rotations(dag: &DAGCircuit) -> PyResult<DAGCircuit> {
             unreachable!("dag.topological_op_nodes only returns Operations");
         };
         if matches!(
-        inst.op.view(),
-        OperationRef::ControlFlow(_)
-            | OperationRef::StandardInstruction(StandardInstruction::Barrier(_))
-            | OperationRef::StandardInstruction(StandardInstruction::Reset)
-            | OperationRef::StandardInstruction(StandardInstruction::Delay(_))
-        ) 
-        {
+            inst.op.view(),
+            OperationRef::ControlFlow(_)
+                | OperationRef::StandardInstruction(StandardInstruction::Barrier(_))
+                | OperationRef::StandardInstruction(StandardInstruction::Reset)
+                | OperationRef::StandardInstruction(StandardInstruction::Delay(_))
+        ) {
             new_dag.push_back(inst.clone())?;
         } else if inst.op.name() == "measure" {
             let z = vec![true];
