@@ -22,3 +22,13 @@ from .pauli import Pauli
 from .pauli_list import PauliList
 from .pauli_utils import pauli_basis
 from .sparse_pauli_op import SparsePauliOp
+
+__all__ = [
+    "Clifford",
+    "Pauli",
+    "PauliList",
+    "SparsePauliOp",
+    "annotations",
+    "get_clifford_gate_names",
+    "pauli_basis",
+]

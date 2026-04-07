@@ -19,7 +19,7 @@ import warnings
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.library import get_standard_gate_name_mapping, IGate
+from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping, IGate
 from qiskit.utils.deprecation import deprecate_func
 from qiskit._accelerate.synthesis.discrete_basis import (
     SolovayKitaevSynthesis as RustSolovayKitaevSynthesis,

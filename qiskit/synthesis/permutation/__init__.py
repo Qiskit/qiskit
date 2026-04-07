@@ -16,4 +16,13 @@
 from .permutation_lnn import synth_permutation_depth_lnn_kms
 from .permutation_full import synth_permutation_basic, synth_permutation_acg
 from .permutation_reverse_lnn import synth_permutation_reverse_lnn_kms
+
+# ruff: noqa: F401
 from qiskit._accelerate.synthesis.permutation import _inverse_pattern, _validate_permutation
+
+__all__ = [
+    "synth_permutation_acg",
+    "synth_permutation_basic",
+    "synth_permutation_depth_lnn_kms",
+    "synth_permutation_reverse_lnn_kms",
+]

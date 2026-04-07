@@ -20,7 +20,6 @@ import importlib.metadata
 import importlib.util
 import os
 import sys
-import warnings
 
 try:
     importlib.metadata.version("qiskit-terra")
@@ -158,7 +157,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit import user_config as _user_config
 
 import qiskit.circuit.measure
-import qiskit.circuit.reset
+import qiskit.circuit.reset  # noqa: F401
 
 _config = _user_config.get_config()
 
@@ -177,6 +176,7 @@ __all__ = [
     "QiskitError",
     "QuantumCircuit",
     "QuantumRegister",
+    "__version__",
     "generate_preset_pass_manager",
     "transpile",
 ]

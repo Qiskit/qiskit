@@ -17,3 +17,5 @@ Submodule symbol exports for XX decomposition.
 from __future__ import annotations
 from .decomposer import XXDecomposer
 from .embodiments import XXEmbodiments
+
+__all__ = ["XXDecomposer", "XXEmbodiments", "annotations"]

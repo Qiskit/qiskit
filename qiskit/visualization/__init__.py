@@ -268,8 +268,6 @@ Exceptions
 .. autoexception:: VisualizationError
 """
 
-import os
-import sys
 
 from .array import array_to_latex
 

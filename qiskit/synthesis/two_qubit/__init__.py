@@ -18,3 +18,10 @@ from .two_qubit_decompose import (
     TwoQubitWeylDecomposition,
     TwoQubitControlledUDecomposer,
 )
+
+__all__ = [
+    "TwoQubitBasisDecomposer",
+    "TwoQubitControlledUDecomposer",
+    "TwoQubitWeylDecomposition",
+    "two_qubit_cnot_decompose",
+]

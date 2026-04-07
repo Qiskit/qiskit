@@ -1387,7 +1387,7 @@ from qiskit._accelerate.circuit import (
 )
 
 from .exceptions import CircuitError
-from . import _utils
+from . import _utils  # noqa: F401
 from .quantumcircuit import QuantumCircuit
 from .gate import Gate
 
@@ -1429,3 +1429,56 @@ from .controlflow import (
 
 from .annotated_operation import AnnotatedOperation, InverseModifier, ControlModifier, PowerModifier
 from .twirling import pauli_twirl_2q_gates
+
+__all__ = [
+    "CASE_DEFAULT",
+    "CONTROL_FLOW_OP_NAMES",
+    "AncillaQubit",
+    "AncillaRegister",
+    "AnnotatedOperation",
+    "Annotation",
+    "Barrier",
+    "Bit",
+    "BoxOp",
+    "BreakLoopOp",
+    "CircuitError",
+    "CircuitInstruction",
+    "ClassicalRegister",
+    "Clbit",
+    "CommutationChecker",
+    "ContinueLoopOp",
+    "ControlFlowOp",
+    "ControlModifier",
+    "ControlledGate",
+    "Delay",
+    "Duration",
+    "EquivalenceLibrary",
+    "ForLoopOp",
+    "Gate",
+    "IfElseOp",
+    "Instruction",
+    "InstructionSet",
+    "InverseModifier",
+    "Measure",
+    "Operation",
+    "Parameter",
+    "ParameterExpression",
+    "ParameterVector",
+    "ParameterVectorElement",
+    "PowerModifier",
+    "QuantumCircuit",
+    "QuantumRegister",
+    "Qubit",
+    "Register",
+    "Reset",
+    "SessionEquivalenceLibrary",
+    "StandardEquivalenceLibrary",
+    "Store",
+    "SwitchCaseOp",
+    "WhileLoopOp",
+    "annotation",
+    "get_control_flow_name_mapping",
+    "library",
+    "pauli_twirl_2q_gates",
+    "singleton",
+]

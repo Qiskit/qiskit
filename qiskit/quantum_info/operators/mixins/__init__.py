@@ -50,3 +50,12 @@ def generate_apidocs(cls):
     _replace_name(MultiplyMixin, ("_multiply",))
     _replace_name(LinearMixin, ("_add",))
     return cls
+
+__all__ = [
+    "AdjointMixin",
+    "GroupMixin",
+    "LinearMixin",
+    "MultiplyMixin",
+    "TolerancesMixin",
+    "getdoc",
+]
