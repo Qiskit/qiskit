@@ -227,9 +227,28 @@ class TestLightConePass(QiskitTestCase):
         expected.barrier()
         expected.cx(0, 1)
         expected.barrier()
-        expected.measure(0, 0)
 
         self.assertEqual(expected, new_circuit)
+
+    def test_measure_commutes_with_z_diagonal(self):
+        """CZ should be pruned from the light cone when measuring in Z-basis.
+
+        Regression test for https://github.com/Qiskit/qiskit/issues/15938.
+        """
+
+        # observable-based: CZ  commutes with Z on qubit 0
+        qc1 = QuantumCircuit(2, 2)
+        qc1.cz(0, 1)
+        qct1 = LightCone("Z", [0])(qc1)
+
+        # measurement-based:m should give the same pruning
+        qc2 = QuantumCircuit(2, 2)
+        qc2.cz(0, 1)
+        qc2.measure(0, 0)
+        qct2 = LightCone()(qc2)
+
+        self.assertEqual(qct1.size(), 0)
+        self.assertEqual(qct2.size(), 0)  # only measure is left
 
     @ddt.data(SparsePauliOp("IX"), SparseObservable("I+"))
     def test_parameter_expression(self, sparse_object):

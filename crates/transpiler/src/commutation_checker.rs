@@ -17,7 +17,7 @@ use num_complex::Complex64;
 use num_complex::ComplexFloat;
 use qiskit_circuit::object_registry::PyObjectAsKey;
 use qiskit_circuit::standard_gate::standard_generators::standard_gate_exponent;
-use qiskit_quantum_info::sparse_observable::{PySparseObservable, SparseObservable};
+use qiskit_quantum_info::sparse_observable::{BitTerm, PySparseObservable, SparseObservable};
 use smallvec::SmallVec;
 use std::fmt::Debug;
 
@@ -34,7 +34,7 @@ use qiskit_circuit::imports::QI_OPERATOR;
 use qiskit_circuit::instruction::{Instruction, Parameters};
 use qiskit_circuit::object_registry::ObjectRegistry;
 use qiskit_circuit::operations::{
-    Operation, OperationRef, Param, STANDARD_GATE_SIZE, StandardGate,
+    Operation, OperationRef, Param, STANDARD_GATE_SIZE, StandardGate, StandardInstruction,
 };
 use qiskit_circuit::{Clbit, Qubit};
 use qiskit_quantum_info::unitary_compose;
@@ -240,6 +240,20 @@ fn try_extract_op_from_ppr(
     Some(out.compose_map(&local, |i| qubits[i as usize].0))
 }
 
+fn try_extract_op_from_measure(qubits: &[Qubit], num_qubits: u32) -> Option<SparseObservable> {
+    let local = unsafe {
+        SparseObservable::new_unchecked(
+            1,
+            vec![Complex64::new(1., 0.)],
+            vec![BitTerm::Z],
+            vec![0],
+            vec![0, 1],
+        )
+    };
+    let out = SparseObservable::identity(num_qubits);
+    Some(out.compose_map(&local, |i| qubits[i as usize].0))
+}
+
 fn try_pauli_generator(
     operation: &OperationRef,
     qubits: &[Qubit],
@@ -250,6 +264,7 @@ fn try_pauli_generator(
         "PauliEvolution" => try_extract_op_from_pauli_evo(operation, qubits, num_qubits),
         "pauli_product_measurement" => try_extract_op_from_ppm(operation, qubits, num_qubits),
         "pauli_product_rotation" => try_extract_op_from_ppr(operation, qubits, num_qubits),
+        "measure" => try_extract_op_from_measure(qubits, num_qubits),
         _ => None,
     }
 }
@@ -830,14 +845,18 @@ fn commutation_precheck(
         }
     }
 
-    if matches!(
-        op1,
-        OperationRef::StandardInstruction(_) | OperationRef::Instruction(_)
-    ) || matches!(
-        op2,
-        OperationRef::StandardInstruction(_) | OperationRef::Instruction(_)
-    ) {
-        return PrecheckStatus::NonCommuting;
+    match (op1, op2) {
+        (
+            OperationRef::StandardInstruction(StandardInstruction::Measure),
+            OperationRef::StandardInstruction(StandardInstruction::Measure),
+        ) => return PrecheckStatus::NonCommuting,
+        (OperationRef::StandardInstruction(StandardInstruction::Measure), _)
+        | (_, OperationRef::StandardInstruction(StandardInstruction::Measure)) => {}
+        (OperationRef::StandardInstruction(_), _)
+        | (_, OperationRef::StandardInstruction(_))
+        | (OperationRef::Instruction(_), _)
+        | (_, OperationRef::Instruction(_)) => return PrecheckStatus::NonCommuting,
+        _ => {}
     }
 
     if is_parameterized(params1) || is_parameterized(params2) {

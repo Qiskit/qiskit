@@ -286,9 +286,11 @@ class TestCommutationChecker(QiskitTestCase):
         # We should be able to swap these.
         self.assertTrue(scc.commute(Measure(), [0], [0], CXGate(), [1, 2], []))
 
-        # Measure and gate have intersecting set of qubits
-        # We should not be able to swap these.
-        self.assertFalse(scc.commute(Measure(), [0], [0], CXGate(), [0, 2], []))
+        # Measure on the control of CX: CX is Z-diagonal on its control
+        self.assertTrue(scc.commute(Measure(), [0], [0], CXGate(), [0, 2], []))
+
+        # Measure on the target of CX: X on the target , doesn't commute with Z
+        self.assertFalse(scc.commute(Measure(), [0], [0], CXGate(), [1, 0], []))
 
         # Measures over different qubits and clbits
         self.assertTrue(scc.commute(Measure(), [0], [0], Measure(), [1], [1]))
@@ -301,6 +303,15 @@ class TestCommutationChecker(QiskitTestCase):
         # ToDo: can we swap these?
         # Currently checker takes the safe approach and returns False.
         self.assertFalse(scc.commute(Measure(), [0], [0], Measure(), [0], [1]))
+
+        # Z-diagonal gates commute with Z-measures
+        self.assertTrue(scc.commute(Measure(), [0], [0], ZGate(), [0], []))
+        self.assertTrue(scc.commute(Measure(), [0], [0], SGate(), [0], []))
+        self.assertTrue(scc.commute(Measure(), [0], [0], RZGate(0.5), [0], []))
+
+        # Non-Z Diagonal Gates Don't
+        self.assertFalse(scc.commute(Measure(), [0], [0], HGate(), [0], []))
+        self.assertFalse(scc.commute(Measure(), [0], [0], XGate(), [0], []))
 
     def test_barrier(self):
         """Check commutativity involving barriers."""
@@ -565,6 +576,14 @@ class TestCommutationChecker(QiskitTestCase):
             gate2 = build_pauli_gate(p2, gate_type2)
             with self.subTest(p1=p1, p2=p2):
                 self.assertEqual(expected, scc.commute(gate1, q1, [], gate2, q2, []))
+
+    def test_measure_vs_pauli_product_measurement(self):
+        """Standard measure and single-Z PPM should agree on computation."""
+        ppmz = PauliProductMeasurement(Pauli("Z"))
+        self.assertTrue(scc.commute(Measure(), [0], [0], ppmz, [0], []))
+
+        ppmx = PauliProductMeasurement(Pauli("X"))
+        self.assertFalse(scc.commute(Measure(), [0], [0], ppmx, [0], []))
 
     def test_pauli_evolution_sums(self):
         """Test PauliEvolutionGate commutations for operators that are sums of Paulis."""

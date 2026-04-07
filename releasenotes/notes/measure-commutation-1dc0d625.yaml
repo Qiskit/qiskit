@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    The :class:`.CommutationChecker` now treats a standard ``measure`` instruction
+    as a Z-basis measurement when checking commutation against gates. Previously it
+    was conservatively reported as non-commuting with everything. This also fixes
+    the :class:`.LightCone` pass so that Z-diagonal gates preceding a measurement
+    are correctly pruned from the light cone.
+    Fixed `#15938 <https://github.com/Qiskit/qiskit/issues/15938>`__.
