@@ -852,10 +852,13 @@ def generate_v12_expr():
     return [index, shift]
 
 
-def generate_replay_with_expression_substitutions():
-    """Circuits with parameters that have substituted expressions in the replay"""
+def generate_replay_with_expressions():
+    """Circuits with parameters that have expressions in the replay"""
     a = Parameter("a")
     b = Parameter("b")
+    c = Parameter("c")
+    d = Parameter("d")
+
     a1 = a * 2
     a2 = a1.subs({a: 3 * b})
     qc = QuantumCircuit(1)
@@ -873,7 +876,24 @@ def generate_replay_with_expression_substitutions():
     qc3 = QuantumCircuit(1, name="subs-vector")
     qc3.rz((pv[0] + 0.5).subs({pv[0]: pv[1]}), 0)
 
-    return [qc, qc2, qc3]
+    cancelled = QuantumCircuit(1, name="cancellations")
+    for case in (0 * a, 0 * a + 2, 0 * a + b, a - a, 0 * pv[0], 0 * (pv[0] + pv[1] + a)):
+        cancelled.rz(case, 0)
+
+    everything = QuantumCircuit(1, name="everything")
+    expression = (a + b.sin() * 0.25) * c**2
+    final_expr = (
+        (expression.cos() + d.arccos() - d.arcsin() + d.arctan() + d.tan()) / d.exp()
+        + expression.gradient(a)
+        + expression.log().sign()
+        - a.sin()
+        - b.conjugate()
+    )
+    final_expr = final_expr.abs()
+    final_expr = final_expr.subs({c: a})
+    everything.rz(final_expr, 0)
+
+    return [qc, qc2, qc3, cancelled, everything]
 
 
 def generate_v14_expr():
@@ -1016,9 +1036,7 @@ def generate_circuits(version_parts, current_version, load_context=False):
         output_circuits["standalone_vars.qpy"] = generate_standalone_var()
         output_circuits["v12_expr.qpy"] = generate_v12_expr()
     if version_parts >= (1, 4, 1):
-        output_circuits["replay_with_expressions.qpy"] = (
-            generate_replay_with_expression_substitutions()
-        )
+        output_circuits["replay_with_expressions.qpy"] = generate_replay_with_expressions()
 
     if version_parts >= (2, 0, 0):
         output_circuits["v14_expr.qpy"] = generate_v14_expr()
@@ -1030,18 +1048,11 @@ def assert_equal(
     reference, qpy, count, version_parts, bind=None, equivalent=False, context="Unknown context"
 ):
     """Compare two circuits."""
+    reference_parameter_names = [x.name for x in reference.parameters]
+    qpy_parameter_names = [x.name for x in qpy.parameters]
     if bind is not None:
-        reference_parameter_names = [x.name for x in reference.parameters]
-        qpy_parameter_names = [x.name for x in qpy.parameters]
-        if reference_parameter_names != qpy_parameter_names:
-            msg = (
-                f"Circuit {count} parameter mismatch:"
-                f" {reference_parameter_names} != {qpy_parameter_names}"
-            )
-            sys.stderr.write(msg)
-            sys.exit(4)
-        reference = reference.assign_parameters(bind)
-        qpy = qpy.assign_parameters(bind)
+        reference = reference.assign_parameters(bind[: reference.num_parameters])
+        qpy = qpy.assign_parameters(bind[: qpy.num_parameters])
 
     if equivalent:
         if not Operator.from_circuit(reference).equiv(Operator.from_circuit(qpy)):
@@ -1059,6 +1070,15 @@ def assert_equal(
         )
         sys.stderr.write(msg)
         sys.exit(1)
+
+    if reference_parameter_names != qpy_parameter_names:
+        msg = (
+            f"Circuit {count} parameter mismatch:"
+            f" {reference_parameter_names} != {qpy_parameter_names}"
+        )
+        sys.stderr.write(msg)
+        sys.exit(4)
+
     # Check deprecated bit properties, if set.  The QPY dumping code before Terra 0.23.2 didn't
     # include enough information for us to fully reconstruct this, so we only test if newer.
     if version_parts >= (0, 23, 2) and isinstance(reference, QuantumCircuit):
@@ -1138,7 +1158,7 @@ def load_qpy(qpy_files, version_parts):
             elif path == "parameter_vector_expression.qpy":
                 bind = np.linspace(1.0, 2.0, 15)
             elif path == "replay_with_expressions.qpy":
-                bind = [2.0]
+                bind = [2.0, 1.5, 0.125, -0.25, 0.75]
 
             context = f"Version {version_parts}, QPY file {path}, Circuit number {i}"
             assert_equal(
