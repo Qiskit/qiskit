@@ -12,7 +12,6 @@
 
 """Quantum States."""
 
-from __future__ import annotations
 from .statevector import Statevector
 from .stabilizerstate import StabilizerState
 from .densitymatrix import DensityMatrix
@@ -31,7 +30,6 @@ __all__ = [
     "DensityMatrix",
     "StabilizerState",
     "Statevector",
-    "annotations",
     "concurrence",
     "entanglement_of_formation",
     "entropy",

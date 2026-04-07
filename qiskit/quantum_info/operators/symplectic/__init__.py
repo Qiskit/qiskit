@@ -14,8 +14,6 @@
 Symplectic Operators
 """
 
-from __future__ import annotations
-
 from .clifford import Clifford
 from .clifford_circuits import get_clifford_gate_names
 from .pauli import Pauli
@@ -28,7 +26,6 @@ __all__ = [
     "Pauli",
     "PauliList",
     "SparsePauliOp",
-    "annotations",
     "get_clifford_gate_names",
     "pauli_basis",
 ]
