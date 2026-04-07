@@ -19,7 +19,3 @@ yields sub optimal results or is costly to run. This module introduces a framewo
 transpile blocks of commuting gates by applying layers of a predefined swap strategy.
 Further details can also be found here: https://arxiv.org/abs/2202.03459.
 """
-
-from .swap_strategy import SwapStrategy
-from .pauli_2q_evolution_commutation import FindCommutingPauliEvolutions
-from .commuting_2q_gate_router import Commuting2qGateRouter

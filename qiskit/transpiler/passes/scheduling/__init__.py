@@ -19,3 +19,17 @@ from .alignments import InstructionDurationCheck, ConstrainedReschedule
 
 # For backward compatibility
 from . import alignments as instruction_alignments
+
+__all__ = [
+    "ALAPScheduleAnalysis",
+    "ASAPScheduleAnalysis",
+    "ConstrainedReschedule",
+    "ContextAwareDynamicalDecoupling",
+    "InstructionDurationCheck",
+    "PadDelay",
+    "PadDynamicalDecoupling",
+    "SetIOLatency",
+    "TimeUnitConversion",
+    "alignments",
+    "instruction_alignments",
+]
