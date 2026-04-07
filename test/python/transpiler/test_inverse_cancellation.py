@@ -741,5 +741,33 @@ class TestCXCancellation(QiskitTestCase):
         self.assertEqual(pass_(test), expected)
 
 
+    def test_inverse_pair_different_qubits_not_cancelled(self):
+        """Test that inverse gate pairs on different qubits are not cancelled.
+
+        Regression test for https://github.com/Qiskit/qiskit/issues/15855.
+        The std_inverse_pairs code path had an operator-precedence bug where the
+        qubit-equality check was not applied to the second branch of the
+        gate-matching condition, allowing gates on different qubits to be
+        incorrectly cancelled.
+        """
+        pass_ = InverseCancellation(None)
+        qc = QuantumCircuit(2)
+        qc.t(0)
+        qc.tdg(1)
+        result = pass_(qc)
+        self.assertEqual(result.count_ops().get("t", 0), 1)
+        self.assertEqual(result.count_ops().get("tdg", 0), 1)
+
+    def test_inverse_pair_same_qubits_cancelled(self):
+        """Test that inverse gate pairs on the same qubit are still cancelled."""
+        pass_ = InverseCancellation(None)
+        qc = QuantumCircuit(1)
+        qc.t(0)
+        qc.tdg(0)
+        result = pass_(qc)
+        self.assertNotIn("t", result.count_ops())
+        self.assertNotIn("tdg", result.count_ops())
+
+
 if __name__ == "__main__":
     unittest.main()
