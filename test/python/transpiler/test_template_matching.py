@@ -889,8 +889,6 @@ class TestTemplateMatching(QiskitTestCase):
         containing two SHSHSH blocks separated by a T gate produces two matches; each
         match contributes +pi/4 to the circuit's global_phase, leaving pi/2 total.
         """
-        from qiskit.circuit.library.templates.clifford.clifford_6_4 import clifford_6_4
-
         template = clifford_6_4()
 
         qr = QuantumRegister(1, "qr")
