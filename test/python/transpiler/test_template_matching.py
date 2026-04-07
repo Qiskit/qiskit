@@ -767,11 +767,7 @@ class TestTemplateMatching(QiskitTestCase):
 
     def test_template_optimization_accepts_all_templates(self):
         """Test that TemplateOptimization accepts and applies every template (#14538)."""
-        all_templates = []
-        for _, fn in getmembers(templib, isfunction):
-            result = fn()
-            if isinstance(result, QuantumCircuit):
-                all_templates.append(result)
+        all_templates = [o[1]() for o in getmembers(templib) if isfunction(o[1])]
         # Build a cost dict covering every gate name that appears in any template,
         # supplementing the default dict which is missing some gates (e.g. sx, p, cz).
         all_gate_names = {
