@@ -61,6 +61,38 @@ static IPZ: Matrix2<Complex64> = Matrix2::new(IM, C_ZERO, C_ZERO, M_IM);
 static HGATE: Matrix2<Complex64> =
     Matrix2::new(H_GATE[0][0], H_GATE[0][1], H_GATE[1][0], H_GATE[1][1]);
 
+static K12R: Matrix2<Complex64> = Matrix2::new(
+    c64(0., FRAC_1_SQRT_2),
+    c64(FRAC_1_SQRT_2, 0.),
+    c64(-FRAC_1_SQRT_2, 0.),
+    c64(0., -FRAC_1_SQRT_2),
+);
+
+static K12R_DG: Matrix2<Complex64> = Matrix2::new(
+    c64(0., -FRAC_1_SQRT_2),
+    c64(-FRAC_1_SQRT_2, 0.),
+    c64(FRAC_1_SQRT_2, 0.),
+    c64(0., FRAC_1_SQRT_2),
+);
+
+static K12L: Matrix2<Complex64> =
+    Matrix2::new(c64(0.5, 0.5), c64(0.5, 0.5), c64(-0.5, 0.5), c64(0.5, -0.5));
+
+static K12L_DG: Matrix2<Complex64> = Matrix2::new(
+    c64(0.5, -0.5),
+    c64(-0.5, -0.5),
+    c64(0.5, -0.5),
+    c64(0.5, 0.5),
+);
+
+static K22L: Matrix2<Complex64> = Matrix2::new(
+    c64(FRAC_1_SQRT_2, 0.),
+    c64(-FRAC_1_SQRT_2, 0.),
+    c64(FRAC_1_SQRT_2, 0.),
+    c64(FRAC_1_SQRT_2, 0.),
+);
+static K22R: Matrix2<Complex64> = Matrix2::new(Complex64::ZERO, C_ONE, C_M_ONE, Complex64::ZERO);
+
 #[inline]
 pub fn ndarray_to_matrix2<T: Copy>(view: ArrayView2<T>) -> Matrix2<T> {
     Matrix2::new(view[[0, 0]], view[(0, 1)], view[(1, 0)], view[(1, 1)])
@@ -718,38 +750,6 @@ impl TwoQubitBasisDecomposer {
         })
     }
 }
-
-static K12R: Matrix2<Complex64> = Matrix2::new(
-    c64(0., FRAC_1_SQRT_2),
-    c64(FRAC_1_SQRT_2, 0.),
-    c64(-FRAC_1_SQRT_2, 0.),
-    c64(0., -FRAC_1_SQRT_2),
-);
-
-static K12R_DG: Matrix2<Complex64> = Matrix2::new(
-    c64(0., -FRAC_1_SQRT_2),
-    c64(-FRAC_1_SQRT_2, 0.),
-    c64(FRAC_1_SQRT_2, 0.),
-    c64(0., FRAC_1_SQRT_2),
-);
-
-static K12L: Matrix2<Complex64> =
-    Matrix2::new(c64(0.5, 0.5), c64(0.5, 0.5), c64(-0.5, 0.5), c64(0.5, -0.5));
-
-static K12L_DG: Matrix2<Complex64> = Matrix2::new(
-    c64(0.5, -0.5),
-    c64(-0.5, -0.5),
-    c64(0.5, -0.5),
-    c64(0.5, 0.5),
-);
-
-static K22L: Matrix2<Complex64> = Matrix2::new(
-    c64(FRAC_1_SQRT_2, 0.),
-    c64(-FRAC_1_SQRT_2, 0.),
-    c64(FRAC_1_SQRT_2, 0.),
-    c64(FRAC_1_SQRT_2, 0.),
-);
-static K22R: Matrix2<Complex64> = Matrix2::new(Complex64::ZERO, C_ONE, C_M_ONE, Complex64::ZERO);
 
 fn decomp0_inner(target: &TwoQubitWeylDecomposition) -> SmallVec<[Matrix2<Complex64>; 8]> {
     smallvec![
