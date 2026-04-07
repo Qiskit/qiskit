@@ -13,6 +13,7 @@
 use hashbrown::HashMap;
 use pyo3::IntoPyObjectExt;
 use pyo3::exceptions::PyValueError;
+use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::cmp::PartialOrd;
 use std::convert::From;
@@ -123,12 +124,17 @@ impl Symbol {
         &self.name
     }
 
+    pub fn fullname(&self) -> Cow<'_, str> {
+        self.index
+            .map(|i| Cow::Owned(format!("{}[{}]", &self.name, i)))
+            .unwrap_or(Cow::Borrowed(&self.name))
+    }
+
     pub fn repr(&self, with_uuid: bool) -> String {
-        match (self.index, with_uuid) {
-            (Some(i), true) => format!("{}[{}]_{}", self.name, i, self.uuid.as_u128()),
-            (Some(i), false) => format!("{}[{}]", self.name, i),
-            (None, true) => format!("{}_{}", self.name, self.uuid.as_u128()),
-            (None, false) => self.name.clone(),
+        if with_uuid {
+            format!("{}_{}", self.fullname(), self.uuid.as_u128())
+        } else {
+            self.fullname().into_owned()
         }
     }
     pub fn is_vector_element(&self) -> bool {
