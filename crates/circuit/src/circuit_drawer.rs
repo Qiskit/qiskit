@@ -497,7 +497,7 @@ impl<'a> VisualizationLayer<'a> {
             maxima = clbit_map[circuit
                 .get_cargs(inst.clbits)
                 .first()
-                .expect("Measure should have a clbit arg")
+                .expect("PauliProductRotation should have a clbit arg")
                 .index()];
         }
         self.add_vertical_lines(minima + 1..=maxima, inst);
