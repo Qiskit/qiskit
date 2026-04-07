@@ -902,6 +902,44 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         self.assertEqual(simplified_op, target_op)
         np.testing.assert_array_equal(simplified_op.paulis.phase, np.zeros(simplified_op.size))
 
+    def test_simplify_rtol_is_relative_to_largest_coefficient(self):
+        """Test that rtol in simplify() is relative to the largest coefficient magnitude (#13383).
+
+        np.isclose(coeff, 0, rtol=r) always ignores rtol because rtol * |0| = 0.
+        The correct semantics: drop a coefficient if |coeff| <= atol + rtol * max(|coeffs|).
+        """
+        # Z has coefficient 1.0, X has coefficient 1000.0.
+        # rtol=1e-2: 1.0 / 1000.0 = 1e-3 < 1e-2 → Z should be dropped.
+        op = SparsePauliOp.from_list([("Z", 1.0), ("X", 1000.0)])
+        result = op.simplify(rtol=1e-2)
+        self.assertEqual(result, SparsePauliOp.from_list([("X", 1000.0)]))
+
+        # rtol=1e-4: 1.0 / 1000.0 = 1e-3 > 1e-4 → Z should be kept.
+        result = op.simplify(rtol=1e-4)
+        self.assertEqual(result.size, 2)
+
+        # atol alone: |1.0| > atol=1e-2 → Z should be kept regardless of rtol.
+        result = op.simplify(atol=1e-2, rtol=0)
+        self.assertEqual(result.size, 2)
+
+    def test_simplify_rtol_with_complex_coefficients(self):
+        """rtol threshold also works correctly for complex-valued coefficients."""
+        # |1+0j| = 1.0, |(500+500j)| ≈ 707.  rtol=1e-2: threshold ≈ 7.07 > 1.0 → dropped.
+        op = SparsePauliOp.from_list([("Z", 1.0 + 0j), ("X", 500.0 + 500.0j)])
+        result = op.simplify(rtol=1e-2)
+        self.assertEqual(result, SparsePauliOp.from_list([("X", 500.0 + 500.0j)]))
+
+        # rtol=1e-4: threshold ≈ 0.0707 < 1.0 → both kept.
+        result = op.simplify(rtol=1e-4)
+        self.assertEqual(result.size, 2)
+
+    def test_simplify_empty_operator(self):
+        """simplify() on an all-zero operator returns a single zero-coefficient identity."""
+        op = SparsePauliOp.from_list([("Z", 0.0), ("X", 0.0)])
+        result = op.simplify()
+        self.assertEqual(result.size, 1)
+        self.assertAlmostEqual(result.coeffs[0], 0.0)
+
     def test_sort(self):
         """Test sort method."""
         with self.assertRaises(QiskitError):

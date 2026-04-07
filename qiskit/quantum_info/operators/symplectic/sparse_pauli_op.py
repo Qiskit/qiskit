@@ -468,8 +468,12 @@ class SparsePauliOp(LinearOp):
         Args:
             atol (float): Optional. Absolute tolerance for checking if
                           coefficients are zero (Default: 1e-8).
-            rtol (float): Optional. relative tolerance for checking if
-                          coefficients are zero (Default: 1e-5).
+            rtol (float): Optional. Relative tolerance for checking if
+                          coefficients are zero (Default: 1e-5).  For numeric
+                          coefficients the threshold is computed as
+                          ``atol + rtol * max(|coeffs|)`` after duplicate
+                          Paulis have been combined, so ``rtol`` is relative
+                          to the largest coefficient magnitude.
 
         Returns:
             SparsePauliOp: the simplified SparsePauliOp operator.
@@ -492,7 +496,12 @@ class SparsePauliOp(LinearOp):
         coeffs = np.zeros(indexes.shape[0], dtype=self.coeffs.dtype)
         np.add.at(coeffs, inverses, nz_coeffs)
 
-        # Filter non-zero coefficients
+        # Delete zero coefficient rows.
+        # For numeric coefficients, rtol must be relative to the largest coefficient magnitude —
+        # comparing to 0 via np.isclose makes rtol meaningless (rtol * |0| = 0 always), so we
+        # compute the threshold explicitly: |coeff| <= atol + rtol * max(|coeffs|).
+        # For object-dtype (parametric) coefficients, the magnitude is not well-defined for
+        # symbolic terms, so we fall back to np.isclose which effectively uses only atol.
         if self.coeffs.dtype == object:
 
             def to_complex(coeff):
@@ -501,19 +510,13 @@ class SparsePauliOp(LinearOp):
                 sympified = coeff.sympify()
                 return complex(sympified) if sympified.is_Number else np.nan
 
-            non_zero = np.logical_not(
-                np.isclose([to_complex(x) for x in self.coeffs], 0, atol=atol, rtol=rtol)
-            )
-        else:
-            non_zero = np.logical_not(np.isclose(self.coeffs, 0, atol=atol, rtol=rtol))
-
-        # Delete zero coefficient rows
-        if self.coeffs.dtype == object:
             is_zero = np.array(
                 [np.isclose(to_complex(coeff), 0, atol=atol, rtol=rtol) for coeff in coeffs]
             )
         else:
-            is_zero = np.isclose(coeffs, 0, atol=atol, rtol=rtol)
+            scale = np.max(np.abs(coeffs), initial=0.0)
+            threshold = atol + rtol * float(scale)
+            is_zero = np.abs(coeffs) <= threshold
         # Check edge case that we deleted all Paulis
         # In this case we return an identity Pauli with a zero coefficient
         if np.all(is_zero):

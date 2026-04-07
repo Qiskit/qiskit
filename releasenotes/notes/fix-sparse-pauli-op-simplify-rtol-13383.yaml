@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed :meth:`.SparsePauliOp.simplify` ignoring the ``rtol`` argument for numeric
+    coefficients.  Comparing a coefficient to ``0`` via :func:`numpy.isclose` makes
+    ``rtol`` meaningless because ``rtol * |0| = 0`` always.  The threshold is now computed
+    as ``atol + rtol * max(|coeffs|)``, so ``rtol`` is correctly interpreted as a tolerance
+    relative to the largest coefficient magnitude.
+    Fixes `#13383 <https://github.com/Qiskit/qiskit/issues/13383>`__.
