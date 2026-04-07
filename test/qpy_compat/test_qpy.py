@@ -806,7 +806,7 @@ def generate_v12_expr():
     return [index, shift]
 
 
-def generate_replay_with_expressions(version):
+def generate_replay_with_expressions():
     """Circuits with parameters that have expressions in the replay"""
     out = []
 
@@ -834,14 +834,6 @@ def generate_replay_with_expressions(version):
     qc3 = QuantumCircuit(1, name="subs-vector")
     qc3.rz((pv[0] + 0.5).subs({pv[0]: pv[1]}), 0)
 
-    # Qiskit versions between 2.2.0rc1 and 2.4.0rc2 inclusive generate invalid QPY files for
-    # expressions involving cancellations.
-    if not (Version("2.2.0rc1") <= version < Version("2.4.0rc3")):
-        cancelled = QuantumCircuit(1, name="cancellations")
-        for case in (0 * a, 0 * a + 2, 0 * a + b, a - a, 0 * pv[0], 0 * (pv[0] + pv[1] + a)):
-            cancelled.rz(case, 0)
-        out.append(cancelled)
-
     everything = QuantumCircuit(1, name="everything")
     expression = (a + b.sin() * 0.25) * c**2
     final_expr = (
@@ -856,6 +848,29 @@ def generate_replay_with_expressions(version):
     everything.rz(final_expr, 0)
     out.append(everything)
 
+    return out
+
+
+def generate_replay_with_cancellations():
+    # Qiskit versions between 2.2.0rc1 and 2.4.0rc2 inclusive generate invalid QPY files for
+    # expressions involving cancellations.
+    a = Parameter("a")
+    b = Parameter("b")
+    pv = ParameterVector("rz", 2)
+
+    out = []
+    cases = (
+        0 * a,
+        0 * a + 2,
+        0 * a + b,
+        a - a,
+        0 * pv[0],
+        0 * (pv[0] + pv[1] + a),
+    )
+    for i, case in enumerate(cases):
+        cancelled = QuantumCircuit(1, name=f"cancellations-{i}")
+        cancelled.rz(case, 0)
+        out.append(cancelled)
     return out
 
 
@@ -997,9 +1012,11 @@ def generate_circuits(generating_version, current_version, load_context=False):
         output_circuits["standalone_vars.qpy"] = generate_standalone_var()
         output_circuits["v12_expr.qpy"] = generate_v12_expr()
     if generating_version.release >= (1, 4, 1):
-        output_circuits["replay_with_expressions.qpy"] = generate_replay_with_expressions(
-            generating_version
-        )
+        output_circuits["replay_with_expressions.qpy"] = generate_replay_with_expressions()
+        # Qiskit versions between 2.2.0rc1 and 2.4.0rc2 inclusive generate invalid QPY files for
+        # expressions involving cancellations.
+        if not Version("2.2.0rc1") <= generating_version <= Version("2.4.0rc2"):
+            output_circuits["replay_with_cancellations.qpy"] = generate_replay_with_cancellations()
 
     if generating_version.release >= (2, 0, 0):
         output_circuits["v14_expr.qpy"] = generate_v14_expr()
@@ -1126,7 +1143,7 @@ def load_qpy(qpy_files, generating_version):
                 bind = np.linspace(1.0, 2.0, 22)
             elif path == "parameter_vector_expression.qpy":
                 bind = np.linspace(1.0, 2.0, 15)
-            elif path == "replay_with_expressions.qpy":
+            elif path in ("replay_with_expressions.qpy", "replay_with_cancellations.qpy"):
                 bind = [2.0, 1.5, 0.125, -0.25, 0.75]
 
             context = f"Version {generating_version}, QPY file {path}, Circuit number {i}"
