@@ -136,8 +136,8 @@ impl ParameterExpression {
     pub fn qpy_replay(&self) -> Vec<OPReplay> {
         let mut replay = Vec::new();
         let mut unused: IndexSet<_, ahash::RandomState> = self.name_map.values().cloned().collect();
-        // The recursive inner `qpy_replay` assumes it starts from a containing operation, so fails
-        // to build a complete replay in the case it starts from a single symbol or value.
+        // The recursive inner `qpy_replay_inner` assumes it starts from a containing operation, so
+        // fails to build a complete replay in the case it starts from a single symbol or value.
         match &self.expr {
             SymbolExpr::Value(v) => {
                 let item = match *v {
@@ -149,6 +149,8 @@ impl ParameterExpression {
                     Value::Real(v) => OPReplay {
                         op: OpCode::ADD,
                         lhs: Some(ParameterValueType::Float(v)),
+                        // `-0.0` is technically the identity element of floating-point addition;
+                        // `0.0 + x` is not bit-for-bit equal to `x` solely if `x` is `-0.0`.
                         rhs: Some(ParameterValueType::Float(-0.0)),
                     },
                     Value::Complex(v) => OPReplay {

@@ -43,6 +43,7 @@ use hashbrown::HashMap;
 #[repr(u8)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum ParameterType {
+    /// The payload is an immediate-value integer.
     Integer = b'i',
     /// The payload is an immediate-value float.
     Float = b'f',
