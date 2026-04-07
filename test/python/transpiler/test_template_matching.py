@@ -737,7 +737,7 @@ class TestTemplateMatching(QiskitTestCase):
         qc.swap(0, 1)
         qc.h(0)
         qc_opt = pm.run(qc)
-        self.assertTrue(Operator(qc) == Operator(qc_opt))
+        self.assertEqual(Operator(qc), Operator(qc_opt))
 
     def test_clifford_templates(self):
         """Tests TemplateOptimization pass on several larger examples."""
@@ -758,16 +758,12 @@ class TestTemplateMatching(QiskitTestCase):
                 seed=seed,
             )
             qc_opt = pm.run(qc)
-            self.assertTrue(Operator(qc) == Operator(qc_opt))
+            self.assertEqual(Operator(qc), Operator(qc_opt))
         # All of these gates are in the commutation library, i.e. the cache should not be used
         self.assertEqual(scc.num_cached_entries(), 0)
 
     def test_circuit_global_phase_preserved_after_template_match(self):
-        """Regression test for #14537: circuit global_phase must survive template optimization.
-
-        When a template match is found and substitution occurs, the optimized circuit
-        must retain the original circuit's global_phase unchanged.
-        """
+        """Test that circuit global_phase survives template optimization (#14537)."""
         qr = QuantumRegister(2, "qr")
         circuit_in = QuantumCircuit(qr)
         circuit_in.cx(qr[0], qr[1])
@@ -783,16 +779,11 @@ class TestTemplateMatching(QiskitTestCase):
         self.assertAlmostEqual(float(result.global_phase), np.pi / 4)
 
     def test_template_nonzero_global_phase_applied_to_circuit(self):
-        """Regression test for #14537: template global_phase is subtracted per match.
-
-        When a template carries a nonzero global_phase phi_T, its gate content alone
-        implements e^{-i*phi_T} * I (the identity check asserts the full operator is I).
-        Each substitution must therefore decrease the circuit's global_phase by phi_T.
+        """Test that template global_phase is applied to the circuit per match (#14537).
 
         HSHSHS has gate unitary e^{i*pi/4} * I; with global_phase = -pi/4 the full
-        operator is I, so the template passes the identity check.  After the six gates
-        are cancelled the output circuit must carry global_phase = pi/4 so that
-        Operator(input) == Operator(output).
+        operator is I.  After the six gates are cancelled, the output circuit must
+        carry global_phase = pi/4 so that Operator(input) == Operator(output).
         """
         template = QuantumCircuit(1)
         template.h(0)
@@ -818,15 +809,10 @@ class TestTemplateMatching(QiskitTestCase):
         self.assertAlmostEqual(float(result.global_phase) % (2 * np.pi), np.pi / 4)
         self.assertEqual(result.count_ops(), {})
         # Operator equivalence confirms the full unitary (including phase) is preserved.
-        self.assertTrue(Operator(circuit_in) == Operator(result))
+        self.assertEqual(Operator(circuit_in), Operator(result))
 
     def test_circuit_and_template_both_have_nonzero_global_phase(self):
-        """Regression test for #14537: fixes #2 and #3 compose correctly.
-
-        When both the circuit and the template carry a nonzero global_phase, the
-        output must account for both: the circuit's phase is preserved (fix #2)
-        and the template's per-match phase is subtracted (fix #3).
-        """
+        """Test that circuit and template global phases both contribute to the result (#14537)."""
         template = QuantumCircuit(1)
         template.h(0)
         template.s(0)
@@ -852,15 +838,10 @@ class TestTemplateMatching(QiskitTestCase):
         # = pi/3 + pi/4 = 7*pi/12.
         self.assertAlmostEqual(float(result.global_phase) % (2 * np.pi), 7 * np.pi / 12)
         self.assertEqual(result.count_ops(), {})
-        self.assertTrue(Operator(circuit_in) == Operator(result))
+        self.assertEqual(Operator(circuit_in), Operator(result))
 
     def test_circuit_global_phase_preserved_with_multiple_template_matches(self):
-        """Regression test for #14537: circuit global_phase is preserved across multiple matches.
-
-        When a template matches more than once in the circuit, the original circuit's
-        global_phase must appear exactly once in the output — not zeroed out and not
-        multiplied by the number of matches.
-        """
+        """Test that circuit global_phase is preserved when a template matches multiple times (#14537)."""
         qr = QuantumRegister(2, "qr")
         circuit_in = QuantumCircuit(qr)
         # Two independent pairs of CX gates — the template will match twice.
