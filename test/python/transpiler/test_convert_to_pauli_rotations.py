@@ -146,7 +146,7 @@ class TestConvertToPauliRotations(QiskitTestCase):
         qc.if_else((0, True), qc_true, None, range(2), [0])
 
         qct = ConvertToPauliRotations()(qc)
-        qc_exp = QuantumCircuit(qr,cr)
+        qc_exp = QuantumCircuit(qr, cr)
         qc_exp.append(PauliProductRotationGate(Pauli("Y"), np.pi / 2), [0])
         qc_exp.append(PauliProductRotationGate(Pauli("X"), np.pi), [0])
         qc_exp.append(PauliProductMeasurement(Pauli("Z")), [0], [0])
@@ -160,29 +160,33 @@ class TestConvertToPauliRotations(QiskitTestCase):
         self.assertEqual(
             ops_names, {"pauli_product_rotation", "pauli_product_measurement", "if_else"}
         )
-        self.assertEqual(qct,qc_exp)
-
+        self.assertEqual(qct, qc_exp)
 
     def test_nested_control_flow(self):
         """Test that nested control flow circuit works with the pass"""
         qr = QuantumRegister(2)
         cr = ClassicalRegister(1)
+        theta = Parameter("theta")
         qc1 = QuantumCircuit(2)
         qc1.h(0)
+        qc1.ry(theta, 0)
         qc2 = QuantumCircuit(2)
         qc2.append(PauliProductRotationGate(Pauli("Y"), np.pi / 2), [0])
         qc2.append(PauliProductRotationGate(Pauli("X"), np.pi), [0])
+        qc2.append(PauliProductRotationGate(Pauli("Y"), theta), [0])
         qc2.global_phase = np.pi / 2
         qc = QuantumCircuit(qr, cr)
         qc.compose(qc1, [0, 1], inplace=True)
         with qc.for_loop(range(3)):
             with qc.while_loop((cr, 0)):
                 qc.compose(qc1, [0, 1], inplace=True)
-        qct = ConvertToPauliRotations()(qc)
+        qct = ConvertToPauliRotations()(qc1)
         qc_exp = QuantumCircuit(qr, cr)
+        qc_exp.global_phase = np.pi / 2
         qc_exp.compose(qc2, [0, 1], inplace=True)
         with qc_exp.for_loop(range(3)):
             with qc_exp.while_loop((cr, 0)):
                 qc_exp.compose(qc2, [0, 1], inplace=True)
-        self.assertEqual(qct, qc_exp) 
-        
+        qc_b = qc.assign_parameters([0.123], inplace=True)
+        qct_b = qct.assign_parameters([0.123], inplace=True)
+        self.assertEqual(qc_b, qct_b)
