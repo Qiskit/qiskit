@@ -67,6 +67,9 @@ class PassManagerConfig:
                 :class:`~qiskit.transpiler.passes.UnitarySynthesis` pass. Will
                 search installed plugins for a valid method. You can see a list of
                 installed plugins with :func:`.unitary_synthesis_plugin_names`.
+            unitary_synthesis_plugin_config (dict): The configuration dictionary that will
+                be passed to the specified unitary synthesis plugin. Refer to
+                the plugin documentation for how to use this.
             target (Target): The backend target
             hls_config (HLSConfig): An optional configuration class to use for
                 :class:`~qiskit.transpiler.passes.HighLevelSynthesis` pass.
@@ -95,9 +98,6 @@ class PassManagerConfig:
         self.target = target
         self.hls_config = hls_config
         self.qubits_initially_zero = qubits_initially_zero
-        # Stores whether the basis gates are Clifford+T,
-        # in which case we use stage manager plugins adapted to Clifford+T.
-        self._is_clifford_t = False
 
     @classmethod
     def from_backend(cls, backend, _skip_target=False, **pass_manager_options):

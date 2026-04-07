@@ -1,6 +1,6 @@
 // This code is part of Qiskit.
 //
-// (C) Copyright IBM 2024
+// (C) Copyright IBM 2026
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,9 +14,64 @@ use thiserror::Error;
 
 use pyo3::exceptions::PyIndexError;
 use pyo3::prelude::*;
+use pyo3::sync::PyOnceLock;
 use pyo3::types::PySlice;
 
 use self::sealed::{Descending, SequenceIndexIter};
+
+/// Helper wrapper around `PyOnceLock` instances that are just intended to store a Python object
+/// that is lazily imported.
+pub struct ImportOnceCell {
+    module: &'static str,
+    object: &'static str,
+    cell: PyOnceLock<Py<PyAny>>,
+}
+
+impl ImportOnceCell {
+    pub const fn new(module: &'static str, object: &'static str) -> Self {
+        Self {
+            module,
+            object,
+            cell: PyOnceLock::new(),
+        }
+    }
+
+    /// Get the underlying GIL-independent reference to the contained object, importing if
+    /// required.
+    #[inline]
+    pub fn get(&self, py: Python) -> &Py<PyAny> {
+        self.cell.get_or_init(py, || {
+            py.import(self.module)
+                .unwrap()
+                .getattr(self.object)
+                .unwrap()
+                .unbind()
+        })
+    }
+
+    /// Get a GIL-bound reference to the contained object, importing if required.
+    #[inline]
+    pub fn get_bound<'py>(&self, py: Python<'py>) -> &Bound<'py, PyAny> {
+        self.get(py).bind(py)
+    }
+}
+
+pub mod imports {
+    use super::ImportOnceCell;
+
+    pub static NUMPY_COPY_ONLY_IF_NEEDED: ImportOnceCell =
+        ImportOnceCell::new("qiskit._numpy_compat", "COPY_ONLY_IF_NEEDED");
+    pub static NUMPY_ARRAY: ImportOnceCell = ImportOnceCell::new("numpy", "ndarray");
+    pub static DEEPCOPY: ImportOnceCell = ImportOnceCell::new("copy", "deepcopy");
+    pub static WARNINGS_WARN: ImportOnceCell = ImportOnceCell::new("warnings", "warn");
+    pub static BUILTIN_LIST: ImportOnceCell = ImportOnceCell::new("builtins", "list");
+    pub static BUILTIN_SET: ImportOnceCell = ImportOnceCell::new("builtins", "set");
+    pub static BUILTIN_RANGE: ImportOnceCell = ImportOnceCell::new("builtins", "range");
+    pub static BUILTIN_USER_WARNING: ImportOnceCell =
+        ImportOnceCell::new("builtins", "UserWarning");
+    pub static BUILTIN_HASH: ImportOnceCell = ImportOnceCell::new("builtins", "hash");
+    pub static UUID: ImportOnceCell = ImportOnceCell::new("uuid", "UUID");
+}
 
 /// A Python-space indexer for the standard `PySequence` type; a single integer or a slice.
 ///

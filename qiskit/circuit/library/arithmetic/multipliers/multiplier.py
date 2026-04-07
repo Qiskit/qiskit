@@ -151,7 +151,7 @@ class MultiplierGate(Gate):
             num_result_qubits: The number of result qubits to limit the output to.
                 Default value is ``2 * num_state_qubits`` to represent any possible
                 result from the multiplication of the two inputs.
-            name: The name of the circuit.
+            label: The optional string label to apply to the instruction.
         Raises:
             ValueError: If ``num_state_qubits`` is smaller than 1.
             ValueError: If ``num_result_qubits`` is smaller than ``num_state_qubits``.
