@@ -51,6 +51,7 @@ def generate_apidocs(cls):
     _replace_name(LinearMixin, ("_add",))
     return cls
 
+
 __all__ = [
     "AdjointMixin",
     "GroupMixin",
