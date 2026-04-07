@@ -45,7 +45,7 @@ class TestTemplates(QiskitTestCase):
         """
         target = Operator(template_circuit)
         value = Operator(np.eye(2**template_circuit.num_qubits))
-        self.assertTrue(target == value)
+        self.assertEqual(target, value)
 
 
 if __name__ == "__main__":

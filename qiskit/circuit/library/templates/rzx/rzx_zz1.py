@@ -26,20 +26,21 @@ def rzx_zz1(theta: ParameterValueType | None = None):
 
     .. code-block:: text
 
+        global phase: π/2
                                                                                       »
           q_0: ──■────────────────────────────────────────────■───────────────────────»
                ┌─┴─┐┌───────┐┌────┐┌───────┐┌────┐┌────────┐┌─┴─┐┌────────┐┌─────────┐»
-          q_1: ┤ X ├┤ RZ(ϴ) ├┤ √X ├┤ RZ(π) ├┤ √X ├┤ RZ(3π) ├┤ X ├┤ RZ(-ϴ) ├┤ RZ(π/2) ├»
+          q_1: ┤ X ├┤ Rz(ϴ) ├┤ √X ├┤ Rz(π) ├┤ √X ├┤ Rz(3π) ├┤ X ├┤ Rz(-ϴ) ├┤ Rz(π/2) ├»
                └───┘└───────┘└────┘└───────┘└────┘└────────┘└───┘└────────┘└─────────┘»
           «                                    ┌──────────┐                      »
           «q_0: ───────────────────────────────┤0         ├──────────────────────»
-          «     ┌─────────┐┌─────────┐┌───────┐│  RZX(-ϴ) │┌─────────┐┌─────────┐»
-          «q_1: ┤ RX(π/2) ├┤ RZ(π/2) ├┤ RX(ϴ) ├┤1         ├┤ RZ(π/2) ├┤ RX(π/2) ├»
+          «     ┌─────────┐┌─────────┐┌───────┐│  Rzx(-ϴ) │┌─────────┐┌─────────┐»
+          «q_1: ┤ Rx(π/2) ├┤ Rz(π/2) ├┤ Rx(ϴ) ├┤1         ├┤ Rz(π/2) ├┤ Rx(π/2) ├»
           «     └─────────┘└─────────┘└───────┘└──────────┘└─────────┘└─────────┘»
           «
           «q_0: ───────────
           «     ┌─────────┐
-          «q_1: ┤ RZ(π/2) ├
+          «q_1: ┤ Rz(π/2) ├
           «     └─────────┘
     """
     if theta is None:
@@ -66,8 +67,7 @@ def rzx_zz1(theta: ParameterValueType | None = None):
     qc.rz(np.pi / 2, 1)
     qc.rx(np.pi / 2, 1)
     qc.rz(np.pi / 2, 1)
-    # The gate content has unitary e^{-i*pi/2} * I; global_phase = pi/2 corrects this
-    # so that Operator(rzx_zz1()) == I exactly, as required by TemplateOptimization.
+    # Gate content has unitary e^{-i*pi/2} * I; global_phase = pi/2 makes Operator(qc) == I exactly.
     qc.global_phase = pi / 2
 
     return qc

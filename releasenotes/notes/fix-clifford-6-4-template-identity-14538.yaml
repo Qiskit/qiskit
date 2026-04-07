@@ -1,36 +1,9 @@
 ---
 fixes:
   - |
-    Fixed :func:`.clifford_6_4` and four RZX templates so that
-    :class:`.TemplateOptimization` now accepts and applies them.
-
-    Each of these templates implements the identity only up to a global phase in
-    their gate content, but was missing the compensating ``global_phase`` field.
-    As a result ``Operator(template)`` was not the identity matrix and the
-    template was silently rejected by :class:`.TemplateOptimization` on every run.
-
-    The affected templates and their corrections:
-
-    - ``clifford_6_4`` (SHSHSH): gate unitary ``e^{i*pi/4} * I``,
-      fixed by setting ``global_phase = -pi/4``.
-    - ``rzx_xz``: gate unitary ``e^{i*pi} * I``,
-      fixed by setting ``global_phase = pi``.
-    - ``rzx_zz1``: gate unitary ``e^{-i*pi/2} * I``,
-      fixed by setting ``global_phase = pi/2``.
-    - ``rzx_zz2``: gate unitary ``e^{i*pi} * I``,
-      fixed by setting ``global_phase = pi``.
-    - ``rzx_zz3``: gate unitary ``e^{i*pi} * I``,
-      fixed by setting ``global_phase = pi``.
-
-    The test suite's template sanity check (``test_templates``) is also
-    strengthened: it now uses strict ``Operator ==`` instead of
-    ``Operator.equiv()`` so that any future template with a missing
-    ``global_phase`` is caught immediately at the unit level.
-
-    These fixes depend on the global-phase propagation fixes introduced for
-    `#14537 <https://github.com/Qiskit/qiskit/issues/14537>`__
-    (``circuit_to_dagdependency`` now copies ``global_phase``
-    and ``TemplateSubstitution`` now adjusts the circuit's ``global_phase``
-    for each template substitution applied).
-
+    Fixed :func:`.clifford_6_4`, :func:`.rzx_xz`, :func:`.rzx_zz1`, :func:`.rzx_zz2`,
+    and :func:`.rzx_zz3` templates so that :class:`.TemplateOptimization` now accepts
+    and applies them.  Each of these templates implements the identity only up to a
+    global phase in their gate content but was missing the compensating ``global_phase``
+    field, causing :class:`.TemplateOptimization` to silently reject them on every run.
     Fixes `#14538 <https://github.com/Qiskit/qiskit/issues/14538>`__.

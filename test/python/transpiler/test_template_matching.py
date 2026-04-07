@@ -766,14 +766,7 @@ class TestTemplateMatching(QiskitTestCase):
         self.assertEqual(scc.num_cached_entries(), 0)
 
     def test_template_optimization_accepts_all_templates(self):
-        """Test that TemplateOptimization accepts and applies every template (#14538).
-
-        Uses each template as its own input circuit: since every template implements
-        the identity, running TemplateOptimization with the template against a copy of
-        itself must cancel all gates and produce an operator-equal output.  This catches
-        any template whose global_phase is not set correctly (causing silent rejection by
-        the identity check) as well as any per-match phase accumulation errors.
-        """
+        """Test that TemplateOptimization accepts and applies every template (#14538)."""
         all_templates = []
         for _, fn in getmembers(templib, isfunction):
             result = fn()
@@ -803,7 +796,7 @@ class TestTemplateMatching(QiskitTestCase):
                 self.assertEqual(result.count_ops(), {})
                 # Full phase equality (not just equiv) confirms that global_phase is
                 # propagated correctly through the substitution pipeline.
-                self.assertTrue(Operator(template) == Operator(result))
+                self.assertEqual(Operator(template), Operator(result))
 
     def test_circuit_global_phase_preserved_after_single_and_multiple_template_match(self):
         """Test that circuit global_phase survives template optimization (#14537)."""
@@ -837,7 +830,6 @@ class TestTemplateMatching(QiskitTestCase):
 
     def test_template_nonzero_global_phase_applied_to_circuit(self):
         """Test the template's global phase is respected (#14537)."""
-
         template = QuantumCircuit(1)
         template.h(0)
         template.s(0)
@@ -856,6 +848,9 @@ class TestTemplateMatching(QiskitTestCase):
 
         result = TemplateOptimization([template])(circuit_in)
 
+        # All gates cancelled; global_phase must be pi/4 to match the gate unitary.
+        self.assertAlmostEqual(float(result.global_phase) % (2 * np.pi), np.pi / 4)
+        self.assertEqual(result.count_ops(), {})
         self.assertEqual(Operator(circuit_in), Operator(result))
 
     def test_circuit_and_template_both_have_nonzero_global_phase(self):
@@ -883,8 +878,49 @@ class TestTemplateMatching(QiskitTestCase):
 
         # All gates cancelled; total phase = circuit phase + template compensation
         # = pi/3 + pi/4 = 7*pi/12.
-        self.assertAlmostEqual(result.global_phase, 7 * np.pi / 12)
+        self.assertAlmostEqual(float(result.global_phase) % (2 * np.pi), 7 * np.pi / 12)
         self.assertEqual(result.count_ops(), {})
+        self.assertEqual(Operator(circuit_in), Operator(result))
+
+    def test_two_global_phase_carrying_template_matches_accumulate_phase(self):
+        """Test that phase contributions accumulate correctly when a template matches twice (#14538).
+
+        Uses clifford_6_4 (SHSHSH, global_phase = -pi/4) as the template.  A circuit
+        containing two SHSHSH blocks separated by a T gate produces two matches; each
+        match contributes +pi/4 to the circuit's global_phase, leaving pi/2 total.
+        """
+        from qiskit.circuit.library.templates.clifford.clifford_6_4 import clifford_6_4
+
+        template = clifford_6_4()
+
+        qr = QuantumRegister(1, "qr")
+        circuit_in = QuantumCircuit(qr)
+        # First SHSHSH block — matches clifford_6_4
+        circuit_in.s(qr[0])
+        circuit_in.h(qr[0])
+        circuit_in.s(qr[0])
+        circuit_in.h(qr[0])
+        circuit_in.s(qr[0])
+        circuit_in.h(qr[0])
+        # T gate separates the two matches
+        circuit_in.t(qr[0])
+        # Second SHSHSH block — matches clifford_6_4 again
+        circuit_in.s(qr[0])
+        circuit_in.h(qr[0])
+        circuit_in.s(qr[0])
+        circuit_in.h(qr[0])
+        circuit_in.s(qr[0])
+        circuit_in.h(qr[0])
+
+        result = PassManager(
+            TemplateOptimization([template], user_cost_dict={"s": 1, "h": 1, "t": 1})
+        ).run(circuit_in)
+
+        # Both SHSHSH blocks cancelled; only T remains.
+        self.assertEqual(result.count_ops(), {"t": 1})
+        # Each of the two matches contributes +pi/4; total accumulated phase = pi/2.
+        self.assertAlmostEqual(float(result.global_phase) % (2 * np.pi), np.pi / 2)
+        # Authoritative check: full unitary (including phase) must be identical.
         self.assertEqual(Operator(circuit_in), Operator(result))
 
 

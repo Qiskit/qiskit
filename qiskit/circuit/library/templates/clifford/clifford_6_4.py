@@ -22,9 +22,10 @@ def clifford_6_4():
 
     .. code-block:: text
 
-             ┌───┐┌───┐┌───┐┌───┐┌───┐┌───┐
-        q_0: ┤ S ├┤ H ├┤ S ├┤ H ├┤ S ├┤ H ├
-             └───┘└───┘└───┘└───┘└───┘└───┘
+        global phase: 7π/4
+           ┌───┐┌───┐┌───┐┌───┐┌───┐┌───┐
+        q: ┤ S ├┤ H ├┤ S ├┤ H ├┤ S ├┤ H ├
+           └───┘└───┘└───┘└───┘└───┘└───┘
 
     Returns:
         QuantumCircuit: template as a quantum circuit.
@@ -36,7 +37,6 @@ def clifford_6_4():
     qc.h(0)
     qc.s(0)
     qc.h(0)
-    # SHSHSH has gate unitary e^{i*pi/4} * I; the global_phase corrects this
-    # so that Operator(clifford_6_4()) == I exactly, as required by TemplateOptimization.
+    # SHSHSH has gate unitary e^{i*pi/4} * I; global_phase = -pi/4 makes Operator(qc) == I exactly.
     qc.global_phase = -pi / 4
     return qc
