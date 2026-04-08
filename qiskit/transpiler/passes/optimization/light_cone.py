@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Cancel the redundant (self-adjoint) gates through commutation relations."""
+
 from __future__ import annotations
 import warnings
 from qiskit.circuit import Gate, Qubit
@@ -63,14 +64,16 @@ class LightCone(TransformationPass):
 
     def _get_initial_lightcone(
         self, dag: DAGCircuit
-    ) -> tuple[set[Qubit], list[tuple[Gate, list[Qubit]]]]:
+    ) -> tuple[set[Qubit], list[tuple[Gate, list[Qubit]]], set]:
         """Returns the initial light-cone.
         If observable is `None`, the light-cone is the set of measured qubits.
         If a `bit_terms` is provided, the qubits corresponding to the
         non-trivial Paulis define the light-cone.
         """
         lightcone_qubits = self._find_measurement_qubits(dag)
+        terminal_measures = set()
         if self.bit_terms is None:
+            terminal_measures = set(calc_final_ops(dag, {"measure"}))
             lightcone_operations = [(ZGate(), [qubit_index]) for qubit_index in lightcone_qubits]
         else:
             # Having both measurements and an observable is not allowed
@@ -85,7 +88,7 @@ class LightCone(TransformationPass):
             # `lightcone_operations` is a list of tuples, each containing (operation, list_of_qubits)
             lightcone_operations = [(PauliGate(self.bit_terms), lightcone_qubits)]
 
-        return set(lightcone_qubits), lightcone_operations
+        return set(lightcone_qubits), lightcone_operations, terminal_measures
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the LightCone pass on `dag`.
@@ -98,7 +101,7 @@ class LightCone(TransformationPass):
         """
 
         # Get the initial light-cone and operations
-        lightcone_qubits, lightcone_operations = self._get_initial_lightcone(dag)
+        lightcone_qubits, lightcone_operations, terminal_measures = self._get_initial_lightcone(dag)
 
         #  Initialize a new, empty DAG
         new_dag = dag.copy_empty_like()
@@ -108,6 +111,10 @@ class LightCone(TransformationPass):
             # Check if the node belongs to the light-cone
             if lightcone_qubits.intersection(node.qargs):
                 # Check commutation with all previous operations
+                if node in terminal_measures:
+                    new_dag.apply_operation_front(node.op, node.qargs, node.cargs)
+                    continue
+
                 commutes_bool = True
                 for op in lightcone_operations:
                     commute_bool = scc.commute(op[0], op[1], [], node.op, node.qargs, [])

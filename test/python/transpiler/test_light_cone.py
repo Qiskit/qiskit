@@ -227,6 +227,7 @@ class TestLightConePass(QiskitTestCase):
         expected.barrier()
         expected.cx(0, 1)
         expected.barrier()
+        expected.measure(0, 0)
 
         self.assertEqual(expected, new_circuit)
 
@@ -248,7 +249,7 @@ class TestLightConePass(QiskitTestCase):
         qct2 = LightCone()(qc2)
 
         self.assertEqual(qct1.size(), 0)
-        self.assertEqual(qct2.size(), 0)  # only measure is left
+        self.assertEqual(qct2.size(), 1)  # CZ pruned, measure stays
 
     @ddt.data(SparsePauliOp("IX"), SparseObservable("I+"))
     def test_parameter_expression(self, sparse_object):
