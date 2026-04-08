@@ -34,17 +34,18 @@ class ResetAfterMeasureSimplification(TransformationPass):
     @control_flow.trivial_recurse
     def run(self, dag):
         """Run the pass on a dag."""
-        for node in dag.op_nodes(Measure):
-            succ = next(dag.quantum_successors(node))
-            if isinstance(succ, DAGOpNode) and isinstance(succ.op, Reset):
-                x_body = QuantumCircuit(1)
-                x_body.x(0)
-                new_x = IfElseOp((node.cargs[0], 1), x_body)
-                new_dag = DAGCircuit()
-                new_dag.add_qubits(node.qargs)
-                new_dag.add_clbits(node.cargs)
-                new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
-                new_dag.apply_operation_back(new_x, node.qargs)
-                dag.remove_op_node(succ)
-                dag.substitute_node_with_dag(node, new_dag)
+        for node in dag.op_nodes():
+            if isinstance(node.op, Measure)  or node.op.name.startswith("measure_"):
+                succ = next(dag.quantum_successors(node))
+                if isinstance(succ, DAGOpNode) and isinstance(succ.op, Reset):
+                    x_body = QuantumCircuit(1)
+                    x_body.x(0)
+                    new_x = IfElseOp((node.cargs[0], 1), x_body)
+                    new_dag = DAGCircuit()
+                    new_dag.add_qubits(node.qargs)
+                    new_dag.add_clbits(node.cargs)
+                    new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
+                    new_dag.apply_operation_back(new_x, node.qargs)
+                    dag.remove_op_node(succ)
+                    dag.substitute_node_with_dag(node, new_dag)
         return dag
