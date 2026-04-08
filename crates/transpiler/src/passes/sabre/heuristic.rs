@@ -83,10 +83,10 @@ impl BasicHeuristic {
 #[pyclass(module = "qiskit._accelerate.sabre", frozen, from_py_object)]
 #[derive(Clone, PartialEq, Debug)]
 pub struct LookaheadHeuristic {
-    /// The relative weight of this heuristic.  Typically this is defined relative to the
-    /// :class:`.BasicHeuristic`, which generally has its weight set to 1.0.
+    /// The relative weights of each sequential layer in this heuristic.  Typically each of these is
+    /// defined relative to the :class:`.BasicHeuristic`, which generally has its weight set to 1.0.
     weights: Vec<f64>,
-    /// Dynamic scaling of the heuristic weight depending on the size of the layer.
+    /// Dynamic scaling of the heuristic weight depending on the size of each layer.
     pub scale: SetScaling,
 }
 impl LookaheadHeuristic {

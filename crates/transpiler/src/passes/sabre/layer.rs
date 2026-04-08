@@ -18,9 +18,11 @@ use qiskit_circuit::PhysicalQubit;
 
 use super::vec_map::VecMap;
 
-/// A container for the current non-routable parts of the front layer.  This only ever holds
-/// two-qubit gates; the only reason a 0q- or 1q operation can be unroutable is because it has an
-/// unsatisfied 2q predecessor, which disqualifies it from being in the front layer.
+/// A container for 2q gates in a layer that are yet to be routed.
+///
+/// The graph nodes in this structure always refer to `TwoQ` entries, since `Synchronize` nodes do
+/// not impact the scoring; they only affect when nodes are eligible to move forwards a layer, or to
+/// become routed.
 ///
 /// It would be more algorithmically natural for this struct to work in terms of virtual qubits,
 /// because then a swap insertion would not change the data contained.  However, for each swap we
@@ -40,8 +42,8 @@ pub struct Layer {
 impl Layer {
     pub fn new(num_qubits: u32) -> Self {
         Layer {
-            // This is the maximum capacity of the front layer, since each qubit must be one of a
-            // pair, and can only have one gate in the layer.
+            // This is the maximum capacity of the layer, since each qubit must be one of a pair,
+            // and can only have one gate in the layer.
             nodes: IndexMap::with_capacity_and_hasher(
                 num_qubits as usize / 2,
                 ::ahash::RandomState::default(),
@@ -61,7 +63,7 @@ impl Layer {
         &self.qubits
     }
 
-    /// Add a node into the front layer, with the two qubits it operates on.
+    /// Add a node into the layer, with the two qubits it operates on.
     pub fn insert(&mut self, index: NodeIndex, qubits: [PhysicalQubit; 2]) {
         let [a, b] = qubits;
         self.qubits[a] = Some((index, b));
@@ -69,7 +71,7 @@ impl Layer {
         self.nodes.insert(index, qubits);
     }
 
-    /// Remove a node from the front layer.
+    /// Remove a node from the layer.
     pub fn remove(&mut self, index: &NodeIndex) {
         // The actual order in the indexmap doesn't matter as long as it's reproducible.
         // Swap-remove is more efficient than a full shift-remove.
@@ -98,12 +100,9 @@ impl Layer {
     /// Calculate the score _difference_ caused by this swap, compared to not making the swap.
     #[inline(always)]
     pub fn score(&self, swap: [PhysicalQubit; 2], dist: &ArrayView2<f64>) -> f64 {
-        // At most there can be two affected gates in the front layer (one on each qubit in the
-        // swap), since any gate whose closest path passes through the swapped qubit link has its
-        // "virtual-qubit path" order changed, but not the total weight.  In theory, we should
-        // never consider the same gate in both `if let` branches, because if we did, the gate would
-        // already be routable.  It doesn't matter, though, because the two distances would be
-        // equal anyway, so not affect the score.
+        // At most there can be two affected gates in the layer (one on each qubit in the swap),
+        // since any gate whose closest path passes through the swapped qubit link has its
+        // "virtual-qubit path" order changed, but not the total weight.
         let [a, b] = swap;
         let mut total = 0.0;
         if let Some((_, c)) = self.qubits[a] {
@@ -118,7 +117,7 @@ impl Layer {
         total
     }
 
-    /// Calculate the total absolute of the current front layer on the given layer.
+    /// Calculate the total absolute score of the layer for the set layout.
     pub fn total_score(&self, dist: &ArrayView2<f64>) -> f64 {
         self.iter()
             .map(|(_, &[a, b])| dist[[a.index(), b.index()]])
