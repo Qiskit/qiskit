@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 use crate::bytes::Bytes;
+use crate::error::{QpyError, to_binrw_error};
 use crate::expr::{read_expression, write_expression};
 use crate::params::ParameterType;
 use crate::value::{
@@ -18,8 +19,6 @@ use crate::value::{
     QPYReadData, QPYWriteData, RegisterType, ValueType,
 };
 use binrw::{BinRead, BinResult, BinWrite, Endian, binread, binrw, binwrite};
-use pyo3::PyErr;
-use pyo3::exceptions::PyRuntimeError;
 use qiskit_circuit::classical::expr::Expr;
 use std::io::{Read, Seek, Write};
 use std::marker::PhantomData;
@@ -253,13 +252,16 @@ pub enum ConditionType {
     Expression = 2,
 }
 
-impl From<u8> for ConditionType {
-    fn from(value: u8) -> Self {
+impl TryFrom<u8> for ConditionType {
+    type Error = QpyError;
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
-            0 => Self::None,
-            1 => Self::TwoTuple,
-            2 => Self::Expression,
-            _ => panic!("Invalid condition type specified {value}"),
+            0 => Ok(Self::None),
+            1 => Ok(Self::TwoTuple),
+            2 => Ok(Self::Expression),
+            _ => Err(QpyError::InvalidParameter(
+                "Invalid condition type specified {value}".to_string(),
+            )),
         }
     }
 }
@@ -325,7 +327,8 @@ impl ConditionPack {
         endian: Endian,
         (register_size, key, value): (u16, u8, i64),
     ) -> BinResult<ConditionPack> {
-        let data = match ConditionType::from(key) {
+        let condition_type = ConditionType::try_from(key).map_err(|e| to_binrw_error(reader, e))?;
+        let data = match condition_type {
             ConditionType::TwoTuple => {
                 let mut buf = vec![0u8; register_size as usize];
                 reader.read_exact(&mut buf)?;
@@ -617,7 +620,14 @@ pub struct ParameterExpressionSubsOpPack {
     #[bw(calc = [0u8; 16])]
     pub _rhs: [u8; 16],
 
-    #[br(count = u64::from_be_bytes(mapping_data_size[..8].try_into().unwrap()))]
+    #[br(count = u64::from_be_bytes(
+        mapping_data_size[..8]
+            .try_into()
+            .map_err(|_| binrw::Error::Custom {
+                pos: 0,
+                err: Box::new(QpyError::InvalidFormat("Failed to parse mapping data size".to_string()))
+            })?
+    ))]
     pub mapping_data: Bytes,
 }
 
@@ -651,6 +661,11 @@ pub enum ParameterExpressionSymbolPack {
     Parameter(ParameterExpressionParameterSymbolPack),
     #[brw(magic = b'v')]
     ParameterVector(ParameterExpressionParameterVectorSymbolPack),
+    /// This variant _should not_ exist; it is counter to the QPY spec, and has no semantic meaning.
+    /// However, Qiskit 2.0 (with QPY 13 non-symengine serialisation but before Rust-space
+    /// `ParameterExpression` or QPY) would populate the "symbol map" with the raw dictionaries
+    /// given to `ParameterExpression.subs` calls, which include expressions.  The equivalent "read"
+    /// code would load up the entries, then immediately filter them out to make the symbol map.
     #[brw(magic = b'e')]
     ParameterExpression(ParameterExpressionParameterExpressionSymbolPack),
 }
@@ -939,31 +954,6 @@ pub struct AnnotationHeaderStaticPack {
     pub num_namespaces: u32,
     #[br(count = num_namespaces)]
     pub state_headers: Vec<AnnotationStateHeaderPack>,
-}
-
-/// helper for passing PyResult errors that arise during binrw parsing
-pub fn to_binrw_error<W: Seek, E: std::error::Error + Send + Sync + 'static>(
-    writer: &mut W,
-    err: E,
-) -> binrw::Error {
-    binrw::Error::Custom {
-        pos: writer.stream_position().unwrap_or(0),
-        err: Box::new(err),
-    }
-}
-
-/// helper for converting custom binrw errors back to PyResult
-pub fn from_binrw_error(err: binrw::Error) -> PyErr {
-    match err {
-        binrw::Error::Custom { err, .. } => {
-            if let Ok(qpy_err) = err.downcast::<PyErr>() {
-                *qpy_err
-            } else {
-                PyRuntimeError::new_err("unknown error")
-            }
-        }
-        _ => PyRuntimeError::new_err("unknown error"),
-    }
 }
 
 // calibration data formats

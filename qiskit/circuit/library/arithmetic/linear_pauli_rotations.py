@@ -93,7 +93,7 @@ class LinearPauliRotations(FunctionalPauliRotations):
         """Set the multiplicative factor of the rotation angles.
 
         Args:
-            The slope of the rotation angles.
+            slope: The slope of the rotation angles.
         """
         if self._slope is None or slope != self._slope:
             self._invalidate()
