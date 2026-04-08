@@ -135,7 +135,8 @@ impl fmt::Display for ParameterExpression {
 impl ParameterExpression {
     pub fn qpy_replay(&self) -> Vec<OPReplay> {
         let mut replay = Vec::new();
-        let mut unused: IndexSet<_, foldhash::fast::RandomState> = self.name_map.values().cloned().collect();
+        let mut unused: IndexSet<_, foldhash::fast::RandomState> =
+            self.name_map.values().cloned().collect();
         // The recursive inner `qpy_replay_inner` assumes it starts from a containing operation, so
         // fails to build a complete replay in the case it starts from a single symbol or value.
         match &self.expr {
