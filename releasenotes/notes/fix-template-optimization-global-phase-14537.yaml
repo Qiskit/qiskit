@@ -1,21 +1,9 @@
 ---
 fixes:
   - |
-    Fixed :class:`.TemplateOptimization` silently dropping or miscalculating the
-    ``global_phase`` of circuits and templates during substitution. There were three
-    independent bugs:
-
-    1. :func:`.circuit_to_dagdependency` did not copy ``global_phase`` when converting
-       a template :class:`.QuantumCircuit` to a :class:`.DAGDependency`, so any phase
-       carried by the template was lost before matching began.
-
-    2. :class:`.TemplateSubstitution` constructed a new :class:`.DAGDependency` for the
-       optimized circuit without copying the original circuit's ``global_phase``, causing
-       it to be silently reset to zero whenever at least one substitution was applied.
-
-    3. When a template carries a nonzero ``global_phase`` ``phi_T`` (meaning its gate
-       content alone implements ``e^{-i*phi_T} * I`` while the full operator is ``I``),
-       each substitution was not subtracting ``phi_T`` from the output circuit's
-       ``global_phase``, producing a result that was not operator-equivalent to the input.
+    Fixed two bugs in :class:.TemplateSubstitution: the optimized circuit's global_phase 
+    was silently reset to zero when substitutions were applied, and the template's global_phase 
+    was not subtracted from the output circuit after each substitution. 
+    Both produced a circuit not operator-equivalent to the input.
 
     Fixes `#14537 <https://github.com/Qiskit/qiskit/issues/14537>`__.

@@ -762,29 +762,37 @@ class TestTemplateMatching(QiskitTestCase):
         # All of these gates are in the commutation library, i.e. the cache should not be used
         self.assertEqual(scc.num_cached_entries(), 0)
 
-    def test_circuit_global_phase_preserved_after_template_match(self):
+    def test_circuit_global_phase_preserved_after_single_and_multiple_template_match(self):
         """Test that circuit global_phase survives template optimization (#14537)."""
-        qr = QuantumRegister(2, "qr")
-        circuit_in = QuantumCircuit(qr)
-        circuit_in.cx(qr[0], qr[1])
-        circuit_in.cx(qr[0], qr[1])
-        circuit_in.global_phase = np.pi / 4
 
-        template = QuantumCircuit(QuantumRegister(2, "qrc"))
+        circuit_in = QuantumCircuit(2, global_phase=np.pi / 4)
+        circuit_in.cx(0, 1)
+        circuit_in.cx(0, 1)
+
+        circuit_in_mult = QuantumCircuit(2, global_phase=np.pi / 3)
+        # Two independent pairs of CX gates — the template will match twice.
+        circuit_in_mult.cx(0, 1)
+        circuit_in_mult.cx(0, 1)
+        circuit_in_mult.cx(0, 1)
+        circuit_in_mult.cx(0, 1)
+
+        template = QuantumCircuit(2)
         template.cx(0, 1)
         template.cx(0, 1)
 
-        result = PassManager(TemplateOptimization([template])).run(circuit_in)
+        result = TemplateOptimization([template])(circuit_in)
+
+        result_mult = TemplateOptimization([template])(circuit_in_mult)
 
         self.assertAlmostEqual(float(result.global_phase), np.pi / 4)
+        self.assertEqual(result.count_ops(), {})
+
+        self.assertAlmostEqual(float(result_mult.global_phase), np.pi / 3)
+        self.assertEqual(result_mult.count_ops(), {})
 
     def test_template_nonzero_global_phase_applied_to_circuit(self):
-        """Test that template global_phase is applied to the circuit per match (#14537).
+        """Test that the circuit's global_phase is preserved when no template substitution occurs (#14537)."""
 
-        HSHSHS has gate unitary e^{i*pi/4} * I; with global_phase = -pi/4 the full
-        operator is I.  After the six gates are cancelled, the output circuit must
-        carry global_phase = pi/4 so that Operator(input) == Operator(output).
-        """
         template = QuantumCircuit(1)
         template.h(0)
         template.s(0)
@@ -795,19 +803,16 @@ class TestTemplateMatching(QiskitTestCase):
         template.global_phase = -np.pi / 4
 
         qr = QuantumRegister(1, "qr")
-        circuit_in = QuantumCircuit(qr)
-        circuit_in.h(qr[0])
-        circuit_in.s(qr[0])
+        circuit_in = QuantumCircuit(qr, global_phase=np.pi / 4)
         circuit_in.h(qr[0])
         circuit_in.s(qr[0])
         circuit_in.h(qr[0])
         circuit_in.s(qr[0])
 
-        result = PassManager(TemplateOptimization([template])).run(circuit_in)
+        result = TemplateOptimization([template])(circuit_in)
 
-        # All gates cancelled; global_phase must be pi/4 to match the gate unitary.
-        self.assertAlmostEqual(float(result.global_phase) % (2 * np.pi), np.pi / 4)
-        self.assertEqual(result.count_ops(), {})
+        self.assertAlmostEqual(result.global_phase, np.pi / 4)
+        self.assertEqual(result.count_ops(), circuit_in.count_ops()) # no gates removed
         # Operator equivalence confirms the full unitary (including phase) is preserved.
         self.assertEqual(Operator(circuit_in), Operator(result))
 
@@ -832,11 +837,11 @@ class TestTemplateMatching(QiskitTestCase):
         circuit_in.s(qr[0])
         circuit_in.global_phase = np.pi / 3
 
-        result = PassManager(TemplateOptimization([template])).run(circuit_in)
+        result = TemplateOptimization([template])(circuit_in)
 
         # All gates cancelled; total phase = circuit phase + template compensation
         # = pi/3 + pi/4 = 7*pi/12.
-        self.assertAlmostEqual(float(result.global_phase) % (2 * np.pi), 7 * np.pi / 12)
+        self.assertAlmostEqual(result.global_phase, np.pi / 4)
         self.assertEqual(result.count_ops(), {})
         self.assertEqual(Operator(circuit_in), Operator(result))
 
@@ -851,11 +856,11 @@ class TestTemplateMatching(QiskitTestCase):
         circuit_in.cx(qr[0], qr[1])
         circuit_in.global_phase = np.pi / 3
 
-        template = QuantumCircuit(QuantumRegister(2, "qrc"))
+        template = QuantumCircuit(2)
         template.cx(0, 1)
         template.cx(0, 1)
 
-        result = PassManager(TemplateOptimization([template])).run(circuit_in)
+        result = TemplateOptimization([template])(circuit_in)
 
         # All gates are cancelled; global_phase must be exactly pi/3.
         self.assertAlmostEqual(float(result.global_phase), np.pi / 3)
