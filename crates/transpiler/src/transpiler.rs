@@ -567,9 +567,10 @@ impl MinPointState {
             self.count = 1;
             self.best_depth = new_depth;
             self.best_size = new_size;
+            self.best_dag = dag.clone();
             true
         } else {
-            (new_depth, new_size) != (self.best_depth, self.best_size)
+            false
         }
     }
 }
