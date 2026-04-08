@@ -166,7 +166,7 @@ impl WireInputElement<'_> {
                         .registers()
                         .first()
                         .expect("Register cannot be empty");
-                    if !register.is_empty() {
+                    if register.len() > 1 {
                         Some(format!("{}_{}: ", register.name(), index))
                     } else {
                         Some(format!("{}: ", register.name()))
@@ -186,7 +186,7 @@ impl WireInputElement<'_> {
                         .registers()
                         .first()
                         .expect("Register cannot be empty");
-                    if !register.is_empty() {
+                    if register.len() > 1 {
                         Some(format!("{}_{}: ", register.name(), index))
                     } else {
                         Some(format!("{}: ", register.name()))
@@ -1292,6 +1292,47 @@ c1_1: ══════════
 c2_0: ══════════
 
 c2_1: ══════════
+";
+        assert_eq!(result, expected.trim_start_matches("\n"));
+    }
+
+    #[test]
+    fn test_single_bit_registers() {
+        // Single-bit registers should render as "q: " and "c: " (no auto-index suffix "_0").
+        let qreg = QuantumRegister::new_owning("q", 1);
+        let creg = ClassicalRegister::new_owning("c", 1);
+
+        let qubits: Vec<ShareableQubit> = (0..qreg.len())
+            .map(|i| qreg.get(i).expect("index in range"))
+            .collect();
+        let clbits: Vec<ShareableClbit> = (0..creg.len())
+            .map(|i| creg.get(i).expect("index in range"))
+            .collect();
+
+        let mut circuit = CircuitData::new(Some(qubits), Some(clbits), Param::Float(0.0)).unwrap();
+        _ = circuit.add_creg(creg, true);
+        _ = circuit.add_qreg(qreg, true);
+
+        circuit
+            .push_standard_gate(StandardGate::H, &[], &[Qubit::new(0)])
+            .unwrap();
+
+        let inst = PackedInstruction {
+            op: StandardInstruction::Measure.into(),
+            qubits: circuit.add_qargs(&[Qubit::new(0)]),
+            clbits: circuit.add_cargs(&[Clbit::new(0)]),
+            params: None,
+            label: None,
+        };
+        circuit.push(inst).unwrap();
+
+        let result = draw_circuit(&circuit, false, false, Some(100)).unwrap();
+        let expected = "
+   ┌───┐┌───┐
+q: ┤ H ├┤ M ├
+   └───┘└─╥─┘
+          ║
+c: ═══════╩══
 ";
         assert_eq!(result, expected.trim_start_matches("\n"));
     }
