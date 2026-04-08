@@ -102,7 +102,6 @@ class LightCone(TransformationPass):
 
         # Get the initial light-cone and operations
         lightcone_qubits, lightcone_operations, terminal_measures = self._get_initial_lightcone(dag)
-
         #  Initialize a new, empty DAG
         new_dag = dag.copy_empty_like()
 
