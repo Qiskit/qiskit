@@ -39,13 +39,13 @@ use crate::operations::{
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::ParameterExpression;
 use crate::register_data::RegisterData;
-use crate::slice::PySequenceIndex;
 use crate::var_stretch_container::{StretchType, VarStretchContainer, VarType};
 use crate::variable_mapper::VariableMapper;
 use crate::{
     Block, BlockMapper, BlocksMode, Clbit, ControlFlowBlocks, Qubit, Stretch, TupleLikeArg, Var,
     VarsMode, imports, instruction, vf2,
 };
+use qiskit_util::py::{PySequenceIndex, SequenceIndex};
 
 use hashbrown::{HashMap, HashSet};
 use indexmap::{IndexMap, IndexSet};
@@ -334,7 +334,7 @@ impl PyBitLocations {
         };
         if let Ok(index) = index.with_len(2) {
             match index {
-                crate::slice::SequenceIndex::Int(index) => getter(index),
+                SequenceIndex::Int(index) => getter(index),
                 _ => PyTuple::new(py, index.iter().map(|idx| getter(idx).unwrap()))
                     .map(|obj| obj.into_any().unbind()),
             }

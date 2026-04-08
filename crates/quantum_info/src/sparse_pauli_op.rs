@@ -28,7 +28,7 @@ use num_traits::Zero;
 use rayon::prelude::*;
 use thiserror::Error;
 
-use qiskit_circuit::util::{C_ZERO, c64};
+use qiskit_util::complex::{C_ZERO, c64};
 
 use crate::rayon_ext::*;
 
@@ -943,7 +943,7 @@ pub fn to_matrix_dense<'py>(
     let mut paulis = paulis_readonly.as_array().matrix_compress()?;
     paulis.combine();
     let side = 1usize << paulis.num_qubits();
-    let parallel = !force_serial && qiskit_circuit::getenv_use_multiple_threads();
+    let parallel = !force_serial && qiskit_util::getenv_use_multiple_threads();
     let out = to_matrix_dense_inner(&paulis, parallel);
     PyArray1::from_vec(py, out).reshape([side, side])
 }
@@ -1040,7 +1040,7 @@ pub fn to_matrix_sparse(
         max_entries_per_row.saturating_mul(1u64 << paulis.num_qubits()) <= (i32::MAX as u64);
     if use_32_bit {
         let to_sparse: ToCSRData<i32> =
-            if qiskit_circuit::getenv_use_multiple_threads() && !force_serial {
+            if qiskit_util::getenv_use_multiple_threads() && !force_serial {
                 to_matrix_sparse_parallel_32
             } else {
                 to_matrix_sparse_serial_32
@@ -1048,7 +1048,7 @@ pub fn to_matrix_sparse(
         to_py_tuple(py, to_sparse(&paulis))
     } else {
         let to_sparse: ToCSRData<i64> =
-            if qiskit_circuit::getenv_use_multiple_threads() && !force_serial {
+            if qiskit_util::getenv_use_multiple_threads() && !force_serial {
                 to_matrix_sparse_parallel_64
             } else {
                 to_matrix_sparse_serial_64

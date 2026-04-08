@@ -13,6 +13,8 @@ doctest = false
 workspace = true
 
 [dependencies]
+qiskit-util = { workspace = true, features = ["py"] }
+qiskit-quantum-info.workspace = true
 rayon.workspace = true
 foldhash.workspace = true
 rustworkx-core.workspace = true
@@ -30,8 +32,8 @@ nom-unicode.workspace = true
 nom-language.workspace = true
 crossterm = "0.29.0"
 unicode-width = "0.2"
-unicode-segmentation = "1.12"
 ahash = "0.8.12"
+unicode-segmentation = "1.13"
 
 [dependencies.pyo3]
 workspace = true

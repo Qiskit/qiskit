@@ -28,12 +28,12 @@ use crate::TranspilerError;
 use crate::target::{Qargs, Target};
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_circuit::imports::ImportOnceCell;
 use qiskit_circuit::operations::{Operation, OperationRef, StandardInstruction};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{
     BlockMapper, BlocksMode, Clbit, PhysicalQubit, Qubit, VarsMode, VirtualQubit,
 };
+use qiskit_util::py::ImportOnceCell;
 
 create_exception!(qiskit, MultiQEncountered, pyo3::exceptions::PyException);
 

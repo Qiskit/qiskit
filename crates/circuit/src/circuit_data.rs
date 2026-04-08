@@ -37,7 +37,6 @@ use crate::parameter::parameter_expression::{ParameterError, ParameterExpression
 use crate::parameter::symbol_expr::{Symbol, Value};
 use crate::parameter_table::{ParameterTable, ParameterTableError, ParameterUse, ParameterUuid};
 use crate::register_data::RegisterData;
-use crate::slice::{PySequenceIndex, SequenceIndex};
 use crate::var_stretch_container::{
     StretchType, VarStretchContainer, VarStretchContainerError, VarType,
 };
@@ -45,6 +44,7 @@ use crate::{
     Block, BlocksMode, CapacityError, Clbit, ControlFlowBlocks, Qubit, Stretch, Var, VarsMode,
     instruction,
 };
+use qiskit_util::py::{PySequenceIndex, SequenceIndex};
 
 use ndarray::ArrayView1;
 use num_complex::Complex64;
