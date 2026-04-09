@@ -289,9 +289,13 @@ impl Clifford {
         );
     }
 
-    /// Evolving the single-qubit Pauli-Z with Z on qubit qbit.
+    /// Evolving the single-qubit Pauli with pauli on qubit qbit.
     /// Returns the evolved Pauli in the a sparse ZX format: (sign, z, x, indices).
-    pub fn get_inverse_z(&self, qbit: usize) -> (bool, Vec<bool>, Vec<bool>, Vec<Qubit>) {
+    pub fn get_inverse_pauli(
+        &self,
+        pauli: &str,
+        qbit: usize,
+    ) -> (bool, Vec<bool>, Vec<bool>, Vec<Qubit>) {
         let mut z = Vec::with_capacity(self.num_qubits);
         let mut x = Vec::with_capacity(self.num_qubits);
         let mut indices = Vec::with_capacity(self.num_qubits);
@@ -299,8 +303,22 @@ impl Clifford {
         // Compute the y-count to avoid recomputing it later
         let mut pauli_y_count: u32 = 0;
         for i in 0..self.num_qubits {
-            let z_bit = self.tableau[qbit][i];
-            let x_bit = self.tableau[qbit][i + self.num_qubits];
+            let (z_bit, x_bit) = match pauli {
+                "Z" => (
+                    self.tableau[qbit][i],
+                    self.tableau[qbit][i + self.num_qubits],
+                ),
+                "X" => (
+                    self.tableau[qbit + self.num_qubits][i],
+                    self.tableau[qbit + self.num_qubits][i + self.num_qubits],
+                ),
+                "Y" => (
+                    self.tableau[qbit + self.num_qubits][i] ^ self.tableau[qbit][i],
+                    self.tableau[qbit + self.num_qubits][i + self.num_qubits]
+                        ^ self.tableau[qbit][i + self.num_qubits],
+                ),
+                _ => unreachable!("This is only called for RX/RZ/RY gates."),
+            };
             if z_bit || x_bit {
                 z.push(z_bit);
                 x.push(x_bit);

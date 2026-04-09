@@ -32,14 +32,14 @@ use std::f64::consts::{FRAC_PI_4, FRAC_PI_8};
 
 // List of gate/instruction names supported by the pass: the pass raises an error if the circuit
 // contains instruction with names outside of this list.
-static SUPPORTED_INSTRUCTION_NAMES: [&str; 22] = [
+static SUPPORTED_INSTRUCTION_NAMES: [&str; 24] = [
     "id", "x", "y", "z", "h", "s", "sdg", "sx", "sxdg", "cx", "cz", "cy", "swap", "iswap", "ecr",
-    "dcx", "t", "tdg", "rz", "p", "u1", "measure",
+    "dcx", "t", "tdg", "rz", "rx", "ry", "p", "u1", "measure",
 ];
 
 // List of instruction names which are modified by the pass: the pass is skipped if the circuit
 // contains no instructions with names in this list.
-static HANDLED_INSTRUCTION_NAMES: [&str; 6] = ["t", "tdg", "rz", "p", "u1", "measure"];
+static HANDLED_INSTRUCTION_NAMES: [&str; 8] = ["t", "tdg", "rz", "rx", "ry", "p", "u1", "measure"];
 
 #[pyfunction]
 #[pyo3(signature = (dag, fix_clifford=true, insert_barrier=false, use_ppr=false))]
@@ -219,38 +219,48 @@ pub fn run_litinski_transformation(
                 OperationRef::StandardGate(StandardGate::T)
                 | OperationRef::StandardGate(StandardGate::Tdg)
                 | OperationRef::StandardGate(StandardGate::RZ)
+                | OperationRef::StandardGate(StandardGate::RX)
+                | OperationRef::StandardGate(StandardGate::RY)
                 | OperationRef::StandardGate(StandardGate::Phase)
                 | OperationRef::StandardGate(StandardGate::U1) => {
                     // Convert T and Tdg gates to RZ rotations
-                    let (angle, phase_update) = match inst.op.view() {
+                    let (pauli, angle, phase_update) = match inst.op.view() {
                         OperationRef::StandardGate(StandardGate::T) => {
-                            (Param::Float(FRAC_PI_4), Param::Float(FRAC_PI_8))
+                            ("Z", Param::Float(FRAC_PI_4), Param::Float(FRAC_PI_8))
                         }
                         OperationRef::StandardGate(StandardGate::Tdg) => {
-                            (Param::Float(-FRAC_PI_4), Param::Float(-FRAC_PI_8))
+                            ("Z", Param::Float(-FRAC_PI_4), Param::Float(-FRAC_PI_8))
                         }
                         OperationRef::StandardGate(StandardGate::RZ) => {
                             let param = &inst.params_view()[0];
-                            (param.clone(), Param::Float(0.))
+                            ("Z", param.clone(), Param::Float(0.))
                         }
                         OperationRef::StandardGate(StandardGate::Phase)
                         | OperationRef::StandardGate(StandardGate::U1) => {
                             let param = &inst.params_view()[0];
-                            (param.clone(), multiply_param(param, 0.5))
+                            ("Z", param.clone(), multiply_param(param, 0.5))
+                        }
+                        OperationRef::StandardGate(StandardGate::RX) => {
+                            let param = &inst.params_view()[0];
+                            ("X", param.clone(), Param::Float(0.))
+                        }
+                        OperationRef::StandardGate(StandardGate::RY) => {
+                            let param = &inst.params_view()[0];
+                            ("Y", param.clone(), Param::Float(0.))
                         }
                         _ => {
                             unreachable!(
-                                "We cannot have gates other than T/Tdg/RZ/P/U1 at this point."
+                                "We cannot have gates other than T/Tdg/RZ/RX/RY/P/U1 at this point."
                             );
                         }
                     };
                     global_phase_update = radd_param(global_phase_update, phase_update);
 
-                    // Evolve the single-qubit Pauli-Z with Z on the given qubit.
+                    // Evolve the single-qubit Pauli-Z/X with Z/X on the given qubit.
                     // Returns the evolved Pauli in the sparse format: (sign, pauli z, pauli x, indices),
                     // where signs `true` and `false` correspond to coefficients `-1` and `+1` respectively.
                     let (sign, z, x, indices) =
-                        clifford.get_inverse_z(dag.get_qargs(inst.qubits)[0].index());
+                        clifford.get_inverse_pauli(pauli, dag.get_qargs(inst.qubits)[0].index());
 
                     // In the legacy path, we add PauliEvolutionGate as rotation gates, otherwise
                     // we add PauliProductRotation. The new path should not call Python at any
@@ -303,7 +313,7 @@ pub fn run_litinski_transformation(
                     // Returns the evolved Pauli in the sparse format: (sign, pauli z, pauli x, indices),
                     // where signs `true` and `false` correspond to coefficients `-1` and `+1` respectively.
                     let (sign, z, x, indices) =
-                        clifford.get_inverse_z(dag.get_qargs(inst.qubits)[0].index());
+                        clifford.get_inverse_pauli("Z", dag.get_qargs(inst.qubits)[0].index());
                     let ppm = PauliProductMeasurement { z, x, neg: sign };
 
                     let ppm_clbits = dag.get_cargs(inst.clbits);

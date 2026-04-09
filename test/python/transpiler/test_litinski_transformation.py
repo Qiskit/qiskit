@@ -18,6 +18,15 @@ from ddt import ddt, data
 
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library import (
+    IGate,
+    XGate,
+    YGate,
+    ZGate,
+    HGate,
+    SGate,
+    SdgGate,
+    SXGate,
+    SXdgGate,
     QFTGate,
     PauliEvolutionGate,
     PauliProductMeasurement,
@@ -28,8 +37,8 @@ from qiskit.circuit.random import random_clifford_circuit
 from qiskit.compiler import transpile
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import LitinskiTransformation
-from qiskit.quantum_info import Operator, Pauli, SparseObservable
-from test import QiskitTestCase
+from qiskit.quantum_info import Operator, Pauli
+from test import QiskitTestCase, combine
 
 
 @ddt
@@ -519,3 +528,62 @@ class TestLitinskiTransformation(QiskitTestCase):
 
         ops = [op.name for op in out.data]
         self.assertListEqual(expected_ops, ops)
+
+    @combine(
+        p=["X", "Y", "Z"],
+        cliff=[
+            IGate(),
+            XGate(),
+            YGate(),
+            ZGate(),
+            SGate(),
+            SdgGate(),
+            HGate(),
+            SXGate(),
+            SXdgGate(),
+        ],
+    )
+    def test_single_qubit_evole_clifford_gate(self, p, cliff):
+        """Test that LitinskiTransformation is correct for one qubit rotations RX/RY/RZ
+        and all single qubit Clifford gates"""
+        circuit = QuantumCircuit(1)
+        circuit.append(cliff, [0])
+        circuit_in = circuit.copy()
+        pauli = Pauli(p)
+        pauli_ev = pauli.evolve(circuit)
+        if p == "X":
+            circuit_in.rx(1.0, 0)
+        elif p == "Z":
+            circuit_in.rz(1.0, 0)
+        elif p == "Y":
+            circuit_in.ry(1.0, 0)
+        transform = LitinskiTransformation(fix_clifford=True, use_ppr=True)
+        circuit_out = transform(circuit_in)
+        ppr = PauliProductRotationGate(pauli_ev, 1.0)
+        circuit_target = QuantumCircuit(1)
+        circuit_target.append(ppr, [0])
+        circuit_target.compose(circuit, [0], inplace=True)
+        self.assertEqual(circuit_out, circuit_target)
+
+    @data("X", "Y", "Z")
+    def test_single_qubit_evole_randon_clifford(self, p):
+        """Test that LitinskiTransformation is correct for one qubit rotations RX/RY/RZ
+        and random single qubit Clifford circuits"""
+        for seed in range(10):
+            circuit = random_clifford_circuit(1, num_gates=10, seed=seed)
+            circuit_in = circuit.copy()
+            pauli = Pauli(p)
+            pauli_ev = pauli.evolve(circuit)
+            if p == "X":
+                circuit_in.rx(1.0, 0)
+            elif p == "Z":
+                circuit_in.rz(1.0, 0)
+            elif p == "Y":
+                circuit_in.ry(1.0, 0)
+            transform = LitinskiTransformation(fix_clifford=True, use_ppr=True)
+            circuit_out = transform(circuit_in)
+            ppr = PauliProductRotationGate(pauli_ev, 1.0)
+            circuit_target = QuantumCircuit(1)
+            circuit_target.append(ppr, [0])
+            circuit_target.compose(circuit, [0], inplace=True)
+            self.assertEqual(circuit_out, circuit_target)
