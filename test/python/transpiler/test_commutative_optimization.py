@@ -1263,6 +1263,37 @@ measure q0[1] -> c0[1];
         qct = CommutativeOptimization()(qc)
         self.assertEqual(qct.size() == 1, should_cancel)
 
+    def test_remove_equivalent_to_identity(self):
+        """Test that PPRs equivalent to identity get removed, and the
+        global phase is updated correctly.
+        """
+        qc = QuantumCircuit(3)
+        qc.append(PauliProductRotationGate(Pauli("XYZ"), 2 * np.pi), [0, 1, 2])
+
+        qct = CommutativeOptimization()(qc)
+
+        qc_expected = QuantumCircuit(3, global_phase=np.pi)
+
+        self.assertEqual(qct, qc_expected)
+        self.assertEqual(Operator(qct), Operator(qc))
+
+    def test_merge_across_equivalent_to_identity(self):
+        """Test that two PPRs get merged when they are separated by a PPR
+        that is equivalent to identity.
+        """
+        qc = QuantumCircuit(4)
+        qc.append(PauliProductRotationGate(Pauli("XXZ"), 1), [0, 1, 2])
+        qc.append(PauliProductRotationGate(Pauli("XYZ"), 4 * np.pi), [0, 1, 2])
+        qc.append(PauliProductRotationGate(Pauli("XXZ"), 1), [0, 1, 2])
+
+        qct = CommutativeOptimization()(qc)
+
+        qc_expected = QuantumCircuit(4)
+        qc_expected.append(PauliProductRotationGate(Pauli("XXZ"), 2), [0, 1, 2])
+
+        self.assertEqual(qct, qc_expected)
+        self.assertEqual(Operator(qct), Operator(qc))
+
 
 if __name__ == "__main__":
     unittest.main()

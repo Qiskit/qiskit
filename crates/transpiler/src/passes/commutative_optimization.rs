@@ -575,6 +575,7 @@ pub fn run_commutative_optimization(
         if let Some(phase_update) = is_identity_equiv(instr1, false, Some(0), error_cutoff_fn)? {
             node_actions[idx1] = NodeAction::Drop;
             new_global_phase = radd_param(new_global_phase, Param::Float(phase_update));
+            modified = true;
             continue;
         }
 
