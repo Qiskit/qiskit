@@ -562,7 +562,8 @@ impl MinPointState {
             true
         } else if (new_depth, new_size) > (self.best_depth, self.best_size) {
             self.count += 1;
-            true
+            // Limit backtracking to avoid infinite loops
+            self.count < 5
         } else if (new_depth, new_size) < (self.best_depth, self.best_size) {
             self.count = 1;
             self.best_depth = new_depth;
@@ -570,6 +571,8 @@ impl MinPointState {
             self.best_dag = dag.clone();
             true
         } else {
+            // When depth and size are unchanged, we reach a fixed point
+            // and can stop the optimization loop
             false
         }
     }
