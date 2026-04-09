@@ -28,7 +28,7 @@ use rand::prelude::*;
 use rand_distr::Bernoulli;
 use rand_pcg::Pcg64Mcg;
 
-use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
+use qiskit_util::py::{PySequenceIndex, SequenceIndex};
 
 use super::qubit_sparse_pauli::{
     ArithmeticError, CoherenceError, InnerReadError, InnerWriteError, LabelError, Pauli,

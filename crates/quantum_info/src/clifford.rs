@@ -13,7 +13,6 @@ use std::fmt;
 
 use fixedbitset::FixedBitSet;
 use ndarray::{Array2, ArrayView2};
-use qiskit_circuit::Qubit;
 
 /// Symplectic matrix.
 pub struct SymplecticMatrix {
@@ -295,7 +294,7 @@ impl Clifford {
         &self,
         pauli: &str,
         qbit: usize,
-    ) -> (bool, Vec<bool>, Vec<bool>, Vec<Qubit>) {
+    ) -> (bool, Vec<bool>, Vec<bool>, Vec<usize>) {
         let mut z = Vec::with_capacity(self.num_qubits);
         let mut x = Vec::with_capacity(self.num_qubits);
         let mut indices = Vec::with_capacity(self.num_qubits);
@@ -322,7 +321,7 @@ impl Clifford {
             if z_bit || x_bit {
                 z.push(z_bit);
                 x.push(x_bit);
-                indices.push(Qubit::new(i));
+                indices.push(i);
                 if x_bit {
                     pauli_indices.push(i);
                 }

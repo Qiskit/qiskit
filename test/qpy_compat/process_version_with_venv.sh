@@ -49,7 +49,7 @@ venv_dir="$(pwd -P)/venvs/$package-$version"
 if [[ ! -d $cache_dir ]] ; then
     echo "Building venv for $package==$version"
     "$python" -m venv "$venv_dir"
-    "$venv_dir/bin/pip" install -c "${our_dir}/qpy_test_constraints.txt" "${package}==${version}"
+    "$venv_dir/bin/pip" install -c "${our_dir}/qpy_test_constraints.txt" "${package}==${version}" packaging
     mkdir -p "$cache_dir"
     pushd "$cache_dir"
     echo "Generating QPY files with $package==$version"
