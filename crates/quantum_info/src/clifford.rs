@@ -305,14 +305,17 @@ impl Clifford {
         for i in 0..self.num_qubits {
             let (z_bit, x_bit) = match (pauli_z, pauli_x) {
                 ([true], [false]) => (
+                    // pauli Z
                     self.tableau[qbit][i],
                     self.tableau[qbit][i + self.num_qubits],
                 ),
                 ([false], [true]) => (
+                    // pauli X
                     self.tableau[qbit + self.num_qubits][i],
                     self.tableau[qbit + self.num_qubits][i + self.num_qubits],
                 ),
                 ([true], [true]) => (
+                    // pauli Y
                     self.tableau[qbit + self.num_qubits][i] ^ self.tableau[qbit][i],
                     self.tableau[qbit + self.num_qubits][i + self.num_qubits]
                         ^ self.tableau[qbit][i + self.num_qubits],
