@@ -292,7 +292,8 @@ impl Clifford {
     /// Returns the evolved Pauli in the a sparse ZX format: (sign, z, x, indices).
     pub fn get_inverse_pauli(
         &self,
-        pauli: &str,
+        pauli_z: &[bool],
+        pauli_x: &[bool],
         qbit: usize,
     ) -> (bool, Vec<bool>, Vec<bool>, Vec<usize>) {
         let mut z = Vec::with_capacity(self.num_qubits);
@@ -302,16 +303,16 @@ impl Clifford {
         // Compute the y-count to avoid recomputing it later
         let mut pauli_y_count: u32 = 0;
         for i in 0..self.num_qubits {
-            let (z_bit, x_bit) = match pauli {
-                "Z" => (
+            let (z_bit, x_bit) = match (pauli_z, pauli_x) {
+                ([true], [false]) => (
                     self.tableau[qbit][i],
                     self.tableau[qbit][i + self.num_qubits],
                 ),
-                "X" => (
+                ([false], [true]) => (
                     self.tableau[qbit + self.num_qubits][i],
                     self.tableau[qbit + self.num_qubits][i + self.num_qubits],
                 ),
-                "Y" => (
+                ([true], [true]) => (
                     self.tableau[qbit + self.num_qubits][i] ^ self.tableau[qbit][i],
                     self.tableau[qbit + self.num_qubits][i + self.num_qubits]
                         ^ self.tableau[qbit][i + self.num_qubits],

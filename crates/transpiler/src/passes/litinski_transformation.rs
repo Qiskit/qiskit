@@ -226,29 +226,35 @@ pub fn run_litinski_transformation(
                 | OperationRef::StandardGate(StandardGate::Phase)
                 | OperationRef::StandardGate(StandardGate::U1) => {
                     // Convert T and Tdg gates to RZ rotations
-                    let (pauli, angle, phase_update) = match inst.op.view() {
-                        OperationRef::StandardGate(StandardGate::T) => {
-                            ("Z", Param::Float(FRAC_PI_4), Param::Float(FRAC_PI_8))
-                        }
-                        OperationRef::StandardGate(StandardGate::Tdg) => {
-                            ("Z", Param::Float(-FRAC_PI_4), Param::Float(-FRAC_PI_8))
-                        }
+                    let (pauli_z, pauli_x, angle, phase_update) = match inst.op.view() {
+                        OperationRef::StandardGate(StandardGate::T) => (
+                            &[true],
+                            &[false],
+                            Param::Float(FRAC_PI_4),
+                            Param::Float(FRAC_PI_8),
+                        ),
+                        OperationRef::StandardGate(StandardGate::Tdg) => (
+                            &[true],
+                            &[false],
+                            Param::Float(-FRAC_PI_4),
+                            Param::Float(-FRAC_PI_8),
+                        ),
                         OperationRef::StandardGate(StandardGate::RZ) => {
                             let param = &inst.params_view()[0];
-                            ("Z", param.clone(), Param::Float(0.))
+                            (&[true], &[false], param.clone(), Param::Float(0.))
                         }
                         OperationRef::StandardGate(StandardGate::Phase)
                         | OperationRef::StandardGate(StandardGate::U1) => {
                             let param = &inst.params_view()[0];
-                            ("Z", param.clone(), multiply_param(param, 0.5))
+                            (&[true], &[false], param.clone(), multiply_param(param, 0.5))
                         }
                         OperationRef::StandardGate(StandardGate::RX) => {
                             let param = &inst.params_view()[0];
-                            ("X", param.clone(), Param::Float(0.))
+                            (&[false], &[true], param.clone(), Param::Float(0.))
                         }
                         OperationRef::StandardGate(StandardGate::RY) => {
                             let param = &inst.params_view()[0];
-                            ("Y", param.clone(), Param::Float(0.))
+                            (&[true], &[true], param.clone(), Param::Float(0.))
                         }
                         _ => {
                             unreachable!(
@@ -261,8 +267,11 @@ pub fn run_litinski_transformation(
                     // Evolve the single-qubit Pauli-Z/X with Z/X on the given qubit.
                     // Returns the evolved Pauli in the sparse format: (sign, pauli z, pauli x, indices),
                     // where signs `true` and `false` correspond to coefficients `-1` and `+1` respectively.
-                    let (sign, z, x, indices) =
-                        clifford.get_inverse_pauli(pauli, dag.get_qargs(inst.qubits)[0].index());
+                    let (sign, z, x, indices) = clifford.get_inverse_pauli(
+                        pauli_z,
+                        pauli_x,
+                        dag.get_qargs(inst.qubits)[0].index(),
+                    );
                     qargs.clear();
                     qargs.extend(indices.iter().map(|i| Qubit::new(*i)));
 
@@ -316,8 +325,11 @@ pub fn run_litinski_transformation(
                 OperationRef::StandardInstruction(StandardInstruction::Measure) => {
                     // Returns the evolved Pauli in the sparse format: (sign, pauli z, pauli x, indices),
                     // where signs `true` and `false` correspond to coefficients `-1` and `+1` respectively.
-                    let (sign, z, x, indices) =
-                        clifford.get_inverse_pauli("Z", dag.get_qargs(inst.qubits)[0].index());
+                    let (sign, z, x, indices) = clifford.get_inverse_pauli(
+                        &[true],
+                        &[false],
+                        dag.get_qargs(inst.qubits)[0].index(),
+                    );
                     qargs.clear();
                     qargs.extend(indices.iter().map(|i| Qubit::new(*i)));
 
