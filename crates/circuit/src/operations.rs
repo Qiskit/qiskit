@@ -1733,12 +1733,12 @@ impl PauliProductRotation {
             return None;
         };
 
-        let pauli_product = compressed.to_matrix_dense(false);
-        let identity = Array2::eye(2usize.pow(self.num_qubits()));
-        Some(
-            c64((coeff / 2.0).cos(), 0.0) * identity
-                + c64(0.0, -(coeff / 2.0).sin()) * pauli_product,
-        )
+        let mut out = c64(0.0, -(coeff / 2.0).sin()) * compressed.to_matrix_dense(false);
+        let cos = c64((coeff / 2.0).cos(), 0.0);
+        for i in 0..out.ncols() {
+            out[(i, i)] += cos;
+        }
+        Some(out)
     }
 }
 

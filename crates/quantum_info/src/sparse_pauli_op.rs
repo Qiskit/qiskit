@@ -34,8 +34,8 @@ use crate::rayon_ext::*;
 
 #[derive(Error, Debug)]
 pub enum PauliCompressionError {
-    #[error("{num_qubits} is too many qubits to convert to a matrix")]
-    TooManyQubits { num_qubits: usize },
+    #[error("{0} is too many qubits to convert to a matrix")]
+    TooManyQubits(usize),
     #[error("Incompatible Z and X shapes: {z:?} and {x:?}")]
     IncompatibleShapes {
         z: (usize, usize),
@@ -292,7 +292,7 @@ impl MatrixCompressedPaulis {
         // for the index and indptr types, so (except for some synthetic cases), it's not possible
         // for us to work with a larger matrix than this.
         if num_qubits > 63 {
-            return Err(PauliCompressionError::TooManyQubits { num_qubits });
+            return Err(PauliCompressionError::TooManyQubits(num_qubits));
         }
 
         let x_like = pack_bits(x).expect("x should already be validated as <64 qubits");
