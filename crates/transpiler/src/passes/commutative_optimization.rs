@@ -298,6 +298,8 @@ fn commute(
 
     // To check commutation of two Pauli-based gates, we extract their Pauli generators
     // and check whether they commute.
+    // Note that we have previously removed all PPRs equivalent to identity up to a global
+    // phase, so this is both a necessary and a sufficient condition.
     if matches!(
         op1,
         OperationRef::PauliProductRotation(_) | OperationRef::PauliProductMeasurement(_)
@@ -545,6 +547,7 @@ pub fn run_commutative_optimization(
     matrix_max_num_qubits: u32,
 ) -> PyResult<Option<DAGCircuit>> {
     let tol = 1e-12_f64.max(1. - approximation_degree);
+    let error_cutoff_fn = |_inst: &PackedInstruction| -> f64 { tol };
 
     // Create output DAG.
     // We will use it to intern qubits of canonicalized instructions.
@@ -566,6 +569,12 @@ pub fn run_commutative_optimization(
 
         // For now, assume that control-flow operations do not commute with anything.
         if instr1.op.try_control_flow().is_some() {
+            continue;
+        }
+
+        if let Some(phase_update) = is_identity_equiv(instr1, false, Some(0), error_cutoff_fn)? {
+            node_actions[idx1] = NodeAction::Drop;
+            new_global_phase = radd_param(new_global_phase, Param::Float(phase_update));
             continue;
         }
 
