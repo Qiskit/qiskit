@@ -284,7 +284,7 @@ fn pack_parameter_replay_entry(
             (ParameterType::Parameter, *parameter.symbol.uuid.as_bytes())
         }
         ParameterValueType::VectorElement(element) => (
-            ParameterType::ParameterVector,
+            ParameterType::Parameter, // Python QPY expects Parameter, not ParameterVector
             *element.symbol.uuid.as_bytes(),
         ),
     })
@@ -301,7 +301,6 @@ pub(crate) fn unpack_parameter_expression(
     } else {
         HashMap::with_capacity(0)
     };
-
     for item in &parameter_expression_pack.symbol_table_data {
         let (symbol_uuid, value, symbol_name) = match item {
             formats::ParameterExpressionSymbolPack::ParameterExpression(_) => {
@@ -328,11 +327,7 @@ pub(crate) fn unpack_parameter_expression(
                     }
                     _ => load_value(symbol_pack.value_key, &symbol_pack.value_data, qpy_data)?,
                 };
-                (
-                    symbol_pack.symbol_data.uuid,
-                    value,
-                    symbol_pack.symbol_data.name.clone(),
-                )
+                (symbol_pack.symbol_data.uuid, value, symbol.repr(false))
             }
         };
         param_uuid_map.insert(symbol_uuid, value.clone());

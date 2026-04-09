@@ -78,6 +78,7 @@ class QCircuitImage:
                circuit. Defaults to True.
             initial_state (bool): Optional. Adds |0> in the beginning of the line. Default: `False`.
             cregbundle (bool): Optional. If set True bundle classical registers.
+            with_layout (bool): Optional. If set to True display the layout in the circuit.
             circuit (QuantumCircuit): the circuit that's being displayed
             barrier_label_len (int): Optional. The number of characters to display for
                barrier labels. If this number is exceeded, the string will be truncated.

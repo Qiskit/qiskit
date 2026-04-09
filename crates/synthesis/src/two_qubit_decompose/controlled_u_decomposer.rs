@@ -13,7 +13,7 @@
 use approx::abs_diff_eq;
 use num_complex::Complex64;
 use smallvec::{SmallVec, smallvec};
-use std::f64::consts::PI;
+use std::f64::consts::FRAC_PI_2;
 
 use ndarray::prelude::*;
 use numpy::PyReadonlyArray2;
@@ -37,8 +37,6 @@ use qiskit_circuit::{NoBlocks, Qubit};
 use super::common::DEFAULT_FIDELITY;
 use super::gate_sequence::TwoQubitGateSequence;
 use super::weyl_decomposition::{Specialization, TwoQubitWeylDecomposition};
-
-const PI2: f64 = PI / 2.;
 
 /// invert 1q gate sequence
 fn invert_1q_gate(
@@ -458,7 +456,7 @@ impl TwoQubitControlledUDecomposer {
     /// Initialize the KAK decomposition.
     pub fn new_inner(rxx_equivalent_gate: RXXEquivalent, euler_basis: &str) -> PyResult<Self> {
         let atol = DEFAULT_ATOL;
-        let test_angles = [0.2, 0.3, PI2];
+        let test_angles = [0.2, 0.3, FRAC_PI_2];
 
         let scales: PyResult<Vec<f64>> = test_angles
             .into_iter()

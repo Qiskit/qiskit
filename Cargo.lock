@@ -190,9 +190,9 @@ dependencies = [
 
 [[package]]
 name = "bitfield-struct"
-version = "0.12.1"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8769c4854c5ada2852ddf6fd09d15cf43d4c2aaeccb4de6432f5402f08a6003b"
+checksum = "3ca6739863c590881f038d033a146c51ddae239186a4327014839fd864f44ed5"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1119,9 +1119,9 @@ checksum = "3d3067d79b975e8844ca9eb072e16b31c3c1c36928edf9c6789548c524d0d954"
 
 [[package]]
 name = "indexmap"
-version = "2.13.0"
+version = "2.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7714e70437a7dc3ac8eb7e6f8df75fd8eb422675fc7678aff7364301092b1017"
+checksum = "45a8a2b9cb3e0b0c1803dbb0758ffac5de2f425b23c28f518faabd9d805342ff"
 dependencies = [
  "equivalent",
  "hashbrown 0.16.1",
@@ -1945,9 +1945,9 @@ dependencies = [
 
 [[package]]
 name = "pyo3"
-version = "0.28.2"
+version = "0.28.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf85e27e86080aafd5a22eae58a162e133a589551542b3e5cee4beb27e54f8e1"
+checksum = "91fd8e38a3b50ed1167fb981cd6fd60147e091784c427b8f7183a7ee32c31c12"
 dependencies = [
  "hashbrown 0.15.5",
  "indexmap",
@@ -1965,18 +1965,18 @@ dependencies = [
 
 [[package]]
 name = "pyo3-build-config"
-version = "0.28.2"
+version = "0.28.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8bf94ee265674bf76c09fa430b0e99c26e319c945d96ca0d5a8215f31bf81cf7"
+checksum = "e368e7ddfdeb98c9bca7f8383be1648fd84ab466bf2bc015e94008db6d35611e"
 dependencies = [
  "target-lexicon",
 ]
 
 [[package]]
 name = "pyo3-ffi"
-version = "0.28.2"
+version = "0.28.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "491aa5fc66d8059dd44a75f4580a2962c1862a1c2945359db36f6c2818b748dc"
+checksum = "7f29e10af80b1f7ccaf7f69eace800a03ecd13e883acfacc1e5d0988605f651e"
 dependencies = [
  "libc",
  "pyo3-build-config",
@@ -1984,9 +1984,9 @@ dependencies = [
 
 [[package]]
 name = "pyo3-macros"
-version = "0.28.2"
+version = "0.28.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f5d671734e9d7a43449f8480f8b38115df67bef8d21f76837fa75ee7aaa5e52e"
+checksum = "df6e520eff47c45997d2fc7dd8214b25dd1310918bbb2642156ef66a67f29813"
 dependencies = [
  "proc-macro2",
  "pyo3-macros-backend",
@@ -1996,9 +1996,9 @@ dependencies = [
 
 [[package]]
 name = "pyo3-macros-backend"
-version = "0.28.2"
+version = "0.28.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22faaa1ce6c430a1f71658760497291065e6450d7b5dc2bcf254d49f66ee700a"
+checksum = "c4cdc218d835738f81c2338f822078af45b4afdf8b2e33cbb5916f108b813acb"
 dependencies = [
  "heck",
  "proc-macro2",
@@ -2036,6 +2036,7 @@ dependencies = [
  "qiskit-circuit",
  "qiskit-quantum-info",
  "qiskit-transpiler",
+ "qiskit-util",
  "rand 0.9.2",
  "rand_distr",
  "rand_pcg",
@@ -2112,6 +2113,8 @@ dependencies = [
  "num-traits",
  "numpy",
  "pyo3",
+ "qiskit-quantum-info",
+ "qiskit-util",
  "rayon",
  "rustworkx-core",
  "smallvec",
@@ -2135,6 +2138,7 @@ dependencies = [
  "qiskit-circuit",
  "qiskit-quantum-info",
  "qiskit-synthesis",
+ "qiskit-util",
  "rand 0.9.2",
  "rand_distr",
  "rand_pcg",
@@ -2203,6 +2207,7 @@ dependencies = [
  "indexmap",
  "num-bigint",
  "num-complex",
+ "num-traits",
  "numpy",
  "oq3_semantics",
  "pyo3",
@@ -2232,6 +2237,7 @@ dependencies = [
  "numpy",
  "pyo3",
  "qiskit-circuit",
+ "qiskit-util",
  "rand 0.9.2",
  "rand_distr",
  "rand_pcg",
@@ -2261,6 +2267,7 @@ dependencies = [
  "pyo3",
  "qiskit-circuit",
  "qiskit-quantum-info",
+ "qiskit-util",
  "rand 0.9.2",
  "rand_distr",
  "rand_pcg",
@@ -2293,6 +2300,7 @@ dependencies = [
  "qiskit-circuit",
  "qiskit-quantum-info",
  "qiskit-synthesis",
+ "qiskit-util",
  "rand 0.9.2",
  "rand_pcg",
  "rayon",
@@ -2301,6 +2309,15 @@ dependencies = [
  "smallvec",
  "thiserror 2.0.18",
  "uuid",
+]
+
+[[package]]
+name = "qiskit-util"
+version = "2.5.0-dev"
+dependencies = [
+ "num-complex",
+ "pyo3",
+ "thiserror 2.0.18",
 ]
 
 [[package]]
@@ -3061,9 +3078,9 @@ checksum = "7df058c713841ad818f1dc5d3fd88063241cc61f49f5fbea4b951e8cf5a8d71d"
 
 [[package]]
 name = "unicode-segmentation"
-version = "1.12.0"
+version = "1.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6ccf251212114b54433ec949fd6a7841275f9ada20dddd2f29e9ceea4501493"
+checksum = "9629274872b2bfaf8d66f5f15725007f635594914870f65218920345aa11aa8c"
 
 [[package]]
 name = "unicode-width"
@@ -3091,9 +3108,9 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 
 [[package]]
 name = "uuid"
-version = "1.22.0"
+version = "1.23.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a68d3c8f01c0cfa54a75291d83601161799e4a89a39e0929f4b0354d88757a37"
+checksum = "5ac8b6f42ead25368cf5b098aeb3dc8a1a2c05a3eee8a9a1a68c640edbfc79d9"
 dependencies = [
  "getrandom 0.4.2",
  "js-sys",
