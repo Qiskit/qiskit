@@ -901,7 +901,7 @@ mod tests {
         let dag2 = DAGCircuit::from_circuit_data(&circuit2, false, None, None, None, None).unwrap();
         let mut state = MinPointState::new(&dag1);
 
-        state.update_with(&dag1); // initialize best
+        state.update_with(&dag1);
         for i in 0..5 {
             let continue_loop = state.update_with(&dag2);
             if i < 4 {
@@ -937,7 +937,7 @@ mod tests {
         let dag_best = DAGCircuit::from_circuit_data(&circuit3, false, None, None, None, None).unwrap();
         let mut state = MinPointState::new(&dag_worst);
 
-        state.update_with(&dag_worst); 
+        state.update_with(&dag_worst);
         state.update_with(&dag_better);
         for _i in 0..3 {
             state.update_with(&dag_worst);
