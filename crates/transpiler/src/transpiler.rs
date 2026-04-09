@@ -848,52 +848,32 @@ mod tests {
             assert!(result.1.output_permutation().is_some());
         }
     }
+    
     #[test]
     fn test_update_best_dag() {
+        let circuit1 = CircuitData::from_packed_operations(
+            1,
+            1,
+            vec![Ok((
+                StandardGate::H.into(),
+                smallvec![],
+                vec![Qubit(0)],
+                vec![],
+            ))],
+            Param::Float(0.),
+        )
+        .unwrap();
 
-        fn make_dag_with_ops(num_qubits: u32, add_gate: bool) -> DAGCircuit {
-            let ops = if add_gate {
-                vec![Ok((
-                    StandardGate::H.into(),
-                    smallvec![],
-                    vec![Qubit(0)],
-                    vec![],
-                ))]
-            } else {
-                vec![]
-            };
-
-            let circuit = CircuitData::from_packed_operations(
-                num_qubits,
-                num_qubits,
-                ops,
-                Param::Float(0.),
-            )
-            .unwrap();
-
-            DAGCircuit::from_circuit_data(&circuit, false, None, None, None, None).unwrap()
-        }
-
-
-        let dag1 = make_dag_with_ops(1, true);
-        let dag2 = make_dag_with_ops(1, false);
+        let dag1 = DAGCircuit::from_circuit_data(&circuit1, false, None, None, None, None).unwrap();
+        let circuit2 = CircuitData::from_packed_operations(1, 1, vec![], Param::Float(0.)).unwrap();
+        let dag2 = DAGCircuit::from_circuit_data(&circuit2, false, None, None, None, None).unwrap();
 
         let mut state = MinPointState::new(&dag1);
-
         assert!(state.update_with(&dag1));
-
-        state.best_depth = Some(10);
-        state.best_size = Some(10);
-
         state.update_with(&dag2);
-
-        let best_depth = state.best_dag.depth(false).unwrap();
-
-        let dag2_depth = dag2.depth(false).unwrap();
-
         assert_eq!(
-            best_depth, dag2_depth,
-            "best_dag was not updated to the better DAG"
+            state.best_dag.depth(false).unwrap(),
+            dag2.depth(false).unwrap()
         );
         assert_eq!(
             state.best_dag.size(false).unwrap(),
