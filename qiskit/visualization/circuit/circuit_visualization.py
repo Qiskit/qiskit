@@ -382,6 +382,7 @@ def circuit_drawer(
             wire_order=complete_wire_order,
             expr_len=expr_len,
             measure_arrows=measure_arrows,
+            barrier_label_len=barrier_label_len,
         )
     else:
         raise VisualizationError(
