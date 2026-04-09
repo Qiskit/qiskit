@@ -2282,13 +2282,13 @@ class QuantumCircuit:
 
         if other.num_qubits > dest.num_qubits:
             raise CircuitError(
-                f"Cannot compose a circuit with {other.num_qubits} qubit(s) "
-                f"into a circuit with {dest.num_qubits} qubit(s)."
+                "Cannot compose onto a circuit with fewer qubits "
+                f"({other.num_qubits} > {dest.num_qubits})."
             )
         if other.num_clbits > dest.num_clbits:
             raise CircuitError(
-                f"Cannot compose a circuit with {other.num_clbits} classical bit(s) "
-                f"into a circuit with {dest.num_clbits} classical bit(s)."
+                "Cannot compose onto a circuit with fewer classical bits "
+                f"({other.num_clbits} > {dest.num_clbits})."
             )
 
         # Maps bits in 'other' to bits in 'dest'.

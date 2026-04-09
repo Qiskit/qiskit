@@ -979,7 +979,7 @@ class TestCircuitCompose(QiskitTestCase):
 
         with self.assertRaisesRegex(
             CircuitError,
-            r"Cannot compose a circuit with 2 qubit\(s\) into a circuit with 1 qubit\(s\)\.",
+            r"Cannot compose onto a circuit with fewer qubits \(2 > 1\)\.",
         ):
             base.compose(attempt)
 
@@ -990,10 +990,7 @@ class TestCircuitCompose(QiskitTestCase):
 
         with self.assertRaisesRegex(
             CircuitError,
-            (
-                r"Cannot compose a circuit with 2 classical bit\(s\) "
-                r"into a circuit with 1 classical bit\(s\)\."
-            ),
+            r"Cannot compose onto a circuit with fewer classical bits \(2 > 1\)\.",
         ):
             base.compose(attempt)
 
