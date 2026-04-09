@@ -1,9 +1,8 @@
 ---
 fixes:
   - |
-    Fixed two bugs in :class:.TemplateSubstitution: the optimized circuit's global_phase 
-    was silently reset to zero when substitutions were applied, and the template's global_phase 
-    was not subtracted from the output circuit after each substitution. 
-    Both produced a circuit not operator-equivalent to the input.
+    Fixed global phase handling in :class:`.TemplateSubstitution`, which previously
+    silently reset to input circuit's global phase to zero and didn't correct for global
+    phases of the templates.
 
     Fixes `#14537 <https://github.com/Qiskit/qiskit/issues/14537>`__.
