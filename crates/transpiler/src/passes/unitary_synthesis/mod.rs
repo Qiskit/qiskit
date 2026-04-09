@@ -14,7 +14,7 @@ mod decomposers;
 
 use hashbrown::HashSet;
 use indexmap::IndexSet;
-use nalgebra::{DMatrix, Matrix2};
+use nalgebra::Matrix2;
 use ndarray::prelude::*;
 use num_complex::Complex64;
 use std::hash;
@@ -412,9 +412,7 @@ fn synthesize_matrix_onto(
                     return Ok(false);
                 }
             }
-            let unitary =
-                DMatrix::from_fn(1 << num_qubits, 1 << num_qubits, |i, j| unitary[[i, j]]);
-            let circuit = quantum_shannon_decomposition(&unitary, None, None, None, None)?;
+            let circuit = quantum_shannon_decomposition(unitary.view(), None, None, None, None)?;
             let map = out.merge_qargs(circuit.qargs_interner(), |q| Some(qubits_local[q.index()]));
             out.add_global_phase(circuit.global_phase())?;
             for inst in circuit.data() {
