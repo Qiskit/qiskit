@@ -793,7 +793,10 @@ class TestTemplateMatching(QiskitTestCase):
             self.assertEqual(result_mult.count_ops(), {})
 
     def test_template_nonzero_global_phase_applied_to_circuit(self):
-        """Test that operator equivalence is preserved on partial template match with nonzero template global_phase (#14537)."""
+        """Test the template's global phase is respected.
+        
+        Regression test of #14537.
+        """
 
         template = QuantumCircuit(1)
         template.h(0)
