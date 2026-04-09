@@ -1,0 +1,10 @@
+fixes:
+  - |
+    Fixed issue in the C API ``qk_transpile()`` when using optimization level 3,
+    where the internal minimum-point tracking logic was not updating the stored
+    DAG even after finding a better circuit. This resulted in returning a 
+    circuit that did not match the best observed depth/size during optimization.
+
+    This fix ensures that the best DAG is updated consistently with the tracked
+    metrics and also introduces a bounded backtracking mechanism to avoid
+    potential infinite loops in the optimization stage.
