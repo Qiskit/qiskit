@@ -784,11 +784,13 @@ class TestTemplateMatching(QiskitTestCase):
 
         result_mult = TemplateOptimization([template])(circuit_in_mult)
 
-        self.assertAlmostEqual(float(result.global_phase), np.pi / 4)
-        self.assertEqual(result.count_ops(), {})
+        with self.subTest(msg="single template match"):
+            self.assertAlmostEqual(float(result.global_phase), np.pi / 4)
+            self.assertEqual(result.count_ops(), {})
 
-        self.assertAlmostEqual(float(result_mult.global_phase), np.pi / 3)
-        self.assertEqual(result_mult.count_ops(), {})
+        with self.subTest(msg="multiple template matches"):
+            self.assertAlmostEqual(float(result_mult.global_phase), np.pi / 3)
+            self.assertEqual(result_mult.count_ops(), {})
 
     def test_template_nonzero_global_phase_applied_to_circuit(self):
         """Test that operator equivalence is preserved on partial template match with nonzero template global_phase (#14537)."""
