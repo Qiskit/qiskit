@@ -1118,6 +1118,30 @@ class TestUnitarySynthesisTarget(QiskitTestCase):
         self.assertEqual(from_exact.count_ops()["cx"], 3)
         self.assertNotIn("cx", pass_approximate(qc).count_ops())
 
+    def test_problematic_unitary(self):
+        """Test on a circuit with a special unitary matrix that caused problems for
+        Quantum Shannon Decomposition based on nalgebra.
+
+        Based on regression test of #15870.
+        """
+        unitary_matrix = np.array(
+            [
+                [0j, 0j, 0j, 0j, 0j, 0j, 0j, (1 + 0j)],
+                [0j, 0j, 0j, 0j, 0j, 0j, (1 + 0j), 0j],
+                [0j, 0j, 0j, 0j, 0j, (1 + 0j), 0j, 0j],
+                [0j, (1 + 0j), 0j, 0j, 0j, 0j, 0j, 0j],
+                [0j, 0j, 0j, 0j, (1 + 0j), 0j, 0j, 0j],
+                [0j, 0j, (1 + 0j), 0j, 0j, 0j, 0j, 0j],
+                [0j, 0j, 0j, (1 + 0j), 0j, 0j, 0j, 0j],
+                [(1 + 0j), 0j, 0j, 0j, 0j, 0j, 0j, 0j],
+            ]
+        )
+
+        circuit = QuantumCircuit(3)
+        circuit.unitary(unitary_matrix, list(range(3)))
+
+        _ = UnitarySynthesis(basis_gates=["cx", "u"])(circuit)
+
 
 if __name__ == "__main__":
     unittest.main()
