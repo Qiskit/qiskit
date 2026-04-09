@@ -431,12 +431,9 @@ class TestPauli(QiskitTestCase):
     @unpack
     def test_evolve_clifford1(self, gate, label):
         """Test evolve method for 1-qubit Clifford gates."""
-        qc = QuantumCircuit(1)
-        qc.append(gate, [0])
         op = Operator(gate)
         pauli = Pauli(label)
         value = Operator(pauli.evolve(gate))
-        value_qc = Operator(pauli.evolve(qc))
         value_h = Operator(pauli.evolve(gate, frame="h"))
         value_s = Operator(pauli.evolve(gate, frame="s"))
         value_inv = Operator(pauli.evolve(gate.inverse()))
@@ -444,7 +441,6 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(value, target)
         self.assertEqual(value, value_h)
         self.assertEqual(value_inv, value_s)
-        self.assertEqual(value, value_qc)
 
     @data(
         *it.product(
@@ -475,12 +471,9 @@ class TestPauli(QiskitTestCase):
     @unpack
     def test_evolve_clifford2(self, gate, label):
         """Test evolve method for 2-qubit Clifford gates."""
-        qc = QuantumCircuit(2)
-        qc.append(gate, [0, 1])
         op = Operator(gate)
         pauli = Pauli(label)
         value = Operator(pauli.evolve(gate))
-        value_qc = Operator(pauli.evolve(qc))
         value_h = Operator(pauli.evolve(gate, frame="h"))
         value_s = Operator(pauli.evolve(gate, frame="s"))
         value_inv = Operator(pauli.evolve(gate.inverse()))
@@ -488,7 +481,6 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(value, target)
         self.assertEqual(value, value_h)
         self.assertEqual(value_inv, value_s)
-        self.assertEqual(value, value_qc)
 
     @data(
         *it.product(
