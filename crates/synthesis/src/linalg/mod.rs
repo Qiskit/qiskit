@@ -43,11 +43,15 @@ pub enum LinAlgError {
 impl From<LinAlgError> for PyErr {
     fn from(error: LinAlgError) -> Self {
         match error {
-            LinAlgError::EigenDecompositionFailed => {
-                QiskitError::new_err("Eigen decomposition failed")
-            }
+            LinAlgError::EigenDecompositionFailed => QiskitError::new_err(
+                "Internal eigendecomposition failed. \
+                This can point to a numerical tolerance issue.",
+            ),
 
-            LinAlgError::SVDDecompositionFailed => QiskitError::new_err("SVD decomposition failed"),
+            LinAlgError::SVDDecompositionFailed => QiskitError::new_err(
+                "Internal SVD decomposition failed. \
+                This can point to a numerical tolerance issue.",
+            ),
         }
     }
 }
