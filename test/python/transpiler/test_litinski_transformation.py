@@ -27,6 +27,13 @@ from qiskit.circuit.library import (
     SdgGate,
     SXGate,
     SXdgGate,
+    CXGate,
+    CYGate,
+    CZGate,
+    DCXGate,
+    SwapGate,
+    iSwapGate,
+    ECRGate,
     QFTGate,
     PauliEvolutionGate,
     PauliProductMeasurement,
@@ -587,3 +594,44 @@ class TestLitinskiTransformation(QiskitTestCase):
             circuit_target.append(ppr, [0])
             circuit_target.compose(circuit, [0], inplace=True)
             self.assertEqual(circuit_out, circuit_target)
+
+    @combine(
+        p=["X", "Y", "Z"],
+        cliff=[
+            CXGate(),
+            CYGate(),
+            CZGate(),
+            DCXGate(),
+            SwapGate(),
+            iSwapGate(),
+            ECRGate(),
+        ],
+        qbit=[0, 1],
+    )
+    def test_two_qubit_evole_clifford_gate(self, p, cliff, qbit):
+        """Test that LitinskiTransformation is correct for one qubit rotations RX/RY/RZ
+        and all two qubit Clifford gates"""
+        circuit = QuantumCircuit(2)
+        circuit.append(cliff, [0, 1])
+        circuit_in = circuit.copy()
+        if qbit == 0:
+            pauli = Pauli("I" + p)
+        else:
+            pauli = Pauli(p + "I")
+        pauli_ev = pauli.evolve(circuit)
+        if p == "X":
+            circuit_in.rx(1.0, qbit)
+        elif p == "Z":
+            circuit_in.rz(1.0, qbit)
+        elif p == "Y":
+            circuit_in.ry(1.0, qbit)
+        transform = LitinskiTransformation(fix_clifford=True, use_ppr=True)
+        circuit_out = transform(circuit_in)
+        ppr = PauliProductRotationGate(pauli_ev, 1.0)
+        circuit_target = QuantumCircuit(2)
+        circuit_target.append(ppr, [0, 1])
+        circuit_target.compose(circuit, [0, 1], inplace=True)
+        # we check Operators equality and not circuit equality
+        # since PPR('IZ') is not the same gate as PPR(Z)=RZ on qubit 0
+        self.assertEqual(Operator(circuit_in), Operator(circuit_out))
+        self.assertEqual(Operator(circuit_out), Operator(circuit_target))
