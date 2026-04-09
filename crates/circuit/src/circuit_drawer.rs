@@ -1338,6 +1338,61 @@ c: ═══════╩══
     }
 
     #[test]
+    fn test_mixed_single_and_multi_bit_registers() {
+        // Single-bit registers ("q", "c") mixed with multi-bit registers ("qr", "cr").
+        // Single-bit ones render without the index suffix ("q:", "c:").
+        // Multi-bit ones keep the index ("qr_0:", "qr_1:", "cr_0:", "cr_1:").
+        let q = QuantumRegister::new_owning("q", 1);
+        let qr = QuantumRegister::new_owning("qr", 2);
+        let c = ClassicalRegister::new_owning("c", 1);
+        let cr = ClassicalRegister::new_owning("cr", 2);
+
+        let qubits: Vec<ShareableQubit> = (0..q.len())
+            .map(|i| q.get(i).expect("index in range"))
+            .chain((0..qr.len()).map(|i| qr.get(i).expect("index in range")))
+            .collect();
+        let clbits: Vec<ShareableClbit> = (0..c.len())
+            .map(|i| c.get(i).expect("index in range"))
+            .chain((0..cr.len()).map(|i| cr.get(i).expect("index in range")))
+            .collect();
+
+        let mut circuit = CircuitData::new(Some(qubits), Some(clbits), Param::Float(0.0)).unwrap();
+        _ = circuit.add_creg(c, true);
+        _ = circuit.add_creg(cr, true);
+        _ = circuit.add_qreg(q, true);
+        _ = circuit.add_qreg(qr, true);
+
+        circuit
+            .push_standard_gate(StandardGate::H, &[], &[Qubit::new(0)])
+            .unwrap();
+        circuit
+            .push_standard_gate(StandardGate::H, &[], &[Qubit::new(1)])
+            .unwrap();
+
+        let result = draw_circuit(&circuit, false, false, Some(100)).unwrap();
+        let expected = "
+      ┌───┐
+   q: ┤ H ├
+      └───┘
+      ┌───┐
+qr_0: ┤ H ├
+      └───┘
+
+qr_1: ─────
+
+
+   c: ═════
+
+
+cr_0: ═════
+
+
+cr_1: ═════
+";
+        assert_eq!(result, expected.trim_start_matches("\n"));
+    }
+
+    #[test]
     fn test_fold() {
         let mut circuit = basic_circuit();
 
